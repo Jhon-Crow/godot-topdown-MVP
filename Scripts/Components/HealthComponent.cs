@@ -95,16 +95,20 @@ public partial class HealthComponent : Node
     /// </summary>
     public void InitializeHealth()
     {
+        string ownerName = GetParent()?.Name ?? "Unknown";
+
         if (UseRandomHealth)
         {
             // Generate random health between min and max (inclusive)
             int randomHealth = GD.RandRange(MinRandomHealth, MaxRandomHealth);
             MaxHealth = MaxRandomHealth;
             CurrentHealth = randomHealth;
+            GD.Print($"[HealthComponent] {ownerName}: Initialized with random health {CurrentHealth}/{MaxHealth} (range: {MinRandomHealth}-{MaxRandomHealth})");
         }
         else
         {
             CurrentHealth = InitialHealth > 0 ? InitialHealth : MaxHealth;
+            GD.Print($"[HealthComponent] {ownerName}: Initialized with health {CurrentHealth}/{MaxHealth}");
         }
 
         EmitSignal(SignalName.HealthChanged, CurrentHealth, MaxHealth);
@@ -121,16 +125,19 @@ public partial class HealthComponent : Node
             return;
         }
 
+        string ownerName = GetParent()?.Name ?? "Unknown";
         float previousHealth = CurrentHealth;
         CurrentHealth = Mathf.Max(0, CurrentHealth - amount);
 
         float actualDamage = previousHealth - CurrentHealth;
+        GD.Print($"[HealthComponent] {ownerName}: Took {actualDamage} damage. Health: {previousHealth} -> {CurrentHealth}/{MaxHealth}");
 
         EmitSignal(SignalName.Damaged, actualDamage, CurrentHealth);
         EmitSignal(SignalName.HealthChanged, CurrentHealth, MaxHealth);
 
         if (!IsAlive)
         {
+            GD.Print($"[HealthComponent] {ownerName}: Died!");
             EmitSignal(SignalName.Died);
         }
     }
@@ -179,15 +186,19 @@ public partial class HealthComponent : Node
     /// </summary>
     public void ResetToMax()
     {
+        string ownerName = GetParent()?.Name ?? "Unknown";
+
         if (UseRandomHealth)
         {
             // Re-randomize health on reset
             int randomHealth = GD.RandRange(MinRandomHealth, MaxRandomHealth);
             CurrentHealth = randomHealth;
+            GD.Print($"[HealthComponent] {ownerName}: Reset with new random health {CurrentHealth}/{MaxHealth}");
         }
         else
         {
             CurrentHealth = MaxHealth;
+            GD.Print($"[HealthComponent] {ownerName}: Reset to max health {CurrentHealth}/{MaxHealth}");
         }
         EmitSignal(SignalName.HealthChanged, CurrentHealth, MaxHealth);
     }

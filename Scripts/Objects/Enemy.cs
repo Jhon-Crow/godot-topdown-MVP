@@ -142,6 +142,8 @@ public partial class Enemy : Area2D, IDamageable
         _healthComponent.MaxRandomHealth = 4;
         _healthComponent.InitializeHealth();
 
+        GD.Print($"[Enemy] {Name}: Spawned with health {_healthComponent.CurrentHealth}/{_healthComponent.MaxHealth}");
+
         // Connect signals
         _healthComponent.Died += OnHealthDied;
         _healthComponent.HealthChanged += OnHealthChanged;
@@ -155,6 +157,7 @@ public partial class Enemy : Area2D, IDamageable
     /// </summary>
     private void OnHealthChanged(float currentHealth, float maxHealth)
     {
+        GD.Print($"[Enemy] {Name}: Health changed to {currentHealth}/{maxHealth} ({_healthComponent?.HealthPercent * 100:F0}%)");
         UpdateHealthVisual();
     }
 
@@ -178,6 +181,7 @@ public partial class Enemy : Area2D, IDamageable
     /// </summary>
     private void OnHealthDied()
     {
+        GD.Print($"[Enemy] {Name}: Died!");
         OnDeath();
     }
 
@@ -205,6 +209,7 @@ public partial class Enemy : Area2D, IDamageable
         // Apply 1 damage (for hit-based system)
         if (_healthComponent != null && _healthComponent.IsAlive)
         {
+            GD.Print($"[Enemy] {Name}: Hit! Taking 1 damage. Current health: {_healthComponent.CurrentHealth}");
             // Show hit flash effect
             ShowHitFlash();
             _healthComponent.TakeDamage(1.0f);

@@ -104,19 +104,24 @@ public partial class Bullet : Area2D
     /// </summary>
     private void OnAreaEntered(Area2D area)
     {
+        GD.Print($"[Bullet]: Hit {area.Name} (damage: {Damage})");
+
         // Check if the target implements IDamageable
         if (area is IDamageable damageable)
         {
+            GD.Print($"[Bullet]: Target {area.Name} is IDamageable, applying {Damage} damage");
             damageable.TakeDamage(Damage);
         }
         // Fallback: Check for on_hit method (compatibility with GDScript targets)
         else if (area.HasMethod("on_hit"))
         {
+            GD.Print($"[Bullet]: Target {area.Name} has on_hit method, calling it");
             area.Call("on_hit");
         }
         // Also check for OnHit method (C# convention)
         else if (area.HasMethod("OnHit"))
         {
+            GD.Print($"[Bullet]: Target {area.Name} has OnHit method, calling it");
             area.Call("OnHit");
         }
 

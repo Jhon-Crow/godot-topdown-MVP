@@ -73,6 +73,8 @@ public partial class Player : BaseCharacter
             HealthComponent.MaxRandomHealth = 4;
             HealthComponent.InitializeHealth();
 
+            GD.Print($"[Player] {Name}: Spawned with health {HealthComponent.CurrentHealth}/{HealthComponent.MaxHealth}");
+
             // Connect to health changed signal for visual feedback
             HealthComponent.HealthChanged += OnPlayerHealthChanged;
         }
@@ -97,6 +99,7 @@ public partial class Player : BaseCharacter
     /// </summary>
     private void OnPlayerHealthChanged(float currentHealth, float maxHealth)
     {
+        GD.Print($"[Player] {Name}: Health changed to {currentHealth}/{maxHealth} ({HealthComponent?.HealthPercent * 100:F0}%)");
         UpdateHealthVisual();
     }
 
@@ -199,6 +202,8 @@ public partial class Player : BaseCharacter
         {
             return;
         }
+
+        GD.Print($"[Player] {Name}: Taking {amount} damage. Current health: {HealthComponent.CurrentHealth}");
 
         // Show hit flash effect
         ShowHitFlash();
