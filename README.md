@@ -1,43 +1,75 @@
 # Godot Top-Down Template
 
-A template project for creating top-down games in Godot 4.3+ with C# support.
+A template project for creating top-down games in Godot 4.3+ with support for both GDScript and C#.
+
+## Features
+
+- **Dual Language Support**: Works with both GDScript (default) and C# (optional)
+- **Top-down movement**: Smooth physics-based player movement with acceleration/friction
+- **Shooting mechanics**: Bullet projectiles with collision detection
+- **Target system**: Interactive targets that react when hit
+- **Pause menu**: With resume, controls rebinding, and quit options
+- **Key rebinding**: Full customization of input controls
+- **Clean architecture**: Interfaces, abstract classes, and reusable components (C#)
 
 ## Requirements
 
+### For GDScript (Default)
+- [Godot Engine 4.3](https://godotengine.org/download) or later (standard version)
+- OpenGL 3.3 / OpenGL ES 3.0 compatible graphics (most systems from 2012+)
+
+### For C# (Optional)
 - [Godot Engine 4.3 .NET](https://godotengine.org/download) or later (with C# support)
 - [.NET SDK 6.0](https://dotnet.microsoft.com/download/dotnet/6.0) or later
 - OpenGL 3.3 / OpenGL ES 3.0 compatible graphics (most systems from 2012+)
 
 ## Getting Started
 
+### Using GDScript (Default)
 1. Clone or download this repository
-2. Open Godot Engine
+2. Open Godot Engine (standard version)
 3. Click "Import" and select the `project.godot` file
-4. Press F5 to run the main scene
+4. Press F5 to run the test level (TestTier.tscn)
+
+### Using C# (Optional)
+1. Clone or download this repository
+2. Open Godot Engine .NET (with C# support)
+3. Click "Import" and select the `project.godot` file
+4. Press F5 to run the GDScript version (default)
+5. Or open `scenes/levels/csharp/TestTier.tscn` and press F6 to run the C# version
+6. Or change the main scene in project.godot to use C# versions
 
 ## Project Structure
 
 ```
 godot-topdown-template/
 ├── project.godot          # Godot project configuration
-├── GodotTopDownTemplate.csproj  # C# project file
-├── GodotTopDownTemplate.sln     # Visual Studio solution
+├── GodotTopDownTemplate.csproj  # C# project file (optional)
+├── GodotTopDownTemplate.sln     # Visual Studio solution (optional)
 ├── icon.svg               # Project icon
 ├── scenes/                # All game scenes (.tscn files)
 │   ├── main/              # Main scenes
 │   │   └── Main.tscn      # Main entry scene (runs on F5)
 │   ├── levels/            # Game levels/tiers
-│   │   └── TestTier.tscn  # Test level for development
+│   │   ├── TestTier.tscn  # Test level for development (GDScript)
+│   │   └── csharp/        # C# alternative scenes
+│   │       └── TestTier.tscn  # Test level with C# scripts
 │   ├── characters/        # Character scenes
-│   │   └── Player.tscn    # Player character with movement (C#)
+│   │   ├── Player.tscn    # Player character (GDScript)
+│   │   └── csharp/        # C# alternative scenes
+│   │       └── Player.tscn    # Player character (C#)
 │   ├── projectiles/       # Projectile scenes
-│   │   └── Bullet.tscn    # Bullet projectile (C#)
+│   │   ├── Bullet.tscn    # Bullet projectile (GDScript)
+│   │   └── csharp/        # C# alternative scenes
+│   │       └── Bullet.tscn    # Bullet projectile (C#)
 │   ├── objects/           # Game object scenes
-│   │   └── Target.tscn    # Shootable target/enemy (C#)
+│   │   ├── Target.tscn    # Shootable target (GDScript)
+│   │   └── csharp/        # C# alternative scenes
+│   │       └── Target.tscn    # Shootable target (C#)
 │   └── ui/                # UI scenes
 │       ├── PauseMenu.tscn # Pause menu with resume/controls/quit
 │       └── ControlsMenu.tscn # Key rebinding interface
-├── Scripts/               # C# scripts (.cs) - Main game logic
+├── Scripts/               # C# scripts (.cs) - Optional game logic
 │   ├── Interfaces/        # C# interfaces for architecture
 │   │   └── IDamageable.cs # Damage system interface
 │   ├── AbstractClasses/   # Base abstract classes
@@ -54,10 +86,16 @@ godot-topdown-template/
 │   │   └── Bullet.cs      # Bullet projectile
 │   └── Objects/           # Game objects
 │       └── Enemy.cs       # Enemy/target implementation
-├── scripts/               # GDScript files (.gd) - UI and utilities
+├── scripts/               # GDScript files (.gd) - Default game logic
 │   ├── main.gd            # Main scene script
 │   ├── levels/            # Level scripts
 │   │   └── test_tier.gd   # Test tier script
+│   ├── characters/        # Character scripts
+│   │   └── player.gd      # Player character controller
+│   ├── projectiles/       # Projectile scripts
+│   │   └── bullet.gd      # Bullet projectile
+│   ├── objects/           # Game object scripts
+│   │   └── target.gd      # Shootable target
 │   ├── autoload/          # Autoload/singleton scripts
 │   │   └── input_settings.gd # Input settings manager (singleton)
 │   ├── ui/                # UI scripts
@@ -71,9 +109,28 @@ godot-topdown-template/
 └── addons/                # Third-party Godot plugins
 ```
 
-## Architecture
+## Language Support
 
-This project uses a clean C# architecture following Godot best practices:
+### GDScript (Default)
+The default implementation uses GDScript for all game logic. GDScript is:
+- Beginner-friendly and easy to learn
+- Tightly integrated with Godot's node system
+- Works with any version of Godot (standard or .NET)
+- Located in the `scripts/` folder (lowercase)
+
+### C# (Optional)
+An optional C# architecture is included for developers who prefer static typing and OOP patterns. C# features:
+- Interfaces for clean architecture (`IDamageable`)
+- Abstract base classes for code reuse (`BaseCharacter`, `BaseWeapon`)
+- Reusable components (`HealthComponent`)
+- Data resources for configuration (`WeaponData`, `BulletData`)
+- Located in the `Scripts/` folder (uppercase)
+
+To use C# scenes, open scenes from the `csharp/` subdirectories instead of the default scenes.
+
+## C# Architecture
+
+The C# implementation uses a clean architecture following Godot best practices:
 
 ### Interfaces (`Scripts/Interfaces/`)
 
@@ -131,11 +188,11 @@ Resource for bullet configuration:
 
 ## Scenes
 
-### Main.tscn
-The main entry scene that loads when pressing F5. This is the starting point of the game and can be used to display menus or load other scenes.
-
 ### TestTier.tscn
-A test level/tier (shooting range) for developing and testing game mechanics. This scene serves as a complete example of how to create a playable level with proper collision setup.
+The main test level (shooting range) that loads when pressing F5. This scene serves as a complete example of how to create a playable level with proper collision setup and is perfect for rapid prototyping and testing game mechanics.
+
+### Main.tscn
+An optional entry/menu scene that can be used to display title screens, menus, or load other scenes. To use it as your main scene, change `run/main_scene` in `project.godot`.
 
 #### Features
 - **Enclosed play area** with walls that prevent the player from leaving
@@ -176,13 +233,14 @@ TestTier
 - The player cannot pass through walls or obstacles
 
 #### Running the Test Tier
-To test the shooting range directly:
-1. Open `scenes/levels/TestTier.tscn` in the Godot editor
-2. Press F6 to run the current scene (or F5 if set as main scene)
+To test the shooting range:
+1. Press F5 to run the main scene (TestTier is set as the default main scene)
+2. Or open `scenes/levels/TestTier.tscn` in the Godot editor and press F6
 3. Use WASD or Arrow Keys to move the player
-4. Verify collision with walls and obstacles works correctly
+4. Click left mouse button to shoot at targets
+5. Verify collision with walls and obstacles works correctly
 
-### Player.tscn
+### Player.tscn (GDScript) / csharp/Player.tscn (C#)
 The player character scene with smooth physics-based movement. Features:
 - **CharacterBody2D** root node for physics-based movement
 - **CollisionShape2D** with circular collision (16px radius)
@@ -204,7 +262,7 @@ The player can shoot bullets towards the mouse cursor by clicking the left mouse
 - **Automatic bullet scene loading** via preload
 - **Direction calculation** towards mouse cursor position
 
-### Bullet.tscn
+### Bullet.tscn (GDScript) / csharp/Bullet.tscn (C#)
 A projectile scene for the shooting system. Features:
 - **Area2D** root node for collision detection
 - **CircleShape2D** for precise hit detection (4px radius)
@@ -221,7 +279,7 @@ A projectile scene for the shooting system. Features:
 - **Layer**: 5 (projectiles)
 - **Mask**: 3 (obstacles) + 6 (targets) - bullets detect walls and targets
 
-### Target.tscn
+### Target.tscn (GDScript) / csharp/Target.tscn (C#)
 A shootable target that reacts when hit by bullets. Features:
 - **Area2D** root node for hit detection
 - **Visual feedback** - changes color when hit (red to green)

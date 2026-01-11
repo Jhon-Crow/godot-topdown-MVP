@@ -36,7 +36,12 @@ public partial class Player : BaseCharacter
         // Preload bullet scene if not set in inspector
         if (BulletScene == null)
         {
-            BulletScene = GD.Load<PackedScene>("res://scenes/projectiles/Bullet.tscn");
+            // Try C# bullet scene first, fallback to GDScript version
+            BulletScene = GD.Load<PackedScene>("res://scenes/projectiles/csharp/Bullet.tscn");
+            if (BulletScene == null)
+            {
+                BulletScene = GD.Load<PackedScene>("res://scenes/projectiles/Bullet.tscn");
+            }
         }
     }
 
