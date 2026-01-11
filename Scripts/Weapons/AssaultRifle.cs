@@ -74,6 +74,12 @@ public partial class AssaultRifle : BaseWeapon
     private Line2D? _laserSight;
 
     /// <summary>
+    /// Current aim direction based on laser sight.
+    /// This direction is used for shooting when laser sight is enabled.
+    /// </summary>
+    private Vector2 _aimDirection = Vector2.Right;
+
+    /// <summary>
     /// Whether the weapon is currently firing a burst.
     /// </summary>
     private bool _isBurstFiring;
@@ -146,6 +152,7 @@ public partial class AssaultRifle : BaseWeapon
     /// <summary>
     /// Updates the laser sight to point towards the mouse cursor.
     /// Uses raycasting to stop at obstacles.
+    /// Also stores the aim direction for use when shooting.
     /// </summary>
     private void UpdateLaserSight()
     {
@@ -157,6 +164,9 @@ public partial class AssaultRifle : BaseWeapon
         // Get direction to mouse
         Vector2 mousePos = GetGlobalMousePosition();
         Vector2 direction = (mousePos - GlobalPosition).Normalized();
+
+        // Store the aim direction for shooting
+        _aimDirection = direction;
 
         // Calculate the end point of the laser
         Vector2 endPoint = direction * LaserSightLength;
@@ -231,18 +241,22 @@ public partial class AssaultRifle : BaseWeapon
     /// <summary>
     /// Fires the assault rifle based on current fire mode.
     /// Overrides base Fire to implement fire mode behavior.
+    /// When laser sight is enabled, uses the laser aim direction instead of the passed direction.
     /// </summary>
-    /// <param name="direction">Direction to fire.</param>
+    /// <param name="direction">Direction to fire (ignored when laser sight is enabled).</param>
     /// <returns>True if the weapon fired successfully.</returns>
     public override bool Fire(Vector2 direction)
     {
+        // Use laser aim direction when laser sight is enabled
+        Vector2 fireDirection = LaserSightEnabled ? _aimDirection : direction;
+
         if (CurrentFireMode == FireMode.Burst)
         {
-            return FireBurst(direction);
+            return FireBurst(fireDirection);
         }
         else
         {
-            return FireAutomatic(direction);
+            return FireAutomatic(fireDirection);
         }
     }
 
@@ -368,4 +382,10 @@ public partial class AssaultRifle : BaseWeapon
     /// Gets whether the weapon is currently in the middle of a burst.
     /// </summary>
     public bool IsBurstFiring => _isBurstFiring;
+
+    /// <summary>
+    /// Gets the current aim direction based on the laser sight.
+    /// This is the direction that bullets will travel when fired.
+    /// </summary>
+    public Vector2 AimDirection => _aimDirection;
 }
