@@ -1,0 +1,41 @@
+# Godot 4+ specific ignores
+.godot/
+
+# Godot-specific ignores
+*.translation
+
+# Imported textures and samples
+.import/
+
+# Mono-specific ignores
+.mono/
+data_*/
+mono_crash.*.json
+
+# .NET / C# build outputs
+bin/
+obj/
+*.user
+*.suo
+
+# Build files
+*.exe
+*.x86_64
+*.pck
+
+# OS-generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE-specific
+.idea/
+*.sublime-workspace
+.vscode/
+
+# Export files
+# export_presets.cfg - commented out to allow CI/CD builds
