@@ -52,6 +52,8 @@ public partial class AssaultRifle : BaseWeapon
 
     /// <summary>
     /// Maximum length of the laser sight in pixels.
+    /// Note: The actual laser length is now calculated based on viewport size to appear infinite.
+    /// This property is kept for backward compatibility but is no longer used.
     /// </summary>
     [Export]
     public float LaserSightLength { get; set; } = 500.0f;
@@ -184,8 +186,20 @@ public partial class AssaultRifle : BaseWeapon
         // Store the aim direction for shooting
         _aimDirection = direction;
 
-        // Calculate the end point of the laser
-        Vector2 endPoint = direction * LaserSightLength;
+        // Calculate maximum laser length based on viewport size
+        // This ensures the laser extends to viewport edges regardless of direction
+        var viewport = GetViewport();
+        if (viewport == null)
+        {
+            return;
+        }
+
+        Vector2 viewportSize = viewport.GetVisibleRect().Size;
+        // Use diagonal of viewport to ensure laser reaches edge in any direction
+        float maxLaserLength = viewportSize.Length();
+
+        // Calculate the end point of the laser using viewport-based length
+        Vector2 endPoint = direction * maxLaserLength;
 
         // Perform raycast to check for obstacles
         var spaceState = GetWorld2D().DirectSpaceState;
