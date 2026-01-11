@@ -28,7 +28,7 @@ public partial class Bullet : Area2D
     /// Damage dealt on hit.
     /// </summary>
     [Export]
-    public float Damage { get; set; } = 10.0f;
+    public float Damage { get; set; } = 1.0f;
 
     /// <summary>
     /// Bullet configuration data (optional, overrides individual properties).

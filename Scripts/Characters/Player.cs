@@ -29,9 +29,56 @@ public partial class Player : BaseCharacter
     [Export]
     public BaseWeapon? CurrentWeapon { get; set; }
 
+    /// <summary>
+    /// Color when at full health.
+    /// </summary>
+    [Export]
+    public Color FullHealthColor { get; set; } = new Color(0.2f, 0.6f, 1.0f, 1.0f);
+
+    /// <summary>
+    /// Color when at low health (interpolates based on health percentage).
+    /// </summary>
+    [Export]
+    public Color LowHealthColor { get; set; } = new Color(0.1f, 0.2f, 0.4f, 1.0f);
+
+    /// <summary>
+    /// Color to flash when hit.
+    /// </summary>
+    [Export]
+    public Color HitFlashColor { get; set; } = new Color(1.0f, 0.3f, 0.3f, 1.0f);
+
+    /// <summary>
+    /// Duration of hit flash effect in seconds.
+    /// </summary>
+    [Export]
+    public float HitFlashDuration { get; set; } = 0.1f;
+
+    /// <summary>
+    /// Reference to the player's sprite for visual feedback.
+    /// </summary>
+    private Sprite2D? _sprite;
+
     public override void _Ready()
     {
         base._Ready();
+
+        // Get sprite reference for visual feedback
+        _sprite = GetNodeOrNull<Sprite2D>("Sprite2D");
+
+        // Configure random health (2-4 HP)
+        if (HealthComponent != null)
+        {
+            HealthComponent.UseRandomHealth = true;
+            HealthComponent.MinRandomHealth = 2;
+            HealthComponent.MaxRandomHealth = 4;
+            HealthComponent.InitializeHealth();
+
+            // Connect to health changed signal for visual feedback
+            HealthComponent.HealthChanged += OnPlayerHealthChanged;
+        }
+
+        // Update visual based on initial health
+        UpdateHealthVisual();
 
         // Preload bullet scene if not set in inspector
         if (BulletScene == null)
@@ -43,6 +90,29 @@ public partial class Player : BaseCharacter
                 BulletScene = GD.Load<PackedScene>("res://scenes/projectiles/Bullet.tscn");
             }
         }
+    }
+
+    /// <summary>
+    /// Called when player health changes - updates visual feedback.
+    /// </summary>
+    private void OnPlayerHealthChanged(float currentHealth, float maxHealth)
+    {
+        UpdateHealthVisual();
+    }
+
+    /// <summary>
+    /// Updates the sprite color based on current health percentage.
+    /// </summary>
+    private void UpdateHealthVisual()
+    {
+        if (_sprite == null || HealthComponent == null)
+        {
+            return;
+        }
+
+        // Interpolate color based on health percentage
+        float healthPercent = HealthComponent.HealthPercent;
+        _sprite.Modulate = FullHealthColor.Lerp(LowHealthColor, 1.0f - healthPercent);
     }
 
     public override void _PhysicsProcess(double delta)
@@ -123,10 +193,45 @@ public partial class Player : BaseCharacter
     }
 
     /// <inheritdoc/>
+    public override void TakeDamage(float amount)
+    {
+        if (HealthComponent == null || !IsAlive)
+        {
+            return;
+        }
+
+        // Show hit flash effect
+        ShowHitFlash();
+
+        base.TakeDamage(amount);
+    }
+
+    /// <summary>
+    /// Shows a brief flash effect when hit.
+    /// </summary>
+    private async void ShowHitFlash()
+    {
+        if (_sprite == null)
+        {
+            return;
+        }
+
+        _sprite.Modulate = HitFlashColor;
+
+        await ToSignal(GetTree().CreateTimer(HitFlashDuration), "timeout");
+
+        // Restore color based on current health (if still alive)
+        if (HealthComponent != null && HealthComponent.IsAlive)
+        {
+            UpdateHealthVisual();
+        }
+    }
+
+    /// <inheritdoc/>
     public override void OnDeath()
     {
         base.OnDeath();
-        // Handle player death - can be overridden or extended
+        // Handle player death
         GD.Print("Player died!");
     }
 

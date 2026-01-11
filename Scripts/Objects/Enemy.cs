@@ -12,16 +12,28 @@ namespace GodotTopDownTemplate.Objects;
 public partial class Enemy : Area2D, IDamageable
 {
     /// <summary>
-    /// Color to change to when hit.
+    /// Color when at full health.
     /// </summary>
     [Export]
-    public Color HitColor { get; set; } = new Color(0.2f, 0.8f, 0.2f, 1.0f);
+    public Color FullHealthColor { get; set; } = new Color(0.9f, 0.2f, 0.2f, 1.0f);
 
     /// <summary>
-    /// Original color before being hit.
+    /// Color when at low health (interpolates based on health percentage).
     /// </summary>
     [Export]
-    public Color NormalColor { get; set; } = new Color(0.9f, 0.2f, 0.2f, 1.0f);
+    public Color LowHealthColor { get; set; } = new Color(0.3f, 0.1f, 0.1f, 1.0f);
+
+    /// <summary>
+    /// Color to flash when hit.
+    /// </summary>
+    [Export]
+    public Color HitFlashColor { get; set; } = new Color(1.0f, 1.0f, 1.0f, 1.0f);
+
+    /// <summary>
+    /// Duration of hit flash effect in seconds.
+    /// </summary>
+    [Export]
+    public float HitFlashDuration { get; set; } = 0.1f;
 
     /// <summary>
     /// Whether to destroy the target after being hit.
@@ -64,14 +76,24 @@ public partial class Enemy : Area2D, IDamageable
     /// <inheritdoc/>
     public void TakeDamage(float amount)
     {
+        if (!IsAlive)
+        {
+            return;
+        }
+
+        EmitSignal(SignalName.Hit);
+
         if (_healthComponent != null)
         {
+            // Show hit flash effect
+            ShowHitFlash();
             _healthComponent.TakeDamage(amount);
         }
         else
         {
             // Fallback behavior if no health component
-            OnHit();
+            _isHit = true;
+            HandleHitEffect();
         }
     }
 
@@ -111,17 +133,44 @@ public partial class Enemy : Area2D, IDamageable
         if (_healthComponent == null)
         {
             _healthComponent = new HealthComponent();
-            _healthComponent.MaxHealth = 10.0f; // Single hit to destroy
             AddChild(_healthComponent);
         }
 
-        _healthComponent.Died += OnHealthDied;
+        // Configure random health (2-4 HP)
+        _healthComponent.UseRandomHealth = true;
+        _healthComponent.MinRandomHealth = 2;
+        _healthComponent.MaxRandomHealth = 4;
+        _healthComponent.InitializeHealth();
 
-        // Ensure the sprite has the normal color
-        if (_sprite != null)
+        // Connect signals
+        _healthComponent.Died += OnHealthDied;
+        _healthComponent.HealthChanged += OnHealthChanged;
+
+        // Update visual color based on initial health
+        UpdateHealthVisual();
+    }
+
+    /// <summary>
+    /// Called when health changes - updates visual feedback.
+    /// </summary>
+    private void OnHealthChanged(float currentHealth, float maxHealth)
+    {
+        UpdateHealthVisual();
+    }
+
+    /// <summary>
+    /// Updates the sprite color based on current health percentage.
+    /// </summary>
+    private void UpdateHealthVisual()
+    {
+        if (_sprite == null || _healthComponent == null)
         {
-            _sprite.Modulate = NormalColor;
+            return;
         }
+
+        // Interpolate color based on health percentage
+        float healthPercent = _healthComponent.HealthPercent;
+        _sprite.Modulate = FullHealthColor.Lerp(LowHealthColor, 1.0f - healthPercent);
     }
 
     /// <summary>
@@ -146,29 +195,47 @@ public partial class Enemy : Area2D, IDamageable
     /// </summary>
     public void OnHit()
     {
-        if (_isHit)
+        if (!IsAlive)
         {
             return;
         }
 
-        _isHit = true;
         EmitSignal(SignalName.Hit);
 
-        // Change color to show hit
-        if (_sprite != null)
-        {
-            _sprite.Modulate = HitColor;
-        }
-
-        // Apply damage if using health component
+        // Apply 1 damage (for hit-based system)
         if (_healthComponent != null && _healthComponent.IsAlive)
         {
-            _healthComponent.TakeDamage(10.0f);
+            // Show hit flash effect
+            ShowHitFlash();
+            _healthComponent.TakeDamage(1.0f);
         }
         else
         {
-            // Handle without health component
+            // Handle without health component (legacy behavior)
+            _isHit = true;
             HandleHitEffect();
+        }
+    }
+
+    /// <summary>
+    /// Shows a brief flash effect when hit.
+    /// </summary>
+    private async void ShowHitFlash()
+    {
+        if (_sprite == null)
+        {
+            return;
+        }
+
+        Color previousColor = _sprite.Modulate;
+        _sprite.Modulate = HitFlashColor;
+
+        await ToSignal(GetTree().CreateTimer(HitFlashDuration), "timeout");
+
+        // Restore color based on current health (if still alive)
+        if (_healthComponent != null && _healthComponent.IsAlive)
+        {
+            UpdateHealthVisual();
         }
     }
 
@@ -216,12 +283,11 @@ public partial class Enemy : Area2D, IDamageable
     private void Reset()
     {
         _isHit = false;
-        if (_sprite != null)
-        {
-            _sprite.Modulate = NormalColor;
-        }
 
-        // Reset health
+        // Reset health (will re-randomize if UseRandomHealth is true)
         _healthComponent?.ResetToMax();
+
+        // Update visual to reflect new health
+        UpdateHealthVisual();
     }
 }
