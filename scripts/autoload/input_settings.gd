@@ -117,12 +117,12 @@ func _set_action_key(action_name: String, keycode: int) -> void:
 	if keycode < 0:
 		# Negative values indicate mouse buttons
 		var mouse_event := InputEventMouseButton.new()
-		mouse_event.button_index = -keycode
+		mouse_event.button_index = -keycode as MouseButton
 		mouse_event.pressed = true
 		InputMap.action_add_event(action_name, mouse_event)
 	else:
 		var key_event := InputEventKey.new()
-		key_event.physical_keycode = keycode
+		key_event.physical_keycode = keycode as Key
 		InputMap.action_add_event(action_name, key_event)
 
 

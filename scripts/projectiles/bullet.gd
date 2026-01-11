@@ -34,7 +34,7 @@ func _physics_process(delta: float) -> void:
 		queue_free()
 
 
-func _on_body_entered(body: Node2D) -> void:
+func _on_body_entered(_body: Node2D) -> void:
 	# Hit a static body (wall or obstacle)
 	queue_free()
 
