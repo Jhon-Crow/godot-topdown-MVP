@@ -74,6 +74,15 @@ signal died
 ## RayCast2D for line of sight detection.
 @onready var _raycast: RayCast2D = $RayCast2D
 
+## Wall detection raycasts for obstacle avoidance (created at runtime).
+var _wall_raycasts: Array[RayCast2D] = []
+
+## Distance to check for walls ahead.
+const WALL_CHECK_DISTANCE: float = 40.0
+
+## Number of raycasts for wall detection (spread around the enemy).
+const WALL_CHECK_COUNT: int = 3
+
 ## Current health of the enemy.
 var _current_health: int = 0
 
@@ -106,6 +115,7 @@ func _ready() -> void:
 	_update_health_visual()
 	_setup_patrol_points()
 	_find_player()
+	_setup_wall_detection()
 
 	# Preload bullet scene if not set in inspector
 	if bullet_scene == null:
@@ -125,6 +135,18 @@ func _setup_patrol_points() -> void:
 	_patrol_points.append(_initial_position)
 	for offset in patrol_offsets:
 		_patrol_points.append(_initial_position + offset)
+
+
+## Setup wall detection raycasts for obstacle avoidance.
+func _setup_wall_detection() -> void:
+	# Create multiple raycasts spread in front of the enemy
+	for i in range(WALL_CHECK_COUNT):
+		var raycast := RayCast2D.new()
+		raycast.enabled = true
+		raycast.collision_mask = 4  # Only detect obstacles (layer 3)
+		raycast.exclude_parent = true
+		add_child(raycast)
+		_wall_raycasts.append(raycast)
 
 
 ## Find the player node in the scene tree.
@@ -180,6 +202,36 @@ func _physics_process(delta: float) -> void:
 				_process_guard(delta)
 
 	move_and_slide()
+
+
+## Check if there's a wall ahead in the given direction and return avoidance direction.
+## Returns Vector2.ZERO if no wall detected, otherwise returns a vector to avoid the wall.
+func _check_wall_ahead(direction: Vector2) -> Vector2:
+	if _wall_raycasts.is_empty():
+		return Vector2.ZERO
+
+	var avoidance := Vector2.ZERO
+	var perpendicular := Vector2(-direction.y, direction.x)  # 90 degrees rotation
+
+	# Check center, left, and right raycasts
+	for i in range(WALL_CHECK_COUNT):
+		var angle_offset := (i - 1) * 0.5  # -0.5, 0, 0.5 radians (~-28, 0, 28 degrees)
+		var check_direction := direction.rotated(angle_offset)
+
+		var raycast := _wall_raycasts[i]
+		raycast.target_position = check_direction * WALL_CHECK_DISTANCE
+		raycast.force_raycast_update()
+
+		if raycast.is_colliding():
+			# Calculate avoidance based on which raycast hit
+			if i == 0:  # Left raycast hit
+				avoidance += perpendicular  # Steer right
+			elif i == 1:  # Center raycast hit
+				avoidance += perpendicular if randf() > 0.5 else -perpendicular  # Random steer
+			elif i == 2:  # Right raycast hit
+				avoidance -= perpendicular  # Steer left
+
+	return avoidance.normalized() if avoidance.length() > 0 else Vector2.ZERO
 
 
 ## Check if the player is visible using raycast.
@@ -267,6 +319,12 @@ func _process_patrol(delta: float) -> void:
 		_is_waiting_at_patrol_point = true
 		velocity = Vector2.ZERO
 	else:
+		# Check for walls and apply avoidance
+		var avoidance := _check_wall_ahead(direction)
+		if avoidance != Vector2.ZERO:
+			# Blend movement direction with avoidance
+			direction = (direction * 0.5 + avoidance * 0.5).normalized()
+
 		velocity = direction * move_speed
 		# Face movement direction when patrolling
 		rotation = direction.angle()

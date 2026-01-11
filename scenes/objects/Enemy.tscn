@@ -6,8 +6,8 @@
 [sub_resource type="PlaceholderTexture2D" id="PlaceholderTexture2D_enemy"]
 size = Vector2(48, 48)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_enemy"]
-size = Vector2(48, 48)
+[sub_resource type="CircleShape2D" id="CircleShape2D_enemy"]
+radius = 24.0
 
 [node name="Enemy" type="CharacterBody2D"]
 collision_layer = 2
@@ -19,7 +19,7 @@ modulate = Color(0.9, 0.2, 0.2, 1)
 texture = SubResource("PlaceholderTexture2D_enemy")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
-shape = SubResource("RectangleShape2D_enemy")
+shape = SubResource("CircleShape2D_enemy")
 
 [node name="RayCast2D" type="RayCast2D" parent="."]
 target_position = Vector2(400, 0)
@@ -31,4 +31,4 @@ collision_mask = 16
 script = ExtResource("2_hit_area")
 
 [node name="HitCollisionShape" type="CollisionShape2D" parent="HitArea"]
-shape = SubResource("RectangleShape2D_enemy")
+shape = SubResource("CircleShape2D_enemy")
