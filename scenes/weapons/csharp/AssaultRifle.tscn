@@ -9,6 +9,7 @@ script = ExtResource("1_assault_rifle")
 WeaponData = ExtResource("3_weapon_data")
 BulletScene = ExtResource("2_bullet")
 BulletSpawnOffset = 25.0
+CurrentFireMode = 0
 BurstCount = 3
 BurstDelay = 0.05
 LaserSightEnabled = true

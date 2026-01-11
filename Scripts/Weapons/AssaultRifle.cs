@@ -4,13 +4,36 @@ using GodotTopDownTemplate.AbstractClasses;
 namespace GodotTopDownTemplate.Weapons;
 
 /// <summary>
-/// Assault rifle weapon with burst fire mode and laser sight.
+/// Fire mode for the assault rifle.
+/// </summary>
+public enum FireMode
+{
+    /// <summary>
+    /// Fully automatic fire - hold to continuously fire.
+    /// </summary>
+    Automatic,
+
+    /// <summary>
+    /// Burst fire - fires multiple bullets per trigger pull.
+    /// </summary>
+    Burst
+}
+
+/// <summary>
+/// Assault rifle weapon with automatic and burst fire modes plus laser sight.
 /// Inherits from BaseWeapon and extends it with specific assault rifle behavior.
+/// Default fire mode is fully automatic.
 /// </summary>
 public partial class AssaultRifle : BaseWeapon
 {
     /// <summary>
-    /// Number of bullets fired in a burst.
+    /// Current fire mode of the weapon.
+    /// </summary>
+    [Export]
+    public FireMode CurrentFireMode { get; set; } = FireMode.Automatic;
+
+    /// <summary>
+    /// Number of bullets fired in a burst (only used in Burst mode).
     /// </summary>
     [Export]
     public int BurstCount { get; set; } = 3;
@@ -66,6 +89,12 @@ public partial class AssaultRifle : BaseWeapon
     /// </summary>
     [Signal]
     public delegate void BurstFinishedEventHandler();
+
+    /// <summary>
+    /// Signal emitted when fire mode changes.
+    /// </summary>
+    [Signal]
+    public delegate void FireModeChangedEventHandler(int newMode);
 
     public override void _Ready()
     {
@@ -176,12 +205,70 @@ public partial class AssaultRifle : BaseWeapon
     }
 
     /// <summary>
-    /// Fires the assault rifle in burst mode.
-    /// Overrides base Fire to implement burst fire behavior.
+    /// Switches between fire modes.
+    /// </summary>
+    public void ToggleFireMode()
+    {
+        CurrentFireMode = CurrentFireMode == FireMode.Automatic ? FireMode.Burst : FireMode.Automatic;
+        EmitSignal(SignalName.FireModeChanged, (int)CurrentFireMode);
+        GD.Print($"[AssaultRifle] Fire mode changed to: {CurrentFireMode}");
+    }
+
+    /// <summary>
+    /// Sets a specific fire mode.
+    /// </summary>
+    /// <param name="mode">The fire mode to set.</param>
+    public void SetFireMode(FireMode mode)
+    {
+        if (CurrentFireMode != mode)
+        {
+            CurrentFireMode = mode;
+            EmitSignal(SignalName.FireModeChanged, (int)CurrentFireMode);
+            GD.Print($"[AssaultRifle] Fire mode set to: {CurrentFireMode}");
+        }
+    }
+
+    /// <summary>
+    /// Fires the assault rifle based on current fire mode.
+    /// Overrides base Fire to implement fire mode behavior.
+    /// </summary>
+    /// <param name="direction">Direction to fire.</param>
+    /// <returns>True if the weapon fired successfully.</returns>
+    public override bool Fire(Vector2 direction)
+    {
+        if (CurrentFireMode == FireMode.Burst)
+        {
+            return FireBurst(direction);
+        }
+        else
+        {
+            return FireAutomatic(direction);
+        }
+    }
+
+    /// <summary>
+    /// Fires in automatic mode - single bullet per call, respects fire rate.
+    /// </summary>
+    /// <param name="direction">Direction to fire.</param>
+    /// <returns>True if the weapon fired successfully.</returns>
+    private bool FireAutomatic(Vector2 direction)
+    {
+        // Check if we can fire at all
+        if (!CanFire || WeaponData == null || BulletScene == null)
+        {
+            return false;
+        }
+
+        // Use base class fire logic for automatic mode
+        return base.Fire(ApplySpread(direction));
+    }
+
+    /// <summary>
+    /// Fires in burst mode - fires multiple bullets per trigger pull.
     /// </summary>
     /// <param name="direction">Direction to fire.</param>
     /// <returns>True if the burst was started successfully.</returns>
-    public override bool Fire(Vector2 direction)
+    private bool FireBurst(Vector2 direction)
     {
         // Don't start a new burst if already firing
         if (_isBurstFiring)

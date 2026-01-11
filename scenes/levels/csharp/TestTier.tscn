@@ -199,6 +199,6 @@ offset_left = 10.0
 offset_top = 650.0
 offset_right = 450.0
 offset_bottom = 710.0
-text = "WASD / Arrow Keys - Move | LMB - Shoot | ESC - Pause"
+text = "WASD - Move | LMB - Shoot (hold) | R - Reload | B - Toggle Fire Mode | ESC - Pause"
 
 [node name="PauseMenu" parent="." instance=ExtResource("4_pause_menu")]

@@ -1,5 +1,6 @@
 using Godot;
 using GodotTopDownTemplate.AbstractClasses;
+using GodotTopDownTemplate.Weapons;
 
 namespace GodotTopDownTemplate.Characters;
 
@@ -7,7 +8,8 @@ namespace GodotTopDownTemplate.Characters;
 /// Player character controller for top-down movement and shooting.
 /// Uses physics-based movement with acceleration and friction for smooth control.
 /// Supports WASD and arrow key input via configured input actions.
-/// Shoots bullets towards the mouse cursor on left mouse button click.
+/// Shoots bullets towards the mouse cursor on left mouse button.
+/// Supports both automatic (hold to fire) and semi-automatic (click per shot) weapons.
 /// </summary>
 public partial class Player : BaseCharacter
 {
@@ -133,16 +135,74 @@ public partial class Player : BaseCharacter
         Vector2 inputDirection = GetInputDirection();
         ApplyMovement(inputDirection, (float)delta);
 
-        // Handle shooting input
-        if (Input.IsActionJustPressed("shoot"))
-        {
-            Shoot();
-        }
+        // Handle shooting input - support both automatic and semi-automatic weapons
+        HandleShootingInput();
 
         // Handle reload input
         if (Input.IsActionJustPressed("reload"))
         {
             Reload();
+        }
+
+        // Handle fire mode toggle (B key for burst/auto toggle)
+        if (Input.IsActionJustPressed("toggle_fire_mode"))
+        {
+            ToggleFireMode();
+        }
+    }
+
+    /// <summary>
+    /// Handles shooting input based on weapon type.
+    /// For automatic weapons: fires while held.
+    /// For semi-automatic/burst: fires on press.
+    /// </summary>
+    private void HandleShootingInput()
+    {
+        if (CurrentWeapon == null)
+        {
+            // Fallback to original click-to-shoot behavior
+            if (Input.IsActionJustPressed("shoot"))
+            {
+                Shoot();
+            }
+            return;
+        }
+
+        // Check if weapon is automatic (based on WeaponData)
+        bool isAutomatic = CurrentWeapon.WeaponData?.IsAutomatic ?? false;
+
+        // For AssaultRifle, also check if it's in automatic fire mode
+        if (CurrentWeapon is AssaultRifle assaultRifle)
+        {
+            isAutomatic = assaultRifle.CurrentFireMode == FireMode.Automatic;
+        }
+
+        if (isAutomatic)
+        {
+            // Automatic: fire while holding the button
+            if (Input.IsActionPressed("shoot"))
+            {
+                Shoot();
+            }
+        }
+        else
+        {
+            // Semi-automatic/Burst: fire on button press only
+            if (Input.IsActionJustPressed("shoot"))
+            {
+                Shoot();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Toggles fire mode on the current weapon (if supported).
+    /// </summary>
+    private void ToggleFireMode()
+    {
+        if (CurrentWeapon is AssaultRifle assaultRifle)
+        {
+            assaultRifle.ToggleFireMode();
         }
     }
 
