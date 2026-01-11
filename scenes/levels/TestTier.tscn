@@ -1,8 +1,7 @@
-[gd_scene load_steps=10 format=3 uid="uid://d3kv7pm5r2aub"]
+[gd_scene load_steps=9 format=3 uid="uid://d3kv7pm5r2aub"]
 
 [ext_resource type="Script" path="res://scripts/levels/test_tier.gd" id="1_test_tier"]
 [ext_resource type="PackedScene" uid="uid://bk8nq2vj5r7p1" path="res://scenes/characters/Player.tscn" id="2_player"]
-[ext_resource type="PackedScene" uid="uid://bx3k7pm5t2aub" path="res://scenes/objects/Target.tscn" id="3_target"]
 [ext_resource type="PackedScene" uid="uid://dxqmk8f3nw5pe" path="res://scenes/ui/PauseMenu.tscn" id="4_pause_menu"]
 [ext_resource type="PackedScene" uid="uid://cx5m8np6u3bwd" path="res://scenes/objects/Enemy.tscn" id="5_enemy"]
 
@@ -144,42 +143,35 @@ color = Color(0.4, 0.32, 0.25, 1)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Obstacles/Obstacle3"]
 shape = SubResource("RectangleShape2D_obstacle_wide")
 
-[node name="Targets" type="Node2D" parent="Environment"]
-
-[node name="Target1" parent="Environment/Targets" instance=ExtResource("3_target")]
-position = Vector2(750, 160)
-
-[node name="Target2" parent="Environment/Targets" instance=ExtResource("3_target")]
-position = Vector2(750, 360)
-
-[node name="Target3" parent="Environment/Targets" instance=ExtResource("3_target")]
-position = Vector2(750, 560)
-
-[node name="TargetArea" type="Node2D" parent="Environment"]
-
-[node name="TargetZoneLabel" type="Label" parent="Environment/TargetArea"]
-offset_left = 700.0
-offset_top = 80.0
-offset_right = 850.0
-offset_bottom = 110.0
-text = "TARGET ZONE"
-horizontal_alignment = 1
-
 [node name="Enemies" type="Node2D" parent="Environment"]
 
-[node name="Enemy1" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
+[node name="GuardEnemy1" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
+position = Vector2(750, 160)
+behavior_mode = 1
+
+[node name="GuardEnemy2" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
+position = Vector2(750, 560)
+behavior_mode = 1
+
+[node name="PatrolEnemy1" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
 position = Vector2(500, 160)
+behavior_mode = 0
+patrol_offsets = Array[Vector2]([Vector2(0, 100), Vector2(0, -100)])
 
-[node name="Enemy2" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
+[node name="PatrolEnemy2" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
 position = Vector2(500, 360)
+behavior_mode = 0
+patrol_offsets = Array[Vector2]([Vector2(100, 0), Vector2(-100, 0)])
 
-[node name="Enemy3" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
+[node name="PatrolEnemy3" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
 position = Vector2(500, 560)
+behavior_mode = 0
+patrol_offsets = Array[Vector2]([Vector2(0, -100), Vector2(0, 100)])
 
 [node name="EnemyZoneLabel" type="Label" parent="Environment/Enemies"]
-offset_left = 450.0
+offset_left = 550.0
 offset_top = 80.0
-offset_right = 600.0
+offset_right = 800.0
 offset_bottom = 110.0
 text = "ENEMY ZONE"
 horizontal_alignment = 1
@@ -209,7 +201,7 @@ offset_top = 10.0
 offset_right = -10.0
 offset_bottom = 40.0
 grow_horizontal = 0
-text = "Test Tier (Shooting Range)"
+text = "Test Tier (Combat Arena)"
 horizontal_alignment = 2
 
 [node name="InstructionsLabel" type="Label" parent="CanvasLayer/UI"]
