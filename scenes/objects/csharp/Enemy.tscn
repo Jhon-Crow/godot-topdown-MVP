@@ -1,6 +1,6 @@
-[gd_scene load_steps=4 format=3 uid="uid://cx5m8np6u3bwd"]
+[gd_scene load_steps=4 format=3 uid="uid://dx5m8np6u3bwe"]
 
-[ext_resource type="Script" path="res://scripts/objects/enemy.gd" id="1_enemy"]
+[ext_resource type="Script" path="res://Scripts/Objects/Enemy.cs" id="1_enemy"]
 
 [sub_resource type="PlaceholderTexture2D" id="PlaceholderTexture2D_enemy"]
 size = Vector2(48, 48)
