@@ -18,7 +18,7 @@ config/name="Godot Top-Down Template"
 config/description="A template project for creating top-down games in Godot 4.
 Includes basic project structure and example scenes."
 config/tags=PackedStringArray("2d", "template", "topdown")
-run/main_scene="res://scenes/levels/csharp/TestTier.tscn"
+run/main_scene="res://scenes/levels/TestTier.tscn"
 config/features=PackedStringArray("4.3", "C#")
 config/icon="res://icon.svg"
 
