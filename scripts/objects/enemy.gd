@@ -107,6 +107,9 @@ enum BehaviorMode {
 ## Enable/disable debug logging.
 @export var debug_logging: bool = false
 
+## Enable/disable friendly fire avoidance (don't shoot if other enemies are in the way).
+@export var enable_friendly_fire_avoidance: bool = true
+
 ## Enable/disable lead prediction (shooting ahead of moving targets).
 @export var enable_lead_prediction: bool = true
 
@@ -809,6 +812,82 @@ func _is_position_visible_from_player(pos: Vector2) -> bool:
 	return false
 
 
+## Check if the line of fire to the target position is clear of other enemies.
+## Returns true if no other enemies would be hit by a bullet traveling to the target.
+func _is_firing_line_clear_of_friendlies(target_position: Vector2) -> bool:
+	if not enable_friendly_fire_avoidance:
+		return true
+
+	var direction := (target_position - global_position).normalized()
+	var distance := global_position.distance_to(target_position)
+
+	# Use direct space state to check if any enemies are in the firing line
+	var space_state := get_world_2d().direct_space_state
+	var query := PhysicsRayQueryParameters2D.new()
+	query.from = global_position + direction * bullet_spawn_offset  # Start from bullet spawn point
+	query.to = target_position
+	query.collision_mask = 2  # Only check enemies (layer 2)
+	query.exclude = [get_rid()]  # Exclude self using RID
+
+	var result := space_state.intersect_ray(query)
+
+	if result.is_empty():
+		return true  # No enemies in the way
+
+	# Check if the hit position is before the target
+	var hit_position: Vector2 = result["position"]
+	var distance_to_hit := global_position.distance_to(hit_position)
+
+	if distance_to_hit < distance - 20.0:  # 20 pixel tolerance
+		_log_debug("Friendly in firing line at distance %0.1f (target at %0.1f)" % [distance_to_hit, distance])
+		return false
+
+	return true
+
+
+## Check if a bullet fired at the target position would be blocked by cover/obstacles.
+## Returns true if the shot would likely hit the target, false if blocked by cover.
+func _is_shot_clear_of_cover(target_position: Vector2) -> bool:
+	var direction := (target_position - global_position).normalized()
+	var distance := global_position.distance_to(target_position)
+
+	# Use direct space state to check if obstacles block the shot
+	var space_state := get_world_2d().direct_space_state
+	var query := PhysicsRayQueryParameters2D.new()
+	query.from = global_position + direction * bullet_spawn_offset  # Start from bullet spawn point
+	query.to = target_position
+	query.collision_mask = 4  # Only check obstacles (layer 3)
+
+	var result := space_state.intersect_ray(query)
+
+	if result.is_empty():
+		return true  # No obstacles in the way
+
+	# Check if the obstacle is before the target position
+	var hit_position: Vector2 = result["position"]
+	var distance_to_hit := global_position.distance_to(hit_position)
+
+	if distance_to_hit < distance - 10.0:  # 10 pixel tolerance
+		_log_debug("Shot blocked by cover at distance %0.1f (target at %0.1f)" % [distance_to_hit, distance])
+		return false
+
+	return true
+
+
+## Check if the enemy should shoot at the current target.
+## Validates both friendly fire avoidance and cover blocking.
+func _should_shoot_at_target(target_position: Vector2) -> bool:
+	# Check if friendlies are in the way
+	if not _is_firing_line_clear_of_friendlies(target_position):
+		return false
+
+	# Check if cover blocks the shot
+	if not _is_shot_clear_of_cover(target_position):
+		return false
+
+	return true
+
+
 ## Find a valid cover position relative to the player.
 ## The cover position must be hidden from the player's line of sight.
 func _find_cover_position() -> void:
@@ -996,6 +1075,10 @@ func _shoot() -> void:
 	# Apply lead prediction if enabled
 	if enable_lead_prediction:
 		target_position = _calculate_lead_prediction()
+
+	# Check if the shot should be taken (friendly fire and cover checks)
+	if not _should_shoot_at_target(target_position):
+		return
 
 	var direction := (target_position - global_position).normalized()
 
