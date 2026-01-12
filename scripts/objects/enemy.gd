@@ -281,6 +281,13 @@ var _player_last_known_position: Vector2 = Vector2.ZERO
 ## Used to calculate cover edge aim points.
 var _cover_direction: Vector2 = Vector2.ZERO
 
+## Timer for how long the enemy has been watching the cover.
+## Used to transition to flanking after watching cover for too long.
+var _cover_watch_timer: float = 0.0
+
+## Maximum time (in seconds) to watch cover before attempting to flank.
+## After this time, the enemy will try to flank the player instead of staring at cover.
+const COVER_WATCH_TIMEOUT: float = 3.0
 
 
 func _ready() -> void:
@@ -565,7 +572,25 @@ func _process_combat_state(delta: float) -> void:
 		_transition_to_seeking_cover()
 		return
 
-	# If can't see player, try flanking or return to idle
+	# If player is behind cover, stay in combat and aim at cover edges
+	# Don't transition to flanking or idle - keep watching the cover
+	# This prevents the enemy from tracking the player's hidden movement
+	if _is_player_behind_cover:
+		_cover_watch_timer += delta
+
+		# After watching cover for too long, try to flank the player
+		if _cover_watch_timer >= COVER_WATCH_TIMEOUT and enable_flanking and _player:
+			_log_debug("Cover watch timeout (%.1fs), transitioning to flanking" % _cover_watch_timer)
+			_is_player_behind_cover = false  # Reset cover tracking
+			_cover_watch_timer = 0.0
+			_transition_to_flanking()
+			return
+
+		if _player:
+			_aim_at_player()  # This will use cover-edge aiming logic
+		return
+
+	# If can't see player AND not tracking cover, try flanking or return to idle
 	if not _can_see_player:
 		if enable_flanking and _player:
 			_transition_to_flanking()
@@ -1198,6 +1223,7 @@ func _check_player_visibility() -> void:
 		# Player is visible again - reset cover tracking
 		if _is_player_behind_cover:
 			_is_player_behind_cover = false
+			_cover_watch_timer = 0.0
 			_log_debug("Player visible again, resetting cover tracking")
 	else:
 		# Lost line of sight - reset the timer and visibility ratio
@@ -1555,6 +1581,7 @@ func _reset() -> void:
 	_player_cover_position = Vector2.ZERO
 	_player_last_known_position = Vector2.ZERO
 	_cover_direction = Vector2.ZERO
+	_cover_watch_timer = 0.0
 	_bullets_in_threat_sphere.clear()
 	_initialize_health()
 	_initialize_ammo()
@@ -1628,3 +1655,8 @@ func is_tracking_player_behind_cover() -> bool:
 ## Get the position of the cover the player is hiding behind (for debugging).
 func get_player_cover_position() -> Vector2:
 	return _player_cover_position
+
+
+## Get the current cover watch timer value (for debugging).
+func get_cover_watch_timer() -> float:
+	return _cover_watch_timer
