@@ -172,10 +172,19 @@ signal ammo_depleted
 var _wall_raycasts: Array[RayCast2D] = []
 
 ## Distance to check for walls ahead.
-const WALL_CHECK_DISTANCE: float = 40.0
+const WALL_CHECK_DISTANCE: float = 60.0
 
 ## Number of raycasts for wall detection (spread around the enemy).
-const WALL_CHECK_COUNT: int = 3
+const WALL_CHECK_COUNT: int = 5
+
+## Time threshold to consider the enemy "stuck" (in seconds).
+const STUCK_DETECTION_TIME: float = 1.0
+
+## Minimum distance the enemy should move in STUCK_DETECTION_TIME to not be considered stuck.
+const STUCK_DETECTION_DISTANCE: float = 20.0
+
+## Maximum number of flank position retries before giving up.
+const MAX_FLANK_RETRIES: int = 3
 
 ## Cover detection raycasts (created at runtime).
 var _cover_raycasts: Array[RayCast2D] = []
@@ -265,6 +274,34 @@ var _continuous_visibility_timer: float = 0.0
 ## Used to determine if lead prediction should be enabled.
 var _player_visibility_ratio: float = 0.0
 
+## Whether the player is currently behind cover (enemy lost visual contact).
+## When true, enemy aims at cover edges instead of tracking player movement.
+var _is_player_behind_cover: bool = false
+
+## The position of the obstacle the player is hiding behind.
+## Used to calculate where the enemy should aim (cover edges).
+var _player_cover_position: Vector2 = Vector2.ZERO
+
+## The last known position of the player before they hid behind cover.
+## Used to determine which side of the cover the player likely went behind.
+var _player_last_known_position: Vector2 = Vector2.ZERO
+
+## The direction from enemy to cover (normalized).
+## Used to calculate cover edge aim points.
+var _cover_direction: Vector2 = Vector2.ZERO
+
+## Timer for how long the enemy has been watching the cover.
+## Used to transition to flanking after watching cover for too long.
+var _cover_watch_timer: float = 0.0
+
+## Maximum time (in seconds) to watch cover before attempting to flank.
+## After this time, the enemy will try to flank the player instead of staring at cover.
+const COVER_WATCH_TIMEOUT: float = 3.0
+
+## Stuck detection variables - tracks if enemy is making progress toward target.
+var _stuck_timer: float = 0.0
+var _stuck_check_position: Vector2 = Vector2.ZERO
+var _flank_retry_count: int = 0
 
 
 func _ready() -> void:
@@ -549,7 +586,25 @@ func _process_combat_state(delta: float) -> void:
 		_transition_to_seeking_cover()
 		return
 
-	# If can't see player, try flanking or return to idle
+	# If player is behind cover, stay in combat and aim at cover edges
+	# Don't transition to flanking or idle - keep watching the cover
+	# This prevents the enemy from tracking the player's hidden movement
+	if _is_player_behind_cover:
+		_cover_watch_timer += delta
+
+		# After watching cover for too long, try to flank the player
+		if _cover_watch_timer >= COVER_WATCH_TIMEOUT and enable_flanking and _player:
+			_log_debug("Cover watch timeout (%.1fs), transitioning to flanking" % _cover_watch_timer)
+			_is_player_behind_cover = false  # Reset cover tracking
+			_cover_watch_timer = 0.0
+			_transition_to_flanking()
+			return
+
+		if _player:
+			_aim_at_player()  # This will use cover-edge aiming logic
+		return
+
+	# If can't see player AND not tracking cover, try flanking or return to idle
 	if not _can_see_player:
 		if enable_flanking and _player:
 			_transition_to_flanking()
@@ -572,17 +627,19 @@ func _process_combat_state(delta: float) -> void:
 
 
 ## Process SEEKING_COVER state - moving to cover position.
-func _process_seeking_cover_state(_delta: float) -> void:
+func _process_seeking_cover_state(delta: float) -> void:
 	if not _has_valid_cover:
 		# Try to find cover
 		_find_cover_position()
 		if not _has_valid_cover:
 			# No cover found, stay in combat
+			_reset_stuck_detection()
 			_transition_to_combat()
 			return
 
 	# Check if we're already hidden from the player (the main goal)
 	if not _is_visible_from_player():
+		_reset_stuck_detection()
 		_transition_to_in_cover()
 		_log_debug("Hidden from player, entering cover state")
 		return
@@ -598,13 +655,25 @@ func _process_seeking_cover_state(_delta: float) -> void:
 			_find_cover_position()
 			if not _has_valid_cover:
 				# No better cover found, stay in combat
+				_reset_stuck_detection()
 				_transition_to_combat()
 				return
 
-	# Apply wall avoidance
+	# Check if stuck while seeking cover
+	if _check_if_stuck(delta):
+		_log_debug("Stuck while seeking cover, finding new cover position")
+		_has_valid_cover = false
+		_reset_stuck_detection()
+		_find_cover_position()
+		if not _has_valid_cover:
+			# No cover found, return to combat
+			_transition_to_combat()
+		return
+
+	# Apply wall avoidance with stronger steering
 	var avoidance := _check_wall_ahead(direction)
 	if avoidance != Vector2.ZERO:
-		direction = (direction * 0.5 + avoidance * 0.5).normalized()
+		direction = (direction * 0.3 + avoidance * 0.7).normalized()
 
 	velocity = direction * combat_move_speed
 	rotation = direction.angle()
@@ -649,23 +718,26 @@ func _process_in_cover_state(_delta: float) -> void:
 
 
 ## Process FLANKING state - attempting to flank the player.
-func _process_flanking_state(_delta: float) -> void:
+func _process_flanking_state(delta: float) -> void:
 	# If under fire, seek cover instead
 	if _under_fire and enable_cover:
+		_reset_stuck_detection()
 		_transition_to_seeking_cover()
 		return
 
 	# If can see player, engage in combat
 	if _can_see_player:
+		_reset_stuck_detection()
 		_transition_to_combat()
 		return
 
 	if _player == null:
+		_reset_stuck_detection()
 		_transition_to_idle()
 		return
 
-	# Calculate flank position
-	_calculate_flank_position()
+	# Flank position is calculated once when entering FLANKING state
+	# Don't recalculate it here or the target will jump around randomly
 
 	# Move towards flank position
 	var direction := (_flank_target - global_position).normalized()
@@ -673,12 +745,31 @@ func _process_flanking_state(_delta: float) -> void:
 
 	if distance < 20.0:
 		# Reached flank position, engage
+		# The enemy will re-evaluate cover tracking from the new position in COMBAT state
+		_reset_stuck_detection()
 		_transition_to_combat()
 	else:
-		# Apply wall avoidance
+		# Check if stuck and try to find a new flank position
+		if _check_if_stuck(delta):
+			_flank_retry_count += 1
+			if _flank_retry_count >= MAX_FLANK_RETRIES:
+				# Give up on flanking, return to combat
+				_log_debug("Flanking failed after %d retries, returning to combat" % _flank_retry_count)
+				_reset_stuck_detection()
+				_transition_to_combat()
+				return
+			else:
+				# Try a new flank position
+				_log_debug("Stuck while flanking (retry %d/%d), trying new position" % [_flank_retry_count, MAX_FLANK_RETRIES])
+				_calculate_flank_position()
+				_reset_stuck_detection()
+				return
+
+		# Apply wall avoidance with stronger steering
 		var avoidance := _check_wall_ahead(direction)
 		if avoidance != Vector2.ZERO:
-			direction = (direction * 0.5 + avoidance * 0.5).normalized()
+			# Use stronger avoidance weight when close to walls
+			direction = (direction * 0.3 + avoidance * 0.7).normalized()
 
 		velocity = direction * combat_move_speed
 		rotation = direction.angle()
@@ -724,6 +815,7 @@ func _transition_to_combat() -> void:
 ## Transition to SEEKING_COVER state.
 func _transition_to_seeking_cover() -> void:
 	_current_state = AIState.SEEKING_COVER
+	_reset_stuck_detection()
 	_find_cover_position()
 
 
@@ -735,6 +827,8 @@ func _transition_to_in_cover() -> void:
 ## Transition to FLANKING state.
 func _transition_to_flanking() -> void:
 	_current_state = AIState.FLANKING
+	_flank_retry_count = 0  # Reset retry count when entering flanking state
+	_reset_stuck_detection()
 	_calculate_flank_position()
 
 
@@ -1080,6 +1174,8 @@ func _find_cover_position() -> void:
 
 
 ## Calculate flank position based on player location.
+## Validates that the flank position is not inside an obstacle.
+## If the initial position is blocked, tries alternative positions.
 func _calculate_flank_position() -> void:
 	if _player == null:
 		return
@@ -1087,16 +1183,48 @@ func _calculate_flank_position() -> void:
 	var player_pos := _player.global_position
 	var player_to_enemy := (global_position - player_pos).normalized()
 
-	# Choose left or right flank based on current position
-	var flank_side := 1.0 if randf() > 0.5 else -1.0
-	var flank_direction := player_to_enemy.rotated(flank_angle * flank_side)
+	# Try different flank angles if the first one is blocked
+	# Start with random side, then try the other side, then try closer distances
+	var initial_side := 1.0 if randf() > 0.5 else -1.0
+	var sides := [initial_side, -initial_side]
+	var distance_multipliers := [1.0, 0.7, 0.5, 1.3]  # Try different distances
 
-	_flank_target = player_pos + flank_direction * flank_distance
-	_log_debug("Flank target: %s" % _flank_target)
+	for distance_mult in distance_multipliers:
+		for side in sides:
+			var flank_direction := player_to_enemy.rotated(flank_angle * side)
+			var test_position := player_pos + flank_direction * (flank_distance * distance_mult)
+
+			# Check if this position is valid (not inside a wall)
+			if _is_position_valid(test_position):
+				_flank_target = test_position
+				_log_debug("Flank target: %s (side: %.1f, dist_mult: %.1f)" % [_flank_target, side, distance_mult])
+				return
+
+	# All positions blocked - fall back to moving toward player
+	_flank_target = player_pos + player_to_enemy * (flank_distance * 0.5)
+	_log_debug("All flank positions blocked, moving closer to player: %s" % _flank_target)
+
+
+## Check if a position is valid (not inside an obstacle).
+## Uses physics space state to check if the position is free.
+func _is_position_valid(pos: Vector2) -> bool:
+	var space_state := get_world_2d().direct_space_state
+
+	# Create a point query to check if the position overlaps with obstacles
+	var query := PhysicsPointQueryParameters2D.new()
+	query.position = pos
+	query.collision_mask = 4  # Only check obstacles (layer 3)
+	query.exclude = [get_rid()]
+
+	var results := space_state.intersect_point(query, 1)
+
+	# Position is valid if no obstacles found at that point
+	return results.is_empty()
 
 
 ## Check if there's a wall ahead in the given direction and return avoidance direction.
 ## Returns Vector2.ZERO if no wall detected, otherwise returns a vector to avoid the wall.
+## Uses 5 raycasts spread across a wider angle (-60 to +60 degrees) for better obstacle detection.
 func _check_wall_ahead(direction: Vector2) -> Vector2:
 	if _wall_raycasts.is_empty():
 		return Vector2.ZERO
@@ -1104,9 +1232,13 @@ func _check_wall_ahead(direction: Vector2) -> Vector2:
 	var avoidance := Vector2.ZERO
 	var perpendicular := Vector2(-direction.y, direction.x)  # 90 degrees rotation
 
-	# Check center, left, and right raycasts
+	# Use 5 raycasts spread from -60 to +60 degrees (every 30 degrees)
+	# Indices: 0=-60°, 1=-30°, 2=0°, 3=+30°, 4=+60°
+	var half_count := WALL_CHECK_COUNT / 2  # 2 for 5 raycasts
+	var angle_step := PI / 3.0 / float(half_count)  # ~30 degrees per step
+
 	for i in range(WALL_CHECK_COUNT):
-		var angle_offset := (i - 1) * 0.5  # -0.5, 0, 0.5 radians (~-28, 0, 28 degrees)
+		var angle_offset := (i - half_count) * angle_step
 		var check_direction := direction.rotated(angle_offset)
 
 		var raycast := _wall_raycasts[i]
@@ -1114,21 +1246,71 @@ func _check_wall_ahead(direction: Vector2) -> Vector2:
 		raycast.force_raycast_update()
 
 		if raycast.is_colliding():
-			# Calculate avoidance based on which raycast hit
-			if i == 0:  # Left raycast hit
-				avoidance += perpendicular  # Steer right
-			elif i == 1:  # Center raycast hit
-				avoidance += perpendicular if randf() > 0.5 else -perpendicular  # Random steer
-			elif i == 2:  # Right raycast hit
-				avoidance -= perpendicular  # Steer left
+			var collision_point := raycast.get_collision_point()
+			var distance_to_wall := global_position.distance_to(collision_point)
+
+			# Weight avoidance inversely by distance (closer walls = stronger avoidance)
+			var distance_weight := 1.0 - (distance_to_wall / WALL_CHECK_DISTANCE)
+			distance_weight = maxf(distance_weight, 0.1)  # Minimum weight
+
+			# Steer away from the side where the wall was detected
+			# Left side raycasts (i < half_count) -> steer right (positive perpendicular)
+			# Right side raycasts (i > half_count) -> steer left (negative perpendicular)
+			# Center raycast -> steer based on closest side
+			if i < half_count:
+				avoidance += perpendicular * distance_weight
+			elif i > half_count:
+				avoidance -= perpendicular * distance_weight
+			else:
+				# Center raycast hit - pick a consistent direction based on position
+				# Use deterministic direction to avoid jitter
+				var pos_hash := int(global_position.x + global_position.y) % 2
+				if pos_hash == 0:
+					avoidance += perpendicular * distance_weight
+				else:
+					avoidance -= perpendicular * distance_weight
 
 	return avoidance.normalized() if avoidance.length() > 0 else Vector2.ZERO
+
+
+## Check if the enemy is stuck (not making progress toward target).
+## Returns true if the enemy has been stuck for longer than STUCK_DETECTION_TIME.
+func _check_if_stuck(delta: float) -> bool:
+	# Initialize stuck check position if needed
+	if _stuck_check_position == Vector2.ZERO:
+		_stuck_check_position = global_position
+		_stuck_timer = 0.0
+		return false
+
+	_stuck_timer += delta
+
+	# Check if enough time has passed to evaluate
+	if _stuck_timer >= STUCK_DETECTION_TIME:
+		var distance_moved := global_position.distance_to(_stuck_check_position)
+
+		if distance_moved < STUCK_DETECTION_DISTANCE:
+			# Enemy hasn't moved enough - it's stuck
+			_log_debug("Stuck detected: moved only %.1f pixels in %.1fs" % [distance_moved, STUCK_DETECTION_TIME])
+			return true
+
+		# Reset for next check period
+		_stuck_check_position = global_position
+		_stuck_timer = 0.0
+
+	return false
+
+
+## Reset stuck detection state.
+func _reset_stuck_detection() -> void:
+	_stuck_timer = 0.0
+	_stuck_check_position = global_position
 
 
 ## Check if the player is visible using raycast.
 ## If detection_range is 0 or negative, uses unlimited detection range (line-of-sight only).
 ## This allows the enemy to see the player even outside the viewport if there's no obstacle.
 ## Also updates the continuous visibility timer and visibility ratio for lead prediction control.
+## Tracks when the player goes behind cover to enable cover-edge aiming behavior.
 func _check_player_visibility() -> void:
 	var was_visible := _can_see_player
 	_can_see_player = false
@@ -1159,6 +1341,23 @@ func _check_player_visibility() -> void:
 		if collider == _player:
 			_can_see_player = true
 		# If we hit a wall/obstacle before the player, we can't see them
+		# Track the cover position for cover-edge aiming when:
+		# 1. Player was just visible (was_visible is true), OR
+		# 2. Enemy is in COMBAT state and trying to find the player (after flanking or at start)
+		# Note: We don't set cover tracking during FLANKING to allow the enemy to complete their movement
+		elif not _is_player_behind_cover:
+			var should_track_cover := was_visible or _current_state == AIState.COMBAT
+			if should_track_cover:
+				# Player went behind cover - start or re-establish tracking
+				_is_player_behind_cover = true
+				_player_cover_position = _raycast.get_collision_point()
+				_player_last_known_position = _player.global_position
+				_cover_direction = direction_to_player
+				_cover_watch_timer = 0.0  # Reset timer when re-establishing cover tracking
+				if was_visible:
+					_log_debug("Player hid behind cover at: %s (last seen at: %s)" % [_player_cover_position, _player_last_known_position])
+				else:
+					_log_debug("Re-established cover tracking at: %s (after flanking)" % _player_cover_position)
 	else:
 		# No collision between us and player - we have clear line of sight
 		_can_see_player = true
@@ -1169,17 +1368,70 @@ func _check_player_visibility() -> void:
 		# Calculate what fraction of the player's body is visible
 		# This is used to determine if lead prediction should be enabled
 		_player_visibility_ratio = _calculate_player_visibility_ratio()
+
+		# Player is visible again - reset cover tracking
+		if _is_player_behind_cover:
+			_is_player_behind_cover = false
+			_cover_watch_timer = 0.0
+			_log_debug("Player visible again, resetting cover tracking")
 	else:
 		# Lost line of sight - reset the timer and visibility ratio
 		_continuous_visibility_timer = 0.0
 		_player_visibility_ratio = 0.0
 
 
+## Calculate the cover edge aim point when player is behind cover.
+## The enemy aims at the edges of the cover (slightly above or below) where
+## the player might emerge from, instead of tracking the player's hidden position.
+## This makes the enemy behavior feel more realistic and fair.
+func _calculate_cover_edge_aim_point() -> Vector2:
+	if not _is_player_behind_cover or _player == null:
+		return _player.global_position if _player else global_position
+
+	# Calculate perpendicular direction to the cover (used for edge offset)
+	# The perpendicular is rotated 90 degrees from the direction to cover
+	var perpendicular := Vector2(-_cover_direction.y, _cover_direction.x)
+
+	# Determine which side of the cover the player went behind
+	# by checking the player's last known position relative to the cover
+	var player_offset := _player_last_known_position - _player_cover_position
+	var side_dot := player_offset.dot(perpendicular)
+
+	# Offset distance for aiming at cover edge (pixels beyond the cover point)
+	# This should be enough to aim at where the player might emerge
+	const COVER_EDGE_OFFSET: float = 60.0
+
+	# Aim at the edge of the cover on the side where the player likely hid
+	var edge_offset: Vector2
+	if side_dot >= 0:
+		# Player went behind the "positive" side of the cover
+		edge_offset = perpendicular * COVER_EDGE_OFFSET
+	else:
+		# Player went behind the "negative" side of the cover
+		edge_offset = -perpendicular * COVER_EDGE_OFFSET
+
+	var aim_point := _player_cover_position + edge_offset
+
+	_log_debug("Aiming at cover edge: %s (cover at %s, side_dot: %.2f)" % [aim_point, _player_cover_position, side_dot])
+
+	return aim_point
+
+
 ## Aim the enemy sprite/direction at the player using gradual rotation.
+## When player is behind cover, aims at cover edges instead of tracking player.
 func _aim_at_player() -> void:
 	if _player == null:
 		return
-	var direction := (_player.global_position - global_position).normalized()
+
+	var target_position: Vector2
+
+	# When player is behind cover, aim at the cover edge instead of tracking player movement
+	if _is_player_behind_cover:
+		target_position = _calculate_cover_edge_aim_point()
+	else:
+		target_position = _player.global_position
+
+	var direction := (target_position - global_position).normalized()
 	var target_angle := direction.angle()
 
 	# Calculate the shortest rotation direction
@@ -1473,6 +1725,16 @@ func _reset() -> void:
 	_detection_delay_elapsed = false
 	_continuous_visibility_timer = 0.0
 	_player_visibility_ratio = 0.0
+	# Reset cover tracking state
+	_is_player_behind_cover = false
+	_player_cover_position = Vector2.ZERO
+	_player_last_known_position = Vector2.ZERO
+	_cover_direction = Vector2.ZERO
+	_cover_watch_timer = 0.0
+	# Reset stuck detection state
+	_stuck_timer = 0.0
+	_stuck_check_position = Vector2.ZERO
+	_flank_retry_count = 0
 	_bullets_in_threat_sphere.clear()
 	_initialize_health()
 	_initialize_ammo()
@@ -1535,3 +1797,19 @@ func has_ammo() -> bool:
 ## Returns 0.0 if player is completely hidden, 1.0 if fully visible.
 func get_player_visibility_ratio() -> float:
 	return _player_visibility_ratio
+
+
+## Check if the enemy is tracking the player behind cover.
+## When true, the enemy aims at cover edges instead of tracking player movement.
+func is_tracking_player_behind_cover() -> bool:
+	return _is_player_behind_cover
+
+
+## Get the position of the cover the player is hiding behind (for debugging).
+func get_player_cover_position() -> Vector2:
+	return _player_cover_position
+
+
+## Get the current cover watch timer value (for debugging).
+func get_cover_watch_timer() -> float:
+	return _cover_watch_timer
