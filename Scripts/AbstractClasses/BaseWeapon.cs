@@ -207,6 +207,40 @@ public abstract partial class BaseWeapon : Node2D
     }
 
     /// <summary>
+    /// Performs an instant reload without any timer delay.
+    /// Used for sequence-based reload systems (e.g., R-F-R player reload).
+    /// </summary>
+    public virtual void InstantReload()
+    {
+        if (WeaponData == null || ReserveAmmo <= 0)
+        {
+            return;
+        }
+
+        if (CurrentAmmo >= WeaponData.MagazineSize)
+        {
+            return;
+        }
+
+        // Cancel any ongoing timed reload
+        if (IsReloading)
+        {
+            IsReloading = false;
+            _reloadTimer = 0;
+        }
+
+        // Transfer ammo from reserve to magazine instantly
+        int ammoNeeded = WeaponData.MagazineSize - CurrentAmmo;
+        int ammoToLoad = Math.Min(ammoNeeded, ReserveAmmo);
+
+        CurrentAmmo += ammoToLoad;
+        ReserveAmmo -= ammoToLoad;
+
+        EmitSignal(SignalName.ReloadFinished);
+        EmitSignal(SignalName.AmmoChanged, CurrentAmmo, ReserveAmmo);
+    }
+
+    /// <summary>
     /// Adds ammunition to the reserve.
     /// </summary>
     /// <param name="amount">Amount of ammo to add.</param>

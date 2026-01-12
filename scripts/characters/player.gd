@@ -28,6 +28,12 @@ extends CharacterBody2D
 ## Maximum health of the player.
 @export var max_health: int = 5
 
+## Reload mode: simple (press R once) or sequence (R-F-R).
+@export_enum("Simple", "Sequence") var reload_mode: int = 1  # Default to Sequence mode
+
+## Time to reload in seconds (only used in Simple mode).
+@export var reload_time: float = 1.5
+
 ## Color when at full health.
 @export var full_health_color: Color = Color(0.2, 0.6, 1.0, 1.0)
 
@@ -69,6 +75,18 @@ var _shot_count: int = 0
 ## Timer since last shot.
 var _shot_timer: float = 0.0
 
+## Reload sequence state (0 = waiting for R, 1 = waiting for F, 2 = waiting for R).
+var _reload_sequence_step: int = 0
+
+## Whether the player is currently in reload sequence (for Sequence mode).
+var _is_reloading_sequence: bool = false
+
+## Whether the player is currently reloading (for Simple mode).
+var _is_reloading_simple: bool = false
+
+## Timer for simple reload progress.
+var _reload_timer: float = 0.0
+
 ## Signal emitted when ammo changes.
 signal ammo_changed(current: int, maximum: int)
 
@@ -83,6 +101,12 @@ signal health_changed(current: int, maximum: int)
 
 ## Signal emitted when the player dies.
 signal died
+
+## Signal emitted when reload sequence progresses.
+signal reload_sequence_progress(step: int, total: int)
+
+## Signal emitted when reload completes.
+signal reload_completed
 
 
 func _ready() -> void:
@@ -115,9 +139,21 @@ func _physics_process(delta: float) -> void:
 	if _shot_timer >= SPREAD_RESET_TIME:
 		_shot_count = 0
 
+	# Update simple reload timer
+	if _is_reloading_simple:
+		_reload_timer += delta
+		if _reload_timer >= reload_time:
+			_complete_simple_reload()
+
 	# Handle shooting input
 	if Input.is_action_just_pressed("shoot"):
 		_shoot()
+
+	# Handle reload input based on mode
+	if reload_mode == 0:  # Simple mode
+		_handle_simple_reload_input()
+	else:  # Sequence mode
+		_handle_sequence_reload_input()
 
 
 func _get_input_direction() -> Vector2:
@@ -192,6 +228,93 @@ func get_current_ammo() -> int:
 ## Get maximum ammo count.
 func get_max_ammo() -> int:
 	return max_ammo
+
+
+## Handle simple reload input (just press R once).
+## Reload takes reload_time seconds to complete.
+func _handle_simple_reload_input() -> void:
+	# Don't start reload if already reloading or at max ammo
+	if _is_reloading_simple or _current_ammo >= max_ammo:
+		return
+
+	if Input.is_action_just_pressed("reload"):
+		_is_reloading_simple = true
+		_reload_timer = 0.0
+		reload_sequence_progress.emit(1, 1)
+
+
+## Complete the simple reload.
+func _complete_simple_reload() -> void:
+	_current_ammo = max_ammo
+	_is_reloading_simple = false
+	_reload_timer = 0.0
+	ammo_changed.emit(_current_ammo, max_ammo)
+	reload_completed.emit()
+
+
+## Handle reload sequence input (R-F-R).
+## Player must press R, then F, then R again to complete reload.
+## Reload happens instantly once sequence is completed.
+func _handle_sequence_reload_input() -> void:
+	# Don't process reload if already at max ammo
+	if _current_ammo >= max_ammo:
+		_reload_sequence_step = 0
+		_is_reloading_sequence = false
+		return
+
+	match _reload_sequence_step:
+		0:
+			# Waiting for first R press
+			if Input.is_action_just_pressed("reload"):
+				_reload_sequence_step = 1
+				_is_reloading_sequence = true
+				reload_sequence_progress.emit(1, 3)
+		1:
+			# Waiting for F press
+			if Input.is_action_just_pressed("reload_step"):
+				_reload_sequence_step = 2
+				reload_sequence_progress.emit(2, 3)
+			elif Input.is_action_just_pressed("reload"):
+				# Wrong key pressed, reset sequence
+				_reload_sequence_step = 1
+				reload_sequence_progress.emit(1, 3)
+		2:
+			# Waiting for final R press
+			if Input.is_action_just_pressed("reload"):
+				# Complete reload instantly
+				_complete_reload()
+			elif Input.is_action_just_pressed("reload_step"):
+				# Wrong key pressed, reset sequence
+				_reload_sequence_step = 1
+				reload_sequence_progress.emit(1, 3)
+
+
+## Complete the reload - instantly refill ammo.
+func _complete_reload() -> void:
+	_current_ammo = max_ammo
+	_reload_sequence_step = 0
+	_is_reloading_sequence = false
+	ammo_changed.emit(_current_ammo, max_ammo)
+	reload_completed.emit()
+	reload_sequence_progress.emit(3, 3)
+
+
+## Check if player is currently reloading (either mode).
+func is_reloading() -> bool:
+	return _is_reloading_sequence or _is_reloading_simple
+
+
+## Get current reload sequence step (0-2).
+func get_reload_step() -> int:
+	return _reload_sequence_step
+
+
+## Cancel the reload (both modes) and reset.
+func cancel_reload() -> void:
+	_reload_sequence_step = 0
+	_is_reloading_sequence = false
+	_is_reloading_simple = false
+	_reload_timer = 0.0
 
 
 ## Called when hit by a projectile.

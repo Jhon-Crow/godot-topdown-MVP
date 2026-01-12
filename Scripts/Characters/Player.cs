@@ -10,6 +10,7 @@ namespace GodotTopDownTemplate.Characters;
 /// Supports WASD and arrow key input via configured input actions.
 /// Shoots bullets towards the mouse cursor on left mouse button.
 /// Supports both automatic (hold to fire) and semi-automatic (click per shot) weapons.
+/// Uses R-F-R key sequence for instant reload (press R, then F, then R again).
 /// </summary>
 public partial class Player : BaseCharacter
 {
@@ -59,6 +60,28 @@ public partial class Player : BaseCharacter
     /// Reference to the player's sprite for visual feedback.
     /// </summary>
     private Sprite2D? _sprite;
+
+    /// <summary>
+    /// Current step in the reload sequence (0 = waiting for R, 1 = waiting for F, 2 = waiting for R).
+    /// </summary>
+    private int _reloadSequenceStep = 0;
+
+    /// <summary>
+    /// Whether the player is currently in a reload sequence.
+    /// </summary>
+    private bool _isReloadingSequence = false;
+
+    /// <summary>
+    /// Signal emitted when reload sequence progresses.
+    /// </summary>
+    [Signal]
+    public delegate void ReloadSequenceProgressEventHandler(int step, int total);
+
+    /// <summary>
+    /// Signal emitted when reload completes.
+    /// </summary>
+    [Signal]
+    public delegate void ReloadCompletedEventHandler();
 
     public override void _Ready()
     {
@@ -138,11 +161,8 @@ public partial class Player : BaseCharacter
         // Handle shooting input - support both automatic and semi-automatic weapons
         HandleShootingInput();
 
-        // Handle reload input
-        if (Input.IsActionJustPressed("reload"))
-        {
-            Reload();
-        }
+        // Handle reload sequence input (R-F-R)
+        HandleReloadSequenceInput();
 
         // Handle fire mode toggle (B key for burst/auto toggle)
         if (Input.IsActionJustPressed("toggle_fire_mode"))
@@ -226,15 +246,119 @@ public partial class Player : BaseCharacter
     }
 
     /// <summary>
-    /// Initiates reload of the current weapon.
+    /// Handles the R-F-R reload sequence input.
+    /// Step 0: Press R to start sequence
+    /// Step 1: Press F to continue
+    /// Step 2: Press R to complete reload instantly
     /// </summary>
-    private void Reload()
+    private void HandleReloadSequenceInput()
     {
-        if (CurrentWeapon != null)
+        if (CurrentWeapon == null)
         {
-            CurrentWeapon.StartReload();
+            return;
+        }
+
+        // Can't reload if magazine is full
+        if (CurrentWeapon.CurrentAmmo >= (CurrentWeapon.WeaponData?.MagazineSize ?? 0))
+        {
+            if (_isReloadingSequence)
+            {
+                ResetReloadSequence();
+            }
+            return;
+        }
+
+        // Can't reload if no reserve ammo
+        if (CurrentWeapon.ReserveAmmo <= 0)
+        {
+            if (_isReloadingSequence)
+            {
+                ResetReloadSequence();
+            }
+            return;
+        }
+
+        // Handle R key (first and third step)
+        if (Input.IsActionJustPressed("reload"))
+        {
+            if (_reloadSequenceStep == 0)
+            {
+                // Start reload sequence
+                _isReloadingSequence = true;
+                _reloadSequenceStep = 1;
+                GD.Print("[Player] Reload sequence started (R pressed) - press F next");
+                EmitSignal(SignalName.ReloadSequenceProgress, 1, 3);
+            }
+            else if (_reloadSequenceStep == 2)
+            {
+                // Complete reload sequence - instant reload!
+                CompleteReloadSequence();
+            }
+            else
+            {
+                // Wrong key pressed, reset sequence
+                GD.Print("[Player] Wrong key! Reload sequence reset (expected F)");
+                ResetReloadSequence();
+            }
+        }
+
+        // Handle F key (reload_step action - second step)
+        if (Input.IsActionJustPressed("reload_step"))
+        {
+            if (_reloadSequenceStep == 1)
+            {
+                // Continue to next step
+                _reloadSequenceStep = 2;
+                GD.Print("[Player] Reload sequence step 2 (F pressed) - press R to complete");
+                EmitSignal(SignalName.ReloadSequenceProgress, 2, 3);
+            }
+            else if (_isReloadingSequence)
+            {
+                // Wrong key pressed, reset sequence
+                GD.Print("[Player] Wrong key! Reload sequence reset (expected R)");
+                ResetReloadSequence();
+            }
         }
     }
+
+    /// <summary>
+    /// Completes the reload sequence, instantly reloading the weapon.
+    /// </summary>
+    private void CompleteReloadSequence()
+    {
+        if (CurrentWeapon == null)
+        {
+            return;
+        }
+
+        // Perform instant reload
+        CurrentWeapon.InstantReload();
+
+        GD.Print("[Player] Reload sequence complete! Magazine refilled instantly.");
+        EmitSignal(SignalName.ReloadSequenceProgress, 3, 3);
+        EmitSignal(SignalName.ReloadCompleted);
+
+        ResetReloadSequence();
+    }
+
+    /// <summary>
+    /// Resets the reload sequence to the beginning.
+    /// </summary>
+    private void ResetReloadSequence()
+    {
+        _reloadSequenceStep = 0;
+        _isReloadingSequence = false;
+    }
+
+    /// <summary>
+    /// Gets whether the player is currently in a reload sequence.
+    /// </summary>
+    public bool IsReloadingSequence => _isReloadingSequence;
+
+    /// <summary>
+    /// Gets the current reload sequence step (0-2).
+    /// </summary>
+    public int ReloadSequenceStep => _reloadSequenceStep;
 
     /// <summary>
     /// Fires a bullet towards the mouse cursor.

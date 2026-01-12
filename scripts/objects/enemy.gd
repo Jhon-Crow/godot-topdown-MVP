@@ -124,7 +124,7 @@ enum BehaviorMode {
 @export var total_magazines: int = 5
 
 ## Ammunition system - time to reload in seconds.
-@export var reload_time: float = 2.0
+@export var reload_time: float = 3.0
 
 ## Delay (in seconds) between spotting player and starting to shoot.
 ## Gives player a brief reaction time when entering enemy line of sight.
