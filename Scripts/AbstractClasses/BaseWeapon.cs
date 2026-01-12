@@ -47,6 +47,25 @@ public abstract partial class BaseWeapon : Node2D
     /// </summary>
     public bool IsReloading { get; protected set; }
 
+    /// <summary>
+    /// Whether there is a bullet in the chamber.
+    /// This is true when the weapon had ammo when reload started (R->F sequence).
+    /// </summary>
+    public bool HasBulletInChamber { get; protected set; }
+
+    /// <summary>
+    /// Whether the chamber bullet was fired during reload.
+    /// Used to track if we need to subtract a bullet after reload completes.
+    /// </summary>
+    public bool ChamberBulletFired { get; protected set; }
+
+    /// <summary>
+    /// Whether the weapon is in the middle of a reload sequence (between R->F and final R).
+    /// When true, only chamber bullet can be fired (if available).
+    /// </summary>
+    public bool IsInReloadSequence { get; set; }
+
+
     private float _fireTimer;
     private float _reloadTimer;
 
@@ -209,6 +228,7 @@ public abstract partial class BaseWeapon : Node2D
     /// <summary>
     /// Performs an instant reload without any timer delay.
     /// Used for sequence-based reload systems (e.g., R-F-R player reload).
+    /// Accounts for bullet in chamber mechanic.
     /// </summary>
     public virtual void InstantReload()
     {
@@ -229,6 +249,9 @@ public abstract partial class BaseWeapon : Node2D
             _reloadTimer = 0;
         }
 
+        // Reset reload sequence state
+        IsInReloadSequence = false;
+
         // Transfer ammo from reserve to magazine instantly
         int ammoNeeded = WeaponData.MagazineSize - CurrentAmmo;
         int ammoToLoad = Math.Min(ammoNeeded, ReserveAmmo);
@@ -236,9 +259,80 @@ public abstract partial class BaseWeapon : Node2D
         CurrentAmmo += ammoToLoad;
         ReserveAmmo -= ammoToLoad;
 
+        // Handle bullet chambering from new magazine:
+        // Only subtract a bullet if the chamber bullet was fired during reload (had ammo, shot during R->F)
+        // Empty magazine reloads don't subtract a bullet (no chambering penalty)
+        if (ChamberBulletFired && CurrentAmmo > 0)
+        {
+            CurrentAmmo--;
+        }
+
+        // Reset chamber state
+        HasBulletInChamber = false;
+        ChamberBulletFired = false;
+
         EmitSignal(SignalName.ReloadFinished);
         EmitSignal(SignalName.AmmoChanged, CurrentAmmo, ReserveAmmo);
     }
+
+    /// <summary>
+    /// Starts the reload sequence (R->F pressed).
+    /// Sets up the chamber bullet if there was ammo in the magazine.
+    /// </summary>
+    /// <param name="hadAmmoInMagazine">Whether there was ammo in the magazine when reload started.</param>
+    public virtual void StartReloadSequence(bool hadAmmoInMagazine)
+    {
+        IsInReloadSequence = true;
+        HasBulletInChamber = hadAmmoInMagazine;
+        ChamberBulletFired = false;
+    }
+
+    /// <summary>
+    /// Cancels the reload sequence (e.g., when shooting resets the combo after only R was pressed).
+    /// </summary>
+    public virtual void CancelReloadSequence()
+    {
+        IsInReloadSequence = false;
+        HasBulletInChamber = false;
+        ChamberBulletFired = false;
+    }
+
+    /// <summary>
+    /// Fires the bullet in the chamber during reload sequence.
+    /// Returns true if the chamber bullet was fired successfully.
+    /// </summary>
+    /// <param name="direction">Direction to fire.</param>
+    /// <returns>True if the chamber bullet was fired.</returns>
+    public virtual bool FireChamberBullet(Vector2 direction)
+    {
+        if (!IsInReloadSequence || !HasBulletInChamber || ChamberBulletFired)
+        {
+            return false;
+        }
+
+        if (BulletScene == null || _fireTimer > 0)
+        {
+            return false;
+        }
+
+        // Fire the chamber bullet
+        _fireTimer = WeaponData != null ? 1.0f / WeaponData.FireRate : 0.1f;
+        ChamberBulletFired = true;
+        HasBulletInChamber = false;
+
+        SpawnBullet(direction);
+
+        EmitSignal(SignalName.Fired);
+        // Note: We don't change CurrentAmmo here because the bullet was already
+        // in the chamber, not in the magazine
+
+        return true;
+    }
+
+    /// <summary>
+    /// Checks if the weapon can fire a chamber bullet during reload sequence.
+    /// </summary>
+    public bool CanFireChamberBullet => IsInReloadSequence && HasBulletInChamber && !ChamberBulletFired && _fireTimer <= 0;
 
     /// <summary>
     /// Adds ammunition to the reserve.

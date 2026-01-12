@@ -72,6 +72,12 @@ public partial class Player : BaseCharacter
     private bool _isReloadingSequence = false;
 
     /// <summary>
+    /// Tracks ammo count when reload sequence started (at step 1 after R pressed).
+    /// Used to determine if there was a bullet in the chamber.
+    /// </summary>
+    private int _ammoAtReloadStart = 0;
+
+    /// <summary>
     /// Signal emitted when reload sequence progresses.
     /// </summary>
     [Signal]
@@ -175,6 +181,7 @@ public partial class Player : BaseCharacter
     /// Handles shooting input based on weapon type.
     /// For automatic weapons: fires while held.
     /// For semi-automatic/burst: fires on press.
+    /// Also handles bullet in chamber mechanics during reload sequence.
     /// </summary>
     private void HandleShootingInput()
     {
@@ -197,21 +204,70 @@ public partial class Player : BaseCharacter
             isAutomatic = assaultRifle.CurrentFireMode == FireMode.Automatic;
         }
 
-        if (isAutomatic)
+        // Determine if shooting input is active
+        bool shootInputActive = isAutomatic ? Input.IsActionPressed("shoot") : Input.IsActionJustPressed("shoot");
+
+        if (!shootInputActive)
         {
-            // Automatic: fire while holding the button
-            if (Input.IsActionPressed("shoot"))
+            return;
+        }
+
+        // Handle shooting based on reload sequence state
+        if (_isReloadingSequence)
+        {
+            // In reload sequence
+            if (_reloadSequenceStep == 1)
             {
+                // Step 1 (only R pressed, waiting for F): shooting resets the combo
+                GD.Print("[Player] Shooting during reload step 1 - resetting reload sequence");
+                ResetReloadSequence();
                 Shoot();
+            }
+            else if (_reloadSequenceStep == 2)
+            {
+                // Step 2 (R->F pressed, waiting for final R): try to fire chamber bullet
+                if (CurrentWeapon.CanFireChamberBullet)
+                {
+                    // Fire the chamber bullet
+                    Vector2 mousePos = GetGlobalMousePosition();
+                    Vector2 shootDirection = (mousePos - GlobalPosition).Normalized();
+
+                    if (CurrentWeapon.FireChamberBullet(shootDirection))
+                    {
+                        GD.Print("[Player] Fired bullet in chamber during reload");
+                        // Note: Sound is handled by the weapon's FireChamberBullet implementation
+                    }
+                }
+                else if (CurrentWeapon.ChamberBulletFired)
+                {
+                    // Chamber bullet already fired, can't shoot until reload completes
+                    GD.Print("[Player] Cannot shoot - chamber bullet already fired, wait for reload to complete");
+                    PlayEmptyClickSound();
+                }
+                else
+                {
+                    // No bullet in chamber (magazine was empty when reload started)
+                    GD.Print("[Player] Cannot shoot - no bullet in chamber, wait for reload to complete");
+                    PlayEmptyClickSound();
+                }
             }
         }
         else
         {
-            // Semi-automatic/Burst: fire on button press only
-            if (Input.IsActionJustPressed("shoot"))
-            {
-                Shoot();
-            }
+            // Not in reload sequence - normal shooting
+            Shoot();
+        }
+    }
+
+    /// <summary>
+    /// Plays the empty click sound when trying to shoot without ammo.
+    /// </summary>
+    private void PlayEmptyClickSound()
+    {
+        var audioManager = GetNodeOrNull("/root/AudioManager");
+        if (audioManager != null && audioManager.HasMethod("play_empty_click"))
+        {
+            audioManager.Call("play_empty_click", GlobalPosition);
         }
     }
 
@@ -247,9 +303,14 @@ public partial class Player : BaseCharacter
 
     /// <summary>
     /// Handles the R-F-R reload sequence input.
-    /// Step 0: Press R to start sequence
-    /// Step 1: Press F to continue
-    /// Step 2: Press R to complete reload instantly
+    /// Step 0: Press R to start sequence (eject magazine)
+    /// Step 1: Press F to continue (insert new magazine)
+    /// Step 2: Press R to complete reload instantly (chamber round)
+    ///
+    /// Bullet in chamber mechanics:
+    /// - At step 1 (R pressed): shooting resets the combo
+    /// - At step 2 (R->F pressed): if previous magazine had ammo, one chamber bullet can be fired
+    /// - After reload: if chamber bullet was fired, subtract one from new magazine
     /// </summary>
     private void HandleReloadSequenceInput()
     {
@@ -258,23 +319,15 @@ public partial class Player : BaseCharacter
             return;
         }
 
-        // Can't reload if magazine is full
-        if (CurrentWeapon.CurrentAmmo >= (CurrentWeapon.WeaponData?.MagazineSize ?? 0))
+        // Can't reload if magazine is full (and not in reload sequence)
+        if (!_isReloadingSequence && CurrentWeapon.CurrentAmmo >= (CurrentWeapon.WeaponData?.MagazineSize ?? 0))
         {
-            if (_isReloadingSequence)
-            {
-                ResetReloadSequence();
-            }
             return;
         }
 
-        // Can't reload if no reserve ammo
-        if (CurrentWeapon.ReserveAmmo <= 0)
+        // Can't reload if no reserve ammo (and not in reload sequence)
+        if (!_isReloadingSequence && CurrentWeapon.ReserveAmmo <= 0)
         {
-            if (_isReloadingSequence)
-            {
-                ResetReloadSequence();
-            }
             return;
         }
 
@@ -283,11 +336,26 @@ public partial class Player : BaseCharacter
         {
             if (_reloadSequenceStep == 0 || _reloadSequenceStep == 1)
             {
+                // Check if we can start a new reload (need ammo or already in sequence)
+                if (_reloadSequenceStep == 0)
+                {
+                    // Starting fresh - check conditions
+                    if (CurrentWeapon.CurrentAmmo >= (CurrentWeapon.WeaponData?.MagazineSize ?? 0))
+                    {
+                        return; // Magazine is full
+                    }
+                    if (CurrentWeapon.ReserveAmmo <= 0)
+                    {
+                        return; // No reserve ammo
+                    }
+                }
+
                 // Start or restart reload sequence
                 // This handles both initial R press and R->R sequence (restart)
                 _isReloadingSequence = true;
                 _reloadSequenceStep = 1;
-                GD.Print("[Player] Reload sequence started (R pressed) - press F next");
+                _ammoAtReloadStart = CurrentWeapon.CurrentAmmo;
+                GD.Print($"[Player] Reload sequence started (R pressed) - ammo at start: {_ammoAtReloadStart} - press F next");
                 // Play magazine out sound
                 PlayReloadMagOutSound();
                 EmitSignal(SignalName.ReloadSequenceProgress, 1, 3);
@@ -306,9 +374,14 @@ public partial class Player : BaseCharacter
         {
             if (_reloadSequenceStep == 1)
             {
-                // Continue to next step
+                // Continue to next step - set up chamber bullet
                 _reloadSequenceStep = 2;
-                GD.Print("[Player] Reload sequence step 2 (F pressed) - press R to complete");
+
+                // Set up bullet in chamber based on ammo at reload start
+                bool hadAmmoInMagazine = _ammoAtReloadStart > 0;
+                CurrentWeapon.StartReloadSequence(hadAmmoInMagazine);
+
+                GD.Print($"[Player] Reload sequence step 2 (F pressed) - bullet in chamber: {hadAmmoInMagazine} - press R to complete");
                 // Play magazine in sound
                 PlayReloadMagInSound();
                 EmitSignal(SignalName.ReloadSequenceProgress, 2, 3);
@@ -380,11 +453,16 @@ public partial class Player : BaseCharacter
 
     /// <summary>
     /// Resets the reload sequence to the beginning.
+    /// Also cancels the weapon's reload sequence state.
     /// </summary>
     private void ResetReloadSequence()
     {
         _reloadSequenceStep = 0;
         _isReloadingSequence = false;
+        _ammoAtReloadStart = 0;
+
+        // Cancel weapon's reload sequence state
+        CurrentWeapon?.CancelReloadSequence();
     }
 
     /// <summary>

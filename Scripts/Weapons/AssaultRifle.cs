@@ -504,4 +504,31 @@ public partial class AssaultRifle : BaseWeapon
     /// This is the direction that bullets will travel when fired.
     /// </summary>
     public Vector2 AimDirection => _aimDirection;
+
+    /// <summary>
+    /// Fires the bullet in the chamber during reload sequence.
+    /// Overrides base to use laser aim direction when laser sight is enabled.
+    /// </summary>
+    /// <param name="direction">Direction to fire (ignored when laser sight is enabled).</param>
+    /// <returns>True if the chamber bullet was fired.</returns>
+    public override bool FireChamberBullet(Vector2 direction)
+    {
+        // Use laser aim direction when laser sight is enabled
+        Vector2 fireDirection = LaserSightEnabled ? _aimDirection : direction;
+
+        // Apply spread
+        Vector2 spreadDirection = ApplySpread(fireDirection);
+
+        bool result = base.FireChamberBullet(spreadDirection);
+
+        if (result)
+        {
+            // Play M16 shot sound for chamber bullet
+            PlayM16ShotSound();
+            // Play shell casing sound with delay
+            PlayShellCasingDelayed();
+        }
+
+        return result;
+    }
 }
