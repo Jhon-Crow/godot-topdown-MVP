@@ -465,6 +465,14 @@ func _process_in_cover_state(_delta: float) -> void:
 		_transition_to_suppressed()
 		return
 
+	# Check if player has flanked us - if we're now visible from player's position,
+	# we need to find new cover
+	if _is_visible_from_player():
+		_log_debug("Player flanked our cover position, seeking new cover")
+		_has_valid_cover = false  # Invalidate current cover
+		_transition_to_seeking_cover()
+		return
+
 	# If not under fire and can see player, engage
 	if _can_see_player and _player:
 		_aim_at_player()
@@ -520,6 +528,14 @@ func _process_flanking_state(_delta: float) -> void:
 func _process_suppressed_state(_delta: float) -> void:
 	velocity = Vector2.ZERO
 
+	# Check if player has flanked us - if we're now visible from player's position,
+	# we need to find new cover even while suppressed
+	if _is_visible_from_player():
+		_log_debug("Player flanked our cover position while suppressed, seeking new cover")
+		_has_valid_cover = false  # Invalidate current cover
+		_transition_to_seeking_cover()
+		return
+
 	# Can still shoot while suppressed
 	if _can_see_player and _player:
 		_aim_at_player()
@@ -567,63 +583,90 @@ func _transition_to_suppressed() -> void:
 ## Check if the enemy is visible from the player's position.
 ## Uses raycasting from player to enemy to determine if there are obstacles blocking line of sight.
 ## This is the inverse of _can_see_player - it checks if the PLAYER can see the ENEMY.
+## Checks multiple points on the enemy body (center and corners) to account for enemy size.
 func _is_visible_from_player() -> bool:
 	if _player == null:
 		return false
 
-	var player_pos := _player.global_position
-	var enemy_pos := global_position
-	var distance := player_pos.distance_to(enemy_pos)
+	# Check visibility to multiple points on the enemy body
+	# This accounts for the enemy's size - corners can stick out from cover
+	var check_points := _get_enemy_check_points(global_position)
 
-	# Use direct space state to check line of sight from player to enemy
+	for point in check_points:
+		if _is_point_visible_from_player(point):
+			return true
+
+	return false
+
+
+## Get multiple check points on the enemy body for visibility testing.
+## Returns center and 4 corner points offset by the enemy's radius.
+func _get_enemy_check_points(center: Vector2) -> Array[Vector2]:
+	# Enemy collision radius is 24, sprite is 48x48
+	# Use a slightly smaller radius to avoid edge cases
+	const ENEMY_RADIUS: float = 22.0
+
+	var points: Array[Vector2] = []
+	points.append(center)  # Center point
+
+	# 4 corner points (diagonal directions)
+	var diagonal_offset := ENEMY_RADIUS * 0.707  # cos(45°) ≈ 0.707
+	points.append(center + Vector2(diagonal_offset, diagonal_offset))
+	points.append(center + Vector2(-diagonal_offset, diagonal_offset))
+	points.append(center + Vector2(diagonal_offset, -diagonal_offset))
+	points.append(center + Vector2(-diagonal_offset, -diagonal_offset))
+
+	return points
+
+
+## Check if a single point is visible from the player's position.
+func _is_point_visible_from_player(point: Vector2) -> bool:
+	if _player == null:
+		return false
+
+	var player_pos := _player.global_position
+	var distance := player_pos.distance_to(point)
+
+	# Use direct space state to check line of sight from player to point
 	var space_state := get_world_2d().direct_space_state
 	var query := PhysicsRayQueryParameters2D.new()
 	query.from = player_pos
-	query.to = enemy_pos
+	query.to = point
 	query.collision_mask = 4  # Only check obstacles (layer 3)
 	query.exclude = []
 
 	var result := space_state.intersect_ray(query)
 
 	if result.is_empty():
-		# No obstacle between player and enemy - enemy is visible
+		# No obstacle between player and point - point is visible
 		return true
 	else:
-		# Check if we hit an obstacle before reaching the enemy
+		# Check if we hit an obstacle before reaching the point
 		var hit_position: Vector2 = result["position"]
 		var distance_to_hit := player_pos.distance_to(hit_position)
 
-		# If we hit something closer than the enemy, the enemy is hidden
-		if distance_to_hit < distance - 20.0:  # 20 pixel tolerance
+		# If we hit something closer than the point, the point is hidden
+		if distance_to_hit < distance - 10.0:  # 10 pixel tolerance
 			return false
 		else:
 			return true
 
 
-## Check if a specific position is visible from the player's position.
+## Check if a specific position would make the enemy visible from the player's position.
+## Checks all enemy body points (center and corners) to account for enemy size.
 ## Used to validate cover positions before moving to them.
 func _is_position_visible_from_player(pos: Vector2) -> bool:
 	if _player == null:
 		return true  # Assume visible if no player
 
-	var player_pos := _player.global_position
-	var distance := player_pos.distance_to(pos)
+	# Check visibility for all enemy body points at the given position
+	var check_points := _get_enemy_check_points(pos)
 
-	var space_state := get_world_2d().direct_space_state
-	var query := PhysicsRayQueryParameters2D.new()
-	query.from = player_pos
-	query.to = pos
-	query.collision_mask = 4  # Only check obstacles (layer 3)
-	query.exclude = []
+	for point in check_points:
+		if _is_point_visible_from_player(point):
+			return true
 
-	var result := space_state.intersect_ray(query)
-
-	if result.is_empty():
-		return true
-	else:
-		var hit_position: Vector2 = result["position"]
-		var distance_to_hit := player_pos.distance_to(hit_position)
-		return distance_to_hit >= distance - 10.0
+	return false
 
 
 ## Find a valid cover position relative to the player.
@@ -655,8 +698,9 @@ func _find_cover_position() -> void:
 			var direction_from_player := (collision_point - player_pos).normalized()
 
 			# Position behind cover (offset from collision point along normal)
-			# Use a larger offset to ensure the enemy is fully behind the obstacle
-			var cover_pos := collision_point + collision_normal * 50.0
+			# Offset must be large enough to hide the entire enemy body (radius ~24 pixels)
+			# Using 35 pixels to provide some margin for the enemy's collision shape
+			var cover_pos := collision_point + collision_normal * 35.0
 
 			# First priority: Check if this position is actually hidden from player
 			var is_hidden := not _is_position_visible_from_player(cover_pos)
