@@ -41,6 +41,10 @@ func _physics_process(delta: float) -> void:
 
 func _on_body_entered(_body: Node2D) -> void:
 	# Hit a static body (wall or obstacle)
+	# Play wall impact sound
+	var audio_manager: Node = get_node_or_null("/root/AudioManager")
+	if audio_manager and audio_manager.has_method("play_bullet_wall_hit"):
+		audio_manager.play_bullet_wall_hit(global_position)
 	queue_free()
 
 

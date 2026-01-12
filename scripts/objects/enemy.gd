@@ -1098,6 +1098,14 @@ func _shoot() -> void:
 	# Add bullet to the scene tree
 	get_tree().current_scene.add_child(bullet)
 
+	# Play shooting sound
+	var audio_manager: Node = get_node_or_null("/root/AudioManager")
+	if audio_manager and audio_manager.has_method("play_m16_shot"):
+		audio_manager.play_m16_shot(global_position)
+
+	# Play shell casing sound with a small delay
+	_play_delayed_shell_sound()
+
 	# Consume ammo
 	_current_ammo -= 1
 	ammo_changed.emit(_current_ammo, _reserve_ammo)
@@ -1105,6 +1113,14 @@ func _shoot() -> void:
 	# Auto-reload when magazine is empty
 	if _current_ammo <= 0 and _reserve_ammo > 0:
 		_start_reload()
+
+
+## Play shell casing sound with a delay to simulate the casing hitting the ground.
+func _play_delayed_shell_sound() -> void:
+	await get_tree().create_timer(0.15).timeout
+	var audio_manager: Node = get_node_or_null("/root/AudioManager")
+	if audio_manager and audio_manager.has_method("play_shell_rifle"):
+		audio_manager.play_shell_rifle(global_position)
 
 
 ## Calculate lead prediction - aims where the player will be, not where they are.
@@ -1218,9 +1234,17 @@ func on_hit() -> void:
 	# Apply damage
 	_current_health -= 1
 
+	# Play appropriate hit sound
+	var audio_manager: Node = get_node_or_null("/root/AudioManager")
 	if _current_health <= 0:
+		# Play lethal hit sound
+		if audio_manager and audio_manager.has_method("play_hit_lethal"):
+			audio_manager.play_hit_lethal(global_position)
 		_on_death()
 	else:
+		# Play non-lethal hit sound
+		if audio_manager and audio_manager.has_method("play_hit_non_lethal"):
+			audio_manager.play_hit_non_lethal(global_position)
 		_update_health_visual()
 
 

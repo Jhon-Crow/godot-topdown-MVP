@@ -107,8 +107,22 @@ public partial class Bullet : Area2D
     /// </summary>
     private void OnBodyEntered(Node2D body)
     {
+        // Play bullet wall impact sound
+        PlayBulletWallHitSound();
         EmitSignal(SignalName.Hit, body);
         QueueFree();
+    }
+
+    /// <summary>
+    /// Plays the bullet wall impact sound.
+    /// </summary>
+    private void PlayBulletWallHitSound()
+    {
+        var audioManager = GetNodeOrNull("/root/AudioManager");
+        if (audioManager != null && audioManager.HasMethod("play_bullet_wall_hit"))
+        {
+            audioManager.Call("play_bullet_wall_hit", GlobalPosition);
+        }
     }
 
     /// <summary>

@@ -184,6 +184,10 @@ func _shoot() -> void:
 
 	# Check ammo
 	if _current_ammo <= 0:
+		# Play empty click sound
+		var audio_manager: Node = get_node_or_null("/root/AudioManager")
+		if audio_manager and audio_manager.has_method("play_empty_click"):
+			audio_manager.play_empty_click(global_position)
 		ammo_depleted.emit()
 		return
 
@@ -213,11 +217,28 @@ func _shoot() -> void:
 	# Add bullet to the scene tree (parent's parent to avoid it being a child of player)
 	get_tree().current_scene.add_child(bullet)
 
+	# Play shooting sound
+	var audio_manager: Node = get_node_or_null("/root/AudioManager")
+	if audio_manager and audio_manager.has_method("play_m16_shot"):
+		audio_manager.play_m16_shot(global_position)
+
+	# Play shell casing sound with a small delay
+	if audio_manager and audio_manager.has_method("play_shell_rifle"):
+		_play_delayed_shell_sound()
+
 	# Update ammo and shot count
 	_current_ammo -= 1
 	_shot_count += 1
 	_shot_timer = 0.0
 	ammo_changed.emit(_current_ammo, max_ammo)
+
+
+## Play shell casing sound with a delay to simulate the casing hitting the ground.
+func _play_delayed_shell_sound() -> void:
+	await get_tree().create_timer(0.15).timeout
+	var audio_manager: Node = get_node_or_null("/root/AudioManager")
+	if audio_manager and audio_manager.has_method("play_shell_rifle"):
+		audio_manager.play_shell_rifle(global_position)
 
 
 ## Get current ammo count.
@@ -240,6 +261,10 @@ func _handle_simple_reload_input() -> void:
 	if Input.is_action_just_pressed("reload"):
 		_is_reloading_simple = true
 		_reload_timer = 0.0
+		# Play full reload sound for simple mode
+		var audio_manager: Node = get_node_or_null("/root/AudioManager")
+		if audio_manager and audio_manager.has_method("play_reload_full"):
+			audio_manager.play_reload_full(global_position)
 		reload_sequence_progress.emit(1, 1)
 
 
@@ -262,30 +287,44 @@ func _handle_sequence_reload_input() -> void:
 		_is_reloading_sequence = false
 		return
 
+	var audio_manager: Node = get_node_or_null("/root/AudioManager")
+
 	match _reload_sequence_step:
 		0:
 			# Waiting for first R press
 			if Input.is_action_just_pressed("reload"):
 				_reload_sequence_step = 1
 				_is_reloading_sequence = true
+				# Play magazine out sound
+				if audio_manager and audio_manager.has_method("play_reload_mag_out"):
+					audio_manager.play_reload_mag_out(global_position)
 				reload_sequence_progress.emit(1, 3)
 		1:
 			# Waiting for F press
 			if Input.is_action_just_pressed("reload_step"):
 				_reload_sequence_step = 2
+				# Play magazine in sound
+				if audio_manager and audio_manager.has_method("play_reload_mag_in"):
+					audio_manager.play_reload_mag_in(global_position)
 				reload_sequence_progress.emit(2, 3)
 			elif Input.is_action_just_pressed("reload"):
-				# Wrong key pressed, reset sequence
+				# R pressed again - restart sequence with mag out sound
 				_reload_sequence_step = 1
+				if audio_manager and audio_manager.has_method("play_reload_mag_out"):
+					audio_manager.play_reload_mag_out(global_position)
 				reload_sequence_progress.emit(1, 3)
 		2:
 			# Waiting for final R press
 			if Input.is_action_just_pressed("reload"):
-				# Complete reload instantly
+				# Play bolt cycling sound and complete reload
+				if audio_manager and audio_manager.has_method("play_m16_bolt"):
+					audio_manager.play_m16_bolt(global_position)
 				_complete_reload()
 			elif Input.is_action_just_pressed("reload_step"):
 				# Wrong key pressed, reset sequence
 				_reload_sequence_step = 1
+				if audio_manager and audio_manager.has_method("play_reload_mag_out"):
+					audio_manager.play_reload_mag_out(global_position)
 				reload_sequence_progress.emit(1, 3)
 
 
@@ -331,9 +370,17 @@ func on_hit() -> void:
 	_current_health -= 1
 	health_changed.emit(_current_health, max_health)
 
+	# Play appropriate hit sound
+	var audio_manager: Node = get_node_or_null("/root/AudioManager")
 	if _current_health <= 0:
+		# Play lethal hit sound
+		if audio_manager and audio_manager.has_method("play_hit_lethal"):
+			audio_manager.play_hit_lethal(global_position)
 		_on_death()
 	else:
+		# Play non-lethal hit sound
+		if audio_manager and audio_manager.has_method("play_hit_non_lethal"):
+			audio_manager.play_hit_non_lethal(global_position)
 		_update_health_visual()
 
 

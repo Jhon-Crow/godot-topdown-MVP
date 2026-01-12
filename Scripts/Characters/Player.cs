@@ -288,11 +288,15 @@ public partial class Player : BaseCharacter
                 _isReloadingSequence = true;
                 _reloadSequenceStep = 1;
                 GD.Print("[Player] Reload sequence started (R pressed) - press F next");
+                // Play magazine out sound
+                PlayReloadMagOutSound();
                 EmitSignal(SignalName.ReloadSequenceProgress, 1, 3);
             }
             else if (_reloadSequenceStep == 2)
             {
                 // Complete reload sequence - instant reload!
+                // Play bolt cycling sound
+                PlayM16BoltSound();
                 CompleteReloadSequence();
             }
         }
@@ -305,6 +309,8 @@ public partial class Player : BaseCharacter
                 // Continue to next step
                 _reloadSequenceStep = 2;
                 GD.Print("[Player] Reload sequence step 2 (F pressed) - press R to complete");
+                // Play magazine in sound
+                PlayReloadMagInSound();
                 EmitSignal(SignalName.ReloadSequenceProgress, 2, 3);
             }
             else if (_isReloadingSequence)
@@ -313,6 +319,42 @@ public partial class Player : BaseCharacter
                 GD.Print("[Player] Wrong key! Reload sequence reset (expected R)");
                 ResetReloadSequence();
             }
+        }
+    }
+
+    /// <summary>
+    /// Plays the magazine out sound (first reload step).
+    /// </summary>
+    private void PlayReloadMagOutSound()
+    {
+        var audioManager = GetNodeOrNull("/root/AudioManager");
+        if (audioManager != null && audioManager.HasMethod("play_reload_mag_out"))
+        {
+            audioManager.Call("play_reload_mag_out", GlobalPosition);
+        }
+    }
+
+    /// <summary>
+    /// Plays the magazine in sound (second reload step).
+    /// </summary>
+    private void PlayReloadMagInSound()
+    {
+        var audioManager = GetNodeOrNull("/root/AudioManager");
+        if (audioManager != null && audioManager.HasMethod("play_reload_mag_in"))
+        {
+            audioManager.Call("play_reload_mag_in", GlobalPosition);
+        }
+    }
+
+    /// <summary>
+    /// Plays the M16 bolt cycling sound (third reload step).
+    /// </summary>
+    private void PlayM16BoltSound()
+    {
+        var audioManager = GetNodeOrNull("/root/AudioManager");
+        if (audioManager != null && audioManager.HasMethod("play_m16_bolt"))
+        {
+            audioManager.Call("play_m16_bolt", GlobalPosition);
         }
     }
 
@@ -427,7 +469,44 @@ public partial class Player : BaseCharacter
         // Show hit flash effect
         ShowHitFlash();
 
+        // Determine if this hit will be lethal before applying damage
+        bool willBeFatal = HealthComponent.CurrentHealth <= amount;
+
+        // Play appropriate hit sound
+        if (willBeFatal)
+        {
+            PlayHitLethalSound();
+        }
+        else
+        {
+            PlayHitNonLethalSound();
+        }
+
         base.TakeDamage(amount);
+    }
+
+    /// <summary>
+    /// Plays the lethal hit sound when player dies.
+    /// </summary>
+    private void PlayHitLethalSound()
+    {
+        var audioManager = GetNodeOrNull("/root/AudioManager");
+        if (audioManager != null && audioManager.HasMethod("play_hit_lethal"))
+        {
+            audioManager.Call("play_hit_lethal", GlobalPosition);
+        }
+    }
+
+    /// <summary>
+    /// Plays the non-lethal hit sound when player is damaged but survives.
+    /// </summary>
+    private void PlayHitNonLethalSound()
+    {
+        var audioManager = GetNodeOrNull("/root/AudioManager");
+        if (audioManager != null && audioManager.HasMethod("play_hit_non_lethal"))
+        {
+            audioManager.Call("play_hit_non_lethal", GlobalPosition);
+        }
     }
 
     /// <summary>

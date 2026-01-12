@@ -277,6 +277,13 @@ public partial class AssaultRifle : BaseWeapon
     /// <returns>True if the weapon fired successfully.</returns>
     public override bool Fire(Vector2 direction)
     {
+        // Check for empty magazine - play click sound
+        if (CurrentAmmo <= 0)
+        {
+            PlayEmptyClickSound();
+            return false;
+        }
+
         // Use laser aim direction when laser sight is enabled
         Vector2 fireDirection = LaserSightEnabled ? _aimDirection : direction;
 
@@ -287,6 +294,18 @@ public partial class AssaultRifle : BaseWeapon
         else
         {
             return FireAutomatic(fireDirection);
+        }
+    }
+
+    /// <summary>
+    /// Plays the empty gun click sound when out of ammo.
+    /// </summary>
+    private void PlayEmptyClickSound()
+    {
+        var audioManager = GetNodeOrNull("/root/AudioManager");
+        if (audioManager != null && audioManager.HasMethod("play_empty_click"))
+        {
+            audioManager.Call("play_empty_click", GlobalPosition);
         }
     }
 
@@ -304,7 +323,42 @@ public partial class AssaultRifle : BaseWeapon
         }
 
         // Use base class fire logic for automatic mode
-        return base.Fire(ApplySpread(direction));
+        bool result = base.Fire(ApplySpread(direction));
+
+        if (result)
+        {
+            // Play M16 shot sound
+            PlayM16ShotSound();
+            // Play shell casing sound with delay
+            PlayShellCasingDelayed();
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Plays the M16 shot sound via AudioManager.
+    /// </summary>
+    private void PlayM16ShotSound()
+    {
+        var audioManager = GetNodeOrNull("/root/AudioManager");
+        if (audioManager != null && audioManager.HasMethod("play_m16_shot"))
+        {
+            audioManager.Call("play_m16_shot", GlobalPosition);
+        }
+    }
+
+    /// <summary>
+    /// Plays shell casing sound with a delay.
+    /// </summary>
+    private async void PlayShellCasingDelayed()
+    {
+        await ToSignal(GetTree().CreateTimer(0.15), "timeout");
+        var audioManager = GetNodeOrNull("/root/AudioManager");
+        if (audioManager != null && audioManager.HasMethod("play_shell_rifle"))
+        {
+            audioManager.Call("play_shell_rifle", GlobalPosition);
+        }
     }
 
     /// <summary>
@@ -349,8 +403,8 @@ public partial class AssaultRifle : BaseWeapon
                 break;
             }
 
-            // Fire a single bullet
-            FireSingleBullet(direction);
+            // Fire a single bullet with index for sound selection
+            FireSingleBulletBurst(direction, i, bulletsToFire);
 
             // Wait for burst delay before firing next bullet (except for the last one)
             if (i < bulletsToFire - 1)
@@ -364,11 +418,13 @@ public partial class AssaultRifle : BaseWeapon
     }
 
     /// <summary>
-    /// Fires a single bullet without burst logic.
-    /// Used internally by the burst fire system.
+    /// Fires a single bullet in burst mode with appropriate sound.
+    /// First two bullets use double shot sound, third uses single shot.
     /// </summary>
     /// <param name="direction">Direction to fire.</param>
-    private void FireSingleBullet(Vector2 direction)
+    /// <param name="bulletIndex">Index of bullet in burst (0-based).</param>
+    /// <param name="totalBullets">Total bullets in this burst.</param>
+    private void FireSingleBulletBurst(Vector2 direction, int bulletIndex, int totalBullets)
     {
         if (WeaponData == null || BulletScene == null || CurrentAmmo <= 0)
         {
@@ -382,8 +438,38 @@ public partial class AssaultRifle : BaseWeapon
 
         SpawnBullet(spreadDirection);
 
+        // Play appropriate sound based on bullet position in burst
+        // First bullet of burst: play double shot sound (includes first two shots)
+        // Third bullet: play single shot sound
+        if (bulletIndex == 0 && totalBullets >= 2)
+        {
+            // First bullet - play double shot sound for variety
+            PlayM16DoubleShotSound();
+        }
+        else if (bulletIndex == 2 || (bulletIndex == 0 && totalBullets == 1))
+        {
+            // Third bullet or single shot - play single shot sound
+            PlayM16ShotSound();
+        }
+        // Second bullet doesn't need sound - covered by double shot sound
+
+        // Play shell casing for each bullet
+        PlayShellCasingDelayed();
+
         EmitSignal(SignalName.Fired);
         EmitSignal(SignalName.AmmoChanged, CurrentAmmo, ReserveAmmo);
+    }
+
+    /// <summary>
+    /// Plays the M16 double shot sound for burst fire.
+    /// </summary>
+    private void PlayM16DoubleShotSound()
+    {
+        var audioManager = GetNodeOrNull("/root/AudioManager");
+        if (audioManager != null && audioManager.HasMethod("play_m16_double_shot"))
+        {
+            audioManager.Call("play_m16_double_shot", GlobalPosition);
+        }
     }
 
     /// <summary>

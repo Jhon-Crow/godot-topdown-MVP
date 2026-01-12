@@ -212,6 +212,20 @@ public partial class Enemy : Area2D, IDamageable
             GD.Print($"[Enemy] {Name}: Hit! Taking 1 damage. Current health: {_healthComponent.CurrentHealth}");
             // Show hit flash effect
             ShowHitFlash();
+
+            // Determine if this hit will be lethal before applying damage
+            bool willBeFatal = _healthComponent.CurrentHealth <= 1.0f;
+
+            // Play appropriate hit sound
+            if (willBeFatal)
+            {
+                PlayHitLethalSound();
+            }
+            else
+            {
+                PlayHitNonLethalSound();
+            }
+
             _healthComponent.TakeDamage(1.0f);
         }
         else
@@ -219,6 +233,30 @@ public partial class Enemy : Area2D, IDamageable
             // Handle without health component (legacy behavior)
             _isHit = true;
             HandleHitEffect();
+        }
+    }
+
+    /// <summary>
+    /// Plays the lethal hit sound when enemy dies.
+    /// </summary>
+    private void PlayHitLethalSound()
+    {
+        var audioManager = GetNodeOrNull("/root/AudioManager");
+        if (audioManager != null && audioManager.HasMethod("play_hit_lethal"))
+        {
+            audioManager.Call("play_hit_lethal", GlobalPosition);
+        }
+    }
+
+    /// <summary>
+    /// Plays the non-lethal hit sound when enemy is damaged but survives.
+    /// </summary>
+    private void PlayHitNonLethalSound()
+    {
+        var audioManager = GetNodeOrNull("/root/AudioManager");
+        if (audioManager != null && audioManager.HasMethod("play_hit_non_lethal"))
+        {
+            audioManager.Call("play_hit_non_lethal", GlobalPosition);
         }
     }
 
