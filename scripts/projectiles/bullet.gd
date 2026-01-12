@@ -51,7 +51,7 @@ func _on_area_entered(area: Area2D) -> void:
 	if area.has_method("on_hit"):
 		# Check if this is a HitArea - if so, check against parent's instance ID
 		# This prevents the shooter from damaging themselves
-		var parent := area.get_parent()
+		var parent: Node = area.get_parent()
 		if parent and shooter_id == parent.get_instance_id():
 			return  # Don't hit the shooter
 
@@ -69,12 +69,12 @@ func _is_player_bullet() -> bool:
 	if shooter_id == -1:
 		return false
 
-	var shooter := instance_from_id(shooter_id)
+	var shooter: Object = instance_from_id(shooter_id)
 	if shooter == null:
 		return false
 
 	# Check if the shooter is a player by script path
-	var script := shooter.get_script()
+	var script: Script = shooter.get_script()
 	if script and script.resource_path.contains("player"):
 		return true
 
@@ -84,6 +84,6 @@ func _is_player_bullet() -> bool:
 ## Triggers hit effects via the HitEffectsManager autoload.
 ## Effects: time slowdown to 0.9 for 3 seconds, saturation boost for 400ms.
 func _trigger_player_hit_effects() -> void:
-	var hit_effects_manager := get_node_or_null("/root/HitEffectsManager")
+	var hit_effects_manager: Node = get_node_or_null("/root/HitEffectsManager")
 	if hit_effects_manager and hit_effects_manager.has_method("on_player_hit_enemy"):
 		hit_effects_manager.on_player_hit_enemy()
