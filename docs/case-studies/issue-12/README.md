@@ -59,16 +59,34 @@ This allowed enemies to track the player perfectly, making their shots nearly im
 
 ## Solutions Implemented
 
-### 1. Removed Problematic C# Resource
+### 1. Restored C# Resource File
 
 **File:** `resources/weapons/AssaultRifleData.tres`
 
-**Action:** Removed the `.tres` file that referenced C# scripts. The GDScript implementation doesn't use this resource file (it has its own hardcoded values), so removing it doesn't affect gameplay.
+**Problem:** The `.tres` file was previously deleted, but C# scenes still reference it. Even though C# scenes are excluded from export, Godot's mono version validates ALL files during the import phase (before export filters apply). This caused the exe to fail to launch.
 
-**Additional Fix:** Updated `export_presets.cfg` to exclude C# files from the export:
+**Action:** Recreated the `.tres` resource file with proper configuration:
+```ini
+[gd_resource type="Resource" script_class="WeaponData" load_steps=2 format=3 uid="uid://b8q2n5x7m3k1w"]
+
+[ext_resource type="Script" path="res://Scripts/Data/WeaponData.cs" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+Name = "Assault Rifle"
+Damage = 25.0
+FireRate = 10.0
+...
+```
+
+**Note:** The UID `uid://b8q2n5x7m3k1w` must match the one referenced in `AssaultRifle.tscn` for proper loading.
+
+**Export Configuration:** The `export_presets.cfg` still excludes C# files from final export:
 ```ini
 exclude_filter="*.cs, scenes/characters/csharp/*, scenes/weapons/csharp/*"
 ```
+
+This ensures the GDScript-only game works without requiring .NET runtime, while the C# code remains valid for import validation.
 
 ### 2. Implemented Gradual Enemy Rotation
 
@@ -170,7 +188,7 @@ The export preset changes ensure that:
 
 | File | Change Type | Description |
 |------|-------------|-------------|
-| `resources/weapons/AssaultRifleData.tres` | Deleted | Removed C# resource causing load errors |
+| `resources/weapons/AssaultRifleData.tres` | Restored | Recreated C# resource file to fix import validation errors |
 | `export_presets.cfg` | Modified | Added exclude filters for C# files |
 | `scripts/objects/enemy.gd` | Modified | Added gradual rotation with configurable speed |
 | `scripts/characters/player.gd` | Modified | Increased ammo to 90 (3 magazines) |
