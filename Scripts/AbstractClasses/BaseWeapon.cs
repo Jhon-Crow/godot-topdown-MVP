@@ -65,11 +65,6 @@ public abstract partial class BaseWeapon : Node2D
     /// </summary>
     public bool IsInReloadSequence { get; set; }
 
-    /// <summary>
-    /// Whether the magazine was empty when the reload sequence started.
-    /// Used to determine if we need to chamber a round from the new magazine after reload.
-    /// </summary>
-    public bool WasEmptyMagazineReload { get; protected set; }
 
     private float _fireTimer;
     private float _reloadTimer;
@@ -265,10 +260,9 @@ public abstract partial class BaseWeapon : Node2D
         ReserveAmmo -= ammoToLoad;
 
         // Handle bullet chambering from new magazine:
-        // 1. If chamber bullet was fired during reload (had ammo, shot during R->F) - subtract one
-        // 2. If this was an empty magazine reload (no ammo when started) - subtract one to chamber
-        bool shouldSubtractForChambering = ChamberBulletFired || WasEmptyMagazineReload;
-        if (shouldSubtractForChambering && CurrentAmmo > 0)
+        // Only subtract a bullet if the chamber bullet was fired during reload (had ammo, shot during R->F)
+        // Empty magazine reloads don't subtract a bullet (no chambering penalty)
+        if (ChamberBulletFired && CurrentAmmo > 0)
         {
             CurrentAmmo--;
         }
@@ -276,7 +270,6 @@ public abstract partial class BaseWeapon : Node2D
         // Reset chamber state
         HasBulletInChamber = false;
         ChamberBulletFired = false;
-        WasEmptyMagazineReload = false;
 
         EmitSignal(SignalName.ReloadFinished);
         EmitSignal(SignalName.AmmoChanged, CurrentAmmo, ReserveAmmo);
@@ -285,7 +278,6 @@ public abstract partial class BaseWeapon : Node2D
     /// <summary>
     /// Starts the reload sequence (R->F pressed).
     /// Sets up the chamber bullet if there was ammo in the magazine.
-    /// Also tracks if this was an empty magazine reload for chambering logic.
     /// </summary>
     /// <param name="hadAmmoInMagazine">Whether there was ammo in the magazine when reload started.</param>
     public virtual void StartReloadSequence(bool hadAmmoInMagazine)
@@ -293,7 +285,6 @@ public abstract partial class BaseWeapon : Node2D
         IsInReloadSequence = true;
         HasBulletInChamber = hadAmmoInMagazine;
         ChamberBulletFired = false;
-        WasEmptyMagazineReload = !hadAmmoInMagazine;
     }
 
     /// <summary>
@@ -304,7 +295,6 @@ public abstract partial class BaseWeapon : Node2D
         IsInReloadSequence = false;
         HasBulletInChamber = false;
         ChamberBulletFired = false;
-        WasEmptyMagazineReload = false;
     }
 
     /// <summary>
