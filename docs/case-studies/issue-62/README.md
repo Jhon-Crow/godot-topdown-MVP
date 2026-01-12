@@ -239,6 +239,82 @@ Combine Solutions 1 and 4:
    - Expected: Enemy stops shooting, timer resets
    - Verify: No continued firing at last known position
 
+## Implementation Log
+
+### Iteration 1: Predicted Position Visibility Check (Partial Success)
+
+Added `_is_position_visible_to_enemy()` function to check if the predicted position is blocked by cover. This was implemented but didn't fully fix the issue because:
+
+1. The visibility check only validated the **endpoint** (predicted position)
+2. It didn't account for the player being at the **edge of cover** where their collision shape might be barely visible
+3. Enemies could still "see" players at cover edges due to raycast hitting the player's collision shape extending past visual cover
+
+### Iteration 2: Player Body Visibility Ratio (Current Fix)
+
+The root cause was identified: when a player is at the edge of cover, the raycast check `_can_see_player` might return true because it hits the player's collision shape (radius 16 pixels) even if visually the player appears to be behind cover.
+
+**Solution**: Added multi-point visibility checking for the player's body.
+
+#### New Components
+
+1. **New Export Variable**: `lead_prediction_visibility_threshold` (default: 0.6)
+   - Minimum fraction of player body that must be visible before lead prediction activates
+   - At 0.6, at least 3 out of 5 check points must be visible (60%)
+
+2. **New State Variable**: `_player_visibility_ratio` (0.0 to 1.0)
+   - Tracks what fraction of the player's body is currently visible
+   - Updated each frame in `_check_player_visibility()`
+
+3. **New Functions**:
+   - `_get_player_check_points(center)` - Returns 5 points (center + 4 corners) on player's body
+   - `_is_player_point_visible_to_enemy(point)` - Checks if a single point is visible (no obstacle blocking)
+   - `_calculate_player_visibility_ratio()` - Counts visible points / total points
+   - `get_player_visibility_ratio()` - Public getter for debugging
+
+4. **Updated Functions**:
+   - `_check_player_visibility()` - Now also calculates `_player_visibility_ratio`
+   - `_calculate_lead_prediction()` - Now requires `_player_visibility_ratio >= lead_prediction_visibility_threshold`
+   - `_reset()` - Resets `_player_visibility_ratio` to 0.0
+
+#### How It Works
+
+```
+Player at edge of cover:
+1. Raycast from enemy to player center → HIT (player is "visible")
+2. Check 5 points on player body:
+   - Center: blocked by cover → NOT visible
+   - Top-left corner: blocked → NOT visible
+   - Top-right corner: blocked → NOT visible
+   - Bottom-left corner: visible → 1 point
+   - Bottom-right corner: blocked → NOT visible
+3. Visibility ratio = 1/5 = 0.2 (20%)
+4. Lead prediction threshold = 0.6 (60%)
+5. 0.2 < 0.6 → Lead prediction DISABLED
+6. Enemy shoots at player's current position (not predicted)
+```
+
+This ensures that enemies only use lead prediction when the player is **significantly exposed** (at least 60% visible), not when they're barely peeking from cover.
+
+#### Code Changes Summary
+
+```gdscript
+# New export variable (scripts/objects/enemy.gd line 138-142)
+@export var lead_prediction_visibility_threshold: float = 0.6
+
+# New state variable (line 263-266)
+var _player_visibility_ratio: float = 0.0
+
+# Multi-point visibility check functions (lines 868-933)
+func _get_player_check_points(center: Vector2) -> Array[Vector2]
+func _is_player_point_visible_to_enemy(point: Vector2) -> bool
+func _calculate_player_visibility_ratio() -> float
+
+# Updated _calculate_lead_prediction() (lines 1283-1289)
+if _player_visibility_ratio < lead_prediction_visibility_threshold:
+    _log_debug("Lead prediction disabled: visibility ratio %.2f < %.2f required (player at cover edge)" % [_player_visibility_ratio, lead_prediction_visibility_threshold])
+    return player_pos
+```
+
 ## References
 
 - [TV Tropes: The Computer Is A Cheating Bastard](https://tvtropes.org/pmwiki/pmwiki.php/Main/TheComputerIsACheatingBastard)

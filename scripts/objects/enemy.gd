@@ -135,6 +135,12 @@ enum BehaviorMode {
 ## position immediately when they emerge from cover.
 @export var lead_prediction_delay: float = 0.3
 
+## Minimum visibility ratio (0.0 to 1.0) of player body that must be visible
+## before lead prediction is enabled. At 1.0, the player's entire body must be
+## visible. At 0.5, at least half of the check points must be visible.
+## This prevents pre-firing at players who are at cover edges.
+@export var lead_prediction_visibility_threshold: float = 0.6
+
 ## Signal emitted when the enemy is hit.
 signal hit
 
@@ -253,6 +259,11 @@ var _detection_delay_elapsed: bool = false
 ## Continuous visibility timer - tracks how long the player has been continuously visible.
 ## Resets when line of sight is lost.
 var _continuous_visibility_timer: float = 0.0
+
+## Current visibility ratio of the player (0.0 to 1.0).
+## Represents what fraction of the player's body is visible to the enemy.
+## Used to determine if lead prediction should be enabled.
+var _player_visibility_ratio: float = 0.0
 
 
 
@@ -854,6 +865,74 @@ func _is_position_visible_to_enemy(target_pos: Vector2) -> bool:
 	return true
 
 
+## Get multiple check points on the player's body for visibility testing.
+## Returns center and 4 corner points offset by the player's radius.
+## The player has a collision radius of 16 pixels (from Player.tscn).
+func _get_player_check_points(center: Vector2) -> Array[Vector2]:
+	# Player collision radius is 16, sprite is 32x32
+	# Use a slightly smaller radius to be conservative
+	const PLAYER_RADIUS: float = 14.0
+
+	var points: Array[Vector2] = []
+	points.append(center)  # Center point
+
+	# 4 corner points (diagonal directions)
+	var diagonal_offset := PLAYER_RADIUS * 0.707  # cos(45°) ≈ 0.707
+	points.append(center + Vector2(diagonal_offset, diagonal_offset))
+	points.append(center + Vector2(-diagonal_offset, diagonal_offset))
+	points.append(center + Vector2(diagonal_offset, -diagonal_offset))
+	points.append(center + Vector2(-diagonal_offset, -diagonal_offset))
+
+	return points
+
+
+## Check if a single point on the player is visible from the enemy's position.
+## Uses direct space state query to check for obstacles blocking line of sight.
+func _is_player_point_visible_to_enemy(point: Vector2) -> bool:
+	var distance := global_position.distance_to(point)
+
+	# Use direct space state to check line of sight from enemy to point
+	var space_state := get_world_2d().direct_space_state
+	var query := PhysicsRayQueryParameters2D.new()
+	query.from = global_position
+	query.to = point
+	query.collision_mask = 4  # Only check obstacles (layer 3)
+	query.exclude = [get_rid()]  # Exclude self
+
+	var result := space_state.intersect_ray(query)
+
+	if result.is_empty():
+		# No obstacle between enemy and point - point is visible
+		return true
+
+	# Check if we hit an obstacle before reaching the point
+	var hit_position: Vector2 = result["position"]
+	var distance_to_hit := global_position.distance_to(hit_position)
+
+	# If we hit something before the point, the point is blocked
+	if distance_to_hit < distance - 5.0:  # 5 pixel tolerance
+		return false
+
+	return true
+
+
+## Calculate what fraction of the player's body is visible to the enemy.
+## Returns a value from 0.0 (completely hidden) to 1.0 (fully visible).
+## Checks multiple points on the player's body (center + corners).
+func _calculate_player_visibility_ratio() -> float:
+	if _player == null:
+		return 0.0
+
+	var check_points := _get_player_check_points(_player.global_position)
+	var visible_count := 0
+
+	for point in check_points:
+		if _is_player_point_visible_to_enemy(point):
+			visible_count += 1
+
+	return float(visible_count) / float(check_points.size())
+
+
 ## Check if the line of fire to the target position is clear of other enemies.
 ## Returns true if no other enemies would be hit by a bullet traveling to the target.
 func _is_firing_line_clear_of_friendlies(target_position: Vector2) -> bool:
@@ -1049,10 +1128,11 @@ func _check_wall_ahead(direction: Vector2) -> Vector2:
 ## Check if the player is visible using raycast.
 ## If detection_range is 0 or negative, uses unlimited detection range (line-of-sight only).
 ## This allows the enemy to see the player even outside the viewport if there's no obstacle.
-## Also updates the continuous visibility timer for lead prediction control.
+## Also updates the continuous visibility timer and visibility ratio for lead prediction control.
 func _check_player_visibility() -> void:
 	var was_visible := _can_see_player
 	_can_see_player = false
+	_player_visibility_ratio = 0.0
 
 	if _player == null or not _raycast:
 		_continuous_visibility_timer = 0.0
@@ -1083,12 +1163,16 @@ func _check_player_visibility() -> void:
 		# No collision between us and player - we have clear line of sight
 		_can_see_player = true
 
-	# Update continuous visibility timer
+	# Update continuous visibility timer and visibility ratio
 	if _can_see_player:
 		_continuous_visibility_timer += get_physics_process_delta_time()
+		# Calculate what fraction of the player's body is visible
+		# This is used to determine if lead prediction should be enabled
+		_player_visibility_ratio = _calculate_player_visibility_ratio()
 	else:
-		# Lost line of sight - reset the timer
+		# Lost line of sight - reset the timer and visibility ratio
 		_continuous_visibility_timer = 0.0
+		_player_visibility_ratio = 0.0
 
 
 ## Aim the enemy sprite/direction at the player using gradual rotation.
@@ -1180,7 +1264,8 @@ func _play_delayed_shell_sound() -> void:
 ## Uses iterative approach for better accuracy with moving targets.
 ## Only applies lead prediction if:
 ## 1. The player has been continuously visible for at least lead_prediction_delay seconds
-## 2. The predicted position is also visible to the enemy (not behind cover)
+## 2. At least lead_prediction_visibility_threshold of the player's body is visible
+## 3. The predicted position is also visible to the enemy (not behind cover)
 ## This prevents enemies from "knowing" where the player will emerge from cover.
 func _calculate_lead_prediction() -> Vector2:
 	if _player == null:
@@ -1193,6 +1278,14 @@ func _calculate_lead_prediction() -> Vector2:
 	# immediately when they emerge from cover.
 	if _continuous_visibility_timer < lead_prediction_delay:
 		_log_debug("Lead prediction disabled: visibility time %.2fs < %.2fs required" % [_continuous_visibility_timer, lead_prediction_delay])
+		return player_pos
+
+	# Only use lead prediction if enough of the player's body is visible.
+	# This prevents pre-firing when the player is at the edge of cover with only
+	# a small part of their body visible. The player must be significantly exposed
+	# before the enemy can predict their movement.
+	if _player_visibility_ratio < lead_prediction_visibility_threshold:
+		_log_debug("Lead prediction disabled: visibility ratio %.2f < %.2f required (player at cover edge)" % [_player_visibility_ratio, lead_prediction_visibility_threshold])
 		return player_pos
 
 	var player_velocity := Vector2.ZERO
@@ -1379,6 +1472,7 @@ func _reset() -> void:
 	_detection_timer = 0.0
 	_detection_delay_elapsed = false
 	_continuous_visibility_timer = 0.0
+	_player_visibility_ratio = 0.0
 	_bullets_in_threat_sphere.clear()
 	_initialize_health()
 	_initialize_ammo()
@@ -1435,3 +1529,9 @@ func is_reloading() -> bool:
 ## Check if enemy has any ammo left.
 func has_ammo() -> bool:
 	return _current_ammo > 0 or _reserve_ammo > 0
+
+
+## Get current player visibility ratio (for debugging).
+## Returns 0.0 if player is completely hidden, 1.0 if fully visible.
+func get_player_visibility_ratio() -> float:
+	return _player_visibility_ratio
