@@ -1,0 +1,847 @@
+[gd_scene load_steps=14 format=3 uid="uid://c8hmf4bnwx2qk"]
+
+[ext_resource type="Script" path="res://scripts/levels/building_level.gd" id="1_building_level"]
+[ext_resource type="PackedScene" uid="uid://dv8nq2vj5r7p2" path="res://scenes/characters/csharp/Player.tscn" id="2_player"]
+[ext_resource type="PackedScene" uid="uid://dxqmk8f3nw5pe" path="res://scenes/ui/PauseMenu.tscn" id="3_pause_menu"]
+[ext_resource type="PackedScene" uid="uid://cx5m8np6u3bwd" path="res://scenes/objects/Enemy.tscn" id="4_enemy"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_wall_horizontal"]
+size = Vector2(2464, 32)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_wall_vertical"]
+size = Vector2(32, 2064)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_interior_wall_h"]
+size = Vector2(400, 24)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_interior_wall_v"]
+size = Vector2(24, 400)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_interior_wall_short_h"]
+size = Vector2(200, 24)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_interior_wall_short_v"]
+size = Vector2(24, 200)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_cover_desk"]
+size = Vector2(120, 48)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_cover_table"]
+size = Vector2(80, 80)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_cover_cabinet"]
+size = Vector2(48, 96)
+
+[node name="BuildingLevel" type="Node2D"]
+script = ExtResource("1_building_level")
+
+[node name="Environment" type="Node2D" parent="."]
+
+[node name="Background" type="ColorRect" parent="Environment"]
+offset_right = 2528.0
+offset_bottom = 2128.0
+color = Color(0.05, 0.05, 0.08, 1)
+
+[node name="Floor" type="ColorRect" parent="Environment"]
+offset_left = 64.0
+offset_top = 64.0
+offset_right = 2464.0
+offset_bottom = 2064.0
+color = Color(0.18, 0.16, 0.14, 1)
+
+[node name="Walls" type="Node2D" parent="Environment"]
+
+[node name="WallTop" type="StaticBody2D" parent="Environment/Walls"]
+position = Vector2(1264, 48)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Walls/WallTop"]
+offset_left = -1232.0
+offset_top = -16.0
+offset_right = 1232.0
+offset_bottom = 16.0
+color = Color(0.3, 0.25, 0.2, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallTop"]
+shape = SubResource("RectangleShape2D_wall_horizontal")
+
+[node name="WallBottom" type="StaticBody2D" parent="Environment/Walls"]
+position = Vector2(1264, 2080)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Walls/WallBottom"]
+offset_left = -1232.0
+offset_top = -16.0
+offset_right = 1232.0
+offset_bottom = 16.0
+color = Color(0.3, 0.25, 0.2, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallBottom"]
+shape = SubResource("RectangleShape2D_wall_horizontal")
+
+[node name="WallLeft" type="StaticBody2D" parent="Environment/Walls"]
+position = Vector2(48, 1064)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Walls/WallLeft"]
+offset_left = -16.0
+offset_top = -1032.0
+offset_right = 16.0
+offset_bottom = 1032.0
+color = Color(0.3, 0.25, 0.2, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallLeft"]
+shape = SubResource("RectangleShape2D_wall_vertical")
+
+[node name="WallRight" type="StaticBody2D" parent="Environment/Walls"]
+position = Vector2(2480, 1064)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Walls/WallRight"]
+offset_left = -16.0
+offset_top = -1032.0
+offset_right = 16.0
+offset_bottom = 1032.0
+color = Color(0.3, 0.25, 0.2, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallRight"]
+shape = SubResource("RectangleShape2D_wall_vertical")
+
+[node name="InteriorWalls" type="Node2D" parent="Environment"]
+
+[node name="Room1_WallBottom" type="StaticBody2D" parent="Environment/InteriorWalls"]
+position = Vector2(300, 700)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/InteriorWalls/Room1_WallBottom"]
+offset_left = -200.0
+offset_top = -12.0
+offset_right = 200.0
+offset_bottom = 12.0
+color = Color(0.35, 0.3, 0.25, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/InteriorWalls/Room1_WallBottom"]
+shape = SubResource("RectangleShape2D_interior_wall_h")
+
+[node name="Room1_WallRight" type="StaticBody2D" parent="Environment/InteriorWalls"]
+position = Vector2(512, 400)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/InteriorWalls/Room1_WallRight"]
+offset_left = -12.0
+offset_top = -200.0
+offset_right = 12.0
+offset_bottom = 200.0
+color = Color(0.35, 0.3, 0.25, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/InteriorWalls/Room1_WallRight"]
+shape = SubResource("RectangleShape2D_interior_wall_v")
+
+[node name="Room2_WallLeft" type="StaticBody2D" parent="Environment/InteriorWalls"]
+position = Vector2(512, 900)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/InteriorWalls/Room2_WallLeft"]
+offset_left = -12.0
+offset_top = -100.0
+offset_right = 12.0
+offset_bottom = 100.0
+color = Color(0.35, 0.3, 0.25, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/InteriorWalls/Room2_WallLeft"]
+shape = SubResource("RectangleShape2D_interior_wall_short_v")
+
+[node name="Room2_WallBottom" type="StaticBody2D" parent="Environment/InteriorWalls"]
+position = Vector2(712, 1012)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/InteriorWalls/Room2_WallBottom"]
+offset_left = -200.0
+offset_top = -12.0
+offset_right = 200.0
+offset_bottom = 12.0
+color = Color(0.35, 0.3, 0.25, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/InteriorWalls/Room2_WallBottom"]
+shape = SubResource("RectangleShape2D_interior_wall_h")
+
+[node name="Room2_WallRight" type="StaticBody2D" parent="Environment/InteriorWalls"]
+position = Vector2(924, 800)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/InteriorWalls/Room2_WallRight"]
+offset_left = -12.0
+offset_top = -200.0
+offset_right = 12.0
+offset_bottom = 200.0
+color = Color(0.35, 0.3, 0.25, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/InteriorWalls/Room2_WallRight"]
+shape = SubResource("RectangleShape2D_interior_wall_v")
+
+[node name="Corridor_WallTop" type="StaticBody2D" parent="Environment/InteriorWalls"]
+position = Vector2(1164, 700)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/InteriorWalls/Corridor_WallTop"]
+offset_left = -200.0
+offset_top = -12.0
+offset_right = 200.0
+offset_bottom = 12.0
+color = Color(0.35, 0.3, 0.25, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/InteriorWalls/Corridor_WallTop"]
+shape = SubResource("RectangleShape2D_interior_wall_h")
+
+[node name="Corridor_WallBottom" type="StaticBody2D" parent="Environment/InteriorWalls"]
+position = Vector2(1164, 1012)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/InteriorWalls/Corridor_WallBottom"]
+offset_left = -200.0
+offset_top = -12.0
+offset_right = 200.0
+offset_bottom = 12.0
+color = Color(0.35, 0.3, 0.25, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/InteriorWalls/Corridor_WallBottom"]
+shape = SubResource("RectangleShape2D_interior_wall_h")
+
+[node name="Room3_WallLeft" type="StaticBody2D" parent="Environment/InteriorWalls"]
+position = Vector2(1376, 400)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/InteriorWalls/Room3_WallLeft"]
+offset_left = -12.0
+offset_top = -200.0
+offset_right = 12.0
+offset_bottom = 200.0
+color = Color(0.35, 0.3, 0.25, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/InteriorWalls/Room3_WallLeft"]
+shape = SubResource("RectangleShape2D_interior_wall_v")
+
+[node name="Room3_WallBottom" type="StaticBody2D" parent="Environment/InteriorWalls"]
+position = Vector2(1576, 612)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/InteriorWalls/Room3_WallBottom"]
+offset_left = -200.0
+offset_top = -12.0
+offset_right = 200.0
+offset_bottom = 12.0
+color = Color(0.35, 0.3, 0.25, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/InteriorWalls/Room3_WallBottom"]
+shape = SubResource("RectangleShape2D_interior_wall_h")
+
+[node name="Room4_WallLeft" type="StaticBody2D" parent="Environment/InteriorWalls"]
+position = Vector2(1376, 900)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/InteriorWalls/Room4_WallLeft"]
+offset_left = -12.0
+offset_top = -100.0
+offset_right = 12.0
+offset_bottom = 100.0
+color = Color(0.35, 0.3, 0.25, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/InteriorWalls/Room4_WallLeft"]
+shape = SubResource("RectangleShape2D_interior_wall_short_v")
+
+[node name="Room4_WallTop" type="StaticBody2D" parent="Environment/InteriorWalls"]
+position = Vector2(1576, 788)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/InteriorWalls/Room4_WallTop"]
+offset_left = -200.0
+offset_top = -12.0
+offset_right = 200.0
+offset_bottom = 12.0
+color = Color(0.35, 0.3, 0.25, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/InteriorWalls/Room4_WallTop"]
+shape = SubResource("RectangleShape2D_interior_wall_h")
+
+[node name="Room5_WallTop" type="StaticBody2D" parent="Environment/InteriorWalls"]
+position = Vector2(1900, 1200)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/InteriorWalls/Room5_WallTop"]
+offset_left = -200.0
+offset_top = -12.0
+offset_right = 200.0
+offset_bottom = 12.0
+color = Color(0.35, 0.3, 0.25, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/InteriorWalls/Room5_WallTop"]
+shape = SubResource("RectangleShape2D_interior_wall_h")
+
+[node name="Room5_WallLeft" type="StaticBody2D" parent="Environment/InteriorWalls"]
+position = Vector2(1688, 1500)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/InteriorWalls/Room5_WallLeft"]
+offset_left = -12.0
+offset_top = -200.0
+offset_right = 12.0
+offset_bottom = 200.0
+color = Color(0.35, 0.3, 0.25, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/InteriorWalls/Room5_WallLeft"]
+shape = SubResource("RectangleShape2D_interior_wall_v")
+
+[node name="LobbyDivider_Left" type="StaticBody2D" parent="Environment/InteriorWalls"]
+position = Vector2(300, 1400)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/InteriorWalls/LobbyDivider_Left"]
+offset_left = -100.0
+offset_top = -12.0
+offset_right = 100.0
+offset_bottom = 12.0
+color = Color(0.35, 0.3, 0.25, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/InteriorWalls/LobbyDivider_Left"]
+shape = SubResource("RectangleShape2D_interior_wall_short_h")
+
+[node name="LobbyDivider_Right" type="StaticBody2D" parent="Environment/InteriorWalls"]
+position = Vector2(600, 1400)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/InteriorWalls/LobbyDivider_Right"]
+offset_left = -100.0
+offset_top = -12.0
+offset_right = 100.0
+offset_bottom = 12.0
+color = Color(0.35, 0.3, 0.25, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/InteriorWalls/LobbyDivider_Right"]
+shape = SubResource("RectangleShape2D_interior_wall_short_h")
+
+[node name="StorageRoom_WallTop" type="StaticBody2D" parent="Environment/InteriorWalls"]
+position = Vector2(300, 1600)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/InteriorWalls/StorageRoom_WallTop"]
+offset_left = -200.0
+offset_top = -12.0
+offset_right = 200.0
+offset_bottom = 12.0
+color = Color(0.35, 0.3, 0.25, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/InteriorWalls/StorageRoom_WallTop"]
+shape = SubResource("RectangleShape2D_interior_wall_h")
+
+[node name="StorageRoom_WallRight" type="StaticBody2D" parent="Environment/InteriorWalls"]
+position = Vector2(512, 1800)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/InteriorWalls/StorageRoom_WallRight"]
+offset_left = -12.0
+offset_top = -100.0
+offset_right = 12.0
+offset_bottom = 100.0
+color = Color(0.35, 0.3, 0.25, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/InteriorWalls/StorageRoom_WallRight"]
+shape = SubResource("RectangleShape2D_interior_wall_short_v")
+
+[node name="MainHall_WallLeft" type="StaticBody2D" parent="Environment/InteriorWalls"]
+position = Vector2(900, 1600)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/InteriorWalls/MainHall_WallLeft"]
+offset_left = -12.0
+offset_top = -200.0
+offset_right = 12.0
+offset_bottom = 200.0
+color = Color(0.35, 0.3, 0.25, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/InteriorWalls/MainHall_WallLeft"]
+shape = SubResource("RectangleShape2D_interior_wall_v")
+
+[node name="MainHall_WallRight" type="StaticBody2D" parent="Environment/InteriorWalls"]
+position = Vector2(1500, 1600)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/InteriorWalls/MainHall_WallRight"]
+offset_left = -12.0
+offset_top = -200.0
+offset_right = 12.0
+offset_bottom = 200.0
+color = Color(0.35, 0.3, 0.25, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/InteriorWalls/MainHall_WallRight"]
+shape = SubResource("RectangleShape2D_interior_wall_v")
+
+[node name="MainHall_WallTop" type="StaticBody2D" parent="Environment/InteriorWalls"]
+position = Vector2(1200, 1388)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/InteriorWalls/MainHall_WallTop"]
+offset_left = -200.0
+offset_top = -12.0
+offset_right = 200.0
+offset_bottom = 12.0
+color = Color(0.35, 0.3, 0.25, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/InteriorWalls/MainHall_WallTop"]
+shape = SubResource("RectangleShape2D_interior_wall_h")
+
+[node name="Cover" type="Node2D" parent="Environment"]
+
+[node name="Desk1" type="StaticBody2D" parent="Environment/Cover"]
+position = Vector2(280, 250)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Cover/Desk1"]
+offset_left = -60.0
+offset_top = -24.0
+offset_right = 60.0
+offset_bottom = 24.0
+color = Color(0.4, 0.3, 0.2, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/Desk1"]
+shape = SubResource("RectangleShape2D_cover_desk")
+
+[node name="Desk2" type="StaticBody2D" parent="Environment/Cover"]
+position = Vector2(280, 450)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Cover/Desk2"]
+offset_left = -60.0
+offset_top = -24.0
+offset_right = 60.0
+offset_bottom = 24.0
+color = Color(0.4, 0.3, 0.2, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/Desk2"]
+shape = SubResource("RectangleShape2D_cover_desk")
+
+[node name="Table1" type="StaticBody2D" parent="Environment/Cover"]
+position = Vector2(720, 850)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Cover/Table1"]
+offset_left = -40.0
+offset_top = -40.0
+offset_right = 40.0
+offset_bottom = 40.0
+color = Color(0.35, 0.28, 0.22, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/Table1"]
+shape = SubResource("RectangleShape2D_cover_table")
+
+[node name="Cabinet1" type="StaticBody2D" parent="Environment/Cover"]
+position = Vector2(1000, 250)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Cover/Cabinet1"]
+offset_left = -24.0
+offset_top = -48.0
+offset_right = 24.0
+offset_bottom = 48.0
+color = Color(0.3, 0.25, 0.2, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/Cabinet1"]
+shape = SubResource("RectangleShape2D_cover_cabinet")
+
+[node name="Cabinet2" type="StaticBody2D" parent="Environment/Cover"]
+position = Vector2(1100, 250)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Cover/Cabinet2"]
+offset_left = -24.0
+offset_top = -48.0
+offset_right = 24.0
+offset_bottom = 48.0
+color = Color(0.3, 0.25, 0.2, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/Cabinet2"]
+shape = SubResource("RectangleShape2D_cover_cabinet")
+
+[node name="Desk3" type="StaticBody2D" parent="Environment/Cover"]
+position = Vector2(1600, 300)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Cover/Desk3"]
+offset_left = -60.0
+offset_top = -24.0
+offset_right = 60.0
+offset_bottom = 24.0
+color = Color(0.4, 0.3, 0.2, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/Desk3"]
+shape = SubResource("RectangleShape2D_cover_desk")
+
+[node name="Desk4" type="StaticBody2D" parent="Environment/Cover"]
+position = Vector2(1900, 300)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Cover/Desk4"]
+offset_left = -60.0
+offset_top = -24.0
+offset_right = 60.0
+offset_bottom = 24.0
+color = Color(0.4, 0.3, 0.2, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/Desk4"]
+shape = SubResource("RectangleShape2D_cover_desk")
+
+[node name="Table2" type="StaticBody2D" parent="Environment/Cover"]
+position = Vector2(1550, 950)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Cover/Table2"]
+offset_left = -40.0
+offset_top = -40.0
+offset_right = 40.0
+offset_bottom = 40.0
+color = Color(0.35, 0.28, 0.22, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/Table2"]
+shape = SubResource("RectangleShape2D_cover_table")
+
+[node name="Table3" type="StaticBody2D" parent="Environment/Cover"]
+position = Vector2(2000, 1500)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Cover/Table3"]
+offset_left = -40.0
+offset_top = -40.0
+offset_right = 40.0
+offset_bottom = 40.0
+color = Color(0.35, 0.28, 0.22, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/Table3"]
+shape = SubResource("RectangleShape2D_cover_table")
+
+[node name="Cabinet3" type="StaticBody2D" parent="Environment/Cover"]
+position = Vector2(2300, 1400)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Cover/Cabinet3"]
+offset_left = -24.0
+offset_top = -48.0
+offset_right = 24.0
+offset_bottom = 48.0
+color = Color(0.3, 0.25, 0.2, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/Cabinet3"]
+shape = SubResource("RectangleShape2D_cover_cabinet")
+
+[node name="StorageCrate1" type="StaticBody2D" parent="Environment/Cover"]
+position = Vector2(200, 1750)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Cover/StorageCrate1"]
+offset_left = -40.0
+offset_top = -40.0
+offset_right = 40.0
+offset_bottom = 40.0
+color = Color(0.45, 0.35, 0.2, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/StorageCrate1"]
+shape = SubResource("RectangleShape2D_cover_table")
+
+[node name="StorageCrate2" type="StaticBody2D" parent="Environment/Cover"]
+position = Vector2(350, 1850)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Cover/StorageCrate2"]
+offset_left = -40.0
+offset_top = -40.0
+offset_right = 40.0
+offset_bottom = 40.0
+color = Color(0.45, 0.35, 0.2, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/StorageCrate2"]
+shape = SubResource("RectangleShape2D_cover_table")
+
+[node name="HallTable" type="StaticBody2D" parent="Environment/Cover"]
+position = Vector2(1200, 1650)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Cover/HallTable"]
+offset_left = -60.0
+offset_top = -24.0
+offset_right = 60.0
+offset_bottom = 24.0
+color = Color(0.4, 0.3, 0.2, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/HallTable"]
+shape = SubResource("RectangleShape2D_cover_desk")
+
+[node name="Enemies" type="Node2D" parent="Environment"]
+
+[node name="Enemy1" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
+position = Vector2(300, 350)
+behavior_mode = 1
+destroy_on_death = true
+enable_flanking = true
+enable_cover = true
+
+[node name="Enemy2" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
+position = Vector2(400, 550)
+behavior_mode = 1
+destroy_on_death = true
+enable_flanking = true
+enable_cover = true
+
+[node name="Enemy3" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
+position = Vector2(700, 750)
+behavior_mode = 1
+destroy_on_death = true
+enable_flanking = true
+enable_cover = true
+
+[node name="Enemy4" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
+position = Vector2(800, 900)
+behavior_mode = 1
+destroy_on_death = true
+enable_flanking = true
+enable_cover = true
+
+[node name="Enemy5" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
+position = Vector2(1700, 350)
+behavior_mode = 1
+destroy_on_death = true
+enable_flanking = true
+enable_cover = true
+
+[node name="Enemy6" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
+position = Vector2(1950, 450)
+behavior_mode = 1
+destroy_on_death = true
+enable_flanking = true
+enable_cover = true
+
+[node name="Enemy7" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
+position = Vector2(1600, 900)
+behavior_mode = 0
+patrol_offsets = Array[Vector2]([Vector2(100, 0), Vector2(-100, 0)])
+destroy_on_death = true
+enable_flanking = true
+enable_cover = true
+
+[node name="Enemy8" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
+position = Vector2(1900, 1450)
+behavior_mode = 1
+destroy_on_death = true
+enable_flanking = true
+enable_cover = true
+
+[node name="Enemy9" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
+position = Vector2(2100, 1550)
+behavior_mode = 1
+destroy_on_death = true
+enable_flanking = true
+enable_cover = true
+
+[node name="Enemy10" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
+position = Vector2(1200, 1550)
+behavior_mode = 0
+patrol_offsets = Array[Vector2]([Vector2(0, 150), Vector2(0, -150)])
+destroy_on_death = true
+enable_flanking = true
+enable_cover = true
+
+[node name="RoomLabels" type="Node2D" parent="Environment"]
+
+[node name="Room1Label" type="ColorRect" parent="Environment/RoomLabels"]
+offset_left = 80.0
+offset_top = 80.0
+offset_right = 500.0
+offset_bottom = 688.0
+color = Color(0.15, 0.12, 0.1, 0.3)
+
+[node name="Label" type="Label" parent="Environment/RoomLabels/Room1Label"]
+offset_left = 10.0
+offset_top = 10.0
+offset_right = 100.0
+offset_bottom = 30.0
+text = "OFFICE 1"
+
+[node name="Room2Label" type="ColorRect" parent="Environment/RoomLabels"]
+offset_left = 524.0
+offset_top = 712.0
+offset_right = 912.0
+offset_bottom = 1000.0
+color = Color(0.15, 0.12, 0.1, 0.3)
+
+[node name="Label" type="Label" parent="Environment/RoomLabels/Room2Label"]
+offset_left = 10.0
+offset_top = 10.0
+offset_right = 100.0
+offset_bottom = 30.0
+text = "OFFICE 2"
+
+[node name="Room3Label" type="ColorRect" parent="Environment/RoomLabels"]
+offset_left = 1388.0
+offset_top = 80.0
+offset_right = 2448.0
+offset_bottom = 600.0
+color = Color(0.12, 0.15, 0.1, 0.3)
+
+[node name="Label" type="Label" parent="Environment/RoomLabels/Room3Label"]
+offset_left = 10.0
+offset_top = 10.0
+offset_right = 180.0
+offset_bottom = 30.0
+text = "CONFERENCE ROOM"
+
+[node name="Room4Label" type="ColorRect" parent="Environment/RoomLabels"]
+offset_left = 1388.0
+offset_top = 800.0
+offset_right = 2448.0
+offset_bottom = 1188.0
+color = Color(0.15, 0.1, 0.12, 0.3)
+
+[node name="Label" type="Label" parent="Environment/RoomLabels/Room4Label"]
+offset_left = 10.0
+offset_top = 10.0
+offset_right = 150.0
+offset_bottom = 30.0
+text = "BREAK ROOM"
+
+[node name="Room5Label" type="ColorRect" parent="Environment/RoomLabels"]
+offset_left = 1700.0
+offset_top = 1212.0
+offset_right = 2448.0
+offset_bottom = 2048.0
+color = Color(0.12, 0.1, 0.15, 0.3)
+
+[node name="Label" type="Label" parent="Environment/RoomLabels/Room5Label"]
+offset_left = 10.0
+offset_top = 10.0
+offset_right = 150.0
+offset_bottom = 30.0
+text = "SERVER ROOM"
+
+[node name="StorageLabel" type="ColorRect" parent="Environment/RoomLabels"]
+offset_left = 80.0
+offset_top = 1612.0
+offset_right = 500.0
+offset_bottom = 2048.0
+color = Color(0.1, 0.12, 0.15, 0.3)
+
+[node name="Label" type="Label" parent="Environment/RoomLabels/StorageLabel"]
+offset_left = 10.0
+offset_top = 10.0
+offset_right = 100.0
+offset_bottom = 30.0
+text = "STORAGE"
+
+[node name="MainHallLabel" type="ColorRect" parent="Environment/RoomLabels"]
+offset_left = 912.0
+offset_top = 1400.0
+offset_right = 1488.0
+offset_bottom = 2048.0
+color = Color(0.15, 0.15, 0.1, 0.3)
+
+[node name="Label" type="Label" parent="Environment/RoomLabels/MainHallLabel"]
+offset_left = 10.0
+offset_top = 10.0
+offset_right = 100.0
+offset_bottom = 30.0
+text = "MAIN HALL"
+
+[node name="Entities" type="Node2D" parent="."]
+
+[node name="Player" parent="Entities" instance=ExtResource("2_player")]
+position = Vector2(450, 1250)
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+
+[node name="UI" type="Control" parent="CanvasLayer"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="LevelLabel" type="Label" parent="CanvasLayer/UI"]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -250.0
+offset_top = 10.0
+offset_right = -10.0
+offset_bottom = 40.0
+grow_horizontal = 0
+text = "BUILDING INTERIOR"
+horizontal_alignment = 2
+
+[node name="InstructionsLabel" type="Label" parent="CanvasLayer/UI"]
+layout_mode = 1
+anchors_preset = 0
+offset_left = 10.0
+offset_top = 650.0
+offset_right = 600.0
+offset_bottom = 710.0
+text = "WASD - Move | LMB - Shoot (hold) | R - Reload | B - Toggle Fire Mode | ESC - Pause
+Clear all rooms to win!"
+
+[node name="EnemyCountLabel" type="Label" parent="CanvasLayer/UI"]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -200.0
+offset_top = 45.0
+offset_right = -10.0
+offset_bottom = 75.0
+grow_horizontal = 0
+text = "Enemies: 10"
+horizontal_alignment = 2
+
+[node name="AmmoLabel" type="Label" parent="CanvasLayer/UI"]
+layout_mode = 1
+anchors_preset = 0
+offset_left = 10.0
+offset_top = 10.0
+offset_right = 200.0
+offset_bottom = 45.0
+text = "AMMO: 30/30"
+
+[node name="PauseMenu" parent="." instance=ExtResource("3_pause_menu")]
