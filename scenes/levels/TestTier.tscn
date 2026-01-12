@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=3 uid="uid://d3kv7pm5r2aub"]
+[gd_scene load_steps=10 format=3 uid="uid://d3kv7pm5r2aub"]
 
 [ext_resource type="Script" path="res://scripts/levels/test_tier.gd" id="1_test_tier"]
 [ext_resource type="PackedScene" uid="uid://bk8nq2vj5r7p1" path="res://scenes/characters/Player.tscn" id="2_player"]
@@ -16,6 +16,9 @@ size = Vector2(96, 96)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_obstacle_wide"]
 size = Vector2(128, 64)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_cover"]
+size = Vector2(64, 32)
 
 [node name="TestTier" type="Node2D"]
 script = ExtResource("1_test_tier")
@@ -143,37 +146,139 @@ color = Color(0.4, 0.32, 0.25, 1)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Obstacles/Obstacle3"]
 shape = SubResource("RectangleShape2D_obstacle_wide")
 
+[node name="Cover" type="Node2D" parent="Environment"]
+
+[node name="Cover1" type="StaticBody2D" parent="Environment/Cover"]
+position = Vector2(450, 180)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Cover/Cover1"]
+offset_left = -32.0
+offset_top = -16.0
+offset_right = 32.0
+offset_bottom = 16.0
+color = Color(0.3, 0.45, 0.35, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/Cover1"]
+shape = SubResource("RectangleShape2D_cover")
+
+[node name="Cover2" type="StaticBody2D" parent="Environment/Cover"]
+position = Vector2(450, 540)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Cover/Cover2"]
+offset_left = -32.0
+offset_top = -16.0
+offset_right = 32.0
+offset_bottom = 16.0
+color = Color(0.3, 0.45, 0.35, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/Cover2"]
+shape = SubResource("RectangleShape2D_cover")
+
+[node name="Cover3" type="StaticBody2D" parent="Environment/Cover"]
+position = Vector2(650, 260)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Cover/Cover3"]
+offset_left = -32.0
+offset_top = -16.0
+offset_right = 32.0
+offset_bottom = 16.0
+color = Color(0.3, 0.45, 0.35, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/Cover3"]
+shape = SubResource("RectangleShape2D_cover")
+
+[node name="Cover4" type="StaticBody2D" parent="Environment/Cover"]
+position = Vector2(650, 460)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Cover/Cover4"]
+offset_left = -32.0
+offset_top = -16.0
+offset_right = 32.0
+offset_bottom = 16.0
+color = Color(0.3, 0.45, 0.35, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/Cover4"]
+shape = SubResource("RectangleShape2D_cover")
+
+[node name="Cover5" type="StaticBody2D" parent="Environment/Cover"]
+position = Vector2(200, 360)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Cover/Cover5"]
+offset_left = -32.0
+offset_top = -16.0
+offset_right = 32.0
+offset_bottom = 16.0
+color = Color(0.3, 0.45, 0.35, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/Cover5"]
+shape = SubResource("RectangleShape2D_cover")
+
+[node name="Cover6" type="StaticBody2D" parent="Environment/Cover"]
+position = Vector2(780, 360)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Cover/Cover6"]
+offset_left = -32.0
+offset_top = -16.0
+offset_right = 32.0
+offset_bottom = 16.0
+color = Color(0.3, 0.45, 0.35, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/Cover6"]
+shape = SubResource("RectangleShape2D_cover")
+
 [node name="Enemies" type="Node2D" parent="Environment"]
 
 [node name="GuardEnemy1" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
 position = Vector2(750, 160)
 behavior_mode = 1
+enable_flanking = true
+enable_cover = true
 
 [node name="GuardEnemy2" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
 position = Vector2(750, 560)
 behavior_mode = 1
+enable_flanking = true
+enable_cover = true
 
 [node name="PatrolEnemy1" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
 position = Vector2(500, 160)
 behavior_mode = 0
 patrol_offsets = Array[Vector2]([Vector2(0, 100), Vector2(0, -100)])
+enable_flanking = true
+enable_cover = true
 
 [node name="PatrolEnemy2" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
 position = Vector2(500, 360)
 behavior_mode = 0
 patrol_offsets = Array[Vector2]([Vector2(100, 0), Vector2(-100, 0)])
+enable_flanking = true
+enable_cover = true
 
 [node name="PatrolEnemy3" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
 position = Vector2(500, 560)
 behavior_mode = 0
 patrol_offsets = Array[Vector2]([Vector2(0, -100), Vector2(0, 100)])
+enable_flanking = true
+enable_cover = true
 
 [node name="EnemyZoneLabel" type="Label" parent="Environment/Enemies"]
 offset_left = 550.0
 offset_top = 80.0
 offset_right = 800.0
 offset_bottom = 110.0
-text = "ENEMY ZONE"
+text = "TACTICAL COMBAT ARENA"
 horizontal_alignment = 1
 
 [node name="Entities" type="Node2D" parent="."]
@@ -201,7 +306,7 @@ offset_top = 10.0
 offset_right = -10.0
 offset_bottom = 40.0
 grow_horizontal = 0
-text = "Test Tier (Combat Arena)"
+text = "Tactical Combat Arena"
 horizontal_alignment = 2
 
 [node name="InstructionsLabel" type="Label" parent="CanvasLayer/UI"]
@@ -209,8 +314,9 @@ layout_mode = 1
 anchors_preset = 0
 offset_left = 10.0
 offset_top = 650.0
-offset_right = 450.0
+offset_right = 500.0
 offset_bottom = 710.0
-text = "WASD / Arrow Keys - Move | LMB - Shoot | ESC - Pause"
+text = "WASD - Move | LMB - Shoot | ESC - Pause
+Enemies use cover and flank!"
 
 [node name="PauseMenu" parent="." instance=ExtResource("4_pause_menu")]
