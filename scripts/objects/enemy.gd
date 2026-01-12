@@ -94,7 +94,7 @@ enum BehaviorMode {
 
 ## Delay (in seconds) before reacting to bullets in the threat sphere.
 ## This prevents instant reactions to nearby gunfire, giving the player more time.
-@export var threat_reaction_delay: float = 0.6
+@export var threat_reaction_delay: float = 0.2
 
 ## Flank angle from player's facing direction (radians).
 @export var flank_angle: float = PI / 3.0  # 60 degrees
@@ -133,7 +133,7 @@ enum BehaviorMode {
 ## Delay (in seconds) between spotting player and starting to shoot.
 ## Gives player a brief reaction time when entering enemy line of sight.
 ## This delay "recharges" each time the player breaks direct contact with the enemy.
-@export var detection_delay: float = 0.6
+@export var detection_delay: float = 0.2
 
 ## Minimum time (in seconds) the player must be continuously visible before
 ## lead prediction is enabled. This prevents enemies from predicting player
