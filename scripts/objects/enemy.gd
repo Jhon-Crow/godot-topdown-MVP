@@ -37,10 +37,13 @@ enum BehaviorMode {
 @export var combat_move_speed: float = 120.0
 
 ## Detection range for spotting the player.
-@export var detection_range: float = 400.0
+## Set to 0 or negative to allow unlimited detection range (line-of-sight only).
+## This allows enemies to see the player even outside the viewport if no obstacles block view.
+@export var detection_range: float = 0.0
 
 ## Time between shots in seconds.
-@export var shoot_cooldown: float = 1.0
+## Default matches assault rifle fire rate (10 shots/second = 0.1s cooldown).
+@export var shoot_cooldown: float = 0.1
 
 ## Bullet scene to instantiate when shooting.
 @export var bullet_scene: PackedScene
@@ -786,6 +789,8 @@ func _check_wall_ahead(direction: Vector2) -> Vector2:
 
 
 ## Check if the player is visible using raycast.
+## If detection_range is 0 or negative, uses unlimited detection range (line-of-sight only).
+## This allows the enemy to see the player even outside the viewport if there's no obstacle.
 func _check_player_visibility() -> void:
 	_can_see_player = false
 
@@ -794,13 +799,15 @@ func _check_player_visibility() -> void:
 
 	var distance_to_player := global_position.distance_to(_player.global_position)
 
-	# Check if player is within detection range
-	if distance_to_player > detection_range:
+	# Check if player is within detection range (only if detection_range is positive)
+	# If detection_range <= 0, detection is unlimited (line-of-sight only)
+	if detection_range > 0 and distance_to_player > detection_range:
 		return
 
-	# Point raycast at player
+	# Point raycast at player - use actual distance to player for the raycast length
 	var direction_to_player := (_player.global_position - global_position).normalized()
-	_raycast.target_position = direction_to_player * detection_range
+	var raycast_length := distance_to_player + 10.0  # Add small buffer to ensure we reach player
+	_raycast.target_position = direction_to_player * raycast_length
 	_raycast.force_raycast_update()
 
 	# Check if raycast hit something
@@ -811,9 +818,8 @@ func _check_player_visibility() -> void:
 			_can_see_player = true
 		# If we hit a wall/obstacle before the player, we can't see them
 	else:
-		# No collision, check if player is in direct line
-		# This shouldn't happen normally if player has collision
-		_can_see_player = distance_to_player <= detection_range
+		# No collision between us and player - we have clear line of sight
+		_can_see_player = true
 
 
 ## Aim the enemy sprite/direction at the player.
