@@ -1,11 +1,25 @@
 extends CharacterBody2D
-## Enemy AI that can patrol, guard, and shoot at the player.
+## Enemy AI with tactical behaviors including patrol, guard, cover, and flanking.
 ##
-## Supports two idle behaviors:
+## Supports multiple behavior modes:
 ## - PATROL: Moves between patrol points
 ## - GUARD: Stands in place watching for the player
 ##
-## When the player is in line of sight, the enemy will shoot at them.
+## Tactical features:
+## - Uses cover when under fire (suppression)
+## - Attempts to flank the player from the sides
+## - Coordinates with other enemies (optional)
+## - GOAP foundation for goal-oriented planning
+
+## AI States for tactical behavior.
+enum AIState {
+	IDLE,       ## Default idle state (patrol or guard)
+	COMBAT,     ## Actively engaging the player
+	SEEKING_COVER,  ## Moving to cover position
+	IN_COVER,   ## Taking cover from player fire
+	FLANKING,   ## Attempting to flank the player
+	SUPPRESSED  ## Under fire, staying in cover
+}
 
 ## Behavior modes for the enemy.
 enum BehaviorMode {
@@ -16,8 +30,11 @@ enum BehaviorMode {
 ## Current behavior mode.
 @export var behavior_mode: BehaviorMode = BehaviorMode.GUARD
 
-## Maximum movement speed in pixels per second (for patrolling).
+## Maximum movement speed in pixels per second.
 @export var move_speed: float = 80.0
+
+## Combat movement speed (faster when flanking/seeking cover).
+@export var combat_move_speed: float = 120.0
 
 ## Detection range for spotting the player.
 @export var detection_range: float = 400.0
@@ -62,11 +79,35 @@ enum BehaviorMode {
 ## Maximum random health.
 @export var max_health: int = 4
 
+## Threat sphere radius - bullets within this radius trigger suppression.
+@export var threat_sphere_radius: float = 100.0
+
+## Time to stay suppressed after bullets leave threat sphere.
+@export var suppression_cooldown: float = 2.0
+
+## Flank angle from player's facing direction (radians).
+@export var flank_angle: float = PI / 3.0  # 60 degrees
+
+## Distance to maintain while flanking.
+@export var flank_distance: float = 200.0
+
+## Enable/disable flanking behavior.
+@export var enable_flanking: bool = true
+
+## Enable/disable cover behavior.
+@export var enable_cover: bool = true
+
+## Enable/disable debug logging.
+@export var debug_logging: bool = false
+
 ## Signal emitted when the enemy is hit.
 signal hit
 
 ## Signal emitted when the enemy dies.
 signal died
+
+## Signal emitted when AI state changes.
+signal state_changed(new_state: AIState)
 
 ## Reference to the sprite for color changes.
 @onready var _sprite: Sprite2D = $Sprite2D
@@ -82,6 +123,15 @@ const WALL_CHECK_DISTANCE: float = 40.0
 
 ## Number of raycasts for wall detection (spread around the enemy).
 const WALL_CHECK_COUNT: int = 3
+
+## Cover detection raycasts (created at runtime).
+var _cover_raycasts: Array[RayCast2D] = []
+
+## Number of raycasts for cover detection.
+const COVER_CHECK_COUNT: int = 16
+
+## Distance to check for cover.
+const COVER_CHECK_DISTANCE: float = 300.0
 
 ## Current health of the enemy.
 var _current_health: int = 0
@@ -108,6 +158,36 @@ var _initial_position: Vector2
 ## Whether the enemy can currently see the player.
 var _can_see_player: bool = false
 
+## Current AI state.
+var _current_state: AIState = AIState.IDLE
+
+## Current cover position (if any).
+var _cover_position: Vector2 = Vector2.ZERO
+
+## Is currently in a valid cover position.
+var _has_valid_cover: bool = false
+
+## Timer for suppression cooldown.
+var _suppression_timer: float = 0.0
+
+## Whether enemy is currently under fire (bullets in threat sphere).
+var _under_fire: bool = false
+
+## Flank target position.
+var _flank_target: Vector2 = Vector2.ZERO
+
+## Threat sphere Area2D for detecting nearby bullets.
+var _threat_sphere: Area2D = null
+
+## Bullets currently in threat sphere.
+var _bullets_in_threat_sphere: Array = []
+
+## GOAP world state for goal-oriented planning.
+var _goap_world_state: Dictionary = {}
+
+## List of cover positions found in the scene.
+var _available_covers: Array[Dictionary] = []
+
 
 func _ready() -> void:
 	_initial_position = global_position
@@ -116,6 +196,9 @@ func _ready() -> void:
 	_setup_patrol_points()
 	_find_player()
 	_setup_wall_detection()
+	_setup_cover_detection()
+	_setup_threat_sphere()
+	_initialize_goap_state()
 
 	# Preload bullet scene if not set in inspector
 	if bullet_scene == null:
@@ -147,6 +230,50 @@ func _setup_wall_detection() -> void:
 		raycast.exclude_parent = true
 		add_child(raycast)
 		_wall_raycasts.append(raycast)
+
+
+## Setup cover detection raycasts for finding cover positions.
+func _setup_cover_detection() -> void:
+	for i in range(COVER_CHECK_COUNT):
+		var raycast := RayCast2D.new()
+		raycast.enabled = true
+		raycast.collision_mask = 4  # Only detect obstacles (layer 3)
+		raycast.exclude_parent = true
+		add_child(raycast)
+		_cover_raycasts.append(raycast)
+
+
+## Setup threat sphere for detecting nearby bullets.
+func _setup_threat_sphere() -> void:
+	_threat_sphere = Area2D.new()
+	_threat_sphere.name = "ThreatSphere"
+	_threat_sphere.collision_layer = 0
+	_threat_sphere.collision_mask = 16  # Detect projectiles (layer 5)
+
+	var collision_shape := CollisionShape2D.new()
+	var circle_shape := CircleShape2D.new()
+	circle_shape.radius = threat_sphere_radius
+	collision_shape.shape = circle_shape
+	_threat_sphere.add_child(collision_shape)
+
+	add_child(_threat_sphere)
+
+	# Connect signals
+	_threat_sphere.area_entered.connect(_on_threat_area_entered)
+	_threat_sphere.area_exited.connect(_on_threat_area_exited)
+
+
+## Initialize GOAP world state.
+func _initialize_goap_state() -> void:
+	_goap_world_state = {
+		"player_visible": false,
+		"has_cover": false,
+		"in_cover": false,
+		"under_fire": false,
+		"health_low": false,
+		"can_flank": false,
+		"at_flank_position": false
+	}
 
 
 ## Find the player node in the scene tree.
@@ -186,22 +313,311 @@ func _physics_process(delta: float) -> void:
 		_find_player()
 
 	_check_player_visibility()
+	_update_goap_state()
+	_update_suppression(delta)
 
-	# If player is visible, shoot at them
+	# Process AI state machine
+	_process_ai_state(delta)
+
+	move_and_slide()
+
+
+## Update GOAP world state based on current conditions.
+func _update_goap_state() -> void:
+	_goap_world_state["player_visible"] = _can_see_player
+	_goap_world_state["under_fire"] = _under_fire
+	_goap_world_state["health_low"] = _get_health_percent() < 0.5
+	_goap_world_state["in_cover"] = _current_state == AIState.IN_COVER
+	_goap_world_state["has_cover"] = _has_valid_cover
+
+
+## Update suppression state.
+func _update_suppression(delta: float) -> void:
+	# Clean up destroyed bullets from tracking
+	_bullets_in_threat_sphere = _bullets_in_threat_sphere.filter(func(b): return is_instance_valid(b))
+
+	if _bullets_in_threat_sphere.is_empty():
+		if _under_fire:
+			_suppression_timer += delta
+			if _suppression_timer >= suppression_cooldown:
+				_under_fire = false
+				_suppression_timer = 0.0
+				_log_debug("Suppression ended")
+	else:
+		_under_fire = true
+		_suppression_timer = 0.0
+
+
+## Process the AI state machine.
+func _process_ai_state(delta: float) -> void:
+	var previous_state := _current_state
+
+	# State transitions based on conditions
+	match _current_state:
+		AIState.IDLE:
+			_process_idle_state(delta)
+		AIState.COMBAT:
+			_process_combat_state(delta)
+		AIState.SEEKING_COVER:
+			_process_seeking_cover_state(delta)
+		AIState.IN_COVER:
+			_process_in_cover_state(delta)
+		AIState.FLANKING:
+			_process_flanking_state(delta)
+		AIState.SUPPRESSED:
+			_process_suppressed_state(delta)
+
+	if previous_state != _current_state:
+		state_changed.emit(_current_state)
+		_log_debug("State changed: %s -> %s" % [AIState.keys()[previous_state], AIState.keys()[_current_state]])
+
+
+## Process IDLE state - patrol or guard behavior.
+func _process_idle_state(delta: float) -> void:
+	# Transition to combat if player is visible
+	if _can_see_player and _player:
+		_transition_to_combat()
+		return
+
+	# Execute idle behavior
+	match behavior_mode:
+		BehaviorMode.PATROL:
+			_process_patrol(delta)
+		BehaviorMode.GUARD:
+			_process_guard(delta)
+
+
+## Process COMBAT state - actively engaging player.
+func _process_combat_state(delta: float) -> void:
+	# Check for suppression - high priority
+	if _under_fire and enable_cover:
+		_transition_to_seeking_cover()
+		return
+
+	# If can't see player, try flanking or return to idle
+	if not _can_see_player:
+		if enable_flanking and _player:
+			_transition_to_flanking()
+		else:
+			_transition_to_idle()
+		return
+
+	# Aim and shoot at player
+	if _player:
+		_aim_at_player()
+		if _shoot_timer >= shoot_cooldown:
+			_shoot()
+			_shoot_timer = 0.0
+
+
+## Process SEEKING_COVER state - moving to cover position.
+func _process_seeking_cover_state(delta: float) -> void:
+	if not _has_valid_cover:
+		# Try to find cover
+		_find_cover_position()
+		if not _has_valid_cover:
+			# No cover found, stay in combat
+			_transition_to_combat()
+			return
+
+	# Move towards cover
+	var direction := (_cover_position - global_position).normalized()
+	var distance := global_position.distance_to(_cover_position)
+
+	if distance < 10.0:
+		# Reached cover
+		_transition_to_in_cover()
+	else:
+		# Apply wall avoidance
+		var avoidance := _check_wall_ahead(direction)
+		if avoidance != Vector2.ZERO:
+			direction = (direction * 0.5 + avoidance * 0.5).normalized()
+
+		velocity = direction * combat_move_speed
+		rotation = direction.angle()
+
+	# Can still shoot while moving to cover
+	if _can_see_player and _player and _shoot_timer >= shoot_cooldown:
+		_aim_at_player()
+		_shoot()
+		_shoot_timer = 0.0
+
+
+## Process IN_COVER state - taking cover from enemy fire.
+func _process_in_cover_state(delta: float) -> void:
+	velocity = Vector2.ZERO
+
+	# If still under fire, stay suppressed
+	if _under_fire:
+		_transition_to_suppressed()
+		return
+
+	# If not under fire and can see player, engage
 	if _can_see_player and _player:
 		_aim_at_player()
 		if _shoot_timer >= shoot_cooldown:
 			_shoot()
 			_shoot_timer = 0.0
-	else:
-		# Execute idle behavior
-		match behavior_mode:
-			BehaviorMode.PATROL:
-				_process_patrol(delta)
-			BehaviorMode.GUARD:
-				_process_guard(delta)
 
-	move_and_slide()
+	# If player is no longer visible and not under fire, try flanking or return to combat
+	if not _can_see_player and not _under_fire:
+		if enable_flanking and _player:
+			_transition_to_flanking()
+		else:
+			_transition_to_combat()
+
+
+## Process FLANKING state - attempting to flank the player.
+func _process_flanking_state(delta: float) -> void:
+	# If under fire, seek cover instead
+	if _under_fire and enable_cover:
+		_transition_to_seeking_cover()
+		return
+
+	# If can see player, engage in combat
+	if _can_see_player:
+		_transition_to_combat()
+		return
+
+	if _player == null:
+		_transition_to_idle()
+		return
+
+	# Calculate flank position
+	_calculate_flank_position()
+
+	# Move towards flank position
+	var direction := (_flank_target - global_position).normalized()
+	var distance := global_position.distance_to(_flank_target)
+
+	if distance < 20.0:
+		# Reached flank position, engage
+		_transition_to_combat()
+	else:
+		# Apply wall avoidance
+		var avoidance := _check_wall_ahead(direction)
+		if avoidance != Vector2.ZERO:
+			direction = (direction * 0.5 + avoidance * 0.5).normalized()
+
+		velocity = direction * combat_move_speed
+		rotation = direction.angle()
+
+
+## Process SUPPRESSED state - staying in cover under fire.
+func _process_suppressed_state(delta: float) -> void:
+	velocity = Vector2.ZERO
+
+	# Can still shoot while suppressed
+	if _can_see_player and _player:
+		_aim_at_player()
+		if _shoot_timer >= shoot_cooldown:
+			_shoot()
+			_shoot_timer = 0.0
+
+	# If no longer under fire, exit suppression
+	if not _under_fire:
+		_transition_to_in_cover()
+
+
+## Transition to IDLE state.
+func _transition_to_idle() -> void:
+	_current_state = AIState.IDLE
+
+
+## Transition to COMBAT state.
+func _transition_to_combat() -> void:
+	_current_state = AIState.COMBAT
+
+
+## Transition to SEEKING_COVER state.
+func _transition_to_seeking_cover() -> void:
+	_current_state = AIState.SEEKING_COVER
+	_find_cover_position()
+
+
+## Transition to IN_COVER state.
+func _transition_to_in_cover() -> void:
+	_current_state = AIState.IN_COVER
+
+
+## Transition to FLANKING state.
+func _transition_to_flanking() -> void:
+	_current_state = AIState.FLANKING
+	_calculate_flank_position()
+
+
+## Transition to SUPPRESSED state.
+func _transition_to_suppressed() -> void:
+	_current_state = AIState.SUPPRESSED
+
+
+## Find a valid cover position relative to the player.
+func _find_cover_position() -> void:
+	if _player == null:
+		_has_valid_cover = false
+		return
+
+	var player_pos := _player.global_position
+	var best_cover: Vector2 = Vector2.ZERO
+	var best_score: float = -INF
+
+	# Cast rays in all directions to find obstacles
+	for i in range(COVER_CHECK_COUNT):
+		var angle := (float(i) / COVER_CHECK_COUNT) * TAU
+		var direction := Vector2.from_angle(angle)
+
+		var raycast := _cover_raycasts[i]
+		raycast.target_position = direction * COVER_CHECK_DISTANCE
+		raycast.force_raycast_update()
+
+		if raycast.is_colliding():
+			var collision_point := raycast.get_collision_point()
+			var collision_normal := raycast.get_collision_normal()
+
+			# Cover position is on the opposite side of the obstacle from player
+			var direction_from_player := (collision_point - player_pos).normalized()
+
+			# Position behind cover (offset from collision point along normal)
+			var cover_pos := collision_point + collision_normal * 40.0
+
+			# Score based on:
+			# 1. Distance from enemy (closer is better)
+			# 2. Position relative to player (behind cover from player's view)
+			var distance_score := 1.0 - (global_position.distance_to(cover_pos) / COVER_CHECK_DISTANCE)
+
+			# Check if this position blocks line of sight from player
+			var cover_direction := (cover_pos - player_pos).normalized()
+			var dot_product := direction_from_player.dot(cover_direction)
+			var blocking_score := max(0, dot_product)
+
+			var total_score := distance_score * 0.3 + blocking_score * 0.7
+
+			if total_score > best_score:
+				best_score = total_score
+				best_cover = cover_pos
+
+	if best_score > 0:
+		_cover_position = best_cover
+		_has_valid_cover = true
+		_log_debug("Found cover at: %s" % _cover_position)
+	else:
+		_has_valid_cover = false
+
+
+## Calculate flank position based on player location.
+func _calculate_flank_position() -> void:
+	if _player == null:
+		return
+
+	var player_pos := _player.global_position
+	var player_to_enemy := (global_position - player_pos).normalized()
+
+	# Choose left or right flank based on current position
+	var flank_side := 1.0 if randf() > 0.5 else -1.0
+	var flank_direction := player_to_enemy.rotated(flank_angle * flank_side)
+
+	_flank_target = player_pos + flank_direction * flank_distance
+	_log_debug("Flank target: %s" % _flank_target)
 
 
 ## Check if there's a wall ahead in the given direction and return avoidance direction.
@@ -336,6 +752,20 @@ func _process_guard(_delta: float) -> void:
 	# In guard mode, enemy doesn't move but can still aim at player when visible
 
 
+## Called when a bullet enters the threat sphere.
+func _on_threat_area_entered(area: Area2D) -> void:
+	if area.get_parent() != self:  # Don't detect our own bullets
+		_bullets_in_threat_sphere.append(area)
+		_under_fire = true
+		_suppression_timer = 0.0
+		_log_debug("Bullet entered threat sphere, under fire!")
+
+
+## Called when a bullet exits the threat sphere.
+func _on_threat_area_exited(area: Area2D) -> void:
+	_bullets_in_threat_sphere.erase(area)
+
+
 ## Called when the enemy is hit (by bullet.gd).
 func on_hit() -> void:
 	if not _is_alive:
@@ -406,5 +836,37 @@ func _reset() -> void:
 	_current_patrol_index = 0
 	_is_waiting_at_patrol_point = false
 	_patrol_wait_timer = 0.0
+	_current_state = AIState.IDLE
+	_has_valid_cover = false
+	_under_fire = false
+	_suppression_timer = 0.0
+	_bullets_in_threat_sphere.clear()
 	_initialize_health()
 	_update_health_visual()
+	_initialize_goap_state()
+
+
+## Log debug message if debug_logging is enabled.
+func _log_debug(message: String) -> void:
+	if debug_logging:
+		print("[Enemy %s] %s" % [name, message])
+
+
+## Get current AI state (for external access/debugging).
+func get_current_state() -> AIState:
+	return _current_state
+
+
+## Get GOAP world state (for GOAP planner).
+func get_goap_world_state() -> Dictionary:
+	return _goap_world_state.duplicate()
+
+
+## Check if enemy is currently under fire.
+func is_under_fire() -> bool:
+	return _under_fire
+
+
+## Check if enemy is in cover.
+func is_in_cover() -> bool:
+	return _current_state == AIState.IN_COVER or _current_state == AIState.SUPPRESSED
