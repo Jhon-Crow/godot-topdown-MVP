@@ -1243,27 +1243,13 @@ enable_flanking = true
 enable_cover = true
 
 [node name="GuardEnemy5" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
-position = Vector2(2000, 2100)
-behavior_mode = 1
-destroy_on_death = true
-enable_flanking = true
-enable_cover = true
-
-[node name="GuardEnemy6" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
-position = Vector2(2000, 2400)
-behavior_mode = 1
-destroy_on_death = true
-enable_flanking = true
-enable_cover = true
-
-[node name="GuardEnemy7" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
 position = Vector2(3700, 1400)
 behavior_mode = 1
 destroy_on_death = true
 enable_flanking = true
 enable_cover = true
 
-[node name="GuardEnemy8" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
+[node name="GuardEnemy6" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
 position = Vector2(3700, 1700)
 behavior_mode = 1
 destroy_on_death = true
@@ -1298,22 +1284,6 @@ enable_cover = true
 position = Vector2(3000, 800)
 behavior_mode = 0
 patrol_offsets = Array[Vector2]([Vector2(0, 200), Vector2(0, -200)])
-destroy_on_death = true
-enable_flanking = true
-enable_cover = true
-
-[node name="PatrolEnemy5" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
-position = Vector2(3000, 2300)
-behavior_mode = 0
-patrol_offsets = Array[Vector2]([Vector2(0, -200), Vector2(0, 200)])
-destroy_on_death = true
-enable_flanking = true
-enable_cover = true
-
-[node name="PatrolEnemy6" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
-position = Vector2(3400, 1544)
-behavior_mode = 0
-patrol_offsets = Array[Vector2]([Vector2(300, 0), Vector2(-300, 0)])
 destroy_on_death = true
 enable_flanking = true
 enable_cover = true
@@ -1366,7 +1336,17 @@ offset_top = 45.0
 offset_right = -10.0
 offset_bottom = 75.0
 grow_horizontal = 0
-text = "Enemies: 14"
+text = "Enemies: 10"
 horizontal_alignment = 2
+
+[node name="AmmoLabel" type="Label" parent="CanvasLayer/UI"]
+layout_mode = 1
+anchors_preset = 0
+offset_left = 10.0
+offset_top = 10.0
+offset_right = 200.0
+offset_bottom = 40.0
+text = "Ammo: 30/30"
+horizontal_alignment = 0
 
 [node name="PauseMenu" parent="." instance=ExtResource("4_pause_menu")]

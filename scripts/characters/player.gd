@@ -4,6 +4,7 @@ extends CharacterBody2D
 ## Uses physics-based movement with acceleration and friction for smooth control.
 ## Supports WASD and arrow key input via configured input actions.
 ## Shoots bullets towards the mouse cursor on left mouse button click.
+## Features limited ammunition (30 bullets) with no reload for balanced gameplay.
 
 ## Maximum movement speed in pixels per second.
 @export var max_speed: float = 200.0
@@ -20,11 +21,29 @@ extends CharacterBody2D
 ## Offset from player center for bullet spawn position.
 @export var bullet_spawn_offset: float = 20.0
 
+## Maximum ammo capacity (single magazine, no reload).
+@export var max_ammo: int = 30
+
+## Current ammo count.
+var current_ammo: int = 30
+
+## Signal emitted when ammo changes.
+signal ammo_changed(current: int, max_ammo: int)
+
+## Signal emitted when player is out of ammo.
+signal out_of_ammo
+
 
 func _ready() -> void:
+	# Initialize ammo
+	current_ammo = max_ammo
+
 	# Preload bullet scene if not set in inspector
 	if bullet_scene == null:
 		bullet_scene = preload("res://scenes/projectiles/Bullet.tscn")
+
+	# Emit initial ammo signal
+	ammo_changed.emit(current_ammo, max_ammo)
 
 
 func _physics_process(delta: float) -> void:
@@ -59,6 +78,15 @@ func _get_input_direction() -> Vector2:
 func _shoot() -> void:
 	if bullet_scene == null:
 		return
+
+	# Check if player has ammo
+	if current_ammo <= 0:
+		out_of_ammo.emit()
+		return
+
+	# Consume ammo
+	current_ammo -= 1
+	ammo_changed.emit(current_ammo, max_ammo)
 
 	# Calculate direction towards mouse cursor
 	var mouse_pos := get_global_mouse_position()
