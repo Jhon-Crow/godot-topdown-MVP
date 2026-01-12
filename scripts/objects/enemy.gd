@@ -92,6 +92,10 @@ enum BehaviorMode {
 ## Time to stay suppressed after bullets leave threat sphere.
 @export var suppression_cooldown: float = 2.0
 
+## Delay (in seconds) before reacting to bullets in the threat sphere.
+## This prevents instant reactions to nearby gunfire, giving the player more time.
+@export var threat_reaction_delay: float = 0.6
+
 ## Flank angle from player's facing direction (radians).
 @export var flank_angle: float = PI / 3.0  # 60 degrees
 
@@ -128,7 +132,8 @@ enum BehaviorMode {
 
 ## Delay (in seconds) between spotting player and starting to shoot.
 ## Gives player a brief reaction time when entering enemy line of sight.
-@export var detection_delay: float = 0.05
+## This delay "recharges" each time the player breaks direct contact with the enemy.
+@export var detection_delay: float = 0.6
 
 ## Minimum time (in seconds) the player must be continuously visible before
 ## lead prediction is enabled. This prevents enemies from predicting player
@@ -246,6 +251,12 @@ var _threat_sphere: Area2D = null
 
 ## Bullets currently in threat sphere.
 var _bullets_in_threat_sphere: Array = []
+
+## Timer for threat reaction delay - time since first bullet entered threat sphere.
+var _threat_reaction_timer: float = 0.0
+
+## Whether the threat reaction delay has elapsed (enemy can react to bullets).
+var _threat_reaction_delay_elapsed: bool = false
 
 ## GOAP world state for goal-oriented planning.
 var _goap_world_state: Dictionary = {}
@@ -434,9 +445,21 @@ func _update_suppression(delta: float) -> void:
 				_under_fire = false
 				_suppression_timer = 0.0
 				_log_debug("Suppression ended")
+		# Reset threat reaction timer when no bullets are in threat sphere
+		_threat_reaction_timer = 0.0
+		_threat_reaction_delay_elapsed = false
 	else:
-		_under_fire = true
-		_suppression_timer = 0.0
+		# Update threat reaction timer
+		if not _threat_reaction_delay_elapsed:
+			_threat_reaction_timer += delta
+			if _threat_reaction_timer >= threat_reaction_delay:
+				_threat_reaction_delay_elapsed = true
+				_log_debug("Threat reaction delay elapsed, now reacting to bullets")
+
+		# Only set under_fire after the reaction delay has elapsed
+		if _threat_reaction_delay_elapsed:
+			_under_fire = true
+			_suppression_timer = 0.0
 
 
 ## Update reload state.
@@ -609,8 +632,8 @@ func _process_seeking_cover_state(_delta: float) -> void:
 	velocity = direction * combat_move_speed
 	rotation = direction.angle()
 
-	# Can still shoot while moving to cover
-	if _can_see_player and _player and _shoot_timer >= shoot_cooldown:
+	# Can still shoot while moving to cover (only after detection delay)
+	if _can_see_player and _player and _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
 		_aim_at_player()
 		_shoot()
 		_shoot_timer = 0.0
@@ -633,10 +656,10 @@ func _process_in_cover_state(_delta: float) -> void:
 		_transition_to_seeking_cover()
 		return
 
-	# If not under fire and can see player, engage
+	# If not under fire and can see player, engage (only shoot after detection delay)
 	if _can_see_player and _player:
 		_aim_at_player()
-		if _shoot_timer >= shoot_cooldown:
+		if _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
 			_shoot()
 			_shoot_timer = 0.0
 
@@ -696,10 +719,10 @@ func _process_suppressed_state(_delta: float) -> void:
 		_transition_to_seeking_cover()
 		return
 
-	# Can still shoot while suppressed
+	# Can still shoot while suppressed (only after detection delay)
 	if _can_see_player and _player:
 		_aim_at_player()
-		if _shoot_timer >= shoot_cooldown:
+		if _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
 			_shoot()
 			_shoot_timer = 0.0
 
@@ -1377,9 +1400,9 @@ func _on_threat_area_entered(area: Area2D) -> void:
 		return  # Ignore own bullets
 
 	_bullets_in_threat_sphere.append(area)
-	_under_fire = true
-	_suppression_timer = 0.0
-	_log_debug("Bullet entered threat sphere, under fire!")
+	# Note: _under_fire is now set in _update_suppression after threat_reaction_delay
+	# This gives the player more time before the enemy reacts to nearby gunfire
+	_log_debug("Bullet entered threat sphere, starting reaction delay...")
 
 
 ## Called when a bullet exits the threat sphere.
@@ -1473,6 +1496,8 @@ func _reset() -> void:
 	_detection_delay_elapsed = false
 	_continuous_visibility_timer = 0.0
 	_player_visibility_ratio = 0.0
+	_threat_reaction_timer = 0.0
+	_threat_reaction_delay_elapsed = false
 	_bullets_in_threat_sphere.clear()
 	_initialize_health()
 	_initialize_ammo()
