@@ -389,6 +389,9 @@ func _process_idle_state(delta: float) -> void:
 
 ## Process COMBAT state - actively engaging player.
 func _process_combat_state(delta: float) -> void:
+	# In combat, enemy stands still and shoots (no velocity)
+	velocity = Vector2.ZERO
+
 	# Check for suppression - high priority
 	if _under_fire and enable_cover:
 		_transition_to_seeking_cover()
@@ -706,6 +709,10 @@ func _shoot() -> void:
 	# Set bullet direction
 	bullet.direction = direction
 
+	# Set shooter ID to identify this enemy as the source
+	# This prevents enemies from detecting their own bullets in the threat sphere
+	bullet.shooter_id = get_instance_id()
+
 	# Add bullet to the scene tree
 	get_tree().current_scene.add_child(bullet)
 
@@ -754,11 +761,15 @@ func _process_guard(_delta: float) -> void:
 
 ## Called when a bullet enters the threat sphere.
 func _on_threat_area_entered(area: Area2D) -> void:
-	if area.get_parent() != self:  # Don't detect our own bullets
-		_bullets_in_threat_sphere.append(area)
-		_under_fire = true
-		_suppression_timer = 0.0
-		_log_debug("Bullet entered threat sphere, under fire!")
+	# Check if bullet has shooter_id property and if it's from this enemy
+	# This prevents enemies from being suppressed by their own bullets
+	if "shooter_id" in area and area.shooter_id == get_instance_id():
+		return  # Ignore own bullets
+
+	_bullets_in_threat_sphere.append(area)
+	_under_fire = true
+	_suppression_timer = 0.0
+	_log_debug("Bullet entered threat sphere, under fire!")
 
 
 ## Called when a bullet exits the threat sphere.
