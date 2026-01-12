@@ -265,6 +265,22 @@ var _continuous_visibility_timer: float = 0.0
 ## Used to determine if lead prediction should be enabled.
 var _player_visibility_ratio: float = 0.0
 
+## Whether the player is currently behind cover (enemy lost visual contact).
+## When true, enemy aims at cover edges instead of tracking player movement.
+var _is_player_behind_cover: bool = false
+
+## The position of the obstacle the player is hiding behind.
+## Used to calculate where the enemy should aim (cover edges).
+var _player_cover_position: Vector2 = Vector2.ZERO
+
+## The last known position of the player before they hid behind cover.
+## Used to determine which side of the cover the player likely went behind.
+var _player_last_known_position: Vector2 = Vector2.ZERO
+
+## The direction from enemy to cover (normalized).
+## Used to calculate cover edge aim points.
+var _cover_direction: Vector2 = Vector2.ZERO
+
 
 
 func _ready() -> void:
@@ -1129,6 +1145,7 @@ func _check_wall_ahead(direction: Vector2) -> Vector2:
 ## If detection_range is 0 or negative, uses unlimited detection range (line-of-sight only).
 ## This allows the enemy to see the player even outside the viewport if there's no obstacle.
 ## Also updates the continuous visibility timer and visibility ratio for lead prediction control.
+## Tracks when the player goes behind cover to enable cover-edge aiming behavior.
 func _check_player_visibility() -> void:
 	var was_visible := _can_see_player
 	_can_see_player = false
@@ -1159,6 +1176,14 @@ func _check_player_visibility() -> void:
 		if collider == _player:
 			_can_see_player = true
 		# If we hit a wall/obstacle before the player, we can't see them
+		# Track the cover position for cover-edge aiming
+		elif was_visible and not _is_player_behind_cover:
+			# Player just went behind cover - start tracking the cover
+			_is_player_behind_cover = true
+			_player_cover_position = _raycast.get_collision_point()
+			_player_last_known_position = _player.global_position
+			_cover_direction = direction_to_player
+			_log_debug("Player hid behind cover at: %s (last seen at: %s)" % [_player_cover_position, _player_last_known_position])
 	else:
 		# No collision between us and player - we have clear line of sight
 		_can_see_player = true
@@ -1169,17 +1194,69 @@ func _check_player_visibility() -> void:
 		# Calculate what fraction of the player's body is visible
 		# This is used to determine if lead prediction should be enabled
 		_player_visibility_ratio = _calculate_player_visibility_ratio()
+
+		# Player is visible again - reset cover tracking
+		if _is_player_behind_cover:
+			_is_player_behind_cover = false
+			_log_debug("Player visible again, resetting cover tracking")
 	else:
 		# Lost line of sight - reset the timer and visibility ratio
 		_continuous_visibility_timer = 0.0
 		_player_visibility_ratio = 0.0
 
 
+## Calculate the cover edge aim point when player is behind cover.
+## The enemy aims at the edges of the cover (slightly above or below) where
+## the player might emerge from, instead of tracking the player's hidden position.
+## This makes the enemy behavior feel more realistic and fair.
+func _calculate_cover_edge_aim_point() -> Vector2:
+	if not _is_player_behind_cover or _player == null:
+		return _player.global_position if _player else global_position
+
+	# Calculate perpendicular direction to the cover (used for edge offset)
+	# The perpendicular is rotated 90 degrees from the direction to cover
+	var perpendicular := Vector2(-_cover_direction.y, _cover_direction.x)
+
+	# Determine which side of the cover the player went behind
+	# by checking the player's last known position relative to the cover
+	var player_offset := _player_last_known_position - _player_cover_position
+	var side_dot := player_offset.dot(perpendicular)
+
+	# Offset distance for aiming at cover edge (pixels beyond the cover point)
+	# This should be enough to aim at where the player might emerge
+	const COVER_EDGE_OFFSET: float = 60.0
+
+	# Aim at the edge of the cover on the side where the player likely hid
+	var edge_offset: Vector2
+	if side_dot >= 0:
+		# Player went behind the "positive" side of the cover
+		edge_offset = perpendicular * COVER_EDGE_OFFSET
+	else:
+		# Player went behind the "negative" side of the cover
+		edge_offset = -perpendicular * COVER_EDGE_OFFSET
+
+	var aim_point := _player_cover_position + edge_offset
+
+	_log_debug("Aiming at cover edge: %s (cover at %s, side_dot: %.2f)" % [aim_point, _player_cover_position, side_dot])
+
+	return aim_point
+
+
 ## Aim the enemy sprite/direction at the player using gradual rotation.
+## When player is behind cover, aims at cover edges instead of tracking player.
 func _aim_at_player() -> void:
 	if _player == null:
 		return
-	var direction := (_player.global_position - global_position).normalized()
+
+	var target_position: Vector2
+
+	# When player is behind cover, aim at the cover edge instead of tracking player movement
+	if _is_player_behind_cover:
+		target_position = _calculate_cover_edge_aim_point()
+	else:
+		target_position = _player.global_position
+
+	var direction := (target_position - global_position).normalized()
 	var target_angle := direction.angle()
 
 	# Calculate the shortest rotation direction
@@ -1473,6 +1550,11 @@ func _reset() -> void:
 	_detection_delay_elapsed = false
 	_continuous_visibility_timer = 0.0
 	_player_visibility_ratio = 0.0
+	# Reset cover tracking state
+	_is_player_behind_cover = false
+	_player_cover_position = Vector2.ZERO
+	_player_last_known_position = Vector2.ZERO
+	_cover_direction = Vector2.ZERO
 	_bullets_in_threat_sphere.clear()
 	_initialize_health()
 	_initialize_ammo()
@@ -1535,3 +1617,14 @@ func has_ammo() -> bool:
 ## Returns 0.0 if player is completely hidden, 1.0 if fully visible.
 func get_player_visibility_ratio() -> float:
 	return _player_visibility_ratio
+
+
+## Check if the enemy is tracking the player behind cover.
+## When true, the enemy aims at cover edges instead of tracking player movement.
+func is_tracking_player_behind_cover() -> bool:
+	return _is_player_behind_cover
+
+
+## Get the position of the cover the player is hiding behind (for debugging).
+func get_player_cover_position() -> Vector2:
+	return _player_cover_position
