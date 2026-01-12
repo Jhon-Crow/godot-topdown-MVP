@@ -705,8 +705,8 @@ func _process_flanking_state(_delta: float) -> void:
 		_transition_to_idle()
 		return
 
-	# Calculate flank position
-	_calculate_flank_position()
+	# Flank position is calculated once when entering FLANKING state
+	# Don't recalculate it here or the target will jump around randomly
 
 	# Move towards flank position
 	var direction := (_flank_target - global_position).normalized()
