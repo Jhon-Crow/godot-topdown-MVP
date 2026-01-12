@@ -185,8 +185,6 @@ var _bullets_in_threat_sphere: Array = []
 ## GOAP world state for goal-oriented planning.
 var _goap_world_state: Dictionary = {}
 
-## List of cover positions found in the scene.
-var _available_covers: Array[Dictionary] = []
 
 
 func _ready() -> void:
@@ -388,7 +386,7 @@ func _process_idle_state(delta: float) -> void:
 
 
 ## Process COMBAT state - actively engaging player.
-func _process_combat_state(delta: float) -> void:
+func _process_combat_state(_delta: float) -> void:
 	# In combat, enemy stands still and shoots (no velocity)
 	velocity = Vector2.ZERO
 
@@ -414,7 +412,7 @@ func _process_combat_state(delta: float) -> void:
 
 
 ## Process SEEKING_COVER state - moving to cover position.
-func _process_seeking_cover_state(delta: float) -> void:
+func _process_seeking_cover_state(_delta: float) -> void:
 	if not _has_valid_cover:
 		# Try to find cover
 		_find_cover_position()
@@ -423,21 +421,33 @@ func _process_seeking_cover_state(delta: float) -> void:
 			_transition_to_combat()
 			return
 
+	# Check if we're already hidden from the player (the main goal)
+	if not _is_visible_from_player():
+		_transition_to_in_cover()
+		_log_debug("Hidden from player, entering cover state")
+		return
+
 	# Move towards cover
 	var direction := (_cover_position - global_position).normalized()
 	var distance := global_position.distance_to(_cover_position)
 
 	if distance < 10.0:
-		# Reached cover
-		_transition_to_in_cover()
-	else:
-		# Apply wall avoidance
-		var avoidance := _check_wall_ahead(direction)
-		if avoidance != Vector2.ZERO:
-			direction = (direction * 0.5 + avoidance * 0.5).normalized()
+		# Reached the cover position, but still visible - try to find better cover
+		if _is_visible_from_player():
+			_has_valid_cover = false
+			_find_cover_position()
+			if not _has_valid_cover:
+				# No better cover found, stay in combat
+				_transition_to_combat()
+				return
 
-		velocity = direction * combat_move_speed
-		rotation = direction.angle()
+	# Apply wall avoidance
+	var avoidance := _check_wall_ahead(direction)
+	if avoidance != Vector2.ZERO:
+		direction = (direction * 0.5 + avoidance * 0.5).normalized()
+
+	velocity = direction * combat_move_speed
+	rotation = direction.angle()
 
 	# Can still shoot while moving to cover
 	if _can_see_player and _player and _shoot_timer >= shoot_cooldown:
@@ -447,7 +457,7 @@ func _process_seeking_cover_state(delta: float) -> void:
 
 
 ## Process IN_COVER state - taking cover from enemy fire.
-func _process_in_cover_state(delta: float) -> void:
+func _process_in_cover_state(_delta: float) -> void:
 	velocity = Vector2.ZERO
 
 	# If still under fire, stay suppressed
@@ -471,7 +481,7 @@ func _process_in_cover_state(delta: float) -> void:
 
 
 ## Process FLANKING state - attempting to flank the player.
-func _process_flanking_state(delta: float) -> void:
+func _process_flanking_state(_delta: float) -> void:
 	# If under fire, seek cover instead
 	if _under_fire and enable_cover:
 		_transition_to_seeking_cover()
@@ -507,7 +517,7 @@ func _process_flanking_state(delta: float) -> void:
 
 
 ## Process SUPPRESSED state - staying in cover under fire.
-func _process_suppressed_state(delta: float) -> void:
+func _process_suppressed_state(_delta: float) -> void:
 	velocity = Vector2.ZERO
 
 	# Can still shoot while suppressed
@@ -554,7 +564,70 @@ func _transition_to_suppressed() -> void:
 	_current_state = AIState.SUPPRESSED
 
 
+## Check if the enemy is visible from the player's position.
+## Uses raycasting from player to enemy to determine if there are obstacles blocking line of sight.
+## This is the inverse of _can_see_player - it checks if the PLAYER can see the ENEMY.
+func _is_visible_from_player() -> bool:
+	if _player == null:
+		return false
+
+	var player_pos := _player.global_position
+	var enemy_pos := global_position
+	var distance := player_pos.distance_to(enemy_pos)
+
+	# Use direct space state to check line of sight from player to enemy
+	var space_state := get_world_2d().direct_space_state
+	var query := PhysicsRayQueryParameters2D.new()
+	query.from = player_pos
+	query.to = enemy_pos
+	query.collision_mask = 4  # Only check obstacles (layer 3)
+	query.exclude = []
+
+	var result := space_state.intersect_ray(query)
+
+	if result.is_empty():
+		# No obstacle between player and enemy - enemy is visible
+		return true
+	else:
+		# Check if we hit an obstacle before reaching the enemy
+		var hit_position: Vector2 = result["position"]
+		var distance_to_hit := player_pos.distance_to(hit_position)
+
+		# If we hit something closer than the enemy, the enemy is hidden
+		if distance_to_hit < distance - 20.0:  # 20 pixel tolerance
+			return false
+		else:
+			return true
+
+
+## Check if a specific position is visible from the player's position.
+## Used to validate cover positions before moving to them.
+func _is_position_visible_from_player(pos: Vector2) -> bool:
+	if _player == null:
+		return true  # Assume visible if no player
+
+	var player_pos := _player.global_position
+	var distance := player_pos.distance_to(pos)
+
+	var space_state := get_world_2d().direct_space_state
+	var query := PhysicsRayQueryParameters2D.new()
+	query.from = player_pos
+	query.to = pos
+	query.collision_mask = 4  # Only check obstacles (layer 3)
+	query.exclude = []
+
+	var result := space_state.intersect_ray(query)
+
+	if result.is_empty():
+		return true
+	else:
+		var hit_position: Vector2 = result["position"]
+		var distance_to_hit := player_pos.distance_to(hit_position)
+		return distance_to_hit >= distance - 10.0
+
+
 ## Find a valid cover position relative to the player.
+## The cover position must be hidden from the player's line of sight.
 func _find_cover_position() -> void:
 	if _player == null:
 		_has_valid_cover = false
@@ -563,6 +636,7 @@ func _find_cover_position() -> void:
 	var player_pos := _player.global_position
 	var best_cover: Vector2 = Vector2.ZERO
 	var best_score: float = -INF
+	var found_hidden_cover: bool = false
 
 	# Cast rays in all directions to find obstacles
 	for i in range(COVER_CHECK_COUNT):
@@ -581,28 +655,42 @@ func _find_cover_position() -> void:
 			var direction_from_player := (collision_point - player_pos).normalized()
 
 			# Position behind cover (offset from collision point along normal)
-			var cover_pos := collision_point + collision_normal * 40.0
+			# Use a larger offset to ensure the enemy is fully behind the obstacle
+			var cover_pos := collision_point + collision_normal * 50.0
 
-			# Score based on:
-			# 1. Distance from enemy (closer is better)
-			# 2. Position relative to player (behind cover from player's view)
-			var distance_score := 1.0 - (global_position.distance_to(cover_pos) / COVER_CHECK_DISTANCE)
+			# First priority: Check if this position is actually hidden from player
+			var is_hidden := not _is_position_visible_from_player(cover_pos)
 
-			# Check if this position blocks line of sight from player
-			var cover_direction := (cover_pos - player_pos).normalized()
-			var dot_product := direction_from_player.dot(cover_direction)
-			var blocking_score: float = maxf(0.0, dot_product)
+			# Only consider hidden positions unless we have no choice
+			if is_hidden or not found_hidden_cover:
+				# Score based on:
+				# 1. Whether position is hidden (highest priority)
+				# 2. Distance from enemy (closer is better)
+				# 3. Position relative to player (behind cover from player's view)
+				var hidden_score: float = 10.0 if is_hidden else 0.0  # Heavy weight for hidden positions
 
-			var total_score: float = distance_score * 0.3 + blocking_score * 0.7
+				var distance_score := 1.0 - (global_position.distance_to(cover_pos) / COVER_CHECK_DISTANCE)
 
-			if total_score > best_score:
-				best_score = total_score
-				best_cover = cover_pos
+				# Check if this position is on the far side of obstacle from player
+				var cover_direction := (cover_pos - player_pos).normalized()
+				var dot_product := direction_from_player.dot(cover_direction)
+				var blocking_score: float = maxf(0.0, dot_product)
+
+				var total_score: float = hidden_score + distance_score * 0.3 + blocking_score * 0.7
+
+				# If we find a hidden position, only accept other hidden positions
+				if is_hidden and not found_hidden_cover:
+					found_hidden_cover = true
+					best_score = total_score
+					best_cover = cover_pos
+				elif (is_hidden or not found_hidden_cover) and total_score > best_score:
+					best_score = total_score
+					best_cover = cover_pos
 
 	if best_score > 0:
 		_cover_position = best_cover
 		_has_valid_cover = true
-		_log_debug("Found cover at: %s" % _cover_position)
+		_log_debug("Found cover at: %s (hidden: %s)" % [_cover_position, found_hidden_cover])
 	else:
 		_has_valid_cover = false
 

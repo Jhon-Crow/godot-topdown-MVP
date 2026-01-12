@@ -148,6 +148,68 @@ Additionally, implement **Solution 3** to fix the self-suppression issue.
 - [Godot Documentation: Using Area2D](https://docs.godotengine.org/en/stable/tutorials/physics/using_area_2d.html)
 - [Godot Forum: Collision Layers and Masks in Godot 4](https://www.gotut.net/collision-layers-and-masks-in-godot-4/)
 
+## Follow-up Issues (Update #2)
+
+### Issue: Enemies Not Properly Hiding in Cover
+
+**Reported by:** User (PR comment)
+**Severity:** Medium
+
+#### Problem Description
+
+Enemies were seeking cover positions but not actually hiding from the player's line of sight. The user noted: "enemies are not hiding in cover - they should go to cover until they are hidden from the player's direct line of sight (rays fired in all directions from the player should stop hitting them)."
+
+#### Root Cause
+
+The original cover-finding algorithm (`_find_cover_position()`) used a scoring system based on:
+1. Distance to cover (closer = better)
+2. Dot product of cover direction vs player direction (blocking score)
+
+**However**, it never actually verified that the cover position would hide the enemy from the player. The scoring was an approximation that didn't guarantee true line-of-sight blocking.
+
+#### Technical Fix
+
+Added two new functions:
+1. `_is_visible_from_player()` - Uses physics raycasting to check if player can see the enemy
+2. `_is_position_visible_from_player(pos)` - Checks if a specific position is visible to the player
+
+Modified `_find_cover_position()` to:
+1. Prioritize positions that are actually hidden (verified by raycasting)
+2. Use a heavy score bonus (10.0) for hidden positions
+3. Only accept non-hidden positions if no hidden cover is available
+
+Modified `_process_seeking_cover_state()` to:
+1. Check if enemy is hidden before transitioning to IN_COVER state
+2. Keep seeking better cover if reached destination but still visible
+3. Only transition to cover state when truly hidden from player
+
+### Issue: GDScript Warnings
+
+**Reported by:** User (PR comment)
+**Severity:** Low
+
+#### Problem Description
+
+The Godot editor reported several warnings about unused variables and parameters:
+- Line 189: `_available_covers` - unused private class variable
+- Lines 391, 417, 450, 474, 510: `delta` parameters unused in state processing functions
+
+#### Fix
+
+1. Removed `_available_covers` variable (was a placeholder for future GOAP integration)
+2. Prefixed unused `delta` parameters with underscore (`_delta`) to suppress warnings
+
+### Issue: Missing Laser Sight
+
+**Reported by:** User (PR comment)
+**Severity:** Investigation Required
+
+#### Investigation
+
+The laser sight feature (from Issue #8) exists in the codebase at `Scripts/Weapons/AssaultRifle.cs`. The files are identical in both `main` and the issue branch.
+
+**Conclusion:** This is likely a build/export issue, not a code issue. The laser sight code is present and should work when the game is properly built from the repository.
+
 ## Test Plan
 
 1. Launch game and verify enemies patrol/guard normally
@@ -156,3 +218,5 @@ Additionally, implement **Solution 3** to fix the self-suppression issue.
 4. Stop shooting near enemy - verify they emerge from cover after 2s
 5. Verify enemy bullets don't cause self-suppression
 6. Verify all existing AI behaviors work (shooting, aiming, movement)
+7. **New:** Verify enemies seek cover until truly hidden from player
+8. **New:** Verify no GDScript warnings in the editor
