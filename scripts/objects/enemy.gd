@@ -37,10 +37,13 @@ enum BehaviorMode {
 @export var combat_move_speed: float = 120.0
 
 ## Detection range for spotting the player.
-@export var detection_range: float = 400.0
+## Set to 0 or negative to allow unlimited detection range (line-of-sight only).
+## This allows enemies to see the player even outside the viewport if no obstacles block view.
+@export var detection_range: float = 0.0
 
 ## Time between shots in seconds.
-@export var shoot_cooldown: float = 1.0
+## Default matches assault rifle fire rate (10 shots/second = 0.1s cooldown).
+@export var shoot_cooldown: float = 0.1
 
 ## Bullet scene to instantiate when shooting.
 @export var bullet_scene: PackedScene
@@ -100,6 +103,15 @@ enum BehaviorMode {
 ## Enable/disable debug logging.
 @export var debug_logging: bool = false
 
+## Ammunition system - magazine size (bullets per magazine).
+@export var magazine_size: int = 30
+
+## Ammunition system - number of magazines the enemy carries.
+@export var total_magazines: int = 5
+
+## Ammunition system - time to reload in seconds.
+@export var reload_time: float = 2.0
+
 ## Signal emitted when the enemy is hit.
 signal hit
 
@@ -108,6 +120,18 @@ signal died
 
 ## Signal emitted when AI state changes.
 signal state_changed(new_state: AIState)
+
+## Signal emitted when ammunition changes.
+signal ammo_changed(current_ammo: int, reserve_ammo: int)
+
+## Signal emitted when reloading starts.
+signal reload_started
+
+## Signal emitted when reloading finishes.
+signal reload_finished
+
+## Signal emitted when all ammunition is depleted.
+signal ammo_depleted
 
 ## Reference to the sprite for color changes.
 @onready var _sprite: Sprite2D = $Sprite2D
@@ -147,6 +171,18 @@ var _player: Node2D = null
 
 ## Time since last shot.
 var _shoot_timer: float = 0.0
+
+## Current ammo in the magazine.
+var _current_ammo: int = 0
+
+## Reserve ammo (ammo in remaining magazines).
+var _reserve_ammo: int = 0
+
+## Whether the enemy is currently reloading.
+var _is_reloading: bool = false
+
+## Timer for reload progress.
+var _reload_timer: float = 0.0
 
 ## Patrol state variables.
 var _patrol_points: Array[Vector2] = []
@@ -190,6 +226,7 @@ var _goap_world_state: Dictionary = {}
 func _ready() -> void:
 	_initial_position = global_position
 	_initialize_health()
+	_initialize_ammo()
 	_update_health_visual()
 	_setup_patrol_points()
 	_find_player()
@@ -208,6 +245,15 @@ func _initialize_health() -> void:
 	_max_health = randi_range(min_health, max_health)
 	_current_health = _max_health
 	_is_alive = true
+
+
+## Initialize ammunition with full magazine and reserve ammo.
+func _initialize_ammo() -> void:
+	_current_ammo = magazine_size
+	# Reserve ammo is (total_magazines - 1) * magazine_size since one magazine is loaded
+	_reserve_ammo = (total_magazines - 1) * magazine_size
+	_is_reloading = false
+	_reload_timer = 0.0
 
 
 ## Setup patrol points based on patrol offsets from initial position.
@@ -306,6 +352,9 @@ func _physics_process(delta: float) -> void:
 	# Update shoot cooldown timer
 	_shoot_timer += delta
 
+	# Update reload timer
+	_update_reload(delta)
+
 	# Check for player visibility and try to find player if not found
 	if _player == null:
 		_find_player()
@@ -344,6 +393,67 @@ func _update_suppression(delta: float) -> void:
 	else:
 		_under_fire = true
 		_suppression_timer = 0.0
+
+
+## Update reload state.
+func _update_reload(delta: float) -> void:
+	if not _is_reloading:
+		return
+
+	_reload_timer += delta
+	if _reload_timer >= reload_time:
+		_finish_reload()
+
+
+## Start reloading the weapon.
+func _start_reload() -> void:
+	# Can't reload if already reloading or no reserve ammo
+	if _is_reloading or _reserve_ammo <= 0:
+		return
+
+	_is_reloading = true
+	_reload_timer = 0.0
+	reload_started.emit()
+	_log_debug("Reloading... (%d reserve ammo)" % _reserve_ammo)
+
+
+## Finish the reload process.
+func _finish_reload() -> void:
+	_is_reloading = false
+	_reload_timer = 0.0
+
+	# Calculate how many rounds to load
+	var ammo_needed := magazine_size - _current_ammo
+	var ammo_to_load := mini(ammo_needed, _reserve_ammo)
+
+	_reserve_ammo -= ammo_to_load
+	_current_ammo += ammo_to_load
+
+	reload_finished.emit()
+	ammo_changed.emit(_current_ammo, _reserve_ammo)
+	_log_debug("Reload complete. Magazine: %d/%d, Reserve: %d" % [_current_ammo, magazine_size, _reserve_ammo])
+
+
+## Check if the enemy can shoot (has ammo and not reloading).
+func _can_shoot() -> bool:
+	# Can't shoot if reloading
+	if _is_reloading:
+		return false
+
+	# Can't shoot if no ammo in magazine
+	if _current_ammo <= 0:
+		# Try to start reload if we have reserve ammo
+		if _reserve_ammo > 0:
+			_start_reload()
+		else:
+			# No ammo at all - emit depleted signal once
+			if not _goap_world_state.get("ammo_depleted", false):
+				_goap_world_state["ammo_depleted"] = true
+				ammo_depleted.emit()
+				_log_debug("All ammunition depleted!")
+		return false
+
+	return true
 
 
 ## Process the AI state machine.
@@ -786,6 +896,8 @@ func _check_wall_ahead(direction: Vector2) -> Vector2:
 
 
 ## Check if the player is visible using raycast.
+## If detection_range is 0 or negative, uses unlimited detection range (line-of-sight only).
+## This allows the enemy to see the player even outside the viewport if there's no obstacle.
 func _check_player_visibility() -> void:
 	_can_see_player = false
 
@@ -794,13 +906,15 @@ func _check_player_visibility() -> void:
 
 	var distance_to_player := global_position.distance_to(_player.global_position)
 
-	# Check if player is within detection range
-	if distance_to_player > detection_range:
+	# Check if player is within detection range (only if detection_range is positive)
+	# If detection_range <= 0, detection is unlimited (line-of-sight only)
+	if detection_range > 0 and distance_to_player > detection_range:
 		return
 
-	# Point raycast at player
+	# Point raycast at player - use actual distance to player for the raycast length
 	var direction_to_player := (_player.global_position - global_position).normalized()
-	_raycast.target_position = direction_to_player * detection_range
+	var raycast_length := distance_to_player + 10.0  # Add small buffer to ensure we reach player
+	_raycast.target_position = direction_to_player * raycast_length
 	_raycast.force_raycast_update()
 
 	# Check if raycast hit something
@@ -811,9 +925,8 @@ func _check_player_visibility() -> void:
 			_can_see_player = true
 		# If we hit a wall/obstacle before the player, we can't see them
 	else:
-		# No collision, check if player is in direct line
-		# This shouldn't happen normally if player has collision
-		_can_see_player = distance_to_player <= detection_range
+		# No collision between us and player - we have clear line of sight
+		_can_see_player = true
 
 
 ## Aim the enemy sprite/direction at the player.
@@ -828,6 +941,10 @@ func _aim_at_player() -> void:
 ## Shoot a bullet towards the player.
 func _shoot() -> void:
 	if bullet_scene == null or _player == null:
+		return
+
+	# Check if we can shoot (have ammo and not reloading)
+	if not _can_shoot():
 		return
 
 	var direction := (_player.global_position - global_position).normalized()
@@ -847,6 +964,14 @@ func _shoot() -> void:
 
 	# Add bullet to the scene tree
 	get_tree().current_scene.add_child(bullet)
+
+	# Consume ammo
+	_current_ammo -= 1
+	ammo_changed.emit(_current_ammo, _reserve_ammo)
+
+	# Auto-reload when magazine is empty
+	if _current_ammo <= 0 and _reserve_ammo > 0:
+		_start_reload()
 
 
 ## Process patrol behavior - move between patrol points.
@@ -985,6 +1110,7 @@ func _reset() -> void:
 	_suppression_timer = 0.0
 	_bullets_in_threat_sphere.clear()
 	_initialize_health()
+	_initialize_ammo()
 	_update_health_visual()
 	_initialize_goap_state()
 
@@ -1013,3 +1139,28 @@ func is_under_fire() -> bool:
 ## Check if enemy is in cover.
 func is_in_cover() -> bool:
 	return _current_state == AIState.IN_COVER or _current_state == AIState.SUPPRESSED
+
+
+## Get current ammo in magazine.
+func get_current_ammo() -> int:
+	return _current_ammo
+
+
+## Get reserve ammo.
+func get_reserve_ammo() -> int:
+	return _reserve_ammo
+
+
+## Get total ammo (current + reserve).
+func get_total_ammo() -> int:
+	return _current_ammo + _reserve_ammo
+
+
+## Check if enemy is currently reloading.
+func is_reloading() -> bool:
+	return _is_reloading
+
+
+## Check if enemy has any ammo left.
+func has_ammo() -> bool:
+	return _current_ammo > 0 or _reserve_ammo > 0
