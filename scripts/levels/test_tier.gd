@@ -9,6 +9,10 @@ extends Node2D
 ## - Enemies do not respawn after death
 ## - Visual indicators for cover positions
 ## - Ammo counter with color-coded warnings
+## - Kill counter and accuracy display
+## - Screen saturation effect on enemy kills
+## - Death/victory messages
+## - Quick restart with Q key
 
 ## Reference to the enemy count label.
 var _enemy_count_label: Label = null
@@ -28,11 +32,27 @@ var _current_enemy_count: int = 0
 ## Whether game over has been shown.
 var _game_over_shown: bool = false
 
+## Reference to the kills label.
+var _kills_label: Label = null
+
+## Reference to the accuracy label.
+var _accuracy_label: Label = null
+
+## Reference to the ColorRect for saturation effect.
+var _saturation_overlay: ColorRect = null
+
+## Duration of saturation effect in seconds.
+const SATURATION_DURATION: float = 0.15
+
+## Saturation effect intensity (alpha).
+const SATURATION_INTENSITY: float = 0.25
+
 
 func _ready() -> void:
 	print("TestTier loaded - Tactical Combat Arena")
 	print("Map size: 4000x2960 pixels")
 	print("Clear all zones to win!")
+	print("Press Q for quick restart")
 
 	# Find and connect to all enemies
 	_setup_enemy_tracking()
@@ -43,6 +63,17 @@ func _ready() -> void:
 
 	# Find and setup player tracking
 	_setup_player_tracking()
+
+	# Setup debug UI
+	_setup_debug_ui()
+
+	# Setup saturation overlay for kill effect
+	_setup_saturation_overlay()
+
+	# Connect to GameManager signals
+	if GameManager:
+		GameManager.enemy_killed.connect(_on_game_manager_enemy_killed)
+		GameManager.stats_updated.connect(_update_debug_ui)
 
 
 func _process(_delta: float) -> void:
@@ -55,8 +86,18 @@ func _setup_player_tracking() -> void:
 	if _player == null:
 		return
 
+	# Register player with GameManager
+	if GameManager:
+		GameManager.set_player(_player)
+
 	# Find the ammo label
 	_ammo_label = get_node_or_null("CanvasLayer/UI/AmmoLabel")
+
+	# Connect to player death signal (handles both GDScript "died" and C# "Died")
+	if _player.has_signal("died"):
+		_player.died.connect(_on_player_died)
+	elif _player.has_signal("Died"):
+		_player.Died.connect(_on_player_died)
 
 	# Try to get the player's weapon for C# Player
 	var weapon = _player.get_node_or_null("AssaultRifle")
@@ -64,6 +105,8 @@ func _setup_player_tracking() -> void:
 		# C# Player with weapon - connect to weapon signals
 		if weapon.has_signal("AmmoChanged"):
 			weapon.AmmoChanged.connect(_on_weapon_ammo_changed)
+		if weapon.has_signal("Fired"):
+			weapon.Fired.connect(_on_shot_fired)
 		# Initial ammo display from weapon
 		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
 			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
@@ -89,10 +132,76 @@ func _setup_enemy_tracking() -> void:
 		if child.has_signal("died"):
 			enemies.append(child)
 			child.died.connect(_on_enemy_died)
+		# Track when enemy is hit for accuracy
+		if child.has_signal("hit"):
+			child.hit.connect(_on_enemy_hit)
 
 	_initial_enemy_count = enemies.size()
 	_current_enemy_count = _initial_enemy_count
 	print("Tracking %d enemies" % _initial_enemy_count)
+
+
+## Setup debug UI elements for kills and accuracy.
+func _setup_debug_ui() -> void:
+	var ui := get_node_or_null("CanvasLayer/UI")
+	if ui == null:
+		return
+
+	# Create kills label
+	_kills_label = Label.new()
+	_kills_label.name = "KillsLabel"
+	_kills_label.text = "Kills: 0"
+	_kills_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	_kills_label.offset_left = 10
+	_kills_label.offset_top = 45
+	_kills_label.offset_right = 200
+	_kills_label.offset_bottom = 75
+	ui.add_child(_kills_label)
+
+	# Create accuracy label
+	_accuracy_label = Label.new()
+	_accuracy_label.name = "AccuracyLabel"
+	_accuracy_label.text = "Accuracy: 0%"
+	_accuracy_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	_accuracy_label.offset_left = 10
+	_accuracy_label.offset_top = 75
+	_accuracy_label.offset_right = 200
+	_accuracy_label.offset_bottom = 105
+	ui.add_child(_accuracy_label)
+
+	# Update instructions label with Q restart info
+	var instructions_label := get_node_or_null("CanvasLayer/UI/InstructionsLabel")
+	if instructions_label:
+		instructions_label.text = "WASD - Move | LMB - Shoot (hold) | R - Reload | B - Toggle Fire Mode | Q - Quick Restart | ESC - Pause\nEnemies use cover and flanking! Laser sight shows bullet trajectory. Clear all zones to win."
+
+
+## Setup saturation overlay for kill effect.
+func _setup_saturation_overlay() -> void:
+	var canvas_layer := get_node_or_null("CanvasLayer")
+	if canvas_layer == null:
+		return
+
+	_saturation_overlay = ColorRect.new()
+	_saturation_overlay.name = "SaturationOverlay"
+	# Yellow/gold tint for saturation increase effect
+	_saturation_overlay.color = Color(1.0, 0.9, 0.3, 0.0)
+	_saturation_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_saturation_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# Add to the front
+	canvas_layer.add_child(_saturation_overlay)
+	canvas_layer.move_child(_saturation_overlay, canvas_layer.get_child_count() - 1)
+
+
+## Update debug UI with current stats.
+func _update_debug_ui() -> void:
+	if GameManager == null:
+		return
+
+	if _kills_label:
+		_kills_label.text = "Kills: %d" % GameManager.kills
+
+	if _accuracy_label:
+		_accuracy_label.text = "Accuracy: %.1f%%" % GameManager.get_accuracy()
 
 
 ## Called when an enemy dies.
@@ -100,14 +209,33 @@ func _on_enemy_died() -> void:
 	_current_enemy_count -= 1
 	_update_enemy_count_label()
 
+	# Register kill with GameManager
+	if GameManager:
+		GameManager.register_kill()
+
 	if _current_enemy_count <= 0:
 		print("All enemies eliminated! Arena cleared!")
 		_show_victory_message()
 
 
+## Called when an enemy is hit (for accuracy tracking).
+func _on_enemy_hit() -> void:
+	if GameManager:
+		GameManager.register_hit()
+
+
+## Called when a shot is fired (from C# weapon).
+func _on_shot_fired() -> void:
+	if GameManager:
+		GameManager.register_shot()
+
+
 ## Called when player ammo changes (GDScript Player).
 func _on_player_ammo_changed(current: int, maximum: int) -> void:
 	_update_ammo_label(current, maximum)
+	# Register shot for accuracy tracking
+	if GameManager:
+		GameManager.register_shot()
 
 
 ## Called when weapon ammo changes (C# Player).
@@ -123,6 +251,34 @@ func _on_weapon_ammo_changed(current_ammo: int, reserve_ammo: int) -> void:
 func _on_player_ammo_depleted() -> void:
 	if _current_enemy_count > 0 and not _game_over_shown:
 		_show_game_over_message()
+
+
+## Called when player dies.
+func _on_player_died() -> void:
+	_show_death_message()
+	# Auto-restart via GameManager
+	if GameManager:
+		# Small delay to show death message
+		await get_tree().create_timer(0.5).timeout
+		GameManager.on_player_death()
+
+
+## Called when GameManager signals enemy killed (for screen effect).
+func _on_game_manager_enemy_killed() -> void:
+	_show_saturation_effect()
+
+
+## Shows the saturation effect when killing an enemy.
+func _show_saturation_effect() -> void:
+	if _saturation_overlay == null:
+		return
+
+	# Create a tween for the saturation effect
+	var tween := create_tween()
+	# Flash in
+	tween.tween_property(_saturation_overlay, "color:a", SATURATION_INTENSITY, SATURATION_DURATION * 0.3)
+	# Flash out
+	tween.tween_property(_saturation_overlay, "color:a", 0.0, SATURATION_DURATION * 0.7)
 
 
 ## Update the ammo label with color coding (simple format for GDScript Player).
@@ -164,6 +320,35 @@ func _update_enemy_count_label() -> void:
 		_enemy_count_label.text = "Enemies: %d" % _current_enemy_count
 
 
+## Show death message when player dies.
+func _show_death_message() -> void:
+	if _game_over_shown:
+		return
+
+	_game_over_shown = true
+
+	var ui := get_node_or_null("CanvasLayer/UI")
+	if ui == null:
+		return
+
+	var death_label := Label.new()
+	death_label.name = "DeathLabel"
+	death_label.text = "YOU DIED"
+	death_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	death_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	death_label.add_theme_font_size_override("font_size", 64)
+	death_label.add_theme_color_override("font_color", Color(1.0, 0.15, 0.15, 1.0))
+
+	# Center the label
+	death_label.set_anchors_preset(Control.PRESET_CENTER)
+	death_label.offset_left = -200
+	death_label.offset_right = 200
+	death_label.offset_top = -50
+	death_label.offset_bottom = 50
+
+	ui.add_child(death_label)
+
+
 ## Show victory message when all enemies are eliminated.
 func _show_victory_message() -> void:
 	var ui := get_node_or_null("CanvasLayer/UI")
@@ -186,6 +371,27 @@ func _show_victory_message() -> void:
 	victory_label.offset_bottom = 50
 
 	ui.add_child(victory_label)
+
+	# Show final stats
+	var stats_label := Label.new()
+	stats_label.name = "StatsLabel"
+	if GameManager:
+		stats_label.text = "Kills: %d | Accuracy: %.1f%%" % [GameManager.kills, GameManager.get_accuracy()]
+	else:
+		stats_label.text = ""
+	stats_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	stats_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	stats_label.add_theme_font_size_override("font_size", 24)
+	stats_label.add_theme_color_override("font_color", Color(0.8, 0.9, 0.8, 1.0))
+
+	# Position below victory message
+	stats_label.set_anchors_preset(Control.PRESET_CENTER)
+	stats_label.offset_left = -200
+	stats_label.offset_right = 200
+	stats_label.offset_top = 50
+	stats_label.offset_bottom = 100
+
+	ui.add_child(stats_label)
 
 
 ## Show game over message when player runs out of ammo with enemies remaining.

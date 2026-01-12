@@ -1,0 +1,95 @@
+extends Node
+## Autoload singleton for managing game state and statistics.
+##
+## Tracks player statistics like kills, shots fired, accuracy, and game state.
+## Provides functionality for scene restart and game-wide events.
+
+## Total enemies killed in current session.
+var kills: int = 0
+
+## Total shots fired in current session.
+var shots_fired: int = 0
+
+## Total hits landed in current session.
+var hits_landed: int = 0
+
+## Whether the player is currently alive.
+var player_alive: bool = true
+
+## Reference to the current player node.
+var player: Node2D = null
+
+## Signal emitted when an enemy is killed (for screen effects).
+signal enemy_killed
+
+## Signal emitted when player dies.
+signal player_died
+
+## Signal emitted when game stats change.
+signal stats_updated
+
+
+func _ready() -> void:
+	# Reset stats when starting
+	_reset_stats()
+
+
+func _input(event: InputEvent) -> void:
+	# Handle quick restart with Q key
+	if event is InputEventKey:
+		if event.pressed and event.physical_keycode == KEY_Q:
+			restart_scene()
+
+
+## Resets all statistics to initial values.
+func _reset_stats() -> void:
+	kills = 0
+	shots_fired = 0
+	hits_landed = 0
+	player_alive = true
+	player = null
+
+
+## Registers a shot fired by the player.
+func register_shot() -> void:
+	shots_fired += 1
+	stats_updated.emit()
+
+
+## Registers a hit landed by the player.
+func register_hit() -> void:
+	hits_landed += 1
+	stats_updated.emit()
+
+
+## Registers an enemy kill.
+func register_kill() -> void:
+	kills += 1
+	enemy_killed.emit()
+	stats_updated.emit()
+
+
+## Returns the current accuracy as a percentage (0-100).
+func get_accuracy() -> float:
+	if shots_fired == 0:
+		return 0.0
+	return (float(hits_landed) / float(shots_fired)) * 100.0
+
+
+## Called when the player dies.
+func on_player_death() -> void:
+	player_alive = false
+	player_died.emit()
+	# Auto-restart the scene immediately
+	restart_scene()
+
+
+## Restarts the current scene.
+func restart_scene() -> void:
+	_reset_stats()
+	get_tree().reload_current_scene()
+
+
+## Sets the player reference.
+func set_player(p: Node2D) -> void:
+	player = p
