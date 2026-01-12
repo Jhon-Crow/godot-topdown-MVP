@@ -58,15 +58,24 @@ func _setup_player_tracking() -> void:
 	# Find the ammo label
 	_ammo_label = get_node_or_null("CanvasLayer/UI/AmmoLabel")
 
-	# Connect to player signals
-	if _player.has_signal("ammo_changed"):
-		_player.ammo_changed.connect(_on_player_ammo_changed)
-	if _player.has_signal("ammo_depleted"):
-		_player.ammo_depleted.connect(_on_player_ammo_depleted)
-
-	# Initial ammo display
-	if _player.has_method("get_current_ammo") and _player.has_method("get_max_ammo"):
-		_update_ammo_label(_player.get_current_ammo(), _player.get_max_ammo())
+	# Try to get the player's weapon for C# Player
+	var weapon = _player.get_node_or_null("AssaultRifle")
+	if weapon != null:
+		# C# Player with weapon - connect to weapon signals
+		if weapon.has_signal("AmmoChanged"):
+			weapon.AmmoChanged.connect(_on_weapon_ammo_changed)
+		# Initial ammo display from weapon
+		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
+			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
+	else:
+		# GDScript Player - connect to player signals
+		if _player.has_signal("ammo_changed"):
+			_player.ammo_changed.connect(_on_player_ammo_changed)
+		if _player.has_signal("ammo_depleted"):
+			_player.ammo_depleted.connect(_on_player_ammo_depleted)
+		# Initial ammo display
+		if _player.has_method("get_current_ammo") and _player.has_method("get_max_ammo"):
+			_update_ammo_label(_player.get_current_ammo(), _player.get_max_ammo())
 
 
 ## Setup tracking for all enemies in the scene.
@@ -96,18 +105,27 @@ func _on_enemy_died() -> void:
 		_show_victory_message()
 
 
-## Called when player ammo changes.
+## Called when player ammo changes (GDScript Player).
 func _on_player_ammo_changed(current: int, maximum: int) -> void:
 	_update_ammo_label(current, maximum)
 
 
-## Called when player runs out of ammo.
+## Called when weapon ammo changes (C# Player).
+func _on_weapon_ammo_changed(current_ammo: int, reserve_ammo: int) -> void:
+	_update_ammo_label_magazine(current_ammo, reserve_ammo)
+	# Check if completely out of ammo
+	if current_ammo <= 0 and reserve_ammo <= 0:
+		if _current_enemy_count > 0 and not _game_over_shown:
+			_show_game_over_message()
+
+
+## Called when player runs out of ammo (GDScript Player).
 func _on_player_ammo_depleted() -> void:
 	if _current_enemy_count > 0 and not _game_over_shown:
 		_show_game_over_message()
 
 
-## Update the ammo label with color coding.
+## Update the ammo label with color coding (simple format for GDScript Player).
 func _update_ammo_label(current: int, maximum: int) -> void:
 	if _ammo_label == null:
 		return
@@ -118,6 +136,23 @@ func _update_ammo_label(current: int, maximum: int) -> void:
 	if current <= 5:
 		_ammo_label.add_theme_color_override("font_color", Color(1.0, 0.2, 0.2, 1.0))
 	elif current <= 10:
+		_ammo_label.add_theme_color_override("font_color", Color(1.0, 1.0, 0.2, 1.0))
+	else:
+		_ammo_label.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 1.0))
+
+
+## Update the ammo label with magazine format (for C# Player with weapon).
+## Shows format: AMMO: magazine/reserve (e.g., "AMMO: 30/60")
+func _update_ammo_label_magazine(current_mag: int, reserve: int) -> void:
+	if _ammo_label == null:
+		return
+
+	_ammo_label.text = "AMMO: %d/%d" % [current_mag, reserve]
+
+	# Color coding: red when mag <=5, yellow when mag <=10
+	if current_mag <= 5:
+		_ammo_label.add_theme_color_override("font_color", Color(1.0, 0.2, 0.2, 1.0))
+	elif current_mag <= 10:
 		_ammo_label.add_theme_color_override("font_color", Color(1.0, 1.0, 0.2, 1.0))
 	else:
 		_ammo_label.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 1.0))

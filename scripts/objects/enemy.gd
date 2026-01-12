@@ -37,8 +37,8 @@ enum BehaviorMode {
 @export var combat_move_speed: float = 220.0
 
 ## Rotation speed in radians per second for gradual turning.
-## Default is 8 rad/sec which allows player to dodge without cover.
-@export var rotation_speed: float = 8.0
+## Default is 15 rad/sec for challenging but fair combat.
+@export var rotation_speed: float = 15.0
 
 ## Detection range for spotting the player.
 ## Set to 0 or negative to allow unlimited detection range (line-of-sight only).

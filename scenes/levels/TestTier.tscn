@@ -1,7 +1,7 @@
 [gd_scene load_steps=16 format=3 uid="uid://d3kv7pm5r2aub"]
 
 [ext_resource type="Script" path="res://scripts/levels/test_tier.gd" id="1_test_tier"]
-[ext_resource type="PackedScene" uid="uid://bk8nq2vj5r7p1" path="res://scenes/characters/Player.tscn" id="2_player"]
+[ext_resource type="PackedScene" uid="uid://dv8nq2vj5r7p2" path="res://scenes/characters/csharp/Player.tscn" id="2_player"]
 [ext_resource type="PackedScene" uid="uid://dxqmk8f3nw5pe" path="res://scenes/ui/PauseMenu.tscn" id="4_pause_menu"]
 [ext_resource type="PackedScene" uid="uid://cx5m8np6u3bwd" path="res://scenes/objects/Enemy.tscn" id="5_enemy"]
 
@@ -1346,6 +1346,6 @@ offset_left = 10.0
 offset_top = 10.0
 offset_right = 200.0
 offset_bottom = 45.0
-text = "AMMO: 90/90"
+text = "AMMO: 30/60"
 
 [node name="PauseMenu" parent="." instance=ExtResource("4_pause_menu")]
