@@ -23,8 +23,8 @@ texture = SubResource("PlaceholderTexture2D_player")
 [node name="Camera2D" type="Camera2D" parent="."]
 limit_left = 0
 limit_top = 0
-limit_right = 1280
-limit_bottom = 720
+limit_right = 4128
+limit_bottom = 3088
 limit_smoothed = true
 position_smoothing_enabled = true
 position_smoothing_speed = 5.0
