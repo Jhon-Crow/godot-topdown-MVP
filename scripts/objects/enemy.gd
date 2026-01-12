@@ -26,7 +26,7 @@ enum AIState {
 enum RetreatMode {
 	FULL_HP,        ## No damage - retreat backwards while shooting, periodically turn to cover
 	ONE_HIT,        ## One hit taken - quick burst then retreat without shooting
-	MULTIPLE_HITS   ## Multiple hits - retreat without shooting, face cover
+	MULTIPLE_HITS   ## Multiple hits - quick burst then retreat without shooting (same as ONE_HIT)
 }
 
 ## Behavior modes for the enemy.
@@ -314,6 +314,13 @@ const RETREAT_BURST_ARC: float = 0.4
 
 ## Current angle offset within burst arc.
 var _retreat_burst_angle_offset: float = 0.0
+
+## Whether enemy is in "alarm" mode (was suppressed/retreating and hasn't calmed down).
+## This persists until the enemy reaches safety in cover or returns to idle.
+var _in_alarm_mode: bool = false
+
+## Whether the enemy needs to fire a cover burst (when leaving cover while in alarm).
+var _cover_burst_pending: bool = false
 
 ## GOAP world state for goal-oriented planning.
 var _goap_world_state: Dictionary = {}
@@ -710,7 +717,7 @@ func _process_seeking_cover_state(_delta: float) -> void:
 
 
 ## Process IN_COVER state - taking cover from enemy fire.
-func _process_in_cover_state(_delta: float) -> void:
+func _process_in_cover_state(delta: float) -> void:
 	velocity = Vector2.ZERO
 
 	# If still under fire, stay suppressed
@@ -721,8 +728,32 @@ func _process_in_cover_state(_delta: float) -> void:
 	# Check if player has flanked us - if we're now visible from player's position,
 	# we need to find new cover
 	if _is_visible_from_player():
+		# If in alarm mode and can see player, fire a burst before escaping
+		if _in_alarm_mode and _can_see_player and _player:
+			if not _cover_burst_pending:
+				# Start the cover burst
+				_cover_burst_pending = true
+				_retreat_burst_remaining = randi_range(2, 4)
+				_retreat_burst_timer = 0.0
+				_retreat_burst_angle_offset = -RETREAT_BURST_ARC / 2.0
+				_log_debug("IN_COVER alarm: starting burst before escaping (%d shots)" % _retreat_burst_remaining)
+
+			# Fire the burst
+			if _retreat_burst_remaining > 0:
+				_retreat_burst_timer += delta
+				if _retreat_burst_timer >= RETREAT_BURST_COOLDOWN:
+					_aim_at_player()
+					_shoot_burst_shot()
+					_retreat_burst_remaining -= 1
+					_retreat_burst_timer = 0.0
+					if _retreat_burst_remaining > 0:
+						_retreat_burst_angle_offset += RETREAT_BURST_ARC / 3.0
+				return  # Stay in cover while firing burst
+
+		# Burst complete or not in alarm mode, seek new cover
 		_log_debug("Player flanked our cover position, seeking new cover")
 		_has_valid_cover = false  # Invalidate current cover
+		_cover_burst_pending = false
 		_transition_to_seeking_cover()
 		return
 
@@ -778,14 +809,38 @@ func _process_flanking_state(_delta: float) -> void:
 
 
 ## Process SUPPRESSED state - staying in cover under fire.
-func _process_suppressed_state(_delta: float) -> void:
+func _process_suppressed_state(delta: float) -> void:
 	velocity = Vector2.ZERO
 
 	# Check if player has flanked us - if we're now visible from player's position,
 	# we need to find new cover even while suppressed
 	if _is_visible_from_player():
+		# In suppressed state we're always in alarm mode - fire a burst before escaping if we can see player
+		if _can_see_player and _player:
+			if not _cover_burst_pending:
+				# Start the cover burst
+				_cover_burst_pending = true
+				_retreat_burst_remaining = randi_range(2, 4)
+				_retreat_burst_timer = 0.0
+				_retreat_burst_angle_offset = -RETREAT_BURST_ARC / 2.0
+				_log_debug("SUPPRESSED alarm: starting burst before escaping (%d shots)" % _retreat_burst_remaining)
+
+			# Fire the burst
+			if _retreat_burst_remaining > 0:
+				_retreat_burst_timer += delta
+				if _retreat_burst_timer >= RETREAT_BURST_COOLDOWN:
+					_aim_at_player()
+					_shoot_burst_shot()
+					_retreat_burst_remaining -= 1
+					_retreat_burst_timer = 0.0
+					if _retreat_burst_remaining > 0:
+						_retreat_burst_angle_offset += RETREAT_BURST_ARC / 3.0
+				return  # Stay suppressed while firing burst
+
+		# Burst complete or can't see player, seek new cover
 		_log_debug("Player flanked our cover position while suppressed, seeking new cover")
 		_has_valid_cover = false  # Invalidate current cover
+		_cover_burst_pending = false
 		_transition_to_seeking_cover()
 		return
 
@@ -942,16 +997,10 @@ func _process_retreat_one_hit(delta: float, direction_to_cover: Vector2) -> void
 		velocity = direction_to_cover * combat_move_speed
 
 
-## Process MULTIPLE_HITS retreat: run to cover without shooting.
-func _process_retreat_multiple_hits(_delta: float, direction_to_cover: Vector2) -> void:
-	# Simply run to cover, facing the cover direction
-	rotation = direction_to_cover.angle()
-
-	var avoidance := _check_wall_ahead(direction_to_cover)
-	if avoidance != Vector2.ZERO:
-		direction_to_cover = (direction_to_cover * 0.5 + avoidance * 0.5).normalized()
-
-	velocity = direction_to_cover * combat_move_speed
+## Process MULTIPLE_HITS retreat: quick burst of 2-4 shots then run to cover (same as ONE_HIT).
+func _process_retreat_multiple_hits(delta: float, direction_to_cover: Vector2) -> void:
+	# Same behavior as ONE_HIT - quick burst then escape
+	_process_retreat_one_hit(delta, direction_to_cover)
 
 
 ## Shoot with reduced accuracy for retreat mode.
@@ -1039,6 +1088,9 @@ func _transition_to_idle() -> void:
 	_current_state = AIState.IDLE
 	# Reset encounter hit tracking when returning to idle
 	_hits_taken_in_encounter = 0
+	# Reset alarm mode when returning to idle
+	_in_alarm_mode = false
+	_cover_burst_pending = false
 
 
 ## Transition to COMBAT state.
@@ -1069,11 +1121,15 @@ func _transition_to_flanking() -> void:
 ## Transition to SUPPRESSED state.
 func _transition_to_suppressed() -> void:
 	_current_state = AIState.SUPPRESSED
+	# Enter alarm mode when suppressed
+	_in_alarm_mode = true
 
 
 ## Transition to RETREATING state with appropriate retreat mode.
 func _transition_to_retreating() -> void:
 	_current_state = AIState.RETREATING
+	# Enter alarm mode when retreating
+	_in_alarm_mode = true
 
 	# Determine retreat mode based on hits taken
 	if _hits_taken_in_encounter == 0:
@@ -1091,7 +1147,12 @@ func _transition_to_retreating() -> void:
 		_log_debug("Entering RETREATING state: ONE_HIT mode (burst of %d shots)" % _retreat_burst_remaining)
 	else:
 		_retreat_mode = RetreatMode.MULTIPLE_HITS
-		_log_debug("Entering RETREATING state: MULTIPLE_HITS mode (no shooting)")
+		# Multiple hits also gets burst fire (same as ONE_HIT)
+		_retreat_burst_remaining = randi_range(2, 4)  # Random 2-4 bullets
+		_retreat_burst_timer = 0.0
+		_retreat_burst_complete = false
+		_retreat_burst_angle_offset = -RETREAT_BURST_ARC / 2.0
+		_log_debug("Entering RETREATING state: MULTIPLE_HITS mode (burst of %d shots)" % _retreat_burst_remaining)
 
 	# Find cover position for retreating
 	_find_cover_position()
@@ -1847,6 +1908,8 @@ func _reset() -> void:
 	_retreat_burst_timer = 0.0
 	_retreat_burst_complete = false
 	_retreat_burst_angle_offset = 0.0
+	_in_alarm_mode = false
+	_cover_burst_pending = false
 	_initialize_health()
 	_initialize_ammo()
 	_update_health_visual()
