@@ -1,7 +1,7 @@
 [gd_scene load_steps=16 format=3 uid="uid://d3kv7pm5r2aub"]
 
 [ext_resource type="Script" path="res://scripts/levels/test_tier.gd" id="1_test_tier"]
-[ext_resource type="PackedScene" uid="uid://bk8nq2vj5r7p1" path="res://scenes/characters/Player.tscn" id="2_player"]
+[ext_resource type="PackedScene" uid="uid://dv8nq2vj5r7p2" path="res://scenes/characters/csharp/Player.tscn" id="2_player"]
 [ext_resource type="PackedScene" uid="uid://dxqmk8f3nw5pe" path="res://scenes/ui/PauseMenu.tscn" id="4_pause_menu"]
 [ext_resource type="PackedScene" uid="uid://cx5m8np6u3bwd" path="res://scenes/objects/Enemy.tscn" id="5_enemy"]
 
@@ -1353,8 +1353,8 @@ offset_left = 10.0
 offset_top = 650.0
 offset_right = 600.0
 offset_bottom = 710.0
-text = "WASD - Move | LMB - Shoot | ESC - Pause
-Enemies use cover and flanking! Clear all zones to win."
+text = "WASD - Move | LMB - Shoot (hold) | R - Reload | B - Toggle Fire Mode | ESC - Pause
+Enemies use cover and flanking! Laser sight shows bullet trajectory. Clear all zones to win."
 
 [node name="EnemyCountLabel" type="Label" parent="CanvasLayer/UI"]
 layout_mode = 1
