@@ -2,17 +2,17 @@ extends Node
 ## Autoload singleton for managing hit feedback effects.
 ##
 ## When the player hits an enemy:
-## - Game speed slows to 0.9 (subtle slowdown) for 3 seconds
-## - Screen saturation increases for 400ms
+## - Game speed slows to 0.8 (subtle slowdown) for 3 seconds
+## - Screen saturation increases for 3 seconds
 
 ## The slowed down time scale when hit effect is active.
-const SLOW_TIME_SCALE: float = 0.9
+const SLOW_TIME_SCALE: float = 0.8
 
 ## Duration of the time slowdown effect in seconds.
 const SLOW_DURATION: float = 3.0
 
 ## Duration of the saturation boost effect in seconds.
-const SATURATION_DURATION: float = 0.4
+const SATURATION_DURATION: float = 3.0
 
 ## How much extra saturation to add (0.0 = normal, 1.0 = double saturation).
 const SATURATION_BOOST: float = 0.4
