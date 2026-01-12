@@ -8,8 +8,8 @@ extends Node2D
 ## - 10 enemies in strategic positions (6 guards, 4 patrols)
 ## - Enemies do not respawn after death
 ## - Visual indicators for cover positions
-## - Limited ammunition (30 bullets) - no reload
-## Balance: 10 enemies × (2-4 HP) = 20-40 HP total, 30 bullets available
+## - Limited ammunition (90 bullets = 3 magazines of 30) - no reload
+## Balance: 10 enemies × (2-4 HP) = 20-40 HP total, 90 bullets available
 
 ## Reference to the enemy count label.
 var _enemy_count_label: Label = null
@@ -30,7 +30,7 @@ var _current_enemy_count: int = 0
 func _ready() -> void:
 	print("TestTier loaded - Tactical Combat Arena")
 	print("Map size: 4000x2960 pixels")
-	print("Balance: 10 enemies (2-4 HP each), 30 bullets")
+	print("Balance: 10 enemies (2-4 HP each), 90 bullets (3 magazines)")
 	print("Clear all zones to win!")
 
 	# Find and connect to all enemies

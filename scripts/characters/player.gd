@@ -4,7 +4,7 @@ extends CharacterBody2D
 ## Uses physics-based movement with acceleration and friction for smooth control.
 ## Supports WASD and arrow key input via configured input actions.
 ## Shoots bullets towards the mouse cursor on left mouse button click.
-## Features limited ammunition (30 bullets) with no reload for balanced gameplay.
+## Features limited ammunition (3 magazines of 30 bullets = 90 total) with no reload for balanced gameplay.
 
 ## Maximum movement speed in pixels per second.
 ## Higher speeds (350+) give a running feel, lower speeds (200) feel like walking.
@@ -22,8 +22,8 @@ extends CharacterBody2D
 ## Offset from player center for bullet spawn position.
 @export var bullet_spawn_offset: float = 20.0
 
-## Maximum ammo capacity (single magazine, no reload).
-@export var max_ammo: int = 30
+## Maximum ammo capacity (3 magazines of 30 bullets).
+@export var max_ammo: int = 90
 
 ## Minimum spread angle in degrees (always applied, even on first shot).
 @export var min_spread_degrees: float = 0.5
@@ -42,7 +42,7 @@ extends CharacterBody2D
 @export var spread_reset_time: float = 0.25
 
 ## Current ammo count.
-var current_ammo: int = 30
+var current_ammo: int = 90
 
 ## Current spread angle in degrees (starts at minimum).
 var _current_spread: float = 0.5

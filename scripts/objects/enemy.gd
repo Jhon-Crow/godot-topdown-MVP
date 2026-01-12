@@ -38,6 +38,10 @@ enum BehaviorMode {
 ## Enemies move faster in combat situations.
 @export var combat_move_speed: float = 220.0
 
+## Rotation speed in radians per second.
+## Higher values make enemies aim faster. 8.0 = fast reaction, 4.0 = slower/more avoidable.
+@export var rotation_speed: float = 8.0
+
 ## Detection range for spotting the player.
 @export var detection_range: float = 400.0
 
@@ -388,7 +392,7 @@ func _process_idle_state(delta: float) -> void:
 
 
 ## Process COMBAT state - actively engaging player.
-func _process_combat_state(_delta: float) -> void:
+func _process_combat_state(delta: float) -> void:
 	# In combat, enemy stands still and shoots (no velocity)
 	velocity = Vector2.ZERO
 
@@ -407,14 +411,14 @@ func _process_combat_state(_delta: float) -> void:
 
 	# Aim and shoot at player
 	if _player:
-		_aim_at_player()
+		_aim_at_player(delta)
 		if _shoot_timer >= shoot_cooldown:
 			_shoot()
 			_shoot_timer = 0.0
 
 
 ## Process SEEKING_COVER state - moving to cover position.
-func _process_seeking_cover_state(_delta: float) -> void:
+func _process_seeking_cover_state(delta: float) -> void:
 	if not _has_valid_cover:
 		# Try to find cover
 		_find_cover_position()
@@ -453,13 +457,13 @@ func _process_seeking_cover_state(_delta: float) -> void:
 
 	# Can still shoot while moving to cover
 	if _can_see_player and _player and _shoot_timer >= shoot_cooldown:
-		_aim_at_player()
+		_aim_at_player(delta)
 		_shoot()
 		_shoot_timer = 0.0
 
 
 ## Process IN_COVER state - taking cover from enemy fire.
-func _process_in_cover_state(_delta: float) -> void:
+func _process_in_cover_state(delta: float) -> void:
 	velocity = Vector2.ZERO
 
 	# If still under fire, stay suppressed
@@ -477,7 +481,7 @@ func _process_in_cover_state(_delta: float) -> void:
 
 	# If not under fire and can see player, engage
 	if _can_see_player and _player:
-		_aim_at_player()
+		_aim_at_player(delta)
 		if _shoot_timer >= shoot_cooldown:
 			_shoot()
 			_shoot_timer = 0.0
@@ -527,7 +531,7 @@ func _process_flanking_state(_delta: float) -> void:
 
 
 ## Process SUPPRESSED state - staying in cover under fire.
-func _process_suppressed_state(_delta: float) -> void:
+func _process_suppressed_state(delta: float) -> void:
 	velocity = Vector2.ZERO
 
 	# Check if player has flanked us - if we're now visible from player's position,
@@ -540,7 +544,7 @@ func _process_suppressed_state(_delta: float) -> void:
 
 	# Can still shoot while suppressed
 	if _can_see_player and _player:
-		_aim_at_player()
+		_aim_at_player(delta)
 		if _shoot_timer >= shoot_cooldown:
 			_shoot()
 			_shoot_timer = 0.0
@@ -818,13 +822,25 @@ func _check_player_visibility() -> void:
 		_can_see_player = distance_to_player <= detection_range
 
 
-## Aim the enemy sprite/direction at the player.
-func _aim_at_player() -> void:
+## Aim the enemy sprite/direction at the player with gradual rotation.
+## Uses rotation_speed for smooth, realistic aiming.
+func _aim_at_player(delta: float) -> void:
 	if _player == null:
 		return
 	var direction := (_player.global_position - global_position).normalized()
-	# Rotate the enemy to face the player
-	rotation = direction.angle()
+	var target_rotation := direction.angle()
+
+	# Calculate the shortest rotation direction
+	var rotation_diff := angle_difference(rotation, target_rotation)
+
+	# Apply rotation with speed limit
+	var max_rotation := rotation_speed * delta
+	if absf(rotation_diff) <= max_rotation:
+		# Can reach target rotation this frame
+		rotation = target_rotation
+	else:
+		# Rotate towards target at max speed
+		rotation += signf(rotation_diff) * max_rotation
 
 
 ## Shoot a bullet towards the player.
