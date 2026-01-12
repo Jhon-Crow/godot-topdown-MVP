@@ -148,6 +148,12 @@ public abstract partial class BaseWeapon : Node2D
             bullet.Set("Direction", direction);
         }
 
+        // Set bullet speed from weapon data
+        if (WeaponData != null)
+        {
+            bullet.Set("Speed", WeaponData.BulletSpeed);
+        }
+
         GetTree().CurrentScene.AddChild(bullet);
     }
 

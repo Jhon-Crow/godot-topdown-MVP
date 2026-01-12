@@ -31,10 +31,14 @@ enum BehaviorMode {
 @export var behavior_mode: BehaviorMode = BehaviorMode.GUARD
 
 ## Maximum movement speed in pixels per second.
-@export var move_speed: float = 80.0
+@export var move_speed: float = 220.0
 
 ## Combat movement speed (faster when flanking/seeking cover).
-@export var combat_move_speed: float = 120.0
+@export var combat_move_speed: float = 320.0
+
+## Rotation speed in radians per second for gradual turning.
+## Default is 15 rad/sec for challenging but fair combat.
+@export var rotation_speed: float = 15.0
 
 ## Detection range for spotting the player.
 ## Set to 0 or negative to allow unlimited detection range (line-of-sight only).
@@ -103,6 +107,13 @@ enum BehaviorMode {
 ## Enable/disable debug logging.
 @export var debug_logging: bool = false
 
+## Enable/disable lead prediction (shooting ahead of moving targets).
+@export var enable_lead_prediction: bool = true
+
+## Bullet speed for lead prediction calculation.
+## Should match the actual bullet speed (default is 2500 for assault rifle).
+@export var bullet_speed: float = 2500.0
+
 ## Ammunition system - magazine size (bullets per magazine).
 @export var magazine_size: int = 30
 
@@ -111,6 +122,10 @@ enum BehaviorMode {
 
 ## Ammunition system - time to reload in seconds.
 @export var reload_time: float = 2.0
+
+## Delay (in seconds) between spotting player and starting to shoot.
+## Gives player a brief reaction time when entering enemy line of sight.
+@export var detection_delay: float = 0.05
 
 ## Signal emitted when the enemy is hit.
 signal hit
@@ -220,6 +235,12 @@ var _bullets_in_threat_sphere: Array = []
 
 ## GOAP world state for goal-oriented planning.
 var _goap_world_state: Dictionary = {}
+
+## Detection delay timer - tracks time since entering combat.
+var _detection_timer: float = 0.0
+
+## Whether the detection delay has elapsed.
+var _detection_delay_elapsed: bool = false
 
 
 
@@ -496,7 +517,7 @@ func _process_idle_state(delta: float) -> void:
 
 
 ## Process COMBAT state - actively engaging player.
-func _process_combat_state(_delta: float) -> void:
+func _process_combat_state(delta: float) -> void:
 	# In combat, enemy stands still and shoots (no velocity)
 	velocity = Vector2.ZERO
 
@@ -513,10 +534,16 @@ func _process_combat_state(_delta: float) -> void:
 			_transition_to_idle()
 		return
 
-	# Aim and shoot at player
+	# Update detection delay timer
+	if not _detection_delay_elapsed:
+		_detection_timer += delta
+		if _detection_timer >= detection_delay:
+			_detection_delay_elapsed = true
+
+	# Aim and shoot at player (only shoot after detection delay)
 	if _player:
 		_aim_at_player()
-		if _shoot_timer >= shoot_cooldown:
+		if _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
 			_shoot()
 			_shoot_timer = 0.0
 
@@ -666,6 +693,9 @@ func _transition_to_idle() -> void:
 ## Transition to COMBAT state.
 func _transition_to_combat() -> void:
 	_current_state = AIState.COMBAT
+	# Reset detection delay timer when entering combat
+	_detection_timer = 0.0
+	_detection_delay_elapsed = false
 
 
 ## Transition to SEEKING_COVER state.
@@ -929,13 +959,27 @@ func _check_player_visibility() -> void:
 		_can_see_player = true
 
 
-## Aim the enemy sprite/direction at the player.
+## Aim the enemy sprite/direction at the player using gradual rotation.
 func _aim_at_player() -> void:
 	if _player == null:
 		return
 	var direction := (_player.global_position - global_position).normalized()
-	# Rotate the enemy to face the player
-	rotation = direction.angle()
+	var target_angle := direction.angle()
+
+	# Calculate the shortest rotation direction
+	var angle_diff := wrapf(target_angle - rotation, -PI, PI)
+
+	# Get the delta time from the current physics process
+	var delta := get_physics_process_delta_time()
+
+	# Apply gradual rotation based on rotation_speed
+	if abs(angle_diff) <= rotation_speed * delta:
+		# Close enough to snap to target
+		rotation = target_angle
+	elif angle_diff > 0:
+		rotation += rotation_speed * delta
+	else:
+		rotation -= rotation_speed * delta
 
 
 ## Shoot a bullet towards the player.
@@ -947,7 +991,13 @@ func _shoot() -> void:
 	if not _can_shoot():
 		return
 
-	var direction := (_player.global_position - global_position).normalized()
+	var target_position := _player.global_position
+
+	# Apply lead prediction if enabled
+	if enable_lead_prediction:
+		target_position = _calculate_lead_prediction()
+
+	var direction := (target_position - global_position).normalized()
 
 	# Create bullet instance
 	var bullet := bullet_scene.instantiate()
@@ -972,6 +1022,44 @@ func _shoot() -> void:
 	# Auto-reload when magazine is empty
 	if _current_ammo <= 0 and _reserve_ammo > 0:
 		_start_reload()
+
+
+## Calculate lead prediction - aims where the player will be, not where they are.
+## Uses iterative approach for better accuracy with moving targets.
+func _calculate_lead_prediction() -> Vector2:
+	if _player == null:
+		return global_position
+
+	var player_pos := _player.global_position
+	var player_velocity := Vector2.ZERO
+
+	# Get player velocity if they are a CharacterBody2D
+	if _player is CharacterBody2D:
+		player_velocity = _player.velocity
+
+	# If player is stationary, no need for prediction
+	if player_velocity.length_squared() < 1.0:
+		return player_pos
+
+	# Iterative lead prediction for better accuracy
+	# Start with player's current position
+	var predicted_pos := player_pos
+	var distance := global_position.distance_to(predicted_pos)
+
+	# Iterate 2-3 times for convergence
+	for i in range(3):
+		# Time for bullet to reach the predicted position
+		var time_to_target := distance / bullet_speed
+
+		# Predict where player will be at that time
+		predicted_pos = player_pos + player_velocity * time_to_target
+
+		# Update distance for next iteration
+		distance = global_position.distance_to(predicted_pos)
+
+	_log_debug("Lead prediction: player at %s moving %s, aiming at %s" % [player_pos, player_velocity, predicted_pos])
+
+	return predicted_pos
 
 
 ## Process patrol behavior - move between patrol points.
@@ -1108,6 +1196,8 @@ func _reset() -> void:
 	_has_valid_cover = false
 	_under_fire = false
 	_suppression_timer = 0.0
+	_detection_timer = 0.0
+	_detection_delay_elapsed = false
 	_bullets_in_threat_sphere.clear()
 	_initialize_health()
 	_initialize_ammo()

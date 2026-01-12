@@ -1,4 +1,4 @@
-[gd_scene load_steps=16 format=3 uid="uid://d3kv7pm5r2aub"]
+[gd_scene load_steps=17 format=3 uid="uid://d3kv7pm5r2aub"]
 
 [ext_resource type="Script" path="res://scripts/levels/test_tier.gd" id="1_test_tier"]
 [ext_resource type="PackedScene" uid="uid://dv8nq2vj5r7p2" path="res://scenes/characters/csharp/Player.tscn" id="2_player"]
@@ -37,6 +37,9 @@ size = Vector2(48, 48)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_wall_section"]
 size = Vector2(200, 32)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_spawn_cover"]
+size = Vector2(32, 400)
 
 [node name="TestTier" type="Node2D"]
 script = ExtResource("1_test_tier")
@@ -1212,66 +1215,74 @@ color = Color(0.55, 0.45, 0.3, 0.3)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/CrateSquare6"]
 shape = SubResource("RectangleShape2D_cover_square")
 
+[node name="SpawnCover" type="StaticBody2D" parent="Environment/Cover"]
+position = Vector2(500, 1544)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Cover/SpawnCover"]
+offset_left = -16.0
+offset_top = -200.0
+offset_right = 16.0
+offset_bottom = 200.0
+color = Color(0.4, 0.5, 0.35, 1)
+
+[node name="Indicator" type="ColorRect" parent="Environment/Cover/SpawnCover"]
+offset_left = -20.0
+offset_top = -204.0
+offset_right = 20.0
+offset_bottom = 204.0
+color = Color(0.5, 0.6, 0.45, 0.3)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/SpawnCover"]
+shape = SubResource("RectangleShape2D_spawn_cover")
+
 [node name="Enemies" type="Node2D" parent="Environment"]
 
 [node name="GuardEnemy1" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
-position = Vector2(1300, 600)
+position = Vector2(2800, 600)
 behavior_mode = 1
 destroy_on_death = true
 enable_flanking = true
 enable_cover = true
 
 [node name="GuardEnemy2" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
-position = Vector2(1300, 1000)
+position = Vector2(2800, 1000)
 behavior_mode = 1
 destroy_on_death = true
 enable_flanking = true
 enable_cover = true
 
 [node name="GuardEnemy3" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
-position = Vector2(2700, 600)
+position = Vector2(3400, 600)
 behavior_mode = 1
 destroy_on_death = true
 enable_flanking = true
 enable_cover = true
 
 [node name="GuardEnemy4" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
-position = Vector2(2700, 1000)
+position = Vector2(3400, 1000)
 behavior_mode = 1
 destroy_on_death = true
 enable_flanking = true
 enable_cover = true
 
 [node name="GuardEnemy5" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
-position = Vector2(2000, 2100)
+position = Vector2(3000, 2100)
 behavior_mode = 1
 destroy_on_death = true
 enable_flanking = true
 enable_cover = true
 
 [node name="GuardEnemy6" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
-position = Vector2(2000, 2400)
-behavior_mode = 1
-destroy_on_death = true
-enable_flanking = true
-enable_cover = true
-
-[node name="GuardEnemy7" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
-position = Vector2(3700, 1400)
-behavior_mode = 1
-destroy_on_death = true
-enable_flanking = true
-enable_cover = true
-
-[node name="GuardEnemy8" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
-position = Vector2(3700, 1700)
+position = Vector2(3000, 2400)
 behavior_mode = 1
 destroy_on_death = true
 enable_flanking = true
 enable_cover = true
 
 [node name="PatrolEnemy1" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
-position = Vector2(1000, 800)
+position = Vector2(2400, 800)
 behavior_mode = 0
 patrol_offsets = Array[Vector2]([Vector2(0, 200), Vector2(0, -200)])
 destroy_on_death = true
@@ -1279,7 +1290,7 @@ enable_flanking = true
 enable_cover = true
 
 [node name="PatrolEnemy2" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
-position = Vector2(1000, 2300)
+position = Vector2(2400, 2300)
 behavior_mode = 0
 patrol_offsets = Array[Vector2]([Vector2(0, -200), Vector2(0, 200)])
 destroy_on_death = true
@@ -1287,7 +1298,7 @@ enable_flanking = true
 enable_cover = true
 
 [node name="PatrolEnemy3" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
-position = Vector2(1800, 1544)
+position = Vector2(2800, 1544)
 behavior_mode = 0
 patrol_offsets = Array[Vector2]([Vector2(400, 0), Vector2(-400, 0)])
 destroy_on_death = true
@@ -1295,25 +1306,9 @@ enable_flanking = true
 enable_cover = true
 
 [node name="PatrolEnemy4" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
-position = Vector2(3000, 800)
+position = Vector2(3600, 1544)
 behavior_mode = 0
 patrol_offsets = Array[Vector2]([Vector2(0, 200), Vector2(0, -200)])
-destroy_on_death = true
-enable_flanking = true
-enable_cover = true
-
-[node name="PatrolEnemy5" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
-position = Vector2(3000, 2300)
-behavior_mode = 0
-patrol_offsets = Array[Vector2]([Vector2(0, -200), Vector2(0, 200)])
-destroy_on_death = true
-enable_flanking = true
-enable_cover = true
-
-[node name="PatrolEnemy6" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
-position = Vector2(3400, 1544)
-behavior_mode = 0
-patrol_offsets = Array[Vector2]([Vector2(300, 0), Vector2(-300, 0)])
 destroy_on_death = true
 enable_flanking = true
 enable_cover = true
@@ -1366,7 +1361,16 @@ offset_top = 45.0
 offset_right = -10.0
 offset_bottom = 75.0
 grow_horizontal = 0
-text = "Enemies: 14"
+text = "Enemies: 10"
 horizontal_alignment = 2
+
+[node name="AmmoLabel" type="Label" parent="CanvasLayer/UI"]
+layout_mode = 1
+anchors_preset = 0
+offset_left = 10.0
+offset_top = 10.0
+offset_right = 200.0
+offset_bottom = 45.0
+text = "AMMO: 30/30"
 
 [node name="PauseMenu" parent="." instance=ExtResource("4_pause_menu")]

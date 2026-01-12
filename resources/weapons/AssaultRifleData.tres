@@ -1,17 +1,17 @@
 [gd_resource type="Resource" script_class="WeaponData" load_steps=2 format=3 uid="uid://b8q2n5x7m3k1w"]
 
-[ext_resource type="Script" path="res://Scripts/Data/WeaponData.cs" id="1_weapon_data"]
+[ext_resource type="Script" path="res://Scripts/Data/WeaponData.cs" id="1_script"]
 
 [resource]
-script = ExtResource("1_weapon_data")
+script = ExtResource("1_script")
 Name = "Assault Rifle"
 Damage = 1.0
 FireRate = 10.0
 MagazineSize = 30
-MaxReserveAmmo = 120
+MaxReserveAmmo = 30
 ReloadTime = 2.0
-BulletSpeed = 800.0
-Range = 1000.0
+BulletSpeed = 2500.0
+Range = 1500.0
 SpreadAngle = 2.0
 BulletsPerShot = 1
 IsAutomatic = true
