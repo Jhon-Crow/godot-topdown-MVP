@@ -131,6 +131,34 @@ class RetreatAction extends GOAPAction:
 		return 4.0
 
 
+## Action to retreat with fire when under suppression (tactical retreat).
+## Cost varies based on number of hits taken during encounter.
+class RetreatWithFireAction extends GOAPAction:
+	func _init() -> void:
+		super._init("retreat_with_fire", 1.5)
+		preconditions = {
+			"under_fire": true
+		}
+		effects = {
+			"in_cover": true,
+			"is_retreating": true
+		}
+
+	func get_cost(_agent: Node, world_state: Dictionary) -> float:
+		# Cost is lower (higher priority) when under fire
+		# Priority also depends on hits taken
+		var hits := world_state.get("hits_taken", 0)
+		if hits == 0:
+			# Full HP - can afford to fight while retreating
+			return 1.0
+		elif hits == 1:
+			# One hit - quick burst then escape
+			return 0.8
+		else:
+			# Multiple hits - just run!
+			return 0.5
+
+
 ## Create and return all enemy actions.
 static func create_all_actions() -> Array[GOAPAction]:
 	var actions: Array[GOAPAction] = []
@@ -142,4 +170,5 @@ static func create_all_actions() -> Array[GOAPAction]:
 	actions.append(ReturnFireAction.new())
 	actions.append(FindCoverAction.new())
 	actions.append(RetreatAction.new())
+	actions.append(RetreatWithFireAction.new())
 	return actions

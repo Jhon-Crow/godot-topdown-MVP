@@ -18,7 +18,15 @@ enum AIState {
 	SEEKING_COVER,  ## Moving to cover position
 	IN_COVER,   ## Taking cover from player fire
 	FLANKING,   ## Attempting to flank the player
-	SUPPRESSED  ## Under fire, staying in cover
+	SUPPRESSED, ## Under fire, staying in cover
+	RETREATING  ## Retreating to cover while possibly shooting
+}
+
+## Retreat behavior modes based on damage taken.
+enum RetreatMode {
+	FULL_HP,        ## No damage - retreat backwards while shooting, periodically turn to cover
+	ONE_HIT,        ## One hit taken - quick burst then retreat without shooting
+	MULTIPLE_HITS   ## Multiple hits - retreat without shooting, face cover
 }
 
 ## Behavior modes for the enemy.
@@ -267,6 +275,46 @@ var _threat_memory_timer: float = 0.0
 ## their reaction even after bullets have passed through quickly.
 const THREAT_MEMORY_DURATION: float = 0.5
 
+## Current retreat mode determined by damage taken.
+var _retreat_mode: RetreatMode = RetreatMode.FULL_HP
+
+## Number of hits taken during the current retreat/combat encounter.
+## Resets when enemy enters IDLE state or finishes retreating.
+var _hits_taken_in_encounter: int = 0
+
+## Timer for periodic turning to cover during FULL_HP retreat.
+var _retreat_turn_timer: float = 0.0
+
+## Duration to face cover during FULL_HP retreat turn (seconds).
+const RETREAT_TURN_DURATION: float = 0.8
+
+## Interval between turns toward cover in FULL_HP retreat (seconds).
+const RETREAT_TURN_INTERVAL: float = 1.5
+
+## Whether currently in the "turn to cover" phase of FULL_HP retreat.
+var _retreat_turning_to_cover: bool = false
+
+## Burst fire counter for ONE_HIT retreat mode.
+var _retreat_burst_remaining: int = 0
+
+## Timer for burst fire cooldown in ONE_HIT retreat.
+var _retreat_burst_timer: float = 0.0
+
+## Fast cooldown between burst shots (seconds).
+const RETREAT_BURST_COOLDOWN: float = 0.06
+
+## Whether burst fire phase is complete in ONE_HIT retreat.
+var _retreat_burst_complete: bool = false
+
+## Accuracy reduction during retreat (multiplier for inaccuracy angle spread).
+const RETREAT_INACCURACY_SPREAD: float = 0.15
+
+## Arc spread for ONE_HIT burst fire (radians, total spread).
+const RETREAT_BURST_ARC: float = 0.4
+
+## Current angle offset within burst arc.
+var _retreat_burst_angle_offset: float = 0.0
+
 ## GOAP world state for goal-oriented planning.
 var _goap_world_state: Dictionary = {}
 
@@ -380,7 +428,9 @@ func _initialize_goap_state() -> void:
 		"under_fire": false,
 		"health_low": false,
 		"can_flank": false,
-		"at_flank_position": false
+		"at_flank_position": false,
+		"is_retreating": false,
+		"hits_taken": 0
 	}
 
 
@@ -440,6 +490,8 @@ func _update_goap_state() -> void:
 	_goap_world_state["health_low"] = _get_health_percent() < 0.5
 	_goap_world_state["in_cover"] = _current_state == AIState.IN_COVER
 	_goap_world_state["has_cover"] = _has_valid_cover
+	_goap_world_state["is_retreating"] = _current_state == AIState.RETREATING
+	_goap_world_state["hits_taken"] = _hits_taken_in_encounter
 
 
 ## Update suppression state.
@@ -557,6 +609,8 @@ func _process_ai_state(delta: float) -> void:
 			_process_flanking_state(delta)
 		AIState.SUPPRESSED:
 			_process_suppressed_state(delta)
+		AIState.RETREATING:
+			_process_retreating_state(delta)
 
 	if previous_state != _current_state:
 		state_changed.emit(_current_state)
@@ -583,9 +637,9 @@ func _process_combat_state(delta: float) -> void:
 	# In combat, enemy stands still and shoots (no velocity)
 	velocity = Vector2.ZERO
 
-	# Check for suppression - high priority
+	# Check for suppression - transition to retreating behavior
 	if _under_fire and enable_cover:
-		_transition_to_seeking_cover()
+		_transition_to_retreating()
 		return
 
 	# If can't see player, try flanking or return to idle
@@ -689,9 +743,9 @@ func _process_in_cover_state(_delta: float) -> void:
 
 ## Process FLANKING state - attempting to flank the player.
 func _process_flanking_state(_delta: float) -> void:
-	# If under fire, seek cover instead
+	# If under fire, retreat with shooting behavior
 	if _under_fire and enable_cover:
-		_transition_to_seeking_cover()
+		_transition_to_retreating()
 		return
 
 	# If can see player, engage in combat
@@ -747,9 +801,244 @@ func _process_suppressed_state(_delta: float) -> void:
 		_transition_to_in_cover()
 
 
+## Process RETREATING state - moving to cover with behavior based on damage taken.
+func _process_retreating_state(delta: float) -> void:
+	if not _has_valid_cover:
+		# Try to find cover
+		_find_cover_position()
+		if not _has_valid_cover:
+			# No cover found, transition to combat or suppressed
+			if _under_fire:
+				_transition_to_suppressed()
+			else:
+				_transition_to_combat()
+			return
+
+	# Check if we've reached cover and are hidden from player
+	if not _is_visible_from_player():
+		_log_debug("Reached cover during retreat")
+		# Reset encounter hits when successfully reaching cover
+		_hits_taken_in_encounter = 0
+		_transition_to_in_cover()
+		return
+
+	# Calculate direction to cover
+	var direction_to_cover := (_cover_position - global_position).normalized()
+	var distance_to_cover := global_position.distance_to(_cover_position)
+
+	# Check if reached cover position
+	if distance_to_cover < 10.0:
+		if _is_visible_from_player():
+			# Still visible, find better cover
+			_has_valid_cover = false
+			_find_cover_position()
+			if not _has_valid_cover:
+				if _under_fire:
+					_transition_to_suppressed()
+				else:
+					_transition_to_combat()
+			return
+
+	# Apply retreat behavior based on mode
+	match _retreat_mode:
+		RetreatMode.FULL_HP:
+			_process_retreat_full_hp(delta, direction_to_cover)
+		RetreatMode.ONE_HIT:
+			_process_retreat_one_hit(delta, direction_to_cover)
+		RetreatMode.MULTIPLE_HITS:
+			_process_retreat_multiple_hits(delta, direction_to_cover)
+
+
+## Process FULL_HP retreat: walk backwards facing player, shoot with reduced accuracy,
+## periodically turn toward cover.
+func _process_retreat_full_hp(delta: float, direction_to_cover: Vector2) -> void:
+	_retreat_turn_timer += delta
+
+	if _retreat_turning_to_cover:
+		# Turning to face cover, don't shoot
+		if _retreat_turn_timer >= RETREAT_TURN_DURATION:
+			_retreat_turning_to_cover = false
+			_retreat_turn_timer = 0.0
+
+		# Face cover and move toward it
+		rotation = direction_to_cover.angle()
+		var avoidance := _check_wall_ahead(direction_to_cover)
+		if avoidance != Vector2.ZERO:
+			direction_to_cover = (direction_to_cover * 0.5 + avoidance * 0.5).normalized()
+		velocity = direction_to_cover * combat_move_speed
+	else:
+		# Face player and back up (walk backwards)
+		if _retreat_turn_timer >= RETREAT_TURN_INTERVAL:
+			_retreat_turning_to_cover = true
+			_retreat_turn_timer = 0.0
+			_log_debug("FULL_HP retreat: turning to check cover")
+
+		if _player:
+			# Face the player
+			var direction_to_player := (_player.global_position - global_position).normalized()
+			_aim_at_player()
+
+			# Move backwards (opposite of player direction = toward cover generally)
+			# Use the negative of the direction we're facing for "backing up"
+			var move_direction := -direction_to_player
+
+			# Apply wall avoidance
+			var avoidance := _check_wall_ahead(move_direction)
+			if avoidance != Vector2.ZERO:
+				move_direction = (move_direction * 0.5 + avoidance * 0.5).normalized()
+
+			velocity = move_direction * combat_move_speed * 0.7  # Slower when backing up
+
+			# Shoot with reduced accuracy (only after detection delay)
+			if _can_see_player and _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
+				_shoot_with_inaccuracy()
+				_shoot_timer = 0.0
+
+
+## Process ONE_HIT retreat: quick burst of 2-4 shots in an arc while turning, then face cover.
+func _process_retreat_one_hit(delta: float, direction_to_cover: Vector2) -> void:
+	if not _retreat_burst_complete:
+		# During burst phase
+		_retreat_burst_timer += delta
+
+		if _player and _retreat_burst_remaining > 0 and _retreat_burst_timer >= RETREAT_BURST_COOLDOWN:
+			# Fire a burst shot with arc spread
+			_shoot_burst_shot()
+			_retreat_burst_remaining -= 1
+			_retreat_burst_timer = 0.0
+
+			# Progress through the arc
+			if _retreat_burst_remaining > 0:
+				_retreat_burst_angle_offset += RETREAT_BURST_ARC / 3.0  # Spread across 4 shots max
+
+		# Gradually turn from player to cover during burst
+		if _player:
+			var direction_to_player := (_player.global_position - global_position).normalized()
+			var target_angle: float
+
+			# Interpolate rotation from player direction to cover direction
+			var burst_progress := 1.0 - (float(_retreat_burst_remaining) / 4.0)
+			var player_angle := direction_to_player.angle()
+			var cover_angle := direction_to_cover.angle()
+			target_angle = lerp_angle(player_angle, cover_angle, burst_progress * 0.7)
+			rotation = target_angle
+
+		# Move toward cover (slower during burst)
+		var avoidance := _check_wall_ahead(direction_to_cover)
+		if avoidance != Vector2.ZERO:
+			direction_to_cover = (direction_to_cover * 0.5 + avoidance * 0.5).normalized()
+		velocity = direction_to_cover * combat_move_speed * 0.5
+
+		# Check if burst is complete
+		if _retreat_burst_remaining <= 0:
+			_retreat_burst_complete = true
+			_log_debug("ONE_HIT retreat: burst complete, now running to cover")
+	else:
+		# After burst, run to cover without shooting
+		rotation = direction_to_cover.angle()
+		var avoidance := _check_wall_ahead(direction_to_cover)
+		if avoidance != Vector2.ZERO:
+			direction_to_cover = (direction_to_cover * 0.5 + avoidance * 0.5).normalized()
+		velocity = direction_to_cover * combat_move_speed
+
+
+## Process MULTIPLE_HITS retreat: run to cover without shooting.
+func _process_retreat_multiple_hits(_delta: float, direction_to_cover: Vector2) -> void:
+	# Simply run to cover, facing the cover direction
+	rotation = direction_to_cover.angle()
+
+	var avoidance := _check_wall_ahead(direction_to_cover)
+	if avoidance != Vector2.ZERO:
+		direction_to_cover = (direction_to_cover * 0.5 + avoidance * 0.5).normalized()
+
+	velocity = direction_to_cover * combat_move_speed
+
+
+## Shoot with reduced accuracy for retreat mode.
+func _shoot_with_inaccuracy() -> void:
+	if bullet_scene == null or _player == null:
+		return
+
+	if not _can_shoot():
+		return
+
+	var target_position := _player.global_position
+
+	# Check if the shot should be taken
+	if not _should_shoot_at_target(target_position):
+		return
+
+	var direction := (target_position - global_position).normalized()
+
+	# Add inaccuracy spread
+	var inaccuracy_angle := randf_range(-RETREAT_INACCURACY_SPREAD, RETREAT_INACCURACY_SPREAD)
+	direction = direction.rotated(inaccuracy_angle)
+
+	# Create and fire bullet
+	var bullet := bullet_scene.instantiate()
+	bullet.global_position = global_position + direction * bullet_spawn_offset
+	bullet.direction = direction
+	bullet.shooter_id = get_instance_id()
+	get_tree().current_scene.add_child(bullet)
+
+	# Play sounds
+	var audio_manager: Node = get_node_or_null("/root/AudioManager")
+	if audio_manager and audio_manager.has_method("play_m16_shot"):
+		audio_manager.play_m16_shot(global_position)
+	_play_delayed_shell_sound()
+
+	# Consume ammo
+	_current_ammo -= 1
+	ammo_changed.emit(_current_ammo, _reserve_ammo)
+
+	if _current_ammo <= 0 and _reserve_ammo > 0:
+		_start_reload()
+
+
+## Shoot a burst shot with arc spread for ONE_HIT retreat.
+func _shoot_burst_shot() -> void:
+	if bullet_scene == null or _player == null:
+		return
+
+	if not _can_shoot():
+		return
+
+	var target_position := _player.global_position
+	var direction := (target_position - global_position).normalized()
+
+	# Apply arc offset for burst spread
+	direction = direction.rotated(_retreat_burst_angle_offset)
+
+	# Also add some random inaccuracy on top of the arc
+	var inaccuracy_angle := randf_range(-RETREAT_INACCURACY_SPREAD * 0.5, RETREAT_INACCURACY_SPREAD * 0.5)
+	direction = direction.rotated(inaccuracy_angle)
+
+	# Create and fire bullet
+	var bullet := bullet_scene.instantiate()
+	bullet.global_position = global_position + direction * bullet_spawn_offset
+	bullet.direction = direction
+	bullet.shooter_id = get_instance_id()
+	get_tree().current_scene.add_child(bullet)
+
+	# Play sounds
+	var audio_manager: Node = get_node_or_null("/root/AudioManager")
+	if audio_manager and audio_manager.has_method("play_m16_shot"):
+		audio_manager.play_m16_shot(global_position)
+	_play_delayed_shell_sound()
+
+	# Consume ammo
+	_current_ammo -= 1
+	ammo_changed.emit(_current_ammo, _reserve_ammo)
+
+	if _current_ammo <= 0 and _reserve_ammo > 0:
+		_start_reload()
+
+
 ## Transition to IDLE state.
 func _transition_to_idle() -> void:
 	_current_state = AIState.IDLE
+	# Reset encounter hit tracking when returning to idle
+	_hits_taken_in_encounter = 0
 
 
 ## Transition to COMBAT state.
@@ -780,6 +1069,32 @@ func _transition_to_flanking() -> void:
 ## Transition to SUPPRESSED state.
 func _transition_to_suppressed() -> void:
 	_current_state = AIState.SUPPRESSED
+
+
+## Transition to RETREATING state with appropriate retreat mode.
+func _transition_to_retreating() -> void:
+	_current_state = AIState.RETREATING
+
+	# Determine retreat mode based on hits taken
+	if _hits_taken_in_encounter == 0:
+		_retreat_mode = RetreatMode.FULL_HP
+		_retreat_turn_timer = 0.0
+		_retreat_turning_to_cover = false
+		_log_debug("Entering RETREATING state: FULL_HP mode (shoot while backing up)")
+	elif _hits_taken_in_encounter == 1:
+		_retreat_mode = RetreatMode.ONE_HIT
+		_retreat_burst_remaining = randi_range(2, 4)  # Random 2-4 bullets
+		_retreat_burst_timer = 0.0
+		_retreat_burst_complete = false
+		# Calculate arc spread: shots will be distributed across the arc
+		_retreat_burst_angle_offset = -RETREAT_BURST_ARC / 2.0
+		_log_debug("Entering RETREATING state: ONE_HIT mode (burst of %d shots)" % _retreat_burst_remaining)
+	else:
+		_retreat_mode = RetreatMode.MULTIPLE_HITS
+		_log_debug("Entering RETREATING state: MULTIPLE_HITS mode (no shooting)")
+
+	# Find cover position for retreating
+	_find_cover_position()
 
 
 ## Check if the enemy is visible from the player's position.
@@ -1436,6 +1751,10 @@ func on_hit() -> void:
 
 	hit.emit()
 
+	# Track hits for retreat behavior
+	_hits_taken_in_encounter += 1
+	_log_debug("Hit taken! Total hits in encounter: %d" % _hits_taken_in_encounter)
+
 	# Show hit flash effect
 	_show_hit_flash()
 
@@ -1519,6 +1838,15 @@ func _reset() -> void:
 	_threat_reaction_delay_elapsed = false
 	_threat_memory_timer = 0.0
 	_bullets_in_threat_sphere.clear()
+	# Reset retreat state variables
+	_hits_taken_in_encounter = 0
+	_retreat_mode = RetreatMode.FULL_HP
+	_retreat_turn_timer = 0.0
+	_retreat_turning_to_cover = false
+	_retreat_burst_remaining = 0
+	_retreat_burst_timer = 0.0
+	_retreat_burst_complete = false
+	_retreat_burst_angle_offset = 0.0
 	_initialize_health()
 	_initialize_ammo()
 	_update_health_visual()
