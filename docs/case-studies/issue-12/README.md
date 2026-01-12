@@ -184,6 +184,49 @@ The export preset changes ensure that:
 
 3. **Balance testing should include margin** - Initial ammunition of 30 for 20-40 HP worth of enemies left no room for missed shots. 90 bullets (2.25-4.5 per HP) provides comfortable margin while still requiring accuracy.
 
+## Additional Research on C# Export Issues
+
+### Known Issues in Godot 4.3
+
+Based on additional research into Godot 4.3 mono export issues, several potential causes have been identified:
+
+1. **Missing Mono Module in Export Templates**
+   - Custom-compiled export templates require `module_mono_enabled=yes` flag
+   - Without this, C# scripts won't load in exported builds
+   - [Source: Godot Forum - No loader found for resource](https://forum.godotengine.org/t/c-no-loader-found-for-resource/28444)
+
+2. **Godot 4.3 Beta Bug**
+   - Confirmed bug in 4.3.beta1 where C# exports failed with "No loader found for resource" errors
+   - Fixed in stable release but may affect some builds
+   - [Source: GitHub Issue #92630](https://github.com/godotengine/godot/issues/92630)
+
+3. **Export Package (.pck) Problems**
+   - Resources that work in editor fail to load in exported .pck/.zip files
+   - Can be caused by incorrect export settings or resource path issues
+   - [Source: GitHub Issue #86317](https://github.com/godotengine/godot/issues/86317)
+
+4. **Exported Build Crashes on Startup**
+   - In Godot 4.3 stable, some projects experience immediate crashes with resource loading errors
+   - Often related to missing dependencies or misconfigured export settings
+   - [Source: Godot Forum - Exported Build crashes immediately](https://forum.godotengine.org/t/4-3-stable-exported-build-crashes-immediately-upon-starting-up-game-everything-fails-to-load/101339)
+
+### Verification Steps
+
+To confirm the exe works correctly:
+
+1. **Download the artifact from CI** - Get the windows-build.zip from the latest successful CI run
+2. **Extract and run** - Extract `Godot-Top-Down-Template.exe` and run it
+3. **Check for error messages** - If it crashes, check for console output or error dialogs
+4. **Verify export templates** - Ensure using official Godot 4.3 stable mono export templates
+
+### References
+
+- [Crash on startup of export - No loader found for resource](https://forum.godotengine.org/t/crash-on-startup-of-export-no-loader-found-for-resource-cs-c-script/52771)
+- [C# export is broken on 4.3.beta1 - GitHub Issue #92630](https://github.com/godotengine/godot/issues/92630)
+- [C# - No loader found for resource - Godot Forum](https://forum.godotengine.org/t/c-no-loader-found-for-resource/28444)
+- [Exported game crashes due to missing resources - GitHub Issue #86317](https://github.com/godotengine/godot/issues/86317)
+- [Exported Build crashes immediately - Godot Forum](https://forum.godotengine.org/t/4-3-stable-exported-build-crashes-immediately-upon-starting-up-game-everything-fails-to-load/101339)
+
 ## Files Changed
 
 | File | Change Type | Description |
