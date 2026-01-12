@@ -714,6 +714,7 @@ func _process_flanking_state(_delta: float) -> void:
 
 	if distance < 20.0:
 		# Reached flank position, engage
+		# The enemy will re-evaluate cover tracking from the new position in COMBAT state
 		_transition_to_combat()
 	else:
 		# Apply wall avoidance
@@ -1201,14 +1202,23 @@ func _check_player_visibility() -> void:
 		if collider == _player:
 			_can_see_player = true
 		# If we hit a wall/obstacle before the player, we can't see them
-		# Track the cover position for cover-edge aiming
-		elif was_visible and not _is_player_behind_cover:
-			# Player just went behind cover - start tracking the cover
-			_is_player_behind_cover = true
-			_player_cover_position = _raycast.get_collision_point()
-			_player_last_known_position = _player.global_position
-			_cover_direction = direction_to_player
-			_log_debug("Player hid behind cover at: %s (last seen at: %s)" % [_player_cover_position, _player_last_known_position])
+		# Track the cover position for cover-edge aiming when:
+		# 1. Player was just visible (was_visible is true), OR
+		# 2. Enemy is in COMBAT state and trying to find the player (after flanking or at start)
+		# Note: We don't set cover tracking during FLANKING to allow the enemy to complete their movement
+		elif not _is_player_behind_cover:
+			var should_track_cover := was_visible or _current_state == AIState.COMBAT
+			if should_track_cover:
+				# Player went behind cover - start or re-establish tracking
+				_is_player_behind_cover = true
+				_player_cover_position = _raycast.get_collision_point()
+				_player_last_known_position = _player.global_position
+				_cover_direction = direction_to_player
+				_cover_watch_timer = 0.0  # Reset timer when re-establishing cover tracking
+				if was_visible:
+					_log_debug("Player hid behind cover at: %s (last seen at: %s)" % [_player_cover_position, _player_last_known_position])
+				else:
+					_log_debug("Re-established cover tracking at: %s (after flanking)" % _player_cover_position)
 	else:
 		# No collision between us and player - we have clear line of sight
 		_can_see_player = true
