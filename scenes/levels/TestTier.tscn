@@ -1346,6 +1346,6 @@ offset_left = 10.0
 offset_top = 10.0
 offset_right = 200.0
 offset_bottom = 45.0
-text = "AMMO: 30/60"
+text = "AMMO: 30/30"
 
 [node name="PauseMenu" parent="." instance=ExtResource("4_pause_menu")]

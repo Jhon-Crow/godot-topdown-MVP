@@ -7,7 +7,7 @@ extends CharacterBody2D
 ## Features limited ammunition system with progressive spread.
 
 ## Maximum movement speed in pixels per second.
-@export var max_speed: float = 350.0
+@export var max_speed: float = 300.0
 
 ## Acceleration rate - how quickly the player reaches max speed.
 @export var acceleration: float = 1200.0

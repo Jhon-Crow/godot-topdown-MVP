@@ -31,10 +31,10 @@ enum BehaviorMode {
 @export var behavior_mode: BehaviorMode = BehaviorMode.GUARD
 
 ## Maximum movement speed in pixels per second.
-@export var move_speed: float = 150.0
+@export var move_speed: float = 220.0
 
 ## Combat movement speed (faster when flanking/seeking cover).
-@export var combat_move_speed: float = 220.0
+@export var combat_move_speed: float = 320.0
 
 ## Rotation speed in radians per second for gradual turning.
 ## Default is 15 rad/sec for challenging but fair combat.
@@ -106,6 +106,13 @@ enum BehaviorMode {
 
 ## Enable/disable debug logging.
 @export var debug_logging: bool = false
+
+## Enable/disable lead prediction (shooting ahead of moving targets).
+@export var enable_lead_prediction: bool = true
+
+## Bullet speed for lead prediction calculation.
+## Should match the actual bullet speed (default is 2000 for assault rifle).
+@export var bullet_speed: float = 2000.0
 
 ## Ammunition system - magazine size (bullets per magazine).
 @export var magazine_size: int = 30
@@ -965,7 +972,13 @@ func _shoot() -> void:
 	if not _can_shoot():
 		return
 
-	var direction := (_player.global_position - global_position).normalized()
+	var target_position := _player.global_position
+
+	# Apply lead prediction if enabled
+	if enable_lead_prediction:
+		target_position = _calculate_lead_prediction()
+
+	var direction := (target_position - global_position).normalized()
 
 	# Create bullet instance
 	var bullet := bullet_scene.instantiate()
@@ -990,6 +1003,44 @@ func _shoot() -> void:
 	# Auto-reload when magazine is empty
 	if _current_ammo <= 0 and _reserve_ammo > 0:
 		_start_reload()
+
+
+## Calculate lead prediction - aims where the player will be, not where they are.
+## Uses iterative approach for better accuracy with moving targets.
+func _calculate_lead_prediction() -> Vector2:
+	if _player == null:
+		return global_position
+
+	var player_pos := _player.global_position
+	var player_velocity := Vector2.ZERO
+
+	# Get player velocity if they are a CharacterBody2D
+	if _player is CharacterBody2D:
+		player_velocity = _player.velocity
+
+	# If player is stationary, no need for prediction
+	if player_velocity.length_squared() < 1.0:
+		return player_pos
+
+	# Iterative lead prediction for better accuracy
+	# Start with player's current position
+	var predicted_pos := player_pos
+	var distance := global_position.distance_to(predicted_pos)
+
+	# Iterate 2-3 times for convergence
+	for i in range(3):
+		# Time for bullet to reach the predicted position
+		var time_to_target := distance / bullet_speed
+
+		# Predict where player will be at that time
+		predicted_pos = player_pos + player_velocity * time_to_target
+
+		# Update distance for next iteration
+		distance = global_position.distance_to(predicted_pos)
+
+	_log_debug("Lead prediction: player at %s moving %s, aiming at %s" % [player_pos, player_velocity, predicted_pos])
+
+	return predicted_pos
 
 
 ## Process patrol behavior - move between patrol points.
