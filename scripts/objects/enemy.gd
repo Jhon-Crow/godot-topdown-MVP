@@ -31,10 +31,12 @@ enum BehaviorMode {
 @export var behavior_mode: BehaviorMode = BehaviorMode.GUARD
 
 ## Maximum movement speed in pixels per second.
-@export var move_speed: float = 80.0
+## Higher speeds (150+) give a running feel for patrol movement.
+@export var move_speed: float = 150.0
 
 ## Combat movement speed (faster when flanking/seeking cover).
-@export var combat_move_speed: float = 120.0
+## Enemies move faster in combat situations.
+@export var combat_move_speed: float = 220.0
 
 ## Detection range for spotting the player.
 @export var detection_range: float = 400.0
