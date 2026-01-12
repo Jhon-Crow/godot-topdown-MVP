@@ -281,9 +281,10 @@ public partial class Player : BaseCharacter
         // Handle R key (first and third step)
         if (Input.IsActionJustPressed("reload"))
         {
-            if (_reloadSequenceStep == 0)
+            if (_reloadSequenceStep == 0 || _reloadSequenceStep == 1)
             {
-                // Start reload sequence
+                // Start or restart reload sequence
+                // This handles both initial R press and R->R sequence (restart)
                 _isReloadingSequence = true;
                 _reloadSequenceStep = 1;
                 GD.Print("[Player] Reload sequence started (R pressed) - press F next");
@@ -293,12 +294,6 @@ public partial class Player : BaseCharacter
             {
                 // Complete reload sequence - instant reload!
                 CompleteReloadSequence();
-            }
-            else
-            {
-                // Wrong key pressed, reset sequence
-                GD.Print("[Player] Wrong key! Reload sequence reset (expected F)");
-                ResetReloadSequence();
             }
         }
 
