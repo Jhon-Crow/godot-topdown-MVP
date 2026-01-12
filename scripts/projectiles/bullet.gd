@@ -56,4 +56,34 @@ func _on_area_entered(area: Area2D) -> void:
 			return  # Don't hit the shooter
 
 		area.on_hit()
+
+		# Trigger hit effects if this is a player bullet hitting an enemy
+		if _is_player_bullet():
+			_trigger_player_hit_effects()
+
 		queue_free()
+
+
+## Checks if this bullet was fired by the player.
+func _is_player_bullet() -> bool:
+	if shooter_id == -1:
+		return false
+
+	var shooter := instance_from_id(shooter_id)
+	if shooter == null:
+		return false
+
+	# Check if the shooter is a player by script path
+	var script := shooter.get_script()
+	if script and script.resource_path.contains("player"):
+		return true
+
+	return false
+
+
+## Triggers hit effects via the HitEffectsManager autoload.
+## Effects: time slowdown to 0.9 for 3 seconds, saturation boost for 400ms.
+func _trigger_player_hit_effects() -> void:
+	var hit_effects_manager := get_node_or_null("/root/HitEffectsManager")
+	if hit_effects_manager and hit_effects_manager.has_method("on_player_hit_enemy"):
+		hit_effects_manager.on_player_hit_enemy()

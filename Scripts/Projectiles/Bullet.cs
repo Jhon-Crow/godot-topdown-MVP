@@ -1,4 +1,5 @@
 using Godot;
+using GodotTopDownTemplate.Characters;
 using GodotTopDownTemplate.Data;
 using GodotTopDownTemplate.Interfaces;
 
@@ -51,6 +52,11 @@ public partial class Bullet : Area2D
     /// Timer tracking remaining lifetime.
     /// </summary>
     private float _timeAlive;
+
+    /// <summary>
+    /// Reference to the shooter node (cached for player detection).
+    /// </summary>
+    private Node? _shooterNode;
 
     /// <summary>
     /// Signal emitted when the bullet hits something.
@@ -121,26 +127,93 @@ public partial class Bullet : Area2D
             return; // Don't hit the shooter
         }
 
+        // Track if this is a valid hit on an enemy target
+        bool hitEnemy = false;
+
         // Check if the target implements IDamageable
         if (area is IDamageable damageable)
         {
             GD.Print($"[Bullet]: Target {area.Name} is IDamageable, applying {Damage} damage");
             damageable.TakeDamage(Damage);
+            hitEnemy = true;
         }
         // Fallback: Check for on_hit method (compatibility with GDScript targets)
         else if (area.HasMethod("on_hit"))
         {
             GD.Print($"[Bullet]: Target {area.Name} has on_hit method, calling it");
             area.Call("on_hit");
+            hitEnemy = true;
         }
         // Also check for OnHit method (C# convention)
         else if (area.HasMethod("OnHit"))
         {
             GD.Print($"[Bullet]: Target {area.Name} has OnHit method, calling it");
             area.Call("OnHit");
+            hitEnemy = true;
+        }
+
+        // Trigger hit effects if this is a player bullet hitting an enemy
+        if (hitEnemy && IsPlayerBullet())
+        {
+            TriggerPlayerHitEffects();
         }
 
         EmitSignal(SignalName.Hit, area);
         QueueFree();
+    }
+
+    /// <summary>
+    /// Checks if this bullet was fired by the player.
+    /// </summary>
+    /// <returns>True if the shooter is a player.</returns>
+    private bool IsPlayerBullet()
+    {
+        if (ShooterId == 0)
+        {
+            return false;
+        }
+
+        // Try to find the shooter node if not cached
+        if (_shooterNode == null)
+        {
+            _shooterNode = GodotObject.InstanceFromId(ShooterId) as Node;
+        }
+
+        // Check if the shooter is a Player (C# type)
+        if (_shooterNode is Player)
+        {
+            return true;
+        }
+
+        // Check for GDScript player (by script path or node name convention)
+        if (_shooterNode != null)
+        {
+            var script = _shooterNode.GetScript();
+            if (script.VariantType == Variant.Type.Object)
+            {
+                var scriptObj = script.AsGodotObject();
+                if (scriptObj is Script gdScript && gdScript.ResourcePath.Contains("player"))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Triggers hit effects via the HitEffectsManager autoload.
+    /// Effects: time slowdown to 0.9 for 3 seconds, saturation boost for 400ms.
+    /// </summary>
+    private void TriggerPlayerHitEffects()
+    {
+        // Get the HitEffectsManager autoload singleton
+        var hitEffectsManager = GetNodeOrNull("/root/HitEffectsManager");
+        if (hitEffectsManager != null && hitEffectsManager.HasMethod("on_player_hit_enemy"))
+        {
+            GD.Print("[Bullet]: Triggering player hit effects");
+            hitEffectsManager.Call("on_player_hit_enemy");
+        }
     }
 }
