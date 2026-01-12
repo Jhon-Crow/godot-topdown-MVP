@@ -119,6 +119,9 @@ enum BehaviorMode {
 ## Enable/disable debug logging.
 @export var debug_logging: bool = false
 
+## Enable/disable debug label above enemy showing current AI state.
+@export var debug_label_enabled: bool = false
+
 ## Enable/disable friendly fire avoidance (don't shoot if other enemies are in the way).
 @export var enable_friendly_fire_avoidance: bool = true
 
@@ -180,6 +183,9 @@ signal ammo_depleted
 
 ## RayCast2D for line of sight detection.
 @onready var _raycast: RayCast2D = $RayCast2D
+
+## Debug label for showing current AI state above the enemy.
+@onready var _debug_label: Label = $DebugLabel
 
 ## Wall detection raycasts for obstacle avoidance (created at runtime).
 var _wall_raycasts: Array[RayCast2D] = []
@@ -353,6 +359,7 @@ func _ready() -> void:
 	_setup_cover_detection()
 	_setup_threat_sphere()
 	_initialize_goap_state()
+	_update_debug_label()
 
 	# Preload bullet scene if not set in inspector
 	if bullet_scene == null:
@@ -486,6 +493,9 @@ func _physics_process(delta: float) -> void:
 
 	# Process AI state machine
 	_process_ai_state(delta)
+
+	# Update debug label if enabled
+	_update_debug_label()
 
 	move_and_slide()
 
@@ -1920,6 +1930,51 @@ func _reset() -> void:
 func _log_debug(message: String) -> void:
 	if debug_logging:
 		print("[Enemy %s] %s" % [name, message])
+
+
+## Get AI state name as a human-readable string.
+func _get_state_name(state: AIState) -> String:
+	match state:
+		AIState.IDLE:
+			return "IDLE"
+		AIState.COMBAT:
+			return "COMBAT"
+		AIState.SEEKING_COVER:
+			return "SEEKING_COVER"
+		AIState.IN_COVER:
+			return "IN_COVER"
+		AIState.FLANKING:
+			return "FLANKING"
+		AIState.SUPPRESSED:
+			return "SUPPRESSED"
+		AIState.RETREATING:
+			return "RETREATING"
+		_:
+			return "UNKNOWN"
+
+
+## Update the debug label with current AI state.
+func _update_debug_label() -> void:
+	if _debug_label == null:
+		return
+
+	_debug_label.visible = debug_label_enabled
+	if not debug_label_enabled:
+		return
+
+	var state_text := _get_state_name(_current_state)
+
+	# Add retreat mode info if retreating
+	if _current_state == AIState.RETREATING:
+		match _retreat_mode:
+			RetreatMode.FULL_HP:
+				state_text += "\n(FULL_HP)"
+			RetreatMode.ONE_HIT:
+				state_text += "\n(ONE_HIT)"
+			RetreatMode.MULTIPLE_HITS:
+				state_text += "\n(MULTI_HITS)"
+
+	_debug_label.text = state_text
 
 
 ## Get current AI state (for external access/debugging).
