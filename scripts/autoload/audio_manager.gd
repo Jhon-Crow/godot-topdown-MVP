@@ -52,6 +52,10 @@ const BULLET_COVER_NEAR_PLAYER: String = "res://assets/audio/попадание 
 const SHELL_RIFLE: String = "res://assets/audio/падает гильза автомата.wav"
 const SHELL_PISTOL: String = "res://assets/audio/падает гильза пистолета.wav"
 
+## Fire mode toggle sound.
+## Note: Renamed from Cyrillic to ASCII for export compatibility (see issue #64).
+const FIRE_MODE_TOGGLE: String = "res://assets/audio/fire_mode_toggle.wav"
+
 ## Volume settings (in dB).
 const VOLUME_SHOT: float = -5.0
 const VOLUME_RELOAD: float = -3.0
@@ -59,6 +63,7 @@ const VOLUME_IMPACT: float = -8.0
 const VOLUME_HIT: float = -3.0
 const VOLUME_SHELL: float = -10.0
 const VOLUME_EMPTY_CLICK: float = -3.0
+const VOLUME_FIRE_MODE_TOGGLE: float = -3.0
 
 ## Preloaded audio streams cache.
 var _audio_cache: Dictionary = {}
@@ -111,6 +116,7 @@ func _preload_all_sounds() -> void:
 	all_sounds.append(BULLET_COVER_NEAR_PLAYER)
 	all_sounds.append(SHELL_RIFLE)
 	all_sounds.append(SHELL_PISTOL)
+	all_sounds.append(FIRE_MODE_TOGGLE)
 
 	for path in all_sounds:
 		if not _audio_cache.has(path):
@@ -263,3 +269,8 @@ func play_shell_rifle(position: Vector2) -> void:
 ## Plays pistol shell casing sound at the given position.
 func play_shell_pistol(position: Vector2) -> void:
 	play_sound_2d(SHELL_PISTOL, position, VOLUME_SHELL)
+
+
+## Plays fire mode toggle sound at the given position.
+func play_fire_mode_toggle(position: Vector2) -> void:
+	play_sound_2d(FIRE_MODE_TOGGLE, position, VOLUME_FIRE_MODE_TOGGLE)
