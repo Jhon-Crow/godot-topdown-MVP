@@ -1,108 +1,181 @@
 # Issue 88: Enemy AI Combat State Fix - Case Study Analysis
 
 ## Issue Summary
-The enemy AI has behavior issues in COMBAT and PURSUING states where enemies stand still instead of properly executing their intended behaviors.
+The enemy AI has behavior issues in COMBAT and PURSUING states where enemies stand behind cover and infinitely cycle through the timer without actually moving toward the player.
 
-## Reported Problems
+## Feedback History
 
-### Problem 1: PURSUING State - Enemies Just Stand Still
-**Symptom**: In PURSUING state, enemies stand still and the countdown timer doesn't progress.
+### Initial Feedback (Round 1)
+1. In PURSUING state, enemies just stand still (countdown doesn't progress)
+2. In COMBAT state, enemies should come out for direct contact with player, then return to cover if state doesn't change by timer expiry. Currently they just cycle the timer while standing still.
 
-**Root Cause Analysis**:
-Looking at `_process_pursuing_state()` (lines 1222-1311 in enemy.gd):
+### Follow-up Feedback (Round 2)
+Despite first round of fixes, the issue persists: "In PURSUING or COMBAT states, enemies just stand behind cover and infinitely cycle through the timer."
 
-The issue was:
-1. When entering PURSUING state, `_has_valid_cover` might be true (from previous state)
-2. But `_has_pursuit_cover` is false
-3. This means the enemy waits at current cover position
-4. **When `_find_pursuit_cover_toward_player()` fails to find valid cover** (no cover closer to player), the code just returned without any fallback
-5. The enemy got stuck in the waiting loop forever
+## Root Cause Analysis (Deep Dive)
 
-**Solution Implemented**:
-1. Reduced `PURSUIT_COVER_WAIT_DURATION` from 2.5s to 1.5s (within 1-2s range as requested)
-2. Added fallback behavior when no pursuit cover is found:
-   - If player is visible → transition to COMBAT
-   - If flanking is enabled → transition to FLANKING
-   - Otherwise → transition to COMBAT for direct approach
+### Problem 1: PURSUING State - Infinite Timer Loop
 
-### Problem 2: COMBAT State - Timer Running but Enemies Not Moving
-**Symptom**: In COMBAT state, if enemies are not in direct contact with the player, the timer just constantly runs while they stand still.
+**Code Path Analysis:**
 
-**Root Cause Analysis**:
-The original `_process_combat_state()` had:
+Looking at `_process_pursuing_state()`:
+
 ```gdscript
-# In combat, enemy stands still and shoots (no velocity)
-velocity = Vector2.ZERO
+# Check if we're waiting at cover
+if _has_valid_cover and not _has_pursuit_cover:
+    # Currently at cover, wait for 1-2 seconds before moving to next cover
+    _pursuit_cover_wait_timer += delta
+    velocity = Vector2.ZERO
+
+    if _pursuit_cover_wait_timer >= PURSUIT_COVER_WAIT_DURATION:
+        _find_pursuit_cover_toward_player()
+        if _has_pursuit_cover:
+            # Found cover, will move on next frame
+        else:
+            # Fallback: transition to COMBAT or FLANKING
 ```
 
-The issue:
-1. Enemy enters COMBAT state
-2. Enemy immediately stands still and starts the shooting timer
-3. If enemy is far from player, they just stand and shoot without moving
-4. No approach phase to get into direct contact
+**Bug 1: Premature "Reached Cover" Detection (LINE 1285)**
 
-**Expected Behavior** (from owner's feedback):
-- In COMBAT state, enemies should **come out for direct contact** with the player
-- **Move toward the player first**, THEN shoot
-- After the timer expires, go back to cover if still in COMBAT state
+```gdscript
+if distance < 15.0 or not _is_visible_from_player():
+    # Reached cover or hidden from player
+```
 
-**Solution Implemented**:
-1. Added new combat phase: **APPROACH**
-   - New variables: `_combat_approaching`, `_combat_approach_timer`
-   - New constants: `COMBAT_APPROACH_MAX_TIME` (2.0s), `COMBAT_DIRECT_CONTACT_DISTANCE` (250px)
+The condition `or not _is_visible_from_player()` was **catastrophic**:
+- When enemy starts from cover, they are ALREADY not visible from player
+- This makes the condition immediately true before any movement
+- Enemy instantly considers they've "reached" the target cover
+- Resets to waiting phase → infinite loop
 
-2. Combat now has two phases:
-   - **Approach Phase**: Enemy moves toward player while shooting
-     - Ends when: within direct contact distance OR approach time exceeded
-   - **Exposed Phase**: Enemy stands still and shoots for 2-3 seconds
-     - Then returns to cover via SEEKING_COVER state
+**Fix:** Removed the visibility check. Only distance matters for "reached cover":
+```gdscript
+if distance < 15.0:
+    # Reached pursuit cover
+```
 
-3. Updated debug labels to show current phase:
-   - `COMBAT (APPROACH)` - moving toward player
-   - `COMBAT (EXPOSED 2.5s)` - standing and shooting
+**Bug 2: Finding Cover Too Close to Current Position**
+
+`_find_pursuit_cover_toward_player()` could find a cover position that was only a few pixels away from the enemy's current position:
+1. Enemy at position A finds cover B, which is 10 pixels away
+2. `_has_pursuit_cover = true`
+3. Movement code runs, but `distance < 15.0` is immediately true
+4. Enemy "reaches" cover B without moving
+5. Back to waiting phase → infinite loop
+
+**Fix:** Added minimum distance check in `_find_pursuit_cover_toward_player()`:
+```gdscript
+# Skip covers that are too close to current position (would cause looping)
+# Must be at least 30 pixels away to be a meaningful movement
+if cover_distance_from_me < 30.0:
+    continue
+```
+
+### Problem 2: COMBAT State - Wrong State Transition When Player Not Visible
+
+**Code Path Analysis:**
+
+In `_process_combat_state()`:
+
+```gdscript
+# If can't see player, try flanking or pursue
+if not _can_see_player:
+    _combat_exposed = false
+    _combat_approaching = false
+    if enable_flanking and _player:
+        _transition_to_flanking()
+    else:
+        _transition_to_idle()
+    return
+```
+
+**Bug:** When the player is not visible, the enemy transitions to FLANKING or IDLE instead of PURSUING. This is incorrect because:
+- PURSUING state is specifically designed for chasing a player who is not visible
+- Going to IDLE completely breaks the combat loop
+- FLANKING may not work if flanking is disabled
+
+**Fix:** Changed to always transition to PURSUING when player not visible:
+```gdscript
+# If can't see player, pursue them (move cover-to-cover toward player)
+if not _can_see_player:
+    _combat_exposed = false
+    _combat_approaching = false
+    _log_debug("Lost sight of player in COMBAT, transitioning to PURSUING")
+    _transition_to_pursuing()
+    return
+```
 
 ## Implementation Details
 
 ### Files Modified
 - `scripts/objects/enemy.gd`
 
-### New Variables Added
+### Changes Summary
+
+1. **Line 1285:** Removed `or not _is_visible_from_player()` from pursuit cover arrival check
+2. **Lines 1952-1955:** Added minimum distance check (30px) for pursuit cover candidates
+3. **Lines 762-768:** Changed COMBAT state to transition to PURSUING (not FLANKING/IDLE) when player not visible
+
+### Debug Labels
+The debug labels continue to show current phase information:
+- PURSUING: Shows `(WAIT Xs)` or `(MOVING)`
+- COMBAT: Shows `(APPROACH)` or `(EXPOSED Xs)`
+
+## Testing Checklist
+
+1. **PURSUING State:**
+   - [ ] Enemy waits ~1.5s at cover
+   - [ ] Enemy actually MOVES to next cover (not instantly "arriving")
+   - [ ] If no cover found, enemy transitions to COMBAT or FLANKING
+   - [ ] Debug label shows `(WAIT)` then `(MOVING)` phases
+
+2. **COMBAT State:**
+   - [ ] Enemy approaches player (APPROACH phase visible)
+   - [ ] Once close or time exceeded, enemy enters EXPOSED phase
+   - [ ] Enemy returns to cover after shooting
+   - [ ] If player goes behind cover, enemy transitions to PURSUING
+
+3. **State Flow:**
+   - [ ] IN_COVER → PURSUING (when player not visible)
+   - [ ] PURSUING → COMBAT (when player becomes visible)
+   - [ ] COMBAT → PURSUING (when player hides)
+   - [ ] COMBAT → SEEKING_COVER → IN_COVER (after exposed shooting)
+
+## Technical Deep Dive
+
+### Why the Visibility Check Was Wrong
+
+The original code at line 1285 was:
 ```gdscript
-## Whether the enemy is in the "approaching player" phase of combat.
-var _combat_approaching: bool = false
-
-## Timer for the approach phase of combat.
-var _combat_approach_timer: float = 0.0
-
-## Maximum time to spend approaching player before starting to shoot (seconds).
-const COMBAT_APPROACH_MAX_TIME: float = 2.0
-
-## Distance at which enemy is considered "close enough" to start shooting phase.
-const COMBAT_DIRECT_CONTACT_DISTANCE: float = 250.0
+if distance < 15.0 or not _is_visible_from_player():
 ```
 
-### Constants Changed
-```gdscript
-## Duration to wait at each cover during pursuit (1-2 seconds, reduced for faster pursuit).
-const PURSUIT_COVER_WAIT_DURATION: float = 1.5  # Was 2.5
-```
+This was intended to handle two cases:
+1. Enemy reached the physical cover position (distance < 15)
+2. Enemy became hidden from player before reaching cover
 
-### Functions Modified
-1. `_process_combat_state()` - Complete rewrite to add approach phase
-2. `_process_pursuing_state()` - Added fallback when no cover is found
-3. `_update_debug_label()` - Added phase info for COMBAT and PURSUING states
-4. `_transition_to_combat()` - Reset new combat variables
-5. `_reset()` - Reset new combat variables
+However, case #2 creates an impossible situation:
+- Enemy starts at cover A (hidden from player)
+- Wants to move to cover B (closer to player)
+- The instant they try to move, `_is_visible_from_player()` returns FALSE
+- They're immediately considered "at cover B" without moving!
 
-## Testing Notes
-- Enable debug mode (F7) to see AI state labels above enemies
-- Test single enemy: should approach player then shoot for 2-3s
-- Test PURSUING state: should wait 1.5s at cover, then move or fallback
-- Test combat cycling: approach → exposed → return to cover
-- Verify existing behaviors (RETREATING, SUPPRESSED, FLANKING) still work
+The correct behavior is to ONLY check distance. The enemy must physically travel to the new cover position regardless of visibility.
+
+### Cover Distance Threshold
+
+The 30-pixel minimum distance prevents:
+1. Micro-movements that look like standing still
+2. Numerical precision issues where cover positions are nearly identical
+3. The edge case where the same cover is found multiple times
+
+30 pixels was chosen because:
+- Character collision radius is ~24 pixels
+- 30px ensures visible movement on screen
+- Small enough to allow nearby covers when appropriate
 
 ## References
 - enemy.gd lines 740-852 (COMBAT state processing)
-- enemy.gd lines 1222-1311 (PURSUING state processing)
-- enemy.gd lines 2588-2604 (debug label updates)
-- Issue comment from owner detailing expected behavior
+- enemy.gd lines 1279-1302 (PURSUING movement code)
+- enemy.gd lines 1913-1976 (_find_pursuit_cover_toward_player)
+- Feedback comments on PR #89

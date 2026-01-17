@@ -759,14 +759,12 @@ func _process_combat_state(delta: float) -> void:
 		_transition_to_assault()
 		return
 
-	# If can't see player, try flanking or pursue
+	# If can't see player, pursue them (move cover-to-cover toward player)
 	if not _can_see_player:
 		_combat_exposed = false
 		_combat_approaching = false
-		if enable_flanking and _player:
-			_transition_to_flanking()
-		else:
-			_transition_to_idle()
+		_log_debug("Lost sight of player in COMBAT, transitioning to PURSUING")
+		_transition_to_pursuing()
 		return
 
 	# Update detection delay timer
@@ -1282,9 +1280,11 @@ func _process_pursuing_state(delta: float) -> void:
 		var distance := global_position.distance_to(_pursuit_next_cover)
 
 		# Check if we've reached the pursuit cover
-		if distance < 15.0 or not _is_visible_from_player():
-			# Reached cover or hidden from player
-			_log_debug("Reached pursuit cover or hidden from player")
+		# Note: We only check distance here, NOT visibility from player.
+		# If we checked visibility, the enemy would immediately consider themselves
+		# "at cover" even before moving, since they start hidden from player.
+		if distance < 15.0:
+			_log_debug("Reached pursuit cover at distance %.1f" % distance)
 			_has_pursuit_cover = false
 			_pursuit_cover_wait_timer = 0.0
 			_cover_position = _pursuit_next_cover
@@ -1947,6 +1947,11 @@ func _find_pursuit_cover_toward_player() -> void:
 
 			# Skip covers that don't bring us closer to player
 			if cover_distance_to_player >= my_distance_to_player:
+				continue
+
+			# Skip covers that are too close to current position (would cause looping)
+			# Must be at least 30 pixels away to be a meaningful movement
+			if cover_distance_from_me < 30.0:
 				continue
 
 			# Check if this position is hidden from player
