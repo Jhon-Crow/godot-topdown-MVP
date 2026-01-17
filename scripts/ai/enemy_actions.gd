@@ -159,6 +159,48 @@ class RetreatWithFireAction extends GOAPAction:
 			return 0.5
 
 
+## Action to pursue the player by moving cover-to-cover.
+## Used when enemy is far from player and can't hit them from current position.
+class PursuePlayerAction extends GOAPAction:
+	func _init() -> void:
+		super._init("pursue_player", 2.5)
+		preconditions = {
+			"player_visible": false,
+			"player_close": false
+		}
+		effects = {
+			"is_pursuing": true,
+			"player_close": true
+		}
+
+	func get_cost(_agent: Node, world_state: Dictionary) -> float:
+		# Lower cost if we can't hit from current position
+		if not world_state.get("can_hit_from_cover", false):
+			return 1.5
+		return 3.0
+
+
+## Action to initiate coordinated assault when multiple enemies are in combat.
+## All enemies rush the player simultaneously after a 5 second wait.
+class AssaultPlayerAction extends GOAPAction:
+	func _init() -> void:
+		super._init("assault_player", 1.0)
+		preconditions = {
+			"player_visible": true
+		}
+		effects = {
+			"is_assaulting": true,
+			"player_engaged": true
+		}
+
+	func get_cost(_agent: Node, world_state: Dictionary) -> float:
+		# Only low cost if multiple enemies are in combat
+		var enemies_count := world_state.get("enemies_in_combat", 0)
+		if enemies_count >= 2:
+			return 0.5  # High priority for coordinated attack
+		return 5.0  # Very high cost if alone (prefer other actions)
+
+
 ## Create and return all enemy actions.
 static func create_all_actions() -> Array[GOAPAction]:
 	var actions: Array[GOAPAction] = []
@@ -171,4 +213,6 @@ static func create_all_actions() -> Array[GOAPAction]:
 	actions.append(FindCoverAction.new())
 	actions.append(RetreatAction.new())
 	actions.append(RetreatWithFireAction.new())
+	actions.append(PursuePlayerAction.new())
+	actions.append(AssaultPlayerAction.new())
 	return actions
