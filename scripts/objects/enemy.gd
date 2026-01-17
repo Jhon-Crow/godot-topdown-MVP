@@ -813,6 +813,20 @@ func _process_combat_state(delta: float) -> void:
 			_transition_to_seeking_cover()
 			return
 
+		# Verify we can actually hit the player from exposed position
+		# If the immediate path to player is blocked (wall nearby), seek better position
+		if _player:
+			var direction_to_player := (_player.global_position - global_position).normalized()
+			if not _is_immediate_path_clear(direction_to_player):
+				_log_debug("Cannot hit player from exposed position - wall blocking, repositioning")
+				_combat_exposed = false
+				_combat_approaching = false
+				_combat_shoot_timer = 0.0
+				# Invalidate current cover to force finding a new position
+				_has_valid_cover = false
+				_transition_to_seeking_cover()
+				return
+
 		# In exposed phase, stand still and shoot
 		velocity = Vector2.ZERO
 
@@ -826,15 +840,29 @@ func _process_combat_state(delta: float) -> void:
 
 	# Not in exposed phase yet - determine if we need to approach or can start shooting
 	if in_direct_contact or _combat_approach_timer >= COMBAT_APPROACH_MAX_TIME:
-		# Close enough or approached long enough - start exposed shooting phase
-		_combat_exposed = true
-		_combat_approaching = false
-		_combat_shoot_timer = 0.0
-		_combat_approach_timer = 0.0
-		# Randomize exposure duration between 2-3 seconds
-		_combat_shoot_duration = randf_range(2.0, 3.0)
-		_log_debug("COMBAT exposed phase started (distance: %.0f), will shoot for %.1fs" % [distance_to_player, _combat_shoot_duration])
-		return
+		# Before entering exposed phase, verify we can actually hit the player
+		# If walls are blocking the shot, continue approaching or find new position
+		if _player:
+			var direction_to_player := (_player.global_position - global_position).normalized()
+			if not _is_immediate_path_clear(direction_to_player):
+				_log_debug("Cannot enter exposed phase - wall blocking shot, continuing approach")
+				# Keep approaching to get around the obstacle
+				if not _combat_approaching:
+					_combat_approaching = true
+					_combat_approach_timer = 0.0
+				# Don't enter exposed phase, fall through to approach logic
+			else:
+				# Path is clear - start exposed shooting phase
+				_combat_exposed = true
+				_combat_approaching = false
+				_combat_shoot_timer = 0.0
+				_combat_approach_timer = 0.0
+				# Randomize exposure duration between 2-3 seconds
+				_combat_shoot_duration = randf_range(2.0, 3.0)
+				_log_debug("COMBAT exposed phase started (distance: %.0f), will shoot for %.1fs" % [distance_to_player, _combat_shoot_duration])
+				return
+		else:
+			return
 
 	# Need to approach player - move toward them
 	if not _combat_approaching:
@@ -1499,6 +1527,12 @@ func _shoot_with_inaccuracy() -> void:
 	var inaccuracy_angle := randf_range(-RETREAT_INACCURACY_SPREAD, RETREAT_INACCURACY_SPREAD)
 	direction = direction.rotated(inaccuracy_angle)
 
+	# Check if the final direction (with inaccuracy) has a clear path
+	# This prevents inaccuracy from causing shots into nearby walls
+	if not _is_immediate_path_clear(direction):
+		_log_debug("Inaccurate shot blocked: wall in immediate path")
+		return
+
 	# Create and fire bullet
 	var bullet := bullet_scene.instantiate()
 	bullet.global_position = global_position + direction * bullet_spawn_offset
@@ -1537,6 +1571,12 @@ func _shoot_burst_shot() -> void:
 	# Also add some random inaccuracy on top of the arc
 	var inaccuracy_angle := randf_range(-RETREAT_INACCURACY_SPREAD * 0.5, RETREAT_INACCURACY_SPREAD * 0.5)
 	direction = direction.rotated(inaccuracy_angle)
+
+	# Check if the immediate path is clear before shooting
+	# This prevents burst shots from hitting walls the enemy is next to
+	if not _is_immediate_path_clear(direction):
+		_log_debug("Burst shot blocked: wall in immediate path")
+		return
 
 	# Create and fire bullet
 	var bullet := bullet_scene.instantiate()
@@ -1917,9 +1957,57 @@ func _is_shot_clear_of_cover(target_position: Vector2) -> bool:
 	return true
 
 
+## Check if there's an obstacle immediately in front of the enemy that would block bullets.
+## This prevents shooting into walls that the enemy is flush against or very close to.
+## The check uses multiple points to account for the enemy's body width near cover edges.
+func _is_immediate_path_clear(direction: Vector2) -> bool:
+	var space_state := get_world_2d().direct_space_state
+
+	# Check distance is bullet spawn offset plus a small buffer
+	var check_distance := bullet_spawn_offset + 15.0
+
+	# Check the main direction (center line)
+	var query := PhysicsRayQueryParameters2D.new()
+	query.from = global_position
+	query.to = global_position + direction * check_distance
+	query.collision_mask = 4  # Only check obstacles (layer 3)
+	query.exclude = [get_rid()]
+
+	var result := space_state.intersect_ray(query)
+	if not result.is_empty():
+		_log_debug("Immediate path blocked: wall at distance %.1f (check dist: %.1f)" % [
+			global_position.distance_to(result["position"]), check_distance])
+		return false
+
+	# Also check slightly offset rays to catch walls at the sides
+	# This handles cases where the enemy is at the edge of cover
+	var perpendicular := direction.rotated(PI / 2.0)
+	var side_offset := 12.0  # Half the enemy body width approximately
+
+	for offset_mult in [-1.0, 1.0]:
+		var offset_start := global_position + perpendicular * side_offset * offset_mult
+		query.from = offset_start
+		query.to = offset_start + direction * check_distance
+
+		result = space_state.intersect_ray(query)
+		if not result.is_empty():
+			_log_debug("Immediate path blocked (side): wall at distance %.1f" % [
+				offset_start.distance_to(result["position"])])
+			return false
+
+	return true
+
+
 ## Check if the enemy should shoot at the current target.
-## Validates both friendly fire avoidance and cover blocking.
+## Validates immediate path, friendly fire avoidance, and cover blocking.
 func _should_shoot_at_target(target_position: Vector2) -> bool:
+	var direction := (target_position - global_position).normalized()
+
+	# Check if the immediate path to bullet spawn point is clear
+	# This prevents shooting into walls the enemy is flush against
+	if not _is_immediate_path_clear(direction):
+		return false
+
 	# Check if friendlies are in the way
 	if not _is_firing_line_clear_of_friendlies(target_position):
 		return false
@@ -1947,6 +2035,12 @@ func _can_hit_player_from_current_position() -> bool:
 
 	# Check if we can see the player
 	if not _can_see_player:
+		return false
+
+	# Check if the immediate path to bullet spawn is clear
+	# This prevents false positives when enemy is next to a wall
+	var direction := (_player.global_position - global_position).normalized()
+	if not _is_immediate_path_clear(direction):
 		return false
 
 	# Check if the shot would be blocked by cover
