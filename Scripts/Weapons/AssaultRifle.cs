@@ -329,6 +329,8 @@ public partial class AssaultRifle : BaseWeapon
         {
             // Play M16 shot sound
             PlayM16ShotSound();
+            // Emit gunshot sound for in-game sound propagation (alerts enemies)
+            EmitGunshotSound();
             // Play shell casing sound with delay
             PlayShellCasingDelayed();
         }
@@ -345,6 +347,23 @@ public partial class AssaultRifle : BaseWeapon
         if (audioManager != null && audioManager.HasMethod("play_m16_shot"))
         {
             audioManager.Call("play_m16_shot", GlobalPosition);
+        }
+    }
+
+    /// <summary>
+    /// Emits a gunshot sound to SoundPropagation system for in-game sound propagation.
+    /// This alerts nearby enemies to the player's position.
+    /// </summary>
+    private void EmitGunshotSound()
+    {
+        var soundPropagation = GetNodeOrNull("/root/SoundPropagation");
+        if (soundPropagation != null && soundPropagation.HasMethod("emit_sound"))
+        {
+            // Determine weapon loudness from WeaponData, or use viewport diagonal as default
+            float loudness = WeaponData?.Loudness ?? 1469.0f;
+            // emit_sound(sound_type, position, source_type, source_node, custom_range)
+            // sound_type 0 = GUNSHOT, source_type 0 = PLAYER
+            soundPropagation.Call("emit_sound", 0, GlobalPosition, 0, this, loudness);
         }
     }
 
@@ -453,6 +472,9 @@ public partial class AssaultRifle : BaseWeapon
         }
         // Second bullet doesn't need sound - covered by double shot sound
 
+        // Emit gunshot sound for in-game sound propagation (alerts enemies)
+        EmitGunshotSound();
+
         // Play shell casing for each bullet
         PlayShellCasingDelayed();
 
@@ -525,6 +547,8 @@ public partial class AssaultRifle : BaseWeapon
         {
             // Play M16 shot sound for chamber bullet
             PlayM16ShotSound();
+            // Emit gunshot sound for in-game sound propagation (alerts enemies)
+            EmitGunshotSound();
             // Play shell casing sound with delay
             PlayShellCasingDelayed();
         }
