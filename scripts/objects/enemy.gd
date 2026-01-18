@@ -518,10 +518,25 @@ var _seeking_clear_shot: bool = false
 var _clear_shot_timer: float = 0.0
 
 ## Maximum time to spend finding a clear shot before giving up (seconds).
-const CLEAR_SHOT_MAX_TIME: float = 3.0
+const CLEAR_SHOT_MAX_TIME: float = 4.0
 
-## Distance to move when exiting cover to find a clear shot.
-const CLEAR_SHOT_EXIT_DISTANCE: float = 60.0
+## Distance to move when exiting cover to find a clear shot (increased for better arc movement).
+const CLEAR_SHOT_EXIT_DISTANCE: float = 80.0
+
+## Current arc angle for progressive arc movement (radians from perpendicular).
+var _arc_movement_angle: float = 0.0
+
+## Direction of arc movement (1.0 = clockwise, -1.0 = counter-clockwise).
+var _arc_movement_direction: float = 1.0
+
+## Whether we've tried the other arc direction.
+var _arc_tried_other_side: bool = false
+
+## Maximum arc angle to sweep (90 degrees = full quarter circle from perpendicular).
+const ARC_MAX_ANGLE: float = PI / 2.0
+
+## Angle step for arc movement (how much to rotate per recalculation).
+const ARC_ANGLE_STEP: float = PI / 12.0  # 15 degrees
 
 ## --- Sound-Based Detection ---
 ## Last known position of a sound source (e.g., player or enemy gunshot).
@@ -1163,9 +1178,17 @@ func _process_combat_state(delta: float) -> void:
 			else:
 				return  # Keep moving toward target
 		else:
-			# Reached target but still no clear shot - recalculate target
-			_log_debug("COMBAT: reached target but no clear shot, recalculating")
+			# Reached target but still no clear shot - immediately recalculate and continue moving
+			_log_debug("COMBAT: reached arc point, continuing arc sweep (angle: %.1f deg)" % rad_to_deg(_arc_movement_angle))
 			_clear_shot_target = _calculate_clear_shot_exit_position(direction_to_player)
+
+			# Keep moving toward the new target instead of standing still
+			var move_direction := (_clear_shot_target - global_position).normalized()
+			var avoidance := _check_wall_ahead(move_direction)
+			if avoidance != Vector2.ZERO:
+				move_direction = (move_direction * 0.5 + avoidance * 0.5).normalized()
+			velocity = move_direction * combat_move_speed
+			rotation = direction_to_player.angle()
 			return
 
 	# Reset seeking state if we now have a clear shot
@@ -1214,34 +1237,28 @@ func _process_combat_state(delta: float) -> void:
 			_shoot_timer = 0.0
 
 
-## Calculate a target position to exit cover and get a clear shot.
-## Returns a position that should allow the bullet spawn point to be unobstructed.
+## Calculate a target position to exit cover and get a clear shot using arc movement.
+## Uses progressive arc sweeping to move around cover edges tactically.
+## The arc starts perpendicular to the player direction and sweeps toward the player.
 func _calculate_clear_shot_exit_position(direction_to_player: Vector2) -> Vector2:
-	# Calculate perpendicular directions to the player
-	var perpendicular := Vector2(-direction_to_player.y, direction_to_player.x)
+	# Calculate the base perpendicular direction (starting point of arc)
+	var perpendicular := Vector2(-direction_to_player.y, direction_to_player.x) * _arc_movement_direction
 
-	# Try both perpendicular directions and pick the one that's more likely to work
-	# Also blend with forward movement toward player to help navigate around cover
-	var best_position := global_position
-	var best_score := -1.0
+	# Apply the current arc angle to rotate from perpendicular toward the player
+	# As _arc_movement_angle increases from 0 to PI/2, we rotate from perpendicular toward player
+	var arc_rotation := _arc_movement_angle * _arc_movement_direction
+	var exit_dir := perpendicular.rotated(-arc_rotation).normalized()
 
-	for side_multiplier: float in [1.0, -1.0]:
-		var sidestep_dir: Vector2 = perpendicular * side_multiplier
-		# Blend sidestep with forward movement for better cover navigation
-		var exit_dir: Vector2 = (sidestep_dir * 0.7 + direction_to_player * 0.3).normalized()
-		var test_position: Vector2 = global_position + exit_dir * CLEAR_SHOT_EXIT_DISTANCE
+	# Blend with forward movement for smoother navigation around cover
+	exit_dir = (exit_dir * 0.7 + direction_to_player * 0.3).normalized()
 
-		# Score this position based on:
-		# 1. Does it have a clear path? (no walls in the way)
-		# 2. Would the bullet spawn be clear from there?
-		var score: float = 0.0
+	var test_position := global_position + exit_dir * CLEAR_SHOT_EXIT_DISTANCE
 
-		# Check if we can move to this position
-		if _has_clear_path_to(test_position):
-			score += 1.0
+	# Check if this position is valid (can move there and bullet spawn would be clear)
+	var is_valid := _has_clear_path_to(test_position)
 
-		# Check if bullet spawn would be clear from this position
-		# This is a rough estimate - we check from the test position toward player
+	if is_valid:
+		# Also check if bullet spawn would be clear from this position
 		var world_2d := get_world_2d()
 		if world_2d != null:
 			var space_state := world_2d.direct_space_state
@@ -1254,17 +1271,49 @@ func _calculate_clear_shot_exit_position(direction_to_player: Vector2) -> Vector
 				query.exclude = [get_rid()]
 				var result := space_state.intersect_ray(query)
 				if result.is_empty():
-					score += 2.0  # Higher score for clear bullet spawn
+					# Found a good position with clear shot potential
+					_log_debug("Arc movement: found promising position at angle %.1f deg" % rad_to_deg(_arc_movement_angle))
+					return test_position
 
-		if score > best_score:
-			best_score = score
-			best_position = test_position
+	# Current position didn't work, advance the arc angle for next attempt
+	_arc_movement_angle += ARC_ANGLE_STEP
 
-	# If no good position found, just move forward toward player
-	if best_score < 0.5:
-		best_position = global_position + direction_to_player * CLEAR_SHOT_EXIT_DISTANCE
+	# If we've swept the full arc on this side, try the other side
+	if _arc_movement_angle >= ARC_MAX_ANGLE:
+		if not _arc_tried_other_side:
+			_log_debug("Arc movement: switching to other side")
+			_arc_movement_direction *= -1.0
+			_arc_movement_angle = 0.0
+			_arc_tried_other_side = true
+		else:
+			# Both sides exhausted, move directly toward player as last resort
+			_log_debug("Arc movement: both sides exhausted, moving toward player")
+			return global_position + direction_to_player * CLEAR_SHOT_EXIT_DISTANCE
 
-	return best_position
+	# Return current test position even if not ideal, so enemy keeps moving
+	return test_position
+
+
+## Choose the best initial arc direction based on obstacle proximity.
+## Returns 1.0 for clockwise (right side) or -1.0 for counter-clockwise (left side).
+func _choose_best_arc_direction() -> float:
+	if _player == null:
+		return 1.0
+
+	var direction_to_player := (_player.global_position - global_position).normalized()
+	var perpendicular := Vector2(-direction_to_player.y, direction_to_player.x)
+
+	# Check which side has more clear space
+	var right_clear := _has_clear_path_to(global_position + perpendicular * 50.0)
+	var left_clear := _has_clear_path_to(global_position - perpendicular * 50.0)
+
+	if right_clear and not left_clear:
+		return 1.0  # Go right (clockwise)
+	elif left_clear and not right_clear:
+		return -1.0  # Go left (counter-clockwise)
+	else:
+		# Both clear or both blocked - pick randomly for unpredictability
+		return 1.0 if randf() > 0.5 else -1.0
 
 
 ## Process SEEKING_COVER state - moving to cover position.
@@ -2010,6 +2059,10 @@ func _transition_to_combat() -> void:
 	_seeking_clear_shot = false
 	_clear_shot_timer = 0.0
 	_clear_shot_target = Vector2.ZERO
+	# Reset arc movement variables for fresh arc sweep
+	_arc_movement_angle = 0.0
+	_arc_movement_direction = _choose_best_arc_direction()
+	_arc_tried_other_side = false
 
 
 ## Transition to SEEKING_COVER state.
@@ -2537,7 +2590,8 @@ func _is_player_close() -> bool:
 
 
 ## Check if the enemy can hit the player from their current position.
-## Returns true if there's a clear line of fire to the player.
+## Returns true if there's a clear line of fire to the player AND
+## the bullet spawn point is not blocked by an obstacle in front.
 func _can_hit_player_from_current_position() -> bool:
 	if _player == null:
 		return false
@@ -2546,7 +2600,12 @@ func _can_hit_player_from_current_position() -> bool:
 	if not _can_see_player:
 		return false
 
-	# Check if the shot would be blocked by cover
+	# Check if the bullet spawn point is blocked (wall immediately in front)
+	var direction_to_player := (_player.global_position - global_position).normalized()
+	if not _is_bullet_spawn_clear(direction_to_player):
+		return false
+
+	# Check if the shot would be blocked by cover between spawn and player
 	return _is_shot_clear_of_cover(_player.global_position)
 
 
@@ -3756,6 +3815,29 @@ func _draw() -> void:
 		draw_line(Vector2.ZERO, to_cover, color_to_cover, 1.5)
 		# Draw small circle at cover position
 		draw_circle(to_cover, 8.0, color_to_cover)
+
+	# Draw arc sweep visualization if seeking clear shot
+	if _seeking_clear_shot and _player:
+		var direction_to_player := (_player.global_position - global_position).normalized()
+		var perpendicular := Vector2(-direction_to_player.y, direction_to_player.x)
+
+		# Draw the arc sweep area (dashed arc from current angle to max)
+		var arc_color := Color(1.0, 1.0, 0.0, 0.3)  # Semi-transparent yellow
+		var num_segments := 12
+		for i in range(num_segments):
+			var angle_start := float(i) / float(num_segments) * ARC_MAX_ANGLE
+			var angle_end := float(i + 1) / float(num_segments) * ARC_MAX_ANGLE
+
+			# Only draw segments we haven't swept yet
+			if angle_start >= _arc_movement_angle:
+				var dir_start := (perpendicular * _arc_movement_direction).rotated(-angle_start * _arc_movement_direction)
+				var dir_end := (perpendicular * _arc_movement_direction).rotated(-angle_end * _arc_movement_direction)
+				dir_start = (dir_start * 0.7 + direction_to_player * 0.3).normalized()
+				dir_end = (dir_end * 0.7 + direction_to_player * 0.3).normalized()
+
+				var point_start := dir_start * CLEAR_SHOT_EXIT_DISTANCE
+				var point_end := dir_end * CLEAR_SHOT_EXIT_DISTANCE
+				draw_line(point_start, point_end, arc_color, 1.5)
 
 	# Draw line to clear shot target if seeking clear shot
 	if _seeking_clear_shot and _clear_shot_target != Vector2.ZERO:
