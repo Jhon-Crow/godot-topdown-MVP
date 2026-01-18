@@ -157,16 +157,28 @@ func _setup_player_tracking() -> void:
 		# GDScript Player - connect to player signals
 		if _player.has_signal("ammo_changed"):
 			_player.ammo_changed.connect(_on_player_ammo_changed)
-		if _player.has_signal("ammo_depleted"):
-			_player.ammo_depleted.connect(_on_player_ammo_depleted)
-		# Connect reload signals for enemy aggression behavior
-		if _player.has_signal("reload_started"):
-			_player.reload_started.connect(_on_player_reload_started)
-		if _player.has_signal("reload_completed"):
-			_player.reload_completed.connect(_on_player_reload_completed)
 		# Initial ammo display
 		if _player.has_method("get_current_ammo") and _player.has_method("get_max_ammo"):
 			_update_ammo_label(_player.get_current_ammo(), _player.get_max_ammo())
+
+	# Connect reload/ammo depleted signals for enemy aggression behavior
+	# These signals are used by BOTH C# and GDScript players to notify enemies
+	# that the player is vulnerable (reloading or out of ammo)
+	# C# Player uses PascalCase signal names, GDScript uses snake_case
+	if _player.has_signal("ReloadStarted"):
+		_player.ReloadStarted.connect(_on_player_reload_started)
+	elif _player.has_signal("reload_started"):
+		_player.reload_started.connect(_on_player_reload_started)
+
+	if _player.has_signal("ReloadCompleted"):
+		_player.ReloadCompleted.connect(_on_player_reload_completed)
+	elif _player.has_signal("reload_completed"):
+		_player.reload_completed.connect(_on_player_reload_completed)
+
+	if _player.has_signal("AmmoDepleted"):
+		_player.AmmoDepleted.connect(_on_player_ammo_depleted)
+	elif _player.has_signal("ammo_depleted"):
+		_player.ammo_depleted.connect(_on_player_ammo_depleted)
 
 
 ## Setup tracking for all enemies in the scene.

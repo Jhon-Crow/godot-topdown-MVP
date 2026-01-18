@@ -985,15 +985,24 @@ func _process_ai_state(delta: float) -> void:
 	# HIGHEST PRIORITY: If player is reloading or tried to shoot with empty weapon,
 	# and enemy is close to the player, immediately attack with maximum priority.
 	# This exploits the player's vulnerability during reload or when out of ammo.
-	var player_is_vulnerable: bool = _goap_world_state.get("player_reloading", false) or _goap_world_state.get("player_ammo_empty", false)
-	if player_is_vulnerable and _can_see_player and _player and _is_player_close():
+	var player_reloading: bool = _goap_world_state.get("player_reloading", false)
+	var player_ammo_empty: bool = _goap_world_state.get("player_ammo_empty", false)
+	var player_is_vulnerable: bool = player_reloading or player_ammo_empty
+	var player_close: bool = _is_player_close()
+
+	# Debug log when player is vulnerable (but not every frame - only when conditions change)
+	if player_is_vulnerable and _player:
+		var distance_to_player := global_position.distance_to(_player.global_position)
+		_log_debug("Vulnerable check: reloading=%s, ammo_empty=%s, can_see=%s, close=%s (dist=%.0f)" % [player_reloading, player_ammo_empty, _can_see_player, player_close, distance_to_player])
+
+	if player_is_vulnerable and _can_see_player and _player and player_close:
 		# Check if we have a clear shot (no wall blocking bullet spawn)
 		var direction_to_player := (_player.global_position - global_position).normalized()
 		var has_clear_shot := _is_bullet_spawn_clear(direction_to_player)
 
 		if has_clear_shot and _can_shoot():
 			# Log the vulnerability attack
-			var reason: String = "reloading" if _goap_world_state.get("player_reloading", false) else "empty ammo"
+			var reason: String = "reloading" if player_reloading else "empty ammo"
 			_log_to_file("Player %s - priority attack triggered" % reason)
 
 			# Aim at player immediately
@@ -3716,13 +3725,19 @@ func get_goap_world_state() -> Dictionary:
 ## Set player reloading state. Called by level when player starts/finishes reload.
 ## When player starts reloading near an enemy, the enemy will attack with maximum priority.
 func set_player_reloading(is_reloading: bool) -> void:
+	var old_value: bool = _goap_world_state.get("player_reloading", false)
 	_goap_world_state["player_reloading"] = is_reloading
+	if is_reloading != old_value:
+		_log_to_file("Player reloading state changed: %s -> %s" % [old_value, is_reloading])
 
 
 ## Set player ammo empty state. Called by level when player tries to shoot with empty weapon.
 ## When player tries to shoot with no ammo, the enemy will attack with maximum priority.
 func set_player_ammo_empty(is_empty: bool) -> void:
+	var old_value: bool = _goap_world_state.get("player_ammo_empty", false)
 	_goap_world_state["player_ammo_empty"] = is_empty
+	if is_empty != old_value:
+		_log_to_file("Player ammo empty state changed: %s -> %s" % [old_value, is_empty])
 
 
 ## Check if enemy is currently under fire.
