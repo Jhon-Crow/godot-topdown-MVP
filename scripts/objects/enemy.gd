@@ -193,10 +193,20 @@ signal ammo_depleted
 var _wall_raycasts: Array[RayCast2D] = []
 
 ## Distance to check for walls ahead.
-const WALL_CHECK_DISTANCE: float = 40.0
+const WALL_CHECK_DISTANCE: float = 60.0
 
 ## Number of raycasts for wall detection (spread around the enemy).
-const WALL_CHECK_COUNT: int = 3
+## Uses 8 raycasts for better coverage: center + 3 on each side + 1 rear
+const WALL_CHECK_COUNT: int = 8
+
+## Minimum avoidance weight when close to a wall (stronger avoidance).
+const WALL_AVOIDANCE_MIN_WEIGHT: float = 0.7
+
+## Maximum avoidance weight when far from detected wall.
+const WALL_AVOIDANCE_MAX_WEIGHT: float = 0.3
+
+## Distance at which to start wall-sliding behavior (hugging walls).
+const WALL_SLIDE_DISTANCE: float = 30.0
 
 ## Cover detection raycasts (created at runtime).
 var _cover_raycasts: Array[RayCast2D] = []
@@ -946,10 +956,8 @@ func _process_combat_state(delta: float) -> void:
 		if distance_to_target > 15.0:
 			var move_direction := (_clear_shot_target - global_position).normalized()
 
-			# Apply wall avoidance
-			var avoidance := _check_wall_ahead(move_direction)
-			if avoidance != Vector2.ZERO:
-				move_direction = (move_direction * 0.5 + avoidance * 0.5).normalized()
+			# Apply enhanced wall avoidance with dynamic weighting
+			move_direction = _apply_wall_avoidance(move_direction)
 
 			velocity = move_direction * combat_move_speed
 			rotation = direction_to_player.angle()  # Keep facing player
@@ -1001,10 +1009,8 @@ func _process_combat_state(delta: float) -> void:
 	if _player:
 		var move_direction := direction_to_player
 
-		# Apply wall avoidance
-		var avoidance := _check_wall_ahead(move_direction)
-		if avoidance != Vector2.ZERO:
-			move_direction = (move_direction * 0.5 + avoidance * 0.5).normalized()
+		# Apply enhanced wall avoidance with dynamic weighting
+		move_direction = _apply_wall_avoidance(move_direction)
 
 		velocity = move_direction * combat_move_speed
 		rotation = direction_to_player.angle()  # Always face player
@@ -1099,10 +1105,8 @@ func _process_seeking_cover_state(_delta: float) -> void:
 				_transition_to_combat()
 				return
 
-	# Apply wall avoidance
-	var avoidance := _check_wall_ahead(direction)
-	if avoidance != Vector2.ZERO:
-		direction = (direction * 0.5 + avoidance * 0.5).normalized()
+	# Apply enhanced wall avoidance with dynamic weighting
+	direction = _apply_wall_avoidance(direction)
 
 	velocity = direction * combat_move_speed
 	rotation = direction.angle()
@@ -1283,9 +1287,7 @@ func _process_flanking_state(delta: float) -> void:
 	if _has_clear_path_to(_flank_target):
 		# Direct path is clear - move directly toward flank target
 		var direction := (_flank_target - global_position).normalized()
-		var avoidance := _check_wall_ahead(direction)
-		if avoidance != Vector2.ZERO:
-			direction = (direction * 0.5 + avoidance * 0.5).normalized()
+		direction = _apply_wall_avoidance(direction)
 		velocity = direction * combat_move_speed
 		rotation = direction.angle()
 		_has_flank_cover = false
@@ -1305,9 +1307,7 @@ func _process_flanking_state(delta: float) -> void:
 				_log_debug("No flank cover found, attempting direct movement")
 				# No cover found - try direct movement with enhanced wall avoidance
 				var direction := (_flank_target - global_position).normalized()
-				var avoidance := _check_wall_ahead(direction)
-				if avoidance != Vector2.ZERO:
-					direction = (direction * 0.5 + avoidance * 0.5).normalized()
+				direction = _apply_wall_avoidance(direction)
 				velocity = direction * combat_move_speed
 				rotation = direction.angle()
 				# Invalidate current cover to trigger new search next frame
@@ -1329,10 +1329,8 @@ func _process_flanking_state(delta: float) -> void:
 			# Start waiting at this cover
 			return
 
-		# Apply wall avoidance
-		var avoidance := _check_wall_ahead(direction)
-		if avoidance != Vector2.ZERO:
-			direction = (direction * 0.5 + avoidance * 0.5).normalized()
+		# Apply enhanced wall avoidance with dynamic weighting
+		direction = _apply_wall_avoidance(direction)
 
 		velocity = direction * combat_move_speed
 		rotation = direction.angle()
@@ -1343,9 +1341,7 @@ func _process_flanking_state(delta: float) -> void:
 	if not _has_flank_cover:
 		# Can't find cover, try direct movement with wall avoidance
 		var direction := (_flank_target - global_position).normalized()
-		var avoidance := _check_wall_ahead(direction)
-		if avoidance != Vector2.ZERO:
-			direction = (direction * 0.5 + avoidance * 0.5).normalized()
+		direction = _apply_wall_avoidance(direction)
 		velocity = direction * combat_move_speed
 		rotation = direction.angle()
 
@@ -1459,9 +1455,7 @@ func _process_retreat_full_hp(delta: float, direction_to_cover: Vector2) -> void
 
 		# Face cover and move toward it
 		rotation = direction_to_cover.angle()
-		var avoidance := _check_wall_ahead(direction_to_cover)
-		if avoidance != Vector2.ZERO:
-			direction_to_cover = (direction_to_cover * 0.5 + avoidance * 0.5).normalized()
+		direction_to_cover = _apply_wall_avoidance(direction_to_cover)
 		velocity = direction_to_cover * combat_move_speed
 	else:
 		# Face player and back up (walk backwards)
@@ -1479,10 +1473,8 @@ func _process_retreat_full_hp(delta: float, direction_to_cover: Vector2) -> void
 			# Use the negative of the direction we're facing for "backing up"
 			var move_direction := -direction_to_player
 
-			# Apply wall avoidance
-			var avoidance := _check_wall_ahead(move_direction)
-			if avoidance != Vector2.ZERO:
-				move_direction = (move_direction * 0.5 + avoidance * 0.5).normalized()
+			# Apply enhanced wall avoidance with dynamic weighting
+			move_direction = _apply_wall_avoidance(move_direction)
 
 			velocity = move_direction * combat_move_speed * 0.7  # Slower when backing up
 
@@ -1520,10 +1512,8 @@ func _process_retreat_one_hit(delta: float, direction_to_cover: Vector2) -> void
 			target_angle = lerp_angle(player_angle, cover_angle, burst_progress * 0.7)
 			rotation = target_angle
 
-		# Move toward cover (slower during burst)
-		var avoidance := _check_wall_ahead(direction_to_cover)
-		if avoidance != Vector2.ZERO:
-			direction_to_cover = (direction_to_cover * 0.5 + avoidance * 0.5).normalized()
+		# Move toward cover (slower during burst) with enhanced wall avoidance
+		direction_to_cover = _apply_wall_avoidance(direction_to_cover)
 		velocity = direction_to_cover * combat_move_speed * 0.5
 
 		# Check if burst is complete
@@ -1533,9 +1523,7 @@ func _process_retreat_one_hit(delta: float, direction_to_cover: Vector2) -> void
 	else:
 		# After burst, run to cover without shooting
 		rotation = direction_to_cover.angle()
-		var avoidance := _check_wall_ahead(direction_to_cover)
-		if avoidance != Vector2.ZERO:
-			direction_to_cover = (direction_to_cover * 0.5 + avoidance * 0.5).normalized()
+		direction_to_cover = _apply_wall_avoidance(direction_to_cover)
 		velocity = direction_to_cover * combat_move_speed
 
 
@@ -1605,10 +1593,8 @@ func _process_pursuing_state(delta: float) -> void:
 					_pursuit_approaching = false
 					return
 
-			# Apply wall avoidance and move toward player
-			var avoidance := _check_wall_ahead(direction)
-			if avoidance != Vector2.ZERO:
-				direction = (direction * 0.5 + avoidance * 0.5).normalized()
+			# Apply enhanced wall avoidance and move toward player
+			direction = _apply_wall_avoidance(direction)
 
 			velocity = direction * combat_move_speed
 			rotation = direction.angle()
@@ -1665,10 +1651,8 @@ func _process_pursuing_state(delta: float) -> void:
 			# Start waiting at this cover
 			return
 
-		# Apply wall avoidance
-		var avoidance := _check_wall_ahead(direction)
-		if avoidance != Vector2.ZERO:
-			direction = (direction * 0.5 + avoidance * 0.5).normalized()
+		# Apply enhanced wall avoidance with dynamic weighting
+		direction = _apply_wall_avoidance(direction)
 
 		velocity = direction * combat_move_speed
 		rotation = direction.angle()
@@ -1713,9 +1697,7 @@ func _process_assault_state(delta: float) -> void:
 		if distance_to_cover > 15.0 and _is_visible_from_player():
 			# Still need to reach cover
 			var direction := (_cover_position - global_position).normalized()
-			var avoidance := _check_wall_ahead(direction)
-			if avoidance != Vector2.ZERO:
-				direction = (direction * 0.5 + avoidance * 0.5).normalized()
+			direction = _apply_wall_avoidance(direction)
 			velocity = direction * combat_move_speed
 			rotation = direction.angle()
 			return
@@ -1746,10 +1728,8 @@ func _process_assault_state(delta: float) -> void:
 		var direction_to_player := (_player.global_position - global_position).normalized()
 		var distance_to_player := global_position.distance_to(_player.global_position)
 
-		# Apply wall avoidance
-		var avoidance := _check_wall_ahead(direction_to_player)
-		if avoidance != Vector2.ZERO:
-			direction_to_player = (direction_to_player * 0.5 + avoidance * 0.5).normalized()
+		# Apply enhanced wall avoidance with dynamic weighting
+		direction_to_player = _apply_wall_avoidance(direction_to_player)
 
 		# Rush at full speed
 		velocity = direction_to_player * combat_move_speed
@@ -2530,6 +2510,7 @@ func _can_reach_position(target: Vector2) -> bool:
 
 ## Find cover position closest to the player for assault positioning.
 ## Used during ASSAULT state to take the nearest safe cover to the player.
+## Enhanced: Now validates that the cover position is reachable (no walls blocking path).
 func _find_cover_closest_to_player() -> void:
 	if _player == null:
 		_has_valid_cover = false
@@ -2556,6 +2537,11 @@ func _find_cover_closest_to_player() -> void:
 			# Cover position is offset from collision point along normal
 			var cover_pos := collision_point + collision_normal * 35.0
 
+			# CRITICAL: Verify we can actually reach this cover position
+			# This prevents selecting cover positions on the opposite side of walls
+			if not _can_reach_position(cover_pos):
+				continue
+
 			# Check if this position is hidden from player (safe cover)
 			var is_hidden := not _is_position_visible_from_player(cover_pos)
 
@@ -2580,6 +2566,7 @@ func _find_cover_closest_to_player() -> void:
 
 ## Find a valid cover position relative to the player.
 ## The cover position must be hidden from the player's line of sight.
+## Enhanced: Now validates that the cover position is reachable (no walls blocking path).
 func _find_cover_position() -> void:
 	if _player == null:
 		_has_valid_cover = false
@@ -2610,6 +2597,11 @@ func _find_cover_position() -> void:
 			# Offset must be large enough to hide the entire enemy body (radius ~24 pixels)
 			# Using 35 pixels to provide some margin for the enemy's collision shape
 			var cover_pos := collision_point + collision_normal * 35.0
+
+			# CRITICAL: Verify we can actually reach this cover position
+			# This prevents selecting cover positions on the opposite side of walls
+			if not _can_reach_position(cover_pos):
+				continue
 
 			# First priority: Check if this position is actually hidden from player
 			var is_hidden := not _is_position_visible_from_player(cover_pos)
@@ -2799,32 +2791,104 @@ func _find_flank_cover_toward_target() -> void:
 
 ## Check if there's a wall ahead in the given direction and return avoidance direction.
 ## Returns Vector2.ZERO if no wall detected, otherwise returns a vector to avoid the wall.
+## Enhanced version uses 8 raycasts with distance-weighted avoidance for better navigation.
 func _check_wall_ahead(direction: Vector2) -> Vector2:
 	if _wall_raycasts.is_empty():
 		return Vector2.ZERO
 
 	var avoidance := Vector2.ZERO
 	var perpendicular := Vector2(-direction.y, direction.x)  # 90 degrees rotation
+	var closest_wall_distance := WALL_CHECK_DISTANCE
+	var hit_count := 0
 
-	# Check center, left, and right raycasts
-	for i in range(WALL_CHECK_COUNT):
-		var angle_offset := (i - 1) * 0.5  # -0.5, 0, 0.5 radians (~-28, 0, 28 degrees)
+	# Raycast angles: spread from -90 to +90 degrees relative to movement direction
+	# Index 0: center (0°)
+	# Index 1-3: left side (-20°, -45°, -70°)
+	# Index 4-6: right side (+20°, +45°, +70°)
+	# Index 7: rear check for wall sliding (-180°)
+	var angles := [0.0, -0.35, -0.79, -1.22, 0.35, 0.79, 1.22, PI]
+
+	for i in range(mini(WALL_CHECK_COUNT, _wall_raycasts.size())):
+		var angle_offset := angles[i] if i < angles.size() else 0.0
 		var check_direction := direction.rotated(angle_offset)
 
 		var raycast := _wall_raycasts[i]
-		raycast.target_position = check_direction * WALL_CHECK_DISTANCE
+		# Use shorter distance for rear check (wall sliding detection)
+		var check_distance := WALL_SLIDE_DISTANCE if i == 7 else WALL_CHECK_DISTANCE
+		raycast.target_position = check_direction * check_distance
 		raycast.force_raycast_update()
 
 		if raycast.is_colliding():
-			# Calculate avoidance based on which raycast hit
-			if i == 0:  # Left raycast hit
-				avoidance += perpendicular  # Steer right
-			elif i == 1:  # Center raycast hit
-				avoidance += perpendicular if randf() > 0.5 else -perpendicular  # Random steer
-			elif i == 2:  # Right raycast hit
-				avoidance -= perpendicular  # Steer left
+			hit_count += 1
+			var collision_point := raycast.get_collision_point()
+			var hit_distance := global_position.distance_to(collision_point)
 
-	return avoidance.normalized() if avoidance.length() > 0 else Vector2.ZERO
+			# Track closest wall for avoidance weight calculation
+			if hit_distance < closest_wall_distance:
+				closest_wall_distance = hit_distance
+
+			# Calculate avoidance contribution based on angle
+			# Walls on the left push right, walls on the right push left
+			# Weight by how close the wall is (closer = stronger avoidance)
+			var distance_factor := 1.0 - (hit_distance / check_distance)
+
+			if i == 0:  # Center - wall directly ahead, steer perpendicular
+				# Use collision normal if available for smarter steering
+				var collision_normal := raycast.get_collision_normal()
+				if collision_normal != Vector2.ZERO:
+					# Steer along the wall (wall sliding behavior)
+					var wall_tangent := Vector2(-collision_normal.y, collision_normal.x)
+					# Choose direction that aligns more with our intended direction
+					if wall_tangent.dot(perpendicular) < 0:
+						wall_tangent = -wall_tangent
+					avoidance += wall_tangent * distance_factor * 2.0
+				else:
+					avoidance += perpendicular * distance_factor * 2.0
+			elif i >= 1 and i <= 3:  # Left side rays - steer right
+				avoidance += perpendicular * distance_factor
+			elif i >= 4 and i <= 6:  # Right side rays - steer left
+				avoidance -= perpendicular * distance_factor
+			# Index 7 (rear) doesn't contribute to avoidance, just for detection
+
+	if avoidance.length() == 0:
+		return Vector2.ZERO
+
+	return avoidance.normalized()
+
+
+## Get the avoidance weight based on wall proximity.
+## Returns higher weight when closer to walls for stronger avoidance.
+func _get_wall_avoidance_weight(direction: Vector2) -> float:
+	if _wall_raycasts.is_empty():
+		return WALL_AVOIDANCE_MAX_WEIGHT
+
+	var closest_distance := WALL_CHECK_DISTANCE
+
+	# Check the center raycast for distance
+	if _wall_raycasts.size() > 0:
+		var raycast := _wall_raycasts[0]
+		raycast.target_position = direction * WALL_CHECK_DISTANCE
+		raycast.force_raycast_update()
+
+		if raycast.is_colliding():
+			var collision_point := raycast.get_collision_point()
+			closest_distance = global_position.distance_to(collision_point)
+
+	# Interpolate between min and max weight based on distance
+	var t := closest_distance / WALL_CHECK_DISTANCE
+	return lerpf(WALL_AVOIDANCE_MIN_WEIGHT, WALL_AVOIDANCE_MAX_WEIGHT, t)
+
+
+## Apply wall avoidance to a movement direction with dynamic weighting.
+## Uses stronger avoidance when closer to walls.
+func _apply_wall_avoidance(direction: Vector2) -> Vector2:
+	var avoidance := _check_wall_ahead(direction)
+	if avoidance == Vector2.ZERO:
+		return direction
+
+	var weight := _get_wall_avoidance_weight(direction)
+	# Blend original direction with avoidance, stronger avoidance when close to walls
+	return (direction * (1.0 - weight) + avoidance * weight).normalized()
 
 
 ## Check if the player is visible using raycast.
@@ -3054,11 +3118,8 @@ func _process_patrol(delta: float) -> void:
 		_is_waiting_at_patrol_point = true
 		velocity = Vector2.ZERO
 	else:
-		# Check for walls and apply avoidance
-		var avoidance := _check_wall_ahead(direction)
-		if avoidance != Vector2.ZERO:
-			# Blend movement direction with avoidance
-			direction = (direction * 0.5 + avoidance * 0.5).normalized()
+		# Apply enhanced wall avoidance with dynamic weighting
+		direction = _apply_wall_avoidance(direction)
 
 		velocity = direction * move_speed
 		# Face movement direction when patrolling
