@@ -120,9 +120,9 @@ func unregister_listener(listener: Node2D) -> void:
 ## - custom_range: Override the default propagation distance (optional, -1 uses default)
 func emit_sound(sound_type: SoundType, position: Vector2, source_type: SourceType,
 				source_node: Node2D = null, custom_range: float = -1.0) -> void:
-	var propagation_distance := custom_range if custom_range > 0 else PROPAGATION_DISTANCES.get(sound_type, 1000.0)
+	var propagation_distance: float = custom_range if custom_range > 0 else float(PROPAGATION_DISTANCES.get(sound_type, 1000.0))
 
-	var source_name := source_node.name if source_node else "null"
+	var source_name: String = source_node.name if source_node else "null"
 	_log_debug("Sound emitted: type=%s, pos=%s, source=%s, range=%.0f" % [
 		SoundType.keys()[sound_type],
 		position,
@@ -150,7 +150,7 @@ func emit_sound(sound_type: SoundType, position: Vector2, source_type: SourceTyp
 	var listeners_skipped_self := 0
 	var listeners_below_threshold := 0
 
-	for listener in _listeners:
+	for listener: Node2D in _listeners:
 		if not is_instance_valid(listener):
 			continue
 
@@ -160,11 +160,11 @@ func emit_sound(sound_type: SoundType, position: Vector2, source_type: SourceTyp
 			continue
 
 		# Check if listener is within propagation range
-		var distance := listener.global_position.distance_to(position)
+		var distance: float = listener.global_position.distance_to(position)
 		if distance <= propagation_distance:
 			# Calculate sound intensity using inverse square law
 			# Intensity = 1.0 at reference distance, falls off with 1/r²
-			var intensity := calculate_intensity(distance)
+			var intensity: float = calculate_intensity(distance)
 
 			# Only notify if intensity is above threshold
 			if intensity >= MIN_INTENSITY_THRESHOLD:

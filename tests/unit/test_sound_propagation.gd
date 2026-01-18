@@ -274,56 +274,56 @@ func test_null_listener_is_not_registered() -> void:
 
 func test_calculate_intensity_at_reference_distance() -> void:
 	# At reference distance (50 pixels), intensity should be 1.0
-	var intensity := _sound_propagation.calculate_intensity(50.0)
+	var intensity: float = _sound_propagation.calculate_intensity(50.0)
 	assert_almost_eq(intensity, 1.0, 0.001, "Intensity at reference distance should be 1.0")
 
 
 func test_calculate_intensity_closer_than_reference() -> void:
 	# Closer than reference distance should still be 1.0 (clamped)
-	var intensity := _sound_propagation.calculate_intensity(25.0)
+	var intensity: float = _sound_propagation.calculate_intensity(25.0)
 	assert_almost_eq(intensity, 1.0, 0.001, "Intensity closer than reference should be 1.0")
 
 
 func test_calculate_intensity_at_zero_distance() -> void:
 	# At zero distance should be 1.0
-	var intensity := _sound_propagation.calculate_intensity(0.0)
+	var intensity: float = _sound_propagation.calculate_intensity(0.0)
 	assert_almost_eq(intensity, 1.0, 0.001, "Intensity at zero distance should be 1.0")
 
 
 func test_calculate_intensity_inverse_square_law() -> void:
 	# At double reference distance (100), intensity should be 1/4 = 0.25
 	# Using formula: (50/100)² = 0.25
-	var intensity := _sound_propagation.calculate_intensity(100.0)
+	var intensity: float = _sound_propagation.calculate_intensity(100.0)
 	assert_almost_eq(intensity, 0.25, 0.001, "Intensity at 2x reference should be 0.25")
 
 
 func test_calculate_intensity_at_triple_reference() -> void:
 	# At triple reference distance (150), intensity should be 1/9 ≈ 0.111
 	# Using formula: (50/150)² = 0.111
-	var intensity := _sound_propagation.calculate_intensity(150.0)
+	var intensity: float = _sound_propagation.calculate_intensity(150.0)
 	assert_almost_eq(intensity, 0.111, 0.01, "Intensity at 3x reference should be ~0.111")
 
 
 func test_calculate_intensity_at_viewport_distance() -> void:
 	# At viewport diagonal distance (~1468.6), intensity should be very low
 	# Using formula: (50/1468.6)² ≈ 0.00116
-	var intensity := _sound_propagation.calculate_intensity(1468.6)
+	var intensity: float = _sound_propagation.calculate_intensity(1468.6)
 	assert_lt(intensity, 0.01, "Intensity at viewport distance should be less than 0.01")
 	assert_gt(intensity, 0.0, "Intensity at viewport distance should be greater than 0")
 
 
 func test_calculate_intensity_with_absorption() -> void:
 	# With absorption, intensity should be lower than without
-	var base_intensity := _sound_propagation.calculate_intensity(500.0)
-	var absorbed_intensity := _sound_propagation.calculate_intensity_with_absorption(500.0)
+	var base_intensity: float = _sound_propagation.calculate_intensity(500.0)
+	var absorbed_intensity: float = _sound_propagation.calculate_intensity_with_absorption(500.0)
 	assert_lt(absorbed_intensity, base_intensity, "Absorbed intensity should be less than base")
 
 
 func test_intensity_decreases_with_distance() -> void:
 	# Intensity should monotonically decrease with distance
-	var i1 := _sound_propagation.calculate_intensity(100.0)
-	var i2 := _sound_propagation.calculate_intensity(200.0)
-	var i3 := _sound_propagation.calculate_intensity(400.0)
+	var i1: float = _sound_propagation.calculate_intensity(100.0)
+	var i2: float = _sound_propagation.calculate_intensity(200.0)
+	var i3: float = _sound_propagation.calculate_intensity(400.0)
 
 	assert_gt(i1, i2, "Intensity at 100 should be greater than at 200")
 	assert_gt(i2, i3, "Intensity at 200 should be greater than at 400")
