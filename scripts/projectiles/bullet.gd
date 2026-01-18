@@ -39,8 +39,17 @@ func _physics_process(delta: float) -> void:
 		queue_free()
 
 
-func _on_body_entered(_body: Node2D) -> void:
-	# Hit a static body (wall or obstacle)
+func _on_body_entered(body: Node2D) -> void:
+	# Check if this is the shooter - don't collide with own body
+	if shooter_id == body.get_instance_id():
+		return  # Pass through the shooter
+
+	# Check if this is a dead enemy - bullets should pass through dead entities
+	# This handles the CharacterBody2D collision (separate from HitArea collision)
+	if body.has_method("is_alive") and not body.is_alive():
+		return  # Pass through dead entities
+
+	# Hit a static body (wall or obstacle) or alive enemy body
 	# Play wall impact sound
 	var audio_manager: Node = get_node_or_null("/root/AudioManager")
 	if audio_manager and audio_manager.has_method("play_bullet_wall_hit"):

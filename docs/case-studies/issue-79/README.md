@@ -20,86 +20,129 @@
 - **Approach**: Disabled HitArea's `monitorable` and `monitoring` properties using `set_deferred()` in the `_on_death()` function
 - **Result**: Did not fully resolve the issue
 
-### User Feedback
+### Second Fix Attempt
+- **Commit**: `f1580c7` (2026-01-18)
+- **Approach**: Multi-layered approach on HitArea + bullet-side `is_alive()` check for area collisions
+- **Result**: Still did not resolve the issue - bullets still stopped by dead enemies
+
+### User Feedback (Round 1)
 - **Date**: 2026-01-18 11:06-11:08
 - **Logs Provided**:
   - `game_log_20260118_110600.txt` (16KB)
   - `game_log_20260118_110624.txt` (105KB)
 - **Feedback**: "пули не пролетают сквозь убитого врага, а должны" (bullets don't pass through dead enemy, but they should)
 
+### User Feedback (Round 2)
+- **Date**: 2026-01-18 11:23-11:25
+- **Logs Provided**:
+  - `game_log_20260118_112310.txt` (197KB)
+  - `game_log_20260118_112522.txt` (42KB)
+- **Feedback**: "мёртвые враги всё ещё останавливают пули" (dead enemies still stop bullets)
+
 ## Technical Analysis
 
 ### How Bullet-Enemy Collision Works
 
+The bullet (Area2D) can collide with BOTH the HitArea (Area2D) and the Enemy body (CharacterBody2D):
+
 ```
 Bullet (Area2D)          HitArea (Area2D)          Enemy (CharacterBody2D)
-collision_layer: 16      collision_layer: 2
-collision_mask: 39       collision_mask: 16
+collision_layer: 16      collision_layer: 2        collision_layer: 2
+collision_mask: 39       collision_mask: 16        collision_mask: 4
     |                         |                         |
     |---area_entered()------->|                         |
     |                    on_hit()---------------------->|
     |                         |                   on_hit()
     |                         |                   (applies damage)
-    |<--signal processed------|                         |
+    |                         |                         |
+    |---body_entered()--------------------------------->|
     queue_free()              |                         |
     (bullet destroyed)        |                         |
 ```
 
-### The Flawed Fix Approach
+**Key Insight**: The bullet's collision_mask (39 = 1 + 2 + 4 + 32) includes layer 2, which is the enemy's collision_layer. This means bullets collide with BOTH:
+1. The HitArea (via `area_entered` signal)
+2. The Enemy CharacterBody2D (via `body_entered` signal)
 
-The initial fix attempted to disable collision by setting:
+### The Flawed Fix Approaches
+
+#### Attempt 1: Disable HitArea monitoring
 ```gdscript
 if _hit_area:
     _hit_area.set_deferred("monitorable", false)
     _hit_area.set_deferred("monitoring", false)
 ```
 
-### Why It Doesn't Work
+#### Attempt 2: Multi-layered approach (HitArea only)
+Added collision shape disabling, layer clearing, and bullet-side `is_alive()` check for area collisions.
 
-Based on investigation and Godot engine issue reports:
+### Why Neither Fix Worked
 
-1. **[Issue #62506](https://github.com/godotengine/godot/issues/62506)**: `set_deferred()` with `monitorable`/`monitoring` has inconsistent behavior depending on the order of property assignment
+**The Root Cause**: Both fixes only addressed the HitArea (Area2D) collision, but ignored the CharacterBody2D collision!
 
-2. **[Issue #100687](https://github.com/godotengine/godot/issues/100687)**: When two Area2Ds are already overlapping and one toggles its `monitorable` property, the other Area2D's signals are NOT re-triggered
-
-3. **Timing Issue**: Bullets traveling at 2500 pixels/second can enter the HitArea during the same physics frame that the enemy dies. The collision signal may already be queued before `set_deferred()` executes.
-
-4. **Deferred Execution**: `set_deferred()` schedules the change for the end of the current frame, but collision signals from the same frame have already been registered.
-
-### Root Cause
-
-The fundamental issue is that **disabling `monitorable`/`monitoring` does not affect already-registered collision events**. The bullet's `area_entered` signal was connected when it entered the HitArea's collision shape, and toggling `monitorable` after the fact doesn't "un-enter" the area.
-
-## Proposed Solution
-
-A multi-layered approach is needed:
-
-### Layer 1: Disable the CollisionShape2D
+The bullet's `_on_body_entered()` function was:
 ```gdscript
-var hit_collision: CollisionShape2D = _hit_area.get_node_or_null("HitCollisionShape")
-if hit_collision:
-    hit_collision.set_deferred("disabled", true)
+func _on_body_entered(_body: Node2D) -> void:
+    # Hit a static body (wall or obstacle)
+    var audio_manager: Node = get_node_or_null("/root/AudioManager")
+    if audio_manager and audio_manager.has_method("play_bullet_wall_hit"):
+        audio_manager.play_bullet_wall_hit(global_position)
+    queue_free()  # <-- ALWAYS destroys bullet, even for dead enemies!
 ```
-This physically removes the collision shape from the physics engine.
 
-### Layer 2: Move to an unused collision layer
+This function:
+1. Didn't check if the body was a dead enemy
+2. Always called `queue_free()`, destroying the bullet unconditionally
+
+Even though the HitArea collision was handled correctly (checking `is_alive()`), the bullet was being destroyed by the CharacterBody2D collision BEFORE the HitArea collision could be processed!
+
+### Additional Godot Engine Limitations
+
+Based on Godot engine issue reports:
+
+1. **[Issue #62506](https://github.com/godotengine/godot/issues/62506)**: `set_deferred()` with `monitorable`/`monitoring` has inconsistent behavior
+2. **[Issue #100687](https://github.com/godotengine/godot/issues/100687)**: When two Area2Ds are overlapping and one toggles `monitorable`, the other's signals are NOT re-triggered
+3. **[Issue #86199](https://github.com/godotengine/godot/issues/86199)**: Area2D `body_entered` signal is emitted 1 physics tick late
+4. **Timing Issue**: Bullets at 2500 pixels/second can enter the collision during the same physics frame that the enemy dies
+
+## Solution
+
+The fix requires handling BOTH collision paths in the bullet:
+
+### Fix 1: Handle CharacterBody2D Collision (The Critical Fix)
 ```gdscript
-_hit_area.set_deferred("collision_layer", 0)
-_hit_area.set_deferred("collision_mask", 0)
+# In bullet.gd _on_body_entered()
+func _on_body_entered(body: Node2D) -> void:
+    # Check if this is the shooter - don't collide with own body
+    if shooter_id == body.get_instance_id():
+        return  # Pass through the shooter
+
+    # Check if this is a dead enemy - bullets should pass through dead entities
+    if body.has_method("is_alive") and not body.is_alive():
+        return  # Pass through dead entities
+
+    # Hit a static body (wall or obstacle) or alive enemy body
+    var audio_manager: Node = get_node_or_null("/root/AudioManager")
+    if audio_manager and audio_manager.has_method("play_bullet_wall_hit"):
+        audio_manager.play_bullet_wall_hit(global_position)
+    queue_free()
 ```
-This prevents any future collision detection even if the shape somehow remains active.
 
-### Layer 3: Keep existing monitorable/monitoring disabling
-As an additional safety measure, keep the original fix in place.
-
-### Layer 4: Add explicit check in bullet collision handler
-Modify the bullet to check if the parent entity is alive before counting the hit:
+### Fix 2: Handle HitArea Collision (Already Implemented)
 ```gdscript
 # In bullet.gd _on_area_entered()
 var parent: Node = area.get_parent()
 if parent and parent.has_method("is_alive") and not parent.is_alive():
     return  # Don't destroy bullet for dead enemies
 ```
+
+### Enemy-Side Measures (Already Implemented)
+Keep the multi-layered approach on the enemy for defense in depth:
+1. Disable CollisionShape2D: `_hit_collision_shape.set_deferred("disabled", true)`
+2. Clear collision layers: `_hit_area.set_deferred("collision_layer", 0)`
+3. Disable monitoring: `_hit_area.set_deferred("monitorable", false)`
+
+These measures help with any new bullets entering the area after death, while the bullet-side checks handle bullets that were already in collision at the moment of death
 
 ## Log Analysis
 

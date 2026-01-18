@@ -376,3 +376,39 @@ func test_enemy_without_hit_area_does_not_crash_on_reset() -> void:
 
 	assert_true(standalone_enemy.is_alive(), "Enemy should be alive after reset")
 	pass_test("No crash when enemy resets without hit area reference")
+
+
+# ============================================================================
+# Bullet CharacterBody2D Collision Tests
+# ============================================================================
+
+
+func test_is_alive_returns_true_when_alive() -> void:
+	var mock_enemy := _create_enemy_with_hit_area()
+
+	assert_true(mock_enemy.is_alive(), "is_alive() should return true for alive enemy")
+	assert_true(mock_enemy.has_method("is_alive"), "Enemy should have is_alive method")
+
+
+func test_is_alive_returns_false_when_dead() -> void:
+	var mock_enemy := _create_enemy_with_hit_area()
+
+	# Kill the enemy
+	mock_enemy.on_hit()
+	mock_enemy.on_hit()
+	mock_enemy.on_hit()
+
+	assert_false(mock_enemy.is_alive(), "is_alive() should return false for dead enemy")
+
+
+func test_is_alive_is_set_immediately_on_death() -> void:
+	var mock_enemy := _create_enemy_with_hit_area()
+
+	# Note: is_alive should be set to false SYNCHRONOUSLY in _on_death(),
+	# not deferred. This allows bullets to check the alive state immediately.
+	mock_enemy.on_hit()
+	mock_enemy.on_hit()
+	mock_enemy.on_hit()  # This triggers _on_death() which sets _is_alive = false
+
+	# Check immediately without waiting for next frame
+	assert_false(mock_enemy.is_alive(), "is_alive should be false immediately after death")
