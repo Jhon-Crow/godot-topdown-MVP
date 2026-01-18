@@ -11,10 +11,17 @@ extends CanvasLayer
 @onready var menu_container: Control = $MenuContainer
 @onready var resume_button: Button = $MenuContainer/VBoxContainer/ResumeButton
 @onready var controls_button: Button = $MenuContainer/VBoxContainer/ControlsButton
+@onready var difficulty_button: Button = $MenuContainer/VBoxContainer/DifficultyButton
 @onready var quit_button: Button = $MenuContainer/VBoxContainer/QuitButton
 
 ## The instantiated controls menu.
 var _controls_menu: CanvasLayer = null
+
+## The instantiated difficulty menu.
+var _difficulty_menu: CanvasLayer = null
+
+## Reference to the difficulty menu scene.
+@export var difficulty_menu_scene: PackedScene
 
 
 func _ready() -> void:
@@ -25,11 +32,16 @@ func _ready() -> void:
 	# Connect button signals
 	resume_button.pressed.connect(_on_resume_pressed)
 	controls_button.pressed.connect(_on_controls_pressed)
+	difficulty_button.pressed.connect(_on_difficulty_pressed)
 	quit_button.pressed.connect(_on_quit_pressed)
 
 	# Preload controls menu if not set
 	if controls_menu_scene == null:
 		controls_menu_scene = preload("res://scenes/ui/ControlsMenu.tscn")
+
+	# Preload difficulty menu if not set
+	if difficulty_menu_scene == null:
+		difficulty_menu_scene = preload("res://scenes/ui/DifficultyMenu.tscn")
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -66,6 +78,10 @@ func resume_game() -> void:
 	if _controls_menu and _controls_menu.visible:
 		_controls_menu.hide()
 
+	# Also close difficulty menu if open
+	if _difficulty_menu and _difficulty_menu.visible:
+		_difficulty_menu.hide()
+
 
 func _on_resume_pressed() -> void:
 	resume_game()
@@ -89,6 +105,26 @@ func _on_controls_back() -> void:
 		_controls_menu.hide()
 	menu_container.show()
 	controls_button.grab_focus()
+
+
+func _on_difficulty_pressed() -> void:
+	# Hide main menu, show difficulty menu
+	menu_container.hide()
+
+	if _difficulty_menu == null:
+		_difficulty_menu = difficulty_menu_scene.instantiate()
+		_difficulty_menu.back_pressed.connect(_on_difficulty_back)
+		add_child(_difficulty_menu)
+	else:
+		_difficulty_menu.show()
+
+
+func _on_difficulty_back() -> void:
+	# Show main menu again
+	if _difficulty_menu:
+		_difficulty_menu.hide()
+	menu_container.show()
+	difficulty_button.grab_focus()
 
 
 func _on_quit_pressed() -> void:

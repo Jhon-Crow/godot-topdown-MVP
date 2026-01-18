@@ -201,6 +201,30 @@ class AssaultPlayerAction extends GOAPAction:
 		return 5.0  # Very high cost if alone (prefer other actions)
 
 
+## Action to attack a distracted player (aim > 23° away from enemy).
+## This action has the LOWEST cost (highest priority) of all actions.
+## When the player is visible but not aiming at the enemy, this action takes precedence
+## over all other behaviors, forcing an immediate attack.
+class AttackDistractedPlayerAction extends GOAPAction:
+	func _init() -> void:
+		super._init("attack_distracted_player", 0.1)  # Very low cost = highest priority
+		preconditions = {
+			"player_visible": true,
+			"player_distracted": true
+		}
+		effects = {
+			"player_engaged": true
+		}
+
+	func get_cost(_agent: Node, world_state: Dictionary) -> float:
+		# This action always has the lowest cost when conditions are met
+		# to ensure it takes absolute priority over all other actions.
+		# Return even lower cost to guarantee it's selected.
+		if world_state.get("player_distracted", false):
+			return 0.05  # Absolute highest priority
+		return 100.0  # Should never happen if preconditions are correct
+
+
 ## Create and return all enemy actions.
 static func create_all_actions() -> Array[GOAPAction]:
 	var actions: Array[GOAPAction] = []
@@ -215,4 +239,5 @@ static func create_all_actions() -> Array[GOAPAction]:
 	actions.append(RetreatWithFireAction.new())
 	actions.append(PursuePlayerAction.new())
 	actions.append(AssaultPlayerAction.new())
+	actions.append(AttackDistractedPlayerAction.new())
 	return actions

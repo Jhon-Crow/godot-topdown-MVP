@@ -184,6 +184,11 @@ signal reload_finished
 ## Signal emitted when all ammunition is depleted.
 signal ammo_depleted
 
+## Threshold angle (in radians) for considering the player "distracted".
+## If the player's aim is more than this angle away from the enemy, they are distracted.
+## 23 degrees ≈ 0.4014 radians.
+const PLAYER_DISTRACTION_ANGLE: float = 0.4014
+
 ## Reference to the sprite for color changes.
 @onready var _sprite: Sprite2D = $Sprite2D
 
@@ -733,7 +738,8 @@ func _initialize_goap_state() -> void:
 		"is_assaulting": false,
 		"can_hit_from_cover": false,
 		"player_close": false,
-		"enemies_in_combat": 0
+		"enemies_in_combat": 0,
+		"player_distracted": false
 	}
 
 
@@ -833,6 +839,7 @@ func _update_goap_state() -> void:
 	_goap_world_state["player_close"] = _is_player_close()
 	_goap_world_state["can_hit_from_cover"] = _can_hit_player_from_current_position()
 	_goap_world_state["enemies_in_combat"] = _count_enemies_in_combat()
+	_goap_world_state["player_distracted"] = _is_player_distracted()
 
 
 ## Update suppression state.
@@ -935,6 +942,43 @@ func _can_shoot() -> bool:
 ## Process the AI state machine.
 func _process_ai_state(delta: float) -> void:
 	var previous_state := _current_state
+
+	# HIGHEST PRIORITY: If player is distracted (aim > 23° away from enemy),
+	# immediately shoot from ANY state. This is the highest priority action
+	# that bypasses ALL other state logic including timers.
+	# The enemy must seize the opportunity when the player is not focused on them.
+	# NOTE: This behavior is ONLY enabled in Hard difficulty mode.
+	var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
+	var is_distraction_enabled: bool = difficulty_manager != null and difficulty_manager.is_distraction_attack_enabled()
+	if is_distraction_enabled and _goap_world_state.get("player_distracted", false) and _can_see_player and _player:
+		# Check if we have a clear shot (no wall blocking bullet spawn)
+		var direction_to_player := (_player.global_position - global_position).normalized()
+		var has_clear_shot := _is_bullet_spawn_clear(direction_to_player)
+
+		if has_clear_shot and _can_shoot():
+			# Log the distraction attack
+			_log_to_file("Player distracted - priority attack triggered")
+
+			# Aim at player immediately
+			rotation = direction_to_player.angle()
+
+			# Shoot immediately - bypassing ALL timers and state restrictions
+			# This is the highest priority action in the game
+			_shoot()
+			_shoot_timer = 0.0  # Reset shoot timer after distraction shot
+
+			# Ensure detection delay is bypassed for any subsequent normal shots
+			_detection_delay_elapsed = true
+
+			# Transition to COMBAT if not already in a combat-related state
+			# This ensures proper follow-up behavior after the distraction shot
+			if _current_state == AIState.IDLE:
+				_transition_to_combat()
+				_detection_delay_elapsed = true  # Re-set after transition resets it
+
+			# Return early - we've taken the highest priority action
+			# The state machine will continue normally in the next frame
+			return
 
 	# State transitions based on conditions
 	match _current_state:
@@ -3744,6 +3788,60 @@ func _draw() -> void:
 			draw_line(flank_pos + Vector2(8, 0), flank_pos + Vector2(0, 8), color_flank, 2.0)
 			draw_line(flank_pos + Vector2(0, 8), flank_pos + Vector2(-8, 0), color_flank, 2.0)
 			draw_line(flank_pos + Vector2(-8, 0), flank_pos + Vector2(0, -8), color_flank, 2.0)
+
+
+## Check if the player is "distracted" (not aiming at the enemy).
+## A player is considered distracted if they can see the enemy but their aim direction
+## is more than 23 degrees away from the direction toward the enemy.
+## This allows enemies to attack with highest priority when the player is not focused on them.
+##
+## Returns true if:
+## 1. The enemy can see the player (player is in line of sight)
+## 2. The player's aim direction (toward their mouse cursor) deviates more than 23 degrees
+##    from the direction toward the enemy
+func _is_player_distracted() -> bool:
+	# Player must be visible for this check to be relevant
+	if not _can_see_player or _player == null:
+		return false
+
+	# Get the player's aim direction by calculating from player to mouse cursor
+	# The player aims where their mouse is pointing
+	var player_pos: Vector2 = _player.global_position
+	var enemy_pos: Vector2 = global_position
+
+	# Get the mouse position in global coordinates from the player's viewport
+	var player_viewport: Viewport = _player.get_viewport()
+	if player_viewport == null:
+		return false
+
+	var mouse_pos: Vector2 = player_viewport.get_mouse_position()
+	# Convert from viewport coordinates to global coordinates
+	var canvas_transform: Transform2D = player_viewport.get_canvas_transform()
+	var global_mouse_pos: Vector2 = canvas_transform.affine_inverse() * mouse_pos
+
+	# Calculate the direction from player to enemy
+	var dir_to_enemy: Vector2 = (enemy_pos - player_pos).normalized()
+
+	# Calculate the direction from player to their aim target (mouse cursor)
+	var aim_direction: Vector2 = (global_mouse_pos - player_pos).normalized()
+
+	# Calculate the angle between the two directions
+	# Using dot product: cos(angle) = a · b / (|a| * |b|)
+	# Since both are normalized, |a| * |b| = 1
+	var dot: float = dir_to_enemy.dot(aim_direction)
+
+	# Clamp to handle floating point errors
+	dot = clampf(dot, -1.0, 1.0)
+
+	var angle: float = acos(dot)
+
+	# Player is distracted if their aim is more than 23 degrees away from the enemy
+	var is_distracted: bool = angle > PLAYER_DISTRACTION_ANGLE
+
+	if is_distracted:
+		_log_debug("Player distracted: aim angle %.1f° > %.1f° threshold" % [rad_to_deg(angle), rad_to_deg(PLAYER_DISTRACTION_ANGLE)])
+
+	return is_distracted
 
 
 ## Set a navigation target and get the direction to follow the path.

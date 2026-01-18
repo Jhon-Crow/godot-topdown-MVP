@@ -22,7 +22,8 @@ extends CharacterBody2D
 ## Offset from player center for bullet spawn position.
 @export var bullet_spawn_offset: float = 20.0
 
-## Maximum ammunition (90 bullets = 3 magazines of 30).
+## Maximum ammunition (default 90 bullets = 3 magazines of 30 for Normal mode).
+## In Hard mode, this is reduced to 60 bullets (2 magazines).
 @export var max_ammo: int = 90
 
 ## Maximum health of the player.
@@ -118,6 +119,15 @@ func _ready() -> void:
 	# Preload bullet scene if not set in inspector
 	if bullet_scene == null:
 		bullet_scene = preload("res://scenes/projectiles/Bullet.tscn")
+
+	# Get max ammo from DifficultyManager based on current difficulty
+	var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
+	if difficulty_manager:
+		max_ammo = difficulty_manager.get_max_ammo()
+		# Connect to difficulty changes to update ammo limit mid-game
+		if not difficulty_manager.difficulty_changed.is_connected(_on_difficulty_changed):
+			difficulty_manager.difficulty_changed.connect(_on_difficulty_changed)
+
 	_current_ammo = max_ammo
 	_current_health = max_health
 	_is_alive = true
@@ -449,3 +459,21 @@ func get_max_health() -> int:
 ## Check if player is alive.
 func is_alive() -> bool:
 	return _is_alive
+
+
+## Called when difficulty changes mid-game.
+## Updates max ammo based on new difficulty setting.
+func _on_difficulty_changed(_new_difficulty: int) -> void:
+	var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
+	if difficulty_manager:
+		var new_max_ammo := difficulty_manager.get_max_ammo()
+		# Only update if the max ammo changed
+		if new_max_ammo != max_ammo:
+			var old_max_ammo := max_ammo
+			max_ammo = new_max_ammo
+			# Scale current ammo proportionally, but cap at new max
+			if old_max_ammo > 0:
+				_current_ammo = mini(_current_ammo, max_ammo)
+			else:
+				_current_ammo = max_ammo
+			ammo_changed.emit(_current_ammo, max_ammo)
