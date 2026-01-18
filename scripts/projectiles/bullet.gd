@@ -59,6 +59,12 @@ func _on_area_entered(area: Area2D) -> void:
 		if parent and shooter_id == parent.get_instance_id():
 			return  # Don't hit the shooter
 
+		# Check if the parent is dead - bullets should pass through dead entities
+		# This is a fallback check in case the collision shape/layer disabling
+		# doesn't take effect immediately (see Godot issues #62506, #100687)
+		if parent and parent.has_method("is_alive") and not parent.is_alive():
+			return  # Pass through dead entities
+
 		area.on_hit()
 
 		# Trigger hit effects if this is a player bullet hitting an enemy

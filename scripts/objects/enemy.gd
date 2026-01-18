@@ -200,6 +200,15 @@ signal ammo_depleted
 ## Used to disable collision when enemy dies so bullets pass through.
 @onready var _hit_area: Area2D = $HitArea
 
+## HitCollisionShape for physically disabling collision on death.
+## Disabling the shape is more reliable than just toggling monitorable/monitoring
+## due to Godot engine limitations (see issue #62506, #100687).
+@onready var _hit_collision_shape: CollisionShape2D = $HitArea/HitCollisionShape
+
+## Original collision layer for HitArea (to restore on respawn).
+var _original_hit_area_layer: int = 0
+var _original_hit_area_mask: int = 0
+
 ## Wall detection raycasts for obstacle avoidance (created at runtime).
 var _wall_raycasts: Array[RayCast2D] = []
 
@@ -529,6 +538,11 @@ func _ready() -> void:
 	_connect_debug_mode_signal()
 	_update_debug_label()
 	_register_sound_listener()
+
+	# Store original collision layers for HitArea (to restore on respawn)
+	if _hit_area:
+		_original_hit_area_layer = _hit_area.collision_layer
+		_original_hit_area_mask = _hit_area.collision_mask
 
 	# Log that this enemy is ready (use call_deferred to ensure FileLogger is loaded)
 	call_deferred("_log_spawn_info")
@@ -3367,11 +3381,12 @@ func _on_death() -> void:
 	_log_to_file("Enemy died")
 	died.emit()
 
-	# Disable hit area collision so bullets pass through dead enemies
-	# This prevents dead enemies from "absorbing" bullets before respawn/deletion
-	if _hit_area:
-		_hit_area.set_deferred("monitorable", false)
-		_hit_area.set_deferred("monitoring", false)
+	# Disable hit area collision so bullets pass through dead enemies.
+	# This prevents dead enemies from "absorbing" bullets before respawn/deletion.
+	# Multiple approaches are used due to Godot engine limitations:
+	# - Godot issue #62506: set_deferred() on monitorable/monitoring is inconsistent
+	# - Godot issue #100687: toggling monitorable doesn't affect already-overlapping areas
+	_disable_hit_area_collision()
 
 	# Unregister from sound propagation when dying
 	_unregister_sound_listener()
@@ -3447,11 +3462,54 @@ func _reset() -> void:
 	_update_health_visual()
 	_initialize_goap_state()
 	# Re-enable hit area collision after respawning
+	_enable_hit_area_collision()
+	# Re-register for sound propagation after respawning
+	_register_sound_listener()
+
+
+## Disables hit area collision so bullets pass through dead enemies.
+## Uses multiple approaches due to Godot engine limitations with Area2D collision toggling.
+func _disable_hit_area_collision() -> void:
+	# Approach 1: Disable the CollisionShape2D itself
+	# This is the most reliable way to prevent collision detection
+	if _hit_collision_shape:
+		_hit_collision_shape.set_deferred("disabled", true)
+
+	# Approach 2: Move to unused collision layers
+	# This prevents any interaction even if shape disabling fails
+	if _hit_area:
+		_hit_area.set_deferred("collision_layer", 0)
+		_hit_area.set_deferred("collision_mask", 0)
+
+	# Approach 3: Disable monitorable/monitoring (original approach)
+	# Kept as additional safety measure
+	if _hit_area:
+		_hit_area.set_deferred("monitorable", false)
+		_hit_area.set_deferred("monitoring", false)
+
+
+## Re-enables hit area collision after respawning.
+## Restores all collision properties to their original values.
+func _enable_hit_area_collision() -> void:
+	# Re-enable CollisionShape2D
+	if _hit_collision_shape:
+		_hit_collision_shape.disabled = false
+
+	# Restore original collision layers
+	if _hit_area:
+		_hit_area.collision_layer = _original_hit_area_layer
+		_hit_area.collision_mask = _original_hit_area_mask
+
+	# Re-enable monitorable/monitoring
 	if _hit_area:
 		_hit_area.monitorable = true
 		_hit_area.monitoring = true
-	# Re-register for sound propagation after respawning
-	_register_sound_listener()
+
+
+## Returns whether this enemy is currently alive.
+## Used by bullets to check if they should pass through or hit.
+func is_alive() -> bool:
+	return _is_alive
 
 
 ## Log debug message if debug_logging is enabled.

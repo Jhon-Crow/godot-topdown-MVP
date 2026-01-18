@@ -14,11 +14,15 @@ var hit_collision_shape: CollisionShape2D
 
 
 # Mock enemy that simulates the real enemy's death behavior
+# This matches the multi-layered approach used in the real enemy.gd
 class MockEnemy:
 	extends CharacterBody2D
 
 	var _is_alive: bool = true
 	var _hit_area: Area2D = null
+	var _hit_collision_shape: CollisionShape2D = null
+	var _original_hit_area_layer: int = 0
+	var _original_hit_area_mask: int = 0
 	var hit_count: int = 0
 	var current_health: int = 3
 
@@ -37,7 +41,15 @@ class MockEnemy:
 	func _on_death() -> void:
 		_is_alive = false
 		died.emit()
-		# Disable hit area collision so bullets pass through dead enemies
+		# Multi-layered approach to disable collision (matching real enemy.gd)
+		# Approach 1: Disable CollisionShape2D
+		if _hit_collision_shape:
+			_hit_collision_shape.set_deferred("disabled", true)
+		# Approach 2: Move to unused collision layers
+		if _hit_area:
+			_hit_area.set_deferred("collision_layer", 0)
+			_hit_area.set_deferred("collision_mask", 0)
+		# Approach 3: Disable monitorable/monitoring
 		if _hit_area:
 			_hit_area.set_deferred("monitorable", false)
 			_hit_area.set_deferred("monitoring", false)
@@ -46,7 +58,14 @@ class MockEnemy:
 		_is_alive = true
 		current_health = 3
 		hit_count = 0
-		# Re-enable hit area collision after respawning
+		# Re-enable CollisionShape2D
+		if _hit_collision_shape:
+			_hit_collision_shape.disabled = false
+		# Restore collision layers
+		if _hit_area:
+			_hit_area.collision_layer = _original_hit_area_layer
+			_hit_area.collision_mask = _original_hit_area_mask
+		# Re-enable monitorable/monitoring
 		if _hit_area:
 			_hit_area.monitorable = true
 			_hit_area.monitoring = true
@@ -80,8 +99,13 @@ func _create_enemy_with_hit_area() -> MockEnemy:
 	hit_area.set_script(HitAreaScript)
 	hit_area.monitorable = true
 	hit_area.monitoring = true
+	hit_area.collision_layer = 2  # Match real enemy scene
+	hit_area.collision_mask = 16  # Match real enemy scene
 	enemy.add_child(hit_area)
 	enemy._hit_area = hit_area
+	# Store original collision layers
+	enemy._original_hit_area_layer = hit_area.collision_layer
+	enemy._original_hit_area_mask = hit_area.collision_mask
 
 	# Add collision shape to hit area
 	hit_collision_shape = CollisionShape2D.new()
@@ -89,6 +113,7 @@ func _create_enemy_with_hit_area() -> MockEnemy:
 	shape.radius = 24.0
 	hit_collision_shape.shape = shape
 	hit_area.add_child(hit_collision_shape)
+	enemy._hit_collision_shape = hit_collision_shape
 
 	return enemy
 
@@ -122,6 +147,40 @@ func test_hit_area_is_disabled_on_death() -> void:
 	assert_false(hit_area.monitoring, "HitArea should not be monitoring when dead")
 
 
+func test_collision_shape_is_disabled_on_death() -> void:
+	var mock_enemy := _create_enemy_with_hit_area()
+
+	# Kill the enemy
+	mock_enemy.on_hit()
+	mock_enemy.on_hit()
+	mock_enemy.on_hit()
+
+	# Wait for deferred calls to be processed
+	await get_tree().process_frame
+
+	assert_false(mock_enemy.is_alive(), "Enemy should be dead")
+	assert_true(hit_collision_shape.disabled, "CollisionShape2D should be disabled when dead")
+
+
+func test_collision_layers_are_cleared_on_death() -> void:
+	var mock_enemy := _create_enemy_with_hit_area()
+
+	# Verify initial layers
+	assert_eq(hit_area.collision_layer, 2, "Initial collision_layer should be 2")
+	assert_eq(hit_area.collision_mask, 16, "Initial collision_mask should be 16")
+
+	# Kill the enemy
+	mock_enemy.on_hit()
+	mock_enemy.on_hit()
+	mock_enemy.on_hit()
+
+	# Wait for deferred calls to be processed
+	await get_tree().process_frame
+
+	assert_eq(hit_area.collision_layer, 0, "collision_layer should be 0 when dead")
+	assert_eq(hit_area.collision_mask, 0, "collision_mask should be 0 when dead")
+
+
 func test_hit_area_is_re_enabled_on_reset() -> void:
 	var mock_enemy := _create_enemy_with_hit_area()
 
@@ -139,6 +198,35 @@ func test_hit_area_is_re_enabled_on_reset() -> void:
 	assert_true(mock_enemy.is_alive(), "Enemy should be alive after reset")
 	assert_true(hit_area.monitorable, "HitArea should be monitorable after reset")
 	assert_true(hit_area.monitoring, "HitArea should be monitoring after reset")
+
+
+func test_collision_shape_is_re_enabled_on_reset() -> void:
+	var mock_enemy := _create_enemy_with_hit_area()
+
+	# Kill and respawn
+	mock_enemy.on_hit()
+	mock_enemy.on_hit()
+	mock_enemy.on_hit()
+	await get_tree().process_frame
+
+	mock_enemy._reset()
+
+	assert_false(hit_collision_shape.disabled, "CollisionShape2D should be enabled after reset")
+
+
+func test_collision_layers_are_restored_on_reset() -> void:
+	var mock_enemy := _create_enemy_with_hit_area()
+
+	# Kill and respawn
+	mock_enemy.on_hit()
+	mock_enemy.on_hit()
+	mock_enemy.on_hit()
+	await get_tree().process_frame
+
+	mock_enemy._reset()
+
+	assert_eq(hit_area.collision_layer, 2, "collision_layer should be restored after reset")
+	assert_eq(hit_area.collision_mask, 16, "collision_mask should be restored after reset")
 
 
 # ============================================================================
