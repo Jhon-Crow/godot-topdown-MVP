@@ -201,6 +201,53 @@ class AssaultPlayerAction extends GOAPAction:
 		return 5.0  # Very high cost if alone (prefer other actions)
 
 
+## Action to search for player at last-known position.
+## Used when player escapes from view - enemy investigates the area
+## where player was last seen and checks nearby hiding spots.
+class SearchAreaAction extends GOAPAction:
+	func _init() -> void:
+		super._init("search_area", 2.0)
+		preconditions = {
+			"player_visible": false,
+			"has_search_zone": true,
+			"search_zone_cleared": false
+		}
+		effects = {
+			"is_searching": true,
+			"search_zone_cleared": true
+		}
+
+	func get_cost(_agent: Node, world_state: Dictionary) -> float:
+		# Lower cost if not under fire (safer to search)
+		if world_state.get("under_fire", false):
+			return 4.0  # High cost if under fire - prioritize cover
+		# Higher priority if we have a search zone to check
+		if world_state.get("has_search_zone", false):
+			return 1.5
+		return 3.0
+
+
+## Action to inspect a specific hiding spot.
+## Used during search to check behind covers and at corners.
+class InspectHidingSpotAction extends GOAPAction:
+	func _init() -> void:
+		super._init("inspect_hiding_spot", 0.5)
+		preconditions = {
+			"is_searching": true,
+			"inspection_points_remaining": true
+		}
+		effects = {
+			"hiding_spot_checked": true
+		}
+
+	func get_cost(_agent: Node, world_state: Dictionary) -> float:
+		# Cost based on remaining points - more points = lower average cost per point
+		var remaining: int = world_state.get("inspection_points_remaining", 0)
+		if remaining > 0:
+			return 0.5
+		return 1.0
+
+
 ## Create and return all enemy actions.
 static func create_all_actions() -> Array[GOAPAction]:
 	var actions: Array[GOAPAction] = []
@@ -215,4 +262,6 @@ static func create_all_actions() -> Array[GOAPAction]:
 	actions.append(RetreatWithFireAction.new())
 	actions.append(PursuePlayerAction.new())
 	actions.append(AssaultPlayerAction.new())
+	actions.append(SearchAreaAction.new())
+	actions.append(InspectHidingSpotAction.new())
 	return actions

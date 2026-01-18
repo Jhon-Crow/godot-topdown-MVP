@@ -21,7 +21,8 @@ enum AIState {
 	SUPPRESSED, ## Under fire, staying in cover
 	RETREATING, ## Retreating to cover while possibly shooting
 	PURSUING,   ## Moving cover-to-cover toward player (when far and can't hit)
-	ASSAULT     ## Coordinated multi-enemy assault (rush player after 5s wait)
+	ASSAULT,    ## Coordinated multi-enemy assault (rush player after 5s wait)
+	SEARCHING   ## Searching for player at last-known-position zone
 }
 
 ## Retreat behavior modes based on damage taken.
@@ -399,6 +400,43 @@ const CLOSE_COMBAT_DISTANCE: float = 400.0
 ## GOAP world state for goal-oriented planning.
 var _goap_world_state: Dictionary = {}
 
+## --- Search/Investigation State (for when player escapes from view) ---
+## Last known position where the player was seen before escaping view.
+var _last_known_player_position: Vector2 = Vector2.ZERO
+
+## Whether a search zone is currently active.
+var _search_zone_active: bool = false
+
+## Radius of the potential player zone (area where player might be hiding).
+const SEARCH_ZONE_RADIUS: float = 200.0
+
+## Timer for search timeout - enemy gives up searching after this time.
+var _search_timer: float = 0.0
+
+## Maximum time to spend searching before giving up (seconds).
+const SEARCH_MAX_DURATION: float = 15.0
+
+## Inspection points within the search zone (hiding spots behind covers and corners).
+var _inspection_points: Array[Vector2] = []
+
+## Index of current inspection point being checked.
+var _current_inspection_index: int = 0
+
+## Timer for waiting at each inspection point (looking around).
+var _inspection_wait_timer: float = 0.0
+
+## Duration to wait at each inspection point (seconds).
+const INSPECTION_WAIT_DURATION: float = 1.5
+
+## Whether currently waiting at an inspection point.
+var _inspecting_point: bool = false
+
+## Number of raycasts for detecting inspection points (corners/hiding spots).
+const INSPECTION_POINT_CHECK_COUNT: int = 24
+
+## Distance to check for inspection points from search zone center.
+const INSPECTION_CHECK_DISTANCE: float = 250.0
+
 ## Detection delay timer - tracks time since entering combat.
 var _detection_timer: float = 0.0
 
@@ -537,7 +575,11 @@ func _initialize_goap_state() -> void:
 		"is_assaulting": false,
 		"can_hit_from_cover": false,
 		"player_close": false,
-		"enemies_in_combat": 0
+		"enemies_in_combat": 0,
+		"has_search_zone": false,
+		"search_zone_cleared": false,
+		"inspection_points_remaining": 0,
+		"is_searching": false
 	}
 
 
@@ -629,6 +671,10 @@ func _update_goap_state() -> void:
 	_goap_world_state["player_close"] = _is_player_close()
 	_goap_world_state["can_hit_from_cover"] = _can_hit_player_from_current_position()
 	_goap_world_state["enemies_in_combat"] = _count_enemies_in_combat()
+	_goap_world_state["has_search_zone"] = _search_zone_active
+	_goap_world_state["search_zone_cleared"] = not _search_zone_active and _last_known_player_position != Vector2.ZERO
+	_goap_world_state["inspection_points_remaining"] = _inspection_points.size() - _current_inspection_index
+	_goap_world_state["is_searching"] = _current_state == AIState.SEARCHING
 
 
 ## Update suppression state.
@@ -752,6 +798,8 @@ func _process_ai_state(delta: float) -> void:
 			_process_pursuing_state(delta)
 		AIState.ASSAULT:
 			_process_assault_state(delta)
+		AIState.SEARCHING:
+			_process_searching_state(delta)
 
 	if previous_state != _current_state:
 		state_changed.emit(_current_state)
@@ -800,13 +848,13 @@ func _process_combat_state(delta: float) -> void:
 		_transition_to_assault()
 		return
 
-	# If can't see player, pursue them (move cover-to-cover toward player)
+	# If can't see player, transition to SEARCHING to investigate last-known position
 	if not _can_see_player:
 		_combat_exposed = false
 		_combat_approaching = false
 		_seeking_clear_shot = false
-		_log_debug("Lost sight of player in COMBAT, transitioning to PURSUING")
-		_transition_to_pursuing()
+		_log_debug("Lost sight of player in COMBAT, transitioning to SEARCHING")
+		_transition_to_searching()
 		return
 
 	# Update detection delay timer
@@ -1839,6 +1887,180 @@ func _transition_to_retreating() -> void:
 	_find_cover_position()
 
 
+## Transition to SEARCHING state.
+## Activates the search zone and generates inspection points.
+func _transition_to_searching() -> void:
+	_current_state = AIState.SEARCHING
+	_search_timer = 0.0
+	_inspection_wait_timer = 0.0
+	_inspecting_point = false
+	_current_inspection_index = 0
+
+	# Activate search zone at last known player position
+	if _last_known_player_position != Vector2.ZERO:
+		_search_zone_active = true
+		_log_debug("Activating search zone at %s (radius: %.1f)" % [_last_known_player_position, SEARCH_ZONE_RADIUS])
+		# Generate inspection points within the search zone
+		_generate_inspection_points()
+	else:
+		# No last known position - fall back to pursuing
+		_log_debug("No last known position, falling back to PURSUING")
+		_transition_to_pursuing()
+
+
+## Clear the search zone when player is found or search is complete.
+func _clear_search_zone() -> void:
+	_search_zone_active = false
+	_inspection_points.clear()
+	_current_inspection_index = 0
+	_inspecting_point = false
+	_log_debug("Search zone cleared")
+
+
+## Generate inspection points within the search zone.
+## Finds hiding spots behind covers and at corners within the search area.
+func _generate_inspection_points() -> void:
+	_inspection_points.clear()
+
+	if _last_known_player_position == Vector2.ZERO:
+		return
+
+	var search_center := _last_known_player_position
+
+	# Use raycasts from the search center to find obstacles and generate inspection points
+	for i in range(INSPECTION_POINT_CHECK_COUNT):
+		var angle := (float(i) / INSPECTION_POINT_CHECK_COUNT) * TAU
+		var direction := Vector2.from_angle(angle)
+
+		# Cast ray from search center outward to find obstacles
+		var space_state := get_world_2d().direct_space_state
+		var query := PhysicsRayQueryParameters2D.new()
+		query.from = search_center
+		query.to = search_center + direction * INSPECTION_CHECK_DISTANCE
+		query.collision_mask = 4  # Only check obstacles (layer 3)
+
+		var result := space_state.intersect_ray(query)
+
+		if not result.is_empty():
+			var collision_point: Vector2 = result["position"]
+			var collision_normal: Vector2 = result["normal"]
+
+			# Generate inspection point behind the obstacle (from enemy's perspective)
+			# This is where a player might hide
+			var inspection_pos := collision_point + collision_normal * 40.0
+
+			# Only add if within search zone radius
+			if inspection_pos.distance_to(search_center) <= SEARCH_ZONE_RADIUS:
+				# Avoid duplicate or too-close points
+				var is_duplicate := false
+				for existing_point in _inspection_points:
+					if inspection_pos.distance_to(existing_point) < 50.0:
+						is_duplicate = true
+						break
+				if not is_duplicate:
+					_inspection_points.append(inspection_pos)
+
+	# Add corners of the search zone as additional inspection points
+	var corner_offsets := [
+		Vector2(SEARCH_ZONE_RADIUS * 0.7, SEARCH_ZONE_RADIUS * 0.7),
+		Vector2(-SEARCH_ZONE_RADIUS * 0.7, SEARCH_ZONE_RADIUS * 0.7),
+		Vector2(SEARCH_ZONE_RADIUS * 0.7, -SEARCH_ZONE_RADIUS * 0.7),
+		Vector2(-SEARCH_ZONE_RADIUS * 0.7, -SEARCH_ZONE_RADIUS * 0.7),
+	]
+
+	for offset in corner_offsets:
+		var corner_point := search_center + offset
+		# Only add corner if we can reach it (no obstacle blocking direct path)
+		if _has_clear_path_to(corner_point):
+			var is_duplicate := false
+			for existing_point in _inspection_points:
+				if corner_point.distance_to(existing_point) < 50.0:
+					is_duplicate = true
+					break
+			if not is_duplicate:
+				_inspection_points.append(corner_point)
+
+	# Sort inspection points by distance from current position (closest first)
+	_inspection_points.sort_custom(func(a: Vector2, b: Vector2) -> bool:
+		return global_position.distance_to(a) < global_position.distance_to(b)
+	)
+
+	_log_debug("Generated %d inspection points in search zone" % _inspection_points.size())
+
+
+## Process SEARCHING state - investigate last-known player position and check hiding spots.
+## Enemy moves to last-known position, then checks each inspection point within the search zone.
+## Returns to IDLE when all points are checked or timeout expires.
+func _process_searching_state(delta: float) -> void:
+	# If player is spotted during search, immediately transition to combat
+	if _can_see_player:
+		_log_debug("Player found during search, transitioning to COMBAT")
+		_clear_search_zone()
+		_transition_to_combat()
+		return
+
+	# Check for suppression - if under fire, need to take cover
+	if _under_fire and enable_cover:
+		_log_debug("Under fire during search, transitioning to RETREATING")
+		_clear_search_zone()
+		_transition_to_retreating()
+		return
+
+	# Update search timer
+	_search_timer += delta
+
+	# Timeout - give up searching and return to patrol/guard
+	if _search_timer >= SEARCH_MAX_DURATION:
+		_log_debug("Search timeout reached, returning to IDLE")
+		_clear_search_zone()
+		_transition_to_idle()
+		return
+
+	# If no inspection points left, search is complete
+	if _inspection_points.is_empty() or _current_inspection_index >= _inspection_points.size():
+		_log_debug("All inspection points checked, search zone cleared")
+		_clear_search_zone()
+		_transition_to_idle()
+		return
+
+	# Get current inspection point target
+	var current_target := _inspection_points[_current_inspection_index]
+	var distance_to_target := global_position.distance_to(current_target)
+
+	# Check if we're at the current inspection point
+	if distance_to_target < 20.0:
+		if not _inspecting_point:
+			# Just arrived at inspection point - start looking around
+			_inspecting_point = true
+			_inspection_wait_timer = 0.0
+			_log_debug("Inspecting point %d/%d at %s" % [_current_inspection_index + 1, _inspection_points.size(), current_target])
+
+		# Wait at the inspection point, looking around
+		_inspection_wait_timer += delta
+		velocity = Vector2.ZERO
+
+		# Rotate while inspecting (looking around)
+		rotation += rotation_speed * delta * 0.5
+
+		if _inspection_wait_timer >= INSPECTION_WAIT_DURATION:
+			# Done inspecting this point, move to next
+			_current_inspection_index += 1
+			_inspecting_point = false
+			_inspection_wait_timer = 0.0
+		return
+
+	# Move toward current inspection point
+	var direction := (current_target - global_position).normalized()
+
+	# Apply wall avoidance
+	var avoidance := _check_wall_ahead(direction)
+	if avoidance != Vector2.ZERO:
+		direction = (direction * 0.5 + avoidance * 0.5).normalized()
+
+	velocity = direction * combat_move_speed * 0.8  # Slightly slower when searching
+	rotation = direction.angle()
+
+
 ## Check if the enemy is visible from the player's position.
 ## Uses raycasting from player to enemy to determine if there are obstacles blocking line of sight.
 ## This is the inverse of _can_see_player - it checks if the PLAYER can see the ENEMY.
@@ -2623,10 +2845,18 @@ func _check_player_visibility() -> void:
 		# Calculate what fraction of the player's body is visible
 		# This is used to determine if lead prediction should be enabled
 		_player_visibility_ratio = _calculate_player_visibility_ratio()
+		# Update last known player position while we can see them
+		_last_known_player_position = _player.global_position
+		# Clear search zone when player is seen
+		if _search_zone_active:
+			_clear_search_zone()
 	else:
 		# Lost line of sight - reset the timer and visibility ratio
 		_continuous_visibility_timer = 0.0
 		_player_visibility_ratio = 0.0
+		# If we just lost sight and were in combat, activate search zone
+		if was_visible and _last_known_player_position != Vector2.ZERO:
+			_log_debug("Player escaped from view at %s" % _last_known_player_position)
 
 
 ## Aim the enemy sprite/direction at the player using gradual rotation.
@@ -3019,6 +3249,8 @@ func _get_state_name(state: AIState) -> String:
 			return "PURSUING"
 		AIState.ASSAULT:
 			return "ASSAULT"
+		AIState.SEARCHING:
+			return "SEARCHING"
 		_:
 			return "UNKNOWN"
 
@@ -3080,6 +3312,14 @@ func _update_debug_label() -> void:
 			state_text += "\n(MOVING)"
 		else:
 			state_text += "\n(DIRECT)"
+
+	# Add searching phase info if searching
+	if _current_state == AIState.SEARCHING:
+		var time_left := SEARCH_MAX_DURATION - _search_timer
+		if _inspecting_point:
+			state_text += "\n(INSPECT %d/%d)" % [_current_inspection_index + 1, _inspection_points.size()]
+		else:
+			state_text += "\n(%d pts %.1fs)" % [_inspection_points.size() - _current_inspection_index, time_left]
 
 	_debug_label.text = state_text
 
@@ -3203,3 +3443,39 @@ func _draw() -> void:
 			draw_line(flank_pos + Vector2(8, 0), flank_pos + Vector2(0, 8), color_flank, 2.0)
 			draw_line(flank_pos + Vector2(0, 8), flank_pos + Vector2(-8, 0), color_flank, 2.0)
 			draw_line(flank_pos + Vector2(-8, 0), flank_pos + Vector2(0, -8), color_flank, 2.0)
+
+	# Draw search zone and inspection points if searching
+	if _current_state == AIState.SEARCHING and _search_zone_active:
+		var color_search_zone := Color(1.0, 0.5, 0.0, 0.3)  # Orange semi-transparent
+		var color_inspection := Color.LIME_GREEN
+		var color_inspection_current := Color.WHITE
+
+		# Draw circle representing search zone
+		var zone_center := _last_known_player_position - global_position
+		# Draw search zone outline (multiple segments to form a circle)
+		var segments := 24
+		for i in range(segments):
+			var angle1 := (float(i) / segments) * TAU
+			var angle2 := (float(i + 1) / segments) * TAU
+			var p1 := zone_center + Vector2.from_angle(angle1) * SEARCH_ZONE_RADIUS
+			var p2 := zone_center + Vector2.from_angle(angle2) * SEARCH_ZONE_RADIUS
+			draw_line(p1, p2, color_search_zone, 2.0)
+
+		# Draw last known position marker (X)
+		draw_line(zone_center + Vector2(-10, -10), zone_center + Vector2(10, 10), Color.RED, 2.0)
+		draw_line(zone_center + Vector2(-10, 10), zone_center + Vector2(10, -10), Color.RED, 2.0)
+
+		# Draw all inspection points
+		for i in range(_inspection_points.size()):
+			var point_pos := _inspection_points[i] - global_position
+			if i == _current_inspection_index:
+				# Current target - highlight in white
+				draw_circle(point_pos, 10.0, color_inspection_current)
+				# Draw line to current target
+				draw_line(Vector2.ZERO, point_pos, color_inspection_current, 2.0)
+			elif i < _current_inspection_index:
+				# Already checked - small circle
+				draw_circle(point_pos, 4.0, Color(0.5, 0.5, 0.5))
+			else:
+				# Not yet checked - green circle
+				draw_circle(point_pos, 6.0, color_inspection)
