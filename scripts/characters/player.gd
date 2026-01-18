@@ -52,6 +52,21 @@ extends CharacterBody2D
 ## Duration of hit flash effect in seconds.
 @export var hit_flash_duration: float = 0.1
 
+## Screen shake intensity per shot in pixels.
+## The actual shake distance per shot is calculated as: intensity / fire_rate * 10
+## Lower fire rate = larger shake per shot.
+@export var screen_shake_intensity: float = 5.0
+
+## Fire rate in shots per second (used for shake calculation).
+## Default is 10.0 to match the assault rifle.
+@export var fire_rate: float = 10.0
+
+## Minimum recovery time for screen shake at minimum spread.
+@export var screen_shake_min_recovery: float = 0.25
+
+## Maximum recovery time for screen shake at maximum spread (min 50ms).
+@export var screen_shake_max_recovery: float = 0.05
+
 ## Current ammunition count.
 var _current_ammo: int = 90
 
@@ -248,11 +263,48 @@ func _shoot() -> void:
 	if audio_manager and audio_manager.has_method("play_shell_rifle"):
 		_play_delayed_shell_sound()
 
+	# Trigger screen shake
+	_trigger_screen_shake(shoot_direction)
+
 	# Update ammo and shot count
 	_current_ammo -= 1
 	_shot_count += 1
 	_shot_timer = 0.0
 	ammo_changed.emit(_current_ammo, max_ammo)
+
+
+## Trigger screen shake based on shooting direction and current spread.
+func _trigger_screen_shake(shoot_direction: Vector2) -> void:
+	if screen_shake_intensity <= 0.0:
+		return
+
+	var screen_shake: Node = get_node_or_null("/root/ScreenShakeManager")
+	if not screen_shake:
+		return
+
+	# Calculate shake intensity based on fire rate
+	# Lower fire rate = larger shake per shot
+	var shake_intensity: float
+	if fire_rate > 0.0:
+		shake_intensity = screen_shake_intensity / fire_rate * 10.0
+	else:
+		shake_intensity = screen_shake_intensity
+
+	# Calculate spread ratio for recovery time interpolation
+	var current_spread := _get_current_spread()
+	var spread_ratio := 0.0
+	if MAX_SPREAD > INITIAL_SPREAD:
+		spread_ratio = clampf((current_spread - INITIAL_SPREAD) / (MAX_SPREAD - INITIAL_SPREAD), 0.0, 1.0)
+
+	# Calculate recovery time based on spread ratio
+	# At min spread -> slower recovery (min_recovery)
+	# At max spread -> faster recovery (max_recovery)
+	var recovery_time := lerpf(screen_shake_min_recovery, screen_shake_max_recovery, spread_ratio)
+	# Clamp to minimum 50ms as per specification
+	recovery_time = maxf(recovery_time, 0.05)
+
+	# Trigger the shake via ScreenShakeManager
+	screen_shake.add_shake(shoot_direction, shake_intensity, recovery_time)
 
 
 ## Play shell casing sound with a delay to simulate the casing hitting the ground.

@@ -124,6 +124,26 @@ public partial class AssaultRifle : BaseWeapon
     private const float MaxRecoilOffset = 0.087f;
 
     /// <summary>
+    /// Tracks consecutive shots for spread calculation.
+    /// </summary>
+    private int _shotCount = 0;
+
+    /// <summary>
+    /// Time since last shot for spread reset.
+    /// </summary>
+    private float _spreadResetTimer = 0.0f;
+
+    /// <summary>
+    /// Number of shots before spread starts increasing.
+    /// </summary>
+    private const int SpreadThreshold = 3;
+
+    /// <summary>
+    /// Time in seconds for spread to reset after stopping fire.
+    /// </summary>
+    private const float SpreadResetTime = 0.25f;
+
+    /// <summary>
     /// Signal emitted when a burst starts.
     /// </summary>
     [Signal]
@@ -184,6 +204,13 @@ public partial class AssaultRifle : BaseWeapon
         {
             float recoveryAmount = RecoilRecoverySpeed * (float)delta;
             _recoilOffset = Mathf.MoveToward(_recoilOffset, 0, recoveryAmount);
+        }
+
+        // Update spread reset timer
+        _spreadResetTimer += (float)delta;
+        if (_spreadResetTimer >= SpreadResetTime)
+        {
+            _shotCount = 0;
         }
 
         // Update laser sight to point towards mouse (with recoil offset)
@@ -431,7 +458,8 @@ public partial class AssaultRifle : BaseWeapon
         }
 
         // Use base class fire logic for automatic mode
-        bool result = base.Fire(ApplySpread(direction));
+        Vector2 spreadDirection = ApplySpread(direction);
+        bool result = base.Fire(spreadDirection);
 
         if (result)
         {
@@ -441,6 +469,11 @@ public partial class AssaultRifle : BaseWeapon
             EmitGunshotSound();
             // Play shell casing sound with delay
             PlayShellCasingDelayed();
+            // Trigger screen shake
+            TriggerScreenShake(spreadDirection);
+            // Update shot count and reset timer
+            _shotCount++;
+            _spreadResetTimer = 0.0f;
         }
 
         return result;
@@ -586,6 +619,12 @@ public partial class AssaultRifle : BaseWeapon
         // Play shell casing for each bullet
         PlayShellCasingDelayed();
 
+        // Trigger screen shake
+        TriggerScreenShake(spreadDirection);
+        // Update shot count and reset timer
+        _shotCount++;
+        _spreadResetTimer = 0.0f;
+
         EmitSignal(SignalName.Fired);
         EmitSignal(SignalName.AmmoChanged, CurrentAmmo, ReserveAmmo);
     }
@@ -600,6 +639,59 @@ public partial class AssaultRifle : BaseWeapon
         {
             audioManager.Call("play_m16_double_shot", GlobalPosition);
         }
+    }
+
+    /// <summary>
+    /// Triggers screen shake based on shooting direction and current spread.
+    /// The shake direction is opposite to shooting direction (recoil effect).
+    /// Shake intensity depends on fire rate, recovery time depends on spread.
+    /// </summary>
+    /// <param name="shootDirection">The direction the bullet is traveling.</param>
+    private void TriggerScreenShake(Vector2 shootDirection)
+    {
+        if (WeaponData == null || WeaponData.ScreenShakeIntensity <= 0)
+        {
+            return;
+        }
+
+        var screenShakeManager = GetNodeOrNull("/root/ScreenShakeManager");
+        if (screenShakeManager == null || !screenShakeManager.HasMethod("add_shake"))
+        {
+            return;
+        }
+
+        // Calculate shake intensity based on fire rate
+        // Lower fire rate = larger shake per shot
+        float fireRate = WeaponData.FireRate;
+        float shakeIntensity;
+        if (fireRate > 0)
+        {
+            shakeIntensity = WeaponData.ScreenShakeIntensity / fireRate * 10.0f;
+        }
+        else
+        {
+            shakeIntensity = WeaponData.ScreenShakeIntensity;
+        }
+
+        // Calculate spread ratio for recovery time interpolation
+        // Spread increases after SpreadThreshold shots
+        float spreadRatio = 0.0f;
+        if (_shotCount > SpreadThreshold)
+        {
+            // Estimate max spread ratio based on shot count
+            // This is a simplified calculation
+            spreadRatio = Mathf.Clamp((_shotCount - SpreadThreshold) * 0.15f, 0.0f, 1.0f);
+        }
+
+        // Calculate recovery time based on spread ratio
+        // At min spread -> slower recovery (MinRecoveryTime)
+        // At max spread -> faster recovery (MaxRecoveryTime)
+        float minRecovery = WeaponData.ScreenShakeMinRecoveryTime;
+        float maxRecovery = Mathf.Max(WeaponData.ScreenShakeMaxRecoveryTime, 0.05f); // 50ms minimum
+        float recoveryTime = Mathf.Lerp(minRecovery, maxRecovery, spreadRatio);
+
+        // Trigger the shake via ScreenShakeManager
+        screenShakeManager.Call("add_shake", shootDirection, shakeIntensity, recoveryTime);
     }
 
     /// <summary>
@@ -671,6 +763,11 @@ public partial class AssaultRifle : BaseWeapon
             EmitGunshotSound();
             // Play shell casing sound with delay
             PlayShellCasingDelayed();
+            // Trigger screen shake
+            TriggerScreenShake(spreadDirection);
+            // Update shot count and reset timer
+            _shotCount++;
+            _spreadResetTimer = 0.0f;
         }
 
         return result;

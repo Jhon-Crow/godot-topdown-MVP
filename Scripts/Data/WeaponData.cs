@@ -91,4 +91,28 @@ public partial class WeaponData : Resource
     /// </summary>
     [Export(PropertyHint.Range, "0,20,0.1")]
     public float Sensitivity { get; set; } = 0.0f;
+
+    /// <summary>
+    /// Screen shake intensity per shot in pixels.
+    /// The actual shake distance per shot is calculated as: ScreenShakeIntensity / FireRate * 10
+    /// This means slower firing weapons create bigger shakes per shot.
+    /// Set to 0 to disable screen shake for this weapon.
+    /// </summary>
+    [Export(PropertyHint.Range, "0,50,0.5")]
+    public float ScreenShakeIntensity { get; set; } = 5.0f;
+
+    /// <summary>
+    /// Minimum recovery time in seconds for screen shake at minimum spread.
+    /// When the weapon has minimal spread (accurate), recovery is slower.
+    /// </summary>
+    [Export(PropertyHint.Range, "0.05,2.0,0.01")]
+    public float ScreenShakeMinRecoveryTime { get; set; } = 0.3f;
+
+    /// <summary>
+    /// Maximum recovery time in seconds for screen shake at maximum spread.
+    /// When the weapon has maximum spread (inaccurate), recovery is faster.
+    /// The minimum value is clamped to 0.05 seconds (50ms) as per specification.
+    /// </summary>
+    [Export(PropertyHint.Range, "0.05,1.0,0.01")]
+    public float ScreenShakeMaxRecoveryTime { get; set; } = 0.05f;
 }

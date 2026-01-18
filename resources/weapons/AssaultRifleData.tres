@@ -16,3 +16,6 @@ SpreadAngle = 2.0
 BulletsPerShot = 1
 IsAutomatic = true
 Sensitivity = 4.0
+ScreenShakeIntensity = 5.0
+ScreenShakeMinRecoveryTime = 0.25
+ScreenShakeMaxRecoveryTime = 0.05
