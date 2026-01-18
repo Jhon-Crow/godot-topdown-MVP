@@ -1,4 +1,4 @@
-[gd_scene load_steps=14 format=3 uid="uid://c8hmf4bnwx2qk"]
+[gd_scene load_steps=16 format=3 uid="uid://c8hmf4bnwx2qk"]
 
 [ext_resource type="Script" path="res://scripts/levels/building_level.gd" id="1_building_level"]
 [ext_resource type="PackedScene" uid="uid://dv8nq2vj5r7p2" path="res://scenes/characters/csharp/Player.tscn" id="2_player"]
@@ -34,6 +34,16 @@ size = Vector2(48, 96)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_corner_fill"]
 size = Vector2(24, 24)
+
+[sub_resource type="NavigationPolygon" id="NavigationPolygon_level"]
+vertices = PackedVector2Array(64, 64, 2464, 64, 2464, 2064, 64, 2064)
+polygons = [PackedInt32Array(0, 1, 2, 3)]
+outlines = [PackedVector2Array(64, 64, 2464, 64, 2464, 2064, 64, 2064)]
+parsed_geometry_type = 1
+parsed_collision_mask = 4
+source_geometry_mode = 0
+source_geometry_group_name = &"navigation_source"
+agent_radius = 24.0
 
 [node name="BuildingLevel" type="Node2D"]
 script = ExtResource("1_building_level")
@@ -893,6 +903,9 @@ offset_top = 10.0
 offset_right = 100.0
 offset_bottom = 30.0
 text = "MAIN HALL"
+
+[node name="NavigationRegion2D" type="NavigationRegion2D" parent="."]
+navigation_polygon = SubResource("NavigationPolygon_level")
 
 [node name="Entities" type="Node2D" parent="."]
 

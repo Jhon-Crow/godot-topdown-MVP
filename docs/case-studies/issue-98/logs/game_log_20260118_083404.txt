@@ -1,0 +1,484 @@
+[08:34:04] [INFO] ============================================================
+[08:34:04] [INFO] GAME LOG STARTED
+[08:34:04] [INFO] ============================================================
+[08:34:04] [INFO] Timestamp: 2026-01-18T08:34:04
+[08:34:04] [INFO] Log file: I:/Загрузки/godot exe/game_log_20260118_083404.txt
+[08:34:04] [INFO] Executable: I:/Загрузки/godot exe/Godot-Top-Down-Template.exe
+[08:34:04] [INFO] OS: Windows
+[08:34:04] [INFO] Debug build: false
+[08:34:04] [INFO] Engine version: 4.3-stable (official)
+[08:34:04] [INFO] Project: Godot Top-Down Template
+[08:34:04] [INFO] ------------------------------------------------------------
+[08:34:04] [INFO] [GameManager] GameManager ready
+[08:34:04] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 2, behavior: GUARD, player_found: yes
+[08:34:04] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 2, behavior: GUARD, player_found: yes
+[08:34:04] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 3, behavior: GUARD, player_found: yes
+[08:34:04] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 4, behavior: GUARD, player_found: yes
+[08:34:04] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 4, behavior: GUARD, player_found: yes
+[08:34:04] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 3, behavior: GUARD, player_found: yes
+[08:34:04] [ENEMY] [Enemy7] Enemy spawned at (1606.114, 893.8859), health: 2, behavior: PATROL, player_found: yes
+[08:34:04] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 2, behavior: GUARD, player_found: yes
+[08:34:04] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 4, behavior: GUARD, player_found: yes
+[08:34:04] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 3, behavior: PATROL, player_found: yes
+[08:34:08] [ENEMY] [Enemy3] State: IDLE -> COMBAT
+[08:34:08] [ENEMY] [Enemy3] State: COMBAT -> PURSUING
+[08:34:08] [ENEMY] [Enemy3] Hit taken, health: 2/3
+[08:34:08] [ENEMY] [Enemy3] State: PURSUING -> COMBAT
+[08:34:08] [ENEMY] [Enemy10] State: IDLE -> COMBAT
+[08:34:08] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[08:34:08] [ENEMY] [Enemy3] Hit taken, health: 1/3
+[08:34:08] [ENEMY] [Enemy3] State: COMBAT -> RETREATING
+[08:34:08] [ENEMY] [Enemy3] Hit taken, health: 0/3
+[08:34:08] [ENEMY] [Enemy3] Enemy died
+[08:34:08] [ENEMY] [Enemy1] State: IDLE -> COMBAT
+[08:34:08] [ENEMY] [Enemy1] State: COMBAT -> PURSUING
+[08:34:08] [ENEMY] [Enemy2] State: IDLE -> COMBAT
+[08:34:08] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[08:34:09] [ENEMY] [Enemy2] Hit taken, health: 1/2
+[08:34:09] [ENEMY] [Enemy2] Hit taken, health: 0/2
+[08:34:09] [ENEMY] [Enemy2] Enemy died
+[08:34:10] [ENEMY] [Enemy4] State: IDLE -> COMBAT
+[08:34:10] [ENEMY] [Enemy4] State: COMBAT -> PURSUING
+[08:34:13] [ENEMY] [Enemy10] FLANKING started: target=(639.3379, 793.6684), side=left, pos=(999.6, 1441.983)
+[08:34:13] [ENEMY] [Enemy10] State: PURSUING -> FLANKING
+[08:34:13] [INFO] [GameManager] Debug mode toggled: ON
+[08:34:17] [ENEMY] [Enemy4] State: PURSUING -> COMBAT
+[08:34:18] [ENEMY] [Enemy10] FLANKING timeout (5.0s), target=(680.7405, 841.8417), pos=(595.9992, 1048.067)
+[08:34:18] [ENEMY] [Enemy10] State: FLANKING -> COMBAT
+[08:34:18] [ENEMY] [Enemy4] State: COMBAT -> PURSUING
+[08:34:18] [ENEMY] [Enemy1] State: PURSUING -> COMBAT
+[08:34:18] [ENEMY] [Enemy1] State: COMBAT -> PURSUING
+[08:34:19] [ENEMY] [Enemy4] FLANKING started: target=(680.7736, 834.264), side=right, pos=(516.8454, 772.5813)
+[08:34:19] [ENEMY] [Enemy4] State: PURSUING -> FLANKING
+[08:34:19] [ENEMY] [Enemy4] State: FLANKING -> COMBAT
+[08:34:20] [ENEMY] [Enemy4] State: COMBAT -> PURSUING
+[08:34:20] [ENEMY] [Enemy1] FLANKING started: target=(282.4424, 811.5604), side=left, pos=(408.5359, 663.9339)
+[08:34:20] [ENEMY] [Enemy1] State: PURSUING -> FLANKING
+[08:34:20] [ENEMY] [Enemy1] State: FLANKING -> COMBAT
+[08:34:20] [ENEMY] [Enemy1] State: COMBAT -> PURSUING
+[08:34:21] [ENEMY] [Enemy10] FLANKING started: target=(387.0278, 1013.836), side=right, pos=(612.7834, 1048.067)
+[08:34:21] [ENEMY] [Enemy10] State: COMBAT -> FLANKING
+[08:34:21] [ENEMY] [Enemy10] State: FLANKING -> COMBAT
+[08:34:21] [ENEMY] [Enemy4] FLANKING started: target=(373.8712, 668.1605), side=left, pos=(514.1207, 773.6542)
+[08:34:21] [ENEMY] [Enemy4] State: PURSUING -> FLANKING
+[08:34:21] [ENEMY] [Enemy4] State: FLANKING -> COMBAT
+[08:34:21] [ENEMY] [Enemy1] FLANKING started: target=(280.9394, 829.5779), side=left, pos=(389.3682, 663.9335)
+[08:34:21] [ENEMY] [Enemy1] State: PURSUING -> FLANKING
+[08:34:21] [ENEMY] [Enemy1] State: FLANKING -> COMBAT
+[08:34:21] [ENEMY] [Enemy4] State: COMBAT -> PURSUING
+[08:34:21] [ENEMY] [Enemy1] State: COMBAT -> PURSUING
+[08:34:22] [ENEMY] [Enemy4] State: PURSUING -> RETREATING
+[08:34:22] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 2, behavior: GUARD, player_found: yes
+[08:34:22] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 2, behavior: GUARD, player_found: yes
+[08:34:22] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 4, behavior: GUARD, player_found: yes
+[08:34:22] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 2, behavior: GUARD, player_found: yes
+[08:34:22] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 2, behavior: GUARD, player_found: yes
+[08:34:22] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 2, behavior: GUARD, player_found: yes
+[08:34:22] [ENEMY] [Enemy7] Enemy spawned at (1600, 900), health: 2, behavior: PATROL, player_found: yes
+[08:34:22] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 3, behavior: GUARD, player_found: yes
+[08:34:22] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 3, behavior: GUARD, player_found: yes
+[08:34:22] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 3, behavior: PATROL, player_found: yes
+[08:34:23] [ENEMY] [Enemy10] State: IDLE -> COMBAT
+[08:34:23] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[08:34:24] [ENEMY] [Enemy3] State: IDLE -> COMBAT
+[08:34:24] [ENEMY] [Enemy3] State: COMBAT -> PURSUING
+[08:34:24] [ENEMY] [Enemy3] Hit taken, health: 3/4
+[08:34:24] [ENEMY] [Enemy3] State: PURSUING -> COMBAT
+[08:34:24] [ENEMY] [Enemy3] Hit taken, health: 2/4
+[08:34:25] [ENEMY] [Enemy3] State: COMBAT -> RETREATING
+[08:34:25] [ENEMY] [Enemy3] Hit taken, health: 1/4
+[08:34:25] [ENEMY] [Enemy1] State: IDLE -> COMBAT
+[08:34:25] [ENEMY] [Enemy1] State: COMBAT -> PURSUING
+[08:34:25] [ENEMY] [Enemy2] State: IDLE -> COMBAT
+[08:34:25] [ENEMY] [Enemy3] Hit taken, health: 0/4
+[08:34:25] [ENEMY] [Enemy3] Enemy died
+[08:34:25] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[08:34:25] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[08:34:25] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[08:34:25] [ENEMY] [Enemy2] Hit taken, health: 1/2
+[08:34:25] [ENEMY] [Enemy2] Hit taken, health: 0/2
+[08:34:25] [ENEMY] [Enemy2] Enemy died
+[08:34:26] [ENEMY] [Enemy4] State: IDLE -> COMBAT
+[08:34:27] [ENEMY] [Enemy4] State: COMBAT -> PURSUING
+[08:34:27] [ENEMY] [Enemy4] Hit taken, health: 1/2
+[08:34:27] [ENEMY] [Enemy4] State: PURSUING -> RETREATING
+[08:34:27] [ENEMY] [Enemy4] Hit taken, health: 0/2
+[08:34:27] [ENEMY] [Enemy4] Enemy died
+[08:34:29] [ENEMY] [Enemy1] State: PURSUING -> COMBAT
+[08:34:29] [ENEMY] [Enemy1] State: COMBAT -> PURSUING
+[08:34:29] [ENEMY] [Enemy1] Hit taken, health: 1/2
+[08:34:29] [ENEMY] [Enemy1] Hit taken, health: 0/2
+[08:34:29] [ENEMY] [Enemy1] Enemy died
+[08:34:29] [ENEMY] [Enemy10] FLANKING started: target=(337.2789, 703.1415), side=right, pos=(948.9833, 1437.953)
+[08:34:29] [ENEMY] [Enemy10] State: PURSUING -> FLANKING
+[08:34:35] [ENEMY] [Enemy7] State: IDLE -> COMBAT
+[08:34:35] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[08:34:35] [ENEMY] [Enemy10] FLANKING timeout (5.0s), target=(1307.195, 225.0079), pos=(894.7787, 1357.681)
+[08:34:35] [ENEMY] [Enemy10] State: FLANKING -> PURSUING
+[08:34:35] [ENEMY] [Enemy6] State: IDLE -> COMBAT
+[08:34:35] [ENEMY] [Enemy6] State: COMBAT -> RETREATING
+[08:34:35] [ENEMY] [Enemy5] State: IDLE -> COMBAT
+[08:34:35] [ENEMY] [Enemy5] State: COMBAT -> RETREATING
+[08:34:36] [ENEMY] [Enemy5] State: RETREATING -> IN_COVER
+[08:34:36] [ENEMY] [Enemy5] State: IN_COVER -> SUPPRESSED
+[08:34:36] [ENEMY] [Enemy6] State: RETREATING -> IN_COVER
+[08:34:36] [ENEMY] [Enemy6] State: IN_COVER -> SUPPRESSED
+[08:34:36] [ENEMY] [Enemy7] FLANKING started: target=(1737.088, 305.83), side=left, pos=(1606.99, 891.3242)
+[08:34:36] [ENEMY] [Enemy7] State: PURSUING -> FLANKING
+[08:34:37] [ENEMY] [Enemy10] FLANKING started: target=(1579.679, 335.6416), side=left, pos=(894.7787, 1357.681)
+[08:34:37] [ENEMY] [Enemy10] State: PURSUING -> FLANKING
+[08:34:37] [ENEMY] [Enemy5] State: SUPPRESSED -> SEEKING_COVER
+[08:34:37] [ENEMY] [Enemy5] State: SEEKING_COVER -> IN_COVER
+[08:34:37] [ENEMY] [Enemy5] State: IN_COVER -> SUPPRESSED
+[08:34:37] [ENEMY] [Enemy5] State: SUPPRESSED -> IN_COVER
+[08:34:37] [ENEMY] [Enemy5] State: IN_COVER -> PURSUING
+[08:34:37] [ENEMY] [Enemy6] State: SUPPRESSED -> IN_COVER
+[08:34:37] [ENEMY] [Enemy6] State: IN_COVER -> PURSUING
+[08:34:39] [ENEMY] [Enemy6] FLANKING started: target=(1438.084, 708.0992), side=right, pos=(2119.023, 572.7926)
+[08:34:39] [ENEMY] [Enemy6] State: PURSUING -> FLANKING
+[08:34:41] [ENEMY] [Enemy7] FLANKING stuck (2.0s no progress), target=(1539.326, 587.6161), pos=(1414.032, 824.0659)
+[08:34:41] [ENEMY] [Enemy7] State: FLANKING -> PURSUING
+[08:34:41] [ENEMY] [Enemy7] FLANKING started: target=(1538.439, 590.4645), side=left, pos=(1412.001, 824.0659)
+[08:34:41] [ENEMY] [Enemy7] State: PURSUING -> FLANKING
+[08:34:42] [ENEMY] [Enemy10] FLANKING timeout (5.0s), target=(1518.756, 633.589), pos=(1329.167, 1332.475)
+[08:34:42] [ENEMY] [Enemy10] State: FLANKING -> PURSUING
+[08:34:43] [ENEMY] [Enemy10] FLANKING started: target=(1172.44, 625.4941), side=right, pos=(1329.167, 1332.475)
+[08:34:43] [ENEMY] [Enemy10] State: PURSUING -> FLANKING
+[08:34:43] [ENEMY] [Enemy5] State: PURSUING -> COMBAT
+[08:34:43] [ENEMY] [Enemy5] State: COMBAT -> PURSUING
+[08:34:44] [ENEMY] [Enemy6] FLANKING timeout (5.0s), target=(1168.728, 618.3649), pos=(1336.522, 632.9353)
+[08:34:44] [ENEMY] [Enemy6] State: FLANKING -> PURSUING
+[08:34:45] [ENEMY] [Enemy5] State: PURSUING -> RETREATING
+[08:34:45] [ENEMY] [Enemy6] State: PURSUING -> RETREATING
+[08:34:45] [ENEMY] [Enemy5] State: RETREATING -> IN_COVER
+[08:34:45] [ENEMY] [Enemy5] State: IN_COVER -> SUPPRESSED
+[08:34:45] [ENEMY] [Enemy6] Hit taken, health: 1/2
+[08:34:45] [ENEMY] [Enemy6] Hit taken, health: 0/2
+[08:34:45] [ENEMY] [Enemy6] Enemy died
+[08:34:46] [ENEMY] [Enemy7] FLANKING timeout (5.0s), target=(1539.676, 586.4499), pos=(1416.244, 824.0667)
+[08:34:46] [ENEMY] [Enemy7] State: FLANKING -> PURSUING
+[08:34:46] [ENEMY] [Enemy7] FLANKING started: target=(1200.809, 665.0455), side=right, pos=(1413.976, 824.0667)
+[08:34:46] [ENEMY] [Enemy7] State: PURSUING -> FLANKING
+[08:34:46] [ENEMY] [Enemy7] State: FLANKING -> COMBAT
+[08:34:46] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[08:34:48] [ENEMY] [Enemy5] State: SUPPRESSED -> IN_COVER
+[08:34:48] [ENEMY] [Enemy5] State: IN_COVER -> PURSUING
+[08:34:48] [ENEMY] [Enemy7] FLANKING started: target=(1240.125, 768.6126), side=right, pos=(1412.069, 824.0037)
+[08:34:48] [ENEMY] [Enemy7] State: PURSUING -> FLANKING
+[08:34:48] [ENEMY] [Enemy7] State: FLANKING -> COMBAT
+[08:34:48] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[08:34:49] [ENEMY] [Enemy10] FLANKING timeout (5.0s), target=(1336.682, 775.2627), pos=(1271.018, 1334.638)
+[08:34:49] [ENEMY] [Enemy10] State: FLANKING -> PURSUING
+[08:34:50] [ENEMY] [Enemy10] FLANKING started: target=(1651.257, 923.3014), side=left, pos=(1271.018, 1334.638)
+[08:34:50] [ENEMY] [Enemy10] State: PURSUING -> FLANKING
+[08:34:55] [ENEMY] [Enemy10] FLANKING timeout (5.0s), target=(1707.926, 658.1558), pos=(1688.681, 846.1049)
+[08:34:55] [ENEMY] [Enemy10] State: FLANKING -> COMBAT
+[08:34:55] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[08:34:56] [ENEMY] [Enemy7] FLANKING started: target=(1712.289, 854.0718), side=left, pos=(1538.568, 841.8016)
+[08:34:56] [ENEMY] [Enemy7] State: PURSUING -> FLANKING
+[08:34:59] [ENEMY] [Enemy10] State: PURSUING -> COMBAT
+[08:34:59] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[08:35:00] [ENEMY] [Enemy10] FLANKING started: target=(1457.953, 944.2247), side=right, pos=(1584.243, 824.067)
+[08:35:00] [ENEMY] [Enemy10] State: PURSUING -> FLANKING
+[08:35:00] [ENEMY] [Enemy10] State: FLANKING -> COMBAT
+[08:35:01] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[08:35:01] [ENEMY] [Enemy7] FLANKING timeout (5.0s), target=(1710.68, 662.9618), pos=(1642.503, 824.0668)
+[08:35:01] [ENEMY] [Enemy7] State: FLANKING -> PURSUING
+[08:35:02] [ENEMY] [Enemy10] FLANKING started: target=(1457.424, 944.0006), side=right, pos=(1583.954, 824.0669)
+[08:35:02] [ENEMY] [Enemy10] State: PURSUING -> FLANKING
+[08:35:02] [ENEMY] [Enemy10] State: FLANKING -> COMBAT
+[08:35:03] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[08:35:03] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[08:35:03] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[08:35:04] [ENEMY] [Enemy10] FLANKING started: target=(1457.281, 943.9396), side=right, pos=(1583.876, 824.0669)
+[08:35:04] [ENEMY] [Enemy10] State: PURSUING -> FLANKING
+[08:35:04] [ENEMY] [Enemy10] State: FLANKING -> COMBAT
+[08:35:05] [ENEMY] [Enemy7] FLANKING started: target=(1458.435, 944.4277), side=right, pos=(1584.506, 824.0668)
+[08:35:05] [ENEMY] [Enemy7] State: PURSUING -> FLANKING
+[08:35:05] [ENEMY] [Enemy7] State: FLANKING -> COMBAT
+[08:35:05] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[08:35:05] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[08:35:06] [ENEMY] [Enemy10] FLANKING started: target=(1457.243, 943.9233), side=right, pos=(1583.856, 824.0669)
+[08:35:06] [ENEMY] [Enemy10] State: PURSUING -> FLANKING
+[08:35:06] [ENEMY] [Enemy10] State: FLANKING -> COMBAT
+[08:35:06] [ENEMY] [Enemy7] FLANKING started: target=(1457.556, 944.0568), side=right, pos=(1584.026, 824.0667)
+[08:35:06] [ENEMY] [Enemy7] State: PURSUING -> FLANKING
+[08:35:07] [ENEMY] [Enemy7] State: FLANKING -> COMBAT
+[08:35:07] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[08:35:07] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[08:35:08] [ENEMY] [Enemy10] FLANKING started: target=(1457.233, 943.9189), side=right, pos=(1583.85, 824.0669)
+[08:35:08] [ENEMY] [Enemy10] State: PURSUING -> FLANKING
+[08:35:08] [ENEMY] [Enemy10] State: FLANKING -> COMBAT
+[08:35:08] [ENEMY] [Enemy7] FLANKING started: target=(1457.317, 943.9547), side=right, pos=(1583.896, 824.0667)
+[08:35:08] [ENEMY] [Enemy7] State: PURSUING -> FLANKING
+[08:35:08] [ENEMY] [Enemy7] State: FLANKING -> COMBAT
+[08:35:09] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[08:35:09] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[08:35:10] [ENEMY] [Enemy10] FLANKING started: target=(1457.23, 943.9178), side=right, pos=(1583.849, 824.0669)
+[08:35:10] [ENEMY] [Enemy10] State: PURSUING -> FLANKING
+[08:35:10] [ENEMY] [Enemy10] State: FLANKING -> COMBAT
+[08:35:10] [ENEMY] [Enemy7] FLANKING started: target=(1457.253, 943.9274), side=right, pos=(1583.861, 824.0667)
+[08:35:10] [ENEMY] [Enemy7] State: PURSUING -> FLANKING
+[08:35:10] [ENEMY] [Enemy7] State: FLANKING -> COMBAT
+[08:35:10] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[08:35:11] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[08:35:12] [ENEMY] [Enemy10] FLANKING started: target=(1448.246, 932.7527), side=right, pos=(1583.848, 824.0669)
+[08:35:12] [ENEMY] [Enemy10] State: PURSUING -> FLANKING
+[08:35:12] [ENEMY] [Enemy10] State: FLANKING -> COMBAT
+[08:35:12] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[08:35:12] [ENEMY] [Enemy10] State: PURSUING -> COMBAT
+[08:35:12] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[08:35:12] [ENEMY] [Enemy7] FLANKING started: target=(1413.64, 865.5712), side=right, pos=(1583.851, 824.0667)
+[08:35:12] [ENEMY] [Enemy7] State: PURSUING -> FLANKING
+[08:35:12] [ENEMY] [Enemy7] State: FLANKING -> COMBAT
+[08:35:12] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[08:35:12] [ENEMY] [Enemy7] FLANKING started: target=(1395.432, 849.5707), side=right, pos=(1568.073, 824.0654)
+[08:35:12] [ENEMY] [Enemy7] State: PURSUING -> FLANKING
+[08:35:12] [ENEMY] [Enemy7] State: FLANKING -> COMBAT
+[08:35:13] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[08:35:14] [ENEMY] [Enemy10] FLANKING started: target=(1419.178, 869.5813), side=right, pos=(1588.687, 824.0663)
+[08:35:14] [ENEMY] [Enemy10] State: PURSUING -> FLANKING
+[08:35:14] [ENEMY] [Enemy10] State: FLANKING -> COMBAT
+[08:35:14] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[08:35:14] [ENEMY] [Enemy7] FLANKING started: target=(1346.299, 771.0587), side=right, pos=(1512.319, 824.0646)
+[08:35:14] [ENEMY] [Enemy7] State: PURSUING -> FLANKING
+[08:35:14] [ENEMY] [Enemy7] State: FLANKING -> COMBAT
+[08:35:14] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[08:35:15] [ENEMY] [Enemy10] FLANKING started: target=(1422.271, 871.757), side=right, pos=(1591.373, 824.0663)
+[08:35:15] [ENEMY] [Enemy10] State: PURSUING -> FLANKING
+[08:35:15] [ENEMY] [Enemy10] State: FLANKING -> COMBAT
+[08:35:15] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[08:35:16] [ENEMY] [Enemy7] FLANKING started: target=(1339.857, 747.1965), side=right, pos=(1496.808, 824.0665)
+[08:35:16] [ENEMY] [Enemy7] State: PURSUING -> FLANKING
+[08:35:16] [ENEMY] [Enemy7] State: FLANKING -> COMBAT
+[08:35:16] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[08:35:17] [ENEMY] [Enemy10] FLANKING started: target=(1421.412, 871.1617), side=right, pos=(1590.626, 824.0664)
+[08:35:17] [ENEMY] [Enemy10] State: PURSUING -> FLANKING
+[08:35:17] [ENEMY] [Enemy10] State: FLANKING -> COMBAT
+[08:35:17] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[08:35:17] [ENEMY] [Enemy7] FLANKING started: target=(1632.917, 881.9354), side=left, pos=(1465.661, 824.0656)
+[08:35:17] [ENEMY] [Enemy7] State: PURSUING -> FLANKING
+[08:35:19] [ENEMY] [Enemy10] FLANKING started: target=(1422.496, 871.9121), side=right, pos=(1591.57, 824.0663)
+[08:35:19] [ENEMY] [Enemy10] State: PURSUING -> FLANKING
+[08:35:19] [ENEMY] [Enemy10] State: FLANKING -> COMBAT
+[08:35:19] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[08:35:20] [ENEMY] [Enemy10] FLANKING started: target=(1421.633, 871.3152), side=right, pos=(1590.818, 824.0664)
+[08:35:20] [ENEMY] [Enemy10] State: PURSUING -> FLANKING
+[08:35:20] [ENEMY] [Enemy10] State: FLANKING -> COMBAT
+[08:35:20] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[08:35:22] [ENEMY] [Enemy10] FLANKING started: target=(1422.701, 872.0532), side=right, pos=(1591.749, 824.0663)
+[08:35:22] [ENEMY] [Enemy10] State: PURSUING -> FLANKING
+[08:35:22] [ENEMY] [Enemy10] State: FLANKING -> COMBAT
+[08:35:22] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[08:35:22] [ENEMY] [Enemy7] FLANKING timeout (5.0s), target=(1728.404, 653.2271), pos=(1655.345, 824.0667)
+[08:35:22] [ENEMY] [Enemy7] State: FLANKING -> PURSUING
+[08:35:22] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[08:35:22] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[08:35:24] [ENEMY] [Enemy10] FLANKING started: target=(1421.833, 871.4545), side=right, pos=(1590.993, 824.0664)
+[08:35:24] [ENEMY] [Enemy10] State: PURSUING -> FLANKING
+[08:35:24] [ENEMY] [Enemy10] State: FLANKING -> COMBAT
+[08:35:24] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[08:35:24] [ENEMY] [Enemy7] FLANKING started: target=(1734.449, 683.9251), side=left, pos=(1622.834, 824.0657)
+[08:35:24] [ENEMY] [Enemy7] State: PURSUING -> FLANKING
+[08:35:25] [ENEMY] [Enemy10] FLANKING started: target=(1422.889, 872.1815), side=right, pos=(1591.912, 824.0663)
+[08:35:25] [ENEMY] [Enemy10] State: PURSUING -> FLANKING
+[08:35:25] [ENEMY] [Enemy10] State: FLANKING -> COMBAT
+[08:35:25] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[08:35:27] [ENEMY] [Enemy10] FLANKING started: target=(1422.016, 871.5814), side=right, pos=(1591.152, 824.0664)
+[08:35:27] [ENEMY] [Enemy10] State: PURSUING -> FLANKING
+[08:35:27] [ENEMY] [Enemy10] State: FLANKING -> COMBAT
+[08:35:27] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[08:35:28] [ENEMY] [Enemy10] FLANKING started: target=(1421.164, 870.9885), side=right, pos=(1590.411, 824.0664)
+[08:35:28] [ENEMY] [Enemy10] State: PURSUING -> FLANKING
+[08:35:28] [ENEMY] [Enemy10] State: FLANKING -> COMBAT
+[08:35:28] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[08:35:29] [ENEMY] [Enemy7] FLANKING timeout (5.0s), target=(1726.892, 648.0873), pos=(1661.664, 824.0666)
+[08:35:29] [ENEMY] [Enemy7] State: FLANKING -> PURSUING
+[08:35:29] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[08:35:29] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[08:35:30] [ENEMY] [Enemy10] FLANKING started: target=(1422.264, 871.7524), side=right, pos=(1591.368, 824.0663)
+[08:35:30] [ENEMY] [Enemy10] State: PURSUING -> FLANKING
+[08:35:30] [ENEMY] [Enemy10] State: FLANKING -> COMBAT
+[08:35:30] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[08:35:31] [ENEMY] [Enemy7] FLANKING started: target=(1454.361, 889.77), side=right, pos=(1620.691, 824.0659)
+[08:35:31] [ENEMY] [Enemy7] State: PURSUING -> FLANKING
+[08:35:31] [ENEMY] [Enemy7] State: FLANKING -> COMBAT
+[08:35:31] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[08:35:32] [ENEMY] [Enemy10] FLANKING started: target=(1421.406, 871.1573), side=right, pos=(1590.621, 824.0664)
+[08:35:32] [ENEMY] [Enemy10] State: PURSUING -> FLANKING
+[08:35:32] [ENEMY] [Enemy10] State: FLANKING -> COMBAT
+[08:35:32] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[08:35:32] [ENEMY] [Enemy7] FLANKING started: target=(1734.926, 688.4593), side=left, pos=(1618.76, 824.066)
+[08:35:32] [ENEMY] [Enemy7] State: PURSUING -> FLANKING
+[08:35:32] [ENEMY] [Enemy7] State: FLANKING -> COMBAT
+[08:35:32] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[08:35:33] [ENEMY] [Enemy10] FLANKING started: target=(1422.49, 871.9081), side=right, pos=(1591.565, 824.0663)
+[08:35:33] [ENEMY] [Enemy10] State: PURSUING -> FLANKING
+[08:35:33] [ENEMY] [Enemy10] State: FLANKING -> COMBAT
+[08:35:33] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[08:35:34] [ENEMY] [Enemy7] FLANKING started: target=(1442.404, 883.9554), side=right, pos=(1613.099, 830.0316)
+[08:35:34] [ENEMY] [Enemy7] State: PURSUING -> FLANKING
+[08:35:34] [ENEMY] [Enemy7] State: FLANKING -> COMBAT
+[08:35:34] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[08:35:34] [ENEMY] [Enemy7] FLANKING started: target=(1734.809, 726.944), side=left, pos=(1588.623, 824.0664)
+[08:35:34] [ENEMY] [Enemy7] State: PURSUING -> FLANKING
+[08:35:35] [ENEMY] [Enemy10] FLANKING started: target=(1421.627, 871.3113), side=right, pos=(1590.813, 824.0663)
+[08:35:35] [ENEMY] [Enemy10] State: PURSUING -> FLANKING
+[08:35:35] [ENEMY] [Enemy10] State: FLANKING -> COMBAT
+[08:35:35] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[08:35:36] [ENEMY] [Enemy10] State: PURSUING -> COMBAT
+[08:35:36] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[08:35:37] [ENEMY] [Enemy5] State: PURSUING -> COMBAT
+[08:35:37] [ENEMY] [Enemy7] State: FLANKING -> COMBAT
+[08:35:37] [ENEMY] [Enemy5] State: COMBAT -> PURSUING
+[08:35:38] [ENEMY] [Enemy10] State: PURSUING -> COMBAT
+[08:35:38] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[08:35:39] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[08:35:40] [ENEMY] [Enemy10] FLANKING started: target=(1492.819, 323.338), side=left, pos=(1442.642, 824.0663)
+[08:35:40] [ENEMY] [Enemy10] State: PURSUING -> FLANKING
+[08:35:41] [ENEMY] [Enemy7] FLANKING started: target=(1227.683, 571.6406), side=right, pos=(1523.262, 824.0665)
+[08:35:41] [ENEMY] [Enemy7] State: PURSUING -> FLANKING
+[08:35:42] [ENEMY] [Enemy10] FLANKING stuck (2.0s no progress), target=(1534.44, 484.0432), pos=(1412.007, 824.0698)
+[08:35:42] [ENEMY] [Enemy10] State: FLANKING -> PURSUING
+[08:35:42] [ENEMY] [Enemy10] FLANKING started: target=(1534.441, 484.0421), side=left, pos=(1412.003, 824.0698)
+[08:35:42] [ENEMY] [Enemy10] State: PURSUING -> FLANKING
+[08:35:44] [ENEMY] [Enemy7] FLANKING stuck (2.0s no progress), target=(1192.153, 537.2585), pos=(1412.066, 824.0012)
+[08:35:44] [ENEMY] [Enemy7] State: FLANKING -> COMBAT
+[08:35:44] [ENEMY] [Enemy5] FLANKING started: target=(1380.596, 609.1431), side=right, pos=(1429.165, 442.3626)
+[08:35:44] [ENEMY] [Enemy5] State: PURSUING -> FLANKING
+[08:35:44] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[08:35:44] [ENEMY] [Enemy10] FLANKING stuck (2.0s no progress), target=(1534.442, 484.0402), pos=(1412, 824.0694)
+[08:35:44] [ENEMY] [Enemy10] State: FLANKING -> PURSUING
+[08:35:44] [ENEMY] [Enemy10] FLANKING started: target=(1534.441, 484.0425), side=left, pos=(1412.002, 824.0694)
+[08:35:44] [ENEMY] [Enemy10] State: PURSUING -> FLANKING
+[08:35:45] [ENEMY] [Enemy7] FLANKING started: target=(1192.163, 537.2709), side=right, pos=(1412.071, 824.0004)
+[08:35:45] [ENEMY] [Enemy7] State: PURSUING -> FLANKING
+[08:35:46] [ENEMY] [Enemy10] FLANKING stuck (2.0s no progress), target=(1534.442, 484.0402), pos=(1412, 824.0694)
+[08:35:46] [ENEMY] [Enemy10] State: FLANKING -> PURSUING
+[08:35:46] [ENEMY] [Enemy10] FLANKING started: target=(1534.441, 484.0425), side=left, pos=(1412.002, 824.0694)
+[08:35:46] [ENEMY] [Enemy10] State: PURSUING -> FLANKING
+[08:35:47] [ENEMY] [Enemy7] FLANKING stuck (2.0s no progress), target=(1192.163, 537.27), pos=(1412.069, 824.004)
+[08:35:47] [ENEMY] [Enemy7] State: FLANKING -> PURSUING
+[08:35:47] [ENEMY] [Enemy7] FLANKING started: target=(1192.163, 537.27), side=right, pos=(1412.069, 824.004)
+[08:35:47] [ENEMY] [Enemy7] State: PURSUING -> FLANKING
+[08:35:48] [ENEMY] [Enemy5] FLANKING stuck (2.0s no progress), target=(1222.999, 568.0064), pos=(1412.075, 575.9857)
+[08:35:48] [ENEMY] [Enemy5] State: FLANKING -> PURSUING
+[08:35:48] [ENEMY] [Enemy10] FLANKING stuck (2.0s no progress), target=(1534.442, 484.0402), pos=(1412, 824.0694)
+[08:35:48] [ENEMY] [Enemy10] State: FLANKING -> PURSUING
+[08:35:48] [ENEMY] [Enemy10] FLANKING started: target=(1534.441, 484.0425), side=left, pos=(1412.002, 824.0694)
+[08:35:48] [ENEMY] [Enemy10] State: PURSUING -> FLANKING
+[08:35:49] [ENEMY] [Enemy7] FLANKING stuck (2.0s no progress), target=(1192.163, 537.27), pos=(1412.069, 824.004)
+[08:35:49] [ENEMY] [Enemy7] State: FLANKING -> PURSUING
+[08:35:49] [ENEMY] [Enemy7] FLANKING started: target=(1192.163, 537.27), side=right, pos=(1412.069, 824.004)
+[08:35:49] [ENEMY] [Enemy7] State: PURSUING -> FLANKING
+[08:35:50] [ENEMY] [Enemy10] FLANKING stuck (2.0s no progress), target=(1534.442, 484.0402), pos=(1412, 824.0694)
+[08:35:50] [ENEMY] [Enemy10] State: FLANKING -> PURSUING
+[08:35:50] [ENEMY] [Enemy10] FLANKING started: target=(1534.441, 484.0425), side=left, pos=(1412.002, 824.0694)
+[08:35:50] [ENEMY] [Enemy10] State: PURSUING -> FLANKING
+[08:35:51] [ENEMY] [Enemy7] FLANKING stuck (2.0s no progress), target=(1192.163, 537.27), pos=(1412.069, 824.004)
+[08:35:51] [ENEMY] [Enemy7] State: FLANKING -> PURSUING
+[08:35:52] [ENEMY] [Enemy7] FLANKING started: target=(1192.163, 537.27), side=right, pos=(1412.069, 824.004)
+[08:35:52] [ENEMY] [Enemy7] State: PURSUING -> FLANKING
+[08:35:52] [ENEMY] [Enemy10] FLANKING stuck (2.0s no progress), target=(1534.442, 484.0402), pos=(1412, 824.0694)
+[08:35:52] [ENEMY] [Enemy10] State: FLANKING -> PURSUING
+[08:35:52] [ENEMY] [Enemy10] FLANKING started: target=(1534.441, 484.0425), side=left, pos=(1412.002, 824.0694)
+[08:35:52] [ENEMY] [Enemy10] State: PURSUING -> FLANKING
+[08:35:54] [ENEMY] [Enemy7] FLANKING stuck (2.0s no progress), target=(1192.163, 537.27), pos=(1412.069, 824.004)
+[08:35:54] [ENEMY] [Enemy7] State: FLANKING -> PURSUING
+[08:35:54] [ENEMY] [Enemy7] FLANKING started: target=(1192.163, 537.27), side=right, pos=(1412.069, 824.004)
+[08:35:54] [ENEMY] [Enemy7] State: PURSUING -> FLANKING
+[08:35:54] [ENEMY] [Enemy10] FLANKING stuck (2.0s no progress), target=(1534.442, 484.0402), pos=(1412, 824.0694)
+[08:35:54] [ENEMY] [Enemy10] State: FLANKING -> PURSUING
+[08:35:54] [ENEMY] [Enemy10] FLANKING started: target=(1534.441, 484.0425), side=left, pos=(1412.002, 824.0694)
+[08:35:54] [ENEMY] [Enemy10] State: PURSUING -> FLANKING
+[08:35:56] [ENEMY] [Enemy7] FLANKING stuck (2.0s no progress), target=(1192.163, 537.27), pos=(1412.069, 824.004)
+[08:35:56] [ENEMY] [Enemy7] State: FLANKING -> PURSUING
+[08:35:56] [ENEMY] [Enemy7] FLANKING started: target=(1192.163, 537.27), side=right, pos=(1412.069, 824.004)
+[08:35:56] [ENEMY] [Enemy7] State: PURSUING -> FLANKING
+[08:35:56] [ENEMY] [Enemy10] FLANKING stuck (2.0s no progress), target=(1534.442, 484.0402), pos=(1412, 824.0694)
+[08:35:56] [ENEMY] [Enemy10] State: FLANKING -> PURSUING
+[08:35:56] [ENEMY] [Enemy10] FLANKING started: target=(1534.441, 484.0425), side=left, pos=(1412.002, 824.0694)
+[08:35:56] [ENEMY] [Enemy10] State: PURSUING -> FLANKING
+[08:35:57] [ENEMY] [Enemy5] State: PURSUING -> COMBAT
+[08:35:58] [ENEMY] [Enemy7] FLANKING stuck (2.0s no progress), target=(1192.163, 537.27), pos=(1412.069, 824.004)
+[08:35:58] [ENEMY] [Enemy7] State: FLANKING -> PURSUING
+[08:35:58] [ENEMY] [Enemy7] FLANKING started: target=(1192.163, 537.27), side=right, pos=(1412.069, 824.004)
+[08:35:58] [ENEMY] [Enemy7] State: PURSUING -> FLANKING
+[08:35:58] [ENEMY] [Enemy10] FLANKING stuck (2.0s no progress), target=(1534.442, 484.0402), pos=(1412, 824.0694)
+[08:35:58] [ENEMY] [Enemy10] State: FLANKING -> PURSUING
+[08:35:58] [ENEMY] [Enemy10] FLANKING started: target=(1534.441, 484.0425), side=left, pos=(1412.002, 824.0694)
+[08:35:58] [ENEMY] [Enemy10] State: PURSUING -> FLANKING
+[08:36:00] [ENEMY] [Enemy7] FLANKING stuck (2.0s no progress), target=(1192.163, 537.27), pos=(1412.069, 824.004)
+[08:36:00] [ENEMY] [Enemy7] State: FLANKING -> PURSUING
+[08:36:00] [ENEMY] [Enemy7] FLANKING started: target=(1192.163, 537.27), side=right, pos=(1412.069, 824.004)
+[08:36:00] [ENEMY] [Enemy7] State: PURSUING -> FLANKING
+[08:36:00] [ENEMY] [Enemy10] FLANKING stuck (2.0s no progress), target=(1534.442, 484.0402), pos=(1412, 824.0694)
+[08:36:00] [ENEMY] [Enemy10] State: FLANKING -> PURSUING
+[08:36:00] [ENEMY] [Enemy10] FLANKING started: target=(1534.441, 484.0425), side=left, pos=(1412.002, 824.0694)
+[08:36:00] [ENEMY] [Enemy10] State: PURSUING -> FLANKING
+[08:36:00] [ENEMY] [Enemy5] FLANKING started: target=(1304.163, 606.98), side=right, pos=(1412.067, 470.8882)
+[08:36:00] [ENEMY] [Enemy5] State: COMBAT -> FLANKING
+[08:36:02] [ENEMY] [Enemy7] FLANKING stuck (2.0s no progress), target=(1192.163, 537.27), pos=(1412.069, 824.004)
+[08:36:02] [ENEMY] [Enemy7] State: FLANKING -> PURSUING
+[08:36:02] [ENEMY] [Enemy7] FLANKING started: target=(1192.163, 537.27), side=right, pos=(1412.069, 824.004)
+[08:36:02] [ENEMY] [Enemy7] State: PURSUING -> FLANKING
+[08:36:02] [ENEMY] [Enemy10] FLANKING stuck (2.0s no progress), target=(1534.442, 484.0402), pos=(1412, 824.0694)
+[08:36:02] [ENEMY] [Enemy10] State: FLANKING -> PURSUING
+[08:36:02] [ENEMY] [Enemy10] FLANKING started: target=(1534.441, 484.0425), side=left, pos=(1412.002, 824.0694)
+[08:36:02] [ENEMY] [Enemy10] State: PURSUING -> FLANKING
+[08:36:04] [ENEMY] [Enemy5] FLANKING stuck (2.0s no progress), target=(1222.997, 568.0042), pos=(1412.076, 575.997)
+[08:36:04] [ENEMY] [Enemy5] State: FLANKING -> PURSUING
+[08:36:04] [ENEMY] [Enemy7] FLANKING stuck (2.0s no progress), target=(1192.163, 537.27), pos=(1412.069, 824.004)
+[08:36:04] [ENEMY] [Enemy7] State: FLANKING -> PURSUING
+[08:36:04] [ENEMY] [Enemy7] FLANKING started: target=(1192.163, 537.27), side=right, pos=(1412.069, 824.004)
+[08:36:04] [ENEMY] [Enemy7] State: PURSUING -> FLANKING
+[08:36:04] [ENEMY] [Enemy10] FLANKING stuck (2.0s no progress), target=(1534.442, 484.0402), pos=(1412, 824.0694)
+[08:36:04] [ENEMY] [Enemy10] State: FLANKING -> PURSUING
+[08:36:04] [ENEMY] [Enemy10] FLANKING started: target=(1534.441, 484.0425), side=left, pos=(1412.002, 824.0694)
+[08:36:04] [ENEMY] [Enemy10] State: PURSUING -> FLANKING
+[08:36:06] [ENEMY] [Enemy7] FLANKING stuck (2.0s no progress), target=(1192.163, 537.27), pos=(1412.069, 824.004)
+[08:36:06] [ENEMY] [Enemy7] State: FLANKING -> PURSUING
+[08:36:06] [ENEMY] [Enemy7] FLANKING started: target=(1192.163, 537.27), side=right, pos=(1412.069, 824.004)
+[08:36:06] [ENEMY] [Enemy7] State: PURSUING -> FLANKING
+[08:36:06] [ENEMY] [Enemy10] FLANKING stuck (2.0s no progress), target=(1534.442, 484.0402), pos=(1412, 824.0694)
+[08:36:06] [ENEMY] [Enemy10] State: FLANKING -> PURSUING
+[08:36:06] [ENEMY] [Enemy10] FLANKING started: target=(1534.441, 484.0425), side=left, pos=(1412.002, 824.0694)
+[08:36:06] [ENEMY] [Enemy10] State: PURSUING -> FLANKING
+[08:36:08] [ENEMY] [Enemy7] FLANKING stuck (2.0s no progress), target=(1192.163, 537.27), pos=(1412.069, 824.004)
+[08:36:08] [ENEMY] [Enemy7] State: FLANKING -> PURSUING
+[08:36:08] [ENEMY] [Enemy7] FLANKING started: target=(1192.163, 537.27), side=right, pos=(1412.069, 824.004)
+[08:36:08] [ENEMY] [Enemy7] State: PURSUING -> FLANKING
+[08:36:08] [ENEMY] [Enemy10] FLANKING stuck (2.0s no progress), target=(1534.442, 484.0402), pos=(1412, 824.0694)
+[08:36:08] [ENEMY] [Enemy10] State: FLANKING -> PURSUING
+[08:36:08] [ENEMY] [Enemy10] FLANKING started: target=(1534.441, 484.0425), side=left, pos=(1412.002, 824.0694)
+[08:36:08] [ENEMY] [Enemy10] State: PURSUING -> FLANKING
+[08:36:10] [ENEMY] [Enemy7] FLANKING stuck (2.0s no progress), target=(1192.163, 537.27), pos=(1412.069, 824.004)
+[08:36:10] [ENEMY] [Enemy7] State: FLANKING -> PURSUING
+[08:36:10] [ENEMY] [Enemy7] FLANKING started: target=(1192.163, 537.27), side=right, pos=(1412.069, 824.004)
+[08:36:10] [ENEMY] [Enemy7] State: PURSUING -> FLANKING
+[08:36:10] [ENEMY] [Enemy10] FLANKING stuck (2.0s no progress), target=(1534.442, 484.0402), pos=(1412, 824.0694)
+[08:36:10] [ENEMY] [Enemy10] State: FLANKING -> PURSUING
+[08:36:11] [ENEMY] [Enemy10] FLANKING started: target=(1534.441, 484.0425), side=left, pos=(1412.002, 824.0694)
+[08:36:11] [ENEMY] [Enemy10] State: PURSUING -> FLANKING
+[08:36:12] [ENEMY] [Enemy5] State: PURSUING -> COMBAT
+[08:36:12] [ENEMY] [Enemy7] FLANKING stuck (2.0s no progress), target=(1192.163, 537.27), pos=(1412.069, 824.004)
+[08:36:12] [ENEMY] [Enemy7] State: FLANKING -> PURSUING
+[08:36:12] [ENEMY] [Enemy7] FLANKING started: target=(1192.163, 537.27), side=right, pos=(1412.069, 824.004)
+[08:36:12] [ENEMY] [Enemy7] State: PURSUING -> FLANKING
+[08:36:13] [ENEMY] [Enemy10] FLANKING stuck (2.0s no progress), target=(1534.442, 484.0402), pos=(1412, 824.0694)
+[08:36:13] [ENEMY] [Enemy10] State: FLANKING -> PURSUING
+[08:36:13] [ENEMY] [Enemy10] FLANKING started: target=(1534.441, 484.0425), side=left, pos=(1412.002, 824.0694)
+[08:36:13] [ENEMY] [Enemy10] State: PURSUING -> FLANKING
+[08:36:14] [ENEMY] [Enemy7] FLANKING stuck (2.0s no progress), target=(1192.163, 537.27), pos=(1412.069, 824.004)
+[08:36:14] [ENEMY] [Enemy7] State: FLANKING -> PURSUING
+[08:36:14] [ENEMY] [Enemy7] FLANKING started: target=(1192.163, 537.27), side=right, pos=(1412.069, 824.004)
+[08:36:14] [ENEMY] [Enemy7] State: PURSUING -> FLANKING
+[08:36:15] [ENEMY] [Enemy10] FLANKING stuck (2.0s no progress), target=(1534.442, 484.0402), pos=(1412, 824.0694)
+[08:36:15] [ENEMY] [Enemy10] State: FLANKING -> PURSUING
+[08:36:15] [ENEMY] [Enemy10] FLANKING started: target=(1534.441, 484.0425), side=left, pos=(1412.002, 824.0694)
+[08:36:15] [ENEMY] [Enemy10] State: PURSUING -> FLANKING
+[08:36:15] [ENEMY] [Enemy5] FLANKING started: target=(1304.153, 606.9778), side=right, pos=(1412.067, 470.8941)
+[08:36:15] [ENEMY] [Enemy5] State: COMBAT -> FLANKING
+[08:36:15] [INFO] ------------------------------------------------------------
+[08:36:15] [INFO] GAME LOG ENDED: 2026-01-18T08:36:15
+[08:36:15] [INFO] ============================================================
