@@ -28,6 +28,11 @@ extends CharacterBody2D
 ## Maximum health of the player.
 @export var max_health: int = 5
 
+## Weapon loudness - determines how far gunshots propagate for enemy detection.
+## Set to viewport diagonal (~1469 pixels) for assault rifle by default.
+## This affects how far enemies can hear the player's gunshots.
+@export var weapon_loudness: float = 1469.0
+
 ## Reload mode: simple (press R once) or sequence (R-F-R).
 @export_enum("Simple", "Sequence") var reload_mode: int = 1  # Default to Sequence mode
 
@@ -221,6 +226,13 @@ func _shoot() -> void:
 	var audio_manager: Node = get_node_or_null("/root/AudioManager")
 	if audio_manager and audio_manager.has_method("play_m16_shot"):
 		audio_manager.play_m16_shot(global_position)
+
+	# Emit gunshot sound for in-game sound propagation (alerts enemies)
+	# Uses weapon_loudness to determine propagation range
+	var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
+	if sound_propagation and sound_propagation.has_method("emit_sound"):
+		# Use emit_sound with custom range for weapon-specific loudness
+		sound_propagation.emit_sound(0, global_position, 0, self, weapon_loudness)  # 0 = GUNSHOT, 0 = PLAYER
 
 	# Play shell casing sound with a small delay
 	if audio_manager and audio_manager.has_method("play_shell_rifle"):

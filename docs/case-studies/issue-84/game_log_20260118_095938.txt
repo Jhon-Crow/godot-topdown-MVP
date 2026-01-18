@@ -1,0 +1,301 @@
+[09:59:38] [INFO] ============================================================
+[09:59:38] [INFO] GAME LOG STARTED
+[09:59:38] [INFO] ============================================================
+[09:59:38] [INFO] Timestamp: 2026-01-18T09:59:38
+[09:59:38] [INFO] Log file: I:/Загрузки/godot exe/game_log_20260118_095938.txt
+[09:59:38] [INFO] Executable: I:/Загрузки/godot exe/Godot-Top-Down-Template.exe
+[09:59:38] [INFO] OS: Windows
+[09:59:38] [INFO] Debug build: false
+[09:59:38] [INFO] Engine version: 4.3-stable (official)
+[09:59:38] [INFO] Project: Godot Top-Down Template
+[09:59:38] [INFO] ------------------------------------------------------------
+[09:59:38] [INFO] [GameManager] GameManager ready
+[09:59:38] [ENEMY] [Enemy1] WARNING: Could not register as sound listener (SoundPropagation not found)
+[09:59:38] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 3, behavior: GUARD, player_found: yes
+[09:59:38] [ENEMY] [Enemy2] WARNING: Could not register as sound listener (SoundPropagation not found)
+[09:59:38] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 4, behavior: GUARD, player_found: yes
+[09:59:38] [ENEMY] [Enemy3] WARNING: Could not register as sound listener (SoundPropagation not found)
+[09:59:38] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 2, behavior: GUARD, player_found: yes
+[09:59:38] [ENEMY] [Enemy4] WARNING: Could not register as sound listener (SoundPropagation not found)
+[09:59:38] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 2, behavior: GUARD, player_found: yes
+[09:59:38] [ENEMY] [Enemy5] WARNING: Could not register as sound listener (SoundPropagation not found)
+[09:59:38] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 3, behavior: GUARD, player_found: yes
+[09:59:38] [ENEMY] [Enemy6] WARNING: Could not register as sound listener (SoundPropagation not found)
+[09:59:38] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 2, behavior: GUARD, player_found: yes
+[09:59:38] [ENEMY] [Enemy7] WARNING: Could not register as sound listener (SoundPropagation not found)
+[09:59:38] [ENEMY] [Enemy7] Enemy spawned at (1606.114, 893.8859), health: 4, behavior: PATROL, player_found: yes
+[09:59:38] [ENEMY] [Enemy8] WARNING: Could not register as sound listener (SoundPropagation not found)
+[09:59:38] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 3, behavior: GUARD, player_found: yes
+[09:59:38] [ENEMY] [Enemy9] WARNING: Could not register as sound listener (SoundPropagation not found)
+[09:59:38] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 2, behavior: GUARD, player_found: yes
+[09:59:38] [ENEMY] [Enemy10] WARNING: Could not register as sound listener (SoundPropagation not found)
+[09:59:38] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 2, behavior: PATROL, player_found: yes
+[09:59:45] [INFO] [GameManager] Debug mode toggled: ON
+[09:59:49] [ENEMY] [Enemy3] State: IDLE -> COMBAT
+[09:59:49] [ENEMY] [Enemy3] Hit taken, health: 1/2
+[09:59:49] [ENEMY] [Enemy10] State: IDLE -> COMBAT
+[09:59:49] [ENEMY] [Enemy3] Hit taken, health: 0/2
+[09:59:49] [ENEMY] [Enemy3] Enemy died
+[09:59:49] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[09:59:51] [ENEMY] [Enemy1] State: IDLE -> COMBAT
+[09:59:51] [ENEMY] [Enemy2] State: IDLE -> COMBAT
+[09:59:51] [ENEMY] [Enemy1] State: COMBAT -> PURSUING
+[09:59:51] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[09:59:51] [ENEMY] [Enemy2] Hit taken, health: 3/4
+[09:59:51] [ENEMY] [Enemy2] Hit taken, health: 2/4
+[09:59:51] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[09:59:51] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[09:59:51] [ENEMY] [Enemy2] State: PURSUING -> RETREATING
+[09:59:51] [ENEMY] [Enemy2] Hit taken, health: 1/4
+[09:59:51] [ENEMY] [Enemy2] Hit taken, health: 0/4
+[09:59:51] [ENEMY] [Enemy2] Enemy died
+[09:59:54] [ENEMY] [Enemy10] FLANKING started: target=(558.4061, 1028.651), side=right, pos=(995.8834, 1439.684)
+[09:59:54] [ENEMY] [Enemy10] State: PURSUING -> FLANKING
+[09:59:55] [ENEMY] [Enemy10] Hit taken, health: 1/2
+[09:59:55] [ENEMY] [Enemy10] State: FLANKING -> RETREATING
+[09:59:55] [ENEMY] [Enemy10] State: RETREATING -> IN_COVER
+[09:59:55] [ENEMY] [Enemy10] State: IN_COVER -> SUPPRESSED
+[09:59:56] [ENEMY] [Enemy1] State: PURSUING -> COMBAT
+[09:59:56] [ENEMY] [Enemy1] State: COMBAT -> PURSUING
+[09:59:58] [ENEMY] [Enemy10] State: SUPPRESSED -> IN_COVER
+[09:59:58] [ENEMY] [Enemy10] State: IN_COVER -> PURSUING
+[09:59:58] [ENEMY] [Enemy10] State: PURSUING -> COMBAT
+[09:59:58] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[09:59:58] [ENEMY] [Enemy10] State: PURSUING -> COMBAT
+[09:59:59] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[10:00:00] [ENEMY] [Enemy10] State: PURSUING -> COMBAT
+[10:00:00] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[10:00:01] [ENEMY] [Enemy1] State: PURSUING -> COMBAT
+[10:00:01] [ENEMY] [Enemy1] State: COMBAT -> PURSUING
+[10:00:02] [ENEMY] [Enemy10] State: PURSUING -> COMBAT
+[10:00:02] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[10:00:02] [ENEMY] [Enemy1] FLANKING started: target=(296.6804, 980.3487), side=left, pos=(184.9976, 663.9332)
+[10:00:02] [ENEMY] [Enemy1] State: PURSUING -> FLANKING
+[10:00:04] [ENEMY] [Enemy4] State: IDLE -> COMBAT
+[10:00:05] [ENEMY] [Enemy4] State: COMBAT -> PURSUING
+[10:00:05] [ENEMY] [Enemy4] State: PURSUING -> COMBAT
+[10:00:05] [ENEMY] [Enemy4] Hit taken, health: 1/2
+[10:00:05] [ENEMY] [Enemy4] State: COMBAT -> PURSUING
+[10:00:05] [ENEMY] [Enemy4] State: PURSUING -> COMBAT
+[10:00:05] [ENEMY] [Enemy4] Hit taken, health: 0/2
+[10:00:05] [ENEMY] [Enemy4] Enemy died
+[10:00:05] [ENEMY] [Enemy10] State: PURSUING -> RETREATING
+[10:00:05] [ENEMY] [Enemy10] State: RETREATING -> IN_COVER
+[10:00:05] [ENEMY] [Enemy10] State: IN_COVER -> SUPPRESSED
+[10:00:05] [ENEMY] [Enemy1] FLANKING stuck (2.0s no progress), target=(472.9317, 1040.423), pos=(182.602, 663.934), fail_count=1
+[10:00:05] [ENEMY] [Enemy1] State: FLANKING -> PURSUING
+[10:00:05] [ENEMY] [Enemy1] State: PURSUING -> COMBAT
+[10:00:05] [ENEMY] [Enemy1] State: COMBAT -> PURSUING
+[10:00:05] [ENEMY] [Enemy1] State: PURSUING -> COMBAT
+[10:00:05] [ENEMY] [Enemy1] State: COMBAT -> PURSUING
+[10:00:05] [ENEMY] [Enemy1] State: PURSUING -> COMBAT
+[10:00:05] [ENEMY] [Enemy1] State: COMBAT -> PURSUING
+[10:00:05] [ENEMY] [Enemy1] State: PURSUING -> COMBAT
+[10:00:05] [ENEMY] [Enemy1] State: COMBAT -> PURSUING
+[10:00:05] [ENEMY] [Enemy1] State: PURSUING -> COMBAT
+[10:00:05] [ENEMY] [Enemy1] State: COMBAT -> PURSUING
+[10:00:05] [ENEMY] [Enemy1] State: PURSUING -> COMBAT
+[10:00:05] [ENEMY] [Enemy1] State: COMBAT -> PURSUING
+[10:00:05] [ENEMY] [Enemy1] State: PURSUING -> COMBAT
+[10:00:06] [ENEMY] [Enemy1] State: COMBAT -> PURSUING
+[10:00:06] [ENEMY] [Enemy1] State: PURSUING -> COMBAT
+[10:00:06] [ENEMY] [Enemy1] State: COMBAT -> PURSUING
+[10:00:06] [ENEMY] [Enemy1] State: PURSUING -> COMBAT
+[10:00:06] [ENEMY] [Enemy1] State: COMBAT -> PURSUING
+[10:00:06] [ENEMY] [Enemy1] State: PURSUING -> COMBAT
+[10:00:06] [ENEMY] [Enemy1] State: COMBAT -> PURSUING
+[10:00:06] [ENEMY] [Enemy1] State: PURSUING -> COMBAT
+[10:00:06] [ENEMY] [Enemy1] State: COMBAT -> PURSUING
+[10:00:06] [ENEMY] [Enemy1] State: PURSUING -> COMBAT
+[10:00:06] [ENEMY] [Enemy1] State: COMBAT -> PURSUING
+[10:00:06] [ENEMY] [Enemy1] State: PURSUING -> COMBAT
+[10:00:06] [ENEMY] [Enemy1] State: COMBAT -> PURSUING
+[10:00:06] [ENEMY] [Enemy1] WARNING: Could not register as sound listener (SoundPropagation not found)
+[10:00:06] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 3, behavior: GUARD, player_found: yes
+[10:00:06] [ENEMY] [Enemy2] WARNING: Could not register as sound listener (SoundPropagation not found)
+[10:00:06] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 4, behavior: GUARD, player_found: yes
+[10:00:06] [ENEMY] [Enemy3] WARNING: Could not register as sound listener (SoundPropagation not found)
+[10:00:06] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 3, behavior: GUARD, player_found: yes
+[10:00:06] [ENEMY] [Enemy4] WARNING: Could not register as sound listener (SoundPropagation not found)
+[10:00:06] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 3, behavior: GUARD, player_found: yes
+[10:00:06] [ENEMY] [Enemy5] WARNING: Could not register as sound listener (SoundPropagation not found)
+[10:00:06] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 2, behavior: GUARD, player_found: yes
+[10:00:06] [ENEMY] [Enemy6] WARNING: Could not register as sound listener (SoundPropagation not found)
+[10:00:06] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 4, behavior: GUARD, player_found: yes
+[10:00:06] [ENEMY] [Enemy7] WARNING: Could not register as sound listener (SoundPropagation not found)
+[10:00:06] [ENEMY] [Enemy7] Enemy spawned at (1600, 900), health: 3, behavior: PATROL, player_found: yes
+[10:00:06] [ENEMY] [Enemy8] WARNING: Could not register as sound listener (SoundPropagation not found)
+[10:00:06] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 2, behavior: GUARD, player_found: yes
+[10:00:06] [ENEMY] [Enemy9] WARNING: Could not register as sound listener (SoundPropagation not found)
+[10:00:06] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 3, behavior: GUARD, player_found: yes
+[10:00:06] [ENEMY] [Enemy10] WARNING: Could not register as sound listener (SoundPropagation not found)
+[10:00:06] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 4, behavior: PATROL, player_found: yes
+[10:00:10] [ENEMY] [Enemy7] State: IDLE -> COMBAT
+[10:00:10] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[10:00:11] [ENEMY] [Enemy10] State: IDLE -> COMBAT
+[10:00:11] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[10:00:12] [ENEMY] [Enemy10] Hit taken, health: 3/4
+[10:00:12] [ENEMY] [Enemy10] State: PURSUING -> COMBAT
+[10:00:12] [ENEMY] [Enemy10] State: COMBAT -> RETREATING
+[10:00:12] [ENEMY] [Enemy7] FLANKING started: target=(1139.167, 1663.083), side=right, pos=(1429.757, 901.7244)
+[10:00:12] [ENEMY] [Enemy7] State: PURSUING -> FLANKING
+[10:00:12] [ENEMY] [Enemy10] Hit taken, health: 2/4
+[10:00:12] [ENEMY] [Enemy10] Hit taken, health: 1/4
+[10:00:12] [ENEMY] [Enemy10] Hit taken, health: 0/4
+[10:00:12] [ENEMY] [Enemy10] Enemy died
+[10:00:14] [ENEMY] [Enemy7] State: FLANKING -> COMBAT
+[10:00:14] [ENEMY] [Enemy7] Hit taken, health: 2/3
+[10:00:14] [ENEMY] [Enemy6] State: IDLE -> COMBAT
+[10:00:15] [ENEMY] [Enemy6] State: COMBAT -> PURSUING
+[10:00:15] [ENEMY] [Enemy7] State: COMBAT -> RETREATING
+[10:00:15] [ENEMY] [Enemy7] Hit taken, health: 1/3
+[10:00:15] [ENEMY] [Enemy7] Hit taken, health: 0/3
+[10:00:15] [ENEMY] [Enemy7] Enemy died
+[10:00:15] [ENEMY] [Enemy6] State: PURSUING -> RETREATING
+[10:00:15] [ENEMY] [Enemy6] State: RETREATING -> IN_COVER
+[10:00:15] [ENEMY] [Enemy6] State: IN_COVER -> SUPPRESSED
+[10:00:17] [ENEMY] [Enemy6] State: SUPPRESSED -> SEEKING_COVER
+[10:00:17] [ENEMY] [Enemy6] State: SEEKING_COVER -> IN_COVER
+[10:00:17] [ENEMY] [Enemy6] State: IN_COVER -> SUPPRESSED
+[10:00:17] [ENEMY] [Enemy6] State: SUPPRESSED -> SEEKING_COVER
+[10:00:17] [ENEMY] [Enemy6] State: SEEKING_COVER -> IN_COVER
+[10:00:17] [ENEMY] [Enemy6] State: IN_COVER -> SUPPRESSED
+[10:00:17] [ENEMY] [Enemy6] State: SUPPRESSED -> SEEKING_COVER
+[10:00:17] [ENEMY] [Enemy6] State: SEEKING_COVER -> IN_COVER
+[10:00:17] [ENEMY] [Enemy6] State: IN_COVER -> SUPPRESSED
+[10:00:18] [ENEMY] [Enemy6] State: SUPPRESSED -> SEEKING_COVER
+[10:00:18] [ENEMY] [Enemy6] State: SEEKING_COVER -> IN_COVER
+[10:00:18] [ENEMY] [Enemy6] State: IN_COVER -> SUPPRESSED
+[10:00:18] [ENEMY] [Enemy6] State: SUPPRESSED -> SEEKING_COVER
+[10:00:18] [ENEMY] [Enemy6] State: SEEKING_COVER -> IN_COVER
+[10:00:18] [ENEMY] [Enemy6] State: IN_COVER -> PURSUING
+[10:00:20] [ENEMY] [Enemy6] FLANKING started: target=(1516.022, 1306.053), side=left, pos=(1929.783, 359.177)
+[10:00:20] [ENEMY] [Enemy6] State: PURSUING -> FLANKING
+[10:00:21] [ENEMY] [Enemy8] State: IDLE -> COMBAT
+[10:00:21] [ENEMY] [Enemy6] State: FLANKING -> COMBAT
+[10:00:21] [ENEMY] [Enemy6] State: COMBAT -> PURSUING
+[10:00:21] [ENEMY] [Enemy6] FLANKING started: target=(1535.669, 1110.584), side=left, pos=(1785.177, 834.0834)
+[10:00:21] [ENEMY] [Enemy6] State: PURSUING -> FLANKING
+[10:00:21] [ENEMY] [Enemy8] Hit taken, health: 1/2
+[10:00:21] [ENEMY] [Enemy8] State: COMBAT -> RETREATING
+[10:00:22] [ENEMY] [Enemy8] Hit taken, health: 0/2
+[10:00:22] [ENEMY] [Enemy8] Enemy died
+[10:00:22] [ENEMY] [Enemy1] WARNING: Could not register as sound listener (SoundPropagation not found)
+[10:00:22] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 3, behavior: GUARD, player_found: yes
+[10:00:22] [ENEMY] [Enemy2] WARNING: Could not register as sound listener (SoundPropagation not found)
+[10:00:22] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 4, behavior: GUARD, player_found: yes
+[10:00:22] [ENEMY] [Enemy3] WARNING: Could not register as sound listener (SoundPropagation not found)
+[10:00:22] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 2, behavior: GUARD, player_found: yes
+[10:00:22] [ENEMY] [Enemy4] WARNING: Could not register as sound listener (SoundPropagation not found)
+[10:00:22] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 4, behavior: GUARD, player_found: yes
+[10:00:22] [ENEMY] [Enemy5] WARNING: Could not register as sound listener (SoundPropagation not found)
+[10:00:22] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 4, behavior: GUARD, player_found: yes
+[10:00:22] [ENEMY] [Enemy6] WARNING: Could not register as sound listener (SoundPropagation not found)
+[10:00:22] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 4, behavior: GUARD, player_found: yes
+[10:00:22] [ENEMY] [Enemy7] WARNING: Could not register as sound listener (SoundPropagation not found)
+[10:00:22] [ENEMY] [Enemy7] Enemy spawned at (1600, 900), health: 3, behavior: PATROL, player_found: yes
+[10:00:22] [ENEMY] [Enemy8] WARNING: Could not register as sound listener (SoundPropagation not found)
+[10:00:22] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 3, behavior: GUARD, player_found: yes
+[10:00:22] [ENEMY] [Enemy9] WARNING: Could not register as sound listener (SoundPropagation not found)
+[10:00:22] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 3, behavior: GUARD, player_found: yes
+[10:00:22] [ENEMY] [Enemy10] WARNING: Could not register as sound listener (SoundPropagation not found)
+[10:00:22] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 2, behavior: PATROL, player_found: yes
+[10:00:23] [ENEMY] [Enemy10] State: IDLE -> COMBAT
+[10:00:23] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[10:00:25] [ENEMY] [Enemy10] State: PURSUING -> COMBAT
+[10:00:25] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[10:00:26] [ENEMY] [Enemy10] State: PURSUING -> COMBAT
+[10:00:27] [ENEMY] [Enemy1] WARNING: Could not register as sound listener (SoundPropagation not found)
+[10:00:27] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 2, behavior: GUARD, player_found: yes
+[10:00:27] [ENEMY] [Enemy2] WARNING: Could not register as sound listener (SoundPropagation not found)
+[10:00:27] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 4, behavior: GUARD, player_found: yes
+[10:00:27] [ENEMY] [Enemy3] WARNING: Could not register as sound listener (SoundPropagation not found)
+[10:00:27] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 2, behavior: GUARD, player_found: yes
+[10:00:27] [ENEMY] [Enemy4] WARNING: Could not register as sound listener (SoundPropagation not found)
+[10:00:27] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 2, behavior: GUARD, player_found: yes
+[10:00:27] [ENEMY] [Enemy5] WARNING: Could not register as sound listener (SoundPropagation not found)
+[10:00:27] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 3, behavior: GUARD, player_found: yes
+[10:00:27] [ENEMY] [Enemy6] WARNING: Could not register as sound listener (SoundPropagation not found)
+[10:00:27] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 3, behavior: GUARD, player_found: yes
+[10:00:27] [ENEMY] [Enemy7] WARNING: Could not register as sound listener (SoundPropagation not found)
+[10:00:27] [ENEMY] [Enemy7] Enemy spawned at (1600, 900), health: 3, behavior: PATROL, player_found: yes
+[10:00:27] [ENEMY] [Enemy8] WARNING: Could not register as sound listener (SoundPropagation not found)
+[10:00:27] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 4, behavior: GUARD, player_found: yes
+[10:00:27] [ENEMY] [Enemy9] WARNING: Could not register as sound listener (SoundPropagation not found)
+[10:00:27] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 4, behavior: GUARD, player_found: yes
+[10:00:27] [ENEMY] [Enemy10] WARNING: Could not register as sound listener (SoundPropagation not found)
+[10:00:27] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 3, behavior: PATROL, player_found: yes
+[10:00:28] [ENEMY] [Enemy10] State: IDLE -> COMBAT
+[10:00:28] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[10:00:31] [ENEMY] [Enemy10] FLANKING started: target=(581.5443, 1082.6), side=left, pos=(951.9225, 1519.542)
+[10:00:31] [ENEMY] [Enemy10] State: PURSUING -> FLANKING
+[10:00:32] [ENEMY] [Enemy10] State: FLANKING -> COMBAT
+[10:00:32] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[10:00:33] [ENEMY] [Enemy10] State: PURSUING -> RETREATING
+[10:00:33] [ENEMY] [Enemy10] Hit taken, health: 2/3
+[10:00:33] [ENEMY] [Enemy10] Hit taken, health: 1/3
+[10:00:33] [ENEMY] [Enemy10] Hit taken, health: 0/3
+[10:00:33] [ENEMY] [Enemy10] Enemy died
+[10:00:36] [ENEMY] [Enemy3] State: IDLE -> COMBAT
+[10:00:36] [ENEMY] [Enemy3] State: COMBAT -> PURSUING
+[10:00:36] [ENEMY] [Enemy3] Hit taken, health: 1/2
+[10:00:36] [ENEMY] [Enemy3] Hit taken, health: 0/2
+[10:00:36] [ENEMY] [Enemy3] Enemy died
+[10:00:37] [ENEMY] [Enemy1] State: IDLE -> COMBAT
+[10:00:37] [ENEMY] [Enemy1] State: COMBAT -> PURSUING
+[10:00:37] [ENEMY] [Enemy2] State: IDLE -> COMBAT
+[10:00:37] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[10:00:37] [ENEMY] [Enemy2] Hit taken, health: 3/4
+[10:00:38] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[10:00:38] [ENEMY] [Enemy2] Hit taken, health: 2/4
+[10:00:38] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[10:00:38] [ENEMY] [Enemy2] State: PURSUING -> RETREATING
+[10:00:38] [ENEMY] [Enemy2] Hit taken, health: 1/4
+[10:00:38] [ENEMY] [Enemy2] Hit taken, health: 0/4
+[10:00:38] [ENEMY] [Enemy2] Enemy died
+[10:00:39] [ENEMY] [Enemy4] State: IDLE -> COMBAT
+[10:00:39] [ENEMY] [Enemy4] State: COMBAT -> PURSUING
+[10:00:39] [ENEMY] [Enemy4] Hit taken, health: 1/2
+[10:00:39] [ENEMY] [Enemy4] Hit taken, health: 0/2
+[10:00:39] [ENEMY] [Enemy4] Enemy died
+[10:00:42] [ENEMY] [Enemy1] State: PURSUING -> COMBAT
+[10:00:42] [ENEMY] [Enemy1] Hit taken, health: 1/2
+[10:00:42] [ENEMY] [Enemy1] Hit taken, health: 0/2
+[10:00:42] [ENEMY] [Enemy1] Enemy died
+[10:00:46] [ENEMY] [Enemy7] State: IDLE -> COMBAT
+[10:00:46] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[10:00:54] [ENEMY] [Enemy6] State: IDLE -> COMBAT
+[10:00:54] [ENEMY] [Enemy6] State: COMBAT -> PURSUING
+[10:00:55] [ENEMY] [Enemy6] FLANKING started: target=(1709.731, 447.342), side=left, pos=(1942.496, 457.5807)
+[10:00:55] [ENEMY] [Enemy6] State: PURSUING -> FLANKING
+[10:00:55] [ENEMY] [Enemy6] State: FLANKING -> COMBAT
+[10:00:55] [ENEMY] [Enemy6] State: COMBAT -> PURSUING
+[10:00:56] [ENEMY] [Enemy5] State: IDLE -> COMBAT
+[10:00:56] [ENEMY] [Enemy6] Hit taken, health: 2/3
+[10:00:56] [ENEMY] [Enemy6] Hit taken, health: 1/3
+[10:00:56] [ENEMY] [Enemy6] State: PURSUING -> RETREATING
+[10:00:57] [ENEMY] [Enemy6] Hit taken, health: 0/3
+[10:00:57] [ENEMY] [Enemy6] Enemy died
+[10:00:57] [ENEMY] [Enemy1] WARNING: Could not register as sound listener (SoundPropagation not found)
+[10:00:57] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 2, behavior: GUARD, player_found: yes
+[10:00:57] [ENEMY] [Enemy2] WARNING: Could not register as sound listener (SoundPropagation not found)
+[10:00:57] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 4, behavior: GUARD, player_found: yes
+[10:00:57] [ENEMY] [Enemy3] WARNING: Could not register as sound listener (SoundPropagation not found)
+[10:00:57] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 2, behavior: GUARD, player_found: yes
+[10:00:57] [ENEMY] [Enemy4] WARNING: Could not register as sound listener (SoundPropagation not found)
+[10:00:57] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 4, behavior: GUARD, player_found: yes
+[10:00:57] [ENEMY] [Enemy5] WARNING: Could not register as sound listener (SoundPropagation not found)
+[10:00:57] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 4, behavior: GUARD, player_found: yes
+[10:00:57] [ENEMY] [Enemy6] WARNING: Could not register as sound listener (SoundPropagation not found)
+[10:00:57] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 4, behavior: GUARD, player_found: yes
+[10:00:57] [ENEMY] [Enemy7] WARNING: Could not register as sound listener (SoundPropagation not found)
+[10:00:57] [ENEMY] [Enemy7] Enemy spawned at (1600, 900), health: 2, behavior: PATROL, player_found: yes
+[10:00:57] [ENEMY] [Enemy8] WARNING: Could not register as sound listener (SoundPropagation not found)
+[10:00:57] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 4, behavior: GUARD, player_found: yes
+[10:00:57] [ENEMY] [Enemy9] WARNING: Could not register as sound listener (SoundPropagation not found)
+[10:00:57] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 4, behavior: GUARD, player_found: yes
+[10:00:57] [ENEMY] [Enemy10] WARNING: Could not register as sound listener (SoundPropagation not found)
+[10:00:57] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 3, behavior: PATROL, player_found: yes
+[10:00:58] [INFO] ------------------------------------------------------------
+[10:00:58] [INFO] GAME LOG ENDED: 2026-01-18T10:00:58
+[10:00:58] [INFO] ============================================================

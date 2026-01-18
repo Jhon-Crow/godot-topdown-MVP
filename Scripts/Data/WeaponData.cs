@@ -74,4 +74,11 @@ public partial class WeaponData : Resource
     /// </summary>
     [Export]
     public bool IsAutomatic { get; set; } = false;
+
+    /// <summary>
+    /// Loudness of the weapon in pixels - determines how far gunshots propagate for enemy detection.
+    /// Default is approximately viewport diagonal (~1469 pixels) for assault rifles.
+    /// </summary>
+    [Export]
+    public float Loudness { get; set; } = 1469.0f;
 }

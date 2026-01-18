@@ -65,6 +65,10 @@ enum BehaviorMode {
 ## Offset from enemy center for bullet spawn position.
 @export var bullet_spawn_offset: float = 30.0
 
+## Weapon loudness - determines how far gunshots propagate for alerting other enemies.
+## Set to viewport diagonal (~1469 pixels) for assault rifle by default.
+@export var weapon_loudness: float = 1469.0
+
 ## Patrol points as offsets from the initial position.
 ## Only used when behavior_mode is PATROL.
 @export var patrol_offsets: Array[Vector2] = [Vector2(100, 0), Vector2(-100, 0)]
@@ -501,6 +505,10 @@ const CLEAR_SHOT_MAX_TIME: float = 3.0
 ## Distance to move when exiting cover to find a clear shot.
 const CLEAR_SHOT_EXIT_DISTANCE: float = 60.0
 
+## --- Sound-Based Detection ---
+## Last known position of a sound source (e.g., player or enemy gunshot).
+## Used when the enemy hears a sound but can't see the player, to investigate the location.
+var _last_known_player_position: Vector2 = Vector2.ZERO
 
 
 func _ready() -> void:
@@ -516,6 +524,7 @@ func _ready() -> void:
 	_initialize_goap_state()
 	_connect_debug_mode_signal()
 	_update_debug_label()
+	_register_sound_listener()
 
 	# Log that this enemy is ready (use call_deferred to ensure FileLogger is loaded)
 	call_deferred("_log_spawn_info")
@@ -590,6 +599,104 @@ func _setup_threat_sphere() -> void:
 	# Connect signals
 	_threat_sphere.area_entered.connect(_on_threat_area_entered)
 	_threat_sphere.area_exited.connect(_on_threat_area_exited)
+
+
+## Register this enemy as a listener for in-game sound propagation.
+## This allows the enemy to react to sounds like gunshots even when not in direct combat.
+## Uses call_deferred to ensure SoundPropagation autoload is fully initialized.
+func _register_sound_listener() -> void:
+	call_deferred("_deferred_register_sound_listener")
+
+
+## Deferred registration to ensure SoundPropagation is ready.
+func _deferred_register_sound_listener() -> void:
+	var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
+	if sound_propagation and sound_propagation.has_method("register_listener"):
+		sound_propagation.register_listener(self)
+		_log_debug("Registered as sound listener")
+		_log_to_file("Registered as sound listener")
+	else:
+		_log_to_file("WARNING: Could not register as sound listener (SoundPropagation not found)")
+		push_warning("[%s] Could not register as sound listener - SoundPropagation not found" % name)
+
+
+## Unregister this enemy from sound propagation when dying or being destroyed.
+func _unregister_sound_listener() -> void:
+	var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
+	if sound_propagation and sound_propagation.has_method("unregister_listener"):
+		sound_propagation.unregister_listener(self)
+
+
+## Called by SoundPropagation when a sound is heard within range.
+## This is the callback that allows the enemy to react to in-game sounds.
+##
+## Parameters:
+## - sound_type: The type of sound (from SoundPropagation.SoundType enum)
+## - position: World position where the sound originated
+## - source_type: Whether sound is from PLAYER, ENEMY, or NEUTRAL (from SoundPropagation.SourceType)
+## - source_node: The node that produced the sound (can be null)
+func on_sound_heard(sound_type: int, position: Vector2, source_type: int, source_node: Node2D) -> void:
+	# Default to full intensity if called without intensity parameter
+	on_sound_heard_with_intensity(sound_type, position, source_type, source_node, 1.0)
+
+
+## Called by SoundPropagation when a sound is heard within range (with intensity).
+## This version includes physically-calculated sound intensity.
+##
+## Parameters:
+## - sound_type: The type of sound (from SoundPropagation.SoundType enum)
+## - position: World position where the sound originated
+## - source_type: Whether sound is from PLAYER, ENEMY, or NEUTRAL (from SoundPropagation.SourceType)
+## - source_node: The node that produced the sound (can be null)
+## - intensity: Sound intensity from 0.0 to 1.0 based on inverse square law
+func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_type: int, source_node: Node2D, intensity: float) -> void:
+	# Only react if alive
+	if not _is_alive:
+		return
+
+	# Only react to gunshots for now (sound_type 0 = GUNSHOT in SoundPropagation.SoundType)
+	if sound_type != 0:
+		return
+
+	# Calculate distance to sound for logging
+	var distance := global_position.distance_to(position)
+
+	# React based on current state:
+	# - IDLE: Always react to loud sounds
+	# - Other states: Only react to very loud, close sounds (intensity > 0.5)
+	var should_react := false
+
+	if _current_state == AIState.IDLE:
+		# In IDLE state, always investigate sounds above minimal threshold
+		should_react = intensity >= 0.01
+	elif _current_state in [AIState.FLANKING, AIState.RETREATING]:
+		# In tactical movement states, react to loud nearby sounds
+		should_react = intensity >= 0.3
+	else:
+		# In combat-related states, only react to very loud sounds
+		# This prevents enemies from being distracted during active combat
+		should_react = false
+
+	if not should_react:
+		return
+
+	# React to sounds: transition to combat mode to investigate
+	_log_debug("Heard gunshot (intensity=%.2f, distance=%.0f) from %s at %s, entering COMBAT" % [
+		intensity,
+		distance,
+		"player" if source_type == 0 else ("enemy" if source_type == 1 else "neutral"),
+		position
+	])
+	_log_to_file("Heard gunshot at %s, source_type=%d, intensity=%.2f, distance=%.0f" % [
+		position, source_type, intensity, distance
+	])
+
+	# Store the position of the sound as a point of interest
+	# The enemy will investigate this location
+	_last_known_player_position = position
+
+	# Transition to combat mode to investigate the sound
+	_transition_to_combat()
 
 
 ## Initialize GOAP world state.
@@ -1748,6 +1855,13 @@ func _shoot_with_inaccuracy() -> void:
 	var audio_manager: Node = get_node_or_null("/root/AudioManager")
 	if audio_manager and audio_manager.has_method("play_m16_shot"):
 		audio_manager.play_m16_shot(global_position)
+
+	# Emit gunshot sound for in-game sound propagation (alerts other enemies)
+	# Uses weapon_loudness to determine propagation range
+	var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
+	if sound_propagation and sound_propagation.has_method("emit_sound"):
+		sound_propagation.emit_sound(0, global_position, 1, self, weapon_loudness)  # 0 = GUNSHOT, 1 = ENEMY
+
 	_play_delayed_shell_sound()
 
 	# Consume ammo
@@ -1792,6 +1906,13 @@ func _shoot_burst_shot() -> void:
 	var audio_manager: Node = get_node_or_null("/root/AudioManager")
 	if audio_manager and audio_manager.has_method("play_m16_shot"):
 		audio_manager.play_m16_shot(global_position)
+
+	# Emit gunshot sound for in-game sound propagation (alerts other enemies)
+	# Uses weapon_loudness to determine propagation range
+	var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
+	if sound_propagation and sound_propagation.has_method("emit_sound"):
+		sound_propagation.emit_sound(0, global_position, 1, self, weapon_loudness)  # 0 = GUNSHOT, 1 = ENEMY
+
 	_play_delayed_shell_sound()
 
 	# Consume ammo
@@ -3020,6 +3141,12 @@ func _shoot() -> void:
 	if audio_manager and audio_manager.has_method("play_m16_shot"):
 		audio_manager.play_m16_shot(global_position)
 
+	# Emit gunshot sound for in-game sound propagation (alerts other enemies)
+	# Uses weapon_loudness to determine propagation range
+	var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
+	if sound_propagation and sound_propagation.has_method("emit_sound"):
+		sound_propagation.emit_sound(0, global_position, 1, self, weapon_loudness)  # 0 = GUNSHOT, 1 = ENEMY
+
 	# Play shell casing sound with a small delay
 	_play_delayed_shell_sound()
 
@@ -3236,6 +3363,9 @@ func _on_death() -> void:
 	_log_to_file("Enemy died")
 	died.emit()
 
+	# Unregister from sound propagation when dying
+	_unregister_sound_listener()
+
 	if destroy_on_death:
 		await get_tree().create_timer(respawn_delay).timeout
 		queue_free()
@@ -3300,10 +3430,14 @@ func _reset() -> void:
 	_flank_last_position = Vector2.ZERO
 	_flank_fail_count = 0
 	_flank_cooldown_timer = 0.0
+	# Reset sound detection state
+	_last_known_player_position = Vector2.ZERO
 	_initialize_health()
 	_initialize_ammo()
 	_update_health_visual()
 	_initialize_goap_state()
+	# Re-register for sound propagation after respawning
+	_register_sound_listener()
 
 
 ## Log debug message if debug_logging is enabled.
