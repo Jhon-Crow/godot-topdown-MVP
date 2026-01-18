@@ -410,6 +410,49 @@ func test_assault_player_cost_alone() -> void:
 
 
 # ============================================================================
+# AttackDistractedPlayerAction Tests
+# ============================================================================
+
+
+func test_attack_distracted_player_action_initialization() -> void:
+	var action := EnemyActions.AttackDistractedPlayerAction.new()
+
+	assert_eq(action.action_name, "attack_distracted_player", "Action name should be 'attack_distracted_player'")
+	assert_eq(action.cost, 0.1, "Base cost should be 0.1 (very low = high priority)")
+
+
+func test_attack_distracted_player_action_preconditions() -> void:
+	var action := EnemyActions.AttackDistractedPlayerAction.new()
+
+	assert_eq(action.preconditions["player_visible"], true, "Requires player visible")
+	assert_eq(action.preconditions["player_distracted"], true, "Requires player distracted")
+
+
+func test_attack_distracted_player_action_effects() -> void:
+	var action := EnemyActions.AttackDistractedPlayerAction.new()
+
+	assert_eq(action.effects["player_engaged"], true, "Effect should set player_engaged")
+
+
+func test_attack_distracted_player_cost_when_distracted() -> void:
+	var action := EnemyActions.AttackDistractedPlayerAction.new()
+	var world_state := {"player_distracted": true}
+
+	var cost: float = action.get_cost(null, world_state)
+
+	assert_eq(cost, 0.05, "Cost should be extremely low when player is distracted (highest priority)")
+
+
+func test_attack_distracted_player_cost_when_not_distracted() -> void:
+	var action := EnemyActions.AttackDistractedPlayerAction.new()
+	var world_state := {"player_distracted": false}
+
+	var cost: float = action.get_cost(null, world_state)
+
+	assert_eq(cost, 100.0, "Cost should be very high when player is not distracted")
+
+
+# ============================================================================
 # create_all_actions Tests
 # ============================================================================
 
@@ -417,7 +460,7 @@ func test_assault_player_cost_alone() -> void:
 func test_create_all_actions_returns_all_actions() -> void:
 	var actions: Array[GOAPAction] = EnemyActions.create_all_actions()
 
-	assert_eq(actions.size(), 11, "Should create 11 enemy actions")
+	assert_eq(actions.size(), 12, "Should create 12 enemy actions")
 
 
 func test_create_all_actions_includes_all_types() -> void:
@@ -438,6 +481,7 @@ func test_create_all_actions_includes_all_types() -> void:
 	assert_has(action_names, "retreat_with_fire", "Should include retreat_with_fire")
 	assert_has(action_names, "pursue_player", "Should include pursue_player")
 	assert_has(action_names, "assault_player", "Should include assault_player")
+	assert_has(action_names, "attack_distracted_player", "Should include attack_distracted_player")
 
 
 # ============================================================================
@@ -481,3 +525,44 @@ func test_actions_engagement_scenario() -> void:
 	assert_gt(plan.size(), 0, "Planner should find a plan to engage player")
 	# engage_player should be the cheapest option
 	assert_eq(plan[0].action_name, "engage_player", "Should choose engage_player")
+
+
+func test_distracted_player_attack_has_highest_priority() -> void:
+	var planner := GOAPPlanner.new()
+	var actions := EnemyActions.create_all_actions()
+
+	for action in actions:
+		planner.add_action(action)
+
+	# Scenario: enemy sees distracted player and wants to engage
+	# attack_distracted_player should be chosen over engage_player due to lower cost
+	var state := {"player_visible": true, "player_distracted": true}
+	var goal := {"player_engaged": true}
+
+	var plan: Array[GOAPAction] = planner.plan(state, goal)
+
+	assert_gt(plan.size(), 0, "Planner should find a plan to engage distracted player")
+	assert_eq(plan[0].action_name, "attack_distracted_player", "Should choose attack_distracted_player (highest priority)")
+
+
+func test_distracted_player_attack_overrides_other_states() -> void:
+	var planner := GOAPPlanner.new()
+	var actions := EnemyActions.create_all_actions()
+
+	for action in actions:
+		planner.add_action(action)
+
+	# Scenario: enemy is under fire but player is distracted
+	# Even when under fire, attack_distracted_player should be chosen
+	var state := {
+		"player_visible": true,
+		"player_distracted": true,
+		"under_fire": true,
+		"in_cover": true
+	}
+	var goal := {"player_engaged": true}
+
+	var plan: Array[GOAPAction] = planner.plan(state, goal)
+
+	assert_gt(plan.size(), 0, "Planner should find a plan even when under fire")
+	assert_eq(plan[0].action_name, "attack_distracted_player", "Should choose attack_distracted_player even when under fire")
