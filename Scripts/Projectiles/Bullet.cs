@@ -107,6 +107,24 @@ public partial class Bullet : Area2D
     /// </summary>
     private void OnBodyEntered(Node2D body)
     {
+        // Check if this is the shooter - don't collide with own body
+        if (ShooterId == body.GetInstanceId())
+        {
+            return; // Pass through the shooter
+        }
+
+        // Check if this is a dead enemy - bullets should pass through dead entities
+        // This handles the CharacterBody2D collision (separate from HitArea collision)
+        if (body.HasMethod("is_alive"))
+        {
+            var isAlive = body.Call("is_alive").AsBool();
+            if (!isAlive)
+            {
+                return; // Pass through dead entities
+            }
+        }
+
+        // Hit a static body (wall or obstacle) or alive enemy body
         // Play bullet wall impact sound
         PlayBulletWallHitSound();
         EmitSignal(SignalName.Hit, body);
@@ -139,6 +157,19 @@ public partial class Bullet : Area2D
         {
             GD.Print($"[Bullet]: Ignoring self-hit on {parent.Name}");
             return; // Don't hit the shooter
+        }
+
+        // Check if the parent is dead - bullets should pass through dead entities
+        // This is a fallback check in case the collision shape/layer disabling
+        // doesn't take effect immediately (see Godot issues #62506, #100687)
+        if (parent != null && parent.HasMethod("is_alive"))
+        {
+            var isAlive = parent.Call("is_alive").AsBool();
+            if (!isAlive)
+            {
+                GD.Print($"[Bullet]: Passing through dead entity {parent.Name}");
+                return; // Pass through dead entities
+            }
         }
 
         // Track if this is a valid hit on an enemy target
