@@ -12,6 +12,7 @@ extends CanvasLayer
 @onready var resume_button: Button = $MenuContainer/VBoxContainer/ResumeButton
 @onready var controls_button: Button = $MenuContainer/VBoxContainer/ControlsButton
 @onready var difficulty_button: Button = $MenuContainer/VBoxContainer/DifficultyButton
+@onready var settings_button: Button = $MenuContainer/VBoxContainer/SettingsButton
 @onready var quit_button: Button = $MenuContainer/VBoxContainer/QuitButton
 
 ## The instantiated controls menu.
@@ -20,8 +21,14 @@ var _controls_menu: CanvasLayer = null
 ## The instantiated difficulty menu.
 var _difficulty_menu: CanvasLayer = null
 
+## The instantiated settings menu.
+var _settings_menu: CanvasLayer = null
+
 ## Reference to the difficulty menu scene.
 @export var difficulty_menu_scene: PackedScene
+
+## Reference to the settings menu scene.
+@export var settings_menu_scene: PackedScene
 
 
 func _ready() -> void:
@@ -33,6 +40,7 @@ func _ready() -> void:
 	resume_button.pressed.connect(_on_resume_pressed)
 	controls_button.pressed.connect(_on_controls_pressed)
 	difficulty_button.pressed.connect(_on_difficulty_pressed)
+	settings_button.pressed.connect(_on_settings_pressed)
 	quit_button.pressed.connect(_on_quit_pressed)
 
 	# Preload controls menu if not set
@@ -42,6 +50,10 @@ func _ready() -> void:
 	# Preload difficulty menu if not set
 	if difficulty_menu_scene == null:
 		difficulty_menu_scene = preload("res://scenes/ui/DifficultyMenu.tscn")
+
+	# Preload settings menu if not set
+	if settings_menu_scene == null:
+		settings_menu_scene = preload("res://scenes/ui/SettingsMenu.tscn")
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -81,6 +93,10 @@ func resume_game() -> void:
 	# Also close difficulty menu if open
 	if _difficulty_menu and _difficulty_menu.visible:
 		_difficulty_menu.hide()
+
+	# Also close settings menu if open
+	if _settings_menu and _settings_menu.visible:
+		_settings_menu.hide()
 
 
 func _on_resume_pressed() -> void:
@@ -125,6 +141,26 @@ func _on_difficulty_back() -> void:
 		_difficulty_menu.hide()
 	menu_container.show()
 	difficulty_button.grab_focus()
+
+
+func _on_settings_pressed() -> void:
+	# Hide main menu, show settings menu
+	menu_container.hide()
+
+	if _settings_menu == null:
+		_settings_menu = settings_menu_scene.instantiate()
+		_settings_menu.back_pressed.connect(_on_settings_back)
+		add_child(_settings_menu)
+	else:
+		_settings_menu.show()
+
+
+func _on_settings_back() -> void:
+	# Show main menu again
+	if _settings_menu:
+		_settings_menu.hide()
+	menu_container.show()
+	settings_button.grab_focus()
 
 
 func _on_quit_pressed() -> void:

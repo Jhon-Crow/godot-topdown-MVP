@@ -7,7 +7,7 @@ extends Node
 ## - Accuracy bonus: Higher hit rate = more points
 ## - Damage penalty: Taking hits reduces final score
 ## - Aggressiveness: Kills per second bonus for fast-paced play
-## - Grade system: A+, A, B, C, D, F based on performance
+## - Grade system: S, A+, A, B, C, D, F based on performance
 
 ## Score tracking
 var _base_kill_points: int = 0
@@ -44,15 +44,15 @@ const COMBO_WINDOW: float = 2.5
 ## Example: 2x combo = 200pts, 5x combo = 1250pts, 10x combo = 5000pts
 const COMBO_MULTIPLIER_BASE: int = 50
 
-## Time bonus parameters
+## Time bonus parameters (reduced weight to prioritize accuracy)
 ## Maximum time bonus points
-const TIME_BONUS_MAX: int = 9000
+const TIME_BONUS_MAX: int = 5000
 ## Time in seconds when time bonus reaches 0
 const TIME_BONUS_ZERO_AT: float = 300.0
 
-## Accuracy bonus parameters
-## Points per accuracy percentage (max 100% = 10000 points)
-const ACCURACY_POINTS_PER_PERCENT: int = 100
+## Accuracy bonus parameters (increased weight to prioritize precision)
+## Points per accuracy percentage (max 100% = 15000 points)
+const ACCURACY_POINTS_PER_PERCENT: int = 150
 
 ## Aggressiveness bonus parameters
 ## Points per kill per minute rate
@@ -67,9 +67,10 @@ const DAMAGE_PENALTY_PER_HIT: int = 500
 ## Grade thresholds (percentage of theoretical maximum score)
 ## Theoretical max varies by level, so we use relative thresholds
 const GRADE_THRESHOLDS: Dictionary = {
-	"A+": 0.90,  # 90%+ of max possible
-	"A": 0.80,   # 80-90%
-	"B": 0.65,   # 65-80%
+	"S": 0.95,   # 95%+ of max possible (perfect play)
+	"A+": 0.88,  # 88-95%
+	"A": 0.78,   # 78-88%
+	"B": 0.65,   # 65-78%
 	"C": 0.50,   # 50-65%
 	"D": 0.35,   # 35-50%
 	# Below 35% = F
@@ -262,7 +263,9 @@ func _calculate_grade(total_kills: int, completion_time: float, accuracy: float)
 	var score_ratio := float(_total_score) / float(theoretical_max)
 
 	# Determine grade based on thresholds
-	if score_ratio >= GRADE_THRESHOLDS["A+"]:
+	if score_ratio >= GRADE_THRESHOLDS["S"]:
+		return "S"
+	elif score_ratio >= GRADE_THRESHOLDS["A+"]:
 		return "A+"
 	elif score_ratio >= GRADE_THRESHOLDS["A"]:
 		return "A"

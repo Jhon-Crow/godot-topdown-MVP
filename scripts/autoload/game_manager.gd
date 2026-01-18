@@ -23,8 +23,15 @@ var player: Node2D = null
 ## Toggle with F7 key - works in both editor and exported builds.
 var debug_mode_enabled: bool = false
 
+## Whether score-related UI is visible (timer, combo, running score, final score breakdown).
+## Can be toggled in the pause menu settings.
+var score_ui_visible: bool = true
+
 ## Signal emitted when an enemy is killed (for screen effects).
 signal enemy_killed
+
+## Signal emitted when score UI visibility changes.
+signal score_ui_visibility_changed(visible: bool)
 
 ## Signal emitted when player dies.
 signal player_died
@@ -122,6 +129,26 @@ func toggle_debug_mode() -> void:
 ## Returns whether debug mode is currently enabled.
 func is_debug_mode_enabled() -> bool:
 	return debug_mode_enabled
+
+
+## Toggles score UI visibility on/off.
+func toggle_score_ui_visibility() -> void:
+	score_ui_visible = not score_ui_visible
+	score_ui_visibility_changed.emit(score_ui_visible)
+	_log_to_file("Score UI visibility toggled: %s" % ("ON" if score_ui_visible else "OFF"))
+
+
+## Sets score UI visibility.
+func set_score_ui_visible(visible: bool) -> void:
+	if score_ui_visible != visible:
+		score_ui_visible = visible
+		score_ui_visibility_changed.emit(score_ui_visible)
+		_log_to_file("Score UI visibility set: %s" % ("ON" if score_ui_visible else "OFF"))
+
+
+## Returns whether score UI is currently visible.
+func is_score_ui_visible() -> bool:
+	return score_ui_visible
 
 
 ## Log a message to the file logger if available.

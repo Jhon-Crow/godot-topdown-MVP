@@ -86,6 +86,7 @@ func _ready() -> void:
 	if GameManager:
 		GameManager.enemy_killed.connect(_on_game_manager_enemy_killed)
 		GameManager.stats_updated.connect(_update_debug_ui)
+		GameManager.score_ui_visibility_changed.connect(_on_score_ui_visibility_changed)
 
 	# Initialize score tracking
 	_setup_score_tracking()
@@ -147,20 +148,25 @@ func _setup_player_tracking() -> void:
 func _setup_enemy_tracking() -> void:
 	var enemies_node := get_node_or_null("Environment/Enemies")
 	if enemies_node == null:
+		push_warning("[TestTier] Environment/Enemies node not found!")
 		return
 
 	var enemies := []
 	for child in enemies_node.get_children():
 		if child.has_signal("died"):
 			enemies.append(child)
-			child.died.connect(_on_enemy_died)
+			# Use a unique connection per enemy to avoid issues with duplicate connections
+			if not child.died.is_connected(_on_enemy_died):
+				child.died.connect(_on_enemy_died)
 		# Track when enemy is hit for accuracy
 		if child.has_signal("hit"):
-			child.hit.connect(_on_enemy_hit)
+			if not child.hit.is_connected(_on_enemy_hit):
+				child.hit.connect(_on_enemy_hit)
 
 	_initial_enemy_count = enemies.size()
 	_current_enemy_count = _initial_enemy_count
-	print("Tracking %d enemies" % _initial_enemy_count)
+	print("[TestTier] Tracking %d enemies" % _initial_enemy_count)
+	_log_to_file("Setup tracking for %d enemies" % _initial_enemy_count)
 
 
 ## Setup debug UI elements for kills and accuracy.
@@ -284,6 +290,10 @@ func _setup_score_tracking() -> void:
 	if _player and _player.has_signal("hit"):
 		_player.hit.connect(_on_player_hit)
 
+	# Apply initial score UI visibility setting
+	if GameManager:
+		_update_score_ui_visibility(GameManager.score_ui_visible)
+
 
 ## Update timer display.
 func _update_timer_display() -> void:
@@ -299,6 +309,11 @@ func _update_timer_display() -> void:
 ## Called when combo changes.
 func _on_combo_changed(combo: int, is_active: bool) -> void:
 	if _combo_label == null:
+		return
+
+	# Respect score UI visibility setting
+	if GameManager and not GameManager.score_ui_visible:
+		_combo_label.visible = false
 		return
 
 	if is_active and combo >= 2:
@@ -335,6 +350,21 @@ func _on_player_hit() -> void:
 		score_manager.register_damage()
 
 
+## Called when score UI visibility changes from settings.
+func _on_score_ui_visibility_changed(visible: bool) -> void:
+	_update_score_ui_visibility(visible)
+
+
+## Updates the visibility of score-related UI elements.
+func _update_score_ui_visibility(visible: bool) -> void:
+	if _timer_label:
+		_timer_label.visible = visible
+	if _running_score_label:
+		_running_score_label.visible = visible
+	if _combo_label and visible == false:
+		_combo_label.visible = false
+
+
 ## Update debug UI with current stats.
 func _update_debug_ui() -> void:
 	if GameManager == null:
@@ -350,6 +380,7 @@ func _update_debug_ui() -> void:
 ## Called when an enemy dies.
 func _on_enemy_died() -> void:
 	_current_enemy_count -= 1
+	_log_to_file("Enemy died signal received. Remaining: %d" % _current_enemy_count)
 	_update_enemy_count_label()
 
 	# Register kill with GameManager
@@ -362,8 +393,18 @@ func _on_enemy_died() -> void:
 		score_manager.register_kill()
 
 	if _current_enemy_count <= 0:
+		_log_to_file("All enemies eliminated! Arena cleared!")
 		print("All enemies eliminated! Arena cleared!")
 		_show_victory_message()
+
+
+## Log a message to the file logger if available.
+func _log_to_file(message: String) -> void:
+	var file_logger: Node = get_node_or_null("/root/FileLogger")
+	if file_logger and file_logger.has_method("log_info"):
+		file_logger.log_info("[TestTier] " + message)
+	else:
+		print("[TestTier] " + message)
 
 
 ## Called when an enemy is hit (for accuracy tracking).
@@ -656,6 +697,8 @@ TOTAL SCORE: %s""" % [
 ## Get color for grade display.
 func _get_grade_color(grade: String) -> Color:
 	match grade:
+		"S":
+			return Color(1.0, 0.0, 0.8, 1.0)  # Magenta/Pink for S (special)
 		"A+":
 			return Color(1.0, 0.84, 0.0, 1.0)  # Gold
 		"A":
