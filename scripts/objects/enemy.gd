@@ -813,7 +813,22 @@ func _process_combat_state(delta: float) -> void:
 			_transition_to_seeking_cover()
 			return
 
-		# In exposed phase, stand still and shoot
+		# Check if we have a clear shot - if not, move sideways to find one
+		if _player:
+			var direction_to_player := (_player.global_position - global_position).normalized()
+			if not _is_bullet_spawn_clear(direction_to_player):
+				# Bullet spawn is blocked - move sideways to find a clear shot position
+				var sidestep_dir := _find_sidestep_direction_for_clear_shot(direction_to_player)
+				if sidestep_dir != Vector2.ZERO:
+					velocity = sidestep_dir * combat_move_speed * 0.7
+					rotation = direction_to_player.angle()  # Keep facing player while sidestepping
+					_log_debug("COMBAT: sidestepping to find clear shot")
+				else:
+					# No clear sidestep found - stay put but don't waste time
+					velocity = Vector2.ZERO
+				return
+
+		# In exposed phase with clear shot, stand still and shoot
 		velocity = Vector2.ZERO
 
 		# Aim and shoot at player (only shoot after detection delay)
@@ -825,8 +840,15 @@ func _process_combat_state(delta: float) -> void:
 		return
 
 	# Not in exposed phase yet - determine if we need to approach or can start shooting
-	if in_direct_contact or _combat_approach_timer >= COMBAT_APPROACH_MAX_TIME:
-		# Close enough or approached long enough - start exposed shooting phase
+	# Check if we have a clear shot (no wall blocking bullet spawn)
+	var has_clear_shot := true
+	if _player:
+		var direction_to_player := (_player.global_position - global_position).normalized()
+		has_clear_shot = _is_bullet_spawn_clear(direction_to_player)
+
+	# Only enter exposed phase if we have a clear shot (or reached max approach time and still trying)
+	if (in_direct_contact or _combat_approach_timer >= COMBAT_APPROACH_MAX_TIME) and has_clear_shot:
+		# Close enough AND have clear shot - start exposed shooting phase
 		_combat_exposed = true
 		_combat_approaching = false
 		_combat_shoot_timer = 0.0
@@ -835,6 +857,18 @@ func _process_combat_state(delta: float) -> void:
 		_combat_shoot_duration = randf_range(2.0, 3.0)
 		_log_debug("COMBAT exposed phase started (distance: %.0f), will shoot for %.1fs" % [distance_to_player, _combat_shoot_duration])
 		return
+
+	# If approach timer exceeded but no clear shot, keep trying to find position with clear shot
+	if _combat_approach_timer >= COMBAT_APPROACH_MAX_TIME and not has_clear_shot:
+		_log_debug("COMBAT: approach time exceeded but no clear shot, continuing to seek position")
+		# Reset approach timer to keep trying, but extend the duration to avoid infinite loop
+		if _combat_approach_timer >= COMBAT_APPROACH_MAX_TIME * 2:
+			# Gave up finding clear shot - transition to pursuing for cover-to-cover movement
+			_log_debug("COMBAT: could not find clear shot, transitioning to PURSUING")
+			_combat_approaching = false
+			_combat_approach_timer = 0.0
+			_transition_to_pursuing()
+			return
 
 	# Need to approach player - move toward them
 	if not _combat_approaching:
@@ -848,13 +882,21 @@ func _process_combat_state(delta: float) -> void:
 	if _player:
 		var direction_to_player := (_player.global_position - global_position).normalized()
 
-		# Apply wall avoidance
-		var avoidance := _check_wall_ahead(direction_to_player)
-		if avoidance != Vector2.ZERO:
-			direction_to_player = (direction_to_player * 0.5 + avoidance * 0.5).normalized()
+		# Check if shot is blocked by wall - if so, try to sidestep
+		var move_direction := direction_to_player
+		if not _is_bullet_spawn_clear(direction_to_player):
+			var sidestep_dir := _find_sidestep_direction_for_clear_shot(direction_to_player)
+			if sidestep_dir != Vector2.ZERO:
+				# Blend sidestep with forward movement for smooth navigation around cover
+				move_direction = (direction_to_player * 0.3 + sidestep_dir * 0.7).normalized()
 
-		velocity = direction_to_player * combat_move_speed
-		rotation = direction_to_player.angle()
+		# Apply wall avoidance
+		var avoidance := _check_wall_ahead(move_direction)
+		if avoidance != Vector2.ZERO:
+			move_direction = (move_direction * 0.5 + avoidance * 0.5).normalized()
+
+		velocity = move_direction * combat_move_speed
+		rotation = direction_to_player.angle()  # Always face player
 
 		# Can shoot while approaching (only after detection delay)
 		if _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
@@ -1951,6 +1993,53 @@ func _is_bullet_spawn_clear(direction: Vector2) -> bool:
 		return false
 
 	return true
+
+
+## Find a sidestep direction that would lead to a clear shot position.
+## Checks perpendicular directions to the player and returns the first one
+## that would allow the bullet spawn point to be clear.
+## Returns Vector2.ZERO if no clear direction is found.
+func _find_sidestep_direction_for_clear_shot(direction_to_player: Vector2) -> Vector2:
+	var space_state := get_world_2d().direct_space_state
+	if space_state == null:
+		return Vector2.ZERO
+
+	# Check perpendicular directions (left and right of the player direction)
+	var perpendicular := Vector2(-direction_to_player.y, direction_to_player.x)
+
+	# Check both sidestep directions and pick the one that leads to clear shot faster
+	var check_distance := 50.0  # Check if moving 50 pixels in this direction would help
+	var bullet_check_distance := bullet_spawn_offset + 5.0
+
+	for side_multiplier in [1.0, -1.0]:  # Try both sides
+		var sidestep_dir := perpendicular * side_multiplier
+
+		# First check if we can actually move in this direction (no wall blocking movement)
+		var move_query := PhysicsRayQueryParameters2D.new()
+		move_query.from = global_position
+		move_query.to = global_position + sidestep_dir * 30.0
+		move_query.collision_mask = 4  # Only check obstacles
+		move_query.exclude = [get_rid()]
+
+		var move_result := space_state.intersect_ray(move_query)
+		if not move_result.is_empty():
+			continue  # Can't move this way, wall is blocking
+
+		# Check if after sidestepping, we'd have a clear shot
+		var test_position := global_position + sidestep_dir * check_distance
+		var shot_query := PhysicsRayQueryParameters2D.new()
+		shot_query.from = test_position
+		shot_query.to = test_position + direction_to_player * bullet_check_distance
+		shot_query.collision_mask = 4
+		shot_query.exclude = [get_rid()]
+
+		var shot_result := space_state.intersect_ray(shot_query)
+		if shot_result.is_empty():
+			# Found a direction that leads to a clear shot
+			_log_debug("Found sidestep direction: %s" % sidestep_dir)
+			return sidestep_dir
+
+	return Vector2.ZERO  # No clear sidestep direction found
 
 
 ## Check if the enemy should shoot at the current target.
