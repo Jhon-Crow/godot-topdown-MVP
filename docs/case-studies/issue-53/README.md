@@ -119,14 +119,38 @@ const GRADE_THRESHOLDS: Dictionary = {
 
 ## User Log Analysis
 
-### Key Observations from game_log_20260118_153026.txt
+### Log 1: game_log_20260118_153026.txt
 - **Game Start**: 15:30:26
 - **First Kill**: 15:30:34 (Enemy3)
 - **Last Kill**: 15:31:13 (Enemy8)
 - **Total Enemies**: 10 (all died)
 - **Game End**: 15:31:49 (36 seconds after last kill)
 
-### Evidence from Log
+### Log 2: game_log_20260118_161311.txt (After code update)
+- **Game Start**: 16:13:11
+- **First Kill**: 16:13:18 (Enemy3)
+- **Last Kill**: 16:14:01 (Enemy9)
+- **Total Enemies**: 10 (all died)
+- **Duration**: ~50 seconds of gameplay
+
+#### Critical Finding from Log 2
+**NO output from building_level.gd script at all** - not even the `_ready()` print statements:
+```gdscript
+func _ready() -> void:
+    print("BuildingLevel loaded - Hotline Miami Style")  # NOT IN LOG
+    print("Building size: ~2400x2000 pixels")           # NOT IN LOG
+```
+
+This confirms the root cause: **The user is running an old exported build that doesn't contain the updated scripts.**
+
+Evidence:
+1. Log shows `Debug build: false` - running from export, not editor
+2. Executable path: `I:/Загрузки/godot exe/Godot-Top-Down-Template.exe`
+3. No `[BuildingLevel]` log entries at all
+4. No print statements from `_ready()` function
+5. All enemy deaths logged correctly by enemy.gd (which hasn't changed significantly)
+
+### Evidence from Log 1
 ```
 [15:30:34] [ENEMY] [Enemy3] Enemy died
 ...
@@ -140,12 +164,39 @@ The log confirms:
 3. SoundPropagation correctly tracked deaths
 4. No victory message appeared in log
 
+## Root Cause Conclusion
+
+### Primary Issue: Stale Export Build
+The user is testing with an exported executable that was built BEFORE the code updates were made. The export needs to be regenerated to include:
+1. Updated building_level.gd with enemy tracking fixes
+2. Updated game_manager.gd with score UI visibility
+3. New settings menu files
+
+### Verification Steps for User
+1. Re-export the project using Godot's Export feature
+2. Run the new export and check for `[BuildingLevel]` log entries
+3. Verify that settings menu appears in pause menu (ESC)
+
+## Additional Fixes Applied
+
+### User Request: Score UI Hidden by Default
+Changed `score_ui_visible` default from `true` to `false` in GameManager:
+```gdscript
+var score_ui_visible: bool = false  # Was: true
+```
+
+This means:
+- Timer, combo counter, and running score are hidden by default
+- User can enable them via Settings menu in pause screen
+- Final score breakdown still shows on level completion
+
 ## Recommendations
 
-1. **Testing Required**: The added logging will help identify the exact failure point in enemy tracking
-2. **Signal Debugging**: Consider adding `CONNECT_DEFERRED` flag to signal connections
-3. **Initialization Order**: Verify level script `_ready()` completes before any enemy can die
-4. **Ammo Investigation**: Add logging to weapon signal connections to verify they work
+1. **Re-export the game** to include all code updates
+2. **Testing Required**: Run from the new export to verify enemy tracking works
+3. **Signal Debugging**: If issues persist after re-export, consider adding `CONNECT_DEFERRED` flag
+4. **Initialization Order**: Verify level script `_ready()` completes before any enemy can die
+5. **Ammo Investigation**: Add logging to weapon signal connections to verify they work
 
 ## Related Resources
 - [Hotline Miami Scoring Analysis](https://steamcommunity.com/app/219150/discussions/) (reference)

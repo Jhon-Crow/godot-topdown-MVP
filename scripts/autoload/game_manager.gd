@@ -24,8 +24,8 @@ var player: Node2D = null
 var debug_mode_enabled: bool = false
 
 ## Whether score-related UI is visible (timer, combo, running score, final score breakdown).
-## Can be toggled in the pause menu settings.
-var score_ui_visible: bool = true
+## Can be toggled in the pause menu settings. Hidden by default as per user preference.
+var score_ui_visible: bool = false
 
 ## Signal emitted when an enemy is killed (for screen effects).
 signal enemy_killed
