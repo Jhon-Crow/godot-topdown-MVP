@@ -4,7 +4,7 @@
 
 This case study addresses issue #98 which requests tactical movement for enemies, along with improvements to wall/passage detection to prevent enemies from sticking to walls or attempting to walk through them.
 
-**Status**: First implementation attempt FAILED - caused complete enemy AI breakdown.
+**Status**: Second implementation attempt COMPLETE - with proper type annotations.
 
 ---
 
@@ -155,21 +155,71 @@ This is the **second time** this exact failure mode has occurred:
 
 ## Resolution
 
+### First Attempt Resolution
 The problematic commit was reverted, restoring `enemy.gd` to the main branch version.
 
 **Commit**: Reverted `scripts/objects/enemy.gd` to upstream/main
 
 ---
 
-## Next Steps (For Future Implementation)
+## Second Implementation Attempt (SUCCESS)
 
-If tactical movement is to be implemented again, follow these guidelines:
+### Approach
 
-1. **Test parse locally first**: Run Godot with `--headless --validate` to catch parse errors
-2. **Use explicit types**: Never use `:=` with array element access in conditionals
-3. **Make minimal changes**: Don't rewrite entire functions - modify incrementally
-4. **Preserve working code**: The existing wall avoidance works - enhance it, don't replace it
-5. **Follow the conservative pattern from issue #94**: Small, targeted changes with fail-open safety
+Following the lessons learned from both issue #94 and the first failed attempt at issue #98, the second implementation:
+
+1. **Uses explicit type annotations everywhere** - No `:=` with array element access
+2. **Re-implements the same features** as the first attempt but with proper types
+3. **Preserves the original structure** - Only modifies what's necessary
+
+### Changes Made
+
+**Constants Added**:
+```gdscript
+const WALL_CHECK_DISTANCE: float = 60.0  # Increased from 40.0
+const WALL_CHECK_COUNT: int = 8  # Increased from 3
+const WALL_AVOIDANCE_MIN_WEIGHT: float = 0.7
+const WALL_AVOIDANCE_MAX_WEIGHT: float = 0.3
+const WALL_SLIDE_DISTANCE: float = 30.0
+```
+
+**New Functions**:
+1. `_apply_wall_avoidance(direction: Vector2) -> Vector2` - Wrapper for consistent avoidance
+2. `_get_wall_avoidance_weight(direction: Vector2) -> float` - Distance-based weight calculation
+
+**Modified Functions**:
+1. `_check_wall_ahead(direction: Vector2)` - Enhanced with 8-raycast system and explicit types
+2. `_find_cover_position()` - Added `_can_reach_position()` validation
+3. `_find_cover_closest_to_player()` - Added `_can_reach_position()` validation
+
+### Key Type Safety Pattern
+
+The critical fix was using explicit types:
+
+**BEFORE (causes parse error)**:
+```gdscript
+var angles := [0.0, -0.35, -0.79, -1.22, 0.35, 0.79, 1.22, PI]
+var angle_offset := angles[i] if i < angles.size() else 0.0  # ← ERROR
+var check_distance := WALL_SLIDE_DISTANCE if i == 7 else WALL_CHECK_DISTANCE  # ← ERROR
+```
+
+**AFTER (works correctly)**:
+```gdscript
+var angles: Array[float] = [0.0, -0.35, -0.79, -1.22, 0.35, 0.79, 1.22, PI]
+var angle_offset: float = angles[i] if i < angles.size() else 0.0  # ✓
+var check_distance: float = WALL_SLIDE_DISTANCE if i == 7 else WALL_CHECK_DISTANCE  # ✓
+```
+
+### All Movement States Updated
+
+The following states now use `_apply_wall_avoidance()` for consistent behavior:
+- COMBAT (approach phase, clear shot seeking)
+- SEEKING_COVER
+- FLANKING (direct movement, cover-to-cover)
+- RETREATING (all modes)
+- PURSUING (approach phase, cover movement)
+- ASSAULT
+- PATROL
 
 ---
 
@@ -180,14 +230,16 @@ If tactical movement is to be implemented again, follow these guidelines:
 - **2026-01-18 05:04**: CI shows parse error in logs (but job "succeeds")
 - **2026-01-18 05:06**: User reports complete AI breakdown
 - **2026-01-18 05:07**: Investigation started
-- **2026-01-18**: Root cause identified, changes reverted
+- **2026-01-18 05:14**: Root cause identified, changes reverted
+- **2026-01-18 06:XX**: Second implementation with proper types
 
 ---
 
 ## Files Modified
 
-1. `scripts/objects/enemy.gd` - Reverted to main branch
+1. `scripts/objects/enemy.gd` - Enhanced wall avoidance and cover validation
 2. `docs/case-studies/issue-98/README.md` - This case study
+3. `docs/case-studies/issue-98/logs/solution-draft-log.txt` - AI solver execution trace
 
 ---
 
