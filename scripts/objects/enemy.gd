@@ -366,6 +366,28 @@ var _pursuit_next_cover: Vector2 = Vector2.ZERO
 ## Whether the enemy has a valid pursuit cover target.
 var _has_pursuit_cover: bool = false
 
+## The obstacle (collider) of the current cover position.
+## Used to detect and penalize selecting another position on the same obstacle.
+var _current_cover_obstacle: Object = null
+
+## Whether the enemy is in approach phase (moving toward player without cover).
+## This happens when at the last cover before the player with no better cover available.
+var _pursuit_approaching: bool = false
+
+## Timer for approach phase during pursuit.
+var _pursuit_approach_timer: float = 0.0
+
+## Maximum time to approach during pursuit before transitioning to COMBAT (seconds).
+const PURSUIT_APPROACH_MAX_TIME: float = 3.0
+
+## Minimum distance progress required for a valid pursuit cover (as fraction of current distance).
+## Covers that don't make at least this much progress toward the player are skipped.
+const PURSUIT_MIN_PROGRESS_FRACTION: float = 0.10  # Must get at least 10% closer
+
+## Penalty applied to cover positions on the same obstacle as current cover.
+## This prevents enemies from shuffling along the same wall repeatedly.
+const PURSUIT_SAME_OBSTACLE_PENALTY: float = 4.0
+
 ## --- Flanking State (cover-to-cover movement toward flank target) ---
 ## Timer for waiting at cover during flanking.
 var _flank_cover_wait_timer: float = 0.0
@@ -1457,9 +1479,12 @@ func _process_retreat_multiple_hits(delta: float, direction_to_cover: Vector2) -
 ## Process PURSUING state - move cover-to-cover toward player.
 ## Enemy moves between covers, waiting 1-2 seconds at each cover,
 ## until they can see and hit the player.
+## When at the last cover (no better cover found), enters approach phase
+## to move directly toward the player.
 func _process_pursuing_state(delta: float) -> void:
 	# Check for suppression - transition to retreating behavior
 	if _under_fire and enable_cover:
+		_pursuit_approaching = false
 		_transition_to_retreating()
 		return
 
@@ -1467,6 +1492,7 @@ func _process_pursuing_state(delta: float) -> void:
 	var enemies_in_combat := _count_enemies_in_combat()
 	if enemies_in_combat >= 2:
 		_log_debug("Multiple enemies detected during pursuit (%d), transitioning to ASSAULT" % enemies_in_combat)
+		_pursuit_approaching = false
 		_transition_to_assault()
 		return
 
@@ -1476,8 +1502,48 @@ func _process_pursuing_state(delta: float) -> void:
 		if can_hit:
 			_log_debug("Can see and hit player from pursuit, transitioning to COMBAT")
 			_has_pursuit_cover = false
+			_pursuit_approaching = false
 			_transition_to_combat()
 			return
+
+	# Process approach phase - moving directly toward player when no better cover exists
+	if _pursuit_approaching:
+		if _player:
+			var direction := (_player.global_position - global_position).normalized()
+			var can_hit := _can_hit_player_from_current_position()
+
+			_pursuit_approach_timer += delta
+
+			# If we can now hit the player, transition to combat
+			if can_hit:
+				_log_debug("Can now hit player after approach (%.1fs), transitioning to COMBAT" % _pursuit_approach_timer)
+				_pursuit_approaching = false
+				_transition_to_combat()
+				return
+
+			# If approach timer expired, give up and engage in combat anyway
+			if _pursuit_approach_timer >= PURSUIT_APPROACH_MAX_TIME:
+				_log_debug("Approach timer expired (%.1fs), transitioning to COMBAT" % _pursuit_approach_timer)
+				_pursuit_approaching = false
+				_transition_to_combat()
+				return
+
+			# If we found a new cover opportunity while approaching, take it
+			if not _has_pursuit_cover:
+				_find_pursuit_cover_toward_player()
+				if _has_pursuit_cover:
+					_log_debug("Found cover while approaching, switching to cover movement")
+					_pursuit_approaching = false
+					return
+
+			# Apply wall avoidance and move toward player
+			var avoidance := _check_wall_ahead(direction)
+			if avoidance != Vector2.ZERO:
+				direction = (direction * 0.5 + avoidance * 0.5).normalized()
+
+			velocity = direction * combat_move_speed
+			rotation = direction.angle()
+		return
 
 	# Check if we're waiting at cover
 	if _has_valid_cover and not _has_pursuit_cover:
@@ -1493,20 +1559,21 @@ func _process_pursuing_state(delta: float) -> void:
 			if _has_pursuit_cover:
 				_log_debug("Found pursuit cover at %s" % _pursuit_next_cover)
 			else:
-				# No pursuit cover found - fallback behavior
+				# No pursuit cover found - start approach phase if we can see player
 				_log_debug("No pursuit cover found, checking fallback options")
-				# If we can now see the player, engage directly
-				if _can_see_player:
-					_log_debug("Can see player, transitioning to COMBAT")
-					_transition_to_combat()
+				if _can_see_player and _player:
+					# Can see but can't hit (at last cover) - start approach phase
+					_log_debug("Can see player but can't hit, starting approach phase")
+					_pursuit_approaching = true
+					_pursuit_approach_timer = 0.0
 					return
-				# Try flanking
+				# Try flanking if player not visible
 				if enable_flanking and _player:
 					_log_debug("Attempting flanking maneuver")
 					_transition_to_flanking()
 					return
 				# Last resort: move directly toward player
-				_log_debug("No cover options, moving directly toward player")
+				_log_debug("No cover options, transitioning to COMBAT")
 				_transition_to_combat()
 				return
 		return
@@ -1788,6 +1855,9 @@ func _transition_to_pursuing() -> void:
 	_current_state = AIState.PURSUING
 	_pursuit_cover_wait_timer = 0.0
 	_has_pursuit_cover = false
+	_pursuit_approaching = false
+	_pursuit_approach_timer = 0.0
+	_current_cover_obstacle = null
 	# Reset detection delay for new engagement
 	_detection_timer = 0.0
 	_detection_delay_elapsed = false
@@ -2251,6 +2321,10 @@ func is_in_combat_engagement() -> bool:
 
 ## Find cover position closer to the player for pursuit.
 ## Used during PURSUING state to move cover-to-cover toward the player.
+## Improvements for issue #93:
+## - Penalizes covers on the same obstacle to avoid shuffling along walls
+## - Requires minimum progress toward player to skip insignificant moves
+## - Verifies the path to cover is clear (no walls blocking)
 func _find_pursuit_cover_toward_player() -> void:
 	if _player == null:
 		_has_pursuit_cover = false
@@ -2259,7 +2333,12 @@ func _find_pursuit_cover_toward_player() -> void:
 	var player_pos := _player.global_position
 	var best_cover: Vector2 = Vector2.ZERO
 	var best_score: float = -INF
+	var best_obstacle: Object = null
 	var found_valid_cover: bool = false
+
+	var my_distance_to_player := global_position.distance_to(player_pos)
+	# Calculate minimum required progress (must get at least this much closer)
+	var min_required_progress := my_distance_to_player * PURSUIT_MIN_PROGRESS_FRACTION
 
 	# Cast rays in all directions to find obstacles
 	for i in range(COVER_CHECK_COUNT):
@@ -2273,21 +2352,29 @@ func _find_pursuit_cover_toward_player() -> void:
 		if raycast.is_colliding():
 			var collision_point := raycast.get_collision_point()
 			var collision_normal := raycast.get_collision_normal()
+			var collider := raycast.get_collider()
 
 			# Cover position is offset from collision point along normal
 			var cover_pos := collision_point + collision_normal * 35.0
 
 			# For pursuit, we want cover that is:
-			# 1. Closer to the player than we currently are
+			# 1. Closer to the player than we currently are (with minimum progress)
 			# 2. Hidden from the player (or mostly hidden)
 			# 3. Not too far from our current position
+			# 4. Preferably on a different obstacle than current cover
+			# 5. Reachable (no walls blocking the path)
 
-			var my_distance_to_player := global_position.distance_to(player_pos)
 			var cover_distance_to_player := cover_pos.distance_to(player_pos)
 			var cover_distance_from_me := global_position.distance_to(cover_pos)
+			var progress := my_distance_to_player - cover_distance_to_player
 
 			# Skip covers that don't bring us closer to player
 			if cover_distance_to_player >= my_distance_to_player:
+				continue
+
+			# Skip covers that don't make enough progress (issue #93 fix)
+			# This prevents stopping repeatedly along the same long wall
+			if progress < min_required_progress:
 				continue
 
 			# Skip covers that are too close to current position (would cause looping)
@@ -2295,31 +2382,70 @@ func _find_pursuit_cover_toward_player() -> void:
 			if cover_distance_from_me < 30.0:
 				continue
 
+			# Verify we can actually reach this cover position (no wall blocking path)
+			if not _can_reach_position(cover_pos):
+				continue
+
 			# Check if this position is hidden from player
 			var is_hidden := not _is_position_visible_from_player(cover_pos)
+
+			# Check if this is the same obstacle as our current cover (issue #93 fix)
+			var same_obstacle_penalty: float = 0.0
+			if _current_cover_obstacle != null and collider == _current_cover_obstacle:
+				same_obstacle_penalty = PURSUIT_SAME_OBSTACLE_PENALTY
 
 			# Score calculation:
 			# Higher score for positions that are:
 			# - Hidden from player (priority)
 			# - Closer to player
 			# - Not too far from current position
+			# - On a different obstacle than current cover
 			var hidden_score: float = 5.0 if is_hidden else 0.0
-			var approach_score: float = (my_distance_to_player - cover_distance_to_player) / CLOSE_COMBAT_DISTANCE
+			var approach_score: float = progress / CLOSE_COMBAT_DISTANCE
 			var distance_penalty: float = cover_distance_from_me / COVER_CHECK_DISTANCE
 
-			var total_score: float = hidden_score + approach_score * 2.0 - distance_penalty
+			var total_score: float = hidden_score + approach_score * 2.0 - distance_penalty - same_obstacle_penalty
 
 			if total_score > best_score:
 				best_score = total_score
 				best_cover = cover_pos
+				best_obstacle = collider
 				found_valid_cover = true
 
 	if found_valid_cover:
 		_pursuit_next_cover = best_cover
 		_has_pursuit_cover = true
+		_current_cover_obstacle = best_obstacle
 		_log_debug("Found pursuit cover at %s (score: %.2f)" % [_pursuit_next_cover, best_score])
 	else:
 		_has_pursuit_cover = false
+
+
+## Check if there's a clear path to a position (no walls blocking).
+## Used to verify cover positions are reachable before selecting them.
+func _can_reach_position(target: Vector2) -> bool:
+	var world_2d := get_world_2d()
+	if world_2d == null:
+		return true  # Fail-open
+
+	var space_state := world_2d.direct_space_state
+	if space_state == null:
+		return true  # Fail-open
+
+	var query := PhysicsRayQueryParameters2D.new()
+	query.from = global_position
+	query.to = target
+	query.collision_mask = 4  # Obstacles only (layer 3)
+	query.exclude = [get_rid()]
+
+	var result := space_state.intersect_ray(query)
+	if result.is_empty():
+		return true  # No obstacle in the way
+
+	# Check if obstacle is beyond the target position (acceptable)
+	var hit_distance := global_position.distance_to(result["position"])
+	var target_distance := global_position.distance_to(target)
+	return hit_distance >= target_distance - 10.0  # 10 pixel tolerance
 
 
 ## Find cover position closest to the player for assault positioning.
@@ -2961,6 +3087,9 @@ func _reset() -> void:
 	_pursuit_cover_wait_timer = 0.0
 	_pursuit_next_cover = Vector2.ZERO
 	_has_pursuit_cover = false
+	_current_cover_obstacle = null
+	_pursuit_approaching = false
+	_pursuit_approach_timer = 0.0
 	# Reset assault state variables
 	_assault_wait_timer = 0.0
 	_assault_ready = false
@@ -3065,7 +3194,10 @@ func _update_debug_label() -> void:
 
 	# Add pursuit timer info if pursuing and waiting at cover
 	if _current_state == AIState.PURSUING:
-		if _has_valid_cover and not _has_pursuit_cover:
+		if _pursuit_approaching:
+			var time_left := PURSUIT_APPROACH_MAX_TIME - _pursuit_approach_timer
+			state_text += "\n(APPROACH %.1fs)" % time_left
+		elif _has_valid_cover and not _has_pursuit_cover:
 			var time_left := PURSUIT_COVER_WAIT_DURATION - _pursuit_cover_wait_timer
 			state_text += "\n(WAIT %.1fs)" % time_left
 		elif _has_pursuit_cover:
