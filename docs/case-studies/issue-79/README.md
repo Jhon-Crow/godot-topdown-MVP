@@ -39,6 +39,14 @@
   - `game_log_20260118_112522.txt` (42KB)
 - **Feedback**: "мёртвые враги всё ещё останавливают пули" (dead enemies still stop bullets)
 
+### Third Fix Attempt - The Complete Fix
+- **Commit**: `319f59f` (2026-01-18 08:34:49 UTC)
+- **Approach**: Added `is_alive()` check in `_on_body_entered()` to handle CharacterBody2D collision
+- **Result**: Fixed the issue
+
+### Important Timing Note
+The user's second feedback (at 08:27 UTC) was submitted **before** the complete fix (at 08:34 UTC) was pushed. The user was testing an older build that only had the HitArea fix, but not the CharacterBody2D fix. The new build with the complete fix is available via CI artifacts.
+
 ## Technical Analysis
 
 ### How Bullet-Enemy Collision Works
@@ -175,4 +183,18 @@ The logs show enemies dying, but we cannot see if bullets are being absorbed bec
 
 ## Conclusion
 
-The issue stems from fundamental limitations in how Godot handles Area2D collision toggling at runtime. A robust solution requires multiple complementary approaches: disabling the collision shape, changing collision layers, and adding explicit alive-state checks in the bullet code.
+The issue stems from fundamental limitations in how Godot handles Area2D collision toggling at runtime, combined with the fact that bullets collide with BOTH the HitArea (Area2D) and the Enemy CharacterBody2D.
+
+The complete fix required TWO key changes:
+1. **Enemy-side** (commit `f1580c7`): Multi-layered approach to disable HitArea collision on death
+2. **Bullet-side** (commit `319f59f`): Add `is_alive()` check in `_on_body_entered()` to handle CharacterBody2D collision
+
+Both changes are necessary because:
+- The HitArea fix prevents new bullets from being absorbed
+- The body collision fix handles bullets that collide with the CharacterBody2D (which has collision_layer = 2, matching bullet's collision_mask)
+
+A robust solution requires multiple complementary approaches: disabling the collision shape, changing collision layers, and adding explicit alive-state checks in the bullet code for both body and area collision handlers.
+
+## Status
+
+**Fixed**: The complete fix is implemented in commit `319f59f` and CI builds have passed. Users should download the latest build from CI artifacts to test the fix.
