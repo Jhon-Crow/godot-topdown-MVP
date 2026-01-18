@@ -45,6 +45,15 @@ const SATURATION_DURATION: float = 0.15
 ## Saturation effect intensity (alpha).
 const SATURATION_INTENSITY: float = 0.25
 
+## Reference to the combo label.
+var _combo_label: Label = null
+
+## Reference to the running score label.
+var _running_score_label: Label = null
+
+## Reference to the timer label.
+var _timer_label: Label = null
+
 
 func _ready() -> void:
 	print("BuildingLevel loaded - Hotline Miami Style")
@@ -76,9 +85,13 @@ func _ready() -> void:
 		GameManager.enemy_killed.connect(_on_game_manager_enemy_killed)
 		GameManager.stats_updated.connect(_update_debug_ui)
 
+	# Initialize score tracking
+	_setup_score_tracking()
+
 
 func _process(_delta: float) -> void:
-	pass
+	# Update timer display
+	_update_timer_display()
 
 
 ## Setup the navigation mesh for enemy pathfinding.
@@ -246,6 +259,116 @@ func _setup_saturation_overlay() -> void:
 	canvas_layer.move_child(_saturation_overlay, canvas_layer.get_child_count() - 1)
 
 
+## Setup score tracking and UI elements.
+func _setup_score_tracking() -> void:
+	var ui := get_node_or_null("CanvasLayer/UI")
+	if ui == null:
+		return
+
+	# Initialize ScoreManager for this level
+	var score_manager: Node = get_node_or_null("/root/ScoreManager")
+	if score_manager:
+		score_manager.reset_for_new_level()
+		score_manager.combo_changed.connect(_on_combo_changed)
+		score_manager.kill_scored.connect(_on_kill_scored)
+
+	# Create timer label (top right)
+	_timer_label = Label.new()
+	_timer_label.name = "TimerLabel"
+	_timer_label.text = "00:00.00"
+	_timer_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_timer_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	_timer_label.offset_left = -150
+	_timer_label.offset_right = -10
+	_timer_label.offset_top = 10
+	_timer_label.offset_bottom = 40
+	_timer_label.add_theme_font_size_override("font_size", 20)
+	ui.add_child(_timer_label)
+
+	# Create running score label (below timer)
+	_running_score_label = Label.new()
+	_running_score_label.name = "RunningScoreLabel"
+	_running_score_label.text = "SCORE: 0"
+	_running_score_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_running_score_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	_running_score_label.offset_left = -150
+	_running_score_label.offset_right = -10
+	_running_score_label.offset_top = 40
+	_running_score_label.offset_bottom = 70
+	_running_score_label.add_theme_font_size_override("font_size", 18)
+	_running_score_label.add_theme_color_override("font_color", Color(1.0, 0.9, 0.3, 1.0))
+	ui.add_child(_running_score_label)
+
+	# Create combo label (center-top, appears when combo active)
+	_combo_label = Label.new()
+	_combo_label.name = "ComboLabel"
+	_combo_label.text = ""
+	_combo_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_combo_label.set_anchors_preset(Control.PRESET_TOP_CENTER)
+	_combo_label.offset_left = -100
+	_combo_label.offset_right = 100
+	_combo_label.offset_top = 60
+	_combo_label.offset_bottom = 100
+	_combo_label.add_theme_font_size_override("font_size", 32)
+	_combo_label.add_theme_color_override("font_color", Color(1.0, 0.5, 0.0, 1.0))
+	_combo_label.visible = false
+	ui.add_child(_combo_label)
+
+	# Connect to player hit signal for damage tracking
+	if _player and _player.has_signal("hit"):
+		_player.hit.connect(_on_player_hit)
+
+
+## Update timer display.
+func _update_timer_display() -> void:
+	if _timer_label == null:
+		return
+
+	var score_manager: Node = get_node_or_null("/root/ScoreManager")
+	if score_manager:
+		var elapsed := score_manager.get_elapsed_time()
+		_timer_label.text = score_manager.format_time(elapsed)
+
+
+## Called when combo changes.
+func _on_combo_changed(combo: int, is_active: bool) -> void:
+	if _combo_label == null:
+		return
+
+	if is_active and combo >= 2:
+		_combo_label.text = "%dx COMBO!" % combo
+		_combo_label.visible = true
+		# Flash effect for combo
+		var tween := create_tween()
+		tween.tween_property(_combo_label, "modulate:a", 1.0, 0.05)
+		tween.tween_property(_combo_label, "modulate:a", 0.7, 0.1)
+	else:
+		# Fade out combo label
+		if _combo_label.visible:
+			var tween := create_tween()
+			tween.tween_property(_combo_label, "modulate:a", 0.0, 0.3)
+			tween.tween_callback(func(): _combo_label.visible = false)
+
+
+## Called when a kill is scored.
+func _on_kill_scored(_points: int, _combo: int) -> void:
+	# Update running score display
+	if _running_score_label == null:
+		return
+
+	var score_manager: Node = get_node_or_null("/root/ScoreManager")
+	if score_manager:
+		var running_score := score_manager.get_running_score()
+		_running_score_label.text = "SCORE: %s" % score_manager.format_score(running_score)
+
+
+## Called when player takes damage (for score tracking).
+func _on_player_hit() -> void:
+	var score_manager: Node = get_node_or_null("/root/ScoreManager")
+	if score_manager:
+		score_manager.register_damage()
+
+
 ## Update debug UI with current stats.
 func _update_debug_ui() -> void:
 	if GameManager == null:
@@ -266,6 +389,11 @@ func _on_enemy_died() -> void:
 	# Register kill with GameManager
 	if GameManager:
 		GameManager.register_kill()
+
+	# Register kill with ScoreManager for combo and points
+	var score_manager: Node = get_node_or_null("/root/ScoreManager")
+	if score_manager:
+		score_manager.register_kill()
 
 	if _current_enemy_count <= 0:
 		print("All enemies eliminated! Building cleared!")
@@ -437,43 +565,143 @@ func _show_victory_message() -> void:
 	if ui == null:
 		return
 
+	# Calculate final score
+	var score_result: Dictionary = {}
+	var score_manager: Node = get_node_or_null("/root/ScoreManager")
+	if score_manager and GameManager:
+		score_result = score_manager.calculate_final_score(
+			GameManager.shots_fired,
+			GameManager.hits_landed,
+			GameManager.kills
+		)
+	else:
+		score_result = {
+			"total_score": 0,
+			"grade": "F",
+			"base_kill_points": 0,
+			"combo_bonus_points": 0,
+			"time_bonus_points": 0,
+			"accuracy_bonus_points": 0,
+			"aggressiveness_bonus_points": 0,
+			"damage_penalty_points": 0,
+			"max_combo": 0,
+			"completion_time": 0.0,
+			"accuracy": 0.0,
+			"damage_taken": 0,
+			"kills_per_minute": 0.0,
+		}
+
+	# Create semi-transparent background for score display
+	var score_bg := ColorRect.new()
+	score_bg.name = "ScoreBackground"
+	score_bg.color = Color(0.0, 0.0, 0.0, 0.7)
+	score_bg.set_anchors_preset(Control.PRESET_CENTER)
+	score_bg.offset_left = -250
+	score_bg.offset_right = 250
+	score_bg.offset_top = -200
+	score_bg.offset_bottom = 200
+	ui.add_child(score_bg)
+
+	# Victory header with grade
+	var grade_color := _get_grade_color(score_result.grade)
 	var victory_label := Label.new()
 	victory_label.name = "VictoryLabel"
 	victory_label.text = "BUILDING CLEARED!"
 	victory_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	victory_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	victory_label.add_theme_font_size_override("font_size", 48)
+	victory_label.add_theme_font_size_override("font_size", 36)
 	victory_label.add_theme_color_override("font_color", Color(0.2, 1.0, 0.3, 1.0))
-
-	# Center the label
 	victory_label.set_anchors_preset(Control.PRESET_CENTER)
-	victory_label.offset_left = -200
-	victory_label.offset_right = 200
-	victory_label.offset_top = -50
-	victory_label.offset_bottom = 50
-
+	victory_label.offset_left = -240
+	victory_label.offset_right = 240
+	victory_label.offset_top = -190
+	victory_label.offset_bottom = -150
 	ui.add_child(victory_label)
 
-	# Show final stats
-	var stats_label := Label.new()
-	stats_label.name = "StatsLabel"
-	if GameManager:
-		stats_label.text = "Kills: %d | Accuracy: %.1f%%" % [GameManager.kills, GameManager.get_accuracy()]
+	# Grade display
+	var grade_label := Label.new()
+	grade_label.name = "GradeLabel"
+	grade_label.text = "GRADE: %s" % score_result.grade
+	grade_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	grade_label.add_theme_font_size_override("font_size", 48)
+	grade_label.add_theme_color_override("font_color", grade_color)
+	grade_label.set_anchors_preset(Control.PRESET_CENTER)
+	grade_label.offset_left = -240
+	grade_label.offset_right = 240
+	grade_label.offset_top = -145
+	grade_label.offset_bottom = -85
+	ui.add_child(grade_label)
+
+	# Score breakdown
+	var breakdown_text := ""
+	if score_manager:
+		breakdown_text = """KILLS: %s
+COMBO BONUS: %s (Max: %dx)
+TIME BONUS: %s (%s)
+ACCURACY BONUS: %s (%.1f%%)
+AGGRESSIVENESS: %s (%.1f/min)
+DAMAGE PENALTY: -%s (%d hits)
+---
+TOTAL SCORE: %s""" % [
+			score_manager.format_score(score_result.base_kill_points),
+			score_manager.format_score(score_result.combo_bonus_points),
+			score_result.max_combo,
+			score_manager.format_score(score_result.time_bonus_points),
+			score_manager.format_time(score_result.completion_time),
+			score_manager.format_score(score_result.accuracy_bonus_points),
+			score_result.accuracy,
+			score_manager.format_score(score_result.aggressiveness_bonus_points),
+			score_result.kills_per_minute,
+			score_manager.format_score(score_result.damage_penalty_points),
+			score_result.damage_taken,
+			score_manager.format_score(score_result.total_score)
+		]
 	else:
-		stats_label.text = ""
-	stats_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	stats_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	stats_label.add_theme_font_size_override("font_size", 24)
-	stats_label.add_theme_color_override("font_color", Color(0.8, 0.9, 0.8, 1.0))
+		breakdown_text = "Kills: %d | Accuracy: %.1f%%" % [GameManager.kills if GameManager else 0, GameManager.get_accuracy() if GameManager else 0.0]
 
-	# Position below victory message
-	stats_label.set_anchors_preset(Control.PRESET_CENTER)
-	stats_label.offset_left = -200
-	stats_label.offset_right = 200
-	stats_label.offset_top = 50
-	stats_label.offset_bottom = 100
+	var breakdown_label := Label.new()
+	breakdown_label.name = "BreakdownLabel"
+	breakdown_label.text = breakdown_text
+	breakdown_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	breakdown_label.add_theme_font_size_override("font_size", 16)
+	breakdown_label.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9, 1.0))
+	breakdown_label.set_anchors_preset(Control.PRESET_CENTER)
+	breakdown_label.offset_left = -230
+	breakdown_label.offset_right = 230
+	breakdown_label.offset_top = -75
+	breakdown_label.offset_bottom = 150
+	ui.add_child(breakdown_label)
 
-	ui.add_child(stats_label)
+	# Restart hint
+	var restart_label := Label.new()
+	restart_label.name = "RestartLabel"
+	restart_label.text = "Press Q to restart"
+	restart_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	restart_label.add_theme_font_size_override("font_size", 14)
+	restart_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7, 1.0))
+	restart_label.set_anchors_preset(Control.PRESET_CENTER)
+	restart_label.offset_left = -240
+	restart_label.offset_right = 240
+	restart_label.offset_top = 160
+	restart_label.offset_bottom = 190
+	ui.add_child(restart_label)
+
+
+## Get color for grade display.
+func _get_grade_color(grade: String) -> Color:
+	match grade:
+		"A+":
+			return Color(1.0, 0.84, 0.0, 1.0)  # Gold
+		"A":
+			return Color(0.2, 1.0, 0.3, 1.0)  # Green
+		"B":
+			return Color(0.3, 0.7, 1.0, 1.0)  # Light blue
+		"C":
+			return Color(1.0, 1.0, 0.3, 1.0)  # Yellow
+		"D":
+			return Color(1.0, 0.5, 0.2, 1.0)  # Orange
+		_:
+			return Color(1.0, 0.2, 0.2, 1.0)  # Red for F
 
 
 ## Show game over message when player runs out of ammo with enemies remaining.
