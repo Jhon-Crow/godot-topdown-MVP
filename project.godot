@@ -10,6 +10,7 @@ config_version=5
 
 [autoload]
 
+FileLogger="*res://scripts/autoload/file_logger.gd"
 InputSettings="*res://scripts/autoload/input_settings.gd"
 GameManager="*res://scripts/autoload/game_manager.gd"
 HitEffectsManager="*res://scripts/autoload/hit_effects_manager.gd"

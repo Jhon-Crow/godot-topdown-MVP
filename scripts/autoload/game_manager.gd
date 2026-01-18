@@ -39,6 +39,8 @@ signal debug_mode_toggled(enabled: bool)
 func _ready() -> void:
 	# Reset stats when starting
 	_reset_stats()
+	# Log that GameManager is ready
+	_log_to_file("GameManager ready")
 
 
 func _input(event: InputEvent) -> void:
@@ -111,8 +113,18 @@ func set_player(p: Node2D) -> void:
 func toggle_debug_mode() -> void:
 	debug_mode_enabled = not debug_mode_enabled
 	debug_mode_toggled.emit(debug_mode_enabled)
+	_log_to_file("Debug mode toggled: %s" % ("ON" if debug_mode_enabled else "OFF"))
 
 
 ## Returns whether debug mode is currently enabled.
 func is_debug_mode_enabled() -> bool:
 	return debug_mode_enabled
+
+
+## Log a message to the file logger if available.
+func _log_to_file(message: String) -> void:
+	var file_logger: Node = get_node_or_null("/root/FileLogger")
+	if file_logger and file_logger.has_method("log_info"):
+		file_logger.log_info("[GameManager] " + message)
+	else:
+		print("[GameManager] " + message)

@@ -147,7 +147,7 @@ class RetreatWithFireAction extends GOAPAction:
 	func get_cost(_agent: Node, world_state: Dictionary) -> float:
 		# Cost is lower (higher priority) when under fire
 		# Priority also depends on hits taken
-		var hits := world_state.get("hits_taken", 0)
+		var hits: int = world_state.get("hits_taken", 0)
 		if hits == 0:
 			# Full HP - can afford to fight while retreating
 			return 1.0
@@ -195,7 +195,7 @@ class AssaultPlayerAction extends GOAPAction:
 
 	func get_cost(_agent: Node, world_state: Dictionary) -> float:
 		# Only low cost if multiple enemies are in combat
-		var enemies_count := world_state.get("enemies_in_combat", 0)
+		var enemies_count: int = world_state.get("enemies_in_combat", 0)
 		if enemies_count >= 2:
 			return 0.5  # High priority for coordinated attack
 		return 5.0  # Very high cost if alone (prefer other actions)
