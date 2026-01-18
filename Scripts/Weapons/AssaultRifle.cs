@@ -98,6 +98,32 @@ public partial class AssaultRifle : BaseWeapon
     private bool _isBurstFiring;
 
     /// <summary>
+    /// Current recoil offset angle in radians.
+    /// This offset is applied to both the laser sight and bullet direction.
+    /// </summary>
+    private float _recoilOffset = 0.0f;
+
+    /// <summary>
+    /// Time since the last shot was fired, used for recoil recovery.
+    /// </summary>
+    private float _timeSinceLastShot = 0.0f;
+
+    /// <summary>
+    /// Time in seconds before recoil starts recovering.
+    /// </summary>
+    private const float RecoilRecoveryDelay = 0.1f;
+
+    /// <summary>
+    /// Speed at which recoil recovers (radians per second).
+    /// </summary>
+    private const float RecoilRecoverySpeed = 8.0f;
+
+    /// <summary>
+    /// Maximum recoil offset in radians (about 5 degrees).
+    /// </summary>
+    private const float MaxRecoilOffset = 0.087f;
+
+    /// <summary>
     /// Signal emitted when a burst starts.
     /// </summary>
     [Signal]
@@ -150,7 +176,17 @@ public partial class AssaultRifle : BaseWeapon
     {
         base._Process(delta);
 
-        // Update laser sight to point towards mouse
+        // Update time since last shot for recoil recovery
+        _timeSinceLastShot += (float)delta;
+
+        // Recover recoil after delay
+        if (_timeSinceLastShot >= RecoilRecoveryDelay && _recoilOffset != 0)
+        {
+            float recoveryAmount = RecoilRecoverySpeed * (float)delta;
+            _recoilOffset = Mathf.MoveToward(_recoilOffset, 0, recoveryAmount);
+        }
+
+        // Update laser sight to point towards mouse (with recoil offset)
         if (LaserSightEnabled && _laserSight != null)
         {
             UpdateLaserSight();
@@ -253,6 +289,10 @@ public partial class AssaultRifle : BaseWeapon
         // Store the aim direction for shooting
         _aimDirection = direction;
 
+        // Apply recoil offset to direction for laser visualization
+        // This makes the laser show where the bullet will actually go
+        Vector2 laserDirection = direction.Rotated(_recoilOffset);
+
         // Calculate maximum laser length based on viewport size
         // This ensures the laser extends to viewport edges regardless of direction
         Viewport? viewport = GetViewport();
@@ -266,7 +306,8 @@ public partial class AssaultRifle : BaseWeapon
         float maxLaserLength = viewportSize.Length();
 
         // Calculate the end point of the laser using viewport-based length
-        Vector2 endPoint = direction * maxLaserLength;
+        // Use laserDirection (with recoil) instead of base direction
+        Vector2 endPoint = laserDirection * maxLaserLength;
 
         // Perform raycast to check for obstacles
         var spaceState = GetWorld2D().DirectSpaceState;
@@ -562,25 +603,37 @@ public partial class AssaultRifle : BaseWeapon
     }
 
     /// <summary>
-    /// Applies spread to the shooting direction based on WeaponData settings.
+    /// Applies recoil offset to the shooting direction and adds new recoil.
+    /// The bullet is fired in the same direction shown by the laser sight,
+    /// then recoil is added for the next shot.
     /// </summary>
     /// <param name="direction">Original direction.</param>
-    /// <returns>Direction with spread applied.</returns>
+    /// <returns>Direction with current recoil applied.</returns>
     private Vector2 ApplySpread(Vector2 direction)
     {
-        if (WeaponData == null || WeaponData.SpreadAngle <= 0)
+        // Apply the current recoil offset to the direction
+        // This matches where the laser is pointing
+        Vector2 result = direction.Rotated(_recoilOffset);
+
+        // Add recoil for the next shot
+        if (WeaponData != null && WeaponData.SpreadAngle > 0)
         {
-            return direction;
+            // Convert spread angle from degrees to radians
+            float spreadRadians = Mathf.DegToRad(WeaponData.SpreadAngle);
+
+            // Generate random recoil direction (-1 or 1) with small variation
+            float recoilDirection = (float)GD.RandRange(-1.0, 1.0);
+            float recoilAmount = spreadRadians * Mathf.Abs(recoilDirection);
+
+            // Add to current recoil, clamped to maximum
+            _recoilOffset += recoilDirection * recoilAmount * 0.5f;
+            _recoilOffset = Mathf.Clamp(_recoilOffset, -MaxRecoilOffset, MaxRecoilOffset);
         }
 
-        // Convert spread angle from degrees to radians
-        float spreadRadians = Mathf.DegToRad(WeaponData.SpreadAngle);
+        // Reset time since last shot for recoil recovery
+        _timeSinceLastShot = 0;
 
-        // Generate random spread within the angle range
-        float randomSpread = (float)GD.RandRange(-spreadRadians / 2, spreadRadians / 2);
-
-        // Rotate the direction by the spread amount
-        return direction.Rotated(randomSpread);
+        return result;
     }
 
     /// <summary>
