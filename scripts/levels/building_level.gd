@@ -33,6 +33,9 @@ var _kills_label: Label = null
 ## Reference to the accuracy label.
 var _accuracy_label: Label = null
 
+## Reference to the magazines label (shows individual magazine ammo counts).
+var _magazines_label: Label = null
+
 ## Reference to the ColorRect for saturation effect.
 var _saturation_overlay: ColorRect = null
 
@@ -139,11 +142,17 @@ func _setup_player_tracking() -> void:
 		# C# Player with weapon - connect to weapon signals
 		if weapon.has_signal("AmmoChanged"):
 			weapon.AmmoChanged.connect(_on_weapon_ammo_changed)
+		if weapon.has_signal("MagazinesChanged"):
+			weapon.MagazinesChanged.connect(_on_magazines_changed)
 		if weapon.has_signal("Fired"):
 			weapon.Fired.connect(_on_shot_fired)
 		# Initial ammo display from weapon
 		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
 			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
+		# Initial magazine display
+		if weapon.has_method("GetMagazineAmmoCounts"):
+			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
+			_update_magazines_label(mag_counts)
 	else:
 		# GDScript Player - connect to player signals
 		if _player.has_signal("ammo_changed"):
@@ -202,6 +211,17 @@ func _setup_debug_ui() -> void:
 	_accuracy_label.offset_right = 200
 	_accuracy_label.offset_bottom = 105
 	ui.add_child(_accuracy_label)
+
+	# Create magazines label (shows individual magazine ammo counts)
+	_magazines_label = Label.new()
+	_magazines_label.name = "MagazinesLabel"
+	_magazines_label.text = "MAGS: -"
+	_magazines_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	_magazines_label.offset_left = 10
+	_magazines_label.offset_top = 105
+	_magazines_label.offset_right = 400
+	_magazines_label.offset_bottom = 135
+	ui.add_child(_magazines_label)
 
 	# Update instructions label with Q restart info
 	var instructions_label := get_node_or_null("CanvasLayer/UI/InstructionsLabel")
@@ -281,6 +301,11 @@ func _on_weapon_ammo_changed(current_ammo: int, reserve_ammo: int) -> void:
 			_show_game_over_message()
 
 
+## Called when magazine inventory changes (C# Player).
+func _on_magazines_changed(magazine_ammo_counts: Array) -> void:
+	_update_magazines_label(magazine_ammo_counts)
+
+
 ## Called when player runs out of ammo (GDScript Player).
 func _on_player_ammo_depleted() -> void:
 	if _current_enemy_count > 0 and not _game_over_shown:
@@ -346,6 +371,29 @@ func _update_ammo_label_magazine(current_mag: int, reserve: int) -> void:
 		_ammo_label.add_theme_color_override("font_color", Color(1.0, 1.0, 0.2, 1.0))
 	else:
 		_ammo_label.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 1.0))
+
+
+## Update the magazines label showing individual magazine ammo counts.
+## Shows format: MAGS: [30] | 25 | 10 where [30] is current magazine.
+func _update_magazines_label(magazine_ammo_counts: Array) -> void:
+	if _magazines_label == null:
+		return
+
+	if magazine_ammo_counts.is_empty():
+		_magazines_label.text = "MAGS: -"
+		return
+
+	var parts: Array[String] = []
+	for i in range(magazine_ammo_counts.size()):
+		var ammo: int = magazine_ammo_counts[i]
+		if i == 0:
+			# Current magazine in brackets
+			parts.append("[%d]" % ammo)
+		else:
+			# Spare magazines
+			parts.append("%d" % ammo)
+
+	_magazines_label.text = "MAGS: " + " | ".join(parts)
 
 
 ## Update the enemy count label in UI.

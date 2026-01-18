@@ -1,5 +1,6 @@
 using Godot;
 using GodotTopDownTemplate.Data;
+using System.Linq;
 
 namespace GodotTopDownTemplate.AbstractClasses;
 
@@ -28,14 +29,44 @@ public abstract partial class BaseWeapon : Node2D
     public float BulletSpawnOffset { get; set; } = 20.0f;
 
     /// <summary>
-    /// Current ammunition in the magazine.
+    /// Number of magazines the weapon starts with.
     /// </summary>
-    public int CurrentAmmo { get; protected set; }
+    [Export]
+    public int StartingMagazineCount { get; set; } = 4;
 
     /// <summary>
-    /// Total reserve ammunition.
+    /// Magazine inventory managing all magazines for this weapon.
     /// </summary>
-    public int ReserveAmmo { get; protected set; }
+    protected MagazineInventory MagazineInventory { get; private set; } = new();
+
+    /// <summary>
+    /// Current ammunition in the magazine.
+    /// </summary>
+    public int CurrentAmmo
+    {
+        get => MagazineInventory.CurrentMagazine?.CurrentAmmo ?? 0;
+        protected set
+        {
+            if (MagazineInventory.CurrentMagazine != null)
+            {
+                MagazineInventory.CurrentMagazine.CurrentAmmo = value;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Total reserve ammunition across all spare magazines.
+    /// Note: This now represents total ammo in spare magazines, not a simple counter.
+    /// </summary>
+    public int ReserveAmmo
+    {
+        get => MagazineInventory.TotalSpareAmmo;
+        protected set
+        {
+            // This setter is kept for backward compatibility but does nothing
+            // The reserve ammo is now calculated from individual magazines
+        }
+    }
 
     /// <summary>
     /// Whether the weapon can currently fire.
@@ -93,13 +124,50 @@ public abstract partial class BaseWeapon : Node2D
     [Signal]
     public delegate void AmmoChangedEventHandler(int currentAmmo, int reserveAmmo);
 
+    /// <summary>
+    /// Signal emitted when the magazine inventory changes (reload, etc).
+    /// Provides an array of ammo counts for each magazine.
+    /// First element is current magazine, rest are spares sorted by ammo count.
+    /// </summary>
+    [Signal]
+    public delegate void MagazinesChangedEventHandler(int[] magazineAmmoCounts);
+
     public override void _Ready()
     {
         if (WeaponData != null)
         {
-            CurrentAmmo = WeaponData.MagazineSize;
-            ReserveAmmo = WeaponData.MaxReserveAmmo;
+            // Initialize magazine inventory with the starting magazines
+            MagazineInventory.Initialize(StartingMagazineCount, WeaponData.MagazineSize, fillAllMagazines: true);
+
+            // Emit initial magazine state
+            EmitMagazinesChanged();
         }
+    }
+
+    /// <summary>
+    /// Emits the MagazinesChanged signal with current magazine states.
+    /// </summary>
+    protected void EmitMagazinesChanged()
+    {
+        EmitSignal(SignalName.MagazinesChanged, MagazineInventory.GetMagazineAmmoCounts());
+    }
+
+    /// <summary>
+    /// Gets all magazine ammo counts as an array.
+    /// First element is current magazine, rest are spares sorted by ammo (descending).
+    /// </summary>
+    public int[] GetMagazineAmmoCounts()
+    {
+        return MagazineInventory.GetMagazineAmmoCounts();
+    }
+
+    /// <summary>
+    /// Gets a formatted string showing all magazine ammo counts.
+    /// Format: "[30] | 25 | 10" where [30] is current magazine.
+    /// </summary>
+    public string GetMagazineDisplayString()
+    {
+        return MagazineInventory.GetMagazineDisplayString();
     }
 
     public override void _Process(double delta)
@@ -131,13 +199,15 @@ public abstract partial class BaseWeapon : Node2D
             return false;
         }
 
-        CurrentAmmo--;
+        // Consume ammo from current magazine
+        MagazineInventory.ConsumeAmmo();
         _fireTimer = 1.0f / WeaponData.FireRate;
 
         SpawnBullet(direction);
 
         EmitSignal(SignalName.Fired);
         EmitSignal(SignalName.AmmoChanged, CurrentAmmo, ReserveAmmo);
+        EmitMagazinesChanged();
 
         return true;
     }
@@ -189,7 +259,7 @@ public abstract partial class BaseWeapon : Node2D
     /// </summary>
     public virtual void StartReload()
     {
-        if (IsReloading || WeaponData == null || ReserveAmmo <= 0)
+        if (IsReloading || WeaponData == null || !MagazineInventory.HasSpareAmmo)
         {
             return;
         }
@@ -205,7 +275,8 @@ public abstract partial class BaseWeapon : Node2D
     }
 
     /// <summary>
-    /// Finishes the reload process, transferring ammo from reserve to magazine.
+    /// Finishes the reload process by swapping to the fullest spare magazine.
+    /// The current magazine is stored as a spare with its remaining ammo preserved.
     /// </summary>
     protected virtual void FinishReload()
     {
@@ -215,32 +286,35 @@ public abstract partial class BaseWeapon : Node2D
         }
 
         IsReloading = false;
-        int ammoNeeded = WeaponData.MagazineSize - CurrentAmmo;
-        int ammoToLoad = Math.Min(ammoNeeded, ReserveAmmo);
 
-        CurrentAmmo += ammoToLoad;
-        ReserveAmmo -= ammoToLoad;
+        // Swap to the magazine with the most ammo
+        MagazineData? oldMag = MagazineInventory.SwapToFullestMagazine();
+
+        if (oldMag != null)
+        {
+            GD.Print($"[BaseWeapon] Reloaded: swapped magazine with {oldMag.CurrentAmmo} rounds for one with {CurrentAmmo} rounds");
+        }
 
         EmitSignal(SignalName.ReloadFinished);
         EmitSignal(SignalName.AmmoChanged, CurrentAmmo, ReserveAmmo);
+        EmitMagazinesChanged();
     }
 
     /// <summary>
     /// Performs an instant reload without any timer delay.
     /// Used for sequence-based reload systems (e.g., R-F-R player reload).
     /// Accounts for bullet in chamber mechanic.
+    /// Swaps to the magazine with the most ammo (magazines are NOT combined).
     /// </summary>
     public virtual void InstantReload()
     {
-        if (WeaponData == null || ReserveAmmo <= 0)
+        if (WeaponData == null || !MagazineInventory.HasSpareAmmo)
         {
             return;
         }
 
-        if (CurrentAmmo >= WeaponData.MagazineSize)
-        {
-            return;
-        }
+        // Allow reload even if current magazine is full, as long as there are spare magazines
+        // This enables tactical magazine swapping
 
         // Cancel any ongoing timed reload
         if (IsReloading)
@@ -252,19 +326,21 @@ public abstract partial class BaseWeapon : Node2D
         // Reset reload sequence state
         IsInReloadSequence = false;
 
-        // Transfer ammo from reserve to magazine instantly
-        int ammoNeeded = WeaponData.MagazineSize - CurrentAmmo;
-        int ammoToLoad = Math.Min(ammoNeeded, ReserveAmmo);
+        // Swap to the magazine with the most ammo
+        // The current magazine is stored as a spare with its remaining ammo preserved
+        MagazineData? oldMag = MagazineInventory.SwapToFullestMagazine();
 
-        CurrentAmmo += ammoToLoad;
-        ReserveAmmo -= ammoToLoad;
+        if (oldMag != null)
+        {
+            GD.Print($"[BaseWeapon] Instant reload: swapped magazine with {oldMag.CurrentAmmo} rounds for one with {CurrentAmmo} rounds");
+        }
 
         // Handle bullet chambering from new magazine:
         // Only subtract a bullet if the chamber bullet was fired during reload (had ammo, shot during R->F)
         // Empty magazine reloads don't subtract a bullet (no chambering penalty)
         if (ChamberBulletFired && CurrentAmmo > 0)
         {
-            CurrentAmmo--;
+            MagazineInventory.ConsumeAmmo();
         }
 
         // Reset chamber state
@@ -273,6 +349,7 @@ public abstract partial class BaseWeapon : Node2D
 
         EmitSignal(SignalName.ReloadFinished);
         EmitSignal(SignalName.AmmoChanged, CurrentAmmo, ReserveAmmo);
+        EmitMagazinesChanged();
     }
 
     /// <summary>
@@ -335,7 +412,40 @@ public abstract partial class BaseWeapon : Node2D
     public bool CanFireChamberBullet => IsInReloadSequence && HasBulletInChamber && !ChamberBulletFired && _fireTimer <= 0;
 
     /// <summary>
-    /// Adds ammunition to the reserve.
+    /// Adds a new full magazine to the spare magazines.
+    /// </summary>
+    public virtual void AddMagazine()
+    {
+        if (WeaponData == null)
+        {
+            return;
+        }
+
+        // Create a new full magazine and add it to the inventory
+        // Note: We access the internal list through a method to add magazines
+        AddMagazineWithAmmo(WeaponData.MagazineSize);
+    }
+
+    /// <summary>
+    /// Adds a new magazine with specified ammo count to the spare magazines.
+    /// </summary>
+    /// <param name="ammoCount">Amount of ammo in the new magazine.</param>
+    public virtual void AddMagazineWithAmmo(int ammoCount)
+    {
+        if (WeaponData == null)
+        {
+            return;
+        }
+
+        MagazineInventory.AddSpareMagazine(ammoCount, WeaponData.MagazineSize);
+
+        EmitSignal(SignalName.AmmoChanged, CurrentAmmo, ReserveAmmo);
+        EmitMagazinesChanged();
+    }
+
+    /// <summary>
+    /// Adds ammunition to the reserve (legacy method for backward compatibility).
+    /// This now adds ammo to the first non-full spare magazine, or creates a new one.
     /// </summary>
     /// <param name="amount">Amount of ammo to add.</param>
     public virtual void AddAmmo(int amount)
@@ -345,7 +455,30 @@ public abstract partial class BaseWeapon : Node2D
             return;
         }
 
-        ReserveAmmo = Math.Min(ReserveAmmo + amount, WeaponData.MaxReserveAmmo);
+        // For backward compatibility, add ammo to existing magazines or create new ones
+        int remaining = amount;
+        int magSize = WeaponData.MagazineSize;
+
+        // First, try to fill existing non-full magazines
+        foreach (var mag in MagazineInventory.AllMagazines)
+        {
+            if (remaining <= 0) break;
+
+            int canAdd = mag.MaxCapacity - mag.CurrentAmmo;
+            int toAdd = Math.Min(canAdd, remaining);
+            mag.CurrentAmmo += toAdd;
+            remaining -= toAdd;
+        }
+
+        // If there's still ammo left, create new magazines
+        while (remaining > 0)
+        {
+            int ammoForNewMag = Math.Min(remaining, magSize);
+            AddMagazineWithAmmo(ammoForNewMag);
+            remaining -= ammoForNewMag;
+        }
+
         EmitSignal(SignalName.AmmoChanged, CurrentAmmo, ReserveAmmo);
+        EmitMagazinesChanged();
     }
 }
