@@ -556,6 +556,12 @@ const COVER_BACK_THRESHOLD: float = 40.0
 ## Offset below cover corner for LEAD_ATTACKER aim (aims slightly below cover edge).
 const AIM_BELOW_COVER_OFFSET: float = 20.0
 
+## Distance behind lead attacker for SUPPORTING role positioning.
+const SUPPORTING_OFFSET: float = 50.0
+
+## Angle offset for SUPPORTING role position (diagonally behind lead).
+const SUPPORTING_ANGLE_OFFSET: float = PI / 6  # 30 degrees
+
 ## Distance threshold for "close" vs "far" from player.
 ## Used to determine if enemy can engage from current position or needs to pursue.
 const CLOSE_COMBAT_DISTANCE: float = 400.0

@@ -1,0 +1,56 @@
+[22:05:49] [INFO] ============================================================
+[22:05:49] [INFO] GAME LOG STARTED
+[22:05:49] [INFO] ============================================================
+[22:05:49] [INFO] Timestamp: 2026-01-20T22:05:49
+[22:05:49] [INFO] Log file: I:/Загрузки/godot exe/game_log_20260120_220549.txt
+[22:05:49] [INFO] Executable: I:/Загрузки/godot exe/Godot-Top-Down-Template.exe
+[22:05:49] [INFO] OS: Windows
+[22:05:49] [INFO] Debug build: false
+[22:05:49] [INFO] Engine version: 4.3-stable (official)
+[22:05:49] [INFO] Project: Godot Top-Down Template
+[22:05:49] [INFO] ------------------------------------------------------------
+[22:05:49] [INFO] [GameManager] GameManager ready
+[22:05:49] [INFO] [SoundPropagation] SoundPropagation autoload initialized
+[22:05:57] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(625.2544, 1276.855), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[22:05:57] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[22:05:57] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(660.1826, 1285.478), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[22:05:57] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[22:06:07] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(468.7599, 758.6313), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[22:06:07] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[22:06:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(494.5206, 742.1166), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[22:06:08] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[22:06:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(527.5145, 739.1528), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[22:06:08] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[22:06:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(555.4175, 750.1633), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[22:06:08] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[22:06:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(580.7421, 773.0519), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[22:06:08] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[22:06:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(605.8771, 797.3508), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[22:06:08] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[22:06:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(635.0125, 811.9919), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[22:06:08] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[22:06:09] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(663.9337, 753.7495), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[22:06:09] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[22:06:09] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(663.9337, 718.5493), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[22:06:09] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[22:06:10] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(461.0561, 629.5416), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[22:06:10] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[22:06:10] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(425.8561, 629.5416), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[22:06:10] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[22:06:10] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(390.6562, 629.5416), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[22:06:10] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[22:06:11] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(360.3899, 623.7987), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[22:06:11] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[22:06:11] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(339.9079, 608.5331), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[22:06:11] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[22:06:11] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(410.3985, 457.3905), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[22:06:11] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[22:06:12] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(426.6165, 428.9083), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[22:06:12] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[22:06:12] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(430.502, 395.3177), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[22:06:12] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[22:06:12] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(430.502, 360.6511), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[22:06:12] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[22:06:14] [INFO] ------------------------------------------------------------
+[22:06:14] [INFO] GAME LOG ENDED: 2026-01-20T22:06:14
+[22:06:14] [INFO] ============================================================
