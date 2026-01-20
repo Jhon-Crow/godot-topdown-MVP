@@ -289,15 +289,24 @@ func _on_magazines_changed(magazine_ammo_counts: Array) -> void:
 	_update_magazines_label(magazine_ammo_counts)
 
 
-## Called when player runs out of ammo (GDScript Player).
-## This also notifies nearby enemies that the player tried to shoot with empty weapon.
+## Called when player runs out of ammo in current magazine.
+## This notifies nearby enemies that the player tried to shoot with empty weapon.
+## Note: This does NOT show game over - the player may still have reserve ammo.
+## Game over is only shown when BOTH current AND reserve ammo are depleted
+## (handled in _on_weapon_ammo_changed for C# player, or when GDScript player
+## truly has no ammo left).
 func _on_player_ammo_depleted() -> void:
 	# Notify all enemies that player tried to shoot with empty weapon
 	_broadcast_player_ammo_empty(true)
 
-	# Show game over if enemies remain
-	if _current_enemy_count > 0 and not _game_over_shown:
-		_show_game_over_message()
+	# For GDScript player, check if truly out of all ammo (no reserve)
+	# For C# player, game over is handled in _on_weapon_ammo_changed
+	if _player and _player.has_method("get_current_ammo"):
+		# GDScript player - max_ammo is the only ammo they have
+		var current_ammo: int = _player.get_current_ammo()
+		if current_ammo <= 0 and _current_enemy_count > 0 and not _game_over_shown:
+			_show_game_over_message()
+	# C# player game over is handled via _on_weapon_ammo_changed signal
 
 
 ## Called when player starts reloading.

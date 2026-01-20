@@ -253,6 +253,33 @@ class AttackVulnerablePlayerAction extends GOAPAction:
 		return 100.0  # Very high cost if player is not vulnerable
 
 
+## Action to pursue a vulnerable player (reloading or tried to shoot with empty weapon).
+## When the player is vulnerable but NOT close, this action makes the enemy rush toward them.
+## This is different from AttackVulnerablePlayerAction which only works when already close.
+## This ensures enemies actively seek out vulnerable players to exploit the weakness.
+class PursueVulnerablePlayerAction extends GOAPAction:
+	func _init() -> void:
+		super._init("pursue_vulnerable_player", 0.2)  # Low cost = high priority
+		preconditions = {
+			"player_visible": true,
+			"player_close": false  # Only pursue if NOT already close
+		}
+		effects = {
+			"is_pursuing": true,
+			"player_close": true  # Goal is to get close to the player
+		}
+
+	func get_cost(_agent: Node, world_state: Dictionary) -> float:
+		# Check if player is vulnerable (reloading or empty ammo)
+		var player_reloading: bool = world_state.get("player_reloading", false)
+		var player_ammo_empty: bool = world_state.get("player_ammo_empty", false)
+
+		# Only pursue if player is vulnerable
+		if player_reloading or player_ammo_empty:
+			return 0.15  # High priority - rush the vulnerable player
+		return 100.0  # Very high cost if player is not vulnerable
+
+
 ## Create and return all enemy actions.
 static func create_all_actions() -> Array[GOAPAction]:
 	var actions: Array[GOAPAction] = []
@@ -269,4 +296,5 @@ static func create_all_actions() -> Array[GOAPAction]:
 	actions.append(AssaultPlayerAction.new())
 	actions.append(AttackDistractedPlayerAction.new())
 	actions.append(AttackVulnerablePlayerAction.new())
+	actions.append(PursueVulnerablePlayerAction.new())
 	return actions

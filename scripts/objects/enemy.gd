@@ -995,6 +995,19 @@ func _process_ai_state(delta: float) -> void:
 		var distance_to_player := global_position.distance_to(_player.global_position)
 		_log_debug("Vulnerable check: reloading=%s, ammo_empty=%s, can_see=%s, close=%s (dist=%.0f)" % [player_reloading, player_ammo_empty, _can_see_player, player_close, distance_to_player])
 
+	# Log vulnerability conditions when player is vulnerable but we can't attack
+	# This helps diagnose why priority attacks might not be triggering
+	if player_is_vulnerable and _player and not (player_close and _can_see_player):
+		var distance_to_player := global_position.distance_to(_player.global_position)
+		# Only log once per vulnerability state change to avoid spam
+		var vuln_key := "last_vuln_log_frame"
+		var current_frame := Engine.get_physics_frames()
+		var last_log_frame: int = _goap_world_state.get(vuln_key, -100)
+		if current_frame - last_log_frame > 30:  # Log at most every 30 frames (~0.5s)
+			_goap_world_state[vuln_key] = current_frame
+			var reason: String = "reloading" if player_reloading else "ammo_empty"
+			_log_to_file("Player vulnerable (%s) but cannot attack: close=%s (dist=%.0f), can_see=%s" % [reason, player_close, distance_to_player, _can_see_player])
+
 	if player_is_vulnerable and _can_see_player and _player and player_close:
 		# Check if we have a clear shot (no wall blocking bullet spawn)
 		var direction_to_player := (_player.global_position - global_position).normalized()
@@ -1022,6 +1035,24 @@ func _process_ai_state(delta: float) -> void:
 
 			# Return early - we've taken the highest priority action
 			return
+
+	# SECOND PRIORITY: If player is vulnerable but NOT close, pursue them aggressively
+	# This makes enemies rush toward vulnerable players to exploit the weakness
+	if player_is_vulnerable and _can_see_player and _player and not player_close:
+		var distance_to_player := global_position.distance_to(_player.global_position)
+		# Only log once per pursuit decision to avoid spam
+		var pursue_key := "last_pursue_vuln_frame"
+		var current_frame := Engine.get_physics_frames()
+		var last_pursue_frame: int = _goap_world_state.get(pursue_key, -100)
+		if current_frame - last_pursue_frame > 60:  # Log at most every ~1 second
+			_goap_world_state[pursue_key] = current_frame
+			var reason: String = "reloading" if player_reloading else "ammo_empty"
+			_log_to_file("Player vulnerable (%s) - pursuing to attack (dist=%.0f)" % [reason, distance_to_player])
+
+		# Transition to PURSUING state to rush toward the player
+		if _current_state != AIState.PURSUING and _current_state != AIState.ASSAULT:
+			_transition_to_pursuing()
+			# Don't return - let the state machine continue to process the PURSUING state
 
 	# State transitions based on conditions
 	match _current_state:
