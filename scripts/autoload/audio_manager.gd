@@ -48,8 +48,16 @@ const BULLET_WALL_HIT: String = "res://assets/audio/пуля попала в с�
 const BULLET_NEAR_PLAYER: String = "res://assets/audio/пуля пролетела рядом с игроком.wav"
 const BULLET_COVER_NEAR_PLAYER: String = "res://assets/audio/попадание пули в укрытие рядом с игроком.wav"
 
-## Ricochet sound (uses bullet near player sound as base - distinct whizzing sound).
-## When a dedicated ricochet sound is added, update this path.
+## Ricochet sounds array for variety.
+## Uses fallback sounds until dedicated ricochet files (рикошет 1-4.mp3) are added.
+## When ricochet sounds are added, update the paths to:
+## "res://assets/audio/рикошет 1.mp3", "res://assets/audio/рикошет 2.mp3", etc.
+const BULLET_RICOCHET_SOUNDS: Array[String] = [
+	"res://assets/audio/пуля пролетела рядом с игроком.wav",
+	"res://assets/audio/попадание пули в укрытие рядом с игроком.wav"
+]
+
+## Legacy single ricochet sound path (for backward compatibility).
 const BULLET_RICOCHET: String = "res://assets/audio/пуля пролетела рядом с игроком.wav"
 
 ## Shell casing sounds.
@@ -114,7 +122,7 @@ func _preload_all_sounds() -> void:
 	all_sounds.append(BULLET_WALL_HIT)
 	all_sounds.append(BULLET_NEAR_PLAYER)
 	all_sounds.append(BULLET_COVER_NEAR_PLAYER)
-	all_sounds.append(BULLET_RICOCHET)
+	all_sounds.append_array(BULLET_RICOCHET_SOUNDS)
 	all_sounds.append(SHELL_RIFLE)
 	all_sounds.append(SHELL_PISTOL)
 
@@ -271,8 +279,9 @@ func play_shell_pistol(position: Vector2) -> void:
 	play_sound_2d(SHELL_PISTOL, position, VOLUME_SHELL)
 
 
-## Plays bullet ricochet sound at the given position.
+## Plays a random bullet ricochet sound at the given position.
 ## The ricochet sound is a distinct whizzing/buzzing sound when a bullet
 ## bounces off a hard surface like concrete or metal.
+## Uses random selection from BULLET_RICOCHET_SOUNDS for variety.
 func play_bullet_ricochet(position: Vector2) -> void:
-	play_sound_2d(BULLET_RICOCHET, position, VOLUME_RICOCHET)
+	play_random_sound_2d(BULLET_RICOCHET_SOUNDS, position, VOLUME_RICOCHET)

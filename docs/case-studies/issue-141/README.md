@@ -37,17 +37,42 @@ Addressed all feedback:
 2. Changed probability calculation from linear to quadratic interpolation
 3. Added viewport-based lifetime for post-ricochet bullets
 
+### Second Round of Feedback (PR #150 Comment)
+**Date:** 2026-01-20T23:03:35Z
+
+After testing, the owner reported:
+1. "всё ещё не работает рикошет у оружия игрока" - Ricochet still not working for player's weapon
+2. "проверь, возможно это потому что оно на C#" - Check if it's because it's C#
+3. "используй случайный звук рикошета" - Use random ricochet sounds (рикошет 1-4.mp3)
+
 ## Root Cause Analysis
 
-### Issue 1: "No ricochet for player's weapon"
-**Investigation:** After reviewing the code, the ricochet system was properly implemented in `bullet.gd` and the CaliberData resource was set up correctly. The bullet's `_ready()` function loads the default caliber data if not explicitly set.
+### Issue 1: "No ricochet for player's weapon" - THE CRITICAL FINDING
 
-**Likely Cause:** This may have been a perception issue during testing, or the probability/angle parameters made ricochets rare in the user's testing scenario. The ricochet system requires:
-- Impact with StaticBody2D or TileMap
-- Impact angle within max_ricochet_angle (30°)
-- Random probability check passing
+**Investigation:** The owner's suspicion was correct! Upon deep investigation:
 
-**Resolution:** The system was verified to be working. The subsequent improvements to probability calculation and unlimited ricochets made the feature more noticeable.
+1. The repository has **two separate bullet implementations**:
+   - `scripts/projectiles/bullet.gd` (GDScript) - Has ricochet mechanics
+   - `Scripts/Projectiles/Bullet.cs` (C#) - **Did NOT have ricochet mechanics**
+
+2. The player uses **C# weapons** (`Scripts/Weapons/AssaultRifle.cs`) which spawn **C# bullets** (`scenes/projectiles/csharp/Bullet.tscn`)
+
+3. The ricochet mechanics were only implemented in the GDScript bullet!
+
+**Root Cause:** The codebase uses a hybrid C#/GDScript architecture:
+- Player and their weapons: C# (`Scripts/` folder, `scenes/*/csharp/` scenes)
+- Enemies and their weapons: GDScript (`scripts/` folder, `scenes/*/` scenes)
+
+The initial ricochet implementation only modified `bullet.gd`, which **enemies use**, but **not** `Bullet.cs` which **the player uses**.
+
+**Resolution:** Port the complete ricochet mechanics from `bullet.gd` to `Bullet.cs`:
+- Added all ricochet configuration constants
+- Added viewport diagonal calculation
+- Added post-ricochet distance tracking
+- Added `TryRicochet()`, `PerformRicochet()`, and helper methods
+- Integrated with AudioManager for ricochet sounds
+
+This is a critical lesson about **dual-language codebases**: features must be implemented in BOTH languages if both are used for the same game objects.
 
 ### Issue 2: Limited Ricochets (Max 2)
 **Root Cause:** The initial implementation used `max_ricochets = 2` as a reasonable default based on Arma 3 inspiration.
@@ -85,11 +110,15 @@ At 50% of max angle, this gives only 25% of base probability, making ricochets a
 
 ## Technical Implementation Details
 
-### Files Modified
-1. `scripts/projectiles/bullet.gd` - Core ricochet mechanics
+### Files Modified (Initial Implementation)
+1. `scripts/projectiles/bullet.gd` - Core ricochet mechanics (GDScript)
 2. `scripts/data/caliber_data.gd` - Caliber resource class
 3. `resources/calibers/caliber_545x39.tres` - 5.45x39mm caliber config
 4. `tests/unit/test_ricochet.gd` - Unit tests
+
+### Files Modified (C# Port - Second Round)
+1. `Scripts/Projectiles/Bullet.cs` - Ported ricochet mechanics to C#
+2. `scripts/autoload/audio_manager.gd` - Added random ricochet sound support
 
 ### Key Algorithms
 
@@ -119,13 +148,17 @@ _max_post_ricochet_distance = _viewport_diagonal * angle_factor
 
 ## Lessons Learned
 
-1. **User Testing Context Matters:** The initial implementation was technically correct, but the parameters may not have been optimal for the user's testing scenarios.
+1. **CRITICAL - Dual-Language Codebases:** When a codebase uses both C# and GDScript (common in Godot), you MUST check which language is used for each game system. Features implemented in one language won't automatically work for game objects using the other language.
 
-2. **Probability Curves:** Linear interpolation for probability often doesn't feel right to users. Quadratic or exponential curves better match human perception.
+2. **Scene Paths Matter:** Check `scenes/*/csharp/` vs `scenes/*/` to understand which implementation a game object uses. The C# versions use different scenes with different scripts.
 
-3. **Distance vs Time Lifetime:** For projectiles, distance-based lifetime (especially post-collision) often makes more sense than time-based for game feel.
+3. **User Reports Are Gold:** When the user suspected "maybe because it's C#", that insight led directly to the root cause. Always investigate user suspicions thoroughly.
 
-4. **Unlimited Options:** Sometimes "unlimited" is a better default than a specific limit, especially for features that users want to experience.
+4. **Probability Curves:** Linear interpolation for probability often doesn't feel right to users. Quadratic or exponential curves better match human perception.
+
+5. **Distance vs Time Lifetime:** For projectiles, distance-based lifetime (especially post-collision) often makes more sense than time-based for game feel.
+
+6. **Unlimited Options:** Sometimes "unlimited" is a better default than a specific limit, especially for features that users want to experience.
 
 ## Files Included in This Case Study
 

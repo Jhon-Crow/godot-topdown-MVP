@@ -13,6 +13,13 @@ namespace GodotTopDownTemplate.Projectiles;
 ///
 /// Features a visual tracer trail effect for better visibility and
 /// realistic appearance during fast movement.
+///
+/// Supports realistic ricochet mechanics:
+/// - Ricochet probability depends on impact angle (shallow = more likely)
+/// - Velocity and damage reduction after ricochet
+/// - Unlimited ricochets by default
+/// - Random angle deviation for realistic bounce behavior
+/// - Viewport-based post-ricochet lifetime
 /// </summary>
 public partial class Bullet : Area2D
 {
@@ -58,6 +65,76 @@ public partial class Bullet : Area2D
     /// Used to prevent self-damage (e.g., player or enemies not damaging themselves).
     /// </summary>
     public ulong ShooterId { get; set; } = 0;
+
+    // =========================================================================
+    // Ricochet Configuration (5.45x39mm defaults, matching GDScript bullet)
+    // =========================================================================
+
+    /// <summary>
+    /// Maximum number of ricochets allowed. -1 = unlimited.
+    /// </summary>
+    private const int MaxRicochets = -1;
+
+    /// <summary>
+    /// Maximum angle (degrees) from surface at which ricochet is possible.
+    /// Angles above this will cause the bullet to be destroyed.
+    /// </summary>
+    private const float MaxRicochetAngle = 30.0f;
+
+    /// <summary>
+    /// Base probability of ricochet at optimal (grazing) angle.
+    /// </summary>
+    private const float BaseRicochetProbability = 0.7f;
+
+    /// <summary>
+    /// Velocity retention factor after ricochet (0-1).
+    /// </summary>
+    private const float VelocityRetention = 0.6f;
+
+    /// <summary>
+    /// Damage multiplier after each ricochet.
+    /// </summary>
+    private const float RicochetDamageMultiplier = 0.5f;
+
+    /// <summary>
+    /// Random angle deviation (degrees) for ricochet direction.
+    /// </summary>
+    private const float RicochetAngleDeviation = 10.0f;
+
+    /// <summary>
+    /// Current damage multiplier (decreases with each ricochet).
+    /// </summary>
+    private float _damageMultiplier = 1.0f;
+
+    /// <summary>
+    /// Number of ricochets that have occurred.
+    /// </summary>
+    private int _ricochetCount = 0;
+
+    /// <summary>
+    /// Viewport diagonal for post-ricochet lifetime calculation.
+    /// </summary>
+    private float _viewportDiagonal = 2203.0f;
+
+    /// <summary>
+    /// Whether this bullet has ricocheted at least once.
+    /// </summary>
+    private bool _hasRicocheted = false;
+
+    /// <summary>
+    /// Distance traveled since the last ricochet.
+    /// </summary>
+    private float _distanceSinceRicochet = 0.0f;
+
+    /// <summary>
+    /// Maximum travel distance after ricochet (based on viewport and angle).
+    /// </summary>
+    private float _maxPostRicochetDistance = 0.0f;
+
+    /// <summary>
+    /// Enable debug logging for ricochet calculations.
+    /// </summary>
+    private const bool DebugRicochet = false;
 
     /// <summary>
     /// Timer tracking remaining lifetime.
@@ -108,8 +185,29 @@ public partial class Bullet : Area2D
             _trail.TopLevel = true;
         }
 
+        // Calculate viewport diagonal for post-ricochet lifetime
+        CalculateViewportDiagonal();
+
         // Set initial rotation based on direction
         UpdateRotation();
+    }
+
+    /// <summary>
+    /// Calculates the viewport diagonal for post-ricochet distance limits.
+    /// </summary>
+    private void CalculateViewportDiagonal()
+    {
+        var viewport = GetViewport();
+        if (viewport != null)
+        {
+            var size = viewport.GetVisibleRect().Size;
+            _viewportDiagonal = Mathf.Sqrt(size.X * size.X + size.Y * size.Y);
+        }
+        else
+        {
+            // Fallback to 1920x1080 diagonal
+            _viewportDiagonal = 2203.0f;
+        }
     }
 
     /// <summary>
@@ -122,8 +220,27 @@ public partial class Bullet : Area2D
 
     public override void _PhysicsProcess(double delta)
     {
+        // Calculate movement this frame
+        var movement = Direction * Speed * (float)delta;
+
         // Move in the set direction
-        Position += Direction * Speed * (float)delta;
+        Position += movement;
+
+        // Track distance traveled since last ricochet (for viewport-based lifetime)
+        if (_hasRicocheted)
+        {
+            _distanceSinceRicochet += movement.Length();
+            // Destroy bullet if it has traveled more than the viewport-based max distance
+            if (_distanceSinceRicochet >= _maxPostRicochetDistance)
+            {
+                if (DebugRicochet)
+                {
+                    GD.Print($"[Bullet] Post-ricochet distance exceeded: {_distanceSinceRicochet} >= {_maxPostRicochetDistance}");
+                }
+                QueueFree();
+                return;
+            }
+        }
 
         // Update trail effect
         UpdateTrail();
@@ -194,6 +311,15 @@ public partial class Bullet : Area2D
             if (!isAlive)
             {
                 return; // Pass through dead entities
+            }
+        }
+
+        // Try to ricochet off static bodies (walls/obstacles)
+        if (body is StaticBody2D || body is TileMap)
+        {
+            if (TryRicochet(body))
+            {
+                return; // Bullet ricocheted, don't destroy
             }
         }
 
@@ -334,4 +460,235 @@ public partial class Bullet : Area2D
             hitEffectsManager.Call("on_player_hit_enemy");
         }
     }
+
+    // =========================================================================
+    // Ricochet Methods
+    // =========================================================================
+
+    /// <summary>
+    /// Attempts to ricochet the bullet off a surface.
+    /// Returns true if ricochet occurred, false if bullet should be destroyed.
+    /// </summary>
+    /// <param name="body">The body the bullet collided with.</param>
+    /// <returns>True if the bullet ricocheted successfully.</returns>
+    private bool TryRicochet(Node2D body)
+    {
+        // Check if we've exceeded maximum ricochets (-1 = unlimited)
+        if (MaxRicochets >= 0 && _ricochetCount >= MaxRicochets)
+        {
+            if (DebugRicochet)
+            {
+                GD.Print($"[Bullet] Max ricochets reached: {_ricochetCount}");
+            }
+            return false;
+        }
+
+        // Get the surface normal at the collision point
+        var surfaceNormal = GetSurfaceNormal(body);
+        if (surfaceNormal == Vector2.Zero)
+        {
+            if (DebugRicochet)
+            {
+                GD.Print("[Bullet] Could not determine surface normal");
+            }
+            return false;
+        }
+
+        // Calculate impact angle (angle between bullet direction and surface)
+        // 0 degrees = parallel to surface (grazing shot)
+        // 90 degrees = perpendicular to surface (direct hit)
+        float impactAngleRad = CalculateImpactAngle(surfaceNormal);
+        float impactAngleDeg = Mathf.RadToDeg(impactAngleRad);
+
+        if (DebugRicochet)
+        {
+            GD.Print($"[Bullet] Impact angle: {impactAngleDeg} degrees");
+        }
+
+        // Calculate ricochet probability based on impact angle
+        float ricochetProbability = CalculateRicochetProbability(impactAngleDeg);
+
+        if (DebugRicochet)
+        {
+            GD.Print($"[Bullet] Ricochet probability: {ricochetProbability * 100}%");
+        }
+
+        // Random roll to determine if ricochet occurs
+        if (GD.Randf() > ricochetProbability)
+        {
+            if (DebugRicochet)
+            {
+                GD.Print("[Bullet] Ricochet failed (random)");
+            }
+            return false;
+        }
+
+        // Ricochet successful - calculate new direction
+        PerformRicochet(surfaceNormal, impactAngleDeg);
+        return true;
+    }
+
+    /// <summary>
+    /// Gets the surface normal at the collision point using raycasting.
+    /// </summary>
+    /// <param name="body">The body that was hit.</param>
+    /// <returns>Surface normal vector, or Vector2.Zero if not found.</returns>
+    private Vector2 GetSurfaceNormal(Node2D body)
+    {
+        // Create a raycast to find the exact collision point
+        var spaceState = GetWorld2D().DirectSpaceState;
+
+        // Cast ray from slightly behind the bullet to current position
+        var rayStart = GlobalPosition - Direction * 50.0f;
+        var rayEnd = GlobalPosition + Direction * 10.0f;
+
+        var query = PhysicsRayQueryParameters2D.Create(rayStart, rayEnd);
+        query.CollisionMask = CollisionMask;
+        query.Exclude = new Godot.Collections.Array<Rid> { GetRid() };
+
+        var result = spaceState.IntersectRay(query);
+
+        if (result.Count == 0)
+        {
+            // Fallback: estimate normal based on bullet direction
+            return -Direction.Normalized();
+        }
+
+        return (Vector2)result["normal"];
+    }
+
+    /// <summary>
+    /// Calculates the impact angle between bullet direction and surface.
+    /// </summary>
+    /// <param name="surfaceNormal">The surface normal vector.</param>
+    /// <returns>Angle in radians (0 = parallel, PI/2 = perpendicular).</returns>
+    private float CalculateImpactAngle(Vector2 surfaceNormal)
+    {
+        // The angle between the bullet direction and the surface normal
+        // cos(angle) = dot(direction, -normal)
+        float dot = Direction.Normalized().Dot(-surfaceNormal.Normalized());
+        // Clamp to avoid numerical issues with acos
+        dot = Mathf.Clamp(dot, -1.0f, 1.0f);
+        return Mathf.Acos(dot);
+    }
+
+    /// <summary>
+    /// Calculates the ricochet probability based on impact angle.
+    /// Uses a quadratic curve to make angles close to 90° much less likely.
+    /// </summary>
+    /// <param name="impactAngleDeg">Impact angle in degrees.</param>
+    /// <returns>Probability of ricochet (0.0 to 1.0).</returns>
+    private float CalculateRicochetProbability(float impactAngleDeg)
+    {
+        // No ricochet if angle is too steep (close to 90° perpendicular)
+        if (impactAngleDeg > MaxRicochetAngle)
+        {
+            return 0.0f;
+        }
+
+        // Quadratic interpolation: shallow angles (0°) have HIGH probability,
+        // angles approaching max_angle have MUCH LOWER probability.
+        // This makes ricochets at angles close to 90° significantly rarer.
+        float normalizedAngle = impactAngleDeg / MaxRicochetAngle;
+        // Quadratic curve: (1 - x)^2 drops off faster than linear
+        float angleFactor = (1.0f - normalizedAngle) * (1.0f - normalizedAngle);
+        return BaseRicochetProbability * angleFactor;
+    }
+
+    /// <summary>
+    /// Performs the ricochet: updates direction, speed, damage, and plays sound.
+    /// Also calculates the post-ricochet maximum travel distance.
+    /// </summary>
+    /// <param name="surfaceNormal">The surface normal vector.</param>
+    /// <param name="impactAngleDeg">The impact angle in degrees.</param>
+    private void PerformRicochet(Vector2 surfaceNormal, float impactAngleDeg)
+    {
+        _ricochetCount++;
+
+        // Calculate reflected direction
+        // reflection = direction - 2 * dot(direction, normal) * normal
+        var reflected = Direction - 2.0f * Direction.Dot(surfaceNormal) * surfaceNormal;
+        reflected = reflected.Normalized();
+
+        // Add random deviation for realism
+        float deviation = GetRicochetDeviation();
+        reflected = reflected.Rotated(deviation);
+
+        // Update direction
+        Direction = reflected;
+        UpdateRotation();
+
+        // Reduce velocity
+        Speed *= VelocityRetention;
+
+        // Reduce damage multiplier
+        _damageMultiplier *= RicochetDamageMultiplier;
+
+        // Move bullet slightly away from surface to prevent immediate re-collision
+        GlobalPosition += Direction * 5.0f;
+
+        // Mark bullet as having ricocheted and set viewport-based lifetime
+        _hasRicocheted = true;
+        _distanceSinceRicochet = 0.0f;
+
+        // Calculate max post-ricochet distance based on viewport and ricochet angle
+        // Shallow angles (grazing) -> bullet travels longer after ricochet
+        // Steeper angles -> bullet travels shorter distance (more energy lost)
+        float angleFactor = 1.0f - (impactAngleDeg / 90.0f);
+        angleFactor = Mathf.Clamp(angleFactor, 0.1f, 1.0f); // Minimum 10%
+        _maxPostRicochetDistance = _viewportDiagonal * angleFactor;
+
+        // Clear trail history to avoid visual artifacts
+        _positionHistory.Clear();
+
+        // Play ricochet sound
+        PlayRicochetSound();
+
+        if (DebugRicochet)
+        {
+            GD.Print($"[Bullet] Ricochet #{_ricochetCount} - New speed: {Speed}, Damage mult: {_damageMultiplier}, Max post-ricochet distance: {_maxPostRicochetDistance}");
+        }
+    }
+
+    /// <summary>
+    /// Gets a random deviation angle for ricochet direction.
+    /// </summary>
+    /// <returns>Random angle in radians.</returns>
+    private float GetRicochetDeviation()
+    {
+        float deviationRad = Mathf.DegToRad(RicochetAngleDeviation);
+        return (float)GD.RandRange(-deviationRad, deviationRad);
+    }
+
+    /// <summary>
+    /// Plays the ricochet sound effect via AudioManager.
+    /// </summary>
+    private void PlayRicochetSound()
+    {
+        var audioManager = GetNodeOrNull("/root/AudioManager");
+        if (audioManager != null && audioManager.HasMethod("play_bullet_ricochet"))
+        {
+            audioManager.Call("play_bullet_ricochet", GlobalPosition);
+        }
+        else if (audioManager != null && audioManager.HasMethod("play_bullet_wall_hit"))
+        {
+            // Fallback to wall hit sound if ricochet sound not available
+            audioManager.Call("play_bullet_wall_hit", GlobalPosition);
+        }
+    }
+
+    /// <summary>
+    /// Gets the current ricochet count.
+    /// </summary>
+    public int GetRicochetCount() => _ricochetCount;
+
+    /// <summary>
+    /// Gets the current damage multiplier (accounting for ricochets).
+    /// </summary>
+    public float GetDamageMultiplier() => _damageMultiplier;
+
+    /// <summary>
+    /// Gets the effective damage after applying ricochet multiplier.
+    /// </summary>
+    public float GetEffectiveDamage() => Damage * _damageMultiplier;
 }
