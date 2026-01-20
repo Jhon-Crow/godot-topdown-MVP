@@ -48,6 +48,10 @@ const BULLET_WALL_HIT: String = "res://assets/audio/пуля попала в с�
 const BULLET_NEAR_PLAYER: String = "res://assets/audio/пуля пролетела рядом с игроком.wav"
 const BULLET_COVER_NEAR_PLAYER: String = "res://assets/audio/попадание пули в укрытие рядом с игроком.wav"
 
+## Ricochet sound (uses bullet near player sound as base - distinct whizzing sound).
+## When a dedicated ricochet sound is added, update this path.
+const BULLET_RICOCHET: String = "res://assets/audio/пуля пролетела рядом с игроком.wav"
+
 ## Shell casing sounds.
 const SHELL_RIFLE: String = "res://assets/audio/падает гильза автомата.wav"
 const SHELL_PISTOL: String = "res://assets/audio/падает гильза пистолета.wav"
@@ -59,6 +63,7 @@ const VOLUME_IMPACT: float = -8.0
 const VOLUME_HIT: float = -3.0
 const VOLUME_SHELL: float = -10.0
 const VOLUME_EMPTY_CLICK: float = -3.0
+const VOLUME_RICOCHET: float = -6.0
 
 ## Preloaded audio streams cache.
 var _audio_cache: Dictionary = {}
@@ -109,6 +114,7 @@ func _preload_all_sounds() -> void:
 	all_sounds.append(BULLET_WALL_HIT)
 	all_sounds.append(BULLET_NEAR_PLAYER)
 	all_sounds.append(BULLET_COVER_NEAR_PLAYER)
+	all_sounds.append(BULLET_RICOCHET)
 	all_sounds.append(SHELL_RIFLE)
 	all_sounds.append(SHELL_PISTOL)
 
@@ -263,3 +269,10 @@ func play_shell_rifle(position: Vector2) -> void:
 ## Plays pistol shell casing sound at the given position.
 func play_shell_pistol(position: Vector2) -> void:
 	play_sound_2d(SHELL_PISTOL, position, VOLUME_SHELL)
+
+
+## Plays bullet ricochet sound at the given position.
+## The ricochet sound is a distinct whizzing/buzzing sound when a bullet
+## bounces off a hard surface like concrete or metal.
+func play_bullet_ricochet(position: Vector2) -> void:
+	play_sound_2d(BULLET_RICOCHET, position, VOLUME_RICOCHET)
