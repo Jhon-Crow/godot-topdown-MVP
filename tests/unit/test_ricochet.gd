@@ -133,7 +133,7 @@ func test_bullet_default_ricochet_constants() -> void:
 	assert_eq(bullet.DEFAULT_MAX_RICOCHETS, -1, "Default max ricochets should be -1 (unlimited)")
 	assert_almost_eq(bullet.DEFAULT_MAX_RICOCHET_ANGLE, 30.0, 0.1, "Default max ricochet angle")
 	assert_almost_eq(bullet.DEFAULT_BASE_RICOCHET_PROBABILITY, 0.7, 0.01, "Default base probability")
-	assert_almost_eq(bullet.DEFAULT_VELOCITY_RETENTION, 0.6, 0.01, "Default velocity retention")
+	assert_almost_eq(bullet.DEFAULT_VELOCITY_RETENTION, 0.85, 0.01, "Default velocity retention")
 	assert_almost_eq(bullet.DEFAULT_RICOCHET_DAMAGE_MULTIPLIER, 0.5, 0.01, "Default damage multiplier")
 
 
@@ -174,25 +174,27 @@ func test_bullet_calculate_ricochet_probability_shallow_angle() -> void:
 func test_bullet_calculate_impact_angle_perpendicular() -> void:
 	var bullet := _create_test_bullet()
 
-	# Bullet traveling right, hitting a wall facing left (perpendicular)
+	# Bullet traveling right, hitting a wall facing left (perpendicular/head-on)
 	bullet.direction = Vector2.RIGHT
 	var surface_normal := Vector2.LEFT
 
 	var angle: float = bullet.call("_calculate_impact_angle", surface_normal)
-	# Perpendicular hit should be ~0 degrees (bullet direction opposite to normal)
-	assert_almost_eq(angle, 0.0, 0.01, "Perpendicular hit should be 0 degrees")
+	# Perpendicular/head-on hit should be ~90 degrees (high grazing angle = direct hit)
+	# The impact angle is calculated as the GRAZING angle: 0° = parallel to surface, 90° = perpendicular
+	assert_almost_eq(angle, PI / 2.0, 0.01, "Perpendicular/head-on hit should be ~90 degrees")
 
 
-func test_bullet_calculate_impact_angle_parallel() -> void:
+func test_bullet_calculate_impact_angle_grazing() -> void:
 	var bullet := _create_test_bullet()
 
-	# Bullet traveling right, grazing a wall facing up (parallel)
+	# Bullet traveling right, grazing a wall facing up (parallel to surface)
 	bullet.direction = Vector2.RIGHT
 	var surface_normal := Vector2.UP
 
 	var angle: float = bullet.call("_calculate_impact_angle", surface_normal)
-	# Parallel/grazing hit should be ~90 degrees
-	assert_almost_eq(angle, PI / 2.0, 0.01, "Parallel/grazing hit should be ~90 degrees")
+	# Grazing/parallel hit should be ~0 degrees (low grazing angle = barely touching surface)
+	# The impact angle is calculated as the GRAZING angle: 0° = parallel to surface, 90° = perpendicular
+	assert_almost_eq(angle, 0.0, 0.01, "Grazing/parallel hit should be ~0 degrees")
 
 
 func test_bullet_get_max_ricochets_default() -> void:

@@ -56,7 +56,7 @@ var _ricochet_count: int = 0
 const DEFAULT_MAX_RICOCHETS: int = -1
 const DEFAULT_MAX_RICOCHET_ANGLE: float = 30.0
 const DEFAULT_BASE_RICOCHET_PROBABILITY: float = 0.7
-const DEFAULT_VELOCITY_RETENTION: float = 0.6
+const DEFAULT_VELOCITY_RETENTION: float = 0.85
 const DEFAULT_RICOCHET_DAMAGE_MULTIPLIER: float = 0.5
 const DEFAULT_RICOCHET_ANGLE_DEVIATION: float = 10.0
 
@@ -296,14 +296,25 @@ func _get_surface_normal(body: Node2D) -> Vector2:
 
 
 ## Calculates the impact angle between bullet direction and surface.
-## Returns angle in radians (0 = parallel, PI/2 = perpendicular).
+## This returns the GRAZING angle (angle from the surface plane).
+## Returns angle in radians (0 = grazing/parallel to surface, PI/2 = perpendicular/head-on).
 func _calculate_impact_angle(surface_normal: Vector2) -> float:
-	# The angle between the bullet direction and the surface normal
-	# cos(angle) = dot(direction, -normal)
-	var dot := direction.normalized().dot(-surface_normal.normalized())
-	# Clamp to avoid numerical issues with acos
-	dot = clampf(dot, -1.0, 1.0)
-	return acos(dot)
+	# We want the GRAZING angle (angle from the surface, not from the normal).
+	# The grazing angle is 90° - (angle from normal).
+	#
+	# Using dot product with the normal:
+	# dot(direction, -normal) = cos(angle_from_normal)
+	#
+	# The grazing angle = 90° - angle_from_normal
+	# So: grazing_angle = asin(|dot(direction, normal)|)
+	#
+	# For grazing shots (parallel to surface): direction ⊥ normal, dot ≈ 0, grazing_angle ≈ 0°
+	# For direct hits (perpendicular to surface): direction ∥ -normal, dot ≈ 1, grazing_angle ≈ 90°
+
+	var dot := absf(direction.normalized().dot(surface_normal.normalized()))
+	# Clamp to avoid numerical issues with asin
+	dot = clampf(dot, 0.0, 1.0)
+	return asin(dot)
 
 
 ## Calculates the ricochet probability based on impact angle.

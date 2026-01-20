@@ -45,6 +45,19 @@ After testing, the owner reported:
 2. "проверь, возможно это потому что оно на C#" - Check if it's because it's C#
 3. "используй случайный звук рикошета" - Use random ricochet sounds (рикошет 1-4.mp3)
 
+### Third Round of Feedback (PR #150 Comment)
+**Date:** 2026-01-20T23:19:13Z
+
+After testing the C# implementation, the owner reported critical bugs:
+1. "пуля не должна так сильно замедляться от рикошета" - Bullet should not slow down so much from ricochet
+2. "при стрельбе игрока под острым углом рикошет летит обратно в игрока - это не правильно, рикошет должен работать реалистично (в сторону стрельбы)" - When player shoots at grazing angle, ricochet flies back toward player - this is wrong, ricochet should work realistically (in shooting direction)
+3. "шанс рикошета у игрока работает не правильно - при стрельбе под 90 градусов - постоянные рикошета, а при стрельбе по касательной - нет (должно быть точно наоборот)" - Ricochet chance is wrong - at 90° there's constant ricochets, at grazing angles there's none (should be exactly opposite)
+
+Attached logs:
+- `game_log_20260121_021408.txt`
+- `game_log_20260121_021725.txt`
+- `game_log_20260121_021939.txt`
+
 ## Root Cause Analysis
 
 ### Issue 1: "No ricochet for player's weapon" - THE CRITICAL FINDING
@@ -82,7 +95,39 @@ This is a critical lesson about **dual-language codebases**: features must be im
 - `caliber_545x39.tres` resource file
 - `caliber_data.gd` default value
 
-### Issue 3: Ricochets at 90° Angles Too Common
+### Issue 3: CRITICAL BUG - Impact Angle Calculation Inverted
+**Root Cause:** The `_calculate_impact_angle()` function used `acos(dot(direction, -normal))` which calculated the angle **from the normal** instead of **from the surface plane**.
+
+**What was happening:**
+```
+Perpendicular/direct hit: direction parallel to -normal → dot = 1 → acos(1) = 0°
+Grazing hit: direction perpendicular to -normal → dot = 0 → acos(0) = 90°
+```
+
+But the rest of the code expected:
+```
+Grazing hit: 0° (high ricochet probability)
+Direct hit: 90° (low/no ricochet probability)
+```
+
+This meant:
+1. **Probability was completely inverted** - direct hits had high ricochet chance, grazing had none
+2. **Ricochet seemed to bounce wrong** - because ricochets were happening at wrong angles
+
+**Resolution:** Changed the formula to calculate the GRAZING angle using `asin(|dot(direction, normal)|)`:
+```
+Grazing hit: direction perpendicular to normal → |dot| ≈ 0 → asin(0) = 0°
+Direct hit: direction parallel to normal → |dot| ≈ 1 → asin(1) = 90°
+```
+
+This critical bug was present in BOTH `bullet.gd` AND `Bullet.cs`.
+
+### Issue 4: Velocity Loss Too High
+**Root Cause:** The velocity retention was set to 60% (0.6), meaning each ricochet kept only 60% of the bullet's speed.
+
+**Resolution:** Changed to 85% (0.85) velocity retention for a more realistic feel where bullets don't slow down as dramatically.
+
+### Issue 5: Ricochets at 90° Angles Too Common (Linear vs Quadratic)
 **Root Cause:** The original probability calculation used linear interpolation:
 ```
 probability = base_probability * (1 - angle/max_angle)
@@ -97,7 +142,7 @@ probability = base_probability * (1 - angle/max_angle)²
 
 At 50% of max angle, this gives only 25% of base probability, making ricochets at steeper angles significantly rarer.
 
-### Issue 4: Post-Ricochet Bullet Lifetime
+### Issue 6: Post-Ricochet Bullet Lifetime
 **Root Cause:** Bullets had only time-based lifetime (3 seconds), not distance-based.
 
 **Resolution:** Added viewport-based post-ricochet lifetime:
@@ -160,9 +205,40 @@ _max_post_ricochet_distance = _viewport_diagonal * angle_factor
 
 6. **Unlimited Options:** Sometimes "unlimited" is a better default than a specific limit, especially for features that users want to experience.
 
+7. **CRITICAL - Verify Angle Calculations:** When working with angles in physics, be very careful about which reference frame you're using. The difference between "angle from normal" (acos) and "angle from surface" (asin/90°-acos) can completely invert your physics behavior. Always verify with concrete examples:
+   - Test perpendicular case: what angle do you get?
+   - Test grazing/parallel case: what angle do you get?
+   - Do these match your expectations for the rest of the code?
+
+8. **Test Physics with User Input:** Physics bugs often only manifest during actual gameplay. Unit tests may pass while the behavior is completely wrong because the test expectations were also based on the buggy mental model.
+
 ## Files Included in This Case Study
 
 - `initial-solution-draft-log.txt` - Log from the first AI solution session
 - `auto-restart-1-log.txt` - Log from the auto-restart session
 - `solution-draft-final-log.txt` - Log from the final solution draft
+- `logs/game_log_20260121_021408.txt` - Game log showing inverted ricochet behavior
+- `logs/game_log_20260121_021725.txt` - Game log showing continued issues
+- `logs/game_log_20260121_021939.txt` - Game log with additional testing
 - `README.md` - This analysis document
+
+## Key Algorithms (Corrected)
+
+### Impact Angle Calculation (CORRECTED)
+The calculation now correctly computes the GRAZING angle:
+
+```gdscript
+# OLD (BUGGY): angle from normal
+var dot := direction.normalized().dot(-surface_normal.normalized())
+return acos(dot)  # 0° at direct hit, 90° at grazing - WRONG!
+
+# NEW (CORRECT): grazing angle from surface
+var dot := absf(direction.normalized().dot(surface_normal.normalized()))
+return asin(dot)  # 0° at grazing, 90° at direct hit - CORRECT!
+```
+
+### Velocity Retention (ADJUSTED)
+```
+OLD: velocity_retention = 0.6  (too aggressive, 40% speed lost)
+NEW: velocity_retention = 0.85 (better feel, 15% speed lost)
+```

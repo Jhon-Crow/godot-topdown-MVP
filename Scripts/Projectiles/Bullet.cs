@@ -88,8 +88,9 @@ public partial class Bullet : Area2D
 
     /// <summary>
     /// Velocity retention factor after ricochet (0-1).
+    /// Higher values mean less speed loss. 0.85 = 85% speed retained.
     /// </summary>
-    private const float VelocityRetention = 0.6f;
+    private const float VelocityRetention = 0.85f;
 
     /// <summary>
     /// Damage multiplier after each ricochet.
@@ -559,17 +560,28 @@ public partial class Bullet : Area2D
 
     /// <summary>
     /// Calculates the impact angle between bullet direction and surface.
+    /// This returns the GRAZING angle (angle from the surface plane).
     /// </summary>
     /// <param name="surfaceNormal">The surface normal vector.</param>
-    /// <returns>Angle in radians (0 = parallel, PI/2 = perpendicular).</returns>
+    /// <returns>Angle in radians (0 = grazing/parallel to surface, PI/2 = perpendicular/head-on).</returns>
     private float CalculateImpactAngle(Vector2 surfaceNormal)
     {
-        // The angle between the bullet direction and the surface normal
-        // cos(angle) = dot(direction, -normal)
-        float dot = Direction.Normalized().Dot(-surfaceNormal.Normalized());
-        // Clamp to avoid numerical issues with acos
-        dot = Mathf.Clamp(dot, -1.0f, 1.0f);
-        return Mathf.Acos(dot);
+        // We want the GRAZING angle (angle from the surface, not from the normal).
+        // The grazing angle is 90° - (angle from normal).
+        //
+        // Using dot product with the normal:
+        // dot(direction, -normal) = cos(angle_from_normal)
+        //
+        // The grazing angle = 90° - angle_from_normal
+        // So: grazing_angle = asin(|dot(direction, normal)|)
+        //
+        // For grazing shots (parallel to surface): direction ⊥ normal, dot ≈ 0, grazing_angle ≈ 0°
+        // For direct hits (perpendicular to surface): direction ∥ -normal, dot ≈ 1, grazing_angle ≈ 90°
+
+        float dot = Mathf.Abs(Direction.Normalized().Dot(surfaceNormal.Normalized()));
+        // Clamp to avoid numerical issues with asin
+        dot = Mathf.Clamp(dot, 0.0f, 1.0f);
+        return Mathf.Asin(dot);
     }
 
     /// <summary>
