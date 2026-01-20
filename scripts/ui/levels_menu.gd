@@ -11,7 +11,7 @@ signal back_pressed
 const LEVELS: Dictionary = {
 	"Building Level": "res://scenes/levels/BuildingLevel.tscn",
 	"Test Tier": "res://scenes/levels/TestTier.tscn",
-	"Test Tier (C#)": "res://scenes/levels/csharp/TestTier.tscn"
+	"Обучение": "res://scenes/levels/csharp/TestTier.tscn"
 }
 
 ## Reference to UI elements.

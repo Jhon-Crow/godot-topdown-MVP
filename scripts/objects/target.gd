@@ -4,6 +4,9 @@ extends Area2D
 ## When hit, the target shows a visual reaction (color change)
 ## and can optionally be destroyed after a delay.
 
+## Signal emitted when the target is hit.
+signal target_hit
+
 ## Color to change to when hit.
 @export var hit_color: Color = Color(0.2, 0.8, 0.2, 1.0)
 
@@ -34,6 +37,9 @@ func on_hit() -> void:
 		return
 
 	_is_hit = true
+
+	# Emit signal for tutorial tracking
+	target_hit.emit()
 
 	# Change color to show hit
 	if sprite:
