@@ -460,7 +460,7 @@ func test_attack_distracted_player_cost_when_not_distracted() -> void:
 func test_create_all_actions_returns_all_actions() -> void:
 	var actions: Array[GOAPAction] = EnemyActions.create_all_actions()
 
-	assert_eq(actions.size(), 13, "Should create 13 enemy actions")
+	assert_eq(actions.size(), 15, "Should create 15 enemy actions")
 
 
 func test_create_all_actions_includes_all_types() -> void:
@@ -483,6 +483,8 @@ func test_create_all_actions_includes_all_types() -> void:
 	assert_has(action_names, "assault_player", "Should include assault_player")
 	assert_has(action_names, "attack_distracted_player", "Should include attack_distracted_player")
 	assert_has(action_names, "attack_vulnerable_player", "Should include attack_vulnerable_player")
+	assert_has(action_names, "pursue_vulnerable_player", "Should include pursue_vulnerable_player")
+	assert_has(action_names, "coordinated_flank", "Should include coordinated_flank")
 
 
 # ============================================================================
@@ -667,3 +669,109 @@ func test_vulnerable_player_attack_has_highest_priority() -> void:
 
 	assert_gt(plan.size(), 0, "Planner should find a plan to attack vulnerable player")
 	assert_eq(plan[0].action_name, "attack_vulnerable_player", "Should choose attack_vulnerable_player (highest priority)")
+
+
+# ============================================================================
+# PursueVulnerablePlayerAction Tests
+# ============================================================================
+
+
+func test_pursue_vulnerable_player_action_initialization() -> void:
+	var action := EnemyActions.PursueVulnerablePlayerAction.new()
+
+	assert_eq(action.action_name, "pursue_vulnerable_player", "Action name should be 'pursue_vulnerable_player'")
+	assert_eq(action.cost, 0.2, "Base cost should be 0.2 (low cost = high priority)")
+
+
+func test_pursue_vulnerable_player_action_preconditions() -> void:
+	var action := EnemyActions.PursueVulnerablePlayerAction.new()
+
+	assert_eq(action.preconditions["player_visible"], true, "Requires player visible")
+	assert_eq(action.preconditions["player_close"], false, "Requires player NOT close (pursue to get close)")
+
+
+func test_pursue_vulnerable_player_action_effects() -> void:
+	var action := EnemyActions.PursueVulnerablePlayerAction.new()
+
+	assert_eq(action.effects["is_pursuing"], true, "Effect should set is_pursuing")
+	assert_eq(action.effects["player_close"], true, "Effect should set player_close (goal is to get close)")
+
+
+func test_pursue_vulnerable_player_cost_when_reloading() -> void:
+	var action := EnemyActions.PursueVulnerablePlayerAction.new()
+	var world_state := {
+		"player_reloading": true,
+		"player_ammo_empty": false
+	}
+
+	var cost: float = action.get_cost(null, world_state)
+
+	assert_eq(cost, 0.15, "Cost should be low when player is reloading (rush them)")
+
+
+func test_pursue_vulnerable_player_cost_when_ammo_empty() -> void:
+	var action := EnemyActions.PursueVulnerablePlayerAction.new()
+	var world_state := {
+		"player_reloading": false,
+		"player_ammo_empty": true
+	}
+
+	var cost: float = action.get_cost(null, world_state)
+
+	assert_eq(cost, 0.15, "Cost should be low when player has empty ammo (rush them)")
+
+
+func test_pursue_vulnerable_player_cost_when_not_vulnerable() -> void:
+	var action := EnemyActions.PursueVulnerablePlayerAction.new()
+	var world_state := {
+		"player_reloading": false,
+		"player_ammo_empty": false
+	}
+
+	var cost: float = action.get_cost(null, world_state)
+
+	assert_eq(cost, 100.0, "Cost should be very high when player is not vulnerable")
+
+
+# ============================================================================
+# CoordinatedFlankAction Tests
+# ============================================================================
+
+
+func test_coordinated_flank_action_initialization() -> void:
+	var action := EnemyActions.CoordinatedFlankAction.new()
+
+	assert_eq(action.action_name, "coordinated_flank", "Action name should be 'coordinated_flank'")
+	assert_eq(action.cost, 2.0, "Base cost should be 2.0")
+
+
+func test_coordinated_flank_action_preconditions() -> void:
+	var action := EnemyActions.CoordinatedFlankAction.new()
+
+	assert_eq(action.preconditions["player_visible"], false, "Requires player not visible (behind cover)")
+	assert_eq(action.preconditions["in_cover"], true, "Requires enemy in stable position")
+
+
+func test_coordinated_flank_action_effects() -> void:
+	var action := EnemyActions.CoordinatedFlankAction.new()
+
+	assert_eq(action.effects["player_engaged"], true, "Effect should set player_engaged")
+	assert_eq(action.effects["at_flank_position"], true, "Effect should set at_flank_position")
+
+
+func test_coordinated_flank_cost_with_multiple_enemies() -> void:
+	var action := EnemyActions.CoordinatedFlankAction.new()
+	var world_state := {"enemies_in_combat": 3}
+
+	var cost: float = action.get_cost(null, world_state)
+
+	assert_eq(cost, 1.5, "Cost should be moderate when multiple enemies available for squad")
+
+
+func test_coordinated_flank_cost_when_alone() -> void:
+	var action := EnemyActions.CoordinatedFlankAction.new()
+	var world_state := {"enemies_in_combat": 1}
+
+	var cost: float = action.get_cost(null, world_state)
+
+	assert_eq(cost, 4.0, "Cost should be higher when alone (prefer individual flanking)")

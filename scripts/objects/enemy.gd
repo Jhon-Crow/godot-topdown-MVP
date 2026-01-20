@@ -21,7 +21,8 @@ enum AIState {
 	SUPPRESSED, ## Under fire, staying in cover
 	RETREATING, ## Retreating to cover while possibly shooting
 	PURSUING,   ## Moving cover-to-cover toward player (when far and can't hit)
-	ASSAULT     ## Coordinated multi-enemy assault (rush player after 5s wait)
+	ASSAULT,    ## Coordinated multi-enemy assault (rush player after 5s wait)
+	COORDINATED_FLANKING  ## Tactical flanking with assigned role (lead/support)
 }
 
 ## Retreat behavior modes based on damage taken.
@@ -500,6 +501,66 @@ var _assault_ready: bool = false
 
 ## Whether this enemy is currently participating in an assault.
 var _in_assault: bool = false
+
+## --- Coordinated Flanking State (tactical flanking with roles) ---
+## Reference to FlankSquadManager singleton (cached for performance).
+var _flank_squad_manager: Node = null
+
+## Current tactical role in the coordinated flanking squad.
+## Uses FlankSquadManager.TacticalRole enum values.
+var _tactical_role: int = 0  # TacticalRole.NONE
+
+## Current flank direction/subgroup (lower or upper).
+## Uses FlankSquadManager.FlankDirection enum values.
+var _flank_subgroup: int = 0  # FlankDirection.LOWER
+
+## Target cover position being flanked.
+var _coord_flank_target_cover: Vector2 = Vector2.ZERO
+
+## Whether enemy has reached sync position (for 3-4 enemy squads).
+var _at_sync_position: bool = false
+
+## Whether enemy has reached the back of the target cover.
+var _at_cover_back: bool = false
+
+## Current aim target for coordinated flanking (cover corner or movement direction).
+var _coord_flank_aim_target: Vector2 = Vector2.ZERO
+
+## Timer for alternating aim in SUPPORTING role.
+var _supporting_aim_timer: float = 0.0
+
+## Duration to aim at movement direction before switching to cover (SUPPORTING role).
+const SUPPORTING_AIM_MOVEMENT_DURATION: float = 1.0
+
+## Duration to aim at cover before switching to movement (SUPPORTING role).
+const SUPPORTING_AIM_COVER_DURATION: float = 0.8
+
+## Whether currently aiming at movement direction (vs cover) in SUPPORTING role.
+var _supporting_aim_at_movement: bool = true
+
+## Reference to the lead attacker this enemy is supporting (for SUPPORTING roles).
+var _supporting_lead: Node = null
+
+## Timer for tracking time in coordinated flanking state.
+var _coord_flank_state_timer: float = 0.0
+
+## Maximum time in coordinated flanking before timeout (seconds).
+const COORD_FLANK_MAX_TIME: float = 30.0
+
+## Distance threshold for reaching sync position.
+const SYNC_POSITION_THRESHOLD: float = 30.0
+
+## Distance threshold for reaching cover back.
+const COVER_BACK_THRESHOLD: float = 40.0
+
+## Offset below cover corner for LEAD_ATTACKER aim (aims slightly below cover edge).
+const AIM_BELOW_COVER_OFFSET: float = 20.0
+
+## Distance behind lead attacker for SUPPORTING role positioning.
+const SUPPORTING_OFFSET: float = 50.0
+
+## Angle offset for SUPPORTING role position (diagonally behind lead).
+const SUPPORTING_ANGLE_OFFSET: float = PI / 6  # 30 degrees
 
 ## Distance threshold for "close" vs "far" from player.
 ## Used to determine if enemy can engage from current position or needs to pursue.
@@ -1189,6 +1250,8 @@ func _process_ai_state(delta: float) -> void:
 			_process_pursuing_state(delta)
 		AIState.ASSAULT:
 			_process_assault_state(delta)
+		AIState.COORDINATED_FLANKING:
+			_process_coordinated_flanking_state(delta)
 
 	if previous_state != _current_state:
 		state_changed.emit(_current_state)
@@ -4181,3 +4244,507 @@ func _get_nav_path_distance(target_pos: Vector2) -> float:
 
 	_nav_agent.target_position = target_pos
 	return _nav_agent.distance_to_target()
+
+
+# =============================================================================
+# COORDINATED FLANKING SYSTEM
+# =============================================================================
+
+## Get FlankSquadManager singleton, caching for performance.
+func _get_flank_squad_manager() -> Node:
+	if _flank_squad_manager == null:
+		_flank_squad_manager = get_node_or_null("/root/FlankSquadManager")
+	return _flank_squad_manager
+
+
+## Check if enemy can publicly see the player (for FlankSquadManager).
+func can_see_player_public() -> bool:
+	return _can_see_player
+
+
+## Get the string name of the current state.
+func get_state_name() -> String:
+	return AIState.keys()[_current_state]
+
+
+## Check if enemy is in coordinated flanking.
+func is_in_coordinated_flanking() -> bool:
+	return _current_state == AIState.COORDINATED_FLANKING
+
+
+## Check if enemy is at sync position (for 3-4 enemy squads).
+func is_at_sync_position() -> bool:
+	return _at_sync_position
+
+
+## Check if enemy is at the back of the target cover.
+func is_at_cover_back() -> bool:
+	return _at_cover_back
+
+
+## Join a flanking squad with assigned role.
+## Called by FlankSquadManager when forming a squad.
+func join_flank_squad(target_cover: Vector2, role: int, subgroup: int) -> void:
+	_coord_flank_target_cover = target_cover
+	_tactical_role = role
+	_flank_subgroup = subgroup
+	_at_sync_position = false
+	_at_cover_back = false
+	_coord_flank_state_timer = 0.0
+	_supporting_aim_timer = 0.0
+	_supporting_aim_at_movement = true
+	_supporting_lead = null
+
+	# Find the lead for supporting roles
+	var fsm := _get_flank_squad_manager()
+	if fsm != null and (role == 2 or role == 4):  # SUPPORTING or UPPER_SUPPORTING
+		_supporting_lead = fsm.get_subgroup_lead(subgroup)
+
+	_log_debug("Joined flank squad: role=%d, subgroup=%d, target=%s" % [role, subgroup, target_cover])
+	_log_to_file("Joined flank squad: role=%d, subgroup=%d, target=%s" % [role, subgroup, target_cover])
+
+	# Transition to coordinated flanking state
+	_transition_to_coordinated_flanking()
+
+
+## Leave the flanking squad.
+## Called by FlankSquadManager when disbanding.
+func leave_flank_squad() -> void:
+	_log_debug("Left flank squad, transitioning to normal behavior")
+	_log_to_file("Left flank squad")
+
+	_tactical_role = 0  # TacticalRole.NONE
+	_flank_subgroup = 0
+	_coord_flank_target_cover = Vector2.ZERO
+	_at_sync_position = false
+	_at_cover_back = false
+	_supporting_lead = null
+
+	# Transition to appropriate state based on situation
+	if _can_see_player:
+		_transition_to_combat()
+	elif _has_valid_cover:
+		_transition_to_in_cover()
+	else:
+		_transition_to_pursuing()
+
+
+## Update flank target cover position.
+## Called by FlankSquadManager when player moves to new cover.
+func update_flank_target(new_target: Vector2) -> void:
+	_coord_flank_target_cover = new_target
+	_at_sync_position = false
+	_at_cover_back = false
+	_log_debug("Flank target updated to %s" % new_target)
+
+
+## Update squad role after casualty.
+## Called by FlankSquadManager when squad is reorganized.
+func update_squad_role(role: int, subgroup: int) -> void:
+	_tactical_role = role
+	_flank_subgroup = subgroup
+
+	# Update lead reference for supporting roles
+	var fsm := _get_flank_squad_manager()
+	if fsm != null and (role == 2 or role == 4):  # SUPPORTING or UPPER_SUPPORTING
+		_supporting_lead = fsm.get_subgroup_lead(subgroup)
+	else:
+		_supporting_lead = null
+
+	_log_debug("Squad role updated: role=%d, subgroup=%d" % [role, subgroup])
+
+
+## Begin synchronized flank movement (called when all subgroups ready).
+func begin_synchronized_flank() -> void:
+	_log_debug("Beginning synchronized flank movement")
+	# Reset sync position flag to allow advancing past sync point
+	_at_sync_position = false
+
+
+## Begin coordinated assault (player spotted).
+func begin_coordinated_assault() -> void:
+	_log_debug("Beginning coordinated assault from flank")
+	# Transition to combat to engage the player
+	leave_flank_squad()
+	_transition_to_combat()
+
+
+## Transition to COORDINATED_FLANKING state.
+func _transition_to_coordinated_flanking() -> void:
+	_current_state = AIState.COORDINATED_FLANKING
+	_coord_flank_state_timer = 0.0
+	_at_sync_position = false
+	_at_cover_back = false
+	# Reset detection delay for new engagement
+	_detection_timer = 0.0
+	_detection_delay_elapsed = false
+	_log_to_file("Entered COORDINATED_FLANKING state")
+
+
+## Process COORDINATED_FLANKING state.
+## Executes role-specific tactical behavior.
+func _process_coordinated_flanking_state(delta: float) -> void:
+	_coord_flank_state_timer += delta
+
+	# Check for timeout
+	if _coord_flank_state_timer >= COORD_FLANK_MAX_TIME:
+		_log_debug("Coordinated flanking timeout (%.1fs)" % _coord_flank_state_timer)
+		_log_to_file("Coordinated flanking timeout")
+		leave_flank_squad()
+		return
+
+	# Check for suppression - only retreat if heavily suppressed
+	if _under_fire:
+		# In coordinated flanking, we're more committed - don't retreat immediately
+		# But still need to react to heavy fire
+		pass  # Continue flanking for now
+
+	# If player spotted, notify squad manager
+	if _can_see_player and _player:
+		var fsm := _get_flank_squad_manager()
+		if fsm != null:
+			fsm.on_member_spotted_player(self)
+		return
+
+	# Update detection delay timer
+	if not _detection_delay_elapsed:
+		_detection_timer += delta
+		if _detection_timer >= _get_effective_detection_delay():
+			_detection_delay_elapsed = true
+
+	# Process based on tactical role
+	# TacticalRole enum: NONE=0, LEAD_ATTACKER=1, SUPPORTING=2, UPPER_LEAD_ATTACKER=3, UPPER_SUPPORTING=4
+	match _tactical_role:
+		1:  # LEAD_ATTACKER
+			_process_lead_attacker_role(delta)
+		2:  # SUPPORTING
+			_process_supporting_role(delta)
+		3:  # UPPER_LEAD_ATTACKER
+			_process_upper_lead_attacker_role(delta)
+		4:  # UPPER_SUPPORTING
+			_process_upper_supporting_role(delta)
+		_:  # NONE or unknown
+			# Shouldn't happen, but fall back to basic flanking behavior
+			_process_lead_attacker_role(delta)
+
+
+## Process LEAD_ATTACKER role - primary flanker from below.
+## Aims below the expected cover corner and flanks around from below.
+func _process_lead_attacker_role(delta: float) -> void:
+	if _coord_flank_target_cover == Vector2.ZERO:
+		leave_flank_squad()
+		return
+
+	# Calculate flank path from below (negative Y direction approach)
+	var target_cover := _coord_flank_target_cover
+	var flank_offset := Vector2(150.0, 100.0)  # Offset to flank from below-right
+
+	# Determine which side to flank from based on current position
+	var to_cover := target_cover - global_position
+	if to_cover.x < 0:
+		flank_offset.x = -flank_offset.x  # Flank from below-left
+
+	# Calculate flank target position (arc around from below)
+	var flank_target := target_cover + flank_offset
+
+	# Calculate lower corner of cover (target to aim at)
+	var lower_cover_corner := target_cover + Vector2(0, AIM_BELOW_COVER_OFFSET)
+
+	# Check for sync position (for 3-4 enemy squads)
+	var fsm := _get_flank_squad_manager()
+	var sync_distance := SYNC_POSITION_THRESHOLD
+	if fsm != null:
+		sync_distance = fsm.get_sync_position_distance()
+
+	var distance_to_flank := global_position.distance_to(flank_target)
+
+	# Check if we need to wait at sync position
+	if not _at_sync_position:
+		# Move toward sync position
+		if distance_to_flank <= sync_distance:
+			_at_sync_position = true
+			_log_debug("LEAD_ATTACKER reached sync position")
+
+			# Notify squad manager
+			if fsm != null:
+				fsm.set_subgroup_ready(_flank_subgroup, true)
+		else:
+			# Move toward flank target using navigation
+			_move_to_target_nav(flank_target, combat_move_speed * 0.8)
+
+			# Aim at lower cover corner while moving
+			_aim_at_position(lower_cover_corner)
+			return
+
+	# If we're at sync position, check if other subgroup is ready (for 3-4 squads)
+	if _at_sync_position and fsm != null:
+		var squad_phase := fsm.get_squad_phase()
+		if squad_phase == "positioning":
+			# Wait at sync position
+			velocity = Vector2.ZERO
+			# Keep aiming at cover corner
+			_aim_at_position(lower_cover_corner)
+			return
+
+	# Proceed with flanking - move around cover to check behind it
+	var behind_cover := target_cover + Vector2(0, -50.0)  # Position behind cover
+
+	var distance_to_back := global_position.distance_to(behind_cover)
+
+	if not _at_cover_back:
+		if distance_to_back <= COVER_BACK_THRESHOLD:
+			_at_cover_back = true
+			_log_debug("LEAD_ATTACKER reached cover back")
+
+			# Notify squad manager
+			if fsm != null:
+				fsm.on_member_reached_cover_back(self)
+		else:
+			# Move around to back of cover
+			_move_to_target_nav(behind_cover, combat_move_speed * 0.7)
+
+			# Update aim target as we move around
+			_update_lead_attacker_aim(lower_cover_corner)
+	else:
+		# At cover back - check for player or take cover
+		velocity = Vector2.ZERO
+		if not _can_see_player:
+			# Player not here - take this cover position
+			_cover_position = global_position
+			_has_valid_cover = true
+			leave_flank_squad()
+			_transition_to_in_cover()
+
+
+## Process UPPER_LEAD_ATTACKER role - primary flanker from above.
+## Same as LEAD_ATTACKER but approaches from above.
+func _process_upper_lead_attacker_role(delta: float) -> void:
+	if _coord_flank_target_cover == Vector2.ZERO:
+		leave_flank_squad()
+		return
+
+	# Calculate flank path from above (positive Y direction approach in Godot 2D)
+	var target_cover := _coord_flank_target_cover
+	var flank_offset := Vector2(150.0, -100.0)  # Offset to flank from above-right
+
+	# Determine which side to flank from based on current position
+	var to_cover := target_cover - global_position
+	if to_cover.x < 0:
+		flank_offset.x = -flank_offset.x  # Flank from above-left
+
+	# Calculate flank target position (arc around from above)
+	var flank_target := target_cover + flank_offset
+
+	# Calculate upper corner of cover (target to aim at)
+	var upper_cover_corner := target_cover + Vector2(0, -AIM_BELOW_COVER_OFFSET)
+
+	# Check for sync position (for 3-4 enemy squads)
+	var fsm := _get_flank_squad_manager()
+	var sync_distance := SYNC_POSITION_THRESHOLD
+	if fsm != null:
+		sync_distance = fsm.get_sync_position_distance()
+
+	var distance_to_flank := global_position.distance_to(flank_target)
+
+	# Check if we need to wait at sync position
+	if not _at_sync_position:
+		# Move toward sync position
+		if distance_to_flank <= sync_distance:
+			_at_sync_position = true
+			_log_debug("UPPER_LEAD_ATTACKER reached sync position")
+
+			# Notify squad manager
+			if fsm != null:
+				fsm.set_subgroup_ready(_flank_subgroup, true)
+		else:
+			# Move toward flank target using navigation
+			_move_to_target_nav(flank_target, combat_move_speed * 0.8)
+
+			# Aim at upper cover corner while moving
+			_aim_at_position(upper_cover_corner)
+			return
+
+	# If we're at sync position, check if other subgroup is ready (for 3-4 squads)
+	if _at_sync_position and fsm != null:
+		var squad_phase := fsm.get_squad_phase()
+		if squad_phase == "positioning":
+			# Wait at sync position
+			velocity = Vector2.ZERO
+			# Keep aiming at cover corner
+			_aim_at_position(upper_cover_corner)
+			return
+
+	# Proceed with flanking - move around cover to check behind it
+	var behind_cover := target_cover + Vector2(0, 50.0)  # Position behind cover (from above)
+
+	var distance_to_back := global_position.distance_to(behind_cover)
+
+	if not _at_cover_back:
+		if distance_to_back <= COVER_BACK_THRESHOLD:
+			_at_cover_back = true
+			_log_debug("UPPER_LEAD_ATTACKER reached cover back")
+
+			# Notify squad manager
+			if fsm != null:
+				fsm.on_member_reached_cover_back(self)
+		else:
+			# Move around to back of cover
+			_move_to_target_nav(behind_cover, combat_move_speed * 0.7)
+
+			# Update aim target as we move around
+			_update_lead_attacker_aim(upper_cover_corner)
+	else:
+		# At cover back - check for player or take cover
+		velocity = Vector2.ZERO
+		if not _can_see_player:
+			# Player not here - take this cover position
+			_cover_position = global_position
+			_has_valid_cover = true
+			leave_flank_squad()
+			_transition_to_in_cover()
+
+
+## Process SUPPORTING role - stays behind LEAD_ATTACKER.
+## Alternates aim between movement direction and target cover.
+func _process_supporting_role(delta: float) -> void:
+	if _supporting_lead == null or not is_instance_valid(_supporting_lead):
+		# Lost our lead - try to become lead or leave
+		_log_debug("SUPPORTING lost lead, leaving squad")
+		leave_flank_squad()
+		return
+
+	var fsm := _get_flank_squad_manager()
+	var supporting_offset := SUPPORTING_OFFSET
+	var angle_offset := SUPPORTING_ANGLE_OFFSET
+
+	if fsm != null:
+		supporting_offset = fsm.get_supporting_offset()
+		angle_offset = fsm.get_supporting_angle_offset()
+
+	# Calculate position behind and diagonally above the lead
+	var lead_pos := _supporting_lead.global_position
+	var lead_rotation := _supporting_lead.rotation
+
+	# Position is behind and slightly above (higher Y = lower on screen in Godot)
+	var offset_dir := Vector2.from_angle(lead_rotation + PI + angle_offset)
+	var target_position := lead_pos + offset_dir * supporting_offset
+
+	var distance_to_target := global_position.distance_to(target_position)
+
+	# Move to stay with lead
+	if distance_to_target > 20.0:
+		_move_to_target_nav(target_position, combat_move_speed * 0.9)
+	else:
+		velocity = Vector2.ZERO
+
+	# Sync position with lead
+	if _supporting_lead.has_method("is_at_sync_position"):
+		_at_sync_position = _supporting_lead.is_at_sync_position()
+
+	if _supporting_lead.has_method("is_at_cover_back"):
+		_at_cover_back = _supporting_lead.is_at_cover_back()
+
+	# Alternate aim between movement direction and cover
+	_supporting_aim_timer += delta
+
+	if _supporting_aim_at_movement:
+		if _supporting_aim_timer >= SUPPORTING_AIM_MOVEMENT_DURATION:
+			_supporting_aim_at_movement = false
+			_supporting_aim_timer = 0.0
+
+		# Aim in movement direction (perpendicular to lead)
+		var movement_dir := Vector2.from_angle(lead_rotation - PI / 2)  # 90 degrees from lead facing
+		_aim_at_position(global_position + movement_dir * 100.0)
+	else:
+		if _supporting_aim_timer >= SUPPORTING_AIM_COVER_DURATION:
+			_supporting_aim_at_movement = true
+			_supporting_aim_timer = 0.0
+
+		# Aim at target cover
+		_aim_at_position(_coord_flank_target_cover + Vector2(0, AIM_BELOW_COVER_OFFSET))
+
+
+## Process UPPER_SUPPORTING role - stays behind UPPER_LEAD_ATTACKER.
+## Same as SUPPORTING but positioned lower (higher Y in Godot 2D).
+func _process_upper_supporting_role(delta: float) -> void:
+	if _supporting_lead == null or not is_instance_valid(_supporting_lead):
+		# Lost our lead - try to become lead or leave
+		_log_debug("UPPER_SUPPORTING lost lead, leaving squad")
+		leave_flank_squad()
+		return
+
+	var fsm := _get_flank_squad_manager()
+	var supporting_offset := SUPPORTING_OFFSET
+	var angle_offset := SUPPORTING_ANGLE_OFFSET
+
+	if fsm != null:
+		supporting_offset = fsm.get_supporting_offset()
+		angle_offset = fsm.get_supporting_angle_offset()
+
+	# Calculate position behind and diagonally below the lead
+	var lead_pos := _supporting_lead.global_position
+	var lead_rotation := _supporting_lead.rotation
+
+	# Position is behind and slightly below (lower Y = higher on screen in Godot)
+	var offset_dir := Vector2.from_angle(lead_rotation + PI - angle_offset)
+	var target_position := lead_pos + offset_dir * supporting_offset
+
+	var distance_to_target := global_position.distance_to(target_position)
+
+	# Move to stay with lead
+	if distance_to_target > 20.0:
+		_move_to_target_nav(target_position, combat_move_speed * 0.9)
+	else:
+		velocity = Vector2.ZERO
+
+	# Sync position with lead
+	if _supporting_lead.has_method("is_at_sync_position"):
+		_at_sync_position = _supporting_lead.is_at_sync_position()
+
+	if _supporting_lead.has_method("is_at_cover_back"):
+		_at_cover_back = _supporting_lead.is_at_cover_back()
+
+	# Alternate aim between movement direction and cover
+	_supporting_aim_timer += delta
+
+	if _supporting_aim_at_movement:
+		if _supporting_aim_timer >= SUPPORTING_AIM_MOVEMENT_DURATION:
+			_supporting_aim_at_movement = false
+			_supporting_aim_timer = 0.0
+
+		# Aim in movement direction (perpendicular to lead)
+		var movement_dir := Vector2.from_angle(lead_rotation + PI / 2)  # 90 degrees from lead facing
+		_aim_at_position(global_position + movement_dir * 100.0)
+	else:
+		if _supporting_aim_timer >= SUPPORTING_AIM_COVER_DURATION:
+			_supporting_aim_at_movement = true
+			_supporting_aim_timer = 0.0
+
+		# Aim at target cover (upper corner)
+		_aim_at_position(_coord_flank_target_cover + Vector2(0, -AIM_BELOW_COVER_OFFSET))
+
+
+## Update LEAD_ATTACKER aim target as they move around cover.
+## Keeps aim on the cover corner that is currently visible/relevant.
+func _update_lead_attacker_aim(initial_target: Vector2) -> void:
+	# As we move around the cover, we need to update which corner we're aiming at
+	# This simulates the "переводя прицел чуть ниже нового угла" behavior
+
+	var to_cover := _coord_flank_target_cover - global_position
+	var angle_to_cover := to_cover.angle()
+
+	# Adjust aim target based on our approach angle
+	var offset_angle := angle_to_cover + (PI / 6)  # 30 degrees offset
+	var aim_offset := Vector2.from_angle(offset_angle) * AIM_BELOW_COVER_OFFSET
+
+	_aim_at_position(_coord_flank_target_cover + aim_offset)
+
+
+## Aim at a specific position (used for coordinated flanking).
+func _aim_at_position(target: Vector2) -> void:
+	var direction := (target - global_position).normalized()
+	if direction != Vector2.ZERO:
+		var target_rotation := direction.angle()
+		# Smooth rotation toward target
+		rotation = lerp_angle(rotation, target_rotation, rotation_speed * get_physics_process_delta_time())
+

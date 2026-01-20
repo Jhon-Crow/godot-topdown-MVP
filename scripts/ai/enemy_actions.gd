@@ -280,6 +280,30 @@ class PursueVulnerablePlayerAction extends GOAPAction:
 		return 100.0  # Very high cost if player is not vulnerable
 
 
+## Action to participate in coordinated flanking when player stays in cover too long.
+## This is a squad-level tactical action managed by FlankSquadManager.
+## The action is selected when FlankSquadManager determines a coordinated flank is appropriate.
+class CoordinatedFlankAction extends GOAPAction:
+	func _init() -> void:
+		super._init("coordinated_flank", 2.0)
+		preconditions = {
+			"player_visible": false,  # Player is behind cover
+			"in_cover": true  # Enemy is in a stable position
+		}
+		effects = {
+			"player_engaged": true,
+			"at_flank_position": true
+		}
+
+	func get_cost(_agent: Node, world_state: Dictionary) -> float:
+		# This action is controlled by FlankSquadManager, so it rarely gets
+		# selected through normal GOAP planning. When it is, give it moderate priority.
+		var enemies_count: int = world_state.get("enemies_in_combat", 0)
+		if enemies_count >= 2:
+			return 1.5  # Higher priority when multiple enemies available for squad
+		return 4.0  # Lower priority when alone (prefer individual flanking)
+
+
 ## Create and return all enemy actions.
 static func create_all_actions() -> Array[GOAPAction]:
 	var actions: Array[GOAPAction] = []
@@ -297,4 +321,5 @@ static func create_all_actions() -> Array[GOAPAction]:
 	actions.append(AttackDistractedPlayerAction.new())
 	actions.append(AttackVulnerablePlayerAction.new())
 	actions.append(PursueVulnerablePlayerAction.new())
+	actions.append(CoordinatedFlankAction.new())
 	return actions
