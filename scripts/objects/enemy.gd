@@ -1259,7 +1259,7 @@ func _process_combat_state(delta: float) -> void:
 	# Update detection delay timer
 	if not _detection_delay_elapsed:
 		_detection_timer += delta
-		if _detection_timer >= detection_delay:
+		if _detection_timer >= _get_effective_detection_delay():
 			_detection_delay_elapsed = true
 
 	# If we don't have cover, find some first (needed for returning later)
@@ -2105,7 +2105,7 @@ func _process_assault_state(delta: float) -> void:
 		# Update detection delay timer
 		if not _detection_delay_elapsed:
 			_detection_timer += delta
-			if _detection_timer >= detection_delay:
+			if _detection_timer >= _get_effective_detection_delay():
 				_detection_delay_elapsed = true
 
 		# Shoot while rushing (only after detection delay)
@@ -3666,6 +3666,16 @@ func _get_health_percent() -> float:
 	if _max_health <= 0:
 		return 0.0
 	return float(_current_health) / float(_max_health)
+
+
+## Returns the effective detection delay based on difficulty.
+## In Easy mode, enemies take longer to react after spotting the player.
+func _get_effective_detection_delay() -> float:
+	var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
+	if difficulty_manager and difficulty_manager.has_method("get_detection_delay"):
+		return difficulty_manager.get_detection_delay()
+	# Fall back to export variable if DifficultyManager is not available
+	return detection_delay
 
 
 ## Called when the enemy dies.
