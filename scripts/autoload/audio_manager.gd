@@ -279,4 +279,15 @@ func play_shell_pistol(position: Vector2) -> void:
 
 ## Plays fire mode toggle sound at the given position.
 func play_fire_mode_toggle(position: Vector2) -> void:
+	# Debug logging to trace audio playback issues (see issue #64 case study)
+	if FileLogger:
+		FileLogger.log_info("[AudioManager] play_fire_mode_toggle called at position: %s" % position)
+
+	# Check if the preloaded stream is valid
+	if _fire_mode_toggle_stream == null:
+		push_warning("AudioManager: _fire_mode_toggle_stream is null - preload failed")
+		if FileLogger:
+			FileLogger.log_warning("[AudioManager] WARN: _fire_mode_toggle_stream is null - preload failed")
+		return
+
 	play_sound_2d(FIRE_MODE_TOGGLE, position, VOLUME_FIRE_MODE_TOGGLE)

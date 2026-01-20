@@ -8,6 +8,43 @@
 
 **Audio File**: Originally `игрок изменил режим стрельбы (нажал b).wav` (Cyrillic filename), renamed to `fire_mode_toggle.wav`
 
+## Timeline of Investigation
+
+### Session 1: Initial Fix (2026-01-12)
+1. Identified Cyrillic filename issue
+2. Renamed audio file to ASCII: `fire_mode_toggle.wav`
+3. Updated AudioManager with `play_fire_mode_toggle` method
+
+### Session 2: Additional Fix (2026-01-12)
+1. User reported sound still not playing in export
+2. Discovered `load()` vs `preload()` issue
+3. Changed to use `preload()` at class level
+
+### Session 3: Root Cause Clarification (2026-01-20)
+1. User submitted game log showing `[SoundPropagation]` entries
+2. **Key Discovery**: The game log shows features from the `main` branch (SoundPropagation, BuildingLevel scene) that are NOT present in the PR branch
+3. **Hypothesis**: User is exporting from `main` branch, not from the PR branch
+4. The `main` branch does NOT have the fire mode toggle sound implementation
+
+### Evidence Analysis (Session 3)
+
+**Game Log Analysis** (`game_log_20260120_205151.txt`):
+- Shows `[SoundPropagation]` autoload entries (only exists on `main` branch)
+- Shows `BuildingLevel` scene (only exists on `main` branch)
+- Does NOT show `[AssaultRifle] Fire mode changed to: ...` log entry
+- This log entry would appear if the user pressed B key with our PR code
+
+**Branch Comparison**:
+| Feature | main branch | PR branch |
+|---------|-------------|-----------|
+| SoundPropagation autoload | ✅ Yes | ❌ No |
+| BuildingLevel scene | ✅ Yes | ❌ No |
+| play_fire_mode_toggle method | ❌ No | ✅ Yes |
+| PlayFireModeToggleSound call | ❌ No | ✅ Yes |
+| fire_mode_toggle.wav file | ❌ No | ✅ Yes |
+
+**Conclusion**: The user needs to build from the PR branch, not the main branch.
+
 ## Solution Applied
 
 The fix involves two parts:

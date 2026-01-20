@@ -455,7 +455,20 @@ public partial class AssaultRifle : BaseWeapon
         var audioManager = GetNodeOrNull("/root/AudioManager");
         if (audioManager != null && audioManager.HasMethod("play_fire_mode_toggle"))
         {
+            GD.Print($"[AssaultRifle] Calling play_fire_mode_toggle at position: {GlobalPosition}");
             audioManager.Call("play_fire_mode_toggle", GlobalPosition);
+        }
+        else
+        {
+            // Debug logging for troubleshooting (see issue #64 case study)
+            if (audioManager == null)
+            {
+                GD.PrintErr("[AssaultRifle] AudioManager not found at /root/AudioManager");
+            }
+            else
+            {
+                GD.PrintErr("[AssaultRifle] AudioManager found but missing play_fire_mode_toggle method");
+            }
         }
     }
 
