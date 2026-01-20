@@ -145,3 +145,114 @@ The key insight: Navigation-based pathfinding (`_move_to_target_nav`) will autom
 1. **Integration testing is critical**: The sound propagation and attack systems worked individually but failed when combined
 2. **State transitions need clear ownership**: The attack logic and state machine had conflicting requirements
 3. **Edge cases matter**: The "behind wall" scenario is exactly why this feature was requested
+
+---
+
+## Second Bug Report (2026-01-20): State Thrashing
+
+### User Report
+
+After the initial fix was deployed, user reported:
+> "подавленные противники не выходят из подавленного состояния"
+> (Translation: "suppressed enemies do not exit from suppressed state")
+
+Attached logs: `game_log_20260120_040247.txt`, `game_log_20260120_040520.txt`
+
+### Log Analysis
+
+Analysis of the logs revealed a severe **state thrashing bug** where Enemy7 was rapidly switching between COMBAT and PURSUING states:
+
+```
+[04:04:01] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:01] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:01] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:01] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+... (543 PURSUING->COMBAT and 555 COMBAT->PURSUING transitions in one session!)
+```
+
+The log showed Enemy7's distance to player remained constant (~530px) despite being in PURSUING state, indicating the enemy was effectively frozen due to rapid state switching.
+
+### Root Cause
+
+The state thrashing occurred due to **flickering line-of-sight** at wall/obstacle edges:
+
+1. **PURSUING state** (line 1854-1862): If `_can_see_player and can_hit`, transition to COMBAT
+2. **COMBAT state** (line 1188-1194): If `not _can_see_player`, transition to PURSUING
+
+When an enemy is at a position where the raycast to the player is at the exact edge of a wall:
+- Frame N: Raycast hits player → `_can_see_player = true` → PURSUING transitions to COMBAT
+- Frame N+1: Raycast hits wall edge → `_can_see_player = false` → COMBAT transitions to PURSUING
+- Frame N+2: Raycast hits player → repeat...
+
+This creates a continuous loop where the enemy rapidly switches states every physics frame, preventing any actual movement or behavior.
+
+### Solution: Minimum State Duration
+
+Added **minimum time requirements** before allowing state transitions due to lost/gained line of sight:
+
+```gdscript
+## Minimum time in COMBAT state before allowing transition to PURSUING due to lost line of sight.
+const COMBAT_MIN_DURATION_BEFORE_PURSUE: float = 0.5
+
+## Minimum time in PURSUING state before allowing transition to COMBAT.
+const PURSUING_MIN_DURATION_BEFORE_COMBAT: float = 0.3
+
+## Timer tracking total time spent in COMBAT state this cycle.
+var _combat_state_timer: float = 0.0
+
+## Timer tracking total time spent in PURSUING state this cycle.
+var _pursuing_state_timer: float = 0.0
+```
+
+**COMBAT state changes:**
+```gdscript
+func _process_combat_state(delta: float) -> void:
+    _combat_state_timer += delta
+    # ...
+    if not _can_see_player:
+        # Only transition after minimum time to prevent rapid state thrashing
+        if _combat_state_timer >= COMBAT_MIN_DURATION_BEFORE_PURSUE:
+            _transition_to_pursuing()
+            return
+```
+
+**PURSUING state changes:**
+```gdscript
+func _process_pursuing_state(delta: float) -> void:
+    _pursuing_state_timer += delta
+    # ...
+    if _can_see_player and _player:
+        var can_hit := _can_hit_player_from_current_position()
+        # Only transition after minimum time to prevent rapid state thrashing
+        if can_hit and _pursuing_state_timer >= PURSUING_MIN_DURATION_BEFORE_COMBAT:
+            _transition_to_combat()
+            return
+```
+
+Timers are reset:
+- In `_transition_to_combat()` and `_transition_to_pursuing()`
+- In `_reset()` on enemy respawn
+
+### Why This Works
+
+1. **Stability window**: The 0.3-0.5 second delays provide a stability window where momentary line-of-sight flickering is ignored
+2. **Natural gameplay feel**: These delays are short enough to feel responsive but long enough to prevent hundreds of state changes per second
+3. **Consistent behavior**: Enemies now commit to their current state for at least a fraction of a second before re-evaluating
+4. **No impact on valid transitions**: Legitimate state changes (like being shot at, reaching a position, etc.) still work normally through other state transition paths
+
+### Files Changed
+
+- `scripts/objects/enemy.gd`:
+  - Added `COMBAT_MIN_DURATION_BEFORE_PURSUE` constant (0.5s)
+  - Added `PURSUING_MIN_DURATION_BEFORE_COMBAT` constant (0.3s)
+  - Added `_combat_state_timer` and `_pursuing_state_timer` variables
+  - Modified `_process_combat_state()` to track timer and check before PURSUING transition
+  - Modified `_process_pursuing_state()` to track timer and check before COMBAT transition
+  - Updated `_transition_to_combat()` and `_transition_to_pursuing()` to reset respective timers
+  - Updated `_reset()` to reset both timers on enemy respawn
+
+### Additional Lessons Learned
+
+4. **Raycast edge cases**: Line-of-sight checks using raycasts can flicker at wall edges due to floating-point precision and frame-to-frame position changes
+5. **State machine hysteresis**: State machines that rely on binary conditions (can see/can't see) need hysteresis or debouncing to prevent rapid oscillation
+6. **Log analysis importance**: The issue was only identifiable through careful log analysis - the user reported "stuck suppressed" but the actual bug was state thrashing

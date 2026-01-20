@@ -382,11 +382,19 @@ var _combat_approaching: bool = false
 ## Timer for the approach phase of combat.
 var _combat_approach_timer: float = 0.0
 
+## Timer tracking total time spent in COMBAT state this cycle.
+## Used to prevent rapid state thrashing when visibility flickers.
+var _combat_state_timer: float = 0.0
+
 ## Maximum time to spend approaching player before starting to shoot (seconds).
 const COMBAT_APPROACH_MAX_TIME: float = 2.0
 
 ## Distance at which enemy is considered "close enough" to start shooting phase.
 const COMBAT_DIRECT_CONTACT_DISTANCE: float = 250.0
+
+## Minimum time in COMBAT state before allowing transition to PURSUING due to lost line of sight.
+## This prevents rapid state thrashing when visibility flickers at edges of walls/obstacles.
+const COMBAT_MIN_DURATION_BEFORE_PURSUE: float = 0.5
 
 ## --- Pursuit State (cover-to-cover movement) ---
 ## Timer for waiting at cover during pursuit.
@@ -412,8 +420,16 @@ var _pursuit_approaching: bool = false
 ## Timer for approach phase during pursuit.
 var _pursuit_approach_timer: float = 0.0
 
+## Timer tracking total time spent in PURSUING state this cycle.
+## Used to prevent rapid state thrashing when visibility flickers.
+var _pursuing_state_timer: float = 0.0
+
 ## Maximum time to approach during pursuit before transitioning to COMBAT (seconds).
 const PURSUIT_APPROACH_MAX_TIME: float = 3.0
+
+## Minimum time in PURSUING state before allowing transition to COMBAT.
+## This prevents rapid state thrashing when visibility flickers at edges of walls/obstacles.
+const PURSUING_MIN_DURATION_BEFORE_COMBAT: float = 0.3
 
 ## Minimum distance progress required for a valid pursuit cover (as fraction of current distance).
 ## Covers that don't make at least this much progress toward the player are skipped.
@@ -1159,6 +1175,9 @@ func _process_idle_state(delta: float) -> void:
 ## Phase 2 (exposed): Stand and shoot for 2-3 seconds.
 ## Phase 3: Return to cover via SEEKING_COVER state.
 func _process_combat_state(delta: float) -> void:
+	# Track time in COMBAT state (for preventing rapid state thrashing)
+	_combat_state_timer += delta
+
 	# Check for suppression - transition to retreating behavior
 	if _under_fire and enable_cover:
 		_combat_exposed = false
@@ -1178,13 +1197,18 @@ func _process_combat_state(delta: float) -> void:
 		return
 
 	# If can't see player, pursue them (move cover-to-cover toward player)
+	# But only after minimum time has elapsed to prevent rapid state thrashing
+	# when visibility flickers at wall/obstacle edges
 	if not _can_see_player:
-		_combat_exposed = false
-		_combat_approaching = false
-		_seeking_clear_shot = false
-		_log_debug("Lost sight of player in COMBAT, transitioning to PURSUING")
-		_transition_to_pursuing()
-		return
+		if _combat_state_timer >= COMBAT_MIN_DURATION_BEFORE_PURSUE:
+			_combat_exposed = false
+			_combat_approaching = false
+			_seeking_clear_shot = false
+			_log_debug("Lost sight of player in COMBAT (%.2fs), transitioning to PURSUING" % _combat_state_timer)
+			_transition_to_pursuing()
+			return
+		# If minimum time hasn't elapsed, stay in COMBAT and wait
+		# This prevents rapid COMBAT<->PURSUING thrashing
 
 	# Update detection delay timer
 	if not _detection_delay_elapsed:
@@ -1810,6 +1834,9 @@ func _process_retreat_multiple_hits(delta: float, direction_to_cover: Vector2) -
 ## to move directly toward the player.
 ## Special case: when pursuing a vulnerability sound, move directly toward sound position.
 func _process_pursuing_state(delta: float) -> void:
+	# Track time in PURSUING state (for preventing rapid state thrashing)
+	_pursuing_state_timer += delta
+
 	# Check for suppression - transition to retreating behavior
 	if _under_fire and enable_cover:
 		_pursuit_approaching = false
@@ -1827,10 +1854,12 @@ func _process_pursuing_state(delta: float) -> void:
 		return
 
 	# If can see player and can hit them from current position, engage
+	# But only after minimum time has elapsed to prevent rapid state thrashing
+	# when visibility flickers at wall/obstacle edges
 	if _can_see_player and _player:
 		var can_hit := _can_hit_player_from_current_position()
-		if can_hit:
-			_log_debug("Can see and hit player from pursuit, transitioning to COMBAT")
+		if can_hit and _pursuing_state_timer >= PURSUING_MIN_DURATION_BEFORE_COMBAT:
+			_log_debug("Can see and hit player from pursuit (%.2fs), transitioning to COMBAT" % _pursuing_state_timer)
 			_has_pursuit_cover = false
 			_pursuit_approaching = false
 			_pursuing_vulnerability_sound = false
@@ -2171,6 +2200,8 @@ func _transition_to_combat() -> void:
 	_combat_approaching = false
 	_combat_shoot_timer = 0.0
 	_combat_approach_timer = 0.0
+	# Reset state duration timer (prevents rapid state thrashing)
+	_combat_state_timer = 0.0
 	# Reset clear shot seeking variables
 	_seeking_clear_shot = false
 	_clear_shot_timer = 0.0
@@ -2293,6 +2324,8 @@ func _transition_to_pursuing() -> void:
 	_pursuit_approaching = false
 	_pursuit_approach_timer = 0.0
 	_current_cover_obstacle = null
+	# Reset state duration timer (prevents rapid state thrashing)
+	_pursuing_state_timer = 0.0
 	# Reset detection delay for new engagement
 	_detection_timer = 0.0
 	_detection_delay_elapsed = false
@@ -3648,6 +3681,7 @@ func _reset() -> void:
 	_combat_exposed = false
 	_combat_approaching = false
 	_combat_approach_timer = 0.0
+	_combat_state_timer = 0.0
 	# Reset pursuit state variables
 	_pursuit_cover_wait_timer = 0.0
 	_pursuit_next_cover = Vector2.ZERO
@@ -3655,6 +3689,7 @@ func _reset() -> void:
 	_current_cover_obstacle = null
 	_pursuit_approaching = false
 	_pursuit_approach_timer = 0.0
+	_pursuing_state_timer = 0.0
 	# Reset assault state variables
 	_assault_wait_timer = 0.0
 	_assault_ready = false
