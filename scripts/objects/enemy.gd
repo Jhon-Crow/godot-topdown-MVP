@@ -718,12 +718,14 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 		_pursuing_vulnerability_sound = true
 
 		# React to vulnerable player sound - transition to combat/pursuing
-		# Always react to reload sounds from player regardless of current state
-		if _current_state == AIState.IDLE:
-			_transition_to_pursuing()  # Pursue to sound position
-		elif _current_state in [AIState.IN_COVER, AIState.SUPPRESSED]:
-			# Leave cover to attack vulnerable player
+		# All enemies in hearing range should pursue the vulnerable player!
+		# This makes reload sounds a high-risk action when enemies are nearby.
+		if _current_state in [AIState.IDLE, AIState.IN_COVER, AIState.SUPPRESSED, AIState.RETREATING, AIState.SEEKING_COVER]:
+			# Leave cover/defensive state to attack vulnerable player
+			_log_to_file("Vulnerability sound triggered pursuit - transitioning from %s to PURSUING" % AIState.keys()[_current_state])
 			_transition_to_pursuing()
+		# For COMBAT, PURSUING, FLANKING states: the flag is set and they'll use it
+		# (COMBAT/PURSUING now check _pursuing_vulnerability_sound before retreating)
 		return
 
 	# Handle empty click sound (sound_type 5 = EMPTY_CLICK) - player is vulnerable!
@@ -743,12 +745,14 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 		_pursuing_vulnerability_sound = true
 
 		# React to vulnerable player sound - transition to combat/pursuing
-		# Always react to empty click sounds from player regardless of current state
-		if _current_state == AIState.IDLE:
-			_transition_to_pursuing()  # Pursue to sound position
-		elif _current_state in [AIState.IN_COVER, AIState.SUPPRESSED]:
-			# Leave cover to attack vulnerable player
+		# All enemies in hearing range should pursue the vulnerable player!
+		# This makes empty click sounds a high-risk action when enemies are nearby.
+		if _current_state in [AIState.IDLE, AIState.IN_COVER, AIState.SUPPRESSED, AIState.RETREATING, AIState.SEEKING_COVER]:
+			# Leave cover/defensive state to attack vulnerable player
+			_log_to_file("Vulnerability sound triggered pursuit - transitioning from %s to PURSUING" % AIState.keys()[_current_state])
 			_transition_to_pursuing()
+		# For COMBAT, PURSUING, FLANKING states: the flag is set and they'll use it
+		# (COMBAT/PURSUING now check _pursuing_vulnerability_sound before retreating)
 		return
 
 	# Handle gunshot sounds (sound_type 0 = GUNSHOT)
@@ -1179,7 +1183,9 @@ func _process_combat_state(delta: float) -> void:
 	_combat_state_timer += delta
 
 	# Check for suppression - transition to retreating behavior
-	if _under_fire and enable_cover:
+	# BUT: When pursuing a vulnerability sound (player reloading/out of ammo),
+	# ignore suppression and continue the attack - this is the best time to strike!
+	if _under_fire and enable_cover and not _pursuing_vulnerability_sound:
 		_combat_exposed = false
 		_combat_approaching = false
 		_seeking_clear_shot = false
@@ -1838,9 +1844,10 @@ func _process_pursuing_state(delta: float) -> void:
 	_pursuing_state_timer += delta
 
 	# Check for suppression - transition to retreating behavior
-	if _under_fire and enable_cover:
+	# BUT: When pursuing a vulnerability sound (player reloading/out of ammo),
+	# ignore suppression and continue the attack - this is the best time to strike!
+	if _under_fire and enable_cover and not _pursuing_vulnerability_sound:
 		_pursuit_approaching = false
-		_pursuing_vulnerability_sound = false
 		_transition_to_retreating()
 		return
 

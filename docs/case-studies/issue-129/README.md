@@ -256,3 +256,105 @@ Timers are reset:
 4. **Raycast edge cases**: Line-of-sight checks using raycasts can flicker at wall edges due to floating-point precision and frame-to-frame position changes
 5. **State machine hysteresis**: State machines that rely on binary conditions (can see/can't see) need hysteresis or debouncing to prevent rapid oscillation
 6. **Log analysis importance**: The issue was only identifiable through careful log analysis - the user reported "stuck suppressed" but the actual bug was state thrashing
+
+---
+
+## Third Bug Report (2026-01-20): Only One Enemy Attacks
+
+### User Report
+
+After the state thrashing fix was deployed, user reported:
+> "в описанных ситуациях игрока должны атаковать все враги в зоне слышимости (не только один какой то)"
+> (Translation: "in the described situations, ALL enemies in hearing range should attack the player, not just one")
+
+Attached logs: `game_log_20260120_181815.txt`, `game_log_20260120_182103.txt`, `game_log_20260120_182213.txt`
+
+### Log Analysis
+
+The logs showed that enemies were correctly hearing vulnerability sounds and setting the `_pursuing_vulnerability_sound` flag, but then immediately transitioning to RETREATING due to `_under_fire`:
+
+```
+[18:22:31] [ENEMY] [Enemy2] Heard player EMPTY_CLICK at (749.2318, 793.9338), intensity=0.02, distance=333
+[18:22:31] [ENEMY] [Enemy3] Heard player EMPTY_CLICK at (749.2318, 793.9338), intensity=0.10, distance=161
+[18:22:31] [ENEMY] [Enemy2] Pursuing vulnerability sound at (749.2318, 793.9338), distance=333
+[18:22:31] [ENEMY] [Enemy3] State: PURSUING -> RETREATING  <-- BUG: Should continue pursuing!
+```
+
+### Root Cause
+
+The bug was in `_process_pursuing_state()` and `_process_combat_state()`:
+
+```gdscript
+# Line 1841 in _process_pursuing_state():
+if _under_fire and enable_cover:
+    _pursuit_approaching = false
+    _pursuing_vulnerability_sound = false  # <-- This clears the flag!
+    _transition_to_retreating()
+    return
+```
+
+When an enemy heard a vulnerability sound:
+1. The `_pursuing_vulnerability_sound` flag was set to `true`
+2. Enemy transitioned to PURSUING state
+3. But the first check in PURSUING state is `_under_fire`
+4. If enemy is being shot at, it immediately:
+   - Clears the `_pursuing_vulnerability_sound` flag
+   - Transitions to RETREATING
+5. The vulnerability sound pursuit never happens!
+
+This defeats the entire purpose of vulnerability sounds - the player is reloading or out of ammo, so THIS IS THE BEST TIME TO ATTACK, not retreat!
+
+### Solution
+
+Modified the suppression checks in PURSUING and COMBAT states to **skip retreating when `_pursuing_vulnerability_sound` is true**:
+
+**PURSUING state (line 1841):**
+```gdscript
+# Before:
+if _under_fire and enable_cover:
+
+# After:
+if _under_fire and enable_cover and not _pursuing_vulnerability_sound:
+```
+
+**COMBAT state (line 1182):**
+```gdscript
+# Before:
+if _under_fire and enable_cover:
+
+# After:
+if _under_fire and enable_cover and not _pursuing_vulnerability_sound:
+```
+
+Also expanded the list of states that should transition to PURSUING when hearing vulnerability sounds:
+- IDLE
+- IN_COVER
+- SUPPRESSED
+- RETREATING (new)
+- SEEKING_COVER (new)
+
+Added logging to track vulnerability-triggered pursuits:
+```gdscript
+_log_to_file("Vulnerability sound triggered pursuit - transitioning from %s to PURSUING" % AIState.keys()[_current_state])
+```
+
+### Why This Works
+
+1. **Priority system**: When player is vulnerable, attacking takes priority over self-preservation
+2. **Realistic behavior**: If an enemy hears an opponent is reloading, they would press the attack, not hide
+3. **Risk-reward**: This makes reload sounds a high-risk action when enemies are nearby
+4. **ALL enemies react**: Every enemy in hearing range will now pursue the vulnerability sound
+
+### Files Changed
+
+- `scripts/objects/enemy.gd`:
+  - Modified `_on_player_sound_heard()` to handle RETREATING and SEEKING_COVER states
+  - Modified `_process_pursuing_state()` to skip `_under_fire` check when `_pursuing_vulnerability_sound` is true
+  - Modified `_process_combat_state()` to skip `_under_fire` check when `_pursuing_vulnerability_sound` is true
+  - Added logging for vulnerability-triggered state transitions
+
+### Final Lessons Learned
+
+7. **Priority systems**: Some conditions should override others - vulnerability sounds override suppression behavior
+8. **Complete state coverage**: When adding new behavior, ensure it handles all relevant states
+9. **User feedback is invaluable**: The user correctly identified that "all enemies should attack" not just one
