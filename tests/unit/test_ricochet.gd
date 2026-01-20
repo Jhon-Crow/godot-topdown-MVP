@@ -25,7 +25,7 @@ func test_caliber_data_default_values() -> void:
 	assert_eq(caliber.diameter_mm, 5.45, "Default diameter")
 	assert_almost_eq(caliber.mass_grams, 3.4, 0.01, "Default mass")
 	assert_true(caliber.can_ricochet, "Default can_ricochet should be true")
-	assert_eq(caliber.max_ricochets, 2, "Default max ricochets")
+	assert_eq(caliber.max_ricochets, -1, "Default max ricochets should be -1 (unlimited)")
 
 
 func test_caliber_data_ricochet_probability_at_zero_angle() -> void:
@@ -55,11 +55,12 @@ func test_caliber_data_ricochet_probability_beyond_max_angle() -> void:
 func test_caliber_data_ricochet_probability_interpolation() -> void:
 	var caliber := CaliberData.new()
 
-	# At half the max angle, probability should be half the base
+	# At half the max angle, probability should follow quadratic curve
+	# At 50% of max angle, normalized = 0.5, factor = (1-0.5)^2 = 0.25
 	var half_angle := caliber.max_ricochet_angle / 2.0
 	var probability := caliber.calculate_ricochet_probability(half_angle)
-	var expected := caliber.base_ricochet_probability * 0.5
-	assert_almost_eq(probability, expected, 0.01, "At half angle, should have half base probability")
+	var expected := caliber.base_ricochet_probability * 0.25  # quadratic: (1-0.5)^2 = 0.25
+	assert_almost_eq(probability, expected, 0.01, "At half angle, should have quadratic probability (0.25 * base)")
 
 
 func test_caliber_data_can_ricochet_false_returns_zero() -> void:
@@ -110,7 +111,7 @@ func test_545x39_caliber_resource_properties() -> void:
 
 	assert_eq(caliber.caliber_name, "5.45x39mm", "Caliber name should be 5.45x39mm")
 	assert_true(caliber.can_ricochet, "5.45x39mm should be able to ricochet")
-	assert_eq(caliber.max_ricochets, 2, "Max ricochets should be 2")
+	assert_eq(caliber.max_ricochets, -1, "Max ricochets should be -1 (unlimited)")
 
 
 # ============================================================================
@@ -129,7 +130,7 @@ func test_bullet_default_ricochet_constants() -> void:
 	var bullet := _create_test_bullet()
 
 	# Test default constants
-	assert_eq(bullet.DEFAULT_MAX_RICOCHETS, 2, "Default max ricochets")
+	assert_eq(bullet.DEFAULT_MAX_RICOCHETS, -1, "Default max ricochets should be -1 (unlimited)")
 	assert_almost_eq(bullet.DEFAULT_MAX_RICOCHET_ANGLE, 30.0, 0.1, "Default max ricochet angle")
 	assert_almost_eq(bullet.DEFAULT_BASE_RICOCHET_PROBABILITY, 0.7, 0.01, "Default base probability")
 	assert_almost_eq(bullet.DEFAULT_VELOCITY_RETENTION, 0.6, 0.01, "Default velocity retention")
@@ -303,7 +304,61 @@ func test_caliber_data_with_custom_values() -> void:
 	caliber.base_ricochet_probability = 0.9
 	caliber.velocity_retention = 0.8
 
-	# At 22.5 degrees (half of 45), should be 0.45 probability (half of 0.9)
+	# At 22.5 degrees (half of 45), with quadratic interpolation:
+	# normalized = 22.5/45 = 0.5, factor = (1-0.5)^2 = 0.25
+	# probability = 0.9 * 0.25 = 0.225
 	var probability := caliber.calculate_ricochet_probability(22.5)
-	var expected := 0.9 * 0.5
-	assert_almost_eq(probability, expected, 0.01, "Custom values should be respected")
+	var expected := 0.9 * 0.25  # quadratic: (1-0.5)^2 = 0.25
+	assert_almost_eq(probability, expected, 0.01, "Custom values should be respected with quadratic interpolation")
+
+
+# ============================================================================
+# Unlimited Ricochet Tests
+# ============================================================================
+
+
+func test_unlimited_ricochets_default() -> void:
+	var caliber := CaliberData.new()
+	# Default should be unlimited (-1)
+	assert_eq(caliber.max_ricochets, -1, "Default max_ricochets should be -1 (unlimited)")
+
+
+func test_caliber_data_limited_ricochets() -> void:
+	var caliber := CaliberData.new()
+	caliber.max_ricochets = 3
+	assert_eq(caliber.max_ricochets, 3, "max_ricochets should be settable to a specific value")
+
+
+# ============================================================================
+# Quadratic Probability Curve Tests
+# ============================================================================
+
+
+func test_quadratic_probability_drops_faster_than_linear() -> void:
+	var caliber := CaliberData.new()
+
+	# At 25% of max angle (7.5 degrees for default 30 degree max):
+	# Linear would give: 1 - 0.25 = 0.75 factor
+	# Quadratic gives: (1 - 0.25)^2 = 0.5625 factor
+	var quarter_angle := caliber.max_ricochet_angle * 0.25
+	var prob_quarter := caliber.calculate_ricochet_probability(quarter_angle)
+	var expected_quarter := caliber.base_ricochet_probability * 0.5625
+	assert_almost_eq(prob_quarter, expected_quarter, 0.01, "Probability at 25% angle should follow quadratic")
+
+	# At 75% of max angle (22.5 degrees for default 30 degree max):
+	# Linear would give: 1 - 0.75 = 0.25 factor
+	# Quadratic gives: (1 - 0.75)^2 = 0.0625 factor
+	var three_quarter_angle := caliber.max_ricochet_angle * 0.75
+	var prob_three_quarter := caliber.calculate_ricochet_probability(three_quarter_angle)
+	var expected_three_quarter := caliber.base_ricochet_probability * 0.0625
+	assert_almost_eq(prob_three_quarter, expected_three_quarter, 0.01, "Probability at 75% angle should be very low")
+
+
+func test_quadratic_probability_approaches_zero_near_max_angle() -> void:
+	var caliber := CaliberData.new()
+
+	# At 90% of max angle, probability should be very low
+	var near_max_angle := caliber.max_ricochet_angle * 0.9
+	var probability := caliber.calculate_ricochet_probability(near_max_angle)
+	# (1 - 0.9)^2 = 0.01 factor, so probability = 0.7 * 0.01 = 0.007
+	assert_lt(probability, 0.01, "Probability near max angle should be very low")

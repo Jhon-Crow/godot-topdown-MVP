@@ -52,12 +52,29 @@ var _position_history: Array[Vector2] = []
 var _ricochet_count: int = 0
 
 ## Default ricochet settings (used when caliber_data is not set).
-const DEFAULT_MAX_RICOCHETS: int = 2
+## -1 means unlimited ricochets.
+const DEFAULT_MAX_RICOCHETS: int = -1
 const DEFAULT_MAX_RICOCHET_ANGLE: float = 30.0
 const DEFAULT_BASE_RICOCHET_PROBABILITY: float = 0.7
 const DEFAULT_VELOCITY_RETENTION: float = 0.6
 const DEFAULT_RICOCHET_DAMAGE_MULTIPLIER: float = 0.5
 const DEFAULT_RICOCHET_ANGLE_DEVIATION: float = 10.0
+
+## Viewport size used for calculating post-ricochet lifetime.
+## Bullets disappear after traveling this distance after ricochet.
+var _viewport_diagonal: float = 0.0
+
+## Whether this bullet has ricocheted at least once.
+var _has_ricocheted: bool = false
+
+## Distance traveled since the last ricochet (for viewport-based lifetime).
+var _distance_since_ricochet: float = 0.0
+
+## Position at the moment of the last ricochet.
+var _ricochet_position: Vector2 = Vector2.ZERO
+
+## Maximum travel distance after ricochet (based on viewport and ricochet angle).
+var _max_post_ricochet_distance: float = 0.0
 
 ## Enable/disable debug logging for ricochet calculations.
 var _debug_ricochet: bool = false
@@ -79,8 +96,22 @@ func _ready() -> void:
 	if caliber_data == null:
 		caliber_data = _load_default_caliber_data()
 
+	# Calculate viewport diagonal for post-ricochet lifetime
+	_calculate_viewport_diagonal()
+
 	# Set initial rotation based on direction
 	_update_rotation()
+
+
+## Calculates the viewport diagonal distance for post-ricochet lifetime.
+func _calculate_viewport_diagonal() -> void:
+	var viewport := get_viewport()
+	if viewport:
+		var size := viewport.get_visible_rect().size
+		_viewport_diagonal = sqrt(size.x * size.x + size.y * size.y)
+	else:
+		# Fallback to a reasonable default (1920x1080 diagonal ~= 2203)
+		_viewport_diagonal = 2203.0
 
 
 ## Loads the default 5.45x39mm caliber data.
@@ -97,8 +128,21 @@ func _update_rotation() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	# Calculate movement this frame
+	var movement := direction * speed * delta
+
 	# Move in the set direction
-	position += direction * speed * delta
+	position += movement
+
+	# Track distance traveled since last ricochet (for viewport-based lifetime)
+	if _has_ricocheted:
+		_distance_since_ricochet += movement.length()
+		# Destroy bullet if it has traveled more than the viewport-based max distance
+		if _distance_since_ricochet >= _max_post_ricochet_distance:
+			if _debug_ricochet:
+				print("[Bullet] Post-ricochet distance exceeded: ", _distance_since_ricochet, " >= ", _max_post_ricochet_distance)
+			queue_free()
+			return
 
 	# Update trail effect
 	_update_trail()
@@ -180,9 +224,9 @@ func _on_area_entered(area: Area2D) -> void:
 ## Returns true if ricochet occurred, false if bullet should be destroyed.
 ## @param body: The body the bullet collided with.
 func _try_ricochet(body: Node2D) -> bool:
-	# Check if we've exceeded maximum ricochets
+	# Check if we've exceeded maximum ricochets (-1 = unlimited)
 	var max_ricochets := _get_max_ricochets()
-	if _ricochet_count >= max_ricochets:
+	if max_ricochets >= 0 and _ricochet_count >= max_ricochets:
 		if _debug_ricochet:
 			print("[Bullet] Max ricochets reached: ", _ricochet_count)
 		return false
@@ -263,32 +307,48 @@ func _calculate_impact_angle(surface_normal: Vector2) -> float:
 
 
 ## Calculates the ricochet probability based on impact angle.
+## Uses a quadratic curve to make angles close to 90° (perpendicular) much less likely.
+## Shallow/grazing angles (close to 0°) have high probability.
 func _calculate_ricochet_probability(impact_angle_deg: float) -> float:
 	var max_angle: float
 	var base_probability: float
 
 	if caliber_data:
 		if caliber_data.has_method("calculate_ricochet_probability"):
-			return caliber_data.calculate_ricochet_probability(impact_angle_deg)
-		# Fallback to reading properties directly
-		max_angle = caliber_data.max_ricochet_angle if "max_ricochet_angle" in caliber_data else DEFAULT_MAX_RICOCHET_ANGLE
-		base_probability = caliber_data.base_ricochet_probability if "base_ricochet_probability" in caliber_data else DEFAULT_BASE_RICOCHET_PROBABILITY
+			# Note: caliber_data's method may use linear interpolation
+			# We override it here to use quadratic for better realism
+			max_angle = caliber_data.max_ricochet_angle if "max_ricochet_angle" in caliber_data else DEFAULT_MAX_RICOCHET_ANGLE
+			base_probability = caliber_data.base_ricochet_probability if "base_ricochet_probability" in caliber_data else DEFAULT_BASE_RICOCHET_PROBABILITY
+		else:
+			# Fallback to reading properties directly
+			max_angle = caliber_data.max_ricochet_angle if "max_ricochet_angle" in caliber_data else DEFAULT_MAX_RICOCHET_ANGLE
+			base_probability = caliber_data.base_ricochet_probability if "base_ricochet_probability" in caliber_data else DEFAULT_BASE_RICOCHET_PROBABILITY
 	else:
 		max_angle = DEFAULT_MAX_RICOCHET_ANGLE
 		base_probability = DEFAULT_BASE_RICOCHET_PROBABILITY
 
-	# No ricochet if angle is too steep
+	# No ricochet if angle is too steep (close to 90° perpendicular)
 	if impact_angle_deg > max_angle:
 		return 0.0
 
-	# Linear interpolation: shallow angles have higher probability
-	var angle_factor := 1.0 - (impact_angle_deg / max_angle)
+	# Quadratic interpolation: shallow angles (0°) have HIGH probability,
+	# angles approaching max_angle have MUCH LOWER probability.
+	# This makes ricochets at angles close to 90° significantly rarer.
+	# angle_factor goes from 1.0 (at 0°) to 0.0 (at max_angle)
+	var normalized_angle := impact_angle_deg / max_angle
+	# Quadratic curve: (1 - x)^2 drops off faster than linear
+	var angle_factor := (1.0 - normalized_angle) * (1.0 - normalized_angle)
 	return base_probability * angle_factor
 
 
 ## Performs the ricochet: updates direction, speed, and damage.
+## Also calculates the post-ricochet maximum travel distance based on viewport and angle.
 func _perform_ricochet(surface_normal: Vector2) -> void:
 	_ricochet_count += 1
+
+	# Calculate the impact angle for determining post-ricochet distance
+	var impact_angle_rad := _calculate_impact_angle(surface_normal)
+	var impact_angle_deg := rad_to_deg(impact_angle_rad)
 
 	# Calculate reflected direction
 	# reflection = direction - 2 * dot(direction, normal) * normal
@@ -314,6 +374,21 @@ func _perform_ricochet(surface_normal: Vector2) -> void:
 	# Move bullet slightly away from surface to prevent immediate re-collision
 	global_position += direction * 5.0
 
+	# Mark bullet as having ricocheted and set viewport-based lifetime
+	_has_ricocheted = true
+	_ricochet_position = global_position
+	_distance_since_ricochet = 0.0
+
+	# Calculate max post-ricochet distance based on viewport and ricochet angle
+	# Shallow angles (grazing) -> bullet travels longer after ricochet
+	# Steeper angles -> bullet travels shorter distance (more energy lost)
+	# Formula: max_distance = viewport_diagonal * (1 - angle/90)
+	# At 0° (grazing): full viewport diagonal
+	# At 90° (perpendicular): 0 distance (but this wouldn't ricochet anyway)
+	var angle_factor := 1.0 - (impact_angle_deg / 90.0)
+	angle_factor = clampf(angle_factor, 0.1, 1.0)  # Minimum 10% to prevent instant destruction
+	_max_post_ricochet_distance = _viewport_diagonal * angle_factor
+
 	# Clear trail history to avoid visual artifacts
 	_position_history.clear()
 
@@ -321,7 +396,7 @@ func _perform_ricochet(surface_normal: Vector2) -> void:
 	_play_ricochet_sound()
 
 	if _debug_ricochet:
-		print("[Bullet] Ricochet #", _ricochet_count, " - New speed: ", speed, ", Damage mult: ", damage_multiplier)
+		print("[Bullet] Ricochet #", _ricochet_count, " - New speed: ", speed, ", Damage mult: ", damage_multiplier, ", Max post-ricochet distance: ", _max_post_ricochet_distance)
 
 
 ## Gets the velocity retention factor for ricochet.

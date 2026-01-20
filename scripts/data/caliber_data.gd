@@ -31,8 +31,9 @@ class_name CaliberData
 @export var can_ricochet: bool = true
 
 ## Maximum number of ricochets allowed before bullet is destroyed.
+## Set to -1 for unlimited ricochets.
 ## Real bullets can ricochet multiple times in rare cases.
-@export var max_ricochets: int = 2
+@export var max_ricochets: int = -1
 
 ## Maximum angle (in degrees) from surface at which ricochet is possible.
 ## Shallow angles (close to parallel with surface) are more likely to ricochet.
@@ -73,6 +74,7 @@ class_name CaliberData
 
 
 ## Calculates the ricochet probability based on impact angle.
+## Uses quadratic interpolation so angles close to 90° (perpendicular) are much less likely.
 ## @param impact_angle_degrees: Angle between bullet direction and surface (0 = parallel).
 ## @return: Probability of ricochet (0.0 to 1.0).
 func calculate_ricochet_probability(impact_angle_degrees: float) -> float:
@@ -82,10 +84,13 @@ func calculate_ricochet_probability(impact_angle_degrees: float) -> float:
 	if impact_angle_degrees > max_ricochet_angle:
 		return 0.0
 
-	# Linear interpolation: shallow angles have higher probability
-	# At 0 degrees (parallel): full base probability
+	# Quadratic interpolation: shallow angles (0°) have HIGH probability,
+	# angles approaching max_ricochet_angle have MUCH LOWER probability.
+	# At 0 degrees (parallel/grazing): full base probability
 	# At max_ricochet_angle: 0 probability
-	var angle_factor := 1.0 - (impact_angle_degrees / max_ricochet_angle)
+	var normalized_angle := impact_angle_degrees / max_ricochet_angle
+	# Quadratic curve: (1 - x)^2 drops off faster than linear
+	var angle_factor := (1.0 - normalized_angle) * (1.0 - normalized_angle)
 	return base_ricochet_probability * angle_factor
 
 
