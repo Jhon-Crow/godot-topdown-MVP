@@ -5,6 +5,9 @@ extends GutTest
 ## Uses mock data to test logic without requiring full scene setup.
 
 
+const BulletScript = preload("res://scripts/projectiles/bullet.gd")
+
+
 # ============================================================================
 # CaliberData Tests
 # ============================================================================
@@ -115,11 +118,15 @@ func test_545x39_caliber_resource_properties() -> void:
 # ============================================================================
 
 
-func test_bullet_default_ricochet_constants() -> void:
-	var BulletScript := load("res://scripts/projectiles/bullet.gd")
+func _create_test_bullet() -> Area2D:
 	var bullet := Area2D.new()
 	bullet.set_script(BulletScript)
 	add_child_autoqfree(bullet)
+	return bullet
+
+
+func test_bullet_default_ricochet_constants() -> void:
+	var bullet := _create_test_bullet()
 
 	# Test default constants
 	assert_eq(bullet.DEFAULT_MAX_RICOCHETS, 2, "Default max ricochets")
@@ -130,114 +137,84 @@ func test_bullet_default_ricochet_constants() -> void:
 
 
 func test_bullet_ricochet_count_starts_at_zero() -> void:
-	var BulletScript := load("res://scripts/projectiles/bullet.gd")
-	var bullet := Area2D.new()
-	bullet.set_script(BulletScript)
-	add_child_autoqfree(bullet)
+	var bullet := _create_test_bullet()
 
 	assert_eq(bullet.get_ricochet_count(), 0, "Ricochet count should start at 0")
 
 
 func test_bullet_damage_multiplier_starts_at_one() -> void:
-	var BulletScript := load("res://scripts/projectiles/bullet.gd")
-	var bullet := Area2D.new()
-	bullet.set_script(BulletScript)
-	add_child_autoqfree(bullet)
+	var bullet := _create_test_bullet()
 
 	assert_almost_eq(bullet.get_damage_multiplier(), 1.0, 0.01, "Damage multiplier should start at 1.0")
 
 
 func test_bullet_can_ricochet_default() -> void:
-	var BulletScript := load("res://scripts/projectiles/bullet.gd")
-	var bullet := Area2D.new()
-	bullet.set_script(BulletScript)
-	add_child_autoqfree(bullet)
+	var bullet := _create_test_bullet()
 
 	assert_true(bullet.can_ricochet(), "Bullet should be able to ricochet by default")
 
 
 func test_bullet_calculate_ricochet_probability_steep_angle() -> void:
-	var BulletScript := load("res://scripts/projectiles/bullet.gd")
-	var bullet := Area2D.new()
-	bullet.set_script(BulletScript)
-	add_child_autoqfree(bullet)
+	var bullet := _create_test_bullet()
 
 	# At steep angle (beyond max), probability should be 0
-	var probability := bullet._calculate_ricochet_probability(45.0)
+	var probability: float = bullet.call("_calculate_ricochet_probability", 45.0)
 	assert_eq(probability, 0.0, "At steep angle (45 degrees), probability should be 0")
 
 
 func test_bullet_calculate_ricochet_probability_shallow_angle() -> void:
-	var BulletScript := load("res://scripts/projectiles/bullet.gd")
-	var bullet := Area2D.new()
-	bullet.set_script(BulletScript)
-	add_child_autoqfree(bullet)
+	var bullet := _create_test_bullet()
 
 	# At shallow angle (0 degrees), probability should be high
-	var probability := bullet._calculate_ricochet_probability(0.0)
+	var probability: float = bullet.call("_calculate_ricochet_probability", 0.0)
 	assert_gt(probability, 0.5, "At shallow angle (0 degrees), probability should be high")
 
 
 func test_bullet_calculate_impact_angle_perpendicular() -> void:
-	var BulletScript := load("res://scripts/projectiles/bullet.gd")
-	var bullet := Area2D.new()
-	bullet.set_script(BulletScript)
-	add_child_autoqfree(bullet)
+	var bullet := _create_test_bullet()
 
 	# Bullet traveling right, hitting a wall facing left (perpendicular)
 	bullet.direction = Vector2.RIGHT
 	var surface_normal := Vector2.LEFT
 
-	var angle := bullet._calculate_impact_angle(surface_normal)
+	var angle: float = bullet.call("_calculate_impact_angle", surface_normal)
 	# Perpendicular hit should be ~0 degrees (bullet direction opposite to normal)
 	assert_almost_eq(angle, 0.0, 0.01, "Perpendicular hit should be 0 degrees")
 
 
 func test_bullet_calculate_impact_angle_parallel() -> void:
-	var BulletScript := load("res://scripts/projectiles/bullet.gd")
-	var bullet := Area2D.new()
-	bullet.set_script(BulletScript)
-	add_child_autoqfree(bullet)
+	var bullet := _create_test_bullet()
 
 	# Bullet traveling right, grazing a wall facing up (parallel)
 	bullet.direction = Vector2.RIGHT
 	var surface_normal := Vector2.UP
 
-	var angle := bullet._calculate_impact_angle(surface_normal)
+	var angle: float = bullet.call("_calculate_impact_angle", surface_normal)
 	# Parallel/grazing hit should be ~90 degrees
 	assert_almost_eq(angle, PI / 2.0, 0.01, "Parallel/grazing hit should be ~90 degrees")
 
 
 func test_bullet_get_max_ricochets_default() -> void:
-	var BulletScript := load("res://scripts/projectiles/bullet.gd")
-	var bullet := Area2D.new()
-	bullet.set_script(BulletScript)
+	var bullet := _create_test_bullet()
 	bullet.caliber_data = null
-	add_child_autoqfree(bullet)
 
-	var max_ric := bullet._get_max_ricochets()
+	var max_ric: int = bullet.call("_get_max_ricochets")
 	assert_eq(max_ric, bullet.DEFAULT_MAX_RICOCHETS, "Should use default max ricochets when no caliber data")
 
 
 func test_bullet_get_velocity_retention_default() -> void:
-	var BulletScript := load("res://scripts/projectiles/bullet.gd")
-	var bullet := Area2D.new()
-	bullet.set_script(BulletScript)
+	var bullet := _create_test_bullet()
 	bullet.caliber_data = null
-	add_child_autoqfree(bullet)
 
-	var retention := bullet._get_velocity_retention()
+	var retention: float = bullet.call("_get_velocity_retention")
 	assert_almost_eq(retention, bullet.DEFAULT_VELOCITY_RETENTION, 0.01, "Should use default velocity retention when no caliber data")
 
 
 func test_bullet_get_ricochet_damage_multiplier_default() -> void:
-	var BulletScript := load("res://scripts/projectiles/bullet.gd")
-	var bullet := Area2D.new()
-	bullet.set_script(BulletScript)
+	var bullet := _create_test_bullet()
 	bullet.caliber_data = null
-	add_child_autoqfree(bullet)
 
-	var mult := bullet._get_ricochet_damage_multiplier()
+	var mult: float = bullet.call("_get_ricochet_damage_multiplier")
 	assert_almost_eq(mult, bullet.DEFAULT_RICOCHET_DAMAGE_MULTIPLIER, 0.01, "Should use default damage multiplier when no caliber data")
 
 
@@ -301,26 +278,20 @@ func test_audio_manager_has_ricochet_method() -> void:
 
 
 func test_bullet_ricochet_with_zero_speed() -> void:
-	var BulletScript := load("res://scripts/projectiles/bullet.gd")
-	var bullet := Area2D.new()
-	bullet.set_script(BulletScript)
+	var bullet := _create_test_bullet()
 	bullet.speed = 0.0
-	add_child_autoqfree(bullet)
 
 	# Even with zero speed, ricochet calculations should not crash
-	var probability := bullet._calculate_ricochet_probability(15.0)
+	var probability: float = bullet.call("_calculate_ricochet_probability", 15.0)
 	assert_true(probability >= 0.0, "Probability should be valid even with zero speed")
 
 
 func test_bullet_ricochet_with_zero_length_direction() -> void:
-	var BulletScript := load("res://scripts/projectiles/bullet.gd")
-	var bullet := Area2D.new()
-	bullet.set_script(BulletScript)
+	var bullet := _create_test_bullet()
 	bullet.direction = Vector2.ZERO
-	add_child_autoqfree(bullet)
 
 	# Should handle zero direction gracefully
-	var angle := bullet._calculate_impact_angle(Vector2.UP)
+	var angle: float = bullet.call("_calculate_impact_angle", Vector2.UP)
 	assert_true(is_finite(angle), "Angle calculation should handle zero direction")
 
 
