@@ -1,0 +1,22 @@
+[21:55:29] [INFO] ============================================================
+[21:55:29] [INFO] GAME LOG STARTED
+[21:55:29] [INFO] ============================================================
+[21:55:29] [INFO] Timestamp: 2026-01-20T21:55:29
+[21:55:29] [INFO] Log file: I:/Загрузки/godot exe/game_log_20260120_215529.txt
+[21:55:29] [INFO] Executable: I:/Загрузки/godot exe/Godot-Top-Down-Template.exe
+[21:55:29] [INFO] OS: Windows
+[21:55:29] [INFO] Debug build: false
+[21:55:29] [INFO] Engine version: 4.3-stable (official)
+[21:55:29] [INFO] Project: Godot Top-Down Template
+[21:55:29] [INFO] ------------------------------------------------------------
+[21:55:29] [INFO] [GameManager] GameManager ready
+[21:55:29] [INFO] [SoundPropagation] SoundPropagation autoload initialized
+[21:55:47] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(2634.438, 1146.578), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[21:55:47] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[21:55:47] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(2653.902, 1124.747), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[21:55:47] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[21:55:48] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(2665.312, 1111.95), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[21:55:48] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[21:55:49] [INFO] ------------------------------------------------------------
+[21:55:49] [INFO] GAME LOG ENDED: 2026-01-20T21:55:49
+[21:55:49] [INFO] ============================================================

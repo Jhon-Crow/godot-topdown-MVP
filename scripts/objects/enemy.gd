@@ -4256,16 +4256,6 @@ func can_see_player_public() -> bool:
 	return _can_see_player
 
 
-## Check if enemy is alive.
-func is_alive() -> bool:
-	return _is_alive
-
-
-## Get current AI state.
-func get_current_state() -> AIState:
-	return _current_state
-
-
 ## Get the string name of the current state.
 func get_state_name() -> String:
 	return AIState.keys()[_current_state]
