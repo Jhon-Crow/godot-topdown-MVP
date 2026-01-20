@@ -3162,11 +3162,6 @@ func get_health_ratio() -> float:
 	return float(_current_health) / float(_max_health)
 
 
-## Check if enemy is alive.
-func is_alive() -> bool:
-	return _is_alive
-
-
 ## Broadcast a message to all squad members.
 func _broadcast_to_squad(message_type: String, data: Dictionary = {}) -> void:
 	for member in _squad_members:

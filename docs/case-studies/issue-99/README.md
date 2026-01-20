@@ -40,7 +40,10 @@ The issue references tactical building clearance techniques from [poligon64.ru](
 | Design Phase | Group behavior system design (this document) |
 | 2026-01-20 20:10 UTC | First implementation PR created with squad coordination system |
 | 2026-01-20 20:14 UTC | User reports: "enemies broken, debug also broken" with game log |
-| 2026-01-20 20:17 UTC | Bug investigation started |
+| 2026-01-20 20:17 UTC | Bug investigation started - identified missing `if` statement |
+| 2026-01-20 20:23 UTC | Fix applied for missing `if` statement in `_process_flanking_state` |
+| 2026-01-20 20:27 UTC | User reports: "still not working" with new game log |
+| 2026-01-20 21:17 UTC | Second bug investigation started |
 
 ## Bug Analysis (Post-Implementation)
 
@@ -121,6 +124,49 @@ This fix:
 1. Restores the `if` statement that was accidentally removed
 2. Implements the intended feature: flankers with covering fire get 50% more time before timeout
 3. Preserves all existing timeout behavior for enemies without covering fire
+
+### Second Bug Report (2026-01-20 20:27 UTC)
+
+**User Feedback**: "всё ещё не работает" (still not working)
+
+The user provided a second game log (`logs/game_log_20260120_232702.txt`) which showed the same `listeners=0` problem persisting after the first fix.
+
+### Second Root Cause: Duplicate Function Definition
+
+Upon deeper investigation, a second critical error was found:
+
+**Duplicate `is_alive()` function definition**
+
+The squad coordination implementation accidentally added a second `is_alive()` function:
+
+```gdscript
+# First definition (line 3166 - added with squad coordination):
+## Check if enemy is alive.
+func is_alive() -> bool:
+    return _is_alive
+
+# Second definition (line 4218 - original):
+## Returns whether this enemy is currently alive.
+## Used by bullets to check if they should pass through or hit.
+func is_alive() -> bool:
+    return _is_alive
+```
+
+In GDScript, duplicate function definitions cause a parser error, preventing the entire script from loading. This explains why:
+- Enemies weren't registering as sound listeners (`listeners=0`)
+- No `[Enemy] Spawned` log messages appeared
+- Debug mode toggling didn't show enemy data
+
+### Fix Applied
+
+Removed the duplicate function definition at line 3166-3167, keeping only the original function at line 4218.
+
+### Lessons Learned
+
+1. **When adding new code to large files**: Always search for existing functions with the same name before adding new ones
+2. **Test incremental changes**: After each significant change, verify the script still loads
+3. **Verify fixes thoroughly**: The first fix resolved one syntax error but didn't catch the duplicate function
+4. **GDScript error messages**: Duplicate function definitions can be hard to spot without explicit compiler feedback
 
 ## Existing System Analysis
 
