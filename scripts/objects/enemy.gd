@@ -688,7 +688,7 @@ func on_sound_heard(sound_type: int, position: Vector2, source_type: int, source
 ##
 ## Parameters:
 ## - sound_type: The type of sound (from SoundPropagation.SoundType enum)
-##   0=GUNSHOT, 1=EXPLOSION, 2=FOOTSTEP, 3=RELOAD, 4=IMPACT, 5=EMPTY_CLICK
+##   0=GUNSHOT, 1=EXPLOSION, 2=FOOTSTEP, 3=RELOAD, 4=IMPACT, 5=EMPTY_CLICK, 6=RELOAD_COMPLETE
 ## - position: World position where the sound originated
 ## - source_type: Whether sound is from PLAYER, ENEMY, or NEUTRAL (from SoundPropagation.SourceType)
 ## - source_node: The node that produced the sound (can be null)
@@ -753,6 +753,46 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 			_transition_to_pursuing()
 		# For COMBAT, PURSUING, FLANKING states: the flag is set and they'll use it
 		# (COMBAT/PURSUING now check _pursuing_vulnerability_sound before retreating)
+		return
+
+	# Handle reload complete sound (sound_type 6 = RELOAD_COMPLETE) - player is NO LONGER vulnerable!
+	# This sound propagates through walls and signals enemies to become cautious.
+	if sound_type == 6 and source_type == 0:  # RELOAD_COMPLETE from PLAYER
+		_log_debug("Heard player RELOAD_COMPLETE (intensity=%.2f, distance=%.0f) at %s" % [
+			intensity, distance, position
+		])
+		_log_to_file("Heard player RELOAD_COMPLETE at %s, intensity=%.2f, distance=%.0f" % [
+			position, intensity, distance
+		])
+
+		# Clear player vulnerability state - reload finished, player is armed again
+		_goap_world_state["player_reloading"] = false
+		_goap_world_state["player_ammo_empty"] = false
+		# Clear the aggressive pursuit flag - no longer pursuing vulnerable player
+		_pursuing_vulnerability_sound = false
+
+		# React to reload completion - transition to cautious/defensive mode after a short delay.
+		# The 200ms delay gives enemies a brief reaction time before becoming cautious,
+		# making the transition feel more natural and giving player a small window.
+		# Enemies who were pursuing the vulnerable player should now become more cautious.
+		# This makes completing reload a way to "reset" aggressive enemy behavior.
+		if _current_state in [AIState.PURSUING, AIState.COMBAT, AIState.ASSAULT]:
+			var state_before_delay := _current_state
+			_log_to_file("Reload complete sound heard - waiting 200ms before cautious transition from %s" % AIState.keys()[_current_state])
+			await get_tree().create_timer(0.2).timeout
+			# After delay, check if still alive and in an aggressive state
+			if not _is_alive:
+				return
+			# Only transition if still in an aggressive state (state might have changed during delay)
+			if _current_state in [AIState.PURSUING, AIState.COMBAT, AIState.ASSAULT]:
+				# Return to cover/defensive state since player is no longer vulnerable
+				if _has_valid_cover:
+					_log_to_file("Reload complete sound triggered retreat - transitioning from %s to RETREATING (delayed from %s)" % [AIState.keys()[_current_state], AIState.keys()[state_before_delay]])
+					_transition_to_retreating()
+				elif enable_cover:
+					_log_to_file("Reload complete sound triggered cover seek - transitioning from %s to SEEKING_COVER (delayed from %s)" % [AIState.keys()[_current_state], AIState.keys()[state_before_delay]])
+					_transition_to_seeking_cover()
+				# If no cover available, stay in current state but with cleared vulnerability flags
 		return
 
 	# Handle gunshot sounds (sound_type 0 = GUNSHOT)

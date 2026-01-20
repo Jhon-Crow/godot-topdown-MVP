@@ -355,6 +355,11 @@ func _complete_simple_reload() -> void:
 	_reload_timer = 0.0
 	ammo_changed.emit(_current_ammo, max_ammo)
 	reload_completed.emit()
+	# Emit reload completion sound for in-game sound propagation
+	# This alerts enemies that player is no longer vulnerable and they should become cautious
+	var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
+	if sound_propagation and sound_propagation.has_method("emit_player_reload_complete"):
+		sound_propagation.emit_player_reload_complete(global_position, self)
 
 
 ## Handle reload sequence input (R-F-R).
@@ -418,6 +423,11 @@ func _complete_reload() -> void:
 	ammo_changed.emit(_current_ammo, max_ammo)
 	reload_completed.emit()
 	reload_sequence_progress.emit(3, 3)
+	# Emit reload completion sound for in-game sound propagation
+	# This alerts enemies that player is no longer vulnerable and they should become cautious
+	var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
+	if sound_propagation and sound_propagation.has_method("emit_player_reload_complete"):
+		sound_propagation.emit_player_reload_complete(global_position, self)
 
 
 ## Check if player is currently reloading (either mode).
