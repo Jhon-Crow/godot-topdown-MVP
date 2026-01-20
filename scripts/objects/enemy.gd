@@ -37,6 +37,18 @@ enum BehaviorMode {
 	GUARD    ## Stands in one place
 }
 
+## Squad roles for coordinated group tactics.
+## When enemies are within communication range (1/4 viewport), they form squads
+## and take on complementary roles for tactical advantage.
+enum SquadRole {
+	NONE,           ## Operating independently (no squad)
+	LEADER,         ## Coordinates squad, makes tactical decisions
+	SUPPRESSOR,     ## Provides covering fire to pin player
+	FLANKER,        ## Moves to flank position under cover of suppression
+	ASSAULT,        ## Primary attacker after flanker is in position
+	REAR_GUARD      ## Covers retreat path, rear security
+}
+
 ## Current behavior mode.
 @export var behavior_mode: BehaviorMode = BehaviorMode.GUARD
 
@@ -188,6 +200,34 @@ signal ammo_depleted
 ## If the player's aim is more than this angle away from the enemy, they are distracted.
 ## 23 degrees ≈ 0.4014 radians.
 const PLAYER_DISTRACTION_ANGLE: float = 0.4014
+
+## --- Squad Coordination Constants ---
+## Distance at which enemies can communicate verbally (1/4 viewport diagonal).
+## Calculated: sqrt(1280² + 720²) / 4 ≈ 367 pixels, rounded to 360.
+## This is the range at which enemies can "talk" and coordinate tactics.
+const SQUAD_COMMUNICATION_RANGE: float = 360.0
+
+## Minimum squad size for coordinated tactics.
+const MIN_SQUAD_SIZE: int = 2
+
+## Maximum squad size (larger groups split into multiple squads).
+const MAX_SQUAD_SIZE: int = 5
+
+## How often to update squad membership (seconds).
+const SQUAD_UPDATE_INTERVAL: float = 0.5
+
+## Delay before coordinated actions begin (allows formation).
+const SQUAD_COORDINATION_DELAY: float = 1.0
+
+## Suppression duration before flanker moves (seconds).
+const SUPPRESSION_DURATION_BEFORE_FLANK: float = 2.0
+
+## Maximum time to wait for squad coordination.
+const SQUAD_COORDINATION_TIMEOUT: float = 5.0
+
+## Spread angle for suppression fire (radians).
+## Suppression is about pinning, not accuracy.
+const SUPPRESSION_SPREAD: float = 0.15
 
 ## Reference to the sprite for color changes.
 @onready var _sprite: Sprite2D = $Sprite2D
@@ -548,6 +588,43 @@ var _last_known_player_position: Vector2 = Vector2.ZERO
 ## to that position even without line of sight to the player.
 var _pursuing_vulnerability_sound: bool = false
 
+## --- Squad Coordination Variables ---
+## Current squad this enemy belongs to (enemies within communication range).
+var _squad_members: Array[Node2D] = []
+
+## Current role in the squad.
+var _squad_role: SquadRole = SquadRole.NONE
+
+## Whether this enemy is the squad leader.
+var _is_squad_leader: bool = false
+
+## Timer for squad membership updates.
+var _squad_update_timer: float = 0.0
+
+## Last known positions of squad members (for coordination).
+var _squad_member_positions: Dictionary = {}
+
+## Whether squad coordination is active.
+var _squad_coordination_active: bool = false
+
+## Timer for coordination delay.
+var _squad_coordination_timer: float = 0.0
+
+## Target position for coordinated movement.
+var _squad_target_position: Vector2 = Vector2.ZERO
+
+## Whether this enemy is providing suppression fire.
+var _providing_suppression: bool = false
+
+## Timer for squad suppression duration (how long suppressor has been providing covering fire).
+var _squad_suppression_timer: float = 0.0
+
+## Whether the squad flanker is in position (shared state).
+var _squad_flanker_in_position: bool = false
+
+## Whether squad has started coordinated assault.
+var _squad_assault_started: bool = false
+
 
 func _ready() -> void:
 	_initial_position = global_position
@@ -856,7 +933,14 @@ func _initialize_goap_state() -> void:
 		"enemies_in_combat": 0,
 		"player_distracted": false,
 		"player_reloading": false,
-		"player_ammo_empty": false
+		"player_ammo_empty": false,
+		# Squad coordination state
+		"squad_size": 1,
+		"has_squad": false,
+		"squad_role": SquadRole.NONE,
+		"is_squad_leader": false,
+		"squad_suppressing": false,
+		"squad_flanker_ready": false
 	}
 
 
@@ -926,6 +1010,7 @@ func _physics_process(delta: float) -> void:
 		_find_player()
 
 	_check_player_visibility()
+	_update_squad_coordination(delta)
 	_update_goap_state()
 	_update_suppression(delta)
 
@@ -957,6 +1042,46 @@ func _update_goap_state() -> void:
 	_goap_world_state["can_hit_from_cover"] = _can_hit_player_from_current_position()
 	_goap_world_state["enemies_in_combat"] = _count_enemies_in_combat()
 	_goap_world_state["player_distracted"] = _is_player_distracted()
+	# Squad coordination state
+	_goap_world_state["squad_size"] = _squad_members.size() + 1  # Include self
+	_goap_world_state["has_squad"] = _squad_members.size() >= MIN_SQUAD_SIZE - 1
+	_goap_world_state["squad_role"] = _squad_role
+	_goap_world_state["is_squad_leader"] = _is_squad_leader
+	_goap_world_state["squad_suppressing"] = _is_suppression_active()
+	_goap_world_state["squad_flanker_ready"] = _is_flanker_in_position()
+
+
+## Update squad coordination state.
+func _update_squad_coordination(delta: float) -> void:
+	# Update squad membership periodically (not every frame for performance)
+	_squad_update_timer += delta
+	if _squad_update_timer >= SQUAD_UPDATE_INTERVAL:
+		_squad_update_timer = 0.0
+		_update_squad_membership()
+
+	# Update coordination timer if active
+	if _squad_coordination_active:
+		_squad_coordination_timer += delta
+
+	# Update squad suppression timer
+	if _providing_suppression:
+		_squad_suppression_timer += delta
+
+	# If we're the suppressor and have been suppressing long enough, notify flanker
+	if _squad_role == SquadRole.SUPPRESSOR and _providing_suppression:
+		if _squad_suppression_timer >= SUPPRESSION_DURATION_BEFORE_FLANK:
+			if not _squad_coordination_active:
+				_squad_coordination_active = true
+				_broadcast_to_squad("suppression_started", {"position": _player.global_position if _player else global_position})
+
+	# If we're the flanker and reached our position, notify squad
+	if _squad_role == SquadRole.FLANKER and _squad_coordination_active:
+		if _current_state == AIState.FLANKING or _current_state == AIState.COMBAT:
+			# Check if we can see and shoot the player (we've reached a good flank position)
+			if _can_see_player:
+				if not _squad_flanker_in_position:
+					_squad_flanker_in_position = true
+					_broadcast_to_squad("flanker_in_position", {})
 
 
 ## Update suppression state.
@@ -1218,6 +1343,7 @@ func _process_idle_state(delta: float) -> void:
 ## Phase 1 (approaching): Move toward player to get into direct contact range.
 ## Phase 2 (exposed): Stand and shoot for 2-3 seconds.
 ## Phase 3: Return to cover via SEEKING_COVER state.
+## Phase 4 (squad): If assigned SUPPRESSOR role, provide covering fire for flankers.
 func _process_combat_state(delta: float) -> void:
 	# Track time in COMBAT state (for preventing rapid state thrashing)
 	_combat_state_timer += delta
@@ -1225,11 +1351,30 @@ func _process_combat_state(delta: float) -> void:
 	# Check for suppression - transition to retreating behavior
 	# BUT: When pursuing a vulnerability sound (player reloading/out of ammo),
 	# ignore suppression and continue the attack - this is the best time to strike!
-	if _under_fire and enable_cover and not _pursuing_vulnerability_sound:
+	# ALSO: If we're the SUPPRESSOR in a squad, we stay to provide covering fire
+	if _under_fire and enable_cover and not _pursuing_vulnerability_sound and _squad_role != SquadRole.SUPPRESSOR:
 		_combat_exposed = false
 		_combat_approaching = false
 		_seeking_clear_shot = false
 		_transition_to_retreating()
+		return
+
+	# Squad coordination: If we're the SUPPRESSOR, provide suppression fire
+	if _squad_role == SquadRole.SUPPRESSOR and _squad_members.size() >= MIN_SQUAD_SIZE - 1:
+		_providing_suppression = true
+		# Suppress while flanker moves, then join assault when flanker is in position
+		if _squad_flanker_in_position or _squad_assault_started:
+			_providing_suppression = false
+			_log_debug("Flanker in position or assault started, joining assault")
+			_transition_to_assault()
+			return
+	else:
+		_providing_suppression = false
+
+	# Squad coordination: If we're the FLANKER and suppression is active, focus on flanking
+	if _squad_role == SquadRole.FLANKER and _squad_coordination_active:
+		_log_debug("Flanker role active, transitioning to flanking")
+		_transition_to_flanking()
 		return
 
 	# Check if multiple enemies are in combat - transition to assault state
@@ -1599,12 +1744,18 @@ func _process_in_cover_state(delta: float) -> void:
 ## Process FLANKING state - attempting to flank the player using cover-to-cover movement.
 ## Uses intermediate cover positions to navigate around obstacles instead of walking
 ## directly toward the flank target.
+## Squad coordination: FLANKER role waits for suppression before moving boldly.
 func _process_flanking_state(delta: float) -> void:
 	# Update state timer
 	_flank_state_timer += delta
 
+	# Squad coordination: If we're the FLANKER and have squad suppression, we can move faster
+	# because we have covering fire. Extend timeout when we have covering fire.
+	var has_covering_fire := (_squad_role == SquadRole.FLANKER and _is_suppression_active())
+	var effective_max_time := FLANK_STATE_MAX_TIME * (1.5 if has_covering_fire else 1.0)
+
 	# Check for overall FLANKING state timeout
-	if _flank_state_timer >= FLANK_STATE_MAX_TIME:
+	if _flank_state_timer >= effective_max_time:
 		var msg := "FLANKING timeout (%.1fs), target=%s, pos=%s" % [_flank_state_timer, _flank_target, global_position]
 		_log_debug(msg)
 		_log_to_file(msg)
@@ -2045,6 +2196,7 @@ func _process_pursuing_state(delta: float) -> void:
 
 ## Process ASSAULT state - coordinated multi-enemy rush.
 ## Wait at cover for 5 seconds, then all enemies rush the player simultaneously.
+## Squad coordination: If squad flanker is in position, assault immediately.
 func _process_assault_state(delta: float) -> void:
 	# Check for suppression - transition to retreating behavior
 	if _under_fire and enable_cover and not _assault_ready:
@@ -2052,9 +2204,22 @@ func _process_assault_state(delta: float) -> void:
 		_transition_to_retreating()
 		return
 
+	# Squad coordination: If we received assault_started signal, go immediately
+	if _squad_assault_started and not _assault_ready:
+		_assault_ready = true
+		_in_assault = true
+		_log_debug("ASSAULT triggered by squad coordination!")
+
+	# Squad coordination: If flanker is in position, start assault early
+	if _squad_flanker_in_position and not _assault_ready:
+		_assault_ready = true
+		_in_assault = true
+		_start_coordinated_assault()
+		_log_debug("ASSAULT triggered by flanker in position!")
+
 	# Check if we're the only enemy left in assault - switch back to combat
 	var enemies_in_combat := _count_enemies_in_combat()
-	if enemies_in_combat < 2 and not _assault_ready:
+	if enemies_in_combat < 2 and not _assault_ready and not _squad_flanker_in_position:
 		_log_debug("Not enough enemies for assault, switching to COMBAT")
 		_in_assault = false
 		_transition_to_combat()
@@ -2832,6 +2997,237 @@ func _count_enemies_in_combat() -> int:
 ## Check if this enemy is engaged in combat (can see player and in combat state).
 func is_in_combat_engagement() -> bool:
 	return _can_see_player and _current_state in [AIState.COMBAT, AIState.IN_COVER, AIState.ASSAULT]
+
+
+## --- Squad Coordination Functions ---
+
+## Find all enemies within communication range (1/4 viewport).
+## Returns array of enemy nodes that can form a squad.
+func _find_nearby_squad_members() -> Array[Node2D]:
+	var nearby: Array[Node2D] = []
+	var enemies := get_tree().get_nodes_in_group("enemies")
+
+	for enemy in enemies:
+		if enemy == self:
+			continue
+		if not is_instance_valid(enemy):
+			continue
+		if enemy.has_method("is_alive") and not enemy.is_alive():
+			continue
+
+		var distance := global_position.distance_to(enemy.global_position)
+		if distance <= SQUAD_COMMUNICATION_RANGE:
+			nearby.append(enemy)
+
+	return nearby
+
+
+## Update squad membership based on nearby enemies.
+## Called periodically (SQUAD_UPDATE_INTERVAL).
+func _update_squad_membership() -> void:
+	_squad_members = _find_nearby_squad_members()
+
+	# Check if we have enough members for a squad
+	if _squad_members.size() >= MIN_SQUAD_SIZE - 1:  # -1 because we don't count ourselves
+		_elect_squad_leader()
+		if _is_squad_leader:
+			_assign_squad_roles()
+	else:
+		# Not enough members - operate independently
+		_squad_role = SquadRole.NONE
+		_is_squad_leader = false
+		_squad_coordination_active = false
+
+
+## Elect squad leader based on tactical criteria.
+## Leader is the enemy closest to the player (best awareness).
+## Ties broken by health (more health = more reliable leader).
+func _elect_squad_leader() -> void:
+	if _player == null:
+		return
+
+	var all_candidates: Array[Node2D] = [self]
+	all_candidates.append_array(_squad_members)
+
+	var best_leader: Node2D = null
+	var best_score: float = INF
+
+	for candidate in all_candidates:
+		if not is_instance_valid(candidate):
+			continue
+
+		var distance := candidate.global_position.distance_to(_player.global_position)
+		# Lower distance = better (closer has better awareness)
+		# Use negative health as tiebreaker (more health = better)
+		var health_bonus := 0.0
+		if candidate.has_method("get_health_ratio"):
+			health_bonus = -candidate.get_health_ratio() * 10.0
+
+		var score := distance + health_bonus
+		if score < best_score:
+			best_score = score
+			best_leader = candidate
+
+	_is_squad_leader = (best_leader == self)
+
+
+## Assign tactical roles to squad members based on position and situation.
+## Called by the squad leader.
+func _assign_squad_roles() -> void:
+	if not _is_squad_leader:
+		return
+	if _squad_members.size() < MIN_SQUAD_SIZE - 1:
+		return
+	if _player == null:
+		return
+
+	var player_pos := _player.global_position
+	var player_facing := _get_player_facing_direction()
+
+	# Build list of all squad members including self with angle data
+	var all_members: Array = []
+	all_members.append({"enemy": self, "is_self": true})
+	for member in _squad_members:
+		if is_instance_valid(member):
+			all_members.append({"enemy": member, "is_self": false})
+
+	# Calculate angle difference from player's facing direction for each member
+	for member_info in all_members:
+		var member: Node2D = member_info.enemy
+		var to_member := member.global_position - player_pos
+		var angle_to_member := to_member.angle()
+		var angle_diff := abs(angle_difference(player_facing.angle(), angle_to_member))
+		member_info["angle_diff"] = angle_diff
+
+	# Sort by angle difference - highest angle_diff first (most to the side)
+	all_members.sort_custom(func(a, b): return a.angle_diff > b.angle_diff)
+
+	# Assign roles:
+	# - Enemy most to the side = FLANKER (best position to flank)
+	# - Enemy most in front (player looking at) = SUPPRESSOR (draws attention)
+	# - Others = ASSAULT or REAR_GUARD
+	var role_index := 0
+	for member_info in all_members:
+		var member: Node2D = member_info.enemy
+		var role: SquadRole
+
+		if role_index == 0:
+			role = SquadRole.FLANKER
+		elif role_index == all_members.size() - 1:
+			role = SquadRole.SUPPRESSOR  # Last one (least angled) is suppressor
+		elif role_index == 1:
+			role = SquadRole.ASSAULT
+		else:
+			role = SquadRole.REAR_GUARD
+
+		if member_info.is_self:
+			_squad_role = role
+		elif member.has_method("set_squad_role"):
+			member.set_squad_role(role)
+
+		role_index += 1
+
+	# If we're the leader and got assigned a role, upgrade to LEADER
+	if _is_squad_leader and _squad_role != SquadRole.SUPPRESSOR:
+		_squad_role = SquadRole.LEADER
+
+
+## Get the direction the player is currently facing.
+func _get_player_facing_direction() -> Vector2:
+	if _player == null:
+		return Vector2.RIGHT
+
+	if _player.has_method("get_aim_direction"):
+		return _player.get_aim_direction()
+
+	# Fallback: use player's rotation
+	return Vector2.from_angle(_player.rotation)
+
+
+## Set this enemy's squad role (called by squad leader).
+func set_squad_role(role: SquadRole) -> void:
+	_squad_role = role
+	_log_debug("Assigned squad role: %s" % SquadRole.keys()[role])
+
+
+## Get current squad role.
+func get_squad_role() -> SquadRole:
+	return _squad_role
+
+
+## Get current health ratio (0.0 to 1.0).
+func get_health_ratio() -> float:
+	if _max_health <= 0:
+		return 0.0
+	return float(_current_health) / float(_max_health)
+
+
+## Broadcast a message to all squad members.
+func _broadcast_to_squad(message_type: String, data: Dictionary = {}) -> void:
+	for member in _squad_members:
+		if not is_instance_valid(member):
+			continue
+		if member.has_method("receive_squad_message"):
+			member.receive_squad_message(message_type, self, data)
+
+
+## Receive a message from a squad member.
+func receive_squad_message(message_type: String, sender: Node2D, data: Dictionary) -> void:
+	match message_type:
+		"suppression_started":
+			# Flanker can start moving
+			if _squad_role == SquadRole.FLANKER:
+				_squad_coordination_active = true
+				_log_debug("Received suppression_started, activating flanking")
+		"flanker_in_position":
+			# All can assault
+			_squad_flanker_in_position = true
+			if _squad_role in [SquadRole.LEADER, SquadRole.ASSAULT, SquadRole.SUPPRESSOR]:
+				_log_debug("Received flanker_in_position, ready for assault")
+		"player_position":
+			# Update last known player position
+			_last_known_player_position = data.get("position", Vector2.ZERO)
+		"assault_started":
+			# Start coordinated assault
+			_squad_assault_started = true
+			_log_debug("Received assault_started signal")
+
+
+## Check if squad suppression is active.
+func _is_suppression_active() -> bool:
+	if _providing_suppression:
+		return true
+	for member in _squad_members:
+		if not is_instance_valid(member):
+			continue
+		if member.has_method("is_providing_suppression") and member.is_providing_suppression():
+			return true
+	return false
+
+
+## Check if this enemy is providing suppression fire.
+func is_providing_suppression() -> bool:
+	return _providing_suppression
+
+
+## Check if squad flanker is in position.
+func _is_flanker_in_position() -> bool:
+	if _squad_flanker_in_position:
+		return true
+	# Also check if we ourselves are the flanker and in position
+	if _squad_role == SquadRole.FLANKER and _current_state == AIState.FLANKING:
+		# Check if we've reached our flank target
+		if global_position.distance_to(_flank_target) < 50.0:
+			return true
+	return false
+
+
+## Start coordinated assault with squad.
+func _start_coordinated_assault() -> void:
+	if not _squad_assault_started:
+		_squad_assault_started = true
+		_broadcast_to_squad("assault_started", {})
+		_log_debug("Starting coordinated assault")
 
 
 ## Find cover position closer to the player for pursuit.
@@ -3763,6 +4159,19 @@ func _reset() -> void:
 	# Reset sound detection state
 	_last_known_player_position = Vector2.ZERO
 	_pursuing_vulnerability_sound = false
+	# Reset squad coordination state
+	_squad_members.clear()
+	_squad_role = SquadRole.NONE
+	_is_squad_leader = false
+	_squad_update_timer = 0.0
+	_squad_member_positions.clear()
+	_squad_coordination_active = false
+	_squad_coordination_timer = 0.0
+	_squad_target_position = Vector2.ZERO
+	_providing_suppression = false
+	_squad_suppression_timer = 0.0
+	_squad_flanker_in_position = false
+	_squad_assault_started = false
 	_initialize_health()
 	_initialize_ammo()
 	_update_health_visual()
@@ -3927,6 +4336,15 @@ func _update_debug_label() -> void:
 			state_text += "\n(%s MOVING)" % side_label
 		else:
 			state_text += "\n(%s DIRECT)" % side_label
+
+	# Add squad role info if in a squad
+	if _squad_role != SquadRole.NONE:
+		var role_names := ["NONE", "LEADER", "SUPPRESSOR", "FLANKER", "ASSAULT", "REAR"]
+		state_text += "\n[%s]" % role_names[_squad_role]
+		if _providing_suppression:
+			state_text += " SUPPR"
+		if _squad_flanker_in_position:
+			state_text += " FLNK-RDY"
 
 	_debug_label.text = state_text
 

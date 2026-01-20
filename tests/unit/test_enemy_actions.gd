@@ -460,7 +460,8 @@ func test_attack_distracted_player_cost_when_not_distracted() -> void:
 func test_create_all_actions_returns_all_actions() -> void:
 	var actions: Array[GOAPAction] = EnemyActions.create_all_actions()
 
-	assert_eq(actions.size(), 13, "Should create 13 enemy actions")
+	# 14 individual actions + 4 squad coordination actions = 18 total
+	assert_eq(actions.size(), 18, "Should create 18 enemy actions (14 individual + 4 squad)")
 
 
 func test_create_all_actions_includes_all_types() -> void:

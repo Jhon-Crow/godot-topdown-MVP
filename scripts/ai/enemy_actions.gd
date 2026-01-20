@@ -280,9 +280,111 @@ class PursueVulnerablePlayerAction extends GOAPAction:
 		return 100.0  # Very high cost if player is not vulnerable
 
 
+## --- Squad Coordination Actions ---
+## These actions enable coordinated group tactics when enemies are within communication range.
+
+## Action to provide suppression fire while squadmates flank.
+## This draws the player's attention and keeps them pinned.
+class ProvideSuppressionAction extends GOAPAction:
+	# SquadRole enum values (from enemy.gd)
+	const ROLE_SUPPRESSOR := 2  # SquadRole.SUPPRESSOR
+
+	func _init() -> void:
+		super._init("provide_suppression", 0.8)
+		preconditions = {
+			"player_visible": true,
+			"has_squad": true
+		}
+		effects = {
+			"squad_suppressing": true,
+			"player_engaged": true
+		}
+
+	func get_cost(_agent: Node, world_state: Dictionary) -> float:
+		var role = world_state.get("squad_role", 0)
+		# Only low cost if this enemy is assigned SUPPRESSOR role
+		if role == ROLE_SUPPRESSOR:
+			return 0.3  # High priority
+		return 10.0  # Very low priority for other roles
+
+
+## Action to flank while suppressor provides cover.
+## Only activates when squad suppression is active.
+class CoordinatedFlankAction extends GOAPAction:
+	# SquadRole enum values (from enemy.gd)
+	const ROLE_FLANKER := 3  # SquadRole.FLANKER
+
+	func _init() -> void:
+		super._init("coordinated_flank", 0.6)
+		preconditions = {
+			"has_squad": true,
+			"squad_suppressing": true
+		}
+		effects = {
+			"at_flank_position": true,
+			"player_visible": true
+		}
+
+	func get_cost(_agent: Node, world_state: Dictionary) -> float:
+		var role = world_state.get("squad_role", 0)
+		# Only low cost if this enemy is assigned FLANKER role
+		if role == ROLE_FLANKER:
+			return 0.4  # High priority when suppression is active
+		return 10.0  # Very low priority for other roles
+
+
+## Action for coordinated assault after flanker is in position.
+## All squad members attack simultaneously for overwhelming force.
+class CoordinatedAssaultAction extends GOAPAction:
+	# SquadRole enum values (from enemy.gd)
+	const ROLE_LEADER := 1  # SquadRole.LEADER
+	const ROLE_ASSAULT := 4  # SquadRole.ASSAULT
+
+	func _init() -> void:
+		super._init("coordinated_assault", 0.4)
+		preconditions = {
+			"player_visible": true,
+			"has_squad": true,
+			"squad_flanker_ready": true
+		}
+		effects = {
+			"player_engaged": true,
+			"is_assaulting": true
+		}
+
+	func get_cost(_agent: Node, world_state: Dictionary) -> float:
+		var role = world_state.get("squad_role", 0)
+		# Low cost for ASSAULT and LEADER roles
+		if role in [ROLE_ASSAULT, ROLE_LEADER]:
+			return 0.3  # High priority
+		return 5.0  # Medium priority for others
+
+
+## Action for bounding overwatch movement between covers.
+## Move to a new cover while squadmates provide covering fire.
+class CrossCoverAction extends GOAPAction:
+	func _init() -> void:
+		super._init("cross_cover", 1.5)
+		preconditions = {
+			"has_squad": true,
+			"squad_suppressing": true,
+			"in_cover": true
+		}
+		effects = {
+			"in_cover": true  # End up in cover at new position
+		}
+
+	func get_cost(_agent: Node, world_state: Dictionary) -> float:
+		# Lower cost when squad is providing suppression
+		if world_state.get("squad_suppressing", false):
+			return 0.8
+		return 3.0
+
+
 ## Create and return all enemy actions.
 static func create_all_actions() -> Array[GOAPAction]:
 	var actions: Array[GOAPAction] = []
+	# Individual actions
 	actions.append(SeekCoverAction.new())
 	actions.append(EngagePlayerAction.new())
 	actions.append(FlankPlayerAction.new())
@@ -297,4 +399,9 @@ static func create_all_actions() -> Array[GOAPAction]:
 	actions.append(AttackDistractedPlayerAction.new())
 	actions.append(AttackVulnerablePlayerAction.new())
 	actions.append(PursueVulnerablePlayerAction.new())
+	# Squad coordination actions
+	actions.append(ProvideSuppressionAction.new())
+	actions.append(CoordinatedFlankAction.new())
+	actions.append(CoordinatedAssaultAction.new())
+	actions.append(CrossCoverAction.new())
 	return actions

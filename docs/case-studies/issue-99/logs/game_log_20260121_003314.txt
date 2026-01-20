@@ -1,0 +1,33 @@
+[00:33:14] [INFO] ============================================================
+[00:33:14] [INFO] GAME LOG STARTED
+[00:33:14] [INFO] ============================================================
+[00:33:14] [INFO] Timestamp: 2026-01-21T00:33:14
+[00:33:14] [INFO] Log file: I:/Загрузки/godot exe/game_log_20260121_003314.txt
+[00:33:14] [INFO] Executable: I:/Загрузки/godot exe/Godot-Top-Down-Template.exe
+[00:33:14] [INFO] OS: Windows
+[00:33:14] [INFO] Debug build: false
+[00:33:14] [INFO] Engine version: 4.3-stable (official)
+[00:33:14] [INFO] Project: Godot Top-Down Template
+[00:33:14] [INFO] ------------------------------------------------------------
+[00:33:14] [INFO] [GameManager] GameManager ready
+[00:33:14] [INFO] [SoundPropagation] SoundPropagation autoload initialized
+[00:33:17] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(424.8979, 785.5931), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[00:33:17] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[00:33:17] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(403.8985, 774.8067), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[00:33:17] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[00:33:17] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(387.4644, 773.4037), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[00:33:17] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[00:33:17] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(383.1647, 779.5253), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[00:33:17] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[00:33:20] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(641.116, 790.8491), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[00:33:20] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[00:33:20] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(641.116, 790.8491), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[00:33:20] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[00:33:20] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(641.116, 790.8491), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[00:33:20] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[00:33:20] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(641.116, 790.8491), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[00:33:20] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[00:33:22] [INFO] [GameManager] Debug mode toggled: ON
+[00:33:24] [INFO] ------------------------------------------------------------
+[00:33:24] [INFO] GAME LOG ENDED: 2026-01-21T00:33:24
+[00:33:24] [INFO] ============================================================
