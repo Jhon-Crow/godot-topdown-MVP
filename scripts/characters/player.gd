@@ -129,6 +129,10 @@ signal reload_sequence_progress(step: int, total: int)
 ## Signal emitted when reload completes.
 signal reload_completed
 
+## Signal emitted when reload starts (first step of sequence or simple reload).
+## This signal notifies enemies that the player has begun reloading.
+signal reload_started
+
 
 func _ready() -> void:
 	# Preload bullet scene if not set in inspector
@@ -340,6 +344,8 @@ func _handle_simple_reload_input() -> void:
 		if audio_manager and audio_manager.has_method("play_reload_full"):
 			audio_manager.play_reload_full(global_position)
 		reload_sequence_progress.emit(1, 1)
+		# Notify enemies that reload has started
+		reload_started.emit()
 
 
 ## Complete the simple reload.
@@ -373,6 +379,8 @@ func _handle_sequence_reload_input() -> void:
 				if audio_manager and audio_manager.has_method("play_reload_mag_out"):
 					audio_manager.play_reload_mag_out(global_position)
 				reload_sequence_progress.emit(1, 3)
+				# Notify enemies that reload has started
+				reload_started.emit()
 		1:
 			# Waiting for F press
 			if Input.is_action_just_pressed("reload_step"):
