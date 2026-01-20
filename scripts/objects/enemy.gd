@@ -616,8 +616,8 @@ var _squad_target_position: Vector2 = Vector2.ZERO
 ## Whether this enemy is providing suppression fire.
 var _providing_suppression: bool = false
 
-## Timer for suppression duration.
-var _suppression_timer: float = 0.0
+## Timer for squad suppression duration (how long suppressor has been providing covering fire).
+var _squad_suppression_timer: float = 0.0
 
 ## Whether the squad flanker is in position (shared state).
 var _squad_flanker_in_position: bool = false
@@ -1063,13 +1063,13 @@ func _update_squad_coordination(delta: float) -> void:
 	if _squad_coordination_active:
 		_squad_coordination_timer += delta
 
-	# Update suppression timer
+	# Update squad suppression timer
 	if _providing_suppression:
-		_suppression_timer += delta
+		_squad_suppression_timer += delta
 
 	# If we're the suppressor and have been suppressing long enough, notify flanker
 	if _squad_role == SquadRole.SUPPRESSOR and _providing_suppression:
-		if _suppression_timer >= SUPPRESSION_DURATION_BEFORE_FLANK:
+		if _squad_suppression_timer >= SUPPRESSION_DURATION_BEFORE_FLANK:
 			if not _squad_coordination_active:
 				_squad_coordination_active = true
 				_broadcast_to_squad("suppression_started", {"position": _player.global_position if _player else global_position})
@@ -4159,6 +4159,19 @@ func _reset() -> void:
 	# Reset sound detection state
 	_last_known_player_position = Vector2.ZERO
 	_pursuing_vulnerability_sound = false
+	# Reset squad coordination state
+	_squad_members.clear()
+	_squad_role = SquadRole.NONE
+	_is_squad_leader = false
+	_squad_update_timer = 0.0
+	_squad_member_positions.clear()
+	_squad_coordination_active = false
+	_squad_coordination_timer = 0.0
+	_squad_target_position = Vector2.ZERO
+	_providing_suppression = false
+	_squad_suppression_timer = 0.0
+	_squad_flanker_in_position = false
+	_squad_assault_started = false
 	_initialize_health()
 	_initialize_ammo()
 	_update_health_visual()

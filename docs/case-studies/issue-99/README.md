@@ -44,6 +44,10 @@ The issue references tactical building clearance techniques from [poligon64.ru](
 | 2026-01-20 20:23 UTC | Fix applied for missing `if` statement in `_process_flanking_state` |
 | 2026-01-20 20:27 UTC | User reports: "still not working" with new game log |
 | 2026-01-20 21:17 UTC | Second bug investigation started |
+| 2026-01-20 21:20 UTC | Fix applied for duplicate `is_alive()` function definition |
+| 2026-01-20 21:33 UTC | User reports: "enemies and debug still not working" with third game log |
+| 2026-01-20 21:34 UTC | Third bug investigation started |
+| 2026-01-20 21:40 UTC | Fix applied for duplicate `_suppression_timer` variable declaration |
 
 ## Bug Analysis (Post-Implementation)
 
@@ -161,12 +165,56 @@ In GDScript, duplicate function definitions cause a parser error, preventing the
 
 Removed the duplicate function definition at line 3166-3167, keeping only the original function at line 4218.
 
-### Lessons Learned
+### Third Bug Report (2026-01-20 21:33 UTC)
 
-1. **When adding new code to large files**: Always search for existing functions with the same name before adding new ones
+**User Feedback**: "всё ещё не работают враги и дебаг" (enemies and debug still not working)
+
+The user provided a third game log (`logs/game_log_20260121_003314.txt`) showing the same `listeners=0` problem.
+
+### Third Root Cause: Duplicate Variable Declaration
+
+Upon using GDScript syntax analysis tools and manual code inspection, a third critical error was found:
+
+**Duplicate `_suppression_timer` variable declaration**
+
+The squad coordination implementation accidentally added a variable with the same name as an existing one:
+
+```gdscript
+# First definition (line 332 - original suppression cooldown timer):
+## Timer for suppression cooldown.
+var _suppression_timer: float = 0.0
+
+# Second definition (line 620 - new squad suppression timer):
+## Timer for suppression duration.
+var _suppression_timer: float = 0.0
+```
+
+In GDScript, duplicate variable declarations cause a parser error just like duplicate function definitions.
+
+### Third Fix Applied
+
+1. Renamed the second variable from `_suppression_timer` to `_squad_suppression_timer`
+2. Updated all references to use the correct variable:
+   - Squad coordination code now uses `_squad_suppression_timer`
+   - Original suppression cooldown code continues using `_suppression_timer`
+3. Added reset code for all squad coordination variables in `_reset()` function
+
+```gdscript
+# Original (suppression cooldown - how long to stay suppressed):
+var _suppression_timer: float = 0.0
+
+# New (squad suppression duration - how long suppressor has been providing covering fire):
+var _squad_suppression_timer: float = 0.0
+```
+
+### Lessons Learned (Updated)
+
+1. **When adding new code to large files**: Always search for existing functions AND variables with the same name before adding new ones
 2. **Test incremental changes**: After each significant change, verify the script still loads
-3. **Verify fixes thoroughly**: The first fix resolved one syntax error but didn't catch the duplicate function
-4. **GDScript error messages**: Duplicate function definitions can be hard to spot without explicit compiler feedback
+3. **Verify fixes thoroughly**: Multiple bugs can mask each other - fixing one may reveal another
+4. **GDScript error messages**: Both duplicate function definitions AND duplicate variable declarations cause parser errors
+5. **Use automated tools**: Tools like `gdparse` and `gdlint` can catch syntax errors before runtime
+6. **Check variable uniqueness**: Run `grep -n "^var _" file.gd | cut -d: -f2 | sort | uniq -c | sort -rn` to find duplicates
 
 ## Existing System Analysis
 
