@@ -24,6 +24,7 @@ modulate = Color(0.2, 0.6, 1, 1)
 texture = SubResource("PlaceholderTexture2D_player")
 
 [node name="Camera2D" type="Camera2D" parent="."]
+process_callback = 0
 limit_left = 0
 limit_top = 0
 limit_right = 4128

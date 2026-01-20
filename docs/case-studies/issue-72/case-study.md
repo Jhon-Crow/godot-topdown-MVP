@@ -213,6 +213,52 @@ The solution implements a realistic tracer effect by:
 
 4. **Global Coordinates**: The trail uses `top_level = true` so it renders in world space, not relative to the moving bullet
 
+## User Feedback (2026-01-20)
+
+User reported that after testing the built exe, "ничего не изменилось" (nothing changed). The tripling effect persisted despite the tracer visual changes.
+
+### Second Investigation
+
+After reviewing the user's feedback and conducting additional research, a critical root cause was identified:
+
+**Camera2D process_callback was set to default (Idle) instead of Physics**
+
+This issue is well-documented in the Godot community:
+- [Godot 4 2D movement causing ghost jitter blur [FIX]](https://forum.godotengine.org/t/godot-4-2d-movement-causing-ghost-jitter-blur-fix/62706)
+
+When the camera updates in Idle mode while the game objects move in physics mode, there's a desynchronization that causes:
+- Visual artifacts on fast-moving objects
+- Ghosting/tripling appearance
+- Objects appearing at multiple positions simultaneously
+
+### Additional Fix Applied
+
+#### `scenes/characters/Player.tscn` and `scenes/characters/csharp/Player.tscn`
+
+Added `process_callback = 0` to Camera2D node:
+
+```ini
+[node name="Camera2D" type="Camera2D" parent="."]
+process_callback = 0  # 0 = Physics mode (was default Idle)
+limit_left = 0
+...
+```
+
+This ensures the camera updates synchronize with physics updates, eliminating the visual desync that caused the tripling effect.
+
+### Combined Solution
+
+The complete fix consists of:
+
+1. **Camera2D process_callback = Physics** (Root cause fix)
+   - Syncs camera with physics updates
+   - Eliminates ghosting from timing desynchronization
+
+2. **Tracer visual effect** (Enhanced appearance)
+   - 16x4 elongated bullet sprite
+   - Line2D trail with gradient fade
+   - Rotation to match travel direction
+
 ## References
 
 - https://forum.godotengine.org/t/godot-4-2d-movement-causing-ghost-jitter-blur-fix/62706
