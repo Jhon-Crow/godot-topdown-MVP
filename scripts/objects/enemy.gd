@@ -1750,10 +1750,12 @@ func _process_flanking_state(delta: float) -> void:
 	_flank_state_timer += delta
 
 	# Squad coordination: If we're the FLANKER and have squad suppression, we can move faster
-	# because we have covering fire. Increase timeout and reduce caution.
+	# because we have covering fire. Extend timeout when we have covering fire.
 	var has_covering_fire := (_squad_role == SquadRole.FLANKER and _is_suppression_active())
+	var effective_max_time := FLANK_STATE_MAX_TIME * (1.5 if has_covering_fire else 1.0)
 
 	# Check for overall FLANKING state timeout
+	if _flank_state_timer >= effective_max_time:
 		var msg := "FLANKING timeout (%.1fs), target=%s, pos=%s" % [_flank_state_timer, _flank_target, global_position]
 		_log_debug(msg)
 		_log_to_file(msg)

@@ -33,11 +33,94 @@ The issue references tactical building clearance techniques from [poligon64.ru](
 
 ## Timeline Reconstruction
 
-| Date | Event |
-|------|-------|
+| Date/Time | Event |
+|-----------|-------|
 | Issue Creation | Request for group tactical behavior submitted |
 | Analysis Phase | Codebase exploration to understand existing AI systems |
 | Design Phase | Group behavior system design (this document) |
+| 2026-01-20 20:10 UTC | First implementation PR created with squad coordination system |
+| 2026-01-20 20:14 UTC | User reports: "enemies broken, debug also broken" with game log |
+| 2026-01-20 20:17 UTC | Bug investigation started |
+
+## Bug Analysis (Post-Implementation)
+
+### Reported Symptoms
+
+User (@Jhon-Crow) reported:
+1. "враги сломались" (enemies are broken)
+2. "дебаг тоже" (debug also broken)
+3. Attached game log: `game_log_20260120_231338.txt`
+
+### Game Log Analysis
+
+From the attached log file (`logs/game_log_20260120_231338.txt`):
+
+```
+[23:13:47] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(624.6003, 777.6966),
+           source=PLAYER (AssaultRifle), range=1469, listeners=0
+[23:13:47] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+```
+
+**Key Finding**: `listeners=0` indicates that no enemies were registered as sound listeners. This means either:
+- Enemies failed to initialize properly
+- Enemies crashed during initialization
+- The scene had no enemies spawned
+
+### Root Cause Identified
+
+**Critical Syntax Error in `_process_flanking_state` function**
+
+The original code (main branch):
+```gdscript
+func _process_flanking_state(delta: float) -> void:
+    _flank_state_timer += delta
+
+    # Check for overall FLANKING state timeout
+    if _flank_state_timer >= FLANK_STATE_MAX_TIME:
+        var msg := "FLANKING timeout..."
+        # ... timeout handling code
+        return
+```
+
+The broken code (after PR changes):
+```gdscript
+func _process_flanking_state(delta: float) -> void:
+    _flank_state_timer += delta
+
+    var has_covering_fire := (_squad_role == SquadRole.FLANKER and _is_suppression_active())
+
+    # Check for overall FLANKING state timeout
+        var msg := "FLANKING timeout..."  # <-- INDENTED WITHOUT IF STATEMENT!
+        # ... timeout handling code
+        return
+```
+
+**The `if` statement was accidentally removed**, leaving an orphaned code block with incorrect indentation. In GDScript, this creates a syntax/parsing error that prevents the script from loading properly.
+
+### Why This Happened
+
+During the implementation of squad coordination, the developer intended to modify the timeout logic to account for covering fire (extending the timeout when a flanker has suppression support). However, the `if` statement was removed instead of being modified, creating invalid GDScript syntax.
+
+### Fix Applied
+
+```gdscript
+func _process_flanking_state(delta: float) -> void:
+    _flank_state_timer += delta
+
+    # Squad coordination: Extend timeout when we have covering fire.
+    var has_covering_fire := (_squad_role == SquadRole.FLANKER and _is_suppression_active())
+    var effective_max_time := FLANK_STATE_MAX_TIME * (1.5 if has_covering_fire else 1.0)
+
+    # Check for overall FLANKING state timeout
+    if _flank_state_timer >= effective_max_time:
+        var msg := "FLANKING timeout..."
+        # ... rest of timeout handling
+```
+
+This fix:
+1. Restores the `if` statement that was accidentally removed
+2. Implements the intended feature: flankers with covering fire get 50% more time before timeout
+3. Preserves all existing timeout behavior for enemies without covering fire
 
 ## Existing System Analysis
 
