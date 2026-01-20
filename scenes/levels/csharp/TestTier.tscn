@@ -1,6 +1,6 @@
 [gd_scene load_steps=9 format=3 uid="uid://e3kv7pm5r2auc"]
 
-[ext_resource type="Script" path="res://scripts/levels/test_tier.gd" id="1_test_tier"]
+[ext_resource type="Script" path="res://scripts/levels/tutorial_level.gd" id="1_test_tier"]
 [ext_resource type="PackedScene" uid="uid://dv8nq2vj5r7p2" path="res://scenes/characters/csharp/Player.tscn" id="2_player"]
 [ext_resource type="PackedScene" uid="uid://dx3k7pm5t2auc" path="res://scenes/objects/csharp/Target.tscn" id="3_target"]
 [ext_resource type="PackedScene" uid="uid://dxqmk8f3nw5pe" path="res://scenes/ui/PauseMenu.tscn" id="4_pause_menu"]
@@ -161,7 +161,7 @@ offset_left = 700.0
 offset_top = 80.0
 offset_right = 850.0
 offset_bottom = 110.0
-text = "TARGET ZONE (C#)"
+text = "ЗОНА МИШЕНЕЙ"
 horizontal_alignment = 1
 
 [node name="Entities" type="Node2D" parent="."]
@@ -189,16 +189,16 @@ offset_top = 10.0
 offset_right = -10.0
 offset_bottom = 40.0
 grow_horizontal = 0
-text = "Test Tier (C# Version)"
+text = "Обучение"
 horizontal_alignment = 2
 
-[node name="InstructionsLabel" type="Label" parent="CanvasLayer/UI"]
+[node name="AmmoLabel" type="Label" parent="CanvasLayer/UI"]
 layout_mode = 1
 anchors_preset = 0
 offset_left = 10.0
-offset_top = 650.0
-offset_right = 450.0
-offset_bottom = 710.0
-text = "WASD - Move | LMB - Shoot (hold) | R - Reload | B - Toggle Fire Mode | ESC - Pause"
+offset_top = 10.0
+offset_right = 200.0
+offset_bottom = 45.0
+text = "AMMO: 30/30"
 
 [node name="PauseMenu" parent="." instance=ExtResource("4_pause_menu")]

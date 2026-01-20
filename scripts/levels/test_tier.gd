@@ -206,10 +206,6 @@ func _setup_debug_ui() -> void:
 	_magazines_label.offset_bottom = 135
 	ui.add_child(_magazines_label)
 
-	# Update instructions label with Q restart info
-	var instructions_label := get_node_or_null("CanvasLayer/UI/InstructionsLabel")
-	if instructions_label:
-		instructions_label.text = "WASD - Move | LMB - Shoot (hold) | R - Reload | B - Toggle Fire Mode | Q - Quick Restart | ESC - Pause\nEnemies use cover and flanking! Laser sight shows bullet trajectory. Clear all zones to win."
 
 
 ## Setup saturation overlay for kill effect.
