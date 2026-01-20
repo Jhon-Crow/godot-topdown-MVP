@@ -89,6 +89,20 @@ public partial class Player : BaseCharacter
     [Signal]
     public delegate void ReloadCompletedEventHandler();
 
+    /// <summary>
+    /// Signal emitted when reload starts (first step of sequence).
+    /// This signal notifies enemies that the player has begun reloading.
+    /// </summary>
+    [Signal]
+    public delegate void ReloadStartedEventHandler();
+
+    /// <summary>
+    /// Signal emitted when player tries to shoot with empty weapon.
+    /// This signal notifies enemies that the player is out of ammo.
+    /// </summary>
+    [Signal]
+    public delegate void AmmoDepletedEventHandler();
+
     public override void _Ready()
     {
         base._Ready();
@@ -210,6 +224,15 @@ public partial class Player : BaseCharacter
         if (!shootInputActive)
         {
             return;
+        }
+
+        // Check if weapon is empty before trying to shoot (not in reload sequence)
+        // This notifies enemies that the player tried to shoot with no ammo
+        if (!_isReloadingSequence && CurrentWeapon.CurrentAmmo <= 0)
+        {
+            // Emit signal to notify enemies that player is vulnerable (out of ammo)
+            EmitSignal(SignalName.AmmoDepleted);
+            // The weapon will play the empty click sound
         }
 
         // Handle shooting based on reload sequence state
@@ -359,6 +382,8 @@ public partial class Player : BaseCharacter
                 // Play magazine out sound
                 PlayReloadMagOutSound();
                 EmitSignal(SignalName.ReloadSequenceProgress, 1, 3);
+                // Notify enemies that player has started reloading (vulnerable state)
+                EmitSignal(SignalName.ReloadStarted);
             }
             else if (_reloadSequenceStep == 2)
             {

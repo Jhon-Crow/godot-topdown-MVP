@@ -1,0 +1,18 @@
+{
+  "dirs": ["res://tests/unit", "res://tests/integration"],
+  "double_strategy": "partial",
+  "include_subdirs": true,
+  "inner_class_name": "",
+  "log_level": 2,
+  "opacity": 100,
+  "prefix": "test_",
+  "should_exit": true,
+  "should_exit_on_success": false,
+  "should_maximize": false,
+  "suffix": ".gd",
+  "tests": [],
+  "font_name": "Default",
+  "font_size": 16,
+  "junit_xml_file": "",
+  "junit_xml_timestamp": false
+}

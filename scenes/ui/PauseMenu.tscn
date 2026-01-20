@@ -4,7 +4,7 @@
 
 [node name="PauseMenu" type="CanvasLayer"]
 layer = 100
-process_mode = 2
+process_mode = 3
 script = ExtResource("1_pause")
 
 [node name="ColorRect" type="ColorRect" parent="."]
@@ -52,6 +52,16 @@ text = "Resume"
 custom_minimum_size = Vector2(200, 40)
 layout_mode = 2
 text = "Controls"
+
+[node name="DifficultyButton" type="Button" parent="MenuContainer/VBoxContainer"]
+custom_minimum_size = Vector2(200, 40)
+layout_mode = 2
+text = "Difficulty"
+
+[node name="LevelsButton" type="Button" parent="MenuContainer/VBoxContainer"]
+custom_minimum_size = Vector2(200, 40)
+layout_mode = 2
+text = "Levels"
 
 [node name="QuitButton" type="Button" parent="MenuContainer/VBoxContainer"]
 custom_minimum_size = Vector2(200, 40)

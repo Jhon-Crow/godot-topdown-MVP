@@ -82,9 +82,66 @@ public partial class AssaultRifle : BaseWeapon
     private Vector2 _aimDirection = Vector2.Right;
 
     /// <summary>
+    /// Current aim angle in radians. Used for sensitivity-based aiming
+    /// where the aim interpolates smoothly toward the target angle.
+    /// </summary>
+    private float _currentAimAngle = 0.0f;
+
+    /// <summary>
+    /// Whether the aim angle has been initialized.
+    /// </summary>
+    private bool _aimAngleInitialized = false;
+
+    /// <summary>
     /// Whether the weapon is currently firing a burst.
     /// </summary>
     private bool _isBurstFiring;
+
+    /// <summary>
+    /// Current recoil offset angle in radians.
+    /// This offset is applied to both the laser sight and bullet direction.
+    /// </summary>
+    private float _recoilOffset = 0.0f;
+
+    /// <summary>
+    /// Time since the last shot was fired, used for recoil recovery.
+    /// </summary>
+    private float _timeSinceLastShot = 0.0f;
+
+    /// <summary>
+    /// Time in seconds before recoil starts recovering.
+    /// </summary>
+    private const float RecoilRecoveryDelay = 0.1f;
+
+    /// <summary>
+    /// Speed at which recoil recovers (radians per second).
+    /// </summary>
+    private const float RecoilRecoverySpeed = 8.0f;
+
+    /// <summary>
+    /// Maximum recoil offset in radians (about 5 degrees).
+    /// </summary>
+    private const float MaxRecoilOffset = 0.087f;
+
+    /// <summary>
+    /// Tracks consecutive shots for spread calculation.
+    /// </summary>
+    private int _shotCount = 0;
+
+    /// <summary>
+    /// Time since last shot for spread reset.
+    /// </summary>
+    private float _spreadResetTimer = 0.0f;
+
+    /// <summary>
+    /// Number of shots before spread starts increasing.
+    /// </summary>
+    private const int SpreadThreshold = 3;
+
+    /// <summary>
+    /// Time in seconds for spread to reset after stopping fire.
+    /// </summary>
+    private const float SpreadResetTime = 0.25f;
 
     /// <summary>
     /// Signal emitted when a burst starts.
@@ -139,7 +196,24 @@ public partial class AssaultRifle : BaseWeapon
     {
         base._Process(delta);
 
-        // Update laser sight to point towards mouse
+        // Update time since last shot for recoil recovery
+        _timeSinceLastShot += (float)delta;
+
+        // Recover recoil after delay
+        if (_timeSinceLastShot >= RecoilRecoveryDelay && _recoilOffset != 0)
+        {
+            float recoveryAmount = RecoilRecoverySpeed * (float)delta;
+            _recoilOffset = Mathf.MoveToward(_recoilOffset, 0, recoveryAmount);
+        }
+
+        // Update spread reset timer
+        _spreadResetTimer += (float)delta;
+        if (_spreadResetTimer >= SpreadResetTime)
+        {
+            _shotCount = 0;
+        }
+
+        // Update laser sight to point towards mouse (with recoil offset)
         if (LaserSightEnabled && _laserSight != null)
         {
             UpdateLaserSight();
@@ -171,6 +245,10 @@ public partial class AssaultRifle : BaseWeapon
     /// Updates the laser sight to point towards the mouse cursor.
     /// Uses raycasting to stop at obstacles.
     /// Also stores the aim direction for use when shooting.
+    /// Applies sensitivity setting from WeaponData to create a "leash" effect:
+    /// - Sensitivity > 0: Aim interpolates toward cursor at speed proportional to sensitivity.
+    ///   Higher sensitivity = faster rotation, feels like cursor is on a shorter "leash".
+    /// - Sensitivity = 0: Direct aim at cursor (automatic mode, instant response).
     /// </summary>
     private void UpdateLaserSight()
     {
@@ -181,14 +259,70 @@ public partial class AssaultRifle : BaseWeapon
 
         // Get direction to mouse
         Vector2 mousePos = GetGlobalMousePosition();
-        Vector2 direction = (mousePos - GlobalPosition).Normalized();
+        Vector2 toMouse = mousePos - GlobalPosition;
+
+        // Calculate target angle from player to mouse
+        float targetAngle = toMouse.Angle();
+
+        // Initialize aim angle on first frame
+        if (!_aimAngleInitialized)
+        {
+            _currentAimAngle = targetAngle;
+            _aimAngleInitialized = true;
+        }
+
+        Vector2 direction;
+
+        // Apply sensitivity "leash" effect when sensitivity is set
+        // This makes the aiming consistent regardless of actual cursor position
+        if (WeaponData != null && WeaponData.Sensitivity > 0)
+        {
+            // Calculate angle difference, normalized to [-PI, PI]
+            float angleDiff = Mathf.Wrap(targetAngle - _currentAimAngle, -Mathf.Pi, Mathf.Pi);
+
+            // Sensitivity controls rotation speed
+            // Higher sensitivity = faster interpolation toward target
+            // Base rotation speed is multiplied by sensitivity
+            // Sensitivity of 1 = base speed, Sensitivity of 4 = 4x speed
+            float rotationSpeed = WeaponData.Sensitivity * 10.0f; // radians per second base
+
+            // Calculate maximum rotation this frame
+            float delta = (float)GetProcessDeltaTime();
+            float maxRotation = rotationSpeed * delta;
+
+            // Clamp the rotation to not overshoot
+            float actualRotation = Mathf.Clamp(angleDiff, -maxRotation, maxRotation);
+
+            // Apply rotation
+            _currentAimAngle += actualRotation;
+
+            // Convert angle to direction
+            direction = new Vector2(Mathf.Cos(_currentAimAngle), Mathf.Sin(_currentAimAngle));
+        }
+        else
+        {
+            // Automatic mode: direct aim at cursor (instant response)
+            if (toMouse.LengthSquared() > 0.001f)
+            {
+                direction = toMouse.Normalized();
+                _currentAimAngle = targetAngle; // Keep angle in sync
+            }
+            else
+            {
+                direction = _aimDirection; // Keep previous direction if cursor is at player position
+            }
+        }
 
         // Store the aim direction for shooting
         _aimDirection = direction;
 
+        // Apply recoil offset to direction for laser visualization
+        // This makes the laser show where the bullet will actually go
+        Vector2 laserDirection = direction.Rotated(_recoilOffset);
+
         // Calculate maximum laser length based on viewport size
         // This ensures the laser extends to viewport edges regardless of direction
-        var viewport = GetViewport();
+        Viewport? viewport = GetViewport();
         if (viewport == null)
         {
             return;
@@ -199,7 +333,8 @@ public partial class AssaultRifle : BaseWeapon
         float maxLaserLength = viewportSize.Length();
 
         // Calculate the end point of the laser using viewport-based length
-        Vector2 endPoint = direction * maxLaserLength;
+        // Use laserDirection (with recoil) instead of base direction
+        Vector2 endPoint = laserDirection * maxLaserLength;
 
         // Perform raycast to check for obstacles
         var spaceState = GetWorld2D().DirectSpaceState;
@@ -338,14 +473,22 @@ public partial class AssaultRifle : BaseWeapon
         }
 
         // Use base class fire logic for automatic mode
-        bool result = base.Fire(ApplySpread(direction));
+        Vector2 spreadDirection = ApplySpread(direction);
+        bool result = base.Fire(spreadDirection);
 
         if (result)
         {
             // Play M16 shot sound
             PlayM16ShotSound();
+            // Emit gunshot sound for in-game sound propagation (alerts enemies)
+            EmitGunshotSound();
             // Play shell casing sound with delay
             PlayShellCasingDelayed();
+            // Trigger screen shake
+            TriggerScreenShake(spreadDirection);
+            // Update shot count and reset timer
+            _shotCount++;
+            _spreadResetTimer = 0.0f;
         }
 
         return result;
@@ -360,6 +503,23 @@ public partial class AssaultRifle : BaseWeapon
         if (audioManager != null && audioManager.HasMethod("play_m16_shot"))
         {
             audioManager.Call("play_m16_shot", GlobalPosition);
+        }
+    }
+
+    /// <summary>
+    /// Emits a gunshot sound to SoundPropagation system for in-game sound propagation.
+    /// This alerts nearby enemies to the player's position.
+    /// </summary>
+    private void EmitGunshotSound()
+    {
+        var soundPropagation = GetNodeOrNull("/root/SoundPropagation");
+        if (soundPropagation != null && soundPropagation.HasMethod("emit_sound"))
+        {
+            // Determine weapon loudness from WeaponData, or use viewport diagonal as default
+            float loudness = WeaponData?.Loudness ?? 1469.0f;
+            // emit_sound(sound_type, position, source_type, source_node, custom_range)
+            // sound_type 0 = GUNSHOT, source_type 0 = PLAYER
+            soundPropagation.Call("emit_sound", 0, GlobalPosition, 0, this, loudness);
         }
     }
 
@@ -468,8 +628,17 @@ public partial class AssaultRifle : BaseWeapon
         }
         // Second bullet doesn't need sound - covered by double shot sound
 
+        // Emit gunshot sound for in-game sound propagation (alerts enemies)
+        EmitGunshotSound();
+
         // Play shell casing for each bullet
         PlayShellCasingDelayed();
+
+        // Trigger screen shake
+        TriggerScreenShake(spreadDirection);
+        // Update shot count and reset timer
+        _shotCount++;
+        _spreadResetTimer = 0.0f;
 
         EmitSignal(SignalName.Fired);
         EmitSignal(SignalName.AmmoChanged, CurrentAmmo, ReserveAmmo);
@@ -488,25 +657,90 @@ public partial class AssaultRifle : BaseWeapon
     }
 
     /// <summary>
-    /// Applies spread to the shooting direction based on WeaponData settings.
+    /// Triggers screen shake based on shooting direction and current spread.
+    /// The shake direction is opposite to shooting direction (recoil effect).
+    /// Shake intensity depends on fire rate, recovery time depends on spread.
     /// </summary>
-    /// <param name="direction">Original direction.</param>
-    /// <returns>Direction with spread applied.</returns>
-    private Vector2 ApplySpread(Vector2 direction)
+    /// <param name="shootDirection">The direction the bullet is traveling.</param>
+    private void TriggerScreenShake(Vector2 shootDirection)
     {
-        if (WeaponData == null || WeaponData.SpreadAngle <= 0)
+        if (WeaponData == null || WeaponData.ScreenShakeIntensity <= 0)
         {
-            return direction;
+            return;
         }
 
-        // Convert spread angle from degrees to radians
-        float spreadRadians = Mathf.DegToRad(WeaponData.SpreadAngle);
+        var screenShakeManager = GetNodeOrNull("/root/ScreenShakeManager");
+        if (screenShakeManager == null || !screenShakeManager.HasMethod("add_shake"))
+        {
+            return;
+        }
 
-        // Generate random spread within the angle range
-        float randomSpread = (float)GD.RandRange(-spreadRadians / 2, spreadRadians / 2);
+        // Calculate shake intensity based on fire rate
+        // Lower fire rate = larger shake per shot
+        float fireRate = WeaponData.FireRate;
+        float shakeIntensity;
+        if (fireRate > 0)
+        {
+            shakeIntensity = WeaponData.ScreenShakeIntensity / fireRate * 10.0f;
+        }
+        else
+        {
+            shakeIntensity = WeaponData.ScreenShakeIntensity;
+        }
 
-        // Rotate the direction by the spread amount
-        return direction.Rotated(randomSpread);
+        // Calculate spread ratio for recovery time interpolation
+        // Spread increases after SpreadThreshold shots
+        float spreadRatio = 0.0f;
+        if (_shotCount > SpreadThreshold)
+        {
+            // Estimate max spread ratio based on shot count
+            // This is a simplified calculation
+            spreadRatio = Mathf.Clamp((_shotCount - SpreadThreshold) * 0.15f, 0.0f, 1.0f);
+        }
+
+        // Calculate recovery time based on spread ratio
+        // At min spread -> slower recovery (MinRecoveryTime)
+        // At max spread -> faster recovery (MaxRecoveryTime)
+        float minRecovery = WeaponData.ScreenShakeMinRecoveryTime;
+        float maxRecovery = Mathf.Max(WeaponData.ScreenShakeMaxRecoveryTime, 0.05f); // 50ms minimum
+        float recoveryTime = Mathf.Lerp(minRecovery, maxRecovery, spreadRatio);
+
+        // Trigger the shake via ScreenShakeManager
+        screenShakeManager.Call("add_shake", shootDirection, shakeIntensity, recoveryTime);
+    }
+
+    /// <summary>
+    /// Applies recoil offset to the shooting direction and adds new recoil.
+    /// The bullet is fired in the same direction shown by the laser sight,
+    /// then recoil is added for the next shot.
+    /// </summary>
+    /// <param name="direction">Original direction.</param>
+    /// <returns>Direction with current recoil applied.</returns>
+    private Vector2 ApplySpread(Vector2 direction)
+    {
+        // Apply the current recoil offset to the direction
+        // This matches where the laser is pointing
+        Vector2 result = direction.Rotated(_recoilOffset);
+
+        // Add recoil for the next shot
+        if (WeaponData != null && WeaponData.SpreadAngle > 0)
+        {
+            // Convert spread angle from degrees to radians
+            float spreadRadians = Mathf.DegToRad(WeaponData.SpreadAngle);
+
+            // Generate random recoil direction (-1 or 1) with small variation
+            float recoilDirection = (float)GD.RandRange(-1.0, 1.0);
+            float recoilAmount = spreadRadians * Mathf.Abs(recoilDirection);
+
+            // Add to current recoil, clamped to maximum
+            _recoilOffset += recoilDirection * recoilAmount * 0.5f;
+            _recoilOffset = Mathf.Clamp(_recoilOffset, -MaxRecoilOffset, MaxRecoilOffset);
+        }
+
+        // Reset time since last shot for recoil recovery
+        _timeSinceLastShot = 0;
+
+        return result;
     }
 
     /// <summary>
@@ -540,8 +774,15 @@ public partial class AssaultRifle : BaseWeapon
         {
             // Play M16 shot sound for chamber bullet
             PlayM16ShotSound();
+            // Emit gunshot sound for in-game sound propagation (alerts enemies)
+            EmitGunshotSound();
             // Play shell casing sound with delay
             PlayShellCasingDelayed();
+            // Trigger screen shake
+            TriggerScreenShake(spreadDirection);
+            // Update shot count and reset timer
+            _shotCount++;
+            _spreadResetTimer = 0.0f;
         }
 
         return result;

@@ -1,0 +1,928 @@
+Run Unit Tests	Set up job	﻿2026-01-18T02:30:51.0514294Z Current runner version: '2.331.0'
+Run Unit Tests	Set up job	2026-01-18T02:30:51.0545232Z ##[group]Runner Image Provisioner
+Run Unit Tests	Set up job	2026-01-18T02:30:51.0546075Z Hosted Compute Agent
+Run Unit Tests	Set up job	2026-01-18T02:30:51.0546596Z Version: 20251211.462
+Run Unit Tests	Set up job	2026-01-18T02:30:51.0547248Z Commit: 6cbad8c2bb55d58165063d031ccabf57e2d2db61
+Run Unit Tests	Set up job	2026-01-18T02:30:51.0547926Z Build Date: 2025-12-11T16:28:49Z
+Run Unit Tests	Set up job	2026-01-18T02:30:51.0548670Z Worker ID: {a0f142cf-4407-48e3-b891-c206e067c1f5}
+Run Unit Tests	Set up job	2026-01-18T02:30:51.0549414Z ##[endgroup]
+Run Unit Tests	Set up job	2026-01-18T02:30:51.0549920Z ##[group]Operating System
+Run Unit Tests	Set up job	2026-01-18T02:30:51.0550490Z Ubuntu
+Run Unit Tests	Set up job	2026-01-18T02:30:51.0550909Z 24.04.3
+Run Unit Tests	Set up job	2026-01-18T02:30:51.0551417Z LTS
+Run Unit Tests	Set up job	2026-01-18T02:30:51.0551826Z ##[endgroup]
+Run Unit Tests	Set up job	2026-01-18T02:30:51.0552323Z ##[group]Runner Image
+Run Unit Tests	Set up job	2026-01-18T02:30:51.0552878Z Image: ubuntu-24.04
+Run Unit Tests	Set up job	2026-01-18T02:30:51.0553695Z Version: 20260111.209.1
+Run Unit Tests	Set up job	2026-01-18T02:30:51.0554702Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260111.209/images/ubuntu/Ubuntu2404-Readme.md
+Run Unit Tests	Set up job	2026-01-18T02:30:51.0556088Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260111.209
+Run Unit Tests	Set up job	2026-01-18T02:30:51.0557244Z ##[endgroup]
+Run Unit Tests	Set up job	2026-01-18T02:30:51.0558400Z ##[group]GITHUB_TOKEN Permissions
+Run Unit Tests	Set up job	2026-01-18T02:30:51.0560174Z Contents: read
+Run Unit Tests	Set up job	2026-01-18T02:30:51.0560822Z Metadata: read
+Run Unit Tests	Set up job	2026-01-18T02:30:51.0561293Z Packages: read
+Run Unit Tests	Set up job	2026-01-18T02:30:51.0561818Z ##[endgroup]
+Run Unit Tests	Set up job	2026-01-18T02:30:51.0564255Z Secret source: None
+Run Unit Tests	Set up job	2026-01-18T02:30:51.0564972Z Prepare workflow directory
+Run Unit Tests	Set up job	2026-01-18T02:30:51.1025926Z Prepare all required actions
+Run Unit Tests	Set up job	2026-01-18T02:30:51.1084881Z Getting action download info
+Run Unit Tests	Set up job	2026-01-18T02:30:51.4130865Z Download action repository 'actions/checkout@v4' (SHA:34e114876b0b11c390a56381ad16ebd13914f8d5)
+Run Unit Tests	Set up job	2026-01-18T02:30:51.5318162Z Download action repository 'actions/setup-dotnet@v4' (SHA:67a3573c9a986a3f9c594539f4ab511d57bb3ce9)
+Run Unit Tests	Set up job	2026-01-18T02:30:51.7923725Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+Run Unit Tests	Set up job	2026-01-18T02:30:52.0006703Z Complete job name: Run Unit Tests
+Run Unit Tests	Checkout	﻿2026-01-18T02:30:52.0708618Z ##[group]Run actions/checkout@v4
+Run Unit Tests	Checkout	2026-01-18T02:30:52.0709474Z with:
+Run Unit Tests	Checkout	2026-01-18T02:30:52.0709913Z   repository: Jhon-Crow/godot-topdown-MVP
+Run Unit Tests	Checkout	2026-01-18T02:30:52.0710611Z   token: ***
+Run Unit Tests	Checkout	2026-01-18T02:30:52.0710980Z   ssh-strict: true
+Run Unit Tests	Checkout	2026-01-18T02:30:52.0711370Z   ssh-user: git
+Run Unit Tests	Checkout	2026-01-18T02:30:52.0711762Z   persist-credentials: true
+Run Unit Tests	Checkout	2026-01-18T02:30:52.0712201Z   clean: true
+Run Unit Tests	Checkout	2026-01-18T02:30:52.0712591Z   sparse-checkout-cone-mode: true
+Run Unit Tests	Checkout	2026-01-18T02:30:52.0713278Z   fetch-depth: 1
+Run Unit Tests	Checkout	2026-01-18T02:30:52.0713671Z   fetch-tags: false
+Run Unit Tests	Checkout	2026-01-18T02:30:52.0714066Z   show-progress: true
+Run Unit Tests	Checkout	2026-01-18T02:30:52.0714471Z   lfs: false
+Run Unit Tests	Checkout	2026-01-18T02:30:52.0714824Z   submodules: false
+Run Unit Tests	Checkout	2026-01-18T02:30:52.0715262Z   set-safe-directory: true
+Run Unit Tests	Checkout	2026-01-18T02:30:52.0715952Z ##[endgroup]
+Run Unit Tests	Checkout	2026-01-18T02:30:52.1838710Z Syncing repository: Jhon-Crow/godot-topdown-MVP
+Run Unit Tests	Checkout	2026-01-18T02:30:52.1840499Z ##[group]Getting Git version info
+Run Unit Tests	Checkout	2026-01-18T02:30:52.1841308Z Working directory is '/home/runner/work/godot-topdown-MVP/godot-topdown-MVP'
+Run Unit Tests	Checkout	2026-01-18T02:30:52.1842403Z [command]/usr/bin/git version
+Run Unit Tests	Checkout	2026-01-18T02:30:52.1962460Z git version 2.52.0
+Run Unit Tests	Checkout	2026-01-18T02:30:52.1989060Z ##[endgroup]
+Run Unit Tests	Checkout	2026-01-18T02:30:52.2002380Z Temporarily overriding HOME='/home/runner/work/_temp/c2befcf2-a523-4b14-bfe7-27efd2a15740' before making global git config changes
+Run Unit Tests	Checkout	2026-01-18T02:30:52.2004295Z Adding repository directory to the temporary git global config as a safe directory
+Run Unit Tests	Checkout	2026-01-18T02:30:52.2008492Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/godot-topdown-MVP/godot-topdown-MVP
+Run Unit Tests	Checkout	2026-01-18T02:30:52.2050349Z Deleting the contents of '/home/runner/work/godot-topdown-MVP/godot-topdown-MVP'
+Run Unit Tests	Checkout	2026-01-18T02:30:52.2054175Z ##[group]Initializing the repository
+Run Unit Tests	Checkout	2026-01-18T02:30:52.2059096Z [command]/usr/bin/git init /home/runner/work/godot-topdown-MVP/godot-topdown-MVP
+Run Unit Tests	Checkout	2026-01-18T02:30:52.2187547Z hint: Using 'master' as the name for the initial branch. This default branch name
+Run Unit Tests	Checkout	2026-01-18T02:30:52.2188960Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+Run Unit Tests	Checkout	2026-01-18T02:30:52.2190229Z hint: to use in all of your new repositories, which will suppress this warning,
+Run Unit Tests	Checkout	2026-01-18T02:30:52.2190959Z hint: call:
+Run Unit Tests	Checkout	2026-01-18T02:30:52.2191636Z hint:
+Run Unit Tests	Checkout	2026-01-18T02:30:52.2192577Z hint: 	git config --global init.defaultBranch <name>
+Run Unit Tests	Checkout	2026-01-18T02:30:52.2193435Z hint:
+Run Unit Tests	Checkout	2026-01-18T02:30:52.2194458Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+Run Unit Tests	Checkout	2026-01-18T02:30:52.2196190Z hint: 'development'. The just-created branch can be renamed via this command:
+Run Unit Tests	Checkout	2026-01-18T02:30:52.2197571Z hint:
+Run Unit Tests	Checkout	2026-01-18T02:30:52.2198296Z hint: 	git branch -m <name>
+Run Unit Tests	Checkout	2026-01-18T02:30:52.2199119Z hint:
+Run Unit Tests	Checkout	2026-01-18T02:30:52.2200184Z hint: Disable this message with "git config set advice.defaultBranchName false"
+Run Unit Tests	Checkout	2026-01-18T02:30:52.2202020Z Initialized empty Git repository in /home/runner/work/godot-topdown-MVP/godot-topdown-MVP/.git/
+Run Unit Tests	Checkout	2026-01-18T02:30:52.2206253Z [command]/usr/bin/git remote add origin https://github.com/Jhon-Crow/godot-topdown-MVP
+Run Unit Tests	Checkout	2026-01-18T02:30:52.2242459Z ##[endgroup]
+Run Unit Tests	Checkout	2026-01-18T02:30:52.2243880Z ##[group]Disabling automatic garbage collection
+Run Unit Tests	Checkout	2026-01-18T02:30:52.2247479Z [command]/usr/bin/git config --local gc.auto 0
+Run Unit Tests	Checkout	2026-01-18T02:30:52.2276172Z ##[endgroup]
+Run Unit Tests	Checkout	2026-01-18T02:30:52.2277358Z ##[group]Setting up auth
+Run Unit Tests	Checkout	2026-01-18T02:30:52.2283754Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+Run Unit Tests	Checkout	2026-01-18T02:30:52.2314207Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Run Unit Tests	Checkout	2026-01-18T02:30:52.2683605Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Run Unit Tests	Checkout	2026-01-18T02:30:52.2714187Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Run Unit Tests	Checkout	2026-01-18T02:30:52.2944196Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+Run Unit Tests	Checkout	2026-01-18T02:30:52.2975376Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Run Unit Tests	Checkout	2026-01-18T02:30:52.3199260Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+Run Unit Tests	Checkout	2026-01-18T02:30:52.3232905Z ##[endgroup]
+Run Unit Tests	Checkout	2026-01-18T02:30:52.3234201Z ##[group]Fetching the repository
+Run Unit Tests	Checkout	2026-01-18T02:30:52.3241595Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +c1f430cda85c27aa732dd54be8e21031224ad906:refs/remotes/pull/102/merge
+Run Unit Tests	Checkout	2026-01-18T02:30:52.6663550Z From https://github.com/Jhon-Crow/godot-topdown-MVP
+Run Unit Tests	Checkout	2026-01-18T02:30:52.6665226Z  * [new ref]         c1f430cda85c27aa732dd54be8e21031224ad906 -> pull/102/merge
+Run Unit Tests	Checkout	2026-01-18T02:30:52.6696592Z ##[endgroup]
+Run Unit Tests	Checkout	2026-01-18T02:30:52.6697695Z ##[group]Determining the checkout info
+Run Unit Tests	Checkout	2026-01-18T02:30:52.6699499Z ##[endgroup]
+Run Unit Tests	Checkout	2026-01-18T02:30:52.6704277Z [command]/usr/bin/git sparse-checkout disable
+Run Unit Tests	Checkout	2026-01-18T02:30:52.6746687Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+Run Unit Tests	Checkout	2026-01-18T02:30:52.6772555Z ##[group]Checking out the ref
+Run Unit Tests	Checkout	2026-01-18T02:30:52.6776157Z [command]/usr/bin/git checkout --progress --force refs/remotes/pull/102/merge
+Run Unit Tests	Checkout	2026-01-18T02:30:52.7370905Z Note: switching to 'refs/remotes/pull/102/merge'.
+Run Unit Tests	Checkout	2026-01-18T02:30:52.7371957Z 
+Run Unit Tests	Checkout	2026-01-18T02:30:52.7372783Z You are in 'detached HEAD' state. You can look around, make experimental
+Run Unit Tests	Checkout	2026-01-18T02:30:52.7374919Z changes and commit them, and you can discard any commits you make in this
+Run Unit Tests	Checkout	2026-01-18T02:30:52.7377620Z state without impacting any branches by switching back to a branch.
+Run Unit Tests	Checkout	2026-01-18T02:30:52.7379233Z 
+Run Unit Tests	Checkout	2026-01-18T02:30:52.7380257Z If you want to create a new branch to retain commits you create, you may
+Run Unit Tests	Checkout	2026-01-18T02:30:52.7382545Z do so (now or later) by using -c with the switch command. Example:
+Run Unit Tests	Checkout	2026-01-18T02:30:52.7384599Z 
+Run Unit Tests	Checkout	2026-01-18T02:30:52.7385175Z   git switch -c <new-branch-name>
+Run Unit Tests	Checkout	2026-01-18T02:30:52.7386066Z 
+Run Unit Tests	Checkout	2026-01-18T02:30:52.7386593Z Or undo this operation with:
+Run Unit Tests	Checkout	2026-01-18T02:30:52.7387499Z 
+Run Unit Tests	Checkout	2026-01-18T02:30:52.7388030Z   git switch -
+Run Unit Tests	Checkout	2026-01-18T02:30:52.7388774Z 
+Run Unit Tests	Checkout	2026-01-18T02:30:52.7389867Z Turn off this advice by setting config variable advice.detachedHead to false
+Run Unit Tests	Checkout	2026-01-18T02:30:52.7391582Z 
+Run Unit Tests	Checkout	2026-01-18T02:30:52.7393696Z HEAD is now at c1f430c Merge 0a25933e97e62b84b12198fc7cd22888b0b2d0fa into 1af5f46297838368087b3988ed62ac13f1fbd024
+Run Unit Tests	Checkout	2026-01-18T02:30:52.7398557Z ##[endgroup]
+Run Unit Tests	Checkout	2026-01-18T02:30:52.7426558Z [command]/usr/bin/git log -1 --format=%H
+Run Unit Tests	Checkout	2026-01-18T02:30:52.7450349Z c1f430cda85c27aa732dd54be8e21031224ad906
+Run Unit Tests	Setup .NET	﻿2026-01-18T02:30:52.7737454Z ##[group]Run actions/setup-dotnet@v4
+Run Unit Tests	Setup .NET	2026-01-18T02:30:52.7738564Z with:
+Run Unit Tests	Setup .NET	2026-01-18T02:30:52.7739276Z   dotnet-version: 8.0.x
+Run Unit Tests	Setup .NET	2026-01-18T02:30:52.7740128Z   cache: false
+Run Unit Tests	Setup .NET	2026-01-18T02:30:52.7740848Z ##[endgroup]
+Run Unit Tests	Setup .NET	2026-01-18T02:30:52.9529963Z [command]/home/runner/work/_actions/actions/setup-dotnet/v4/externals/install-dotnet.sh --skip-non-versioned-files --runtime dotnet --channel LTS
+Run Unit Tests	Setup .NET	2026-01-18T02:30:53.2909080Z dotnet-install: Attempting to download using aka.ms link https://builds.dotnet.microsoft.com/dotnet/Runtime/10.0.2/dotnet-runtime-10.0.2-linux-x64.tar.gz
+Run Unit Tests	Setup .NET	2026-01-18T02:30:53.7078608Z dotnet-install: Remote file https://builds.dotnet.microsoft.com/dotnet/Runtime/10.0.2/dotnet-runtime-10.0.2-linux-x64.tar.gz size is 36674396 bytes.
+Run Unit Tests	Setup .NET	2026-01-18T02:30:53.7081718Z dotnet-install: Extracting archive from https://builds.dotnet.microsoft.com/dotnet/Runtime/10.0.2/dotnet-runtime-10.0.2-linux-x64.tar.gz
+Run Unit Tests	Setup .NET	2026-01-18T02:30:54.3944426Z dotnet-install: Downloaded file size is 36674396 bytes.
+Run Unit Tests	Setup .NET	2026-01-18T02:30:54.3945611Z dotnet-install: The remote and local file sizes are equal.
+Run Unit Tests	Setup .NET	2026-01-18T02:30:54.4259007Z dotnet-install: Installed version is 10.0.2
+Run Unit Tests	Setup .NET	2026-01-18T02:30:54.4319353Z dotnet-install: Adding to current process PATH: `/usr/share/dotnet`. Note: This change will be visible only when sourcing script.
+Run Unit Tests	Setup .NET	2026-01-18T02:30:54.4321090Z dotnet-install: Note that the script does not resolve dependencies during installation.
+Run Unit Tests	Setup .NET	2026-01-18T02:30:54.4323192Z dotnet-install: To check the list of dependencies, go to https://learn.microsoft.com/dotnet/core/install, select your operating system and check the "Dependencies" section.
+Run Unit Tests	Setup .NET	2026-01-18T02:30:54.4324709Z dotnet-install: Installation finished successfully.
+Run Unit Tests	Setup .NET	2026-01-18T02:30:54.4362445Z [command]/home/runner/work/_actions/actions/setup-dotnet/v4/externals/install-dotnet.sh --skip-non-versioned-files --channel 8.0
+Run Unit Tests	Setup .NET	2026-01-18T02:30:54.7509603Z dotnet-install: Attempting to download using aka.ms link https://builds.dotnet.microsoft.com/dotnet/Sdk/8.0.417/dotnet-sdk-8.0.417-linux-x64.tar.gz
+Run Unit Tests	Setup .NET	2026-01-18T02:30:55.9526089Z dotnet-install: Remote file https://builds.dotnet.microsoft.com/dotnet/Sdk/8.0.417/dotnet-sdk-8.0.417-linux-x64.tar.gz size is 217201258 bytes.
+Run Unit Tests	Setup .NET	2026-01-18T02:30:55.9529397Z dotnet-install: Extracting archive from https://builds.dotnet.microsoft.com/dotnet/Sdk/8.0.417/dotnet-sdk-8.0.417-linux-x64.tar.gz
+Run Unit Tests	Setup .NET	2026-01-18T02:31:00.5434539Z dotnet-install: Downloaded file size is 217201258 bytes.
+Run Unit Tests	Setup .NET	2026-01-18T02:31:00.5436470Z dotnet-install: The remote and local file sizes are equal.
+Run Unit Tests	Setup .NET	2026-01-18T02:31:00.8051332Z dotnet-install: Installed version is 8.0.417
+Run Unit Tests	Setup .NET	2026-01-18T02:31:00.8113387Z dotnet-install: Adding to current process PATH: `/usr/share/dotnet`. Note: This change will be visible only when sourcing script.
+Run Unit Tests	Setup .NET	2026-01-18T02:31:00.8114879Z dotnet-install: Note that the script does not resolve dependencies during installation.
+Run Unit Tests	Setup .NET	2026-01-18T02:31:00.8116804Z dotnet-install: To check the list of dependencies, go to https://learn.microsoft.com/dotnet/core/install, select your operating system and check the "Dependencies" section.
+Run Unit Tests	Setup .NET	2026-01-18T02:31:00.8118386Z dotnet-install: Installation finished successfully.
+Run Unit Tests	Download Godot	﻿2026-01-18T02:31:00.8350414Z ##[group]Run wget -q https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_mono_linux_x86_64.zip
+Run Unit Tests	Download Godot	2026-01-18T02:31:00.8351646Z [36;1mwget -q https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_mono_linux_x86_64.zip[0m
+Run Unit Tests	Download Godot	2026-01-18T02:31:00.8352268Z [36;1munzip -q Godot_v4.3-stable_mono_linux_x86_64.zip[0m
+Run Unit Tests	Download Godot	2026-01-18T02:31:00.8352617Z [36;1mmv Godot_v4.3-stable_mono_linux_x86_64 godot[0m
+Run Unit Tests	Download Godot	2026-01-18T02:31:00.8353236Z [36;1mchmod +x godot/Godot_v4.3-stable_mono_linux.x86_64[0m
+Run Unit Tests	Download Godot	2026-01-18T02:31:00.8391399Z shell: /usr/bin/bash -e {0}
+Run Unit Tests	Download Godot	2026-01-18T02:31:00.8391657Z env:
+Run Unit Tests	Download Godot	2026-01-18T02:31:00.8391845Z   DOTNET_ROOT: /usr/share/dotnet
+Run Unit Tests	Download Godot	2026-01-18T02:31:00.8392093Z ##[endgroup]
+Run Unit Tests	Import project assets	﻿2026-01-18T02:31:02.7450122Z ##[group]Run # Run Godot to import resources (required before running tests)
+Run Unit Tests	Import project assets	2026-01-18T02:31:02.7450651Z [36;1m# Run Godot to import resources (required before running tests)[0m
+Run Unit Tests	Import project assets	2026-01-18T02:31:02.7451156Z [36;1mtimeout 60 godot/Godot_v4.3-stable_mono_linux.x86_64 --headless --import . || true[0m
+Run Unit Tests	Import project assets	2026-01-18T02:31:02.7484053Z shell: /usr/bin/bash -e {0}
+Run Unit Tests	Import project assets	2026-01-18T02:31:02.7484301Z env:
+Run Unit Tests	Import project assets	2026-01-18T02:31:02.7484489Z   DOTNET_ROOT: /usr/share/dotnet
+Run Unit Tests	Import project assets	2026-01-18T02:31:02.7484723Z ##[endgroup]
+Run Unit Tests	Import project assets	2026-01-18T02:31:02.9450547Z Godot Engine v4.3.stable.mono.official.77dcf97d8 - https://godotengine.org
+Run Unit Tests	Import project assets	2026-01-18T02:31:02.9682183Z 
+Run Unit Tests	Import project assets	2026-01-18T02:31:08.6476791Z ERROR: Unable to open file: res://.godot/imported/play.png-5c90e88e8136487a183a099d67a7de24.ctex.
+Run Unit Tests	Import project assets	2026-01-18T02:31:08.6477792Z    at: _load_data (scene/resources/compressed_texture.cpp:41)
+Run Unit Tests	Import project assets	2026-01-18T02:31:08.6479609Z ERROR: Failed loading resource: res://.godot/imported/play.png-5c90e88e8136487a183a099d67a7de24.ctex. Make sure resources have been imported by opening the project in the editor at least once.
+Run Unit Tests	Import project assets	2026-01-18T02:31:08.6481167Z    at: _load (core/io/resource_loader.cpp:283)
+Run Unit Tests	Import project assets	2026-01-18T02:31:08.6482469Z ERROR: Failed loading resource: res://addons/gut/gui/play.png. Make sure resources have been imported by opening the project in the editor at least once.
+Run Unit Tests	Import project assets	2026-01-18T02:31:08.6483866Z    at: _load (core/io/resource_loader.cpp:283)
+Run Unit Tests	Import project assets	2026-01-18T02:31:08.6484846Z ERROR: Unable to open file: res://.godot/imported/arrow.png-2b5b2d838b5b3467cf300ac2da1630d9.ctex.
+Run Unit Tests	Import project assets	2026-01-18T02:31:08.6485758Z    at: _load_data (scene/resources/compressed_texture.cpp:41)
+Run Unit Tests	Import project assets	2026-01-18T02:31:08.6487493Z ERROR: Failed loading resource: res://.godot/imported/arrow.png-2b5b2d838b5b3467cf300ac2da1630d9.ctex. Make sure resources have been imported by opening the project in the editor at least once.
+Run Unit Tests	Import project assets	2026-01-18T02:31:08.6488963Z    at: _load (core/io/resource_loader.cpp:283)
+Run Unit Tests	Import project assets	2026-01-18T02:31:08.6490302Z ERROR: Failed loading resource: res://addons/gut/gui/arrow.png. Make sure resources have been imported by opening the project in the editor at least once.
+Run Unit Tests	Import project assets	2026-01-18T02:31:08.6491575Z    at: _load (core/io/resource_loader.cpp:283)
+Run Unit Tests	Import project assets	2026-01-18T02:31:08.6495213Z ERROR: Unable to open file: res://.godot/imported/play.png-5c90e88e8136487a183a099d67a7de24.ctex.
+Run Unit Tests	Import project assets	2026-01-18T02:31:08.6506155Z    at: _load_data (scene/resources/compressed_texture.cpp:41)
+Run Unit Tests	Import project assets	2026-01-18T02:31:08.6508000Z ERROR: Failed loading resource: res://.godot/imported/play.png-5c90e88e8136487a183a099d67a7de24.ctex. Make sure resources have been imported by opening the project in the editor at least once.
+Run Unit Tests	Import project assets	2026-01-18T02:31:08.6509472Z    at: _load (core/io/resource_loader.cpp:283)
+Run Unit Tests	Import project assets	2026-01-18T02:31:08.6510773Z ERROR: Failed loading resource: res://addons/gut/gui/play.png. Make sure resources have been imported by opening the project in the editor at least once.
+Run Unit Tests	Import project assets	2026-01-18T02:31:08.6511946Z    at: _load (core/io/resource_loader.cpp:283)
+Run Unit Tests	Import project assets	2026-01-18T02:31:09.0745632Z ERROR: Unable to open file: res://.godot/imported/red.png-47a557c3922e800f76686bc1a4ad0c3c.ctex.
+Run Unit Tests	Import project assets	2026-01-18T02:31:09.0748291Z    at: _load_data (scene/resources/compressed_texture.cpp:41)
+Run Unit Tests	Import project assets	2026-01-18T02:31:09.0752013Z ERROR: Failed loading resource: res://.godot/imported/red.png-47a557c3922e800f76686bc1a4ad0c3c.ctex. Make sure resources have been imported by opening the project in the editor at least once.
+Run Unit Tests	Import project assets	2026-01-18T02:31:09.0753979Z    at: _load (core/io/resource_loader.cpp:283)
+Run Unit Tests	Import project assets	2026-01-18T02:31:09.0755698Z ERROR: Failed loading resource: res://addons/gut/images/red.png. Make sure resources have been imported by opening the project in the editor at least once.
+Run Unit Tests	Import project assets	2026-01-18T02:31:09.0756876Z    at: _load (core/io/resource_loader.cpp:283)
+Run Unit Tests	Import project assets	2026-01-18T02:31:09.0757747Z ERROR: Unable to open file: res://.godot/imported/green.png-e3a17091688e10a7013279b38edc7f8a.ctex.
+Run Unit Tests	Import project assets	2026-01-18T02:31:09.0758611Z    at: _load_data (scene/resources/compressed_texture.cpp:41)
+Run Unit Tests	Import project assets	2026-01-18T02:31:09.0760281Z ERROR: Failed loading resource: res://.godot/imported/green.png-e3a17091688e10a7013279b38edc7f8a.ctex. Make sure resources have been imported by opening the project in the editor at least once.
+Run Unit Tests	Import project assets	2026-01-18T02:31:09.0761958Z    at: _load (core/io/resource_loader.cpp:283)
+Run Unit Tests	Import project assets	2026-01-18T02:31:09.0763195Z ERROR: Failed loading resource: res://addons/gut/images/green.png. Make sure resources have been imported by opening the project in the editor at least once.
+Run Unit Tests	Import project assets	2026-01-18T02:31:09.0763923Z    at: _load (core/io/resource_loader.cpp:283)
+Run Unit Tests	Import project assets	2026-01-18T02:31:09.0764434Z ERROR: Unable to open file: res://.godot/imported/yellow.png-b3cf3d463958a169d909273d3d742052.ctex.
+Run Unit Tests	Import project assets	2026-01-18T02:31:09.0764940Z    at: _load_data (scene/resources/compressed_texture.cpp:41)
+Run Unit Tests	Import project assets	2026-01-18T02:31:09.0765862Z ERROR: Failed loading resource: res://.godot/imported/yellow.png-b3cf3d463958a169d909273d3d742052.ctex. Make sure resources have been imported by opening the project in the editor at least once.
+Run Unit Tests	Import project assets	2026-01-18T02:31:09.0766671Z    at: _load (core/io/resource_loader.cpp:283)
+Run Unit Tests	Import project assets	2026-01-18T02:31:09.0767402Z ERROR: Failed loading resource: res://addons/gut/images/yellow.png. Make sure resources have been imported by opening the project in the editor at least once.
+Run Unit Tests	Import project assets	2026-01-18T02:31:09.0768070Z    at: _load (core/io/resource_loader.cpp:283)
+Run Unit Tests	Import project assets	2026-01-18T02:31:09.1115700Z ERROR:  Config File "user://gut_temp_directory/gut_editor_config.json" does not exist.
+Run Unit Tests	Import project assets	2026-01-18T02:31:09.2403198Z ERROR: Unable to open file: res://.godot/imported/red.png-47a557c3922e800f76686bc1a4ad0c3c.ctex.
+Run Unit Tests	Import project assets	2026-01-18T02:31:09.2404398Z GUT got some new images that are not imported yet.  Please restart Godot.
+Run Unit Tests	Import project assets	2026-01-18T02:31:09.2405541Z    at: _load_data (scene/resources/compressed_texture.cpp:41)
+Run Unit Tests	Import project assets	2026-01-18T02:31:09.2444736Z ERROR: Failed loading resource: res://.godot/imported/red.png-47a557c3922e800f76686bc1a4ad0c3c.ctex. Make sure resources have been imported by opening the project in the editor at least once.
+Run Unit Tests	Import project assets	2026-01-18T02:31:09.2446208Z    at: _load (core/io/resource_loader.cpp:283)
+Run Unit Tests	Import project assets	2026-01-18T02:31:09.2447488Z ERROR: Failed loading resource: res://addons/gut/images/red.png. Make sure resources have been imported by opening the project in the editor at least once.
+Run Unit Tests	Import project assets	2026-01-18T02:31:09.2448611Z    at: _load (core/io/resource_loader.cpp:283)
+Run Unit Tests	Run GUT tests	﻿2026-01-18T02:31:11.4065766Z ##[group]Run # Run tests using GUT command line
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:11.4066179Z [36;1m# Run tests using GUT command line[0m
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:11.4066609Z [36;1mgodot/Godot_v4.3-stable_mono_linux.x86_64 --headless -s addons/gut/gut_cmdln.gd \[0m
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:11.4067146Z [36;1m  -gdir=res://tests/unit,res://tests/integration \[0m
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:11.4067463Z [36;1m  -ginclude_subdirs \[0m
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:11.4067683Z [36;1m  -gexit \[0m
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:11.4067863Z [36;1m  -glog=2 \[0m
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:11.4068159Z [36;1m  -gjunit_xml_file=test-results.xml 2>&1 | tee test-output.log[0m
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:11.4068488Z [36;1m[0m
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:11.4068674Z [36;1m# Check for test failures in output[0m
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:11.4068975Z [36;1mif grep -q "FAILED" test-output.log; then[0m
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:11.4069249Z [36;1m  echo "Tests failed!"[0m
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:11.4069462Z [36;1m  exit 1[0m
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:11.4069626Z [36;1mfi[0m
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:11.4100985Z shell: /usr/bin/bash -e {0}
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:11.4101247Z env:
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:11.4101419Z   DOTNET_ROOT: /usr/share/dotnet
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:11.4101633Z ##[endgroup]
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:11.4317562Z Godot Engine v4.3.stable.mono.official.77dcf97d8 - https://godotengine.org
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:11.4487353Z 
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:11.6924406Z [02:31:11] [INFO] ============================================================
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:11.6925323Z [02:31:11] [INFO] GAME LOG STARTED
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:11.6925876Z [02:31:11] [INFO] ============================================================
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:11.6926393Z [02:31:11] [INFO] Timestamp: 2026-01-18T02:31:11
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:11.6927561Z [02:31:11] [INFO] Log file: /home/runner/work/godot-topdown-MVP/godot-topdown-MVP/godot/game_log_20260118_023111.txt
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:11.6928792Z [02:31:11] [INFO] Executable: /home/runner/work/godot-topdown-MVP/godot-topdown-MVP/godot/Godot_v4.3-stable_mono_linux.x86_64
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:11.6929503Z [02:31:11] [INFO] OS: Linux
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:11.6929799Z [02:31:11] [INFO] Debug build: true
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:11.6930239Z [02:31:11] [INFO] Engine version: 4.3-stable (official)
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:11.6930686Z [02:31:11] [INFO] Project: Godot Top-Down Template
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:11.6931223Z [02:31:11] [INFO] ------------------------------------------------------------
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:11.6931711Z [02:31:11] [INFO] [GameManager] GameManager ready
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:11.8177256Z 
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:11.8177311Z 
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:11.8177651Z  ---  Gut  ---
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:11.8429079Z [1m[INFO]:  [0musing [/home/runner/.local/share/godot/app_userdata/Godot Top-Down Template] for temporary output.
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:11.8429799Z Godot version:  4.3.0
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:11.8430069Z GUT version:  9.2.1
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0569454Z [4m
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0569775Z 
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0570183Z res://tests/unit/test_enemy_actions.gd
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0612256Z [0m* test_seek_cover_action_initialization
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0614381Z [32m    [Passed]:  [0m["seek_cover"] expected to equal ["seek_cover"]:  Action name should be 'seek_cover'
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0615853Z [32m    [Passed]:  [0m[2.0] expected to equal [2.0]:  Base cost should be 2.0
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0616684Z * test_seek_cover_action_preconditions
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0617747Z [32m    [Passed]:  [0m[true] expected to equal [true]:  Requires has_cover to be true
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0619159Z [32m    [Passed]:  [0m[false] expected to equal [false]:  Requires in_cover to be false
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0619997Z * test_seek_cover_action_effects
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0620976Z [32m    [Passed]:  [0m[true] expected to equal [true]:  Effect should set in_cover to true
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0622343Z [32m    [Passed]:  [0m[false] expected to equal [false]:  Effect should set under_fire to false
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0623483Z * test_seek_cover_action_cost_when_player_visible
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0624645Z [32m    [Passed]:  [0m[3.0] expected to equal [3.0]:  Cost should be higher when player is visible
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0625646Z * test_seek_cover_action_cost_when_player_not_visible
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0627344Z [32m    [Passed]:  [0m[2.0] expected to equal [2.0]:  Cost should be normal when player is not visible
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0628319Z * test_engage_player_action_initialization
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0629581Z [32m    [Passed]:  [0m["engage_player"] expected to equal ["engage_player"]:  Action name should be 'engage_player'
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0630819Z [32m    [Passed]:  [0m[1.0] expected to equal [1.0]:  Base cost should be 1.0
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0631491Z * test_engage_player_action_preconditions
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0632423Z [32m    [Passed]:  [0m[true] expected to equal [true]:  Requires player_visible to be true
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0633336Z * test_engage_player_action_effects
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0634222Z [32m    [Passed]:  [0m[true] expected to equal [true]:  Effect should set player_engaged to true
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0635072Z * test_engage_player_action_cost_in_cover
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0635938Z [32m    [Passed]:  [0m[0.5] expected to equal [0.5]:  Cost should be lower when in cover
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0636737Z * test_engage_player_action_cost_under_fire
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0637635Z [32m    [Passed]:  [0m[2.0] expected to equal [2.0]:  Cost should be higher when under fire
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0638689Z * test_engage_player_action_cost_normal
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0639532Z [32m    [Passed]:  [0m[1.0] expected to equal [1.0]:  Cost should be normal otherwise
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0640218Z * test_flank_player_action_initialization
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0641663Z [32m    [Passed]:  [0m["flank_player"] expected to equal ["flank_player"]:  Action name should be 'flank_player'
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0642823Z [32m    [Passed]:  [0m[3.0] expected to equal [3.0]:  Base cost should be 3.0
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0643621Z * test_flank_player_action_preconditions
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0645039Z [32m    [Passed]:  [0m[false] expected to equal [false]:  Requires player not visible
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0646142Z [32m    [Passed]:  [0m[false] expected to equal [false]:  Requires not under fire
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0646817Z * test_flank_player_action_effects
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0647981Z [32m    [Passed]:  [0m[true] expected to equal [true]:  Should reach flank position
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0649023Z [32m    [Passed]:  [0m[true] expected to equal [true]:  Should make player visible
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0649689Z * test_patrol_action_initialization
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0650985Z [32m    [Passed]:  [0m["patrol"] expected to equal ["patrol"]:  Action name should be 'patrol'
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0652033Z [32m    [Passed]:  [0m[1.0] expected to equal [1.0]:  Base cost should be 1.0
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0652665Z * test_patrol_action_preconditions
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0654147Z [32m    [Passed]:  [0m[false] expected to equal [false]:  Requires player not visible
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0655281Z [32m    [Passed]:  [0m[false] expected to equal [false]:  Requires not under fire
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0655931Z * test_patrol_action_effects
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0657553Z [32m    [Passed]:  [0m[true] expected to equal [true]:  Effect should set area_patrolled
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0658310Z * test_stay_suppressed_action_initialization
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0659790Z [32m    [Passed]:  [0m["stay_suppressed"] expected to equal ["stay_suppressed"]:  Action name should be 'stay_suppressed'
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0661097Z [32m    [Passed]:  [0m[0.5] expected to equal [0.5]:  Base cost should be 0.5 (low priority)
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0661843Z * test_stay_suppressed_action_preconditions
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0662827Z [32m    [Passed]:  [0m[true] expected to equal [true]:  Requires being under fire
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0664512Z [32m    [Passed]:  [0m[true] expected to equal [true]:  Requires being in cover
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0665453Z * test_stay_suppressed_action_effects
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0666960Z [32m    [Passed]:  [0m[true] expected to equal [true]:  Effect should set waiting_for_safe
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0668155Z * test_return_fire_action_initialization
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0669319Z [32m    [Passed]:  [0m["return_fire"] expected to equal ["return_fire"]:  Action name should be 'return_fire'
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0670973Z [32m    [Passed]:  [0m[1.5] expected to equal [1.5]:  Base cost should be 1.5
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0671677Z * test_return_fire_action_preconditions
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0672484Z [32m    [Passed]:  [0m[true] expected to equal [true]:  Requires player visible
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0673625Z [32m    [Passed]:  [0m[true] expected to equal [true]:  Requires being in cover
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0674265Z * test_return_fire_action_effects
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0676448Z [32m    [Passed]:  [0m[true] expected to equal [true]:  Effect should set player_engaged
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0677244Z * test_find_cover_action_initialization
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0678272Z [32m    [Passed]:  [0m["find_cover"] expected to equal ["find_cover"]:  Action name should be 'find_cover'
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0679478Z [32m    [Passed]:  [0m[0.5] expected to equal [0.5]:  Base cost should be 0.5 (high priority)
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0680226Z * test_find_cover_action_preconditions
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0681083Z [32m    [Passed]:  [0m[false] expected to equal [false]:  Requires not having cover
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0682087Z * test_find_cover_action_effects
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0682873Z [32m    [Passed]:  [0m[true] expected to equal [true]:  Effect should set has_cover
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0683755Z * test_retreat_action_initialization
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0684682Z [32m    [Passed]:  [0m["retreat"] expected to equal ["retreat"]:  Action name should be 'retreat'
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0685905Z [32m    [Passed]:  [0m[4.0] expected to equal [4.0]:  Base cost should be 4.0 (low priority normally)
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0686657Z * test_retreat_action_preconditions
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0687390Z [32m    [Passed]:  [0m[true] expected to equal [true]:  Requires low health
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0688002Z * test_retreat_action_effects
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0688759Z [32m    [Passed]:  [0m[true] expected to equal [true]:  Effect should set in_cover
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0689781Z [32m    [Passed]:  [0m[true] expected to equal [true]:  Effect should set retreated
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0690453Z * test_retreat_action_cost_under_fire
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0691445Z [32m    [Passed]:  [0m[1.0] expected to equal [1.0]:  Cost should be much lower when under fire with low health
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0692263Z * test_retreat_action_cost_not_under_fire
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0693323Z [32m    [Passed]:  [0m[4.0] expected to equal [4.0]:  Cost should be normal when not under fire
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0694123Z * test_retreat_with_fire_action_initialization
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0695314Z [32m    [Passed]:  [0m["retreat_with_fire"] expected to equal ["retreat_with_fire"]:  Action name should be 'retreat_with_fire'
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0696523Z [32m    [Passed]:  [0m[1.5] expected to equal [1.5]:  Base cost should be 1.5
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0697172Z * test_retreat_with_fire_action_preconditions
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0697988Z [32m    [Passed]:  [0m[true] expected to equal [true]:  Requires being under fire
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0698655Z * test_retreat_with_fire_action_effects
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0699452Z [32m    [Passed]:  [0m[true] expected to equal [true]:  Effect should set in_cover
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0700490Z [32m    [Passed]:  [0m[true] expected to equal [true]:  Effect should set is_retreating
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0701178Z * test_retreat_with_fire_cost_no_hits
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0701914Z [32m    [Passed]:  [0m[1.0] expected to equal [1.0]:  Cost with no hits taken
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0702546Z * test_retreat_with_fire_cost_one_hit
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0703420Z [32m    [Passed]:  [0m[0.8] expected to equal [0.8]:  Cost with one hit taken
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0704070Z * test_retreat_with_fire_cost_multiple_hits
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0705027Z [32m    [Passed]:  [0m[0.5] expected to equal [0.5]:  Cost with multiple hits taken (priority to escape)
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0705821Z * test_pursue_player_action_initialization
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0706884Z [32m    [Passed]:  [0m["pursue_player"] expected to equal ["pursue_player"]:  Action name should be 'pursue_player'
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0708318Z [32m    [Passed]:  [0m[2.5] expected to equal [2.5]:  Base cost should be 2.5
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0708982Z * test_pursue_player_action_preconditions
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0709807Z [32m    [Passed]:  [0m[false] expected to equal [false]:  Requires player not visible
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0710834Z [32m    [Passed]:  [0m[false] expected to equal [false]:  Requires player not close
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0711495Z * test_pursue_player_action_effects
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0712291Z [32m    [Passed]:  [0m[true] expected to equal [true]:  Effect should set is_pursuing
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0713458Z [32m    [Passed]:  [0m[true] expected to equal [true]:  Effect should set player_close
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0714190Z * test_pursue_player_cost_cannot_hit_from_cover
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0715157Z [32m    [Passed]:  [0m[1.5] expected to equal [1.5]:  Cost should be lower when can't hit from cover
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0715932Z * test_pursue_player_cost_can_hit_from_cover
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0716859Z [32m    [Passed]:  [0m[3.0] expected to equal [3.0]:  Cost should be higher when can hit from cover
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0717845Z * test_assault_player_action_initialization
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0718956Z [32m    [Passed]:  [0m["assault_player"] expected to equal ["assault_player"]:  Action name should be 'assault_player'
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0720113Z [32m    [Passed]:  [0m[1.0] expected to equal [1.0]:  Base cost should be 1.0
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0720755Z * test_assault_player_action_preconditions
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0721539Z [32m    [Passed]:  [0m[true] expected to equal [true]:  Requires player visible
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0722175Z * test_assault_player_action_effects
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0723135Z [32m    [Passed]:  [0m[true] expected to equal [true]:  Effect should set is_assaulting
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0724222Z [32m    [Passed]:  [0m[true] expected to equal [true]:  Effect should set player_engaged
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0724970Z * test_assault_player_cost_with_multiple_enemies
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0725906Z [32m    [Passed]:  [0m[0.5] expected to equal [0.5]:  Cost should be low for coordinated attack
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0726628Z * test_assault_player_cost_alone
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0727588Z [32m    [Passed]:  [0m[5.0] expected to equal [5.0]:  Cost should be very high when alone (prefer other actions)
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0728421Z * test_create_all_actions_returns_all_actions
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0729225Z [32m    [Passed]:  [0m[11] expected to equal [11]:  Should create 11 enemy actions
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0729899Z * test_create_all_actions_includes_all_types
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0732165Z [32m    [Passed]:  [0mExpected [ARRAY(["seek_cover", "engage_player", "flank_player", "patrol", "stay_suppressed", "return_fire", "find_cover", "retreat", "retreat_with_fire", "pursue_player", "assault_player"])] to contain value:  ["seek_cover"]:  Should include seek_cover
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0735887Z [32m    [Passed]:  [0mExpected [ARRAY(["seek_cover", "engage_player", "flank_player", "patrol", "stay_suppressed", "return_fire", "find_cover", "retreat", "retreat_with_fire", "pursue_player", "assault_player"])] to contain value:  ["engage_player"]:  Should include engage_player
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0739461Z [32m    [Passed]:  [0mExpected [ARRAY(["seek_cover", "engage_player", "flank_player", "patrol", "stay_suppressed", "return_fire", "find_cover", "retreat", "retreat_with_fire", "pursue_player", "assault_player"])] to contain value:  ["flank_player"]:  Should include flank_player
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0742922Z [32m    [Passed]:  [0mExpected [ARRAY(["seek_cover", "engage_player", "flank_player", "patrol", "stay_suppressed", "return_fire", "find_cover", "retreat", "retreat_with_fire", "pursue_player", "assault_player"])] to contain value:  ["patrol"]:  Should include patrol
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0746583Z [32m    [Passed]:  [0mExpected [ARRAY(["seek_cover", "engage_player", "flank_player", "patrol", "stay_suppressed", "return_fire", "find_cover", "retreat", "retreat_with_fire", "pursue_player", "assault_player"])] to contain value:  ["stay_suppressed"]:  Should include stay_suppressed
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0750337Z [32m    [Passed]:  [0mExpected [ARRAY(["seek_cover", "engage_player", "flank_player", "patrol", "stay_suppressed", "return_fire", "find_cover", "retreat", "retreat_with_fire", "pursue_player", "assault_player"])] to contain value:  ["return_fire"]:  Should include return_fire
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0753983Z [32m    [Passed]:  [0mExpected [ARRAY(["seek_cover", "engage_player", "flank_player", "patrol", "stay_suppressed", "return_fire", "find_cover", "retreat", "retreat_with_fire", "pursue_player", "assault_player"])] to contain value:  ["find_cover"]:  Should include find_cover
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0757463Z [32m    [Passed]:  [0mExpected [ARRAY(["seek_cover", "engage_player", "flank_player", "patrol", "stay_suppressed", "return_fire", "find_cover", "retreat", "retreat_with_fire", "pursue_player", "assault_player"])] to contain value:  ["retreat"]:  Should include retreat
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0761036Z [32m    [Passed]:  [0mExpected [ARRAY(["seek_cover", "engage_player", "flank_player", "patrol", "stay_suppressed", "return_fire", "find_cover", "retreat", "retreat_with_fire", "pursue_player", "assault_player"])] to contain value:  ["retreat_with_fire"]:  Should include retreat_with_fire
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0765000Z [32m    [Passed]:  [0mExpected [ARRAY(["seek_cover", "engage_player", "flank_player", "patrol", "stay_suppressed", "return_fire", "find_cover", "retreat", "retreat_with_fire", "pursue_player", "assault_player"])] to contain value:  ["pursue_player"]:  Should include pursue_player
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0768586Z [32m    [Passed]:  [0mExpected [ARRAY(["seek_cover", "engage_player", "flank_player", "patrol", "stay_suppressed", "return_fire", "find_cover", "retreat", "retreat_with_fire", "pursue_player", "assault_player"])] to contain value:  ["assault_player"]:  Should include assault_player
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0770356Z * test_actions_work_with_planner
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0771232Z [32m    [Passed]:  [0m[2] expected to be > than [0]:  Planner should find a plan to get in cover
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0772470Z [32m    [Passed]:  [0m["find_cover"] expected to equal ["find_cover"]:  First action should be find_cover
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0773922Z [32m    [Passed]:  [0m["seek_cover"] expected to equal ["seek_cover"]:  Second action should be seek_cover
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0774719Z * test_actions_engagement_scenario
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0775586Z [32m    [Passed]:  [0m[1] expected to be > than [0]:  Planner should find a plan to engage player
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0776887Z [32m    [Passed]:  [0m["engage_player"] expected to equal ["engage_player"]:  Should choose engage_player
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0777683Z [1m51/51 passed.
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0778002Z [0m[4m
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0778149Z 
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0778348Z res://tests/unit/test_game_manager.gd
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0778855Z [0m* test_initial_stats_are_zero
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0779583Z [32m    [Passed]:  [0m[0] expected to equal [0]:  Initial kills should be 0
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0780515Z [32m    [Passed]:  [0m[0] expected to equal [0]:  Initial shots_fired should be 0
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0781482Z [32m    [Passed]:  [0m[0] expected to equal [0]:  Initial hits_landed should be 0
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0782281Z [32m    [Passed]:  [0mPlayer should be alive initially
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0782819Z * test_register_shot_increments_counter
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0783817Z [32m    [Passed]:  [0m[1] expected to equal [1]:  Shots fired should be 1 after one shot
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0784495Z * test_register_multiple_shots
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0785308Z [32m    [Passed]:  [0m[3] expected to equal [3]:  Shots fired should be 3 after three shots
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0786011Z * test_register_hit_increments_counter
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0786855Z [32m    [Passed]:  [0m[1] expected to equal [1]:  Hits landed should be 1 after one hit
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0787523Z * test_register_multiple_hits
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0788485Z [32m    [Passed]:  [0m[2] expected to equal [2]:  Hits landed should be 2 after two hits
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0789175Z * test_register_kill_increments_counter
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0789956Z [32m    [Passed]:  [0m[1] expected to equal [1]:  Kills should be 1 after one kill
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0790598Z * test_register_multiple_kills
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0791379Z [32m    [Passed]:  [0m[3] expected to equal [3]:  Kills should be 3 after three kills
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0792049Z * test_accuracy_is_zero_with_no_shots
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0792898Z [32m    [Passed]:  [0m[0.0] expected to equal [0.0]:  Accuracy should be 0 when no shots fired
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0793736Z * test_accuracy_is_100_with_all_hits
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0794654Z [32m    [Passed]:  [0m[100.0] expected to equal [100.0]:  Accuracy should be 100% when all shots hit
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0795396Z * test_accuracy_is_50_with_half_hits
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0796274Z [32m    [Passed]:  [0m[50.0] expected to equal [50.0]:  Accuracy should be 50% when half shots hit
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0797001Z * test_accuracy_is_0_with_no_hits
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0797822Z [32m    [Passed]:  [0m[0.0] expected to equal [0.0]:  Accuracy should be 0% when no shots hit
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0798719Z * test_accuracy_with_fractional_result
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0799852Z [32m    [Passed]:  [0m[33.33333333333332859638] expected to equal [33.33] +/- [0.01]:  Accuracy should be ~33.33% for 1/3 hits
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0800728Z * test_accuracy_calculation_formula
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0801645Z [32m    [Passed]:  [0m[75.0] expected to equal [75.0]:  Accuracy should follow (hits/shots) * 100 formula
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0802407Z * test_debug_mode_initially_disabled
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0803224Z [32m    [Passed]:  [0mDebug mode should be disabled initially
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0803771Z * test_toggle_debug_mode_enables
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0804418Z [32m    [Passed]:  [0mDebug mode should be enabled after toggle
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0804974Z * test_toggle_debug_mode_disables
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0805631Z [32m    [Passed]:  [0mDebug mode should be disabled after toggle
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0806209Z * test_toggle_debug_mode_multiple_times
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0806757Z [32m    [Passed]:  [0mShould be enabled
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0807354Z [32m    [Passed]:  [0mShould be disabled
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0807941Z [32m    [Passed]:  [0mShould be enabled again
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0808433Z * test_reset_stats_clears_all_counters
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0809169Z [32m    [Passed]:  [0m[0] expected to equal [0]:  Kills should be reset to 0
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0810114Z [32m    [Passed]:  [0m[0] expected to equal [0]:  Shots fired should be reset to 0
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0811082Z [32m    [Passed]:  [0m[0] expected to equal [0]:  Hits landed should be reset to 0
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0811923Z [32m    [Passed]:  [0mPlayer alive should be reset to true
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0812437Z * test_full_combat_scenario
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0813232Z [32m    [Passed]:  [0m[5] expected to equal [5]:  Should have 5 shots
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0814069Z [32m    [Passed]:  [0m[3] expected to equal [3]:  Should have 3 hits
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0814882Z [32m    [Passed]:  [0m[2] expected to equal [2]:  Should have 2 kills
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0815929Z [32m    [Passed]:  [0m[60.0] expected to equal [60.0]:  Accuracy should be 60% (3/5)
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0816593Z * test_perfect_accuracy_scenario
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0817359Z [32m    [Passed]:  [0m[100.0] expected to equal [100.0]:  Perfect accuracy
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0817960Z * test_terrible_accuracy_scenario
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0818622Z [32m    [Passed]:  [0m[0.0] expected to equal [0.0]:  Zero accuracy
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0819169Z [1m21/21 passed.
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0819480Z [0m[4m
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0819628Z 
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0819808Z res://tests/unit/test_goap_action.gd
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0820377Z [0m* test_action_initialization_default_values
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0821476Z [32m    [Passed]:  [0m["base_action"] expected to equal ["base_action"]:  Default action name should be 'base_action'
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0822828Z [32m    [Passed]:  [0m[1.0] expected to equal [1.0]:  Default cost should be 1.0
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0823999Z [32m    [Passed]:  [0m[0] expected to equal [0]:  Default preconditions should be empty
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0825010Z [32m    [Passed]:  [0m[0] expected to equal [0]:  Default effects should be empty
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0825698Z * test_action_initialization_with_parameters
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0826711Z [32m    [Passed]:  [0m["test_action"] expected to equal ["test_action"]:  Action name should match parameter
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0827828Z [32m    [Passed]:  [0m[5.0] expected to equal [5.0]:  Cost should match parameter
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0828486Z * test_is_valid_with_empty_preconditions
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0829233Z [32m    [Passed]:  [0mAction with no preconditions should always be valid
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0829882Z * test_is_valid_with_matching_preconditions
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0830639Z [32m    [Passed]:  [0mAction should be valid when all preconditions are met
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0831320Z * test_is_valid_with_missing_precondition_key
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0832127Z [32m    [Passed]:  [0mAction should be invalid when precondition key is missing
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0833168Z * test_is_valid_with_wrong_precondition_value
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0834044Z [32m    [Passed]:  [0mAction should be invalid when precondition value doesn't match
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0834769Z * test_is_valid_with_partial_preconditions_met
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0835613Z [32m    [Passed]:  [0mAction should be invalid when only some preconditions are met
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0836296Z * test_get_result_state_applies_effects
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0837159Z [32m    [Passed]:  [0m[true] expected to equal [true]:  Effect should change in_cover to true
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0838328Z [32m    [Passed]:  [0m[false] expected to equal [false]:  Effect should change under_fire to false
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0839499Z [32m    [Passed]:  [0m[100] expected to equal [100]:  Non-affected state should remain unchanged
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0840290Z * test_get_result_state_does_not_modify_original
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0841215Z [32m    [Passed]:  [0m[false] expected to equal [false]:  Original state should not be modified
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0841962Z * test_get_result_state_adds_new_keys
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0843122Z [32m    [Passed]:  [0m["new_value"] expected to equal ["new_value"]:  New effect keys should be added to result state
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0844496Z [32m    [Passed]:  [0m["existing_value"] expected to equal ["existing_value"]:  Existing keys should remain
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0845438Z * test_can_satisfy_goal_returns_true_when_effect_matches_goal
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0846265Z [32m    [Passed]:  [0mAction should satisfy goal when effect matches
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0846913Z * test_can_satisfy_goal_returns_false_when_no_match
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0847719Z [32m    [Passed]:  [0mAction should not satisfy goal when no effect matches
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0848434Z * test_can_satisfy_goal_returns_false_when_value_mismatch
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0849340Z [32m    [Passed]:  [0mAction should not satisfy goal when effect value doesn't match
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0850132Z * test_can_satisfy_goal_returns_true_for_partial_goal_match
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0851100Z [32m    [Passed]:  [0mAction should satisfy goal if any effect matches any goal condition
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0851823Z * test_execute_returns_true_by_default
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0852441Z [32m    [Passed]:  [0mDefault execute should return true
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0853199Z * test_is_complete_returns_true_by_default
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0853892Z [32m    [Passed]:  [0mDefault is_complete should return true
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0854447Z * test_get_cost_returns_action_cost
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0855262Z [32m    [Passed]:  [0m[3.5] expected to equal [3.5]:  get_cost should return action's cost
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0855935Z * test_to_string_format
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0856470Z [32m    [Passed]:  [0mString should contain action name
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0857308Z [32m    [Passed]:  [0mString should contain cost
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0857785Z [1m18/18 passed.
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0858088Z [0m[4m
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0858234Z 
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0858436Z res://tests/unit/test_goap_planner.gd
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0859006Z [0m* test_is_goal_satisfied_with_matching_state
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0859852Z [32m    [Passed]:  [0mGoal should be satisfied when state contains matching values
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0860535Z * test_is_goal_satisfied_with_empty_goal
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0861185Z [32m    [Passed]:  [0mEmpty goal should always be satisfied
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0861731Z * test_is_goal_satisfied_with_missing_key
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0862528Z [32m    [Passed]:  [0mGoal should not be satisfied when key is missing from state
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0863360Z * test_is_goal_satisfied_with_wrong_value
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0864113Z [32m    [Passed]:  [0mGoal should not be satisfied when value doesn't match
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0864798Z * test_is_goal_satisfied_with_multiple_conditions
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0865590Z [32m    [Passed]:  [0mGoal should be satisfied when all conditions are met
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0866269Z * test_is_goal_satisfied_fails_with_partial_match
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0867295Z [32m    [Passed]:  [0mGoal should not be satisfied with only partial match
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0868000Z * test_estimate_cost_returns_zero_when_goal_satisfied
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0868924Z [32m    [Passed]:  [0m[0.0] expected to equal [0.0]:  Cost should be 0 when goal is satisfied
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0869682Z * test_estimate_cost_counts_unsatisfied_conditions
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0870702Z [32m    [Passed]:  [0m[3.0] expected to equal [3.0]:  Cost should equal number of unsatisfied goal conditions
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0871502Z * test_estimate_cost_with_missing_keys
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0872356Z [32m    [Passed]:  [0m[2.0] expected to equal [2.0]:  Missing keys should count as unsatisfied
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0873217Z * test_estimate_cost_with_empty_goal
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0874025Z [32m    [Passed]:  [0m[0.0] expected to equal [0.0]:  Empty goal should have zero cost
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0874769Z * test_hash_state_produces_same_hash_for_same_state
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0875734Z [32m    [Passed]:  [0m["a=1,b=2"] expected to equal ["a=1,b=2"]:  Same state should produce same hash
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0876356Z * test_hash_state_produces_same_hash_regardless_of_key_order
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0877198Z [32m    [Passed]:  [0m["a=1,b=2"] expected to equal ["a=1,b=2"]:  Key order should not affect hash
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0878044Z * test_hash_state_produces_different_hash_for_different_state
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0879158Z [32m    [Passed]:  [0m["a=1"] expected to not equal ["a=2"]:  Different states should produce different hashes
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0879932Z * test_hash_state_empty_state
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0880723Z [32m    [Passed]:  [0m[""] expected to equal [""]:  Empty state should produce empty hash
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0881343Z * test_add_action
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0882048Z [32m    [Passed]:  [0m[1] expected to equal [1]:  Should have one action after adding
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0882684Z * test_remove_action
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0883626Z [32m    [Passed]:  [0m[0] expected to equal [0]:  Should have no actions after removing
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0884283Z * test_clear_actions
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0884985Z [32m    [Passed]:  [0m[0] expected to equal [0]:  Should have no actions after clearing
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0885736Z * test_plan_returns_empty_when_goal_already_satisfied
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0886725Z [32m    [Passed]:  [0m[0] expected to equal [0]:  Should return empty plan when goal already satisfied
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0887550Z * test_plan_returns_empty_when_no_actions_available
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0888568Z [32m    [Passed]:  [0m[0] expected to equal [0]:  Should return empty plan when no actions can achieve goal
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0889360Z * test_plan_finds_single_action_solution
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0890111Z [32m    [Passed]:  [0m[1] expected to equal [1]:  Plan should have one action
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0891508Z [32m    [Passed]:  [0m["achieve_goal"] expected to equal ["achieve_goal"]:  Plan should contain the correct action
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0892372Z * test_plan_finds_multi_step_solution
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0893250Z [32m    [Passed]:  [0m[2] expected to equal [2]:  Plan should have two actions
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0894277Z [32m    [Passed]:  [0m["step1"] expected to equal ["step1"]:  First action should be step1
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0895371Z [32m    [Passed]:  [0m["step2"] expected to equal ["step2"]:  Second action should be step2
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0896076Z * test_plan_prefers_lower_cost_path
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0896813Z [32m    [Passed]:  [0m[1] expected to equal [1]:  Plan should have one action
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0897878Z [32m    [Passed]:  [0m["cheap"] expected to equal ["cheap"]:  Planner should choose cheaper action
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0898633Z * test_plan_respects_preconditions
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0899576Z [32m    [Passed]:  [0m[0] expected to equal [0]:  Should return empty plan when preconditions can't be met
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0900355Z * test_plan_respects_max_depth
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0901172Z [32m    [Passed]:  [0m[0] expected to equal [0]:  Should not find plan that exceeds max_depth
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0902144Z * test_plan_with_complex_world_state
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0902912Z [32m    [Passed]:  [0m[2] expected to equal [2]:  Plan should have two actions
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0904099Z [32m    [Passed]:  [0m["find_cover"] expected to equal ["find_cover"]:  First should find cover
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0905251Z [32m    [Passed]:  [0m["seek_cover"] expected to equal ["seek_cover"]:  Second should seek cover
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0905985Z * test_plan_preserves_existing_state
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0906887Z [32m    [Passed]:  [0m[2] expected to equal [2]:  Plan should chain actions preserving existing state
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0907690Z [1m26/26 passed.
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0907999Z [0m[4m
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0908151Z 
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0908353Z res://tests/unit/test_input_settings.gd
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0908907Z [0m* test_get_action_display_name_move_up
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0909822Z [32m    [Passed]:  [0m["Move Up"] expected to equal ["Move Up"]:  move_up should display as 'Move Up'
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0910589Z * test_get_action_display_name_move_down
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0911560Z [32m    [Passed]:  [0m["Move Down"] expected to equal ["Move Down"]:  move_down should display as 'Move Down'
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0912365Z * test_get_action_display_name_move_left
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0913467Z [32m    [Passed]:  [0m["Move Left"] expected to equal ["Move Left"]:  move_left should display as 'Move Left'
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0914278Z * test_get_action_display_name_move_right
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0915312Z [32m    [Passed]:  [0m["Move Right"] expected to equal ["Move Right"]:  move_right should display as 'Move Right'
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0916128Z * test_get_action_display_name_shoot
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0916977Z [32m    [Passed]:  [0m["Shoot"] expected to equal ["Shoot"]:  shoot should display as 'Shoot'
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0917693Z * test_get_action_display_name_pause
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0918553Z [32m    [Passed]:  [0m["Pause"] expected to equal ["Pause"]:  pause should display as 'Pause'
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0919311Z * test_get_action_display_name_unknown_action
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0920664Z [32m    [Passed]:  [0m["Some Custom Action"] expected to equal ["Some Custom Action"]:  Unknown actions should be capitalized with underscores replaced
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0921741Z * test_get_action_display_name_single_word
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0922664Z [32m    [Passed]:  [0m["Jump"] expected to equal ["Jump"]:  Single word actions should be capitalized
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0923613Z * test_get_action_display_name_multiple_underscores
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0924959Z [32m    [Passed]:  [0m["Special Attack Mode"] expected to equal ["Special Attack Mode"]:  Multiple underscores should all be replaced with spaces
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0925960Z * test_keycode_match_same_key
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0926678Z [32m    [Passed]:  [0mSame keycodes should match
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0927180Z * test_keycode_match_different_keys
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0927803Z [32m    [Passed]:  [0mDifferent keycodes should not match
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0928338Z * test_mouse_button_match_same_button
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0928940Z [32m    [Passed]:  [0mSame mouse buttons should match
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0929493Z * test_mouse_button_match_different_buttons
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0930167Z [32m    [Passed]:  [0mDifferent mouse buttons should not match
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0930788Z * test_remappable_actions_contains_expected_actions
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0931624Z [32m    [Passed]:  [0m[6] expected to equal [6]:  Should have 6 remappable actions
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0933338Z [32m    [Passed]:  [0mExpected [ARRAY(["move_up", "move_down", "move_left", "move_right", "shoot", "pause"])] to contain value:  ["move_up"]:  Should contain move_up
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0935373Z [32m    [Passed]:  [0mExpected [ARRAY(["move_up", "move_down", "move_left", "move_right", "shoot", "pause"])] to contain value:  ["move_down"]:  Should contain move_down
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0937407Z [32m    [Passed]:  [0mExpected [ARRAY(["move_up", "move_down", "move_left", "move_right", "shoot", "pause"])] to contain value:  ["move_left"]:  Should contain move_left
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0939638Z [32m    [Passed]:  [0mExpected [ARRAY(["move_up", "move_down", "move_left", "move_right", "shoot", "pause"])] to contain value:  ["move_right"]:  Should contain move_right
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0941642Z [32m    [Passed]:  [0mExpected [ARRAY(["move_up", "move_down", "move_left", "move_right", "shoot", "pause"])] to contain value:  ["shoot"]:  Should contain shoot
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0943704Z [32m    [Passed]:  [0mExpected [ARRAY(["move_up", "move_down", "move_left", "move_right", "shoot", "pause"])] to contain value:  ["pause"]:  Should contain pause
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0944763Z * test_no_conflict_when_key_unused
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0945312Z [32m    [Passed]:  [0m[""] expected to equal [""]:  No conflict when key is not used
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0945701Z * test_conflict_when_key_used
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0946196Z [32m    [Passed]:  [0m["move_up"] expected to equal ["move_up"]:  Should detect conflict with move_up
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0946652Z * test_no_conflict_when_excluding_same_action
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0947147Z [32m    [Passed]:  [0m[""] expected to equal [""]:  Should not conflict with excluded action
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0947594Z * test_conflict_detection_with_multiple_actions
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0948166Z [32m    [Passed]:  [0m["move_left"] expected to equal ["move_left"]:  Should detect conflict with move_left
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0948626Z * test_no_conflict_with_available_key
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0949065Z [32m    [Passed]:  [0m[""] expected to equal [""]:  Space key should not conflict
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0949430Z * test_mouse_button_name_left
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0949890Z [32m    [Passed]:  [0m["Left Mouse"] expected to equal ["Left Mouse"]:  Left mouse button name
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0950300Z * test_mouse_button_name_right
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0950783Z [32m    [Passed]:  [0m["Right Mouse"] expected to equal ["Right Mouse"]:  Right mouse button name
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0951213Z * test_mouse_button_name_middle
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0951696Z [32m    [Passed]:  [0m["Middle Mouse"] expected to equal ["Middle Mouse"]:  Middle mouse button name
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0952134Z * test_mouse_button_name_wheel_up
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0952607Z [32m    [Passed]:  [0m["Mouse Wheel Up"] expected to equal ["Mouse Wheel Up"]:  Wheel up name
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0953355Z * test_mouse_button_name_wheel_down
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0953908Z [32m    [Passed]:  [0m["Mouse Wheel Down"] expected to equal ["Mouse Wheel Down"]:  Wheel down name
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0954331Z * test_mouse_button_name_other
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0954834Z [32m    [Passed]:  [0m["Mouse 8"] expected to equal ["Mouse 8"]:  Unknown mouse button should show index
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0955276Z * test_encode_mouse_button_left
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0955930Z [32m    [Passed]:  [0m[-1] expected to equal [-1]:  Left mouse button should encode as -1
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0956331Z * test_encode_mouse_button_right
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0956795Z [32m    [Passed]:  [0m[-2] expected to equal [-2]:  Right mouse button should encode as -2
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0957224Z * test_decode_is_mouse_button_negative
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0957590Z [32m    [Passed]:  [0mNegative values indicate mouse buttons
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0957919Z * test_decode_is_mouse_button_positive
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0958284Z [32m    [Passed]:  [0mPositive values indicate keyboard keys
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0958583Z * test_decode_mouse_button
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0959021Z [32m    [Passed]:  [0m[2] expected to equal [2]:  Should decode back to right mouse button
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0959396Z * test_decode_keycode
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0959809Z [32m    [Passed]:  [0m[32] expected to equal [32]:  Should return the keycode unchanged
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0960186Z * test_roundtrip_mouse_button
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0960686Z [32m    [Passed]:  [0m[3] expected to equal [3]:  Mouse button should survive encode/decode roundtrip
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0961110Z [1m32/32 passed.
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0961418Z [0m[4m
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0961513Z 
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0961632Z res://tests/integration/test_bullet.gd
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0961922Z [0m* test_bullet_default_speed
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.0962428Z [32m    [Passed]:  [0m[2500.0] expected to equal [2500.0]:  Default speed should be 2500 pixels/second
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.1236738Z * test_bullet_default_lifetime
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.1239360Z [32m    [Passed]:  [0m[3.0] expected to equal [3.0]:  Default lifetime should be 3 seconds
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.2269859Z * test_bullet_default_direction
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.2273909Z [32m    [Passed]:  [0m[VECTOR2(1, 0)] expected to equal [VECTOR2(1, 0)]:  Default direction should be RIGHT
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.3304889Z * test_bullet_default_shooter_id
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.3307898Z [32m    [Passed]:  [0m[-1] expected to equal [-1]:  Default shooter_id should be -1
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.4340269Z * test_bullet_time_alive_starts_at_zero
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.4343551Z [32m    [Passed]:  [0m[0.0] expected to equal [0.0]:  Time alive should start at 0
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.5374872Z * test_bullet_moves_in_direction
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.5377865Z [32m    [Passed]:  [0m[41.75000000000000000000] expected to equal [41.75] +/- [1]:  Should move right
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.5378762Z [32m    [Passed]:  [0m[0.00000000000000000000] expected to equal [0.0] +/- [1]:  Y should stay same
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.6410313Z * test_bullet_moves_down
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.6413487Z [32m    [Passed]:  [0m[250.00000000000000000000] expected to equal [250.0] +/- [1]:  Should move down
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.7445181Z * test_bullet_moves_diagonally
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.7448342Z [32m    [Passed]:  [0m[250.00001525878906250000] expected to equal [250.000015258789] +/- [1]:  Diagonal movement magnitude
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.8480664Z * test_bullet_moves_with_custom_speed
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.8483937Z [32m    [Passed]:  [0m[100.00000000000000000000] expected to equal [100.0] +/- [1]:  Should use custom speed
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.9515425Z * test_bullet_time_alive_increments
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:12.9518424Z [32m    [Passed]:  [0m[0.50000000000000000000] expected to equal [0.5] +/- [0.01]:  Time alive should increment
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:13.0549739Z * test_bullet_survives_before_lifetime
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:13.0552352Z [32m    [Passed]:  [0mBullet should still exist before lifetime expires
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:13.1585511Z * test_bullet_queued_for_deletion_after_lifetime
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:13.1587310Z [32m    [Passed]:  [0mBullet should be queued for deletion after lifetime
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:13.2620296Z * test_bullet_custom_lifetime
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:13.2622274Z [32m    [Passed]:  [0mShould not be deleted with custom longer lifetime
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:13.2623392Z [32m    [Passed]:  [0mShould be deleted after custom lifetime
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:13.3655569Z * test_bullet_set_direction_normalizes
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:13.3659646Z [32m    [Passed]:  [0m[VECTOR2(10, 0)] expected to equal [VECTOR2(10, 0)]:  Direction is not auto-normalized
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:13.4690464Z * test_bullet_negative_direction
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:13.4693489Z [33m    [WARNING]:  [0mWarn:  Float/Int comparison.  Got FLOAT but expected INT
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:13.4694861Z [32m    [Passed]:  [0m[-250.0] expected to be < than [0]:  Should move left (negative x)
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:13.5778380Z * test_shooter_id_can_be_set
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:13.5779507Z [32m    [Passed]:  [0m[12345] expected to equal [12345]:  Shooter ID should be settable
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:13.6760058Z * test_is_player_bullet_returns_false_for_invalid_id
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:13.6762453Z [32m    [Passed]:  [0mShould return false for invalid shooter ID
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:13.7795546Z * test_is_player_bullet_returns_false_for_nonexistent_id
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:13.7796719Z ERROR: Condition "slot >= slot_max" is true. Returning: nullptr
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:13.7797453Z    at: get_instance (./core/object/object.h:1047)
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:13.7798269Z [32m    [Passed]:  [0mShould return false for non-existent instance
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:13.8830644Z * test_multiple_physics_frames_accumulate
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:13.8833764Z [32m    [Passed]:  [0m[416.66665649414062500000] expected to equal [416.666666666667] +/- [1]:  Movement should accumulate over frames
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:13.9865676Z * test_time_alive_accumulates
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:13.9868797Z [32m    [Passed]:  [0m[0.99999999999999988898] expected to equal [1.0] +/- [0.01]:  Time alive should accumulate
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:14.0900444Z * test_bullet_zero_delta
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:14.0904423Z [32m    [Passed]:  [0m[VECTOR2(0, 0)] expected to equal [VECTOR2(0, 0)]:  Zero delta should not move bullet
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:14.0906022Z [32m    [Passed]:  [0m[0.0] expected to equal [0.0]:  Zero delta should not increment time alive
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:14.1935555Z * test_bullet_very_small_delta
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:14.1938794Z [32m    [Passed]:  [0m[0.25000000000000000000] expected to equal [0.25] +/- [0.1]:  Very small delta should still move
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:14.2970501Z * test_bullet_very_large_delta
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:14.2973941Z [32m    [Passed]:  [0m[5000.00000000000000000000] expected to equal [5000.0] +/- [1]:  Large delta should move proportionally
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:14.4005589Z * test_bullet_zero_speed
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:14.4009135Z [32m    [Passed]:  [0m[VECTOR2(0, 0)] expected to equal [VECTOR2(0, 0)]:  Zero speed should not move bullet
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:14.5042104Z [1m24/24 passed.
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:14.5048181Z [0m[4m
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:14.5048382Z 
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:14.5048624Z res://tests/integration/test_hit_area.gd
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:14.5049244Z [0m* test_on_hit_forwards_to_parent
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:14.5049907Z [32m    [Passed]:  [0mParent's on_hit should be called
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:14.6075807Z * test_on_hit_increments_parent_hit_count
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:14.6078678Z [32m    [Passed]:  [0m[3] expected to equal [3]:  Parent's on_hit should be called 3 times
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:14.7110509Z * test_on_hit_does_nothing_without_parent_method
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:14.7112448Z [32m    [Passed]:  [0mon_hit should not crash when parent lacks on_hit method
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:14.8144544Z * test_on_hit_does_nothing_without_parent
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:14.8147119Z [32m    [Passed]:  [0mon_hit should not crash when parent is null
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:14.9179753Z * test_on_hit_works_with_characterbody2d_parent
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:14.9183874Z [32m    [Passed]:  [0m[2] expected to equal [2]:  Enemy should take 2 damage
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:14.9184770Z [32m    [Passed]:  [0mEnemy should not be dead yet
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.0215459Z * test_on_hit_can_kill_parent
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.0218793Z [32m    [Passed]:  [0m[3] expected to equal [3]:  Enemy should take 3 damage
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.0221460Z [32m    [Passed]:  [0mEnemy should be dead
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.1250470Z * test_on_hit_ignores_parent_return_value
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.1252182Z [32m    [Passed]:  [0mParent's on_hit was still called
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.2285228Z * test_on_hit_calls_without_args
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.2288755Z [32m    [Passed]:  [0m[1] expected to equal [1]:  on_hit should be called once
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.2289897Z [32m    [Passed]:  [0m[0] expected to equal [0]:  Should use default damage value
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.3320545Z * test_multiple_hit_areas_on_same_parent
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.3323831Z [32m    [Passed]:  [0m[3] expected to equal [3]:  Parent should receive all hits from both areas
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4357626Z [1m9/9 passed.
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4358167Z [0m[4m
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4358382Z 
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4358745Z res://tests/integration/test_hit_effects_manager.gd
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4362230Z [0m* test_slow_time_scale_constant
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4363947Z [32m    [Passed]:  [0m[0.8] expected to equal [0.8]:  Slow time scale should be 0.8
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4364816Z * test_slow_duration_constant
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4366160Z [32m    [Passed]:  [0m[3.0] expected to equal [3.0]:  Slow duration should be 3 seconds
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4367086Z * test_saturation_duration_constant
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4368216Z [32m    [Passed]:  [0m[3.0] expected to equal [3.0]:  Saturation duration should be 3 seconds
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4369531Z * test_saturation_boost_constant
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4370533Z [32m    [Passed]:  [0m[0.4] expected to equal [0.4]:  Saturation boost should be 0.4
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4371352Z * test_initial_slow_inactive
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4372157Z [32m    [Passed]:  [0mSlow effect should be inactive initially
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4372808Z * test_initial_saturation_inactive
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4373825Z [32m    [Passed]:  [0mSaturation effect should be inactive initially
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4374482Z * test_initial_time_scale_normal
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4375342Z [32m    [Passed]:  [0m[1.0] expected to equal [1.0]:  Time scale should be 1.0 initially
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4376044Z * test_initial_timers_zero
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4376872Z [32m    [Passed]:  [0m[0.0] expected to equal [0.0]:  Slow timer should be 0 initially
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4378668Z [32m    [Passed]:  [0m[0.0] expected to equal [0.0]:  Saturation timer should be 0 initially
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4379409Z * test_hit_activates_slow_effect
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4380120Z [32m    [Passed]:  [0mSlow effect should be active after hit
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4380709Z * test_hit_activates_saturation_effect
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4381464Z [32m    [Passed]:  [0mSaturation effect should be active after hit
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4382081Z * test_hit_changes_time_scale
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4382932Z [32m    [Passed]:  [0m[0.8] expected to equal [0.8]:  Time scale should be 0.8 after hit
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4383829Z * test_hit_sets_slow_timer
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4384660Z [32m    [Passed]:  [0m[3.0] expected to equal [3.0]:  Slow timer should be set to duration
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4385376Z * test_hit_sets_saturation_timer
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4386286Z [32m    [Passed]:  [0m[3.0] expected to equal [3.0]:  Saturation timer should be set to duration
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4387047Z * test_slow_timer_decrements
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4388101Z [32m    [Passed]:  [0m[1.75000000000000000000] expected to equal [1.75] +/- [0.01]:  Slow timer should decrement
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4388995Z * test_saturation_timer_decrements
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4390121Z [32m    [Passed]:  [0m[1.75000000000000000000] expected to equal [1.75] +/- [0.01]:  Saturation timer should decrement
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4391021Z * test_effects_end_after_duration
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4391632Z [32m    [Passed]:  [0mSlow effect should end
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4392291Z [32m    [Passed]:  [0mSaturation effect should end
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4392860Z * test_time_scale_restores_after_slow_ends
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4394016Z [32m    [Passed]:  [0m[1.0] expected to equal [1.0]:  Time scale should restore to 1.0
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4394737Z * test_multiple_hits_reset_timers
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4395576Z [32m    [Passed]:  [0m[3.0] expected to equal [3.0]:  Timer should reset on new hit
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4396965Z [32m    [Passed]:  [0m[3.0] expected to equal [3.0]:  Saturation timer should reset
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4397683Z * test_multiple_hits_keep_effects_active
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4398343Z [32m    [Passed]:  [0mSlow should still be active
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4399062Z [32m    [Passed]:  [0mSaturation should still be active
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4399573Z * test_rapid_hits
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4400105Z [32m    [Passed]:  [0mEffects should remain active
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4401240Z [32m    [Passed]:  [0m[2.87500000000000000000] expected to equal [2.875] +/- [0.1]:  Timer should be near full
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4402086Z * test_reset_deactivates_slow
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4402676Z [32m    [Passed]:  [0mSlow should be deactivated
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4403393Z * test_reset_deactivates_saturation
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4404065Z [32m    [Passed]:  [0mSaturation should be deactivated
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4404626Z * test_reset_restores_time_scale
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4405437Z [32m    [Passed]:  [0m[1.0] expected to equal [1.0]:  Time scale should be restored
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4406135Z * test_reset_clears_timers
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4406903Z [32m    [Passed]:  [0m[0.0] expected to equal [0.0]:  Slow timer should be cleared
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4408245Z [32m    [Passed]:  [0m[0.0] expected to equal [0.0]:  Saturation timer should be cleared
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4408986Z * test_reset_on_inactive_manager
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4409579Z [32m    [Passed]:  [0mShould remain inactive
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4410402Z [32m    [Passed]:  [0m[1.0] expected to equal [1.0]:  Time scale should be 1.0
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4411030Z * test_process_without_active_effects
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4411647Z [32m    [Passed]:  [0mShould remain inactive
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4412468Z [32m    [Passed]:  [0m[1.0] expected to equal [1.0]:  Time scale should remain 1.0
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4413319Z * test_zero_delta_process
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4414174Z [32m    [Passed]:  [0m[3.0] expected to equal [3.0]:  Timer should not change with zero delta
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4414877Z * test_very_large_delta
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4415457Z [32m    [Passed]:  [0mEffects should end with large delta
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4416234Z [32m    [Passed]:  [0mSaturation should end
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4417132Z [32m    [Passed]:  [0m[1.0] expected to equal [1.0]:  Time scale should be restored
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4417828Z * test_effect_ends_exactly_at_duration
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4418486Z [31m    [Failed]:  [0mEffects should end at duration boundary
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4418922Z       at line -1
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4419241Z [1m28/29 passed.
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4419531Z [0m[4m
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4419678Z 
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4419873Z res://tests/integration/test_target.gd
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4420429Z [0m* test_default_hit_color
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.4421568Z [32m    [Passed]:  [0m[COLOR(0.2, 0.8, 0.2, 1)] expected to equal [COLOR(0.2, 0.8, 0.2, 1)]:  Default hit color should be green
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.5390656Z * test_default_normal_color
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.5394564Z [32m    [Passed]:  [0m[COLOR(0.9, 0.2, 0.2, 1)] expected to equal [COLOR(0.9, 0.2, 0.2, 1)]:  Default normal color should be red
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.6425143Z * test_default_destroy_on_hit
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.6428185Z [32m    [Passed]:  [0mShould not destroy on hit by default
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.7459469Z * test_default_respawn_delay
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.7462424Z [32m    [Passed]:  [0m[2.0] expected to equal [2.0]:  Default respawn delay should be 2 seconds
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.8494694Z * test_initial_state_not_hit
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.8497080Z [32m    [Passed]:  [0mTarget should not be hit initially
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.9530745Z * test_initial_sprite_color
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:15.9534936Z [32m    [Passed]:  [0m[COLOR(0.9, 0.2, 0.2, 1)] expected to equal [COLOR(0.9, 0.2, 0.2, 1)]:  Sprite should have normal color initially
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:16.0564236Z * test_on_hit_sets_hit_state
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:16.0567052Z [32m    [Passed]:  [0mTarget should be in hit state after on_hit()
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:16.1600076Z * test_on_hit_changes_sprite_color
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:16.1603747Z [32m    [Passed]:  [0m[COLOR(0.2, 0.8, 0.2, 1)] expected to equal [COLOR(0.2, 0.8, 0.2, 1)]:  Sprite should change to hit color
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:16.2634641Z * test_on_hit_ignores_second_hit
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:16.2638008Z [32m    [Passed]:  [0m[COLOR(0.2, 0.8, 0.2, 1)] expected to equal [COLOR(0.2, 0.8, 0.2, 1)]:  Second hit should be ignored
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:16.3670361Z * test_custom_hit_color
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:16.3674488Z [32m    [Passed]:  [0m[COLOR(1, 1, 0, 1)] expected to equal [COLOR(1, 1, 0, 1)]:  Should use custom hit color
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:16.4705480Z * test_custom_normal_color
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:16.4709421Z [32m    [Passed]:  [0m[COLOR(0.6275, 0.1255, 0.9412, 1)] expected to equal [COLOR(0.6275, 0.1255, 0.9412, 1)]:  Should use custom normal color
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:16.5739962Z * test_reset_clears_hit_state
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:16.5742326Z [32m    [Passed]:  [0mReset should clear hit state
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:16.6775241Z * test_reset_restores_normal_color
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:16.6780289Z [32m    [Passed]:  [0m[COLOR(0.9, 0.2, 0.2, 1)] expected to equal [COLOR(0.9, 0.2, 0.2, 1)]:  Reset should restore normal color
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:16.7810411Z * test_destroy_on_hit_can_be_enabled
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:16.7813325Z [32m    [Passed]:  [0mdestroy_on_hit should be settable
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:16.8845415Z * test_custom_respawn_delay
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:16.8848800Z [32m    [Passed]:  [0m[5.0] expected to equal [5.0]:  respawn_delay should be settable
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:16.9880403Z * test_on_hit_without_sprite
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:16.9881525Z ERROR: Node not found: "Sprite2D" (relative to "/root/GutRunner/@Node@87/@Area2D@104").
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:16.9882393Z    at: get_node (scene/main/node.cpp:1792)
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:16.9883482Z [32m    [Passed]:  [0mHit state should be set even without sprite
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:17.0915093Z * test_reset_without_sprite
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:17.0917052Z ERROR: Node not found: "Sprite2D" (relative to "/root/GutRunner/@Node@87/@Area2D@106").
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:17.0918036Z    at: get_node (scene/main/node.cpp:1792)
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:17.0918977Z [32m    [Passed]:  [0mReset should work even without sprite
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:17.1950319Z * test_multiple_resets
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:17.1953244Z [32m    [Passed]:  [0mMultiple resets should not cause issues
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:17.1955281Z [32m    [Passed]:  [0m[COLOR(0.9, 0.2, 0.2, 1)] expected to equal [COLOR(0.9, 0.2, 0.2, 1)]:  Color should remain normal after multiple resets
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:17.2985290Z * test_hit_reset_hit_cycle
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:17.2987610Z [32m    [Passed]:  [0mShould be hit
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:17.2989924Z [32m    [Passed]:  [0m[COLOR(0.2, 0.8, 0.2, 1)] expected to equal [COLOR(0.2, 0.8, 0.2, 1)]:  Should have hit color
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:17.2990843Z [32m    [Passed]:  [0mShould not be hit after reset
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:17.2991881Z [32m    [Passed]:  [0m[COLOR(0.9, 0.2, 0.2, 1)] expected to equal [COLOR(0.9, 0.2, 0.2, 1)]:  Should have normal color
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:17.2992921Z [32m    [Passed]:  [0mShould be hit again
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:17.2994517Z [32m    [Passed]:  [0m[COLOR(0.2, 0.8, 0.2, 1)] expected to equal [COLOR(0.2, 0.8, 0.2, 1)]:  Should have hit color again
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:17.4021375Z [1m19/19 passed.
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:17.4021989Z [0m
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:17.4022145Z 
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:17.4022152Z 
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:17.4022158Z 
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:17.4022454Z [33m==============================================
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:17.4023251Z [0m[33m= Run Summary
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:17.4023862Z [0m[33m==============================================
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:17.4032725Z [0m[4m
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:17.4033546Z res://tests/integration/test_hit_effects_manager.gd
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:17.4034588Z [0m- test_effect_ends_exactly_at_duration
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:17.4035333Z [31m    [Failed]:  [0mEffects should end at duration boundary
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:17.4036005Z           at line -1
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:17.4036230Z 
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:17.4036344Z ---- Totals ----
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:17.4036672Z Warnings          1
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:17.4039486Z 
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:17.4039717Z Scripts           9
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:17.4040070Z Tests             229
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:17.4040398Z   Passing         228
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:17.4040727Z   Failing         1
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:17.4041054Z Asserts           318
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:17.4041376Z Time              5.347s
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:17.4041600Z 
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:17.4041608Z 
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:17.4041874Z [31m---- 1 failing tests ----
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:17.4042245Z [0m
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:17.4083889Z Results saved to test-results.xml
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:17.4102655Z ERROR: Parameter "data.tree" is null.
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:17.4103398Z    at: get_tree (scene/main/node.h:446)
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:17.4104279Z SCRIPT ERROR: Invalid access to property or key 'current_scene' on a base object of type 'null instance'.
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:17.4109236Z           at: _on_tree_changed (res://scripts/autoload/hit_effects_manager.gd:143)
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:17.4109904Z ERROR: Parameter "data.tree" is null.
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:17.4110316Z    at: get_tree (scene/main/node.h:446)
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:17.4111095Z SCRIPT ERROR: Invalid access to property or key 'current_scene' on a base object of type 'null instance'.
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:17.4112242Z           at: _on_tree_changed (res://scripts/autoload/hit_effects_manager.gd:143)
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:17.4112814Z ERROR: Parameter "data.tree" is null.
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:17.4113365Z    at: get_tree (scene/main/node.h:446)
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:17.4114107Z SCRIPT ERROR: Invalid access to property or key 'current_scene' on a base object of type 'null instance'.
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:17.4114975Z           at: _on_tree_changed (res://scripts/autoload/hit_effects_manager.gd:143)
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:17.4119848Z ERROR: Parameter "data.tree" is null.
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:17.4120287Z    at: get_tree (scene/main/node.h:446)
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:17.4121059Z SCRIPT ERROR: Invalid access to property or key 'current_scene' on a base object of type 'null instance'.
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:17.4121989Z           at: _on_tree_changed (res://scripts/autoload/hit_effects_manager.gd:143)
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:17.4157846Z [02:31:17] [INFO] ------------------------------------------------------------
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:17.4160222Z [02:31:17] [INFO] GAME LOG ENDED: 2026-01-18T02:31:17
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:17.4160828Z [02:31:17] [INFO] ============================================================
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:17.5139669Z WARNING: ObjectDB instances leaked at exit (run with --verbose for details).
+Run Unit Tests	Run GUT tests	2026-01-18T02:31:17.5140565Z      at: cleanup (core/object/object.cpp:2284)
+Run Unit Tests	Upload test results	﻿2026-01-18T02:31:17.5431386Z ##[group]Run actions/upload-artifact@v4
+Run Unit Tests	Upload test results	2026-01-18T02:31:17.5431666Z with:
+Run Unit Tests	Upload test results	2026-01-18T02:31:17.5431830Z   name: test-results
+Run Unit Tests	Upload test results	2026-01-18T02:31:17.5432038Z   path: test-results.xml
+Run Unit Tests	Upload test results	test-output.log
+Run Unit Tests	Upload test results	
+Run Unit Tests	Upload test results	2026-01-18T02:31:17.5432301Z   if-no-files-found: warn
+Run Unit Tests	Upload test results	2026-01-18T02:31:17.5432507Z   compression-level: 6
+Run Unit Tests	Upload test results	2026-01-18T02:31:17.5432687Z   overwrite: false
+Run Unit Tests	Upload test results	2026-01-18T02:31:17.5432871Z   include-hidden-files: false
+Run Unit Tests	Upload test results	2026-01-18T02:31:17.5433314Z env:
+Run Unit Tests	Upload test results	2026-01-18T02:31:17.5433483Z   DOTNET_ROOT: /usr/share/dotnet
+Run Unit Tests	Upload test results	2026-01-18T02:31:17.5433700Z ##[endgroup]
+Run Unit Tests	Upload test results	2026-01-18T02:31:17.7640333Z Multiple search paths detected. Calculating the least common ancestor of all paths
+Run Unit Tests	Upload test results	2026-01-18T02:31:17.7649663Z The least common ancestor is /home/runner/work/godot-topdown-MVP/godot-topdown-MVP. This will be the root directory of the artifact
+Run Unit Tests	Upload test results	2026-01-18T02:31:17.7655219Z With the provided path, there will be 2 files uploaded
+Run Unit Tests	Upload test results	2026-01-18T02:31:17.7660320Z Artifact name is valid!
+Run Unit Tests	Upload test results	2026-01-18T02:31:17.7665234Z Root directory input is valid!
+Run Unit Tests	Upload test results	2026-01-18T02:31:17.8541310Z Beginning upload of artifact content to blob storage
+Run Unit Tests	Upload test results	2026-01-18T02:31:17.9267919Z Uploaded bytes 10516
+Run Unit Tests	Upload test results	2026-01-18T02:31:17.9481048Z Finished uploading artifact content to blob storage!
+Run Unit Tests	Upload test results	2026-01-18T02:31:17.9484402Z SHA256 digest of uploaded artifact zip is 6a1d5842fc0dc3acdcad7d734748a2626c060a4e1ba9c9c808cd3deb577cc866
+Run Unit Tests	Upload test results	2026-01-18T02:31:17.9486422Z Finalizing artifact upload
+Run Unit Tests	Upload test results	2026-01-18T02:31:18.0300806Z Artifact test-results.zip successfully finalized. Artifact ID 5166611771
+Run Unit Tests	Upload test results	2026-01-18T02:31:18.0302118Z Artifact test-results has been successfully uploaded! Final size is 10516 bytes. Artifact ID is 5166611771
+Run Unit Tests	Upload test results	2026-01-18T02:31:18.0309477Z Artifact download URL: https://github.com/Jhon-Crow/godot-topdown-MVP/actions/runs/21104622657/artifacts/5166611771
+Run Unit Tests	Post Setup .NET	﻿2026-01-18T02:31:18.0427622Z Post job cleanup.
+Run Unit Tests	Post Checkout	﻿2026-01-18T02:31:18.2084448Z Post job cleanup.
+Run Unit Tests	Post Checkout	2026-01-18T02:31:18.3020309Z [command]/usr/bin/git version
+Run Unit Tests	Post Checkout	2026-01-18T02:31:18.3061095Z git version 2.52.0
+Run Unit Tests	Post Checkout	2026-01-18T02:31:18.3118729Z Temporarily overriding HOME='/home/runner/work/_temp/63a629b6-cd11-4edc-bbcc-6bd1bdf02ce8' before making global git config changes
+Run Unit Tests	Post Checkout	2026-01-18T02:31:18.3120251Z Adding repository directory to the temporary git global config as a safe directory
+Run Unit Tests	Post Checkout	2026-01-18T02:31:18.3126181Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/godot-topdown-MVP/godot-topdown-MVP
+Run Unit Tests	Post Checkout	2026-01-18T02:31:18.3166471Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+Run Unit Tests	Post Checkout	2026-01-18T02:31:18.3203682Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Run Unit Tests	Post Checkout	2026-01-18T02:31:18.3461847Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Run Unit Tests	Post Checkout	2026-01-18T02:31:18.3485981Z http.https://github.com/.extraheader
+Run Unit Tests	Post Checkout	2026-01-18T02:31:18.3500096Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+Run Unit Tests	Post Checkout	2026-01-18T02:31:18.3534805Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Run Unit Tests	Post Checkout	2026-01-18T02:31:18.3785791Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+Run Unit Tests	Post Checkout	2026-01-18T02:31:18.3821257Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Run Unit Tests	Complete job	﻿2026-01-18T02:31:18.4187877Z Cleaning up orphan processes

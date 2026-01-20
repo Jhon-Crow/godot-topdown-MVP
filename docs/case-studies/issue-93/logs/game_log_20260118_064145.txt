@@ -1,0 +1,125 @@
+[06:41:45] [INFO] ============================================================
+[06:41:45] [INFO] GAME LOG STARTED
+[06:41:45] [INFO] ============================================================
+[06:41:45] [INFO] Timestamp: 2026-01-18T06:41:45
+[06:41:45] [INFO] Log file: I:/Загрузки/godot exe/game_log_20260118_064145.txt
+[06:41:45] [INFO] Executable: I:/Загрузки/godot exe/Godot-Top-Down-Template.exe
+[06:41:45] [INFO] OS: Windows
+[06:41:45] [INFO] Debug build: false
+[06:41:45] [INFO] Engine version: 4.3-stable (official)
+[06:41:45] [INFO] Project: Godot Top-Down Template
+[06:41:45] [INFO] ------------------------------------------------------------
+[06:41:45] [INFO] [GameManager] GameManager ready
+[06:41:45] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 3, behavior: GUARD, player_found: yes
+[06:41:45] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 3, behavior: GUARD, player_found: yes
+[06:41:45] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 2, behavior: GUARD, player_found: yes
+[06:41:45] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 3, behavior: GUARD, player_found: yes
+[06:41:45] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 3, behavior: GUARD, player_found: yes
+[06:41:45] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 2, behavior: GUARD, player_found: yes
+[06:41:45] [ENEMY] [Enemy7] Enemy spawned at (1606.114, 893.8859), health: 3, behavior: PATROL, player_found: yes
+[06:41:45] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 4, behavior: GUARD, player_found: yes
+[06:41:45] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 3, behavior: GUARD, player_found: yes
+[06:41:45] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 2, behavior: PATROL, player_found: yes
+[06:41:50] [ENEMY] [Enemy10] State: IDLE -> COMBAT
+[06:41:50] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[06:41:50] [ENEMY] [Enemy3] State: IDLE -> COMBAT
+[06:41:50] [ENEMY] [Enemy3] State: COMBAT -> PURSUING
+[06:41:50] [ENEMY] [Enemy3] State: PURSUING -> COMBAT
+[06:41:50] [ENEMY] [Enemy3] State: COMBAT -> PURSUING
+[06:41:53] [INFO] [GameManager] Debug mode toggled: ON
+[06:41:57] [ENEMY] [Enemy10] State: PURSUING -> COMBAT
+[06:41:57] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[06:41:57] [ENEMY] [Enemy3] State: PURSUING -> COMBAT
+[06:41:58] [ENEMY] [Enemy10] State: PURSUING -> FLANKING
+[06:41:59] [ENEMY] [Enemy10] State: FLANKING -> COMBAT
+[06:41:59] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[06:42:00] [ENEMY] [Enemy10] State: PURSUING -> FLANKING
+[06:42:00] [ENEMY] [Enemy10] State: FLANKING -> COMBAT
+[06:42:00] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[06:42:00] [ENEMY] [Enemy3] State: COMBAT -> SEEKING_COVER
+[06:42:00] [ENEMY] [Enemy3] State: SEEKING_COVER -> IN_COVER
+[06:42:00] [ENEMY] [Enemy3] State: IN_COVER -> COMBAT
+[06:42:02] [ENEMY] [Enemy10] State: PURSUING -> FLANKING
+[06:42:02] [ENEMY] [Enemy10] State: FLANKING -> COMBAT
+[06:42:02] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[06:42:03] [ENEMY] [Enemy3] State: COMBAT -> SEEKING_COVER
+[06:42:03] [ENEMY] [Enemy3] State: SEEKING_COVER -> IN_COVER
+[06:42:03] [ENEMY] [Enemy3] State: IN_COVER -> COMBAT
+[06:42:06] [ENEMY] [Enemy3] State: COMBAT -> SEEKING_COVER
+[06:42:06] [ENEMY] [Enemy3] State: SEEKING_COVER -> IN_COVER
+[06:42:06] [ENEMY] [Enemy3] State: IN_COVER -> COMBAT
+[06:42:08] [ENEMY] [Enemy10] State: PURSUING -> COMBAT
+[06:42:09] [ENEMY] [Enemy3] State: COMBAT -> SEEKING_COVER
+[06:42:09] [ENEMY] [Enemy3] State: SEEKING_COVER -> IN_COVER
+[06:42:09] [ENEMY] [Enemy3] State: IN_COVER -> COMBAT
+[06:42:10] [ENEMY] [Enemy10] State: COMBAT -> SEEKING_COVER
+[06:42:10] [ENEMY] [Enemy10] State: SEEKING_COVER -> IN_COVER
+[06:42:10] [ENEMY] [Enemy10] State: IN_COVER -> COMBAT
+[06:42:11] [ENEMY] [Enemy3] State: COMBAT -> SEEKING_COVER
+[06:42:11] [ENEMY] [Enemy3] State: SEEKING_COVER -> IN_COVER
+[06:42:11] [ENEMY] [Enemy3] State: IN_COVER -> COMBAT
+[06:42:12] [ENEMY] [Enemy10] State: COMBAT -> SEEKING_COVER
+[06:42:12] [ENEMY] [Enemy10] State: SEEKING_COVER -> IN_COVER
+[06:42:12] [ENEMY] [Enemy10] State: IN_COVER -> COMBAT
+[06:42:13] [ENEMY] [Enemy3] State: COMBAT -> SEEKING_COVER
+[06:42:13] [ENEMY] [Enemy3] State: SEEKING_COVER -> IN_COVER
+[06:42:13] [ENEMY] [Enemy3] State: IN_COVER -> COMBAT
+[06:42:14] [ENEMY] [Enemy10] State: COMBAT -> SEEKING_COVER
+[06:42:14] [ENEMY] [Enemy10] State: SEEKING_COVER -> IN_COVER
+[06:42:14] [ENEMY] [Enemy10] State: IN_COVER -> COMBAT
+[06:42:15] [ENEMY] [Enemy3] State: COMBAT -> SEEKING_COVER
+[06:42:15] [ENEMY] [Enemy3] State: SEEKING_COVER -> IN_COVER
+[06:42:16] [ENEMY] [Enemy3] State: IN_COVER -> COMBAT
+[06:42:17] [ENEMY] [Enemy10] State: COMBAT -> SEEKING_COVER
+[06:42:17] [ENEMY] [Enemy10] State: SEEKING_COVER -> IN_COVER
+[06:42:17] [ENEMY] [Enemy10] State: IN_COVER -> COMBAT
+[06:42:18] [ENEMY] [Enemy3] State: COMBAT -> SEEKING_COVER
+[06:42:18] [ENEMY] [Enemy3] State: SEEKING_COVER -> IN_COVER
+[06:42:19] [ENEMY] [Enemy3] State: IN_COVER -> COMBAT
+[06:42:20] [ENEMY] [Enemy10] State: COMBAT -> SEEKING_COVER
+[06:42:20] [ENEMY] [Enemy10] State: SEEKING_COVER -> IN_COVER
+[06:42:20] [ENEMY] [Enemy10] State: IN_COVER -> COMBAT
+[06:42:21] [ENEMY] [Enemy3] State: COMBAT -> SEEKING_COVER
+[06:42:21] [ENEMY] [Enemy3] State: SEEKING_COVER -> IN_COVER
+[06:42:21] [ENEMY] [Enemy3] State: IN_COVER -> COMBAT
+[06:42:22] [ENEMY] [Enemy10] State: COMBAT -> SEEKING_COVER
+[06:42:22] [ENEMY] [Enemy10] State: SEEKING_COVER -> IN_COVER
+[06:42:22] [ENEMY] [Enemy10] State: IN_COVER -> COMBAT
+[06:42:23] [ENEMY] [Enemy3] State: COMBAT -> SEEKING_COVER
+[06:42:23] [ENEMY] [Enemy3] State: SEEKING_COVER -> IN_COVER
+[06:42:23] [ENEMY] [Enemy3] State: IN_COVER -> COMBAT
+[06:42:25] [ENEMY] [Enemy10] State: COMBAT -> SEEKING_COVER
+[06:42:25] [ENEMY] [Enemy10] State: SEEKING_COVER -> IN_COVER
+[06:42:25] [ENEMY] [Enemy10] State: IN_COVER -> COMBAT
+[06:42:26] [ENEMY] [Enemy3] State: COMBAT -> SEEKING_COVER
+[06:42:26] [ENEMY] [Enemy3] State: SEEKING_COVER -> IN_COVER
+[06:42:26] [ENEMY] [Enemy3] State: IN_COVER -> COMBAT
+[06:42:28] [ENEMY] [Enemy10] State: COMBAT -> SEEKING_COVER
+[06:42:28] [ENEMY] [Enemy10] State: SEEKING_COVER -> IN_COVER
+[06:42:28] [ENEMY] [Enemy10] State: IN_COVER -> COMBAT
+[06:42:28] [ENEMY] [Enemy3] State: COMBAT -> SEEKING_COVER
+[06:42:28] [ENEMY] [Enemy3] State: SEEKING_COVER -> IN_COVER
+[06:42:28] [ENEMY] [Enemy3] State: IN_COVER -> COMBAT
+[06:42:29] [ENEMY] [Enemy3] State: COMBAT -> PURSUING
+[06:42:29] [ENEMY] [Enemy10] Hit taken, health: 1/2
+[06:42:29] [ENEMY] [Enemy10] Hit taken, health: 0/2
+[06:42:29] [ENEMY] [Enemy10] Enemy died
+[06:42:36] [ENEMY] [Enemy3] State: PURSUING -> COMBAT
+[06:42:36] [ENEMY] [Enemy3] State: COMBAT -> PURSUING
+[06:42:36] [ENEMY] [Enemy3] State: PURSUING -> COMBAT
+[06:42:37] [ENEMY] [Enemy3] State: COMBAT -> PURSUING
+[06:42:40] [ENEMY] [Enemy3] State: PURSUING -> FLANKING
+[06:42:41] [ENEMY] [Enemy3] State: FLANKING -> COMBAT
+[06:42:41] [ENEMY] [Enemy3] State: COMBAT -> PURSUING
+[06:42:45] [ENEMY] [Enemy7] State: IDLE -> COMBAT
+[06:42:47] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[06:42:59] [ENEMY] [Enemy3] State: PURSUING -> COMBAT
+[06:42:59] [ENEMY] [Enemy3] State: COMBAT -> PURSUING
+[06:43:00] [ENEMY] [Enemy3] State: PURSUING -> FLANKING
+[06:43:02] [ENEMY] [Enemy3] State: FLANKING -> COMBAT
+[06:43:02] [ENEMY] [Enemy3] State: COMBAT -> PURSUING
+[06:43:05] [ENEMY] [Enemy3] State: PURSUING -> COMBAT
+[06:43:05] [ENEMY] [Enemy3] State: COMBAT -> PURSUING
+[06:43:05] [INFO] ------------------------------------------------------------
+[06:43:05] [INFO] GAME LOG ENDED: 2026-01-18T06:43:05
+[06:43:05] [INFO] ============================================================

@@ -1,0 +1,78 @@
+[07:29:43] [INFO] ============================================================
+[07:29:43] [INFO] GAME LOG STARTED
+[07:29:43] [INFO] ============================================================
+[07:29:43] [INFO] Timestamp: 2026-01-18T07:29:43
+[07:29:43] [INFO] Log file: I:/Загрузки/godot exe/game_log_20260118_072943.txt
+[07:29:43] [INFO] Executable: I:/Загрузки/godot exe/Godot-Top-Down-Template.exe
+[07:29:43] [INFO] OS: Windows
+[07:29:43] [INFO] Debug build: false
+[07:29:43] [INFO] Engine version: 4.3-stable (official)
+[07:29:43] [INFO] Project: Godot Top-Down Template
+[07:29:43] [INFO] ------------------------------------------------------------
+[07:29:43] [INFO] [GameManager] GameManager ready
+[07:29:43] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 4, behavior: GUARD, player_found: yes
+[07:29:43] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 3, behavior: GUARD, player_found: yes
+[07:29:43] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 4, behavior: GUARD, player_found: yes
+[07:29:43] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 2, behavior: GUARD, player_found: yes
+[07:29:43] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 2, behavior: GUARD, player_found: yes
+[07:29:43] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 2, behavior: GUARD, player_found: yes
+[07:29:43] [ENEMY] [Enemy7] Enemy spawned at (1606.114, 893.8859), health: 3, behavior: PATROL, player_found: yes
+[07:29:43] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 4, behavior: GUARD, player_found: yes
+[07:29:43] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 4, behavior: GUARD, player_found: yes
+[07:29:43] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 3, behavior: PATROL, player_found: yes
+[07:29:46] [INFO] [GameManager] Debug mode toggled: ON
+[07:29:48] [ENEMY] [Enemy10] State: IDLE -> COMBAT
+[07:29:48] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[07:29:48] [ENEMY] [Enemy3] State: IDLE -> COMBAT
+[07:29:48] [ENEMY] [Enemy3] Hit taken, health: 3/4
+[07:29:49] [ENEMY] [Enemy3] Hit taken, health: 2/4
+[07:29:49] [ENEMY] [Enemy3] State: COMBAT -> PURSUING
+[07:29:49] [ENEMY] [Enemy3] State: PURSUING -> RETREATING
+[07:29:49] [ENEMY] [Enemy3] Hit taken, health: 1/4
+[07:29:49] [ENEMY] [Enemy3] State: RETREATING -> IN_COVER
+[07:29:49] [ENEMY] [Enemy3] State: IN_COVER -> SUPPRESSED
+[07:29:51] [ENEMY] [Enemy3] State: SUPPRESSED -> SEEKING_COVER
+[07:29:51] [ENEMY] [Enemy3] Hit taken, health: 0/4
+[07:29:51] [ENEMY] [Enemy3] Enemy died
+[07:29:54] [ENEMY] [Enemy1] State: IDLE -> COMBAT
+[07:29:54] [ENEMY] [Enemy2] State: IDLE -> COMBAT
+[07:29:54] [ENEMY] [Enemy1] State: COMBAT -> PURSUING
+[07:29:54] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[07:29:55] [ENEMY] [Enemy10] State: PURSUING -> FLANKING
+[07:29:57] [ENEMY] [Enemy2] State: PURSUING -> FLANKING
+[07:30:00] [ENEMY] [Enemy1] State: PURSUING -> COMBAT
+[07:30:00] [ENEMY] [Enemy1] State: COMBAT -> PURSUING
+[07:30:01] [ENEMY] [Enemy1] State: PURSUING -> COMBAT
+[07:30:02] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 2, behavior: GUARD, player_found: yes
+[07:30:02] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 3, behavior: GUARD, player_found: yes
+[07:30:02] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 4, behavior: GUARD, player_found: yes
+[07:30:02] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 4, behavior: GUARD, player_found: yes
+[07:30:02] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 3, behavior: GUARD, player_found: yes
+[07:30:02] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 4, behavior: GUARD, player_found: yes
+[07:30:02] [ENEMY] [Enemy7] Enemy spawned at (1600, 900), health: 4, behavior: PATROL, player_found: yes
+[07:30:02] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 3, behavior: GUARD, player_found: yes
+[07:30:02] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 4, behavior: GUARD, player_found: yes
+[07:30:02] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 2, behavior: PATROL, player_found: yes
+[07:30:03] [ENEMY] [Enemy10] State: IDLE -> COMBAT
+[07:30:03] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[07:30:04] [ENEMY] [Enemy3] State: IDLE -> COMBAT
+[07:30:04] [ENEMY] [Enemy3] State: COMBAT -> PURSUING
+[07:30:09] [ENEMY] [Enemy10] State: PURSUING -> FLANKING
+[07:30:12] [ENEMY] [Enemy3] State: PURSUING -> COMBAT
+[07:30:16] [ENEMY] [Enemy3] State: COMBAT -> SEEKING_COVER
+[07:30:16] [ENEMY] [Enemy3] State: SEEKING_COVER -> IN_COVER
+[07:30:16] [ENEMY] [Enemy3] State: IN_COVER -> COMBAT
+[07:30:18] [ENEMY] [Enemy3] State: COMBAT -> SEEKING_COVER
+[07:30:18] [ENEMY] [Enemy3] State: SEEKING_COVER -> IN_COVER
+[07:30:18] [ENEMY] [Enemy3] State: IN_COVER -> COMBAT
+[07:30:20] [ENEMY] [Enemy3] State: COMBAT -> SEEKING_COVER
+[07:30:20] [ENEMY] [Enemy3] State: SEEKING_COVER -> IN_COVER
+[07:30:20] [ENEMY] [Enemy3] State: IN_COVER -> COMBAT
+[07:30:23] [ENEMY] [Enemy3] State: COMBAT -> SEEKING_COVER
+[07:30:23] [ENEMY] [Enemy3] State: SEEKING_COVER -> IN_COVER
+[07:30:23] [ENEMY] [Enemy3] State: IN_COVER -> COMBAT
+[07:30:24] [ENEMY] [Enemy3] State: COMBAT -> PURSUING
+[07:30:30] [ENEMY] [Enemy3] State: PURSUING -> FLANKING
+[07:30:44] [INFO] ------------------------------------------------------------
+[07:30:44] [INFO] GAME LOG ENDED: 2026-01-18T07:30:44
+[07:30:44] [INFO] ============================================================

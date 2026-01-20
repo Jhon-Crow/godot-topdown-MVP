@@ -1,0 +1,16 @@
+[06:02:14] [INFO] ============================================================
+[06:02:14] [INFO] GAME LOG STARTED
+[06:02:14] [INFO] ============================================================
+[06:02:14] [INFO] Timestamp: 2026-01-18T06:02:14
+[06:02:14] [INFO] Log file: I:/Загрузки/godot exe/game_log_20260118_060214.txt
+[06:02:14] [INFO] Executable: I:/Загрузки/godot exe/Godot-Top-Down-Template.exe
+[06:02:14] [INFO] OS: Windows
+[06:02:14] [INFO] Debug build: false
+[06:02:14] [INFO] Engine version: 4.3-stable (official)
+[06:02:14] [INFO] Project: Godot Top-Down Template
+[06:02:14] [INFO] ------------------------------------------------------------
+[06:02:14] [INFO] [GameManager] GameManager ready
+[06:02:19] [INFO] [GameManager] Debug mode toggled: ON
+[06:02:26] [INFO] ------------------------------------------------------------
+[06:02:26] [INFO] GAME LOG ENDED: 2026-01-18T06:02:26
+[06:02:26] [INFO] ============================================================

@@ -1,0 +1,435 @@
+Windows Export	Set up job	﻿2026-01-18T02:17:12.8184768Z Current runner version: '2.331.0'
+Windows Export	Set up job	2026-01-18T02:17:12.8208768Z ##[group]Runner Image Provisioner
+Windows Export	Set up job	2026-01-18T02:17:12.8209828Z Hosted Compute Agent
+Windows Export	Set up job	2026-01-18T02:17:12.8210362Z Version: 20251211.462
+Windows Export	Set up job	2026-01-18T02:17:12.8211122Z Commit: 6cbad8c2bb55d58165063d031ccabf57e2d2db61
+Windows Export	Set up job	2026-01-18T02:17:12.8211871Z Build Date: 2025-12-11T16:28:49Z
+Windows Export	Set up job	2026-01-18T02:17:12.8212511Z Worker ID: {eec3e125-3b36-4759-b122-823403168568}
+Windows Export	Set up job	2026-01-18T02:17:12.8213173Z ##[endgroup]
+Windows Export	Set up job	2026-01-18T02:17:12.8214035Z ##[group]Operating System
+Windows Export	Set up job	2026-01-18T02:17:12.8214621Z Ubuntu
+Windows Export	Set up job	2026-01-18T02:17:12.8215051Z 24.04.3
+Windows Export	Set up job	2026-01-18T02:17:12.8215548Z LTS
+Windows Export	Set up job	2026-01-18T02:17:12.8215964Z ##[endgroup]
+Windows Export	Set up job	2026-01-18T02:17:12.8216488Z ##[group]Runner Image
+Windows Export	Set up job	2026-01-18T02:17:12.8217072Z Image: ubuntu-24.04
+Windows Export	Set up job	2026-01-18T02:17:12.8217536Z Version: 20260111.209.1
+Windows Export	Set up job	2026-01-18T02:17:12.8218517Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260111.209/images/ubuntu/Ubuntu2404-Readme.md
+Windows Export	Set up job	2026-01-18T02:17:12.8219855Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260111.209
+Windows Export	Set up job	2026-01-18T02:17:12.8221172Z ##[endgroup]
+Windows Export	Set up job	2026-01-18T02:17:12.8222211Z ##[group]GITHUB_TOKEN Permissions
+Windows Export	Set up job	2026-01-18T02:17:12.8224276Z Contents: write
+Windows Export	Set up job	2026-01-18T02:17:12.8224921Z Metadata: read
+Windows Export	Set up job	2026-01-18T02:17:12.8225405Z ##[endgroup]
+Windows Export	Set up job	2026-01-18T02:17:12.8227663Z Secret source: Actions
+Windows Export	Set up job	2026-01-18T02:17:12.8228496Z Prepare workflow directory
+Windows Export	Set up job	2026-01-18T02:17:12.8598922Z Prepare all required actions
+Windows Export	Set up job	2026-01-18T02:17:12.8635162Z Getting action download info
+Windows Export	Set up job	2026-01-18T02:17:13.2914492Z Download action repository 'actions/checkout@v4' (SHA:34e114876b0b11c390a56381ad16ebd13914f8d5)
+Windows Export	Set up job	2026-01-18T02:17:13.3747032Z Download action repository 'actions/setup-dotnet@v4' (SHA:67a3573c9a986a3f9c594539f4ab511d57bb3ce9)
+Windows Export	Set up job	2026-01-18T02:17:14.0423358Z Download action repository 'firebelley/godot-export@v7.0.0' (SHA:930577654862a320eef793f399ee911b4479efb9)
+Windows Export	Set up job	2026-01-18T02:17:14.7536872Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+Windows Export	Set up job	2026-01-18T02:17:14.9913393Z Complete job name: Windows Export
+Windows Export	Checkout	﻿2026-01-18T02:17:15.0730067Z ##[group]Run actions/checkout@v4
+Windows Export	Checkout	2026-01-18T02:17:15.0731678Z with:
+Windows Export	Checkout	2026-01-18T02:17:15.0732537Z   repository: Jhon-Crow/godot-topdown-MVP
+Windows Export	Checkout	2026-01-18T02:17:15.0733889Z   token: ***
+Windows Export	Checkout	2026-01-18T02:17:15.0734672Z   ssh-strict: true
+Windows Export	Checkout	2026-01-18T02:17:15.0735467Z   ssh-user: git
+Windows Export	Checkout	2026-01-18T02:17:15.0736293Z   persist-credentials: true
+Windows Export	Checkout	2026-01-18T02:17:15.0737226Z   clean: true
+Windows Export	Checkout	2026-01-18T02:17:15.0738059Z   sparse-checkout-cone-mode: true
+Windows Export	Checkout	2026-01-18T02:17:15.0739067Z   fetch-depth: 1
+Windows Export	Checkout	2026-01-18T02:17:15.0739870Z   fetch-tags: false
+Windows Export	Checkout	2026-01-18T02:17:15.0740824Z   show-progress: true
+Windows Export	Checkout	2026-01-18T02:17:15.0741680Z   lfs: false
+Windows Export	Checkout	2026-01-18T02:17:15.0742434Z   submodules: false
+Windows Export	Checkout	2026-01-18T02:17:15.0743269Z   set-safe-directory: true
+Windows Export	Checkout	2026-01-18T02:17:15.0744408Z ##[endgroup]
+Windows Export	Checkout	2026-01-18T02:17:15.1874386Z Syncing repository: Jhon-Crow/godot-topdown-MVP
+Windows Export	Checkout	2026-01-18T02:17:15.1878550Z ##[group]Getting Git version info
+Windows Export	Checkout	2026-01-18T02:17:15.1880691Z Working directory is '/home/runner/work/godot-topdown-MVP/godot-topdown-MVP'
+Windows Export	Checkout	2026-01-18T02:17:15.1883487Z [command]/usr/bin/git version
+Windows Export	Checkout	2026-01-18T02:17:15.1926135Z git version 2.52.0
+Windows Export	Checkout	2026-01-18T02:17:15.1953897Z ##[endgroup]
+Windows Export	Checkout	2026-01-18T02:17:15.1968984Z Temporarily overriding HOME='/home/runner/work/_temp/45f24748-ea0a-48c4-b7d6-30d5560a0d83' before making global git config changes
+Windows Export	Checkout	2026-01-18T02:17:15.1974277Z Adding repository directory to the temporary git global config as a safe directory
+Windows Export	Checkout	2026-01-18T02:17:15.1978893Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/godot-topdown-MVP/godot-topdown-MVP
+Windows Export	Checkout	2026-01-18T02:17:15.2013002Z Deleting the contents of '/home/runner/work/godot-topdown-MVP/godot-topdown-MVP'
+Windows Export	Checkout	2026-01-18T02:17:15.2017301Z ##[group]Initializing the repository
+Windows Export	Checkout	2026-01-18T02:17:15.2021875Z [command]/usr/bin/git init /home/runner/work/godot-topdown-MVP/godot-topdown-MVP
+Windows Export	Checkout	2026-01-18T02:17:15.2114529Z hint: Using 'master' as the name for the initial branch. This default branch name
+Windows Export	Checkout	2026-01-18T02:17:15.2117611Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+Windows Export	Checkout	2026-01-18T02:17:15.2121029Z hint: to use in all of your new repositories, which will suppress this warning,
+Windows Export	Checkout	2026-01-18T02:17:15.2123941Z hint: call:
+Windows Export	Checkout	2026-01-18T02:17:15.2125355Z hint:
+Windows Export	Checkout	2026-01-18T02:17:15.2127132Z hint: 	git config --global init.defaultBranch <name>
+Windows Export	Checkout	2026-01-18T02:17:15.2129555Z hint:
+Windows Export	Checkout	2026-01-18T02:17:15.2131810Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+Windows Export	Checkout	2026-01-18T02:17:15.2135120Z hint: 'development'. The just-created branch can be renamed via this command:
+Windows Export	Checkout	2026-01-18T02:17:15.2137432Z hint:
+Windows Export	Checkout	2026-01-18T02:17:15.2138477Z hint: 	git branch -m <name>
+Windows Export	Checkout	2026-01-18T02:17:15.2139462Z hint:
+Windows Export	Checkout	2026-01-18T02:17:15.2141010Z hint: Disable this message with "git config set advice.defaultBranchName false"
+Windows Export	Checkout	2026-01-18T02:17:15.2144711Z Initialized empty Git repository in /home/runner/work/godot-topdown-MVP/godot-topdown-MVP/.git/
+Windows Export	Checkout	2026-01-18T02:17:15.2149208Z [command]/usr/bin/git remote add origin https://github.com/Jhon-Crow/godot-topdown-MVP
+Windows Export	Checkout	2026-01-18T02:17:15.2166697Z ##[endgroup]
+Windows Export	Checkout	2026-01-18T02:17:15.2169562Z ##[group]Disabling automatic garbage collection
+Windows Export	Checkout	2026-01-18T02:17:15.2172154Z [command]/usr/bin/git config --local gc.auto 0
+Windows Export	Checkout	2026-01-18T02:17:15.2201322Z ##[endgroup]
+Windows Export	Checkout	2026-01-18T02:17:15.2203831Z ##[group]Setting up auth
+Windows Export	Checkout	2026-01-18T02:17:15.2208530Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+Windows Export	Checkout	2026-01-18T02:17:15.2241507Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Windows Export	Checkout	2026-01-18T02:17:15.2559691Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Windows Export	Checkout	2026-01-18T02:17:15.2592487Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Windows Export	Checkout	2026-01-18T02:17:15.2811065Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+Windows Export	Checkout	2026-01-18T02:17:15.2850286Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Windows Export	Checkout	2026-01-18T02:17:15.3070833Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+Windows Export	Checkout	2026-01-18T02:17:15.3103627Z ##[endgroup]
+Windows Export	Checkout	2026-01-18T02:17:15.3105222Z ##[group]Fetching the repository
+Windows Export	Checkout	2026-01-18T02:17:15.3112045Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +1af5f46297838368087b3988ed62ac13f1fbd024:refs/remotes/origin/main
+Windows Export	Checkout	2026-01-18T02:17:15.9008384Z From https://github.com/Jhon-Crow/godot-topdown-MVP
+Windows Export	Checkout	2026-01-18T02:17:15.9011920Z  * [new ref]         1af5f46297838368087b3988ed62ac13f1fbd024 -> origin/main
+Windows Export	Checkout	2026-01-18T02:17:15.9047761Z ##[endgroup]
+Windows Export	Checkout	2026-01-18T02:17:15.9049823Z ##[group]Determining the checkout info
+Windows Export	Checkout	2026-01-18T02:17:15.9052201Z ##[endgroup]
+Windows Export	Checkout	2026-01-18T02:17:15.9053479Z [command]/usr/bin/git sparse-checkout disable
+Windows Export	Checkout	2026-01-18T02:17:15.9095352Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+Windows Export	Checkout	2026-01-18T02:17:15.9124109Z ##[group]Checking out the ref
+Windows Export	Checkout	2026-01-18T02:17:15.9127159Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+Windows Export	Checkout	2026-01-18T02:17:15.9444696Z Switched to a new branch 'main'
+Windows Export	Checkout	2026-01-18T02:17:15.9447483Z branch 'main' set up to track 'origin/main'.
+Windows Export	Checkout	2026-01-18T02:17:15.9455364Z ##[endgroup]
+Windows Export	Checkout	2026-01-18T02:17:15.9488229Z [command]/usr/bin/git log -1 --format=%H
+Windows Export	Checkout	2026-01-18T02:17:15.9510016Z 1af5f46297838368087b3988ed62ac13f1fbd024
+Windows Export	Setup .NET	﻿2026-01-18T02:17:15.9752597Z ##[group]Run actions/setup-dotnet@v4
+Windows Export	Setup .NET	2026-01-18T02:17:15.9753495Z with:
+Windows Export	Setup .NET	2026-01-18T02:17:15.9754110Z   dotnet-version: 8.0.x
+Windows Export	Setup .NET	2026-01-18T02:17:15.9754773Z   cache: false
+Windows Export	Setup .NET	2026-01-18T02:17:15.9755480Z ##[endgroup]
+Windows Export	Setup .NET	2026-01-18T02:17:16.1531285Z [command]/home/runner/work/_actions/actions/setup-dotnet/v4/externals/install-dotnet.sh --skip-non-versioned-files --runtime dotnet --channel LTS
+Windows Export	Setup .NET	2026-01-18T02:17:16.5740930Z dotnet-install: Attempting to download using aka.ms link https://builds.dotnet.microsoft.com/dotnet/Runtime/10.0.2/dotnet-runtime-10.0.2-linux-x64.tar.gz
+Windows Export	Setup .NET	2026-01-18T02:17:17.1093142Z dotnet-install: Remote file https://builds.dotnet.microsoft.com/dotnet/Runtime/10.0.2/dotnet-runtime-10.0.2-linux-x64.tar.gz size is 36674396 bytes.
+Windows Export	Setup .NET	2026-01-18T02:17:17.1095426Z dotnet-install: Extracting archive from https://builds.dotnet.microsoft.com/dotnet/Runtime/10.0.2/dotnet-runtime-10.0.2-linux-x64.tar.gz
+Windows Export	Setup .NET	2026-01-18T02:17:17.7905812Z dotnet-install: Downloaded file size is 36674396 bytes.
+Windows Export	Setup .NET	2026-01-18T02:17:17.7906785Z dotnet-install: The remote and local file sizes are equal.
+Windows Export	Setup .NET	2026-01-18T02:17:17.8215258Z dotnet-install: Installed version is 10.0.2
+Windows Export	Setup .NET	2026-01-18T02:17:17.8275003Z dotnet-install: Adding to current process PATH: `/usr/share/dotnet`. Note: This change will be visible only when sourcing script.
+Windows Export	Setup .NET	2026-01-18T02:17:17.8276715Z dotnet-install: Note that the script does not resolve dependencies during installation.
+Windows Export	Setup .NET	2026-01-18T02:17:17.8278448Z dotnet-install: To check the list of dependencies, go to https://learn.microsoft.com/dotnet/core/install, select your operating system and check the "Dependencies" section.
+Windows Export	Setup .NET	2026-01-18T02:17:17.8279732Z dotnet-install: Installation finished successfully.
+Windows Export	Setup .NET	2026-01-18T02:17:17.8306382Z [command]/home/runner/work/_actions/actions/setup-dotnet/v4/externals/install-dotnet.sh --skip-non-versioned-files --channel 8.0
+Windows Export	Setup .NET	2026-01-18T02:17:18.2031163Z dotnet-install: Attempting to download using aka.ms link https://builds.dotnet.microsoft.com/dotnet/Sdk/8.0.417/dotnet-sdk-8.0.417-linux-x64.tar.gz
+Windows Export	Setup .NET	2026-01-18T02:17:19.9384379Z dotnet-install: Remote file https://builds.dotnet.microsoft.com/dotnet/Sdk/8.0.417/dotnet-sdk-8.0.417-linux-x64.tar.gz size is 217201258 bytes.
+Windows Export	Setup .NET	2026-01-18T02:17:19.9387549Z dotnet-install: Extracting archive from https://builds.dotnet.microsoft.com/dotnet/Sdk/8.0.417/dotnet-sdk-8.0.417-linux-x64.tar.gz
+Windows Export	Setup .NET	2026-01-18T02:17:24.4667492Z dotnet-install: Downloaded file size is 217201258 bytes.
+Windows Export	Setup .NET	2026-01-18T02:17:24.4668302Z dotnet-install: The remote and local file sizes are equal.
+Windows Export	Setup .NET	2026-01-18T02:17:24.7290123Z dotnet-install: Installed version is 8.0.417
+Windows Export	Setup .NET	2026-01-18T02:17:24.7347531Z dotnet-install: Adding to current process PATH: `/usr/share/dotnet`. Note: This change will be visible only when sourcing script.
+Windows Export	Setup .NET	2026-01-18T02:17:24.7348774Z dotnet-install: Note that the script does not resolve dependencies during installation.
+Windows Export	Setup .NET	2026-01-18T02:17:24.7350316Z dotnet-install: To check the list of dependencies, go to https://learn.microsoft.com/dotnet/core/install, select your operating system and check the "Dependencies" section.
+Windows Export	Setup .NET	2026-01-18T02:17:24.7357108Z dotnet-install: Installation finished successfully.
+Windows Export	Export game	﻿2026-01-18T02:17:24.7534667Z ##[group]Run firebelley/godot-export@v7.0.0
+Windows Export	Export game	2026-01-18T02:17:24.7534982Z with:
+Windows Export	Export game	2026-01-18T02:17:24.7535503Z   godot_executable_download_url: https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_mono_linux_x86_64.zip
+Windows Export	Export game	2026-01-18T02:17:24.7536442Z   godot_export_templates_download_url: https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_mono_export_templates.tpz
+Windows Export	Export game	2026-01-18T02:17:24.7537051Z   relative_project_path: ./
+Windows Export	Export game	2026-01-18T02:17:24.7537266Z   archive_output: true
+Windows Export	Export game	2026-01-18T02:17:24.7537466Z   archive_root_folder: false
+Windows Export	Export game	2026-01-18T02:17:24.7537675Z   cache: false
+Windows Export	Export game	2026-01-18T02:17:24.7537853Z   use_preset_export_path: false
+Windows Export	Export game	2026-01-18T02:17:24.7538094Z   export_debug: false
+Windows Export	Export game	2026-01-18T02:17:24.7538301Z   verbose: false
+Windows Export	Export game	2026-01-18T02:17:24.7538480Z   use_godot_3: false
+Windows Export	Export game	2026-01-18T02:17:24.7538663Z   export_as_pack: false
+Windows Export	Export game	2026-01-18T02:17:24.7538853Z env:
+Windows Export	Export game	2026-01-18T02:17:24.7539022Z   DOTNET_ROOT: /usr/share/dotnet
+Windows Export	Export game	2026-01-18T02:17:24.7539238Z ##[endgroup]
+Windows Export	Export game	2026-01-18T02:17:24.8846996Z ##[group]🕹️ Downloading Godot
+Windows Export	Export game	2026-01-18T02:17:24.8863856Z Working path created /home/runner/.local/share/godot
+Windows Export	Export game	2026-01-18T02:17:24.8865501Z Downloading file from https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_mono_linux_x86_64.zip
+Windows Export	Export game	2026-01-18T02:17:24.8901490Z [command]/usr/bin/wget -nv https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_mono_linux_x86_64.zip -O /home/runner/.local/share/godot/godot.zip
+Windows Export	Export game	2026-01-18T02:17:25.9585426Z 2026-01-18 02:17:25 URL:https://release-assets.githubusercontent.com/github-production-release-asset/15634981/a33495e9-6c7d-4203-ae9a-1bd09369c46b?sp=r&sv=2018-11-09&sr=b&spr=https&se=2026-01-18T03%3A02%3A23Z&rscd=attachment%3B+filename%3DGodot_v4.3-stable_mono_linux_x86_64.zip&rsct=application%2Foctet-stream&skoid=96c2d410-5711-43a1-aedd-ab1947aa7ab0&sktid=398a6654-997b-47e9-b12b-9515b896b4de&skt=2026-01-18T02%3A02%3A08Z&ske=2026-01-18T03%3A02%3A23Z&sks=b&skv=2018-11-09&sig=oWaai4JZqgHxKzZrnoZD7cDvI6zWWD%2Bcq0VGKCtzeQk%3D&jwt=*** [70627262/70627262] -> "/home/runner/.local/share/godot/godot.zip" [1]
+Windows Export	Export game	2026-01-18T02:17:25.9611220Z Extracting /home/runner/.local/share/godot/godot.zip to /home/runner/.local/share/godot/godot_executable
+Windows Export	Export game	2026-01-18T02:17:25.9639580Z [command]/usr/bin/7z x /home/runner/.local/share/godot/godot.zip -o/home/runner/.local/share/godot/godot_executable -y
+Windows Export	Export game	2026-01-18T02:17:25.9863831Z 
+Windows Export	Export game	2026-01-18T02:17:25.9864297Z 7-Zip 23.01 (x64) : Copyright (c) 1999-2023 Igor Pavlov : 2023-06-20
+Windows Export	Export game	2026-01-18T02:17:25.9868035Z  64-bit locale=C.UTF-8 Threads:4 OPEN_MAX:65536
+Windows Export	Export game	2026-01-18T02:17:25.9868527Z 
+Windows Export	Export game	2026-01-18T02:17:25.9868769Z Scanning the drive for archives:
+Windows Export	Export game	2026-01-18T02:17:25.9869292Z 1 file, 70627262 bytes (68 MiB)
+Windows Export	Export game	2026-01-18T02:17:25.9869579Z 
+Windows Export	Export game	2026-01-18T02:17:25.9869937Z Extracting archive: /home/runner/.local/share/godot/godot.zip
+Windows Export	Export game	2026-01-18T02:17:26.8775991Z --
+Windows Export	Export game	2026-01-18T02:17:26.8778994Z Path = /home/runner/.local/share/godot/godot.zip
+Windows Export	Export game	2026-01-18T02:17:26.8779523Z Type = zip
+Windows Export	Export game	2026-01-18T02:17:26.8779860Z Physical Size = 70627262
+Windows Export	Export game	2026-01-18T02:17:26.8780130Z 
+Windows Export	Export game	2026-01-18T02:17:26.8780282Z Everything is Ok
+Windows Export	Export game	2026-01-18T02:17:26.8780731Z 
+Windows Export	Export game	2026-01-18T02:17:26.8780852Z Folders: 7
+Windows Export	Export game	2026-01-18T02:17:26.8781136Z Files: 42
+Windows Export	Export game	2026-01-18T02:17:26.8781454Z Size:       169544185
+Windows Export	Export game	2026-01-18T02:17:26.8781826Z Compressed: 70627262
+Windows Export	Export game	2026-01-18T02:17:26.8786493Z 🔍 Looking for Godot executable in /home/runner/.local/share/godot/godot_executable
+Windows Export	Export game	2026-01-18T02:17:26.8788272Z 🔍 Looking for Godot executable in /home/runner/.local/share/godot/godot_executable/Godot_v4.3-stable_mono_linux_x86_64
+Windows Export	Export game	2026-01-18T02:17:26.8791697Z Found executable at /home/runner/.local/share/godot/godot_executable/Godot_v4.3-stable_mono_linux_x86_64/Godot_v4.3-stable_mono_linux.x86_64
+Windows Export	Export game	2026-01-18T02:17:26.8792805Z Preparing templates
+Windows Export	Export game	2026-01-18T02:17:26.8798419Z [command]/home/runner/.local/share/godot/godot_executable/Godot_v4.3-stable_mono_linux_x86_64/Godot_v4.3-stable_mono_linux.x86_64 --version
+Windows Export	Export game	2026-01-18T02:17:26.9317686Z 4.3.stable.mono.official.77dcf97d8
+Windows Export	Export game	2026-01-18T02:17:26.9358928Z ⬇️ Missing templates for Godot 4.3.stable.mono. Downloading...
+Windows Export	Export game	2026-01-18T02:17:26.9360545Z Downloading file from https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_mono_export_templates.tpz
+Windows Export	Export game	2026-01-18T02:17:26.9377998Z [command]/usr/bin/wget -nv https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_mono_export_templates.tpz -O /home/runner/.local/share/godot/godot_templates.tpz
+Windows Export	Export game	2026-01-18T02:17:33.4552834Z 2026-01-18 02:17:33 URL:https://release-assets.githubusercontent.com/github-production-release-asset/15634981/597dac49-985f-4d66-b3f8-f8bf34563ce2?sp=r&sv=2018-11-09&sr=b&spr=https&se=2026-01-18T02%3A58%3A42Z&rscd=attachment%3B+filename%3DGodot_v4.3-stable_mono_export_templates.tpz&rsct=application%2Foctet-stream&skoid=96c2d410-5711-43a1-aedd-ab1947aa7ab0&sktid=398a6654-997b-47e9-b12b-9515b896b4de&skt=2026-01-18T01%3A58%3A13Z&ske=2026-01-18T02%3A58%3A42Z&sks=b&skv=2018-11-09&sig=%2BXqHPQdLjccjOcN1Fc56mZQ8msLMYqSYfafi%2Fnr1%2FzY%3D&jwt=*** [1002307334/1002307334] -> "/home/runner/.local/share/godot/godot_templates.tpz" [1]
+Windows Export	Export game	2026-01-18T02:17:33.4581360Z [command]/usr/bin/unzip -o -j /home/runner/.local/share/godot/godot_templates.tpz -d /home/runner/.local/share/godot/export_templates/4.3.stable.mono
+Windows Export	Export game	2026-01-18T02:17:33.4608163Z Archive:  /home/runner/.local/share/godot/godot_templates.tpz
+Windows Export	Export game	2026-01-18T02:17:34.4366131Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/android_debug.apk  
+Windows Export	Export game	2026-01-18T02:17:35.0152185Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/android_release.apk  
+Windows Export	Export game	2026-01-18T02:17:36.0052680Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/android_source.zip  
+Windows Export	Export game	2026-01-18T02:17:37.0969711Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/ios.zip  
+Windows Export	Export game	2026-01-18T02:17:37.5204572Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/linux_debug.arm32  
+Windows Export	Export game	2026-01-18T02:17:37.9706446Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/linux_debug.arm64  
+Windows Export	Export game	2026-01-18T02:17:38.4539563Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/linux_debug.x86_32  
+Windows Export	Export game	2026-01-18T02:17:38.9303057Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/linux_debug.x86_64  
+Windows Export	Export game	2026-01-18T02:17:39.3691540Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/linux_release.arm32  
+Windows Export	Export game	2026-01-18T02:17:39.8324480Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/linux_release.arm64  
+Windows Export	Export game	2026-01-18T02:17:40.3342285Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/linux_release.x86_32  
+Windows Export	Export game	2026-01-18T02:17:40.8244953Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/linux_release.x86_64  
+Windows Export	Export game	2026-01-18T02:17:41.4579838Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/macos.zip  
+Windows Export	Export game	2026-01-18T02:17:41.4581128Z  extracting: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/version.txt  
+Windows Export	Export game	2026-01-18T02:17:41.4590266Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/windows_debug_arm64_console.exe  
+Windows Export	Export game	2026-01-18T02:17:42.0207672Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/windows_debug_arm64.exe  
+Windows Export	Export game	2026-01-18T02:17:42.0220576Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/windows_debug_x86_32_console.exe  
+Windows Export	Export game	2026-01-18T02:17:42.6764374Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/windows_debug_x86_32.exe  
+Windows Export	Export game	2026-01-18T02:17:42.6776776Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/windows_debug_x86_64_console.exe  
+Windows Export	Export game	2026-01-18T02:17:43.2876785Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/windows_debug_x86_64.exe  
+Windows Export	Export game	2026-01-18T02:17:43.2886768Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/windows_release_arm64_console.exe  
+Windows Export	Export game	2026-01-18T02:17:43.8139129Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/windows_release_arm64.exe  
+Windows Export	Export game	2026-01-18T02:17:43.8152230Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/windows_release_x86_32_console.exe  
+Windows Export	Export game	2026-01-18T02:17:44.4716284Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/windows_release_x86_32.exe  
+Windows Export	Export game	2026-01-18T02:17:44.4732210Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/windows_release_x86_64_console.exe  
+Windows Export	Export game	2026-01-18T02:17:45.0918421Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/windows_release_x86_64.exe  
+Windows Export	Export game	2026-01-18T02:17:45.0929348Z ##[endgroup]
+Windows Export	Export game	2026-01-18T02:17:45.0930567Z ##[group]🔍 Adding Editor Settings
+Windows Export	Export game	2026-01-18T02:17:45.0944124Z Wrote editor settings to /home/runner/.config/godot/editor_settings-4.tres
+Windows Export	Export game	2026-01-18T02:17:45.0945115Z ##[endgroup]
+Windows Export	Export game	2026-01-18T02:17:45.0945863Z ##[group]📝 Configuring android export
+Windows Export	Export game	2026-01-18T02:17:45.0946655Z Made gradlew executable.
+Windows Export	Export game	2026-01-18T02:17:45.0947255Z ##[endgroup]
+Windows Export	Export game	2026-01-18T02:17:45.0947976Z ##[group]🎲 Import project
+Windows Export	Export game	2026-01-18T02:17:45.0951625Z [command]/home/runner/.local/share/godot/godot_executable/Godot_v4.3-stable_mono_linux_x86_64/Godot_v4.3-stable_mono_linux.x86_64 /home/runner/work/godot-topdown-MVP/godot-topdown-MVP/project.godot --headless --import
+Windows Export	Export game	2026-01-18T02:17:45.1127269Z Godot Engine v4.3.stable.mono.official.77dcf97d8 - https://godotengine.org
+Windows Export	Export game	2026-01-18T02:17:45.1300814Z 
+Windows Export	Export game	2026-01-18T02:17:51.8053839Z ##[endgroup]
+Windows Export	Export game	2026-01-18T02:17:51.8056714Z 🎯 Using project file at /home/runner/work/godot-topdown-MVP/godot-topdown-MVP/project.godot
+Windows Export	Export game	2026-01-18T02:17:51.8071671Z ##[group]1️⃣ Export binary for preset "Windows Desktop"
+Windows Export	Export game	2026-01-18T02:17:51.8081518Z [command]/home/runner/.local/share/godot/godot_executable/Godot_v4.3-stable_mono_linux_x86_64/Godot_v4.3-stable_mono_linux.x86_64 /home/runner/work/godot-topdown-MVP/godot-topdown-MVP/project.godot --headless --export-release Windows Desktop /home/runner/.local/share/godot/builds/Windows Desktop/Godot-Top-Down-Template.exe
+Windows Export	Export game	2026-01-18T02:17:51.8264739Z Godot Engine v4.3.stable.mono.official.77dcf97d8 - https://godotengine.org
+Windows Export	Export game	2026-01-18T02:17:51.8452070Z 
+Windows Export	Export game	2026-01-18T02:17:55.3624649Z dotnet_publish_project: begin: Publishing .NET project... steps: 1
+Windows Export	Export game	2026-01-18T02:17:55.3625807Z 	dotnet_publish_project: step 0: Running dotnet publish
+Windows Export	Export game	2026-01-18T02:18:04.6031885Z dotnet_publish_project: end
+Windows Export	Export game	2026-01-18T02:18:04.6739799Z WARNING: Resources Modification: Could not start rcedit executable. Configure rcedit path in the Editor Settings (Export > Windows > rcedit), or disable "Application > Modify Resources" in the export preset.
+Windows Export	Export game	2026-01-18T02:18:04.6741168Z      at: add_message (editor/export/editor_export_platform.h:179)
+Windows Export	Export game	2026-01-18T02:18:04.6741559Z savepack: begin: Packing steps: 102
+Windows Export	Export game	2026-01-18T02:18:04.6818710Z 	savepack: step 2: Storing File: res://.godot/imported/m16 1.wav-6a1b903e503cb67474a279ceb97e5b8e.sample
+Windows Export	Export game	2026-01-18T02:18:04.6819683Z 	savepack: step 2: Storing File: res://assets/audio/m16 1.wav.import
+Windows Export	Export game	2026-01-18T02:18:04.6823379Z 	savepack: step 3: Storing File: res://.godot/imported/m16 2.wav-f22d507777a6c4626521553dcf0cda33.sample
+Windows Export	Export game	2026-01-18T02:18:04.6824290Z 	savepack: step 3: Storing File: res://assets/audio/m16 2.wav.import
+Windows Export	Export game	2026-01-18T02:18:04.6827928Z 	savepack: step 4: Storing File: res://.godot/imported/m16 3.wav-d16966493c2691c632429af98c57bc34.sample
+Windows Export	Export game	2026-01-18T02:18:04.6828799Z 	savepack: step 4: Storing File: res://assets/audio/m16 3.wav.import
+Windows Export	Export game	2026-01-18T02:18:04.6833052Z 	savepack: step 6: Storing File: res://.godot/imported/m16  два выстрела подряд 2.wav-b33f9098acc50f0986e1bf5474544a70.sample
+Windows Export	Export game	2026-01-18T02:18:04.6834217Z 	savepack: step 6: Storing File: res://assets/audio/m16  два выстрела подряд 2.wav.import
+Windows Export	Export game	2026-01-18T02:18:04.6840183Z 	savepack: step 7: Storing File: res://.godot/imported/m16 два выстрела подряд.wav-7ce595de4b78c404238a8ea45b25ae8a.sample
+Windows Export	Export game	2026-01-18T02:18:04.6841915Z 	savepack: step 7: Storing File: res://assets/audio/m16 два выстрела подряд.wav.import
+Windows Export	Export game	2026-01-18T02:18:04.6843211Z 	savepack: step 9: Storing File: res://.godot/imported/взвод затвора m16 1.wav-40b76f9f0823aed803507b0146868ffe.sample
+Windows Export	Export game	2026-01-18T02:18:04.6844444Z 	savepack: step 9: Storing File: res://assets/audio/взвод затвора m16 1.wav.import
+Windows Export	Export game	2026-01-18T02:18:04.6848382Z 	savepack: step 10: Storing File: res://.godot/imported/взвод затвора m16 2.wav-a68a1fd1a60c71ae811de51327fec31c.sample
+Windows Export	Export game	2026-01-18T02:18:04.6849659Z 	savepack: step 10: Storing File: res://assets/audio/взвод затвора m16 2.wav.import
+Windows Export	Export game	2026-01-18T02:18:04.6853577Z 	savepack: step 12: Storing File: res://.godot/imported/взвод затвора m16 3.wav-90e204bd2b78a1f62c0f3d89b7d7e7f9.sample
+Windows Export	Export game	2026-01-18T02:18:04.6854849Z 	savepack: step 12: Storing File: res://assets/audio/взвод затвора m16 3.wav.import
+Windows Export	Export game	2026-01-18T02:18:04.6858723Z 	savepack: step 13: Storing File: res://.godot/imported/взвод затвора m16 4.wav-8ab6c00cb32b2ce2a064765630c597a3.sample
+Windows Export	Export game	2026-01-18T02:18:04.6860260Z 	savepack: step 13: Storing File: res://assets/audio/взвод затвора m16 4.wav.import
+Windows Export	Export game	2026-01-18T02:18:04.6864407Z 	savepack: step 15: Storing File: res://.godot/imported/взвод затвора пистолета.wav-d3a63489e505ea8ae2fe6e3bc1788a57.sample
+Windows Export	Export game	2026-01-18T02:18:04.6865674Z 	savepack: step 15: Storing File: res://assets/audio/взвод затвора пистолета.wav.import
+Windows Export	Export game	2026-01-18T02:18:04.6868744Z 	savepack: step 16: Storing File: res://.godot/imported/звук попадания не смертельного попадания.wav-caa1d346ed764fc4796f97afe28bf7b2.sample
+Windows Export	Export game	2026-01-18T02:18:04.6870156Z 	savepack: step 16: Storing File: res://assets/audio/звук попадания не смертельного попадания.wav.import
+Windows Export	Export game	2026-01-18T02:18:04.6873065Z 	savepack: step 17: Storing File: res://.godot/imported/звук смертельного попадания.wav-1df254e8ea4eac4a0c8ce5675b8ff198.sample
+Windows Export	Export game	2026-01-18T02:18:04.6874376Z 	savepack: step 17: Storing File: res://assets/audio/звук смертельного попадания.wav.import
+Windows Export	Export game	2026-01-18T02:18:04.6876496Z 	savepack: step 19: Storing File: res://.godot/imported/игрок вставил магазин (вторая фаза перезарядки).wav-8a8bbf6b1ae370a8a515266532f7ff0d.sample
+Windows Export	Export game	2026-01-18T02:18:04.6878035Z 	savepack: step 19: Storing File: res://assets/audio/игрок вставил магазин (вторая фаза перезарядки).wav.import
+Windows Export	Export game	2026-01-18T02:18:04.6882956Z 	savepack: step 20: Storing File: res://.godot/imported/игрок достал магазин (первая фаза перезарядки).wav-b296b39f2a65a0f27998a7ccb95acea3.sample
+Windows Export	Export game	2026-01-18T02:18:04.6884415Z 	savepack: step 20: Storing File: res://assets/audio/игрок достал магазин (первая фаза перезарядки).wav.import
+Windows Export	Export game	2026-01-18T02:18:04.6885844Z 	savepack: step 22: Storing File: res://.godot/imported/игрок изменил режим стрельбы (нажал b).wav-747160df6ca618265a7bb44865ddbfa2.sample
+Windows Export	Export game	2026-01-18T02:18:04.6887158Z 	savepack: step 22: Storing File: res://assets/audio/игрок изменил режим стрельбы (нажал b).wav.import
+Windows Export	Export game	2026-01-18T02:18:04.6889823Z 	savepack: step 23: Storing File: res://.godot/imported/кончились патроны в пистолете.wav-9ed4c1e5adf1c75df6795225fc3478e2.sample
+Windows Export	Export game	2026-01-18T02:18:04.6891465Z 	savepack: step 23: Storing File: res://assets/audio/кончились патроны в пистолете.wav.import
+Windows Export	Export game	2026-01-18T02:18:04.6896228Z 	savepack: step 25: Storing File: res://.godot/imported/падает гильза автомата.wav-66427526953ec184ee89da6921d007df.sample
+Windows Export	Export game	2026-01-18T02:18:04.6897494Z 	savepack: step 25: Storing File: res://assets/audio/падает гильза автомата.wav.import
+Windows Export	Export game	2026-01-18T02:18:04.6905780Z 	savepack: step 26: Storing File: res://.godot/imported/падает гильза пистолета.wav-1d6ae9ddc7f12cd6bbef492ed1bdfed4.sample
+Windows Export	Export game	2026-01-18T02:18:04.6907106Z 	savepack: step 26: Storing File: res://assets/audio/падает гильза пистолета.wav.import
+Windows Export	Export game	2026-01-18T02:18:04.6921450Z 	savepack: step 28: Storing File: res://.godot/imported/полная зарядка m16.wav-208339b648d842e833a21f63083f6897.sample
+Windows Export	Export game	2026-01-18T02:18:04.6922644Z 	savepack: step 28: Storing File: res://assets/audio/полная зарядка m16.wav.import
+Windows Export	Export game	2026-01-18T02:18:04.6943089Z 	savepack: step 29: Storing File: res://.godot/imported/попадание пули в укрытие рядом с игроком.wav-22aefd38bcb1e4a2d613016081f456b2.sample
+Windows Export	Export game	2026-01-18T02:18:04.6944808Z 	savepack: step 29: Storing File: res://assets/audio/попадание пули в укрытие рядом с игроком.wav.import
+Windows Export	Export game	2026-01-18T02:18:04.6949374Z 	savepack: step 30: Storing File: res://.godot/imported/пуля попала в стену или укрытие (сделать по тише).wav-452e1e004cbc40737b00f41465f631ee.sample
+Windows Export	Export game	2026-01-18T02:18:04.6951026Z 	savepack: step 30: Storing File: res://assets/audio/пуля попала в стену или укрытие (сделать по тише).wav.import
+Windows Export	Export game	2026-01-18T02:18:04.6954038Z 	savepack: step 32: Storing File: res://.godot/imported/пуля пролетела рядом с игроком.wav-689ed43672d5dfb707e55b2869ba106c.sample
+Windows Export	Export game	2026-01-18T02:18:04.6955269Z 	savepack: step 32: Storing File: res://assets/audio/пуля пролетела рядом с игроком.wav.import
+Windows Export	Export game	2026-01-18T02:18:04.6958164Z 	savepack: step 33: Storing File: res://experiments/test_wall_shooting_fix.gdc
+Windows Export	Export game	2026-01-18T02:18:04.6973375Z 	savepack: step 35: Storing File: res://.godot/exported/133200997/export-6c20ce96c24adf60ae4fa0795d01b992-AssaultRifleData.res
+Windows Export	Export game	2026-01-18T02:18:04.7005081Z 	savepack: step 36: Storing File: res://.godot/exported/133200997/export-416155497b0a9461b87888dde00e3083-Player.scn
+Windows Export	Export game	2026-01-18T02:18:04.7117896Z 	savepack: step 38: Storing File: res://.godot/exported/133200997/export-6ed25e61325b5587cfccd1297eeb66c2-Player.scn
+Windows Export	Export game	2026-01-18T02:18:04.7364412Z 	savepack: step 39: Storing File: res://.godot/exported/133200997/export-4750fa2d8176ae1cf1f742043b7bb695-TestTier.scn
+Windows Export	Export game	2026-01-18T02:18:04.8202786Z 	savepack: step 41: Storing File: res://.godot/exported/133200997/export-c5bb8f8f345ade458f60101c633229d1-BuildingLevel.scn
+Windows Export	Export game	2026-01-18T02:18:04.8363662Z 	savepack: step 42: Storing File: res://.godot/exported/133200997/export-4611a88e25034833338e52b601ec9249-TestTier.scn
+Windows Export	Export game	2026-01-18T02:18:04.8378959Z 	savepack: step 44: Storing File: res://.godot/exported/133200997/export-68a04552abb3f12a362e1db2098e38c9-Main.scn
+Windows Export	Export game	2026-01-18T02:18:04.8387342Z 	savepack: step 45: Storing File: res://.godot/exported/133200997/export-aba84c3490a0cf8f0a573e98c9479f7b-Enemy.scn
+Windows Export	Export game	2026-01-18T02:18:04.8395429Z 	savepack: step 46: Storing File: res://.godot/exported/133200997/export-aa344ae45f20caf271829d2e426a4a71-Target.scn
+Windows Export	Export game	2026-01-18T02:18:04.8408333Z 	savepack: step 48: Storing File: res://.godot/exported/133200997/export-1c95935264ab792c49d4bb92cd17a260-Enemy.scn
+Windows Export	Export game	2026-01-18T02:18:04.8427949Z 	savepack: step 49: Storing File: res://.godot/exported/133200997/export-95a7296b39ac2c02f583cafb7e8273aa-Target.scn
+Windows Export	Export game	2026-01-18T02:18:04.8435987Z 	savepack: step 51: Storing File: res://.godot/exported/133200997/export-9907f4adb212a16435a59c7909d4b9be-Bullet.scn
+Windows Export	Export game	2026-01-18T02:18:04.8450918Z 	savepack: step 52: Storing File: res://.godot/exported/133200997/export-ac2d8e22ef1e540eb2d999fbf5166a73-Bullet.scn
+Windows Export	Export game	2026-01-18T02:18:04.8528949Z 	savepack: step 54: Storing File: res://.godot/exported/133200997/export-43af3363fcfc822c3a0add4ca37e41a8-ControlsMenu.scn
+Windows Export	Export game	2026-01-18T02:18:04.8545392Z 	savepack: step 55: Storing File: res://.godot/exported/133200997/export-f3a0254cbdab81d1efc5e42f39e19dcf-PauseMenu.scn
+Windows Export	Export game	2026-01-18T02:18:04.8553932Z 	savepack: step 57: Storing File: res://.godot/exported/133200997/export-321991f80445845f9164dba256c263c4-AssaultRifle.scn
+Windows Export	Export game	2026-01-18T02:18:04.8565701Z 	savepack: step 58: Storing File: res://Scripts/AbstractClasses/BaseCharacter.cs
+Windows Export	Export game	2026-01-18T02:18:04.8566938Z 	savepack: step 59: Storing File: res://Scripts/AbstractClasses/BaseWeapon.cs
+Windows Export	Export game	2026-01-18T02:18:04.8568280Z 	savepack: step 61: Storing File: res://Scripts/Characters/Player.cs
+Windows Export	Export game	2026-01-18T02:18:04.8569676Z 	savepack: step 62: Storing File: res://Scripts/Components/HealthComponent.cs
+Windows Export	Export game	2026-01-18T02:18:04.8571252Z 	savepack: step 64: Storing File: res://Scripts/Data/BulletData.cs
+Windows Export	Export game	2026-01-18T02:18:04.8572462Z 	savepack: step 65: Storing File: res://Scripts/Data/WeaponData.cs
+Windows Export	Export game	2026-01-18T02:18:04.8573706Z 	savepack: step 67: Storing File: res://Scripts/Interfaces/IDamageable.cs
+Windows Export	Export game	2026-01-18T02:18:04.8575041Z 	savepack: step 68: Storing File: res://Scripts/Objects/Enemy.cs
+Windows Export	Export game	2026-01-18T02:18:04.8576637Z 	savepack: step 70: Storing File: res://Scripts/Projectiles/Bullet.cs
+Windows Export	Export game	2026-01-18T02:18:04.8577831Z 	savepack: step 71: Storing File: res://Scripts/Weapons/AssaultRifle.cs
+Windows Export	Export game	2026-01-18T02:18:04.8585552Z 	savepack: step 73: Storing File: res://scripts/ai/enemy_actions.gdc
+Windows Export	Export game	2026-01-18T02:18:04.8589581Z 	savepack: step 74: Storing File: res://scripts/ai/goap_action.gdc
+Windows Export	Export game	2026-01-18T02:18:04.8595854Z 	savepack: step 75: Storing File: res://scripts/ai/goap_planner.gdc
+Windows Export	Export game	2026-01-18T02:18:04.8605742Z 	savepack: step 77: Storing File: res://scripts/autoload/audio_manager.gdc
+Windows Export	Export game	2026-01-18T02:18:04.8611998Z 	savepack: step 78: Storing File: res://scripts/autoload/file_logger.gdc
+Windows Export	Export game	2026-01-18T02:18:04.8616978Z 	savepack: step 80: Storing File: res://scripts/autoload/game_manager.gdc
+Windows Export	Export game	2026-01-18T02:18:04.8622694Z 	savepack: step 81: Storing File: res://scripts/autoload/hit_effects_manager.gdc
+Windows Export	Export game	2026-01-18T02:18:04.8631377Z 	savepack: step 83: Storing File: res://scripts/autoload/input_settings.gdc
+Windows Export	Export game	2026-01-18T02:18:04.8643431Z 	savepack: step 84: Storing File: res://scripts/characters/player.gdc
+Windows Export	Export game	2026-01-18T02:18:04.8656103Z 	savepack: step 86: Storing File: res://scripts/levels/building_level.gdc
+Windows Export	Export game	2026-01-18T02:18:04.8669308Z 	savepack: step 87: Storing File: res://scripts/levels/test_tier.gdc
+Windows Export	Export game	2026-01-18T02:18:04.8751241Z 	savepack: step 88: Storing File: res://scripts/objects/enemy.gdc
+Windows Export	Export game	2026-01-18T02:18:04.8753546Z 	savepack: step 90: Storing File: res://scripts/objects/hit_area.gdc
+Windows Export	Export game	2026-01-18T02:18:04.8756659Z 	savepack: step 91: Storing File: res://scripts/objects/target.gdc
+Windows Export	Export game	2026-01-18T02:18:04.8760980Z 	savepack: step 93: Storing File: res://scripts/projectiles/bullet.gdc
+Windows Export	Export game	2026-01-18T02:18:04.8762049Z 	savepack: step 94: Storing File: res://scripts/shaders/saturation.gdshader
+Windows Export	Export game	2026-01-18T02:18:04.8770093Z 	savepack: step 96: Storing File: res://scripts/ui/controls_menu.gdc
+Windows Export	Export game	2026-01-18T02:18:04.8774080Z 	savepack: step 97: Storing File: res://scripts/ui/pause_menu.gdc
+Windows Export	Export game	2026-01-18T02:18:04.8775814Z 	savepack: step 99: Storing File: res://scripts/main.gdc
+Windows Export	Export game	2026-01-18T02:18:04.8778402Z 	savepack: step 100: Storing File: res://.godot/imported/icon.svg-218a8f2b3041327d8a5756f3a245f83b.ctex
+Windows Export	Export game	2026-01-18T02:18:04.8779225Z 	savepack: step 100: Storing File: res://icon.svg.import
+Windows Export	Export game	2026-01-18T02:18:04.8787016Z 	savepack: step 100: Storing File: res://experiments/test_wall_shooting_fix.gd.remap
+Windows Export	Export game	2026-01-18T02:18:04.8787905Z 	savepack: step 100: Storing File: res://resources/weapons/AssaultRifleData.tres.remap
+Windows Export	Export game	2026-01-18T02:18:04.8788768Z 	savepack: step 100: Storing File: res://scenes/characters/csharp/Player.tscn.remap
+Windows Export	Export game	2026-01-18T02:18:04.8789561Z 	savepack: step 100: Storing File: res://scenes/characters/Player.tscn.remap
+Windows Export	Export game	2026-01-18T02:18:04.8790341Z 	savepack: step 100: Storing File: res://scenes/levels/csharp/TestTier.tscn.remap
+Windows Export	Export game	2026-01-18T02:18:04.8791314Z 	savepack: step 100: Storing File: res://scenes/levels/BuildingLevel.tscn.remap
+Windows Export	Export game	2026-01-18T02:18:04.8792095Z 	savepack: step 100: Storing File: res://scenes/levels/TestTier.tscn.remap
+Windows Export	Export game	2026-01-18T02:18:04.8792811Z 	savepack: step 100: Storing File: res://scenes/main/Main.tscn.remap
+Windows Export	Export game	2026-01-18T02:18:04.8793279Z 	savepack: step 100: Storing File: res://scenes/objects/csharp/Enemy.tscn.remap
+Windows Export	Export game	2026-01-18T02:18:04.8793747Z 	savepack: step 100: Storing File: res://scenes/objects/csharp/Target.tscn.remap
+Windows Export	Export game	2026-01-18T02:18:04.8794189Z 	savepack: step 100: Storing File: res://scenes/objects/Enemy.tscn.remap
+Windows Export	Export game	2026-01-18T02:18:04.8794612Z 	savepack: step 100: Storing File: res://scenes/objects/Target.tscn.remap
+Windows Export	Export game	2026-01-18T02:18:04.8795092Z 	savepack: step 100: Storing File: res://scenes/projectiles/csharp/Bullet.tscn.remap
+Windows Export	Export game	2026-01-18T02:18:04.8795571Z 	savepack: step 100: Storing File: res://scenes/projectiles/Bullet.tscn.remap
+Windows Export	Export game	2026-01-18T02:18:04.8796030Z 	savepack: step 100: Storing File: res://scenes/ui/ControlsMenu.tscn.remap
+Windows Export	Export game	2026-01-18T02:18:04.8796454Z 	savepack: step 100: Storing File: res://scenes/ui/PauseMenu.tscn.remap
+Windows Export	Export game	2026-01-18T02:18:04.8797143Z 	savepack: step 100: Storing File: res://scenes/weapons/csharp/AssaultRifle.tscn.remap
+Windows Export	Export game	2026-01-18T02:18:04.8797629Z 	savepack: step 100: Storing File: res://scripts/ai/enemy_actions.gd.remap
+Windows Export	Export game	2026-01-18T02:18:04.8798088Z 	savepack: step 100: Storing File: res://scripts/ai/goap_action.gd.remap
+Windows Export	Export game	2026-01-18T02:18:04.8798518Z 	savepack: step 100: Storing File: res://scripts/ai/goap_planner.gd.remap
+Windows Export	Export game	2026-01-18T02:18:04.8799121Z 	savepack: step 100: Storing File: res://scripts/autoload/audio_manager.gd.remap
+Windows Export	Export game	2026-01-18T02:18:04.8799907Z 	savepack: step 100: Storing File: res://scripts/autoload/file_logger.gd.remap
+Windows Export	Export game	2026-01-18T02:18:04.8800607Z 	savepack: step 100: Storing File: res://scripts/autoload/game_manager.gd.remap
+Windows Export	Export game	2026-01-18T02:18:04.8801103Z 	savepack: step 100: Storing File: res://scripts/autoload/hit_effects_manager.gd.remap
+Windows Export	Export game	2026-01-18T02:18:04.8801593Z 	savepack: step 100: Storing File: res://scripts/autoload/input_settings.gd.remap
+Windows Export	Export game	2026-01-18T02:18:04.8802049Z 	savepack: step 100: Storing File: res://scripts/characters/player.gd.remap
+Windows Export	Export game	2026-01-18T02:18:04.8802667Z 	savepack: step 100: Storing File: res://scripts/levels/building_level.gd.remap
+Windows Export	Export game	2026-01-18T02:18:04.8803095Z 	savepack: step 100: Storing File: res://scripts/levels/test_tier.gd.remap
+Windows Export	Export game	2026-01-18T02:18:04.8803513Z 	savepack: step 100: Storing File: res://scripts/objects/enemy.gd.remap
+Windows Export	Export game	2026-01-18T02:18:04.8803937Z 	savepack: step 100: Storing File: res://scripts/objects/hit_area.gd.remap
+Windows Export	Export game	2026-01-18T02:18:04.8804352Z 	savepack: step 100: Storing File: res://scripts/objects/target.gd.remap
+Windows Export	Export game	2026-01-18T02:18:04.8804777Z 	savepack: step 100: Storing File: res://scripts/projectiles/bullet.gd.remap
+Windows Export	Export game	2026-01-18T02:18:04.8805207Z 	savepack: step 100: Storing File: res://scripts/ui/controls_menu.gd.remap
+Windows Export	Export game	2026-01-18T02:18:04.8805626Z 	savepack: step 100: Storing File: res://scripts/ui/pause_menu.gd.remap
+Windows Export	Export game	2026-01-18T02:18:04.8806019Z 	savepack: step 100: Storing File: res://scripts/main.gd.remap
+Windows Export	Export game	2026-01-18T02:18:04.8806419Z 	savepack: step 100: Storing File: res://.godot/global_script_class_cache.cfg
+Windows Export	Export game	2026-01-18T02:18:04.8806808Z 	savepack: step 100: Storing File: res://icon.svg
+Windows Export	Export game	2026-01-18T02:18:04.8807130Z 	savepack: step 100: Storing File: res://.godot/uid_cache.bin
+Windows Export	Export game	2026-01-18T02:18:04.8807489Z 	savepack: step 100: Storing File: res://project.binary
+Windows Export	Export game	2026-01-18T02:18:04.8838453Z savepack: end
+Windows Export	Export game	2026-01-18T02:18:04.9786838Z WARNING: Project export for preset "Windows Desktop" completed with warnings.
+Windows Export	Export game	2026-01-18T02:18:04.9787691Z      at: _fs_changed (editor/editor_node.cpp:1033)
+Windows Export	Export game	2026-01-18T02:18:05.5795412Z ##[endgroup]
+Windows Export	Export game	2026-01-18T02:18:05.5796046Z ##[endgroup]
+Windows Export	Export game	2026-01-18T02:18:05.5796917Z ##[group]⚒️ Zipping binaries
+Windows Export	Export game	2026-01-18T02:18:05.5817636Z [command]/usr/bin/7z a /home/runner/.local/share/godot/archives/Windows Desktop.zip /home/runner/.local/share/godot/builds/Windows Desktop/*
+Windows Export	Export game	2026-01-18T02:18:14.1481883Z 
+Windows Export	Export game	2026-01-18T02:18:14.1482582Z 7-Zip 23.01 (x64) : Copyright (c) 1999-2023 Igor Pavlov : 2023-06-20
+Windows Export	Export game	2026-01-18T02:18:14.1483232Z  64-bit locale=C.UTF-8 Threads:4 OPEN_MAX:65536
+Windows Export	Export game	2026-01-18T02:18:14.1483630Z 
+Windows Export	Export game	2026-01-18T02:18:14.1483773Z Scanning the drive:
+Windows Export	Export game	2026-01-18T02:18:14.1484217Z 1 folder, 228 files, 165009142 bytes (158 MiB)
+Windows Export	Export game	2026-01-18T02:18:14.1484533Z 
+Windows Export	Export game	2026-01-18T02:18:14.1484953Z Creating archive: /home/runner/.local/share/godot/archives/Windows Desktop.zip
+Windows Export	Export game	2026-01-18T02:18:14.1485477Z 
+Windows Export	Export game	2026-01-18T02:18:14.1485820Z Add new data to archive: 1 folder, 228 files, 165009142 bytes (158 MiB)
+Windows Export	Export game	2026-01-18T02:18:14.1486113Z 
+Windows Export	Export game	2026-01-18T02:18:14.1486118Z 
+Windows Export	Export game	2026-01-18T02:18:14.1486229Z Files read from disk: 228
+Windows Export	Export game	2026-01-18T02:18:14.1486499Z Archive size: 64728956 bytes (62 MiB)
+Windows Export	Export game	2026-01-18T02:18:14.1486768Z Everything is Ok
+Windows Export	Export game	2026-01-18T02:18:14.1489686Z 📦 Zipped Windows Desktop to /home/runner/.local/share/godot/archives/Windows Desktop.zip
+Windows Export	Export game	2026-01-18T02:18:14.1491211Z ##[endgroup]
+Windows Export	Upload artifact	﻿2026-01-18T02:18:14.1626791Z ##[group]Run actions/upload-artifact@v4
+Windows Export	Upload artifact	2026-01-18T02:18:14.1627071Z with:
+Windows Export	Upload artifact	2026-01-18T02:18:14.1627232Z   name: windows-build
+Windows Export	Upload artifact	2026-01-18T02:18:14.1627466Z   path: /home/runner/.local/share/godot/archives/*
+Windows Export	Upload artifact	2026-01-18T02:18:14.1627758Z   if-no-files-found: warn
+Windows Export	Upload artifact	2026-01-18T02:18:14.1627964Z   compression-level: 6
+Windows Export	Upload artifact	2026-01-18T02:18:14.1628149Z   overwrite: false
+Windows Export	Upload artifact	2026-01-18T02:18:14.1628333Z   include-hidden-files: false
+Windows Export	Upload artifact	2026-01-18T02:18:14.1628531Z env:
+Windows Export	Upload artifact	2026-01-18T02:18:14.1628698Z   DOTNET_ROOT: /usr/share/dotnet
+Windows Export	Upload artifact	2026-01-18T02:18:14.1628907Z ##[endgroup]
+Windows Export	Upload artifact	2026-01-18T02:18:14.3865276Z With the provided path, there will be 1 file uploaded
+Windows Export	Upload artifact	2026-01-18T02:18:14.3872286Z Artifact name is valid!
+Windows Export	Upload artifact	2026-01-18T02:18:14.3874128Z Root directory input is valid!
+Windows Export	Upload artifact	2026-01-18T02:18:14.6147239Z Beginning upload of artifact content to blob storage
+Windows Export	Upload artifact	2026-01-18T02:18:15.7259548Z Uploaded bytes 8388608
+Windows Export	Upload artifact	2026-01-18T02:18:15.9065130Z Uploaded bytes 16777216
+Windows Export	Upload artifact	2026-01-18T02:18:16.1292289Z Uploaded bytes 25165824
+Windows Export	Upload artifact	2026-01-18T02:18:16.2118378Z Uploaded bytes 33554432
+Windows Export	Upload artifact	2026-01-18T02:18:16.4259023Z Uploaded bytes 41943040
+Windows Export	Upload artifact	2026-01-18T02:18:16.4470247Z Uploaded bytes 50331648
+Windows Export	Upload artifact	2026-01-18T02:18:16.7158296Z Uploaded bytes 58720256
+Windows Export	Upload artifact	2026-01-18T02:18:16.8964532Z Uploaded bytes 64476847
+Windows Export	Upload artifact	2026-01-18T02:18:16.9594151Z Finished uploading artifact content to blob storage!
+Windows Export	Upload artifact	2026-01-18T02:18:16.9597508Z SHA256 digest of uploaded artifact zip is 45a13d4c24fcacc696c46bbcbd730985356cb10a48037d5bdbecff72ef15e221
+Windows Export	Upload artifact	2026-01-18T02:18:16.9599132Z Finalizing artifact upload
+Windows Export	Upload artifact	2026-01-18T02:18:17.0792822Z Artifact windows-build.zip successfully finalized. Artifact ID 5166576639
+Windows Export	Upload artifact	2026-01-18T02:18:17.0794459Z Artifact windows-build has been successfully uploaded! Final size is 64476847 bytes. Artifact ID is 5166576639
+Windows Export	Upload artifact	2026-01-18T02:18:17.0801527Z Artifact download URL: https://github.com/Jhon-Crow/godot-topdown-MVP/actions/runs/21104471657/artifacts/5166576639
+Windows Export	Post Setup .NET	﻿2026-01-18T02:18:17.0953106Z Post job cleanup.
+Windows Export	Post Checkout	﻿2026-01-18T02:18:17.2544634Z Post job cleanup.
+Windows Export	Post Checkout	2026-01-18T02:18:17.3465716Z [command]/usr/bin/git version
+Windows Export	Post Checkout	2026-01-18T02:18:17.3500748Z git version 2.52.0
+Windows Export	Post Checkout	2026-01-18T02:18:17.3544004Z Temporarily overriding HOME='/home/runner/work/_temp/abbe7414-0ef1-4bd0-af10-8aadf009dbd3' before making global git config changes
+Windows Export	Post Checkout	2026-01-18T02:18:17.3545418Z Adding repository directory to the temporary git global config as a safe directory
+Windows Export	Post Checkout	2026-01-18T02:18:17.3556999Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/godot-topdown-MVP/godot-topdown-MVP
+Windows Export	Post Checkout	2026-01-18T02:18:17.3590644Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+Windows Export	Post Checkout	2026-01-18T02:18:17.3622890Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Windows Export	Post Checkout	2026-01-18T02:18:17.3848848Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Windows Export	Post Checkout	2026-01-18T02:18:17.3869056Z http.https://github.com/.extraheader
+Windows Export	Post Checkout	2026-01-18T02:18:17.3882325Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+Windows Export	Post Checkout	2026-01-18T02:18:17.3912238Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Windows Export	Post Checkout	2026-01-18T02:18:17.4150052Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+Windows Export	Post Checkout	2026-01-18T02:18:17.4184579Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Windows Export	Complete job	﻿2026-01-18T02:18:17.4544339Z Cleaning up orphan processes
+Windows Export	Complete job	2026-01-18T02:18:17.4849026Z Terminate orphan process: pid (2724) (VBCSCompiler)

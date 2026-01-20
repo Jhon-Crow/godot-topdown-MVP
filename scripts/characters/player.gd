@@ -22,11 +22,17 @@ extends CharacterBody2D
 ## Offset from player center for bullet spawn position.
 @export var bullet_spawn_offset: float = 20.0
 
-## Maximum ammunition (90 bullets = 3 magazines of 30).
+## Maximum ammunition (default 90 bullets = 3 magazines of 30 for Normal mode).
+## In Hard mode, this is reduced to 60 bullets (2 magazines).
 @export var max_ammo: int = 90
 
 ## Maximum health of the player.
 @export var max_health: int = 5
+
+## Weapon loudness - determines how far gunshots propagate for enemy detection.
+## Set to viewport diagonal (~1469 pixels) for assault rifle by default.
+## This affects how far enemies can hear the player's gunshots.
+@export var weapon_loudness: float = 1469.0
 
 ## Reload mode: simple (press R once) or sequence (R-F-R).
 @export_enum("Simple", "Sequence") var reload_mode: int = 1  # Default to Sequence mode
@@ -45,6 +51,21 @@ extends CharacterBody2D
 
 ## Duration of hit flash effect in seconds.
 @export var hit_flash_duration: float = 0.1
+
+## Screen shake intensity per shot in pixels.
+## The actual shake distance per shot is calculated as: intensity / fire_rate * 10
+## Lower fire rate = larger shake per shot.
+@export var screen_shake_intensity: float = 5.0
+
+## Fire rate in shots per second (used for shake calculation).
+## Default is 10.0 to match the assault rifle.
+@export var fire_rate: float = 10.0
+
+## Minimum recovery time for screen shake at minimum spread.
+@export var screen_shake_min_recovery: float = 0.25
+
+## Maximum recovery time for screen shake at maximum spread (min 50ms).
+@export var screen_shake_max_recovery: float = 0.05
 
 ## Current ammunition count.
 var _current_ammo: int = 90
@@ -108,11 +129,24 @@ signal reload_sequence_progress(step: int, total: int)
 ## Signal emitted when reload completes.
 signal reload_completed
 
+## Signal emitted when reload starts (first step of sequence or simple reload).
+## This signal notifies enemies that the player has begun reloading.
+signal reload_started
+
 
 func _ready() -> void:
 	# Preload bullet scene if not set in inspector
 	if bullet_scene == null:
 		bullet_scene = preload("res://scenes/projectiles/Bullet.tscn")
+
+	# Get max ammo from DifficultyManager based on current difficulty
+	var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
+	if difficulty_manager:
+		max_ammo = difficulty_manager.get_max_ammo()
+		# Connect to difficulty changes to update ammo limit mid-game
+		if not difficulty_manager.difficulty_changed.is_connected(_on_difficulty_changed):
+			difficulty_manager.difficulty_changed.connect(_on_difficulty_changed)
+
 	_current_ammo = max_ammo
 	_current_health = max_health
 	_is_alive = true
@@ -222,15 +256,59 @@ func _shoot() -> void:
 	if audio_manager and audio_manager.has_method("play_m16_shot"):
 		audio_manager.play_m16_shot(global_position)
 
+	# Emit gunshot sound for in-game sound propagation (alerts enemies)
+	# Uses weapon_loudness to determine propagation range
+	var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
+	if sound_propagation and sound_propagation.has_method("emit_sound"):
+		# Use emit_sound with custom range for weapon-specific loudness
+		sound_propagation.emit_sound(0, global_position, 0, self, weapon_loudness)  # 0 = GUNSHOT, 0 = PLAYER
+
 	# Play shell casing sound with a small delay
 	if audio_manager and audio_manager.has_method("play_shell_rifle"):
 		_play_delayed_shell_sound()
+
+	# Trigger screen shake
+	_trigger_screen_shake(shoot_direction)
 
 	# Update ammo and shot count
 	_current_ammo -= 1
 	_shot_count += 1
 	_shot_timer = 0.0
 	ammo_changed.emit(_current_ammo, max_ammo)
+
+
+## Trigger screen shake based on shooting direction and current spread.
+func _trigger_screen_shake(shoot_direction: Vector2) -> void:
+	if screen_shake_intensity <= 0.0:
+		return
+
+	var screen_shake: Node = get_node_or_null("/root/ScreenShakeManager")
+	if not screen_shake:
+		return
+
+	# Calculate shake intensity based on fire rate
+	# Lower fire rate = larger shake per shot
+	var shake_intensity: float
+	if fire_rate > 0.0:
+		shake_intensity = screen_shake_intensity / fire_rate * 10.0
+	else:
+		shake_intensity = screen_shake_intensity
+
+	# Calculate spread ratio for recovery time interpolation
+	var current_spread := _get_current_spread()
+	var spread_ratio := 0.0
+	if MAX_SPREAD > INITIAL_SPREAD:
+		spread_ratio = clampf((current_spread - INITIAL_SPREAD) / (MAX_SPREAD - INITIAL_SPREAD), 0.0, 1.0)
+
+	# Calculate recovery time based on spread ratio
+	# At min spread -> slower recovery (min_recovery)
+	# At max spread -> faster recovery (max_recovery)
+	var recovery_time := lerpf(screen_shake_min_recovery, screen_shake_max_recovery, spread_ratio)
+	# Clamp to minimum 50ms as per specification
+	recovery_time = maxf(recovery_time, 0.05)
+
+	# Trigger the shake via ScreenShakeManager
+	screen_shake.add_shake(shoot_direction, shake_intensity, recovery_time)
 
 
 ## Play shell casing sound with a delay to simulate the casing hitting the ground.
@@ -266,6 +344,8 @@ func _handle_simple_reload_input() -> void:
 		if audio_manager and audio_manager.has_method("play_reload_full"):
 			audio_manager.play_reload_full(global_position)
 		reload_sequence_progress.emit(1, 1)
+		# Notify enemies that reload has started
+		reload_started.emit()
 
 
 ## Complete the simple reload.
@@ -275,6 +355,11 @@ func _complete_simple_reload() -> void:
 	_reload_timer = 0.0
 	ammo_changed.emit(_current_ammo, max_ammo)
 	reload_completed.emit()
+	# Emit reload completion sound for in-game sound propagation
+	# This alerts enemies that player is no longer vulnerable and they should become cautious
+	var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
+	if sound_propagation and sound_propagation.has_method("emit_player_reload_complete"):
+		sound_propagation.emit_player_reload_complete(global_position, self)
 
 
 ## Handle reload sequence input (R-F-R).
@@ -299,6 +384,8 @@ func _handle_sequence_reload_input() -> void:
 				if audio_manager and audio_manager.has_method("play_reload_mag_out"):
 					audio_manager.play_reload_mag_out(global_position)
 				reload_sequence_progress.emit(1, 3)
+				# Notify enemies that reload has started
+				reload_started.emit()
 		1:
 			# Waiting for F press
 			if Input.is_action_just_pressed("reload_step"):
@@ -336,6 +423,11 @@ func _complete_reload() -> void:
 	ammo_changed.emit(_current_ammo, max_ammo)
 	reload_completed.emit()
 	reload_sequence_progress.emit(3, 3)
+	# Emit reload completion sound for in-game sound propagation
+	# This alerts enemies that player is no longer vulnerable and they should become cautious
+	var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
+	if sound_propagation and sound_propagation.has_method("emit_player_reload_complete"):
+		sound_propagation.emit_player_reload_complete(global_position, self)
 
 
 ## Check if player is currently reloading (either mode).
@@ -437,3 +529,21 @@ func get_max_health() -> int:
 ## Check if player is alive.
 func is_alive() -> bool:
 	return _is_alive
+
+
+## Called when difficulty changes mid-game.
+## Updates max ammo based on new difficulty setting.
+func _on_difficulty_changed(_new_difficulty: int) -> void:
+	var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
+	if difficulty_manager:
+		var new_max_ammo := difficulty_manager.get_max_ammo()
+		# Only update if the max ammo changed
+		if new_max_ammo != max_ammo:
+			var old_max_ammo := max_ammo
+			max_ammo = new_max_ammo
+			# Scale current ammo proportionally, but cap at new max
+			if old_max_ammo > 0:
+				_current_ammo = mini(_current_ammo, max_ammo)
+			else:
+				_current_ammo = max_ammo
+			ammo_changed.emit(_current_ammo, max_ammo)

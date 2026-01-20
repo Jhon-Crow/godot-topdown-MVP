@@ -38,6 +38,9 @@ var _kills_label: Label = null
 ## Reference to the accuracy label.
 var _accuracy_label: Label = null
 
+## Reference to the magazines label (shows individual magazine ammo counts).
+var _magazines_label: Label = null
+
 ## Reference to the ColorRect for saturation effect.
 var _saturation_overlay: ColorRect = null
 
@@ -105,20 +108,43 @@ func _setup_player_tracking() -> void:
 		# C# Player with weapon - connect to weapon signals
 		if weapon.has_signal("AmmoChanged"):
 			weapon.AmmoChanged.connect(_on_weapon_ammo_changed)
+		if weapon.has_signal("MagazinesChanged"):
+			weapon.MagazinesChanged.connect(_on_magazines_changed)
 		if weapon.has_signal("Fired"):
 			weapon.Fired.connect(_on_shot_fired)
 		# Initial ammo display from weapon
 		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
 			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
+		# Initial magazine display
+		if weapon.has_method("GetMagazineAmmoCounts"):
+			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
+			_update_magazines_label(mag_counts)
 	else:
 		# GDScript Player - connect to player signals
 		if _player.has_signal("ammo_changed"):
 			_player.ammo_changed.connect(_on_player_ammo_changed)
-		if _player.has_signal("ammo_depleted"):
-			_player.ammo_depleted.connect(_on_player_ammo_depleted)
 		# Initial ammo display
 		if _player.has_method("get_current_ammo") and _player.has_method("get_max_ammo"):
 			_update_ammo_label(_player.get_current_ammo(), _player.get_max_ammo())
+
+	# Connect reload/ammo depleted signals for enemy aggression behavior
+	# These signals are used by BOTH C# and GDScript players to notify enemies
+	# that the player is vulnerable (reloading or out of ammo)
+	# C# Player uses PascalCase signal names, GDScript uses snake_case
+	if _player.has_signal("ReloadStarted"):
+		_player.ReloadStarted.connect(_on_player_reload_started)
+	elif _player.has_signal("reload_started"):
+		_player.reload_started.connect(_on_player_reload_started)
+
+	if _player.has_signal("ReloadCompleted"):
+		_player.ReloadCompleted.connect(_on_player_reload_completed)
+	elif _player.has_signal("reload_completed"):
+		_player.reload_completed.connect(_on_player_reload_completed)
+
+	if _player.has_signal("AmmoDepleted"):
+		_player.AmmoDepleted.connect(_on_player_ammo_depleted)
+	elif _player.has_signal("ammo_depleted"):
+		_player.ammo_depleted.connect(_on_player_ammo_depleted)
 
 
 ## Setup tracking for all enemies in the scene.
@@ -168,6 +194,17 @@ func _setup_debug_ui() -> void:
 	_accuracy_label.offset_right = 200
 	_accuracy_label.offset_bottom = 105
 	ui.add_child(_accuracy_label)
+
+	# Create magazines label (shows individual magazine ammo counts)
+	_magazines_label = Label.new()
+	_magazines_label.name = "MagazinesLabel"
+	_magazines_label.text = "MAGS: -"
+	_magazines_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	_magazines_label.offset_left = 10
+	_magazines_label.offset_top = 105
+	_magazines_label.offset_right = 400
+	_magazines_label.offset_bottom = 135
+	ui.add_child(_magazines_label)
 
 	# Update instructions label with Q restart info
 	var instructions_label := get_node_or_null("CanvasLayer/UI/InstructionsLabel")
@@ -247,10 +284,77 @@ func _on_weapon_ammo_changed(current_ammo: int, reserve_ammo: int) -> void:
 			_show_game_over_message()
 
 
-## Called when player runs out of ammo (GDScript Player).
+## Called when magazine inventory changes (C# Player).
+func _on_magazines_changed(magazine_ammo_counts: Array) -> void:
+	_update_magazines_label(magazine_ammo_counts)
+
+
+## Called when player runs out of ammo in current magazine.
+## This notifies nearby enemies that the player tried to shoot with empty weapon.
+## Note: This does NOT show game over - the player may still have reserve ammo.
+## Game over is only shown when BOTH current AND reserve ammo are depleted
+## (handled in _on_weapon_ammo_changed for C# player, or when GDScript player
+## truly has no ammo left).
 func _on_player_ammo_depleted() -> void:
-	if _current_enemy_count > 0 and not _game_over_shown:
-		_show_game_over_message()
+	# Notify all enemies that player tried to shoot with empty weapon
+	_broadcast_player_ammo_empty(true)
+	# Emit empty click sound via SoundPropagation system so enemies can hear through walls
+	# This has shorter range than reload sound but still propagates through obstacles
+	if _player:
+		var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
+		if sound_propagation and sound_propagation.has_method("emit_player_empty_click"):
+			sound_propagation.emit_player_empty_click(_player.global_position, _player)
+
+	# For GDScript player, check if truly out of all ammo (no reserve)
+	# For C# player, game over is handled in _on_weapon_ammo_changed
+	if _player and _player.has_method("get_current_ammo"):
+		# GDScript player - max_ammo is the only ammo they have
+		var current_ammo: int = _player.get_current_ammo()
+		if current_ammo <= 0 and _current_enemy_count > 0 and not _game_over_shown:
+			_show_game_over_message()
+	# C# player game over is handled via _on_weapon_ammo_changed signal
+
+
+## Called when player starts reloading.
+## Notifies nearby enemies that player is vulnerable via sound propagation.
+## The reload sound can be heard through walls at greater distance than line of sight.
+func _on_player_reload_started() -> void:
+	_broadcast_player_reloading(true)
+	# Emit reload sound via SoundPropagation system so enemies can hear through walls
+	if _player:
+		var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
+		if sound_propagation and sound_propagation.has_method("emit_player_reload"):
+			sound_propagation.emit_player_reload(_player.global_position, _player)
+
+
+## Called when player finishes reloading.
+## Clears the reloading state for all enemies.
+func _on_player_reload_completed() -> void:
+	_broadcast_player_reloading(false)
+	# Also clear ammo empty state since player now has ammo
+	_broadcast_player_ammo_empty(false)
+
+
+## Broadcast player reloading state to all enemies.
+func _broadcast_player_reloading(is_reloading: bool) -> void:
+	var enemies_node := get_node_or_null("Environment/Enemies")
+	if enemies_node == null:
+		return
+
+	for enemy in enemies_node.get_children():
+		if enemy.has_method("set_player_reloading"):
+			enemy.set_player_reloading(is_reloading)
+
+
+## Broadcast player ammo empty state to all enemies.
+func _broadcast_player_ammo_empty(is_empty: bool) -> void:
+	var enemies_node := get_node_or_null("Environment/Enemies")
+	if enemies_node == null:
+		return
+
+	for enemy in enemies_node.get_children():
+		if enemy.has_method("set_player_ammo_empty"):
+			enemy.set_player_ammo_empty(is_empty)
 
 
 ## Called when player dies.
@@ -312,6 +416,29 @@ func _update_ammo_label_magazine(current_mag: int, reserve: int) -> void:
 		_ammo_label.add_theme_color_override("font_color", Color(1.0, 1.0, 0.2, 1.0))
 	else:
 		_ammo_label.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 1.0))
+
+
+## Update the magazines label showing individual magazine ammo counts.
+## Shows format: MAGS: [30] | 25 | 10 where [30] is current magazine.
+func _update_magazines_label(magazine_ammo_counts: Array) -> void:
+	if _magazines_label == null:
+		return
+
+	if magazine_ammo_counts.is_empty():
+		_magazines_label.text = "MAGS: -"
+		return
+
+	var parts: Array[String] = []
+	for i in range(magazine_ammo_counts.size()):
+		var ammo: int = magazine_ammo_counts[i]
+		if i == 0:
+			# Current magazine in brackets
+			parts.append("[%d]" % ammo)
+		else:
+			# Spare magazines
+			parts.append("%d" % ammo)
+
+	_magazines_label.text = "MAGS: " + " | ".join(parts)
 
 
 ## Update the enemy count label in UI.

@@ -1,0 +1,19 @@
+# Game Log - User Report 2026-01-18
+# Shows enemy state cycling issue: COMBAT → SEEKING_COVER → IN_COVER loop
+
+# Summary from user:
+# Enemies just stand in cover and reset COMBAT counter in a loop.
+# They should exit to line of direct contact with player and then shoot.
+
+# Key observations from log analysis:
+# - Enemies repeatedly cycle through COMBAT → SEEKING_COVER → IN_COVER
+# - Enemy3 and Enemy10 show tactical behavior with FLANKING and PURSUING attempts
+# - But they keep returning to cover without successfully shooting
+
+# Full log available at:
+# https://github.com/user-attachments/files/24693054/game_log_20260118_045534.txt
+
+# Log Duration: ~45 seconds
+# Engine: Godot 4.3-stable
+# Platform: Windows
+# Enemies spawned: 10 (GUARD behavior mostly, Enemy7/10 had PATROL)

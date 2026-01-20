@@ -10,14 +10,18 @@ namespace GodotTopDownTemplate.Projectiles;
 /// The bullet moves at a constant speed in its set direction.
 /// It destroys itself when hitting walls or targets, and triggers
 /// target reactions on hit.
+///
+/// Features a visual tracer trail effect for better visibility and
+/// realistic appearance during fast movement.
 /// </summary>
 public partial class Bullet : Area2D
 {
     /// <summary>
     /// Speed of the bullet in pixels per second.
+    /// Default is 2500 for faster projectiles that make combat more challenging.
     /// </summary>
     [Export]
-    public float Speed { get; set; } = 600.0f;
+    public float Speed { get; set; } = 2500.0f;
 
     /// <summary>
     /// Maximum lifetime in seconds before auto-destruction.
@@ -30,6 +34,13 @@ public partial class Bullet : Area2D
     /// </summary>
     [Export]
     public float Damage { get; set; } = 1.0f;
+
+    /// <summary>
+    /// Maximum number of trail points to maintain.
+    /// Higher values create longer trails but use more memory.
+    /// </summary>
+    [Export]
+    public int TrailLength { get; set; } = 8;
 
     /// <summary>
     /// Bullet configuration data (optional, overrides individual properties).
@@ -59,6 +70,16 @@ public partial class Bullet : Area2D
     private Node? _shooterNode;
 
     /// <summary>
+    /// Reference to the trail Line2D node (if present).
+    /// </summary>
+    private Line2D? _trail;
+
+    /// <summary>
+    /// History of global positions for the trail effect.
+    /// </summary>
+    private readonly System.Collections.Generic.List<Vector2> _positionHistory = new();
+
+    /// <summary>
     /// Signal emitted when the bullet hits something.
     /// </summary>
     [Signal]
@@ -77,12 +98,35 @@ public partial class Bullet : Area2D
         // Connect to collision signals
         BodyEntered += OnBodyEntered;
         AreaEntered += OnAreaEntered;
+
+        // Get trail reference if it exists
+        _trail = GetNodeOrNull<Line2D>("Trail");
+        if (_trail != null)
+        {
+            _trail.ClearPoints();
+            // Set trail to use global coordinates (not relative to bullet)
+            _trail.TopLevel = true;
+        }
+
+        // Set initial rotation based on direction
+        UpdateRotation();
+    }
+
+    /// <summary>
+    /// Updates the bullet rotation to match its travel direction.
+    /// </summary>
+    private void UpdateRotation()
+    {
+        Rotation = Direction.Angle();
     }
 
     public override void _PhysicsProcess(double delta)
     {
         // Move in the set direction
         Position += Direction * Speed * (float)delta;
+
+        // Update trail effect
+        UpdateTrail();
 
         // Track lifetime and auto-destroy if exceeded
         _timeAlive += (float)delta;
@@ -93,13 +137,42 @@ public partial class Bullet : Area2D
     }
 
     /// <summary>
+    /// Updates the visual trail effect by maintaining position history.
+    /// </summary>
+    private void UpdateTrail()
+    {
+        if (_trail == null)
+        {
+            return;
+        }
+
+        // Add current position to history (at the front)
+        _positionHistory.Insert(0, GlobalPosition);
+
+        // Limit trail length
+        while (_positionHistory.Count > TrailLength)
+        {
+            _positionHistory.RemoveAt(_positionHistory.Count - 1);
+        }
+
+        // Update Line2D points
+        _trail.ClearPoints();
+        foreach (var pos in _positionHistory)
+        {
+            _trail.AddPoint(pos);
+        }
+    }
+
+    /// <summary>
     /// Sets the direction for the bullet.
     /// Called by the shooter to set the travel direction.
+    /// Also updates the bullet's rotation to match the direction.
     /// </summary>
     /// <param name="direction">Direction vector (will be normalized).</param>
     public void SetDirection(Vector2 direction)
     {
         Direction = direction.Normalized();
+        UpdateRotation();
     }
 
     /// <summary>
@@ -107,6 +180,24 @@ public partial class Bullet : Area2D
     /// </summary>
     private void OnBodyEntered(Node2D body)
     {
+        // Check if this is the shooter - don't collide with own body
+        if (ShooterId == body.GetInstanceId())
+        {
+            return; // Pass through the shooter
+        }
+
+        // Check if this is a dead enemy - bullets should pass through dead entities
+        // This handles the CharacterBody2D collision (separate from HitArea collision)
+        if (body.HasMethod("is_alive"))
+        {
+            var isAlive = body.Call("is_alive").AsBool();
+            if (!isAlive)
+            {
+                return; // Pass through dead entities
+            }
+        }
+
+        // Hit a static body (wall or obstacle) or alive enemy body
         // Play bullet wall impact sound
         PlayBulletWallHitSound();
         EmitSignal(SignalName.Hit, body);
@@ -139,6 +230,19 @@ public partial class Bullet : Area2D
         {
             GD.Print($"[Bullet]: Ignoring self-hit on {parent.Name}");
             return; // Don't hit the shooter
+        }
+
+        // Check if the parent is dead - bullets should pass through dead entities
+        // This is a fallback check in case the collision shape/layer disabling
+        // doesn't take effect immediately (see Godot issues #62506, #100687)
+        if (parent != null && parent.HasMethod("is_alive"))
+        {
+            var isAlive = parent.Call("is_alive").AsBool();
+            if (!isAlive)
+            {
+                GD.Print($"[Bullet]: Passing through dead entity {parent.Name}");
+                return; // Pass through dead entities
+            }
         }
 
         // Track if this is a valid hit on an enemy target

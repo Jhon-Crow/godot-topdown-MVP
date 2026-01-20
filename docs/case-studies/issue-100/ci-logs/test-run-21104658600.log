@@ -1,0 +1,100 @@
+Run Unit Tests	Run GUT tests	2026-01-18T02:34:51.3374064Z [32m    [Passed]:  [0mHit state should be set even without sprite
+Run Unit Tests	Run GUT tests	2026-01-18T02:34:51.4405930Z * test_reset_without_sprite
+Run Unit Tests	Run GUT tests	2026-01-18T02:34:51.4407131Z ERROR: Node not found: "Sprite2D" (relative to "/root/GutRunner/@Node@87/@Area2D@106").
+Run Unit Tests	Run GUT tests	2026-01-18T02:34:51.4407744Z    at: get_node (scene/main/node.cpp:1792)
+Run Unit Tests	Run GUT tests	2026-01-18T02:34:51.4408728Z [32m    [Passed]:  [0mReset should work even without sprite
+Run Unit Tests	Run GUT tests	2026-01-18T02:34:51.5440659Z * test_multiple_resets
+Run Unit Tests	Run GUT tests	2026-01-18T02:34:51.5443117Z [32m    [Passed]:  [0mMultiple resets should not cause issues
+Run Unit Tests	Run GUT tests	2026-01-18T02:34:51.5445248Z [32m    [Passed]:  [0m[COLOR(0.9, 0.2, 0.2, 1)] expected to equal [COLOR(0.9, 0.2, 0.2, 1)]:  Color should remain normal after multiple resets
+Run Unit Tests	Run GUT tests	2026-01-18T02:34:51.6476335Z * test_hit_reset_hit_cycle
+Run Unit Tests	Run GUT tests	2026-01-18T02:34:51.6477738Z [32m    [Passed]:  [0mShould be hit
+Run Unit Tests	Run GUT tests	2026-01-18T02:34:51.6480053Z [32m    [Passed]:  [0m[COLOR(0.2, 0.8, 0.2, 1)] expected to equal [COLOR(0.2, 0.8, 0.2, 1)]:  Should have hit color
+Run Unit Tests	Run GUT tests	2026-01-18T02:34:51.6481341Z [32m    [Passed]:  [0mShould not be hit after reset
+Run Unit Tests	Run GUT tests	2026-01-18T02:34:51.6483463Z [32m    [Passed]:  [0m[COLOR(0.9, 0.2, 0.2, 1)] expected to equal [COLOR(0.9, 0.2, 0.2, 1)]:  Should have normal color
+Run Unit Tests	Run GUT tests	2026-01-18T02:34:51.6484706Z [32m    [Passed]:  [0mShould be hit again
+Run Unit Tests	Run GUT tests	2026-01-18T02:34:51.6486697Z [32m    [Passed]:  [0m[COLOR(0.2, 0.8, 0.2, 1)] expected to equal [COLOR(0.2, 0.8, 0.2, 1)]:  Should have hit color again
+Run Unit Tests	Run GUT tests	2026-01-18T02:34:51.7511831Z [1m19/19 passed.
+Run Unit Tests	Run GUT tests	2026-01-18T02:34:51.7512532Z [0m
+Run Unit Tests	Run GUT tests	2026-01-18T02:34:51.7512723Z 
+Run Unit Tests	Run GUT tests	2026-01-18T02:34:51.7512733Z 
+Run Unit Tests	Run GUT tests	2026-01-18T02:34:51.7512741Z 
+Run Unit Tests	Run GUT tests	2026-01-18T02:34:51.7513102Z [33m==============================================
+Run Unit Tests	Run GUT tests	2026-01-18T02:34:51.7513740Z [0m[33m= Run Summary
+Run Unit Tests	Run GUT tests	2026-01-18T02:34:51.7514362Z [0m[33m==============================================
+Run Unit Tests	Run GUT tests	2026-01-18T02:34:51.7524592Z [0m
+Run Unit Tests	Run GUT tests	2026-01-18T02:34:51.7524912Z ---- Totals ----
+Run Unit Tests	Run GUT tests	2026-01-18T02:34:51.7525282Z Warnings          1
+Run Unit Tests	Run GUT tests	2026-01-18T02:34:51.7525489Z 
+Run Unit Tests	Run GUT tests	2026-01-18T02:34:51.7525636Z Scripts           9
+Run Unit Tests	Run GUT tests	2026-01-18T02:34:51.7526007Z Tests             229
+Run Unit Tests	Run GUT tests	2026-01-18T02:34:51.7526565Z   Passing         229
+Run Unit Tests	Run GUT tests	2026-01-18T02:34:51.7527016Z Asserts           318
+Run Unit Tests	Run GUT tests	2026-01-18T02:34:51.7527398Z Time              5.342s
+Run Unit Tests	Run GUT tests	2026-01-18T02:34:51.7527662Z 
+Run Unit Tests	Run GUT tests	2026-01-18T02:34:51.7527673Z 
+Run Unit Tests	Run GUT tests	2026-01-18T02:34:51.7528849Z [32m---- All tests passed! ----
+Run Unit Tests	Run GUT tests	2026-01-18T02:34:51.7529324Z [0m
+Run Unit Tests	Run GUT tests	2026-01-18T02:34:51.7565787Z Results saved to test-results.xml
+Run Unit Tests	Run GUT tests	2026-01-18T02:34:51.7583215Z ERROR: Parameter "data.tree" is null.
+Run Unit Tests	Run GUT tests	2026-01-18T02:34:51.7583730Z    at: get_tree (scene/main/node.h:446)
+Run Unit Tests	Run GUT tests	2026-01-18T02:34:51.7584592Z SCRIPT ERROR: Invalid access to property or key 'current_scene' on a base object of type 'null instance'.
+Run Unit Tests	Run GUT tests	2026-01-18T02:34:51.7585461Z           at: _on_tree_changed (res://scripts/autoload/hit_effects_manager.gd:143)
+Run Unit Tests	Run GUT tests	2026-01-18T02:34:51.7586060Z ERROR: Parameter "data.tree" is null.
+Run Unit Tests	Run GUT tests	2026-01-18T02:34:51.7586438Z    at: get_tree (scene/main/node.h:446)
+Run Unit Tests	Run GUT tests	2026-01-18T02:34:51.7587214Z SCRIPT ERROR: Invalid access to property or key 'current_scene' on a base object of type 'null instance'.
+Run Unit Tests	Run GUT tests	2026-01-18T02:34:51.7588129Z           at: _on_tree_changed (res://scripts/autoload/hit_effects_manager.gd:143)
+Run Unit Tests	Run GUT tests	2026-01-18T02:34:51.7588748Z ERROR: Parameter "data.tree" is null.
+Run Unit Tests	Run GUT tests	2026-01-18T02:34:51.7590485Z    at: get_tree (scene/main/node.h:446)
+Run Unit Tests	Run GUT tests	2026-01-18T02:34:51.7591317Z SCRIPT ERROR: Invalid access to property or key 'current_scene' on a base object of type 'null instance'.
+Run Unit Tests	Run GUT tests	2026-01-18T02:34:51.7592392Z           at: _on_tree_changed (res://scripts/autoload/hit_effects_manager.gd:143)
+Run Unit Tests	Run GUT tests	2026-01-18T02:34:51.7593247Z ERROR: Parameter "data.tree" is null.
+Run Unit Tests	Run GUT tests	2026-01-18T02:34:51.7593607Z    at: get_tree (scene/main/node.h:446)
+Run Unit Tests	Run GUT tests	2026-01-18T02:34:51.7594327Z SCRIPT ERROR: Invalid access to property or key 'current_scene' on a base object of type 'null instance'.
+Run Unit Tests	Run GUT tests	2026-01-18T02:34:51.7595135Z           at: _on_tree_changed (res://scripts/autoload/hit_effects_manager.gd:143)
+Run Unit Tests	Run GUT tests	2026-01-18T02:34:51.7636904Z [02:34:51] [INFO] ------------------------------------------------------------
+Run Unit Tests	Run GUT tests	2026-01-18T02:34:51.7639209Z [02:34:51] [INFO] GAME LOG ENDED: 2026-01-18T02:34:51
+Run Unit Tests	Run GUT tests	2026-01-18T02:34:51.7639783Z [02:34:51] [INFO] ============================================================
+Run Unit Tests	Run GUT tests	2026-01-18T02:34:51.8832355Z WARNING: ObjectDB instances leaked at exit (run with --verbose for details).
+Run Unit Tests	Run GUT tests	2026-01-18T02:34:51.8833093Z      at: cleanup (core/object/object.cpp:2284)
+Run Unit Tests	Upload test results	﻿2026-01-18T02:34:51.9117834Z ##[group]Run actions/upload-artifact@v4
+Run Unit Tests	Upload test results	2026-01-18T02:34:51.9118121Z with:
+Run Unit Tests	Upload test results	2026-01-18T02:34:51.9118289Z   name: test-results
+Run Unit Tests	Upload test results	2026-01-18T02:34:51.9118502Z   path: test-results.xml
+Run Unit Tests	Upload test results	test-output.log
+Run Unit Tests	Upload test results	
+Run Unit Tests	Upload test results	2026-01-18T02:34:51.9118764Z   if-no-files-found: warn
+Run Unit Tests	Upload test results	2026-01-18T02:34:51.9118966Z   compression-level: 6
+Run Unit Tests	Upload test results	2026-01-18T02:34:51.9119153Z   overwrite: false
+Run Unit Tests	Upload test results	2026-01-18T02:34:51.9119336Z   include-hidden-files: false
+Run Unit Tests	Upload test results	2026-01-18T02:34:51.9119555Z env:
+Run Unit Tests	Upload test results	2026-01-18T02:34:51.9119717Z   DOTNET_ROOT: /usr/share/dotnet
+Run Unit Tests	Upload test results	2026-01-18T02:34:51.9119933Z ##[endgroup]
+Run Unit Tests	Upload test results	2026-01-18T02:34:52.1285795Z Multiple search paths detected. Calculating the least common ancestor of all paths
+Run Unit Tests	Upload test results	2026-01-18T02:34:52.1289543Z The least common ancestor is /home/runner/work/godot-topdown-MVP/godot-topdown-MVP. This will be the root directory of the artifact
+Run Unit Tests	Upload test results	2026-01-18T02:34:52.1290814Z With the provided path, there will be 2 files uploaded
+Run Unit Tests	Upload test results	2026-01-18T02:34:52.1296933Z Artifact name is valid!
+Run Unit Tests	Upload test results	2026-01-18T02:34:52.1298208Z Root directory input is valid!
+Run Unit Tests	Upload test results	2026-01-18T02:34:52.2526076Z Beginning upload of artifact content to blob storage
+Run Unit Tests	Upload test results	2026-01-18T02:34:52.3982704Z Uploaded bytes 10417
+Run Unit Tests	Upload test results	2026-01-18T02:34:52.4377088Z Finished uploading artifact content to blob storage!
+Run Unit Tests	Upload test results	2026-01-18T02:34:52.4380803Z SHA256 digest of uploaded artifact zip is efbed3bf04d8edf5992d5b00cc9d2661fdf796312dc416f34577dafed0c6b298
+Run Unit Tests	Upload test results	2026-01-18T02:34:52.4382836Z Finalizing artifact upload
+Run Unit Tests	Upload test results	2026-01-18T02:34:52.5237084Z Artifact test-results.zip successfully finalized. Artifact ID 5166620607
+Run Unit Tests	Upload test results	2026-01-18T02:34:52.5238393Z Artifact test-results has been successfully uploaded! Final size is 10417 bytes. Artifact ID is 5166620607
+Run Unit Tests	Upload test results	2026-01-18T02:34:52.5245622Z Artifact download URL: https://github.com/Jhon-Crow/godot-topdown-MVP/actions/runs/21104658600/artifacts/5166620607
+Run Unit Tests	Post Setup .NET	﻿2026-01-18T02:34:52.5356554Z Post job cleanup.
+Run Unit Tests	Post Checkout	﻿2026-01-18T02:34:52.6966131Z Post job cleanup.
+Run Unit Tests	Post Checkout	2026-01-18T02:34:52.7898113Z [command]/usr/bin/git version
+Run Unit Tests	Post Checkout	2026-01-18T02:34:52.7947107Z git version 2.52.0
+Run Unit Tests	Post Checkout	2026-01-18T02:34:52.7991855Z Temporarily overriding HOME='/home/runner/work/_temp/353aa7c6-21ce-4d74-b63a-1039b793a720' before making global git config changes
+Run Unit Tests	Post Checkout	2026-01-18T02:34:52.7993537Z Adding repository directory to the temporary git global config as a safe directory
+Run Unit Tests	Post Checkout	2026-01-18T02:34:52.7998549Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/godot-topdown-MVP/godot-topdown-MVP
+Run Unit Tests	Post Checkout	2026-01-18T02:34:52.8033736Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+Run Unit Tests	Post Checkout	2026-01-18T02:34:52.8066348Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Run Unit Tests	Post Checkout	2026-01-18T02:34:52.8313229Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Run Unit Tests	Post Checkout	2026-01-18T02:34:52.8336134Z http.https://github.com/.extraheader
+Run Unit Tests	Post Checkout	2026-01-18T02:34:52.8349322Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+Run Unit Tests	Post Checkout	2026-01-18T02:34:52.8381014Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Run Unit Tests	Post Checkout	2026-01-18T02:34:52.8620250Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+Run Unit Tests	Post Checkout	2026-01-18T02:34:52.8653312Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Run Unit Tests	Complete job	﻿2026-01-18T02:34:52.8991163Z Cleaning up orphan processes

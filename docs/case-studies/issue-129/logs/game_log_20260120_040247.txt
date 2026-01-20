@@ -1,0 +1,2262 @@
+[04:02:47] [INFO] ============================================================
+[04:02:47] [INFO] GAME LOG STARTED
+[04:02:47] [INFO] ============================================================
+[04:02:47] [INFO] Timestamp: 2026-01-20T04:02:47
+[04:02:47] [INFO] Log file: I:/Загрузки/godot exe/game_log_20260120_040247.txt
+[04:02:47] [INFO] Executable: I:/Загрузки/godot exe/Godot-Top-Down-Template.exe
+[04:02:47] [INFO] OS: Windows
+[04:02:47] [INFO] Debug build: false
+[04:02:47] [INFO] Engine version: 4.3-stable (official)
+[04:02:47] [INFO] Project: Godot Top-Down Template
+[04:02:47] [INFO] ------------------------------------------------------------
+[04:02:47] [INFO] [GameManager] GameManager ready
+[04:02:47] [INFO] [SoundPropagation] SoundPropagation autoload initialized
+[04:02:47] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 1)
+[04:02:47] [ENEMY] [Enemy1] Registered as sound listener
+[04:02:47] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 3, behavior: GUARD, player_found: yes
+[04:02:47] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 2)
+[04:02:47] [ENEMY] [Enemy2] Registered as sound listener
+[04:02:47] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 4, behavior: GUARD, player_found: yes
+[04:02:47] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 3)
+[04:02:47] [ENEMY] [Enemy3] Registered as sound listener
+[04:02:47] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 2, behavior: GUARD, player_found: yes
+[04:02:47] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 4)
+[04:02:47] [ENEMY] [Enemy4] Registered as sound listener
+[04:02:47] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 4, behavior: GUARD, player_found: yes
+[04:02:47] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 5)
+[04:02:47] [ENEMY] [Enemy5] Registered as sound listener
+[04:02:47] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 3, behavior: GUARD, player_found: yes
+[04:02:47] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 6)
+[04:02:47] [ENEMY] [Enemy6] Registered as sound listener
+[04:02:47] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 4, behavior: GUARD, player_found: yes
+[04:02:47] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 7)
+[04:02:47] [ENEMY] [Enemy7] Registered as sound listener
+[04:02:47] [ENEMY] [Enemy7] Enemy spawned at (1606.114, 893.8859), health: 2, behavior: PATROL, player_found: yes
+[04:02:47] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 8)
+[04:02:47] [ENEMY] [Enemy8] Registered as sound listener
+[04:02:47] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 4, behavior: GUARD, player_found: yes
+[04:02:47] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 9)
+[04:02:47] [ENEMY] [Enemy9] Registered as sound listener
+[04:02:47] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 2, behavior: GUARD, player_found: yes
+[04:02:47] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 10)
+[04:02:47] [ENEMY] [Enemy10] Registered as sound listener
+[04:02:47] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 3, behavior: PATROL, player_found: yes
+[04:03:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(483.934, 804.9858), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[04:03:08] [ENEMY] [Enemy1] Heard gunshot at (483.934, 804.9858), source_type=0, intensity=0.01, distance=491
+[04:03:08] [ENEMY] [Enemy2] Heard gunshot at (483.934, 804.9858), source_type=0, intensity=0.03, distance=268
+[04:03:08] [ENEMY] [Enemy3] Heard gunshot at (483.934, 804.9858), source_type=0, intensity=0.05, distance=223
+[04:03:08] [ENEMY] [Enemy4] Heard gunshot at (483.934, 804.9858), source_type=0, intensity=0.02, distance=330
+[04:03:08] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=3, self=0, below_threshold=3
+[04:03:08] [ENEMY] [Enemy1] State: COMBAT -> PURSUING
+[04:03:08] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[04:03:08] [ENEMY] [Enemy3] State: COMBAT -> PURSUING
+[04:03:08] [ENEMY] [Enemy4] State: COMBAT -> PURSUING
+[04:03:08] [ENEMY] [Enemy3] State: PURSUING -> COMBAT
+[04:03:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(476.523, 771.8028), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[04:03:08] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=3, self=0, below_threshold=3
+[04:03:08] [ENEMY] [Enemy3] Hit taken, health: 1/2
+[04:03:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(463.9412, 753.963), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[04:03:08] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=3, self=0, below_threshold=3
+[04:03:08] [ENEMY] [Enemy3] State: COMBAT -> PURSUING
+[04:03:08] [ENEMY] [Enemy3] Hit taken, health: 0/2
+[04:03:08] [ENEMY] [Enemy3] Enemy died
+[04:03:08] [INFO] [SoundPropagation] Unregistered listener: Enemy3 (remaining: 9)
+[04:03:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(452.8135, 747.5153), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[04:03:08] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=3, self=0, below_threshold=3
+[04:03:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(445.2101, 754.2583), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[04:03:08] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=3, self=0, below_threshold=3
+[04:03:09] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(441.1311, 774.1919), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[04:03:09] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=3, self=0, below_threshold=3
+[04:03:10] [ENEMY] [Enemy10] State: IDLE -> COMBAT
+[04:03:10] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[04:03:10] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(522.3947, 744.8532), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[04:03:10] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=2, self=0, below_threshold=4
+[04:03:10] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(552.8362, 733.3655), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[04:03:10] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=2, self=0, below_threshold=4
+[04:03:10] [ENEMY] [Enemy2] State: PURSUING -> RETREATING
+[04:03:10] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(587.3541, 732.9009), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[04:03:10] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=2, self=0, below_threshold=4
+[04:03:10] [ENEMY] [Enemy1] Hit taken, health: 2/3
+[04:03:10] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(618.3088, 743.1498), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[04:03:10] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=1, self=0, below_threshold=5
+[04:03:10] [ENEMY] [Enemy1] State: PURSUING -> RETREATING
+[04:03:10] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(641.4598, 762.9738), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[04:03:10] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=1, self=0, below_threshold=5
+[04:03:10] [ENEMY] [Enemy1] State: RETREATING -> IN_COVER
+[04:03:10] [ENEMY] [Enemy1] State: IN_COVER -> SUPPRESSED
+[04:03:11] [ENEMY] [Enemy2] State: RETREATING -> IN_COVER
+[04:03:11] [ENEMY] [Enemy2] State: IN_COVER -> SUPPRESSED
+[04:03:11] [ENEMY] [Enemy1] State: SUPPRESSED -> SEEKING_COVER
+[04:03:11] [ENEMY] [Enemy1] State: SEEKING_COVER -> IN_COVER
+[04:03:11] [ENEMY] [Enemy1] State: IN_COVER -> SUPPRESSED
+[04:03:11] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(596.6367, 880.1917), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[04:03:11] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=0, below_threshold=6
+[04:03:11] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(594.6643, 913.067), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[04:03:11] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=0, below_threshold=6
+[04:03:11] [ENEMY] [Enemy4] Hit taken, health: 3/4
+[04:03:11] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(605.5463, 942.4478), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[04:03:11] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=0, below_threshold=6
+[04:03:11] [ENEMY] [Enemy4] State: PURSUING -> RETREATING
+[04:03:12] [ENEMY] [Enemy4] Hit taken, health: 2/4
+[04:03:12] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(783.7428, 894.3409), source=ENEMY (Enemy4), range=1469, listeners=9
+[04:03:12] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=1, below_threshold=6
+[04:03:12] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(626.0285, 962.9702), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[04:03:12] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=0, below_threshold=6
+[04:03:12] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(784.065, 883.8377), source=ENEMY (Enemy4), range=1469, listeners=9
+[04:03:12] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=1, below_threshold=6
+[04:03:12] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(654.3024, 972.3614), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[04:03:12] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=0, below_threshold=6
+[04:03:12] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(681.9547, 969.8229), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[04:03:12] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=0, below_threshold=6
+[04:03:12] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(700.9791, 958.3921), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[04:03:12] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=0, below_threshold=6
+[04:03:12] [ENEMY] [Enemy4] State: RETREATING -> IN_COVER
+[04:03:12] [ENEMY] [Enemy4] State: IN_COVER -> SUPPRESSED
+[04:03:13] [ENEMY] [Enemy1] Player reloading state changed: false -> true
+[04:03:13] [ENEMY] [Enemy2] Player reloading state changed: false -> true
+[04:03:13] [ENEMY] [Enemy4] Player reloading state changed: false -> true
+[04:03:13] [ENEMY] [Enemy5] Player reloading state changed: false -> true
+[04:03:13] [ENEMY] [Enemy6] Player reloading state changed: false -> true
+[04:03:13] [ENEMY] [Enemy7] Player reloading state changed: false -> true
+[04:03:13] [ENEMY] [Enemy8] Player reloading state changed: false -> true
+[04:03:13] [ENEMY] [Enemy9] Player reloading state changed: false -> true
+[04:03:13] [ENEMY] [Enemy10] Player reloading state changed: false -> true
+[04:03:13] [INFO] [SoundPropagation] Sound emitted: type=RELOAD, pos=(712.4497, 906.0006), source=PLAYER (Player), range=900, listeners=9
+[04:03:13] [ENEMY] [Enemy2] Heard player RELOAD at (712.4497, 906.0006), intensity=0.01, distance=435
+[04:03:13] [ENEMY] [Enemy4] Heard player RELOAD at (712.4497, 906.0006), intensity=0.08, distance=181
+[04:03:13] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=4, self=0, below_threshold=3
+[04:03:13] [ENEMY] [Enemy1] Player vulnerable (reloading) but cannot attack: close=false (dist=663), can_see=false
+[04:03:13] [ENEMY] [Enemy2] Player vulnerable (reloading) but cannot attack: close=false (dist=435), can_see=false
+[04:03:13] [ENEMY] [Enemy2] State: PURSUING -> RETREATING
+[04:03:13] [ENEMY] [Enemy4] Player vulnerable (reloading) but cannot attack: close=true (dist=181), can_see=false
+[04:03:13] [ENEMY] [Enemy4] State: PURSUING -> RETREATING
+[04:03:13] [ENEMY] [Enemy5] Player vulnerable (reloading) but cannot attack: close=false (dist=1133), can_see=false
+[04:03:13] [ENEMY] [Enemy6] Player vulnerable (reloading) but cannot attack: close=false (dist=1319), can_see=false
+[04:03:13] [ENEMY] [Enemy7] Player vulnerable (reloading) but cannot attack: close=false (dist=899), can_see=false
+[04:03:13] [ENEMY] [Enemy8] Player vulnerable (reloading) but cannot attack: close=false (dist=1306), can_see=false
+[04:03:13] [ENEMY] [Enemy9] Player vulnerable (reloading) but cannot attack: close=false (dist=1530), can_see=false
+[04:03:13] [ENEMY] [Enemy10] Player vulnerable (reloading) but cannot attack: close=false (dist=608), can_see=true
+[04:03:13] [ENEMY] [Enemy10] Player vulnerable (reloading) - pursuing to attack (dist=608)
+[04:03:13] [ENEMY] [Enemy2] State: RETREATING -> IN_COVER
+[04:03:13] [ENEMY] [Enemy4] State: RETREATING -> IN_COVER
+[04:03:13] [ENEMY] [Enemy2] State: IN_COVER -> SUPPRESSED
+[04:03:13] [ENEMY] [Enemy4] State: IN_COVER -> SUPPRESSED
+[04:03:13] [ENEMY] [Enemy1] State: SUPPRESSED -> IN_COVER
+[04:03:13] [ENEMY] [Enemy1] State: IN_COVER -> PURSUING
+[04:03:14] [ENEMY] [Enemy2] State: SUPPRESSED -> IN_COVER
+[04:03:14] [ENEMY] [Enemy2] State: IN_COVER -> PURSUING
+[04:03:14] [ENEMY] [Enemy1] Player vulnerable (reloading) but cannot attack: close=false (dist=663), can_see=false
+[04:03:14] [ENEMY] [Enemy2] Player vulnerable (reloading) but cannot attack: close=false (dist=435), can_see=false
+[04:03:14] [ENEMY] [Enemy4] Player vulnerable (reloading) but cannot attack: close=true (dist=181), can_see=false
+[04:03:14] [ENEMY] [Enemy5] Player vulnerable (reloading) but cannot attack: close=false (dist=1133), can_see=false
+[04:03:14] [ENEMY] [Enemy6] Player vulnerable (reloading) but cannot attack: close=false (dist=1319), can_see=false
+[04:03:14] [ENEMY] [Enemy7] Player vulnerable (reloading) but cannot attack: close=false (dist=899), can_see=false
+[04:03:14] [ENEMY] [Enemy8] Player vulnerable (reloading) but cannot attack: close=false (dist=1306), can_see=false
+[04:03:14] [ENEMY] [Enemy9] Player vulnerable (reloading) but cannot attack: close=false (dist=1530), can_see=false
+[04:03:14] [ENEMY] [Enemy10] Player vulnerable (reloading) but cannot attack: close=false (dist=608), can_see=true
+[04:03:14] [ENEMY] [Enemy10] Player vulnerable (reloading) - pursuing to attack (dist=608)
+[04:03:14] [ENEMY] [Enemy1] Player vulnerable (reloading) but cannot attack: close=false (dist=663), can_see=false
+[04:03:14] [ENEMY] [Enemy2] Player vulnerable (reloading) but cannot attack: close=false (dist=435), can_see=false
+[04:03:14] [ENEMY] [Enemy4] Player vulnerable (reloading) but cannot attack: close=true (dist=181), can_see=false
+[04:03:14] [ENEMY] [Enemy5] Player vulnerable (reloading) but cannot attack: close=false (dist=1133), can_see=false
+[04:03:14] [ENEMY] [Enemy6] Player vulnerable (reloading) but cannot attack: close=false (dist=1319), can_see=false
+[04:03:14] [ENEMY] [Enemy7] Player vulnerable (reloading) but cannot attack: close=false (dist=899), can_see=false
+[04:03:14] [ENEMY] [Enemy8] Player vulnerable (reloading) but cannot attack: close=false (dist=1306), can_see=false
+[04:03:14] [ENEMY] [Enemy9] Player vulnerable (reloading) but cannot attack: close=false (dist=1530), can_see=false
+[04:03:14] [ENEMY] [Enemy10] Player vulnerable (reloading) but cannot attack: close=false (dist=608), can_see=true
+[04:03:15] [ENEMY] [Enemy1] Player vulnerable (reloading) but cannot attack: close=false (dist=663), can_see=false
+[04:03:15] [ENEMY] [Enemy2] Player vulnerable (reloading) but cannot attack: close=false (dist=435), can_see=false
+[04:03:15] [ENEMY] [Enemy4] Player vulnerable (reloading) but cannot attack: close=true (dist=181), can_see=false
+[04:03:15] [ENEMY] [Enemy5] Player vulnerable (reloading) but cannot attack: close=false (dist=1133), can_see=false
+[04:03:15] [ENEMY] [Enemy6] Player vulnerable (reloading) but cannot attack: close=false (dist=1319), can_see=false
+[04:03:15] [ENEMY] [Enemy7] Player vulnerable (reloading) but cannot attack: close=false (dist=899), can_see=false
+[04:03:15] [ENEMY] [Enemy8] Player vulnerable (reloading) but cannot attack: close=false (dist=1306), can_see=false
+[04:03:15] [ENEMY] [Enemy9] Player vulnerable (reloading) but cannot attack: close=false (dist=1530), can_see=false
+[04:03:15] [ENEMY] [Enemy10] Player vulnerable (reloading) but cannot attack: close=false (dist=482), can_see=true
+[04:03:15] [ENEMY] [Enemy4] State: SUPPRESSED -> IN_COVER
+[04:03:15] [ENEMY] [Enemy4] State: IN_COVER -> PURSUING
+[04:03:15] [ENEMY] [Enemy1] Player vulnerable (reloading) but cannot attack: close=false (dist=641), can_see=false
+[04:03:15] [ENEMY] [Enemy2] Player vulnerable (reloading) but cannot attack: close=false (dist=435), can_see=false
+[04:03:15] [ENEMY] [Enemy4] Player vulnerable (reloading) but cannot attack: close=true (dist=181), can_see=false
+[04:03:15] [ENEMY] [Enemy5] Player vulnerable (reloading) but cannot attack: close=false (dist=1133), can_see=false
+[04:03:15] [ENEMY] [Enemy6] Player vulnerable (reloading) but cannot attack: close=false (dist=1319), can_see=false
+[04:03:15] [ENEMY] [Enemy7] Player vulnerable (reloading) but cannot attack: close=false (dist=899), can_see=false
+[04:03:15] [ENEMY] [Enemy8] Player vulnerable (reloading) but cannot attack: close=false (dist=1306), can_see=false
+[04:03:15] [ENEMY] [Enemy9] Player vulnerable (reloading) but cannot attack: close=false (dist=1530), can_see=false
+[04:03:15] [ENEMY] [Enemy10] Player reloading - priority attack triggered
+[04:03:15] [ENEMY] [Enemy10] Player reloading - priority attack triggered
+[04:03:15] [ENEMY] [Enemy10] Player reloading - priority attack triggered
+[04:03:15] [ENEMY] [Enemy10] Player reloading - priority attack triggered
+[04:03:15] [ENEMY] [Enemy10] Player reloading - priority attack triggered
+[04:03:15] [ENEMY] [Enemy10] Player reloading - priority attack triggered
+[04:03:15] [ENEMY] [Enemy10] Player reloading - priority attack triggered
+[04:03:15] [ENEMY] [Enemy10] Player reloading - priority attack triggered
+[04:03:15] [ENEMY] [Enemy10] Player reloading - priority attack triggered
+[04:03:16] [ENEMY] [Enemy10] Player reloading - priority attack triggered
+[04:03:16] [ENEMY] [Enemy10] Player reloading - priority attack triggered
+[04:03:16] [ENEMY] [Enemy10] Player reloading - priority attack triggered
+[04:03:16] [ENEMY] [Enemy10] Player reloading - priority attack triggered
+[04:03:16] [ENEMY] [Enemy1] Player vulnerable (reloading) - pursuing to attack (dist=595)
+[04:03:16] [ENEMY] [Enemy10] Player reloading - priority attack triggered
+[04:03:16] [ENEMY] [Enemy10] Player reloading - priority attack triggered
+[04:03:16] [ENEMY] [Enemy10] Player reloading - priority attack triggered
+[04:03:16] [ENEMY] [Enemy10] Player reloading - priority attack triggered
+[04:03:16] [ENEMY] [Enemy10] Player reloading - priority attack triggered
+[04:03:16] [ENEMY] [Enemy10] Player reloading - priority attack triggered
+[04:03:16] [ENEMY] [Enemy10] Player reloading - priority attack triggered
+[04:03:16] [ENEMY] [Enemy10] Player reloading - priority attack triggered
+[04:03:16] [ENEMY] [Enemy10] Player reloading - priority attack triggered
+[04:03:16] [ENEMY] [Enemy10] Player reloading - priority attack triggered
+[04:03:16] [ENEMY] [Enemy10] Player reloading - priority attack triggered
+[04:03:16] [ENEMY] [Enemy10] Player reloading - priority attack triggered
+[04:03:16] [ENEMY] [Enemy10] Player reloading - priority attack triggered
+[04:03:16] [ENEMY] [Enemy10] Player reloading - priority attack triggered
+[04:03:16] [ENEMY] [Enemy10] Player reloading - priority attack triggered
+[04:03:16] [ENEMY] [Enemy10] Player reloading - priority attack triggered
+[04:03:16] [ENEMY] [Enemy10] Player reloading - priority attack triggered
+[04:03:16] [ENEMY] [Enemy10] Player reloading - priority attack triggered
+[04:03:16] [ENEMY] [Enemy1] Player vulnerable (reloading) but cannot attack: close=false (dist=548), can_see=false
+[04:03:16] [ENEMY] [Enemy2] Player vulnerable (reloading) but cannot attack: close=true (dist=359), can_see=false
+[04:03:16] [ENEMY] [Enemy4] Player vulnerable (reloading) but cannot attack: close=true (dist=181), can_see=false
+[04:03:16] [ENEMY] [Enemy5] Player vulnerable (reloading) but cannot attack: close=false (dist=1133), can_see=false
+[04:03:16] [ENEMY] [Enemy6] Player vulnerable (reloading) but cannot attack: close=false (dist=1319), can_see=false
+[04:03:16] [ENEMY] [Enemy7] Player vulnerable (reloading) but cannot attack: close=false (dist=899), can_see=false
+[04:03:16] [ENEMY] [Enemy8] Player vulnerable (reloading) but cannot attack: close=false (dist=1306), can_see=false
+[04:03:16] [ENEMY] [Enemy9] Player vulnerable (reloading) but cannot attack: close=false (dist=1530), can_see=false
+[04:03:16] [ENEMY] [Enemy10] Player reloading - priority attack triggered
+[04:03:16] [ENEMY] [Enemy10] Player reloading - priority attack triggered
+[04:03:16] [ENEMY] [Enemy10] Player reloading - priority attack triggered
+[04:03:16] [ENEMY] [Enemy10] Player reloading - priority attack triggered
+[04:03:16] [ENEMY] [Enemy10] Player reloading - priority attack triggered
+[04:03:16] [ENEMY] [Enemy10] Player reloading - priority attack triggered
+[04:03:16] [ENEMY] [Enemy10] Player reloading - priority attack triggered
+[04:03:16] [ENEMY] [Enemy10] Player reloading - priority attack triggered
+[04:03:16] [ENEMY] [Enemy10] Player reloading - priority attack triggered
+[04:03:16] [ENEMY] [Enemy10] Player reloading - priority attack triggered
+[04:03:16] [ENEMY] [Enemy10] Player reloading - priority attack triggered
+[04:03:16] [ENEMY] [Enemy10] Player reloading - priority attack triggered
+[04:03:16] [ENEMY] [Enemy10] Player reloading - priority attack triggered
+[04:03:16] [ENEMY] [Enemy10] Player reloading - priority attack triggered
+[04:03:16] [ENEMY] [Enemy10] Player reloading - priority attack triggered
+[04:03:16] [ENEMY] [Enemy10] Player reloading - priority attack triggered
+[04:03:16] [ENEMY] [Enemy1] Player reloading state changed: true -> false
+[04:03:16] [ENEMY] [Enemy2] Player reloading state changed: true -> false
+[04:03:16] [ENEMY] [Enemy4] Player reloading state changed: true -> false
+[04:03:16] [ENEMY] [Enemy5] Player reloading state changed: true -> false
+[04:03:16] [ENEMY] [Enemy6] Player reloading state changed: true -> false
+[04:03:16] [ENEMY] [Enemy7] Player reloading state changed: true -> false
+[04:03:16] [ENEMY] [Enemy8] Player reloading state changed: true -> false
+[04:03:16] [ENEMY] [Enemy9] Player reloading state changed: true -> false
+[04:03:16] [ENEMY] [Enemy10] Player reloading state changed: true -> false
+[04:03:17] [ENEMY] [Enemy2] FLANKING started: target=(517.3744, 950.1099), side=left, pos=(468.7841, 642.3229)
+[04:03:17] [ENEMY] [Enemy2] State: PURSUING -> FLANKING
+[04:03:18] [ENEMY] [Enemy10] State: PURSUING -> COMBAT
+[04:03:18] [ENEMY] [Enemy4] State: PURSUING -> COMBAT
+[04:03:19] [ENEMY] [Enemy4] State: COMBAT -> PURSUING
+[04:03:19] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(745.2844, 964.6779), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[04:03:19] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=1, self=0, below_threshold=4
+[04:03:19] [ENEMY] [Enemy7] State: IDLE -> COMBAT
+[04:03:19] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(772.0298, 981.3248), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[04:03:19] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=0, self=0, below_threshold=5
+[04:03:19] [ENEMY] [Enemy4] State: PURSUING -> RETREATING
+[04:03:19] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(786.5756, 983.9335), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[04:03:19] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=0, self=0, below_threshold=5
+[04:03:19] [ENEMY] [Enemy10] State: COMBAT -> RETREATING
+[04:03:19] [ENEMY] [Enemy10] State: RETREATING -> IN_COVER
+[04:03:19] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(785.1619, 983.9335), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[04:03:19] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=0, self=0, below_threshold=5
+[04:03:19] [ENEMY] [Enemy10] State: IN_COVER -> SUPPRESSED
+[04:03:19] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(770.789, 977.9447), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[04:03:19] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=0, self=0, below_threshold=5
+[04:03:19] [ENEMY] [Enemy4] Hit taken, health: 1/4
+[04:03:19] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:19] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(750.29, 960.3098), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[04:03:19] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=1, self=0, below_threshold=4
+[04:03:19] [ENEMY] [Enemy4] Hit taken, health: 0/4
+[04:03:19] [ENEMY] [Enemy4] Enemy died
+[04:03:19] [INFO] [SoundPropagation] Unregistered listener: Enemy4 (remaining: 8)
+[04:03:19] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(731.32, 933.7439), source=PLAYER (AssaultRifle), range=1469, listeners=8
+[04:03:19] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=1, self=0, below_threshold=4
+[04:03:20] [ENEMY] [Enemy1] FLANKING started: target=(528.9984, 962.372), side=left, pos=(449.6761, 647.3333)
+[04:03:20] [ENEMY] [Enemy1] State: PURSUING -> FLANKING
+[04:03:21] [INFO] [GameManager] Debug mode toggled: ON
+[04:03:22] [ENEMY] [Enemy2] FLANKING stuck (2.0s no progress), target=(536.3723, 983.1784), pos=(403.3151, 663.9338), fail_count=1
+[04:03:22] [ENEMY] [Enemy2] State: FLANKING -> PURSUING
+[04:03:22] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[04:03:22] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[04:03:22] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[04:03:22] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[04:03:22] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[04:03:22] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[04:03:22] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[04:03:22] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[04:03:22] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[04:03:22] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[04:03:22] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[04:03:22] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[04:03:22] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[04:03:22] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[04:03:22] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[04:03:22] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[04:03:22] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[04:03:22] [ENEMY] [Enemy10] State: SUPPRESSED -> IN_COVER
+[04:03:22] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[04:03:22] [ENEMY] [Enemy10] State: IN_COVER -> COMBAT
+[04:03:22] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[04:03:22] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[04:03:22] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[04:03:22] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[04:03:22] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[04:03:22] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[04:03:22] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[04:03:22] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[04:03:22] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[04:03:22] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[04:03:22] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[04:03:22] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[04:03:22] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[04:03:22] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[04:03:22] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[04:03:22] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[04:03:22] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[04:03:22] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[04:03:22] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[04:03:22] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[04:03:22] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[04:03:22] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[04:03:23] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[04:03:23] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[04:03:23] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[04:03:23] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[04:03:23] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[04:03:23] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[04:03:23] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[04:03:23] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[04:03:23] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[04:03:23] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[04:03:23] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[04:03:23] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[04:03:23] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[04:03:23] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[04:03:23] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[04:03:23] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[04:03:23] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[04:03:23] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[04:03:23] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[04:03:23] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[04:03:23] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[04:03:23] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[04:03:23] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[04:03:23] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[04:03:23] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[04:03:23] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[04:03:23] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[04:03:23] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[04:03:23] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[04:03:23] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[04:03:23] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[04:03:23] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[04:03:23] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[04:03:23] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[04:03:23] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[04:03:23] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[04:03:23] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[04:03:23] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[04:03:23] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[04:03:23] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[04:03:23] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[04:03:23] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[04:03:23] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[04:03:23] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[04:03:23] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[04:03:23] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[04:03:23] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[04:03:23] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[04:03:23] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[04:03:23] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[04:03:23] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[04:03:23] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[04:03:23] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[04:03:23] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[04:03:23] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[04:03:23] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[04:03:23] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[04:03:23] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[04:03:23] [ENEMY] [Enemy7] FLANKING started: target=(829.8685, 1069.02), side=right, pos=(1430.9, 837.8356)
+[04:03:23] [ENEMY] [Enemy7] State: PURSUING -> FLANKING
+[04:03:23] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[04:03:23] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[04:03:24] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[04:03:24] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[04:03:24] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[04:03:24] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[04:03:24] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[04:03:24] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[04:03:24] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[04:03:24] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[04:03:24] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[04:03:24] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[04:03:24] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[04:03:24] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[04:03:24] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[04:03:24] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[04:03:24] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[04:03:24] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[04:03:24] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[04:03:24] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[04:03:24] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[04:03:24] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[04:03:24] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[04:03:24] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[04:03:24] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[04:03:24] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[04:03:24] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[04:03:25] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(491.085, 739.4645), source=PLAYER (AssaultRifle), range=1469, listeners=8
+[04:03:25] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=3, self=0, below_threshold=2
+[04:03:25] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(456.1567, 748.0873), source=PLAYER (AssaultRifle), range=1469, listeners=8
+[04:03:25] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=0, below_threshold=3
+[04:03:25] [ENEMY] [Enemy2] State: PURSUING -> RETREATING
+[04:03:25] [ENEMY] [Enemy2] State: RETREATING -> IN_COVER
+[04:03:25] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(431.2516, 767.495), source=PLAYER (AssaultRifle), range=1469, listeners=8
+[04:03:25] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=0, below_threshold=3
+[04:03:25] [ENEMY] [Enemy2] State: IN_COVER -> SUPPRESSED
+[04:03:25] [ENEMY] [Enemy1] FLANKING timeout (5.0s), target=(235.0234, 868.3286), pos=(245.0878, 663.9332)
+[04:03:25] [ENEMY] [Enemy1] State: FLANKING -> PURSUING
+[04:03:26] [ENEMY] [Enemy7] FLANKING stuck (2.0s no progress), target=(524.8206, 910.2148), pos=(1412.069, 824.0004), fail_count=1
+[04:03:26] [ENEMY] [Enemy7] State: FLANKING -> COMBAT
+[04:03:26] [ENEMY] [Enemy1] Player reloading state changed: false -> true
+[04:03:26] [ENEMY] [Enemy2] Player reloading state changed: false -> true
+[04:03:26] [ENEMY] [Enemy5] Player reloading state changed: false -> true
+[04:03:26] [ENEMY] [Enemy6] Player reloading state changed: false -> true
+[04:03:26] [ENEMY] [Enemy7] Player reloading state changed: false -> true
+[04:03:26] [ENEMY] [Enemy8] Player reloading state changed: false -> true
+[04:03:26] [ENEMY] [Enemy9] Player reloading state changed: false -> true
+[04:03:26] [ENEMY] [Enemy10] Player reloading state changed: false -> true
+[04:03:26] [INFO] [SoundPropagation] Sound emitted: type=RELOAD, pos=(442.3709, 728.0005), source=PLAYER (Player), range=900, listeners=8
+[04:03:26] [ENEMY] [Enemy1] Heard player RELOAD at (442.3709, 728.0005), intensity=0.08, distance=178
+[04:03:26] [ENEMY] [Enemy2] Heard player RELOAD at (442.3709, 728.0005), intensity=0.37, distance=82
+[04:03:26] [ENEMY] [Enemy10] Heard player RELOAD at (442.3709, 728.0005), intensity=0.01, distance=497
+[04:03:26] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=5, self=0, below_threshold=0
+[04:03:26] [ENEMY] [Enemy1] Player reloading - priority attack triggered
+[04:03:26] [ENEMY] [Enemy2] Player vulnerable (reloading) but cannot attack: close=true (dist=82), can_see=false
+[04:03:26] [ENEMY] [Enemy2] State: PURSUING -> RETREATING
+[04:03:26] [ENEMY] [Enemy5] Player vulnerable (reloading) but cannot attack: close=false (dist=1313), can_see=false
+[04:03:26] [ENEMY] [Enemy6] Player vulnerable (reloading) but cannot attack: close=false (dist=1533), can_see=false
+[04:03:26] [ENEMY] [Enemy7] Player vulnerable (reloading) but cannot attack: close=false (dist=974), can_see=true
+[04:03:26] [ENEMY] [Enemy7] Player vulnerable (reloading) - pursuing to attack (dist=974)
+[04:03:26] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:26] [ENEMY] [Enemy8] Player vulnerable (reloading) but cannot attack: close=false (dist=1627), can_see=false
+[04:03:26] [ENEMY] [Enemy9] Player vulnerable (reloading) but cannot attack: close=false (dist=1850), can_see=false
+[04:03:26] [ENEMY] [Enemy10] Player vulnerable (reloading) but cannot attack: close=false (dist=497), can_see=false
+[04:03:26] [ENEMY] [Enemy10] Pursuing vulnerability sound at (442.3709, 728.0005), distance=497
+[04:03:26] [ENEMY] [Enemy1] Player vulnerable (reloading) but cannot attack: close=true (dist=178), can_see=false
+[04:03:26] [ENEMY] [Enemy1] Pursuing vulnerability sound at (442.3709, 728.0005), distance=178
+[04:03:26] [ENEMY] [Enemy2] State: RETREATING -> IN_COVER
+[04:03:26] [ENEMY] [Enemy2] State: IN_COVER -> SUPPRESSED
+[04:03:26] [ENEMY] [Enemy10] Player vulnerable (reloading) - pursuing to attack (dist=470)
+[04:03:27] [ENEMY] [Enemy1] State: PURSUING -> COMBAT
+[04:03:27] [ENEMY] [Enemy1] State: COMBAT -> PURSUING
+[04:03:27] [ENEMY] [Enemy2] Player vulnerable (reloading) but cannot attack: close=true (dist=82), can_see=false
+[04:03:27] [ENEMY] [Enemy5] Player vulnerable (reloading) but cannot attack: close=false (dist=1313), can_see=false
+[04:03:27] [ENEMY] [Enemy6] Player vulnerable (reloading) but cannot attack: close=false (dist=1533), can_see=false
+[04:03:27] [ENEMY] [Enemy7] Player vulnerable (reloading) but cannot attack: close=false (dist=974), can_see=true
+[04:03:27] [ENEMY] [Enemy8] Player vulnerable (reloading) but cannot attack: close=false (dist=1627), can_see=false
+[04:03:27] [ENEMY] [Enemy9] Player vulnerable (reloading) but cannot attack: close=false (dist=1850), can_see=false
+[04:03:27] [ENEMY] [Enemy10] Player vulnerable (reloading) but cannot attack: close=true (dist=394), can_see=false
+[04:03:27] [ENEMY] [Enemy1] Player vulnerable (reloading) but cannot attack: close=true (dist=76), can_see=false
+[04:03:27] [ENEMY] [Enemy7] Player vulnerable (reloading) - pursuing to attack (dist=974)
+[04:03:27] [ENEMY] [Enemy10] Pursuing vulnerability sound at (442.3709, 728.0005), distance=340
+[04:03:27] [ENEMY] [Enemy2] Player vulnerable (reloading) but cannot attack: close=true (dist=82), can_see=false
+[04:03:27] [ENEMY] [Enemy5] Player vulnerable (reloading) but cannot attack: close=false (dist=1313), can_see=false
+[04:03:27] [ENEMY] [Enemy6] Player vulnerable (reloading) but cannot attack: close=false (dist=1533), can_see=false
+[04:03:27] [ENEMY] [Enemy7] Player vulnerable (reloading) but cannot attack: close=false (dist=974), can_see=true
+[04:03:27] [ENEMY] [Enemy8] Player vulnerable (reloading) but cannot attack: close=false (dist=1627), can_see=false
+[04:03:27] [ENEMY] [Enemy9] Player vulnerable (reloading) but cannot attack: close=false (dist=1850), can_see=false
+[04:03:27] [ENEMY] [Enemy1] Player vulnerable (reloading) but cannot attack: close=true (dist=76), can_see=false
+[04:03:27] [ENEMY] [Enemy2] State: SUPPRESSED -> IN_COVER
+[04:03:27] [ENEMY] [Enemy2] State: IN_COVER -> PURSUING
+[04:03:27] [ENEMY] [Enemy1] Player reloading state changed: true -> false
+[04:03:27] [ENEMY] [Enemy2] Player reloading state changed: true -> false
+[04:03:27] [ENEMY] [Enemy5] Player reloading state changed: true -> false
+[04:03:27] [ENEMY] [Enemy6] Player reloading state changed: true -> false
+[04:03:27] [ENEMY] [Enemy7] Player reloading state changed: true -> false
+[04:03:27] [ENEMY] [Enemy8] Player reloading state changed: true -> false
+[04:03:27] [ENEMY] [Enemy9] Player reloading state changed: true -> false
+[04:03:27] [ENEMY] [Enemy10] Player reloading state changed: true -> false
+[04:03:28] [ENEMY] [Enemy10] State: PURSUING -> COMBAT
+[04:03:28] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(473.4135, 1009.745), source=ENEMY (Enemy10), range=1469, listeners=8
+[04:03:28] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=1, below_threshold=2
+[04:03:28] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(468.3973, 968.2061), source=ENEMY (Enemy10), range=1469, listeners=8
+[04:03:28] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=1, below_threshold=2
+[04:03:28] [ENEMY] [Enemy1] State: PURSUING -> RETREATING
+[04:03:28] [ENEMY] [Enemy2] State: PURSUING -> RETREATING
+[04:03:28] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[04:03:29] [ENEMY] [Enemy2] State: RETREATING -> IN_COVER
+[04:03:29] [ENEMY] [Enemy2] State: IN_COVER -> SUPPRESSED
+[04:03:29] [ENEMY] [Enemy1] State: RETREATING -> IN_COVER
+[04:03:29] [ENEMY] [Enemy1] State: IN_COVER -> SUPPRESSED
+[04:03:30] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(407.5115, 560.7674), source=ENEMY (Enemy1), range=1469, listeners=8
+[04:03:30] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=1, below_threshold=2
+[04:03:30] [ENEMY] [Enemy2] Hit taken, health: 3/4
+[04:03:30] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(407.5115, 560.7674), source=ENEMY (Enemy1), range=1469, listeners=8
+[04:03:30] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=1, below_threshold=2
+[04:03:30] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(407.5115, 560.7674), source=ENEMY (Enemy1), range=1469, listeners=8
+[04:03:30] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=1, below_threshold=2
+[04:03:30] [ENEMY] [Enemy1] State: SUPPRESSED -> SEEKING_COVER
+[04:03:30] [ENEMY] [Enemy10] FLANKING started: target=(565.6771, 645.6706), side=right, pos=(468.3973, 968.2061)
+[04:03:30] [ENEMY] [Enemy10] State: PURSUING -> FLANKING
+[04:03:30] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(760.0736, 710.4443), source=PLAYER (AssaultRifle), range=1469, listeners=8
+[04:03:30] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=1, self=0, below_threshold=4
+[04:03:30] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(790.8691, 729.045), source=PLAYER (AssaultRifle), range=1469, listeners=8
+[04:03:30] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=1, self=0, below_threshold=4
+[04:03:30] [ENEMY] [Enemy1] State: SEEKING_COVER -> IN_COVER
+[04:03:30] [ENEMY] [Enemy1] State: IN_COVER -> SUPPRESSED
+[04:03:30] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(827.6925, 733.0925), source=PLAYER (AssaultRifle), range=1469, listeners=8
+[04:03:30] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=1, self=0, below_threshold=4
+[04:03:30] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(864.9169, 736.1721), source=PLAYER (AssaultRifle), range=1469, listeners=8
+[04:03:30] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=1, self=0, below_threshold=4
+[04:03:30] [ENEMY] [Enemy10] State: FLANKING -> COMBAT
+[04:03:30] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(894.7916, 752.1497), source=PLAYER (AssaultRifle), range=1469, listeners=8
+[04:03:30] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0, below_threshold=6
+[04:03:30] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[04:03:31] [ENEMY] [Enemy1] Hit taken, health: 1/3
+[04:03:31] [ENEMY] [Enemy2] Hit taken, health: 2/4
+[04:03:31] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:31] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:31] [ENEMY] [Enemy1] State: SUPPRESSED -> SEEKING_COVER
+[04:03:31] [ENEMY] [Enemy1] State: SEEKING_COVER -> IN_COVER
+[04:03:31] [ENEMY] [Enemy2] State: SUPPRESSED -> SEEKING_COVER
+[04:03:31] [ENEMY] [Enemy1] State: IN_COVER -> SUPPRESSED
+[04:03:31] [ENEMY] [Enemy2] State: SEEKING_COVER -> IN_COVER
+[04:03:31] [ENEMY] [Enemy2] State: IN_COVER -> SUPPRESSED
+[04:03:31] [ENEMY] [Enemy1] State: SUPPRESSED -> SEEKING_COVER
+[04:03:31] [ENEMY] [Enemy1] State: SEEKING_COVER -> IN_COVER
+[04:03:31] [ENEMY] [Enemy1] State: IN_COVER -> SUPPRESSED
+[04:03:32] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(802.9519, 769.1653), source=PLAYER (AssaultRifle), range=1469, listeners=8
+[04:03:32] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=1, self=0, below_threshold=4
+[04:03:32] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(813.2009, 738.2105), source=PLAYER (AssaultRifle), range=1469, listeners=8
+[04:03:32] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=1, self=0, below_threshold=4
+[04:03:32] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(834.3828, 713.3701), source=PLAYER (AssaultRifle), range=1469, listeners=8
+[04:03:32] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=1, self=0, below_threshold=4
+[04:03:32] [ENEMY] [Enemy10] Hit taken, health: 2/3
+[04:03:32] [ENEMY] [Enemy10] State: PURSUING -> RETREATING
+[04:03:32] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(851.968, 697.5962), source=PLAYER (AssaultRifle), range=1469, listeners=8
+[04:03:32] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=1, self=0, below_threshold=4
+[04:03:32] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(470.5681, 826.8716), source=ENEMY (Enemy10), range=1469, listeners=8
+[04:03:32] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=1, below_threshold=2
+[04:03:32] [ENEMY] [Enemy10] State: RETREATING -> IN_COVER
+[04:03:32] [ENEMY] [Enemy10] State: IN_COVER -> SUPPRESSED
+[04:03:32] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(864.86, 694.2996), source=PLAYER (AssaultRifle), range=1469, listeners=8
+[04:03:32] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=1, self=0, below_threshold=4
+[04:03:32] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(873.4164, 703.9495), source=PLAYER (AssaultRifle), range=1469, listeners=8
+[04:03:32] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=1, self=0, below_threshold=4
+[04:03:32] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(877.6371, 726.5461), source=PLAYER (AssaultRifle), range=1469, listeners=8
+[04:03:32] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=1, self=0, below_threshold=4
+[04:03:33] [ENEMY] [Enemy7] FLANKING started: target=(947.9152, 921.6053), side=right, pos=(1412.069, 824.0018)
+[04:03:33] [ENEMY] [Enemy7] State: PURSUING -> FLANKING
+[04:03:33] [ENEMY] [Enemy1] State: SUPPRESSED -> SEEKING_COVER
+[04:03:33] [ENEMY] [Enemy1] State: SEEKING_COVER -> IN_COVER
+[04:03:33] [ENEMY] [Enemy1] State: IN_COVER -> SUPPRESSED
+[04:03:34] [ENEMY] [Enemy1] Player reloading state changed: false -> true
+[04:03:34] [ENEMY] [Enemy2] Player reloading state changed: false -> true
+[04:03:34] [ENEMY] [Enemy5] Player reloading state changed: false -> true
+[04:03:34] [ENEMY] [Enemy6] Player reloading state changed: false -> true
+[04:03:34] [ENEMY] [Enemy7] Player reloading state changed: false -> true
+[04:03:34] [ENEMY] [Enemy8] Player reloading state changed: false -> true
+[04:03:34] [ENEMY] [Enemy9] Player reloading state changed: false -> true
+[04:03:34] [ENEMY] [Enemy10] Player reloading state changed: false -> true
+[04:03:34] [INFO] [SoundPropagation] Sound emitted: type=RELOAD, pos=(791.1353, 855.5088), source=PLAYER (Player), range=900, listeners=8
+[04:03:34] [ENEMY] [Enemy1] Heard player RELOAD at (791.1353, 855.5088), intensity=0.01, distance=451
+[04:03:34] [ENEMY] [Enemy2] Heard player RELOAD at (791.1353, 855.5088), intensity=0.01, distance=455
+[04:03:34] [ENEMY] [Enemy10] Heard player RELOAD at (791.1353, 855.5088), intensity=0.02, distance=326
+[04:03:34] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=4, self=0, below_threshold=1
+[04:03:34] [ENEMY] [Enemy1] Player vulnerable (reloading) but cannot attack: close=false (dist=451), can_see=false
+[04:03:34] [ENEMY] [Enemy1] State: PURSUING -> RETREATING
+[04:03:34] [ENEMY] [Enemy2] Player vulnerable (reloading) but cannot attack: close=false (dist=455), can_see=false
+[04:03:34] [ENEMY] [Enemy2] State: PURSUING -> RETREATING
+[04:03:34] [ENEMY] [Enemy5] Player vulnerable (reloading) but cannot attack: close=false (dist=1040), can_see=false
+[04:03:34] [ENEMY] [Enemy6] Player vulnerable (reloading) but cannot attack: close=false (dist=1228), can_see=false
+[04:03:34] [ENEMY] [Enemy7] Player vulnerable (reloading) but cannot attack: close=false (dist=622), can_see=true
+[04:03:34] [ENEMY] [Enemy7] Player vulnerable (reloading) - pursuing to attack (dist=622)
+[04:03:34] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:34] [ENEMY] [Enemy8] Player vulnerable (reloading) but cannot attack: close=false (dist=1258), can_see=false
+[04:03:34] [ENEMY] [Enemy9] Player vulnerable (reloading) but cannot attack: close=false (dist=1482), can_see=false
+[04:03:34] [ENEMY] [Enemy10] Player vulnerable (reloading) but cannot attack: close=true (dist=326), can_see=false
+[04:03:34] [ENEMY] [Enemy10] State: PURSUING -> RETREATING
+[04:03:34] [ENEMY] [Enemy1] State: RETREATING -> IN_COVER
+[04:03:34] [ENEMY] [Enemy2] State: RETREATING -> IN_COVER
+[04:03:34] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:34] [ENEMY] [Enemy10] State: RETREATING -> IN_COVER
+[04:03:34] [ENEMY] [Enemy1] State: IN_COVER -> SUPPRESSED
+[04:03:34] [ENEMY] [Enemy2] State: IN_COVER -> SUPPRESSED
+[04:03:34] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:34] [ENEMY] [Enemy10] State: IN_COVER -> SUPPRESSED
+[04:03:34] [ENEMY] [Enemy1] State: SUPPRESSED -> IN_COVER
+[04:03:34] [ENEMY] [Enemy2] State: SUPPRESSED -> IN_COVER
+[04:03:34] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:34] [ENEMY] [Enemy1] State: IN_COVER -> PURSUING
+[04:03:34] [ENEMY] [Enemy2] State: IN_COVER -> PURSUING
+[04:03:34] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:34] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:34] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:34] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:34] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:34] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:34] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:34] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:34] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:34] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:34] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:34] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:34] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:34] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:34] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:34] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:34] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:34] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:34] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:34] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:34] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:34] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:34] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:34] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:34] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:34] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:34] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:34] [ENEMY] [Enemy1] Player vulnerable (reloading) but cannot attack: close=false (dist=451), can_see=false
+[04:03:34] [ENEMY] [Enemy2] Player vulnerable (reloading) but cannot attack: close=false (dist=455), can_see=false
+[04:03:34] [ENEMY] [Enemy5] Player vulnerable (reloading) but cannot attack: close=false (dist=1040), can_see=false
+[04:03:34] [ENEMY] [Enemy6] Player vulnerable (reloading) but cannot attack: close=false (dist=1228), can_see=false
+[04:03:34] [ENEMY] [Enemy7] Player vulnerable (reloading) but cannot attack: close=false (dist=622), can_see=true
+[04:03:34] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:34] [ENEMY] [Enemy8] Player vulnerable (reloading) but cannot attack: close=false (dist=1258), can_see=false
+[04:03:34] [ENEMY] [Enemy9] Player vulnerable (reloading) but cannot attack: close=false (dist=1482), can_see=false
+[04:03:34] [ENEMY] [Enemy10] Player vulnerable (reloading) but cannot attack: close=true (dist=326), can_see=false
+[04:03:34] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:34] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:34] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:34] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:34] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:34] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:34] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:34] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:34] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:34] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:34] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:34] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:34] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:34] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:34] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:34] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:34] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:35] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:35] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:35] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:35] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:35] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:35] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:35] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:35] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:35] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:35] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:35] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:35] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:35] [ENEMY] [Enemy7] Player vulnerable (reloading) - pursuing to attack (dist=622)
+[04:03:35] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:35] [ENEMY] [Enemy1] Player vulnerable (reloading) but cannot attack: close=false (dist=451), can_see=false
+[04:03:35] [ENEMY] [Enemy2] Player vulnerable (reloading) but cannot attack: close=false (dist=455), can_see=false
+[04:03:35] [ENEMY] [Enemy5] Player vulnerable (reloading) but cannot attack: close=false (dist=1040), can_see=false
+[04:03:35] [ENEMY] [Enemy6] Player vulnerable (reloading) but cannot attack: close=false (dist=1228), can_see=false
+[04:03:35] [ENEMY] [Enemy7] Player vulnerable (reloading) but cannot attack: close=false (dist=622), can_see=true
+[04:03:35] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:35] [ENEMY] [Enemy8] Player vulnerable (reloading) but cannot attack: close=false (dist=1258), can_see=false
+[04:03:35] [ENEMY] [Enemy9] Player vulnerable (reloading) but cannot attack: close=false (dist=1482), can_see=false
+[04:03:35] [ENEMY] [Enemy10] Player vulnerable (reloading) but cannot attack: close=true (dist=326), can_see=false
+[04:03:35] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:35] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:35] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:35] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:35] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:35] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:35] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:35] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:35] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:35] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:35] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:35] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:35] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:35] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:35] [ENEMY] [Enemy7] FLANKING started: target=(882.2291, 677.4585), side=left, pos=(1412.067, 824.0009)
+[04:03:35] [ENEMY] [Enemy7] FLANKING started: target=(882.2288, 677.4583), side=left, pos=(1412.067, 823.9996)
+[04:03:35] [ENEMY] [Enemy7] FLANKING started: target=(882.2293, 677.4586), side=left, pos=(1412.067, 824.0016)
+[04:03:35] [ENEMY] [Enemy7] FLANKING started: target=(882.2288, 677.4583), side=left, pos=(1412.067, 823.9997)
+[04:03:35] [ENEMY] [Enemy7] FLANKING started: target=(882.2293, 677.4586), side=left, pos=(1412.067, 824.0016)
+[04:03:35] [ENEMY] [Enemy7] FLANKING started: target=(882.2288, 677.4583), side=left, pos=(1412.067, 823.9997)
+[04:03:35] [ENEMY] [Enemy7] FLANKING started: target=(882.2293, 677.4586), side=left, pos=(1412.067, 824.0016)
+[04:03:35] [ENEMY] [Enemy7] FLANKING started: target=(882.2288, 677.4583), side=left, pos=(1412.067, 823.9997)
+[04:03:35] [ENEMY] [Enemy7] FLANKING started: target=(882.2293, 677.4586), side=left, pos=(1412.067, 824.0016)
+[04:03:35] [ENEMY] [Enemy7] FLANKING started: target=(882.2288, 677.4583), side=left, pos=(1412.067, 823.9997)
+[04:03:35] [ENEMY] [Enemy7] FLANKING started: target=(882.2293, 677.4586), side=left, pos=(1412.067, 824.0016)
+[04:03:35] [ENEMY] [Enemy7] FLANKING started: target=(882.2288, 677.4583), side=left, pos=(1412.067, 823.9997)
+[04:03:35] [ENEMY] [Enemy7] FLANKING started: target=(882.2293, 677.4586), side=left, pos=(1412.067, 824.0016)
+[04:03:35] [ENEMY] [Enemy7] FLANKING started: target=(882.2288, 677.4583), side=left, pos=(1412.067, 823.9997)
+[04:03:35] [ENEMY] [Enemy1] Player reloading state changed: true -> false
+[04:03:35] [ENEMY] [Enemy2] Player reloading state changed: true -> false
+[04:03:35] [ENEMY] [Enemy5] Player reloading state changed: true -> false
+[04:03:35] [ENEMY] [Enemy6] Player reloading state changed: true -> false
+[04:03:35] [ENEMY] [Enemy7] Player reloading state changed: true -> false
+[04:03:35] [ENEMY] [Enemy8] Player reloading state changed: true -> false
+[04:03:35] [ENEMY] [Enemy9] Player reloading state changed: true -> false
+[04:03:35] [ENEMY] [Enemy10] Player reloading state changed: true -> false
+[04:03:36] [ENEMY] [Enemy10] State: SUPPRESSED -> IN_COVER
+[04:03:36] [ENEMY] [Enemy10] State: IN_COVER -> PURSUING
+[04:03:37] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(838.1254, 831.3687), source=PLAYER (AssaultRifle), range=1469, listeners=8
+[04:03:37] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=0, self=0, below_threshold=5
+[04:03:37] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(865.3491, 804.145), source=PLAYER (AssaultRifle), range=1469, listeners=8
+[04:03:37] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=0, self=0, below_threshold=5
+[04:03:37] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(892.5728, 776.9213), source=PLAYER (AssaultRifle), range=1469, listeners=8
+[04:03:37] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=0, self=0, below_threshold=5
+[04:03:37] [ENEMY] [Enemy1] Hit taken, health: 0/3
+[04:03:37] [ENEMY] [Enemy1] Enemy died
+[04:03:37] [INFO] [SoundPropagation] Unregistered listener: Enemy1 (remaining: 7)
+[04:03:37] [ENEMY] [Enemy2] Hit taken, health: 1/4
+[04:03:37] [ENEMY] [Enemy2] State: PURSUING -> RETREATING
+[04:03:37] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(895.7614, 751.8702), source=PLAYER (AssaultRifle), range=1469, listeners=7
+[04:03:37] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0, below_threshold=5
+[04:03:37] [ENEMY] [Enemy2] Hit taken, health: 0/4
+[04:03:37] [ENEMY] [Enemy2] Enemy died
+[04:03:37] [INFO] [SoundPropagation] Unregistered listener: Enemy2 (remaining: 6)
+[04:03:37] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(888.4344, 732.3875), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[04:03:37] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=0, below_threshold=5
+[04:03:37] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(876.95, 724.6924), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[04:03:37] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=4
+[04:03:37] [ENEMY] [Enemy7] FLANKING stuck (2.0s no progress), target=(1005.454, 572.5557), pos=(1412.066, 824.0002), fail_count=1
+[04:03:37] [ENEMY] [Enemy7] State: FLANKING -> COMBAT
+[04:03:37] [ENEMY] [Enemy10] FLANKING started: target=(821.0319, 917.6046), side=left, pos=(465.8943, 831.2438)
+[04:03:37] [ENEMY] [Enemy10] State: PURSUING -> FLANKING
+[04:03:37] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(863.0021, 729.4865), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[04:03:37] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=4
+[04:03:38] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:40] [ENEMY] [Enemy10] State: FLANKING -> COMBAT
+[04:03:40] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[04:03:41] [ENEMY] [Enemy10] State: PURSUING -> COMBAT
+[04:03:41] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(483.935, 1068.857), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[04:03:41] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=2, self=0, below_threshold=3
+[04:03:41] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[04:03:41] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(483.935, 1095.523), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[04:03:41] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=2, self=0, below_threshold=3
+[04:03:41] [ENEMY] [Enemy10] Hit taken, health: 1/3
+[04:03:41] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(483.935, 1106.354), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[04:03:41] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=2, self=0, below_threshold=3
+[04:03:41] [ENEMY] [Enemy10] State: PURSUING -> RETREATING
+[04:03:42] [ENEMY] [Enemy10] Hit taken, health: 0/3
+[04:03:42] [ENEMY] [Enemy10] Enemy died
+[04:03:42] [INFO] [SoundPropagation] Unregistered listener: Enemy10 (remaining: 5)
+[04:03:42] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(483.935, 1102.657), source=PLAYER (AssaultRifle), range=1469, listeners=5
+[04:03:42] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=0, below_threshold=3
+[04:03:42] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(483.935, 1085.306), source=PLAYER (AssaultRifle), range=1469, listeners=5
+[04:03:42] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=0, below_threshold=3
+[04:03:42] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(483.935, 1054.532), source=PLAYER (AssaultRifle), range=1469, listeners=5
+[04:03:42] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=3, self=0, below_threshold=2
+[04:03:44] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:44] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:45] [ENEMY] [Enemy7] FLANKING started: target=(1238.333, 414.6194), side=left, pos=(1412.004, 824.0695)
+[04:03:45] [ENEMY] [Enemy7] State: PURSUING -> FLANKING
+[04:03:47] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1322.088, 90.46586), source=PLAYER (AssaultRifle), range=1469, listeners=5
+[04:03:47] [ENEMY] [Enemy5] Heard gunshot at (1322.088, 90.46586), source_type=0, intensity=0.01, distance=458
+[04:03:47] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=2, self=0, below_threshold=2
+[04:03:47] [ENEMY] [Enemy5] State: COMBAT -> PURSUING
+[04:03:47] [ENEMY] [Enemy6] State: IDLE -> COMBAT
+[04:03:47] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1354.833, 80.31678), source=PLAYER (AssaultRifle), range=1469, listeners=5
+[04:03:47] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=2, self=0, below_threshold=2
+[04:03:47] [ENEMY] [Enemy5] State: PURSUING -> COMBAT
+[04:03:47] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1381.047, 89.06981), source=PLAYER (AssaultRifle), range=1469, listeners=5
+[04:03:47] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=3
+[04:03:47] [ENEMY] [Enemy5] Hit taken, health: 2/3
+[04:03:47] [ENEMY] [Enemy5] State: COMBAT -> RETREATING
+[04:03:47] [ENEMY] [Enemy7] FLANKING stuck (2.0s no progress), target=(1567.543, 195.1394), pos=(1412.005, 824.0703), fail_count=1
+[04:03:47] [ENEMY] [Enemy7] State: FLANKING -> PURSUING
+[04:03:47] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1393.681, 104.2664), source=PLAYER (AssaultRifle), range=1469, listeners=5
+[04:03:47] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=3
+[04:03:47] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:47] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:47] [ENEMY] [Enemy5] Hit taken, health: 1/3
+[04:03:47] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:47] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:47] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:48] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:48] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:48] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:48] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1395.718, 124.725), source=PLAYER (AssaultRifle), range=1469, listeners=5
+[04:03:48] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=3
+[04:03:48] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:48] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:48] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:48] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:48] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:48] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:48] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:48] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:48] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1395.878, 157.0243), source=PLAYER (AssaultRifle), range=1469, listeners=5
+[04:03:48] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=0, below_threshold=2
+[04:03:48] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:48] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:48] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:48] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:48] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:48] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:48] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:48] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:48] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:48] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:48] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:48] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:48] [ENEMY] [Enemy5] State: RETREATING -> IN_COVER
+[04:03:48] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:48] [ENEMY] [Enemy5] State: IN_COVER -> SUPPRESSED
+[04:03:48] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:48] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:48] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:48] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:48] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:48] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:48] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:48] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:48] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:48] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:48] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:48] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:48] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:48] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:48] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:48] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:48] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:48] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:48] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1466.118, 226.0648), source=PLAYER (AssaultRifle), range=1469, listeners=5
+[04:03:48] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0, below_threshold=3
+[04:03:48] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:48] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:48] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:48] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:48] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:48] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:48] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:48] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:48] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1489.524, 227.3732), source=PLAYER (AssaultRifle), range=1469, listeners=5
+[04:03:48] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0, below_threshold=3
+[04:03:48] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:48] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:48] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:48] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:48] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:48] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:48] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:48] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:48] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1499.642, 229.6146), source=PLAYER (AssaultRifle), range=1469, listeners=5
+[04:03:48] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0, below_threshold=3
+[04:03:48] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:48] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:49] [ENEMY] [Enemy6] State: COMBAT -> RETREATING
+[04:03:49] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:49] [ENEMY] [Enemy6] State: RETREATING -> IN_COVER
+[04:03:49] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:49] [ENEMY] [Enemy6] State: IN_COVER -> SUPPRESSED
+[04:03:49] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:49] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:49] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:49] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:49] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1498.212, 238.7313), source=PLAYER (AssaultRifle), range=1469, listeners=5
+[04:03:49] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0, below_threshold=3
+[04:03:49] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:49] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:49] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:49] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:49] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:49] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:49] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:49] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:49] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1486.404, 255.5909), source=PLAYER (AssaultRifle), range=1469, listeners=5
+[04:03:49] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0, below_threshold=3
+[04:03:49] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:49] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:49] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:49] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:49] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:49] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:49] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:49] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:49] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:49] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:49] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:49] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:49] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:49] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:49] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:49] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:49] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:49] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:49] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:49] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:49] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:49] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:49] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:49] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:49] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:49] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:49] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:49] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:49] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:49] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:49] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:49] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:49] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:49] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:49] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:49] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:49] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:49] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:49] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:49] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:49] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:49] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:49] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:49] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:49] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:49] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:50] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:50] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:50] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:50] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:50] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:50] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:50] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:50] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:50] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:50] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:50] [ENEMY] [Enemy5] Player reloading state changed: false -> true
+[04:03:50] [ENEMY] [Enemy6] Player reloading state changed: false -> true
+[04:03:50] [ENEMY] [Enemy7] Player reloading state changed: false -> true
+[04:03:50] [ENEMY] [Enemy8] Player reloading state changed: false -> true
+[04:03:50] [ENEMY] [Enemy9] Player reloading state changed: false -> true
+[04:03:50] [INFO] [SoundPropagation] Sound emitted: type=RELOAD, pos=(1523.934, 293.8187), source=PLAYER (Player), range=900, listeners=5
+[04:03:50] [ENEMY] [Enemy5] Heard player RELOAD at (1523.934, 293.8187), intensity=0.10, distance=161
+[04:03:50] [ENEMY] [Enemy6] Heard player RELOAD at (1523.934, 293.8187), intensity=0.09, distance=171
+[04:03:50] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=2, self=0, below_threshold=1
+[04:03:50] [ENEMY] [Enemy5] Player vulnerable (reloading) but cannot attack: close=true (dist=161), can_see=false
+[04:03:50] [ENEMY] [Enemy5] State: PURSUING -> RETREATING
+[04:03:50] [ENEMY] [Enemy6] State: PURSUING -> RETREATING
+[04:03:50] [ENEMY] [Enemy7] Player vulnerable (reloading) but cannot attack: close=false (dist=542), can_see=false
+[04:03:50] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:50] [ENEMY] [Enemy8] Player vulnerable (reloading) but cannot attack: close=false (dist=1216), can_see=false
+[04:03:50] [ENEMY] [Enemy9] Player vulnerable (reloading) but cannot attack: close=false (dist=1382), can_see=false
+[04:03:50] [ENEMY] [Enemy5] State: RETREATING -> IN_COVER
+[04:03:50] [ENEMY] [Enemy6] State: RETREATING -> IN_COVER
+[04:03:50] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:50] [ENEMY] [Enemy5] State: IN_COVER -> SUPPRESSED
+[04:03:50] [ENEMY] [Enemy6] State: IN_COVER -> SUPPRESSED
+[04:03:50] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:50] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:50] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:50] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:50] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:50] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:50] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:50] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:50] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:50] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:50] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:50] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:50] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:50] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:50] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:50] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:50] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:50] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:50] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:50] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:50] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:50] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:50] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:50] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:50] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:50] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:50] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:50] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:50] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:50] [ENEMY] [Enemy5] Player vulnerable (reloading) but cannot attack: close=true (dist=161), can_see=false
+[04:03:50] [ENEMY] [Enemy7] Player vulnerable (reloading) but cannot attack: close=false (dist=542), can_see=false
+[04:03:50] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:50] [ENEMY] [Enemy8] Player vulnerable (reloading) but cannot attack: close=false (dist=1216), can_see=false
+[04:03:50] [ENEMY] [Enemy9] Player vulnerable (reloading) but cannot attack: close=false (dist=1382), can_see=false
+[04:03:50] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:50] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:50] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:50] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:50] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:50] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:50] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:50] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:50] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:50] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:50] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:50] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:50] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:50] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:50] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:50] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:50] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:50] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:51] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:51] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:51] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:51] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:51] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:51] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:51] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:51] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:51] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:51] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:51] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:51] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:51] [ENEMY] [Enemy5] Player vulnerable (reloading) but cannot attack: close=true (dist=161), can_see=false
+[04:03:51] [ENEMY] [Enemy7] Player vulnerable (reloading) but cannot attack: close=false (dist=542), can_see=false
+[04:03:51] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:51] [ENEMY] [Enemy8] Player vulnerable (reloading) but cannot attack: close=false (dist=1216), can_see=false
+[04:03:51] [ENEMY] [Enemy9] Player vulnerable (reloading) but cannot attack: close=false (dist=1382), can_see=false
+[04:03:51] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:51] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:51] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:51] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:51] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:51] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:51] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:51] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:51] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:51] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:51] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:51] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:51] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:51] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:51] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:51] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:51] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:51] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:51] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:51] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:51] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:51] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:51] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:51] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:51] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:51] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:51] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:51] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:51] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:51] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:51] [ENEMY] [Enemy5] Player vulnerable (reloading) but cannot attack: close=true (dist=161), can_see=false
+[04:03:51] [ENEMY] [Enemy7] Player vulnerable (reloading) but cannot attack: close=false (dist=542), can_see=false
+[04:03:51] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:51] [ENEMY] [Enemy8] Player vulnerable (reloading) but cannot attack: close=false (dist=1216), can_see=false
+[04:03:51] [ENEMY] [Enemy9] Player vulnerable (reloading) but cannot attack: close=false (dist=1382), can_see=false
+[04:03:51] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:51] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:51] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:51] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:51] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:51] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:51] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:51] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:51] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:51] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:51] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:51] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:51] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:51] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:51] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:51] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:52] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:52] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:52] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:52] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:52] [ENEMY] [Enemy5] Player reloading state changed: true -> false
+[04:03:52] [ENEMY] [Enemy6] Player reloading state changed: true -> false
+[04:03:52] [ENEMY] [Enemy7] Player reloading state changed: true -> false
+[04:03:52] [ENEMY] [Enemy8] Player reloading state changed: true -> false
+[04:03:52] [ENEMY] [Enemy9] Player reloading state changed: true -> false
+[04:03:52] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:52] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:52] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:52] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:52] [ENEMY] [Enemy5] State: SUPPRESSED -> IN_COVER
+[04:03:52] [ENEMY] [Enemy6] State: SUPPRESSED -> IN_COVER
+[04:03:52] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:52] [ENEMY] [Enemy5] State: IN_COVER -> PURSUING
+[04:03:52] [ENEMY] [Enemy6] State: IN_COVER -> COMBAT
+[04:03:52] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:52] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:52] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:52] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:52] [ENEMY] [Enemy6] State: COMBAT -> PURSUING
+[04:03:52] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:52] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:52] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:52] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:52] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:52] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:52] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:52] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:52] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:52] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:52] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:52] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:52] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:52] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:52] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:52] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:52] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:52] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:52] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:52] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:52] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:52] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:52] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:52] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:52] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:52] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:52] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:52] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:52] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:52] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:52] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:52] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:52] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:52] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:52] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:52] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:52] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:52] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:52] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:52] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:52] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:52] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:52] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:52] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:52] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:52] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:52] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:53] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:53] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:53] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:53] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:53] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:53] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:53] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:53] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:53] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:53] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:53] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:53] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:53] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:53] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:53] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:53] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:53] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:53] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:53] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:53] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:53] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:53] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:53] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:53] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:53] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:53] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:53] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:53] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:53] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:53] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:03:53] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:03:53] [ENEMY] [Enemy7] FLANKING started: target=(1672.75, 427.4368), side=left, pos=(1412, 824.0703)
+[04:03:53] [ENEMY] [Enemy7] State: PURSUING -> FLANKING
+[04:03:53] [ENEMY] [Enemy5] FLANKING started: target=(1607.14, 475.6885), side=right, pos=(1684.065, 308.9995)
+[04:03:53] [ENEMY] [Enemy5] State: PURSUING -> FLANKING
+[04:03:53] [ENEMY] [Enemy5] State: FLANKING -> COMBAT
+[04:03:53] [ENEMY] [Enemy6] FLANKING started: target=(1628.004, 123.0281), side=left, pos=(1684.067, 297.6085)
+[04:03:53] [ENEMY] [Enemy6] State: PURSUING -> FLANKING
+[04:03:53] [ENEMY] [Enemy5] State: COMBAT -> PURSUING
+[04:03:53] [ENEMY] [Enemy6] State: FLANKING -> COMBAT
+[04:03:54] [ENEMY] [Enemy5] Player reloading state changed: false -> true
+[04:03:54] [ENEMY] [Enemy6] Player reloading state changed: false -> true
+[04:03:54] [ENEMY] [Enemy7] Player reloading state changed: false -> true
+[04:03:54] [ENEMY] [Enemy8] Player reloading state changed: false -> true
+[04:03:54] [ENEMY] [Enemy9] Player reloading state changed: false -> true
+[04:03:54] [INFO] [SoundPropagation] Sound emitted: type=RELOAD, pos=(1523.934, 293.8187), source=PLAYER (Player), range=900, listeners=5
+[04:03:54] [ENEMY] [Enemy5] Heard player RELOAD at (1523.934, 293.8187), intensity=0.10, distance=160
+[04:03:54] [ENEMY] [Enemy6] Heard player RELOAD at (1523.934, 293.8187), intensity=0.10, distance=161
+[04:03:54] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=2, self=0, below_threshold=1
+[04:03:54] [ENEMY] [Enemy5] Player vulnerable (reloading) but cannot attack: close=true (dist=160), can_see=false
+[04:03:54] [ENEMY] [Enemy5] Pursuing vulnerability sound at (1523.934, 293.8187), distance=160
+[04:03:54] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:54] [ENEMY] [Enemy7] Player vulnerable (reloading) but cannot attack: close=false (dist=532), can_see=false
+[04:03:54] [ENEMY] [Enemy8] Player vulnerable (reloading) but cannot attack: close=false (dist=1216), can_see=false
+[04:03:54] [ENEMY] [Enemy9] Player vulnerable (reloading) but cannot attack: close=false (dist=1382), can_see=false
+[04:03:54] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:54] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:54] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:55] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:55] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:55] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:55] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:55] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:55] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:55] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:55] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:55] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:55] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:55] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:55] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:55] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:55] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:55] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:55] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:55] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:55] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:55] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:55] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:55] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:55] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:55] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:55] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:55] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:55] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:55] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:55] [ENEMY] [Enemy5] Player vulnerable (reloading) but cannot attack: close=true (dist=160), can_see=false
+[04:03:55] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:55] [ENEMY] [Enemy7] Player vulnerable (reloading) but cannot attack: close=false (dist=531), can_see=false
+[04:03:55] [ENEMY] [Enemy8] Player vulnerable (reloading) but cannot attack: close=false (dist=1216), can_see=false
+[04:03:55] [ENEMY] [Enemy9] Player vulnerable (reloading) but cannot attack: close=false (dist=1382), can_see=false
+[04:03:55] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:55] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:55] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:55] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:55] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:55] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:55] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:55] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:55] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:55] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:55] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:55] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:55] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:55] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:55] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:55] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:55] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:55] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:55] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:55] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:55] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:55] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:55] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:55] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:55] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:55] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:55] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:55] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:55] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:55] [ENEMY] [Enemy5] Pursuing vulnerability sound at (1523.934, 293.8187), distance=160
+[04:03:55] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:55] [ENEMY] [Enemy5] Player reloading state changed: true -> false
+[04:03:55] [ENEMY] [Enemy6] Player reloading state changed: true -> false
+[04:03:55] [ENEMY] [Enemy7] Player reloading state changed: true -> false
+[04:03:55] [ENEMY] [Enemy8] Player reloading state changed: true -> false
+[04:03:55] [ENEMY] [Enemy9] Player reloading state changed: true -> false
+[04:03:56] [ENEMY] [Enemy5] Player reloading state changed: false -> true
+[04:03:56] [ENEMY] [Enemy6] Player reloading state changed: false -> true
+[04:03:56] [ENEMY] [Enemy7] Player reloading state changed: false -> true
+[04:03:56] [ENEMY] [Enemy8] Player reloading state changed: false -> true
+[04:03:56] [ENEMY] [Enemy9] Player reloading state changed: false -> true
+[04:03:56] [INFO] [SoundPropagation] Sound emitted: type=RELOAD, pos=(1523.934, 293.8187), source=PLAYER (Player), range=900, listeners=5
+[04:03:56] [ENEMY] [Enemy5] Heard player RELOAD at (1523.934, 293.8187), intensity=0.10, distance=160
+[04:03:56] [ENEMY] [Enemy6] Heard player RELOAD at (1523.934, 293.8187), intensity=0.10, distance=161
+[04:03:56] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=2, self=0, below_threshold=1
+[04:03:56] [ENEMY] [Enemy5] Player vulnerable (reloading) but cannot attack: close=true (dist=160), can_see=false
+[04:03:56] [ENEMY] [Enemy5] Pursuing vulnerability sound at (1523.934, 293.8187), distance=160
+[04:03:56] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:56] [ENEMY] [Enemy7] Player vulnerable (reloading) but cannot attack: close=false (dist=530), can_see=false
+[04:03:56] [ENEMY] [Enemy8] Player vulnerable (reloading) but cannot attack: close=false (dist=1216), can_see=false
+[04:03:56] [ENEMY] [Enemy9] Player vulnerable (reloading) but cannot attack: close=false (dist=1382), can_see=false
+[04:03:56] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:57] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:57] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:57] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:57] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:57] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:57] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:57] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:57] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:57] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:57] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:57] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:57] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:57] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:57] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:57] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:57] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:57] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:57] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:57] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:57] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:57] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:57] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:57] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:57] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:57] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:57] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:57] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:57] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:57] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:57] [ENEMY] [Enemy5] Player vulnerable (reloading) but cannot attack: close=true (dist=160), can_see=false
+[04:03:57] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:57] [ENEMY] [Enemy7] Player vulnerable (reloading) but cannot attack: close=false (dist=530), can_see=false
+[04:03:57] [ENEMY] [Enemy8] Player vulnerable (reloading) but cannot attack: close=false (dist=1216), can_see=false
+[04:03:57] [ENEMY] [Enemy9] Player vulnerable (reloading) but cannot attack: close=false (dist=1382), can_see=false
+[04:03:57] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:57] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:57] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:57] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:57] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:57] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:57] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:57] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:57] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:57] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:57] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:57] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:57] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:57] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:57] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:57] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:57] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:57] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:57] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:57] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:57] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:57] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:57] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:57] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:57] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:57] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:57] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:57] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:57] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:57] [ENEMY] [Enemy5] Pursuing vulnerability sound at (1523.934, 293.8187), distance=160
+[04:03:57] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:58] [ENEMY] [Enemy5] Player vulnerable (reloading) but cannot attack: close=true (dist=160), can_see=false
+[04:03:58] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:58] [ENEMY] [Enemy7] Player vulnerable (reloading) but cannot attack: close=false (dist=530), can_see=false
+[04:03:58] [ENEMY] [Enemy8] Player vulnerable (reloading) but cannot attack: close=false (dist=1216), can_see=false
+[04:03:58] [ENEMY] [Enemy9] Player vulnerable (reloading) but cannot attack: close=false (dist=1382), can_see=false
+[04:03:58] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:58] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:58] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:58] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:03:58] [ENEMY] [Enemy5] Player reloading state changed: true -> false
+[04:03:58] [ENEMY] [Enemy6] Player reloading state changed: true -> false
+[04:03:58] [ENEMY] [Enemy7] Player reloading state changed: true -> false
+[04:03:58] [ENEMY] [Enemy8] Player reloading state changed: true -> false
+[04:03:58] [ENEMY] [Enemy9] Player reloading state changed: true -> false
+[04:03:58] [ENEMY] [Enemy6] State: COMBAT -> SEEKING_COVER
+[04:03:58] [ENEMY] [Enemy6] State: SEEKING_COVER -> IN_COVER
+[04:03:58] [ENEMY] [Enemy6] State: IN_COVER -> COMBAT
+[04:03:58] [ENEMY] [Enemy7] FLANKING timeout (5.0s), target=(1696.038, 395.7021), pos=(1518.089, 824.0663)
+[04:03:58] [ENEMY] [Enemy7] State: FLANKING -> PURSUING
+[04:03:58] [ENEMY] [Enemy7] FLANKING started: target=(1696.015, 395.7412), side=left, pos=(1518.029, 824.0663)
+[04:03:58] [ENEMY] [Enemy7] State: PURSUING -> FLANKING
+[04:03:59] [ENEMY] [Enemy5] Pursuing vulnerability sound at (1523.934, 293.8187), distance=160
+[04:04:00] [ENEMY] [Enemy5] Pursuing vulnerability sound at (1523.934, 293.8187), distance=160
+[04:04:00] [ENEMY] [Enemy5] Player reloading state changed: false -> true
+[04:04:00] [ENEMY] [Enemy6] Player reloading state changed: false -> true
+[04:04:00] [ENEMY] [Enemy7] Player reloading state changed: false -> true
+[04:04:00] [ENEMY] [Enemy8] Player reloading state changed: false -> true
+[04:04:00] [ENEMY] [Enemy9] Player reloading state changed: false -> true
+[04:04:00] [INFO] [SoundPropagation] Sound emitted: type=RELOAD, pos=(1523.934, 293.8187), source=PLAYER (Player), range=900, listeners=5
+[04:04:00] [ENEMY] [Enemy5] Heard player RELOAD at (1523.934, 293.8187), intensity=0.10, distance=160
+[04:04:00] [ENEMY] [Enemy6] Heard player RELOAD at (1523.934, 293.8187), intensity=0.10, distance=161
+[04:04:00] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=2, self=0, below_threshold=1
+[04:04:00] [ENEMY] [Enemy5] Player vulnerable (reloading) but cannot attack: close=true (dist=160), can_see=false
+[04:04:00] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:00] [ENEMY] [Enemy7] Player vulnerable (reloading) but cannot attack: close=false (dist=530), can_see=false
+[04:04:00] [ENEMY] [Enemy8] Player vulnerable (reloading) but cannot attack: close=false (dist=1216), can_see=false
+[04:04:00] [ENEMY] [Enemy9] Player vulnerable (reloading) but cannot attack: close=false (dist=1382), can_see=false
+[04:04:00] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:00] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:00] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:00] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:00] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:00] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:00] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:00] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:00] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:00] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:00] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:00] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:00] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:00] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:00] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:00] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:00] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:00] [ENEMY] [Enemy7] FLANKING stuck (2.0s no progress), target=(1695.215, 397.0798), pos=(1513.876, 824.0663), fail_count=1
+[04:04:00] [ENEMY] [Enemy7] State: FLANKING -> PURSUING
+[04:04:00] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:00] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:00] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:00] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:00] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:00] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:00] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:00] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:00] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:00] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:00] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:00] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:00] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:00] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:00] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:00] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:00] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:00] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:00] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:00] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:00] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:00] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:00] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:00] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:00] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:00] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:00] [ENEMY] [Enemy5] Player vulnerable (reloading) but cannot attack: close=true (dist=160), can_see=false
+[04:04:00] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:00] [ENEMY] [Enemy7] Player vulnerable (reloading) but cannot attack: close=false (dist=530), can_see=false
+[04:04:00] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:00] [ENEMY] [Enemy8] Player vulnerable (reloading) but cannot attack: close=false (dist=1216), can_see=false
+[04:04:00] [ENEMY] [Enemy9] Player vulnerable (reloading) but cannot attack: close=false (dist=1382), can_see=false
+[04:04:00] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:00] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:00] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:00] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:00] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:00] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:00] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:00] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:00] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:00] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:00] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:00] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:00] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:00] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:00] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:00] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:00] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:00] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:00] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:00] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:00] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:00] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:01] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:01] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:01] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:01] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:01] [ENEMY] [Enemy5] Pursuing vulnerability sound at (1523.934, 293.8187), distance=160
+[04:04:01] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:01] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:01] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:01] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:01] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:01] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:01] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:01] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:01] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:01] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:01] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:01] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:01] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:01] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:01] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:01] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:01] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:01] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:01] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:01] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:01] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:01] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:01] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:01] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:01] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:01] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:01] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:01] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:01] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:01] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:01] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:01] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:01] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:01] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:01] [ENEMY] [Enemy5] Player vulnerable (reloading) but cannot attack: close=true (dist=160), can_see=false
+[04:04:01] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:01] [ENEMY] [Enemy7] Player vulnerable (reloading) but cannot attack: close=false (dist=530), can_see=false
+[04:04:01] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:01] [ENEMY] [Enemy8] Player vulnerable (reloading) but cannot attack: close=false (dist=1216), can_see=false
+[04:04:01] [ENEMY] [Enemy9] Player vulnerable (reloading) but cannot attack: close=false (dist=1382), can_see=false
+[04:04:01] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:01] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:01] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:01] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:01] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:01] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:01] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:01] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:01] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:01] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:01] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:01] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:01] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:01] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:01] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:01] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:01] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:01] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:01] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:01] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:01] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:01] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:01] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:01] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:01] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:01] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:01] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:01] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:01] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:01] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:01] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:01] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:01] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:01] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:01] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:01] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:01] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:01] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:01] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:01] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:01] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:01] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:01] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:01] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:01] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:01] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:01] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:01] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:01] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:01] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:01] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:01] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:01] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:01] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:01] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:01] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:01] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:01] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:01] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:01] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:01] [ENEMY] [Enemy5] Player vulnerable (reloading) but cannot attack: close=true (dist=160), can_see=false
+[04:04:01] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:01] [ENEMY] [Enemy7] Player vulnerable (reloading) but cannot attack: close=false (dist=530), can_see=false
+[04:04:01] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:01] [ENEMY] [Enemy8] Player vulnerable (reloading) but cannot attack: close=false (dist=1216), can_see=false
+[04:04:01] [ENEMY] [Enemy9] Player vulnerable (reloading) but cannot attack: close=false (dist=1382), can_see=false
+[04:04:01] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:01] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:01] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:01] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:01] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:01] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:01] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:01] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:01] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:01] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:01] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:01] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:01] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:01] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:01] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:01] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:01] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:01] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:02] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:02] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:02] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:02] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:02] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:02] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:02] [ENEMY] [Enemy5] Pursuing vulnerability sound at (1523.934, 293.8187), distance=160
+[04:04:02] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:02] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:02] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:02] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:02] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:02] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:02] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:02] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:02] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:02] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:02] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:02] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:02] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:02] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:02] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:02] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:02] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[04:04:02] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:02] [ENEMY] [Enemy5] Player reloading state changed: true -> false
+[04:04:02] [ENEMY] [Enemy6] Player reloading state changed: true -> false
+[04:04:02] [ENEMY] [Enemy7] Player reloading state changed: true -> false
+[04:04:02] [ENEMY] [Enemy8] Player reloading state changed: true -> false
+[04:04:02] [ENEMY] [Enemy9] Player reloading state changed: true -> false
+[04:04:02] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:02] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:02] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:02] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:02] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:02] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:02] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:02] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:02] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:02] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:02] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:02] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:02] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:02] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:02] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:02] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:02] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:02] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:02] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:02] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:02] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:02] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:02] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:02] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:02] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:02] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:02] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:02] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:02] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:02] [ENEMY] [Enemy6] State: COMBAT -> SEEKING_COVER
+[04:04:02] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:02] [ENEMY] [Enemy6] State: SEEKING_COVER -> IN_COVER
+[04:04:02] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:02] [ENEMY] [Enemy6] State: IN_COVER -> COMBAT
+[04:04:02] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:02] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:02] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:02] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:02] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:02] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:02] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:02] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:02] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:02] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:02] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:02] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:02] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:02] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:02] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:02] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:02] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:03] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:03] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:03] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:03] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:03] [ENEMY] [Enemy5] Pursuing vulnerability sound at (1523.934, 293.8187), distance=160
+[04:04:03] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:03] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:03] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:03] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:03] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:03] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:03] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:03] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:03] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:03] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:03] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:03] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:03] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:03] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:03] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:03] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:03] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:03] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:03] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:03] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:03] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:03] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:03] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:03] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:03] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:03] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:03] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:03] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:03] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:03] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:03] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:03] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:03] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:03] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:03] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:03] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:03] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:03] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:03] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:03] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:03] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:03] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:03] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:03] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:03] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:03] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:03] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:03] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:03] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:03] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:03] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:03] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:03] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:03] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:03] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:03] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:04] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:04] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:04] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:04] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:04] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:04] [ENEMY] [Enemy5] Pursuing vulnerability sound at (1523.934, 293.8187), distance=160
+[04:04:04] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:04] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:04] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:04] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:04] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:04] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:04] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:04] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:04] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:04] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:04] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:04] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:04] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:04] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:04] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:04] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:04] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:04] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:04] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:04] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:04] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:04] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:04] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:04] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:04] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:04] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:04] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:04] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:04] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:04] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:04] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:04] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:04] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:04] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:04] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:04] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:04] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:04] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:04] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:04] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:04] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:04] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:04] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:04] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:04] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:04] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:04] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:04] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:04] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:04] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:04] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:04] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:04] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:04] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:04] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:05] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:05] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:05] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:05] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:05] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:05] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:05] [ENEMY] [Enemy5] Pursuing vulnerability sound at (1523.934, 293.8187), distance=160
+[04:04:05] [ENEMY] [Enemy6] State: COMBAT -> SEEKING_COVER
+[04:04:05] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:05] [ENEMY] [Enemy6] State: SEEKING_COVER -> IN_COVER
+[04:04:05] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:05] [ENEMY] [Enemy6] State: IN_COVER -> COMBAT
+[04:04:05] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:05] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:05] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:05] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:05] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:05] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:05] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:05] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:05] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:05] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:05] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:05] [ENEMY] [Enemy5] State: PURSUING -> COMBAT
+[04:04:05] [ENEMY] [Enemy6] State: COMBAT -> PURSUING
+[04:04:05] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:05] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1523.934, 253.8187), source=PLAYER (AssaultRifle), range=1469, listeners=5
+[04:04:05] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0, below_threshold=3
+[04:04:05] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:05] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:05] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:05] [ENEMY] [Enemy5] Hit taken, health: 0/3
+[04:04:05] [ENEMY] [Enemy5] Enemy died
+[04:04:05] [INFO] [SoundPropagation] Unregistered listener: Enemy5 (remaining: 4)
+[04:04:05] [ENEMY] [Enemy6] Hit taken, health: 3/4
+[04:04:05] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:05] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:05] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:05] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:05] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1523.934, 228.3298), source=PLAYER (AssaultRifle), range=1469, listeners=4
+[04:04:05] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=0, below_threshold=3
+[04:04:05] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:05] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:05] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:05] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:05] [ENEMY] [Enemy6] Hit taken, health: 2/4
+[04:04:05] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:05] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:05] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:05] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:05] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1523.934, 215.3876), source=PLAYER (AssaultRifle), range=1469, listeners=4
+[04:04:05] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=0, below_threshold=3
+[04:04:05] [ENEMY] [Enemy6] State: PURSUING -> RETREATING
+[04:04:05] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:05] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:05] [ENEMY] [Enemy7] FLANKING started: target=(1694.563, 318.6194), side=left, pos=(1508.559, 824.0663)
+[04:04:05] [ENEMY] [Enemy7] State: PURSUING -> FLANKING
+[04:04:05] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1684.89, 275.3791), source=ENEMY (Enemy6), range=1469, listeners=4
+[04:04:05] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=1, below_threshold=3
+[04:04:05] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1523.934, 216.0987), source=PLAYER (AssaultRifle), range=1469, listeners=4
+[04:04:05] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=0, below_threshold=3
+[04:04:05] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1523.934, 230.4631), source=PLAYER (AssaultRifle), range=1469, listeners=4
+[04:04:05] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=0, below_threshold=3
+[04:04:05] [ENEMY] [Enemy6] State: RETREATING -> IN_COVER
+[04:04:05] [ENEMY] [Enemy6] State: IN_COVER -> SUPPRESSED
+[04:04:07] [ENEMY] [Enemy5] Player reloading state changed: false -> true
+[04:04:07] [ENEMY] [Enemy6] Player reloading state changed: false -> true
+[04:04:07] [ENEMY] [Enemy7] Player reloading state changed: false -> true
+[04:04:07] [ENEMY] [Enemy8] Player reloading state changed: false -> true
+[04:04:07] [ENEMY] [Enemy9] Player reloading state changed: false -> true
+[04:04:07] [INFO] [SoundPropagation] Sound emitted: type=RELOAD, pos=(1523.934, 273.5031), source=PLAYER (Player), range=900, listeners=4
+[04:04:07] [ENEMY] [Enemy6] Heard player RELOAD at (1523.934, 273.5031), intensity=0.09, distance=164
+[04:04:07] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=2, self=0, below_threshold=1
+[04:04:07] [ENEMY] [Enemy6] Player vulnerable (reloading) but cannot attack: close=true (dist=164), can_see=false
+[04:04:07] [ENEMY] [Enemy6] State: PURSUING -> RETREATING
+[04:04:07] [ENEMY] [Enemy7] Player vulnerable (reloading) but cannot attack: close=false (dist=551), can_see=false
+[04:04:07] [ENEMY] [Enemy8] Player vulnerable (reloading) but cannot attack: close=false (dist=1235), can_see=false
+[04:04:07] [ENEMY] [Enemy9] Player vulnerable (reloading) but cannot attack: close=false (dist=1400), can_see=false
+[04:04:07] [ENEMY] [Enemy6] State: RETREATING -> IN_COVER
+[04:04:07] [ENEMY] [Enemy6] State: IN_COVER -> SUPPRESSED
+[04:04:08] [ENEMY] [Enemy6] Player vulnerable (reloading) but cannot attack: close=true (dist=164), can_see=false
+[04:04:08] [ENEMY] [Enemy7] Player vulnerable (reloading) but cannot attack: close=false (dist=551), can_see=false
+[04:04:08] [ENEMY] [Enemy8] Player vulnerable (reloading) but cannot attack: close=false (dist=1235), can_see=false
+[04:04:08] [ENEMY] [Enemy9] Player vulnerable (reloading) but cannot attack: close=false (dist=1400), can_see=false
+[04:04:08] [ENEMY] [Enemy7] FLANKING stuck (2.0s no progress), target=(1693.317, 379.848), pos=(1503.528, 824.0664), fail_count=1
+[04:04:08] [ENEMY] [Enemy7] State: FLANKING -> PURSUING
+[04:04:08] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:08] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:08] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:08] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:08] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:08] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:08] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:08] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:08] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:08] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:08] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:08] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:08] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:08] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:08] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:08] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:08] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:08] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:08] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:08] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:08] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:08] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:08] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:08] [ENEMY] [Enemy6] Player vulnerable (reloading) but cannot attack: close=true (dist=164), can_see=false
+[04:04:08] [ENEMY] [Enemy7] Player vulnerable (reloading) but cannot attack: close=false (dist=551), can_see=false
+[04:04:08] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:08] [ENEMY] [Enemy8] Player vulnerable (reloading) but cannot attack: close=false (dist=1235), can_see=false
+[04:04:08] [ENEMY] [Enemy9] Player vulnerable (reloading) but cannot attack: close=false (dist=1400), can_see=false
+[04:04:08] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:08] [ENEMY] [Enemy6] Player reloading state changed: true -> false
+[04:04:08] [ENEMY] [Enemy7] Player reloading state changed: true -> false
+[04:04:08] [ENEMY] [Enemy8] Player reloading state changed: true -> false
+[04:04:08] [ENEMY] [Enemy9] Player reloading state changed: true -> false
+[04:04:08] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:08] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:08] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:08] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:08] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:08] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:08] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:08] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:08] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:08] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:08] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:08] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:08] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:08] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:08] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:08] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:08] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:08] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:08] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:08] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:08] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:08] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:08] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:08] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:08] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:08] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:08] [ENEMY] [Enemy6] State: SUPPRESSED -> IN_COVER
+[04:04:08] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:09] [ENEMY] [Enemy6] State: IN_COVER -> PURSUING
+[04:04:09] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:09] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:09] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:09] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:09] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:09] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:09] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:09] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:09] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:09] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:09] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:09] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:09] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:09] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:09] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:09] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:09] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:09] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:09] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:09] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:09] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:09] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:09] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:09] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:09] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:09] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:09] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:09] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:09] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:09] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:09] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:09] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:09] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:09] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:09] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:09] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:09] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:09] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:09] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:09] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:09] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:09] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:09] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:09] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:09] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:09] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:09] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:09] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:09] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:09] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:09] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:09] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:09] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:09] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:09] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:09] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:09] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:09] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:09] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:09] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:10] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:10] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:10] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:10] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:10] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:10] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:10] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:10] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:10] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:10] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:10] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:10] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:10] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:10] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:10] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:10] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:10] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:10] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:10] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:10] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:10] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:10] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:10] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:10] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:10] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:10] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:10] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:10] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:10] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:10] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:10] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:10] [ENEMY] [Enemy6] FLANKING started: target=(1583.282, 464.4946), side=right, pos=(1684.065, 309.7018)
+[04:04:10] [ENEMY] [Enemy6] State: PURSUING -> FLANKING
+[04:04:10] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:10] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:10] [ENEMY] [Enemy6] State: FLANKING -> COMBAT
+[04:04:10] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:10] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:10] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:10] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:10] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:10] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:10] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:10] [ENEMY] [Enemy6] State: COMBAT -> PURSUING
+[04:04:10] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:10] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:10] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:10] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:10] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:10] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:10] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:10] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:10] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:10] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:10] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:10] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:10] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:10] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:10] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:10] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:10] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:10] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:10] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:10] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:11] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:11] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:11] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:11] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:11] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:11] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:11] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:11] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:11] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:11] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:11] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:11] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:11] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:11] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:11] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:11] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:11] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:11] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:11] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:11] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:11] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:11] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:11] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:11] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:11] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:11] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:11] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:11] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:11] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:11] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:11] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:11] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:11] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:11] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:11] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:11] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:11] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:11] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:11] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:11] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:11] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:11] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:11] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:11] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:11] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:11] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:11] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:11] [ENEMY] [Enemy6] State: PURSUING -> COMBAT
+[04:04:11] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:11] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:11] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:11] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:11] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:11] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:11] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:11] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1523.925, 226.3364), source=PLAYER (AssaultRifle), range=1469, listeners=4
+[04:04:11] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=0, below_threshold=3
+[04:04:11] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:11] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:11] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:11] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:11] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:11] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:12] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1684.066, 275.5487), source=ENEMY (Enemy6), range=1469, listeners=4
+[04:04:12] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=1, below_threshold=3
+[04:04:12] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:12] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1523.925, 187.8364), source=PLAYER (AssaultRifle), range=1469, listeners=4
+[04:04:12] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=2
+[04:04:12] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:12] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:12] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:12] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:12] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:12] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:12] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1684.066, 275.5487), source=ENEMY (Enemy6), range=1469, listeners=4
+[04:04:12] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=1, below_threshold=3
+[04:04:12] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:12] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1523.925, 149.3364), source=PLAYER (AssaultRifle), range=1469, listeners=4
+[04:04:12] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=2
+[04:04:12] [ENEMY] [Enemy6] State: COMBAT -> RETREATING
+[04:04:12] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:12] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:12] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:12] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:12] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:12] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:12] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:12] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1525.413, 114.6735), source=PLAYER (AssaultRifle), range=1469, listeners=4
+[04:04:12] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=2
+[04:04:12] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:12] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:12] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1706.824, 294.896), source=ENEMY (Enemy6), range=1469, listeners=4
+[04:04:12] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=1, below_threshold=3
+[04:04:12] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:12] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:12] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:12] [ENEMY] [Enemy6] Hit taken, health: 1/4
+[04:04:12] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:12] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:12] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1537.024, 91.4896), source=PLAYER (AssaultRifle), range=1469, listeners=4
+[04:04:12] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=2
+[04:04:12] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:12] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:12] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1684.067, 298.6201), source=ENEMY (Enemy6), range=1469, listeners=4
+[04:04:12] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=1, below_threshold=3
+[04:04:12] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:12] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:12] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:12] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:12] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:12] [ENEMY] [Enemy6] Hit taken, health: 0/4
+[04:04:12] [ENEMY] [Enemy6] Enemy died
+[04:04:12] [INFO] [SoundPropagation] Unregistered listener: Enemy6 (remaining: 3)
+[04:04:12] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:12] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1558.283, 80.06122), source=PLAYER (AssaultRifle), range=1469, listeners=3
+[04:04:12] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=0, below_threshold=2
+[04:04:12] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:12] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:12] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:12] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:12] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:12] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:12] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:12] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:12] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1590.746, 80.06122), source=PLAYER (AssaultRifle), range=1469, listeners=3
+[04:04:12] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=0, below_threshold=2
+[04:04:12] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:12] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:12] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:12] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:12] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:12] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:12] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:12] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:12] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1625.946, 80.06122), source=PLAYER (AssaultRifle), range=1469, listeners=3
+[04:04:12] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=0, below_threshold=2
+[04:04:12] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:12] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:12] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:12] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:12] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:12] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:12] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:12] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:12] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1661.146, 80.06122), source=PLAYER (AssaultRifle), range=1469, listeners=3
+[04:04:12] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=0, below_threshold=2
+[04:04:12] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:12] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:12] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:12] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:12] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:12] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:13] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:13] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:13] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:13] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:13] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:13] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:13] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:13] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:13] [ENEMY] [Enemy7] State: PURSUING -> COMBAT
+[04:04:13] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[04:04:13] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 4)
+[04:04:13] [ENEMY] [Enemy1] Registered as sound listener
+[04:04:13] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 3, behavior: GUARD, player_found: yes
+[04:04:13] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 5)
+[04:04:13] [ENEMY] [Enemy2] Registered as sound listener
+[04:04:13] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 4, behavior: GUARD, player_found: yes
+[04:04:13] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 6)
+[04:04:13] [ENEMY] [Enemy3] Registered as sound listener
+[04:04:13] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 3, behavior: GUARD, player_found: yes
+[04:04:13] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 7)
+[04:04:13] [ENEMY] [Enemy4] Registered as sound listener
+[04:04:13] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 4, behavior: GUARD, player_found: yes
+[04:04:13] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 8)
+[04:04:13] [ENEMY] [Enemy5] Registered as sound listener
+[04:04:13] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 4, behavior: GUARD, player_found: yes
+[04:04:13] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 9)
+[04:04:13] [ENEMY] [Enemy6] Registered as sound listener
+[04:04:13] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 2, behavior: GUARD, player_found: yes
+[04:04:13] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 10)
+[04:04:13] [ENEMY] [Enemy7] Registered as sound listener
+[04:04:13] [ENEMY] [Enemy7] Enemy spawned at (1600, 900), health: 4, behavior: PATROL, player_found: yes
+[04:04:13] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 11)
+[04:04:13] [ENEMY] [Enemy8] Registered as sound listener
+[04:04:13] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 4, behavior: GUARD, player_found: yes
+[04:04:13] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 12)
+[04:04:13] [ENEMY] [Enemy9] Registered as sound listener
+[04:04:13] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 4, behavior: GUARD, player_found: yes
+[04:04:13] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 13)
+[04:04:13] [ENEMY] [Enemy10] Registered as sound listener
+[04:04:13] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 4, behavior: PATROL, player_found: yes
+[04:04:16] [INFO] ------------------------------------------------------------
+[04:04:16] [INFO] GAME LOG ENDED: 2026-01-20T04:04:16
+[04:04:16] [INFO] ============================================================

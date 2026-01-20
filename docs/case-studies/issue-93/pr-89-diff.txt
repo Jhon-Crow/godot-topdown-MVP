@@ -1,0 +1,1042 @@
+diff --git a/docs/case-studies/issue-88/analysis.md b/docs/case-studies/issue-88/analysis.md
+new file mode 100644
+index 0000000..399f706
+--- /dev/null
++++ b/docs/case-studies/issue-88/analysis.md
+@@ -0,0 +1,181 @@
++# Issue 88: Enemy AI Combat State Fix - Case Study Analysis
++
++## Issue Summary
++The enemy AI has behavior issues in COMBAT and PURSUING states where enemies stand behind cover and infinitely cycle through the timer without actually moving toward the player.
++
++## Feedback History
++
++### Initial Feedback (Round 1)
++1. In PURSUING state, enemies just stand still (countdown doesn't progress)
++2. In COMBAT state, enemies should come out for direct contact with player, then return to cover if state doesn't change by timer expiry. Currently they just cycle the timer while standing still.
++
++### Follow-up Feedback (Round 2)
++Despite first round of fixes, the issue persists: "In PURSUING or COMBAT states, enemies just stand behind cover and infinitely cycle through the timer."
++
++## Root Cause Analysis (Deep Dive)
++
++### Problem 1: PURSUING State - Infinite Timer Loop
++
++**Code Path Analysis:**
++
++Looking at `_process_pursuing_state()`:
++
++```gdscript
++# Check if we're waiting at cover
++if _has_valid_cover and not _has_pursuit_cover:
++    # Currently at cover, wait for 1-2 seconds before moving to next cover
++    _pursuit_cover_wait_timer += delta
++    velocity = Vector2.ZERO
++
++    if _pursuit_cover_wait_timer >= PURSUIT_COVER_WAIT_DURATION:
++        _find_pursuit_cover_toward_player()
++        if _has_pursuit_cover:
++            # Found cover, will move on next frame
++        else:
++            # Fallback: transition to COMBAT or FLANKING
++```
++
++**Bug 1: Premature "Reached Cover" Detection (LINE 1285)**
++
++```gdscript
++if distance < 15.0 or not _is_visible_from_player():
++    # Reached cover or hidden from player
++```
++
++The condition `or not _is_visible_from_player()` was **catastrophic**:
++- When enemy starts from cover, they are ALREADY not visible from player
++- This makes the condition immediately true before any movement
++- Enemy instantly considers they've "reached" the target cover
++- Resets to waiting phase → infinite loop
++
++**Fix:** Removed the visibility check. Only distance matters for "reached cover":
++```gdscript
++if distance < 15.0:
++    # Reached pursuit cover
++```
++
++**Bug 2: Finding Cover Too Close to Current Position**
++
++`_find_pursuit_cover_toward_player()` could find a cover position that was only a few pixels away from the enemy's current position:
++1. Enemy at position A finds cover B, which is 10 pixels away
++2. `_has_pursuit_cover = true`
++3. Movement code runs, but `distance < 15.0` is immediately true
++4. Enemy "reaches" cover B without moving
++5. Back to waiting phase → infinite loop
++
++**Fix:** Added minimum distance check in `_find_pursuit_cover_toward_player()`:
++```gdscript
++# Skip covers that are too close to current position (would cause looping)
++# Must be at least 30 pixels away to be a meaningful movement
++if cover_distance_from_me < 30.0:
++    continue
++```
++
++### Problem 2: COMBAT State - Wrong State Transition When Player Not Visible
++
++**Code Path Analysis:**
++
++In `_process_combat_state()`:
++
++```gdscript
++# If can't see player, try flanking or pursue
++if not _can_see_player:
++    _combat_exposed = false
++    _combat_approaching = false
++    if enable_flanking and _player:
++        _transition_to_flanking()
++    else:
++        _transition_to_idle()
++    return
++```
++
++**Bug:** When the player is not visible, the enemy transitions to FLANKING or IDLE instead of PURSUING. This is incorrect because:
++- PURSUING state is specifically designed for chasing a player who is not visible
++- Going to IDLE completely breaks the combat loop
++- FLANKING may not work if flanking is disabled
++
++**Fix:** Changed to always transition to PURSUING when player not visible:
++```gdscript
++# If can't see player, pursue them (move cover-to-cover toward player)
++if not _can_see_player:
++    _combat_exposed = false
++    _combat_approaching = false
++    _log_debug("Lost sight of player in COMBAT, transitioning to PURSUING")
++    _transition_to_pursuing()
++    return
++```
++
++## Implementation Details
++
++### Files Modified
++- `scripts/objects/enemy.gd`
++
++### Changes Summary
++
++1. **Line 1285:** Removed `or not _is_visible_from_player()` from pursuit cover arrival check
++2. **Lines 1952-1955:** Added minimum distance check (30px) for pursuit cover candidates
++3. **Lines 762-768:** Changed COMBAT state to transition to PURSUING (not FLANKING/IDLE) when player not visible
++
++### Debug Labels
++The debug labels continue to show current phase information:
++- PURSUING: Shows `(WAIT Xs)` or `(MOVING)`
++- COMBAT: Shows `(APPROACH)` or `(EXPOSED Xs)`
++
++## Testing Checklist
++
++1. **PURSUING State:**
++   - [ ] Enemy waits ~1.5s at cover
++   - [ ] Enemy actually MOVES to next cover (not instantly "arriving")
++   - [ ] If no cover found, enemy transitions to COMBAT or FLANKING
++   - [ ] Debug label shows `(WAIT)` then `(MOVING)` phases
++
++2. **COMBAT State:**
++   - [ ] Enemy approaches player (APPROACH phase visible)
++   - [ ] Once close or time exceeded, enemy enters EXPOSED phase
++   - [ ] Enemy returns to cover after shooting
++   - [ ] If player goes behind cover, enemy transitions to PURSUING
++
++3. **State Flow:**
++   - [ ] IN_COVER → PURSUING (when player not visible)
++   - [ ] PURSUING → COMBAT (when player becomes visible)
++   - [ ] COMBAT → PURSUING (when player hides)
++   - [ ] COMBAT → SEEKING_COVER → IN_COVER (after exposed shooting)
++
++## Technical Deep Dive
++
++### Why the Visibility Check Was Wrong
++
++The original code at line 1285 was:
++```gdscript
++if distance < 15.0 or not _is_visible_from_player():
++```
++
++This was intended to handle two cases:
++1. Enemy reached the physical cover position (distance < 15)
++2. Enemy became hidden from player before reaching cover
++
++However, case #2 creates an impossible situation:
++- Enemy starts at cover A (hidden from player)
++- Wants to move to cover B (closer to player)
++- The instant they try to move, `_is_visible_from_player()` returns FALSE
++- They're immediately considered "at cover B" without moving!
++
++The correct behavior is to ONLY check distance. The enemy must physically travel to the new cover position regardless of visibility.
++
++### Cover Distance Threshold
++
++The 30-pixel minimum distance prevents:
++1. Micro-movements that look like standing still
++2. Numerical precision issues where cover positions are nearly identical
++3. The edge case where the same cover is found multiple times
++
++30 pixels was chosen because:
++- Character collision radius is ~24 pixels
++- 30px ensures visible movement on screen
++- Small enough to allow nearby covers when appropriate
++
++## References
++- enemy.gd lines 740-852 (COMBAT state processing)
++- enemy.gd lines 1279-1302 (PURSUING movement code)
++- enemy.gd lines 1913-1976 (_find_pursuit_cover_toward_player)
++- Feedback comments on PR #89
+diff --git a/scripts/ai/enemy_actions.gd b/scripts/ai/enemy_actions.gd
+index 122075e..3ba252f 100644
+--- a/scripts/ai/enemy_actions.gd
++++ b/scripts/ai/enemy_actions.gd
+@@ -159,6 +159,48 @@ class RetreatWithFireAction extends GOAPAction:
+ 			return 0.5
+ 
+ 
++## Action to pursue the player by moving cover-to-cover.
++## Used when enemy is far from player and can't hit them from current position.
++class PursuePlayerAction extends GOAPAction:
++	func _init() -> void:
++		super._init("pursue_player", 2.5)
++		preconditions = {
++			"player_visible": false,
++			"player_close": false
++		}
++		effects = {
++			"is_pursuing": true,
++			"player_close": true
++		}
++
++	func get_cost(_agent: Node, world_state: Dictionary) -> float:
++		# Lower cost if we can't hit from current position
++		if not world_state.get("can_hit_from_cover", false):
++			return 1.5
++		return 3.0
++
++
++## Action to initiate coordinated assault when multiple enemies are in combat.
++## All enemies rush the player simultaneously after a 5 second wait.
++class AssaultPlayerAction extends GOAPAction:
++	func _init() -> void:
++		super._init("assault_player", 1.0)
++		preconditions = {
++			"player_visible": true
++		}
++		effects = {
++			"is_assaulting": true,
++			"player_engaged": true
++		}
++
++	func get_cost(_agent: Node, world_state: Dictionary) -> float:
++		# Only low cost if multiple enemies are in combat
++		var enemies_count := world_state.get("enemies_in_combat", 0)
++		if enemies_count >= 2:
++			return 0.5  # High priority for coordinated attack
++		return 5.0  # Very high cost if alone (prefer other actions)
++
++
+ ## Create and return all enemy actions.
+ static func create_all_actions() -> Array[GOAPAction]:
+ 	var actions: Array[GOAPAction] = []
+@@ -171,4 +213,6 @@ static func create_all_actions() -> Array[GOAPAction]:
+ 	actions.append(FindCoverAction.new())
+ 	actions.append(RetreatAction.new())
+ 	actions.append(RetreatWithFireAction.new())
++	actions.append(PursuePlayerAction.new())
++	actions.append(AssaultPlayerAction.new())
+ 	return actions
+diff --git a/scripts/objects/enemy.gd b/scripts/objects/enemy.gd
+index 95f2827..320daa2 100644
+--- a/scripts/objects/enemy.gd
++++ b/scripts/objects/enemy.gd
+@@ -14,12 +14,14 @@ extends CharacterBody2D
+ ## AI States for tactical behavior.
+ enum AIState {
+ 	IDLE,       ## Default idle state (patrol or guard)
+-	COMBAT,     ## Actively engaging the player
++	COMBAT,     ## Actively engaging the player (coming out of cover, shooting 2-3s, returning)
+ 	SEEKING_COVER,  ## Moving to cover position
+ 	IN_COVER,   ## Taking cover from player fire
+ 	FLANKING,   ## Attempting to flank the player
+ 	SUPPRESSED, ## Under fire, staying in cover
+-	RETREATING  ## Retreating to cover while possibly shooting
++	RETREATING, ## Retreating to cover while possibly shooting
++	PURSUING,   ## Moving cover-to-cover toward player (when far and can't hit)
++	ASSAULT     ## Coordinated multi-enemy assault (rush player after 5s wait)
+ }
+ 
+ ## Retreat behavior modes based on damage taken.
+@@ -328,6 +330,59 @@ var _in_alarm_mode: bool = false
+ ## Whether the enemy needs to fire a cover burst (when leaving cover while in alarm).
+ var _cover_burst_pending: bool = false
+ 
++## --- Combat Cover Cycling (come out, shoot 2-3s, go back) ---
++## Timer for how long the enemy has been shooting while out of cover.
++var _combat_shoot_timer: float = 0.0
++
++## Duration to shoot while out of cover (2-3 seconds, randomized).
++var _combat_shoot_duration: float = 2.5
++
++## Whether the enemy is currently in the "exposed shooting" phase of combat.
++var _combat_exposed: bool = false
++
++## Whether the enemy is in the "approaching player" phase of combat.
++## In this phase, the enemy moves toward the player to get into direct contact.
++var _combat_approaching: bool = false
++
++## Timer for the approach phase of combat.
++var _combat_approach_timer: float = 0.0
++
++## Maximum time to spend approaching player before starting to shoot (seconds).
++const COMBAT_APPROACH_MAX_TIME: float = 2.0
++
++## Distance at which enemy is considered "close enough" to start shooting phase.
++const COMBAT_DIRECT_CONTACT_DISTANCE: float = 250.0
++
++## --- Pursuit State (cover-to-cover movement) ---
++## Timer for waiting at cover during pursuit.
++var _pursuit_cover_wait_timer: float = 0.0
++
++## Duration to wait at each cover during pursuit (1-2 seconds, reduced for faster pursuit).
++const PURSUIT_COVER_WAIT_DURATION: float = 1.5
++
++## Current pursuit target cover position.
++var _pursuit_next_cover: Vector2 = Vector2.ZERO
++
++## Whether the enemy has a valid pursuit cover target.
++var _has_pursuit_cover: bool = false
++
++## --- Assault State (coordinated multi-enemy rush) ---
++## Timer for assault wait period (5 seconds before rushing).
++var _assault_wait_timer: float = 0.0
++
++## Duration to wait at cover before assault (5 seconds).
++const ASSAULT_WAIT_DURATION: float = 5.0
++
++## Whether the assault wait period is complete.
++var _assault_ready: bool = false
++
++## Whether this enemy is currently participating in an assault.
++var _in_assault: bool = false
++
++## Distance threshold for "close" vs "far" from player.
++## Used to determine if enemy can engage from current position or needs to pursue.
++const CLOSE_COMBAT_DISTANCE: float = 400.0
++
+ ## GOAP world state for goal-oriented planning.
+ var _goap_world_state: Dictionary = {}
+ 
+@@ -445,7 +500,12 @@ func _initialize_goap_state() -> void:
+ 		"can_flank": false,
+ 		"at_flank_position": false,
+ 		"is_retreating": false,
+-		"hits_taken": 0
++		"hits_taken": 0,
++		"is_pursuing": false,
++		"is_assaulting": false,
++		"can_hit_from_cover": false,
++		"player_close": false,
++		"enemies_in_combat": 0
+ 	}
+ 
+ 
+@@ -528,6 +588,11 @@ func _update_goap_state() -> void:
+ 	_goap_world_state["has_cover"] = _has_valid_cover
+ 	_goap_world_state["is_retreating"] = _current_state == AIState.RETREATING
+ 	_goap_world_state["hits_taken"] = _hits_taken_in_encounter
++	_goap_world_state["is_pursuing"] = _current_state == AIState.PURSUING
++	_goap_world_state["is_assaulting"] = _current_state == AIState.ASSAULT
++	_goap_world_state["player_close"] = _is_player_close()
++	_goap_world_state["can_hit_from_cover"] = _can_hit_player_from_current_position()
++	_goap_world_state["enemies_in_combat"] = _count_enemies_in_combat()
+ 
+ 
+ ## Update suppression state.
+@@ -647,6 +712,10 @@ func _process_ai_state(delta: float) -> void:
+ 			_process_suppressed_state(delta)
+ 		AIState.RETREATING:
+ 			_process_retreating_state(delta)
++		AIState.PURSUING:
++			_process_pursuing_state(delta)
++		AIState.ASSAULT:
++			_process_assault_state(delta)
+ 
+ 	if previous_state != _current_state:
+ 		state_changed.emit(_current_state)
+@@ -668,22 +737,34 @@ func _process_idle_state(delta: float) -> void:
+ 			_process_guard(delta)
+ 
+ 
+-## Process COMBAT state - actively engaging player.
++## Process COMBAT state - approach player for direct contact, shoot for 2-3 seconds, return to cover.
++## Implements the combat cycling behavior: approach -> exposed shooting -> return to cover.
++## Phase 1 (approaching): Move toward player to get into direct contact range.
++## Phase 2 (exposed): Stand and shoot for 2-3 seconds.
++## Phase 3: Return to cover via SEEKING_COVER state.
+ func _process_combat_state(delta: float) -> void:
+-	# In combat, enemy stands still and shoots (no velocity)
+-	velocity = Vector2.ZERO
+-
+ 	# Check for suppression - transition to retreating behavior
+ 	if _under_fire and enable_cover:
++		_combat_exposed = false
++		_combat_approaching = false
+ 		_transition_to_retreating()
+ 		return
+ 
+-	# If can't see player, try flanking or return to idle
++	# Check if multiple enemies are in combat - transition to assault state
++	var enemies_in_combat := _count_enemies_in_combat()
++	if enemies_in_combat >= 2:
++		_log_debug("Multiple enemies in combat (%d), transitioning to ASSAULT" % enemies_in_combat)
++		_combat_exposed = false
++		_combat_approaching = false
++		_transition_to_assault()
++		return
++
++	# If can't see player, pursue them (move cover-to-cover toward player)
+ 	if not _can_see_player:
+-		if enable_flanking and _player:
+-			_transition_to_flanking()
+-		else:
+-			_transition_to_idle()
++		_combat_exposed = false
++		_combat_approaching = false
++		_log_debug("Lost sight of player in COMBAT, transitioning to PURSUING")
++		_transition_to_pursuing()
+ 		return
+ 
+ 	# Update detection delay timer
+@@ -692,10 +773,79 @@ func _process_combat_state(delta: float) -> void:
+ 		if _detection_timer >= detection_delay:
+ 			_detection_delay_elapsed = true
+ 
+-	# Aim and shoot at player (only shoot after detection delay)
++	# If we don't have cover, find some first (needed for returning later)
++	if not _has_valid_cover and enable_cover:
++		_find_cover_position()
++		if _has_valid_cover:
++			_log_debug("Found cover at %s for combat cycling" % _cover_position)
++
++	# Check player distance for approach/exposed phase decisions
++	var distance_to_player := INF
+ 	if _player:
+-		_aim_at_player()
++		distance_to_player = global_position.distance_to(_player.global_position)
++
++	# Determine if we should be in approach phase or exposed shooting phase
++	var in_direct_contact := distance_to_player <= COMBAT_DIRECT_CONTACT_DISTANCE
++
++	# If already exposed (shooting phase), handle shooting and timer
++	if _combat_exposed:
++		_combat_shoot_timer += delta
++
++		# Check if exposure time is complete - go back to cover
++		if _combat_shoot_timer >= _combat_shoot_duration and _has_valid_cover:
++			_log_debug("Combat exposure time complete (%.1fs), returning to cover" % _combat_shoot_duration)
++			_combat_exposed = false
++			_combat_approaching = false
++			_combat_shoot_timer = 0.0
++			_transition_to_seeking_cover()
++			return
++
++		# In exposed phase, stand still and shoot
++		velocity = Vector2.ZERO
++
++		# Aim and shoot at player (only shoot after detection delay)
++		if _player:
++			_aim_at_player()
++			if _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
++				_shoot()
++				_shoot_timer = 0.0
++		return
++
++	# Not in exposed phase yet - determine if we need to approach or can start shooting
++	if in_direct_contact or _combat_approach_timer >= COMBAT_APPROACH_MAX_TIME:
++		# Close enough or approached long enough - start exposed shooting phase
++		_combat_exposed = true
++		_combat_approaching = false
++		_combat_shoot_timer = 0.0
++		_combat_approach_timer = 0.0
++		# Randomize exposure duration between 2-3 seconds
++		_combat_shoot_duration = randf_range(2.0, 3.0)
++		_log_debug("COMBAT exposed phase started (distance: %.0f), will shoot for %.1fs" % [distance_to_player, _combat_shoot_duration])
++		return
++
++	# Need to approach player - move toward them
++	if not _combat_approaching:
++		_combat_approaching = true
++		_combat_approach_timer = 0.0
++		_log_debug("COMBAT approach phase started, moving toward player")
++
++	_combat_approach_timer += delta
++
++	# Move toward player while approaching
++	if _player:
++		var direction_to_player := (_player.global_position - global_position).normalized()
++
++		# Apply wall avoidance
++		var avoidance := _check_wall_ahead(direction_to_player)
++		if avoidance != Vector2.ZERO:
++			direction_to_player = (direction_to_player * 0.5 + avoidance * 0.5).normalized()
++
++		velocity = direction_to_player * combat_move_speed
++		rotation = direction_to_player.angle()
++
++		# Can shoot while approaching (only after detection delay)
+ 		if _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
++			_aim_at_player()
+ 			_shoot()
+ 			_shoot_timer = 0.0
+ 
+@@ -746,6 +896,11 @@ func _process_seeking_cover_state(_delta: float) -> void:
+ 
+ 
+ ## Process IN_COVER state - taking cover from enemy fire.
++## Decides next action based on:
++## 1. If under fire -> suppressed
++## 2. If player is close (can exit cover for direct contact) -> COMBAT
++## 3. If player is far but can hit from current position -> COMBAT (stay and shoot)
++## 4. If player is far and can't hit -> PURSUING (move cover-to-cover)
+ func _process_in_cover_state(delta: float) -> void:
+ 	velocity = Vector2.ZERO
+ 
+@@ -786,6 +941,38 @@ func _process_in_cover_state(delta: float) -> void:
+ 		_transition_to_seeking_cover()
+ 		return
+ 
++	# Check if multiple enemies are in combat - transition to assault state
++	var enemies_in_combat := _count_enemies_in_combat()
++	if enemies_in_combat >= 2:
++		_log_debug("Multiple enemies detected (%d), transitioning to ASSAULT" % enemies_in_combat)
++		_transition_to_assault()
++		return
++
++	# Decision making based on player distance and visibility
++	if _player:
++		var player_close := _is_player_close()
++		var can_hit := _can_hit_player_from_current_position()
++
++		if _can_see_player:
++			if player_close:
++				# Player is close - engage in combat (come out, shoot, go back)
++				_log_debug("Player is close, transitioning to COMBAT")
++				_transition_to_combat()
++				return
++			else:
++				# Player is far
++				if can_hit:
++					# Can hit from current position - come out and shoot
++					# (Don't pursue, just transition to combat which will handle the cycling)
++					_log_debug("Player is far but can hit from here, transitioning to COMBAT")
++					_transition_to_combat()
++					return
++				else:
++					# Can't hit from here - need to pursue (move cover-to-cover)
++					_log_debug("Player is far and can't hit, transitioning to PURSUING")
++					_transition_to_pursuing()
++					return
++
+ 	# If not under fire and can see player, engage (only shoot after detection delay)
+ 	if _can_see_player and _player:
+ 		_aim_at_player()
+@@ -793,12 +980,10 @@ func _process_in_cover_state(delta: float) -> void:
+ 			_shoot()
+ 			_shoot_timer = 0.0
+ 
+-	# If player is no longer visible and not under fire, try flanking or return to combat
++	# If player is no longer visible and not under fire, try pursuing
+ 	if not _can_see_player and not _under_fire:
+-		if enable_flanking and _player:
+-			_transition_to_flanking()
+-		else:
+-			_transition_to_combat()
++		_log_debug("Lost sight of player from cover, transitioning to PURSUING")
++		_transition_to_pursuing()
+ 
+ 
+ ## Process FLANKING state - attempting to flank the player.
+@@ -1032,6 +1217,191 @@ func _process_retreat_multiple_hits(delta: float, direction_to_cover: Vector2) -
+ 	_process_retreat_one_hit(delta, direction_to_cover)
+ 
+ 
++## Process PURSUING state - move cover-to-cover toward player.
++## Enemy moves between covers, waiting 1-2 seconds at each cover,
++## until they can see and hit the player.
++func _process_pursuing_state(delta: float) -> void:
++	# Check for suppression - transition to retreating behavior
++	if _under_fire and enable_cover:
++		_transition_to_retreating()
++		return
++
++	# Check if multiple enemies are in combat - transition to assault state
++	var enemies_in_combat := _count_enemies_in_combat()
++	if enemies_in_combat >= 2:
++		_log_debug("Multiple enemies detected during pursuit (%d), transitioning to ASSAULT" % enemies_in_combat)
++		_transition_to_assault()
++		return
++
++	# If can see player and can hit them from current position, engage
++	if _can_see_player and _player:
++		var can_hit := _can_hit_player_from_current_position()
++		if can_hit:
++			_log_debug("Can see and hit player from pursuit, transitioning to COMBAT")
++			_has_pursuit_cover = false
++			_transition_to_combat()
++			return
++
++	# Check if we're waiting at cover
++	if _has_valid_cover and not _has_pursuit_cover:
++		# Currently at cover, wait for 1-2 seconds before moving to next cover
++		_pursuit_cover_wait_timer += delta
++		velocity = Vector2.ZERO
++
++		if _pursuit_cover_wait_timer >= PURSUIT_COVER_WAIT_DURATION:
++			# Done waiting, find next cover closer to player
++			_log_debug("Pursuit wait complete, finding next cover")
++			_pursuit_cover_wait_timer = 0.0
++			_find_pursuit_cover_toward_player()
++			if _has_pursuit_cover:
++				_log_debug("Found pursuit cover at %s" % _pursuit_next_cover)
++			else:
++				# No pursuit cover found - fallback behavior
++				_log_debug("No pursuit cover found, checking fallback options")
++				# If we can now see the player, engage directly
++				if _can_see_player:
++					_log_debug("Can see player, transitioning to COMBAT")
++					_transition_to_combat()
++					return
++				# Try flanking
++				if enable_flanking and _player:
++					_log_debug("Attempting flanking maneuver")
++					_transition_to_flanking()
++					return
++				# Last resort: move directly toward player
++				_log_debug("No cover options, moving directly toward player")
++				_transition_to_combat()
++				return
++		return
++
++	# If we have a pursuit cover target, move toward it
++	if _has_pursuit_cover:
++		var direction := (_pursuit_next_cover - global_position).normalized()
++		var distance := global_position.distance_to(_pursuit_next_cover)
++
++		# Check if we've reached the pursuit cover
++		# Note: We only check distance here, NOT visibility from player.
++		# If we checked visibility, the enemy would immediately consider themselves
++		# "at cover" even before moving, since they start hidden from player.
++		if distance < 15.0:
++			_log_debug("Reached pursuit cover at distance %.1f" % distance)
++			_has_pursuit_cover = false
++			_pursuit_cover_wait_timer = 0.0
++			_cover_position = _pursuit_next_cover
++			_has_valid_cover = true
++			# Start waiting at this cover
++			return
++
++		# Apply wall avoidance
++		var avoidance := _check_wall_ahead(direction)
++		if avoidance != Vector2.ZERO:
++			direction = (direction * 0.5 + avoidance * 0.5).normalized()
++
++		velocity = direction * combat_move_speed
++		rotation = direction.angle()
++		return
++
++	# No cover and no pursuit target - find initial pursuit cover
++	_find_pursuit_cover_toward_player()
++	if not _has_pursuit_cover:
++		# Can't find cover to pursue, try flanking or combat
++		if enable_flanking and _player:
++			_transition_to_flanking()
++		else:
++			_transition_to_combat()
++
++
++## Process ASSAULT state - coordinated multi-enemy rush.
++## Wait at cover for 5 seconds, then all enemies rush the player simultaneously.
++func _process_assault_state(delta: float) -> void:
++	# Check for suppression - transition to retreating behavior
++	if _under_fire and enable_cover and not _assault_ready:
++		_in_assault = false
++		_transition_to_retreating()
++		return
++
++	# Check if we're the only enemy left in assault - switch back to combat
++	var enemies_in_combat := _count_enemies_in_combat()
++	if enemies_in_combat < 2 and not _assault_ready:
++		_log_debug("Not enough enemies for assault, switching to COMBAT")
++		_in_assault = false
++		_transition_to_combat()
++		return
++
++	# Find closest cover to player if we don't have one
++	if not _has_valid_cover:
++		_find_cover_closest_to_player()
++		if _has_valid_cover:
++			_log_debug("Found assault cover at %s" % _cover_position)
++
++	# Move to cover position first
++	if _has_valid_cover and not _in_assault:
++		var distance_to_cover := global_position.distance_to(_cover_position)
++		if distance_to_cover > 15.0 and _is_visible_from_player():
++			# Still need to reach cover
++			var direction := (_cover_position - global_position).normalized()
++			var avoidance := _check_wall_ahead(direction)
++			if avoidance != Vector2.ZERO:
++				direction = (direction * 0.5 + avoidance * 0.5).normalized()
++			velocity = direction * combat_move_speed
++			rotation = direction.angle()
++			return
++
++	# At cover, wait for assault timer
++	if not _assault_ready:
++		velocity = Vector2.ZERO
++		_assault_wait_timer += delta
++
++		# Check if all assault enemies are ready (synchronized assault)
++		if _assault_wait_timer >= ASSAULT_WAIT_DURATION:
++			# Check if situation has changed - player might have moved
++			if _player and _is_player_close():
++				_assault_ready = true
++				_in_assault = true
++				_log_debug("ASSAULT ready - rushing player!")
++			else:
++				# Player moved away, reset timer and check if we should pursue
++				_log_debug("Player moved away during assault wait, resetting")
++				_assault_wait_timer = 0.0
++				_in_assault = false
++				_transition_to_pursuing()
++				return
++		return
++
++	# Assault phase - rush the player while shooting
++	if _assault_ready and _player:
++		var direction_to_player := (_player.global_position - global_position).normalized()
++		var distance_to_player := global_position.distance_to(_player.global_position)
++
++		# Apply wall avoidance
++		var avoidance := _check_wall_ahead(direction_to_player)
++		if avoidance != Vector2.ZERO:
++			direction_to_player = (direction_to_player * 0.5 + avoidance * 0.5).normalized()
++
++		# Rush at full speed
++		velocity = direction_to_player * combat_move_speed
++		rotation = direction_to_player.angle()
++
++		# Update detection delay timer
++		if not _detection_delay_elapsed:
++			_detection_timer += delta
++			if _detection_timer >= detection_delay:
++				_detection_delay_elapsed = true
++
++		# Shoot while rushing (only after detection delay)
++		if _can_see_player and _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
++			_aim_at_player()
++			_shoot()
++			_shoot_timer = 0.0
++
++		# If very close to player, stay in combat
++		if distance_to_player < 50.0:
++			_log_debug("Assault complete - reached player")
++			_assault_ready = false
++			_in_assault = false
++			_transition_to_combat()
++
++
+ ## Shoot with reduced accuracy for retreat mode.
+ func _shoot_with_inaccuracy() -> void:
+ 	if bullet_scene == null or _player == null:
+@@ -1128,6 +1498,11 @@ func _transition_to_combat() -> void:
+ 	# Reset detection delay timer when entering combat
+ 	_detection_timer = 0.0
+ 	_detection_delay_elapsed = false
++	# Reset combat phase variables
++	_combat_exposed = false
++	_combat_approaching = false
++	_combat_shoot_timer = 0.0
++	_combat_approach_timer = 0.0
+ 
+ 
+ ## Transition to SEEKING_COVER state.
+@@ -1154,6 +1529,29 @@ func _transition_to_suppressed() -> void:
+ 	_in_alarm_mode = true
+ 
+ 
++## Transition to PURSUING state.
++func _transition_to_pursuing() -> void:
++	_current_state = AIState.PURSUING
++	_pursuit_cover_wait_timer = 0.0
++	_has_pursuit_cover = false
++	# Reset detection delay for new engagement
++	_detection_timer = 0.0
++	_detection_delay_elapsed = false
++
++
++## Transition to ASSAULT state.
++func _transition_to_assault() -> void:
++	_current_state = AIState.ASSAULT
++	_assault_wait_timer = 0.0
++	_assault_ready = false
++	_in_assault = false
++	# Reset detection delay for new engagement
++	_detection_timer = 0.0
++	_detection_delay_elapsed = false
++	# Find closest cover to player for assault position
++	_find_cover_closest_to_player()
++
++
+ ## Transition to RETREATING state with appropriate retreat mode.
+ func _transition_to_retreating() -> void:
+ 	_current_state = AIState.RETREATING
+@@ -1453,6 +1851,186 @@ func _should_shoot_at_target(target_position: Vector2) -> bool:
+ 	return true
+ 
+ 
++## Check if the player is "close" (within CLOSE_COMBAT_DISTANCE).
++## Used to determine if the enemy should engage directly or pursue.
++func _is_player_close() -> bool:
++	if _player == null:
++		return false
++	return global_position.distance_to(_player.global_position) <= CLOSE_COMBAT_DISTANCE
++
++
++## Check if the enemy can hit the player from their current position.
++## Returns true if there's a clear line of fire to the player.
++func _can_hit_player_from_current_position() -> bool:
++	if _player == null:
++		return false
++
++	# Check if we can see the player
++	if not _can_see_player:
++		return false
++
++	# Check if the shot would be blocked by cover
++	return _is_shot_clear_of_cover(_player.global_position)
++
++
++## Count the number of enemies currently in combat-related states.
++## Includes COMBAT, PURSUING, ASSAULT, IN_COVER (if can see player).
++## Used to determine if multi-enemy assault should be triggered.
++func _count_enemies_in_combat() -> int:
++	var count := 0
++	var enemies := get_tree().get_nodes_in_group("enemies")
++
++	for enemy in enemies:
++		if enemy == self:
++			continue
++		if not enemy.has_method("get_current_state"):
++			continue
++
++		var state: AIState = enemy.get_current_state()
++		# Count enemies in combat-related states
++		if state in [AIState.COMBAT, AIState.ASSAULT, AIState.IN_COVER, AIState.SEEKING_COVER, AIState.PURSUING]:
++			# For IN_COVER, only count if they can see the player
++			if state == AIState.IN_COVER:
++				if enemy.has_method("is_in_combat_engagement") and enemy.is_in_combat_engagement():
++					count += 1
++			else:
++				count += 1
++
++	# Count self if in a combat-related state
++	if _current_state in [AIState.COMBAT, AIState.ASSAULT, AIState.IN_COVER, AIState.SEEKING_COVER, AIState.PURSUING]:
++		count += 1
++
++	return count
++
++
++## Check if this enemy is engaged in combat (can see player and in combat state).
++func is_in_combat_engagement() -> bool:
++	return _can_see_player and _current_state in [AIState.COMBAT, AIState.IN_COVER, AIState.ASSAULT]
++
++
++## Find cover position closer to the player for pursuit.
++## Used during PURSUING state to move cover-to-cover toward the player.
++func _find_pursuit_cover_toward_player() -> void:
++	if _player == null:
++		_has_pursuit_cover = false
++		return
++
++	var player_pos := _player.global_position
++	var best_cover: Vector2 = Vector2.ZERO
++	var best_score: float = -INF
++	var found_valid_cover: bool = false
++
++	# Cast rays in all directions to find obstacles
++	for i in range(COVER_CHECK_COUNT):
++		var angle := (float(i) / COVER_CHECK_COUNT) * TAU
++		var direction := Vector2.from_angle(angle)
++
++		var raycast := _cover_raycasts[i]
++		raycast.target_position = direction * COVER_CHECK_DISTANCE
++		raycast.force_raycast_update()
++
++		if raycast.is_colliding():
++			var collision_point := raycast.get_collision_point()
++			var collision_normal := raycast.get_collision_normal()
++
++			# Cover position is offset from collision point along normal
++			var cover_pos := collision_point + collision_normal * 35.0
++
++			# For pursuit, we want cover that is:
++			# 1. Closer to the player than we currently are
++			# 2. Hidden from the player (or mostly hidden)
++			# 3. Not too far from our current position
++
++			var my_distance_to_player := global_position.distance_to(player_pos)
++			var cover_distance_to_player := cover_pos.distance_to(player_pos)
++			var cover_distance_from_me := global_position.distance_to(cover_pos)
++
++			# Skip covers that don't bring us closer to player
++			if cover_distance_to_player >= my_distance_to_player:
++				continue
++
++			# Skip covers that are too close to current position (would cause looping)
++			# Must be at least 30 pixels away to be a meaningful movement
++			if cover_distance_from_me < 30.0:
++				continue
++
++			# Check if this position is hidden from player
++			var is_hidden := not _is_position_visible_from_player(cover_pos)
++
++			# Score calculation:
++			# Higher score for positions that are:
++			# - Hidden from player (priority)
++			# - Closer to player
++			# - Not too far from current position
++			var hidden_score: float = 5.0 if is_hidden else 0.0
++			var approach_score: float = (my_distance_to_player - cover_distance_to_player) / CLOSE_COMBAT_DISTANCE
++			var distance_penalty: float = cover_distance_from_me / COVER_CHECK_DISTANCE
++
++			var total_score: float = hidden_score + approach_score * 2.0 - distance_penalty
++
++			if total_score > best_score:
++				best_score = total_score
++				best_cover = cover_pos
++				found_valid_cover = true
++
++	if found_valid_cover:
++		_pursuit_next_cover = best_cover
++		_has_pursuit_cover = true
++		_log_debug("Found pursuit cover at %s (score: %.2f)" % [_pursuit_next_cover, best_score])
++	else:
++		_has_pursuit_cover = false
++
++
++## Find cover position closest to the player for assault positioning.
++## Used during ASSAULT state to take the nearest safe cover to the player.
++func _find_cover_closest_to_player() -> void:
++	if _player == null:
++		_has_valid_cover = false
++		return
++
++	var player_pos := _player.global_position
++	var best_cover: Vector2 = Vector2.ZERO
++	var best_distance: float = INF
++	var found_cover: bool = false
++
++	# Cast rays in all directions to find obstacles
++	for i in range(COVER_CHECK_COUNT):
++		var angle := (float(i) / COVER_CHECK_COUNT) * TAU
++		var direction := Vector2.from_angle(angle)
++
++		var raycast := _cover_raycasts[i]
++		raycast.target_position = direction * COVER_CHECK_DISTANCE
++		raycast.force_raycast_update()
++
++		if raycast.is_colliding():
++			var collision_point := raycast.get_collision_point()
++			var collision_normal := raycast.get_collision_normal()
++
++			# Cover position is offset from collision point along normal
++			var cover_pos := collision_point + collision_normal * 35.0
++
++			# Check if this position is hidden from player (safe cover)
++			var is_hidden := not _is_position_visible_from_player(cover_pos)
++
++			if is_hidden:
++				# Calculate distance from this cover to the player
++				var distance_to_player := cover_pos.distance_to(player_pos)
++
++				# We want the cover closest to the player
++				if distance_to_player < best_distance:
++					best_distance = distance_to_player
++					best_cover = cover_pos
++					found_cover = true
++
++	if found_cover:
++		_cover_position = best_cover
++		_has_valid_cover = true
++		_log_debug("Found assault cover at %s (distance to player: %.1f)" % [_cover_position, best_distance])
++	else:
++		# Fall back to normal cover finding
++		_find_cover_position()
++
++
+ ## Find a valid cover position relative to the player.
+ ## The cover position must be hidden from the player's line of sight.
+ func _find_cover_position() -> void:
+@@ -1939,6 +2517,20 @@ func _reset() -> void:
+ 	_retreat_burst_angle_offset = 0.0
+ 	_in_alarm_mode = false
+ 	_cover_burst_pending = false
++	# Reset combat state variables
++	_combat_shoot_timer = 0.0
++	_combat_shoot_duration = 2.5
++	_combat_exposed = false
++	_combat_approaching = false
++	_combat_approach_timer = 0.0
++	# Reset pursuit state variables
++	_pursuit_cover_wait_timer = 0.0
++	_pursuit_next_cover = Vector2.ZERO
++	_has_pursuit_cover = false
++	# Reset assault state variables
++	_assault_wait_timer = 0.0
++	_assault_ready = false
++	_in_assault = false
+ 	_initialize_health()
+ 	_initialize_ammo()
+ 	_update_health_visual()
+@@ -1968,6 +2560,10 @@ func _get_state_name(state: AIState) -> String:
+ 			return "SUPPRESSED"
+ 		AIState.RETREATING:
+ 			return "RETREATING"
++		AIState.PURSUING:
++			return "PURSUING"
++		AIState.ASSAULT:
++			return "ASSAULT"
+ 		_:
+ 			return "UNKNOWN"
+ 
+@@ -1993,6 +2589,30 @@ func _update_debug_label() -> void:
+ 			RetreatMode.MULTIPLE_HITS:
+ 				state_text += "\n(MULTI_HITS)"
+ 
++	# Add assault timer info if in assault state
++	if _current_state == AIState.ASSAULT:
++		if _assault_ready:
++			state_text += "\n(RUSHING)"
++		else:
++			var time_left := ASSAULT_WAIT_DURATION - _assault_wait_timer
++			state_text += "\n(%.1fs)" % time_left
++
++	# Add combat phase info if in combat
++	if _current_state == AIState.COMBAT:
++		if _combat_exposed:
++			var time_left := _combat_shoot_duration - _combat_shoot_timer
++			state_text += "\n(EXPOSED %.1fs)" % time_left
++		elif _combat_approaching:
++			state_text += "\n(APPROACH)"
++
++	# Add pursuit timer info if pursuing and waiting at cover
++	if _current_state == AIState.PURSUING:
++		if _has_valid_cover and not _has_pursuit_cover:
++			var time_left := PURSUIT_COVER_WAIT_DURATION - _pursuit_cover_wait_timer
++			state_text += "\n(WAIT %.1fs)" % time_left
++		elif _has_pursuit_cover:
++			state_text += "\n(MOVING)"
++
+ 	_debug_label.text = state_text
+ 
+ 

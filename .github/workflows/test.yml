@@ -1,0 +1,59 @@
+name: Run GUT Tests
+
+on:
+  push:
+    branches: [ main, issue-* ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Run Unit Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Download Godot
+        run: |
+          wget -q https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_mono_linux_x86_64.zip
+          unzip -q Godot_v4.3-stable_mono_linux_x86_64.zip
+          mv Godot_v4.3-stable_mono_linux_x86_64 godot
+          chmod +x godot/Godot_v4.3-stable_mono_linux.x86_64
+
+      - name: Import project assets
+        run: |
+          # Run Godot to import resources (required before running tests)
+          timeout 60 godot/Godot_v4.3-stable_mono_linux.x86_64 --headless --import . || true
+
+      - name: Run GUT tests
+        run: |
+          # Run tests using GUT command line
+          godot/Godot_v4.3-stable_mono_linux.x86_64 --headless -s addons/gut/gut_cmdln.gd \
+            -gdir=res://tests/unit,res://tests/integration \
+            -ginclude_subdirs \
+            -gexit \
+            -glog=2 \
+            -gjunit_xml_file=test-results.xml 2>&1 | tee test-output.log
+
+          # Check for test failures in output
+          if grep -q "FAILED" test-output.log; then
+            echo "Tests failed!"
+            exit 1
+          fi
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: |
+            test-results.xml
+            test-output.log
