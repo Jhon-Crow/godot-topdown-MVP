@@ -137,6 +137,75 @@ public partial class Bullet : Area2D
     /// </summary>
     private const bool DebugRicochet = false;
 
+    // =========================================================================
+    // Penetration Configuration (matching GDScript bullet.gd)
+    // =========================================================================
+
+    /// <summary>
+    /// Whether penetration is enabled.
+    /// </summary>
+    private const bool CanPenetrate = true;
+
+    /// <summary>
+    /// Maximum penetration distance (pixels) for 5.45x39mm = 48px (2x thin wall).
+    /// </summary>
+    private const float MaxPenetrationDistance = 48.0f;
+
+    /// <summary>
+    /// Damage multiplier after penetrating a wall (90% of original).
+    /// </summary>
+    private const float PostPenetrationDamageMultiplier = 0.9f;
+
+    /// <summary>
+    /// Distance ratio for point-blank shots (0% = point blank).
+    /// </summary>
+    private const float PointBlankDistanceRatio = 0.0f;
+
+    /// <summary>
+    /// Distance ratio at which normal ricochet rules apply (40% of viewport).
+    /// </summary>
+    private const float RicochetRulesDistanceRatio = 0.4f;
+
+    /// <summary>
+    /// Maximum penetration chance at viewport distance (30%).
+    /// </summary>
+    private const float MaxPenetrationChanceAtDistance = 0.3f;
+
+    /// <summary>
+    /// Enable debug logging for penetration calculations.
+    /// </summary>
+    private const bool DebugPenetration = true;
+
+    /// <summary>
+    /// Whether the bullet is currently penetrating through a wall.
+    /// </summary>
+    private bool _isPenetrating = false;
+
+    /// <summary>
+    /// Distance traveled while penetrating through walls.
+    /// </summary>
+    private float _penetrationDistanceTraveled = 0.0f;
+
+    /// <summary>
+    /// Entry point into the current obstacle being penetrated.
+    /// </summary>
+    private Vector2 _penetrationEntryPoint = Vector2.Zero;
+
+    /// <summary>
+    /// The body currently being penetrated (for tracking exit).
+    /// </summary>
+    private Node2D? _penetratingBody = null;
+
+    /// <summary>
+    /// Whether the bullet has penetrated at least one wall.
+    /// </summary>
+    private bool _hasPenetrated = false;
+
+    /// <summary>
+    /// Shooter's position at firing time (for distance-based penetration).
+    /// </summary>
+    public Vector2 ShooterPosition { get; set; } = Vector2.Zero;
+
     /// <summary>
     /// Timer tracking remaining lifetime.
     /// </summary>
@@ -175,6 +244,7 @@ public partial class Bullet : Area2D
 
         // Connect to collision signals
         BodyEntered += OnBodyEntered;
+        BodyExited += OnBodyExited;
         AreaEntered += OnAreaEntered;
 
         // Get trail reference if it exists
@@ -184,6 +254,10 @@ public partial class Bullet : Area2D
             _trail.ClearPoints();
             // Set trail to use global coordinates (not relative to bullet)
             _trail.TopLevel = true;
+            // Reset position to origin so points added are truly global
+            // (when TopLevel becomes true, the Line2D's position becomes its global position,
+            // so we need to reset it to (0,0) for added points to be at their true global positions)
+            _trail.Position = Vector2.Zero;
         }
 
         // Calculate viewport diagonal for post-ricochet lifetime
@@ -240,6 +314,30 @@ public partial class Bullet : Area2D
                 }
                 QueueFree();
                 return;
+            }
+        }
+
+        // Track penetration distance while inside a wall
+        if (_isPenetrating)
+        {
+            _penetrationDistanceTraveled += movement.Length();
+
+            // Check if we've exceeded max penetration distance
+            if (_penetrationDistanceTraveled >= MaxPenetrationDistance)
+            {
+                LogPenetration($"Max penetration distance exceeded: {_penetrationDistanceTraveled} >= {MaxPenetrationDistance}");
+                // Spawn the visual trail before destroying the bullet
+                SpawnCollisionHole(_penetrationEntryPoint, GlobalPosition);
+                // Spawn dust effect at termination point
+                SpawnDustEffect(GlobalPosition, Direction.Normalized());
+                QueueFree();
+                return;
+            }
+
+            // Check if we've exited the obstacle (raycast forward to see if still inside)
+            if (!IsStillInsideObstacle())
+            {
+                ExitPenetration();
             }
         }
 
@@ -315,14 +413,80 @@ public partial class Bullet : Area2D
             }
         }
 
-        // Try to ricochet off static bodies (walls/obstacles)
+        // If we're currently penetrating the same body, ignore re-entry
+        if (_isPenetrating && _penetratingBody == body)
+        {
+            return;
+        }
+
+        // Check if bullet is inside an existing penetration hole - pass through
+        if (IsInsidePenetrationHole())
+        {
+            LogPenetration("Inside existing penetration hole, passing through");
+            return;
+        }
+
+        // Try to ricochet or penetrate off static bodies (walls/obstacles)
         if (body is StaticBody2D || body is TileMap)
         {
             // Always spawn dust effect when hitting walls, regardless of ricochet
             SpawnWallHitEffect(body);
-            if (TryRicochet(body))
+
+            // Calculate distance from shooter to determine penetration behavior
+            float distanceToWall = GetDistanceToShooter();
+            float distanceRatio = _viewportDiagonal > 0 ? distanceToWall / _viewportDiagonal : 1.0f;
+
+            LogPenetration($"Distance to wall: {distanceToWall} ({distanceRatio * 100}% of viewport)");
+
+            // Point-blank shots (very close to shooter): 100% penetration, ignore ricochet
+            if (distanceRatio <= PointBlankDistanceRatio + 0.05f)
             {
-                return; // Bullet ricocheted, don't destroy
+                LogPenetration("Point-blank shot - 100% penetration, ignoring ricochet");
+                if (TryPenetration(body))
+                {
+                    return; // Bullet is penetrating
+                }
+            }
+            // At 40% or less of viewport: normal ricochet rules apply
+            else if (distanceRatio <= RicochetRulesDistanceRatio)
+            {
+                LogPenetration("Within ricochet range - trying ricochet first");
+                // First try ricochet
+                if (TryRicochet(body))
+                {
+                    return; // Bullet ricocheted, don't destroy
+                }
+                // Ricochet failed - try penetration
+                if (TryPenetration(body))
+                {
+                    return; // Bullet is penetrating
+                }
+            }
+            // Beyond 40% of viewport: distance-based penetration chance
+            else
+            {
+                // First try ricochet (shallow angles still ricochet)
+                if (TryRicochet(body))
+                {
+                    return; // Bullet ricocheted, don't destroy
+                }
+
+                // Calculate penetration chance based on distance
+                float penetrationChance = CalculateDistancePenetrationChance(distanceRatio);
+                LogPenetration($"Distance-based penetration chance: {penetrationChance * 100}%");
+
+                // Roll for penetration
+                if (GD.Randf() <= penetrationChance)
+                {
+                    if (TryPenetration(body))
+                    {
+                        return; // Bullet is penetrating
+                    }
+                }
+                else
+                {
+                    LogPenetration("Penetration failed (distance roll)");
+                }
             }
         }
 
@@ -731,4 +895,305 @@ public partial class Bullet : Area2D
     /// Gets the effective damage after applying ricochet multiplier.
     /// </summary>
     public float GetEffectiveDamage() => Damage * _damageMultiplier;
+
+    // =========================================================================
+    // Penetration Methods
+    // =========================================================================
+
+    /// <summary>
+    /// Logs a penetration-related message to both console and file logger.
+    /// </summary>
+    /// <param name="message">The message to log.</param>
+    private void LogPenetration(string message)
+    {
+        if (!DebugPenetration)
+        {
+            return;
+        }
+        string fullMessage = $"[Bullet] {message}";
+        GD.Print(fullMessage);
+        // Also log to FileLogger if available
+        var fileLogger = GetNodeOrNull("/root/FileLogger");
+        if (fileLogger != null && fileLogger.HasMethod("log_info"))
+        {
+            fileLogger.Call("log_info", fullMessage);
+        }
+    }
+
+    /// <summary>
+    /// Called when the bullet exits a body (wall).
+    /// Used for detecting penetration exit via the physics system.
+    /// </summary>
+    private void OnBodyExited(Node2D body)
+    {
+        // Only process if we're currently penetrating this specific body
+        if (!_isPenetrating || _penetratingBody != body)
+        {
+            return;
+        }
+
+        LogPenetration("Body exited signal received for penetrating body");
+        ExitPenetration();
+    }
+
+    /// <summary>
+    /// Gets the distance from the current bullet position to the shooter's original position.
+    /// </summary>
+    /// <returns>Distance in pixels.</returns>
+    private float GetDistanceToShooter()
+    {
+        LogPenetration($"_get_distance_to_shooter: shooter_position={ShooterPosition}, shooter_id={ShooterId}, bullet_pos={GlobalPosition}");
+
+        if (ShooterPosition == Vector2.Zero)
+        {
+            // Fallback: use shooter instance position if available
+            if (ShooterId != 0)
+            {
+                var shooter = GodotObject.InstanceFromId(ShooterId) as Node2D;
+                if (shooter != null)
+                {
+                    float dist = GlobalPosition.DistanceTo(shooter.GlobalPosition);
+                    LogPenetration($"Using shooter_id fallback, distance={dist}");
+                    return dist;
+                }
+            }
+            LogPenetration("WARNING: Unable to determine shooter position");
+        }
+
+        float distance = GlobalPosition.DistanceTo(ShooterPosition);
+        LogPenetration($"Using shooter_position, distance={distance}");
+        return distance;
+    }
+
+    /// <summary>
+    /// Calculates the penetration chance based on distance from shooter.
+    /// </summary>
+    /// <param name="distanceRatio">Distance as a ratio of viewport diagonal (0.0 to 1.0+).</param>
+    /// <returns>Penetration chance (0.0 to 1.0).</returns>
+    private float CalculateDistancePenetrationChance(float distanceRatio)
+    {
+        if (distanceRatio <= RicochetRulesDistanceRatio)
+        {
+            return 1.0f; // Full penetration chance within ricochet rules range
+        }
+
+        // Linear interpolation from 100% at 40% to 30% at 100%
+        float rangeStart = RicochetRulesDistanceRatio; // 0.4
+        float rangeEnd = 1.0f; // viewport distance
+        float rangeSpan = rangeEnd - rangeStart; // 0.6
+
+        float positionInRange = (distanceRatio - rangeStart) / rangeSpan;
+        positionInRange = Mathf.Clamp(positionInRange, 0.0f, 1.0f);
+
+        // Interpolate from 1.0 to MaxPenetrationChanceAtDistance
+        float penetrationChance = Mathf.Lerp(1.0f, MaxPenetrationChanceAtDistance, positionInRange);
+
+        // Beyond viewport distance, continue decreasing (but clamp to minimum of 5%)
+        if (distanceRatio > 1.0f)
+        {
+            float beyondViewport = distanceRatio - 1.0f;
+            penetrationChance = Mathf.Max(MaxPenetrationChanceAtDistance - beyondViewport * 0.2f, 0.05f);
+        }
+
+        return penetrationChance;
+    }
+
+    /// <summary>
+    /// Checks if the bullet is currently inside an existing penetration hole area.
+    /// </summary>
+    /// <returns>True if inside a penetration hole.</returns>
+    private bool IsInsidePenetrationHole()
+    {
+        var overlappingAreas = GetOverlappingAreas();
+        foreach (var area in overlappingAreas)
+        {
+            // Check by script path
+            var script = area.GetScript();
+            if (script.VariantType == Variant.Type.Object)
+            {
+                var scriptObj = script.AsGodotObject();
+                if (scriptObj is Script gdScript && gdScript.ResourcePath.Contains("penetration_hole"))
+                {
+                    return true;
+                }
+            }
+            // Also check by node name as fallback
+            if (area.Name.ToString().Contains("PenetrationHole"))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Attempts to penetrate through a wall when ricochet fails.
+    /// </summary>
+    /// <param name="body">The static body (wall) to penetrate.</param>
+    /// <returns>True if penetration started successfully.</returns>
+    private bool TryPenetration(Node2D body)
+    {
+        if (!CanPenetrate)
+        {
+            LogPenetration("Caliber cannot penetrate walls");
+            return false;
+        }
+
+        // Don't start a new penetration if already penetrating
+        if (_isPenetrating)
+        {
+            LogPenetration("Already penetrating, cannot start new penetration");
+            return false;
+        }
+
+        LogPenetration($"Starting wall penetration at {GlobalPosition}");
+
+        // Mark as penetrating
+        _isPenetrating = true;
+        _penetratingBody = body;
+        _penetrationEntryPoint = GlobalPosition;
+        _penetrationDistanceTraveled = 0.0f;
+
+        // Spawn entry dust effect
+        SpawnDustEffect(GlobalPosition, -Direction.Normalized());
+
+        // Move bullet slightly forward to avoid immediate re-collision
+        GlobalPosition += Direction * 5.0f;
+
+        return true;
+    }
+
+    /// <summary>
+    /// Checks if the bullet is still inside an obstacle using raycasting.
+    /// </summary>
+    /// <returns>True if still inside, false if exited.</returns>
+    private bool IsStillInsideObstacle()
+    {
+        if (_penetratingBody == null || !IsInstanceValid(_penetratingBody))
+        {
+            return false;
+        }
+
+        var spaceState = GetWorld2D().DirectSpaceState;
+
+        // Use longer raycasts to account for bullet speed
+        float rayLength = 50.0f;
+        var rayStart = GlobalPosition;
+        var rayEnd = GlobalPosition + Direction * rayLength;
+
+        var query = PhysicsRayQueryParameters2D.Create(rayStart, rayEnd);
+        query.CollisionMask = CollisionMask;
+        query.Exclude = new Godot.Collections.Array<Rid> { GetRid() };
+
+        var result = spaceState.IntersectRay(query);
+
+        // If we hit the same body in front, we're still inside
+        if (result.Count > 0 && (Node2D)result["collider"] == _penetratingBody)
+        {
+            LogPenetration($"Raycast forward hit penetrating body at distance {rayStart.DistanceTo((Vector2)result["position"])}");
+            return true;
+        }
+
+        // Also check backwards to see if we're still overlapping
+        rayEnd = GlobalPosition - Direction * rayLength;
+        query = PhysicsRayQueryParameters2D.Create(rayStart, rayEnd);
+        query.CollisionMask = CollisionMask;
+        query.Exclude = new Godot.Collections.Array<Rid> { GetRid() };
+
+        result = spaceState.IntersectRay(query);
+        if (result.Count > 0 && (Node2D)result["collider"] == _penetratingBody)
+        {
+            LogPenetration($"Raycast backward hit penetrating body at distance {rayStart.DistanceTo((Vector2)result["position"])}");
+            return true;
+        }
+
+        LogPenetration("No longer inside obstacle - raycasts found no collision with penetrating body");
+        return false;
+    }
+
+    /// <summary>
+    /// Called when the bullet exits a penetrated wall.
+    /// </summary>
+    private void ExitPenetration()
+    {
+        // Prevent double-calling
+        if (!_isPenetrating)
+        {
+            return;
+        }
+
+        Vector2 exitPoint = GlobalPosition;
+        LogPenetration($"Exiting penetration at {exitPoint} after traveling {_penetrationDistanceTraveled} pixels through wall");
+
+        // Spawn exit dust effect
+        SpawnDustEffect(exitPoint, Direction.Normalized());
+
+        // Spawn collision hole (visual trail + collision area)
+        SpawnCollisionHole(_penetrationEntryPoint, exitPoint);
+
+        // Apply damage reduction after penetration
+        if (!_hasPenetrated)
+        {
+            _damageMultiplier *= PostPenetrationDamageMultiplier;
+            _hasPenetrated = true;
+            LogPenetration($"Damage multiplier after penetration: {_damageMultiplier}");
+        }
+
+        // Play penetration exit sound
+        PlayBulletWallHitSound();
+
+        // Reset penetration state
+        _isPenetrating = false;
+        _penetratingBody = null;
+        _penetrationDistanceTraveled = 0.0f;
+    }
+
+    /// <summary>
+    /// Spawns a dust effect at the specified position.
+    /// </summary>
+    /// <param name="position">Position to spawn the dust.</param>
+    /// <param name="direction">Direction for the dust particles.</param>
+    private void SpawnDustEffect(Vector2 position, Vector2 direction)
+    {
+        var impactManager = GetNodeOrNull("/root/ImpactEffectsManager");
+        if (impactManager != null && impactManager.HasMethod("spawn_dust_effect"))
+        {
+            impactManager.Call("spawn_dust_effect", position, direction, Variant.CreateFrom((Resource?)null));
+        }
+    }
+
+    /// <summary>
+    /// Spawns a collision hole (visual trail) from entry to exit point.
+    /// </summary>
+    /// <param name="entryPoint">Where the bullet entered the wall.</param>
+    /// <param name="exitPoint">Where the bullet exited the wall.</param>
+    private void SpawnCollisionHole(Vector2 entryPoint, Vector2 exitPoint)
+    {
+        var impactManager = GetNodeOrNull("/root/ImpactEffectsManager");
+        if (impactManager == null)
+        {
+            return;
+        }
+
+        if (impactManager.HasMethod("spawn_collision_hole"))
+        {
+            impactManager.Call("spawn_collision_hole", entryPoint, exitPoint, Direction, Variant.CreateFrom((Resource?)null));
+            LogPenetration($"Collision hole spawned from {entryPoint} to {exitPoint}");
+        }
+    }
+
+    /// <summary>
+    /// Returns whether the bullet has penetrated at least one wall.
+    /// </summary>
+    public bool HasPenetrated() => _hasPenetrated;
+
+    /// <summary>
+    /// Returns whether the bullet is currently penetrating a wall.
+    /// </summary>
+    public bool IsPenetrating() => _isPenetrating;
+
+    /// <summary>
+    /// Returns the distance traveled through walls while penetrating.
+    /// </summary>
+    public float GetPenetrationDistance() => _penetrationDistanceTraveled;
 }

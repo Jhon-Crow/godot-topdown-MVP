@@ -126,6 +126,10 @@ func _ready() -> void:
 		_trail.clear_points()
 		# Set trail to use global coordinates (not relative to bullet)
 		_trail.top_level = true
+		# Reset position to origin so points added are truly global
+		# (when top_level becomes true, the Line2D's position becomes its global position,
+		# so we need to reset it to (0,0) for added points to be at their true global positions)
+		_trail.position = Vector2.ZERO
 
 	# Load default caliber data if not set
 	if caliber_data == null:

@@ -327,6 +327,9 @@ public abstract partial class BaseWeapon : Node2D
             bullet.Set("ShooterId", owner.GetInstanceId());
         }
 
+        // Set shooter position for distance-based penetration calculations
+        bullet.Set("ShooterPosition", GlobalPosition);
+
         GetTree().CurrentScene.AddChild(bullet);
     }
 

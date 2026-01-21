@@ -79,6 +79,8 @@ func _create_or_update_visual() -> void:
 		_visual_line.end_cap_mode = Line2D.LINE_CAP_ROUND
 		# Use global coordinates so the line is positioned correctly
 		_visual_line.top_level = true
+		# Ensure position is at origin so points are at their true global positions
+		_visual_line.position = Vector2.ZERO
 		add_child(_visual_line)
 
 	# Update line properties
