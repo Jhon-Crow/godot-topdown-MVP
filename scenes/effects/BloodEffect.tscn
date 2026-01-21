@@ -17,16 +17,16 @@ fill_from = Vector2(0.5, 0.5)
 lifetime_randomness = 0.5
 particle_flag_disable_z = true
 emission_shape = 1
-emission_sphere_radius = 8.0
-direction = Vector3(1, -0.2, 0)
-spread = 45.0
-initial_velocity_min = 250.0
-initial_velocity_max = 550.0
-gravity = Vector3(0, 380, 0)
-damping_min = 3.0
-damping_max = 12.0
-scale_min = 0.15
-scale_max = 0.6
+emission_sphere_radius = 4.0
+direction = Vector3(1, -0.1, 0)
+spread = 20.0
+initial_velocity_min = 80.0
+initial_velocity_max = 180.0
+gravity = Vector3(0, 500, 0)
+damping_min = 8.0
+damping_max = 20.0
+scale_min = 0.12
+scale_max = 0.5
 color = Color(0.8, 0.06, 0.04, 1)
 
 [node name="BloodEffect" type="GPUParticles2D"]

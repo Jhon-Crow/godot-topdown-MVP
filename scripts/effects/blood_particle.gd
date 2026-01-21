@@ -10,20 +10,24 @@ extends Node2D
 ## interact with the physics world.
 
 ## Blood particle speed range (pixels per second).
-@export var min_speed: float = 200.0
-@export var max_speed: float = 500.0
+## Reduced to prevent particles from spreading too far from impact point.
+@export var min_speed: float = 60.0
+@export var max_speed: float = 140.0
 
 ## Gravity applied to the particle (pixels per second squared).
-@export var gravity: float = 400.0
+## Increased for more natural downward arc.
+@export var gravity: float = 550.0
 
 ## How much the particle slows down per second (0-1, 0 = no damping).
-@export var damping: float = 0.95
+## Increased damping for quicker slowdown to stay closer to impact.
+@export var damping: float = 0.80
 
 ## Maximum lifetime in seconds before auto-destruction.
 @export var max_lifetime: float = 2.0
 
 ## Collision layer mask for wall detection.
-@export_flags_2d_physics var collision_mask: int = 1
+## Default is 4 (Layer 3: obstacles/walls) per the physics layers defined in README.
+@export_flags_2d_physics var collision_mask: int = 4
 
 ## Current velocity of the particle.
 var velocity: Vector2 = Vector2.ZERO
@@ -168,20 +172,68 @@ func _spawn_decal(size_multiplier: float = 1.0) -> void:
 		impact_manager._spawn_blood_decal(global_position, velocity.normalized(), size_multiplier)
 
 
-## Initializes the particle with a direction and intensity.
+## Initializes the particle with a direction, intensity, and context.
 ## @param direction: Direction the blood should travel (normalized).
 ## @param intensity: Intensity multiplier (affects speed and size).
 ## @param spread_angle: Random spread angle in radians.
-func initialize(direction: Vector2, intensity: float = 1.0, spread_angle: float = 0.5) -> void:
-	# Add random spread to the direction
-	var angle_deviation := randf_range(-spread_angle, spread_angle)
+## @param target_velocity: Optional velocity of the target when hit (affects spray pattern).
+## @param distance: Optional distance from shooter (affects particle behavior).
+## @param impact_angle: Optional angle of impact relative to surface normal (affects splatter shape).
+func initialize(
+	direction: Vector2,
+	intensity: float = 1.0,
+	spread_angle: float = 0.3,
+	target_velocity: Vector2 = Vector2.ZERO,
+	distance: float = 0.0,
+	impact_angle: float = 0.0
+) -> void:
+	# Calculate contextual spray pattern based on parameters
+	var context_multiplier := 1.0
+	var context_spread := spread_angle
+
+	# Adjust based on target velocity (moving targets create different patterns)
+	if target_velocity.length() > 10.0:
+		# Blood spray is influenced by target's momentum
+		var velocity_influence := target_velocity.normalized() * 0.3
+		direction = (direction + velocity_influence).normalized()
+		# Moving targets create slightly wider but lower-pressure spray
+		context_spread *= 1.2
+		context_multiplier *= 0.85
+
+	# Adjust based on distance (closer shots = more pressure, tighter spray)
+	if distance > 0.0:
+		if distance < 100.0:
+			# Close range: high pressure, tight spray
+			context_multiplier *= 1.4
+			context_spread *= 0.6
+		elif distance < 300.0:
+			# Medium range: normal
+			pass
+		else:
+			# Long range: lower pressure, wider spray
+			context_multiplier *= 0.7
+			context_spread *= 1.3
+
+	# Adjust based on impact angle (grazing shots vs direct hits)
+	if impact_angle != 0.0:
+		var angle_factor := absf(sin(impact_angle))
+		if angle_factor < 0.3:
+			# Grazing hit: elongated spray along surface
+			context_spread *= 1.5
+			context_multiplier *= 0.6
+		else:
+			# Direct hit: concentrated spray
+			context_spread *= 0.8
+
+	# Add random spread to the direction with contextual adjustment
+	var angle_deviation := randf_range(-context_spread, context_spread)
 	var spread_direction := direction.rotated(angle_deviation)
 
-	# Set velocity based on intensity
-	var speed := randf_range(min_speed, max_speed) * intensity
+	# Set velocity based on intensity and context
+	var speed := randf_range(min_speed, max_speed) * intensity * context_multiplier
 	velocity = spread_direction * speed
 
 	# Adjust size based on intensity
 	if _sprite:
-		var intensity_scale := clampf(intensity, 0.5, 2.0)
+		var intensity_scale := clampf(intensity * context_multiplier, 0.4, 1.8)
 		_sprite.scale *= intensity_scale

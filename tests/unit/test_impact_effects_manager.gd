@@ -235,3 +235,69 @@ func test_blood_spread_angle_constant() -> void:
 	var angle: float = impact_manager.BLOOD_SPREAD_ANGLE
 	assert_gt(angle, 0.0, "Blood spread angle should be positive")
 	assert_lt(angle, PI, "Blood spread angle should be less than PI")
+
+
+func test_blood_spread_angle_is_reduced_for_tighter_spray() -> void:
+	# Verify the spread angle is now 0.25 (reduced from 0.7)
+	var angle: float = impact_manager.BLOOD_SPREAD_ANGLE
+	assert_true(angle <= 0.3, "Blood spread angle should be <= 0.3 for tighter spray")
+
+
+# ============================================================================
+# Contextual Blood Effect Tests
+# ============================================================================
+
+
+func test_spawn_blood_effect_accepts_target_velocity() -> void:
+	# Should not crash when called with target_velocity parameter
+	var target_velocity := Vector2(50, -30)
+	impact_manager.spawn_blood_effect(Vector2(100, 100), Vector2(1, 0), null, true, target_velocity)
+	pass_test("spawn_blood_effect accepts target_velocity parameter without error")
+
+
+func test_spawn_blood_effect_accepts_distance() -> void:
+	# Should not crash when called with distance parameter
+	impact_manager.spawn_blood_effect(Vector2(100, 100), Vector2(1, 0), null, true, Vector2.ZERO, 150.0)
+	pass_test("spawn_blood_effect accepts distance parameter without error")
+
+
+func test_spawn_blood_effect_accepts_impact_angle() -> void:
+	# Should not crash when called with impact_angle parameter
+	impact_manager.spawn_blood_effect(Vector2(100, 100), Vector2(1, 0), null, true, Vector2.ZERO, 0.0, 0.5)
+	pass_test("spawn_blood_effect accepts impact_angle parameter without error")
+
+
+func test_spawn_blood_effect_accepts_all_contextual_parameters() -> void:
+	# Should not crash when called with all contextual parameters
+	var target_velocity := Vector2(100, -50)
+	var distance := 250.0
+	var impact_angle := 0.7
+	impact_manager.spawn_blood_effect(
+		Vector2(100, 100),
+		Vector2(1, 0),
+		null,
+		true,
+		target_velocity,
+		distance,
+		impact_angle
+	)
+	pass_test("spawn_blood_effect accepts all contextual parameters without error")
+
+
+func test_spawn_blood_effect_with_close_distance() -> void:
+	# Close range shots should work
+	impact_manager.spawn_blood_effect(Vector2(100, 100), Vector2(1, 0), null, true, Vector2.ZERO, 50.0)
+	pass_test("spawn_blood_effect works with close distance")
+
+
+func test_spawn_blood_effect_with_long_distance() -> void:
+	# Long range shots should work
+	impact_manager.spawn_blood_effect(Vector2(100, 100), Vector2(1, 0), null, true, Vector2.ZERO, 500.0)
+	pass_test("spawn_blood_effect works with long distance")
+
+
+func test_spawn_blood_effect_with_moving_target() -> void:
+	# Moving targets should create different patterns
+	var fast_target := Vector2(200, -100)
+	impact_manager.spawn_blood_effect(Vector2(100, 100), Vector2(1, 0), null, true, fast_target)
+	pass_test("spawn_blood_effect works with moving target")

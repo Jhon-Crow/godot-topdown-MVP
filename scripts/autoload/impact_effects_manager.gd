@@ -45,7 +45,8 @@ const MAX_BLOOD_PARTICLE_COUNT: int = 25
 const BLOOD_PRESSURE_MULTIPLIER: float = 1.5
 
 ## Spread angle for blood particles (radians).
-const BLOOD_SPREAD_ANGLE: float = 0.7
+## Reduced from 0.7 to 0.25 for tighter, more controlled blood spray.
+const BLOOD_SPREAD_ANGLE: float = 0.25
 
 ## Active blood decals for cleanup management.
 var _blood_decals: Array[Node2D] = []
@@ -153,9 +154,20 @@ func spawn_dust_effect(position: Vector2, surface_normal: Vector2, caliber_data:
 ## @param hit_direction: Direction the bullet was traveling (blood splatters in this direction).
 ## @param caliber_data: Optional caliber data for effect scaling.
 ## @param is_lethal: Whether the hit was lethal (affects intensity and particle count).
-func spawn_blood_effect(position: Vector2, hit_direction: Vector2, caliber_data: Resource = null, is_lethal: bool = true) -> void:
+## @param target_velocity: Optional velocity of the target when hit (affects spray pattern).
+## @param distance: Optional distance from shooter to target (affects splatter behavior).
+## @param impact_angle: Optional angle of impact relative to target surface.
+func spawn_blood_effect(
+	position: Vector2,
+	hit_direction: Vector2,
+	caliber_data: Resource = null,
+	is_lethal: bool = true,
+	target_velocity: Vector2 = Vector2.ZERO,
+	distance: float = 0.0,
+	impact_angle: float = 0.0
+) -> void:
 	if _debug_effects:
-		print("[ImpactEffectsManager] spawn_blood_effect at ", position, " dir=", hit_direction, " lethal=", is_lethal)
+		print("[ImpactEffectsManager] spawn_blood_effect at ", position, " dir=", hit_direction, " lethal=", is_lethal, " target_vel=", target_velocity, " dist=", distance)
 
 	# Get effect scale from caliber data
 	var effect_scale := _get_effect_scale(caliber_data)
@@ -169,7 +181,7 @@ func spawn_blood_effect(position: Vector2, hit_direction: Vector2, caliber_data:
 	_spawn_gpu_blood_effect(position, hit_direction, intensity)
 
 	# 2. Spawn physics-based blood particles for wall collision and decal spawning
-	_spawn_blood_particles(position, hit_direction, intensity, is_lethal)
+	_spawn_blood_particles(position, hit_direction, intensity, is_lethal, target_velocity, distance, impact_angle)
 
 	# 3. Spawn immediate decal at hit location (main impact point)
 	if is_lethal:
@@ -214,7 +226,18 @@ func _spawn_gpu_blood_effect(position: Vector2, hit_direction: Vector2, intensit
 ## @param hit_direction: Main direction for particle travel.
 ## @param intensity: Intensity multiplier (affects count, speed, spread).
 ## @param is_lethal: Whether the hit was lethal (affects particle count).
-func _spawn_blood_particles(position: Vector2, hit_direction: Vector2, intensity: float, is_lethal: bool) -> void:
+## @param target_velocity: Velocity of the target when hit.
+## @param distance: Distance from shooter to target.
+## @param impact_angle: Angle of impact relative to target surface.
+func _spawn_blood_particles(
+	position: Vector2,
+	hit_direction: Vector2,
+	intensity: float,
+	is_lethal: bool,
+	target_velocity: Vector2 = Vector2.ZERO,
+	distance: float = 0.0,
+	impact_angle: float = 0.0
+) -> void:
 	if _blood_particle_scene == null:
 		# Fallback: spawn decals directly without physics particles
 		_spawn_fallback_decals(position, hit_direction, intensity, is_lethal)
@@ -240,13 +263,21 @@ func _spawn_blood_particles(position: Vector2, hit_direction: Vector2, intensity
 
 		particle.global_position = position
 
-		# Initialize particle with direction and intensity
+		# Initialize particle with direction, intensity, and contextual parameters
 		# Vary the intensity slightly for each particle for natural look
 		var particle_intensity := intensity * randf_range(0.6, 1.4) * BLOOD_PRESSURE_MULTIPLIER
 		var spread := BLOOD_SPREAD_ANGLE * randf_range(0.8, 1.2)
 
 		if particle.has_method("initialize"):
-			particle.initialize(hit_direction.normalized(), particle_intensity, spread)
+			# Pass contextual parameters for unique blood patterns
+			particle.initialize(
+				hit_direction.normalized(),
+				particle_intensity,
+				spread,
+				target_velocity,
+				distance,
+				impact_angle
+			)
 
 		# Add to scene
 		_add_effect_to_scene(particle)
