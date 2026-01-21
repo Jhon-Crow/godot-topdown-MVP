@@ -65,6 +65,11 @@ var _frozen_player_bullets: Array = []
 ## Original process mode of the player (to restore after effect).
 var _player_original_process_mode: Node.ProcessMode = Node.PROCESS_MODE_INHERIT
 
+## Cached player health from Damaged/health_changed signals.
+## This is used because accessing C# HealthComponent.CurrentHealth from GDScript
+## doesn't work reliably due to cross-language interoperability issues.
+var _player_current_health: float = 0.0
+
 
 func _ready() -> void:
 	# Connect to scene tree changes to find player and reset effects on scene reload
@@ -184,19 +189,38 @@ func _find_player() -> void:
 			_player.died.connect(_on_player_died)
 			_log("Connected to player died signal (GDScript)")
 
+	# Try to get initial health from C# HealthComponent
+	# This may not work reliably due to cross-language interop issues,
+	# but we try anyway to have a starting value
+	var health_component: Node = _player.get_node_or_null("HealthComponent")
+	if health_component != null and health_component.has_signal("HealthChanged"):
+		# Connect to HealthChanged signal to get health updates including initial value
+		if not health_component.HealthChanged.is_connected(_on_health_changed):
+			health_component.HealthChanged.connect(_on_health_changed)
+			_log("Connected to HealthComponent HealthChanged signal (C#)")
+
 	_connected_to_player = true
 
 
 ## Called when player health changes (GDScript).
-func _on_player_health_changed(_current: int, _maximum: int) -> void:
-	# Health tracking is handled by _can_trigger_effect()
-	pass
+func _on_player_health_changed(current: int, _maximum: int) -> void:
+	# Cache the current health from the signal for reliable cross-language access
+	_player_current_health = float(current)
+	_log("Player health updated (GDScript): %.1f" % _player_current_health)
 
 
 ## Called when player takes damage (C#).
-func _on_player_damaged(_amount: float, _current_health: float) -> void:
-	# Health tracking is handled by _can_trigger_effect()
-	pass
+func _on_player_damaged(_amount: float, current_health: float) -> void:
+	# Cache the current health from the signal for reliable cross-language access
+	_player_current_health = current_health
+	_log("Player health updated (C# Damaged): %.1f" % _player_current_health)
+
+
+## Called when health changes on C# HealthComponent (includes initial value).
+func _on_health_changed(current_health: float, _max_health: float) -> void:
+	# Cache the current health from the signal for reliable cross-language access
+	_player_current_health = current_health
+	_log("Player health updated (C# HealthChanged): %.1f" % _player_current_health)
 
 
 ## Called when player dies.
@@ -248,9 +272,10 @@ func _can_trigger_effect() -> bool:
 		_log("Player not found")
 		return false
 
-	var current_health := _get_player_health()
-	if current_health > 1.0 or current_health <= 0.0:
-		_log("Player health is %.1f - effect requires exactly 1 HP or less but alive" % current_health)
+	# Use cached health value from Damaged/health_changed signals
+	# This is more reliable than trying to access C# HealthComponent properties from GDScript
+	if _player_current_health > 1.0 or _player_current_health <= 0.0:
+		_log("Player health is %.1f - effect requires exactly 1 HP or less but alive" % _player_current_health)
 		return false
 
 	return true
@@ -420,6 +445,7 @@ func reset_effects() -> void:
 	_threat_sphere = null
 	_connected_to_player = false
 	_effect_used = false  # Reset on scene change
+	_player_current_health = 0.0  # Reset cached health on scene change
 	_frozen_player_bullets.clear()
 
 
