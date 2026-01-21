@@ -213,6 +213,76 @@ public abstract partial class BaseWeapon : Node2D
     }
 
     /// <summary>
+    /// Checks if the bullet spawn path is clear (no wall between weapon and spawn point).
+    /// This prevents shooting through walls when standing flush against cover.
+    /// If blocked, spawns wall hit effects and plays impact sound for feedback.
+    /// </summary>
+    /// <param name="direction">Direction to check.</param>
+    /// <returns>True if the path is clear, false if a wall blocks it.</returns>
+    protected virtual bool IsBulletSpawnClear(Vector2 direction)
+    {
+        var spaceState = GetWorld2D()?.DirectSpaceState;
+        if (spaceState == null)
+        {
+            return true; // Fail-open: allow shooting if physics is not ready
+        }
+
+        // Check from weapon center to bullet spawn position plus a small buffer
+        float checkDistance = BulletSpawnOffset + 5.0f;
+
+        var query = PhysicsRayQueryParameters2D.Create(
+            GlobalPosition,
+            GlobalPosition + direction * checkDistance,
+            4 // Collision mask for obstacles (layer 3 = value 4)
+        );
+
+        var result = spaceState.IntersectRay(query);
+        if (result.Count > 0)
+        {
+            Vector2 hitPosition = (Vector2)result["position"];
+            Vector2 hitNormal = (Vector2)result["normal"];
+            GD.Print($"[BaseWeapon] Bullet spawn blocked: wall at distance {GlobalPosition.DistanceTo(hitPosition):F1}");
+
+            // Play wall hit sound for audio feedback
+            PlayBulletWallHitSound(hitPosition);
+
+            // Spawn dust effect at impact point
+            SpawnWallHitEffect(hitPosition, hitNormal);
+
+            return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Plays the bullet wall hit sound at the specified position.
+    /// </summary>
+    /// <param name="position">Position to play the sound at.</param>
+    private void PlayBulletWallHitSound(Vector2 position)
+    {
+        var audioManager = GetNodeOrNull("/root/AudioManager");
+        if (audioManager != null && audioManager.HasMethod("play_bullet_wall_hit"))
+        {
+            audioManager.Call("play_bullet_wall_hit", position);
+        }
+    }
+
+    /// <summary>
+    /// Spawns dust/debris particles at wall hit position.
+    /// </summary>
+    /// <param name="position">Position of the impact.</param>
+    /// <param name="normal">Surface normal at the impact point.</param>
+    private void SpawnWallHitEffect(Vector2 position, Vector2 normal)
+    {
+        var impactManager = GetNodeOrNull("/root/ImpactEffectsManager");
+        if (impactManager != null && impactManager.HasMethod("spawn_dust_effect"))
+        {
+            impactManager.Call("spawn_dust_effect", position, normal, Variant.CreateFrom((Resource?)null));
+        }
+    }
+
+    /// <summary>
     /// Spawns a bullet traveling in the specified direction.
     /// </summary>
     /// <param name="direction">Direction for the bullet to travel.</param>
@@ -221,6 +291,12 @@ public abstract partial class BaseWeapon : Node2D
         if (BulletScene == null)
         {
             return;
+        }
+
+        // Check if the bullet spawn path is clear (no wall between weapon and spawn point)
+        if (!IsBulletSpawnClear(direction))
+        {
+            return; // Don't spawn bullet if path is blocked
         }
 
         var bullet = BulletScene.Instantiate<Node2D>();
