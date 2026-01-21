@@ -318,6 +318,8 @@ public partial class Bullet : Area2D
         // Try to ricochet off static bodies (walls/obstacles)
         if (body is StaticBody2D || body is TileMap)
         {
+            // Always spawn dust effect when hitting walls, regardless of ricochet
+            SpawnWallHitEffect(body);
             if (TryRicochet(body))
             {
                 return; // Bullet ricocheted, don't destroy
@@ -341,6 +343,26 @@ public partial class Bullet : Area2D
         {
             audioManager.Call("play_bullet_wall_hit", GlobalPosition);
         }
+    }
+
+    /// <summary>
+    /// Spawns dust/debris particles when bullet hits a wall or static body.
+    /// </summary>
+    /// <param name="body">The body that was hit (used to get surface normal).</param>
+    private void SpawnWallHitEffect(Node2D body)
+    {
+        var impactManager = GetNodeOrNull("/root/ImpactEffectsManager");
+        if (impactManager == null || !impactManager.HasMethod("spawn_dust_effect"))
+        {
+            return;
+        }
+
+        // Get surface normal for particle direction
+        var surfaceNormal = GetSurfaceNormal(body);
+
+        // Spawn dust effect at hit position
+        // Note: Passing null for caliber_data since C# Bullet doesn't use caliber resources
+        impactManager.Call("spawn_dust_effect", GlobalPosition, surfaceNormal, Variant.CreateFrom((Resource?)null));
     }
 
     /// <summary>
