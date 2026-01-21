@@ -8,6 +8,7 @@ extends Node2D
 ## - 10 enemies distributed across different rooms (2+ per room)
 ## - Clear room boundaries with walls and doorways
 ## - Similar mechanics to TestTier (ammo tracking, enemy tracking, etc.)
+## - Score tracking with Hotline Miami style ranking system
 
 ## Reference to the enemy count label.
 var _enemy_count_label: Label = null
@@ -39,11 +40,17 @@ var _magazines_label: Label = null
 ## Reference to the ColorRect for saturation effect.
 var _saturation_overlay: ColorRect = null
 
+## Reference to the combo label.
+var _combo_label: Label = null
+
 ## Duration of saturation effect in seconds.
 const SATURATION_DURATION: float = 0.15
 
 ## Saturation effect intensity (alpha).
 const SATURATION_INTENSITY: float = 0.25
+
+## List of enemy nodes for position tracking.
+var _enemies: Array = []
 
 
 func _ready() -> void:
@@ -76,9 +83,49 @@ func _ready() -> void:
 		GameManager.enemy_killed.connect(_on_game_manager_enemy_killed)
 		GameManager.stats_updated.connect(_update_debug_ui)
 
+	# Initialize ScoreManager for this level
+	_initialize_score_manager()
+
+
+## Initialize the ScoreManager for this level.
+func _initialize_score_manager() -> void:
+	var score_manager: Node = get_node_or_null("/root/ScoreManager")
+	if score_manager == null:
+		return
+
+	# Start tracking for this level
+	score_manager.start_level(_initial_enemy_count)
+
+	# Set player reference
+	if _player:
+		score_manager.set_player(_player)
+
+	# Connect to combo changes for UI feedback
+	if not score_manager.combo_changed.is_connected(_on_combo_changed):
+		score_manager.combo_changed.connect(_on_combo_changed)
+
 
 func _process(_delta: float) -> void:
-	pass
+	# Update enemy positions for aggressiveness tracking
+	var score_manager: Node = get_node_or_null("/root/ScoreManager")
+	if score_manager and score_manager.has_method("update_enemy_positions"):
+		score_manager.update_enemy_positions(_enemies)
+
+
+## Called when combo changes.
+func _on_combo_changed(combo: int, points: int) -> void:
+	if _combo_label == null:
+		return
+
+	if combo > 0:
+		_combo_label.text = "x%d COMBO (+%d)" % [combo, points]
+		_combo_label.visible = true
+		# Flash effect for combo
+		_combo_label.modulate = Color.WHITE
+		var tween := create_tween()
+		tween.tween_property(_combo_label, "modulate", Color(1.0, 0.8, 0.2, 1.0), 0.1)
+	else:
+		_combo_label.visible = false
 
 
 ## Setup the navigation mesh for enemy pathfinding.
@@ -187,16 +234,19 @@ func _setup_enemy_tracking() -> void:
 	if enemies_node == null:
 		return
 
-	var enemies := []
+	_enemies.clear()
 	for child in enemies_node.get_children():
 		if child.has_signal("died"):
-			enemies.append(child)
+			_enemies.append(child)
 			child.died.connect(_on_enemy_died)
+			# Connect to died_with_info for score tracking if available
+			if child.has_signal("died_with_info"):
+				child.died_with_info.connect(_on_enemy_died_with_info)
 		# Track when enemy is hit for accuracy
 		if child.has_signal("hit"):
 			child.hit.connect(_on_enemy_hit)
 
-	_initial_enemy_count = enemies.size()
+	_initial_enemy_count = _enemies.size()
 	_current_enemy_count = _initial_enemy_count
 	print("Tracking %d enemies" % _initial_enemy_count)
 
@@ -240,6 +290,21 @@ func _setup_debug_ui() -> void:
 	_magazines_label.offset_bottom = 135
 	ui.add_child(_magazines_label)
 
+	# Create combo label (shows current combo)
+	_combo_label = Label.new()
+	_combo_label.name = "ComboLabel"
+	_combo_label.text = ""
+	_combo_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_combo_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	_combo_label.offset_left = -200
+	_combo_label.offset_right = -10
+	_combo_label.offset_top = 10
+	_combo_label.offset_bottom = 50
+	_combo_label.add_theme_font_size_override("font_size", 28)
+	_combo_label.add_theme_color_override("font_color", Color(1.0, 0.8, 0.2, 1.0))
+	_combo_label.visible = false
+	ui.add_child(_combo_label)
+
 
 
 ## Setup saturation overlay for kill effect.
@@ -282,6 +347,25 @@ func _on_enemy_died() -> void:
 
 	if _current_enemy_count <= 0:
 		print("All enemies eliminated! Building cleared!")
+		_complete_level_with_score()
+
+
+## Called when an enemy dies with special kill information.
+func _on_enemy_died_with_info(is_ricochet_kill: bool, is_penetration_kill: bool) -> void:
+	# Register kill with ScoreManager including special kill info
+	var score_manager: Node = get_node_or_null("/root/ScoreManager")
+	if score_manager and score_manager.has_method("register_kill"):
+		score_manager.register_kill(is_ricochet_kill, is_penetration_kill)
+
+
+## Complete the level and show the score screen.
+func _complete_level_with_score() -> void:
+	var score_manager: Node = get_node_or_null("/root/ScoreManager")
+	if score_manager and score_manager.has_method("complete_level"):
+		var score_data: Dictionary = score_manager.complete_level()
+		_show_score_screen(score_data)
+	else:
+		# Fallback to simple victory message if ScoreManager not available
 		_show_victory_message()
 
 
@@ -549,6 +633,154 @@ func _show_victory_message() -> void:
 	stats_label.offset_bottom = 100
 
 	ui.add_child(stats_label)
+
+
+## Show the score screen with full breakdown (Hotline Miami style).
+## @param score_data: Dictionary containing all score components from ScoreManager.
+func _show_score_screen(score_data: Dictionary) -> void:
+	var ui := get_node_or_null("CanvasLayer/UI")
+	if ui == null:
+		_show_victory_message()  # Fallback
+		return
+
+	# Create a semi-transparent background
+	var background := ColorRect.new()
+	background.name = "ScoreBackground"
+	background.color = Color(0.0, 0.0, 0.0, 0.7)
+	background.set_anchors_preset(Control.PRESET_FULL_RECT)
+	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ui.add_child(background)
+
+	# Create a container for all score elements
+	var container := VBoxContainer.new()
+	container.name = "ScoreContainer"
+	container.set_anchors_preset(Control.PRESET_CENTER)
+	container.offset_left = -300
+	container.offset_right = 300
+	container.offset_top = -280
+	container.offset_bottom = 280
+	container.add_theme_constant_override("separation", 8)
+	ui.add_child(container)
+
+	# Get rank color based on rank
+	var rank_color := _get_rank_color(score_data.rank)
+
+	# Title with rank
+	var title_label := Label.new()
+	title_label.text = "LEVEL CLEARED!"
+	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title_label.add_theme_font_size_override("font_size", 42)
+	title_label.add_theme_color_override("font_color", Color(0.2, 1.0, 0.3, 1.0))
+	container.add_child(title_label)
+
+	# Large rank display
+	var rank_label := Label.new()
+	rank_label.text = "RANK: %s" % score_data.rank
+	rank_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	rank_label.add_theme_font_size_override("font_size", 64)
+	rank_label.add_theme_color_override("font_color", rank_color)
+	container.add_child(rank_label)
+
+	# Total score
+	var total_label := Label.new()
+	total_label.text = "TOTAL SCORE: %d" % score_data.total_score
+	total_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	total_label.add_theme_font_size_override("font_size", 32)
+	total_label.add_theme_color_override("font_color", Color(1.0, 0.9, 0.3, 1.0))
+	container.add_child(total_label)
+
+	# Add separator
+	var separator := HSeparator.new()
+	separator.add_theme_constant_override("separation", 20)
+	container.add_child(separator)
+
+	# Score breakdown
+	var breakdown_lines := [
+		["KILLS", "%d/%d" % [score_data.kills, score_data.total_enemies], "+%d" % score_data.kill_points],
+		["COMBOS", "Max x%d" % score_data.max_combo, "+%d" % score_data.combo_points],
+		["TIME", "%.1fs" % score_data.completion_time, "+%d" % score_data.time_bonus],
+		["ACCURACY", "%.1f%%" % score_data.accuracy, "+%d" % score_data.accuracy_bonus],
+	]
+
+	# Add special kills if any
+	if score_data.ricochet_kills > 0 or score_data.penetration_kills > 0:
+		var special_text := ""
+		if score_data.ricochet_kills > 0:
+			special_text += "%d ricochet" % score_data.ricochet_kills
+		if score_data.penetration_kills > 0:
+			if special_text != "":
+				special_text += ", "
+			special_text += "%d penetration" % score_data.penetration_kills
+		if score_data.special_kills_eligible:
+			breakdown_lines.append(["SPECIAL KILLS", special_text, "+%d" % score_data.special_kill_bonus])
+		else:
+			breakdown_lines.append(["SPECIAL KILLS", special_text, "(need aggression)"])
+
+	# Add damage penalty if any
+	if score_data.damage_taken > 0:
+		breakdown_lines.append(["DAMAGE TAKEN", "%d hits" % score_data.damage_taken, "-%d" % score_data.damage_penalty])
+
+	# Create breakdown labels
+	for line in breakdown_lines:
+		var line_container := HBoxContainer.new()
+		line_container.add_theme_constant_override("separation", 20)
+		container.add_child(line_container)
+
+		var category_label := Label.new()
+		category_label.text = line[0]
+		category_label.add_theme_font_size_override("font_size", 18)
+		category_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7, 1.0))
+		category_label.custom_minimum_size.x = 150
+		line_container.add_child(category_label)
+
+		var value_label := Label.new()
+		value_label.text = line[1]
+		value_label.add_theme_font_size_override("font_size", 18)
+		value_label.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 1.0))
+		value_label.custom_minimum_size.x = 150
+		value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		line_container.add_child(value_label)
+
+		var points_label := Label.new()
+		points_label.text = line[2]
+		points_label.add_theme_font_size_override("font_size", 18)
+		# Color code: green for positive, red for negative/penalty
+		if line[2].begins_with("-") or line[2].contains("need"):
+			points_label.add_theme_color_override("font_color", Color(1.0, 0.4, 0.4, 1.0))
+		else:
+			points_label.add_theme_color_override("font_color", Color(0.4, 1.0, 0.4, 1.0))
+		points_label.custom_minimum_size.x = 100
+		points_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		line_container.add_child(points_label)
+
+	# Add restart hint
+	var hint_label := Label.new()
+	hint_label.text = "\nPress Q to restart"
+	hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hint_label.add_theme_font_size_override("font_size", 16)
+	hint_label.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5, 1.0))
+	container.add_child(hint_label)
+
+
+## Get the color for a given rank.
+func _get_rank_color(rank: String) -> Color:
+	match rank:
+		"S":
+			return Color(1.0, 0.84, 0.0, 1.0)  # Gold
+		"A+":
+			return Color(0.0, 1.0, 0.5, 1.0)  # Bright green
+		"A":
+			return Color(0.2, 0.8, 0.2, 1.0)  # Green
+		"B":
+			return Color(0.3, 0.7, 1.0, 1.0)  # Blue
+		"C":
+			return Color(1.0, 1.0, 1.0, 1.0)  # White
+		"D":
+			return Color(1.0, 0.6, 0.2, 1.0)  # Orange
+		"F":
+			return Color(1.0, 0.2, 0.2, 1.0)  # Red
+		_:
+			return Color(1.0, 1.0, 1.0, 1.0)  # Default white
 
 
 ## Show game over message when player runs out of ammo with enemies remaining.

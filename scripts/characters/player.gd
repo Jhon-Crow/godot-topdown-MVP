@@ -474,6 +474,11 @@ func on_hit_with_info(hit_direction: Vector2, caliber_data: Resource) -> void:
 	_current_health -= 1
 	health_changed.emit(_current_health, max_health)
 
+	# Register damage with ScoreManager
+	var score_manager: Node = get_node_or_null("/root/ScoreManager")
+	if score_manager and score_manager.has_method("register_damage_taken"):
+		score_manager.register_damage_taken(1)
+
 	# Play appropriate hit sound and spawn visual effects
 	var audio_manager: Node = get_node_or_null("/root/AudioManager")
 	var impact_manager: Node = get_node_or_null("/root/ImpactEffectsManager")

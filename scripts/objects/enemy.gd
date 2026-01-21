@@ -169,6 +169,11 @@ signal hit
 ## Signal emitted when the enemy dies.
 signal died
 
+## Signal emitted when the enemy dies with special kill information.
+## @param is_ricochet_kill: Whether the kill was from a ricocheted bullet.
+## @param is_penetration_kill: Whether the kill was from a bullet that penetrated a wall.
+signal died_with_info(is_ricochet_kill: bool, is_penetration_kill: bool)
+
 ## Signal emitted when AI state changes.
 signal state_changed(new_state: AIState)
 
@@ -547,6 +552,13 @@ var _last_known_player_position: Vector2 = Vector2.ZERO
 ## Flag indicating we heard a vulnerability sound (reload/empty click) and should pursue
 ## to that position even without line of sight to the player.
 var _pursuing_vulnerability_sound: bool = false
+
+## --- Score Tracking ---
+## Whether the last hit that killed this enemy was from a ricocheted bullet.
+var _killed_by_ricochet: bool = false
+
+## Whether the last hit that killed this enemy was from a bullet that penetrated a wall.
+var _killed_by_penetration: bool = false
 
 
 func _ready() -> void:
@@ -3540,6 +3552,16 @@ func on_hit() -> void:
 ## @param hit_direction: Direction the bullet was traveling.
 ## @param caliber_data: Caliber resource for effect scaling.
 func on_hit_with_info(hit_direction: Vector2, caliber_data: Resource) -> void:
+	# Call the full version with default special kill flags
+	on_hit_with_bullet_info(hit_direction, caliber_data, false, false)
+
+
+## Called when the enemy is hit with full bullet information.
+## @param hit_direction: Direction the bullet was traveling.
+## @param caliber_data: Caliber resource for effect scaling.
+## @param has_ricocheted: Whether the bullet had ricocheted before this hit.
+## @param has_penetrated: Whether the bullet had penetrated a wall before this hit.
+func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has_ricocheted: bool, has_penetrated: bool) -> void:
 	if not _is_alive:
 		return
 
@@ -3561,6 +3583,10 @@ func on_hit_with_info(hit_direction: Vector2, caliber_data: Resource) -> void:
 	var impact_manager: Node = get_node_or_null("/root/ImpactEffectsManager")
 
 	if _current_health <= 0:
+		# Track special kill info before death
+		_killed_by_ricochet = has_ricocheted
+		_killed_by_penetration = has_penetrated
+
 		# Play lethal hit sound
 		if audio_manager and audio_manager.has_method("play_hit_lethal"):
 			audio_manager.play_hit_lethal(global_position)
@@ -3622,8 +3648,9 @@ func _get_effective_detection_delay() -> float:
 ## Called when the enemy dies.
 func _on_death() -> void:
 	_is_alive = false
-	_log_to_file("Enemy died")
+	_log_to_file("Enemy died (ricochet: %s, penetration: %s)" % [_killed_by_ricochet, _killed_by_penetration])
 	died.emit()
+	died_with_info.emit(_killed_by_ricochet, _killed_by_penetration)
 
 	# Disable hit area collision so bullets pass through dead enemies.
 	# This prevents dead enemies from "absorbing" bullets before respawn/deletion.
@@ -3704,6 +3731,9 @@ func _reset() -> void:
 	# Reset sound detection state
 	_last_known_player_position = Vector2.ZERO
 	_pursuing_vulnerability_sound = false
+	# Reset score tracking state
+	_killed_by_ricochet = false
+	_killed_by_penetration = false
 	_initialize_health()
 	_initialize_ammo()
 	_update_health_visual()
