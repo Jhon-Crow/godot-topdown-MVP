@@ -1008,10 +1008,12 @@ public partial class Player : BaseCharacter
             LogToFile("[Player.Grenade] Failed to instantiate grenade scene");
             return;
         }
-        _activeGrenade.GlobalPosition = GlobalPosition;
 
-        // Add grenade to scene (it will follow player until thrown)
+        // Add grenade to scene first (must be in tree before setting GlobalPosition)
         GetTree().CurrentScene.AddChild(_activeGrenade);
+
+        // Set position AFTER AddChild (GlobalPosition only works when node is in the scene tree)
+        _activeGrenade.GlobalPosition = GlobalPosition;
 
         // Activate the grenade timer (starts 4s countdown)
         if (_activeGrenade.HasMethod("activate_timer"))

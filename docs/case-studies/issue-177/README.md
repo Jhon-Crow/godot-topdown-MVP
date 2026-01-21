@@ -190,3 +190,132 @@ Result: Maximum throw speed ✓
 - `Scripts/Characters/Player.cs` - Removed 9x sensitivity multiplier
 - `scripts/projectiles/grenade_base.gd` - Updated speed parameters and collision mask
 - `scenes/projectiles/FlashbangGrenade.tscn` - Updated speed values and collision mask
+
+---
+
+# Follow-Up: Grenade Spawn Position Bug (2026-01-21)
+
+## Reported Problem
+User (Jhon-Crow) reported at 2026-01-21T16:20:22Z:
+- "сейчас бросок происходит с позиции активации гранаты, а не с позиции игрока"
+  (Currently the throw happens from the activation position, not from the player's position)
+- Attached log file: `game_log_20260121_191036.txt`
+
+## Root Cause Analysis
+
+### Evidence from Logs
+The user's game log showed grenades being created at a fixed position regardless of player movement:
+
+```
+[19:10:39] [INFO] [GrenadeBase] Grenade created at (450, 1250)
+[19:10:44] [INFO] [GrenadeBase] Grenade created at (450, 1250)
+[19:10:47] [INFO] [GrenadeBase] Grenade created at (450, 1250)
+[19:10:53] [INFO] [GrenadeBase] Grenade created at (450, 1250)
+[19:11:01] [INFO] [GrenadeBase] Grenade created at (543.8889, 1250)  // Only X changed slightly
+```
+
+The position `(450, 1250)` matches the player's spawn position in `BuildingLevel.tscn`:
+```gdscript
+[node name="Player" parent="Entities" instance=ExtResource("2_player")]
+position = Vector2(450, 1250)
+```
+
+### Root Cause Identified
+
+**Order of Operations Bug in Node Instantiation**
+
+The bug was in both `Player.cs` and `player.gd`:
+
+```csharp
+// BEFORE (buggy):
+_activeGrenade = GrenadeScene.Instantiate<RigidBody2D>();
+_activeGrenade.GlobalPosition = GlobalPosition;  // Set position BEFORE adding to scene
+GetTree().CurrentScene.AddChild(_activeGrenade); // _ready() logs old position
+```
+
+**Why this fails**:
+1. `GlobalPosition` cannot be properly set on a node that is not yet in the scene tree
+2. When `AddChild()` is called, the node's `_ready()` function executes
+3. At that point, the node might still have its default/scene position, not the position we tried to set
+
+### Fix Applied
+
+Changed the order to set position AFTER adding to the scene tree:
+
+```csharp
+// AFTER (fixed):
+_activeGrenade = GrenadeScene.Instantiate<RigidBody2D>();
+GetTree().CurrentScene.AddChild(_activeGrenade);  // Add to scene first
+_activeGrenade.GlobalPosition = GlobalPosition;   // NOW set position (works correctly)
+```
+
+## Technical Details
+
+### Godot Node Lifecycle
+In Godot, a node's `GlobalPosition` property only works correctly when the node is part of the scene tree. Before being added:
+- The node has no parent, so global transforms are meaningless
+- Setting `GlobalPosition` may appear to work but the value isn't properly propagated
+
+### Files Changed
+- `Scripts/Characters/Player.cs` - Reordered AddChild/GlobalPosition in `StartGrenadeTimer()`
+- `scripts/characters/player.gd` - Reordered add_child/global_position in `_start_grenade_timer()`
+
+---
+
+# Feature Addition: Grenade Training Area (2026-01-21)
+
+## User Request
+User (Jhon-Crow) requested at 2026-01-21T16:20:22Z:
+- "добавь тренировочную площадку для метания гранат (с мишенями, которые можно и которые нельзя задевать)"
+  (Add a training area for grenade throwing with targets that can and cannot be hit)
+
+## Implementation
+
+### New Components Created
+
+1. **GrenadeTarget Script** (`scripts/objects/grenade_target.gd`)
+   - Similar to regular Target but specifically for grenade training
+   - `is_valid_target` property: `true` for enemies (red), `false` for friendlies (green)
+   - Emits `grenade_hit(is_valid_target: bool)` signal when affected
+   - Shows different colors based on target type and status effects
+
+2. **GrenadeTarget Scene** (`scenes/objects/GrenadeTarget.tscn`)
+   - 64x64 pixel target with collision shape
+   - Label showing target type (ВРАГ/СВОИ)
+   - Color-coded: red for enemies, green for friendlies
+
+3. **Expanded Tutorial Level** (`scenes/levels/csharp/TestTier.tscn`)
+   - Enlarged level (1864x1264 instead of 928x720)
+   - Two distinct zones:
+     - **Shooting Zone** (top half) - Original shooting targets
+     - **Grenade Training Area** (bottom half) - New grenade practice area
+
+### Grenade Training Area Layout
+- 6 enemy targets (red) - should be hit
+- 4 friendly targets (green) - should NOT be hit
+- Walls and cover objects for practicing angled throws
+- Visual instructions explaining target colors
+
+### Target Positions
+**Enemy Targets (should hit):**
+| Target | Position |
+|--------|----------|
+| EnemyTarget1 | (500, 850) |
+| EnemyTarget2 | (700, 950) |
+| EnemyTarget3 | (900, 800) |
+| EnemyTarget4 | (1100, 900) |
+| EnemyTarget5 | (1300, 1000) |
+| EnemyTarget6 | (1500, 850) |
+
+**Friendly Targets (should NOT hit):**
+| Target | Position |
+|--------|----------|
+| FriendlyTarget1 | (600, 1050) |
+| FriendlyTarget2 | (850, 1100) |
+| FriendlyTarget3 | (1200, 1080) |
+| FriendlyTarget4 | (1550, 1050) |
+
+### Files Changed
+- `scripts/objects/grenade_target.gd` - NEW: Grenade target script
+- `scenes/objects/GrenadeTarget.tscn` - NEW: Grenade target scene
+- `scenes/levels/csharp/TestTier.tscn` - Expanded with grenade training area

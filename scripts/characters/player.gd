@@ -813,10 +813,11 @@ func _start_grenade_timer() -> void:
 		FileLogger.info("[Player.Grenade] Failed to instantiate grenade scene")
 		return
 
-	_active_grenade.global_position = global_position
-
-	# Add grenade to scene (it will follow player until thrown)
+	# Add grenade to scene first (must be in tree before setting global_position)
 	get_tree().current_scene.add_child(_active_grenade)
+
+	# Set position AFTER add_child (global_position only works when node is in the scene tree)
+	_active_grenade.global_position = global_position
 
 	# Activate the grenade timer (starts 4s countdown)
 	if _active_grenade.has_method("activate_timer"):

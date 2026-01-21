@@ -1,15 +1,16 @@
-[gd_scene load_steps=9 format=3 uid="uid://e3kv7pm5r2auc"]
+[gd_scene load_steps=13 format=3 uid="uid://e3kv7pm5r2auc"]
 
 [ext_resource type="Script" path="res://scripts/levels/tutorial_level.gd" id="1_test_tier"]
 [ext_resource type="PackedScene" uid="uid://dv8nq2vj5r7p2" path="res://scenes/characters/csharp/Player.tscn" id="2_player"]
 [ext_resource type="PackedScene" uid="uid://dx3k7pm5t2auc" path="res://scenes/objects/csharp/Target.tscn" id="3_target"]
 [ext_resource type="PackedScene" uid="uid://dxqmk8f3nw5pe" path="res://scenes/ui/PauseMenu.tscn" id="4_pause_menu"]
+[ext_resource type="PackedScene" uid="uid://dg4k8pm5t2bvc" path="res://scenes/objects/GrenadeTarget.tscn" id="5_grenade_target"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_wall_horizontal"]
-size = Vector2(800, 32)
+size = Vector2(1800, 32)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_wall_vertical"]
-size = Vector2(32, 656)
+size = Vector2(32, 1200)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_obstacle_square"]
 size = Vector2(96, 96)
@@ -17,34 +18,57 @@ size = Vector2(96, 96)
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_obstacle_wide"]
 size = Vector2(128, 64)
 
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_wall_divider"]
+size = Vector2(32, 400)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_grenade_wall"]
+size = Vector2(200, 32)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_cover"]
+size = Vector2(64, 64)
+
 [node name="TestTier" type="Node2D"]
 script = ExtResource("1_test_tier")
 
 [node name="Environment" type="Node2D" parent="."]
 
 [node name="Background" type="ColorRect" parent="Environment"]
-offset_right = 1280.0
-offset_bottom = 720.0
+offset_right = 1864.0
+offset_bottom = 1264.0
 color = Color(0.15, 0.2, 0.15, 1)
 
 [node name="Floor" type="ColorRect" parent="Environment"]
 offset_left = 64.0
 offset_top = 64.0
-offset_right = 864.0
-offset_bottom = 656.0
+offset_right = 1800.0
+offset_bottom = 1200.0
 color = Color(0.25, 0.32, 0.25, 1)
+
+[node name="ShootingZoneFloor" type="ColorRect" parent="Environment"]
+offset_left = 64.0
+offset_top = 64.0
+offset_right = 900.0
+offset_bottom = 600.0
+color = Color(0.22, 0.28, 0.22, 1)
+
+[node name="GrenadeZoneFloor" type="ColorRect" parent="Environment"]
+offset_left = 64.0
+offset_top = 664.0
+offset_right = 1800.0
+offset_bottom = 1200.0
+color = Color(0.28, 0.22, 0.22, 1)
 
 [node name="Walls" type="Node2D" parent="Environment"]
 
 [node name="WallTop" type="StaticBody2D" parent="Environment/Walls"]
-position = Vector2(464, 48)
+position = Vector2(932, 48)
 collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/Walls/WallTop"]
-offset_left = -400.0
+offset_left = -900.0
 offset_top = -16.0
-offset_right = 400.0
+offset_right = 900.0
 offset_bottom = 16.0
 color = Color(0.35, 0.28, 0.22, 1)
 
@@ -52,14 +76,14 @@ color = Color(0.35, 0.28, 0.22, 1)
 shape = SubResource("RectangleShape2D_wall_horizontal")
 
 [node name="WallBottom" type="StaticBody2D" parent="Environment/Walls"]
-position = Vector2(464, 672)
+position = Vector2(932, 1216)
 collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/Walls/WallBottom"]
-offset_left = -400.0
+offset_left = -900.0
 offset_top = -16.0
-offset_right = 400.0
+offset_right = 900.0
 offset_bottom = 16.0
 color = Color(0.35, 0.28, 0.22, 1)
 
@@ -67,30 +91,30 @@ color = Color(0.35, 0.28, 0.22, 1)
 shape = SubResource("RectangleShape2D_wall_horizontal")
 
 [node name="WallLeft" type="StaticBody2D" parent="Environment/Walls"]
-position = Vector2(48, 360)
+position = Vector2(48, 632)
 collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/Walls/WallLeft"]
 offset_left = -16.0
-offset_top = -328.0
+offset_top = -600.0
 offset_right = 16.0
-offset_bottom = 328.0
+offset_bottom = 600.0
 color = Color(0.35, 0.28, 0.22, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallLeft"]
 shape = SubResource("RectangleShape2D_wall_vertical")
 
 [node name="WallRight" type="StaticBody2D" parent="Environment/Walls"]
-position = Vector2(880, 360)
+position = Vector2(1816, 632)
 collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/Walls/WallRight"]
 offset_left = -16.0
-offset_top = -328.0
+offset_top = -600.0
 offset_right = 16.0
-offset_bottom = 328.0
+offset_bottom = 600.0
 color = Color(0.35, 0.28, 0.22, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallRight"]
@@ -99,7 +123,7 @@ shape = SubResource("RectangleShape2D_wall_vertical")
 [node name="Obstacles" type="Node2D" parent="Environment"]
 
 [node name="Obstacle1" type="StaticBody2D" parent="Environment/Obstacles"]
-position = Vector2(300, 250)
+position = Vector2(350, 250)
 collision_layer = 4
 collision_mask = 0
 
@@ -114,7 +138,7 @@ color = Color(0.4, 0.32, 0.25, 1)
 shape = SubResource("RectangleShape2D_obstacle_square")
 
 [node name="Obstacle2" type="StaticBody2D" parent="Environment/Obstacles"]
-position = Vector2(300, 470)
+position = Vector2(350, 470)
 collision_layer = 4
 collision_mask = 0
 
@@ -163,6 +187,142 @@ offset_right = 850.0
 offset_bottom = 110.0
 text = "ЗОНА МИШЕНЕЙ"
 horizontal_alignment = 1
+
+[node name="GrenadeTrainingArea" type="Node2D" parent="Environment"]
+
+[node name="GrenadeZoneLabel" type="Label" parent="Environment/GrenadeTrainingArea"]
+offset_left = 64.0
+offset_top = 680.0
+offset_right = 400.0
+offset_bottom = 710.0
+text = "ТРЕНИРОВОЧНАЯ ПЛОЩАДКА ДЛЯ ГРАНАТ"
+horizontal_alignment = 0
+
+[node name="GrenadeInstructions" type="Label" parent="Environment/GrenadeTrainingArea"]
+offset_left = 64.0
+offset_top = 720.0
+offset_right = 600.0
+offset_bottom = 780.0
+text = "Красные = ВРАГИ (попади)
+Зеленые = СВОИ (не попадай)"
+horizontal_alignment = 0
+
+[node name="GrenadeWall1" type="StaticBody2D" parent="Environment/GrenadeTrainingArea"]
+position = Vector2(600, 900)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/GrenadeTrainingArea/GrenadeWall1"]
+offset_left = -100.0
+offset_top = -16.0
+offset_right = 100.0
+offset_bottom = 16.0
+color = Color(0.35, 0.28, 0.22, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/GrenadeTrainingArea/GrenadeWall1"]
+shape = SubResource("RectangleShape2D_grenade_wall")
+
+[node name="GrenadeWall2" type="StaticBody2D" parent="Environment/GrenadeTrainingArea"]
+position = Vector2(1000, 850)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/GrenadeTrainingArea/GrenadeWall2"]
+offset_left = -100.0
+offset_top = -16.0
+offset_right = 100.0
+offset_bottom = 16.0
+color = Color(0.35, 0.28, 0.22, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/GrenadeTrainingArea/GrenadeWall2"]
+shape = SubResource("RectangleShape2D_grenade_wall")
+
+[node name="GrenadeWall3" type="StaticBody2D" parent="Environment/GrenadeTrainingArea"]
+position = Vector2(1400, 950)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/GrenadeTrainingArea/GrenadeWall3"]
+offset_left = -100.0
+offset_top = -16.0
+offset_right = 100.0
+offset_bottom = 16.0
+color = Color(0.35, 0.28, 0.22, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/GrenadeTrainingArea/GrenadeWall3"]
+shape = SubResource("RectangleShape2D_grenade_wall")
+
+[node name="Cover1" type="StaticBody2D" parent="Environment/GrenadeTrainingArea"]
+position = Vector2(300, 900)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/GrenadeTrainingArea/Cover1"]
+offset_left = -32.0
+offset_top = -32.0
+offset_right = 32.0
+offset_bottom = 32.0
+color = Color(0.3, 0.4, 0.3, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/GrenadeTrainingArea/Cover1"]
+shape = SubResource("RectangleShape2D_cover")
+
+[node name="Cover2" type="StaticBody2D" parent="Environment/GrenadeTrainingArea"]
+position = Vector2(300, 1050)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/GrenadeTrainingArea/Cover2"]
+offset_left = -32.0
+offset_top = -32.0
+offset_right = 32.0
+offset_bottom = 32.0
+color = Color(0.3, 0.4, 0.3, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/GrenadeTrainingArea/Cover2"]
+shape = SubResource("RectangleShape2D_cover")
+
+[node name="GrenadeTargets" type="Node2D" parent="Environment/GrenadeTrainingArea"]
+
+[node name="EnemyTarget1" parent="Environment/GrenadeTrainingArea/GrenadeTargets" instance=ExtResource("5_grenade_target")]
+position = Vector2(500, 850)
+is_valid_target = true
+
+[node name="EnemyTarget2" parent="Environment/GrenadeTrainingArea/GrenadeTargets" instance=ExtResource("5_grenade_target")]
+position = Vector2(700, 950)
+is_valid_target = true
+
+[node name="EnemyTarget3" parent="Environment/GrenadeTrainingArea/GrenadeTargets" instance=ExtResource("5_grenade_target")]
+position = Vector2(900, 800)
+is_valid_target = true
+
+[node name="EnemyTarget4" parent="Environment/GrenadeTrainingArea/GrenadeTargets" instance=ExtResource("5_grenade_target")]
+position = Vector2(1100, 900)
+is_valid_target = true
+
+[node name="EnemyTarget5" parent="Environment/GrenadeTrainingArea/GrenadeTargets" instance=ExtResource("5_grenade_target")]
+position = Vector2(1300, 1000)
+is_valid_target = true
+
+[node name="EnemyTarget6" parent="Environment/GrenadeTrainingArea/GrenadeTargets" instance=ExtResource("5_grenade_target")]
+position = Vector2(1500, 850)
+is_valid_target = true
+
+[node name="FriendlyTarget1" parent="Environment/GrenadeTrainingArea/GrenadeTargets" instance=ExtResource("5_grenade_target")]
+position = Vector2(600, 1050)
+is_valid_target = false
+
+[node name="FriendlyTarget2" parent="Environment/GrenadeTrainingArea/GrenadeTargets" instance=ExtResource("5_grenade_target")]
+position = Vector2(850, 1100)
+is_valid_target = false
+
+[node name="FriendlyTarget3" parent="Environment/GrenadeTrainingArea/GrenadeTargets" instance=ExtResource("5_grenade_target")]
+position = Vector2(1200, 1080)
+is_valid_target = false
+
+[node name="FriendlyTarget4" parent="Environment/GrenadeTrainingArea/GrenadeTargets" instance=ExtResource("5_grenade_target")]
+position = Vector2(1550, 1050)
+is_valid_target = false
 
 [node name="Entities" type="Node2D" parent="."]
 
