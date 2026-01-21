@@ -1,0 +1,1751 @@
+[07:45:26] [INFO] ============================================================
+[07:45:26] [INFO] GAME LOG STARTED
+[07:45:26] [INFO] ============================================================
+[07:45:26] [INFO] Timestamp: 2026-01-21T07:45:26
+[07:45:26] [INFO] Log file: I:/Загрузки/godot exe/game_log_20260121_074526.txt
+[07:45:26] [INFO] Executable: I:/Загрузки/godot exe/Godot-Top-Down-Template.exe
+[07:45:26] [INFO] OS: Windows
+[07:45:26] [INFO] Debug build: false
+[07:45:26] [INFO] Engine version: 4.3-stable (official)
+[07:45:26] [INFO] Project: Godot Top-Down Template
+[07:45:26] [INFO] ------------------------------------------------------------
+[07:45:26] [INFO] [GameManager] GameManager ready
+[07:45:26] [INFO] [SoundPropagation] SoundPropagation autoload initialized
+[07:45:26] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 1)
+[07:45:26] [ENEMY] [Enemy1] Registered as sound listener
+[07:45:26] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 2, behavior: GUARD, player_found: yes
+[07:45:26] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 2)
+[07:45:26] [ENEMY] [Enemy2] Registered as sound listener
+[07:45:26] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 2, behavior: GUARD, player_found: yes
+[07:45:26] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 3)
+[07:45:26] [ENEMY] [Enemy3] Registered as sound listener
+[07:45:26] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 2, behavior: GUARD, player_found: yes
+[07:45:26] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 4)
+[07:45:26] [ENEMY] [Enemy4] Registered as sound listener
+[07:45:26] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 2, behavior: GUARD, player_found: yes
+[07:45:26] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 5)
+[07:45:26] [ENEMY] [Enemy5] Registered as sound listener
+[07:45:26] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 3, behavior: GUARD, player_found: yes
+[07:45:26] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 6)
+[07:45:26] [ENEMY] [Enemy6] Registered as sound listener
+[07:45:26] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 4, behavior: GUARD, player_found: yes
+[07:45:26] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 7)
+[07:45:26] [ENEMY] [Enemy7] Registered as sound listener
+[07:45:26] [ENEMY] [Enemy7] Enemy spawned at (1606.114, 893.8859), health: 3, behavior: PATROL, player_found: yes
+[07:45:26] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 8)
+[07:45:26] [ENEMY] [Enemy8] Registered as sound listener
+[07:45:26] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 4, behavior: GUARD, player_found: yes
+[07:45:26] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 9)
+[07:45:26] [ENEMY] [Enemy9] Registered as sound listener
+[07:45:26] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 4, behavior: GUARD, player_found: yes
+[07:45:26] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 10)
+[07:45:26] [ENEMY] [Enemy10] Registered as sound listener
+[07:45:26] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 4, behavior: PATROL, player_found: yes
+[07:45:31] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(255.7008, 1797.685), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[07:45:31] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=5, self=0, below_threshold=5
+[07:45:31] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(255.7008, 1797.685), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[07:45:31] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=5, self=0, below_threshold=5
+[07:45:32] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(311.1111, 1787.602), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[07:45:32] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=5, self=0, below_threshold=5
+[07:45:32] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(273.1073, 1772.194), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[07:45:32] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=5, self=0, below_threshold=5
+[07:45:33] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(265.4163, 1766.518), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[07:45:33] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=5, self=0, below_threshold=5
+[07:45:33] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(265.4163, 1766.518), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[07:45:33] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=5, self=0, below_threshold=5
+[07:45:33] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(265.4163, 1766.518), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[07:45:33] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=5, self=0, below_threshold=5
+[07:45:34] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(265.4163, 1766.518), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[07:45:34] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=5, self=0, below_threshold=5
+[07:45:34] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(265.4163, 1766.518), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[07:45:34] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=5, self=0, below_threshold=5
+[07:45:34] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(250.9628, 1890.912), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[07:45:34] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=6, self=0, below_threshold=4
+[07:45:35] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(241.2374, 1909.217), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[07:45:35] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=6, self=0, below_threshold=4
+[07:45:35] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(236.4757, 1914.21), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[07:45:35] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=6, self=0, below_threshold=4
+[07:45:35] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(233.5479, 1903.048), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[07:45:35] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=6, self=0, below_threshold=4
+[07:45:35] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(232.1042, 1827.56), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[07:45:35] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=6, self=0, below_threshold=4
+[07:45:35] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(232.0831, 1823.581), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[07:45:35] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=6, self=0, below_threshold=4
+[07:45:35] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(232.0831, 1823.581), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[07:45:35] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=6, self=0, below_threshold=4
+[07:45:35] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(232.0831, 1823.581), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[07:45:35] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=6, self=0, below_threshold=4
+[07:45:36] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(306.4382, 1763.059), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[07:45:36] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=5, self=0, below_threshold=5
+[07:45:36] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(318.0018, 1743.915), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[07:45:36] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=5, self=0, below_threshold=5
+[07:45:36] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(322.5281, 1736.421), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[07:45:36] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=5, self=0, below_threshold=5
+[07:45:39] [INFO] [GameManager] Debug mode toggled: ON
+[07:45:39] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(322.6002, 1736.301), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[07:45:39] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=5, self=0, below_threshold=5
+[07:45:40] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(322.6002, 1736.301), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[07:45:40] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=5, self=0, below_threshold=5
+[07:45:40] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(322.6002, 1736.301), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[07:45:40] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=5, self=0, below_threshold=5
+[07:45:40] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(322.6002, 1736.301), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[07:45:40] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=5, self=0, below_threshold=5
+[07:45:41] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(322.6002, 1736.301), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[07:45:41] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=5, self=0, below_threshold=5
+[07:45:41] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(322.6002, 1736.301), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[07:45:41] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=5, self=0, below_threshold=5
+[07:45:41] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(322.6002, 1736.301), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[07:45:41] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=5, self=0, below_threshold=5
+[07:45:41] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(322.6002, 1736.301), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[07:45:41] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=5, self=0, below_threshold=5
+[07:45:42] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(322.6002, 1668.468), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[07:45:42] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=5, self=0, below_threshold=5
+[07:45:42] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(322.6002, 1648.635), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[07:45:42] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=5, self=0, below_threshold=5
+[07:45:42] [ENEMY] [Enemy1] Player ammo empty state changed: false -> true
+[07:45:42] [ENEMY] [Enemy2] Player ammo empty state changed: false -> true
+[07:45:42] [ENEMY] [Enemy3] Player ammo empty state changed: false -> true
+[07:45:42] [ENEMY] [Enemy4] Player ammo empty state changed: false -> true
+[07:45:42] [ENEMY] [Enemy5] Player ammo empty state changed: false -> true
+[07:45:42] [ENEMY] [Enemy6] Player ammo empty state changed: false -> true
+[07:45:42] [ENEMY] [Enemy7] Player ammo empty state changed: false -> true
+[07:45:42] [ENEMY] [Enemy8] Player ammo empty state changed: false -> true
+[07:45:42] [ENEMY] [Enemy9] Player ammo empty state changed: false -> true
+[07:45:42] [ENEMY] [Enemy10] Player ammo empty state changed: false -> true
+[07:45:42] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(322.6002, 1646.912), source=PLAYER (Player), range=600, listeners=10
+[07:45:42] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=10, self=0, below_threshold=0
+[07:45:42] [ENEMY] [Enemy1] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1297), can_see=false
+[07:45:42] [ENEMY] [Enemy2] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1100), can_see=false
+[07:45:42] [ENEMY] [Enemy3] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=973), can_see=false
+[07:45:42] [ENEMY] [Enemy4] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=886), can_see=false
+[07:45:42] [ENEMY] [Enemy5] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1892), can_see=false
+[07:45:42] [ENEMY] [Enemy6] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=2020), can_see=false
+[07:45:42] [ENEMY] [Enemy7] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1490), can_see=false
+[07:45:42] [ENEMY] [Enemy8] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1590), can_see=false
+[07:45:42] [ENEMY] [Enemy9] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1780), can_see=false
+[07:45:42] [ENEMY] [Enemy10] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=838), can_see=false
+[07:45:42] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(322.6002, 1645.468), source=PLAYER (Player), range=600, listeners=10
+[07:45:42] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=10, self=0, below_threshold=0
+[07:45:42] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(322.6002, 1644.301), source=PLAYER (Player), range=600, listeners=10
+[07:45:42] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=10, self=0, below_threshold=0
+[07:45:42] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(322.6002, 1643.412), source=PLAYER (Player), range=600, listeners=10
+[07:45:42] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=10, self=0, below_threshold=0
+[07:45:42] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(322.6002, 1642.801), source=PLAYER (Player), range=600, listeners=10
+[07:45:42] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=10, self=0, below_threshold=0
+[07:45:42] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(322.6002, 1642.468), source=PLAYER (Player), range=600, listeners=10
+[07:45:42] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=10, self=0, below_threshold=0
+[07:45:42] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(322.6002, 1642.412), source=PLAYER (Player), range=600, listeners=10
+[07:45:42] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=10, self=0, below_threshold=0
+[07:45:42] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(322.6002, 1642.412), source=PLAYER (Player), range=600, listeners=10
+[07:45:42] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=10, self=0, below_threshold=0
+[07:45:42] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(322.6002, 1642.412), source=PLAYER (Player), range=600, listeners=10
+[07:45:42] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=10, self=0, below_threshold=0
+[07:45:43] [ENEMY] [Enemy1] Player reloading state changed: false -> true
+[07:45:43] [ENEMY] [Enemy2] Player reloading state changed: false -> true
+[07:45:43] [ENEMY] [Enemy3] Player reloading state changed: false -> true
+[07:45:43] [ENEMY] [Enemy4] Player reloading state changed: false -> true
+[07:45:43] [ENEMY] [Enemy5] Player reloading state changed: false -> true
+[07:45:43] [ENEMY] [Enemy6] Player reloading state changed: false -> true
+[07:45:43] [ENEMY] [Enemy7] Player reloading state changed: false -> true
+[07:45:43] [ENEMY] [Enemy8] Player reloading state changed: false -> true
+[07:45:43] [ENEMY] [Enemy9] Player reloading state changed: false -> true
+[07:45:43] [ENEMY] [Enemy10] Player reloading state changed: false -> true
+[07:45:43] [INFO] [SoundPropagation] Sound emitted: type=RELOAD, pos=(322.6002, 1642.412), source=PLAYER (Player), range=900, listeners=10
+[07:45:43] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=8, self=0, below_threshold=2
+[07:45:43] [ENEMY] [Enemy1] Player vulnerable (reloading) but cannot attack: close=false (dist=1293), can_see=false
+[07:45:43] [ENEMY] [Enemy2] Player vulnerable (reloading) but cannot attack: close=false (dist=1095), can_see=false
+[07:45:43] [ENEMY] [Enemy3] Player vulnerable (reloading) but cannot attack: close=false (dist=969), can_see=false
+[07:45:43] [ENEMY] [Enemy4] Player vulnerable (reloading) but cannot attack: close=false (dist=883), can_see=false
+[07:45:43] [ENEMY] [Enemy5] Player vulnerable (reloading) but cannot attack: close=false (dist=1889), can_see=false
+[07:45:43] [ENEMY] [Enemy6] Player vulnerable (reloading) but cannot attack: close=false (dist=2017), can_see=false
+[07:45:43] [ENEMY] [Enemy7] Player vulnerable (reloading) but cannot attack: close=false (dist=1488), can_see=false
+[07:45:43] [ENEMY] [Enemy8] Player vulnerable (reloading) but cannot attack: close=false (dist=1589), can_see=false
+[07:45:43] [ENEMY] [Enemy9] Player vulnerable (reloading) but cannot attack: close=false (dist=1780), can_see=false
+[07:45:43] [ENEMY] [Enemy10] Player vulnerable (reloading) but cannot attack: close=false (dist=837), can_see=false
+[07:45:43] [ENEMY] [Enemy1] Player reloading state changed: true -> false
+[07:45:43] [ENEMY] [Enemy2] Player reloading state changed: true -> false
+[07:45:43] [ENEMY] [Enemy3] Player reloading state changed: true -> false
+[07:45:43] [ENEMY] [Enemy4] Player reloading state changed: true -> false
+[07:45:43] [ENEMY] [Enemy5] Player reloading state changed: true -> false
+[07:45:43] [ENEMY] [Enemy6] Player reloading state changed: true -> false
+[07:45:43] [ENEMY] [Enemy7] Player reloading state changed: true -> false
+[07:45:43] [ENEMY] [Enemy8] Player reloading state changed: true -> false
+[07:45:43] [ENEMY] [Enemy9] Player reloading state changed: true -> false
+[07:45:43] [ENEMY] [Enemy10] Player reloading state changed: true -> false
+[07:45:43] [ENEMY] [Enemy1] Player ammo empty state changed: true -> false
+[07:45:43] [ENEMY] [Enemy2] Player ammo empty state changed: true -> false
+[07:45:43] [ENEMY] [Enemy3] Player ammo empty state changed: true -> false
+[07:45:43] [ENEMY] [Enemy4] Player ammo empty state changed: true -> false
+[07:45:43] [ENEMY] [Enemy5] Player ammo empty state changed: true -> false
+[07:45:43] [ENEMY] [Enemy6] Player ammo empty state changed: true -> false
+[07:45:43] [ENEMY] [Enemy7] Player ammo empty state changed: true -> false
+[07:45:43] [ENEMY] [Enemy8] Player ammo empty state changed: true -> false
+[07:45:43] [ENEMY] [Enemy9] Player ammo empty state changed: true -> false
+[07:45:43] [ENEMY] [Enemy10] Player ammo empty state changed: true -> false
+[07:45:44] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(483.9996, 1739.274), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[07:45:44] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=3, self=0, below_threshold=7
+[07:45:44] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(483.9996, 1739.274), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[07:45:44] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=3, self=0, below_threshold=7
+[07:45:44] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(483.9996, 1739.274), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[07:45:44] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=3, self=0, below_threshold=7
+[07:45:44] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(483.9996, 1739.274), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[07:45:44] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=3, self=0, below_threshold=7
+[07:45:45] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(483.9996, 1739.274), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[07:45:45] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=3, self=0, below_threshold=7
+[07:45:45] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(483.9996, 1739.274), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[07:45:45] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=3, self=0, below_threshold=7
+[07:45:45] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(483.9996, 1739.274), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[07:45:45] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=3, self=0, below_threshold=7
+[07:45:45] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(483.9996, 1739.274), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[07:45:45] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=3, self=0, below_threshold=7
+[07:45:45] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(483.9996, 1739.274), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[07:45:45] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=3, self=0, below_threshold=7
+[07:45:45] [ENEMY] [Enemy1] Player reloading state changed: false -> true
+[07:45:45] [ENEMY] [Enemy2] Player reloading state changed: false -> true
+[07:45:45] [ENEMY] [Enemy3] Player reloading state changed: false -> true
+[07:45:45] [ENEMY] [Enemy4] Player reloading state changed: false -> true
+[07:45:45] [ENEMY] [Enemy5] Player reloading state changed: false -> true
+[07:45:45] [ENEMY] [Enemy6] Player reloading state changed: false -> true
+[07:45:45] [ENEMY] [Enemy7] Player reloading state changed: false -> true
+[07:45:45] [ENEMY] [Enemy8] Player reloading state changed: false -> true
+[07:45:45] [ENEMY] [Enemy9] Player reloading state changed: false -> true
+[07:45:45] [ENEMY] [Enemy10] Player reloading state changed: false -> true
+[07:45:45] [INFO] [SoundPropagation] Sound emitted: type=RELOAD, pos=(483.9996, 1739.274), source=PLAYER (Player), range=900, listeners=10
+[07:45:45] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=8, self=0, below_threshold=2
+[07:45:45] [ENEMY] [Enemy1] Player vulnerable (reloading) but cannot attack: close=false (dist=1401), can_see=false
+[07:45:45] [ENEMY] [Enemy2] Player vulnerable (reloading) but cannot attack: close=false (dist=1192), can_see=false
+[07:45:45] [ENEMY] [Enemy3] Player vulnerable (reloading) but cannot attack: close=false (dist=1013), can_see=false
+[07:45:45] [ENEMY] [Enemy4] Player vulnerable (reloading) but cannot attack: close=false (dist=897), can_see=false
+[07:45:45] [ENEMY] [Enemy5] Player vulnerable (reloading) but cannot attack: close=false (dist=1846), can_see=false
+[07:45:45] [ENEMY] [Enemy6] Player vulnerable (reloading) but cannot attack: close=false (dist=1952), can_see=false
+[07:45:45] [ENEMY] [Enemy7] Player vulnerable (reloading) but cannot attack: close=false (dist=1406), can_see=false
+[07:45:45] [ENEMY] [Enemy8] Player vulnerable (reloading) but cannot attack: close=false (dist=1445), can_see=false
+[07:45:45] [ENEMY] [Enemy9] Player vulnerable (reloading) but cannot attack: close=false (dist=1627), can_see=false
+[07:45:45] [ENEMY] [Enemy10] Player vulnerable (reloading) but cannot attack: close=false (dist=689), can_see=false
+[07:45:45] [ENEMY] [Enemy1] Player reloading state changed: true -> false
+[07:45:45] [ENEMY] [Enemy2] Player reloading state changed: true -> false
+[07:45:45] [ENEMY] [Enemy3] Player reloading state changed: true -> false
+[07:45:45] [ENEMY] [Enemy4] Player reloading state changed: true -> false
+[07:45:45] [ENEMY] [Enemy5] Player reloading state changed: true -> false
+[07:45:45] [ENEMY] [Enemy6] Player reloading state changed: true -> false
+[07:45:45] [ENEMY] [Enemy7] Player reloading state changed: true -> false
+[07:45:45] [ENEMY] [Enemy8] Player reloading state changed: true -> false
+[07:45:45] [ENEMY] [Enemy9] Player reloading state changed: true -> false
+[07:45:45] [ENEMY] [Enemy10] Player reloading state changed: true -> false
+[07:45:46] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(483.9996, 1739.274), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[07:45:46] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=3, self=0, below_threshold=7
+[07:45:46] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(483.9996, 1742.608), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[07:45:46] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=3, self=0, below_threshold=7
+[07:45:46] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(483.9996, 1761.274), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[07:45:46] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=3, self=0, below_threshold=7
+[07:45:46] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(483.9996, 1795.608), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[07:45:46] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=3, self=0, below_threshold=7
+[07:45:46] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(483.9996, 1833.274), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[07:45:46] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=4, self=0, below_threshold=6
+[07:45:46] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(483.9996, 1860.108), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[07:45:46] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=6, self=0, below_threshold=4
+[07:45:47] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(483.9996, 1872.496), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[07:45:47] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=6, self=0, below_threshold=4
+[07:45:47] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(483.9996, 1868.608), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[07:45:47] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=6, self=0, below_threshold=4
+[07:45:47] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(483.9996, 1848.385), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[07:45:47] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=6, self=0, below_threshold=4
+[07:45:47] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(483.9996, 1812.997), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[07:45:47] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=4, self=0, below_threshold=6
+[07:45:47] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(483.9996, 1777.275), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[07:45:47] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=3, self=0, below_threshold=7
+[07:45:47] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(483.9996, 1754.33), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[07:45:47] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=3, self=0, below_threshold=7
+[07:45:47] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(483.9996, 1746.163), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[07:45:47] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=3, self=0, below_threshold=7
+[07:45:47] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(483.9996, 1754.33), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[07:45:47] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=3, self=0, below_threshold=7
+[07:45:47] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(483.9996, 1778.83), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[07:45:47] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=3, self=0, below_threshold=7
+[07:45:48] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(483.9996, 1813.552), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[07:45:48] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=4, self=0, below_threshold=6
+[07:45:48] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(483.9996, 1836.33), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[07:45:48] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=4, self=0, below_threshold=6
+[07:45:48] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(483.9996, 1843.33), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[07:45:48] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=6, self=0, below_threshold=4
+[07:45:48] [ENEMY] [Enemy1] Player reloading state changed: false -> true
+[07:45:48] [ENEMY] [Enemy2] Player reloading state changed: false -> true
+[07:45:48] [ENEMY] [Enemy3] Player reloading state changed: false -> true
+[07:45:48] [ENEMY] [Enemy4] Player reloading state changed: false -> true
+[07:45:48] [ENEMY] [Enemy5] Player reloading state changed: false -> true
+[07:45:48] [ENEMY] [Enemy6] Player reloading state changed: false -> true
+[07:45:48] [ENEMY] [Enemy7] Player reloading state changed: false -> true
+[07:45:48] [ENEMY] [Enemy8] Player reloading state changed: false -> true
+[07:45:48] [ENEMY] [Enemy9] Player reloading state changed: false -> true
+[07:45:48] [ENEMY] [Enemy10] Player reloading state changed: false -> true
+[07:45:48] [INFO] [SoundPropagation] Sound emitted: type=RELOAD, pos=(483.9996, 1837.441), source=PLAYER (Player), range=900, listeners=10
+[07:45:48] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=9, self=0, below_threshold=1
+[07:45:48] [ENEMY] [Enemy1] Player vulnerable (reloading) but cannot attack: close=false (dist=1499), can_see=false
+[07:45:48] [ENEMY] [Enemy2] Player vulnerable (reloading) but cannot attack: close=false (dist=1290), can_see=false
+[07:45:48] [ENEMY] [Enemy3] Player vulnerable (reloading) but cannot attack: close=false (dist=1109), can_see=false
+[07:45:48] [ENEMY] [Enemy4] Player vulnerable (reloading) but cannot attack: close=false (dist=989), can_see=false
+[07:45:48] [ENEMY] [Enemy5] Player vulnerable (reloading) but cannot attack: close=false (dist=1921), can_see=false
+[07:45:48] [ENEMY] [Enemy6] Player vulnerable (reloading) but cannot attack: close=false (dist=2018), can_see=false
+[07:45:48] [ENEMY] [Enemy7] Player vulnerable (reloading) but cannot attack: close=false (dist=1467), can_see=false
+[07:45:48] [ENEMY] [Enemy8] Player vulnerable (reloading) but cannot attack: close=false (dist=1468), can_see=false
+[07:45:48] [ENEMY] [Enemy9] Player vulnerable (reloading) but cannot attack: close=false (dist=1641), can_see=false
+[07:45:48] [ENEMY] [Enemy10] Player vulnerable (reloading) but cannot attack: close=false (dist=715), can_see=false
+[07:45:48] [ENEMY] [Enemy1] Player reloading state changed: true -> false
+[07:45:48] [ENEMY] [Enemy2] Player reloading state changed: true -> false
+[07:45:48] [ENEMY] [Enemy3] Player reloading state changed: true -> false
+[07:45:48] [ENEMY] [Enemy4] Player reloading state changed: true -> false
+[07:45:48] [ENEMY] [Enemy5] Player reloading state changed: true -> false
+[07:45:48] [ENEMY] [Enemy6] Player reloading state changed: true -> false
+[07:45:48] [ENEMY] [Enemy7] Player reloading state changed: true -> false
+[07:45:48] [ENEMY] [Enemy8] Player reloading state changed: true -> false
+[07:45:48] [ENEMY] [Enemy9] Player reloading state changed: true -> false
+[07:45:48] [ENEMY] [Enemy10] Player reloading state changed: true -> false
+[07:45:54] [ENEMY] [Enemy3] State: IDLE -> COMBAT
+[07:45:54] [ENEMY] [Enemy3] State: COMBAT -> PURSUING
+[07:45:55] [ENEMY] [Enemy10] State: IDLE -> COMBAT
+[07:45:55] [ENEMY] [Enemy3] State: PURSUING -> COMBAT
+[07:45:55] [ENEMY] [Enemy1] State: IDLE -> COMBAT
+[07:45:55] [ENEMY] [Enemy2] State: IDLE -> COMBAT
+[07:45:56] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[07:45:56] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(700, 750), source=ENEMY (Enemy3), range=1469, listeners=10
+[07:45:56] [ENEMY] [Enemy4] Heard gunshot at (700, 750), source_type=1, intensity=0.08, distance=180
+[07:45:56] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[07:45:56] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(700, 750), source=ENEMY (Enemy3), range=1469, listeners=10
+[07:45:56] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[07:45:56] [ENEMY] [Enemy1] State: COMBAT -> PURSUING
+[07:45:56] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[07:45:56] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(700, 750), source=ENEMY (Enemy3), range=1469, listeners=10
+[07:45:56] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[07:45:56] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(700, 750), source=ENEMY (Enemy3), range=1469, listeners=10
+[07:45:56] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[07:45:56] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(700, 750), source=ENEMY (Enemy3), range=1469, listeners=10
+[07:45:56] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[07:45:56] [ENEMY] [Enemy4] State: COMBAT -> PURSUING
+[07:45:56] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(700, 750), source=ENEMY (Enemy3), range=1469, listeners=10
+[07:45:56] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[07:45:56] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(700, 750), source=ENEMY (Enemy3), range=1469, listeners=10
+[07:45:56] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[07:45:57] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(700, 750), source=ENEMY (Enemy3), range=1469, listeners=10
+[07:45:57] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[07:45:57] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 11)
+[07:45:57] [ENEMY] [Enemy1] Registered as sound listener
+[07:45:57] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 4, behavior: GUARD, player_found: yes
+[07:45:57] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 12)
+[07:45:57] [ENEMY] [Enemy2] Registered as sound listener
+[07:45:57] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 3, behavior: GUARD, player_found: yes
+[07:45:57] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 13)
+[07:45:57] [ENEMY] [Enemy3] Registered as sound listener
+[07:45:57] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 2, behavior: GUARD, player_found: yes
+[07:45:57] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 14)
+[07:45:57] [ENEMY] [Enemy4] Registered as sound listener
+[07:45:57] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 2, behavior: GUARD, player_found: yes
+[07:45:57] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 15)
+[07:45:57] [ENEMY] [Enemy5] Registered as sound listener
+[07:45:57] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 4, behavior: GUARD, player_found: yes
+[07:45:57] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 16)
+[07:45:57] [ENEMY] [Enemy6] Registered as sound listener
+[07:45:57] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 2, behavior: GUARD, player_found: yes
+[07:45:57] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 17)
+[07:45:57] [ENEMY] [Enemy7] Registered as sound listener
+[07:45:57] [ENEMY] [Enemy7] Enemy spawned at (1600, 900), health: 2, behavior: PATROL, player_found: yes
+[07:45:57] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 18)
+[07:45:57] [ENEMY] [Enemy8] Registered as sound listener
+[07:45:57] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 4, behavior: GUARD, player_found: yes
+[07:45:57] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 19)
+[07:45:57] [ENEMY] [Enemy9] Registered as sound listener
+[07:45:57] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 2, behavior: GUARD, player_found: yes
+[07:45:57] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 20)
+[07:45:57] [ENEMY] [Enemy10] Registered as sound listener
+[07:45:57] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 4, behavior: PATROL, player_found: yes
+[07:45:57] [ENEMY] [Enemy10] State: IDLE -> COMBAT
+[07:45:58] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[07:45:58] [ENEMY] [Enemy3] State: IDLE -> COMBAT
+[07:45:59] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(450, 746.1666), source=PLAYER (AssaultRifle), range=1469, listeners=20
+[07:45:59] [INFO] [SoundPropagation] Cleaned up 10 invalid listeners
+[07:45:59] [ENEMY] [Enemy1] Heard gunshot at (450, 746.1666), source_type=0, intensity=0.01, distance=424
+[07:45:59] [ENEMY] [Enemy2] Heard gunshot at (450, 746.1666), source_type=0, intensity=0.06, distance=202
+[07:45:59] [ENEMY] [Enemy4] Heard gunshot at (450, 746.1666), source_type=0, intensity=0.02, distance=382
+[07:45:59] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=3, self=0, below_threshold=3
+[07:45:59] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(450, 745.9444), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[07:45:59] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=3, self=0, below_threshold=3
+[07:45:59] [ENEMY] [Enemy3] State: COMBAT -> PURSUING
+[07:45:59] [ENEMY] [Enemy3] Hit taken, health: 1/2
+[07:45:59] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(450, 745.9444), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[07:45:59] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=3, self=0, below_threshold=3
+[07:45:59] [ENEMY] [Enemy3] State: PURSUING -> RETREATING
+[07:45:59] [ENEMY] [Enemy3] Hit taken, health: 0/2
+[07:45:59] [ENEMY] [Enemy3] Enemy died
+[07:45:59] [INFO] [SoundPropagation] Unregistered listener: Enemy3 (remaining: 9)
+[07:45:59] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(450, 745.9444), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[07:45:59] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=3, self=0, below_threshold=3
+[07:45:59] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(450, 745.9444), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[07:45:59] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=3, self=0, below_threshold=3
+[07:45:59] [ENEMY] [Enemy1] State: COMBAT -> PURSUING
+[07:45:59] [ENEMY] [Enemy4] State: COMBAT -> PURSUING
+[07:45:59] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(450, 745.9444), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[07:45:59] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=3, self=0, below_threshold=3
+[07:46:00] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[07:46:00] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(567.1442, 836.1539), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[07:46:00] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=0, below_threshold=6
+[07:46:00] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(567.7355, 871.1091), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[07:46:00] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=0, below_threshold=6
+[07:46:01] [ENEMY] [Enemy4] Hit taken, health: 1/2
+[07:46:01] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(577.9844, 902.0638), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[07:46:01] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=0, below_threshold=6
+[07:46:01] [ENEMY] [Enemy4] State: PURSUING -> RETREATING
+[07:46:01] [ENEMY] [Enemy4] Hit taken, health: 0/2
+[07:46:01] [ENEMY] [Enemy4] Enemy died
+[07:46:01] [INFO] [SoundPropagation] Unregistered listener: Enemy4 (remaining: 8)
+[07:46:01] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(600.3743, 927.4999), source=PLAYER (AssaultRifle), range=1469, listeners=8
+[07:46:01] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=6
+[07:46:01] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(629.5097, 942.1411), source=PLAYER (AssaultRifle), range=1469, listeners=8
+[07:46:01] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=6
+[07:46:01] [ENEMY] [Enemy7] State: IDLE -> COMBAT
+[07:46:02] [ENEMY] [Enemy10] FLANKING started: target=(673.341, 1027.707), side=right, pos=(955.1431, 1418.083)
+[07:46:02] [ENEMY] [Enemy10] State: PURSUING -> FLANKING
+[07:46:02] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(835.5067, 763.2561), source=PLAYER (AssaultRifle), range=1469, listeners=8
+[07:46:02] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=6
+[07:46:02] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(838.7393, 732.4023), source=PLAYER (AssaultRifle), range=1469, listeners=8
+[07:46:02] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=6
+[07:46:02] [ENEMY] [Enemy2] Hit taken, health: 2/3
+[07:46:02] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[07:46:02] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(851.0541, 711.388), source=PLAYER (AssaultRifle), range=1469, listeners=8
+[07:46:02] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=6
+[07:46:02] [ENEMY] [Enemy2] Hit taken, health: 1/3
+[07:46:03] [ENEMY] [Enemy2] State: PURSUING -> RETREATING
+[07:46:03] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(864.2631, 702.3098), source=PLAYER (AssaultRifle), range=1469, listeners=8
+[07:46:03] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=6
+[07:46:03] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(443.093, 639.5083), source=ENEMY (Enemy2), range=1469, listeners=8
+[07:46:03] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=3, self=1, below_threshold=3
+[07:46:03] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(867.8379, 702.5519), source=PLAYER (AssaultRifle), range=1469, listeners=8
+[07:46:03] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=6
+[07:46:03] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(445.7567, 629.1796), source=ENEMY (Enemy2), range=1469, listeners=8
+[07:46:03] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=3, self=1, below_threshold=3
+[07:46:03] [ENEMY] [Enemy2] Hit taken, health: 0/3
+[07:46:03] [ENEMY] [Enemy2] Enemy died
+[07:46:03] [INFO] [SoundPropagation] Unregistered listener: Enemy2 (remaining: 7)
+[07:46:03] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(861.0911, 711.7316), source=PLAYER (AssaultRifle), range=1469, listeners=7
+[07:46:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=0, below_threshold=6
+[07:46:04] [ENEMY] [Enemy10] State: FLANKING -> COMBAT
+[07:46:04] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(506.296, 641.8547), source=PLAYER (AssaultRifle), range=1469, listeners=7
+[07:46:04] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=2, self=0, below_threshold=3
+[07:46:05] [ENEMY] [Enemy1] Hit taken, health: 3/4
+[07:46:05] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(471.096, 641.8547), source=PLAYER (AssaultRifle), range=1469, listeners=7
+[07:46:05] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=0, below_threshold=2
+[07:46:05] [ENEMY] [Enemy1] Hit taken, health: 2/4
+[07:46:05] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(435.9777, 641.6576), source=PLAYER (AssaultRifle), range=1469, listeners=7
+[07:46:05] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=0, below_threshold=2
+[07:46:05] [ENEMY] [Enemy1] State: PURSUING -> RETREATING
+[07:46:05] [ENEMY] [Enemy1] Hit taken, health: 1/4
+[07:46:05] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(455.3705, 428.984), source=ENEMY (Enemy1), range=1469, listeners=7
+[07:46:05] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=3, self=1, below_threshold=2
+[07:46:05] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(404.3698, 632.9854), source=PLAYER (AssaultRifle), range=1469, listeners=7
+[07:46:05] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=0, below_threshold=2
+[07:46:05] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(450.7148, 419.3904), source=ENEMY (Enemy1), range=1469, listeners=7
+[07:46:05] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=3, self=1, below_threshold=2
+[07:46:05] [ENEMY] [Enemy1] Hit taken, health: 0/4
+[07:46:05] [ENEMY] [Enemy1] Enemy died
+[07:46:05] [INFO] [SoundPropagation] Unregistered listener: Enemy1 (remaining: 6)
+[07:46:05] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(377.8702, 611.9808), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[07:46:05] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=3, self=0, below_threshold=2
+[07:46:05] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(354.1626, 586.6008), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[07:46:05] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=3, self=0, below_threshold=2
+[07:46:07] [ENEMY] [Enemy7] FLANKING started: target=(615.2319, 496.9518), side=left, pos=(1421.345, 838.2307)
+[07:46:07] [ENEMY] [Enemy7] State: PURSUING -> FLANKING
+[07:46:07] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(459.4379, 875.7982), source=ENEMY (Enemy10), range=1469, listeners=6
+[07:46:07] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=3, self=1, below_threshold=2
+[07:46:07] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[07:46:07] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(667.4199, 646.6642), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[07:46:07] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=2, self=0, below_threshold=3
+[07:46:07] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(702.3751, 647.2554), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[07:46:07] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=4
+[07:46:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(733.3298, 657.5044), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[07:46:08] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=4
+[07:46:08] [ENEMY] [Enemy10] State: PURSUING -> RETREATING
+[07:46:08] [ENEMY] [Enemy10] State: RETREATING -> IN_COVER
+[07:46:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(759.3571, 679.6494), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[07:46:08] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=4
+[07:46:08] [ENEMY] [Enemy10] State: IN_COVER -> SUPPRESSED
+[07:46:09] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(688.9818, 607.0914), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[07:46:09] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=2, self=0, below_threshold=3
+[07:46:09] [ENEMY] [Enemy10] State: SUPPRESSED -> SEEKING_COVER
+[07:46:09] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(661.7581, 579.8677), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[07:46:09] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=2, self=0, below_threshold=3
+[07:46:09] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(634.8423, 552.5165), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[07:46:09] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=2, self=0, below_threshold=3
+[07:46:09] [ENEMY] [Enemy5] Player ammo empty state changed: false -> true
+[07:46:09] [ENEMY] [Enemy6] Player ammo empty state changed: false -> true
+[07:46:09] [ENEMY] [Enemy7] Player ammo empty state changed: false -> true
+[07:46:09] [ENEMY] [Enemy8] Player ammo empty state changed: false -> true
+[07:46:09] [ENEMY] [Enemy9] Player ammo empty state changed: false -> true
+[07:46:09] [ENEMY] [Enemy10] Player ammo empty state changed: false -> true
+[07:46:09] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(631.5692, 548.3723), source=PLAYER (Player), range=600, listeners=6
+[07:46:09] [ENEMY] [Enemy10] Heard player EMPTY_CLICK at (631.5692, 548.3723), intensity=0.02, distance=391
+[07:46:09] [ENEMY] [Enemy10] Vulnerability sound triggered pursuit - transitioning from SEEKING_COVER to PURSUING
+[07:46:09] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=5, self=0, below_threshold=0
+[07:46:09] [ENEMY] [Enemy5] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1087), can_see=false
+[07:46:09] [ENEMY] [Enemy6] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1322), can_see=false
+[07:46:09] [ENEMY] [Enemy7] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=972), can_see=false
+[07:46:09] [ENEMY] [Enemy8] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1556), can_see=false
+[07:46:09] [ENEMY] [Enemy9] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1778), can_see=false
+[07:46:09] [ENEMY] [Enemy10] Player vulnerable (ammo_empty) but cannot attack: close=true (dist=391), can_see=false
+[07:46:09] [ENEMY] [Enemy10] Pursuing vulnerability sound at (631.5692, 548.3723), distance=391
+[07:46:09] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(628.6039, 544.1005), source=PLAYER (Player), range=600, listeners=6
+[07:46:09] [ENEMY] [Enemy10] Heard player EMPTY_CLICK at (628.6039, 544.1005), intensity=0.02, distance=388
+[07:46:09] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=5, self=0, below_threshold=0
+[07:46:09] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(625.9716, 539.8473), source=PLAYER (Player), range=600, listeners=6
+[07:46:09] [ENEMY] [Enemy10] Heard player EMPTY_CLICK at (625.9716, 539.8473), intensity=0.02, distance=386
+[07:46:09] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=5, self=0, below_threshold=0
+[07:46:09] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(623.6345, 535.7486), source=PLAYER (Player), range=600, listeners=6
+[07:46:09] [ENEMY] [Enemy10] Heard player EMPTY_CLICK at (623.6345, 535.7486), intensity=0.02, distance=384
+[07:46:09] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=5, self=0, below_threshold=0
+[07:46:09] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(621.5929, 531.8044), source=PLAYER (Player), range=600, listeners=6
+[07:46:09] [ENEMY] [Enemy10] Heard player EMPTY_CLICK at (621.5929, 531.8044), intensity=0.02, distance=382
+[07:46:09] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=5, self=0, below_threshold=0
+[07:46:09] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(619.8466, 528.0146), source=PLAYER (Player), range=600, listeners=6
+[07:46:09] [ENEMY] [Enemy10] Heard player EMPTY_CLICK at (619.8466, 528.0146), intensity=0.02, distance=379
+[07:46:09] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=5, self=0, below_threshold=0
+[07:46:09] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(618.3958, 524.3794), source=PLAYER (Player), range=600, listeners=6
+[07:46:09] [ENEMY] [Enemy10] Heard player EMPTY_CLICK at (618.3958, 524.3794), intensity=0.02, distance=377
+[07:46:09] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=5, self=0, below_threshold=0
+[07:46:09] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(617.2402, 520.8986), source=PLAYER (Player), range=600, listeners=6
+[07:46:09] [ENEMY] [Enemy10] Heard player EMPTY_CLICK at (617.2402, 520.8986), intensity=0.02, distance=375
+[07:46:09] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=5, self=0, below_threshold=0
+[07:46:09] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(616.3801, 517.5723), source=PLAYER (Player), range=600, listeners=6
+[07:46:09] [ENEMY] [Enemy10] Heard player EMPTY_CLICK at (616.3801, 517.5723), intensity=0.02, distance=372
+[07:46:09] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=5, self=0, below_threshold=0
+[07:46:09] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(615.8154, 514.4005), source=PLAYER (Player), range=600, listeners=6
+[07:46:09] [ENEMY] [Enemy10] Heard player EMPTY_CLICK at (615.8154, 514.4005), intensity=0.02, distance=370
+[07:46:09] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=5, self=0, below_threshold=0
+[07:46:09] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(615.546, 511.3831), source=PLAYER (Player), range=600, listeners=6
+[07:46:09] [ENEMY] [Enemy10] Heard player EMPTY_CLICK at (615.546, 511.3831), intensity=0.02, distance=369
+[07:46:09] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=5, self=0, below_threshold=0
+[07:46:09] [ENEMY] [Enemy10] Player empty ammo - priority attack triggered
+[07:46:09] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(468.6339, 849.729), source=ENEMY (Enemy10), range=1469, listeners=6
+[07:46:09] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=3, self=1, below_threshold=2
+[07:46:09] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(615.572, 508.5203), source=PLAYER (Player), range=600, listeners=6
+[07:46:09] [ENEMY] [Enemy10] Heard player EMPTY_CLICK at (615.572, 508.5203), intensity=0.02, distance=368
+[07:46:09] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=5, self=0, below_threshold=0
+[07:46:09] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(615.8933, 505.8119), source=PLAYER (Player), range=600, listeners=6
+[07:46:09] [ENEMY] [Enemy10] Heard player EMPTY_CLICK at (615.8933, 505.8119), intensity=0.02, distance=365
+[07:46:09] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=5, self=0, below_threshold=0
+[07:46:09] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(616.5101, 503.2579), source=PLAYER (Player), range=600, listeners=6
+[07:46:09] [ENEMY] [Enemy10] Heard player EMPTY_CLICK at (616.5101, 503.2579), intensity=0.02, distance=363
+[07:46:09] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=5, self=0, below_threshold=0
+[07:46:09] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(617.4222, 500.8585), source=PLAYER (Player), range=600, listeners=6
+[07:46:09] [ENEMY] [Enemy10] Heard player EMPTY_CLICK at (617.4222, 500.8585), intensity=0.02, distance=360
+[07:46:09] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=5, self=0, below_threshold=0
+[07:46:09] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(618.6297, 498.6135), source=PLAYER (Player), range=600, listeners=6
+[07:46:09] [ENEMY] [Enemy10] Heard player EMPTY_CLICK at (618.6297, 498.6135), intensity=0.02, distance=357
+[07:46:09] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=5, self=0, below_threshold=0
+[07:46:09] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(620.1326, 496.523), source=PLAYER (Player), range=600, listeners=6
+[07:46:09] [ENEMY] [Enemy10] Heard player EMPTY_CLICK at (620.1326, 496.523), intensity=0.02, distance=355
+[07:46:09] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=5, self=0, below_threshold=0
+[07:46:09] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(621.759, 494.7422), source=PLAYER (Player), range=600, listeners=6
+[07:46:09] [ENEMY] [Enemy10] Heard player EMPTY_CLICK at (621.759, 494.7422), intensity=0.02, distance=352
+[07:46:09] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=5, self=0, below_threshold=0
+[07:46:09] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(623.5089, 493.2709), source=PLAYER (Player), range=600, listeners=6
+[07:46:09] [ENEMY] [Enemy10] Heard player EMPTY_CLICK at (623.5089, 493.2709), intensity=0.02, distance=350
+[07:46:09] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=5, self=0, below_threshold=0
+[07:46:09] [ENEMY] [Enemy10] Player empty ammo - priority attack triggered
+[07:46:09] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(469.5367, 807.8804), source=ENEMY (Enemy10), range=1469, listeners=6
+[07:46:09] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=3, self=1, below_threshold=2
+[07:46:09] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(625.3824, 492.1092), source=PLAYER (Player), range=600, listeners=6
+[07:46:09] [ENEMY] [Enemy10] Heard player EMPTY_CLICK at (625.3824, 492.1092), intensity=0.02, distance=348
+[07:46:09] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=5, self=0, below_threshold=0
+[07:46:09] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(627.3795, 491.2571), source=PLAYER (Player), range=600, listeners=6
+[07:46:09] [ENEMY] [Enemy10] Heard player EMPTY_CLICK at (627.3795, 491.2571), intensity=0.02, distance=345
+[07:46:09] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=5, self=0, below_threshold=0
+[07:46:10] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(629.5001, 490.7146), source=PLAYER (Player), range=600, listeners=6
+[07:46:10] [ENEMY] [Enemy10] Heard player EMPTY_CLICK at (629.5001, 490.7146), intensity=0.02, distance=341
+[07:46:10] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=5, self=0, below_threshold=0
+[07:46:10] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(631.5104, 490.4866), source=PLAYER (Player), range=600, listeners=6
+[07:46:10] [ENEMY] [Enemy10] Heard player EMPTY_CLICK at (631.5104, 490.4866), intensity=0.02, distance=337
+[07:46:10] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=5, self=0, below_threshold=0
+[07:46:10] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(633.4102, 490.5731), source=PLAYER (Player), range=600, listeners=6
+[07:46:10] [ENEMY] [Enemy10] Heard player EMPTY_CLICK at (633.4102, 490.5731), intensity=0.02, distance=332
+[07:46:10] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=5, self=0, below_threshold=0
+[07:46:10] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(635.1997, 490.9742), source=PLAYER (Player), range=600, listeners=6
+[07:46:10] [ENEMY] [Enemy10] Heard player EMPTY_CLICK at (635.1997, 490.9742), intensity=0.02, distance=328
+[07:46:10] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=5, self=0, below_threshold=0
+[07:46:10] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(636.8788, 491.6898), source=PLAYER (Player), range=600, listeners=6
+[07:46:10] [ENEMY] [Enemy10] Heard player EMPTY_CLICK at (636.8788, 491.6898), intensity=0.02, distance=323
+[07:46:10] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=5, self=0, below_threshold=0
+[07:46:10] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(638.4474, 492.7199), source=PLAYER (Player), range=600, listeners=6
+[07:46:10] [ENEMY] [Enemy10] Heard player EMPTY_CLICK at (638.4474, 492.7199), intensity=0.02, distance=318
+[07:46:10] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=5, self=0, below_threshold=0
+[07:46:10] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(639.9058, 494.0645), source=PLAYER (Player), range=600, listeners=6
+[07:46:10] [ENEMY] [Enemy10] Heard player EMPTY_CLICK at (639.9058, 494.0645), intensity=0.03, distance=313
+[07:46:10] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=5, self=0, below_threshold=0
+[07:46:10] [ENEMY] [Enemy10] Player empty ammo - priority attack triggered
+[07:46:10] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(488.8657, 768.7744), source=ENEMY (Enemy10), range=1469, listeners=6
+[07:46:10] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=3, self=1, below_threshold=2
+[07:46:10] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(641.5944, 495.6502), source=PLAYER (Player), range=600, listeners=6
+[07:46:10] [ENEMY] [Enemy10] Heard player EMPTY_CLICK at (641.5944, 495.6502), intensity=0.03, distance=309
+[07:46:10] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=5, self=0, below_threshold=0
+[07:46:10] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(643.5132, 497.4769), source=PLAYER (Player), range=600, listeners=6
+[07:46:10] [ENEMY] [Enemy10] Heard player EMPTY_CLICK at (643.5132, 497.4769), intensity=0.03, distance=303
+[07:46:10] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=5, self=0, below_threshold=0
+[07:46:10] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(645.6623, 499.5446), source=PLAYER (Player), range=600, listeners=6
+[07:46:10] [ENEMY] [Enemy10] Heard player EMPTY_CLICK at (645.6623, 499.5446), intensity=0.03, distance=297
+[07:46:10] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=5, self=0, below_threshold=0
+[07:46:10] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(648.0416, 501.8534), source=PLAYER (Player), range=600, listeners=6
+[07:46:10] [ENEMY] [Enemy10] Heard player EMPTY_CLICK at (648.0416, 501.8534), intensity=0.03, distance=291
+[07:46:10] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=5, self=0, below_threshold=0
+[07:46:10] [ENEMY] [Enemy5] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1063), can_see=false
+[07:46:10] [ENEMY] [Enemy6] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1303), can_see=false
+[07:46:10] [ENEMY] [Enemy7] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=821), can_see=false
+[07:46:10] [ENEMY] [Enemy8] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1570), can_see=false
+[07:46:10] [ENEMY] [Enemy9] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1791), can_see=false
+[07:46:10] [ENEMY] [Enemy10] Player vulnerable (ammo_empty) but cannot attack: close=true (dist=291), can_see=false
+[07:46:10] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(650.6512, 504.4031), source=PLAYER (Player), range=600, listeners=6
+[07:46:10] [ENEMY] [Enemy10] Heard player EMPTY_CLICK at (650.6512, 504.4031), intensity=0.03, distance=288
+[07:46:10] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=5, self=0, below_threshold=0
+[07:46:10] [ENEMY] [Enemy10] Player empty ammo - priority attack triggered
+[07:46:10] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(504.6994, 752.4713), source=ENEMY (Enemy10), range=1469, listeners=6
+[07:46:10] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=3, self=1, below_threshold=2
+[07:46:10] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(653.4911, 507.1939), source=PLAYER (Player), range=600, listeners=6
+[07:46:10] [ENEMY] [Enemy10] Heard player EMPTY_CLICK at (653.4911, 507.1939), intensity=0.03, distance=284
+[07:46:10] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=5, self=0, below_threshold=0
+[07:46:10] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(656.5612, 510.2258), source=PLAYER (Player), range=600, listeners=6
+[07:46:10] [ENEMY] [Enemy10] Heard player EMPTY_CLICK at (656.5612, 510.2258), intensity=0.03, distance=280
+[07:46:10] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=5, self=0, below_threshold=0
+[07:46:10] [ENEMY] [Enemy10] Player empty ammo - priority attack triggered
+[07:46:10] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(515.1716, 751.3546), source=ENEMY (Enemy10), range=1469, listeners=6
+[07:46:10] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=1, below_threshold=3
+[07:46:10] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(659.8616, 513.4986), source=PLAYER (Player), range=600, listeners=6
+[07:46:10] [ENEMY] [Enemy10] Heard player EMPTY_CLICK at (659.8616, 513.4986), intensity=0.03, distance=275
+[07:46:10] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=5, self=0, below_threshold=0
+[07:46:10] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(663.3922, 517.0125), source=PLAYER (Player), range=600, listeners=6
+[07:46:10] [ENEMY] [Enemy10] Heard player EMPTY_CLICK at (663.3922, 517.0125), intensity=0.03, distance=269
+[07:46:10] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=5, self=0, below_threshold=0
+[07:46:10] [ENEMY] [Enemy10] Player empty ammo - priority attack triggered
+[07:46:10] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(525.1672, 747.7347), source=ENEMY (Enemy10), range=1469, listeners=6
+[07:46:10] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=1, below_threshold=3
+[07:46:10] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(667.1531, 520.7673), source=PLAYER (Player), range=600, listeners=6
+[07:46:10] [ENEMY] [Enemy10] Heard player EMPTY_CLICK at (667.1531, 520.7673), intensity=0.04, distance=263
+[07:46:10] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=5, self=0, below_threshold=0
+[07:46:10] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(671.0422, 524.6564), source=PLAYER (Player), range=600, listeners=6
+[07:46:10] [ENEMY] [Enemy10] Heard player EMPTY_CLICK at (671.0422, 524.6564), intensity=0.04, distance=257
+[07:46:10] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=5, self=0, below_threshold=0
+[07:46:10] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(674.9313, 528.5455), source=PLAYER (Player), range=600, listeners=6
+[07:46:10] [ENEMY] [Enemy10] Heard player EMPTY_CLICK at (674.9313, 528.5455), intensity=0.04, distance=251
+[07:46:10] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=5, self=0, below_threshold=0
+[07:46:10] [ENEMY] [Enemy10] Player empty ammo - priority attack triggered
+[07:46:10] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(538.7487, 739.3889), source=ENEMY (Enemy10), range=1469, listeners=6
+[07:46:10] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=1, below_threshold=3
+[07:46:10] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(678.8204, 532.4346), source=PLAYER (Player), range=600, listeners=6
+[07:46:10] [ENEMY] [Enemy10] Heard player EMPTY_CLICK at (678.8204, 532.4346), intensity=0.04, distance=245
+[07:46:10] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=5, self=0, below_threshold=0
+[07:46:10] [ENEMY] [Enemy10] Player empty ammo - priority attack triggered
+[07:46:10] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(543.1342, 736.3537), source=ENEMY (Enemy10), range=1469, listeners=6
+[07:46:10] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=1, below_threshold=3
+[07:46:10] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(682.7095, 536.3237), source=PLAYER (Player), range=600, listeners=6
+[07:46:10] [ENEMY] [Enemy10] Heard player EMPTY_CLICK at (682.7095, 536.3237), intensity=0.04, distance=239
+[07:46:10] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=5, self=0, below_threshold=0
+[07:46:10] [ENEMY] [Enemy10] Player empty ammo - priority attack triggered
+[07:46:10] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(547.5196, 733.3185), source=ENEMY (Enemy10), range=1469, listeners=6
+[07:46:10] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=1, below_threshold=3
+[07:46:10] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(686.5986, 540.2128), source=PLAYER (Player), range=600, listeners=6
+[07:46:10] [ENEMY] [Enemy10] Heard player EMPTY_CLICK at (686.5986, 540.2128), intensity=0.05, distance=233
+[07:46:10] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=5, self=0, below_threshold=0
+[07:46:10] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(690.4877, 544.1019), source=PLAYER (Player), range=600, listeners=6
+[07:46:10] [ENEMY] [Enemy10] Heard player EMPTY_CLICK at (690.4877, 544.1019), intensity=0.05, distance=227
+[07:46:10] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=5, self=0, below_threshold=0
+[07:46:10] [ENEMY] [Enemy10] Player empty ammo - priority attack triggered
+[07:46:10] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(556.4535, 727.4984), source=ENEMY (Enemy10), range=1469, listeners=6
+[07:46:10] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=1, below_threshold=3
+[07:46:10] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(694.3768, 547.991), source=PLAYER (Player), range=600, listeners=6
+[07:46:10] [ENEMY] [Enemy10] Heard player EMPTY_CLICK at (694.3768, 547.991), intensity=0.05, distance=221
+[07:46:10] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=5, self=0, below_threshold=0
+[07:46:10] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(698.2659, 551.8801), source=PLAYER (Player), range=600, listeners=6
+[07:46:10] [ENEMY] [Enemy10] Heard player EMPTY_CLICK at (698.2659, 551.8801), intensity=0.05, distance=215
+[07:46:10] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=5, self=0, below_threshold=0
+[07:46:10] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(702.155, 555.7692), source=PLAYER (Player), range=600, listeners=6
+[07:46:10] [ENEMY] [Enemy10] Heard player EMPTY_CLICK at (702.155, 555.7692), intensity=0.06, distance=209
+[07:46:10] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=5, self=0, below_threshold=0
+[07:46:10] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(706.0441, 559.6583), source=PLAYER (Player), range=600, listeners=6
+[07:46:10] [ENEMY] [Enemy10] Heard player EMPTY_CLICK at (706.0441, 559.6583), intensity=0.06, distance=204
+[07:46:10] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=5, self=0, below_threshold=0
+[07:46:10] [ENEMY] [Enemy7] Player vulnerable (ammo_empty) - pursuing to attack (dist=699)
+[07:46:10] [ENEMY] [Enemy7] State: FLANKING -> PURSUING
+[07:46:10] [ENEMY] [Enemy10] Player empty ammo - priority attack triggered
+[07:46:10] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(570.9615, 712.1957), source=ENEMY (Enemy10), range=1469, listeners=6
+[07:46:10] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=1, below_threshold=3
+[07:46:10] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(709.9332, 563.5474), source=PLAYER (Player), range=600, listeners=6
+[07:46:10] [ENEMY] [Enemy10] Heard player EMPTY_CLICK at (709.9332, 563.5474), intensity=0.06, distance=198
+[07:46:10] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=5, self=0, below_threshold=0
+[07:46:10] [ENEMY] [Enemy10] Player empty ammo - priority attack triggered
+[07:46:10] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(574.3887, 708.1093), source=ENEMY (Enemy10), range=1469, listeners=6
+[07:46:10] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=1, below_threshold=3
+[07:46:10] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(713.8223, 567.4365), source=PLAYER (Player), range=600, listeners=6
+[07:46:10] [ENEMY] [Enemy10] Heard player EMPTY_CLICK at (713.8223, 567.4365), intensity=0.07, distance=193
+[07:46:10] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=5, self=0, below_threshold=0
+[07:46:10] [ENEMY] [Enemy10] Player empty ammo - priority attack triggered
+[07:46:10] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(577.816, 704.0229), source=ENEMY (Enemy10), range=1469, listeners=6
+[07:46:10] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=1, below_threshold=3
+[07:46:10] [ENEMY] [Enemy10] Player empty ammo - priority attack triggered
+[07:46:10] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(581.2432, 699.9366), source=ENEMY (Enemy10), range=1469, listeners=6
+[07:46:10] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=1, below_threshold=3
+[07:46:10] [ENEMY] [Enemy10] Player empty ammo - priority attack triggered
+[07:46:10] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(584.6705, 695.8502), source=ENEMY (Enemy10), range=1469, listeners=6
+[07:46:10] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=1, below_threshold=3
+[07:46:10] [ENEMY] [Enemy10] Player empty ammo - priority attack triggered
+[07:46:10] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(588.0977, 691.7639), source=ENEMY (Enemy10), range=1469, listeners=6
+[07:46:10] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=1, below_threshold=3
+[07:46:10] [ENEMY] [Enemy10] Player empty ammo - priority attack triggered
+[07:46:10] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(591.525, 687.6775), source=ENEMY (Enemy10), range=1469, listeners=6
+[07:46:10] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=1, below_threshold=3
+[07:46:10] [ENEMY] [Enemy10] Player empty ammo - priority attack triggered
+[07:46:10] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(594.9522, 683.5911), source=ENEMY (Enemy10), range=1469, listeners=6
+[07:46:10] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=1, below_threshold=3
+[07:46:10] [ENEMY] [Enemy10] Player empty ammo - priority attack triggered
+[07:46:10] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(598.3795, 679.5048), source=ENEMY (Enemy10), range=1469, listeners=6
+[07:46:10] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=1, below_threshold=3
+[07:46:10] [ENEMY] [Enemy10] Player empty ammo - priority attack triggered
+[07:46:10] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(601.8067, 675.4184), source=ENEMY (Enemy10), range=1469, listeners=6
+[07:46:10] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=1, below_threshold=3
+[07:46:10] [ENEMY] [Enemy10] Player empty ammo - priority attack triggered
+[07:46:10] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(605.2339, 671.332), source=ENEMY (Enemy10), range=1469, listeners=6
+[07:46:10] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=1, below_threshold=3
+[07:46:10] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 7)
+[07:46:10] [ENEMY] [Enemy1] Registered as sound listener
+[07:46:10] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 4, behavior: GUARD, player_found: yes
+[07:46:10] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 8)
+[07:46:10] [ENEMY] [Enemy2] Registered as sound listener
+[07:46:10] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 3, behavior: GUARD, player_found: yes
+[07:46:10] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 9)
+[07:46:10] [ENEMY] [Enemy3] Registered as sound listener
+[07:46:10] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 3, behavior: GUARD, player_found: yes
+[07:46:10] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 10)
+[07:46:10] [ENEMY] [Enemy4] Registered as sound listener
+[07:46:10] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 2, behavior: GUARD, player_found: yes
+[07:46:10] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 11)
+[07:46:10] [ENEMY] [Enemy5] Registered as sound listener
+[07:46:10] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 2, behavior: GUARD, player_found: yes
+[07:46:10] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 12)
+[07:46:10] [ENEMY] [Enemy6] Registered as sound listener
+[07:46:10] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 3, behavior: GUARD, player_found: yes
+[07:46:10] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 13)
+[07:46:10] [ENEMY] [Enemy7] Registered as sound listener
+[07:46:10] [ENEMY] [Enemy7] Enemy spawned at (1600, 900), health: 3, behavior: PATROL, player_found: yes
+[07:46:10] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 14)
+[07:46:10] [ENEMY] [Enemy8] Registered as sound listener
+[07:46:10] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 4, behavior: GUARD, player_found: yes
+[07:46:10] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 15)
+[07:46:10] [ENEMY] [Enemy9] Registered as sound listener
+[07:46:10] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 3, behavior: GUARD, player_found: yes
+[07:46:10] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 16)
+[07:46:10] [ENEMY] [Enemy10] Registered as sound listener
+[07:46:10] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 3, behavior: PATROL, player_found: yes
+[07:46:11] [ENEMY] [Enemy10] State: IDLE -> COMBAT
+[07:46:12] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[07:46:13] [ENEMY] [Enemy3] State: IDLE -> COMBAT
+[07:46:13] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(433.5957, 768.3378), source=PLAYER (AssaultRifle), range=1469, listeners=16
+[07:46:13] [INFO] [SoundPropagation] Cleaned up 6 invalid listeners
+[07:46:13] [ENEMY] [Enemy1] Heard gunshot at (433.5957, 768.3378), source_type=0, intensity=0.01, distance=439
+[07:46:13] [ENEMY] [Enemy2] Heard gunshot at (433.5957, 768.3378), source_type=0, intensity=0.05, distance=221
+[07:46:13] [ENEMY] [Enemy4] Heard gunshot at (433.5957, 768.3378), source_type=0, intensity=0.02, distance=389
+[07:46:13] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=3, self=0, below_threshold=3
+[07:46:13] [ENEMY] [Enemy3] Hit taken, health: 2/3
+[07:46:13] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(433.5957, 745.9734), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[07:46:13] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=3, self=0, below_threshold=3
+[07:46:13] [ENEMY] [Enemy3] Hit taken, health: 1/3
+[07:46:13] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(433.5957, 738.2934), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[07:46:13] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=3, self=0, below_threshold=3
+[07:46:13] [ENEMY] [Enemy3] State: COMBAT -> RETREATING
+[07:46:13] [ENEMY] [Enemy3] Hit taken, health: 0/3
+[07:46:13] [ENEMY] [Enemy3] Enemy died
+[07:46:13] [INFO] [SoundPropagation] Unregistered listener: Enemy3 (remaining: 9)
+[07:46:13] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(433.5957, 744.2668), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[07:46:13] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=3, self=0, below_threshold=3
+[07:46:13] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(433.5957, 759.9824), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[07:46:13] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=3, self=0, below_threshold=3
+[07:46:13] [ENEMY] [Enemy1] State: COMBAT -> PURSUING
+[07:46:13] [ENEMY] [Enemy4] State: COMBAT -> PURSUING
+[07:46:14] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[07:46:15] [ENEMY] [Enemy4] State: PURSUING -> COMBAT
+[07:46:15] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(587.1645, 921.1301), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[07:46:15] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=0, below_threshold=6
+[07:46:15] [ENEMY] [Enemy4] Hit taken, health: 1/2
+[07:46:15] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(591.3035, 954.6157), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[07:46:15] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=0, below_threshold=6
+[07:46:15] [ENEMY] [Enemy4] State: COMBAT -> RETREATING
+[07:46:15] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(607.5953, 982.6529), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[07:46:15] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=0, below_threshold=6
+[07:46:15] [ENEMY] [Enemy1] FLANKING started: target=(410.4849, 992.814), side=left, pos=(238.8713, 401.9333)
+[07:46:15] [ENEMY] [Enemy1] State: PURSUING -> FLANKING
+[07:46:15] [ENEMY] [Enemy4] Hit taken, health: 0/2
+[07:46:15] [ENEMY] [Enemy4] Enemy died
+[07:46:15] [INFO] [SoundPropagation] Unregistered listener: Enemy4 (remaining: 8)
+[07:46:15] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(635.1074, 983.9335), source=PLAYER (AssaultRifle), range=1469, listeners=8
+[07:46:15] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=6
+[07:46:15] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(670.3066, 983.9335), source=PLAYER (AssaultRifle), range=1469, listeners=8
+[07:46:15] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=0, below_threshold=7
+[07:46:16] [ENEMY] [Enemy1] Player reloading state changed: false -> true
+[07:46:16] [ENEMY] [Enemy2] Player reloading state changed: false -> true
+[07:46:16] [ENEMY] [Enemy4] Player reloading state changed: false -> true
+[07:46:16] [ENEMY] [Enemy5] Player reloading state changed: false -> true
+[07:46:16] [ENEMY] [Enemy6] Player reloading state changed: false -> true
+[07:46:16] [ENEMY] [Enemy7] Player reloading state changed: false -> true
+[07:46:16] [ENEMY] [Enemy8] Player reloading state changed: false -> true
+[07:46:16] [ENEMY] [Enemy9] Player reloading state changed: false -> true
+[07:46:16] [ENEMY] [Enemy10] Player reloading state changed: false -> true
+[07:46:16] [INFO] [SoundPropagation] Sound emitted: type=RELOAD, pos=(750.6928, 960.9846), source=PLAYER (Player), range=900, listeners=8
+[07:46:16] [ENEMY] [Enemy10] Heard player RELOAD at (750.6928, 960.9846), intensity=0.01, distance=458
+[07:46:16] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=4, self=0, below_threshold=3
+[07:46:16] [ENEMY] [Enemy1] Player vulnerable (reloading) but cannot attack: close=false (dist=717), can_see=false
+[07:46:16] [ENEMY] [Enemy2] Player vulnerable (reloading) but cannot attack: close=false (dist=519), can_see=false
+[07:46:16] [ENEMY] [Enemy5] Player vulnerable (reloading) but cannot attack: close=false (dist=1129), can_see=false
+[07:46:16] [ENEMY] [Enemy6] Player vulnerable (reloading) but cannot attack: close=false (dist=1304), can_see=false
+[07:46:16] [ENEMY] [Enemy7] Player vulnerable (reloading) but cannot attack: close=false (dist=863), can_see=false
+[07:46:16] [ENEMY] [Enemy8] Player vulnerable (reloading) but cannot attack: close=false (dist=1249), can_see=false
+[07:46:16] [ENEMY] [Enemy9] Player vulnerable (reloading) but cannot attack: close=false (dist=1472), can_see=false
+[07:46:16] [ENEMY] [Enemy10] Player vulnerable (reloading) but cannot attack: close=false (dist=458), can_see=false
+[07:46:16] [ENEMY] [Enemy10] Pursuing vulnerability sound at (750.6928, 960.9846), distance=458
+[07:46:16] [ENEMY] [Enemy10] Player vulnerable (reloading) - pursuing to attack (dist=458)
+[07:46:16] [ENEMY] [Enemy7] Player vulnerable (reloading) - pursuing to attack (dist=842)
+[07:46:16] [ENEMY] [Enemy7] State: IDLE -> PURSUING
+[07:46:16] [ENEMY] [Enemy1] Player reloading state changed: true -> false
+[07:46:16] [ENEMY] [Enemy2] Player reloading state changed: true -> false
+[07:46:16] [ENEMY] [Enemy4] Player reloading state changed: true -> false
+[07:46:16] [ENEMY] [Enemy5] Player reloading state changed: true -> false
+[07:46:16] [ENEMY] [Enemy6] Player reloading state changed: true -> false
+[07:46:16] [ENEMY] [Enemy7] Player reloading state changed: true -> false
+[07:46:16] [ENEMY] [Enemy8] Player reloading state changed: true -> false
+[07:46:16] [ENEMY] [Enemy9] Player reloading state changed: true -> false
+[07:46:16] [ENEMY] [Enemy10] Player reloading state changed: true -> false
+[07:46:17] [ENEMY] [Enemy10] Pursuing vulnerability sound at (750.6928, 960.9846), distance=279
+[07:46:17] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(822.3244, 755.9115), source=PLAYER (AssaultRifle), range=1469, listeners=8
+[07:46:17] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=1, self=0, below_threshold=4
+[07:46:17] [ENEMY] [Enemy1] State: FLANKING -> COMBAT
+[07:46:17] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(847.3725, 738.23), source=PLAYER (AssaultRifle), range=1469, listeners=8
+[07:46:17] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=1, self=0, below_threshold=4
+[07:46:17] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(865.9258, 730.6735), source=PLAYER (AssaultRifle), range=1469, listeners=8
+[07:46:17] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=0, below_threshold=5
+[07:46:17] [ENEMY] [Enemy2] Hit taken, health: 2/3
+[07:46:17] [ENEMY] [Enemy1] State: COMBAT -> RETREATING
+[07:46:17] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(879.0441, 735.6418), source=PLAYER (AssaultRifle), range=1469, listeners=8
+[07:46:17] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=0, self=0, below_threshold=5
+[07:46:17] [ENEMY] [Enemy1] Hit taken, health: 3/4
+[07:46:17] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(886.7275, 753.1352), source=PLAYER (AssaultRifle), range=1469, listeners=8
+[07:46:17] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0, below_threshold=6
+[07:46:17] [ENEMY] [Enemy2] State: PURSUING -> RETREATING
+[07:46:17] [ENEMY] [Enemy1] Hit taken, health: 2/4
+[07:46:18] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(398.9299, 636.1398), source=ENEMY (Enemy2), range=1469, listeners=8
+[07:46:18] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=3, self=1, below_threshold=3
+[07:46:18] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(886.2833, 778.8552), source=PLAYER (AssaultRifle), range=1469, listeners=8
+[07:46:18] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0, below_threshold=6
+[07:46:18] [ENEMY] [Enemy1] Hit taken, health: 1/4
+[07:46:18] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(405.2091, 627.517), source=ENEMY (Enemy2), range=1469, listeners=8
+[07:46:18] [ENEMY] [Enemy1] Heard gunshot at (405.2091, 627.517), source_type=1, intensity=0.48, distance=72
+[07:46:18] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=3, self=1, below_threshold=3
+[07:46:18] [ENEMY] [Enemy1] Hit taken, health: 0/4
+[07:46:18] [ENEMY] [Enemy1] Enemy died
+[07:46:18] [INFO] [SoundPropagation] Unregistered listener: Enemy1 (remaining: 7)
+[07:46:18] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(872.326, 804.2056), source=PLAYER (AssaultRifle), range=1469, listeners=7
+[07:46:18] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0, below_threshold=5
+[07:46:18] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(411.4882, 618.8943), source=ENEMY (Enemy2), range=1469, listeners=7
+[07:46:18] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=3, self=1, below_threshold=3
+[07:46:18] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(417.7674, 610.2715), source=ENEMY (Enemy2), range=1469, listeners=7
+[07:46:18] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=3, self=1, below_threshold=2
+[07:46:18] [ENEMY] [Enemy2] Hit taken, health: 1/3
+[07:46:18] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(846.8131, 826.1646), source=PLAYER (AssaultRifle), range=1469, listeners=7
+[07:46:18] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0, below_threshold=5
+[07:46:18] [ENEMY] [Enemy10] Pursuing vulnerability sound at (750.6928, 960.9846), distance=254
+[07:46:18] [ENEMY] [Enemy2] Hit taken, health: 0/3
+[07:46:18] [ENEMY] [Enemy2] Enemy died
+[07:46:18] [INFO] [SoundPropagation] Unregistered listener: Enemy2 (remaining: 6)
+[07:46:19] [ENEMY] [Enemy7] FLANKING started: target=(911.4672, 564.4609), side=left, pos=(1432.136, 903.475)
+[07:46:19] [ENEMY] [Enemy7] State: PURSUING -> FLANKING
+[07:46:19] [ENEMY] [Enemy10] Pursuing vulnerability sound at (750.6928, 960.9846), distance=305
+[07:46:19] [ENEMY] [Enemy10] State: PURSUING -> COMBAT
+[07:46:19] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(808.5485, 660.2177), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[07:46:19] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=4
+[07:46:19] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(820.3273, 662.4905), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[07:46:19] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=4
+[07:46:19] [ENEMY] [Enemy10] Hit taken, health: 2/3
+[07:46:19] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(820.4855, 671.9308), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[07:46:19] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=4
+[07:46:20] [ENEMY] [Enemy10] State: COMBAT -> RETREATING
+[07:46:20] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(809.023, 688.5389), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[07:46:20] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=4
+[07:46:20] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(580.0956, 758.739), source=ENEMY (Enemy10), range=1469, listeners=6
+[07:46:20] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=1, below_threshold=3
+[07:46:20] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(585.0248, 768.1985), source=ENEMY (Enemy10), range=1469, listeners=6
+[07:46:20] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=1, below_threshold=3
+[07:46:20] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(791.3944, 712.3026), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[07:46:20] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=4
+[07:46:20] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(589.954, 777.6581), source=ENEMY (Enemy10), range=1469, listeners=6
+[07:46:20] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=1, below_threshold=3
+[07:46:20] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(784.3266, 743.1855), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[07:46:20] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=4
+[07:46:20] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(784.8536, 778.1015), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[07:46:20] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=4
+[07:46:20] [ENEMY] [Enemy10] State: RETREATING -> IN_COVER
+[07:46:20] [ENEMY] [Enemy10] State: IN_COVER -> SUPPRESSED
+[07:46:20] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(795.1026, 809.0563), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[07:46:20] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=4
+[07:46:21] [ENEMY] [Enemy5] Player reloading state changed: false -> true
+[07:46:21] [ENEMY] [Enemy6] Player reloading state changed: false -> true
+[07:46:21] [ENEMY] [Enemy7] Player reloading state changed: false -> true
+[07:46:21] [ENEMY] [Enemy8] Player reloading state changed: false -> true
+[07:46:21] [ENEMY] [Enemy9] Player reloading state changed: false -> true
+[07:46:21] [ENEMY] [Enemy10] Player reloading state changed: false -> true
+[07:46:21] [INFO] [SoundPropagation] Sound emitted: type=RELOAD, pos=(884.4796, 887.0699), source=PLAYER (Player), range=900, listeners=6
+[07:46:21] [ENEMY] [Enemy10] Heard player RELOAD at (884.4796, 887.0699), intensity=0.04, distance=264
+[07:46:21] [ENEMY] [Enemy10] Vulnerability sound triggered pursuit - transitioning from SUPPRESSED to PURSUING
+[07:46:21] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=5, self=0, below_threshold=0
+[07:46:21] [ENEMY] [Enemy5] Player vulnerable (reloading) but cannot attack: close=false (dist=976), can_see=false
+[07:46:21] [ENEMY] [Enemy6] Player vulnerable (reloading) but cannot attack: close=false (dist=1152), can_see=false
+[07:46:21] [ENEMY] [Enemy7] Player vulnerable (reloading) but cannot attack: close=false (dist=918), can_see=false
+[07:46:21] [ENEMY] [Enemy8] Player vulnerable (reloading) but cannot attack: close=false (dist=1161), can_see=false
+[07:46:21] [ENEMY] [Enemy9] Player vulnerable (reloading) but cannot attack: close=false (dist=1385), can_see=false
+[07:46:21] [ENEMY] [Enemy10] Player vulnerable (reloading) but cannot attack: close=true (dist=264), can_see=false
+[07:46:21] [ENEMY] [Enemy10] Pursuing vulnerability sound at (884.4796, 887.0699), distance=264
+[07:46:21] [ENEMY] [Enemy7] Player vulnerable (reloading) - pursuing to attack (dist=849)
+[07:46:21] [ENEMY] [Enemy7] State: FLANKING -> PURSUING
+[07:46:21] [ENEMY] [Enemy5] Player reloading state changed: true -> false
+[07:46:21] [ENEMY] [Enemy6] Player reloading state changed: true -> false
+[07:46:21] [ENEMY] [Enemy7] Player reloading state changed: true -> false
+[07:46:21] [ENEMY] [Enemy8] Player reloading state changed: true -> false
+[07:46:21] [ENEMY] [Enemy9] Player reloading state changed: true -> false
+[07:46:21] [ENEMY] [Enemy10] Player reloading state changed: true -> false
+[07:46:21] [ENEMY] [Enemy10] State: PURSUING -> COMBAT
+[07:46:21] [ENEMY] [Enemy10] State: COMBAT -> RETREATING
+[07:46:22] [ENEMY] [Enemy10] State: RETREATING -> IN_COVER
+[07:46:22] [ENEMY] [Enemy10] State: IN_COVER -> SUPPRESSED
+[07:46:22] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(884.4796, 846.5365), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[07:46:22] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=0, below_threshold=5
+[07:46:22] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(884.4796, 811.4697), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[07:46:22] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=0, below_threshold=5
+[07:46:22] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(884.4796, 777.3362), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[07:46:22] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=0, below_threshold=5
+[07:46:23] [ENEMY] [Enemy10] State: SUPPRESSED -> SEEKING_COVER
+[07:46:23] [ENEMY] [Enemy10] State: SEEKING_COVER -> IN_COVER
+[07:46:23] [ENEMY] [Enemy10] State: IN_COVER -> SUPPRESSED
+[07:46:23] [ENEMY] [Enemy10] State: SUPPRESSED -> SEEKING_COVER
+[07:46:23] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(884.4796, 979.0428), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[07:46:23] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=0, below_threshold=5
+[07:46:23] [ENEMY] [Enemy10] State: SEEKING_COVER -> IN_COVER
+[07:46:23] [ENEMY] [Enemy10] State: IN_COVER -> SUPPRESSED
+[07:46:23] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(882.1996, 983.9337), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[07:46:23] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=0, below_threshold=5
+[07:46:23] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(870.7514, 983.9337), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[07:46:23] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=0, below_threshold=5
+[07:46:23] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(850.214, 983.9338), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[07:46:23] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=0, below_threshold=5
+[07:46:24] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(815.0059, 983.9338), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[07:46:24] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=0, below_threshold=5
+[07:46:24] [ENEMY] [Enemy10] State: SUPPRESSED -> SEEKING_COVER
+[07:46:24] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(776.5059, 983.9338), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[07:46:24] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=0, below_threshold=5
+[07:46:24] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(738.0059, 983.9338), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[07:46:24] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=4
+[07:46:24] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(699.5059, 983.9338), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[07:46:24] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=4
+[07:46:24] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(661.0059, 983.9338), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[07:46:24] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=4
+[07:46:24] [ENEMY] [Enemy10] Hit taken, health: 1/3
+[07:46:24] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(623.6059, 983.9338), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[07:46:24] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=4
+[07:46:24] [ENEMY] [Enemy10] State: SEEKING_COVER -> IN_COVER
+[07:46:24] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(588.4057, 983.9338), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[07:46:24] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=4
+[07:46:24] [ENEMY] [Enemy10] State: IN_COVER -> SUPPRESSED
+[07:46:24] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(554.8701, 981.2806), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[07:46:24] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=2, self=0, below_threshold=3
+[07:46:25] [ENEMY] [Enemy5] Player reloading state changed: false -> true
+[07:46:25] [ENEMY] [Enemy6] Player reloading state changed: false -> true
+[07:46:25] [ENEMY] [Enemy7] Player reloading state changed: false -> true
+[07:46:25] [ENEMY] [Enemy8] Player reloading state changed: false -> true
+[07:46:25] [ENEMY] [Enemy9] Player reloading state changed: false -> true
+[07:46:25] [ENEMY] [Enemy10] Player reloading state changed: false -> true
+[07:46:25] [INFO] [SoundPropagation] Sound emitted: type=RELOAD, pos=(540.0676, 943.5988), source=PLAYER (Player), range=900, listeners=6
+[07:46:25] [ENEMY] [Enemy10] Heard player RELOAD at (540.0676, 943.5988), intensity=0.08, distance=175
+[07:46:25] [ENEMY] [Enemy10] Vulnerability sound triggered pursuit - transitioning from SUPPRESSED to PURSUING
+[07:46:25] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=5, self=0, below_threshold=0
+[07:46:25] [ENEMY] [Enemy5] Player vulnerable (reloading) but cannot attack: close=false (dist=1303), can_see=false
+[07:46:25] [ENEMY] [Enemy6] Player vulnerable (reloading) but cannot attack: close=false (dist=1494), can_see=false
+[07:46:25] [ENEMY] [Enemy7] Player vulnerable (reloading) but cannot attack: close=false (dist=950), can_see=false
+[07:46:25] [ENEMY] [Enemy8] Player vulnerable (reloading) but cannot attack: close=false (dist=1451), can_see=false
+[07:46:25] [ENEMY] [Enemy9] Player vulnerable (reloading) but cannot attack: close=false (dist=1674), can_see=false
+[07:46:25] [ENEMY] [Enemy10] Player vulnerable (reloading) but cannot attack: close=true (dist=175), can_see=false
+[07:46:25] [ENEMY] [Enemy10] Pursuing vulnerability sound at (540.0676, 943.5988), distance=175
+[07:46:25] [ENEMY] [Enemy10] Player reloading - priority attack triggered
+[07:46:25] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(527.076, 769.4524), source=ENEMY (Enemy10), range=1469, listeners=6
+[07:46:25] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=1, below_threshold=3
+[07:46:25] [ENEMY] [Enemy10] Player reloading - priority attack triggered
+[07:46:25] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(531.275, 768.6954), source=ENEMY (Enemy10), range=1469, listeners=6
+[07:46:25] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=1, below_threshold=3
+[07:46:25] [ENEMY] [Enemy10] Player reloading - priority attack triggered
+[07:46:25] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(535.474, 767.9385), source=ENEMY (Enemy10), range=1469, listeners=6
+[07:46:25] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=1, below_threshold=3
+[07:46:25] [ENEMY] [Enemy10] Player reloading - priority attack triggered
+[07:46:25] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(539.673, 767.1815), source=ENEMY (Enemy10), range=1469, listeners=6
+[07:46:25] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=1, below_threshold=3
+[07:46:25] [ENEMY] [Enemy10] Player reloading - priority attack triggered
+[07:46:25] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(543.8719, 766.4246), source=ENEMY (Enemy10), range=1469, listeners=6
+[07:46:25] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=1, below_threshold=3
+[07:46:25] [ENEMY] [Enemy10] Player reloading - priority attack triggered
+[07:46:25] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(548.0709, 765.6676), source=ENEMY (Enemy10), range=1469, listeners=6
+[07:46:25] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=1, below_threshold=3
+[07:46:25] [ENEMY] [Enemy10] Player reloading - priority attack triggered
+[07:46:25] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(552.2699, 764.9106), source=ENEMY (Enemy10), range=1469, listeners=6
+[07:46:25] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=1, below_threshold=3
+[07:46:25] [ENEMY] [Enemy10] Player reloading - priority attack triggered
+[07:46:25] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(556.4689, 764.1537), source=ENEMY (Enemy10), range=1469, listeners=6
+[07:46:25] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=1, below_threshold=3
+[07:46:25] [ENEMY] [Enemy10] Player reloading - priority attack triggered
+[07:46:25] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(560.6678, 763.3967), source=ENEMY (Enemy10), range=1469, listeners=6
+[07:46:25] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=1, below_threshold=3
+[07:46:25] [ENEMY] [Enemy10] Player reloading - priority attack triggered
+[07:46:25] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(564.8668, 762.6398), source=ENEMY (Enemy10), range=1469, listeners=6
+[07:46:25] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=1, below_threshold=3
+[07:46:25] [ENEMY] [Enemy10] Player reloading - priority attack triggered
+[07:46:25] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(568.5745, 766.1211), source=ENEMY (Enemy10), range=1469, listeners=6
+[07:46:25] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=1, below_threshold=3
+[07:46:25] [ENEMY] [Enemy10] Player reloading - priority attack triggered
+[07:46:25] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(568.0831, 770.3594), source=ENEMY (Enemy10), range=1469, listeners=6
+[07:46:25] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=1, below_threshold=3
+[07:46:25] [ENEMY] [Enemy10] Player reloading - priority attack triggered
+[07:46:25] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(567.5918, 774.5977), source=ENEMY (Enemy10), range=1469, listeners=6
+[07:46:25] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=1, below_threshold=3
+[07:46:25] [ENEMY] [Enemy10] Player reloading - priority attack triggered
+[07:46:25] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(567.1005, 778.8359), source=ENEMY (Enemy10), range=1469, listeners=6
+[07:46:25] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=1, below_threshold=3
+[07:46:25] [ENEMY] [Enemy5] Player reloading state changed: true -> false
+[07:46:25] [ENEMY] [Enemy6] Player reloading state changed: true -> false
+[07:46:25] [ENEMY] [Enemy7] Player reloading state changed: true -> false
+[07:46:25] [ENEMY] [Enemy8] Player reloading state changed: true -> false
+[07:46:25] [ENEMY] [Enemy9] Player reloading state changed: true -> false
+[07:46:25] [ENEMY] [Enemy10] Player reloading state changed: true -> false
+[07:46:25] [ENEMY] [Enemy10] State: PURSUING -> COMBAT
+[07:46:25] [ENEMY] [Enemy10] State: COMBAT -> RETREATING
+[07:46:25] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(552.5718, 839.1165), source=ENEMY (Enemy10), range=1469, listeners=6
+[07:46:25] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=1, below_threshold=3
+[07:46:25] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(554.0837, 849.6755), source=ENEMY (Enemy10), range=1469, listeners=6
+[07:46:25] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=1, below_threshold=3
+[07:46:26] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 7)
+[07:46:26] [ENEMY] [Enemy1] Registered as sound listener
+[07:46:26] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 3, behavior: GUARD, player_found: yes
+[07:46:26] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 8)
+[07:46:26] [ENEMY] [Enemy2] Registered as sound listener
+[07:46:26] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 2, behavior: GUARD, player_found: yes
+[07:46:26] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 9)
+[07:46:26] [ENEMY] [Enemy3] Registered as sound listener
+[07:46:26] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 2, behavior: GUARD, player_found: yes
+[07:46:26] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 10)
+[07:46:26] [ENEMY] [Enemy4] Registered as sound listener
+[07:46:26] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 3, behavior: GUARD, player_found: yes
+[07:46:26] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 11)
+[07:46:26] [ENEMY] [Enemy5] Registered as sound listener
+[07:46:26] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 4, behavior: GUARD, player_found: yes
+[07:46:26] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 12)
+[07:46:26] [ENEMY] [Enemy6] Registered as sound listener
+[07:46:26] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 4, behavior: GUARD, player_found: yes
+[07:46:26] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 13)
+[07:46:26] [ENEMY] [Enemy7] Registered as sound listener
+[07:46:26] [ENEMY] [Enemy7] Enemy spawned at (1600, 900), health: 3, behavior: PATROL, player_found: yes
+[07:46:26] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 14)
+[07:46:26] [ENEMY] [Enemy8] Registered as sound listener
+[07:46:26] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 2, behavior: GUARD, player_found: yes
+[07:46:26] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 15)
+[07:46:26] [ENEMY] [Enemy9] Registered as sound listener
+[07:46:26] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 2, behavior: GUARD, player_found: yes
+[07:46:26] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 16)
+[07:46:26] [ENEMY] [Enemy10] Registered as sound listener
+[07:46:26] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 3, behavior: PATROL, player_found: yes
+[07:46:26] [ENEMY] [Enemy10] State: IDLE -> COMBAT
+[07:46:27] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[07:46:27] [ENEMY] [Enemy3] State: IDLE -> COMBAT
+[07:46:27] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(450, 744.9444), source=PLAYER (AssaultRifle), range=1469, listeners=16
+[07:46:27] [INFO] [SoundPropagation] Cleaned up 6 invalid listeners
+[07:46:27] [ENEMY] [Enemy1] Heard gunshot at (450, 744.9444), source_type=0, intensity=0.01, distance=422
+[07:46:27] [ENEMY] [Enemy2] Heard gunshot at (450, 744.9444), source_type=0, intensity=0.06, distance=201
+[07:46:27] [ENEMY] [Enemy4] Heard gunshot at (450, 744.9444), source_type=0, intensity=0.02, distance=383
+[07:46:27] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=3, self=0, below_threshold=3
+[07:46:27] [ENEMY] [Enemy3] Hit taken, health: 1/2
+[07:46:27] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(448.4626, 728.4581), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[07:46:27] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=3, self=0, below_threshold=3
+[07:46:27] [ENEMY] [Enemy3] Hit taken, health: 0/2
+[07:46:27] [ENEMY] [Enemy3] Enemy died
+[07:46:27] [INFO] [SoundPropagation] Unregistered listener: Enemy3 (remaining: 9)
+[07:46:28] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(439.7258, 732.734), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[07:46:28] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=3, self=0, below_threshold=3
+[07:46:28] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(422.4691, 748.0685), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[07:46:28] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=3, self=0, below_threshold=3
+[07:46:28] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(405.1991, 771.7797), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[07:46:28] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=3, self=0, below_threshold=3
+[07:46:28] [ENEMY] [Enemy1] State: COMBAT -> PURSUING
+[07:46:28] [ENEMY] [Enemy4] State: COMBAT -> PURSUING
+[07:46:29] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[07:46:29] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(550.8394, 743.8488), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[07:46:29] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=2, self=0, below_threshold=4
+[07:46:29] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(575.9024, 756.0751), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[07:46:29] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=2, self=0, below_threshold=4
+[07:46:29] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(590.9008, 777.527), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[07:46:29] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=2, self=0, below_threshold=5
+[07:46:29] [ENEMY] [Enemy4] State: PURSUING -> RETREATING
+[07:46:29] [ENEMY] [Enemy4] Hit taken, health: 2/3
+[07:46:29] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(595.8344, 808.2047), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[07:46:29] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=0, below_threshold=6
+[07:46:29] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(595.8344, 843.4048), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[07:46:29] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=0, below_threshold=6
+[07:46:30] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(595.8344, 878.605), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[07:46:30] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=0, below_threshold=6
+[07:46:31] [ENEMY] [Enemy10] FLANKING started: target=(634.4033, 1147.686), side=right, pos=(955.1431, 1418.083)
+[07:46:31] [ENEMY] [Enemy10] State: PURSUING -> FLANKING
+[07:46:31] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 10)
+[07:46:31] [ENEMY] [Enemy1] Registered as sound listener
+[07:46:31] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 2, behavior: GUARD, player_found: yes
+[07:46:31] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 11)
+[07:46:31] [ENEMY] [Enemy2] Registered as sound listener
+[07:46:31] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 4, behavior: GUARD, player_found: yes
+[07:46:31] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 12)
+[07:46:31] [ENEMY] [Enemy3] Registered as sound listener
+[07:46:31] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 2, behavior: GUARD, player_found: yes
+[07:46:31] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 13)
+[07:46:31] [ENEMY] [Enemy4] Registered as sound listener
+[07:46:31] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 3, behavior: GUARD, player_found: yes
+[07:46:31] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 14)
+[07:46:31] [ENEMY] [Enemy5] Registered as sound listener
+[07:46:31] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 2, behavior: GUARD, player_found: yes
+[07:46:31] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 15)
+[07:46:31] [ENEMY] [Enemy6] Registered as sound listener
+[07:46:31] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 2, behavior: GUARD, player_found: yes
+[07:46:31] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 16)
+[07:46:31] [ENEMY] [Enemy7] Registered as sound listener
+[07:46:31] [ENEMY] [Enemy7] Enemy spawned at (1600, 900), health: 3, behavior: PATROL, player_found: yes
+[07:46:31] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 17)
+[07:46:31] [ENEMY] [Enemy8] Registered as sound listener
+[07:46:31] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 3, behavior: GUARD, player_found: yes
+[07:46:31] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 18)
+[07:46:31] [ENEMY] [Enemy9] Registered as sound listener
+[07:46:31] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 2, behavior: GUARD, player_found: yes
+[07:46:31] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 19)
+[07:46:31] [ENEMY] [Enemy10] Registered as sound listener
+[07:46:31] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 2, behavior: PATROL, player_found: yes
+[07:46:32] [ENEMY] [Enemy10] State: IDLE -> COMBAT
+[07:46:32] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[07:46:34] [ENEMY] [Enemy3] State: IDLE -> COMBAT
+[07:46:34] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(432.4873, 785.4446), source=PLAYER (AssaultRifle), range=1469, listeners=19
+[07:46:34] [INFO] [SoundPropagation] Cleaned up 9 invalid listeners
+[07:46:34] [ENEMY] [Enemy1] Heard gunshot at (432.4873, 785.4446), source_type=0, intensity=0.01, distance=455
+[07:46:34] [ENEMY] [Enemy2] Heard gunshot at (432.4873, 785.4446), source_type=0, intensity=0.04, distance=238
+[07:46:34] [ENEMY] [Enemy4] Heard gunshot at (432.4873, 785.4446), source_type=0, intensity=0.02, distance=385
+[07:46:34] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=3, self=0, below_threshold=3
+[07:46:34] [ENEMY] [Enemy3] Hit taken, health: 1/2
+[07:46:34] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(434.101, 748.713), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[07:46:34] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=3, self=0, below_threshold=3
+[07:46:34] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(444.9743, 728.0682), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[07:46:34] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=3, self=0, below_threshold=3
+[07:46:34] [ENEMY] [Enemy3] State: COMBAT -> RETREATING
+[07:46:34] [ENEMY] [Enemy3] Hit taken, health: 0/2
+[07:46:34] [ENEMY] [Enemy3] Enemy died
+[07:46:34] [INFO] [SoundPropagation] Unregistered listener: Enemy3 (remaining: 9)
+[07:46:34] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(467.1935, 729.3479), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[07:46:34] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=3, self=0, below_threshold=3
+[07:46:34] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(491.8081, 742.1445), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[07:46:34] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=3, self=0, below_threshold=3
+[07:46:34] [ENEMY] [Enemy1] State: COMBAT -> PURSUING
+[07:46:34] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[07:46:34] [ENEMY] [Enemy4] State: COMBAT -> PURSUING
+[07:46:34] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(516.6751, 766.0187), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[07:46:34] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=2, self=0, below_threshold=4
+[07:46:35] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(605.0294, 896.6212), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[07:46:35] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=0, below_threshold=6
+[07:46:35] [ENEMY] [Enemy4] State: PURSUING -> COMBAT
+[07:46:35] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(609.1684, 930.1068), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[07:46:35] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=0, below_threshold=6
+[07:46:35] [ENEMY] [Enemy4] Hit taken, health: 2/3
+[07:46:35] [ENEMY] [Enemy4] State: COMBAT -> RETREATING
+[07:46:35] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(623.5087, 955.4576), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[07:46:35] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=0, below_threshold=6
+[07:46:35] [ENEMY] [Enemy4] Hit taken, health: 1/3
+[07:46:35] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(746.3713, 914.0654), source=ENEMY (Enemy4), range=1469, listeners=9
+[07:46:35] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=1, below_threshold=7
+[07:46:35] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(646.5242, 970.2654), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[07:46:35] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=0, below_threshold=6
+[07:46:35] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(756.1673, 914.0654), source=ENEMY (Enemy4), range=1469, listeners=9
+[07:46:35] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=1, below_threshold=7
+[07:46:35] [ENEMY] [Enemy4] Hit taken, health: 0/3
+[07:46:35] [ENEMY] [Enemy4] Enemy died
+[07:46:35] [INFO] [SoundPropagation] Unregistered listener: Enemy4 (remaining: 8)
+[07:46:36] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(678.1792, 974.5738), source=PLAYER (AssaultRifle), range=1469, listeners=8
+[07:46:36] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=0, below_threshold=7
+[07:46:36] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(713.3794, 974.5738), source=PLAYER (AssaultRifle), range=1469, listeners=8
+[07:46:36] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=0, below_threshold=7
+[07:46:36] [ENEMY] [Enemy7] State: IDLE -> COMBAT
+[07:46:37] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(830.6447, 801.6236), source=PLAYER (AssaultRifle), range=1469, listeners=8
+[07:46:37] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=0, below_threshold=5
+[07:46:37] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(849.2565, 780.2468), source=PLAYER (AssaultRifle), range=1469, listeners=8
+[07:46:37] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0, below_threshold=6
+[07:46:37] [ENEMY] [Enemy2] Hit taken, health: 3/4
+[07:46:37] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(863.5783, 770.0867), source=PLAYER (AssaultRifle), range=1469, listeners=8
+[07:46:37] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0, below_threshold=6
+[07:46:37] [ENEMY] [Enemy2] Hit taken, health: 2/4
+[07:46:37] [ENEMY] [Enemy2] State: PURSUING -> RETREATING
+[07:46:37] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(873.7893, 772.9463), source=PLAYER (AssaultRifle), range=1469, listeners=8
+[07:46:37] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0, below_threshold=6
+[07:46:37] [ENEMY] [Enemy2] Hit taken, health: 1/4
+[07:46:37] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(879.8895, 788.8258), source=PLAYER (AssaultRifle), range=1469, listeners=8
+[07:46:37] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0, below_threshold=6
+[07:46:37] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[07:46:37] [ENEMY] [Enemy2] Hit taken, health: 0/4
+[07:46:37] [ENEMY] [Enemy2] Enemy died
+[07:46:37] [INFO] [SoundPropagation] Unregistered listener: Enemy2 (remaining: 7)
+[07:46:37] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(881.8788, 817.725), source=PLAYER (AssaultRifle), range=1469, listeners=7
+[07:46:37] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=0, below_threshold=6
+[07:46:40] [ENEMY] [Enemy1] State: PURSUING -> COMBAT
+[07:46:40] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(487.1047, 633.2111), source=PLAYER (AssaultRifle), range=1469, listeners=7
+[07:46:40] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=0, below_threshold=2
+[07:46:40] [ENEMY] [Enemy10] State: PURSUING -> COMBAT
+[07:46:40] [ENEMY] [Enemy1] Hit taken, health: 1/2
+[07:46:40] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(451.9048, 633.2111), source=PLAYER (AssaultRifle), range=1469, listeners=7
+[07:46:40] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=3, self=0, below_threshold=3
+[07:46:40] [ENEMY] [Enemy1] Hit taken, health: 0/2
+[07:46:40] [ENEMY] [Enemy1] Enemy died
+[07:46:40] [INFO] [SoundPropagation] Unregistered listener: Enemy1 (remaining: 6)
+[07:46:40] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(416.7865, 633.014), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[07:46:40] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=3, self=0, below_threshold=3
+[07:46:40] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(385.1786, 624.3419), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[07:46:40] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=3, self=0, below_threshold=3
+[07:46:40] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(358.679, 603.3372), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[07:46:40] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=3, self=0, below_threshold=3
+[07:46:40] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(333.7888, 578.4471), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[07:46:40] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=3, self=0, below_threshold=3
+[07:46:40] [ENEMY] [Enemy1] Player reloading state changed: false -> true
+[07:46:40] [ENEMY] [Enemy5] Player reloading state changed: false -> true
+[07:46:40] [ENEMY] [Enemy6] Player reloading state changed: false -> true
+[07:46:40] [ENEMY] [Enemy7] Player reloading state changed: false -> true
+[07:46:40] [ENEMY] [Enemy8] Player reloading state changed: false -> true
+[07:46:40] [ENEMY] [Enemy9] Player reloading state changed: false -> true
+[07:46:40] [ENEMY] [Enemy10] Player reloading state changed: false -> true
+[07:46:40] [INFO] [SoundPropagation] Sound emitted: type=RELOAD, pos=(313.5163, 542.8442), source=PLAYER (Player), range=900, listeners=6
+[07:46:40] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=5, self=0, below_threshold=1
+[07:46:41] [ENEMY] [Enemy5] Player vulnerable (reloading) but cannot attack: close=false (dist=1400), can_see=false
+[07:46:41] [ENEMY] [Enemy6] Player vulnerable (reloading) but cannot attack: close=false (dist=1639), can_see=false
+[07:46:41] [ENEMY] [Enemy7] Player vulnerable (reloading) but cannot attack: close=false (dist=1145), can_see=false
+[07:46:41] [ENEMY] [Enemy8] Player vulnerable (reloading) but cannot attack: close=false (dist=1828), can_see=false
+[07:46:41] [ENEMY] [Enemy9] Player vulnerable (reloading) but cannot attack: close=false (dist=2051), can_see=false
+[07:46:41] [ENEMY] [Enemy10] Player vulnerable (reloading) but cannot attack: close=false (dist=671), can_see=true
+[07:46:41] [ENEMY] [Enemy10] Player vulnerable (reloading) - pursuing to attack (dist=671)
+[07:46:41] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[07:46:41] [ENEMY] [Enemy1] Player reloading state changed: true -> false
+[07:46:41] [ENEMY] [Enemy5] Player reloading state changed: true -> false
+[07:46:41] [ENEMY] [Enemy6] Player reloading state changed: true -> false
+[07:46:41] [ENEMY] [Enemy7] Player reloading state changed: true -> false
+[07:46:41] [ENEMY] [Enemy8] Player reloading state changed: true -> false
+[07:46:41] [ENEMY] [Enemy9] Player reloading state changed: true -> false
+[07:46:41] [ENEMY] [Enemy10] Player reloading state changed: true -> false
+[07:46:41] [ENEMY] [Enemy7] FLANKING started: target=(356.261, 684.855), side=right, pos=(1422.523, 827.7369)
+[07:46:41] [ENEMY] [Enemy7] State: PURSUING -> FLANKING
+[07:46:42] [ENEMY] [Enemy10] FLANKING started: target=(357.0883, 787.5293), side=right, pos=(755.0171, 1048.067)
+[07:46:42] [ENEMY] [Enemy10] State: PURSUING -> FLANKING
+[07:46:42] [ENEMY] [Enemy10] State: FLANKING -> COMBAT
+[07:46:44] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[07:46:44] [ENEMY] [Enemy7] State: FLANKING -> COMBAT
+[07:46:45] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[07:46:46] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(587.7971, 418.3503), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[07:46:46] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=0, below_threshold=4
+[07:46:46] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(587.7971, 418.3503), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[07:46:46] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=0, below_threshold=4
+[07:46:46] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(587.7971, 418.3503), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[07:46:46] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=0, below_threshold=4
+[07:46:46] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(587.7971, 418.3503), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[07:46:46] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=0, below_threshold=4
+[07:46:46] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(587.7971, 418.3503), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[07:46:46] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=0, below_threshold=4
+[07:46:46] [ENEMY] [Enemy10] State: PURSUING -> RETREATING
+[07:46:46] [ENEMY] [Enemy10] State: RETREATING -> IN_COVER
+[07:46:46] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(587.7971, 418.3503), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[07:46:46] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=0, below_threshold=4
+[07:46:46] [ENEMY] [Enemy10] State: IN_COVER -> SUPPRESSED
+[07:46:46] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(587.7971, 418.6836), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[07:46:46] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=0, below_threshold=4
+[07:46:46] [ENEMY] [Enemy7] FLANKING started: target=(787.2609, 442.3188), side=left, pos=(887.7499, 1048.067)
+[07:46:46] [ENEMY] [Enemy7] State: PURSUING -> FLANKING
+[07:46:46] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(587.7971, 430.3503), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[07:46:46] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=0, below_threshold=4
+[07:46:46] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(587.7971, 458.3503), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[07:46:46] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=0, below_threshold=4
+[07:46:47] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(587.7971, 496.6836), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[07:46:47] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=0, below_threshold=4
+[07:46:47] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(587.7971, 535.1836), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[07:46:47] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=2, self=0, below_threshold=3
+[07:46:47] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(587.7971, 573.6836), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[07:46:47] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=2, self=0, below_threshold=3
+[07:46:47] [ENEMY] [Enemy7] State: FLANKING -> COMBAT
+[07:46:47] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(471.8642, 1007.852), source=ENEMY (Enemy10), range=1469, listeners=6
+[07:46:47] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=3, self=1, below_threshold=1
+[07:46:48] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(471.8642, 1007.852), source=ENEMY (Enemy10), range=1469, listeners=6
+[07:46:48] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=3, self=1, below_threshold=1
+[07:46:48] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(471.8642, 1007.852), source=ENEMY (Enemy10), range=1469, listeners=6
+[07:46:48] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=3, self=1, below_threshold=1
+[07:46:48] [ENEMY] [Enemy10] State: SUPPRESSED -> SEEKING_COVER
+[07:46:48] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(441.9517, 740.2408), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[07:46:48] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=0, below_threshold=1
+[07:46:48] [ENEMY] [Enemy10] Hit taken, health: 1/2
+[07:46:48] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(411.488, 759.6423), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[07:46:48] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=0, below_threshold=1
+[07:46:48] [ENEMY] [Enemy10] Hit taken, health: 0/2
+[07:46:48] [ENEMY] [Enemy10] Enemy died
+[07:46:48] [INFO] [SoundPropagation] Unregistered listener: Enemy10 (remaining: 5)
+[07:46:48] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(386.5979, 784.5325), source=PLAYER (AssaultRifle), range=1469, listeners=5
+[07:46:48] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=3, self=0, below_threshold=1
+[07:46:48] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[07:46:48] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(361.7078, 809.4226), source=PLAYER (AssaultRifle), range=1469, listeners=5
+[07:46:48] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=3, self=0, below_threshold=1
+[07:46:48] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(336.8176, 834.3127), source=PLAYER (AssaultRifle), range=1469, listeners=5
+[07:46:48] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=3, self=0, below_threshold=1
+[07:46:48] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 6)
+[07:46:48] [ENEMY] [Enemy1] Registered as sound listener
+[07:46:48] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 4, behavior: GUARD, player_found: yes
+[07:46:48] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 7)
+[07:46:48] [ENEMY] [Enemy2] Registered as sound listener
+[07:46:48] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 4, behavior: GUARD, player_found: yes
+[07:46:48] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 8)
+[07:46:48] [ENEMY] [Enemy3] Registered as sound listener
+[07:46:48] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 2, behavior: GUARD, player_found: yes
+[07:46:48] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 9)
+[07:46:48] [ENEMY] [Enemy4] Registered as sound listener
+[07:46:48] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 4, behavior: GUARD, player_found: yes
+[07:46:48] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 10)
+[07:46:48] [ENEMY] [Enemy5] Registered as sound listener
+[07:46:48] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 2, behavior: GUARD, player_found: yes
+[07:46:48] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 11)
+[07:46:48] [ENEMY] [Enemy6] Registered as sound listener
+[07:46:48] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 2, behavior: GUARD, player_found: yes
+[07:46:48] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 12)
+[07:46:48] [ENEMY] [Enemy7] Registered as sound listener
+[07:46:48] [ENEMY] [Enemy7] Enemy spawned at (1600, 900), health: 3, behavior: PATROL, player_found: yes
+[07:46:48] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 13)
+[07:46:48] [ENEMY] [Enemy8] Registered as sound listener
+[07:46:48] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 3, behavior: GUARD, player_found: yes
+[07:46:48] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 14)
+[07:46:48] [ENEMY] [Enemy9] Registered as sound listener
+[07:46:48] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 2, behavior: GUARD, player_found: yes
+[07:46:48] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 15)
+[07:46:48] [ENEMY] [Enemy10] Registered as sound listener
+[07:46:48] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 3, behavior: PATROL, player_found: yes
+[07:46:48] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(449.7643, 1250.236), source=PLAYER (AssaultRifle), range=1469, listeners=15
+[07:46:48] [INFO] [SoundPropagation] Cleaned up 5 invalid listeners
+[07:46:48] [ENEMY] [Enemy4] Heard gunshot at (449.7643, 1250.236), source_type=0, intensity=0.01, distance=495
+[07:46:48] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=3, self=0, below_threshold=6
+[07:46:49] [ENEMY] [Enemy4] State: COMBAT -> PURSUING
+[07:46:50] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 11)
+[07:46:50] [ENEMY] [Enemy1] Registered as sound listener
+[07:46:50] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 2, behavior: GUARD, player_found: yes
+[07:46:50] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 12)
+[07:46:50] [ENEMY] [Enemy2] Registered as sound listener
+[07:46:50] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 4, behavior: GUARD, player_found: yes
+[07:46:50] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 13)
+[07:46:50] [ENEMY] [Enemy3] Registered as sound listener
+[07:46:50] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 3, behavior: GUARD, player_found: yes
+[07:46:50] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 14)
+[07:46:50] [ENEMY] [Enemy4] Registered as sound listener
+[07:46:50] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 3, behavior: GUARD, player_found: yes
+[07:46:50] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 15)
+[07:46:50] [ENEMY] [Enemy5] Registered as sound listener
+[07:46:50] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 4, behavior: GUARD, player_found: yes
+[07:46:50] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 16)
+[07:46:50] [ENEMY] [Enemy6] Registered as sound listener
+[07:46:50] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 2, behavior: GUARD, player_found: yes
+[07:46:50] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 17)
+[07:46:50] [ENEMY] [Enemy7] Registered as sound listener
+[07:46:50] [ENEMY] [Enemy7] Enemy spawned at (1600, 900), health: 3, behavior: PATROL, player_found: yes
+[07:46:50] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 18)
+[07:46:50] [ENEMY] [Enemy8] Registered as sound listener
+[07:46:50] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 4, behavior: GUARD, player_found: yes
+[07:46:50] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 19)
+[07:46:50] [ENEMY] [Enemy9] Registered as sound listener
+[07:46:50] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 4, behavior: GUARD, player_found: yes
+[07:46:50] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 20)
+[07:46:50] [ENEMY] [Enemy10] Registered as sound listener
+[07:46:50] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 4, behavior: PATROL, player_found: yes
+[07:46:50] [ENEMY] [Enemy10] State: IDLE -> COMBAT
+[07:46:51] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[07:46:51] [ENEMY] [Enemy3] State: IDLE -> COMBAT
+[07:46:51] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(450.308, 792.2942), source=PLAYER (AssaultRifle), range=1469, listeners=20
+[07:46:51] [INFO] [SoundPropagation] Cleaned up 10 invalid listeners
+[07:46:51] [ENEMY] [Enemy1] Heard gunshot at (450.308, 792.2942), source_type=0, intensity=0.01, distance=467
+[07:46:51] [ENEMY] [Enemy2] Heard gunshot at (450.308, 792.2942), source_type=0, intensity=0.04, distance=247
+[07:46:51] [ENEMY] [Enemy4] Heard gunshot at (450.308, 792.2942), source_type=0, intensity=0.02, distance=366
+[07:46:51] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=3, self=0, below_threshold=3
+[07:46:51] [ENEMY] [Enemy3] Hit taken, health: 2/3
+[07:46:51] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(459.7193, 760.2711), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[07:46:51] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=3, self=0, below_threshold=3
+[07:46:51] [ENEMY] [Enemy3] Hit taken, health: 1/3
+[07:46:51] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(477.8648, 740.3331), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[07:46:51] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=3, self=0, below_threshold=3
+[07:46:51] [ENEMY] [Enemy3] State: COMBAT -> RETREATING
+[07:46:52] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(683.552, 758.2721), source=ENEMY (Enemy3), range=1469, listeners=10
+[07:46:52] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[07:46:52] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(503.4029, 731.2807), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[07:46:52] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=3, self=0, below_threshold=3
+[07:46:52] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(676.0337, 765.8386), source=ENEMY (Enemy3), range=1469, listeners=10
+[07:46:52] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[07:46:52] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(529.2181, 735.5618), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[07:46:52] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=2, self=0, below_threshold=4
+[07:46:52] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(668.5151, 773.4052), source=ENEMY (Enemy3), range=1469, listeners=10
+[07:46:52] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[07:46:52] [ENEMY] [Enemy3] Hit taken, health: 0/3
+[07:46:52] [ENEMY] [Enemy3] Enemy died
+[07:46:52] [INFO] [SoundPropagation] Unregistered listener: Enemy3 (remaining: 9)
+[07:46:52] [ENEMY] [Enemy1] State: COMBAT -> PURSUING
+[07:46:52] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[07:46:52] [ENEMY] [Enemy4] State: COMBAT -> PURSUING
+[07:46:52] [ENEMY] [Enemy4] State: PURSUING -> RETREATING
+[07:46:52] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(566.1602, 867.333), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[07:46:52] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=0, below_threshold=6
+[07:46:52] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(577.9859, 897.6346), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[07:46:52] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=0, below_threshold=6
+[07:46:53] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(696.5455, 983.9338), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[07:46:53] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=7
+[07:46:53] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(731.5149, 983.9338), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[07:46:53] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=0, below_threshold=6
+[07:46:53] [ENEMY] [Enemy4] Hit taken, health: 2/3
+[07:46:53] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(765.4907, 980.9774), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[07:46:53] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0, below_threshold=7
+[07:46:53] [ENEMY] [Enemy4] Hit taken, health: 1/3
+[07:46:53] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(794.4861, 965.9982), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[07:46:53] [ENEMY] [Enemy4] Heard gunshot at (794.4861, 965.9982), source_type=0, intensity=0.34, distance=85
+[07:46:53] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0, below_threshold=7
+[07:46:53] [ENEMY] [Enemy4] State: COMBAT -> RETREATING
+[07:46:54] [ENEMY] [Enemy4] Hit taken, health: 0/3
+[07:46:54] [ENEMY] [Enemy4] Enemy died
+[07:46:54] [INFO] [SoundPropagation] Unregistered listener: Enemy4 (remaining: 8)
+[07:46:54] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(819.5862, 941.6148), source=PLAYER (AssaultRifle), range=1469, listeners=8
+[07:46:54] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=0, below_threshold=7
+[07:46:54] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(838.9578, 914.4388), source=PLAYER (AssaultRifle), range=1469, listeners=8
+[07:46:54] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=8
+[07:46:54] [ENEMY] [Enemy7] State: IDLE -> COMBAT
+[07:46:54] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(847.6862, 759.6536), source=PLAYER (AssaultRifle), range=1469, listeners=8
+[07:46:54] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=6
+[07:46:54] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(861.0886, 730.0051), source=PLAYER (AssaultRifle), range=1469, listeners=8
+[07:46:54] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=6
+[07:46:55] [ENEMY] [Enemy2] Hit taken, health: 3/4
+[07:46:55] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[07:46:55] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(879.8959, 707.4546), source=PLAYER (AssaultRifle), range=1469, listeners=8
+[07:46:55] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=6
+[07:46:55] [ENEMY] [Enemy10] FLANKING started: target=(1065.817, 785.4188), side=left, pos=(955.1431, 1418.083)
+[07:46:55] [ENEMY] [Enemy10] State: PURSUING -> FLANKING
+[07:46:55] [ENEMY] [Enemy2] Hit taken, health: 2/4
+[07:46:55] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(890.2486, 692.5822), source=PLAYER (AssaultRifle), range=1469, listeners=8
+[07:46:55] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=6
+[07:46:55] [ENEMY] [Enemy2] State: PURSUING -> RETREATING
+[07:46:55] [ENEMY] [Enemy2] Hit taken, health: 1/4
+[07:46:55] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(430.5041, 640.1819), source=ENEMY (Enemy2), range=1469, listeners=8
+[07:46:55] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=3, self=1, below_threshold=3
+[07:46:55] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(889.9443, 685.0236), source=PLAYER (AssaultRifle), range=1469, listeners=8
+[07:46:55] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=6
+[07:46:55] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(434.6028, 630.3342), source=ENEMY (Enemy2), range=1469, listeners=8
+[07:46:55] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=3, self=1, below_threshold=3
+[07:46:55] [ENEMY] [Enemy2] Hit taken, health: 0/4
+[07:46:55] [ENEMY] [Enemy2] Enemy died
+[07:46:55] [INFO] [SoundPropagation] Unregistered listener: Enemy2 (remaining: 7)
+[07:46:55] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(881.3946, 688.3474), source=PLAYER (AssaultRifle), range=1469, listeners=7
+[07:46:55] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=0, below_threshold=6
+[07:46:55] [ENEMY] [Enemy1] Player reloading state changed: false -> true
+[07:46:55] [ENEMY] [Enemy2] Player reloading state changed: false -> true
+[07:46:55] [ENEMY] [Enemy4] Player reloading state changed: false -> true
+[07:46:55] [ENEMY] [Enemy5] Player reloading state changed: false -> true
+[07:46:55] [ENEMY] [Enemy6] Player reloading state changed: false -> true
+[07:46:55] [ENEMY] [Enemy7] Player reloading state changed: false -> true
+[07:46:55] [ENEMY] [Enemy8] Player reloading state changed: false -> true
+[07:46:55] [ENEMY] [Enemy9] Player reloading state changed: false -> true
+[07:46:55] [ENEMY] [Enemy10] Player reloading state changed: false -> true
+[07:46:55] [INFO] [SoundPropagation] Sound emitted: type=RELOAD, pos=(828.812, 707.7238), source=PLAYER (Player), range=900, listeners=7
+[07:46:55] [ENEMY] [Enemy1] Heard player RELOAD at (828.812, 707.7238), intensity=0.01, distance=472
+[07:46:55] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=4, self=0, below_threshold=2
+[07:46:55] [ENEMY] [Enemy1] Player vulnerable (reloading) but cannot attack: close=false (dist=472), can_see=false
+[07:46:55] [ENEMY] [Enemy1] Pursuing vulnerability sound at (828.812, 707.7238), distance=472
+[07:46:55] [ENEMY] [Enemy5] Player vulnerable (reloading) but cannot attack: close=false (dist=942), can_see=false
+[07:46:55] [ENEMY] [Enemy6] Player vulnerable (reloading) but cannot attack: close=false (dist=1150), can_see=false
+[07:46:55] [ENEMY] [Enemy7] Player vulnerable (reloading) but cannot attack: close=false (dist=732), can_see=false
+[07:46:55] [ENEMY] [Enemy8] Player vulnerable (reloading) but cannot attack: close=false (dist=1303), can_see=false
+[07:46:55] [ENEMY] [Enemy9] Player vulnerable (reloading) but cannot attack: close=false (dist=1525), can_see=false
+[07:46:55] [ENEMY] [Enemy10] Player vulnerable (reloading) but cannot attack: close=false (dist=641), can_see=false
+[07:46:56] [ENEMY] [Enemy1] Player reloading state changed: true -> false
+[07:46:56] [ENEMY] [Enemy2] Player reloading state changed: true -> false
+[07:46:56] [ENEMY] [Enemy4] Player reloading state changed: true -> false
+[07:46:56] [ENEMY] [Enemy5] Player reloading state changed: true -> false
+[07:46:56] [ENEMY] [Enemy6] Player reloading state changed: true -> false
+[07:46:56] [ENEMY] [Enemy7] Player reloading state changed: true -> false
+[07:46:56] [ENEMY] [Enemy8] Player reloading state changed: true -> false
+[07:46:56] [ENEMY] [Enemy9] Player reloading state changed: true -> false
+[07:46:56] [ENEMY] [Enemy10] Player reloading state changed: true -> false
+[07:46:56] [ENEMY] [Enemy1] State: PURSUING -> COMBAT
+[07:46:56] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(669.8342, 727.0463), source=PLAYER (AssaultRifle), range=1469, listeners=7
+[07:46:56] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=5
+[07:46:57] [ENEMY] [Enemy1] Hit taken, health: 1/2
+[07:46:57] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(644.9307, 751.7979), source=PLAYER (AssaultRifle), range=1469, listeners=7
+[07:46:57] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=5
+[07:46:57] [ENEMY] [Enemy1] Hit taken, health: 0/2
+[07:46:57] [ENEMY] [Enemy1] Enemy died
+[07:46:57] [INFO] [SoundPropagation] Unregistered listener: Enemy1 (remaining: 6)
+[07:46:57] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(620.0405, 776.688), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[07:46:57] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=0, below_threshold=5
+[07:46:57] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(596.3329, 802.068), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[07:46:57] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=4
+[07:46:57] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(583.5436, 828.6495), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[07:46:57] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=4
+[07:46:57] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(582.8624, 849.3469), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[07:46:57] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=4
+[07:46:58] [ENEMY] [Enemy1] Player reloading state changed: false -> true
+[07:46:58] [ENEMY] [Enemy5] Player reloading state changed: false -> true
+[07:46:58] [ENEMY] [Enemy6] Player reloading state changed: false -> true
+[07:46:58] [ENEMY] [Enemy7] Player reloading state changed: false -> true
+[07:46:58] [ENEMY] [Enemy8] Player reloading state changed: false -> true
+[07:46:58] [ENEMY] [Enemy9] Player reloading state changed: false -> true
+[07:46:58] [ENEMY] [Enemy10] Player reloading state changed: false -> true
+[07:46:58] [INFO] [SoundPropagation] Sound emitted: type=RELOAD, pos=(624.4338, 787.2792), source=PLAYER (Player), range=900, listeners=6
+[07:46:58] [ENEMY] [Enemy10] Heard player RELOAD at (624.4338, 787.2792), intensity=0.03, distance=315
+[07:46:58] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=4, self=0, below_threshold=1
+[07:46:58] [ENEMY] [Enemy5] Player vulnerable (reloading) but cannot attack: close=false (dist=1161), can_see=false
+[07:46:58] [ENEMY] [Enemy6] Player vulnerable (reloading) but cannot attack: close=false (dist=1368), can_see=false
+[07:46:58] [ENEMY] [Enemy7] Player vulnerable (reloading) but cannot attack: close=false (dist=810), can_see=false
+[07:46:58] [ENEMY] [Enemy8] Player vulnerable (reloading) but cannot attack: close=false (dist=1437), can_see=false
+[07:46:58] [ENEMY] [Enemy9] Player vulnerable (reloading) but cannot attack: close=false (dist=1661), can_see=false
+[07:46:58] [ENEMY] [Enemy10] Player vulnerable (reloading) but cannot attack: close=true (dist=315), can_see=false
+[07:46:58] [ENEMY] [Enemy10] Player reloading - priority attack triggered
+[07:46:58] [ENEMY] [Enemy10] Player reloading - priority attack triggered
+[07:46:58] [ENEMY] [Enemy10] Player reloading - priority attack triggered
+[07:46:58] [ENEMY] [Enemy10] Player reloading - priority attack triggered
+[07:46:58] [ENEMY] [Enemy10] Player reloading - priority attack triggered
+[07:46:58] [ENEMY] [Enemy10] Player reloading - priority attack triggered
+[07:46:58] [ENEMY] [Enemy10] Player reloading - priority attack triggered
+[07:46:58] [ENEMY] [Enemy10] Player reloading - priority attack triggered
+[07:46:58] [ENEMY] [Enemy10] Player reloading - priority attack triggered
+[07:46:58] [ENEMY] [Enemy1] Player reloading state changed: true -> false
+[07:46:58] [ENEMY] [Enemy5] Player reloading state changed: true -> false
+[07:46:58] [ENEMY] [Enemy6] Player reloading state changed: true -> false
+[07:46:58] [ENEMY] [Enemy7] Player reloading state changed: true -> false
+[07:46:58] [ENEMY] [Enemy8] Player reloading state changed: true -> false
+[07:46:58] [ENEMY] [Enemy9] Player reloading state changed: true -> false
+[07:46:58] [ENEMY] [Enemy10] Player reloading state changed: true -> false
+[07:46:59] [ENEMY] [Enemy7] FLANKING started: target=(818.2586, 450.337), side=left, pos=(1432.046, 853.6714)
+[07:46:59] [ENEMY] [Enemy7] State: PURSUING -> FLANKING
+[07:46:59] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(768.3489, 578.4529), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[07:46:59] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=4
+[07:46:59] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(769.9222, 578.4529), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[07:46:59] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=4
+[07:46:59] [ENEMY] [Enemy10] Hit taken, health: 3/4
+[07:47:00] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(781.0156, 578.4529), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[07:47:00] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=4
+[07:47:00] [ENEMY] [Enemy10] State: FLANKING -> COMBAT
+[07:47:00] [ENEMY] [Enemy10] Hit taken, health: 2/4
+[07:47:00] [ENEMY] [Enemy10] State: COMBAT -> RETREATING
+[07:47:00] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(805.7623, 578.4529), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[07:47:00] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=4
+[07:47:00] [ENEMY] [Enemy10] Hit taken, health: 1/4
+[07:47:00] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(497.1025, 760.845), source=ENEMY (Enemy10), range=1469, listeners=6
+[07:47:00] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=3, self=1, below_threshold=2
+[07:47:00] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(839.666, 580.4239), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[07:47:00] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=4
+[07:47:00] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(488.6664, 754.3266), source=ENEMY (Enemy10), range=1469, listeners=6
+[07:47:00] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=3, self=1, below_threshold=2
+[07:47:00] [ENEMY] [Enemy10] Hit taken, health: 0/4
+[07:47:00] [ENEMY] [Enemy10] Enemy died
+[07:47:00] [INFO] [SoundPropagation] Unregistered listener: Enemy10 (remaining: 5)
+[07:47:00] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(869.3145, 593.8263), source=PLAYER (AssaultRifle), range=1469, listeners=5
+[07:47:00] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=0, below_threshold=4
+[07:47:03] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(998.5988, 430.0015), source=PLAYER (AssaultRifle), range=1469, listeners=5
+[07:47:03] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=3
+[07:47:03] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1012.209, 408.2394), source=PLAYER (AssaultRifle), range=1469, listeners=5
+[07:47:03] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=3
+[07:47:03] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1013.922, 392.64), source=PLAYER (AssaultRifle), range=1469, listeners=5
+[07:47:03] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=3
+[07:47:03] [ENEMY] [Enemy7] State: FLANKING -> RETREATING
+[07:47:03] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1006.584, 387.9025), source=PLAYER (AssaultRifle), range=1469, listeners=5
+[07:47:03] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=3
+[07:47:03] [ENEMY] [Enemy7] Hit taken, health: 2/3
+[07:47:03] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(993.4368, 394.8634), source=PLAYER (AssaultRifle), range=1469, listeners=5
+[07:47:03] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=3
+[07:47:03] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(972.4633, 413.4585), source=PLAYER (AssaultRifle), range=1469, listeners=5
+[07:47:03] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=3
+[07:47:03] [ENEMY] [Enemy7] Hit taken, health: 1/3
+[07:47:03] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(947.5732, 438.3486), source=PLAYER (AssaultRifle), range=1469, listeners=5
+[07:47:03] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=3
+[07:47:03] [ENEMY] [Enemy7] Hit taken, health: 0/3
+[07:47:03] [ENEMY] [Enemy7] Enemy died
+[07:47:03] [INFO] [SoundPropagation] Unregistered listener: Enemy7 (remaining: 4)
+[07:47:03] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(922.683, 463.2388), source=PLAYER (AssaultRifle), range=1469, listeners=4
+[07:47:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=0, below_threshold=3
+[07:47:04] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(897.7929, 488.1289), source=PLAYER (AssaultRifle), range=1469, listeners=4
+[07:47:04] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=0, below_threshold=3
+[07:47:04] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(874.8737, 513.8354), source=PLAYER (AssaultRifle), range=1469, listeners=4
+[07:47:04] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=0, below_threshold=3
+[07:47:04] [ENEMY] [Enemy5] Hit taken, health: 3/4
+[07:47:04] [ENEMY] [Enemy5] Player reloading state changed: false -> true
+[07:47:04] [ENEMY] [Enemy6] Player reloading state changed: false -> true
+[07:47:04] [ENEMY] [Enemy7] Player reloading state changed: false -> true
+[07:47:04] [ENEMY] [Enemy8] Player reloading state changed: false -> true
+[07:47:04] [ENEMY] [Enemy9] Player reloading state changed: false -> true
+[07:47:04] [INFO] [SoundPropagation] Sound emitted: type=RELOAD, pos=(863.261, 567.8088), source=PLAYER (Player), range=900, listeners=4
+[07:47:04] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=3, self=0, below_threshold=1
+[07:47:04] [ENEMY] [Enemy5] Player vulnerable (reloading) but cannot attack: close=false (dist=865), can_see=false
+[07:47:04] [ENEMY] [Enemy6] Player vulnerable (reloading) but cannot attack: close=false (dist=1093), can_see=false
+[07:47:04] [ENEMY] [Enemy8] Player vulnerable (reloading) but cannot attack: close=false (dist=1361), can_see=false
+[07:47:04] [ENEMY] [Enemy9] Player vulnerable (reloading) but cannot attack: close=false (dist=1579), can_see=false
+[07:47:05] [INFO] [SoundPropagation] Sound emitted: type=RELOAD, pos=(864.0211, 504.2787), source=PLAYER (Player), range=900, listeners=4
+[07:47:05] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=3, self=0, below_threshold=1
+[07:47:05] [ENEMY] [Enemy5] Player vulnerable (reloading) but cannot attack: close=false (dist=845), can_see=false
+[07:47:05] [ENEMY] [Enemy6] Player vulnerable (reloading) but cannot attack: close=false (dist=1086), can_see=false
+[07:47:05] [ENEMY] [Enemy8] Player vulnerable (reloading) but cannot attack: close=false (dist=1424), can_see=false
+[07:47:05] [ENEMY] [Enemy9] Player vulnerable (reloading) but cannot attack: close=false (dist=1639), can_see=false
+[07:47:05] [ENEMY] [Enemy5] Player vulnerable (reloading) but cannot attack: close=false (dist=820), can_see=false
+[07:47:05] [ENEMY] [Enemy6] Player vulnerable (reloading) but cannot attack: close=false (dist=1076), can_see=false
+[07:47:05] [ENEMY] [Enemy8] Player vulnerable (reloading) but cannot attack: close=false (dist=1505), can_see=false
+[07:47:05] [ENEMY] [Enemy9] Player vulnerable (reloading) but cannot attack: close=false (dist=1716), can_see=false
+[07:47:06] [ENEMY] [Enemy5] Player vulnerable (reloading) but cannot attack: close=false (dist=784), can_see=false
+[07:47:06] [ENEMY] [Enemy6] Player vulnerable (reloading) but cannot attack: close=false (dist=1048), can_see=false
+[07:47:06] [ENEMY] [Enemy8] Player vulnerable (reloading) but cannot attack: close=false (dist=1564), can_see=false
+[07:47:06] [ENEMY] [Enemy9] Player vulnerable (reloading) but cannot attack: close=false (dist=1769), can_see=false
+[07:47:06] [ENEMY] [Enemy5] Player vulnerable (reloading) but cannot attack: close=false (dist=700), can_see=false
+[07:47:06] [ENEMY] [Enemy6] Player vulnerable (reloading) but cannot attack: close=false (dist=968), can_see=false
+[07:47:06] [ENEMY] [Enemy8] Player vulnerable (reloading) but cannot attack: close=false (dist=1566), can_see=false
+[07:47:06] [ENEMY] [Enemy9] Player vulnerable (reloading) but cannot attack: close=false (dist=1764), can_see=false
+[07:47:07] [ENEMY] [Enemy5] Player vulnerable (reloading) but cannot attack: close=false (dist=608), can_see=false
+[07:47:07] [ENEMY] [Enemy6] Player vulnerable (reloading) but cannot attack: close=false (dist=877), can_see=false
+[07:47:07] [ENEMY] [Enemy8] Player vulnerable (reloading) but cannot attack: close=false (dist=1546), can_see=false
+[07:47:07] [ENEMY] [Enemy9] Player vulnerable (reloading) but cannot attack: close=false (dist=1736), can_see=false
+[07:47:07] [ENEMY] [Enemy5] Player vulnerable (reloading) but cannot attack: close=false (dist=468), can_see=false
+[07:47:07] [ENEMY] [Enemy6] Player vulnerable (reloading) but cannot attack: close=false (dist=734), can_see=false
+[07:47:07] [ENEMY] [Enemy8] Player vulnerable (reloading) but cannot attack: close=false (dist=1476), can_see=false
+[07:47:07] [ENEMY] [Enemy9] Player vulnerable (reloading) but cannot attack: close=false (dist=1654), can_see=false
+[07:47:07] [ENEMY] [Enemy6] Player vulnerable (reloading) - pursuing to attack (dist=677)
+[07:47:07] [ENEMY] [Enemy6] State: IDLE -> PURSUING
+[07:47:07] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1376.308, 99.76727), source=PLAYER (AssaultRifle), range=1469, listeners=4
+[07:47:07] [ENEMY] [Enemy5] Heard gunshot at (1376.308, 99.76727), source_type=0, intensity=0.01, distance=409
+[07:47:07] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=2
+[07:47:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1411.237, 108.3902), source=PLAYER (AssaultRifle), range=1469, listeners=4
+[07:47:08] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=2
+[07:47:08] [ENEMY] [Enemy5] Player reloading - priority attack triggered
+[07:47:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1689.362, 293.8213), source=ENEMY (Enemy5), range=1469, listeners=4
+[07:47:08] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=1, below_threshold=2
+[07:47:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1439.387, 131.593), source=PLAYER (AssaultRifle), range=1469, listeners=4
+[07:47:08] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=2
+[07:47:08] [ENEMY] [Enemy6] Hit taken, health: 1/2
+[07:47:08] [ENEMY] [Enemy5] Player reloading - priority attack triggered
+[07:47:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1694.65, 294.5161), source=ENEMY (Enemy5), range=1469, listeners=4
+[07:47:08] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=1, below_threshold=2
+[07:47:08] [ENEMY] [Enemy5] Hit taken, health: 2/4
+[07:47:08] [ENEMY] [Enemy5] Player reloading - priority attack triggered
+[07:47:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1699.938, 295.2108), source=ENEMY (Enemy5), range=1469, listeners=4
+[07:47:08] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=1, below_threshold=2
+[07:47:08] [ENEMY] [Enemy5] Player reloading - priority attack triggered
+[07:47:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1704.168, 295.7667), source=ENEMY (Enemy5), range=1469, listeners=4
+[07:47:08] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=1, below_threshold=2
+[07:47:08] [ENEMY] [Enemy5] Player reloading - priority attack triggered
+[07:47:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1708.399, 296.3225), source=ENEMY (Enemy5), range=1469, listeners=4
+[07:47:08] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=1, below_threshold=2
+[07:47:08] [ENEMY] [Enemy6] State: PURSUING -> COMBAT
+[07:47:08] [ENEMY] [Enemy5] Player reloading - priority attack triggered
+[07:47:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1712.629, 296.8783), source=ENEMY (Enemy5), range=1469, listeners=4
+[07:47:08] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=1, below_threshold=2
+[07:47:08] [ENEMY] [Enemy6] Player vulnerable (reloading) but cannot attack: close=false (dist=507), can_see=true
+[07:47:08] [ENEMY] [Enemy6] State: COMBAT -> PURSUING
+[07:47:08] [ENEMY] [Enemy8] Player vulnerable (reloading) but cannot attack: close=false (dist=1380), can_see=false
+[07:47:08] [ENEMY] [Enemy9] Player vulnerable (reloading) but cannot attack: close=false (dist=1548), can_see=false
+[07:47:08] [ENEMY] [Enemy5] Player reloading - priority attack triggered
+[07:47:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1716.859, 297.4341), source=ENEMY (Enemy5), range=1469, listeners=4
+[07:47:08] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=1, below_threshold=2
+[07:47:08] [ENEMY] [Enemy5] Player reloading - priority attack triggered
+[07:47:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1721.09, 297.9899), source=ENEMY (Enemy5), range=1469, listeners=4
+[07:47:08] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=1, below_threshold=2
+[07:47:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1453.05, 157.2815), source=PLAYER (AssaultRifle), range=1469, listeners=4
+[07:47:08] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=0, below_threshold=1
+[07:47:08] [ENEMY] [Enemy5] Player reloading - priority attack triggered
+[07:47:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1725.32, 298.5457), source=ENEMY (Enemy5), range=1469, listeners=4
+[07:47:08] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=1, below_threshold=2
+[07:47:08] [ENEMY] [Enemy5] Player reloading - priority attack triggered
+[07:47:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1729.55, 299.1016), source=ENEMY (Enemy5), range=1469, listeners=4
+[07:47:08] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=1, below_threshold=2
+[07:47:08] [ENEMY] [Enemy5] Hit taken, health: 1/4
+[07:47:08] [ENEMY] [Enemy5] Player reloading - priority attack triggered
+[07:47:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1733.781, 299.6574), source=ENEMY (Enemy5), range=1469, listeners=4
+[07:47:08] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=1, below_threshold=2
+[07:47:08] [ENEMY] [Enemy5] Player reloading - priority attack triggered
+[07:47:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1738.011, 300.2132), source=ENEMY (Enemy5), range=1469, listeners=4
+[07:47:08] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=1, below_threshold=2
+[07:47:08] [ENEMY] [Enemy5] Player reloading - priority attack triggered
+[07:47:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1742.241, 300.769), source=ENEMY (Enemy5), range=1469, listeners=4
+[07:47:08] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=1, below_threshold=2
+[07:47:08] [ENEMY] [Enemy5] Player reloading - priority attack triggered
+[07:47:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1746.472, 301.3248), source=ENEMY (Enemy5), range=1469, listeners=4
+[07:47:08] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=1, below_threshold=2
+[07:47:08] [ENEMY] [Enemy6] State: PURSUING -> RETREATING
+[07:47:08] [ENEMY] [Enemy5] Player reloading - priority attack triggered
+[07:47:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1750.702, 301.8806), source=ENEMY (Enemy5), range=1469, listeners=4
+[07:47:08] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=1, below_threshold=2
+[07:47:08] [ENEMY] [Enemy5] Player reloading - priority attack triggered
+[07:47:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1754.932, 302.4365), source=ENEMY (Enemy5), range=1469, listeners=4
+[07:47:08] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=1, below_threshold=2
+[07:47:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1456.663, 190.8389), source=PLAYER (AssaultRifle), range=1469, listeners=4
+[07:47:08] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=0, below_threshold=1
+[07:47:08] [ENEMY] [Enemy5] Player reloading - priority attack triggered
+[07:47:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1759.163, 302.9923), source=ENEMY (Enemy5), range=1469, listeners=4
+[07:47:08] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=1, below_threshold=2
+[07:47:08] [ENEMY] [Enemy5] Hit taken, health: 0/4
+[07:47:08] [ENEMY] [Enemy5] Enemy died
+[07:47:08] [INFO] [SoundPropagation] Unregistered listener: Enemy5 (remaining: 3)
+[07:47:08] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[07:47:08] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[07:47:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1462.697, 221.5591), source=PLAYER (AssaultRifle), range=1469, listeners=3
+[07:47:08] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=1
+[07:47:08] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[07:47:08] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[07:47:08] [ENEMY] [Enemy6] Player reloading - priority attack triggered
+[07:47:08] [ENEMY] [Enemy6] Hit taken, health: 0/2
+[07:47:08] [ENEMY] [Enemy6] Enemy died
+[07:47:08] [INFO] [SoundPropagation] Unregistered listener: Enemy6 (remaining: 2)
+[07:47:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1476.696, 241.6416), source=PLAYER (AssaultRifle), range=1469, listeners=2
+[07:47:08] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=2
+[07:47:08] [ENEMY] [Enemy8] Player vulnerable (reloading) but cannot attack: close=false (dist=1273), can_see=false
+[07:47:08] [ENEMY] [Enemy9] Player vulnerable (reloading) but cannot attack: close=false (dist=1441), can_see=false
+[07:47:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1496.505, 248.5244), source=PLAYER (AssaultRifle), range=1469, listeners=2
+[07:47:08] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=2
+[07:47:09] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 3)
+[07:47:09] [ENEMY] [Enemy1] Registered as sound listener
+[07:47:09] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 2, behavior: GUARD, player_found: yes
+[07:47:09] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 4)
+[07:47:09] [ENEMY] [Enemy2] Registered as sound listener
+[07:47:09] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 4, behavior: GUARD, player_found: yes
+[07:47:09] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 5)
+[07:47:09] [ENEMY] [Enemy3] Registered as sound listener
+[07:47:09] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 4, behavior: GUARD, player_found: yes
+[07:47:09] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 6)
+[07:47:09] [ENEMY] [Enemy4] Registered as sound listener
+[07:47:09] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 4, behavior: GUARD, player_found: yes
+[07:47:09] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 7)
+[07:47:09] [ENEMY] [Enemy5] Registered as sound listener
+[07:47:09] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 2, behavior: GUARD, player_found: yes
+[07:47:09] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 8)
+[07:47:09] [ENEMY] [Enemy6] Registered as sound listener
+[07:47:09] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 3, behavior: GUARD, player_found: yes
+[07:47:09] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 9)
+[07:47:09] [ENEMY] [Enemy7] Registered as sound listener
+[07:47:09] [ENEMY] [Enemy7] Enemy spawned at (1600, 900), health: 2, behavior: PATROL, player_found: yes
+[07:47:09] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 10)
+[07:47:09] [ENEMY] [Enemy8] Registered as sound listener
+[07:47:09] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 2, behavior: GUARD, player_found: yes
+[07:47:09] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 11)
+[07:47:09] [ENEMY] [Enemy9] Registered as sound listener
+[07:47:09] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 2, behavior: GUARD, player_found: yes
+[07:47:09] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 12)
+[07:47:09] [ENEMY] [Enemy10] Registered as sound listener
+[07:47:09] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 4, behavior: PATROL, player_found: yes
+[07:47:09] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(450.2357, 1249.764), source=PLAYER (AssaultRifle), range=1469, listeners=12
+[07:47:09] [INFO] [SoundPropagation] Cleaned up 2 invalid listeners
+[07:47:09] [ENEMY] [Enemy4] Heard gunshot at (450.2357, 1249.764), source_type=0, intensity=0.01, distance=495
+[07:47:09] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=3, self=0, below_threshold=6
+[07:47:09] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(458.4852, 1241.515), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[07:47:09] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=3, self=0, below_threshold=6
+[07:47:09] [ENEMY] [Enemy10] State: IDLE -> COMBAT
+[07:47:09] [ENEMY] [Enemy4] State: COMBAT -> PURSUING
+[07:47:09] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[07:47:11] [INFO] ------------------------------------------------------------
+[07:47:11] [INFO] GAME LOG ENDED: 2026-01-21T07:47:11
+[07:47:11] [INFO] ============================================================

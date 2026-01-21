@@ -8,12 +8,18 @@ extends Area2D
 ##
 ## The hole is permanent and does not fade over time.
 ## Similar to Red Faction Guerrilla or Teardown destruction (without physics).
+##
+## The visual is a continuous dark trail from entry to exit point,
+## drawn like a brush stroke through the wall texture.
 
 ## Collision layers this hole affects (default: obstacles layer 3)
 const OBSTACLE_LAYER: int = 4  # Layer 3 in Godot is value 4 (2^2)
 
 ## The collision shape of this hole.
 var _collision_shape: CollisionShape2D = null
+
+## The visual Line2D trail.
+var _visual_line: Line2D = null
 
 ## Direction the bullet was traveling (for trail orientation).
 var bullet_direction: Vector2 = Vector2.RIGHT
@@ -23,6 +29,15 @@ var trail_width: float = 4.0
 
 ## Length of the trail (based on penetration distance traveled).
 var trail_length: float = 8.0
+
+## Entry point in global coordinates (stored for visual rendering).
+var _entry_point: Vector2 = Vector2.ZERO
+
+## Exit point in global coordinates (stored for visual rendering).
+var _exit_point: Vector2 = Vector2.ZERO
+
+## Whether the hole has been fully configured.
+var _is_configured: bool = false
 
 
 func _ready() -> void:
@@ -35,43 +50,44 @@ func _ready() -> void:
 	monitoring = true
 	monitorable = true
 
-	_create_collision_shape()
-	_create_visual()
+	# Don't create visuals yet - wait for set_from_entry_exit to be called
+	# with the actual entry/exit points
 
 
-## Creates the collision shape for the hole.
-func _create_collision_shape() -> void:
-	_collision_shape = CollisionShape2D.new()
+## Creates or updates the collision shape for the hole.
+func _create_or_update_collision_shape() -> void:
+	if _collision_shape == null:
+		_collision_shape = CollisionShape2D.new()
+		var rect_shape := RectangleShape2D.new()
+		_collision_shape.shape = rect_shape
+		add_child(_collision_shape)
 
-	# Create a rectangle shape for the bullet trail
-	var rect_shape := RectangleShape2D.new()
-	# Width is the bullet diameter, length is the penetration distance
-	rect_shape.size = Vector2(trail_length, trail_width)
-
-	_collision_shape.shape = rect_shape
-	add_child(_collision_shape)
-
-	# Rotate to match bullet direction
-	rotation = bullet_direction.angle()
+	# Update shape size
+	var rect := _collision_shape.shape as RectangleShape2D
+	if rect:
+		# Width is the bullet diameter, length is the penetration distance
+		rect.size = Vector2(trail_length, trail_width)
 
 
-## Creates a simple visual representation of the hole.
-func _create_visual() -> void:
-	# Create a dark line/rectangle to show the bullet path through the wall
-	var line := Line2D.new()
-	line.width = trail_width
-	line.default_color = Color(0.02, 0.02, 0.02, 0.95)
-	line.begin_cap_mode = Line2D.LINE_CAP_ROUND
-	line.end_cap_mode = Line2D.LINE_CAP_ROUND
+## Creates or updates the visual representation of the hole.
+## The visual is drawn in GLOBAL coordinates as a line from entry to exit.
+func _create_or_update_visual() -> void:
+	if _visual_line == null:
+		_visual_line = Line2D.new()
+		_visual_line.default_color = Color(0.02, 0.02, 0.02, 0.95)
+		_visual_line.begin_cap_mode = Line2D.LINE_CAP_ROUND
+		_visual_line.end_cap_mode = Line2D.LINE_CAP_ROUND
+		# Use global coordinates so the line is positioned correctly
+		_visual_line.top_level = true
+		add_child(_visual_line)
 
-	# Line goes from entry to exit (local coordinates)
-	line.add_point(Vector2(-trail_length / 2.0, 0))
-	line.add_point(Vector2(trail_length / 2.0, 0))
+	# Update line properties
+	_visual_line.width = trail_width
+	_visual_line.clear_points()
 
-	# Don't rotate line since parent is already rotated
-	line.rotation = -rotation  # Counter-rotate to stay horizontal in local space
-
-	add_child(line)
+	# Draw line from entry to exit in global coordinates
+	_visual_line.add_point(_entry_point)
+	_visual_line.add_point(_exit_point)
 
 
 ## Configures the hole with bullet information.
@@ -83,25 +99,36 @@ func configure(direction: Vector2, width: float, length: float) -> void:
 	trail_width = maxf(width, 2.0)  # Minimum width of 2 pixels
 	trail_length = maxf(length, 4.0)  # Minimum length of 4 pixels
 
-	# Update shape if already created
-	if _collision_shape and _collision_shape.shape:
-		var rect := _collision_shape.shape as RectangleShape2D
-		if rect:
-			rect.size = Vector2(trail_length, trail_width)
+	# Update collision shape
+	_create_or_update_collision_shape()
 
+	# Set rotation for collision shape (centered at hole position)
 	rotation = bullet_direction.angle()
 
+	# Update visual if we have entry/exit points
+	if _is_configured:
+		_create_or_update_visual()
 
-## Sets the position to the center of the bullet path.
-## @param entry_point: Where the bullet entered the wall.
-## @param exit_point: Where the bullet exited the wall.
+
+## Sets the hole from entry and exit points.
+## This is the primary method for configuring the hole.
+## @param entry_point: Where the bullet entered the wall (global coords).
+## @param exit_point: Where the bullet exited the wall (global coords).
 func set_from_entry_exit(entry_point: Vector2, exit_point: Vector2) -> void:
-	# Position at center of entry and exit
+	# Store entry/exit points for visual rendering
+	_entry_point = entry_point
+	_exit_point = exit_point
+
+	# Position collision shape at center of entry and exit
 	global_position = (entry_point + exit_point) / 2.0
 
 	# Calculate direction and length
 	var path := exit_point - entry_point
-	trail_length = path.length()
-	bullet_direction = path.normalized() if trail_length > 0 else Vector2.RIGHT
+	trail_length = maxf(path.length(), 4.0)  # Minimum length of 4 pixels
+	bullet_direction = path.normalized() if trail_length > 4.0 else Vector2.RIGHT
 
+	# Mark as configured
+	_is_configured = true
+
+	# Now create/update collision shape and visual
 	configure(bullet_direction, trail_width, trail_length)

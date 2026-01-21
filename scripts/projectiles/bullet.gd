@@ -117,6 +117,7 @@ var shooter_position: Vector2 = Vector2.ZERO
 func _ready() -> void:
 	# Connect to collision signals
 	body_entered.connect(_on_body_entered)
+	body_exited.connect(_on_body_exited)
 	area_entered.connect(_on_area_entered)
 
 	# Get trail reference if it exists
@@ -161,6 +162,19 @@ func _update_rotation() -> void:
 	rotation = direction.angle()
 
 
+## Logs a penetration-related message to both console and file logger.
+## @param message: The message to log.
+func _log_penetration(message: String) -> void:
+	if not _debug_penetration:
+		return
+	var full_message := "[Bullet] " + message
+	print(full_message)
+	# Also log to FileLogger if available
+	var file_logger: Node = get_node_or_null("/root/FileLogger")
+	if file_logger and file_logger.has_method("log_info"):
+		file_logger.log_info(full_message)
+
+
 func _physics_process(delta: float) -> void:
 	# Calculate movement this frame
 	var movement := direction * speed * delta
@@ -185,8 +199,7 @@ func _physics_process(delta: float) -> void:
 
 		# Check if we've exceeded max penetration distance
 		if max_pen_distance > 0 and _penetration_distance_traveled >= max_pen_distance:
-			if _debug_penetration:
-				print("[Bullet] Max penetration distance exceeded: ", _penetration_distance_traveled, " >= ", max_pen_distance)
+			_log_penetration("Max penetration distance exceeded: %s >= %s" % [_penetration_distance_traveled, max_pen_distance])
 			# Spawn the visual trail before destroying the bullet
 			# The bullet stopped inside the wall - spawn collision hole from entry to current position
 			_spawn_collision_hole(_penetration_entry_point, global_position)
@@ -198,6 +211,7 @@ func _physics_process(delta: float) -> void:
 			return
 
 		# Check if we've exited the obstacle (raycast forward to see if still inside)
+		# Note: body_exited signal also triggers _exit_penetration for reliability
 		if not _is_still_inside_obstacle():
 			_exit_penetration()
 
@@ -244,8 +258,7 @@ func _on_body_entered(body: Node2D) -> void:
 
 	# Check if bullet is inside an existing penetration hole - pass through without re-triggering
 	if _is_inside_penetration_hole():
-		if _debug_penetration:
-			print("[Bullet] Inside existing penetration hole, passing through")
+		_log_penetration("Inside existing penetration hole, passing through")
 		return
 
 	# Hit a static body (wall or obstacle) or alive enemy body
@@ -258,19 +271,16 @@ func _on_body_entered(body: Node2D) -> void:
 		var distance_to_wall := _get_distance_to_shooter()
 		var distance_ratio := distance_to_wall / _viewport_diagonal if _viewport_diagonal > 0 else 1.0
 
-		if _debug_penetration:
-			print("[Bullet] Distance to wall: ", distance_to_wall, " (", distance_ratio * 100, "% of viewport)")
+		_log_penetration("Distance to wall: %s (%s%% of viewport)" % [distance_to_wall, distance_ratio * 100])
 
 		# Point-blank shots (very close to shooter): 100% penetration, ignore ricochet
 		if distance_ratio <= POINT_BLANK_DISTANCE_RATIO + 0.05:  # ~5% tolerance for "point blank"
-			if _debug_penetration:
-				print("[Bullet] Point-blank shot - 100% penetration, ignoring ricochet")
+			_log_penetration("Point-blank shot - 100% penetration, ignoring ricochet")
 			if _try_penetration(body):
 				return  # Bullet is penetrating
 		# At 40% or less of viewport: normal ricochet rules apply
 		elif distance_ratio <= RICOCHET_RULES_DISTANCE_RATIO:
-			if _debug_penetration:
-				print("[Bullet] Within ricochet range - trying ricochet first")
+			_log_penetration("Within ricochet range - trying ricochet first")
 			# First try ricochet
 			if _try_ricochet(body):
 				return  # Bullet ricocheted, don't destroy
@@ -288,22 +298,34 @@ func _on_body_entered(body: Node2D) -> void:
 			# At 100% (viewport) distance: 30% chance
 			var penetration_chance := _calculate_distance_penetration_chance(distance_ratio)
 
-			if _debug_penetration:
-				print("[Bullet] Distance-based penetration chance: ", penetration_chance * 100, "%")
+			_log_penetration("Distance-based penetration chance: %s%%" % [penetration_chance * 100])
 
 			# Roll for penetration
 			if randf() <= penetration_chance:
 				if _try_penetration(body):
 					return  # Bullet is penetrating
 			else:
-				if _debug_penetration:
-					print("[Bullet] Penetration failed (distance roll)")
+				_log_penetration("Penetration failed (distance roll)")
 
 	# Play wall impact sound and destroy bullet
 	var audio_manager: Node = get_node_or_null("/root/AudioManager")
 	if audio_manager and audio_manager.has_method("play_bullet_wall_hit"):
 		audio_manager.play_bullet_wall_hit(global_position)
 	queue_free()
+
+
+## Called when the bullet exits a body (wall).
+## Used for detecting penetration exit via the physics system.
+func _on_body_exited(body: Node2D) -> void:
+	# Only process if we're currently penetrating this specific body
+	if not _is_penetrating or _penetrating_body != body:
+		return
+
+	# Log exit detection
+	_log_penetration("Body exited signal received for penetrating body")
+
+	# Call exit penetration
+	_exit_penetration()
 
 
 func _on_area_entered(area: Area2D) -> void:
@@ -624,8 +646,7 @@ func _spawn_wall_hit_effect(body: Node2D) -> void:
 
 ## Gets the distance from the current bullet position to the shooter's original position.
 func _get_distance_to_shooter() -> float:
-	if _debug_penetration:
-		print("[Bullet] _get_distance_to_shooter: shooter_position=", shooter_position, ", shooter_id=", shooter_id, ", bullet_pos=", global_position)
+	_log_penetration("_get_distance_to_shooter: shooter_position=%s, shooter_id=%s, bullet_pos=%s" % [shooter_position, shooter_id, global_position])
 
 	if shooter_position == Vector2.ZERO:
 		# Fallback: use shooter instance position if available
@@ -633,16 +654,13 @@ func _get_distance_to_shooter() -> float:
 			var shooter: Object = instance_from_id(shooter_id)
 			if shooter != null and shooter is Node2D:
 				var dist := global_position.distance_to((shooter as Node2D).global_position)
-				if _debug_penetration:
-					print("[Bullet] Using shooter_id fallback, distance=", dist)
+				_log_penetration("Using shooter_id fallback, distance=%s" % dist)
 				return dist
 		# Unable to determine shooter position - assume close range
-		if _debug_penetration:
-			print("[Bullet] WARNING: Unable to determine shooter position, defaulting to bullet position distance from origin")
+		_log_penetration("WARNING: Unable to determine shooter position, defaulting to bullet position distance from origin")
 
 	var dist := global_position.distance_to(shooter_position)
-	if _debug_penetration:
-		print("[Bullet] Using shooter_position, distance=", dist)
+	_log_penetration("Using shooter_position, distance=%s" % dist)
 	return dist
 
 
@@ -705,18 +723,15 @@ func _is_inside_penetration_hole() -> bool:
 func _try_penetration(body: Node2D) -> bool:
 	# Check if caliber allows penetration
 	if not _can_penetrate():
-		if _debug_penetration:
-			print("[Bullet] Caliber cannot penetrate walls")
+		_log_penetration("Caliber cannot penetrate walls")
 		return false
 
 	# Don't start a new penetration if already penetrating
 	if _is_penetrating:
-		if _debug_penetration:
-			print("[Bullet] Already penetrating, cannot start new penetration")
+		_log_penetration("Already penetrating, cannot start new penetration")
 		return false
 
-	if _debug_penetration:
-		print("[Bullet] Starting wall penetration at ", global_position)
+	_log_penetration("Starting wall penetration at %s" % global_position)
 
 	# Mark as penetrating
 	_is_penetrating = true
@@ -781,8 +796,7 @@ func _is_still_inside_obstacle() -> bool:
 
 	# If we hit the same body in front, we're still inside
 	if not result.is_empty() and result.collider == _penetrating_body:
-		if _debug_penetration:
-			print("[Bullet] Raycast forward hit penetrating body at distance ", ray_start.distance_to(result.position))
+		_log_penetration("Raycast forward hit penetrating body at distance %s" % ray_start.distance_to(result.position))
 		return true
 
 	# Also check backwards to see if we're still overlapping
@@ -793,21 +807,22 @@ func _is_still_inside_obstacle() -> bool:
 
 	result = space_state.intersect_ray(query)
 	if not result.is_empty() and result.collider == _penetrating_body:
-		if _debug_penetration:
-			print("[Bullet] Raycast backward hit penetrating body at distance ", ray_start.distance_to(result.position))
+		_log_penetration("Raycast backward hit penetrating body at distance %s" % ray_start.distance_to(result.position))
 		return true
 
-	if _debug_penetration:
-		print("[Bullet] No longer inside obstacle - raycasts found no collision with penetrating body")
+	_log_penetration("No longer inside obstacle - raycasts found no collision with penetrating body")
 	return false
 
 
 ## Called when the bullet exits a penetrated wall.
 func _exit_penetration() -> void:
+	# Prevent double-calling (can happen from both body_exited and raycast check)
+	if not _is_penetrating:
+		return
+
 	var exit_point := global_position
 
-	if _debug_penetration:
-		print("[Bullet] Exiting penetration at ", exit_point, " after traveling ", _penetration_distance_traveled, " pixels through wall")
+	_log_penetration("Exiting penetration at %s after traveling %s pixels through wall" % [exit_point, _penetration_distance_traveled])
 
 	# Spawn exit hole effect (visual)
 	_spawn_penetration_hole_effect(_penetrating_body, exit_point, false)
@@ -820,8 +835,7 @@ func _exit_penetration() -> void:
 		damage_multiplier *= _get_post_penetration_damage_multiplier()
 		_has_penetrated = true
 
-		if _debug_penetration:
-			print("[Bullet] Damage multiplier after penetration: ", damage_multiplier)
+		_log_penetration("Damage multiplier after penetration: %s" % damage_multiplier)
 
 	# Play penetration exit sound (use wall hit sound for now)
 	var audio_manager: Node = get_node_or_null("/root/AudioManager")
@@ -863,8 +877,7 @@ func _spawn_collision_hole(entry_point: Vector2, exit_point: Vector2) -> void:
 
 	if impact_manager.has_method("spawn_collision_hole"):
 		impact_manager.spawn_collision_hole(entry_point, exit_point, direction, caliber_data)
-		if _debug_penetration:
-			print("[Bullet] Collision hole spawned from ", entry_point, " to ", exit_point)
+		_log_penetration("Collision hole spawned from %s to %s" % [entry_point, exit_point])
 
 
 ## Returns whether the bullet has penetrated at least one wall.
