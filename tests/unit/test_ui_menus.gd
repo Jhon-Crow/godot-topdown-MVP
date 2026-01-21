@@ -1,7 +1,7 @@
 extends GutTest
 ## Unit tests for UI menu scripts.
 ##
-## Tests the logic for pause menu, controls menu, difficulty menu, and levels menu.
+## Tests the logic for pause menu, controls menu, difficulty menu, levels menu, and armory menu.
 ## Tests the state management and button states without requiring actual UI nodes.
 
 
@@ -14,6 +14,7 @@ class MockPauseMenu:
 	var _controls_menu_visible: bool = false
 	var _difficulty_menu_visible: bool = false
 	var _levels_menu_visible: bool = false
+	var _armory_menu_visible: bool = false
 	var visible: bool = false
 	var paused: bool = false
 
@@ -33,6 +34,7 @@ class MockPauseMenu:
 		_controls_menu_visible = false
 		_difficulty_menu_visible = false
 		_levels_menu_visible = false
+		_armory_menu_visible = false
 
 	func show_controls_menu() -> void:
 		_controls_menu_visible = true
@@ -51,6 +53,12 @@ class MockPauseMenu:
 
 	func hide_levels_menu() -> void:
 		_levels_menu_visible = false
+
+	func show_armory_menu() -> void:
+		_armory_menu_visible = true
+
+	func hide_armory_menu() -> void:
+		_armory_menu_visible = false
 
 
 # ============================================================================
@@ -186,6 +194,62 @@ class MockLevelsMenu:
 
 
 # ============================================================================
+# Mock Armory Menu
+# ============================================================================
+
+
+class MockArmoryMenu:
+	const WEAPONS: Dictionary = {
+		"m16": {
+			"name": "M16",
+			"icon_path": "res://assets/sprites/weapons/m16_rifle.png",
+			"unlocked": true,
+			"description": "Standard assault rifle"
+		},
+		"ak47": {
+			"name": "???",
+			"icon_path": "",
+			"unlocked": false,
+			"description": "Coming soon"
+		},
+		"shotgun": {
+			"name": "???",
+			"icon_path": "",
+			"unlocked": false,
+			"description": "Coming soon"
+		}
+	}
+
+	signal back_pressed
+
+	func get_weapon_count() -> int:
+		return WEAPONS.size()
+
+	func get_weapon_ids() -> Array:
+		return WEAPONS.keys()
+
+	func get_weapon_data(weapon_id: String) -> Dictionary:
+		if weapon_id in WEAPONS:
+			return WEAPONS[weapon_id]
+		return {}
+
+	func is_weapon_unlocked(weapon_id: String) -> bool:
+		if weapon_id in WEAPONS:
+			return WEAPONS[weapon_id]["unlocked"]
+		return false
+
+	func get_unlocked_count() -> int:
+		var count: int = 0
+		for weapon_id in WEAPONS:
+			if WEAPONS[weapon_id]["unlocked"]:
+				count += 1
+		return count
+
+	func get_status_text() -> String:
+		return "Unlocked: %d / %d" % [get_unlocked_count(), get_weapon_count()]
+
+
+# ============================================================================
 # Pause Menu Tests
 # ============================================================================
 
@@ -221,11 +285,13 @@ func test_resume_closes_submenus() -> void:
 	pause_menu.pause_game()
 	pause_menu.show_controls_menu()
 	pause_menu.show_difficulty_menu()
+	pause_menu.show_armory_menu()
 
 	pause_menu.resume_game()
 
 	assert_false(pause_menu._controls_menu_visible, "Controls menu should close on resume")
 	assert_false(pause_menu._difficulty_menu_visible, "Difficulty menu should close on resume")
+	assert_false(pause_menu._armory_menu_visible, "Armory menu should close on resume")
 
 
 # ============================================================================
@@ -403,3 +469,55 @@ func test_should_disable_current_level_button() -> void:
 		"Current level button should be disabled")
 	assert_false(levels_menu.should_disable_button("Test Tier"),
 		"Other level buttons should not be disabled")
+
+
+# ============================================================================
+# Armory Menu Tests
+# ============================================================================
+
+
+var armory_menu: MockArmoryMenu
+
+
+func test_armory_menu_has_weapons() -> void:
+	armory_menu = MockArmoryMenu.new()
+	assert_true(armory_menu.get_weapon_count() > 0, "Should have at least one weapon")
+
+
+func test_armory_menu_m16_unlocked() -> void:
+	armory_menu = MockArmoryMenu.new()
+	assert_true(armory_menu.is_weapon_unlocked("m16"), "M16 should be unlocked")
+
+
+func test_armory_menu_other_weapons_locked() -> void:
+	armory_menu = MockArmoryMenu.new()
+	assert_false(armory_menu.is_weapon_unlocked("ak47"), "AK47 should be locked")
+	assert_false(armory_menu.is_weapon_unlocked("shotgun"), "Shotgun should be locked")
+
+
+func test_armory_menu_unlocked_count() -> void:
+	armory_menu = MockArmoryMenu.new()
+	assert_eq(armory_menu.get_unlocked_count(), 1, "Should have 1 unlocked weapon")
+
+
+func test_armory_menu_status_text() -> void:
+	armory_menu = MockArmoryMenu.new()
+	var status := armory_menu.get_status_text()
+	assert_eq(status, "Unlocked: 1 / 3", "Status should show 1 of 3 unlocked")
+
+
+func test_armory_menu_get_weapon_data() -> void:
+	armory_menu = MockArmoryMenu.new()
+	var data := armory_menu.get_weapon_data("m16")
+
+	assert_eq(data["name"], "M16", "Should return correct weapon name")
+	assert_eq(data["description"], "Standard assault rifle", "Should return correct description")
+	assert_true(data["unlocked"], "Should show as unlocked")
+
+
+func test_armory_menu_invalid_weapon() -> void:
+	armory_menu = MockArmoryMenu.new()
+	var data := armory_menu.get_weapon_data("invalid_weapon")
+
+	assert_true(data.is_empty(), "Should return empty dictionary for invalid weapon")
+	assert_false(armory_menu.is_weapon_unlocked("invalid_weapon"), "Invalid weapon should not be unlocked")

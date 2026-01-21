@@ -58,6 +58,11 @@ custom_minimum_size = Vector2(200, 40)
 layout_mode = 2
 text = "Difficulty"
 
+[node name="ArmoryButton" type="Button" parent="MenuContainer/VBoxContainer"]
+custom_minimum_size = Vector2(200, 40)
+layout_mode = 2
+text = "Armory"
+
 [node name="LevelsButton" type="Button" parent="MenuContainer/VBoxContainer"]
 custom_minimum_size = Vector2(200, 40)
 layout_mode = 2

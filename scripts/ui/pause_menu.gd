@@ -12,6 +12,7 @@ extends CanvasLayer
 @onready var resume_button: Button = $MenuContainer/VBoxContainer/ResumeButton
 @onready var controls_button: Button = $MenuContainer/VBoxContainer/ControlsButton
 @onready var difficulty_button: Button = $MenuContainer/VBoxContainer/DifficultyButton
+@onready var armory_button: Button = $MenuContainer/VBoxContainer/ArmoryButton
 @onready var levels_button: Button = $MenuContainer/VBoxContainer/LevelsButton
 @onready var quit_button: Button = $MenuContainer/VBoxContainer/QuitButton
 
@@ -24,11 +25,17 @@ var _difficulty_menu: CanvasLayer = null
 ## The instantiated levels menu.
 var _levels_menu: CanvasLayer = null
 
+## The instantiated armory menu.
+var _armory_menu: CanvasLayer = null
+
 ## Reference to the difficulty menu scene.
 @export var difficulty_menu_scene: PackedScene
 
 ## Reference to the levels menu scene.
 @export var levels_menu_scene: PackedScene
+
+## Reference to the armory menu scene.
+@export var armory_menu_scene: PackedScene
 
 
 func _ready() -> void:
@@ -40,6 +47,7 @@ func _ready() -> void:
 	resume_button.pressed.connect(_on_resume_pressed)
 	controls_button.pressed.connect(_on_controls_pressed)
 	difficulty_button.pressed.connect(_on_difficulty_pressed)
+	armory_button.pressed.connect(_on_armory_pressed)
 	levels_button.pressed.connect(_on_levels_pressed)
 	quit_button.pressed.connect(_on_quit_pressed)
 
@@ -54,6 +62,10 @@ func _ready() -> void:
 	# Preload levels menu if not set
 	if levels_menu_scene == null:
 		levels_menu_scene = preload("res://scenes/ui/LevelsMenu.tscn")
+
+	# Preload armory menu if not set
+	if armory_menu_scene == null:
+		armory_menu_scene = preload("res://scenes/ui/ArmoryMenu.tscn")
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -98,6 +110,10 @@ func resume_game() -> void:
 	if _levels_menu and _levels_menu.visible:
 		_levels_menu.hide()
 
+	# Also close armory menu if open
+	if _armory_menu and _armory_menu.visible:
+		_armory_menu.hide()
+
 
 func _on_resume_pressed() -> void:
 	resume_game()
@@ -141,6 +157,26 @@ func _on_difficulty_back() -> void:
 		_difficulty_menu.hide()
 	menu_container.show()
 	difficulty_button.grab_focus()
+
+
+func _on_armory_pressed() -> void:
+	# Hide main menu, show armory menu
+	menu_container.hide()
+
+	if _armory_menu == null:
+		_armory_menu = armory_menu_scene.instantiate()
+		_armory_menu.back_pressed.connect(_on_armory_back)
+		add_child(_armory_menu)
+	else:
+		_armory_menu.show()
+
+
+func _on_armory_back() -> void:
+	# Show main menu again
+	if _armory_menu:
+		_armory_menu.hide()
+	menu_container.show()
+	armory_button.grab_focus()
 
 
 func _on_levels_pressed() -> void:
