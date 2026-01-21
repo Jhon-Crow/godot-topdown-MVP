@@ -1146,6 +1146,10 @@ public partial class Bullet : Area2D
         _isPenetrating = false;
         _penetratingBody = null;
         _penetrationDistanceTraveled = 0.0f;
+
+        // Destroy bullet after successful penetration
+        // Bullets don't continue flying after penetrating a wall
+        QueueFree();
     }
 
     /// <summary>

@@ -851,6 +851,10 @@ func _exit_penetration() -> void:
 	_penetrating_body = null
 	_penetration_distance_traveled = 0.0
 
+	# Destroy bullet after successful penetration
+	# Bullets don't continue flying after penetrating a wall
+	queue_free()
+
 
 ## Spawns a visual hole effect at penetration entry or exit point.
 ## DISABLED: As per user request, entry/exit holes are removed.

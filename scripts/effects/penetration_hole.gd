@@ -9,8 +9,8 @@ extends Area2D
 ## The hole is permanent and does not fade over time.
 ## Similar to Red Faction Guerrilla or Teardown destruction (without physics).
 ##
-## The visual is a continuous dark trail from entry to exit point,
-## drawn like a brush stroke through the wall texture.
+## The visual is a semi-transparent dark trail from entry to exit point,
+## representing the bullet path through the wall material.
 
 ## Collision layers this hole affects (default: obstacles layer 3)
 const OBSTACLE_LAYER: int = 4  # Layer 3 in Godot is value 4 (2^2)
@@ -20,6 +20,12 @@ var _collision_shape: CollisionShape2D = null
 
 ## The visual Line2D trail.
 var _visual_line: Line2D = null
+
+## Visual material for the hole effect.
+## Note: True texture erasing would require CanvasGroup masking or
+## rendering walls to a SubViewport with a mask layer.
+## For simplicity, we use a dark semi-transparent line to represent the hole.
+var _visual_material: CanvasItemMaterial = null
 
 ## Direction the bullet was traveling (for trail orientation).
 var bullet_direction: Vector2 = Vector2.RIGHT
@@ -71,16 +77,23 @@ func _create_or_update_collision_shape() -> void:
 
 ## Creates or updates the visual representation of the hole.
 ## The visual is drawn in GLOBAL coordinates as a line from entry to exit.
+## Uses a transparent look to simulate a "hole" through the wall (eraser effect).
+## NOTE: True texture erasing requires CanvasGroup masking in Godot 4.
+## For now, we use a semi-transparent dark color to simulate the hole appearance.
 func _create_or_update_visual() -> void:
 	if _visual_line == null:
 		_visual_line = Line2D.new()
-		_visual_line.default_color = Color(0.02, 0.02, 0.02, 0.95)
+		# Use a semi-transparent very dark color to simulate a hole/shadow
+		# The lower alpha makes it look like you can partially see through
+		_visual_line.default_color = Color(0.05, 0.05, 0.05, 0.8)
 		_visual_line.begin_cap_mode = Line2D.LINE_CAP_ROUND
 		_visual_line.end_cap_mode = Line2D.LINE_CAP_ROUND
 		# Use global coordinates so the line is positioned correctly
 		_visual_line.top_level = true
 		# Ensure position is at origin so points are at their true global positions
 		_visual_line.position = Vector2.ZERO
+		# Put hole visuals on a high z-index so they appear on top of wall textures
+		_visual_line.z_index = 10
 		add_child(_visual_line)
 
 	# Update line properties
