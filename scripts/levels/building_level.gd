@@ -291,15 +291,16 @@ func _setup_debug_ui() -> void:
 	ui.add_child(_magazines_label)
 
 	# Create combo label (shows current combo)
+	# Positioned below the enemy count label (which ends at offset_bottom = 75)
 	_combo_label = Label.new()
 	_combo_label.name = "ComboLabel"
 	_combo_label.text = ""
-	_combo_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_combo_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_combo_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	_combo_label.offset_left = -200
 	_combo_label.offset_right = -10
-	_combo_label.offset_top = 10
-	_combo_label.offset_bottom = 50
+	_combo_label.offset_top = 80
+	_combo_label.offset_bottom = 120
 	_combo_label.add_theme_font_size_override("font_size", 28)
 	_combo_label.add_theme_color_override("font_color", Color(1.0, 0.8, 0.2, 1.0))
 	_combo_label.visible = false
@@ -347,7 +348,10 @@ func _on_enemy_died() -> void:
 
 	if _current_enemy_count <= 0:
 		print("All enemies eliminated! Building cleared!")
-		_complete_level_with_score()
+		# Use call_deferred to ensure all signal handlers complete first
+		# This fixes the issue where died_with_info signal handler
+		# (which registers the kill with ScoreManager) runs after this handler
+		call_deferred("_complete_level_with_score")
 
 
 ## Called when an enemy dies with special kill information.

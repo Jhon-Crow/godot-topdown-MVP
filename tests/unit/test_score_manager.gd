@@ -14,7 +14,7 @@ class MockScoreManager:
 	## Mock class that mirrors ScoreManager's testable functionality
 
 	# Constants (matching ScoreManager)
-	const COMBO_TIMEOUT: float = 2.0
+	const COMBO_TIMEOUT: float = 3.0
 	const POINTS_PER_KILL: int = 100
 	const TIME_BONUS_MAX: int = 5000
 	const TIME_BONUS_DURATION: float = 120.0
@@ -28,8 +28,8 @@ class MockScoreManager:
 		"A+": 0.85,
 		"A": 0.70,
 		"B": 0.55,
-		"C": 0.40,
-		"D": 0.25,
+		"C": 0.38,
+		"D": 0.22,
 		"F": 0.0
 	}
 
@@ -186,9 +186,15 @@ class MockScoreManager:
 	func _calculate_max_possible_score() -> int:
 		var max_kill_points: int = _total_enemies * POINTS_PER_KILL
 
-		var max_combo_points: int = 0
-		for i in range(1, _total_enemies + 1):
-			max_combo_points += 250 * (i * i) + 250 * i
+		# Realistic max combo points - assume average combo chains of 5 kills
+		var combo_chain_size: int = 5
+		var combo_chains: int = _total_enemies / combo_chain_size
+		var remainder: int = _total_enemies % combo_chain_size
+		var combo_5_points: int = 500 + 1500 + 3000 + 5500 + 9000  # 19500
+		var max_combo_points: int = combo_chains * combo_5_points
+		var combo_values: Array[int] = [500, 1500, 3000, 5500, 9000]
+		for i in range(remainder):
+			max_combo_points += combo_values[i]
 
 		var max_time_bonus: int = TIME_BONUS_MAX
 		var max_accuracy_bonus: int = ACCURACY_BONUS_MAX
@@ -589,16 +595,16 @@ func test_rank_f_for_low_score() -> void:
 	assert_eq(rank, "F", "Should get F rank for very low score")
 
 
-func test_rank_d_for_25_percent() -> void:
-	var rank := score_manager._calculate_rank(2500, 10000)  # 25%
+func test_rank_d_for_22_percent() -> void:
+	var rank := score_manager._calculate_rank(2200, 10000)  # 22%
 
-	assert_eq(rank, "D", "Should get D rank for 25% score")
+	assert_eq(rank, "D", "Should get D rank for 22% score")
 
 
-func test_rank_c_for_40_percent() -> void:
-	var rank := score_manager._calculate_rank(4000, 10000)  # 40%
+func test_rank_c_for_38_percent() -> void:
+	var rank := score_manager._calculate_rank(3800, 10000)  # 38%
 
-	assert_eq(rank, "C", "Should get C rank for 40% score")
+	assert_eq(rank, "C", "Should get C rank for 38% score")
 
 
 func test_rank_b_for_55_percent() -> void:
@@ -642,7 +648,8 @@ func test_max_possible_score_calculation() -> void:
 	var max_score := score_manager._calculate_max_possible_score()
 
 	# Kill points: 3 * 100 = 300
-	# Combo points: 500 + 1500 + 3000 = 5000
+	# Combo points: 3 enemies = remainder (no full chains of 5)
+	#   = 500 + 1500 + 3000 = 5000
 	# Time bonus: 5000
 	# Accuracy bonus: 2000
 	# Special bonus: 3 * (150 + 150) = 900
