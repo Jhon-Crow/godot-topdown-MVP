@@ -244,6 +244,59 @@ The difference between:
 [LastChance] Froze all nodes except player and autoloads
 ```
 
+## Follow-up Issue 3: Player Passing Through Walls
+
+### Symptom
+
+After fixing the process mode inheritance issue, the player could move during the time freeze, but they were passing through walls and obstacles.
+
+### Root Cause Analysis
+
+From `logs-round5/game_log_20260121_115113.txt`:
+```
+[11:51:38] [INFO] [LastChance] Triggering last chance effect!
+[11:51:38] [INFO] [LastChance] Set player Player and all 11 children to PROCESS_MODE_ALWAYS
+[11:51:38] [INFO] [LastChance] Froze all nodes except player and autoloads
+```
+
+The time freeze effect set all non-player nodes to `PROCESS_MODE_DISABLED`, including `StaticBody2D` nodes (walls and obstacles).
+
+In Godot's physics system:
+1. `CharacterBody2D.MoveAndSlide()` performs collision detection using the physics server
+2. When a `StaticBody2D` has `PROCESS_MODE_DISABLED`, its collision shapes are still registered but the physics interactions may not work correctly
+3. The player's physics queries against frozen static bodies failed, allowing the player to phase through walls
+
+### Solution
+
+Modified `_freeze_node_except_player()` to skip `StaticBody2D` nodes:
+
+```gdscript
+func _freeze_node_except_player(node: Node) -> void:
+    # ... existing checks ...
+
+    # CRITICAL: Skip StaticBody2D nodes (walls, obstacles) to preserve collision detection!
+    # If we freeze static bodies, the player's CharacterBody2D.MoveAndSlide() won't
+    # detect collisions with them and the player will pass through walls.
+    if node is StaticBody2D:
+        # Don't freeze the static body, but still process its children (visual elements, etc.)
+        for child in node.get_children():
+            _freeze_node_except_player(child)
+        return
+
+    # ... rest of function ...
+```
+
+### Why This Works
+
+1. `StaticBody2D` nodes (walls, obstacles) don't have scripted behavior that needs to be frozen
+2. They are purely collision bodies that the physics system uses for collision detection
+3. Keeping them active (not DISABLED) allows the player's `MoveAndSlide()` to properly detect collisions
+4. Child nodes (ColorRect for visual appearance) can still be frozen if needed
+
+### Files Changed
+
+- `scripts/autoload/last_chance_effects_manager.gd` - Added `StaticBody2D` check in `_freeze_node_except_player()`
+
 ## Testing Instructions
 
 1. Start the game on **Hard** difficulty
@@ -251,12 +304,14 @@ The difference between:
 3. Wait for an enemy bullet to fly toward you
 4. **Expected:** Blue sepia time-freeze effect should trigger
 5. **Expected:** Player should be able to MOVE and AIM during the freeze
-6. **Expected:** All enemies and bullets should be completely frozen
-7. **Expected logs should show:**
+6. **Expected:** Player should NOT be able to pass through walls
+7. **Expected:** All enemies and bullets should be completely frozen
+8. **Expected logs should show:**
    ```
    [LastChance] Player health updated (C# Damaged): 1.0
    [LastChance] Threat detected: Bullet
    [LastChance] Triggering last chance effect!
    [LastChance] Starting last chance effect:
+   [LastChance] Set player Player and all 11 children to PROCESS_MODE_ALWAYS
    [LastChance] Froze all nodes except player and autoloads
    ```

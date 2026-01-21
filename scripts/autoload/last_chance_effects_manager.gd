@@ -415,6 +415,7 @@ func _count_descendants(node: Node) -> int:
 
 
 ## Recursively freezes a node and its children, except for the player node.
+## Also skips StaticBody2D nodes (walls, obstacles) to preserve collision detection.
 func _freeze_node_except_player(node: Node) -> void:
 	if node == null or not is_instance_valid(node):
 		return
@@ -426,6 +427,15 @@ func _freeze_node_except_player(node: Node) -> void:
 
 	# Also skip if this node is a child of player (already handled)
 	if _player != null and _is_descendant_of(_player, node):
+		return
+
+	# CRITICAL: Skip StaticBody2D nodes (walls, obstacles) to preserve collision detection!
+	# If we freeze static bodies, the player's CharacterBody2D.MoveAndSlide() won't
+	# detect collisions with them and the player will pass through walls.
+	if node is StaticBody2D:
+		# Don't freeze the static body, but still process its children (visual elements, etc.)
+		for child in node.get_children():
+			_freeze_node_except_player(child)
 		return
 
 	# Store original process mode
