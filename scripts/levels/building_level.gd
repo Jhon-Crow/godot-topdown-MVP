@@ -56,6 +56,8 @@ var _timer_label: Label = null
 
 
 func _ready() -> void:
+	# Log to FileLogger for debugging exported builds
+	_log_to_file("BuildingLevel _ready() started")
 	print("BuildingLevel loaded - Hotline Miami Style")
 	print("Building size: ~2400x2000 pixels")
 	print("Clear all rooms to win!")
@@ -69,6 +71,7 @@ func _ready() -> void:
 
 	# Find the enemy count label
 	_enemy_count_label = get_node_or_null("CanvasLayer/UI/EnemyCountLabel")
+	_log_to_file("Enemy count label found: %s" % str(_enemy_count_label != null))
 	_update_enemy_count_label()
 
 	# Find and setup player tracking
@@ -88,6 +91,7 @@ func _ready() -> void:
 
 	# Initialize score tracking
 	_setup_score_tracking()
+	_log_to_file("BuildingLevel _ready() completed")
 
 
 func _process(_delta: float) -> void:
@@ -133,9 +137,13 @@ func _setup_navigation() -> void:
 
 ## Setup tracking for the player.
 func _setup_player_tracking() -> void:
+	_log_to_file("_setup_player_tracking() started")
 	_player = get_node_or_null("Entities/Player")
 	if _player == null:
+		_log_to_file("ERROR: Player not found at Entities/Player")
 		return
+
+	_log_to_file("Found player: %s" % _player.name)
 
 	# Register player with GameManager
 	if GameManager:
@@ -143,6 +151,7 @@ func _setup_player_tracking() -> void:
 
 	# Find the ammo label
 	_ammo_label = get_node_or_null("CanvasLayer/UI/AmmoLabel")
+	_log_to_file("Ammo label found: %s" % str(_ammo_label != null))
 
 	# Connect to player death signal (handles both GDScript "died" and C# "Died")
 	if _player.has_signal("died"):
@@ -153,24 +162,31 @@ func _setup_player_tracking() -> void:
 	# Try to get the player's weapon for C# Player
 	var weapon = _player.get_node_or_null("AssaultRifle")
 	if weapon != null:
+		_log_to_file("Found weapon: AssaultRifle (C# player)")
 		# C# Player with weapon - connect to weapon signals
+		var ammo_connected := false
 		if weapon.has_signal("AmmoChanged"):
 			weapon.AmmoChanged.connect(_on_weapon_ammo_changed)
+			ammo_connected = true
 		if weapon.has_signal("MagazinesChanged"):
 			weapon.MagazinesChanged.connect(_on_magazines_changed)
 		if weapon.has_signal("Fired"):
 			weapon.Fired.connect(_on_shot_fired)
 		# Initial ammo display from weapon
 		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
+			_log_to_file("Initial ammo: %d / %d" % [weapon.CurrentAmmo, weapon.ReserveAmmo])
 			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
 		# Initial magazine display
 		if weapon.has_method("GetMagazineAmmoCounts"):
 			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
 			_update_magazines_label(mag_counts)
+		_log_to_file("Weapon AmmoChanged signal connected: %s" % ammo_connected)
 	else:
+		_log_to_file("No AssaultRifle weapon found - checking for GDScript player signals")
 		# GDScript Player - connect to player signals
 		if _player.has_signal("ammo_changed"):
 			_player.ammo_changed.connect(_on_player_ammo_changed)
+			_log_to_file("Connected to player ammo_changed signal")
 		# Initial ammo display
 		if _player.has_method("get_current_ammo") and _player.has_method("get_max_ammo"):
 			_update_ammo_label(_player.get_current_ammo(), _player.get_max_ammo())
@@ -197,18 +213,23 @@ func _setup_player_tracking() -> void:
 
 ## Setup tracking for all enemies in the scene.
 func _setup_enemy_tracking() -> void:
+	_log_to_file("_setup_enemy_tracking() started")
 	var enemies_node := get_node_or_null("Environment/Enemies")
 	if enemies_node == null:
+		_log_to_file("ERROR: Environment/Enemies node not found!")
 		push_warning("[BuildingLevel] Environment/Enemies node not found!")
 		return
 
+	_log_to_file("Found Environment/Enemies node with %d children" % enemies_node.get_child_count())
 	var enemies := []
+	var connected_count := 0
 	for child in enemies_node.get_children():
 		if child.has_signal("died"):
 			enemies.append(child)
 			# Use a unique connection per enemy to avoid issues with duplicate connections
 			if not child.died.is_connected(_on_enemy_died):
 				child.died.connect(_on_enemy_died)
+				connected_count += 1
 		# Track when enemy is hit for accuracy
 		if child.has_signal("hit"):
 			if not child.hit.is_connected(_on_enemy_hit):
@@ -217,7 +238,7 @@ func _setup_enemy_tracking() -> void:
 	_initial_enemy_count = enemies.size()
 	_current_enemy_count = _initial_enemy_count
 	print("[BuildingLevel] Tracking %d enemies" % _initial_enemy_count)
-	_log_to_file("Setup tracking for %d enemies" % _initial_enemy_count)
+	_log_to_file("Setup tracking for %d enemies (connected died signal to %d)" % [_initial_enemy_count, connected_count])
 
 
 ## Setup debug UI elements for kills and accuracy.
