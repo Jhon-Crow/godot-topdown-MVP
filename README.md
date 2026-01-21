@@ -128,6 +128,18 @@ An optional C# architecture is included for developers who prefer static typing 
 
 To use C# scenes, open scenes from the `csharp/` subdirectories instead of the default scenes.
 
+### ⚠️ Important: Dual-Language Development
+
+This project uses **both GDScript and C#** for different game systems:
+- **Player and player weapons**: Use C# (`Scripts/` folder, `scenes/*/csharp/` scenes)
+- **Enemies and enemy weapons**: Use GDScript (`scripts/` folder, `scenes/*/` scenes)
+
+**When adding new features that affect both player and enemies (like bullet ricochet), you MUST implement the feature in BOTH languages:**
+- `scripts/projectiles/bullet.gd` (GDScript - used by enemies)
+- `Scripts/Projectiles/Bullet.cs` (C# - used by player)
+
+Failing to implement in both languages will result in the feature only working for one side. This was learned from Issue #141 where ricochet mechanics were initially only added to GDScript, causing the player's bullets to not ricochet.
+
 ## C# Architecture
 
 The C# implementation uses a clean architecture following Godot best practices:
