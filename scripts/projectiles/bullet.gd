@@ -94,6 +94,9 @@ var _penetrating_body: Node2D = null
 ## Whether the bullet has penetrated at least one wall (for damage reduction).
 var _has_penetrated: bool = false
 
+## Physics frame when penetration started (for premature exit guard).
+var _penetration_start_frame: int = 0
+
 ## Enable/disable debug logging for penetration calculations.
 var _debug_penetration: bool = true
 
@@ -101,6 +104,11 @@ var _debug_penetration: bool = true
 const DEFAULT_CAN_PENETRATE: bool = true
 const DEFAULT_MAX_PENETRATION_DISTANCE: float = 48.0
 const DEFAULT_POST_PENETRATION_DAMAGE_MULTIPLIER: float = 0.9
+
+## Minimum number of physics frames before body_exited signal is processed.
+## This prevents premature exit detection due to Godot signal timing issues.
+## See: https://github.com/godotengine/godot/issues/86199
+const MIN_PENETRATION_FRAMES: int = 2
 
 ## Distance-based penetration chance settings.
 ## At point-blank (0 distance): 100% penetration, ignores ricochet
@@ -318,6 +326,13 @@ func _on_body_entered(body: Node2D) -> void:
 func _on_body_exited(body: Node2D) -> void:
 	# Only process if we're currently penetrating this specific body
 	if not _is_penetrating or _penetrating_body != body:
+		return
+
+	# Guard against premature exit signals (Godot signal timing issue)
+	# See: https://github.com/godotengine/godot/issues/86199
+	var current_frame := Engine.get_physics_frames()
+	if current_frame - _penetration_start_frame < MIN_PENETRATION_FRAMES:
+		_log_penetration("Ignoring premature body_exited (frame %d, started %d)" % [current_frame, _penetration_start_frame])
 		return
 
 	# Log exit detection
@@ -730,13 +745,14 @@ func _try_penetration(body: Node2D) -> bool:
 		_log_penetration("Already penetrating, cannot start new penetration")
 		return false
 
-	_log_penetration("Starting wall penetration at %s" % global_position)
+	_log_penetration("Starting wall penetration at %s (frame %d)" % [global_position, Engine.get_physics_frames()])
 
 	# Mark as penetrating
 	_is_penetrating = true
 	_penetrating_body = body
 	_penetration_entry_point = global_position
 	_penetration_distance_traveled = 0.0
+	_penetration_start_frame = Engine.get_physics_frames()
 
 	# Spawn entry hole effect
 	_spawn_penetration_hole_effect(body, global_position, true)
@@ -820,6 +836,17 @@ func _exit_penetration() -> void:
 		return
 
 	var exit_point := global_position
+
+	# Sanity check: verify exit position is reasonable distance from entry
+	# This catches cross-bullet signal confusion where wrong bullet handles exit
+	var distance_from_entry := exit_point.distance_to(_penetration_entry_point)
+	var max_reasonable_distance := _get_max_penetration_distance() * 3.0  # Allow some tolerance
+	if distance_from_entry > max_reasonable_distance:
+		_log_penetration("WARNING: Exit position too far from entry (%.1f > %.1f), likely signal error - destroying bullet" % [distance_from_entry, max_reasonable_distance])
+		_is_penetrating = false
+		_penetrating_body = null
+		queue_free()
+		return
 
 	_log_penetration("Exiting penetration at %s after traveling %s pixels through wall" % [exit_point, _penetration_distance_traveled])
 

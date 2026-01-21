@@ -202,6 +202,18 @@ public partial class Bullet : Area2D
     private bool _hasPenetrated = false;
 
     /// <summary>
+    /// Physics frame when penetration started (for premature exit guard).
+    /// </summary>
+    private ulong _penetrationStartFrame = 0;
+
+    /// <summary>
+    /// Minimum number of physics frames before body_exited signal is processed.
+    /// This prevents premature exit detection due to Godot signal timing issues.
+    /// See: https://github.com/godotengine/godot/issues/86199
+    /// </summary>
+    private const int MinPenetrationFrames = 2;
+
+    /// <summary>
     /// Shooter's position at firing time (for distance-based penetration).
     /// </summary>
     public Vector2 ShooterPosition { get; set; } = Vector2.Zero;
@@ -930,6 +942,15 @@ public partial class Bullet : Area2D
             return;
         }
 
+        // Guard against premature exit signals (Godot signal timing issue)
+        // See: https://github.com/godotengine/godot/issues/86199
+        ulong currentFrame = Engine.GetPhysicsFrames();
+        if (currentFrame - _penetrationStartFrame < MinPenetrationFrames)
+        {
+            LogPenetration($"Ignoring premature body_exited (frame {currentFrame}, started {_penetrationStartFrame})");
+            return;
+        }
+
         LogPenetration("Body exited signal received for penetrating body");
         ExitPenetration();
     }
@@ -1044,13 +1065,14 @@ public partial class Bullet : Area2D
             return false;
         }
 
-        LogPenetration($"Starting wall penetration at {GlobalPosition}");
+        LogPenetration($"Starting wall penetration at {GlobalPosition} (frame {Engine.GetPhysicsFrames()})");
 
         // Mark as penetrating
         _isPenetrating = true;
         _penetratingBody = body;
         _penetrationEntryPoint = GlobalPosition;
         _penetrationDistanceTraveled = 0.0f;
+        _penetrationStartFrame = Engine.GetPhysicsFrames();
 
         // Visual effects disabled as per user request
         // Entry dust effect removed
@@ -1121,6 +1143,20 @@ public partial class Bullet : Area2D
         }
 
         Vector2 exitPoint = GlobalPosition;
+
+        // Sanity check: verify exit position is reasonable distance from entry
+        // This catches cross-bullet signal confusion where wrong bullet handles exit
+        float distanceFromEntry = exitPoint.DistanceTo(_penetrationEntryPoint);
+        float maxReasonableDistance = MaxPenetrationDistance * 3.0f; // Allow some tolerance
+        if (distanceFromEntry > maxReasonableDistance)
+        {
+            LogPenetration($"WARNING: Exit position too far from entry ({distanceFromEntry:F1} > {maxReasonableDistance:F1}), likely signal error - destroying bullet");
+            _isPenetrating = false;
+            _penetratingBody = null;
+            QueueFree();
+            return;
+        }
+
         LogPenetration($"Exiting penetration at {exitPoint} after traveling {_penetrationDistanceTraveled} pixels through wall");
 
         // Visual effects disabled as per user request
