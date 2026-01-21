@@ -1223,9 +1223,9 @@ public partial class Player : BaseCharacter
 
         // Also log to FileLogger if available
         var fileLogger = GetNodeOrNull("/root/FileLogger");
-        if (fileLogger != null && fileLogger.HasMethod("info"))
+        if (fileLogger != null && fileLogger.HasMethod("log_info"))
         {
-            fileLogger.Call("info", message);
+            fileLogger.Call("log_info", message);
         }
     }
 

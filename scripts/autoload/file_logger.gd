@@ -152,3 +152,21 @@ func get_log_path() -> String:
 ## Check if logging is enabled and working.
 func is_logging_enabled() -> bool:
 	return _logging_enabled and _log_file != null
+
+
+## Alias methods for compatibility with different calling conventions.
+## These allow calling FileLogger.info() instead of FileLogger.log_info().
+func info(message: String) -> void:
+	log_info(message)
+
+
+func warning(message: String) -> void:
+	log_warning(message)
+
+
+func error(message: String) -> void:
+	log_error(message)
+
+
+func debug(message: String) -> void:
+	log_debug(message)
