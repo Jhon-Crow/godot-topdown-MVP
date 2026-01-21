@@ -13,6 +13,7 @@ extends CanvasLayer
 @onready var controls_button: Button = $MenuContainer/VBoxContainer/ControlsButton
 @onready var difficulty_button: Button = $MenuContainer/VBoxContainer/DifficultyButton
 @onready var levels_button: Button = $MenuContainer/VBoxContainer/LevelsButton
+@onready var experimental_button: Button = $MenuContainer/VBoxContainer/ExperimentalButton
 @onready var quit_button: Button = $MenuContainer/VBoxContainer/QuitButton
 
 ## The instantiated controls menu.
@@ -24,11 +25,17 @@ var _difficulty_menu: CanvasLayer = null
 ## The instantiated levels menu.
 var _levels_menu: CanvasLayer = null
 
+## The instantiated experimental menu.
+var _experimental_menu: CanvasLayer = null
+
 ## Reference to the difficulty menu scene.
 @export var difficulty_menu_scene: PackedScene
 
 ## Reference to the levels menu scene.
 @export var levels_menu_scene: PackedScene
+
+## Reference to the experimental menu scene.
+@export var experimental_menu_scene: PackedScene
 
 
 func _ready() -> void:
@@ -41,6 +48,7 @@ func _ready() -> void:
 	controls_button.pressed.connect(_on_controls_pressed)
 	difficulty_button.pressed.connect(_on_difficulty_pressed)
 	levels_button.pressed.connect(_on_levels_pressed)
+	experimental_button.pressed.connect(_on_experimental_pressed)
 	quit_button.pressed.connect(_on_quit_pressed)
 
 	# Preload controls menu if not set
@@ -54,6 +62,10 @@ func _ready() -> void:
 	# Preload levels menu if not set
 	if levels_menu_scene == null:
 		levels_menu_scene = preload("res://scenes/ui/LevelsMenu.tscn")
+
+	# Preload experimental menu if not set
+	if experimental_menu_scene == null:
+		experimental_menu_scene = preload("res://scenes/ui/ExperimentalMenu.tscn")
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -97,6 +109,10 @@ func resume_game() -> void:
 	# Also close levels menu if open
 	if _levels_menu and _levels_menu.visible:
 		_levels_menu.hide()
+
+	# Also close experimental menu if open
+	if _experimental_menu and _experimental_menu.visible:
+		_experimental_menu.hide()
 
 
 func _on_resume_pressed() -> void:
@@ -163,6 +179,26 @@ func _on_levels_back() -> void:
 		_levels_menu.hide()
 	menu_container.show()
 	levels_button.grab_focus()
+
+
+func _on_experimental_pressed() -> void:
+	# Hide main menu, show experimental menu
+	menu_container.hide()
+
+	if _experimental_menu == null:
+		_experimental_menu = experimental_menu_scene.instantiate()
+		_experimental_menu.back_pressed.connect(_on_experimental_back)
+		add_child(_experimental_menu)
+	else:
+		_experimental_menu.show()
+
+
+func _on_experimental_back() -> void:
+	# Show main menu again
+	if _experimental_menu:
+		_experimental_menu.hide()
+	menu_container.show()
+	experimental_button.grab_focus()
 
 
 func _on_quit_pressed() -> void:

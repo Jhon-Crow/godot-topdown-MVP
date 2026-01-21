@@ -61,8 +61,10 @@ enum BehaviorMode {
 ## Default is 100 degrees as requested in issue #66.
 @export var fov_angle: float = 100.0
 
-## Whether FOV checking is enabled.
-## When true, targets must be within the FOV cone to be visible.
+## Whether FOV checking is enabled for this specific enemy.
+## This is combined with the global ExperimentalSettings.fov_enabled setting.
+## Both must be true for FOV to be active.
+## Note: The global setting in ExperimentalSettings is disabled by default.
 @export var fov_enabled: bool = true
 
 ## Time between shots in seconds.
@@ -3351,9 +3353,17 @@ func _get_wall_avoidance_weight(direction: Vector2) -> float:
 ## Check if a target position is within the enemy's field of view cone.
 ## The FOV is centered on the enemy's current rotation (facing direction).
 ## Returns true if position is in FOV, or if FOV checking is disabled.
+## FOV is only active if both the global ExperimentalSettings.fov_enabled
+## and this enemy's fov_enabled property are true.
 func _is_position_in_fov(target_pos: Vector2) -> bool:
-	# If FOV is disabled, everything is visible
-	if not fov_enabled or fov_angle <= 0.0:
+	# Check global experimental settings first
+	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+	var global_fov_enabled := false
+	if experimental_settings and experimental_settings.has_method("is_fov_enabled"):
+		global_fov_enabled = experimental_settings.is_fov_enabled()
+
+	# If FOV is disabled globally or for this enemy, everything is visible
+	if not global_fov_enabled or not fov_enabled or fov_angle <= 0.0:
 		return true
 
 	# Calculate direction to target
@@ -4078,8 +4088,13 @@ func _draw() -> void:
 	var color_fov := Color(0.2, 0.8, 0.2, 0.3)  # FOV cone color (semi-transparent green)
 	var color_fov_edge := Color(0.2, 0.8, 0.2, 0.8)  # FOV cone edge color
 
-	# Draw FOV cone if FOV is enabled
-	if fov_enabled and fov_angle > 0.0:
+	# Draw FOV cone if FOV is enabled (both globally and for this enemy)
+	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+	var global_fov_enabled := false
+	if experimental_settings and experimental_settings.has_method("is_fov_enabled"):
+		global_fov_enabled = experimental_settings.is_fov_enabled()
+
+	if global_fov_enabled and fov_enabled and fov_angle > 0.0:
 		_draw_fov_cone(color_fov, color_fov_edge)
 
 	# Draw line to player if visible
