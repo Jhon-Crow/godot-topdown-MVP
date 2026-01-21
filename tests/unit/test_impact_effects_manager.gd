@@ -217,17 +217,18 @@ func test_base_blood_particle_count_constant() -> void:
 	assert_lt(count, 100, "Base blood particle count should be reasonable")
 
 
+func test_lethal_blood_particle_count_constant() -> void:
+	# Verify the constant is accessible and reasonable
+	var count: int = impact_manager.LETHAL_BLOOD_PARTICLE_COUNT
+	assert_gt(count, impact_manager.BASE_BLOOD_PARTICLE_COUNT,
+		"Lethal blood particle count should be greater than base count")
+
+
 func test_max_blood_particle_count_constant() -> void:
 	# Verify the constant is accessible and reasonable
 	var max_count: int = impact_manager.MAX_BLOOD_PARTICLE_COUNT
-	assert_gt(max_count, impact_manager.BASE_BLOOD_PARTICLE_COUNT,
-		"Max particle count should be greater than base count")
-
-
-func test_blood_pressure_multiplier_constant() -> void:
-	# Verify the constant is accessible and reasonable
-	var multiplier: float = impact_manager.BLOOD_PRESSURE_MULTIPLIER
-	assert_gt(multiplier, 0.0, "Blood pressure multiplier should be positive")
+	assert_gt(max_count, impact_manager.LETHAL_BLOOD_PARTICLE_COUNT,
+		"Max particle count should be greater than lethal count")
 
 
 func test_blood_spread_angle_constant() -> void:
@@ -237,10 +238,10 @@ func test_blood_spread_angle_constant() -> void:
 	assert_lt(angle, PI, "Blood spread angle should be less than PI")
 
 
-func test_blood_spread_angle_is_reduced_for_tighter_spray() -> void:
-	# Verify the spread angle is now 0.25 (reduced from 0.7)
+func test_blood_spread_angle_is_tight_for_realistic_spray() -> void:
+	# Verify the spread angle is tight for realistic directional spray
 	var angle: float = impact_manager.BLOOD_SPREAD_ANGLE
-	assert_true(angle <= 0.3, "Blood spread angle should be <= 0.3 for tighter spray")
+	assert_true(angle <= 0.5, "Blood spread angle should be <= 0.5 for tight spray")
 
 
 # ============================================================================

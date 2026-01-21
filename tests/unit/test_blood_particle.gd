@@ -152,7 +152,7 @@ func test_gravity_is_positive() -> void:
 
 func test_damping_is_in_valid_range() -> void:
 	assert_gt(particle.damping, 0.0, "Damping should be greater than 0")
-	assert_true(particle.damping <= 1.0, "Damping should be at most 1")
+	assert_true(particle.damping <= 1.0, "Damping should be less than or equal to 1")
 
 
 func test_max_lifetime_is_positive() -> void:

@@ -1,33 +1,40 @@
 extends Node2D
-## Individual blood particle/droplet that moves with physics and spawns decals.
+## Procedural blood particle/droplet that moves with physics and spawns decals.
 ##
-## Used by the blood effects system to create realistic blood that:
+## Fully procedural blood system that:
 ## - Travels in the direction of the bullet hit
-## - Collides with walls and stops
+## - Properly collides with walls using continuous raycast checking
 ## - Spawns blood decals/puddles where it lands
+## - Creates varied patterns based on hit context
 ##
-## This provides more realism than GPU particles alone since it can
-## interact with the physics world.
+## This replaces the hybrid GPU+physics approach with a pure procedural system
+## that guarantees proper wall collision.
 
 ## Blood particle speed range (pixels per second).
-## Reduced to prevent particles from spreading too far from impact point.
-@export var min_speed: float = 60.0
-@export var max_speed: float = 140.0
+## Balanced for realistic blood travel without excessive spread.
+@export var min_speed: float = 40.0
+@export var max_speed: float = 120.0
 
 ## Gravity applied to the particle (pixels per second squared).
-## Increased for more natural downward arc.
-@export var gravity: float = 550.0
+@export var gravity: float = 450.0
 
-## How much the particle slows down per second (0-1, 0 = no damping).
-## Increased damping for quicker slowdown to stay closer to impact.
-@export var damping: float = 0.80
+## How much the particle slows down per second (0-1, higher = more damping).
+@export var damping: float = 0.92
 
 ## Maximum lifetime in seconds before auto-destruction.
-@export var max_lifetime: float = 2.0
+@export var max_lifetime: float = 1.5
 
 ## Collision layer mask for wall detection.
-## Default is 4 (Layer 3: obstacles/walls) per the physics layers defined in README.
+## Bit 4 = Layer 3 (obstacles/walls) per project physics layers.
 @export_flags_2d_physics var collision_mask: int = 4
+
+## Minimum movement distance to check for collision (pixels).
+## Helps prevent false positives on very small movements.
+const MIN_COLLISION_CHECK_DISTANCE: float = 1.0
+
+## Maximum steps for continuous collision detection per frame.
+## Higher values = more accurate but slower.
+const MAX_COLLISION_STEPS: int = 4
 
 ## Current velocity of the particle.
 var velocity: Vector2 = Vector2.ZERO
@@ -41,7 +48,10 @@ var _time_alive: float = 0.0
 ## Has this particle already landed (spawned decal)?
 var _has_landed: bool = false
 
-## Enable/disable debug logging.
+## Size multiplier for decal when particle lands.
+var _decal_size: float = 1.0
+
+## Enable/disable debug logging (off by default for production).
 var _debug: bool = false
 
 
@@ -50,19 +60,19 @@ func _ready() -> void:
 	_sprite = Sprite2D.new()
 	_sprite.name = "Sprite"
 
-	# Create a simple gradient texture for the blood droplet
+	# Create a procedural blood droplet texture
 	var gradient := Gradient.new()
-	gradient.offsets = PackedFloat32Array([0.0, 0.5, 1.0])
+	gradient.offsets = PackedFloat32Array([0.0, 0.4, 1.0])
 	gradient.colors = PackedColorArray([
-		Color(0.8, 0.1, 0.05, 1.0),  # Dark red center
-		Color(0.7, 0.05, 0.02, 0.9),
-		Color(0.5, 0.02, 0.02, 0.0)   # Transparent edge
+		Color(0.75, 0.08, 0.04, 1.0),  # Dark red center
+		Color(0.6, 0.04, 0.02, 0.85),
+		Color(0.4, 0.02, 0.02, 0.0)    # Transparent edge
 	])
 
 	var texture := GradientTexture2D.new()
 	texture.gradient = gradient
-	texture.width = 8
-	texture.height = 8
+	texture.width = 6
+	texture.height = 6
 	texture.fill = GradientTexture2D.FILL_RADIAL
 	texture.fill_from = Vector2(0.5, 0.5)
 	texture.fill_to = Vector2(1.0, 0.5)
@@ -70,9 +80,10 @@ func _ready() -> void:
 	_sprite.texture = texture
 	add_child(_sprite)
 
-	# Random size variation
-	var size_scale := randf_range(0.5, 1.5)
+	# Random size variation for natural look
+	var size_scale := randf_range(0.4, 1.2)
 	_sprite.scale = Vector2(size_scale, size_scale)
+	_decal_size = size_scale
 
 
 func _physics_process(delta: float) -> void:
@@ -82,22 +93,43 @@ func _physics_process(delta: float) -> void:
 	# Apply gravity
 	velocity.y += gravity * delta
 
-	# Apply damping
+	# Apply damping (air resistance)
 	velocity *= pow(damping, delta)
 
-	# Calculate movement
-	var movement := velocity * delta
+	# Calculate total movement for this frame
+	var total_movement := velocity * delta
+	var movement_length := total_movement.length()
 
-	# Check for wall collision before moving
-	if _check_wall_collision(movement):
-		_on_wall_hit()
+	# Skip collision check for very small movements
+	if movement_length < MIN_COLLISION_CHECK_DISTANCE:
+		global_position += total_movement
+		_update_lifetime(delta)
 		return
 
-	# Move the particle
-	global_position += movement
+	# Continuous collision detection: subdivide movement into smaller steps
+	# to prevent particles from tunneling through thin walls
+	var steps := mini(ceili(movement_length / 8.0), MAX_COLLISION_STEPS)
+	var step_movement := total_movement / float(steps)
+
+	for i in range(steps):
+		if _check_wall_collision(step_movement):
+			_on_wall_hit()
+			return
+		global_position += step_movement
 
 	# Update lifetime
+	_update_lifetime(delta)
+
+
+## Updates lifetime counter and handles timeout.
+func _update_lifetime(delta: float) -> void:
 	_time_alive += delta
+
+	# Fade out as particle ages
+	if _sprite and _time_alive > max_lifetime * 0.6:
+		var fade_progress := (_time_alive - max_lifetime * 0.6) / (max_lifetime * 0.4)
+		_sprite.modulate.a = 1.0 - fade_progress
+
 	if _time_alive >= max_lifetime:
 		_on_timeout()
 
@@ -106,21 +138,30 @@ func _physics_process(delta: float) -> void:
 ## @param movement: The movement vector to check.
 ## @return: True if collision detected, false otherwise.
 func _check_wall_collision(movement: Vector2) -> bool:
-	var space_state := get_world_2d().direct_space_state
+	var space_state := get_world_2d()
 	if space_state == null:
 		return false
 
-	var query := PhysicsRayQueryParameters2D.create(
-		global_position,
-		global_position + movement
-	)
-	query.collision_mask = collision_mask
+	var direct_space := space_state.direct_space_state
+	if direct_space == null:
+		return false
 
-	var result := space_state.intersect_ray(query)
+	var from := global_position
+	var to := global_position + movement
+
+	var query := PhysicsRayQueryParameters2D.create(from, to)
+	query.collision_mask = collision_mask
+	query.hit_from_inside = true  # Important: detect if we're already inside a wall
+
+	var result := direct_space.intersect_ray(query)
 
 	if not result.is_empty():
-		# Move to collision point
-		global_position = result.position
+		# Move to just before the collision point to avoid getting stuck
+		var collision_point: Vector2 = result.position
+		var normal: Vector2 = result.normal
+
+		# Offset slightly from the wall surface
+		global_position = collision_point + normal * 2.0
 		return true
 
 	return false
@@ -136,13 +177,13 @@ func _on_wall_hit() -> void:
 		print("[BloodParticle] Hit wall at ", global_position)
 
 	# Spawn a blood decal at this location
-	_spawn_decal()
+	_spawn_decal(_decal_size)
 
 	# Remove this particle
 	queue_free()
 
 
-## Called when particle times out without hitting anything.
+## Called when particle times out without hitting a wall.
 func _on_timeout() -> void:
 	if _has_landed:
 		return
@@ -152,7 +193,7 @@ func _on_timeout() -> void:
 		print("[BloodParticle] Timeout at ", global_position)
 
 	# Spawn a smaller decal where it ended (simulating floor landing)
-	_spawn_decal(0.5)  # Smaller decal for timeout
+	_spawn_decal(_decal_size * 0.6)
 
 	queue_free()
 
@@ -168,17 +209,17 @@ func _spawn_decal(size_multiplier: float = 1.0) -> void:
 	if impact_manager.has_method("spawn_blood_decal_at"):
 		impact_manager.spawn_blood_decal_at(global_position, size_multiplier)
 	elif impact_manager.has_method("_spawn_blood_decal"):
-		# Fallback to internal method (will use default direction)
+		# Fallback to internal method
 		impact_manager._spawn_blood_decal(global_position, velocity.normalized(), size_multiplier)
 
 
-## Initializes the particle with a direction, intensity, and context.
+## Initializes the particle with direction and context parameters.
 ## @param direction: Direction the blood should travel (normalized).
 ## @param intensity: Intensity multiplier (affects speed and size).
 ## @param spread_angle: Random spread angle in radians.
-## @param target_velocity: Optional velocity of the target when hit (affects spray pattern).
-## @param distance: Optional distance from shooter (affects particle behavior).
-## @param impact_angle: Optional angle of impact relative to surface normal (affects splatter shape).
+## @param target_velocity: Optional velocity of the target when hit.
+## @param distance: Optional distance from shooter.
+## @param impact_angle: Optional angle of impact.
 func initialize(
 	direction: Vector2,
 	intensity: float = 1.0,
@@ -187,53 +228,50 @@ func initialize(
 	distance: float = 0.0,
 	impact_angle: float = 0.0
 ) -> void:
-	# Calculate contextual spray pattern based on parameters
+	# Calculate contextual variations
 	var context_multiplier := 1.0
 	var context_spread := spread_angle
 
-	# Adjust based on target velocity (moving targets create different patterns)
+	# Target velocity influence: moving targets affect spray direction
 	if target_velocity.length() > 10.0:
-		# Blood spray is influenced by target's momentum
-		var velocity_influence := target_velocity.normalized() * 0.3
+		var velocity_influence := target_velocity.normalized() * 0.25
 		direction = (direction + velocity_influence).normalized()
-		# Moving targets create slightly wider but lower-pressure spray
-		context_spread *= 1.2
-		context_multiplier *= 0.85
+		context_spread *= 1.15
+		context_multiplier *= 0.9
 
-	# Adjust based on distance (closer shots = more pressure, tighter spray)
+	# Distance influence: close shots = higher pressure
 	if distance > 0.0:
 		if distance < 100.0:
 			# Close range: high pressure, tight spray
-			context_multiplier *= 1.4
-			context_spread *= 0.6
-		elif distance < 300.0:
-			# Medium range: normal
-			pass
-		else:
+			context_multiplier *= 1.3
+			context_spread *= 0.7
+		elif distance > 300.0:
 			# Long range: lower pressure, wider spray
-			context_multiplier *= 0.7
-			context_spread *= 1.3
+			context_multiplier *= 0.75
+			context_spread *= 1.2
 
-	# Adjust based on impact angle (grazing shots vs direct hits)
+	# Impact angle influence: grazing vs direct hits
 	if impact_angle != 0.0:
 		var angle_factor := absf(sin(impact_angle))
 		if angle_factor < 0.3:
-			# Grazing hit: elongated spray along surface
-			context_spread *= 1.5
-			context_multiplier *= 0.6
+			# Grazing hit: elongated spray
+			context_spread *= 1.4
+			context_multiplier *= 0.7
 		else:
 			# Direct hit: concentrated spray
-			context_spread *= 0.8
+			context_spread *= 0.85
 
-	# Add random spread to the direction with contextual adjustment
+	# Apply random spread to direction
 	var angle_deviation := randf_range(-context_spread, context_spread)
 	var spread_direction := direction.rotated(angle_deviation)
 
-	# Set velocity based on intensity and context
+	# Calculate final velocity
 	var speed := randf_range(min_speed, max_speed) * intensity * context_multiplier
 	velocity = spread_direction * speed
 
-	# Adjust size based on intensity
+	# Store size for decal
+	_decal_size = clampf(intensity * context_multiplier * randf_range(0.5, 1.3), 0.3, 2.0)
+
+	# Apply visual scale
 	if _sprite:
-		var intensity_scale := clampf(intensity * context_multiplier, 0.4, 1.8)
-		_sprite.scale *= intensity_scale
+		_sprite.scale *= _decal_size * 0.8

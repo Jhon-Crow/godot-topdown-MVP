@@ -9,16 +9,15 @@ extends Node
 ## Effect intensity scales based on weapon caliber.
 ## Blood decals persist on the floor for visual feedback.
 ##
-## Enhanced blood system features (inspired by First Cut: Samurai Duel):
-## - Blood particles collide with walls and stop
+## Fully procedural blood system (inspired by First Cut: Samurai Duel):
+## - All blood particles use physics-based collision detection
+## - No GPU particles for blood - everything collides with walls
 ## - Blood travels in bullet direction realistically
-## - More particles with higher volume/pressure
+## - Varied particle counts and patterns based on hit context
 ## - Blood spawns decals/puddles where it lands
-## - Variability in effect intensity and spread
 
 ## Preloaded particle effect scenes.
 var _dust_effect_scene: PackedScene = null
-var _blood_effect_scene: PackedScene = null
 var _sparks_effect_scene: PackedScene = null
 var _blood_decal_scene: PackedScene = null
 var _blood_particle_scene: PackedScene = null
@@ -33,20 +32,20 @@ const MIN_EFFECT_SCALE: float = 0.3
 const MAX_EFFECT_SCALE: float = 2.0
 
 ## Maximum number of blood decals before oldest ones are removed.
-const MAX_BLOOD_DECALS: int = 150
+const MAX_BLOOD_DECALS: int = 200
 
-## Number of blood particles to spawn per hit (base count).
-const BASE_BLOOD_PARTICLE_COUNT: int = 8
+## Number of blood particles to spawn per hit (base count for non-lethal).
+const BASE_BLOOD_PARTICLE_COUNT: int = 5
 
-## Maximum blood particles per hit (for lethal hits with high intensity).
-const MAX_BLOOD_PARTICLE_COUNT: int = 25
+## Number of blood particles for lethal hits.
+const LETHAL_BLOOD_PARTICLE_COUNT: int = 12
 
-## Blood pressure multiplier (affects velocity of particles).
-const BLOOD_PRESSURE_MULTIPLIER: float = 1.5
+## Maximum blood particles per hit.
+const MAX_BLOOD_PARTICLE_COUNT: int = 18
 
 ## Spread angle for blood particles (radians).
-## Reduced from 0.7 to 0.25 for tighter, more controlled blood spray.
-const BLOOD_SPREAD_ANGLE: float = 0.25
+## Tight spread for realistic directional blood spray.
+const BLOOD_SPREAD_ANGLE: float = 0.35
 
 ## Active blood decals for cleanup management.
 var _blood_decals: Array[Node2D] = []
@@ -63,7 +62,6 @@ func _ready() -> void:
 func _preload_effect_scenes() -> void:
 	# Load effect scenes if they exist
 	var dust_path := "res://scenes/effects/DustEffect.tscn"
-	var blood_path := "res://scenes/effects/BloodEffect.tscn"
 	var sparks_path := "res://scenes/effects/SparksEffect.tscn"
 	var blood_decal_path := "res://scenes/effects/BloodDecal.tscn"
 	var blood_particle_path := "res://scenes/effects/BloodParticle.tscn"
@@ -74,13 +72,6 @@ func _preload_effect_scenes() -> void:
 			print("[ImpactEffectsManager] Loaded DustEffect scene")
 	else:
 		push_warning("ImpactEffectsManager: DustEffect scene not found at " + dust_path)
-
-	if ResourceLoader.exists(blood_path):
-		_blood_effect_scene = load(blood_path)
-		if _debug_effects:
-			print("[ImpactEffectsManager] Loaded BloodEffect scene")
-	else:
-		push_warning("ImpactEffectsManager: BloodEffect scene not found at " + blood_path)
 
 	if ResourceLoader.exists(sparks_path):
 		_sparks_effect_scene = load(sparks_path)
@@ -94,7 +85,6 @@ func _preload_effect_scenes() -> void:
 		if _debug_effects:
 			print("[ImpactEffectsManager] Loaded BloodDecal scene")
 	else:
-		# Blood decals are optional - don't warn, just log in debug mode
 		if _debug_effects:
 			print("[ImpactEffectsManager] BloodDecal scene not found (optional)")
 
@@ -103,9 +93,7 @@ func _preload_effect_scenes() -> void:
 		if _debug_effects:
 			print("[ImpactEffectsManager] Loaded BloodParticle scene")
 	else:
-		# Blood particles are optional - fallback to GPU-only effects
-		if _debug_effects:
-			print("[ImpactEffectsManager] BloodParticle scene not found (optional)")
+		push_warning("ImpactEffectsManager: BloodParticle scene not found - blood effects disabled")
 
 
 ## Spawns a dust effect at the given position when a bullet hits a wall.
@@ -148,14 +136,14 @@ func spawn_dust_effect(position: Vector2, surface_normal: Vector2, caliber_data:
 		print("[ImpactEffectsManager] Dust effect spawned successfully")
 
 
-## Spawns an enhanced blood splatter effect at the given position.
-## Uses hybrid system: GPU particles for spray + physics-based particles for wall collision.
+## Spawns a fully procedural blood splatter effect at the given position.
+## All particles use physics-based collision detection - no GPU particles.
 ## @param position: World position where the hit occurred.
 ## @param hit_direction: Direction the bullet was traveling (blood splatters in this direction).
 ## @param caliber_data: Optional caliber data for effect scaling.
 ## @param is_lethal: Whether the hit was lethal (affects intensity and particle count).
-## @param target_velocity: Optional velocity of the target when hit (affects spray pattern).
-## @param distance: Optional distance from shooter to target (affects splatter behavior).
+## @param target_velocity: Optional velocity of the target when hit.
+## @param distance: Optional distance from shooter to target.
 ## @param impact_angle: Optional angle of impact relative to target surface.
 func spawn_blood_effect(
 	position: Vector2,
@@ -167,68 +155,35 @@ func spawn_blood_effect(
 	impact_angle: float = 0.0
 ) -> void:
 	if _debug_effects:
-		print("[ImpactEffectsManager] spawn_blood_effect at ", position, " dir=", hit_direction, " lethal=", is_lethal, " target_vel=", target_velocity, " dist=", distance)
+		print("[ImpactEffectsManager] spawn_blood_effect at ", position, " dir=", hit_direction, " lethal=", is_lethal)
 
 	# Get effect scale from caliber data
 	var effect_scale := _get_effect_scale(caliber_data)
 
-	# Lethal hits produce more blood with higher pressure
+	# Calculate intensity based on lethality
 	var intensity := effect_scale
 	if is_lethal:
-		intensity *= 1.8
+		intensity *= 1.5
 
-	# 1. Spawn GPU particle effect for immediate visual spray
-	_spawn_gpu_blood_effect(position, hit_direction, intensity)
-
-	# 2. Spawn physics-based blood particles for wall collision and decal spawning
+	# Spawn physics-based blood particles (the only blood particle type now)
 	_spawn_blood_particles(position, hit_direction, intensity, is_lethal, target_velocity, distance, impact_angle)
 
-	# 3. Spawn immediate decal at hit location (main impact point)
+	# Spawn immediate decal at hit location (main impact point)
 	if is_lethal:
-		_spawn_blood_decal(position, hit_direction, intensity * 0.8)
+		_spawn_blood_decal(position, hit_direction, intensity * 0.7)
 
 	if _debug_effects:
-		print("[ImpactEffectsManager] Blood effect spawned successfully (hybrid system)")
-
-
-## Spawns the GPU-based particle effect for immediate visual blood spray.
-## @param position: World position for the effect.
-## @param hit_direction: Direction for the blood spray.
-## @param intensity: Intensity multiplier for scale and amount.
-func _spawn_gpu_blood_effect(position: Vector2, hit_direction: Vector2, intensity: float) -> void:
-	if _blood_effect_scene == null:
-		return
-
-	var effect := _blood_effect_scene.instantiate() as GPUParticles2D
-	if effect == null:
-		return
-
-	effect.global_position = position
-
-	# Blood splatters in the direction the bullet was traveling
-	effect.rotation = hit_direction.angle()
-
-	# Scale effect based on intensity
-	var clamped_intensity := clampf(intensity, MIN_EFFECT_SCALE, MAX_EFFECT_SCALE)
-	effect.amount_ratio = clamped_intensity
-	effect.scale = Vector2(clamped_intensity, clamped_intensity)
-
-	# Add to scene tree
-	_add_effect_to_scene(effect)
-
-	# Start emitting
-	effect.emitting = true
+		print("[ImpactEffectsManager] Blood effect spawned (procedural system)")
 
 
 ## Spawns physics-based blood particles that collide with walls.
-## These particles check for wall collisions and spawn decals where they land.
 ## @param position: Starting position for particles.
 ## @param hit_direction: Main direction for particle travel.
-## @param intensity: Intensity multiplier (affects count, speed, spread).
-## @param is_lethal: Whether the hit was lethal (affects particle count).
+## @param intensity: Intensity multiplier.
+## @param is_lethal: Whether the hit was lethal.
 ## @param target_velocity: Velocity of the target when hit.
 ## @param distance: Distance from shooter to target.
-## @param impact_angle: Angle of impact relative to target surface.
+## @param impact_angle: Angle of impact.
 func _spawn_blood_particles(
 	position: Vector2,
 	hit_direction: Vector2,
@@ -243,17 +198,20 @@ func _spawn_blood_particles(
 		_spawn_fallback_decals(position, hit_direction, intensity, is_lethal)
 		return
 
-	# Calculate particle count based on intensity and lethality
-	var base_count := BASE_BLOOD_PARTICLE_COUNT
-	if is_lethal:
-		base_count = int(base_count * 2.0)
+	# Calculate particle count based on lethality and intensity
+	var base_count := LETHAL_BLOOD_PARTICLE_COUNT if is_lethal else BASE_BLOOD_PARTICLE_COUNT
 
-	# Apply intensity multiplier with randomization
-	var particle_count := int(base_count * intensity * randf_range(0.8, 1.2))
-	particle_count = clampi(particle_count, 3, MAX_BLOOD_PARTICLE_COUNT)
+	# Apply intensity and add randomization
+	var particle_count := int(base_count * intensity * randf_range(0.85, 1.15))
+	particle_count = clampi(particle_count, 2, MAX_BLOOD_PARTICLE_COUNT)
 
 	if _debug_effects:
 		print("[ImpactEffectsManager] Spawning ", particle_count, " blood particles")
+
+	# Normalize hit direction for consistent behavior
+	var normalized_direction := hit_direction.normalized()
+	if normalized_direction.length() < 0.1:
+		normalized_direction = Vector2.RIGHT  # Fallback direction
 
 	# Spawn particles with varied parameters
 	for i in range(particle_count):
@@ -261,17 +219,18 @@ func _spawn_blood_particles(
 		if particle == null:
 			continue
 
-		particle.global_position = position
+		# Offset spawn position slightly in the hit direction to avoid spawning inside walls
+		var spawn_offset := normalized_direction * randf_range(2.0, 6.0)
+		particle.global_position = position + spawn_offset
 
-		# Initialize particle with direction, intensity, and contextual parameters
-		# Vary the intensity slightly for each particle for natural look
-		var particle_intensity := intensity * randf_range(0.6, 1.4) * BLOOD_PRESSURE_MULTIPLIER
+		# Initialize particle with contextual parameters
+		# Vary intensity per particle for natural look
+		var particle_intensity := intensity * randf_range(0.6, 1.4)
 		var spread := BLOOD_SPREAD_ANGLE * randf_range(0.8, 1.2)
 
 		if particle.has_method("initialize"):
-			# Pass contextual parameters for unique blood patterns
 			particle.initialize(
-				hit_direction.normalized(),
+				normalized_direction,
 				particle_intensity,
 				spread,
 				target_velocity,
@@ -284,7 +243,6 @@ func _spawn_blood_particles(
 
 
 ## Fallback decal spawning when blood particle scene is not available.
-## Spawns decals in a spread pattern in the hit direction.
 ## @param position: Origin position for decals.
 ## @param hit_direction: Direction for decal spread.
 ## @param intensity: Intensity multiplier.
@@ -294,19 +252,17 @@ func _spawn_fallback_decals(position: Vector2, hit_direction: Vector2, intensity
 		return
 
 	# Calculate number of decals to spawn
-	var decal_count := 2
-	if is_lethal:
-		decal_count = int(4 * intensity)
-	decal_count = clampi(decal_count, 1, 8)
+	var decal_count := 2 if not is_lethal else int(4 * intensity)
+	decal_count = clampi(decal_count, 1, 6)
 
 	for i in range(decal_count):
-		# Vary position in the hit direction with spread
-		var spread_angle := randf_range(-0.5, 0.5)
+		# Vary position in the hit direction with tight spread
+		var spread_angle := randf_range(-0.4, 0.4)
 		var spread_direction := hit_direction.rotated(spread_angle)
-		var distance := randf_range(15.0, 60.0) * intensity
+		var dist := randf_range(10.0, 40.0) * intensity
 
-		var decal_position := position + spread_direction * distance
-		_spawn_blood_decal(decal_position, hit_direction, intensity * randf_range(0.4, 1.0))
+		var decal_position := position + spread_direction * dist
+		_spawn_blood_decal(decal_position, hit_direction, intensity * randf_range(0.4, 0.9))
 
 
 ## Spawns a spark effect at the given position for non-lethal (armor) hits.
