@@ -72,6 +72,15 @@ class_name CaliberData
 ## For now, walls are assumed to be hard enough (concrete/metal).
 @export_range(0.0, 100.0, 1.0) var min_surface_hardness_for_ricochet: float = 50.0
 
+# ============================================================================
+# Visual Effects Properties
+# ============================================================================
+
+## Scale factor for visual hit effects (dust, blood, sparks).
+## Larger calibers produce more intense visual effects.
+## 1.0 = standard effect, 2.0 = double intensity, 0.5 = half intensity.
+@export_range(0.3, 2.0, 0.1) var effect_scale: float = 1.0
+
 
 ## Calculates the ricochet probability based on impact angle.
 ## Uses a custom curve designed for realistic 5.45x39mm behavior:

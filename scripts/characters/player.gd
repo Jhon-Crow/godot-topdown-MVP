@@ -450,6 +450,14 @@ func cancel_reload() -> void:
 
 ## Called when hit by a projectile.
 func on_hit() -> void:
+	# Call extended version with default values
+	on_hit_with_info(Vector2.RIGHT, null)
+
+
+## Called when hit by a projectile with extended hit information.
+## @param hit_direction: Direction the bullet was traveling.
+## @param caliber_data: Caliber resource for effect scaling.
+func on_hit_with_info(hit_direction: Vector2, caliber_data: Resource) -> void:
 	if not _is_alive:
 		return
 
@@ -462,17 +470,25 @@ func on_hit() -> void:
 	_current_health -= 1
 	health_changed.emit(_current_health, max_health)
 
-	# Play appropriate hit sound
+	# Play appropriate hit sound and spawn visual effects
 	var audio_manager: Node = get_node_or_null("/root/AudioManager")
+	var impact_manager: Node = get_node_or_null("/root/ImpactEffectsManager")
+
 	if _current_health <= 0:
 		# Play lethal hit sound
 		if audio_manager and audio_manager.has_method("play_hit_lethal"):
 			audio_manager.play_hit_lethal(global_position)
+		# Spawn blood splatter effect for lethal hit (with decal)
+		if impact_manager and impact_manager.has_method("spawn_blood_effect"):
+			impact_manager.spawn_blood_effect(global_position, hit_direction, caliber_data, true)
 		_on_death()
 	else:
 		# Play non-lethal hit sound
 		if audio_manager and audio_manager.has_method("play_hit_non_lethal"):
 			audio_manager.play_hit_non_lethal(global_position)
+		# Spawn blood effect for non-lethal hit (smaller, no decal)
+		if impact_manager and impact_manager.has_method("spawn_blood_effect"):
+			impact_manager.spawn_blood_effect(global_position, hit_direction, caliber_data, false)
 		_update_health_visual()
 
 

@@ -17,3 +17,4 @@ ricochet_damage_multiplier = 0.5
 ricochet_angle_deviation = 10.0
 penetration_power = 30.0
 min_surface_hardness_for_ricochet = 50.0
+effect_scale = 1.0

@@ -187,6 +187,9 @@ func _on_body_entered(body: Node2D) -> void:
 		if _try_ricochet(body):
 			return  # Bullet ricocheted, don't destroy
 
+	# Spawn wall dust effect
+	_spawn_wall_hit_effect(body)
+
 	# Play wall impact sound and destroy bullet
 	var audio_manager: Node = get_node_or_null("/root/AudioManager")
 	if audio_manager and audio_manager.has_method("play_bullet_wall_hit"):
@@ -212,7 +215,11 @@ func _on_area_entered(area: Area2D) -> void:
 		if parent and parent.has_method("is_alive") and not parent.is_alive():
 			return  # Pass through dead entities
 
-		area.on_hit()
+		# Call on_hit with extended parameters if supported, otherwise use basic call
+		if area.has_method("on_hit_with_info"):
+			area.on_hit_with_info(direction, caliber_data)
+		else:
+			area.on_hit()
 
 		# Trigger hit effects if this is a player bullet hitting an enemy
 		if _is_player_bullet():
@@ -485,3 +492,17 @@ func can_ricochet() -> bool:
 	if caliber_data and "can_ricochet" in caliber_data:
 		return caliber_data.can_ricochet
 	return true  # Default to enabled
+
+
+## Spawns dust/debris particles when bullet hits a wall or static body.
+## @param body: The body that was hit (used to get surface normal).
+func _spawn_wall_hit_effect(body: Node2D) -> void:
+	var impact_manager: Node = get_node_or_null("/root/ImpactEffectsManager")
+	if impact_manager == null or not impact_manager.has_method("spawn_dust_effect"):
+		return
+
+	# Get surface normal for particle direction
+	var surface_normal := _get_surface_normal(body)
+
+	# Spawn dust effect at hit position
+	impact_manager.spawn_dust_effect(global_position, surface_normal, caliber_data)

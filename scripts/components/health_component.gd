@@ -86,6 +86,15 @@ func set_sprite(sprite: Sprite2D) -> void:
 
 ## Apply damage to the entity.
 func take_damage(amount: int = 1) -> void:
+	# Call extended version with default values
+	take_damage_with_info(amount, Vector2.RIGHT, null)
+
+
+## Apply damage to the entity with extended hit information.
+## @param amount: Amount of damage to apply.
+## @param hit_direction: Direction the bullet was traveling.
+## @param caliber_data: Caliber resource for effect scaling.
+func take_damage_with_info(amount: int, hit_direction: Vector2, caliber_data: Resource) -> void:
 	if not _is_alive:
 		return
 
@@ -95,10 +104,20 @@ func take_damage(amount: int = 1) -> void:
 	_current_health -= amount
 	health_changed.emit(_current_health, _max_health)
 
+	# Spawn visual effects based on damage result
+	var impact_manager: Node = get_node_or_null("/root/ImpactEffectsManager")
+	var parent := get_parent()
+
 	if _current_health <= 0:
 		_current_health = 0
+		# Spawn blood splatter effect for lethal hit (with decal)
+		if impact_manager and impact_manager.has_method("spawn_blood_effect") and parent:
+			impact_manager.spawn_blood_effect(parent.global_position, hit_direction, caliber_data, true)
 		_on_death()
 	else:
+		# Spawn blood for non-lethal hit (smaller, no decal)
+		if impact_manager and impact_manager.has_method("spawn_blood_effect") and parent:
+			impact_manager.spawn_blood_effect(parent.global_position, hit_direction, caliber_data, false)
 		_update_health_visual()
 
 

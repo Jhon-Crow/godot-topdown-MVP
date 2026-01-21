@@ -18,6 +18,7 @@ AudioManager="*res://scripts/autoload/audio_manager.gd"
 SoundPropagation="*res://scripts/autoload/sound_propagation.gd"
 ScreenShakeManager="*res://scripts/autoload/screen_shake_manager.gd"
 DifficultyManager="*res://scripts/autoload/difficulty_manager.gd"
+ImpactEffectsManager="*res://scripts/autoload/impact_effects_manager.gd"
 
 [application]
 
