@@ -79,6 +79,29 @@ var _max_post_ricochet_distance: float = 0.0
 ## Enable/disable debug logging for ricochet calculations.
 var _debug_ricochet: bool = false
 
+## Whether the bullet is currently penetrating through a wall.
+var _is_penetrating: bool = false
+
+## Distance traveled while penetrating through walls.
+var _penetration_distance_traveled: float = 0.0
+
+## Entry point into the current obstacle being penetrated.
+var _penetration_entry_point: Vector2 = Vector2.ZERO
+
+## The body currently being penetrated (for tracking exit).
+var _penetrating_body: Node2D = null
+
+## Whether the bullet has penetrated at least one wall (for damage reduction).
+var _has_penetrated: bool = false
+
+## Enable/disable debug logging for penetration calculations.
+var _debug_penetration: bool = false
+
+## Default penetration settings (used when caliber_data is not set).
+const DEFAULT_CAN_PENETRATE: bool = true
+const DEFAULT_MAX_PENETRATION_DISTANCE: float = 48.0
+const DEFAULT_POST_PENETRATION_DAMAGE_MULTIPLIER: float = 0.9
+
 
 func _ready() -> void:
 	# Connect to collision signals
@@ -144,6 +167,22 @@ func _physics_process(delta: float) -> void:
 			queue_free()
 			return
 
+	# Track penetration distance while inside a wall
+	if _is_penetrating:
+		_penetration_distance_traveled += movement.length()
+		var max_pen_distance := _get_max_penetration_distance()
+
+		# Check if we've exceeded max penetration distance
+		if max_pen_distance > 0 and _penetration_distance_traveled >= max_pen_distance:
+			if _debug_penetration:
+				print("[Bullet] Max penetration distance exceeded: ", _penetration_distance_traveled, " >= ", max_pen_distance)
+			queue_free()
+			return
+
+		# Check if we've exited the obstacle (raycast forward to see if still inside)
+		if not _is_still_inside_obstacle():
+			_exit_penetration()
+
 	# Update trail effect
 	_update_trail()
 
@@ -181,13 +220,23 @@ func _on_body_entered(body: Node2D) -> void:
 	if body.has_method("is_alive") and not body.is_alive():
 		return  # Pass through dead entities
 
+	# If we're currently penetrating the same body, ignore re-entry
+	if _is_penetrating and _penetrating_body == body:
+		return
+
 	# Hit a static body (wall or obstacle) or alive enemy body
 	# Try to ricochet off static bodies (walls/obstacles)
 	if body is StaticBody2D or body is TileMap:
 		# Always spawn dust effect when hitting walls, regardless of ricochet
 		_spawn_wall_hit_effect(body)
+
+		# First try ricochet
 		if _try_ricochet(body):
 			return  # Bullet ricocheted, don't destroy
+
+		# Ricochet failed - try penetration
+		if _try_penetration(body):
+			return  # Bullet is penetrating, don't destroy
 
 	# Play wall impact sound and destroy bullet
 	var audio_manager: Node = get_node_or_null("/root/AudioManager")
@@ -505,3 +554,170 @@ func _spawn_wall_hit_effect(body: Node2D) -> void:
 
 	# Spawn dust effect at hit position
 	impact_manager.spawn_dust_effect(global_position, surface_normal, caliber_data)
+
+
+# ============================================================================
+# Wall Penetration System
+# ============================================================================
+
+
+## Attempts to penetrate through a wall when ricochet fails.
+## Returns true if penetration started successfully.
+## @param body: The static body (wall) to penetrate.
+func _try_penetration(body: Node2D) -> bool:
+	# Check if caliber allows penetration
+	if not _can_penetrate():
+		if _debug_penetration:
+			print("[Bullet] Caliber cannot penetrate walls")
+		return false
+
+	# Don't start a new penetration if already penetrating
+	if _is_penetrating:
+		if _debug_penetration:
+			print("[Bullet] Already penetrating, cannot start new penetration")
+		return false
+
+	if _debug_penetration:
+		print("[Bullet] Starting wall penetration at ", global_position)
+
+	# Mark as penetrating
+	_is_penetrating = true
+	_penetrating_body = body
+	_penetration_entry_point = global_position
+	_penetration_distance_traveled = 0.0
+
+	# Spawn entry hole effect
+	_spawn_penetration_hole_effect(body, global_position, true)
+
+	# Move bullet slightly forward to avoid immediate re-collision
+	global_position += direction * 5.0
+
+	return true
+
+
+## Checks if the bullet can penetrate walls based on caliber data.
+func _can_penetrate() -> bool:
+	if caliber_data and caliber_data.has_method("can_penetrate_walls"):
+		return caliber_data.can_penetrate_walls()
+	if caliber_data and "can_penetrate" in caliber_data:
+		return caliber_data.can_penetrate
+	return DEFAULT_CAN_PENETRATE
+
+
+## Gets the maximum penetration distance from caliber data.
+func _get_max_penetration_distance() -> float:
+	if caliber_data and caliber_data.has_method("get_max_penetration_distance"):
+		return caliber_data.get_max_penetration_distance()
+	if caliber_data and "max_penetration_distance" in caliber_data:
+		return caliber_data.max_penetration_distance
+	return DEFAULT_MAX_PENETRATION_DISTANCE
+
+
+## Gets the post-penetration damage multiplier from caliber data.
+func _get_post_penetration_damage_multiplier() -> float:
+	if caliber_data and "post_penetration_damage_multiplier" in caliber_data:
+		return caliber_data.post_penetration_damage_multiplier
+	return DEFAULT_POST_PENETRATION_DAMAGE_MULTIPLIER
+
+
+## Checks if the bullet is still inside an obstacle using raycasting.
+## Returns true if still inside, false if exited.
+func _is_still_inside_obstacle() -> bool:
+	if _penetrating_body == null or not is_instance_valid(_penetrating_body):
+		return false
+
+	var space_state := get_world_2d().direct_space_state
+
+	# Cast a short ray forward to see if we're still colliding with the obstacle
+	var ray_start := global_position
+	var ray_end := global_position + direction * 2.0
+
+	var query := PhysicsRayQueryParameters2D.create(ray_start, ray_end)
+	query.collision_mask = collision_mask
+	query.exclude = [self]
+
+	var result := space_state.intersect_ray(query)
+
+	# If we hit the same body, we're still inside
+	if not result.is_empty() and result.collider == _penetrating_body:
+		return true
+
+	# Also check if we're still overlapping with the penetrating body
+	# by casting backward to see if we just exited
+	ray_end = global_position - direction * 2.0
+	query = PhysicsRayQueryParameters2D.create(ray_start, ray_end)
+	query.collision_mask = collision_mask
+	query.exclude = [self]
+
+	result = space_state.intersect_ray(query)
+	if not result.is_empty() and result.collider == _penetrating_body:
+		return true
+
+	return false
+
+
+## Called when the bullet exits a penetrated wall.
+func _exit_penetration() -> void:
+	if _debug_penetration:
+		print("[Bullet] Exiting penetration at ", global_position, " after traveling ", _penetration_distance_traveled, " pixels through wall")
+
+	# Spawn exit hole effect
+	_spawn_penetration_hole_effect(_penetrating_body, global_position, false)
+
+	# Apply damage reduction after penetration
+	if not _has_penetrated:
+		damage_multiplier *= _get_post_penetration_damage_multiplier()
+		_has_penetrated = true
+
+		if _debug_penetration:
+			print("[Bullet] Damage multiplier after penetration: ", damage_multiplier)
+
+	# Play penetration exit sound (use wall hit sound for now)
+	var audio_manager: Node = get_node_or_null("/root/AudioManager")
+	if audio_manager and audio_manager.has_method("play_bullet_wall_hit"):
+		audio_manager.play_bullet_wall_hit(global_position)
+
+	# Reset penetration state
+	_is_penetrating = false
+	_penetrating_body = null
+	_penetration_distance_traveled = 0.0
+
+
+## Spawns a visual hole effect at penetration entry or exit point.
+## @param body: The wall being penetrated.
+## @param pos: Position of the hole.
+## @param is_entry: True for entry hole, false for exit hole.
+func _spawn_penetration_hole_effect(body: Node2D, pos: Vector2, is_entry: bool) -> void:
+	var impact_manager: Node = get_node_or_null("/root/ImpactEffectsManager")
+	if impact_manager == null:
+		return
+
+	# Spawn a penetration hole effect if available
+	if impact_manager.has_method("spawn_penetration_hole"):
+		var surface_normal := _get_surface_normal(body)
+		# Entry holes face the direction the bullet came from
+		# Exit holes face the direction the bullet is going
+		if is_entry:
+			surface_normal = -direction.normalized()
+		else:
+			surface_normal = direction.normalized()
+		impact_manager.spawn_penetration_hole(pos, surface_normal, caliber_data, is_entry)
+	elif impact_manager.has_method("spawn_dust_effect"):
+		# Fallback to dust effect
+		var surface_normal := _get_surface_normal(body)
+		impact_manager.spawn_dust_effect(pos, surface_normal, caliber_data)
+
+
+## Returns whether the bullet has penetrated at least one wall.
+func has_penetrated() -> bool:
+	return _has_penetrated
+
+
+## Returns whether the bullet is currently penetrating a wall.
+func is_penetrating() -> bool:
+	return _is_penetrating
+
+
+## Returns the distance traveled through walls while penetrating.
+func get_penetration_distance() -> float:
+	return _penetration_distance_traveled
