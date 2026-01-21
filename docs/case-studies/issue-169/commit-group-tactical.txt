@@ -1,0 +1,42 @@
+commit c9a9b4b5e336125fc47264b412297a01fe2dd024
+Author: konard <drakonard@gmail.com>
+Date:   Tue Jan 20 21:07:40 2026 +0100
+
+    Add group tactical AI system with squad coordination
+    
+    Implement group behavior for enemies within communication range (1/4 viewport
+    diagonal = 360 pixels) based on military tactical principles.
+    
+    New features:
+    - Squad detection and membership tracking within communication range
+    - Role assignment system (Leader, Suppressor, Flanker, Assault, Rear Guard)
+    - Leader election based on distance to player and health
+    - Coordinated suppression fire while squadmates flank
+    - Squad communication system with message broadcasting
+    - 4 new GOAP actions for squad tactics:
+      - ProvideSuppressionAction: Pin player while allies flank
+      - CoordinatedFlankAction: Flank under cover of suppression
+      - CoordinatedAssaultAction: Synchronized attack when flanker ready
+      - CrossCoverAction: Bounding overwatch movement
+    
+    Technical implementation:
+    - Added SquadRole enum with 6 roles
+    - Added squad coordination constants and instance variables
+    - Integrated squad state into GOAP world state
+    - Modified combat, flanking, and assault states for squad behavior
+    - Added debug label display for squad role information
+    
+    Documentation:
+    - Added case study documentation in docs/case-studies/issue-99/
+    - Includes technical design, timeline reconstruction, and root cause analysis
+    
+    Fixes #99
+    
+    Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>
+
+ docs/case-studies/issue-99/README.md           | 218 +++++++++++
+ docs/case-studies/issue-99/TECHNICAL_DESIGN.md | 477 +++++++++++++++++++++++++
+ scripts/ai/enemy_actions.gd                    | 107 ++++++
+ scripts/objects/enemy.gd                       | 416 ++++++++++++++++++++-
+ tests/unit/test_enemy_actions.gd               |   3 +-
+ 5 files changed, 1216 insertions(+), 5 deletions(-)

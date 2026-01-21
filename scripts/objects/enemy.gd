@@ -1232,15 +1232,8 @@ func _process_combat_state(delta: float) -> void:
 		_transition_to_retreating()
 		return
 
-	# Check if multiple enemies are in combat - transition to assault state
-	var enemies_in_combat := _count_enemies_in_combat()
-	if enemies_in_combat >= 2:
-		_log_debug("Multiple enemies in combat (%d), transitioning to ASSAULT" % enemies_in_combat)
-		_combat_exposed = false
-		_combat_approaching = false
-		_seeking_clear_shot = false
-		_transition_to_assault()
-		return
+	# NOTE: ASSAULT state transition removed per issue #169
+	# Enemies now stay in COMBAT instead of transitioning to coordinated assault
 
 	# If can't see player, pursue them (move cover-to-cover toward player)
 	# But only after minimum time has elapsed to prevent rapid state thrashing
@@ -1551,12 +1544,8 @@ func _process_in_cover_state(delta: float) -> void:
 		_transition_to_seeking_cover()
 		return
 
-	# Check if multiple enemies are in combat - transition to assault state
-	var enemies_in_combat := _count_enemies_in_combat()
-	if enemies_in_combat >= 2:
-		_log_debug("Multiple enemies detected (%d), transitioning to ASSAULT" % enemies_in_combat)
-		_transition_to_assault()
-		return
+	# NOTE: ASSAULT state transition removed per issue #169
+	# Enemies now stay in IN_COVER instead of transitioning to coordinated assault
 
 	# Decision making based on player distance and visibility
 	if _player:
@@ -1891,14 +1880,8 @@ func _process_pursuing_state(delta: float) -> void:
 		_transition_to_retreating()
 		return
 
-	# Check if multiple enemies are in combat - transition to assault state
-	var enemies_in_combat := _count_enemies_in_combat()
-	if enemies_in_combat >= 2:
-		_log_debug("Multiple enemies detected during pursuit (%d), transitioning to ASSAULT" % enemies_in_combat)
-		_pursuit_approaching = false
-		_pursuing_vulnerability_sound = false
-		_transition_to_assault()
-		return
+	# NOTE: ASSAULT state transition removed per issue #169
+	# Enemies now stay in PURSUING instead of transitioning to coordinated assault
 
 	# If can see player and can hit them from current position, engage
 	# But only after minimum time has elapsed to prevent rapid state thrashing
@@ -2043,83 +2026,16 @@ func _process_pursuing_state(delta: float) -> void:
 			_transition_to_combat()
 
 
-## Process ASSAULT state - coordinated multi-enemy rush.
-## Wait at cover for 5 seconds, then all enemies rush the player simultaneously.
-func _process_assault_state(delta: float) -> void:
-	# Check for suppression - transition to retreating behavior
-	if _under_fire and enable_cover and not _assault_ready:
-		_in_assault = false
-		_transition_to_retreating()
-		return
-
-	# Check if we're the only enemy left in assault - switch back to combat
-	var enemies_in_combat := _count_enemies_in_combat()
-	if enemies_in_combat < 2 and not _assault_ready:
-		_log_debug("Not enough enemies for assault, switching to COMBAT")
-		_in_assault = false
-		_transition_to_combat()
-		return
-
-	# Find closest cover to player if we don't have one
-	if not _has_valid_cover:
-		_find_cover_closest_to_player()
-		if _has_valid_cover:
-			_log_debug("Found assault cover at %s" % _cover_position)
-
-	# Move to cover position first
-	if _has_valid_cover and not _in_assault:
-		var distance_to_cover: float = global_position.distance_to(_cover_position)
-		if distance_to_cover > 15.0 and _is_visible_from_player():
-			# Use navigation-based pathfinding to reach cover
-			_move_to_target_nav(_cover_position, combat_move_speed)
-			return
-
-	# At cover, wait for assault timer
-	if not _assault_ready:
-		velocity = Vector2.ZERO
-		_assault_wait_timer += delta
-
-		# Check if all assault enemies are ready (synchronized assault)
-		if _assault_wait_timer >= ASSAULT_WAIT_DURATION:
-			# Check if situation has changed - player might have moved
-			if _player and _is_player_close():
-				_assault_ready = true
-				_in_assault = true
-				_log_debug("ASSAULT ready - rushing player!")
-			else:
-				# Player moved away, reset timer and check if we should pursue
-				_log_debug("Player moved away during assault wait, resetting")
-				_assault_wait_timer = 0.0
-				_in_assault = false
-				_transition_to_pursuing()
-				return
-		return
-
-	# Assault phase - rush the player while shooting
-	if _assault_ready and _player:
-		var distance_to_player: float = global_position.distance_to(_player.global_position)
-
-		# Use navigation-based pathfinding to rush player
-		_move_to_target_nav(_player.global_position, combat_move_speed)
-
-		# Update detection delay timer
-		if not _detection_delay_elapsed:
-			_detection_timer += delta
-			if _detection_timer >= _get_effective_detection_delay():
-				_detection_delay_elapsed = true
-
-		# Shoot while rushing (only after detection delay)
-		if _can_see_player and _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
-			_aim_at_player()
-			_shoot()
-			_shoot_timer = 0.0
-
-		# If very close to player, stay in combat
-		if distance_to_player < 50.0:
-			_log_debug("Assault complete - reached player")
-			_assault_ready = false
-			_in_assault = false
-			_transition_to_combat()
+## Process ASSAULT state - disabled per issue #169.
+## This state is kept for backwards compatibility but immediately transitions to COMBAT.
+## Previously: coordinated multi-enemy rush where enemies wait 5 seconds then rush together.
+func _process_assault_state(_delta: float) -> void:
+	# ASSAULT state is disabled per issue #169
+	# Immediately transition to COMBAT state
+	_log_debug("ASSAULT state disabled (issue #169), transitioning to COMBAT")
+	_in_assault = false
+	_assault_ready = false
+	_transition_to_combat()
 
 
 ## Shoot with reduced accuracy for retreat mode.

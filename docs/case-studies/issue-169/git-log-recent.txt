@@ -1,0 +1,50 @@
+aef5d94 Initial commit with task details
+299c058 Merge pull request #166 from konard/issue-165-c89a59839c96
+84f0d0e Fix penultimate hit effect: use Player's Damaged signal for reliable C# interop
+c6eb74c Fix penultimate hit effect: correct logger, 0.1 time scale, better C# support
+4fdd2f2 Fix penultimate hit effect: add contrast, 3s duration, logging
+2cfe1c6 Revert "Initial commit with task details"
+9a3e01d Add penultimate hit effect when player has 1 HP or less
+4685f87 Initial commit with task details
+979595b Merge pull request #161 from konard/issue-159-c585249aa06f
+958437a Remove all penetration visual effects as per user request
+9e1a4ca Remove visual trails, keep only dust effects for penetration feedback
+9c8fbd1 Fix point-blank penetration and visual trail eraser effect
+357ca5e Fix bullet behavior after penetration and improve visual feedback
+a2f35d7 Update case study with root cause analysis
+0d5eef1 Add C# bullet penetration and fix Line2D trail positioning
+581a204 Fix penetration detection and visual trail rendering
+6dfdb82 Fix penetration visual feedback and bullet distance tracking
+3e3e3e2 Implement collision holes, permanent holes, and distance-based penetration
+4048f5e Revert "Initial commit with task details"
+8f1939a Add unit tests for wall penetration system
+f0407f2 Add bullet hole visual effects for wall penetration
+4fab470 Implement wall penetration logic in bullet
+0ab6aee Add wall penetration properties to CaliberData
+dcbfcef Initial commit with task details
+b1a8e0b Merge pull request #158 from konard/issue-70-46600958b1d9
+5ed42a4 Revert "Initial commit with task details"
+00fbfd6 Fix player shooting through walls when standing flush against cover
+6092453 Initial commit with task details
+a15a291 Merge pull request #153 from konard/issue-152-d18c64673be2
+afd2f3c Add dust effect to C# bullet implementation
+f3e8ce5 Revert "Initial commit with task details"
+1daa513 Fix dust effect not spawning from player bullets hitting walls
+46e578b Initial commit with task details
+2b287e7 Merge pull request #151 from konard/issue-149-f7edb648fa0d
+736d21c Improve visual impact effects realism and add blood decals
+426b527 Revert "Initial commit with task details"
+ccfce81 Add visual impact hit effects (dust, blood, sparks) based on caliber
+38ee5b9 Initial commit with task details
+6fd7962 Merge pull request #150 from konard/issue-141-e39d8d7629de
+f04ae0c Implement realistic ricochet probability curve for 5.45x39mm
+6fde6b7 Increase ricochet probability to 100% and enable self-damage from ricochets
+c977038 Fix critical impact angle calculation bug in ricochet mechanics
+136a4af Port ricochet mechanics to C# Bullet.cs for player weapons
+25dcf41 Add case study documentation for issue #141
+babb759 add звуки рикошетов
+6db811a Implement improved ricochet mechanics based on feedback
+00fc2e9 Remove CLAUDE.md instruction file from PR
+d8344fb Use preload and call() in test_ricochet.gd to fix parse errors
+7031d65 Fix test_ricochet.gd parse errors by using CaliberData class directly
+51d6569 Add realistic ricochet mechanics for weapons (5.45 caliber)
