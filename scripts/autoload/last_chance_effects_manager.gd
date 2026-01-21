@@ -372,16 +372,22 @@ func _freeze_time() -> void:
 	var root := get_tree().root
 	for child in root.get_children():
 		# Skip autoloads (they should keep running for UI, audio, etc.)
-		if child.name in ["FileLogger", "AudioManager", "DifficultyManager", "LastChanceEffectsManager", "PenultimateHitEffectsManager"]:
+		# Include GameManager to preserve quick restart (Q key) functionality
+		if child.name in ["FileLogger", "AudioManager", "DifficultyManager", "LastChanceEffectsManager", "PenultimateHitEffectsManager", "GameManager"]:
 			continue
 
 		# This is likely the current scene - freeze everything inside except player
 		_freeze_node_except_player(child)
 
-	_log("Froze all nodes except player and autoloads")
+	_log("Froze all nodes except player and autoloads (including GameManager for quick restart)")
 
 	# This manager uses PROCESS_MODE_ALWAYS to keep running the timer
 	process_mode = Node.PROCESS_MODE_ALWAYS
+
+	# Connect to node_added signal to freeze any new bullets fired during the freeze
+	# This ensures player-fired bullets also get frozen immediately
+	if not get_tree().node_added.is_connected(_on_node_added_during_freeze):
+		get_tree().node_added.connect(_on_node_added_during_freeze)
 
 
 ## Recursively sets the player and all children to PROCESS_MODE_ALWAYS.
@@ -536,6 +542,10 @@ func _end_last_chance_effect() -> void:
 
 ## Unfreezes time and restores normal processing.
 func _unfreeze_time() -> void:
+	# Disconnect the node_added signal we connected during freeze
+	if get_tree().node_added.is_connected(_on_node_added_during_freeze):
+		get_tree().node_added.disconnect(_on_node_added_during_freeze)
+
 	# Restore all nodes' original process modes
 	_restore_all_process_modes()
 
@@ -721,9 +731,55 @@ func _unfreeze_player_bullets() -> void:
 	_frozen_player_bullets.clear()
 
 
+## Called when a node is added to the scene tree during time freeze.
+## Automatically freezes player-fired bullets to maintain the time freeze effect.
+func _on_node_added_during_freeze(node: Node) -> void:
+	if not _is_effect_active:
+		return
+
+	# Check if this is a bullet (Area2D with bullet script or name)
+	if not node is Area2D:
+		return
+
+	# Check if it's a bullet by script path or name
+	var is_bullet: bool = false
+	var script: Script = node.get_script()
+	if script != null:
+		var script_path: String = script.resource_path
+		if "bullet" in script_path.to_lower():
+			is_bullet = true
+	elif "Bullet" in node.name or "bullet" in node.name:
+		is_bullet = true
+
+	if not is_bullet:
+		return
+
+	# Check if this is a player bullet (shot by the player)
+	# Player bullets have shooter_id matching the player's instance ID
+	var shooter_id: int = -1
+	if "shooter_id" in node:
+		shooter_id = node.shooter_id
+	elif "ShooterId" in node:
+		shooter_id = node.ShooterId
+
+	if shooter_id == -1:
+		return
+
+	# Check if the shooter is the player
+	if _player != null and shooter_id == _player.get_instance_id():
+		# This is a player bullet - freeze it immediately
+		_log("Freezing newly fired player bullet: %s" % node.name)
+		register_frozen_bullet(node as Node2D)
+
+
 ## Resets all effects (useful when restarting the scene).
 func reset_effects() -> void:
 	_log("Resetting all effects (scene change detected)")
+
+	# Disconnect node_added signal if connected
+	if get_tree().node_added.is_connected(_on_node_added_during_freeze):
+		get_tree().node_added.disconnect(_on_node_added_during_freeze)
+
 	if _is_effect_active:
 		_end_last_chance_effect()
 	_player = null

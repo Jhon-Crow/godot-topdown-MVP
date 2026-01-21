@@ -42,6 +42,8 @@ func _ready() -> void:
 	# Set mouse mode: confined and hidden (keeps cursor within window and hides it)
 	# This provides immersive fullscreen gameplay experience
 	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED_HIDDEN)
+	# Set PROCESS_MODE_ALWAYS to ensure quick restart (Q key) works during time freeze effects
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	# Log that GameManager is ready
 	_log_to_file("GameManager ready")
 
