@@ -181,6 +181,13 @@ func _on_player_damaged(amount: float, current_health: float) -> void:
 ## Check if penultimate hit effect should be triggered or ended.
 func _check_penultimate_state(current_health: float) -> void:
 	if current_health <= 1.0 and current_health > 0.0:
+		# On hard mode, the special "last chance" effect replaces this effect
+		# So we skip the regular penultimate hit effect on hard difficulty
+		var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
+		if difficulty_manager != null and difficulty_manager.is_hard_mode():
+			_log("Hard mode active - skipping regular penultimate hit effect (using last chance instead)")
+			return
+
 		# Player has 1 HP or less but is still alive - trigger penultimate hit effect
 		if not _is_effect_active:
 			_log("Triggering penultimate hit effect (HP: %.1f)" % current_health)

@@ -68,10 +68,17 @@ func _on_area_entered(area: Area2D) -> void:
 	if not _is_bullet(area):
 		return
 
-	# Check if it's an enemy bullet (not from the player)
-	if _is_player_bullet(area):
-		_log("Ignoring player's own bullet")
-		return
+	# Check if it's a player bullet - but we still want to detect it if it's
+	# heading TOWARD the player (e.g., ricocheted bullets coming back)
+	var is_player_bullet := _is_player_bullet(area)
+	if is_player_bullet:
+		# For player bullets, only consider them threats if they're heading back at the player
+		# (e.g., from a ricochet)
+		if not _is_bullet_heading_toward_player(area):
+			_log("Ignoring player's own bullet (not heading toward player)")
+			return
+		else:
+			_log("Player's own bullet heading toward player (ricochet threat)!")
 
 	# Check if bullet is heading toward the player
 	if _is_bullet_heading_toward_player(area):

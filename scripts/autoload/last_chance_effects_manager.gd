@@ -65,6 +65,16 @@ var _frozen_player_bullets: Array = []
 ## Original process mode of the player (to restore after effect).
 var _player_original_process_mode: Node.ProcessMode = Node.PROCESS_MODE_INHERIT
 
+## Dictionary storing original process modes of all nodes we modified.
+## Key: node instance, Value: original ProcessMode
+var _original_process_modes: Dictionary = {}
+
+## Distance to push threatening bullets away from player (in pixels).
+const BULLET_PUSH_DISTANCE: float = 200.0
+
+## Whether to grant invulnerability during the time freeze.
+var _player_was_invulnerable: bool = false
+
 ## Cached player health from Damaged/health_changed signals.
 ## This is used because accessing C# HealthComponent.CurrentHealth from GDScript
 ## doesn't work reliably due to cross-language interoperability issues.
@@ -324,6 +334,13 @@ func _start_last_chance_effect() -> void:
 	_log("  - Sepia intensity: %.2f" % SEPIA_INTENSITY)
 	_log("  - Brightness: %.2f" % BRIGHTNESS)
 
+	# CRITICAL: Push all threatening bullets away from player BEFORE freezing time
+	# This gives the player a fighting chance to survive
+	_push_threatening_bullets_away()
+
+	# Grant temporary invulnerability to player during time freeze
+	_grant_player_invulnerability()
+
 	# Freeze time for everything except the player
 	_freeze_time()
 
@@ -333,25 +350,37 @@ func _start_last_chance_effect() -> void:
 
 ## Freezes time for everything except the player.
 func _freeze_time() -> void:
-	# Store player's original process mode
-	if _player != null:
-		_player_original_process_mode = _player.process_mode
+	# Clear previous stored modes
+	_original_process_modes.clear()
 
 	# Set engine time scale to 0 (freeze everything)
 	Engine.time_scale = 0.0
 
-	# But allow the player to still process
+	# But allow the player and ALL its children to still process
+	# This includes: weapon, input handler, health component, animations, etc.
 	if _player != null:
-		_player.process_mode = Node.PROCESS_MODE_ALWAYS
-		_log("Player process_mode set to ALWAYS")
-
-	# Also allow the camera to process
-	var camera: Camera2D = _player.get_node_or_null("Camera2D") as Camera2D
-	if camera != null:
-		camera.process_mode = Node.PROCESS_MODE_ALWAYS
+		_set_node_and_children_process_mode(_player, Node.PROCESS_MODE_ALWAYS)
+		_log("Player and all children process_mode set to ALWAYS")
 
 	# Allow this manager to process (for timer and ripple animation)
 	process_mode = Node.PROCESS_MODE_ALWAYS
+
+
+## Recursively sets process mode for a node and all its children.
+## Stores the original process mode for later restoration.
+func _set_node_and_children_process_mode(node: Node, mode: Node.ProcessMode) -> void:
+	if node == null:
+		return
+
+	# Store original process mode
+	_original_process_modes[node] = node.process_mode
+
+	# Set new process mode
+	node.process_mode = mode
+
+	# Recursively process all children
+	for child in node.get_children():
+		_set_node_and_children_process_mode(child, mode)
 
 
 ## Applies the visual effects (blue sepia + ripple).
@@ -386,21 +415,27 @@ func _unfreeze_time() -> void:
 	# Restore engine time scale
 	Engine.time_scale = 1.0
 
-	# Restore player's original process mode
-	if _player != null and is_instance_valid(_player):
-		_player.process_mode = _player_original_process_mode
-		_log("Player process_mode restored")
-
-		# Restore camera process mode
-		var camera: Camera2D = _player.get_node_or_null("Camera2D") as Camera2D
-		if camera != null:
-			camera.process_mode = Node.PROCESS_MODE_INHERIT
+	# Restore all nodes' original process modes
+	_restore_all_process_modes()
 
 	# Restore this manager's process mode
 	process_mode = Node.PROCESS_MODE_INHERIT
 
+	# Remove player invulnerability
+	_remove_player_invulnerability()
+
 	# Unfreeze any player bullets that were fired during the time freeze
 	_unfreeze_player_bullets()
+
+
+## Restores all stored original process modes.
+func _restore_all_process_modes() -> void:
+	for node in _original_process_modes.keys():
+		if is_instance_valid(node):
+			node.process_mode = _original_process_modes[node]
+
+	_original_process_modes.clear()
+	_log("All process modes restored")
 
 
 ## Removes the visual effects.
@@ -411,6 +446,135 @@ func _remove_visual_effects() -> void:
 		material.set_shader_parameter("sepia_intensity", 0.0)
 		material.set_shader_parameter("brightness", 1.0)
 		material.set_shader_parameter("ripple_strength", 0.0)
+
+
+## Pushes all bullets that are close to the player away.
+## This gives the player a fighting chance when time freezes.
+func _push_threatening_bullets_away() -> void:
+	if _player == null:
+		return
+
+	var player_pos: Vector2 = _player.global_position
+	var bullets_pushed: int = 0
+
+	# Get all bullets in the scene (they are Area2D nodes in the "bullets" group or have bullet script)
+	var bullets: Array = get_tree().get_nodes_in_group("bullets")
+
+	# Also search for Area2D nodes that might be bullets but not in the group
+	for node in get_tree().get_nodes_in_group("enemies"):
+		# Enemy projectiles might not be in bullets group
+		pass
+
+	# Search through all Area2D nodes
+	for area in _get_all_bullets():
+		if not is_instance_valid(area):
+			continue
+
+		var bullet_pos: Vector2 = area.global_position
+		var distance: float = player_pos.distance_to(bullet_pos)
+
+		# Only push bullets that are within the threat radius
+		if distance < _threat_sphere.threat_radius if _threat_sphere else 200.0:
+			# Calculate direction away from player
+			var push_direction: Vector2 = (bullet_pos - player_pos).normalized()
+			if push_direction == Vector2.ZERO:
+				push_direction = Vector2.RIGHT  # Fallback direction
+
+			# Push bullet away
+			var new_pos: Vector2 = player_pos + push_direction * BULLET_PUSH_DISTANCE
+			area.global_position = new_pos
+
+			bullets_pushed += 1
+			_log("Pushed bullet %s from distance %.1f to %.1f" % [area.name, distance, BULLET_PUSH_DISTANCE])
+
+	if bullets_pushed > 0:
+		_log("Pushed %d threatening bullets away from player" % bullets_pushed)
+
+
+## Gets all bullet nodes in the scene.
+func _get_all_bullets() -> Array:
+	var bullets: Array = []
+
+	# Check bullets group
+	bullets.append_array(get_tree().get_nodes_in_group("bullets"))
+
+	# Also find Area2D nodes that look like bullets
+	for node in get_tree().get_root().get_children():
+		_find_bullets_recursive(node, bullets)
+
+	return bullets
+
+
+## Recursively finds bullet nodes.
+func _find_bullets_recursive(node: Node, bullets: Array) -> void:
+	if node is Area2D:
+		# Check if it's a bullet by script or name
+		var script: Script = node.get_script()
+		if script != null:
+			var script_path: String = script.resource_path
+			if "bullet" in script_path.to_lower():
+				if node not in bullets:
+					bullets.append(node)
+		elif "Bullet" in node.name or "bullet" in node.name:
+			if node not in bullets:
+				bullets.append(node)
+
+	for child in node.get_children():
+		_find_bullets_recursive(child, bullets)
+
+
+## Grants temporary invulnerability to the player during time freeze.
+func _grant_player_invulnerability() -> void:
+	if _player == null:
+		return
+
+	# Try to access the health component and set invulnerability
+	var health_component: Node = _player.get_node_or_null("HealthComponent")
+	if health_component != null:
+		# Try to set Invulnerable property (C# - exported property with Pascal case)
+		if "Invulnerable" in health_component:
+			_player_was_invulnerable = health_component.Invulnerable
+			health_component.Invulnerable = true
+			_log("Player granted temporary invulnerability (C# Invulnerable property)")
+			return
+
+		# Try to set is_invulnerable property (GDScript snake_case)
+		if "is_invulnerable" in health_component:
+			_player_was_invulnerable = health_component.is_invulnerable
+			health_component.is_invulnerable = true
+			_log("Player granted temporary invulnerability (GDScript property)")
+			return
+
+	# Fallback: try to access invulnerable property on player directly
+	if "is_invulnerable" in _player:
+		_player_was_invulnerable = _player.is_invulnerable
+		_player.is_invulnerable = true
+		_log("Player granted temporary invulnerability (on player)")
+
+
+## Removes temporary invulnerability from the player.
+func _remove_player_invulnerability() -> void:
+	if _player == null or not is_instance_valid(_player):
+		return
+
+	var health_component: Node = _player.get_node_or_null("HealthComponent")
+	if health_component != null:
+		# Try to restore Invulnerable property (C#)
+		if "Invulnerable" in health_component:
+			health_component.Invulnerable = _player_was_invulnerable
+			_log("Player invulnerability restored to %s (C# property)" % _player_was_invulnerable)
+			return
+
+		# Try to restore is_invulnerable property (GDScript)
+		if "is_invulnerable" in health_component:
+			health_component.is_invulnerable = _player_was_invulnerable
+			_log("Player invulnerability restored to %s (GDScript property)" % _player_was_invulnerable)
+			return
+
+	# Fallback: try to restore on player directly
+	if "is_invulnerable" in _player:
+		_player.is_invulnerable = _player_was_invulnerable
+		_log("Player invulnerability restored to %s (on player)" % _player_was_invulnerable)
 
 
 ## Registers a player bullet that was fired during time freeze.
@@ -447,6 +611,8 @@ func reset_effects() -> void:
 	_effect_used = false  # Reset on scene change
 	_player_current_health = 0.0  # Reset cached health on scene change
 	_frozen_player_bullets.clear()
+	_original_process_modes.clear()
+	_player_was_invulnerable = false
 
 
 ## Called when the scene tree structure changes.

@@ -1,0 +1,1665 @@
+[11:09:23] [INFO] ============================================================
+[11:09:23] [INFO] GAME LOG STARTED
+[11:09:23] [INFO] ============================================================
+[11:09:23] [INFO] Timestamp: 2026-01-21T11:09:23
+[11:09:23] [INFO] Log file: I:/Загрузки/godot exe/game_log_20260121_110923.txt
+[11:09:23] [INFO] Executable: I:/Загрузки/godot exe/Godot-Top-Down-Template.exe
+[11:09:23] [INFO] OS: Windows
+[11:09:23] [INFO] Debug build: false
+[11:09:23] [INFO] Engine version: 4.3-stable (official)
+[11:09:23] [INFO] Project: Godot Top-Down Template
+[11:09:23] [INFO] ------------------------------------------------------------
+[11:09:23] [INFO] [GameManager] GameManager ready
+[11:09:23] [INFO] [SoundPropagation] SoundPropagation autoload initialized
+[11:09:23] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[11:09:23] [INFO] [PenultimateHit] Saturation shader loaded successfully
+[11:09:23] [INFO] [PenultimateHit] PenultimateHitEffectsManager ready - Configuration:
+[11:09:23] [INFO] [PenultimateHit]   Time scale: 0.10 (10x slowdown)
+[11:09:23] [INFO] [PenultimateHit]   Saturation boost: 2.0 (3.0x)
+[11:09:23] [INFO] [PenultimateHit]   Contrast boost: 1.0 (2.0x)
+[11:09:23] [INFO] [PenultimateHit]   Effect duration: 3.0 real seconds
+[11:09:23] [INFO] [LastChance] Resetting all effects (scene change detected)
+[11:09:23] [INFO] [LastChance] Last chance shader loaded successfully
+[11:09:23] [INFO] [LastChance] LastChanceEffectsManager ready - Configuration:
+[11:09:23] [INFO] [LastChance]   Freeze duration: 6.0 real seconds
+[11:09:23] [INFO] [LastChance]   Sepia intensity: 0.70
+[11:09:23] [INFO] [LastChance]   Brightness: 0.60
+[11:09:23] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 1)
+[11:09:23] [ENEMY] [Enemy1] Registered as sound listener
+[11:09:23] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 2, behavior: GUARD, player_found: yes
+[11:09:23] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 2)
+[11:09:23] [ENEMY] [Enemy2] Registered as sound listener
+[11:09:23] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 2, behavior: GUARD, player_found: yes
+[11:09:23] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 3)
+[11:09:23] [ENEMY] [Enemy3] Registered as sound listener
+[11:09:23] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 4, behavior: GUARD, player_found: yes
+[11:09:23] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 4)
+[11:09:23] [ENEMY] [Enemy4] Registered as sound listener
+[11:09:23] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 3, behavior: GUARD, player_found: yes
+[11:09:23] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 5)
+[11:09:23] [ENEMY] [Enemy5] Registered as sound listener
+[11:09:23] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 3, behavior: GUARD, player_found: yes
+[11:09:23] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 6)
+[11:09:23] [ENEMY] [Enemy6] Registered as sound listener
+[11:09:23] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 4, behavior: GUARD, player_found: yes
+[11:09:23] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 7)
+[11:09:23] [ENEMY] [Enemy7] Registered as sound listener
+[11:09:23] [ENEMY] [Enemy7] Enemy spawned at (1606.114, 893.8859), health: 4, behavior: PATROL, player_found: yes
+[11:09:23] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 8)
+[11:09:23] [ENEMY] [Enemy8] Registered as sound listener
+[11:09:23] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 4, behavior: GUARD, player_found: yes
+[11:09:23] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 9)
+[11:09:23] [ENEMY] [Enemy9] Registered as sound listener
+[11:09:23] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 3, behavior: GUARD, player_found: yes
+[11:09:23] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 10)
+[11:09:23] [ENEMY] [Enemy10] Registered as sound listener
+[11:09:23] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 4, behavior: PATROL, player_found: yes
+[11:09:23] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[11:09:23] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[11:09:23] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[11:09:23] [INFO] [LastChance] Found player: Player
+[11:09:23] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[11:09:23] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[11:09:23] [INFO] [LastChance] Connected to player Died signal (C#)
+[11:09:24] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[11:09:24] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1200, 1550), source=ENEMY (Enemy10), range=1469, listeners=10
+[11:09:24] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=1, below_threshold=8
+[11:09:24] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1171.99, 1534.529), source=ENEMY (Enemy10), range=1469, listeners=10
+[11:09:24] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=1, below_threshold=8
+[11:09:24] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1200, 1550), shooter_id=37765514809, bullet_pos=(915.3665, 1400.156)
+[11:09:24] [INFO] [Bullet] Using shooter_position, distance=321.666564941406
+[11:09:24] [INFO] [Bullet] Distance to wall: 321.666564941406 (21.9028678995168% of viewport)
+[11:09:24] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:24] [INFO] [Bullet] Starting wall penetration at (915.3665, 1400.156)
+[11:09:24] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[11:09:24] [INFO] [Bullet] Exiting penetration at (874.0724, 1378.417) after traveling 41.6666717529297 pixels through wall
+[11:09:24] [INFO] [Bullet] Damage multiplier after penetration: 0.9
+[11:09:24] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1140.006, 1515.278), source=ENEMY (Enemy10), range=1469, listeners=10
+[11:09:24] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=1, below_threshold=9
+[11:09:24] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1108.816, 1494.764), source=ENEMY (Enemy10), range=1469, listeners=10
+[11:09:24] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=1, below_threshold=9
+[11:09:24] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1078.466, 1473.029), source=ENEMY (Enemy10), range=1469, listeners=10
+[11:09:24] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=1, below_threshold=9
+[11:09:24] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[11:09:24] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1171.99, 1534.529), shooter_id=37765514809, bullet_pos=(64.15709, 893.3544)
+[11:09:24] [INFO] [Bullet] Using shooter_position, distance=1279.99975585938
+[11:09:24] [INFO] [Bullet] Distance to wall: 1279.99975585938 (87.1575370884708% of viewport)
+[11:09:25] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1140.006, 1515.278), shooter_id=37765514809, bullet_pos=(58.7139, 830.2917)
+[11:09:25] [INFO] [Bullet] Using shooter_position, distance=1279.99951171875
+[11:09:25] [INFO] [Bullet] Distance to wall: 1279.99951171875 (87.1575204644867% of viewport)
+[11:09:25] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1171.99, 1534.529), shooter_id=37765514809, bullet_pos=(416.0432, 714.8263)
+[11:09:25] [INFO] [Bullet] Using shooter_position, distance=1115.064453125
+[11:09:25] [INFO] [Bullet] Distance to wall: 1115.064453125 (75.9267890360089% of viewport)
+[11:09:25] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1140.006, 1515.278), shooter_id=37765514809, bullet_pos=(194.4758, 708.9532)
+[11:09:25] [INFO] [Bullet] Using shooter_position, distance=1242.65319824219
+[11:09:25] [INFO] [Bullet] Distance to wall: 1242.65319824219 (84.6145413060526% of viewport)
+[11:09:25] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1108.816, 1494.764), shooter_id=37765514809, bullet_pos=(55.6586, 767.2637)
+[11:09:25] [INFO] [Bullet] Using shooter_position, distance=1279.99951171875
+[11:09:25] [INFO] [Bullet] Distance to wall: 1279.99951171875 (87.1575204644867% of viewport)
+[11:09:25] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1108.816, 1494.764), shooter_id=37765514809, bullet_pos=(111.4382, 715.8892)
+[11:09:25] [INFO] [Bullet] Using shooter_position, distance=1265.46826171875
+[11:09:25] [INFO] [Bullet] Distance to wall: 1265.46826171875 (86.1680609313742% of viewport)
+[11:09:25] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1078.466, 1473.029), shooter_id=37765514809, bullet_pos=(54.86711, 704.4935)
+[11:09:25] [INFO] [Bullet] Using shooter_position, distance=1280.00024414063
+[11:09:25] [INFO] [Bullet] Distance to wall: 1280.00024414063 (87.157570336439% of viewport)
+[11:09:25] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1171.99, 1534.529), shooter_id=37765514809, bullet_pos=(701.2682, 825.7691)
+[11:09:25] [INFO] [Bullet] Using shooter_position, distance=850.835021972656
+[11:09:25] [INFO] [Bullet] Distance to wall: 850.835021972656 (57.9349211937653% of viewport)
+[11:09:25] [ENEMY] [Enemy3] State: IDLE -> COMBAT
+[11:09:25] [ENEMY] [Enemy10] State: PURSUING -> ASSAULT
+[11:09:25] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1140.006, 1515.278), shooter_id=37765514809, bullet_pos=(513.6474, 991.7891)
+[11:09:25] [INFO] [Bullet] Using shooter_position, distance=816.312255859375
+[11:09:25] [INFO] [Bullet] Distance to wall: 816.312255859375 (55.5842025673428% of viewport)
+[11:09:25] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1140.006, 1515.278), shooter_id=37765514809, bullet_pos=(509.5527, 994.6584)
+[11:09:25] [INFO] [Bullet] Using shooter_position, distance=817.628295898438
+[11:09:25] [INFO] [Bullet] Distance to wall: 817.628295898438 (55.6738141535868% of viewport)
+[11:09:25] [INFO] [Bullet] Distance-based penetration chance: 81.7138834874821%
+[11:09:25] [INFO] [Bullet] Starting wall penetration at (509.5527, 994.6584)
+[11:09:25] [ENEMY] [Enemy3] State: COMBAT -> ASSAULT
+[11:09:25] [INFO] [Bullet] Raycast backward hit penetrating body at distance 18.9239292144775
+[11:09:25] [INFO] [Bullet] Body exited signal received for penetrating body
+[11:09:25] [INFO] [Bullet] Exiting penetration at (484.5023, 1012.212) after traveling 25.5885429382324 pixels through wall
+[11:09:25] [INFO] [Bullet] Damage multiplier after penetration: 0.1125
+[11:09:25] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1171.99, 1534.529), shooter_id=37765514809, bullet_pos=(513.7559, 919.6661)
+[11:09:25] [INFO] [Bullet] Using shooter_position, distance=900.738037109375
+[11:09:25] [INFO] [Bullet] Distance to wall: 900.738037109375 (61.3329092579778% of viewport)
+[11:09:25] [ENEMY] [Enemy3] State: ASSAULT -> RETREATING
+[11:09:25] [ENEMY] [Enemy10] State: ASSAULT -> COMBAT
+[11:09:25] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1078.466, 1473.029), shooter_id=37765514809, bullet_pos=(327.7404, 470.9536)
+[11:09:25] [INFO] [Bullet] Using shooter_position, distance=1252.09558105469
+[11:09:25] [INFO] [Bullet] Distance to wall: 1252.09558105469 (85.2574905147667% of viewport)
+[11:09:25] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(454.1346, 772.7783), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[11:09:25] [ENEMY] [Enemy1] Heard gunshot at (454.1346, 772.7783), source_type=0, intensity=0.01, distance=450
+[11:09:25] [ENEMY] [Enemy2] Heard gunshot at (454.1346, 772.7783), source_type=0, intensity=0.05, distance=229
+[11:09:25] [ENEMY] [Enemy4] Heard gunshot at (454.1346, 772.7783), source_type=0, intensity=0.02, distance=369
+[11:09:25] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=3, self=0, below_threshold=3
+[11:09:25] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1108.816, 1494.764), shooter_id=37765514809, bullet_pos=(506.8109, 999.6581)
+[11:09:25] [INFO] [Bullet] Using shooter_position, distance=779.449096679688
+[11:09:25] [INFO] [Bullet] Distance to wall: 779.449096679688 (53.0741222734253% of viewport)
+[11:09:25] [INFO] [Bullet] Distance-based penetration chance: 84.7468573476705%
+[11:09:25] [INFO] [Bullet] Starting wall penetration at (506.8109, 999.6581)
+[11:09:25] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1108.816, 1494.764), shooter_id=37765514809, bullet_pos=(510.8729, 1002.574)
+[11:09:25] [INFO] [Bullet] Using shooter_position, distance=774.4599609375
+[11:09:25] [INFO] [Bullet] Distance to wall: 774.4599609375 (52.734402846528% of viewport)
+[11:09:25] [ENEMY] [Enemy1] State: COMBAT -> ASSAULT
+[11:09:25] [ENEMY] [Enemy2] State: COMBAT -> ASSAULT
+[11:09:25] [ENEMY] [Enemy4] State: COMBAT -> ASSAULT
+[11:09:25] [ENEMY] [Enemy10] State: COMBAT -> ASSAULT
+[11:09:25] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[11:09:25] [INFO] [Bullet] Exiting penetration at (485.2462, 1019.275) after traveling 25.5885429382324 pixels through wall
+[11:09:25] [INFO] [Bullet] Damage multiplier after penetration: 0.1125
+[11:09:25] [ENEMY] [Enemy2] Hit taken, health: 1/2
+[11:09:25] [ENEMY] [Enemy3] Hit taken, health: 3/4
+[11:09:25] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(466.121, 751.3937), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[11:09:25] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=3, self=0, below_threshold=3
+[11:09:25] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1171.99, 1534.529), shooter_id=37765514809, bullet_pos=(749.0927, 999.7913)
+[11:09:25] [INFO] [Bullet] Using shooter_position, distance=681.7529296875
+[11:09:25] [INFO] [Bullet] Distance to wall: 681.7529296875 (46.421810615517% of viewport)
+[11:09:25] [ENEMY] [Enemy3] Hit taken, health: 2/4
+[11:09:25] [ENEMY] [Enemy2] State: ASSAULT -> RETREATING
+[11:09:25] [ENEMY] [Enemy2] State: RETREATING -> IN_COVER
+[11:09:25] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(488.237, 737.6582), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[11:09:25] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=3, self=0, below_threshold=3
+[11:09:25] [ENEMY] [Enemy2] State: IN_COVER -> SUPPRESSED
+[11:09:25] [ENEMY] [Enemy3] Hit taken, health: 1/4
+[11:09:25] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1171.99, 1534.529), shooter_id=37765514809, bullet_pos=(908.8407, 948.7907)
+[11:09:25] [INFO] [Bullet] Using shooter_position, distance=642.135009765625
+[11:09:25] [INFO] [Bullet] Distance to wall: 642.135009765625 (43.7241535971056% of viewport)
+[11:09:25] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(509.9827, 739.7701), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[11:09:25] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=2, self=0, below_threshold=4
+[11:09:25] [ENEMY] [Enemy4] State: ASSAULT -> RETREATING
+[11:09:25] [ENEMY] [Enemy4] State: RETREATING -> IN_COVER
+[11:09:25] [ENEMY] [Enemy3] Hit taken, health: 0/4
+[11:09:25] [ENEMY] [Enemy3] Enemy died
+[11:09:25] [INFO] [SoundPropagation] Unregistered listener: Enemy3 (remaining: 9)
+[11:09:25] [ENEMY] [Enemy4] State: IN_COVER -> SUPPRESSED
+[11:09:25] [ENEMY] [Enemy4] Hit taken, health: 2/3
+[11:09:26] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(533.3862, 755.3101), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[11:09:26] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=2, self=0, below_threshold=4
+[11:09:26] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(533.38617, 755.31006), shooter_id=38486935140, bullet_pos=(740.62006, 1005.66797)
+[11:09:26] [INFO] [Bullet] Using shooter_position, distance=324,99994
+[11:09:26] [INFO] [Bullet] Distance to wall: 324,99994 (22,129845% of viewport)
+[11:09:26] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:26] [ENEMY] [Enemy4] Hit taken, health: 1/3
+[11:09:26] [ENEMY] [Enemy4] State: SUPPRESSED -> SEEKING_COVER
+[11:09:26] [ENEMY] [Enemy4] State: SEEKING_COVER -> IN_COVER
+[11:09:26] [ENEMY] [Enemy4] State: IN_COVER -> SUPPRESSED
+[11:09:26] [ENEMY] [Enemy4] State: SUPPRESSED -> SEEKING_COVER
+[11:09:26] [ENEMY] [Enemy4] State: SEEKING_COVER -> IN_COVER
+[11:09:26] [ENEMY] [Enemy4] State: IN_COVER -> SUPPRESSED
+[11:09:26] [ENEMY] [Enemy4] State: SUPPRESSED -> SEEKING_COVER
+[11:09:26] [ENEMY] [Enemy4] State: SEEKING_COVER -> IN_COVER
+[11:09:26] [ENEMY] [Enemy4] State: IN_COVER -> SUPPRESSED
+[11:09:26] [ENEMY] [Enemy4] State: SUPPRESSED -> SEEKING_COVER
+[11:09:27] [ENEMY] [Enemy4] State: SEEKING_COVER -> IN_COVER
+[11:09:27] [ENEMY] [Enemy4] State: IN_COVER -> SUPPRESSED
+[11:09:27] [ENEMY] [Enemy2] State: SUPPRESSED -> SEEKING_COVER
+[11:09:27] [ENEMY] [Enemy4] State: SUPPRESSED -> SEEKING_COVER
+[11:09:27] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[11:09:27] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[11:09:27] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[11:09:27] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[11:09:27] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[11:09:27] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[11:09:27] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[11:09:27] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[11:09:27] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[11:09:27] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[11:09:27] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[11:09:27] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[11:09:27] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[11:09:27] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[11:09:27] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[11:09:27] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[11:09:27] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(796.2708, 817.1919), source=ENEMY (Enemy4), range=1469, listeners=9
+[11:09:27] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=1, below_threshold=7
+[11:09:27] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[11:09:27] [INFO] [LastChance] Threat detected: Bullet
+[11:09:27] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[11:09:27] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[11:09:27] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[11:09:27] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(796.2708, 817.1919), source=ENEMY (Enemy4), range=1469, listeners=9
+[11:09:27] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=1, below_threshold=7
+[11:09:27] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[11:09:27] [INFO] [LastChance] Threat detected: @Area2D@312
+[11:09:27] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[11:09:27] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[11:09:27] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[11:09:27] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(796.2708, 817.1919), source=ENEMY (Enemy4), range=1469, listeners=9
+[11:09:27] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=1, below_threshold=7
+[11:09:27] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[11:09:27] [INFO] [LastChance] Threat detected: @Area2D@313
+[11:09:27] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[11:09:27] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[11:09:27] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[11:09:27] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(796.2708, 817.1919), source=ENEMY (Enemy4), range=1469, listeners=9
+[11:09:27] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=1, below_threshold=7
+[11:09:27] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[11:09:27] [INFO] [LastChance] Threat detected: @Area2D@314
+[11:09:27] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[11:09:27] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[11:09:27] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[11:09:27] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(796.2708, 817.1919), source=ENEMY (Enemy4), range=1469, listeners=9
+[11:09:27] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=1, below_threshold=7
+[11:09:27] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[11:09:27] [INFO] [LastChance] Threat detected: @Area2D@315
+[11:09:27] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[11:09:27] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[11:09:27] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[11:09:27] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(796.2708, 817.1919), source=ENEMY (Enemy4), range=1469, listeners=9
+[11:09:27] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=1, below_threshold=7
+[11:09:27] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[11:09:27] [INFO] [LastChance] Threat detected: @Area2D@316
+[11:09:27] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[11:09:27] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[11:09:27] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[11:09:27] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(796.2708, 817.1919), source=ENEMY (Enemy4), range=1469, listeners=9
+[11:09:27] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=1, below_threshold=7
+[11:09:27] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[11:09:27] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(796.2708, 817.1919), shooter_id=36658218487, bullet_pos=(714.543, 996.0728)
+[11:09:27] [INFO] [Bullet] Using shooter_position, distance=196.666702270508
+[11:09:27] [INFO] [Bullet] Distance to wall: 196.666702270508 (13.3913973957759% of viewport)
+[11:09:27] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:27] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(796.2708, 817.1919), shooter_id=36658218487, bullet_pos=(696.1922, 1024.277)
+[11:09:27] [INFO] [Bullet] Using shooter_position, distance=229.999908447266
+[11:09:27] [INFO] [Bullet] Distance to wall: 229.999908447266 (15.6611166987127% of viewport)
+[11:09:27] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:27] [INFO] [Bullet] Starting wall penetration at (696.1922, 1024.277)
+[11:09:27] [INFO] [LastChance] Threat detected: @Area2D@317
+[11:09:27] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[11:09:27] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[11:09:27] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[11:09:27] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(796.2708, 817.1919), source=ENEMY (Enemy4), range=1469, listeners=9
+[11:09:27] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=1, below_threshold=7
+[11:09:27] [INFO] [Bullet] Raycast backward hit penetrating body at distance 38.6408882141113
+[11:09:27] [INFO] [Bullet] Body exited signal received for penetrating body
+[11:09:27] [INFO] [Bullet] Exiting penetration at (679.5125, 1058.791) after traveling 33.3333358764648 pixels through wall
+[11:09:27] [INFO] [Bullet] Damage multiplier after penetration: 0.9
+[11:09:27] [INFO] [LastChance] Threat detected: @Area2D@320
+[11:09:27] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[11:09:27] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[11:09:27] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[11:09:27] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(796.2708, 817.1919), source=ENEMY (Enemy4), range=1469, listeners=9
+[11:09:27] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=1, below_threshold=7
+[11:09:27] [INFO] [LastChance] Threat detected: @Area2D@321
+[11:09:27] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[11:09:27] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[11:09:27] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(796.2708, 817.1919), shooter_id=36658218487, bullet_pos=(676.7623, 883.9326)
+[11:09:27] [INFO] [Bullet] Using shooter_position, distance=136.881683349609
+[11:09:27] [INFO] [Bullet] Distance to wall: 136.881683349609 (9.32052552249596% of viewport)
+[11:09:27] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:27] [INFO] [Bullet] Starting wall penetration at (676.7623, 883.9326)
+[11:09:27] [ENEMY] [Enemy2] State: SEEKING_COVER -> IN_COVER
+[11:09:27] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[11:09:27] [INFO] [Bullet] Exiting penetration at (666.1199, 852.3438) after traveling 28.3333320617676 pixels through wall
+[11:09:27] [INFO] [Bullet] Damage multiplier after penetration: 0.45
+[11:09:27] [ENEMY] [Enemy2] State: IN_COVER -> SUPPRESSED
+[11:09:27] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(796.2708, 817.1919), source=ENEMY (Enemy4), range=1469, listeners=9
+[11:09:27] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=1, below_threshold=7
+[11:09:27] [INFO] [LastChance] Threat detected: Bullet
+[11:09:27] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[11:09:27] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[11:09:27] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:27] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:27] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:27] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:27] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:27] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:27] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(836.6042, 978.4151), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[11:09:27] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=0, below_threshold=8
+[11:09:27] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:27] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:27] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:27] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:27] [ENEMY] [Enemy4] Hit taken, health: 0/3
+[11:09:27] [ENEMY] [Enemy4] Enemy died
+[11:09:27] [INFO] [SoundPropagation] Unregistered listener: Enemy4 (remaining: 8)
+[11:09:27] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:27] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:27] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:27] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:27] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(863.9776, 960.5651), source=PLAYER (AssaultRifle), range=1469, listeners=8
+[11:09:27] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=8
+[11:09:28] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:28] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:28] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:28] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:28] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:28] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:28] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:28] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:28] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(880.9688, 934.7179), source=PLAYER (AssaultRifle), range=1469, listeners=8
+[11:09:28] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=8
+[11:09:28] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:28] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:28] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:28] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:28] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(880.9688, 934.7179), shooter_id=38486935140, bullet_pos=(739.03064, 864.55365)
+[11:09:28] [INFO] [Bullet] Using shooter_position, distance=158,3334
+[11:09:28] [INFO] [Bullet] Distance to wall: 158,3334 (10,781213% of viewport)
+[11:09:28] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:28] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:28] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:28] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:28] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:28] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(886.0244, 902.3007), source=PLAYER (AssaultRifle), range=1469, listeners=8
+[11:09:28] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=8
+[11:09:28] [ENEMY] [Enemy2] State: SUPPRESSED -> SEEKING_COVER
+[11:09:28] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:28] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:28] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:28] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(880.9688, 934.7179), shooter_id=38486935140, bullet_pos=(913.94965, 760.882)
+[11:09:28] [INFO] [Bullet] Using shooter_position, distance=176,93684
+[11:09:28] [INFO] [Bullet] Distance to wall: 176,93684 (12,0479555% of viewport)
+[11:09:28] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:28] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:28] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(886.0244, 902.30066), shooter_id=38486935140, bullet_pos=(737.8881, 846.3983)
+[11:09:28] [INFO] [Bullet] Using shooter_position, distance=158,3333
+[11:09:28] [INFO] [Bullet] Distance to wall: 158,3333 (10,781205% of viewport)
+[11:09:28] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:28] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:28] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:28] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:28] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:28] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:28] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:28] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:28] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(886.0244, 902.30066), shooter_id=38486935140, bullet_pos=(918.1501, 752.32367)
+[11:09:28] [INFO] [Bullet] Using shooter_position, distance=153,37912
+[11:09:28] [INFO] [Bullet] Distance to wall: 153,37912 (10,443867% of viewport)
+[11:09:28] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:28] [INFO] [Bullet] Starting wall penetration at (918.1501, 752.32367)
+[11:09:28] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:28] [INFO] [Bullet] Raycast backward hit penetrating body at distance 13,198854
+[11:09:28] [INFO] [Bullet] Body exited signal received for penetrating body
+[11:09:28] [INFO] [Bullet] Exiting penetration at (947.70123, 736.9016) after traveling 28,333332 pixels through wall
+[11:09:28] [INFO] [Bullet] Damage multiplier after penetration: 0,45
+[11:09:28] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(863.9776, 960.56506), shooter_id=38486935140, bullet_pos=(554.0237, 53.73989)
+[11:09:28] [INFO] [Bullet] Using shooter_position, distance=958,3336
+[11:09:28] [INFO] [Bullet] Distance to wall: 958,3336 (65,2547% of viewport)
+[11:09:28] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:28] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:28] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:28] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:28] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:28] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(863.9776, 960.56506), shooter_id=38486935140, bullet_pos=(522.63214, 197.00774)
+[11:09:28] [INFO] [Bullet] Using shooter_position, distance=836,383
+[11:09:28] [INFO] [Bullet] Distance to wall: 836,383 (56,950855% of viewport)
+[11:09:28] [INFO] [Bullet] Distance-based penetration chance: 80,224%
+[11:09:28] [INFO] [Bullet] Penetration failed (distance roll)
+[11:09:28] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:28] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:28] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:28] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:28] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:28] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(880.9688, 934.7179), shooter_id=38486935140, bullet_pos=(508.7152, 537.794)
+[11:09:28] [INFO] [Bullet] Using shooter_position, distance=544,1703
+[11:09:28] [INFO] [Bullet] Distance to wall: 544,1703 (37,053555% of viewport)
+[11:09:28] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:28] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:28] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:28] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:28] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:28] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:28] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:28] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:28] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:28] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:28] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:28] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:28] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:28] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:28] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:28] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:28] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:28] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:28] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:28] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:28] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:28] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:28] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:29] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:29] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:29] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:29] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:29] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:29] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:29] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:29] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:29] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:29] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:29] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:29] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:29] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:29] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:29] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:29] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:29] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:29] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:29] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:29] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:29] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:29] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:29] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:29] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:29] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:29] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:29] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:29] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:29] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:29] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:29] [ENEMY] [Enemy7] State: COMBAT -> ASSAULT
+[11:09:29] [ENEMY] [Enemy2] State: SEEKING_COVER -> IN_COVER
+[11:09:29] [ENEMY] [Enemy2] State: IN_COVER -> ASSAULT
+[11:09:30] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(516.4915, 666.0652), source=PLAYER (AssaultRifle), range=1469, listeners=8
+[11:09:30] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=2, self=0, below_threshold=4
+[11:09:30] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(516.4915, 666.06525), shooter_id=38486935140, bullet_pos=(503.70074, 575.2953)
+[11:09:30] [INFO] [Bullet] Using shooter_position, distance=91,666725
+[11:09:30] [INFO] [Bullet] Distance to wall: 91,666725 (6,241756% of viewport)
+[11:09:30] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:30] [INFO] [Bullet] Starting wall penetration at (503.70074, 575.2953)
+[11:09:30] [INFO] [Bullet] Raycast backward hit penetrating body at distance 11,811596
+[11:09:30] [INFO] [Bullet] Max penetration distance exceeded: 66,66667 >= 48
+[11:09:30] [INFO] [Bullet] Body exited signal received for penetrating body
+[11:09:30] [INFO] [Bullet] Exiting penetration at (493.70068, 504.32968) after traveling 66,66667 pixels through wall
+[11:09:30] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[11:09:30] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(481.2915, 666.0652), source=PLAYER (AssaultRifle), range=1469, listeners=8
+[11:09:30] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=0, below_threshold=3
+[11:09:30] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(481.29153, 666.06525), shooter_id=38486935140, bullet_pos=(496.59277, 508.47302)
+[11:09:30] [INFO] [Bullet] Using shooter_position, distance=158,3333
+[11:09:30] [INFO] [Bullet] Distance to wall: 158,3333 (10,781205% of viewport)
+[11:09:30] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:30] [INFO] [Bullet] Starting wall penetration at (496.59277, 508.47302)
+[11:09:30] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[11:09:30] [INFO] [Bullet] Exiting penetration at (500.29727, 470.31912) after traveling 33,333336 pixels through wall
+[11:09:30] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[11:09:30] [ENEMY] [Enemy2] State: ASSAULT -> RETREATING
+[11:09:30] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(446.0916, 666.0652), source=PLAYER (AssaultRifle), range=1469, listeners=8
+[11:09:30] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=0, below_threshold=3
+[11:09:30] [ENEMY] [Enemy2] Hit taken, health: 0/2
+[11:09:30] [ENEMY] [Enemy2] Enemy died
+[11:09:30] [INFO] [SoundPropagation] Unregistered listener: Enemy2 (remaining: 7)
+[11:09:30] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(410.8916, 666.0652), source=PLAYER (AssaultRifle), range=1469, listeners=7
+[11:09:30] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=3, self=0, below_threshold=3
+[11:09:30] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(410.89163, 666.06525), shooter_id=38486935140, bullet_pos=(501.89594, 424.29202)
+[11:09:30] [INFO] [Bullet] Using shooter_position, distance=258,33328
+[11:09:30] [INFO] [Bullet] Distance to wall: 258,33328 (17,59039% of viewport)
+[11:09:30] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:30] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(375.6917, 666.0652), source=PLAYER (AssaultRifle), range=1469, listeners=7
+[11:09:30] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=3, self=0, below_threshold=3
+[11:09:31] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(341.7163, 663.1088), source=PLAYER (AssaultRifle), range=1469, listeners=7
+[11:09:31] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=3, self=0, below_threshold=3
+[11:09:31] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(375.69168, 666.06525), shooter_id=38486935140, bullet_pos=(504.23532, 404.25244)
+[11:09:31] [INFO] [Bullet] Using shooter_position, distance=291,66663
+[11:09:31] [INFO] [Bullet] Distance to wall: 291,66663 (19,860117% of viewport)
+[11:09:31] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:31] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(410.89163, 666.06525), shooter_id=38486935140, bullet_pos=(327.05438, 62.675323)
+[11:09:31] [INFO] [Bullet] Using shooter_position, distance=609,1864
+[11:09:31] [INFO] [Bullet] Distance to wall: 609,1864 (41,480625% of viewport)
+[11:09:31] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(341.71628, 663.1088), shooter_id=38486935140, bullet_pos=(500.53165, 418.472)
+[11:09:31] [INFO] [Bullet] Using shooter_position, distance=291,66678
+[11:09:31] [INFO] [Bullet] Distance to wall: 291,66678 (19,860128% of viewport)
+[11:09:31] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:31] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(375.69168, 666.06525), shooter_id=38486935140, bullet_pos=(365.77948, 57.54252)
+[11:09:31] [INFO] [Bullet] Using shooter_position, distance=608,6034
+[11:09:31] [INFO] [Bullet] Distance to wall: 608,6034 (41,440926% of viewport)
+[11:09:31] [INFO] [Bullet] Distance-based penetration chance: 98,318924%
+[11:09:31] [INFO] [Bullet] Starting wall penetration at (365.77948, 57.54252)
+[11:09:31] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(410.89163, 666.06525), shooter_id=38486935140, bullet_pos=(223.9277, 231.30809)
+[11:09:31] [INFO] [Bullet] Using shooter_position, distance=473,25394
+[11:09:31] [INFO] [Bullet] Distance to wall: 473,25394 (32,22473% of viewport)
+[11:09:31] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:31] [INFO] [Bullet] Raycast backward hit penetrating body at distance 5,829441
+[11:09:31] [INFO] [Bullet] Body exited signal received for penetrating body
+[11:09:31] [INFO] [Bullet] Exiting penetration at (353.41736, 26.586271) after traveling 28,333334 pixels through wall
+[11:09:31] [INFO] [Bullet] Damage multiplier after penetration: 0,45
+[11:09:31] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(410.89163, 666.06525), shooter_id=38486935140, bullet_pos=(128.8782, 67.67305)
+[11:09:31] [INFO] [Bullet] Using shooter_position, distance=661,517
+[11:09:31] [INFO] [Bullet] Distance to wall: 661,517 (45,04391% of viewport)
+[11:09:31] [INFO] [Bullet] Distance-based penetration chance: 94,11543%
+[11:09:31] [INFO] [Bullet] Starting wall penetration at (128.8782, 67.67305)
+[11:09:31] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[11:09:31] [INFO] [Bullet] Exiting penetration at (116.08481, 45.64824) after traveling 20,470833 pixels through wall
+[11:09:31] [INFO] [Bullet] Damage multiplier after penetration: 0,1125
+[11:09:31] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(341.71628, 663.1088), shooter_id=38486935140, bullet_pos=(288.36673, 44.45854)
+[11:09:31] [INFO] [Bullet] Using shooter_position, distance=620,94635
+[11:09:31] [INFO] [Bullet] Distance to wall: 620,94635 (42,28138% of viewport)
+[11:09:31] [INFO] [Bullet] Distance-based penetration chance: 97,338394%
+[11:09:31] [INFO] [Bullet] Starting wall penetration at (288.36673, 44.45854)
+[11:09:31] [INFO] [Bullet] Raycast backward hit penetrating body at distance 19,00984
+[11:09:31] [INFO] [Bullet] Body exited signal received for penetrating body
+[11:09:31] [INFO] [Bullet] Exiting penetration at (271.91983, 15.465244) after traveling 28,333332 pixels through wall
+[11:09:31] [INFO] [Bullet] Damage multiplier after penetration: 0,45
+[11:09:31] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(379.2485, 507.4615), source=PLAYER (AssaultRifle), range=1469, listeners=7
+[11:09:31] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=3, self=0, below_threshold=3
+[11:09:31] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(379.24854, 507.46155), shooter_id=38486935140, bullet_pos=(337.82297, 425.68933)
+[11:09:31] [INFO] [Bullet] Using shooter_position, distance=91,66664
+[11:09:31] [INFO] [Bullet] Distance to wall: 91,66664 (6,2417502% of viewport)
+[11:09:31] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:31] [ENEMY] [Enemy1] Hit taken, health: 1/2
+[11:09:32] [ENEMY] [Enemy10] State: ASSAULT -> PURSUING
+[11:09:32] [ENEMY] [Enemy10] State: PURSUING -> ASSAULT
+[11:09:32] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(404.1387, 482.5714), source=PLAYER (AssaultRifle), range=1469, listeners=7
+[11:09:32] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=3, self=0, below_threshold=3
+[11:09:32] [ENEMY] [Enemy1] Hit taken, health: 0/2
+[11:09:32] [ENEMY] [Enemy1] Enemy died
+[11:09:32] [INFO] [SoundPropagation] Unregistered listener: Enemy1 (remaining: 6)
+[11:09:32] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(429.0288, 457.6813), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[11:09:32] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=3, self=0, below_threshold=3
+[11:09:32] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(453.9189, 432.7911), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[11:09:32] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=3, self=0, below_threshold=3
+[11:09:32] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(429.0288, 457.68127), shooter_id=38486935140, bullet_pos=(55.725037, 191.76086)
+[11:09:32] [INFO] [Bullet] Using shooter_position, distance=458,33325
+[11:09:32] [INFO] [Bullet] Distance to wall: 458,33325 (31,208754% of viewport)
+[11:09:32] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:32] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(478.8091, 407.901), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[11:09:32] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=3, self=0, below_threshold=3
+[11:09:32] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(453.91895, 432.79114), shooter_id=38486935140, bullet_pos=(57.00023, 280.86816)
+[11:09:32] [INFO] [Bullet] Using shooter_position, distance=425,00006
+[11:09:32] [INFO] [Bullet] Distance to wall: 425,00006 (28,939035% of viewport)
+[11:09:32] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:32] [INFO] [Bullet] Starting wall penetration at (57.00023, 280.86816)
+[11:09:32] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(429.0288, 457.68127), shooter_id=38486935140, bullet_pos=(201.43468, 49.940044)
+[11:09:32] [INFO] [Bullet] Using shooter_position, distance=466,9604
+[11:09:32] [INFO] [Bullet] Distance to wall: 466,9604 (31,796192% of viewport)
+[11:09:32] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:32] [INFO] [Bullet] Raycast backward hit penetrating body at distance 11,5643635
+[11:09:32] [INFO] [Bullet] Body exited signal received for penetrating body
+[11:09:32] [INFO] [Bullet] Exiting penetration at (21.19972, 267.1653) after traveling 33,333332 pixels through wall
+[11:09:32] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[11:09:32] [ENEMY] [Enemy1] Player reloading state changed: false -> true
+[11:09:32] [ENEMY] [Enemy2] Player reloading state changed: false -> true
+[11:09:32] [ENEMY] [Enemy5] Player reloading state changed: false -> true
+[11:09:32] [ENEMY] [Enemy6] Player reloading state changed: false -> true
+[11:09:32] [ENEMY] [Enemy7] Player reloading state changed: false -> true
+[11:09:32] [ENEMY] [Enemy8] Player reloading state changed: false -> true
+[11:09:32] [ENEMY] [Enemy9] Player reloading state changed: false -> true
+[11:09:32] [ENEMY] [Enemy10] Player reloading state changed: false -> true
+[11:09:32] [INFO] [SoundPropagation] Sound emitted: type=RELOAD, pos=(483.9338, 368.6609), source=PLAYER (Player), range=900, listeners=6
+[11:09:32] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=6, self=0, below_threshold=0
+[11:09:32] [ENEMY] [Enemy5] Player vulnerable (reloading) but cannot attack: close=false (dist=1216), can_see=false
+[11:09:32] [ENEMY] [Enemy6] Player vulnerable (reloading) but cannot attack: close=false (dist=1468), can_see=false
+[11:09:32] [ENEMY] [Enemy7] Player vulnerable (reloading) but cannot attack: close=false (dist=1247), can_see=false
+[11:09:32] [ENEMY] [Enemy8] Player vulnerable (reloading) but cannot attack: close=false (dist=1782), can_see=false
+[11:09:32] [ENEMY] [Enemy9] Player vulnerable (reloading) but cannot attack: close=false (dist=2002), can_see=false
+[11:09:32] [ENEMY] [Enemy10] Player vulnerable (reloading) but cannot attack: close=false (dist=1224), can_see=false
+[11:09:32] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(478.80908, 407.901), shooter_id=38486935140, bullet_pos=(66.089294, 306.47452)
+[11:09:32] [INFO] [Bullet] Using shooter_position, distance=424,99994
+[11:09:32] [INFO] [Bullet] Distance to wall: 424,99994 (28,93903% of viewport)
+[11:09:32] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:32] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(478.80908, 407.901), shooter_id=38486935140, bullet_pos=(237.55081, 271.46082)
+[11:09:32] [INFO] [Bullet] Using shooter_position, distance=277,16687
+[11:09:32] [INFO] [Bullet] Distance to wall: 277,16687 (18,872803% of viewport)
+[11:09:32] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:32] [INFO] [PenultimateHit] Player damaged: 1.0 damage, current health: 2.0
+[11:09:32] [INFO] [LastChance] Player health updated (C# Damaged): 2.0
+[11:09:32] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(478.80908, 407.901), shooter_id=38486935140, bullet_pos=(513.5782, 372.67767)
+[11:09:32] [INFO] [Bullet] Using shooter_position, distance=49,493168
+[11:09:32] [INFO] [Bullet] Distance to wall: 49,493168 (3,370081% of viewport)
+[11:09:32] [INFO] [Bullet] Point-blank shot - 100% penetration, ignoring ricochet
+[11:09:32] [INFO] [Bullet] Starting wall penetration at (513.5782, 372.67767)
+[11:09:32] [INFO] [Bullet] Raycast backward hit penetrating body at distance 17,982922
+[11:09:33] [INFO] [Bullet] Body exited signal received for penetrating body
+[11:09:33] [INFO] [Bullet] Exiting penetration at (540.8836, 382.69034) after traveling 24,083334 pixels through wall
+[11:09:33] [INFO] [Bullet] Damage multiplier after penetration: 0,225
+[11:09:33] [ENEMY] [Enemy1] Player reloading state changed: true -> false
+[11:09:33] [ENEMY] [Enemy2] Player reloading state changed: true -> false
+[11:09:33] [ENEMY] [Enemy5] Player reloading state changed: true -> false
+[11:09:33] [ENEMY] [Enemy6] Player reloading state changed: true -> false
+[11:09:33] [ENEMY] [Enemy7] Player reloading state changed: true -> false
+[11:09:33] [ENEMY] [Enemy8] Player reloading state changed: true -> false
+[11:09:33] [ENEMY] [Enemy9] Player reloading state changed: true -> false
+[11:09:33] [ENEMY] [Enemy10] Player reloading state changed: true -> false
+[11:09:34] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(773.9548, 88.32882), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[11:09:34] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=0, below_threshold=4
+[11:09:34] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(809.155, 88.32882), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[11:09:34] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=0, below_threshold=4
+[11:09:34] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(844.3552, 88.32882), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[11:09:34] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=0, below_threshold=4
+[11:09:35] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(879.5554, 88.32882), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[11:09:35] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=0, below_threshold=4
+[11:09:35] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(809.15497, 88.32882), shooter_id=38486935140, bullet_pos=(503.59518, 708.8414)
+[11:09:35] [INFO] [Bullet] Using shooter_position, distance=691,66656
+[11:09:35] [INFO] [Bullet] Distance to wall: 691,66656 (47,096848% of viewport)
+[11:09:35] [INFO] [Bullet] Distance-based penetration chance: 91,720345%
+[11:09:35] [INFO] [Bullet] Starting wall penetration at (503.59518, 708.8414)
+[11:09:35] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[11:09:35] [INFO] [Bullet] Exiting penetration at (486.66052, 743.23126) after traveling 33,333336 pixels through wall
+[11:09:35] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[11:09:35] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(914.7556, 88.32882), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[11:09:35] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=0, below_threshold=4
+[11:09:35] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(844.35516, 88.32882), shooter_id=38486935140, bullet_pos=(474.19638, 711.7129)
+[11:09:35] [INFO] [Bullet] Using shooter_position, distance=725,0002
+[11:09:35] [INFO] [Bullet] Distance to wall: 725,0002 (49,366596% of viewport)
+[11:09:35] [INFO] [Bullet] Distance-based penetration chance: 89,0723%
+[11:09:35] [INFO] [Bullet] Starting wall penetration at (474.19638, 711.7129)
+[11:09:35] [INFO] [Bullet] Raycast backward hit penetrating body at distance 37,99939
+[11:09:35] [INFO] [Bullet] Body exited signal received for penetrating body
+[11:09:35] [INFO] [Bullet] Exiting penetration at (454.6248, 744.6734) after traveling 33,333336 pixels through wall
+[11:09:35] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[11:09:35] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(949.9557, 88.32882), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[11:09:35] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=0, below_threshold=4
+[11:09:35] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(773.9548, 88.32882), shooter_id=38486935140, bullet_pos=(247.8791, 1412.6656)
+[11:09:35] [INFO] [Bullet] Using shooter_position, distance=1424,9995
+[11:09:35] [INFO] [Bullet] Distance to wall: 1424,9995 (97,030846% of viewport)
+[11:09:35] [INFO] [Bullet] Distance-based penetration chance: 33,46402%
+[11:09:35] [INFO] [Bullet] Starting wall penetration at (247.8791, 1412.6656)
+[11:09:35] [INFO] [Bullet] Raycast backward hit penetrating body at distance 39,049618
+[11:09:35] [INFO] [Bullet] Body exited signal received for penetrating body
+[11:09:35] [INFO] [Bullet] Exiting penetration at (233.72736, 1448.2911) after traveling 33,333332 pixels through wall
+[11:09:35] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[11:09:35] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(985.1559, 88.32882), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[11:09:35] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=2, self=0, below_threshold=4
+[11:09:35] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(914.75555, 88.32882), shooter_id=38486935140, bullet_pos=(496.5826, 799.494)
+[11:09:35] [INFO] [Bullet] Using shooter_position, distance=824,99976
+[11:09:35] [INFO] [Bullet] Distance to wall: 824,99976 (56,17575% of viewport)
+[11:09:35] [INFO] [Bullet] Distance-based penetration chance: 81,128296%
+[11:09:35] [INFO] [Bullet] Starting wall penetration at (496.5826, 799.494)
+[11:09:35] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[11:09:35] [INFO] [Bullet] Exiting penetration at (477.1523, 832.5381) after traveling 33,333332 pixels through wall
+[11:09:35] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[11:09:35] [ENEMY] [Enemy7] State: ASSAULT -> PURSUING
+[11:09:35] [ENEMY] [Enemy7] State: PURSUING -> ASSAULT
+[11:09:35] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(949.95575, 88.32882), shooter_id=38486935140, bullet_pos=(512.4981, 826.81866)
+[11:09:35] [INFO] [Bullet] Using shooter_position, distance=858,33356
+[11:09:35] [INFO] [Bullet] Distance to wall: 858,33356 (58,445515% of viewport)
+[11:09:35] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(879.55536, 88.32882), shooter_id=38486935140, bullet_pos=(47.34488, 1484.0541)
+[11:09:35] [INFO] [Bullet] Using shooter_position, distance=1624,9994
+[11:09:35] [INFO] [Bullet] Distance to wall: 1624,9994 (110,6492% of viewport)
+[11:09:35] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(985.15594, 88.32882), shooter_id=38486935140, bullet_pos=(515.4058, 816.64624)
+[11:09:35] [INFO] [Bullet] Using shooter_position, distance=866,6669
+[11:09:35] [INFO] [Bullet] Distance to wall: 866,6669 (59,012943% of viewport)
+[11:09:35] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(949.95575, 88.32882), shooter_id=38486935140, bullet_pos=(667.564, 1008.3569)
+[11:09:35] [INFO] [Bullet] Using shooter_position, distance=962,3912
+[11:09:35] [INFO] [Bullet] Distance to wall: 962,3912 (65,53098% of viewport)
+[11:09:36] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(985.15594, 88.32882), shooter_id=38486935140, bullet_pos=(635.5452, 997.9549)
+[11:09:36] [INFO] [Bullet] Using shooter_position, distance=974,4985
+[11:09:36] [INFO] [Bullet] Distance to wall: 974,4985 (66,35539% of viewport)
+[11:09:36] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(879.55536, 88.32882), shooter_id=38486935140, bullet_pos=(168.33319, 1745.7753)
+[11:09:36] [INFO] [Bullet] Using shooter_position, distance=1803,5979
+[11:09:36] [INFO] [Bullet] Distance to wall: 1803,5979 (122,8103% of viewport)
+[11:09:36] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(985.15594, 88.32882), shooter_id=38486935140, bullet_pos=(729.44324, 873.97943)
+[11:09:36] [INFO] [Bullet] Using shooter_position, distance=826,21783
+[11:09:36] [INFO] [Bullet] Distance to wall: 826,21783 (56,25869% of viewport)
+[11:09:36] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(949.95575, 88.32882), shooter_id=38486935140, bullet_pos=(927.6944, 750.5366)
+[11:09:36] [INFO] [Bullet] Using shooter_position, distance=662,5819
+[11:09:36] [INFO] [Bullet] Distance to wall: 662,5819 (45,11642% of viewport)
+[11:09:36] [INFO] [Bullet] Distance-based penetration chance: 94,030846%
+[11:09:36] [INFO] [Bullet] Starting wall penetration at (927.6944, 750.5366)
+[11:09:36] [INFO] [Bullet] Raycast backward hit penetrating body at distance 23,410328
+[11:09:36] [INFO] [Bullet] Body exited signal received for penetrating body
+[11:09:36] [INFO] [Bullet] Exiting penetration at (952.62726, 725.8252) after traveling 30,104168 pixels through wall
+[11:09:36] [INFO] [Bullet] Damage multiplier after penetration: 0,225
+[11:09:36] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(879.55536, 88.32882), shooter_id=38486935140, bullet_pos=(62.674164, 1898.395)
+[11:09:36] [INFO] [Bullet] Using shooter_position, distance=1985,8586
+[11:09:36] [INFO] [Bullet] Distance to wall: 1985,8586 (135,22076% of viewport)
+[11:09:36] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(985.15594, 88.32882), shooter_id=38486935140, bullet_pos=(853.0944, 1010.39954)
+[11:09:36] [INFO] [Bullet] Using shooter_position, distance=931,47986
+[11:09:36] [INFO] [Bullet] Distance to wall: 931,47986 (63,426178% of viewport)
+[11:09:36] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(879.55536, 88.32882), shooter_id=38486935140, bullet_pos=(180.47612, 2071.8892)
+[11:09:36] [INFO] [Bullet] Using shooter_position, distance=2103,146
+[11:09:36] [INFO] [Bullet] Distance to wall: 2103,146 (143,20709% of viewport)
+[11:09:36] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(985.15594, 88.32882), shooter_id=38486935140, bullet_pos=(915.19214, 942.51666)
+[11:09:36] [INFO] [Bullet] Using shooter_position, distance=857,04834
+[11:09:36] [INFO] [Bullet] Distance to wall: 857,04834 (58,358% of viewport)
+[11:09:36] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(879.55536, 88.32882), shooter_id=38486935140, bullet_pos=(310.96738, 1815.4246)
+[11:09:36] [INFO] [Bullet] Using shooter_position, distance=1818,2826
+[11:09:36] [INFO] [Bullet] Distance to wall: 1818,2826 (123,81021% of viewport)
+[11:09:36] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(879.55536, 88.32882), shooter_id=38486935140, bullet_pos=(219.59477, 1607.7871)
+[11:09:36] [INFO] [Bullet] Using shooter_position, distance=1656,5934
+[11:09:36] [INFO] [Bullet] Distance to wall: 1656,5934 (112,80049% of viewport)
+[11:09:36] [ENEMY] [Enemy6] State: IDLE -> COMBAT
+[11:09:36] [ENEMY] [Enemy6] State: COMBAT -> ASSAULT
+[11:09:36] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(879.55536, 88.32882), shooter_id=38486935140, bullet_pos=(183.87065, 1717.0997)
+[11:09:36] [INFO] [Bullet] Using shooter_position, distance=1771,1216
+[11:09:36] [INFO] [Bullet] Distance to wall: 1771,1216 (120,59892% of viewport)
+[11:09:36] [INFO] [Bullet] Distance-based penetration chance: 25,880219%
+[11:09:36] [INFO] [Bullet] Penetration failed (distance roll)
+[11:09:36] [ENEMY] [Enemy7] Player distracted - priority attack triggered
+[11:09:36] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(985.15594, 88.32882), shooter_id=38486935140, bullet_pos=(520.78265, 423.25055)
+[11:09:36] [INFO] [Bullet] Using shooter_position, distance=572,5514
+[11:09:36] [INFO] [Bullet] Distance to wall: 572,5514 (38,986076% of viewport)
+[11:09:36] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:36] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1413.413, 83.14529), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[11:09:36] [ENEMY] [Enemy5] Heard gunshot at (1413.413, 83.14529), source_type=0, intensity=0.02, distance=392
+[11:09:36] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=4
+[11:09:36] [ENEMY] [Enemy5] State: COMBAT -> ASSAULT
+[11:09:37] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1444.769, 100.391), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[11:09:37] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=4
+[11:09:37] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1413.4128, 83.145294), shooter_id=38486935140, bullet_pos=(1661.7506, 279.62915)
+[11:09:37] [INFO] [Bullet] Using shooter_position, distance=316,66632
+[11:09:37] [INFO] [Bullet] Distance to wall: 316,66632 (21,562393% of viewport)
+[11:09:37] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:37] [INFO] [Bullet] Starting wall penetration at (1661.7506, 279.62915)
+[11:09:37] [INFO] [Bullet] Raycast backward hit penetrating body at distance 48,898884
+[11:09:37] [INFO] [Bullet] Body exited signal received for penetrating body
+[11:09:37] [INFO] [Bullet] Exiting penetration at (1698.3478, 308.5847) after traveling 41,666668 pixels through wall
+[11:09:37] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[11:09:37] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1472.073, 127.4211), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[11:09:37] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=4
+[11:09:37] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1472.0728, 127.42111), shooter_id=38486935140, bullet_pos=(1651.8312, 276.18744)
+[11:09:37] [INFO] [Bullet] Using shooter_position, distance=233,33347
+[11:09:37] [INFO] [Bullet] Distance to wall: 233,33347 (15,888105% of viewport)
+[11:09:37] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:37] [ENEMY] [Enemy5] State: ASSAULT -> RETREATING
+[11:09:37] [ENEMY] [Enemy5] State: RETREATING -> IN_COVER
+[11:09:37] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1499.424, 154.3367), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[11:09:37] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=4
+[11:09:37] [ENEMY] [Enemy5] State: IN_COVER -> SUPPRESSED
+[11:09:37] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1499.4236, 154.33675), shooter_id=38486935140, bullet_pos=(1642.7244, 281.6196)
+[11:09:37] [INFO] [Bullet] Using shooter_position, distance=191,66647
+[11:09:37] [INFO] [Bullet] Distance to wall: 191,66647 (13,050922% of viewport)
+[11:09:37] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:37] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(985.15594, 88.32882), shooter_id=38486935140, bullet_pos=(824.3271, 56.026684)
+[11:09:37] [INFO] [Bullet] Using shooter_position, distance=164,0407
+[11:09:37] [INFO] [Bullet] Distance to wall: 164,0407 (11,169833% of viewport)
+[11:09:37] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:37] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1531.112, 170.7818), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[11:09:37] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=4
+[11:09:37] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1472.0728, 127.42111), shooter_id=38486935140, bullet_pos=(1979.2461, 55.970398)
+[11:09:37] [INFO] [Bullet] Using shooter_position, distance=512,1816
+[11:09:37] [INFO] [Bullet] Distance to wall: 512,1816 (34,875385% of viewport)
+[11:09:37] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:37] [ENEMY] [Enemy6] State: ASSAULT -> RETREATING
+[11:09:37] [ENEMY] [Enemy5] Hit taken, health: 2/3
+[11:09:37] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1499.4236, 154.33675), shooter_id=38486935140, bullet_pos=(1865.997, 47.176495)
+[11:09:37] [INFO] [Bullet] Using shooter_position, distance=381,91537
+[11:09:37] [INFO] [Bullet] Distance to wall: 381,91537 (26,005322% of viewport)
+[11:09:37] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:37] [ENEMY] [Enemy5] State: SUPPRESSED -> SEEKING_COVER
+[11:09:37] [ENEMY] [Enemy5] State: SEEKING_COVER -> IN_COVER
+[11:09:37] [ENEMY] [Enemy5] State: IN_COVER -> SUPPRESSED
+[11:09:37] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1444.7693, 100.391045), shooter_id=38486935140, bullet_pos=(2468.077, 874.84875)
+[11:09:37] [INFO] [Bullet] Using shooter_position, distance=1283,3329
+[11:09:37] [INFO] [Bullet] Distance to wall: 1283,3329 (87,3845% of viewport)
+[11:09:37] [INFO] [Bullet] Distance-based penetration chance: 44,718094%
+[11:09:37] [INFO] [Bullet] Penetration failed (distance roll)
+[11:09:37] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1692.713, 354.4406), source=ENEMY (Enemy5), range=1469, listeners=6
+[11:09:37] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=1, below_threshold=4
+[11:09:37] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1692.713, 354.4406), shooter_id=36842767874, bullet_pos=(1650.205, 307.4916)
+[11:09:37] [INFO] [Bullet] Using shooter_position, distance=63.3333702087402
+[11:09:37] [INFO] [Bullet] Distance to wall: 63.3333702087402 (4.31248563731177% of viewport)
+[11:09:37] [INFO] [Bullet] Point-blank shot - 100% penetration, ignoring ricochet
+[11:09:37] [INFO] [Bullet] Starting wall penetration at (1650.205, 307.4916)
+[11:09:37] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(985.15594, 88.32882), shooter_id=38486935140, bullet_pos=(976.6243, 227.58353)
+[11:09:37] [INFO] [Bullet] Using shooter_position, distance=139,51581
+[11:09:37] [INFO] [Bullet] Distance to wall: 139,51581 (9,499888% of viewport)
+[11:09:37] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:37] [INFO] [Bullet] Starting wall penetration at (976.6243, 227.58353)
+[11:09:37] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[11:09:37] [INFO] [Bullet] Exiting penetration at (987.0379, 239.31403) after traveling 10,6859045 pixels through wall
+[11:09:37] [INFO] [Bullet] Damage multiplier after penetration: 0,00703125
+[11:09:37] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[11:09:37] [INFO] [Bullet] Exiting penetration at (1624.477, 279.075) after traveling 33.3333358764648 pixels through wall
+[11:09:37] [INFO] [Bullet] Damage multiplier after penetration: 0.9
+[11:09:37] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1692.713, 354.4406), source=ENEMY (Enemy5), range=1469, listeners=6
+[11:09:37] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=1, below_threshold=4
+[11:09:37] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1632.609, 171.4328), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[11:09:37] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0, below_threshold=4
+[11:09:37] [INFO] [LastChance] Threat detected: Bullet
+[11:09:37] [INFO] [LastChance] Player health is 2.0 - effect requires exactly 1 HP or less but alive
+[11:09:37] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[11:09:37] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1472.0728, 127.42111), shooter_id=38486935140, bullet_pos=(2460.3904, 385.19427)
+[11:09:37] [INFO] [Bullet] Using shooter_position, distance=1021,3808
+[11:09:37] [INFO] [Bullet] Distance to wall: 1021,3808 (69,5477% of viewport)
+[11:09:37] [INFO] [Bullet] Distance-based penetration chance: 65,52769%
+[11:09:37] [INFO] [Bullet] Starting wall penetration at (2460.3904, 385.19427)
+[11:09:37] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1692.713, 354.4406), source=ENEMY (Enemy5), range=1469, listeners=6
+[11:09:37] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=1, below_threshold=4
+[11:09:37] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[11:09:37] [INFO] [Bullet] Exiting penetration at (2484.3926, 401.61783) after traveling 24,083334 pixels through wall
+[11:09:37] [INFO] [Bullet] Damage multiplier after penetration: 0,225
+[11:09:37] [ENEMY] [Enemy5] State: SUPPRESSED -> SEEKING_COVER
+[11:09:37] [INFO] [LastChance] Threat detected: @Area2D@397
+[11:09:37] [INFO] [LastChance] Player health is 2.0 - effect requires exactly 1 HP or less but alive
+[11:09:37] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[11:09:37] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1662.258, 158.0304), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[11:09:37] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0, below_threshold=4
+[11:09:37] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1692.713, 354.4406), shooter_id=36842767874, bullet_pos=(1551.034, 56.40178)
+[11:09:37] [INFO] [Bullet] Using shooter_position, distance=330.000213623047
+[11:09:37] [INFO] [Bullet] Distance to wall: 330.000213623047 (22.4703213624784% of viewport)
+[11:09:37] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:37] [INFO] [PenultimateHit] Player damaged: 1.0 damage, current health: 1.0
+[11:09:37] [INFO] [PenultimateHit] Triggering penultimate hit effect (HP: 1.0)
+[11:09:37] [INFO] [PenultimateHit] Starting penultimate hit effect:
+[11:09:37] [INFO] [PenultimateHit]   - Time scale: 0.10
+[11:09:37] [INFO] [PenultimateHit]   - Saturation boost: 2.00 (3.0x)
+[11:09:37] [INFO] [PenultimateHit]   - Contrast boost: 1.00 (2.0x)
+[11:09:37] [INFO] [PenultimateHit]   - Duration: 3.0 real seconds
+[11:09:37] [INFO] [PenultimateHit] Applied shader parameters: saturation=2.00, contrast=1.00
+[11:09:37] [INFO] [PenultimateHit] Applying saturation to 6 enemies
+[11:09:37] [INFO] [LastChance] Player health updated (C# Damaged): 1.0
+[11:09:37] [ENEMY] [Enemy10] State: ASSAULT -> PURSUING
+[11:09:37] [ENEMY] [Enemy10] State: PURSUING -> ASSAULT
+[11:09:38] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1693.285, 134.6778), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[11:09:38] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=0, below_threshold=3
+[11:09:39] [ENEMY] [Enemy5] State: SEEKING_COVER -> IN_COVER
+[11:09:39] [ENEMY] [Enemy5] State: IN_COVER -> SUPPRESSED
+[11:09:39] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1692.713, 354.4406), shooter_id=36842767874, bullet_pos=(1391.068, 370.0489)
+[11:09:39] [INFO] [Bullet] Using shooter_position, distance=302.048431396484
+[11:09:39] [INFO] [Bullet] Distance to wall: 302.048431396484 (20.5670331118764% of viewport)
+[11:09:39] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:39] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1662.2578, 158.03044), shooter_id=38486935140, bullet_pos=(1762.0972, 596.8158)
+[11:09:39] [INFO] [Bullet] Using shooter_position, distance=450,00052
+[11:09:39] [INFO] [Bullet] Distance to wall: 450,00052 (30,641365% of viewport)
+[11:09:39] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:39] [INFO] [Bullet] Starting wall penetration at (1762.0972, 596.8158)
+[11:09:39] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[11:09:39] [INFO] [Bullet] Exiting penetration at (1764.131, 605.75397) after traveling 4,166667 pixels through wall
+[11:09:39] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[11:09:39] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1722.956, 126.6401), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[11:09:39] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=2, self=0, below_threshold=2
+[11:09:40] [ENEMY] [Enemy5] State: SUPPRESSED -> SEEKING_COVER
+[11:09:40] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1693.285, 134.67784), shooter_id=38486935140, bullet_pos=(1642.6598, 606.9733)
+[11:09:40] [INFO] [Bullet] Using shooter_position, distance=475,00098
+[11:09:40] [INFO] [Bullet] Distance to wall: 475,00098 (32,343693% of viewport)
+[11:09:40] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:40] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1692.713, 354.4406), shooter_id=36842767874, bullet_pos=(1511.266, 598.1996)
+[11:09:40] [INFO] [Bullet] Using shooter_position, distance=303.877380371094
+[11:09:40] [INFO] [Bullet] Distance to wall: 303.877380371094 (20.6915696106982% of viewport)
+[11:09:40] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:40] [INFO] [Bullet] Starting wall penetration at (1511.266, 598.1996)
+[11:09:40] [INFO] [Bullet] Raycast backward hit penetrating body at distance 5.94242334365845
+[11:09:40] [INFO] [Bullet] Body exited signal received for penetrating body
+[11:09:40] [INFO] [Bullet] Exiting penetration at (1527.628, 629.2574) after traveling 30.1041698455811 pixels through wall
+[11:09:40] [INFO] [Bullet] Damage multiplier after penetration: 0.225
+[11:09:40] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1765.74, 126.3599), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[11:09:40] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=0, below_threshold=3
+[11:09:40] [ENEMY] [Enemy5] State: SEEKING_COVER -> IN_COVER
+[11:09:40] [ENEMY] [Enemy5] State: IN_COVER -> SUPPRESSED
+[11:09:40] [ENEMY] [Enemy6] Hit taken, health: 3/4
+[11:09:40] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1632.6093, 171.43285), shooter_id=38486935140, bullet_pos=(2324.6533, 1349.9242)
+[11:09:40] [INFO] [Bullet] Using shooter_position, distance=1366,6627
+[11:09:40] [INFO] [Bullet] Distance to wall: 1366,6627 (93,05858% of viewport)
+[11:09:40] [INFO] [Bullet] Distance-based penetration chance: 38,098328%
+[11:09:40] [INFO] [Bullet] Penetration failed (distance roll)
+[11:09:40] [ENEMY] [Enemy5] State: SUPPRESSED -> SEEKING_COVER
+[11:09:40] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1799.841, 126.3599), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[11:09:40] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=0, below_threshold=3
+[11:09:40] [ENEMY] [Enemy6] Hit taken, health: 2/4
+[11:09:40] [ENEMY] [Enemy5] State: SEEKING_COVER -> IN_COVER
+[11:09:40] [ENEMY] [Enemy5] State: IN_COVER -> SUPPRESSED
+[11:09:40] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1835.041, 126.3599), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[11:09:40] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=0, below_threshold=3
+[11:09:40] [ENEMY] [Enemy5] State: SUPPRESSED -> SEEKING_COVER
+[11:09:40] [ENEMY] [Enemy5] State: SEEKING_COVER -> IN_COVER
+[11:09:40] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1870.241, 126.3599), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[11:09:40] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=0, below_threshold=3
+[11:09:40] [ENEMY] [Enemy5] State: IN_COVER -> SUPPRESSED
+[11:09:40] [ENEMY] [Enemy6] Hit taken, health: 1/4
+[11:09:40] [ENEMY] [Enemy6] State: RETREATING -> IN_COVER
+[11:09:40] [ENEMY] [Enemy6] State: IN_COVER -> SUPPRESSED
+[11:09:40] [INFO] [PenultimateHit] Effect duration expired after 3.00 real seconds
+[11:09:40] [INFO] [PenultimateHit] Ending penultimate hit effect
+[11:09:40] [ENEMY] [Enemy5] State: SUPPRESSED -> SEEKING_COVER
+[11:09:40] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1907.641, 126.3599), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[11:09:40] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=0, below_threshold=3
+[11:09:40] [ENEMY] [Enemy5] State: SEEKING_COVER -> IN_COVER
+[11:09:40] [ENEMY] [Enemy5] State: IN_COVER -> SUPPRESSED
+[11:09:40] [ENEMY] [Enemy6] Hit taken, health: 0/4
+[11:09:40] [ENEMY] [Enemy6] Enemy died
+[11:09:40] [INFO] [SoundPropagation] Unregistered listener: Enemy6 (remaining: 5)
+[11:09:41] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1946.141, 126.3599), source=PLAYER (AssaultRifle), range=1469, listeners=5
+[11:09:41] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=3
+[11:09:41] [ENEMY] [Enemy5] State: SUPPRESSED -> SEEKING_COVER
+[11:09:41] [ENEMY] [Enemy5] State: SEEKING_COVER -> IN_COVER
+[11:09:41] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1946.1411, 126.35987), shooter_id=38486935140, bullet_pos=(1853.1046, 293.9318)
+[11:09:41] [INFO] [Bullet] Using shooter_position, distance=191,66675
+[11:09:41] [INFO] [Bullet] Distance to wall: 191,66675 (13,050942% of viewport)
+[11:09:41] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:41] [ENEMY] [Enemy5] State: IN_COVER -> SUPPRESSED
+[11:09:41] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1907.6411, 126.35987), shooter_id=38486935140, bullet_pos=(1701.7222, 609.29114)
+[11:09:41] [INFO] [Bullet] Using shooter_position, distance=525,0002
+[11:09:41] [INFO] [Bullet] Distance to wall: 525,0002 (35,74823% of viewport)
+[11:09:41] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:41] [INFO] [Bullet] Starting wall penetration at (1701.7222, 609.29114)
+[11:09:41] [INFO] [Bullet] Raycast backward hit penetrating body at distance 30,676517
+[11:09:41] [INFO] [Bullet] Body exited signal received for penetrating body
+[11:09:41] [INFO] [Bullet] Exiting penetration at (1683.4182, 652.2184) after traveling 41,666668 pixels through wall
+[11:09:41] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[11:09:41] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1984.641, 126.3599), source=PLAYER (AssaultRifle), range=1469, listeners=5
+[11:09:41] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=3
+[11:09:41] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1984.6411, 126.35987), shooter_id=38486935140, bullet_pos=(1875.0664, 283.6159)
+[11:09:41] [INFO] [Bullet] Using shooter_position, distance=191,66658
+[11:09:41] [INFO] [Bullet] Distance to wall: 191,66658 (13,05093% of viewport)
+[11:09:41] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:41] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1946.1411, 126.35987), shooter_id=38486935140, bullet_pos=(1748.2412, 63.77869)
+[11:09:41] [INFO] [Bullet] Using shooter_position, distance=207,55908
+[11:09:41] [INFO] [Bullet] Distance to wall: 207,55908 (14,13308% of viewport)
+[11:09:41] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:41] [ENEMY] [Enemy5] State: SUPPRESSED -> SEEKING_COVER
+[11:09:41] [ENEMY] [Enemy5] State: SEEKING_COVER -> IN_COVER
+[11:09:41] [ENEMY] [Enemy5] State: IN_COVER -> SUPPRESSED
+[11:09:41] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1984.6411, 126.35987), shooter_id=38486935140, bullet_pos=(1719.0881, 41.114388)
+[11:09:41] [INFO] [Bullet] Using shooter_position, distance=278,89993
+[11:09:41] [INFO] [Bullet] Distance to wall: 278,89993 (18,99081% of viewport)
+[11:09:41] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:41] [INFO] [Bullet] Starting wall penetration at (1719.0881, 41.114388)
+[11:09:41] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1946.1411, 126.35987), shooter_id=38486935140, bullet_pos=(1641.7411, 285.34543)
+[11:09:41] [INFO] [Bullet] Using shooter_position, distance=343,4178
+[11:09:41] [INFO] [Bullet] Distance to wall: 343,4178 (23,38395% of viewport)
+[11:09:41] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:41] [INFO] [Bullet] Raycast backward hit penetrating body at distance 29,579718
+[11:09:41] [INFO] [Bullet] Body exited signal received for penetrating body
+[11:09:41] [INFO] [Bullet] Exiting penetration at (1697.2241, 7.122118) after traveling 35,416668 pixels through wall
+[11:09:41] [INFO] [Bullet] Damage multiplier after penetration: 0,45
+[11:09:41] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1799.8406, 126.35987), shooter_id=38486935140, bullet_pos=(1804.4662, 2093.0203)
+[11:09:41] [INFO] [Bullet] Using shooter_position, distance=1966,6659
+[11:09:41] [INFO] [Bullet] Distance to wall: 1966,6659 (133,9139% of viewport)
+[11:09:41] [INFO] [Bullet] Distance-based penetration chance: 23,217222%
+[11:09:41] [INFO] [Bullet] Penetration failed (distance roll)
+[11:09:41] [ENEMY] [Enemy5] State: SUPPRESSED -> SEEKING_COVER
+[11:09:41] [ENEMY] [Enemy5] State: SEEKING_COVER -> IN_COVER
+[11:09:41] [ENEMY] [Enemy5] State: IN_COVER -> SUPPRESSED
+[11:09:41] [ENEMY] [Enemy5] State: SUPPRESSED -> SEEKING_COVER
+[11:09:41] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1946.1411, 126.35987), shooter_id=38486935140, bullet_pos=(1511.8792, 59.07806)
+[11:09:41] [INFO] [Bullet] Using shooter_position, distance=439,44318
+[11:09:41] [INFO] [Bullet] Distance to wall: 439,44318 (29,922495% of viewport)
+[11:09:41] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:41] [INFO] [Bullet] Starting wall penetration at (1511.8792, 59.07806)
+[11:09:41] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[11:09:41] [INFO] [Bullet] Exiting penetration at (1496.653, 32.548443) after traveling 25,588543 pixels through wall
+[11:09:41] [INFO] [Bullet] Damage multiplier after penetration: 0,1125
+[11:09:41] [ENEMY] [Enemy5] State: SEEKING_COVER -> IN_COVER
+[11:09:41] [ENEMY] [Enemy5] State: IN_COVER -> SUPPRESSED
+[11:09:41] [ENEMY] [Enemy9] Player distracted - priority attack triggered
+[11:09:41] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(2100, 1550), source=ENEMY (Enemy9), range=1469, listeners=5
+[11:09:41] [ENEMY] [Enemy8] Heard gunshot at (2100, 1550), source_type=1, intensity=0.05, distance=224
+[11:09:41] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=1, below_threshold=3
+[11:09:41] [ENEMY] [Enemy5] State: SUPPRESSED -> SEEKING_COVER
+[11:09:41] [ENEMY] [Enemy8] State: COMBAT -> RETREATING
+[11:09:41] [ENEMY] [Enemy9] State: COMBAT -> ASSAULT
+[11:09:41] [ENEMY] [Enemy8] State: RETREATING -> IN_COVER
+[11:09:41] [ENEMY] [Enemy8] State: IN_COVER -> SUPPRESSED
+[11:09:41] [ENEMY] [Enemy5] State: SEEKING_COVER -> IN_COVER
+[11:09:41] [ENEMY] [Enemy5] State: IN_COVER -> SUPPRESSED
+[11:09:41] [ENEMY] [Enemy5] State: SUPPRESSED -> SEEKING_COVER
+[11:09:41] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(2100, 1550), shooter_id=37580965422, bullet_pos=(2100.907, 1186.668)
+[11:09:41] [INFO] [Bullet] Using shooter_position, distance=363.333038330078
+[11:09:41] [INFO] [Bullet] Distance to wall: 363.333038330078 (24.74001469044% of viewport)
+[11:09:41] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:41] [INFO] [Bullet] Starting wall penetration at (2100.907, 1186.668)
+[11:09:41] [ENEMY] [Enemy5] State: SEEKING_COVER -> IN_COVER
+[11:09:41] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[11:09:41] [INFO] [Bullet] Exiting penetration at (2101.023, 1140.002) after traveling 41.6666717529297 pixels through wall
+[11:09:41] [INFO] [Bullet] Damage multiplier after penetration: 0.9
+[11:09:41] [ENEMY] [Enemy5] State: IN_COVER -> SUPPRESSED
+[11:09:42] [ENEMY] [Enemy5] State: SUPPRESSED -> SEEKING_COVER
+[11:09:42] [ENEMY] [Enemy5] State: SEEKING_COVER -> IN_COVER
+[11:09:42] [ENEMY] [Enemy5] State: IN_COVER -> SUPPRESSED
+[11:09:42] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(2217.61, 362.3503), source=PLAYER (AssaultRifle), range=1469, listeners=5
+[11:09:42] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=0, below_threshold=4
+[11:09:42] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(2202.52, 394.5999), source=PLAYER (AssaultRifle), range=1469, listeners=5
+[11:09:42] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=0, below_threshold=4
+[11:09:42] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(2217.6104, 362.35034), shooter_id=38486935140, bullet_pos=(1861.3837, 323.55508)
+[11:09:42] [INFO] [Bullet] Using shooter_position, distance=358,33298
+[11:09:42] [INFO] [Bullet] Distance to wall: 358,33298 (24,399551% of viewport)
+[11:09:42] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:42] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(2175.991, 422.1115), source=PLAYER (AssaultRifle), range=1469, listeners=5
+[11:09:42] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=0, below_threshold=4
+[11:09:42] [ENEMY] [Enemy5] State: SUPPRESSED -> SEEKING_COVER
+[11:09:42] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(2202.5203, 394.59985), shooter_id=38486935140, bullet_pos=(1643.4407, 302.1831)
+[11:09:42] [INFO] [Bullet] Using shooter_position, distance=566,66644
+[11:09:42] [INFO] [Bullet] Distance to wall: 566,66644 (38,58536% of viewport)
+[11:09:42] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:42] [INFO] [Bullet] Starting wall penetration at (1643.4407, 302.1831)
+[11:09:42] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(2148.767, 449.3351), source=PLAYER (AssaultRifle), range=1469, listeners=5
+[11:09:42] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=0, below_threshold=4
+[11:09:42] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[11:09:42] [INFO] [Bullet] Exiting penetration at (1597.3988, 294.57233) after traveling 41,666668 pixels through wall
+[11:09:42] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[11:09:42] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(2217.6104, 362.35034), shooter_id=38486935140, bullet_pos=(1361.3605, 352.02518)
+[11:09:42] [INFO] [Bullet] Using shooter_position, distance=856,31213
+[11:09:42] [INFO] [Bullet] Distance to wall: 856,31213 (58,30787% of viewport)
+[11:09:42] [INFO] [Bullet] Distance-based penetration chance: 78,64082%
+[11:09:42] [INFO] [Bullet] Starting wall penetration at (1361.3605, 352.02518)
+[11:09:42] [INFO] [Bullet] Raycast backward hit penetrating body at distance 43,060474
+[11:09:42] [INFO] [Bullet] Body exited signal received for penetrating body
+[11:09:42] [INFO] [Bullet] Exiting penetration at (1321.0092, 354.3227) after traveling 35,416668 pixels through wall
+[11:09:42] [INFO] [Bullet] Damage multiplier after penetration: 0,45
+[11:09:42] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(2175.9915, 422.11145), shooter_id=38486935140, bullet_pos=(1660.708, 321.57138)
+[11:09:42] [INFO] [Bullet] Using shooter_position, distance=525,0003
+[11:09:42] [INFO] [Bullet] Distance to wall: 525,0003 (35,748238% of viewport)
+[11:09:42] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:42] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(2121.543, 476.5588), source=PLAYER (AssaultRifle), range=1469, listeners=5
+[11:09:42] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=5
+[11:09:42] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(2175.9915, 422.11145), shooter_id=38486935140, bullet_pos=(1841.9125, 303.70294)
+[11:09:42] [INFO] [Bullet] Using shooter_position, distance=354,4423
+[11:09:42] [INFO] [Bullet] Distance to wall: 354,4423 (24,134628% of viewport)
+[11:09:42] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:42] [INFO] [Bullet] Starting wall penetration at (1841.9125, 303.70294)
+[11:09:42] [INFO] [Bullet] Body exited signal received for penetrating body
+[11:09:42] [INFO] [Bullet] Exiting penetration at (1882.134, 299.73672) after traveling 0 pixels through wall
+[11:09:42] [INFO] [Bullet] Damage multiplier after penetration: 0,45
+[11:09:42] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(2093.044, 500.7029), source=PLAYER (AssaultRifle), range=1469, listeners=5
+[11:09:42] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=5
+[11:09:42] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(2148.7673, 449.33514), shooter_id=38486935140, bullet_pos=(1553.3807, 324.4942)
+[11:09:42] [INFO] [Bullet] Using shooter_position, distance=608,33417
+[11:09:42] [INFO] [Bullet] Distance to wall: 608,33417 (41,422592% of viewport)
+[11:09:43] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(2148.7673, 449.33514), shooter_id=38486935140, bullet_pos=(1372.8904, 348.52536)
+[11:09:43] [INFO] [Bullet] Using shooter_position, distance=782,3987
+[11:09:43] [INFO] [Bullet] Distance to wall: 782,3987 (53,274963% of viewport)
+[11:09:43] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(2063.906, 523.3071), source=PLAYER (AssaultRifle), range=1469, listeners=5
+[11:09:43] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=5
+[11:09:43] [ENEMY] [Enemy5] State: SEEKING_COVER -> IN_COVER
+[11:09:43] [ENEMY] [Enemy5] Player ammo empty state changed: false -> true
+[11:09:43] [ENEMY] [Enemy7] Player ammo empty state changed: false -> true
+[11:09:43] [ENEMY] [Enemy8] Player ammo empty state changed: false -> true
+[11:09:43] [ENEMY] [Enemy9] Player ammo empty state changed: false -> true
+[11:09:43] [ENEMY] [Enemy10] Player ammo empty state changed: false -> true
+[11:09:43] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(2060.017, 527.1962), source=PLAYER (Player), range=600, listeners=5
+[11:09:43] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=4, self=0, below_threshold=1
+[11:09:43] [ENEMY] [Enemy5] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=621), can_see=false
+[11:09:43] [ENEMY] [Enemy5] State: IN_COVER -> SUPPRESSED
+[11:09:43] [ENEMY] [Enemy7] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=583), can_see=false
+[11:09:43] [ENEMY] [Enemy8] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=937), can_see=false
+[11:09:43] [ENEMY] [Enemy9] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=975), can_see=false
+[11:09:43] [ENEMY] [Enemy10] Player vulnerable (ammo_empty) but cannot attack: close=false (dist=1366), can_see=false
+[11:09:43] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(2056.128, 531.0853), source=PLAYER (Player), range=600, listeners=5
+[11:09:43] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=4, self=0, below_threshold=1
+[11:09:43] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(2052.239, 534.9744), source=PLAYER (Player), range=600, listeners=5
+[11:09:43] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=4, self=0, below_threshold=1
+[11:09:43] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(2048.222, 538.5555), source=PLAYER (Player), range=600, listeners=5
+[11:09:43] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=4, self=0, below_threshold=1
+[11:09:43] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(2121.5432, 476.55884), shooter_id=38486935140, bullet_pos=(1365.5005, 306.19525)
+[11:09:43] [INFO] [Bullet] Using shooter_position, distance=774,9996
+[11:09:43] [INFO] [Bullet] Distance to wall: 774,9996 (52,771145% of viewport)
+[11:09:43] [INFO] [Bullet] Distance-based penetration chance: 85,10033%
+[11:09:43] [INFO] [Bullet] Starting wall penetration at (1365.5005, 306.19525)
+[11:09:43] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(2044.078, 541.8287), source=PLAYER (Player), range=600, listeners=5
+[11:09:43] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=4, self=0, below_threshold=1
+[11:09:43] [INFO] [Bullet] Raycast backward hit penetrating body at distance 45,128525
+[11:09:43] [INFO] [Bullet] Body exited signal received for penetrating body
+[11:09:43] [INFO] [Bullet] Exiting penetration at (1319.9753, 295.9368) after traveling 41,66667 pixels through wall
+[11:09:43] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[11:09:43] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(2039.807, 544.7939), source=PLAYER (Player), range=600, listeners=5
+[11:09:43] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=4, self=0, below_threshold=1
+[11:09:43] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(2035.407, 547.4512), source=PLAYER (Player), range=600, listeners=5
+[11:09:43] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=4, self=0, below_threshold=1
+[11:09:43] [ENEMY] [Enemy7] State: ASSAULT -> PURSUING
+[11:09:43] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(2030.88, 549.8005), source=PLAYER (Player), range=600, listeners=5
+[11:09:43] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=4, self=0, below_threshold=1
+[11:09:43] [ENEMY] [Enemy7] State: PURSUING -> ASSAULT
+[11:09:43] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(2026.226, 551.8418), source=PLAYER (Player), range=600, listeners=5
+[11:09:43] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=4, self=0, below_threshold=1
+[11:09:43] [ENEMY] [Enemy5] State: SUPPRESSED -> SEEKING_COVER
+[11:09:43] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(2021.444, 553.5751), source=PLAYER (Player), range=600, listeners=5
+[11:09:43] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=3, self=0, below_threshold=2
+[11:09:43] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(2093.0437, 500.70288), shooter_id=38486935140, bullet_pos=(1383.7135, 314.6149)
+[11:09:43] [INFO] [Bullet] Using shooter_position, distance=733,33356
+[11:09:43] [INFO] [Bullet] Distance to wall: 733,33356 (49,934032% of viewport)
+[11:09:43] [INFO] [Bullet] Distance-based penetration chance: 88,41029%
+[11:09:43] [INFO] [Bullet] Starting wall penetration at (1383.7135, 314.6149)
+[11:09:43] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(2016.714, 554.9793), source=PLAYER (Player), range=600, listeners=5
+[11:09:43] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=3, self=0, below_threshold=2
+[11:09:43] [INFO] [Bullet] Raycast backward hit penetrating body at distance 26,28605
+[11:09:43] [INFO] [Bullet] Body exited signal received for penetrating body
+[11:09:43] [INFO] [Bullet] Exiting penetration at (1338.5743, 302.77295) after traveling 41,666668 pixels through wall
+[11:09:43] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[11:09:43] [ENEMY] [Enemy5] State: SEEKING_COVER -> IN_COVER
+[11:09:43] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(2012.037, 556.0543), source=PLAYER (Player), range=600, listeners=5
+[11:09:43] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=4, self=0, below_threshold=1
+[11:09:43] [ENEMY] [Enemy5] State: IN_COVER -> SUPPRESSED
+[11:09:43] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(2007.412, 556.8), source=PLAYER (Player), range=600, listeners=5
+[11:09:43] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=3, self=0, below_threshold=2
+[11:09:43] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(2002.839, 557.2166), source=PLAYER (Player), range=600, listeners=5
+[11:09:43] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=3, self=0, below_threshold=2
+[11:09:43] [INFO] [SoundPropagation] Sound emitted: type=EMPTY_CLICK, pos=(1998.318, 557.3039), source=PLAYER (Player), range=600, listeners=5
+[11:09:43] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=3, self=0, below_threshold=2
+[11:09:43] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(2063.9065, 523.3071), shooter_id=38486935140, bullet_pos=(1118.0253, 254.5042)
+[11:09:43] [INFO] [Bullet] Using shooter_position, distance=983,3343
+[11:09:43] [INFO] [Bullet] Distance to wall: 983,3343 (66,95705% of viewport)
+[11:09:43] [ENEMY] [Enemy5] Player reloading state changed: false -> true
+[11:09:43] [ENEMY] [Enemy7] Player reloading state changed: false -> true
+[11:09:43] [ENEMY] [Enemy8] Player reloading state changed: false -> true
+[11:09:43] [ENEMY] [Enemy9] Player reloading state changed: false -> true
+[11:09:43] [ENEMY] [Enemy10] Player reloading state changed: false -> true
+[11:09:43] [INFO] [SoundPropagation] Sound emitted: type=RELOAD, pos=(1954.051, 533.2874), source=PLAYER (Player), range=900, listeners=5
+[11:09:43] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=3, self=0, below_threshold=2
+[11:09:43] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(2063.9065, 523.3071), shooter_id=38486935140, bullet_pos=(1366.7931, 208.8833)
+[11:09:43] [INFO] [Bullet] Using shooter_position, distance=764,7414
+[11:09:43] [INFO] [Bullet] Distance to wall: 764,7414 (52,07265% of viewport)
+[11:09:43] [INFO] [Bullet] Distance-based penetration chance: 85,915245%
+[11:09:43] [INFO] [Bullet] Starting wall penetration at (1366.7931, 208.8833)
+[11:09:43] [INFO] [Bullet] Body exited signal received for penetrating body
+[11:09:43] [INFO] [Bullet] Exiting penetration at (1406.5468, 201.59297) after traveling 0 pixels through wall
+[11:09:43] [INFO] [Bullet] Damage multiplier after penetration: 0,45
+[11:09:43] [ENEMY] [Enemy5] Player vulnerable (reloading) but cannot attack: close=false (dist=526), can_see=false
+[11:09:43] [ENEMY] [Enemy7] Player vulnerable (reloading) but cannot attack: close=false (dist=509), can_see=false
+[11:09:43] [ENEMY] [Enemy8] Player vulnerable (reloading) but cannot attack: close=false (dist=934), can_see=false
+[11:09:43] [ENEMY] [Enemy9] Player vulnerable (reloading) but cannot attack: close=false (dist=991), can_see=false
+[11:09:43] [ENEMY] [Enemy10] Player vulnerable (reloading) but cannot attack: close=false (dist=1293), can_see=false
+[11:09:43] [ENEMY] [Enemy8] State: SUPPRESSED -> IN_COVER
+[11:09:43] [ENEMY] [Enemy8] State: IN_COVER -> ASSAULT
+[11:09:43] [ENEMY] [Enemy5] Player reloading state changed: true -> false
+[11:09:43] [ENEMY] [Enemy7] Player reloading state changed: true -> false
+[11:09:43] [ENEMY] [Enemy8] Player reloading state changed: true -> false
+[11:09:43] [ENEMY] [Enemy9] Player reloading state changed: true -> false
+[11:09:43] [ENEMY] [Enemy10] Player reloading state changed: true -> false
+[11:09:43] [ENEMY] [Enemy5] Player ammo empty state changed: true -> false
+[11:09:43] [ENEMY] [Enemy7] Player ammo empty state changed: true -> false
+[11:09:43] [ENEMY] [Enemy8] Player ammo empty state changed: true -> false
+[11:09:43] [ENEMY] [Enemy9] Player ammo empty state changed: true -> false
+[11:09:43] [ENEMY] [Enemy10] Player ammo empty state changed: true -> false
+[11:09:44] [ENEMY] [Enemy5] State: SUPPRESSED -> SEEKING_COVER
+[11:09:45] [ENEMY] [Enemy10] State: ASSAULT -> PURSUING
+[11:09:45] [ENEMY] [Enemy10] State: PURSUING -> ASSAULT
+[11:09:45] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1695.504, 544.8501), source=PLAYER (AssaultRifle), range=1469, listeners=5
+[11:09:45] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0, below_threshold=3
+[11:09:45] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1668.28, 572.0738), source=PLAYER (AssaultRifle), range=1469, listeners=5
+[11:09:45] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0, below_threshold=3
+[11:09:45] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1638.547, 583.933), source=PLAYER (AssaultRifle), range=1469, listeners=5
+[11:09:45] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=0, below_threshold=4
+[11:09:45] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1695.5035, 544.8501), shooter_id=38486935140, bullet_pos=(1223.3438, 39.411293)
+[11:09:45] [INFO] [Bullet] Using shooter_position, distance=691,667
+[11:09:45] [INFO] [Bullet] Distance to wall: 691,667 (47,096878% of viewport)
+[11:09:45] [INFO] [Bullet] Distance-based penetration chance: 91,72031%
+[11:09:45] [INFO] [Bullet] Starting wall penetration at (1223.3438, 39.411293)
+[11:09:45] [INFO] [Bullet] Raycast backward hit penetrating body at distance 36,52471
+[11:09:45] [INFO] [Bullet] Body exited signal received for penetrating body
+[11:09:45] [INFO] [Bullet] Exiting penetration at (1191.4872, 5.309391) after traveling 41,666668 pixels through wall
+[11:09:45] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[11:09:45] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1600.579, 583.0092), source=PLAYER (AssaultRifle), range=1469, listeners=5
+[11:09:45] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0, below_threshold=3
+[11:09:45] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1668.2803, 572.0738), shooter_id=38486935140, bullet_pos=(1263.103, 63.810287)
+[11:09:45] [INFO] [Bullet] Using shooter_position, distance=650,0003
+[11:09:45] [INFO] [Bullet] Distance to wall: 650,0003 (44,25972% of viewport)
+[11:09:45] [INFO] [Bullet] Distance-based penetration chance: 95,030334%
+[11:09:45] [INFO] [Bullet] Starting wall penetration at (1263.103, 63.810287)
+[11:09:45] [INFO] [Bullet] Raycast backward hit penetrating body at distance 5,9856772
+[11:09:45] [INFO] [Bullet] Body exited signal received for penetrating body
+[11:09:45] [INFO] [Bullet] Exiting penetration at (1234.0134, 27.319565) after traveling 41,666668 pixels through wall
+[11:09:45] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[11:09:45] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1638.5466, 583.93304), shooter_id=38486935140, bullet_pos=(1338.2968, 54.8591)
+[11:09:45] [INFO] [Bullet] Using shooter_position, distance=608,3332
+[11:09:45] [INFO] [Bullet] Distance to wall: 608,3332 (41,422527% of viewport)
+[11:09:45] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1563.212, 566.9952), source=PLAYER (AssaultRifle), range=1469, listeners=5
+[11:09:45] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0, below_threshold=3
+[11:09:45] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1600.5789, 583.00916), shooter_id=38486935140, bullet_pos=(1398.2821, 53.682346)
+[11:09:45] [INFO] [Bullet] Using shooter_position, distance=566,6664
+[11:09:45] [INFO] [Bullet] Distance to wall: 566,6664 (38,585358% of viewport)
+[11:09:45] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:45] [INFO] [Bullet] Starting wall penetration at (1398.2821, 53.682346)
+[11:09:45] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1539.59, 544.3558), source=PLAYER (AssaultRifle), range=1469, listeners=5
+[11:09:45] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0, below_threshold=3
+[11:09:45] [INFO] [Bullet] Raycast backward hit penetrating body at distance 23,454819
+[11:09:45] [INFO] [Bullet] Body exited signal received for penetrating body
+[11:09:45] [INFO] [Bullet] Exiting penetration at (1381.6223, 10.090721) after traveling 41,666668 pixels through wall
+[11:09:45] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[11:09:45] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1512.367, 517.1321), source=PLAYER (AssaultRifle), range=1469, listeners=5
+[11:09:45] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0, below_threshold=3
+[11:09:46] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1563.2122, 566.99524), shooter_id=38486935140, bullet_pos=(1378.3538, 31.32883)
+[11:09:46] [INFO] [Bullet] Using shooter_position, distance=566,6666
+[11:09:46] [INFO] [Bullet] Distance to wall: 566,6666 (38,585373% of viewport)
+[11:09:46] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:46] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1539.59, 544.3558), shooter_id=38486935140, bullet_pos=(1367.6381, 48.313847)
+[11:09:46] [INFO] [Bullet] Using shooter_position, distance=525,00006
+[11:09:46] [INFO] [Bullet] Distance to wall: 525,00006 (35,74822% of viewport)
+[11:09:46] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:46] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1485.143, 489.9084), source=PLAYER (AssaultRifle), range=1469, listeners=5
+[11:09:46] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0, below_threshold=3
+[11:09:46] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1512.3667, 517.1321), shooter_id=38486935140, bullet_pos=(1489.4952, 34.34015)
+[11:09:46] [INFO] [Bullet] Using shooter_position, distance=483,33337
+[11:09:46] [INFO] [Bullet] Distance to wall: 483,33337 (32,91106% of viewport)
+[11:09:46] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:46] [INFO] [Bullet] Starting wall penetration at (1489.4952, 34.34015)
+[11:09:46] [INFO] [Bullet] Raycast backward hit penetrating body at distance 44,3239
+[11:09:46] [INFO] [Bullet] Body exited signal received for penetrating body
+[11:09:46] [INFO] [Bullet] Exiting penetration at (1487.287, -12.274246) after traveling 41,66667 pixels through wall
+[11:09:46] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[11:09:46] [ENEMY] [Enemy5] Player distracted - priority attack triggered
+[11:09:46] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1485.1434, 489.9084), shooter_id=38486935140, bullet_pos=(1465.6165, 48.673603)
+[11:09:46] [INFO] [Bullet] Using shooter_position, distance=441,66663
+[11:09:46] [INFO] [Bullet] Distance to wall: 441,66663 (30,073893% of viewport)
+[11:09:46] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:46] [INFO] [Bullet] Starting wall penetration at (1465.6165, 48.673603)
+[11:09:46] [INFO] [Bullet] Raycast backward hit penetrating body at distance 29,976746
+[11:09:46] [INFO] [Bullet] Body exited signal received for penetrating body
+[11:09:46] [INFO] [Bullet] Exiting penetration at (1463.5532, 2.0525665) after traveling 41,666668 pixels through wall
+[11:09:46] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[11:09:46] [ENEMY] [Enemy5] Player distracted - priority attack triggered
+[11:09:46] [ENEMY] [Enemy5] Player distracted - priority attack triggered
+[11:09:46] [ENEMY] [Enemy5] Player distracted - priority attack triggered
+[11:09:46] [ENEMY] [Enemy5] Player distracted - priority attack triggered
+[11:09:46] [ENEMY] [Enemy5] Player distracted - priority attack triggered
+[11:09:46] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1736.336, 104.9211), source=ENEMY (Enemy5), range=1469, listeners=5
+[11:09:46] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=1, below_threshold=3
+[11:09:46] [INFO] [LastChance] Threat detected: Bullet
+[11:09:46] [INFO] [LastChance] Triggering last chance effect!
+[11:09:46] [INFO] [LastChance] Starting last chance effect:
+[11:09:46] [INFO] [LastChance]   - Time will be frozen (except player)
+[11:09:46] [INFO] [LastChance]   - Duration: 6.0 real seconds
+[11:09:46] [INFO] [LastChance]   - Sepia intensity: 0.70
+[11:09:46] [INFO] [LastChance]   - Brightness: 0.60
+[11:09:46] [INFO] [LastChance] Player process_mode set to ALWAYS
+[11:09:46] [INFO] [LastChance] Applied visual effects: sepia=0.70, brightness=0.60, ripple=0.0080
+[11:09:48] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1443.05, 314.8441), source=PLAYER (AssaultRifle), range=1469, listeners=5
+[11:09:48] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=0, below_threshold=4
+[11:09:49] [ENEMY] [Enemy5] Player distracted - priority attack triggered
+[11:09:49] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1772.296, 113.3069), source=ENEMY (Enemy5), range=1469, listeners=5
+[11:09:49] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=1, below_threshold=3
+[11:09:49] [ENEMY] [Enemy5] Player distracted - priority attack triggered
+[11:09:49] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1772.296, 113.3069), source=ENEMY (Enemy5), range=1469, listeners=5
+[11:09:49] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=1, below_threshold=3
+[11:09:49] [ENEMY] [Enemy5] Player distracted - priority attack triggered
+[11:09:49] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1772.296, 113.3069), source=ENEMY (Enemy5), range=1469, listeners=5
+[11:09:49] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=1, below_threshold=3
+[11:09:49] [ENEMY] [Enemy5] Player distracted - priority attack triggered
+[11:09:49] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1772.296, 113.3069), source=ENEMY (Enemy5), range=1469, listeners=5
+[11:09:49] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=1, below_threshold=3
+[11:09:49] [ENEMY] [Enemy5] Player distracted - priority attack triggered
+[11:09:49] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1772.296, 113.3069), source=ENEMY (Enemy5), range=1469, listeners=5
+[11:09:49] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=1, below_threshold=3
+[11:09:49] [ENEMY] [Enemy5] Player distracted - priority attack triggered
+[11:09:49] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1772.296, 113.3069), source=ENEMY (Enemy5), range=1469, listeners=5
+[11:09:49] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=1, below_threshold=3
+[11:09:49] [ENEMY] [Enemy5] Player distracted - priority attack triggered
+[11:09:49] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1772.296, 113.3069), source=ENEMY (Enemy5), range=1469, listeners=5
+[11:09:49] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=1, below_threshold=3
+[11:09:49] [ENEMY] [Enemy5] Player distracted - priority attack triggered
+[11:09:49] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1772.296, 113.3069), source=ENEMY (Enemy5), range=1469, listeners=5
+[11:09:49] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=1, below_threshold=3
+[11:09:49] [ENEMY] [Enemy5] Player distracted - priority attack triggered
+[11:09:49] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1772.296, 113.3069), source=ENEMY (Enemy5), range=1469, listeners=5
+[11:09:49] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=1, below_threshold=3
+[11:09:49] [ENEMY] [Enemy5] Player distracted - priority attack triggered
+[11:09:49] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1772.296, 113.3069), source=ENEMY (Enemy5), range=1469, listeners=5
+[11:09:49] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=1, below_threshold=3
+[11:09:49] [ENEMY] [Enemy5] Player distracted - priority attack triggered
+[11:09:49] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1772.296, 113.3069), source=ENEMY (Enemy5), range=1469, listeners=5
+[11:09:49] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=1, below_threshold=3
+[11:09:49] [ENEMY] [Enemy5] Player distracted - priority attack triggered
+[11:09:49] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1772.296, 113.3069), source=ENEMY (Enemy5), range=1469, listeners=5
+[11:09:49] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=1, below_threshold=3
+[11:09:49] [ENEMY] [Enemy5] Player distracted - priority attack triggered
+[11:09:49] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1772.296, 113.3069), source=ENEMY (Enemy5), range=1469, listeners=5
+[11:09:49] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=1, below_threshold=3
+[11:09:49] [ENEMY] [Enemy5] Player distracted - priority attack triggered
+[11:09:49] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1772.296, 113.3069), source=ENEMY (Enemy5), range=1469, listeners=5
+[11:09:49] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=1, below_threshold=3
+[11:09:49] [ENEMY] [Enemy5] Player distracted - priority attack triggered
+[11:09:49] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1772.296, 113.3069), source=ENEMY (Enemy5), range=1469, listeners=5
+[11:09:49] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=1, below_threshold=3
+[11:09:49] [ENEMY] [Enemy5] Player distracted - priority attack triggered
+[11:09:49] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1772.296, 113.3069), source=ENEMY (Enemy5), range=1469, listeners=5
+[11:09:49] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=1, below_threshold=3
+[11:09:49] [ENEMY] [Enemy5] Player distracted - priority attack triggered
+[11:09:49] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1772.296, 113.3069), source=ENEMY (Enemy5), range=1469, listeners=5
+[11:09:49] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=1, below_threshold=3
+[11:09:49] [ENEMY] [Enemy5] Player distracted - priority attack triggered
+[11:09:49] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1772.296, 113.3069), source=ENEMY (Enemy5), range=1469, listeners=5
+[11:09:49] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=1, below_threshold=3
+[11:09:49] [ENEMY] [Enemy5] Player distracted - priority attack triggered
+[11:09:49] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1772.296, 113.3069), source=ENEMY (Enemy5), range=1469, listeners=5
+[11:09:49] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=1, below_threshold=3
+[11:09:49] [ENEMY] [Enemy5] Player distracted - priority attack triggered
+[11:09:49] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1772.296, 113.3069), source=ENEMY (Enemy5), range=1469, listeners=5
+[11:09:49] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=1, below_threshold=3
+[11:09:50] [ENEMY] [Enemy5] Player distracted - priority attack triggered
+[11:09:50] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1772.296, 113.3069), source=ENEMY (Enemy5), range=1469, listeners=5
+[11:09:50] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=1, below_threshold=3
+[11:09:50] [ENEMY] [Enemy5] Player distracted - priority attack triggered
+[11:09:50] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1772.296, 113.3069), source=ENEMY (Enemy5), range=1469, listeners=5
+[11:09:50] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=1, below_threshold=3
+[11:09:50] [ENEMY] [Enemy5] Player distracted - priority attack triggered
+[11:09:50] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1772.296, 113.3069), source=ENEMY (Enemy5), range=1469, listeners=5
+[11:09:50] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=1, below_threshold=3
+[11:09:50] [ENEMY] [Enemy5] Player distracted - priority attack triggered
+[11:09:50] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1772.296, 113.3069), source=ENEMY (Enemy5), range=1469, listeners=5
+[11:09:50] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=1, below_threshold=3
+[11:09:50] [ENEMY] [Enemy5] Player distracted - priority attack triggered
+[11:09:50] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1772.296, 113.3069), source=ENEMY (Enemy5), range=1469, listeners=5
+[11:09:50] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=1, below_threshold=3
+[11:09:50] [ENEMY] [Enemy5] Player distracted - priority attack triggered
+[11:09:50] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1772.296, 113.3069), source=ENEMY (Enemy5), range=1469, listeners=5
+[11:09:50] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=1, below_threshold=3
+[11:09:52] [INFO] [LastChance] Effect duration expired after 6.00 real seconds
+[11:09:52] [INFO] [LastChance] Ending last chance effect
+[11:09:52] [INFO] [LastChance] Player process_mode restored
+[11:09:52] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1736.336, 104.9211), shooter_id=36842767874, bullet_pos=(1363.711, 420.547)
+[11:09:52] [INFO] [Bullet] Using shooter_position, distance=488.333099365234
+[11:09:52] [INFO] [Bullet] Distance to wall: 488.333099365234 (33.251498701168% of viewport)
+[11:09:52] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:52] [INFO] [Bullet] Starting wall penetration at (1363.711, 420.547)
+[11:09:52] [INFO] [LastChance] Threat detected: @Area2D@452
+[11:09:52] [INFO] [LastChance] Effect already used this life
+[11:09:52] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[11:09:52] [INFO] [LastChance] Threat detected: @Area2D@477
+[11:09:52] [INFO] [LastChance] Effect already used this life
+[11:09:52] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[11:09:52] [INFO] [LastChance] Threat detected: @Area2D@476
+[11:09:52] [INFO] [LastChance] Effect already used this life
+[11:09:52] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[11:09:52] [INFO] [LastChance] Threat detected: @Area2D@475
+[11:09:52] [INFO] [LastChance] Effect already used this life
+[11:09:52] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[11:09:52] [INFO] [LastChance] Threat detected: @Area2D@474
+[11:09:52] [INFO] [LastChance] Effect already used this life
+[11:09:52] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[11:09:52] [INFO] [LastChance] Threat detected: @Area2D@473
+[11:09:52] [INFO] [LastChance] Effect already used this life
+[11:09:52] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[11:09:52] [INFO] [LastChance] Threat detected: @Area2D@472
+[11:09:52] [INFO] [LastChance] Effect already used this life
+[11:09:52] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[11:09:52] [INFO] [LastChance] Threat detected: @Area2D@471
+[11:09:52] [INFO] [LastChance] Effect already used this life
+[11:09:52] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[11:09:52] [INFO] [LastChance] Threat detected: @Area2D@470
+[11:09:52] [INFO] [LastChance] Effect already used this life
+[11:09:52] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[11:09:52] [INFO] [LastChance] Threat detected: @Area2D@469
+[11:09:52] [INFO] [LastChance] Effect already used this life
+[11:09:52] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[11:09:52] [INFO] [LastChance] Threat detected: @Area2D@468
+[11:09:52] [INFO] [LastChance] Effect already used this life
+[11:09:52] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[11:09:52] [INFO] [LastChance] Threat detected: @Area2D@467
+[11:09:52] [INFO] [LastChance] Effect already used this life
+[11:09:52] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[11:09:52] [INFO] [LastChance] Threat detected: @Area2D@466
+[11:09:52] [INFO] [LastChance] Effect already used this life
+[11:09:52] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[11:09:52] [INFO] [LastChance] Threat detected: @Area2D@465
+[11:09:52] [INFO] [LastChance] Effect already used this life
+[11:09:52] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[11:09:52] [INFO] [LastChance] Threat detected: @Area2D@464
+[11:09:52] [INFO] [LastChance] Effect already used this life
+[11:09:52] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[11:09:52] [INFO] [LastChance] Threat detected: @Area2D@463
+[11:09:52] [INFO] [LastChance] Effect already used this life
+[11:09:52] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[11:09:52] [INFO] [LastChance] Threat detected: @Area2D@462
+[11:09:52] [INFO] [LastChance] Effect already used this life
+[11:09:52] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[11:09:52] [INFO] [LastChance] Threat detected: @Area2D@461
+[11:09:52] [INFO] [LastChance] Effect already used this life
+[11:09:52] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[11:09:52] [INFO] [LastChance] Threat detected: @Area2D@460
+[11:09:52] [INFO] [LastChance] Effect already used this life
+[11:09:52] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[11:09:52] [INFO] [LastChance] Threat detected: @Area2D@459
+[11:09:52] [INFO] [LastChance] Effect already used this life
+[11:09:52] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[11:09:52] [INFO] [LastChance] Threat detected: @Area2D@458
+[11:09:52] [INFO] [LastChance] Effect already used this life
+[11:09:52] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[11:09:52] [INFO] [LastChance] Threat detected: @Area2D@457
+[11:09:52] [INFO] [LastChance] Effect already used this life
+[11:09:52] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[11:09:52] [INFO] [LastChance] Threat detected: @Area2D@456
+[11:09:52] [INFO] [LastChance] Effect already used this life
+[11:09:52] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[11:09:52] [INFO] [LastChance] Threat detected: @Area2D@455
+[11:09:52] [INFO] [LastChance] Effect already used this life
+[11:09:52] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[11:09:52] [INFO] [LastChance] Threat detected: @Area2D@454
+[11:09:52] [INFO] [LastChance] Effect already used this life
+[11:09:52] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[11:09:52] [INFO] [LastChance] Threat detected: @Area2D@453
+[11:09:52] [INFO] [LastChance] Effect already used this life
+[11:09:52] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[11:09:52] [INFO] [Bullet] Raycast backward hit penetrating body at distance 47.0452880859375
+[11:09:52] [INFO] [Bullet] Body exited signal received for penetrating body
+[11:09:52] [INFO] [Bullet] Exiting penetration at (1328.102, 450.7092) after traveling 41.6666679382324 pixels through wall
+[11:09:52] [INFO] [Bullet] Damage multiplier after penetration: 0.9
+[11:09:52] [ENEMY] [Enemy9] State: ASSAULT -> PURSUING
+[11:09:52] [ENEMY] [Enemy9] State: PURSUING -> ASSAULT
+[11:09:52] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1772.296, 113.3069), shooter_id=36842767874, bullet_pos=(1391.334, 346.5002)
+[11:09:52] [INFO] [Bullet] Using shooter_position, distance=446.666534423828
+[11:09:52] [INFO] [Bullet] Distance to wall: 446.666534423828 (30.4143456762507% of viewport)
+[11:09:52] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:52] [INFO] [Bullet] Starting wall penetration at (1391.334, 346.5002)
+[11:09:52] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1772.296, 113.3069), shooter_id=36842767874, bullet_pos=(1391.334, 346.5002)
+[11:09:52] [INFO] [Bullet] Using shooter_position, distance=446.666534423828
+[11:09:52] [INFO] [Bullet] Distance to wall: 446.666534423828 (30.4143456762507% of viewport)
+[11:09:52] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:52] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1772.296, 113.3069), shooter_id=36842767874, bullet_pos=(1391.334, 346.5002)
+[11:09:52] [INFO] [Bullet] Using shooter_position, distance=446.666534423828
+[11:09:52] [INFO] [Bullet] Distance to wall: 446.666534423828 (30.4143456762507% of viewport)
+[11:09:52] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:52] [INFO] [Bullet] Starting wall penetration at (1391.334, 346.5002)
+[11:09:52] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1772.296, 113.3069), shooter_id=36842767874, bullet_pos=(1391.334, 346.5002)
+[11:09:52] [INFO] [Bullet] Using shooter_position, distance=446.666534423828
+[11:09:52] [INFO] [Bullet] Distance to wall: 446.666534423828 (30.4143456762507% of viewport)
+[11:09:52] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:52] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1772.296, 113.3069), shooter_id=36842767874, bullet_pos=(1391.334, 346.5002)
+[11:09:52] [INFO] [Bullet] Using shooter_position, distance=446.666534423828
+[11:09:52] [INFO] [Bullet] Distance to wall: 446.666534423828 (30.4143456762507% of viewport)
+[11:09:52] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:52] [INFO] [Bullet] Starting wall penetration at (1391.334, 346.5002)
+[11:09:52] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1772.296, 113.3069), shooter_id=36842767874, bullet_pos=(1391.334, 346.5002)
+[11:09:52] [INFO] [Bullet] Using shooter_position, distance=446.666534423828
+[11:09:52] [INFO] [Bullet] Distance to wall: 446.666534423828 (30.4143456762507% of viewport)
+[11:09:52] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:52] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1772.296, 113.3069), shooter_id=36842767874, bullet_pos=(1391.334, 346.5002)
+[11:09:52] [INFO] [Bullet] Using shooter_position, distance=446.666534423828
+[11:09:52] [INFO] [Bullet] Distance to wall: 446.666534423828 (30.4143456762507% of viewport)
+[11:09:52] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:52] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1772.296, 113.3069), shooter_id=36842767874, bullet_pos=(1391.334, 346.5002)
+[11:09:52] [INFO] [Bullet] Using shooter_position, distance=446.666534423828
+[11:09:52] [INFO] [Bullet] Distance to wall: 446.666534423828 (30.4143456762507% of viewport)
+[11:09:52] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:52] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1772.296, 113.3069), shooter_id=36842767874, bullet_pos=(1391.334, 346.5002)
+[11:09:52] [INFO] [Bullet] Using shooter_position, distance=446.666534423828
+[11:09:52] [INFO] [Bullet] Distance to wall: 446.666534423828 (30.4143456762507% of viewport)
+[11:09:52] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:52] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1772.296, 113.3069), shooter_id=36842767874, bullet_pos=(1391.334, 346.5002)
+[11:09:52] [INFO] [Bullet] Using shooter_position, distance=446.666534423828
+[11:09:52] [INFO] [Bullet] Distance to wall: 446.666534423828 (30.4143456762507% of viewport)
+[11:09:52] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:52] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1772.296, 113.3069), shooter_id=36842767874, bullet_pos=(1391.334, 346.5002)
+[11:09:52] [INFO] [Bullet] Using shooter_position, distance=446.666534423828
+[11:09:52] [INFO] [Bullet] Distance to wall: 446.666534423828 (30.4143456762507% of viewport)
+[11:09:52] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:52] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1772.296, 113.3069), shooter_id=36842767874, bullet_pos=(1391.334, 346.5002)
+[11:09:52] [INFO] [Bullet] Using shooter_position, distance=446.666534423828
+[11:09:52] [INFO] [Bullet] Distance to wall: 446.666534423828 (30.4143456762507% of viewport)
+[11:09:52] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:52] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1772.296, 113.3069), shooter_id=36842767874, bullet_pos=(1391.334, 346.5002)
+[11:09:52] [INFO] [Bullet] Using shooter_position, distance=446.666534423828
+[11:09:52] [INFO] [Bullet] Distance to wall: 446.666534423828 (30.4143456762507% of viewport)
+[11:09:52] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:52] [INFO] [Bullet] Starting wall penetration at (1391.334, 346.5002)
+[11:09:52] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1772.296, 113.3069), shooter_id=36842767874, bullet_pos=(1391.334, 346.5002)
+[11:09:52] [INFO] [Bullet] Using shooter_position, distance=446.666534423828
+[11:09:52] [INFO] [Bullet] Distance to wall: 446.666534423828 (30.4143456762507% of viewport)
+[11:09:52] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:52] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1772.296, 113.3069), shooter_id=36842767874, bullet_pos=(1391.334, 346.5002)
+[11:09:52] [INFO] [Bullet] Using shooter_position, distance=446.666534423828
+[11:09:52] [INFO] [Bullet] Distance to wall: 446.666534423828 (30.4143456762507% of viewport)
+[11:09:52] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:52] [INFO] [Bullet] Starting wall penetration at (1391.334, 346.5002)
+[11:09:52] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1772.296, 113.3069), shooter_id=36842767874, bullet_pos=(1391.334, 346.5002)
+[11:09:52] [INFO] [Bullet] Using shooter_position, distance=446.666534423828
+[11:09:52] [INFO] [Bullet] Distance to wall: 446.666534423828 (30.4143456762507% of viewport)
+[11:09:52] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:52] [INFO] [Bullet] Starting wall penetration at (1391.334, 346.5002)
+[11:09:52] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1772.296, 113.3069), shooter_id=36842767874, bullet_pos=(1391.334, 346.5002)
+[11:09:52] [INFO] [Bullet] Using shooter_position, distance=446.666534423828
+[11:09:52] [INFO] [Bullet] Distance to wall: 446.666534423828 (30.4143456762507% of viewport)
+[11:09:52] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:52] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1772.296, 113.3069), shooter_id=36842767874, bullet_pos=(1391.334, 346.5002)
+[11:09:52] [INFO] [Bullet] Using shooter_position, distance=446.666534423828
+[11:09:52] [INFO] [Bullet] Distance to wall: 446.666534423828 (30.4143456762507% of viewport)
+[11:09:52] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:52] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1772.296, 113.3069), shooter_id=36842767874, bullet_pos=(1391.334, 346.5002)
+[11:09:52] [INFO] [Bullet] Using shooter_position, distance=446.666534423828
+[11:09:52] [INFO] [Bullet] Distance to wall: 446.666534423828 (30.4143456762507% of viewport)
+[11:09:52] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:52] [INFO] [Bullet] Starting wall penetration at (1391.334, 346.5002)
+[11:09:52] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1772.296, 113.3069), shooter_id=36842767874, bullet_pos=(1391.334, 346.5002)
+[11:09:52] [INFO] [Bullet] Using shooter_position, distance=446.666534423828
+[11:09:52] [INFO] [Bullet] Distance to wall: 446.666534423828 (30.4143456762507% of viewport)
+[11:09:52] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:52] [INFO] [Bullet] Starting wall penetration at (1391.334, 346.5002)
+[11:09:52] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1772.296, 113.3069), shooter_id=36842767874, bullet_pos=(1391.334, 346.5002)
+[11:09:52] [INFO] [Bullet] Using shooter_position, distance=446.666534423828
+[11:09:52] [INFO] [Bullet] Distance to wall: 446.666534423828 (30.4143456762507% of viewport)
+[11:09:52] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:52] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1772.296, 113.3069), shooter_id=36842767874, bullet_pos=(1391.334, 346.5002)
+[11:09:52] [INFO] [Bullet] Using shooter_position, distance=446.666534423828
+[11:09:52] [INFO] [Bullet] Distance to wall: 446.666534423828 (30.4143456762507% of viewport)
+[11:09:52] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:52] [INFO] [Bullet] Starting wall penetration at (1391.334, 346.5002)
+[11:09:52] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1772.296, 113.3069), shooter_id=36842767874, bullet_pos=(1391.334, 346.5002)
+[11:09:52] [INFO] [Bullet] Using shooter_position, distance=446.666534423828
+[11:09:52] [INFO] [Bullet] Distance to wall: 446.666534423828 (30.4143456762507% of viewport)
+[11:09:52] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:52] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1772.296, 113.3069), shooter_id=36842767874, bullet_pos=(1391.334, 346.5002)
+[11:09:52] [INFO] [Bullet] Using shooter_position, distance=446.666534423828
+[11:09:52] [INFO] [Bullet] Distance to wall: 446.666534423828 (30.4143456762507% of viewport)
+[11:09:52] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:52] [INFO] [Bullet] Starting wall penetration at (1391.334, 346.5002)
+[11:09:52] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1772.296, 113.3069), shooter_id=36842767874, bullet_pos=(1391.334, 346.5002)
+[11:09:52] [INFO] [Bullet] Using shooter_position, distance=446.666534423828
+[11:09:52] [INFO] [Bullet] Distance to wall: 446.666534423828 (30.4143456762507% of viewport)
+[11:09:52] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:52] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1772.296, 113.3069), shooter_id=36842767874, bullet_pos=(1391.334, 346.5002)
+[11:09:52] [INFO] [Bullet] Using shooter_position, distance=446.666534423828
+[11:09:52] [INFO] [Bullet] Distance to wall: 446.666534423828 (30.4143456762507% of viewport)
+[11:09:52] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:52] [INFO] [Bullet] Starting wall penetration at (1391.334, 346.5002)
+[11:09:52] [INFO] [Bullet] Raycast backward hit penetrating body at distance 14.6178140640259
+[11:09:52] [INFO] [Bullet] Raycast backward hit penetrating body at distance 14.6178140640259
+[11:09:52] [INFO] [Bullet] Raycast backward hit penetrating body at distance 14.6178140640259
+[11:09:52] [INFO] [Bullet] Raycast backward hit penetrating body at distance 14.6178140640259
+[11:09:52] [INFO] [Bullet] Raycast backward hit penetrating body at distance 14.6178140640259
+[11:09:52] [INFO] [Bullet] Raycast backward hit penetrating body at distance 14.6178140640259
+[11:09:52] [INFO] [Bullet] Raycast backward hit penetrating body at distance 14.6178140640259
+[11:09:52] [INFO] [Bullet] Raycast backward hit penetrating body at distance 14.6178140640259
+[11:09:52] [INFO] [Bullet] Raycast backward hit penetrating body at distance 14.6178140640259
+[11:09:52] [INFO] [Bullet] Raycast backward hit penetrating body at distance 14.6178140640259
+[11:09:52] [INFO] [Bullet] Raycast backward hit penetrating body at distance 14.6178140640259
+[11:09:52] [INFO] [Bullet] Body exited signal received for penetrating body
+[11:09:52] [INFO] [Bullet] Exiting penetration at (1351.532, 370.8636) after traveling 41.6666717529297 pixels through wall
+[11:09:52] [INFO] [Bullet] Damage multiplier after penetration: 0.9
+[11:09:52] [INFO] [Bullet] Body exited signal received for penetrating body
+[11:09:52] [INFO] [Bullet] Exiting penetration at (1351.532, 370.8636) after traveling 41.6666717529297 pixels through wall
+[11:09:52] [INFO] [Bullet] Damage multiplier after penetration: 0.9
+[11:09:52] [INFO] [Bullet] Body exited signal received for penetrating body
+[11:09:52] [INFO] [Bullet] Exiting penetration at (1351.532, 370.8636) after traveling 41.6666717529297 pixels through wall
+[11:09:52] [INFO] [Bullet] Damage multiplier after penetration: 0.9
+[11:09:52] [INFO] [Bullet] Body exited signal received for penetrating body
+[11:09:52] [INFO] [Bullet] Exiting penetration at (1351.532, 370.8636) after traveling 41.6666717529297 pixels through wall
+[11:09:52] [INFO] [Bullet] Damage multiplier after penetration: 0.9
+[11:09:52] [INFO] [Bullet] Body exited signal received for penetrating body
+[11:09:52] [INFO] [Bullet] Exiting penetration at (1351.532, 370.8636) after traveling 41.6666717529297 pixels through wall
+[11:09:52] [INFO] [Bullet] Damage multiplier after penetration: 0.9
+[11:09:52] [INFO] [Bullet] Body exited signal received for penetrating body
+[11:09:52] [INFO] [Bullet] Exiting penetration at (1351.532, 370.8636) after traveling 41.6666717529297 pixels through wall
+[11:09:52] [INFO] [Bullet] Damage multiplier after penetration: 0.9
+[11:09:52] [INFO] [Bullet] Body exited signal received for penetrating body
+[11:09:52] [INFO] [Bullet] Exiting penetration at (1351.532, 370.8636) after traveling 41.6666717529297 pixels through wall
+[11:09:52] [INFO] [Bullet] Damage multiplier after penetration: 0.9
+[11:09:52] [INFO] [Bullet] Body exited signal received for penetrating body
+[11:09:52] [INFO] [Bullet] Exiting penetration at (1351.532, 370.8636) after traveling 41.6666717529297 pixels through wall
+[11:09:52] [INFO] [Bullet] Damage multiplier after penetration: 0.9
+[11:09:52] [INFO] [Bullet] Body exited signal received for penetrating body
+[11:09:52] [INFO] [Bullet] Exiting penetration at (1351.532, 370.8636) after traveling 41.6666717529297 pixels through wall
+[11:09:52] [INFO] [Bullet] Damage multiplier after penetration: 0.9
+[11:09:52] [INFO] [Bullet] Body exited signal received for penetrating body
+[11:09:52] [INFO] [Bullet] Exiting penetration at (1351.532, 370.8636) after traveling 41.6666717529297 pixels through wall
+[11:09:52] [INFO] [Bullet] Damage multiplier after penetration: 0.9
+[11:09:52] [INFO] [Bullet] Body exited signal received for penetrating body
+[11:09:52] [INFO] [Bullet] Exiting penetration at (1351.532, 370.8636) after traveling 41.6666717529297 pixels through wall
+[11:09:52] [INFO] [Bullet] Damage multiplier after penetration: 0.9
+[11:09:52] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1443.0499, 314.8441), shooter_id=38486935140, bullet_pos=(1852.5093, 58.02881)
+[11:09:52] [INFO] [Bullet] Using shooter_position, distance=483,33325
+[11:09:52] [INFO] [Bullet] Distance to wall: 483,33325 (32,91105% of viewport)
+[11:09:52] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:53] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1772.296, 113.3069), shooter_id=36842767874, bullet_pos=(1692.692, 601.2151)
+[11:09:53] [INFO] [Bullet] Using shooter_position, distance=494.359558105469
+[11:09:53] [INFO] [Bullet] Distance to wall: 494.359558105469 (33.661851358471% of viewport)
+[11:09:53] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:53] [INFO] [Bullet] Starting wall penetration at (1692.692, 601.2151)
+[11:09:53] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1772.296, 113.3069), shooter_id=36842767874, bullet_pos=(1691.534, 602.5779)
+[11:09:53] [INFO] [Bullet] Using shooter_position, distance=495.891723632813
+[11:09:53] [INFO] [Bullet] Distance to wall: 495.891723632813 (33.7661793266318% of viewport)
+[11:09:53] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:53] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1772.296, 113.3069), shooter_id=36842767874, bullet_pos=(1690.055, 604.3024)
+[11:09:53] [INFO] [Bullet] Using shooter_position, distance=497.835571289063
+[11:09:53] [INFO] [Bullet] Distance to wall: 497.835571289063 (33.8985394879665% of viewport)
+[11:09:53] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:53] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1772.296, 113.3069), shooter_id=36842767874, bullet_pos=(1689.679, 604.7367)
+[11:09:53] [INFO] [Bullet] Using shooter_position, distance=498.326019287109
+[11:09:53] [INFO] [Bullet] Distance to wall: 498.326019287109 (33.9319349940079% of viewport)
+[11:09:53] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:53] [INFO] [Bullet] Starting wall penetration at (1689.679, 604.7367)
+[11:09:53] [INFO] [Bullet] Raycast backward hit penetrating body at distance 10.9825639724731
+[11:09:53] [INFO] [Bullet] Raycast backward hit penetrating body at distance 5.1202712059021
+[11:09:53] [INFO] [Bullet] Body exited signal received for penetrating body
+[11:09:53] [INFO] [Bullet] Exiting penetration at (1720.238, 631.1876) after traveling 35.4166679382324 pixels through wall
+[11:09:53] [INFO] [Bullet] Damage multiplier after penetration: 0.45
+[11:09:53] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1772.296, 113.3069), shooter_id=36842767874, bullet_pos=(1725.109, 617.5997)
+[11:09:53] [INFO] [Bullet] Using shooter_position, distance=506.495758056641
+[11:09:53] [INFO] [Bullet] Distance to wall: 506.495758056641 (34.4882275296502% of viewport)
+[11:09:53] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:53] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1772.296, 113.3069), shooter_id=36842767874, bullet_pos=(1731.147, 609.9912)
+[11:09:53] [INFO] [Bullet] Using shooter_position, distance=498.386016845703
+[11:09:53] [INFO] [Bullet] Distance to wall: 498.386016845703 (33.9360203380983% of viewport)
+[11:09:53] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:53] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1772.296, 113.3069), shooter_id=36842767874, bullet_pos=(1728.501, 613.3682)
+[11:09:53] [INFO] [Bullet] Using shooter_position, distance=501.975402832031
+[11:09:53] [INFO] [Bullet] Distance to wall: 501.975402832031 (34.1804282302062% of viewport)
+[11:09:53] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:53] [INFO] [Bullet] Max penetration distance exceeded: 70.8333358764648 >= 48
+[11:09:53] [INFO] [Bullet] Body exited signal received for penetrating body
+[11:09:53] [INFO] [Bullet] Exiting penetration at (1750.608, 650.1678) after traveling 70.8333358764648 pixels through wall
+[11:09:53] [INFO] [Bullet] Damage multiplier after penetration: 0.45
+[11:09:53] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1772.296, 113.3069), shooter_id=36842767874, bullet_pos=(1770.516, 616.3785)
+[11:09:53] [INFO] [Bullet] Using shooter_position, distance=503.074737548828
+[11:09:53] [INFO] [Bullet] Distance to wall: 503.074737548828 (34.2552839525712% of viewport)
+[11:09:53] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:53] [INFO] [Bullet] Starting wall penetration at (1770.516, 616.3785)
+[11:09:53] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1772.296, 113.3069), shooter_id=36842767874, bullet_pos=(1772.653, 613.3506)
+[11:09:53] [INFO] [Bullet] Using shooter_position, distance=500.043884277344
+[11:09:53] [INFO] [Bullet] Distance to wall: 500.043884277344 (34.0489075800681% of viewport)
+[11:09:53] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:53] [INFO] [Bullet] Raycast backward hit penetrating body at distance 33.6861343383789
+[11:09:53] [INFO] [Bullet] Body exited signal received for penetrating body
+[11:09:53] [INFO] [Bullet] Exiting penetration at (1803.445, 639.8146) after traveling 35.4166679382324 pixels through wall
+[11:09:53] [INFO] [Bullet] Damage multiplier after penetration: 0.45
+[11:09:53] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1443.0499, 314.8441), shooter_id=38486935140, bullet_pos=(2489.4148, 379.27203)
+[11:09:53] [INFO] [Bullet] Using shooter_position, distance=1048,3464
+[11:09:53] [INFO] [Bullet] Distance to wall: 1048,3464 (71,38384% of viewport)
+[11:09:53] [INFO] [Bullet] Distance-based penetration chance: 63,38552%
+[11:09:53] [INFO] [Bullet] Penetration failed (distance roll)
+[11:09:53] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1772.296, 113.3069), shooter_id=36842767874, bullet_pos=(2265.129, 62.69449)
+[11:09:53] [INFO] [Bullet] Using shooter_position, distance=495.424926757813
+[11:09:53] [INFO] [Bullet] Distance to wall: 495.424926757813 (33.7343942690493% of viewport)
+[11:09:53] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:53] [INFO] [Bullet] Starting wall penetration at (2265.129, 62.69449)
+[11:09:53] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1772.296, 113.3069), shooter_id=36842767874, bullet_pos=(2240.945, 55.36588)
+[11:09:53] [INFO] [Bullet] Using shooter_position, distance=472.216705322266
+[11:09:53] [INFO] [Bullet] Distance to wall: 472.216705322266 (32.1541037953468% of viewport)
+[11:09:53] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:53] [INFO] [Bullet] Body exited signal received for penetrating body
+[11:09:53] [INFO] [Bullet] Exiting penetration at (2290.691, 38.63462) after traveling 0 pixels through wall
+[11:09:53] [INFO] [Bullet] Damage multiplier after penetration: 0.225
+[11:09:53] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1772.296, 113.3069), shooter_id=36842767874, bullet_pos=(2285.854, 64.38327)
+[11:09:53] [INFO] [Bullet] Using shooter_position, distance=515.883056640625
+[11:09:53] [INFO] [Bullet] Distance to wall: 515.883056640625 (35.1274259519537% of viewport)
+[11:09:53] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[11:09:53] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1772.296, 113.3069), shooter_id=36842767874, bullet_pos=(2406.134, 49.73141)
+[11:09:53] [INFO] [Bullet] Using shooter_position, distance=637.018432617188
+[11:09:53] [INFO] [Bullet] Distance to wall: 637.018432617188 (43.3757564505128% of viewport)
+[11:09:53] [INFO] [Bullet] Distance-based penetration chance: 96.0616174744018%
+[11:09:53] [INFO] [Bullet] Starting wall penetration at (2406.134, 49.73141)
+[11:09:53] [INFO] [Bullet] Raycast backward hit penetrating body at distance 8.42876243591309
+[11:09:53] [INFO] [Bullet] Body exited signal received for penetrating body
+[11:09:53] [INFO] [Bullet] Exiting penetration at (2432.361, 26.39729) after traveling 30.1041698455811 pixels through wall
+[11:09:53] [INFO] [Bullet] Damage multiplier after penetration: 0.225
+[11:09:53] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1772.296, 113.3069), shooter_id=36842767874, bullet_pos=(2463.221, 236.0893)
+[11:09:53] [INFO] [Bullet] Using shooter_position, distance=701.749572753906
+[11:09:53] [INFO] [Bullet] Distance to wall: 701.749572753906 (47.7834188124929% of viewport)
+[11:09:53] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1772.296, 113.3069), shooter_id=36842767874, bullet_pos=(2465.358, 287.6448)
+[11:09:53] [INFO] [Bullet] Using shooter_position, distance=714.652465820313
+[11:09:53] [INFO] [Bullet] Distance to wall: 714.652465820313 (48.6620005277127% of viewport)
+[11:09:54] [ENEMY] [Enemy7] State: ASSAULT -> PURSUING
+[11:09:54] [ENEMY] [Enemy7] State: PURSUING -> ASSAULT
+[11:09:54] [ENEMY] [Enemy8] State: ASSAULT -> PURSUING
+[11:09:54] [ENEMY] [Enemy8] State: PURSUING -> ASSAULT
+[11:09:55] [INFO] ------------------------------------------------------------
+[11:09:55] [INFO] GAME LOG ENDED: 2026-01-21T11:09:55
+[11:09:55] [INFO] ============================================================
