@@ -76,6 +76,11 @@ public partial class AssaultRifle : BaseWeapon
     private Line2D? _laserSight;
 
     /// <summary>
+    /// Reference to the Sprite2D node for the rifle visual.
+    /// </summary>
+    private Sprite2D? _rifleSprite;
+
+    /// <summary>
     /// Current aim direction based on laser sight.
     /// This direction is used for shooting when laser sight is enabled.
     /// </summary>
@@ -164,6 +169,9 @@ public partial class AssaultRifle : BaseWeapon
     public override void _Ready()
     {
         base._Ready();
+
+        // Get the rifle sprite for visual representation
+        _rifleSprite = GetNodeOrNull<Sprite2D>("RifleSprite");
 
         // Get or create the laser sight Line2D
         _laserSight = GetNodeOrNull<Line2D>("LaserSight");
@@ -316,6 +324,9 @@ public partial class AssaultRifle : BaseWeapon
         // Store the aim direction for shooting
         _aimDirection = direction;
 
+        // Update rifle sprite rotation to match aim direction
+        UpdateRifleSpriteRotation(direction);
+
         // Apply recoil offset to direction for laser visualization
         // This makes the laser show where the bullet will actually go
         Vector2 laserDirection = direction.Rotated(_recoilOffset);
@@ -367,6 +378,30 @@ public partial class AssaultRifle : BaseWeapon
         {
             _laserSight.Visible = LaserSightEnabled;
         }
+    }
+
+    /// <summary>
+    /// Updates the rifle sprite rotation to match the aim direction.
+    /// Also handles vertical flipping when aiming left to avoid upside-down appearance.
+    /// </summary>
+    /// <param name="direction">The current aim direction.</param>
+    private void UpdateRifleSpriteRotation(Vector2 direction)
+    {
+        if (_rifleSprite == null)
+        {
+            return;
+        }
+
+        // Calculate the angle from the direction
+        float angle = direction.Angle();
+
+        // Set the rotation
+        _rifleSprite.Rotation = angle;
+
+        // Flip the sprite vertically when aiming left (to avoid upside-down rifle)
+        // This happens when the angle is greater than 90 degrees or less than -90 degrees
+        bool aimingLeft = Mathf.Abs(angle) > Mathf.Pi / 2;
+        _rifleSprite.FlipV = aimingLeft;
     }
 
     /// <summary>
