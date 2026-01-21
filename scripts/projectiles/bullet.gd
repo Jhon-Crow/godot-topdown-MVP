@@ -184,11 +184,10 @@ func _on_body_entered(body: Node2D) -> void:
 	# Hit a static body (wall or obstacle) or alive enemy body
 	# Try to ricochet off static bodies (walls/obstacles)
 	if body is StaticBody2D or body is TileMap:
+		# Always spawn dust effect when hitting walls, regardless of ricochet
+		_spawn_wall_hit_effect(body)
 		if _try_ricochet(body):
 			return  # Bullet ricocheted, don't destroy
-
-	# Spawn wall dust effect
-	_spawn_wall_hit_effect(body)
 
 	# Play wall impact sound and destroy bullet
 	var audio_manager: Node = get_node_or_null("/root/AudioManager")
