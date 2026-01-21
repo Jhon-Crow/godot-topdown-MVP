@@ -1,0 +1,50 @@
+6dfdb82 Fix penetration visual feedback and bullet distance tracking
+3e3e3e2 Implement collision holes, permanent holes, and distance-based penetration
+518be63 Move FOV functionality to Experimental settings menu (disabled by default)
+22c0772 Fix cover tracking requiring direct visual confirmation
+2a22535 Add experimental FOV setting and fix cover tracking flickering
+6a46b7d Fix enemy shooting at player behind cover instead of exit points
+55a0399 Merge FOV implementation from PR #156 into cover aiming branch
+93f7834 Add cover exit aiming when player hides behind obstacles
+422fbdd Add 100-degree field of view (FOV) limitation for enemies
+736d21c Improve visual impact effects realism and add blood decals
+ccfce81 Add visual impact hit effects (dust, blood, sparks) based on caliber
+3b16f71 Fix missing SUPPORTING_OFFSET and SUPPORTING_ANGLE_OFFSET constants
+e9eaa7a Fix duplicate _suppression_timer variable declaration causing script parse error
+c02d991 Fix duplicate is_alive() function definition causing script parse error
+2d52c5f Fix critical syntax error in _process_flanking_state
+c9a9b4b Add group tactical AI system with squad coordination
+7500766 Fix duplicate function definitions causing enemy script compilation failure
+7ecd428 Add coordinated flanking system for tactical squad maneuvers
+a7dd6a0 Add Easy difficulty with longer enemy detection delay
+e429f7f Add 200ms delay before enemy cautious mode transition
+f17bee5 Add reload completion sound to trigger enemy cautious mode
+440dc0f Fix all enemies to pursue vulnerability sounds
+575d75a Fix state thrashing between COMBAT and PURSUING states
+e644441 Fix enemies not pursuing vulnerable player through walls
+d1ed150 Increase hearing range for reload and empty ammo sounds
+0bfc0a3 Fix game over message and improve enemy pursuit of vulnerable players
+96df26a Fix C# Player reload/ammo signals for aggressive enemy behavior
+de44f96 Add aggressive enemy behavior when player reloads or has empty ammo
+0629df8 Add difficulty selection to pause menu, disable distraction attack by default
+c92547d Fix distraction attack to shoot immediately, reduce ammo to 60
+23d6837 Add player distraction attack with highest priority
+f1580c7 Fix bullets not passing through dead enemies with multi-layered approach
+17e8010 Make dead enemies ignore bullets to preserve ammunition
+9471cbe Add weapon loudness property and diagnostic logging for sound propagation
+1360f25 Add physically-correct sound propagation with inverse square law
+22de596 Add sound propagation system for enemy combat triggering
+f8ba211 Fix FLANKING->PURSUING infinite loop with failure tracking and cooldown
+52f5173 Implement NavMesh-based pathfinding for tactical enemy movement
+ca8ed5c Enhance tactical movement with 8-raycast wall avoidance and path validation
+8452ca0 Revert tactical movement changes that caused GDScript parse error
+0b694b7 Enhance tactical movement with improved wall avoidance and path validation
+b6498f5 Fix FLANKING state freeze bug with timeout and stuck detection
+7814aed Fix COMBAT AI standing still and FLANKING rapid state cycling
+d694ded Fix FLANKING state premature exit when enemy can see but can't hit player
+bf04f82 Fix AI enemies stuck in PURSUING state behind last cover (#93)
+dde2008 Fix regression: restore PURSUING behavior when player escapes view
+8e924fb Add SEARCHING state for enemy AI search behavior
+9a31b1d Fix enemies stuck in cover by adding clear shot seeking behavior
+e3ae970 Fix GDScript parse errors and add file logging for EXE builds
+aaae4df Fix AI enemies stuck in cover by adding sidestep behavior

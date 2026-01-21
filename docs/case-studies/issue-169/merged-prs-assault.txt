@@ -1,0 +1,10 @@
+89	Add PURSUING and ASSAULT states for improved enemy AI combat behavior	konard:issue-88-77fcbdf439e0	MERGED	2026-01-17T21:48:52Z
+40	Strengthen enemies: assault rifle fire rate, unlimited LOS detection, and ammunition system	konard:issue-37-728abcb5b96e	MERGED	2026-01-12T09:31:19Z
+122	Add weapon sensitivity system for consistent aiming with hidden cursor	konard:issue-121-88c331c6c97a	MERGED	2026-01-18T09:43:18Z
+142	Add tutorial level (Обучение) with step-by-step guidance	konard:issue-139-b31e2b670960	MERGED	2026-01-20T18:26:42Z
+43	Implement balance and ammo economy with C# weapon system	konard:issue-42-d55eca913def	MERGED	2026-01-12T11:05:14Z
+133	Add reload completion sound to trigger enemy cautious mode	konard:issue-132-53ceaf1d9bc8	MERGED	2026-01-20T15:45:45Z
+126	Add weapon-specific screen shake on firing	konard:issue-109-8729d054728a	MERGED	2026-01-18T11:14:52Z
+25	Add AssaultRifle weapon with automatic/burst fire modes and laser sight	konard:issue-7-45da70e567d8	MERGED	2026-01-11T22:32:08Z
+112	Implement tactical movement with NavMesh pathfinding	konard:issue-98-8fbd1f637fff	MERGED	2026-01-18T04:50:15Z
+107	Fix AI enemies stuck in PURSUING state behind last cover	konard:issue-93-43a6ffeaa53a	MERGED	2026-01-18T03:36:12Z

@@ -181,10 +181,12 @@ class PursuePlayerAction extends GOAPAction:
 
 
 ## Action to initiate coordinated assault when multiple enemies are in combat.
-## All enemies rush the player simultaneously after a 5 second wait.
+## DISABLED per issue #169 - this action is kept for backwards compatibility but
+## always returns very high cost so it's never selected by the GOAP planner.
+## Previously: All enemies rush the player simultaneously after a 5 second wait.
 class AssaultPlayerAction extends GOAPAction:
 	func _init() -> void:
-		super._init("assault_player", 1.0)
+		super._init("assault_player", 100.0)  # Very high base cost - disabled
 		preconditions = {
 			"player_visible": true
 		}
@@ -193,12 +195,10 @@ class AssaultPlayerAction extends GOAPAction:
 			"player_engaged": true
 		}
 
-	func get_cost(_agent: Node, world_state: Dictionary) -> float:
-		# Only low cost if multiple enemies are in combat
-		var enemies_count: int = world_state.get("enemies_in_combat", 0)
-		if enemies_count >= 2:
-			return 0.5  # High priority for coordinated attack
-		return 5.0  # Very high cost if alone (prefer other actions)
+	func get_cost(_agent: Node, _world_state: Dictionary) -> float:
+		# DISABLED per issue #169 - always return very high cost
+		# so this action is never selected by the GOAP planner
+		return 1000.0  # Never select this action
 
 
 ## Action to attack a distracted player (aim > 23° away from enemy).
