@@ -11,6 +11,7 @@ namespace GodotTopDownTemplate.Characters;
 /// Shoots bullets towards the mouse cursor on left mouse button.
 /// Supports both automatic (hold to fire) and semi-automatic (click per shot) weapons.
 /// Uses R-F-R key sequence for instant reload (press R, then F, then R again).
+/// Uses 3-step grenade throwing: G+RMB drag → LMB+RMB → RMB drag throw.
 /// </summary>
 public partial class Player : BaseCharacter
 {
@@ -57,6 +58,18 @@ public partial class Player : BaseCharacter
     public float HitFlashDuration { get; set; } = 0.1f;
 
     /// <summary>
+    /// Grenade scene to instantiate when throwing.
+    /// </summary>
+    [Export]
+    public PackedScene? GrenadeScene { get; set; }
+
+    /// <summary>
+    /// Maximum number of grenades the player can carry.
+    /// </summary>
+    [Export]
+    public int MaxGrenades { get; set; } = 3;
+
+    /// <summary>
     /// Reference to the player's sprite for visual feedback.
     /// </summary>
     private Sprite2D? _sprite;
@@ -76,6 +89,48 @@ public partial class Player : BaseCharacter
     /// Used to determine if there was a bullet in the chamber.
     /// </summary>
     private int _ammoAtReloadStart = 0;
+
+    /// <summary>
+    /// Current number of grenades.
+    /// </summary>
+    private int _currentGrenades = 3;
+
+    /// <summary>
+    /// Grenade state machine states.
+    /// </summary>
+    private enum GrenadeState
+    {
+        Idle,           // No grenade action
+        TimerStarted,   // Step 1 complete - grenade timer running, waiting for LMB
+        Preparing,      // LMB held, waiting for RMB to be pressed
+        ReadyToAim,     // LMB + RMB held, waiting for LMB release
+        Aiming          // Step 2 complete - waiting for RMB drag and release to throw
+    }
+
+    /// <summary>
+    /// Current grenade state.
+    /// </summary>
+    private GrenadeState _grenadeState = GrenadeState.Idle;
+
+    /// <summary>
+    /// Active grenade instance (created when timer starts).
+    /// </summary>
+    private RigidBody2D? _activeGrenade = null;
+
+    /// <summary>
+    /// Position where the grenade throw drag started.
+    /// </summary>
+    private Vector2 _grenadeDragStart = Vector2.Zero;
+
+    /// <summary>
+    /// Whether the grenade throw drag is active (for step 1).
+    /// </summary>
+    private bool _grenadeDragActive = false;
+
+    /// <summary>
+    /// Minimum drag distance to confirm step 1 (in pixels).
+    /// </summary>
+    private const float MinDragDistanceForStep1 = 30.0f;
 
     /// <summary>
     /// Signal emitted when reload sequence progresses.
@@ -102,6 +157,18 @@ public partial class Player : BaseCharacter
     /// </summary>
     [Signal]
     public delegate void AmmoDepletedEventHandler();
+
+    /// <summary>
+    /// Signal emitted when grenade count changes.
+    /// </summary>
+    [Signal]
+    public delegate void GrenadeChangedEventHandler(int current, int maximum);
+
+    /// <summary>
+    /// Signal emitted when a grenade is thrown.
+    /// </summary>
+    [Signal]
+    public delegate void GrenadeThrownEventHandler();
 
     public override void _Ready()
     {
@@ -138,6 +205,23 @@ public partial class Player : BaseCharacter
             }
         }
 
+        // Preload grenade scene if not set in inspector
+        if (GrenadeScene == null)
+        {
+            GrenadeScene = GD.Load<PackedScene>("res://scenes/projectiles/FlashbangGrenade.tscn");
+            if (GrenadeScene != null)
+            {
+                LogToFile($"[Player.Grenade] Grenade scene loaded");
+            }
+            else
+            {
+                LogToFile($"[Player.Grenade] WARNING: Grenade scene not found at res://scenes/projectiles/FlashbangGrenade.tscn");
+            }
+        }
+
+        // Initialize grenade count
+        _currentGrenades = MaxGrenades;
+
         // Auto-equip weapon if not set but a weapon child exists
         if (CurrentWeapon == null)
         {
@@ -147,6 +231,8 @@ public partial class Player : BaseCharacter
                 GD.Print($"[Player] {Name}: Auto-equipped weapon {CurrentWeapon.Name}");
             }
         }
+
+        LogToFile($"[Player] Ready! Grenades: {_currentGrenades}/{MaxGrenades}");
     }
 
     /// <summary>
@@ -178,8 +264,22 @@ public partial class Player : BaseCharacter
         Vector2 inputDirection = GetInputDirection();
         ApplyMovement(inputDirection, (float)delta);
 
+        // Handle grenade input first (so it can consume shoot input)
+        HandleGrenadeInput();
+
+        // Make active grenade follow player if held
+        if (_activeGrenade != null && IsInstanceValid(_activeGrenade))
+        {
+            _activeGrenade.GlobalPosition = GlobalPosition;
+        }
+
         // Handle shooting input - support both automatic and semi-automatic weapons
-        HandleShootingInput();
+        // Only allow shooting if not in grenade preparation state (steps 2-3 use LMB)
+        bool canShoot = _grenadeState == GrenadeState.Idle || _grenadeState == GrenadeState.TimerStarted;
+        if (canShoot)
+        {
+            HandleShootingInput();
+        }
 
         // Handle reload sequence input (R-F-R)
         HandleReloadSequenceInput();
@@ -673,4 +773,378 @@ public partial class Player : BaseCharacter
         }
         CurrentWeapon = null;
     }
+
+    #region Grenade System
+
+    /// <summary>
+    /// Handle grenade input with 3-step mechanic.
+    /// Step 1: G + RMB drag right → starts 4s timer (pin pulled)
+    /// Step 2: LMB held → RMB pressed while LMB held → LMB released → prepare to throw
+    /// Step 3: RMB still held → drag in direction and release RMB → throw grenade
+    /// </summary>
+    private void HandleGrenadeInput()
+    {
+        // Check for active grenade explosion (explodes in hand after 4 seconds)
+        if (_activeGrenade != null && !IsInstanceValid(_activeGrenade))
+        {
+            // Grenade exploded while held
+            ResetGrenadeState();
+            return;
+        }
+
+        switch (_grenadeState)
+        {
+            case GrenadeState.Idle:
+                HandleGrenadeIdleState();
+                break;
+            case GrenadeState.TimerStarted:
+                HandleGrenadeTimerStartedState();
+                break;
+            case GrenadeState.Preparing:
+                HandleGrenadePreparingState();
+                break;
+            case GrenadeState.ReadyToAim:
+                HandleGrenadeReadyToAimState();
+                break;
+            case GrenadeState.Aiming:
+                HandleGrenadeAimingState();
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Handle grenade input in Idle state.
+    /// Waiting for G + RMB drag right to start timer (Step 1).
+    /// </summary>
+    private void HandleGrenadeIdleState()
+    {
+        // Check if G key is held and player has grenades
+        if (Input.IsActionPressed("grenade_prepare") && _currentGrenades > 0)
+        {
+            // Check if RMB was just pressed (start of drag)
+            if (Input.IsActionJustPressed("grenade_throw"))
+            {
+                _grenadeDragStart = GetGlobalMousePosition();
+                _grenadeDragActive = true;
+                LogToFile($"[Player.Grenade] Step 1 started: G held, RMB pressed at {_grenadeDragStart}");
+            }
+
+            // Check if RMB was released (end of drag)
+            if (_grenadeDragActive && Input.IsActionJustReleased("grenade_throw"))
+            {
+                Vector2 dragEnd = GetGlobalMousePosition();
+                Vector2 dragVector = dragEnd - _grenadeDragStart;
+
+                // Check if drag was to the right and long enough
+                if (dragVector.X > MinDragDistanceForStep1)
+                {
+                    StartGrenadeTimer();
+                    LogToFile($"[Player.Grenade] Step 1 complete! Drag: {dragVector}");
+                }
+                else
+                {
+                    LogToFile($"[Player.Grenade] Step 1 failed: drag not far enough right ({dragVector.X} < {MinDragDistanceForStep1})");
+                }
+                _grenadeDragActive = false;
+            }
+        }
+        else
+        {
+            _grenadeDragActive = false;
+        }
+    }
+
+    /// <summary>
+    /// Handle grenade input in TimerStarted state.
+    /// Waiting for LMB to be pressed (Step 2 start).
+    /// </summary>
+    private void HandleGrenadeTimerStartedState()
+    {
+        // If G is released, drop grenade at feet
+        if (!Input.IsActionPressed("grenade_prepare"))
+        {
+            LogToFile("[Player.Grenade] G released - dropping grenade at feet");
+            DropGrenadeAtFeet();
+            return;
+        }
+
+        // Check if LMB is pressed to start step 2
+        if (Input.IsActionJustPressed("shoot"))
+        {
+            _grenadeState = GrenadeState.Preparing;
+            LogToFile("[Player.Grenade] Step 2 started: LMB pressed, waiting for RMB");
+        }
+    }
+
+    /// <summary>
+    /// Handle grenade input in Preparing state.
+    /// LMB is held, waiting for RMB to be pressed.
+    /// </summary>
+    private void HandleGrenadePreparingState()
+    {
+        // If G is released, drop grenade at feet
+        if (!Input.IsActionPressed("grenade_prepare"))
+        {
+            LogToFile("[Player.Grenade] G released - dropping grenade at feet");
+            DropGrenadeAtFeet();
+            return;
+        }
+
+        // If LMB is released before RMB is pressed, go back to TimerStarted
+        if (!Input.IsActionPressed("shoot"))
+        {
+            _grenadeState = GrenadeState.TimerStarted;
+            LogToFile("[Player.Grenade] LMB released before RMB - back to timer started state");
+            return;
+        }
+
+        // Check if RMB is pressed while LMB is held
+        if (Input.IsActionJustPressed("grenade_throw"))
+        {
+            _grenadeState = GrenadeState.ReadyToAim;
+            LogToFile("[Player.Grenade] Step 2 progressing: LMB+RMB held, release LMB to aim");
+        }
+    }
+
+    /// <summary>
+    /// Handle grenade input in ReadyToAim state.
+    /// LMB + RMB are held, waiting for LMB release.
+    /// </summary>
+    private void HandleGrenadeReadyToAimState()
+    {
+        // If G is released, drop grenade at feet
+        if (!Input.IsActionPressed("grenade_prepare"))
+        {
+            LogToFile("[Player.Grenade] G released - dropping grenade at feet");
+            DropGrenadeAtFeet();
+            return;
+        }
+
+        // If RMB is released before LMB, go back to Preparing
+        if (!Input.IsActionPressed("grenade_throw"))
+        {
+            _grenadeState = GrenadeState.Preparing;
+            LogToFile("[Player.Grenade] RMB released before LMB - back to preparing state");
+            return;
+        }
+
+        // If LMB is released while RMB is held, enter aiming state
+        if (Input.IsActionJustReleased("shoot"))
+        {
+            _grenadeState = GrenadeState.Aiming;
+            _grenadeDragStart = GetGlobalMousePosition();
+            LogToFile("[Player.Grenade] Step 2 complete! Now aiming - drag RMB and release to throw");
+        }
+    }
+
+    /// <summary>
+    /// Handle grenade input in Aiming state.
+    /// RMB is held, waiting for drag and release to throw.
+    /// </summary>
+    private void HandleGrenadeAimingState()
+    {
+        // If G is released, drop grenade at feet
+        if (!Input.IsActionPressed("grenade_prepare"))
+        {
+            LogToFile("[Player.Grenade] G released - dropping grenade at feet");
+            DropGrenadeAtFeet();
+            return;
+        }
+
+        // If RMB is released, throw the grenade
+        if (Input.IsActionJustReleased("grenade_throw"))
+        {
+            Vector2 dragEnd = GetGlobalMousePosition();
+            ThrowGrenade(dragEnd);
+        }
+    }
+
+    /// <summary>
+    /// Start the grenade timer (step 1 complete - pin pulled).
+    /// Creates the grenade instance and starts its 4-second fuse.
+    /// </summary>
+    private void StartGrenadeTimer()
+    {
+        if (_currentGrenades <= 0)
+        {
+            LogToFile("[Player.Grenade] Cannot start timer: no grenades");
+            return;
+        }
+
+        if (GrenadeScene == null)
+        {
+            LogToFile("[Player.Grenade] Cannot start timer: GrenadeScene is null");
+            return;
+        }
+
+        // Create grenade instance (held by player)
+        _activeGrenade = GrenadeScene.Instantiate<RigidBody2D>();
+        if (_activeGrenade == null)
+        {
+            LogToFile("[Player.Grenade] Failed to instantiate grenade scene");
+            return;
+        }
+        _activeGrenade.GlobalPosition = GlobalPosition;
+
+        // Add grenade to scene (it will follow player until thrown)
+        GetTree().CurrentScene.AddChild(_activeGrenade);
+
+        // Activate the grenade timer (starts 4s countdown)
+        if (_activeGrenade.HasMethod("activate_timer"))
+        {
+            _activeGrenade.Call("activate_timer");
+        }
+
+        _grenadeState = GrenadeState.TimerStarted;
+
+        // Decrement grenade count now (pin is pulled)
+        _currentGrenades--;
+        EmitSignal(SignalName.GrenadeChanged, _currentGrenades, MaxGrenades);
+
+        // Play grenade prepare sound
+        var audioManager = GetNodeOrNull("/root/AudioManager");
+        if (audioManager != null && audioManager.HasMethod("play_grenade_prepare"))
+        {
+            audioManager.Call("play_grenade_prepare", GlobalPosition);
+        }
+
+        LogToFile($"[Player.Grenade] Timer started, grenade created at {GlobalPosition}");
+    }
+
+    /// <summary>
+    /// Drop the grenade at player's feet (when G is released before throwing).
+    /// </summary>
+    private void DropGrenadeAtFeet()
+    {
+        if (_activeGrenade != null && IsInstanceValid(_activeGrenade))
+        {
+            // The grenade stays where it is (at player's feet)
+            LogToFile($"[Player.Grenade] Grenade dropped at feet at {_activeGrenade.GlobalPosition}");
+        }
+        ResetGrenadeState();
+    }
+
+    /// <summary>
+    /// Reset grenade state to idle.
+    /// </summary>
+    private void ResetGrenadeState()
+    {
+        _grenadeState = GrenadeState.Idle;
+        _grenadeDragActive = false;
+        _grenadeDragStart = Vector2.Zero;
+        // Don't null out _activeGrenade - it's now an independent object in the scene
+        _activeGrenade = null;
+    }
+
+    /// <summary>
+    /// Throw the grenade based on aiming drag direction and distance.
+    /// </summary>
+    /// <param name="dragEnd">The end position of the drag.</param>
+    private void ThrowGrenade(Vector2 dragEnd)
+    {
+        if (_activeGrenade == null || !IsInstanceValid(_activeGrenade))
+        {
+            LogToFile("[Player.Grenade] Cannot throw: no active grenade");
+            ResetGrenadeState();
+            return;
+        }
+
+        // Calculate throw direction and distance from drag
+        Vector2 dragVector = dragEnd - _grenadeDragStart;
+        float dragDistance = dragVector.Length();
+
+        // Direction is the drag direction (normalized)
+        Vector2 throwDirection = dragVector.Normalized();
+
+        // If drag is too short, use a minimum distance for the throw
+        if (dragDistance < 10.0f)
+        {
+            // Default to throwing forward (towards mouse from player)
+            throwDirection = (GetGlobalMousePosition() - GlobalPosition).Normalized();
+            dragDistance = 50.0f; // Minimum throw distance
+        }
+
+        LogToFile($"[Player.Grenade] Throwing! Direction: {throwDirection}, Drag distance: {dragDistance}");
+
+        // Set grenade position to player's current position (in case player moved)
+        _activeGrenade.GlobalPosition = GlobalPosition;
+
+        // Call the throw method on the grenade
+        if (_activeGrenade.HasMethod("throw_grenade"))
+        {
+            _activeGrenade.Call("throw_grenade", throwDirection, dragDistance);
+        }
+
+        // Emit signal
+        EmitSignal(SignalName.GrenadeThrown);
+
+        // Play grenade throw sound
+        var audioManager = GetNodeOrNull("/root/AudioManager");
+        if (audioManager != null && audioManager.HasMethod("play_grenade_throw"))
+        {
+            audioManager.Call("play_grenade_throw", GlobalPosition);
+        }
+
+        LogToFile($"[Player.Grenade] Thrown! Direction: {throwDirection}, Distance: {dragDistance}");
+
+        // Reset state (grenade is now independent)
+        ResetGrenadeState();
+    }
+
+    /// <summary>
+    /// Get current grenade count.
+    /// </summary>
+    public int GetCurrentGrenades()
+    {
+        return _currentGrenades;
+    }
+
+    /// <summary>
+    /// Get maximum grenade count.
+    /// </summary>
+    public int GetMaxGrenades()
+    {
+        return MaxGrenades;
+    }
+
+    /// <summary>
+    /// Add grenades to inventory (e.g., from pickup).
+    /// </summary>
+    /// <param name="count">Number of grenades to add.</param>
+    public void AddGrenades(int count)
+    {
+        _currentGrenades = Mathf.Min(_currentGrenades + count, MaxGrenades);
+        EmitSignal(SignalName.GrenadeChanged, _currentGrenades, MaxGrenades);
+    }
+
+    /// <summary>
+    /// Check if player is preparing to throw a grenade.
+    /// </summary>
+    public bool IsPreparingGrenade()
+    {
+        return _grenadeState != GrenadeState.Idle;
+    }
+
+    #endregion
+
+    #region Logging
+
+    /// <summary>
+    /// Logs a message to the FileLogger (GDScript autoload) for debugging.
+    /// </summary>
+    /// <param name="message">The message to log.</param>
+    private void LogToFile(string message)
+    {
+        // Print to console
+        GD.Print(message);
+
+        // Also log to FileLogger if available
+        var fileLogger = GetNodeOrNull("/root/FileLogger");
+        if (fileLogger != null && fileLogger.HasMethod("info"))
+        {
+            fileLogger.Call("info", message);
+        }
+    }
+
+    #endregion
 }
