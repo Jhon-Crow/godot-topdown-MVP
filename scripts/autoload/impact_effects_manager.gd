@@ -14,6 +14,7 @@ var _dust_effect_scene: PackedScene = null
 var _blood_effect_scene: PackedScene = null
 var _sparks_effect_scene: PackedScene = null
 var _blood_decal_scene: PackedScene = null
+var _bullet_hole_scene: PackedScene = null
 
 ## Default effect scale for calibers without explicit setting.
 const DEFAULT_EFFECT_SCALE: float = 1.0
@@ -27,8 +28,14 @@ const MAX_EFFECT_SCALE: float = 2.0
 ## Maximum number of blood decals before oldest ones are removed.
 const MAX_BLOOD_DECALS: int = 100
 
+## Maximum number of bullet holes before oldest ones are removed.
+const MAX_BULLET_HOLES: int = 200
+
 ## Active blood decals for cleanup management.
 var _blood_decals: Array[Node2D] = []
+
+## Active bullet holes for cleanup management.
+var _bullet_holes: Array[Node2D] = []
 
 ## Enable/disable debug logging for effect spawning.
 var _debug_effects: bool = false
@@ -75,6 +82,16 @@ func _preload_effect_scenes() -> void:
 		# Blood decals are optional - don't warn, just log in debug mode
 		if _debug_effects:
 			print("[ImpactEffectsManager] BloodDecal scene not found (optional)")
+
+	var bullet_hole_path := "res://scenes/effects/BulletHole.tscn"
+	if ResourceLoader.exists(bullet_hole_path):
+		_bullet_hole_scene = load(bullet_hole_path)
+		if _debug_effects:
+			print("[ImpactEffectsManager] Loaded BulletHole scene")
+	else:
+		# Bullet holes are optional - don't warn, just log in debug mode
+		if _debug_effects:
+			print("[ImpactEffectsManager] BulletHole scene not found (optional)")
 
 
 ## Spawns a dust effect at the given position when a bullet hits a wall.
@@ -279,3 +296,83 @@ func clear_blood_decals() -> void:
 	_blood_decals.clear()
 	if _debug_effects:
 		print("[ImpactEffectsManager] All blood decals cleared")
+
+
+## Spawns a bullet hole at the given position when a bullet penetrates a wall.
+## @param position: World position where the bullet entered/exited the wall.
+## @param surface_normal: Normal vector of the surface (hole faces this direction).
+## @param caliber_data: Optional caliber data for effect scaling.
+## @param is_entry: True for entry hole (darker), false for exit hole (lighter).
+func spawn_penetration_hole(position: Vector2, surface_normal: Vector2, caliber_data: Resource = null, is_entry: bool = true) -> void:
+	if _debug_effects:
+		print("[ImpactEffectsManager] spawn_penetration_hole at ", position, " is_entry=", is_entry)
+
+	if _bullet_hole_scene == null:
+		if _debug_effects:
+			print("[ImpactEffectsManager] BulletHole scene not loaded, skipping hole effect")
+		return
+
+	var hole := _bullet_hole_scene.instantiate() as Node2D
+	if hole == null:
+		if _debug_effects:
+			print("[ImpactEffectsManager] ERROR: Failed to instantiate bullet hole")
+		return
+
+	hole.global_position = position
+
+	# Rotate hole to face the surface normal direction
+	hole.rotation = surface_normal.angle()
+
+	# Scale based on caliber
+	var effect_scale := _get_effect_scale(caliber_data)
+
+	# Entry holes are slightly smaller and darker
+	# Exit holes are slightly larger due to bullet expansion
+	if is_entry:
+		effect_scale *= 0.8
+		# Make entry holes darker
+		if hole is Sprite2D:
+			hole.modulate = Color(0.8, 0.8, 0.8, 0.95)
+	else:
+		effect_scale *= 1.2
+		# Exit holes are slightly lighter (spalling effect)
+		if hole is Sprite2D:
+			hole.modulate = Color(1.0, 1.0, 1.0, 0.9)
+
+	hole.scale = Vector2(effect_scale, effect_scale)
+
+	# Add to scene
+	_add_effect_to_scene(hole)
+
+	# Track hole for cleanup
+	_bullet_holes.append(hole)
+
+	# Remove oldest holes if limit exceeded
+	while _bullet_holes.size() > MAX_BULLET_HOLES:
+		var oldest := _bullet_holes.pop_front() as Node2D
+		if oldest and is_instance_valid(oldest):
+			oldest.queue_free()
+
+	# Also spawn dust effect at the hole location
+	spawn_dust_effect(position, surface_normal, caliber_data)
+
+	if _debug_effects:
+		print("[ImpactEffectsManager] Bullet hole spawned, total: ", _bullet_holes.size())
+
+
+## Clears all bullet holes from the scene.
+## Call this on scene transitions or when cleaning up.
+func clear_bullet_holes() -> void:
+	for hole in _bullet_holes:
+		if hole and is_instance_valid(hole):
+			hole.queue_free()
+	_bullet_holes.clear()
+	if _debug_effects:
+		print("[ImpactEffectsManager] All bullet holes cleared")
+
+
+## Clears all persistent effects (blood decals and bullet holes).
+## Call this on scene transitions.
+func clear_all_persistent_effects() -> void:
+	clear_blood_decals()
+	clear_bullet_holes()
