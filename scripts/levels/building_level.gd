@@ -425,18 +425,22 @@ func _update_debug_ui() -> void:
 
 
 ## Called when an enemy dies.
-func _on_enemy_died() -> void:
+## @param is_ricochet_kill: True if killed by a ricocheted bullet.
+## @param is_penetration_kill: True if killed by a bullet that penetrated a wall.
+func _on_enemy_died(is_ricochet_kill: bool = false, is_penetration_kill: bool = false) -> void:
 	_current_enemy_count -= 1
-	_log_to_file("Enemy died signal received. Remaining: %d" % _current_enemy_count)
+	_log_to_file("Enemy died signal received (ricochet=%s, penetration=%s). Remaining: %d" % [is_ricochet_kill, is_penetration_kill, _current_enemy_count])
 	_update_enemy_count_label()
 
 	# Register kill with GameManager
 	if GameManager:
 		GameManager.register_kill()
 
-	# Register kill with ScoreManager for combo and points
+	# Register kill with ScoreManager for combo and points (with ricochet/penetration info)
 	var score_manager: Node = get_node_or_null("/root/ScoreManager")
-	if score_manager:
+	if score_manager and score_manager.has_method("register_kill_extended"):
+		score_manager.register_kill_extended(is_ricochet_kill, is_penetration_kill)
+	elif score_manager:
 		score_manager.register_kill()
 
 	if _current_enemy_count <= 0:
@@ -756,6 +760,8 @@ COMBO BONUS: %s (Max: %dx)
 TIME BONUS: %s (%s)
 ACCURACY BONUS: %s (%.1f%%)
 AGGRESSIVENESS: %s (%.1f/min)
+RICOCHET BONUS: %s (%d kills)
+PENETRATION BONUS: %s (%d kills)
 DAMAGE PENALTY: -%s (%d hits)
 ---
 TOTAL SCORE: %s""" % [
@@ -768,6 +774,10 @@ TOTAL SCORE: %s""" % [
 			score_result.accuracy,
 			score_manager.format_score(score_result.aggressiveness_bonus_points),
 			score_result.kills_per_minute,
+			score_manager.format_score(score_result.ricochet_bonus_points),
+			score_result.ricochet_kills,
+			score_manager.format_score(score_result.penetration_bonus_points),
+			score_result.penetration_kills,
 			score_manager.format_score(score_result.damage_penalty_points),
 			score_result.damage_taken,
 			score_manager.format_score(score_result.total_score)

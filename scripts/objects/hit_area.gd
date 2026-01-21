@@ -24,3 +24,21 @@ func on_hit_with_info(hit_direction: Vector2, caliber_data: Resource) -> void:
 	elif parent and parent.has_method("on_hit"):
 		# Fallback to basic on_hit if extended method not available
 		parent.on_hit()
+
+
+## Called when hit by a projectile with full extended hit information.
+## Includes ricochet and penetration status for scoring system.
+## @param hit_direction: Direction the bullet was traveling.
+## @param caliber_data: Caliber resource for effect scaling.
+## @param is_ricochet_kill: True if bullet ricocheted before hitting.
+## @param is_penetration_kill: True if bullet penetrated a wall before hitting.
+func on_hit_extended(hit_direction: Vector2, caliber_data: Resource, is_ricochet_kill: bool, is_penetration_kill: bool) -> void:
+	var parent := get_parent()
+	if parent and parent.has_method("on_hit_extended"):
+		parent.on_hit_extended(hit_direction, caliber_data, is_ricochet_kill, is_penetration_kill)
+	elif parent and parent.has_method("on_hit_with_info"):
+		# Fallback to basic on_hit_with_info if extended method not available
+		parent.on_hit_with_info(hit_direction, caliber_data)
+	elif parent and parent.has_method("on_hit"):
+		# Fallback to basic on_hit
+		parent.on_hit()

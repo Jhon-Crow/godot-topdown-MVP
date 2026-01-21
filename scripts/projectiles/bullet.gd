@@ -346,7 +346,10 @@ func _on_area_entered(area: Area2D) -> void:
 			return  # Pass through dead entities
 
 		# Call on_hit with extended parameters if supported, otherwise use basic call
-		if area.has_method("on_hit_with_info"):
+		if area.has_method("on_hit_extended"):
+			# Extended hit info including ricochet and penetration status for scoring
+			area.on_hit_extended(direction, caliber_data, _has_ricocheted, _has_penetrated)
+		elif area.has_method("on_hit_with_info"):
 			area.on_hit_with_info(direction, caliber_data)
 		else:
 			area.on_hit()

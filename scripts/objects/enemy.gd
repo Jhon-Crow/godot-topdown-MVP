@@ -167,7 +167,8 @@ enum BehaviorMode {
 signal hit
 
 ## Signal emitted when the enemy dies.
-signal died
+## Includes kill info: is_ricochet_kill, is_penetration_kill for scoring.
+signal died(is_ricochet_kill: bool, is_penetration_kill: bool)
 
 ## Signal emitted when AI state changes.
 signal state_changed(new_state: AIState)
@@ -324,6 +325,12 @@ var _retreat_mode: RetreatMode = RetreatMode.FULL_HP
 ## Number of hits taken during the current retreat/combat encounter.
 ## Resets when enemy enters IDLE state or finishes retreating.
 var _hits_taken_in_encounter: int = 0
+
+## Tracks if the last hit was from a ricocheted bullet (for scoring).
+var _last_hit_was_ricochet: bool = false
+
+## Tracks if the last hit was from a wall-penetrating bullet (for scoring).
+var _last_hit_was_penetration: bool = false
 
 ## Timer for periodic turning to cover during FULL_HP retreat.
 var _retreat_turn_timer: float = 0.0
@@ -3540,8 +3547,23 @@ func on_hit() -> void:
 ## @param hit_direction: Direction the bullet was traveling.
 ## @param caliber_data: Caliber resource for effect scaling.
 func on_hit_with_info(hit_direction: Vector2, caliber_data: Resource) -> void:
+	# Call extended version with default values (no ricochet/penetration)
+	on_hit_extended(hit_direction, caliber_data, false, false)
+
+
+## Called when the enemy is hit with full extended hit information.
+## Includes ricochet and penetration status for scoring system.
+## @param hit_direction: Direction the bullet was traveling.
+## @param caliber_data: Caliber resource for effect scaling.
+## @param is_ricochet_kill: True if bullet ricocheted before hitting.
+## @param is_penetration_kill: True if bullet penetrated a wall before hitting.
+func on_hit_extended(hit_direction: Vector2, caliber_data: Resource, is_ricochet_kill: bool, is_penetration_kill: bool) -> void:
 	if not _is_alive:
 		return
+
+	# Track ricochet/penetration status for when the kill is registered
+	_last_hit_was_ricochet = is_ricochet_kill
+	_last_hit_was_penetration = is_penetration_kill
 
 	hit.emit()
 
@@ -3622,8 +3644,8 @@ func _get_effective_detection_delay() -> float:
 ## Called when the enemy dies.
 func _on_death() -> void:
 	_is_alive = false
-	_log_to_file("Enemy died")
-	died.emit()
+	_log_to_file("Enemy died (ricochet=%s, penetration=%s)" % [_last_hit_was_ricochet, _last_hit_was_penetration])
+	died.emit(_last_hit_was_ricochet, _last_hit_was_penetration)
 
 	# Disable hit area collision so bullets pass through dead enemies.
 	# This prevents dead enemies from "absorbing" bullets before respawn/deletion.
