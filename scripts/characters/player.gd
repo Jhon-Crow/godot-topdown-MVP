@@ -76,8 +76,17 @@ var _current_health: int = 5
 ## Whether the player is alive.
 var _is_alive: bool = true
 
-## Reference to the sprite for color changes.
-@onready var _sprite: Sprite2D = $Sprite2D
+## Reference to the player model node containing all sprites.
+@onready var _player_model: Node2D = $PlayerModel
+
+## References to individual sprite parts for color changes.
+@onready var _body_sprite: Sprite2D = $PlayerModel/Body
+@onready var _head_sprite: Sprite2D = $PlayerModel/Head
+@onready var _left_arm_sprite: Sprite2D = $PlayerModel/LeftArm
+@onready var _right_arm_sprite: Sprite2D = $PlayerModel/RightArm
+
+## Legacy reference for compatibility (points to body sprite).
+@onready var _sprite: Sprite2D = $PlayerModel/Body
 
 ## Progressive spread system parameters.
 ## Number of shots before spread starts increasing.
@@ -586,10 +595,10 @@ func on_hit_with_info(hit_direction: Vector2, caliber_data: Resource) -> void:
 
 ## Shows a brief flash effect when hit.
 func _show_hit_flash() -> void:
-	if not _sprite:
+	if not _player_model:
 		return
 
-	_sprite.modulate = hit_flash_color
+	_set_all_sprites_modulate(hit_flash_color)
 
 	await get_tree().create_timer(hit_flash_duration).timeout
 
@@ -600,12 +609,26 @@ func _show_hit_flash() -> void:
 
 ## Updates the sprite color based on current health percentage.
 func _update_health_visual() -> void:
-	if not _sprite:
+	if not _player_model:
 		return
 
 	# Interpolate color based on health percentage
 	var health_percent := _get_health_percent()
-	_sprite.modulate = full_health_color.lerp(low_health_color, 1.0 - health_percent)
+	var color := full_health_color.lerp(low_health_color, 1.0 - health_percent)
+	_set_all_sprites_modulate(color)
+
+
+## Sets the modulate color on all player sprite parts.
+## @param color: The color to apply to all sprites.
+func _set_all_sprites_modulate(color: Color) -> void:
+	if _body_sprite:
+		_body_sprite.modulate = color
+	if _head_sprite:
+		_head_sprite.modulate = color
+	if _left_arm_sprite:
+		_left_arm_sprite.modulate = color
+	if _right_arm_sprite:
+		_right_arm_sprite.modulate = color
 
 
 ## Returns the current health as a percentage (0.0 to 1.0).
@@ -619,9 +642,8 @@ func _get_health_percent() -> float:
 func _on_death() -> void:
 	_is_alive = false
 	died.emit()
-	# Visual feedback - make sprite darker/transparent
-	if _sprite:
-		_sprite.modulate = Color(0.3, 0.3, 0.3, 0.5)
+	# Visual feedback - make all sprites darker/transparent
+	_set_all_sprites_modulate(Color(0.3, 0.3, 0.3, 0.5))
 
 
 ## Get current health.
