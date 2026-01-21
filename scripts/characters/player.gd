@@ -129,6 +129,10 @@ signal reload_sequence_progress(step: int, total: int)
 ## Signal emitted when reload completes.
 signal reload_completed
 
+## Signal emitted when reload starts (first step of sequence or simple reload).
+## This signal notifies enemies that the player has begun reloading.
+signal reload_started
+
 
 func _ready() -> void:
 	# Preload bullet scene if not set in inspector
@@ -244,6 +248,10 @@ func _shoot() -> void:
 	# This prevents the player from being hit by their own bullets
 	bullet.shooter_id = get_instance_id()
 
+	# Set shooter position for distance-based penetration calculation
+	# Direct assignment - the bullet script defines this property
+	bullet.shooter_position = global_position
+
 	# Add bullet to the scene tree (parent's parent to avoid it being a child of player)
 	get_tree().current_scene.add_child(bullet)
 
@@ -340,6 +348,8 @@ func _handle_simple_reload_input() -> void:
 		if audio_manager and audio_manager.has_method("play_reload_full"):
 			audio_manager.play_reload_full(global_position)
 		reload_sequence_progress.emit(1, 1)
+		# Notify enemies that reload has started
+		reload_started.emit()
 
 
 ## Complete the simple reload.
@@ -349,6 +359,11 @@ func _complete_simple_reload() -> void:
 	_reload_timer = 0.0
 	ammo_changed.emit(_current_ammo, max_ammo)
 	reload_completed.emit()
+	# Emit reload completion sound for in-game sound propagation
+	# This alerts enemies that player is no longer vulnerable and they should become cautious
+	var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
+	if sound_propagation and sound_propagation.has_method("emit_player_reload_complete"):
+		sound_propagation.emit_player_reload_complete(global_position, self)
 
 
 ## Handle reload sequence input (R-F-R).
@@ -373,6 +388,8 @@ func _handle_sequence_reload_input() -> void:
 				if audio_manager and audio_manager.has_method("play_reload_mag_out"):
 					audio_manager.play_reload_mag_out(global_position)
 				reload_sequence_progress.emit(1, 3)
+				# Notify enemies that reload has started
+				reload_started.emit()
 		1:
 			# Waiting for F press
 			if Input.is_action_just_pressed("reload_step"):
@@ -410,6 +427,11 @@ func _complete_reload() -> void:
 	ammo_changed.emit(_current_ammo, max_ammo)
 	reload_completed.emit()
 	reload_sequence_progress.emit(3, 3)
+	# Emit reload completion sound for in-game sound propagation
+	# This alerts enemies that player is no longer vulnerable and they should become cautious
+	var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
+	if sound_propagation and sound_propagation.has_method("emit_player_reload_complete"):
+		sound_propagation.emit_player_reload_complete(global_position, self)
 
 
 ## Check if player is currently reloading (either mode).
@@ -432,6 +454,14 @@ func cancel_reload() -> void:
 
 ## Called when hit by a projectile.
 func on_hit() -> void:
+	# Call extended version with default values
+	on_hit_with_info(Vector2.RIGHT, null)
+
+
+## Called when hit by a projectile with extended hit information.
+## @param hit_direction: Direction the bullet was traveling.
+## @param caliber_data: Caliber resource for effect scaling.
+func on_hit_with_info(hit_direction: Vector2, caliber_data: Resource) -> void:
 	if not _is_alive:
 		return
 
@@ -444,17 +474,25 @@ func on_hit() -> void:
 	_current_health -= 1
 	health_changed.emit(_current_health, max_health)
 
-	# Play appropriate hit sound
+	# Play appropriate hit sound and spawn visual effects
 	var audio_manager: Node = get_node_or_null("/root/AudioManager")
+	var impact_manager: Node = get_node_or_null("/root/ImpactEffectsManager")
+
 	if _current_health <= 0:
 		# Play lethal hit sound
 		if audio_manager and audio_manager.has_method("play_hit_lethal"):
 			audio_manager.play_hit_lethal(global_position)
+		# Spawn blood splatter effect for lethal hit (with decal)
+		if impact_manager and impact_manager.has_method("spawn_blood_effect"):
+			impact_manager.spawn_blood_effect(global_position, hit_direction, caliber_data, true)
 		_on_death()
 	else:
 		# Play non-lethal hit sound
 		if audio_manager and audio_manager.has_method("play_hit_non_lethal"):
 			audio_manager.play_hit_non_lethal(global_position)
+		# Spawn blood effect for non-lethal hit (smaller, no decal)
+		if impact_manager and impact_manager.has_method("spawn_blood_effect"):
+			impact_manager.spawn_blood_effect(global_position, hit_direction, caliber_data, false)
 		_update_health_visual()
 
 

@@ -20,11 +20,13 @@ extends Node
 ## Types of sounds that can propagate through the game world.
 ## Each type has different propagation characteristics.
 enum SoundType {
-	GUNSHOT,      ## Gunfire from weapons - loud, propagates far
-	EXPLOSION,    ## Explosions - very loud, propagates very far
-	FOOTSTEP,     ## Footsteps - quiet, short range (for future use)
-	RELOAD,       ## Weapon reload - medium range (for future use)
-	IMPACT        ## Bullet impacts - medium range (for future use)
+	GUNSHOT,         ## Gunfire from weapons - loud, propagates far
+	EXPLOSION,       ## Explosions - very loud, propagates very far
+	FOOTSTEP,        ## Footsteps - quiet, short range (for future use)
+	RELOAD,          ## Weapon reload - loud mechanical sound, propagates far (through walls)
+	IMPACT,          ## Bullet impacts - medium range (for future use)
+	EMPTY_CLICK,     ## Empty weapon click - audible but shorter range than reload
+	RELOAD_COMPLETE  ## Weapon reload finished - bolt cycling sound, enemies become cautious
 }
 
 ## Source types for sounds - used to determine if listener should react.
@@ -43,12 +45,15 @@ const VIEWPORT_DIAGONAL: float = 1468.6  # sqrt(1280^2 + 720^2) ≈ 1468.6 pixel
 ## Propagation distances for each sound type (in pixels).
 ## Gunshot range is approximately viewport diagonal for realistic gameplay.
 ## These define how far a sound can travel before becoming inaudible.
+## Note: RELOAD, EMPTY_CLICK, and RELOAD_COMPLETE sounds propagate through walls (no line-of-sight check).
 const PROPAGATION_DISTANCES: Dictionary = {
-	SoundType.GUNSHOT: 1468.6,      ## Approximately viewport diagonal
-	SoundType.EXPLOSION: 2200.0,    ## 1.5x viewport diagonal
-	SoundType.FOOTSTEP: 180.0,      ## Very short range
-	SoundType.RELOAD: 360.0,        ## Short range
-	SoundType.IMPACT: 550.0         ## Medium range
+	SoundType.GUNSHOT: 1468.6,         ## Approximately viewport diagonal
+	SoundType.EXPLOSION: 2200.0,       ## 1.5x viewport diagonal
+	SoundType.FOOTSTEP: 180.0,         ## Very short range
+	SoundType.RELOAD: 900.0,           ## Loud mechanical sound - enemies hear through walls
+	SoundType.IMPACT: 550.0,           ## Medium range
+	SoundType.EMPTY_CLICK: 600.0,      ## Shorter than reload but still audible through walls
+	SoundType.RELOAD_COMPLETE: 900.0   ## Bolt cycling sound - same range as reload start
 }
 
 ## Reference distance for sound intensity calculations (in pixels).
@@ -236,6 +241,25 @@ func emit_player_gunshot(position: Vector2, source_node: Node2D = null) -> void:
 ## Convenience method to emit a gunshot sound from an enemy.
 func emit_enemy_gunshot(position: Vector2, source_node: Node2D = null) -> void:
 	emit_sound(SoundType.GUNSHOT, position, SourceType.ENEMY, source_node)
+
+
+## Convenience method to emit a reload sound from the player.
+## This sound propagates through walls and alerts enemies even behind cover.
+func emit_player_reload(position: Vector2, source_node: Node2D = null) -> void:
+	emit_sound(SoundType.RELOAD, position, SourceType.PLAYER, source_node)
+
+
+## Convenience method to emit an empty click sound from the player.
+## This sound propagates through walls but at shorter range than reload.
+func emit_player_empty_click(position: Vector2, source_node: Node2D = null) -> void:
+	emit_sound(SoundType.EMPTY_CLICK, position, SourceType.PLAYER, source_node)
+
+
+## Convenience method to emit a reload completion sound from the player.
+## This sound propagates through walls and signals enemies to become cautious
+## because the player is no longer vulnerable (reload finished).
+func emit_player_reload_complete(position: Vector2, source_node: Node2D = null) -> void:
+	emit_sound(SoundType.RELOAD_COMPLETE, position, SourceType.PLAYER, source_node)
 
 
 ## Get the propagation distance for a sound type.

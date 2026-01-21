@@ -382,11 +382,19 @@ var _combat_approaching: bool = false
 ## Timer for the approach phase of combat.
 var _combat_approach_timer: float = 0.0
 
+## Timer tracking total time spent in COMBAT state this cycle.
+## Used to prevent rapid state thrashing when visibility flickers.
+var _combat_state_timer: float = 0.0
+
 ## Maximum time to spend approaching player before starting to shoot (seconds).
 const COMBAT_APPROACH_MAX_TIME: float = 2.0
 
 ## Distance at which enemy is considered "close enough" to start shooting phase.
 const COMBAT_DIRECT_CONTACT_DISTANCE: float = 250.0
+
+## Minimum time in COMBAT state before allowing transition to PURSUING due to lost line of sight.
+## This prevents rapid state thrashing when visibility flickers at edges of walls/obstacles.
+const COMBAT_MIN_DURATION_BEFORE_PURSUE: float = 0.5
 
 ## --- Pursuit State (cover-to-cover movement) ---
 ## Timer for waiting at cover during pursuit.
@@ -412,8 +420,16 @@ var _pursuit_approaching: bool = false
 ## Timer for approach phase during pursuit.
 var _pursuit_approach_timer: float = 0.0
 
+## Timer tracking total time spent in PURSUING state this cycle.
+## Used to prevent rapid state thrashing when visibility flickers.
+var _pursuing_state_timer: float = 0.0
+
 ## Maximum time to approach during pursuit before transitioning to COMBAT (seconds).
 const PURSUIT_APPROACH_MAX_TIME: float = 3.0
+
+## Minimum time in PURSUING state before allowing transition to COMBAT.
+## This prevents rapid state thrashing when visibility flickers at edges of walls/obstacles.
+const PURSUING_MIN_DURATION_BEFORE_COMBAT: float = 0.3
 
 ## Minimum distance progress required for a valid pursuit cover (as fraction of current distance).
 ## Covers that don't make at least this much progress toward the player are skipped.
@@ -527,6 +543,10 @@ const CLEAR_SHOT_EXIT_DISTANCE: float = 60.0
 ## Last known position of a sound source (e.g., player or enemy gunshot).
 ## Used when the enemy hears a sound but can't see the player, to investigate the location.
 var _last_known_player_position: Vector2 = Vector2.ZERO
+
+## Flag indicating we heard a vulnerability sound (reload/empty click) and should pursue
+## to that position even without line of sight to the player.
+var _pursuing_vulnerability_sound: bool = false
 
 
 func _ready() -> void:
@@ -668,6 +688,7 @@ func on_sound_heard(sound_type: int, position: Vector2, source_type: int, source
 ##
 ## Parameters:
 ## - sound_type: The type of sound (from SoundPropagation.SoundType enum)
+##   0=GUNSHOT, 1=EXPLOSION, 2=FOOTSTEP, 3=RELOAD, 4=IMPACT, 5=EMPTY_CLICK, 6=RELOAD_COMPLETE
 ## - position: World position where the sound originated
 ## - source_type: Whether sound is from PLAYER, ENEMY, or NEUTRAL (from SoundPropagation.SourceType)
 ## - source_node: The node that produced the sound (can be null)
@@ -677,12 +698,106 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 	if not _is_alive:
 		return
 
-	# Only react to gunshots for now (sound_type 0 = GUNSHOT in SoundPropagation.SoundType)
-	if sound_type != 0:
-		return
-
 	# Calculate distance to sound for logging
 	var distance := global_position.distance_to(position)
+
+	# Handle reload sound (sound_type 3 = RELOAD) - player is vulnerable!
+	# This sound propagates through walls and alerts enemies even behind cover.
+	if sound_type == 3 and source_type == 0:  # RELOAD from PLAYER
+		_log_debug("Heard player RELOAD (intensity=%.2f, distance=%.0f) at %s" % [
+			intensity, distance, position
+		])
+		_log_to_file("Heard player RELOAD at %s, intensity=%.2f, distance=%.0f" % [
+			position, intensity, distance
+		])
+
+		# Set player vulnerability state - reloading
+		_goap_world_state["player_reloading"] = true
+		_last_known_player_position = position
+		# Set flag to pursue to sound position even without line of sight
+		_pursuing_vulnerability_sound = true
+
+		# React to vulnerable player sound - transition to combat/pursuing
+		# All enemies in hearing range should pursue the vulnerable player!
+		# This makes reload sounds a high-risk action when enemies are nearby.
+		if _current_state in [AIState.IDLE, AIState.IN_COVER, AIState.SUPPRESSED, AIState.RETREATING, AIState.SEEKING_COVER]:
+			# Leave cover/defensive state to attack vulnerable player
+			_log_to_file("Vulnerability sound triggered pursuit - transitioning from %s to PURSUING" % AIState.keys()[_current_state])
+			_transition_to_pursuing()
+		# For COMBAT, PURSUING, FLANKING states: the flag is set and they'll use it
+		# (COMBAT/PURSUING now check _pursuing_vulnerability_sound before retreating)
+		return
+
+	# Handle empty click sound (sound_type 5 = EMPTY_CLICK) - player is vulnerable!
+	# This sound has shorter range than reload but still propagates through walls.
+	if sound_type == 5 and source_type == 0:  # EMPTY_CLICK from PLAYER
+		_log_debug("Heard player EMPTY_CLICK (intensity=%.2f, distance=%.0f) at %s" % [
+			intensity, distance, position
+		])
+		_log_to_file("Heard player EMPTY_CLICK at %s, intensity=%.2f, distance=%.0f" % [
+			position, intensity, distance
+		])
+
+		# Set player vulnerability state - out of ammo
+		_goap_world_state["player_ammo_empty"] = true
+		_last_known_player_position = position
+		# Set flag to pursue to sound position even without line of sight
+		_pursuing_vulnerability_sound = true
+
+		# React to vulnerable player sound - transition to combat/pursuing
+		# All enemies in hearing range should pursue the vulnerable player!
+		# This makes empty click sounds a high-risk action when enemies are nearby.
+		if _current_state in [AIState.IDLE, AIState.IN_COVER, AIState.SUPPRESSED, AIState.RETREATING, AIState.SEEKING_COVER]:
+			# Leave cover/defensive state to attack vulnerable player
+			_log_to_file("Vulnerability sound triggered pursuit - transitioning from %s to PURSUING" % AIState.keys()[_current_state])
+			_transition_to_pursuing()
+		# For COMBAT, PURSUING, FLANKING states: the flag is set and they'll use it
+		# (COMBAT/PURSUING now check _pursuing_vulnerability_sound before retreating)
+		return
+
+	# Handle reload complete sound (sound_type 6 = RELOAD_COMPLETE) - player is NO LONGER vulnerable!
+	# This sound propagates through walls and signals enemies to become cautious.
+	if sound_type == 6 and source_type == 0:  # RELOAD_COMPLETE from PLAYER
+		_log_debug("Heard player RELOAD_COMPLETE (intensity=%.2f, distance=%.0f) at %s" % [
+			intensity, distance, position
+		])
+		_log_to_file("Heard player RELOAD_COMPLETE at %s, intensity=%.2f, distance=%.0f" % [
+			position, intensity, distance
+		])
+
+		# Clear player vulnerability state - reload finished, player is armed again
+		_goap_world_state["player_reloading"] = false
+		_goap_world_state["player_ammo_empty"] = false
+		# Clear the aggressive pursuit flag - no longer pursuing vulnerable player
+		_pursuing_vulnerability_sound = false
+
+		# React to reload completion - transition to cautious/defensive mode after a short delay.
+		# The 200ms delay gives enemies a brief reaction time before becoming cautious,
+		# making the transition feel more natural and giving player a small window.
+		# Enemies who were pursuing the vulnerable player should now become more cautious.
+		# This makes completing reload a way to "reset" aggressive enemy behavior.
+		if _current_state in [AIState.PURSUING, AIState.COMBAT, AIState.ASSAULT]:
+			var state_before_delay := _current_state
+			_log_to_file("Reload complete sound heard - waiting 200ms before cautious transition from %s" % AIState.keys()[_current_state])
+			await get_tree().create_timer(0.2).timeout
+			# After delay, check if still alive and in an aggressive state
+			if not _is_alive:
+				return
+			# Only transition if still in an aggressive state (state might have changed during delay)
+			if _current_state in [AIState.PURSUING, AIState.COMBAT, AIState.ASSAULT]:
+				# Return to cover/defensive state since player is no longer vulnerable
+				if _has_valid_cover:
+					_log_to_file("Reload complete sound triggered retreat - transitioning from %s to RETREATING (delayed from %s)" % [AIState.keys()[_current_state], AIState.keys()[state_before_delay]])
+					_transition_to_retreating()
+				elif enable_cover:
+					_log_to_file("Reload complete sound triggered cover seek - transitioning from %s to SEEKING_COVER (delayed from %s)" % [AIState.keys()[_current_state], AIState.keys()[state_before_delay]])
+					_transition_to_seeking_cover()
+				# If no cover available, stay in current state but with cleared vulnerability flags
+		return
+
+	# Handle gunshot sounds (sound_type 0 = GUNSHOT)
+	if sound_type != 0:
+		return
 
 	# React based on current state:
 	# - IDLE: Always react to loud sounds
@@ -739,7 +854,9 @@ func _initialize_goap_state() -> void:
 		"can_hit_from_cover": false,
 		"player_close": false,
 		"enemies_in_combat": 0,
-		"player_distracted": false
+		"player_distracted": false,
+		"player_reloading": false,
+		"player_ammo_empty": false
 	}
 
 
@@ -980,6 +1097,78 @@ func _process_ai_state(delta: float) -> void:
 			# The state machine will continue normally in the next frame
 			return
 
+	# HIGHEST PRIORITY: If player is reloading or tried to shoot with empty weapon,
+	# and enemy is close to the player, immediately attack with maximum priority.
+	# This exploits the player's vulnerability during reload or when out of ammo.
+	var player_reloading: bool = _goap_world_state.get("player_reloading", false)
+	var player_ammo_empty: bool = _goap_world_state.get("player_ammo_empty", false)
+	var player_is_vulnerable: bool = player_reloading or player_ammo_empty
+	var player_close: bool = _is_player_close()
+
+	# Debug log when player is vulnerable (but not every frame - only when conditions change)
+	if player_is_vulnerable and _player:
+		var distance_to_player := global_position.distance_to(_player.global_position)
+		_log_debug("Vulnerable check: reloading=%s, ammo_empty=%s, can_see=%s, close=%s (dist=%.0f)" % [player_reloading, player_ammo_empty, _can_see_player, player_close, distance_to_player])
+
+	# Log vulnerability conditions when player is vulnerable but we can't attack
+	# This helps diagnose why priority attacks might not be triggering
+	if player_is_vulnerable and _player and not (player_close and _can_see_player):
+		var distance_to_player := global_position.distance_to(_player.global_position)
+		# Only log once per vulnerability state change to avoid spam
+		var vuln_key := "last_vuln_log_frame"
+		var current_frame := Engine.get_physics_frames()
+		var last_log_frame: int = _goap_world_state.get(vuln_key, -100)
+		if current_frame - last_log_frame > 30:  # Log at most every 30 frames (~0.5s)
+			_goap_world_state[vuln_key] = current_frame
+			var reason: String = "reloading" if player_reloading else "ammo_empty"
+			_log_to_file("Player vulnerable (%s) but cannot attack: close=%s (dist=%.0f), can_see=%s" % [reason, player_close, distance_to_player, _can_see_player])
+
+	if player_is_vulnerable and _can_see_player and _player and player_close:
+		# Check if we have a clear shot (no wall blocking bullet spawn)
+		var direction_to_player := (_player.global_position - global_position).normalized()
+		var has_clear_shot := _is_bullet_spawn_clear(direction_to_player)
+
+		if has_clear_shot and _can_shoot():
+			# Log the vulnerability attack
+			var reason: String = "reloading" if player_reloading else "empty ammo"
+			_log_to_file("Player %s - priority attack triggered" % reason)
+
+			# Aim at player immediately
+			rotation = direction_to_player.angle()
+
+			# Shoot immediately - bypassing ALL timers and state restrictions
+			_shoot()
+			_shoot_timer = 0.0  # Reset shoot timer after vulnerability shot
+
+			# Ensure detection delay is bypassed for any subsequent normal shots
+			_detection_delay_elapsed = true
+
+			# Transition to COMBAT if not already in a combat-related state
+			if _current_state == AIState.IDLE:
+				_transition_to_combat()
+				_detection_delay_elapsed = true  # Re-set after transition resets it
+
+			# Return early - we've taken the highest priority action
+			return
+
+	# SECOND PRIORITY: If player is vulnerable but NOT close, pursue them aggressively
+	# This makes enemies rush toward vulnerable players to exploit the weakness
+	if player_is_vulnerable and _can_see_player and _player and not player_close:
+		var distance_to_player := global_position.distance_to(_player.global_position)
+		# Only log once per pursuit decision to avoid spam
+		var pursue_key := "last_pursue_vuln_frame"
+		var current_frame := Engine.get_physics_frames()
+		var last_pursue_frame: int = _goap_world_state.get(pursue_key, -100)
+		if current_frame - last_pursue_frame > 60:  # Log at most every ~1 second
+			_goap_world_state[pursue_key] = current_frame
+			var reason: String = "reloading" if player_reloading else "ammo_empty"
+			_log_to_file("Player vulnerable (%s) - pursuing to attack (dist=%.0f)" % [reason, distance_to_player])
+
+		# Transition to PURSUING state to rush toward the player
+		if _current_state != AIState.PURSUING and _current_state != AIState.ASSAULT:
+			_transition_to_pursuing()
+			# Don't return - let the state machine continue to process the PURSUING state
+
 	# State transitions based on conditions
 	match _current_state:
 		AIState.IDLE:
@@ -1030,37 +1219,40 @@ func _process_idle_state(delta: float) -> void:
 ## Phase 2 (exposed): Stand and shoot for 2-3 seconds.
 ## Phase 3: Return to cover via SEEKING_COVER state.
 func _process_combat_state(delta: float) -> void:
+	# Track time in COMBAT state (for preventing rapid state thrashing)
+	_combat_state_timer += delta
+
 	# Check for suppression - transition to retreating behavior
-	if _under_fire and enable_cover:
+	# BUT: When pursuing a vulnerability sound (player reloading/out of ammo),
+	# ignore suppression and continue the attack - this is the best time to strike!
+	if _under_fire and enable_cover and not _pursuing_vulnerability_sound:
 		_combat_exposed = false
 		_combat_approaching = false
 		_seeking_clear_shot = false
 		_transition_to_retreating()
 		return
 
-	# Check if multiple enemies are in combat - transition to assault state
-	var enemies_in_combat := _count_enemies_in_combat()
-	if enemies_in_combat >= 2:
-		_log_debug("Multiple enemies in combat (%d), transitioning to ASSAULT" % enemies_in_combat)
-		_combat_exposed = false
-		_combat_approaching = false
-		_seeking_clear_shot = false
-		_transition_to_assault()
-		return
+	# NOTE: ASSAULT state transition removed per issue #169
+	# Enemies now stay in COMBAT instead of transitioning to coordinated assault
 
 	# If can't see player, pursue them (move cover-to-cover toward player)
+	# But only after minimum time has elapsed to prevent rapid state thrashing
+	# when visibility flickers at wall/obstacle edges
 	if not _can_see_player:
-		_combat_exposed = false
-		_combat_approaching = false
-		_seeking_clear_shot = false
-		_log_debug("Lost sight of player in COMBAT, transitioning to PURSUING")
-		_transition_to_pursuing()
-		return
+		if _combat_state_timer >= COMBAT_MIN_DURATION_BEFORE_PURSUE:
+			_combat_exposed = false
+			_combat_approaching = false
+			_seeking_clear_shot = false
+			_log_debug("Lost sight of player in COMBAT (%.2fs), transitioning to PURSUING" % _combat_state_timer)
+			_transition_to_pursuing()
+			return
+		# If minimum time hasn't elapsed, stay in COMBAT and wait
+		# This prevents rapid COMBAT<->PURSUING thrashing
 
 	# Update detection delay timer
 	if not _detection_delay_elapsed:
 		_detection_timer += delta
-		if _detection_timer >= detection_delay:
+		if _detection_timer >= _get_effective_detection_delay():
 			_detection_delay_elapsed = true
 
 	# If we don't have cover, find some first (needed for returning later)
@@ -1352,12 +1544,8 @@ func _process_in_cover_state(delta: float) -> void:
 		_transition_to_seeking_cover()
 		return
 
-	# Check if multiple enemies are in combat - transition to assault state
-	var enemies_in_combat := _count_enemies_in_combat()
-	if enemies_in_combat >= 2:
-		_log_debug("Multiple enemies detected (%d), transitioning to ASSAULT" % enemies_in_combat)
-		_transition_to_assault()
-		return
+	# NOTE: ASSAULT state transition removed per issue #169
+	# Enemies now stay in IN_COVER instead of transitioning to coordinated assault
 
 	# Decision making based on player distance and visibility
 	if _player:
@@ -1679,29 +1867,65 @@ func _process_retreat_multiple_hits(delta: float, direction_to_cover: Vector2) -
 ## until they can see and hit the player.
 ## When at the last cover (no better cover found), enters approach phase
 ## to move directly toward the player.
+## Special case: when pursuing a vulnerability sound, move directly toward sound position.
 func _process_pursuing_state(delta: float) -> void:
+	# Track time in PURSUING state (for preventing rapid state thrashing)
+	_pursuing_state_timer += delta
+
 	# Check for suppression - transition to retreating behavior
-	if _under_fire and enable_cover:
+	# BUT: When pursuing a vulnerability sound (player reloading/out of ammo),
+	# ignore suppression and continue the attack - this is the best time to strike!
+	if _under_fire and enable_cover and not _pursuing_vulnerability_sound:
 		_pursuit_approaching = false
 		_transition_to_retreating()
 		return
 
-	# Check if multiple enemies are in combat - transition to assault state
-	var enemies_in_combat := _count_enemies_in_combat()
-	if enemies_in_combat >= 2:
-		_log_debug("Multiple enemies detected during pursuit (%d), transitioning to ASSAULT" % enemies_in_combat)
-		_pursuit_approaching = false
-		_transition_to_assault()
-		return
+	# NOTE: ASSAULT state transition removed per issue #169
+	# Enemies now stay in PURSUING instead of transitioning to coordinated assault
 
 	# If can see player and can hit them from current position, engage
+	# But only after minimum time has elapsed to prevent rapid state thrashing
+	# when visibility flickers at wall/obstacle edges
 	if _can_see_player and _player:
 		var can_hit := _can_hit_player_from_current_position()
-		if can_hit:
-			_log_debug("Can see and hit player from pursuit, transitioning to COMBAT")
+		if can_hit and _pursuing_state_timer >= PURSUING_MIN_DURATION_BEFORE_COMBAT:
+			_log_debug("Can see and hit player from pursuit (%.2fs), transitioning to COMBAT" % _pursuing_state_timer)
 			_has_pursuit_cover = false
 			_pursuit_approaching = false
+			_pursuing_vulnerability_sound = false
 			_transition_to_combat()
+			return
+
+	# VULNERABILITY SOUND PURSUIT: When we heard a reload/empty click sound,
+	# move directly toward the sound position using navigation (goes around walls).
+	# This is a direct pursuit without cover-to-cover movement.
+	if _pursuing_vulnerability_sound and _last_known_player_position != Vector2.ZERO:
+		var distance_to_sound := global_position.distance_to(_last_known_player_position)
+
+		# If we reached the sound position
+		if distance_to_sound < 50.0:
+			_log_debug("Reached vulnerability sound position (dist=%.0f)" % distance_to_sound)
+			# If we can see the player now, attack
+			if _can_see_player and _player:
+				_log_debug("Can see player at sound position, transitioning to COMBAT")
+				_pursuing_vulnerability_sound = false
+				_transition_to_combat()
+				return
+			# If player moved or we still can't see them, clear the flag and use normal pursuit
+			_log_debug("Player not visible at sound position, switching to normal pursuit")
+			_pursuing_vulnerability_sound = false
+			# Fall through to normal pursuit behavior
+
+		else:
+			# Keep moving toward the sound position using navigation
+			_move_to_target_nav(_last_known_player_position, combat_move_speed)
+			# Log progress periodically
+			var vuln_pursuit_key := "last_vuln_pursuit_log"
+			var current_frame := Engine.get_physics_frames()
+			var last_log_frame: int = _goap_world_state.get(vuln_pursuit_key, -100)
+			if current_frame - last_log_frame > 60:
+				_goap_world_state[vuln_pursuit_key] = current_frame
+				_log_to_file("Pursuing vulnerability sound at %s, distance=%.0f" % [_last_known_player_position, distance_to_sound])
 			return
 
 	# Process approach phase - moving directly toward player when no better cover exists
@@ -1802,83 +2026,16 @@ func _process_pursuing_state(delta: float) -> void:
 			_transition_to_combat()
 
 
-## Process ASSAULT state - coordinated multi-enemy rush.
-## Wait at cover for 5 seconds, then all enemies rush the player simultaneously.
-func _process_assault_state(delta: float) -> void:
-	# Check for suppression - transition to retreating behavior
-	if _under_fire and enable_cover and not _assault_ready:
-		_in_assault = false
-		_transition_to_retreating()
-		return
-
-	# Check if we're the only enemy left in assault - switch back to combat
-	var enemies_in_combat := _count_enemies_in_combat()
-	if enemies_in_combat < 2 and not _assault_ready:
-		_log_debug("Not enough enemies for assault, switching to COMBAT")
-		_in_assault = false
-		_transition_to_combat()
-		return
-
-	# Find closest cover to player if we don't have one
-	if not _has_valid_cover:
-		_find_cover_closest_to_player()
-		if _has_valid_cover:
-			_log_debug("Found assault cover at %s" % _cover_position)
-
-	# Move to cover position first
-	if _has_valid_cover and not _in_assault:
-		var distance_to_cover: float = global_position.distance_to(_cover_position)
-		if distance_to_cover > 15.0 and _is_visible_from_player():
-			# Use navigation-based pathfinding to reach cover
-			_move_to_target_nav(_cover_position, combat_move_speed)
-			return
-
-	# At cover, wait for assault timer
-	if not _assault_ready:
-		velocity = Vector2.ZERO
-		_assault_wait_timer += delta
-
-		# Check if all assault enemies are ready (synchronized assault)
-		if _assault_wait_timer >= ASSAULT_WAIT_DURATION:
-			# Check if situation has changed - player might have moved
-			if _player and _is_player_close():
-				_assault_ready = true
-				_in_assault = true
-				_log_debug("ASSAULT ready - rushing player!")
-			else:
-				# Player moved away, reset timer and check if we should pursue
-				_log_debug("Player moved away during assault wait, resetting")
-				_assault_wait_timer = 0.0
-				_in_assault = false
-				_transition_to_pursuing()
-				return
-		return
-
-	# Assault phase - rush the player while shooting
-	if _assault_ready and _player:
-		var distance_to_player: float = global_position.distance_to(_player.global_position)
-
-		# Use navigation-based pathfinding to rush player
-		_move_to_target_nav(_player.global_position, combat_move_speed)
-
-		# Update detection delay timer
-		if not _detection_delay_elapsed:
-			_detection_timer += delta
-			if _detection_timer >= detection_delay:
-				_detection_delay_elapsed = true
-
-		# Shoot while rushing (only after detection delay)
-		if _can_see_player and _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
-			_aim_at_player()
-			_shoot()
-			_shoot_timer = 0.0
-
-		# If very close to player, stay in combat
-		if distance_to_player < 50.0:
-			_log_debug("Assault complete - reached player")
-			_assault_ready = false
-			_in_assault = false
-			_transition_to_combat()
+## Process ASSAULT state - disabled per issue #169.
+## This state is kept for backwards compatibility but immediately transitions to COMBAT.
+## Previously: coordinated multi-enemy rush where enemies wait 5 seconds then rush together.
+func _process_assault_state(_delta: float) -> void:
+	# ASSAULT state is disabled per issue #169
+	# Immediately transition to COMBAT state
+	_log_debug("ASSAULT state disabled (issue #169), transitioning to COMBAT")
+	_in_assault = false
+	_assault_ready = false
+	_transition_to_combat()
 
 
 ## Shoot with reduced accuracy for retreat mode.
@@ -1911,6 +2068,9 @@ func _shoot_with_inaccuracy() -> void:
 	bullet.global_position = global_position + direction * bullet_spawn_offset
 	bullet.direction = direction
 	bullet.shooter_id = get_instance_id()
+	# Set shooter position for distance-based penetration calculation
+	# Direct assignment - the bullet script defines this property
+	bullet.shooter_position = global_position
 	get_tree().current_scene.add_child(bullet)
 
 	# Play sounds
@@ -1962,6 +2122,9 @@ func _shoot_burst_shot() -> void:
 	bullet.global_position = global_position + direction * bullet_spawn_offset
 	bullet.direction = direction
 	bullet.shooter_id = get_instance_id()
+	# Set shooter position for distance-based penetration calculation
+	# Direct assignment - the bullet script defines this property
+	bullet.shooter_position = global_position
 	get_tree().current_scene.add_child(bullet)
 
 	# Play sounds
@@ -2006,10 +2169,14 @@ func _transition_to_combat() -> void:
 	_combat_approaching = false
 	_combat_shoot_timer = 0.0
 	_combat_approach_timer = 0.0
+	# Reset state duration timer (prevents rapid state thrashing)
+	_combat_state_timer = 0.0
 	# Reset clear shot seeking variables
 	_seeking_clear_shot = false
 	_clear_shot_timer = 0.0
 	_clear_shot_target = Vector2.ZERO
+	# Clear vulnerability sound pursuit flag
+	_pursuing_vulnerability_sound = false
 
 
 ## Transition to SEEKING_COVER state.
@@ -2050,6 +2217,8 @@ func _transition_to_flanking() -> bool:
 		return false
 
 	_current_state = AIState.FLANKING
+	# Clear vulnerability sound pursuit flag
+	_pursuing_vulnerability_sound = false
 	# Initialize flank side only once per flanking maneuver
 	# Choose the side based on which direction has fewer obstacles
 	_flank_side = _choose_best_flank_side()
@@ -2124,6 +2293,8 @@ func _transition_to_pursuing() -> void:
 	_pursuit_approaching = false
 	_pursuit_approach_timer = 0.0
 	_current_cover_obstacle = null
+	# Reset state duration timer (prevents rapid state thrashing)
+	_pursuing_state_timer = 0.0
 	# Reset detection delay for new engagement
 	_detection_timer = 0.0
 	_detection_delay_elapsed = false
@@ -3194,6 +3365,9 @@ func _shoot() -> void:
 	# Set shooter ID to identify this enemy as the source
 	# This prevents enemies from detecting their own bullets in the threat sphere
 	bullet.shooter_id = get_instance_id()
+	# Set shooter position for distance-based penetration calculation
+	# Direct assignment - the bullet script defines this property
+	bullet.shooter_position = global_position
 
 	# Add bullet to the scene tree
 	get_tree().current_scene.add_child(bullet)
@@ -3358,6 +3532,14 @@ func _on_threat_area_exited(area: Area2D) -> void:
 
 ## Called when the enemy is hit (by bullet.gd).
 func on_hit() -> void:
+	# Call extended version with default values
+	on_hit_with_info(Vector2.RIGHT, null)
+
+
+## Called when the enemy is hit with extended hit information.
+## @param hit_direction: Direction the bullet was traveling.
+## @param caliber_data: Caliber resource for effect scaling.
+func on_hit_with_info(hit_direction: Vector2, caliber_data: Resource) -> void:
 	if not _is_alive:
 		return
 
@@ -3374,17 +3556,25 @@ func on_hit() -> void:
 	# Apply damage
 	_current_health -= 1
 
-	# Play appropriate hit sound
+	# Play appropriate hit sound and spawn visual effects
 	var audio_manager: Node = get_node_or_null("/root/AudioManager")
+	var impact_manager: Node = get_node_or_null("/root/ImpactEffectsManager")
+
 	if _current_health <= 0:
 		# Play lethal hit sound
 		if audio_manager and audio_manager.has_method("play_hit_lethal"):
 			audio_manager.play_hit_lethal(global_position)
+		# Spawn blood splatter effect for lethal hit (with decal)
+		if impact_manager and impact_manager.has_method("spawn_blood_effect"):
+			impact_manager.spawn_blood_effect(global_position, hit_direction, caliber_data, true)
 		_on_death()
 	else:
 		# Play non-lethal hit sound
 		if audio_manager and audio_manager.has_method("play_hit_non_lethal"):
 			audio_manager.play_hit_non_lethal(global_position)
+		# Spawn blood effect for non-lethal hit (smaller, no decal)
+		if impact_manager and impact_manager.has_method("spawn_blood_effect"):
+			impact_manager.spawn_blood_effect(global_position, hit_direction, caliber_data, false)
 		_update_health_visual()
 
 
@@ -3417,6 +3607,16 @@ func _get_health_percent() -> float:
 	if _max_health <= 0:
 		return 0.0
 	return float(_current_health) / float(_max_health)
+
+
+## Returns the effective detection delay based on difficulty.
+## In Easy mode, enemies take longer to react after spotting the player.
+func _get_effective_detection_delay() -> float:
+	var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
+	if difficulty_manager and difficulty_manager.has_method("get_detection_delay"):
+		return difficulty_manager.get_detection_delay()
+	# Fall back to export variable if DifficultyManager is not available
+	return detection_delay
 
 
 ## Called when the enemy dies.
@@ -3479,6 +3679,7 @@ func _reset() -> void:
 	_combat_exposed = false
 	_combat_approaching = false
 	_combat_approach_timer = 0.0
+	_combat_state_timer = 0.0
 	# Reset pursuit state variables
 	_pursuit_cover_wait_timer = 0.0
 	_pursuit_next_cover = Vector2.ZERO
@@ -3486,6 +3687,7 @@ func _reset() -> void:
 	_current_cover_obstacle = null
 	_pursuit_approaching = false
 	_pursuit_approach_timer = 0.0
+	_pursuing_state_timer = 0.0
 	# Reset assault state variables
 	_assault_wait_timer = 0.0
 	_assault_ready = false
@@ -3501,6 +3703,7 @@ func _reset() -> void:
 	_flank_cooldown_timer = 0.0
 	# Reset sound detection state
 	_last_known_player_position = Vector2.ZERO
+	_pursuing_vulnerability_sound = false
 	_initialize_health()
 	_initialize_ammo()
 	_update_health_visual()
@@ -3677,6 +3880,24 @@ func get_current_state() -> AIState:
 ## Get GOAP world state (for GOAP planner).
 func get_goap_world_state() -> Dictionary:
 	return _goap_world_state.duplicate()
+
+
+## Set player reloading state. Called by level when player starts/finishes reload.
+## When player starts reloading near an enemy, the enemy will attack with maximum priority.
+func set_player_reloading(is_reloading: bool) -> void:
+	var old_value: bool = _goap_world_state.get("player_reloading", false)
+	_goap_world_state["player_reloading"] = is_reloading
+	if is_reloading != old_value:
+		_log_to_file("Player reloading state changed: %s -> %s" % [old_value, is_reloading])
+
+
+## Set player ammo empty state. Called by level when player tries to shoot with empty weapon.
+## When player tries to shoot with no ammo, the enemy will attack with maximum priority.
+func set_player_ammo_empty(is_empty: bool) -> void:
+	var old_value: bool = _goap_world_state.get("player_ammo_empty", false)
+	_goap_world_state["player_ammo_empty"] = is_empty
+	if is_empty != old_value:
+		_log_to_file("Player ammo empty state changed: %s -> %s" % [old_value, is_empty])
 
 
 ## Check if enemy is currently under fire.

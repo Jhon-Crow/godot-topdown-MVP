@@ -375,7 +375,8 @@ func test_assault_player_action_initialization() -> void:
 	var action := EnemyActions.AssaultPlayerAction.new()
 
 	assert_eq(action.action_name, "assault_player", "Action name should be 'assault_player'")
-	assert_eq(action.cost, 1.0, "Base cost should be 1.0")
+	# NOTE: ASSAULT action is disabled per issue #169 - base cost is now very high
+	assert_eq(action.cost, 100.0, "Base cost should be 100.0 (disabled per issue #169)")
 
 
 func test_assault_player_action_preconditions() -> void:
@@ -392,21 +393,25 @@ func test_assault_player_action_effects() -> void:
 
 
 func test_assault_player_cost_with_multiple_enemies() -> void:
+	# NOTE: ASSAULT action is disabled per issue #169 - always returns high cost
 	var action := EnemyActions.AssaultPlayerAction.new()
 	var world_state := {"enemies_in_combat": 3}
 
 	var cost: float = action.get_cost(null, world_state)
 
-	assert_eq(cost, 0.5, "Cost should be low for coordinated attack")
+	# Disabled per issue #169 - always returns 1000.0 regardless of enemies_in_combat
+	assert_eq(cost, 1000.0, "Cost should always be 1000.0 (disabled per issue #169)")
 
 
 func test_assault_player_cost_alone() -> void:
+	# NOTE: ASSAULT action is disabled per issue #169 - always returns high cost
 	var action := EnemyActions.AssaultPlayerAction.new()
 	var world_state := {"enemies_in_combat": 1}
 
 	var cost: float = action.get_cost(null, world_state)
 
-	assert_eq(cost, 5.0, "Cost should be very high when alone (prefer other actions)")
+	# Disabled per issue #169 - always returns 1000.0 regardless of enemies_in_combat
+	assert_eq(cost, 1000.0, "Cost should always be 1000.0 (disabled per issue #169)")
 
 
 # ============================================================================
@@ -460,7 +465,7 @@ func test_attack_distracted_player_cost_when_not_distracted() -> void:
 func test_create_all_actions_returns_all_actions() -> void:
 	var actions: Array[GOAPAction] = EnemyActions.create_all_actions()
 
-	assert_eq(actions.size(), 12, "Should create 12 enemy actions")
+	assert_eq(actions.size(), 13, "Should create 13 enemy actions")
 
 
 func test_create_all_actions_includes_all_types() -> void:
@@ -482,6 +487,7 @@ func test_create_all_actions_includes_all_types() -> void:
 	assert_has(action_names, "pursue_player", "Should include pursue_player")
 	assert_has(action_names, "assault_player", "Should include assault_player")
 	assert_has(action_names, "attack_distracted_player", "Should include attack_distracted_player")
+	assert_has(action_names, "attack_vulnerable_player", "Should include attack_vulnerable_player")
 
 
 # ============================================================================
@@ -566,3 +572,103 @@ func test_distracted_player_attack_overrides_other_states() -> void:
 
 	assert_gt(plan.size(), 0, "Planner should find a plan even when under fire")
 	assert_eq(plan[0].action_name, "attack_distracted_player", "Should choose attack_distracted_player even when under fire")
+
+
+# ============================================================================
+# AttackVulnerablePlayerAction Tests
+# ============================================================================
+
+
+func test_attack_vulnerable_player_action_initialization() -> void:
+	var action := EnemyActions.AttackVulnerablePlayerAction.new()
+
+	assert_eq(action.action_name, "attack_vulnerable_player", "Action name should be 'attack_vulnerable_player'")
+	assert_eq(action.cost, 0.1, "Base cost should be 0.1 (very low = high priority)")
+
+
+func test_attack_vulnerable_player_action_preconditions() -> void:
+	var action := EnemyActions.AttackVulnerablePlayerAction.new()
+
+	assert_eq(action.preconditions["player_visible"], true, "Requires player visible")
+	assert_eq(action.preconditions["player_close"], true, "Requires player close")
+
+
+func test_attack_vulnerable_player_action_effects() -> void:
+	var action := EnemyActions.AttackVulnerablePlayerAction.new()
+
+	assert_eq(action.effects["player_engaged"], true, "Effect should set player_engaged")
+
+
+func test_attack_vulnerable_player_cost_when_reloading_and_close() -> void:
+	var action := EnemyActions.AttackVulnerablePlayerAction.new()
+	var world_state := {
+		"player_reloading": true,
+		"player_ammo_empty": false,
+		"player_close": true
+	}
+
+	var cost: float = action.get_cost(null, world_state)
+
+	assert_eq(cost, 0.05, "Cost should be extremely low when player is reloading and close (highest priority)")
+
+
+func test_attack_vulnerable_player_cost_when_ammo_empty_and_close() -> void:
+	var action := EnemyActions.AttackVulnerablePlayerAction.new()
+	var world_state := {
+		"player_reloading": false,
+		"player_ammo_empty": true,
+		"player_close": true
+	}
+
+	var cost: float = action.get_cost(null, world_state)
+
+	assert_eq(cost, 0.05, "Cost should be extremely low when player has empty ammo and close (highest priority)")
+
+
+func test_attack_vulnerable_player_cost_when_vulnerable_but_not_close() -> void:
+	var action := EnemyActions.AttackVulnerablePlayerAction.new()
+	var world_state := {
+		"player_reloading": true,
+		"player_ammo_empty": false,
+		"player_close": false
+	}
+
+	var cost: float = action.get_cost(null, world_state)
+
+	assert_eq(cost, 100.0, "Cost should be very high when player is vulnerable but not close")
+
+
+func test_attack_vulnerable_player_cost_when_not_vulnerable() -> void:
+	var action := EnemyActions.AttackVulnerablePlayerAction.new()
+	var world_state := {
+		"player_reloading": false,
+		"player_ammo_empty": false,
+		"player_close": true
+	}
+
+	var cost: float = action.get_cost(null, world_state)
+
+	assert_eq(cost, 100.0, "Cost should be very high when player is not vulnerable")
+
+
+func test_vulnerable_player_attack_has_highest_priority() -> void:
+	var planner := GOAPPlanner.new()
+	var actions := EnemyActions.create_all_actions()
+
+	for action in actions:
+		planner.add_action(action)
+
+	# Scenario: enemy sees vulnerable (reloading) player who is close
+	# attack_vulnerable_player should be chosen over engage_player due to lower cost
+	var state := {
+		"player_visible": true,
+		"player_close": true,
+		"player_reloading": true,
+		"player_ammo_empty": false
+	}
+	var goal := {"player_engaged": true}
+
+	var plan: Array[GOAPAction] = planner.plan(state, goal)
+
+	assert_gt(plan.size(), 0, "Planner should find a plan to attack vulnerable player")
+	assert_eq(plan[0].action_name, "attack_vulnerable_player", "Should choose attack_vulnerable_player (highest priority)")

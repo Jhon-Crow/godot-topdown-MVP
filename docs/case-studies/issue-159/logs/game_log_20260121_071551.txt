@@ -1,0 +1,214 @@
+[07:15:51] [INFO] ============================================================
+[07:15:51] [INFO] GAME LOG STARTED
+[07:15:51] [INFO] ============================================================
+[07:15:51] [INFO] Timestamp: 2026-01-21T07:15:51
+[07:15:51] [INFO] Log file: I:/Загрузки/godot exe/game_log_20260121_071551.txt
+[07:15:51] [INFO] Executable: I:/Загрузки/godot exe/Godot-Top-Down-Template.exe
+[07:15:51] [INFO] OS: Windows
+[07:15:51] [INFO] Debug build: false
+[07:15:51] [INFO] Engine version: 4.3-stable (official)
+[07:15:51] [INFO] Project: Godot Top-Down Template
+[07:15:51] [INFO] ------------------------------------------------------------
+[07:15:51] [INFO] [GameManager] GameManager ready
+[07:15:51] [INFO] [SoundPropagation] SoundPropagation autoload initialized
+[07:15:51] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 1)
+[07:15:51] [ENEMY] [Enemy1] Registered as sound listener
+[07:15:51] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 2, behavior: GUARD, player_found: yes
+[07:15:51] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 2)
+[07:15:51] [ENEMY] [Enemy2] Registered as sound listener
+[07:15:51] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 2, behavior: GUARD, player_found: yes
+[07:15:51] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 3)
+[07:15:51] [ENEMY] [Enemy3] Registered as sound listener
+[07:15:51] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 2, behavior: GUARD, player_found: yes
+[07:15:51] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 4)
+[07:15:51] [ENEMY] [Enemy4] Registered as sound listener
+[07:15:51] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 4, behavior: GUARD, player_found: yes
+[07:15:51] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 5)
+[07:15:51] [ENEMY] [Enemy5] Registered as sound listener
+[07:15:51] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 2, behavior: GUARD, player_found: yes
+[07:15:51] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 6)
+[07:15:51] [ENEMY] [Enemy6] Registered as sound listener
+[07:15:51] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 2, behavior: GUARD, player_found: yes
+[07:15:51] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 7)
+[07:15:51] [ENEMY] [Enemy7] Registered as sound listener
+[07:15:51] [ENEMY] [Enemy7] Enemy spawned at (1606.114, 893.8859), health: 2, behavior: PATROL, player_found: yes
+[07:15:51] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 8)
+[07:15:51] [ENEMY] [Enemy8] Registered as sound listener
+[07:15:51] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 4, behavior: GUARD, player_found: yes
+[07:15:51] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 9)
+[07:15:51] [ENEMY] [Enemy9] Registered as sound listener
+[07:15:51] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 4, behavior: GUARD, player_found: yes
+[07:15:51] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 10)
+[07:15:51] [ENEMY] [Enemy10] Registered as sound listener
+[07:15:51] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 2, behavior: PATROL, player_found: yes
+[07:15:52] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[07:15:52] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1200, 1550), source=ENEMY (Enemy10), range=1469, listeners=10
+[07:15:52] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=1, below_threshold=8
+[07:15:52] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1171.99, 1534.529), source=ENEMY (Enemy10), range=1469, listeners=10
+[07:15:52] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=1, below_threshold=8
+[07:15:53] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1140.006, 1515.278), source=ENEMY (Enemy10), range=1469, listeners=10
+[07:15:53] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=1, below_threshold=9
+[07:15:53] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1108.816, 1494.764), source=ENEMY (Enemy10), range=1469, listeners=10
+[07:15:53] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=1, below_threshold=9
+[07:15:53] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1078.466, 1473.029), source=ENEMY (Enemy10), range=1469, listeners=10
+[07:15:53] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=1, below_threshold=9
+[07:15:53] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[07:15:53] [ENEMY] [Enemy2] Hit taken, health: 1/2
+[07:15:53] [ENEMY] [Enemy3] State: IDLE -> COMBAT
+[07:15:53] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(450, 763.3333), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[07:15:53] [ENEMY] [Enemy1] Heard gunshot at (450, 763.3333), source_type=0, intensity=0.01, distance=440
+[07:15:53] [ENEMY] [Enemy2] Heard gunshot at (450, 763.3333), source_type=0, intensity=0.05, distance=219
+[07:15:53] [ENEMY] [Enemy4] Heard gunshot at (450, 763.3333), source_type=0, intensity=0.02, distance=376
+[07:15:53] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=3, self=0, below_threshold=3
+[07:15:54] [ENEMY] [Enemy2] State: COMBAT -> RETREATING
+[07:15:54] [ENEMY] [Enemy2] State: RETREATING -> IN_COVER
+[07:15:54] [ENEMY] [Enemy2] State: IN_COVER -> SUPPRESSED
+[07:15:54] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(689.5667, 752.2189), source=ENEMY (Enemy3), range=1469, listeners=10
+[07:15:54] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[07:15:54] [ENEMY] [Enemy3] Hit taken, health: 1/2
+[07:15:54] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(450, 745.3333), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[07:15:54] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=3, self=0, below_threshold=3
+[07:15:54] [ENEMY] [Enemy3] Hit taken, health: 0/2
+[07:15:54] [ENEMY] [Enemy3] Enemy died
+[07:15:54] [INFO] [SoundPropagation] Unregistered listener: Enemy3 (remaining: 9)
+[07:15:54] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(450, 739.1466), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[07:15:54] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=3, self=0, below_threshold=3
+[07:15:54] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(450, 746.6133), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[07:15:54] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=3, self=0, below_threshold=3
+[07:15:54] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(450, 767.7333), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[07:15:54] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=3, self=0, below_threshold=3
+[07:15:54] [ENEMY] [Enemy1] State: COMBAT -> PURSUING
+[07:15:54] [ENEMY] [Enemy4] State: COMBAT -> PURSUING
+[07:15:56] [ENEMY] [Enemy1] FLANKING started: target=(250.9272, 842.8439), side=left, pos=(240.486, 401.9332)
+[07:15:56] [ENEMY] [Enemy1] State: PURSUING -> FLANKING
+[07:15:56] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[07:15:56] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[07:15:56] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[07:15:56] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[07:15:56] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[07:15:56] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[07:15:56] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[07:15:56] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[07:15:56] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[07:15:56] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[07:15:56] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[07:15:56] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[07:15:56] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[07:15:56] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[07:15:56] [ENEMY] [Enemy2] State: SUPPRESSED -> IN_COVER
+[07:15:56] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[07:15:56] [ENEMY] [Enemy2] State: IN_COVER -> PURSUING
+[07:15:56] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[07:15:56] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[07:15:56] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[07:15:56] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[07:15:56] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[07:15:57] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[07:15:57] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[07:15:57] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[07:15:57] [ENEMY] [Enemy10] FLANKING started: target=(389.1038, 1052.917), side=right, pos=(955.1432, 1418.083)
+[07:15:57] [ENEMY] [Enemy10] State: PURSUING -> FLANKING
+[07:15:57] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[07:15:57] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[07:15:57] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[07:15:57] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[07:15:57] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[07:15:57] [ENEMY] [Enemy4] State: PURSUING -> COMBAT
+[07:15:57] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[07:15:57] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[07:15:57] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[07:15:57] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[07:15:57] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[07:15:57] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[07:15:57] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[07:15:57] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[07:15:57] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[07:15:57] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[07:15:57] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[07:15:57] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[07:15:57] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[07:15:57] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[07:15:57] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[07:15:57] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[07:15:57] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[07:15:57] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[07:15:57] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[07:15:57] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[07:15:57] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[07:15:57] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[07:15:57] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[07:15:58] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[07:15:58] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[07:15:58] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[07:15:58] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[07:15:58] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[07:15:58] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[07:15:58] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[07:15:58] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[07:15:58] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[07:15:58] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[07:15:58] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[07:15:58] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[07:15:58] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[07:15:58] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[07:15:58] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[07:15:58] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[07:15:58] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[07:15:58] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[07:15:58] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[07:15:58] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[07:15:58] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[07:15:58] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[07:15:58] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[07:15:58] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[07:15:58] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[07:15:58] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[07:15:58] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[07:15:58] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[07:15:58] [ENEMY] [Enemy2] Player distracted - priority attack triggered
+[07:15:58] [ENEMY] [Enemy1] FLANKING stuck (2.0s no progress), target=(252.1218, 941.0799), pos=(224.7713, 401.9339), fail_count=1
+[07:15:58] [ENEMY] [Enemy1] State: FLANKING -> PURSUING
+[07:15:59] [ENEMY] [Enemy10] State: FLANKING -> COMBAT
+[07:15:59] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(622.3246, 1139.974), source=ENEMY (Enemy10), range=1469, listeners=9
+[07:15:59] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=2, self=1, below_threshold=5
+[07:15:59] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(622.3246, 1139.974), source=ENEMY (Enemy10), range=1469, listeners=9
+[07:15:59] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=2, self=1, below_threshold=5
+[07:15:59] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(622.3246, 1139.974), source=ENEMY (Enemy10), range=1469, listeners=9
+[07:15:59] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=2, self=1, below_threshold=5
+[07:15:59] [ENEMY] [Enemy4] State: COMBAT -> RETREATING
+[07:15:59] [ENEMY] [Enemy4] State: RETREATING -> IN_COVER
+[07:15:59] [ENEMY] [Enemy4] State: IN_COVER -> SUPPRESSED
+[07:15:59] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[07:15:59] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 10)
+[07:15:59] [ENEMY] [Enemy1] Registered as sound listener
+[07:15:59] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 4, behavior: GUARD, player_found: yes
+[07:15:59] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 11)
+[07:15:59] [ENEMY] [Enemy2] Registered as sound listener
+[07:15:59] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 4, behavior: GUARD, player_found: yes
+[07:15:59] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 12)
+[07:15:59] [ENEMY] [Enemy3] Registered as sound listener
+[07:15:59] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 4, behavior: GUARD, player_found: yes
+[07:15:59] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 13)
+[07:15:59] [ENEMY] [Enemy4] Registered as sound listener
+[07:15:59] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 4, behavior: GUARD, player_found: yes
+[07:15:59] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 14)
+[07:15:59] [ENEMY] [Enemy5] Registered as sound listener
+[07:15:59] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 4, behavior: GUARD, player_found: yes
+[07:15:59] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 15)
+[07:15:59] [ENEMY] [Enemy6] Registered as sound listener
+[07:15:59] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 4, behavior: GUARD, player_found: yes
+[07:15:59] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 16)
+[07:15:59] [ENEMY] [Enemy7] Registered as sound listener
+[07:15:59] [ENEMY] [Enemy7] Enemy spawned at (1600, 900), health: 3, behavior: PATROL, player_found: yes
+[07:15:59] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 17)
+[07:15:59] [ENEMY] [Enemy8] Registered as sound listener
+[07:15:59] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 3, behavior: GUARD, player_found: yes
+[07:15:59] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 18)
+[07:15:59] [ENEMY] [Enemy9] Registered as sound listener
+[07:15:59] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 4, behavior: GUARD, player_found: yes
+[07:15:59] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 19)
+[07:15:59] [ENEMY] [Enemy10] Registered as sound listener
+[07:15:59] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 3, behavior: PATROL, player_found: yes
+[07:16:02] [INFO] ------------------------------------------------------------
+[07:16:02] [INFO] GAME LOG ENDED: 2026-01-21T07:16:02
+[07:16:02] [INFO] ============================================================

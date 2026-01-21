@@ -1,0 +1,68 @@
+[19:56:15] [INFO] ============================================================
+[19:56:15] [INFO] GAME LOG STARTED
+[19:56:15] [INFO] ============================================================
+[19:56:15] [INFO] Timestamp: 2026-01-20T19:56:15
+[19:56:15] [INFO] Log file: I:/Загрузки/godot exe/game_log_20260120_195615.txt
+[19:56:15] [INFO] Executable: I:/Загрузки/godot exe/Godot-Top-Down-Template.exe
+[19:56:15] [INFO] OS: Windows
+[19:56:15] [INFO] Debug build: false
+[19:56:15] [INFO] Engine version: 4.3-stable (official)
+[19:56:15] [INFO] Project: Godot Top-Down Template
+[19:56:15] [INFO] ------------------------------------------------------------
+[19:56:15] [INFO] [GameManager] GameManager ready
+[19:56:15] [INFO] [SoundPropagation] SoundPropagation autoload initialized
+[19:56:15] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 1)
+[19:56:15] [ENEMY] [Enemy1] Registered as sound listener
+[19:56:15] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 4, behavior: GUARD, player_found: yes
+[19:56:15] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 2)
+[19:56:15] [ENEMY] [Enemy2] Registered as sound listener
+[19:56:15] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 3, behavior: GUARD, player_found: yes
+[19:56:15] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 3)
+[19:56:15] [ENEMY] [Enemy3] Registered as sound listener
+[19:56:15] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 2, behavior: GUARD, player_found: yes
+[19:56:15] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 4)
+[19:56:15] [ENEMY] [Enemy4] Registered as sound listener
+[19:56:15] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 4, behavior: GUARD, player_found: yes
+[19:56:15] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 5)
+[19:56:15] [ENEMY] [Enemy5] Registered as sound listener
+[19:56:15] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 4, behavior: GUARD, player_found: yes
+[19:56:15] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 6)
+[19:56:15] [ENEMY] [Enemy6] Registered as sound listener
+[19:56:15] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 2, behavior: GUARD, player_found: yes
+[19:56:15] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 7)
+[19:56:15] [ENEMY] [Enemy7] Registered as sound listener
+[19:56:15] [ENEMY] [Enemy7] Enemy spawned at (1606.114, 893.8859), health: 3, behavior: PATROL, player_found: yes
+[19:56:15] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 8)
+[19:56:15] [ENEMY] [Enemy8] Registered as sound listener
+[19:56:15] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 4, behavior: GUARD, player_found: yes
+[19:56:15] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 9)
+[19:56:15] [ENEMY] [Enemy9] Registered as sound listener
+[19:56:15] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 2, behavior: GUARD, player_found: yes
+[19:56:15] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 10)
+[19:56:15] [ENEMY] [Enemy10] Registered as sound listener
+[19:56:15] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 4, behavior: PATROL, player_found: yes
+[19:56:19] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(80.06623, 2047.974), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[19:56:19] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=7, self=0, below_threshold=3
+[19:56:19] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(80.06623, 2047.974), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[19:56:19] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=7, self=0, below_threshold=3
+[19:56:20] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(80.06623, 2047.974), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[19:56:20] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=7, self=0, below_threshold=3
+[19:56:20] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(80.06623, 2047.974), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[19:56:20] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=7, self=0, below_threshold=3
+[19:56:20] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(80.06623, 2047.974), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[19:56:20] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=7, self=0, below_threshold=3
+[19:56:21] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(80.06623, 2047.974), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[19:56:21] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=7, self=0, below_threshold=3
+[19:56:21] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(80.06623, 2047.974), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[19:56:21] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=7, self=0, below_threshold=3
+[19:56:22] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(80.06623, 2047.974), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[19:56:22] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=7, self=0, below_threshold=3
+[19:56:22] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(80.06623, 2047.974), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[19:56:22] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=7, self=0, below_threshold=3
+[19:56:23] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(80.06623, 2047.974), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[19:56:23] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=7, self=0, below_threshold=3
+[19:56:23] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(80.06623, 2047.974), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[19:56:23] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=7, self=0, below_threshold=3
+[19:56:24] [INFO] ------------------------------------------------------------
+[19:56:24] [INFO] GAME LOG ENDED: 2026-01-20T19:56:24
+[19:56:24] [INFO] ============================================================

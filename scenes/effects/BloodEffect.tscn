@@ -1,0 +1,41 @@
+[gd_scene load_steps=5 format=3 uid="uid://blood_effect_scene"]
+
+[ext_resource type="Script" path="res://scripts/effects/effect_cleanup.gd" id="1_effect_cleanup"]
+
+[sub_resource type="Gradient" id="Gradient_blood"]
+offsets = PackedFloat32Array(0, 0.2, 0.6, 1)
+colors = PackedColorArray(0.8, 0.1, 0.05, 1, 0.7, 0.05, 0.02, 0.95, 0.5, 0.02, 0.02, 0.7, 0.3, 0.01, 0.01, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_blood"]
+gradient = SubResource("Gradient_blood")
+width = 12
+height = 12
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_blood"]
+lifetime_randomness = 0.4
+particle_flag_disable_z = true
+emission_shape = 1
+emission_sphere_radius = 6.0
+direction = Vector3(1, -0.3, 0)
+spread = 55.0
+initial_velocity_min = 150.0
+initial_velocity_max = 350.0
+gravity = Vector3(0, 450, 0)
+damping_min = 5.0
+damping_max = 15.0
+scale_min = 0.1
+scale_max = 0.4
+color = Color(0.75, 0.08, 0.05, 1)
+
+[node name="BloodEffect" type="GPUParticles2D"]
+emitting = false
+amount = 45
+process_material = SubResource("ParticleProcessMaterial_blood")
+texture = SubResource("GradientTexture2D_blood")
+lifetime = 0.8
+one_shot = true
+explosiveness = 0.92
+script = ExtResource("1_effect_cleanup")
+cleanup_delay = 0.3

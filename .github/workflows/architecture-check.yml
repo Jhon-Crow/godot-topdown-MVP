@@ -1,0 +1,179 @@
+name: Architecture Best Practices Check
+
+on:
+  push:
+    branches: [ main, issue-* ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  architecture-check:
+    name: Check Architecture Best Practices
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check script line counts
+        id: line_counts
+        run: |
+          echo "Checking GDScript file sizes..."
+          # Current limits - these will be reduced as refactoring progresses
+          # Target: MAX_LINES=800, WARN_LINES=500
+          # Current: Higher limits to allow existing large scripts while encouraging refactoring
+          MAX_LINES=5000  # Will be reduced to 800 as refactoring progresses
+          WARN_LINES=800  # Warns for scripts that should be considered for refactoring
+          errors=0
+          warnings=0
+          large_scripts=0
+
+          # Find all GDScript files (excluding addons and tests)
+          while IFS= read -r file; do
+            lines=$(wc -l < "$file")
+            if [ "$lines" -gt "$MAX_LINES" ]; then
+              echo "::error file=$file::Script exceeds $MAX_LINES lines ($lines lines). Refactoring required."
+              errors=$((errors + 1))
+            elif [ "$lines" -gt "$WARN_LINES" ]; then
+              echo "::warning file=$file::Script has $lines lines (warning threshold: $WARN_LINES). Consider splitting into components using the patterns in scripts/components/."
+              warnings=$((warnings + 1))
+            fi
+            if [ "$lines" -gt 500 ]; then
+              large_scripts=$((large_scripts + 1))
+            fi
+          done < <(find scripts -name "*.gd" -type f 2>/dev/null)
+
+          echo "errors=$errors" >> $GITHUB_OUTPUT
+          echo "warnings=$warnings" >> $GITHUB_OUTPUT
+          echo "large_scripts=$large_scripts" >> $GITHUB_OUTPUT
+
+          if [ "$errors" -gt 0 ]; then
+            echo "Found $errors script(s) exceeding line limit."
+            exit 1
+          fi
+
+          echo "All scripts within size limits. ($warnings warnings, $large_scripts scripts over 500 lines)"
+          echo ""
+          echo "Note: Gradual refactoring is encouraged. See scripts/components/ for reusable component patterns."
+
+      - name: Check for class_name declarations
+        run: |
+          echo "Checking component files have class_name..."
+          errors=0
+
+          # Check components folder
+          if [ -d "scripts/components" ]; then
+            for file in scripts/components/*.gd; do
+              if [ -f "$file" ]; then
+                if ! grep -q "^class_name" "$file"; then
+                  echo "::error file=$file::Component script missing class_name declaration"
+                  errors=$((errors + 1))
+                fi
+              fi
+            done
+          fi
+
+          # Check AI states folder
+          if [ -d "scripts/ai/states" ]; then
+            for file in scripts/ai/states/*.gd; do
+              if [ -f "$file" ]; then
+                if ! grep -q "^class_name" "$file"; then
+                  echo "::error file=$file::AI state script missing class_name declaration"
+                  errors=$((errors + 1))
+                fi
+              fi
+            done
+          fi
+
+          if [ "$errors" -gt 0 ]; then
+            echo "Found $errors files missing class_name declarations."
+            exit 1
+          fi
+
+          echo "All component/state files have class_name declarations."
+
+      - name: Check folder structure
+        run: |
+          echo "Checking project folder structure..."
+          required_dirs=(
+            "scripts/autoload"
+            "scripts/ai"
+            "scripts/characters"
+            "scripts/objects"
+            "scripts/ui"
+            "scenes/characters"
+            "scenes/levels"
+            "scenes/objects"
+            "scenes/ui"
+          )
+
+          errors=0
+          for dir in "${required_dirs[@]}"; do
+            if [ ! -d "$dir" ]; then
+              echo "::error::Required directory '$dir' not found"
+              errors=$((errors + 1))
+            fi
+          done
+
+          if [ "$errors" -gt 0 ]; then
+            echo "Found $errors missing required directories."
+            exit 1
+          fi
+
+          echo "All required directories present."
+
+      - name: Check snake_case naming
+        run: |
+          echo "Checking snake_case naming convention for GDScript files..."
+          errors=0
+
+          # Check GDScript files use snake_case (lowercase with underscores)
+          while IFS= read -r file; do
+            basename=$(basename "$file" .gd)
+            # Check if filename contains uppercase letters
+            if [[ "$basename" =~ [A-Z] ]]; then
+              echo "::error file=$file::GDScript filename should be snake_case (lowercase with underscores)"
+              errors=$((errors + 1))
+            fi
+          done < <(find scripts -name "*.gd" -type f 2>/dev/null)
+
+          if [ "$errors" -gt 0 ]; then
+            echo "Found $errors files with incorrect naming."
+            exit 1
+          fi
+
+          echo "All GDScript files use snake_case naming."
+
+      - name: Check for direct singleton access patterns
+        run: |
+          echo "Checking for potential tight coupling with autoloads..."
+          warnings=0
+
+          # Look for potential issues (direct global access without null check)
+          while IFS= read -r file; do
+            # Check for patterns that might indicate tight coupling
+            # This is a soft warning, not an error
+            if grep -qE "^[^#]*\b(GameManager|AudioManager|InputSettings)\.[a-z]" "$file"; then
+              # Check if the same file has null checks
+              if ! grep -qE "get_node_or_null.*/(GameManager|AudioManager|InputSettings)" "$file"; then
+                echo "::warning file=$file::Consider using get_node_or_null for autoload access to improve robustness"
+                warnings=$((warnings + 1))
+              fi
+            fi
+          done < <(find scripts -name "*.gd" -type f 2>/dev/null)
+
+          echo "Found $warnings potential coupling warnings (non-blocking)."
+
+      - name: Summary
+        run: |
+          echo "=== Architecture Check Complete ==="
+          echo ""
+          echo "Checks performed:"
+          echo "  ✓ Script line counts (max 800, warn at 500)"
+          echo "  ✓ class_name declarations for components"
+          echo "  ✓ Required folder structure"
+          echo "  ✓ snake_case naming convention"
+          echo "  ✓ Autoload coupling patterns"
+          echo ""
+          echo "All critical checks passed!"

@@ -935,16 +935,6 @@ grow_horizontal = 0
 text = "BUILDING INTERIOR"
 horizontal_alignment = 2
 
-[node name="InstructionsLabel" type="Label" parent="CanvasLayer/UI"]
-layout_mode = 1
-anchors_preset = 0
-offset_left = 10.0
-offset_top = 650.0
-offset_right = 600.0
-offset_bottom = 710.0
-text = "WASD - Move | LMB - Shoot (hold) | R - Reload | B - Toggle Fire Mode | ESC - Pause
-Clear all rooms to win!"
-
 [node name="EnemyCountLabel" type="Label" parent="CanvasLayer/UI"]
 layout_mode = 1
 anchors_preset = 1

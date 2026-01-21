@@ -1,0 +1,33 @@
+commit 4a457efb0f8414e929a229bd4faf80b5cc0db46c
+Author: konard <drakonard@gmail.com>
+Date:   Sat Jan 17 22:57:05 2026 +0100
+
+    Add PURSUING and ASSAULT states for improved enemy AI combat behavior
+    
+    Implements enhanced enemy combat AI with three major behavior changes:
+    
+    1. Combat Cover Cycling: In COMBAT state, enemies now come out of cover,
+       shoot for 2-3 seconds (randomized), then return to cover. This creates
+       more tactical and realistic combat encounters.
+    
+    2. Pursuit State (PURSUING): When enemies are far from the player and
+       cannot hit them from their current position, they move cover-to-cover
+       toward the player, waiting 2-3 seconds at each cover position.
+    
+    3. Assault State (ASSAULT): When 2+ enemies are in combat simultaneously,
+       they coordinate an assault - taking the closest safe covers to the
+       player, waiting 5 seconds, then rushing the player together while
+       shooting.
+    
+    Also includes:
+    - New GOAP actions (PursuePlayerAction, AssaultPlayerAction) for AI planning
+    - Helper functions for distance/hit detection
+    - Debug label updates showing timer info for ASSAULT and COMBAT states
+    
+    Fixes #88
+    
+    Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>
+
+ scripts/ai/enemy_actions.gd |  44 ++++
+ scripts/objects/enemy.gd    | 545 ++++++++++++++++++++++++++++++++++++++++++--
+ 2 files changed, 576 insertions(+), 13 deletions(-)

@@ -218,3 +218,55 @@ func test_multiple_hit_areas_on_same_parent() -> void:
 	hit_area1.on_hit()
 
 	assert_eq(mock_parent.hit_count, 3, "Parent should receive all hits from both areas")
+
+
+# ============================================================================
+# Extended on_hit_with_info Tests
+# ============================================================================
+
+
+# Mock parent that supports on_hit_with_info
+class MockParentWithExtendedOnHit:
+	extends Node2D
+
+	var hit_called: bool = false
+	var last_direction: Vector2 = Vector2.ZERO
+	var last_caliber_data: Resource = null
+
+	func on_hit_with_info(hit_direction: Vector2, caliber_data: Resource) -> void:
+		hit_called = true
+		last_direction = hit_direction
+		last_caliber_data = caliber_data
+
+
+func test_on_hit_with_info_forwards_to_parent() -> void:
+	var mock_parent := MockParentWithExtendedOnHit.new()
+	_create_hit_area_with_parent(mock_parent)
+
+	var test_direction := Vector2(1, 0)
+	hit_area.on_hit_with_info(test_direction, null)
+
+	assert_true(mock_parent.hit_called, "Parent's on_hit_with_info should be called")
+	assert_eq(mock_parent.last_direction, test_direction, "Direction should be forwarded")
+
+
+func test_on_hit_with_info_forwards_caliber_data() -> void:
+	var mock_parent := MockParentWithExtendedOnHit.new()
+	_create_hit_area_with_parent(mock_parent)
+
+	var test_direction := Vector2(0.5, -0.5)
+	var test_caliber := Resource.new()
+	hit_area.on_hit_with_info(test_direction, test_caliber)
+
+	assert_eq(mock_parent.last_caliber_data, test_caliber, "Caliber data should be forwarded")
+
+
+func test_on_hit_with_info_falls_back_to_on_hit() -> void:
+	# Parent only has basic on_hit, not extended
+	var mock_parent := MockParentWithOnHit.new()
+	_create_hit_area_with_parent(mock_parent)
+
+	# Should fall back to basic on_hit
+	hit_area.on_hit_with_info(Vector2(1, 0), null)
+
+	assert_true(mock_parent.hit_called, "Parent's basic on_hit should be called as fallback")

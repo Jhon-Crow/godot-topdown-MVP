@@ -12,6 +12,7 @@ extends CanvasLayer
 @onready var resume_button: Button = $MenuContainer/VBoxContainer/ResumeButton
 @onready var controls_button: Button = $MenuContainer/VBoxContainer/ControlsButton
 @onready var difficulty_button: Button = $MenuContainer/VBoxContainer/DifficultyButton
+@onready var levels_button: Button = $MenuContainer/VBoxContainer/LevelsButton
 @onready var settings_button: Button = $MenuContainer/VBoxContainer/SettingsButton
 @onready var quit_button: Button = $MenuContainer/VBoxContainer/QuitButton
 
@@ -21,11 +22,17 @@ var _controls_menu: CanvasLayer = null
 ## The instantiated difficulty menu.
 var _difficulty_menu: CanvasLayer = null
 
+## The instantiated levels menu.
+var _levels_menu: CanvasLayer = null
+
 ## The instantiated settings menu.
 var _settings_menu: CanvasLayer = null
 
 ## Reference to the difficulty menu scene.
 @export var difficulty_menu_scene: PackedScene
+
+## Reference to the levels menu scene.
+@export var levels_menu_scene: PackedScene
 
 ## Reference to the settings menu scene.
 @export var settings_menu_scene: PackedScene
@@ -40,6 +47,7 @@ func _ready() -> void:
 	resume_button.pressed.connect(_on_resume_pressed)
 	controls_button.pressed.connect(_on_controls_pressed)
 	difficulty_button.pressed.connect(_on_difficulty_pressed)
+	levels_button.pressed.connect(_on_levels_pressed)
 	settings_button.pressed.connect(_on_settings_pressed)
 	quit_button.pressed.connect(_on_quit_pressed)
 
@@ -50,6 +58,10 @@ func _ready() -> void:
 	# Preload difficulty menu if not set
 	if difficulty_menu_scene == null:
 		difficulty_menu_scene = preload("res://scenes/ui/DifficultyMenu.tscn")
+
+	# Preload levels menu if not set
+	if levels_menu_scene == null:
+		levels_menu_scene = preload("res://scenes/ui/LevelsMenu.tscn")
 
 	# Preload settings menu if not set
 	if settings_menu_scene == null:
@@ -93,6 +105,10 @@ func resume_game() -> void:
 	# Also close difficulty menu if open
 	if _difficulty_menu and _difficulty_menu.visible:
 		_difficulty_menu.hide()
+
+	# Also close levels menu if open
+	if _levels_menu and _levels_menu.visible:
+		_levels_menu.hide()
 
 	# Also close settings menu if open
 	if _settings_menu and _settings_menu.visible:
@@ -141,6 +157,28 @@ func _on_difficulty_back() -> void:
 		_difficulty_menu.hide()
 	menu_container.show()
 	difficulty_button.grab_focus()
+
+
+func _on_levels_pressed() -> void:
+	# Hide main menu, show levels menu
+	menu_container.hide()
+
+	if _levels_menu == null:
+		_levels_menu = levels_menu_scene.instantiate()
+		_levels_menu.back_pressed.connect(_on_levels_back)
+		add_child(_levels_menu)
+	else:
+		# Refresh level list in case current scene changed
+		_levels_menu._populate_level_list()
+		_levels_menu.show()
+
+
+func _on_levels_back() -> void:
+	# Show main menu again
+	if _levels_menu:
+		_levels_menu.hide()
+	menu_container.show()
+	levels_button.grab_focus()
 
 
 func _on_settings_pressed() -> void:

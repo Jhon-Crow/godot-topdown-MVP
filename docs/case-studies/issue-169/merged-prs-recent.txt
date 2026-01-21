@@ -1,0 +1,20 @@
+166	Добавить эффект предпоследнего попадания с контрастностью и 3-секундной длительностью	konard:issue-165-c89a59839c96	MERGED	2026-01-21T06:31:15Z
+161	Добавить прострел стен (в зависимости от калибра)	konard:issue-159-c585249aa06f	MERGED	2026-01-21T03:50:51Z
+158	Fix player shooting through walls when flush against cover	konard:issue-70-46600958b1d9	MERGED	2026-01-21T03:33:40Z
+153	Fix dust effect not spawning from player bullets hitting walls	konard:issue-152-d18c64673be2	MERGED	2026-01-21T00:43:12Z
+151	Add visual impact effects with realistic blood and persistent decals	konard:issue-149-f7edb648fa0d	MERGED	2026-01-21T00:03:28Z
+150	Add realistic ricochet mechanics for weapons (5.45 caliber)	konard:issue-141-e39d8d7629de	MERGED	2026-01-20T22:19:29Z
+147	Optimize architecture with component-based patterns and best practices	konard:issue-146-b911bd3052d1	MERGED	2026-01-20T19:28:24Z
+145	Add comprehensive unit tests for 100% test coverage	konard:issue-144-bd1771ef2d83	MERGED	2026-01-20T19:07:32Z
+142	Add tutorial level (Обучение) with step-by-step guidance	konard:issue-139-b31e2b670960	MERGED	2026-01-20T18:26:42Z
+140	Add Easy difficulty with longer enemy detection delay	konard:issue-134-aecb29ac8458	MERGED	2026-01-20T18:18:32Z
+138	Add Levels menu item to pause menu	konard:issue-136-cd7190337a28	MERGED	2026-01-20T17:18:00Z
+137	Fix bullet tripling visual artifact with Camera2D Physics mode	konard:issue-72-863b739d169c	MERGED	2026-01-20T16:43:02Z
+135	Fix ESC pause menu not opening	konard:issue-131-6814f6fb3dda	MERGED	2026-01-20T16:24:25Z
+133	Add reload completion sound to trigger enemy cautious mode	konard:issue-132-53ceaf1d9bc8	MERGED	2026-01-20T15:45:45Z
+130	Fix enemies to pursue vulnerability sounds through walls	konard:issue-129-97a64bb95b6b	MERGED	2026-01-20T00:37:46Z
+128	Add aggressive enemy behavior when player reloads or has empty ammo	konard:issue-81-057f2a0b655b	MERGED	2026-01-18T13:16:26Z
+126	Add weapon-specific screen shake on firing	konard:issue-109-8729d054728a	MERGED	2026-01-18T11:14:52Z
+125	Add difficulty selection with distraction attack on Hard mode	konard:issue-114-b64ddd3fb5ac	MERGED	2026-01-18T10:25:08Z
+124	Make laser sight follow recoil pattern	konard:issue-123-4c59e62e3110	MERGED	2026-01-18T10:07:24Z
+122	Add weapon sensitivity system for consistent aiming with hidden cursor	konard:issue-121-88c331c6c97a	MERGED	2026-01-18T09:43:18Z

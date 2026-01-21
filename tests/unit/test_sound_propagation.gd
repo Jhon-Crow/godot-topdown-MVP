@@ -233,10 +233,14 @@ func test_get_propagation_distance_for_known_types() -> void:
 	assert_almost_eq(_sound_propagation.get_propagation_distance(1), 2200.0, 0.1, "Explosion should have 2200 range")
 	# FOOTSTEP = 2
 	assert_almost_eq(_sound_propagation.get_propagation_distance(2), 180.0, 0.1, "Footstep should have 180 range")
-	# RELOAD = 3
-	assert_almost_eq(_sound_propagation.get_propagation_distance(3), 360.0, 0.1, "Reload should have 360 range")
+	# RELOAD = 3 - loud mechanical sound that propagates through walls
+	assert_almost_eq(_sound_propagation.get_propagation_distance(3), 900.0, 0.1, "Reload should have 900 range (through walls)")
 	# IMPACT = 4
 	assert_almost_eq(_sound_propagation.get_propagation_distance(4), 550.0, 0.1, "Impact should have 550 range")
+	# EMPTY_CLICK = 5 - shorter range than reload but still propagates through walls
+	assert_almost_eq(_sound_propagation.get_propagation_distance(5), 600.0, 0.1, "Empty click should have 600 range (through walls)")
+	# RELOAD_COMPLETE = 6 - bolt cycling sound, same range as reload start
+	assert_almost_eq(_sound_propagation.get_propagation_distance(6), 900.0, 0.1, "Reload complete should have 900 range (same as reload start)")
 
 
 func test_get_propagation_distance_for_unknown_type_returns_default() -> void:
@@ -381,5 +385,118 @@ func test_emit_sound_respects_min_intensity_threshold() -> void:
 
 	# Listener should NOT receive sound because intensity is below threshold
 	assert_eq(listener.get_sound_count(), 0, "Listener should not receive very low intensity sound")
+
+	listener.queue_free()
+
+
+# =====================================================
+# Tests for new player reload and empty click sounds
+# =====================================================
+
+func test_emit_player_reload_convenience_method() -> void:
+	var listener := MockListener.new()
+	listener.global_position = Vector2(100, 0)
+	add_child(listener)
+
+	_sound_propagation.register_listener(listener)
+
+	_sound_propagation.emit_player_reload(Vector2(50, 50), null)
+
+	assert_eq(listener.get_sound_count(), 1, "Listener should receive player reload sound")
+	assert_eq(listener.last_sound_type, 3, "Sound type should be RELOAD (3)")
+	assert_eq(listener.last_sound_position, Vector2(50, 50), "Sound position should match")
+	assert_eq(listener.last_source_type, 0, "Source type should be PLAYER (0)")
+
+	listener.queue_free()
+
+
+func test_emit_player_empty_click_convenience_method() -> void:
+	var listener := MockListener.new()
+	listener.global_position = Vector2(100, 0)
+	add_child(listener)
+
+	_sound_propagation.register_listener(listener)
+
+	_sound_propagation.emit_player_empty_click(Vector2(75, 75), null)
+
+	assert_eq(listener.get_sound_count(), 1, "Listener should receive player empty click sound")
+	assert_eq(listener.last_sound_type, 5, "Sound type should be EMPTY_CLICK (5)")
+	assert_eq(listener.last_sound_position, Vector2(75, 75), "Sound position should match")
+	assert_eq(listener.last_source_type, 0, "Source type should be PLAYER (0)")
+
+	listener.queue_free()
+
+
+func test_reload_sound_propagates_further_than_empty_click() -> void:
+	# Reload range is 900, empty click is 600
+	# A listener at 700 should hear reload but not empty click
+	var listener := MockListener.new()
+	listener.global_position = Vector2(700, 0)
+	add_child(listener)
+
+	_sound_propagation.register_listener(listener)
+
+	# Empty click should NOT be heard (600 range, listener at 700)
+	_sound_propagation.emit_player_empty_click(Vector2.ZERO, null)
+	assert_eq(listener.get_sound_count(), 0, "Empty click should not reach listener at 700 pixels")
+
+	# Reload SHOULD be heard (900 range, listener at 700)
+	_sound_propagation.emit_player_reload(Vector2.ZERO, null)
+	assert_eq(listener.get_sound_count(), 1, "Reload should reach listener at 700 pixels")
+
+	listener.queue_free()
+
+
+func test_reload_sound_has_larger_range_than_close_combat_distance() -> void:
+	# Reload sound should have range (900) larger than typical close combat distance (400)
+	# This ensures enemies can hear reload even when player is behind cover
+	var reload_range: float = _sound_propagation.get_propagation_distance(3)  # RELOAD
+	var close_combat_distance: float = 400.0  # Typical close combat distance
+
+	assert_gt(reload_range, close_combat_distance, "Reload range should exceed close combat distance")
+	assert_gt(reload_range, close_combat_distance * 2.0, "Reload range should be significantly larger than close combat")
+
+
+# =====================================================
+# Tests for reload completion sound (enemy cautious mode)
+# =====================================================
+
+func test_emit_player_reload_complete_convenience_method() -> void:
+	var listener := MockListener.new()
+	listener.global_position = Vector2(100, 0)
+	add_child(listener)
+
+	_sound_propagation.register_listener(listener)
+
+	_sound_propagation.emit_player_reload_complete(Vector2(50, 50), null)
+
+	assert_eq(listener.get_sound_count(), 1, "Listener should receive player reload complete sound")
+	assert_eq(listener.last_sound_type, 6, "Sound type should be RELOAD_COMPLETE (6)")
+	assert_eq(listener.last_sound_position, Vector2(50, 50), "Sound position should match")
+	assert_eq(listener.last_source_type, 0, "Source type should be PLAYER (0)")
+
+	listener.queue_free()
+
+
+func test_reload_complete_sound_has_same_range_as_reload_start() -> void:
+	# Reload complete should have the same propagation range as reload start
+	# This ensures enemies who heard the reload will also hear when it completes
+	var reload_range: float = _sound_propagation.get_propagation_distance(3)  # RELOAD
+	var reload_complete_range: float = _sound_propagation.get_propagation_distance(6)  # RELOAD_COMPLETE
+
+	assert_almost_eq(reload_complete_range, reload_range, 0.1, "Reload complete range should match reload start range")
+
+
+func test_reload_complete_sound_propagates_to_distant_listener() -> void:
+	# A listener at 700 pixels should hear reload complete (900 range)
+	var listener := MockListener.new()
+	listener.global_position = Vector2(700, 0)
+	add_child(listener)
+
+	_sound_propagation.register_listener(listener)
+
+	_sound_propagation.emit_player_reload_complete(Vector2.ZERO, null)
+
+	assert_eq(listener.get_sound_count(), 1, "Reload complete should reach listener at 700 pixels")
 
 	listener.queue_free()

@@ -9,6 +9,7 @@ extends Node
 
 ## Difficulty levels enumeration.
 enum Difficulty {
+	EASY,    ## Easy difficulty - longer enemy reaction delay
 	NORMAL,  ## Default difficulty - classic behavior
 	HARD     ## Hard difficulty - enables distraction attack and reduced ammo
 }
@@ -51,9 +52,16 @@ func is_normal_mode() -> bool:
 	return current_difficulty == Difficulty.NORMAL
 
 
+## Check if the game is in easy mode.
+func is_easy_mode() -> bool:
+	return current_difficulty == Difficulty.EASY
+
+
 ## Get the display name of the current difficulty.
 func get_difficulty_name() -> String:
 	match current_difficulty:
+		Difficulty.EASY:
+			return "Easy"
 		Difficulty.NORMAL:
 			return "Normal"
 		Difficulty.HARD:
@@ -65,6 +73,8 @@ func get_difficulty_name() -> String:
 ## Get the display name for a specific difficulty level.
 func get_difficulty_name_for(difficulty: Difficulty) -> String:
 	match difficulty:
+		Difficulty.EASY:
+			return "Easy"
 		Difficulty.NORMAL:
 			return "Normal"
 		Difficulty.HARD:
@@ -74,10 +84,12 @@ func get_difficulty_name_for(difficulty: Difficulty) -> String:
 
 
 ## Get max ammo based on difficulty.
-## Normal: 90 bullets (3 magazines)
+## Easy/Normal: 90 bullets (3 magazines)
 ## Hard: 60 bullets (2 magazines)
 func get_max_ammo() -> int:
 	match current_difficulty:
+		Difficulty.EASY:
+			return 90
 		Difficulty.NORMAL:
 			return 90
 		Difficulty.HARD:
@@ -90,6 +102,23 @@ func get_max_ammo() -> int:
 ## Only enabled in Hard mode.
 func is_distraction_attack_enabled() -> bool:
 	return current_difficulty == Difficulty.HARD
+
+
+## Get the detection delay based on difficulty.
+## This is the delay before enemies start shooting after spotting the player.
+## Easy: 0.5s - gives player more time to react after peeking from cover
+## Normal: 0.2s - default reaction time
+## Hard: 0.2s - same as normal (hard mode uses other mechanics)
+func get_detection_delay() -> float:
+	match current_difficulty:
+		Difficulty.EASY:
+			return 0.5
+		Difficulty.NORMAL:
+			return 0.2
+		Difficulty.HARD:
+			return 0.2
+		_:
+			return 0.2
 
 
 ## Save settings to file.

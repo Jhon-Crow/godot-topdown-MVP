@@ -1,0 +1,10 @@
+c9a9b4b Add group tactical AI system with squad coordination
+719a73d Fix tutorial: add fire mode switch step and correct reload sequence
+4a747e2 Add weapon sensitivity system for consistent aiming with hidden cursor
+f8ba211 Fix FLANKING->PURSUING infinite loop with failure tracking and cooldown
+4a457ef Add PURSUING and ASSAULT states for improved enemy AI combat behavior
+760ced9 Add sound effect for fire mode toggle (B key)
+113343b Add C# Player with assault rifle, laser sight, and improved balance
+302efdb Improve gameplay feel with faster speeds and progressive spread
+9c0bb85 Merge pull request #40 from konard/issue-37-728abcb5b96e
+28e3698 Strengthen enemies with assault rifle-like shooting and unlimited LOS detection

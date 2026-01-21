@@ -213,6 +213,99 @@ public abstract partial class BaseWeapon : Node2D
     }
 
     /// <summary>
+    /// Checks if the bullet spawn path is clear (no wall between weapon and spawn point).
+    /// This prevents shooting through walls when standing flush against cover.
+    /// If blocked, spawns wall hit effects and plays impact sound for feedback.
+    ///
+    /// Returns a tuple: (isBlocked, wallHitPosition, wallHitNormal).
+    /// If isBlocked is true, the caller should spawn the bullet at weapon position
+    /// instead of at the offset position, so penetration can occur.
+    /// </summary>
+    /// <param name="direction">Direction to check.</param>
+    /// <returns>Tuple indicating if blocked and wall hit info.</returns>
+    protected virtual (bool isBlocked, Vector2 hitPosition, Vector2 hitNormal) CheckBulletSpawnPath(Vector2 direction)
+    {
+        var spaceState = GetWorld2D()?.DirectSpaceState;
+        if (spaceState == null)
+        {
+            return (false, Vector2.Zero, Vector2.Zero); // Not blocked if physics not ready
+        }
+
+        // Check from weapon center to bullet spawn position plus a small buffer
+        float checkDistance = BulletSpawnOffset + 5.0f;
+
+        var query = PhysicsRayQueryParameters2D.Create(
+            GlobalPosition,
+            GlobalPosition + direction * checkDistance,
+            4 // Collision mask for obstacles (layer 3 = value 4)
+        );
+
+        var result = spaceState.IntersectRay(query);
+        if (result.Count > 0)
+        {
+            Vector2 hitPosition = (Vector2)result["position"];
+            Vector2 hitNormal = (Vector2)result["normal"];
+            GD.Print($"[BaseWeapon] Wall detected at distance {GlobalPosition.DistanceTo(hitPosition):F1} - bullet will spawn at weapon position for penetration");
+
+            return (true, hitPosition, hitNormal);
+        }
+
+        return (false, Vector2.Zero, Vector2.Zero);
+    }
+
+    /// <summary>
+    /// Checks if the bullet spawn path is clear (no wall between weapon and spawn point).
+    /// This prevents shooting through walls when standing flush against cover.
+    /// If blocked, spawns wall hit effects and plays impact sound for feedback.
+    /// </summary>
+    /// <param name="direction">Direction to check.</param>
+    /// <returns>True if the path is clear, false if a wall blocks it.</returns>
+    protected virtual bool IsBulletSpawnClear(Vector2 direction)
+    {
+        var (isBlocked, hitPosition, hitNormal) = CheckBulletSpawnPath(direction);
+
+        if (isBlocked)
+        {
+            // Play wall hit sound for audio feedback
+            PlayBulletWallHitSound(hitPosition);
+
+            // Spawn dust effect at impact point
+            SpawnWallHitEffect(hitPosition, hitNormal);
+
+            return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Plays the bullet wall hit sound at the specified position.
+    /// </summary>
+    /// <param name="position">Position to play the sound at.</param>
+    private void PlayBulletWallHitSound(Vector2 position)
+    {
+        var audioManager = GetNodeOrNull("/root/AudioManager");
+        if (audioManager != null && audioManager.HasMethod("play_bullet_wall_hit"))
+        {
+            audioManager.Call("play_bullet_wall_hit", position);
+        }
+    }
+
+    /// <summary>
+    /// Spawns dust/debris particles at wall hit position.
+    /// </summary>
+    /// <param name="position">Position of the impact.</param>
+    /// <param name="normal">Surface normal at the impact point.</param>
+    private void SpawnWallHitEffect(Vector2 position, Vector2 normal)
+    {
+        var impactManager = GetNodeOrNull("/root/ImpactEffectsManager");
+        if (impactManager != null && impactManager.HasMethod("spawn_dust_effect"))
+        {
+            impactManager.Call("spawn_dust_effect", position, normal, Variant.CreateFrom((Resource?)null));
+        }
+    }
+
+    /// <summary>
     /// Spawns a bullet traveling in the specified direction.
     /// </summary>
     /// <param name="direction">Direction for the bullet to travel.</param>
@@ -223,8 +316,27 @@ public abstract partial class BaseWeapon : Node2D
             return;
         }
 
+        // Check if the bullet spawn path is blocked by a wall
+        var (isBlocked, hitPosition, hitNormal) = CheckBulletSpawnPath(direction);
+
+        Vector2 spawnPosition;
+        if (isBlocked)
+        {
+            // Wall detected at point-blank range
+            // Spawn bullet at weapon position (not offset) so it can interact with the wall
+            // and trigger penetration instead of being blocked entirely
+            // Use a small offset to ensure the bullet starts moving into the wall
+            spawnPosition = GlobalPosition + direction * 2.0f;
+            GD.Print($"[BaseWeapon] Point-blank shot: spawning bullet at weapon position for penetration");
+        }
+        else
+        {
+            // Normal case: spawn at offset position
+            spawnPosition = GlobalPosition + direction * BulletSpawnOffset;
+        }
+
         var bullet = BulletScene.Instantiate<Node2D>();
-        bullet.GlobalPosition = GlobalPosition + direction * BulletSpawnOffset;
+        bullet.GlobalPosition = spawnPosition;
 
         // Set bullet properties if it has a Direction property
         if (bullet.HasMethod("SetDirection"))
@@ -250,6 +362,9 @@ public abstract partial class BaseWeapon : Node2D
         {
             bullet.Set("ShooterId", owner.GetInstanceId());
         }
+
+        // Set shooter position for distance-based penetration calculations
+        bullet.Set("ShooterPosition", GlobalPosition);
 
         GetTree().CurrentScene.AddChild(bullet);
     }
