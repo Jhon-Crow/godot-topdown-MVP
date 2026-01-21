@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://scripts/objects/enemy.gd" id="1_enemy"]
 [ext_resource type="Script" path="res://scripts/objects/hit_area.gd" id="2_hit_area"]
-[ext_resource type="Texture2D" path="res://assets/sprites/weapons/m16_rifle.png" id="3_rifle_sprite"]
+[ext_resource type="Texture2D" path="res://assets/sprites/weapons/m16_rifle_topdown.png" id="3_rifle_sprite"]
 
 [sub_resource type="PlaceholderTexture2D" id="PlaceholderTexture2D_enemy"]
 size = Vector2(48, 48)

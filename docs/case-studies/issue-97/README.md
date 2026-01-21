@@ -50,6 +50,16 @@
 3. **Root Cause 1:** UID mismatch for texture resource
 4. **Root Cause 2:** GDScript Enemy doesn't have weapon visual
 
+### Phase 5: Second User Testing & Feedback (2026-01-21 15:38)
+1. User reported: "винтовка должна быть с видом сверху (не сбоку)" (rifle should be top-down view, not side view)
+2. User reported: "не появилась модель у игрока" (model didn't appear for player)
+3. User reported: "модель не поворачивается в сторону стрельбы" (model doesn't rotate toward shooting direction)
+
+### Phase 6: Third Iteration Investigation
+1. **Root Cause 3:** Sprite was SIDE VIEW, but game is TOP-DOWN (bird's eye view)
+2. **Root Cause 4:** Weapon sprite rotation only updated when laser sight enabled
+3. **Root Cause 5:** Need NEW top-down sprite showing rifle from above
+
 ---
 
 ## Root Cause Analysis
@@ -110,6 +120,66 @@ This project uses BOTH C# and GDScript:
 This creates inconsistencies where visual changes to one system don't automatically propagate to the other.
 
 **Recommendation:** Consider consolidating weapon visuals into a shared approach or ensuring both systems are updated together.
+
+### Problem 4: SIDE VIEW Sprite in TOP-DOWN Game (Third Iteration)
+
+**Technical Details:**
+- The original M16 sprites were created as SIDE VIEW (viewing the rifle from the side)
+- In a top-down (bird's eye view) 2D game, sprites should show objects from ABOVE
+- A side-view rifle sprite would appear as if the rifle is lying flat on the ground
+
+**Visual Explanation:**
+```
+SIDE VIEW (WRONG for top-down game):
+  ┌──────────────┐
+  │ ▄▄▄▄▄▄▄▄▄▄▄▄│  <- barrel, receiver, stock visible from side
+  └──────────────┘
+
+TOP-DOWN VIEW (CORRECT for top-down game):
+  ┌───┐
+  │ ▄ │ <- barrel (thin line from above)
+  │ █ │ <- receiver (rectangular body)
+  │ ▄ │ <- stock
+  └───┘
+```
+
+**Solution:** Created NEW top-down M16 sprites using Python/PIL:
+- `m16_rifle_topdown.png` (64x16) - Primary sprite
+- `m16_topdown_medium.png` (48x12) - Medium size
+- `m16_topdown_small.png` (32x8) - Small size
+
+### Problem 5: Weapon Rotation Only With Laser Sight Enabled
+
+**Technical Details:**
+- In `AssaultRifle.cs`, `UpdateRifleSpriteRotation()` was only called from within `UpdateLaserSight()`
+- `UpdateLaserSight()` only runs when `LaserSightEnabled && _laserSight != null`
+- If laser sight is disabled, weapon sprite never rotates
+
+**Code Before (Issue):**
+```csharp
+public override void _Process(double delta)
+{
+    // ... other code ...
+    if (LaserSightEnabled && _laserSight != null)
+    {
+        UpdateLaserSight(); // Only this calls UpdateRifleSpriteRotation!
+    }
+}
+```
+
+**Solution:** Added new `UpdateAimDirection()` method that runs every frame:
+```csharp
+public override void _Process(double delta)
+{
+    // ... other code ...
+    UpdateAimDirection(); // Always updates aim and sprite rotation
+
+    if (LaserSightEnabled && _laserSight != null)
+    {
+        UpdateLaserSight(); // Only handles laser visualization
+    }
+}
+```
 
 ---
 
@@ -278,3 +348,14 @@ func _update_weapon_sprite_rotation() -> void:
 - `scenes/weapons/csharp/AssaultRifle.tscn` - **Removed UID from texture reference**
 - `scenes/objects/Enemy.tscn` - **Added WeaponSprite node**
 - `scripts/objects/enemy.gd` - **Added weapon sprite rotation logic**
+
+### New Files (Third Iteration)
+- `assets/sprites/weapons/m16_rifle_topdown.png` - **NEW** top-down M16 sprite (64x16)
+- `assets/sprites/weapons/m16_topdown_medium.png` - **NEW** medium top-down sprite (48x12)
+- `assets/sprites/weapons/m16_topdown_small.png` - **NEW** small top-down sprite (32x8)
+- `experiments/create_topdown_m16.py` - Script to generate top-down sprites
+
+### Modified Files (Third Iteration)
+- `scenes/weapons/csharp/AssaultRifle.tscn` - **Changed texture to top-down sprite**
+- `scenes/objects/Enemy.tscn` - **Changed texture to top-down sprite**
+- `Scripts/Weapons/AssaultRifle.cs` - **Added UpdateAimDirection() for independent sprite rotation**
