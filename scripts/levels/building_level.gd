@@ -6,7 +6,16 @@ extends Node2D
 ## the script file is included but _ready() is not being called.
 
 ## Debug constant to verify script is loaded (check via print(BuildingLevel.SCRIPT_LOADED_VERSION))
-const SCRIPT_LOADED_VERSION: String = "2026-01-21-v2-debug"
+const SCRIPT_LOADED_VERSION: String = "2026-01-21-v3-init-debug"
+
+## CRITICAL DEBUG: Static initializer runs when script CLASS is loaded
+## This runs before any _init() or _ready() calls
+static var _class_loaded: bool = _on_class_load()
+
+static func _on_class_load() -> bool:
+	print("=== BUILDING_LEVEL SCRIPT CLASS LOADED ===")
+	print("[BuildingLevel] Static initializer executed - script file WAS loaded")
+	return true
 ##
 ## This scene is a Hotline Miami 2 style building with rooms and halls.
 ## Features:
@@ -60,6 +69,18 @@ var _running_score_label: Label = null
 
 ## Reference to the timer label.
 var _timer_label: Label = null
+
+
+## CRITICAL DEBUG: _init() runs when script is instantiated, before _ready()
+## If this doesn't appear in log, the script file itself isn't being loaded
+func _init() -> void:
+	# Use print() first - should always work even before tree is ready
+	print("=== BUILDING_LEVEL SCRIPT _INIT() CALLED ===")
+	# Try to get FileLogger from autoload path
+	# Note: In _init(), we may not have a tree yet, so use OS.get_datetime()
+	var datetime = Time.get_datetime_dict_from_system()
+	var timestamp = "%02d:%02d:%02d" % [datetime.hour, datetime.minute, datetime.second]
+	print("[%s] [BuildingLevel] Script instance created (SCRIPT_VERSION: %s)" % [timestamp, SCRIPT_LOADED_VERSION])
 
 
 func _ready() -> void:

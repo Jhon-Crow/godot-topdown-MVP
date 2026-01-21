@@ -454,6 +454,83 @@ If NONE of the debug messages appear, the script is not being loaded at all, whi
 - Script path mismatch
 - GDScript parse error only visible in editor
 
+## Update 2026-01-21: Script Loading Debug Phase
+
+### User Report (13:55)
+User provided another log (`game_log_20260121_135511.txt`) after being instructed to re-export.
+**Still no `[BuildingLevel]` entries** despite extensive logging additions.
+
+### Analysis
+
+The scene file (BuildingLevel.tscn) correctly references the script:
+```
+[ext_resource type="Script" path="res://scripts/levels/building_level.gd" id="1_building_level"]
+...
+[node name="BuildingLevel" type="Node2D"]
+script = ExtResource("1_building_level")
+```
+
+Yet the script doesn't execute. This is unusual because:
+1. **Enemy scripts DO work** - they show new parameters (`ricochet=false, penetration=false`)
+2. **Autoloads DO work** - GameManager, SoundPropagation, etc. all log correctly
+3. **Same export** should include all updated scripts
+
+### Enhanced Debugging (Commit pending)
+
+Added three levels of script loading verification:
+
+#### 1. Static Class Initializer (Runs when class is PARSED)
+```gdscript
+static var _class_loaded: bool = _on_class_load()
+
+static func _on_class_load() -> bool:
+    print("=== BUILDING_LEVEL SCRIPT CLASS LOADED ===")
+    print("[BuildingLevel] Static initializer executed - script file WAS loaded")
+    return true
+```
+
+#### 2. _init() Function (Runs when instance is CREATED)
+```gdscript
+func _init() -> void:
+    print("=== BUILDING_LEVEL SCRIPT _INIT() CALLED ===")
+    var datetime = Time.get_datetime_dict_from_system()
+    var timestamp = "%02d:%02d:%02d" % [datetime.hour, datetime.minute, datetime.second]
+    print("[%s] [BuildingLevel] Script instance created (SCRIPT_VERSION: %s)" % [timestamp, SCRIPT_LOADED_VERSION])
+```
+
+#### 3. _ready() Function (Runs when node enters TREE)
+Already extensively instrumented with print(), FileLogger, and push_warning().
+
+### Interpretation Guide for User
+
+After re-exporting, check the log for these messages:
+
+| Message | Meaning |
+|---------|---------|
+| `BUILDING_LEVEL SCRIPT CLASS LOADED` | ✅ Script file parsed successfully |
+| `BUILDING_LEVEL SCRIPT _INIT() CALLED` | ✅ Instance created |
+| `BUILDING_LEVEL _READY() CALLED` | ✅ Node entered scene tree |
+| None of the above | ❌ Script not being loaded at all |
+
+### Possible Root Causes Remaining
+
+1. **Export cache issue**: Old .pck data persisting
+2. **GDScript parse error**: Silent failure during export compilation
+3. **Scene file corruption**: tscn file not being updated in export
+4. **C# build interference**: Mixed GDScript/C# export issue
+
+### Recommended User Actions
+
+1. **Delete export folder completely** before re-exporting
+2. **Delete `.godot` folder** to clear all cache
+3. **Rebuild C# project** (if applicable): `dotnet build`
+4. **Re-export** from Godot Editor
+5. **Check for errors in Output panel** during export
+
+### Version Tracking
+- Script version: `2026-01-21-v3-init-debug`
+- Check this in log to verify correct version is running
+
 ## Related Resources
 - [Hotline Miami Scoring Analysis](https://steamcommunity.com/app/219150/discussions/) (reference)
 - Godot Signal Documentation
