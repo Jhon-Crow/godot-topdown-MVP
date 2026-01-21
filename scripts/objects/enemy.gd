@@ -55,6 +55,16 @@ enum BehaviorMode {
 ## This allows enemies to see the player even outside the viewport if no obstacles block view.
 @export var detection_range: float = 0.0
 
+## Field of view angle in degrees.
+## Enemy can only see targets within this cone centered on their facing direction.
+## Set to 0 or negative to disable FOV check (360 degree vision).
+## Default is 100 degrees as requested in issue #66.
+@export var fov_angle: float = 100.0
+
+## Whether FOV checking is enabled.
+## When true, targets must be within the FOV cone to be visible.
+@export var fov_enabled: bool = true
+
 ## Time between shots in seconds.
 ## Default matches assault rifle fire rate (10 shots/second = 0.1s cooldown).
 @export var shoot_cooldown: float = 0.1
@@ -903,6 +913,7 @@ func _connect_debug_mode_signal() -> void:
 func _on_debug_mode_toggled(enabled: bool) -> void:
 	debug_label_enabled = enabled
 	_update_debug_label()
+	queue_redraw()  # Redraw to show/hide FOV cone
 
 
 ## Find the player node in the scene tree.
@@ -3363,10 +3374,39 @@ func _get_wall_avoidance_weight(direction: Vector2) -> float:
 	return lerpf(WALL_AVOIDANCE_MIN_WEIGHT, WALL_AVOIDANCE_MAX_WEIGHT, normalized_distance)
 
 
+## Check if a target position is within the enemy's field of view cone.
+## The FOV is centered on the enemy's current rotation (facing direction).
+## Returns true if position is in FOV, or if FOV checking is disabled.
+func _is_position_in_fov(target_pos: Vector2) -> bool:
+	# If FOV is disabled, everything is visible
+	if not fov_enabled or fov_angle <= 0.0:
+		return true
+
+	# Calculate direction to target
+	var direction_to_target := (target_pos - global_position).normalized()
+
+	# Get facing direction from enemy's rotation
+	var facing_vector := Vector2.from_angle(rotation)
+
+	# Calculate angle between facing direction and direction to target
+	# Using dot product: cos(angle) = a · b for normalized vectors
+	var dot := facing_vector.dot(direction_to_target)
+
+	# Clamp to handle floating point errors
+	dot = clampf(dot, -1.0, 1.0)
+
+	var angle_to_target := acos(dot)
+
+	# Check if angle is within half the FOV angle
+	var half_fov := deg_to_rad(fov_angle / 2.0)
+	return angle_to_target <= half_fov
+
+
 ## Check if the player is visible using raycast.
 ## If detection_range is 0 or negative, uses unlimited detection range (line-of-sight only).
 ## This allows the enemy to see the player even outside the viewport if there's no obstacle.
 ## Also updates the continuous visibility timer and visibility ratio for lead prediction control.
+## Now includes FOV (field of view) angle check - player must be within the vision cone.
 ## Additionally tracks when player hides behind cover for intelligent aim behavior.
 func _check_player_visibility() -> void:
 	var was_visible := _can_see_player
@@ -3382,6 +3422,11 @@ func _check_player_visibility() -> void:
 	# Check if player is within detection range (only if detection_range is positive)
 	# If detection_range <= 0, detection is unlimited (line-of-sight only)
 	if detection_range > 0 and distance_to_player > detection_range:
+		_continuous_visibility_timer = 0.0
+		return
+
+	# Check if player is within field of view angle
+	if not _is_position_in_fov(_player.global_position):
 		_continuous_visibility_timer = 0.0
 		return
 
@@ -4109,7 +4154,7 @@ func get_player_visibility_ratio() -> float:
 
 
 ## Draw debug visualization when debug mode is enabled.
-## Shows: line to target (cover, clear shot, player), bullet spawn point status.
+## Shows: FOV cone, line to target (cover, clear shot, player), bullet spawn point status.
 func _draw() -> void:
 	if not debug_label_enabled:
 		return
@@ -4122,6 +4167,12 @@ func _draw() -> void:
 	var color_flank := Color.MAGENTA  # Line to flank position
 	var color_bullet_spawn := Color.GREEN  # Bullet spawn point indicator
 	var color_blocked := Color.RED  # Blocked path indicator
+	var color_fov := Color(0.2, 0.8, 0.2, 0.3)  # FOV cone color (semi-transparent green)
+	var color_fov_edge := Color(0.2, 0.8, 0.2, 0.8)  # FOV cone edge color
+
+	# Draw FOV cone if FOV is enabled
+	if fov_enabled and fov_angle > 0.0:
+		_draw_fov_cone(color_fov, color_fov_edge)
 
 	# Draw line to player if visible
 	if _can_see_player and _player:
@@ -4213,6 +4264,63 @@ func _draw_small_square(pos: Vector2, size: float, color: Color) -> void:
 	draw_line(pos + Vector2(half, -half), pos + Vector2(half, half), color, 1.5)
 	draw_line(pos + Vector2(half, half), pos + Vector2(-half, half), color, 1.5)
 	draw_line(pos + Vector2(-half, half), pos + Vector2(-half, -half), color, 1.5)
+
+
+## Draw the field of view cone for debug visualization.
+## The cone is drawn from the enemy's position in the direction they're facing.
+func _draw_fov_cone(fill_color: Color, edge_color: Color) -> void:
+	# FOV cone parameters
+	var half_fov := deg_to_rad(fov_angle / 2.0)
+	var cone_length := 400.0  # Length of the FOV cone visualization
+
+	# Calculate the two edge points of the FOV cone
+	# The cone is relative to local space (rotation is applied by the node's transform)
+	# Since _draw() draws in local space and the node is rotated, we need to account for this
+	# The facing direction in local space is always Vector2.RIGHT (1, 0)
+	# We need to counter-rotate by the node's rotation to draw correctly
+
+	# Get the facing direction (in local space, taking into account the node's rotation)
+	var facing_angle := 0.0  # In local space, facing is always 0 (right)
+
+	# Calculate cone edge directions (relative to facing direction)
+	var left_edge_angle := facing_angle - half_fov
+	var right_edge_angle := facing_angle + half_fov
+
+	var left_edge_dir := Vector2.from_angle(left_edge_angle)
+	var right_edge_dir := Vector2.from_angle(right_edge_angle)
+
+	# Calculate end points of the cone
+	var left_end := left_edge_dir * cone_length
+	var right_end := right_edge_dir * cone_length
+
+	# Draw filled cone using polygon (triangle fan approximation)
+	var cone_points: PackedVector2Array = []
+	cone_points.append(Vector2.ZERO)  # Center point (enemy position)
+
+	# Add points along the arc for a smoother cone
+	var arc_segments := 16
+	for i in range(arc_segments + 1):
+		var t := float(i) / float(arc_segments)
+		var angle := left_edge_angle + t * (right_edge_angle - left_edge_angle)
+		var point := Vector2.from_angle(angle) * cone_length
+		cone_points.append(point)
+
+	# Draw the filled polygon
+	draw_colored_polygon(cone_points, fill_color)
+
+	# Draw cone edges
+	draw_line(Vector2.ZERO, left_end, edge_color, 2.0)
+	draw_line(Vector2.ZERO, right_end, edge_color, 2.0)
+
+	# Draw arc at the end of the cone
+	for i in range(arc_segments):
+		var t1 := float(i) / float(arc_segments)
+		var t2 := float(i + 1) / float(arc_segments)
+		var angle1 := left_edge_angle + t1 * (right_edge_angle - left_edge_angle)
+		var angle2 := left_edge_angle + t2 * (right_edge_angle - left_edge_angle)
+		var p1 := Vector2.from_angle(angle1) * cone_length
+		var p2 := Vector2.from_angle(angle2) * cone_length
+		draw_line(p1, p2, edge_color, 1.5)
 
 
 ## Check if the player is "distracted" (not aiming at the enemy).

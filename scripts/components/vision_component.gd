@@ -3,11 +3,20 @@ extends Node
 ## Vision and line-of-sight detection component.
 ##
 ## Handles checking if targets are visible, calculating visibility ratios,
-## and managing detection state.
+## and managing detection state. Supports field of view (FOV) angle limiting.
 
 ## Detection range for spotting targets.
 ## Set to 0 or negative for unlimited range (line-of-sight only).
 @export var detection_range: float = 0.0
+
+## Field of view angle in degrees.
+## Set to 0 or negative to disable FOV check (360 degree vision).
+## Default is 100 degrees as requested in issue #66.
+@export var fov_angle: float = 100.0
+
+## Whether FOV checking is enabled.
+## When true, targets must be within the FOV cone to be visible.
+@export var fov_enabled: bool = true
 
 ## Delay before reacting to newly visible targets (seconds).
 @export var detection_delay: float = 0.2
@@ -26,6 +35,10 @@ var _parent: Node2D = null
 
 ## Currently tracked target.
 var _target: Node2D = null
+
+## Current facing direction in radians (where the entity is looking/aiming).
+## This is used for FOV calculations. Updated by the parent entity.
+var _facing_direction: float = 0.0
 
 ## Whether the target is currently visible.
 var _can_see_target: bool = false
@@ -70,6 +83,56 @@ func set_target(target: Node2D) -> void:
 	_target = target
 
 
+## Set the facing direction in radians.
+## This should be called by the parent entity to update where it's looking.
+func set_facing_direction(direction_radians: float) -> void:
+	_facing_direction = direction_radians
+
+
+## Get the current facing direction in radians.
+func get_facing_direction() -> float:
+	return _facing_direction
+
+
+## Get the FOV angle in radians (half-angle for cone calculation).
+func get_fov_half_angle_radians() -> float:
+	return deg_to_rad(fov_angle / 2.0)
+
+
+## Check if a target position is within the field of view cone.
+## The FOV is centered on the facing direction.
+func _is_target_in_fov(target_pos: Vector2) -> bool:
+	if not _parent:
+		return false
+
+	# Calculate direction to target
+	var direction_to_target := (target_pos - _parent.global_position).normalized()
+
+	# Calculate facing direction as vector
+	var facing_vector := Vector2.from_angle(_facing_direction)
+
+	# Calculate angle between facing direction and direction to target
+	# Using dot product: cos(angle) = a · b for normalized vectors
+	var dot := facing_vector.dot(direction_to_target)
+
+	# Clamp to handle floating point errors
+	dot = clampf(dot, -1.0, 1.0)
+
+	var angle_to_target := acos(dot)
+
+	# Check if angle is within half the FOV angle
+	var half_fov := deg_to_rad(fov_angle / 2.0)
+	return angle_to_target <= half_fov
+
+
+## Check if a position is within the field of view cone (public method).
+## Can be used by external code to check if arbitrary positions are in FOV.
+func is_position_in_fov(pos: Vector2) -> bool:
+	if not fov_enabled or fov_angle <= 0.0:
+		return true  # No FOV restriction
+	return _is_target_in_fov(pos)
+
+
 ## Check visibility of the current target.
 func check_visibility() -> void:
 	if not _parent or not _target or not _raycast:
@@ -82,6 +145,15 @@ func check_visibility() -> void:
 	if detection_range > 0.0:
 		var distance := _parent.global_position.distance_to(_target.global_position)
 		if distance > detection_range:
+			_can_see_target = false
+			if was_visible:
+				target_visibility_changed.emit(false)
+				_reset_detection_timers()
+			return
+
+	# Check FOV angle (if FOV is enabled)
+	if fov_enabled and fov_angle > 0.0:
+		if not _is_target_in_fov(_target.global_position):
 			_can_see_target = false
 			if was_visible:
 				target_visibility_changed.emit(false)
@@ -214,6 +286,8 @@ func get_continuous_visibility_time() -> float:
 
 
 ## Check if a position is visible from the parent.
+## This only checks line-of-sight, not FOV. Use is_position_visible_with_fov
+## if you need both checks.
 func is_position_visible(pos: Vector2) -> bool:
 	if not _raycast or not _parent:
 		return false
@@ -222,3 +296,18 @@ func is_position_visible(pos: Vector2) -> bool:
 	_raycast.force_raycast_update()
 
 	return not _raycast.is_colliding()
+
+
+## Check if a position is visible from the parent, including FOV check.
+## Returns true only if position is within FOV cone AND has line-of-sight.
+func is_position_visible_with_fov(pos: Vector2) -> bool:
+	if not _raycast or not _parent:
+		return false
+
+	# Check FOV first (cheaper than raycast)
+	if fov_enabled and fov_angle > 0.0:
+		if not _is_target_in_fov(pos):
+			return false
+
+	# Then check line-of-sight
+	return is_position_visible(pos)
