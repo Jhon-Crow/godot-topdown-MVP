@@ -1,14 +1,18 @@
-[gd_scene load_steps=7 format=3 uid="uid://dv8nq2vj5r7p2"]
+[gd_scene load_steps=9 format=3 uid="uid://dv8nq2vj5r7p2"]
 
 [ext_resource type="Script" path="res://Scripts/Characters/Player.cs" id="1_player"]
 [ext_resource type="PackedScene" uid="uid://c5q8m3x7n2k1p" path="res://scenes/weapons/csharp/AssaultRifle.tscn" id="2_assault_rifle"]
 [ext_resource type="Script" path="res://scripts/objects/hit_area.gd" id="3_hit_area"]
+[ext_resource type="Script" path="res://scripts/components/threat_sphere.gd" id="4_threat_sphere"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_player"]
 radius = 16.0
 
 [sub_resource type="PlaceholderTexture2D" id="PlaceholderTexture2D_player"]
 size = Vector2(32, 32)
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_threat"]
+radius = 150.0
 
 [node name="Player" type="CharacterBody2D" groups=["player"]]
 collision_layer = 1
@@ -42,3 +46,14 @@ script = ExtResource("3_hit_area")
 
 [node name="HitCollisionShape" type="CollisionShape2D" parent="HitArea"]
 shape = SubResource("CircleShape2D_player")
+
+[node name="ThreatSphere" type="Area2D" parent="."]
+collision_layer = 0
+collision_mask = 16
+monitorable = false
+script = ExtResource("4_threat_sphere")
+threat_radius = 150.0
+trajectory_tolerance_degrees = 15.0
+
+[node name="ThreatCollisionShape" type="CollisionShape2D" parent="ThreatSphere"]
+shape = SubResource("CircleShape2D_threat")

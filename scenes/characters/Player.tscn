@@ -1,13 +1,17 @@
-[gd_scene load_steps=5 format=3 uid="uid://bk8nq2vj5r7p1"]
+[gd_scene load_steps=7 format=3 uid="uid://bk8nq2vj5r7p1"]
 
 [ext_resource type="Script" path="res://scripts/characters/player.gd" id="1_player"]
 [ext_resource type="Script" path="res://scripts/objects/hit_area.gd" id="2_hit_area"]
+[ext_resource type="Script" path="res://scripts/components/threat_sphere.gd" id="3_threat_sphere"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_player"]
 radius = 16.0
 
 [sub_resource type="PlaceholderTexture2D" id="PlaceholderTexture2D_player"]
 size = Vector2(32, 32)
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_threat"]
+radius = 150.0
 
 [node name="Player" type="CharacterBody2D" groups=["player"]]
 collision_layer = 1
@@ -38,3 +42,14 @@ script = ExtResource("2_hit_area")
 
 [node name="HitCollisionShape" type="CollisionShape2D" parent="HitArea"]
 shape = SubResource("CircleShape2D_player")
+
+[node name="ThreatSphere" type="Area2D" parent="."]
+collision_layer = 0
+collision_mask = 16
+monitorable = false
+script = ExtResource("3_threat_sphere")
+threat_radius = 150.0
+trajectory_tolerance_degrees = 15.0
+
+[node name="ThreatCollisionShape" type="CollisionShape2D" parent="ThreatSphere"]
+shape = SubResource("CircleShape2D_threat")

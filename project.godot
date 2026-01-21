@@ -20,6 +20,7 @@ ScreenShakeManager="*res://scripts/autoload/screen_shake_manager.gd"
 DifficultyManager="*res://scripts/autoload/difficulty_manager.gd"
 ImpactEffectsManager="*res://scripts/autoload/impact_effects_manager.gd"
 PenultimateHitEffectsManager="*res://scripts/autoload/penultimate_hit_effects_manager.gd"
+LastChanceEffectsManager="*res://scripts/autoload/last_chance_effects_manager.gd"
 
 [application]
 
