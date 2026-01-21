@@ -198,6 +198,85 @@ This means:
 4. **Initialization Order**: Verify level script `_ready()` completes before any enemy can die
 5. **Ammo Investigation**: Add logging to weapon signal connections to verify they work
 
+## Update 2026-01-21: Ricochet and Wall Penetration Scoring
+
+### User Request
+User comment (translated from Russian): "also reward using ricochets and wall penetrations only in combination with aggressive play. Add scoring for the new functionality."
+
+The request specifically requires that these bonuses should ONLY be awarded when playing aggressively (fast-paced), aligning with Hotline Miami's philosophy of rewarding skilled, aggressive play.
+
+### New Features Implemented
+
+#### Ricochet Kill Bonus
+- **Base Bonus**: +300 points per ricochet kill
+- **Requirement**: Player must maintain aggressive play (≥15 kills/minute)
+- **How it works**: When a bullet ricochets off a wall and kills an enemy, the kill is tracked as a ricochet kill
+
+#### Wall Penetration Kill Bonus
+- **Base Bonus**: +250 points per penetration kill
+- **Requirement**: Player must maintain aggressive play (≥15 kills/minute)
+- **How it works**: When a bullet penetrates through a wall and kills an enemy, the kill is tracked as a penetration kill
+
+### Technical Implementation
+
+#### Data Flow
+1. **bullet.gd** tracks `_has_ricocheted` and `_has_penetrated` flags
+2. When bullet hits an enemy via **hit_area.gd**, it calls `on_hit_extended()` with these flags
+3. **enemy.gd** stores `_last_hit_was_ricochet` and `_last_hit_was_penetration`
+4. On death, **enemy.gd** emits `died(is_ricochet_kill, is_penetration_kill)` signal
+5. **building_level.gd** receives signal and calls `score_manager.register_kill_extended()`
+6. **score_manager.gd** calculates aggressiveness and awards bonuses if threshold met
+
+#### New Constants in score_manager.gd
+```gdscript
+const RICOCHET_KILL_BASE_BONUS: int = 300
+const RICOCHET_MIN_AGGRESSIVENESS: float = 15.0  # kills per minute
+
+const PENETRATION_KILL_BASE_BONUS: int = 250
+const PENETRATION_MIN_AGGRESSIVENESS: float = 15.0  # kills per minute
+```
+
+#### Aggressiveness Gate
+The aggressiveness check ensures bonuses reward skilled play:
+```gdscript
+var current_aggressiveness := 0.0
+if elapsed_time > 0.0:
+    current_aggressiveness = (float(_total_kills_for_aggressiveness) / elapsed_time) * 60.0
+
+if is_ricochet_kill and current_aggressiveness >= RICOCHET_MIN_AGGRESSIVENESS:
+    # Award ricochet bonus
+```
+
+### Files Modified
+1. **scripts/projectiles/bullet.gd** - Pass ricochet/penetration flags via `on_hit_extended()`
+2. **scripts/objects/hit_area.gd** - Forward extended hit info to parent enemy
+3. **scripts/objects/enemy.gd** - Track last hit type, emit via updated `died` signal
+4. **scripts/autoload/score_manager.gd** - Calculate and track ricochet/penetration bonuses
+5. **scripts/levels/building_level.gd** - Display bonuses in victory screen
+
+### Victory Screen Display
+The victory screen now shows:
+```
+KILLS: X
+COMBO BONUS: X (Max: Xx)
+TIME BONUS: X (MM:SS.ms)
+ACCURACY BONUS: X (X.X%)
+AGGRESSIVENESS: X (X.X/min)
+RICOCHET BONUS: X (X kills)
+PENETRATION BONUS: X (X kills)
+DAMAGE PENALTY: -X (X hits)
+---
+TOTAL SCORE: X
+```
+
+### Design Rationale
+
+The aggressiveness requirement (15 kills/minute) serves several purposes:
+1. **Prevents camping**: Players can't slowly line up ricochet shots for easy points
+2. **Rewards skill**: Performing ricochets while maintaining fast pace requires high skill
+3. **Matches Hotline Miami style**: Fast, aggressive play is the intended way to earn high scores
+4. **Balances gameplay**: Regular play still viable, but skilled aggressive play earns more
+
 ## Related Resources
 - [Hotline Miami Scoring Analysis](https://steamcommunity.com/app/219150/discussions/) (reference)
 - Godot Signal Documentation
