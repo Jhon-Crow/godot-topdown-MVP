@@ -1,6 +1,13 @@
 extends Node2D
 ## Building level scene for the Godot Top-Down Template.
 ##
+## DEBUG VERSION - Contains enhanced logging to diagnose script execution issues.
+## If you see this comment in the script but don't see "[BuildingLevel]" in logs,
+## the script file is included but _ready() is not being called.
+
+## Debug constant to verify script is loaded (check via print(BuildingLevel.SCRIPT_LOADED_VERSION))
+const SCRIPT_LOADED_VERSION: String = "2026-01-21-v2-debug"
+##
 ## This scene is a Hotline Miami 2 style building with rooms and halls.
 ## Features:
 ## - Building interior layout (~2400x2000 pixels) larger than viewport
@@ -56,8 +63,23 @@ var _timer_label: Label = null
 
 
 func _ready() -> void:
-	# Log to FileLogger for debugging exported builds
+	# CRITICAL: Multiple logging methods to diagnose why script doesn't appear to run
+	# Method 1: Direct print (visible in console)
+	print("=== BUILDING_LEVEL _READY() CALLED ===")
+
+	# Method 2: FileLogger via direct access (avoiding get_node_or_null)
+	var file_logger = Engine.get_singleton("FileLogger") if Engine.has_singleton("FileLogger") else null
+	if file_logger == null:
+		file_logger = get_tree().root.get_node_or_null("FileLogger")
+	if file_logger and file_logger.has_method("log_info"):
+		file_logger.log_info("[BuildingLevel] === _READY() STARTED (direct FileLogger) ===")
+
+	# Method 3: Original _log_to_file function
 	_log_to_file("BuildingLevel _ready() started")
+
+	# Method 4: Push warning/error (always visible in output)
+	push_warning("[BuildingLevel] _ready() function is executing")
+
 	print("BuildingLevel loaded - Hotline Miami Style")
 	print("Building size: ~2400x2000 pixels")
 	print("Clear all rooms to win!")

@@ -372,6 +372,88 @@ If some are present but not others, we'll know exactly where it fails.
 2. Run exported game and share new log
 3. Analyze `[BuildingLevel]` entries to pinpoint failure
 
+## Update 2026-01-21 (13:55): Third Log Analysis
+
+### New Log File
+User provided `game_log_20260121_135511.txt` after being asked to re-export.
+
+### Critical Finding
+**STILL NO `[BuildingLevel]` LOG ENTRIES** despite:
+1. The enemy scripts ARE updated (they show `ricochet=false, penetration=false` in died signal)
+2. All 10 enemies died and were logged correctly
+3. FileLogger is working (INFO entries appear)
+4. Export is from after the FileLogger tracing commit (11:47 AM), log is from 1:55 PM
+
+### Evidence from Log
+
+Timestamps comparison:
+- **Tracing commit**: `Wed Jan 21 11:47:51 2026` (89a33df)
+- **Log timestamp**: `2026-01-21T13:55:11` (nearly 2 hours later)
+
+Log shows updated enemy script behavior:
+```
+[13:55:15] [ENEMY] [Enemy3] Enemy died (ricochet=false, penetration=false)
+...
+[13:56:03] [ENEMY] [Enemy10] Enemy died (ricochet=false, penetration=false)
+[13:56:03] [INFO] [SoundPropagation] Unregistered listener: Enemy10 (remaining: 0)
+```
+
+All 10 enemies died, game continued until 13:56:12 without showing victory.
+
+### Root Cause Analysis
+
+The `building_level.gd` script is NOT EXECUTING AT ALL. Evidence:
+1. No `print()` output from `_ready()` (even basic prints)
+2. No `_log_to_file()` output (FileLogger not being called)
+3. No `push_warning()` output (would appear regardless)
+4. Victory not triggered despite all enemies dead
+
+### Possible Causes
+
+1. **Script not being compiled/loaded** - GDScript parser error at export time
+2. **Scene/Script mismatch** - Scene might reference a different script path
+3. **Export issue** - Script files not being included in .pck
+4. **C# interop issue** - C# project not properly built alongside GDScript
+
+### Enhanced Debugging (Commit pending)
+
+Added multiple logging methods to `_ready()`:
+```gdscript
+func _ready() -> void:
+    # Method 1: Direct print
+    print("=== BUILDING_LEVEL _READY() CALLED ===")
+
+    # Method 2: FileLogger via multiple paths
+    var file_logger = Engine.get_singleton("FileLogger") if Engine.has_singleton("FileLogger") else null
+    if file_logger == null:
+        file_logger = get_tree().root.get_node_or_null("FileLogger")
+    if file_logger and file_logger.has_method("log_info"):
+        file_logger.log_info("[BuildingLevel] === _READY() STARTED ===")
+
+    # Method 3: Original _log_to_file
+    _log_to_file("BuildingLevel _ready() started")
+
+    # Method 4: Push warning (always visible)
+    push_warning("[BuildingLevel] _ready() function is executing")
+```
+
+Also added version constant:
+```gdscript
+const SCRIPT_LOADED_VERSION: String = "2026-01-21-v2-debug"
+```
+
+### Next Steps for User
+
+1. **Verify branch**: Pull specifically from `issue-53-990810d3363f` branch
+2. **Clean rebuild**: Delete any `.godot/` cache folder before opening project
+3. **Re-export**: Create fresh export from Godot Editor
+4. **Check output**: Look for "=== BUILDING_LEVEL _READY() CALLED ===" in log
+
+If NONE of the debug messages appear, the script is not being loaded at all, which points to:
+- Export preset issue
+- Script path mismatch
+- GDScript parse error only visible in editor
+
 ## Related Resources
 - [Hotline Miami Scoring Analysis](https://steamcommunity.com/app/219150/discussions/) (reference)
 - Godot Signal Documentation
