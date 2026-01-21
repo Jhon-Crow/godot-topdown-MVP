@@ -13,7 +13,7 @@ extends Node
 ## Ranks: F, D, C, B, A, A+, S (highest)
 
 ## Combo timeout in seconds - kills within this time continue the combo.
-const COMBO_TIMEOUT: float = 2.0
+const COMBO_TIMEOUT: float = 3.0
 
 ## Base points per kill.
 const POINTS_PER_KILL: int = 100
@@ -44,8 +44,8 @@ const RANK_THRESHOLDS: Dictionary = {
 	"A+": 0.85,  ## 85% of max possible score
 	"A": 0.70,   ## 70% of max possible score
 	"B": 0.55,   ## 55% of max possible score
-	"C": 0.40,   ## 40% of max possible score
-	"D": 0.25,   ## 25% of max possible score
+	"C": 0.38,   ## 38% of max possible score
+	"D": 0.22,   ## 22% of max possible score
 	"F": 0.0     ## Below D threshold
 }
 
@@ -342,15 +342,26 @@ func calculate_score() -> Dictionary:
 
 ## Calculates the maximum possible score for the level.
 ## Used for rank calculation.
+## Uses a realistic combo expectation rather than a perfect combo chain.
 func _calculate_max_possible_score() -> int:
 	# Max kill points
 	var max_kill_points: int = _total_enemies * POINTS_PER_KILL
 
-	# Max combo points (if all enemies killed in one combo)
-	# Sum of 250 * i^2 + 250 * i for i = 1 to n
-	var max_combo_points: int = 0
-	for i in range(1, _total_enemies + 1):
-		max_combo_points += 250 * (i * i) + 250 * i
+	# Realistic max combo points - assume average combo chains of 5 kills
+	# This represents skilled play with good room clearing.
+	# For n enemies, assume n/5 combo chains of 5 kills each (rounded).
+	# Combo of 5: 500 + 1500 + 3000 + 5500 + 9000 = 19500 points
+	# Remaining enemies get scaled combo points.
+	var combo_chain_size: int = 5
+	var combo_chains: int = _total_enemies / combo_chain_size
+	var remainder: int = _total_enemies % combo_chain_size
+	# Points for full chains of 5
+	var combo_5_points: int = 500 + 1500 + 3000 + 5500 + 9000  # 19500
+	var max_combo_points: int = combo_chains * combo_5_points
+	# Points for remainder (cumulative combo formula: 250*i^2 + 250*i)
+	var combo_values: Array[int] = [500, 1500, 3000, 5500, 9000]
+	for i in range(remainder):
+		max_combo_points += combo_values[i]
 
 	# Max time bonus
 	var max_time_bonus: int = TIME_BONUS_MAX
