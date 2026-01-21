@@ -204,13 +204,8 @@ func _physics_process(delta: float) -> void:
 		# Check if we've exceeded max penetration distance
 		if max_pen_distance > 0 and _penetration_distance_traveled >= max_pen_distance:
 			_log_penetration("Max penetration distance exceeded: %s >= %s" % [_penetration_distance_traveled, max_pen_distance])
-			# Spawn the visual trail before destroying the bullet
-			# The bullet stopped inside the wall - spawn collision hole from entry to current position
-			_spawn_collision_hole(_penetration_entry_point, global_position)
-			# Spawn dust effect at termination point
-			var impact_manager: Node = get_node_or_null("/root/ImpactEffectsManager")
-			if impact_manager and impact_manager.has_method("spawn_dust_effect"):
-				impact_manager.spawn_dust_effect(global_position, direction.normalized(), caliber_data)
+			# Bullet stopped inside the wall - destroy it
+			# Visual effects disabled as per user request
 			queue_free()
 			return
 
@@ -828,11 +823,8 @@ func _exit_penetration() -> void:
 
 	_log_penetration("Exiting penetration at %s after traveling %s pixels through wall" % [exit_point, _penetration_distance_traveled])
 
-	# Spawn exit hole effect (visual)
-	_spawn_penetration_hole_effect(_penetrating_body, exit_point, false)
-
-	# Spawn collision hole (actual gap in wall collision)
-	_spawn_collision_hole(_penetration_entry_point, exit_point)
+	# Visual effects disabled as per user request
+	# The entry/exit positions couldn't be properly anchored to wall surfaces
 
 	# Apply damage reduction after penetration
 	if not _has_penetrated:
@@ -857,21 +849,16 @@ func _exit_penetration() -> void:
 
 
 ## Spawns a visual hole effect at penetration entry or exit point.
-## DISABLED: As per user request, entry/exit holes are removed.
-## The visual trail is now created entirely by the collision hole (line through wall).
+## DISABLED: As per user request, all penetration visual effects are removed.
+## The penetration functionality remains (bullet passes through thin walls),
+## but no visual effects (dust, trails, holes) are spawned.
 ## @param body: The wall being penetrated.
 ## @param pos: Position of the hole.
 ## @param is_entry: True for entry hole, false for exit hole.
-func _spawn_penetration_hole_effect(_body: Node2D, pos: Vector2, is_entry: bool) -> void:
-	# Entry/exit circular holes disabled - only spawn dust effect for realism
-	var impact_manager: Node = get_node_or_null("/root/ImpactEffectsManager")
-	if impact_manager and impact_manager.has_method("spawn_dust_effect"):
-		if is_entry:
-			# Entry: dust scatters in the direction the bullet came from
-			impact_manager.spawn_dust_effect(pos, -direction.normalized(), caliber_data)
-		else:
-			# Exit: dust scatters in the direction the bullet is going
-			impact_manager.spawn_dust_effect(pos, direction.normalized(), caliber_data)
+func _spawn_penetration_hole_effect(_body: Node2D, _pos: Vector2, _is_entry: bool) -> void:
+	# All visual effects disabled as per user request
+	# The entry/exit positions couldn't be properly anchored to wall surfaces
+	pass
 
 
 ## Spawns a collision hole that creates an actual gap in wall collision.

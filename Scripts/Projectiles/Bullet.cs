@@ -326,10 +326,8 @@ public partial class Bullet : Area2D
             if (_penetrationDistanceTraveled >= MaxPenetrationDistance)
             {
                 LogPenetration($"Max penetration distance exceeded: {_penetrationDistanceTraveled} >= {MaxPenetrationDistance}");
-                // Spawn the visual trail before destroying the bullet
-                SpawnCollisionHole(_penetrationEntryPoint, GlobalPosition);
-                // Spawn dust effect at termination point
-                SpawnDustEffect(GlobalPosition, Direction.Normalized());
+                // Bullet stopped inside the wall - destroy it
+                // Visual effects disabled as per user request
                 QueueFree();
                 return;
             }
@@ -1054,8 +1052,8 @@ public partial class Bullet : Area2D
         _penetrationEntryPoint = GlobalPosition;
         _penetrationDistanceTraveled = 0.0f;
 
-        // Spawn entry dust effect
-        SpawnDustEffect(GlobalPosition, -Direction.Normalized());
+        // Visual effects disabled as per user request
+        // Entry dust effect removed
 
         // Move bullet slightly forward to avoid immediate re-collision
         GlobalPosition += Direction * 5.0f;
@@ -1125,11 +1123,8 @@ public partial class Bullet : Area2D
         Vector2 exitPoint = GlobalPosition;
         LogPenetration($"Exiting penetration at {exitPoint} after traveling {_penetrationDistanceTraveled} pixels through wall");
 
-        // Spawn exit dust effect
-        SpawnDustEffect(exitPoint, Direction.Normalized());
-
-        // Spawn collision hole (visual trail + collision area)
-        SpawnCollisionHole(_penetrationEntryPoint, exitPoint);
+        // Visual effects disabled as per user request
+        // The entry/exit positions couldn't be properly anchored to wall surfaces
 
         // Apply damage reduction after penetration
         if (!_hasPenetrated)
