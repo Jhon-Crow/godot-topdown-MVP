@@ -70,7 +70,20 @@ public partial class Player : BaseCharacter
     public int MaxGrenades { get; set; } = 3;
 
     /// <summary>
-    /// Reference to the player's sprite for visual feedback.
+    /// Reference to the player model node containing all sprites.
+    /// </summary>
+    private Node2D? _playerModel;
+
+    /// <summary>
+    /// References to individual sprite parts for color changes.
+    /// </summary>
+    private Sprite2D? _bodySprite;
+    private Sprite2D? _headSprite;
+    private Sprite2D? _leftArmSprite;
+    private Sprite2D? _rightArmSprite;
+
+    /// <summary>
+    /// Legacy reference for compatibility (points to body sprite).
     /// </summary>
     private Sprite2D? _sprite;
 
@@ -207,8 +220,22 @@ public partial class Player : BaseCharacter
     {
         base._Ready();
 
-        // Get sprite reference for visual feedback
-        _sprite = GetNodeOrNull<Sprite2D>("Sprite2D");
+        // Get player model and sprite references for visual feedback
+        _playerModel = GetNodeOrNull<Node2D>("PlayerModel");
+        if (_playerModel != null)
+        {
+            _bodySprite = _playerModel.GetNodeOrNull<Sprite2D>("Body");
+            _headSprite = _playerModel.GetNodeOrNull<Sprite2D>("Head");
+            _leftArmSprite = _playerModel.GetNodeOrNull<Sprite2D>("LeftArm");
+            _rightArmSprite = _playerModel.GetNodeOrNull<Sprite2D>("RightArm");
+            // Legacy compatibility - _sprite points to body
+            _sprite = _bodySprite;
+        }
+        else
+        {
+            // Fallback to old single sprite structure for compatibility
+            _sprite = GetNodeOrNull<Sprite2D>("Sprite2D");
+        }
 
         // Configure random health (2-4 HP)
         if (HealthComponent != null)
@@ -316,14 +343,44 @@ public partial class Player : BaseCharacter
     /// </summary>
     private void UpdateHealthVisual()
     {
-        if (_sprite == null || HealthComponent == null)
+        if (HealthComponent == null)
         {
             return;
         }
 
         // Interpolate color based on health percentage
         float healthPercent = HealthComponent.HealthPercent;
-        _sprite.Modulate = FullHealthColor.Lerp(LowHealthColor, 1.0f - healthPercent);
+        Color color = FullHealthColor.Lerp(LowHealthColor, 1.0f - healthPercent);
+        SetAllSpritesModulate(color);
+    }
+
+    /// <summary>
+    /// Sets the modulate color on all player sprite parts.
+    /// </summary>
+    /// <param name="color">The color to apply to all sprites.</param>
+    private void SetAllSpritesModulate(Color color)
+    {
+        if (_bodySprite != null)
+        {
+            _bodySprite.Modulate = color;
+        }
+        if (_headSprite != null)
+        {
+            _headSprite.Modulate = color;
+        }
+        if (_leftArmSprite != null)
+        {
+            _leftArmSprite.Modulate = color;
+        }
+        if (_rightArmSprite != null)
+        {
+            _rightArmSprite.Modulate = color;
+        }
+        // If using old single sprite structure
+        if (_playerModel == null && _sprite != null)
+        {
+            _sprite.Modulate = color;
+        }
     }
 
     public override void _PhysicsProcess(double delta)
@@ -787,12 +844,12 @@ public partial class Player : BaseCharacter
     /// </summary>
     private async void ShowHitFlash()
     {
-        if (_sprite == null)
+        if (_playerModel == null && _sprite == null)
         {
             return;
         }
 
-        _sprite.Modulate = HitFlashColor;
+        SetAllSpritesModulate(HitFlashColor);
 
         await ToSignal(GetTree().CreateTimer(HitFlashDuration), "timeout");
 

@@ -187,11 +187,67 @@ Based on reference images:
 6. No weapon model (as per requirements)
 7. CC0 or compatible license for all assets
 
+## Bug Report: Player Model Not Displaying (C# Version)
+
+### Problem Description
+After the initial implementation, the user reported that the player model was not displaying correctly:
+
+> "модель не добавилась игроку (возможно из-за C# или импорта)"
+> Translation: "the model was not added to the player (possibly due to C# or import)"
+
+### Root Cause Analysis
+
+Upon investigation of the attached game log (`game_log_20260122_025053.txt`), it was discovered that:
+
+1. **Two Player Scenes Exist:**
+   - `scenes/characters/Player.tscn` - GDScript version (updated with modular sprites)
+   - `scenes/characters/csharp/Player.tscn` - C# version (still using placeholder)
+
+2. **All Levels Use C# Version:**
+   - `scenes/levels/TestTier.tscn`
+   - `scenes/levels/csharp/TestTier.tscn`
+   - `scenes/levels/BuildingLevel.tscn`
+
+   All reference `scenes/characters/csharp/Player.tscn`
+
+3. **C# Scene Was Not Updated:**
+   - The GDScript Player.tscn was correctly updated with modular sprites
+   - The C# Player.tscn still had:
+     - `PlaceholderTexture2D` instead of real textures
+     - Single `Sprite2D` node instead of `PlayerModel` hierarchy
+     - Old node structure incompatible with new sprites
+
+4. **C# Script Was Not Updated:**
+   - `Scripts/Characters/Player.cs` expected single `Sprite2D` node
+   - No code to reference or colorize multiple sprite parts
+
+### Fix Applied
+
+1. **Updated `scenes/characters/csharp/Player.tscn`:**
+   - Added `PlayerModel` Node2D container
+   - Added `Body`, `Head`, `LeftArm`, `RightArm` Sprite2D nodes
+   - Added `WeaponMount` Node2D for future weapon attachment
+   - Referenced the new player sprite textures
+
+2. **Updated `Scripts/Characters/Player.cs`:**
+   - Added references to all sprite parts (`_bodySprite`, `_headSprite`, `_leftArmSprite`, `_rightArmSprite`)
+   - Added `SetAllSpritesModulate()` method to apply colors to all parts
+   - Updated `UpdateHealthVisual()` to use the new method
+   - Updated `ShowHitFlash()` to use the new method
+   - Maintained backward compatibility for old single-sprite structure
+
+### Lesson Learned
+
+When implementing visual changes in a dual-language project (GDScript + C#), **both versions must be updated**. The game log showed C# signals being used, indicating the C# version was active, while the visual fix was only applied to the GDScript version.
+
 ## Files Changed/Created
 
-- `scenes/characters/Player.tscn` - Updated with modular structure
-- `assets/sprites/characters/` - New sprite files
+- `scenes/characters/Player.tscn` - Updated with modular structure (GDScript version)
+- `scenes/characters/csharp/Player.tscn` - Updated with modular structure (C# version)
+- `Scripts/Characters/Player.cs` - Updated to support multiple sprite parts
+- `assets/sprites/characters/player/` - New sprite files
 - `docs/case-studies/issue-96/` - This documentation
+- `docs/case-studies/issue-96/logs/` - User-provided game logs
 
 ## Sources and References
 
