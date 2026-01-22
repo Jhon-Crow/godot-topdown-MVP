@@ -5,7 +5,7 @@ namespace GodotTopDownTemplate.Weapons;
 
 /// <summary>
 /// Shotgun action state for pump-action mechanics.
-/// After firing: LMB (fire) → RMB drag down (extract shell) → RMB drag up (chamber)
+/// After firing: LMB (fire) → RMB drag UP (eject shell) → RMB drag DOWN (chamber)
 /// </summary>
 public enum ShotgunActionState
 {
@@ -15,19 +15,19 @@ public enum ShotgunActionState
     Ready,
 
     /// <summary>
-    /// Just fired - needs RMB drag down to extract spent shell.
+    /// Just fired - needs RMB drag UP to eject spent shell.
     /// </summary>
-    NeedsPumpDown,
+    NeedsPumpUp,
 
     /// <summary>
-    /// Pump down complete (shell extracted) - needs RMB drag up to chamber next round.
+    /// Pump up complete (shell ejected) - needs RMB drag DOWN to chamber next round.
     /// </summary>
-    NeedsPumpUp
+    NeedsPumpDown
 }
 
 /// <summary>
 /// Shotgun reload state for shell-by-shell loading.
-/// Reload sequence: RMB drag up (open bolt) → [MMB + RMB drag down]×N (load shells) → RMB drag down (close bolt)
+/// Reload sequence: RMB drag UP (open bolt) → [MMB + RMB drag DOWN]×N (load shells) → RMB drag DOWN (close bolt)
 /// </summary>
 public enum ShotgunReloadState
 {
@@ -37,18 +37,18 @@ public enum ShotgunReloadState
     NotReloading,
 
     /// <summary>
-    /// Waiting for RMB drag up to open bolt for loading.
+    /// Waiting for RMB drag UP to open bolt for loading.
     /// </summary>
     WaitingToOpen,
 
     /// <summary>
-    /// Bolt open - ready to load shells with MMB + RMB drag down.
-    /// Can also close immediately with RMB drag down (without MMB).
+    /// Bolt open - ready to load shells with MMB + RMB drag DOWN.
+    /// Can also close immediately with RMB drag DOWN (without MMB).
     /// </summary>
     Loading,
 
     /// <summary>
-    /// Waiting for RMB drag down to close bolt and chamber round.
+    /// Waiting for RMB drag DOWN to close bolt and chamber round.
     /// </summary>
     WaitingToClose
 }
@@ -59,9 +59,9 @@ public enum ShotgunReloadState
 /// Fires ShotgunPellet projectiles with limited ricochet (35 degrees max).
 /// Pellets fire in a "cloud" pattern with spatial distribution.
 ///
-/// Shooting sequence: LMB (fire) → RMB drag down (extract shell) → RMB drag up (chamber)
-/// Reload sequence: RMB drag up (open bolt) → [MMB + RMB drag down]×N (load shells) → RMB drag down (close bolt)
-/// Note: After opening bolt, can close immediately with RMB drag down (skips loading) if shells present.
+/// Shooting sequence: LMB (fire) → RMB drag UP (eject shell) → RMB drag DOWN (chamber)
+/// Reload sequence: RMB drag UP (open bolt) → [MMB + RMB drag DOWN]×N (load shells) → RMB drag DOWN (close bolt)
+/// Note: After opening bolt, can close immediately with RMB drag DOWN (skips loading) if shells present.
 /// </summary>
 public partial class Shotgun : BaseWeapon
 {
@@ -272,8 +272,8 @@ public partial class Shotgun : BaseWeapon
 
     /// <summary>
     /// Handles RMB drag gestures for pump-action cycling and reload.
-    /// Pump: Drag down = extract shell, Drag up = chamber round
-    /// Reload: Drag up = open bolt, Drag down = load shell (with MMB) or close bolt
+    /// Pump: Drag UP = eject shell, Drag DOWN = chamber round
+    /// Reload: Drag UP = open bolt, Drag DOWN = load shell (with MMB) or close bolt
     /// </summary>
     private void HandleDragGestures()
     {
@@ -331,49 +331,49 @@ public partial class Shotgun : BaseWeapon
 
     /// <summary>
     /// Processes drag gesture for pump-action cycling.
-    /// After firing: RMB drag down (extract shell) → RMB drag up (chamber)
+    /// After firing: RMB drag UP (eject shell) → RMB drag DOWN (chamber)
     /// </summary>
     private void ProcessPumpActionGesture(bool isDragUp, bool isDragDown)
     {
         switch (ActionState)
         {
-            case ShotgunActionState.NeedsPumpDown:
-                if (isDragDown)
-                {
-                    // Extract spent shell
-                    ActionState = ShotgunActionState.NeedsPumpUp;
-                    PlayPumpDownSound();
-                    EmitSignal(SignalName.ActionStateChanged, (int)ActionState);
-                    EmitSignal(SignalName.PumpActionCycled, "down");
-                    GD.Print("[Shotgun] Pump down - shell extracted, now pump up to chamber");
-                }
-                break;
-
             case ShotgunActionState.NeedsPumpUp:
                 if (isDragUp)
                 {
-                    // Chamber next round
+                    // Eject spent shell (pull pump back/up)
+                    ActionState = ShotgunActionState.NeedsPumpDown;
+                    PlayPumpUpSound();
+                    EmitSignal(SignalName.ActionStateChanged, (int)ActionState);
+                    EmitSignal(SignalName.PumpActionCycled, "up");
+                    GD.Print("[Shotgun] Pump UP - shell ejected, now pump DOWN to chamber");
+                }
+                break;
+
+            case ShotgunActionState.NeedsPumpDown:
+                if (isDragDown)
+                {
+                    // Chamber next round (push pump forward/down)
                     if (ShellsInTube > 0)
                     {
                         ActionState = ShotgunActionState.Ready;
-                        PlayPumpUpSound();
+                        PlayPumpDownSound();
                         EmitSignal(SignalName.ActionStateChanged, (int)ActionState);
-                        EmitSignal(SignalName.PumpActionCycled, "up");
-                        GD.Print("[Shotgun] Pump up - chambered, ready to fire");
+                        EmitSignal(SignalName.PumpActionCycled, "down");
+                        GD.Print("[Shotgun] Pump DOWN - chambered, ready to fire");
                     }
                     else
                     {
                         // No shells in tube - go to ready state to allow reload
                         ActionState = ShotgunActionState.Ready;
-                        PlayPumpUpSound();
+                        PlayPumpDownSound();
                         EmitSignal(SignalName.ActionStateChanged, (int)ActionState);
-                        GD.Print("[Shotgun] Pump up - tube empty, need to reload");
+                        GD.Print("[Shotgun] Pump DOWN - tube empty, need to reload");
                     }
                 }
                 break;
 
             case ShotgunActionState.Ready:
-                // If ready and drag up, might be starting reload (open bolt)
+                // If ready and drag UP, might be starting reload (open bolt)
                 if (isDragUp && ShellsInTube < TubeMagazineCapacity)
                 {
                     StartReload();
@@ -441,7 +441,8 @@ public partial class Shotgun : BaseWeapon
     #region Reload System
 
     /// <summary>
-    /// Starts the shotgun reload sequence.
+    /// Starts the shotgun reload sequence by opening the bolt directly.
+    /// Called when RMB drag UP is performed while in Ready state.
     /// </summary>
     public void StartReload()
     {
@@ -452,18 +453,16 @@ public partial class Shotgun : BaseWeapon
 
         if (ShellsInTube >= TubeMagazineCapacity)
         {
+            GD.Print("[Shotgun] Cannot reload - tube is already full");
             return; // Tube is full
         }
 
-        if (ReserveAmmo <= 0)
-        {
-            return; // No shells to load
-        }
-
-        ReloadState = ShotgunReloadState.WaitingToOpen;
+        // Open bolt directly - the RMB drag UP that triggered this already counts as "open bolt"
+        ReloadState = ShotgunReloadState.Loading;
+        PlayActionOpenSound();
         EmitSignal(SignalName.ReloadStateChanged, (int)ReloadState);
         EmitSignal(SignalName.ReloadStarted);
-        GD.Print("[Shotgun] Reload started - RMB drag up to open bolt");
+        GD.Print("[Shotgun] Bolt opened for loading - MMB + RMB drag DOWN to load shells, or RMB drag DOWN to close");
     }
 
     /// <summary>
@@ -538,7 +537,7 @@ public partial class Shotgun : BaseWeapon
     /// <summary>
     /// Fires the shotgun - spawns multiple pellets with spread in a cloud pattern.
     /// After firing, requires manual pump-action cycling:
-    /// RMB drag up (eject shell) → RMB drag down (chamber next round)
+    /// RMB drag UP (eject shell) → RMB drag DOWN (chamber next round)
     /// </summary>
     /// <param name="direction">Base direction to fire.</param>
     /// <returns>True if the weapon fired successfully.</returns>
@@ -594,10 +593,10 @@ public partial class Shotgun : BaseWeapon
         ShellsInTube--;
         EmitSignal(SignalName.ShellCountChanged, ShellsInTube, TubeMagazineCapacity);
 
-        // Set action state - needs manual pump cycling (down first to extract shell)
-        ActionState = ShotgunActionState.NeedsPumpDown;
+        // Set action state - needs manual pump cycling (UP first to eject shell)
+        ActionState = ShotgunActionState.NeedsPumpUp;
         EmitSignal(SignalName.ActionStateChanged, (int)ActionState);
-        GD.Print("[Shotgun] Fired! Now RMB drag down to extract shell");
+        GD.Print("[Shotgun] Fired! Now RMB drag UP to eject shell");
 
         // Play shotgun sound
         PlayShotgunSound();
@@ -871,8 +870,8 @@ public partial class Shotgun : BaseWeapon
 
             return ActionState switch
             {
-                ShotgunActionState.NeedsPumpDown => "RMB drag down to extract",
-                ShotgunActionState.NeedsPumpUp => "RMB drag up to chamber",
+                ShotgunActionState.NeedsPumpUp => "RMB drag UP to eject",
+                ShotgunActionState.NeedsPumpDown => "RMB drag DOWN to chamber",
                 ShotgunActionState.Ready when ShellsInTube <= 0 => "Empty - reload needed",
                 ShotgunActionState.Ready => "Ready",
                 _ => "Unknown"
