@@ -1,11 +1,12 @@
-[gd_scene load_steps=6 format=3 uid="uid://cx5m8np6u3bwd"]
+[gd_scene load_steps=10 format=3 uid="uid://cx5m8np6u3bwd"]
 
 [ext_resource type="Script" path="res://scripts/objects/enemy.gd" id="1_enemy"]
 [ext_resource type="Script" path="res://scripts/objects/hit_area.gd" id="2_hit_area"]
 [ext_resource type="Texture2D" path="res://assets/sprites/weapons/m16_rifle_topdown.png" id="3_rifle_sprite"]
-
-[sub_resource type="PlaceholderTexture2D" id="PlaceholderTexture2D_enemy"]
-size = Vector2(48, 48)
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/enemy/enemy_body.png" id="4_body"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/enemy/enemy_head.png" id="5_head"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/enemy/enemy_left_arm.png" id="6_left_arm"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/enemy/enemy_right_arm.png" id="7_right_arm"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_enemy"]
 radius = 24.0
@@ -15,12 +16,33 @@ collision_layer = 2
 collision_mask = 4
 script = ExtResource("1_enemy")
 
-[node name="Sprite2D" type="Sprite2D" parent="."]
-modulate = Color(0.9, 0.2, 0.2, 1)
-texture = SubResource("PlaceholderTexture2D_enemy")
+[node name="EnemyModel" type="Node2D" parent="."]
 
-[node name="WeaponSprite" type="Sprite2D" parent="."]
+[node name="Body" type="Sprite2D" parent="EnemyModel"]
 z_index = 1
+position = Vector2(-4, 0)
+texture = ExtResource("4_body")
+
+[node name="LeftArm" type="Sprite2D" parent="EnemyModel"]
+z_index = 4
+position = Vector2(24, 6)
+texture = ExtResource("6_left_arm")
+
+[node name="RightArm" type="Sprite2D" parent="EnemyModel"]
+z_index = 4
+position = Vector2(-2, 6)
+texture = ExtResource("7_right_arm")
+
+[node name="Head" type="Sprite2D" parent="EnemyModel"]
+z_index = 3
+position = Vector2(-6, -2)
+texture = ExtResource("5_head")
+
+[node name="WeaponMount" type="Node2D" parent="EnemyModel"]
+position = Vector2(0, 6)
+
+[node name="WeaponSprite" type="Sprite2D" parent="EnemyModel/WeaponMount"]
+z_index = 2
 texture = ExtResource("3_rifle_sprite")
 offset = Vector2(20, 0)
 

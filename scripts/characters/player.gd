@@ -398,17 +398,24 @@ func _update_player_model_rotation() -> void:
 	# Calculate target rotation angle
 	var target_angle := aim_direction.angle()
 
-	# Apply rotation to the player model
-	_player_model.rotation = target_angle
-
 	# Handle sprite flipping for left/right aim
 	# When aiming left (angle > 90° or < -90°), flip vertically to avoid upside-down appearance
 	var aiming_left := absf(target_angle) > PI / 2
 
-	# Flip the player model vertically when aiming left
+	# Apply rotation to the player model using GLOBAL rotation.
+	# IMPORTANT: We use global_rotation instead of (local) rotation because the Player
+	# CharacterBody2D node may also have its own rotation (e.g., during grenade throws).
+	# Using global_rotation ensures the PlayerModel's visual direction is set in world
+	# coordinates, independent of any parent rotation.
+	#
+	# When we flip the model vertically (negative scale.y), we must NEGATE the rotation
+	# angle to compensate. This is because a negative Y scale mirrors the coordinate
+	# system, which inverts the effect of rotation.
 	if aiming_left:
+		_player_model.global_rotation = -target_angle
 		_player_model.scale = Vector2(player_model_scale, -player_model_scale)
 	else:
+		_player_model.global_rotation = target_angle
 		_player_model.scale = Vector2(player_model_scale, player_model_scale)
 
 

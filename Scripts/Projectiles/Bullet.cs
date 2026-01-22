@@ -57,13 +57,17 @@ public partial class Bullet : Area2D
 
     /// <summary>
     /// Direction the bullet travels (set by the shooter).
+    /// Exported to allow setting via Node.Set() with snake_case name "direction".
     /// </summary>
+    [Export]
     public Vector2 Direction { get; set; } = Vector2.Right;
 
     /// <summary>
     /// Instance ID of the node that shot this bullet.
     /// Used to prevent self-damage (e.g., player or enemies not damaging themselves).
+    /// Exported to allow setting via Node.Set() with snake_case name "shooter_id".
     /// </summary>
+    [Export]
     public ulong ShooterId { get; set; } = 0;
 
     // =========================================================================
@@ -203,7 +207,9 @@ public partial class Bullet : Area2D
 
     /// <summary>
     /// Shooter's position at firing time (for distance-based penetration).
+    /// Exported to allow setting via Node.Set() with snake_case name "shooter_position".
     /// </summary>
+    [Export]
     public Vector2 ShooterPosition { get; set; } = Vector2.Zero;
 
     /// <summary>
@@ -387,6 +393,26 @@ public partial class Bullet : Area2D
     {
         Direction = direction.Normalized();
         UpdateRotation();
+    }
+
+    /// <summary>
+    /// Sets the shooter ID to prevent self-damage.
+    /// Called by the weapon to identify the shooter node.
+    /// </summary>
+    /// <param name="shooterId">Instance ID of the shooter node.</param>
+    public void SetShooterId(ulong shooterId)
+    {
+        ShooterId = shooterId;
+    }
+
+    /// <summary>
+    /// Sets the shooter's position at firing time.
+    /// Used for distance-based penetration calculations.
+    /// </summary>
+    /// <param name="position">Global position of the shooter when firing.</param>
+    public void SetShooterPosition(Vector2 position)
+    {
+        ShooterPosition = position;
     }
 
     /// <summary>

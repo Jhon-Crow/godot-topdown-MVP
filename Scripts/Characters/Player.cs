@@ -1430,10 +1430,24 @@ public partial class Player : BaseCharacter
         bullet.GlobalPosition = GlobalPosition + direction * BulletSpawnOffset;
 
         // Set bullet direction
-        bullet.Set("Direction", direction);
+        if (bullet.HasMethod("SetDirection"))
+        {
+            bullet.Call("SetDirection", direction);
+        }
+        else
+        {
+            bullet.Set("direction", direction);
+        }
 
         // Set shooter ID to prevent self-damage
-        bullet.Set("ShooterId", GetInstanceId());
+        if (bullet.HasMethod("SetShooterId"))
+        {
+            bullet.Call("SetShooterId", GetInstanceId());
+        }
+        else
+        {
+            bullet.Set("shooter_id", GetInstanceId());
+        }
 
         // Add bullet to the scene tree
         GetTree().CurrentScene.AddChild(bullet);
