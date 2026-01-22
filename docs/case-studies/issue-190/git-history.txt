@@ -1,0 +1,20 @@
+d0aa6db Revert "Initial commit with task details"
+7ee92bc Update player model with tactical appearance and aim-based rotation
+48acabc Initial commit with task details
+9f31594 Merge pull request #186 from konard/issue-96-5038ff8b57c8
+d06caf6 Fix C# player model to use modular sprite structure
+7a887f7 Merge pull request #182 from konard/issue-181-694a6c94eeb5
+72aa3a3 Merge pull request #184 from konard/issue-183-d930476f0cf6
+87a2be4 Add modular player model with separate body parts
+60f7cae Fix grenade spawning from activation position instead of current player position
+1c84a74 Revert "Initial commit with task details"
+446efde Initial commit with task details
+081a8a1 Revert "Initial commit with task details"
+c86d7a9 Initial commit with task details
+22e2253 Add files via upload
+4f48b1e Revert "Initial commit with task details"
+0220f02 Улучшение светошумовой гранаты: физика, звуки, документация
+dc6632c Initial commit with task details
+65d4b03 Merge pull request #180 from konard/issue-177-6550221fdac5
+9cf182d добавил звуки гранаты
+34b7f68 Fix grenade spawn position bug and add training area with targets
