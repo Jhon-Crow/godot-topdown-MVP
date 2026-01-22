@@ -364,3 +364,83 @@ However, when user pressed RMB first (without MMB), then pressed MMB mid-drag, t
 6. **Verify timing of builds vs tests**: Always compare timestamps of user test logs with CI build completion times to ensure they tested the correct build.
 
 7. **Order matters EVERYWHERE**: Even after fixing the order at one level (`_Process()`), similar ordering issues can exist at other levels (inside `HandleDragGestures()`). Always trace the complete data flow.
+
+---
+
+## POTENTIAL THIRD ROOT CAUSE (2026-01-22 19:XX+)
+
+### User Report
+
+User uploaded new log file `game_log_20260122_183736.txt` still showing the issue. Analysis revealed a puzzling pattern:
+
+```
+[18:37:56] RMB drag started - initial MMB state: False
+[18:37:57] RMB released - processing drag gesture (wasMMBDuringDrag=False)
+...
+[18:38:08] RMB drag started - initial MMB state: True
+[18:38:08] RMB released - processing drag gesture (wasMMBDuringDrag=True)
+```
+
+**Critical Observation:** The user claims to be holding MMB first, but `Input.IsMouseButtonPressed(MouseButton.Middle)` returns `False`. Only after several attempts does MMB state show `True`.
+
+### Investigation: Godot MMB Input Issue
+
+Research revealed [Godot issue #72507](https://github.com/godotengine/godot/issues/72507) - "Mouse Middle Button Inconsistency":
+- `Input.IsMouseButtonPressed(MouseButton.Middle)` may not work reliably in all cases
+- Event-based input via `_Input()` may be more reliable for some users
+- The inconsistency seems to be hardware/platform dependent
+
+### The Fix: Triple-Redundant MMB Detection
+
+Implemented three independent methods to detect MMB:
+
+1. **Polling in `UpdateMiddleMouseState()`:**
+   ```csharp
+   _isMiddleMouseHeld = Input.IsMouseButtonPressed(MouseButton.Middle);
+   ```
+
+2. **Direct polling in `HandleDragGestures()`:**
+   ```csharp
+   bool rawMMBState = Input.IsMouseButtonPressed(MouseButton.Middle);
+   ```
+
+3. **Event-based via `_Input()`:**
+   ```csharp
+   public override void _Input(InputEvent @event)
+   {
+       if (@event is InputEventMouseButton mouseButton
+           && mouseButton.ButtonIndex == MouseButton.Middle)
+       {
+           _isMiddleMouseHeldEvent = mouseButton.Pressed;
+
+           // Immediate update if dragging
+           if (_isDragging && _isMiddleMouseHeldEvent)
+           {
+               _wasMiddleMouseHeldDuringDrag = true;
+           }
+       }
+   }
+   ```
+
+Combined detection:
+```csharp
+bool anyMMBDetected = _isMiddleMouseHeld || rawMMBState || _isMiddleMouseHeldEvent;
+```
+
+### Enhanced Diagnostic Logging
+
+New log format shows all three detection methods:
+```
+[Shotgun.FIX#243] RMB drag started - MMB detection: poll=False, raw=False, event=True, any=True
+[Shotgun.EVENT] MMB event: pressed=True (was False), isDragging=True
+```
+
+This allows identifying which method works for the user's system:
+- If `poll=False` but `event=True` → Godot polling bug
+- If `poll=True` but `event=False` → Event not reaching the node
+- If all methods show `False` when user is pressing MMB → Hardware/driver issue
+
+### References
+
+- [Godot Issue #72507 - Mouse Middle Button Inconsistency](https://github.com/godotengine/godot/issues/72507)
+- [Godot Input Examples Documentation](https://docs.godotengine.org/en/stable/tutorials/inputs/input_examples.html)
