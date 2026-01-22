@@ -44,7 +44,7 @@ texture = ExtResource("8_right_arm")
 
 [node name="Armband" type="Sprite2D" parent="PlayerModel/RightArm"]
 z_index = 1
-modulate = Color(1, 0, 0, 1)
+modulate = Color(2, 0.3, 0.3, 1)
 texture = ExtResource("9_armband")
 
 [node name="Head" type="Sprite2D" parent="PlayerModel"]
