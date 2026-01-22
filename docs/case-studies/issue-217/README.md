@@ -286,6 +286,120 @@ This was visually incorrect - bullets should appear to come from the rifle's bar
 
 8. **Spawn Projectiles from Visual Origin:** Bullets should spawn from where players expect them - the weapon's muzzle, not the character's center. This improves visual consistency and player feedback.
 
+### Phase 7: Third User Feedback (2026-01-22T08:25:34Z)
+
+User @Jhon-Crow tested the solution again and reported three issues:
+
+1. **"враги ходят спиной вперёд и стреляют из спины"**
+   - Translation: Enemies walk backwards and shoot from their back
+   - The enemy model faces the wrong direction when moving/aiming
+
+2. **"m16 у врагов должна быть такого же размера что и у игрока (меньше чем сейчас)"**
+   - Translation: M16 on enemies should be the same size as the player's (smaller than current)
+   - The weapon sprite is too large
+
+Attached game logs:
+- `game_log_20260122_112258.txt`
+- `game_log_20260122_112342.txt`
+- `game_log_20260122_112428.txt`
+
+### Phase 8: Root Cause Analysis and Fix (2026-01-22)
+
+## Root Cause Analysis (Phase 7-8)
+
+### Issue 5: Enemies Walk Backwards and Shoot from Back
+
+**Root Cause:** The enemy sprites were created facing **LEFT** (PI radians), while the player sprites face **RIGHT** (0 radians).
+
+The rotation code set:
+```gdscript
+var target_angle := face_direction.angle()
+_enemy_model.rotation = target_angle
+```
+
+When the face_direction points toward the player (e.g., to the right = 0 radians), and the sprites are drawn facing left (PI radians), the enemy appears to be facing away from where they're aiming.
+
+**Visual Explanation:**
+- Player sprites: Character drawn facing → (right, angle 0)
+- Enemy sprites: Character drawn facing ← (left, angle PI)
+- When rotation = 0 (facing right), player faces right ✓, enemy faces left ✗
+
+**Fix Applied:**
+1. Added PI to the target rotation angle to compensate for sprite orientation:
+   ```gdscript
+   # Enemy sprites face LEFT (PI radians offset from player sprites which face RIGHT)
+   var target_angle := face_direction.angle() + PI
+   _enemy_model.rotation = target_angle
+   ```
+
+2. Updated flipping logic to use the original face_direction angle:
+   ```gdscript
+   var face_angle := face_direction.angle()
+   var aiming_left := absf(face_angle) > PI / 2
+   ```
+
+### Issue 6: M16 Weapon Sprite Too Large
+
+**Root Cause:** The enemy uses `m16_rifle_topdown.png` (64x16 pixels), which when scaled at 1.3x becomes ~83x21 pixels.
+
+The player's weapon is **integrated into the arm sprites** (player_left_arm.png is 20x8 and includes the rifle grip). The player's rifle portion, when scaled 1.3x, appears much smaller than the separate enemy weapon sprite.
+
+**Comparison:**
+- Player: Arms (20x8) × 1.3 scale = 26×10 effective pixels, weapon integrated
+- Enemy: Separate rifle (64x16) × 1.3 scale = 83×21 effective pixels
+
+**Fix Applied:**
+1. Changed Enemy.tscn to use `m16_topdown_small.png` (32x8 pixels) instead of `m16_rifle_topdown.png` (64x16 pixels)
+
+2. Updated weapon sprite offset from `Vector2(20, 0)` to `Vector2(10, 0)` (proportional to new sprite size)
+
+3. Updated `_get_bullet_spawn_position()` muzzle offset calculation:
+   ```gdscript
+   # Old: 44px for 64px sprite with 20px offset
+   # New: 22px for 32px sprite with 10px offset
+   var muzzle_offset := 22.0 * enemy_model_scale
+   ```
+
+## Summary of All Issues and Fixes
+
+| Issue | Root Cause | Fix |
+|-------|-----------|-----|
+| 1. Enemy smaller than player | Missing 1.3x scale multiplier | Added `enemy_model_scale` export and scale in `_ready()` |
+| 2. No walking animation | Old script references + missing animation code | Updated references, added `_update_walk_animation()` |
+| 3. Weapon at 90° angle | Competing rotation systems | Removed `_update_weapon_sprite_rotation()` call |
+| 4. Bullets from center | Spawning from enemy position | Added `_get_bullet_spawn_position()` using weapon mount |
+| 5. Walking backwards | Enemy sprites face opposite direction (PI offset) | Added PI to rotation angle |
+| 6. M16 too large | Using 64px sprite vs player's integrated smaller rifle | Changed to `m16_topdown_small.png` (32px) |
+
+## Lessons Learned
+
+1. **Maintain Consistency Between Scene and Script:** When updating scene structure (adding EnemyModel with children), the script must be updated to reference the new node paths.
+
+2. **Reuse Existing Systems:** The walking animation system from player.gd was well-designed and could be reused almost directly for enemies, demonstrating good code architecture.
+
+3. **Check for Scale Multipliers:** Visual size in Godot depends not just on sprite dimensions but also on node scale. The player had a 1.3x scale multiplier that was easy to overlook.
+
+4. **Modular Character Design:** Using a parent Node2D (PlayerModel/EnemyModel) with child sprites for body parts enables:
+   - Easy scaling of the entire character
+   - Per-part animations (walking, aiming)
+   - Per-part visual effects (hit flash, health color)
+
+5. **Test Visual Features:** After structural changes, all visual features should be tested:
+   - Health color interpolation
+   - Hit flash effect
+   - Walking animation
+   - Model rotation when aiming
+
+6. **Avoid Competing Rotation Systems:** When using hierarchical node structures, be careful not to apply rotations at multiple levels. The EnemyModel already handles rotation - adding an independent weapon rotation caused conflicts.
+
+7. **Understand Node Hierarchy for Relative Calculations:** When calculating relative positions/rotations, use the correct parent node's values. Using `rotation` (CharacterBody2D) instead of `_enemy_model.rotation` caused the 90-degree offset.
+
+8. **Spawn Projectiles from Visual Origin:** Bullets should spawn from where players expect them - the weapon's muzzle, not the character's center. This improves visual consistency and player feedback.
+
+9. **Match Sprite Orientations:** When creating new character sprites based on existing ones, ensure they face the same direction (typically RIGHT = 0 radians in 2D games). If sprites face opposite directions, the rotation code needs to compensate with a PI offset.
+
+10. **Compare Proportions with Reference:** When adding separate weapon sprites, compare the final rendered size (after scaling) with how weapons appear on reference characters (player). The player's integrated weapon was much smaller than the separate 64px rifle sprite.
+
 ## Related Files
 
 - [issue-data.json](./issue-data.json) - Original issue data
@@ -294,3 +408,6 @@ This was visually incorrect - bullets should appear to come from the rifle's bar
 - [pr-review-comments.json](./pr-review-comments.json) - PR review comments
 - [pr-diff.txt](./pr-diff.txt) - PR diff showing all changes
 - [logs/solution-draft-log-initial.txt](./logs/solution-draft-log-initial.txt) - Initial AI solution draft log
+- [logs/game_log_20260122_112258.txt](./logs/game_log_20260122_112258.txt) - Game log from phase 7 testing
+- [logs/game_log_20260122_112342.txt](./logs/game_log_20260122_112342.txt) - Game log from phase 7 testing
+- [logs/game_log_20260122_112428.txt](./logs/game_log_20260122_112428.txt) - Game log from phase 7 testing

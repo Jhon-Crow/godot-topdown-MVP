@@ -1051,6 +1051,8 @@ func _update_goap_state() -> void:
 
 ## Updates the enemy model rotation to face the aim/movement direction.
 ## The enemy model (body, head, arms) rotates to follow the direction of movement or aim.
+## Note: Enemy sprites are drawn facing LEFT (PI radians), while player sprites face RIGHT (0 radians).
+## We add PI to the target angle to compensate for this difference.
 func _update_enemy_model_rotation() -> void:
 	if not _enemy_model:
 		return
@@ -1071,14 +1073,19 @@ func _update_enemy_model_rotation() -> void:
 		return
 
 	# Calculate target rotation angle
-	var target_angle := face_direction.angle()
+	# Enemy sprites face LEFT (PI radians offset from player sprites which face RIGHT)
+	# So we add PI to make the enemy face toward the calculated direction
+	var target_angle := face_direction.angle() + PI
 
 	# Apply rotation to the enemy model
 	_enemy_model.rotation = target_angle
 
 	# Handle sprite flipping for left/right aim
-	# When aiming left (angle > 90° or < -90°), flip vertically to avoid upside-down appearance
-	var aiming_left := absf(target_angle) > PI / 2
+	# Since we added PI, the "aiming left" condition is also shifted by PI
+	# Original: aiming left when abs(angle) > PI/2 (pointing into quadrants 2 or 3)
+	# With PI offset: we check the face_direction angle directly
+	var face_angle := face_direction.angle()
+	var aiming_left := absf(face_angle) > PI / 2
 
 	# Flip the enemy model vertically when aiming left
 	if aiming_left:
@@ -3834,8 +3841,9 @@ func _get_health_percent() -> float:
 ## @param direction: The normalized direction the bullet will travel.
 ## @return: The global position where the bullet should spawn.
 func _get_bullet_spawn_position(direction: Vector2) -> Vector2:
-	# The rifle sprite has offset 20px and is 64px long, so muzzle is ~44px from WeaponMount center
-	var muzzle_offset := 44.0 * enemy_model_scale  # Scale with enemy model
+	# The rifle sprite (m16_topdown_small.png) has offset 10px and is 32px long
+	# so muzzle is ~22px from WeaponMount center (32 - 10 = 22)
+	var muzzle_offset := 22.0 * enemy_model_scale  # Scale with enemy model
 	if _weapon_mount:
 		# Use weapon mount global position as the base, then offset to muzzle
 		return _weapon_mount.global_position + direction * muzzle_offset
