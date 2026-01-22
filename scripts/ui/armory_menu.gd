@@ -66,8 +66,14 @@ var _grenade_buttons: Dictionary = {}
 func _ready() -> void:
 	FileLogger.info("[ArmoryMenu] _ready() called")
 
-	# Connect button signals
-	back_button.pressed.connect(_on_back_pressed)
+	# Verify UI elements
+	if back_button == null:
+		FileLogger.info("[ArmoryMenu] ERROR: back_button is null!")
+	else:
+		back_button.pressed.connect(_on_back_pressed)
+
+	if status_label == null:
+		FileLogger.info("[ArmoryMenu] ERROR: status_label is null!")
 
 	# Get grenade manager reference
 	_grenade_manager = get_node_or_null("/root/GrenadeManager")
@@ -78,7 +84,7 @@ func _ready() -> void:
 
 	# Set process mode to allow input while paused
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	FileLogger.info("[ArmoryMenu] _ready() complete")
+	FileLogger.info("[ArmoryMenu] _ready() complete, visible: %s" % visible)
 
 
 func _populate_weapon_grid() -> void:
@@ -86,11 +92,13 @@ func _populate_weapon_grid() -> void:
 
 	# Verify weapon_grid is valid
 	if weapon_grid == null:
-		FileLogger.info("[ArmoryMenu] ERROR: weapon_grid is null!")
+		FileLogger.info("[ArmoryMenu] ERROR: weapon_grid is null! Node path may be incorrect.")
 		return
 
-	# Clear existing children
-	for child in weapon_grid.get_children():
+	# Clear existing children - wait for next frame if items exist
+	var existing_children := weapon_grid.get_children()
+	FileLogger.info("[ArmoryMenu] Clearing %d existing children" % existing_children.size())
+	for child in existing_children:
 		child.queue_free()
 	_grenade_buttons.clear()
 
@@ -101,34 +109,48 @@ func _populate_weapon_grid() -> void:
 	FileLogger.info("[ArmoryMenu] Creating weapon slots, count: %d" % WEAPONS.size())
 
 	# Create a slot for each weapon
+	var weapons_added: int = 0
 	for weapon_id in WEAPONS:
 		var weapon_data: Dictionary = WEAPONS[weapon_id]
 		var slot := _create_weapon_slot(weapon_id, weapon_data, false)
-		weapon_grid.add_child(slot)
+		if slot:
+			weapon_grid.add_child(slot)
+			weapons_added += 1
+			FileLogger.info("[ArmoryMenu] Added weapon slot: %s" % weapon_id)
 
 		if weapon_data["unlocked"]:
 			unlocked_count += 1
 
-	FileLogger.info("[ArmoryMenu] Weapon slots created: %d" % WEAPONS.size())
+	FileLogger.info("[ArmoryMenu] Weapon slots created: %d/%d" % [weapons_added, WEAPONS.size()])
 
 	# Add grenade selection slots
 	if _grenade_manager:
 		var grenade_types := _grenade_manager.get_all_grenade_types()
 		FileLogger.info("[ArmoryMenu] Creating grenade slots, count: %d" % grenade_types.size())
+		var grenades_added: int = 0
 		for grenade_type in grenade_types:
 			var grenade_data := _grenade_manager.get_grenade_data(grenade_type)
 			var is_selected := _grenade_manager.is_selected(grenade_type)
+			FileLogger.info("[ArmoryMenu] Creating grenade slot: type=%d, name=%s, selected=%s" % [grenade_type, grenade_data.get("name", "unknown"), is_selected])
 			var slot := _create_grenade_slot(grenade_type, grenade_data, is_selected)
-			weapon_grid.add_child(slot)
-			unlocked_count += 1  # All grenades are unlocked
-			total_count += 1
-		FileLogger.info("[ArmoryMenu] Grenade slots created")
+			if slot:
+				weapon_grid.add_child(slot)
+				grenades_added += 1
+				unlocked_count += 1
+				total_count += 1
+		FileLogger.info("[ArmoryMenu] Grenade slots created: %d" % grenades_added)
 	else:
 		FileLogger.info("[ArmoryMenu] WARNING: GrenadeManager not found, skipping grenade slots")
 
 	# Update status label
-	status_label.text = "Unlocked: %d / %d" % [unlocked_count, total_count]
-	FileLogger.info("[ArmoryMenu] Grid populated: %d items, unlocked: %d" % [total_count, unlocked_count])
+	if status_label:
+		status_label.text = "Unlocked: %d / %d" % [unlocked_count, total_count]
+	else:
+		FileLogger.info("[ArmoryMenu] WARNING: status_label is null, cannot update text")
+
+	# Final count
+	var final_child_count := weapon_grid.get_child_count()
+	FileLogger.info("[ArmoryMenu] Grid populated complete: %d items visible, unlocked: %d, weapon_grid children: %d" % [total_count, unlocked_count, final_child_count])
 
 
 func _create_weapon_slot(weapon_id: String, weapon_data: Dictionary, _is_selectable: bool) -> PanelContainer:

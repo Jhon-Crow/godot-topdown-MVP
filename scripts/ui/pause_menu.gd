@@ -160,14 +160,21 @@ func _on_difficulty_back() -> void:
 
 
 func _on_armory_pressed() -> void:
+	FileLogger.info("[PauseMenu] Armory button pressed")
 	# Hide main menu, show armory menu
 	menu_container.hide()
 
 	if _armory_menu == null:
+		FileLogger.info("[PauseMenu] Creating new armory menu instance")
 		_armory_menu = armory_menu_scene.instantiate()
 		_armory_menu.back_pressed.connect(_on_armory_back)
 		add_child(_armory_menu)
+		FileLogger.info("[PauseMenu] Armory menu instance created and added as child")
 	else:
+		FileLogger.info("[PauseMenu] Showing existing armory menu")
+		# Refresh the weapon grid in case grenade selection changed
+		if _armory_menu.has_method("_populate_weapon_grid"):
+			_armory_menu._populate_weapon_grid()
 		_armory_menu.show()
 
 

@@ -104,7 +104,64 @@ Added comprehensive logging throughout the armory menu to track:
 3. Consider adding debug overlay for UI debugging
 4. Document Godot-specific constraints in coding guidelines
 
+### Phase 4: Second Fix Attempt (Continued Investigation)
+- **Date:** 2026-01-22 ~00:48
+- **Action:** User reported armory still broken
+- **New Log:** `game_log_20260122_034730.txt`
+- **Key Observation:** Log shows GrenadeManager loading correctly, but **NO `[ArmoryMenu]` entries**
+  - This indicates the armory menu was never opened during the test session
+  - OR the script's `_ready()` function never executed
+
+### Phase 5: Enhanced Debugging
+- **Date:** 2026-01-22
+- **Actions Taken:**
+  1. Added comprehensive logging to pause_menu.gd for armory button handling
+  2. Enhanced logging in armory_menu.gd with per-slot creation messages
+  3. Added validation for all UI elements (back_button, status_label, weapon_grid)
+  4. Added refresh call when re-opening existing armory menu (like levels_menu does)
+
+## Key Observations from Logs
+
+### Log Analysis Summary:
+
+| Log File | ArmoryMenu Entries | GrenadeManager Entries | Interpretation |
+|----------|-------------------|------------------------|----------------|
+| game_log_20260122_033222.txt | **NONE** | Present | Armory not opened |
+| game_log_20260122_033248.txt | **NONE** | Present | Armory not opened |
+| game_log_20260122_034730.txt | **NONE** | Present | Armory not opened |
+
+### Conclusion:
+The logs show the GrenadeManager is loading correctly (proving the new code is running), but there are NO `[ArmoryMenu]` entries in any of the logs. This means either:
+1. The user did not open the armory menu during these test sessions
+2. The armory menu's script is not executing at all
+3. There's an issue before the logging starts
+
+## Enhanced Solution
+
+### Additional Fix: Pause Menu Logging
+```gdscript
+func _on_armory_pressed() -> void:
+    FileLogger.info("[PauseMenu] Armory button pressed")
+    # ... existing code ...
+    FileLogger.info("[PauseMenu] Armory menu instance created and added as child")
+```
+
+### Additional Fix: Armory Menu Refresh on Re-open
+```gdscript
+# In pause_menu.gd _on_armory_pressed():
+else:
+    FileLogger.info("[PauseMenu] Showing existing armory menu")
+    # Refresh the weapon grid in case grenade selection changed
+    if _armory_menu.has_method("_populate_weapon_grid"):
+        _armory_menu._populate_weapon_grid()
+    _armory_menu.show()
+```
+
+### Additional Fix: Per-Slot Logging
+Added logging for each weapon and grenade slot creation to trace exactly which items are being added.
+
 ## Related Files
 
 - [Game Log 1](logs/game_log_20260122_033222.txt)
 - [Game Log 2](logs/game_log_20260122_033248.txt)
+- [Game Log 3 (Latest)](game_log_20260122_034730.txt)
