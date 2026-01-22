@@ -172,6 +172,12 @@ public partial class Shotgun : BaseWeapon
     private const bool VerboseInputLogging = true;
 
     /// <summary>
+    /// Enable detailed reload logging for deep debugging.
+    /// Shows every step of the reload process with all variable states.
+    /// </summary>
+    private const bool DetailedReloadLogging = true;
+
+    /// <summary>
     /// Cooldown time (in seconds) after closing bolt before it can be opened again.
     /// This prevents accidental bolt reopening due to mouse movement.
     /// History of adjustments based on user feedback:
@@ -398,6 +404,14 @@ public partial class Shotgun : BaseWeapon
                 // This fixes the issue where MMB pressed at the exact same frame as RMB drag start
                 // would be missed because we used to reset to false unconditionally
                 _wasMiddleMouseHeldDuringDrag = _isMiddleMouseHeld;
+
+                if (DetailedReloadLogging && ReloadState != ShotgunReloadState.NotReloading)
+                {
+                    GD.Print($"[Shotgun.Reload] === DRAG START ===");
+                    GD.Print($"[Shotgun.Reload] ReloadState={ReloadState}, ActionState={ActionState}");
+                    GD.Print($"[Shotgun.Reload] _isMMBHeld={_isMiddleMouseHeld}, _wasMMBDuringDrag={_wasMiddleMouseHeldDuringDrag}");
+                    GD.Print($"[Shotgun.Reload] dragStartPos={_dragStartPosition}");
+                }
             }
             else
             {
@@ -412,7 +426,16 @@ public partial class Shotgun : BaseWeapon
                     // Gesture processed - reset drag start for next gesture
                     _dragStartPosition = currentPosition;
                     // Reset MMB tracking for the new gesture segment
+                    bool oldWasMMB = _wasMiddleMouseHeldDuringDrag;
                     _wasMiddleMouseHeldDuringDrag = _isMiddleMouseHeld;
+
+                    if (DetailedReloadLogging)
+                    {
+                        GD.Print($"[Shotgun.Reload] === MID-DRAG GESTURE PROCESSED ===");
+                        GD.Print($"[Shotgun.Reload] ReloadState={ReloadState}, ActionState={ActionState}");
+                        GD.Print($"[Shotgun.Reload] _wasMMBDuringDrag: {oldWasMMB} -> {_wasMiddleMouseHeldDuringDrag}");
+                        GD.Print($"[Shotgun.Reload] New dragStartPos={_dragStartPosition}");
+                    }
                 }
             }
 
@@ -420,6 +443,11 @@ public partial class Shotgun : BaseWeapon
             // This fixes the timing issue where users release both buttons simultaneously
             if (_isMiddleMouseHeld)
             {
+                if (DetailedReloadLogging && !_wasMiddleMouseHeldDuringDrag && ReloadState == ShotgunReloadState.Loading)
+                {
+                    GD.Print($"[Shotgun.Reload] === MMB DETECTED DURING DRAG ===");
+                    GD.Print($"[Shotgun.Reload] Setting _wasMMBDuringDrag = true");
+                }
                 _wasMiddleMouseHeldDuringDrag = true;
             }
         }
@@ -430,10 +458,26 @@ public partial class Shotgun : BaseWeapon
             Vector2 dragVector = dragEnd - _dragStartPosition;
             _isDragging = false;
 
+            if (DetailedReloadLogging && ReloadState != ShotgunReloadState.NotReloading)
+            {
+                GD.Print($"[Shotgun.Reload] === RMB RELEASED - PROCESSING GESTURE ===");
+                GD.Print($"[Shotgun.Reload] ReloadState={ReloadState}, ActionState={ActionState}");
+                GD.Print($"[Shotgun.Reload] _isMMBHeld={_isMiddleMouseHeld}, _wasMMBDuringDrag={_wasMiddleMouseHeldDuringDrag}");
+                GD.Print($"[Shotgun.Reload] dragVector={dragVector}, length={dragVector.Length():F1}");
+                bool isVertical = Mathf.Abs(dragVector.Y) > Mathf.Abs(dragVector.X);
+                bool isDragDown = dragVector.Y > 0;
+                GD.Print($"[Shotgun.Reload] isVertical={isVertical}, isDragDown={isDragDown}");
+            }
+
             ProcessDragGesture(dragVector);
 
             // Reset the flag after processing
             _wasMiddleMouseHeldDuringDrag = false;
+
+            if (DetailedReloadLogging && ReloadState != ShotgunReloadState.NotReloading)
+            {
+                GD.Print($"[Shotgun.Reload] After gesture: ReloadState={ReloadState}");
+            }
         }
     }
 
@@ -592,7 +636,14 @@ public partial class Shotgun : BaseWeapon
                         //
                         // This matches the original behavior before continuous gestures
                         // were added in PR #215, fixing the regression reported in #232.
-                        if (VerboseInputLogging)
+                        if (DetailedReloadLogging)
+                        {
+                            bool shouldLoadShell = _wasMiddleMouseHeldDuringDrag || _isMiddleMouseHeld;
+                            GD.Print($"[Shotgun.Reload] === MID-DRAG DOWN IN LOADING STATE ===");
+                            GD.Print($"[Shotgun.Reload] _wasMMBDuringDrag={_wasMiddleMouseHeldDuringDrag}, _isMMBHeld={_isMiddleMouseHeld}");
+                            GD.Print($"[Shotgun.Reload] shouldLoadShell={shouldLoadShell} - DEFERRING to release-based gesture");
+                        }
+                        else if (VerboseInputLogging)
                         {
                             bool shouldLoadShell = _wasMiddleMouseHeldDuringDrag || _isMiddleMouseHeld;
                             GD.Print($"[Shotgun.Input] Mid-drag DOWN in Loading state: shouldLoad={shouldLoadShell} - NOT processing mid-drag, waiting for RMB release");
@@ -731,6 +782,11 @@ public partial class Shotgun : BaseWeapon
     /// </summary>
     private void ProcessReloadGesture(bool isDragUp, bool isDragDown)
     {
+        if (DetailedReloadLogging)
+        {
+            GD.Print($"[Shotgun.Reload] ProcessReloadGesture: ReloadState={ReloadState}, isDragUp={isDragUp}, isDragDown={isDragDown}");
+        }
+
         switch (ReloadState)
         {
             case ShotgunReloadState.WaitingToOpen:
@@ -751,7 +807,14 @@ public partial class Shotgun : BaseWeapon
                     // This fixes the timing issue where users release MMB and RMB simultaneously
                     bool shouldLoadShell = _wasMiddleMouseHeldDuringDrag || _isMiddleMouseHeld;
 
-                    if (VerboseInputLogging)
+                    if (DetailedReloadLogging)
+                    {
+                        GD.Print($"[Shotgun.Reload] === PROCESSING SHELL LOAD DECISION ===");
+                        GD.Print($"[Shotgun.Reload] _wasMMBDuringDrag={_wasMiddleMouseHeldDuringDrag}");
+                        GD.Print($"[Shotgun.Reload] _isMMBHeld={_isMiddleMouseHeld}");
+                        GD.Print($"[Shotgun.Reload] shouldLoadShell={shouldLoadShell}");
+                    }
+                    else if (VerboseInputLogging)
                     {
                         GD.Print($"[Shotgun.Input] Drag DOWN in Loading state: _wasMMBDuringDrag={_wasMiddleMouseHeldDuringDrag}, _isMMBHeld={_isMiddleMouseHeld}, shouldLoad={shouldLoadShell}");
                     }
@@ -759,13 +822,25 @@ public partial class Shotgun : BaseWeapon
                     if (shouldLoadShell)
                     {
                         // Load a shell (MMB + RMB drag down)
+                        if (DetailedReloadLogging)
+                        {
+                            GD.Print("[Shotgun.Reload] >>> LOADING SHELL <<<");
+                        }
                         LoadShell();
                     }
                     else
                     {
                         // Close bolt without MMB - finish reload
+                        if (DetailedReloadLogging)
+                        {
+                            GD.Print("[Shotgun.Reload] >>> CLOSING BOLT (no MMB detected) <<<");
+                        }
                         CompleteReload();
                     }
+                }
+                else if (DetailedReloadLogging)
+                {
+                    GD.Print($"[Shotgun.Reload] In Loading state but isDragDown=false, no action taken");
                 }
                 break;
 
@@ -810,6 +885,10 @@ public partial class Shotgun : BaseWeapon
     {
         if (ReloadState != ShotgunReloadState.NotReloading)
         {
+            if (DetailedReloadLogging)
+            {
+                GD.Print($"[Shotgun.Reload] StartReload() called but already reloading: {ReloadState}");
+            }
             return; // Already reloading
         }
 
@@ -824,7 +903,18 @@ public partial class Shotgun : BaseWeapon
         PlayActionOpenSound();
         EmitSignal(SignalName.ReloadStateChanged, (int)ReloadState);
         EmitSignal(SignalName.ReloadStarted);
-        GD.Print("[Shotgun] Bolt opened for loading - MMB + RMB drag DOWN to load shells, or RMB drag DOWN to close");
+
+        if (DetailedReloadLogging)
+        {
+            GD.Print($"[Shotgun.Reload] === BOLT OPENED ===");
+            GD.Print($"[Shotgun.Reload] ReloadState={ReloadState}, ShellsInTube={ShellsInTube}/{TubeMagazineCapacity}");
+            GD.Print($"[Shotgun.Reload] _isMMBHeld={_isMiddleMouseHeld}, _wasMMBDuringDrag={_wasMiddleMouseHeldDuringDrag}");
+            GD.Print("[Shotgun.Reload] Next: MMB + RMB drag DOWN to load shells, or RMB drag DOWN to close");
+        }
+        else
+        {
+            GD.Print("[Shotgun] Bolt opened for loading - MMB + RMB drag DOWN to load shells, or RMB drag DOWN to close");
+        }
     }
 
     /// <summary>
@@ -833,7 +923,16 @@ public partial class Shotgun : BaseWeapon
     /// </summary>
     private void LoadShell()
     {
-        GD.Print($"[Shotgun] LoadShell called - ReloadState={ReloadState}, ShellsInTube={ShellsInTube}/{TubeMagazineCapacity}, Tutorial={_isTutorialLevel}, ReserveAmmo={ReserveAmmo}");
+        if (DetailedReloadLogging)
+        {
+            GD.Print($"[Shotgun.Reload] === LOAD SHELL ===");
+            GD.Print($"[Shotgun.Reload] ReloadState={ReloadState}, ShellsInTube={ShellsInTube}/{TubeMagazineCapacity}");
+            GD.Print($"[Shotgun.Reload] Tutorial={_isTutorialLevel}, ReserveAmmo={ReserveAmmo}");
+        }
+        else
+        {
+            GD.Print($"[Shotgun] LoadShell called - ReloadState={ReloadState}, ShellsInTube={ShellsInTube}/{TubeMagazineCapacity}, Tutorial={_isTutorialLevel}, ReserveAmmo={ReserveAmmo}");
+        }
 
         if (ReloadState != ShotgunReloadState.Loading)
         {
@@ -874,7 +973,15 @@ public partial class Shotgun : BaseWeapon
 
         PlayShellLoadSound();
         EmitSignal(SignalName.ShellCountChanged, ShellsInTube, TubeMagazineCapacity);
-        GD.Print($"[Shotgun] Shell loaded - {ShellsInTube}/{TubeMagazineCapacity} shells in tube");
+
+        if (DetailedReloadLogging)
+        {
+            GD.Print($"[Shotgun.Reload] Shell loaded successfully! Now {ShellsInTube}/{TubeMagazineCapacity}");
+        }
+        else
+        {
+            GD.Print($"[Shotgun] Shell loaded - {ShellsInTube}/{TubeMagazineCapacity} shells in tube");
+        }
     }
 
     /// <summary>
@@ -885,7 +992,17 @@ public partial class Shotgun : BaseWeapon
     {
         if (ReloadState == ShotgunReloadState.NotReloading)
         {
+            if (DetailedReloadLogging)
+            {
+                GD.Print("[Shotgun.Reload] CompleteReload() called but not reloading, ignoring");
+            }
             return;
+        }
+
+        if (DetailedReloadLogging)
+        {
+            GD.Print($"[Shotgun.Reload] === COMPLETE RELOAD (CLOSE BOLT) ===");
+            GD.Print($"[Shotgun.Reload] Previous ReloadState={ReloadState}");
         }
 
         ReloadState = ShotgunReloadState.NotReloading;
@@ -898,7 +1015,16 @@ public partial class Shotgun : BaseWeapon
         EmitSignal(SignalName.ReloadStateChanged, (int)ReloadState);
         EmitSignal(SignalName.ActionStateChanged, (int)ActionState);
         EmitSignal(SignalName.ReloadFinished);
-        GD.Print($"[Shotgun] Reload complete - ready to fire with {ShellsInTube} shells");
+
+        if (DetailedReloadLogging)
+        {
+            GD.Print($"[Shotgun.Reload] Bolt closed at time {_lastBoltCloseTime:F3}s");
+            GD.Print($"[Shotgun.Reload] Ready to fire with {ShellsInTube} shells");
+        }
+        else
+        {
+            GD.Print($"[Shotgun] Reload complete - ready to fire with {ShellsInTube} shells");
+        }
     }
 
     /// <summary>
