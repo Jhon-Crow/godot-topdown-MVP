@@ -307,22 +307,22 @@ func _restore_enemy_colors() -> void:
 	_enemy_original_colors.clear()
 
 
-## Apply saturation boost to player's arm sprite (armband visibility).
+## Apply saturation boost to player's armband sprite (visibility during effect).
 ## This makes the red armband more vivid during the penultimate hit effect.
-## Note: Only the right arm has the armband.
+## Note: The armband is now a separate child sprite of RightArm.
 func _apply_arm_saturation() -> void:
 	if _player == null:
 		return
 
 	_arm_original_colors.clear()
 
-	# Find right arm sprite on player (only right arm has the armband)
-	var right_arm := _player.get_node_or_null("PlayerModel/RightArm") as Sprite2D
+	# Find armband sprite on player (child of RightArm)
+	var armband := _player.get_node_or_null("PlayerModel/RightArm/Armband") as Sprite2D
 
-	if right_arm:
-		_arm_original_colors[right_arm] = right_arm.modulate
-		right_arm.modulate = _saturate_color(right_arm.modulate, ARMBAND_SATURATION_MULTIPLIER)
-		_log("Applied %.1fx saturation to player right arm sprite (armband visibility)" % ARMBAND_SATURATION_MULTIPLIER)
+	if armband:
+		_arm_original_colors[armband] = armband.modulate
+		armband.modulate = _saturate_color(armband.modulate, ARMBAND_SATURATION_MULTIPLIER)
+		_log("Applied %.1fx saturation to player armband sprite" % ARMBAND_SATURATION_MULTIPLIER)
 
 
 ## Restore original colors to player's arm sprite.
@@ -332,7 +332,7 @@ func _restore_arm_colors() -> void:
 			sprite.modulate = _arm_original_colors[sprite]
 
 	if _arm_original_colors.size() > 0:
-		_log("Restored original colors to player right arm sprite")
+		_log("Restored original colors to player armband sprite")
 
 	_arm_original_colors.clear()
 

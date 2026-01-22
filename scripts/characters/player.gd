@@ -875,13 +875,10 @@ func _update_health_visual() -> void:
 	_set_all_sprites_modulate(color)
 
 
-## Armband saturation multiplier (75% of 4.0x last-chance effect = 3.0x).
-## This ensures the red armband is always visible against any background.
-const ARMBAND_BASE_SATURATION: float = 3.0
-
 ## Sets the modulate color on all player sprite parts.
+## The armband is a separate child sprite that keeps its original color,
+## so all body parts including right arm use the same health-based color.
 ## @param color: The color to apply to all sprites.
-## Note: Right arm uses a saturated white modulate to preserve red armband visibility.
 func _set_all_sprites_modulate(color: Color) -> void:
 	if _body_sprite:
 		_body_sprite.modulate = color
@@ -890,37 +887,10 @@ func _set_all_sprites_modulate(color: Color) -> void:
 	if _left_arm_sprite:
 		_left_arm_sprite.modulate = color
 	if _right_arm_sprite:
-		# CRITICAL: Apply saturated white modulate to preserve red armband visibility.
-		# The armband must be visible from game start, not just during last chance effect.
-		# We use white base (1.0, 1.0, 1.0) with saturation boost (3x = 75% of 4x effect).
-		# This makes the red armband pop against any background/health tint.
-		_right_arm_sprite.modulate = _get_saturated_armband_color()
-
-
-## Calculates the saturated modulate color for the right arm (armband visibility).
-## Uses a bright, red-emphasized color to make the armband always visible.
-##
-## The armband is red (RGB 255, 40, 40) in the sprite. Since Godot modulate
-## works by multiplication, we need:
-## - High red channel (1.0) to preserve the armband's red color
-## - Lower green/blue channels to make red stand out more
-##
-## This effectively makes the armband "glow" red regardless of health tint.
-## The result is 75% of the brightness seen during last-chance effect.
-func _get_saturated_armband_color() -> Color:
-	# Use modulate that preserves and enhances red while reducing blue/green.
-	# This makes red pixels (like the armband) bright and visible,
-	# while skin/other colors get slightly tinted but remain visible.
-	#
-	# Red channel: 1.0 (full brightness for armband)
-	# Green/Blue: 0.7 (reduced to make red pop, but not so low skin looks wrong)
-	#
-	# When applied to armband pixels RGB(255, 40, 40):
-	# Result: (255 * 1.0, 40 * 0.7, 40 * 0.7) = (255, 28, 28) - pure bright red!
-	#
-	# When applied to skin pixels ~RGB(230, 180, 160):
-	# Result: (230 * 1.0, 180 * 0.7, 160 * 0.7) = (230, 126, 112) - warm skin tone
-	return Color(1.0, 0.7, 0.7, 1.0)
+		# Right arm uses the same color as other body parts.
+		# The armband is now a separate child sprite (Armband node) that
+		# doesn't inherit this modulate, keeping its bright red color visible.
+		_right_arm_sprite.modulate = color
 
 
 ## Returns the current health as a percentage (0.0 to 1.0).

@@ -742,7 +742,8 @@ public partial class Player : BaseCharacter
 
     /// <summary>
     /// Sets the modulate color on all player sprite parts.
-    /// Note: Right arm uses a saturated white modulate to preserve red armband visibility.
+    /// The armband is a separate child sprite that keeps its original color,
+    /// so all body parts including right arm use the same health-based color.
     /// </summary>
     /// <param name="color">The color to apply to all sprites.</param>
     private void SetAllSpritesModulate(Color color)
@@ -761,47 +762,16 @@ public partial class Player : BaseCharacter
         }
         if (_rightArmSprite != null)
         {
-            // CRITICAL: Apply saturated white modulate to preserve red armband visibility.
-            // The armband must be visible from game start, not just during last chance effect.
-            // We use a red-emphasized color (1.0, 0.7, 0.7) to make the armband pop.
-            // This is 75% of the 4x saturation effect used during last chance/penultimate hit.
-            _rightArmSprite.Modulate = GetSaturatedArmbandColor();
+            // Right arm uses the same color as other body parts.
+            // The armband is now a separate child sprite (Armband node) that
+            // doesn't inherit this modulate, keeping its bright red color visible.
+            _rightArmSprite.Modulate = color;
         }
         // If using old single sprite structure
         if (_playerModel == null && _sprite != null)
         {
             _sprite.Modulate = color;
         }
-    }
-
-    /// <summary>
-    /// Calculates the saturated modulate color for the right arm (armband visibility).
-    /// Uses a bright, red-emphasized color to make the armband always visible.
-    ///
-    /// The armband is red (RGB 255, 40, 40) in the sprite. Since Godot modulate
-    /// works by multiplication, we need:
-    /// - High red channel (1.0) to preserve the armband's red color
-    /// - Lower green/blue channels to make red stand out more
-    ///
-    /// This effectively makes the armband "glow" red regardless of health tint.
-    /// The result is 75% of the brightness seen during last-chance effect.
-    /// </summary>
-    /// <returns>Color to apply to the right arm sprite.</returns>
-    private static Color GetSaturatedArmbandColor()
-    {
-        // Use modulate that preserves and enhances red while reducing blue/green.
-        // This makes red pixels (like the armband) bright and visible,
-        // while skin/other colors get slightly tinted but remain visible.
-        //
-        // Red channel: 1.0 (full brightness for armband)
-        // Green/Blue: 0.7 (reduced to make red pop, but not so low skin looks wrong)
-        //
-        // When applied to armband pixels RGB(255, 40, 40):
-        // Result: (255 * 1.0, 40 * 0.7, 40 * 0.7) = (255, 28, 28) - pure bright red!
-        //
-        // When applied to skin pixels ~RGB(230, 180, 160):
-        // Result: (230 * 1.0, 180 * 0.7, 160 * 0.7) = (230, 126, 112) - warm skin tone
-        return new Color(1.0f, 0.7f, 0.7f, 1.0f);
     }
 
     public override void _PhysicsProcess(double delta)
