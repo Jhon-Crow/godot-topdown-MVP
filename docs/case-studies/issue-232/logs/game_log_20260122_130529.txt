@@ -1,0 +1,132 @@
+[13:05:30] [INFO] ============================================================
+[13:05:30] [INFO] GAME LOG STARTED
+[13:05:30] [INFO] ============================================================
+[13:05:30] [INFO] Timestamp: 2026-01-22T13:05:30
+[13:05:30] [INFO] Log file: I:/Загрузки/godot exe/game_log_20260122_130529.txt
+[13:05:30] [INFO] Executable: I:/Загрузки/godot exe/Godot-Top-Down-Template.exe
+[13:05:30] [INFO] OS: Windows
+[13:05:30] [INFO] Debug build: false
+[13:05:30] [INFO] Engine version: 4.3-stable (official)
+[13:05:30] [INFO] Project: Godot Top-Down Template
+[13:05:30] [INFO] ------------------------------------------------------------
+[13:05:30] [INFO] [GameManager] GameManager ready
+[13:05:30] [INFO] [ScoreManager] ScoreManager ready
+[13:05:30] [INFO] [SoundPropagation] SoundPropagation autoload initialized
+[13:05:30] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[13:05:30] [INFO] [PenultimateHit] Saturation shader loaded successfully
+[13:05:30] [INFO] [PenultimateHit] PenultimateHitEffectsManager ready - Configuration:
+[13:05:30] [INFO] [PenultimateHit]   Time scale: 0.10 (10x slowdown)
+[13:05:30] [INFO] [PenultimateHit]   Saturation boost: 2.0 (3.0x)
+[13:05:30] [INFO] [PenultimateHit]   Contrast boost: 1.0 (2.0x)
+[13:05:30] [INFO] [PenultimateHit]   Effect duration: 3.0 real seconds
+[13:05:30] [INFO] [LastChance] Resetting all effects (scene change detected)
+[13:05:30] [INFO] [LastChance] Last chance shader loaded successfully
+[13:05:30] [INFO] [LastChance] LastChanceEffectsManager ready - Configuration:
+[13:05:30] [INFO] [LastChance]   Freeze duration: 6.0 real seconds
+[13:05:30] [INFO] [LastChance]   Sepia intensity: 0.70
+[13:05:30] [INFO] [LastChance]   Brightness: 0.60
+[13:05:30] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FlashbangGrenade.tscn
+[13:05:30] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FragGrenade.tscn
+[13:05:30] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[13:05:30] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[13:05:30] [INFO] [Player] Ready! Grenades: 1/3
+[13:05:30] [INFO] [ScoreManager] Level started with 10 enemies
+[13:05:30] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 1)
+[13:05:30] [ENEMY] [Enemy1] Registered as sound listener
+[13:05:30] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 3, behavior: GUARD, player_found: yes
+[13:05:30] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 2)
+[13:05:30] [ENEMY] [Enemy2] Registered as sound listener
+[13:05:30] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 4, behavior: GUARD, player_found: yes
+[13:05:30] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 3)
+[13:05:30] [ENEMY] [Enemy3] Registered as sound listener
+[13:05:30] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 2, behavior: GUARD, player_found: yes
+[13:05:30] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 4)
+[13:05:30] [ENEMY] [Enemy4] Registered as sound listener
+[13:05:30] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 3, behavior: GUARD, player_found: yes
+[13:05:30] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 5)
+[13:05:30] [ENEMY] [Enemy5] Registered as sound listener
+[13:05:30] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 3, behavior: GUARD, player_found: yes
+[13:05:30] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 6)
+[13:05:30] [ENEMY] [Enemy6] Registered as sound listener
+[13:05:30] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 2, behavior: GUARD, player_found: yes
+[13:05:30] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 7)
+[13:05:30] [ENEMY] [Enemy7] Registered as sound listener
+[13:05:30] [ENEMY] [Enemy7] Enemy spawned at (1606.114, 893.8859), health: 2, behavior: PATROL, player_found: yes
+[13:05:30] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 8)
+[13:05:30] [ENEMY] [Enemy8] Registered as sound listener
+[13:05:30] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 3, behavior: GUARD, player_found: yes
+[13:05:30] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 9)
+[13:05:30] [ENEMY] [Enemy9] Registered as sound listener
+[13:05:30] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 3, behavior: GUARD, player_found: yes
+[13:05:30] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 10)
+[13:05:30] [ENEMY] [Enemy10] Registered as sound listener
+[13:05:30] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 4, behavior: PATROL, player_found: yes
+[13:05:30] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[13:05:30] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[13:05:30] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[13:05:30] [INFO] [LastChance] Found player: Player
+[13:05:30] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[13:05:30] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[13:05:30] [INFO] [LastChance] Connected to player Died signal (C#)
+[13:05:36] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[13:05:36] [INFO] [LastChance] Resetting all effects (scene change detected)
+[13:05:36] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[13:05:36] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+[13:05:36] [INFO] [Player] Ready! Grenades: 3/3
+[13:05:36] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[13:05:36] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[13:05:36] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[13:05:36] [INFO] [LastChance] Found player: Player
+[13:05:36] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[13:05:36] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[13:05:36] [INFO] [LastChance] Connected to player Died signal (C#)
+[13:05:37] [INFO] [PauseMenu] Armory button pressed
+[13:05:37] [INFO] [PauseMenu] Creating new armory menu instance
+[13:05:37] [INFO] [PauseMenu] armory_menu_scene resource path: res://scenes/ui/ArmoryMenu.tscn
+[13:05:37] [INFO] [PauseMenu] Instance created, class: CanvasLayer, name: ArmoryMenu
+[13:05:37] [INFO] [PauseMenu] Script attached: res://scripts/ui/armory_menu.gd
+[13:05:37] [INFO] [PauseMenu] back_pressed signal exists on instance
+[13:05:37] [INFO] [PauseMenu] back_pressed signal connected
+[13:05:37] [INFO] [PauseMenu] Armory menu instance added as child, is_inside_tree: true
+[13:05:37] [INFO] [PauseMenu] _populate_weapon_grid method exists
+[13:05:38] [INFO] [GameManager] Weapon selected: shotgun
+[13:05:40] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[13:05:40] [INFO] [LastChance] Resetting all effects (scene change detected)
+[13:05:40] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[13:05:40] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+[13:05:40] [INFO] [Player] Ready! Grenades: 3/3
+[13:05:40] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[13:05:40] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[13:05:40] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[13:05:40] [INFO] [LastChance] Found player: Player
+[13:05:40] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[13:05:40] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[13:05:40] [INFO] [LastChance] Connected to player Died signal (C#)
+[13:05:43] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(493.6743, 166.4096), source=PLAYER (Shotgun), range=1469, listeners=10
+[13:05:43] [INFO] [SoundPropagation] Cleaned up 10 invalid listeners
+[13:05:43] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[13:05:44] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(493.6743, 166.4096), source=PLAYER (Shotgun), range=1469, listeners=0
+[13:05:44] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[13:05:46] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(493.6743, 166.4096), source=PLAYER (Shotgun), range=1469, listeners=0
+[13:05:46] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[13:05:47] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(493.6743, 166.4096), source=PLAYER (Shotgun), range=1469, listeners=0
+[13:05:47] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[13:05:48] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(493.6743, 166.4096), source=PLAYER (Shotgun), range=1469, listeners=0
+[13:05:48] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[13:05:50] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(493.6743, 166.4096), source=PLAYER (Shotgun), range=1469, listeners=0
+[13:05:50] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[13:05:52] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(493.6743, 166.4096), source=PLAYER (Shotgun), range=1469, listeners=0
+[13:05:52] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[13:05:53] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(493.6743, 166.4096), source=PLAYER (Shotgun), range=1469, listeners=0
+[13:05:53] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[13:06:06] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(493.6743, 166.4096), source=PLAYER (Shotgun), range=1469, listeners=0
+[13:06:06] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[13:06:07] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(493.6743, 166.4096), source=PLAYER (Shotgun), range=1469, listeners=0
+[13:06:07] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[13:06:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(493.6743, 166.4096), source=PLAYER (Shotgun), range=1469, listeners=0
+[13:06:08] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[13:06:12] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(493.6743, 166.4096), source=PLAYER (Shotgun), range=1469, listeners=0
+[13:06:12] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[13:06:21] [INFO] ------------------------------------------------------------
+[13:06:21] [INFO] GAME LOG ENDED: 2026-01-22T13:06:21
+[13:06:21] [INFO] ============================================================
