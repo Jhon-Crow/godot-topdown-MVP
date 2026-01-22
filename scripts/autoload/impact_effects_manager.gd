@@ -28,6 +28,12 @@ const MAX_EFFECT_SCALE: float = 2.0
 ## Maximum number of blood decals before oldest ones are removed.
 const MAX_BLOOD_DECALS: int = 100
 
+## Maximum distance to check for walls for blood splatters (in pixels).
+const WALL_SPLATTER_CHECK_DISTANCE: float = 100.0
+
+## Collision layer for walls (typically layer 1).
+const WALL_COLLISION_LAYER: int = 1
+
 ## Maximum number of bullet holes is unlimited (permanent holes as requested).
 ## Set to 0 to disable cleanup limit.
 const MAX_BULLET_HOLES: int = 0
@@ -191,8 +197,15 @@ func spawn_blood_effect(position: Vector2, hit_direction: Vector2, caliber_data:
 	effect.emitting = true
 
 	# Spawn blood decal on floor (persistent stain)
-	if is_lethal:
-		_spawn_blood_decal(position, hit_direction, effect_scale)
+	# For lethal hits: larger decal
+	# For non-lethal hits: smaller decal (the hit still causes blood splatter)
+	var decal_scale := effect_scale
+	if not is_lethal:
+		decal_scale *= 0.5  # Smaller decals for non-lethal hits
+	_spawn_blood_decal(position, hit_direction, decal_scale)
+
+	# Check for nearby walls and spawn wall splatters
+	_spawn_wall_blood_splatter(position, hit_direction, effect_scale, is_lethal)
 
 	if _debug_effects:
 		print("[ImpactEffectsManager] Blood effect spawned successfully")
@@ -313,6 +326,87 @@ func clear_blood_decals() -> void:
 	_blood_decals.clear()
 	if _debug_effects:
 		print("[ImpactEffectsManager] All blood decals cleared")
+
+
+## Checks for nearby walls in the bullet direction and spawns blood splatters on them.
+## @param hit_position: World position where the hit occurred.
+## @param hit_direction: Direction the bullet was traveling.
+## @param intensity: Scale multiplier for splatter size.
+## @param is_lethal: Whether the hit was lethal (affects splatter size).
+func _spawn_wall_blood_splatter(hit_position: Vector2, hit_direction: Vector2, intensity: float, is_lethal: bool) -> void:
+	if _blood_decal_scene == null:
+		return
+
+	# Get the current scene for raycasting
+	var scene := get_tree().current_scene
+	if scene == null:
+		return
+
+	# Get the physics space for raycasting
+	var space_state := scene.get_world_2d().direct_space_state
+	if space_state == null:
+		return
+
+	# Cast a ray in the bullet direction to find nearby walls
+	var ray_end := hit_position + hit_direction.normalized() * WALL_SPLATTER_CHECK_DISTANCE
+	var query := PhysicsRayQueryParameters2D.create(hit_position, ray_end, WALL_COLLISION_LAYER)
+	query.collide_with_bodies = true
+	query.collide_with_areas = false
+
+	var result := space_state.intersect_ray(query)
+
+	if result.is_empty():
+		if _debug_effects:
+			print("[ImpactEffectsManager] No wall found for blood splatter")
+		return
+
+	# Wall found! Spawn blood splatter at the impact point
+	var wall_hit_pos: Vector2 = result.position
+	var wall_normal: Vector2 = result.normal
+
+	if _debug_effects:
+		print("[ImpactEffectsManager] Wall found at ", wall_hit_pos, " normal=", wall_normal)
+
+	# Create blood splatter decal on the wall
+	var splatter := _blood_decal_scene.instantiate() as Node2D
+	if splatter == null:
+		return
+
+	# Position at wall impact point, slightly offset along normal to prevent z-fighting
+	splatter.global_position = wall_hit_pos + wall_normal * 1.0
+
+	# Rotate to align with wall (facing outward)
+	splatter.rotation = wall_normal.angle() + PI / 2.0
+
+	# Scale based on distance (closer = more blood), intensity, and lethality
+	var distance := hit_position.distance_to(wall_hit_pos)
+	var distance_factor := 1.0 - (distance / WALL_SPLATTER_CHECK_DISTANCE)
+	var splatter_scale := intensity * distance_factor * randf_range(0.4, 0.8)
+	if is_lethal:
+		splatter_scale *= 1.3  # Lethal hits produce more blood on walls
+	else:
+		splatter_scale *= 0.6  # Non-lethal hits produce less blood on walls
+
+	splatter.scale = Vector2(splatter_scale, splatter_scale * randf_range(1.2, 1.8))  # Elongated splatter
+
+	# Make wall splatters slightly more visible (higher z-index)
+	if splatter is CanvasItem:
+		splatter.z_index = 0  # Above floor decals which are at -1
+
+	# Add to scene
+	_add_effect_to_scene(splatter)
+
+	# Track as blood decal for cleanup
+	_blood_decals.append(splatter)
+
+	# Remove oldest decals if limit exceeded
+	while _blood_decals.size() > MAX_BLOOD_DECALS:
+		var oldest := _blood_decals.pop_front() as Node2D
+		if oldest and is_instance_valid(oldest):
+			oldest.queue_free()
+
+	if _debug_effects:
+		print("[ImpactEffectsManager] Wall blood splatter spawned at ", wall_hit_pos)
 
 
 ## Spawns a bullet hole at the given position when a bullet penetrates a wall.
