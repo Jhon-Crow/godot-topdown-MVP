@@ -26,26 +26,26 @@ shape = SubResource("CircleShape2D_player")
 
 [node name="Body" type="Sprite2D" parent="PlayerModel"]
 z_index = 1
-position = Vector2(0, 0)
+position = Vector2(-4, 0)
 texture = ExtResource("4_body")
 
 [node name="LeftArm" type="Sprite2D" parent="PlayerModel"]
-z_index = 2
-position = Vector2(12, -3)
+z_index = 4
+position = Vector2(24, 6)
 texture = ExtResource("6_left_arm")
 
 [node name="RightArm" type="Sprite2D" parent="PlayerModel"]
-z_index = 2
-position = Vector2(6, 6)
+z_index = 4
+position = Vector2(-2, 6)
 texture = ExtResource("7_right_arm")
 
 [node name="Head" type="Sprite2D" parent="PlayerModel"]
 z_index = 3
-position = Vector2(4, 0)
+position = Vector2(-6, -2)
 texture = ExtResource("5_head")
 
 [node name="WeaponMount" type="Node2D" parent="PlayerModel"]
-position = Vector2(20, 2)
+position = Vector2(0, 6)
 
 [node name="Camera2D" type="Camera2D" parent="."]
 process_callback = 0
