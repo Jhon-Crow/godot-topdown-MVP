@@ -1,0 +1,116 @@
+Check Architecture Best Practices	UNKNOWN STEP	﻿2026-01-22T14:06:00.2879205Z Current runner version: '2.331.0'
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:00.2903888Z ##[group]Runner Image Provisioner
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:00.2904678Z Hosted Compute Agent
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:00.2905180Z Version: 20251211.462
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:00.2905882Z Commit: 6cbad8c2bb55d58165063d031ccabf57e2d2db61
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:00.2906831Z Build Date: 2025-12-11T16:28:49Z
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:00.2907480Z Worker ID: {c0fac9c9-563d-4185-9aab-33b067e3edb1}
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:00.2908229Z ##[endgroup]
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:00.2908754Z ##[group]Operating System
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:00.2909297Z Ubuntu
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:00.2909860Z 24.04.3
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:00.2910322Z LTS
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:00.2910731Z ##[endgroup]
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:00.2911293Z ##[group]Runner Image
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:00.2911806Z Image: ubuntu-24.04
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:00.2912298Z Version: 20260111.209.1
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:00.2913282Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260111.209/images/ubuntu/Ubuntu2404-Readme.md
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:00.2914834Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260111.209
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:00.2915902Z ##[endgroup]
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:00.2917437Z ##[group]GITHUB_TOKEN Permissions
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:00.2919395Z Contents: read
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:00.2919914Z Metadata: read
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:00.2920404Z Packages: read
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:00.2920844Z ##[endgroup]
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:00.2923143Z Secret source: None
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:00.2923826Z Prepare workflow directory
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:00.3354351Z Prepare all required actions
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:00.3411795Z Getting action download info
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:00.6570032Z Download action repository 'actions/checkout@v4' (SHA:34e114876b0b11c390a56381ad16ebd13914f8d5)
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:00.8930695Z Complete job name: Check Architecture Best Practices
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:00.9706180Z ##[group]Run actions/checkout@v4
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:00.9707346Z with:
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:00.9707827Z   repository: Jhon-Crow/godot-topdown-MVP
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:00.9708672Z   token: ***
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:00.9709091Z   ssh-strict: true
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:00.9709539Z   ssh-user: git
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:00.9709977Z   persist-credentials: true
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:00.9710474Z   clean: true
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:00.9710918Z   sparse-checkout-cone-mode: true
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:00.9711450Z   fetch-depth: 1
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:00.9711878Z   fetch-tags: false
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:00.9712318Z   show-progress: true
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:00.9712756Z   lfs: false
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:00.9713167Z   submodules: false
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:00.9713598Z   set-safe-directory: true
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:00.9714310Z ##[endgroup]
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:01.0844872Z Syncing repository: Jhon-Crow/godot-topdown-MVP
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:01.0847471Z ##[group]Getting Git version info
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:01.0848517Z Working directory is '/home/runner/work/godot-topdown-MVP/godot-topdown-MVP'
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:01.0849743Z [command]/usr/bin/git version
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:01.0934072Z git version 2.52.0
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:01.0961951Z ##[endgroup]
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:01.0979553Z Temporarily overriding HOME='/home/runner/work/_temp/f4cde7ca-31e4-4920-8e78-35dea40dd117' before making global git config changes
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:01.0982300Z Adding repository directory to the temporary git global config as a safe directory
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:01.0987042Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/godot-topdown-MVP/godot-topdown-MVP
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:01.1030925Z Deleting the contents of '/home/runner/work/godot-topdown-MVP/godot-topdown-MVP'
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:01.1035168Z ##[group]Initializing the repository
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:01.1041271Z [command]/usr/bin/git init /home/runner/work/godot-topdown-MVP/godot-topdown-MVP
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:01.1139762Z hint: Using 'master' as the name for the initial branch. This default branch name
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:01.1141640Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:01.1143385Z hint: to use in all of your new repositories, which will suppress this warning,
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:01.1144887Z hint: call:
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:01.1145653Z hint:
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:01.1147423Z hint: 	git config --global init.defaultBranch <name>
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:01.1148637Z hint:
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:01.1149814Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:01.1151564Z hint: 'development'. The just-created branch can be renamed via this command:
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:01.1152939Z hint:
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:01.1153696Z hint: 	git branch -m <name>
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:01.1154634Z hint:
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:01.1155876Z hint: Disable this message with "git config set advice.defaultBranchName false"
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:01.1158322Z Initialized empty Git repository in /home/runner/work/godot-topdown-MVP/godot-topdown-MVP/.git/
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:01.1161838Z [command]/usr/bin/git remote add origin https://github.com/Jhon-Crow/godot-topdown-MVP
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:01.1197292Z ##[endgroup]
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:01.1198709Z ##[group]Disabling automatic garbage collection
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:01.1202656Z [command]/usr/bin/git config --local gc.auto 0
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:01.1236026Z ##[endgroup]
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:01.1237768Z ##[group]Setting up auth
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:01.1244601Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:01.1279717Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:01.1621575Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:01.1658319Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:01.1907203Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:01.1943365Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:01.2182061Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:01.2221916Z ##[endgroup]
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:01.2222878Z ##[group]Fetching the repository
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:01.2231463Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +ebc830c88f1243efb9433117366370cb37262683:refs/remotes/pull/253/merge
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:05.0174532Z remote: Internal Server Error
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:05.0202336Z ##[error]fatal: unable to access 'https://github.com/Jhon-Crow/godot-topdown-MVP/': The requested URL returned error: 500
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:05.0210578Z The process '/usr/bin/git' failed with exit code 128
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:05.0211599Z Waiting 19 seconds before trying again
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:24.0336100Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +ebc830c88f1243efb9433117366370cb37262683:refs/remotes/pull/253/merge
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:34.0266745Z remote: Internal Server Error
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:34.0269853Z ##[error]fatal: unable to access 'https://github.com/Jhon-Crow/godot-topdown-MVP/': The requested URL returned error: 500
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:34.0292759Z The process '/usr/bin/git' failed with exit code 128
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:34.0293462Z Waiting 12 seconds before trying again
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:46.0318934Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +ebc830c88f1243efb9433117366370cb37262683:refs/remotes/pull/253/merge
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:50.2819055Z remote: Internal Server Error
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:50.2821078Z ##[error]fatal: unable to access 'https://github.com/Jhon-Crow/godot-topdown-MVP/': The requested URL returned error: 500
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:50.2874583Z ##[error]The process '/usr/bin/git' failed with exit code 128
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:50.3088904Z Post job cleanup.
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:50.4051168Z [command]/usr/bin/git version
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:50.4098841Z git version 2.52.0
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:50.4142095Z Temporarily overriding HOME='/home/runner/work/_temp/fb694729-cf2c-403d-ac2f-300e14d3ad9a' before making global git config changes
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:50.4143100Z Adding repository directory to the temporary git global config as a safe directory
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:50.4147864Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/godot-topdown-MVP/godot-topdown-MVP
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:50.4183756Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:50.4217509Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:50.4443927Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:50.4465281Z http.https://github.com/.extraheader
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:50.4480640Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:50.4513157Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:50.4739640Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:50.4772190Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-22T14:06:50.5117165Z Cleaning up orphan processes
