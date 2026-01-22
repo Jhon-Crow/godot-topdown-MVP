@@ -51,6 +51,13 @@ const WEAPONS: Dictionary = {
 		"description": "Pump-action shotgun - 6-12 pellets per shot, 15° spread, no wall penetration. Press LMB to fire.",
 		"is_grenade": false
 	},
+	"mini_uzi": {
+		"name": "Mini UZI",
+		"icon_path": "res://assets/sprites/weapons/mini_uzi_icon.png",
+		"unlocked": true,
+		"description": "Submachine gun - 15 shots/sec, 9mm bullets (0.5 damage), high spread, ricochets at ≤20°, no wall penetration. Press LMB to fire.",
+		"is_grenade": false
+	},
 	"smg": {
 		"name": "???",
 		"icon_path": "",
