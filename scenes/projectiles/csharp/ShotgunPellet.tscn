@@ -1,0 +1,36 @@
+[gd_scene load_steps=6 format=3 uid="uid://cp7n3m9k5x2w1"]
+
+[ext_resource type="Script" path="res://Scripts/Projectiles/ShotgunPellet.cs" id="1_pellet"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_pellet"]
+radius = 3.0
+
+[sub_resource type="PlaceholderTexture2D" id="PlaceholderTexture2D_pellet"]
+size = Vector2(8, 8)
+
+[sub_resource type="Gradient" id="Gradient_trail"]
+colors = PackedColorArray(1, 0.6, 0.1, 1, 1, 0.6, 0.1, 0)
+
+[sub_resource type="Curve" id="Curve_trail"]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[node name="ShotgunPellet" type="Area2D"]
+collision_layer = 16
+collision_mask = 39
+script = ExtResource("1_pellet")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+modulate = Color(1, 0.6, 0.1, 1)
+texture = SubResource("PlaceholderTexture2D_pellet")
+
+[node name="Trail" type="Line2D" parent="."]
+width = 2.0
+width_curve = SubResource("Curve_trail")
+default_color = Color(1, 0.6, 0.1, 1)
+gradient = SubResource("Gradient_trail")
+begin_cap_mode = 2
+end_cap_mode = 2
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_pellet")

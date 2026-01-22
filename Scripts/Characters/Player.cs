@@ -306,18 +306,44 @@ public partial class Player : BaseCharacter
             }
         }
 
-        // Preload grenade scene if not set in inspector
+        // Get grenade scene from GrenadeManager (supports grenade type selection)
+        // GrenadeManager handles the currently selected grenade type (Flashbang or Frag)
         if (GrenadeScene == null)
         {
-            GrenadeScene = GD.Load<PackedScene>("res://scenes/projectiles/FlashbangGrenade.tscn");
-            if (GrenadeScene != null)
+            var grenadeManager = GetNodeOrNull("/root/GrenadeManager");
+            if (grenadeManager != null && grenadeManager.HasMethod("get_current_grenade_scene"))
             {
-                LogToFile($"[Player.Grenade] Grenade scene loaded");
+                var sceneVariant = grenadeManager.Call("get_current_grenade_scene");
+                GrenadeScene = sceneVariant.As<PackedScene>();
+                if (GrenadeScene != null)
+                {
+                    var grenadeNameVariant = grenadeManager.Call("get_grenade_name", grenadeManager.Get("current_grenade_type"));
+                    var grenadeName = grenadeNameVariant.AsString();
+                    LogToFile($"[Player.Grenade] Grenade scene loaded from GrenadeManager: {grenadeName}");
+                }
+                else
+                {
+                    LogToFile($"[Player.Grenade] WARNING: GrenadeManager returned null grenade scene");
+                }
             }
             else
             {
-                LogToFile($"[Player.Grenade] WARNING: Grenade scene not found at res://scenes/projectiles/FlashbangGrenade.tscn");
+                // Fallback to flashbang if GrenadeManager is not available
+                var grenadePath = "res://scenes/projectiles/FlashbangGrenade.tscn";
+                GrenadeScene = GD.Load<PackedScene>(grenadePath);
+                if (GrenadeScene != null)
+                {
+                    LogToFile($"[Player.Grenade] Grenade scene loaded from fallback: {grenadePath}");
+                }
+                else
+                {
+                    LogToFile($"[Player.Grenade] WARNING: Grenade scene not found at {grenadePath}");
+                }
             }
+        }
+        else
+        {
+            LogToFile($"[Player.Grenade] Grenade scene already set in inspector");
         }
 
         // Detect if we're on the tutorial level

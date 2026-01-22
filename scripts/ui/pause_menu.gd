@@ -174,14 +174,40 @@ func _on_difficulty_back() -> void:
 
 
 func _on_armory_pressed() -> void:
+	FileLogger.info("[PauseMenu] Armory button pressed")
 	# Hide main menu, show armory menu
 	menu_container.hide()
 
 	if _armory_menu == null:
+		FileLogger.info("[PauseMenu] Creating new armory menu instance")
+		FileLogger.info("[PauseMenu] armory_menu_scene resource path: %s" % armory_menu_scene.resource_path)
 		_armory_menu = armory_menu_scene.instantiate()
+		FileLogger.info("[PauseMenu] Instance created, class: %s, name: %s" % [_armory_menu.get_class(), _armory_menu.name])
+		# Check if the script is properly attached
+		var script = _armory_menu.get_script()
+		if script:
+			FileLogger.info("[PauseMenu] Script attached: %s" % script.resource_path)
+		else:
+			FileLogger.info("[PauseMenu] WARNING: No script attached to armory menu instance!")
+		# Check if it has the expected signal (proves script is loaded)
+		if _armory_menu.has_signal("back_pressed"):
+			FileLogger.info("[PauseMenu] back_pressed signal exists on instance")
+		else:
+			FileLogger.info("[PauseMenu] WARNING: back_pressed signal NOT found on instance!")
 		_armory_menu.back_pressed.connect(_on_armory_back)
+		FileLogger.info("[PauseMenu] back_pressed signal connected")
 		add_child(_armory_menu)
+		FileLogger.info("[PauseMenu] Armory menu instance added as child, is_inside_tree: %s" % _armory_menu.is_inside_tree())
+		# Check method existence after adding to tree
+		if _armory_menu.has_method("_populate_weapon_grid"):
+			FileLogger.info("[PauseMenu] _populate_weapon_grid method exists")
+		else:
+			FileLogger.info("[PauseMenu] WARNING: _populate_weapon_grid method NOT found!")
 	else:
+		FileLogger.info("[PauseMenu] Showing existing armory menu")
+		# Refresh the weapon grid in case grenade selection changed
+		if _armory_menu.has_method("_populate_weapon_grid"):
+			_armory_menu._populate_weapon_grid()
 		_armory_menu.show()
 
 

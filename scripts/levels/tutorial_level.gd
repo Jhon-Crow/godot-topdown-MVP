@@ -4,8 +4,10 @@ extends Node2D
 ## This script handles the tutorial flow:
 ## 1. Player approaches the targets (WASD movement)
 ## 2. Player shoots at targets (LMB)
+##    - For shotgun: LMB shoot → RMB UP (eject shell) → RMB DOWN (chamber)
 ## 3. Player switches fire mode (B key) - only if player has assault rifle
 ## 4. Player reloads using R -> F -> R sequence
+##    - For shotgun: RMB UP (open bolt) → MMB+RMB DOWN (load shells) → RMB DOWN (close bolt)
 ## 5. Player throws a grenade (G + RMB drag right, then G+RMB held → release G, then RMB drag and release)
 ## 6. Shows completion message with Q restart hint
 ##
@@ -472,8 +474,8 @@ func _update_prompt_text() -> void:
 		TutorialStep.SHOOT_TARGETS:
 			if _has_shotgun:
 				# Shotgun-specific shooting instructions with pump-action gestures
-				# LMB shoot → RMB drag up → RMB drag down (pump cycle)
-				_prompt_label.text = "[ЛКМ стрельба] [ПКМ↑ затвор] [ПКМ↓ передёрнуть]"
+				# LMB shoot → RMB drag UP (eject shell) → RMB drag DOWN (chamber)
+				_prompt_label.text = "[ЛКМ стрельба] [ПКМ↑ извлечь] [ПКМ↓ дослать]"
 			else:
 				_prompt_label.text = "[ЛКМ] Стреляй по мишеням"
 		TutorialStep.SWITCH_FIRE_MODE:
@@ -481,8 +483,8 @@ func _update_prompt_text() -> void:
 		TutorialStep.RELOAD:
 			if _has_shotgun:
 				# Shotgun-specific reload instructions with shell loading gestures
-				# RMB drag down (open action) → MMB+RMB drag down (load shells, up to 8) → RMB drag up (close)
-				_prompt_label.text = "[ПКМ↓ открыть] [СКМ+ПКМ↓ x8] [ПКМ↑ закрыть]"
+				# RMB drag UP (open bolt) → MMB+RMB drag DOWN (load shells, up to 8) → RMB drag DOWN (close bolt)
+				_prompt_label.text = "[ПКМ↑ открыть] [СКМ+ПКМ↓ x8] [ПКМ↓ закрыть]"
 			else:
 				_prompt_label.text = "[R] [F] [R] Перезарядись"
 		TutorialStep.THROW_GRENADE:

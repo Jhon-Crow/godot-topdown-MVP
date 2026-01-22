@@ -178,14 +178,24 @@ func _ready() -> void:
 		bullet_scene = preload("res://scenes/projectiles/Bullet.tscn")
 		FileLogger.info("[Player] Bullet scene preloaded")
 
-	# Preload grenade scene if not set in inspector
+	# Get grenade scene from GrenadeManager (supports grenade type selection)
+	# GrenadeManager handles the currently selected grenade type (Flashbang or Frag)
 	if grenade_scene == null:
-		var grenade_path := "res://scenes/projectiles/FlashbangGrenade.tscn"
-		if ResourceLoader.exists(grenade_path):
-			grenade_scene = load(grenade_path)
-			FileLogger.info("[Player] Grenade scene loaded from: %s" % grenade_path)
+		var grenade_manager: Node = get_node_or_null("/root/GrenadeManager")
+		if grenade_manager and grenade_manager.has_method("get_current_grenade_scene"):
+			grenade_scene = grenade_manager.get_current_grenade_scene()
+			if grenade_scene:
+				FileLogger.info("[Player] Grenade scene loaded from GrenadeManager: %s" % grenade_manager.get_grenade_name(grenade_manager.current_grenade_type))
+			else:
+				FileLogger.info("[Player] WARNING: GrenadeManager returned null grenade scene")
 		else:
-			FileLogger.info("[Player] WARNING: Grenade scene not found at: %s" % grenade_path)
+			# Fallback to flashbang if GrenadeManager is not available
+			var grenade_path := "res://scenes/projectiles/FlashbangGrenade.tscn"
+			if ResourceLoader.exists(grenade_path):
+				grenade_scene = load(grenade_path)
+				FileLogger.info("[Player] Grenade scene loaded from fallback: %s" % grenade_path)
+			else:
+				FileLogger.info("[Player] WARNING: Grenade scene not found at: %s" % grenade_path)
 	else:
 		FileLogger.info("[Player] Grenade scene already set in inspector")
 

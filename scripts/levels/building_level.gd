@@ -544,9 +544,25 @@ func _update_ammo_label_magazine(current_mag: int, reserve: int) -> void:
 
 ## Update the magazines label showing individual magazine ammo counts.
 ## Shows format: MAGS: [30] | 25 | 10 where [30] is current magazine.
+## Hidden when a shotgun (tube magazine weapon) is equipped.
 func _update_magazines_label(magazine_ammo_counts: Array) -> void:
 	if _magazines_label == null:
 		return
+
+	# Check if player has a weapon with tube magazine (shotgun)
+	# If so, hide the magazine label as shotguns don't use detachable magazines
+	var weapon = null
+	if _player:
+		weapon = _player.get_node_or_null("Shotgun")
+		if weapon == null:
+			weapon = _player.get_node_or_null("AssaultRifle")
+
+	if weapon != null and weapon.get("UsesTubeMagazine") == true:
+		# Shotgun equipped - hide magazine display
+		_magazines_label.visible = false
+		return
+	else:
+		_magazines_label.visible = true
 
 	if magazine_ammo_counts.is_empty():
 		_magazines_label.text = "MAGS: -"
