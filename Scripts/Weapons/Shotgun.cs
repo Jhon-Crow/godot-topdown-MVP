@@ -574,27 +574,30 @@ public partial class Shotgun : BaseWeapon
                 case ShotgunReloadState.Loading:
                     if (isDragDown)
                     {
-                        // Mid-drag in loading state - only allow closing bolt, not loading shells
-                        // Shell loading should only work with the release-based gesture (old behavior)
-                        bool shouldLoadShell = _wasMiddleMouseHeldDuringDrag || _isMiddleMouseHeld;
-
+                        // FIX for issue #232 (regression from #213):
+                        // In Loading state with drag DOWN, NEVER process mid-drag gesture.
+                        // Always wait for RMB release to give user time to press MMB.
+                        //
+                        // Root cause: The mid-drag gesture was processed as soon as drag
+                        // threshold was reached. If the user hadn't pressed MMB yet (even
+                        // if they intended to), the bolt would close prematurely.
+                        //
+                        // With this fix:
+                        // - User opens bolt (RMB drag UP)
+                        // - User can take their time to press MMB
+                        // - User does RMB drag DOWN (with or without MMB)
+                        // - On RMB release, ProcessReloadGesture() handles it correctly:
+                        //   - If MMB was held at any point: load shell
+                        //   - If MMB was never held: close bolt
+                        //
+                        // This matches the original behavior before continuous gestures
+                        // were added in PR #215, fixing the regression reported in #232.
                         if (VerboseInputLogging)
                         {
-                            GD.Print($"[Shotgun.Input] Mid-drag DOWN in Loading state: shouldLoad={shouldLoadShell}");
+                            bool shouldLoadShell = _wasMiddleMouseHeldDuringDrag || _isMiddleMouseHeld;
+                            GD.Print($"[Shotgun.Input] Mid-drag DOWN in Loading state: shouldLoad={shouldLoadShell} - NOT processing mid-drag, waiting for RMB release");
                         }
-
-                        if (shouldLoadShell)
-                        {
-                            // MMB held - don't process mid-drag, let user release RMB to load shell
-                            // This preserves the old shell loading behavior while allowing
-                            // continuous bolt open/close gestures
-                            return false;
-                        }
-                        else
-                        {
-                            CompleteReload();
-                        }
-                        gestureProcessed = true;
+                        return false;
                     }
                     break;
 
