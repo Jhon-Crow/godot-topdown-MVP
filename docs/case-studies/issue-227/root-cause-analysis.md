@@ -229,3 +229,89 @@ Instead of using `call_deferred()` which has unpredictable timing relative to le
 [Player] Detected weapon: Mini UZI (SMG pose)
 [Player] Applied SMG arm pose: Left=(14, 6), Right=(1, 6)
 ```
+
+---
+
+## ACTUAL Root Cause Found (2026-01-22): C# Player Missing Implementation
+
+### User Feedback After Frame-Delay Fix
+User reported: "the right arm is still extended far forward"
+
+### Key Discovery
+Upon analyzing the user's new game log (`game_log_20260122_122038.txt`), a critical observation was made:
+
+**User's log format**: `[12:20:39] [INFO] [Player] Ready! Grenades: 1/3`
+
+**Expected GDScript format**: `[Player] Ready! Ammo: X/X, Grenades: X/X, Health: X/X`
+
+This mismatch revealed that the user is running the **C# version** of the player (`Player.cs`), NOT the GDScript version (`player.gd`)!
+
+### Evidence
+
+1. **C# Player.cs log line** (line 557):
+   ```csharp
+   LogToFile($"[Player] Ready! Grenades: {_currentGrenades}/{MaxGrenades}");
+   ```
+
+2. **GDScript player.gd log line** (line 276):
+   ```gdscript
+   FileLogger.info("[Player] Ready! Ammo: %d/%d, Grenades: %d/%d, Health: %d/%d" % [...])
+   ```
+
+3. The user's log showed:
+   - NO `[Player] Detecting weapon pose...` messages
+   - NO `[Player] Detected weapon: Mini UZI...` messages
+   - NO `[Player] Applied SMG arm pose...` messages
+
+   These messages would appear if the weapon detection code was running, but **the C# Player.cs had no such code at all**.
+
+### The Real Root Cause
+
+The codebase has TWO independent player implementations:
+1. **GDScript**: `scripts/characters/player.gd` + `scenes/characters/Player.tscn`
+2. **C#**: `Scripts/Characters/Player.cs` + `scenes/characters/csharp/Player.tscn`
+
+All previous fixes were applied to the **GDScript version**, but the user is using the **C# version**, which was completely missing:
+- WeaponType enum
+- Weapon detection logic
+- Arm position offset application
+
+### Files and Scene Paths
+| Implementation | Script | Scene |
+|----------------|--------|-------|
+| GDScript | `scripts/characters/player.gd` | `scenes/characters/Player.tscn` |
+| C# | `Scripts/Characters/Player.cs` | `scenes/characters/csharp/Player.tscn` |
+
+### Fix Applied
+
+Added the complete weapon pose detection system to `Player.cs`:
+
+```csharp
+#region Weapon Pose Detection
+
+private enum WeaponType
+{
+    Rifle,      // Default - extended grip (e.g., AssaultRifle)
+    SMG,        // Compact grip (e.g., MiniUzi)
+    Shotgun     // Similar to rifle but slightly tighter
+}
+
+private WeaponType _currentWeaponType = WeaponType.Rifle;
+private bool _weaponPoseApplied = false;
+private int _weaponDetectFrameCount = 0;
+private const int WeaponDetectWaitFrames = 3;
+
+private static readonly Vector2 SmgLeftArmOffset = new Vector2(-10, 0);
+private static readonly Vector2 SmgRightArmOffset = new Vector2(3, 0);
+
+#endregion
+```
+
+Detection is triggered from `_PhysicsProcess()` after waiting 3 frames, identical to the GDScript approach.
+
+### Lesson Learned
+
+When a codebase has multiple implementations (GDScript + C#) of the same component:
+1. Always identify WHICH implementation the user is using before applying fixes
+2. Check log message formats to identify the running version
+3. Apply fixes to ALL implementations, or clearly document which version is being fixed
