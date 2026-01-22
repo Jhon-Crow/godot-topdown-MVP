@@ -1062,14 +1062,18 @@ func _update_enemy_model_rotation() -> void:
 		return
 
 	# Determine the direction to face:
-	# - If can see player, face the player FROM THE WEAPON POSITION
+	# - If can see player, face the player (simple direction from enemy center)
 	# - Otherwise, face the movement direction
+	#
+	# NOTE: We use simple center-to-player direction, NOT offset-compensated direction.
+	# This ensures the weapon visually points in the same direction as bullets fly.
+	# The bullets are fired from the muzzle toward the target, and the muzzle is
+	# positioned along the direction the model faces.
 	var face_direction: Vector2
 
 	if _player != null and _can_see_player:
-		# Calculate aim direction from weapon to player (not from enemy center)
-		# This compensates for the weapon's offset from the enemy center
-		face_direction = _calculate_aim_direction_from_weapon(_player.global_position)
+		# Simple direction from enemy center to player (like player character does)
+		face_direction = (_player.global_position - global_position).normalized()
 	elif velocity.length_squared() > 1.0:
 		# Face movement direction
 		face_direction = velocity.normalized()
@@ -1095,12 +1099,19 @@ func _update_enemy_model_rotation() -> void:
 		_enemy_model.scale = Vector2(enemy_model_scale, enemy_model_scale)
 
 
-## Calculates the aim direction from the weapon position to the target.
-## This accounts for the weapon's offset from the enemy center, ensuring
-## the weapon barrel actually points at the target.
+## DEPRECATED: This function is no longer used.
 ##
-## Uses an iterative approach because the weapon position depends on the model
-## rotation, which we're trying to calculate.
+## Previously used to calculate an aim direction that would compensate for the weapon's
+## offset from the enemy center. This caused issues because:
+## 1. The model rotation was different from the bullet direction
+## 2. The weapon would visually point in a different direction than bullets fly
+##
+## The new approach is simpler:
+## 1. Model faces the player (center-to-center direction)
+## 2. Bullets spawn from muzzle and fly FROM MUZZLE TO TARGET
+## 3. This ensures the weapon visually points where bullets go
+##
+## Kept for reference in case the iterative offset approach is needed elsewhere.
 ##
 ## @param target_pos: The position to aim at (typically the player's position).
 ## @return: The direction vector the model should face for the weapon to point at target.
@@ -2307,9 +2318,12 @@ func _shoot_with_inaccuracy() -> void:
 	if not _should_shoot_at_target(target_position):
 		return
 
-	# Get the weapon's actual forward direction (where the barrel is pointing)
-	# This ensures bullets fly in the direction the weapon visually points
-	var direction := _get_weapon_forward_direction()
+	# Calculate bullet spawn position at weapon muzzle first
+	var weapon_forward := _get_weapon_forward_direction()
+	var bullet_spawn_pos := _get_bullet_spawn_position(weapon_forward)
+
+	# Calculate base direction FROM MUZZLE TO TARGET
+	var direction := (target_position - bullet_spawn_pos).normalized()
 
 	# Add inaccuracy spread
 	var inaccuracy_angle := randf_range(-RETREAT_INACCURACY_SPREAD, RETREAT_INACCURACY_SPREAD)
@@ -2322,7 +2336,6 @@ func _shoot_with_inaccuracy() -> void:
 
 	# Create and fire bullet
 	var bullet := bullet_scene.instantiate()
-	var bullet_spawn_pos := _get_bullet_spawn_position(direction)
 	bullet.global_position = bullet_spawn_pos
 	bullet.direction = direction
 	bullet.shooter_id = get_instance_id()
@@ -2360,9 +2373,13 @@ func _shoot_burst_shot() -> void:
 		return
 
 	var target_position := _player.global_position
-	# Get the weapon's actual forward direction (where the barrel is pointing)
-	# This ensures bullets fly in the direction the weapon visually points
-	var direction := _get_weapon_forward_direction()
+
+	# Calculate bullet spawn position at weapon muzzle first
+	var weapon_forward := _get_weapon_forward_direction()
+	var bullet_spawn_pos := _get_bullet_spawn_position(weapon_forward)
+
+	# Calculate base direction FROM MUZZLE TO TARGET
+	var direction := (target_position - bullet_spawn_pos).normalized()
 
 	# Apply arc offset for burst spread
 	direction = direction.rotated(_retreat_burst_angle_offset)
@@ -2378,7 +2395,6 @@ func _shoot_burst_shot() -> void:
 
 	# Create and fire bullet
 	var bullet := bullet_scene.instantiate()
-	var bullet_spawn_pos := _get_bullet_spawn_position(direction)
 	bullet.global_position = bullet_spawn_pos
 	bullet.direction = direction
 	bullet.shooter_id = get_instance_id()
@@ -3616,15 +3632,18 @@ func _shoot() -> void:
 	if not _should_shoot_at_target(target_position):
 		return
 
-	# Get the weapon's actual forward direction (where the barrel is pointing)
-	# This ensures bullets fly in the direction the weapon visually points
-	var direction := _get_weapon_forward_direction()
+	# Calculate bullet spawn position at weapon muzzle first
+	# We need this to calculate the correct bullet direction
+	var weapon_forward := _get_weapon_forward_direction()
+	var bullet_spawn_pos := _get_bullet_spawn_position(weapon_forward)
+
+	# Calculate bullet direction FROM MUZZLE TO TARGET
+	# This ensures bullets actually fly toward the target, not just in the model's facing direction
+	# The model faces the player (center-to-center), and bullets fly from muzzle to target
+	var direction := (target_position - bullet_spawn_pos).normalized()
 
 	# Create bullet instance
 	var bullet := bullet_scene.instantiate()
-
-	# Calculate bullet spawn position at weapon muzzle
-	var bullet_spawn_pos := _get_bullet_spawn_position(direction)
 	bullet.global_position = bullet_spawn_pos
 
 	# Debug logging for weapon geometry analysis
@@ -3632,12 +3651,12 @@ func _shoot() -> void:
 		var weapon_visual_pos := _weapon_sprite.global_position if _weapon_sprite else Vector2.ZERO
 		var model_rot := _enemy_model.rotation if _enemy_model else 0.0
 		var model_scale := _enemy_model.scale if _enemy_model else Vector2.ONE
-		_log_debug("SHOOT: enemy_pos=%v, player_pos=%v" % [global_position, _player.global_position])
+		_log_debug("SHOOT: enemy_pos=%v, target_pos=%v" % [global_position, target_position])
 		_log_debug("  model_rotation=%.2f rad (%.1f deg), model_scale=%v" % [model_rot, rad_to_deg(model_rot), model_scale])
-		_log_debug("  weapon_node_pos=%v, direction=%v (angle=%.1f deg)" % [weapon_visual_pos, direction, rad_to_deg(direction.angle())])
-		_log_debug("  bullet_spawn=%v, offset_from_enemy=%v" % [bullet_spawn_pos, bullet_spawn_pos - global_position])
+		_log_debug("  weapon_node_pos=%v, muzzle=%v" % [weapon_visual_pos, bullet_spawn_pos])
+		_log_debug("  direction=%v (angle=%.1f deg) - FROM MUZZLE TO TARGET" % [direction, rad_to_deg(direction.angle())])
 
-	# Set bullet direction to match weapon barrel direction
+	# Set bullet direction (from muzzle to target)
 	bullet.direction = direction
 
 	# Set shooter ID to identify this enemy as the source
@@ -3943,19 +3962,17 @@ func _get_bullet_spawn_position(_direction: Vector2) -> Vector2:
 
 
 ## Returns the weapon's forward direction in world coordinates.
-## This is the direction the weapon barrel is actually pointing.
+## This is the direction the weapon barrel is visually pointing.
+##
+## NOTE: This is used to calculate the muzzle position, NOT the bullet direction.
+## The actual bullet direction is calculated in _shoot() as (target - muzzle).normalized()
+## to ensure bullets fly toward the target, not just in the model's facing direction.
 ##
 ## IMPORTANT: We calculate direction from the EnemyModel's rotation angle, NOT from
 ## global_transform.x. This is because when the enemy model is vertically flipped
-## (scale.y negative for aiming left), global_transform.x becomes reflected/mirrored,
-## which doesn't represent the actual shooting direction.
+## (scale.y negative for aiming left), global_transform.x becomes reflected/mirrored.
 ##
-## The EnemyModel rotation is set by _update_enemy_model_rotation() to point toward
-## the player (or movement direction). We use Vector2.from_angle() to convert this
-## rotation back to a direction vector, which gives the correct shooting direction
-## regardless of the Y flip state.
-##
-## @returns: Normalized direction vector the weapon is pointing.
+## @returns: Normalized direction vector the weapon is visually pointing.
 func _get_weapon_forward_direction() -> Vector2:
 	if _enemy_model:
 		# Use the enemy model's rotation to calculate the forward direction.
