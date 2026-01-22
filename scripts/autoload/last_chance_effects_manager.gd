@@ -631,8 +631,8 @@ func _apply_player_saturation() -> void:
 			child.modulate = _saturate_color(child.modulate, PLAYER_SATURATION_MULTIPLIER)
 			sprites_saturated += 1
 
-	# Also apply saturation to armband (child of RightArm)
-	var armband := player_model.get_node_or_null("RightArm/Armband") as Sprite2D
+	# Also apply saturation to armband (sibling of RightArm, not child - to avoid inheriting health modulate)
+	var armband := player_model.get_node_or_null("Armband") as Sprite2D
 	if armband:
 		_player_original_colors[armband] = armband.modulate
 		armband.modulate = _saturate_color(armband.modulate, PLAYER_SATURATION_MULTIPLIER)

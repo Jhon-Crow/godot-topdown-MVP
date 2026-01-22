@@ -42,8 +42,9 @@ z_index = 4
 position = Vector2(-2, 6)
 texture = ExtResource("8_right_arm")
 
-[node name="Armband" type="Sprite2D" parent="PlayerModel/RightArm"]
-z_index = 1
+[node name="Armband" type="Sprite2D" parent="PlayerModel"]
+z_index = 5
+position = Vector2(-2, 6)
 modulate = Color(2, 0.3, 0.3, 1)
 texture = ExtResource("9_armband")
 

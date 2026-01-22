@@ -160,6 +160,30 @@
    - Renamed `_arm_original_colors` to `_player_original_colors`
    - Renamed `ARMBAND_SATURATION_MULTIPLIER` to `PLAYER_SATURATION_MULTIPLIER`
 
+### Feedback Session (Session 11) - ARMBAND VISIBILITY DURING NORMAL GAMEPLAY
+1. **Owner feedback:**
+   - "не вижу изменений, возможно дело в C#" (I don't see changes, maybe it's about C#)
+   - Game log attached: `game_log_20260122_183025.txt`
+2. **Investigation:**
+   - Game logs showed the effect IS triggering correctly: "Applied 4.0x saturation to 5 player sprites"
+   - The C# player IS being used (logs show "Connected to player Damaged signal (C#)")
+   - Sprite analysis confirmed armband pixels are correct (bright red RGB 255, 40-90, 40-90)
+3. **ACTUAL ROOT CAUSE:**
+   - **Armband was a CHILD of RightArm, inheriting its health-based modulate!**
+   - Scene hierarchy was: `PlayerModel/RightArm/Armband`
+   - In Godot, child sprites inherit parent's modulate through multiplication
+   - Armband modulate: `Color(2, 0.3, 0.3)` (HDR red)
+   - RightArm health modulate: `Color(0.2, 0.6, 1.0)` (blue health tint at full health)
+   - Result: `(2*0.2, 0.3*0.6, 0.3*1.0)` = `(0.4, 0.18, 0.3)` = **purple/magenta**, not red!
+   - The red armband turned into an invisible purple band due to modulate inheritance
+4. **Solution implemented:**
+   - **Moved Armband to be a SIBLING of RightArm**, not a child
+   - New hierarchy: `PlayerModel/Armband` (alongside `PlayerModel/RightArm`)
+   - Set Armband position to same as RightArm: `(-2, 6)`
+   - Set Armband z_index to 5 (higher than RightArm's 4) so it renders on top
+   - Updated effects managers to find Armband at new path: `PlayerModel/Armband`
+   - Now Armband doesn't inherit RightArm's health modulate - keeps its own HDR red color!
+
 ## Root Cause Analysis
 
 ### Why the Player Was Hard to See
@@ -252,11 +276,12 @@ func _saturate_color(color: Color, multiplier: float) -> Color:
 - `docs/case-studies/issue-234/logs/game_log_20260122_140453.txt` - Game log from Session 6
 - `docs/case-studies/issue-234/logs/game_log_20260122_142217.txt` - Game log from Session 7
 - `docs/case-studies/issue-234/logs/game_log_20260122_152444.txt` - Game log from Session 10
+- `docs/case-studies/issue-234/logs/game_log_20260122_183025.txt` - Game log from Session 11
 - `assets/sprites/characters/player/player_armband.png` - Separate armband sprite (Session 6)
 
-### Scene Files Modified (Session 6 & 7)
-- `scenes/characters/Player.tscn` - Added Armband child node under RightArm with modulate
-- `scenes/characters/csharp/Player.tscn` - Same change for C# version
+### Scene Files Modified (Session 6, 7 & 11)
+- `scenes/characters/Player.tscn` - Armband moved from RightArm child to PlayerModel sibling (Session 11)
+- `scenes/characters/csharp/Player.tscn` - Same change for C# version (Session 11)
 
 ## Lessons Learned
 
@@ -273,6 +298,8 @@ func _saturate_color(color: Color, multiplier: float) -> Color:
 11. **Separate sprites for different color treatments:** Use child sprites when different parts of a character need different color treatments (e.g., armband needs brightness boost, arm needs health color tint)
 12. **HDR modulate for brightness:** In Godot, modulate values greater than 1.0 create HDR-style brightness boosts. Use this for elements that need to "glow" or stand out (e.g., `Color(2, 0.3, 0.3, 1)` for a bright red effect)
 13. **Apply effects consistently to player AND enemies:** When enemies get visual effects (like saturation boost), the player should too. This creates a cohesive visual experience and makes the player stand out in the same way as enemies.
+14. **CRITICAL: Child sprites INHERIT parent modulate!** In Godot, a child sprite's final color = child.modulate × parent.modulate. If the parent has a health-based color tint (e.g., blue for full health), the child will be affected by this tint. Solution: Make elements that need independent color treatment into SIBLINGS, not children.
+15. **Test with actual gameplay, not just visual inspection:** The armband looked correct in the sprite files and scene editor, but during gameplay the health color tint made it invisible. Always test with the actual game running.
 
 ## Related Issues
 
