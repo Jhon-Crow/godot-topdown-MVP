@@ -393,6 +393,10 @@ public partial class Shotgun : BaseWeapon
     /// Attempts to process a gesture while RMB is still held (mid-drag).
     /// This enables continuous drag-and-drop: hold RMB, drag up, then drag down
     /// all in one fluid motion without releasing RMB.
+    ///
+    /// Note: Shell loading (MMB + drag down) intentionally requires releasing RMB
+    /// to preserve the original shell loading behavior. Only bolt open/close
+    /// operations are supported mid-drag.
     /// </summary>
     /// <param name="dragVector">Current drag vector from start position.</param>
     /// <returns>True if a gesture was processed, false otherwise.</returns>
@@ -488,7 +492,8 @@ public partial class Shotgun : BaseWeapon
                 case ShotgunReloadState.Loading:
                     if (isDragDown)
                     {
-                        // Mid-drag in loading state
+                        // Mid-drag in loading state - only allow closing bolt, not loading shells
+                        // Shell loading should only work with the release-based gesture (old behavior)
                         bool shouldLoadShell = _wasMiddleMouseHeldDuringDrag || _isMiddleMouseHeld;
 
                         if (VerboseInputLogging)
@@ -498,7 +503,10 @@ public partial class Shotgun : BaseWeapon
 
                         if (shouldLoadShell)
                         {
-                            LoadShell();
+                            // MMB held - don't process mid-drag, let user release RMB to load shell
+                            // This preserves the old shell loading behavior while allowing
+                            // continuous bolt open/close gestures
+                            return false;
                         }
                         else
                         {

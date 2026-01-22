@@ -132,3 +132,54 @@ else if (_isDragging)
    - RMB drag up (release) → bolt opens
    - RMB drag down (release) → bolt closes
 4. Test shell loading during reload (MMB + RMB drag down)
+
+## User Feedback and Resolution
+
+### Feedback from @Jhon-Crow (2026-01-22)
+
+> "новое поведение при заряде снарядов не нужно (оставь старый), новое открывание/закрывание затвора работает правильно."
+
+**Translation:**
+- "New shell loading behavior is not needed (keep the old one)"
+- "New bolt open/close works correctly"
+
+### Root Cause Analysis
+
+The initial implementation added continuous mid-drag support for all shotgun gestures:
+1. Pump-action cycling (up to eject shell, down to chamber) ✓
+2. Bolt open/close (up to open, down to close) ✓
+3. **Shell loading (MMB + down while in Loading state)** ← User didn't want this
+
+The user expected shell loading to remain as a distinct, deliberate action requiring RMB release,
+while the bolt open/close should support the new continuous gesture.
+
+### Resolution
+
+Modified `TryProcessMidDragGesture()` to:
+- Keep continuous gesture support for bolt opening (drag UP in WaitingToOpen state)
+- Keep continuous gesture support for bolt closing (drag DOWN in Loading state **without** MMB)
+- **Preserve original shell loading behavior**: When MMB is held during drag DOWN in Loading state,
+  the mid-drag gesture is not processed (returns false), requiring the user to release RMB
+  to trigger shell loading via the original `ProcessReloadGesture()` path
+
+### Code Change
+
+```csharp
+// In TryProcessMidDragGesture(), Loading state handling:
+if (shouldLoadShell)
+{
+    // MMB held - don't process mid-drag, let user release RMB to load shell
+    // This preserves the old shell loading behavior while allowing
+    // continuous bolt open/close gestures
+    return false;
+}
+else
+{
+    CompleteReload();
+}
+```
+
+## Logs
+
+- `logs/game_log_20260122_085458.txt` - User testing log showing shotgun behavior
+- `logs/solution-draft-log-pr-1769061104361.txt` - AI solution draft log (4837 lines)
