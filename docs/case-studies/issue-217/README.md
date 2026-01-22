@@ -577,3 +577,110 @@ When the rotation and direction calculations happen in different frames or use d
 - [logs/game_log_20260122_112428.txt](./logs/game_log_20260122_112428.txt) - Game log from phase 7 testing
 - [logs/game_log_20260122_114716.txt](./logs/game_log_20260122_114716.txt) - Game log from phase 9 testing
 - [logs/game_log_20260122_120806.txt](./logs/game_log_20260122_120806.txt) - Game log from phase 11 testing
+- [logs/game_log_20260122_122412.txt](./logs/game_log_20260122_122412.txt) - Game log from phase 13 testing
+
+### Phase 13: Sixth User Feedback (2026-01-22T12:25:39Z)
+
+User @Jhon-Crow tested the solution again and reported:
+
+1. **"враги всё ещё чаще всего стреляют не из оружия"**
+   - Translation: Enemies still mostly shoot not from their weapon
+   - Bullets continue to spawn from incorrect position despite previous fix
+
+Attached game log:
+- `game_log_20260122_122412.txt`
+
+### Phase 14: Deep Root Cause Analysis and Fix (2026-01-22)
+
+## Root Cause Analysis (Phase 13-14)
+
+### Issue 10: Bullets STILL Not Spawning From Weapon Muzzle
+
+**Root Cause:** The previous fix (Phase 12) used `Vector2(-1, 0)` for the weapon's local forward direction, but this was fundamentally INCORRECT.
+
+The issue is a **coordinate system mismatch** between the weapon sprite orientation and the assumed forward direction:
+
+1. **Weapon sprite orientation:** The M16 rifle sprite (`m16_rifle_topdown.png`) is drawn with the **muzzle pointing RIGHT** (+X direction in local space).
+
+2. **Previous code assumption:** The code assumed `Vector2(-1, 0)` as the weapon's forward direction in local space, meaning it expected the muzzle to point LEFT (-X direction).
+
+3. **Combined with PI offset:** The enemy model rotation includes a `+ PI` offset to compensate for body sprites facing left. When this rotation is applied to the wrong local forward direction, the result is doubly incorrect.
+
+**Visual Analysis of the Rifle Sprite:**
+```
+[m16_rifle_topdown.png - 64x16 pixels]
+Stock          Grip        Barrel        Muzzle
+  ←              ←            ←             →
+[-X in local space]                    [+X in local space]
+```
+
+The muzzle is at the RIGHT side of the sprite (+X direction), not the left.
+
+**Additionally**, the `_weapon_sprite.offset = Vector2(20, 0)` shifts the sprite further to the RIGHT. The muzzle position calculation must account for:
+- Sprite center: at node position
+- Sprite offset: +20 pixels in +X direction
+- Half sprite width: +32 pixels in +X direction
+- Total: muzzle is at +52 pixels from node position in local +X direction
+
+**The Critical Bug:** The previous fix also didn't account for the **Y-axis flip** that occurs when enemies aim left. When `_enemy_model.scale.y = -1`, the coordinate system is flipped, which affects how rotation transforms local coordinates to world coordinates.
+
+**Fix Applied:**
+
+1. Changed to use `_weapon_sprite.global_transform.x` instead of manual rotation calculation:
+   ```gdscript
+   # Before (incorrect):
+   var weapon_forward := Vector2(-1, 0).rotated(_enemy_model.rotation)
+
+   # After (correct):
+   var weapon_global_forward := _weapon_sprite.global_transform.x.normalized()
+   ```
+
+   The `global_transform.x` property gives the weapon's local +X axis in **world coordinates**, automatically accounting for:
+   - All parent rotations (Enemy → EnemyModel → WeaponMount → WeaponSprite)
+   - All parent scales (including Y flip when aiming left)
+   - The actual hierarchical transform chain
+
+2. Changed to use `_weapon_sprite.global_position` instead of `_weapon_mount.global_position`:
+   ```gdscript
+   # The weapon sprite is the actual visual element, so use its position
+   return _weapon_sprite.global_position + weapon_global_forward * scaled_muzzle_offset
+   ```
+
+3. Updated the muzzle offset calculation:
+   ```gdscript
+   # Muzzle is at: sprite_offset.x + sprite_width/2 = 20 + 32 = 52 pixels in local +X
+   var muzzle_local_offset := 52.0
+   var scaled_muzzle_offset := muzzle_local_offset * enemy_model_scale
+   ```
+
+**Why This Works:**
+- `global_transform.x` is a property of all Node2D objects that gives the local +X axis direction in world space
+- It correctly handles all transforms in the hierarchy: translation, rotation, AND scale (including negative scale for flipping)
+- This approach is more robust than manually calculating the direction, as it automatically adapts to any scene hierarchy changes
+
+## Updated Summary of All Issues and Fixes
+
+| Issue | Root Cause | Fix |
+|-------|-----------|-----|
+| 1. Enemy smaller than player | Missing 1.3x scale multiplier | Added `enemy_model_scale` export and scale in `_ready()` |
+| 2. No walking animation | Old script references + missing animation code | Updated references, added `_update_walk_animation()` |
+| 3. Weapon at 90° angle | Competing rotation systems | Removed `_update_weapon_sprite_rotation()` call |
+| 4. Bullets from center | Spawning from enemy position | Added `_get_bullet_spawn_position()` using weapon mount |
+| 5. Walking backwards | Enemy sprites face opposite direction (PI offset) | Added PI to rotation angle |
+| 6. M16 too large | Using 64px sprite vs player's integrated smaller rifle | Changed to `m16_topdown_small.png` (32px) |
+| 7. Weapon not visible | Smaller sprite obscured by body parts | Reverted to original larger sprite `m16_rifle_topdown.png` |
+| 8. Last Chance not freezing bullets | Branch missing pellet detection fix from main | Merged main branch with latest fixes |
+| 9. Bullets not from weapon muzzle | Direction mismatch and execution order issue | Use weapon's actual rotation for muzzle direction; moved rotation update before shooting |
+| 10. Bullets STILL not from muzzle | Wrong local forward direction (used -X instead of +X) and Y-flip not handled | Use `global_transform.x` for correct world-space forward direction |
+
+## Additional Lessons Learned (Phase 13-14)
+
+18. **Sprite Orientation Matters:** When calculating forward directions for sprites, first verify which direction the sprite actually faces. A rifle sprite with the muzzle pointing right uses `Vector2(1, 0)` as local forward, not `Vector2(-1, 0)`.
+
+19. **Use Transform Properties, Not Manual Calculations:** Godot's `global_transform` properties (`x`, `y`, `origin`) correctly account for the entire transform hierarchy including scale flips. Using `global_transform.x.normalized()` is more robust than manually applying rotations.
+
+20. **Y-Scale Flip Affects Coordinate System:** When a node has negative Y scale (for horizontal flipping), the relationship between local and world coordinates changes. Manual rotation calculations may not account for this, but `global_transform` does.
+
+21. **Verify Assumptions About Sprite Orientation:** Before writing transformation code, view the actual sprite asset to confirm its orientation. Comments saying "sprites face LEFT" should be verified against the actual sprite file.
+
+22. **Test Edge Cases:** The bullet spawn issue was most visible when enemies faced certain directions (particularly when Y-flip was active). Testing with enemies facing all directions would have revealed the issue sooner.

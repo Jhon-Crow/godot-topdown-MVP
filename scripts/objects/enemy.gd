@@ -3841,24 +3841,24 @@ func _get_health_percent() -> float:
 ## The muzzle is positioned relative to the weapon mount, offset in the weapon's forward direction.
 ## @param direction: The normalized direction the bullet will travel (used for fallback only).
 ## @return: The global position where the bullet should spawn.
-func _get_bullet_spawn_position(direction: Vector2) -> Vector2:
-	# The rifle sprite (m16_rifle_topdown.png) has offset 20px and is 64px long
-	# so muzzle is ~44px from WeaponMount center (64 - 20 = 44)
-	var muzzle_offset := 44.0 * enemy_model_scale  # Scale with enemy model
-	if _weapon_mount and _enemy_model:
-		# Calculate the weapon's actual forward direction based on enemy model rotation.
-		# Enemy sprites face LEFT in local space (PI radians), so local left (-X) is forward.
-		# When rotated by enemy_model.rotation, the forward direction in world space is:
-		# Vector2(-1, 0).rotated(rotation) = Vector2(-cos(r), -sin(r))
-		# Since enemy_model.rotation = face_direction.angle() + PI:
-		#   weapon_forward = Vector2(-cos(angle+PI), -sin(angle+PI))
-		#                  = Vector2(cos(angle), sin(angle)) = face_direction
-		var weapon_forward := Vector2(-1, 0).rotated(_enemy_model.rotation)
-		# Use weapon mount global position as the base, then offset to muzzle in weapon's forward direction
-		return _weapon_mount.global_position + weapon_forward * muzzle_offset
+func _get_bullet_spawn_position(_direction: Vector2) -> Vector2:
+	# The rifle sprite (m16_rifle_topdown.png) is 64px long with offset (20, 0).
+	# The muzzle (right edge in local space) is at: offset.x + sprite_width/2 = 20 + 32 = 52px
+	# from the WeaponSprite node position.
+	var muzzle_local_offset := 52.0  # Distance from node to muzzle in local +X direction
+	if _weapon_sprite and _enemy_model:
+		# Use the weapon sprite's global transform to get its actual forward direction.
+		# The weapon sprite points RIGHT (+X) in its local space.
+		# global_transform.x gives us the weapon's local +X axis in world coordinates,
+		# accounting for both rotation AND scale (including Y flip).
+		var weapon_global_forward := _weapon_sprite.global_transform.x.normalized()
+		# Calculate muzzle offset accounting for enemy model scale
+		var scaled_muzzle_offset := muzzle_local_offset * enemy_model_scale
+		# Use weapon sprite's global position as base, then offset to reach the muzzle
+		return _weapon_sprite.global_position + weapon_global_forward * scaled_muzzle_offset
 	else:
-		# Fallback to old behavior if weapon mount or enemy model not found
-		return global_position + direction * bullet_spawn_offset
+		# Fallback to old behavior if weapon sprite or enemy model not found
+		return global_position + _direction * bullet_spawn_offset
 
 
 ## Updates the weapon sprite rotation to match the direction the enemy will shoot.
