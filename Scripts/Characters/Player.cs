@@ -259,30 +259,35 @@ public partial class Player : BaseCharacter
     // For reload, left arm goes to chest (vest/mag pouch area), then to weapon
 
     // Step 1: Grab magazine from chest - left arm moves back toward body
-    private static readonly Vector2 ReloadArmLeftGrab = new Vector2(-18, -2);      // Left hand at chest/vest mag pouch
+    // SIGNIFICANTLY INCREASED offsets for visibility (original values were too subtle)
+    // Base position: LeftArm (24, 6), so offset of -40 should move it clearly toward body
+    private static readonly Vector2 ReloadArmLeftGrab = new Vector2(-40, -8);      // Left hand at chest/vest mag pouch (MORE DRAMATIC)
     private static readonly Vector2 ReloadArmRightHold = new Vector2(0, 0);        // Right hand stays on weapon grip
 
     // Step 2: Insert magazine - left arm moves to weapon magwell (at middle of weapon, not at the end)
     // Weapon length: ~40 pixels from center, magwell at middle (~0 offset from player center)
-    private static readonly Vector2 ReloadArmLeftInsert = new Vector2(-4, 2);      // Left hand at weapon magwell (middle of weapon)
-    private static readonly Vector2 ReloadArmRightSteady = new Vector2(0, 1);      // Right hand steadies weapon
+    // SIGNIFICANTLY INCREASED offsets for visibility
+    private static readonly Vector2 ReloadArmLeftInsert = new Vector2(-20, 0);     // Left hand at weapon magwell (middle of weapon, MORE DRAMATIC)
+    private static readonly Vector2 ReloadArmRightSteady = new Vector2(0, 2);      // Right hand steadies weapon
 
     // Step 3: Pull bolt - right arm moves along rifle contour (back and forth motion)
     // The right hand should trace the rifle's right side: forward, then back to pull bolt, then release
-    private static readonly Vector2 ReloadArmLeftSupport = new Vector2(-2, 0);     // Left hand holds near magwell
-    private static readonly Vector2 ReloadArmRightBoltStart = new Vector2(4, 2);   // Right hand at charging handle (forward on rifle)
-    private static readonly Vector2 ReloadArmRightBoltPull = new Vector2(-8, -2);  // Right hand pulls bolt back (toward player)
-    private static readonly Vector2 ReloadArmRightBoltReturn = new Vector2(4, 2);  // Right hand returns forward (bolt release)
+    // SIGNIFICANTLY INCREASED offsets for visibility
+    private static readonly Vector2 ReloadArmLeftSupport = new Vector2(-15, 0);    // Left hand holds near magwell
+    private static readonly Vector2 ReloadArmRightBoltStart = new Vector2(8, 4);   // Right hand at charging handle (forward on rifle)
+    private static readonly Vector2 ReloadArmRightBoltPull = new Vector2(-20, -8); // Right hand pulls bolt back (toward player, MORE DRAMATIC)
+    private static readonly Vector2 ReloadArmRightBoltReturn = new Vector2(8, 4);  // Right hand returns forward (bolt release)
 
     // Target rotations for reload arm animations (in degrees)
-    private const float ReloadArmRotLeftGrab = -50.0f;     // Arm rotation when grabbing mag from chest
+    // SIGNIFICANTLY INCREASED rotations for visibility
+    private const float ReloadArmRotLeftGrab = -70.0f;     // Arm rotation when grabbing mag from chest (MORE DRAMATIC)
     private const float ReloadArmRotRightHold = 0.0f;      // Right arm steady during grab
-    private const float ReloadArmRotLeftInsert = -10.0f;   // Left arm rotation when inserting
-    private const float ReloadArmRotRightSteady = 5.0f;    // Slight tilt while steadying
-    private const float ReloadArmRotLeftSupport = 0.0f;    // Left arm on foregrip/magwell
-    private const float ReloadArmRotRightBoltStart = -5.0f;   // Right arm at bolt handle
-    private const float ReloadArmRotRightBoltPull = -25.0f;   // Right arm rotation when pulling bolt back
-    private const float ReloadArmRotRightBoltReturn = -5.0f;  // Right arm rotation when releasing bolt
+    private const float ReloadArmRotLeftInsert = -25.0f;   // Left arm rotation when inserting (MORE DRAMATIC)
+    private const float ReloadArmRotRightSteady = 10.0f;   // Slight tilt while steadying (MORE DRAMATIC)
+    private const float ReloadArmRotLeftSupport = -15.0f;  // Left arm on foregrip/magwell (MORE DRAMATIC)
+    private const float ReloadArmRotRightBoltStart = -10.0f;  // Right arm at bolt handle
+    private const float ReloadArmRotRightBoltPull = -45.0f;   // Right arm rotation when pulling bolt back (MORE DRAMATIC)
+    private const float ReloadArmRotRightBoltReturn = -10.0f; // Right arm rotation when releasing bolt
 
     // Animation durations for each reload phase (in seconds)
     private const float ReloadAnimGrabDuration = 0.25f;    // Time to grab magazine from chest
@@ -586,18 +591,38 @@ public partial class Player : BaseCharacter
         if (_bodySprite != null)
         {
             _baseBodyPos = _bodySprite.Position;
+            LogToFile($"[Player.Init] Body sprite found at position: {_baseBodyPos}");
+        }
+        else
+        {
+            LogToFile("[Player.Init] WARNING: Body sprite NOT found!");
         }
         if (_headSprite != null)
         {
             _baseHeadPos = _headSprite.Position;
+            LogToFile($"[Player.Init] Head sprite found at position: {_baseHeadPos}");
+        }
+        else
+        {
+            LogToFile("[Player.Init] WARNING: Head sprite NOT found!");
         }
         if (_leftArmSprite != null)
         {
             _baseLeftArmPos = _leftArmSprite.Position;
+            LogToFile($"[Player.Init] Left arm sprite found at position: {_baseLeftArmPos}");
+        }
+        else
+        {
+            LogToFile("[Player.Init] WARNING: Left arm sprite NOT found!");
         }
         if (_rightArmSprite != null)
         {
             _baseRightArmPos = _rightArmSprite.Position;
+            LogToFile($"[Player.Init] Right arm sprite found at position: {_baseRightArmPos}");
+        }
+        else
+        {
+            LogToFile("[Player.Init] WARNING: Right arm sprite NOT found!");
         }
 
         // Apply scale to player model for larger appearance
@@ -2186,14 +2211,36 @@ public partial class Player : BaseCharacter
         // Apply arm positions with smooth interpolation
         if (_leftArmSprite != null)
         {
+            Vector2 oldPos = _leftArmSprite.Position;
             _leftArmSprite.Position = _leftArmSprite.Position.Lerp(leftArmTarget, lerpSpeed);
             _leftArmSprite.Rotation = Mathf.Lerp(_leftArmSprite.Rotation, leftArmRot, lerpSpeed);
+
+            // Log arm position changes periodically (every 60 frames = ~1 second)
+            if (Engine.GetFramesDrawn() % 60 == 0)
+            {
+                LogToFile($"[Player.Reload.Anim] LeftArm: pos={_leftArmSprite.Position}, target={leftArmTarget}, base={_baseLeftArmPos}");
+            }
+        }
+        else if (Engine.GetFramesDrawn() % 60 == 0)
+        {
+            LogToFile("[Player.Reload.Anim] WARNING: Left arm sprite is null during animation!");
         }
 
         if (_rightArmSprite != null)
         {
+            Vector2 oldPos = _rightArmSprite.Position;
             _rightArmSprite.Position = _rightArmSprite.Position.Lerp(rightArmTarget, lerpSpeed);
             _rightArmSprite.Rotation = Mathf.Lerp(_rightArmSprite.Rotation, rightArmRot, lerpSpeed);
+
+            // Log arm position changes periodically (every 60 frames = ~1 second)
+            if (Engine.GetFramesDrawn() % 60 == 0)
+            {
+                LogToFile($"[Player.Reload.Anim] RightArm: pos={_rightArmSprite.Position}, target={rightArmTarget}, base={_baseRightArmPos}");
+            }
+        }
+        else if (Engine.GetFramesDrawn() % 60 == 0)
+        {
+            LogToFile("[Player.Reload.Anim] WARNING: Right arm sprite is null during animation!");
         }
     }
 

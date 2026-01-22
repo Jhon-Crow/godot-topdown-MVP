@@ -172,3 +172,89 @@ After the initial C# implementation, user tested again and reported three issues
 | 2026-01-22 11:15:02 | Reload animation visible (GrabMagazine phase logged) |
 | 2026-01-22 11:18:46 | User reported three issues with animation |
 | 2026-01-22 (later) | Fixes implemented for z-index, step 2 position, step 3 motion |
+
+---
+
+# Third Round of Feedback (2026-01-22)
+
+## User Feedback
+
+After the second fix, user tested again and reported:
+
+- **"не вижу изменений (возможно ошибка экспорта или конфликт языков)"**
+  - Translation: "I don't see changes (possibly export error or language conflict)"
+
+## Investigation
+
+### Log Analysis
+
+Downloaded and analyzed two new game logs:
+- `game_log_20260122_112717.txt`
+- `game_log_20260122_112810.txt`
+
+### Key Findings
+
+**1. C# code IS running** - The log shows new format:
+```
+[11:27:17] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 2/4
+```
+This format with "Ammo: X/X" is from the updated C# code, confirming the C# Player.cs is being used.
+
+**2. Animation phases ARE being triggered** - The log shows:
+```
+[11:27:28] [INFO] [Player.Reload.Anim] Phase changed to: GrabMagazine (duration: 0,25s)
+[11:27:30] [INFO] [Player.Reload.Anim] Phase changed to: InsertMagazine (duration: 0,30s)
+[11:27:31] [INFO] [Player.Reload.Anim] Phase changed to: PullBolt (duration: 0,15s)
+[11:27:31] [INFO] [Player.Reload.Anim] Phase changed to: ReturnIdle (duration: 0,20s)
+[11:27:31] [INFO] [Player.Reload.Anim] Animation complete, returning to normal
+```
+
+This confirms the animation state machine is working correctly.
+
+## Root Cause Analysis (Third Round)
+
+### Hypothesis
+
+Since the animation phases are being triggered correctly but the user doesn't see visual changes, the most likely causes are:
+
+1. **Animation offsets are too subtle** - The position changes may be too small to be noticeable
+2. **Arms might not be moving due to missing sprite references** - Though this is unlikely since the code doesn't error
+3. **Lerp speed might be too slow** - Animation might not complete before returning to idle
+
+### Investigation Steps
+
+Added diagnostic logging to:
+1. Verify arm sprites are found during initialization
+2. Log actual arm positions during animation
+3. Compare target positions with base positions
+
+### Fix Applied
+
+1. **Significantly increased animation offsets** to make movements more dramatic:
+   - `ReloadArmLeftGrab`: Changed from `(-18, -2)` to `(-40, -8)`
+   - `ReloadArmLeftInsert`: Changed from `(-4, 2)` to `(-20, 0)`
+   - `ReloadArmRightBoltPull`: Changed from `(-8, -2)` to `(-20, -8)`
+
+2. **Significantly increased rotation angles** for more visible movement:
+   - `ReloadArmRotLeftGrab`: Changed from `-50°` to `-70°`
+   - `ReloadArmRotRightBoltPull`: Changed from `-25°` to `-45°`
+
+3. **Added diagnostic logging** to track:
+   - Whether arm sprites are found during initialization
+   - Arm positions during animation every ~1 second
+
+## Files Updated
+
+- `Scripts/Characters/Player.cs` - Increased animation offsets and added diagnostic logging
+- `docs/case-studies/issue-222/logs/game_log_20260122_112717.txt` - Third test log
+- `docs/case-studies/issue-222/logs/game_log_20260122_112810.txt` - Third test log
+
+## Timeline Update
+
+| Time | Event |
+|------|-------|
+| 2026-01-22 08:23:59 | Second fix committed (z-index, position, bolt motion) |
+| 2026-01-22 11:27:17 | User started new test session |
+| 2026-01-22 11:27:28 | First reload animation triggered (GrabMagazine) |
+| 2026-01-22 11:28:52 | User reported "not seeing changes" |
+| 2026-01-22 (current) | Third fix: increased animation offsets, added diagnostic logging |
