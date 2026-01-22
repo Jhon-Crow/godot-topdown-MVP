@@ -396,6 +396,26 @@ public partial class Bullet : Area2D
     }
 
     /// <summary>
+    /// Sets the shooter ID to prevent self-damage.
+    /// Called by the weapon to identify the shooter node.
+    /// </summary>
+    /// <param name="shooterId">Instance ID of the shooter node.</param>
+    public void SetShooterId(ulong shooterId)
+    {
+        ShooterId = shooterId;
+    }
+
+    /// <summary>
+    /// Sets the shooter's position at firing time.
+    /// Used for distance-based penetration calculations.
+    /// </summary>
+    /// <param name="position">Global position of the shooter when firing.</param>
+    public void SetShooterPosition(Vector2 position)
+    {
+        ShooterPosition = position;
+    }
+
+    /// <summary>
     /// Called when the bullet hits a static body (wall or obstacle).
     /// </summary>
     private void OnBodyEntered(Node2D body)

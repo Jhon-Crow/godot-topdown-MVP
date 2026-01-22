@@ -356,16 +356,31 @@ public abstract partial class BaseWeapon : Node2D
             bullet.Set("speed", WeaponData.BulletSpeed);
         }
 
-        // Set shooter ID to prevent self-damage (lowercase for GDScript)
+        // Set shooter ID to prevent self-damage
         // The shooter is the owner of the weapon (parent node)
         var owner = GetParent();
         if (owner != null)
         {
-            bullet.Set("shooter_id", owner.GetInstanceId());
+            // Try method call first (for C# bullets), fall back to property set (for GDScript bullets)
+            if (bullet.HasMethod("SetShooterId"))
+            {
+                bullet.Call("SetShooterId", owner.GetInstanceId());
+            }
+            else
+            {
+                bullet.Set("shooter_id", owner.GetInstanceId());
+            }
         }
 
-        // Set shooter position for distance-based penetration calculations (lowercase for GDScript)
-        bullet.Set("shooter_position", GlobalPosition);
+        // Set shooter position for distance-based penetration calculations
+        if (bullet.HasMethod("SetShooterPosition"))
+        {
+            bullet.Call("SetShooterPosition", GlobalPosition);
+        }
+        else
+        {
+            bullet.Set("shooter_position", GlobalPosition);
+        }
 
         GetTree().CurrentScene.AddChild(bullet);
     }

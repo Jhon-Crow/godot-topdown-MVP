@@ -826,3 +826,159 @@ if not _is_bullet_spawn_clear(weapon_direction):
 25. **Consistency Across All Shooting Functions:** When fixing shooting behavior, ensure ALL shooting functions are updated (main shoot, inaccurate shoot, burst shoot, etc.), not just the primary one.
 
 26. **Use Same Logic for Validation and Execution:** The bullet spawn clearance check (`_should_shoot_at_target`) should use the same direction calculation as the actual shooting, otherwise the validation may pass but the shot may still visually look wrong.
+
+### Phase 17: Eighth User Feedback (2026-01-22T12:52:28Z)
+
+User @Jhon-Crow tested the solution again and reported:
+
+1. **"игрок всё ещё наносит себе урон когда стреляет вверх"**
+   - Translation: Player still damages themselves when shooting upward
+   - Despite adding [Export] attribute in Phase 16, player bullets still cause self-damage
+
+Attached game log:
+- `game_log_20260122_125115.txt`
+
+### Phase 18: Deep Root Cause Analysis and Fix (2026-01-22)
+
+## Root Cause Analysis (Phase 17-18)
+
+### Issue 13: Player STILL Self-Damages When Shooting Upward (Continued)
+
+**Root Cause:** While Phase 16 added the `[Export]` attribute to C# Bullet properties, analysis of the game log revealed that **94 bullets had `shooter_id=0`** - indicating the properties were still not being set correctly.
+
+The issue is that `Node.Set("shooter_id", value)` in Godot does not reliably map snake_case property names to PascalCase C# properties, even with the `[Export]` attribute. The Godot-to-C# property binding via `Set()` method has inconsistent behavior.
+
+**Evidence from log analysis:**
+```
+Total bullets: 206
+Bullets with shooter_id=0: 94
+Bullets with valid shooter_id: 112
+```
+
+The 94 bullets with `shooter_id=0` were C# bullets (identifiable by their log format), spawned by the player through `BaseWeapon.cs`.
+
+**Technical Explanation:**
+1. `BaseWeapon.cs` calls `bullet.Set("shooter_id", owner.GetInstanceId())`
+2. `Node.Set()` attempts to find a property with snake_case name `shooter_id`
+3. The C# property `ShooterId` (PascalCase) should map to `shooter_id` (snake_case) via `[Export]`
+4. However, this mapping is unreliable - sometimes it works, sometimes it doesn't
+5. When it fails, `ShooterId` stays at default value `0`
+6. Self-damage check `if (ShooterId == body.GetInstanceId())` never matches because player's ID is never `0`
+
+**Fix Applied:**
+
+Instead of relying on `Node.Set()` property binding, we added explicit setter methods that can be called via `Node.Call()`:
+
+1. Added setter methods to `Scripts/Projectiles/Bullet.cs`:
+```csharp
+/// <summary>
+/// Sets the shooter ID to prevent self-damage.
+/// Called by the weapon to identify the shooter node.
+/// </summary>
+/// <param name="shooterId">Instance ID of the shooter node.</param>
+public void SetShooterId(ulong shooterId)
+{
+    ShooterId = shooterId;
+}
+
+/// <summary>
+/// Sets the shooter's position at firing time.
+/// Used for distance-based penetration calculations.
+/// </summary>
+/// <param name="position">Global position of the shooter when firing.</param>
+public void SetShooterPosition(Vector2 position)
+{
+    ShooterPosition = position;
+}
+```
+
+2. Updated `Scripts/AbstractClasses/BaseWeapon.cs` to use method calls with fallback:
+```csharp
+// Set shooter ID to prevent self-damage
+var owner = GetParent();
+if (owner != null)
+{
+    // Try method call first (for C# bullets), fall back to property set (for GDScript bullets)
+    if (bullet.HasMethod("SetShooterId"))
+    {
+        bullet.Call("SetShooterId", owner.GetInstanceId());
+    }
+    else
+    {
+        bullet.Set("shooter_id", owner.GetInstanceId());
+    }
+}
+
+// Set shooter position for distance-based penetration calculations
+if (bullet.HasMethod("SetShooterPosition"))
+{
+    bullet.Call("SetShooterPosition", GlobalPosition);
+}
+else
+{
+    bullet.Set("shooter_position", GlobalPosition);
+}
+```
+
+3. Updated `Scripts/Characters/Player.cs` SpawnBullet method similarly:
+```csharp
+// Set bullet direction
+if (bullet.HasMethod("SetDirection"))
+{
+    bullet.Call("SetDirection", direction);
+}
+else
+{
+    bullet.Set("direction", direction);
+}
+
+// Set shooter ID to prevent self-damage
+if (bullet.HasMethod("SetShooterId"))
+{
+    bullet.Call("SetShooterId", GetInstanceId());
+}
+else
+{
+    bullet.Set("shooter_id", GetInstanceId());
+}
+```
+
+**Why This Fix Works:**
+- `Node.Call()` invokes methods directly by name, which is more reliable than property binding
+- Method names don't require case conversion (SetShooterId is called exactly as named)
+- The `HasMethod()` check ensures backward compatibility with GDScript bullets that use property setters
+- This pattern (try method, fallback to property) handles both C# and GDScript bullets correctly
+
+## Updated Summary of All Issues and Fixes
+
+| Issue | Root Cause | Fix |
+|-------|-----------|-----|
+| 1. Enemy smaller than player | Missing 1.3x scale multiplier | Added `enemy_model_scale` export and scale in `_ready()` |
+| 2. No walking animation | Old script references + missing animation code | Updated references, added `_update_walk_animation()` |
+| 3. Weapon at 90° angle | Competing rotation systems | Removed `_update_weapon_sprite_rotation()` call |
+| 4. Bullets from center | Spawning from enemy position | Added `_get_bullet_spawn_position()` using weapon mount |
+| 5. Walking backwards | Enemy sprites face opposite direction (PI offset) | Added PI to rotation angle |
+| 6. M16 too large | Using 64px sprite vs player's integrated smaller rifle | Changed to `m16_topdown_small.png` (32px) |
+| 7. Weapon not visible | Smaller sprite obscured by body parts | Reverted to original larger sprite `m16_rifle_topdown.png` |
+| 8. Last Chance not freezing bullets | Branch missing pellet detection fix from main | Merged main branch with latest fixes |
+| 9. Bullets not from weapon muzzle | Direction mismatch and execution order issue | Use weapon's actual rotation for muzzle direction; moved rotation update before shooting |
+| 10. Bullets STILL not from muzzle | Wrong local forward direction (used -X instead of +X) and Y-flip not handled | Use `global_transform.x` for correct world-space forward direction |
+| 11. Player self-damage when shooting upward | C# Bullet properties missing [Export] attribute | Added [Export] to Direction, ShooterId, ShooterPosition in Bullet.cs |
+| 12. Enemy bullets not flying in barrel direction | Bullet direction calculated to player, not weapon forward | Added `_get_weapon_forward_direction()` and updated all shooting functions |
+| 13. Player STILL self-damaging | `Node.Set()` unreliably maps snake_case to PascalCase C# properties | Added explicit setter methods (`SetShooterId`, `SetShooterPosition`) and use `Call()` instead of `Set()` |
+
+## Additional Lessons Learned (Phase 17-18)
+
+27. **Prefer Method Calls Over Property Binding for Cross-Language Code:** In Godot's C#/GDScript interop, calling methods via `Node.Call()` is more reliable than setting properties via `Node.Set()`. Method names don't require case conversion and work consistently.
+
+28. **Don't Trust Silent Failures:** The `[Export]` attribute should have made properties accessible via snake_case names, but it didn't always work. When a fix doesn't solve the problem, investigate deeper rather than assuming the approach was correct.
+
+29. **Analyze Logs Quantitatively:** Instead of just looking for errors, count occurrences. Finding "94 bullets with shooter_id=0" out of 206 bullets revealed the systematic failure that spot-checking might have missed.
+
+30. **Use HasMethod/Call Pattern for Compatibility:** When code must work with both C# and GDScript objects, use `HasMethod()` to check for method availability, then `Call()` for C# objects and `Set()` as fallback for GDScript objects.
+
+31. **Case Sensitivity Matters in Cross-Language Binding:** Godot's property binding between C# (PascalCase convention) and GDScript (snake_case convention) is not always reliable. Explicit method calls bypass this issue entirely.
+
+## Related Files
+
+- [logs/game_log_20260122_125115.txt](./logs/game_log_20260122_125115.txt) - Game log from phase 17 testing showing shooter_id=0 pattern
