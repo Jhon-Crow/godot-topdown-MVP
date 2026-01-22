@@ -178,6 +178,54 @@ public partial class Player : BaseCharacter
     /// </summary>
     private const float ThrowRotationDuration = 0.15f;
 
+    #region Weapon Pose Detection
+
+    /// <summary>
+    /// Weapon types for arm positioning.
+    /// </summary>
+    private enum WeaponType
+    {
+        Rifle,      // Default - extended grip (e.g., AssaultRifle)
+        SMG,        // Compact grip (e.g., MiniUzi)
+        Shotgun     // Similar to rifle but slightly tighter
+    }
+
+    /// <summary>
+    /// Currently detected weapon type.
+    /// </summary>
+    private WeaponType _currentWeaponType = WeaponType.Rifle;
+
+    /// <summary>
+    /// Whether weapon pose has been detected and applied.
+    /// </summary>
+    private bool _weaponPoseApplied = false;
+
+    /// <summary>
+    /// Frame counter for delayed weapon pose detection.
+    /// Weapons are added by level scripts AFTER player's _Ready() completes.
+    /// </summary>
+    private int _weaponDetectFrameCount = 0;
+
+    /// <summary>
+    /// Number of frames to wait before detecting weapon pose.
+    /// This ensures level scripts have finished adding weapons.
+    /// </summary>
+    private const int WeaponDetectWaitFrames = 3;
+
+    /// <summary>
+    /// Arm position offset for SMG weapons - left arm moves back toward body.
+    /// UZI and similar compact SMGs should have the left arm closer to the body
+    /// for a proper two-handed compact grip.
+    /// </summary>
+    private static readonly Vector2 SmgLeftArmOffset = new Vector2(-10, 0);
+
+    /// <summary>
+    /// Arm position offset for SMG weapons - right arm moves slightly forward.
+    /// </summary>
+    private static readonly Vector2 SmgRightArmOffset = new Vector2(3, 0);
+
+    #endregion
+
     #region Walking Animation
 
     /// <summary>
@@ -723,6 +771,17 @@ public partial class Player : BaseCharacter
 
     public override void _PhysicsProcess(double delta)
     {
+        // Detect weapon pose after waiting a few frames for level scripts to add weapons
+        if (!_weaponPoseApplied)
+        {
+            _weaponDetectFrameCount++;
+            if (_weaponDetectFrameCount >= WeaponDetectWaitFrames)
+            {
+                DetectAndApplyWeaponPose();
+                _weaponPoseApplied = true;
+            }
+        }
+
         Vector2 inputDirection = GetInputDirection();
         ApplyMovement(inputDirection, (float)delta);
 
@@ -936,6 +995,90 @@ public partial class Player : BaseCharacter
         else
         {
             _playerModel.Scale = new Vector2(PlayerModelScale, PlayerModelScale);
+        }
+    }
+
+    /// <summary>
+    /// Detects the equipped weapon type and applies appropriate arm positioning.
+    /// Called from _PhysicsProcess() after a few frames to ensure level scripts
+    /// have finished adding weapons to the player node.
+    /// </summary>
+    private void DetectAndApplyWeaponPose()
+    {
+        LogToFile($"[Player] Detecting weapon pose (frame {_weaponDetectFrameCount})...");
+        var detectedType = WeaponType.Rifle;  // Default to rifle pose
+
+        // Check for weapon children - weapons are added directly to player by level scripts
+        // Check in order of specificity: MiniUzi (SMG), Shotgun, then default to Rifle
+        var miniUzi = GetNodeOrNull<BaseWeapon>("MiniUzi");
+        var shotgun = GetNodeOrNull<BaseWeapon>("Shotgun");
+
+        if (miniUzi != null)
+        {
+            detectedType = WeaponType.SMG;
+            LogToFile("[Player] Detected weapon: Mini UZI (SMG pose)");
+        }
+        else if (shotgun != null)
+        {
+            detectedType = WeaponType.Shotgun;
+            LogToFile("[Player] Detected weapon: Shotgun (Shotgun pose)");
+        }
+        else
+        {
+            // Default to rifle (AssaultRifle or no weapon)
+            detectedType = WeaponType.Rifle;
+            LogToFile("[Player] Detected weapon: Rifle (default pose)");
+        }
+
+        _currentWeaponType = detectedType;
+        ApplyWeaponArmOffsets();
+    }
+
+    /// <summary>
+    /// Applies arm position offsets based on current weapon type.
+    /// Modifies base arm positions to create appropriate weapon-holding poses.
+    /// </summary>
+    private void ApplyWeaponArmOffsets()
+    {
+        // Original positions from Player.tscn: LeftArm (24, 6), RightArm (-2, 6)
+        var originalLeftArmPos = new Vector2(24, 6);
+        var originalRightArmPos = new Vector2(-2, 6);
+
+        switch (_currentWeaponType)
+        {
+            case WeaponType.SMG:
+                // SMG pose: Compact two-handed grip
+                // Left arm moves back toward body for shorter weapon
+                // Right arm moves forward slightly to meet left hand
+                _baseLeftArmPos = originalLeftArmPos + SmgLeftArmOffset;
+                _baseRightArmPos = originalRightArmPos + SmgRightArmOffset;
+                LogToFile($"[Player] Applied SMG arm pose: Left={_baseLeftArmPos}, Right={_baseRightArmPos}");
+                break;
+
+            case WeaponType.Shotgun:
+                // Shotgun pose: Similar to rifle but slightly tighter
+                _baseLeftArmPos = originalLeftArmPos + new Vector2(-3, 0);
+                _baseRightArmPos = originalRightArmPos + new Vector2(1, 0);
+                LogToFile($"[Player] Applied Shotgun arm pose: Left={_baseLeftArmPos}, Right={_baseRightArmPos}");
+                break;
+
+            case WeaponType.Rifle:
+            default:
+                // Rifle pose: Standard extended grip (original positions)
+                _baseLeftArmPos = originalLeftArmPos;
+                _baseRightArmPos = originalRightArmPos;
+                LogToFile($"[Player] Applied Rifle arm pose: Left={_baseLeftArmPos}, Right={_baseRightArmPos}");
+                break;
+        }
+
+        // Apply new base positions to sprites immediately
+        if (_leftArmSprite != null)
+        {
+            _leftArmSprite.Position = _baseLeftArmPos;
+        }
+        if (_rightArmSprite != null)
+        {
+            _rightArmSprite.Position = _baseRightArmPos;
         }
     }
 

@@ -269,6 +269,10 @@ func _ready() -> void:
 	if _right_arm_sprite:
 		_right_arm_sprite.z_index = 2  # Arms between body and head
 
+	# Note: Weapon pose detection is done in _process() after a few frames
+	# to ensure level scripts have finished adding weapons to the player.
+	# See _weapon_pose_applied and _weapon_detect_frame_count variables.
+
 	FileLogger.info("[Player] Ready! Ammo: %d/%d, Grenades: %d/%d, Health: %d/%d" % [
 		_current_ammo, max_ammo,
 		_current_grenades, max_grenades,
@@ -279,6 +283,13 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	if not _is_alive:
 		return
+
+	# Detect weapon pose after waiting a few frames for level scripts to add weapons
+	if not _weapon_pose_applied:
+		_weapon_detect_frame_count += 1
+		if _weapon_detect_frame_count >= WEAPON_DETECT_WAIT_FRAMES:
+			_detect_and_apply_weapon_pose()
+			_weapon_pose_applied = true
 
 	var input_direction := _get_input_direction()
 
@@ -393,6 +404,73 @@ func _update_player_model_rotation() -> void:
 		_player_model.scale = Vector2(player_model_scale, -player_model_scale)
 	else:
 		_player_model.scale = Vector2(player_model_scale, player_model_scale)
+
+
+## Detects the equipped weapon type and applies appropriate arm positioning.
+## Called from _physics_process() after a few frames to ensure level scripts
+## have finished adding weapons to the player node.
+func _detect_and_apply_weapon_pose() -> void:
+	FileLogger.info("[Player] Detecting weapon pose (frame %d)..." % _weapon_detect_frame_count)
+	var detected_type := WeaponType.RIFLE  # Default to rifle pose
+
+	# Check for weapon children - weapons are added directly to player by level scripts
+	# Check in order of specificity: MiniUzi (SMG), Shotgun, then default to Rifle
+	var mini_uzi := get_node_or_null("MiniUzi")
+	var shotgun := get_node_or_null("Shotgun")
+
+	if mini_uzi != null:
+		detected_type = WeaponType.SMG
+		FileLogger.info("[Player] Detected weapon: Mini UZI (SMG pose)")
+	elif shotgun != null:
+		detected_type = WeaponType.SHOTGUN
+		FileLogger.info("[Player] Detected weapon: Shotgun (Shotgun pose)")
+	else:
+		# Default to rifle (AssaultRifle or no weapon)
+		detected_type = WeaponType.RIFLE
+		FileLogger.info("[Player] Detected weapon: Rifle (default pose)")
+
+	_current_weapon_type = detected_type
+	_apply_weapon_arm_offsets()
+
+
+## Applies arm position offsets based on current weapon type.
+## Modifies base arm positions to create appropriate weapon-holding poses.
+func _apply_weapon_arm_offsets() -> void:
+	# Reset to original scene positions first
+	# Original positions from Player.tscn: LeftArm (24, 6), RightArm (-2, 6)
+	var original_left_arm_pos := Vector2(24, 6)
+	var original_right_arm_pos := Vector2(-2, 6)
+
+	match _current_weapon_type:
+		WeaponType.SMG:
+			# SMG pose: Compact two-handed grip
+			# Left arm moves back toward body for shorter weapon
+			# Right arm moves forward slightly to meet left hand
+			_base_left_arm_pos = original_left_arm_pos + SMG_LEFT_ARM_OFFSET
+			_base_right_arm_pos = original_right_arm_pos + SMG_RIGHT_ARM_OFFSET
+			FileLogger.info("[Player] Applied SMG arm pose: Left=%s, Right=%s" % [
+				str(_base_left_arm_pos), str(_base_right_arm_pos)
+			])
+		WeaponType.SHOTGUN:
+			# Shotgun pose: Similar to rifle but slightly tighter
+			_base_left_arm_pos = original_left_arm_pos + Vector2(-3, 0)
+			_base_right_arm_pos = original_right_arm_pos + Vector2(1, 0)
+			FileLogger.info("[Player] Applied Shotgun arm pose: Left=%s, Right=%s" % [
+				str(_base_left_arm_pos), str(_base_right_arm_pos)
+			])
+		WeaponType.RIFLE, _:
+			# Rifle pose: Standard extended grip (original positions)
+			_base_left_arm_pos = original_left_arm_pos
+			_base_right_arm_pos = original_right_arm_pos
+			FileLogger.info("[Player] Applied Rifle arm pose: Left=%s, Right=%s" % [
+				str(_base_left_arm_pos), str(_base_right_arm_pos)
+			])
+
+	# Apply new base positions to sprites immediately
+	if _left_arm_sprite:
+		_left_arm_sprite.position = _base_left_arm_pos
+	if _right_arm_sprite:
+		_right_arm_sprite.position = _base_right_arm_pos
 
 
 ## Updates the walking animation based on player movement state.
@@ -983,6 +1061,42 @@ var _base_body_pos: Vector2 = Vector2.ZERO
 var _base_head_pos: Vector2 = Vector2.ZERO
 var _base_left_arm_pos: Vector2 = Vector2.ZERO
 var _base_right_arm_pos: Vector2 = Vector2.ZERO
+
+# ============================================================================
+# Weapon-Specific Arm Positioning System
+# ============================================================================
+
+## Weapon types for arm positioning.
+## Different weapon types require different arm poses for realistic holding.
+enum WeaponType {
+	RIFLE,  # Long barrel weapons (M16, AK47) - arms spread apart
+	SMG,    # Compact weapons (UZI, MP5) - arms closer together
+	SHOTGUN # Medium weapons (pump shotgun) - intermediate pose
+}
+
+## Currently detected weapon type.
+var _current_weapon_type: int = WeaponType.RIFLE
+
+## Whether weapon pose has been detected and applied.
+## Used to trigger detection in first few _process frames after _ready().
+var _weapon_pose_applied: bool = false
+
+## Frame counter for delayed weapon pose detection.
+## Weapons are added by level scripts AFTER player's _ready() completes.
+## We wait a few frames to ensure the weapon is added before detecting.
+var _weapon_detect_frame_count: int = 0
+
+## Number of frames to wait before detecting weapon pose.
+## This ensures level scripts have finished adding weapons.
+const WEAPON_DETECT_WAIT_FRAMES: int = 3
+
+## Arm position offsets for SMG weapons (relative to rifle base positions).
+## UZI and similar compact SMGs should have the left arm closer to the body
+## for a proper two-handed compact grip.
+## Left arm moves back (negative X) to create compact grip.
+const SMG_LEFT_ARM_OFFSET := Vector2(-10, 0)
+## Right arm moves slightly forward to meet left hand.
+const SMG_RIGHT_ARM_OFFSET := Vector2(3, 0)
 
 # ============================================================================
 # Grenade Animation System
