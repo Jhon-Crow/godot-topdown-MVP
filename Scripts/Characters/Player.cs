@@ -284,28 +284,32 @@ public partial class Player : BaseCharacter
 
     // Target positions for arm animations (relative offsets from base positions)
     // These are in local PlayerModel space
-    // IMPORTANT: Keep offsets small to prevent arm "detachment" from body
-    // Arms are single-piece sprites, so we rely more on rotation than translation
     // Base positions: LeftArm (24, 6), RightArm (-2, 6)
-    private static readonly Vector2 ArmLeftChest = new Vector2(-4, 3);         // Left hand slightly inward (grab grenade from chest)
+    // Body position: (-4, 0), so left shoulder area is approximately x=0 to x=5
+    // To move left arm from x=24 to shoulder (x~5), we need offset of ~-20
+    // During grenade operations, left arm should be BEHIND the body (toward shoulder)
+    // not holding the weapon at the front
+    private static readonly Vector2 ArmLeftChest = new Vector2(-15, 0);        // Left hand moves back to chest/shoulder area to grab grenade
     private static readonly Vector2 ArmRightPin = new Vector2(2, -2);          // Right hand slightly up for pin pull
-    private static readonly Vector2 ArmLeftExtended = new Vector2(2, 1);       // Left hand slightly forward with grenade
+    private static readonly Vector2 ArmLeftExtended = new Vector2(-10, 2);     // Left hand at chest level with grenade (not extended forward)
     private static readonly Vector2 ArmRightApproach = new Vector2(4, 0);      // Right hand approaching left
-    private static readonly Vector2 ArmLeftTransfer = new Vector2(-2, 4);      // Left hand drops back after transfer (away from weapon)
+    private static readonly Vector2 ArmLeftTransfer = new Vector2(-12, 3);     // Left hand drops back after transfer (clearly away from weapon)
     private static readonly Vector2 ArmRightHold = new Vector2(3, 1);          // Right hand holding grenade
     private static readonly Vector2 ArmRightWindMin = new Vector2(4, 3);       // Minimum wind-up position (arm back)
     private static readonly Vector2 ArmRightWindMax = new Vector2(8, 5);       // Maximum wind-up position (arm further back)
     private static readonly Vector2 ArmRightThrow = new Vector2(-4, -2);       // Throw follow-through (arm forward)
-    private static readonly Vector2 ArmLeftRelaxed = new Vector2(-6, 5);       // Left arm relaxed at side during wind-up (clearly away from weapon)
+    private static readonly Vector2 ArmLeftRelaxed = new Vector2(-20, 2);      // Left arm at shoulder/body - well away from weapon during wind-up/throw
 
     // Target rotations for arm animations (in degrees)
-    // Use rotation to simulate elbow bending instead of large position offsets
-    private const float ArmRotGrab = -20.0f;         // Arm rotation when grabbing (inward bend)
-    private const float ArmRotPinPull = -15.0f;      // Arm rotation when pulling pin
-    private const float ArmRotWindMin = 15.0f;       // Minimum wind-up rotation (arm pulled back)
-    private const float ArmRotWindMax = 35.0f;       // Maximum wind-up rotation
-    private const float ArmRotThrow = -25.0f;        // Throw rotation (arm swings forward)
-    private const float ArmRotLeftRelaxed = 10.0f;   // Left arm relaxed rotation during wind-up
+    // When left arm moves back to shoulder position, rotate to point "down" relative to body
+    // This makes the arm look like it's hanging at the side rather than reaching forward
+    private const float ArmRotGrab = -45.0f;         // Arm rotation when grabbing at chest (points inward/down)
+    private const float ArmRotPinPull = -15.0f;      // Right arm rotation when pulling pin
+    private const float ArmRotLeftAtChest = -30.0f;  // Left arm rotation while holding grenade at chest
+    private const float ArmRotWindMin = 15.0f;       // Right arm minimum wind-up rotation
+    private const float ArmRotWindMax = 35.0f;       // Right arm maximum wind-up rotation
+    private const float ArmRotThrow = -25.0f;        // Right arm throw rotation (swings forward)
+    private const float ArmRotLeftRelaxed = -60.0f;  // Left arm hangs down at side during wind-up/throw (points backward)
 
     // Animation durations for each phase (in seconds)
     private const float AnimGrabDuration = 0.2f;
@@ -1718,37 +1722,40 @@ public partial class Player : BaseCharacter
         switch (_grenadeAnimPhase)
         {
             case GrenadeAnimPhase.GrabGrenade:
-                // Left hand moves to chest/lower area to grab grenade
-                // Keep position offset small and use rotation for "bending"
+                // Left arm moves back to shoulder/chest area (away from weapon) to grab grenade
+                // Large negative X offset pulls the arm from weapon front (x=24) toward body (x~5)
                 leftArmTarget = _baseLeftArmPos + ArmLeftChest;
                 leftArmRot = Mathf.DegToRad(ArmRotGrab);
                 lerpSpeed = AnimLerpSpeedFast * delta;
                 break;
 
             case GrenadeAnimPhase.PullPin:
-                // Left hand holds grenade, right hand near for pin
+                // Left hand holds grenade at chest level, right hand pulls pin
                 leftArmTarget = _baseLeftArmPos + ArmLeftExtended;
+                leftArmRot = Mathf.DegToRad(ArmRotLeftAtChest);
                 rightArmTarget = _baseRightArmPos + ArmRightPin;
                 rightArmRot = Mathf.DegToRad(ArmRotPinPull);
                 lerpSpeed = AnimLerpSpeedFast * delta;
                 break;
 
             case GrenadeAnimPhase.HandsApproach:
-                // Both hands coming together
+                // Both hands at chest level, preparing for transfer
                 leftArmTarget = _baseLeftArmPos + ArmLeftExtended;
+                leftArmRot = Mathf.DegToRad(ArmRotLeftAtChest);
                 rightArmTarget = _baseRightArmPos + ArmRightApproach;
                 break;
 
             case GrenadeAnimPhase.Transfer:
-                // Left hand relaxes and moves away from weapon, right hand takes grenade
+                // Left arm drops back toward body, right hand takes grenade
                 leftArmTarget = _baseLeftArmPos + ArmLeftTransfer;
+                leftArmRot = Mathf.DegToRad(ArmRotLeftRelaxed * 0.5f);
                 rightArmTarget = _baseRightArmPos + ArmRightHold;
                 lerpSpeed = AnimLerpSpeed * delta;
                 break;
 
             case GrenadeAnimPhase.WindUp:
-                // Dynamic wind-up based on drag intensity
-                // LEFT ARM: Move clearly away from weapon area (relaxed at side)
+                // LEFT ARM: Fully retracted to shoulder/body area, hangs at side
+                // This is the key position - arm must be clearly NOT on the weapon
                 leftArmTarget = _baseLeftArmPos + ArmLeftRelaxed;
                 leftArmRot = Mathf.DegToRad(ArmRotLeftRelaxed);
                 // RIGHT ARM: Interpolate between min and max wind-up based on intensity
@@ -1760,9 +1767,9 @@ public partial class Player : BaseCharacter
                 break;
 
             case GrenadeAnimPhase.Throw:
-                // Throwing motion - right arm swings forward, left stays relaxed
-                leftArmTarget = _baseLeftArmPos + ArmLeftRelaxed; // Left arm stays relaxed during throw
-                leftArmRot = Mathf.DegToRad(ArmRotLeftRelaxed * 0.5f); // Slightly less rotation
+                // Throwing motion - right arm swings forward, left stays at body
+                leftArmTarget = _baseLeftArmPos + ArmLeftRelaxed;
+                leftArmRot = Mathf.DegToRad(ArmRotLeftRelaxed);
                 rightArmTarget = _baseRightArmPos + ArmRightThrow;
                 rightArmRot = Mathf.DegToRad(ArmRotThrow);
                 lerpSpeed = AnimLerpSpeedFast * delta;
@@ -1775,7 +1782,7 @@ public partial class Player : BaseCharacter
                 break;
 
             case GrenadeAnimPhase.ReturnIdle:
-                // Arms returning to base positions
+                // Arms returning to base positions (back to holding weapon)
                 leftArmTarget = _baseLeftArmPos;
                 rightArmTarget = _baseRightArmPos;
                 lerpSpeed = AnimLerpSpeed * delta;

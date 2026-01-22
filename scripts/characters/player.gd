@@ -921,21 +921,29 @@ var _base_weapon_mount_rot: float = 0.0
 
 ## Target positions for arm animations (relative offsets from base positions).
 ## These are in local PlayerModel space.
-const ARM_LEFT_CHEST := Vector2(-15, -8)        # Left hand at chest (grab grenade)
-const ARM_RIGHT_PIN := Vector2(-8, -12)         # Right hand for pin pull
-const ARM_LEFT_EXTENDED := Vector2(5, 0)        # Left hand extended with grenade
-const ARM_RIGHT_APPROACH := Vector2(8, -5)      # Right hand approaching left
-const ARM_LEFT_TRANSFER := Vector2(0, 5)        # Left hand after transfer
-const ARM_RIGHT_HOLD := Vector2(5, 0)           # Right hand holding grenade
-const ARM_RIGHT_WIND_MIN := Vector2(10, 8)      # Minimum wind-up position
-const ARM_RIGHT_WIND_MAX := Vector2(35, 18)     # Maximum wind-up position
-const ARM_RIGHT_THROW := Vector2(-25, -5)       # Throw follow-through
+## Base positions: LeftArm (24, 6), RightArm (-2, 6)
+## Body position: (-4, 0), so left shoulder area is approximately x=0 to x=5
+## To move left arm from x=24 to shoulder (x~5), we need offset of ~-20
+## During grenade operations, left arm should be BEHIND the body (toward shoulder)
+const ARM_LEFT_CHEST := Vector2(-15, 0)         # Left hand moves back to chest/shoulder area
+const ARM_RIGHT_PIN := Vector2(2, -2)           # Right hand slightly up for pin pull
+const ARM_LEFT_EXTENDED := Vector2(-10, 2)      # Left hand at chest level with grenade
+const ARM_RIGHT_APPROACH := Vector2(4, 0)       # Right hand approaching left
+const ARM_LEFT_TRANSFER := Vector2(-12, 3)      # Left hand drops back after transfer
+const ARM_RIGHT_HOLD := Vector2(3, 1)           # Right hand holding grenade
+const ARM_RIGHT_WIND_MIN := Vector2(4, 3)       # Minimum wind-up position
+const ARM_RIGHT_WIND_MAX := Vector2(8, 5)       # Maximum wind-up position
+const ARM_RIGHT_THROW := Vector2(-4, -2)        # Throw follow-through
+const ARM_LEFT_RELAXED := Vector2(-20, 2)       # Left arm at shoulder/body during wind-up/throw
 
 ## Target rotations for arm animations (in degrees).
-const ARM_ROT_GRAB := -15.0           # Arm rotation when grabbing
-const ARM_ROT_PIN_PULL := -10.0       # Arm rotation when pulling pin
-const ARM_ROT_WIND_MAX := 45.0        # Maximum wind-up rotation
-const ARM_ROT_THROW := -30.0          # Throw rotation
+const ARM_ROT_GRAB := -45.0           # Arm rotation when grabbing at chest
+const ARM_ROT_PIN_PULL := -15.0       # Right arm rotation when pulling pin
+const ARM_ROT_LEFT_AT_CHEST := -30.0  # Left arm rotation while holding grenade at chest
+const ARM_ROT_WIND_MIN := 15.0        # Right arm minimum wind-up rotation
+const ARM_ROT_WIND_MAX := 35.0        # Right arm maximum wind-up rotation
+const ARM_ROT_THROW := -25.0          # Right arm throw rotation
+const ARM_ROT_LEFT_RELAXED := -60.0   # Left arm hangs down at side during wind-up/throw
 
 ## Animation durations for each phase (in seconds).
 const ANIM_GRAB_DURATION := 0.2
@@ -1316,41 +1324,49 @@ func _update_grenade_animation(delta: float) -> void:
 
 	match _grenade_anim_phase:
 		GrenadeAnimPhase.GRAB_GRENADE:
-			# Left hand moves to chest to grab grenade
+			# Left arm moves back to shoulder/chest area (away from weapon) to grab grenade
+			# Large negative X offset pulls the arm from weapon front toward body
 			left_arm_target = _base_left_arm_pos + ARM_LEFT_CHEST
 			left_arm_rot = deg_to_rad(ARM_ROT_GRAB)
 			lerp_speed = ANIM_LERP_SPEED_FAST * delta
 
 		GrenadeAnimPhase.PULL_PIN:
-			# Left hand holds grenade extended, right hand near for pin
+			# Left hand holds grenade at chest level, right hand pulls pin
 			left_arm_target = _base_left_arm_pos + ARM_LEFT_EXTENDED
+			left_arm_rot = deg_to_rad(ARM_ROT_LEFT_AT_CHEST)
 			right_arm_target = _base_right_arm_pos + ARM_RIGHT_PIN
 			right_arm_rot = deg_to_rad(ARM_ROT_PIN_PULL)
 			lerp_speed = ANIM_LERP_SPEED_FAST * delta
 
 		GrenadeAnimPhase.HANDS_APPROACH:
-			# Both hands coming together
+			# Both hands at chest level, preparing for transfer
 			left_arm_target = _base_left_arm_pos + ARM_LEFT_EXTENDED
+			left_arm_rot = deg_to_rad(ARM_ROT_LEFT_AT_CHEST)
 			right_arm_target = _base_right_arm_pos + ARM_RIGHT_APPROACH
 
 		GrenadeAnimPhase.TRANSFER:
-			# Left hand relaxes, right hand takes grenade
+			# Left arm drops back toward body, right hand takes grenade
 			left_arm_target = _base_left_arm_pos + ARM_LEFT_TRANSFER
+			left_arm_rot = deg_to_rad(ARM_ROT_LEFT_RELAXED * 0.5)
 			right_arm_target = _base_right_arm_pos + ARM_RIGHT_HOLD
 			lerp_speed = ANIM_LERP_SPEED * delta
 
 		GrenadeAnimPhase.WIND_UP:
-			# Dynamic wind-up based on drag intensity
-			left_arm_target = _base_left_arm_pos + ARM_LEFT_TRANSFER
-			# Interpolate right arm between min and max wind-up based on intensity
+			# LEFT ARM: Fully retracted to shoulder/body area, hangs at side
+			# This is the key position - arm must be clearly NOT on the weapon
+			left_arm_target = _base_left_arm_pos + ARM_LEFT_RELAXED
+			left_arm_rot = deg_to_rad(ARM_ROT_LEFT_RELAXED)
+			# RIGHT ARM: Interpolate between min and max wind-up based on intensity
 			var wind_up_offset := ARM_RIGHT_WIND_MIN.lerp(ARM_RIGHT_WIND_MAX, _wind_up_intensity)
 			right_arm_target = _base_right_arm_pos + wind_up_offset
-			right_arm_rot = deg_to_rad(ARM_ROT_WIND_MAX * _wind_up_intensity)
+			var wind_up_rot := lerpf(ARM_ROT_WIND_MIN, ARM_ROT_WIND_MAX, _wind_up_intensity)
+			right_arm_rot = deg_to_rad(wind_up_rot)
 			lerp_speed = ANIM_LERP_SPEED_FAST * delta  # Responsive to input
 
 		GrenadeAnimPhase.THROW:
-			# Throwing motion - arm swings forward
-			left_arm_target = _base_left_arm_pos  # Left arm returns
+			# Throwing motion - right arm swings forward, left stays at body
+			left_arm_target = _base_left_arm_pos + ARM_LEFT_RELAXED
+			left_arm_rot = deg_to_rad(ARM_ROT_LEFT_RELAXED)
 			right_arm_target = _base_right_arm_pos + ARM_RIGHT_THROW
 			right_arm_rot = deg_to_rad(ARM_ROT_THROW)
 			lerp_speed = ANIM_LERP_SPEED_FAST * delta
@@ -1360,7 +1376,7 @@ func _update_grenade_animation(delta: float) -> void:
 				_start_grenade_anim_phase(GrenadeAnimPhase.RETURN_IDLE, ANIM_RETURN_DURATION)
 
 		GrenadeAnimPhase.RETURN_IDLE:
-			# Arms returning to base positions
+			# Arms returning to base positions (back to holding weapon)
 			left_arm_target = _base_left_arm_pos
 			right_arm_target = _base_right_arm_pos
 			lerp_speed = ANIM_LERP_SPEED * delta
