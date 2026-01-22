@@ -239,6 +239,21 @@ func _ready() -> void:
 	if _right_arm_sprite:
 		_base_right_arm_pos = _right_arm_sprite.position
 
+	# Apply scale to player model for larger appearance
+	if _player_model:
+		_player_model.scale = Vector2(player_model_scale, player_model_scale)
+
+	# Set z-index for proper layering: head should be above weapon
+	# The weapon has z_index = 1, so head should be 2 or higher
+	if _head_sprite:
+		_head_sprite.z_index = 3  # Head on top (above weapon)
+	if _body_sprite:
+		_body_sprite.z_index = 1  # Body same level as weapon
+	if _left_arm_sprite:
+		_left_arm_sprite.z_index = 2  # Arms between body and head
+	if _right_arm_sprite:
+		_right_arm_sprite.z_index = 2  # Arms between body and head
+
 	FileLogger.info("[Player] Ready! Ammo: %d/%d, Grenades: %d/%d, Health: %d/%d" % [
 		_current_ammo, max_ammo,
 		_current_grenades, max_grenades,
@@ -260,6 +275,9 @@ func _physics_process(delta: float) -> void:
 		velocity = velocity.move_toward(Vector2.ZERO, friction * delta)
 
 	move_and_slide()
+
+	# Update player model rotation to face the aim direction (rifle direction)
+	_update_player_model_rotation()
 
 	# Update walking animation based on movement
 	_update_walk_animation(delta, input_direction)
@@ -305,6 +323,39 @@ func _get_input_direction() -> Vector2:
 		direction = direction.normalized()
 
 	return direction
+
+
+## Updates the player model rotation to face the aim direction.
+## The player model (body, head, arms) rotates to follow the rifle's aim direction.
+## This creates the appearance of the player rotating their whole body toward the target.
+func _update_player_model_rotation() -> void:
+	if not _player_model:
+		return
+
+	# Calculate direction to mouse cursor
+	var mouse_pos := get_global_mouse_position()
+	var to_mouse := mouse_pos - global_position
+
+	if to_mouse.length_squared() < 0.001:
+		return  # No valid direction
+
+	var aim_direction := to_mouse.normalized()
+
+	# Calculate target rotation angle
+	var target_angle := aim_direction.angle()
+
+	# Apply rotation to the player model
+	_player_model.rotation = target_angle
+
+	# Handle sprite flipping for left/right aim
+	# When aiming left (angle > 90° or < -90°), flip vertically to avoid upside-down appearance
+	var aiming_left := absf(target_angle) > PI / 2
+
+	# Flip the player model vertically when aiming left
+	if aiming_left:
+		_player_model.scale = Vector2(player_model_scale, -player_model_scale)
+	else:
+		_player_model.scale = Vector2(player_model_scale, player_model_scale)
 
 
 ## Updates the walking animation based on player movement state.
@@ -798,6 +849,10 @@ const THROW_ROTATION_DURATION: float = 0.15
 
 ## Walking animation intensity - higher = more pronounced movement.
 @export var walk_anim_intensity: float = 1.0
+
+## Scale multiplier for the player model (body, head, arms).
+## Default is 1.3 to make the player slightly larger.
+@export var player_model_scale: float = 1.3
 
 ## Current walk animation time (accumulator for sine wave).
 var _walk_anim_time: float = 0.0

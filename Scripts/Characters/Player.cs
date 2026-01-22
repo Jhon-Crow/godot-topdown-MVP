@@ -187,6 +187,13 @@ public partial class Player : BaseCharacter
     public float WalkAnimSpeed { get; set; } = 12.0f;
 
     /// <summary>
+    /// Scale multiplier for the player model (body, head, arms).
+    /// Default is 1.3 to make the player slightly larger.
+    /// </summary>
+    [Export]
+    public float PlayerModelScale { get; set; } = 1.3f;
+
+    /// <summary>
     /// Walking animation intensity - higher = more pronounced movement.
     /// </summary>
     [Export]
@@ -378,6 +385,31 @@ public partial class Player : BaseCharacter
             _baseRightArmPos = _rightArmSprite.Position;
         }
 
+        // Apply scale to player model for larger appearance
+        if (_playerModel != null)
+        {
+            _playerModel.Scale = new Vector2(PlayerModelScale, PlayerModelScale);
+        }
+
+        // Set z-index for proper layering: head should be above weapon
+        // The weapon has z_index = 1, so head should be 2 or higher
+        if (_headSprite != null)
+        {
+            _headSprite.ZIndex = 3;  // Head on top (above weapon)
+        }
+        if (_bodySprite != null)
+        {
+            _bodySprite.ZIndex = 1;  // Body same level as weapon
+        }
+        if (_leftArmSprite != null)
+        {
+            _leftArmSprite.ZIndex = 2;  // Arms between body and head
+        }
+        if (_rightArmSprite != null)
+        {
+            _rightArmSprite.ZIndex = 2;  // Arms between body and head
+        }
+
         LogToFile($"[Player] Ready! Grenades: {_currentGrenades}/{MaxGrenades}");
     }
 
@@ -439,6 +471,9 @@ public partial class Player : BaseCharacter
     {
         Vector2 inputDirection = GetInputDirection();
         ApplyMovement(inputDirection, (float)delta);
+
+        // Update player model rotation to face the aim direction (rifle direction)
+        UpdatePlayerModelRotation();
 
         // Update walking animation based on movement
         UpdateWalkAnimation((float)delta, inputDirection);
@@ -584,6 +619,60 @@ public partial class Player : BaseCharacter
         if (CurrentWeapon is AssaultRifle assaultRifle)
         {
             assaultRifle.ToggleFireMode();
+        }
+    }
+
+    /// <summary>
+    /// Updates the player model rotation to face the aim direction.
+    /// The player model (body, head, arms) rotates to follow the rifle's aim direction.
+    /// This creates the appearance of the player rotating their whole body toward the target.
+    /// </summary>
+    private void UpdatePlayerModelRotation()
+    {
+        if (_playerModel == null)
+        {
+            return;
+        }
+
+        // Get the aim direction from the weapon if available
+        Vector2 aimDirection;
+        if (CurrentWeapon is AssaultRifle assaultRifle)
+        {
+            aimDirection = assaultRifle.AimDirection;
+        }
+        else
+        {
+            // Fallback: calculate direction to mouse cursor
+            Vector2 mousePos = GetGlobalMousePosition();
+            Vector2 toMouse = mousePos - GlobalPosition;
+            if (toMouse.LengthSquared() > 0.001f)
+            {
+                aimDirection = toMouse.Normalized();
+            }
+            else
+            {
+                return; // No valid direction
+            }
+        }
+
+        // Calculate target rotation angle
+        float targetAngle = aimDirection.Angle();
+
+        // Apply rotation to the player model
+        _playerModel.Rotation = targetAngle;
+
+        // Handle sprite flipping for left/right aim
+        // When aiming left (angle > 90° or < -90°), flip vertically to avoid upside-down appearance
+        bool aimingLeft = Mathf.Abs(targetAngle) > Mathf.Pi / 2;
+
+        // Flip the player model vertically when aiming left
+        if (aimingLeft)
+        {
+            _playerModel.Scale = new Vector2(PlayerModelScale, -PlayerModelScale);
+        }
+        else
+        {
+            _playerModel.Scale = new Vector2(PlayerModelScale, PlayerModelScale);
         }
     }
 
