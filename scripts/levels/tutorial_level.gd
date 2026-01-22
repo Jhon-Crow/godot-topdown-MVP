@@ -252,6 +252,9 @@ func _setup_ammo_tracking() -> void:
 		# C# Player with shotgun - connect to weapon signals
 		if shotgun.has_signal("AmmoChanged"):
 			shotgun.AmmoChanged.connect(_on_weapon_ammo_changed)
+		# Connect to ShellCountChanged for real-time UI update during shell-by-shell reload
+		if shotgun.has_signal("ShellCountChanged"):
+			shotgun.ShellCountChanged.connect(_on_shell_count_changed)
 		# Initial ammo display from shotgun
 		if shotgun.get("CurrentAmmo") != null and shotgun.get("ReserveAmmo") != null:
 			_update_ammo_label_magazine(shotgun.CurrentAmmo, shotgun.ReserveAmmo)
@@ -312,6 +315,18 @@ func _update_ammo_label_magazine(current_mag: int, reserve: int) -> void:
 		_ammo_label.add_theme_color_override("font_color", Color(1.0, 1.0, 0.2, 1.0))
 	else:
 		_ammo_label.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 1.0))
+
+
+## Called when shotgun shell count changes (during shell-by-shell reload).
+## This allows the ammo counter to update immediately as each shell is loaded.
+func _on_shell_count_changed(shell_count: int, _capacity: int) -> void:
+	# Get the reserve ammo from the weapon for display
+	var reserve_ammo: int = 0
+	if _player:
+		var shotgun = _player.get_node_or_null("Shotgun")
+		if shotgun != null and shotgun.get("ReserveAmmo") != null:
+			reserve_ammo = shotgun.ReserveAmmo
+	_update_ammo_label_magazine(shell_count, reserve_ammo)
 
 
 ## Setup targets and connect to their hit signals.

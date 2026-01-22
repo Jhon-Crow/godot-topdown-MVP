@@ -103,7 +103,10 @@ func _setup_player_tracking() -> void:
 		_player.Died.connect(_on_player_died)
 
 	# Try to get the player's weapon for C# Player
-	var weapon = _player.get_node_or_null("AssaultRifle")
+	# First try shotgun (if selected), then assault rifle
+	var weapon = _player.get_node_or_null("Shotgun")
+	if weapon == null:
+		weapon = _player.get_node_or_null("AssaultRifle")
 	if weapon != null:
 		# C# Player with weapon - connect to weapon signals
 		if weapon.has_signal("AmmoChanged"):
@@ -112,6 +115,9 @@ func _setup_player_tracking() -> void:
 			weapon.MagazinesChanged.connect(_on_magazines_changed)
 		if weapon.has_signal("Fired"):
 			weapon.Fired.connect(_on_shot_fired)
+		# Connect to ShellCountChanged for shotgun - updates ammo UI during shell-by-shell reload
+		if weapon.has_signal("ShellCountChanged"):
+			weapon.ShellCountChanged.connect(_on_shell_count_changed)
 		# Initial ammo display from weapon
 		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
 			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
@@ -283,6 +289,18 @@ func _on_weapon_ammo_changed(current_ammo: int, reserve_ammo: int) -> void:
 ## Called when magazine inventory changes (C# Player).
 func _on_magazines_changed(magazine_ammo_counts: Array) -> void:
 	_update_magazines_label(magazine_ammo_counts)
+
+
+## Called when shotgun shell count changes (during shell-by-shell reload).
+## This allows the ammo counter to update immediately as each shell is loaded.
+func _on_shell_count_changed(shell_count: int, _capacity: int) -> void:
+	# Get the reserve ammo from the weapon for display
+	var reserve_ammo: int = 0
+	if _player:
+		var weapon = _player.get_node_or_null("Shotgun")
+		if weapon != null and weapon.get("ReserveAmmo") != null:
+			reserve_ammo = weapon.ReserveAmmo
+	_update_ammo_label_magazine(shell_count, reserve_ammo)
 
 
 ## Called when player runs out of ammo in current magazine.
