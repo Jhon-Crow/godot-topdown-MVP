@@ -30,10 +30,10 @@ const WEAPONS: Dictionary = {
 		"description": "Coming soon"
 	},
 	"shotgun": {
-		"name": "???",
-		"icon_path": "",
-		"unlocked": false,
-		"description": "Coming soon"
+		"name": "Shotgun",
+		"icon_path": "res://assets/sprites/weapons/shotgun.png",
+		"unlocked": true,
+		"description": "Pump-action shotgun - 6-12 pellets per shot, 15° spread, no wall penetration. Press LMB to fire."
 	},
 	"smg": {
 		"name": "???",

@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=2 format=3 uid="uid://ck5m8n6r4p7q3"]
+
+[ext_resource type="Script" path="res://Scripts/Data/WeaponData.cs" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+Name = "Shotgun"
+Damage = 1.0
+FireRate = 1.5
+MagazineSize = 8
+MaxReserveAmmo = 24
+ReloadTime = 0.5
+BulletSpeed = 1200.0
+Range = 800.0
+SpreadAngle = 15.0
+BulletsPerShot = 9
+IsAutomatic = false
+Sensitivity = 0.0
+ScreenShakeIntensity = 25.0
+ScreenShakeMinRecoveryTime = 0.4
+ScreenShakeMaxRecoveryTime = 0.15
+Loudness = 1469.0

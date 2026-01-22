@@ -123,6 +123,38 @@ The `armory_menu.gd` already has a "Shotgun" slot marked as "Coming soon", indic
 3. **Maintain Backward Compatibility**: Don't break M16 functionality
 4. **Create Tests**: Shell reload is complex enough to warrant unit tests
 
+## Additional Data
+
+### Game Log Analysis (2026-01-22)
+
+A game log file (`game_log_20260122_035950.txt`) was provided showing current game behavior:
+
+**Environment:**
+- Windows build, Godot 4.3-stable
+- Project: "Godot Top-Down Template"
+- Debug build: false (release)
+
+**Key Observations:**
+1. Current weapon in use: AssaultRifle
+2. Sound propagation system working (gunshot at 450, 1250 with range 1469)
+3. Bullet ricochet system active (distance-based ricochet calculation)
+4. 10 enemies spawning with various behaviors (GUARD, PATROL)
+5. Effects managers initialized (PenultimateHit, LastChance)
+
+**Relevant for Shotgun:**
+- Sound propagation uses loudness range parameter (1469 for rifle)
+- Bullet system tracks shooter position for distance calculations
+- Screen shake and effects already integrated
+
+### Icon Reference
+
+The owner provided a reference for the shotgun icon: [3d-model.net pump-action shotgun](https://3d-model.net/3d-models/3d-modeli-oruzhie/strelkovoe-oruzhie/859-pompovoe-ruzhe.html)
+
+Features for icon design:
+- Pump-action shotgun silhouette
+- Sliding foregrip mechanism
+- Traditional stock and barrel proportions
+
 ## Conclusion
 
 The shotgun implementation is technically feasible and architecturally sound within the existing codebase. The primary challenge lies in the manual shell reload system, which requires a new input paradigm. A phased approach is recommended to balance feature delivery with risk management.

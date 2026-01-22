@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="CaliberData" load_steps=2 format=3 uid="uid://dk4m7n8r3p5q2"]
+
+[ext_resource type="Script" path="res://scripts/data/caliber_data.gd" id="1_caliber"]
+
+[resource]
+script = ExtResource("1_caliber")
+caliber_name = "Buckshot (00)"
+diameter_mm = 8.38
+mass_grams = 53.8
+base_velocity = 1200.0
+can_ricochet = true
+max_ricochets = 1
+max_ricochet_angle = 35.0
+base_ricochet_probability = 0.8
+velocity_retention = 0.5
+ricochet_damage_multiplier = 0.4
+ricochet_angle_deviation = 15.0
+penetration_power = 15.0
+min_surface_hardness_for_ricochet = 60.0
+can_penetrate = false
+max_penetration_distance = 0.0
+post_penetration_damage_multiplier = 0.0
+min_penetrable_wall_thickness = 999.0
+effect_scale = 1.2

@@ -1,0 +1,13 @@
+[gd_scene load_steps=4 format=3 uid="uid://dm6n9p4r5q8w2"]
+
+[ext_resource type="Script" path="res://Scripts/Weapons/Shotgun.cs" id="1_shotgun"]
+[ext_resource type="PackedScene" uid="uid://dv2q8m5n7xk1q" path="res://scenes/projectiles/csharp/Bullet.tscn" id="2_bullet"]
+[ext_resource type="Resource" uid="uid://ck5m8n6r4p7q3" path="res://resources/weapons/ShotgunData.tres" id="3_weapon_data"]
+
+[node name="Shotgun" type="Node2D"]
+script = ExtResource("1_shotgun")
+WeaponData = ExtResource("3_weapon_data")
+BulletScene = ExtResource("2_bullet")
+BulletSpawnOffset = 25.0
+MinPellets = 6
+MaxPellets = 12
