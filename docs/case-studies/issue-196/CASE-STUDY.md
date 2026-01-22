@@ -137,3 +137,64 @@ The user provided reference images showing tactical soldier poses from a top-dow
 - `assets/sprites/characters/player/player_combined_preview.png` - Regenerated
 - `scenes/characters/Player.tscn` - Updated sprite positions
 - `scenes/characters/csharp/Player.tscn` - Updated sprite positions
+
+## Iteration 2: Rifle Stock and Arm Visibility Fix (2026-01-22)
+
+### Feedback Received
+
+User @Jhon-Crow provided feedback on PR #197:
+
+> **Positive Note**: "It is the best model and animation so far, I'll make a note about it"
+
+However, two issues were identified:
+1. **Rifle Stock Position**: The rifle stock was sticking out of the back of the player's head instead of being attached to the right shoulder
+2. **Arms Not Visible**: The arms were not visible on the weapon
+
+### Root Cause Analysis
+
+The rifle positioning issue stemmed from coordinate system misunderstanding:
+- The rifle sprite has an offset of `(20, 0)` which shifts its visual center 20 pixels forward
+- The PlayerModel and AssaultRifle both rotate around Player origin `(0, 0)`
+- The arm z_index was 2, same level as rifle z_index 1, causing rendering order issues
+
+When both PlayerModel and rifle rotate to the same angle to aim at the mouse:
+- The rifle visual center was too far forward
+- The stock (left side of rifle) ended up overlapping with the head
+- Arms were rendered behind the rifle sprite
+
+### Solution
+
+1. **Repositioned body parts for Door Kickers 2 style tactical pose**:
+   - Body at `(-4, 0)` - shifted back to provide space for rifle
+   - Head at `(-6, -2)` - behind and above to look down sights
+   - RightArm at `(-2, 6)` - at stock/trigger area (shoulder level)
+   - LeftArm at `(24, 6)` - extended forward at foregrip area
+   - WeaponMount at `(0, 6)` or `(6, 6)` for shoulder-level rifle mounting
+
+2. **Increased arm z_index to 4** (rifle is z_index 1) to ensure arms always render on top of the weapon
+
+3. **Positioned rifle at shoulder height** (`position = Vector2(0, 6)` on C# scene) so the stock is at the player's right shoulder area
+
+### Position Reference Table (Updated)
+
+| Sprite | Previous Position | New Position | Rationale |
+|--------|-------------------|--------------|-----------|
+| Body | (-4, 2) | (-4, 0) | Centered for rotation |
+| Head | (6, -2) | (-6, -2) | Behind body, looking down sights |
+| LeftArm | (18, -4) | (24, 6) | Extended to foregrip, shoulder level |
+| RightArm | (8, 8) | (-2, 6) | Near stock/trigger, shoulder level |
+| WeaponMount | (24, 2) | (0, 6) / (6, 6) | At shoulder for proper stock placement |
+| AssaultRifle | (0, 0) | (0, 6) | Shoulder height for tactical pose |
+
+### Technical Notes
+
+The key insight is that in Godot 2D:
+- X+ is right (forward when facing right)
+- Y+ is down (toward player's right side in top-down view)
+
+For a proper tactical rifle stance (Door Kickers 2 style):
+- Rifle stock should be tucked against right shoulder (positive Y from center)
+- Head should be positioned to look down the rifle sights
+- Right arm holds stock/trigger area
+- Left arm extends forward to foregrip
+- Arms must have higher z_index than rifle to appear "gripping" the weapon
