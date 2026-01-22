@@ -4,16 +4,18 @@
 
 Issue #204 requested the addition of proper sound effects for the shotgun weapon in godot-topdown-MVP. The solution involved integrating existing audio assets into the AudioManager and updating the Shotgun.cs weapon class to use proper shotgun-specific sounds instead of placeholder M16 sounds.
 
+**Final Status**: PR #201 (advanced pump-action mechanics) has been merged to main, and PR #205 now provides the proper shotgun sounds for each action in the multi-component reload/fire sequence.
+
 ## Issue Details
 
 | Field | Value |
 |-------|-------|
 | Issue URL | https://github.com/Jhon-Crow/godot-topdown-MVP/issues/204 |
 | Issue Title | добавить звуки дробовику (Add shotgun sounds) |
-| Status | In Progress |
+| Status | In Progress (PR #205 ready for review) |
 | PR URL | https://github.com/Jhon-Crow/godot-topdown-MVP/pull/205 |
 | Related Issues | #194 (original shotgun), #199 (shotgun mechanics) |
-| Related PRs | #195, #200, #201 |
+| Related PRs | #195, #200, #201 (now merged) |
 
 ## Timeline of Events
 
@@ -35,7 +37,10 @@ Issue #204 requested the addition of proper sound effects for the shotgun weapon
 | 2026-01-22 04:01 | PR #205 Created | AI solution draft started. Branch: `issue-204-9b0ca1d6ffd6`. |
 | 2026-01-22 04:08 | Solution Draft Complete | Initial implementation: AudioManager updated, Shotgun.cs sounds integrated. |
 | 2026-01-22 04:19 | Owner Feedback | Jhon-Crow requested alignment with PR #201 pattern and case study creation. |
-| 2026-01-22 04:20 | Work Session Resumed | Current session to address feedback. |
+| 2026-01-22 04:26 | Session 2 Complete | Case study documentation created, PR #201 sound mapping documented. |
+| 2026-01-22 04:42 | Owner Feedback | PR #201 merged to main. Request to add sounds to each action in the multi-component system. |
+| 2026-01-22 04:43 | Session 3 Started | Merge upstream/main to get PR #201 changes, integrate proper sounds. |
+| 2026-01-22 04:50 | Merge Complete | Resolved conflicts, replaced all placeholder sounds with proper shotgun sounds. |
 
 ## Root Cause Analysis
 
@@ -123,18 +128,34 @@ When shotgun fires:
 300ms  → Action close sound (pump pushing forward)
 ```
 
-## Comparison with PR #201
+## Comparison: Before and After Integration
 
-| Aspect | PR #201 (Placeholder) | PR #205 (Proper) |
-|--------|----------------------|------------------|
-| Shot sound | M16 shot | Shotgun shot (4 variants) |
-| Pump up | `play_reload_mag_out` | `play_shotgun_action_open` |
-| Pump down | `play_m16_bolt` | `play_shotgun_action_close` |
-| Shell load | `play_reload_mag_in` | `play_shotgun_load_shell` |
-| Shell eject | N/A | `play_shell_shotgun` |
+| Action | Before (Placeholder) | After (PR #205) |
+|--------|----------------------|-----------------|
+| Fire shot | `play_m16_shot` | `play_shotgun_shot` (random 1-4) |
+| Pump UP (eject shell) | `play_reload_mag_out` | `play_shotgun_action_open` + `play_shell_shotgun` |
+| Pump DOWN (chamber) | `play_m16_bolt` | `play_shotgun_action_close` |
+| Reload: Open bolt | `play_reload_mag_out` | `play_shotgun_action_open` |
+| Reload: Close bolt | `play_m16_bolt` | `play_shotgun_action_close` |
+| Reload: Load shell | `play_reload_mag_in` | `play_shotgun_load_shell` |
 | Empty click | `play_empty_click` | `play_shotgun_empty_click` |
 
-PR #205 provides the proper shotgun sounds that PR #201 was designed to use but didn't have integrated yet.
+## Multi-Component Reload/Fire Sequence
+
+With PR #201 merged, the shotgun has a sophisticated multi-component system:
+
+### Fire Sequence
+1. **LMB Press**: Fire → `play_shotgun_shot()` (random from 4 variants)
+2. **RMB Drag UP**: Eject shell → `play_shotgun_action_open()` + `play_shell_shotgun()` (150ms delay)
+3. **RMB Drag DOWN**: Chamber round → `play_shotgun_action_close()`
+
+### Reload Sequence
+1. **RMB Drag UP** (when ready): Open bolt → `play_shotgun_action_open()`
+2. **MMB + RMB Drag DOWN** (repeat): Load shell → `play_shotgun_load_shell()` (per shell)
+3. **RMB Drag DOWN** (without MMB): Close bolt → `play_shotgun_action_close()`
+
+### Empty Shotgun
+- **LMB on empty**: `play_shotgun_empty_click()`
 
 ## Files in This Case Study
 
@@ -202,12 +223,25 @@ if (audioManager != null && audioManager.HasMethod("play_shotgun_shot"))
 
 2. **Environmental Audio**: Consider adding reverb or echo effects for shotgun sounds in enclosed spaces.
 
-3. **PR #201 Integration**: When PR #201 is merged, its placeholder sounds should be replaced with the proper sounds from this PR.
+3. **Visual Shell Ejection**: Add visible shell casing particles to accompany the shell ejection sound.
 
 ## References
 
 - Original shotgun implementation: [PR #195](https://github.com/Jhon-Crow/godot-topdown-MVP/pull/195)
 - Shotgun visual model: [PR #200](https://github.com/Jhon-Crow/godot-topdown-MVP/pull/200)
-- Advanced pump-action mechanics: [PR #201](https://github.com/Jhon-Crow/godot-topdown-MVP/pull/201)
+- Advanced pump-action mechanics: [PR #201](https://github.com/Jhon-Crow/godot-topdown-MVP/pull/201) ✅ Merged
 - This PR: [PR #205](https://github.com/Jhon-Crow/godot-topdown-MVP/pull/205)
 - Issue: [#204](https://github.com/Jhon-Crow/godot-topdown-MVP/issues/204)
+
+## Solution Summary
+
+This PR successfully integrates proper shotgun sounds into the multi-component pump-action system from PR #201:
+
+| Sound Action | AudioManager Method | Timing |
+|-------------|---------------------|--------|
+| Shot | `play_shotgun_shot` | Immediate |
+| Pump UP | `play_shotgun_action_open` | Immediate |
+| Shell eject | `play_shell_shotgun` | +150ms after pump up |
+| Pump DOWN | `play_shotgun_action_close` | Immediate |
+| Load shell | `play_shotgun_load_shell` | Immediate |
+| Empty click | `play_shotgun_empty_click` | Immediate |
