@@ -7,6 +7,10 @@ extends CanvasLayer
 ##
 ## Note: Changing grenade type will restart the current level.
 
+# Top-level code to verify script is being parsed and loaded
+# This runs when the script is first loaded/compiled
+var _script_load_marker: bool = true
+
 ## Signal emitted when the back button is pressed.
 signal back_pressed
 
@@ -63,11 +67,21 @@ var _grenade_manager: Node = null
 var _grenade_buttons: Dictionary = {}
 
 
+func _init() -> void:
+	# _init runs when the object is created, before _enter_tree and _ready
+	# Using print() in case FileLogger isn't available yet
+	print("[ArmoryMenu] _init() called - object created")
+	if FileLogger:
+		FileLogger.info("[ArmoryMenu] _init() called - object created")
+
+
 func _enter_tree() -> void:
+	print("[ArmoryMenu] _enter_tree() called - node added to tree")
 	FileLogger.info("[ArmoryMenu] _enter_tree() called - node added to tree")
 
 
 func _ready() -> void:
+	print("[ArmoryMenu] _ready() called")
 	FileLogger.info("[ArmoryMenu] _ready() called")
 
 	# Verify UI elements

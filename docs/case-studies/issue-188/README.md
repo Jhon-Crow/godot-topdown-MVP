@@ -235,3 +235,112 @@ Expected log entries if `_enter_tree()` works but `_ready()` doesn't:
 ```
 
 If `_enter_tree()` also doesn't appear, the script is not executing at all (possibly not attached).
+
+---
+
+## Phase 7: Fifth Log Analysis (2026-01-22 04:17)
+
+### New Log: `game_log_20260122_041747.txt`
+
+The latest log provides **definitive confirmation** of the issue:
+
+```
+[04:17:50] [INFO] [PauseMenu] Armory button pressed
+[04:17:50] [INFO] [PauseMenu] Creating new armory menu instance
+[04:17:50] [INFO] [PauseMenu] armory_menu_scene resource path: res://scenes/ui/ArmoryMenu.tscn
+[04:17:50] [INFO] [PauseMenu] Instance created, class: CanvasLayer, name: ArmoryMenu
+[04:17:50] [INFO] [PauseMenu] back_pressed signal connected
+[04:17:50] [INFO] [PauseMenu] Armory menu instance added as child, is_inside_tree: true
+```
+
+### Critical Finding
+
+The log shows:
+- ✅ Scene path is correct: `res://scenes/ui/ArmoryMenu.tscn`
+- ✅ Instance created with correct class: `CanvasLayer`
+- ✅ Instance has correct name: `ArmoryMenu`
+- ✅ `back_pressed` signal successfully connected (signal is defined in script)
+- ✅ Node is inside tree: `is_inside_tree: true`
+- ❌ **NO `[ArmoryMenu]` log entries at all** - neither `_enter_tree()` nor `_ready()`
+
+### Confirmed Root Cause: Script Not Executing
+
+The fact that:
+1. The `back_pressed` signal was successfully connected proves the script IS attached (signals are defined in the script)
+2. But `_enter_tree()` never logs anything
+3. And `_ready()` never logs anything
+
+This indicates **the script is attached but not executing its lifecycle callbacks**.
+
+### Possible Causes
+
+1. **GDScript parsing/compilation error** - The script fails to compile silently
+2. **FileLogger autoload timing** - FileLogger might not be available when ArmoryMenu tries to use it
+3. **Export build issue** - Script might be partially loaded in export builds
+4. **Resource caching** - Old compiled script might be cached
+
+### Solution Approach
+
+Added additional debugging:
+1. **`_init()` function** - Runs when object is created, before `_enter_tree()`
+2. **`print()` statements** - Direct print instead of FileLogger, in case autoload is the issue
+3. **Script attachment verification** - Check if `get_script()` returns a valid script
+4. **Signal/method existence checks** - Verify script methods are callable
+
+### Updated Code Changes
+
+**armory_menu.gd:**
+```gdscript
+# Top-level variable to verify script is parsed
+var _script_load_marker: bool = true
+
+func _init() -> void:
+    # _init runs when object is created
+    print("[ArmoryMenu] _init() called - object created")
+    if FileLogger:
+        FileLogger.info("[ArmoryMenu] _init() called - object created")
+
+func _enter_tree() -> void:
+    print("[ArmoryMenu] _enter_tree() called - node added to tree")
+    FileLogger.info("[ArmoryMenu] _enter_tree() called - node added to tree")
+
+func _ready() -> void:
+    print("[ArmoryMenu] _ready() called")
+    FileLogger.info("[ArmoryMenu] _ready() called")
+```
+
+**pause_menu.gd:**
+```gdscript
+# Check if script is properly attached
+var script = _armory_menu.get_script()
+if script:
+    FileLogger.info("[PauseMenu] Script attached: %s" % script.resource_path)
+else:
+    FileLogger.info("[PauseMenu] WARNING: No script attached to armory menu instance!")
+
+# Check if signal exists (proves script is loaded)
+if _armory_menu.has_signal("back_pressed"):
+    FileLogger.info("[PauseMenu] back_pressed signal exists on instance")
+else:
+    FileLogger.info("[PauseMenu] WARNING: back_pressed signal NOT found!")
+```
+
+### Research: Similar Issues
+
+Reference: [Godot Forum - Instantiated Scenes Don't Have Scripts Connected](https://forum.godotengine.org/t/instantiated-scenes-dont-have-scripts-connected/75079)
+
+Key points from research:
+- Scripts work in editor but not in export builds is a known issue in Godot 4.2+
+- Scene file must have script attached to root node, not just instance in editor
+- `@export var scene: PackedScene` can lose assignments on save (use preload instead)
+
+### Files in logs/ Directory
+
+| File | Timestamp | Contains ArmoryMenu Logs |
+|------|-----------|-------------------------|
+| game_log_20260122_033222.txt | 03:32 | No |
+| game_log_20260122_033248.txt | 03:32 | No |
+| game_log_20260122_034730.txt | 03:47 | No |
+| game_log_20260122_041747.txt | 04:17 | No |
+
+All four logs show the same pattern: GrenadeManager works, PauseMenu logs appear, but ArmoryMenu script never executes.
