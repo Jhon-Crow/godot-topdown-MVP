@@ -125,6 +125,25 @@
    - This restores the red-emphasizing brightness that made the armband visible
    - Arms remain identical (both use health color modulate) - only the armband sprite is brightened
 
+### Feedback Session (Session 8) - MAXIMUM SATURATION
+1. **Owner feedback:**
+   - "сделай красный цвет на игроке максимально насыщенным" (make the red color on the player maximally saturated)
+2. **Solution implemented:**
+   - Changed modulate from `Color(1, 0.7, 0.7, 1)` to `Color(1, 0, 0, 1)` (pure red filter)
+   - This filters out green/blue channels, leaving only pure red
+
+### Feedback Session (Session 9) - HDR BRIGHTNESS BOOST
+1. **Owner feedback:**
+   - "сделай повязку яркой" (make the armband bright)
+2. **Root cause:**
+   - Even with pure red filter `Color(1, 0, 0, 1)`, the brightness was limited to the source texture's values
+   - Modulate values of 1.0 cap the output at the texture's original brightness
+3. **Solution implemented:**
+   - Changed modulate to `Color(2, 0.3, 0.3, 1)` - using HDR-style values greater than 1.0
+   - Red channel at 2.0 = 200% brightness boost (makes red pixels brighter than original)
+   - Small green/blue (0.3) adds warmth and vibrancy to the red
+   - This creates an HDR-style "glowing" effect that makes the armband clearly visible
+
 ## Root Cause Analysis
 
 ### Why the Player Was Hard to See
@@ -235,6 +254,7 @@ func _saturate_color(color: Color, multiplier: float) -> Color:
 9. **CRITICAL: Check BOTH implementations!** When a project has both GDScript (.gd) and C# (.cs) versions of the same class, BOTH must be updated. The owner's comment "возможно... C#" (possibly C#) was a crucial hint that led to finding the root cause
 10. **Modulate affects ALL pixels in a sprite:** When you need to brighten just ONE part of a sprite (like an armband), you need a SEPARATE sprite for that part. Otherwise, the modulate will affect the entire sprite and make other parts look wrong
 11. **Separate sprites for different color treatments:** Use child sprites when different parts of a character need different color treatments (e.g., armband needs brightness boost, arm needs health color tint)
+12. **HDR modulate for brightness:** In Godot, modulate values greater than 1.0 create HDR-style brightness boosts. Use this for elements that need to "glow" or stand out (e.g., `Color(2, 0.3, 0.3, 1)` for a bright red effect)
 
 ## Related Issues
 
