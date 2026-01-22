@@ -9,19 +9,19 @@ The shotgun weapon was added but has several mechanical issues that deviate from
 Original issue text:
 > A shotgun was added, but it shoots and reloads incorrectly.
 
-### Expected Behavior (CORRECTED - Phase 3)
+### Expected Behavior (CORRECTED - Phase 4)
 
 **Firing Sequence (Pump-Action):**
 1. LMB (fire)
-2. RMB drag down (extract spent shell)
-3. RMB drag up (chamber next round)
+2. RMB drag UP (eject spent shell)
+3. RMB drag DOWN (chamber next round)
 
 **Reload Sequence (Shell-by-Shell):**
-1. RMB drag up (open bolt)
-2. MMB + RMB drag down (load shell, repeatable up to 8 times)
-3. RMB drag down (close bolt and chamber round)
+1. RMB drag UP (open bolt) - goes directly to Loading state
+2. MMB + RMB drag DOWN (load shell, repeatable up to 8 times)
+3. RMB drag DOWN (close bolt and chamber round) - without MMB
 
-Note: After opening bolt, can close immediately with RMB drag down (without MMB) if shells are present.
+Note: After opening bolt, can close immediately with RMB drag DOWN (without MMB) if shells are present.
 
 **Additional Requirements:**
 - No magazine interface (shotgun doesn't use magazines)
@@ -44,16 +44,22 @@ User feedback from PR #201 comment (2026-01-22T02:15:05Z):
 
 The 8ms delay approach was incorrect - pellets should spawn **simultaneously** with **spatial distribution**, not with temporal delays.
 
-### Phase 3 (Gesture Sequence Correction - Current)
+### Phase 3 (Gesture Sequence Correction)
 User feedback from PR #201 comment (2026-01-22T03:04:06Z):
 > "поменяй в стрельбе ЛКМ (выстрел) -> ПКМ драгндроп вверх -> ПКМ драгндроп вниз
 > на ЛКМ (выстрел) -> ПКМ драгндроп вниз -> ПКМ драгндроп вверх
 > FIX сейчас не работает перезарядка"
 
+### Phase 4 (Final Gesture Correction - Current)
+User feedback from PR #201 comment (2026-01-22T03:28:24Z):
+> "подготовка к выстрелу всё ещё на неправильных драгндропах (должно быть - вверх, затем вниз)"
+> (Preparation to fire still on wrong drag-and-drops (should be UP then DOWN))
+
 **Key corrections:**
-1. **Pump sequence reversed:** Was `up → down`, now `down → up`
-2. **Reload sequence clarified:** First RMB up opens bolt, then either load (MMB+down) or close immediately (down without MMB)
-3. **Tutorial labels updated:** Showing correct Russian text for controls
+1. **Pump sequence clarified:** Correctly set to `UP → DOWN` (eject shell first, then chamber)
+2. **Reload goes directly to Loading state:** RMB UP opens bolt AND enters Loading state immediately
+3. **Removed ReserveAmmo check:** For tutorial mode to work properly
+4. **Tutorial labels updated:** Correct Russian text for controls
 
 ## Root Cause Analysis
 
@@ -102,30 +108,30 @@ private void FirePelletsAsCloud(Vector2 fireDirection, int pelletCount,
 
 Key change: `MaxSpawnOffset = 15.0f` pixels, applied along the fire direction.
 
-### Solution 2: Manual Pump-Action Cycling (Phase 3 Update)
+### Solution 2: Manual Pump-Action Cycling (Phase 4 Update)
 Implemented `ShotgunActionState` machine:
 - `Ready` → Can fire
-- `NeedsPumpDown` → RMB drag down required (extract shell)
-- `NeedsPumpUp` → RMB drag up required (chamber next round)
+- `NeedsPumpUp` → RMB drag UP required (eject shell)
+- `NeedsPumpDown` → RMB drag DOWN required (chamber next round)
 
 ```csharp
 // After firing:
-ActionState = ShotgunActionState.NeedsPumpDown;
-// Player must: RMB drag down (extract) → RMB drag up (chamber) → Ready
+ActionState = ShotgunActionState.NeedsPumpUp;
+// Player must: RMB drag UP (eject) → RMB drag DOWN (chamber) → Ready
 ```
 
-### Solution 3: Shell-by-Shell Reload (Phase 3 Update)
+### Solution 3: Shell-by-Shell Reload (Phase 4 Update)
 Implemented `ShotgunReloadState` machine:
 - `NotReloading` → Normal operation
-- `WaitingToOpen` → RMB drag up to open bolt
-- `Loading` → MMB + RMB drag down to load shell, OR RMB drag down to close immediately
-- `WaitingToClose` → RMB drag down to close bolt
+- `WaitingToOpen` → (skipped - goes directly to Loading)
+- `Loading` → MMB + RMB drag DOWN to load shell, OR RMB drag DOWN to close immediately
+- `WaitingToClose` → RMB drag DOWN to close bolt
 
 ```csharp
-// Reload sequence:
-// 1. RMB drag up → WaitingToOpen → Loading (bolt open)
-// 2. MMB + RMB drag down → Load one shell (repeat up to 8x)
-// 3. RMB drag down (without MMB) → Close bolt and chamber
+// Reload sequence (StartReload now goes directly to Loading):
+// 1. RMB drag UP (when Ready) → Loading (bolt opened directly)
+// 2. MMB + RMB drag DOWN → Load one shell (repeat up to 8x)
+// 3. RMB drag DOWN (without MMB) → Close bolt and chamber
 ```
 
 ### Solution 4: Tube Magazine System
@@ -150,6 +156,7 @@ Added tube magazine properties:
 | game_log_20260122_055403.txt | Phase 3 feedback | Additional testing |
 | game_log_20260122_055650.txt | Phase 3 feedback | Tutorial testing |
 | game_log_20260122_055806.txt | Phase 3 feedback | Final test before fix |
+| game_log_20260122_062345.txt | Phase 4 feedback | Incorrect gestures still present |
 
 ### Key Findings from Latest Logs
 1. Shotgun fires are being logged correctly
@@ -183,30 +190,44 @@ Added tube magazine properties:
    - Updated state descriptions and log messages
 
 2. `scripts/levels/tutorial_level.gd`:
-   - Updated shotgun shooting prompt: `[ЛКМ стрельба] [ПКМ↓ извлечь] [ПКМ↑ дослать]`
-   - Updated shotgun reload prompt: `[ПКМ↑ открыть] [СКМ+ПКМ↓ x8] [ПКМ↓ закрыть]`
+   - Updated shotgun shooting prompt
+   - Updated shotgun reload prompt
    - Added comments documenting correct sequences
 
-## Control Summary (Phase 3 - Corrected)
+### Modified Files (Phase 4 - Current):
+1. `Scripts/Weapons/Shotgun.cs`:
+   - Correctly set pump sequence: now `NeedsPumpUp` first (after firing), then `NeedsPumpDown`
+   - Fire sets `ActionState = NeedsPumpUp` (was incorrectly `NeedsPumpDown`)
+   - RMB UP (drag up) transitions from `NeedsPumpUp` to `NeedsPumpDown`
+   - RMB DOWN (drag down) transitions from `NeedsPumpDown` to `Ready`
+   - `StartReload()` now goes directly to `Loading` state (skips `WaitingToOpen`)
+   - Removed `ReserveAmmo` check in `StartReload()` for tutorial mode compatibility
+
+2. `scripts/levels/tutorial_level.gd`:
+   - Updated shotgun shooting prompt: `[ЛКМ стрельба] [ПКМ↑ извлечь] [ПКМ↓ дослать]`
+   - Reload prompt already correct: `[ПКМ↑ открыть] [СКМ+ПКМ↓ x8] [ПКМ↓ закрыть]`
+   - Updated header comments with correct sequences
+
+## Control Summary (Phase 4 - Corrected)
 
 ### Shooting (Pump-Action)
 | Action | Input |
 |--------|-------|
 | Fire | LMB |
-| Extract shell | RMB drag down |
-| Chamber round | RMB drag up |
+| Eject shell | RMB drag UP |
+| Chamber round | RMB drag DOWN |
 
 ### Reloading (Shell-by-Shell)
 | Action | Input |
 |--------|-------|
-| Open bolt | RMB drag up (when ready, tube not full) |
-| Load shell | MMB + RMB drag down (repeat up to 8x) |
-| Close bolt | RMB drag down (without MMB) |
+| Open bolt | RMB drag UP (when ready, tube not full) - goes directly to Loading |
+| Load shell | MMB + RMB drag DOWN (repeat up to 8x) |
+| Close bolt | RMB drag DOWN (without MMB) |
 
 ### Tutorial Labels (Russian)
 | Step | Label |
 |------|-------|
-| Shooting | [ЛКМ стрельба] [ПКМ↓ извлечь] [ПКМ↑ дослать] |
+| Shooting | [ЛКМ стрельба] [ПКМ↑ извлечь] [ПКМ↓ дослать] |
 | Reload | [ПКМ↑ открыть] [СКМ+ПКМ↓ x8] [ПКМ↓ закрыть] |
 
 ## References
