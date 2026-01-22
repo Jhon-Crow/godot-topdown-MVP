@@ -60,7 +60,7 @@ User feedback from PR #201 comment (2026-01-22T03:28:24Z):
 2. **Reload goes directly to Loading state:** RMB UP opens bolt AND enters Loading state immediately
 3. **Tutorial labels updated:** Correct Russian text for controls
 
-### Phase 5 (Tutorial Mode Shell Loading Fix - Current)
+### Phase 5 (Tutorial Mode Shell Loading Fix)
 User feedback from PR #201 comment (2026-01-22T04:02:15Z):
 > "при ММБ+ПКМ драг вниз в дробовик должен добавляться один заряд (сейчас что то не так, хотя звук заряжания есть)"
 > (With MMB+RMB drag down, one shell should be added to the shotgun (something is wrong now, although there is loading sound))
@@ -72,6 +72,19 @@ The `LoadShell()` method had a `ReserveAmmo <= 0` check that blocked shell loadi
 1. **Added tutorial level detection** to Shotgun.cs (same logic as Player.cs uses for grenades)
 2. **Skip ReserveAmmo check in tutorial mode:** Allow infinite shell loading without consuming reserve ammo
 3. **Added debug logging** to trace the LoadShell() function for easier debugging
+
+### Phase 6 (MMB Timing Fix - Current)
+User feedback from PR #201 comment (2026-01-22T04:15:20Z):
+> "я зажимаю MMB и RMB и делаю драгндроп чтоб зарядить один заряд, но это не работает"
+> (I hold MMB and RMB and do drag-and-drop to load one shell, but it doesn't work)
+
+**Root cause identified:**
+The code was checking `_isMiddleMouseHeld` at the **moment RMB is released**, but users naturally release both MMB and RMB simultaneously or in quick succession. This creates a race condition where MMB might already be released by the time the gesture is processed.
+
+**Key corrections:**
+1. **Added `_wasMiddleMouseHeldDuringDrag` flag:** Tracks whether MMB was held at any point during the drag, not just at release
+2. **Updated `HandleDragGestures()`:** Now sets the flag to true whenever MMB is detected during an active drag
+3. **Updated `ProcessReloadGesture()`:** Now checks `_wasMiddleMouseHeldDuringDrag || _isMiddleMouseHeld` for more reliable detection
 
 ## Root Cause Analysis
 
@@ -170,6 +183,7 @@ Added tube magazine properties:
 | game_log_20260122_055806.txt | Phase 3 feedback | Final test before fix |
 | game_log_20260122_062345.txt | Phase 4 feedback | Incorrect gestures still present |
 | game_log_20260122_065828.txt | Phase 5 feedback | Shell loading not working in tutorial (sound plays but shell not added) |
+| game_log_20260122_071250.txt | Phase 6 feedback | MMB+RMB drag down still not loading shells (timing issue) |
 
 ### Key Findings from Latest Logs
 1. Shotgun fires are being logged correctly
@@ -220,13 +234,19 @@ Added tube magazine properties:
    - Reload prompt already correct: `[ПКМ↑ открыть] [СКМ+ПКМ↓ x8] [ПКМ↓ закрыть]`
    - Updated header comments with correct sequences
 
-### Modified Files (Phase 5 - Current):
+### Modified Files (Phase 5):
 1. `Scripts/Weapons/Shotgun.cs`:
    - Added `_isTutorialLevel` field for tutorial mode detection
    - Added `DetectTutorialLevel()` method (same logic as Player.cs uses for grenades)
    - Modified `LoadShell()` to skip `ReserveAmmo` check in tutorial mode
    - Modified `LoadShell()` to skip `MagazineInventory.ConsumeAmmo()` in tutorial mode
    - Added debug logging in `LoadShell()` for easier troubleshooting
+
+### Modified Files (Phase 6 - Current):
+1. `Scripts/Weapons/Shotgun.cs`:
+   - Added `_wasMiddleMouseHeldDuringDrag` field to track MMB state during drag
+   - Modified `HandleDragGestures()` to track MMB state throughout the drag gesture
+   - Modified `ProcessReloadGesture()` to use the new tracking flag for reliable MMB detection
 
 ## Control Summary (Phase 4 - Corrected)
 

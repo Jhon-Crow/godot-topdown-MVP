@@ -153,6 +153,13 @@ public partial class Shotgun : BaseWeapon
     private bool _isMiddleMouseHeld = false;
 
     /// <summary>
+    /// Whether MMB was held at any point during the current drag (for shell loading).
+    /// This is needed because users often release MMB and RMB at the same time,
+    /// so we need to track if MMB was held during the drag, not just at release.
+    /// </summary>
+    private bool _wasMiddleMouseHeldDuringDrag = false;
+
+    /// <summary>
     /// Whether we're on the tutorial level (infinite shells).
     /// </summary>
     private bool _isTutorialLevel = false;
@@ -326,6 +333,14 @@ public partial class Shotgun : BaseWeapon
             {
                 _dragStartPosition = GetGlobalMousePosition();
                 _isDragging = true;
+                _wasMiddleMouseHeldDuringDrag = false; // Reset at start of new drag
+            }
+
+            // Track if MMB is held at any point during the drag
+            // This fixes the timing issue where users release both buttons simultaneously
+            if (_isMiddleMouseHeld)
+            {
+                _wasMiddleMouseHeldDuringDrag = true;
             }
         }
         else if (_isDragging)
@@ -336,6 +351,9 @@ public partial class Shotgun : BaseWeapon
             _isDragging = false;
 
             ProcessDragGesture(dragVector);
+
+            // Reset the flag after processing
+            _wasMiddleMouseHeldDuringDrag = false;
         }
     }
 
@@ -447,7 +465,9 @@ public partial class Shotgun : BaseWeapon
             case ShotgunReloadState.Loading:
                 if (isDragDown)
                 {
-                    if (_isMiddleMouseHeld)
+                    // Use _wasMiddleMouseHeldDuringDrag instead of _isMiddleMouseHeld
+                    // This fixes the timing issue where users release MMB and RMB simultaneously
+                    if (_wasMiddleMouseHeldDuringDrag || _isMiddleMouseHeld)
                     {
                         // Load a shell (MMB + RMB drag down)
                         LoadShell();
