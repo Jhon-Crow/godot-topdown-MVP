@@ -412,15 +412,24 @@ public partial class Shotgun : BaseWeapon
                     // Gesture processed - reset drag start for next gesture
                     _dragStartPosition = currentPosition;
                     // Reset MMB tracking for the new gesture segment
+                    bool prevMMBState = _wasMiddleMouseHeldDuringDrag;
                     _wasMiddleMouseHeldDuringDrag = _isMiddleMouseHeld;
+                    if (VerboseInputLogging && prevMMBState != _wasMiddleMouseHeldDuringDrag)
+                    {
+                        GD.Print($"[Shotgun.FIX#243] MMB tracking reset after mid-drag gesture: {prevMMBState} -> {_wasMiddleMouseHeldDuringDrag}");
+                    }
                 }
             }
 
             // Track if MMB is held at any point during the drag
             // This fixes the timing issue where users release both buttons simultaneously
-            if (_isMiddleMouseHeld)
+            if (_isMiddleMouseHeld && !_wasMiddleMouseHeldDuringDrag)
             {
                 _wasMiddleMouseHeldDuringDrag = true;
+                if (VerboseInputLogging)
+                {
+                    GD.Print("[Shotgun.FIX#243] MMB pressed during drag - tracking set to true");
+                }
             }
         }
         else if (_isDragging)
@@ -430,6 +439,7 @@ public partial class Shotgun : BaseWeapon
             Vector2 dragVector = dragEnd - _dragStartPosition;
             _isDragging = false;
 
+            GD.Print($"[Shotgun.FIX#243] RMB released - processing drag gesture (wasMMBDuringDrag={_wasMiddleMouseHeldDuringDrag})");
             ProcessDragGesture(dragVector);
 
             // Reset the flag after processing
@@ -593,11 +603,9 @@ public partial class Shotgun : BaseWeapon
                         //
                         // This ensures that bolt closing ONLY happens via release-based
                         // gesture, where MMB state is properly tracked throughout the drag.
-                        if (VerboseInputLogging)
-                        {
-                            bool shouldLoadShell = _wasMiddleMouseHeldDuringDrag || _isMiddleMouseHeld;
-                            GD.Print($"[Shotgun.Input] Mid-drag DOWN in Loading state: shouldLoad={shouldLoadShell} - NOT processing mid-drag, waiting for RMB release");
-                        }
+                        bool shouldLoadShell = _wasMiddleMouseHeldDuringDrag || _isMiddleMouseHeld;
+                        // DIAGNOSTIC: Log once per mid-drag detection to verify fix is active
+                        GD.Print($"[Shotgun.FIX#243] Mid-drag DOWN detected (Loading state): MMB tracked={shouldLoadShell}, deferring to RMB release");
                         return false;
                     }
                     break;
@@ -752,19 +760,19 @@ public partial class Shotgun : BaseWeapon
                     // This fixes the timing issue where users release MMB and RMB simultaneously
                     bool shouldLoadShell = _wasMiddleMouseHeldDuringDrag || _isMiddleMouseHeld;
 
-                    if (VerboseInputLogging)
-                    {
-                        GD.Print($"[Shotgun.Input] Drag DOWN in Loading state: _wasMMBDuringDrag={_wasMiddleMouseHeldDuringDrag}, _isMMBHeld={_isMiddleMouseHeld}, shouldLoad={shouldLoadShell}");
-                    }
+                    // DIAGNOSTIC: Always log the decision point to verify fix is working
+                    GD.Print($"[Shotgun.FIX#243] RMB release in Loading state: wasMMBDuringDrag={_wasMiddleMouseHeldDuringDrag}, isMMBHeld={_isMiddleMouseHeld} => shouldLoadShell={shouldLoadShell}");
 
                     if (shouldLoadShell)
                     {
                         // Load a shell (MMB + RMB drag down)
+                        GD.Print("[Shotgun.FIX#243] Loading shell (MMB was held during drag)");
                         LoadShell();
                     }
                     else
                     {
                         // Close bolt without MMB - finish reload
+                        GD.Print("[Shotgun.FIX#243] Closing bolt (MMB was NOT held during drag)");
                         CompleteReload();
                     }
                 }
