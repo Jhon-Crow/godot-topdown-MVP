@@ -877,6 +877,7 @@ func _update_health_visual() -> void:
 
 ## Sets the modulate color on all player sprite parts.
 ## @param color: The color to apply to all sprites.
+## Note: Right arm uses a modified modulate to preserve red armband visibility.
 func _set_all_sprites_modulate(color: Color) -> void:
 	if _body_sprite:
 		_body_sprite.modulate = color
@@ -885,7 +886,11 @@ func _set_all_sprites_modulate(color: Color) -> void:
 	if _left_arm_sprite:
 		_left_arm_sprite.modulate = color
 	if _right_arm_sprite:
-		_right_arm_sprite.modulate = color
+		# Apply modified modulate to preserve red armband visibility
+		# The armband is red, so we need high red channel to not mask it
+		# Use max of color.r and 0.9 to ensure red armband shows through
+		var arm_color := Color(maxf(color.r, 0.9), color.g, color.b, color.a)
+		_right_arm_sprite.modulate = arm_color
 
 
 ## Returns the current health as a percentage (0.0 to 1.0).

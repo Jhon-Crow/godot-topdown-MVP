@@ -54,6 +54,30 @@
      - Dark shadow: RGB(200, 20, 20) at x=11
    - Updated effects managers to only apply saturation boost to right arm
 
+### Feedback Session (Session 4) - ACTUAL ROOT CAUSE FOUND
+1. **Owner feedback:**
+   - "сейчас повязка становится видимой только после последнего шанса" (armband only visible after last chance)
+   - "возможно ошибка импорта или C#" (possibly import error or C#)
+   - Game log attached: `game_log_20260122_133636.txt`
+2. **Deep investigation:**
+   - Pixel analysis confirmed armband pixels ARE correct: RGB(255, 40, 40) - very bright red
+   - PNG files are correct, not an import issue
+   - Game logs showed armband saturation WAS being applied during effects
+3. **ACTUAL ROOT CAUSE FOUND:**
+   - **Health color tint was masking the red armband!**
+   - Player uses `full_health_color = Color(0.2, 0.6, 1.0, 1.0)` - a BLUE tint
+   - All sprites (including arms) get this blue modulate applied
+   - When red armband (255, 40, 40) is multiplied by blue modulate (0.2, 0.6, 1.0):
+     - Red: 255 * 0.2 = 51 (drastically reduced!)
+     - Green: 40 * 0.6 = 24
+     - Blue: 40 * 1.0 = 40
+   - Result: RGB(51, 24, 40) - a dark, nearly invisible color!
+   - During last chance effect, the 4x saturation boost amplified colors, making armband visible again
+4. **Solution implemented:**
+   - Modified `_set_all_sprites_modulate()` in `player.gd`
+   - Right arm now uses modified modulate with high red channel: `maxf(color.r, 0.9)`
+   - This ensures red armband is always visible regardless of health color tint
+
 ## Root Cause Analysis
 
 ### Why the Player Was Hard to See
@@ -68,6 +92,28 @@
 1. **Muted red colors:** Initial RGB values were too desaturated (dark, muddy reds)
 2. **Static colors:** Armband didn't benefit from the same saturation boost enemies received
 3. **Consistency issue:** Enemies got 4x saturation during the effect, but player didn't
+
+### ACTUAL Root Cause (Session 4)
+
+**The health color system was masking the red armband!**
+
+```gdscript
+# In player.gd
+@export var full_health_color: Color = Color(0.2, 0.6, 1.0, 1.0)  # BLUE tint!
+
+# This gets applied to ALL sprites including arms:
+func _set_all_sprites_modulate(color: Color) -> void:
+    _right_arm_sprite.modulate = color  # This multiplies with texture colors!
+```
+
+**The math:**
+- Armband pixel: RGB(255, 40, 40)
+- Health modulate: (0.2, 0.6, 1.0)
+- Result: RGB(51, 24, 40) - nearly invisible dark color!
+
+**Why it worked during last chance:**
+- The 4x saturation boost amplified the colors enough to overcome the blue tint
+- This made the armband visible during the effect but not during normal gameplay
 
 ## Solution Architecture
 
@@ -112,11 +158,13 @@ func _saturate_color(color: Color, multiplier: float) -> Color:
 3. `assets/sprites/characters/player/player_combined_preview.png` - Updated preview
 4. `scripts/autoload/last_chance_effects_manager.gd` - Right arm saturation only for hard mode
 5. `scripts/autoload/penultimate_hit_effects_manager.gd` - Right arm saturation only for normal mode
-6. `experiments/add_armband.py` - Armband creation script
+6. `scripts/characters/player.gd` - **CRITICAL FIX:** Modified `_set_all_sprites_modulate()` to preserve red armband visibility by using high red channel (0.9) for right arm modulate
+7. `experiments/add_armband.py` - Armband creation script
 
 ### New Files
 - `docs/case-studies/issue-234/` - This case study
 - `docs/case-studies/issue-234/logs/game_log_20260122_132449.txt` - Game log from testing
+- `docs/case-studies/issue-234/logs/game_log_20260122_133636.txt` - Game log from Session 4
 
 ## Lessons Learned
 
@@ -126,6 +174,8 @@ func _saturate_color(color: Color, multiplier: float) -> Color:
 4. **Iterative feedback:** Initial implementation often needs refinement based on user testing
 5. **Base visibility matters:** Elements should be visible during normal gameplay, not just during effects
 6. **Less is more:** Single armband is sufficient and avoids visual confusion
+7. **CRITICAL: Check modulate colors!** When debugging visibility issues, always check if sprite modulate colors are affecting the expected colors. A blue modulate will effectively mask red pixels!
+8. **Trace through the full rendering pipeline:** The issue wasn't with the PNG, import, or effects - it was with the health color system that affects ALL sprites
 
 ## Related Issues
 
