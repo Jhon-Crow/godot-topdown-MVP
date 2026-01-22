@@ -1050,8 +1050,19 @@ public partial class Shotgun : BaseWeapon
     }
 
     /// <summary>
+    /// Enable verbose logging for pellet spawn diagnostics.
+    /// Set to true to debug pellet grouping issues.
+    /// </summary>
+    private const bool VerbosePelletLogging = false;
+
+    /// <summary>
     /// Spawns a pellet projectile with a spatial offset along its direction.
     /// The offset creates the cloud effect where pellets appear at different depths.
+    ///
+    /// When firing at point-blank (wall detected), uses a combination of:
+    /// 1. Minimum forward offset to ensure pellets travel some distance
+    /// 2. Lateral (perpendicular) offset to create visual spread even at close range
+    /// This prevents all pellets from appearing as "one large pellet".
     /// </summary>
     private void SpawnPelletWithOffset(Vector2 direction, float extraOffset, PackedScene projectileScene)
     {
@@ -1066,13 +1077,51 @@ public partial class Shotgun : BaseWeapon
         Vector2 spawnPosition;
         if (isBlocked)
         {
-            // Wall detected at point-blank range - spawn at weapon position
-            spawnPosition = GlobalPosition + direction * 2.0f;
+            // Wall detected at point-blank range
+            //
+            // Issue #212: At close range, angular spread produces insufficient visual separation.
+            // With 15° spread at 10px: only ~1.3px separation (imperceptible).
+            //
+            // Solution: Add explicit lateral offset perpendicular to fire direction.
+            // This ensures pellets spread out visually even at point-blank range.
+            //
+            // FIX v2 (2026-01-22): Previous fix used Mathf.Max(0, extraOffset) which
+            // caused all pellets with negative extraOffset to spawn at exactly the same
+            // position (minSpawnOffset). Now we use the full extraOffset range.
+
+            float minSpawnOffset = 15.0f;  // Increased from 10px for better spread
+
+            // Calculate lateral (perpendicular) offset for visual spread
+            // extraOffset ranges from -MaxSpawnOffset to +MaxSpawnOffset (±15px)
+            // Scale it down for lateral use to keep pellets reasonably close
+            Vector2 perpendicular = new Vector2(-direction.Y, direction.X);
+            float lateralOffset = extraOffset * 0.4f;  // ±6px lateral spread
+
+            // Forward offset uses absolute value of extraOffset to vary depth
+            // This prevents all negative-extraOffset pellets from clustering
+            float forwardVariation = Mathf.Abs(extraOffset) * 0.3f;  // 0-4.5px extra forward
+
+            spawnPosition = GlobalPosition
+                + direction * (minSpawnOffset + forwardVariation)
+                + perpendicular * lateralOffset;
+
+            if (VerbosePelletLogging)
+            {
+                GD.Print($"[Shotgun] Point-blank pellet spawn: extraOffset={extraOffset:F1}, " +
+                         $"forward={minSpawnOffset + forwardVariation:F1}px, lateral={lateralOffset:F1}px, " +
+                         $"pos={spawnPosition}");
+            }
         }
         else
         {
             // Normal case: spawn at offset position plus extra cloud offset
             spawnPosition = GlobalPosition + direction * (BulletSpawnOffset + extraOffset);
+
+            if (VerbosePelletLogging)
+            {
+                GD.Print($"[Shotgun] Normal pellet spawn: extraOffset={extraOffset:F1}, " +
+                         $"distance={BulletSpawnOffset + extraOffset:F1}px, pos={spawnPosition}");
+            }
         }
 
         var pellet = projectileScene.Instantiate<Node2D>();
