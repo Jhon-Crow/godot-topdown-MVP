@@ -1009,7 +1009,15 @@ func _physics_process(delta: float) -> void:
 	_update_goap_state()
 	_update_suppression(delta)
 
-	# Process AI state machine
+	# Update enemy model rotation BEFORE processing AI state (which may shoot).
+	# This ensures the weapon is correctly positioned when bullets are created.
+	# Note: We don't call _update_weapon_sprite_rotation() anymore because:
+	# 1. The EnemyModel rotation already rotates the weapon correctly
+	# 2. The previous _update_weapon_sprite_rotation() was using the Enemy's rotation
+	#    instead of EnemyModel's rotation, causing the weapon to be offset by 90 degrees
+	_update_enemy_model_rotation()
+
+	# Process AI state machine (may trigger shooting)
 	_process_ai_state(delta)
 
 	# Update debug label if enabled
@@ -1018,13 +1026,6 @@ func _physics_process(delta: float) -> void:
 	# Request redraw for debug visualization
 	if debug_label_enabled:
 		queue_redraw()
-
-	# Update enemy model rotation to face movement/aim direction
-	# Note: We don't call _update_weapon_sprite_rotation() anymore because:
-	# 1. The EnemyModel rotation already rotates the weapon correctly
-	# 2. The previous _update_weapon_sprite_rotation() was using the Enemy's rotation
-	#    instead of EnemyModel's rotation, causing the weapon to be offset by 90 degrees
-	_update_enemy_model_rotation()
 
 	# Update walking animation based on movement
 	_update_walk_animation(delta)
@@ -3837,18 +3838,26 @@ func _get_health_percent() -> float:
 
 
 ## Calculates the bullet spawn position at the weapon's muzzle.
-## The muzzle is positioned relative to the weapon mount, offset in the aim direction.
-## @param direction: The normalized direction the bullet will travel.
+## The muzzle is positioned relative to the weapon mount, offset in the weapon's forward direction.
+## @param direction: The normalized direction the bullet will travel (used for fallback only).
 ## @return: The global position where the bullet should spawn.
 func _get_bullet_spawn_position(direction: Vector2) -> Vector2:
 	# The rifle sprite (m16_rifle_topdown.png) has offset 20px and is 64px long
 	# so muzzle is ~44px from WeaponMount center (64 - 20 = 44)
 	var muzzle_offset := 44.0 * enemy_model_scale  # Scale with enemy model
-	if _weapon_mount:
-		# Use weapon mount global position as the base, then offset to muzzle
-		return _weapon_mount.global_position + direction * muzzle_offset
+	if _weapon_mount and _enemy_model:
+		# Calculate the weapon's actual forward direction based on enemy model rotation.
+		# Enemy sprites face LEFT in local space (PI radians), so local left (-X) is forward.
+		# When rotated by enemy_model.rotation, the forward direction in world space is:
+		# Vector2(-1, 0).rotated(rotation) = Vector2(-cos(r), -sin(r))
+		# Since enemy_model.rotation = face_direction.angle() + PI:
+		#   weapon_forward = Vector2(-cos(angle+PI), -sin(angle+PI))
+		#                  = Vector2(cos(angle), sin(angle)) = face_direction
+		var weapon_forward := Vector2(-1, 0).rotated(_enemy_model.rotation)
+		# Use weapon mount global position as the base, then offset to muzzle in weapon's forward direction
+		return _weapon_mount.global_position + weapon_forward * muzzle_offset
 	else:
-		# Fallback to old behavior if weapon mount not found
+		# Fallback to old behavior if weapon mount or enemy model not found
 		return global_position + direction * bullet_spawn_offset
 
 

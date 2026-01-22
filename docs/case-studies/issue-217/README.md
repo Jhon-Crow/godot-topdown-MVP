@@ -475,6 +475,95 @@ if "bullet" in script_path.to_lower() or "pellet" in script_path.to_lower():
 
 14. **Balance Visual Accuracy vs. Visibility:** Sometimes gameplay clarity is more important than visual accuracy. A larger weapon sprite that's visible is better than a "correctly sized" sprite that can't be seen.
 
+### Phase 11: Fifth User Feedback (2026-01-22T12:11:26Z)
+
+User @Jhon-Crow tested the solution again and reported:
+
+1. **"враги всё ещё стреляют не из оружия"**
+   - Translation: Enemies still shoot not from their weapon
+   - Bullets appear to spawn from incorrect position, not from the weapon muzzle
+
+Attached game log:
+- `game_log_20260122_120806.txt`
+
+### Phase 12: Root Cause Analysis and Fix (2026-01-22)
+
+## Root Cause Analysis (Phase 11-12)
+
+### Issue 9: Bullets Not Spawning From Weapon Muzzle
+
+**Root Cause:** The `_get_bullet_spawn_position()` function had two fundamental problems:
+
+1. **Direction Mismatch:** The function used the `direction` parameter (direction from enemy center to player/target) to calculate muzzle offset. However, when the enemy model is rotated, the weapon's actual forward direction in world space is different from this direction parameter, especially when lead prediction is enabled.
+
+2. **Timing Issue:** In `_physics_process()`, the execution order was:
+   ```
+   1. _process_ai_state(delta)  // Shooting happens here
+   2. _update_enemy_model_rotation()  // Model rotation updated AFTER
+   ```
+
+   This meant when `_shoot()` was called, the enemy model rotation (and thus `_weapon_mount.global_position`) was from the **previous frame**, but the `direction` parameter was calculated for the **current frame's** target position. This caused a positional mismatch between where the weapon visually points and where bullets actually spawn.
+
+**The Math:**
+- Enemy sprites face LEFT in local space (PI radians from "right")
+- Enemy model rotation is `face_direction.angle() + PI`
+- Weapon's forward direction in world space: `Vector2(-1, 0).rotated(enemy_model.rotation)`
+- This transforms local-left to world-space direction
+
+When the rotation and direction calculations happen in different frames or use different target positions (due to lead prediction), the bullet spawn position doesn't align with the visual weapon position.
+
+**Fix Applied:**
+1. Changed `_get_bullet_spawn_position()` to calculate the weapon's actual forward direction from `_enemy_model.rotation` instead of using the passed `direction` parameter:
+   ```gdscript
+   # Before (incorrect):
+   return _weapon_mount.global_position + direction * muzzle_offset
+
+   # After (correct):
+   var weapon_forward := Vector2(-1, 0).rotated(_enemy_model.rotation)
+   return _weapon_mount.global_position + weapon_forward * muzzle_offset
+   ```
+
+2. Moved `_update_enemy_model_rotation()` to execute BEFORE `_process_ai_state()`:
+   ```gdscript
+   # Before:
+   _process_ai_state(delta)  # Shooting here uses old rotation
+   _update_enemy_model_rotation()  # Rotation updated too late
+
+   # After:
+   _update_enemy_model_rotation()  # Rotation updated first
+   _process_ai_state(delta)  # Shooting uses current rotation
+   ```
+
+## Updated Summary of All Issues and Fixes
+
+| Issue | Root Cause | Fix |
+|-------|-----------|-----|
+| 1. Enemy smaller than player | Missing 1.3x scale multiplier | Added `enemy_model_scale` export and scale in `_ready()` |
+| 2. No walking animation | Old script references + missing animation code | Updated references, added `_update_walk_animation()` |
+| 3. Weapon at 90° angle | Competing rotation systems | Removed `_update_weapon_sprite_rotation()` call |
+| 4. Bullets from center | Spawning from enemy position | Added `_get_bullet_spawn_position()` using weapon mount |
+| 5. Walking backwards | Enemy sprites face opposite direction (PI offset) | Added PI to rotation angle |
+| 6. M16 too large | Using 64px sprite vs player's integrated smaller rifle | Changed to `m16_topdown_small.png` (32px) |
+| 7. Weapon not visible | Smaller sprite obscured by body parts | Reverted to original larger sprite `m16_rifle_topdown.png` |
+| 8. Last Chance not freezing bullets | Branch missing pellet detection fix from main | Merged main branch with latest fixes |
+| 9. Bullets not from weapon muzzle | Direction mismatch and execution order issue | Use weapon's actual rotation for muzzle direction; moved rotation update before shooting |
+
+## Additional Lessons Learned
+
+11. **Test Visual Changes with Actual Gameplay:** The smaller weapon sprite looked correct in isolation but was invisible during actual gameplay due to overlapping body parts and z-index ordering.
+
+12. **Keep Feature Branches Updated:** Long-running feature branches may miss important fixes from main. Regularly merging main ensures all bug fixes are incorporated.
+
+13. **Consider Visual Contrast:** Dark sprites on dark backgrounds or small sprites under other elements may become invisible. Test visual changes at runtime, not just in the editor.
+
+14. **Balance Visual Accuracy vs. Visibility:** Sometimes gameplay clarity is more important than visual accuracy. A larger weapon sprite that's visible is better than a "correctly sized" sprite that can't be seen.
+
+15. **Execution Order Matters:** When multiple systems depend on each other (rotation system, shooting system), the order of execution in the game loop is critical. The rotation system must update BEFORE the shooting system accesses the rotated positions.
+
+16. **Use Actual State, Not Parameters:** When calculating positions based on rotated objects, use the object's actual rotation state rather than parameters that might be calculated differently (e.g., with lead prediction). This ensures visual consistency between what the player sees and what the code produces.
+
+17. **Consider Lead Prediction Effects:** When implementing features like bullet lead prediction, the shooting direction may differ from the visual aim direction. The bullet spawn position should match where the weapon visually points, not where the bullet is aimed.
+
 ## Related Files
 
 - [issue-data.json](./issue-data.json) - Original issue data
@@ -487,3 +576,4 @@ if "bullet" in script_path.to_lower() or "pellet" in script_path.to_lower():
 - [logs/game_log_20260122_112342.txt](./logs/game_log_20260122_112342.txt) - Game log from phase 7 testing
 - [logs/game_log_20260122_112428.txt](./logs/game_log_20260122_112428.txt) - Game log from phase 7 testing
 - [logs/game_log_20260122_114716.txt](./logs/game_log_20260122_114716.txt) - Game log from phase 9 testing
+- [logs/game_log_20260122_120806.txt](./logs/game_log_20260122_120806.txt) - Game log from phase 11 testing
