@@ -1,10 +1,16 @@
-# Case Study: Issue #245 - Enemy Shooting Position Bug
+# Case Study: Issue #245 - Enemy Shooting Position and Facing Direction Bug
 
 ## Problem Description
 
+### Initial Report (2026-01-22 ~15:14)
 User report (translated from Russian): "Enemies shoot from the back, from the side, from the weapon - inconsistently."
 
 The original issue: Enemy bullets should spawn from the weapon muzzle and fly in the correct direction, but they appear to come from incorrect positions relative to the weapon visual.
+
+### Second Report (2026-01-22 ~15:28)
+After initial fix for muzzle position: "Bullets fly from the barrels, but enemies turn their backs to me."
+
+The muzzle position fix worked (bullets now spawn from weapon), but the enemy MODEL is visually facing the wrong direction.
 
 ## Timeline
 
@@ -13,6 +19,9 @@ The original issue: Enemy bullets should spawn from the weapon muzzle and fly in
    - Using `_weapon_sprite.global_position` as base
    - Adding offset in direction of `_enemy_model.rotation`
 3. User testing revealed bullets still spawn from incorrect positions
+4. Second fix applied: Using `_weapon_sprite.global_transform.x.normalized()` for visual direction
+5. User testing revealed enemies now turn their backs to player
+6. **Root cause identified**: Rotation angle not negated when vertical flip is applied
 
 ## Technical Analysis
 
@@ -25,7 +34,7 @@ Enemy (CharacterBody2D)
       WeaponSprite (Sprite2D) - offset (20, 0), no individual rotation
 ```
 
-### The Bug
+### Bug #1: Muzzle Position (Fixed)
 
 In `_get_bullet_spawn_position()`:
 ```gdscript
@@ -35,56 +44,91 @@ var result := _weapon_sprite.global_position + weapon_forward * scaled_muzzle_of
 
 The issue: `Vector2.from_angle(_enemy_model.rotation)` only accounts for rotation, not scale.
 
-When the enemy aims LEFT (angle > 90deg or < -90deg):
-- `_enemy_model.rotation` is set to the target angle (e.g., PI for left)
-- `_enemy_model.scale.y` is set to NEGATIVE (-1.3) for vertical flip to avoid upside-down weapon
-- `Vector2.from_angle(_enemy_model.rotation)` gives (-1, 0) for angle PI
-- BUT the actual weapon sprite's visual forward direction is affected by BOTH rotation AND scale
+**Solution**: Use `_weapon_sprite.global_transform.x.normalized()` which gives the actual visual forward direction including scale effects.
 
-When `scale.y` is negative, the Y-axis is flipped. This affects how child nodes are positioned and oriented:
-- The WeaponMount at local (0, 6) gets transformed differently
-- The weapon sprite's visual "forward" (muzzle direction) is different from `Vector2.from_angle(rotation)`
+### Bug #2: Model Facing Wrong Direction (The Real Issue)
+
+In `_update_enemy_model_rotation()`:
+```gdscript
+var target_angle := face_direction.angle()
+_enemy_model.rotation = target_angle
+
+if aiming_left:
+    _enemy_model.scale = Vector2(enemy_model_scale, -enemy_model_scale)
+```
+
+**The Problem**: When we apply a negative Y scale (vertical flip) to avoid an upside-down sprite, the visual effect of rotation is INVERTED. A rotation angle that would normally point left now visually points right.
+
+**Mathematical Explanation**:
+
+When a 2D transform has negative scale on one axis, it creates a mirror effect. Consider:
+- Sprite faces right at angle 0°
+- To face up-left (angle -153°), we rotate by -153°
+- If we ALSO flip vertically (scale.y = -1), the visual result is mirrored
+
+The issue is that negative scale.y mirrors the Y axis, which effectively inverts the rotation direction visually. The combination of:
+- `rotation = -153°` (intending to face up-left)
+- `scale.y = -1.3` (vertical flip)
+
+Results in the sprite visually facing up-RIGHT instead of up-LEFT, because the flip mirrors the rotation effect.
+
+**Solution**: When applying vertical flip, negate the rotation angle:
+```gdscript
+if aiming_left:
+    _enemy_model.rotation = -target_angle  # Negate to compensate for flip
+    _enemy_model.scale = Vector2(enemy_model_scale, -enemy_model_scale)
+else:
+    _enemy_model.rotation = target_angle
+    _enemy_model.scale = Vector2(enemy_model_scale, enemy_model_scale)
+```
+
+This ensures the visual result is correct:
+- Without flip: rotation = target_angle, scale.y positive -> faces target_angle ✓
+- With flip: rotation = -target_angle, scale.y negative -> faces target_angle ✓ (the two inversions cancel out)
 
 ### Root Cause
 
-The code assumes the weapon's forward direction is purely based on rotation angle, but the actual visual direction is the result of the complete transform chain (rotation * scale).
+The code assumed that rotation angle alone determines facing direction, but when vertical flipping is applied, the rotation must be negated to maintain the correct visual direction.
 
-The correct approach is to use `_weapon_sprite.global_transform.x.normalized()` which gives the actual world-space direction the weapon sprite's local +X axis points to, accounting for all parent transforms including scale flips.
+This is a known Godot behavior documented in [GitHub issue #21020](https://github.com/godotengine/godot/issues/21020) and discussed in various [Godot forum posts](https://forum.godotengine.org/t/flipping-node-sprite-scale-x-1-flipping-every-frame/67514).
 
 ## Solution
 
-### Primary Fix: `_get_bullet_spawn_position()`
+### Primary Fix: `_update_enemy_model_rotation()`
 
-Replace:
+Negate rotation angle when applying vertical flip:
 ```gdscript
-var weapon_forward := Vector2.from_angle(_enemy_model.rotation)
+if aiming_left:
+    _enemy_model.rotation = -target_angle
+    _enemy_model.scale = Vector2(enemy_model_scale, -enemy_model_scale)
+else:
+    _enemy_model.rotation = target_angle
+    _enemy_model.scale = Vector2(enemy_model_scale, enemy_model_scale)
 ```
 
-With:
-```gdscript
-var weapon_forward := _weapon_sprite.global_transform.x.normalized()
-```
+### Secondary Fix: Player Model (Same Pattern)
 
-This correctly handles:
-1. Normal right-facing aim (no flip)
-2. Left-facing aim with vertical flip
-3. Any intermediate angles
+Applied the same fix to `_update_player_model_rotation()` in player.gd to ensure consistent behavior.
 
-### Secondary Fix: `_get_weapon_forward_direction()`
+### Tertiary Fix: Muzzle Position (Previous Fix)
 
-Updated to use `_weapon_sprite.global_transform.x.normalized()` instead of `Vector2.from_angle(_enemy_model.rotation)`.
-
-### Tertiary Fixes: Raycast Functions
-
-Updated `_is_firing_line_clear_of_friendlies()` and `_is_shot_clear_of_cover()` to use the actual muzzle position from `_get_bullet_spawn_position()` instead of a simple offset from enemy center.
+Using `_weapon_sprite.global_transform.x.normalized()` for weapon forward direction, which correctly accounts for all transforms.
 
 ## Data Files
 
-- `game_log_20260122_151419.txt` - Game log showing bullet spawn positions
+- `game_log_20260122_151419.txt` - Initial game log showing bullet spawn positions
+- `game_log_20260122_152844.txt` - Second game log showing model facing issue
 
 ## Verification
 
-After the fix, bullets should:
-1. Always spawn from the visual muzzle position
-2. Fly toward the target regardless of enemy facing direction
-3. Work correctly when enemy is facing left (vertically flipped model)
+After the fix, enemies should:
+1. Always visually face the player when shooting
+2. Spawn bullets from the visual muzzle position
+3. Bullets fly toward the target
+4. Work correctly when enemy is facing left (vertically flipped model)
+
+## References
+
+- [Godot Issue #21020 - Global rotation can return opposite sign of expected](https://github.com/godotengine/godot/issues/21020)
+- [Godot Forum - Flipping Node/Sprite](https://forum.godotengine.org/t/flipping-node-sprite-scale-x-1-flipping-every-frame/67514)
+- [KidsCanCode - Top-down movement](https://kidscancode.org/godot_recipes/4.x/2d/topdown_movement/index.html)

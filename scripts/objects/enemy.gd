@@ -1085,17 +1085,25 @@ func _update_enemy_model_rotation() -> void:
 	# Enemy sprites face RIGHT (same as player sprites, 0 radians)
 	var target_angle := face_direction.angle()
 
-	# Apply rotation to the enemy model
-	_enemy_model.rotation = target_angle
-
 	# Handle sprite flipping for left/right aim
-	# When aiming left (angle > 90 or < -90), flip vertically to avoid upside-down appearance
+	# When aiming left (angle > 90° or < -90°), flip vertically to avoid upside-down appearance
 	var aiming_left := absf(target_angle) > PI / 2
 
-	# Flip the enemy model vertically when aiming left
+	# Apply rotation to the enemy model
+	# IMPORTANT: When we flip the model vertically (negative scale.y), we must NEGATE
+	# the rotation angle to compensate. This is because a negative Y scale mirrors
+	# the coordinate system, which inverts the effect of rotation. Without this
+	# adjustment, the model would visually face the opposite direction.
+	#
+	# Example: To face angle -153° (up-left):
+	# - Without flip: rotation = -153°, scale.y = 1.3  -> faces up-left ✓
+	# - With flip but no angle adjustment: rotation = -153°, scale.y = -1.3 -> faces down-right ✗
+	# - With flip AND angle negation: rotation = 153°, scale.y = -1.3 -> faces up-left ✓
 	if aiming_left:
+		_enemy_model.rotation = -target_angle
 		_enemy_model.scale = Vector2(enemy_model_scale, -enemy_model_scale)
 	else:
+		_enemy_model.rotation = target_angle
 		_enemy_model.scale = Vector2(enemy_model_scale, enemy_model_scale)
 
 
