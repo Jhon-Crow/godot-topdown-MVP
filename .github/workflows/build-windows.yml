@@ -27,10 +27,10 @@ jobs:
 
       - name: Build C# project
         run: |
-          dotnet build --configuration Release --no-restore
-          echo "C# build completed. DLL should be at .godot/mono/temp/bin/Release/"
-          ls -la .godot/mono/temp/bin/Release/ 2>/dev/null || echo "Release directory not found, checking Debug..."
-          ls -la .godot/mono/temp/bin/Debug/ 2>/dev/null || true
+          # Build project (default Debug configuration works with Godot's .sln)
+          dotnet build --no-restore
+          echo "C# build completed"
+          ls -la .godot/mono/temp/bin/Debug/ 2>/dev/null || echo "Debug directory not found"
 
       - name: Export game
         id: export
