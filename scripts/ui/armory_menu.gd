@@ -217,7 +217,16 @@ func _on_slot_gui_input(event: InputEvent, slot: PanelContainer, weapon_id: Stri
 
 
 ## Select a weapon and update GameManager.
+## This will restart the level if a different weapon is selected.
 func _select_weapon(weapon_id: String) -> void:
+	# Check if already selected
+	var current_weapon_id: String = "m16"  # Default
+	if GameManager:
+		current_weapon_id = GameManager.get_selected_weapon()
+
+	if weapon_id == current_weapon_id:
+		return  # Already selected, no need to restart
+
 	# Update selection in GameManager
 	if GameManager:
 		GameManager.set_selected_weapon(weapon_id)
@@ -227,6 +236,18 @@ func _select_weapon(weapon_id: String) -> void:
 
 	# Update visual highlighting
 	_highlight_selected_items()
+
+	# Restart the level to apply the new weapon (like grenades do)
+	if GameManager:
+		# IMPORTANT: Unpause the game before restarting
+		# This prevents the game from getting stuck in paused state when
+		# changing weapons from the armory menu while the game is paused
+		get_tree().paused = false
+
+		# Restore hidden cursor for gameplay (confined and hidden)
+		Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED_HIDDEN)
+
+		GameManager.restart_scene()
 
 
 ## Select a grenade and update GrenadeManager.
