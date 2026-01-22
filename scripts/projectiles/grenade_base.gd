@@ -218,7 +218,8 @@ func throw_grenade(direction: Vector2, drag_distance: float) -> void:
 	# Rotate to face direction
 	rotation = direction.angle()
 
-	FileLogger.info("[GrenadeBase] Thrown! Direction: %s, Speed: %.1f (unfrozen)" % [str(direction), throw_speed])
+	FileLogger.info("[GrenadeBase] LEGACY throw_grenade() called! Direction: %s, Speed: %.1f (unfrozen)" % [str(direction), throw_speed])
+	FileLogger.info("[GrenadeBase] NOTE: Using DRAG-BASED system. If velocity-based is expected, ensure grenade has throw_grenade_velocity_based() method.")
 
 
 ## Get the explosion effect radius. Override in subclasses.

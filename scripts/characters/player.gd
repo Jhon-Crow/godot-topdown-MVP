@@ -284,6 +284,7 @@ func _ready() -> void:
 		_current_grenades, max_grenades,
 		_current_health, max_health
 	])
+	FileLogger.info("[Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)")
 
 
 func _physics_process(delta: float) -> void:
