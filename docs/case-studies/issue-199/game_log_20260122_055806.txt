@@ -1,0 +1,99 @@
+[05:58:06] [INFO] ============================================================
+[05:58:06] [INFO] GAME LOG STARTED
+[05:58:06] [INFO] ============================================================
+[05:58:06] [INFO] Timestamp: 2026-01-22T05:58:06
+[05:58:06] [INFO] Log file: I:/Загрузки/godot exe/game_log_20260122_055806.txt
+[05:58:06] [INFO] Executable: I:/Загрузки/godot exe/Godot-Top-Down-Template.exe
+[05:58:06] [INFO] OS: Windows
+[05:58:06] [INFO] Debug build: false
+[05:58:06] [INFO] Engine version: 4.3-stable (official)
+[05:58:06] [INFO] Project: Godot Top-Down Template
+[05:58:06] [INFO] ------------------------------------------------------------
+[05:58:06] [INFO] [GameManager] GameManager ready
+[05:58:06] [INFO] [ScoreManager] ScoreManager ready
+[05:58:06] [INFO] [SoundPropagation] SoundPropagation autoload initialized
+[05:58:07] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[05:58:07] [INFO] [PenultimateHit] Saturation shader loaded successfully
+[05:58:07] [INFO] [PenultimateHit] PenultimateHitEffectsManager ready - Configuration:
+[05:58:07] [INFO] [PenultimateHit]   Time scale: 0.10 (10x slowdown)
+[05:58:07] [INFO] [PenultimateHit]   Saturation boost: 2.0 (3.0x)
+[05:58:07] [INFO] [PenultimateHit]   Contrast boost: 1.0 (2.0x)
+[05:58:07] [INFO] [PenultimateHit]   Effect duration: 3.0 real seconds
+[05:58:07] [INFO] [LastChance] Resetting all effects (scene change detected)
+[05:58:07] [INFO] [LastChance] Last chance shader loaded successfully
+[05:58:07] [INFO] [LastChance] LastChanceEffectsManager ready - Configuration:
+[05:58:07] [INFO] [LastChance]   Freeze duration: 6.0 real seconds
+[05:58:07] [INFO] [LastChance]   Sepia intensity: 0.70
+[05:58:07] [INFO] [LastChance]   Brightness: 0.60
+[05:58:07] [INFO] [Player.Grenade] Grenade scene loaded
+[05:58:07] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[05:58:07] [INFO] [Player] Ready! Grenades: 1/3
+[05:58:07] [INFO] [ScoreManager] Level started with 10 enemies
+[05:58:07] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 1)
+[05:58:07] [ENEMY] [Enemy1] Registered as sound listener
+[05:58:07] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 3, behavior: GUARD, player_found: yes
+[05:58:07] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 2)
+[05:58:07] [ENEMY] [Enemy2] Registered as sound listener
+[05:58:07] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 3, behavior: GUARD, player_found: yes
+[05:58:07] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 3)
+[05:58:07] [ENEMY] [Enemy3] Registered as sound listener
+[05:58:07] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 4, behavior: GUARD, player_found: yes
+[05:58:07] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 4)
+[05:58:07] [ENEMY] [Enemy4] Registered as sound listener
+[05:58:07] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 2, behavior: GUARD, player_found: yes
+[05:58:07] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 5)
+[05:58:07] [ENEMY] [Enemy5] Registered as sound listener
+[05:58:07] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 2, behavior: GUARD, player_found: yes
+[05:58:07] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 6)
+[05:58:07] [ENEMY] [Enemy6] Registered as sound listener
+[05:58:07] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 4, behavior: GUARD, player_found: yes
+[05:58:07] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 7)
+[05:58:07] [ENEMY] [Enemy7] Registered as sound listener
+[05:58:07] [ENEMY] [Enemy7] Enemy spawned at (1606.114, 893.8859), health: 3, behavior: PATROL, player_found: yes
+[05:58:07] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 8)
+[05:58:07] [ENEMY] [Enemy8] Registered as sound listener
+[05:58:07] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 3, behavior: GUARD, player_found: yes
+[05:58:07] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 9)
+[05:58:07] [ENEMY] [Enemy9] Registered as sound listener
+[05:58:07] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 2, behavior: GUARD, player_found: yes
+[05:58:07] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 10)
+[05:58:07] [ENEMY] [Enemy10] Registered as sound listener
+[05:58:07] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 2, behavior: PATROL, player_found: yes
+[05:58:07] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[05:58:07] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[05:58:07] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[05:58:07] [INFO] [LastChance] Found player: Player
+[05:58:07] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[05:58:07] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[05:58:07] [INFO] [LastChance] Connected to player Died signal (C#)
+[05:58:09] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[05:58:09] [INFO] [LastChance] Resetting all effects (scene change detected)
+[05:58:09] [INFO] [Player.Grenade] Grenade scene loaded
+[05:58:09] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+[05:58:09] [INFO] [Player] Ready! Grenades: 3/3
+[05:58:09] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[05:58:09] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[05:58:09] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[05:58:09] [INFO] [LastChance] Found player: Player
+[05:58:09] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[05:58:09] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[05:58:09] [INFO] [LastChance] Connected to player Died signal (C#)
+[05:58:11] [INFO] [GameManager] Weapon selected: shotgun
+[05:58:12] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[05:58:12] [INFO] [LastChance] Resetting all effects (scene change detected)
+[05:58:12] [INFO] [Player.Grenade] Grenade scene loaded
+[05:58:12] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+[05:58:12] [INFO] [Player] Ready! Grenades: 3/3
+[05:58:12] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[05:58:12] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[05:58:12] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[05:58:12] [INFO] [LastChance] Found player: Player
+[05:58:12] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[05:58:12] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[05:58:12] [INFO] [LastChance] Connected to player Died signal (C#)
+[05:58:16] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(652.2862, 175.5559), source=PLAYER (Shotgun), range=1469, listeners=10
+[05:58:16] [INFO] [SoundPropagation] Cleaned up 10 invalid listeners
+[05:58:16] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[05:58:22] [INFO] ------------------------------------------------------------
+[05:58:22] [INFO] GAME LOG ENDED: 2026-01-22T05:58:22
+[05:58:22] [INFO] ============================================================
