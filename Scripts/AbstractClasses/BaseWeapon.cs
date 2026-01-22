@@ -338,33 +338,34 @@ public abstract partial class BaseWeapon : Node2D
         var bullet = BulletScene.Instantiate<Node2D>();
         bullet.GlobalPosition = spawnPosition;
 
-        // Set bullet properties if it has a Direction property
+        // Set bullet properties - use lowercase property names for GDScript compatibility
+        // GDScript uses snake_case (direction, speed, shooter_id, shooter_position)
         if (bullet.HasMethod("SetDirection"))
         {
             bullet.Call("SetDirection", direction);
         }
         else
         {
-            // Try to set direction via property
-            bullet.Set("Direction", direction);
+            // Try to set direction via property (lowercase for GDScript bullet.gd)
+            bullet.Set("direction", direction);
         }
 
-        // Set bullet speed from weapon data
+        // Set bullet speed from weapon data (lowercase for GDScript)
         if (WeaponData != null)
         {
-            bullet.Set("Speed", WeaponData.BulletSpeed);
+            bullet.Set("speed", WeaponData.BulletSpeed);
         }
 
-        // Set shooter ID to prevent self-damage
+        // Set shooter ID to prevent self-damage (lowercase for GDScript)
         // The shooter is the owner of the weapon (parent node)
         var owner = GetParent();
         if (owner != null)
         {
-            bullet.Set("ShooterId", owner.GetInstanceId());
+            bullet.Set("shooter_id", owner.GetInstanceId());
         }
 
-        // Set shooter position for distance-based penetration calculations
-        bullet.Set("ShooterPosition", GlobalPosition);
+        // Set shooter position for distance-based penetration calculations (lowercase for GDScript)
+        bullet.Set("shooter_position", GlobalPosition);
 
         GetTree().CurrentScene.AddChild(bullet);
     }

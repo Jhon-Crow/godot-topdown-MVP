@@ -1,0 +1,17 @@
+[gd_scene load_steps=5 format=3 uid="uid://cp4m7n9k3r5q8"]
+
+[ext_resource type="Script" path="res://Scripts/Weapons/MiniUzi.cs" id="1_mini_uzi"]
+[ext_resource type="PackedScene" uid="uid://dm5n8k7r3p9q2" path="res://scenes/projectiles/Bullet9mm.tscn" id="2_bullet"]
+[ext_resource type="Resource" uid="uid://bk7m4n9r2p5q8" path="res://resources/weapons/MiniUziData.tres" id="3_weapon_data"]
+[ext_resource type="Texture2D" uid="uid://cq8m5n4r7p6k2" path="res://assets/sprites/weapons/mini_uzi_topdown.png" id="4_sprite"]
+
+[node name="MiniUzi" type="Node2D"]
+script = ExtResource("1_mini_uzi")
+WeaponData = ExtResource("3_weapon_data")
+BulletScene = ExtResource("2_bullet")
+BulletSpawnOffset = 20.0
+
+[node name="MiniUziSprite" type="Sprite2D" parent="."]
+z_index = 1
+texture = ExtResource("4_sprite")
+offset = Vector2(15, 0)

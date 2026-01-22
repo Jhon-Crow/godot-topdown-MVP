@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=2 format=3 uid="uid://bk7m4n9r2p5q8"]
+
+[ext_resource type="Script" path="res://Scripts/Data/WeaponData.cs" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+Name = "Mini UZI"
+Damage = 0.5
+FireRate = 25.0
+MagazineSize = 32
+MaxReserveAmmo = 64
+ReloadTime = 2.0
+BulletSpeed = 1200.0
+Range = 800.0
+SpreadAngle = 6.0
+BulletsPerShot = 1
+IsAutomatic = true
+Sensitivity = 8.0
+ScreenShakeIntensity = 15.0
+ScreenShakeMinRecoveryTime = 0.15
+ScreenShakeMaxRecoveryTime = 0.05
+Loudness = 1469.0

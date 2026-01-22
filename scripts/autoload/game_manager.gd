@@ -24,14 +24,15 @@ var player: Node2D = null
 var debug_mode_enabled: bool = false
 
 ## Currently selected weapon ID for player equipment.
-## Valid values: "m16", "shotgun" (corresponds to armory_menu WEAPONS keys)
+## Valid values: "m16", "shotgun", "mini_uzi" (corresponds to armory_menu WEAPONS keys)
 ## Default: "m16" (assault rifle)
 var selected_weapon: String = "m16"
 
 ## Weapon scene paths mapped to weapon IDs.
 const WEAPON_SCENES: Dictionary = {
 	"m16": "res://scenes/weapons/csharp/AssaultRifle.tscn",
-	"shotgun": "res://scenes/weapons/csharp/Shotgun.tscn"
+	"shotgun": "res://scenes/weapons/csharp/Shotgun.tscn",
+	"mini_uzi": "res://scenes/weapons/csharp/MiniUzi.tscn"
 }
 
 ## Signal emitted when an enemy is killed (for screen effects).

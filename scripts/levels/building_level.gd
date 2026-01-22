@@ -187,8 +187,10 @@ func _setup_player_tracking() -> void:
 		_player.Died.connect(_on_player_died)
 
 	# Try to get the player's weapon for C# Player
-	# First try shotgun (if selected), then assault rifle
+	# First try shotgun (if selected), then Mini UZI, then assault rifle
 	var weapon = _player.get_node_or_null("Shotgun")
+	if weapon == null:
+		weapon = _player.get_node_or_null("MiniUzi")
 	if weapon == null:
 		weapon = _player.get_node_or_null("AssaultRifle")
 	if weapon != null:
@@ -887,6 +889,30 @@ func _setup_selected_weapon() -> void:
 			print("BuildingLevel: Shotgun equipped successfully")
 		else:
 			push_error("BuildingLevel: Failed to load Shotgun scene!")
+	# If Mini UZI is selected, swap weapons
+	elif selected_weapon_id == "mini_uzi":
+		# Remove the default AssaultRifle
+		var assault_rifle = _player.get_node_or_null("AssaultRifle")
+		if assault_rifle:
+			assault_rifle.queue_free()
+			print("BuildingLevel: Removed default AssaultRifle")
+
+		# Load and add the Mini UZI
+		var mini_uzi_scene = load("res://scenes/weapons/csharp/MiniUzi.tscn")
+		if mini_uzi_scene:
+			var mini_uzi = mini_uzi_scene.instantiate()
+			mini_uzi.name = "MiniUzi"
+			_player.add_child(mini_uzi)
+
+			# Set the CurrentWeapon reference in C# Player
+			if _player.has_method("EquipWeapon"):
+				_player.EquipWeapon(mini_uzi)
+			elif _player.get("CurrentWeapon") != null:
+				_player.CurrentWeapon = mini_uzi
+
+			print("BuildingLevel: Mini UZI equipped successfully")
+		else:
+			push_error("BuildingLevel: Failed to load MiniUzi scene!")
 	# For M16 (assault rifle), it's already in the scene
 	else:
 		var assault_rifle = _player.get_node_or_null("AssaultRifle")

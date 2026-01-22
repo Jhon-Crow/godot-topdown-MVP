@@ -652,17 +652,17 @@ func _get_all_bullets() -> Array:
 	return bullets
 
 
-## Recursively finds bullet nodes.
+## Recursively finds bullet and pellet nodes.
 func _find_bullets_recursive(node: Node, bullets: Array) -> void:
 	if node is Area2D:
-		# Check if it's a bullet by script or name
+		# Check if it's a bullet or pellet by script or name
 		var script: Script = node.get_script()
 		if script != null:
 			var script_path: String = script.resource_path
-			if "bullet" in script_path.to_lower():
+			if "bullet" in script_path.to_lower() or "pellet" in script_path.to_lower():
 				if node not in bullets:
 					bullets.append(node)
-		elif "Bullet" in node.name or "bullet" in node.name:
+		elif "Bullet" in node.name or "bullet" in node.name or "Pellet" in node.name or "pellet" in node.name:
 			if node not in bullets:
 				bullets.append(node)
 
@@ -807,14 +807,14 @@ func _on_node_added_during_freeze(node: Node) -> void:
 	if not node is Area2D:
 		return
 
-	# Check if it's a bullet by script path or name
+	# Check if it's a bullet or pellet by script path or name
 	var is_bullet: bool = false
 	var script: Script = node.get_script()
 	if script != null:
 		var script_path: String = script.resource_path
-		if "bullet" in script_path.to_lower():
+		if "bullet" in script_path.to_lower() or "pellet" in script_path.to_lower():
 			is_bullet = true
-	elif "Bullet" in node.name or "bullet" in node.name:
+	elif "Bullet" in node.name or "bullet" in node.name or "Pellet" in node.name or "pellet" in node.name:
 		is_bullet = true
 
 	if not is_bullet:

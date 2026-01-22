@@ -150,9 +150,9 @@ func test_shake_accumulation_opposite_directions() -> void:
 
 
 func test_shake_max_clamp() -> void:
-	# Shake offset should be clamped to MAX_SHAKE_OFFSET (50 pixels)
-	var offset := Vector2(100, 0)  # Way beyond max
-	var max_offset := 50.0
+	# Shake offset should be clamped to MAX_SHAKE_OFFSET (200 pixels, increased 4x for UZI balance)
+	var offset := Vector2(300, 0)  # Way beyond max
+	var max_offset := 200.0
 
 	if offset.length() > max_offset:
 		offset = offset.normalized() * max_offset

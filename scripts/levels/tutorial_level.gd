@@ -151,6 +151,30 @@ func _setup_selected_weapon() -> void:
 			print("Tutorial: Shotgun equipped successfully")
 		else:
 			push_error("Tutorial: Failed to load Shotgun scene!")
+	# If Mini UZI is selected, swap weapons
+	elif selected_weapon_id == "mini_uzi":
+		# Remove the default AssaultRifle
+		var assault_rifle = _player.get_node_or_null("AssaultRifle")
+		if assault_rifle:
+			assault_rifle.queue_free()
+			print("Tutorial: Removed default AssaultRifle")
+
+		# Load and add the Mini UZI
+		var mini_uzi_scene = load("res://scenes/weapons/csharp/MiniUzi.tscn")
+		if mini_uzi_scene:
+			var mini_uzi = mini_uzi_scene.instantiate()
+			mini_uzi.name = "MiniUzi"
+			_player.add_child(mini_uzi)
+
+			# Set the CurrentWeapon reference in C# Player
+			if _player.has_method("EquipWeapon"):
+				_player.EquipWeapon(mini_uzi)
+			elif _player.get("CurrentWeapon") != null:
+				_player.CurrentWeapon = mini_uzi
+
+			print("Tutorial: Mini UZI equipped successfully")
+		else:
+			push_error("Tutorial: Failed to load MiniUzi scene!")
 	# For M16 (assault rifle), it's already in the scene - just ensure it's equipped
 	else:
 		var assault_rifle = _player.get_node_or_null("AssaultRifle")
@@ -194,6 +218,7 @@ func _connect_player_signals() -> void:
 	# Try to connect to weapon signals (C# Player)
 	var weapon = _player.get_node_or_null("AssaultRifle")
 	var shotgun = _player.get_node_or_null("Shotgun")
+	var mini_uzi = _player.get_node_or_null("MiniUzi")
 
 	if shotgun != null:
 		_shotgun = shotgun
@@ -209,6 +234,20 @@ func _connect_player_signals() -> void:
 		# Connect to shotgun ammo signal
 		if shotgun.has_signal("AmmoChanged"):
 			shotgun.AmmoChanged.connect(_on_weapon_ammo_changed)
+
+	elif mini_uzi != null:
+		# Mini UZI uses rifle-like reload (no fire mode switching)
+		print("Tutorial: Player has Mini UZI - rifle-like reload tutorial")
+
+		# Connect to reload signals from player (C# Player)
+		if _player.has_signal("ReloadCompleted"):
+			_player.ReloadCompleted.connect(_on_player_reload_completed)
+		elif _player.has_signal("reload_completed"):
+			_player.reload_completed.connect(_on_player_reload_completed)
+
+		# Connect to Mini UZI ammo signal
+		if mini_uzi.has_signal("AmmoChanged"):
+			mini_uzi.AmmoChanged.connect(_on_weapon_ammo_changed)
 
 	elif weapon != null:
 		_assault_rifle = weapon
@@ -246,6 +285,7 @@ func _setup_ammo_tracking() -> void:
 
 	# Try to get the player's weapon for C# Player
 	var shotgun = _player.get_node_or_null("Shotgun")
+	var mini_uzi = _player.get_node_or_null("MiniUzi")
 	var weapon = _player.get_node_or_null("AssaultRifle")
 
 	if shotgun != null:
@@ -258,6 +298,13 @@ func _setup_ammo_tracking() -> void:
 		# Initial ammo display from shotgun
 		if shotgun.get("CurrentAmmo") != null and shotgun.get("ReserveAmmo") != null:
 			_update_ammo_label_magazine(shotgun.CurrentAmmo, shotgun.ReserveAmmo)
+	elif mini_uzi != null:
+		# C# Player with Mini UZI - connect to weapon signals
+		if mini_uzi.has_signal("AmmoChanged"):
+			mini_uzi.AmmoChanged.connect(_on_weapon_ammo_changed)
+		# Initial ammo display from Mini UZI
+		if mini_uzi.get("CurrentAmmo") != null and mini_uzi.get("ReserveAmmo") != null:
+			_update_ammo_label_magazine(mini_uzi.CurrentAmmo, mini_uzi.ReserveAmmo)
 	elif weapon != null:
 		# C# Player with assault rifle - connect to weapon signals
 		if weapon.has_signal("AmmoChanged"):
