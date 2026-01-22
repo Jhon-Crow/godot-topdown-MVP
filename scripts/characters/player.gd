@@ -84,6 +84,8 @@ var _is_alive: bool = true
 @onready var _head_sprite: Sprite2D = $PlayerModel/Head
 @onready var _left_arm_sprite: Sprite2D = $PlayerModel/LeftArm
 @onready var _right_arm_sprite: Sprite2D = $PlayerModel/RightArm
+@onready var _left_elbow_joint: Sprite2D = $PlayerModel/LeftArm/ElbowJoint
+@onready var _right_elbow_joint: Sprite2D = $PlayerModel/RightArm/ElbowJoint
 
 ## Legacy reference for compatibility (points to body sprite).
 @onready var _sprite: Sprite2D = $PlayerModel/Body
@@ -899,6 +901,10 @@ func _set_all_sprites_modulate(color: Color) -> void:
 		_left_arm_sprite.modulate = color
 	if _right_arm_sprite:
 		_right_arm_sprite.modulate = color
+	if _left_elbow_joint:
+		_left_elbow_joint.modulate = color
+	if _right_elbow_joint:
+		_right_elbow_joint.modulate = color
 
 
 ## Returns the current health as a percentage (0.0 to 1.0).

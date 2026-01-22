@@ -81,6 +81,8 @@ public partial class Player : BaseCharacter
     private Sprite2D? _headSprite;
     private Sprite2D? _leftArmSprite;
     private Sprite2D? _rightArmSprite;
+    private Sprite2D? _leftElbowJoint;
+    private Sprite2D? _rightElbowJoint;
 
     /// <summary>
     /// Legacy reference for compatibility (points to body sprite).
@@ -517,6 +519,9 @@ public partial class Player : BaseCharacter
             _headSprite = _playerModel.GetNodeOrNull<Sprite2D>("Head");
             _leftArmSprite = _playerModel.GetNodeOrNull<Sprite2D>("LeftArm");
             _rightArmSprite = _playerModel.GetNodeOrNull<Sprite2D>("RightArm");
+            // Get elbow joint sprites (children of arm sprites)
+            _leftElbowJoint = _leftArmSprite?.GetNodeOrNull<Sprite2D>("ElbowJoint");
+            _rightElbowJoint = _rightArmSprite?.GetNodeOrNull<Sprite2D>("ElbowJoint");
             // Legacy compatibility - _sprite points to body
             _sprite = _bodySprite;
         }
@@ -678,6 +683,14 @@ public partial class Player : BaseCharacter
         {
             LogToFile("[Player.Init] WARNING: Right arm sprite NOT found!");
         }
+        if (_leftElbowJoint != null)
+        {
+            LogToFile($"[Player.Init] Left elbow joint found at position: {_leftElbowJoint.Position}");
+        }
+        if (_rightElbowJoint != null)
+        {
+            LogToFile($"[Player.Init] Right elbow joint found at position: {_rightElbowJoint.Position}");
+        }
 
         // Apply scale to player model for larger appearance
         if (_playerModel != null)
@@ -769,6 +782,14 @@ public partial class Player : BaseCharacter
         if (_rightArmSprite != null)
         {
             _rightArmSprite.Modulate = color;
+        }
+        if (_leftElbowJoint != null)
+        {
+            _leftElbowJoint.Modulate = color;
+        }
+        if (_rightElbowJoint != null)
+        {
+            _rightElbowJoint.Modulate = color;
         }
         // If using old single sprite structure
         if (_playerModel == null && _sprite != null)

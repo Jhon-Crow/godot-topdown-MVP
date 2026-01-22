@@ -155,3 +155,82 @@ When animation moves position, the shoulder stays connected because:
 - Position change affects the shoulder location
 - The sprite extends from the shoulder outward (toward hand/elbow)
 - Body connections remain visually intact
+
+### User Feedback (Post-Iteration 2)
+User Jhon-Crow reported:
+- "всё ещё нет стыка" (still no joint connection)
+- "добавь круглый сустав на место локтей" (add round joint to the elbow locations)
+
+The user attached game log: `game_log_20260122_191452.txt`
+
+### Root Cause Analysis (Updated)
+The sprite offset solution correctly anchored the shoulder, but the **elbow end** of the arm still shows visible gaps during animations. The arm sprites are rectangular bars that don't naturally connect to the body or forearm at the elbow.
+
+**Technical Issue**: When the arm rotates or moves, the elbow end (right edge of the 20x8 pixel sprite) creates a visual gap where there should be a joint.
+
+## Implementation (Iteration 3) - January 22, 2026
+
+### Solution: Round Elbow Joint Sprites
+
+Added circular elbow joint sprites as children of the arm sprites. These "joint caps" cover the gap at the elbow end and provide visual continuity during all animations.
+
+#### New Asset Created
+`assets/sprites/characters/player/player_elbow_joint.png`:
+- Size: 8x8 pixels
+- Shape: Circular/round
+- Color: Matching the arm sprites (dark green tones)
+- Purpose: Cover the elbow joint gap
+
+#### Scene Structure Update
+```
+PlayerModel (Node2D at origin)
+├── Body (Sprite2D)
+│   └── z_index: 1
+├── LeftArm (Sprite2D)
+│   ├── position: (14, 6)
+│   ├── offset: (10, 0)
+│   ├── z_index: 2
+│   └── ElbowJoint (Sprite2D)    # NEW
+│       ├── position: (10, 0)    # At elbow end of arm
+│       └── z_index: 1
+├── RightArm (Sprite2D)
+│   ├── position: (-10, 6)
+│   ├── offset: (10, 0)
+│   ├── z_index: 2
+│   └── ElbowJoint (Sprite2D)    # NEW
+│       ├── position: (10, 0)    # At elbow end of arm
+│       └── z_index: 1
+├── Head (Sprite2D)
+│   └── z_index: 3
+└── WeaponMount (Node2D)
+```
+
+### How It Works
+1. **Joint Position**: The elbow joint is positioned at `(10, 0)` relative to the arm sprite
+   - With the arm's offset of `(10, 0)`, the pivot is at the shoulder (left edge)
+   - The elbow is at the right edge, which is at local position `(10, 0)` from the arm's pivot
+2. **Joint Movement**: Since the elbow joint is a child of the arm sprite, it automatically:
+   - Moves when the arm moves
+   - Rotates when the arm rotates
+   - Stays at the elbow position regardless of animation state
+3. **Z-Index**: Set to 1 (below the arm's z_index of 2) so the joint appears behind the arm for natural layering
+4. **Color Matching**: Updated both GDScript and C# to include elbow joints in the sprite color modulation system
+
+### Code Changes
+
+#### GDScript (`scripts/characters/player.gd`)
+- Added references: `_left_elbow_joint`, `_right_elbow_joint`
+- Updated `_set_all_sprites_modulate()` to include elbow joints
+
+#### C# (`Scripts/Characters/Player.cs`)
+- Added fields: `_leftElbowJoint`, `_rightElbowJoint`
+- Added initialization in `_Ready()`
+- Added logging: `[Player.Init] Left/Right elbow joint found`
+- Updated `SetAllSpritesModulate()` to include elbow joints
+
+### Visual Result
+The round elbow joints provide a smooth visual transition at the elbow:
+- During idle: Joint sits at elbow, barely visible but fills any gap
+- During walking: Joint moves with arm, always covering the elbow
+- During grenade/reload animations: Joint follows arm rotation/movement
+- When arms move away from body: Joint creates clean visual connection
