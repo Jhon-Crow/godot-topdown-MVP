@@ -1089,21 +1089,25 @@ func _update_enemy_model_rotation() -> void:
 	# When aiming left (angle > 90° or < -90°), flip vertically to avoid upside-down appearance
 	var aiming_left := absf(target_angle) > PI / 2
 
-	# Apply rotation to the enemy model
-	# IMPORTANT: When we flip the model vertically (negative scale.y), we must NEGATE
-	# the rotation angle to compensate. This is because a negative Y scale mirrors
-	# the coordinate system, which inverts the effect of rotation. Without this
-	# adjustment, the model would visually face the opposite direction.
+	# Apply rotation to the enemy model using GLOBAL rotation.
+	# IMPORTANT: We use global_rotation instead of (local) rotation because the Enemy
+	# CharacterBody2D node may also have its own rotation (for aiming/turning). Using
+	# global_rotation ensures the EnemyModel's visual direction is set in world coordinates,
+	# independent of any parent rotation.
+	#
+	# When we flip the model vertically (negative scale.y), we must NEGATE the rotation
+	# angle to compensate. This is because a negative Y scale mirrors the coordinate
+	# system, which inverts the effect of rotation.
 	#
 	# Example: To face angle -153° (up-left):
-	# - Without flip: rotation = -153°, scale.y = 1.3  -> faces up-left ✓
-	# - With flip but no angle adjustment: rotation = -153°, scale.y = -1.3 -> faces down-right ✗
-	# - With flip AND angle negation: rotation = 153°, scale.y = -1.3 -> faces up-left ✓
+	# - Without flip: global_rotation = -153°, scale.y = 1.3  -> faces up-left ✓
+	# - With flip but no angle adjustment: global_rotation = -153°, scale.y = -1.3 -> faces down-right ✗
+	# - With flip AND angle negation: global_rotation = 153°, scale.y = -1.3 -> faces up-left ✓
 	if aiming_left:
-		_enemy_model.rotation = -target_angle
+		_enemy_model.global_rotation = -target_angle
 		_enemy_model.scale = Vector2(enemy_model_scale, -enemy_model_scale)
 	else:
-		_enemy_model.rotation = target_angle
+		_enemy_model.global_rotation = target_angle
 		_enemy_model.scale = Vector2(enemy_model_scale, enemy_model_scale)
 
 
