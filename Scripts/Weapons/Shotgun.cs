@@ -153,6 +153,11 @@ public partial class Shotgun : BaseWeapon
     private bool _isMiddleMouseHeld = false;
 
     /// <summary>
+    /// Whether we're on the tutorial level (infinite shells).
+    /// </summary>
+    private bool _isTutorialLevel = false;
+
+    /// <summary>
     /// Signal emitted when action state changes.
     /// </summary>
     [Signal]
@@ -212,11 +217,48 @@ public partial class Shotgun : BaseWeapon
             }
         }
 
+        // Detect if we're on the tutorial level (for infinite shells)
+        DetectTutorialLevel();
+
         // Initialize shell count
         ShellsInTube = TubeMagazineCapacity;
         EmitSignal(SignalName.ShellCountChanged, ShellsInTube, TubeMagazineCapacity);
 
-        GD.Print($"[Shotgun] Ready - Pellets={MinPellets}-{MaxPellets}, Shells={ShellsInTube}/{TubeMagazineCapacity}, CloudOffset={MaxSpawnOffset}px");
+        GD.Print($"[Shotgun] Ready - Pellets={MinPellets}-{MaxPellets}, Shells={ShellsInTube}/{TubeMagazineCapacity}, CloudOffset={MaxSpawnOffset}px, Tutorial={_isTutorialLevel}");
+    }
+
+    /// <summary>
+    /// Detects if we're on the tutorial level for infinite shells.
+    /// </summary>
+    private void DetectTutorialLevel()
+    {
+        var currentScene = GetTree().CurrentScene;
+        if (currentScene == null)
+        {
+            return;
+        }
+
+        var scenePath = currentScene.SceneFilePath;
+        // Tutorial level is detected by:
+        // 1. Scene path contains "csharp/TestTier" (the tutorial scene)
+        // 2. OR scene uses tutorial_level.gd script
+        _isTutorialLevel = scenePath.Contains("csharp/TestTier");
+
+        // Also check if the scene script is tutorial_level.gd
+        var script = currentScene.GetScript();
+        if (script.Obj is GodotObject scriptObj)
+        {
+            var scriptPath = scriptObj.Get("resource_path").AsString();
+            if (scriptPath.Contains("tutorial_level"))
+            {
+                _isTutorialLevel = true;
+            }
+        }
+
+        if (_isTutorialLevel)
+        {
+            GD.Print("[Shotgun] Tutorial level detected - infinite shells enabled");
+        }
     }
 
     public override void _Process(double delta)
@@ -467,11 +509,15 @@ public partial class Shotgun : BaseWeapon
 
     /// <summary>
     /// Loads a single shell into the tube magazine.
+    /// In tutorial mode, shells are infinite (no reserve ammo required).
     /// </summary>
     private void LoadShell()
     {
+        GD.Print($"[Shotgun] LoadShell called - ReloadState={ReloadState}, ShellsInTube={ShellsInTube}/{TubeMagazineCapacity}, Tutorial={_isTutorialLevel}, ReserveAmmo={ReserveAmmo}");
+
         if (ReloadState != ShotgunReloadState.Loading)
         {
+            GD.Print("[Shotgun] LoadShell skipped - not in Loading state");
             return;
         }
 
@@ -481,16 +527,18 @@ public partial class Shotgun : BaseWeapon
             return;
         }
 
-        if (ReserveAmmo <= 0)
+        // In tutorial mode, allow infinite shell loading without reserve ammo
+        if (!_isTutorialLevel && ReserveAmmo <= 0)
         {
-            GD.Print("[Shotgun] No more reserve shells");
+            GD.Print("[Shotgun] No more reserve shells (not tutorial mode)");
             return;
         }
 
         // Load one shell
         ShellsInTube++;
-        // Consume from reserve (through the magazine system)
-        if (MagazineInventory.CurrentMagazine != null && MagazineInventory.CurrentMagazine.CurrentAmmo > 0)
+
+        // Consume from reserve (only in non-tutorial mode)
+        if (!_isTutorialLevel && MagazineInventory.CurrentMagazine != null && MagazineInventory.CurrentMagazine.CurrentAmmo > 0)
         {
             MagazineInventory.ConsumeAmmo();
         }

@@ -50,7 +50,7 @@ User feedback from PR #201 comment (2026-01-22T03:04:06Z):
 > на ЛКМ (выстрел) -> ПКМ драгндроп вниз -> ПКМ драгндроп вверх
 > FIX сейчас не работает перезарядка"
 
-### Phase 4 (Final Gesture Correction - Current)
+### Phase 4 (Gesture Correction)
 User feedback from PR #201 comment (2026-01-22T03:28:24Z):
 > "подготовка к выстрелу всё ещё на неправильных драгндропах (должно быть - вверх, затем вниз)"
 > (Preparation to fire still on wrong drag-and-drops (should be UP then DOWN))
@@ -58,8 +58,20 @@ User feedback from PR #201 comment (2026-01-22T03:28:24Z):
 **Key corrections:**
 1. **Pump sequence clarified:** Correctly set to `UP → DOWN` (eject shell first, then chamber)
 2. **Reload goes directly to Loading state:** RMB UP opens bolt AND enters Loading state immediately
-3. **Removed ReserveAmmo check:** For tutorial mode to work properly
-4. **Tutorial labels updated:** Correct Russian text for controls
+3. **Tutorial labels updated:** Correct Russian text for controls
+
+### Phase 5 (Tutorial Mode Shell Loading Fix - Current)
+User feedback from PR #201 comment (2026-01-22T04:02:15Z):
+> "при ММБ+ПКМ драг вниз в дробовик должен добавляться один заряд (сейчас что то не так, хотя звук заряжания есть)"
+> (With MMB+RMB drag down, one shell should be added to the shotgun (something is wrong now, although there is loading sound))
+
+**Root cause identified:**
+The `LoadShell()` method had a `ReserveAmmo <= 0` check that blocked shell loading in tutorial mode. In tutorial mode, there are no spare magazines (ReserveAmmo = 0), but the shotgun should have infinite shells like grenades do.
+
+**Key corrections:**
+1. **Added tutorial level detection** to Shotgun.cs (same logic as Player.cs uses for grenades)
+2. **Skip ReserveAmmo check in tutorial mode:** Allow infinite shell loading without consuming reserve ammo
+3. **Added debug logging** to trace the LoadShell() function for easier debugging
 
 ## Root Cause Analysis
 
@@ -157,6 +169,7 @@ Added tube magazine properties:
 | game_log_20260122_055650.txt | Phase 3 feedback | Tutorial testing |
 | game_log_20260122_055806.txt | Phase 3 feedback | Final test before fix |
 | game_log_20260122_062345.txt | Phase 4 feedback | Incorrect gestures still present |
+| game_log_20260122_065828.txt | Phase 5 feedback | Shell loading not working in tutorial (sound plays but shell not added) |
 
 ### Key Findings from Latest Logs
 1. Shotgun fires are being logged correctly
@@ -194,19 +207,26 @@ Added tube magazine properties:
    - Updated shotgun reload prompt
    - Added comments documenting correct sequences
 
-### Modified Files (Phase 4 - Current):
+### Modified Files (Phase 4):
 1. `Scripts/Weapons/Shotgun.cs`:
    - Correctly set pump sequence: now `NeedsPumpUp` first (after firing), then `NeedsPumpDown`
    - Fire sets `ActionState = NeedsPumpUp` (was incorrectly `NeedsPumpDown`)
    - RMB UP (drag up) transitions from `NeedsPumpUp` to `NeedsPumpDown`
    - RMB DOWN (drag down) transitions from `NeedsPumpDown` to `Ready`
    - `StartReload()` now goes directly to `Loading` state (skips `WaitingToOpen`)
-   - Removed `ReserveAmmo` check in `StartReload()` for tutorial mode compatibility
 
 2. `scripts/levels/tutorial_level.gd`:
    - Updated shotgun shooting prompt: `[ЛКМ стрельба] [ПКМ↑ извлечь] [ПКМ↓ дослать]`
    - Reload prompt already correct: `[ПКМ↑ открыть] [СКМ+ПКМ↓ x8] [ПКМ↓ закрыть]`
    - Updated header comments with correct sequences
+
+### Modified Files (Phase 5 - Current):
+1. `Scripts/Weapons/Shotgun.cs`:
+   - Added `_isTutorialLevel` field for tutorial mode detection
+   - Added `DetectTutorialLevel()` method (same logic as Player.cs uses for grenades)
+   - Modified `LoadShell()` to skip `ReserveAmmo` check in tutorial mode
+   - Modified `LoadShell()` to skip `MagazineInventory.ConsumeAmmo()` in tutorial mode
+   - Added debug logging in `LoadShell()` for easier troubleshooting
 
 ## Control Summary (Phase 4 - Corrected)
 
