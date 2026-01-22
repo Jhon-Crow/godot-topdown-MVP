@@ -12,8 +12,9 @@ class_name FragGrenade
 ## Per issue requirement: "взрывается при приземлении/ударе об стену (без таймера)"
 ## Translation: "explodes on landing/hitting a wall (without timer)"
 
-## Effect radius for the explosion (smaller than flashbang's 400).
-@export var effect_radius: float = 250.0
+## Effect radius for the explosion.
+## Per user requirement: ~450 diameter zone (225 radius) for lethal blast wave.
+@export var effect_radius: float = 225.0
 
 ## Number of shrapnel pieces to spawn.
 @export var shrapnel_count: int = 4
