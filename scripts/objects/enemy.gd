@@ -2817,13 +2817,15 @@ func _is_firing_line_clear_of_friendlies(target_position: Vector2) -> bool:
 	if not enable_friendly_fire_avoidance:
 		return true
 
-	var direction := (target_position - global_position).normalized()
-	var distance := global_position.distance_to(target_position)
+	# Get actual muzzle position for accurate raycast
+	var weapon_forward := _get_weapon_forward_direction()
+	var muzzle_pos := _get_bullet_spawn_position(weapon_forward)
+	var distance := muzzle_pos.distance_to(target_position)
 
 	# Use direct space state to check if any enemies are in the firing line
 	var space_state := get_world_2d().direct_space_state
 	var query := PhysicsRayQueryParameters2D.new()
-	query.from = global_position + direction * bullet_spawn_offset  # Start from bullet spawn point
+	query.from = muzzle_pos  # Start from actual muzzle position
 	query.to = target_position
 	query.collision_mask = 2  # Only check enemies (layer 2)
 	query.exclude = [get_rid()]  # Exclude self using RID
@@ -2835,7 +2837,7 @@ func _is_firing_line_clear_of_friendlies(target_position: Vector2) -> bool:
 
 	# Check if the hit position is before the target
 	var hit_position: Vector2 = result["position"]
-	var distance_to_hit := global_position.distance_to(hit_position)
+	var distance_to_hit := muzzle_pos.distance_to(hit_position)
 
 	if distance_to_hit < distance - 20.0:  # 20 pixel tolerance
 		_log_debug("Friendly in firing line at distance %0.1f (target at %0.1f)" % [distance_to_hit, distance])
@@ -2847,13 +2849,15 @@ func _is_firing_line_clear_of_friendlies(target_position: Vector2) -> bool:
 ## Check if a bullet fired at the target position would be blocked by cover/obstacles.
 ## Returns true if the shot would likely hit the target, false if blocked by cover.
 func _is_shot_clear_of_cover(target_position: Vector2) -> bool:
-	var direction := (target_position - global_position).normalized()
-	var distance := global_position.distance_to(target_position)
+	# Get actual muzzle position for accurate raycast
+	var weapon_forward := _get_weapon_forward_direction()
+	var muzzle_pos := _get_bullet_spawn_position(weapon_forward)
+	var distance := muzzle_pos.distance_to(target_position)
 
 	# Use direct space state to check if obstacles block the shot
 	var space_state := get_world_2d().direct_space_state
 	var query := PhysicsRayQueryParameters2D.new()
-	query.from = global_position + direction * bullet_spawn_offset  # Start from bullet spawn point
+	query.from = muzzle_pos  # Start from actual muzzle position
 	query.to = target_position
 	query.collision_mask = 4  # Only check obstacles (layer 3)
 
@@ -2864,7 +2868,7 @@ func _is_shot_clear_of_cover(target_position: Vector2) -> bool:
 
 	# Check if the obstacle is before the target position
 	var hit_position: Vector2 = result["position"]
-	var distance_to_hit := global_position.distance_to(hit_position)
+	var distance_to_hit := muzzle_pos.distance_to(hit_position)
 
 	if distance_to_hit < distance - 10.0:  # 10 pixel tolerance
 		_log_debug("Shot blocked by cover at distance %0.1f (target at %0.1f)" % [distance_to_hit, distance])
@@ -3941,20 +3945,21 @@ func _get_bullet_spawn_position(_direction: Vector2) -> Vector2:
 	# from the WeaponSprite node position.
 	var muzzle_local_offset := 52.0  # Distance from node to muzzle in local +X direction
 	if _weapon_sprite and _enemy_model:
-		# Get the weapon's forward direction from the enemy model rotation.
-		# We use Vector2.from_angle() instead of global_transform.x because the Y flip
-		# (scale.y negative for aiming left) would cause global_transform.x to be mirrored.
-		var weapon_forward := Vector2.from_angle(_enemy_model.rotation)
+		# Get the weapon's VISUAL forward direction from global_transform.
+		# IMPORTANT: We use global_transform.x because it correctly accounts for the
+		# vertical flip (scale.y negative) that happens when aiming left. The flip
+		# affects where the muzzle visually appears, so we need the transformed direction.
+		# Using Vector2.from_angle(_enemy_model.rotation) would give incorrect results
+		# because it doesn't account for the scale flip.
+		var weapon_forward := _weapon_sprite.global_transform.x.normalized()
 		# Calculate muzzle offset accounting for enemy model scale
 		var scaled_muzzle_offset := muzzle_local_offset * enemy_model_scale
 		# Use weapon sprite's global position as base, then offset to reach the muzzle
 		var result := _weapon_sprite.global_position + weapon_forward * scaled_muzzle_offset
-		# Debug: Also compute where the visual muzzle should be using global_transform
 		if debug_logging:
-			var visual_forward := _weapon_sprite.global_transform.x.normalized()
-			var visual_muzzle := _weapon_sprite.global_position + visual_forward * scaled_muzzle_offset
-			_log_debug("  _get_bullet_spawn_position: weapon_forward=%v vs visual_forward=%v" % [weapon_forward, visual_forward])
-			_log_debug("  calculated_muzzle=%v vs visual_muzzle=%v, diff=%v" % [result, visual_muzzle, result - visual_muzzle])
+			var angle_forward := Vector2.from_angle(_enemy_model.rotation)
+			_log_debug("  _get_bullet_spawn_position: visual_forward=%v vs angle_forward=%v" % [weapon_forward, angle_forward])
+			_log_debug("  muzzle_position=%v, weapon_pos=%v, offset=%.1f" % [result, _weapon_sprite.global_position, scaled_muzzle_offset])
 		return result
 	else:
 		# Fallback to old behavior if weapon sprite or enemy model not found
@@ -3968,18 +3973,21 @@ func _get_bullet_spawn_position(_direction: Vector2) -> Vector2:
 ## The actual bullet direction is calculated in _shoot() as (target - muzzle).normalized()
 ## to ensure bullets fly toward the target, not just in the model's facing direction.
 ##
-## IMPORTANT: We calculate direction from the EnemyModel's rotation angle, NOT from
-## global_transform.x. This is because when the enemy model is vertically flipped
-## (scale.y negative for aiming left), global_transform.x becomes reflected/mirrored.
+## IMPORTANT: We use global_transform.x to get the actual visual forward direction.
+## This correctly accounts for the vertical flip (scale.y negative) that happens
+## when aiming left. The transform includes all parent transforms, so it gives
+## the true world-space direction the weapon is pointing.
 ##
 ## @returns: Normalized direction vector the weapon is visually pointing.
 func _get_weapon_forward_direction() -> Vector2:
-	if _enemy_model:
-		# Use the enemy model's rotation to calculate the forward direction.
-		# This correctly handles the vertical flip case (scale.y negative) where
-		# global_transform.x would give an incorrect mirrored direction.
-		# The enemy model rotation is already set to face the player/target.
-		return Vector2.from_angle(_enemy_model.rotation)
+	if _weapon_sprite:
+		# Use the weapon sprite's global_transform.x for the true visual forward direction.
+		# This correctly handles the vertical flip case (scale.y negative) because
+		# global_transform includes all parent transforms including scale.
+		return _weapon_sprite.global_transform.x.normalized()
+	elif _enemy_model:
+		# Fallback to enemy model's transform if weapon sprite not available
+		return _enemy_model.global_transform.x.normalized()
 	else:
 		# Fallback: calculate direction to player
 		if _player and is_instance_valid(_player):
@@ -4375,10 +4383,11 @@ func _draw() -> void:
 		var to_player := _player.global_position - global_position
 		draw_line(Vector2.ZERO, to_player, color_to_player, 1.5)
 
-		# Draw bullet spawn point and check if blocked
-		var direction_to_player := to_player.normalized()
-		var spawn_point := direction_to_player * bullet_spawn_offset
-		if _is_bullet_spawn_clear(direction_to_player):
+		# Draw bullet spawn point (actual muzzle position) and check if blocked
+		var weapon_forward := _get_weapon_forward_direction()
+		var muzzle_global := _get_bullet_spawn_position(weapon_forward)
+		var spawn_point := muzzle_global - global_position  # Convert to local coordinates for draw
+		if _is_bullet_spawn_clear(weapon_forward):
 			draw_circle(spawn_point, 5.0, color_bullet_spawn)
 		else:
 			# Draw X for blocked spawn point
