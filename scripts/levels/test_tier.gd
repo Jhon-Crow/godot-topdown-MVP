@@ -89,6 +89,9 @@ func _setup_player_tracking() -> void:
 	if _player == null:
 		return
 
+	# Setup selected weapon based on GameManager selection
+	_setup_selected_weapon()
+
 	# Register player with GameManager
 	if GameManager:
 		GameManager.set_player(_player)
@@ -103,8 +106,10 @@ func _setup_player_tracking() -> void:
 		_player.Died.connect(_on_player_died)
 
 	# Try to get the player's weapon for C# Player
-	# First try shotgun (if selected), then assault rifle
+	# First try shotgun (if selected), then Mini UZI, then assault rifle
 	var weapon = _player.get_node_or_null("Shotgun")
+	if weapon == null:
+		weapon = _player.get_node_or_null("MiniUzi")
 	if weapon == null:
 		weapon = _player.get_node_or_null("AssaultRifle")
 	if weapon != null:
@@ -575,3 +580,74 @@ func _show_game_over_message() -> void:
 	game_over_label.offset_bottom = 75
 
 	ui.add_child(game_over_label)
+
+
+## Setup the weapon based on GameManager's selected weapon.
+## Removes the default AssaultRifle and loads the selected weapon if different.
+func _setup_selected_weapon() -> void:
+	if _player == null:
+		return
+
+	# Get selected weapon from GameManager
+	var selected_weapon_id: String = "m16"  # Default
+	if GameManager:
+		selected_weapon_id = GameManager.get_selected_weapon()
+
+	print("TestTier: Setting up weapon: %s" % selected_weapon_id)
+
+	# If shotgun is selected, we need to swap weapons
+	if selected_weapon_id == "shotgun":
+		# Remove the default AssaultRifle
+		var assault_rifle = _player.get_node_or_null("AssaultRifle")
+		if assault_rifle:
+			assault_rifle.queue_free()
+			print("TestTier: Removed default AssaultRifle")
+
+		# Load and add the shotgun
+		var shotgun_scene = load("res://scenes/weapons/csharp/Shotgun.tscn")
+		if shotgun_scene:
+			var shotgun = shotgun_scene.instantiate()
+			shotgun.name = "Shotgun"
+			_player.add_child(shotgun)
+
+			# Set the CurrentWeapon reference in C# Player
+			if _player.has_method("EquipWeapon"):
+				_player.EquipWeapon(shotgun)
+			elif _player.get("CurrentWeapon") != null:
+				_player.CurrentWeapon = shotgun
+
+			print("TestTier: Shotgun equipped successfully")
+		else:
+			push_error("TestTier: Failed to load Shotgun scene!")
+	# If Mini UZI is selected, swap weapons
+	elif selected_weapon_id == "mini_uzi":
+		# Remove the default AssaultRifle
+		var assault_rifle = _player.get_node_or_null("AssaultRifle")
+		if assault_rifle:
+			assault_rifle.queue_free()
+			print("TestTier: Removed default AssaultRifle")
+
+		# Load and add the Mini UZI
+		var mini_uzi_scene = load("res://scenes/weapons/csharp/MiniUzi.tscn")
+		if mini_uzi_scene:
+			var mini_uzi = mini_uzi_scene.instantiate()
+			mini_uzi.name = "MiniUzi"
+			_player.add_child(mini_uzi)
+
+			# Set the CurrentWeapon reference in C# Player
+			if _player.has_method("EquipWeapon"):
+				_player.EquipWeapon(mini_uzi)
+			elif _player.get("CurrentWeapon") != null:
+				_player.CurrentWeapon = mini_uzi
+
+			print("TestTier: Mini UZI equipped successfully")
+		else:
+			push_error("TestTier: Failed to load MiniUzi scene!")
+	# For M16 (assault rifle), it's already in the scene
+	else:
+		var assault_rifle = _player.get_node_or_null("AssaultRifle")
+		if assault_rifle and _player.get("CurrentWeapon") == null:
+			if _player.has_method("EquipWeapon"):
+				_player.EquipWeapon(assault_rifle)
+			elif _player.get("CurrentWeapon") != null:
+				_player.CurrentWeapon = assault_rifle
