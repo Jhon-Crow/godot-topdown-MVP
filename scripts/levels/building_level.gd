@@ -910,6 +910,12 @@ func _setup_selected_weapon() -> void:
 			elif _player.get("CurrentWeapon") != null:
 				_player.CurrentWeapon = mini_uzi
 
+			# Add an extra magazine for the Mini UZI in the building level
+			# This gives the player more ammo to handle the indoor combat
+			if mini_uzi.has_method("AddMagazine"):
+				mini_uzi.AddMagazine()
+				print("BuildingLevel: Added extra Mini UZI magazine")
+
 			print("BuildingLevel: Mini UZI equipped successfully")
 		else:
 			push_error("BuildingLevel: Failed to load MiniUzi scene!")
