@@ -3932,6 +3932,12 @@ func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has
 	var audio_manager: Node = get_node_or_null("/root/AudioManager")
 	var impact_manager: Node = get_node_or_null("/root/ImpactEffectsManager")
 
+	# Log blood effect call for diagnostics
+	if impact_manager:
+		_log_to_file("ImpactEffectsManager found, calling spawn_blood_effect")
+	else:
+		_log_to_file("WARNING: ImpactEffectsManager not found at /root/ImpactEffectsManager")
+
 	if _current_health <= 0:
 		# Track special kill info before death
 		_killed_by_ricochet = has_ricocheted

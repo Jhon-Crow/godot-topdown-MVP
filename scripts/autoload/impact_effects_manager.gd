@@ -59,17 +59,23 @@ var _file_logger: Node = null
 
 
 func _ready() -> void:
+	# Get FileLogger reference - print diagnostic if it fails
 	_file_logger = get_node_or_null("/root/FileLogger")
+	if _file_logger == null:
+		print("[ImpactEffectsManager] WARNING: FileLogger not found at /root/FileLogger")
+
 	_preload_effect_scenes()
 	_log_info("ImpactEffectsManager ready - scenes loaded")
 
 
-## Logs to FileLogger if available.
+## Logs to FileLogger and always prints to console for diagnostics.
 func _log_info(message: String) -> void:
+	var log_message := "[ImpactEffects] " + message
+	# Always print to console for debugging exported builds
+	print(log_message)
+	# Also write to file logger if available
 	if _file_logger and _file_logger.has_method("log_info"):
-		_file_logger.log_info("[ImpactEffects] " + message)
-	elif _debug_effects:
-		print("[ImpactEffectsManager] " + message)
+		_file_logger.log_info(log_message)
 
 
 ## Preloads all particle effect scenes for efficient instantiation.

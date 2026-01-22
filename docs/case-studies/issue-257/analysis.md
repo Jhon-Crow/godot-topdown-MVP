@@ -13,7 +13,19 @@ Reference: [Reddit blood effect demo](https://www.reddit.com/r/godot/comments/ff
    - Added `_spawn_wall_blood_splatter()` method for wall detection
    - Added constants: `WALL_SPLATTER_CHECK_DISTANCE` (100px) and `WALL_COLLISION_LAYER` (1)
 
-2. **User Testing**: User reported "не добавилось" (nothing was added) with game log file
+2. **User Testing Round 1**: User reported "не добавилось" (nothing was added) with game log file
+
+3. **Bug Fix** (commit `217efa2`): Fixed WALL_COLLISION_LAYER from 1 to 4
+
+4. **User Testing Round 2**: User reported "не вижу изменений" (I don't see changes) with second game log file
+   - Log analysis revealed NO `[ImpactEffects]` entries at all
+   - This indicated either the autoload wasn't loading or the logging wasn't working
+
+5. **Investigation Round 2** (current):
+   - Found that `_log_info()` only wrote to FileLogger, not console
+   - If FileLogger was null for any reason, NO logging occurred
+   - Added always-print logging for diagnostics
+   - Added diagnostic logging in enemy.gd to track ImpactEffectsManager lookups
 
 ## Root Cause Analysis
 
@@ -67,27 +79,47 @@ const WALL_COLLISION_LAYER: int = 1
 const WALL_COLLISION_LAYER: int = 4
 ```
 
-### 2. Added FileLogger Integration
+### 2. Added FileLogger Integration with Always-Print Logging
 
 ```gdscript
 var _file_logger: Node = null
 
 func _ready() -> void:
     _file_logger = get_node_or_null("/root/FileLogger")
+    if _file_logger == null:
+        print("[ImpactEffectsManager] WARNING: FileLogger not found at /root/FileLogger")
     _preload_effect_scenes()
     _log_info("ImpactEffectsManager ready - scenes loaded")
 
 func _log_info(message: String) -> void:
+    var log_message := "[ImpactEffects] " + message
+    # Always print to console for debugging exported builds
+    print(log_message)
+    # Also write to file logger if available
     if _file_logger and _file_logger.has_method("log_info"):
-        _file_logger.log_info("[ImpactEffects] " + message)
+        _file_logger.log_info(log_message)
 ```
 
-### 3. Added Diagnostic Logging
+### 3. Added Diagnostic Logging in Enemy Hit Handler
+
+```gdscript
+# In enemy.gd on_hit_with_bullet_info():
+var impact_manager: Node = get_node_or_null("/root/ImpactEffectsManager")
+
+# Log blood effect call for diagnostics
+if impact_manager:
+    _log_to_file("ImpactEffectsManager found, calling spawn_blood_effect")
+else:
+    _log_to_file("WARNING: ImpactEffectsManager not found at /root/ImpactEffectsManager")
+```
+
+### 4. Added Diagnostic Logging
 
 - Log when scenes are loaded/missing
 - Log when `spawn_blood_effect()` is called
 - Log when blood decals are spawned
 - Log when wall splatters are found
+- Log when ImpactEffectsManager is (or isn't) found by enemy.gd
 
 ## Verification
 
@@ -97,10 +129,25 @@ When a bullet hits an enemy, the log should now show:
 ```
 [ImpactEffects] ImpactEffectsManager ready - scenes loaded
 [ImpactEffects] Scenes loaded: DustEffect, BloodEffect, SparksEffect, BloodDecal
+[ENEMY] [Enemy3] ImpactEffectsManager found, calling spawn_blood_effect
 [ImpactEffects] spawn_blood_effect at (300, 350), dir=(0.707, 0.707), lethal=false
 [ImpactEffects] Blood decal spawned at (320, 370) (total: 1)
 [ImpactEffects] Blood effect spawned at (300, 350) (scale=1.0)
 ```
+
+If ImpactEffectsManager is not loading, you would see:
+```
+[ENEMY] [Enemy3] WARNING: ImpactEffectsManager not found at /root/ImpactEffectsManager
+```
+
+### Important Note for Users
+
+**You must re-export the game after merging these changes.** If you're running an old exported build, the changes won't take effect. Steps:
+1. Pull/merge the latest changes from the PR branch
+2. Open the project in Godot Editor
+3. Export the game (Project → Export → your platform)
+4. Run the new exported build
+5. Check the game log for the new diagnostic messages
 
 ### Test Cases
 
