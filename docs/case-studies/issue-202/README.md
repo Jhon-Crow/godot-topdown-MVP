@@ -28,9 +28,25 @@ This case study documents the analysis and implementation plan for a composite g
 
 ## Implementation Summary (2026-01-22)
 
+### Current Status: Complete (C# Implementation Added)
+
+**Latest Update (2026-01-22 07:15 UTC)**: The animation system has now been ported to the C# Player class, which is the version actually used by the game.
+
+### Root Cause of "Animation Not Visible" Issue
+
+The initial implementation added animation code to `scripts/characters/player.gd` (GDScript), but the game levels actually use `Scripts/Characters/Player.cs` (C#). Investigation of the scene files revealed:
+
+| Level | Player Scene | Script Used |
+|-------|--------------|-------------|
+| BuildingLevel.tscn | csharp/Player.tscn | Player.cs |
+| TestTier.tscn | csharp/Player.tscn | Player.cs |
+| csharp/TestTier.tscn | csharp/Player.tscn | Player.cs |
+
+This is why the user's game logs showed grenade state machine messages (which were in both versions) but NO animation-related log messages.
+
 ### What Was Implemented
 
-The complete procedural animation system for grenade throwing has been implemented in `scripts/characters/player.gd`. Key features:
+The complete procedural animation system for grenade throwing has been implemented in **both** `scripts/characters/player.gd` AND `Scripts/Characters/Player.cs`. Key features:
 
 1. **Animation Phase System** (`GrenadeAnimPhase` enum):
    - `NONE` - Normal/idle state
@@ -52,7 +68,9 @@ The complete procedural animation system for grenade throwing has been implement
    - Velocity bonus for more responsive feel
    - Arm position and rotation scale with intensity
 
-4. **Code Location**: Lines 868-1429 in `scripts/characters/player.gd`
+4. **Code Location**:
+   - GDScript: Lines 868-1429 in `scripts/characters/player.gd`
+   - C#: Grenade Animation region in `Scripts/Characters/Player.cs`
 
 ### Animation Logging
 
