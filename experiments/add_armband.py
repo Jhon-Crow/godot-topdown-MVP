@@ -7,10 +7,10 @@ Issue #234: Add a red armband to the player's forearm for visibility during 'las
 from PIL import Image
 import os
 
-# Define colors
-RED_ARMBAND_MAIN = (180, 40, 40, 255)      # Main red color
-RED_ARMBAND_DARK = (140, 30, 30, 255)      # Dark red for shading
-RED_ARMBAND_LIGHT = (210, 60, 60, 255)     # Light red for highlight
+# Define colors - More saturated/vivid red for better visibility
+RED_ARMBAND_MAIN = (220, 40, 40, 255)      # Main red color - bright saturated red
+RED_ARMBAND_DARK = (180, 30, 30, 255)      # Dark red for shading - still visible
+RED_ARMBAND_LIGHT = (255, 70, 70, 255)     # Light red for highlight - very bright
 
 # Original arm colors (for reference)
 GREEN_DARK = (35, 55, 35, 255)     # #233723
@@ -18,7 +18,7 @@ GREEN_MID = (55, 80, 50, 255)      # #375032
 GREEN_LIGHT = (75, 100, 65, 255)  # #4B6441
 
 # Paths
-BASE_PATH = "/tmp/gh-issue-solver-1769075984381/assets/sprites/characters/player"
+BASE_PATH = "/tmp/gh-issue-solver-1769076723020/assets/sprites/characters/player"
 LEFT_ARM_PATH = os.path.join(BASE_PATH, "player_left_arm.png")
 RIGHT_ARM_PATH = os.path.join(BASE_PATH, "player_right_arm.png")
 COMBINED_PATH = os.path.join(BASE_PATH, "player_combined_preview.png")

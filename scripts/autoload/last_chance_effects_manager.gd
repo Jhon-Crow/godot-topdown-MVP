@@ -31,6 +31,10 @@ const RIPPLE_FREQUENCY: float = 25.0
 ## Ripple effect speed.
 const RIPPLE_SPEED: float = 2.0
 
+## Player armband saturation multiplier during last chance (same as enemy saturation).
+## Makes the red armband more vivid and visible during the effect.
+const ARMBAND_SATURATION_MULTIPLIER: float = 4.0
+
 ## The CanvasLayer for screen effects.
 var _effects_layer: CanvasLayer = null
 
@@ -82,6 +86,10 @@ var _player_was_invulnerable: bool = false
 ## This is used because accessing C# HealthComponent.CurrentHealth from GDScript
 ## doesn't work reliably due to cross-language interoperability issues.
 var _player_current_health: float = 0.0
+
+## Original arm sprite modulate colors (to restore after effect ends).
+## Key: sprite node, Value: original modulate Color
+var _arm_original_colors: Dictionary = {}
 
 
 func _ready() -> void:
@@ -526,7 +534,7 @@ func _is_descendant_of(ancestor: Node, node: Node) -> bool:
 
 
 
-## Applies the visual effects (blue sepia + ripple).
+## Applies the visual effects (blue sepia + ripple + arm saturation).
 func _apply_visual_effects() -> void:
 	_effect_rect.visible = true
 	var material := _effect_rect.material as ShaderMaterial
@@ -536,6 +544,9 @@ func _apply_visual_effects() -> void:
 		material.set_shader_parameter("ripple_strength", RIPPLE_STRENGTH)
 		material.set_shader_parameter("time_offset", 0.0)
 		_log("Applied visual effects: sepia=%.2f, brightness=%.2f, ripple=%.4f" % [SEPIA_INTENSITY, BRIGHTNESS, RIPPLE_STRENGTH])
+
+	# Apply saturation boost to player's arm sprites (makes armband more visible)
+	_apply_arm_saturation()
 
 
 ## Ends the last chance effect.
@@ -593,6 +604,69 @@ func _remove_visual_effects() -> void:
 		material.set_shader_parameter("sepia_intensity", 0.0)
 		material.set_shader_parameter("brightness", 1.0)
 		material.set_shader_parameter("ripple_strength", 0.0)
+
+	# Restore original arm colors
+	_restore_arm_colors()
+
+
+## Applies saturation boost to player's arm sprites (armband visibility).
+## This makes the red armband more vivid during the last chance effect.
+func _apply_arm_saturation() -> void:
+	if _player == null:
+		return
+
+	_arm_original_colors.clear()
+
+	# Find arm sprites on player
+	var left_arm := _player.get_node_or_null("PlayerModel/LeftArm") as Sprite2D
+	var right_arm := _player.get_node_or_null("PlayerModel/RightArm") as Sprite2D
+
+	var arms_saturated: int = 0
+
+	if left_arm:
+		_arm_original_colors[left_arm] = left_arm.modulate
+		left_arm.modulate = _saturate_color(left_arm.modulate, ARMBAND_SATURATION_MULTIPLIER)
+		arms_saturated += 1
+
+	if right_arm:
+		_arm_original_colors[right_arm] = right_arm.modulate
+		right_arm.modulate = _saturate_color(right_arm.modulate, ARMBAND_SATURATION_MULTIPLIER)
+		arms_saturated += 1
+
+	if arms_saturated > 0:
+		_log("Applied %.1fx saturation to %d player arm sprites (armband visibility)" % [ARMBAND_SATURATION_MULTIPLIER, arms_saturated])
+
+
+## Restores original colors to player's arm sprites.
+func _restore_arm_colors() -> void:
+	for sprite in _arm_original_colors.keys():
+		if is_instance_valid(sprite):
+			sprite.modulate = _arm_original_colors[sprite]
+
+	if _arm_original_colors.size() > 0:
+		_log("Restored original colors to %d player arm sprites" % _arm_original_colors.size())
+
+	_arm_original_colors.clear()
+
+
+## Increase saturation of a color by a multiplier.
+## Uses standard luminance-based saturation algorithm.
+func _saturate_color(color: Color, multiplier: float) -> Color:
+	# Calculate luminance using standard weights
+	var luminance := color.r * 0.299 + color.g * 0.587 + color.b * 0.114
+
+	# Increase saturation by moving away from grayscale
+	var saturated_r := lerp(luminance, color.r, multiplier)
+	var saturated_g := lerp(luminance, color.g, multiplier)
+	var saturated_b := lerp(luminance, color.b, multiplier)
+
+	# Clamp to valid color range
+	return Color(
+		clampf(saturated_r, 0.0, 1.0),
+		clampf(saturated_g, 0.0, 1.0),
+		clampf(saturated_b, 0.0, 1.0),
+		color.a
+	)
 
 
 ## Pushes all bullets that are close to the player away.
@@ -856,6 +930,7 @@ func reset_effects() -> void:
 	_frozen_player_bullets.clear()
 	_frozen_grenades.clear()
 	_original_process_modes.clear()
+	_arm_original_colors.clear()
 	_player_was_invulnerable = false
 
 

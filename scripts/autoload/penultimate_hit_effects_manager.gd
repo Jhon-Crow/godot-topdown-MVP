@@ -23,6 +23,9 @@ const SCREEN_CONTRAST_BOOST: float = 1.0
 ## Enemy saturation multiplier (4x).
 const ENEMY_SATURATION_MULTIPLIER: float = 4.0
 
+## Player armband saturation multiplier (same as enemies for consistency).
+const ARMBAND_SATURATION_MULTIPLIER: float = 4.0
+
 ## Duration of the effect in real seconds (independent of time_scale).
 const EFFECT_DURATION_REAL_SECONDS: float = 3.0
 
@@ -44,6 +47,10 @@ var _connected_to_player: bool = false
 ## Cached list of enemies with their original modulate colors.
 ## Key: enemy instance, Value: original modulate Color
 var _enemy_original_colors: Dictionary = {}
+
+## Cached player arm sprites with their original modulate colors.
+## Key: sprite instance, Value: original modulate Color
+var _arm_original_colors: Dictionary = {}
 
 ## Timer for tracking effect duration (uses real time, not game time).
 var _effect_start_time: float = 0.0
@@ -238,6 +245,9 @@ func _start_penultimate_effect() -> void:
 	# Apply enemy saturation (4x)
 	_apply_enemy_saturation()
 
+	# Apply armband saturation (4x) - makes player's red armband more visible
+	_apply_arm_saturation()
+
 
 ## End the penultimate hit effect.
 func _end_penultimate_effect() -> void:
@@ -259,6 +269,9 @@ func _end_penultimate_effect() -> void:
 
 	# Restore enemy colors
 	_restore_enemy_colors()
+
+	# Restore arm colors
+	_restore_arm_colors()
 
 
 ## Apply 4x saturation to all enemies.
@@ -294,6 +307,46 @@ func _restore_enemy_colors() -> void:
 	_enemy_original_colors.clear()
 
 
+## Apply saturation boost to player's arm sprites (armband visibility).
+## This makes the red armband more vivid during the penultimate hit effect.
+func _apply_arm_saturation() -> void:
+	if _player == null:
+		return
+
+	_arm_original_colors.clear()
+
+	# Find arm sprites on player
+	var left_arm := _player.get_node_or_null("PlayerModel/LeftArm") as Sprite2D
+	var right_arm := _player.get_node_or_null("PlayerModel/RightArm") as Sprite2D
+
+	var arms_saturated: int = 0
+
+	if left_arm:
+		_arm_original_colors[left_arm] = left_arm.modulate
+		left_arm.modulate = _saturate_color(left_arm.modulate, ARMBAND_SATURATION_MULTIPLIER)
+		arms_saturated += 1
+
+	if right_arm:
+		_arm_original_colors[right_arm] = right_arm.modulate
+		right_arm.modulate = _saturate_color(right_arm.modulate, ARMBAND_SATURATION_MULTIPLIER)
+		arms_saturated += 1
+
+	if arms_saturated > 0:
+		_log("Applied %.1fx saturation to %d player arm sprites (armband visibility)" % [ARMBAND_SATURATION_MULTIPLIER, arms_saturated])
+
+
+## Restore original colors to player's arm sprites.
+func _restore_arm_colors() -> void:
+	for sprite in _arm_original_colors.keys():
+		if is_instance_valid(sprite):
+			sprite.modulate = _arm_original_colors[sprite]
+
+	if _arm_original_colors.size() > 0:
+		_log("Restored original colors to %d player arm sprites" % _arm_original_colors.size())
+
+	_arm_original_colors.clear()
+
+
 ## Increase saturation of a color by a multiplier.
 ## Uses the same algorithm as the saturation shader.
 func _saturate_color(color: Color, multiplier: float) -> Color:
@@ -320,6 +373,7 @@ func reset_effects() -> void:
 	_end_penultimate_effect()
 	_player = null
 	_connected_to_player = false
+	_arm_original_colors.clear()
 
 
 ## Called when the scene tree structure changes.
