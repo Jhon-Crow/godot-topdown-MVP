@@ -229,6 +229,16 @@ func _ready() -> void:
 		_current_grenades = 1
 		FileLogger.info("[Player.Grenade] Normal level - starting with 1 grenade")
 
+	# Store base positions for walking animation
+	if _body_sprite:
+		_base_body_pos = _body_sprite.position
+	if _head_sprite:
+		_base_head_pos = _head_sprite.position
+	if _left_arm_sprite:
+		_base_left_arm_pos = _left_arm_sprite.position
+	if _right_arm_sprite:
+		_base_right_arm_pos = _right_arm_sprite.position
+
 	FileLogger.info("[Player] Ready! Ammo: %d/%d, Grenades: %d/%d, Health: %d/%d" % [
 		_current_ammo, max_ammo,
 		_current_grenades, max_grenades,
@@ -250,6 +260,9 @@ func _physics_process(delta: float) -> void:
 		velocity = velocity.move_toward(Vector2.ZERO, friction * delta)
 
 	move_and_slide()
+
+	# Update walking animation based on movement
+	_update_walk_animation(delta, input_direction)
 
 	# Update spread reset timer
 	_shot_timer += delta
@@ -292,6 +305,61 @@ func _get_input_direction() -> Vector2:
 		direction = direction.normalized()
 
 	return direction
+
+
+## Updates the walking animation based on player movement state.
+## Creates a natural bobbing motion for body parts during movement.
+## @param delta: Time since last frame.
+## @param input_direction: Current movement input direction.
+func _update_walk_animation(delta: float, input_direction: Vector2) -> void:
+	var is_moving := input_direction != Vector2.ZERO or velocity.length() > 10.0
+
+	if is_moving:
+		# Accumulate animation time based on movement speed
+		var speed_factor := velocity.length() / max_speed
+		_walk_anim_time += delta * walk_anim_speed * speed_factor
+		_is_walking = true
+
+		# Calculate animation offsets using sine waves
+		# Body bobs up and down (frequency = 2x for double step)
+		var body_bob := sin(_walk_anim_time * 2.0) * 1.5 * walk_anim_intensity
+
+		# Head bobs slightly less than body (dampened)
+		var head_bob := sin(_walk_anim_time * 2.0) * 0.8 * walk_anim_intensity
+
+		# Arms swing opposite to each other (alternating)
+		var arm_swing := sin(_walk_anim_time) * 3.0 * walk_anim_intensity
+
+		# Apply offsets to sprites
+		if _body_sprite:
+			_body_sprite.position = _base_body_pos + Vector2(0, body_bob)
+
+		if _head_sprite:
+			_head_sprite.position = _base_head_pos + Vector2(0, head_bob)
+
+		if _left_arm_sprite:
+			# Left arm swings forward/back (y-axis in top-down)
+			_left_arm_sprite.position = _base_left_arm_pos + Vector2(arm_swing, 0)
+
+		if _right_arm_sprite:
+			# Right arm swings opposite to left arm
+			_right_arm_sprite.position = _base_right_arm_pos + Vector2(-arm_swing, 0)
+	else:
+		# Return to idle pose smoothly
+		if _is_walking:
+			_is_walking = false
+			_walk_anim_time = 0.0
+
+		# Interpolate back to base positions
+		var lerp_speed := 10.0 * delta
+		if _body_sprite:
+			_body_sprite.position = _body_sprite.position.lerp(_base_body_pos, lerp_speed)
+		if _head_sprite:
+			_head_sprite.position = _head_sprite.position.lerp(_base_head_pos, lerp_speed)
+		if _left_arm_sprite:
+			_left_arm_sprite.position = _left_arm_sprite.position.lerp(_base_left_arm_pos, lerp_speed)
+		if _right_arm_sprite:
+			_right_arm_sprite.position = _right_arm_sprite.position.lerp(_base_right_arm_pos, lerp_speed)
 
 
 ## Calculate current spread based on consecutive shots.
@@ -720,6 +788,28 @@ var _throw_rotation_restore_timer: float = 0.0
 
 ## Duration of throw rotation animation in seconds.
 const THROW_ROTATION_DURATION: float = 0.15
+
+# ============================================================================
+# Walking Animation System
+# ============================================================================
+
+## Walking animation speed multiplier - higher = faster leg cycle.
+@export var walk_anim_speed: float = 12.0
+
+## Walking animation intensity - higher = more pronounced movement.
+@export var walk_anim_intensity: float = 1.0
+
+## Current walk animation time (accumulator for sine wave).
+var _walk_anim_time: float = 0.0
+
+## Whether the player is currently walking (for animation state).
+var _is_walking: bool = false
+
+## Base positions for body parts (stored on ready for animation offsets).
+var _base_body_pos: Vector2 = Vector2.ZERO
+var _base_head_pos: Vector2 = Vector2.ZERO
+var _base_left_arm_pos: Vector2 = Vector2.ZERO
+var _base_right_arm_pos: Vector2 = Vector2.ZERO
 
 
 ## Handle grenade input with 2-step mechanic.
