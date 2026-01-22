@@ -369,13 +369,70 @@ The verbose logs will help diagnose if:
 - Timing between frames is causing missed cooldown checks
 - There's another code path bypassing the cooldown
 
+---
+
+### Feedback #6 Analysis and Fixes (2026-01-22)
+
+After analyzing Feedback #5, two distinct issues were identified:
+
+#### Issue 1: Reserve Ammo Display Shows 0
+
+**Root Cause:**
+The `ShellCountChanged` signal was emitted during `Shotgun._Ready()`, **before** the shotgun was added to the player's children. The GDScript handler (`_on_shell_count_changed` in `building_level.gd`) tries to read `ReserveAmmo` from the shotgun via `_player.get_node_or_null("Shotgun")`, but this returns `null` because the shotgun hasn't been added yet.
+
+Flow:
+1. `building_level.gd` calls `shotgun_scene.instantiate()`
+2. `Shotgun._Ready()` runs → emits `ShellCountChanged`
+3. GDScript handler tries `_player.get_node_or_null("Shotgun")` → returns `null`
+4. `reserve_ammo = 0` → display shows "8/0" instead of "8/12"
+5. Only THEN does `_player.add_child(shotgun)` execute
+
+**Resolution:**
+Use `CallDeferred` to emit the initial `ShellCountChanged` signal after the shotgun is added to the scene tree:
+
+```csharp
+// In Shotgun._Ready():
+ShellsInTube = TubeMagazineCapacity;
+
+// Emit initial shell count signal using CallDeferred to ensure it happens
+// AFTER the shotgun is added to the scene tree.
+CallDeferred(MethodName.EmitInitialShellCount);
+```
+
+```csharp
+// New method:
+private void EmitInitialShellCount()
+{
+    EmitSignal(SignalName.ShellCountChanged, ShellsInTube, TubeMagazineCapacity);
+    GD.Print($"[Shotgun] Initial ShellCountChanged emitted (deferred): {ShellsInTube}/{TubeMagazineCapacity}, ReserveAmmo={ReserveAmmo}");
+}
+```
+
+#### Issue 2: Accidental Bolt Opening Still Occurring
+
+**Analysis:**
+The cooldown mechanism (500ms) should be working, but user still reports accidental opens. Possible causes:
+
+1. Some users' hand movements may exceed 500ms before the bounce occurs
+2. The release-based pump DOWN path wasn't logging timing information for debugging
+
+**Resolution:**
+1. Increased cooldown from 500ms to **750ms** for longer protection window
+2. Added verbose logging to release-based pump DOWN operations (not just mid-drag)
+
+**Cooldown History:**
+- 250ms: Initial value, too short
+- 400ms: Still had accidental opens
+- 500ms: Still had accidental opens during pump-action sequences
+- 750ms: Current value, provides longer protection window
+
 ## Logs
 
 - `logs/game_log_20260122_085458.txt` - User testing log (Feedback #1)
 - `logs/game_log_20260122_091126.txt` - User testing log (Feedback #3)
 - `logs/game_log_20260122_091335.txt` - User testing log (Feedback #3)
 - `logs/game_log_20260122_092829.txt` - User testing log (Feedback #4)
-- `logs/game_log_20260122_094153.txt` - User testing log (Feedback #5)
+- `game_log_user_feedback5.txt` - User testing log (Feedback #5)
 - `logs/solution-draft-log-pr-1769061104361.txt` - AI solution draft log
 
 ## Summary of Changes
@@ -387,5 +444,5 @@ The verbose logs will help diagnose if:
 | `afcbcba` | Add cooldown protection to prevent accidental bolt reopening |
 | `31acef1` | Increase bolt close cooldown from 250ms to 400ms |
 | `3aadaea` | Fix shotgun shell count to use MaxReserveAmmo from WeaponData |
-| `(pending)` | Fix shell count - use spare magazines properly for ReserveAmmo |
-| `(pending)` | Increase cooldown to 500ms, enable verbose logging |
+| `5075de6` | Fix shell count - use spare magazines properly for ReserveAmmo, increase cooldown to 500ms |
+| `97110ca` | Fix reserve ammo display (CallDeferred), increase cooldown to 750ms |
