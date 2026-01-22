@@ -85,6 +85,9 @@ var _is_alive: bool = true
 @onready var _left_arm_sprite: Sprite2D = $PlayerModel/LeftArm
 @onready var _right_arm_sprite: Sprite2D = $PlayerModel/RightArm
 
+## Current aim direction for player model rotation.
+var _aim_direction: Vector2 = Vector2.RIGHT
+
 ## Legacy reference for compatibility (points to body sprite).
 @onready var _sprite: Sprite2D = $PlayerModel/Body
 
@@ -251,6 +254,9 @@ func _physics_process(delta: float) -> void:
 
 	move_and_slide()
 
+	# Update player model rotation to face aim direction (mouse cursor)
+	_update_aim_rotation()
+
 	# Update spread reset timer
 	_shot_timer += delta
 	if _shot_timer >= SPREAD_RESET_TIME:
@@ -292,6 +298,22 @@ func _get_input_direction() -> Vector2:
 		direction = direction.normalized()
 
 	return direction
+
+
+## Update player model rotation to face the mouse cursor (aim direction).
+## The model rotates to match weapon aim, giving a more realistic top-down appearance.
+func _update_aim_rotation() -> void:
+	if not _player_model:
+		return
+
+	# Get direction to mouse cursor
+	var mouse_pos := get_global_mouse_position()
+	var to_mouse := mouse_pos - global_position
+
+	if to_mouse.length_squared() > 0.001:
+		_aim_direction = to_mouse.normalized()
+		# Rotate the player model to face the aim direction
+		_player_model.rotation = _aim_direction.angle()
 
 
 ## Calculate current spread based on consecutive shots.

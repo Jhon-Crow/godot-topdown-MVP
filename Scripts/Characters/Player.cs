@@ -83,6 +83,11 @@ public partial class Player : BaseCharacter
     private Sprite2D? _rightArmSprite;
 
     /// <summary>
+    /// Current aim direction for player model rotation.
+    /// </summary>
+    private Vector2 _aimDirection = Vector2.Right;
+
+    /// <summary>
     /// Legacy reference for compatibility (points to body sprite).
     /// </summary>
     private Sprite2D? _sprite;
@@ -388,6 +393,9 @@ public partial class Player : BaseCharacter
         Vector2 inputDirection = GetInputDirection();
         ApplyMovement(inputDirection, (float)delta);
 
+        // Update player model rotation to face aim direction (mouse cursor)
+        UpdateAimRotation();
+
         // Handle throw rotation animation (restore player rotation after throw)
         HandleThrowRotationAnimation((float)delta);
 
@@ -549,6 +557,29 @@ public partial class Player : BaseCharacter
         }
 
         return direction;
+    }
+
+    /// <summary>
+    /// Updates the player model rotation to face the mouse cursor (aim direction).
+    /// The model rotates to match weapon aim, giving a more realistic top-down appearance.
+    /// </summary>
+    private void UpdateAimRotation()
+    {
+        if (_playerModel == null)
+        {
+            return;
+        }
+
+        // Get direction to mouse cursor
+        Vector2 mousePos = GetGlobalMousePosition();
+        Vector2 toMouse = mousePos - GlobalPosition;
+
+        if (toMouse.LengthSquared() > 0.001f)
+        {
+            _aimDirection = toMouse.Normalized();
+            // Rotate the player model to face the aim direction
+            _playerModel.Rotation = _aimDirection.Angle();
+        }
     }
 
     /// <summary>

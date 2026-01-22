@@ -25,25 +25,26 @@ MaxSpeed = 330.0
 shape = SubResource("CircleShape2D_player")
 
 [node name="PlayerModel" type="Node2D" parent="."]
+scale = Vector2(1.3, 1.3)
 
 [node name="LeftArm" type="Sprite2D" parent="PlayerModel"]
-position = Vector2(-12, 5)
+position = Vector2(14, -4)
 texture = ExtResource("7_left_arm")
 
 [node name="RightArm" type="Sprite2D" parent="PlayerModel"]
-position = Vector2(12, 5)
+position = Vector2(10, 6)
 texture = ExtResource("8_right_arm")
 
 [node name="Body" type="Sprite2D" parent="PlayerModel"]
-position = Vector2(0, 4)
+position = Vector2(0, 0)
 texture = ExtResource("5_body")
 
 [node name="Head" type="Sprite2D" parent="PlayerModel"]
-position = Vector2(0, -10)
+position = Vector2(-12, -2)
 texture = ExtResource("6_head")
 
 [node name="WeaponMount" type="Node2D" parent="PlayerModel"]
-position = Vector2(8, 12)
+position = Vector2(20, 0)
 
 [node name="Camera2D" type="Camera2D" parent="."]
 process_callback = 0
