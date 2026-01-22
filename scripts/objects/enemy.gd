@@ -1053,18 +1053,23 @@ func _update_goap_state() -> void:
 ## Updates the enemy model rotation to face the aim/movement direction.
 ## The enemy model (body, head, arms) rotates to follow the direction of movement or aim.
 ## Note: Enemy sprites face RIGHT (0 radians), same as player sprites.
+##
+## IMPORTANT: When aiming at the player, we calculate the direction from the WEAPON position
+## to the player, not from the enemy center. This ensures the weapon barrel actually points
+## at the player, accounting for the weapon's offset from the enemy center.
 func _update_enemy_model_rotation() -> void:
 	if not _enemy_model:
 		return
 
 	# Determine the direction to face:
-	# - If can see player, face the player
+	# - If can see player, face the player FROM THE WEAPON POSITION
 	# - Otherwise, face the movement direction
 	var face_direction: Vector2
 
 	if _player != null and _can_see_player:
-		# Face the player
-		face_direction = (_player.global_position - global_position).normalized()
+		# Calculate aim direction from weapon to player (not from enemy center)
+		# This compensates for the weapon's offset from the enemy center
+		face_direction = _calculate_aim_direction_from_weapon(_player.global_position)
 	elif velocity.length_squared() > 1.0:
 		# Face movement direction
 		face_direction = velocity.normalized()
@@ -1088,6 +1093,63 @@ func _update_enemy_model_rotation() -> void:
 		_enemy_model.scale = Vector2(enemy_model_scale, -enemy_model_scale)
 	else:
 		_enemy_model.scale = Vector2(enemy_model_scale, enemy_model_scale)
+
+
+## Calculates the aim direction from the weapon position to the target.
+## This accounts for the weapon's offset from the enemy center, ensuring
+## the weapon barrel actually points at the target.
+##
+## Uses an iterative approach because the weapon position depends on the model
+## rotation, which we're trying to calculate.
+##
+## @param target_pos: The position to aim at (typically the player's position).
+## @return: The direction vector the model should face for the weapon to point at target.
+func _calculate_aim_direction_from_weapon(target_pos: Vector2) -> Vector2:
+	# WeaponMount is at local position (0, 6) in EnemyModel
+	# This offset needs to be accounted for when calculating aim direction
+	var weapon_mount_local := Vector2(0, 6)
+
+	# Start with a rough estimate: direction from enemy center to target
+	var rough_direction := (target_pos - global_position)
+	var rough_distance := rough_direction.length()
+
+	# For distant targets, the offset error is negligible - use simple calculation
+	# threshold is ~3x the weapon offset to avoid unnecessary iteration
+	if rough_distance > 25.0 * enemy_model_scale:
+		return rough_direction.normalized()
+
+	# For close targets, iterate to find the correct rotation
+	# Start with the rough direction
+	var current_direction := rough_direction.normalized()
+
+	# Iterate to refine the aim direction (2 iterations is usually enough)
+	for _i in range(2):
+		var estimated_angle := current_direction.angle()
+
+		# Determine if we would flip (affects how weapon offset transforms)
+		var would_flip := absf(estimated_angle) > PI / 2
+
+		# Calculate weapon position with this estimated rotation
+		var weapon_offset_world: Vector2
+		if would_flip:
+			# When flipped, scale.y is negative, which affects the Y component of the offset
+			# Transform: scale then rotate
+			var scaled := Vector2(weapon_mount_local.x * enemy_model_scale, weapon_mount_local.y * -enemy_model_scale)
+			weapon_offset_world = scaled.rotated(estimated_angle)
+		else:
+			var scaled := weapon_mount_local * enemy_model_scale
+			weapon_offset_world = scaled.rotated(estimated_angle)
+
+		var weapon_global_pos := global_position + weapon_offset_world
+
+		# Calculate new direction from weapon to target
+		var new_direction := (target_pos - weapon_global_pos)
+		if new_direction.length_squared() < 0.01:
+			# Target is at weapon position, keep current direction
+			break
+		current_direction = new_direction.normalized()
+
+	return current_direction
 
 
 ## Updates the walking animation based on enemy movement state.
@@ -3565,6 +3627,16 @@ func _shoot() -> void:
 	var bullet_spawn_pos := _get_bullet_spawn_position(direction)
 	bullet.global_position = bullet_spawn_pos
 
+	# Debug logging for weapon geometry analysis
+	if debug_logging:
+		var weapon_visual_pos := _weapon_sprite.global_position if _weapon_sprite else Vector2.ZERO
+		var model_rot := _enemy_model.rotation if _enemy_model else 0.0
+		var model_scale := _enemy_model.scale if _enemy_model else Vector2.ONE
+		_log_debug("SHOOT: enemy_pos=%v, player_pos=%v" % [global_position, _player.global_position])
+		_log_debug("  model_rotation=%.2f rad (%.1f deg), model_scale=%v" % [model_rot, rad_to_deg(model_rot), model_scale])
+		_log_debug("  weapon_node_pos=%v, direction=%v (angle=%.1f deg)" % [weapon_visual_pos, direction, rad_to_deg(direction.angle())])
+		_log_debug("  bullet_spawn=%v, offset_from_enemy=%v" % [bullet_spawn_pos, bullet_spawn_pos - global_position])
+
 	# Set bullet direction to match weapon barrel direction
 	bullet.direction = direction
 
@@ -3857,7 +3929,14 @@ func _get_bullet_spawn_position(_direction: Vector2) -> Vector2:
 		# Calculate muzzle offset accounting for enemy model scale
 		var scaled_muzzle_offset := muzzle_local_offset * enemy_model_scale
 		# Use weapon sprite's global position as base, then offset to reach the muzzle
-		return _weapon_sprite.global_position + weapon_forward * scaled_muzzle_offset
+		var result := _weapon_sprite.global_position + weapon_forward * scaled_muzzle_offset
+		# Debug: Also compute where the visual muzzle should be using global_transform
+		if debug_logging:
+			var visual_forward := _weapon_sprite.global_transform.x.normalized()
+			var visual_muzzle := _weapon_sprite.global_position + visual_forward * scaled_muzzle_offset
+			_log_debug("  _get_bullet_spawn_position: weapon_forward=%v vs visual_forward=%v" % [weapon_forward, visual_forward])
+			_log_debug("  calculated_muzzle=%v vs visual_muzzle=%v, diff=%v" % [result, visual_muzzle, result - visual_muzzle])
+		return result
 	else:
 		# Fallback to old behavior if weapon sprite or enemy model not found
 		return global_position + _direction * bullet_spawn_offset
