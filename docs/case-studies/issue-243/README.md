@@ -444,3 +444,110 @@ This allows identifying which method works for the user's system:
 
 - [Godot Issue #72507 - Mouse Middle Button Inconsistency](https://github.com/godotengine/godot/issues/72507)
 - [Godot Input Examples Documentation](https://docs.godotengine.org/en/stable/tutorials/inputs/input_examples.html)
+
+---
+
+## FOURTH ROOT CAUSE DISCOVERED (2026-01-22 ~20:07)
+
+### User Report
+
+User uploaded new log files `game_log_20260122_200556.txt` and `game_log_20260122_200704.txt` with comment: "вроде всё тру но всё равно закрылся затвор вместо заряда" (seems like all true but the bolt still closed instead of loading).
+
+### Key Log Observations
+
+From `game_log_20260122_200704.txt`:
+```
+[20:07:10] Sound emitted (shotgun fired)
+[20:07:11] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ReloadState=NotReloading
+[20:07:11] RMB released after 5 frames - wasMMBDuringDrag=False
+[20:07:12] MMB event: pressed=True, isDragging=False
+[20:07:12] RMB drag started - MMB: poll=True, raw=True, event=True, any=True, ReloadState=NotReloading
+[20:07:13] RMB released after 13 frames - wasMMBDuringDrag=True
+```
+
+**Critical Discovery:** Even though `all=True` (MMB detected), `ReloadState=NotReloading` at the start of the drag!
+
+This means the bolt was **never opened for loading** - the user was still in the **pump cycle** after firing.
+
+### The Fourth Root Cause
+
+The shotgun control scheme after firing is:
+1. Fire → `ActionState=NeedsPumpUp`
+2. RMB drag UP → Eject shell → `ActionState=NeedsPumpDown`
+3. RMB drag DOWN → Chamber round → `ActionState=Ready`
+4. ONLY THEN can user start reload: RMB drag UP → `ReloadState=Loading`
+5. MMB + RMB drag DOWN → Load shell
+
+**The Bug:** When user is in `ActionState=NeedsPumpDown` (after ejecting shell) and does MMB + RMB drag DOWN:
+- `ProcessPumpActionGesture()` is called (because `ReloadState=NotReloading`)
+- It ONLY handles chambering the round - it IGNORES MMB completely!
+- User expected to load a shell, but bolt just chambered and closed
+
+The user's mental model was:
+- "After ejecting shell, hold MMB and drag DOWN to load a shell"
+
+But the code required:
+- "After ejecting shell, drag DOWN (chambers round), THEN drag UP (opens bolt for loading), THEN MMB + drag DOWN (loads shell)"
+
+### The Fix
+
+Modified `ProcessPumpActionGesture()` and `TryProcessMidDragGesture()` to check for MMB when in `ActionState=NeedsPumpDown`:
+
+```csharp
+case ShotgunActionState.NeedsPumpDown:
+    if (isDragDown)
+    {
+        // NEW: Check if MMB is held - user wants to load a shell
+        bool shouldLoadShell = _wasMiddleMouseHeldDuringDrag || _isMiddleMouseHeld;
+
+        if (shouldLoadShell && ShellsInTube < TubeMagazineCapacity)
+        {
+            // Transition directly to reload mode and load a shell
+            ReloadState = ShotgunReloadState.Loading;
+            ActionState = ShotgunActionState.Ready;
+            PlayActionOpenSound();
+            // ... emit signals ...
+            LoadShell();  // Load the shell immediately
+            return;  // Stay in Loading state for more shells
+        }
+
+        // Normal behavior: just chamber the round (no MMB held)
+        // ... existing code ...
+    }
+    break;
+```
+
+### Why This Wasn't Caught Before
+
+All previous fixes focused on the `ReloadState=Loading` state, where the bolt is already open. But the user was trying to load shells BEFORE opening the bolt (while still in the pump cycle).
+
+The control scheme has two paths to loading shells:
+1. **Traditional:** Fire → Pump UP → Pump DOWN → Ready → Drag UP (open bolt) → MMB+DOWN (load)
+2. **Shortcut (NEW):** Fire → Pump UP → MMB+DOWN (skip chamber, go straight to loading)
+
+The fourth fix enables the shortcut path, matching user expectations.
+
+### Log Messages to Look For
+
+With the fourth fix, you should see:
+```
+[Shotgun.FIX#243] RMB drag started - MMB: ..., ActionState=NeedsPumpDown, ReloadState=NotReloading
+[Shotgun.FIX#243] MMB+DOWN during pump cycle: transitioning to reload mode
+[Shotgun.FIX#243] Bolt opened for loading - now loading shell
+[Shotgun.FIX#243] LoadShell called - ReloadState=Loading, ShellsInTube=X/8
+[Shotgun.FIX#243] Shell LOADED - X/8 shells in tube
+[Shotgun.FIX#243] Shell loaded during pump cycle - still in Loading state for more shells
+```
+
+---
+
+## Summary of All Four Root Causes
+
+| # | Root Cause | Description | Fix |
+|---|------------|-------------|-----|
+| 1 | `_Process()` timing | MMB state updated AFTER gesture processing | Move `UpdateMiddleMouseState()` BEFORE `HandleDragGestures()` |
+| 2 | `HandleDragGestures()` timing | MMB tracking in "already dragging" branch executed after `TryProcessMidDragGesture()` | Move MMB tracking BEFORE `TryProcessMidDragGesture()` |
+| 3 | Godot polling inconsistency | `Input.IsMouseButtonPressed(MouseButton.Middle)` may not work reliably | Add event-based tracking via `_Input()` + triple-redundant detection |
+| 4 | Pump cycle ignores MMB | When in `NeedsPumpDown` state, MMB is ignored - user can't shortcut to loading | Add MMB check in pump action to transition to reload mode |
+
+All four fixes work together to provide a robust shell-loading experience.

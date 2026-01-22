@@ -498,7 +498,8 @@ public partial class Shotgun : BaseWeapon
 
                 if (VerboseInputLogging)
                 {
-                    LogToFile($"[Shotgun.FIX#243] RMB drag started - MMB detection: poll={_isMiddleMouseHeld}, raw={rawMMBState}, event={_isMiddleMouseHeldEvent}, any={anyMMBDetected}, ReloadState={ReloadState}");
+                    // Log both ReloadState AND ActionState for full context
+                    LogToFile($"[Shotgun.FIX#243] RMB drag started - MMB: poll={_isMiddleMouseHeld}, raw={rawMMBState}, event={_isMiddleMouseHeldEvent}, any={anyMMBDetected}, ActionState={ActionState}, ReloadState={ReloadState}");
                 }
             }
             else
@@ -630,7 +631,34 @@ public partial class Shotgun : BaseWeapon
                 case ShotgunActionState.NeedsPumpDown:
                     if (isDragDown)
                     {
-                        // Mid-drag pump down - chamber round
+                        // Issue #243 (fourth root cause fix): Check for MMB held during mid-drag.
+                        // If MMB is held, user wants to load a shell instead of just chambering.
+                        bool shouldLoadShellMidDrag = _wasMiddleMouseHeldDuringDrag || _isMiddleMouseHeld || _isMiddleMouseHeldEvent;
+
+                        if (shouldLoadShellMidDrag && ShellsInTube < TubeMagazineCapacity)
+                        {
+                            LogToFile($"[Shotgun.FIX#243] Mid-drag MMB+DOWN during pump cycle: transitioning to reload mode");
+
+                            _lastBoltCloseTime = Time.GetTicksMsec() / 1000.0;
+
+                            // Open bolt for loading (skip the Ready state)
+                            ReloadState = ShotgunReloadState.Loading;
+                            ActionState = ShotgunActionState.Ready;
+                            PlayActionOpenSound();
+                            EmitSignal(SignalName.ReloadStateChanged, (int)ReloadState);
+                            EmitSignal(SignalName.ActionStateChanged, (int)ActionState);
+                            EmitSignal(SignalName.ReloadStarted);
+                            LogToFile("[Shotgun.FIX#243] Mid-drag bolt opened for loading - now loading shell");
+
+                            // Load a shell
+                            LoadShell();
+
+                            LogToFile($"[Shotgun.FIX#243] Mid-drag shell loaded during pump cycle - staying in Loading state");
+                            gestureProcessed = true;
+                            break;
+                        }
+
+                        // Normal mid-drag pump down - chamber round
                         // Record close time for cooldown protection
                         _lastBoltCloseTime = Time.GetTicksMsec() / 1000.0;
 
@@ -640,28 +668,14 @@ public partial class Shotgun : BaseWeapon
                             PlayPumpDownSound();
                             EmitSignal(SignalName.ActionStateChanged, (int)ActionState);
                             EmitSignal(SignalName.PumpActionCycled, "down");
-                            if (VerboseInputLogging)
-                            {
-                                GD.Print($"[Shotgun.Input] Mid-drag pump DOWN - chambered at time {_lastBoltCloseTime:F3}s, cooldown ends at {_lastBoltCloseTime + BoltCloseCooldownSeconds:F3}s");
-                            }
-                            else
-                            {
-                                GD.Print("[Shotgun] Mid-drag pump DOWN - chambered, ready to fire");
-                            }
+                            LogToFile($"[Shotgun.FIX#243] Mid-drag pump DOWN - chambered, ready to fire (MMB not held)");
                         }
                         else
                         {
                             ActionState = ShotgunActionState.Ready;
                             PlayPumpDownSound();
                             EmitSignal(SignalName.ActionStateChanged, (int)ActionState);
-                            if (VerboseInputLogging)
-                            {
-                                GD.Print($"[Shotgun.Input] Mid-drag pump DOWN - tube empty at time {_lastBoltCloseTime:F3}s, cooldown ends at {_lastBoltCloseTime + BoltCloseCooldownSeconds:F3}s");
-                            }
-                            else
-                            {
-                                GD.Print("[Shotgun] Mid-drag pump DOWN - tube empty, need to reload");
-                            }
+                            LogToFile($"[Shotgun.FIX#243] Mid-drag pump DOWN - tube empty, need to reload (MMB not held)");
                         }
                         gestureProcessed = true;
                     }
@@ -790,9 +804,16 @@ public partial class Shotgun : BaseWeapon
     /// <summary>
     /// Processes drag gesture for pump-action cycling.
     /// After firing: RMB drag UP (eject shell) → RMB drag DOWN (chamber)
+    ///
+    /// Issue #243 (fourth root cause): When user holds MMB during pump cycle,
+    /// they want to load a shell, not just chamber the next round. The fix adds
+    /// MMB detection during NeedsPumpDown state to transition to reload mode.
     /// </summary>
     private void ProcessPumpActionGesture(bool isDragUp, bool isDragDown)
     {
+        // Check for MMB held during drag (for shell loading during pump cycle)
+        bool shouldLoadShell = _wasMiddleMouseHeldDuringDrag || _isMiddleMouseHeld;
+
         switch (ActionState)
         {
             case ShotgunActionState.NeedsPumpUp:
@@ -803,14 +824,41 @@ public partial class Shotgun : BaseWeapon
                     PlayPumpUpSound();
                     EmitSignal(SignalName.ActionStateChanged, (int)ActionState);
                     EmitSignal(SignalName.PumpActionCycled, "up");
-                    GD.Print("[Shotgun] Pump UP - shell ejected, now pump DOWN to chamber");
+                    LogToFile("[Shotgun.FIX#243] Pump UP - shell ejected, now pump DOWN to chamber (or MMB+DOWN to load)");
                 }
                 break;
 
             case ShotgunActionState.NeedsPumpDown:
                 if (isDragDown)
                 {
-                    // Chamber next round (push pump forward/down)
+                    // Issue #243 (fourth root cause fix): Check for MMB held.
+                    // If MMB is held, user wants to load a shell instead of just chambering.
+                    // Transition to reload mode and load shell.
+                    if (shouldLoadShell && ShellsInTube < TubeMagazineCapacity)
+                    {
+                        LogToFile($"[Shotgun.FIX#243] MMB+DOWN during pump cycle: transitioning to reload mode (wasMMBDuringDrag={_wasMiddleMouseHeldDuringDrag}, isMMBHeld={_isMiddleMouseHeld})");
+
+                        // First, complete the pump action (chamber if possible)
+                        _lastBoltCloseTime = Time.GetTicksMsec() / 1000.0;
+
+                        // Open bolt for loading (skip the Ready state)
+                        ReloadState = ShotgunReloadState.Loading;
+                        ActionState = ShotgunActionState.Ready;
+                        PlayActionOpenSound();
+                        EmitSignal(SignalName.ReloadStateChanged, (int)ReloadState);
+                        EmitSignal(SignalName.ActionStateChanged, (int)ActionState);
+                        EmitSignal(SignalName.ReloadStarted);
+                        LogToFile("[Shotgun.FIX#243] Bolt opened for loading - now loading shell");
+
+                        // Load a shell
+                        LoadShell();
+
+                        // Stay in Loading state for more shells
+                        LogToFile($"[Shotgun.FIX#243] Shell loaded during pump cycle - still in Loading state for more shells");
+                        return;
+                    }
+
+                    // Normal pump down - chamber next round (push pump forward/down)
                     // Record close time for cooldown protection
                     _lastBoltCloseTime = Time.GetTicksMsec() / 1000.0;
 
@@ -820,14 +868,7 @@ public partial class Shotgun : BaseWeapon
                         PlayPumpDownSound();
                         EmitSignal(SignalName.ActionStateChanged, (int)ActionState);
                         EmitSignal(SignalName.PumpActionCycled, "down");
-                        if (VerboseInputLogging)
-                        {
-                            GD.Print($"[Shotgun.Input] Release-based pump DOWN - chambered at time {_lastBoltCloseTime:F3}s, cooldown ends at {_lastBoltCloseTime + BoltCloseCooldownSeconds:F3}s");
-                        }
-                        else
-                        {
-                            GD.Print("[Shotgun] Pump DOWN - chambered, ready to fire");
-                        }
+                        LogToFile($"[Shotgun.FIX#243] Pump DOWN - chambered, ready to fire (MMB was not held)");
                     }
                     else
                     {
@@ -835,14 +876,7 @@ public partial class Shotgun : BaseWeapon
                         ActionState = ShotgunActionState.Ready;
                         PlayPumpDownSound();
                         EmitSignal(SignalName.ActionStateChanged, (int)ActionState);
-                        if (VerboseInputLogging)
-                        {
-                            GD.Print($"[Shotgun.Input] Release-based pump DOWN - tube empty at time {_lastBoltCloseTime:F3}s, cooldown ends at {_lastBoltCloseTime + BoltCloseCooldownSeconds:F3}s");
-                        }
-                        else
-                        {
-                            GD.Print("[Shotgun] Pump DOWN - tube empty, need to reload");
-                        }
+                        LogToFile($"[Shotgun.FIX#243] Pump DOWN - tube empty, need to reload (MMB was not held)");
                     }
                 }
                 break;
@@ -858,7 +892,7 @@ public partial class Shotgun : BaseWeapon
                     }
                     else if (VerboseInputLogging)
                     {
-                        GD.Print("[Shotgun.Input] Release-based bolt open BLOCKED by cooldown");
+                        LogToFile("[Shotgun.FIX#243] Bolt open BLOCKED by cooldown");
                     }
                 }
                 break;
@@ -948,12 +982,13 @@ public partial class Shotgun : BaseWeapon
     {
         if (ReloadState != ShotgunReloadState.NotReloading)
         {
+            LogToFile("[Shotgun.FIX#243] StartReload skipped - already reloading");
             return; // Already reloading
         }
 
         if (ShellsInTube >= TubeMagazineCapacity)
         {
-            GD.Print("[Shotgun] Cannot reload - tube is already full");
+            LogToFile("[Shotgun.FIX#243] StartReload skipped - tube is already full");
             return; // Tube is full
         }
 
@@ -962,7 +997,7 @@ public partial class Shotgun : BaseWeapon
         PlayActionOpenSound();
         EmitSignal(SignalName.ReloadStateChanged, (int)ReloadState);
         EmitSignal(SignalName.ReloadStarted);
-        GD.Print("[Shotgun] Bolt opened for loading - MMB + RMB drag DOWN to load shells, or RMB drag DOWN to close");
+        LogToFile($"[Shotgun.FIX#243] Bolt opened for loading - ReloadState=Loading, ShellsInTube={ShellsInTube}/{TubeMagazineCapacity}");
     }
 
     /// <summary>
@@ -971,24 +1006,24 @@ public partial class Shotgun : BaseWeapon
     /// </summary>
     private void LoadShell()
     {
-        GD.Print($"[Shotgun] LoadShell called - ReloadState={ReloadState}, ShellsInTube={ShellsInTube}/{TubeMagazineCapacity}, Tutorial={_isTutorialLevel}, ReserveAmmo={ReserveAmmo}");
+        LogToFile($"[Shotgun.FIX#243] LoadShell called - ReloadState={ReloadState}, ShellsInTube={ShellsInTube}/{TubeMagazineCapacity}, Tutorial={_isTutorialLevel}, ReserveAmmo={ReserveAmmo}");
 
         if (ReloadState != ShotgunReloadState.Loading)
         {
-            GD.Print("[Shotgun] LoadShell skipped - not in Loading state");
+            LogToFile("[Shotgun.FIX#243] LoadShell SKIPPED - not in Loading state!");
             return;
         }
 
         if (ShellsInTube >= TubeMagazineCapacity)
         {
-            GD.Print("[Shotgun] Tube is full");
+            LogToFile("[Shotgun.FIX#243] LoadShell SKIPPED - tube is full");
             return;
         }
 
         // In tutorial mode, allow infinite shell loading without reserve ammo
         if (!_isTutorialLevel && ReserveAmmo <= 0)
         {
-            GD.Print("[Shotgun] No more reserve shells (not tutorial mode)");
+            LogToFile("[Shotgun.FIX#243] LoadShell SKIPPED - no reserve shells (not tutorial mode)");
             return;
         }
 
@@ -1012,7 +1047,7 @@ public partial class Shotgun : BaseWeapon
 
         PlayShellLoadSound();
         EmitSignal(SignalName.ShellCountChanged, ShellsInTube, TubeMagazineCapacity);
-        GD.Print($"[Shotgun] Shell loaded - {ShellsInTube}/{TubeMagazineCapacity} shells in tube");
+        LogToFile($"[Shotgun.FIX#243] Shell LOADED - {ShellsInTube}/{TubeMagazineCapacity} shells in tube");
     }
 
     /// <summary>
@@ -1023,6 +1058,7 @@ public partial class Shotgun : BaseWeapon
     {
         if (ReloadState == ShotgunReloadState.NotReloading)
         {
+            LogToFile("[Shotgun.FIX#243] CompleteReload skipped - not reloading");
             return;
         }
 
@@ -1036,7 +1072,7 @@ public partial class Shotgun : BaseWeapon
         EmitSignal(SignalName.ReloadStateChanged, (int)ReloadState);
         EmitSignal(SignalName.ActionStateChanged, (int)ActionState);
         EmitSignal(SignalName.ReloadFinished);
-        GD.Print($"[Shotgun] Reload complete - ready to fire with {ShellsInTube} shells");
+        LogToFile($"[Shotgun.FIX#243] Reload complete - bolt closed, ready to fire with {ShellsInTube} shells");
     }
 
     /// <summary>
