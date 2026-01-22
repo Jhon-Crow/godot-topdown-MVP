@@ -239,6 +239,14 @@ func _select_weapon(weapon_id: String) -> void:
 
 	# Restart the level to apply the new weapon (like grenades do)
 	if GameManager:
+		# IMPORTANT: Unpause the game before restarting
+		# This prevents the game from getting stuck in paused state when
+		# changing weapons from the armory menu while the game is paused
+		get_tree().paused = false
+
+		# Restore hidden cursor for gameplay (confined and hidden)
+		Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED_HIDDEN)
+
 		GameManager.restart_scene()
 
 
