@@ -23,8 +23,8 @@ const SCREEN_CONTRAST_BOOST: float = 1.0
 ## Enemy saturation multiplier (4x).
 const ENEMY_SATURATION_MULTIPLIER: float = 4.0
 
-## Player armband saturation multiplier (same as enemies for consistency).
-const ARMBAND_SATURATION_MULTIPLIER: float = 4.0
+## Player saturation multiplier (same as enemies for consistency).
+const PLAYER_SATURATION_MULTIPLIER: float = 4.0
 
 ## Duration of the effect in real seconds (independent of time_scale).
 const EFFECT_DURATION_REAL_SECONDS: float = 3.0
@@ -48,9 +48,9 @@ var _connected_to_player: bool = false
 ## Key: enemy instance, Value: original modulate Color
 var _enemy_original_colors: Dictionary = {}
 
-## Cached player arm sprites with their original modulate colors.
+## Cached player sprites with their original modulate colors.
 ## Key: sprite instance, Value: original modulate Color
-var _arm_original_colors: Dictionary = {}
+var _player_original_colors: Dictionary = {}
 
 ## Timer for tracking effect duration (uses real time, not game time).
 var _effect_start_time: float = 0.0
@@ -245,8 +245,8 @@ func _start_penultimate_effect() -> void:
 	# Apply enemy saturation (4x)
 	_apply_enemy_saturation()
 
-	# Apply armband saturation (4x) - makes player's red armband more visible
-	_apply_arm_saturation()
+	# Apply player saturation (4x) - makes player more visible
+	_apply_player_saturation()
 
 
 ## End the penultimate hit effect.
@@ -270,8 +270,8 @@ func _end_penultimate_effect() -> void:
 	# Restore enemy colors
 	_restore_enemy_colors()
 
-	# Restore arm colors
-	_restore_arm_colors()
+	# Restore player sprite colors
+	_restore_player_colors()
 
 
 ## Apply 4x saturation to all enemies.
@@ -307,34 +307,48 @@ func _restore_enemy_colors() -> void:
 	_enemy_original_colors.clear()
 
 
-## Apply saturation boost to player's armband sprite (visibility during effect).
-## This makes the red armband more vivid during the penultimate hit effect.
-## Note: The armband is now a separate child sprite of RightArm.
-func _apply_arm_saturation() -> void:
+## Apply saturation boost to all player sprites (visibility during effect).
+## This makes the entire player more vivid during the penultimate hit effect.
+func _apply_player_saturation() -> void:
 	if _player == null:
 		return
 
-	_arm_original_colors.clear()
+	_player_original_colors.clear()
 
-	# Find armband sprite on player (child of RightArm)
-	var armband := _player.get_node_or_null("PlayerModel/RightArm/Armband") as Sprite2D
+	# Find all player sprites in PlayerModel
+	var player_model := _player.get_node_or_null("PlayerModel") as Node2D
+	if player_model == null:
+		_log("WARNING: PlayerModel not found on player")
+		return
 
+	# Apply saturation to all direct sprite children (Body, Head, LeftArm, RightArm)
+	var sprites_saturated: int = 0
+	for child in player_model.get_children():
+		if child is Sprite2D:
+			_player_original_colors[child] = child.modulate
+			child.modulate = _saturate_color(child.modulate, PLAYER_SATURATION_MULTIPLIER)
+			sprites_saturated += 1
+
+	# Also apply saturation to armband (child of RightArm)
+	var armband := player_model.get_node_or_null("RightArm/Armband") as Sprite2D
 	if armband:
-		_arm_original_colors[armband] = armband.modulate
-		armband.modulate = _saturate_color(armband.modulate, ARMBAND_SATURATION_MULTIPLIER)
-		_log("Applied %.1fx saturation to player armband sprite" % ARMBAND_SATURATION_MULTIPLIER)
+		_player_original_colors[armband] = armband.modulate
+		armband.modulate = _saturate_color(armband.modulate, PLAYER_SATURATION_MULTIPLIER)
+		sprites_saturated += 1
+
+	_log("Applied %.1fx saturation to %d player sprites" % [PLAYER_SATURATION_MULTIPLIER, sprites_saturated])
 
 
-## Restore original colors to player's arm sprite.
-func _restore_arm_colors() -> void:
-	for sprite in _arm_original_colors.keys():
+## Restore original colors to player's sprites.
+func _restore_player_colors() -> void:
+	for sprite in _player_original_colors.keys():
 		if is_instance_valid(sprite):
-			sprite.modulate = _arm_original_colors[sprite]
+			sprite.modulate = _player_original_colors[sprite]
 
-	if _arm_original_colors.size() > 0:
-		_log("Restored original colors to player armband sprite")
+	if _player_original_colors.size() > 0:
+		_log("Restored original colors to %d player sprites" % _player_original_colors.size())
 
-	_arm_original_colors.clear()
+	_player_original_colors.clear()
 
 
 ## Increase saturation of a color by a multiplier.
@@ -363,7 +377,7 @@ func reset_effects() -> void:
 	_end_penultimate_effect()
 	_player = null
 	_connected_to_player = false
-	_arm_original_colors.clear()
+	_player_original_colors.clear()
 
 
 ## Called when the scene tree structure changes.

@@ -144,6 +144,22 @@
    - Small green/blue (0.3) adds warmth and vibrancy to the red
    - This creates an HDR-style "glowing" effect that makes the armband clearly visible
 
+### Feedback Session (Session 10) - PLAYER SATURATION DURING LAST CHANCE
+1. **Owner feedback:**
+   - "во время последнего шанса игрок должен становиться насыщеннее и контрастнее" (during last chance, the player should become more saturated and contrasted)
+   - Game log attached: `game_log_20260122_152444.txt`
+2. **Root cause:**
+   - The effect managers were only applying 4x saturation to the armband sprite
+   - The rest of the player (Body, Head, LeftArm, RightArm) stayed at normal saturation
+   - Enemies got full saturation boost, but the player's body didn't match
+3. **Solution implemented:**
+   - Updated both `last_chance_effects_manager.gd` and `penultimate_hit_effects_manager.gd`
+   - Changed from armband-only saturation to full player sprite saturation
+   - All player sprites (Body, Head, LeftArm, RightArm, Armband) now get 4x saturation during effects
+   - Renamed `_apply_arm_saturation()` to `_apply_player_saturation()`
+   - Renamed `_arm_original_colors` to `_player_original_colors`
+   - Renamed `ARMBAND_SATURATION_MULTIPLIER` to `PLAYER_SATURATION_MULTIPLIER`
+
 ## Root Cause Analysis
 
 ### Why the Player Was Hard to See
@@ -235,6 +251,7 @@ func _saturate_color(color: Color, multiplier: float) -> Color:
 - `docs/case-studies/issue-234/logs/game_log_20260122_135613.txt` - Game log from Session 5
 - `docs/case-studies/issue-234/logs/game_log_20260122_140453.txt` - Game log from Session 6
 - `docs/case-studies/issue-234/logs/game_log_20260122_142217.txt` - Game log from Session 7
+- `docs/case-studies/issue-234/logs/game_log_20260122_152444.txt` - Game log from Session 10
 - `assets/sprites/characters/player/player_armband.png` - Separate armband sprite (Session 6)
 
 ### Scene Files Modified (Session 6 & 7)
@@ -255,6 +272,7 @@ func _saturate_color(color: Color, multiplier: float) -> Color:
 10. **Modulate affects ALL pixels in a sprite:** When you need to brighten just ONE part of a sprite (like an armband), you need a SEPARATE sprite for that part. Otherwise, the modulate will affect the entire sprite and make other parts look wrong
 11. **Separate sprites for different color treatments:** Use child sprites when different parts of a character need different color treatments (e.g., armband needs brightness boost, arm needs health color tint)
 12. **HDR modulate for brightness:** In Godot, modulate values greater than 1.0 create HDR-style brightness boosts. Use this for elements that need to "glow" or stand out (e.g., `Color(2, 0.3, 0.3, 1)` for a bright red effect)
+13. **Apply effects consistently to player AND enemies:** When enemies get visual effects (like saturation boost), the player should too. This creates a cohesive visual experience and makes the player stand out in the same way as enemies.
 
 ## Related Issues
 
@@ -268,6 +286,8 @@ func _saturate_color(color: Color, multiplier: float) -> Color:
 - [ ] Verify the armband intensifies during "last chance" effect (hard mode)
 - [ ] Verify the armband intensifies during "penultimate hit" effect (normal mode)
 - [ ] Confirm the armband color is red (not orange) as requested
+- [ ] Verify the ENTIRE player (body, head, arms) becomes more saturated during last chance
+- [ ] Verify player saturation matches enemy saturation (4x multiplier)
 
 ## Pull Request
 
