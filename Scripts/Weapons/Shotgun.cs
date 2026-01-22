@@ -165,6 +165,12 @@ public partial class Shotgun : BaseWeapon
     private bool _isTutorialLevel = false;
 
     /// <summary>
+    /// Enable verbose logging for input timing diagnostics.
+    /// Set to true to debug reload input issues.
+    /// </summary>
+    private const bool VerboseInputLogging = false;
+
+    /// <summary>
     /// Signal emitted when action state changes.
     /// </summary>
     [Signal]
@@ -275,11 +281,15 @@ public partial class Shotgun : BaseWeapon
         // Update aim direction
         UpdateAimDirection();
 
+        // Handle MMB for shell loading during reload
+        // IMPORTANT: This must be called BEFORE HandleDragGestures() so that
+        // _isMiddleMouseHeld is up-to-date when we check it during drag processing.
+        // Previously, this was called AFTER HandleDragGestures(), which caused
+        // MMB presses on the same frame as RMB drag start to be missed.
+        HandleMiddleMouseButton();
+
         // Handle RMB drag gestures for pump-action and reload
         HandleDragGestures();
-
-        // Handle MMB for shell loading during reload
-        HandleMiddleMouseButton();
     }
 
     /// <summary>
@@ -333,7 +343,10 @@ public partial class Shotgun : BaseWeapon
             {
                 _dragStartPosition = GetGlobalMousePosition();
                 _isDragging = true;
-                _wasMiddleMouseHeldDuringDrag = false; // Reset at start of new drag
+                // Initialize _wasMiddleMouseHeldDuringDrag based on CURRENT MMB state
+                // This fixes the issue where MMB pressed at the exact same frame as RMB drag start
+                // would be missed because we used to reset to false unconditionally
+                _wasMiddleMouseHeldDuringDrag = _isMiddleMouseHeld;
             }
 
             // Track if MMB is held at any point during the drag
@@ -467,7 +480,14 @@ public partial class Shotgun : BaseWeapon
                 {
                     // Use _wasMiddleMouseHeldDuringDrag instead of _isMiddleMouseHeld
                     // This fixes the timing issue where users release MMB and RMB simultaneously
-                    if (_wasMiddleMouseHeldDuringDrag || _isMiddleMouseHeld)
+                    bool shouldLoadShell = _wasMiddleMouseHeldDuringDrag || _isMiddleMouseHeld;
+
+                    if (VerboseInputLogging)
+                    {
+                        GD.Print($"[Shotgun.Input] Drag DOWN in Loading state: _wasMMBDuringDrag={_wasMiddleMouseHeldDuringDrag}, _isMMBHeld={_isMiddleMouseHeld}, shouldLoad={shouldLoadShell}");
+                    }
+
+                    if (shouldLoadShell)
                     {
                         // Load a shell (MMB + RMB drag down)
                         LoadShell();
