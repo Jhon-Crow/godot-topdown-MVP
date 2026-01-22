@@ -148,9 +148,16 @@ public partial class Shotgun : BaseWeapon
     private bool _isDragging = false;
 
     /// <summary>
-    /// Whether MMB is currently held.
+    /// Whether MMB is currently held (tracked via polling).
     /// </summary>
     private bool _isMiddleMouseHeld = false;
+
+    /// <summary>
+    /// Whether MMB is currently held (tracked via event-based _Input).
+    /// This is a fallback for when Input.IsMouseButtonPressed() doesn't work.
+    /// See Godot issue #72507 for known MMB inconsistencies.
+    /// </summary>
+    private bool _isMiddleMouseHeldEvent = false;
 
     /// <summary>
     /// Whether MMB was held at any point during the current drag (for shell loading).
@@ -369,6 +376,35 @@ public partial class Shotgun : BaseWeapon
     }
 
     /// <summary>
+    /// Handles input events directly (event-based input).
+    /// This is used as a fallback for MMB detection because Input.IsMouseButtonPressed()
+    /// may not work reliably for middle mouse button in some cases (Godot issue #72507).
+    /// </summary>
+    public override void _Input(InputEvent @event)
+    {
+        base._Input(@event);
+
+        // Track middle mouse button press/release via events
+        if (@event is InputEventMouseButton mouseButton && mouseButton.ButtonIndex == MouseButton.Middle)
+        {
+            bool wasPressed = _isMiddleMouseHeldEvent;
+            _isMiddleMouseHeldEvent = mouseButton.Pressed;
+
+            if (PerFrameDragLogging && wasPressed != _isMiddleMouseHeldEvent)
+            {
+                LogToFile($"[Shotgun.EVENT] MMB event: pressed={_isMiddleMouseHeldEvent} (was {wasPressed}), isDragging={_isDragging}");
+            }
+
+            // If we're dragging and MMB was just pressed, immediately update tracking
+            if (_isDragging && _isMiddleMouseHeldEvent)
+            {
+                _wasMiddleMouseHeldDuringDrag = true;
+                LogToFile($"[Shotgun.EVENT] MMB pressed during drag - immediately setting _wasMMBDuringDrag=true");
+            }
+        }
+    }
+
+    /// <summary>
     /// Updates the middle mouse button state.
     /// MUST be called BEFORE HandleDragGestures() to fix timing issue.
     /// </summary>
@@ -440,6 +476,13 @@ public partial class Shotgun : BaseWeapon
         bool rawMMBState = Input.IsMouseButtonPressed(MouseButton.Middle);
         bool rawRMBState = Input.IsMouseButtonPressed(MouseButton.Right);
 
+        // Combine ALL MMB detection methods for maximum reliability (Issue #243 root cause investigation)
+        // - _isMiddleMouseHeld: Updated in UpdateMiddleMouseState() via polling
+        // - rawMMBState: Direct polling in this method
+        // - _isMiddleMouseHeldEvent: Event-based tracking via _Input()
+        // This redundancy helps diagnose which method is failing
+        bool anyMMBDetected = _isMiddleMouseHeld || rawMMBState || _isMiddleMouseHeldEvent;
+
         // Check for RMB press (start drag)
         if (rawRMBState)
         {
@@ -448,14 +491,14 @@ public partial class Shotgun : BaseWeapon
                 _dragStartPosition = GetGlobalMousePosition();
                 _isDragging = true;
                 _dragFrameCount = 0;
-                _lastLoggedMMBState = rawMMBState;
-                // Initialize _wasMiddleMouseHeldDuringDrag based on CURRENT MMB state
+                _lastLoggedMMBState = anyMMBDetected;
+                // Initialize _wasMiddleMouseHeldDuringDrag based on ANY MMB detection method
                 // This handles the case where MMB is pressed at the exact same frame as RMB drag start
-                _wasMiddleMouseHeldDuringDrag = _isMiddleMouseHeld;
+                _wasMiddleMouseHeldDuringDrag = anyMMBDetected;
 
                 if (VerboseInputLogging)
                 {
-                    LogToFile($"[Shotgun.FIX#243] RMB drag started - initial MMB state: {_isMiddleMouseHeld} (raw={rawMMBState}), ReloadState={ReloadState}");
+                    LogToFile($"[Shotgun.FIX#243] RMB drag started - MMB detection: poll={_isMiddleMouseHeld}, raw={rawMMBState}, event={_isMiddleMouseHeldEvent}, any={anyMMBDetected}, ReloadState={ReloadState}");
                 }
             }
             else
@@ -464,10 +507,10 @@ public partial class Shotgun : BaseWeapon
                 _dragFrameCount++;
 
                 // Per-frame diagnostic logging (only when state changes to reduce spam)
-                if (PerFrameDragLogging && (rawMMBState != _lastLoggedMMBState || _dragFrameCount <= 3))
+                if (PerFrameDragLogging && (anyMMBDetected != _lastLoggedMMBState || _dragFrameCount <= 3))
                 {
-                    LogToFile($"[Shotgun.DIAG] Frame {_dragFrameCount}: rawMMB={rawMMBState}, _isMMBHeld={_isMiddleMouseHeld}, _wasMMBDuringDrag={_wasMiddleMouseHeldDuringDrag}");
-                    _lastLoggedMMBState = rawMMBState;
+                    LogToFile($"[Shotgun.DIAG] Frame {_dragFrameCount}: poll={_isMiddleMouseHeld}, raw={rawMMBState}, event={_isMiddleMouseHeldEvent}, any={anyMMBDetected}, wasMMB={_wasMiddleMouseHeldDuringDrag}");
+                    _lastLoggedMMBState = anyMMBDetected;
                 }
 
                 // CRITICAL FIX (Issue #243 - second root cause): The MMB tracking MUST happen
@@ -484,12 +527,16 @@ public partial class Shotgun : BaseWeapon
                 //
                 // Fix: Update MMB tracking first, then call TryProcessMidDragGesture()
                 //
-                // ADDITIONAL FIX: Also check raw MMB state in case _isMiddleMouseHeld wasn't updated
-                if (_isMiddleMouseHeld || rawMMBState)
+                // ADDITIONAL FIX (Issue #243 - third attempt): Use combined detection from ALL methods:
+                // - _isMiddleMouseHeld (polling-based)
+                // - rawMMBState (direct polling)
+                // - _isMiddleMouseHeldEvent (event-based via _Input)
+                // This ensures MMB is detected regardless of which method works
+                if (anyMMBDetected)
                 {
                     if (!_wasMiddleMouseHeldDuringDrag && PerFrameDragLogging)
                     {
-                        LogToFile($"[Shotgun.DIAG] Frame {_dragFrameCount}: MMB DETECTED! Setting _wasMMBDuringDrag=true (was false)");
+                        LogToFile($"[Shotgun.DIAG] Frame {_dragFrameCount}: MMB DETECTED via {(_isMiddleMouseHeld ? "poll" : (_isMiddleMouseHeldEvent ? "event" : "raw"))}! Setting _wasMMBDuringDrag=true");
                     }
                     _wasMiddleMouseHeldDuringDrag = true;
                 }
@@ -505,7 +552,7 @@ public partial class Shotgun : BaseWeapon
                     // Gesture processed - reset drag start for next gesture
                     _dragStartPosition = currentPosition;
                     // Reset MMB tracking for the new gesture segment
-                    _wasMiddleMouseHeldDuringDrag = _isMiddleMouseHeld || rawMMBState;
+                    _wasMiddleMouseHeldDuringDrag = anyMMBDetected;
                     _dragFrameCount = 0;
                 }
             }
@@ -519,7 +566,7 @@ public partial class Shotgun : BaseWeapon
 
             if (VerboseInputLogging)
             {
-                LogToFile($"[Shotgun.FIX#243] RMB released after {_dragFrameCount} frames - processing drag gesture (wasMMBDuringDrag={_wasMiddleMouseHeldDuringDrag}, currentMMB={rawMMBState})");
+                LogToFile($"[Shotgun.FIX#243] RMB released after {_dragFrameCount} frames - wasMMBDuringDrag={_wasMiddleMouseHeldDuringDrag}, current: poll={_isMiddleMouseHeld}, raw={rawMMBState}, event={_isMiddleMouseHeldEvent}");
             }
 
             ProcessDragGesture(dragVector);
