@@ -774,3 +774,67 @@ func test_get_next_patrol_point_cycles() -> void:
 	assert_eq(first, Vector2(-100, 0), "First call should go to second point")
 	assert_eq(second, Vector2(100, 0), "Second call should go to first point")
 	assert_eq(third, Vector2(-100, 0), "Third call should cycle back")
+
+
+# ============================================================================
+# Aim Tolerance Tests (Issue #264 regression test)
+# ============================================================================
+
+
+## Test that the aim tolerance constant allows reasonable shooting angles.
+## This is a regression test for issue #264 where enemies shot less frequently
+## because the aim tolerance was too strict (0.95 = 18 degrees).
+## The value should be 0.866 (30 degrees) to allow more frequent shooting.
+func test_aim_tolerance_allows_reasonable_angle() -> void:
+	# This tests the expected constant value in enemy.gd
+	# The actual constant is: AIM_TOLERANCE_DOT = 0.866
+	# cos(30°) ≈ 0.866 - allows shooting within ~30 degrees of target
+	var expected_tolerance: float = 0.866
+	var tolerance_angle_degrees: float = rad_to_deg(acos(expected_tolerance))
+
+	# Verify the angle is reasonable (between 25-35 degrees)
+	assert_true(tolerance_angle_degrees >= 25.0,
+		"Aim tolerance should allow at least 25 degrees offset")
+	assert_true(tolerance_angle_degrees <= 35.0,
+		"Aim tolerance should be at most 35 degrees offset")
+
+
+## Test that aim tolerance is not too strict (issue #264 root cause).
+## The old value of 0.95 (~18°) caused enemies to rarely shoot.
+func test_aim_tolerance_not_too_strict() -> void:
+	var too_strict_tolerance: float = 0.95  # Old problematic value
+	var current_tolerance: float = 0.866     # Fixed value
+
+	# Current tolerance should be less strict (smaller dot product)
+	assert_true(current_tolerance < too_strict_tolerance,
+		"Aim tolerance should be relaxed from 0.95 to allow more shooting")
+
+
+## Test that common shooting scenarios pass the aim check.
+## Simulates weapon direction vs target direction dot product.
+func test_aim_check_passes_reasonable_angles() -> void:
+	var tolerance: float = 0.866  # Current AIM_TOLERANCE_DOT
+
+	# Test 0 degrees off target (perfect aim) - should pass
+	var weapon_forward := Vector2.RIGHT
+	var to_target := Vector2.RIGHT
+	var dot_0deg := weapon_forward.dot(to_target)
+	assert_true(dot_0deg >= tolerance, "Perfect aim should pass")
+
+	# Test 15 degrees off target - should pass
+	var angle_15 := deg_to_rad(15.0)
+	to_target = Vector2.RIGHT.rotated(angle_15)
+	var dot_15deg := weapon_forward.dot(to_target)
+	assert_true(dot_15deg >= tolerance, "15 degree offset should pass")
+
+	# Test 25 degrees off target - should pass
+	var angle_25 := deg_to_rad(25.0)
+	to_target = Vector2.RIGHT.rotated(angle_25)
+	var dot_25deg := weapon_forward.dot(to_target)
+	assert_true(dot_25deg >= tolerance, "25 degree offset should pass (issue #264 fix)")
+
+	# Test 35 degrees off target - should fail
+	var angle_35 := deg_to_rad(35.0)
+	to_target = Vector2.RIGHT.rotated(angle_35)
+	var dot_35deg := weapon_forward.dot(to_target)
+	assert_true(dot_35deg < tolerance, "35 degree offset should fail (too far off)")

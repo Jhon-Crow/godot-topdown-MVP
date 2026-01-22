@@ -210,9 +210,10 @@ const PLAYER_DISTRACTION_ANGLE: float = 0.4014
 
 ## Minimum dot product between weapon direction and target direction for shooting.
 ## Bullets only fire when weapon is aimed within this tolerance of the target.
-## 0.95 ≈ cos(18°), meaning weapon must be within ~18° of target.
+## 0.866 ≈ cos(30°), meaning weapon must be within ~30° of target.
 ## This ensures bullets fly realistically in the barrel direction (see issue #254).
-const AIM_TOLERANCE_DOT: float = 0.95
+## Relaxed from 0.95 (18°) to 0.866 (30°) to fix low fire rate (see issue #264).
+const AIM_TOLERANCE_DOT: float = 0.866
 
 ## Reference to the enemy model node containing all sprites.
 @onready var _enemy_model: Node2D = $EnemyModel
