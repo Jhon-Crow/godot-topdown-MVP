@@ -167,8 +167,25 @@ public partial class Shotgun : BaseWeapon
     /// <summary>
     /// Enable verbose logging for input timing diagnostics.
     /// Set to true to debug reload input issues.
+    /// Default is true temporarily to help diagnose accidental bolt reopening issue.
     /// </summary>
-    private const bool VerboseInputLogging = false;
+    private const bool VerboseInputLogging = true;
+
+    /// <summary>
+    /// Cooldown time (in seconds) after closing bolt before it can be opened again.
+    /// This prevents accidental bolt reopening due to mouse movement.
+    /// History of adjustments based on user feedback:
+    /// - 250ms: Initial value, too short
+    /// - 400ms: Still had accidental opens
+    /// - 500ms: Still had accidental opens during pump-action sequences
+    /// - 750ms: Current value, provides longer protection window
+    /// </summary>
+    private const float BoltCloseCooldownSeconds = 0.75f;
+
+    /// <summary>
+    /// Timestamp when the bolt was last closed (for cooldown protection).
+    /// </summary>
+    private double _lastBoltCloseTime = 0.0;
 
     /// <summary>
     /// Signal emitted when action state changes.
@@ -204,6 +221,29 @@ public partial class Shotgun : BaseWeapon
     {
         base._Ready();
 
+        // Re-initialize reserve shells for shotgun using MaxReserveAmmo from WeaponData
+        // The base class initializes MagazineInventory based on StartingMagazineCount,
+        // but for the shotgun we want to use MaxReserveAmmo to control reserve shells.
+        //
+        // IMPORTANT: ReserveAmmo property uses TotalSpareAmmo (sum of spare magazines).
+        // So we need 2 magazines: one "current" (unused, just for BaseWeapon compatibility)
+        // and one "spare" that holds the actual reserve shells.
+        // The shotgun uses ShellsInTube for its tube magazine separately.
+        if (WeaponData != null)
+        {
+            int maxReserve = WeaponData.MaxReserveAmmo;
+            // Create 2 magazines:
+            // - CurrentMagazine: unused placeholder (capacity = maxReserve but set to 0)
+            // - 1 spare magazine: holds the actual reserve shells
+            MagazineInventory.Initialize(2, maxReserve, fillAllMagazines: true);
+            // Set CurrentMagazine to 0 since we don't use it (tube is separate)
+            if (MagazineInventory.CurrentMagazine != null)
+            {
+                MagazineInventory.CurrentMagazine.CurrentAmmo = 0;
+            }
+            GD.Print($"[Shotgun] Initialized reserve shells: {ReserveAmmo} (from WeaponData.MaxReserveAmmo={maxReserve})");
+        }
+
         // Get the shotgun sprite for visual representation
         _shotgunSprite = GetNodeOrNull<Sprite2D>("ShotgunSprite");
 
@@ -235,9 +275,17 @@ public partial class Shotgun : BaseWeapon
 
         // Initialize shell count
         ShellsInTube = TubeMagazineCapacity;
-        EmitSignal(SignalName.ShellCountChanged, ShellsInTube, TubeMagazineCapacity);
 
-        GD.Print($"[Shotgun] Ready - Pellets={MinPellets}-{MaxPellets}, Shells={ShellsInTube}/{TubeMagazineCapacity}, CloudOffset={MaxSpawnOffset}px, Tutorial={_isTutorialLevel}");
+        // Emit initial shell count signal using CallDeferred to ensure it happens
+        // AFTER the shotgun is added to the scene tree. This is critical because
+        // GDScript handlers (like building_level.gd's _on_shell_count_changed) need
+        // to find the shotgun via _player.get_node_or_null("Shotgun") to read ReserveAmmo,
+        // and this only works after the shotgun is added as a child of the player.
+        // Without deferring, the signal fires during _Ready() before add_child() completes,
+        // causing reserve ammo to display as 0.
+        CallDeferred(MethodName.EmitInitialShellCount);
+
+        GD.Print($"[Shotgun] Ready - Pellets={MinPellets}-{MaxPellets}, Shells={ShellsInTube}/{TubeMagazineCapacity}, Reserve={ReserveAmmo}, Total={ShellsInTube + ReserveAmmo}, CloudOffset={MaxSpawnOffset}px, Tutorial={_isTutorialLevel}");
     }
 
     /// <summary>
@@ -333,6 +381,9 @@ public partial class Shotgun : BaseWeapon
     /// Handles RMB drag gestures for pump-action cycling and reload.
     /// Pump: Drag UP = eject shell, Drag DOWN = chamber round
     /// Reload: Drag UP = open bolt, Drag DOWN = load shell (with MMB) or close bolt
+    ///
+    /// Supports continuous gestures: hold RMB, drag UP (open bolt), then without
+    /// releasing RMB, drag DOWN (close bolt) - all in one continuous movement.
     /// </summary>
     private void HandleDragGestures()
     {
@@ -347,6 +398,22 @@ public partial class Shotgun : BaseWeapon
                 // This fixes the issue where MMB pressed at the exact same frame as RMB drag start
                 // would be missed because we used to reset to false unconditionally
                 _wasMiddleMouseHeldDuringDrag = _isMiddleMouseHeld;
+            }
+            else
+            {
+                // Already dragging - check for mid-drag gesture completion
+                // This enables continuous gestures without releasing RMB
+                Vector2 currentPosition = GetGlobalMousePosition();
+                Vector2 dragVector = currentPosition - _dragStartPosition;
+
+                // Check if a vertical gesture has been completed mid-drag
+                if (TryProcessMidDragGesture(dragVector))
+                {
+                    // Gesture processed - reset drag start for next gesture
+                    _dragStartPosition = currentPosition;
+                    // Reset MMB tracking for the new gesture segment
+                    _wasMiddleMouseHeldDuringDrag = _isMiddleMouseHeld;
+                }
             }
 
             // Track if MMB is held at any point during the drag
@@ -368,6 +435,180 @@ public partial class Shotgun : BaseWeapon
             // Reset the flag after processing
             _wasMiddleMouseHeldDuringDrag = false;
         }
+    }
+
+    /// <summary>
+    /// Attempts to process a gesture while RMB is still held (mid-drag).
+    /// This enables continuous drag-and-drop: hold RMB, drag up, then drag down
+    /// all in one fluid motion without releasing RMB.
+    ///
+    /// Note: Shell loading (MMB + drag down) intentionally requires releasing RMB
+    /// to preserve the original shell loading behavior. Only bolt open/close
+    /// operations are supported mid-drag.
+    /// </summary>
+    /// <param name="dragVector">Current drag vector from start position.</param>
+    /// <returns>True if a gesture was processed, false otherwise.</returns>
+    private bool TryProcessMidDragGesture(Vector2 dragVector)
+    {
+        // Check if drag is long enough for a gesture
+        if (dragVector.Length() < MinDragDistance)
+        {
+            return false;
+        }
+
+        // Determine if drag is primarily vertical
+        bool isVerticalDrag = Mathf.Abs(dragVector.Y) > Mathf.Abs(dragVector.X);
+        if (!isVerticalDrag)
+        {
+            return false; // Only vertical drags are used for shotgun
+        }
+
+        bool isDragUp = dragVector.Y < 0;
+        bool isDragDown = dragVector.Y > 0;
+
+        // Determine which gesture would be valid based on current state
+        bool gestureProcessed = false;
+
+        // For pump-action cycling
+        if (ReloadState == ShotgunReloadState.NotReloading)
+        {
+            switch (ActionState)
+            {
+                case ShotgunActionState.NeedsPumpUp:
+                    if (isDragUp)
+                    {
+                        // Mid-drag pump up - eject shell
+                        ActionState = ShotgunActionState.NeedsPumpDown;
+                        PlayPumpUpSound();
+                        EmitSignal(SignalName.ActionStateChanged, (int)ActionState);
+                        EmitSignal(SignalName.PumpActionCycled, "up");
+                        GD.Print("[Shotgun] Mid-drag pump UP - shell ejected, continue dragging DOWN to chamber");
+                        gestureProcessed = true;
+                    }
+                    break;
+
+                case ShotgunActionState.NeedsPumpDown:
+                    if (isDragDown)
+                    {
+                        // Mid-drag pump down - chamber round
+                        // Record close time for cooldown protection
+                        _lastBoltCloseTime = Time.GetTicksMsec() / 1000.0;
+
+                        if (ShellsInTube > 0)
+                        {
+                            ActionState = ShotgunActionState.Ready;
+                            PlayPumpDownSound();
+                            EmitSignal(SignalName.ActionStateChanged, (int)ActionState);
+                            EmitSignal(SignalName.PumpActionCycled, "down");
+                            if (VerboseInputLogging)
+                            {
+                                GD.Print($"[Shotgun.Input] Mid-drag pump DOWN - chambered at time {_lastBoltCloseTime:F3}s, cooldown ends at {_lastBoltCloseTime + BoltCloseCooldownSeconds:F3}s");
+                            }
+                            else
+                            {
+                                GD.Print("[Shotgun] Mid-drag pump DOWN - chambered, ready to fire");
+                            }
+                        }
+                        else
+                        {
+                            ActionState = ShotgunActionState.Ready;
+                            PlayPumpDownSound();
+                            EmitSignal(SignalName.ActionStateChanged, (int)ActionState);
+                            if (VerboseInputLogging)
+                            {
+                                GD.Print($"[Shotgun.Input] Mid-drag pump DOWN - tube empty at time {_lastBoltCloseTime:F3}s, cooldown ends at {_lastBoltCloseTime + BoltCloseCooldownSeconds:F3}s");
+                            }
+                            else
+                            {
+                                GD.Print("[Shotgun] Mid-drag pump DOWN - tube empty, need to reload");
+                            }
+                        }
+                        gestureProcessed = true;
+                    }
+                    break;
+
+                case ShotgunActionState.Ready:
+                    // Check if we should start reload (only if cooldown expired)
+                    if (isDragUp && ShellsInTube < TubeMagazineCapacity)
+                    {
+                        double currentTime = Time.GetTicksMsec() / 1000.0;
+                        double timeSinceClose = currentTime - _lastBoltCloseTime;
+                        bool inCooldown = timeSinceClose < BoltCloseCooldownSeconds;
+
+                        if (VerboseInputLogging)
+                        {
+                            GD.Print($"[Shotgun.Input] Mid-drag UP in Ready state: currentTime={currentTime:F3}s, lastClose={_lastBoltCloseTime:F3}s, elapsed={timeSinceClose:F3}s, cooldown={BoltCloseCooldownSeconds}s, inCooldown={inCooldown}");
+                        }
+
+                        if (!inCooldown)
+                        {
+                            // Mid-drag start reload
+                            StartReload();
+                            gestureProcessed = true;
+                        }
+                        else if (VerboseInputLogging)
+                        {
+                            GD.Print($"[Shotgun.Input] Mid-drag bolt open BLOCKED by cooldown ({timeSinceClose:F3}s < {BoltCloseCooldownSeconds}s)");
+                        }
+                    }
+                    break;
+            }
+        }
+        else
+        {
+            // For reload sequence
+            switch (ReloadState)
+            {
+                case ShotgunReloadState.WaitingToOpen:
+                    if (isDragUp)
+                    {
+                        // Mid-drag open bolt
+                        ReloadState = ShotgunReloadState.Loading;
+                        PlayActionOpenSound();
+                        EmitSignal(SignalName.ReloadStateChanged, (int)ReloadState);
+                        GD.Print("[Shotgun] Mid-drag bolt opened - continue dragging DOWN to close (or use MMB to load)");
+                        gestureProcessed = true;
+                    }
+                    break;
+
+                case ShotgunReloadState.Loading:
+                    if (isDragDown)
+                    {
+                        // Mid-drag in loading state - only allow closing bolt, not loading shells
+                        // Shell loading should only work with the release-based gesture (old behavior)
+                        bool shouldLoadShell = _wasMiddleMouseHeldDuringDrag || _isMiddleMouseHeld;
+
+                        if (VerboseInputLogging)
+                        {
+                            GD.Print($"[Shotgun.Input] Mid-drag DOWN in Loading state: shouldLoad={shouldLoadShell}");
+                        }
+
+                        if (shouldLoadShell)
+                        {
+                            // MMB held - don't process mid-drag, let user release RMB to load shell
+                            // This preserves the old shell loading behavior while allowing
+                            // continuous bolt open/close gestures
+                            return false;
+                        }
+                        else
+                        {
+                            CompleteReload();
+                        }
+                        gestureProcessed = true;
+                    }
+                    break;
+
+                case ShotgunReloadState.WaitingToClose:
+                    if (isDragDown)
+                    {
+                        CompleteReload();
+                        gestureProcessed = true;
+                    }
+                    break;
+            }
+        }
+
+        return gestureProcessed;
     }
 
     /// <summary>
@@ -426,13 +667,23 @@ public partial class Shotgun : BaseWeapon
                 if (isDragDown)
                 {
                     // Chamber next round (push pump forward/down)
+                    // Record close time for cooldown protection
+                    _lastBoltCloseTime = Time.GetTicksMsec() / 1000.0;
+
                     if (ShellsInTube > 0)
                     {
                         ActionState = ShotgunActionState.Ready;
                         PlayPumpDownSound();
                         EmitSignal(SignalName.ActionStateChanged, (int)ActionState);
                         EmitSignal(SignalName.PumpActionCycled, "down");
-                        GD.Print("[Shotgun] Pump DOWN - chambered, ready to fire");
+                        if (VerboseInputLogging)
+                        {
+                            GD.Print($"[Shotgun.Input] Release-based pump DOWN - chambered at time {_lastBoltCloseTime:F3}s, cooldown ends at {_lastBoltCloseTime + BoltCloseCooldownSeconds:F3}s");
+                        }
+                        else
+                        {
+                            GD.Print("[Shotgun] Pump DOWN - chambered, ready to fire");
+                        }
                     }
                     else
                     {
@@ -440,16 +691,31 @@ public partial class Shotgun : BaseWeapon
                         ActionState = ShotgunActionState.Ready;
                         PlayPumpDownSound();
                         EmitSignal(SignalName.ActionStateChanged, (int)ActionState);
-                        GD.Print("[Shotgun] Pump DOWN - tube empty, need to reload");
+                        if (VerboseInputLogging)
+                        {
+                            GD.Print($"[Shotgun.Input] Release-based pump DOWN - tube empty at time {_lastBoltCloseTime:F3}s, cooldown ends at {_lastBoltCloseTime + BoltCloseCooldownSeconds:F3}s");
+                        }
+                        else
+                        {
+                            GD.Print("[Shotgun] Pump DOWN - tube empty, need to reload");
+                        }
                     }
                 }
                 break;
 
             case ShotgunActionState.Ready:
                 // If ready and drag UP, might be starting reload (open bolt)
+                // Check cooldown to prevent accidental bolt reopening after close
                 if (isDragUp && ShellsInTube < TubeMagazineCapacity)
                 {
-                    StartReload();
+                    if (!IsInBoltCloseCooldown())
+                    {
+                        StartReload();
+                    }
+                    else if (VerboseInputLogging)
+                    {
+                        GD.Print("[Shotgun.Input] Release-based bolt open BLOCKED by cooldown");
+                    }
                 }
                 break;
         }
@@ -523,6 +789,17 @@ public partial class Shotgun : BaseWeapon
     #region Reload System
 
     /// <summary>
+    /// Emits the initial shell count signal after the shotgun is added to the scene tree.
+    /// This is called via CallDeferred to ensure the signal is emitted after add_child() completes,
+    /// allowing GDScript handlers to find the shotgun node and read ReserveAmmo correctly.
+    /// </summary>
+    private void EmitInitialShellCount()
+    {
+        EmitSignal(SignalName.ShellCountChanged, ShellsInTube, TubeMagazineCapacity);
+        GD.Print($"[Shotgun] Initial ShellCountChanged emitted (deferred): {ShellsInTube}/{TubeMagazineCapacity}, ReserveAmmo={ReserveAmmo}");
+    }
+
+    /// <summary>
     /// Starts the shotgun reload sequence by opening the bolt directly.
     /// Called when RMB drag UP is performed while in Ready state.
     /// </summary>
@@ -578,9 +855,18 @@ public partial class Shotgun : BaseWeapon
         ShellsInTube++;
 
         // Consume from reserve (only in non-tutorial mode)
-        if (!_isTutorialLevel && MagazineInventory.CurrentMagazine != null && MagazineInventory.CurrentMagazine.CurrentAmmo > 0)
+        // Reserve shells are in spare magazines, not CurrentMagazine
+        if (!_isTutorialLevel && ReserveAmmo > 0)
         {
-            MagazineInventory.ConsumeAmmo();
+            // Find a spare magazine with ammo and consume from it
+            foreach (var mag in MagazineInventory.SpareMagazines)
+            {
+                if (mag.CurrentAmmo > 0)
+                {
+                    mag.CurrentAmmo--;
+                    break;
+                }
+            }
         }
 
         PlayShellLoadSound();
@@ -590,6 +876,7 @@ public partial class Shotgun : BaseWeapon
 
     /// <summary>
     /// Completes the reload sequence by closing the action.
+    /// Records the close time to enable cooldown protection against accidental reopening.
     /// </summary>
     private void CompleteReload()
     {
@@ -600,11 +887,34 @@ public partial class Shotgun : BaseWeapon
 
         ReloadState = ShotgunReloadState.NotReloading;
         ActionState = ShotgunActionState.Ready;
+
+        // Record bolt close time for cooldown protection
+        _lastBoltCloseTime = Time.GetTicksMsec() / 1000.0;
+
         PlayActionCloseSound();
         EmitSignal(SignalName.ReloadStateChanged, (int)ReloadState);
         EmitSignal(SignalName.ActionStateChanged, (int)ActionState);
         EmitSignal(SignalName.ReloadFinished);
         GD.Print($"[Shotgun] Reload complete - ready to fire with {ShellsInTube} shells");
+    }
+
+    /// <summary>
+    /// Checks if we are within the cooldown period after closing the bolt.
+    /// This prevents accidental bolt reopening due to continued mouse movement.
+    /// </summary>
+    /// <returns>True if cooldown is active and bolt opening should be blocked.</returns>
+    private bool IsInBoltCloseCooldown()
+    {
+        double currentTime = Time.GetTicksMsec() / 1000.0;
+        double elapsedSinceClose = currentTime - _lastBoltCloseTime;
+        bool inCooldown = elapsedSinceClose < BoltCloseCooldownSeconds;
+
+        if (inCooldown && VerboseInputLogging)
+        {
+            GD.Print($"[Shotgun.Input] Bolt open blocked by cooldown: {elapsedSinceClose:F3}s < {BoltCloseCooldownSeconds}s");
+        }
+
+        return inCooldown;
     }
 
     /// <summary>
