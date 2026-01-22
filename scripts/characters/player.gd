@@ -169,6 +169,9 @@ var _grenade_drag_start: Vector2 = Vector2.ZERO
 ## Whether the grenade throw drag has started.
 var _grenade_drag_active: bool = false
 
+## Whether debug mode is enabled (F7 toggle, shows grenade trajectory).
+var _debug_mode_enabled: bool = false
+
 
 func _ready() -> void:
 	FileLogger.info("[Player] Initializing player...")
@@ -272,6 +275,9 @@ func _ready() -> void:
 	# Note: Weapon pose detection is done in _process() after a few frames
 	# to ensure level scripts have finished adding weapons to the player.
 	# See _weapon_pose_applied and _weapon_detect_frame_count variables.
+
+	# Connect to GameManager's debug mode signal for F7 toggle
+	_connect_debug_mode_signal()
 
 	FileLogger.info("[Player] Ready! Ammo: %d/%d, Grenades: %d/%d, Health: %d/%d" % [
 		_current_ammo, max_ammo,
@@ -1297,6 +1303,10 @@ func _handle_grenade_aiming_state() -> void:
 	# Update wind-up intensity based on mouse drag during aiming
 	_update_wind_up_intensity()
 
+	# Request redraw for debug trajectory visualization
+	if _debug_mode_enabled:
+		queue_redraw()
+
 	# If transfer animation is done, switch to wind-up
 	if _grenade_anim_phase == GrenadeAnimPhase.TRANSFER and _grenade_anim_timer <= 0:
 		_grenade_anim_phase = GrenadeAnimPhase.WIND_UP
@@ -1765,3 +1775,131 @@ func _update_reload_animation(delta: float) -> void:
 	if _right_arm_sprite:
 		_right_arm_sprite.position = _right_arm_sprite.position.lerp(right_arm_target, lerp_speed)
 		_right_arm_sprite.rotation = lerpf(_right_arm_sprite.rotation, right_arm_rot, lerp_speed)
+
+
+# ============================================================================
+# Debug Visualization System
+# ============================================================================
+
+## Connect to GameManager's debug mode signal for F7 toggle.
+func _connect_debug_mode_signal() -> void:
+	var game_manager: Node = get_node_or_null("/root/GameManager")
+	if game_manager:
+		# Connect to debug mode toggle signal
+		if game_manager.has_signal("debug_mode_toggled"):
+			game_manager.debug_mode_toggled.connect(_on_debug_mode_toggled)
+		# Sync with current debug mode state
+		if game_manager.has_method("is_debug_mode_enabled"):
+			_debug_mode_enabled = game_manager.is_debug_mode_enabled()
+
+
+## Called when debug mode is toggled via F7 key.
+func _on_debug_mode_toggled(enabled: bool) -> void:
+	_debug_mode_enabled = enabled
+	queue_redraw()
+
+
+## Draw debug visualization for grenade throw trajectory.
+## Shows the throw direction line and predicted landing position during aiming.
+func _draw() -> void:
+	if not _debug_mode_enabled:
+		return
+
+	# Only draw during grenade aiming state
+	if _grenade_state != GrenadeState.AIMING:
+		return
+
+	# Colors for debug visualization
+	var color_trajectory := Color.YELLOW  # Trajectory line
+	var color_landing := Color.ORANGE  # Landing position
+	var color_radius := Color(1.0, 0.5, 0.0, 0.3)  # Effect radius (semi-transparent orange)
+
+	# Calculate throw parameters based on current drag
+	var current_mouse := get_global_mouse_position()
+	var drag_vector := current_mouse - _aim_drag_start
+	var drag_distance := drag_vector.length()
+
+	# Minimum drag distance for valid throw
+	var min_drag_distance := 10.0
+	if drag_distance < min_drag_distance:
+		drag_distance = min_drag_distance
+		drag_vector = Vector2(1, 0)
+
+	var throw_direction := drag_vector.normalized()
+
+	# Apply same sensitivity multiplier as in _throw_grenade
+	var sensitivity_multiplier := 9.0
+	var adjusted_drag_distance := drag_distance * sensitivity_multiplier
+
+	# Clamp to max drag distance (3x viewport width)
+	var viewport := get_viewport()
+	var max_drag_distance := 3840.0
+	if viewport:
+		max_drag_distance = viewport.get_visible_rect().size.x * 3.0
+	adjusted_drag_distance = minf(adjusted_drag_distance, max_drag_distance)
+
+	# Calculate throw speed using grenade parameters
+	# From grenade_base.gd: drag_to_speed_multiplier = 2.0, max_throw_speed = 2500, min_throw_speed = 100
+	var drag_to_speed_multiplier := 2.0
+	var max_throw_speed := 2500.0
+	var min_throw_speed := 100.0
+	var throw_speed := clampf(
+		adjusted_drag_distance * drag_to_speed_multiplier,
+		min_throw_speed,
+		max_throw_speed
+	)
+
+	# Calculate landing distance using physics
+	# From grenade_base.gd: ground_friction = 150.0
+	# The grenade decelerates at ground_friction per second
+	# Distance = v^2 / (2 * friction) (kinematic formula for constant deceleration)
+	var ground_friction := 150.0
+	var landing_distance := (throw_speed * throw_speed) / (2.0 * ground_friction)
+
+	# Spawn offset (same as in _throw_grenade)
+	var spawn_offset := 60.0
+
+	# Calculate positions relative to player (for drawing in local coordinates)
+	# Note: _draw() uses local coordinates, so we draw relative to Vector2.ZERO (player position)
+	var spawn_pos := throw_direction * spawn_offset
+	var landing_pos := spawn_pos + throw_direction * landing_distance
+
+	# Draw trajectory line from spawn point to landing
+	draw_line(spawn_pos, landing_pos, color_trajectory, 2.0)
+
+	# Draw intermediate points along trajectory for better visualization
+	var num_points := 8
+	for i in range(1, num_points):
+		var t := float(i) / float(num_points)
+		var point := spawn_pos + throw_direction * landing_distance * t
+		draw_circle(point, 3.0, color_trajectory)
+
+	# Draw landing position marker (cross)
+	var cross_size := 12.0
+	draw_line(landing_pos + Vector2(-cross_size, 0), landing_pos + Vector2(cross_size, 0), color_landing, 3.0)
+	draw_line(landing_pos + Vector2(0, -cross_size), landing_pos + Vector2(0, cross_size), color_landing, 3.0)
+
+	# Draw effect radius at landing position
+	# Default grenade effect radius from grenade_base.gd is 200.0 pixels
+	var effect_radius := 200.0
+	_draw_circle_outline(landing_pos, effect_radius, color_radius, 2.0)
+
+	# Draw small circle at spawn point
+	draw_circle(spawn_pos, 5.0, color_trajectory)
+
+
+## Draw a circle outline (not filled) at the specified position.
+## @param center: Center position of the circle.
+## @param radius: Radius of the circle.
+## @param color: Color of the outline.
+## @param width: Line width.
+func _draw_circle_outline(center: Vector2, radius: float, color: Color, width: float) -> void:
+	var num_segments := 32
+	var angle_step := TAU / num_segments
+	var prev_point := center + Vector2(radius, 0)
+
+	for i in range(1, num_segments + 1):
+		var angle := angle_step * i
+		var next_point := center + Vector2(cos(angle), sin(angle)) * radius
+		draw_line(prev_point, next_point, color, width)
+		prev_point = next_point
