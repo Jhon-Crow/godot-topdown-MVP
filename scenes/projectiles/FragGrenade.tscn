@@ -18,10 +18,10 @@ min_throw_speed = 100.0
 drag_to_speed_multiplier = 2.0
 ground_friction = 280.0
 sound_range_multiplier = 2.0
-effect_radius = 250.0
+effect_radius = 225.0
 shrapnel_count = 4
 shrapnel_spread_deviation = 20.0
-explosion_damage = 2
+explosion_damage = 99
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("CircleShape2D_grenade")
