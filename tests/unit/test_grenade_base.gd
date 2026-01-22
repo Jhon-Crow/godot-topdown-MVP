@@ -23,6 +23,15 @@ class MockGrenadeBase:
 	## Drag multiplier to convert drag distance to throw speed.
 	var drag_to_speed_multiplier: float = 2.0
 
+	## Mass of the grenade in kg (for velocity-based physics).
+	var grenade_mass: float = 0.4
+
+	## Multiplier to convert mouse velocity to throw velocity.
+	var mouse_velocity_to_throw_multiplier: float = 3.0
+
+	## Minimum swing distance for full velocity transfer.
+	var min_swing_distance: float = 200.0
+
 	## Friction/damping applied to slow the grenade.
 	var ground_friction: float = 150.0
 
@@ -85,7 +94,32 @@ class MockGrenadeBase:
 			_activation_sound_played = true
 			activation_sound_played += 1
 
-	## Throw the grenade in a direction with speed based on drag distance.
+	## Throw the grenade using velocity-based physics.
+	func throw_grenade_velocity_based(mouse_velocity: Vector2, swing_distance: float) -> void:
+		freeze = false
+
+		# Calculate mass-adjusted minimum swing distance
+		var mass_ratio := grenade_mass / 0.4
+		var required_swing := min_swing_distance * mass_ratio
+
+		# Calculate velocity transfer efficiency
+		var transfer_efficiency := clampf(swing_distance / required_swing, 0.0, 1.0)
+
+		# Convert mouse velocity to throw velocity
+		var base_throw_velocity := mouse_velocity * mouse_velocity_to_throw_multiplier * transfer_efficiency
+		var mass_adjusted_velocity := base_throw_velocity / sqrt(mass_ratio)
+
+		# Clamp the final speed
+		var throw_speed := clampf(mass_adjusted_velocity.length(), 0.0, max_throw_speed)
+
+		# Set velocity
+		if throw_speed > 1.0:
+			linear_velocity = mass_adjusted_velocity.normalized() * throw_speed
+			rotation = linear_velocity.angle()
+		else:
+			linear_velocity = Vector2.ZERO
+
+	## Throw the grenade in a direction with speed based on drag distance (legacy).
 	func throw_grenade(direction: Vector2, drag_distance: float) -> void:
 		freeze = false
 
@@ -591,3 +625,110 @@ func test_very_large_delta() -> void:
 
 	assert_true(grenade.has_exploded())
 	assert_le(grenade.get_time_remaining(), 0.0)
+
+
+# ============================================================================
+# Velocity-Based Throwing Tests (Realistic Physics)
+# ============================================================================
+
+
+func test_velocity_based_throw_unfreezes_grenade() -> void:
+	grenade.throw_grenade_velocity_based(Vector2(500, 0), 300.0)
+
+	assert_false(grenade.freeze)
+
+
+func test_velocity_based_throw_with_zero_mouse_velocity() -> void:
+	# If mouse is not moving at release, grenade should have zero velocity
+	grenade.throw_grenade_velocity_based(Vector2.ZERO, 200.0)
+
+	assert_eq(grenade.linear_velocity, Vector2.ZERO,
+		"Zero mouse velocity should result in grenade dropping at feet")
+
+
+func test_velocity_based_throw_direction_matches_mouse_velocity() -> void:
+	grenade.throw_grenade_velocity_based(Vector2(1000, 0), 250.0)
+
+	assert_gt(grenade.linear_velocity.x, 0,
+		"Velocity should be in direction of mouse movement")
+	assert_almost_eq(grenade.linear_velocity.y, 0.0, 0.001)
+
+
+func test_velocity_based_throw_speed_scales_with_mouse_velocity() -> void:
+	grenade.throw_grenade_velocity_based(Vector2(500, 0), 250.0)
+	var speed_slow := grenade.linear_velocity.length()
+
+	grenade.linear_velocity = Vector2.ZERO
+	grenade.throw_grenade_velocity_based(Vector2(1500, 0), 250.0)
+	var speed_fast := grenade.linear_velocity.length()
+
+	assert_gt(speed_fast, speed_slow,
+		"Faster mouse movement should produce faster throw")
+
+
+func test_velocity_based_throw_transfer_efficiency_with_low_swing() -> void:
+	# Low swing distance should reduce velocity transfer
+	grenade.throw_grenade_velocity_based(Vector2(1000, 0), 50.0)
+	var speed_low_swing := grenade.linear_velocity.length()
+
+	grenade.linear_velocity = Vector2.ZERO
+	grenade.throw_grenade_velocity_based(Vector2(1000, 0), 400.0)
+	var speed_high_swing := grenade.linear_velocity.length()
+
+	assert_gt(speed_high_swing, speed_low_swing,
+		"Longer swing distance should improve velocity transfer")
+
+
+func test_velocity_based_throw_mass_affects_throw_speed() -> void:
+	# Light grenade
+	grenade.grenade_mass = 0.2
+	grenade.throw_grenade_velocity_based(Vector2(1000, 0), 300.0)
+	var speed_light := grenade.linear_velocity.length()
+
+	# Heavy grenade
+	grenade.linear_velocity = Vector2.ZERO
+	grenade.grenade_mass = 0.6
+	grenade.throw_grenade_velocity_based(Vector2(1000, 0), 300.0)
+	var speed_heavy := grenade.linear_velocity.length()
+
+	assert_gt(speed_light, speed_heavy,
+		"Lighter grenade should be thrown faster with same mouse velocity")
+
+
+func test_velocity_based_throw_max_speed_clamped() -> void:
+	grenade.throw_grenade_velocity_based(Vector2(10000, 0), 500.0)
+
+	assert_le(grenade.linear_velocity.length(), grenade.max_throw_speed,
+		"Throw speed should not exceed maximum")
+
+
+func test_velocity_based_throw_sets_rotation() -> void:
+	grenade.throw_grenade_velocity_based(Vector2(1, 1).normalized() * 1000, 250.0)
+
+	# 45 degrees = PI/4 radians
+	assert_almost_eq(grenade.rotation, PI / 4, 0.01)
+
+
+func test_velocity_based_throw_with_diagonal_velocity() -> void:
+	grenade.throw_grenade_velocity_based(Vector2(500, -500), 250.0)
+
+	assert_gt(grenade.linear_velocity.x, 0)
+	assert_lt(grenade.linear_velocity.y, 0)
+
+
+func test_velocity_based_throw_minimum_swing_scales_with_mass() -> void:
+	# Heavy grenade needs more swing for full transfer
+	grenade.grenade_mass = 0.6  # 1.5x standard mass
+	grenade.min_swing_distance = 200.0
+
+	# With insufficient swing for heavy grenade, transfer is reduced
+	grenade.throw_grenade_velocity_based(Vector2(1000, 0), 200.0)
+	var speed_heavy_short_swing := grenade.linear_velocity.length()
+
+	grenade.linear_velocity = Vector2.ZERO
+	# With sufficient swing (200 * 1.5 = 300)
+	grenade.throw_grenade_velocity_based(Vector2(1000, 0), 350.0)
+	var speed_heavy_long_swing := grenade.linear_velocity.length()
+
+	assert_gt(speed_heavy_long_swing, speed_heavy_short_swing,
+		"Heavy grenade should need more swing distance for full velocity transfer")
