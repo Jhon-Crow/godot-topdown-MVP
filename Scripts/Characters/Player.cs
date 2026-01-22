@@ -164,6 +164,11 @@ public partial class Player : BaseCharacter
     private bool _isThrowRotating = false;
 
     /// <summary>
+    /// Whether debug mode is enabled (F7 toggle, shows grenade trajectory).
+    /// </summary>
+    private bool _debugModeEnabled = false;
+
+    /// <summary>
     /// Target rotation for throw animation.
     /// </summary>
     private float _throwTargetRotation = 0.0f;
@@ -706,6 +711,9 @@ public partial class Player : BaseCharacter
         {
             _rightArmSprite.ZIndex = 2;  // Arms between body and head
         }
+
+        // Connect to GameManager's debug mode signal for F7 toggle
+        ConnectDebugModeSignal();
 
         // Log ready status with full info
         int currentAmmo = CurrentWeapon?.CurrentAmmo ?? 0;
@@ -1720,6 +1728,12 @@ public partial class Player : BaseCharacter
             UpdateWindUpIntensity();
         }
 
+        // Request redraw for debug trajectory visualization
+        if (_debugModeEnabled)
+        {
+            QueueRedraw();
+        }
+
         // If RMB is released, throw the grenade
         if (Input.IsActionJustReleased("grenade_throw"))
         {
@@ -2431,6 +2445,191 @@ public partial class Player : BaseCharacter
         {
             fileLogger.Call("log_info", message);
         }
+    }
+
+    #endregion
+
+    #region Debug Trajectory Visualization
+
+    /// <summary>
+    /// Connects to GameManager's debug_mode_toggled signal for F7 toggle.
+    /// </summary>
+    private void ConnectDebugModeSignal()
+    {
+        var gameManager = GetNodeOrNull("/root/GameManager");
+        if (gameManager == null)
+        {
+            LogToFile("[Player.Debug] WARNING: GameManager not found, debug visualization disabled");
+            return;
+        }
+
+        if (!gameManager.HasSignal("debug_mode_toggled"))
+        {
+            LogToFile("[Player.Debug] WARNING: GameManager doesn't have debug_mode_toggled signal");
+            return;
+        }
+
+        // Connect to the signal using Callable
+        gameManager.Connect("debug_mode_toggled", Callable.From<bool>(OnDebugModeToggled));
+
+        // Check if debug mode is already enabled
+        if (gameManager.HasMethod("is_debug_mode_enabled"))
+        {
+            _debugModeEnabled = (bool)gameManager.Call("is_debug_mode_enabled");
+            LogToFile($"[Player.Debug] Connected to GameManager, debug mode: {_debugModeEnabled}");
+        }
+        else
+        {
+            LogToFile("[Player.Debug] Connected to GameManager (is_debug_mode_enabled not found)");
+        }
+    }
+
+    /// <summary>
+    /// Called when debug mode is toggled via F7 key.
+    /// </summary>
+    /// <param name="enabled">True if debug mode is now enabled.</param>
+    private void OnDebugModeToggled(bool enabled)
+    {
+        _debugModeEnabled = enabled;
+        QueueRedraw();
+        LogToFile($"[Player.Debug] Debug mode toggled: {(enabled ? "ON" : "OFF")}");
+    }
+
+    /// <summary>
+    /// Override _Draw to visualize grenade trajectory when debug mode is enabled.
+    /// Shows predicted landing position based on current drag.
+    /// </summary>
+    public override void _Draw()
+    {
+        // Only draw when debug mode is enabled and we're aiming a grenade
+        if (!_debugModeEnabled)
+        {
+            return;
+        }
+
+        if (_grenadeState != GrenadeState.Aiming)
+        {
+            return;
+        }
+
+        // Calculate trajectory based on current drag
+        Vector2 currentMousePos = GetGlobalMousePosition();
+        Vector2 dragVector = currentMousePos - _grenadeDragStart;
+        float dragDistance = dragVector.Length();
+
+        // Match the ThrowGrenade logic for minimum drag
+        Vector2 throwDirection;
+        if (dragDistance < 10.0f)
+        {
+            throwDirection = (currentMousePos - GlobalPosition).Normalized();
+            dragDistance = 50.0f;
+        }
+        else
+        {
+            throwDirection = dragVector.Normalized();
+        }
+
+        // Constants from grenade_base.gd
+        const float DragToSpeedMultiplier = 2.0f;
+        const float MinThrowSpeed = 100.0f;
+        const float MaxThrowSpeed = 2500.0f;
+        const float GroundFriction = 150.0f;
+        const float SpawnOffset = 60.0f;
+
+        // Calculate throw speed (same as grenade_base.gd)
+        float throwSpeed = Mathf.Clamp(
+            dragDistance * DragToSpeedMultiplier,
+            MinThrowSpeed,
+            MaxThrowSpeed
+        );
+
+        // Calculate landing distance using physics: distance = v² / (2 * friction)
+        // This is the stopping distance under constant deceleration
+        float landingDistance = (throwSpeed * throwSpeed) / (2.0f * GroundFriction);
+
+        // Calculate spawn and landing positions
+        Vector2 spawnPosition = GlobalPosition + throwDirection * SpawnOffset;
+        Vector2 landingPosition = spawnPosition + throwDirection * landingDistance;
+
+        // Convert to local coordinates for drawing
+        Vector2 localStart = ToLocal(spawnPosition);
+        Vector2 localEnd = ToLocal(landingPosition);
+
+        // Draw trajectory line with dashes
+        DrawTrajectoryLine(localStart, localEnd, new Color(1.0f, 0.8f, 0.2f, 0.9f), 3.0f);
+
+        // Draw landing point indicator (circle with X)
+        DrawLandingIndicator(localEnd, new Color(1.0f, 0.3f, 0.1f, 0.9f), 12.0f);
+
+        // Draw drag direction arrow from player
+        Vector2 localPlayerCenter = Vector2.Zero; // Player is at origin in local coords
+        Vector2 arrowEnd = localPlayerCenter + throwDirection * 40.0f;
+        DrawArrow(localPlayerCenter, arrowEnd, new Color(0.2f, 1.0f, 0.2f, 0.7f), 2.0f);
+    }
+
+    /// <summary>
+    /// Draw a dashed trajectory line from start to end.
+    /// </summary>
+    private void DrawTrajectoryLine(Vector2 start, Vector2 end, Color color, float width)
+    {
+        Vector2 direction = (end - start).Normalized();
+        float totalLength = start.DistanceTo(end);
+        const float DashLength = 15.0f;
+        const float GapLength = 8.0f;
+
+        float currentPos = 0.0f;
+        while (currentPos < totalLength)
+        {
+            float dashEnd = Mathf.Min(currentPos + DashLength, totalLength);
+            Vector2 dashStart = start + direction * currentPos;
+            Vector2 dashEndPos = start + direction * dashEnd;
+            DrawLine(dashStart, dashEndPos, color, width);
+            currentPos = dashEnd + GapLength;
+        }
+    }
+
+    /// <summary>
+    /// Draw a landing indicator (circle with X) at the target position.
+    /// </summary>
+    private void DrawLandingIndicator(Vector2 position, Color color, float radius)
+    {
+        // Draw outer circle
+        const int CirclePoints = 24;
+        Vector2[] circlePoints = new Vector2[CirclePoints + 1];
+        for (int i = 0; i <= CirclePoints; i++)
+        {
+            float angle = i * Mathf.Tau / CirclePoints;
+            circlePoints[i] = position + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * radius;
+        }
+        for (int i = 0; i < CirclePoints; i++)
+        {
+            DrawLine(circlePoints[i], circlePoints[i + 1], color, 2.0f);
+        }
+
+        // Draw X inside
+        float xSize = radius * 0.6f;
+        DrawLine(position + new Vector2(-xSize, -xSize), position + new Vector2(xSize, xSize), color, 2.0f);
+        DrawLine(position + new Vector2(-xSize, xSize), position + new Vector2(xSize, -xSize), color, 2.0f);
+    }
+
+    /// <summary>
+    /// Draw an arrow from start to end with an arrowhead.
+    /// </summary>
+    private void DrawArrow(Vector2 start, Vector2 end, Color color, float width)
+    {
+        // Draw main line
+        DrawLine(start, end, color, width);
+
+        // Draw arrowhead
+        Vector2 direction = (end - start).Normalized();
+        float arrowSize = 8.0f;
+        float arrowAngle = Mathf.Pi / 6.0f; // 30 degrees
+
+        Vector2 arrowLeft = end - direction.Rotated(arrowAngle) * arrowSize;
+        Vector2 arrowRight = end - direction.Rotated(-arrowAngle) * arrowSize;
+
+        DrawLine(end, arrowLeft, color, width);
+        DrawLine(end, arrowRight, color, width);
     }
 
     #endregion
