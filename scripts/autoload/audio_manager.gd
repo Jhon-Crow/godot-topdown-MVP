@@ -63,6 +63,26 @@ const BULLET_RICOCHET: String = "res://assets/audio/пуля пролетела 
 ## Shell casing sounds.
 const SHELL_RIFLE: String = "res://assets/audio/падает гильза автомата.wav"
 const SHELL_PISTOL: String = "res://assets/audio/падает гильза пистолета.wav"
+const SHELL_SHOTGUN: String = "res://assets/audio/падение гильзы дробовик.mp3"
+
+## Shotgun sounds.
+## Shotgun shots (4 variants) - randomly selected for variety.
+const SHOTGUN_SHOTS: Array[String] = [
+	"res://assets/audio/выстрел из дробовика 1.wav",
+	"res://assets/audio/выстрел из дробовика 2.wav",
+	"res://assets/audio/выстрел из дробовика 3.wav",
+	"res://assets/audio/выстрел из дробовика 4.wav"
+]
+
+## Shotgun action sounds (pump-action open/close).
+const SHOTGUN_ACTION_OPEN: String = "res://assets/audio/открытие затвора дробовика.wav"
+const SHOTGUN_ACTION_CLOSE: String = "res://assets/audio/закрытие затвора дробовика.wav"
+
+## Shotgun empty click sound.
+const SHOTGUN_EMPTY_CLICK: String = "res://assets/audio/выстрел без патронов дробовик.mp3"
+
+## Shotgun reload (load single shell) sound.
+const SHOTGUN_LOAD_SHELL: String = "res://assets/audio/зарядил один патрон в дробовик.mp3"
 
 ## Grenade sounds.
 ## Activation sound (pin pull) - played when grenade timer starts.
@@ -86,6 +106,8 @@ const VOLUME_EMPTY_CLICK: float = -3.0
 const VOLUME_RICOCHET: float = -6.0
 const VOLUME_GRENADE: float = -3.0
 const VOLUME_GRENADE_EXPLOSION: float = 0.0
+const VOLUME_SHOTGUN_SHOT: float = -3.0
+const VOLUME_SHOTGUN_ACTION: float = -5.0
 
 ## Preloaded audio streams cache.
 var _audio_cache: Dictionary = {}
@@ -145,6 +167,13 @@ func _preload_all_sounds() -> void:
 	all_sounds.append(GRENADE_LANDING)
 	all_sounds.append(FLASHBANG_EXPLOSION_IN_ZONE)
 	all_sounds.append(FLASHBANG_EXPLOSION_OUT_ZONE)
+	# Shotgun sounds
+	all_sounds.append_array(SHOTGUN_SHOTS)
+	all_sounds.append(SHOTGUN_ACTION_OPEN)
+	all_sounds.append(SHOTGUN_ACTION_CLOSE)
+	all_sounds.append(SHOTGUN_EMPTY_CLICK)
+	all_sounds.append(SHOTGUN_LOAD_SHELL)
+	all_sounds.append(SHELL_SHOTGUN)
 
 	for path in all_sounds:
 		if not _audio_cache.has(path):
@@ -332,3 +361,38 @@ func play_grenade_landing(position: Vector2) -> void:
 func play_flashbang_explosion(position: Vector2, player_in_zone: bool) -> void:
 	var sound_path: String = FLASHBANG_EXPLOSION_IN_ZONE if player_in_zone else FLASHBANG_EXPLOSION_OUT_ZONE
 	play_sound_2d(sound_path, position, VOLUME_GRENADE_EXPLOSION)
+
+
+# ============================================================================
+# Shotgun sounds
+# ============================================================================
+
+## Plays a random shotgun shot sound at the given position.
+## Randomly selects from 4 shotgun shot variants for variety.
+func play_shotgun_shot(position: Vector2) -> void:
+	play_random_sound_2d(SHOTGUN_SHOTS, position, VOLUME_SHOTGUN_SHOT)
+
+
+## Plays shotgun action open sound (pump-action pulling back) at the given position.
+func play_shotgun_action_open(position: Vector2) -> void:
+	play_sound_2d(SHOTGUN_ACTION_OPEN, position, VOLUME_SHOTGUN_ACTION)
+
+
+## Plays shotgun action close sound (pump-action pushing forward) at the given position.
+func play_shotgun_action_close(position: Vector2) -> void:
+	play_sound_2d(SHOTGUN_ACTION_CLOSE, position, VOLUME_SHOTGUN_ACTION)
+
+
+## Plays shotgun shell casing drop sound at the given position.
+func play_shell_shotgun(position: Vector2) -> void:
+	play_sound_2d(SHELL_SHOTGUN, position, VOLUME_SHELL)
+
+
+## Plays shotgun empty click sound at the given position.
+func play_shotgun_empty_click(position: Vector2) -> void:
+	play_sound_2d(SHOTGUN_EMPTY_CLICK, position, VOLUME_EMPTY_CLICK)
+
+
+## Plays shotgun shell loading sound at the given position.
+func play_shotgun_load_shell(position: Vector2) -> void:
+	play_sound_2d(SHOTGUN_LOAD_SHELL, position, VOLUME_SHOTGUN_ACTION)

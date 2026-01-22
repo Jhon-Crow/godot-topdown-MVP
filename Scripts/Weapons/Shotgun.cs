@@ -70,6 +70,12 @@ public partial class Shotgun : BaseWeapon
     private const float ActionCycleTime = 0.3f;
 
     /// <summary>
+    /// Tracks whether a shot was fired before the action opened.
+    /// Used to determine if shell should eject when action opens.
+    /// </summary>
+    private bool _hasFiredBeforeActionOpen = false;
+
+    /// <summary>
     /// Signal emitted when action state changes.
     /// </summary>
     [Signal]
@@ -220,9 +226,14 @@ public partial class Shotgun : BaseWeapon
         CurrentAmmo--;
 
         // Set action state - needs cycling (Phase 1: instant cycle)
+        // Mark that a shot was fired before action opens (for shell ejection sound)
+        _hasFiredBeforeActionOpen = true;
         ActionState = ShotgunActionState.ActionOpen;
         _actionCycleTimer = ActionCycleTime;
         EmitSignal(SignalName.ActionStateChanged, (int)ActionState);
+
+        // Play action open sound and shell ejection after a small delay
+        PlayActionOpenWithShellEject();
 
         // Play shotgun sound
         PlayShotgunSound();
@@ -248,6 +259,9 @@ public partial class Shotgun : BaseWeapon
     {
         if (ActionState == ShotgunActionState.ActionOpen)
         {
+            // Play action close sound
+            PlayActionCloseSound();
+
             // Check if there's ammo to chamber
             if (CurrentAmmo > 0)
             {
@@ -276,27 +290,67 @@ public partial class Shotgun : BaseWeapon
     }
 
     /// <summary>
-    /// Plays the empty gun click sound.
+    /// Plays the shotgun empty click sound.
     /// </summary>
     private void PlayEmptyClickSound()
     {
         var audioManager = GetNodeOrNull("/root/AudioManager");
-        if (audioManager != null && audioManager.HasMethod("play_empty_click"))
+        if (audioManager != null && audioManager.HasMethod("play_shotgun_empty_click"))
         {
-            audioManager.Call("play_empty_click", GlobalPosition);
+            audioManager.Call("play_shotgun_empty_click", GlobalPosition);
         }
     }
 
     /// <summary>
     /// Plays the shotgun firing sound.
+    /// Randomly selects from 4 shotgun shot variants for variety.
     /// </summary>
     private void PlayShotgunSound()
     {
         var audioManager = GetNodeOrNull("/root/AudioManager");
-        // Use M16 shot as placeholder until shotgun-specific sound is added
-        if (audioManager != null && audioManager.HasMethod("play_m16_shot"))
+        if (audioManager != null && audioManager.HasMethod("play_shotgun_shot"))
         {
-            audioManager.Call("play_m16_shot", GlobalPosition);
+            audioManager.Call("play_shotgun_shot", GlobalPosition);
+        }
+    }
+
+    /// <summary>
+    /// Plays the shotgun action open sound with shell ejection.
+    /// Shell ejection sound only plays if a shot was fired before the action opened.
+    /// </summary>
+    private async void PlayActionOpenWithShellEject()
+    {
+        // Small delay before action open sound
+        await ToSignal(GetTree().CreateTimer(0.1), "timeout");
+
+        var audioManager = GetNodeOrNull("/root/AudioManager");
+        if (audioManager != null && audioManager.HasMethod("play_shotgun_action_open"))
+        {
+            audioManager.Call("play_shotgun_action_open", GlobalPosition);
+        }
+
+        // Only play shell ejection if a shot was fired before action open
+        if (_hasFiredBeforeActionOpen)
+        {
+            // Shell ejects slightly after action opens
+            await ToSignal(GetTree().CreateTimer(0.15), "timeout");
+            if (audioManager != null && audioManager.HasMethod("play_shell_shotgun"))
+            {
+                audioManager.Call("play_shell_shotgun", GlobalPosition);
+            }
+            _hasFiredBeforeActionOpen = false;
+        }
+    }
+
+    /// <summary>
+    /// Plays the shotgun action close sound.
+    /// </summary>
+    private void PlayActionCloseSound()
+    {
+        var audioManager = GetNodeOrNull("/root/AudioManager");
+        if (audioManager != null && audioManager.HasMethod("play_shotgun_action_close"))
+        {
+            audioManager.Call("play_shotgun_action_close", GlobalPosition);
         }
     }
 
