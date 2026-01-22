@@ -287,12 +287,87 @@ if (WeaponData != null)
 
 This properly initializes the reserve shell pool to use `MaxReserveAmmo` (12) instead of the magazine-based calculation (24).
 
-### Accidental Bolt Opening - Ongoing Investigation
+---
 
-The user reports accidental bolt opening still occurs even with 400ms cooldown. Possible causes being investigated:
-- Drag start position reset timing after mid-drag gesture completion
-- Cooldown window may need further tuning
-- Potential race condition between gesture detection and state transitions
+### Feedback #5 from @Jhon-Crow (2026-01-22 06:45)
+
+> "теперь патронов 8 всего (должно быть 8 + 12 в запасе)."
+> "так же всё ещё есть случайное открывание затвора сразу после закрывания."
+
+**Translation:**
+- "Now there are 8 shells total (should be 8 + 12 in reserve)"
+- "Also still experiencing accidental bolt opening right after closing"
+
+### Root Cause Analysis - Shell Count Issue (Fixed)
+
+**Investigation findings:**
+
+The previous fix had a bug in how `MagazineInventory` was initialized:
+
+```csharp
+// Incorrect (from Feedback #4 fix):
+MagazineInventory.Initialize(1, maxReserve, fillAllMagazines: true);
+```
+
+This created:
+- 1 magazine (CurrentMagazine) with `maxReserve` (12) shells
+- But `ReserveAmmo` property returns `TotalSpareAmmo` = sum of **spare** magazines = 0
+
+So even though there were 12 shells in CurrentMagazine, the `ReserveAmmo` check was returning 0, preventing shell loading.
+
+### Resolution - Shell Count Fix (Final)
+
+Modified `Shotgun._Ready()` to properly initialize with 2 magazines:
+
+```csharp
+if (WeaponData != null)
+{
+    int maxReserve = WeaponData.MaxReserveAmmo;
+    // Create 2 magazines:
+    // - CurrentMagazine: unused placeholder (set to 0)
+    // - 1 spare magazine: holds the actual reserve shells
+    MagazineInventory.Initialize(2, maxReserve, fillAllMagazines: true);
+    // Set CurrentMagazine to 0 since we don't use it (tube is separate)
+    if (MagazineInventory.CurrentMagazine != null)
+    {
+        MagazineInventory.CurrentMagazine.CurrentAmmo = 0;
+    }
+}
+```
+
+Also updated `LoadShell()` to consume from spare magazines (where reserve shells actually live):
+
+```csharp
+// Consume from reserve (only in non-tutorial mode)
+// Reserve shells are in spare magazines, not CurrentMagazine
+if (!_isTutorialLevel && ReserveAmmo > 0)
+{
+    foreach (var mag in MagazineInventory.SpareMagazines)
+    {
+        if (mag.CurrentAmmo > 0)
+        {
+            mag.CurrentAmmo--;
+            break;
+        }
+    }
+}
+```
+
+### Accidental Bolt Opening - Enhanced Investigation
+
+User still reports accidental bolt opening. Actions taken:
+
+1. **Increased cooldown** from 400ms to **500ms** for more protection
+2. **Enabled verbose logging** (`VerboseInputLogging = true`) to track:
+   - Exact timestamps when bolt closes
+   - Cooldown window tracking
+   - When bolt open attempts are blocked by cooldown
+3. **Added detailed timing logs** to mid-drag pump DOWN completion to see exact timing
+
+The verbose logs will help diagnose if:
+- Cooldown is being set but not checked correctly
+- Timing between frames is causing missed cooldown checks
+- There's another code path bypassing the cooldown
 
 ## Logs
 
@@ -300,6 +375,7 @@ The user reports accidental bolt opening still occurs even with 400ms cooldown. 
 - `logs/game_log_20260122_091126.txt` - User testing log (Feedback #3)
 - `logs/game_log_20260122_091335.txt` - User testing log (Feedback #3)
 - `logs/game_log_20260122_092829.txt` - User testing log (Feedback #4)
+- `logs/game_log_20260122_094153.txt` - User testing log (Feedback #5)
 - `logs/solution-draft-log-pr-1769061104361.txt` - AI solution draft log
 
 ## Summary of Changes
@@ -311,3 +387,5 @@ The user reports accidental bolt opening still occurs even with 400ms cooldown. 
 | `afcbcba` | Add cooldown protection to prevent accidental bolt reopening |
 | `31acef1` | Increase bolt close cooldown from 250ms to 400ms |
 | `3aadaea` | Fix shotgun shell count to use MaxReserveAmmo from WeaponData |
+| `(pending)` | Fix shell count - use spare magazines properly for ReserveAmmo |
+| `(pending)` | Increase cooldown to 500ms, enable verbose logging |

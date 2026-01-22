@@ -167,15 +167,17 @@ public partial class Shotgun : BaseWeapon
     /// <summary>
     /// Enable verbose logging for input timing diagnostics.
     /// Set to true to debug reload input issues.
+    /// Default is true temporarily to help diagnose accidental bolt reopening issue.
     /// </summary>
-    private const bool VerboseInputLogging = false;
+    private const bool VerboseInputLogging = true;
 
     /// <summary>
     /// Cooldown time (in seconds) after closing bolt before it can be opened again.
     /// This prevents accidental bolt reopening due to mouse movement.
-    /// Increased from 250ms to 400ms based on user feedback that accidental opens still occurred.
+    /// Increased from 250ms to 400ms to 500ms based on user feedback that accidental opens still occurred
+    /// during pump-action sequences after firing.
     /// </summary>
-    private const float BoltCloseCooldownSeconds = 0.4f;
+    private const float BoltCloseCooldownSeconds = 0.5f;
 
     /// <summary>
     /// Timestamp when the bolt was last closed (for cooldown protection).
@@ -219,14 +221,24 @@ public partial class Shotgun : BaseWeapon
         // Re-initialize reserve shells for shotgun using MaxReserveAmmo from WeaponData
         // The base class initializes MagazineInventory based on StartingMagazineCount,
         // but for the shotgun we want to use MaxReserveAmmo to control reserve shells.
-        // Shotgun's tube magazine is separate (ShellsInTube), so we use the MagazineInventory
-        // as a simple reserve pool: one magazine with MaxReserveAmmo shells.
+        //
+        // IMPORTANT: ReserveAmmo property uses TotalSpareAmmo (sum of spare magazines).
+        // So we need 2 magazines: one "current" (unused, just for BaseWeapon compatibility)
+        // and one "spare" that holds the actual reserve shells.
+        // The shotgun uses ShellsInTube for its tube magazine separately.
         if (WeaponData != null)
         {
             int maxReserve = WeaponData.MaxReserveAmmo;
-            // Create a single "magazine" that acts as the reserve shell pool
-            MagazineInventory.Initialize(1, maxReserve, fillAllMagazines: true);
-            GD.Print($"[Shotgun] Initialized reserve shells: {maxReserve} (from WeaponData.MaxReserveAmmo)");
+            // Create 2 magazines:
+            // - CurrentMagazine: unused placeholder (capacity = maxReserve but set to 0)
+            // - 1 spare magazine: holds the actual reserve shells
+            MagazineInventory.Initialize(2, maxReserve, fillAllMagazines: true);
+            // Set CurrentMagazine to 0 since we don't use it (tube is separate)
+            if (MagazineInventory.CurrentMagazine != null)
+            {
+                MagazineInventory.CurrentMagazine.CurrentAmmo = 0;
+            }
+            GD.Print($"[Shotgun] Initialized reserve shells: {ReserveAmmo} (from WeaponData.MaxReserveAmmo={maxReserve})");
         }
 
         // Get the shotgun sprite for visual representation
@@ -477,14 +489,28 @@ public partial class Shotgun : BaseWeapon
                             PlayPumpDownSound();
                             EmitSignal(SignalName.ActionStateChanged, (int)ActionState);
                             EmitSignal(SignalName.PumpActionCycled, "down");
-                            GD.Print("[Shotgun] Mid-drag pump DOWN - chambered, ready to fire");
+                            if (VerboseInputLogging)
+                            {
+                                GD.Print($"[Shotgun.Input] Mid-drag pump DOWN - chambered at time {_lastBoltCloseTime:F3}s, cooldown ends at {_lastBoltCloseTime + BoltCloseCooldownSeconds:F3}s");
+                            }
+                            else
+                            {
+                                GD.Print("[Shotgun] Mid-drag pump DOWN - chambered, ready to fire");
+                            }
                         }
                         else
                         {
                             ActionState = ShotgunActionState.Ready;
                             PlayPumpDownSound();
                             EmitSignal(SignalName.ActionStateChanged, (int)ActionState);
-                            GD.Print("[Shotgun] Mid-drag pump DOWN - tube empty, need to reload");
+                            if (VerboseInputLogging)
+                            {
+                                GD.Print($"[Shotgun.Input] Mid-drag pump DOWN - tube empty at time {_lastBoltCloseTime:F3}s, cooldown ends at {_lastBoltCloseTime + BoltCloseCooldownSeconds:F3}s");
+                            }
+                            else
+                            {
+                                GD.Print("[Shotgun] Mid-drag pump DOWN - tube empty, need to reload");
+                            }
                         }
                         gestureProcessed = true;
                     }
@@ -494,7 +520,16 @@ public partial class Shotgun : BaseWeapon
                     // Check if we should start reload (only if cooldown expired)
                     if (isDragUp && ShellsInTube < TubeMagazineCapacity)
                     {
-                        if (!IsInBoltCloseCooldown())
+                        double currentTime = Time.GetTicksMsec() / 1000.0;
+                        double timeSinceClose = currentTime - _lastBoltCloseTime;
+                        bool inCooldown = timeSinceClose < BoltCloseCooldownSeconds;
+
+                        if (VerboseInputLogging)
+                        {
+                            GD.Print($"[Shotgun.Input] Mid-drag UP in Ready state: currentTime={currentTime:F3}s, lastClose={_lastBoltCloseTime:F3}s, elapsed={timeSinceClose:F3}s, cooldown={BoltCloseCooldownSeconds}s, inCooldown={inCooldown}");
+                        }
+
+                        if (!inCooldown)
                         {
                             // Mid-drag start reload
                             StartReload();
@@ -502,7 +537,7 @@ public partial class Shotgun : BaseWeapon
                         }
                         else if (VerboseInputLogging)
                         {
-                            GD.Print("[Shotgun.Input] Mid-drag bolt open BLOCKED by cooldown");
+                            GD.Print($"[Shotgun.Input] Mid-drag bolt open BLOCKED by cooldown ({timeSinceClose:F3}s < {BoltCloseCooldownSeconds}s)");
                         }
                     }
                     break;
@@ -784,9 +819,18 @@ public partial class Shotgun : BaseWeapon
         ShellsInTube++;
 
         // Consume from reserve (only in non-tutorial mode)
-        if (!_isTutorialLevel && MagazineInventory.CurrentMagazine != null && MagazineInventory.CurrentMagazine.CurrentAmmo > 0)
+        // Reserve shells are in spare magazines, not CurrentMagazine
+        if (!_isTutorialLevel && ReserveAmmo > 0)
         {
-            MagazineInventory.ConsumeAmmo();
+            // Find a spare magazine with ammo and consume from it
+            foreach (var mag in MagazineInventory.SpareMagazines)
+            {
+                if (mag.CurrentAmmo > 0)
+                {
+                    mag.CurrentAmmo--;
+                    break;
+                }
+            }
         }
 
         PlayShellLoadSound();
