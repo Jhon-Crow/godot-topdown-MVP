@@ -1,0 +1,216 @@
+[16:43:14] [INFO] ============================================================
+[16:43:14] [INFO] GAME LOG STARTED
+[16:43:14] [INFO] ============================================================
+[16:43:14] [INFO] Timestamp: 2026-01-22T16:43:14
+[16:43:14] [INFO] Log file: I:/Загрузки/godot exe/game_log_20260122_164314.txt
+[16:43:14] [INFO] Executable: I:/Загрузки/godot exe/Godot-Top-Down-Template.exe
+[16:43:14] [INFO] OS: Windows
+[16:43:14] [INFO] Debug build: false
+[16:43:14] [INFO] Engine version: 4.3-stable (official)
+[16:43:14] [INFO] Project: Godot Top-Down Template
+[16:43:14] [INFO] ------------------------------------------------------------
+[16:43:14] [INFO] [GameManager] GameManager ready
+[16:43:14] [INFO] [ScoreManager] ScoreManager ready
+[16:43:14] [INFO] [SoundPropagation] SoundPropagation autoload initialized
+[16:43:14] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[16:43:14] [INFO] [PenultimateHit] Saturation shader loaded successfully
+[16:43:14] [INFO] [PenultimateHit] PenultimateHitEffectsManager ready - Configuration:
+[16:43:14] [INFO] [PenultimateHit]   Time scale: 0.10 (10x slowdown)
+[16:43:14] [INFO] [PenultimateHit]   Saturation boost: 2.0 (3.0x)
+[16:43:14] [INFO] [PenultimateHit]   Contrast boost: 1.0 (2.0x)
+[16:43:14] [INFO] [PenultimateHit]   Effect duration: 3.0 real seconds
+[16:43:14] [INFO] [LastChance] Resetting all effects (scene change detected)
+[16:43:14] [INFO] [LastChance] Last chance shader loaded successfully
+[16:43:14] [INFO] [LastChance] LastChanceEffectsManager ready - Configuration:
+[16:43:14] [INFO] [LastChance]   Freeze duration: 6.0 real seconds
+[16:43:14] [INFO] [LastChance]   Sepia intensity: 0.70
+[16:43:14] [INFO] [LastChance]   Brightness: 0.60
+[16:43:14] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FlashbangGrenade.tscn
+[16:43:14] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FragGrenade.tscn
+[16:43:14] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[16:43:14] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[16:43:14] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[16:43:14] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[16:43:14] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[16:43:14] [INFO] [Player.Init] Right arm sprite found at position: (0, 6)
+[16:43:14] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 4/4
+[16:43:14] [INFO] [ScoreManager] Level started with 10 enemies
+[16:43:14] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 1)
+[16:43:14] [ENEMY] [Enemy1] Registered as sound listener
+[16:43:14] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 4, behavior: GUARD, player_found: yes
+[16:43:14] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 2)
+[16:43:14] [ENEMY] [Enemy2] Registered as sound listener
+[16:43:14] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 4, behavior: GUARD, player_found: yes
+[16:43:14] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 3)
+[16:43:14] [ENEMY] [Enemy3] Registered as sound listener
+[16:43:14] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 4, behavior: GUARD, player_found: yes
+[16:43:14] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 4)
+[16:43:14] [ENEMY] [Enemy4] Registered as sound listener
+[16:43:14] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 3, behavior: GUARD, player_found: yes
+[16:43:14] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 5)
+[16:43:14] [ENEMY] [Enemy5] Registered as sound listener
+[16:43:14] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 2, behavior: GUARD, player_found: yes
+[16:43:14] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 6)
+[16:43:14] [ENEMY] [Enemy6] Registered as sound listener
+[16:43:14] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 2, behavior: GUARD, player_found: yes
+[16:43:14] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 7)
+[16:43:14] [ENEMY] [Enemy7] Registered as sound listener
+[16:43:14] [ENEMY] [Enemy7] Enemy spawned at (1606.114, 893.8859), health: 2, behavior: PATROL, player_found: yes
+[16:43:14] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 8)
+[16:43:14] [ENEMY] [Enemy8] Registered as sound listener
+[16:43:14] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 3, behavior: GUARD, player_found: yes
+[16:43:14] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 9)
+[16:43:14] [ENEMY] [Enemy9] Registered as sound listener
+[16:43:14] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 2, behavior: GUARD, player_found: yes
+[16:43:14] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 10)
+[16:43:14] [ENEMY] [Enemy10] Registered as sound listener
+[16:43:14] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 2, behavior: PATROL, player_found: yes
+[16:43:14] [INFO] [Player] Detecting weapon pose (frame 3)...
+[16:43:14] [INFO] [Player] Detected weapon: Rifle (default pose)
+[16:43:14] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[16:43:14] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[16:43:14] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[16:43:14] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[16:43:14] [INFO] [LastChance] Found player: Player
+[16:43:14] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[16:43:14] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[16:43:14] [INFO] [LastChance] Connected to player Died signal (C#)
+[16:43:22] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[16:43:22] [INFO] [LastChance] Resetting all effects (scene change detected)
+[16:43:22] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[16:43:22] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+[16:43:22] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[16:43:22] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[16:43:22] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[16:43:22] [INFO] [Player.Init] Right arm sprite found at position: (0, 6)
+[16:43:22] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 3/3, Health: 3/4
+[16:43:22] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[16:43:22] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[16:43:22] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[16:43:22] [INFO] [LastChance] Found player: Player
+[16:43:22] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[16:43:22] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[16:43:22] [INFO] [LastChance] Connected to player Died signal (C#)
+[16:43:22] [INFO] [Player] Detecting weapon pose (frame 3)...
+[16:43:22] [INFO] [Player] Detected weapon: Rifle (default pose)
+[16:43:22] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[16:43:28] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(484.3384, 169.1297), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[16:43:28] [INFO] [SoundPropagation] Cleaned up 10 invalid listeners
+[16:43:28] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[16:43:28] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(484.3384, 169.1297), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[16:43:28] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[16:43:28] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(484.3384, 169.1297), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[16:43:28] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[16:43:28] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(484.3384, 169.1297), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[16:43:28] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[16:43:28] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(484.3384, 169.1297), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[16:43:28] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[16:43:29] [INFO] [Player.Reload.Anim] Phase changed to: GrabMagazine (duration: 0,25s)
+[16:43:29] [INFO] [Player.Reload.Anim] LeftArm: pos=(4.0000463, 2.0000093), target=(4, 2), base=(24, 6)
+[16:43:29] [INFO] [Player.Reload.Anim] RightArm: pos=(-2.0000002, 6), target=(-2, 6), base=(-2, 6)
+[16:43:30] [INFO] [Player.Reload.Anim] Phase changed to: InsertMagazine (duration: 0,30s)
+[16:43:30] [INFO] [Player.Reload.Anim] Phase changed to: PullBolt (duration: 0,35s)
+[16:43:30] [INFO] [Player.Reload.Anim] Phase changed to: ReturnIdle (duration: 0,20s)
+[16:43:30] [INFO] [Player.Reload.Anim] Animation complete, returning to normal
+[16:43:32] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(484.3384, 169.1297), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[16:43:32] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[16:43:32] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(484.3384, 169.1297), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[16:43:32] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[16:43:32] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(484.3384, 169.1297), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[16:43:32] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[16:43:32] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(484.3384, 169.1297), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[16:43:32] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[16:43:32] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(484.3384, 169.1297), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[16:43:32] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[16:43:36] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(580.6517, 204.1297), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[16:43:36] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[16:43:36] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(582.2654, 240.1946), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[16:43:36] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[16:43:37] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(594.8795, 270.1697), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[16:43:37] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[16:43:37] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(618.3618, 295.643), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[16:43:37] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[16:43:37] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(643.2519, 320.5331), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[16:43:37] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[16:43:37] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(582.2654, 240.1946), shooter_id=82007034396, bullet_pos=(1821.3423, 873.7738)
+[16:43:37] [INFO] [Bullet] Using shooter_position, distance=1391,666
+[16:43:37] [INFO] [Bullet] Distance to wall: 1391,666 (94,7611% of viewport)
+[16:43:37] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(594.87946, 270.16968), shooter_id=82007034396, bullet_pos=(1815.7224, 575.03735)
+[16:43:37] [INFO] [Bullet] Using shooter_position, distance=1258,333
+[16:43:37] [INFO] [Bullet] Distance to wall: 1258,333 (85,68221% of viewport)
+[16:43:37] [INFO] [Bullet] Distance-based penetration chance: 46,70409%
+[16:43:37] [INFO] [Bullet] Starting wall penetration at (1815.7224, 575.03735)
+[16:43:37] [INFO] [Bullet] Raycast backward hit penetrating body at distance 21,555918
+[16:43:37] [INFO] [Bullet] Body exited signal received for penetrating body
+[16:43:37] [INFO] [Bullet] Exiting penetration at (1852.9137, 584.3247) after traveling 33,333332 pixels through wall
+[16:43:37] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[16:43:37] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(618.36176, 295.64297), shooter_id=82007034396, bullet_pos=(1800.9615, 442.35892)
+[16:43:37] [INFO] [Bullet] Using shooter_position, distance=1191,666
+[16:43:37] [INFO] [Bullet] Distance to wall: 1191,666 (81,14274% of viewport)
+[16:43:37] [INFO] [Bullet] Distance-based penetration chance: 52,00014%
+[16:43:37] [INFO] [Bullet] Starting wall penetration at (1800.9615, 442.35892)
+[16:43:37] [INFO] [Bullet] Raycast backward hit penetrating body at distance 7,0568633
+[16:43:37] [INFO] [Bullet] Body exited signal received for penetrating body
+[16:43:37] [INFO] [Bullet] Exiting penetration at (1839.0032, 447.07846) after traveling 33,333332 pixels through wall
+[16:43:37] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[16:43:37] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(643.2519, 320.5331), shooter_id=82007034396, bullet_pos=(1800.2426, 376.27332)
+[16:43:37] [INFO] [Bullet] Using shooter_position, distance=1158,3326
+[16:43:37] [INFO] [Bullet] Distance to wall: 1158,3326 (78,873% of viewport)
+[16:43:37] [INFO] [Bullet] Distance-based penetration chance: 54,648167%
+[16:43:37] [INFO] [Bullet] Starting wall penetration at (1800.2426, 376.27332)
+[16:43:37] [INFO] [Bullet] Raycast backward hit penetrating body at distance 6,5390697
+[16:43:37] [INFO] [Bullet] Body exited signal received for penetrating body
+[16:43:37] [INFO] [Bullet] Exiting penetration at (1838.5315, 378.11795) after traveling 33,333332 pixels through wall
+[16:43:37] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[16:43:41] [INFO] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
+[16:43:41] [INFO] [Player.Grenade] G pressed - starting grab animation
+[16:43:41] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (393.4868, 263.82208)
+[16:43:42] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[16:43:42] [INFO] [GrenadeBase] Timer activated! 4.0 seconds until explosion
+[16:43:42] [INFO] [Player.Grenade] Timer started, grenade created at (377.6985, 333.61673)
+[16:43:42] [INFO] [Player.Grenade.Anim] Phase changed to: PullPin (duration: 0,15s)
+[16:43:42] [INFO] [Player.Grenade] Step 1 complete! Drag: (420.87686, 0)
+[16:43:42] [INFO] [Player.Grenade.Anim] Phase changed to: HandsApproach (duration: 0,20s)
+[16:43:42] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[16:43:42] [INFO] [Player.Grenade.Anim] Phase changed to: Transfer (duration: 0,15s)
+[16:43:42] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming, drag and release RMB to throw
+[16:43:42] [INFO] [Player.Grenade.Anim] Phase changed to: WindUp (duration: 0,00s)
+[16:43:42] [INFO] [Player.Grenade.Anim] Entered wind-up phase
+[16:43:43] [INFO] [Player.Grenade.Anim] Phase changed to: Throw (duration: 0,20s)
+[16:43:43] [INFO] [Player.Grenade] Throwing! Direction: (0.8658341, -0.5003312), Drag distance: 553,9929
+[16:43:43] [INFO] [Player.Grenade] Player rotated for throw: 0 -> -0,5239813
+[16:43:43] [INFO] [GrenadeBase] Thrown! Direction: (0.865834, -0.500331), Speed: 1108.0 (unfrozen)
+[16:43:43] [INFO] [Player.Grenade] Thrown! Direction: (0.8658341, -0.5003312), Drag distance: 553,9929
+[16:43:43] [INFO] [Player.Grenade] Player rotation restored to 0
+[16:43:43] [INFO] [Player.Grenade.Anim] Phase changed to: ReturnIdle (duration: 0,30s)
+[16:43:44] [INFO] [Player.Grenade.Anim] Animation complete, returning to normal
+[16:43:44] [INFO] [GrenadeBase] Grenade landed at (896.28, 92.022)
+[16:43:46] [INFO] [GrenadeBase] EXPLODED at (899.6444, 93.06987)!
+[16:43:46] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(899.6444, 93.06987), source=NEUTRAL (FlashbangGrenade), range=2937, listeners=0
+[16:43:46] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[16:43:52] [INFO] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
+[16:43:52] [INFO] [Player.Grenade] G pressed - starting grab animation
+[16:43:53] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (909.896, 184.34155)
+[16:43:53] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[16:43:53] [INFO] [GrenadeBase] Timer activated! 4.0 seconds until explosion
+[16:43:53] [INFO] [Player.Grenade] Timer started, grenade created at (442.8878, 128.42024)
+[16:43:53] [INFO] [Player.Grenade.Anim] Phase changed to: PullPin (duration: 0,15s)
+[16:43:53] [INFO] [Player.Grenade] Step 1 complete! Drag: (370.10437, 67.45827)
+[16:43:53] [INFO] [Player.Grenade.Anim] Phase changed to: HandsApproach (duration: 0,20s)
+[16:43:53] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[16:43:53] [INFO] [Player.Grenade.Anim] Phase changed to: Transfer (duration: 0,15s)
+[16:43:53] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming, drag and release RMB to throw
+[16:43:54] [INFO] [Player.Grenade.Anim] Phase changed to: WindUp (duration: 0,00s)
+[16:43:54] [INFO] [Player.Grenade.Anim] Entered wind-up phase
+[16:43:55] [INFO] [Player.Grenade.Anim] Phase changed to: Throw (duration: 0,20s)
+[16:43:55] [INFO] [Player.Grenade] Throwing! Direction: (0.98097533, -0.19413257), Drag distance: 529,82935
+[16:43:55] [INFO] [Player.Grenade] Player rotated for throw: 0 -> -0,19537312
+[16:43:55] [INFO] [GrenadeBase] Thrown! Direction: (0.980975, -0.194133), Speed: 1059.7 (unfrozen)
+[16:43:55] [INFO] [Player.Grenade] Thrown! Direction: (0.98097533, -0.19413257), Drag distance: 529,82935
+[16:43:55] [INFO] [Player.Grenade] Player rotation restored to 0
+[16:43:55] [INFO] [Player.Grenade.Anim] Phase changed to: ReturnIdle (duration: 0,30s)
+[16:43:55] [INFO] [Player.Grenade.Anim] Animation complete, returning to normal
+[16:43:56] [INFO] [GrenadeBase] Grenade landed at (1007.775, 96.1126)
+[16:43:56] [INFO] ------------------------------------------------------------
+[16:43:56] [INFO] GAME LOG ENDED: 2026-01-22T16:43:56
+[16:43:56] [INFO] ============================================================

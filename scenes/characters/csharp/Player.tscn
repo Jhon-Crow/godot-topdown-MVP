@@ -33,12 +33,14 @@ texture = ExtResource("5_body")
 
 [node name="LeftArm" type="Sprite2D" parent="PlayerModel"]
 z_index = 2
-position = Vector2(24, 6)
+position = Vector2(14, 6)
+offset = Vector2(10, 0)
 texture = ExtResource("7_left_arm")
 
 [node name="RightArm" type="Sprite2D" parent="PlayerModel"]
 z_index = 2
-position = Vector2(0, 6)
+position = Vector2(-10, 6)
+offset = Vector2(10, 0)
 texture = ExtResource("8_right_arm")
 
 [node name="Head" type="Sprite2D" parent="PlayerModel"]

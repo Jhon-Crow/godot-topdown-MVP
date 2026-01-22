@@ -78,3 +78,80 @@ Implement a combination of:
 1. Reduce arm swing amplitude
 2. Add body-synchronized vertical offset to arms
 3. Adjust right arm base position for better shoulder alignment
+
+## Implementation (Iteration 1) - January 22, 2026
+
+### Changes Made
+1. **Reduced arm swing amplitude** from 3.0 to 1.5 pixels
+2. **Added body bob synchronization** to arms (70% of body bob)
+3. **Adjusted right arm position** from (-2, 6) to (0, 6)
+4. **Fixed z_index values** in scene files from 4 to 2
+
+### User Feedback (Post-Implementation)
+User Jhon-Crow reported that the right elbow still constantly disconnects:
+- With rifle or shotgun pose
+- When throwing grenades
+
+Game logs show the fix was applied:
+```
+[Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+```
+Note: The log still shows (-2, 6) because the user was testing from main branch, not the PR branch.
+
+### Root Cause Analysis (Updated)
+
+The initial fix addressed position and animation parameters but missed the fundamental issue: **The arm sprites' pivot points are at the sprite center, not at the shoulder joint.**
+
+When animations move the arm's `position`, the entire sprite moves including both the shoulder and elbow ends. This causes visible disconnection because the shoulder should stay attached to the body while only the elbow/hand moves.
+
+#### Technical Details
+- Arm sprite dimensions: 20x8 pixels
+- Default pivot point: center of sprite (10, 4)
+- When position changes by +5 on X-axis, both shoulder AND elbow move +5
+- This breaks the visual joint connection
+
+## Implementation (Iteration 2) - January 22, 2026
+
+### Solution: Sprite Offset for Shoulder-Centered Pivot
+
+Added `offset = Vector2(10, 0)` to arm sprites in scene files. This shifts the sprite so:
+- The **pivot point** (where `position` coordinate applies) is at the **left edge** of the sprite
+- For arms, the left edge represents the **shoulder joint**
+- When animations change `position`, the shoulder stays in place while the rest of the arm moves
+
+### Updated Scene Positioning
+```
+PlayerModel (Node2D at origin)
+├── Body (Sprite2D)
+│   ├── position: (-4, 0)
+│   └── z_index: 1
+├── LeftArm (Sprite2D)
+│   ├── position: (14, 6)    # Changed from (24, 6)
+│   ├── offset: (10, 0)      # NEW: Pivot at shoulder (left edge)
+│   └── z_index: 2
+├── RightArm (Sprite2D)
+│   ├── position: (-10, 6)   # Changed from (0, 6)
+│   ├── offset: (10, 0)      # NEW: Pivot at shoulder (left edge)
+│   └── z_index: 2
+├── Head (Sprite2D)
+│   ├── position: (-6, -2)
+│   └── z_index: 3
+└── WeaponMount (Node2D)
+    └── position: (0, 6)
+```
+
+### Code Changes
+Updated `_apply_weapon_arm_offsets()` in `player.gd`:
+- `original_left_arm_pos`: Changed from (24, 6) to (14, 6)
+- `original_right_arm_pos`: Changed from (0, 6) to (-10, 6)
+
+### Visual Math Verification
+With offset (10, 0) on a 20px wide sprite:
+- Sprite center at local (10, 4) is drawn at position + offset = position + (10, 0)
+- Left edge of sprite is drawn at position + offset - (10, 0) = position
+- **Result**: Left edge (shoulder) is exactly at the position coordinate
+
+When animation moves position, the shoulder stays connected because:
+- Position change affects the shoulder location
+- The sprite extends from the shoulder outward (toward hand/elbow)
+- Body connections remain visually intact

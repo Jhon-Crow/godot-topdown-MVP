@@ -437,10 +437,12 @@ func _detect_and_apply_weapon_pose() -> void:
 ## Modifies base arm positions to create appropriate weapon-holding poses.
 func _apply_weapon_arm_offsets() -> void:
 	# Reset to original scene positions first
-	# Original positions from Player.tscn: LeftArm (24, 6), RightArm (0, 6)
-	# RightArm position adjusted from (-2, 6) to (0, 6) to better anchor shoulder joint
-	var original_left_arm_pos := Vector2(24, 6)
-	var original_right_arm_pos := Vector2(0, 6)
+	# Original positions from Player.tscn with offset-adjusted pivot points:
+	# LeftArm (14, 6) with offset (10, 0) - pivot at shoulder (left edge of sprite)
+	# RightArm (-10, 6) with offset (10, 0) - pivot at shoulder (left edge of sprite)
+	# The offset shifts the sprite so the left edge (shoulder) is at the position coordinate
+	var original_left_arm_pos := Vector2(14, 6)
+	var original_right_arm_pos := Vector2(-10, 6)
 
 	match _current_weapon_type:
 		WeaponType.SMG:
@@ -985,7 +987,7 @@ var _reload_anim_duration: float = 0.0
 
 ## Target positions for reload arm animations (relative offsets from base positions).
 ## These are in local PlayerModel space.
-## Base positions: LeftArm (24, 6), RightArm (-2, 6)
+## Base positions: LeftArm (14, 6), RightArm (-10, 6)
 ## For reload, left arm goes to chest (vest/mag pouch area), then to weapon
 
 # Step 1: Grab magazine from chest - left arm moves back toward body
@@ -1149,10 +1151,10 @@ var _base_weapon_mount_rot: float = 0.0
 
 ## Target positions for arm animations (relative offsets from base positions).
 ## These are in local PlayerModel space.
-## Base positions: LeftArm (24, 6), RightArm (-2, 6)
+## Base positions: LeftArm (14, 6), RightArm (-10, 6) with offset (10, 0) for shoulder pivot
 ## Body position: (-4, 0), so left shoulder area is approximately x=0 to x=5
-## To move left arm from x=24 to shoulder (x~5), we need offset of ~-20
-## During grenade operations, left arm should be BEHIND the body (toward shoulder)
+## The arm sprites have offset (10, 0) so the pivot is at the shoulder (left edge)
+## This ensures animations rotate/move arms around the shoulder joint properly
 const ARM_LEFT_CHEST := Vector2(-15, 0)         # Left hand moves back to chest/shoulder area
 const ARM_RIGHT_PIN := Vector2(2, -2)           # Right hand slightly up for pin pull
 const ARM_LEFT_EXTENDED := Vector2(-10, 2)      # Left hand at chest level with grenade
