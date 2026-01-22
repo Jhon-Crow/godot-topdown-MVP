@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-The shotgun weapon was added but has several mechanical issues that deviate from the intended design. This document analyzes the root causes and details the implemented solutions.
+The shotgun weapon was added but has several mechanical issues that deviate from the intended design. This document analyzes the root causes and details the implemented solutions across multiple iterations.
 
 ## Issue Translation (Russian to English)
 
@@ -23,140 +23,159 @@ Original issue text:
 
 **Additional Requirements:**
 - No magazine interface (shotgun doesn't use magazines)
-- Fire pellets in "swarm" pattern (not as a flat wall)
+- Fire pellets in "cloud" pattern (not as a burst/sequential fire)
 - Ricochet limited to 35 degrees max
 - Pellet speed should match assault rifle bullets
 
-## Current Implementation Analysis
+## Timeline of Changes
 
-### 1. Reload Mechanism (Shotgun.cs)
-**Current:** Uses standard magazine reload inherited from BaseWeapon
-**Problem:** Magazine-based reload doesn't match pump-action shotgun mechanics
-**Root Cause:** Shotgun extends BaseWeapon which assumes magazine-based ammo
-**Status:** Partially addressed - magazine UI is now hidden for shotgun
+### Phase 1 (Initial Fix)
+- Created ShotgunPellet with 35° ricochet limit
+- Added 8ms delay between pellet spawns for "swarm" effect
+- Updated pellet speed to 2500.0
+- Hidden magazine UI
 
-### 2. Pellet Firing Pattern
-**Current:** All pellets spawn simultaneously at the same position
-**Problem:** Creates a "flat wall" pattern instead of realistic swarm
-**Root Cause:** `FirePellets()` spawns all pellets in single loop without delay
-**Status:** FIXED - Now uses `FirePelletsWithDelay()` with 8ms delays
+### Phase 2 (User Feedback - Current)
+User feedback from PR #201 comment (2026-01-22T02:15:05Z):
+> "сейчас дробь вылетает как очередь, а должна как облако дроби"
+> (Currently pellets fire like a burst, but should fire as a cloud of pellets)
 
-### 3. Ricochet Angle
-**Current:** `MaxRicochetAngle = 90.0f` in Bullet.cs
-**Problem:** Allows ricochets at nearly perpendicular angles (unrealistic for pellets)
-**Root Cause:** Same Bullet class is used for both rifle bullets and shotgun pellets
-**Status:** FIXED - New ShotgunPellet.cs with MaxRicochetAngle = 35.0f
+The 8ms delay approach was incorrect - pellets should spawn **simultaneously** with **spatial distribution**, not with temporal delays.
 
-### 4. Pellet Speed
-**Current:** `BulletSpeed = 1200.0` in ShotgunData.tres
-**Problem:** Slower than assault rifle bullets (2500.0)
-**Expected:** Should approximately match assault rifle speed
-**Status:** FIXED - Updated to 2500.0
+## Root Cause Analysis
 
-## Data Analysis
+### Issue 1: Pellet Firing Pattern (Updated)
+**Original Problem:** Pellets spawn as a "flat wall" pattern
+**Phase 1 Fix:** Added 8ms delays between pellets → Created burst fire effect
+**Phase 2 Fix:** Removed delays, added spatial offsets for cloud pattern
 
-### Log File Analysis (game_log_20260122_042545.txt)
+The key insight is that a "cloud" pattern means:
+- All pellets fire at the **same time**
+- Some pellets are slightly **ahead** or **behind** others due to **spawn position offsets**
+- NOT due to temporal delays which create burst fire
 
-Key observations from log analysis:
-- Shotgun fires 6-12 pellets per shot (random)
-- All pellets spawn at same timestamp
-- Ricochet events occur at various angles including high angles
+### Issue 2: Pump-Action Not Implemented
+**Problem:** Shotgun fired like a semi-automatic weapon
+**Root Cause:** Auto-cycling after each shot
+**Fix:** Implemented manual pump-action with RMB drag gestures
 
-### Log File Analysis (game_log_20260122_043643.txt)
+### Issue 3: Shell-by-Shell Reload Not Implemented
+**Problem:** Used magazine-based reload inherited from BaseWeapon
+**Root Cause:** No tube magazine implementation
+**Fix:** Added `ShotgunReloadState` machine with gesture-based loading
 
-Additional observations:
-- Confirms simultaneous pellet spawning
-- Shows ricochet behavior at angles near 90 degrees
+## Implemented Solutions (Phase 2)
 
-## Implemented Solutions
+### Solution 1: Cloud Pattern Firing
+Replaced temporal delays with spatial offsets:
 
-### Solution 1: Created ShotgunPellet.cs
-New projectile class specifically for shotgun pellets with:
-- `MaxRicochetAngle = 35.0f` (down from 90.0f for bullets)
-- No wall penetration capability (pellets stop on impact)
-- Higher velocity retention on ricochet (0.75)
-- Damage multiplier on ricochet (0.5)
-
-**Key Code:**
 ```csharp
-// Ricochet Configuration (Shotgun Pellet - limited to 35 degrees)
-private const float MaxRicochetAngle = 35.0f;  // Was 90.0f in Bullet.cs
-private const float BaseRicochetProbability = 1.0f;
-private const float VelocityRetention = 0.75f;
-private const float RicochetDamageMultiplier = 0.5f;
-```
-
-### Solution 2: Updated Shotgun.cs with Swarm Firing
-Added delay between pellet spawns to create "swarm" effect:
-- Default delay: 8ms between each pellet
-- Pellets distributed across spread cone with randomness
-- Some pellets ahead of others due to timing
-
-**Key Code:**
-```csharp
-private async void FirePelletsWithDelay(Vector2 fireDirection, int pelletCount,
+// NEW: Cloud pattern with spatial distribution
+private void FirePelletsAsCloud(Vector2 fireDirection, int pelletCount,
     float spreadRadians, float halfSpread, PackedScene projectileScene)
 {
     for (int i = 0; i < pelletCount; i++)
     {
-        SpawnPellet(pelletDirection, projectileScene);
-        if (i < pelletCount - 1 && PelletSpawnDelay > 0)
-        {
-            await ToSignal(GetTree().CreateTimer(PelletSpawnDelay), "timeout"); // 8ms delay
-        }
+        // Calculate angular spread
+        float baseAngle = CalculateSpreadAngle(i, pelletCount, halfSpread, spreadRadians);
+
+        // Calculate spatial offset for cloud effect (bidirectional)
+        float spawnOffset = (float)GD.RandRange(-MaxSpawnOffset, MaxSpawnOffset);
+
+        SpawnPelletWithOffset(pelletDirection, spawnOffset, projectileScene);
     }
 }
 ```
 
-### Solution 3: Updated ShotgunData.tres
-Changed `BulletSpeed` from 1200.0 to 2500.0 to match assault rifle.
+Key change: `MaxSpawnOffset = 15.0f` pixels, applied along the fire direction.
 
-### Solution 4: Magazine UI Hidden for Shotgun
-Added `UsesTubeMagazine` property to Shotgun class:
-- When true, magazine counter UI is hidden
-- Level scripts (building_level.gd, test_tier.gd) check this property
-- Shows only ammo counter, not magazine inventory
+### Solution 2: Manual Pump-Action Cycling
+Implemented `ShotgunActionState` machine:
+- `Ready` → Can fire
+- `NeedsPumpUp` → RMB drag up required (eject shell)
+- `NeedsPumpDown` → RMB drag down required (chamber next round)
 
-**Key Code:**
 ```csharp
-// In Shotgun.cs
-public bool UsesTubeMagazine { get; } = true;
+// After firing:
+ActionState = ShotgunActionState.NeedsPumpUp;
+// Player must: RMB drag up → RMB drag down → Ready
 ```
 
-```gdscript
-# In level scripts
-if weapon != null and weapon.get("UsesTubeMagazine") == true:
-    _magazines_label.visible = false
-    return
+### Solution 3: Shell-by-Shell Reload
+Implemented `ShotgunReloadState` machine:
+- `NotReloading` → Normal operation
+- `WaitingToOpen` → RMB drag down to open action
+- `Loading` → MMB + RMB drag down to load shell (repeat up to 8x)
+- `WaitingToClose` → RMB drag up to close action
+
+```csharp
+// Reload sequence:
+// 1. RMB drag down → WaitingToOpen → Loading
+// 2. MMB + RMB drag down → Load one shell (repeat)
+// 3. RMB drag up → Complete reload
 ```
+
+### Solution 4: Tube Magazine System
+Added tube magazine properties:
+- `ShellsInTube` - Current shell count
+- `TubeMagazineCapacity = 8` - Maximum shells
+- Separate from BaseWeapon's magazine system
+
+## Data Analysis
+
+### Log Files Analyzed
+
+| Log File | Timestamp | Key Observations |
+|----------|-----------|------------------|
+| game_log_20260122_042545.txt | Initial testing | 6-12 pellets/shot, simultaneous spawn, high-angle ricochets |
+| game_log_20260122_043643.txt | Follow-up | Confirmed issues |
+| game_log_20260122_050729.txt | PR feedback | Shows burst-fire behavior with 8ms delays |
+| game_log_20260122_051319.txt | PR feedback | Additional testing |
+| game_log_20260122_051523.txt | PR feedback | Final pre-fix state |
+
+### Key Findings from Latest Logs
+1. Shotgun fires are being logged correctly
+2. Sound propagation working (range=1469)
+3. Tutorial level detection working
+4. Weapon selection working
 
 ## Files Modified
 
 ### New Files:
-1. `Scripts/Projectiles/ShotgunPellet.cs` - New pellet projectile with 35° ricochet limit
-2. `scenes/projectiles/csharp/ShotgunPellet.tscn` - Scene for shotgun pellets
-3. `docs/case-studies/issue-199/analysis.md` - This analysis document
-4. `docs/case-studies/issue-199/game_log_20260122_042545.txt` - Game log file
-5. `docs/case-studies/issue-199/game_log_20260122_043643.txt` - Game log file
+1. `Scripts/Projectiles/ShotgunPellet.cs` - Pellet with 35° ricochet limit
+2. `scenes/projectiles/csharp/ShotgunPellet.tscn` - Pellet scene
+3. `docs/case-studies/issue-199/analysis.md` - This analysis
+4. `docs/case-studies/issue-199/game_log_*.txt` - 5 log files
 
-### Modified Files:
-1. `Scripts/Weapons/Shotgun.cs` - Added swarm firing, PelletScene, UsesTubeMagazine
-2. `resources/weapons/ShotgunData.tres` - Updated BulletSpeed to 2500.0
-3. `scenes/weapons/csharp/Shotgun.tscn` - Added PelletScene reference
-4. `scripts/levels/building_level.gd` - Hide magazine UI for shotgun
-5. `scripts/levels/test_tier.gd` - Hide magazine UI for shotgun
+### Modified Files (Phase 2):
+1. `Scripts/Weapons/Shotgun.cs`:
+   - Replaced `FirePelletsWithDelay()` with `FirePelletsAsCloud()`
+   - Changed `PelletSpawnDelay` to `MaxSpawnOffset`
+   - Added `ShotgunActionState` for pump-action
+   - Added `ShotgunReloadState` for shell loading
+   - Added gesture detection for RMB drag
+   - Added `ShellsInTube` and `TubeMagazineCapacity`
+   - Added audio feedback for pump/reload actions
 
-## Known Limitations
+## Control Summary
 
-The following features from the original request are not yet implemented:
-- Full drag-and-drop reload sequence (RMB gestures for shell loading)
-- Pump-action cycling after each shot (RMB drag up/down)
-- Shell-by-shell loading animation
+### Shooting (Pump-Action)
+| Action | Input |
+|--------|-------|
+| Fire | LMB |
+| Pump Up (eject shell) | RMB drag up |
+| Pump Down (chamber) | RMB drag down |
 
-These require significant input system changes and are deferred for future implementation.
+### Reloading (Shell-by-Shell)
+| Action | Input |
+|--------|-------|
+| Open action | RMB drag down (when ready, tube not full) |
+| Load shell | MMB + RMB drag down |
+| Close action | RMB drag up |
 
 ## References
 
 - [Shotgun Pellet Ricochet Study](https://store.astm.org/jfs11425j.html)
 - [2024 Ricochet Research](https://www.sciencedirect.com/science/article/abs/pii/S1355030624000704)
 - Previous research: `docs/case-studies/issue-194/research-shotgun-mechanics.md`
+- Player.cs grenade system (reference for drag gesture implementation)

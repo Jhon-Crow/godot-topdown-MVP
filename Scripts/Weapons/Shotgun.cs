@@ -5,6 +5,7 @@ namespace GodotTopDownTemplate.Weapons;
 
 /// <summary>
 /// Shotgun action state for pump-action mechanics.
+/// After firing: LMB (fire) → RMB drag up → RMB drag down
 /// </summary>
 public enum ShotgunActionState
 {
@@ -14,22 +15,51 @@ public enum ShotgunActionState
     Ready,
 
     /// <summary>
-    /// Action open - needs to be cycled up.
+    /// Just fired - needs RMB drag up to eject spent shell.
     /// </summary>
-    ActionOpen,
+    NeedsPumpUp,
 
     /// <summary>
-    /// Needs to cycle down after cycling up.
+    /// Pump up complete - needs RMB drag down to chamber next round.
     /// </summary>
-    NeedsCycleDown
+    NeedsPumpDown
+}
+
+/// <summary>
+/// Shotgun reload state for shell-by-shell loading.
+/// Reload sequence: RMB drag down (open) → [MMB + RMB drag down]×N → RMB drag up (close)
+/// </summary>
+public enum ShotgunReloadState
+{
+    /// <summary>
+    /// Not reloading - normal operation.
+    /// </summary>
+    NotReloading,
+
+    /// <summary>
+    /// Waiting for RMB drag down to open action for loading.
+    /// </summary>
+    WaitingToOpen,
+
+    /// <summary>
+    /// Action open - ready to load shells with MMB + RMB drag down.
+    /// </summary>
+    Loading,
+
+    /// <summary>
+    /// Waiting for RMB drag up to close action and chamber round.
+    /// </summary>
+    WaitingToClose
 }
 
 /// <summary>
 /// Pump-action shotgun with multi-pellet spread.
-/// Features semi-automatic fire, pump-action cycling, and tube magazine.
+/// Features manual pump-action cycling and tube magazine (shell-by-shell loading).
 /// Fires ShotgunPellet projectiles with limited ricochet (35 degrees max).
-/// Pellets fire in a "swarm" pattern with slight delays between each.
-/// No laser sight, large screen shake per shot.
+/// Pellets fire in a "cloud" pattern with spatial distribution.
+///
+/// Shooting sequence: LMB (fire) → RMB drag up (eject) → RMB drag down (chamber)
+/// Reload sequence: RMB drag down (open) → [MMB + RMB drag down]×N (load shells) → RMB drag up (close)
 /// </summary>
 public partial class Shotgun : BaseWeapon
 {
@@ -54,12 +84,25 @@ public partial class Shotgun : BaseWeapon
     public PackedScene? PelletScene { get; set; }
 
     /// <summary>
-    /// Delay between each pellet spawn in seconds.
-    /// Creates a "swarm" effect where pellets don't all fire at once.
-    /// Default 8ms per pellet.
+    /// Maximum spatial offset for pellet spawn positions (in pixels).
+    /// Creates a "cloud" effect where pellets spawn at slightly different positions
+    /// along the aim direction, making some pellets appear ahead of others.
+    /// This is calculated relative to the center pellet (bidirectional).
     /// </summary>
     [Export]
-    public float PelletSpawnDelay { get; set; } = 0.008f;
+    public float MaxSpawnOffset { get; set; } = 15.0f;
+
+    /// <summary>
+    /// Tube magazine capacity (number of shells).
+    /// </summary>
+    [Export]
+    public int TubeMagazineCapacity { get; set; } = 8;
+
+    /// <summary>
+    /// Minimum drag distance to register a gesture (in pixels).
+    /// </summary>
+    [Export]
+    public float MinDragDistance { get; set; } = 30.0f;
 
     /// <summary>
     /// Whether this weapon uses a tube magazine (shell-by-shell loading).
@@ -68,10 +111,19 @@ public partial class Shotgun : BaseWeapon
     public bool UsesTubeMagazine { get; } = true;
 
     /// <summary>
-    /// Whether the shotgun has been fired and needs cycling.
-    /// In Phase 1, cycling is instant after firing.
+    /// Current pump-action state.
     /// </summary>
     public ShotgunActionState ActionState { get; private set; } = ShotgunActionState.Ready;
+
+    /// <summary>
+    /// Current reload state.
+    /// </summary>
+    public ShotgunReloadState ReloadState { get; private set; } = ShotgunReloadState.NotReloading;
+
+    /// <summary>
+    /// Number of shells currently in the tube magazine.
+    /// </summary>
+    public int ShellsInTube { get; private set; } = 8;
 
     /// <summary>
     /// Reference to the Sprite2D node for the shotgun visual.
@@ -84,14 +136,19 @@ public partial class Shotgun : BaseWeapon
     private Vector2 _aimDirection = Vector2.Right;
 
     /// <summary>
-    /// Timer for action cycling animation.
+    /// Position where drag started for gesture detection.
     /// </summary>
-    private float _actionCycleTimer = 0.0f;
+    private Vector2 _dragStartPosition = Vector2.Zero;
 
     /// <summary>
-    /// Time for pump-action cycle (in seconds).
+    /// Whether a drag gesture is currently active.
     /// </summary>
-    private const float ActionCycleTime = 0.3f;
+    private bool _isDragging = false;
+
+    /// <summary>
+    /// Whether MMB is currently held (for shell loading).
+    /// </summary>
+    private bool _isMiddleMouseHeld = false;
 
     /// <summary>
     /// Signal emitted when action state changes.
@@ -100,10 +157,28 @@ public partial class Shotgun : BaseWeapon
     public delegate void ActionStateChangedEventHandler(int newState);
 
     /// <summary>
+    /// Signal emitted when reload state changes.
+    /// </summary>
+    [Signal]
+    public delegate void ReloadStateChangedEventHandler(int newState);
+
+    /// <summary>
+    /// Signal emitted when shells in tube changes.
+    /// </summary>
+    [Signal]
+    public delegate void ShellCountChangedEventHandler(int shellCount, int capacity);
+
+    /// <summary>
     /// Signal emitted when the shotgun fires.
     /// </summary>
     [Signal]
     public delegate void ShotgunFiredEventHandler(int pelletCount);
+
+    /// <summary>
+    /// Signal emitted when pump action is cycled.
+    /// </summary>
+    [Signal]
+    public delegate void PumpActionCycledEventHandler(string action);
 
     public override void _Ready()
     {
@@ -135,7 +210,11 @@ public partial class Shotgun : BaseWeapon
             }
         }
 
-        GD.Print($"[Shotgun] Ready - MinPellets={MinPellets}, MaxPellets={MaxPellets}, PelletDelay={PelletSpawnDelay}s");
+        // Initialize shell count
+        ShellsInTube = TubeMagazineCapacity;
+        EmitSignal(SignalName.ShellCountChanged, ShellsInTube, TubeMagazineCapacity);
+
+        GD.Print($"[Shotgun] Ready - Pellets={MinPellets}-{MaxPellets}, Shells={ShellsInTube}/{TubeMagazineCapacity}, CloudOffset={MaxSpawnOffset}px");
     }
 
     public override void _Process(double delta)
@@ -145,15 +224,11 @@ public partial class Shotgun : BaseWeapon
         // Update aim direction
         UpdateAimDirection();
 
-        // Handle action cycling timer
-        if (_actionCycleTimer > 0)
-        {
-            _actionCycleTimer -= (float)delta;
-            if (_actionCycleTimer <= 0)
-            {
-                CompleteActionCycle();
-            }
-        }
+        // Handle RMB drag gestures for pump-action and reload
+        HandleDragGestures();
+
+        // Handle MMB for shell loading during reload
+        HandleMiddleMouseButton();
     }
 
     /// <summary>
@@ -191,32 +266,302 @@ public partial class Shotgun : BaseWeapon
         _shotgunSprite.FlipV = aimingLeft;
     }
 
+    #region Pump-Action and Reload Gesture Handling
+
     /// <summary>
-    /// Fires the shotgun - spawns multiple pellets with spread in a swarm pattern.
-    /// Pellets are spawned with slight delays to create a natural swarm effect
-    /// where some pellets are ahead of others.
+    /// Handles RMB drag gestures for pump-action cycling and reload.
+    /// Drag up = eject shell / close action
+    /// Drag down = chamber round / open action for loading
+    /// </summary>
+    private void HandleDragGestures()
+    {
+        // Check for RMB press (start drag)
+        if (Input.IsMouseButtonPressed(MouseButton.Right))
+        {
+            if (!_isDragging)
+            {
+                _dragStartPosition = GetGlobalMousePosition();
+                _isDragging = true;
+            }
+        }
+        else if (_isDragging)
+        {
+            // RMB released - evaluate the drag gesture
+            Vector2 dragEnd = GetGlobalMousePosition();
+            Vector2 dragVector = dragEnd - _dragStartPosition;
+            _isDragging = false;
+
+            ProcessDragGesture(dragVector);
+        }
+    }
+
+    /// <summary>
+    /// Processes a completed drag gesture based on direction and context.
+    /// </summary>
+    private void ProcessDragGesture(Vector2 dragVector)
+    {
+        // Check if drag is long enough
+        if (dragVector.Length() < MinDragDistance)
+        {
+            return;
+        }
+
+        // Determine if drag is primarily vertical
+        bool isVerticalDrag = Mathf.Abs(dragVector.Y) > Mathf.Abs(dragVector.X);
+        if (!isVerticalDrag)
+        {
+            return; // Only vertical drags are used for shotgun
+        }
+
+        bool isDragUp = dragVector.Y < 0;
+        bool isDragDown = dragVector.Y > 0;
+
+        // Handle based on current state (reload takes priority)
+        if (ReloadState != ShotgunReloadState.NotReloading)
+        {
+            ProcessReloadGesture(isDragUp, isDragDown);
+        }
+        else
+        {
+            ProcessPumpActionGesture(isDragUp, isDragDown);
+        }
+    }
+
+    /// <summary>
+    /// Processes drag gesture for pump-action cycling.
+    /// After firing: RMB drag up (eject) → RMB drag down (chamber)
+    /// </summary>
+    private void ProcessPumpActionGesture(bool isDragUp, bool isDragDown)
+    {
+        switch (ActionState)
+        {
+            case ShotgunActionState.NeedsPumpUp:
+                if (isDragUp)
+                {
+                    // Eject spent shell
+                    ActionState = ShotgunActionState.NeedsPumpDown;
+                    PlayPumpUpSound();
+                    EmitSignal(SignalName.ActionStateChanged, (int)ActionState);
+                    EmitSignal(SignalName.PumpActionCycled, "up");
+                    GD.Print("[Shotgun] Pump up - shell ejected, now pump down to chamber");
+                }
+                break;
+
+            case ShotgunActionState.NeedsPumpDown:
+                if (isDragDown)
+                {
+                    // Chamber next round
+                    if (ShellsInTube > 0)
+                    {
+                        ActionState = ShotgunActionState.Ready;
+                        PlayPumpDownSound();
+                        EmitSignal(SignalName.ActionStateChanged, (int)ActionState);
+                        EmitSignal(SignalName.PumpActionCycled, "down");
+                        GD.Print("[Shotgun] Pump down - ready to fire");
+                    }
+                    else
+                    {
+                        // No shells in tube - stay in NeedsPumpDown but allow reload
+                        ActionState = ShotgunActionState.Ready; // Allow reload
+                        GD.Print("[Shotgun] Pump down - tube empty, need to reload");
+                    }
+                }
+                break;
+
+            case ShotgunActionState.Ready:
+                // If ready and drag down, might be starting reload
+                if (isDragDown && ShellsInTube < TubeMagazineCapacity)
+                {
+                    StartReload();
+                }
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Processes drag gesture for reload sequence.
+    /// Reload: RMB drag down (open) → [MMB + RMB drag down]×N (load) → RMB drag up (close)
+    /// </summary>
+    private void ProcessReloadGesture(bool isDragUp, bool isDragDown)
+    {
+        switch (ReloadState)
+        {
+            case ShotgunReloadState.WaitingToOpen:
+                if (isDragDown)
+                {
+                    // Open action for loading
+                    ReloadState = ShotgunReloadState.Loading;
+                    PlayActionOpenSound();
+                    EmitSignal(SignalName.ReloadStateChanged, (int)ReloadState);
+                    GD.Print("[Shotgun] Action opened for loading - press MMB + RMB drag down to load shells");
+                }
+                break;
+
+            case ShotgunReloadState.Loading:
+                if (isDragUp)
+                {
+                    // Close action and chamber round
+                    CompleteReload();
+                }
+                else if (isDragDown && _isMiddleMouseHeld)
+                {
+                    // Load a shell (MMB + RMB drag down)
+                    LoadShell();
+                }
+                break;
+
+            case ShotgunReloadState.WaitingToClose:
+                if (isDragUp)
+                {
+                    // Close action
+                    CompleteReload();
+                }
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Handles middle mouse button for shell loading.
+    /// </summary>
+    private void HandleMiddleMouseButton()
+    {
+        _isMiddleMouseHeld = Input.IsMouseButtonPressed(MouseButton.Middle);
+    }
+
+    #endregion
+
+    #region Reload System
+
+    /// <summary>
+    /// Starts the shotgun reload sequence.
+    /// </summary>
+    public void StartReload()
+    {
+        if (ReloadState != ShotgunReloadState.NotReloading)
+        {
+            return; // Already reloading
+        }
+
+        if (ShellsInTube >= TubeMagazineCapacity)
+        {
+            return; // Tube is full
+        }
+
+        if (ReserveAmmo <= 0)
+        {
+            return; // No shells to load
+        }
+
+        ReloadState = ShotgunReloadState.WaitingToOpen;
+        EmitSignal(SignalName.ReloadStateChanged, (int)ReloadState);
+        EmitSignal(SignalName.ReloadStarted);
+        GD.Print("[Shotgun] Reload started - RMB drag down to open action");
+    }
+
+    /// <summary>
+    /// Loads a single shell into the tube magazine.
+    /// </summary>
+    private void LoadShell()
+    {
+        if (ReloadState != ShotgunReloadState.Loading)
+        {
+            return;
+        }
+
+        if (ShellsInTube >= TubeMagazineCapacity)
+        {
+            GD.Print("[Shotgun] Tube is full");
+            return;
+        }
+
+        if (ReserveAmmo <= 0)
+        {
+            GD.Print("[Shotgun] No more reserve shells");
+            return;
+        }
+
+        // Load one shell
+        ShellsInTube++;
+        // Consume from reserve (through the magazine system)
+        if (MagazineInventory.CurrentMagazine != null && MagazineInventory.CurrentMagazine.CurrentAmmo > 0)
+        {
+            MagazineInventory.ConsumeAmmo();
+        }
+
+        PlayShellLoadSound();
+        EmitSignal(SignalName.ShellCountChanged, ShellsInTube, TubeMagazineCapacity);
+        GD.Print($"[Shotgun] Shell loaded - {ShellsInTube}/{TubeMagazineCapacity} shells in tube");
+    }
+
+    /// <summary>
+    /// Completes the reload sequence by closing the action.
+    /// </summary>
+    private void CompleteReload()
+    {
+        if (ReloadState == ShotgunReloadState.NotReloading)
+        {
+            return;
+        }
+
+        ReloadState = ShotgunReloadState.NotReloading;
+        ActionState = ShotgunActionState.Ready;
+        PlayActionCloseSound();
+        EmitSignal(SignalName.ReloadStateChanged, (int)ReloadState);
+        EmitSignal(SignalName.ActionStateChanged, (int)ActionState);
+        EmitSignal(SignalName.ReloadFinished);
+        GD.Print($"[Shotgun] Reload complete - ready to fire with {ShellsInTube} shells");
+    }
+
+    /// <summary>
+    /// Cancels an in-progress reload.
+    /// </summary>
+    public void CancelReload()
+    {
+        if (ReloadState != ShotgunReloadState.NotReloading)
+        {
+            ReloadState = ShotgunReloadState.NotReloading;
+            EmitSignal(SignalName.ReloadStateChanged, (int)ReloadState);
+            GD.Print("[Shotgun] Reload cancelled");
+        }
+    }
+
+    #endregion
+
+    /// <summary>
+    /// Fires the shotgun - spawns multiple pellets with spread in a cloud pattern.
+    /// After firing, requires manual pump-action cycling:
+    /// RMB drag up (eject shell) → RMB drag down (chamber next round)
     /// </summary>
     /// <param name="direction">Base direction to fire.</param>
     /// <returns>True if the weapon fired successfully.</returns>
     public override bool Fire(Vector2 direction)
     {
-        // Check if action is ready
-        if (ActionState != ShotgunActionState.Ready)
+        // Check if reloading
+        if (ReloadState != ShotgunReloadState.NotReloading)
         {
-            GD.Print($"[Shotgun] Cannot fire - action state: {ActionState}");
+            GD.Print("[Shotgun] Cannot fire - currently reloading");
             return false;
         }
 
-        // Check for empty magazine
-        if (CurrentAmmo <= 0)
+        // Check if action is ready
+        if (ActionState != ShotgunActionState.Ready)
+        {
+            GD.Print($"[Shotgun] Cannot fire - pump action required: {ActionState}");
+            PlayEmptyClickSound();
+            return false;
+        }
+
+        // Check for empty tube
+        if (ShellsInTube <= 0)
         {
             PlayEmptyClickSound();
+            GD.Print("[Shotgun] Cannot fire - tube empty, need to reload");
             return false;
         }
 
         // Check fire rate - use either BulletScene or PelletScene
         PackedScene? projectileScene = PelletScene ?? BulletScene;
-        if (!CanFire || WeaponData == null || projectileScene == null)
+        if (WeaponData == null || projectileScene == null)
         {
             return false;
         }
@@ -232,18 +577,19 @@ public partial class Shotgun : BaseWeapon
         float spreadRadians = Mathf.DegToRad(spreadAngle);
         float halfSpread = spreadRadians / 2.0f;
 
-        GD.Print($"[Shotgun] Firing {pelletCount} pellets with {spreadAngle}° spread (swarm pattern)");
+        GD.Print($"[Shotgun] Firing {pelletCount} pellets with {spreadAngle}° spread (cloud pattern)");
 
-        // Fire pellets with delay for swarm effect
-        FirePelletsWithDelay(fireDirection, pelletCount, spreadRadians, halfSpread, projectileScene);
+        // Fire all pellets simultaneously with spatial distribution (cloud effect)
+        FirePelletsAsCloud(fireDirection, pelletCount, spreadRadians, halfSpread, projectileScene);
 
-        // Consume ammo (one shell for all pellets)
-        CurrentAmmo--;
+        // Consume shell from tube
+        ShellsInTube--;
+        EmitSignal(SignalName.ShellCountChanged, ShellsInTube, TubeMagazineCapacity);
 
-        // Set action state - needs cycling (Phase 1: instant cycle)
-        ActionState = ShotgunActionState.ActionOpen;
-        _actionCycleTimer = ActionCycleTime;
+        // Set action state - needs manual pump cycling
+        ActionState = ShotgunActionState.NeedsPumpUp;
         EmitSignal(SignalName.ActionStateChanged, (int)ActionState);
+        GD.Print("[Shotgun] Fired! Now RMB drag up to pump");
 
         // Play shotgun sound
         PlayShotgunSound();
@@ -257,17 +603,18 @@ public partial class Shotgun : BaseWeapon
         // Emit signals
         EmitSignal(SignalName.Fired);
         EmitSignal(SignalName.ShotgunFired, pelletCount);
-        EmitSignal(SignalName.AmmoChanged, CurrentAmmo, ReserveAmmo);
+        EmitSignal(SignalName.AmmoChanged, ShellsInTube, ReserveAmmo);
 
         return true;
     }
 
     /// <summary>
-    /// Fires pellets with delay between each to create a swarm pattern.
-    /// The delay causes some pellets to be slightly ahead of others,
-    /// creating a more natural spread instead of a flat wall.
+    /// Fires all pellets simultaneously with spatial distribution to create a "cloud" pattern.
+    /// Pellets spawn with small position offsets along the aim direction,
+    /// making some appear ahead of others while maintaining the angular spread.
+    /// The offsets are calculated relative to the center pellet (bidirectional).
     /// </summary>
-    private async void FirePelletsWithDelay(Vector2 fireDirection, int pelletCount, float spreadRadians, float halfSpread, PackedScene projectileScene)
+    private void FirePelletsAsCloud(Vector2 fireDirection, int pelletCount, float spreadRadians, float halfSpread, PackedScene projectileScene)
     {
         for (int i = 0; i < pelletCount; i++)
         {
@@ -287,22 +634,21 @@ public partial class Shotgun : BaseWeapon
                 baseAngle = 0;
             }
 
-            Vector2 pelletDirection = fireDirection.Rotated(baseAngle);
-            SpawnPellet(pelletDirection, projectileScene);
+            // Calculate random spatial offset along the fire direction
+            // This creates the "cloud" effect where some pellets are slightly ahead/behind
+            // Offset is bidirectional (positive = ahead, negative = behind center)
+            float spawnOffset = (float)GD.RandRange(-MaxSpawnOffset, MaxSpawnOffset);
 
-            // Wait between pellets (except for the last one)
-            if (i < pelletCount - 1 && PelletSpawnDelay > 0)
-            {
-                await ToSignal(GetTree().CreateTimer(PelletSpawnDelay), "timeout");
-            }
+            Vector2 pelletDirection = fireDirection.Rotated(baseAngle);
+            SpawnPelletWithOffset(pelletDirection, spawnOffset, projectileScene);
         }
     }
 
     /// <summary>
-    /// Spawns a pellet projectile in the specified direction.
-    /// Uses ShotgunPellet scene which has limited ricochet (35 degrees).
+    /// Spawns a pellet projectile with a spatial offset along its direction.
+    /// The offset creates the cloud effect where pellets appear at different depths.
     /// </summary>
-    private void SpawnPellet(Vector2 direction, PackedScene projectileScene)
+    private void SpawnPelletWithOffset(Vector2 direction, float extraOffset, PackedScene projectileScene)
     {
         if (projectileScene == null || WeaponData == null)
         {
@@ -320,8 +666,8 @@ public partial class Shotgun : BaseWeapon
         }
         else
         {
-            // Normal case: spawn at offset position
-            spawnPosition = GlobalPosition + direction * BulletSpawnOffset;
+            // Normal case: spawn at offset position plus extra cloud offset
+            spawnPosition = GlobalPosition + direction * (BulletSpawnOffset + extraOffset);
         }
 
         var pellet = projectileScene.Instantiate<Node2D>();
@@ -350,39 +696,7 @@ public partial class Shotgun : BaseWeapon
         GetTree().CurrentScene.AddChild(pellet);
     }
 
-    /// <summary>
-    /// Completes the action cycle (automatic in Phase 1).
-    /// </summary>
-    private void CompleteActionCycle()
-    {
-        if (ActionState == ShotgunActionState.ActionOpen)
-        {
-            // Check if there's ammo to chamber
-            if (CurrentAmmo > 0)
-            {
-                ActionState = ShotgunActionState.Ready;
-                GD.Print("[Shotgun] Action cycled - ready to fire");
-            }
-            else
-            {
-                // Empty magazine - stay in action open state
-                ActionState = ShotgunActionState.ActionOpen;
-                GD.Print("[Shotgun] Action cycled but magazine empty");
-            }
-            EmitSignal(SignalName.ActionStateChanged, (int)ActionState);
-        }
-    }
-
-    /// <summary>
-    /// Manually cycles the action (for future pump-action input).
-    /// </summary>
-    public void CycleAction()
-    {
-        if (ActionState == ShotgunActionState.ActionOpen)
-        {
-            CompleteActionCycle();
-        }
-    }
+    #region Audio
 
     /// <summary>
     /// Plays the empty gun click sound.
@@ -406,6 +720,69 @@ public partial class Shotgun : BaseWeapon
         if (audioManager != null && audioManager.HasMethod("play_m16_shot"))
         {
             audioManager.Call("play_m16_shot", GlobalPosition);
+        }
+    }
+
+    /// <summary>
+    /// Plays the pump up sound (ejecting shell).
+    /// </summary>
+    private void PlayPumpUpSound()
+    {
+        var audioManager = GetNodeOrNull("/root/AudioManager");
+        // Use reload mag out sound as placeholder for pump up
+        if (audioManager != null && audioManager.HasMethod("play_reload_mag_out"))
+        {
+            audioManager.Call("play_reload_mag_out", GlobalPosition);
+        }
+    }
+
+    /// <summary>
+    /// Plays the pump down sound (chambering round).
+    /// </summary>
+    private void PlayPumpDownSound()
+    {
+        var audioManager = GetNodeOrNull("/root/AudioManager");
+        // Use M16 bolt sound as placeholder for pump down/chambering
+        if (audioManager != null && audioManager.HasMethod("play_m16_bolt"))
+        {
+            audioManager.Call("play_m16_bolt", GlobalPosition);
+        }
+    }
+
+    /// <summary>
+    /// Plays the action open sound (for reload).
+    /// </summary>
+    private void PlayActionOpenSound()
+    {
+        var audioManager = GetNodeOrNull("/root/AudioManager");
+        if (audioManager != null && audioManager.HasMethod("play_reload_mag_out"))
+        {
+            audioManager.Call("play_reload_mag_out", GlobalPosition);
+        }
+    }
+
+    /// <summary>
+    /// Plays the action close sound (after reload).
+    /// </summary>
+    private void PlayActionCloseSound()
+    {
+        var audioManager = GetNodeOrNull("/root/AudioManager");
+        if (audioManager != null && audioManager.HasMethod("play_m16_bolt"))
+        {
+            audioManager.Call("play_m16_bolt", GlobalPosition);
+        }
+    }
+
+    /// <summary>
+    /// Plays the shell load sound.
+    /// </summary>
+    private void PlayShellLoadSound()
+    {
+        var audioManager = GetNodeOrNull("/root/AudioManager");
+        // Use mag in sound as placeholder for shell loading
+        if (audioManager != null && audioManager.HasMethod("play_reload_mag_in"))
+        {
+            audioManager.Call("play_reload_mag_in", GlobalPosition);
         }
     }
 
@@ -445,6 +822,10 @@ public partial class Shotgun : BaseWeapon
         screenShakeManager.Call("add_shake", shootDirection, shakeIntensity, recoveryTime);
     }
 
+    #endregion
+
+    #region Public Properties
+
     /// <summary>
     /// Gets the current aim direction.
     /// </summary>
@@ -453,5 +834,43 @@ public partial class Shotgun : BaseWeapon
     /// <summary>
     /// Gets whether the shotgun is ready to fire.
     /// </summary>
-    public bool IsReadyToFire => ActionState == ShotgunActionState.Ready && CanFire;
+    public bool IsReadyToFire => ActionState == ShotgunActionState.Ready &&
+                                  ReloadState == ShotgunReloadState.NotReloading &&
+                                  ShellsInTube > 0;
+
+    /// <summary>
+    /// Gets whether the shotgun needs pump action.
+    /// </summary>
+    public bool NeedsPumpAction => ActionState != ShotgunActionState.Ready;
+
+    /// <summary>
+    /// Gets a human-readable description of the current state.
+    /// </summary>
+    public string StateDescription
+    {
+        get
+        {
+            if (ReloadState != ShotgunReloadState.NotReloading)
+            {
+                return ReloadState switch
+                {
+                    ShotgunReloadState.WaitingToOpen => "RMB drag down to open",
+                    ShotgunReloadState.Loading => "MMB + RMB drag down to load",
+                    ShotgunReloadState.WaitingToClose => "RMB drag up to close",
+                    _ => "Reloading..."
+                };
+            }
+
+            return ActionState switch
+            {
+                ShotgunActionState.NeedsPumpUp => "RMB drag up to pump",
+                ShotgunActionState.NeedsPumpDown => "RMB drag down to chamber",
+                ShotgunActionState.Ready when ShellsInTube <= 0 => "Empty - reload needed",
+                ShotgunActionState.Ready => "Ready",
+                _ => "Unknown"
+            };
+        }
+    }
+
+    #endregion
 }
