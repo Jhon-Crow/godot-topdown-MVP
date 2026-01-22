@@ -1,0 +1,319 @@
+diff --git a/Scripts/Weapons/Shotgun.cs b/Scripts/Weapons/Shotgun.cs
+index 82c1b1e..41f7fc7 100644
+--- a/Scripts/Weapons/Shotgun.cs
++++ b/Scripts/Weapons/Shotgun.cs
+@@ -69,6 +69,12 @@ public partial class Shotgun : BaseWeapon
+     /// </summary>
+     private const float ActionCycleTime = 0.3f;
+ 
++    /// <summary>
++    /// Tracks whether a shot was fired before the action opened.
++    /// Used to determine if shell should eject when action opens.
++    /// </summary>
++    private bool _hasFiredBeforeActionOpen = false;
++
+     /// <summary>
+     /// Signal emitted when action state changes.
+     /// </summary>
+@@ -220,10 +226,15 @@ public override bool Fire(Vector2 direction)
+         CurrentAmmo--;
+ 
+         // Set action state - needs cycling (Phase 1: instant cycle)
++        // Mark that a shot was fired before action opens (for shell ejection sound)
++        _hasFiredBeforeActionOpen = true;
+         ActionState = ShotgunActionState.ActionOpen;
+         _actionCycleTimer = ActionCycleTime;
+         EmitSignal(SignalName.ActionStateChanged, (int)ActionState);
+ 
++        // Play action open sound and shell ejection after a small delay
++        PlayActionOpenWithShellEject();
++
+         // Play shotgun sound
+         PlayShotgunSound();
+ 
+@@ -248,6 +259,9 @@ private void CompleteActionCycle()
+     {
+         if (ActionState == ShotgunActionState.ActionOpen)
+         {
++            // Play action close sound
++            PlayActionCloseSound();
++
+             // Check if there's ammo to chamber
+             if (CurrentAmmo > 0)
+             {
+@@ -276,27 +290,67 @@ public void CycleAction()
+     }
+ 
+     /// <summary>
+-    /// Plays the empty gun click sound.
++    /// Plays the shotgun empty click sound.
+     /// </summary>
+     private void PlayEmptyClickSound()
+     {
+         var audioManager = GetNodeOrNull("/root/AudioManager");
+-        if (audioManager != null && audioManager.HasMethod("play_empty_click"))
++        if (audioManager != null && audioManager.HasMethod("play_shotgun_empty_click"))
+         {
+-            audioManager.Call("play_empty_click", GlobalPosition);
++            audioManager.Call("play_shotgun_empty_click", GlobalPosition);
+         }
+     }
+ 
+     /// <summary>
+     /// Plays the shotgun firing sound.
++    /// Randomly selects from 4 shotgun shot variants for variety.
+     /// </summary>
+     private void PlayShotgunSound()
+     {
+         var audioManager = GetNodeOrNull("/root/AudioManager");
+-        // Use M16 shot as placeholder until shotgun-specific sound is added
+-        if (audioManager != null && audioManager.HasMethod("play_m16_shot"))
++        if (audioManager != null && audioManager.HasMethod("play_shotgun_shot"))
++        {
++            audioManager.Call("play_shotgun_shot", GlobalPosition);
++        }
++    }
++
++    /// <summary>
++    /// Plays the shotgun action open sound with shell ejection.
++    /// Shell ejection sound only plays if a shot was fired before the action opened.
++    /// </summary>
++    private async void PlayActionOpenWithShellEject()
++    {
++        // Small delay before action open sound
++        await ToSignal(GetTree().CreateTimer(0.1), "timeout");
++
++        var audioManager = GetNodeOrNull("/root/AudioManager");
++        if (audioManager != null && audioManager.HasMethod("play_shotgun_action_open"))
++        {
++            audioManager.Call("play_shotgun_action_open", GlobalPosition);
++        }
++
++        // Only play shell ejection if a shot was fired before action open
++        if (_hasFiredBeforeActionOpen)
++        {
++            // Shell ejects slightly after action opens
++            await ToSignal(GetTree().CreateTimer(0.15), "timeout");
++            if (audioManager != null && audioManager.HasMethod("play_shell_shotgun"))
++            {
++                audioManager.Call("play_shell_shotgun", GlobalPosition);
++            }
++            _hasFiredBeforeActionOpen = false;
++        }
++    }
++
++    /// <summary>
++    /// Plays the shotgun action close sound.
++    /// </summary>
++    private void PlayActionCloseSound()
++    {
++        var audioManager = GetNodeOrNull("/root/AudioManager");
++        if (audioManager != null && audioManager.HasMethod("play_shotgun_action_close"))
+         {
+-            audioManager.Call("play_m16_shot", GlobalPosition);
++            audioManager.Call("play_shotgun_action_close", GlobalPosition);
+         }
+     }
+ 
+diff --git a/docs/case-studies/issue-204/README.md b/docs/case-studies/issue-204/README.md
+new file mode 100644
+index 0000000..e59e99c
+--- /dev/null
++++ b/docs/case-studies/issue-204/README.md
+@@ -0,0 +1,103 @@
++# Case Study: Issue #204 - Add Shotgun Sounds
++
++## Issue Summary
++**Issue URL**: https://github.com/Jhon-Crow/godot-topdown-MVP/issues/204
++**Title**: добавить звуки дробовику (Add shotgun sounds)
++**Status**: Resolved
++
++## Problem Statement
++The shotgun weapon in the game was using placeholder M16 sounds instead of proper shotgun-specific sounds. The issue requested:
++1. Random shotgun shot sounds (4 variants)
++2. Action open/close sounds for pump-action mechanism
++3. Shell ejection sound only after the action opens (and only if a shot was fired)
++
++## Timeline of Events
++
++### Initial State
++- Shotgun implementation existed in `Scripts/Weapons/Shotgun.cs`
++- AudioManager had no shotgun sound support
++- Shotgun was using `play_m16_shot()` as a placeholder
++- All shotgun sound assets were already present in `assets/audio/`
++
++### Resolution Process
++1. **Research Phase**: Analyzed codebase structure, found assault rifle as reference implementation
++2. **AudioManager Update**: Added shotgun sound constants, preloading, and convenience methods
++3. **Shotgun.cs Update**: Replaced placeholder sounds with proper shotgun sounds and implemented timing logic
++
++## Root Cause Analysis
++
++The shotgun was implemented before its sound assets were integrated into the AudioManager. The original implementation used a placeholder comment:
++```csharp
++// Use M16 shot as placeholder until shotgun-specific sound is added
++```
++
++This was intentional temporary code awaiting sound integration.
++
++## Solution Details
++
++### Files Modified
++
++1. **scripts/autoload/audio_manager.gd**
++   - Added shotgun sound constants (shots, action open/close, shell, empty click, load shell)
++   - Added volume constants for shotgun sounds
++   - Added preloading for all shotgun sounds
++   - Added convenience methods: `play_shotgun_shot()`, `play_shotgun_action_open()`, `play_shotgun_action_close()`, `play_shell_shotgun()`, `play_shotgun_empty_click()`, `play_shotgun_load_shell()`
++
++2. **Scripts/Weapons/Shotgun.cs**
++   - Added `_hasFiredBeforeActionOpen` flag to track shot state
++   - Updated `PlayShotgunSound()` to use proper shotgun shot sound
++   - Added `PlayActionOpenWithShellEject()` async method with proper timing
++   - Added `PlayActionCloseSound()` method
++   - Updated `PlayEmptyClickSound()` to use shotgun-specific empty click
++
++### Sound Assets Used
++Located in `assets/audio/`:
++- `выстрел из дробовика 1.wav` - Shotgun shot 1
++- `выстрел из дробовика 2.wav` - Shotgun shot 2
++- `выстрел из дробовика 3.wav` - Shotgun shot 3
++- `выстрел из дробовика 4.wav` - Shotgun shot 4
++- `открытие затвора дробовика.wav` - Action open
++- `закрытие затвора дробовика.wav` - Action close
++- `падение гильзы дробовик.mp3` - Shell ejection
++- `выстрел без патронов дробовик.mp3` - Empty click
++- `зарядил один патрон в дробовик.mp3` - Shell loading
++
++### Sound Timing Sequence
++When shotgun fires:
++1. `0ms`: Shotgun shot sound plays immediately
++2. `100ms`: Action open sound plays (pump-action pulling back)
++3. `250ms`: Shell ejection sound plays (only if a shot was fired)
++4. `300ms` (ActionCycleTime): Action close sound plays (pump-action pushing forward)
++
++## Key Implementation Details
++
++### Shell Ejection Logic
++The `_hasFiredBeforeActionOpen` boolean ensures the shell casing sound only plays when:
++- A shot was actually fired (not just cycling the action manually)
++- The action opens after firing
++
++This follows the real-world behavior of a pump-action shotgun where the spent shell ejects during the pump-back motion.
++
++### Pattern Consistency
++The implementation follows the existing M16/assault rifle pattern established in the codebase:
++- GDScript AudioManager with pooled AudioStreamPlayer2D nodes
++- C# weapon scripts calling AudioManager through node references
++- Positional audio at weapon's GlobalPosition
++
++## Testing Notes
++Due to the nature of this change (audio integration), testing requires:
++1. Running the game
++2. Equipping the shotgun
++3. Firing to hear random shot + action cycle sounds
++4. Listening for shell ejection timing
++5. Emptying magazine to hear empty click sound
++
++## Lessons Learned
++1. Placeholder code should be clearly documented (which it was in this case)
++2. Following existing patterns (like M16 implementation) ensures consistency
++3. Async sound timing can be achieved with Godot's timer signals in C#
++
++## References
++- Assault rifle sound implementation in `Scripts/Weapons/AssaultRifle.cs`
++- AudioManager pattern in `scripts/autoload/audio_manager.gd`
++- Original issue: https://github.com/Jhon-Crow/godot-topdown-MVP/issues/204
+diff --git a/scripts/autoload/audio_manager.gd b/scripts/autoload/audio_manager.gd
+index a1417a7..09957b7 100644
+--- a/scripts/autoload/audio_manager.gd
++++ b/scripts/autoload/audio_manager.gd
+@@ -63,6 +63,26 @@ const BULLET_RICOCHET: String = "res://assets/audio/пуля пролетела
+ ## Shell casing sounds.
+ const SHELL_RIFLE: String = "res://assets/audio/падает гильза автомата.wav"
+ const SHELL_PISTOL: String = "res://assets/audio/падает гильза пистолета.wav"
++const SHELL_SHOTGUN: String = "res://assets/audio/падение гильзы дробовик.mp3"
++
++## Shotgun sounds.
++## Shotgun shots (4 variants) - randomly selected for variety.
++const SHOTGUN_SHOTS: Array[String] = [
++	"res://assets/audio/выстрел из дробовика 1.wav",
++	"res://assets/audio/выстрел из дробовика 2.wav",
++	"res://assets/audio/выстрел из дробовика 3.wav",
++	"res://assets/audio/выстрел из дробовика 4.wav"
++]
++
++## Shotgun action sounds (pump-action open/close).
++const SHOTGUN_ACTION_OPEN: String = "res://assets/audio/открытие затвора дробовика.wav"
++const SHOTGUN_ACTION_CLOSE: String = "res://assets/audio/закрытие затвора дробовика.wav"
++
++## Shotgun empty click sound.
++const SHOTGUN_EMPTY_CLICK: String = "res://assets/audio/выстрел без патронов дробовик.mp3"
++
++## Shotgun reload (load single shell) sound.
++const SHOTGUN_LOAD_SHELL: String = "res://assets/audio/зарядил один патрон в дробовик.mp3"
+ 
+ ## Grenade sounds.
+ ## Activation sound (pin pull) - played when grenade timer starts.
+@@ -86,6 +106,8 @@ const VOLUME_EMPTY_CLICK: float = -3.0
+ const VOLUME_RICOCHET: float = -6.0
+ const VOLUME_GRENADE: float = -3.0
+ const VOLUME_GRENADE_EXPLOSION: float = 0.0
++const VOLUME_SHOTGUN_SHOT: float = -3.0
++const VOLUME_SHOTGUN_ACTION: float = -5.0
+ 
+ ## Preloaded audio streams cache.
+ var _audio_cache: Dictionary = {}
+@@ -145,6 +167,13 @@ func _preload_all_sounds() -> void:
+ 	all_sounds.append(GRENADE_LANDING)
+ 	all_sounds.append(FLASHBANG_EXPLOSION_IN_ZONE)
+ 	all_sounds.append(FLASHBANG_EXPLOSION_OUT_ZONE)
++	# Shotgun sounds
++	all_sounds.append_array(SHOTGUN_SHOTS)
++	all_sounds.append(SHOTGUN_ACTION_OPEN)
++	all_sounds.append(SHOTGUN_ACTION_CLOSE)
++	all_sounds.append(SHOTGUN_EMPTY_CLICK)
++	all_sounds.append(SHOTGUN_LOAD_SHELL)
++	all_sounds.append(SHELL_SHOTGUN)
+ 
+ 	for path in all_sounds:
+ 		if not _audio_cache.has(path):
+@@ -332,3 +361,38 @@ func play_grenade_landing(position: Vector2) -> void:
+ func play_flashbang_explosion(position: Vector2, player_in_zone: bool) -> void:
+ 	var sound_path: String = FLASHBANG_EXPLOSION_IN_ZONE if player_in_zone else FLASHBANG_EXPLOSION_OUT_ZONE
+ 	play_sound_2d(sound_path, position, VOLUME_GRENADE_EXPLOSION)
++
++
++# ============================================================================
++# Shotgun sounds
++# ============================================================================
++
++## Plays a random shotgun shot sound at the given position.
++## Randomly selects from 4 shotgun shot variants for variety.
++func play_shotgun_shot(position: Vector2) -> void:
++	play_random_sound_2d(SHOTGUN_SHOTS, position, VOLUME_SHOTGUN_SHOT)
++
++
++## Plays shotgun action open sound (pump-action pulling back) at the given position.
++func play_shotgun_action_open(position: Vector2) -> void:
++	play_sound_2d(SHOTGUN_ACTION_OPEN, position, VOLUME_SHOTGUN_ACTION)
++
++
++## Plays shotgun action close sound (pump-action pushing forward) at the given position.
++func play_shotgun_action_close(position: Vector2) -> void:
++	play_sound_2d(SHOTGUN_ACTION_CLOSE, position, VOLUME_SHOTGUN_ACTION)
++
++
++## Plays shotgun shell casing drop sound at the given position.
++func play_shell_shotgun(position: Vector2) -> void:
++	play_sound_2d(SHELL_SHOTGUN, position, VOLUME_SHELL)
++
++
++## Plays shotgun empty click sound at the given position.
++func play_shotgun_empty_click(position: Vector2) -> void:
++	play_sound_2d(SHOTGUN_EMPTY_CLICK, position, VOLUME_EMPTY_CLICK)
++
++
++## Plays shotgun shell loading sound at the given position.
++func play_shotgun_load_shell(position: Vector2) -> void:
++	play_sound_2d(SHOTGUN_LOAD_SHELL, position, VOLUME_SHOTGUN_ACTION)

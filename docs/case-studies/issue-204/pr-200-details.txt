@@ -1,0 +1,42 @@
+title:	Add shotgun visual model with top-down sprite and armory icon
+state:	MERGED
+author:	konard
+labels:	
+assignees:	
+reviewers:	
+projects:	
+milestone:	
+number:	200
+url:	https://github.com/Jhon-Crow/godot-topdown-MVP/pull/200
+additions:	232
+deletions:	2
+auto-merge:	disabled
+--
+## Summary
+- Created `shotgun_topdown.png` (64x16) for in-hand top-down view during gameplay
+- Created `shotgun_icon.png` (80x24) for armory menu matching M16 style
+- Added `ShotgunSprite` node to `Shotgun.tscn` scene
+- Updated `armory_menu.gd` to use the new shotgun icon
+
+## Design Details
+The sprites feature a pump-action shotgun design matching the reference model:
+- Wooden stock and forend (brown tones)
+- Metal receiver and barrel (gray tones)
+- Style consistent with existing M16 rifle sprites
+
+### Shotgun Sprites Comparison
+| Sprite | Size | Purpose |
+|--------|------|---------|
+| `shotgun_topdown.png` | 64x16 | In-hand view (top-down perspective) |
+| `shotgun_icon.png` | 80x24 | Armory menu icon (side view) |
+
+The design follows the same style as the M16 rifle sprites (`m16_rifle_topdown.png` and `m16_rifle.png`).
+
+## Test Plan
+- [ ] Verify shotgun displays correct sprite when equipped in-game
+- [ ] Verify shotgun icon appears correctly in armory menu
+- [ ] Verify sprite positioning matches assault rifle (offset: 20, 0)
+
+Fixes #198
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
