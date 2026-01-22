@@ -28,9 +28,60 @@ This case study documents the analysis and implementation plan for a composite g
 
 ## Implementation Summary (2026-01-22)
 
-### Current Status: Complete (C# Implementation Added)
+### Current Status: Iteration 2 - Animation Refinement
 
-**Latest Update (2026-01-22 07:15 UTC)**: The animation system has now been ported to the C# Player class, which is the version actually used by the game.
+**Latest Update (2026-01-22 07:45 UTC)**: Second iteration addressing user feedback on animation visual issues.
+
+### User Feedback (Iteration 2)
+
+**Feedback from @Jhon-Crow (translated from Russian):**
+1. **Arms should be below the weapon when grabbing grenade** - Fixed by adjusting z-index during grenade operations
+2. **Arms are detached from forearms (should bend at elbow, not detach)** - Fixed by reducing position offsets and using rotation
+3. **Second hand should not be on the weapon during wind-up** - Fixed with new `ArmLeftRelaxed` position
+
+### Changes Made in Iteration 2
+
+| Issue | Root Cause | Fix Applied |
+|-------|------------|-------------|
+| Arms above weapon | Z-index was 2 during grenade ops | Set z-index to 0 (below weapon z=1) |
+| Arms "detaching" | Position offsets too large (e.g., -15, -8) | Reduced to small offsets (e.g., -4, 3) |
+| Second hand on weapon | Left arm returned to base during wind-up | New `ArmLeftRelaxed` position (-6, 5) |
+
+### Technical Changes
+
+**Animation Position Constants (reduced offsets):**
+```csharp
+// OLD: Large offsets caused visual detachment
+ArmLeftChest = new Vector2(-15, -8)
+ArmRightWindMax = new Vector2(35, 18)
+
+// NEW: Small offsets keep arms connected
+ArmLeftChest = new Vector2(-4, 3)
+ArmRightWindMax = new Vector2(8, 5)
+```
+
+**Animation Rotation Constants (elbow bending):**
+```csharp
+// Rely on rotation to simulate elbow bending
+ArmRotGrab = -20.0f      // Inward bend
+ArmRotWindMin = 15.0f    // Arm pulled back
+ArmRotWindMax = 35.0f    // Maximum wind-up
+```
+
+**Z-Index Management:**
+```csharp
+// During grenade ops: arms below weapon
+SetGrenadeAnimZIndex() -> arms z-index = 0
+
+// Normal state: arms above body
+RestoreArmZIndex() -> arms z-index = 2
+```
+
+---
+
+### Previous Update (2026-01-22 07:15 UTC)
+
+The animation system has now been ported to the C# Player class, which is the version actually used by the game.
 
 ### Root Cause of "Animation Not Visible" Issue
 

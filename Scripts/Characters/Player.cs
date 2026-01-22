@@ -284,21 +284,28 @@ public partial class Player : BaseCharacter
 
     // Target positions for arm animations (relative offsets from base positions)
     // These are in local PlayerModel space
-    private static readonly Vector2 ArmLeftChest = new Vector2(-15, -8);       // Left hand at chest (grab grenade)
-    private static readonly Vector2 ArmRightPin = new Vector2(-8, -12);        // Right hand for pin pull
-    private static readonly Vector2 ArmLeftExtended = new Vector2(5, 0);       // Left hand extended with grenade
-    private static readonly Vector2 ArmRightApproach = new Vector2(8, -5);     // Right hand approaching left
-    private static readonly Vector2 ArmLeftTransfer = new Vector2(0, 5);       // Left hand after transfer
-    private static readonly Vector2 ArmRightHold = new Vector2(5, 0);          // Right hand holding grenade
-    private static readonly Vector2 ArmRightWindMin = new Vector2(10, 8);      // Minimum wind-up position
-    private static readonly Vector2 ArmRightWindMax = new Vector2(35, 18);     // Maximum wind-up position
-    private static readonly Vector2 ArmRightThrow = new Vector2(-25, -5);      // Throw follow-through
+    // IMPORTANT: Keep offsets small to prevent arm "detachment" from body
+    // Arms are single-piece sprites, so we rely more on rotation than translation
+    // Base positions: LeftArm (24, 6), RightArm (-2, 6)
+    private static readonly Vector2 ArmLeftChest = new Vector2(-4, 3);         // Left hand slightly inward (grab grenade from chest)
+    private static readonly Vector2 ArmRightPin = new Vector2(2, -2);          // Right hand slightly up for pin pull
+    private static readonly Vector2 ArmLeftExtended = new Vector2(2, 1);       // Left hand slightly forward with grenade
+    private static readonly Vector2 ArmRightApproach = new Vector2(4, 0);      // Right hand approaching left
+    private static readonly Vector2 ArmLeftTransfer = new Vector2(-2, 4);      // Left hand drops back after transfer (away from weapon)
+    private static readonly Vector2 ArmRightHold = new Vector2(3, 1);          // Right hand holding grenade
+    private static readonly Vector2 ArmRightWindMin = new Vector2(4, 3);       // Minimum wind-up position (arm back)
+    private static readonly Vector2 ArmRightWindMax = new Vector2(8, 5);       // Maximum wind-up position (arm further back)
+    private static readonly Vector2 ArmRightThrow = new Vector2(-4, -2);       // Throw follow-through (arm forward)
+    private static readonly Vector2 ArmLeftRelaxed = new Vector2(-6, 5);       // Left arm relaxed at side during wind-up (clearly away from weapon)
 
     // Target rotations for arm animations (in degrees)
-    private const float ArmRotGrab = -15.0f;         // Arm rotation when grabbing
-    private const float ArmRotPinPull = -10.0f;      // Arm rotation when pulling pin
-    private const float ArmRotWindMax = 45.0f;       // Maximum wind-up rotation
-    private const float ArmRotThrow = -30.0f;        // Throw rotation
+    // Use rotation to simulate elbow bending instead of large position offsets
+    private const float ArmRotGrab = -20.0f;         // Arm rotation when grabbing (inward bend)
+    private const float ArmRotPinPull = -15.0f;      // Arm rotation when pulling pin
+    private const float ArmRotWindMin = 15.0f;       // Minimum wind-up rotation (arm pulled back)
+    private const float ArmRotWindMax = 35.0f;       // Maximum wind-up rotation
+    private const float ArmRotThrow = -25.0f;        // Throw rotation (arm swings forward)
+    private const float ArmRotLeftRelaxed = 10.0f;   // Left arm relaxed rotation during wind-up
 
     // Animation durations for each phase (in seconds)
     private const float AnimGrabDuration = 0.2f;
@@ -1679,6 +1686,8 @@ public partial class Player : BaseCharacter
         // Early exit if no animation active
         if (_grenadeAnimPhase == GrenadeAnimPhase.None)
         {
+            // Restore normal z-index when not animating
+            RestoreArmZIndex();
             return;
         }
 
@@ -1702,17 +1711,22 @@ public partial class Player : BaseCharacter
         float rightArmRot = 0.0f;
         float lerpSpeed = AnimLerpSpeed * delta;
 
+        // Set arms to lower z-index during grenade operations (below weapon)
+        // This ensures arms appear below the weapon as user requested
+        SetGrenadeAnimZIndex();
+
         switch (_grenadeAnimPhase)
         {
             case GrenadeAnimPhase.GrabGrenade:
-                // Left hand moves to chest to grab grenade
+                // Left hand moves to chest/lower area to grab grenade
+                // Keep position offset small and use rotation for "bending"
                 leftArmTarget = _baseLeftArmPos + ArmLeftChest;
                 leftArmRot = Mathf.DegToRad(ArmRotGrab);
                 lerpSpeed = AnimLerpSpeedFast * delta;
                 break;
 
             case GrenadeAnimPhase.PullPin:
-                // Left hand holds grenade extended, right hand near for pin
+                // Left hand holds grenade, right hand near for pin
                 leftArmTarget = _baseLeftArmPos + ArmLeftExtended;
                 rightArmTarget = _baseRightArmPos + ArmRightPin;
                 rightArmRot = Mathf.DegToRad(ArmRotPinPull);
@@ -1726,7 +1740,7 @@ public partial class Player : BaseCharacter
                 break;
 
             case GrenadeAnimPhase.Transfer:
-                // Left hand relaxes, right hand takes grenade
+                // Left hand relaxes and moves away from weapon, right hand takes grenade
                 leftArmTarget = _baseLeftArmPos + ArmLeftTransfer;
                 rightArmTarget = _baseRightArmPos + ArmRightHold;
                 lerpSpeed = AnimLerpSpeed * delta;
@@ -1734,17 +1748,21 @@ public partial class Player : BaseCharacter
 
             case GrenadeAnimPhase.WindUp:
                 // Dynamic wind-up based on drag intensity
-                leftArmTarget = _baseLeftArmPos + ArmLeftTransfer;
-                // Interpolate right arm between min and max wind-up based on intensity
+                // LEFT ARM: Move clearly away from weapon area (relaxed at side)
+                leftArmTarget = _baseLeftArmPos + ArmLeftRelaxed;
+                leftArmRot = Mathf.DegToRad(ArmRotLeftRelaxed);
+                // RIGHT ARM: Interpolate between min and max wind-up based on intensity
                 Vector2 windUpOffset = ArmRightWindMin.Lerp(ArmRightWindMax, _windUpIntensity);
                 rightArmTarget = _baseRightArmPos + windUpOffset;
-                rightArmRot = Mathf.DegToRad(ArmRotWindMax * _windUpIntensity);
+                float windUpRot = Mathf.Lerp(ArmRotWindMin, ArmRotWindMax, _windUpIntensity);
+                rightArmRot = Mathf.DegToRad(windUpRot);
                 lerpSpeed = AnimLerpSpeedFast * delta; // Responsive to input
                 break;
 
             case GrenadeAnimPhase.Throw:
-                // Throwing motion - arm swings forward
-                leftArmTarget = _baseLeftArmPos; // Left arm returns
+                // Throwing motion - right arm swings forward, left stays relaxed
+                leftArmTarget = _baseLeftArmPos + ArmLeftRelaxed; // Left arm stays relaxed during throw
+                leftArmRot = Mathf.DegToRad(ArmRotLeftRelaxed * 0.5f); // Slightly less rotation
                 rightArmTarget = _baseRightArmPos + ArmRightThrow;
                 rightArmRot = Mathf.DegToRad(ArmRotThrow);
                 lerpSpeed = AnimLerpSpeedFast * delta;
@@ -1767,6 +1785,7 @@ public partial class Player : BaseCharacter
                 {
                     _grenadeAnimPhase = GrenadeAnimPhase.None;
                     _weaponSlung = false;
+                    RestoreArmZIndex();
                     LogToFile("[Player.Grenade.Anim] Animation complete, returning to normal");
                 }
                 break;
@@ -1787,6 +1806,39 @@ public partial class Player : BaseCharacter
 
         // Update weapon sling animation
         UpdateWeaponSling(delta);
+    }
+
+    /// <summary>
+    /// Set arm z-index for grenade animation (arms below weapon).
+    /// </summary>
+    private void SetGrenadeAnimZIndex()
+    {
+        // During grenade operations, arms should appear below the weapon
+        // Weapon has z_index = 1, so set arms to 0
+        if (_leftArmSprite != null)
+        {
+            _leftArmSprite.ZIndex = 0;
+        }
+        if (_rightArmSprite != null)
+        {
+            _rightArmSprite.ZIndex = 0;
+        }
+    }
+
+    /// <summary>
+    /// Restore normal arm z-index (arms above weapon for normal aiming).
+    /// </summary>
+    private void RestoreArmZIndex()
+    {
+        // Normal state: arms at z_index 2 (between body and head)
+        if (_leftArmSprite != null)
+        {
+            _leftArmSprite.ZIndex = 2;
+        }
+        if (_rightArmSprite != null)
+        {
+            _rightArmSprite.ZIndex = 2;
+        }
     }
 
     /// <summary>
