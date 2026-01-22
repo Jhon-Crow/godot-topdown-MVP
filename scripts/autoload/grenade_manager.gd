@@ -99,6 +99,14 @@ func set_grenade_type(type: int, restart_level: bool = true) -> void:
 func _restart_current_level() -> void:
 	FileLogger.info("[GrenadeManager] Restarting level due to grenade type change")
 
+	# IMPORTANT: Unpause the game before restarting
+	# This prevents the game from getting stuck in paused state when
+	# changing grenades from the armory menu while the game is paused
+	get_tree().paused = false
+
+	# Restore hidden cursor for gameplay (confined and hidden)
+	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED_HIDDEN)
+
 	# Use GameManager to restart if available
 	var game_manager: Node = get_node_or_null("/root/GameManager")
 	if game_manager and game_manager.has_method("restart_scene"):

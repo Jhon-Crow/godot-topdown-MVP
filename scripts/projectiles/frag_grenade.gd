@@ -23,8 +23,9 @@ class_name FragGrenade
 ## Random angle deviation for shrapnel spread in degrees.
 @export var shrapnel_spread_deviation: float = 20.0
 
-## Direct damage to enemies in effect radius (in addition to shrapnel).
-@export var explosion_damage: int = 2
+## Direct explosive (HE/blast wave) damage to enemies in effect radius.
+## Per user requirement: should deal 99 damage to all enemies in the blast zone.
+@export var explosion_damage: int = 99
 
 ## Whether the grenade has impacted (landed or hit wall).
 var _has_impacted: bool = false
@@ -184,14 +185,12 @@ func _has_line_of_sight_to(target: Node2D) -> bool:
 
 
 ## Apply direct explosion damage to an enemy.
+## Per user requirement: flat 99 damage to ALL enemies in the blast zone (no distance scaling).
 func _apply_explosion_damage(enemy: Node2D) -> void:
-	# Calculate damage based on distance (closer = more damage)
 	var distance := global_position.distance_to(enemy.global_position)
-	var distance_ratio := distance / effect_radius
-	var damage_scale := 1.0 - distance_ratio  # Full damage at center, less at edge
 
-	# Apply at least 1 damage if in range
-	var final_damage := maxi(1, int(explosion_damage * damage_scale))
+	# Flat damage to all enemies in blast zone - no distance scaling
+	var final_damage := explosion_damage
 
 	# Try to apply damage through various methods
 	if enemy.has_method("on_hit_with_info"):
@@ -203,7 +202,7 @@ func _apply_explosion_damage(enemy: Node2D) -> void:
 		for i in range(final_damage):
 			enemy.on_hit()
 
-	FileLogger.info("[FragGrenade] Applied %d damage to enemy at distance %.1f" % [final_damage, distance])
+	FileLogger.info("[FragGrenade] Applied %d HE damage to enemy at distance %.1f" % [final_damage, distance])
 
 
 ## Spawn shrapnel pieces in all directions.

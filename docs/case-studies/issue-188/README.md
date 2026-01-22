@@ -593,3 +593,131 @@ After rebuilding with this fix:
 2. Level restarts
 3. Log should show: `[Player.Grenade] Grenade scene loaded from GrenadeManager: Frag Grenade`
 4. Thrown grenade should be FragGrenade with shrapnel mechanics
+
+---
+
+## Phase 10: Two Additional Issues Found (2026-01-22 06:32)
+
+### New Log: `game_log_20260122_063204.txt`
+
+User reported two issues:
+1. "при выборе гранаты в armory игра застревает и приходится вручную нажимать quick restart" (when selecting a grenade in armory, the game freezes and requires manual quick restart)
+2. "граната не наносит фугасный урон (волной), а должна наносить 99 урона всем в зоне волны" (grenade doesn't deal explosive damage (blast wave), should deal 99 damage to all in the blast zone)
+
+### Log Analysis
+
+**Issue 1: Game Freeze / Restart Loop**
+
+Looking at the timestamps:
+```
+[06:32:06] [INFO] [PauseMenu] Armory button pressed
+[06:32:08] [INFO] [GrenadeManager] Grenade type changed from Flashbang to Frag Grenade
+[06:32:08] [INFO] [GrenadeManager] Restarting level due to grenade type change
+...
+[06:32:08] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Frag Grenade
+...
+[06:32:10] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+...
+[06:32:11] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+...
+[06:32:13] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+```
+
+The level keeps restarting rapidly (06:32:08 → 06:32:10 → 06:32:11 → 06:32:13) multiple times before finally stabilizing.
+
+**Root Cause**: The game is **still paused** when GrenadeManager tries to restart the level. The pause state was not cleared before calling `reload_current_scene()`.
+
+**Evidence**: The `levels_menu.gd` correctly unpauses before changing scenes:
+```gdscript
+# In levels_menu.gd:67
+get_tree().paused = false
+```
+
+But `grenade_manager.gd` does NOT unpause:
+```gdscript
+# In grenade_manager.gd:_restart_current_level()
+# Missing: get_tree().paused = false
+get_tree().reload_current_scene()  # Reloads while still paused!
+```
+
+**Issue 2: Grenade Explosive Damage**
+
+Looking at `frag_grenade.gd`:
+```gdscript
+@export var explosion_damage: int = 2  # Should be 99!
+```
+
+The grenade was dealing only 2 damage, scaled by distance. User requirement states it should deal 99 damage to ALL enemies in the blast zone (flat damage, no distance scaling).
+
+### Solutions Applied
+
+**Fix 1: Unpause Game Before Restart**
+
+In `scripts/autoload/grenade_manager.gd`:
+```gdscript
+func _restart_current_level() -> void:
+    FileLogger.info("[GrenadeManager] Restarting level due to grenade type change")
+
+    # IMPORTANT: Unpause the game before restarting
+    # This prevents the game from getting stuck in paused state when
+    # changing grenades from the armory menu while the game is paused
+    get_tree().paused = false
+
+    # Restore hidden cursor for gameplay (confined and hidden)
+    Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED_HIDDEN)
+
+    # Use GameManager to restart if available
+    var game_manager: Node = get_node_or_null("/root/GameManager")
+    if game_manager and game_manager.has_method("restart_scene"):
+        game_manager.restart_scene()
+    else:
+        # Fallback: reload current scene directly
+        get_tree().reload_current_scene()
+```
+
+**Fix 2: 99 Explosive Damage**
+
+In `scripts/projectiles/frag_grenade.gd`:
+```gdscript
+## Direct explosive (HE/blast wave) damage to enemies in effect radius.
+## Per user requirement: should deal 99 damage to all enemies in the blast zone.
+@export var explosion_damage: int = 99
+```
+
+And updated `_apply_explosion_damage()` to apply flat damage (no distance scaling):
+```gdscript
+func _apply_explosion_damage(enemy: Node2D) -> void:
+    var distance := global_position.distance_to(enemy.global_position)
+
+    # Flat damage to all enemies in blast zone - no distance scaling
+    var final_damage := explosion_damage
+
+    # Try to apply damage through various methods
+    if enemy.has_method("on_hit_with_info"):
+        var hit_direction := (enemy.global_position - global_position).normalized()
+        for i in range(final_damage):
+            enemy.on_hit_with_info(hit_direction, null)
+    elif enemy.has_method("on_hit"):
+        for i in range(final_damage):
+            enemy.on_hit()
+
+    FileLogger.info("[FragGrenade] Applied %d HE damage to enemy at distance %.1f" % [final_damage, distance])
+```
+
+### Files Modified
+
+1. `scripts/autoload/grenade_manager.gd` - Added unpause before level restart
+2. `scripts/projectiles/frag_grenade.gd` - Changed explosion_damage to 99 and removed distance scaling
+
+### Expected Behavior After Fix
+
+1. **Grenade Selection**: Select grenade in armory → game unpauses → level restarts cleanly (no freeze)
+2. **Explosive Damage**: Frag grenade deals 99 damage to ALL enemies in the blast zone (250px radius)
+3. **Shrapnel Damage**: Each of the 4 shrapnel pieces still deals 1 damage (unchanged)
+
+### Lessons Learned
+
+1. **Pause state must be cleared** before scene transitions initiated from paused menus
+2. **Follow existing patterns** - `levels_menu.gd` already had the correct unpause logic
+3. **User requirements must be interpreted literally** - "99 damage to all" means flat 99, not scaled
+4. **Log timestamps reveal restart loops** - rapid repeated "scene change detected" indicates a loop
