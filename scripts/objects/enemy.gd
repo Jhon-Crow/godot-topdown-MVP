@@ -200,6 +200,9 @@ signal reload_finished
 ## Signal emitted when all ammunition is depleted.
 signal ammo_depleted
 
+## Signal emitted when death animation completes.
+signal death_animation_completed
+
 ## Threshold angle (in radians) for considering the player "distracted".
 ## If the player's aim is more than this angle away from the enemy, they are distracted.
 ## 23 degrees ≈ 0.4014 radians.
@@ -611,6 +614,14 @@ var _is_blinded: bool = false
 ## Whether the enemy is currently stunned (cannot move or act).
 var _is_stunned: bool = false
 
+## Last hit direction (used for death animation).
+var _last_hit_direction: Vector2 = Vector2.RIGHT
+
+## Death animation component reference.
+var _death_animation: Node = null
+
+## Note: DeathAnimationComponent is available via class_name declaration.
+
 
 func _ready() -> void:
 	# Add to enemies group for grenade targeting
@@ -662,6 +673,9 @@ func _ready() -> void:
 	# Apply scale to enemy model for larger appearance (same as player)
 	if _enemy_model:
 		_enemy_model.scale = Vector2(enemy_model_scale, enemy_model_scale)
+
+	# Initialize death animation component
+	_init_death_animation()
 
 
 ## Initialize health with random value between min and max.
@@ -3917,6 +3931,9 @@ func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has
 
 	hit.emit()
 
+	# Store hit direction for death animation
+	_last_hit_direction = hit_direction
+
 	# Track hits for retreat behavior
 	_hits_taken_in_encounter += 1
 	_log_debug("Hit taken! Total hits in encounter: %d" % _hits_taken_in_encounter)
@@ -4115,8 +4132,17 @@ func _on_death() -> void:
 	# Unregister from sound propagation when dying
 	_unregister_sound_listener()
 
+	# Start death animation with the hit direction
+	if _death_animation and _death_animation.has_method("start_death_animation"):
+		_death_animation.start_death_animation(_last_hit_direction)
+		_log_to_file("Death animation started with hit direction: %s" % str(_last_hit_direction))
+
 	if destroy_on_death:
+		# Wait for death animation to complete before destroying
 		await get_tree().create_timer(respawn_delay).timeout
+		# Clean up death animation ragdoll bodies before destroying
+		if _death_animation and _death_animation.has_method("reset"):
+			_death_animation.reset()
 		queue_free()
 	else:
 		await get_tree().create_timer(respawn_delay).timeout
@@ -4125,6 +4151,10 @@ func _on_death() -> void:
 
 ## Resets the enemy to its initial state.
 func _reset() -> void:
+	# Reset death animation first (restores sprites to character model)
+	if _death_animation and _death_animation.has_method("reset"):
+		_death_animation.reset()
+
 	global_position = _initial_position
 	rotation = 0.0
 	_current_patrol_index = 0
@@ -4240,6 +4270,40 @@ func _enable_hit_area_collision() -> void:
 ## Used by bullets to check if they should pass through or hit.
 func is_alive() -> bool:
 	return _is_alive
+
+
+## Initialize the death animation component.
+func _init_death_animation() -> void:
+	# Create death animation component as a child node
+	_death_animation = DeathAnimationComponent.new()
+	_death_animation.name = "DeathAnimation"
+	add_child(_death_animation)
+
+	# Initialize with sprite references
+	_death_animation.initialize(
+		_body_sprite,
+		_head_sprite,
+		_left_arm_sprite,
+		_right_arm_sprite,
+		_enemy_model
+	)
+
+	# Connect signals
+	_death_animation.death_animation_completed.connect(_on_death_animation_completed)
+	_death_animation.ragdoll_activated.connect(_on_ragdoll_activated)
+
+	_log_to_file("Death animation component initialized")
+
+
+## Called when death animation completes (body at rest).
+func _on_death_animation_completed() -> void:
+	_log_to_file("Death animation completed")
+	death_animation_completed.emit()
+
+
+## Called when ragdoll physics activates.
+func _on_ragdoll_activated() -> void:
+	_log_to_file("Ragdoll activated")
 
 
 ## Log debug message if debug_logging is enabled.

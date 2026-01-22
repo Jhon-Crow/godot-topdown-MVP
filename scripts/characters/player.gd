@@ -132,6 +132,9 @@ signal health_changed(current: int, maximum: int)
 ## Signal emitted when the player dies.
 signal died
 
+## Signal emitted when death animation completes.
+signal death_animation_completed
+
 ## Signal emitted when reload sequence progresses.
 signal reload_sequence_progress(step: int, total: int)
 
@@ -278,6 +281,9 @@ func _ready() -> void:
 
 	# Connect to GameManager's debug mode signal for F7 toggle
 	_connect_debug_mode_signal()
+
+	# Initialize death animation component
+	_init_death_animation()
 
 	FileLogger.info("[Player] Ready! Ammo: %d/%d, Grenades: %d/%d, Health: %d/%d" % [
 		_current_ammo, max_ammo,
@@ -829,6 +835,9 @@ func on_hit_with_info(hit_direction: Vector2, caliber_data: Resource) -> void:
 
 	hit.emit()
 
+	# Store hit direction for death animation
+	_last_hit_direction = hit_direction
+
 	# Show hit flash effect
 	_show_hit_flash()
 
@@ -925,8 +934,14 @@ func _get_health_percent() -> float:
 func _on_death() -> void:
 	_is_alive = false
 	died.emit()
-	# Visual feedback - make all sprites darker/transparent
-	_set_all_sprites_modulate(Color(0.3, 0.3, 0.3, 0.5))
+
+	# Start death animation with the hit direction
+	if _death_animation and _death_animation.has_method("start_death_animation"):
+		_death_animation.start_death_animation(_last_hit_direction)
+		FileLogger.info("[Player] Death animation started with hit direction: %s" % str(_last_hit_direction))
+	else:
+		# Fallback to visual feedback if death animation not available
+		_set_all_sprites_modulate(Color(0.3, 0.3, 0.3, 0.5))
 
 
 ## Get current health.
@@ -942,6 +957,60 @@ func get_max_health() -> int:
 ## Check if player is alive.
 func is_alive() -> bool:
 	return _is_alive
+
+
+## Initialize the death animation component.
+func _init_death_animation() -> void:
+	# Create death animation component as a child node
+	_death_animation = DeathAnimationComponent.new()
+	_death_animation.name = "DeathAnimation"
+	add_child(_death_animation)
+
+	# Initialize with sprite references
+	_death_animation.initialize(
+		_body_sprite,
+		_head_sprite,
+		_left_arm_sprite,
+		_right_arm_sprite,
+		_player_model
+	)
+
+	# Connect signals
+	_death_animation.death_animation_completed.connect(_on_death_animation_completed)
+	_death_animation.ragdoll_activated.connect(_on_ragdoll_activated)
+
+	FileLogger.info("[Player] Death animation component initialized")
+
+
+## Called when death animation completes (body at rest).
+func _on_death_animation_completed() -> void:
+	FileLogger.info("[Player] Death animation completed")
+	death_animation_completed.emit()
+
+	# Apply final darkening effect
+	_set_all_sprites_modulate(Color(0.3, 0.3, 0.3, 0.5))
+
+
+## Called when ragdoll physics activates.
+func _on_ragdoll_activated() -> void:
+	FileLogger.info("[Player] Ragdoll activated")
+
+
+## Reset the player state (called on respawn).
+## Note: This resets death animation as well.
+func reset_player() -> void:
+	_is_alive = true
+	_current_health = max_health
+	_current_ammo = max_ammo
+
+	# Reset death animation
+	if _death_animation and _death_animation.has_method("reset"):
+		_death_animation.reset()
+
+	_update_health_visual()
+	health_changed.emit(_current_health, max_health)
+	ammo_changed.emit(_current_ammo, max_ammo)
+	FileLogger.info("[Player] Player reset")
 
 
 ## Called when difficulty changes mid-game.
@@ -1078,6 +1147,14 @@ const THROW_ROTATION_DURATION: float = 0.15
 
 ## Current walk animation time (accumulator for sine wave).
 var _walk_anim_time: float = 0.0
+
+## Last hit direction (used for death animation).
+var _last_hit_direction: Vector2 = Vector2.RIGHT
+
+## Death animation component reference.
+var _death_animation: Node = null
+
+## Note: DeathAnimationComponent is available via class_name declaration.
 
 ## Whether the player is currently walking (for animation state).
 var _is_walking: bool = false
