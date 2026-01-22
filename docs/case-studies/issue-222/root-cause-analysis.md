@@ -112,4 +112,63 @@ Implement the reload animation in `Scripts/Characters/Player.cs` following the s
 - `Scripts/Characters/Player.cs` - Needs reload animation implementation
 
 ### Reference
-- `docs/case-studies/issue-222/logs/game_log_20260122_105528.txt` - User's game log showing issue
+- `docs/case-studies/issue-222/logs/game_log_20260122_105528.txt` - User's game log showing initial issue
+- `docs/case-studies/issue-222/logs/game_log_20260122_111454.txt` - User's game log after initial fix
+
+---
+
+# Second Round of Feedback (2026-01-22)
+
+## User Feedback
+
+After the initial C# implementation, user tested again and reported three issues:
+
+1. **Z-index problem**: "сейчас анимированная рука над оружием, а должна быть под ним (не должна быть полностью видна)"
+   - Translation: "Currently the animated hand is above the weapon, but it should be below it (should not be fully visible)"
+
+2. **Step 2 position problem**: "анимация 2 шага должна заканчиваться примерно на середине длинны оружия (сейчас на конце)"
+   - Translation: "Step 2 animation should end at approximately the middle of the weapon length (currently at the end)"
+
+3. **Step 3 motion problem**: "анимация 3 шага должна быть движением по контуру винтовки справа на себя и от себя (туда сюда), затем рука должна возвратиться на позицию до анимации"
+   - Translation: "Step 3 animation should be a movement along the rifle contour right towards and away from oneself (back and forth), then the hand should return to the position before the animation"
+
+## Root Cause Analysis (Second Round)
+
+### Issue 1: Z-index
+
+**Root Cause**: Arms had z_index = 2 (set in _Ready()), weapon sprite has z_index = 1. This made arms appear ABOVE the weapon.
+
+**Evidence in code**:
+- `scenes/weapons/csharp/AssaultRifle.tscn` line 21: `z_index = 1`
+- `Scripts/Characters/Player.cs` line 617-622: Arms set to z_index = 2
+
+**Fix**: Added `SetReloadAnimZIndex()` method that sets arm z_index to 0 during reload animation, making them appear below the weapon.
+
+### Issue 2: Step 2 Position
+
+**Root Cause**: `ReloadArmLeftInsert = new Vector2(8, 2)` placed the left hand too far forward (toward muzzle) instead of at the magazine well (middle of weapon).
+
+**Evidence**: Base left arm position is (24, 6), adding offset (8, 2) = (32, 8) which is beyond the rifle center.
+
+**Fix**: Changed to `ReloadArmLeftInsert = new Vector2(-4, 2)` which places the hand at the middle of the weapon where the magazine well is located.
+
+### Issue 3: Step 3 Motion
+
+**Root Cause**: Original implementation had a single `ReloadArmRightBolt` position, moving the hand back only once. The real bolt cycling motion requires:
+1. Hand reaches forward to charging handle
+2. Hand pulls bolt back (toward player)
+3. Hand releases bolt, returning forward
+
+**Fix**: Added bolt pull sub-phases:
+- `_boltPullSubPhase = 0`: Pull bolt back (ReloadArmRightBoltPull)
+- `_boltPullSubPhase = 1`: Release bolt forward (ReloadArmRightBoltReturn)
+
+## Timeline Update
+
+| Time | Event |
+|------|-------|
+| 2026-01-22 08:05 | C# reload animation implemented and committed |
+| 2026-01-22 11:14 | User tested game with C# implementation |
+| 2026-01-22 11:15:02 | Reload animation visible (GrabMagazine phase logged) |
+| 2026-01-22 11:18:46 | User reported three issues with animation |
+| 2026-01-22 (later) | Fixes implemented for z-index, step 2 position, step 3 motion |

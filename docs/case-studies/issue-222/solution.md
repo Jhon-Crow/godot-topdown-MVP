@@ -37,26 +37,31 @@ private enum ReloadAnimPhase
 }
 ```
 
-#### 2. Animation Position Constants
+#### 2. Animation Position Constants (Updated after feedback)
 - `ReloadArmLeftGrab = (-18, -2)` - Left hand at chest/vest magazine pouch
-- `ReloadArmLeftInsert = (8, 2)` - Left hand at weapon magwell
-- `ReloadArmLeftSupport = (12, 0)` - Left hand on foregrip during bolt pull
-- `ReloadArmRightBolt = (-6, -3)` - Right hand pulls charging handle back
+- `ReloadArmLeftInsert = (-4, 2)` - Left hand at weapon magwell (**middle of weapon, not end**)
+- `ReloadArmLeftSupport = (-2, 0)` - Left hand holds near magwell during bolt pull
+- `ReloadArmRightBoltPull = (-8, -2)` - Right hand pulls charging handle back
+- `ReloadArmRightBoltReturn = (4, 2)` - Right hand releases bolt forward
 
 #### 3. Animation Rotation Constants
 - `ReloadArmRotLeftGrab = -50°` - Arm rotation when grabbing from chest
 - `ReloadArmRotLeftInsert = -10°` - Left arm rotation when inserting
-- `ReloadArmRotRightBolt = -20°` - Right arm rotation when pulling bolt
+- `ReloadArmRotRightBoltPull = -25°` - Right arm rotation when pulling bolt back
+- `ReloadArmRotRightBoltReturn = -5°` - Right arm rotation when releasing bolt
 
 #### 4. Duration Constants
 - `ReloadAnimGrabDuration = 0.25s`
 - `ReloadAnimInsertDuration = 0.30s`
-- `ReloadAnimBoltDuration = 0.20s`
+- `ReloadAnimBoltPullDuration = 0.15s` - Time to pull bolt back
+- `ReloadAnimBoltReturnDuration = 0.10s` - Time for bolt to return forward
 - `ReloadAnimReturnDuration = 0.20s`
 
 #### 5. New Methods
 - `StartReloadAnimPhase(phase, duration)` - Starts a reload animation phase
 - `UpdateReloadAnimation(delta)` - Updates animation each frame with smooth interpolation
+- `SetReloadAnimZIndex()` - Sets arms z-index below weapon during reload
+- `_boltPullSubPhase` field - Tracks back-and-forth bolt motion (0=pull, 1=return)
 
 #### 6. Integration Points
 - Modified `_PhysicsProcess()` to call `UpdateReloadAnimation(delta)`
@@ -102,3 +107,41 @@ To test the reload animation:
 
 3. **Follow existing patterns** - The grenade animation system provided a template for the
    reload animation, ensuring consistency.
+
+---
+
+## Second Iteration Fixes (Based on User Feedback)
+
+After initial C# implementation, user tested and reported three issues:
+
+### Issue 1: Arms Visible Above Weapon
+
+**User feedback**: "animated hand should be below weapon, not above it"
+
+**Fix**: Added `SetReloadAnimZIndex()` method that sets arm `z_index = 0` during reload animation.
+Weapon has `z_index = 1`, so arms now appear behind/below the weapon.
+
+### Issue 2: Magazine Insert Position
+
+**User feedback**: "step 2 animation should end at middle of weapon length, not at the end"
+
+**Fix**: Changed `ReloadArmLeftInsert` from `(8, 2)` to `(-4, 2)`.
+The new position places the left hand at the middle of the weapon where the magazine well is located.
+
+### Issue 3: Bolt Pull Motion
+
+**User feedback**: "step 3 should be a movement along the rifle contour, back and forth"
+
+**Fix**: Implemented two-phase bolt pull animation:
+- **Sub-phase 0**: Right hand pulls bolt back toward player (`ReloadArmRightBoltPull`)
+- **Sub-phase 1**: Right hand releases bolt forward (`ReloadArmRightBoltReturn`)
+
+This creates the realistic back-and-forth motion of operating a rifle charging handle.
+
+## Files Modified (Second Iteration)
+
+| File | Change |
+|------|--------|
+| `Scripts/Characters/Player.cs` | Z-index fix, position adjustments, bolt pull sub-phases |
+| `docs/case-studies/issue-222/root-cause-analysis.md` | Added second round of feedback analysis |
+| `docs/case-studies/issue-222/logs/game_log_20260122_111454.txt` | User's second test log |
