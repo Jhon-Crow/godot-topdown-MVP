@@ -164,4 +164,74 @@ Added logging for each weapon and grenade slot creation to trace exactly which i
 
 - [Game Log 1](logs/game_log_20260122_033222.txt)
 - [Game Log 2](logs/game_log_20260122_033248.txt)
-- [Game Log 3 (Latest)](game_log_20260122_034730.txt)
+- [Game Log 3](game_log_20260122_034730.txt)
+- [Game Log 4 (Latest)](game_log_20260122_041025.txt)
+
+---
+
+## Phase 6: Fourth Log Analysis (2026-01-22 04:10)
+
+### New Log: `game_log_20260122_041025.txt`
+
+This log provides **critical new information**:
+
+```
+[04:10:26] [INFO] [PauseMenu] Armory button pressed
+[04:10:26] [INFO] [PauseMenu] Creating new armory menu instance
+[04:10:26] [INFO] [PauseMenu] Armory menu instance created and added as child
+```
+
+And later:
+```
+[04:10:44] [INFO] [PauseMenu] Armory button pressed
+[04:10:44] [INFO] [PauseMenu] Creating new armory menu instance
+[04:10:44] [INFO] [PauseMenu] Armory menu instance created and added as child
+```
+
+### Key Finding
+
+The `[PauseMenu]` logs ARE appearing (proving the latest code is running), but there are **STILL NO `[ArmoryMenu]` entries**. This means:
+
+1. The armory button IS being pressed ✓
+2. The scene IS being instantiated ✓
+3. The instance IS being added as a child ✓
+4. **BUT `_ready()` in armory_menu.gd is NOT being called!**
+
+### Hypothesis: Silent Script Error
+
+When a Godot script has an error that prevents execution, the `_ready()` function may silently fail to run. Possible causes:
+1. The `@onready` variables fail to resolve their node paths
+2. There's a parse-time error in the script
+3. The script is somehow not attached to the instantiated scene
+
+### Investigation Actions
+
+1. **Added `_enter_tree()` function** - This runs before `_ready()` and before `@onready` variables are initialized:
+   ```gdscript
+   func _enter_tree() -> void:
+       FileLogger.info("[ArmoryMenu] _enter_tree() called - node added to tree")
+   ```
+
+2. **Enhanced pause menu logging** - Added detailed logging to trace the exact state:
+   ```gdscript
+   FileLogger.info("[PauseMenu] armory_menu_scene resource path: %s" % armory_menu_scene.resource_path)
+   FileLogger.info("[PauseMenu] Instance created, class: %s, name: %s" % [_armory_menu.get_class(), _armory_menu.name])
+   FileLogger.info("[PauseMenu] is_inside_tree: %s" % _armory_menu.is_inside_tree())
+   ```
+
+### Next Steps
+
+User needs to:
+1. Rebuild the game with the latest code
+2. Open the armory menu
+3. Provide the new log file
+
+Expected log entries if `_enter_tree()` works but `_ready()` doesn't:
+```
+[PauseMenu] armory_menu_scene resource path: res://scenes/ui/ArmoryMenu.tscn
+[PauseMenu] Instance created, class: CanvasLayer, name: ArmoryMenu
+[ArmoryMenu] _enter_tree() called - node added to tree
+[PauseMenu] is_inside_tree: true
+```
+
+If `_enter_tree()` also doesn't appear, the script is not executing at all (possibly not attached).

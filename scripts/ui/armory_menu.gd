@@ -63,6 +63,10 @@ var _grenade_manager: Node = null
 var _grenade_buttons: Dictionary = {}
 
 
+func _enter_tree() -> void:
+	FileLogger.info("[ArmoryMenu] _enter_tree() called - node added to tree")
+
+
 func _ready() -> void:
 	FileLogger.info("[ArmoryMenu] _ready() called")
 

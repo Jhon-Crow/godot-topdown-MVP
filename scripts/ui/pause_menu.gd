@@ -166,10 +166,13 @@ func _on_armory_pressed() -> void:
 
 	if _armory_menu == null:
 		FileLogger.info("[PauseMenu] Creating new armory menu instance")
+		FileLogger.info("[PauseMenu] armory_menu_scene resource path: %s" % armory_menu_scene.resource_path)
 		_armory_menu = armory_menu_scene.instantiate()
+		FileLogger.info("[PauseMenu] Instance created, class: %s, name: %s" % [_armory_menu.get_class(), _armory_menu.name])
 		_armory_menu.back_pressed.connect(_on_armory_back)
+		FileLogger.info("[PauseMenu] back_pressed signal connected")
 		add_child(_armory_menu)
-		FileLogger.info("[PauseMenu] Armory menu instance created and added as child")
+		FileLogger.info("[PauseMenu] Armory menu instance added as child, is_inside_tree: %s" % _armory_menu.is_inside_tree())
 	else:
 		FileLogger.info("[PauseMenu] Showing existing armory menu")
 		# Refresh the weapon grid in case grenade selection changed
