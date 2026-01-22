@@ -1019,10 +1019,11 @@ func _physics_process(delta: float) -> void:
 	if debug_label_enabled:
 		queue_redraw()
 
-	# Update weapon sprite rotation to match enemy aim direction
-	_update_weapon_sprite_rotation()
-
 	# Update enemy model rotation to face movement/aim direction
+	# Note: We don't call _update_weapon_sprite_rotation() anymore because:
+	# 1. The EnemyModel rotation already rotates the weapon correctly
+	# 2. The previous _update_weapon_sprite_rotation() was using the Enemy's rotation
+	#    instead of EnemyModel's rotation, causing the weapon to be offset by 90 degrees
 	_update_enemy_model_rotation()
 
 	# Update walking animation based on movement
@@ -2253,12 +2254,12 @@ func _shoot_with_inaccuracy() -> void:
 
 	# Create and fire bullet
 	var bullet := bullet_scene.instantiate()
-	bullet.global_position = global_position + direction * bullet_spawn_offset
+	var bullet_spawn_pos := _get_bullet_spawn_position(direction)
+	bullet.global_position = bullet_spawn_pos
 	bullet.direction = direction
 	bullet.shooter_id = get_instance_id()
 	# Set shooter position for distance-based penetration calculation
-	# Direct assignment - the bullet script defines this property
-	bullet.shooter_position = global_position
+	bullet.shooter_position = bullet_spawn_pos
 	get_tree().current_scene.add_child(bullet)
 
 	# Play sounds
@@ -2307,12 +2308,12 @@ func _shoot_burst_shot() -> void:
 
 	# Create and fire bullet
 	var bullet := bullet_scene.instantiate()
-	bullet.global_position = global_position + direction * bullet_spawn_offset
+	var bullet_spawn_pos := _get_bullet_spawn_position(direction)
+	bullet.global_position = bullet_spawn_pos
 	bullet.direction = direction
 	bullet.shooter_id = get_instance_id()
 	# Set shooter position for distance-based penetration calculation
-	# Direct assignment - the bullet script defines this property
-	bullet.shooter_position = global_position
+	bullet.shooter_position = bullet_spawn_pos
 	get_tree().current_scene.add_child(bullet)
 
 	# Play sounds
@@ -3549,8 +3550,9 @@ func _shoot() -> void:
 	# Create bullet instance
 	var bullet := bullet_scene.instantiate()
 
-	# Set bullet position with offset in shoot direction
-	bullet.global_position = global_position + direction * bullet_spawn_offset
+	# Calculate bullet spawn position at weapon muzzle
+	var bullet_spawn_pos := _get_bullet_spawn_position(direction)
+	bullet.global_position = bullet_spawn_pos
 
 	# Set bullet direction
 	bullet.direction = direction
@@ -3559,8 +3561,8 @@ func _shoot() -> void:
 	# This prevents enemies from detecting their own bullets in the threat sphere
 	bullet.shooter_id = get_instance_id()
 	# Set shooter position for distance-based penetration calculation
-	# Direct assignment - the bullet script defines this property
-	bullet.shooter_position = global_position
+	# Use the bullet spawn position (weapon muzzle) for accurate distance calculation
+	bullet.shooter_position = bullet_spawn_pos
 
 	# Add bullet to the scene tree
 	get_tree().current_scene.add_child(bullet)
@@ -3825,6 +3827,21 @@ func _get_health_percent() -> float:
 	if _max_health <= 0:
 		return 0.0
 	return float(_current_health) / float(_max_health)
+
+
+## Calculates the bullet spawn position at the weapon's muzzle.
+## The muzzle is positioned relative to the weapon mount, offset in the aim direction.
+## @param direction: The normalized direction the bullet will travel.
+## @return: The global position where the bullet should spawn.
+func _get_bullet_spawn_position(direction: Vector2) -> Vector2:
+	# The rifle sprite has offset 20px and is 64px long, so muzzle is ~44px from WeaponMount center
+	var muzzle_offset := 44.0 * enemy_model_scale  # Scale with enemy model
+	if _weapon_mount:
+		# Use weapon mount global position as the base, then offset to muzzle
+		return _weapon_mount.global_position + direction * muzzle_offset
+	else:
+		# Fallback to old behavior if weapon mount not found
+		return global_position + direction * bullet_spawn_offset
 
 
 ## Updates the weapon sprite rotation to match the direction the enemy will shoot.

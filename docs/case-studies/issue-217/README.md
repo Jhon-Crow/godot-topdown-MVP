@@ -193,6 +193,74 @@ For modular character models, applying scale to the parent container (PlayerMode
 7. Updated `_update_health_visual()` to use all sprites
 8. Added `_set_all_sprites_modulate(color)` helper
 
+### Phase 5: Second User Feedback (2026-01-22T11:03:24Z)
+
+User @Jhon-Crow tested the solution again and reported two issues:
+
+1. **"оружие врагов на 90 градусов от врага (слева)"**
+   - Translation: Enemy weapon is at 90 degrees from the enemy (to the left)
+   - Similar issue to a past player model bug
+
+2. **"пули не летят из оружия врага"**
+   - Translation: Bullets are not flying from enemy weapon
+   - Bullets spawn from enemy center instead of weapon muzzle
+
+### Phase 6: Root Cause Analysis and Fix (2026-01-22)
+
+## Root Cause Analysis (Phase 5-6)
+
+### Issue 3: Enemy Weapon Rotated 90 Degrees to the Left
+
+**Root Cause:** The enemy script had TWO competing rotation systems:
+
+1. `_update_enemy_model_rotation()` - Rotates the EnemyModel (including weapon) to face the player
+2. `_update_weapon_sprite_rotation()` - Attempted to set weapon sprite rotation independently
+
+The problem was in `_update_weapon_sprite_rotation()`:
+```gdscript
+# The comment was WRONG - weapon sprite is NOT a child of "enemy body"
+# It's actually: Enemy -> EnemyModel -> WeaponMount -> WeaponSprite
+_weapon_sprite.rotation = aim_angle - rotation  # Uses Enemy's rotation, not EnemyModel's!
+```
+
+The code used `rotation` (Enemy CharacterBody2D's rotation) instead of `_enemy_model.rotation`. Since:
+- EnemyModel already rotates to face the target
+- WeaponSprite is a child of EnemyModel/WeaponMount
+- The weapon should just inherit EnemyModel's rotation
+
+The additional rotation calculation was causing a 90-degree offset.
+
+**Fix Applied:**
+1. Removed the `_update_weapon_sprite_rotation()` call from `_physics_process`
+2. The weapon now correctly inherits rotation from EnemyModel
+
+### Issue 4: Bullets Not Spawning from Weapon Muzzle
+
+**Root Cause:** The `_shoot()` function spawned bullets from enemy CENTER:
+```gdscript
+bullet.global_position = global_position + direction * bullet_spawn_offset
+```
+
+This was visually incorrect - bullets should appear to come from the rifle's barrel.
+
+**Fix Applied:**
+1. Added helper function `_get_bullet_spawn_position(direction: Vector2) -> Vector2`:
+   ```gdscript
+   func _get_bullet_spawn_position(direction: Vector2) -> Vector2:
+       var muzzle_offset := 44.0 * enemy_model_scale  # Scale with enemy model
+       if _weapon_mount:
+           return _weapon_mount.global_position + direction * muzzle_offset
+       else:
+           return global_position + direction * bullet_spawn_offset
+   ```
+
+2. Updated all three shooting functions to use this helper:
+   - `_shoot()`
+   - `_shoot_with_inaccuracy()`
+   - `_shoot_burst_shot()`
+
+3. Updated `shooter_position` to use muzzle position for accurate distance calculations
+
 ## Lessons Learned
 
 1. **Maintain Consistency Between Scene and Script:** When updating scene structure (adding EnemyModel with children), the script must be updated to reference the new node paths.
@@ -211,6 +279,12 @@ For modular character models, applying scale to the parent container (PlayerMode
    - Hit flash effect
    - Walking animation
    - Model rotation when aiming
+
+6. **Avoid Competing Rotation Systems:** When using hierarchical node structures, be careful not to apply rotations at multiple levels. The EnemyModel already handles rotation - adding an independent weapon rotation caused conflicts.
+
+7. **Understand Node Hierarchy for Relative Calculations:** When calculating relative positions/rotations, use the correct parent node's values. Using `rotation` (CharacterBody2D) instead of `_enemy_model.rotation` caused the 90-degree offset.
+
+8. **Spawn Projectiles from Visual Origin:** Bullets should spawn from where players expect them - the weapon's muzzle, not the character's center. This improves visual consistency and player feedback.
 
 ## Related Files
 
