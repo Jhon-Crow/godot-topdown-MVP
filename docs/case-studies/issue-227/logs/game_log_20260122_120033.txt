@@ -1,0 +1,592 @@
+[12:00:33] [INFO] ============================================================
+[12:00:33] [INFO] GAME LOG STARTED
+[12:00:33] [INFO] ============================================================
+[12:00:33] [INFO] Timestamp: 2026-01-22T12:00:33
+[12:00:33] [INFO] Log file: I:/Загрузки/godot exe/game_log_20260122_120033.txt
+[12:00:33] [INFO] Executable: I:/Загрузки/godot exe/Godot-Top-Down-Template.exe
+[12:00:33] [INFO] OS: Windows
+[12:00:33] [INFO] Debug build: false
+[12:00:33] [INFO] Engine version: 4.3-stable (official)
+[12:00:33] [INFO] Project: Godot Top-Down Template
+[12:00:33] [INFO] ------------------------------------------------------------
+[12:00:33] [INFO] [GameManager] GameManager ready
+[12:00:33] [INFO] [ScoreManager] ScoreManager ready
+[12:00:33] [INFO] [SoundPropagation] SoundPropagation autoload initialized
+[12:00:33] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[12:00:33] [INFO] [PenultimateHit] Saturation shader loaded successfully
+[12:00:33] [INFO] [PenultimateHit] PenultimateHitEffectsManager ready - Configuration:
+[12:00:33] [INFO] [PenultimateHit]   Time scale: 0.10 (10x slowdown)
+[12:00:33] [INFO] [PenultimateHit]   Saturation boost: 2.0 (3.0x)
+[12:00:33] [INFO] [PenultimateHit]   Contrast boost: 1.0 (2.0x)
+[12:00:33] [INFO] [PenultimateHit]   Effect duration: 3.0 real seconds
+[12:00:33] [INFO] [LastChance] Resetting all effects (scene change detected)
+[12:00:33] [INFO] [LastChance] Last chance shader loaded successfully
+[12:00:33] [INFO] [LastChance] LastChanceEffectsManager ready - Configuration:
+[12:00:33] [INFO] [LastChance]   Freeze duration: 6.0 real seconds
+[12:00:33] [INFO] [LastChance]   Sepia intensity: 0.70
+[12:00:33] [INFO] [LastChance]   Brightness: 0.60
+[12:00:33] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FlashbangGrenade.tscn
+[12:00:33] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FragGrenade.tscn
+[12:00:33] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[12:00:33] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[12:00:33] [INFO] [Player] Ready! Grenades: 1/3
+[12:00:33] [INFO] [ScoreManager] Level started with 10 enemies
+[12:00:33] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 1)
+[12:00:33] [ENEMY] [Enemy1] Registered as sound listener
+[12:00:33] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 3, behavior: GUARD, player_found: yes
+[12:00:33] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 2)
+[12:00:33] [ENEMY] [Enemy2] Registered as sound listener
+[12:00:33] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 2, behavior: GUARD, player_found: yes
+[12:00:33] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 3)
+[12:00:33] [ENEMY] [Enemy3] Registered as sound listener
+[12:00:33] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 3, behavior: GUARD, player_found: yes
+[12:00:33] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 4)
+[12:00:33] [ENEMY] [Enemy4] Registered as sound listener
+[12:00:33] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 4, behavior: GUARD, player_found: yes
+[12:00:33] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 5)
+[12:00:33] [ENEMY] [Enemy5] Registered as sound listener
+[12:00:33] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 4, behavior: GUARD, player_found: yes
+[12:00:33] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 6)
+[12:00:33] [ENEMY] [Enemy6] Registered as sound listener
+[12:00:33] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 3, behavior: GUARD, player_found: yes
+[12:00:33] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 7)
+[12:00:33] [ENEMY] [Enemy7] Registered as sound listener
+[12:00:33] [ENEMY] [Enemy7] Enemy spawned at (1606.114, 893.8859), health: 4, behavior: PATROL, player_found: yes
+[12:00:33] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 8)
+[12:00:33] [ENEMY] [Enemy8] Registered as sound listener
+[12:00:33] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 4, behavior: GUARD, player_found: yes
+[12:00:33] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 9)
+[12:00:33] [ENEMY] [Enemy9] Registered as sound listener
+[12:00:33] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 3, behavior: GUARD, player_found: yes
+[12:00:33] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 10)
+[12:00:33] [ENEMY] [Enemy10] Registered as sound listener
+[12:00:33] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 2, behavior: PATROL, player_found: yes
+[12:00:33] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[12:00:33] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[12:00:33] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[12:00:33] [INFO] [LastChance] Found player: Player
+[12:00:33] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[12:00:33] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[12:00:33] [INFO] [LastChance] Connected to player Died signal (C#)
+[12:00:36] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[12:00:36] [INFO] [LastChance] Resetting all effects (scene change detected)
+[12:00:36] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[12:00:36] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+[12:00:36] [INFO] [Player] Ready! Grenades: 3/3
+[12:00:36] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[12:00:36] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[12:00:36] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[12:00:36] [INFO] [LastChance] Found player: Player
+[12:00:36] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[12:00:36] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[12:00:36] [INFO] [LastChance] Connected to player Died signal (C#)
+[12:00:38] [INFO] [PauseMenu] Armory button pressed
+[12:00:38] [INFO] [PauseMenu] Creating new armory menu instance
+[12:00:38] [INFO] [PauseMenu] armory_menu_scene resource path: res://scenes/ui/ArmoryMenu.tscn
+[12:00:38] [INFO] [PauseMenu] Instance created, class: CanvasLayer, name: ArmoryMenu
+[12:00:38] [INFO] [PauseMenu] Script attached: res://scripts/ui/armory_menu.gd
+[12:00:38] [INFO] [PauseMenu] back_pressed signal exists on instance
+[12:00:38] [INFO] [PauseMenu] back_pressed signal connected
+[12:00:38] [INFO] [PauseMenu] Armory menu instance added as child, is_inside_tree: true
+[12:00:38] [INFO] [PauseMenu] _populate_weapon_grid method exists
+[12:00:38] [INFO] [GameManager] Weapon selected: shotgun
+[12:00:39] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[12:00:39] [INFO] [LastChance] Resetting all effects (scene change detected)
+[12:00:39] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[12:00:39] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+[12:00:39] [INFO] [Player] Ready! Grenades: 3/3
+[12:00:39] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[12:00:39] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[12:00:39] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[12:00:39] [INFO] [LastChance] Found player: Player
+[12:00:39] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[12:00:39] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[12:00:39] [INFO] [LastChance] Connected to player Died signal (C#)
+[12:00:42] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(554.3715, 179.3), source=PLAYER (Shotgun), range=1469, listeners=10
+[12:00:42] [INFO] [SoundPropagation] Cleaned up 10 invalid listeners
+[12:00:42] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:00:44] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[12:00:44] [INFO] [LastChance] Resetting all effects (scene change detected)
+[12:00:44] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[12:00:44] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+[12:00:44] [INFO] [Player] Ready! Grenades: 3/3
+[12:00:44] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[12:00:44] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[12:00:44] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[12:00:44] [INFO] [LastChance] Found player: Player
+[12:00:44] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[12:00:44] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[12:00:44] [INFO] [LastChance] Connected to player Died signal (C#)
+[12:00:45] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(310.3087, 172.7993), source=PLAYER (Shotgun), range=1469, listeners=0
+[12:00:45] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:00:46] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(484.6753, 172.7993), source=PLAYER (Shotgun), range=1469, listeners=0
+[12:00:46] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:00:48] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(484.6753, 172.7993), source=PLAYER (Shotgun), range=1469, listeners=0
+[12:00:48] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:00:49] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(484.6753, 172.7993), source=PLAYER (Shotgun), range=1469, listeners=0
+[12:00:49] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:00:50] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(484.6753, 172.7993), source=PLAYER (Shotgun), range=1469, listeners=0
+[12:00:50] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:00:52] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(484.6753, 172.7993), source=PLAYER (Shotgun), range=1469, listeners=0
+[12:00:52] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:00:53] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(484.6753, 172.7993), source=PLAYER (Shotgun), range=1469, listeners=0
+[12:00:53] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:00:54] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(484.6753, 172.7993), source=PLAYER (Shotgun), range=1469, listeners=0
+[12:00:54] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:00:57] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[12:00:57] [INFO] [LastChance] Resetting all effects (scene change detected)
+[12:00:57] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[12:00:57] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+[12:00:57] [INFO] [Player] Ready! Grenades: 3/3
+[12:00:57] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[12:00:57] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[12:00:57] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[12:00:57] [INFO] [LastChance] Found player: Player
+[12:00:57] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[12:00:57] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[12:00:57] [INFO] [LastChance] Connected to player Died signal (C#)
+[12:00:58] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(358.8651, 162.7429), source=PLAYER (Shotgun), range=1469, listeners=0
+[12:00:58] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:00] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(499.3351, 193.9605), source=PLAYER (Shotgun), range=1469, listeners=0
+[12:01:00] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:01] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(499.3351, 193.9605), source=PLAYER (Shotgun), range=1469, listeners=0
+[12:01:01] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:02] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(499.3351, 193.9605), source=PLAYER (Shotgun), range=1469, listeners=0
+[12:01:02] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:11] [INFO] [PauseMenu] Armory button pressed
+[12:01:11] [INFO] [PauseMenu] Creating new armory menu instance
+[12:01:11] [INFO] [PauseMenu] armory_menu_scene resource path: res://scenes/ui/ArmoryMenu.tscn
+[12:01:11] [INFO] [PauseMenu] Instance created, class: CanvasLayer, name: ArmoryMenu
+[12:01:11] [INFO] [PauseMenu] Script attached: res://scripts/ui/armory_menu.gd
+[12:01:11] [INFO] [PauseMenu] back_pressed signal exists on instance
+[12:01:11] [INFO] [PauseMenu] back_pressed signal connected
+[12:01:11] [INFO] [PauseMenu] Armory menu instance added as child, is_inside_tree: true
+[12:01:11] [INFO] [PauseMenu] _populate_weapon_grid method exists
+[12:01:12] [INFO] [GameManager] Weapon selected: mini_uzi
+[12:01:13] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[12:01:13] [INFO] [LastChance] Resetting all effects (scene change detected)
+[12:01:13] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[12:01:13] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+[12:01:13] [INFO] [Player] Ready! Grenades: 3/3
+[12:01:13] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[12:01:13] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[12:01:13] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[12:01:13] [INFO] [LastChance] Found player: Player
+[12:01:13] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[12:01:13] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[12:01:13] [INFO] [LastChance] Connected to player Died signal (C#)
+[12:01:16] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(427.3637, 178.9665), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:16] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:16] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(427.3637, 178.9665), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:16] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:16] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(427.3637, 178.9665), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:16] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:16] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(427.3637, 178.9665), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:16] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:16] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(427.3637, 178.9665), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:16] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:16] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(427.3637, 178.9665), shooter_id=199380436793, bullet_pos=(913.9634, 63.98544)
+[12:01:16] [INFO] [Bullet] Using shooter_position, distance=499.999969482422
+[12:01:16] [INFO] [Bullet] Distance to wall: 499.999969482422 (34.0459173409297% of viewport)
+[12:01:16] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[12:01:17] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(427.3637, 178.9665), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:17] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:17] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(427.3637, 178.9665), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:17] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:17] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(427.3637, 178.9665), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:17] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:17] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(427.3637, 178.9665), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:17] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:17] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(427.3637, 178.9665), shooter_id=199380436793, bullet_pos=(1077.528, 65.44745)
+[12:01:17] [INFO] [Bullet] Using shooter_position, distance=660.000427246094
+[12:01:17] [INFO] [Bullet] Distance to wall: 660.000427246094 (44.9406427249567% of viewport)
+[12:01:17] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(432.3637, 178.9665), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:17] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:17] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(439.3637, 178.9665), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:17] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:17] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(449.3637, 178.9665), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:17] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:17] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(462.3637, 178.9665), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:17] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:18] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(449.3637, 178.9665), shooter_id=199380436793, bullet_pos=(1079.164, 65.15988)
+[12:01:18] [INFO] [Bullet] Using shooter_position, distance=640.000610351563
+[12:01:18] [INFO] [Bullet] Distance to wall: 640.000610351563 (43.5788184161877% of viewport)
+[12:01:18] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(668.9163, 249.6564), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:18] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:18] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(680.5836, 261.3237), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:18] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:18] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(692.2509, 272.991), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:18] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:18] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(702.0704, 285.4236), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:18] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:18] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(427.3637, 178.9665), shooter_id=199380436793, bullet_pos=(1802.19, 349.5439)
+[12:01:18] [INFO] [Bullet] Using shooter_position, distance=1385.36767578125
+[12:01:18] [INFO] [Bullet] Distance to wall: 1385.36767578125 (94.3322325104712% of viewport)
+[12:01:18] [INFO] [Bullet] Distance-based penetration chance: 36.6123954044503%
+[12:01:18] [INFO] [Bullet] Penetration failed (distance roll)
+[12:01:19] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(427.3637, 178.9665), shooter_id=199380436793, bullet_pos=(1801.046, 111.8558)
+[12:01:19] [INFO] [Bullet] Using shooter_position, distance=1375.32055664063
+[12:01:19] [INFO] [Bullet] Distance to wall: 1375.32055664063 (93.648105693163% of viewport)
+[12:01:19] [INFO] [Bullet] Distance-based penetration chance: 37.4105433579765%
+[12:01:19] [INFO] [Bullet] Penetration failed (distance roll)
+[12:01:19] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(673.4564, 404.9747), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:19] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:19] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(661.7891, 416.642), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:19] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:19] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(650.1218, 428.3093), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:19] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:19] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(638.4545, 439.9766), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:19] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:19] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(626.7872, 451.6439), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:19] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:19] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(449.3637, 178.9665), shooter_id=199380436793, bullet_pos=(1803.058, 105.1347)
+[12:01:19] [INFO] [Bullet] Using shooter_position, distance=1355.70642089844
+[12:01:19] [INFO] [Bullet] Distance to wall: 1355.70642089844 (92.3125431232622% of viewport)
+[12:01:19] [INFO] [Bullet] Distance-based penetration chance: 38.9686996895275%
+[12:01:19] [INFO] [Bullet] Penetration failed (distance roll)
+[12:01:20] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(607.868, 609.2546), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:20] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:20] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(617.2527, 612.9603), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:20] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:20] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(627.078, 613.6984), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:20] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:20] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(673.4564, 404.9747), shooter_id=199380436793, bullet_pos=(1814.943, 198.5677)
+[12:01:20] [INFO] [Bullet] Using shooter_position, distance=1159.99816894531
+[12:01:20] [INFO] [Bullet] Distance to wall: 1159.99816894531 (78.9864083720316% of viewport)
+[12:01:20] [INFO] [Bullet] Distance-based penetration chance: 54.5158568992965%
+[12:01:20] [INFO] [Bullet] Caliber cannot penetrate walls
+[12:01:20] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(637.3439, 611.4691), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:20] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:20] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(626.7872, 451.6439), shooter_id=199380436793, bullet_pos=(1527.641, 65.81818)
+[12:01:20] [INFO] [Bullet] Using shooter_position, distance=979.999267578125
+[12:01:20] [INFO] [Bullet] Distance to wall: 979.999267578125 (66.729952189146% of viewport)
+[12:01:20] [INFO] [Bullet] Distance-based penetration chance: 68.8150557793297%
+[12:01:20] [INFO] [Bullet] Caliber cannot penetrate walls
+[12:01:20] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(638.4545, 439.9766), shooter_id=199380436793, bullet_pos=(1694.046, 65.64229)
+[12:01:20] [INFO] [Bullet] Using shooter_position, distance=1120
+[12:01:20] [INFO] [Bullet] Distance to wall: 1120 (76.2628594983981% of viewport)
+[12:01:20] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(650.1218, 428.3093), shooter_id=199380436793, bullet_pos=(1792.743, 61.67587)
+[12:01:20] [INFO] [Bullet] Using shooter_position, distance=1200.00109863281
+[12:01:20] [INFO] [Bullet] Distance to wall: 1200.00109863281 (81.7102814133549% of viewport)
+[12:01:20] [INFO] [Bullet] Distance-based penetration chance: 51.3380050177526%
+[12:01:20] [INFO] [Bullet] Penetration failed (distance roll)
+[12:01:20] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(638.4545, 439.9766), shooter_id=199380436793, bullet_pos=(1803.989, 105.66)
+[12:01:20] [INFO] [Bullet] Using shooter_position, distance=1212.53393554688
+[12:01:20] [INFO] [Bullet] Distance to wall: 1212.53393554688 (82.5636653246884% of viewport)
+[12:01:20] [INFO] [Bullet] Distance-based penetration chance: 50.3423904545302%
+[12:01:20] [INFO] [Bullet] Caliber cannot penetrate walls
+[12:01:20] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(689.6334, 486.0605), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:20] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:20] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(689.6334, 469.5605), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:20] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:20] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(689.6334, 453.0605), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:20] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:21] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(689.6334, 343.0605), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:21] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:21] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(689.6334, 326.5605), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:21] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:21] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(689.6334, 310.0605), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:21] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:21] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(689.6334, 486.0605), shooter_id=199380436793, bullet_pos=(1808.957, 447.1418)
+[12:01:21] [INFO] [Bullet] Using shooter_position, distance=1119.99963378906
+[12:01:21] [INFO] [Bullet] Distance to wall: 1119.99963378906 (76.2628345624219% of viewport)
+[12:01:21] [INFO] [Bullet] Distance-based penetration chance: 57.6933596771744%
+[12:01:21] [INFO] [Bullet] Caliber cannot penetrate walls
+[12:01:21] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(689.6334, 469.5605), shooter_id=199380436793, bullet_pos=(1804.335, 578.3777)
+[12:01:21] [INFO] [Bullet] Using shooter_position, distance=1120.00085449219
+[12:01:21] [INFO] [Bullet] Distance to wall: 1120.00085449219 (76.2629176823424% of viewport)
+[12:01:21] [INFO] [Bullet] Distance-based penetration chance: 57.6932627039339%
+[12:01:21] [INFO] [Bullet] Caliber cannot penetrate walls
+[12:01:21] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(689.6334, 453.0605), shooter_id=199380436793, bullet_pos=(1812.419, 650.4214)
+[12:01:21] [INFO] [Bullet] Using shooter_position, distance=1139.99975585938
+[12:01:21] [INFO] [Bullet] Distance to wall: 1139.99975585938 (77.6246796511711% of viewport)
+[12:01:21] [INFO] [Bullet] Distance-based penetration chance: 56.1045404069671%
+[12:01:21] [INFO] [Bullet] Caliber cannot penetrate walls
+[12:01:21] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(689.6334, 326.5605), shooter_id=199380436793, bullet_pos=(1508.004, 62.2368)
+[12:01:21] [INFO] [Bullet] Using shooter_position, distance=859.998901367188
+[12:01:21] [INFO] [Bullet] Distance to wall: 859.998901367188 (58.5589065926272% of viewport)
+[12:01:21] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(689.6334, 310.0605), shooter_id=199380436793, bullet_pos=(1492.776, 63.96281)
+[12:01:21] [INFO] [Bullet] Using shooter_position, distance=840.000915527344
+[12:01:21] [INFO] [Bullet] Distance to wall: 840.000915527344 (57.1972069637389% of viewport)
+[12:01:21] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(689.6334, 343.0605), shooter_id=199380436793, bullet_pos=(1629.144, 64.27271)
+[12:01:21] [INFO] [Bullet] Using shooter_position, distance=980.001342773438
+[12:01:21] [INFO] [Bullet] Distance to wall: 980.001342773438 (66.7300934930108% of viewport)
+[12:01:22] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(689.6334, 343.0605), shooter_id=199380436793, bullet_pos=(1801.481, 79.40882)
+[12:01:22] [INFO] [Bullet] Using shooter_position, distance=1142.68017578125
+[12:01:22] [INFO] [Bullet] Distance to wall: 1142.68017578125 (77.8071943725092% of viewport)
+[12:01:22] [INFO] [Bullet] Distance-based penetration chance: 55.891606565406%
+[12:01:22] [INFO] [Bullet] Penetration failed (distance roll)
+[12:01:22] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(689.6334, 326.5605), shooter_id=199380436793, bullet_pos=(1802.87, 178.6112)
+[12:01:22] [INFO] [Bullet] Using shooter_position, distance=1123.02502441406
+[12:01:22] [INFO] [Bullet] Distance to wall: 1123.02502441406 (76.468838973281% of viewport)
+[12:01:22] [INFO] [Bullet] Distance-based penetration chance: 57.4530211978389%
+[12:01:22] [INFO] [Bullet] Caliber cannot penetrate walls
+[12:01:22] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(689.6334, 310.0605), shooter_id=199380436793, bullet_pos=(1798.31, 110.1206)
+[12:01:22] [INFO] [Bullet] Using shooter_position, distance=1126.56115722656
+[12:01:22] [INFO] [Bullet] Distance to wall: 1126.56115722656 (76.709620758859% of viewport)
+[12:01:22] [INFO] [Bullet] Distance-based penetration chance: 57.1721091146645%
+[12:01:22] [INFO] [Bullet] Penetration failed (distance roll)
+[12:01:23] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(558.089, 161.7895), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:23] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:23] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(558.089, 161.7895), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:23] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:23] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(558.089, 161.7895), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:23] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:23] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(558.089, 161.7895), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:23] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:23] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(558.089, 161.7895), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:23] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:23] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(558.089, 161.7895), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:23] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:23] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(558.089, 161.7895), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:23] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:23] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(558.089, 161.7895), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:23] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:23] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(558.089, 161.7895), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:23] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:23] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(558.089, 161.7895), shooter_id=199380436793, bullet_pos=(798.658, 63.16594)
+[12:01:23] [INFO] [Bullet] Using shooter_position, distance=260.000122070313
+[12:01:23] [INFO] [Bullet] Distance to wall: 260.000122070313 (17.7038864098345% of viewport)
+[12:01:23] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[12:01:23] [INFO] [Bullet] Caliber cannot penetrate walls
+[12:01:23] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(558.089, 161.7895), shooter_id=199380436793, bullet_pos=(862.3517, 62.67245)
+[12:01:23] [INFO] [Bullet] Using shooter_position, distance=319.999969482422
+[12:01:23] [INFO] [Bullet] Distance to wall: 319.999969482422 (21.7893863501157% of viewport)
+[12:01:23] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[12:01:23] [INFO] [Bullet] Caliber cannot penetrate walls
+[12:01:23] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(558.089, 161.7895), shooter_id=199380436793, bullet_pos=(1048.435, 64.00823)
+[12:01:23] [INFO] [Bullet] Using shooter_position, distance=500.000091552734
+[12:01:23] [INFO] [Bullet] Distance to wall: 500.000091552734 (34.0459256529217% of viewport)
+[12:01:23] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[12:01:23] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(558.089, 161.7895), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:23] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:23] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(558.089, 161.7895), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:23] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:24] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(558.089, 162.1228), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:24] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:24] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(558.089, 161.7895), shooter_id=199380436793, bullet_pos=(1048.438, 64.02145)
+[12:01:24] [INFO] [Bullet] Using shooter_position, distance=500.00048828125
+[12:01:24] [INFO] [Bullet] Distance to wall: 500.00048828125 (34.0459526668959% of viewport)
+[12:01:24] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[12:01:24] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(558.089, 165.1228), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:24] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:24] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(558.089, 161.7895), shooter_id=199380436793, bullet_pos=(1048.847, 66.09818)
+[12:01:24] [INFO] [Bullet] Using shooter_position, distance=500.000061035156
+[12:01:24] [INFO] [Bullet] Distance to wall: 500.000061035156 (34.0459235749237% of viewport)
+[12:01:24] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[12:01:24] [INFO] [Bullet] Caliber cannot penetrate walls
+[12:01:24] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(558.089, 161.7895), shooter_id=199380436793, bullet_pos=(778.4813, 66.77776)
+[12:01:24] [INFO] [Bullet] Using shooter_position, distance=240.000015258789
+[12:01:24] [INFO] [Bullet] Distance to wall: 240.000015258789 (16.3420423600843% of viewport)
+[12:01:24] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[12:01:24] [INFO] [Bullet] Caliber cannot penetrate walls
+[12:01:24] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(558.089, 162.1228), shooter_id=199380436793, bullet_pos=(777.1095, 63.99042)
+[12:01:24] [INFO] [Bullet] Using shooter_position, distance=239.999893188477
+[12:01:24] [INFO] [Bullet] Distance to wall: 239.999893188477 (16.3420340480923% of viewport)
+[12:01:24] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[12:01:24] [INFO] [Bullet] Caliber cannot penetrate walls
+[12:01:24] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(558.089, 165.1228), shooter_id=199380436793, bullet_pos=(753.3229, 63.71442)
+[12:01:24] [INFO] [Bullet] Using shooter_position, distance=219.999847412109
+[12:01:24] [INFO] [Bullet] Distance to wall: 219.999847412109 (14.9801941543381% of viewport)
+[12:01:24] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[12:01:24] [INFO] [Bullet] Caliber cannot penetrate walls
+[12:01:24] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(558.089, 161.7895), shooter_id=199380436793, bullet_pos=(966.6559, 64.45726)
+[12:01:24] [INFO] [Bullet] Using shooter_position, distance=420.000549316406
+[12:01:24] [INFO] [Bullet] Distance to wall: 420.000549316406 (28.5986097158635% of viewport)
+[12:01:24] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[12:01:24] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(686.2788, 309.7057), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:24] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:24] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(687.04, 310.5594), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:24] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:24] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(687.04, 310.5594), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:24] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:25] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(687.04, 310.5594), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:25] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:25] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[12:01:25] [INFO] [LastChance] Resetting all effects (scene change detected)
+[12:01:25] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[12:01:25] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+[12:01:25] [INFO] [Player] Ready! Grenades: 3/3
+[12:01:25] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[12:01:25] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[12:01:25] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[12:01:25] [INFO] [LastChance] Found player: Player
+[12:01:25] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[12:01:25] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[12:01:25] [INFO] [LastChance] Connected to player Died signal (C#)
+[12:01:27] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(150, 360), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:27] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:27] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(150, 360), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:27] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:27] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(150, 360), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:27] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:27] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(150, 360), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:27] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:27] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(150, 360), shooter_id=249259100425, bullet_pos=(361.1329, 298.1703)
+[12:01:27] [INFO] [Bullet] Using shooter_position, distance=220.000030517578
+[12:01:27] [INFO] [Bullet] Distance to wall: 220.000030517578 (14.9802066223262% of viewport)
+[12:01:27] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[12:01:27] [INFO] [Bullet] Caliber cannot penetrate walls
+[12:01:28] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(150, 360), shooter_id=249259100425, bullet_pos=(1353.894, 62.94746)
+[12:01:28] [INFO] [Bullet] Using shooter_position, distance=1240
+[12:01:28] [INFO] [Bullet] Distance to wall: 1240 (84.4338801589407% of viewport)
+[12:01:28] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(150, 360), shooter_id=249259100425, bullet_pos=(1415.813, 63.83026)
+[12:01:28] [INFO] [Bullet] Using shooter_position, distance=1299.99926757813
+[12:01:28] [INFO] [Bullet] Distance to wall: 1299.99926757813 (88.5193406172598% of viewport)
+[12:01:28] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(150, 360), shooter_id=249259100425, bullet_pos=(1395.143, 63.31836)
+[12:01:28] [INFO] [Bullet] Using shooter_position, distance=1280.00024414063
+[12:01:28] [INFO] [Bullet] Distance to wall: 1280.00024414063 (87.157570336439% of viewport)
+[12:01:28] [INFO] [Bullet] Distance-based penetration chance: 44.9828346074878%
+[12:01:28] [INFO] [Bullet] Caliber cannot penetrate walls
+[12:01:29] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(150, 360), shooter_id=249259100425, bullet_pos=(1804.193, 146.1148)
+[12:01:29] [INFO] [Bullet] Using shooter_position, distance=1667.96264648438
+[12:01:29] [INFO] [Bullet] Distance to wall: 1667.96264648438 (113.574643711977% of viewport)
+[12:01:29] [INFO] [Bullet] Distance-based penetration chance: 27.2850712576046%
+[12:01:29] [INFO] [Bullet] Caliber cannot penetrate walls
+[12:01:29] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(150, 360), shooter_id=249259100425, bullet_pos=(1801.633, 131.7682)
+[12:01:29] [INFO] [Bullet] Using shooter_position, distance=1667.32800292969
+[12:01:29] [INFO] [Bullet] Distance to wall: 1667.32800292969 (113.531429665332% of viewport)
+[12:01:29] [INFO] [Bullet] Distance-based penetration chance: 27.2937140669337%
+[12:01:29] [INFO] [Bullet] Caliber cannot penetrate walls
+[12:01:29] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(230.3815, 164.7886), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:29] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:30] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(244.7275, 159.5885), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:30] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:30] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(260.2216, 157.1601), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:30] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:30] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(276.6414, 156.9665), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:30] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:30] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(293.1414, 156.9665), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:30] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:30] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(408.5139, 157.2744), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:30] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:30] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(423.8658, 160.0461), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:30] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:30] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(438.0697, 165.5894), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:30] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:30] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(451.1256, 173.9043), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:30] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:30] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(463.0808, 184.8764), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:30] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:31] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(260.2216, 157.1601), shooter_id=249259100425, bullet_pos=(1677.301, 66.16169)
+[12:01:31] [INFO] [Bullet] Using shooter_position, distance=1419.99841308594
+[12:01:31] [INFO] [Bullet] Distance to wall: 1419.99841308594 (96.6903030938581% of viewport)
+[12:01:31] [INFO] [Bullet] Distance-based penetration chance: 33.8613130571656%
+[12:01:31] [INFO] [Bullet] Penetration failed (distance roll)
+[12:01:31] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(408.5139, 157.2744), shooter_id=249259100425, bullet_pos=(1324.027, 66.52454)
+[12:01:31] [INFO] [Bullet] Using shooter_position, distance=920.000122070313
+[12:01:31] [INFO] [Bullet] Distance to wall: 920.000122070313 (62.644500042819% of viewport)
+[12:01:31] [INFO] [Bullet] Distance-based penetration chance: 73.5814166167112%
+[12:01:31] [INFO] [Bullet] Caliber cannot penetrate walls
+[12:01:31] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(423.8658, 160.0461), shooter_id=249259100425, bullet_pos=(1379.331, 66.84247)
+[12:01:31] [INFO] [Bullet] Using shooter_position, distance=959.999877929688
+[12:01:31] [INFO] [Bullet] Distance to wall: 959.999877929688 (65.3681569723491% of viewport)
+[12:01:31] [INFO] [Bullet] Distance-based penetration chance: 70.4038168655927%
+[12:01:31] [INFO] [Bullet] Caliber cannot penetrate walls
+[12:01:31] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(642.4252, 269.75), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:31] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:31] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(658.5425, 270.6738), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:31] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:31] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(673.5118, 274.3694), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:31] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:31] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(686.5477, 280.2518), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:31] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:31] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(697.2574, 288.0288), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:31] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:31] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(705.2143, 296.7357), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:31] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:31] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(710.2047, 305.89), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:31] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:31] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(463.0808, 184.8764), shooter_id=249259100425, bullet_pos=(1801.079, 258.081)
+[12:01:31] [INFO] [Bullet] Using shooter_position, distance=1339.99890136719
+[12:01:31] [INFO] [Bullet] Distance to wall: 1339.99890136719 (91.2429892347978% of viewport)
+[12:01:31] [INFO] [Bullet] Distance-based penetration chance: 40.2165125594025%
+[12:01:31] [INFO] [Bullet] Penetration failed (distance roll)
+[12:01:32] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(642.4252, 269.75), shooter_id=249259100425, bullet_pos=(1797.456, 662.5604)
+[12:01:32] [INFO] [Bullet] Using shooter_position, distance=1219.99890136719
+[12:01:32] [INFO] [Bullet] Distance to wall: 1219.99890136719 (83.0719685742552% of viewport)
+[12:01:32] [INFO] [Bullet] Distance-based penetration chance: 49.7493699967023%
+[12:01:32] [INFO] [Bullet] Caliber cannot penetrate walls
+[12:01:32] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(566.2088, 482.8256), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:32] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:32] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(658.5425, 270.6738), shooter_id=249259100425, bullet_pos=(1809.603, 874.8795)
+[12:01:32] [INFO] [Bullet] Using shooter_position, distance=1300.00146484375
+[12:01:32] [INFO] [Bullet] Distance to wall: 1300.00146484375 (88.5194902331166% of viewport)
+[12:01:32] [INFO] [Bullet] Distance-based penetration chance: 43.393928061364%
+[12:01:32] [INFO] [Bullet] Penetration failed (distance roll)
+[12:01:32] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(554.5415, 494.4929), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:32] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:32] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(543.1822, 506.2877), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:32] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:32] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(534.2866, 519.103), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:32] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:32] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(528.1626, 533.0665), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:32] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:32] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(524.9377, 547.0988), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:32] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:32] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(549.5552, 603.277), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:32] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:32] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(561.0231, 608.7149), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:32] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:33] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(574.5286, 611.9509), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:33] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:33] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(590.0717, 612.985), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:33] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:33] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(606.5717, 612.985), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:33] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:33] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(688.8763, 607.6474), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:33] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:33] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(566.2088, 482.8256), shooter_id=249259100425, bullet_pos=(1802.039, 381.2128)
+[12:01:33] [INFO] [Bullet] Using shooter_position, distance=1240.00024414063
+[12:01:33] [INFO] [Bullet] Distance to wall: 1240.00024414063 (84.4338967829248% of viewport)
+[12:01:33] [INFO] [Bullet] Distance-based penetration chance: 48.1604537532544%
+[12:01:33] [INFO] [Bullet] Caliber cannot penetrate walls
+[12:01:33] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(697.7004, 601.5473), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:33] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:33] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(704.5837, 593.1597), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:33] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:33] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(554.5415, 494.4929), shooter_id=249259100425, bullet_pos=(1813.279, 438.0509)
+[12:01:33] [INFO] [Bullet] Using shooter_position, distance=1260.00207519531
+[12:01:33] [INFO] [Bullet] Distance to wall: 1260.00207519531 (85.7958582395626% of viewport)
+[12:01:33] [INFO] [Bullet] Distance-based penetration chance: 46.5714987205103%
+[12:01:33] [INFO] [Bullet] Penetration failed (distance roll)
+[12:01:33] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(709.526, 582.4846), source=PLAYER (MiniUzi), range=1469, listeners=0
+[12:01:33] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[12:01:33] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(543.1822, 506.2877), shooter_id=249259100425, bullet_pos=(1802.452, 463.3501)
+[12:01:33] [INFO] [Bullet] Using shooter_position, distance=1260.00109863281
+[12:01:33] [INFO] [Bullet] Distance to wall: 1260.00109863281 (85.7957917436262% of viewport)
+[12:01:33] [INFO] [Bullet] Distance-based penetration chance: 46.5715762991027%
+[12:01:33] [INFO] [Bullet] Penetration failed (distance roll)
+[12:01:33] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(534.2866, 519.103), shooter_id=249259100425, bullet_pos=(1813.63, 560.0562)
+[12:01:33] [INFO] [Bullet] Using shooter_position, distance=1279.9990234375
+[12:01:33] [INFO] [Bullet] Distance to wall: 1279.9990234375 (87.1574872165186% of viewport)
+[12:01:33] [INFO] [Bullet] Distance-based penetration chance: 44.9829315807283%
+[12:01:33] [INFO] [Bullet] Caliber cannot penetrate walls
+[12:01:33] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(528.1626, 533.0665), shooter_id=249259100425, bullet_pos=(1799.589, 887.8487)
+[12:01:33] [INFO] [Bullet] Using shooter_position, distance=1319.99841308594
+[12:01:33] [INFO] [Bullet] Distance to wall: 1319.99841308594 (89.8811192100725% of viewport)
+[12:01:33] [INFO] [Bullet] Distance-based penetration chance: 41.805360921582%
+[12:01:33] [INFO] [Bullet] Penetration failed (distance roll)
+[12:01:33] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(524.9377, 547.0988), shooter_id=249259100425, bullet_pos=(1804.468, 871.4592)
+[12:01:33] [INFO] [Bullet] Using shooter_position, distance=1320.00244140625
+[12:01:33] [INFO] [Bullet] Distance to wall: 1320.00244140625 (89.8813935058101% of viewport)
+[12:01:33] [INFO] [Bullet] Distance-based penetration chance: 41.8050409098883%
+[12:01:33] [INFO] [Bullet] Penetration failed (distance roll)
+[12:01:34] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(574.5286, 611.9509), shooter_id=249259100425, bullet_pos=(1802.957, 780.9599)
+[12:01:34] [INFO] [Bullet] Using shooter_position, distance=1239.99975585938
+[12:01:34] [INFO] [Bullet] Distance to wall: 1239.99975585938 (84.4338635349566% of viewport)
+[12:01:34] [INFO] [Bullet] Distance-based penetration chance: 48.1604925425506%
+[12:01:34] [INFO] [Bullet] Penetration failed (distance roll)
+[12:01:34] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(590.0717, 612.985), shooter_id=249259100425, bullet_pos=(1811.847, 824.8082)
+[12:01:34] [INFO] [Bullet] Using shooter_position, distance=1240.00170898438
+[12:01:34] [INFO] [Bullet] Distance to wall: 1240.00170898438 (84.4339965268293% of viewport)
+[12:01:34] [INFO] [Bullet] Distance-based penetration chance: 48.1603373853658%
+[12:01:34] [INFO] [Bullet] Caliber cannot penetrate walls
+[12:01:34] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(606.5717, 612.985), shooter_id=249259100425, bullet_pos=(1812.234, 902.7813)
+[12:01:34] [INFO] [Bullet] Using shooter_position, distance=1240.00146484375
+[12:01:34] [INFO] [Bullet] Distance to wall: 1240.00146484375 (84.4339799028453% of viewport)
+[12:01:34] [INFO] [Bullet] Distance-based penetration chance: 48.1603567800139%
+[12:01:34] [INFO] [Bullet] Penetration failed (distance roll)
+[12:01:36] [INFO] ------------------------------------------------------------
+[12:01:36] [INFO] GAME LOG ENDED: 2026-01-22T12:01:36
+[12:01:36] [INFO] ============================================================

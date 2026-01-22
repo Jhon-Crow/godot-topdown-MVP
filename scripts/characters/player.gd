@@ -269,9 +269,9 @@ func _ready() -> void:
 	if _right_arm_sprite:
 		_right_arm_sprite.z_index = 2  # Arms between body and head
 
-	# Detect weapon type and adjust arm positions (deferred to allow weapon to be added)
-	# Weapons are added by level scripts after player is loaded, so we need to wait a frame
-	call_deferred("_detect_and_apply_weapon_pose")
+	# Note: Weapon pose detection is done in _process() after a few frames
+	# to ensure level scripts have finished adding weapons to the player.
+	# See _weapon_pose_applied and _weapon_detect_frame_count variables.
 
 	FileLogger.info("[Player] Ready! Ammo: %d/%d, Grenades: %d/%d, Health: %d/%d" % [
 		_current_ammo, max_ammo,
@@ -283,6 +283,13 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	if not _is_alive:
 		return
+
+	# Detect weapon pose after waiting a few frames for level scripts to add weapons
+	if not _weapon_pose_applied:
+		_weapon_detect_frame_count += 1
+		if _weapon_detect_frame_count >= WEAPON_DETECT_WAIT_FRAMES:
+			_detect_and_apply_weapon_pose()
+			_weapon_pose_applied = true
 
 	var input_direction := _get_input_direction()
 
@@ -382,8 +389,10 @@ func _update_player_model_rotation() -> void:
 
 
 ## Detects the equipped weapon type and applies appropriate arm positioning.
-## Called deferred from _ready() to allow weapons to be added by level scripts.
+## Called from _physics_process() after a few frames to ensure level scripts
+## have finished adding weapons to the player node.
 func _detect_and_apply_weapon_pose() -> void:
+	FileLogger.info("[Player] Detecting weapon pose (frame %d)..." % _weapon_detect_frame_count)
 	var detected_type := WeaponType.RIFLE  # Default to rifle pose
 
 	# Check for weapon children - weapons are added directly to player by level scripts
@@ -968,6 +977,19 @@ enum WeaponType {
 
 ## Currently detected weapon type.
 var _current_weapon_type: int = WeaponType.RIFLE
+
+## Whether weapon pose has been detected and applied.
+## Used to trigger detection in first few _process frames after _ready().
+var _weapon_pose_applied: bool = false
+
+## Frame counter for delayed weapon pose detection.
+## Weapons are added by level scripts AFTER player's _ready() completes.
+## We wait a few frames to ensure the weapon is added before detecting.
+var _weapon_detect_frame_count: int = 0
+
+## Number of frames to wait before detecting weapon pose.
+## This ensures level scripts have finished adding weapons.
+const WEAPON_DETECT_WAIT_FRAMES: int = 3
 
 ## Arm position offsets for SMG weapons (relative to rifle base positions).
 ## UZI and similar compact SMGs should have the left arm closer to the body

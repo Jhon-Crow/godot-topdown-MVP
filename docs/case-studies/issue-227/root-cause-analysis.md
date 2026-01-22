@@ -87,3 +87,145 @@ Since weapons are set at level initialization and don't change during gameplay, 
 2. Start game with Mini UZI selected - verify compact SMG pose
 3. Verify walking animation works correctly with both weapons
 4. Verify grenade animation still works (it has its own arm positioning)
+
+---
+
+## Update (2026-01-22): Initial Fix Did Not Work
+
+### Feedback from User
+The user reported "поза не изменилась" (the pose did not change) after testing the initial fix.
+
+### Investigation
+
+#### Game Log Analysis
+Analyzed log file: `game_log_20260122_120033.txt`
+
+Key observations from the log:
+1. `[Player] Ready! Grenades: 3/3` appears - Player's `_ready()` completes
+2. `[GameManager] Weapon selected: mini_uzi` appears at 12:01:12
+3. **Missing**: No `[Player] Detected weapon: Mini UZI (SMG pose)` log entries
+4. This confirms the weapon detection code is NOT executing successfully
+
+#### Code Flow Analysis
+
+The issue is a **timing/sequencing problem**:
+
+1. **Godot Scene Tree Initialization Order**:
+   - Child nodes' `_ready()` is called BEFORE parent nodes' `_ready()`
+   - Player (child of level) has its `_ready()` called FIRST
+   - Tutorial level's `_ready()` is called AFTER player's `_ready()`
+
+2. **Current Code Flow**:
+   ```
+   Player._ready()
+   ├── Stores base arm positions
+   ├── call_deferred("_detect_and_apply_weapon_pose")  <-- Scheduled
+   └── Logs "[Player] Ready!"
+
+   [Deferred calls execute]
+   └── _detect_and_apply_weapon_pose()  <-- NO WEAPON EXISTS YET!
+       └── get_node_or_null("MiniUzi") returns null
+
+   TutorialLevel._ready()
+   ├── Finds player
+   └── _setup_selected_weapon()
+       ├── Removes AssaultRifle
+       └── Adds MiniUzi  <-- TOO LATE!
+   ```
+
+3. **Root Cause of Fix Failure**:
+   - `call_deferred()` schedules the function to run at the END of the current frame
+   - However, the tutorial level's `_ready()` (which adds the weapon) runs at the SAME deferred timing
+   - Godot doesn't guarantee deferred call order between different nodes
+   - The weapon detection runs BEFORE the level script adds the weapon
+
+### True Root Cause
+
+**The initial fix assumed `call_deferred` would wait for the level script to add the weapon, but this is incorrect.**
+
+Godot's `_ready()` propagation and deferred call timing:
+1. All child `_ready()` functions complete
+2. Parent `_ready()` is called
+3. Deferred calls from ALL nodes execute (order not guaranteed)
+
+Since both player and level script use the same deferred timing, the weapon may not exist when detection runs.
+
+### Corrected Solution Approach
+
+**Option A: Multiple Deferred Calls (Chain Delays)**
+- Use `call_deferred` twice to ensure execution after level script
+- Risk: Still depends on timing, fragile
+
+**Option B: Use `_process` with One-Time Check**
+- Check for weapon in first few `_process` frames
+- Guaranteed to run after all `_ready()` functions complete
+
+**Option C: Level Script Triggers Detection**
+- Have level script call player's pose update after equipping weapon
+- Most reliable but requires modifying level scripts
+
+**Option D: Signal-Based Detection**
+- Player connects to weapon added signal
+- Cleanest solution for dynamic weapon changes
+
+**Recommended: Option B or C** - Most reliable approaches for the current architecture.
+
+---
+
+## Implemented Fix (2026-01-22)
+
+### Solution: Option B - Frame-Delayed Detection in `_physics_process()`
+
+Instead of using `call_deferred()` which has unpredictable timing relative to level script initialization, the fix waits for a few `_physics_process()` frames before detecting the weapon.
+
+### Changes Made
+
+1. **Removed `call_deferred` from `_ready()`**:
+   ```gdscript
+   # Old (broken):
+   call_deferred("_detect_and_apply_weapon_pose")
+
+   # New (comment explaining the approach):
+   # Note: Weapon pose detection is done in _process() after a few frames
+   # to ensure level scripts have finished adding weapons to the player.
+   ```
+
+2. **Added frame counter variables**:
+   ```gdscript
+   var _weapon_pose_applied: bool = false
+   var _weapon_detect_frame_count: int = 0
+   const WEAPON_DETECT_WAIT_FRAMES: int = 3
+   ```
+
+3. **Added detection logic to `_physics_process()`**:
+   ```gdscript
+   if not _weapon_pose_applied:
+       _weapon_detect_frame_count += 1
+       if _weapon_detect_frame_count >= WEAPON_DETECT_WAIT_FRAMES:
+           _detect_and_apply_weapon_pose()
+           _weapon_pose_applied = true
+   ```
+
+4. **Added debug logging**:
+   ```gdscript
+   FileLogger.info("[Player] Detecting weapon pose (frame %d)..." % _weapon_detect_frame_count)
+   ```
+
+### Why This Works
+
+1. `_physics_process()` runs AFTER all `_ready()` functions have completed
+2. By waiting 3 frames, we ensure:
+   - All `_ready()` functions in the scene tree have run
+   - Level scripts have had time to add weapons to the player
+   - Any deferred calls from level scripts have also executed
+3. The one-time check (`_weapon_pose_applied`) ensures detection only runs once
+
+### Expected Log Output (After Fix)
+
+```
+[Player] Ready! Grenades: 3/3
+[GameManager] Weapon selected: mini_uzi
+[Player] Detecting weapon pose (frame 3)...
+[Player] Detected weapon: Mini UZI (SMG pose)
+[Player] Applied SMG arm pose: Left=(14, 6), Right=(1, 6)
+```
