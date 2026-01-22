@@ -62,6 +62,9 @@ var _previous_scene_root: Node = null
 ## List of bullets frozen by the player during time freeze.
 var _frozen_player_bullets: Array = []
 
+## List of grenades frozen during time freeze.
+var _frozen_grenades: Array = []
+
 ## Original process mode of the player (to restore after effect).
 var _player_original_process_mode: Node.ProcessMode = Node.PROCESS_MODE_INHERIT
 
@@ -474,10 +477,20 @@ func _freeze_node_except_player(node: Node) -> void:
 			_freeze_node_except_player(child)
 		return
 
-	# Freeze RigidBody2D nodes (physics objects like bullets)
+	# Freeze RigidBody2D nodes (physics objects like grenades)
 	if node is RigidBody2D:
 		_original_process_modes[node] = node.process_mode
 		node.process_mode = Node.PROCESS_MODE_DISABLED
+
+		# Check if this is a grenade and track it separately for proper unfreezing
+		var script: Script = node.get_script()
+		if script != null:
+			var script_path: String = script.resource_path
+			if "grenade" in script_path.to_lower():
+				if node not in _frozen_grenades:
+					_frozen_grenades.append(node)
+					_log("Froze existing grenade: %s" % node.name)
+
 		for child in node.get_children():
 			_freeze_node_except_player(child)
 		return
@@ -557,6 +570,9 @@ func _unfreeze_time() -> void:
 
 	# Unfreeze any player bullets that were fired during the time freeze
 	_unfreeze_player_bullets()
+
+	# Unfreeze any grenades that were created during the time freeze
+	_unfreeze_grenades()
 
 
 ## Restores all stored original process modes.
@@ -731,11 +747,61 @@ func _unfreeze_player_bullets() -> void:
 	_frozen_player_bullets.clear()
 
 
+## Freezes a grenade that was created during the time freeze.
+## This stops both the grenade's timer and its physics movement.
+func _freeze_grenade(grenade: RigidBody2D) -> void:
+	if grenade in _frozen_grenades:
+		return
+
+	_frozen_grenades.append(grenade)
+
+	# Store original process mode for restoration
+	_original_process_modes[grenade] = grenade.process_mode
+
+	# Disable processing to stop the timer countdown in _physics_process
+	grenade.process_mode = Node.PROCESS_MODE_DISABLED
+
+	# Also freeze the RigidBody2D physics to stop any movement
+	if not grenade.freeze:
+		grenade.freeze = true
+
+	_log("Registered frozen grenade: %s" % grenade.name)
+
+
+## Unfreezes all grenades that were created during time freeze.
+func _unfreeze_grenades() -> void:
+	for grenade in _frozen_grenades:
+		if is_instance_valid(grenade):
+			# Restore process mode to allow timer to continue
+			if grenade in _original_process_modes:
+				grenade.process_mode = _original_process_modes[grenade]
+			else:
+				grenade.process_mode = Node.PROCESS_MODE_INHERIT
+
+			# Note: Don't unfreeze physics here - the grenade's throw_grenade() method
+			# will handle unfreezing when the player actually throws it
+			# If it was already thrown before the freeze, it will continue moving
+			_log("Unfroze grenade: %s" % grenade.name)
+
+	_frozen_grenades.clear()
+
+
 ## Called when a node is added to the scene tree during time freeze.
-## Automatically freezes player-fired bullets to maintain the time freeze effect.
+## Automatically freezes player-fired bullets and grenades to maintain the time freeze effect.
 func _on_node_added_during_freeze(node: Node) -> void:
 	if not _is_effect_active:
 		return
+
+	# Check if this is a grenade (RigidBody2D with grenade script)
+	if node is RigidBody2D:
+		var script: Script = node.get_script()
+		if script != null:
+			var script_path: String = script.resource_path
+			if "grenade" in script_path.to_lower():
+				# This is a grenade - freeze it immediately
+				_log("Freezing newly created grenade: %s" % node.name)
+				_freeze_grenade(node as RigidBody2D)
+				return
 
 	# Check if this is a bullet (Area2D with bullet script or name)
 	if not node is Area2D:
@@ -788,6 +854,7 @@ func reset_effects() -> void:
 	_effect_used = false  # Reset on scene change
 	_player_current_health = 0.0  # Reset cached health on scene change
 	_frozen_player_bullets.clear()
+	_frozen_grenades.clear()
 	_original_process_modes.clear()
 	_player_was_invulnerable = false
 
