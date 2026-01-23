@@ -118,20 +118,23 @@ func throw_grenade_velocity_based(mouse_velocity: Vector2, swing_distance: float
 
 
 ## Override body_entered to detect wall impacts.
+## NOTE: Grenades only explode on wall/obstacle hits, NOT on character collision.
+## This prevents the thrower from blowing themselves up when the grenade
+## collides with them immediately after being thrown. Characters are affected
+## by the blast radius when the grenade lands/explodes, not direct collision.
 func _on_body_entered(body: Node) -> void:
 	super._on_body_entered(body)
 
 	# Only explode on impact if we've been thrown and haven't exploded yet
 	if _is_thrown and not _has_impacted and not _has_exploded:
-		# Trigger impact explosion on wall/obstacle/enemy hit
+		# Trigger impact explosion on wall/obstacle hit ONLY
 		# StaticBody2D = walls, obstacles, furniture
 		# TileMap = terrain tiles
-		# CharacterBody2D = enemies and player
-		if body is StaticBody2D or body is TileMap or body is CharacterBody2D:
+		# NOTE: CharacterBody2D (enemies/player) are NOT included - they receive damage
+		# from the blast radius when grenade lands, not from direct collision
+		if body is StaticBody2D or body is TileMap:
 			FileLogger.info("[FragGrenade] Impact detected! Body: %s (type: %s), triggering explosion" % [body.name, body.get_class()])
 			_trigger_impact_explosion()
-		else:
-			FileLogger.info("[FragGrenade] Non-solid collision (body: %s, type: %s) - not triggering explosion" % [body.name, body.get_class()])
 
 
 ## Called when grenade lands on the ground.

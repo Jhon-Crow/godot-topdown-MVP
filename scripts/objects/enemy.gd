@@ -4632,6 +4632,8 @@ func _get_state_name(state: AIState) -> String:
 			return "PURSUING"
 		AIState.ASSAULT:
 			return "ASSAULT"
+		AIState.THROWING_GRENADE:
+			return "THROWING_GRENADE"
 		_:
 			return "UNKNOWN"
 
@@ -4697,6 +4699,12 @@ func _update_debug_label() -> void:
 			state_text += "\n(%s MOVING)" % side_label
 		else:
 			state_text += "\n(%s DIRECT)" % side_label
+
+	# Add grenade throwing info
+	if _current_state == AIState.THROWING_GRENADE:
+		if _grenade_thrower:
+			var grenades_left := _grenade_thrower.offensive_grenades + _grenade_thrower.flashbang_grenades
+			state_text += "\n(GRENADES: %d)" % grenades_left
 
 	_debug_label.text = state_text
 

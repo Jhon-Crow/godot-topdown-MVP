@@ -119,3 +119,92 @@ After fix:
 3. Testing revealed no enemy grenades being thrown
 4. Root cause analysis identified Godot lifecycle timing issue
 5. Fix implemented: Added `configure_grenades()` method for late initialization
+6. **2026-01-24**: User testing revealed additional bugs (see below)
+
+---
+
+## User Feedback Session - 2026-01-24
+
+### Additional Bugs Identified
+
+From game logs (`logs/feedback-20260124/`):
+
+#### Bug 1: Enemy Self-Damage on Grenade Throw
+
+**Symptom**: Enemy throws grenade and immediately dies from the explosion.
+
+**Evidence from logs** (`game_log_20260124_021256.txt`):
+```
+[02:13:27] [ENEMY] [Enemy10] Threw frag grenade: target=(969.3239, 1385.152), deviation=3.5°, distance=141
+[02:13:27] [INFO] [GrenadeBase] Grenade created at (1071.949, 1427.096) (frozen)
+[02:13:27] [INFO] [GrenadeBase] LEGACY throw_grenade() called! Direction: (-0.8937, -0.448665), Speed: 140.8 (unfrozen)
+[02:13:27] [INFO] [GrenadeBase] Collision detected with Enemy10 (type: CharacterBody2D)
+[02:13:27] [INFO] [FragGrenade] Impact detected! Body: Enemy10 (type: CharacterBody2D), triggering explosion
+[02:13:27] [ENEMY] [Enemy10] Enemy died (ricochet: false, penetration: false)
+```
+
+**Root Cause**:
+The `frag_grenade.gd` `_on_body_entered()` function was triggering explosion on `CharacterBody2D` collision, which includes the thrower enemy itself. The grenade's collision mask includes enemies (layer 2), and the grenade spawns close enough to the thrower that it collides immediately.
+
+**Fix**: Modified `frag_grenade.gd` to only explode on `StaticBody2D` and `TileMap` collision, not on `CharacterBody2D`:
+```gdscript
+# Before (buggy):
+if body is StaticBody2D or body is TileMap or body is CharacterBody2D:
+    _trigger_impact_explosion()
+
+# After (fixed):
+if body is StaticBody2D or body is TileMap:
+    _trigger_impact_explosion()
+```
+
+**Rationale**: Grenades should explode when hitting walls/obstacles or landing on the ground, not when passing through enemies/player. Characters receive damage from the blast radius, not direct collision.
+
+#### Bug 2: THROWING_GRENADE Shows as UNKNOWN in Debug
+
+**Symptom**: When debug mode is enabled (F7), the enemy's state label shows "UNKNOWN" instead of "THROWING_GRENADE".
+
+**Root Cause**: The `_get_state_name()` function in `enemy.gd` was missing a case for `AIState.THROWING_GRENADE`.
+
+**Fix**: Added the missing case:
+```gdscript
+AIState.THROWING_GRENADE:
+    return "THROWING_GRENADE"
+```
+
+Also added debug info for grenade count:
+```gdscript
+if _current_state == AIState.THROWING_GRENADE:
+    if _grenade_thrower:
+        var grenades_left := _grenade_thrower.offensive_grenades + _grenade_thrower.flashbang_grenades
+        state_text += "\n(GRENADES: %d)" % grenades_left
+```
+
+#### Verification: Grenade Configuration
+
+**User question**: Are all enemies at HARD difficulty on Building level equipped with grenades?
+
+**Answer**: No, and this is **correct per the original issue requirements**. The original issue specified:
+> "дай 2 наступательные гранаты врагу находящемуся на карте здание в помещении main hall."
+> Translation: "give 2 offensive grenades to the enemy located on the Building map in the main hall room."
+
+Only **Enemy10** (the enemy in the main hall) is configured with grenades, which matches the requirement.
+
+**Evidence from logs**:
+```
+[02:12:56] [ENEMY] [Enemy10] Grenade system configured: offensive=2, flashbangs=0
+```
+
+No other enemies show grenade configuration logs.
+
+#### Verification: GOAP Integration
+
+**User question**: Is the new behavior integrated into the existing GOAP system?
+
+**Answer**: Yes. The GOAP world state properly tracks grenade-related information:
+
+```gdscript
+_goap_world_state["has_grenades"] = _grenade_thrower != null and _grenade_thrower.has_grenades()
+_goap_world_state["is_throwing_grenade"] = _current_state == AIState.THROWING_GRENADE
+```
+
+The grenade throw check is called from `IN_COVER` and `SUPPRESSED` states, which aligns with the tactical behavior described in the issue requirements.
