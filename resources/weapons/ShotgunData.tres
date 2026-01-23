@@ -1,6 +1,7 @@
-[gd_resource type="Resource" script_class="WeaponData" load_steps=2 format=3 uid="uid://ck5m8n6r4p7q3"]
+[gd_resource type="Resource" script_class="WeaponData" load_steps=3 format=3 uid="uid://ck5m8n6r4p7q3"]
 
 [ext_resource type="Script" path="res://Scripts/Data/WeaponData.cs" id="1_script"]
+[ext_resource type="Resource" uid="uid://dk4m7n8r3p5q2" path="res://resources/calibers/caliber_buckshot.tres" id="2_caliber"]
 
 [resource]
 script = ExtResource("1_script")
@@ -20,3 +21,4 @@ ScreenShakeIntensity = 25.0
 ScreenShakeMinRecoveryTime = 0.4
 ScreenShakeMaxRecoveryTime = 0.15
 Loudness = 1469.0
+Caliber = ExtResource("2_caliber")

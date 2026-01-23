@@ -8,6 +8,9 @@ extends RigidBody2D
 ## Lifetime in seconds before auto-destruction (0 = infinite).
 @export var lifetime: float = 0.0
 
+## Caliber data for determining casing appearance.
+@export var caliber_data: Resource = null
+
 ## Whether the casing has landed on the ground.
 var _has_landed: bool = false
 
@@ -27,6 +30,9 @@ func _ready() -> void:
 
 	# Set initial rotation to random for variety
 	rotation = randf_range(0, 2 * PI)
+
+	# Set casing appearance based on caliber
+	_set_casing_appearance()
 
 
 func _physics_process(delta: float) -> void:
@@ -54,6 +60,32 @@ func _physics_process(delta: float) -> void:
 ## Makes the casing "land" by stopping all movement.
 func _land() -> void:
 	_has_landed = true
+
+
+## Sets the visual appearance of the casing based on its caliber.
+func _set_casing_appearance() -> void:
+	if caliber_data == null:
+		return
+
+	var sprite = $Sprite2D
+	if sprite == null:
+		return
+
+	# Default color (rifle casing - brass)
+	var casing_color = Color(0.9, 0.8, 0.4)  # Brass color
+
+	# Check caliber name to determine color
+	if caliber_data.has_method("get"):
+		var caliber_name = caliber_data.get("caliber_name", "")
+		if caliber_name == "buckshot":
+			casing_color = Color(0.8, 0.2, 0.2)  # Red for shotgun
+		elif caliber_name == "9x19mm":
+			casing_color = Color(0.7, 0.7, 0.7)  # Silver for pistol
+		# Rifle (5.45x39mm) keeps default brass color
+
+	# Apply the color to the sprite
+	if sprite is Sprite2D:
+		sprite.modulate = casing_color
 
 
 ## Called when the casing collides with something (usually the ground).

@@ -1,6 +1,7 @@
-[gd_resource type="Resource" script_class="WeaponData" load_steps=2 format=3 uid="uid://b8q2n5x7m3k1w"]
+[gd_resource type="Resource" script_class="WeaponData" load_steps=3 format=3 uid="uid://b8q2n5x7m3k1w"]
 
 [ext_resource type="Script" path="res://Scripts/Data/WeaponData.cs" id="1_script"]
+[ext_resource type="Resource" uid="uid://dm3k8n5r2p7q1" path="res://resources/calibers/caliber_545x39.tres" id="2_caliber"]
 
 [resource]
 script = ExtResource("1_script")
@@ -19,3 +20,4 @@ Sensitivity = 4.0
 ScreenShakeIntensity = 5.0
 ScreenShakeMinRecoveryTime = 0.25
 ScreenShakeMaxRecoveryTime = 0.05
+Caliber = ExtResource("2_caliber")

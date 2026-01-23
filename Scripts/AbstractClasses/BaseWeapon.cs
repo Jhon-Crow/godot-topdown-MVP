@@ -384,14 +384,15 @@ public abstract partial class BaseWeapon : Node2D
         GetTree().CurrentScene.AddChild(bullet);
 
         // Spawn casing if casing scene is set
-        SpawnCasing(direction);
+        SpawnCasing(direction, WeaponData?.Caliber);
     }
 
     /// <summary>
     /// Spawns a bullet casing that gets ejected from the weapon.
     /// </summary>
     /// <param name="direction">Direction the bullet was fired (used to determine casing ejection direction).</param>
-    protected virtual void SpawnCasing(Vector2 direction)
+    /// <param name="caliber">Caliber data for the casing appearance.</param>
+    protected virtual void SpawnCasing(Vector2 direction, Resource? caliber)
     {
         if (CasingScene == null)
         {
@@ -404,22 +405,29 @@ public abstract partial class BaseWeapon : Node2D
         var casing = CasingScene.Instantiate<RigidBody2D>();
         casing.GlobalPosition = casingSpawnPosition;
 
-        // Calculate ejection direction (opposite to shooting direction with randomness)
-        Vector2 ejectionDirection = -direction; // Opposite to bullet direction
+        // Calculate ejection direction to the right of the weapon
+        // Get the weapon's right direction (perpendicular to shooting direction)
+        Vector2 weaponRight = new Vector2(direction.Y, -direction.X); // Rotate 90 degrees clockwise
 
-        // Add some randomness to the ejection direction
-        float randomAngle = (float)GD.RandRange(-0.5f, 0.5f); // ±0.5 radians (~±30 degrees)
-        ejectionDirection = ejectionDirection.Rotated(randomAngle);
+        // Eject to the right with some randomness
+        float randomAngle = (float)GD.RandRange(-0.3f, 0.3f); // ±0.3 radians (~±17 degrees)
+        Vector2 ejectionDirection = weaponRight.Rotated(randomAngle);
 
         // Add some upward component for realistic ejection
-        ejectionDirection = ejectionDirection.Rotated((float)GD.RandRange(-0.2f, 0.2f));
+        ejectionDirection = ejectionDirection.Rotated((float)GD.RandRange(-0.1f, 0.1f));
 
         // Set initial velocity for the casing
-        float ejectionSpeed = (float)GD.RandRange(100.0f, 200.0f); // Random speed between 100-200 pixels/sec
+        float ejectionSpeed = (float)GD.RandRange(150.0f, 250.0f); // Random speed between 150-250 pixels/sec
         casing.LinearVelocity = ejectionDirection * ejectionSpeed;
 
         // Add some initial spin for realism
-        casing.AngularVelocity = (float)GD.RandRange(-10.0f, 10.0f);
+        casing.AngularVelocity = (float)GD.RandRange(-15.0f, 15.0f);
+
+        // Set caliber data on the casing for appearance
+        if (caliber != null)
+        {
+            casing.Set("caliber_data", caliber);
+        }
 
         GetTree().CurrentScene.AddChild(casing);
     }
