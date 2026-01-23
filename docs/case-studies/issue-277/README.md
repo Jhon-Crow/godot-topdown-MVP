@@ -191,5 +191,58 @@ Scene file parameters should include comments about:
 
 ---
 
+## 9. Follow-up Adjustment (2.2x Distance Increase)
+
+### 9.1 New Requirement
+
+**Date:** 2026-01-23 20:01
+**Request:** Owner requested to increase maximum throw distance by 2.2x from the initial fix.
+
+**Comment from Jhon-Crow:**
+> увеличь максимальную дальность в 2.2 раза
+> *Translation: increase the maximum distance by 2.2 times*
+
+### 9.2 Physics Calculations for 2.2x Increase
+
+Since `distance = speed² / (2 × friction)`, to increase distance by 2.2x, we need to multiply speed by `√2.2 ≈ 1.483`.
+
+**Speed multiplier:** 1.483
+
+**Flashbang calculations:**
+```
+Old: 850.0 px/s → distance = 850² / (2 × 300) = 1204 pixels
+New: 850.0 × 1.483 = 1260.8 px/s → distance = 1260.8² / (2 × 300) = 2649 pixels (2.20x)
+```
+
+**Frag Grenade calculations:**
+```
+Old: 710.0 px/s → distance = 710² / (2 × 280) = 900 pixels
+New: 710.0 × 1.483 = 1053.1 px/s → distance = 1053.1² / (2 × 280) = 1980 pixels (2.20x)
+```
+
+### 9.3 Updated Parameter Values
+
+**FlashbangGrenade.tscn:**
+| Parameter | Initial Fix | After 2.2x Adjustment |
+|-----------|-------------|----------------------|
+| max_throw_speed | 850.0 | 1260.8 |
+| Resulting max distance | ~1204px (viewport width) | ~2649px (2.2× viewport width) |
+
+**FragGrenade.tscn:**
+| Parameter | Initial Fix | After 2.2x Adjustment |
+|-----------|-------------|----------------------|
+| max_throw_speed | 710.0 | 1053.1 |
+| Resulting max distance | ~900px (70% viewport) | ~1980px (1.6× viewport width) |
+
+### 9.4 Context Interpretation
+
+The new maximum throw distances (~2.6× viewport width for flashbang, ~2× viewport width for frag) represent more extreme throwing ranges. This may be intended for:
+- Larger combat arenas
+- More aggressive gameplay pacing
+- Increased tactical flexibility in grenade placement
+
+---
+
 *Case study compiled: 2026-01-23*
+*Last updated: 2026-01-23 (2.2x distance adjustment)*
 *Author: AI Issue Solver*
