@@ -354,3 +354,53 @@ After the Particles2D fix, user tested and reported new issues:
 - Blood decals: z_index = 1 (visible above floor)
 - Characters/Enemies: z_index = 1+
 - BloodEffect particles: z_index = 2 (visible above floor and decals)
+
+### Investigation Round 8 (2026-01-24)
+
+After the z_index and wall splatter scale fixes, user tested and reported new issues:
+- "под врагом появляется одна капля размером с врага" (One drop the size of the enemy appears under the enemy)
+- "должны появляться маленькие, примерно размером с гильзу но много капли" (Small drops should appear, roughly the size of shell casings, but many of them)
+- "в майн ветке есть эффект брызг крови, верни его" (There's a blood spray effect in the main branch, restore it)
+- "спрайты должны появляться на полу там, куда приземляется частица из этого эффекта" (Sprites should appear on the floor where the particles from this effect land)
+
+**Log analysis** confirmed effects were being spawned but user expectations weren't met:
+- The blood spray particle effect (CPUParticles2D) WAS working
+- But only ONE blood decal was spawning (too big)
+- User wanted MANY small decals (like shell casings: 4x14 pixels)
+
+**Root cause identified** - Size and quantity mismatch:
+
+1. **Blood decal texture too large**:
+   - `BloodDecal.tscn` texture was 32x32 pixels
+   - Shell casings are 4x14 pixels
+   - User wanted blood drops ~8x8 pixels (similar to casings)
+   - **Fix**: Changed `BloodDecal.tscn` texture from 32x32 to 8x8 pixels
+
+2. **Only one decal spawning**:
+   - `_spawn_blood_decal()` was spawning a single decal per hit
+   - User wanted MANY small decals, not one big one
+   - **Fix**: Created new method `_spawn_blood_decals_at_particle_landing()` that:
+     - Spawns 8 decals for lethal hits, 4 for non-lethal
+     - Uses particle physics parameters (velocity, gravity, spread, lifetime)
+     - Calculates landing positions using physics: `pos = origin + v*t + 0.5*g*t²`
+     - Random scale 0.8-1.5 for variety (8px texture = 6-12px final size)
+
+3. **Decals not matching particle landing positions**:
+   - Original code just offset the decal position randomly
+   - User wanted decals to appear where blood particles would physically land
+   - **Fix**: New method simulates particle trajectories using:
+     - `initial_velocity_min/max` from BloodEffect scene (150-350 px/s)
+     - `gravity` from BloodEffect scene (0, 450 px/s²)
+     - `spread` angle from BloodEffect scene (55°)
+     - `lifetime` from BloodEffect scene (0.8s)
+     - Random landing time within particle lifetime
+
+4. **Wall splatter scale adjusted**:
+   - Previous scale formula was for 32x32 texture
+   - Updated scale range from 0.15-0.35 to 0.8-1.5 for 8x8 texture
+   - Final wall splatter size: 6-12 pixels (matches shell casing scale)
+
+**Size comparison reference**:
+- Shell casings: `RectangleShape2D.size = Vector2(4, 14)` from `Casing.tscn`
+- New blood decals: 8x8 texture × 0.8-1.5 scale = 6-12 pixels
+- Blood particles in BloodEffect: `scale_amount_min=0.1`, `scale_amount_max=0.4` (very small)

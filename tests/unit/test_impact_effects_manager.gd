@@ -227,3 +227,9 @@ func test_spawn_blood_effect_spawns_floor_decal_on_lethal_hit() -> void:
 	# Lethal hits should spawn larger floor decals
 	impact_manager.spawn_blood_effect(Vector2(100, 100), Vector2(1, 0), null, true)
 	pass_test("spawn_blood_effect handles lethal hits with floor decals")
+
+
+func test_spawn_blood_decals_at_particle_landing_method_exists() -> void:
+	# The new particle-based decal spawning method should exist
+	assert_true(impact_manager.has_method("_spawn_blood_decals_at_particle_landing"),
+		"Manager should have _spawn_blood_decals_at_particle_landing method")

@@ -242,13 +242,10 @@ func spawn_blood_effect(position: Vector2, hit_direction: Vector2, caliber_data:
 	# Start emitting
 	effect.emitting = true
 
-	# Spawn blood decal on floor (persistent stain)
-	# For lethal hits: larger decal
-	# For non-lethal hits: smaller decal (the hit still causes blood splatter)
-	var decal_scale := effect_scale
-	if not is_lethal:
-		decal_scale *= 0.5  # Smaller decals for non-lethal hits
-	_spawn_blood_decal(position, hit_direction, decal_scale)
+	# Spawn many small blood decals that simulate where particles land
+	# Number of decals based on hit intensity and lethality
+	var num_decals := 8 if is_lethal else 4
+	_spawn_blood_decals_at_particle_landing(position, hit_direction, effect, num_decals)
 
 	# Check for nearby walls and spawn wall splatters
 	_spawn_wall_blood_splatter(position, hit_direction, effect_scale, is_lethal)
@@ -326,41 +323,62 @@ func _add_effect_to_scene(effect: Node2D) -> void:
 			print("[ImpactEffectsManager] WARNING: No current scene, effect added to autoload")
 
 
-## Spawns a persistent blood decal (stain) on the floor.
-## @param position: World position for the decal.
-## @param hit_direction: Direction the blood was traveling (affects rotation).
-## @param intensity: Scale multiplier for decal size.
-func _spawn_blood_decal(position: Vector2, hit_direction: Vector2, intensity: float = 1.0) -> void:
-	_log_info("_spawn_blood_decal called at %s, intensity=%s" % [position, intensity])
-
+## Spawns multiple small blood decals at positions simulating where blood particles would land.
+## @param origin: World position where the blood spray starts.
+## @param hit_direction: Direction the bullet was traveling (blood sprays in this direction).
+## @param effect: The CPUParticles2D effect to get physics parameters from.
+## @param count: Number of decals to spawn.
+func _spawn_blood_decals_at_particle_landing(origin: Vector2, hit_direction: Vector2, effect: CPUParticles2D, count: int) -> void:
 	if _blood_decal_scene == null:
-		_log_info("Blood decal scene is null - skipping floor decal")
-		print("[ImpactEffectsManager] ERROR: _blood_decal_scene is null - floor decal NOT spawned")
+		_log_info("Blood decal scene is null - skipping floor decals")
 		return
 
-	var decal := _blood_decal_scene.instantiate() as Node2D
-	if decal == null:
-		_log_info("Failed to instantiate blood decal")
-		print("[ImpactEffectsManager] ERROR: Failed to instantiate blood decal - casting failed")
-		return
+	# Get particle physics parameters from the effect
+	var initial_velocity_min: float = effect.initial_velocity_min
+	var initial_velocity_max: float = effect.initial_velocity_max
+	var gravity: Vector2 = effect.gravity
+	var spread_angle: float = deg_to_rad(effect.spread)
+	var lifetime: float = effect.lifetime
 
-	_log_info("Blood decal instantiated successfully")
+	# Base direction (effect rotation is in the hit direction)
+	var base_angle: float = hit_direction.angle()
 
-	# Position slightly offset in hit direction (blood travels before landing)
-	decal.global_position = position + hit_direction.normalized() * randf_range(10.0, 30.0)
+	var decals_spawned := 0
+	for i in range(count):
+		var decal := _blood_decal_scene.instantiate() as Node2D
+		if decal == null:
+			continue
 
-	# Random rotation for variety
-	decal.rotation = randf() * TAU
+		# Simulate a random particle trajectory
+		# Random angle within spread range
+		var angle_offset: float = randf_range(-spread_angle / 2.0, spread_angle / 2.0)
+		var particle_angle: float = base_angle + angle_offset
 
-	# Scale based on intensity with randomization
-	var decal_scale := intensity * randf_range(0.5, 1.2)
-	decal.scale = Vector2(decal_scale, decal_scale)
+		# Random initial velocity within range
+		var initial_speed: float = randf_range(initial_velocity_min, initial_velocity_max)
+		var velocity: Vector2 = Vector2.RIGHT.rotated(particle_angle) * initial_speed
 
-	# Add to scene
-	_add_effect_to_scene(decal)
+		# Simulate particle landing time (random portion of lifetime)
+		var land_time: float = randf_range(lifetime * 0.3, lifetime * 0.9)
 
-	# Track decal for cleanup
-	_blood_decals.append(decal)
+		# Calculate landing position using physics: pos = origin + v*t + 0.5*g*t^2
+		var landing_pos: Vector2 = origin + velocity * land_time + 0.5 * gravity * land_time * land_time
+
+		decal.global_position = landing_pos
+
+		# Random rotation for variety
+		decal.rotation = randf() * TAU
+
+		# Small random scale for variety (8x8 texture, scale 0.8-1.5 = 6-12 pixels)
+		var decal_scale: float = randf_range(0.8, 1.5)
+		decal.scale = Vector2(decal_scale, decal_scale)
+
+		# Add to scene
+		_add_effect_to_scene(decal)
+
+		# Track decal for cleanup
+		_blood_decals.append(decal)
+		decals_spawned += 1
 
 	# Remove oldest decals if limit exceeded
 	while _blood_decals.size() > MAX_BLOOD_DECALS:
@@ -368,9 +386,9 @@ func _spawn_blood_decal(position: Vector2, hit_direction: Vector2, intensity: fl
 		if oldest and is_instance_valid(oldest):
 			oldest.queue_free()
 
-	_log_info("Blood decal spawned at %s (total: %d)" % [decal.global_position, _blood_decals.size()])
+	_log_info("Blood decals spawned: %d at simulated particle landing positions (total: %d)" % [decals_spawned, _blood_decals.size()])
 	if _debug_effects:
-		print("[ImpactEffectsManager] Blood decal spawned, total: ", _blood_decals.size())
+		print("[ImpactEffectsManager] Blood decals spawned: ", decals_spawned, ", total: ", _blood_decals.size())
 
 
 ## Clears all blood decals from the scene.
@@ -436,15 +454,15 @@ func _spawn_wall_blood_splatter(hit_position: Vector2, hit_direction: Vector2, i
 	splatter.rotation = wall_normal.angle() + PI / 2.0
 
 	# Scale based on distance (closer = more blood), intensity, and lethality
-	# Use smaller base scale for wall splatters (32x32 texture)
+	# Wall splatters should be small drips (8x8 texture, scale 0.8-1.5 = 6-12 pixels)
 	var distance := hit_position.distance_to(wall_hit_pos)
 	var distance_factor := 1.0 - (distance / WALL_SPLATTER_CHECK_DISTANCE)
-	# Reduce scale significantly - wall splatters should be small drips, not giant splashes
-	var splatter_scale := intensity * distance_factor * randf_range(0.15, 0.35)
+	# Base scale for wall splatters - small drips
+	var splatter_scale := distance_factor * randf_range(0.8, 1.5)
 	if is_lethal:
 		splatter_scale *= 1.2  # Lethal hits produce slightly more blood
 	else:
-		splatter_scale *= 0.5  # Non-lethal hits produce less blood
+		splatter_scale *= 0.7  # Non-lethal hits produce less blood
 
 	# Elongated shape for dripping effect (taller than wide)
 	splatter.scale = Vector2(splatter_scale, splatter_scale * randf_range(1.5, 2.5))
