@@ -1,0 +1,558 @@
+[23:29:26] [INFO] ============================================================
+[23:29:26] [INFO] GAME LOG STARTED
+[23:29:26] [INFO] ============================================================
+[23:29:26] [INFO] Timestamp: 2026-01-22T23:29:26
+[23:29:26] [INFO] Log file: I:/Загрузки/godot exe/game_log_20260122_232926.txt
+[23:29:26] [INFO] Executable: I:/Загрузки/godot exe/Godot-Top-Down-Template.exe
+[23:29:26] [INFO] OS: Windows
+[23:29:26] [INFO] Debug build: false
+[23:29:26] [INFO] Engine version: 4.3-stable (official)
+[23:29:26] [INFO] Project: Godot Top-Down Template
+[23:29:26] [INFO] ------------------------------------------------------------
+[23:29:26] [INFO] [GameManager] GameManager ready
+[23:29:26] [INFO] [ScoreManager] ScoreManager ready
+[23:29:26] [INFO] [SoundPropagation] SoundPropagation autoload initialized
+[23:29:26] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[23:29:26] [INFO] [PenultimateHit] Saturation shader loaded successfully
+[23:29:26] [INFO] [PenultimateHit] PenultimateHitEffectsManager ready - Configuration:
+[23:29:26] [INFO] [PenultimateHit]   Time scale: 0.10 (10x slowdown)
+[23:29:26] [INFO] [PenultimateHit]   Saturation boost: 2.0 (3.0x)
+[23:29:26] [INFO] [PenultimateHit]   Contrast boost: 1.0 (2.0x)
+[23:29:26] [INFO] [PenultimateHit]   Effect duration: 3.0 real seconds
+[23:29:26] [INFO] [LastChance] Resetting all effects (scene change detected)
+[23:29:26] [INFO] [LastChance] Last chance shader loaded successfully
+[23:29:26] [INFO] [LastChance] LastChanceEffectsManager ready - Configuration:
+[23:29:26] [INFO] [LastChance]   Freeze duration: 6.0 real seconds
+[23:29:26] [INFO] [LastChance]   Sepia intensity: 0.70
+[23:29:26] [INFO] [LastChance]   Brightness: 0.60
+[23:29:26] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FlashbangGrenade.tscn
+[23:29:26] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FragGrenade.tscn
+[23:29:26] [ENEMY] [Enemy1] Death animation component initialized
+[23:29:26] [ENEMY] [Enemy2] Death animation component initialized
+[23:29:26] [ENEMY] [Enemy3] Death animation component initialized
+[23:29:26] [ENEMY] [Enemy4] Death animation component initialized
+[23:29:26] [ENEMY] [Enemy5] Death animation component initialized
+[23:29:26] [ENEMY] [Enemy6] Death animation component initialized
+[23:29:26] [ENEMY] [Enemy7] Death animation component initialized
+[23:29:26] [ENEMY] [Enemy8] Death animation component initialized
+[23:29:26] [ENEMY] [Enemy9] Death animation component initialized
+[23:29:26] [ENEMY] [Enemy10] Death animation component initialized
+[23:29:26] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[23:29:26] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[23:29:26] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[23:29:26] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[23:29:26] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[23:29:26] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[23:29:26] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[23:29:26] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 2/4
+[23:29:26] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[23:29:26] [INFO] [ScoreManager] Level started with 10 enemies
+[23:29:26] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 1)
+[23:29:26] [ENEMY] [Enemy1] Registered as sound listener
+[23:29:26] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 3, behavior: GUARD, player_found: yes
+[23:29:26] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 2)
+[23:29:26] [ENEMY] [Enemy2] Registered as sound listener
+[23:29:26] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 4, behavior: GUARD, player_found: yes
+[23:29:26] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 3)
+[23:29:26] [ENEMY] [Enemy3] Registered as sound listener
+[23:29:26] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 4, behavior: GUARD, player_found: yes
+[23:29:26] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 4)
+[23:29:26] [ENEMY] [Enemy4] Registered as sound listener
+[23:29:26] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 3, behavior: GUARD, player_found: yes
+[23:29:26] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 5)
+[23:29:26] [ENEMY] [Enemy5] Registered as sound listener
+[23:29:26] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 4, behavior: GUARD, player_found: yes
+[23:29:26] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 6)
+[23:29:26] [ENEMY] [Enemy6] Registered as sound listener
+[23:29:26] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 4, behavior: GUARD, player_found: yes
+[23:29:26] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 7)
+[23:29:26] [ENEMY] [Enemy7] Registered as sound listener
+[23:29:26] [ENEMY] [Enemy7] Enemy spawned at (1606.114, 893.8859), health: 4, behavior: PATROL, player_found: yes
+[23:29:26] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 8)
+[23:29:26] [ENEMY] [Enemy8] Registered as sound listener
+[23:29:26] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 3, behavior: GUARD, player_found: yes
+[23:29:26] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 9)
+[23:29:26] [ENEMY] [Enemy9] Registered as sound listener
+[23:29:26] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 2, behavior: GUARD, player_found: yes
+[23:29:26] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 10)
+[23:29:26] [ENEMY] [Enemy10] Registered as sound listener
+[23:29:26] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 2, behavior: PATROL, player_found: yes
+[23:29:26] [INFO] [Player] Detecting weapon pose (frame 3)...
+[23:29:26] [INFO] [Player] Detected weapon: Rifle (default pose)
+[23:29:26] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[23:29:27] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[23:29:27] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[23:29:27] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[23:29:27] [INFO] [LastChance] Found player: Player
+[23:29:27] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[23:29:27] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[23:29:27] [INFO] [LastChance] Connected to player Died signal (C#)
+[23:29:28] [INFO] [PauseMenu] Armory button pressed
+[23:29:28] [INFO] [PauseMenu] Creating new armory menu instance
+[23:29:28] [INFO] [PauseMenu] armory_menu_scene resource path: res://scenes/ui/ArmoryMenu.tscn
+[23:29:28] [INFO] [PauseMenu] Instance created, class: CanvasLayer, name: ArmoryMenu
+[23:29:28] [INFO] [PauseMenu] Script attached: res://scripts/ui/armory_menu.gd
+[23:29:28] [INFO] [PauseMenu] back_pressed signal exists on instance
+[23:29:28] [INFO] [PauseMenu] back_pressed signal connected
+[23:29:28] [INFO] [PauseMenu] Armory menu instance added as child, is_inside_tree: true
+[23:29:28] [INFO] [PauseMenu] _populate_weapon_grid method exists
+[23:29:30] [INFO] [GrenadeManager] Grenade type changed from Flashbang to Frag Grenade
+[23:29:30] [INFO] [GrenadeManager] Restarting level due to grenade type change
+[23:29:30] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[23:29:30] [INFO] [LastChance] Resetting all effects (scene change detected)
+[23:29:30] [ENEMY] [Enemy1] Death animation component initialized
+[23:29:30] [ENEMY] [Enemy2] Death animation component initialized
+[23:29:30] [ENEMY] [Enemy3] Death animation component initialized
+[23:29:30] [ENEMY] [Enemy4] Death animation component initialized
+[23:29:30] [ENEMY] [Enemy5] Death animation component initialized
+[23:29:30] [ENEMY] [Enemy6] Death animation component initialized
+[23:29:30] [ENEMY] [Enemy7] Death animation component initialized
+[23:29:30] [ENEMY] [Enemy8] Death animation component initialized
+[23:29:30] [ENEMY] [Enemy9] Death animation component initialized
+[23:29:30] [ENEMY] [Enemy10] Death animation component initialized
+[23:29:30] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Frag Grenade
+[23:29:30] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[23:29:30] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[23:29:30] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[23:29:30] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[23:29:30] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[23:29:30] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[23:29:30] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 3/4
+[23:29:30] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[23:29:30] [INFO] [ScoreManager] Level started with 10 enemies
+[23:29:30] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 11)
+[23:29:30] [ENEMY] [Enemy1] Registered as sound listener
+[23:29:30] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 3, behavior: GUARD, player_found: yes
+[23:29:30] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 12)
+[23:29:30] [ENEMY] [Enemy2] Registered as sound listener
+[23:29:30] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 3, behavior: GUARD, player_found: yes
+[23:29:30] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 13)
+[23:29:30] [ENEMY] [Enemy3] Registered as sound listener
+[23:29:30] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 4, behavior: GUARD, player_found: yes
+[23:29:30] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 14)
+[23:29:30] [ENEMY] [Enemy4] Registered as sound listener
+[23:29:30] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 3, behavior: GUARD, player_found: yes
+[23:29:30] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 15)
+[23:29:30] [ENEMY] [Enemy5] Registered as sound listener
+[23:29:30] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 2, behavior: GUARD, player_found: yes
+[23:29:30] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 16)
+[23:29:30] [ENEMY] [Enemy6] Registered as sound listener
+[23:29:30] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 4, behavior: GUARD, player_found: yes
+[23:29:30] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 17)
+[23:29:30] [ENEMY] [Enemy7] Registered as sound listener
+[23:29:30] [ENEMY] [Enemy7] Enemy spawned at (1600, 900), health: 2, behavior: PATROL, player_found: yes
+[23:29:30] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 18)
+[23:29:30] [ENEMY] [Enemy8] Registered as sound listener
+[23:29:30] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 2, behavior: GUARD, player_found: yes
+[23:29:30] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 19)
+[23:29:30] [ENEMY] [Enemy9] Registered as sound listener
+[23:29:30] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 3, behavior: GUARD, player_found: yes
+[23:29:30] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 20)
+[23:29:30] [ENEMY] [Enemy10] Registered as sound listener
+[23:29:30] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 4, behavior: PATROL, player_found: yes
+[23:29:30] [INFO] [Player] Detecting weapon pose (frame 3)...
+[23:29:30] [INFO] [Player] Detected weapon: Rifle (default pose)
+[23:29:30] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[23:29:30] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[23:29:30] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[23:29:30] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[23:29:30] [INFO] [LastChance] Found player: Player
+[23:29:30] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[23:29:30] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[23:29:30] [INFO] [LastChance] Connected to player Died signal (C#)
+[23:29:32] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[23:29:32] [INFO] [LastChance] Resetting all effects (scene change detected)
+[23:29:32] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Frag Grenade
+[23:29:32] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+[23:29:32] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[23:29:32] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[23:29:32] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[23:29:32] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[23:29:32] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[23:29:32] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 3/3, Health: 4/4
+[23:29:32] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[23:29:32] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[23:29:32] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[23:29:32] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[23:29:32] [INFO] [LastChance] Found player: Player
+[23:29:32] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[23:29:32] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[23:29:32] [INFO] [LastChance] Connected to player Died signal (C#)
+[23:29:32] [INFO] [Player] Detecting weapon pose (frame 3)...
+[23:29:32] [INFO] [Player] Detected weapon: Rifle (default pose)
+[23:29:32] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[23:29:32] [INFO] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
+[23:29:32] [INFO] [Player.Grenade] G pressed - starting grab animation
+[23:29:33] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (458.24213, 323.26532)
+[23:29:33] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[23:29:33] [INFO] [FragGrenade] Shrapnel scene loaded from: res://scenes/projectiles/Shrapnel.tscn
+[23:29:33] [INFO] [FragGrenade] Pin pulled - waiting for impact (no timer, impact-triggered only)
+[23:29:33] [INFO] [Player.Grenade] Timer started, grenade created at (150, 360)
+[23:29:33] [INFO] [Player.Grenade.Anim] Phase changed to: PullPin (duration: 0,15s)
+[23:29:33] [INFO] [Player.Grenade] Step 1 complete! Drag: (481.99274, -8.014862)
+[23:29:33] [INFO] [Player.Grenade.Anim] Phase changed to: HandsApproach (duration: 0,20s)
+[23:29:33] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[23:29:33] [INFO] [Player.Grenade.Anim] Phase changed to: Transfer (duration: 0,15s)
+[23:29:33] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming (velocity-based throwing enabled)
+[23:29:33] [INFO] [Player.Grenade.Anim] Phase changed to: WindUp (duration: 0,00s)
+[23:29:33] [INFO] [Player.Grenade.Anim] Entered wind-up phase
+[23:29:33] [INFO] [Player.Grenade.Anim] Phase changed to: Throw (duration: 0,20s)
+[23:29:33] [INFO] [Player.Grenade] Velocity-based throw! Mouse velocity: (839.8112, -257.83038) (878,5 px/s), Swing distance: 78,8
+[23:29:33] [INFO] [Player.Grenade] Player rotated for throw: 0 -> -0,29787546
+[23:29:33] [INFO] [GrenadeBase] Velocity-based throw! Mouse vel: (839.8112, -257.8304), Swing: 78.8, Transfer: 0.32, Final speed: 844.3
+[23:29:33] [INFO] [Player.Grenade] Thrown! Velocity: 878,5, Swing: 78,8
+[23:29:33] [INFO] [Player.Grenade] State reset to IDLE
+[23:29:33] [INFO] [Player.Grenade] Player rotation restored to 0
+[23:29:33] [INFO] [Player.Grenade.Anim] Phase changed to: ReturnIdle (duration: 0,30s)
+[23:29:33] [INFO] [Player.Grenade.Anim] Animation complete, returning to normal
+[23:29:34] [INFO] [GrenadeBase] Grenade landed at (465.4114, 322.9776)
+[23:29:34] [INFO] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
+[23:29:34] [INFO] [Player.Grenade] G pressed - starting grab animation
+[23:29:34] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (332.6917, 308.57144)
+[23:29:35] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[23:29:35] [INFO] [FragGrenade] Shrapnel scene loaded from: res://scenes/projectiles/Shrapnel.tscn
+[23:29:35] [INFO] [FragGrenade] Pin pulled - waiting for impact (no timer, impact-triggered only)
+[23:29:35] [INFO] [Player.Grenade] Timer started, grenade created at (150, 360)
+[23:29:35] [INFO] [Player.Grenade.Anim] Phase changed to: PullPin (duration: 0,15s)
+[23:29:35] [INFO] [Player.Grenade] Step 1 complete! Drag: (295.95056, 2.0036926)
+[23:29:35] [INFO] [Player.Grenade.Anim] Phase changed to: HandsApproach (duration: 0,20s)
+[23:29:35] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[23:29:35] [INFO] [Player.Grenade.Anim] Phase changed to: Transfer (duration: 0,15s)
+[23:29:35] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming (velocity-based throwing enabled)
+[23:29:35] [INFO] [Player.Grenade.Anim] Phase changed to: WindUp (duration: 0,00s)
+[23:29:35] [INFO] [Player.Grenade.Anim] Entered wind-up phase
+[23:29:35] [INFO] [Player.Grenade.Anim] Phase changed to: Throw (duration: 0,20s)
+[23:29:35] [INFO] [Player.Grenade] Velocity-based throw! Mouse velocity: (9096.894, -86.434395) (9097,3 px/s), Swing distance: 780,0
+[23:29:35] [INFO] [Player.Grenade] Player rotated for throw: 0 -> -0,009501243
+[23:29:35] [INFO] [GrenadeBase] Velocity-based throw! Mouse vel: (9096.894, -86.43439), Swing: 780.0, Transfer: 1.00, Final speed: 2756.3
+[23:29:35] [INFO] [Player.Grenade] Thrown! Velocity: 9097,3, Swing: 780,0
+[23:29:35] [INFO] [Player.Grenade] State reset to IDLE
+[23:29:35] [INFO] [Player.Grenade] Player rotation restored to 0
+[23:29:35] [INFO] [Player.Grenade.Anim] Phase changed to: ReturnIdle (duration: 0,30s)
+[23:29:36] [INFO] [Player.Grenade.Anim] Animation complete, returning to normal
+[23:29:36] [INFO] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
+[23:29:36] [INFO] [Player.Grenade] G pressed - starting grab animation
+[23:29:36] [INFO] [GrenadeBase] Grenade landed at (89.31725, 350.0277)
+[23:29:36] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (637.3274, 259.81448)
+[23:29:36] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[23:29:36] [INFO] [FragGrenade] Shrapnel scene loaded from: res://scenes/projectiles/Shrapnel.tscn
+[23:29:36] [INFO] [FragGrenade] Pin pulled - waiting for impact (no timer, impact-triggered only)
+[23:29:36] [INFO] [Player.Grenade] Timer started, grenade created at (150, 360)
+[23:29:36] [INFO] [Player.Grenade.Anim] Phase changed to: PullPin (duration: 0,15s)
+[23:29:36] [INFO] [Player.Grenade] Step 1 complete! Drag: (398.83093, -44.08165)
+[23:29:37] [INFO] [Player.Grenade.Anim] Phase changed to: HandsApproach (duration: 0,20s)
+[23:29:37] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[23:29:37] [INFO] [Player.Grenade.Anim] Phase changed to: Transfer (duration: 0,15s)
+[23:29:37] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming (velocity-based throwing enabled)
+[23:29:37] [INFO] [Player.Grenade.Anim] Phase changed to: WindUp (duration: 0,00s)
+[23:29:37] [INFO] [Player.Grenade.Anim] Entered wind-up phase
+[23:29:37] [INFO] [Player.Grenade.Anim] Phase changed to: Throw (duration: 0,20s)
+[23:29:37] [INFO] [Player.Grenade] Velocity-based throw! Mouse velocity: (2313.152, -220.5063) (2323,6 px/s), Swing distance: 194,3
+[23:29:37] [INFO] [Player.Grenade] Player rotated for throw: 0 -> -0,09504001
+[23:29:37] [INFO] [GrenadeBase] Velocity-based throw! Mouse vel: (2313.152, -220.5063), Swing: 194.3, Transfer: 0.79, Final speed: 2756.3
+[23:29:37] [INFO] [Player.Grenade] Thrown! Velocity: 2323,6, Swing: 194,3
+[23:29:37] [INFO] [Player.Grenade] State reset to IDLE
+[23:29:37] [INFO] [Player.Grenade] Player rotation restored to 0
+[23:29:37] [INFO] [Player.Grenade.Anim] Phase changed to: ReturnIdle (duration: 0,30s)
+[23:29:38] [INFO] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
+[23:29:38] [INFO] [Player.Grenade] G pressed - starting grab animation
+[23:29:38] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (635.32324, 177.66234)
+[23:29:38] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[23:29:38] [INFO] [FragGrenade] Shrapnel scene loaded from: res://scenes/projectiles/Shrapnel.tscn
+[23:29:38] [INFO] [FragGrenade] Pin pulled - waiting for impact (no timer, impact-triggered only)
+[23:29:38] [INFO] [Player.Grenade] Timer started, grenade created at (150, 360)
+[23:29:38] [INFO] [Player.Grenade.Anim] Phase changed to: PullPin (duration: 0,15s)
+[23:29:38] [INFO] [Player.Grenade] Step 1 complete! Drag: (340.04175, 2.003708)
+[23:29:38] [INFO] [Player.Grenade.Anim] Phase changed to: HandsApproach (duration: 0,20s)
+[23:29:38] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[23:29:38] [INFO] [Player.Grenade.Anim] Phase changed to: Transfer (duration: 0,15s)
+[23:29:38] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming (velocity-based throwing enabled)
+[23:29:38] [INFO] [Player.Grenade.Anim] Phase changed to: WindUp (duration: 0,00s)
+[23:29:38] [INFO] [Player.Grenade.Anim] Entered wind-up phase
+[23:29:39] [INFO] [GrenadeBase] Grenade landed at (1718.656, 186.5803)
+[23:29:39] [INFO] [Player.Grenade.Anim] Phase changed to: Throw (duration: 0,20s)
+[23:29:39] [INFO] [Player.Grenade] Velocity-based throw! Mouse velocity: (1536.5358, -486.6857) (1611,8 px/s), Swing distance: 145,7
+[23:29:39] [INFO] [Player.Grenade] Player rotated for throw: 0 -> -0,30674496
+[23:29:39] [INFO] [GrenadeBase] Velocity-based throw! Mouse vel: (1536.536, -486.6857), Swing: 145.7, Transfer: 0.59, Final speed: 2756.3
+[23:29:39] [INFO] [Player.Grenade] Thrown! Velocity: 1611,8, Swing: 145,7
+[23:29:39] [INFO] [Player.Grenade] State reset to IDLE
+[23:29:39] [INFO] [Player.Grenade] Player rotation restored to 0
+[23:29:39] [INFO] [Player.Grenade.Anim] Phase changed to: ReturnIdle (duration: 0,30s)
+[23:29:39] [INFO] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
+[23:29:39] [INFO] [Player.Grenade] G pressed - starting grab animation
+[23:29:40] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (898.53827, 162.96846)
+[23:29:40] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[23:29:40] [INFO] [FragGrenade] Shrapnel scene loaded from: res://scenes/projectiles/Shrapnel.tscn
+[23:29:40] [INFO] [FragGrenade] Pin pulled - waiting for impact (no timer, impact-triggered only)
+[23:29:40] [INFO] [Player.Grenade] Timer started, grenade created at (150, 360)
+[23:29:40] [INFO] [Player.Grenade.Anim] Phase changed to: PullPin (duration: 0,15s)
+[23:29:40] [INFO] [Player.Grenade] Step 1 complete! Drag: (234.48859, 6.011139)
+[23:29:40] [INFO] [Player.Grenade.Anim] Phase changed to: HandsApproach (duration: 0,20s)
+[23:29:40] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[23:29:40] [INFO] [Player.Grenade.Anim] Phase changed to: Transfer (duration: 0,15s)
+[23:29:40] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming (velocity-based throwing enabled)
+[23:29:40] [INFO] [Player.Grenade.Anim] Phase changed to: Throw (duration: 0,20s)
+[23:29:40] [INFO] [Player.Grenade] Velocity-based throw! Mouse velocity: (0, 0) (0,0 px/s), Swing distance: 0,0
+[23:29:40] [INFO] [Player.Grenade] Player rotated for throw: 0 -> -0,51754934
+[23:29:40] [INFO] [GrenadeBase] Velocity-based throw! Mouse vel: (0, 0), Swing: 0.0, Transfer: 0.00, Final speed: 0.0
+[23:29:40] [INFO] [Player.Grenade] Thrown! Velocity: 0,0, Swing: 0,0
+[23:29:40] [INFO] [Player.Grenade] State reset to IDLE
+[23:29:40] [INFO] [Player.Grenade] Player rotation restored to 0
+[23:29:40] [INFO] [Player.Grenade.Anim] Phase changed to: ReturnIdle (duration: 0,30s)
+[23:29:41] [INFO] [Player.Grenade.Anim] Animation complete, returning to normal
+[23:29:41] [INFO] [GrenadeBase] Grenade landed at (1638.99, 248.5117)
+[23:29:43] [INFO] [Player.Debug] Debug mode toggled: ON
+[23:29:43] [INFO] [GameManager] Debug mode toggled: ON
+[23:29:45] [INFO] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
+[23:29:45] [INFO] [Player.Grenade] G pressed - starting grab animation
+[23:29:45] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (1040.1667, 147.60667)
+[23:29:45] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[23:29:45] [INFO] [FragGrenade] Shrapnel scene loaded from: res://scenes/projectiles/Shrapnel.tscn
+[23:29:45] [INFO] [FragGrenade] Pin pulled - waiting for impact (no timer, impact-triggered only)
+[23:29:45] [INFO] [Player.Grenade] Timer started, grenade created at (150, 360)
+[23:29:45] [INFO] [Player.Grenade.Anim] Phase changed to: PullPin (duration: 0,15s)
+[23:29:45] [INFO] [Player.Grenade] Step 1 complete! Drag: (239.83289, -4.6753235)
+[23:29:45] [INFO] [Player.Grenade.Anim] Phase changed to: HandsApproach (duration: 0,20s)
+[23:29:45] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[23:29:46] [INFO] [Player.Grenade.Anim] Phase changed to: Transfer (duration: 0,15s)
+[23:29:46] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming (velocity-based throwing enabled)
+[23:29:46] [INFO] [Player.Grenade.Anim] Phase changed to: WindUp (duration: 0,00s)
+[23:29:46] [INFO] [Player.Grenade.Anim] Entered wind-up phase
+[23:29:48] [INFO] [Player.Grenade.Anim] Phase changed to: Throw (duration: 0,20s)
+[23:29:48] [INFO] [Player.Grenade] Velocity-based throw! Mouse velocity: (0, -289.75223) (289,8 px/s), Swing distance: 217,6
+[23:29:48] [INFO] [Player.Grenade] Player rotated for throw: 0 -> -1,5707964
+[23:29:48] [INFO] [GrenadeBase] Velocity-based throw! Mouse vel: (0, -289.7522), Swing: 217.6, Transfer: 0.88, Final speed: 768.7
+[23:29:48] [INFO] [Player.Grenade] Thrown! Velocity: 289,8, Swing: 217,6
+[23:29:48] [INFO] [Player.Grenade] State reset to IDLE
+[23:29:48] [INFO] [Player.Grenade] Player rotation restored to 0
+[23:29:48] [INFO] [Player.Grenade.Anim] Phase changed to: ReturnIdle (duration: 0,30s)
+[23:29:48] [INFO] [Player.Grenade.Anim] Animation complete, returning to normal
+[23:29:48] [INFO] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
+[23:29:48] [INFO] [Player.Grenade] G pressed - starting grab animation
+[23:29:48] [INFO] [GrenadeBase] Grenade landed at (150, 99.32513)
+[23:29:48] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (1050.1876, 112.8757)
+[23:29:49] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[23:29:49] [INFO] [FragGrenade] Shrapnel scene loaded from: res://scenes/projectiles/Shrapnel.tscn
+[23:29:49] [INFO] [FragGrenade] Pin pulled - waiting for impact (no timer, impact-triggered only)
+[23:29:49] [INFO] [Player.Grenade] Timer started, grenade created at (150, 360)
+[23:29:49] [INFO] [Player.Grenade.Anim] Phase changed to: PullPin (duration: 0,15s)
+[23:29:49] [INFO] [Player.Grenade] Step 1 complete! Drag: (229.81201, -16.697586)
+[23:29:49] [INFO] [Player.Grenade.Anim] Phase changed to: HandsApproach (duration: 0,20s)
+[23:29:49] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[23:29:49] [INFO] [Player.Grenade.Anim] Phase changed to: Transfer (duration: 0,15s)
+[23:29:49] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming (velocity-based throwing enabled)
+[23:29:49] [INFO] [Player.Grenade.Anim] Phase changed to: WindUp (duration: 0,00s)
+[23:29:49] [INFO] [Player.Grenade.Anim] Entered wind-up phase
+[23:29:49] [INFO] [Player.Grenade.Anim] Phase changed to: Throw (duration: 0,20s)
+[23:29:49] [INFO] [Player.Grenade] Velocity-based throw! Mouse velocity: (754.51227, -149.29611) (769,1 px/s), Swing distance: 79,9
+[23:29:49] [INFO] [Player.Grenade] Player rotated for throw: 0 -> -0,19534762
+[23:29:49] [INFO] [GrenadeBase] Velocity-based throw! Mouse vel: (754.5123, -149.2961), Swing: 79.9, Transfer: 0.32, Final speed: 748.7
+[23:29:49] [INFO] [Player.Grenade] Thrown! Velocity: 769,1, Swing: 79,9
+[23:29:49] [INFO] [Player.Grenade] State reset to IDLE
+[23:29:49] [INFO] [Player.Grenade] Player rotation restored to 0
+[23:29:49] [INFO] [Player.Grenade.Anim] Phase changed to: ReturnIdle (duration: 0,30s)
+[23:29:50] [INFO] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
+[23:29:50] [INFO] [Player.Grenade] G pressed - starting grab animation
+[23:29:50] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (1092.9434, 139.59184)
+[23:29:50] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[23:29:50] [INFO] [FragGrenade] Shrapnel scene loaded from: res://scenes/projectiles/Shrapnel.tscn
+[23:29:50] [INFO] [FragGrenade] Pin pulled - waiting for impact (no timer, impact-triggered only)
+[23:29:50] [INFO] [Player.Grenade] Timer started, grenade created at (150, 360)
+[23:29:50] [INFO] [Player.Grenade.Anim] Phase changed to: PullPin (duration: 0,15s)
+[23:29:50] [INFO] [Player.Grenade] Step 1 complete! Drag: (187.05627, -27.38404)
+[23:29:50] [INFO] [Player.Grenade.Anim] Phase changed to: HandsApproach (duration: 0,20s)
+[23:29:50] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[23:29:50] [INFO] [GrenadeBase] Grenade landed at (554.9034, 279.8814)
+[23:29:50] [INFO] [Player.Grenade.Anim] Phase changed to: Transfer (duration: 0,15s)
+[23:29:50] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming (velocity-based throwing enabled)
+[23:29:51] [INFO] [Player.Grenade.Anim] Phase changed to: WindUp (duration: 0,00s)
+[23:29:51] [INFO] [Player.Grenade.Anim] Entered wind-up phase
+[23:29:51] [INFO] [Player.Grenade.Anim] Phase changed to: Throw (duration: 0,20s)
+[23:29:51] [INFO] [Player.Grenade] Velocity-based throw! Mouse velocity: (1622.499, -326.09412) (1654,9 px/s), Swing distance: 155,6
+[23:29:51] [INFO] [Player.Grenade] Player rotated for throw: 0 -> -0,1983402
+[23:29:51] [INFO] [GrenadeBase] Velocity-based throw! Mouse vel: (1622.499, -326.0941), Swing: 155.6, Transfer: 0.63, Final speed: 2756.3
+[23:29:51] [INFO] [Player.Grenade] Thrown! Velocity: 1654,9, Swing: 155,6
+[23:29:51] [INFO] [Player.Grenade] State reset to IDLE
+[23:29:51] [INFO] [Player.Grenade] Player rotation restored to 0
+[23:29:51] [INFO] [Player.Grenade.Anim] Phase changed to: ReturnIdle (duration: 0,30s)
+[23:29:51] [INFO] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
+[23:29:51] [INFO] [Player.Grenade] G pressed - starting grab animation
+[23:29:52] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (947.97455, 118.21893)
+[23:29:52] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[23:29:52] [INFO] [FragGrenade] Shrapnel scene loaded from: res://scenes/projectiles/Shrapnel.tscn
+[23:29:52] [INFO] [FragGrenade] Pin pulled - waiting for impact (no timer, impact-triggered only)
+[23:29:52] [INFO] [Player.Grenade] Timer started, grenade created at (150, 360)
+[23:29:52] [INFO] [Player.Grenade.Anim] Phase changed to: PullPin (duration: 0,15s)
+[23:29:52] [INFO] [Player.Grenade] Step 1 complete! Drag: (241.16925, -1.3358078)
+[23:29:52] [INFO] [Player.Grenade.Anim] Phase changed to: HandsApproach (duration: 0,20s)
+[23:29:52] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[23:29:52] [INFO] [Player.Grenade.Anim] Phase changed to: Transfer (duration: 0,15s)
+[23:29:52] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming (velocity-based throwing enabled)
+[23:29:52] [INFO] [Player.Grenade.Anim] Phase changed to: WindUp (duration: 0,00s)
+[23:29:52] [INFO] [Player.Grenade.Anim] Entered wind-up phase
+[23:29:52] [INFO] [GrenadeBase] Grenade landed at (1740.174, 106.4759)
+[23:29:53] [INFO] [Player.Grenade.Anim] Phase changed to: Throw (duration: 0,20s)
+[23:29:53] [INFO] [Player.Grenade] Velocity-based throw! Mouse velocity: (212.2056, -775.9468) (804,4 px/s), Swing distance: 238,7
+[23:29:53] [INFO] [Player.Grenade] Player rotated for throw: 0 -> -1,3038442
+[23:29:53] [INFO] [GrenadeBase] Velocity-based throw! Mouse vel: (212.2056, -775.9468), Swing: 238.7, Transfer: 0.96, Final speed: 2340.6
+[23:29:53] [INFO] [Player.Grenade] Thrown! Velocity: 804,4, Swing: 238,7
+[23:29:53] [INFO] [Player.Grenade] State reset to IDLE
+[23:29:53] [INFO] [Player.Grenade] Player rotation restored to 0
+[23:29:53] [INFO] [Player.Grenade.Anim] Phase changed to: ReturnIdle (duration: 0,30s)
+[23:29:53] [INFO] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
+[23:29:53] [INFO] [Player.Grenade] G pressed - starting grab animation
+[23:29:54] [INFO] [Player.Grenade.Anim] Phase changed to: ReturnIdle (duration: 0,30s)
+[23:29:54] [INFO] [GrenadeBase] Grenade landed at (253.9211, 403.2255)
+[23:29:54] [INFO] [Player.Grenade.Anim] Animation complete, returning to normal
+[23:29:55] [INFO] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
+[23:29:55] [INFO] [Player.Grenade] G pressed - starting grab animation
+[23:29:55] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (1050.8556, 42.077923)
+[23:29:55] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[23:29:55] [INFO] [FragGrenade] Shrapnel scene loaded from: res://scenes/projectiles/Shrapnel.tscn
+[23:29:55] [INFO] [FragGrenade] Pin pulled - waiting for impact (no timer, impact-triggered only)
+[23:29:55] [INFO] [Player.Grenade] Timer started, grenade created at (150, 125.44442)
+[23:29:55] [INFO] [Player.Grenade.Anim] Phase changed to: PullPin (duration: 0,15s)
+[23:29:55] [INFO] [Player.Grenade] Step 1 complete! Drag: (207.76624, -9.350651)
+[23:29:55] [INFO] [Player.Grenade.Anim] Phase changed to: HandsApproach (duration: 0,20s)
+[23:29:55] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[23:29:55] [INFO] [Player.Grenade.Anim] Phase changed to: Transfer (duration: 0,15s)
+[23:29:55] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming (velocity-based throwing enabled)
+[23:29:55] [INFO] [Player.Grenade.Anim] Phase changed to: WindUp (duration: 0,00s)
+[23:29:55] [INFO] [Player.Grenade.Anim] Entered wind-up phase
+[23:29:56] [INFO] [Player.Grenade.Anim] Phase changed to: Throw (duration: 0,20s)
+[23:29:56] [INFO] [Player.Grenade] Velocity-based throw! Mouse velocity: (302.86285, -125.06819) (327,7 px/s), Swing distance: 186,2
+[23:29:56] [INFO] [Player.Grenade] Player rotated for throw: 0 -> -0,3916228
+[23:29:56] [INFO] [GrenadeBase] Velocity-based throw! Mouse vel: (302.8629, -125.0682), Swing: 186.2, Transfer: 0.75, Final speed: 743.9
+[23:29:56] [INFO] [Player.Grenade] Thrown! Velocity: 327,7, Swing: 186,2
+[23:29:56] [INFO] [Player.Grenade] State reset to IDLE
+[23:29:56] [INFO] [Player.Grenade] Player rotation restored to 0
+[23:29:56] [INFO] [Player.Grenade.Anim] Phase changed to: ReturnIdle (duration: 0,30s)
+[23:29:57] [INFO] [Player.Grenade.Anim] Animation complete, returning to normal
+[23:29:57] [INFO] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
+[23:29:57] [INFO] [Player.Grenade] G pressed - starting grab animation
+[23:29:57] [INFO] [GrenadeBase] Grenade landed at (463.3151, 106.9382)
+[23:29:57] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (1108.9767, 54.100185)
+[23:29:57] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[23:29:57] [INFO] [FragGrenade] Shrapnel scene loaded from: res://scenes/projectiles/Shrapnel.tscn
+[23:29:57] [INFO] [FragGrenade] Pin pulled - waiting for impact (no timer, impact-triggered only)
+[23:29:57] [INFO] [Player.Grenade] Timer started, grenade created at (150, 125.44442)
+[23:29:57] [INFO] [Player.Grenade.Anim] Phase changed to: PullPin (duration: 0,15s)
+[23:29:57] [INFO] [Player.Grenade] Step 1 complete! Drag: (133.6117, -1.3358078)
+[23:29:57] [INFO] [Player.Grenade.Anim] Phase changed to: HandsApproach (duration: 0,20s)
+[23:29:57] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[23:29:58] [INFO] [Player.Grenade.Anim] Phase changed to: Transfer (duration: 0,15s)
+[23:29:58] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming (velocity-based throwing enabled)
+[23:29:58] [INFO] [Player.Grenade.Anim] Phase changed to: WindUp (duration: 0,00s)
+[23:29:58] [INFO] [Player.Grenade.Anim] Entered wind-up phase
+[23:29:59] [INFO] [Player.Grenade.Anim] Phase changed to: Throw (duration: 0,20s)
+[23:29:59] [INFO] [Player.Grenade] Velocity-based throw! Mouse velocity: (0, 0) (0,0 px/s), Swing distance: 112,4
+[23:29:59] [INFO] [Player.Grenade] Player rotated for throw: 0 -> 1,5707964
+[23:29:59] [INFO] [GrenadeBase] Velocity-based throw! Mouse vel: (0, 0), Swing: 112.4, Transfer: 0.45, Final speed: 0.0
+[23:29:59] [INFO] [Player.Grenade] Thrown! Velocity: 0,0, Swing: 112,4
+[23:29:59] [INFO] [Player.Grenade] State reset to IDLE
+[23:29:59] [INFO] [Player.Grenade] Player rotation restored to 0
+[23:29:59] [INFO] [Player.Grenade.Anim] Phase changed to: ReturnIdle (duration: 0,30s)
+[23:29:59] [INFO] [Player.Grenade.Anim] Animation complete, returning to normal
+[23:29:59] [INFO] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
+[23:29:59] [INFO] [Player.Grenade] G pressed - starting grab animation
+[23:30:00] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (981.3775, 96.178116)
+[23:30:00] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[23:30:00] [INFO] [FragGrenade] Shrapnel scene loaded from: res://scenes/projectiles/Shrapnel.tscn
+[23:30:00] [INFO] [FragGrenade] Pin pulled - waiting for impact (no timer, impact-triggered only)
+[23:30:00] [INFO] [Player.Grenade] Timer started, grenade created at (150, 125.44442)
+[23:30:00] [INFO] [Player.Grenade.Anim] Phase changed to: PullPin (duration: 0,15s)
+[23:30:00] [INFO] [Player.Grenade] Step 1 complete! Drag: (221.79547, -20.03711)
+[23:30:00] [INFO] [Player.Grenade.Anim] Phase changed to: HandsApproach (duration: 0,20s)
+[23:30:00] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[23:30:00] [INFO] [Player.Grenade.Anim] Phase changed to: Transfer (duration: 0,15s)
+[23:30:00] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming (velocity-based throwing enabled)
+[23:30:00] [INFO] [Player.Grenade.Anim] Phase changed to: WindUp (duration: 0,00s)
+[23:30:00] [INFO] [Player.Grenade.Anim] Entered wind-up phase
+[23:30:01] [INFO] [Player.Grenade.Anim] Phase changed to: Throw (duration: 0,20s)
+[23:30:01] [INFO] [Player.Grenade] Velocity-based throw! Mouse velocity: (1768.8801, -167.95813) (1776,8 px/s), Swing distance: 445,2
+[23:30:01] [INFO] [Player.Grenade] Player rotated for throw: 0 -> -0,09466785
+[23:30:01] [INFO] [GrenadeBase] Velocity-based throw! Mouse vel: (1768.88, -167.9581), Swing: 445.2, Transfer: 1.00, Final speed: 2756.3
+[23:30:01] [INFO] [Player.Grenade] Thrown! Velocity: 1776,8, Swing: 445,2
+[23:30:01] [INFO] [Player.Grenade] State reset to IDLE
+[23:30:01] [INFO] [Player.Grenade] Player rotation restored to 0
+[23:30:01] [INFO] [Player.Grenade.Anim] Phase changed to: ReturnIdle (duration: 0,30s)
+[23:30:01] [INFO] [Player.Grenade.Anim] Animation complete, returning to normal
+[23:30:01] [INFO] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
+[23:30:01] [INFO] [Player.Grenade] G pressed - starting grab animation
+[23:30:02] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (1091.6072, 74.1373)
+[23:30:02] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[23:30:02] [INFO] [FragGrenade] Shrapnel scene loaded from: res://scenes/projectiles/Shrapnel.tscn
+[23:30:02] [INFO] [FragGrenade] Pin pulled - waiting for impact (no timer, impact-triggered only)
+[23:30:02] [INFO] [Player.Grenade] Timer started, grenade created at (150, 125.44442)
+[23:30:02] [INFO] [Player.Grenade.Anim] Phase changed to: PullPin (duration: 0,15s)
+[23:30:02] [INFO] [Player.Grenade] Step 1 complete! Drag: (188.39246, -6.679039)
+[23:30:02] [INFO] [Player.Grenade.Anim] Phase changed to: HandsApproach (duration: 0,20s)
+[23:30:02] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[23:30:02] [INFO] [Player.Grenade.Anim] Phase changed to: Transfer (duration: 0,15s)
+[23:30:02] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming (velocity-based throwing enabled)
+[23:30:02] [INFO] [GrenadeBase] Grenade landed at (1739.495, 123.6784)
+[23:30:02] [INFO] [Player.Grenade.Anim] Phase changed to: WindUp (duration: 0,00s)
+[23:30:02] [INFO] [Player.Grenade.Anim] Entered wind-up phase
+[23:30:03] [INFO] [Player.Grenade.Anim] Phase changed to: Throw (duration: 0,20s)
+[23:30:03] [INFO] [Player.Grenade] Velocity-based throw! Mouse velocity: (460.27393, 7.8576927) (460,3 px/s), Swing distance: 145,4
+[23:30:03] [INFO] [Player.Grenade] Player rotated for throw: 0 -> 0,017070116
+[23:30:03] [INFO] [GrenadeBase] Velocity-based throw! Mouse vel: (460.2739, 7.857693), Swing: 145.4, Transfer: 0.59, Final speed: 816.1
+[23:30:03] [INFO] [Player.Grenade] Thrown! Velocity: 460,3, Swing: 145,4
+[23:30:03] [INFO] [Player.Grenade] State reset to IDLE
+[23:30:03] [INFO] [Player.Grenade] Player rotation restored to 0
+[23:30:03] [INFO] [Player.Grenade.Anim] Phase changed to: ReturnIdle (duration: 0,30s)
+[23:30:03] [INFO] [Player.Grenade.Anim] Animation complete, returning to normal
+[23:30:04] [INFO] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
+[23:30:04] [INFO] [Player.Grenade] G pressed - starting grab animation
+[23:30:04] [INFO] [GrenadeBase] Grenade landed at (607.7159, 133.2584)
+[23:30:04] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (768.26685, 49.424862)
+[23:30:04] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[23:30:04] [INFO] [FragGrenade] Shrapnel scene loaded from: res://scenes/projectiles/Shrapnel.tscn
+[23:30:04] [INFO] [FragGrenade] Pin pulled - waiting for impact (no timer, impact-triggered only)
+[23:30:04] [INFO] [Player.Grenade] Timer started, grenade created at (150, 125.44442)
+[23:30:04] [INFO] [Player.Grenade.Anim] Phase changed to: PullPin (duration: 0,15s)
+[23:30:04] [INFO] [Player.Grenade] Step 1 complete! Drag: (372.10864, 11.354359)
+[23:30:04] [INFO] [Player.Grenade.Anim] Phase changed to: HandsApproach (duration: 0,20s)
+[23:30:04] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[23:30:05] [INFO] [Player.Grenade.Anim] Phase changed to: Transfer (duration: 0,15s)
+[23:30:05] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming (velocity-based throwing enabled)
+[23:30:05] [INFO] [Player.Grenade.Anim] Phase changed to: WindUp (duration: 0,00s)
+[23:30:05] [INFO] [Player.Grenade.Anim] Entered wind-up phase
+[23:30:05] [INFO] [Player.Grenade.Anim] Phase changed to: Throw (duration: 0,20s)
+[23:30:05] [INFO] [Player.Grenade] Velocity-based throw! Mouse velocity: (2184.4536, 94.78337) (2186,5 px/s), Swing distance: 278,9
+[23:30:05] [INFO] [Player.Grenade] Player rotated for throw: 0 -> 0,04336277
+[23:30:05] [INFO] [GrenadeBase] Velocity-based throw! Mouse vel: (2184.454, 94.78337), Swing: 278.9, Transfer: 1.00, Final speed: 2756.3
+[23:30:05] [INFO] [Player.Grenade] Thrown! Velocity: 2186,5, Swing: 278,9
+[23:30:05] [INFO] [Player.Grenade] State reset to IDLE
+[23:30:05] [INFO] [Player.Grenade] Player rotation restored to 0
+[23:30:05] [INFO] [Player.Grenade.Anim] Phase changed to: ReturnIdle (duration: 0,30s)
+[23:30:06] [INFO] [Player.Grenade.Anim] Animation complete, returning to normal
+[23:30:06] [INFO] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
+[23:30:06] [INFO] [Player.Grenade] G pressed - starting grab animation
+[23:30:06] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (821.71155, 52.096478)
+[23:30:06] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[23:30:06] [INFO] [FragGrenade] Shrapnel scene loaded from: res://scenes/projectiles/Shrapnel.tscn
+[23:30:06] [INFO] [FragGrenade] Pin pulled - waiting for impact (no timer, impact-triggered only)
+[23:30:06] [INFO] [Player.Grenade] Timer started, grenade created at (150, 125.44442)
+[23:30:06] [INFO] [Player.Grenade.Anim] Phase changed to: PullPin (duration: 0,15s)
+[23:30:06] [INFO] [Player.Grenade] Step 1 complete! Drag: (350.06262, -18.033398)
+[23:30:06] [INFO] [Player.Grenade.Anim] Phase changed to: HandsApproach (duration: 0,20s)
+[23:30:06] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[23:30:07] [INFO] [Player.Grenade.Anim] Phase changed to: Transfer (duration: 0,15s)
+[23:30:07] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming (velocity-based throwing enabled)
+[23:30:07] [INFO] [Player.Grenade.Anim] Phase changed to: WindUp (duration: 0,00s)
+[23:30:07] [INFO] [Player.Grenade.Anim] Entered wind-up phase
+[23:30:07] [INFO] [GrenadeBase] Grenade landed at (1714.007, 202.2776)
+[23:30:07] [INFO] [Player.Grenade.Anim] Phase changed to: Throw (duration: 0,20s)
+[23:30:07] [INFO] [Player.Grenade] Velocity-based throw! Mouse velocity: (3035.7363, 7.8576927) (3035,7 px/s), Swing distance: 367,4
+[23:30:07] [INFO] [Player.Grenade] Player rotated for throw: 0 -> 0,002588392
+[23:30:07] [INFO] [GrenadeBase] Velocity-based throw! Mouse vel: (3035.736, 7.857693), Swing: 367.4, Transfer: 1.00, Final speed: 2756.3
+[23:30:07] [INFO] [Player.Grenade] Thrown! Velocity: 3035,7, Swing: 367,4
+[23:30:07] [INFO] [Player.Grenade] State reset to IDLE
+[23:30:07] [INFO] [Player.Grenade] Player rotation restored to 0
+[23:30:07] [INFO] [Player.Grenade.Anim] Phase changed to: ReturnIdle (duration: 0,30s)
+[23:30:07] [INFO] [Player.Grenade.Anim] Animation complete, returning to normal
+[23:30:08] [INFO] [GrenadeBase] Grenade landed at (1714.288, 130.0321)
+[23:30:09] [INFO] ------------------------------------------------------------
+[23:30:09] [INFO] GAME LOG ENDED: 2026-01-22T23:30:09
+[23:30:09] [INFO] ============================================================
