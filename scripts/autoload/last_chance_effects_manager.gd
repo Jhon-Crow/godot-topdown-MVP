@@ -675,9 +675,9 @@ func _saturate_color(color: Color, multiplier: float) -> Color:
 	var luminance := color.r * 0.299 + color.g * 0.587 + color.b * 0.114
 
 	# Increase saturation by moving away from grayscale
-	var saturated_r := lerp(luminance, color.r, multiplier)
-	var saturated_g := lerp(luminance, color.g, multiplier)
-	var saturated_b := lerp(luminance, color.b, multiplier)
+	var saturated_r: float = lerp(luminance, color.r, multiplier)
+	var saturated_g: float = lerp(luminance, color.g, multiplier)
+	var saturated_b: float = lerp(luminance, color.b, multiplier)
 
 	# Clamp to valid color range
 	return Color(
