@@ -23,6 +23,12 @@ public abstract partial class BaseWeapon : Node2D
     public PackedScene? BulletScene { get; set; }
 
     /// <summary>
+    /// Casing scene to instantiate when firing (for ejected bullet casings).
+    /// </summary>
+    [Export]
+    public PackedScene? CasingScene { get; set; }
+
+    /// <summary>
     /// Offset from weapon position where bullets spawn.
     /// </summary>
     [Export]
@@ -376,6 +382,46 @@ public abstract partial class BaseWeapon : Node2D
         bullet.Set("shooter_position", GlobalPosition);
 
         GetTree().CurrentScene.AddChild(bullet);
+
+        // Spawn casing if casing scene is set
+        SpawnCasing(direction);
+    }
+
+    /// <summary>
+    /// Spawns a bullet casing that gets ejected from the weapon.
+    /// </summary>
+    /// <param name="direction">Direction the bullet was fired (used to determine casing ejection direction).</param>
+    protected virtual void SpawnCasing(Vector2 direction)
+    {
+        if (CasingScene == null)
+        {
+            return;
+        }
+
+        // Calculate casing spawn position (near the weapon, slightly offset)
+        Vector2 casingSpawnPosition = GlobalPosition + direction * (BulletSpawnOffset * 0.5f);
+
+        var casing = CasingScene.Instantiate<RigidBody2D>();
+        casing.GlobalPosition = casingSpawnPosition;
+
+        // Calculate ejection direction (opposite to shooting direction with randomness)
+        Vector2 ejectionDirection = -direction; // Opposite to bullet direction
+
+        // Add some randomness to the ejection direction
+        float randomAngle = (float)GD.RandRange(-0.5f, 0.5f); // ±0.5 radians (~±30 degrees)
+        ejectionDirection = ejectionDirection.Rotated(randomAngle);
+
+        // Add some upward component for realistic ejection
+        ejectionDirection = ejectionDirection.Rotated((float)GD.RandRange(-0.2f, 0.2f));
+
+        // Set initial velocity for the casing
+        float ejectionSpeed = (float)GD.RandRange(100.0f, 200.0f); // Random speed between 100-200 pixels/sec
+        casing.LinearVelocity = ejectionDirection * ejectionSpeed;
+
+        // Add some initial spin for realism
+        casing.AngularVelocity = (float)GD.RandRange(-10.0f, 10.0f);
+
+        GetTree().CurrentScene.AddChild(casing);
     }
 
     /// <summary>

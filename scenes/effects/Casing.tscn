@@ -1,0 +1,23 @@
+[gd_scene load_steps=4 format=3 uid="uid://casing_scene"]
+
+[ext_resource type="Script" path="res://scripts/effects/casing.gd" id="1_casing"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_casing"]
+size = Vector2(8, 16)
+
+[sub_resource type="PlaceholderTexture2D" id="PlaceholderTexture2D_casing"]
+size = Vector2(8, 16)
+
+[node name="Casing" type="RigidBody2D"]
+collision_layer = 0
+collision_mask = 4
+gravity_scale = 1.0
+linear_damp = 1.0
+angular_damp = 2.0
+script = ExtResource("1_casing")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("RectangleShape2D_casing")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture = SubResource("PlaceholderTexture2D_casing")

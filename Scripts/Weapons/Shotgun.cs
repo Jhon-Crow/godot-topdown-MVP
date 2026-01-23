@@ -1164,6 +1164,9 @@ public partial class Shotgun : BaseWeapon
         // Fire all pellets simultaneously with spatial distribution (cloud effect)
         FirePelletsAsCloud(fireDirection, pelletCount, spreadRadians, halfSpread, projectileScene);
 
+        // Spawn casing
+        SpawnCasing(fireDirection);
+
         // Consume shell from tube
         ShellsInTube--;
         EmitSignal(SignalName.ShellCountChanged, ShellsInTube, TubeMagazineCapacity);
