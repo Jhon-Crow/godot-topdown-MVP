@@ -478,3 +478,104 @@ In Round 6, particle effects were changed from `GPUParticles2D` to `CPUParticles
 | gl_compatibility | May have issues | More reliable |
 
 **Key lesson**: When converting between particle types in Godot 4, texture assignment is critical. `GPUParticles2D` requires an explicit `texture` property to render visible particles, while `CPUParticles2D` can render without one (using `color`) but may appear as single pixels.
+
+### Investigation Round 10 (2026-01-24)
+
+After the GPUParticles2D restoration and wall collision check fixes (Round 9), user tested and reported four issues:
+1. "игра всё ещё вылетает (при этом она вылетает после рестарта, то есть не от количества спрайтов на карте)" (Game still crashes - specifically after restart, not from sprite count)
+2. "спрайты крови должны появляться на месте приземления частиц из эффекта" (Blood sprites should appear at particle landing positions)
+3. "спрайты должны появляться в момент исчезновения частицы эффекта крови" (Sprites should appear at the moment the blood effect particle disappears)
+4. "сделай спрайты круглыми и темнее" (Make sprites round and darker)
+
+**Log analysis** (7 new log files from Round 10 testing):
+- Logs showed blood effects were being spawned successfully
+- No crash errors visible in logs - logs ended normally with "GAME LOG ENDED"
+- The "crash after restart" suggested a scene transition issue
+
+**Root causes identified**:
+
+1. **Game crash after restart** - Unsafe `await` in scripts during scene transitions:
+
+   In `blood_decal.gd` and `effect_cleanup.gd`, the code used:
+   ```gdscript
+   await get_tree().create_timer(fade_delay).timeout
+   ```
+
+   When the scene changes/restarts while a timer is waiting:
+   - The node is freed but the coroutine continues
+   - When it resumes, `get_tree()` may return null or the node is invalid
+   - This causes a crash
+
+   Additionally, `impact_effects_manager.gd` was holding references to blood decal nodes in `_blood_decals` array. After scene change, these became "freed object" references.
+
+   **Fixes applied**:
+   - Added null checks after every `await`:
+     ```gdscript
+     # Check if node is still valid after await
+     if not is_instance_valid(self) or not is_inside_tree():
+         return
+     ```
+   - Added `_on_tree_changed()` handler to `impact_effects_manager.gd`:
+     ```gdscript
+     func _on_tree_changed() -> void:
+         var current_scene := get_tree().current_scene
+         if current_scene != _last_scene:
+             _log_info("Scene changed - clearing all stale effect references")
+             _blood_decals.clear()
+             _bullet_holes.clear()
+             _penetration_holes.clear()
+             _last_scene = current_scene
+     ```
+
+2. **Blood decals spawning immediately instead of at particle landing time**:
+
+   The previous implementation spawned all decals immediately with pre-calculated positions. User wanted decals to appear when particles would actually "land" (after traveling through the air).
+
+   **Fix applied** - New `_schedule_delayed_decal()` method:
+   ```gdscript
+   func _schedule_delayed_decal(origin: Vector2, landing_pos: Vector2,
+                                decal_rotation: float, decal_scale: float, delay: float) -> void:
+       var tree := get_tree()
+       if tree == null:
+           return
+       await tree.create_timer(delay).timeout
+
+       # Safety checks after await
+       if not is_instance_valid(self):
+           return
+
+       # Wall collision check at spawn time
+       # ... (raycast check)
+
+       # Spawn decal
+       var decal := _blood_decal_scene.instantiate() as Node2D
+       decal.global_position = landing_pos
+       # ...
+   ```
+
+   Each decal now spawns after its calculated `land_time` (0.24s - 0.72s based on particle physics simulation).
+
+3. **Blood decals not round and dark enough**:
+
+   **Fixes applied** to `BloodDecal.tscn`:
+   - Made gradient darker: Changed red values from `0.6/0.5/0.4/0.3` to `0.35/0.3/0.25/0.2`
+   - The gradient already uses radial fill (`fill = 1`) which creates circular appearance
+   - Increased modulate alpha from `0.85` to `0.9` for better visibility
+   - Gradient now fades to transparent at edges (`0.95 -> 0.9 -> 0.75 -> 0` alpha)
+
+**Technical summary of fixes**:
+
+| File | Change |
+|------|--------|
+| `blood_decal.gd` | Added null checks after await, tween null check |
+| `effect_cleanup.gd` | Added null checks after await |
+| `impact_effects_manager.gd` | Added `_on_tree_changed()`, delayed decal spawning |
+| `BloodDecal.tscn` | Darker gradient colors, higher alpha |
+
+**Key lessons**:
+
+1. **Always add safety checks after `await`**: When using async timers in Godot, the scene may change during the wait. Always check `is_instance_valid(self)` and `is_inside_tree()` after await resumes.
+
+2. **Clear stale references on scene change**: Autoload managers that hold references to scene nodes must clear those references when the scene changes to avoid "freed object" crashes.
+
+3. **Connect to `tree_changed` signal**: To detect scene transitions, connect to `get_tree().tree_changed` and compare `current_scene` to detect changes.
