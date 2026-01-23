@@ -413,8 +413,114 @@ Current configuration (correct, don't change):
 - PR #280: Fix offensive grenade wall impact detection
 - PR #260: Implement realistic velocity-based grenade throwing physics
 
+## Follow-up: Second Root Cause Discovery
+
+### User Report After CCD Fix
+
+After the initial CCD fix was implemented, the user reported (2026-01-24):
+
+> "всё ещё проходит (вероятно она спавнится уже за стеной)"
+> Translation: "still passes through (it probably spawns already behind the wall)"
+
+A new log file was provided: `game_log_20260124_010946.txt` (980 lines)
+
+### Analysis of Second Log File
+
+**Critical Finding** (lines 870-893):
+```
+[01:10:11] [Player.Grenade] Velocity-based throw! Mouse velocity: (859.49365, -6904.961) (6958,2 px/s), Swing distance: 1101,2
+[01:10:11] [GrenadeBase] Velocity-based throw! Mouse vel: (859.4937, -6904.961), Swing: 1101.2, Transfer: 1.00, Final speed: 1352.8
+[01:10:11] [Player.Grenade] Thrown! Velocity: 6958,2, Swing: 1101,2
+[01:10:11] [Player.Grenade] State reset to IDLE
+[01:10:11] [ENEMY] [Enemy2] State: IN_COVER -> SUPPRESSED
+...
+[01:10:12] [Player] Player died - ending penultimate effect
+...
+[01:10:12] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+```
+
+**Key Observation**: After the throw, there is **NO collision logged** and **NO landing logged**. The grenade simply disappeared! The scene reset shortly after due to player death.
+
+### Root Cause #2: Spawn Position Behind Wall
+
+The user's hypothesis was **CORRECT**. The issue is in `player.gd:_throw_grenade()`:
+
+```gdscript
+# ORIGINAL CODE (buggy)
+var spawn_offset := 60.0  # 60 pixels in front of player
+var spawn_position := global_position + throw_direction * spawn_offset
+_active_grenade.global_position = spawn_position
+```
+
+**Problem**: If player stands within 60 pixels of a wall and throws toward it, the grenade spawns **BEHIND or INSIDE the wall**, completely bypassing physics collision detection.
+
+**Why CCD didn't help**: CCD only helps detect collisions during movement. If an object is **spawned already past** the obstacle, there's no movement through the obstacle to detect.
+
+### Fix #2: Raycast Spawn Validation
+
+Added `_get_safe_grenade_spawn_position()` function in `player.gd`:
+
+```gdscript
+func _get_safe_grenade_spawn_position(from_pos: Vector2, intended_pos: Vector2, throw_direction: Vector2) -> Vector2:
+    var space_state := get_world_2d().direct_space_state
+    if space_state == null:
+        _active_grenade.global_position = intended_pos
+        return intended_pos
+
+    # Raycast from player to intended spawn position
+    var query := PhysicsRayQueryParameters2D.create(from_pos, intended_pos, 4, [self])
+    var result := space_state.intersect_ray(query)
+
+    if result.is_empty():
+        # No wall - safe to spawn at intended position
+        _active_grenade.global_position = intended_pos
+        return intended_pos
+
+    # Wall detected! Spawn 5px before the wall
+    var collision_point: Vector2 = result.position
+    var safe_distance := maxf(from_pos.distance_to(collision_point) - 5.0, 10.0)
+    var safe_position := from_pos + throw_direction * safe_distance
+
+    FileLogger.info("[Player.Grenade] Wall detected at %s! Adjusting spawn from %s to %s" % [
+        str(collision_point), str(intended_pos), str(safe_position)
+    ])
+
+    _active_grenade.global_position = safe_position
+    return safe_position
+```
+
+### Why Both Fixes Are Necessary
+
+| Scenario | CCD Only | Raycast Only | Both Fixes |
+|----------|----------|--------------|------------|
+| High-speed throw at distant wall | ✅ Prevents tunneling | N/A | ✅ Works |
+| Throw at wall >60px away | ✅ CCD handles it | N/A | ✅ Works |
+| Throw at wall <60px away ("в упор") | ❌ Spawns behind wall | ✅ Spawns safely | ✅ Works |
+| Any velocity at close range | ❌ Physics bypassed | ✅ Prevents | ✅ Works |
+
+### Updated References
+
+- [Ray-casting — Godot Engine Documentation](https://docs.godotengine.org/en/stable/tutorials/physics/ray-casting.html)
+- [PhysicsDirectSpaceState2D — Godot Engine Documentation](https://docs.godotengine.org/en/stable/classes/class_physicsdirectspacestate2d.html)
+- [RayCast2D :: Godot 4 Recipes](https://kidscancode.org/godot_recipes/4.x/kyn/raycast2d/index.html)
+
 ## Conclusion
 
-Issue #287 is caused by **physics tunneling** - fast-moving grenades pass through thin walls when the discrete collision detection system misses the collision between physics frames. The solution is to enable **Continuous Collision Detection (CCD)** using the reliable `CCD_MODE_CAST_RAY` mode, which is the industry-standard approach for fast-moving objects in game engines.
+Issue #287 has **TWO root causes** that required **TWO separate fixes**:
 
-This fix requires minimal code changes, has negligible performance impact, and completely eliminates tunneling issues regardless of wall thickness or grenade velocity.
+1. **Physics Tunneling**: Fast-moving grenades pass through thin walls when discrete collision detection misses the collision between physics frames.
+   - **Fix**: Enable Continuous Collision Detection (CCD) with `CCD_MODE_CAST_RAY`
+
+2. **Spawn Position Behind Wall**: Grenades spawn 60 pixels ahead of player, which places them behind/inside walls when player is close to the wall.
+   - **Fix**: Raycast from player to intended spawn position; if wall detected, spawn grenade just before the wall
+
+The user's intuition ("вероятно она спавнится уже за стеной" - "it probably spawns already behind the wall") was exactly correct. This demonstrates the value of:
+- Carefully analyzing user hypotheses
+- Examining logs for missing events (no collision = spawn position issue)
+- Two-phase debugging when initial fix doesn't fully resolve the issue
+
+Both fixes together ensure grenades will never pass through walls regardless of:
+- Throw velocity
+- Wall thickness
+- Player distance to wall
+- Throw angle

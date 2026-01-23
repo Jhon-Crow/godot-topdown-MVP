@@ -3,15 +3,22 @@
 ## Quick Summary
 
 **Issue:** Offensive grenades passing through walls when thrown at close range
-**Root Cause:** Physics tunneling - grenades moving at ~1186 px/s (~20px/frame) pass through thin walls
-**Solution:** Enable Continuous Collision Detection (CCD) with `CCD_MODE_CAST_RAY`
-**Status:** ✅ Fixed
+**Root Causes:**
+1. Physics tunneling - grenades moving at ~1186 px/s (~20px/frame) pass through thin walls
+2. **NEW** Grenade spawn position behind wall - grenades spawned 60px ahead in throw direction, which can place them behind walls when player stands close to wall
+
+**Solutions:**
+1. Enable Continuous Collision Detection (CCD) with `CCD_MODE_CAST_RAY`
+2. **NEW** Raycast validation before spawning to ensure grenade doesn't spawn inside/behind walls
+
+**Status:** ✅ Fixed (both root causes addressed)
 
 ## Files in This Case Study
 
 - **README.md** - This file, quick overview
 - **analysis.md** - Comprehensive root cause analysis with technical details
 - **game_log_20260124_004642.txt** - Original log file from bug report (4,594 lines)
+- **game_log_20260124_010946.txt** - Second log file showing CCD wasn't enough (980 lines)
 - **grenade-log-entries.txt** - Filtered grenade-specific log entries (585 lines)
 
 ## The Problem
@@ -22,16 +29,36 @@ When throwing offensive grenades (FragGrenade) at close range with high velocity
 >
 > Translation: "offensive grenade passes through wall (for example when throwing grenade at point-blank range)"
 
-## Root Cause
+## Root Cause Analysis
+
+### Root Cause #1: Physics Tunneling (Initial Fix)
 
 **Physics Tunneling**: Fast-moving RigidBody2D objects can "tunnel" through thin obstacles when using discrete collision detection (the default). At 60 FPS:
 - Grenade max speed: 1186.5 px/s
 - Movement per frame: 19.8 pixels
 - Walls thinner than 19.8px can be skipped in a single frame
 
-## The Fix
+**Initial Fix**: Enable CCD (Continuous Collision Detection) on grenades.
 
-Enable Continuous Collision Detection (CCD) on all grenades:
+### Root Cause #2: Spawn Position Behind Wall (Follow-up Fix)
+
+After the CCD fix, user reported "всё ещё проходит" (still passes through). Analysis of the second log file (`game_log_20260124_010946.txt`) revealed:
+
+**Key Evidence** (line 870-873):
+```
+[01:10:11] [Player.Grenade] Velocity-based throw! Mouse velocity: (859.49365, -6904.961) (6958,2 px/s)
+[01:10:11] [GrenadeBase] Velocity-based throw! Mouse vel: (859.4937, -6904.961), Swing: 1101.2, Transfer: 1.00, Final speed: 1352.8
+```
+
+Notice there's **NO collision or landing logged** after this throw - the grenade simply disappeared!
+
+**Root Cause**: The grenade was being spawned at `player_position + throw_direction * 60px`. If the player stands within 60 pixels of a wall and throws toward it, the grenade spawns **behind/inside the wall**, bypassing physics collision entirely.
+
+This is exactly what the user hypothesized: "вероятно она спавнится уже за стеной" (it probably spawns already behind the wall).
+
+## The Fixes
+
+### Fix #1: CCD (Already Applied)
 
 ```gdscript
 # In scenes/projectiles/FragGrenade.tscn and FlashbangGrenade.tscn
@@ -41,7 +68,38 @@ continuous_cd = 1  # CCD_MODE_CAST_RAY
 continuous_cd = RigidBody2D.CCD_MODE_CAST_RAY
 ```
 
-CCD checks for collisions along the entire movement path, not just at discrete points, preventing tunneling.
+### Fix #2: Raycast Spawn Position Validation (New)
+
+Added a raycast check in `player.gd` before spawning the grenade:
+
+```gdscript
+## Get a safe spawn position for the grenade that doesn't spawn behind/inside a wall.
+## Uses raycast to check if there's an obstacle between player and intended spawn position.
+func _get_safe_grenade_spawn_position(from_pos: Vector2, intended_pos: Vector2, throw_direction: Vector2) -> Vector2:
+    var space_state := get_world_2d().direct_space_state
+
+    # Create raycast query from player to intended spawn position
+    var query := PhysicsRayQueryParameters2D.create(from_pos, intended_pos, 4, [self])
+    var result := space_state.intersect_ray(query)
+
+    if result.is_empty():
+        # No wall - safe to spawn at intended position
+        return intended_pos
+
+    # Wall detected! Spawn 5px before the wall
+    var collision_point: Vector2 = result.position
+    var safe_distance := maxf(from_pos.distance_to(collision_point) - 5.0, 10.0)
+    return from_pos + throw_direction * safe_distance
+```
+
+## Why Both Fixes Are Necessary
+
+| Scenario | CCD Only | Raycast Only | Both Fixes |
+|----------|----------|--------------|------------|
+| High-speed throw at distant wall | ✅ Works | N/A | ✅ Works |
+| Throw at wall >60px away | ✅ Works | N/A | ✅ Works |
+| Throw at wall <60px away ("в упор") | ❌ Spawns behind wall | ✅ Spawns safely | ✅ Works |
+| Any velocity at close range | ❌ Fails | ✅ Works | ✅ Works |
 
 ## Why CCD_MODE_CAST_RAY?
 
@@ -54,26 +112,26 @@ We use `CCD_MODE_CAST_RAY` because it's proven to work reliably in production.
 
 ## Impact
 
-**Before Fix:**
-- ❌ Grenades occasionally pass through thin walls at high velocity
+**Before Fixes:**
+- ❌ Grenades occasionally pass through walls at high velocity
+- ❌ Grenades spawning behind walls when thrown at close range
 - ❌ Intermittent bug, hard to reproduce consistently
-- ❌ More common with close-range throws
 
-**After Fix:**
+**After Fixes:**
 - ✅ Grenades always detect wall collisions regardless of velocity
-- ✅ Works with walls of any thickness
+- ✅ Grenades never spawn behind walls
+- ✅ Works with walls at any distance or thickness
+- ✅ Detailed logging when spawn position is adjusted
 - ✅ Negligible performance impact (<1% FPS)
 - ✅ No gameplay changes - same throw mechanics
 
 ## Testing
 
-To verify the fix works:
+To verify both fixes work:
 
-1. Stand next to a thin wall (5-10px)
-2. Throw grenade at maximum velocity directly at wall
-3. Grenade should explode on impact, not pass through
-
-The fix applies to both FragGrenade and FlashbangGrenade for consistency.
+1. **Test CCD**: Stand at moderate distance from wall, throw at max velocity - grenade should hit wall
+2. **Test Spawn Check**: Stand right against wall (<60px), throw toward wall - check logs for "Wall detected... Adjusting spawn" message
+3. **Test Combined**: Stand against thin wall, throw at max velocity - grenade should spawn safely and explode on impact
 
 ## Related Issues
 
@@ -84,22 +142,24 @@ The fix applies to both FragGrenade and FlashbangGrenade for consistency.
 All three issues relate to grenade collision detection, but have different root causes:
 - #279: Missing `contact_monitor = true`
 - #283: Missing CharacterBody2D in collision type check
-- #287: Missing CCD for high-velocity tunneling prevention
+- #287: Missing CCD + spawn position validation
 
 ## References
 
 For detailed technical analysis, research sources, and implementation details, see [analysis.md](analysis.md).
 
 ### Key Sources
+- [Ray-casting — Godot Engine Documentation](https://docs.godotengine.org/en/stable/tutorials/physics/ray-casting.html)
+- [PhysicsDirectSpaceState2D — Godot Engine Documentation](https://docs.godotengine.org/en/stable/classes/class_physicsdirectspacestate2d.html)
 - [Tunneling | Glossary | GDQuest](https://school.gdquest.com/glossary/tunneling)
 - [Continuous Collision Detection (CCD) | Glossary | GDQuest](https://school.gdquest.com/glossary/continuous_collision_detection)
 - [High speed physics2d collision - intermittent tunneling #6664](https://github.com/godotengine/godot/issues/6664)
-- [Godot rigidbody2d CCD - Godot Forums](https://godotforums.org/d/32349-godot-rigidbody2d-ccd)
 
 ## Lessons Learned
 
-1. Always enable CCD for fast-moving physics objects (>600 px/s)
-2. Intermittent bugs require specific edge-case testing
-3. Godot's discrete collision detection has limitations
-4. CCD_MODE_CAST_RAY is the reliable choice for Godot 4.x
-5. Document physics configurations in case studies for future reference
+1. **CCD is necessary but not sufficient** - spawn position must also be validated
+2. **User hypotheses can be correct** - "вероятно она спавнится уже за стеной" was exactly right
+3. **Analyze logs carefully** - missing collision logs revealed the second root cause
+4. **Raycast before spawn** - always validate projectile spawn positions for close-range scenarios
+5. **Log spawn position adjustments** - helps debug and verify fix is working
+6. **Two-phase debugging** - initial fix may reveal secondary issues
