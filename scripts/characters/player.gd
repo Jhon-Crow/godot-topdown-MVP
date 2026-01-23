@@ -1550,9 +1550,13 @@ func _throw_grenade(drag_end: Vector2) -> void:
 
 	# IMPORTANT: Set grenade position to player's CURRENT position (not where it was activated)
 	# Offset grenade spawn position in throw direction to avoid collision with player
+	# But first, check if there's a wall between player and the spawn position to prevent
+	# the grenade from spawning behind/inside a wall (which would cause tunneling)
 	var spawn_offset := 60.0  # Increased from 30 to 60 pixels in front of player to avoid hitting
-	var spawn_position := global_position + throw_direction * spawn_offset
-	_active_grenade.global_position = spawn_position
+	var intended_spawn_position := global_position + throw_direction * spawn_offset
+
+	# Raycast from player to intended spawn position to check for walls
+	var spawn_position := _get_safe_grenade_spawn_position(global_position, intended_spawn_position, throw_direction)
 
 	# Use velocity-based throwing if available, otherwise fall back to legacy
 	if _active_grenade.has_method("throw_grenade_velocity_based"):
@@ -1574,6 +1578,55 @@ func _throw_grenade(drag_end: Vector2) -> void:
 
 	# Reset state (grenade is now independent)
 	_reset_grenade_state()
+
+
+## Get a safe spawn position for the grenade that doesn't spawn behind/inside a wall.
+## Uses raycast to check if there's an obstacle between player and intended spawn position.
+## This prevents the grenade from tunneling through walls when thrown at close range ("в упор").
+## @param from_pos: The player's current position.
+## @param intended_pos: The intended spawn position (offset from player).
+## @param throw_direction: The normalized throw direction.
+## @return: A safe spawn position that is not behind a wall.
+func _get_safe_grenade_spawn_position(from_pos: Vector2, intended_pos: Vector2, throw_direction: Vector2) -> Vector2:
+	# Get the physics space state for raycasting
+	var space_state := get_world_2d().direct_space_state
+	if space_state == null:
+		FileLogger.info("[Player.Grenade] WARNING: Could not get physics space state, using intended position")
+		_active_grenade.global_position = intended_pos
+		return intended_pos
+
+	# Create raycast query from player to intended spawn position
+	# Collision mask 4 = obstacles layer (same as grenade's collision mask for walls)
+	var query := PhysicsRayQueryParameters2D.create(from_pos, intended_pos, 4, [self])
+	query.hit_from_inside = false  # Don't detect if player is somehow inside a wall
+
+	var result := space_state.intersect_ray(query)
+
+	if result.is_empty():
+		# No wall between player and intended position - safe to spawn there
+		_active_grenade.global_position = intended_pos
+		FileLogger.info("[Player.Grenade] Spawn position clear, using intended: %s" % str(intended_pos))
+		return intended_pos
+
+	# Wall detected! Get the collision point and spawn just before it
+	var collision_point: Vector2 = result.position
+	var collider_name: String = result.collider.name if result.collider else "unknown"
+
+	# Calculate safe spawn distance: 5 pixels before the wall
+	# This ensures the grenade doesn't spawn inside the wall
+	var safe_margin := 5.0
+	var distance_to_wall := from_pos.distance_to(collision_point)
+	var safe_distance := maxf(distance_to_wall - safe_margin, 10.0)  # At least 10px from player
+
+	var safe_position := from_pos + throw_direction * safe_distance
+
+	FileLogger.info("[Player.Grenade] Wall detected at %s (collider: %s)! Adjusting spawn from %s to %s (distance: %.1f -> %.1f)" % [
+		str(collision_point), collider_name, str(intended_pos), str(safe_position),
+		from_pos.distance_to(intended_pos), safe_distance
+	])
+
+	_active_grenade.global_position = safe_position
+	return safe_position
 
 
 ## Rotate player to face throw direction (with swing animation).

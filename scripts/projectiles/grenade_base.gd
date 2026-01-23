@@ -108,6 +108,12 @@ func _ready() -> void:
 	contact_monitor = true
 	max_contacts_reported = 4  # Track up to 4 simultaneous contacts
 
+	# Enable Continuous Collision Detection to prevent tunneling through walls
+	# at high velocities (grenades can reach ~1200 px/s, which is ~20px per frame at 60 FPS)
+	# CCD_MODE_CAST_RAY (1) is reliable and recommended for fast-moving objects
+	continuous_cd = RigidBody2D.CCD_MODE_CAST_RAY
+	FileLogger.info("[GrenadeBase] CCD enabled (mode: CAST_RAY) to prevent wall tunneling")
+
 	# Set up physics
 	gravity_scale = 0.0  # Top-down, no gravity
 	linear_damp = 1.0  # Reduced for easier rolling
