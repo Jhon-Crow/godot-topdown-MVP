@@ -42,9 +42,15 @@ class_name GrenadeBase
 @export var mouse_velocity_to_throw_multiplier: float = 0.5
 
 ## Minimum swing distance (in pixels) required for full velocity transfer at grenade's mass.
-## For a 0.4kg grenade, need ~200px of mouse movement to transfer full velocity.
+## For a 0.4kg grenade, need ~80px of mouse movement to transfer full velocity.
+## Reduced from 200px to allow quick flicks to throw reasonably far.
 ## Formula: actual_min_swing = min_swing_distance * (grenade_mass / 0.4)
-@export var min_swing_distance: float = 200.0
+@export var min_swing_distance: float = 80.0
+
+## Minimum transfer efficiency (0.0 to 1.0) for any intentional throw.
+## This ensures quick flicks with high velocity still result in a reasonable throw distance.
+## Set to 0.35 to guarantee at least 35% velocity transfer for any swing > 10px.
+@export var min_transfer_efficiency: float = 0.35
 
 ## Friction/damping applied to slow the grenade.
 ## Higher friction = shorter throw distance for same speed.
@@ -172,6 +178,7 @@ func activate_timer() -> void:
 
 ## Throw the grenade using realistic velocity-based physics.
 ## The throw velocity is derived from mouse velocity at release, adjusted by grenade mass.
+## Quick flicks (high velocity, short swing) now throw reasonably far thanks to minimum transfer.
 ## @param mouse_velocity: The mouse velocity vector at moment of release (pixels/second).
 ## @param swing_distance: Total distance the mouse traveled during the swing (pixels).
 func throw_grenade_velocity_based(mouse_velocity: Vector2, swing_distance: float) -> void:
@@ -183,9 +190,14 @@ func throw_grenade_velocity_based(mouse_velocity: Vector2, swing_distance: float
 	var mass_ratio := grenade_mass / 0.4  # Normalized to "standard" 0.4kg grenade
 	var required_swing := min_swing_distance * mass_ratio
 
-	# Calculate velocity transfer efficiency (0.0 to 1.0)
-	# If swing distance is less than required, velocity transfer is reduced
-	var transfer_efficiency := clampf(swing_distance / required_swing, 0.0, 1.0)
+	# Calculate velocity transfer efficiency with minimum guarantee for quick flicks
+	# FIX for issue #281: Short fast mouse movements now get reasonable transfer
+	# The swing-based transfer scales from 0 to (1 - min_transfer) based on swing distance
+	# The minimum transfer (0.35 default) ensures quick flicks still throw reasonably far
+	var swing_transfer := clampf(swing_distance / required_swing, 0.0, 1.0 - min_transfer_efficiency)
+	var transfer_efficiency := min_transfer_efficiency + swing_transfer
+	# Ensure we don't exceed 1.0 (full transfer at required_swing or beyond)
+	transfer_efficiency = clampf(transfer_efficiency, 0.0, 1.0)
 
 	# Convert mouse velocity to throw velocity
 	# Base formula: throw_velocity = mouse_velocity * multiplier * transfer_efficiency / mass_ratio

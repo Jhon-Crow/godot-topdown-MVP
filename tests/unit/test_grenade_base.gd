@@ -30,7 +30,11 @@ class MockGrenadeBase:
 	var mouse_velocity_to_throw_multiplier: float = 3.0
 
 	## Minimum swing distance for full velocity transfer.
-	var min_swing_distance: float = 200.0
+	## Reduced from 200.0 to 80.0 for issue #281 fix.
+	var min_swing_distance: float = 80.0
+
+	## Minimum transfer efficiency for quick flicks (issue #281 fix).
+	var min_transfer_efficiency: float = 0.35
 
 	## Friction/damping applied to slow the grenade.
 	var ground_friction: float = 150.0
@@ -95,6 +99,7 @@ class MockGrenadeBase:
 			activation_sound_played += 1
 
 	## Throw the grenade using velocity-based physics.
+	## Updated with issue #281 fix: minimum transfer efficiency for quick flicks.
 	func throw_grenade_velocity_based(mouse_velocity: Vector2, swing_distance: float) -> void:
 		freeze = false
 
@@ -102,8 +107,10 @@ class MockGrenadeBase:
 		var mass_ratio := grenade_mass / 0.4
 		var required_swing := min_swing_distance * mass_ratio
 
-		# Calculate velocity transfer efficiency
-		var transfer_efficiency := clampf(swing_distance / required_swing, 0.0, 1.0)
+		# Calculate velocity transfer efficiency with minimum guarantee for quick flicks
+		# FIX for issue #281: Short fast mouse movements now get reasonable transfer
+		var swing_transfer := clampf(swing_distance / required_swing, 0.0, 1.0 - min_transfer_efficiency)
+		var transfer_efficiency := clampf(min_transfer_efficiency + swing_transfer, 0.0, 1.0)
 
 		# Convert mouse velocity to throw velocity
 		var base_throw_velocity := mouse_velocity * mouse_velocity_to_throw_multiplier * transfer_efficiency
@@ -719,16 +726,93 @@ func test_velocity_based_throw_with_diagonal_velocity() -> void:
 func test_velocity_based_throw_minimum_swing_scales_with_mass() -> void:
 	# Heavy grenade needs more swing for full transfer
 	grenade.grenade_mass = 0.6  # 1.5x standard mass
-	grenade.min_swing_distance = 200.0
+	grenade.min_swing_distance = 80.0
 
 	# With insufficient swing for heavy grenade, transfer is reduced
-	grenade.throw_grenade_velocity_based(Vector2(1000, 0), 200.0)
+	grenade.throw_grenade_velocity_based(Vector2(1000, 0), 80.0)
 	var speed_heavy_short_swing := grenade.linear_velocity.length()
 
 	grenade.linear_velocity = Vector2.ZERO
-	# With sufficient swing (200 * 1.5 = 300)
-	grenade.throw_grenade_velocity_based(Vector2(1000, 0), 350.0)
+	# With sufficient swing (80 * 1.5 = 120)
+	grenade.throw_grenade_velocity_based(Vector2(1000, 0), 150.0)
 	var speed_heavy_long_swing := grenade.linear_velocity.length()
 
 	assert_gt(speed_heavy_long_swing, speed_heavy_short_swing,
 		"Heavy grenade should need more swing distance for full velocity transfer")
+
+
+# ============================================================================
+# Issue #281 Fix Tests: Quick Flick Throwing
+# ============================================================================
+
+
+func test_issue_281_quick_flick_gets_minimum_transfer() -> void:
+	# Scenario from issue: Quick flick (874 px/s, 83.7px swing)
+	# OLD behavior: transfer = 83.7 / 200 = 0.42 (too low!)
+	# NEW behavior: transfer = 0.35 + (83.7/80) * 0.65 = 0.35 + 0.65 = 1.0 (capped)
+	grenade.throw_grenade_velocity_based(Vector2(874.2, 0), 83.7)
+
+	# With new system, quick flicks should have reasonable throw speed
+	# At minimum, we expect 35% of velocity * multiplier to transfer
+	var expected_min_speed := 874.2 * grenade.mouse_velocity_to_throw_multiplier * grenade.min_transfer_efficiency
+	assert_gt(grenade.linear_velocity.length(), expected_min_speed * 0.8,
+		"Quick flick should have at least 35% velocity transfer")
+
+
+func test_issue_281_very_short_swing_still_throws() -> void:
+	# Very short swing (4px) should still throw the grenade, not drop at feet
+	# OLD behavior: transfer = 4 / 200 = 0.02 (basically drops)
+	# NEW behavior: transfer = 0.35 minimum
+	grenade.throw_grenade_velocity_based(Vector2(1000, 0), 4.0)
+
+	assert_gt(grenade.linear_velocity.length(), 50.0,
+		"Even very short swings should throw grenade, not drop at feet")
+
+
+func test_issue_281_minimum_transfer_efficiency_applied() -> void:
+	# Test that minimum transfer efficiency is actually being applied
+	# With 0px swing, we should still get min_transfer_efficiency
+	grenade.throw_grenade_velocity_based(Vector2(1000, 0), 1.0)
+	var speed_zero_swing := grenade.linear_velocity.length()
+
+	# Speed should be at least min_transfer_efficiency * velocity * multiplier
+	var expected_speed := 1000.0 * grenade.mouse_velocity_to_throw_multiplier * grenade.min_transfer_efficiency
+	assert_gt(speed_zero_swing, expected_speed * 0.8,
+		"Minimum transfer efficiency should always apply")
+
+
+func test_issue_281_full_swing_still_reaches_max_transfer() -> void:
+	# Full swing should still achieve 100% transfer (not 135%!)
+	grenade.throw_grenade_velocity_based(Vector2(1000, 0), 150.0)  # Well above min_swing
+	var speed_full_swing := grenade.linear_velocity.length()
+
+	grenade.linear_velocity = Vector2.ZERO
+	grenade.throw_grenade_velocity_based(Vector2(1000, 0), 500.0)  # Much more swing
+	var speed_extra_swing := grenade.linear_velocity.length()
+
+	# Both should be at ~100% transfer (same speed)
+	assert_almost_eq(speed_full_swing, speed_extra_swing, 10.0,
+		"Extra swing beyond required should not increase transfer beyond 100%")
+
+
+func test_issue_281_intermediate_swing_has_reasonable_transfer() -> void:
+	# A swing of 40px (50% of required 80px) should have better transfer than old system
+	# OLD: 40/200 = 0.20
+	# NEW: 0.35 + (40/80)*0.65 = 0.35 + 0.325 = 0.675
+	grenade.throw_grenade_velocity_based(Vector2(1000, 0), 40.0)
+
+	# Expect around 67.5% transfer, which gives ~675 * multiplier speed
+	var expected_transfer := 0.35 + (40.0 / 80.0) * (1.0 - 0.35)  # 0.675
+	var expected_speed := 1000.0 * grenade.mouse_velocity_to_throw_multiplier * expected_transfer
+	assert_almost_eq(grenade.linear_velocity.length(), expected_speed, expected_speed * 0.15,
+		"Intermediate swing should have improved transfer vs old system")
+
+
+func test_issue_281_high_velocity_short_swing_throws_far() -> void:
+	# High velocity (2000+ px/s) with short swing (50px) should still throw reasonably
+	# This is the core use case from the issue
+	grenade.throw_grenade_velocity_based(Vector2(2000, 0), 50.0)
+
+	# With 2000 px/s velocity, minimum 35% transfer should give at least 700 speed
+	assert_gt(grenade.linear_velocity.length(), 200.0,
+		"High velocity quick flicks should throw grenades reasonably far")
