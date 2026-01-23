@@ -27,10 +27,21 @@ func _ready() -> void:
 ## Starts the timer for automatic fade-out.
 func _start_fade_timer() -> void:
 	# Wait for fade delay
-	await get_tree().create_timer(fade_delay).timeout
+	# Check if we're still valid (scene might change during wait)
+	var tree := get_tree()
+	if tree == null:
+		return
+	await tree.create_timer(fade_delay).timeout
+
+	# Check if node is still valid after await (scene might have changed)
+	if not is_instance_valid(self) or not is_inside_tree():
+		return
 
 	# Gradually fade out
 	var tween := create_tween()
+	if tween == null:
+		queue_free()
+		return
 	tween.tween_property(self, "modulate:a", 0.0, fade_duration)
 	tween.tween_callback(queue_free)
 

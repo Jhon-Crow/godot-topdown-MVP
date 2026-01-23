@@ -57,6 +57,9 @@ var _debug_effects: bool = false
 ## Reference to FileLogger for persistent logging.
 var _file_logger: Node = null
 
+## Track the last known scene to detect scene changes.
+var _last_scene: Node = null
+
 
 func _ready() -> void:
 	# CRITICAL: First line diagnostic - if this doesn't appear, script failed to load
@@ -70,6 +73,11 @@ func _ready() -> void:
 		print("[ImpactEffectsManager] FileLogger found successfully")
 
 	_preload_effect_scenes()
+
+	# Connect to tree_changed to detect scene changes and clear stale references
+	get_tree().tree_changed.connect(_on_tree_changed)
+	_last_scene = get_tree().current_scene
+
 	_log_info("ImpactEffectsManager ready - FULL VERSION with blood effects enabled")
 
 
@@ -359,22 +367,13 @@ func _spawn_blood_decals_at_particle_landing(origin: Vector2, hit_direction: Vec
 
 ## Internal helper to spawn decals with given physics parameters.
 ## Checks for wall collisions to prevent decals from appearing through walls.
+## Decals are spawned with a delay matching when particles would "land".
 func _spawn_decals_with_params(origin: Vector2, hit_direction: Vector2, initial_velocity_min: float, initial_velocity_max: float, gravity: Vector2, spread_angle: float, lifetime: float, count: int) -> void:
-	# Get the current scene for raycasting
-	var scene := get_tree().current_scene
-	var space_state: PhysicsDirectSpaceState2D = null
-	if scene:
-		space_state = scene.get_world_2d().direct_space_state
-
 	# Base direction (effect rotation is in the hit direction)
 	var base_angle: float = hit_direction.angle()
 
-	var decals_spawned := 0
+	var decals_scheduled := 0
 	for i in range(count):
-		var decal := _blood_decal_scene.instantiate() as Node2D
-		if decal == null:
-			continue
-
 		# Simulate a random particle trajectory
 		# Random angle within spread range
 		var angle_offset: float = randf_range(-spread_angle / 2.0, spread_angle / 2.0)
@@ -390,32 +389,67 @@ func _spawn_decals_with_params(origin: Vector2, hit_direction: Vector2, initial_
 		# Calculate landing position using physics: pos = origin + v*t + 0.5*g*t^2
 		var landing_pos: Vector2 = origin + velocity * land_time + 0.5 * gravity * land_time * land_time
 
-		# Check if there's a wall between origin and landing position
-		if space_state:
-			var query := PhysicsRayQueryParameters2D.create(origin, landing_pos, WALL_COLLISION_LAYER)
-			query.collide_with_bodies = true
-			query.collide_with_areas = false
-			var result: Dictionary = space_state.intersect_ray(query)
-			if not result.is_empty():
-				# Wall detected between origin and landing - skip this decal
-				decal.queue_free()
-				continue
-
-		decal.global_position = landing_pos
-
-		# Random rotation for variety
-		decal.rotation = randf() * TAU
-
-		# Small random scale for variety (8x8 texture, scale 0.8-1.5 = 6-12 pixels)
+		# Random rotation and scale for variety
+		var decal_rotation: float = randf() * TAU
 		var decal_scale: float = randf_range(0.8, 1.5)
-		decal.scale = Vector2(decal_scale, decal_scale)
 
-		# Add to scene
-		_add_effect_to_scene(decal)
+		# Schedule decal to spawn after land_time (when particle would land)
+		_schedule_delayed_decal(origin, landing_pos, decal_rotation, decal_scale, land_time)
+		decals_scheduled += 1
 
-		# Track decal for cleanup
-		_blood_decals.append(decal)
-		decals_spawned += 1
+	_log_info("Blood decals scheduled: %d to spawn at particle landing times" % [decals_scheduled])
+	if _debug_effects:
+		print("[ImpactEffectsManager] Blood decals scheduled: ", decals_scheduled)
+
+
+## Schedules a single blood decal to spawn after a delay, checking for wall collisions at spawn time.
+func _schedule_delayed_decal(origin: Vector2, landing_pos: Vector2, decal_rotation: float, decal_scale: float, delay: float) -> void:
+	# Use a timer to delay the spawn
+	var tree := get_tree()
+	if tree == null:
+		return
+
+	await tree.create_timer(delay).timeout
+
+	# Check if we're still valid after await (scene might have changed)
+	if not is_instance_valid(self):
+		return
+
+	if _blood_decal_scene == null:
+		return
+
+	# Get the current scene for raycasting at spawn time
+	var scene := get_tree().current_scene
+	if scene == null:
+		return
+
+	var space_state: PhysicsDirectSpaceState2D = scene.get_world_2d().direct_space_state
+	if space_state == null:
+		return
+
+	# Check if there's a wall between origin and landing position
+	var query := PhysicsRayQueryParameters2D.create(origin, landing_pos, WALL_COLLISION_LAYER)
+	query.collide_with_bodies = true
+	query.collide_with_areas = false
+	var result: Dictionary = space_state.intersect_ray(query)
+	if not result.is_empty():
+		# Wall detected between origin and landing - skip this decal
+		return
+
+	# Create the decal
+	var decal := _blood_decal_scene.instantiate() as Node2D
+	if decal == null:
+		return
+
+	decal.global_position = landing_pos
+	decal.rotation = decal_rotation
+	decal.scale = Vector2(decal_scale, decal_scale)
+
+	# Add to scene
+	_add_effect_to_scene(decal)
+
+	# Track decal for cleanup
+	_blood_decals.append(decal)
 
 	# Remove oldest decals if limit exceeded
 	while _blood_decals.size() > MAX_BLOOD_DECALS:
@@ -423,9 +457,8 @@ func _spawn_decals_with_params(origin: Vector2, hit_direction: Vector2, initial_
 		if oldest and is_instance_valid(oldest):
 			oldest.queue_free()
 
-	_log_info("Blood decals spawned: %d at simulated particle landing positions (total: %d)" % [decals_spawned, _blood_decals.size()])
 	if _debug_effects:
-		print("[ImpactEffectsManager] Blood decals spawned: ", decals_spawned, ", total: ", _blood_decals.size())
+		print("[ImpactEffectsManager] Delayed blood decal spawned at ", landing_pos)
 
 
 ## Clears all blood decals from the scene.
@@ -663,3 +696,15 @@ func clear_all_persistent_effects() -> void:
 	clear_blood_decals()
 	clear_bullet_holes()
 	clear_penetration_holes()
+
+
+## Called when the scene tree changes. Detects scene transitions and clears stale references.
+func _on_tree_changed() -> void:
+	var current_scene := get_tree().current_scene
+	if current_scene != _last_scene:
+		_log_info("Scene changed - clearing all stale effect references")
+		# Clear arrays of stale references (nodes are already freed by scene change)
+		_blood_decals.clear()
+		_bullet_holes.clear()
+		_penetration_holes.clear()
+		_last_scene = current_scene

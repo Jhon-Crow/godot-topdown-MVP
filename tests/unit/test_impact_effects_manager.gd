@@ -233,3 +233,15 @@ func test_spawn_blood_decals_at_particle_landing_method_exists() -> void:
 	# The new particle-based decal spawning method should exist
 	assert_true(impact_manager.has_method("_spawn_blood_decals_at_particle_landing"),
 		"Manager should have _spawn_blood_decals_at_particle_landing method")
+
+
+func test_schedule_delayed_decal_method_exists() -> void:
+	# The delayed decal spawning method for syncing with particle landing should exist
+	assert_true(impact_manager.has_method("_schedule_delayed_decal"),
+		"Manager should have _schedule_delayed_decal method")
+
+
+func test_on_tree_changed_method_exists() -> void:
+	# The scene change handler should exist for clearing stale references
+	assert_true(impact_manager.has_method("_on_tree_changed"),
+		"Manager should have _on_tree_changed method for scene change handling")

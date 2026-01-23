@@ -11,5 +11,11 @@ extends GPUParticles2D
 func _ready() -> void:
 	# Wait for particles to finish and then cleanup
 	var total_wait := lifetime + cleanup_delay
-	await get_tree().create_timer(total_wait).timeout
-	queue_free()
+	# Check if we're still valid (scene might change during wait)
+	var tree := get_tree()
+	if tree == null:
+		return
+	await tree.create_timer(total_wait).timeout
+	# Check if node is still valid after await (scene might have changed)
+	if is_instance_valid(self) and is_inside_tree():
+		queue_free()
