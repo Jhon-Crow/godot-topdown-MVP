@@ -1117,16 +1117,19 @@ func _update_enemy_model_rotation() -> void:
 	# global_rotation ensures the EnemyModel's visual direction is set in world coordinates,
 	# independent of any parent rotation.
 	#
-	# When we flip the model vertically (negative scale.y), we must NEGATE the rotation
-	# angle to compensate. This is because a negative Y scale mirrors the coordinate
-	# system, which inverts the effect of rotation.
+	# IMPORTANT FIX (Issue #264 - Session 5):
+	# After the transform delay fix in f188853, we now calculate bullet direction directly
+	# as (_player.global_position - global_position).normalized() to avoid stale transforms.
+	# To make the visual model rotation match this bullet direction, we must NOT negate
+	# the angle when flipping vertically. The flip handles the visual appearance, but the
+	# rotation angle should match the actual geometric direction to the player.
 	#
-	# Example: To face angle -153° (up-left):
-	# - Without flip: global_rotation = -153°, scale.y = 1.3  -> faces up-left ✓
-	# - With flip but no angle adjustment: global_rotation = -153°, scale.y = -1.3 -> faces down-right ✗
-	# - With flip AND angle negation: global_rotation = 153°, scale.y = -1.3 -> faces up-left ✓
+	# Example: Player is up-left at angle -135°:
+	# - Without flip: global_rotation = -135°, scale.y = 1.3  -> faces down-right (wrong)
+	# - With flip, OLD code: global_rotation = 135°, scale.y = -1.3 -> faces up-left (visual ok, but bullets go wrong)
+	# - With flip, NEW code: global_rotation = -135°, scale.y = -1.3 -> faces up-left (visual matches bullets) ✓
 	if aiming_left:
-		_enemy_model.global_rotation = -target_angle
+		_enemy_model.global_rotation = target_angle
 		_enemy_model.scale = Vector2(enemy_model_scale, -enemy_model_scale)
 	else:
 		_enemy_model.global_rotation = target_angle
@@ -1151,8 +1154,9 @@ func _force_model_to_face_direction(direction: Vector2) -> void:
 	var target_angle := direction.angle()
 	var aiming_left := absf(target_angle) > PI / 2
 
+	# Same fix as _update_enemy_model_rotation() - don't negate angle when flipped
 	if aiming_left:
-		_enemy_model.global_rotation = -target_angle
+		_enemy_model.global_rotation = target_angle
 		_enemy_model.scale = Vector2(enemy_model_scale, -enemy_model_scale)
 	else:
 		_enemy_model.global_rotation = target_angle
