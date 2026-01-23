@@ -38,10 +38,10 @@ signal death_animation_completed
 @export var max_angular_velocity: float = 2.0
 
 ## Impulse strength applied to ragdoll based on hit direction.
-@export var ragdoll_impulse_strength: float = 150.0
+@export var ragdoll_impulse_strength: float = 100.0
 
 ## Joint softness for PinJoint2D (0 = stiff, higher = more flexible).
-@export var joint_softness: float = 0.1
+@export var joint_softness: float = 0.0
 
 ## Joint bias for PinJoint2D (affects constraint solving).
 @export var joint_bias: float = 0.0
@@ -72,6 +72,9 @@ var _hit_angle: float = 0.0
 
 ## Animation index based on hit angle (0-23, each representing 15 degrees).
 var _animation_index: int = 0
+
+## Type of weapon that caused the death (affects animation style).
+var _weapon_type: String = "rifle"
 
 ## Original sprite positions before death animation.
 var _original_body_pos: Vector2 = Vector2.ZERO
@@ -143,15 +146,20 @@ func initialize(body: Sprite2D, head: Sprite2D, left_arm: Sprite2D, right_arm: S
 	_character_model = model
 
 
-## Start the death animation with the given hit direction.
+## Start the death animation with the given hit direction and weapon type.
 ## @param hit_direction: The direction the bullet was traveling when it hit.
-func start_death_animation(hit_direction: Vector2) -> void:
+## @param weapon_type: The type of weapon that caused the death (for different animations).
+func start_death_animation(hit_direction: Vector2, weapon_type: String = "rifle") -> void:
 	if _is_active:
 		return  # Already playing
 
 	_is_active = true
 	_hit_direction = hit_direction.normalized()
 	_hit_angle = hit_direction.angle()
+	_weapon_type = weapon_type
+
+	# Generate animations for this weapon type
+	_generate_fall_animations(_weapon_type)
 
 	# Calculate animation index (0-23 for 15-degree intervals).
 	# Add PI to convert from [-PI, PI] to [0, 2*PI], then divide by angle step.
@@ -502,31 +510,50 @@ func _cleanup_ragdoll(force_cleanup: bool = false) -> void:
 
 
 ## Generate fall animations for all 24 angle indices.
-## Each animation defines unique keyframes based on the direction of the hit.
-func _generate_fall_animations() -> void:
+## Each animation defines unique keyframes based on the direction of the hit and weapon type.
+func _generate_fall_animations(weapon_type: String = "rifle") -> void:
 	_fall_animations.clear()
 
 	# Generate 24 animations, one for each 15-degree interval
 	for i in range(24):
 		var angle := float(i) * 15.0 - 180.0  # Degrees, -180 to +165
-		var anim := _create_fall_animation_for_angle(angle)
+		var anim := _create_fall_animation_for_angle(angle, weapon_type)
 		_fall_animations.append(anim)
 
 
-## Create fall animation data for a specific hit angle.
+## Create fall animation data for a specific hit angle and weapon type.
 ## @param angle: Hit angle in degrees (-180 to +180).
-func _create_fall_animation_for_angle(angle: float) -> Dictionary:
+## @param weapon_type: The weapon type affecting animation intensity.
+func _create_fall_animation_for_angle(angle: float, weapon_type: String = "rifle") -> Dictionary:
 	# Convert angle to radians for calculations
 	var rad := deg_to_rad(angle)
 
 	# Calculate fall direction (opposite to hit direction - body falls away from bullet)
 	var fall_dir := Vector2(cos(rad), sin(rad))
 
-	# Base fall distance and rotation
+	# Base fall distance and rotation (varies by weapon)
 	var fall_distance := 25.0
 	var body_rotation := angle * 0.5  # Body rotates partially toward hit
 	var head_lag := 15.0  # Head lags behind body rotation
 	var arm_swing := 30.0  # Arms swing on impact
+
+	# Adjust animation intensity based on weapon type
+	match weapon_type.to_lower():
+		"shotgun":
+			# Shotguns cause more violent deaths
+			fall_distance *= 1.5
+			body_rotation *= 1.3
+			head_lag *= 1.2
+			arm_swing *= 1.4
+		"pistol", "uzi":
+			# Smaller caliber weapons cause less dramatic falls
+			fall_distance *= 0.7
+			body_rotation *= 0.8
+			head_lag *= 0.9
+			arm_swing *= 0.8
+		"rifle":
+			# Default rifle behavior
+			pass
 
 	# Randomize slightly for variety
 	var variation := randf_range(-5.0, 5.0)

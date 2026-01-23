@@ -63,6 +63,9 @@ func _ready() -> void:
 	# Find and connect to all enemies
 	_setup_enemy_tracking()
 
+	# Add test enemies for death animation testing
+	_add_test_enemies()
+
 	# Find the enemy count label
 	_enemy_count_label = get_node_or_null("CanvasLayer/UI/EnemyCountLabel")
 	_update_enemy_count_label()
@@ -215,6 +218,47 @@ func _setup_enemy_tracking() -> void:
 	_initial_enemy_count = enemies.size()
 	_current_enemy_count = _initial_enemy_count
 	print("Tracking %d enemies" % _initial_enemy_count)
+
+
+## Add non-attacking test enemies for death animation testing.
+func _add_test_enemies() -> void:
+	var enemies_node := get_node_or_null("Environment/Enemies")
+	if enemies_node == null:
+		return
+
+	# Load enemy scene
+	var enemy_scene = load("res://scenes/objects/Enemy.tscn")
+	if enemy_scene == null:
+		push_error("Failed to load enemy scene for test enemies")
+		return
+
+	# Add two test enemies: one for real-time testing, one for slow-motion
+	var test_positions = [
+		Vector2(500, 500),  # Real-time test enemy
+		Vector2(600, 500)   # Slow-motion test enemy
+	]
+
+	for i in range(test_positions.size()):
+		var test_enemy = enemy_scene.instantiate()
+		test_enemy.name = "TestEnemy%d" % (i + 1)
+		test_enemy.position = test_positions[i]
+		test_enemy.behavior_mode = test_enemy.BehaviorMode.GUARD  # Don't move or attack
+		test_enemy.disable_shooting = true  # Don't shoot
+		test_enemy.destroy_on_death = false  # Don't destroy, keep body for testing
+
+		enemies_node.add_child(test_enemy)
+
+		# Connect signals
+		if test_enemy.has_signal("died"):
+			test_enemy.died.connect(_on_enemy_died)
+		if test_enemy.has_signal("hit"):
+			test_enemy.hit.connect(_on_enemy_hit)
+
+		# Update counts
+		_initial_enemy_count += 1
+		_current_enemy_count += 1
+
+	print("Added %d test enemies for death animation testing" % test_positions.size())
 
 
 ## Setup debug UI elements for kills and accuracy.

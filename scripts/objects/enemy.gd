@@ -135,6 +135,9 @@ enum BehaviorMode {
 ## Enable/disable lead prediction (shooting ahead of moving targets).
 @export var enable_lead_prediction: bool = true
 
+## Disable shooting for testing purposes (enemies will still be hittable).
+@export var disable_shooting: bool = false
+
 ## Bullet speed for lead prediction calculation.
 ## Should match the actual bullet speed (default is 2500 for assault rifle).
 @export var bullet_speed: float = 2500.0
@@ -616,6 +619,9 @@ var _is_stunned: bool = false
 
 ## Last hit direction (used for death animation).
 var _last_hit_direction: Vector2 = Vector2.RIGHT
+
+## Last weapon type that hit (used for death animation).
+var _last_weapon_type: String = "rifle"
 
 ## Death animation component reference.
 var _death_animation: Node = null
@@ -1329,6 +1335,10 @@ func _finish_reload() -> void:
 
 ## Check if the enemy can shoot (has ammo and not reloading).
 func _can_shoot() -> bool:
+	# Can't shoot if shooting is disabled
+	if disable_shooting:
+		return false
+
 	# Can't shoot if reloading
 	if _is_reloading:
 		return false
@@ -3934,6 +3944,19 @@ func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has
 	# Store hit direction for death animation
 	_last_hit_direction = hit_direction
 
+	# Determine weapon type from caliber data
+	if caliber_data and caliber_data.has("name"):
+		var caliber_name: String = caliber_data.name
+		match caliber_name:
+			"9x19":
+				_last_weapon_type = "pistol"
+			"545x39":
+				_last_weapon_type = "rifle"
+			"buckshot":
+				_last_weapon_type = "shotgun"
+			_:
+				_last_weapon_type = "rifle"  # Default
+
 	# Track hits for retreat behavior
 	_hits_taken_in_encounter += 1
 	_log_debug("Hit taken! Total hits in encounter: %d" % _hits_taken_in_encounter)
@@ -4132,10 +4155,10 @@ func _on_death() -> void:
 	# Unregister from sound propagation when dying
 	_unregister_sound_listener()
 
-	# Start death animation with the hit direction
+	# Start death animation with the hit direction and weapon type
 	if _death_animation and _death_animation.has_method("start_death_animation"):
-		_death_animation.start_death_animation(_last_hit_direction)
-		_log_to_file("Death animation started with hit direction: %s" % str(_last_hit_direction))
+		_death_animation.start_death_animation(_last_hit_direction, _last_weapon_type)
+		_log_to_file("Death animation started with hit direction: %s, weapon: %s" % [str(_last_hit_direction), _last_weapon_type])
 
 	if destroy_on_death:
 		# Wait for death animation to complete before destroying
@@ -4152,8 +4175,9 @@ func _on_death() -> void:
 ## Resets the enemy to its initial state.
 func _reset() -> void:
 	# Reset death animation first (restores sprites to character model)
+	# Don't force cleanup to allow bodies to persist for testing/debugging
 	if _death_animation and _death_animation.has_method("reset"):
-		_death_animation.reset()
+		_death_animation.reset(false)
 
 	global_position = _initial_position
 	rotation = 0.0
