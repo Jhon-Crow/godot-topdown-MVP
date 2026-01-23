@@ -273,11 +273,46 @@ If ImpactEffectsManager is not loading, you would see:
 
 ## Root Cause Summary
 
-The blood sprites were not visible because of a configuration oversight:
+### Investigation Round 6 (Final - 2026-01-23)
 
-1. During debugging (Investigation Round 4), a minimal test version of ImpactEffectsManager was created
-2. `project.godot` was pointed to `minimal_impact_effects_manager.gd` for testing
-3. The minimal version was successfully deployed and tested
-4. **BUT the switch back to the full version was never made**
-5. The minimal `spawn_blood_effect()` only logs the call, it doesn't instantiate blood particles or decals
-6. User's game was building with minimal version, so blood effects were logged but never actually created
+The blood effects were still not appearing after the full ImpactEffectsManager was restored. User reported "не вижу изменений" (I don't see changes) with a new game log showing:
+
+```
+[ENEMY] [Enemy3] WARNING: ImpactEffectsManager not found at /root/ImpactEffectsManager
+Available autoloads: FileLogger, InputSettings, GameManager, ScoreManager, HitEffectsManager,
+  AudioManager, SoundPropagation, ScreenShakeManager, DifficultyManager, PenultimateHitEffectsManager,
+  LastChanceEffectsManager, StatusEffectsManager, GrenadeManager
+```
+
+**Root cause discovered**: The `ImpactEffectsManager` autoload was failing to load silently due to a GDScript compile error.
+
+**The actual bug**: The code used `Particles2D` as a type, but **in Godot 4.x, the `Particles2D` class does not exist**! It was renamed to:
+- `GPUParticles2D` - for GPU-based particles
+- `CPUParticles2D` - for CPU-based particles
+
+The error was hidden because Godot autoloads fail silently when there are script compilation errors (see [Godot Issue #78230](https://github.com/godotengine/godot/issues/78230)).
+
+**Evidence from CI logs** (`ci-logs/build-windows-21296302716.log`):
+```
+SCRIPT ERROR: Parse Error: Could not find type "Particles2D" in the current scope.
+SCRIPT ERROR: Parse Error: Could not find base class "Particles2D".
+```
+
+**Fix applied**:
+1. Changed all `Particles2D` type references to `CPUParticles2D` in GDScript code
+2. Changed effect scenes from `type="Particles2D"` to `type="CPUParticles2D"`
+3. Updated `effect_cleanup.gd` from `extends Node` with cast to `extends CPUParticles2D`
+4. Converted particle properties to CPUParticles2D format (different from ParticleProcessMaterial)
+
+### Previous Issues (Now Resolved)
+
+1. **Minimal ImpactEffectsManager left in place** - Fixed by restoring full version
+2. **Incorrect wall collision layer** - Fixed by changing from 1 to 4 (obstacles bitmask)
+3. **Silent autoload failure** - Now fixed by using correct class names
+
+### Key Lessons
+
+1. **Godot 4 class renames**: `Particles2D` → `GPUParticles2D`/`CPUParticles2D`
+2. **Autoload silent failures**: Script compilation errors prevent autoloads from loading without clear error messages
+3. **gl_compatibility mode**: `CPUParticles2D` is more reliable than `GPUParticles2D` in compatibility mode
+4. **CI logs are critical**: The error was visible in CI build logs but not in the user's game logs
