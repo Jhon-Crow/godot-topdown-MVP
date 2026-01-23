@@ -46,8 +46,8 @@ signal death_animation_completed
 ## Joint softness for PinJoint2D (0 = stiff, higher = more flexible).
 @export var joint_softness: float = 0.0
 
-## Joint bias for PinJoint2D (affects constraint solving).
-@export var joint_bias: float = 0.0
+## Joint bias for PinJoint2D (affects constraint solving, higher = stiffer).
+@export var joint_bias: float = 0.2
 
 ## Whether to persist the ragdoll after death (don't clean up).
 ## When true, the body parts will remain as physics objects in the scene.
