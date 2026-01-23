@@ -123,3 +123,58 @@ After implementing the fix:
 2. Verify enemies still aim approximately at player
 3. Verify bullets fly in barrel direction (visual consistency)
 4. Verify gameplay balance - enemies should be threatening but not overwhelming
+
+---
+
+## Update: Additional Fix Required (2026-01-23)
+
+### New Problem Identified
+
+After implementing the AIM_TOLERANCE_DOT fix, user reported enemies still not shooting even when facing the player point-blank. Analysis of game logs showed:
+
+1. "Player distracted - priority attack triggered" logged repeatedly
+2. But NO actual gunshots occurred
+3. Enemies in COMBAT state but not firing
+
+### Root Cause: Model Rotation Not Updated Before Shooting
+
+The priority attack code sets the enemy body's `rotation` to face the player, then immediately calls `_shoot()`. However:
+
+1. `_shoot()` uses `_get_weapon_forward_direction()` to check if aimed correctly
+2. This function returns `_weapon_sprite.global_transform.x.normalized()`
+3. The weapon sprite's transform is based on **EnemyModel's rotation**
+4. EnemyModel rotation is updated in `_update_enemy_model_rotation()` which runs BEFORE `_process_ai_state()`
+5. When priority attack code sets `rotation`, the EnemyModel was already rotated in the previous step
+6. Result: Weapon direction doesn't match the newly set body rotation → aim check fails
+
+### Code Flow Problem
+
+```
+_physics_process():
+  1. _update_enemy_model_rotation()  → Sets EnemyModel rotation based on player
+  2. _process_ai_state()             → Priority attack sets body rotation & calls _shoot()
+                                       BUT EnemyModel was set BEFORE this!
+```
+
+### Solution: Force Model Rotation Before Shooting
+
+Added `_force_model_to_face_direction()` function and called it in priority attack code:
+
+```gdscript
+# Priority attack code (lines 1382-1386)
+# Aim at player immediately - both body rotation and model rotation
+rotation = direction_to_player.angle()
+# CRITICAL: Force the model to face the player immediately so that
+# _get_weapon_forward_direction() returns the correct aim direction.
+_force_model_to_face_direction(direction_to_player)
+
+_shoot()  # Now weapon direction matches → aim check passes!
+```
+
+### Files Modified
+
+- `scripts/objects/enemy.gd`:
+  - Added `_force_model_to_face_direction()` function
+  - Updated distraction attack priority code (lines ~1379-1386)
+  - Updated vulnerability attack priority code (lines ~1467-1474)
+- `tests/unit/test_enemy.gd`: Added tests for model rotation synchronization

@@ -1133,6 +1133,32 @@ func _update_enemy_model_rotation() -> void:
 		_enemy_model.scale = Vector2(enemy_model_scale, enemy_model_scale)
 
 
+## Forces the enemy model to face a specific direction immediately.
+## Used for priority attacks where we need to aim and shoot in the same frame.
+##
+## Unlike _update_enemy_model_rotation(), this function:
+## 1. Takes a specific direction to face (doesn't derive it from player position)
+## 2. Is called immediately before shooting in priority attack code
+##
+## This ensures the weapon sprite's transform matches the intended aim direction
+## so that _get_weapon_forward_direction() returns the correct vector for aim checks.
+##
+## @param direction: The direction to face (normalized).
+func _force_model_to_face_direction(direction: Vector2) -> void:
+	if not _enemy_model:
+		return
+
+	var target_angle := direction.angle()
+	var aiming_left := absf(target_angle) > PI / 2
+
+	if aiming_left:
+		_enemy_model.global_rotation = -target_angle
+		_enemy_model.scale = Vector2(enemy_model_scale, -enemy_model_scale)
+	else:
+		_enemy_model.global_rotation = target_angle
+		_enemy_model.scale = Vector2(enemy_model_scale, enemy_model_scale)
+
+
 ## DEPRECATED: This function is no longer used.
 ##
 ## Previously used to calculate an aim direction that would compensate for the weapon's
@@ -1375,8 +1401,13 @@ func _process_ai_state(delta: float) -> void:
 			# Log the distraction attack
 			_log_to_file("Player distracted - priority attack triggered")
 
-			# Aim at player immediately
+			# Aim at player immediately - both body rotation and model rotation
 			rotation = direction_to_player.angle()
+			# CRITICAL: Force the model to face the player immediately so that
+			# _get_weapon_forward_direction() returns the correct aim direction.
+			# Without this, the weapon transform would still reflect the old direction
+			# and _shoot() would fail the aim tolerance check. (Fix for issue #264)
+			_force_model_to_face_direction(direction_to_player)
 
 			# Shoot with priority - still respects weapon fire rate cooldown
 			# This is a high priority action but the weapon cannot physically fire faster
@@ -1432,8 +1463,13 @@ func _process_ai_state(delta: float) -> void:
 			var reason: String = "reloading" if player_reloading else "empty ammo"
 			_log_to_file("Player %s - priority attack triggered" % reason)
 
-			# Aim at player immediately
+			# Aim at player immediately - both body rotation and model rotation
 			rotation = direction_to_player.angle()
+			# CRITICAL: Force the model to face the player immediately so that
+			# _get_weapon_forward_direction() returns the correct aim direction.
+			# Without this, the weapon transform would still reflect the old direction
+			# and _shoot() would fail the aim tolerance check. (Fix for issue #264)
+			_force_model_to_face_direction(direction_to_player)
 
 			# Shoot with priority - still respects weapon fire rate cooldown
 			# The weapon cannot physically fire faster than its fire rate

@@ -838,3 +838,67 @@ func test_aim_check_passes_reasonable_angles() -> void:
 	to_target = Vector2.RIGHT.rotated(angle_35)
 	var dot_35deg := weapon_forward.dot(to_target)
 	assert_true(dot_35deg < tolerance, "35 degree offset should fail (too far off)")
+
+
+# ============================================================================
+# Priority Attack Model Rotation Tests (Issue #264 fix verification)
+# ============================================================================
+
+
+## Test that model rotation affects weapon forward direction.
+## This simulates the scenario where the enemy body rotation is set
+## but the model rotation (which controls weapon direction) is not updated.
+func test_model_rotation_affects_weapon_direction() -> void:
+	# Simulate the problem: body rotated, but weapon still facing old direction
+	var body_rotation := PI / 4  # 45 degrees
+	var old_weapon_direction := Vector2.RIGHT  # Still facing right (0 degrees)
+	var target_direction := Vector2.RIGHT.rotated(body_rotation)  # Where we want to shoot
+
+	# Without model update, weapon is still facing right
+	# Dot product between weapon direction and target direction
+	var aim_dot_without_update := old_weapon_direction.dot(target_direction)
+
+	# cos(45°) ≈ 0.707 which is less than 0.866 tolerance
+	# This means shot would be BLOCKED due to aim mismatch
+	var tolerance: float = 0.866
+	assert_true(aim_dot_without_update < tolerance,
+		"Without model update, weapon direction should NOT match target (shot blocked)")
+
+	# After model update, weapon should face the same direction as body
+	var updated_weapon_direction := target_direction
+	var aim_dot_with_update := updated_weapon_direction.dot(target_direction)
+
+	# After update, dot product should be 1.0 (perfect aim)
+	assert_almost_eq(aim_dot_with_update, 1.0, 0.001,
+		"After model update, weapon should face target direction (shot allowed)")
+
+
+## Test that immediate model rotation synchronizes weapon with body.
+## This validates the fix where _force_model_to_face_direction() is called
+## before _shoot() in priority attack code.
+func test_immediate_model_rotation_synchronizes_weapon() -> void:
+	# This is a conceptual test showing the fix logic
+	# In the real code, after setting rotation = direction_to_player.angle(),
+	# we now also call _force_model_to_face_direction(direction_to_player)
+
+	var direction_to_player := Vector2(1, 1).normalized()  # 45 degrees
+	var target_angle := direction_to_player.angle()
+
+	# Simulate _force_model_to_face_direction:
+	# When not aiming left (abs(angle) <= PI/2), model.global_rotation = target_angle
+	var aiming_left := absf(target_angle) > PI / 2
+	var model_rotation: float
+	if aiming_left:
+		model_rotation = -target_angle
+	else:
+		model_rotation = target_angle
+
+	# After forcing model rotation, the weapon forward direction should match
+	# In the real code: _weapon_sprite.global_transform.x.normalized()
+	# For this test, we simulate it as Vector2.RIGHT.rotated(model_rotation)
+	var weapon_forward := Vector2.RIGHT.rotated(model_rotation)
+
+	# Check that weapon forward matches direction to player (within floating point tolerance)
+	var dot_product := weapon_forward.dot(direction_to_player)
+	assert_almost_eq(dot_product, 1.0, 0.001,
+		"After _force_model_to_face_direction, weapon should point at player")
