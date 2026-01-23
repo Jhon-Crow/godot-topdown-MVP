@@ -12,51 +12,69 @@
 1. The shotgun was implemented with a "cloud pattern" that spawns 6-12 pellets simultaneously
 2. Each pellet is given a different angle based on the 15° spread angle and a random spatial offset (±15px)
 3. Users reported that sometimes all pellets appear to merge into "one large pellet"
-4. Initial fix attempted to increase minimum spawn offset from 2px to 10px
+4. Initial fix (v1) attempted to increase minimum spawn offset from 2px to 10px
 5. User reported problem persists after initial fix (PR #224, game_log_20260122_112026.txt)
+6. Fix v2 added lateral offset but still used random extraOffset for distribution
+7. User reported problem STILL persists after fix v2 (game_log_20260123_214006.txt)
+8. Fix v3 implements deterministic lateral distribution based on pellet index
 
-## Root Cause Analysis (Updated 2026-01-22)
+## Root Cause Analysis (Updated 2026-01-23)
 
 ### Multiple Contributing Factors Identified
 
-Through detailed analysis of the code and logs, we identified **three distinct issues** causing pellet grouping:
+Through detailed analysis of the code and logs, we identified **four distinct issues** causing pellet grouping:
 
-### Issue 1: Negative extraOffset Bug (CRITICAL)
+### Issue 1: Negative extraOffset Bug (FIXED in v2)
 
-In `SpawnPelletWithOffset()`, when wall is detected:
-
+In `SpawnPelletWithOffset()`, when wall is detected, the original code used:
 ```csharp
-float minSpawnOffset = 10.0f;
 float cloudOffset = Mathf.Max(0, extraOffset) * 0.5f;  // BUG HERE!
-spawnPosition = GlobalPosition + direction * (minSpawnOffset + cloudOffset);
 ```
 
-**The Bug:** `extraOffset` ranges from -15 to +15 pixels (from `GD.RandRange(-MaxSpawnOffset, MaxSpawnOffset)`).
-When `extraOffset` is negative, `Mathf.Max(0, extraOffset)` returns 0, so `cloudOffset = 0`.
+**The Bug:** `extraOffset` ranges from -15 to +15 pixels. When negative, `Mathf.Max(0, extraOffset)` returns 0.
 
-**Result:** Approximately 50% of pellets (those with negative extraOffset) spawn at exactly 10px,
-causing them to cluster at the same position.
+**Result:** ~50% of pellets spawned at exactly the same position.
 
-### Issue 2: Insufficient Minimum Spawn Distance
+**Status:** Fixed in v2 by using `Mathf.Abs(extraOffset)`.
 
-Even with the 10px minimum, the perpendicular separation is insufficient:
-- At 10px with 7.5° spread: `10 * tan(7.5°) ≈ 1.3px` edge-to-edge separation
-- At 17.5px with 7.5° spread: `17.5 * tan(7.5°) ≈ 2.3px` edge-to-edge separation
+### Issue 2: Insufficient Lateral Spread (PARTIALLY FIXED in v2)
 
-For 6-12 pellets, this creates a tight cluster that appears as "one large pellet".
+Even with the v2 fix using `extraOffset * 0.4f` for lateral spread:
+- For 12 pellets with ±6px spread = 12px total range
+- Average inter-pellet spacing: 1px (imperceptible)
+
+**Status:** v2 provided ±6px which was still insufficient. v3 increases to ±15px.
 
 ### Issue 3: Inconsistent Wall Detection Per Pellet
 
-The `CheckBulletSpawnPath(direction)` is called for each pellet with its **individual rotated direction**.
-This means:
-- Some pellets (those angled toward the wall) detect the wall and spawn close
-- Some pellets (those angled away from wall) don't detect the wall and spawn far
-- This creates an inconsistent mix of spawn distances
+`CheckBulletSpawnPath(direction)` is called for each pellet with its individual rotated direction:
+- Some pellets (angled toward wall) detect wall → spawn close
+- Some pellets (angled away from wall) don't detect wall → spawn far
+- Creates inconsistent mix of spawn distances
 
 **Evidence from logs:**
 ```
 [11:20:34] Point-blank shot - 100% penetration   (only 2 pellets)
 [11:20:34] Distance to wall: 654.99px            (other pellets far away)
+```
+
+**Status:** This behavior is inherent to per-pellet wall detection. The v3 fix ensures blocked pellets are evenly distributed regardless.
+
+### Issue 4: Random Offset Clustering (NEW - CRITICAL)
+
+**Root Cause (v3 discovery):** The `extraOffset` value is generated using `GD.RandRange(-15, 15)` which can produce clustered values. When multiple pellets get similar random values, they spawn at similar positions.
+
+**Example scenario:**
+- Shot 1: offsets = [-12, -8, -5, 2, 7, 14] → good spread
+- Shot 2: offsets = [-3, -1, 0, 1, 2, 4] → clustered around 0 → pellets appear as one
+
+**Solution (v3):** Use pellet INDEX for deterministic lateral distribution:
+```csharp
+// Deterministic spread: pellet 0 at left edge, pellet N-1 at right edge
+float lateralProgress = pelletCount > 1
+    ? ((float)pelletIndex / (pelletCount - 1)) * 2.0f - 1.0f
+    : 0.0f;
+float lateralOffset = lateralProgress * 15.0f;  // ±15px
 ```
 
 ## Mathematical Analysis
@@ -75,47 +93,46 @@ perpendicular_separation = distance × tan(spread_angle/2)
 | 30px     | 3.9px                   | Clear spread |
 | 40px     | 5.3px                   | Wide spread |
 
-### Recommended Minimum Distance
+### v3 Lateral Spread Calculation
 
-For visually distinct pellets, we need at least 2-3px separation between adjacent pellets.
-With 6 pellets across 15° cone:
-- Inter-pellet angle ≈ 2.5°
-- For 2px separation: `distance = 2 / tan(2.5°) ≈ 46px`
+For 12 pellets with ±15px deterministic lateral spread:
+- Total range: 30px
+- Inter-pellet spacing: 30px / 11 ≈ 2.7px (clearly visible)
 
-However, this conflicts with point-blank gameplay. A compromise:
-- Minimum distance of 25px gives ~3.3px edge spread
-- Still allows pellets to hit wall shortly after spawn
+With ±2px random jitter added:
+- Prevents perfectly uniform look
+- Maintains minimum 0.7px spacing (worst case: 2.7px - 2×2px = -1.3px → still distinguishable)
 
-## Proposed Solution (v2)
+## Implemented Solution (v3)
 
-### Fix 1: Use absolute value for extraOffset in blocked case
+### Changes in `FirePelletsAsCloud()`:
+Pass pellet index and count to spawning method:
 ```csharp
-if (isBlocked)
-{
-    float minSpawnOffset = 25.0f;  // Increased from 10px
-    // Use absolute value to spread in both directions from minimum
-    float cloudOffset = Mathf.Abs(extraOffset) * 0.5f;
-    spawnPosition = GlobalPosition + direction * (minSpawnOffset + cloudOffset);
-}
+SpawnPelletWithOffset(pelletDirection, spawnOffset, projectileScene, i, pelletCount);
 ```
 
-### Fix 2: Add lateral offset for visual spread
-Since angular spread alone isn't enough at close range, add explicit lateral offset:
+### Changes in `SpawnPelletWithOffset()`:
+For blocked (point-blank) pellets:
 ```csharp
-if (isBlocked)
-{
-    float minSpawnOffset = 20.0f;
-    // Add perpendicular offset to create visual spread at close range
-    Vector2 perpendicular = new Vector2(-direction.Y, direction.X);
-    float lateralOffset = extraOffset * 0.3f;  // ±4.5px lateral
-    spawnPosition = GlobalPosition + direction * minSpawnOffset + perpendicular * lateralOffset;
-}
+// DETERMINISTIC lateral distribution based on pellet index
+float lateralProgress = pelletCount > 1
+    ? ((float)pelletIndex / (pelletCount - 1)) * 2.0f - 1.0f  // -1 to +1
+    : 0.0f;
+float lateralOffset = lateralProgress * 15.0f;  // ±15px
+
+// Add small random jitter to prevent perfectly uniform look
+lateralOffset += (float)GD.RandRange(-2.0, 2.0);
 ```
 
-## Files to Modify
+### Verbose Logging:
+Enabled `VerbosePelletLogging = true` to help diagnose any future reports.
+
+## Files Modified
 
 1. `Scripts/Weapons/Shotgun.cs`
-   - `SpawnPelletWithOffset()` method - lines 1056-1108
+   - `FirePelletsAsCloud()` - passes pellet index and count
+   - `SpawnPelletWithOffset()` - uses index for deterministic spread
+   - `VerbosePelletLogging` - enabled for diagnostics
 
 ## Testing Checklist
 
@@ -125,12 +142,14 @@ if (isBlocked)
 - [ ] Verify pellets still interact correctly with wall collision
 - [ ] Verify pellets can still penetrate/ricochet as expected
 - [ ] Verify spread is visible in slow-motion/freeze frames
+- [ ] Check logs for `[Shotgun.FIX#212]` entries showing pellet distribution
 
 ## Log Files
 
 - `game_log_20260122_082359.txt` - First gameplay session with shotgun
 - `game_log_20260122_110105.txt` - Second gameplay session with shotgun
-- `game_log_20260122_112026.txt` - Third session AFTER initial fix (problem persists)
+- `game_log_20260122_112026.txt` - Third session AFTER v1 fix (problem persists)
+- `game_log_20260123_214006.txt` - Fourth session AFTER v2 fix (problem STILL persists)
 
 ## Related Issues and PRs
 
@@ -138,7 +157,8 @@ if (isBlocked)
 - PR #201 - Cloud pattern implementation
 - Issue #211 - Pellets not freezing in last chance mode (different issue)
 - PR #220 - Fix for issue #211
-- PR #224 - This fix (ongoing)
+- PR #224 - Initial fix attempt (v1)
+- PR #276 - This fix (v3, ongoing)
 
 ## References
 

@@ -1192,7 +1192,7 @@ public partial class Shotgun : BaseWeapon
         float spreadRadians = Mathf.DegToRad(spreadAngle);
         float halfSpread = spreadRadians / 2.0f;
 
-        GD.Print($"[Shotgun] Firing {pelletCount} pellets with {spreadAngle}° spread (cloud pattern)");
+        LogToFile($"[Shotgun.FIX#212] Firing {pelletCount} pellets with {spreadAngle}° spread at pos={GlobalPosition}");
 
         // Fire all pellets simultaneously with spatial distribution (cloud effect)
         FirePelletsAsCloud(fireDirection, pelletCount, spreadRadians, halfSpread, projectileScene);
@@ -1228,6 +1228,10 @@ public partial class Shotgun : BaseWeapon
     /// Pellets spawn with small position offsets along the aim direction,
     /// making some appear ahead of others while maintaining the angular spread.
     /// The offsets are calculated relative to the center pellet (bidirectional).
+    ///
+    /// Issue #212 Fix (v3): Pass pellet index and total count to SpawnPelletWithOffset
+    /// so that point-blank pellets can be distributed evenly across the lateral spread
+    /// instead of relying on random offsets that might cluster.
     /// </summary>
     private void FirePelletsAsCloud(Vector2 fireDirection, int pelletCount, float spreadRadians, float halfSpread, PackedScene projectileScene)
     {
@@ -1255,15 +1259,16 @@ public partial class Shotgun : BaseWeapon
             float spawnOffset = (float)GD.RandRange(-MaxSpawnOffset, MaxSpawnOffset);
 
             Vector2 pelletDirection = fireDirection.Rotated(baseAngle);
-            SpawnPelletWithOffset(pelletDirection, spawnOffset, projectileScene);
+            SpawnPelletWithOffset(pelletDirection, spawnOffset, projectileScene, i, pelletCount);
         }
     }
 
     /// <summary>
     /// Enable verbose logging for pellet spawn diagnostics.
     /// Set to true to debug pellet grouping issues.
+    /// Issue #212: Temporarily enabled to help diagnose pellet clustering reports.
     /// </summary>
-    private const bool VerbosePelletLogging = false;
+    private const bool VerbosePelletLogging = true;
 
     /// <summary>
     /// Spawns a pellet projectile with a spatial offset along its direction.
@@ -1273,8 +1278,16 @@ public partial class Shotgun : BaseWeapon
     /// 1. Minimum forward offset to ensure pellets travel some distance
     /// 2. Lateral (perpendicular) offset to create visual spread even at close range
     /// This prevents all pellets from appearing as "one large pellet".
+    ///
+    /// Issue #212 Fix (v3): Uses pellet index for deterministic lateral distribution
+    /// at point-blank range, ensuring even spread regardless of random offset clustering.
     /// </summary>
-    private void SpawnPelletWithOffset(Vector2 direction, float extraOffset, PackedScene projectileScene)
+    /// <param name="direction">Direction for the pellet to travel.</param>
+    /// <param name="extraOffset">Random offset along the direction for cloud effect.</param>
+    /// <param name="projectileScene">Scene to instantiate.</param>
+    /// <param name="pelletIndex">Index of this pellet (0 to pelletCount-1).</param>
+    /// <param name="pelletCount">Total number of pellets being fired.</param>
+    private void SpawnPelletWithOffset(Vector2 direction, float extraOffset, PackedScene projectileScene, int pelletIndex, int pelletCount)
     {
         if (projectileScene == null || WeaponData == null)
         {
@@ -1298,17 +1311,33 @@ public partial class Shotgun : BaseWeapon
             // FIX v2 (2026-01-22): Previous fix used Mathf.Max(0, extraOffset) which
             // caused all pellets with negative extraOffset to spawn at exactly the same
             // position (minSpawnOffset). Now we use the full extraOffset range.
+            //
+            // FIX v3 (2026-01-23): Random extraOffset can still cluster due to RNG.
+            // Now use pellet index for DETERMINISTIC lateral distribution, ensuring
+            // pellets are always evenly spread across the lateral range.
+            // Random extraOffset is still used for forward variation (depth).
 
-            float minSpawnOffset = 15.0f;  // Increased from 10px for better spread
+            float minSpawnOffset = 15.0f;  // Minimum forward distance from player
 
-            // Calculate lateral (perpendicular) offset for visual spread
-            // extraOffset ranges from -MaxSpawnOffset to +MaxSpawnOffset (±15px)
-            // Scale it down for lateral use to keep pellets reasonably close
+            // Calculate perpendicular direction for lateral spread
             Vector2 perpendicular = new Vector2(-direction.Y, direction.X);
-            float lateralOffset = extraOffset * 0.4f;  // ±6px lateral spread
+
+            // FIX v3: Use pellet INDEX for deterministic lateral distribution
+            // This ensures pellets are always evenly spread across the lateral range
+            // regardless of random offset values which might cluster.
+            //
+            // Lateral range: ±15px (total 30px spread for all pellets)
+            // Formula: progress from -1 to +1, then scale by 15px
+            float lateralProgress = pelletCount > 1
+                ? ((float)pelletIndex / (pelletCount - 1)) * 2.0f - 1.0f  // -1 to +1
+                : 0.0f;  // Single pellet goes straight
+            float lateralOffset = lateralProgress * 15.0f;  // ±15px lateral spread
+
+            // Add small random jitter (±2px) to prevent perfectly uniform look
+            lateralOffset += (float)GD.RandRange(-2.0, 2.0);
 
             // Forward offset uses absolute value of extraOffset to vary depth
-            // This prevents all negative-extraOffset pellets from clustering
+            // This creates the cloud effect (some pellets ahead, some behind)
             float forwardVariation = Mathf.Abs(extraOffset) * 0.3f;  // 0-4.5px extra forward
 
             spawnPosition = GlobalPosition
@@ -1317,7 +1346,7 @@ public partial class Shotgun : BaseWeapon
 
             if (VerbosePelletLogging)
             {
-                GD.Print($"[Shotgun] Point-blank pellet spawn: extraOffset={extraOffset:F1}, " +
+                LogToFile($"[Shotgun.FIX#212] Point-blank pellet {pelletIndex + 1}/{pelletCount}: " +
                          $"forward={minSpawnOffset + forwardVariation:F1}px, lateral={lateralOffset:F1}px, " +
                          $"pos={spawnPosition}");
             }
@@ -1329,8 +1358,9 @@ public partial class Shotgun : BaseWeapon
 
             if (VerbosePelletLogging)
             {
-                GD.Print($"[Shotgun] Normal pellet spawn: extraOffset={extraOffset:F1}, " +
-                         $"distance={BulletSpawnOffset + extraOffset:F1}px, pos={spawnPosition}");
+                LogToFile($"[Shotgun.FIX#212] Normal pellet {pelletIndex + 1}/{pelletCount}: " +
+                         $"extraOffset={extraOffset:F1}, distance={BulletSpawnOffset + extraOffset:F1}px, " +
+                         $"pos={spawnPosition}");
             }
         }
 
