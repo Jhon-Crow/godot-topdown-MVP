@@ -1,0 +1,12 @@
+title:	добавить брызги крови на полу и стенах
+state:	OPEN
+author:	Jhon-Crow
+labels:	
+comments:	0
+assignees:	
+projects:	
+milestone:	
+number:	257
+--
+при попадании не в бронежилет (когда звук попадания не в бронежилет) на полу (и стенах если они рядом) рядом с получившим пулю (положение зависит от угла попадания пули) должен появиться спрайт брызг крови.
+референс https://www.reddit.com/r/godot/comments/ffvamw/made_a_blood_effect_using_render_textures_as_a/?tl=ru
