@@ -290,6 +290,7 @@ func _ready() -> void:
 		_current_grenades, max_grenades,
 		_current_health, max_health
 	])
+	FileLogger.info("[Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)")
 
 
 func _physics_process(delta: float) -> void:
@@ -1233,6 +1234,22 @@ var _wind_up_intensity: float = 0.0
 ## Previous mouse position for velocity calculation.
 var _prev_mouse_pos: Vector2 = Vector2.ZERO
 
+## Mouse velocity history for smooth velocity calculation (stores last N velocities).
+## Used to get stable velocity at moment of release.
+var _mouse_velocity_history: Array[Vector2] = []
+
+## Maximum number of velocity samples to keep in history.
+const MOUSE_VELOCITY_HISTORY_SIZE: int = 5
+
+## Current calculated mouse velocity (pixels per second).
+var _current_mouse_velocity: Vector2 = Vector2.ZERO
+
+## Total swing distance traveled during aiming (for momentum transfer calculation).
+var _total_swing_distance: float = 0.0
+
+## Previous frame time for delta calculation in velocity tracking.
+var _prev_frame_time: float = 0.0
+
 ## Whether weapon is in sling position (lowered for grenade handling).
 var _weapon_slung: bool = false
 
@@ -1387,9 +1404,14 @@ func _handle_grenade_waiting_for_g_release_state() -> void:
 		_grenade_state = GrenadeState.AIMING
 		_aim_drag_start = get_global_mouse_position()
 		_prev_mouse_pos = _aim_drag_start
+		# Initialize velocity tracking for realistic throwing
+		_mouse_velocity_history.clear()
+		_current_mouse_velocity = Vector2.ZERO
+		_total_swing_distance = 0.0
+		_prev_frame_time = Time.get_ticks_msec() / 1000.0
 		# Start transfer animation, then wind-up
 		_start_grenade_anim_phase(GrenadeAnimPhase.TRANSFER, ANIM_TRANSFER_DURATION)
-		FileLogger.info("[Player.Grenade] Step 2 complete: G released, RMB held - now aiming, drag and release RMB to throw")
+		FileLogger.info("[Player.Grenade] Step 2 complete: G released, RMB held - now aiming (velocity-based throwing enabled)")
 
 
 ## Handle AIMING state: only RMB held (G released), drag to aim and release to throw.
@@ -1483,44 +1505,45 @@ func _reset_grenade_state() -> void:
 	_aim_drag_start = Vector2.ZERO
 	_active_grenade = null
 	_wind_up_intensity = 0.0
+	# Reset velocity tracking for next throw
+	_mouse_velocity_history.clear()
+	_current_mouse_velocity = Vector2.ZERO
+	_total_swing_distance = 0.0
 	# Animation will transition via RETURN_IDLE phase (set by caller if needed)
 	FileLogger.info("[Player.Grenade] State reset to IDLE")
 
 
-## Throw the grenade based on aiming drag direction and distance.
+## Throw the grenade using realistic velocity-based physics.
+## The throw velocity is determined by mouse velocity at release moment, not drag distance.
 ## Includes player rotation animation to prevent grenade hitting player.
-## @param drag_end: The position where the mouse drag ended.
+## @param drag_end: The position where the mouse drag ended (used for direction fallback).
 func _throw_grenade(drag_end: Vector2) -> void:
 	if _active_grenade == null or not is_instance_valid(_active_grenade):
 		FileLogger.info("[Player.Grenade] Cannot throw: no active grenade")
 		_reset_grenade_state()
 		return
 
-	# Calculate throw direction and distance from aiming drag
-	var drag_vector := drag_end - _aim_drag_start
-	var drag_distance := drag_vector.length()
+	# Get the mouse velocity at moment of release (this is the key to realistic physics)
+	var release_velocity := _current_mouse_velocity
 
-	# If drag is too short (dropped at feet), use minimum throw
-	var min_drag_distance := 10.0
-	if drag_distance < min_drag_distance:
-		drag_distance = min_drag_distance
-		drag_vector = Vector2(1, 0)  # Default direction if no drag
+	# Determine throw direction from velocity, or fallback to drag direction if stationary
+	var throw_direction: Vector2
+	var velocity_magnitude := release_velocity.length()
 
-	var throw_direction := drag_vector.normalized()
+	if velocity_magnitude > 10.0:  # Mouse was moving at release
+		throw_direction = release_velocity.normalized()
+	else:
+		# Mouse was stationary at release - grenade drops at feet
+		# Use a slight forward direction so it doesn't appear exactly at player
+		var drag_vector := drag_end - _aim_drag_start
+		if drag_vector.length() > 5.0:
+			throw_direction = drag_vector.normalized()
+		else:
+			throw_direction = Vector2(1, 0)  # Default direction
 
-	# Increase throw sensitivity significantly - multiply drag distance by 9x
-	# (3x for sensitivity * 3x for user-requested range increase)
-	var sensitivity_multiplier := 9.0
-	var adjusted_drag_distance := drag_distance * sensitivity_multiplier
-
-	# Clamp max drag distance to viewport length * 3 (user requested 3x farther)
-	var viewport := get_viewport()
-	var max_drag_distance := 3840.0  # Default 1280 * 3
-	if viewport:
-		max_drag_distance = viewport.get_visible_rect().size.x * 3.0
-	adjusted_drag_distance = minf(adjusted_drag_distance, max_drag_distance)
-
-	FileLogger.info("[Player.Grenade] Throwing! Direction: %s, Drag: %.1f (adjusted: %.1f)" % [str(throw_direction), drag_distance, adjusted_drag_distance])
+	FileLogger.info("[Player.Grenade] Velocity-based throw! Mouse velocity: %s (%.1f px/s), Swing distance: %.1f" % [
+		str(release_velocity), velocity_magnitude, _total_swing_distance
+	])
 
 	# Rotate player to face throw direction (prevents grenade hitting player when throwing upward)
 	_rotate_player_for_throw(throw_direction)
@@ -1531,9 +1554,13 @@ func _throw_grenade(drag_end: Vector2) -> void:
 	var spawn_position := global_position + throw_direction * spawn_offset
 	_active_grenade.global_position = spawn_position
 
-	# Set the throw velocity with adjusted distance
-	if _active_grenade.has_method("throw_grenade"):
-		_active_grenade.throw_grenade(throw_direction, adjusted_drag_distance)
+	# Use velocity-based throwing if available, otherwise fall back to legacy
+	if _active_grenade.has_method("throw_grenade_velocity_based"):
+		_active_grenade.throw_grenade_velocity_based(release_velocity, _total_swing_distance)
+	elif _active_grenade.has_method("throw_grenade"):
+		# Legacy fallback: convert velocity to drag distance approximation
+		var legacy_distance := velocity_magnitude * 0.5  # Rough conversion
+		_active_grenade.throw_grenade(throw_direction, legacy_distance)
 
 	# Emit signal
 	grenade_thrown.emit()
@@ -1543,7 +1570,7 @@ func _throw_grenade(drag_end: Vector2) -> void:
 	if audio_manager and audio_manager.has_method("play_grenade_throw"):
 		audio_manager.play_grenade_throw(global_position)
 
-	FileLogger.info("[Player.Grenade] Thrown! Direction: %s, Distance: %.1f" % [str(throw_direction), adjusted_drag_distance])
+	FileLogger.info("[Player.Grenade] Thrown! Velocity: %.1f, Swing: %.1f" % [velocity_magnitude, _total_swing_distance])
 
 	# Reset state (grenade is now independent)
 	_reset_grenade_state()
@@ -1749,30 +1776,48 @@ func _update_weapon_sling(delta: float) -> void:
 	_weapon_mount.rotation = lerpf(_weapon_mount.rotation, target_rot, lerp_speed)
 
 
-## Update wind-up intensity based on mouse drag distance during aiming.
+## Update wind-up intensity and track mouse velocity during aiming.
+## Uses velocity-based physics for realistic throwing.
 func _update_wind_up_intensity() -> void:
 	var current_mouse := get_global_mouse_position()
+	var current_time := Time.get_ticks_msec() / 1000.0
 
-	# Calculate drag distance from aim start
-	var drag_vector := current_mouse - _aim_drag_start
-	var drag_distance := drag_vector.length()
+	# Calculate time delta since last frame
+	var delta_time := current_time - _prev_frame_time
+	if delta_time <= 0.0:
+		delta_time = 0.016  # Default to ~60fps if first frame
 
-	# Get viewport for max drag calculation
-	var viewport := get_viewport()
-	var max_drag := 600.0  # Default max drag distance
-	if viewport:
-		max_drag = viewport.get_visible_rect().size.x * 0.5
-
-	# Calculate base intensity from distance
-	var intensity := clampf(drag_distance / max_drag, 0.0, 1.0)
-
-	# Add velocity component for more responsive feel
+	# Calculate mouse displacement since last frame
 	var mouse_delta := current_mouse - _prev_mouse_pos
-	var mouse_velocity := mouse_delta.length()
-	var velocity_bonus := clampf(mouse_velocity / 50.0, 0.0, 0.2)
 
-	_wind_up_intensity = clampf(intensity + velocity_bonus, 0.0, 1.0)
+	# Accumulate total swing distance for momentum transfer calculation
+	_total_swing_distance += mouse_delta.length()
+
+	# Calculate instantaneous mouse velocity (pixels per second)
+	var instantaneous_velocity := mouse_delta / delta_time
+
+	# Add to velocity history for smoothing
+	_mouse_velocity_history.append(instantaneous_velocity)
+	if _mouse_velocity_history.size() > MOUSE_VELOCITY_HISTORY_SIZE:
+		_mouse_velocity_history.remove_at(0)
+
+	# Calculate average velocity from history (smoothed velocity)
+	var velocity_sum := Vector2.ZERO
+	for vel in _mouse_velocity_history:
+		velocity_sum += vel
+	_current_mouse_velocity = velocity_sum / max(_mouse_velocity_history.size(), 1)
+
+	# Calculate wind-up intensity based on velocity (for animation)
+	# Higher velocity = more wind-up visual effect
+	var velocity_magnitude := _current_mouse_velocity.length()
+	# Normalize to a reasonable range (0-2000 pixels/second typical for fast mouse movement)
+	var velocity_intensity := clampf(velocity_magnitude / 1500.0, 0.0, 1.0)
+
+	_wind_up_intensity = velocity_intensity
+
+	# Update tracking for next frame
 	_prev_mouse_pos = current_mouse
+	_prev_frame_time = current_time
 
 
 # ============================================================================

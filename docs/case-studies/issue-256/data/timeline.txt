@@ -1,0 +1,20 @@
+2026-01-22T16:48:39Z | konard | ## 🤖 Solution Draft Log This log file contains the complete execution trace of the AI solution draft process. 
+2026-01-22T17:01:07Z | Jhon-Crow | изменения не добавились наверное как всегда дело в C# [game_log_20260122_195917.txt](https://github.com/user-attachments/files/24800648/game_log_20260122_195917.txt)
+2026-01-22T17:51:17Z | konard | 🤖 **AI Work Session Started**  Starting automated work session at 2026-01-22T17:51:14.969Z
+2026-01-22T17:54:15Z | konard | ## Анализ проблемы / Problem Analysis  ### Корневая причина / Root Cause
+2026-01-22T17:56:23Z | konard | ## 🤖 Solution Draft Log This log file contains the complete execution trace of the AI solution draft process. 
+2026-01-22T18:08:33Z | Jhon-Crow | сейчас даже если мышка полностью остановлена граната летит далеко (должна оставаться на месте). [game_log_20260122_210703.txt](https://github.com/user-attachments/files/24803445/game_log_20260122_210703.txt) 
+2026-01-22T20:14:42Z | konard | 🤖 **AI Work Session Started**  Starting automated work session at 2026-01-22T20:14:40.041Z
+2026-01-22T20:22:03Z | konard | ## Исправление / Fix Applied  ### Найденная причина / Root Cause Found
+2026-01-22T20:22:31Z | konard | ## 🤖 Solution Draft Log This log file contains the complete execution trace of the AI solution draft process. 
+2026-01-22T20:33:28Z | Jhon-Crow | наступательная граната перестала взрываться. сейчас максимальная дальность броска включается при средней скорости движения мышью, а должна при очень высокой (должно быть легче выбрать силу броска) [game_log_20260122_232541.txt](https://github.com/user-attachments/files/24806717/game_log_20260122_232541.txt)
+2026-01-22T21:17:52Z | konard | 🤖 **AI Work Session Started**  Starting automated work session at 2026-01-22T21:17:50.977Z
+2026-01-22T21:18:07Z | konard | ## ⏳ Usage Limit Reached  The automated solution draft was interrupted because the Claude usage limit was reached.
+2026-01-23T16:23:23Z | konard | 🤖 **AI Work Session Started**  Starting automated work session at 2026-01-23T16:23:22.741Z
+2026-01-23T16:23:35Z | konard | ## 🤖 Solution Draft Log This log file contains the complete execution trace of the AI solution draft process. 
+2026-01-23T18:01:20Z | konard | 🤖 **AI Work Session Started**  Starting automated work session at 2026-01-23T18:01:17.365Z
+2026-01-23T18:01:32Z | konard | ## 🤖 Solution Draft Log This log file contains the complete execution trace of the AI solution draft process. 
+2026-01-23T18:29:54Z | konard | 🤖 **AI Work Session Started**  Starting automated work session at 2026-01-23T18:29:52.895Z
+2026-01-23T18:30:07Z | konard | ## 🤖 Solution Draft Log This log file contains the complete execution trace of the AI solution draft process. 
+2026-01-23T19:03:55Z | Jhon-Crow | Сессия не продолжилась после https://github.com/Jhon-Crow/godot-topdown-MVP/pull/260#issuecomment-3786738227  Please download all logs and data related about the issue to this repository, make sure we compile that data to `./docs/case-studies/issue-{id}` folder, and use it to do deep case study analysis (also make sure to search online for additional facts and data), in which we will reconstruct timeline/sequence of events, find root causes of the problem, and propose possible solutions.
+2026-01-23T19:04:38Z | konard | 🤖 **AI Work Session Started**  Starting automated work session at 2026-01-23T19:04:36.266Z

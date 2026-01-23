@@ -102,11 +102,19 @@ func _physics_process(delta: float) -> void:
 	# They only explode on impact, not on a timer
 
 
-## Override throw to mark grenade as thrown.
+## Override throw to mark grenade as thrown (legacy drag-based method).
 func throw_grenade(direction: Vector2, drag_distance: float) -> void:
 	super.throw_grenade(direction, drag_distance)
 	_is_thrown = true
-	FileLogger.info("[FragGrenade] Grenade thrown - impact detection enabled")
+	FileLogger.info("[FragGrenade] Grenade thrown (legacy) - impact detection enabled")
+
+
+## Override velocity-based throw to mark grenade as thrown.
+## This is the primary method used by the C# Player.cs for throwing.
+func throw_grenade_velocity_based(mouse_velocity: Vector2, swing_distance: float) -> void:
+	super.throw_grenade_velocity_based(mouse_velocity, swing_distance)
+	_is_thrown = true
+	FileLogger.info("[FragGrenade] Grenade thrown (velocity-based) - impact detection enabled")
 
 
 ## Override body_entered to detect wall impacts.
