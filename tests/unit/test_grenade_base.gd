@@ -333,7 +333,7 @@ func test_throw_speed_scales_with_drag() -> void:
 func test_throw_speed_min_clamp() -> void:
 	grenade.throw_grenade(Vector2.RIGHT, 1.0)  # Very short drag
 
-	assert_ge(grenade.linear_velocity.length(), grenade.min_throw_speed,
+	assert_gte(grenade.linear_velocity.length(), grenade.min_throw_speed,
 		"Throw speed should not go below minimum")
 
 
