@@ -17,8 +17,9 @@ class_name GrenadeBase
 @export var fuse_time: float = 4.0
 
 ## Maximum throw speed in pixels per second.
-## At max speed, grenade travels ~viewport length in ~0.5 seconds.
-@export var max_throw_speed: float = 2500.0
+## At max speed with default friction (300), grenade travels ~1200px (viewport width).
+## Formula: max_distance = max_throw_speed² / (2 × ground_friction)
+@export var max_throw_speed: float = 850.0
 
 ## Minimum throw speed for a minimal drag (gentle lob).
 @export var min_throw_speed: float = 100.0
@@ -36,17 +37,20 @@ class_name GrenadeBase
 ## Multiplier to convert mouse velocity (pixels/second) to throw velocity.
 ## This is the base ratio before mass adjustment.
 ## Lower values = require faster mouse movement for maximum throw (easier to control strength).
-## At 1.5: max throw requires ~1667 px/s mouse velocity.
-## At 3.0: max throw requires ~833 px/s mouse velocity (too sensitive).
-@export var mouse_velocity_to_throw_multiplier: float = 1.5
+## At 0.5: max throw requires ~2700 px/s mouse velocity for 1352 px/s throw speed.
+## This allows for a wider range of controllable throw distances.
+@export var mouse_velocity_to_throw_multiplier: float = 0.5
 
 ## Minimum swing distance (in pixels) required for full velocity transfer at grenade's mass.
 ## For a 0.4kg grenade, need ~200px of mouse movement to transfer full velocity.
 ## Formula: actual_min_swing = min_swing_distance * (grenade_mass / 0.4)
 @export var min_swing_distance: float = 200.0
 
-## Friction/damping applied to slow the grenade (reduced for easier rolling).
-@export var ground_friction: float = 150.0
+## Friction/damping applied to slow the grenade.
+## Higher friction = shorter throw distance for same speed.
+## Formula: max_distance = max_throw_speed² / (2 × ground_friction)
+## Default 300 with 850 speed → max distance ~1200px (viewport width).
+@export var ground_friction: float = 300.0
 
 ## Bounce coefficient when hitting walls (0.0 = no bounce, 1.0 = full bounce).
 @export var wall_bounce: float = 0.4
