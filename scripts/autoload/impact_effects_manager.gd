@@ -436,19 +436,22 @@ func _spawn_wall_blood_splatter(hit_position: Vector2, hit_direction: Vector2, i
 	splatter.rotation = wall_normal.angle() + PI / 2.0
 
 	# Scale based on distance (closer = more blood), intensity, and lethality
+	# Use smaller base scale for wall splatters (32x32 texture)
 	var distance := hit_position.distance_to(wall_hit_pos)
 	var distance_factor := 1.0 - (distance / WALL_SPLATTER_CHECK_DISTANCE)
-	var splatter_scale := intensity * distance_factor * randf_range(0.4, 0.8)
+	# Reduce scale significantly - wall splatters should be small drips, not giant splashes
+	var splatter_scale := intensity * distance_factor * randf_range(0.15, 0.35)
 	if is_lethal:
-		splatter_scale *= 1.3  # Lethal hits produce more blood on walls
+		splatter_scale *= 1.2  # Lethal hits produce slightly more blood
 	else:
-		splatter_scale *= 0.6  # Non-lethal hits produce less blood on walls
+		splatter_scale *= 0.5  # Non-lethal hits produce less blood
 
-	splatter.scale = Vector2(splatter_scale, splatter_scale * randf_range(1.2, 1.8))  # Elongated splatter
+	# Elongated shape for dripping effect (taller than wide)
+	splatter.scale = Vector2(splatter_scale, splatter_scale * randf_range(1.5, 2.5))
 
-	# Make wall splatters slightly more visible (higher z-index)
+	# Wall splatters at same z-index as floor decals (both above floor ColorRect)
 	if splatter is CanvasItem:
-		splatter.z_index = 0  # Above floor decals which are at -1
+		splatter.z_index = 1  # Same as floor decals (above floor)
 
 	# Add to scene
 	_add_effect_to_scene(splatter)

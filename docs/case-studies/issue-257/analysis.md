@@ -316,3 +316,41 @@ SCRIPT ERROR: Parse Error: Could not find base class "Particles2D".
 2. **Autoload silent failures**: Script compilation errors prevent autoloads from loading without clear error messages
 3. **gl_compatibility mode**: `CPUParticles2D` is more reliable than `GPUParticles2D` in compatibility mode
 4. **CI logs are critical**: The error was visible in CI build logs but not in the user's game logs
+
+### Investigation Round 7 (2026-01-24)
+
+After the Particles2D fix, user tested and reported new issues:
+- "на стенах появляется гигантская капля крови" (Giant blood drops appear on walls)
+- "на полу не появляется" (Floor blood doesn't appear)
+- "старые эффекты крови (от попадания) исчезли" (Old hit blood effects disappeared)
+
+**Log analysis** showed that blood effects WERE being spawned in code:
+- `Blood particle effect instantiated successfully`
+- `Blood decal instantiated successfully`
+- `Blood decal spawned at (x, y) (total: N)`
+
+**Root cause identified** - z_index rendering issues:
+
+1. **Floor blood decals not visible**:
+   - `BloodDecal.tscn` had `z_index = -1`
+   - Floor (`ColorRect`) has default `z_index = 0`
+   - Blood decals were being rendered BEHIND the floor!
+   - **Fix**: Changed `BloodDecal.tscn` z_index from -1 to 1
+
+2. **BloodEffect particles potentially hidden**:
+   - `BloodEffect.tscn` had no explicit z_index (defaults to 0)
+   - Same z_index as floor, might not always be visible
+   - **Fix**: Added `z_index = 2` to BloodEffect
+
+3. **Wall blood splatters too large**:
+   - Scale calculation: `intensity * distance_factor * randf_range(0.4, 0.8)`
+   - With intensity=1.5 and high distance_factor, scale could reach ~1.5
+   - 32x32 texture at scale 1.5 = ~50px - visually "giant"
+   - **Fix**: Reduced scale range from `0.4-0.8` to `0.15-0.35`
+   - Also reduced multipliers: lethal from 1.3 to 1.2, non-lethal from 0.6 to 0.5
+
+**z_index hierarchy after fix**:
+- Floor (ColorRect): z_index = 0 (default)
+- Blood decals: z_index = 1 (visible above floor)
+- Characters/Enemies: z_index = 1+
+- BloodEffect particles: z_index = 2 (visible above floor and decals)
