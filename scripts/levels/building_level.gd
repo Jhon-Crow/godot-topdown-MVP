@@ -261,6 +261,9 @@ func _setup_enemy_tracking() -> void:
 	_current_enemy_count = _initial_enemy_count
 	print("Tracking %d enemies" % _initial_enemy_count)
 
+	# Configure grenades for enemies based on difficulty (per issue #273)
+	_configure_enemy_grenades()
+
 
 ## Setup debug UI elements for kills and accuracy.
 func _setup_debug_ui() -> void:
@@ -927,3 +930,39 @@ func _setup_selected_weapon() -> void:
 				_player.EquipWeapon(assault_rifle)
 			elif _player.get("CurrentWeapon") != null:
 				_player.CurrentWeapon = assault_rifle
+
+
+## Configure grenades for enemies based on difficulty level (per issue #273).
+## At HARD difficulty, the enemy in the main hall (Enemy10) gets 2 offensive grenades.
+## Per issue requirement: "по дефолту у врагов нет гранат, для каждой карты я сам скажу"
+## Translation: "by default enemies have no grenades, I'll specify for each map"
+func _configure_enemy_grenades() -> void:
+	# Check if difficulty is HARD
+	var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
+	if difficulty_manager == null:
+		print("BuildingLevel: DifficultyManager not found, no grenades configured")
+		return
+
+	# Only give grenades at HARD difficulty
+	if not difficulty_manager.is_hard_mode():
+		print("BuildingLevel: Difficulty is not HARD, no grenades configured")
+		return
+
+	# Find Enemy10 (main hall enemy)
+	var enemies_node := get_node_or_null("Environment/Enemies")
+	if enemies_node == null:
+		return
+
+	var enemy10 = enemies_node.get_node_or_null("Enemy10")
+	if enemy10 == null:
+		print("BuildingLevel: Enemy10 not found, no grenades configured")
+		return
+
+	# Configure Enemy10 with 2 offensive grenades (per issue requirement)
+	if enemy10.get("enable_grenades") != null:
+		enemy10.enable_grenades = true
+		enemy10.offensive_grenades = 2
+		enemy10.flashbang_grenades = 0
+		print("BuildingLevel: [HARD] Enemy10 (main hall) equipped with 2 offensive grenades")
+	else:
+		print("BuildingLevel: Enemy10 does not have grenade properties")
