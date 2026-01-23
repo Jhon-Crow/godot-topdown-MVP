@@ -29,7 +29,7 @@ scale_min = 0.1
 scale_max = 0.4
 color = Color(0.75, 0.08, 0.05, 1)
 
-[node name="BloodEffect" type="GPUParticles2D"]
+[node name="BloodEffect" type="Particles2D"]
 emitting = false
 amount = 45
 process_material = SubResource("ParticleProcessMaterial_blood")

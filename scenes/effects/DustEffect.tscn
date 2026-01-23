@@ -29,7 +29,7 @@ scale_min = 0.15
 scale_max = 0.5
 color = Color(0.6, 0.55, 0.45, 0.8)
 
-[node name="DustEffect" type="GPUParticles2D"]
+[node name="DustEffect" type="Particles2D"]
 emitting = false
 amount = 25
 process_material = SubResource("ParticleProcessMaterial_dust")
