@@ -1,0 +1,1091 @@
+Windows Export	UNKNOWN STEP	﻿2026-01-23T18:31:56.1675161Z Current runner version: '2.331.0'
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:56.1699967Z ##[group]Runner Image Provisioner
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:56.1700981Z Hosted Compute Agent
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:56.1701660Z Version: 20260115.477
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:56.1702242Z Commit: 4b342d620503cbe250a3154040964899ea7c9b00
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:56.1702915Z Build Date: 2026-01-15T22:32:41Z
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:56.1703616Z Worker ID: {2ef6bb29-5196-4182-a9c2-b83364d4ecf9}
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:56.1704398Z Azure Region: westus
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:56.1704955Z ##[endgroup]
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:56.1706456Z ##[group]Operating System
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:56.1707106Z Ubuntu
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:56.1707534Z 24.04.3
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:56.1708075Z LTS
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:56.1708551Z ##[endgroup]
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:56.1709070Z ##[group]Runner Image
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:56.1709557Z Image: ubuntu-24.04
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:56.1710163Z Version: 20260119.4.1
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:56.1711648Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260119.4/images/ubuntu/Ubuntu2404-Readme.md
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:56.1713279Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260119.4
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:56.1714210Z ##[endgroup]
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:56.1715253Z ##[group]GITHUB_TOKEN Permissions
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:56.1717093Z Contents: write
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:56.1717664Z Metadata: read
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:56.1718310Z ##[endgroup]
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:56.1720591Z Secret source: Actions
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:56.1721244Z Prepare workflow directory
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:56.2068198Z Prepare all required actions
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:56.2114364Z Getting action download info
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:56.6875657Z Download action repository 'actions/checkout@v4' (SHA:34e114876b0b11c390a56381ad16ebd13914f8d5)
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:56.7705501Z Download action repository 'actions/setup-dotnet@v4' (SHA:67a3573c9a986a3f9c594539f4ab511d57bb3ce9)
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:57.4657094Z Download action repository 'firebelley/godot-export@v7.0.0' (SHA:930577654862a320eef793f399ee911b4479efb9)
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:58.1913737Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:58.4287208Z Complete job name: Windows Export
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:58.5122006Z ##[group]Run actions/checkout@v4
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:58.5123455Z with:
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:58.5124521Z   repository: konard/Jhon-Crow-godot-topdown-MVP
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:58.5126121Z   token: ***
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:58.5126971Z   ssh-strict: true
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:58.5127867Z   ssh-user: git
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:58.5128818Z   persist-credentials: true
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:58.5129777Z   clean: true
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:58.5130886Z   sparse-checkout-cone-mode: true
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:58.5131957Z   fetch-depth: 1
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:58.5132841Z   fetch-tags: false
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:58.5133702Z   show-progress: true
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:58.5134728Z   lfs: false
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:58.5135562Z   submodules: false
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:58.5136424Z   set-safe-directory: true
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:58.5137800Z ##[endgroup]
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:58.6271707Z Syncing repository: konard/Jhon-Crow-godot-topdown-MVP
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:58.6274772Z ##[group]Getting Git version info
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:58.6276872Z Working directory is '/home/runner/work/Jhon-Crow-godot-topdown-MVP/Jhon-Crow-godot-topdown-MVP'
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:58.6279398Z [command]/usr/bin/git version
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:58.6331424Z git version 2.52.0
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:58.6358774Z ##[endgroup]
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:58.6374435Z Temporarily overriding HOME='/home/runner/work/_temp/783e7084-80f2-45e2-8cb5-1c098984a98e' before making global git config changes
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:58.6377296Z Adding repository directory to the temporary git global config as a safe directory
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:58.6389297Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Jhon-Crow-godot-topdown-MVP/Jhon-Crow-godot-topdown-MVP
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:58.6432555Z Deleting the contents of '/home/runner/work/Jhon-Crow-godot-topdown-MVP/Jhon-Crow-godot-topdown-MVP'
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:58.6435836Z ##[group]Initializing the repository
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:58.6440291Z [command]/usr/bin/git init /home/runner/work/Jhon-Crow-godot-topdown-MVP/Jhon-Crow-godot-topdown-MVP
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:58.6541144Z hint: Using 'master' as the name for the initial branch. This default branch name
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:58.6544773Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:58.6547101Z hint: to use in all of your new repositories, which will suppress this warning,
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:58.6548817Z hint: call:
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:58.6549860Z hint:
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:58.6551810Z hint: 	git config --global init.defaultBranch <name>
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:58.6553125Z hint:
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:58.6554551Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:58.6556995Z hint: 'development'. The just-created branch can be renamed via this command:
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:58.6558552Z hint:
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:58.6559418Z hint: 	git branch -m <name>
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:58.6560595Z hint:
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:58.6562019Z hint: Disable this message with "git config set advice.defaultBranchName false"
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:58.6564639Z Initialized empty Git repository in /home/runner/work/Jhon-Crow-godot-topdown-MVP/Jhon-Crow-godot-topdown-MVP/.git/
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:58.6568777Z [command]/usr/bin/git remote add origin https://github.com/konard/Jhon-Crow-godot-topdown-MVP
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:58.6593098Z ##[endgroup]
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:58.6594767Z ##[group]Disabling automatic garbage collection
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:58.6596536Z [command]/usr/bin/git config --local gc.auto 0
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:58.6626564Z ##[endgroup]
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:58.6628026Z ##[group]Setting up auth
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:58.6633435Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:58.6664816Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:58.7014519Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:58.7044961Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:58.7264802Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:58.7294076Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:58.7527360Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:58.7562889Z ##[endgroup]
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:58.7565715Z ##[group]Fetching the repository
+Windows Export	UNKNOWN STEP	2026-01-23T18:31:58.7575267Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +ff288304bbfa526301235fb8022d3182488cc497:refs/remotes/origin/issue-262-60adeb8182ff
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:00.6658374Z From https://github.com/konard/Jhon-Crow-godot-topdown-MVP
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:00.6659336Z  * [new ref]         ff288304bbfa526301235fb8022d3182488cc497 -> origin/issue-262-60adeb8182ff
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:00.6690801Z ##[endgroup]
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:00.6691669Z ##[group]Determining the checkout info
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:00.6693429Z ##[endgroup]
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:00.6698947Z [command]/usr/bin/git sparse-checkout disable
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:00.6740538Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:00.6768536Z ##[group]Checking out the ref
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:00.6773023Z [command]/usr/bin/git checkout --progress --force -B issue-262-60adeb8182ff refs/remotes/origin/issue-262-60adeb8182ff
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:00.9028320Z Switched to a new branch 'issue-262-60adeb8182ff'
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:00.9030579Z branch 'issue-262-60adeb8182ff' set up to track 'origin/issue-262-60adeb8182ff'.
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:00.9058645Z ##[endgroup]
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:00.9101570Z [command]/usr/bin/git log -1 --format=%H
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:00.9125038Z ff288304bbfa526301235fb8022d3182488cc497
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:00.9346097Z ##[group]Run actions/setup-dotnet@v4
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:00.9346580Z with:
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:00.9346818Z   dotnet-version: 8.0.x
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:00.9347194Z   cache: false
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:00.9347464Z ##[endgroup]
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:01.1128493Z [command]/home/runner/work/_actions/actions/setup-dotnet/v4/externals/install-dotnet.sh --skip-non-versioned-files --runtime dotnet --channel LTS
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:01.3445130Z dotnet-install: .NET Core Runtime with version '10.0.2' is already installed.
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:01.3475754Z [command]/home/runner/work/_actions/actions/setup-dotnet/v4/externals/install-dotnet.sh --skip-non-versioned-files --channel 8.0
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:01.5818639Z dotnet-install: .NET Core SDK with version '8.0.417' is already installed.
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:01.5926442Z ##[group]Run firebelley/godot-export@v7.0.0
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:01.5926760Z with:
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:01.5927301Z   godot_executable_download_url: https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_mono_linux_x86_64.zip
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:01.5928292Z   godot_export_templates_download_url: https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_mono_export_templates.tpz
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:01.5928945Z   relative_project_path: ./
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:01.5929157Z   archive_output: true
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:01.5929394Z   archive_root_folder: false
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:01.5929628Z   cache: false
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:01.5929817Z   use_preset_export_path: false
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:01.5930030Z   export_debug: false
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:01.5930218Z   verbose: false
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:01.5930647Z   use_godot_3: false
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:01.5930845Z   export_as_pack: false
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:01.5931037Z env:
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:01.5931200Z   DOTNET_ROOT: /usr/share/dotnet
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:01.5931455Z ##[endgroup]
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:01.7272972Z ##[group]🕹️ Downloading Godot
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:01.7285872Z Working path created /home/runner/.local/share/godot
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:01.7287501Z Downloading file from https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_mono_linux_x86_64.zip
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:01.7319595Z [command]/usr/bin/wget -nv https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_mono_linux_x86_64.zip -O /home/runner/.local/share/godot/godot.zip
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:02.3907759Z 2026-01-23 18:32:02 URL:https://release-assets.githubusercontent.com/github-production-release-asset/15634981/a33495e9-6c7d-4203-ae9a-1bd09369c46b?sp=r&sv=2018-11-09&sr=b&spr=https&se=2026-01-23T19%3A24%3A38Z&rscd=attachment%3B+filename%3DGodot_v4.3-stable_mono_linux_x86_64.zip&rsct=application%2Foctet-stream&skoid=96c2d410-5711-43a1-aedd-ab1947aa7ab0&sktid=398a6654-997b-47e9-b12b-9515b896b4de&skt=2026-01-23T18%3A24%3A36Z&ske=2026-01-23T19%3A24%3A38Z&sks=b&skv=2018-11-09&sig=ae782Lmx9F7LGOYHx6IxeEg58Rc066uV0Q8N9hxv9bk%3D&jwt=*** [70627262/70627262] -> "/home/runner/.local/share/godot/godot.zip" [1]
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:02.3925313Z Extracting /home/runner/.local/share/godot/godot.zip to /home/runner/.local/share/godot/godot_executable
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:02.3955023Z [command]/usr/bin/7z x /home/runner/.local/share/godot/godot.zip -o/home/runner/.local/share/godot/godot_executable -y
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:02.7680214Z 
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:02.7681269Z 7-Zip 23.01 (x64) : Copyright (c) 1999-2023 Igor Pavlov : 2023-06-20
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:02.7682049Z  64-bit locale=C.UTF-8 Threads:4 OPEN_MAX:65536
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:02.7682369Z 
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:02.7682534Z Scanning the drive for archives:
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:02.7682971Z 1 file, 70627262 bytes (68 MiB)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:02.7683214Z 
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:02.7683591Z Extracting archive: /home/runner/.local/share/godot/godot.zip
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:03.6672642Z --
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:03.6673217Z Path = /home/runner/.local/share/godot/godot.zip
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:03.6673816Z Type = zip
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:03.6674116Z Physical Size = 70627262
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:03.6674342Z 
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:03.6674617Z Everything is Ok
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:03.6678643Z 
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:03.6678780Z Folders: 7
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:03.6679043Z Files: 42
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:03.6679335Z Size:       169544185
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:03.6679636Z Compressed: 70627262
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:03.6691406Z 🔍 Looking for Godot executable in /home/runner/.local/share/godot/godot_executable
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:03.6692833Z 🔍 Looking for Godot executable in /home/runner/.local/share/godot/godot_executable/Godot_v4.3-stable_mono_linux_x86_64
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:03.6694224Z Found executable at /home/runner/.local/share/godot/godot_executable/Godot_v4.3-stable_mono_linux_x86_64/Godot_v4.3-stable_mono_linux.x86_64
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:03.6695067Z Preparing templates
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:03.6696249Z [command]/home/runner/.local/share/godot/godot_executable/Godot_v4.3-stable_mono_linux_x86_64/Godot_v4.3-stable_mono_linux.x86_64 --version
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:03.7612446Z 4.3.stable.mono.official.77dcf97d8
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:03.7650564Z ⬇️ Missing templates for Godot 4.3.stable.mono. Downloading...
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:03.7651993Z Downloading file from https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_mono_export_templates.tpz
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:03.7665859Z [command]/usr/bin/wget -nv https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_mono_export_templates.tpz -O /home/runner/.local/share/godot/godot_templates.tpz
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:09.4950830Z 2026-01-23 18:32:09 URL:https://release-assets.githubusercontent.com/github-production-release-asset/15634981/597dac49-985f-4d66-b3f8-f8bf34563ce2?sp=r&sv=2018-11-09&sr=b&spr=https&se=2026-01-23T19%3A25%3A41Z&rscd=attachment%3B+filename%3DGodot_v4.3-stable_mono_export_templates.tpz&rsct=application%2Foctet-stream&skoid=96c2d410-5711-43a1-aedd-ab1947aa7ab0&sktid=398a6654-997b-47e9-b12b-9515b896b4de&skt=2026-01-23T18%3A25%3A31Z&ske=2026-01-23T19%3A25%3A41Z&sks=b&skv=2018-11-09&sig=sWsrmgfScZG1Or7DEfC97c5dCUXN3FwrvAkUPKZZz%2B0%3D&jwt=*** [1002307334/1002307334] -> "/home/runner/.local/share/godot/godot_templates.tpz" [1]
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:09.4973550Z [command]/usr/bin/unzip -o -j /home/runner/.local/share/godot/godot_templates.tpz -d /home/runner/.local/share/godot/export_templates/4.3.stable.mono
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:09.4999435Z Archive:  /home/runner/.local/share/godot/godot_templates.tpz
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:10.4853955Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/android_debug.apk  
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:11.0703846Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/android_release.apk  
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:12.0629835Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/android_source.zip  
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:13.1589079Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/ios.zip  
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:13.5889517Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/linux_debug.arm32  
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:14.0398806Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/linux_debug.arm64  
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:14.5257267Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/linux_debug.x86_32  
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:15.0033034Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/linux_debug.x86_64  
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:15.4442585Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/linux_release.arm32  
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:15.8984632Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/linux_release.arm64  
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:16.4059761Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/linux_release.x86_32  
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:16.8982240Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/linux_release.x86_64  
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:17.5283466Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/macos.zip  
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:17.5284547Z  extracting: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/version.txt  
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:17.5294174Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/windows_debug_arm64_console.exe  
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:18.0916296Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/windows_debug_arm64.exe  
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:18.0927969Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/windows_debug_x86_32_console.exe  
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:18.7492399Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/windows_debug_x86_32.exe  
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:18.7506026Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/windows_debug_x86_64_console.exe  
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:19.3587072Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/windows_debug_x86_64.exe  
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:19.3596252Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/windows_release_arm64_console.exe  
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:19.8845219Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/windows_release_arm64.exe  
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:19.8857122Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/windows_release_x86_32_console.exe  
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:20.5450718Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/windows_release_x86_32.exe  
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:20.5462272Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/windows_release_x86_64_console.exe  
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:21.1649427Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/windows_release_x86_64.exe  
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:21.1658395Z ##[endgroup]
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:21.1659291Z ##[group]🔍 Adding Editor Settings
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:21.1675138Z Wrote editor settings to /home/runner/.config/godot/editor_settings-4.tres
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:21.1676119Z ##[endgroup]
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:21.1676896Z ##[group]📝 Configuring android export
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:21.1677344Z Made gradlew executable.
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:21.1679116Z ##[endgroup]
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:21.1679852Z ##[group]🎲 Import project
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:21.1682044Z [command]/home/runner/.local/share/godot/godot_executable/Godot_v4.3-stable_mono_linux_x86_64/Godot_v4.3-stable_mono_linux.x86_64 /home/runner/work/Jhon-Crow-godot-topdown-MVP/Jhon-Crow-godot-topdown-MVP/project.godot --headless --import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:21.1862193Z Godot Engine v4.3.stable.mono.official.77dcf97d8 - https://godotengine.org
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:21.2036235Z 
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:28.0597510Z ERROR: Unable to open file: res://.godot/imported/play.png-5c90e88e8136487a183a099d67a7de24.ctex.
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:28.0598835Z    at: _load_data (scene/resources/compressed_texture.cpp:41)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:28.0601724Z ERROR: Failed loading resource: res://.godot/imported/play.png-5c90e88e8136487a183a099d67a7de24.ctex. Make sure resources have been imported by opening the project in the editor at least once.
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:28.0603818Z    at: _load (core/io/resource_loader.cpp:283)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:28.0605507Z ERROR: Failed loading resource: res://addons/gut/gui/play.png. Make sure resources have been imported by opening the project in the editor at least once.
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:28.0606940Z    at: _load (core/io/resource_loader.cpp:283)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:28.0607659Z ERROR: Unable to open file: res://.godot/imported/arrow.png-2b5b2d838b5b3467cf300ac2da1630d9.ctex.
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:28.0608368Z    at: _load_data (scene/resources/compressed_texture.cpp:41)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:28.0609713Z ERROR: Failed loading resource: res://.godot/imported/arrow.png-2b5b2d838b5b3467cf300ac2da1630d9.ctex. Make sure resources have been imported by opening the project in the editor at least once.
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:28.0611101Z    at: _load (core/io/resource_loader.cpp:283)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:28.0612150Z ERROR: Failed loading resource: res://addons/gut/gui/arrow.png. Make sure resources have been imported by opening the project in the editor at least once.
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:28.0612822Z    at: _load (core/io/resource_loader.cpp:283)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:28.0613616Z ERROR: Unable to open file: res://.godot/imported/play.png-5c90e88e8136487a183a099d67a7de24.ctex.
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:28.0614106Z    at: _load_data (scene/resources/compressed_texture.cpp:41)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:28.0615021Z ERROR: Failed loading resource: res://.godot/imported/play.png-5c90e88e8136487a183a099d67a7de24.ctex. Make sure resources have been imported by opening the project in the editor at least once.
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:28.0615806Z    at: _load (core/io/resource_loader.cpp:283)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:28.0616490Z ERROR: Failed loading resource: res://addons/gut/gui/play.png. Make sure resources have been imported by opening the project in the editor at least once.
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:28.0617103Z    at: _load (core/io/resource_loader.cpp:283)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:28.4524415Z ERROR: Unable to open file: res://.godot/imported/red.png-47a557c3922e800f76686bc1a4ad0c3c.ctex.
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:28.4525587Z    at: _load_data (scene/resources/compressed_texture.cpp:41)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:28.4527482Z ERROR: Failed loading resource: res://.godot/imported/red.png-47a557c3922e800f76686bc1a4ad0c3c.ctex. Make sure resources have been imported by opening the project in the editor at least once.
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:28.4529129Z    at: _load (core/io/resource_loader.cpp:283)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:28.4530508Z ERROR: Failed loading resource: res://addons/gut/images/red.png. Make sure resources have been imported by opening the project in the editor at least once.
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:28.4531553Z    at: _load (core/io/resource_loader.cpp:283)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:28.4532330Z ERROR: Unable to open file: res://.godot/imported/green.png-e3a17091688e10a7013279b38edc7f8a.ctex.
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:28.4533103Z    at: _load_data (scene/resources/compressed_texture.cpp:41)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:28.4534609Z ERROR: Failed loading resource: res://.godot/imported/green.png-e3a17091688e10a7013279b38edc7f8a.ctex. Make sure resources have been imported by opening the project in the editor at least once.
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:28.4535899Z    at: _load (core/io/resource_loader.cpp:283)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:28.4537061Z ERROR: Failed loading resource: res://addons/gut/images/green.png. Make sure resources have been imported by opening the project in the editor at least once.
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:28.4538111Z    at: _load (core/io/resource_loader.cpp:283)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:28.4538881Z ERROR: Unable to open file: res://.godot/imported/yellow.png-b3cf3d463958a169d909273d3d742052.ctex.
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:28.4539669Z    at: _load_data (scene/resources/compressed_texture.cpp:41)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:28.4540921Z ERROR: Failed loading resource: res://.godot/imported/yellow.png-b3cf3d463958a169d909273d3d742052.ctex. Make sure resources have been imported by opening the project in the editor at least once.
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:28.4541873Z    at: _load (core/io/resource_loader.cpp:283)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:28.4542745Z ERROR: Failed loading resource: res://addons/gut/images/yellow.png. Make sure resources have been imported by opening the project in the editor at least once.
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:28.4543527Z    at: _load (core/io/resource_loader.cpp:283)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:28.4784596Z ERROR:  Config File "user://gut_temp_directory/gut_editor_config.json" does not exist.
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:28.5958843Z ERROR: Unable to open file: res://.godot/imported/red.png-47a557c3922e800f76686bc1a4ad0c3c.ctex.
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:28.5959788Z    at: _load_data (scene/resources/compressed_texture.cpp:41)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:28.5961776Z ERROR: Failed loading resource: res://.godot/imported/red.png-47a557c3922e800f76686bc1a4ad0c3c.ctex. Make sure resources have been imported by opening the project in the editor at least once.
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:28.5962966Z    at: _load (core/io/resource_loader.cpp:283)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:28.5964011Z ERROR: Failed loading resource: res://addons/gut/images/red.png. Make sure resources have been imported by opening the project in the editor at least once.
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:28.5964973Z    at: _load (core/io/resource_loader.cpp:283)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:28.5965536Z GUT got some new images that are not imported yet.  Please restart Godot.
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:29.6314807Z WARNING: res://scenes/ui/ArmoryMenu.tscn:4 - ext_resource, invalid UID: uid://c5qm16rfltop - using text path instead: res://assets/sprites/weapons/m16_rifle.png
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:29.6315868Z      at: load (scene/resources/resource_format_text.cpp:453)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:29.8335506Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:29.8336594Z           at: GDScript::reload (res://tests/unit/test_effects.gd:395)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:29.8337484Z SCRIPT ERROR: Parse Error: Function "assert_lte()" not found in base self.
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:29.8338393Z           at: GDScript::reload (res://tests/unit/test_effects.gd:396)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:29.8339443Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:29.8341166Z           at: GDScript::reload (res://tests/unit/test_effects.gd:397)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:29.8342254Z SCRIPT ERROR: Parse Error: Function "assert_lte()" not found in base self.
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:29.8343238Z           at: GDScript::reload (res://tests/unit/test_effects.gd:398)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:29.8345004Z ERROR: Failed to load script "res://tests/unit/test_effects.gd" with error "Parse error".
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:29.8345916Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:29.8584508Z SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:29.8585348Z           at: GDScript::reload (res://tests/unit/test_enemy.gd:281)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:29.8598332Z ERROR: Failed to load script "res://tests/unit/test_enemy.gd" with error "Parse error".
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:29.8599137Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:29.9270066Z SCRIPT ERROR: Parse Error: The function signature doesn't match the parent. Parent signature is "has_method(StringName) -> bool".
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:29.9271472Z           at: GDScript::reload (res://tests/unit/test_frag_grenade.gd:37)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:29.9272708Z SCRIPT ERROR: Parse Error: The method "has_method()" overrides a method from native class "Object". This won't be called by the engine and may not work as expected. (Warning treated as error.)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:29.9273769Z           at: GDScript::reload (res://tests/unit/test_frag_grenade.gd:37)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:29.9275839Z ERROR: Failed to load script "res://tests/unit/test_frag_grenade.gd" with error "Parse error".
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:29.9276663Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:30.0041462Z SCRIPT ERROR: Parse Error: Function "assert_gte()" not found in base self.
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:30.0042473Z           at: GDScript::reload (res://tests/unit/test_grenade_base.gd:336)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:30.0043424Z SCRIPT ERROR: Parse Error: Function "assert_le()" not found in base self.
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:30.0044314Z           at: GDScript::reload (res://tests/unit/test_grenade_base.gd:343)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:30.0044995Z SCRIPT ERROR: Parse Error: Function "assert_le()" not found in base self.
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:30.0045573Z           at: GDScript::reload (res://tests/unit/test_grenade_base.gd:593)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:30.0047500Z ERROR: Failed to load script "res://tests/unit/test_grenade_base.gd" with error "Parse error".
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:30.0048320Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:30.2875088Z SCRIPT ERROR: Parse Error: Function "assert_le()" not found in base self.
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:30.2876063Z           at: GDScript::reload (res://tests/unit/test_shrapnel.gd:369)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:30.2881834Z ERROR: Failed to load script "res://tests/unit/test_shrapnel.gd" with error "Parse error".
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:30.2882647Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:30.3314491Z SCRIPT ERROR: Parse Error: The function signature doesn't match the parent. Parent signature is "has_method(StringName) -> bool".
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:30.3315481Z           at: GDScript::reload (res://tests/unit/test_status_effects_manager.gd:39)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:30.3316766Z SCRIPT ERROR: Parse Error: The method "get_instance_id()" overrides a method from native class "Object". This won't be called by the engine and may not work as expected. (Warning treated as error.)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:30.3318222Z           at: GDScript::reload (res://tests/unit/test_status_effects_manager.gd:24)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:30.3319575Z SCRIPT ERROR: Parse Error: The method "has_method()" overrides a method from native class "Object". This won't be called by the engine and may not work as expected. (Warning treated as error.)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:30.3321504Z           at: GDScript::reload (res://tests/unit/test_status_effects_manager.gd:39)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:30.3322770Z ERROR: Failed to load script "res://tests/unit/test_status_effects_manager.gd" with error "Parse error".
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:30.3323523Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:30.7504397Z WARNING: res://scenes/effects/Casing.tscn:4 - ext_resource, invalid UID: uid://casing_rifle_sprite - using text path instead: res://assets/sprites/effects/casing_rifle.png
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:30.7505995Z      at: load (scene/resources/resource_format_text.cpp:453)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:30.7507884Z WARNING: res://resources/calibers/caliber_545x39.tres:4 - ext_resource, invalid UID: uid://casing_rifle_sprite - using text path instead: res://assets/sprites/effects/casing_rifle.png
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:30.7508919Z      at: load (scene/resources/resource_format_text.cpp:453)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:32.2866325Z ##[endgroup]
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:32.2868569Z 🎯 Using project file at /home/runner/work/Jhon-Crow-godot-topdown-MVP/Jhon-Crow-godot-topdown-MVP/project.godot
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:32.2884612Z ##[group]1️⃣ Export binary for preset "Windows Desktop"
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:32.2895965Z [command]/home/runner/.local/share/godot/godot_executable/Godot_v4.3-stable_mono_linux_x86_64/Godot_v4.3-stable_mono_linux.x86_64 /home/runner/work/Jhon-Crow-godot-topdown-MVP/Jhon-Crow-godot-topdown-MVP/project.godot --headless --export-release Windows Desktop /home/runner/.local/share/godot/builds/Windows Desktop/Godot-Top-Down-Template.exe
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:32.3070814Z Godot Engine v4.3.stable.mono.official.77dcf97d8 - https://godotengine.org
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:32.3248381Z 
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:36.0191579Z ERROR:  Config File "user://gut_temp_directory/gut_editor_config.json" does not exist.
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:36.5720136Z dotnet_publish_project: begin: Publishing .NET project... steps: 1
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:36.5721428Z 	dotnet_publish_project: step 0: Running dotnet publish
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.1448996Z dotnet_publish_project: end
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.1742141Z ERROR: Failed to export project: Failed to build project.
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.1743444Z    at: void GodotTools.Export.ExportPlugin._ExportBegin(System.String[], bool, string, uint) (/root/godot/modules/mono/editor/GodotTools/GodotTools/Export/ExportPlugin.cs:123)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.1766887Z System.InvalidOperationException: Failed to build project.
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.1768796Z    at GodotTools.Export.ExportPlugin._ExportBeginImpl(String[] features, Boolean isDebug, String path, Int64 flags) in /root/godot/modules/mono/editor/GodotTools/GodotTools/Export/ExportPlugin.cs:line 255
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.1771399Z    at GodotTools.Export.ExportPlugin._ExportBegin(String[] features, Boolean isDebug, String path, UInt32 flags) in /root/godot/modules/mono/editor/GodotTools/GodotTools/Export/ExportPlugin.cs:line 123
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.2473183Z WARNING: Resources Modification: Could not start rcedit executable. Configure rcedit path in the Editor Settings (Export > Windows > rcedit), or disable "Application > Modify Resources" in the export preset.
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.2474331Z      at: add_message (editor/export/editor_export_platform.h:179)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.2474763Z savepack: begin: Packing steps: 102
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.2759865Z 	savepack: step 2: Storing File: res://.godot/imported/AnonymousPro-Bold.ttf-9d8fef4d357af5b52cd60afbe608aa49.fontdata
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.2761503Z 	savepack: step 2: Storing File: res://addons/gut/fonts/AnonymousPro-Bold.ttf.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.2763385Z 	savepack: step 2: Storing File: res://.godot/imported/AnonymousPro-BoldItalic.ttf-4274bf704d3d6b9cd32c4f0754d8c83d.fontdata
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.2764617Z 	savepack: step 2: Storing File: res://addons/gut/fonts/AnonymousPro-BoldItalic.ttf.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.2767907Z 	savepack: step 2: Storing File: res://.godot/imported/AnonymousPro-Italic.ttf-9989590b02137b799e13d570de2a42c1.fontdata
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.2768820Z 	savepack: step 2: Storing File: res://addons/gut/fonts/AnonymousPro-Italic.ttf.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.2772454Z 	savepack: step 2: Storing File: res://.godot/imported/AnonymousPro-Regular.ttf-856c843fd6f89964d2ca8d8ff1724f13.fontdata
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.2773401Z 	savepack: step 2: Storing File: res://addons/gut/fonts/AnonymousPro-Regular.ttf.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.2776237Z 	savepack: step 3: Storing File: res://.godot/imported/CourierPrime-Bold.ttf-1f003c66d63ebed70964e7756f4fa235.fontdata
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.2776932Z 	savepack: step 3: Storing File: res://addons/gut/fonts/CourierPrime-Bold.ttf.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.2779873Z 	savepack: step 3: Storing File: res://.godot/imported/CourierPrime-BoldItalic.ttf-65ebcc61dd5e1dfa8f96313da4ad7019.fontdata
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.2780851Z 	savepack: step 3: Storing File: res://addons/gut/fonts/CourierPrime-BoldItalic.ttf.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.2783649Z 	savepack: step 3: Storing File: res://.godot/imported/CourierPrime-Italic.ttf-baa9156a73770735a0f72fb20b907112.fontdata
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.2784349Z 	savepack: step 3: Storing File: res://addons/gut/fonts/CourierPrime-Italic.ttf.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.2787246Z 	savepack: step 3: Storing File: res://.godot/imported/CourierPrime-Regular.ttf-3babe7e4a7a588dfc9a84c14b4f1fe23.fontdata
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.2787939Z 	savepack: step 3: Storing File: res://addons/gut/fonts/CourierPrime-Regular.ttf.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.2792432Z 	savepack: step 4: Storing File: res://.godot/imported/LobsterTwo-Bold.ttf-7c7f734103b58a32491a4788186f3dcb.fontdata
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.2793107Z 	savepack: step 4: Storing File: res://addons/gut/fonts/LobsterTwo-Bold.ttf.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.2797832Z 	savepack: step 4: Storing File: res://.godot/imported/LobsterTwo-BoldItalic.ttf-227406a33e84448e6aa974176016de19.fontdata
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.2799008Z 	savepack: step 4: Storing File: res://addons/gut/fonts/LobsterTwo-BoldItalic.ttf.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.2803577Z 	savepack: step 4: Storing File: res://.godot/imported/LobsterTwo-Italic.ttf-f93abf6c25390c85ad5fb6c4ee75159e.fontdata
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.2805418Z 	savepack: step 4: Storing File: res://addons/gut/fonts/LobsterTwo-Italic.ttf.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.2809217Z 	savepack: step 5: Storing File: res://.godot/imported/LobsterTwo-Regular.ttf-f3fcfa01cd671c8da433dd875d0fe04b.fontdata
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.2810632Z 	savepack: step 5: Storing File: res://addons/gut/fonts/LobsterTwo-Regular.ttf.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.2811689Z 	savepack: step 5: Storing File: res://.godot/imported/arrow.png-2b5b2d838b5b3467cf300ac2da1630d9.ctex
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.2812596Z 	savepack: step 5: Storing File: res://addons/gut/gui/arrow.png.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.2820084Z 	savepack: step 5: Storing File: res://addons/gut/gui/BottomPanelShortcuts.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.2937628Z 	savepack: step 5: Storing File: res://.godot/exported/133200997/export-7f03a9afb93117c1bd7fd7b5c458d006-BottomPanelShortcuts.scn
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.2939351Z 	savepack: step 6: Storing File: res://addons/gut/gui/editor_globals.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.2954319Z 	savepack: step 6: Storing File: res://addons/gut/gui/GutBottomPanel.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.3223519Z 	savepack: step 6: Storing File: res://.godot/exported/133200997/export-8386f4bb580e16d6c15d474a2f0091ee-GutBottomPanel.scn
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.3234698Z 	savepack: step 6: Storing File: res://addons/gut/gui/GutControl.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.3594857Z 	savepack: step 7: Storing File: res://.godot/exported/133200997/export-26e9e30cc7f4a2376e8aa94aba7b910a-GutControl.scn
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.3600771Z 	savepack: step 7: Storing File: res://addons/gut/gui/GutRunner.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.3622686Z 	savepack: step 7: Storing File: res://.godot/exported/133200997/export-a6635ec71365a14084f2ea876d1e36ed-GutRunner.scn
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.3628032Z 	savepack: step 8: Storing File: res://.godot/exported/133200997/export-1baa7cbab7e02d873ddf15d535bf6df6-GutSceneTheme.res
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.3644257Z 	savepack: step 8: Storing File: res://addons/gut/gui/gut_config_gui.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.3653198Z 	savepack: step 8: Storing File: res://addons/gut/gui/gut_gui.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.3657978Z 	savepack: step 8: Storing File: res://addons/gut/gui/gut_user_preferences.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.3721442Z 	savepack: step 9: Storing File: res://.godot/exported/133200997/export-d44343f2a7581a7edb4b241fb4052588-MinGui.scn
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.3783340Z 	savepack: step 9: Storing File: res://.godot/exported/133200997/export-6304928bc07bf73a42a2a313e2981be7-NormalGui.scn
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.3797273Z 	savepack: step 9: Storing File: res://addons/gut/gui/OutputText.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.6985457Z 	savepack: step 10: Storing File: res://.godot/exported/133200997/export-23ab0e44de98fa806ae0e6483b7358fb-OutputText.scn
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.6997926Z 	savepack: step 10: Storing File: res://addons/gut/gui/panel_controls.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.6999548Z 	savepack: step 10: Storing File: res://.godot/imported/play.png-5c90e88e8136487a183a099d67a7de24.ctex
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7001692Z 	savepack: step 10: Storing File: res://addons/gut/gui/play.png.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7006046Z 	savepack: step 10: Storing File: res://addons/gut/gui/ResizeHandle.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7015368Z 	savepack: step 11: Storing File: res://.godot/exported/133200997/export-482904b7140dd0cc672f657fd7ce2fef-ResizeHandle.scn
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7029629Z 	savepack: step 11: Storing File: res://addons/gut/gui/ResultsTree.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7083756Z 	savepack: step 11: Storing File: res://.godot/exported/133200997/export-fe3acf32e8ed4a9564381bea2f291b91-ResultsTree.scn
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7089741Z 	savepack: step 11: Storing File: res://addons/gut/gui/RunAtCursor.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7113016Z 	savepack: step 12: Storing File: res://.godot/exported/133200997/export-2587591ec4b27857073360f2a05c39c6-RunAtCursor.scn
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7122393Z 	savepack: step 12: Storing File: res://addons/gut/gui/RunResults.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7171389Z 	savepack: step 12: Storing File: res://.godot/exported/133200997/export-c8a40db1d8b2c26578d8c30ddc0045e5-RunResults.scn
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7179515Z 	savepack: step 13: Storing File: res://addons/gut/gui/script_text_editor_controls.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7185999Z 	savepack: step 13: Storing File: res://.godot/exported/133200997/export-75699124adbc9dbed8ede8495639b2f5-Settings.scn
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7192207Z 	savepack: step 13: Storing File: res://addons/gut/gui/ShortcutButton.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7212023Z 	savepack: step 13: Storing File: res://.godot/exported/133200997/export-7b81c37238cfeabde6cd329be7d7ac27-ShortcutButton.scn
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7213923Z 	savepack: step 14: Storing File: res://.godot/imported/Folder.svg-caa50e6a0be9d456fd81991dfb537916.ctex
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7214941Z 	savepack: step 14: Storing File: res://addons/gut/images/Folder.svg.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7216543Z 	savepack: step 14: Storing File: res://.godot/imported/green.png-e3a17091688e10a7013279b38edc7f8a.ctex
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7217507Z 	savepack: step 14: Storing File: res://addons/gut/images/green.png.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7219039Z 	savepack: step 14: Storing File: res://.godot/imported/red.png-47a557c3922e800f76686bc1a4ad0c3c.ctex
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7219948Z 	savepack: step 14: Storing File: res://addons/gut/images/red.png.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7221999Z 	savepack: step 15: Storing File: res://.godot/imported/Script.svg-34c66aae9c985e3e0470426acbbcda04.ctex
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7223012Z 	savepack: step 15: Storing File: res://addons/gut/images/Script.svg.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7224682Z 	savepack: step 15: Storing File: res://.godot/imported/yellow.png-b3cf3d463958a169d909273d3d742052.ctex
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7226326Z 	savepack: step 15: Storing File: res://addons/gut/images/yellow.png.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7228260Z 	savepack: step 15: Storing File: res://addons/gut/autofree.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7232286Z 	savepack: step 15: Storing File: res://addons/gut/awaiter.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7240065Z 	savepack: step 16: Storing File: res://addons/gut/collected_script.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7245113Z 	savepack: step 16: Storing File: res://addons/gut/collected_test.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7251571Z 	savepack: step 16: Storing File: res://addons/gut/comparator.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7255095Z 	savepack: step 16: Storing File: res://addons/gut/compare_result.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7259144Z 	savepack: step 17: Storing File: res://addons/gut/diff_formatter.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7266459Z 	savepack: step 17: Storing File: res://addons/gut/diff_tool.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7279684Z 	savepack: step 17: Storing File: res://addons/gut/doubler.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7283594Z 	savepack: step 18: Storing File: res://addons/gut/double_tools.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7319461Z 	savepack: step 18: Storing File: res://addons/gut/gut.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7324729Z 	savepack: step 18: Storing File: res://addons/gut/GutScene.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7345986Z 	savepack: step 18: Storing File: res://.godot/exported/133200997/export-2f0cb05a5e71328ea0af1eb4f93c4e22-GutScene.scn
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7360937Z 	savepack: step 19: Storing File: res://addons/gut/gut_cmdln.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7368811Z 	savepack: step 19: Storing File: res://addons/gut/gut_config.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7372408Z 	savepack: step 19: Storing File: res://addons/gut/gut_plugin.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7377028Z 	savepack: step 20: Storing File: res://addons/gut/gut_to_move.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7379707Z 	savepack: step 20: Storing File: res://addons/gut/gut_vscode_debugger.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7382542Z 	savepack: step 20: Storing File: res://addons/gut/hook_script.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7385234Z 	savepack: step 20: Storing File: res://.godot/imported/icon.png-91b084043b8aaf2f1c906e7b9fa92969.ctex
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7386180Z 	savepack: step 20: Storing File: res://addons/gut/icon.png.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7389477Z 	savepack: step 21: Storing File: res://addons/gut/inner_class_registry.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7395310Z 	savepack: step 21: Storing File: res://addons/gut/input_factory.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7413501Z 	savepack: step 21: Storing File: res://addons/gut/input_sender.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7418467Z 	savepack: step 21: Storing File: res://addons/gut/junit_xml_export.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7431930Z 	savepack: step 22: Storing File: res://addons/gut/logger.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7441613Z 	savepack: step 22: Storing File: res://addons/gut/method_maker.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7444457Z 	savepack: step 22: Storing File: res://addons/gut/one_to_many.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7453907Z 	savepack: step 23: Storing File: res://addons/gut/optparse.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7457145Z 	savepack: step 23: Storing File: res://addons/gut/orphan_counter.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7460681Z 	savepack: step 23: Storing File: res://addons/gut/parameter_factory.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7463464Z 	savepack: step 23: Storing File: res://addons/gut/parameter_handler.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7470096Z 	savepack: step 24: Storing File: res://addons/gut/printers.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7475598Z 	savepack: step 24: Storing File: res://addons/gut/result_exporter.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7486952Z 	savepack: step 24: Storing File: res://addons/gut/script_parser.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7495803Z 	savepack: step 24: Storing File: res://addons/gut/signal_watcher.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7497355Z 	savepack: step 25: Storing File: res://.godot/imported/source_code_pro.fnt-042fb383b3c7b4c19e67c852f7fbefca.fontdata
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7498409Z 	savepack: step 25: Storing File: res://addons/gut/source_code_pro.fnt.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7503545Z 	savepack: step 25: Storing File: res://addons/gut/spy.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7511908Z 	savepack: step 25: Storing File: res://addons/gut/strutils.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7520273Z 	savepack: step 26: Storing File: res://addons/gut/stubber.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7526423Z 	savepack: step 26: Storing File: res://addons/gut/stub_params.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7536591Z 	savepack: step 26: Storing File: res://addons/gut/summary.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7591877Z 	savepack: step 26: Storing File: res://addons/gut/test.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7601707Z 	savepack: step 27: Storing File: res://addons/gut/test_collector.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7604523Z 	savepack: step 27: Storing File: res://addons/gut/thing_counter.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7608178Z 	savepack: step 27: Storing File: res://addons/gut/UserFileViewer.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7721123Z 	savepack: step 28: Storing File: res://.godot/exported/133200997/export-009fff9a427a23713aab85c867002442-UserFileViewer.scn
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7739783Z 	savepack: step 28: Storing File: res://addons/gut/utils.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7744277Z 	savepack: step 28: Storing File: res://addons/gut/version_conversion.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7749250Z 	savepack: step 28: Storing File: res://.godot/imported/m16 1.wav-6a1b903e503cb67474a279ceb97e5b8e.sample
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7750251Z 	savepack: step 28: Storing File: res://assets/audio/m16 1.wav.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7753978Z 	savepack: step 29: Storing File: res://.godot/imported/m16 2.wav-f22d507777a6c4626521553dcf0cda33.sample
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7754949Z 	savepack: step 29: Storing File: res://assets/audio/m16 2.wav.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7758499Z 	savepack: step 29: Storing File: res://.godot/imported/m16 3.wav-d16966493c2691c632429af98c57bc34.sample
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7759487Z 	savepack: step 29: Storing File: res://assets/audio/m16 3.wav.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7763683Z 	savepack: step 29: Storing File: res://.godot/imported/m16  два выстрела подряд 2.wav-b33f9098acc50f0986e1bf5474544a70.sample
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7764992Z 	savepack: step 29: Storing File: res://assets/audio/m16  два выстрела подряд 2.wav.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7768617Z 	savepack: step 29: Storing File: res://.godot/imported/m16 два выстрела подряд.wav-7ce595de4b78c404238a8ea45b25ae8a.sample
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7769885Z 	savepack: step 29: Storing File: res://assets/audio/m16 два выстрела подряд.wav.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7773325Z 	savepack: step 30: Storing File: res://.godot/imported/взвод затвора m16 1.wav-40b76f9f0823aed803507b0146868ffe.sample
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7774554Z 	savepack: step 30: Storing File: res://assets/audio/взвод затвора m16 1.wav.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7778275Z 	savepack: step 30: Storing File: res://.godot/imported/взвод затвора m16 2.wav-a68a1fd1a60c71ae811de51327fec31c.sample
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7779501Z 	savepack: step 30: Storing File: res://assets/audio/взвод затвора m16 2.wav.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7783260Z 	savepack: step 30: Storing File: res://.godot/imported/взвод затвора m16 3.wav-90e204bd2b78a1f62c0f3d89b7d7e7f9.sample
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7784503Z 	savepack: step 30: Storing File: res://assets/audio/взвод затвора m16 3.wav.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7788645Z 	savepack: step 31: Storing File: res://.godot/imported/взвод затвора m16 4.wav-8ab6c00cb32b2ce2a064765630c597a3.sample
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7789887Z 	savepack: step 31: Storing File: res://assets/audio/взвод затвора m16 4.wav.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7794289Z 	savepack: step 31: Storing File: res://.godot/imported/взвод затвора пистолета.wav-d3a63489e505ea8ae2fe6e3bc1788a57.sample
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7795613Z 	savepack: step 31: Storing File: res://assets/audio/взвод затвора пистолета.wav.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7814762Z 	savepack: step 31: Storing File: res://.godot/imported/взрыв светошумовой гранаты игрок в зоне поражения.wav-fd5086c2ce3958a3b1bc31c695641ab2.sample
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7816261Z 	savepack: step 31: Storing File: res://assets/audio/взрыв светошумовой гранаты игрок в зоне поражения.wav.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7819236Z 	savepack: step 31: Storing File: res://.godot/imported/взрыв светошумовой гранаты игрок вне зоны поражения.wav-e716fc4fc8b39a72bc17ee6a2ad0b35e.sample
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7821450Z 	savepack: step 31: Storing File: res://assets/audio/взрыв светошумовой гранаты игрок вне зоны поражения.wav.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7868768Z 	savepack: step 32: Storing File: res://.godot/imported/выдернут чека (активирована).wav-9b8eb7faa05c031a18ba9a4fbb392ac0.sample
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7870086Z 	savepack: step 32: Storing File: res://assets/audio/выдернут чека (активирована).wav.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7871619Z 	savepack: step 32: Storing File: res://.godot/imported/выстрел без патронов дробовик.mp3-4d83b6723258d3ddf2eee41aad9900b2.mp3str
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7872930Z 	savepack: step 32: Storing File: res://assets/audio/выстрел без патронов дробовик.mp3.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7876457Z 	savepack: step 32: Storing File: res://.godot/imported/выстрел из дробовика 1.wav-d8bdc1352874e2b1976c4785500d0138.sample
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7877713Z 	savepack: step 32: Storing File: res://assets/audio/выстрел из дробовика 1.wav.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7881202Z 	savepack: step 33: Storing File: res://.godot/imported/выстрел из дробовика 2.wav-5ded31cee3010787573e036095734666.sample
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7882498Z 	savepack: step 33: Storing File: res://assets/audio/выстрел из дробовика 2.wav.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7886037Z 	savepack: step 33: Storing File: res://.godot/imported/выстрел из дробовика 3.wav-77cbb46b3e642d6be36a2669e8f34c28.sample
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7887314Z 	savepack: step 33: Storing File: res://assets/audio/выстрел из дробовика 3.wav.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7891831Z 	savepack: step 33: Storing File: res://.godot/imported/выстрел из дробовика 4.wav-b08bcb9bf0e9a834ad4b32dbaf38c58d.sample
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7893564Z 	savepack: step 33: Storing File: res://assets/audio/выстрел из дробовика 4.wav.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7894857Z 	savepack: step 33: Storing File: res://.godot/imported/граната столкнулась со стеной.wav-a5b9113751197da53221b7f1c0c8532e.sample
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7895791Z 	savepack: step 33: Storing File: res://assets/audio/граната столкнулась со стеной.wav.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7897813Z 	savepack: step 34: Storing File: res://.godot/imported/закрытие затвора дробовика.wav-a4064d273a61e43cc56e1c87a5964296.sample
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7899194Z 	savepack: step 34: Storing File: res://assets/audio/закрытие затвора дробовика.wav.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7900803Z 	savepack: step 34: Storing File: res://.godot/imported/зарядил один патрон в дробовик.mp3-a1eee560ca0b4a6dfd5fcb81376f5c49.mp3str
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7901759Z 	savepack: step 34: Storing File: res://assets/audio/зарядил один патрон в дробовик.mp3.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7903768Z 	savepack: step 34: Storing File: res://.godot/imported/звук попадания не смертельного попадания.wav-caa1d346ed764fc4796f97afe28bf7b2.sample
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7904675Z 	savepack: step 34: Storing File: res://assets/audio/звук попадания не смертельного попадания.wav.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7907768Z 	savepack: step 34: Storing File: res://.godot/imported/звук смертельного попадания.wav-1df254e8ea4eac4a0c8ce5675b8ff198.sample
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7908689Z 	savepack: step 34: Storing File: res://assets/audio/звук смертельного попадания.wav.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7910928Z 	savepack: step 35: Storing File: res://.godot/imported/игрок вставил магазин (вторая фаза перезарядки).wav-8a8bbf6b1ae370a8a515266532f7ff0d.sample
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7911822Z 	savepack: step 35: Storing File: res://assets/audio/игрок вставил магазин (вторая фаза перезарядки).wav.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7916586Z 	savepack: step 35: Storing File: res://.godot/imported/игрок достал магазин (первая фаза перезарядки).wav-b296b39f2a65a0f27998a7ccb95acea3.sample
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7918145Z 	savepack: step 35: Storing File: res://assets/audio/игрок достал магазин (первая фаза перезарядки).wav.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7919834Z 	savepack: step 35: Storing File: res://.godot/imported/игрок изменил режим стрельбы (нажал b).mp3-d6b8e1aae015e79931f9923da09c3bc9.mp3str
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7921506Z 	savepack: step 35: Storing File: res://assets/audio/игрок изменил режим стрельбы (нажал b).mp3.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7922537Z 	savepack: step 36: Storing File: res://.godot/imported/игрок изменил режим стрельбы (нажал b).wav-747160df6ca618265a7bb44865ddbfa2.sample
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7923295Z 	savepack: step 36: Storing File: res://assets/audio/игрок изменил режим стрельбы (нажал b).wav.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7924908Z 	savepack: step 36: Storing File: res://.godot/imported/кончились патроны в пистолете.wav-9ed4c1e5adf1c75df6795225fc3478e2.sample
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7925644Z 	savepack: step 36: Storing File: res://assets/audio/кончились патроны в пистолете.wav.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7928535Z 	savepack: step 36: Storing File: res://.godot/imported/открытие затвора дробовика.wav-21faa3af9f3b817743d7d0753e95c336.sample
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7929287Z 	savepack: step 36: Storing File: res://assets/audio/открытие затвора дробовика.wav.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7934302Z 	savepack: step 36: Storing File: res://.godot/imported/падает гильза автомата.wav-66427526953ec184ee89da6921d007df.sample
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7935014Z 	savepack: step 36: Storing File: res://assets/audio/падает гильза автомата.wav.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7944135Z 	savepack: step 37: Storing File: res://.godot/imported/падает гильза пистолета.wav-1d6ae9ddc7f12cd6bbef492ed1bdfed4.sample
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7944884Z 	savepack: step 37: Storing File: res://assets/audio/падает гильза пистолета.wav.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7946463Z 	savepack: step 37: Storing File: res://.godot/imported/падение гильзы дробовик.mp3-4c993b563436b36924dedf8e7887f050.mp3str
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7947161Z 	savepack: step 37: Storing File: res://assets/audio/падение гильзы дробовик.mp3.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7962224Z 	savepack: step 37: Storing File: res://.godot/imported/полная зарядка m16.wav-208339b648d842e833a21f63083f6897.sample
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7963140Z 	savepack: step 37: Storing File: res://assets/audio/полная зарядка m16.wav.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7982703Z 	savepack: step 38: Storing File: res://.godot/imported/попадание пули в укрытие рядом с игроком.wav-22aefd38bcb1e4a2d613016081f456b2.sample
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7983722Z 	savepack: step 38: Storing File: res://assets/audio/попадание пули в укрытие рядом с игроком.wav.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7987531Z 	savepack: step 38: Storing File: res://.godot/imported/приземление гранаты.wav-a7de74eb0430afd44aa4f9ecafa29073.sample
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7988252Z 	savepack: step 38: Storing File: res://assets/audio/приземление гранаты.wav.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7993356Z 	savepack: step 38: Storing File: res://.godot/imported/пуля попала в стену или укрытие (сделать по тише).wav-452e1e004cbc40737b00f41465f631ee.sample
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7994197Z 	savepack: step 38: Storing File: res://assets/audio/пуля попала в стену или укрытие (сделать по тише).wav.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7997426Z 	savepack: step 38: Storing File: res://.godot/imported/пуля пролетела рядом с игроком.wav-689ed43672d5dfb707e55b2869ba106c.sample
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7998185Z 	savepack: step 38: Storing File: res://assets/audio/пуля пролетела рядом с игроком.wav.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.7999689Z 	savepack: step 39: Storing File: res://.godot/imported/рикошет 1.mp3-2ad5f0ea68a1fbd9d5bb013dd56775ad.mp3str
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8000627Z 	savepack: step 39: Storing File: res://assets/audio/рикошет 1.mp3.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8002258Z 	savepack: step 39: Storing File: res://.godot/imported/рикошет 2.mp3-5bdaa9763365df0e7b9f0c3625bdcc04.mp3str
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8002911Z 	savepack: step 39: Storing File: res://assets/audio/рикошет 2.mp3.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8004775Z 	savepack: step 39: Storing File: res://.godot/imported/рикошет 3.mp3-31bbf53da98eda475502af3fd5cba85f.mp3str
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8005458Z 	savepack: step 39: Storing File: res://assets/audio/рикошет 3.mp3.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8007245Z 	savepack: step 39: Storing File: res://.godot/imported/рикошет 4.mp3-fa0e738a793beca69e524965be4547a5.mp3str
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8007905Z 	savepack: step 39: Storing File: res://assets/audio/рикошет 4.mp3.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8009667Z 	savepack: step 40: Storing File: res://.godot/imported/enemy_body.png-e13385861b10a18d6342faa91862c30d.ctex
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8010580Z 	savepack: step 40: Storing File: res://assets/sprites/characters/enemy/enemy_body.png.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8012450Z 	savepack: step 40: Storing File: res://.godot/imported/enemy_combined_preview.png-d4a0cb4cb59c209657d4d0a4a46e8a04.ctex
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8013236Z 	savepack: step 40: Storing File: res://assets/sprites/characters/enemy/enemy_combined_preview.png.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8014791Z 	savepack: step 40: Storing File: res://.godot/imported/enemy_head.png-d2add1fbbcda30a71cd3fcb09b54c7a2.ctex
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8015465Z 	savepack: step 40: Storing File: res://assets/sprites/characters/enemy/enemy_head.png.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8017292Z 	savepack: step 41: Storing File: res://.godot/imported/enemy_left_arm.png-d4f9ffb9082680db54a1ea2b6c5169e2.ctex
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8017991Z 	savepack: step 41: Storing File: res://assets/sprites/characters/enemy/enemy_left_arm.png.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8019789Z 	savepack: step 41: Storing File: res://.godot/imported/enemy_right_arm.png-bf72365468c73e62078ff8e23bfcca7a.ctex
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8020631Z 	savepack: step 41: Storing File: res://assets/sprites/characters/enemy/enemy_right_arm.png.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8022384Z 	savepack: step 41: Storing File: res://.godot/imported/player_armband.png-3c5659a797c34be225c72e612ea1e9eb.ctex
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8023083Z 	savepack: step 41: Storing File: res://assets/sprites/characters/player/player_armband.png.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8024636Z 	savepack: step 41: Storing File: res://.godot/imported/player_body.png-19553d94f75f47bdf159b82936a93769.ctex
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8025376Z 	savepack: step 41: Storing File: res://assets/sprites/characters/player/player_body.png.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8027196Z 	savepack: step 42: Storing File: res://.godot/imported/player_combined_preview.png-7405326c3970ea64546dee2e6412553e.ctex
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8027970Z 	savepack: step 42: Storing File: res://assets/sprites/characters/player/player_combined_preview.png.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8029673Z 	savepack: step 42: Storing File: res://.godot/imported/player_head.png-cf9f2cb34854c93faaa1b4be21f1a11b.ctex
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8035629Z 	savepack: step 42: Storing File: res://assets/sprites/characters/player/player_head.png.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8036450Z 	savepack: step 42: Storing File: res://.godot/imported/player_left_arm.png-311806e3f2d5fac158d0544db61f1695.ctex
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8037162Z 	savepack: step 42: Storing File: res://assets/sprites/characters/player/player_left_arm.png.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8038380Z 	savepack: step 42: Storing File: res://.godot/imported/player_right_arm.png-65028ad83587c680e8ead25f59f89cbf.ctex
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8039128Z 	savepack: step 42: Storing File: res://assets/sprites/characters/player/player_right_arm.png.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8039797Z 	savepack: step 43: Storing File: res://.godot/imported/soldier.png-9c357787063e3c5f1479aa24af8ced91.ctex
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8041439Z 	savepack: step 43: Storing File: res://assets/sprites/characters/soldier.png.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8042168Z 	savepack: step 43: Storing File: res://.godot/imported/soldier_officer.png-35cf80e072fca755aeae84c6d7e5776b.ctex
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8042803Z 	savepack: step 43: Storing File: res://assets/sprites/characters/soldier_officer.png.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8044052Z 	savepack: step 43: Storing File: res://.godot/imported/soldier_spear.png-5fe797b5d120f009a9c746a4a9900e12.ctex
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8044696Z 	savepack: step 43: Storing File: res://assets/sprites/characters/soldier_spear.png.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8046920Z 	savepack: step 44: Storing File: res://.godot/imported/casing_pistol.png-13a9e177d1d77f890648427379d2620e.ctex
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8047810Z 	savepack: step 44: Storing File: res://assets/sprites/effects/casing_pistol.png.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8049192Z 	savepack: step 44: Storing File: res://.godot/imported/casing_rifle.png-c216d688424d02e80eb6199959929115.ctex
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8049870Z 	savepack: step 44: Storing File: res://assets/sprites/effects/casing_rifle.png.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8051751Z 	savepack: step 44: Storing File: res://.godot/imported/casing_shotgun.png-2fcf213def46e1fb92c4a8ff9d3eaa35.ctex
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8052426Z 	savepack: step 44: Storing File: res://assets/sprites/effects/casing_shotgun.png.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8054398Z 	savepack: step 44: Storing File: res://.godot/imported/flashbang.png-b82b8758883693b648ba5c4dbc3d5d9a.ctex
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8055070Z 	savepack: step 44: Storing File: res://assets/sprites/weapons/flashbang.png.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8056725Z 	savepack: step 45: Storing File: res://.godot/imported/frag_grenade.png-a1e53cfa2409408d65e9e1a6c8274e78.ctex
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8057374Z 	savepack: step 45: Storing File: res://assets/sprites/weapons/frag_grenade.png.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8059092Z 	savepack: step 45: Storing File: res://.godot/imported/m16_basic.png-a48b2462ea047d63e216f8ff7b6e4501.ctex
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8059772Z 	savepack: step 45: Storing File: res://assets/sprites/weapons/m16_basic.png.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8061573Z 	savepack: step 45: Storing File: res://.godot/imported/m16_rifle.png-ae6f4d000f21a27ef505351889307b8c.ctex
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8062231Z 	savepack: step 45: Storing File: res://assets/sprites/weapons/m16_rifle.png.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8064005Z 	savepack: step 46: Storing File: res://.godot/imported/m16_rifle_topdown.png-1f61a820c1445d6a8d831fdfd09c9065.ctex
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8064691Z 	savepack: step 46: Storing File: res://assets/sprites/weapons/m16_rifle_topdown.png.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8066359Z 	savepack: step 46: Storing File: res://.godot/imported/m16_simple.png-af0f3425fd7337a98fbd72f51be89603.ctex
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8067026Z 	savepack: step 46: Storing File: res://assets/sprites/weapons/m16_simple.png.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8068739Z 	savepack: step 46: Storing File: res://.godot/imported/m16_topdown_medium.png-dbb26019252e78f3ee4daaeff151c634.ctex
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8069428Z 	savepack: step 46: Storing File: res://assets/sprites/weapons/m16_topdown_medium.png.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8071284Z 	savepack: step 46: Storing File: res://.godot/imported/m16_topdown_small.png-6e0772cfbf36e8aa574ad180064e6c17.ctex
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8071947Z 	savepack: step 46: Storing File: res://assets/sprites/weapons/m16_topdown_small.png.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8073714Z 	savepack: step 47: Storing File: res://.godot/imported/mini_uzi_icon.png-c7f46c6dc4da0e10901d085df976b7c3.ctex
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8074360Z 	savepack: step 47: Storing File: res://assets/sprites/weapons/mini_uzi_icon.png.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8076036Z 	savepack: step 47: Storing File: res://.godot/imported/mini_uzi_topdown.png-7db84aeb590d6df3fcdc4cbfbad367a8.ctex
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8076722Z 	savepack: step 47: Storing File: res://assets/sprites/weapons/mini_uzi_topdown.png.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8078460Z 	savepack: step 47: Storing File: res://.godot/imported/shotgun.png-49306313d610f9f84fcc8e2b5dd610c6.ctex
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8079279Z 	savepack: step 47: Storing File: res://assets/sprites/weapons/shotgun.png.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8080986Z 	savepack: step 47: Storing File: res://.godot/imported/shotgun_icon.png-34f045dde21ffa00809d6207cd6db1ad.ctex
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8081794Z 	savepack: step 47: Storing File: res://assets/sprites/weapons/shotgun_icon.png.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8083884Z 	savepack: step 48: Storing File: res://.godot/imported/shotgun_topdown.png-2ec0cf5ba9ca2c9b42a5e92e76090eca.ctex
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8085019Z 	savepack: step 48: Storing File: res://assets/sprites/weapons/shotgun_topdown.png.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8085803Z 	savepack: step 48: Storing File: res://docs/case-studies/issue-93/issue-88-details.json
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8086607Z 	savepack: step 48: Storing File: res://docs/case-studies/issue-93/issue-93-details.json
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8087531Z 	savepack: step 49: Storing File: res://docs/case-studies/issue-93/pr-89-conversation-comments.json
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8088840Z 	savepack: step 49: Storing File: res://docs/case-studies/issue-93/pr-89-details.json
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8089771Z 	savepack: step 49: Storing File: res://docs/case-studies/issue-93/pr-89-review-comments.json
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8101437Z 	savepack: step 49: Storing File: res://.godot/imported/reference-1.png-beb024721904f217c99dfbd6e23c2f4f.ctex
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8102135Z 	savepack: step 49: Storing File: res://docs/case-studies/issue-96/images/reference-1.png.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8103737Z 	savepack: step 50: Storing File: res://.godot/imported/reference-2.png-e7492fecae437699f97893edcb2fa84f.ctex
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8104667Z 	savepack: step 50: Storing File: res://docs/case-studies/issue-96/images/reference-2.png.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8105413Z 	savepack: step 50: Storing File: res://docs/case-studies/issue-103/all-issues.json
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8106502Z 	savepack: step 50: Storing File: res://docs/case-studies/issue-103/all-prs.json
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8107413Z 	savepack: step 51: Storing File: res://docs/case-studies/issue-103/issue-103-comments.json
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8108619Z 	savepack: step 51: Storing File: res://docs/case-studies/issue-103/issue-103-details.json
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8110051Z 	savepack: step 51: Storing File: res://docs/case-studies/issue-103/pr-104-conversation-comments.json
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8111496Z 	savepack: step 51: Storing File: res://docs/case-studies/issue-103/pr-104-details.json
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8112671Z 	savepack: step 52: Storing File: res://docs/case-studies/issue-103/pr-104-review-comments.json
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8115032Z 	savepack: step 52: Storing File: res://docs/case-studies/issue-103/pr-106-conversation-comments.json
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8116114Z 	savepack: step 52: Storing File: res://docs/case-studies/issue-103/pr-106-details.json
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8117121Z 	savepack: step 52: Storing File: res://docs/case-studies/issue-103/pr-106-review-comments.json
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8118149Z 	savepack: step 53: Storing File: res://docs/case-studies/issue-109/logs/issue-109-details.json
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8119168Z 	savepack: step 53: Storing File: res://docs/case-studies/issue-109/logs/pr-126-comments.json
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8120164Z 	savepack: step 53: Storing File: res://docs/case-studies/issue-109/logs/pr-126-details.json
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8121316Z 	savepack: step 54: Storing File: res://docs/case-studies/issue-131/issue-data.json
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8122240Z 	savepack: step 54: Storing File: res://docs/case-studies/issue-131/pr-120-fullscreen.json
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8123215Z 	savepack: step 54: Storing File: res://docs/case-studies/issue-131/pr-125-difficulty.json
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8124135Z 	savepack: step 54: Storing File: res://docs/case-studies/issue-131/related-prs.json
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8125025Z 	savepack: step 55: Storing File: res://docs/case-studies/issue-139/issue-data.json
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8125913Z 	savepack: step 55: Storing File: res://docs/case-studies/issue-139/pr-comments.json
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8127078Z 	savepack: step 55: Storing File: res://docs/case-studies/issue-139/pr-data.json
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8127972Z 	savepack: step 56: Storing File: res://docs/case-studies/issue-194/issue-comments.json
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8128887Z 	savepack: step 56: Storing File: res://docs/case-studies/issue-194/issue-data.json
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8129760Z 	savepack: step 56: Storing File: res://docs/case-studies/issue-196/issue_data.json
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8130799Z 	savepack: step 56: Storing File: res://docs/case-studies/issue-196/pr_data.json
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8141214Z 	savepack: step 57: Storing File: res://.godot/imported/reference_image.png-7982bf7356b20125055f2869d43b75b8.ctex
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8142425Z 	savepack: step 57: Storing File: res://docs/case-studies/issue-196/reference_image.png.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8143666Z 	savepack: step 57: Storing File: res://docs/case-studies/issue-202/logs/issue-data.json
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8144621Z 	savepack: step 57: Storing File: res://docs/case-studies/issue-202/logs/pr-data.json
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8145563Z 	savepack: step 57: Storing File: res://docs/case-studies/issue-204/issue-204-details.json
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8146521Z 	savepack: step 58: Storing File: res://docs/case-studies/issue-204/pr-205-comments.json
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8147445Z 	savepack: step 58: Storing File: res://docs/case-studies/issue-204/pr-205-details.json
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8148358Z 	savepack: step 58: Storing File: res://docs/case-studies/issue-217/issue-data.json
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8149326Z 	savepack: step 59: Storing File: res://docs/case-studies/issue-217/pr-conversation-comments.json
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8150502Z 	savepack: step 59: Storing File: res://docs/case-studies/issue-217/pr-data.json
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8151454Z 	savepack: step 59: Storing File: res://docs/case-studies/issue-217/pr-review-comments.json
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8152423Z 	savepack: step 59: Storing File: res://docs/case-studies/issue-234/issue-details.json
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8153328Z 	savepack: step 60: Storing File: res://docs/case-studies/issue-234/pr-details.json
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8154247Z 	savepack: step 60: Storing File: res://docs/case-studies/issue-254/issue-245-details.json
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8155223Z 	savepack: step 60: Storing File: res://docs/case-studies/issue-254/issue-254-comments.json
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8156178Z 	savepack: step 61: Storing File: res://docs/case-studies/issue-254/issue-254-details.json
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8157068Z 	savepack: step 61: Storing File: res://docs/case-studies/issue-254/pr-246-details.json
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8158925Z 	savepack: step 61: Storing File: res://.godot/imported/shotgun_icon.png-7bc87a0dd0c97d813133ab812678a2a3.ctex
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8159937Z 	savepack: step 61: Storing File: res://experiments/shotgun_icon.png.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8161570Z 	savepack: step 61: Storing File: res://.godot/imported/shotgun_topdown.png-b78a0997401e09f123793838eeccbd24.ctex
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8162584Z 	savepack: step 61: Storing File: res://experiments/shotgun_topdown.png.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8166120Z 	savepack: step 62: Storing File: res://experiments/test_wall_shooting_fix.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8188204Z WARNING: res://resources/calibers/caliber_9x19.tres:4 - ext_resource, invalid UID: uid://casing_pistol_sprite - using text path instead: res://assets/sprites/effects/casing_pistol.png
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8189545Z      at: load (scene/resources/resource_format_text.cpp:453)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8204588Z 	savepack: step 62: Storing File: res://.godot/exported/133200997/export-a76b5ba1e52d9a35f023dac1920cd427-caliber_9x19.res
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8207681Z WARNING: res://resources/calibers/caliber_545x39.tres:4 - ext_resource, invalid UID: uid://casing_rifle_sprite - using text path instead: res://assets/sprites/effects/casing_rifle.png
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8209097Z      at: load (scene/resources/resource_format_text.cpp:453)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8214359Z 	savepack: step 62: Storing File: res://.godot/exported/133200997/export-4b2b1934bff25b21e525d303190c78ed-caliber_545x39.res
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8217217Z WARNING: res://resources/calibers/caliber_buckshot.tres:4 - ext_resource, invalid UID: uid://casing_shotgun_sprite - using text path instead: res://assets/sprites/effects/casing_shotgun.png
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8218650Z      at: load (scene/resources/resource_format_text.cpp:453)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8224109Z 	savepack: step 62: Storing File: res://.godot/exported/133200997/export-49e8722d56fb87f7233e9a342eeec1d7-caliber_buckshot.res
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8235664Z WARNING: res://resources/calibers/caliber_545x39.tres:4 - ext_resource, invalid UID: uid://casing_rifle_sprite - using text path instead: res://assets/sprites/effects/casing_rifle.png
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8237036Z      at: load (scene/resources/resource_format_text.cpp:453)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8245282Z 	savepack: step 63: Storing File: res://.godot/exported/133200997/export-6c20ce96c24adf60ae4fa0795d01b992-AssaultRifleData.res
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8249894Z WARNING: res://resources/calibers/caliber_9x19.tres:4 - ext_resource, invalid UID: uid://casing_pistol_sprite - using text path instead: res://assets/sprites/effects/casing_pistol.png
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8251540Z      at: load (scene/resources/resource_format_text.cpp:453)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8257153Z 	savepack: step 63: Storing File: res://.godot/exported/133200997/export-b763a0c584dfe32f94e74fe884b4091a-MiniUziData.res
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8261882Z WARNING: res://resources/calibers/caliber_buckshot.tres:4 - ext_resource, invalid UID: uid://casing_shotgun_sprite - using text path instead: res://assets/sprites/effects/casing_shotgun.png
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8263314Z      at: load (scene/resources/resource_format_text.cpp:453)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8268778Z 	savepack: step 63: Storing File: res://.godot/exported/133200997/export-2e0035347c1c1cdb6a997f97c96ff6c2-ShotgunData.res
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8306081Z WARNING: res://scenes/effects/Casing.tscn:4 - ext_resource, invalid UID: uid://casing_rifle_sprite - using text path instead: res://assets/sprites/effects/casing_rifle.png
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8307413Z      at: load (scene/resources/resource_format_text.cpp:453)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8312044Z WARNING: res://resources/calibers/caliber_545x39.tres:4 - ext_resource, invalid UID: uid://casing_rifle_sprite - using text path instead: res://assets/sprites/effects/casing_rifle.png
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8313424Z      at: load (scene/resources/resource_format_text.cpp:453)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.8401886Z 	savepack: step 64: Storing File: res://.godot/exported/133200997/export-416155497b0a9461b87888dde00e3083-Player.scn
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.9099782Z 	savepack: step 64: Storing File: res://.godot/exported/133200997/export-6ed25e61325b5587cfccd1297eeb66c2-Player.scn
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.9119110Z 	savepack: step 64: Storing File: res://.godot/exported/133200997/export-bfc8d8b986d844ae60cb5c731056190c-BloodDecal.scn
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.9138551Z 	savepack: step 64: Storing File: res://.godot/exported/133200997/export-57f2c2ccc1cb1f9f785a2cbc59cb64c0-BloodEffect.scn
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.9157319Z 	savepack: step 65: Storing File: res://.godot/exported/133200997/export-14ed5ad9f2faf40ecdae44848d969340-BulletHole.scn
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.9159476Z WARNING: res://scenes/effects/Casing.tscn:4 - ext_resource, invalid UID: uid://casing_rifle_sprite - using text path instead: res://assets/sprites/effects/casing_rifle.png
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.9161040Z      at: load (scene/resources/resource_format_text.cpp:453)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.9184286Z 	savepack: step 65: Storing File: res://.godot/exported/133200997/export-95657cdc54354f673869fdff036bdf38-Casing.scn
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.9195115Z 	savepack: step 65: Storing File: res://.godot/exported/133200997/export-532484316e4d38bf7545f404083ec9ff-DustEffect.scn
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.9222150Z 	savepack: step 65: Storing File: res://.godot/exported/133200997/export-59b382e54f932d4c23f167bd9e89e811-PenetrationHole.scn
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.9232658Z 	savepack: step 66: Storing File: res://.godot/exported/133200997/export-7b1f4b6fb70a2205de10a84ba7ac6d60-SparksEffect.scn
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.9519267Z WARNING: res://scenes/ui/ArmoryMenu.tscn:4 - ext_resource, invalid UID: uid://c5qm16rfltop - using text path instead: res://assets/sprites/weapons/m16_rifle.png
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.9520815Z      at: load (scene/resources/resource_format_text.cpp:453)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:46.9738266Z 	savepack: step 66: Storing File: res://.godot/exported/133200997/export-4750fa2d8176ae1cf1f742043b7bb695-TestTier.scn
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.1190246Z 	savepack: step 66: Storing File: res://.godot/exported/133200997/export-c5bb8f8f345ade458f60101c633229d1-BuildingLevel.scn
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.1549896Z 	savepack: step 67: Storing File: res://.godot/exported/133200997/export-4611a88e25034833338e52b601ec9249-TestTier.scn
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.1567765Z 	savepack: step 67: Storing File: res://.godot/exported/133200997/export-68a04552abb3f12a362e1db2098e38c9-Main.scn
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.1577035Z 	savepack: step 67: Storing File: res://.godot/exported/133200997/export-aba84c3490a0cf8f0a573e98c9479f7b-Enemy.scn
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.1585190Z 	savepack: step 67: Storing File: res://.godot/exported/133200997/export-aa344ae45f20caf271829d2e426a4a71-Target.scn
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.1607370Z 	savepack: step 68: Storing File: res://.godot/exported/133200997/export-1c95935264ab792c49d4bb92cd17a260-Enemy.scn
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.1618157Z 	savepack: step 68: Storing File: res://.godot/exported/133200997/export-b05fe8daa55fc2cec0f193a0c41f071e-GrenadeTarget.scn
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.1674246Z 	savepack: step 68: Storing File: res://.godot/exported/133200997/export-95a7296b39ac2c02f583cafb7e8273aa-Target.scn
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.1684979Z 	savepack: step 69: Storing File: res://.godot/exported/133200997/export-9907f4adb212a16435a59c7909d4b9be-Bullet.scn
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.1696599Z 	savepack: step 69: Storing File: res://.godot/exported/133200997/export-dfd566e0094a4624e56a6cce14b73a80-ShotgunPellet.scn
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.1699684Z WARNING: res://resources/calibers/caliber_9x19.tres:4 - ext_resource, invalid UID: uid://casing_pistol_sprite - using text path instead: res://assets/sprites/effects/casing_pistol.png
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.1701279Z      at: load (scene/resources/resource_format_text.cpp:453)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.1770555Z 	savepack: step 69: Storing File: res://.godot/exported/133200997/export-d882a687606b8a9bb6ffbe95cfbfaefa-Bullet9mm.scn
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.1780771Z 	savepack: step 69: Storing File: res://.godot/exported/133200997/export-ac2d8e22ef1e540eb2d999fbf5166a73-Bullet.scn
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.1872048Z WARNING: res://scenes/projectiles/FlashbangGrenade.tscn:4 - ext_resource, invalid UID: uid://b7qx4h3k5m2n9 - using text path instead: res://assets/sprites/weapons/flashbang.png
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.1873453Z      at: load (scene/resources/resource_format_text.cpp:453)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.1958359Z 	savepack: step 70: Storing File: res://.godot/exported/133200997/export-fcecac6461b6f5000bd1dad068fca2a8-FlashbangGrenade.scn
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2051659Z WARNING: res://scenes/projectiles/FragGrenade.tscn:4 - ext_resource, invalid UID: uid://cfrag7qx4h3k5m2 - using text path instead: res://assets/sprites/weapons/frag_grenade.png
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2079438Z      at: load (scene/resources/resource_format_text.cpp:453)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2134052Z 	savepack: step 70: Storing File: res://.godot/exported/133200997/export-66ebe6752eef1cf5f07078434ec2282d-FragGrenade.scn
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2192379Z 	savepack: step 70: Storing File: res://.godot/exported/133200997/export-071917c4ef7805fa654a12dfd295ff8d-Shrapnel.scn
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2194410Z WARNING: res://scenes/ui/ArmoryMenu.tscn:4 - ext_resource, invalid UID: uid://c5qm16rfltop - using text path instead: res://assets/sprites/weapons/m16_rifle.png
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2195637Z      at: load (scene/resources/resource_format_text.cpp:453)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2254868Z 	savepack: step 70: Storing File: res://.godot/exported/133200997/export-2a47d0cfa7b389780790fa4cbce1f1b1-ArmoryMenu.scn
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2329380Z 	savepack: step 71: Storing File: res://.godot/exported/133200997/export-43af3363fcfc822c3a0add4ca37e41a8-ControlsMenu.scn
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2359055Z 	savepack: step 71: Storing File: res://.godot/exported/133200997/export-8a2ecfb51e9714b3b766f7ffac468768-DifficultyMenu.scn
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2388124Z 	savepack: step 71: Storing File: res://.godot/exported/133200997/export-c0724cdd98615c4094ab473935da60e3-LevelsMenu.scn
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2408540Z 	savepack: step 72: Storing File: res://.godot/exported/133200997/export-f3a0254cbdab81d1efc5e42f39e19dcf-PauseMenu.scn
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2418675Z 	savepack: step 72: Storing File: res://.godot/exported/133200997/export-321991f80445845f9164dba256c263c4-AssaultRifle.scn
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2427650Z WARNING: res://scenes/weapons/csharp/MiniUzi.tscn:7 - ext_resource, invalid UID: uid://cq8m5n4r7p6k2 - using text path instead: res://assets/sprites/weapons/mini_uzi_topdown.png
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2429038Z      at: load (scene/resources/resource_format_text.cpp:453)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2435877Z 	savepack: step 72: Storing File: res://.godot/exported/133200997/export-c5ca7a497c4f21c5d034ec35c214d000-MiniUzi.scn
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2445013Z WARNING: res://resources/calibers/caliber_buckshot.tres:4 - ext_resource, invalid UID: uid://casing_shotgun_sprite - using text path instead: res://assets/sprites/effects/casing_shotgun.png
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2445857Z      at: load (scene/resources/resource_format_text.cpp:453)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2456961Z 	savepack: step 72: Storing File: res://.godot/exported/133200997/export-ff68d575c09f528292669aede88e1970-Shotgun.scn
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2468911Z 	savepack: step 73: Storing File: res://Scripts/AbstractClasses/BaseCharacter.cs
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2474400Z 	savepack: step 73: Storing File: res://Scripts/AbstractClasses/BaseWeapon.cs
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2475268Z 	savepack: step 73: Storing File: res://Scripts/Characters/Player.cs
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2476042Z 	savepack: step 74: Storing File: res://Scripts/Components/HealthComponent.cs
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2476805Z 	savepack: step 74: Storing File: res://Scripts/Data/BulletData.cs
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2477507Z 	savepack: step 74: Storing File: res://Scripts/Data/MagazineData.cs
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2478120Z 	savepack: step 74: Storing File: res://Scripts/Data/WeaponData.cs
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2478851Z 	savepack: step 75: Storing File: res://Scripts/Interfaces/IDamageable.cs
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2479525Z 	savepack: step 75: Storing File: res://Scripts/Objects/Enemy.cs
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2480215Z 	savepack: step 75: Storing File: res://Scripts/Projectiles/Bullet.cs
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2481154Z 	savepack: step 75: Storing File: res://Scripts/Projectiles/ShotgunPellet.cs
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2481825Z 	savepack: step 76: Storing File: res://Scripts/Weapons/AssaultRifle.cs
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2482543Z 	savepack: step 76: Storing File: res://Scripts/Weapons/MiniUzi.cs
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2483246Z 	savepack: step 76: Storing File: res://Scripts/Weapons/Shotgun.cs
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2485838Z 	savepack: step 77: Storing File: res://scripts/ai/states/enemy_state.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2490485Z 	savepack: step 77: Storing File: res://scripts/ai/states/idle_state.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2495235Z 	savepack: step 77: Storing File: res://scripts/ai/states/pursuing_state.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2505319Z 	savepack: step 77: Storing File: res://scripts/ai/enemy_actions.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2508617Z 	savepack: step 78: Storing File: res://scripts/ai/goap_action.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2514961Z 	savepack: step 78: Storing File: res://scripts/ai/goap_planner.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2528744Z 	savepack: step 78: Storing File: res://scripts/autoload/audio_manager.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2533877Z 	savepack: step 79: Storing File: res://scripts/autoload/difficulty_manager.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2540238Z 	savepack: step 79: Storing File: res://scripts/autoload/file_logger.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2545955Z 	savepack: step 79: Storing File: res://scripts/autoload/game_manager.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2551550Z 	savepack: step 79: Storing File: res://scripts/autoload/grenade_manager.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2556772Z 	savepack: step 80: Storing File: res://scripts/autoload/hit_effects_manager.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2569796Z 	savepack: step 80: Storing File: res://scripts/autoload/impact_effects_manager.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2577647Z 	savepack: step 80: Storing File: res://scripts/autoload/input_settings.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2605519Z 	savepack: step 80: Storing File: res://scripts/autoload/last_chance_effects_manager.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2617290Z 	savepack: step 81: Storing File: res://scripts/autoload/penultimate_hit_effects_manager.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2628874Z 	savepack: step 81: Storing File: res://scripts/autoload/score_manager.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2634347Z 	savepack: step 81: Storing File: res://scripts/autoload/screen_shake_manager.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2643449Z 	savepack: step 82: Storing File: res://scripts/autoload/sound_propagation.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2650681Z 	savepack: step 82: Storing File: res://scripts/autoload/status_effects_manager.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2702065Z 	savepack: step 82: Storing File: res://scripts/characters/player.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2706037Z 	savepack: step 82: Storing File: res://scripts/components/ammo_component.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2712874Z 	savepack: step 83: Storing File: res://scripts/components/cover_component.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2729680Z 	savepack: step 83: Storing File: res://scripts/components/death_animation_component.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2735071Z 	savepack: step 83: Storing File: res://scripts/components/health_component.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2741567Z 	savepack: step 83: Storing File: res://scripts/components/threat_sphere.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2747545Z 	savepack: step 84: Storing File: res://scripts/components/vision_component.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2752545Z 	savepack: step 84: Storing File: res://scripts/data/caliber_data.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2755091Z 	savepack: step 84: Storing File: res://scripts/effects/blood_decal.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2757506Z 	savepack: step 85: Storing File: res://scripts/effects/bullet_hole.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2761509Z 	savepack: step 85: Storing File: res://scripts/effects/casing.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2763313Z 	savepack: step 85: Storing File: res://scripts/effects/effect_cleanup.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2767103Z 	savepack: step 85: Storing File: res://scripts/effects/penetration_hole.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2793777Z 	savepack: step 86: Storing File: res://scripts/levels/building_level.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2812459Z 	savepack: step 86: Storing File: res://scripts/levels/test_tier.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2829082Z 	savepack: step 86: Storing File: res://scripts/levels/tutorial_level.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2950999Z 	savepack: step 87: Storing File: res://scripts/objects/enemy.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2955209Z 	savepack: step 87: Storing File: res://scripts/objects/grenade_target.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2957890Z 	savepack: step 87: Storing File: res://scripts/objects/hit_area.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2962222Z 	savepack: step 87: Storing File: res://scripts/objects/target.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2985369Z 	savepack: step 88: Storing File: res://scripts/projectiles/bullet.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.2992273Z 	savepack: step 88: Storing File: res://scripts/projectiles/flashbang_grenade.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3003592Z 	savepack: step 88: Storing File: res://scripts/projectiles/frag_grenade.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3011963Z 	savepack: step 88: Storing File: res://scripts/projectiles/grenade_base.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3019084Z 	savepack: step 89: Storing File: res://scripts/projectiles/shrapnel.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3020002Z 	savepack: step 89: Storing File: res://scripts/shaders/last_chance.gdshader
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3021090Z 	savepack: step 89: Storing File: res://scripts/shaders/saturation.gdshader
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3032076Z 	savepack: step 90: Storing File: res://scripts/ui/armory_menu.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3040520Z 	savepack: step 90: Storing File: res://scripts/ui/controls_menu.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3045335Z 	savepack: step 90: Storing File: res://scripts/ui/difficulty_menu.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3049514Z 	savepack: step 90: Storing File: res://scripts/ui/levels_menu.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3057868Z 	savepack: step 91: Storing File: res://scripts/ui/pause_menu.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3059681Z 	savepack: step 91: Storing File: res://scripts/main.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3069689Z 	savepack: step 91: Storing File: res://tests/integration/test_bullet.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3081105Z 	savepack: step 92: Storing File: res://tests/integration/test_enemy_death_bullet_passthrough.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3088264Z 	savepack: step 92: Storing File: res://tests/integration/test_hit_area.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3097265Z 	savepack: step 92: Storing File: res://tests/integration/test_hit_effects_manager.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3103449Z 	savepack: step 92: Storing File: res://tests/integration/test_target.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3114243Z 	savepack: step 93: Storing File: res://tests/unit/test_audio_manager.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3128947Z 	savepack: step 93: Storing File: res://tests/unit/test_cover_component.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3138563Z 	savepack: step 93: Storing File: res://tests/unit/test_death_animation_component.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3147201Z 	savepack: step 93: Storing File: res://tests/unit/test_difficulty_manager.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3156043Z 	savepack: step 94: Storing File: res://tests/unit/test_effects.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3176746Z 	savepack: step 94: Storing File: res://tests/unit/test_enemy.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3196709Z 	savepack: step 94: Storing File: res://tests/unit/test_enemy_actions.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3206796Z 	savepack: step 95: Storing File: res://tests/unit/test_file_logger.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3217170Z 	savepack: step 95: Storing File: res://tests/unit/test_frag_grenade.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3226606Z 	savepack: step 95: Storing File: res://tests/unit/test_game_manager.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3233514Z 	savepack: step 95: Storing File: res://tests/unit/test_goap_action.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3245571Z 	savepack: step 96: Storing File: res://tests/unit/test_goap_planner.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3260026Z 	savepack: step 96: Storing File: res://tests/unit/test_grenade_base.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3269923Z 	savepack: step 96: Storing File: res://tests/unit/test_grenade_manager.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3281400Z 	savepack: step 97: Storing File: res://tests/unit/test_health_component.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3287784Z 	savepack: step 97: Storing File: res://tests/unit/test_impact_effects_manager.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3298198Z 	savepack: step 97: Storing File: res://tests/unit/test_input_settings.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3307413Z 	savepack: step 97: Storing File: res://tests/unit/test_level_helpers.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3318644Z 	savepack: step 98: Storing File: res://tests/unit/test_magazine_inventory.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3330790Z 	savepack: step 98: Storing File: res://tests/unit/test_penetration.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3343995Z 	savepack: step 98: Storing File: res://tests/unit/test_player.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3352541Z 	savepack: step 98: Storing File: res://tests/unit/test_pursuing_state.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3364174Z 	savepack: step 99: Storing File: res://tests/unit/test_ricochet.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3385566Z 	savepack: step 99: Storing File: res://tests/unit/test_score_manager.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3391760Z 	savepack: step 99: Storing File: res://tests/unit/test_screen_shake_manager.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3405708Z 	savepack: step 100: Storing File: res://tests/unit/test_shrapnel.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3420903Z 	savepack: step 100: Storing File: res://tests/unit/test_sound_propagation.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3434690Z 	savepack: step 100: Storing File: res://tests/unit/test_status_effects_manager.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3444836Z 	savepack: step 100: Storing File: res://tests/unit/test_tutorial_level.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3460474Z 	savepack: step 101: Storing File: res://tests/unit/test_ui_menus.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3472813Z 	savepack: step 101: Storing File: res://tests/unit/test_vision_component.gdc
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3475962Z 	savepack: step 101: Storing File: res://.godot/imported/icon.svg-218a8f2b3041327d8a5756f3a245f83b.ctex
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3477301Z 	savepack: step 101: Storing File: res://icon.svg.import
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3489381Z 	savepack: step 101: Storing File: res://addons/gut/gui/BottomPanelShortcuts.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3491013Z 	savepack: step 101: Storing File: res://addons/gut/gui/BottomPanelShortcuts.tscn.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3492388Z 	savepack: step 101: Storing File: res://addons/gut/gui/editor_globals.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3493672Z 	savepack: step 101: Storing File: res://addons/gut/gui/GutBottomPanel.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3494948Z 	savepack: step 101: Storing File: res://addons/gut/gui/GutBottomPanel.tscn.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3496213Z 	savepack: step 101: Storing File: res://addons/gut/gui/GutControl.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3497668Z 	savepack: step 101: Storing File: res://addons/gut/gui/GutControl.tscn.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3498891Z 	savepack: step 101: Storing File: res://addons/gut/gui/GutRunner.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3500112Z 	savepack: step 101: Storing File: res://addons/gut/gui/GutRunner.tscn.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3501508Z 	savepack: step 101: Storing File: res://addons/gut/gui/GutSceneTheme.tres.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3502791Z 	savepack: step 101: Storing File: res://addons/gut/gui/gut_config_gui.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3503955Z 	savepack: step 101: Storing File: res://addons/gut/gui/gut_gui.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3504738Z 	savepack: step 101: Storing File: res://addons/gut/gui/gut_user_preferences.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3505537Z 	savepack: step 101: Storing File: res://addons/gut/gui/MinGui.tscn.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3506277Z 	savepack: step 101: Storing File: res://addons/gut/gui/NormalGui.tscn.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3507054Z 	savepack: step 101: Storing File: res://addons/gut/gui/OutputText.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3507829Z 	savepack: step 101: Storing File: res://addons/gut/gui/OutputText.tscn.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3508657Z 	savepack: step 101: Storing File: res://addons/gut/gui/panel_controls.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3509446Z 	savepack: step 101: Storing File: res://addons/gut/gui/ResizeHandle.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3510234Z 	savepack: step 101: Storing File: res://addons/gut/gui/ResizeHandle.tscn.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3511144Z 	savepack: step 101: Storing File: res://addons/gut/gui/ResultsTree.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3511921Z 	savepack: step 101: Storing File: res://addons/gut/gui/ResultsTree.tscn.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3512706Z 	savepack: step 101: Storing File: res://addons/gut/gui/RunAtCursor.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3513389Z 	savepack: step 101: Storing File: res://addons/gut/gui/RunAtCursor.tscn.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3514189Z 	savepack: step 101: Storing File: res://addons/gut/gui/RunResults.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3514959Z 	savepack: step 101: Storing File: res://addons/gut/gui/RunResults.tscn.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3515466Z 	savepack: step 101: Storing File: res://addons/gut/gui/script_text_editor_controls.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3515959Z 	savepack: step 101: Storing File: res://addons/gut/gui/Settings.tscn.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3516410Z 	savepack: step 101: Storing File: res://addons/gut/gui/ShortcutButton.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3516894Z 	savepack: step 101: Storing File: res://addons/gut/gui/ShortcutButton.tscn.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3517335Z 	savepack: step 101: Storing File: res://addons/gut/autofree.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3517742Z 	savepack: step 101: Storing File: res://addons/gut/awaiter.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3518155Z 	savepack: step 101: Storing File: res://addons/gut/collected_script.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3518603Z 	savepack: step 101: Storing File: res://addons/gut/collected_test.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3519043Z 	savepack: step 101: Storing File: res://addons/gut/comparator.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3519467Z 	savepack: step 101: Storing File: res://addons/gut/compare_result.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3519905Z 	savepack: step 101: Storing File: res://addons/gut/diff_formatter.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3520723Z 	savepack: step 101: Storing File: res://addons/gut/diff_tool.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3521133Z 	savepack: step 101: Storing File: res://addons/gut/doubler.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3521546Z 	savepack: step 101: Storing File: res://addons/gut/double_tools.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3521947Z 	savepack: step 101: Storing File: res://addons/gut/gut.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3522371Z 	savepack: step 101: Storing File: res://addons/gut/GutScene.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3522775Z 	savepack: step 101: Storing File: res://addons/gut/GutScene.tscn.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3523185Z 	savepack: step 101: Storing File: res://addons/gut/gut_cmdln.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3523655Z 	savepack: step 101: Storing File: res://addons/gut/gut_config.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3524538Z 	savepack: step 101: Storing File: res://addons/gut/gut_plugin.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3525048Z 	savepack: step 101: Storing File: res://addons/gut/gut_to_move.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3525491Z 	savepack: step 101: Storing File: res://addons/gut/gut_vscode_debugger.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3525932Z 	savepack: step 101: Storing File: res://addons/gut/hook_script.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3526367Z 	savepack: step 101: Storing File: res://addons/gut/inner_class_registry.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3526815Z 	savepack: step 101: Storing File: res://addons/gut/input_factory.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3527235Z 	savepack: step 101: Storing File: res://addons/gut/input_sender.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3527664Z 	savepack: step 101: Storing File: res://addons/gut/junit_xml_export.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3528082Z 	savepack: step 101: Storing File: res://addons/gut/logger.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3528479Z 	savepack: step 101: Storing File: res://addons/gut/method_maker.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3528893Z 	savepack: step 101: Storing File: res://addons/gut/one_to_many.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3529289Z 	savepack: step 101: Storing File: res://addons/gut/optparse.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3529710Z 	savepack: step 101: Storing File: res://addons/gut/orphan_counter.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3530154Z 	savepack: step 101: Storing File: res://addons/gut/parameter_factory.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3530715Z 	savepack: step 101: Storing File: res://addons/gut/parameter_handler.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3531138Z 	savepack: step 101: Storing File: res://addons/gut/printers.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3531542Z 	savepack: step 101: Storing File: res://addons/gut/result_exporter.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3531970Z 	savepack: step 101: Storing File: res://addons/gut/script_parser.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3532385Z 	savepack: step 101: Storing File: res://addons/gut/signal_watcher.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3532797Z 	savepack: step 101: Storing File: res://addons/gut/spy.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3533191Z 	savepack: step 101: Storing File: res://addons/gut/strutils.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3533579Z 	savepack: step 101: Storing File: res://addons/gut/stubber.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3533984Z 	savepack: step 101: Storing File: res://addons/gut/stub_params.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3534377Z 	savepack: step 101: Storing File: res://addons/gut/summary.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3534765Z 	savepack: step 101: Storing File: res://addons/gut/test.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3535161Z 	savepack: step 101: Storing File: res://addons/gut/test_collector.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3535589Z 	savepack: step 101: Storing File: res://addons/gut/thing_counter.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3536021Z 	savepack: step 101: Storing File: res://addons/gut/UserFileViewer.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3536460Z 	savepack: step 101: Storing File: res://addons/gut/UserFileViewer.tscn.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3536886Z 	savepack: step 101: Storing File: res://addons/gut/utils.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3537303Z 	savepack: step 101: Storing File: res://addons/gut/version_conversion.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3537780Z 	savepack: step 101: Storing File: res://experiments/test_wall_shooting_fix.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3538433Z 	savepack: step 101: Storing File: res://resources/calibers/caliber_9x19.tres.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3538908Z 	savepack: step 101: Storing File: res://resources/calibers/caliber_545x39.tres.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3539407Z 	savepack: step 101: Storing File: res://resources/calibers/caliber_buckshot.tres.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3539903Z 	savepack: step 101: Storing File: res://resources/weapons/AssaultRifleData.tres.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3540497Z 	savepack: step 101: Storing File: res://resources/weapons/MiniUziData.tres.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3540967Z 	savepack: step 101: Storing File: res://resources/weapons/ShotgunData.tres.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3541452Z 	savepack: step 101: Storing File: res://scenes/characters/csharp/Player.tscn.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3542030Z 	savepack: step 101: Storing File: res://scenes/characters/Player.tscn.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3542476Z 	savepack: step 101: Storing File: res://scenes/effects/BloodDecal.tscn.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3542927Z 	savepack: step 101: Storing File: res://scenes/effects/BloodEffect.tscn.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3543363Z 	savepack: step 101: Storing File: res://scenes/effects/BulletHole.tscn.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3543795Z 	savepack: step 101: Storing File: res://scenes/effects/Casing.tscn.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3544227Z 	savepack: step 101: Storing File: res://scenes/effects/DustEffect.tscn.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3544693Z 	savepack: step 101: Storing File: res://scenes/effects/PenetrationHole.tscn.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3545178Z 	savepack: step 101: Storing File: res://scenes/effects/SparksEffect.tscn.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3545644Z 	savepack: step 101: Storing File: res://scenes/levels/csharp/TestTier.tscn.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3546127Z 	savepack: step 101: Storing File: res://scenes/levels/BuildingLevel.tscn.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3546568Z 	savepack: step 101: Storing File: res://scenes/levels/TestTier.tscn.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3546992Z 	savepack: step 101: Storing File: res://scenes/main/Main.tscn.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3547428Z 	savepack: step 101: Storing File: res://scenes/objects/csharp/Enemy.tscn.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3547877Z 	savepack: step 101: Storing File: res://scenes/objects/csharp/Target.tscn.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3548319Z 	savepack: step 101: Storing File: res://scenes/objects/Enemy.tscn.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3548750Z 	savepack: step 101: Storing File: res://scenes/objects/GrenadeTarget.tscn.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3549193Z 	savepack: step 101: Storing File: res://scenes/objects/Target.tscn.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3549647Z 	savepack: step 101: Storing File: res://scenes/projectiles/csharp/Bullet.tscn.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3550159Z 	savepack: step 101: Storing File: res://scenes/projectiles/csharp/ShotgunPellet.tscn.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3550913Z 	savepack: step 101: Storing File: res://scenes/projectiles/Bullet9mm.tscn.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3551366Z 	savepack: step 101: Storing File: res://scenes/projectiles/Bullet.tscn.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3551851Z 	savepack: step 101: Storing File: res://scenes/projectiles/FlashbangGrenade.tscn.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3552347Z 	savepack: step 101: Storing File: res://scenes/projectiles/FragGrenade.tscn.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3552809Z 	savepack: step 101: Storing File: res://scenes/projectiles/Shrapnel.tscn.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3553243Z 	savepack: step 101: Storing File: res://scenes/ui/ArmoryMenu.tscn.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3553663Z 	savepack: step 101: Storing File: res://scenes/ui/ControlsMenu.tscn.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3554099Z 	savepack: step 101: Storing File: res://scenes/ui/DifficultyMenu.tscn.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3554523Z 	savepack: step 101: Storing File: res://scenes/ui/LevelsMenu.tscn.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3554943Z 	savepack: step 101: Storing File: res://scenes/ui/PauseMenu.tscn.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3555401Z 	savepack: step 101: Storing File: res://scenes/weapons/csharp/AssaultRifle.tscn.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3555889Z 	savepack: step 101: Storing File: res://scenes/weapons/csharp/MiniUzi.tscn.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3556480Z 	savepack: step 101: Storing File: res://scenes/weapons/csharp/Shotgun.tscn.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3556937Z 	savepack: step 101: Storing File: res://scripts/ai/states/enemy_state.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3557382Z 	savepack: step 101: Storing File: res://scripts/ai/states/idle_state.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3557836Z 	savepack: step 101: Storing File: res://scripts/ai/states/pursuing_state.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3558278Z 	savepack: step 101: Storing File: res://scripts/ai/enemy_actions.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3558700Z 	savepack: step 101: Storing File: res://scripts/ai/goap_action.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3559109Z 	savepack: step 101: Storing File: res://scripts/ai/goap_planner.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3559648Z 	savepack: step 101: Storing File: res://scripts/autoload/audio_manager.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3560121Z 	savepack: step 101: Storing File: res://scripts/autoload/difficulty_manager.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3560833Z 	savepack: step 101: Storing File: res://scripts/autoload/file_logger.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3561283Z 	savepack: step 101: Storing File: res://scripts/autoload/game_manager.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3561741Z 	savepack: step 101: Storing File: res://scripts/autoload/grenade_manager.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3562221Z 	savepack: step 101: Storing File: res://scripts/autoload/hit_effects_manager.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3562719Z 	savepack: step 101: Storing File: res://scripts/autoload/impact_effects_manager.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3563213Z 	savepack: step 101: Storing File: res://scripts/autoload/input_settings.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3563720Z 	savepack: step 101: Storing File: res://scripts/autoload/last_chance_effects_manager.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3564288Z 	savepack: step 101: Storing File: res://scripts/autoload/penultimate_hit_effects_manager.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3564818Z 	savepack: step 101: Storing File: res://scripts/autoload/score_manager.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3565298Z 	savepack: step 101: Storing File: res://scripts/autoload/screen_shake_manager.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3565796Z 	savepack: step 101: Storing File: res://scripts/autoload/sound_propagation.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3566288Z 	savepack: step 101: Storing File: res://scripts/autoload/status_effects_manager.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3566772Z 	savepack: step 101: Storing File: res://scripts/characters/player.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3567227Z 	savepack: step 101: Storing File: res://scripts/components/ammo_component.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3567701Z 	savepack: step 101: Storing File: res://scripts/components/cover_component.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3568222Z 	savepack: step 101: Storing File: res://scripts/components/death_animation_component.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3568733Z 	savepack: step 101: Storing File: res://scripts/components/health_component.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3569219Z 	savepack: step 101: Storing File: res://scripts/components/threat_sphere.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3569707Z 	savepack: step 101: Storing File: res://scripts/components/vision_component.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3570161Z 	savepack: step 101: Storing File: res://scripts/data/caliber_data.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3570726Z 	savepack: step 101: Storing File: res://scripts/effects/blood_decal.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3571171Z 	savepack: step 101: Storing File: res://scripts/effects/bullet_hole.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3571602Z 	savepack: step 101: Storing File: res://scripts/effects/casing.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3572039Z 	savepack: step 101: Storing File: res://scripts/effects/effect_cleanup.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3572497Z 	savepack: step 101: Storing File: res://scripts/effects/penetration_hole.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3572963Z 	savepack: step 101: Storing File: res://scripts/levels/building_level.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3573395Z 	savepack: step 101: Storing File: res://scripts/levels/test_tier.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3573959Z 	savepack: step 101: Storing File: res://scripts/levels/tutorial_level.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3574381Z 	savepack: step 101: Storing File: res://scripts/objects/enemy.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3574818Z 	savepack: step 101: Storing File: res://scripts/objects/grenade_target.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3575257Z 	savepack: step 101: Storing File: res://scripts/objects/hit_area.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3575764Z 	savepack: step 101: Storing File: res://scripts/objects/target.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3576185Z 	savepack: step 101: Storing File: res://scripts/projectiles/bullet.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3576651Z 	savepack: step 101: Storing File: res://scripts/projectiles/flashbang_grenade.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3577247Z 	savepack: step 101: Storing File: res://scripts/projectiles/frag_grenade.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3577723Z 	savepack: step 101: Storing File: res://scripts/projectiles/grenade_base.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3578181Z 	savepack: step 101: Storing File: res://scripts/projectiles/shrapnel.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3578616Z 	savepack: step 101: Storing File: res://scripts/ui/armory_menu.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3579021Z 	savepack: step 101: Storing File: res://scripts/ui/controls_menu.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3579446Z 	savepack: step 101: Storing File: res://scripts/ui/difficulty_menu.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3579862Z 	savepack: step 101: Storing File: res://scripts/ui/levels_menu.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3580269Z 	savepack: step 101: Storing File: res://scripts/ui/pause_menu.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3580769Z 	savepack: step 101: Storing File: res://scripts/main.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3581166Z 	savepack: step 101: Storing File: res://tests/integration/test_bullet.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3581703Z 	savepack: step 101: Storing File: res://tests/integration/test_enemy_death_bullet_passthrough.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3582237Z 	savepack: step 101: Storing File: res://tests/integration/test_hit_area.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3582736Z 	savepack: step 101: Storing File: res://tests/integration/test_hit_effects_manager.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3583247Z 	savepack: step 101: Storing File: res://tests/integration/test_target.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3583690Z 	savepack: step 101: Storing File: res://tests/unit/test_audio_manager.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3584174Z 	savepack: step 101: Storing File: res://tests/unit/test_cover_component.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3584659Z 	savepack: step 101: Storing File: res://tests/unit/test_death_animation_component.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3585162Z 	savepack: step 101: Storing File: res://tests/unit/test_difficulty_manager.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3585607Z 	savepack: step 101: Storing File: res://tests/unit/test_effects.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3586016Z 	savepack: step 101: Storing File: res://tests/unit/test_enemy.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3586442Z 	savepack: step 101: Storing File: res://tests/unit/test_enemy_actions.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3586877Z 	savepack: step 101: Storing File: res://tests/unit/test_file_logger.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3587319Z 	savepack: step 101: Storing File: res://tests/unit/test_frag_grenade.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3587748Z 	savepack: step 101: Storing File: res://tests/unit/test_game_manager.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3588184Z 	savepack: step 101: Storing File: res://tests/unit/test_goap_action.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3588620Z 	savepack: step 101: Storing File: res://tests/unit/test_goap_planner.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3589050Z 	savepack: step 101: Storing File: res://tests/unit/test_grenade_base.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3589499Z 	savepack: step 101: Storing File: res://tests/unit/test_grenade_manager.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3589957Z 	savepack: step 101: Storing File: res://tests/unit/test_health_component.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3590666Z 	savepack: step 101: Storing File: res://tests/unit/test_impact_effects_manager.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3591176Z 	savepack: step 101: Storing File: res://tests/unit/test_input_settings.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3591764Z 	savepack: step 101: Storing File: res://tests/unit/test_level_helpers.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3592227Z 	savepack: step 101: Storing File: res://tests/unit/test_magazine_inventory.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3592683Z 	savepack: step 101: Storing File: res://tests/unit/test_penetration.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3593113Z 	savepack: step 101: Storing File: res://tests/unit/test_player.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3593537Z 	savepack: step 101: Storing File: res://tests/unit/test_pursuing_state.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3593974Z 	savepack: step 101: Storing File: res://tests/unit/test_ricochet.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3594408Z 	savepack: step 101: Storing File: res://tests/unit/test_score_manager.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3594990Z 	savepack: step 101: Storing File: res://tests/unit/test_screen_shake_manager.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3595460Z 	savepack: step 101: Storing File: res://tests/unit/test_shrapnel.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3595922Z 	savepack: step 101: Storing File: res://tests/unit/test_sound_propagation.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3596419Z 	savepack: step 101: Storing File: res://tests/unit/test_status_effects_manager.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3596903Z 	savepack: step 101: Storing File: res://tests/unit/test_tutorial_level.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3597333Z 	savepack: step 101: Storing File: res://tests/unit/test_ui_menus.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3597781Z 	savepack: step 101: Storing File: res://tests/unit/test_vision_component.gd.remap
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3598230Z 	savepack: step 101: Storing File: res://.godot/global_script_class_cache.cfg
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3598611Z 	savepack: step 101: Storing File: res://icon.svg
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3598957Z 	savepack: step 101: Storing File: res://.godot/uid_cache.bin
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3599343Z 	savepack: step 101: Storing File: res://project.binary
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3661801Z savepack: end
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3672669Z ERROR: Attempting to parent and popup a dialog that already has a parent.
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3673560Z    at: _try_parent_dialog (scene/main/window.cpp:1889)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3674220Z WARNING: Project export for preset "Windows Desktop" completed with warnings.
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:47.3674617Z      at: _fs_changed (editor/editor_node.cpp:1033)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:48.1619311Z WARNING: 1 RID of type "Canvas" was leaked.
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:48.1620082Z      at: _free_rids (servers/rendering/renderer_canvas_cull.cpp:2483)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:48.1621089Z WARNING: 75 RIDs of type "CanvasItem" were leaked.
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:48.1621820Z      at: _free_rids (servers/rendering/renderer_canvas_cull.cpp:2485)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:48.1622644Z ERROR: 1 RID allocations of type 'PN13RendererDummy14TextureStorage12DummyTextureE' were leaked at exit.
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:48.1633296Z ERROR: 86 RID allocations of type 'PN18TextServerAdvanced22ShapedTextDataAdvancedE' were leaked at exit.
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:48.1634303Z ERROR: 3 RID allocations of type 'PN18TextServerAdvanced12FontAdvancedE' were leaked at exit.
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:48.1654183Z WARNING: ObjectDB instances leaked at exit (run with --verbose for details).
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:48.1654947Z      at: cleanup (core/object/object.cpp:2284)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:48.1658204Z ERROR: 7 resources still in use at exit (run with --verbose for details).
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:48.1658948Z    at: clear (core/io/resource.cpp:604)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:48.2222370Z ##[endgroup]
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:48.2222959Z ##[endgroup]
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:48.2223949Z ##[group]⚒️ Zipping binaries
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:48.2243952Z [command]/usr/bin/7z a /home/runner/.local/share/godot/archives/Windows Desktop.zip /home/runner/.local/share/godot/builds/Windows Desktop/*
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:56.1723260Z 
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:56.1723994Z 7-Zip 23.01 (x64) : Copyright (c) 1999-2023 Igor Pavlov : 2023-06-20
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:56.1724619Z  64-bit locale=C.UTF-8 Threads:4 OPEN_MAX:65536
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:56.1724826Z 
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:56.1724915Z Scanning the drive:
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:56.1725171Z 1 file, 96395936 bytes (92 MiB)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:56.1725601Z 
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:56.1725880Z Creating archive: /home/runner/.local/share/godot/archives/Windows Desktop.zip
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:56.1726197Z 
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:56.1726362Z Add new data to archive: 1 file, 96395936 bytes (92 MiB)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:56.1726571Z 
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:56.1726580Z 
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:56.1726691Z Files read from disk: 1
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:56.1726930Z Archive size: 34799721 bytes (34 MiB)
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:56.1727158Z Everything is Ok
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:56.1729588Z 📦 Zipped Windows Desktop to /home/runner/.local/share/godot/archives/Windows Desktop.zip
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:56.1730641Z ##[endgroup]
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:56.1868370Z ##[group]Run actions/upload-artifact@v4
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:56.1868658Z with:
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:56.1868827Z   name: windows-build
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:56.1869074Z   path: /home/runner/.local/share/godot/archives/*
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:56.1869365Z   if-no-files-found: warn
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:56.1869569Z   compression-level: 6
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:56.1869763Z   overwrite: false
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:56.1869967Z   include-hidden-files: false
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:56.1870177Z env:
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:56.1870482Z   DOTNET_ROOT: /usr/share/dotnet
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:56.1870706Z ##[endgroup]
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:56.4058122Z With the provided path, there will be 1 file uploaded
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:56.4064419Z Artifact name is valid!
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:56.4065635Z Root directory input is valid!
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:56.7034882Z Beginning upload of artifact content to blob storage
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:57.8767463Z Uploaded bytes 8388608
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:58.2769015Z Uploaded bytes 16777216
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:58.4976815Z Uploaded bytes 25165824
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:58.8233840Z Uploaded bytes 33554432
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:59.0217902Z Uploaded bytes 34733135
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:59.1040612Z Finished uploading artifact content to blob storage!
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:59.1043257Z SHA256 digest of uploaded artifact zip is ffc2e1826707541caecb00269ae6b3021f375b6f1ce33887a88174af7a7643fd
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:59.1045030Z Finalizing artifact upload
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:59.2785902Z Artifact windows-build.zip successfully finalized. Artifact ID 5237895873
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:59.2787907Z Artifact windows-build has been successfully uploaded! Final size is 34733135 bytes. Artifact ID is 5237895873
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:59.2795735Z Artifact download URL: https://github.com/konard/Jhon-Crow-godot-topdown-MVP/actions/runs/21296942599/artifacts/5237895873
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:59.2945842Z Post job cleanup.
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:59.4587192Z Post job cleanup.
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:59.5532913Z [command]/usr/bin/git version
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:59.5569687Z git version 2.52.0
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:59.5613814Z Temporarily overriding HOME='/home/runner/work/_temp/e8ec9b1d-20f2-429e-8a94-06b5e2c3c473' before making global git config changes
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:59.5615993Z Adding repository directory to the temporary git global config as a safe directory
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:59.5619468Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Jhon-Crow-godot-topdown-MVP/Jhon-Crow-godot-topdown-MVP
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:59.5656056Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:59.5689396Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:59.5918796Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:59.5939461Z http.https://github.com/.extraheader
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:59.5955723Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:59.6012174Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:59.6219590Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:59.6252476Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:59.6583330Z Cleaning up orphan processes
+Windows Export	UNKNOWN STEP	2026-01-23T18:32:59.6878993Z Terminate orphan process: pid (2528) (VBCSCompiler)

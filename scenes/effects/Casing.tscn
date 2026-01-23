@@ -1,0 +1,21 @@
+[gd_scene load_steps=4 format=3 uid="uid://casing_scene"]
+
+[ext_resource type="Script" path="res://scripts/effects/casing.gd" id="1_casing"]
+[ext_resource type="Texture2D" uid="uid://casing_rifle_sprite" path="res://assets/sprites/effects/casing_rifle.png" id="2_default_texture"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_casing"]
+size = Vector2(4, 14)
+
+[node name="Casing" type="RigidBody2D"]
+collision_layer = 0
+collision_mask = 4
+gravity_scale = 0.0
+linear_damp = 3.0
+angular_damp = 5.0
+script = ExtResource("1_casing")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("RectangleShape2D_casing")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture = ExtResource("2_default_texture")

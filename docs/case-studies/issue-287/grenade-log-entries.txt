@@ -1,0 +1,585 @@
+[00:46:43] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[00:46:43] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[00:46:43] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[00:46:47] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Frag Grenade
+[00:46:47] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[00:46:47] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[00:46:54] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Frag Grenade
+[00:46:54] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[00:46:54] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[00:47:04] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Frag Grenade
+[00:47:04] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[00:47:04] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[00:47:07] [INFO] [Player.Grenade] G pressed - starting grab animation
+[00:47:07] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (689.4344, 793.0672)
+[00:47:08] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[00:47:08] [INFO] [FragGrenade] Shrapnel scene loaded from: res://scenes/projectiles/Shrapnel.tscn
+[00:47:08] [INFO] [FragGrenade] Pin pulled - waiting for impact (no timer, impact-triggered only)
+[00:47:08] [INFO] [Player.Grenade] Timer started, grenade created at (450, 918.99994)
+[00:47:08] [INFO] [Player.Grenade] Step 1 complete! Drag: (256.5351, 1.4877319)
+[00:47:08] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[00:47:08] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming (velocity-based throwing enabled)
+[00:47:09] [INFO] [Player.Grenade] Velocity-based throw! Mouse velocity: (3253.838, -1487.8632) (3577,9 px/s), Swing distance: 520,7
+[00:47:09] [INFO] [Player.Grenade] Player rotated for throw: 0 -> -0,42887828
+[00:47:09] [INFO] [GrenadeBase] Velocity-based throw! Mouse vel: (3253.838, -1487.863), Swing: 520.7, Transfer: 1.00, Final speed: 1186.5
+[00:47:09] [INFO] [FragGrenade] Grenade thrown (velocity-based) - impact detection enabled
+[00:47:09] [INFO] [Player.Grenade] Thrown! Velocity: 3577,9, Swing: 520,7
+[00:47:09] [INFO] [Player.Grenade] State reset to IDLE
+[00:47:09] [INFO] [Player.Grenade] Player rotation restored to 0
+[00:47:10] [INFO] [GrenadeBase] Grenade landed at (1105.813, 449.8427)
+[00:47:10] [INFO] [FragGrenade] Impact detected - exploding immediately!
+[00:47:10] [INFO] [GrenadeBase] EXPLODED at (1105.813, 449.8427)!
+[00:47:10] [INFO] [FragGrenade] Spawned shrapnel #1 at angle -10.4 degrees
+[00:47:10] [INFO] [FragGrenade] Spawned shrapnel #2 at angle 73.3 degrees
+[00:47:10] [INFO] [FragGrenade] Spawned shrapnel #3 at angle 160.1 degrees
+[00:47:10] [INFO] [FragGrenade] Spawned shrapnel #4 at angle 275.5 degrees
+[00:47:14] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Frag Grenade
+[00:47:14] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[00:47:14] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[00:47:14] [INFO] [Player.Grenade] G pressed - starting grab animation
+[00:47:14] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (578.1312, 1179.2023)
+[00:47:14] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[00:47:14] [INFO] [FragGrenade] Shrapnel scene loaded from: res://scenes/projectiles/Shrapnel.tscn
+[00:47:14] [INFO] [FragGrenade] Pin pulled - waiting for impact (no timer, impact-triggered only)
+[00:47:14] [INFO] [Player.Grenade] Timer started, grenade created at (450, 1250)
+[00:47:14] [INFO] [Player.Grenade] Step 1 complete! Drag: (275.10834, -0.66796875)
+[00:47:15] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[00:47:15] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming (velocity-based throwing enabled)
+[00:47:17] [INFO] [Player.Grenade] Velocity-based throw! Mouse velocity: (4336.323, -1090.675) (4471,4 px/s), Swing distance: 829,7
+[00:47:17] [INFO] [Player.Grenade] Player rotated for throw: 0 -> -0,2464094
+[00:47:17] [INFO] [GrenadeBase] Velocity-based throw! Mouse vel: (4336.323, -1090.675), Swing: 829.7, Transfer: 1.00, Final speed: 1186.5
+[00:47:17] [INFO] [FragGrenade] Grenade thrown (velocity-based) - impact detection enabled
+[00:47:17] [INFO] [Player.Grenade] Thrown! Velocity: 4471,4, Swing: 829,7
+[00:47:17] [INFO] [Player.Grenade] State reset to IDLE
+[00:47:17] [INFO] [Player.Grenade] Player rotation restored to 0
+[00:47:17] [INFO] [GrenadeBase] Collision detected with Room2_WallRight (type: StaticBody2D)
+[00:47:17] [INFO] [FragGrenade] Impact detected! Body: Room2_WallRight (type: StaticBody2D), triggering explosion
+[00:47:17] [INFO] [FragGrenade] Impact detected - exploding immediately!
+[00:47:17] [INFO] [GrenadeBase] EXPLODED at (901.1149, 624.8674)!
+[00:47:17] [INFO] [FragGrenade] Spawned shrapnel #1 at angle -3.3 degrees
+[00:47:17] [INFO] [FragGrenade] Spawned shrapnel #2 at angle 94.0 degrees
+[00:47:17] [INFO] [FragGrenade] Spawned shrapnel #3 at angle 176.8 degrees
+[00:47:17] [INFO] [FragGrenade] Spawned shrapnel #4 at angle 261.0 degrees
+[00:47:17] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Frag Grenade
+[00:47:17] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[00:47:17] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[00:47:17] [INFO] [Player.Grenade] G pressed - starting grab animation
+[00:47:18] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (697.7137, 1194.564)
+[00:47:18] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[00:47:18] [INFO] [FragGrenade] Shrapnel scene loaded from: res://scenes/projectiles/Shrapnel.tscn
+[00:47:18] [INFO] [FragGrenade] Pin pulled - waiting for impact (no timer, impact-triggered only)
+[00:47:18] [INFO] [Player.Grenade] Timer started, grenade created at (450, 1250)
+[00:47:18] [INFO] [Player.Grenade] Step 1 complete! Drag: (178.84149, 27.384033)
+[00:47:18] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[00:47:18] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming (velocity-based throwing enabled)
+[00:47:20] [INFO] [Player.Grenade] Velocity-based throw! Mouse velocity: (3164.926, -66.30383) (3165,6 px/s), Swing distance: 838,6
+[00:47:20] [INFO] [Player.Grenade] Player rotated for throw: 0 -> -0,020946505
+[00:47:20] [INFO] [GrenadeBase] Velocity-based throw! Mouse vel: (3164.926, -66.30383), Swing: 838.6, Transfer: 1.00, Final speed: 1186.5
+[00:47:20] [INFO] [FragGrenade] Grenade thrown (velocity-based) - impact detection enabled
+[00:47:20] [INFO] [Player.Grenade] Thrown! Velocity: 3165,6, Swing: 838,6
+[00:47:20] [INFO] [Player.Grenade] State reset to IDLE
+[00:47:20] [INFO] [GrenadeBase] Collision detected with Enemy3 (type: CharacterBody2D)
+[00:47:20] [INFO] [FragGrenade] Impact detected! Body: Enemy3 (type: CharacterBody2D), triggering explosion
+[00:47:20] [INFO] [FragGrenade] Impact detected - exploding immediately!
+[00:47:20] [INFO] [GrenadeBase] EXPLODED at (653.1631, 746.5607)!
+[00:47:20] [INFO] [FragGrenade] Applied 99 HE damage to enemy at distance 32.1
+[00:47:20] [INFO] [FragGrenade] Player found in blast radius at distance 203.2
+[00:47:20] [INFO] [FragGrenade] Applied 99 HE damage to enemy at distance 203.2
+[00:47:20] [INFO] [FragGrenade] Spawned shrapnel #1 at angle 10.4 degrees
+[00:47:20] [INFO] [FragGrenade] Spawned shrapnel #2 at angle 97.2 degrees
+[00:47:20] [INFO] [FragGrenade] Spawned shrapnel #3 at angle 185.9 degrees
+[00:47:20] [INFO] [FragGrenade] Spawned shrapnel #4 at angle 281.3 degrees
+[00:47:20] [INFO] [Player.Grenade] Player rotation restored to 0
+[00:47:21] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Frag Grenade
+[00:47:21] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[00:47:21] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[00:47:21] [INFO] [Player.Grenade] G pressed - starting grab animation
+[00:47:21] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (976.0318, 1235.974)
+[00:47:21] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[00:47:21] [INFO] [FragGrenade] Shrapnel scene loaded from: res://scenes/projectiles/Shrapnel.tscn
+[00:47:21] [INFO] [FragGrenade] Pin pulled - waiting for impact (no timer, impact-triggered only)
+[00:47:21] [INFO] [Player.Grenade] Timer started, grenade created at (450, 1250)
+[00:47:21] [INFO] [Player.Grenade] Step 1 complete! Drag: (86.965515, 20.03711)
+[00:47:22] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[00:47:22] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming (velocity-based throwing enabled)
+[00:47:24] [INFO] [Player.Grenade] Velocity-based throw! Mouse velocity: (0, -586.0159) (586,0 px/s), Swing distance: 606,2
+[00:47:24] [INFO] [Player.Grenade] Player rotated for throw: 0 -> -1,5707964
+[00:47:24] [INFO] [GrenadeBase] Velocity-based throw! Mouse vel: (0, -586.0159), Swing: 606.2, Transfer: 1.00, Final speed: 276.3
+[00:47:24] [INFO] [FragGrenade] Grenade thrown (velocity-based) - impact detection enabled
+[00:47:24] [INFO] [Player.Grenade] Thrown! Velocity: 586,0, Swing: 606,2
+[00:47:24] [INFO] [Player.Grenade] State reset to IDLE
+[00:47:24] [INFO] [GrenadeBase] Collision detected with Room1_WallBottom (type: StaticBody2D)
+[00:47:24] [INFO] [FragGrenade] Impact detected! Body: Room1_WallBottom (type: StaticBody2D), triggering explosion
+[00:47:24] [INFO] [FragGrenade] Impact detected - exploding immediately!
+[00:47:24] [INFO] [GrenadeBase] EXPLODED at (450, 677.1299)!
+[00:47:24] [INFO] [FragGrenade] Applied 99 HE damage to enemy at distance 136.6
+[00:47:24] [INFO] [FragGrenade] Spawned shrapnel #1 at angle 12.5 degrees
+[00:47:24] [INFO] [FragGrenade] Spawned shrapnel #2 at angle 109.2 degrees
+[00:47:24] [INFO] [FragGrenade] Spawned shrapnel #3 at angle 177.5 degrees
+[00:47:24] [INFO] [FragGrenade] Spawned shrapnel #4 at angle 267.1 degrees
+[00:47:24] [INFO] [Player.Grenade] Player rotation restored to 0
+[00:47:24] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Frag Grenade
+[00:47:24] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[00:47:24] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[00:47:25] [INFO] [Player.Grenade] G pressed - starting grab animation
+[00:47:25] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (984.09265, 1199.9072)
+[00:47:25] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[00:47:25] [INFO] [FragGrenade] Shrapnel scene loaded from: res://scenes/projectiles/Shrapnel.tscn
+[00:47:25] [INFO] [FragGrenade] Pin pulled - waiting for impact (no timer, impact-triggered only)
+[00:47:25] [INFO] [Player.Grenade] Timer started, grenade created at (450, 1250)
+[00:47:25] [INFO] [Player.Grenade] Step 1 complete! Drag: (277.77478, 25.380371)
+[00:47:25] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[00:47:25] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming (velocity-based throwing enabled)
+[00:47:27] [INFO] [Player.Grenade] Velocity-based throw! Mouse velocity: (55.01933, -80.72743) (97,7 px/s), Swing distance: 479,1
+[00:47:27] [INFO] [Player.Grenade] Player rotated for throw: 0 -> -0,9725644
+[00:47:27] [INFO] [GrenadeBase] Velocity-based throw! Mouse vel: (55.01933, -80.72743), Swing: 479.1, Transfer: 1.00, Final speed: 46.1
+[00:47:27] [INFO] [FragGrenade] Grenade thrown (velocity-based) - impact detection enabled
+[00:47:27] [INFO] [Player.Grenade] Thrown! Velocity: 97,7, Swing: 479,1
+[00:47:27] [INFO] [Player.Grenade] State reset to IDLE
+[00:47:27] [INFO] [GrenadeBase] Grenade landed at (483.791, 679.8644)
+[00:47:27] [INFO] [FragGrenade] Impact detected - exploding immediately!
+[00:47:27] [INFO] [GrenadeBase] EXPLODED at (483.791, 679.8644)!
+[00:47:27] [INFO] [FragGrenade] Applied 99 HE damage to enemy at distance 154.5
+[00:47:27] [INFO] [FragGrenade] Applied 99 HE damage to enemy at distance 213.8
+[00:47:27] [INFO] [FragGrenade] Spawned shrapnel #1 at angle -1.5 degrees
+[00:47:27] [INFO] [FragGrenade] Spawned shrapnel #2 at angle 85.5 degrees
+[00:47:27] [INFO] [FragGrenade] Spawned shrapnel #3 at angle 197.4 degrees
+[00:47:27] [INFO] [FragGrenade] Spawned shrapnel #4 at angle 286.2 degrees
+[00:47:27] [INFO] [Player.Grenade] Player rotation restored to 0
+[00:47:28] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Frag Grenade
+[00:47:28] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[00:47:28] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[00:47:28] [INFO] [Player.Grenade] G pressed - starting grab animation
+[00:47:28] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (931.33514, 1270.0371)
+[00:47:28] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[00:47:28] [INFO] [FragGrenade] Shrapnel scene loaded from: res://scenes/projectiles/Shrapnel.tscn
+[00:47:28] [INFO] [FragGrenade] Pin pulled - waiting for impact (no timer, impact-triggered only)
+[00:47:28] [INFO] [Player.Grenade] Timer started, grenade created at (450, 1250)
+[00:47:28] [INFO] [Player.Grenade] Step 1 complete! Drag: (227.58722, 27.384033)
+[00:47:28] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[00:47:28] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming (velocity-based throwing enabled)
+[00:47:30] [INFO] [Player.Grenade] Velocity-based throw! Mouse velocity: (0.002962, -741.0412) (741,0 px/s), Swing distance: 475,0
+[00:47:30] [INFO] [Player.Grenade] Player rotated for throw: 0 -> -1,5707923
+[00:47:30] [INFO] [GrenadeBase] Velocity-based throw! Mouse vel: (0.002962, -741.0412), Swing: 475.0, Transfer: 1.00, Final speed: 349.3
+[00:47:30] [INFO] [FragGrenade] Grenade thrown (velocity-based) - impact detection enabled
+[00:47:30] [INFO] [Player.Grenade] Thrown! Velocity: 741,0, Swing: 475,0
+[00:47:30] [INFO] [Player.Grenade] State reset to IDLE
+[00:47:30] [INFO] [Player.Grenade] Player rotation restored to 0
+[00:47:31] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Frag Grenade
+[00:47:31] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[00:47:31] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[00:47:31] [INFO] [Player.Grenade] G pressed - starting grab animation
+[00:47:31] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (733.5707, 1326.141)
+[00:47:31] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[00:47:31] [INFO] [FragGrenade] Shrapnel scene loaded from: res://scenes/projectiles/Shrapnel.tscn
+[00:47:31] [INFO] [FragGrenade] Pin pulled - waiting for impact (no timer, impact-triggered only)
+[00:47:31] [INFO] [Player.Grenade] Timer started, grenade created at (450, 1250)
+[00:47:31] [INFO] [Player.Grenade] Step 1 complete! Drag: (115.436584, 0)
+[00:47:31] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[00:47:32] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming (velocity-based throwing enabled)
+[00:47:33] [INFO] [Player.Grenade] Velocity-based throw! Mouse velocity: (1446.1497, -202.1707) (1460,2 px/s), Swing distance: 650,8
+[00:47:33] [INFO] [Player.Grenade] Player rotated for throw: 0 -> -0,13889907
+[00:47:33] [INFO] [GrenadeBase] Velocity-based throw! Mouse vel: (1446.15, -202.1707), Swing: 650.8, Transfer: 1.00, Final speed: 688.4
+[00:47:33] [INFO] [FragGrenade] Grenade thrown (velocity-based) - impact detection enabled
+[00:47:33] [INFO] [Player.Grenade] Thrown! Velocity: 1460,2, Swing: 650,8
+[00:47:33] [INFO] [Player.Grenade] State reset to IDLE
+[00:47:34] [INFO] [Player.Grenade] Player rotation restored to 0
+[00:47:34] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Frag Grenade
+[00:47:34] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[00:47:34] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[00:47:35] [INFO] [Player.Grenade] G pressed - starting grab animation
+[00:47:35] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (831.79443, 1357.5325)
+[00:47:35] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[00:47:35] [INFO] [FragGrenade] Shrapnel scene loaded from: res://scenes/projectiles/Shrapnel.tscn
+[00:47:35] [INFO] [FragGrenade] Pin pulled - waiting for impact (no timer, impact-triggered only)
+[00:47:35] [INFO] [Player.Grenade] Timer started, grenade created at (450, 1250)
+[00:47:35] [INFO] [Player.Grenade] Step 1 complete! Drag: (61.6604, -8.014893)
+[00:47:35] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[00:47:35] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming (velocity-based throwing enabled)
+[00:47:37] [INFO] [Player.Grenade] Velocity-based throw! Mouse velocity: (0.002962, -135.16064) (135,2 px/s), Swing distance: 480,3
+[00:47:37] [INFO] [Player.Grenade] Player rotated for throw: 0 -> -1,5707744
+[00:47:37] [INFO] [GrenadeBase] Velocity-based throw! Mouse vel: (0.002962, -135.1606), Swing: 480.3, Transfer: 1.00, Final speed: 63.7
+[00:47:37] [INFO] [FragGrenade] Grenade thrown (velocity-based) - impact detection enabled
+[00:47:37] [INFO] [Player.Grenade] Thrown! Velocity: 135,2, Swing: 480,3
+[00:47:37] [INFO] [Player.Grenade] State reset to IDLE
+[00:47:37] [INFO] [GrenadeBase] Collision detected with Room1_WallBottom (type: StaticBody2D)
+[00:47:37] [INFO] [FragGrenade] Impact detected! Body: Room1_WallBottom (type: StaticBody2D), triggering explosion
+[00:47:37] [INFO] [FragGrenade] Impact detected - exploding immediately!
+[00:47:37] [INFO] [GrenadeBase] EXPLODED at (450.0013, 717.7426)!
+[00:47:37] [INFO] [FragGrenade] Player found in blast radius at distance 50.2
+[00:47:37] [INFO] [FragGrenade] Applied 99 HE damage to enemy at distance 50.2
+[00:47:37] [INFO] [FragGrenade] Spawned shrapnel #1 at angle -6.1 degrees
+[00:47:37] [INFO] [FragGrenade] Spawned shrapnel #2 at angle 83.0 degrees
+[00:47:37] [INFO] [FragGrenade] Spawned shrapnel #3 at angle 172.5 degrees
+[00:47:37] [INFO] [FragGrenade] Spawned shrapnel #4 at angle 279.4 degrees
+[00:47:37] [INFO] [Player.Grenade] Player rotation restored to 0
+[00:47:37] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Frag Grenade
+[00:47:37] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[00:47:37] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[00:47:37] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Frag Grenade
+[00:47:37] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[00:47:37] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[00:47:38] [INFO] [Player.Grenade] G pressed - starting grab animation
+[00:47:38] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (562.5669, 1332.1521)
+[00:47:38] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[00:47:38] [INFO] [FragGrenade] Shrapnel scene loaded from: res://scenes/projectiles/Shrapnel.tscn
+[00:47:38] [INFO] [FragGrenade] Pin pulled - waiting for impact (no timer, impact-triggered only)
+[00:47:38] [INFO] [Player.Grenade] Timer started, grenade created at (450, 1250)
+[00:47:38] [INFO] [Player.Grenade] Step 1 complete! Drag: (386.54266, 26.716187)
+[00:47:38] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[00:47:38] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming (velocity-based throwing enabled)
+[00:47:40] [INFO] [Player.Grenade] Velocity-based throw! Mouse velocity: (83.50973, -201.98685) (218,6 px/s), Swing distance: 680,2
+[00:47:40] [INFO] [Player.Grenade] Player rotated for throw: 0 -> -1,1787565
+[00:47:40] [INFO] [GrenadeBase] Velocity-based throw! Mouse vel: (83.50973, -201.9868), Swing: 680.2, Transfer: 1.00, Final speed: 103.0
+[00:47:40] [INFO] [FragGrenade] Grenade thrown (velocity-based) - impact detection enabled
+[00:47:40] [INFO] [Player.Grenade] Thrown! Velocity: 218,6, Swing: 680,2
+[00:47:40] [INFO] [Player.Grenade] State reset to IDLE
+[00:47:40] [INFO] [GrenadeBase] Collision detected with Room1_WallBottom (type: StaticBody2D)
+[00:47:40] [INFO] [FragGrenade] Impact detected! Body: Room1_WallBottom (type: StaticBody2D), triggering explosion
+[00:47:40] [INFO] [FragGrenade] Impact detected - exploding immediately!
+[00:47:40] [INFO] [GrenadeBase] EXPLODED at (473.5394, 679.752)!
+[00:47:40] [INFO] [FragGrenade] Applied 99 HE damage to enemy at distance 149.1
+[00:47:40] [INFO] [FragGrenade] Spawned shrapnel #1 at angle 2.0 degrees
+[00:47:40] [INFO] [FragGrenade] Spawned shrapnel #2 at angle 80.3 degrees
+[00:47:40] [INFO] [FragGrenade] Spawned shrapnel #3 at angle 185.4 degrees
+[00:47:40] [INFO] [FragGrenade] Spawned shrapnel #4 at angle 287.2 degrees
+[00:47:40] [INFO] [Player.Grenade] Player rotation restored to 0
+[00:47:40] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Frag Grenade
+[00:47:40] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[00:47:40] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[00:47:41] [INFO] [Player.Grenade] G pressed - starting grab animation
+[00:47:41] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (1004.9279, 1372.8943)
+[00:47:41] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[00:47:41] [INFO] [FragGrenade] Shrapnel scene loaded from: res://scenes/projectiles/Shrapnel.tscn
+[00:47:41] [INFO] [FragGrenade] Pin pulled - waiting for impact (no timer, impact-triggered only)
+[00:47:41] [INFO] [Player.Grenade] Timer started, grenade created at (450, 1250)
+[00:47:41] [INFO] [Player.Grenade] Step 1 complete! Drag: (255.29108, 69.461914)
+[00:47:41] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[00:47:41] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming (velocity-based throwing enabled)
+[00:47:43] [INFO] [Player.Grenade] Velocity-based throw! Mouse velocity: (0, 687.6438) (687,6 px/s), Swing distance: 584,2
+[00:47:43] [INFO] [Player.Grenade] Player rotated for throw: 0 -> 1,5707964
+[00:47:43] [INFO] [GrenadeBase] Velocity-based throw! Mouse vel: (0, 687.6438), Swing: 584.2, Transfer: 1.00, Final speed: 324.2
+[00:47:43] [INFO] [FragGrenade] Grenade thrown (velocity-based) - impact detection enabled
+[00:47:43] [INFO] [Player.Grenade] Thrown! Velocity: 687,6, Swing: 584,2
+[00:47:43] [INFO] [Player.Grenade] State reset to IDLE
+[00:47:43] [INFO] [Player.Grenade] Player rotation restored to 0
+[00:47:44] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Frag Grenade
+[00:47:44] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[00:47:44] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[00:47:44] [INFO] [Player.Grenade] G pressed - starting grab animation
+[00:47:44] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (1042.5422, 1599.9814)
+[00:47:44] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[00:47:44] [INFO] [FragGrenade] Shrapnel scene loaded from: res://scenes/projectiles/Shrapnel.tscn
+[00:47:44] [INFO] [FragGrenade] Pin pulled - waiting for impact (no timer, impact-triggered only)
+[00:47:44] [INFO] [Player.Grenade] Timer started, grenade created at (450, 1250)
+[00:47:44] [INFO] [Player.Grenade] Step 1 complete! Drag: (211.77649, 9.350586)
+[00:47:44] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[00:47:44] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming (velocity-based throwing enabled)
+[00:47:46] [INFO] [Player.Grenade] Velocity-based throw! Mouse velocity: (0.004308364, -313.68927) (313,7 px/s), Swing distance: 503,2
+[00:47:46] [INFO] [Player.Grenade] Player rotated for throw: 0 -> -1,5707825
+[00:47:46] [INFO] [GrenadeBase] Velocity-based throw! Mouse vel: (0.004308, -313.6893), Swing: 503.2, Transfer: 1.00, Final speed: 147.9
+[00:47:46] [INFO] [FragGrenade] Grenade thrown (velocity-based) - impact detection enabled
+[00:47:46] [INFO] [Player.Grenade] Thrown! Velocity: 313,7, Swing: 503,2
+[00:47:46] [INFO] [Player.Grenade] State reset to IDLE
+[00:47:46] [INFO] [Player.Grenade] Player rotation restored to 0
+[00:47:46] [INFO] [GrenadeBase] Grenade landed at (450.0012, 653.9389)
+[00:47:46] [INFO] [FragGrenade] Impact detected - exploding immediately!
+[00:47:46] [INFO] [GrenadeBase] EXPLODED at (450.0012, 653.9389)!
+[00:47:46] [INFO] [FragGrenade] Applied 99 HE damage to enemy at distance 115.3
+[00:47:46] [INFO] [FragGrenade] Spawned shrapnel #1 at angle -17.1 degrees
+[00:47:46] [INFO] [FragGrenade] Spawned shrapnel #2 at angle 78.0 degrees
+[00:47:46] [INFO] [FragGrenade] Spawned shrapnel #3 at angle 193.5 degrees
+[00:47:46] [INFO] [FragGrenade] Spawned shrapnel #4 at angle 272.2 degrees
+[00:47:47] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Frag Grenade
+[00:47:47] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[00:47:47] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[00:47:47] [INFO] [Player.Grenade] G pressed - starting grab animation
+[00:47:47] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (952.8192, 1599.3135)
+[00:47:47] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[00:47:47] [INFO] [FragGrenade] Shrapnel scene loaded from: res://scenes/projectiles/Shrapnel.tscn
+[00:47:47] [INFO] [FragGrenade] Pin pulled - waiting for impact (no timer, impact-triggered only)
+[00:47:47] [INFO] [Player.Grenade] Timer started, grenade created at (450, 1250)
+[00:47:47] [INFO] [Player.Grenade] Step 1 complete! Drag: (307.39978, 10.018555)
+[00:47:47] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[00:47:47] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming (velocity-based throwing enabled)
+[00:47:49] [INFO] [Player.Grenade] Velocity-based throw! Mouse velocity: (0, -197.97737) (198,0 px/s), Swing distance: 544,9
+[00:47:49] [INFO] [Player.Grenade] Player rotated for throw: 0 -> -1,5707964
+[00:47:49] [INFO] [GrenadeBase] Velocity-based throw! Mouse vel: (0, -197.9774), Swing: 544.9, Transfer: 1.00, Final speed: 93.3
+[00:47:49] [INFO] [FragGrenade] Grenade thrown (velocity-based) - impact detection enabled
+[00:47:49] [INFO] [Player.Grenade] Thrown! Velocity: 198,0, Swing: 544,9
+[00:47:49] [INFO] [Player.Grenade] State reset to IDLE
+[00:47:49] [INFO] [GrenadeBase] Collision detected with Room1_WallBottom (type: StaticBody2D)
+[00:47:49] [INFO] [FragGrenade] Impact detected! Body: Room1_WallBottom (type: StaticBody2D), triggering explosion
+[00:47:49] [INFO] [FragGrenade] Impact detected - exploding immediately!
+[00:47:49] [INFO] [GrenadeBase] EXPLODED at (450, 682.1783)!
+[00:47:49] [INFO] [FragGrenade] Applied 99 HE damage to enemy at distance 141.3
+[00:47:49] [INFO] [FragGrenade] Spawned shrapnel #1 at angle 8.7 degrees
+[00:47:49] [INFO] [FragGrenade] Spawned shrapnel #2 at angle 101.4 degrees
+[00:47:49] [INFO] [FragGrenade] Spawned shrapnel #3 at angle 177.8 degrees
+[00:47:49] [INFO] [FragGrenade] Spawned shrapnel #4 at angle 285.3 degrees
+[00:47:49] [INFO] [Player.Grenade] Player rotation restored to 0
+[00:47:50] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Frag Grenade
+[00:47:50] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[00:47:50] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[00:47:50] [INFO] [Player.Grenade] G pressed - starting grab animation
+[00:47:50] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (1178.5168, 1560.5752)
+[00:47:50] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[00:47:50] [INFO] [FragGrenade] Shrapnel scene loaded from: res://scenes/projectiles/Shrapnel.tscn
+[00:47:50] [INFO] [FragGrenade] Pin pulled - waiting for impact (no timer, impact-triggered only)
+[00:47:50] [INFO] [Player.Grenade] Timer started, grenade created at (450, 1250)
+[00:47:50] [INFO] [Player.Grenade] Step 1 complete! Drag: (77.94202, -8.014893)
+[00:47:50] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[00:47:50] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming (velocity-based throwing enabled)
+[00:47:52] [INFO] [Player.Grenade] Velocity-based throw! Mouse velocity: (0, -87.50753) (87,5 px/s), Swing distance: 517,0
+[00:47:52] [INFO] [Player.Grenade] Player rotated for throw: 0 -> -1,5707964
+[00:47:52] [INFO] [GrenadeBase] Velocity-based throw! Mouse vel: (0, -87.50753), Swing: 517.0, Transfer: 1.00, Final speed: 41.3
+[00:47:52] [INFO] [FragGrenade] Grenade thrown (velocity-based) - impact detection enabled
+[00:47:52] [INFO] [Player.Grenade] Thrown! Velocity: 87,5, Swing: 517,0
+[00:47:52] [INFO] [Player.Grenade] State reset to IDLE
+[00:47:52] [INFO] [GrenadeBase] Grenade landed at (450, 685.9444)
+[00:47:52] [INFO] [FragGrenade] Impact detected - exploding immediately!
+[00:47:52] [INFO] [GrenadeBase] EXPLODED at (450, 685.9444)!
+[00:47:52] [INFO] [FragGrenade] Applied 99 HE damage to enemy at distance 144.8
+[00:47:52] [INFO] [FragGrenade] Spawned shrapnel #1 at angle -1.0 degrees
+[00:47:52] [INFO] [FragGrenade] Spawned shrapnel #2 at angle 76.0 degrees
+[00:47:52] [INFO] [FragGrenade] Spawned shrapnel #3 at angle 183.7 degrees
+[00:47:52] [INFO] [FragGrenade] Spawned shrapnel #4 at angle 280.6 degrees
+[00:47:52] [INFO] [GrenadeBase] Collision detected with Room1_WallBottom (type: StaticBody2D)
+[00:47:53] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Frag Grenade
+[00:47:53] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[00:47:53] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[00:47:53] [INFO] [Player.Grenade] G pressed - starting grab animation
+[00:47:53] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (993.30786, 1585.2876)
+[00:47:53] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[00:47:53] [INFO] [FragGrenade] Shrapnel scene loaded from: res://scenes/projectiles/Shrapnel.tscn
+[00:47:53] [INFO] [FragGrenade] Pin pulled - waiting for impact (no timer, impact-triggered only)
+[00:47:53] [INFO] [Player.Grenade] Timer started, grenade created at (450, 1250)
+[00:47:53] [INFO] [Player.Grenade] Step 1 complete! Drag: (274.95618, 20.03711)
+[00:47:53] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[00:47:53] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming (velocity-based throwing enabled)
+[00:47:55] [INFO] [Player.Grenade] Velocity-based throw! Mouse velocity: (0, -1228.8245) (1228,8 px/s), Swing distance: 596,6
+[00:47:55] [INFO] [Player.Grenade] Player rotated for throw: 0 -> -1,5707964
+[00:47:55] [INFO] [GrenadeBase] Velocity-based throw! Mouse vel: (0, -1228.824), Swing: 596.6, Transfer: 1.00, Final speed: 579.3
+[00:47:55] [INFO] [FragGrenade] Grenade thrown (velocity-based) - impact detection enabled
+[00:47:55] [INFO] [Player.Grenade] Thrown! Velocity: 1228,8, Swing: 596,6
+[00:47:55] [INFO] [Player.Grenade] State reset to IDLE
+[00:47:55] [INFO] [GrenadeBase] Collision detected with Room1_WallBottom (type: StaticBody2D)
+[00:47:55] [INFO] [FragGrenade] Impact detected! Body: Room1_WallBottom (type: StaticBody2D), triggering explosion
+[00:47:55] [INFO] [FragGrenade] Impact detected - exploding immediately!
+[00:47:55] [INFO] [GrenadeBase] EXPLODED at (450, 673.1277)!
+[00:47:55] [INFO] [FragGrenade] Applied 99 HE damage to enemy at distance 132.9
+[00:47:55] [INFO] [FragGrenade] Spawned shrapnel #1 at angle 18.0 degrees
+[00:47:55] [INFO] [FragGrenade] Spawned shrapnel #2 at angle 100.7 degrees
+[00:47:55] [INFO] [FragGrenade] Spawned shrapnel #3 at angle 176.6 degrees
+[00:47:55] [INFO] [FragGrenade] Spawned shrapnel #4 at angle 285.7 degrees
+[00:47:56] [INFO] [Player.Grenade] Player rotation restored to 0
+[00:47:56] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Frag Grenade
+[00:47:56] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[00:47:56] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[00:47:56] [INFO] [Player.Grenade] G pressed - starting grab animation
+[00:47:56] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (1171.7012, 1447.6995)
+[00:47:56] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[00:47:56] [INFO] [FragGrenade] Shrapnel scene loaded from: res://scenes/projectiles/Shrapnel.tscn
+[00:47:56] [INFO] [FragGrenade] Pin pulled - waiting for impact (no timer, impact-triggered only)
+[00:47:56] [INFO] [Player.Grenade] Timer started, grenade created at (450, 1250)
+[00:47:56] [INFO] [Player.Grenade] Step 1 complete! Drag: (71.92651, 0)
+[00:47:56] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[00:47:56] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming (velocity-based throwing enabled)
+[00:47:58] [INFO] [Player.Grenade] Velocity-based throw! Mouse velocity: (0.005933973, -234.12057) (234,1 px/s), Swing distance: 586,9
+[00:47:58] [INFO] [Player.Grenade] Player rotated for throw: 0 -> -1,570771
+[00:47:58] [INFO] [GrenadeBase] Velocity-based throw! Mouse vel: (0.005934, -234.1206), Swing: 586.9, Transfer: 1.00, Final speed: 110.4
+[00:47:58] [INFO] [FragGrenade] Grenade thrown (velocity-based) - impact detection enabled
+[00:47:58] [INFO] [Player.Grenade] Thrown! Velocity: 234,1, Swing: 586,9
+[00:47:58] [INFO] [Player.Grenade] State reset to IDLE
+[00:47:58] [INFO] [Player.Grenade] Player rotation restored to 0
+[00:47:58] [INFO] [GrenadeBase] Grenade landed at (515.2612, 656.571)
+[00:47:58] [INFO] [FragGrenade] Impact detected - exploding immediately!
+[00:47:58] [INFO] [GrenadeBase] EXPLODED at (515.2612, 656.571)!
+[00:47:58] [INFO] [FragGrenade] Applied 99 HE damage to enemy at distance 186.1
+[00:47:58] [INFO] [FragGrenade] Applied 99 HE damage to enemy at distance 195.1
+[00:47:58] [INFO] [FragGrenade] Player found in blast radius at distance 62.8
+[00:47:58] [INFO] [FragGrenade] Applied 99 HE damage to enemy at distance 62.8
+[00:47:58] [INFO] [FragGrenade] Spawned shrapnel #1 at angle 9.3 degrees
+[00:47:58] [INFO] [FragGrenade] Spawned shrapnel #2 at angle 109.5 degrees
+[00:47:58] [INFO] [FragGrenade] Spawned shrapnel #3 at angle 163.0 degrees
+[00:47:58] [INFO] [FragGrenade] Spawned shrapnel #4 at angle 260.0 degrees
+[00:47:59] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Frag Grenade
+[00:47:59] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[00:47:59] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[00:47:59] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Frag Grenade
+[00:47:59] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[00:47:59] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[00:48:07] [INFO] [Player.Grenade] G pressed - starting grab animation
+[00:48:07] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (649.97205, 1081.5577)
+[00:48:07] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[00:48:07] [INFO] [FragGrenade] Shrapnel scene loaded from: res://scenes/projectiles/Shrapnel.tscn
+[00:48:07] [INFO] [FragGrenade] Pin pulled - waiting for impact (no timer, impact-triggered only)
+[00:48:07] [INFO] [Player.Grenade] Timer started, grenade created at (450, 1045.1666)
+[00:48:07] [INFO] [Player.Grenade] Step 1 complete! Drag: (247.19885, -28.639038)
+[00:48:07] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[00:48:07] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming (velocity-based throwing enabled)
+[00:48:08] [INFO] [Player.Grenade] Velocity-based throw! Mouse velocity: (3378.0183, -102.06986) (3379,6 px/s), Swing distance: 517,7
+[00:48:08] [INFO] [Player.Grenade] Player rotated for throw: 0 -> -0,03020671
+[00:48:08] [INFO] [GrenadeBase] Velocity-based throw! Mouse vel: (3378.018, -102.0699), Swing: 517.7, Transfer: 1.00, Final speed: 1186.5
+[00:48:08] [INFO] [FragGrenade] Grenade thrown (velocity-based) - impact detection enabled
+[00:48:08] [INFO] [Player.Grenade] Thrown! Velocity: 3379,6, Swing: 517,7
+[00:48:08] [INFO] [Player.Grenade] State reset to IDLE
+[00:48:08] [INFO] [Player.Grenade] Player rotation restored to 0
+[00:48:08] [INFO] [GrenadeBase] Collision detected with Enemy3 (type: CharacterBody2D)
+[00:48:08] [INFO] [FragGrenade] Impact detected! Body: Enemy3 (type: CharacterBody2D), triggering explosion
+[00:48:08] [INFO] [FragGrenade] Impact detected - exploding immediately!
+[00:48:08] [INFO] [GrenadeBase] EXPLODED at (700.1545, 721.8541)!
+[00:48:08] [INFO] [FragGrenade] Applied 99 HE damage to enemy at distance 35.6
+[00:48:08] [INFO] [FragGrenade] Spawned shrapnel #1 at angle -16.0 degrees
+[00:48:08] [INFO] [FragGrenade] Spawned shrapnel #2 at angle 83.4 degrees
+[00:48:08] [INFO] [FragGrenade] Spawned shrapnel #3 at angle 161.1 degrees
+[00:48:08] [INFO] [FragGrenade] Spawned shrapnel #4 at angle 252.7 degrees
+[00:48:10] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Frag Grenade
+[00:48:10] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[00:48:10] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[00:48:10] [INFO] [Player.Grenade] G pressed - starting grab animation
+[00:48:10] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (987.2313, 1258.0149)
+[00:48:10] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[00:48:10] [INFO] [FragGrenade] Shrapnel scene loaded from: res://scenes/projectiles/Shrapnel.tscn
+[00:48:10] [INFO] [FragGrenade] Pin pulled - waiting for impact (no timer, impact-triggered only)
+[00:48:10] [INFO] [Player.Grenade] Timer started, grenade created at (450, 1250)
+[00:48:10] [INFO] [Player.Grenade] Step 1 complete! Drag: (82.90344, -6.679077)
+[00:48:11] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[00:48:11] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming (velocity-based throwing enabled)
+[00:48:19] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Frag Grenade
+[00:48:19] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[00:48:19] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[00:48:23] [INFO] [Player.Grenade] G pressed - starting grab animation
+[00:48:23] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (919.24805, 751.6008)
+[00:48:23] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[00:48:23] [INFO] [FragGrenade] Shrapnel scene loaded from: res://scenes/projectiles/Shrapnel.tscn
+[00:48:23] [INFO] [FragGrenade] Pin pulled - waiting for impact (no timer, impact-triggered only)
+[00:48:23] [INFO] [Player.Grenade] Timer started, grenade created at (450, 728.0123)
+[00:48:23] [INFO] [Player.Grenade] Step 1 complete! Drag: (360.7516, 38.652344)
+[00:48:23] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[00:48:23] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming (velocity-based throwing enabled)
+[00:48:26] [INFO] [Player.Grenade] Velocity-based throw! Mouse velocity: (0, 212.1582) (212,2 px/s), Swing distance: 347,0
+[00:48:26] [INFO] [Player.Grenade] Player rotated for throw: 0 -> 1,5707964
+[00:48:26] [INFO] [GrenadeBase] Velocity-based throw! Mouse vel: (0, 212.1582), Swing: 347.0, Transfer: 1.00, Final speed: 100.0
+[00:48:26] [INFO] [FragGrenade] Grenade thrown (velocity-based) - impact detection enabled
+[00:48:26] [INFO] [Player.Grenade] Thrown! Velocity: 212,2, Swing: 347,0
+[00:48:26] [INFO] [Player.Grenade] State reset to IDLE
+[00:48:26] [INFO] [Player.Grenade] Player rotation restored to 0
+[00:48:27] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Frag Grenade
+[00:48:27] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[00:48:27] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[00:48:27] [INFO] [Player.Grenade] G pressed - starting grab animation
+[00:48:27] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (445.99966, 1457.05)
+[00:48:27] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[00:48:27] [INFO] [FragGrenade] Shrapnel scene loaded from: res://scenes/projectiles/Shrapnel.tscn
+[00:48:27] [INFO] [FragGrenade] Pin pulled - waiting for impact (no timer, impact-triggered only)
+[00:48:27] [INFO] [Player.Grenade] Timer started, grenade created at (450, 1250)
+[00:48:27] [INFO] [Player.Grenade] Step 1 complete! Drag: (360.5148, 35.398926)
+[00:48:27] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[00:48:27] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming (velocity-based throwing enabled)
+[00:48:34] [INFO] [Player.Grenade] Velocity-based throw! Mouse velocity: (0, -249.23428) (249,2 px/s), Swing distance: 2542,7
+[00:48:34] [INFO] [Player.Grenade] Player rotated for throw: 0 -> -1,5707964
+[00:48:34] [INFO] [GrenadeBase] Velocity-based throw! Mouse vel: (0, -249.2343), Swing: 2542.7, Transfer: 1.00, Final speed: 117.5
+[00:48:34] [INFO] [FragGrenade] Grenade thrown (velocity-based) - impact detection enabled
+[00:48:34] [INFO] [Player.Grenade] Thrown! Velocity: 249,2, Swing: 2542,7
+[00:48:34] [INFO] [Player.Grenade] State reset to IDLE
+[00:48:34] [INFO] [Player.Grenade] Player rotation restored to 0
+[00:48:35] [INFO] [GrenadeBase] Collision detected with Room1_WallBottom (type: StaticBody2D)
+[00:48:35] [INFO] [FragGrenade] Impact detected! Body: Room1_WallBottom (type: StaticBody2D), triggering explosion
+[00:48:35] [INFO] [FragGrenade] Impact detected - exploding immediately!
+[00:48:35] [INFO] [GrenadeBase] EXPLODED at (450, 679.9719)!
+[00:48:35] [INFO] [FragGrenade] Applied 99 HE damage to enemy at distance 139.3
+[00:48:35] [INFO] [FragGrenade] Spawned shrapnel #1 at angle 7.8 degrees
+[00:48:35] [INFO] [FragGrenade] Spawned shrapnel #2 at angle 86.3 degrees
+[00:48:35] [INFO] [FragGrenade] Spawned shrapnel #3 at angle 187.8 degrees
+[00:48:35] [INFO] [FragGrenade] Spawned shrapnel #4 at angle 270.0 degrees
+[00:48:36] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Frag Grenade
+[00:48:36] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[00:48:36] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[00:48:36] [INFO] [Player.Grenade] G pressed - starting grab animation
+[00:48:36] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (1262.2605, 1533.1912)
+[00:48:36] [INFO] [Player.Grenade] Step 1 failed: drag not far enough right (13,608398 < 30)
+[00:48:36] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (1272.4067, 1552.5603)
+[00:48:37] [INFO] [Player.Grenade] G pressed - starting grab animation
+[00:48:37] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (1102.2793, 1597.9778)
+[00:48:37] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[00:48:37] [INFO] [FragGrenade] Shrapnel scene loaded from: res://scenes/projectiles/Shrapnel.tscn
+[00:48:37] [INFO] [FragGrenade] Pin pulled - waiting for impact (no timer, impact-triggered only)
+[00:48:37] [INFO] [Player.Grenade] Timer started, grenade created at (450, 1250)
+[00:48:37] [INFO] [Player.Grenade] Step 1 complete! Drag: (177.71045, 11.354248)
+[00:48:38] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[00:48:38] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming (velocity-based throwing enabled)
+[00:48:38] [INFO] [Player.Grenade] Velocity-based throw! Mouse velocity: (251.50362, -125.7238) (281,2 px/s), Swing distance: 23,9
+[00:48:38] [INFO] [Player.Grenade] Player rotated for throw: 0 -> -0,46355852
+[00:48:38] [INFO] [GrenadeBase] Velocity-based throw! Mouse vel: (251.5036, -125.7238), Swing: 23.9, Transfer: 0.10, Final speed: 12.8
+[00:48:38] [INFO] [FragGrenade] Grenade thrown (velocity-based) - impact detection enabled
+[00:48:38] [INFO] [Player.Grenade] Thrown! Velocity: 281,2, Swing: 23,9
+[00:48:38] [INFO] [Player.Grenade] State reset to IDLE
+[00:48:38] [INFO] [Player.Grenade] Player rotation restored to 0
+[00:48:40] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Frag Grenade
+[00:48:40] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[00:48:40] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[00:48:41] [INFO] [Player.Grenade] G pressed - starting grab animation
+[00:48:41] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (1109.725, 1430.3015)
+[00:48:41] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[00:48:41] [INFO] [FragGrenade] Shrapnel scene loaded from: res://scenes/projectiles/Shrapnel.tscn
+[00:48:41] [INFO] [FragGrenade] Pin pulled - waiting for impact (no timer, impact-triggered only)
+[00:48:41] [INFO] [Player.Grenade] Timer started, grenade created at (450, 1111.1666)
+[00:48:41] [INFO] [Player.Grenade] Step 1 complete! Drag: (158.53906, -5.984253)
+[00:48:41] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[00:48:41] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming (velocity-based throwing enabled)
+[00:48:42] [INFO] [Player.Grenade] Velocity-based throw! Mouse velocity: (0.06667991, -208.1121) (208,1 px/s), Swing distance: 324,6
+[00:48:42] [INFO] [Player.Grenade] Player rotated for throw: 0 -> -1,5704759
+[00:48:42] [INFO] [GrenadeBase] Velocity-based throw! Mouse vel: (0.06668, -208.1121), Swing: 324.6, Transfer: 1.00, Final speed: 98.1
+[00:48:42] [INFO] [FragGrenade] Grenade thrown (velocity-based) - impact detection enabled
+[00:48:42] [INFO] [Player.Grenade] Thrown! Velocity: 208,1, Swing: 324,6
+[00:48:42] [INFO] [Player.Grenade] State reset to IDLE
+[00:48:42] [INFO] [Player.Grenade] Player rotation restored to 0
+[00:48:43] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Frag Grenade
+[00:48:43] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[00:48:43] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[00:48:43] [INFO] [Player.Grenade] G pressed - starting grab animation
+[00:48:43] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (1112.6904, 1577.9407)
+[00:48:43] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[00:48:43] [INFO] [FragGrenade] Shrapnel scene loaded from: res://scenes/projectiles/Shrapnel.tscn
+[00:48:43] [INFO] [FragGrenade] Pin pulled - waiting for impact (no timer, impact-triggered only)
+[00:48:43] [INFO] [Player.Grenade] Timer started, grenade created at (450, 1250)
+[00:48:43] [INFO] [Player.Grenade] Step 1 complete! Drag: (147.52856, 29.387695)
+[00:48:43] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[00:48:43] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming (velocity-based throwing enabled)
+[00:48:45] [INFO] [Player.Grenade] Velocity-based throw! Mouse velocity: (0.0015258788, -150.22583) (150,2 px/s), Swing distance: 501,7
+[00:48:45] [INFO] [Player.Grenade] Player rotated for throw: 0 -> -1,5707861
+[00:48:45] [INFO] [GrenadeBase] Velocity-based throw! Mouse vel: (0.001526, -150.2258), Swing: 501.7, Transfer: 1.00, Final speed: 70.8
+[00:48:45] [INFO] [FragGrenade] Grenade thrown (velocity-based) - impact detection enabled
+[00:48:45] [INFO] [Player.Grenade] Thrown! Velocity: 150,2, Swing: 501,7
+[00:48:45] [INFO] [Player.Grenade] State reset to IDLE
+[00:48:45] [INFO] [GrenadeBase] Grenade landed at (450.0006, 665.0491)
+[00:48:45] [INFO] [FragGrenade] Impact detected - exploding immediately!
+[00:48:45] [INFO] [GrenadeBase] EXPLODED at (450.0006, 665.0491)!
+[00:48:45] [INFO] [FragGrenade] Applied 99 HE damage to enemy at distance 125.4
+[00:48:45] [INFO] [FragGrenade] Spawned shrapnel #1 at angle -3.6 degrees
+[00:48:45] [INFO] [FragGrenade] Spawned shrapnel #2 at angle 77.9 degrees
+[00:48:45] [INFO] [FragGrenade] Spawned shrapnel #3 at angle 164.5 degrees
+[00:48:45] [INFO] [FragGrenade] Spawned shrapnel #4 at angle 282.7 degrees
+[00:48:46] [INFO] [Player.Grenade] Player rotation restored to 0
+[00:48:46] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Frag Grenade
+[00:48:46] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[00:48:46] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[00:48:46] [INFO] [Player.Grenade] G pressed - starting grab animation
+[00:48:46] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (753.2728, 1554.564)
+[00:48:46] [INFO] [Player.Grenade] Step 1 failed: drag not far enough right (0 < 30)
+[00:48:46] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (703.5272, 1554.564)
+[00:48:46] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[00:48:46] [INFO] [FragGrenade] Shrapnel scene loaded from: res://scenes/projectiles/Shrapnel.tscn
+[00:48:46] [INFO] [FragGrenade] Pin pulled - waiting for impact (no timer, impact-triggered only)
+[00:48:46] [INFO] [Player.Grenade] Timer started, grenade created at (450, 1250)
+[00:48:46] [INFO] [Player.Grenade] Step 1 complete! Drag: (243.57819, -26.048096)
+[00:48:47] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[00:48:47] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming (velocity-based throwing enabled)
+[00:48:49] [INFO] [Player.Grenade] Velocity-based throw! Mouse velocity: (0, -190.06142) (190,1 px/s), Swing distance: 552,4
+[00:48:49] [INFO] [Player.Grenade] Player rotated for throw: 0 -> -1,5707964
+[00:48:49] [INFO] [GrenadeBase] Velocity-based throw! Mouse vel: (0, -190.0614), Swing: 552.4, Transfer: 1.00, Final speed: 89.6
+[00:48:49] [INFO] [FragGrenade] Grenade thrown (velocity-based) - impact detection enabled
+[00:48:49] [INFO] [Player.Grenade] Thrown! Velocity: 190,1, Swing: 552,4
+[00:48:49] [INFO] [Player.Grenade] State reset to IDLE
+[00:48:49] [INFO] [Player.Grenade] Player rotation restored to 0

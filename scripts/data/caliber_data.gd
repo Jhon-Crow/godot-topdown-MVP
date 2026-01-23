@@ -103,6 +103,10 @@ class_name CaliberData
 ## 1.0 = standard effect, 2.0 = double intensity, 0.5 = half intensity.
 @export_range(0.3, 2.0, 0.1) var effect_scale: float = 1.0
 
+## Sprite texture for ejected bullet casings.
+## Different calibers have different casing appearances.
+@export var casing_sprite: Texture2D = null
+
 
 ## Calculates the ricochet probability based on impact angle.
 ## Uses a custom curve designed for realistic 5.45x39mm behavior:

@@ -1,0 +1,1740 @@
+diff --git a/Scripts/Characters/Player.cs b/Scripts/Characters/Player.cs
+index 87ceb021..ea68a93d 100644
+--- a/Scripts/Characters/Player.cs
++++ b/Scripts/Characters/Player.cs
+@@ -1,4 +1,6 @@
+ using Godot;
++using System;
++using System.Collections.Generic;
+ using GodotTopDownTemplate.AbstractClasses;
+ using GodotTopDownTemplate.Weapons;
+ 
+@@ -400,6 +402,32 @@ private enum GrenadeAnimPhase
+     /// </summary>
+     private Vector2 _prevMousePos = Vector2.Zero;
+ 
++    /// <summary>
++    /// Mouse velocity history for smooth velocity calculation (stores last N velocities).
++    /// Used to get stable velocity at moment of release.
++    /// </summary>
++    private List<Vector2> _mouseVelocityHistory = new List<Vector2>();
++
++    /// <summary>
++    /// Maximum number of velocity samples to keep in history.
++    /// </summary>
++    private const int MouseVelocityHistorySize = 5;
++
++    /// <summary>
++    /// Current calculated mouse velocity (pixels per second).
++    /// </summary>
++    private Vector2 _currentMouseVelocity = Vector2.Zero;
++
++    /// <summary>
++    /// Total swing distance traveled during aiming (for momentum transfer calculation).
++    /// </summary>
++    private float _totalSwingDistance = 0.0f;
++
++    /// <summary>
++    /// Previous frame time for delta calculation in velocity tracking.
++    /// </summary>
++    private double _prevFrameTime = 0.0;
++
+     /// <summary>
+     /// Whether weapon is in sling position (lowered for grenade handling).
+     /// </summary>
+@@ -721,6 +749,7 @@ public override void _Ready()
+         int currentHealth = (int)(HealthComponent?.CurrentHealth ?? 0);
+         int maxHealth = (int)(HealthComponent?.MaxHealth ?? 0);
+         LogToFile($"[Player] Ready! Ammo: {currentAmmo}/{maxAmmo}, Grenades: {_currentGrenades}/{MaxGrenades}, Health: {currentHealth}/{maxHealth}");
++        LogToFile("[Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)");
+     }
+ 
+     /// <summary>
+@@ -1730,9 +1759,14 @@ private void HandleGrenadeWaitingForGReleaseState()
+             _grenadeState = GrenadeState.Aiming;
+             _grenadeDragStart = GetGlobalMousePosition();
+             _prevMousePos = _grenadeDragStart;
++            // Initialize velocity tracking for realistic throwing
++            _mouseVelocityHistory.Clear();
++            _currentMouseVelocity = Vector2.Zero;
++            _totalSwingDistance = 0.0f;
++            _prevFrameTime = Time.GetTicksMsec() / 1000.0;
+             // Start transfer animation (grenade to throwing hand)
+             StartGrenadeAnimPhase(GrenadeAnimPhase.Transfer, AnimTransferDuration);
+-            LogToFile("[Player.Grenade] Step 2 complete: G released, RMB held - now aiming, drag and release RMB to throw");
++            LogToFile("[Player.Grenade] Step 2 complete: G released, RMB held - now aiming (velocity-based throwing enabled)");
+         }
+     }
+ 
+@@ -1862,6 +1896,11 @@ private void ResetGrenadeState()
+         _activeGrenade = null;
+         // Reset wind-up intensity
+         _windUpIntensity = 0.0f;
++        // Reset velocity tracking for next throw
++        _mouseVelocityHistory.Clear();
++        _currentMouseVelocity = Vector2.Zero;
++        _totalSwingDistance = 0.0f;
++        LogToFile("[Player.Grenade] State reset to IDLE");
+     }
+ 
+     /// <summary>
+@@ -1872,10 +1911,11 @@ private void ResetGrenadeState()
+     private const float ThrowSensitivityMultiplier = 9.0f;
+ 
+     /// <summary>
+-    /// Throw the grenade based on aiming drag direction and distance.
++    /// Throw the grenade using realistic velocity-based physics.
++    /// The throw velocity is determined by mouse velocity at release moment, not drag distance.
+     /// Includes player rotation animation to prevent grenade hitting player.
+     /// </summary>
+-    /// <param name="dragEnd">The end position of the drag.</param>
++    /// <param name="dragEnd">The end position of the drag (used for direction fallback).</param>
+     private void ThrowGrenade(Vector2 dragEnd)
+     {
+         if (_activeGrenade == null || !IsInstanceValid(_activeGrenade))
+@@ -1885,34 +1925,33 @@ private void ThrowGrenade(Vector2 dragEnd)
+             return;
+         }
+ 
+-        // Calculate throw direction and distance from drag
+-        Vector2 dragVector = dragEnd - _grenadeDragStart;
+-        float dragDistance = dragVector.Length();
++        // Get the mouse velocity at moment of release (this is the key to realistic physics)
++        Vector2 releaseVelocity = _currentMouseVelocity;
+ 
+-        // Direction is the drag direction (normalized)
+-        Vector2 throwDirection = dragVector.Normalized();
++        // Determine throw direction from velocity, or fallback to drag direction if stationary
++        Vector2 throwDirection;
++        float velocityMagnitude = releaseVelocity.Length();
+ 
+-        // If drag is too short, use a minimum distance for the throw
+-        if (dragDistance < 10.0f)
++        if (velocityMagnitude > 10.0f) // Mouse was moving at release
+         {
+-            // Default to throwing forward (towards mouse from player)
+-            throwDirection = (GetGlobalMousePosition() - GlobalPosition).Normalized();
+-            dragDistance = 50.0f; // Minimum throw distance
++            throwDirection = releaseVelocity.Normalized();
+         }
+-
+-        // Apply sensitivity multiplier to increase throw range (matches GDScript player.gd)
+-        float adjustedDragDistance = dragDistance * ThrowSensitivityMultiplier;
+-
+-        // Clamp max drag distance to viewport width * 3 (matches GDScript player.gd)
+-        var viewport = GetViewport();
+-        float maxDragDistance = 3840.0f; // Default 1280 * 3
+-        if (viewport != null)
++        else
+         {
+-            maxDragDistance = viewport.GetVisibleRect().Size.X * 3.0f;
++            // Mouse was stationary at release - grenade drops at feet
++            // Use a slight forward direction so it doesn't appear exactly at player
++            Vector2 dragVector = dragEnd - _grenadeDragStart;
++            if (dragVector.Length() > 5.0f)
++            {
++                throwDirection = dragVector.Normalized();
++            }
++            else
++            {
++                throwDirection = new Vector2(1, 0); // Default direction
++            }
+         }
+-        adjustedDragDistance = Mathf.Min(adjustedDragDistance, maxDragDistance);
+ 
+-        LogToFile($"[Player.Grenade] Throwing! Direction: {throwDirection}, Drag: {dragDistance} (adjusted: {adjustedDragDistance})");
++        LogToFile($"[Player.Grenade] Velocity-based throw! Mouse velocity: {releaseVelocity} ({velocityMagnitude:F1} px/s), Swing distance: {_totalSwingDistance:F1}");
+ 
+         // Rotate player to face throw direction (prevents grenade hitting player when throwing upward)
+         RotatePlayerForThrow(throwDirection);
+@@ -1923,10 +1962,16 @@ private void ThrowGrenade(Vector2 dragEnd)
+         Vector2 spawnPosition = GlobalPosition + throwDirection * spawnOffset;
+         _activeGrenade.GlobalPosition = spawnPosition;
+ 
+-        // Call the throw method on the grenade with adjusted drag distance
+-        if (_activeGrenade.HasMethod("throw_grenade"))
++        // Use velocity-based throwing if available, otherwise fall back to legacy
++        if (_activeGrenade.HasMethod("throw_grenade_velocity_based"))
++        {
++            _activeGrenade.Call("throw_grenade_velocity_based", releaseVelocity, _totalSwingDistance);
++        }
++        else if (_activeGrenade.HasMethod("throw_grenade"))
+         {
+-            _activeGrenade.Call("throw_grenade", throwDirection, adjustedDragDistance);
++            // Legacy fallback: convert velocity to drag distance approximation
++            float legacyDistance = velocityMagnitude * 0.5f; // Rough conversion
++            _activeGrenade.Call("throw_grenade", throwDirection, legacyDistance);
+         }
+ 
+         // Emit signal
+@@ -1939,7 +1984,7 @@ private void ThrowGrenade(Vector2 dragEnd)
+             audioManager.Call("play_grenade_throw", GlobalPosition);
+         }
+ 
+-        LogToFile($"[Player.Grenade] Thrown! Direction: {throwDirection}, Adjusted drag: {adjustedDragDistance}");
++        LogToFile($"[Player.Grenade] Thrown! Velocity: {velocityMagnitude:F1}, Swing: {_totalSwingDistance:F1}");
+ 
+         // Reset state (grenade is now independent)
+         ResetGrenadeState();
+@@ -2243,34 +2288,56 @@ private void UpdateWeaponSling(float delta)
+     }
+ 
+     /// <summary>
+-    /// Update wind-up intensity based on mouse drag distance during aiming.
++    /// Update wind-up intensity and track mouse velocity during aiming.
++    /// Uses velocity-based physics for realistic throwing.
+     /// </summary>
+     private void UpdateWindUpIntensity()
+     {
+         Vector2 currentMouse = GetGlobalMousePosition();
++        double currentTime = Time.GetTicksMsec() / 1000.0;
+ 
+-        // Calculate drag distance from aim start
+-        Vector2 dragVector = currentMouse - _grenadeDragStart;
+-        float dragDistance = dragVector.Length();
++        // Calculate time delta since last frame
++        double deltaTime = currentTime - _prevFrameTime;
++        if (deltaTime <= 0.0)
++        {
++            deltaTime = 0.016; // Default to ~60fps if first frame
++        }
++
++        // Calculate mouse displacement since last frame
++        Vector2 mouseDelta = currentMouse - _prevMousePos;
+ 
+-        // Get viewport for max drag calculation
+-        var viewport = GetViewport();
+-        float maxDrag = 600.0f; // Default max drag distance
+-        if (viewport != null)
++        // Accumulate total swing distance for momentum transfer calculation
++        _totalSwingDistance += mouseDelta.Length();
++
++        // Calculate instantaneous mouse velocity (pixels per second)
++        Vector2 instantaneousVelocity = mouseDelta / (float)deltaTime;
++
++        // Add to velocity history for smoothing
++        _mouseVelocityHistory.Add(instantaneousVelocity);
++        if (_mouseVelocityHistory.Count > MouseVelocityHistorySize)
+         {
+-            maxDrag = viewport.GetVisibleRect().Size.X * 0.5f;
++            _mouseVelocityHistory.RemoveAt(0);
+         }
+ 
+-        // Calculate base intensity from distance
+-        float intensity = Mathf.Clamp(dragDistance / maxDrag, 0.0f, 1.0f);
++        // Calculate average velocity from history (smoothed velocity)
++        Vector2 velocitySum = Vector2.Zero;
++        foreach (Vector2 vel in _mouseVelocityHistory)
++        {
++            velocitySum += vel;
++        }
++        _currentMouseVelocity = velocitySum / Math.Max(_mouseVelocityHistory.Count, 1);
+ 
+-        // Add velocity component for more responsive feel
+-        Vector2 mouseDelta = currentMouse - _prevMousePos;
+-        float mouseVelocity = mouseDelta.Length();
+-        float velocityBonus = Mathf.Clamp(mouseVelocity / 50.0f, 0.0f, 0.2f);
++        // Calculate wind-up intensity based on velocity (for animation)
++        // Higher velocity = more wind-up visual effect
++        float velocityMagnitude = _currentMouseVelocity.Length();
++        // Normalize to a reasonable range (0-2000 pixels/second typical for fast mouse movement)
++        float velocityIntensity = Mathf.Clamp(velocityMagnitude / 1500.0f, 0.0f, 1.0f);
++
++        _windUpIntensity = velocityIntensity;
+ 
+-        _windUpIntensity = Mathf.Clamp(intensity + velocityBonus, 0.0f, 1.0f);
++        // Update tracking for next frame
+         _prevMousePos = currentMouse;
++        _prevFrameTime = currentTime;
+     }
+ 
+     #endregion
+@@ -2544,8 +2611,8 @@ private void OnDebugModeToggled(bool enabled)
+ 
+     /// <summary>
+     /// Override _Draw to visualize grenade trajectory when debug mode is enabled.
+-    /// Shows predicted landing position based on current drag.
+-    /// Uses the same calculation as ThrowGrenade() to ensure accuracy.
++    /// Shows predicted landing position based on current mouse velocity.
++    /// Uses the same velocity-based calculation as ThrowGrenade() to ensure accuracy.
+     /// </summary>
+     public override void _Draw()
+     {
+@@ -2560,51 +2627,58 @@ public override void _Draw()
+             return;
+         }
+ 
+-        // Calculate trajectory based on current drag
++        // Get current mouse velocity (same as ThrowGrenade uses)
++        Vector2 releaseVelocity = _currentMouseVelocity;
++        float velocityMagnitude = releaseVelocity.Length();
++
++        // Determine throw direction from velocity, or fallback to drag direction if stationary
++        Vector2 throwDirection;
+         Vector2 currentMousePos = GetGlobalMousePosition();
+         Vector2 dragVector = currentMousePos - _grenadeDragStart;
+-        float dragDistance = dragVector.Length();
+ 
+-        // Match the ThrowGrenade logic for minimum drag
+-        Vector2 throwDirection;
+-        if (dragDistance < 10.0f)
++        if (velocityMagnitude > 10.0f) // Mouse is moving
+         {
+-            throwDirection = (currentMousePos - GlobalPosition).Normalized();
+-            dragDistance = 50.0f;
++            throwDirection = releaseVelocity.Normalized();
+         }
+         else
+         {
+-            throwDirection = dragVector.Normalized();
+-        }
+-
+-        // Apply sensitivity multiplier (same as ThrowGrenade)
+-        float adjustedDragDistance = dragDistance * ThrowSensitivityMultiplier;
+-
+-        // Clamp max drag distance to viewport width * 3 (same as ThrowGrenade)
+-        var viewport = GetViewport();
+-        float maxDragDistance = 3840.0f; // Default 1280 * 3
+-        if (viewport != null)
+-        {
+-            maxDragDistance = viewport.GetVisibleRect().Size.X * 3.0f;
++            // Mouse is stationary - use drag direction
++            if (dragVector.Length() > 5.0f)
++            {
++                throwDirection = dragVector.Normalized();
++            }
++            else
++            {
++                throwDirection = new Vector2(1, 0);
++            }
+         }
+-        adjustedDragDistance = Mathf.Min(adjustedDragDistance, maxDragDistance);
+ 
+-        // Constants from grenade_base.gd
+-        const float DragToSpeedMultiplier = 2.0f;
++        // Constants from grenade_base.gd for velocity-based throwing
++        const float GrenadeMass = 0.36f; // Default flashbang mass
++        const float MouseVelocityMultiplier = 3.5f;
++        const float MinSwingDistance = 180.0f;
+         const float MinThrowSpeed = 100.0f;
+         const float MaxThrowSpeed = 2500.0f;
+-        const float GroundFriction = 150.0f;
++        const float GroundFriction = 300.0f; // Flashbang has higher friction
+         const float SpawnOffset = 60.0f;
+ 
+-        // Calculate throw speed using adjusted drag distance (same as grenade_base.gd)
+-        float throwSpeed = Mathf.Clamp(
+-            adjustedDragDistance * DragToSpeedMultiplier,
+-            MinThrowSpeed,
+-            MaxThrowSpeed
+-        );
++        // Calculate velocity-based throw speed (same formula as grenade_base.gd)
++        float massRatio = GrenadeMass / 0.4f; // Reference mass
++        float adjustedMinSwing = MinSwingDistance * massRatio;
++        float transferEfficiency = Mathf.Clamp(_totalSwingDistance / adjustedMinSwing, 0.0f, 1.0f);
++        float massMultiplier = 1.0f / Mathf.Sqrt(massRatio);
++
++        // Calculate throw speed from mouse velocity
++        float throwSpeed = velocityMagnitude * MouseVelocityMultiplier * transferEfficiency * massMultiplier;
++        throwSpeed = Mathf.Clamp(throwSpeed, MinThrowSpeed, MaxThrowSpeed);
++
++        // If mouse is nearly stationary, show minimal trajectory (grenade drops at feet)
++        if (velocityMagnitude < 10.0f)
++        {
++            throwSpeed = MinThrowSpeed * 0.5f; // Very short throw
++        }
+ 
+         // Calculate landing distance using physics: distance = v² / (2 * friction)
+-        // This is the stopping distance under constant deceleration
+         float landingDistance = (throwSpeed * throwSpeed) / (2.0f * GroundFriction);
+ 
+         // Calculate spawn and landing positions
+@@ -2621,7 +2695,7 @@ public override void _Draw()
+         // Draw landing point indicator (circle with X)
+         DrawLandingIndicator(localEnd, new Color(1.0f, 0.3f, 0.1f, 0.9f), 12.0f);
+ 
+-        // Draw drag direction arrow from player
++        // Draw velocity direction arrow from player (shows current mouse velocity direction)
+         Vector2 localPlayerCenter = Vector2.Zero; // Player is at origin in local coords
+         Vector2 arrowEnd = localPlayerCenter + throwDirection * 40.0f;
+         DrawArrow(localPlayerCenter, arrowEnd, new Color(0.2f, 1.0f, 0.2f, 0.7f), 2.0f);
+diff --git a/docs/case-studies/issue-256/case-study.md b/docs/case-studies/issue-256/case-study.md
+new file mode 100644
+index 00000000..02207585
+--- /dev/null
++++ b/docs/case-studies/issue-256/case-study.md
+@@ -0,0 +1,124 @@
++# Case Study: Issue #256 - Grenade Throwing Physics Change Not Applied
++
++## Summary
++User reported that the velocity-based grenade throwing physics changes were not applied to the game build they tested. The root cause was identified as the C# Player.cs script still using the legacy drag-based throwing system, while only the GDScript player.gd was updated with velocity-based physics.
++
++## Timeline of Events
++
++### 2026-01-22 17:46:27 - Initial Implementation (Commit e39784b)
++- Commit `e39784b` created: "Implement realistic velocity-based grenade throwing physics"
++- Changes applied to **GDScript** files:
++  - `scripts/characters/player.gd` (134 changes) - Velocity-based throwing
++  - `scripts/projectiles/grenade_base.gd` (57 changes) - Added `throw_grenade_velocity_based()` method
++  - `scenes/projectiles/FlashbangGrenade.tscn` (+3 lines)
++  - `scenes/projectiles/FragGrenade.tscn` (+3 lines)
++  - `tests/unit/test_grenade_base.gd` (143 changes)
++- **MISSING**: `Scripts/Characters/Player.cs` was NOT updated
++
++### 2026-01-22 19:59:17 - 19:59:59 (User Testing Session 1)
++- User tested the game (Godot 4.3-stable)
++- Log evidence shows OLD system was running (C# Player.cs code path)
++
++### 2026-01-22 21:07:03 - 21:07:46 (User Testing Session 2)
++- User confirmed build was updated with latest code
++- Log evidence STILL shows OLD system running:
++
++```
++[21:07:12] [INFO] [GrenadeBase] LEGACY throw_grenade() called! Direction: (0.996999, 0.077419), Speed: 2484.6 (unfrozen)
++[21:07:12] [INFO] [GrenadeBase] NOTE: Using DRAG-BASED system. If velocity-based is expected, ensure grenade has throw_grenade_velocity_based() method.
++```
++
++- Grenade traveled far even when mouse was stationary at release (user complaint)
++- This confirms the **C# code path** was being executed, not the GDScript
++
++## Root Cause Analysis
++
++### Primary Finding: Dual Implementation (GDScript vs C#)
++
++The project has TWO player implementations:
++1. **`scripts/characters/player.gd`** - GDScript version (velocity-based updated)
++2. **`Scripts/Characters/Player.cs`** - C# version (legacy drag-based, NOT updated)
++
++**The game is using the C# implementation**, which explains why:
++- Velocity-based changes in player.gd were not being executed
++- Legacy `throw_grenade()` was being called instead of `throw_grenade_velocity_based()`
++- Grenade flew far even when mouse was stopped (drag-based behavior)
++
++### Evidence from Logs (game_log_20260122_210703.txt)
++
++1. **Line 116-119**: Legacy system log messages
++```
++[21:07:12] [INFO] [Player.Grenade] Throwing! Direction: (0.9969986, 0.07741881), Drag: 138,03435 (adjusted: 1242,3091)
++[21:07:12] [INFO] [GrenadeBase] LEGACY throw_grenade() called!
++```
++
++2. **Velocity-based log format (expected but not seen)**:
++```
++[Player.Grenade] Velocity-based throw! Mouse velocity: (X, Y) (Z px/s), Swing distance: N
++```
++
++### Technical Details
++
++In `Player.cs:1927-1929` (before fix):
++```csharp
++if (_activeGrenade.HasMethod("throw_grenade"))
++{
++    _activeGrenade.Call("throw_grenade", throwDirection, adjustedDragDistance);
++}
++```
++
++The C# code was calling the legacy `throw_grenade()` method with **drag distance**, NOT `throw_grenade_velocity_based()` with **mouse velocity**.
++
++## Solution Applied (Commit TBD)
++
++### Changes to Scripts/Characters/Player.cs:
++
++1. **Added velocity tracking fields**:
++   - `_mouseVelocityHistory` - List of last 5 velocity samples for smoothing
++   - `_currentMouseVelocity` - Calculated mouse velocity (pixels/second)
++   - `_totalSwingDistance` - Accumulated swing distance for momentum transfer
++   - `_prevFrameTime` - For delta time calculation
++
++2. **Updated `UpdateWindUpIntensity()`** to track:
++   - Instantaneous mouse velocity each frame
++   - Smoothed velocity using history
++   - Total swing distance
++
++3. **Updated `ThrowGrenade()`** to use velocity-based physics:
++   - Determines throw direction from mouse velocity (not drag)
++   - Calls `throw_grenade_velocity_based(releaseVelocity, swingDistance)`
++   - Falls back to legacy only if velocity method unavailable
++
++4. **Updated `ResetGrenadeState()`** to clear velocity tracking
++
++5. **Updated debug trajectory visualization** to use velocity-based calculations
++
++6. **Added startup log**: `[Player.Grenade] Throwing system: VELOCITY-BASED (v2.0)`
++
++## Log Files in This Case Study
++
++| File | Duration | Notes |
++|------|----------|-------|
++| `game_log_20260122_195917.txt` | 4 seconds | Game initialization only |
++| `game_log_20260122_195927.txt` | 32 seconds | 4 throws, all using drag-based system |
++| `game_log_20260122_210703.txt` | 43 seconds | 8+ throws, confirmed C# code path, legacy system |
++
++## Key Learnings
++
++1. **Dual implementations require sync**: When a project has both GDScript and C# implementations, both must be updated when changing behavior.
++
++2. **Log messages are critical**: The debug logging in grenade_base.gd correctly identified that the legacy method was being called, helping diagnose the issue.
++
++3. **Always verify the code path**: The logs clearly showed `LEGACY throw_grenade() called!` which pointed directly to the root cause.
++
++## Verification Steps
++
++After applying this fix:
++1. Rebuild the Godot project (including C# rebuild)
++2. Launch the game and check logs for:
++   ```
++   [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
++   ```
++3. Test grenade throw with mouse stopped at release - grenade should drop at feet
++4. Test grenade throw with fast mouse movement at release - grenade should fly far
++5. Verify debug trajectory updates based on mouse velocity (not drag distance)
+diff --git a/docs/case-studies/issue-256/game_log_20260122_195917.txt b/docs/case-studies/issue-256/game_log_20260122_195917.txt
+new file mode 100644
+index 00000000..27fff17e
+--- /dev/null
++++ b/docs/case-studies/issue-256/game_log_20260122_195917.txt
+@@ -0,0 +1,81 @@
++[19:59:17] [INFO] ============================================================
++[19:59:17] [INFO] GAME LOG STARTED
++[19:59:17] [INFO] ============================================================
++[19:59:17] [INFO] Timestamp: 2026-01-22T19:59:17
++[19:59:17] [INFO] Log file: I:/Загрузки/godot exe/game_log_20260122_195917.txt
++[19:59:17] [INFO] Executable: I:/Загрузки/godot exe/Godot-Top-Down-Template.exe
++[19:59:17] [INFO] OS: Windows
++[19:59:17] [INFO] Debug build: false
++[19:59:17] [INFO] Engine version: 4.3-stable (official)
++[19:59:17] [INFO] Project: Godot Top-Down Template
++[19:59:17] [INFO] ------------------------------------------------------------
++[19:59:17] [INFO] [GameManager] GameManager ready
++[19:59:17] [INFO] [ScoreManager] ScoreManager ready
++[19:59:17] [INFO] [SoundPropagation] SoundPropagation autoload initialized
++[19:59:17] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
++[19:59:17] [INFO] [PenultimateHit] Saturation shader loaded successfully
++[19:59:17] [INFO] [PenultimateHit] PenultimateHitEffectsManager ready - Configuration:
++[19:59:17] [INFO] [PenultimateHit]   Time scale: 0.10 (10x slowdown)
++[19:59:17] [INFO] [PenultimateHit]   Saturation boost: 2.0 (3.0x)
++[19:59:17] [INFO] [PenultimateHit]   Contrast boost: 1.0 (2.0x)
++[19:59:17] [INFO] [PenultimateHit]   Effect duration: 3.0 real seconds
++[19:59:17] [INFO] [LastChance] Resetting all effects (scene change detected)
++[19:59:17] [INFO] [LastChance] Last chance shader loaded successfully
++[19:59:17] [INFO] [LastChance] LastChanceEffectsManager ready - Configuration:
++[19:59:17] [INFO] [LastChance]   Freeze duration: 6.0 real seconds
++[19:59:17] [INFO] [LastChance]   Sepia intensity: 0.70
++[19:59:17] [INFO] [LastChance]   Brightness: 0.60
++[19:59:17] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FlashbangGrenade.tscn
++[19:59:17] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FragGrenade.tscn
++[19:59:17] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
++[19:59:17] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
++[19:59:17] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
++[19:59:17] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
++[19:59:17] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
++[19:59:17] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
++[19:59:17] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
++[19:59:17] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 2/4
++[19:59:17] [INFO] [ScoreManager] Level started with 10 enemies
++[19:59:17] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 1)
++[19:59:17] [ENEMY] [Enemy1] Registered as sound listener
++[19:59:17] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 4, behavior: GUARD, player_found: yes
++[19:59:17] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 2)
++[19:59:17] [ENEMY] [Enemy2] Registered as sound listener
++[19:59:17] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 4, behavior: GUARD, player_found: yes
++[19:59:17] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 3)
++[19:59:17] [ENEMY] [Enemy3] Registered as sound listener
++[19:59:17] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 4, behavior: GUARD, player_found: yes
++[19:59:17] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 4)
++[19:59:17] [ENEMY] [Enemy4] Registered as sound listener
++[19:59:17] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 4, behavior: GUARD, player_found: yes
++[19:59:17] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 5)
++[19:59:17] [ENEMY] [Enemy5] Registered as sound listener
++[19:59:17] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 3, behavior: GUARD, player_found: yes
++[19:59:17] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 6)
++[19:59:17] [ENEMY] [Enemy6] Registered as sound listener
++[19:59:17] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 4, behavior: GUARD, player_found: yes
++[19:59:17] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 7)
++[19:59:17] [ENEMY] [Enemy7] Registered as sound listener
++[19:59:17] [ENEMY] [Enemy7] Enemy spawned at (1606.114, 893.8859), health: 4, behavior: PATROL, player_found: yes
++[19:59:17] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 8)
++[19:59:17] [ENEMY] [Enemy8] Registered as sound listener
++[19:59:17] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 4, behavior: GUARD, player_found: yes
++[19:59:17] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 9)
++[19:59:17] [ENEMY] [Enemy9] Registered as sound listener
++[19:59:17] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 3, behavior: GUARD, player_found: yes
++[19:59:17] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 10)
++[19:59:17] [ENEMY] [Enemy10] Registered as sound listener
++[19:59:17] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 2, behavior: PATROL, player_found: yes
++[19:59:17] [INFO] [Player] Detecting weapon pose (frame 3)...
++[19:59:17] [INFO] [Player] Detected weapon: Rifle (default pose)
++[19:59:17] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
++[19:59:17] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
++[19:59:17] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
++[19:59:17] [INFO] [PenultimateHit] Connected to player Died signal (C#)
++[19:59:17] [INFO] [LastChance] Found player: Player
++[19:59:17] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
++[19:59:17] [INFO] [LastChance] Connected to player Damaged signal (C#)
++[19:59:17] [INFO] [LastChance] Connected to player Died signal (C#)
++[19:59:21] [INFO] ------------------------------------------------------------
++[19:59:21] [INFO] GAME LOG ENDED: 2026-01-22T19:59:21
++[19:59:21] [INFO] ============================================================
+diff --git a/docs/case-studies/issue-256/game_log_20260122_195927.txt b/docs/case-studies/issue-256/game_log_20260122_195927.txt
+new file mode 100644
+index 00000000..d36618aa
+--- /dev/null
++++ b/docs/case-studies/issue-256/game_log_20260122_195927.txt
+@@ -0,0 +1,223 @@
++[19:59:27] [INFO] ============================================================
++[19:59:27] [INFO] GAME LOG STARTED
++[19:59:27] [INFO] ============================================================
++[19:59:27] [INFO] Timestamp: 2026-01-22T19:59:27
++[19:59:27] [INFO] Log file: I:/Загрузки/godot exe/game_log_20260122_195927.txt
++[19:59:27] [INFO] Executable: I:/Загрузки/godot exe/Godot-Top-Down-Template.exe
++[19:59:27] [INFO] OS: Windows
++[19:59:27] [INFO] Debug build: false
++[19:59:27] [INFO] Engine version: 4.3-stable (official)
++[19:59:27] [INFO] Project: Godot Top-Down Template
++[19:59:27] [INFO] ------------------------------------------------------------
++[19:59:27] [INFO] [GameManager] GameManager ready
++[19:59:27] [INFO] [ScoreManager] ScoreManager ready
++[19:59:27] [INFO] [SoundPropagation] SoundPropagation autoload initialized
++[19:59:27] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
++[19:59:27] [INFO] [PenultimateHit] Saturation shader loaded successfully
++[19:59:27] [INFO] [PenultimateHit] PenultimateHitEffectsManager ready - Configuration:
++[19:59:27] [INFO] [PenultimateHit]   Time scale: 0.10 (10x slowdown)
++[19:59:27] [INFO] [PenultimateHit]   Saturation boost: 2.0 (3.0x)
++[19:59:27] [INFO] [PenultimateHit]   Contrast boost: 1.0 (2.0x)
++[19:59:27] [INFO] [PenultimateHit]   Effect duration: 3.0 real seconds
++[19:59:27] [INFO] [LastChance] Resetting all effects (scene change detected)
++[19:59:27] [INFO] [LastChance] Last chance shader loaded successfully
++[19:59:27] [INFO] [LastChance] LastChanceEffectsManager ready - Configuration:
++[19:59:27] [INFO] [LastChance]   Freeze duration: 6.0 real seconds
++[19:59:27] [INFO] [LastChance]   Sepia intensity: 0.70
++[19:59:27] [INFO] [LastChance]   Brightness: 0.60
++[19:59:27] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FlashbangGrenade.tscn
++[19:59:27] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FragGrenade.tscn
++[19:59:27] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
++[19:59:27] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
++[19:59:27] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
++[19:59:27] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
++[19:59:27] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
++[19:59:27] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
++[19:59:27] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
++[19:59:27] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 4/4
++[19:59:27] [INFO] [ScoreManager] Level started with 10 enemies
++[19:59:27] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 1)
++[19:59:27] [ENEMY] [Enemy1] Registered as sound listener
++[19:59:27] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 4, behavior: GUARD, player_found: yes
++[19:59:27] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 2)
++[19:59:27] [ENEMY] [Enemy2] Registered as sound listener
++[19:59:27] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 4, behavior: GUARD, player_found: yes
++[19:59:27] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 3)
++[19:59:27] [ENEMY] [Enemy3] Registered as sound listener
++[19:59:27] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 3, behavior: GUARD, player_found: yes
++[19:59:27] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 4)
++[19:59:27] [ENEMY] [Enemy4] Registered as sound listener
++[19:59:27] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 3, behavior: GUARD, player_found: yes
++[19:59:27] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 5)
++[19:59:27] [ENEMY] [Enemy5] Registered as sound listener
++[19:59:27] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 4, behavior: GUARD, player_found: yes
++[19:59:27] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 6)
++[19:59:27] [ENEMY] [Enemy6] Registered as sound listener
++[19:59:27] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 4, behavior: GUARD, player_found: yes
++[19:59:27] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 7)
++[19:59:27] [ENEMY] [Enemy7] Registered as sound listener
++[19:59:27] [ENEMY] [Enemy7] Enemy spawned at (1606.114, 893.8859), health: 3, behavior: PATROL, player_found: yes
++[19:59:27] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 8)
++[19:59:27] [ENEMY] [Enemy8] Registered as sound listener
++[19:59:27] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 3, behavior: GUARD, player_found: yes
++[19:59:27] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 9)
++[19:59:27] [ENEMY] [Enemy9] Registered as sound listener
++[19:59:27] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 4, behavior: GUARD, player_found: yes
++[19:59:27] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 10)
++[19:59:27] [ENEMY] [Enemy10] Registered as sound listener
++[19:59:27] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 3, behavior: PATROL, player_found: yes
++[19:59:27] [INFO] [Player] Detecting weapon pose (frame 3)...
++[19:59:27] [INFO] [Player] Detected weapon: Rifle (default pose)
++[19:59:27] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
++[19:59:27] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
++[19:59:27] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
++[19:59:27] [INFO] [PenultimateHit] Connected to player Died signal (C#)
++[19:59:27] [INFO] [LastChance] Found player: Player
++[19:59:27] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
++[19:59:27] [INFO] [LastChance] Connected to player Damaged signal (C#)
++[19:59:27] [INFO] [LastChance] Connected to player Died signal (C#)
++[19:59:31] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
++[19:59:31] [INFO] [LastChance] Resetting all effects (scene change detected)
++[19:59:31] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
++[19:59:31] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
++[19:59:31] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
++[19:59:31] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
++[19:59:31] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
++[19:59:31] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
++[19:59:31] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
++[19:59:31] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 3/3, Health: 4/4
++[19:59:31] [INFO] [Player] Detecting weapon pose (frame 3)...
++[19:59:31] [INFO] [Player] Detected weapon: Rifle (default pose)
++[19:59:31] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
++[19:59:31] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
++[19:59:31] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
++[19:59:31] [INFO] [PenultimateHit] Connected to player Died signal (C#)
++[19:59:31] [INFO] [LastChance] Found player: Player
++[19:59:31] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
++[19:59:31] [INFO] [LastChance] Connected to player Damaged signal (C#)
++[19:59:31] [INFO] [LastChance] Connected to player Died signal (C#)
++[19:59:33] [INFO] [Player.Debug] Debug mode toggled: ON
++[19:59:33] [INFO] [GameManager] Debug mode toggled: ON
++[19:59:35] [INFO] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
++[19:59:35] [INFO] [Player.Grenade] G pressed - starting grab animation
++[19:59:36] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (404.175, 219.07236)
++[19:59:36] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
++[19:59:36] [INFO] [GrenadeBase] Timer activated! 4.0 seconds until explosion
++[19:59:36] [INFO] [Player.Grenade] Timer started, grenade created at (230.51608, 107.560165)
++[19:59:36] [INFO] [Player.Grenade.Anim] Phase changed to: PullPin (duration: 0,15s)
++[19:59:36] [INFO] [Player.Grenade] Step 1 complete! Drag: (471.6493, -2.6716156)
++[19:59:36] [INFO] [Player.Grenade.Anim] Phase changed to: HandsApproach (duration: 0,20s)
++[19:59:36] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
++[19:59:37] [INFO] [Player.Grenade.Anim] Phase changed to: Transfer (duration: 0,15s)
++[19:59:37] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming, drag and release RMB to throw
++[19:59:37] [INFO] [Player.Grenade.Anim] Phase changed to: WindUp (duration: 0,00s)
++[19:59:37] [INFO] [Player.Grenade.Anim] Entered wind-up phase
++[19:59:38] [INFO] [Player.Grenade.Anim] Phase changed to: Throw (duration: 0,20s)
++[19:59:38] [INFO] [Player.Grenade] Throwing! Direction: (0.98640007, 0.1643619), Drag: 44,69977 (adjusted: 402,29794)
++[19:59:38] [INFO] [Player.Grenade] Player rotated for throw: 0 -> 0,16511108
++[19:59:38] [INFO] [GrenadeBase] Thrown! Direction: (0.9864, 0.164362), Speed: 804.6 (unfrozen)
++[19:59:38] [INFO] [Player.Grenade] Thrown! Direction: (0.98640007, 0.1643619), Adjusted drag: 402,29794
++[19:59:38] [INFO] [Player.Grenade] Player rotation restored to 0
++[19:59:38] [INFO] [Player.Grenade.Anim] Phase changed to: ReturnIdle (duration: 0,30s)
++[19:59:38] [INFO] [Player.Grenade.Anim] Animation complete, returning to normal
++[19:59:39] [INFO] [GrenadeBase] Grenade landed at (664.02, 179.7942)
++[19:59:40] [INFO] [GrenadeBase] EXPLODED at (667.903, 180.4412)!
++[19:59:40] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(667.903, 180.4412), source=NEUTRAL (FlashbangGrenade), range=2937, listeners=10
++[19:59:40] [INFO] [SoundPropagation] Cleaned up 10 invalid listeners
++[19:59:40] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
++[19:59:41] [INFO] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
++[19:59:41] [INFO] [Player.Grenade] G pressed - starting grab animation
++[19:59:41] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (227.80756, 193.69202)
++[19:59:41] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
++[19:59:41] [INFO] [GrenadeBase] Timer activated! 4.0 seconds until explosion
++[19:59:41] [INFO] [Player.Grenade] Timer started, grenade created at (230.51608, 107.560165)
++[19:59:41] [INFO] [Player.Grenade.Anim] Phase changed to: PullPin (duration: 0,15s)
++[19:59:41] [INFO] [Player.Grenade] Step 1 complete! Drag: (338.70563, 44.081635)
++[19:59:41] [INFO] [Player.Grenade.Anim] Phase changed to: HandsApproach (duration: 0,20s)
++[19:59:41] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
++[19:59:41] [INFO] [Player.Grenade.Anim] Phase changed to: Transfer (duration: 0,15s)
++[19:59:41] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming, drag and release RMB to throw
++[19:59:42] [INFO] [Player.Grenade.Anim] Phase changed to: WindUp (duration: 0,00s)
++[19:59:42] [INFO] [Player.Grenade.Anim] Entered wind-up phase
++[19:59:43] [INFO] [Player.Grenade.Anim] Phase changed to: Throw (duration: 0,20s)
++[19:59:43] [INFO] [Player.Grenade] Throwing! Direction: (0.99825245, 0.059093352), Drag: 508,61328 (adjusted: 3840)
++[19:59:43] [INFO] [Player.Grenade] Player rotated for throw: 0 -> 0,0591278
++[19:59:43] [INFO] [GrenadeBase] Thrown! Direction: (0.998252, 0.059093), Speed: 2500.0 (unfrozen)
++[19:59:43] [INFO] [Player.Grenade] Thrown! Direction: (0.99825245, 0.059093352), Adjusted drag: 3840
++[19:59:43] [INFO] [Player.Grenade] Player rotation restored to 0
++[19:59:43] [INFO] [Player.Grenade.Anim] Phase changed to: ReturnIdle (duration: 0,30s)
++[19:59:44] [INFO] [Player.Grenade.Anim] Animation complete, returning to normal
++[19:59:45] [INFO] [GrenadeBase] Grenade landed at (1756.974, 203.4091)
++[19:59:45] [INFO] [GrenadeBase] EXPLODED at (1753.394, 203.755)!
++[19:59:45] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(1753.394, 203.755), source=NEUTRAL (FlashbangGrenade), range=2937, listeners=0
++[19:59:45] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
++[19:59:45] [INFO] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
++[19:59:45] [INFO] [Player.Grenade] G pressed - starting grab animation
++[19:59:46] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (25.385855, 75.47311)
++[19:59:46] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
++[19:59:46] [INFO] [GrenadeBase] Timer activated! 4.0 seconds until explosion
++[19:59:46] [INFO] [Player.Grenade] Timer started, grenade created at (230.51608, 107.560165)
++[19:59:46] [INFO] [Player.Grenade.Anim] Phase changed to: PullPin (duration: 0,15s)
++[19:59:46] [INFO] [Player.Grenade] Step 1 complete! Drag: (282.5887, 58.107597)
++[19:59:46] [INFO] [Player.Grenade.Anim] Phase changed to: HandsApproach (duration: 0,20s)
++[19:59:46] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
++[19:59:46] [INFO] [Player.Grenade.Anim] Phase changed to: Transfer (duration: 0,15s)
++[19:59:46] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming, drag and release RMB to throw
++[19:59:47] [INFO] [Player.Grenade.Anim] Phase changed to: WindUp (duration: 0,00s)
++[19:59:47] [INFO] [Player.Grenade.Anim] Entered wind-up phase
++[19:59:48] [INFO] [Player.Grenade.Anim] Phase changed to: Throw (duration: 0,20s)
++[19:59:48] [INFO] [Player.Grenade] Throwing! Direction: (0.9887639, 0.1494857), Drag: 138,50829 (adjusted: 1246,5746)
++[19:59:48] [INFO] [Player.Grenade] Player rotated for throw: 0 -> 0,1500481
++[19:59:48] [INFO] [GrenadeBase] Thrown! Direction: (0.988764, 0.149486), Speed: 2493.1 (unfrozen)
++[19:59:48] [INFO] [Player.Grenade] Thrown! Direction: (0.9887639, 0.1494857), Adjusted drag: 1246,5746
++[19:59:48] [INFO] [Player.Grenade] Player rotation restored to 0
++[19:59:48] [INFO] [Player.Grenade.Anim] Phase changed to: ReturnIdle (duration: 0,30s)
++[19:59:48] [INFO] [Player.Grenade.Anim] Animation complete, returning to normal
++[19:59:49] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
++[19:59:49] [INFO] [LastChance] Resetting all effects (scene change detected)
++[19:59:49] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
++[19:59:49] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
++[19:59:49] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
++[19:59:49] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
++[19:59:49] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
++[19:59:49] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
++[19:59:49] [INFO] [Player.Debug] Connected to GameManager, debug mode: True
++[19:59:49] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 3/3, Health: 3/4
++[19:59:49] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
++[19:59:49] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
++[19:59:49] [INFO] [PenultimateHit] Connected to player Died signal (C#)
++[19:59:49] [INFO] [LastChance] Found player: Player
++[19:59:49] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
++[19:59:49] [INFO] [LastChance] Connected to player Damaged signal (C#)
++[19:59:49] [INFO] [LastChance] Connected to player Died signal (C#)
++[19:59:49] [INFO] [Player] Detecting weapon pose (frame 3)...
++[19:59:49] [INFO] [Player] Detected weapon: Rifle (default pose)
++[19:59:49] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
++[19:59:52] [INFO] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
++[19:59:52] [INFO] [Player.Grenade] G pressed - starting grab animation
++[19:59:52] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (82.838875, 89.49908)
++[19:59:52] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
++[19:59:52] [INFO] [GrenadeBase] Timer activated! 4.0 seconds until explosion
++[19:59:52] [INFO] [Player.Grenade] Timer started, grenade created at (150, 130.94443)
++[19:59:52] [INFO] [Player.Grenade.Anim] Phase changed to: PullPin (duration: 0,15s)
++[19:59:52] [INFO] [Player.Grenade] Step 1 complete! Drag: (231.14822, 44.749535)
++[19:59:53] [INFO] [Player.Grenade.Anim] Phase changed to: HandsApproach (duration: 0,20s)
++[19:59:53] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
++[19:59:53] [INFO] [Player.Grenade.Anim] Phase changed to: Transfer (duration: 0,15s)
++[19:59:53] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming, drag and release RMB to throw
++[19:59:53] [INFO] [Player.Grenade.Anim] Phase changed to: WindUp (duration: 0,00s)
++[19:59:53] [INFO] [Player.Grenade.Anim] Entered wind-up phase
++[19:59:56] [INFO] [Player.Grenade.Anim] Phase changed to: Throw (duration: 0,20s)
++[19:59:56] [INFO] [Player.Grenade] Throwing! Direction: (0.99816936, 0.060481116), Drag: 88,34544 (adjusted: 795,109)
++[19:59:56] [INFO] [Player.Grenade] Player rotated for throw: 0 -> 0,06051805
++[19:59:56] [INFO] [GrenadeBase] Thrown! Direction: (0.998169, 0.060481), Speed: 1590.2 (unfrozen)
++[19:59:56] [INFO] [Player.Grenade] Thrown! Direction: (0.99816936, 0.060481116), Adjusted drag: 795,109
++[19:59:56] [INFO] [Player.Grenade] Player rotation restored to 0
++[19:59:56] [INFO] [Player.Grenade.Anim] Phase changed to: ReturnIdle (duration: 0,30s)
++[19:59:56] [INFO] [Player.Grenade.Anim] Animation complete, returning to normal
++[19:59:56] [INFO] [GrenadeBase] EXPLODED at (1034.609, 184.5447)!
++[19:59:56] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(1034.609, 184.5447), source=NEUTRAL (FlashbangGrenade), range=2937, listeners=0
++[19:59:56] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
++[19:59:59] [INFO] ------------------------------------------------------------
++[19:59:59] [INFO] GAME LOG ENDED: 2026-01-22T19:59:59
++[19:59:59] [INFO] ============================================================
+diff --git a/docs/case-studies/issue-256/game_log_20260122_210703.txt b/docs/case-studies/issue-256/game_log_20260122_210703.txt
+new file mode 100644
+index 00000000..f59bc10a
+--- /dev/null
++++ b/docs/case-studies/issue-256/game_log_20260122_210703.txt
+@@ -0,0 +1,434 @@
++[21:07:03] [INFO] ============================================================
++[21:07:03] [INFO] GAME LOG STARTED
++[21:07:03] [INFO] ============================================================
++[21:07:03] [INFO] Timestamp: 2026-01-22T21:07:03
++[21:07:03] [INFO] Log file: I:/Загрузки/godot exe/game_log_20260122_210703.txt
++[21:07:03] [INFO] Executable: I:/Загрузки/godot exe/Godot-Top-Down-Template.exe
++[21:07:03] [INFO] OS: Windows
++[21:07:03] [INFO] Debug build: false
++[21:07:03] [INFO] Engine version: 4.3-stable (official)
++[21:07:03] [INFO] Project: Godot Top-Down Template
++[21:07:03] [INFO] ------------------------------------------------------------
++[21:07:03] [INFO] [GameManager] GameManager ready
++[21:07:03] [INFO] [ScoreManager] ScoreManager ready
++[21:07:03] [INFO] [SoundPropagation] SoundPropagation autoload initialized
++[21:07:03] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
++[21:07:03] [INFO] [PenultimateHit] Saturation shader loaded successfully
++[21:07:03] [INFO] [PenultimateHit] PenultimateHitEffectsManager ready - Configuration:
++[21:07:03] [INFO] [PenultimateHit]   Time scale: 0.10 (10x slowdown)
++[21:07:03] [INFO] [PenultimateHit]   Saturation boost: 2.0 (3.0x)
++[21:07:03] [INFO] [PenultimateHit]   Contrast boost: 1.0 (2.0x)
++[21:07:03] [INFO] [PenultimateHit]   Effect duration: 3.0 real seconds
++[21:07:03] [INFO] [LastChance] Resetting all effects (scene change detected)
++[21:07:03] [INFO] [LastChance] Last chance shader loaded successfully
++[21:07:03] [INFO] [LastChance] LastChanceEffectsManager ready - Configuration:
++[21:07:03] [INFO] [LastChance]   Freeze duration: 6.0 real seconds
++[21:07:03] [INFO] [LastChance]   Sepia intensity: 0.70
++[21:07:03] [INFO] [LastChance]   Brightness: 0.60
++[21:07:03] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FlashbangGrenade.tscn
++[21:07:03] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FragGrenade.tscn
++[21:07:03] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
++[21:07:03] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
++[21:07:03] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
++[21:07:03] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
++[21:07:03] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
++[21:07:03] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
++[21:07:03] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
++[21:07:03] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 4/4
++[21:07:03] [INFO] [ScoreManager] Level started with 10 enemies
++[21:07:03] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 1)
++[21:07:03] [ENEMY] [Enemy1] Registered as sound listener
++[21:07:03] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 2, behavior: GUARD, player_found: yes
++[21:07:03] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 2)
++[21:07:03] [ENEMY] [Enemy2] Registered as sound listener
++[21:07:03] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 4, behavior: GUARD, player_found: yes
++[21:07:03] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 3)
++[21:07:03] [ENEMY] [Enemy3] Registered as sound listener
++[21:07:03] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 3, behavior: GUARD, player_found: yes
++[21:07:03] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 4)
++[21:07:03] [ENEMY] [Enemy4] Registered as sound listener
++[21:07:03] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 2, behavior: GUARD, player_found: yes
++[21:07:03] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 5)
++[21:07:03] [ENEMY] [Enemy5] Registered as sound listener
++[21:07:03] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 4, behavior: GUARD, player_found: yes
++[21:07:03] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 6)
++[21:07:03] [ENEMY] [Enemy6] Registered as sound listener
++[21:07:03] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 2, behavior: GUARD, player_found: yes
++[21:07:03] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 7)
++[21:07:03] [ENEMY] [Enemy7] Registered as sound listener
++[21:07:03] [ENEMY] [Enemy7] Enemy spawned at (1606.114, 893.8859), health: 2, behavior: PATROL, player_found: yes
++[21:07:03] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 8)
++[21:07:03] [ENEMY] [Enemy8] Registered as sound listener
++[21:07:03] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 2, behavior: GUARD, player_found: yes
++[21:07:03] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 9)
++[21:07:03] [ENEMY] [Enemy9] Registered as sound listener
++[21:07:03] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 2, behavior: GUARD, player_found: yes
++[21:07:03] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 10)
++[21:07:03] [ENEMY] [Enemy10] Registered as sound listener
++[21:07:03] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 4, behavior: PATROL, player_found: yes
++[21:07:03] [INFO] [Player] Detecting weapon pose (frame 3)...
++[21:07:03] [INFO] [Player] Detected weapon: Rifle (default pose)
++[21:07:03] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
++[21:07:03] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
++[21:07:03] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
++[21:07:03] [INFO] [PenultimateHit] Connected to player Died signal (C#)
++[21:07:03] [INFO] [LastChance] Found player: Player
++[21:07:03] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
++[21:07:03] [INFO] [LastChance] Connected to player Damaged signal (C#)
++[21:07:03] [INFO] [LastChance] Connected to player Died signal (C#)
++[21:07:06] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
++[21:07:06] [INFO] [LastChance] Resetting all effects (scene change detected)
++[21:07:06] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
++[21:07:06] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
++[21:07:06] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
++[21:07:06] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
++[21:07:06] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
++[21:07:06] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
++[21:07:06] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
++[21:07:06] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 3/3, Health: 3/4
++[21:07:06] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
++[21:07:06] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
++[21:07:06] [INFO] [PenultimateHit] Connected to player Died signal (C#)
++[21:07:06] [INFO] [LastChance] Found player: Player
++[21:07:06] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
++[21:07:06] [INFO] [LastChance] Connected to player Damaged signal (C#)
++[21:07:06] [INFO] [LastChance] Connected to player Died signal (C#)
++[21:07:06] [INFO] [Player] Detecting weapon pose (frame 3)...
++[21:07:06] [INFO] [Player] Detected weapon: Rifle (default pose)
++[21:07:06] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
++[21:07:09] [INFO] [Player.Debug] Debug mode toggled: ON
++[21:07:09] [INFO] [GameManager] Debug mode toggled: ON
++[21:07:11] [INFO] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
++[21:07:11] [INFO] [Player.Grenade] G pressed - starting grab animation
++[21:07:11] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (378.7888, 206.38219)
++[21:07:11] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
++[21:07:11] [INFO] [GrenadeBase] Timer activated! 4.0 seconds until explosion
++[21:07:11] [INFO] [Player.Grenade] Timer started, grenade created at (150, 130.94443)
++[21:07:11] [INFO] [Player.Grenade.Anim] Phase changed to: PullPin (duration: 0,15s)
++[21:07:11] [INFO] [Player.Grenade] Step 1 complete! Drag: (431.56577, -55.43599)
++[21:07:11] [INFO] [Player.Grenade.Anim] Phase changed to: HandsApproach (duration: 0,20s)
++[21:07:11] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
++[21:07:11] [INFO] [Player.Grenade.Anim] Phase changed to: Transfer (duration: 0,15s)
++[21:07:11] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming, drag and release RMB to throw
++[21:07:12] [INFO] [Player.Grenade.Anim] Phase changed to: WindUp (duration: 0,00s)
++[21:07:12] [INFO] [Player.Grenade.Anim] Entered wind-up phase
++[21:07:12] [INFO] [Player.Grenade.Anim] Phase changed to: Throw (duration: 0,20s)
++[21:07:12] [INFO] [Player.Grenade] Throwing! Direction: (0.9969986, 0.07741881), Drag: 138,03435 (adjusted: 1242,3091)
++[21:07:12] [INFO] [Player.Grenade] Player rotated for throw: 0 -> 0,077496365
++[21:07:12] [INFO] [GrenadeBase] LEGACY throw_grenade() called! Direction: (0.996999, 0.077419), Speed: 2484.6 (unfrozen)
++[21:07:12] [INFO] [GrenadeBase] NOTE: Using DRAG-BASED system. If velocity-based is expected, ensure grenade has throw_grenade_velocity_based() method.
++[21:07:12] [INFO] [Player.Grenade] Thrown! Direction: (0.9969986, 0.07741881), Adjusted drag: 1242,3091
++[21:07:12] [INFO] [Player.Grenade] Player rotation restored to 0
++[21:07:12] [INFO] [Player.Grenade.Anim] Phase changed to: ReturnIdle (duration: 0,30s)
++[21:07:13] [INFO] [Player.Grenade.Anim] Animation complete, returning to normal
++[21:07:13] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
++[21:07:13] [INFO] [LastChance] Resetting all effects (scene change detected)
++[21:07:13] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
++[21:07:13] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
++[21:07:13] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
++[21:07:13] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
++[21:07:13] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
++[21:07:13] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
++[21:07:13] [INFO] [Player.Debug] Connected to GameManager, debug mode: True
++[21:07:13] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 3/3, Health: 3/4
++[21:07:14] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
++[21:07:14] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
++[21:07:14] [INFO] [PenultimateHit] Connected to player Died signal (C#)
++[21:07:14] [INFO] [LastChance] Found player: Player
++[21:07:14] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
++[21:07:14] [INFO] [LastChance] Connected to player Damaged signal (C#)
++[21:07:14] [INFO] [LastChance] Connected to player Died signal (C#)
++[21:07:14] [INFO] [Player] Detecting weapon pose (frame 3)...
++[21:07:14] [INFO] [Player] Detected weapon: Rifle (default pose)
++[21:07:14] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
++[21:07:14] [INFO] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
++[21:07:14] [INFO] [Player.Grenade] G pressed - starting grab animation
++[21:07:14] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (381.73798, 207.0501)
++[21:07:14] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
++[21:07:14] [INFO] [GrenadeBase] Timer activated! 4.0 seconds until explosion
++[21:07:14] [INFO] [Player.Grenade] Timer started, grenade created at (150, 360)
++[21:07:14] [INFO] [Player.Grenade.Anim] Phase changed to: PullPin (duration: 0,15s)
++[21:07:14] [INFO] [Player.Grenade] Step 1 complete! Drag: (344.0285, -1.3358002)
++[21:07:14] [INFO] [Player.Grenade.Anim] Phase changed to: HandsApproach (duration: 0,20s)
++[21:07:14] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
++[21:07:14] [INFO] [Player.Grenade.Anim] Phase changed to: Transfer (duration: 0,15s)
++[21:07:14] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming, drag and release RMB to throw
++[21:07:15] [INFO] [Player.Grenade.Anim] Phase changed to: WindUp (duration: 0,00s)
++[21:07:15] [INFO] [Player.Grenade.Anim] Entered wind-up phase
++[21:07:16] [INFO] [Player.Grenade.Anim] Phase changed to: Throw (duration: 0,20s)
++[21:07:16] [INFO] [Player.Grenade] Throwing! Direction: (0.99683464, -0.07950236), Drag: 42,005337 (adjusted: 378,04803)
++[21:07:16] [INFO] [Player.Grenade] Player rotated for throw: 0 -> -0,07958635
++[21:07:16] [INFO] [GrenadeBase] LEGACY throw_grenade() called! Direction: (0.996835, -0.079502), Speed: 756.1 (unfrozen)
++[21:07:16] [INFO] [GrenadeBase] NOTE: Using DRAG-BASED system. If velocity-based is expected, ensure grenade has throw_grenade_velocity_based() method.
++[21:07:16] [INFO] [Player.Grenade] Thrown! Direction: (0.99683464, -0.07950236), Adjusted drag: 378,04803
++[21:07:16] [INFO] [Player.Grenade] Player rotation restored to 0
++[21:07:16] [INFO] [Player.Grenade.Anim] Phase changed to: ReturnIdle (duration: 0,30s)
++[21:07:16] [INFO] [Player.Grenade.Anim] Animation complete, returning to normal
++[21:07:17] [INFO] [GrenadeBase] Grenade landed at (555.1909, 72.28829)
++[21:07:18] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
++[21:07:18] [INFO] [LastChance] Resetting all effects (scene change detected)
++[21:07:18] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
++[21:07:18] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
++[21:07:18] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
++[21:07:18] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
++[21:07:18] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
++[21:07:18] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
++[21:07:18] [INFO] [Player.Debug] Connected to GameManager, debug mode: True
++[21:07:18] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 3/3, Health: 2/4
++[21:07:18] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
++[21:07:18] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
++[21:07:18] [INFO] [PenultimateHit] Connected to player Died signal (C#)
++[21:07:18] [INFO] [LastChance] Found player: Player
++[21:07:18] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
++[21:07:18] [INFO] [LastChance] Connected to player Damaged signal (C#)
++[21:07:18] [INFO] [LastChance] Connected to player Died signal (C#)
++[21:07:18] [INFO] [Player] Detecting weapon pose (frame 3)...
++[21:07:18] [INFO] [Player] Detected weapon: Rifle (default pose)
++[21:07:18] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
++[21:07:18] [INFO] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
++[21:07:18] [INFO] [Player.Grenade] G pressed - starting grab animation
++[21:07:18] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (505.77588, 185.00928)
++[21:07:18] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
++[21:07:18] [INFO] [GrenadeBase] Timer activated! 4.0 seconds until explosion
++[21:07:18] [INFO] [Player.Grenade] Timer started, grenade created at (150, 360)
++[21:07:18] [INFO] [Player.Grenade.Anim] Phase changed to: PullPin (duration: 0,15s)
++[21:07:18] [INFO] [Player.Grenade] Step 1 complete! Drag: (257.1546, 22.040817)
++[21:07:18] [INFO] [Player.Grenade.Anim] Phase changed to: HandsApproach (duration: 0,20s)
++[21:07:18] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
++[21:07:18] [INFO] [Player.Grenade.Anim] Phase changed to: Transfer (duration: 0,15s)
++[21:07:18] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming, drag and release RMB to throw
++[21:07:19] [INFO] [Player.Grenade.Anim] Phase changed to: WindUp (duration: 0,00s)
++[21:07:19] [INFO] [Player.Grenade.Anim] Entered wind-up phase
++[21:07:20] [INFO] [Player.Grenade.Anim] Phase changed to: Throw (duration: 0,20s)
++[21:07:20] [INFO] [Player.Grenade] Throwing! Direction: (0.9970475, 0.07678768), Drag: 26,094133 (adjusted: 234,8472)
++[21:07:20] [INFO] [Player.Grenade] Player rotated for throw: 0 -> 0,07686334
++[21:07:20] [INFO] [GrenadeBase] LEGACY throw_grenade() called! Direction: (0.997047, 0.076788), Speed: 469.7 (unfrozen)
++[21:07:20] [INFO] [GrenadeBase] NOTE: Using DRAG-BASED system. If velocity-based is expected, ensure grenade has throw_grenade_velocity_based() method.
++[21:07:20] [INFO] [Player.Grenade] Thrown! Direction: (0.9970475, 0.07678768), Adjusted drag: 234,8472
++[21:07:20] [INFO] [Player.Grenade] Player rotation restored to 0
++[21:07:20] [INFO] [Player.Grenade.Anim] Phase changed to: ReturnIdle (duration: 0,30s)
++[21:07:21] [INFO] [Player.Grenade.Anim] Animation complete, returning to normal
++[21:07:21] [INFO] [GrenadeBase] Grenade landed at (380.4155, 104.6899)
++[21:07:22] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
++[21:07:22] [INFO] [LastChance] Resetting all effects (scene change detected)
++[21:07:22] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
++[21:07:22] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
++[21:07:22] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
++[21:07:22] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
++[21:07:22] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
++[21:07:22] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
++[21:07:22] [INFO] [Player.Debug] Connected to GameManager, debug mode: True
++[21:07:22] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 3/3, Health: 3/4
++[21:07:22] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
++[21:07:22] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
++[21:07:22] [INFO] [PenultimateHit] Connected to player Died signal (C#)
++[21:07:22] [INFO] [LastChance] Found player: Player
++[21:07:22] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
++[21:07:22] [INFO] [LastChance] Connected to player Damaged signal (C#)
++[21:07:22] [INFO] [LastChance] Connected to player Died signal (C#)
++[21:07:22] [INFO] [Player] Detecting weapon pose (frame 3)...
++[21:07:22] [INFO] [Player] Detected weapon: Rifle (default pose)
++[21:07:22] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
++[21:07:22] [INFO] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
++[21:07:22] [INFO] [Player.Grenade] G pressed - starting grab animation
++[21:07:22] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (440.20456, 205.7143)
++[21:07:22] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
++[21:07:22] [INFO] [GrenadeBase] Timer activated! 4.0 seconds until explosion
++[21:07:22] [INFO] [Player.Grenade] Timer started, grenade created at (150, 360)
++[21:07:22] [INFO] [Player.Grenade.Anim] Phase changed to: PullPin (duration: 0,15s)
++[21:07:22] [INFO] [Player.Grenade] Step 1 complete! Drag: (213.4332, 19.369202)
++[21:07:22] [INFO] [Player.Grenade.Anim] Phase changed to: HandsApproach (duration: 0,20s)
++[21:07:22] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
++[21:07:22] [INFO] [Player.Grenade.Anim] Phase changed to: Transfer (duration: 0,15s)
++[21:07:22] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming, drag and release RMB to throw
++[21:07:22] [INFO] [Player.Grenade.Anim] Phase changed to: WindUp (duration: 0,00s)
++[21:07:22] [INFO] [Player.Grenade.Anim] Entered wind-up phase
++[21:07:24] [INFO] [Player.Grenade.Anim] Phase changed to: Throw (duration: 0,20s)
++[21:07:24] [INFO] [Player.Grenade] Throwing! Direction: (0.9987504, -0.04997603), Drag: 454,39233 (adjusted: 3840)
++[21:07:24] [INFO] [Player.Grenade] Player rotated for throw: 0 -> -0,049996857
++[21:07:24] [INFO] [GrenadeBase] LEGACY throw_grenade() called! Direction: (0.99875, -0.049976), Speed: 2500.0 (unfrozen)
++[21:07:24] [INFO] [GrenadeBase] NOTE: Using DRAG-BASED system. If velocity-based is expected, ensure grenade has throw_grenade_velocity_based() method.
++[21:07:24] [INFO] [Player.Grenade] Thrown! Direction: (0.9987504, -0.04997603), Adjusted drag: 3840
++[21:07:24] [INFO] [Player.Grenade] Player rotation restored to 0
++[21:07:24] [INFO] [Player.Grenade.Anim] Phase changed to: ReturnIdle (duration: 0,30s)
++[21:07:24] [INFO] [Player.Grenade.Anim] Animation complete, returning to normal
++[21:07:25] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
++[21:07:25] [INFO] [LastChance] Resetting all effects (scene change detected)
++[21:07:25] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
++[21:07:25] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
++[21:07:25] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
++[21:07:25] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
++[21:07:25] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
++[21:07:25] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
++[21:07:25] [INFO] [Player.Debug] Connected to GameManager, debug mode: True
++[21:07:25] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 3/3, Health: 3/4
++[21:07:25] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
++[21:07:25] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
++[21:07:25] [INFO] [PenultimateHit] Connected to player Died signal (C#)
++[21:07:25] [INFO] [LastChance] Found player: Player
++[21:07:25] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
++[21:07:25] [INFO] [LastChance] Connected to player Damaged signal (C#)
++[21:07:25] [INFO] [LastChance] Connected to player Died signal (C#)
++[21:07:25] [INFO] [Player] Detecting weapon pose (frame 3)...
++[21:07:25] [INFO] [Player] Detected weapon: Rifle (default pose)
++[21:07:25] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
++[21:07:25] [INFO] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
++[21:07:25] [INFO] [Player.Grenade] G pressed - starting grab animation
++[21:07:26] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (564.5103, 204.37848)
++[21:07:26] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
++[21:07:26] [INFO] [GrenadeBase] Timer activated! 4.0 seconds until explosion
++[21:07:26] [INFO] [Player.Grenade] Timer started, grenade created at (150, 360)
++[21:07:26] [INFO] [Player.Grenade.Anim] Phase changed to: PullPin (duration: 0,15s)
++[21:07:26] [INFO] [Player.Grenade] Step 1 complete! Drag: (238.9602, -20.03711)
++[21:07:26] [INFO] [Player.Grenade.Anim] Phase changed to: HandsApproach (duration: 0,20s)
++[21:07:26] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
++[21:07:26] [INFO] [Player.Grenade.Anim] Phase changed to: Transfer (duration: 0,15s)
++[21:07:26] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming, drag and release RMB to throw
++[21:07:26] [INFO] [Player.Grenade.Anim] Phase changed to: WindUp (duration: 0,00s)
++[21:07:26] [INFO] [Player.Grenade.Anim] Entered wind-up phase
++[21:07:28] [INFO] [Player.Grenade.Anim] Phase changed to: Throw (duration: 0,20s)
++[21:07:28] [INFO] [Player.Grenade] Throwing! Direction: (0.99270606, 0.12056038), Drag: 426,5794 (adjusted: 3839,2146)
++[21:07:28] [INFO] [Player.Grenade] Player rotated for throw: 0 -> 0,12085435
++[21:07:28] [INFO] [GrenadeBase] LEGACY throw_grenade() called! Direction: (0.992706, 0.12056), Speed: 2500.0 (unfrozen)
++[21:07:28] [INFO] [GrenadeBase] NOTE: Using DRAG-BASED system. If velocity-based is expected, ensure grenade has throw_grenade_velocity_based() method.
++[21:07:28] [INFO] [Player.Grenade] Thrown! Direction: (0.99270606, 0.12056038), Adjusted drag: 3839,2146
++[21:07:28] [INFO] [Player.Grenade] Player rotation restored to 0
++[21:07:28] [INFO] [Player.Grenade.Anim] Phase changed to: ReturnIdle (duration: 0,30s)
++[21:07:28] [INFO] [Player.Grenade.Anim] Animation complete, returning to normal
++[21:07:29] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
++[21:07:29] [INFO] [LastChance] Resetting all effects (scene change detected)
++[21:07:29] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
++[21:07:29] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
++[21:07:29] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
++[21:07:29] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
++[21:07:29] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
++[21:07:29] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
++[21:07:29] [INFO] [Player.Debug] Connected to GameManager, debug mode: True
++[21:07:29] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 3/3, Health: 3/4
++[21:07:29] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
++[21:07:29] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
++[21:07:29] [INFO] [PenultimateHit] Connected to player Died signal (C#)
++[21:07:29] [INFO] [LastChance] Found player: Player
++[21:07:29] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
++[21:07:29] [INFO] [LastChance] Connected to player Damaged signal (C#)
++[21:07:29] [INFO] [LastChance] Connected to player Died signal (C#)
++[21:07:29] [INFO] [Player] Detecting weapon pose (frame 3)...
++[21:07:29] [INFO] [Player] Detected weapon: Rifle (default pose)
++[21:07:29] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
++[21:07:29] [INFO] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
++[21:07:29] [INFO] [Player.Grenade] G pressed - starting grab animation
++[21:07:30] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (456.906, 225.0835)
++[21:07:30] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
++[21:07:30] [INFO] [GrenadeBase] Timer activated! 4.0 seconds until explosion
++[21:07:30] [INFO] [Player.Grenade] Timer started, grenade created at (150, 360)
++[21:07:30] [INFO] [Player.Grenade.Anim] Phase changed to: PullPin (duration: 0,15s)
++[21:07:30] [INFO] [Player.Grenade] Step 1 complete! Drag: (531.23315, 0)
++[21:07:30] [INFO] [Player.Grenade.Anim] Phase changed to: HandsApproach (duration: 0,20s)
++[21:07:30] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
++[21:07:30] [INFO] [Player.Grenade.Anim] Phase changed to: Transfer (duration: 0,15s)
++[21:07:30] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming, drag and release RMB to throw
++[21:07:30] [INFO] [Player.Grenade.Anim] Phase changed to: WindUp (duration: 0,00s)
++[21:07:30] [INFO] [Player.Grenade.Anim] Entered wind-up phase
++[21:07:32] [INFO] [Player.Grenade.Anim] Phase changed to: Throw (duration: 0,20s)
++[21:07:32] [INFO] [Player.Grenade] Throwing! Direction: (0.9764433, 0.21577407), Drag: 312,6338 (adjusted: 2813,704)
++[21:07:32] [INFO] [Player.Grenade] Player rotated for throw: 0 -> 0,21748452
++[21:07:32] [INFO] [GrenadeBase] LEGACY throw_grenade() called! Direction: (0.976443, 0.215774), Speed: 2500.0 (unfrozen)
++[21:07:32] [INFO] [GrenadeBase] NOTE: Using DRAG-BASED system. If velocity-based is expected, ensure grenade has throw_grenade_velocity_based() method.
++[21:07:32] [INFO] [Player.Grenade] Thrown! Direction: (0.9764433, 0.21577407), Adjusted drag: 2813,704
++[21:07:32] [INFO] [Player.Grenade] Player rotation restored to 0
++[21:07:32] [INFO] [Player.Grenade.Anim] Phase changed to: ReturnIdle (duration: 0,30s)
++[21:07:33] [INFO] [Player.Grenade.Anim] Animation complete, returning to normal
++[21:07:33] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
++[21:07:33] [INFO] [LastChance] Resetting all effects (scene change detected)
++[21:07:33] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
++[21:07:33] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
++[21:07:33] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
++[21:07:33] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
++[21:07:33] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
++[21:07:33] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
++[21:07:33] [INFO] [Player.Debug] Connected to GameManager, debug mode: True
++[21:07:33] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 3/3, Health: 3/4
++[21:07:33] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
++[21:07:33] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
++[21:07:33] [INFO] [PenultimateHit] Connected to player Died signal (C#)
++[21:07:33] [INFO] [LastChance] Found player: Player
++[21:07:33] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
++[21:07:33] [INFO] [LastChance] Connected to player Damaged signal (C#)
++[21:07:33] [INFO] [LastChance] Connected to player Died signal (C#)
++[21:07:33] [INFO] [Player] Detecting weapon pose (frame 3)...
++[21:07:33] [INFO] [Player] Detected weapon: Rifle (default pose)
++[21:07:33] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
++[21:07:34] [INFO] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
++[21:07:34] [INFO] [Player.Grenade] G pressed - starting grab animation
++[21:07:34] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (815.755, 270.50092)
++[21:07:34] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
++[21:07:34] [INFO] [GrenadeBase] Timer activated! 4.0 seconds until explosion
++[21:07:34] [INFO] [Player.Grenade] Timer started, grenade created at (150, 360)
++[21:07:34] [INFO] [Player.Grenade.Anim] Phase changed to: PullPin (duration: 0,15s)
++[21:07:34] [INFO] [Player.Grenade] Step 1 complete! Drag: (314.91418, -15.361771)
++[21:07:34] [INFO] [Player.Grenade.Anim] Phase changed to: HandsApproach (duration: 0,20s)
++[21:07:34] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
++[21:07:34] [INFO] [Player.Grenade.Anim] Phase changed to: Transfer (duration: 0,15s)
++[21:07:34] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming, drag and release RMB to throw
++[21:07:34] [INFO] [Player.Grenade.Anim] Phase changed to: WindUp (duration: 0,00s)
++[21:07:34] [INFO] [Player.Grenade.Anim] Entered wind-up phase
++[21:07:37] [INFO] [Player.Grenade.Anim] Phase changed to: Throw (duration: 0,20s)
++[21:07:37] [INFO] [Player.Grenade] Throwing! Direction: (1, 0), Drag: 11,621826 (adjusted: 104,596436)
++[21:07:37] [INFO] [Player.Grenade] Player rotated for throw: 0 -> 0
++[21:07:37] [INFO] [GrenadeBase] LEGACY throw_grenade() called! Direction: (1, 0), Speed: 209.2 (unfrozen)
++[21:07:37] [INFO] [GrenadeBase] NOTE: Using DRAG-BASED system. If velocity-based is expected, ensure grenade has throw_grenade_velocity_based() method.
++[21:07:37] [INFO] [Player.Grenade] Thrown! Direction: (1, 0), Adjusted drag: 104,596436
++[21:07:37] [INFO] [Player.Grenade] Player rotation restored to 0
++[21:07:37] [INFO] [Player.Grenade.Anim] Phase changed to: ReturnIdle (duration: 0,30s)
++[21:07:37] [INFO] [GrenadeBase] Grenade landed at (254.1619, 86.94442)
++[21:07:37] [INFO] [Player.Grenade.Anim] Animation complete, returning to normal
++[21:07:38] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
++[21:07:38] [INFO] [LastChance] Resetting all effects (scene change detected)
++[21:07:38] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
++[21:07:38] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
++[21:07:38] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
++[21:07:38] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
++[21:07:38] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
++[21:07:38] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
++[21:07:38] [INFO] [Player.Debug] Connected to GameManager, debug mode: True
++[21:07:38] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 3/3, Health: 2/4
++[21:07:38] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
++[21:07:38] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
++[21:07:38] [INFO] [PenultimateHit] Connected to player Died signal (C#)
++[21:07:38] [INFO] [LastChance] Found player: Player
++[21:07:38] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
++[21:07:38] [INFO] [LastChance] Connected to player Damaged signal (C#)
++[21:07:38] [INFO] [LastChance] Connected to player Died signal (C#)
++[21:07:38] [INFO] [Player] Detecting weapon pose (frame 3)...
++[21:07:38] [INFO] [Player] Detected weapon: Rifle (default pose)
++[21:07:38] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
++[21:07:38] [INFO] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
++[21:07:38] [INFO] [Player.Grenade] G pressed - starting grab animation
++[21:07:38] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (820.9333, 261.15027)
++[21:07:38] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
++[21:07:38] [INFO] [GrenadeBase] Timer activated! 4.0 seconds until explosion
++[21:07:38] [INFO] [Player.Grenade] Timer started, grenade created at (150, 360)
++[21:07:38] [INFO] [Player.Grenade.Anim] Phase changed to: PullPin (duration: 0,15s)
++[21:07:38] [INFO] [Player.Grenade] Step 1 complete! Drag: (280.64923, 20.03711)
++[21:07:38] [INFO] [Player.Grenade.Anim] Phase changed to: HandsApproach (duration: 0,20s)
++[21:07:38] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
++[21:07:39] [INFO] [Player.Grenade.Anim] Phase changed to: Transfer (duration: 0,15s)
++[21:07:39] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming, drag and release RMB to throw
++[21:07:39] [INFO] [Player.Grenade.Anim] Phase changed to: WindUp (duration: 0,00s)
++[21:07:39] [INFO] [Player.Grenade.Anim] Entered wind-up phase
++[21:07:42] [INFO] [Player.Grenade.Anim] Phase changed to: Throw (duration: 0,20s)
++[21:07:42] [INFO] [Player.Grenade] Throwing! Direction: (0.9952743, 0.09710371), Drag: 55,026028 (adjusted: 495,23425)
++[21:07:42] [INFO] [Player.Grenade] Player rotated for throw: 0 -> 0,09725696
++[21:07:42] [INFO] [GrenadeBase] LEGACY throw_grenade() called! Direction: (0.995274, 0.097104), Speed: 990.5 (unfrozen)
++[21:07:42] [INFO] [GrenadeBase] NOTE: Using DRAG-BASED system. If velocity-based is expected, ensure grenade has throw_grenade_velocity_based() method.
++[21:07:42] [INFO] [Player.Grenade] Thrown! Direction: (0.9952743, 0.09710371), Adjusted drag: 495,23425
++[21:07:42] [INFO] [Player.Grenade] Player rotation restored to 0
++[21:07:42] [INFO] [Player.Grenade.Anim] Phase changed to: ReturnIdle (duration: 0,30s)
++[21:07:42] [INFO] [Player.Grenade.Anim] Animation complete, returning to normal
++[21:07:42] [INFO] [GrenadeBase] EXPLODED at (631.9585, 127.0223)!
++[21:07:42] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(631.9585, 127.0223), source=NEUTRAL (FlashbangGrenade), range=2937, listeners=10
++[21:07:42] [INFO] [SoundPropagation] Cleaned up 10 invalid listeners
++[21:07:42] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
++[21:07:46] [INFO] ------------------------------------------------------------
++[21:07:46] [INFO] GAME LOG ENDED: 2026-01-22T21:07:46
++[21:07:46] [INFO] ============================================================
+diff --git a/scenes/projectiles/FlashbangGrenade.tscn b/scenes/projectiles/FlashbangGrenade.tscn
+index c24fb2d6..2c9c625d 100644
+--- a/scenes/projectiles/FlashbangGrenade.tscn
++++ b/scenes/projectiles/FlashbangGrenade.tscn
+@@ -16,6 +16,9 @@ fuse_time = 4.0
+ max_throw_speed = 2500.0
+ min_throw_speed = 100.0
+ drag_to_speed_multiplier = 2.0
++grenade_mass = 0.36
++mouse_velocity_to_throw_multiplier = 3.5
++min_swing_distance = 180.0
+ ground_friction = 300.0
+ sound_range_multiplier = 2.0
+ blindness_duration = 12.0
+diff --git a/scenes/projectiles/FragGrenade.tscn b/scenes/projectiles/FragGrenade.tscn
+index d9f7366c..a70a97db 100644
+--- a/scenes/projectiles/FragGrenade.tscn
++++ b/scenes/projectiles/FragGrenade.tscn
+@@ -16,6 +16,9 @@ fuse_time = 4.0
+ max_throw_speed = 2625.0
+ min_throw_speed = 100.0
+ drag_to_speed_multiplier = 2.0
++grenade_mass = 0.45
++mouse_velocity_to_throw_multiplier = 3.2
++min_swing_distance = 220.0
+ ground_friction = 280.0
+ sound_range_multiplier = 2.0
+ effect_radius = 225.0
+diff --git a/scripts/characters/player.gd b/scripts/characters/player.gd
+index a287eb7e..9be4d8b3 100644
+--- a/scripts/characters/player.gd
++++ b/scripts/characters/player.gd
+@@ -284,6 +284,7 @@ func _ready() -> void:
+ 		_current_grenades, max_grenades,
+ 		_current_health, max_health
+ 	])
++	FileLogger.info("[Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)")
+ 
+ 
+ func _physics_process(delta: float) -> void:
+@@ -1156,6 +1157,22 @@ var _wind_up_intensity: float = 0.0
+ ## Previous mouse position for velocity calculation.
+ var _prev_mouse_pos: Vector2 = Vector2.ZERO
+ 
++## Mouse velocity history for smooth velocity calculation (stores last N velocities).
++## Used to get stable velocity at moment of release.
++var _mouse_velocity_history: Array[Vector2] = []
++
++## Maximum number of velocity samples to keep in history.
++const MOUSE_VELOCITY_HISTORY_SIZE: int = 5
++
++## Current calculated mouse velocity (pixels per second).
++var _current_mouse_velocity: Vector2 = Vector2.ZERO
++
++## Total swing distance traveled during aiming (for momentum transfer calculation).
++var _total_swing_distance: float = 0.0
++
++## Previous frame time for delta calculation in velocity tracking.
++var _prev_frame_time: float = 0.0
++
+ ## Whether weapon is in sling position (lowered for grenade handling).
+ var _weapon_slung: bool = false
+ 
+@@ -1310,9 +1327,14 @@ func _handle_grenade_waiting_for_g_release_state() -> void:
+ 		_grenade_state = GrenadeState.AIMING
+ 		_aim_drag_start = get_global_mouse_position()
+ 		_prev_mouse_pos = _aim_drag_start
++		# Initialize velocity tracking for realistic throwing
++		_mouse_velocity_history.clear()
++		_current_mouse_velocity = Vector2.ZERO
++		_total_swing_distance = 0.0
++		_prev_frame_time = Time.get_ticks_msec() / 1000.0
+ 		# Start transfer animation, then wind-up
+ 		_start_grenade_anim_phase(GrenadeAnimPhase.TRANSFER, ANIM_TRANSFER_DURATION)
+-		FileLogger.info("[Player.Grenade] Step 2 complete: G released, RMB held - now aiming, drag and release RMB to throw")
++		FileLogger.info("[Player.Grenade] Step 2 complete: G released, RMB held - now aiming (velocity-based throwing enabled)")
+ 
+ 
+ ## Handle AIMING state: only RMB held (G released), drag to aim and release to throw.
+@@ -1406,44 +1428,45 @@ func _reset_grenade_state() -> void:
+ 	_aim_drag_start = Vector2.ZERO
+ 	_active_grenade = null
+ 	_wind_up_intensity = 0.0
++	# Reset velocity tracking for next throw
++	_mouse_velocity_history.clear()
++	_current_mouse_velocity = Vector2.ZERO
++	_total_swing_distance = 0.0
+ 	# Animation will transition via RETURN_IDLE phase (set by caller if needed)
+ 	FileLogger.info("[Player.Grenade] State reset to IDLE")
+ 
+ 
+-## Throw the grenade based on aiming drag direction and distance.
++## Throw the grenade using realistic velocity-based physics.
++## The throw velocity is determined by mouse velocity at release moment, not drag distance.
+ ## Includes player rotation animation to prevent grenade hitting player.
+-## @param drag_end: The position where the mouse drag ended.
++## @param drag_end: The position where the mouse drag ended (used for direction fallback).
+ func _throw_grenade(drag_end: Vector2) -> void:
+ 	if _active_grenade == null or not is_instance_valid(_active_grenade):
+ 		FileLogger.info("[Player.Grenade] Cannot throw: no active grenade")
+ 		_reset_grenade_state()
+ 		return
+ 
+-	# Calculate throw direction and distance from aiming drag
+-	var drag_vector := drag_end - _aim_drag_start
+-	var drag_distance := drag_vector.length()
+-
+-	# If drag is too short (dropped at feet), use minimum throw
+-	var min_drag_distance := 10.0
+-	if drag_distance < min_drag_distance:
+-		drag_distance = min_drag_distance
+-		drag_vector = Vector2(1, 0)  # Default direction if no drag
+-
+-	var throw_direction := drag_vector.normalized()
++	# Get the mouse velocity at moment of release (this is the key to realistic physics)
++	var release_velocity := _current_mouse_velocity
+ 
+-	# Increase throw sensitivity significantly - multiply drag distance by 9x
+-	# (3x for sensitivity * 3x for user-requested range increase)
+-	var sensitivity_multiplier := 9.0
+-	var adjusted_drag_distance := drag_distance * sensitivity_multiplier
++	# Determine throw direction from velocity, or fallback to drag direction if stationary
++	var throw_direction: Vector2
++	var velocity_magnitude := release_velocity.length()
+ 
+-	# Clamp max drag distance to viewport length * 3 (user requested 3x farther)
+-	var viewport := get_viewport()
+-	var max_drag_distance := 3840.0  # Default 1280 * 3
+-	if viewport:
+-		max_drag_distance = viewport.get_visible_rect().size.x * 3.0
+-	adjusted_drag_distance = minf(adjusted_drag_distance, max_drag_distance)
++	if velocity_magnitude > 10.0:  # Mouse was moving at release
++		throw_direction = release_velocity.normalized()
++	else:
++		# Mouse was stationary at release - grenade drops at feet
++		# Use a slight forward direction so it doesn't appear exactly at player
++		var drag_vector := drag_end - _aim_drag_start
++		if drag_vector.length() > 5.0:
++			throw_direction = drag_vector.normalized()
++		else:
++			throw_direction = Vector2(1, 0)  # Default direction
+ 
+-	FileLogger.info("[Player.Grenade] Throwing! Direction: %s, Drag: %.1f (adjusted: %.1f)" % [str(throw_direction), drag_distance, adjusted_drag_distance])
++	FileLogger.info("[Player.Grenade] Velocity-based throw! Mouse velocity: %s (%.1f px/s), Swing distance: %.1f" % [
++		str(release_velocity), velocity_magnitude, _total_swing_distance
++	])
+ 
+ 	# Rotate player to face throw direction (prevents grenade hitting player when throwing upward)
+ 	_rotate_player_for_throw(throw_direction)
+@@ -1454,9 +1477,13 @@ func _throw_grenade(drag_end: Vector2) -> void:
+ 	var spawn_position := global_position + throw_direction * spawn_offset
+ 	_active_grenade.global_position = spawn_position
+ 
+-	# Set the throw velocity with adjusted distance
+-	if _active_grenade.has_method("throw_grenade"):
+-		_active_grenade.throw_grenade(throw_direction, adjusted_drag_distance)
++	# Use velocity-based throwing if available, otherwise fall back to legacy
++	if _active_grenade.has_method("throw_grenade_velocity_based"):
++		_active_grenade.throw_grenade_velocity_based(release_velocity, _total_swing_distance)
++	elif _active_grenade.has_method("throw_grenade"):
++		# Legacy fallback: convert velocity to drag distance approximation
++		var legacy_distance := velocity_magnitude * 0.5  # Rough conversion
++		_active_grenade.throw_grenade(throw_direction, legacy_distance)
+ 
+ 	# Emit signal
+ 	grenade_thrown.emit()
+@@ -1466,7 +1493,7 @@ func _throw_grenade(drag_end: Vector2) -> void:
+ 	if audio_manager and audio_manager.has_method("play_grenade_throw"):
+ 		audio_manager.play_grenade_throw(global_position)
+ 
+-	FileLogger.info("[Player.Grenade] Thrown! Direction: %s, Distance: %.1f" % [str(throw_direction), adjusted_drag_distance])
++	FileLogger.info("[Player.Grenade] Thrown! Velocity: %.1f, Swing: %.1f" % [velocity_magnitude, _total_swing_distance])
+ 
+ 	# Reset state (grenade is now independent)
+ 	_reset_grenade_state()
+@@ -1672,30 +1699,48 @@ func _update_weapon_sling(delta: float) -> void:
+ 	_weapon_mount.rotation = lerpf(_weapon_mount.rotation, target_rot, lerp_speed)
+ 
+ 
+-## Update wind-up intensity based on mouse drag distance during aiming.
++## Update wind-up intensity and track mouse velocity during aiming.
++## Uses velocity-based physics for realistic throwing.
+ func _update_wind_up_intensity() -> void:
+ 	var current_mouse := get_global_mouse_position()
++	var current_time := Time.get_ticks_msec() / 1000.0
+ 
+-	# Calculate drag distance from aim start
+-	var drag_vector := current_mouse - _aim_drag_start
+-	var drag_distance := drag_vector.length()
++	# Calculate time delta since last frame
++	var delta_time := current_time - _prev_frame_time
++	if delta_time <= 0.0:
++		delta_time = 0.016  # Default to ~60fps if first frame
+ 
+-	# Get viewport for max drag calculation
+-	var viewport := get_viewport()
+-	var max_drag := 600.0  # Default max drag distance
+-	if viewport:
+-		max_drag = viewport.get_visible_rect().size.x * 0.5
++	# Calculate mouse displacement since last frame
++	var mouse_delta := current_mouse - _prev_mouse_pos
+ 
+-	# Calculate base intensity from distance
+-	var intensity := clampf(drag_distance / max_drag, 0.0, 1.0)
++	# Accumulate total swing distance for momentum transfer calculation
++	_total_swing_distance += mouse_delta.length()
+ 
+-	# Add velocity component for more responsive feel
+-	var mouse_delta := current_mouse - _prev_mouse_pos
+-	var mouse_velocity := mouse_delta.length()
+-	var velocity_bonus := clampf(mouse_velocity / 50.0, 0.0, 0.2)
++	# Calculate instantaneous mouse velocity (pixels per second)
++	var instantaneous_velocity := mouse_delta / delta_time
++
++	# Add to velocity history for smoothing
++	_mouse_velocity_history.append(instantaneous_velocity)
++	if _mouse_velocity_history.size() > MOUSE_VELOCITY_HISTORY_SIZE:
++		_mouse_velocity_history.remove_at(0)
++
++	# Calculate average velocity from history (smoothed velocity)
++	var velocity_sum := Vector2.ZERO
++	for vel in _mouse_velocity_history:
++		velocity_sum += vel
++	_current_mouse_velocity = velocity_sum / max(_mouse_velocity_history.size(), 1)
++
++	# Calculate wind-up intensity based on velocity (for animation)
++	# Higher velocity = more wind-up visual effect
++	var velocity_magnitude := _current_mouse_velocity.length()
++	# Normalize to a reasonable range (0-2000 pixels/second typical for fast mouse movement)
++	var velocity_intensity := clampf(velocity_magnitude / 1500.0, 0.0, 1.0)
++
++	_wind_up_intensity = velocity_intensity
+ 
+-	_wind_up_intensity = clampf(intensity + velocity_bonus, 0.0, 1.0)
++	# Update tracking for next frame
+ 	_prev_mouse_pos = current_mouse
++	_prev_frame_time = current_time
+ 
+ 
+ # ============================================================================
+diff --git a/scripts/projectiles/grenade_base.gd b/scripts/projectiles/grenade_base.gd
+index a9147804..10b697bd 100644
+--- a/scripts/projectiles/grenade_base.gd
++++ b/scripts/projectiles/grenade_base.gd
+@@ -23,11 +23,25 @@ class_name GrenadeBase
+ ## Minimum throw speed for a minimal drag (gentle lob).
+ @export var min_throw_speed: float = 100.0
+ 
+-## Drag multiplier to convert drag distance to throw speed.
++## Drag multiplier to convert drag distance to throw speed (DEPRECATED - kept for compatibility).
+ ## At viewport width (~1280px) drag, reaches near max speed.
+ ## At ~100px drag (short swing), produces gentle throw.
+ @export var drag_to_speed_multiplier: float = 2.0
+ 
++## Mass of the grenade in kg. Affects how mouse velocity translates to throw velocity.
++## Heavier grenades require more "swing momentum" to achieve full velocity transfer.
++## Light grenade (0.2kg) = quick flick throw, Heavy grenade (0.6kg) = needs full swing.
++@export var grenade_mass: float = 0.4
++
++## Multiplier to convert mouse velocity (pixels/second) to throw velocity.
++## This is the base ratio before mass adjustment.
++@export var mouse_velocity_to_throw_multiplier: float = 3.0
++
++## Minimum swing distance (in pixels) required for full velocity transfer at grenade's mass.
++## For a 0.4kg grenade, need ~200px of mouse movement to transfer full velocity.
++## Formula: actual_min_swing = min_swing_distance * (grenade_mass / 0.4)
++@export var min_swing_distance: float = 200.0
++
+ ## Friction/damping applied to slow the grenade (reduced for easier rolling).
+ @export var ground_friction: float = 150.0
+ 
+@@ -144,7 +158,46 @@ func activate_timer() -> void:
+ 	FileLogger.info("[GrenadeBase] Timer activated! %.1f seconds until explosion" % fuse_time)
+ 
+ 
+-## Throw the grenade in a direction with speed based on drag distance.
++## Throw the grenade using realistic velocity-based physics.
++## The throw velocity is derived from mouse velocity at release, adjusted by grenade mass.
++## @param mouse_velocity: The mouse velocity vector at moment of release (pixels/second).
++## @param swing_distance: Total distance the mouse traveled during the swing (pixels).
++func throw_grenade_velocity_based(mouse_velocity: Vector2, swing_distance: float) -> void:
++	# Unfreeze the grenade so physics can take over
++	freeze = false
++
++	# Calculate mass-adjusted minimum swing distance
++	# Heavier grenades need more swing to transfer full velocity
++	var mass_ratio := grenade_mass / 0.4  # Normalized to "standard" 0.4kg grenade
++	var required_swing := min_swing_distance * mass_ratio
++
++	# Calculate velocity transfer efficiency (0.0 to 1.0)
++	# If swing distance is less than required, velocity transfer is reduced
++	var transfer_efficiency := clampf(swing_distance / required_swing, 0.0, 1.0)
++
++	# Convert mouse velocity to throw velocity
++	# Base formula: throw_velocity = mouse_velocity * multiplier * transfer_efficiency / mass_ratio
++	# Heavier grenades are harder to throw far with same mouse speed
++	var base_throw_velocity := mouse_velocity * mouse_velocity_to_throw_multiplier * transfer_efficiency
++	var mass_adjusted_velocity := base_throw_velocity / sqrt(mass_ratio)  # sqrt for more natural feel
++
++	# Clamp the final speed
++	var throw_speed := clampf(mass_adjusted_velocity.length(), 0.0, max_throw_speed)
++
++	# Set velocity (use original direction if speed is non-zero)
++	if throw_speed > 1.0:
++		linear_velocity = mass_adjusted_velocity.normalized() * throw_speed
++		rotation = linear_velocity.angle()
++	else:
++		# Mouse wasn't moving - grenade drops at feet
++		linear_velocity = Vector2.ZERO
++
++	FileLogger.info("[GrenadeBase] Velocity-based throw! Mouse vel: %s, Swing: %.1f, Transfer: %.2f, Final speed: %.1f" % [
++		str(mouse_velocity), swing_distance, transfer_efficiency, throw_speed
++	])
++
++
++## Throw the grenade in a direction with speed based on drag distance (LEGACY method).
+ ## @param direction: Normalized direction to throw.
+ ## @param drag_distance: Distance of the drag in pixels.
+ func throw_grenade(direction: Vector2, drag_distance: float) -> void:
+@@ -165,7 +218,8 @@ func throw_grenade(direction: Vector2, drag_distance: float) -> void:
+ 	# Rotate to face direction
+ 	rotation = direction.angle()
+ 
+-	FileLogger.info("[GrenadeBase] Thrown! Direction: %s, Speed: %.1f (unfrozen)" % [str(direction), throw_speed])
++	FileLogger.info("[GrenadeBase] LEGACY throw_grenade() called! Direction: %s, Speed: %.1f (unfrozen)" % [str(direction), throw_speed])
++	FileLogger.info("[GrenadeBase] NOTE: Using DRAG-BASED system. If velocity-based is expected, ensure grenade has throw_grenade_velocity_based() method.")
+ 
+ 
+ ## Get the explosion effect radius. Override in subclasses.
+diff --git a/tests/unit/test_grenade_base.gd b/tests/unit/test_grenade_base.gd
+index 0c8e768a..3bc45e35 100644
+--- a/tests/unit/test_grenade_base.gd
++++ b/tests/unit/test_grenade_base.gd
+@@ -23,6 +23,15 @@ class MockGrenadeBase:
+ 	## Drag multiplier to convert drag distance to throw speed.
+ 	var drag_to_speed_multiplier: float = 2.0
+ 
++	## Mass of the grenade in kg (for velocity-based physics).
++	var grenade_mass: float = 0.4
++
++	## Multiplier to convert mouse velocity to throw velocity.
++	var mouse_velocity_to_throw_multiplier: float = 3.0
++
++	## Minimum swing distance for full velocity transfer.
++	var min_swing_distance: float = 200.0
++
+ 	## Friction/damping applied to slow the grenade.
+ 	var ground_friction: float = 150.0
+ 
+@@ -85,7 +94,32 @@ class MockGrenadeBase:
+ 			_activation_sound_played = true
+ 			activation_sound_played += 1
+ 
+-	## Throw the grenade in a direction with speed based on drag distance.
++	## Throw the grenade using velocity-based physics.
++	func throw_grenade_velocity_based(mouse_velocity: Vector2, swing_distance: float) -> void:
++		freeze = false
++
++		# Calculate mass-adjusted minimum swing distance
++		var mass_ratio := grenade_mass / 0.4
++		var required_swing := min_swing_distance * mass_ratio
++
++		# Calculate velocity transfer efficiency
++		var transfer_efficiency := clampf(swing_distance / required_swing, 0.0, 1.0)
++
++		# Convert mouse velocity to throw velocity
++		var base_throw_velocity := mouse_velocity * mouse_velocity_to_throw_multiplier * transfer_efficiency
++		var mass_adjusted_velocity := base_throw_velocity / sqrt(mass_ratio)
++
++		# Clamp the final speed
++		var throw_speed := clampf(mass_adjusted_velocity.length(), 0.0, max_throw_speed)
++
++		# Set velocity
++		if throw_speed > 1.0:
++			linear_velocity = mass_adjusted_velocity.normalized() * throw_speed
++			rotation = linear_velocity.angle()
++		else:
++			linear_velocity = Vector2.ZERO
++
++	## Throw the grenade in a direction with speed based on drag distance (legacy).
+ 	func throw_grenade(direction: Vector2, drag_distance: float) -> void:
+ 		freeze = false
+ 
+@@ -591,3 +625,110 @@ func test_very_large_delta() -> void:
+ 
+ 	assert_true(grenade.has_exploded())
+ 	assert_le(grenade.get_time_remaining(), 0.0)
++
++
++# ============================================================================
++# Velocity-Based Throwing Tests (Realistic Physics)
++# ============================================================================
++
++
++func test_velocity_based_throw_unfreezes_grenade() -> void:
++	grenade.throw_grenade_velocity_based(Vector2(500, 0), 300.0)
++
++	assert_false(grenade.freeze)
++
++
++func test_velocity_based_throw_with_zero_mouse_velocity() -> void:
++	# If mouse is not moving at release, grenade should have zero velocity
++	grenade.throw_grenade_velocity_based(Vector2.ZERO, 200.0)
++
++	assert_eq(grenade.linear_velocity, Vector2.ZERO,
++		"Zero mouse velocity should result in grenade dropping at feet")
++
++
++func test_velocity_based_throw_direction_matches_mouse_velocity() -> void:
++	grenade.throw_grenade_velocity_based(Vector2(1000, 0), 250.0)
++
++	assert_gt(grenade.linear_velocity.x, 0,
++		"Velocity should be in direction of mouse movement")
++	assert_almost_eq(grenade.linear_velocity.y, 0.0, 0.001)
++
++
++func test_velocity_based_throw_speed_scales_with_mouse_velocity() -> void:
++	grenade.throw_grenade_velocity_based(Vector2(500, 0), 250.0)
++	var speed_slow := grenade.linear_velocity.length()
++
++	grenade.linear_velocity = Vector2.ZERO
++	grenade.throw_grenade_velocity_based(Vector2(1500, 0), 250.0)
++	var speed_fast := grenade.linear_velocity.length()
++
++	assert_gt(speed_fast, speed_slow,
++		"Faster mouse movement should produce faster throw")
++
++
++func test_velocity_based_throw_transfer_efficiency_with_low_swing() -> void:
++	# Low swing distance should reduce velocity transfer
++	grenade.throw_grenade_velocity_based(Vector2(1000, 0), 50.0)
++	var speed_low_swing := grenade.linear_velocity.length()
++
++	grenade.linear_velocity = Vector2.ZERO
++	grenade.throw_grenade_velocity_based(Vector2(1000, 0), 400.0)
++	var speed_high_swing := grenade.linear_velocity.length()
++
++	assert_gt(speed_high_swing, speed_low_swing,
++		"Longer swing distance should improve velocity transfer")
++
++
++func test_velocity_based_throw_mass_affects_throw_speed() -> void:
++	# Light grenade
++	grenade.grenade_mass = 0.2
++	grenade.throw_grenade_velocity_based(Vector2(1000, 0), 300.0)
++	var speed_light := grenade.linear_velocity.length()
++
++	# Heavy grenade
++	grenade.linear_velocity = Vector2.ZERO
++	grenade.grenade_mass = 0.6
++	grenade.throw_grenade_velocity_based(Vector2(1000, 0), 300.0)
++	var speed_heavy := grenade.linear_velocity.length()
++
++	assert_gt(speed_light, speed_heavy,
++		"Lighter grenade should be thrown faster with same mouse velocity")
++
++
++func test_velocity_based_throw_max_speed_clamped() -> void:
++	grenade.throw_grenade_velocity_based(Vector2(10000, 0), 500.0)
++
++	assert_le(grenade.linear_velocity.length(), grenade.max_throw_speed,
++		"Throw speed should not exceed maximum")
++
++
++func test_velocity_based_throw_sets_rotation() -> void:
++	grenade.throw_grenade_velocity_based(Vector2(1, 1).normalized() * 1000, 250.0)
++
++	# 45 degrees = PI/4 radians
++	assert_almost_eq(grenade.rotation, PI / 4, 0.01)
++
++
++func test_velocity_based_throw_with_diagonal_velocity() -> void:
++	grenade.throw_grenade_velocity_based(Vector2(500, -500), 250.0)
++
++	assert_gt(grenade.linear_velocity.x, 0)
++	assert_lt(grenade.linear_velocity.y, 0)
++
++
++func test_velocity_based_throw_minimum_swing_scales_with_mass() -> void:
++	# Heavy grenade needs more swing for full transfer
++	grenade.grenade_mass = 0.6  # 1.5x standard mass
++	grenade.min_swing_distance = 200.0
++
++	# With insufficient swing for heavy grenade, transfer is reduced
++	grenade.throw_grenade_velocity_based(Vector2(1000, 0), 200.0)
++	var speed_heavy_short_swing := grenade.linear_velocity.length()
++
++	grenade.linear_velocity = Vector2.ZERO
++	# With sufficient swing (200 * 1.5 = 300)
++	grenade.throw_grenade_velocity_based(Vector2(1000, 0), 350.0)
++	var speed_heavy_long_swing := grenade.linear_velocity.length()
++
++	assert_gt(speed_heavy_long_swing, speed_heavy_short_swing,
++		"Heavy grenade should need more swing distance for full velocity transfer")

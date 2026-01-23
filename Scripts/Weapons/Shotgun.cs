@@ -138,6 +138,11 @@ public partial class Shotgun : BaseWeapon
     private Vector2 _aimDirection = Vector2.Right;
 
     /// <summary>
+    /// Last fire direction (used to eject casing after pump up).
+    /// </summary>
+    private Vector2 _lastFireDirection = Vector2.Right;
+
+    /// <summary>
     /// Position where drag started for gesture detection.
     /// </summary>
     private Vector2 _dragStartPosition = Vector2.Zero;
@@ -176,6 +181,19 @@ public partial class Shotgun : BaseWeapon
     ///    Fixed by moving MMB tracking BEFORE TryProcessMidDragGesture() call.
     /// </summary>
     private bool _wasMiddleMouseHeldDuringDrag = false;
+
+    /// <summary>
+    /// Whether a shell was loaded during the current mid-drag gesture.
+    /// This prevents loading multiple shells in one drag motion (Issue #266).
+    ///
+    /// ROOT CAUSE (Issue #266): When TryProcessMidDragGesture loads a shell and resets
+    /// _dragStartPosition, it also resets _wasMiddleMouseHeldDuringDrag = anyMMBDetected.
+    /// Since MMB is still held, this is true. When RMB is released, ProcessReloadGesture
+    /// sees _wasMiddleMouseHeldDuringDrag = true and loads another shell.
+    ///
+    /// Fix: Track if a shell was loaded during mid-drag, and skip loading on RMB release.
+    /// </summary>
+    private bool _shellLoadedDuringMidDrag = false;
 
     /// <summary>
     /// Whether we're on the tutorial level (infinite shells).
@@ -572,8 +590,9 @@ public partial class Shotgun : BaseWeapon
 
             ProcessDragGesture(dragVector);
 
-            // Reset the flag after processing
+            // Reset flags after processing
             _wasMiddleMouseHeldDuringDrag = false;
+            _shellLoadedDuringMidDrag = false;  // Issue #266: Reset mid-drag shell load flag
             _dragFrameCount = 0;
         }
     }
@@ -621,6 +640,10 @@ public partial class Shotgun : BaseWeapon
                         // Mid-drag pump up - eject shell
                         ActionState = ShotgunActionState.NeedsPumpDown;
                         PlayPumpUpSound();
+
+                        // Spawn casing when pump is pulled back (Issue #285)
+                        SpawnCasing(_lastFireDirection, WeaponData?.Caliber);
+
                         EmitSignal(SignalName.ActionStateChanged, (int)ActionState);
                         EmitSignal(SignalName.PumpActionCycled, "up");
                         GD.Print("[Shotgun] Mid-drag pump UP - shell ejected, continue dragging DOWN to chamber");
@@ -637,23 +660,28 @@ public partial class Shotgun : BaseWeapon
 
                         if (shouldLoadShellMidDrag && ShellsInTube < TubeMagazineCapacity)
                         {
-                            LogToFile($"[Shotgun.FIX#243] Mid-drag MMB+DOWN during pump cycle: transitioning to reload mode");
+                            LogToFile($"[Shotgun.FIX#266] Mid-drag MMB+DOWN during pump cycle: transitioning to reload mode");
 
                             _lastBoltCloseTime = Time.GetTicksMsec() / 1000.0;
 
-                            // Open bolt for loading (skip the Ready state)
+                            // Transition to Loading state (skip the Ready state)
+                            // NOTE: Don't play action open sound here - the bolt is already open
+                            // from the pump UP action. Playing open sound here was causing
+                            // confusion (Issue #266).
                             ReloadState = ShotgunReloadState.Loading;
                             ActionState = ShotgunActionState.Ready;
-                            PlayActionOpenSound();
+                            // PlayActionOpenSound(); // REMOVED: Bolt is already open from pump UP
                             EmitSignal(SignalName.ReloadStateChanged, (int)ReloadState);
                             EmitSignal(SignalName.ActionStateChanged, (int)ActionState);
                             EmitSignal(SignalName.ReloadStarted);
-                            LogToFile("[Shotgun.FIX#243] Mid-drag bolt opened for loading - now loading shell");
+                            LogToFile("[Shotgun.FIX#266] Transitioned to Loading state (bolt already open from pump UP)");
 
                             // Load a shell
                             LoadShell();
+                            // Mark that we loaded a shell during mid-drag (Issue #266 fix)
+                            _shellLoadedDuringMidDrag = true;
 
-                            LogToFile($"[Shotgun.FIX#243] Mid-drag shell loaded during pump cycle - staying in Loading state");
+                            LogToFile($"[Shotgun.FIX#266] Mid-drag shell loaded during pump cycle - staying in Loading state");
                             gestureProcessed = true;
                             break;
                         }
@@ -822,6 +850,10 @@ public partial class Shotgun : BaseWeapon
                     // Eject spent shell (pull pump back/up)
                     ActionState = ShotgunActionState.NeedsPumpDown;
                     PlayPumpUpSound();
+
+                    // Spawn casing when pump is pulled back (Issue #285)
+                    SpawnCasing(_lastFireDirection, WeaponData?.Caliber);
+
                     EmitSignal(SignalName.ActionStateChanged, (int)ActionState);
                     EmitSignal(SignalName.PumpActionCycled, "up");
                     LogToFile("[Shotgun.FIX#243] Pump UP - shell ejected, now pump DOWN to chamber (or MMB+DOWN to load)");
@@ -836,25 +868,29 @@ public partial class Shotgun : BaseWeapon
                     // Transition to reload mode and load shell.
                     if (shouldLoadShell && ShellsInTube < TubeMagazineCapacity)
                     {
-                        LogToFile($"[Shotgun.FIX#243] MMB+DOWN during pump cycle: transitioning to reload mode (wasMMBDuringDrag={_wasMiddleMouseHeldDuringDrag}, isMMBHeld={_isMiddleMouseHeld})");
+                        LogToFile($"[Shotgun.FIX#266] MMB+DOWN during pump cycle: transitioning to reload mode (wasMMBDuringDrag={_wasMiddleMouseHeldDuringDrag}, isMMBHeld={_isMiddleMouseHeld})");
 
-                        // First, complete the pump action (chamber if possible)
                         _lastBoltCloseTime = Time.GetTicksMsec() / 1000.0;
 
-                        // Open bolt for loading (skip the Ready state)
+                        // Transition to Loading state (skip the Ready state)
+                        // NOTE: Don't play action open sound here - the bolt is already open
+                        // from the pump UP action. Playing open sound here was causing
+                        // confusion (Issue #266).
                         ReloadState = ShotgunReloadState.Loading;
                         ActionState = ShotgunActionState.Ready;
-                        PlayActionOpenSound();
+                        // PlayActionOpenSound(); // REMOVED: Bolt is already open from pump UP
                         EmitSignal(SignalName.ReloadStateChanged, (int)ReloadState);
                         EmitSignal(SignalName.ActionStateChanged, (int)ActionState);
                         EmitSignal(SignalName.ReloadStarted);
-                        LogToFile("[Shotgun.FIX#243] Bolt opened for loading - now loading shell");
+                        LogToFile("[Shotgun.FIX#266] Transitioned to Loading state (bolt already open from pump UP)");
 
                         // Load a shell
                         LoadShell();
+                        // Mark that we loaded a shell during mid-drag (Issue #266 fix)
+                        _shellLoadedDuringMidDrag = true;
 
                         // Stay in Loading state for more shells
-                        LogToFile($"[Shotgun.FIX#243] Shell loaded during pump cycle - still in Loading state for more shells");
+                        LogToFile($"[Shotgun.FIX#266] Shell loaded during pump cycle - still in Loading state for more shells");
                         return;
                     }
 
@@ -925,25 +961,35 @@ public partial class Shotgun : BaseWeapon
             case ShotgunReloadState.Loading:
                 if (isDragDown)
                 {
+                    // Issue #266 Fix: Check if a shell was already loaded during mid-drag.
+                    // If so, skip loading another shell on RMB release to prevent multiple
+                    // shells loading in one drag motion.
+                    if (_shellLoadedDuringMidDrag)
+                    {
+                        LogToFile($"[Shotgun.FIX#266] RMB release in Loading state: shell already loaded mid-drag, skipping duplicate load");
+                        // Stay in Loading state for more shells (user can do another drag)
+                        break;
+                    }
+
                     // Use _wasMiddleMouseHeldDuringDrag instead of just _isMiddleMouseHeld
                     // This fixes the timing issue where users release MMB and RMB simultaneously
                     bool shouldLoadShell = _wasMiddleMouseHeldDuringDrag || _isMiddleMouseHeld;
 
                     if (VerboseInputLogging)
                     {
-                        LogToFile($"[Shotgun.FIX#243] RMB release in Loading state: wasMMBDuringDrag={_wasMiddleMouseHeldDuringDrag}, isMMBHeld={_isMiddleMouseHeld} => shouldLoadShell={shouldLoadShell}");
+                        LogToFile($"[Shotgun.FIX#266] RMB release in Loading state: wasMMBDuringDrag={_wasMiddleMouseHeldDuringDrag}, isMMBHeld={_isMiddleMouseHeld} => shouldLoadShell={shouldLoadShell}");
                     }
 
                     if (shouldLoadShell)
                     {
                         // Load a shell (MMB + RMB drag down)
-                        LogToFile("[Shotgun.FIX#243] Loading shell (MMB was held during drag)");
+                        LogToFile("[Shotgun.FIX#266] Loading shell (MMB was held during drag)");
                         LoadShell();
                     }
                     else
                     {
                         // Close bolt without MMB - finish reload
-                        LogToFile("[Shotgun.FIX#243] Closing bolt (MMB was not held)");
+                        LogToFile("[Shotgun.FIX#266] Closing bolt (MMB was not held)");
                         CompleteReload();
                     }
                 }
@@ -1151,6 +1197,9 @@ public partial class Shotgun : BaseWeapon
         // Use aim direction
         Vector2 fireDirection = _aimDirection;
 
+        // Store fire direction for casing ejection after pump up
+        _lastFireDirection = fireDirection;
+
         // Determine number of pellets (random between min and max)
         int pelletCount = GD.RandRange(MinPellets, MaxPellets);
 
@@ -1159,10 +1208,13 @@ public partial class Shotgun : BaseWeapon
         float spreadRadians = Mathf.DegToRad(spreadAngle);
         float halfSpread = spreadRadians / 2.0f;
 
-        GD.Print($"[Shotgun] Firing {pelletCount} pellets with {spreadAngle}° spread (cloud pattern)");
+        LogToFile($"[Shotgun.FIX#212] Firing {pelletCount} pellets with {spreadAngle}° spread at pos={GlobalPosition}");
 
         // Fire all pellets simultaneously with spatial distribution (cloud effect)
         FirePelletsAsCloud(fireDirection, pelletCount, spreadRadians, halfSpread, projectileScene);
+
+        // NOTE: Casing is NOT spawned here for shotgun - it's ejected during pump up action
+        // (see ProcessPumpActionGesture() case ShotgunActionState.NeedsPumpUp)
 
         // Consume shell from tube
         ShellsInTube--;
@@ -1195,6 +1247,10 @@ public partial class Shotgun : BaseWeapon
     /// Pellets spawn with small position offsets along the aim direction,
     /// making some appear ahead of others while maintaining the angular spread.
     /// The offsets are calculated relative to the center pellet (bidirectional).
+    ///
+    /// Issue #212 Fix (v3): Pass pellet index and total count to SpawnPelletWithOffset
+    /// so that point-blank pellets can be distributed evenly across the lateral spread
+    /// instead of relying on random offsets that might cluster.
     /// </summary>
     private void FirePelletsAsCloud(Vector2 fireDirection, int pelletCount, float spreadRadians, float halfSpread, PackedScene projectileScene)
     {
@@ -1222,15 +1278,16 @@ public partial class Shotgun : BaseWeapon
             float spawnOffset = (float)GD.RandRange(-MaxSpawnOffset, MaxSpawnOffset);
 
             Vector2 pelletDirection = fireDirection.Rotated(baseAngle);
-            SpawnPelletWithOffset(pelletDirection, spawnOffset, projectileScene);
+            SpawnPelletWithOffset(pelletDirection, spawnOffset, projectileScene, i, pelletCount);
         }
     }
 
     /// <summary>
     /// Enable verbose logging for pellet spawn diagnostics.
     /// Set to true to debug pellet grouping issues.
+    /// Issue #212: Temporarily enabled to help diagnose pellet clustering reports.
     /// </summary>
-    private const bool VerbosePelletLogging = false;
+    private const bool VerbosePelletLogging = true;
 
     /// <summary>
     /// Spawns a pellet projectile with a spatial offset along its direction.
@@ -1240,8 +1297,16 @@ public partial class Shotgun : BaseWeapon
     /// 1. Minimum forward offset to ensure pellets travel some distance
     /// 2. Lateral (perpendicular) offset to create visual spread even at close range
     /// This prevents all pellets from appearing as "one large pellet".
+    ///
+    /// Issue #212 Fix (v3): Uses pellet index for deterministic lateral distribution
+    /// at point-blank range, ensuring even spread regardless of random offset clustering.
     /// </summary>
-    private void SpawnPelletWithOffset(Vector2 direction, float extraOffset, PackedScene projectileScene)
+    /// <param name="direction">Direction for the pellet to travel.</param>
+    /// <param name="extraOffset">Random offset along the direction for cloud effect.</param>
+    /// <param name="projectileScene">Scene to instantiate.</param>
+    /// <param name="pelletIndex">Index of this pellet (0 to pelletCount-1).</param>
+    /// <param name="pelletCount">Total number of pellets being fired.</param>
+    private void SpawnPelletWithOffset(Vector2 direction, float extraOffset, PackedScene projectileScene, int pelletIndex, int pelletCount)
     {
         if (projectileScene == null || WeaponData == null)
         {
@@ -1265,17 +1330,33 @@ public partial class Shotgun : BaseWeapon
             // FIX v2 (2026-01-22): Previous fix used Mathf.Max(0, extraOffset) which
             // caused all pellets with negative extraOffset to spawn at exactly the same
             // position (minSpawnOffset). Now we use the full extraOffset range.
+            //
+            // FIX v3 (2026-01-23): Random extraOffset can still cluster due to RNG.
+            // Now use pellet index for DETERMINISTIC lateral distribution, ensuring
+            // pellets are always evenly spread across the lateral range.
+            // Random extraOffset is still used for forward variation (depth).
 
-            float minSpawnOffset = 15.0f;  // Increased from 10px for better spread
+            float minSpawnOffset = 15.0f;  // Minimum forward distance from player
 
-            // Calculate lateral (perpendicular) offset for visual spread
-            // extraOffset ranges from -MaxSpawnOffset to +MaxSpawnOffset (±15px)
-            // Scale it down for lateral use to keep pellets reasonably close
+            // Calculate perpendicular direction for lateral spread
             Vector2 perpendicular = new Vector2(-direction.Y, direction.X);
-            float lateralOffset = extraOffset * 0.4f;  // ±6px lateral spread
+
+            // FIX v3: Use pellet INDEX for deterministic lateral distribution
+            // This ensures pellets are always evenly spread across the lateral range
+            // regardless of random offset values which might cluster.
+            //
+            // Lateral range: ±15px (total 30px spread for all pellets)
+            // Formula: progress from -1 to +1, then scale by 15px
+            float lateralProgress = pelletCount > 1
+                ? ((float)pelletIndex / (pelletCount - 1)) * 2.0f - 1.0f  // -1 to +1
+                : 0.0f;  // Single pellet goes straight
+            float lateralOffset = lateralProgress * 15.0f;  // ±15px lateral spread
+
+            // Add small random jitter (±2px) to prevent perfectly uniform look
+            lateralOffset += (float)GD.RandRange(-2.0, 2.0);
 
             // Forward offset uses absolute value of extraOffset to vary depth
-            // This prevents all negative-extraOffset pellets from clustering
+            // This creates the cloud effect (some pellets ahead, some behind)
             float forwardVariation = Mathf.Abs(extraOffset) * 0.3f;  // 0-4.5px extra forward
 
             spawnPosition = GlobalPosition
@@ -1284,7 +1365,7 @@ public partial class Shotgun : BaseWeapon
 
             if (VerbosePelletLogging)
             {
-                GD.Print($"[Shotgun] Point-blank pellet spawn: extraOffset={extraOffset:F1}, " +
+                LogToFile($"[Shotgun.FIX#212] Point-blank pellet {pelletIndex + 1}/{pelletCount}: " +
                          $"forward={minSpawnOffset + forwardVariation:F1}px, lateral={lateralOffset:F1}px, " +
                          $"pos={spawnPosition}");
             }
@@ -1296,8 +1377,9 @@ public partial class Shotgun : BaseWeapon
 
             if (VerbosePelletLogging)
             {
-                GD.Print($"[Shotgun] Normal pellet spawn: extraOffset={extraOffset:F1}, " +
-                         $"distance={BulletSpawnOffset + extraOffset:F1}px, pos={spawnPosition}");
+                LogToFile($"[Shotgun.FIX#212] Normal pellet {pelletIndex + 1}/{pelletCount}: " +
+                         $"extraOffset={extraOffset:F1}, distance={BulletSpawnOffset + extraOffset:F1}px, " +
+                         $"pos={spawnPosition}");
             }
         }
 

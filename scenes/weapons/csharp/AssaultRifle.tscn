@@ -2,13 +2,15 @@
 
 [ext_resource type="Script" path="res://Scripts/Weapons/AssaultRifle.cs" id="1_assault_rifle"]
 [ext_resource type="PackedScene" uid="uid://dv2q8m5n7xk1q" path="res://scenes/projectiles/csharp/Bullet.tscn" id="2_bullet"]
-[ext_resource type="Resource" uid="uid://b8q2n5x7m3k1w" path="res://resources/weapons/AssaultRifleData.tres" id="3_weapon_data"]
-[ext_resource type="Texture2D" path="res://assets/sprites/weapons/m16_rifle_topdown.png" id="4_rifle_sprite"]
+[ext_resource type="PackedScene" uid="uid://casing_scene" path="res://scenes/effects/Casing.tscn" id="3_casing"]
+[ext_resource type="Resource" uid="uid://b8q2n5x7m3k1w" path="res://resources/weapons/AssaultRifleData.tres" id="4_weapon_data"]
+[ext_resource type="Texture2D" path="res://assets/sprites/weapons/m16_rifle_topdown.png" id="5_rifle_sprite"]
 
 [node name="AssaultRifle" type="Node2D"]
 script = ExtResource("1_assault_rifle")
-WeaponData = ExtResource("3_weapon_data")
+WeaponData = ExtResource("4_weapon_data")
 BulletScene = ExtResource("2_bullet")
+CasingScene = ExtResource("3_casing")
 BulletSpawnOffset = 25.0
 CurrentFireMode = 0
 BurstCount = 3
@@ -20,7 +22,7 @@ LaserSightWidth = 2.0
 
 [node name="RifleSprite" type="Sprite2D" parent="."]
 z_index = 1
-texture = ExtResource("4_rifle_sprite")
+texture = ExtResource("5_rifle_sprite")
 offset = Vector2(20, 0)
 
 [node name="LaserSight" type="Line2D" parent="."]

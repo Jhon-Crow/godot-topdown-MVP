@@ -392,7 +392,7 @@ func test_very_large_fade_delay() -> void:
 
 
 func test_alpha_values_in_valid_range() -> void:
-	assert_ge(blood_decal._initial_alpha, 0.0)
-	assert_le(blood_decal._initial_alpha, 1.0)
-	assert_ge(bullet_hole._initial_alpha, 0.0)
-	assert_le(bullet_hole._initial_alpha, 1.0)
+	assert_gte(blood_decal._initial_alpha, 0.0)
+	assert_lte(blood_decal._initial_alpha, 1.0)
+	assert_gte(bullet_hole._initial_alpha, 0.0)
+	assert_lte(bullet_hole._initial_alpha, 1.0)

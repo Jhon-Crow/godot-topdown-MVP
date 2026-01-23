@@ -1,9 +1,11 @@
-[gd_resource type="Resource" script_class="CaliberData" load_steps=2 format=3 uid="uid://dk4m7n8r3p5q2"]
+[gd_resource type="Resource" script_class="CaliberData" load_steps=3 format=3 uid="uid://dk4m7n8r3p5q2"]
 
 [ext_resource type="Script" path="res://scripts/data/caliber_data.gd" id="1_caliber"]
+[ext_resource type="Texture2D" uid="uid://casing_shotgun_sprite" path="res://assets/sprites/effects/casing_shotgun.png" id="2_casing"]
 
 [resource]
 script = ExtResource("1_caliber")
+casing_sprite = ExtResource("2_casing")
 caliber_name = "Buckshot (00)"
 diameter_mm = 8.38
 mass_grams = 53.8

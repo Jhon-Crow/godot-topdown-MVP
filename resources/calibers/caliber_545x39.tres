@@ -1,9 +1,11 @@
-[gd_resource type="Resource" script_class="CaliberData" load_steps=2 format=3 uid="uid://dm3k8n5r2p7q1"]
+[gd_resource type="Resource" script_class="CaliberData" load_steps=3 format=3 uid="uid://dm3k8n5r2p7q1"]
 
 [ext_resource type="Script" path="res://scripts/data/caliber_data.gd" id="1_caliber"]
+[ext_resource type="Texture2D" uid="uid://casing_rifle_sprite" path="res://assets/sprites/effects/casing_rifle.png" id="2_casing"]
 
 [resource]
 script = ExtResource("1_caliber")
+casing_sprite = ExtResource("2_casing")
 caliber_name = "5.45x39mm"
 diameter_mm = 5.45
 mass_grams = 3.4

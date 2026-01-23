@@ -17,19 +17,46 @@ class_name GrenadeBase
 @export var fuse_time: float = 4.0
 
 ## Maximum throw speed in pixels per second.
-## At max speed, grenade travels ~viewport length in ~0.5 seconds.
-@export var max_throw_speed: float = 2500.0
+## At max speed with default friction (300), grenade travels ~1200px (viewport width).
+## Formula: max_distance = max_throw_speed² / (2 × ground_friction)
+@export var max_throw_speed: float = 850.0
 
 ## Minimum throw speed for a minimal drag (gentle lob).
 @export var min_throw_speed: float = 100.0
 
-## Drag multiplier to convert drag distance to throw speed.
+## Drag multiplier to convert drag distance to throw speed (DEPRECATED - kept for compatibility).
 ## At viewport width (~1280px) drag, reaches near max speed.
 ## At ~100px drag (short swing), produces gentle throw.
 @export var drag_to_speed_multiplier: float = 2.0
 
-## Friction/damping applied to slow the grenade (reduced for easier rolling).
-@export var ground_friction: float = 150.0
+## Mass of the grenade in kg. Affects how mouse velocity translates to throw velocity.
+## Heavier grenades require more "swing momentum" to achieve full velocity transfer.
+## Light grenade (0.2kg) = quick flick throw, Heavy grenade (0.6kg) = needs full swing.
+@export var grenade_mass: float = 0.4
+
+## Multiplier to convert mouse velocity (pixels/second) to throw velocity.
+## This is the base ratio before mass adjustment.
+## Lower values = require faster mouse movement for maximum throw (easier to control strength).
+## At 0.5: max throw requires ~2700 px/s mouse velocity for 1352 px/s throw speed.
+## This allows for a wider range of controllable throw distances.
+@export var mouse_velocity_to_throw_multiplier: float = 0.5
+
+## Minimum swing distance (in pixels) required for full velocity transfer at grenade's mass.
+## For a 0.4kg grenade, need ~80px of mouse movement to transfer full velocity.
+## Reduced from 200px to allow quick flicks to throw reasonably far.
+## Formula: actual_min_swing = min_swing_distance * (grenade_mass / 0.4)
+@export var min_swing_distance: float = 80.0
+
+## Minimum transfer efficiency (0.0 to 1.0) for any intentional throw.
+## This ensures quick flicks with high velocity still result in a reasonable throw distance.
+## Set to 0.35 to guarantee at least 35% velocity transfer for any swing > 10px.
+@export var min_transfer_efficiency: float = 0.35
+
+## Friction/damping applied to slow the grenade.
+## Higher friction = shorter throw distance for same speed.
+## Formula: max_distance = max_throw_speed² / (2 × ground_friction)
+## Default 300 with 850 speed → max distance ~1200px (viewport width).
+@export var ground_friction: float = 300.0
 
 ## Bounce coefficient when hitting walls (0.0 = no bounce, 1.0 = full bounce).
 @export var wall_bounce: float = 0.4
@@ -75,6 +102,17 @@ func _ready() -> void:
 	# Set up collision
 	collision_layer = 32  # Layer 6 (custom for grenades)
 	collision_mask = 4 | 2  # obstacles + enemies (NOT player, to avoid collision when throwing)
+
+	# Enable contact monitoring for body_entered signal (required for collision detection)
+	# Without this, body_entered signal will never fire!
+	contact_monitor = true
+	max_contacts_reported = 4  # Track up to 4 simultaneous contacts
+
+	# Enable Continuous Collision Detection to prevent tunneling through walls
+	# at high velocities (grenades can reach ~1200 px/s, which is ~20px per frame at 60 FPS)
+	# CCD_MODE_CAST_RAY (1) is reliable and recommended for fast-moving objects
+	continuous_cd = RigidBody2D.CCD_MODE_CAST_RAY
+	FileLogger.info("[GrenadeBase] CCD enabled (mode: CAST_RAY) to prevent wall tunneling")
 
 	# Set up physics
 	gravity_scale = 0.0  # Top-down, no gravity
@@ -144,7 +182,52 @@ func activate_timer() -> void:
 	FileLogger.info("[GrenadeBase] Timer activated! %.1f seconds until explosion" % fuse_time)
 
 
-## Throw the grenade in a direction with speed based on drag distance.
+## Throw the grenade using realistic velocity-based physics.
+## The throw velocity is derived from mouse velocity at release, adjusted by grenade mass.
+## Quick flicks (high velocity, short swing) now throw reasonably far thanks to minimum transfer.
+## @param mouse_velocity: The mouse velocity vector at moment of release (pixels/second).
+## @param swing_distance: Total distance the mouse traveled during the swing (pixels).
+func throw_grenade_velocity_based(mouse_velocity: Vector2, swing_distance: float) -> void:
+	# Unfreeze the grenade so physics can take over
+	freeze = false
+
+	# Calculate mass-adjusted minimum swing distance
+	# Heavier grenades need more swing to transfer full velocity
+	var mass_ratio := grenade_mass / 0.4  # Normalized to "standard" 0.4kg grenade
+	var required_swing := min_swing_distance * mass_ratio
+
+	# Calculate velocity transfer efficiency with minimum guarantee for quick flicks
+	# FIX for issue #281: Short fast mouse movements now get reasonable transfer
+	# The swing-based transfer scales from 0 to (1 - min_transfer) based on swing distance
+	# The minimum transfer (0.35 default) ensures quick flicks still throw reasonably far
+	var swing_transfer := clampf(swing_distance / required_swing, 0.0, 1.0 - min_transfer_efficiency)
+	var transfer_efficiency := min_transfer_efficiency + swing_transfer
+	# Ensure we don't exceed 1.0 (full transfer at required_swing or beyond)
+	transfer_efficiency = clampf(transfer_efficiency, 0.0, 1.0)
+
+	# Convert mouse velocity to throw velocity
+	# Base formula: throw_velocity = mouse_velocity * multiplier * transfer_efficiency / mass_ratio
+	# Heavier grenades are harder to throw far with same mouse speed
+	var base_throw_velocity := mouse_velocity * mouse_velocity_to_throw_multiplier * transfer_efficiency
+	var mass_adjusted_velocity := base_throw_velocity / sqrt(mass_ratio)  # sqrt for more natural feel
+
+	# Clamp the final speed
+	var throw_speed := clampf(mass_adjusted_velocity.length(), 0.0, max_throw_speed)
+
+	# Set velocity (use original direction if speed is non-zero)
+	if throw_speed > 1.0:
+		linear_velocity = mass_adjusted_velocity.normalized() * throw_speed
+		rotation = linear_velocity.angle()
+	else:
+		# Mouse wasn't moving - grenade drops at feet
+		linear_velocity = Vector2.ZERO
+
+	FileLogger.info("[GrenadeBase] Velocity-based throw! Mouse vel: %s, Swing: %.1f, Transfer: %.2f, Final speed: %.1f" % [
+		str(mouse_velocity), swing_distance, transfer_efficiency, throw_speed
+	])
+
+
+## Throw the grenade in a direction with speed based on drag distance (LEGACY method).
 ## @param direction: Normalized direction to throw.
 ## @param drag_distance: Distance of the drag in pixels.
 func throw_grenade(direction: Vector2, drag_distance: float) -> void:
@@ -165,7 +248,8 @@ func throw_grenade(direction: Vector2, drag_distance: float) -> void:
 	# Rotate to face direction
 	rotation = direction.angle()
 
-	FileLogger.info("[GrenadeBase] Thrown! Direction: %s, Speed: %.1f (unfrozen)" % [str(direction), throw_speed])
+	FileLogger.info("[GrenadeBase] LEGACY throw_grenade() called! Direction: %s, Speed: %.1f (unfrozen)" % [str(direction), throw_speed])
+	FileLogger.info("[GrenadeBase] NOTE: Using DRAG-BASED system. If velocity-based is expected, ensure grenade has throw_grenade_velocity_based() method.")
 
 
 ## Get the explosion effect radius. Override in subclasses.
@@ -245,6 +329,19 @@ func _update_blink_effect(delta: float) -> void:
 
 ## Handle collision with bodies (bounce off walls).
 func _on_body_entered(body: Node) -> void:
+	# Log collision for debugging
+	var body_type := "Unknown"
+	if body is StaticBody2D:
+		body_type = "StaticBody2D"
+	elif body is TileMap:
+		body_type = "TileMap"
+	elif body is CharacterBody2D:
+		body_type = "CharacterBody2D"
+	elif body is RigidBody2D:
+		body_type = "RigidBody2D"
+
+	FileLogger.info("[GrenadeBase] Collision detected with %s (type: %s)" % [body.name, body_type])
+
 	# Play wall collision sound if hitting a wall/obstacle
 	if body is StaticBody2D or body is TileMap:
 		_play_wall_collision_sound()

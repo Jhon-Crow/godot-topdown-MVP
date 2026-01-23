@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3 uid="uid://cx5m8np6u3bwd"]
+[gd_scene load_steps=11 format=3 uid="uid://cx5m8np6u3bwd"]
 
 [ext_resource type="Script" path="res://scripts/objects/enemy.gd" id="1_enemy"]
 [ext_resource type="Script" path="res://scripts/objects/hit_area.gd" id="2_hit_area"]
@@ -7,6 +7,7 @@
 [ext_resource type="Texture2D" path="res://assets/sprites/characters/enemy/enemy_head.png" id="5_head"]
 [ext_resource type="Texture2D" path="res://assets/sprites/characters/enemy/enemy_left_arm.png" id="6_left_arm"]
 [ext_resource type="Texture2D" path="res://assets/sprites/characters/enemy/enemy_right_arm.png" id="7_right_arm"]
+[ext_resource type="PackedScene" uid="uid://casing_scene" path="res://scenes/effects/Casing.tscn" id="8_casing"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_enemy"]
 radius = 24.0

@@ -102,11 +102,19 @@ func _physics_process(delta: float) -> void:
 	# They only explode on impact, not on a timer
 
 
-## Override throw to mark grenade as thrown.
+## Override throw to mark grenade as thrown (legacy drag-based method).
 func throw_grenade(direction: Vector2, drag_distance: float) -> void:
 	super.throw_grenade(direction, drag_distance)
 	_is_thrown = true
-	FileLogger.info("[FragGrenade] Grenade thrown - impact detection enabled")
+	FileLogger.info("[FragGrenade] Grenade thrown (legacy) - impact detection enabled")
+
+
+## Override velocity-based throw to mark grenade as thrown.
+## This is the primary method used by the C# Player.cs for throwing.
+func throw_grenade_velocity_based(mouse_velocity: Vector2, swing_distance: float) -> void:
+	super.throw_grenade_velocity_based(mouse_velocity, swing_distance)
+	_is_thrown = true
+	FileLogger.info("[FragGrenade] Grenade thrown (velocity-based) - impact detection enabled")
 
 
 ## Override body_entered to detect wall impacts.
@@ -115,9 +123,15 @@ func _on_body_entered(body: Node) -> void:
 
 	# Only explode on impact if we've been thrown and haven't exploded yet
 	if _is_thrown and not _has_impacted and not _has_exploded:
-		# Trigger impact explosion on wall/obstacle hit
-		if body is StaticBody2D or body is TileMap:
+		# Trigger impact explosion on wall/obstacle/enemy hit
+		# StaticBody2D = walls, obstacles, furniture
+		# TileMap = terrain tiles
+		# CharacterBody2D = enemies and player
+		if body is StaticBody2D or body is TileMap or body is CharacterBody2D:
+			FileLogger.info("[FragGrenade] Impact detected! Body: %s (type: %s), triggering explosion" % [body.name, body.get_class()])
 			_trigger_impact_explosion()
+		else:
+			FileLogger.info("[FragGrenade] Non-solid collision (body: %s, type: %s) - not triggering explosion" % [body.name, body.get_class()])
 
 
 ## Called when grenade lands on the ground.
