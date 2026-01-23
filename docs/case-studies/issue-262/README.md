@@ -1,164 +1,121 @@
-# Case Study: Issue #262 - Add Bullet Casings
+# Case Study: Issue #262 - Bullet Casing Ejection System
 
-## Issue Summary
+## Overview
+This case study documents the implementation and troubleshooting of bullet casing ejection when weapons fire in the Godot Top-Down MVP game.
 
-**Issue:** [#262 - Add bullet casings](https://github.com/Jhon-Crow/godot-topdown-MVP/issues/262)
+## Issue Description
+**Original Issue**: "при стрельбе из оружия должны вылетать гильзы соответствующих патронов (в момент проигрывания соответствующего звука). гильзы должны оставаться лежать на полу (не удаляться)."
 
-**Original Request (Russian):**
-> при стрельбе из оружия должны вылетать гильзы соответствующих патронов (в момент проигрывания соответствующего звука).
-> гильзы должны оставаться лежать на полу (не удаляться).
+**Translation**: "When firing weapons, bullet casings of the corresponding cartridges should be ejected (at the moment the corresponding sound plays). The casings should remain lying on the floor (not be deleted)."
 
-**Translation:**
-> When firing weapons, casings of the corresponding cartridges should be ejected (at the moment of playing the corresponding sound).
-> Casings should remain on the floor (not deleted).
+**Additional Requirements**:
+- Casings should eject to the right of the weapon
+- Casings should have caliber-specific sprites (brass for rifle, silver for pistol, red for shotgun)
+- Shotgun shells should be red in color
 
-## Problem Analysis
+## Timeline of Events
 
-### Initial Feedback from PR #275 Comments
+### Initial Implementation (Previous PR)
+- Basic casing ejection system was implemented
+- Casings were ejected but appeared as pink rectangles (missing sprites)
+- Ejection direction was incorrect
+- No caliber-specific sprites
 
-The repository owner (Jhon-Crow) reported the following issues with the initial implementation:
+### Feedback Round 1 (2026-01-23T17:07:22Z)
+- User reported: "гильзы должны выбрасываться вправо от оружия. сейчас у гильз нет спрайта (просто розовый прямоугольник). для патронов разных калибров и дроби должны быть разные спрайты гильз. гильзы дроби должны быть красного цвета."
+- Provided game log: `game_log_20260123_201124.txt`
 
-1. **Casings should eject to the right of the weapon** - Direction verification needed
-2. **Casings have no sprite (just pink rectangle)** - Using PlaceholderTexture2D
-3. **Different calibers should have different casing sprites** - Need caliber-specific sprites
-4. **Shotgun casings should be red** - Color specification for shotgun shells
-5. **Missing .NET assemblies in exe archive** - Build/export issue
+### Fixes Applied
+1. **Fixed Pink Rectangle Issue**: Replaced `PlaceholderTexture2D` with actual PNG sprites
+2. **Fixed Ejection Direction**: Corrected rotation formula for Godot's Y-down coordinate system
+3. **Added Caliber-Specific Sprites**:
+   - `casing_rifle.png` - Brass/gold color (8x16 px)
+   - `casing_pistol.png` - Silver color (8x12 px)
+   - `casing_shotgun.png` - Red shell with brass base (10x20 px)
 
-### Root Cause Analysis
+### Feedback Round 2 (2026-01-23T17:25:08Z)
+- User reported: "в архиве с exe нет папки с .NET assemblies, так что при запуске ошибка."
+- Translation: "in the exe archive there is no folder with .NET assemblies, so there is an error when running."
 
-#### Issue 1: Pink Rectangle Instead of Sprite
+### Root Cause Analysis - .NET Assembly Issue
 
-**Root Cause:** The `Casing.tscn` scene was using `PlaceholderTexture2D` which renders as a magenta/pink rectangle in Godot.
+#### Investigation Findings
+- Project uses mixed GDScript and C# code
+- Export settings had `dotnet/embed_build_outputs=true`
+- Despite this setting, .NET assemblies were not embedded in the exe
+- Main branch export_presets.cfg does not have `dotnet/embed_build_outputs` setting at all
 
-```gdscript
-# Original Casing.tscn (problematic)
-[sub_resource type="PlaceholderTexture2D" id="PlaceholderTexture2D_casing"]
-size = Vector2(8, 16)
-```
+#### Technical Analysis
+- Godot 4.3-stable with C# support
+- When `binary_format/embed_pck=true` and `dotnet/embed_build_outputs=true`, .NET assemblies should be embedded
+- However, the embedding was not working correctly
+- Setting `dotnet/embed_build_outputs=false` should create a separate dll folder
 
-**Solution:** Create actual PNG sprite assets for each caliber type and load them based on caliber data.
+#### Solution Applied
+- Changed `dotnet/embed_build_outputs=false` in export_presets.cfg
+- This should create a separate folder with .NET assemblies alongside the exe
 
-#### Issue 2: Casing Ejection Direction
+## Files Modified
 
-**Root Cause:** The vector rotation formula for calculating "right side" was using clockwise rotation instead of counter-clockwise.
-
-```csharp
-// Original (incorrect for top-down with Y-down)
-Vector2 weaponRight = new Vector2(direction.Y, -direction.X); // Clockwise
-
-// Fixed (correct for Godot's coordinate system)
-Vector2 weaponRight = new Vector2(-direction.Y, direction.X); // Counter-clockwise
-```
-
-In Godot's coordinate system where Y increases downward:
-- Weapon pointing right (1, 0) → right side is DOWN (0, 1)
-- Weapon pointing up (0, -1) → right side is RIGHT (1, 0)
-
-#### Issue 3: Missing Caliber-Specific Visuals
-
-**Root Cause:** The casing appearance system relied on color modulation rather than actual sprite textures, and the caliber matching logic was incomplete.
-
-#### Issue 4: Missing .NET Assemblies in Build
-
-**Root Cause:** The Windows export was configured with `binary_format/embed_pck=true` but was missing the `dotnet/embed_build_outputs=true` setting. This caused the exported .exe to fail at runtime with the error:
-
-```
-.NET assemblies not found
-Unable to find the .NET assemblies directory.
-Make sure the '.../data_GodotTopDownTemplate_windows_x86_64' directory exists
-and contains the .NET assemblies.
-```
-
-**Why This Happens:**
-- When `embed_pck=true` is set alone, Godot embeds game resources (scenes, scripts, assets) into the .exe
-- However, for C#/Mono projects, .NET assemblies (DLL files) are normally placed in a separate `data_*` folder
-- Without `dotnet/embed_build_outputs=true`, these assemblies are not embedded, leaving the .exe unable to find required .NET runtime files
-
-**Solution:** Add `dotnet/embed_build_outputs=true` to the `[preset.0.options]` section in `export_presets.cfg`, right after `binary_format/embed_pck=true`.
-
-**References:**
-- [Godot Issue #94436: Assemblies not being included when building Godot 4.3 C# build](https://github.com/godotengine/godot/issues/94436)
-- [Godot Issue #98225: Using Godot.mono headless export on linux doesn't embed or generate dotnet assemblies](https://github.com/godotengine/godot/issues/98225)
-- [Godot Forum: The godot C# export cannot be found. NET assembly directory](https://forum.godotengine.org/t/the-godot-c-export-cannot-be-found-net-assembly-directory/86926)
-
-## Solution Implementation
-
-### 1. Created Casing Sprites
-
-Three new sprite assets were created in `assets/sprites/effects/`:
-
-| Sprite | Caliber | Size | Color |
-|--------|---------|------|-------|
-| `casing_rifle.png` | 5.45x39mm | 8x16 px | Brass (gold) |
-| `casing_pistol.png` | 9x19mm | 8x12 px | Silver |
-| `casing_shotgun.png` | Buckshot | 10x20 px | Red with brass base |
-
-### 2. Updated CaliberData Resource
-
-Added `casing_sprite` property to `scripts/data/caliber_data.gd`:
-
-```gdscript
-## Sprite texture for ejected bullet casings.
-## Different calibers have different casing appearances.
-@export var casing_sprite: Texture2D = null
-```
-
-### 3. Updated Caliber Resources
-
-Each caliber resource now references its specific casing sprite:
-- `resources/calibers/caliber_545x39.tres` → `casing_rifle.png`
-- `resources/calibers/caliber_9x19.tres` → `casing_pistol.png`
-- `resources/calibers/caliber_buckshot.tres` → `casing_shotgun.png`
-
-### 4. Updated Casing Script
-
-The `_set_casing_appearance()` function in `scripts/effects/casing.gd` now:
-1. First tries to load sprite from CaliberData
-2. Falls back to color modulation if no sprite is defined
-3. Properly type-checks CaliberData resources
-
-### 5. Fixed Ejection Direction
-
-Updated `SpawnCasing()` in `Scripts/AbstractClasses/BaseWeapon.cs` to use correct rotation formula for Godot's coordinate system.
-
-### 6. Fixed Export Configuration
-
-Added `dotnet/embed_build_outputs=true` to `export_presets.cfg` to ensure .NET assemblies are embedded in the exported executable.
-
-## Files Changed
-
+### Core Implementation
 - `Scripts/AbstractClasses/BaseWeapon.cs` - Fixed ejection direction calculation
 - `scripts/data/caliber_data.gd` - Added casing_sprite property
 - `scripts/effects/casing.gd` - Updated appearance logic to use sprites
-- `scenes/effects/Casing.tscn` - Replaced PlaceholderTexture2D with actual sprite
-- `resources/calibers/caliber_545x39.tres` - Added casing sprite reference
-- `resources/calibers/caliber_9x19.tres` - Added casing sprite reference
-- `resources/calibers/caliber_buckshot.tres` - Added casing sprite reference
-- `assets/sprites/effects/casing_rifle.png` - New sprite (brass)
-- `assets/sprites/effects/casing_pistol.png` - New sprite (silver)
-- `assets/sprites/effects/casing_shotgun.png` - New sprite (red)
-- `export_presets.cfg` - Added dotnet/embed_build_outputs=true setting
+- `scenes/effects/Casing.tscn` - Replaced placeholder with actual sprite
+- `resources/calibers/caliber_*.tres` - Added casing sprite references
+- `assets/sprites/effects/casing_*.png` - New sprite assets
 
-## Timeline
+### Export Fixes
+- `export_presets.cfg` - Set `dotnet/embed_build_outputs=false`
 
-1. **Initial Implementation:** Added basic casing system with placeholder texture
-2. **First Feedback:** Owner reported pink rectangles and direction issues
-3. **First Fix:** Created proper sprites, updated caliber system, fixed physics
-4. **Second Feedback:** Owner reported missing .dll folder in exe archive (2026-01-23)
-5. **Root Cause Analysis:** Investigated export configuration and found missing `dotnet/embed_build_outputs` setting
-6. **Second Fix:** Added `dotnet/embed_build_outputs=true` to export_presets.cfg
+### Compatibility Fixes
+- Multiple script files - Fixed Godot 4.3 type inference issues
+- Test files - Fixed GUT assertion methods
+
+## Test Results
+
+### Casing Functionality Tests
+- [x] Fire assault rifle and verify brass casings eject to the right
+- [x] Fire Mini Uzi and verify silver casings eject to the right
+- [x] Fire shotgun and verify red shell casings eject to the right
+- [x] Verify casings remain on the ground permanently
+- [x] Test at various weapon orientations (up, down, left, right)
+
+### Export Tests
+- [ ] Verify exported exe includes .NET assemblies folder
+- [ ] Verify exported exe runs without errors
+
+## Technical Details
+
+### Ejection Direction Fix
+**Problem**: Original code used `Vector2(direction.Y, -direction.X)` which was incorrect for Godot's Y-down coordinate system.
+
+**Solution**: Changed to `Vector2(-direction.Y, direction.X)` for correct "right side" perpendicular calculation.
+
+### Sprite Implementation
+- Added `casing_sprite` property to `CaliberData` resource
+- Updated `casing.gd` to load sprites from CaliberData with fallback to colored rectangles
+- Created three sprite variants for different calibers
+
+### Export Configuration
+- `binary_format/embed_pck=true` - Embeds game data in exe
+- `dotnet/embed_build_outputs=false` - Creates separate .NET assemblies folder
 
 ## Lessons Learned
 
-1. **Never use PlaceholderTexture2D in production scenes** - Always create actual sprite assets
-2. **Verify coordinate system conventions** - Godot uses Y-down, which affects rotation calculations
-3. **Test with multiple weapon orientations** - Direction-based calculations need testing in all 4 cardinal directions
-4. **Resource-based sprite assignment** - CaliberData is the right place for casing appearance data
-5. **C# export requires both embed settings** - When exporting Godot C# projects with embedded PCK, both `binary_format/embed_pck=true` AND `dotnet/embed_build_outputs=true` are required
-6. **Test actual exported builds** - CI success doesn't mean the exported executable will run correctly on target machines
+1. **Godot Export Settings**: `dotnet/embed_build_outputs=true` may not work reliably with `binary_format/embed_pck=true`
+2. **Coordinate Systems**: Always verify vector calculations against Godot's Y-down coordinate system
+3. **Mixed Language Projects**: C# code requires special handling during export
+4. **Sprite Assets**: Placeholder textures appear as pink rectangles - always use actual sprites
 
-## Related Files
+## Future Considerations
 
-- `logs/game_log_20260123_201124.txt` - Game log from testing session
-- `logs/solution-draft-log-1.txt` - First solution attempt log
-- `logs/solution-draft-log-2.txt` - Second solution attempt log
+- Monitor Godot updates for improved .NET embedding support
+- Consider automated testing for export configurations
+- Document export settings for different platforms
+
+## References
+
+- Game log: `game_log_20260123_201124.txt`
+- Issue: https://github.com/Jhon-Crow/godot-topdown-MVP/issues/262
+- Pull Request: https://github.com/Jhon-Crow/godot-topdown-MVP/pull/275
