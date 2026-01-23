@@ -1,8 +1,8 @@
-extends CPUParticles2D
+extends GPUParticles2D
 ## Auto-cleanup script for one-shot particle effects.
 ##
 ## Automatically frees the particle effect node after its lifetime expires.
-## Attach this script to any one-shot CPUParticles2D node.
+## Attach this script to any one-shot GPUParticles2D node.
 
 ## Extra time after lifetime before cleanup (allows particles to fade).
 @export var cleanup_delay: float = 0.5

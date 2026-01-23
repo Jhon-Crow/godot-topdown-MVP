@@ -172,7 +172,7 @@ func spawn_dust_effect(position: Vector2, surface_normal: Vector2, caliber_data:
 			print("[ImpactEffectsManager] ERROR: _dust_effect_scene is null")
 		return
 
-	var effect: CPUParticles2D = _dust_effect_scene.instantiate() as CPUParticles2D
+	var effect: GPUParticles2D = _dust_effect_scene.instantiate() as GPUParticles2D
 	if effect == null:
 		if _debug_effects:
 			print("[ImpactEffectsManager] ERROR: Failed to instantiate dust effect")
@@ -215,7 +215,7 @@ func spawn_blood_effect(position: Vector2, hit_direction: Vector2, caliber_data:
 		print("[ImpactEffectsManager] ERROR: _blood_effect_scene is null - blood effect NOT spawned")
 		return
 
-	var effect: CPUParticles2D = _blood_effect_scene.instantiate() as CPUParticles2D
+	var effect: GPUParticles2D = _blood_effect_scene.instantiate() as GPUParticles2D
 	if effect == null:
 		_log_info("ERROR: Failed to instantiate blood effect from scene")
 		print("[ImpactEffectsManager] ERROR: Failed to instantiate blood effect - casting failed")
@@ -268,7 +268,7 @@ func spawn_sparks_effect(position: Vector2, hit_direction: Vector2, caliber_data
 			print("[ImpactEffectsManager] ERROR: _sparks_effect_scene is null")
 		return
 
-	var effect: CPUParticles2D = _sparks_effect_scene.instantiate() as CPUParticles2D
+	var effect: GPUParticles2D = _sparks_effect_scene.instantiate() as GPUParticles2D
 	if effect == null:
 		if _debug_effects:
 			print("[ImpactEffectsManager] ERROR: Failed to instantiate sparks effect")
@@ -326,19 +326,45 @@ func _add_effect_to_scene(effect: Node2D) -> void:
 ## Spawns multiple small blood decals at positions simulating where blood particles would land.
 ## @param origin: World position where the blood spray starts.
 ## @param hit_direction: Direction the bullet was traveling (blood sprays in this direction).
-## @param effect: The CPUParticles2D effect to get physics parameters from.
+## @param effect: The GPUParticles2D effect to get physics parameters from.
 ## @param count: Number of decals to spawn.
-func _spawn_blood_decals_at_particle_landing(origin: Vector2, hit_direction: Vector2, effect: CPUParticles2D, count: int) -> void:
+func _spawn_blood_decals_at_particle_landing(origin: Vector2, hit_direction: Vector2, effect: GPUParticles2D, count: int) -> void:
 	if _blood_decal_scene == null:
 		_log_info("Blood decal scene is null - skipping floor decals")
 		return
 
-	# Get particle physics parameters from the effect
-	var initial_velocity_min: float = effect.initial_velocity_min
-	var initial_velocity_max: float = effect.initial_velocity_max
-	var gravity: Vector2 = effect.gravity
-	var spread_angle: float = deg_to_rad(effect.spread)
+	# Get particle physics parameters from the effect's process material
+	var process_mat: ParticleProcessMaterial = effect.process_material as ParticleProcessMaterial
+	if process_mat == null:
+		_log_info("Blood effect has no process material - using defaults")
+		# Use default parameters matching BloodEffect.tscn
+		var initial_velocity_min: float = 150.0
+		var initial_velocity_max: float = 350.0
+		var gravity: Vector2 = Vector2(0, 450)
+		var spread_angle: float = deg_to_rad(55.0)
+		var lifetime: float = effect.lifetime
+		_spawn_decals_with_params(origin, hit_direction, initial_velocity_min, initial_velocity_max, gravity, spread_angle, lifetime, count)
+		return
+
+	var initial_velocity_min: float = process_mat.initial_velocity_min
+	var initial_velocity_max: float = process_mat.initial_velocity_max
+	# ParticleProcessMaterial uses Vector3 for gravity, convert to Vector2
+	var gravity_3d: Vector3 = process_mat.gravity
+	var gravity: Vector2 = Vector2(gravity_3d.x, gravity_3d.y)
+	var spread_angle: float = deg_to_rad(process_mat.spread)
 	var lifetime: float = effect.lifetime
+
+	_spawn_decals_with_params(origin, hit_direction, initial_velocity_min, initial_velocity_max, gravity, spread_angle, lifetime, count)
+
+
+## Internal helper to spawn decals with given physics parameters.
+## Checks for wall collisions to prevent decals from appearing through walls.
+func _spawn_decals_with_params(origin: Vector2, hit_direction: Vector2, initial_velocity_min: float, initial_velocity_max: float, gravity: Vector2, spread_angle: float, lifetime: float, count: int) -> void:
+	# Get the current scene for raycasting
+	var scene := get_tree().current_scene
+	var space_state: PhysicsDirectSpaceState2D = null
+	if scene:
+		space_state = scene.get_world_2d().direct_space_state
 
 	# Base direction (effect rotation is in the hit direction)
 	var base_angle: float = hit_direction.angle()
@@ -363,6 +389,17 @@ func _spawn_blood_decals_at_particle_landing(origin: Vector2, hit_direction: Vec
 
 		# Calculate landing position using physics: pos = origin + v*t + 0.5*g*t^2
 		var landing_pos: Vector2 = origin + velocity * land_time + 0.5 * gravity * land_time * land_time
+
+		# Check if there's a wall between origin and landing position
+		if space_state:
+			var query := PhysicsRayQueryParameters2D.create(origin, landing_pos, WALL_COLLISION_LAYER)
+			query.collide_with_bodies = true
+			query.collide_with_areas = false
+			var result: Dictionary = space_state.intersect_ray(query)
+			if not result.is_empty():
+				# Wall detected between origin and landing - skip this decal
+				decal.queue_free()
+				continue
 
 		decal.global_position = landing_pos
 
