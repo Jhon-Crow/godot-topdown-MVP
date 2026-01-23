@@ -1018,10 +1018,10 @@ func reset_player() -> void:
 func _on_difficulty_changed(_new_difficulty: int) -> void:
 	var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
 	if difficulty_manager:
-		var new_max_ammo := difficulty_manager.get_max_ammo()
+		var new_max_ammo: int = difficulty_manager.get_max_ammo()
 		# Only update if the max ammo changed
 		if new_max_ammo != max_ammo:
-			var old_max_ammo := max_ammo
+			var old_max_ammo: int = max_ammo
 			max_ammo = new_max_ammo
 			# Scale current ammo proportionally, but cap at new max
 			if old_max_ammo > 0:

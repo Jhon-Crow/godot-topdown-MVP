@@ -170,7 +170,7 @@ func spawn_dust_effect(position: Vector2, surface_normal: Vector2, caliber_data:
 			print("[ImpactEffectsManager] ERROR: _dust_effect_scene is null")
 		return
 
-	var effect := _dust_effect_scene.instantiate() as Particles2D
+	var effect: Particles2D = _dust_effect_scene.instantiate() as Particles2D
 	if effect == null:
 		if _debug_effects:
 			print("[ImpactEffectsManager] ERROR: Failed to instantiate dust effect")
@@ -214,7 +214,7 @@ func spawn_blood_effect(position: Vector2, hit_direction: Vector2, caliber_data:
 			print("[ImpactEffectsManager] ERROR: _blood_effect_scene is null")
 		return
 
-	var effect := _blood_effect_scene.instantiate() as Particles2D
+	var effect: Particles2D = _blood_effect_scene.instantiate() as Particles2D
 	if effect == null:
 		_log_info("ERROR: Failed to instantiate blood effect from scene")
 		if _debug_effects:
@@ -269,7 +269,7 @@ func spawn_sparks_effect(position: Vector2, hit_direction: Vector2, caliber_data
 			print("[ImpactEffectsManager] ERROR: _sparks_effect_scene is null")
 		return
 
-	var effect := _sparks_effect_scene.instantiate() as Particles2D
+	var effect: Particles2D = _sparks_effect_scene.instantiate() as Particles2D
 	if effect == null:
 		if _debug_effects:
 			print("[ImpactEffectsManager] ERROR: Failed to instantiate sparks effect")
@@ -391,7 +391,7 @@ func _spawn_wall_blood_splatter(hit_position: Vector2, hit_direction: Vector2, i
 		return
 
 	# Get the physics space for raycasting
-	var space_state := scene.get_world_2d().direct_space_state
+	var space_state: PhysicsDirectSpaceState2D = scene.get_world_2d().direct_space_state
 	if space_state == null:
 		return
 
@@ -401,7 +401,7 @@ func _spawn_wall_blood_splatter(hit_position: Vector2, hit_direction: Vector2, i
 	query.collide_with_bodies = true
 	query.collide_with_areas = false
 
-	var result := space_state.intersect_ray(query)
+	var result: Dictionary = space_state.intersect_ray(query)
 
 	if result.is_empty():
 		if _debug_effects:

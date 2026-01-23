@@ -121,7 +121,7 @@ func _check_line_of_sight(target_pos: Vector2) -> bool:
 
 	# Check if collider is a child of the target
 	if collider and _target:
-		var parent := collider.get_parent()
+		var parent: Node = collider.get_parent()
 		while parent:
 			if parent == _target:
 				return true
