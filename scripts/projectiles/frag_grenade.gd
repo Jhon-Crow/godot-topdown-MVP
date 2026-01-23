@@ -123,12 +123,15 @@ func _on_body_entered(body: Node) -> void:
 
 	# Only explode on impact if we've been thrown and haven't exploded yet
 	if _is_thrown and not _has_impacted and not _has_exploded:
-		# Trigger impact explosion on wall/obstacle hit
-		if body is StaticBody2D or body is TileMap:
-			FileLogger.info("[FragGrenade] Wall impact detected! Body: %s, triggering explosion" % body.name)
+		# Trigger impact explosion on wall/obstacle/enemy hit
+		# StaticBody2D = walls, obstacles, furniture
+		# TileMap = terrain tiles
+		# CharacterBody2D = enemies and player
+		if body is StaticBody2D or body is TileMap or body is CharacterBody2D:
+			FileLogger.info("[FragGrenade] Impact detected! Body: %s (type: %s), triggering explosion" % [body.name, body.get_class()])
 			_trigger_impact_explosion()
 		else:
-			FileLogger.info("[FragGrenade] Non-wall collision (body: %s, type: %s) - not triggering explosion" % [body.name, body.get_class()])
+			FileLogger.info("[FragGrenade] Non-solid collision (body: %s, type: %s) - not triggering explosion" % [body.name, body.get_class()])
 
 
 ## Called when grenade lands on the ground.

@@ -1,0 +1,100 @@
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:25] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FlashbangGrenade.tscn
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:25] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FragGrenade.tscn
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:25] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:25] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:25] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 2/4
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:25] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:27] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:27] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:27] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 3/3, Health: 2/4
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:27] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:31] [INFO] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:31] [INFO] [Player.Grenade] G pressed - starting grab animation
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:31] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (356.74286, 251.13173)
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:31] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:31] [INFO] [GrenadeBase] Timer activated! 4.0 seconds until explosion
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:31] [INFO] [Player.Grenade] Timer started, grenade created at (150, 174.94443)
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:31] [INFO] [Player.Grenade.Anim] Phase changed to: PullPin (duration: 0,15s)
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:31] [INFO] [Player.Grenade] Step 1 complete! Drag: (444.25885, -56.103897)
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:32] [INFO] [Player.Grenade.Anim] Phase changed to: HandsApproach (duration: 0,20s)
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:32] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:32] [INFO] [Player.Grenade.Anim] Phase changed to: Transfer (duration: 0,15s)
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:32] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming (velocity-based throwing enabled)
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:32] [INFO] [Player.Grenade.Anim] Phase changed to: WindUp (duration: 0,00s)
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:32] [INFO] [Player.Grenade.Anim] Entered wind-up phase
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:33] [INFO] [Player.Grenade.Anim] Phase changed to: Throw (duration: 0,20s)
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:33] [INFO] [Player.Grenade] Velocity-based throw! Mouse velocity: (1910.8438, -79.55923) (1912,5 px/s), Swing distance: 160,6
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:33] [INFO] [Player.Grenade] Player rotated for throw: 0 -> -0,04161162
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:33] [INFO] [GrenadeBase] Velocity-based throw! Mouse vel: (1910.844, -79.55923), Swing: 160.6, Transfer: 0.99, Final speed: 999.1
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:33] [INFO] [Player.Grenade] Thrown! Velocity: 1912,5, Swing: 160,6
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:33] [INFO] [Player.Grenade] State reset to IDLE
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:33] [INFO] [Player.Grenade] Player rotation restored to 0
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:33] [INFO] [Player.Grenade.Anim] Phase changed to: ReturnIdle (duration: 0,30s)
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:33] [INFO] [Player.Grenade.Anim] Animation complete, returning to normal
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:34] [INFO] [GrenadeBase] Grenade landed at (722.3333, 151.1149)
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:35] [INFO] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:35] [INFO] [Player.Grenade] G pressed - starting grab animation
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:35] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (365.4276, 203.04268)
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:35] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:35] [INFO] [GrenadeBase] Timer activated! 4.0 seconds until explosion
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:35] [INFO] [Player.Grenade] Timer started, grenade created at (150, 145.2222)
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:35] [INFO] [Player.Grenade.Anim] Phase changed to: PullPin (duration: 0,15s)
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:35] [INFO] [Player.Grenade] Step 1 complete! Drag: (313.3194, -7.346939)
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:35] [INFO] [Player.Grenade.Anim] Phase changed to: HandsApproach (duration: 0,20s)
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:35] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:35] [INFO] [Player.Grenade.Anim] Phase changed to: Transfer (duration: 0,15s)
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:35] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming (velocity-based throwing enabled)
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:35] [INFO] [Player.Grenade.Anim] Phase changed to: WindUp (duration: 0,00s)
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:35] [INFO] [Player.Grenade.Anim] Entered wind-up phase
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:35] [INFO] [GrenadeBase] EXPLODED at (726.272, 150.9509)!
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:35] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(726.272, 150.9509), source=NEUTRAL (FlashbangGrenade), range=2937, listeners=10
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:36] [INFO] [Player.Grenade.Anim] Phase changed to: Throw (duration: 0,20s)
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:36] [INFO] [Player.Grenade] Velocity-based throw! Mouse velocity: (1925.8167, 67.11535) (1927,0 px/s), Swing distance: 1327,0
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:36] [INFO] [Player.Grenade] Player rotated for throw: 0 -> 0,034836233
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:36] [INFO] [GrenadeBase] Velocity-based throw! Mouse vel: (1925.817, 67.11535), Swing: 1327.0, Transfer: 1.00, Final speed: 1015.6
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:36] [INFO] [Player.Grenade] Thrown! Velocity: 1927,0, Swing: 1327,0
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:36] [INFO] [Player.Grenade] State reset to IDLE
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:36] [INFO] [Player.Grenade] Player rotation restored to 0
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:36] [INFO] [Player.Grenade.Anim] Phase changed to: ReturnIdle (duration: 0,30s)
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:36] [INFO] [Player.Grenade.Anim] Animation complete, returning to normal
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:37] [INFO] [GrenadeBase] Grenade landed at (734.3675, 165.5876)
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:37] [INFO] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:37] [INFO] [Player.Grenade] G pressed - starting grab animation
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:37] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (203.75746, 207.0501)
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:38] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:38] [INFO] [GrenadeBase] Timer activated! 4.0 seconds until explosion
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:38] [INFO] [Player.Grenade] Timer started, grenade created at (150, 145.2222)
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:38] [INFO] [Player.Grenade.Anim] Phase changed to: PullPin (duration: 0,15s)
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:38] [INFO] [Player.Grenade] Step 1 complete! Drag: (277.9123, 2.003708)
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:38] [INFO] [Player.Grenade.Anim] Phase changed to: HandsApproach (duration: 0,20s)
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:38] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:38] [INFO] [Player.Grenade.Anim] Phase changed to: Transfer (duration: 0,15s)
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:38] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming (velocity-based throwing enabled)
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:38] [INFO] [Player.Grenade.Anim] Phase changed to: WindUp (duration: 0,00s)
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:38] [INFO] [Player.Grenade.Anim] Entered wind-up phase
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:38] [INFO] [Player.Grenade.Anim] Phase changed to: Throw (duration: 0,20s)
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:38] [INFO] [Player.Grenade] Velocity-based throw! Mouse velocity: (3185.5574, -991.0509) (3336,2 px/s), Swing distance: 686,1
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:38] [INFO] [Player.Grenade] Player rotated for throw: 0 -> -0,3016158
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:38] [INFO] [GrenadeBase] Velocity-based throw! Mouse vel: (3185.557, -991.0509), Swing: 686.1, Transfer: 1.00, Final speed: 1352.8
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:38] [INFO] [Player.Grenade] Thrown! Velocity: 3336,2, Swing: 686,1
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:38] [INFO] [Player.Grenade] State reset to IDLE
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:39] [INFO] [Player.Grenade] Player rotation restored to 0
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:39] [INFO] [GrenadeBase] Collision detected with WallTop (type: StaticBody2D)
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:39] [INFO] [Player.Grenade.Anim] Phase changed to: ReturnIdle (duration: 0,30s)
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:39] [INFO] [Player.Grenade.Anim] Animation complete, returning to normal
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:39] [INFO] [GrenadeBase] EXPLODED at (738.0645, 165.7165)!
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:40] [INFO] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:40] [INFO] [Player.Grenade] G pressed - starting grab animation
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:40] [INFO] [GrenadeBase] Grenade landed at (841.1061, 135.622)
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:40] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (569.1854, 150.27829)
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:40] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:40] [INFO] [GrenadeBase] Timer activated! 4.0 seconds until explosion
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:40] [INFO] [Player.Grenade] Timer started, grenade created at (150, 145.2222)
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:40] [INFO] [Player.Grenade.Anim] Phase changed to: PullPin (duration: 0,15s)
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:40] [INFO] [Player.Grenade] Step 1 complete! Drag: (192.40082, -1.3358002)
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:40] [INFO] [Player.Grenade.Anim] Phase changed to: HandsApproach (duration: 0,20s)
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:40] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:40] [INFO] [Player.Grenade.Anim] Phase changed to: Transfer (duration: 0,15s)
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:40] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming (velocity-based throwing enabled)
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:40] [INFO] [Player.Grenade.Anim] Phase changed to: WindUp (duration: 0,00s)
+docs/case-studies/issue-283/logs/game_log_20260124_000025.txt:[00:00:40] [INFO] [Player.Grenade.Anim] Entered wind-up phase
