@@ -504,9 +504,112 @@ func _get_safe_grenade_spawn_position(from_pos: Vector2, intended_pos: Vector2, 
 - [PhysicsDirectSpaceState2D — Godot Engine Documentation](https://docs.godotengine.org/en/stable/classes/class_physicsdirectspacestate2d.html)
 - [RayCast2D :: Godot 4 Recipes](https://kidscancode.org/godot_recipes/4.x/kyn/raycast2d/index.html)
 
+## Follow-up: Third Root Cause Discovery
+
+### User Report After Second Fix
+
+After the raycast spawn fix was implemented, the user reported (2026-01-24):
+
+> "проблема всё ещё присутствует, проверь C#, так же направление броска может резко меняться (кидаю вправо, а летит вверх)"
+> Translation: "problem still persists, check C#, also throw direction can change sharply (throwing right but it flies up)"
+
+A new log file was provided: `game_log_20260124_012142.txt` (1158 lines)
+
+### Analysis of Third Log File
+
+**Critical Finding #1 - C# code was not fixed**:
+The raycast spawn fix was only applied to the GDScript `player.gd`, but the game uses the C# `Player.cs`. The C# code did not have the raycast check!
+
+**Critical Finding #2 - Throw direction based on mouse velocity** (lines 829-832):
+```
+[01:22:03] [Player.Grenade] Velocity-based throw! Mouse velocity: (149.37726, -1251.1003) (1260,0 px/s), Swing distance: 467,2
+[01:22:03] [Player.Grenade] Player rotated for throw: 0 -> -1,4519622
+```
+
+- Mouse velocity: (149.37726, -1251.1003) - this is mostly **UPWARD** (negative Y)
+- Player rotation: -1.4519622 radians (~-83 degrees from horizontal)
+- The grenade went **UP** instead of toward the mouse cursor!
+
+**Another example** (lines 970-973):
+```
+[01:22:05] [Player.Grenade] Velocity-based throw! Mouse velocity: (0.024683334, -1403.3901) (1403,4 px/s), Swing distance: 470,4
+[01:22:05] [Player.Grenade] Player rotated for throw: 0 -> -1,5707787
+```
+
+- Mouse velocity: almost entirely upward (Y = -1403, X ≈ 0)
+- Player rotation: -1.5707787 radians (-90 degrees, straight up)
+- User was aiming right but moving mouse upward during release → grenade flew up!
+
+### Root Cause #3: Throw Direction Based on Mouse Velocity
+
+The problematic code in `Player.cs:ThrowGrenade()`:
+
+```csharp
+// ORIGINAL CODE (buggy)
+Vector2 releaseVelocity = _currentMouseVelocity;
+float velocityMagnitude = releaseVelocity.Length();
+
+if (velocityMagnitude > 10.0f) // Mouse was moving at release
+{
+    throwDirection = releaseVelocity.Normalized();  // <-- BUG: direction from velocity, not position!
+}
+```
+
+**Problem**: The throw direction was determined by the **mouse movement velocity**, not the **mouse position relative to player**.
+
+- If player releases RMB while moving mouse upward → grenade goes up
+- Even if mouse cursor is to the right of player!
+- This is counterintuitive: users expect grenade to go toward cursor, not in direction of cursor movement
+
+**User expectation**: Grenade should fly toward where the mouse cursor is pointing (player-to-mouse direction).
+
+### Fix #3: Use Player-to-Mouse Direction
+
+Updated `Player.cs:ThrowGrenade()` to use correct direction:
+
+```csharp
+// FIXED CODE
+Vector2 releaseVelocity = _currentMouseVelocity;
+float velocityMagnitude = releaseVelocity.Length();
+
+// Throw direction is now ALWAYS from player toward mouse cursor
+// Mouse velocity magnitude still determines throw SPEED, but direction is player-to-mouse
+Vector2 mousePos = GetGlobalMousePosition();
+Vector2 throwDirection = (mousePos - GlobalPosition).Normalized();
+
+// When calling grenade, pass corrected velocity (direction + magnitude)
+Vector2 correctedVelocity = throwDirection * velocityMagnitude;
+_activeGrenade.Call("throw_grenade_velocity_based", correctedVelocity, _totalSwingDistance);
+```
+
+### Also Added: Raycast Check to C# Code
+
+The raycast spawn validation was also added to `Player.cs`:
+
+```csharp
+/// <summary>
+/// Get a safe spawn position for the grenade that doesn't spawn behind/inside walls.
+/// </summary>
+private Vector2 GetSafeGrenadeSpawnPosition(Vector2 fromPos, Vector2 intendedPos, Vector2 throwDirection)
+{
+    var spaceState = GetWorld2D().DirectSpaceState;
+    var query = PhysicsRayQueryParameters2D.Create(fromPos, intendedPos, 4);
+    query.Exclude = new Godot.Collections.Array<Rid> { GetRid() };
+
+    var result = spaceState.IntersectRay(query);
+    if (result.Count == 0) return intendedPos;
+
+    // Wall detected! Calculate safe position (5px before the wall)
+    Vector2 wallPosition = (Vector2)result["position"];
+    float distanceToWall = fromPos.DistanceTo(wallPosition);
+    float safeDistance = Mathf.Max(distanceToWall - 5.0f, 10.0f);
+    return fromPos + throwDirection * safeDistance;
+}
+```
+
 ## Conclusion
 
-Issue #287 has **TWO root causes** that required **TWO separate fixes**:
+Issue #287 has **THREE root causes** that required **THREE separate fixes**:
 
 1. **Physics Tunneling**: Fast-moving grenades pass through thin walls when discrete collision detection misses the collision between physics frames.
    - **Fix**: Enable Continuous Collision Detection (CCD) with `CCD_MODE_CAST_RAY`
@@ -514,13 +617,19 @@ Issue #287 has **TWO root causes** that required **TWO separate fixes**:
 2. **Spawn Position Behind Wall**: Grenades spawn 60 pixels ahead of player, which places them behind/inside walls when player is close to the wall.
    - **Fix**: Raycast from player to intended spawn position; if wall detected, spawn grenade just before the wall
 
-The user's intuition ("вероятно она спавнится уже за стеной" - "it probably spawns already behind the wall") was exactly correct. This demonstrates the value of:
+3. **Throw Direction Based on Mouse Velocity**: The throw direction was determined by mouse movement velocity instead of mouse position relative to player, causing grenades to fly in unexpected directions.
+   - **Fix**: Calculate throw direction as player-to-mouse vector, use mouse velocity magnitude only for throw speed
+
+**Additional Fix**: The raycast spawn check was only in GDScript but the game uses C# - both codebases now have the fix.
+
+This demonstrates the value of:
 - Carefully analyzing user hypotheses
 - Examining logs for missing events (no collision = spawn position issue)
-- Two-phase debugging when initial fix doesn't fully resolve the issue
+- Multi-phase debugging when initial fixes don't fully resolve the issue
+- Checking which codebase (GDScript vs C#) is actually being used
+- Understanding the difference between velocity direction and position direction
 
-Both fixes together ensure grenades will never pass through walls regardless of:
-- Throw velocity
-- Wall thickness
-- Player distance to wall
-- Throw angle
+All three fixes together ensure:
+- Grenades will never pass through walls regardless of velocity or wall thickness
+- Grenades will always fly toward where the mouse cursor is pointing
+- The throwing "feel" uses mouse velocity for realistic throw speed

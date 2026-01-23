@@ -1925,21 +1925,19 @@ public partial class Player : BaseCharacter
             return;
         }
 
-        // Get the mouse velocity at moment of release (this is the key to realistic physics)
+        // Get the mouse velocity at moment of release (for determining throw speed)
         Vector2 releaseVelocity = _currentMouseVelocity;
-
-        // Determine throw direction from velocity, or fallback to drag direction if stationary
-        Vector2 throwDirection;
         float velocityMagnitude = releaseVelocity.Length();
 
-        if (velocityMagnitude > 10.0f) // Mouse was moving at release
+        // FIXED: Throw direction is now ALWAYS from player toward mouse cursor
+        // This fixes the issue where throwing right caused the grenade to go up
+        // The mouse velocity magnitude still determines throw SPEED, but direction is player-to-mouse
+        Vector2 mousePos = GetGlobalMousePosition();
+        Vector2 throwDirection = (mousePos - GlobalPosition).Normalized();
+
+        // If mouse is exactly on player, fall back to drag direction or default
+        if (throwDirection.Length() < 0.5f)
         {
-            throwDirection = releaseVelocity.Normalized();
-        }
-        else
-        {
-            // Mouse was stationary at release - grenade drops at feet
-            // Use a slight forward direction so it doesn't appear exactly at player
             Vector2 dragVector = dragEnd - _grenadeDragStart;
             if (dragVector.Length() > 5.0f)
             {
@@ -1947,25 +1945,32 @@ public partial class Player : BaseCharacter
             }
             else
             {
-                throwDirection = new Vector2(1, 0); // Default direction
+                throwDirection = new Vector2(1, 0); // Default direction (right)
             }
         }
 
-        LogToFile($"[Player.Grenade] Velocity-based throw! Mouse velocity: {releaseVelocity} ({velocityMagnitude:F1} px/s), Swing distance: {_totalSwingDistance:F1}");
+        LogToFile($"[Player.Grenade] Throwing toward mouse! Direction: {throwDirection}, Mouse velocity: {velocityMagnitude:F1} px/s, Swing: {_totalSwingDistance:F1}");
 
         // Rotate player to face throw direction (prevents grenade hitting player when throwing upward)
         RotatePlayerForThrow(throwDirection);
 
-        // IMPORTANT: Set grenade position to player's CURRENT position (not where it was activated)
-        // Offset grenade spawn position in throw direction to avoid collision with player
-        float spawnOffset = 60.0f; // Increased from 30 to 60 pixels in front of player to avoid hitting
-        Vector2 spawnPosition = GlobalPosition + throwDirection * spawnOffset;
+        // Calculate intended spawn position (60px in front of player in throw direction)
+        float spawnOffset = 60.0f;
+        Vector2 intendedSpawnPosition = GlobalPosition + throwDirection * spawnOffset;
+
+        // FIXED: Raycast check to prevent spawning grenade behind/inside walls
+        // This fixes grenades passing through walls when thrown at close range ("в упор")
+        Vector2 spawnPosition = GetSafeGrenadeSpawnPosition(GlobalPosition, intendedSpawnPosition, throwDirection);
         _activeGrenade.GlobalPosition = spawnPosition;
 
         // Use velocity-based throwing if available, otherwise fall back to legacy
+        // IMPORTANT: We pass a velocity vector with the correct DIRECTION (player-to-mouse)
+        // but with the MAGNITUDE from the actual mouse velocity (for throw speed calculation)
         if (_activeGrenade.HasMethod("throw_grenade_velocity_based"))
         {
-            _activeGrenade.Call("throw_grenade_velocity_based", releaseVelocity, _totalSwingDistance);
+            // Create corrected velocity: direction toward mouse, magnitude from mouse movement speed
+            Vector2 correctedVelocity = throwDirection * velocityMagnitude;
+            _activeGrenade.Call("throw_grenade_velocity_based", correctedVelocity, _totalSwingDistance);
         }
         else if (_activeGrenade.HasMethod("throw_grenade"))
         {
@@ -2032,6 +2037,59 @@ public partial class Player : BaseCharacter
             _isThrowRotating = false;
             LogToFile($"[Player.Grenade] Player rotation restored to {_playerRotationBeforeThrow}");
         }
+    }
+
+    /// <summary>
+    /// Get a safe spawn position for the grenade that doesn't spawn behind/inside walls.
+    /// Uses raycast from player position to intended spawn position to detect walls.
+    /// If a wall is detected, spawns the grenade just before the wall (5px safety margin).
+    /// </summary>
+    /// <param name="fromPos">The player's current position.</param>
+    /// <param name="intendedPos">The intended spawn position (player + offset in throw direction).</param>
+    /// <param name="throwDirection">The normalized throw direction.</param>
+    /// <returns>The safe spawn position for the grenade.</returns>
+    private Vector2 GetSafeGrenadeSpawnPosition(Vector2 fromPos, Vector2 intendedPos, Vector2 throwDirection)
+    {
+        // Get physics space state for raycasting
+        var spaceState = GetWorld2D().DirectSpaceState;
+        if (spaceState == null)
+        {
+            LogToFile("[Player.Grenade] Warning: Could not get DirectSpaceState for raycast");
+            return intendedPos;
+        }
+
+        // Create raycast query from player to intended spawn position
+        // Collision mask 4 = obstacles layer (walls)
+        var query = PhysicsRayQueryParameters2D.Create(fromPos, intendedPos, 4);
+        query.Exclude = new Godot.Collections.Array<Rid> { GetRid() }; // Exclude self
+
+        var result = spaceState.IntersectRay(query);
+
+        // If no wall detected, use intended position
+        if (result.Count == 0)
+        {
+            return intendedPos;
+        }
+
+        // Wall detected! Calculate safe position (5px before the wall)
+        Vector2 wallPosition = (Vector2)result["position"];
+        string colliderName = "Unknown";
+        if (result.ContainsKey("collider"))
+        {
+            var collider = result["collider"].AsGodotObject();
+            if (collider is Node node)
+            {
+                colliderName = node.Name;
+            }
+        }
+
+        float distanceToWall = fromPos.DistanceTo(wallPosition);
+        float safeDistance = Mathf.Max(distanceToWall - 5.0f, 10.0f); // At least 10px from player
+        Vector2 safePosition = fromPos + throwDirection * safeDistance;
+
+        LogToFile($"[Player.Grenade] Wall detected at {wallPosition} (collider: {colliderName})! Adjusting spawn from {intendedPos} to {safePosition}");
+
+        return safePosition;
     }
 
     /// <summary>

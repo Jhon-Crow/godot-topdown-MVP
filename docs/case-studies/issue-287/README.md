@@ -5,13 +5,15 @@
 **Issue:** Offensive grenades passing through walls when thrown at close range
 **Root Causes:**
 1. Physics tunneling - grenades moving at ~1186 px/s (~20px/frame) pass through thin walls
-2. **NEW** Grenade spawn position behind wall - grenades spawned 60px ahead in throw direction, which can place them behind walls when player stands close to wall
+2. Grenade spawn position behind wall - grenades spawned 60px ahead in throw direction, which can place them behind walls when player stands close to wall
+3. **NEW** Throw direction based on mouse velocity instead of position - throwing right while moving mouse up caused grenade to fly upward
 
 **Solutions:**
 1. Enable Continuous Collision Detection (CCD) with `CCD_MODE_CAST_RAY`
-2. **NEW** Raycast validation before spawning to ensure grenade doesn't spawn inside/behind walls
+2. Raycast validation before spawning to ensure grenade doesn't spawn inside/behind walls
+3. **NEW** Use player-to-mouse direction for throw, mouse velocity magnitude only affects throw speed
 
-**Status:** ✅ Fixed (both root causes addressed)
+**Status:** ✅ Fixed (all three root causes addressed in both GDScript and C#)
 
 ## Files in This Case Study
 
@@ -19,6 +21,7 @@
 - **analysis.md** - Comprehensive root cause analysis with technical details
 - **game_log_20260124_004642.txt** - Original log file from bug report (4,594 lines)
 - **game_log_20260124_010946.txt** - Second log file showing CCD wasn't enough (980 lines)
+- **game_log_20260124_012142.txt** - Third log file showing throw direction bug (1,158 lines)
 - **grenade-log-entries.txt** - Filtered grenade-specific log entries (585 lines)
 
 ## The Problem
@@ -162,4 +165,6 @@ For detailed technical analysis, research sources, and implementation details, s
 3. **Analyze logs carefully** - missing collision logs revealed the second root cause
 4. **Raycast before spawn** - always validate projectile spawn positions for close-range scenarios
 5. **Log spawn position adjustments** - helps debug and verify fix is working
-6. **Two-phase debugging** - initial fix may reveal secondary issues
+6. **Multi-phase debugging** - initial fixes may reveal additional issues
+7. **Check ALL codebases** - fixes in GDScript don't help if game uses C#!
+8. **Velocity vs Position** - mouse velocity direction ≠ mouse position direction; users expect grenades to go toward cursor position
