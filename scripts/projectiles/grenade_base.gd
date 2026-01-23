@@ -93,6 +93,11 @@ func _ready() -> void:
 	collision_layer = 32  # Layer 6 (custom for grenades)
 	collision_mask = 4 | 2  # obstacles + enemies (NOT player, to avoid collision when throwing)
 
+	# Enable contact monitoring for body_entered signal (required for collision detection)
+	# Without this, body_entered signal will never fire!
+	contact_monitor = true
+	max_contacts_reported = 4  # Track up to 4 simultaneous contacts
+
 	# Set up physics
 	gravity_scale = 0.0  # Top-down, no gravity
 	linear_damp = 1.0  # Reduced for easier rolling
@@ -302,6 +307,19 @@ func _update_blink_effect(delta: float) -> void:
 
 ## Handle collision with bodies (bounce off walls).
 func _on_body_entered(body: Node) -> void:
+	# Log collision for debugging
+	var body_type := "Unknown"
+	if body is StaticBody2D:
+		body_type = "StaticBody2D"
+	elif body is TileMap:
+		body_type = "TileMap"
+	elif body is CharacterBody2D:
+		body_type = "CharacterBody2D"
+	elif body is RigidBody2D:
+		body_type = "RigidBody2D"
+
+	FileLogger.info("[GrenadeBase] Collision detected with %s (type: %s)" % [body.name, body_type])
+
 	# Play wall collision sound if hitting a wall/obstacle
 	if body is StaticBody2D or body is TileMap:
 		_play_wall_collision_sound()

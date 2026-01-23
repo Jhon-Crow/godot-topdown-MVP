@@ -125,7 +125,10 @@ func _on_body_entered(body: Node) -> void:
 	if _is_thrown and not _has_impacted and not _has_exploded:
 		# Trigger impact explosion on wall/obstacle hit
 		if body is StaticBody2D or body is TileMap:
+			FileLogger.info("[FragGrenade] Wall impact detected! Body: %s, triggering explosion" % body.name)
 			_trigger_impact_explosion()
+		else:
+			FileLogger.info("[FragGrenade] Non-wall collision (body: %s, type: %s) - not triggering explosion" % [body.name, body.get_class()])
 
 
 ## Called when grenade lands on the ground.
