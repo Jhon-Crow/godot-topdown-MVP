@@ -959,10 +959,15 @@ func _configure_enemy_grenades() -> void:
 		return
 
 	# Configure Enemy10 with 2 offensive grenades (per issue requirement)
-	if enemy10.get("enable_grenades") != null:
+	# Use configure_grenades() method for late initialization since _ready() has already run
+	if enemy10.has_method("configure_grenades"):
+		enemy10.configure_grenades(true, 2, 0)
+		print("BuildingLevel: [HARD] Enemy10 (main hall) equipped with 2 offensive grenades")
+	elif enemy10.get("enable_grenades") != null:
+		# Fallback for older enemy versions without configure_grenades method
 		enemy10.enable_grenades = true
 		enemy10.offensive_grenades = 2
 		enemy10.flashbang_grenades = 0
-		print("BuildingLevel: [HARD] Enemy10 (main hall) equipped with 2 offensive grenades")
+		print("BuildingLevel: [HARD] Enemy10 (main hall) equipped with grenades (fallback)")
 	else:
 		print("BuildingLevel: Enemy10 does not have grenade properties")

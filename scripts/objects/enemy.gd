@@ -718,6 +718,37 @@ func _ready() -> void:
 		call_deferred("_register_ally_death_listener")
 
 
+## Configure grenade system after _ready() has completed.
+## This method is designed to be called by level scripts that need to configure
+## enemy grenades based on difficulty or other runtime conditions.
+## @param enabled: Whether to enable grenade throwing
+## @param offensive: Number of offensive (frag) grenades
+## @param flashbangs: Number of flashbang grenades (default 0)
+func configure_grenades(enabled: bool, offensive: int, flashbangs: int = 0) -> void:
+	enable_grenades = enabled
+	offensive_grenades = offensive
+	flashbang_grenades = flashbangs
+
+	if enabled and _grenade_thrower == null:
+		_grenade_thrower = GrenadeThrowerComponent.new()
+		_grenade_thrower.enabled = true
+		_grenade_thrower.offensive_grenades = offensive_grenades
+		_grenade_thrower.flashbang_grenades = flashbang_grenades
+		_grenade_thrower.throw_range = grenade_throw_range
+		_grenade_thrower.throw_deviation = grenade_throw_deviation
+		_grenade_thrower.frag_grenade_scene = frag_grenade_scene
+		_grenade_thrower.flashbang_grenade_scene = flashbang_grenade_scene
+		_grenade_thrower.initialize(_log_to_file)
+		add_child(_grenade_thrower)
+		call_deferred("_register_ally_death_listener")
+		_log_to_file("Grenade system configured: offensive=%d, flashbangs=%d" % [offensive, flashbangs])
+	elif not enabled and _grenade_thrower != null:
+		# Disable grenades - clean up the component
+		_grenade_thrower.queue_free()
+		_grenade_thrower = null
+		_log_to_file("Grenade system disabled")
+
+
 ## Register to listen for other enemies dying (for grenade trigger condition #3).
 func _register_ally_death_listener() -> void:
 	var enemies := get_tree().get_nodes_in_group("enemies")
