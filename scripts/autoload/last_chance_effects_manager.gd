@@ -69,6 +69,9 @@ var _frozen_player_bullets: Array = []
 ## List of grenades frozen during time freeze.
 var _frozen_grenades: Array = []
 
+## List of bullet casings frozen during time freeze.
+var _frozen_casings: Array = []
+
 ## Original process mode of the player (to restore after effect).
 var _player_original_process_mode: Node.ProcessMode = Node.PROCESS_MODE_INHERIT
 
@@ -485,7 +488,7 @@ func _freeze_node_except_player(node: Node) -> void:
 			_freeze_node_except_player(child)
 		return
 
-	# Freeze RigidBody2D nodes (physics objects like grenades)
+	# Freeze RigidBody2D nodes (physics objects like grenades and casings)
 	if node is RigidBody2D:
 		_original_process_modes[node] = node.process_mode
 		node.process_mode = Node.PROCESS_MODE_DISABLED
@@ -498,6 +501,14 @@ func _freeze_node_except_player(node: Node) -> void:
 				if node not in _frozen_grenades:
 					_frozen_grenades.append(node)
 					_log("Froze existing grenade: %s" % node.name)
+			# Check if this is a bullet casing and track it separately
+			elif "casing" in script_path.to_lower():
+				if node not in _frozen_casings:
+					_frozen_casings.append(node)
+					# Call freeze_time method on casing if available
+					if node.has_method("freeze_time"):
+						node.freeze_time()
+					_log("Froze existing bullet casing: %s" % node.name)
 
 		for child in node.get_children():
 			_freeze_node_except_player(child)
@@ -584,6 +595,9 @@ func _unfreeze_time() -> void:
 
 	# Unfreeze any grenades that were created during the time freeze
 	_unfreeze_grenades()
+
+	# Unfreeze any bullet casings that were frozen during the time freeze
+	_unfreeze_casings()
 
 
 ## Restores all stored original process modes.
@@ -861,6 +875,27 @@ func _freeze_grenade(grenade: RigidBody2D) -> void:
 	_log("Registered frozen grenade: %s" % grenade.name)
 
 
+## Freezes a bullet casing that was created during the time freeze.
+## This stops both the casing's auto-land timer and its physics movement.
+func _freeze_casing(casing: RigidBody2D) -> void:
+	if casing in _frozen_casings:
+		return
+
+	_frozen_casings.append(casing)
+
+	# Store original process mode for restoration
+	_original_process_modes[casing] = casing.process_mode
+
+	# Disable processing to stop the auto-land timer in _physics_process
+	casing.process_mode = Node.PROCESS_MODE_DISABLED
+
+	# Call freeze_time method on casing to stop movement
+	if casing.has_method("freeze_time"):
+		casing.freeze_time()
+
+	_log("Registered frozen bullet casing: %s" % casing.name)
+
+
 ## Unfreezes all grenades that were created during time freeze.
 func _unfreeze_grenades() -> void:
 	for grenade in _frozen_grenades:
@@ -879,13 +914,32 @@ func _unfreeze_grenades() -> void:
 	_frozen_grenades.clear()
 
 
+## Unfreezes all bullet casings that were frozen during time freeze.
+func _unfreeze_casings() -> void:
+	for casing in _frozen_casings:
+		if is_instance_valid(casing):
+			# Restore process mode to allow casing to continue falling/landing
+			if casing in _original_process_modes:
+				casing.process_mode = _original_process_modes[casing]
+			else:
+				casing.process_mode = Node.PROCESS_MODE_INHERIT
+
+			# Call unfreeze_time method on casing to restore velocities
+			if casing.has_method("unfreeze_time"):
+				casing.unfreeze_time()
+
+			_log("Unfroze bullet casing: %s" % casing.name)
+
+	_frozen_casings.clear()
+
+
 ## Called when a node is added to the scene tree during time freeze.
 ## Automatically freezes player-fired bullets and grenades to maintain the time freeze effect.
 func _on_node_added_during_freeze(node: Node) -> void:
 	if not _is_effect_active:
 		return
 
-	# Check if this is a grenade (RigidBody2D with grenade script)
+	# Check if this is a grenade or casing (RigidBody2D with grenade/casing script)
 	if node is RigidBody2D:
 		var script: Script = node.get_script()
 		if script != null:
@@ -894,6 +948,11 @@ func _on_node_added_during_freeze(node: Node) -> void:
 				# This is a grenade - freeze it immediately
 				_log("Freezing newly created grenade: %s" % node.name)
 				_freeze_grenade(node as RigidBody2D)
+				return
+			elif "casing" in script_path.to_lower():
+				# This is a bullet casing - freeze it immediately
+				_log("Freezing newly created bullet casing: %s" % node.name)
+				_freeze_casing(node as RigidBody2D)
 				return
 
 	# Check if this is a bullet (Area2D with bullet script or name)
@@ -948,6 +1007,7 @@ func reset_effects() -> void:
 	_player_current_health = 0.0  # Reset cached health on scene change
 	_frozen_player_bullets.clear()
 	_frozen_grenades.clear()
+	_frozen_casings.clear()
 	_original_process_modes.clear()
 	_player_original_colors.clear()
 	_player_was_invulnerable = false
