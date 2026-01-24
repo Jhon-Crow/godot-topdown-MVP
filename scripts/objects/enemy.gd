@@ -466,6 +466,11 @@ const SEARCH_WAYPOINT_SPACING: float = 75.0  ## Spacing between waypoints
 var _search_visited_zones: Dictionary = {}  ## Tracks visited positions (key=snapped pos, val=true)
 const SEARCH_ZONE_SNAP_SIZE: float = 50.0  ## Grid size for snapping positions to zones
 
+## Flag tracking if enemy has ever left IDLE state (Issue #330).
+## Once an enemy leaves IDLE (due to combat contact, sound detection, etc.),
+## it should NEVER return to IDLE - it must search infinitely until finding the player.
+var _has_left_idle: bool = false
+
 ## Distance threshold for "close" vs "far" from player.
 ## Used to determine if enemy can engage from current position or needs to pursue.
 const CLOSE_COMBAT_DISTANCE: float = 400.0
@@ -1902,7 +1907,12 @@ func _process_flanking_state(delta: float) -> void:
 
 	if _player == null:
 		_flank_side_initialized = false
-		_transition_to_idle()
+		# Issue #330: If enemy has left IDLE, start searching instead of returning to IDLE
+		if _has_left_idle:
+			_log_to_file("FLANKING: Lost player reference, starting search (engaged enemy)")
+			_transition_to_searching(global_position)
+		else:
+			_transition_to_idle()
 		return
 
 	# Recalculate flank position (player may have moved)
@@ -2197,7 +2207,12 @@ func _process_pursuing_state(delta: float) -> void:
 				_move_to_target_nav(target_pos, combat_move_speed)
 			else:
 				_pursuit_approaching = false
-				_transition_to_idle()  # No valid target
+				# Issue #330: If enemy has left IDLE, start searching instead of returning to IDLE
+				if _has_left_idle:
+					_log_to_file("PURSUING: No valid target, starting search (engaged enemy)")
+					_transition_to_searching(global_position)
+				else:
+					_transition_to_idle()  # No valid target
 		return
 
 	# Check if we're waiting at cover
@@ -2268,10 +2283,15 @@ func _process_pursuing_state(delta: float) -> void:
 				_memory.decay(0.3)  # Significant confidence reduction
 				_log_debug("Reached suspected position but player not found - reducing confidence")
 
-				# If confidence is now low, return to idle
+				# If confidence is now low, start searching or return to idle
 				if not _memory.has_target() or _memory.is_low_confidence():
-					_log_to_file("Memory confidence too low after investigation - returning to IDLE")
-					_transition_to_idle()
+					# Issue #330: If enemy has left IDLE, start searching instead of returning to IDLE
+					if _has_left_idle:
+						_log_to_file("Memory confidence too low - starting search (engaged enemy)")
+						_transition_to_searching(target_pos)
+					else:
+						_log_to_file("Memory confidence too low after investigation - returning to IDLE")
+						_transition_to_idle()
 					return
 
 			# Otherwise, continue moving toward suspected position
@@ -2339,10 +2359,13 @@ func _mark_zone_visited(pos: Vector2) -> void:
 	if not _search_visited_zones.has(k): _search_visited_zones[k] = true; _log_debug("SEARCHING: Marked zone %s as visited (total: %d)" % [k, _search_visited_zones.size()])
 
 ## Process SEARCHING state - move through waypoints, scan at each (Issue #322).
+## Issue #330: If enemy has ever left IDLE, they NEVER return to IDLE - search infinitely.
 func _process_searching_state(delta: float) -> void:
 	_search_state_timer += delta
-	if _search_state_timer >= SEARCH_MAX_DURATION:
-		_log_to_file("SEARCHING timeout after %.1fs, returning to IDLE" % _search_state_timer)
+	# Issue #330: Only timeout if enemy has never engaged (still in patrol mode)
+	# Once an enemy has left IDLE, they search infinitely until finding player
+	if _search_state_timer >= SEARCH_MAX_DURATION and not _has_left_idle:
+		_log_to_file("SEARCHING timeout after %.1fs, returning to IDLE (patrol enemy)" % _search_state_timer)
 		_transition_to_idle()
 		return
 	if _can_see_player:
@@ -2357,10 +2380,30 @@ func _process_searching_state(delta: float) -> void:
 			if _search_waypoints.is_empty() and _search_radius < SEARCH_MAX_RADIUS:
 				return
 		else:
-			_log_to_file("SEARCHING: Max radius, returning to IDLE")
-			_transition_to_idle()
-			return
+			# Issue #330: If enemy has left IDLE, reset search and keep searching
+			if _has_left_idle:
+				# Move search center to current position (so enemy explores new area)
+				var old_center := _search_center
+				_search_center = global_position
+				_search_radius = SEARCH_INITIAL_RADIUS
+				_search_state_timer = 0.0
+				# Keep visited zones to avoid re-visiting same spots
+				_generate_search_waypoints()
+				_log_to_file("SEARCHING: Max radius reached, moved center from %s to %s (engaged enemy, wps=%d)" % [old_center, _search_center, _search_waypoints.size()])
+				return
+			else:
+				_log_to_file("SEARCHING: Max radius, returning to IDLE (patrol enemy)")
+				_transition_to_idle()
+				return
 	if _search_waypoints.is_empty():
+		# Issue #330: If enemy has left IDLE, regenerate waypoints from new position
+		if _has_left_idle:
+			var old_center := _search_center
+			_search_center = global_position
+			_search_radius = SEARCH_INITIAL_RADIUS
+			_generate_search_waypoints()
+			_log_to_file("SEARCHING: No waypoints, moved center from %s to %s (engaged enemy, wps=%d)" % [old_center, _search_center, _search_waypoints.size()])
+			return
 		_transition_to_idle()
 		return
 	var target_waypoint := _search_waypoints[_search_current_waypoint_index]
@@ -2552,6 +2595,8 @@ func _transition_to_idle() -> void:
 ## Transition to COMBAT state.
 func _transition_to_combat() -> void:
 	_current_state = AIState.COMBAT
+	# Mark that enemy has left IDLE state (Issue #330)
+	_has_left_idle = true
 	# Reset detection delay timer when entering combat
 	_detection_timer = 0.0
 	_detection_delay_elapsed = false
@@ -2572,11 +2617,15 @@ func _transition_to_combat() -> void:
 ## Transition to SEEKING_COVER state.
 func _transition_to_seeking_cover() -> void:
 	_current_state = AIState.SEEKING_COVER
+	# Mark that enemy has left IDLE state (Issue #330)
+	_has_left_idle = true
 	_find_cover_position()
 
 ## Transition to IN_COVER state.
 func _transition_to_in_cover() -> void:
 	_current_state = AIState.IN_COVER
+	# Mark that enemy has left IDLE state (Issue #330)
+	_has_left_idle = true
 
 ## Check if flanking is available (not on cooldown from failures).
 func _can_attempt_flanking() -> bool:
@@ -2603,6 +2652,8 @@ func _transition_to_flanking() -> bool:
 		return false
 
 	_current_state = AIState.FLANKING
+	# Mark that enemy has left IDLE state (Issue #330)
+	_has_left_idle = true
 	# Clear vulnerability sound pursuit flag
 	_pursuing_vulnerability_sound = false
 	# Initialize flank side only once per flanking maneuver
@@ -2664,12 +2715,16 @@ func _is_flank_target_reachable() -> bool:
 ## Transition to SUPPRESSED state.
 func _transition_to_suppressed() -> void:
 	_current_state = AIState.SUPPRESSED
+	# Mark that enemy has left IDLE state (Issue #330)
+	_has_left_idle = true
 	# Enter alarm mode when suppressed
 	_in_alarm_mode = true
 
 ## Transition to PURSUING state.
 func _transition_to_pursuing() -> void:
 	_current_state = AIState.PURSUING
+	# Mark that enemy has left IDLE state (Issue #330)
+	_has_left_idle = true
 	_pursuit_cover_wait_timer = 0.0
 	_has_pursuit_cover = false
 	_pursuit_approaching = false
@@ -2684,6 +2739,8 @@ func _transition_to_pursuing() -> void:
 ## Transition to ASSAULT state.
 func _transition_to_assault() -> void:
 	_current_state = AIState.ASSAULT
+	# Mark that enemy has left IDLE state (Issue #330)
+	_has_left_idle = true
 	_assault_wait_timer = 0.0
 	_assault_ready = false
 	_in_assault = false
@@ -2695,7 +2752,10 @@ func _transition_to_assault() -> void:
 
 ## Transition to SEARCHING state - methodical search around last known player position (Issue #322).
 func _transition_to_searching(center_position: Vector2) -> void:
-	_current_state = AIState.SEARCHING; _search_center = center_position; _search_radius = SEARCH_INITIAL_RADIUS
+	_current_state = AIState.SEARCHING
+	# Mark that enemy has left IDLE state (Issue #330)
+	_has_left_idle = true
+	_search_center = center_position; _search_radius = SEARCH_INITIAL_RADIUS
 	_search_state_timer = 0.0; _search_scan_timer = 0.0; _search_current_waypoint_index = 0
 	_search_direction = 0; _search_leg_length = SEARCH_WAYPOINT_SPACING; _search_legs_completed = 0
 	_search_moving_to_waypoint = true; _search_visited_zones.clear()
@@ -2706,6 +2766,8 @@ func _transition_to_searching(center_position: Vector2) -> void:
 ## Transition to RETREATING state with appropriate retreat mode.
 func _transition_to_retreating() -> void:
 	_current_state = AIState.RETREATING
+	# Mark that enemy has left IDLE state (Issue #330)
+	_has_left_idle = true
 	# Enter alarm mode when retreating
 	_in_alarm_mode = true
 
@@ -3785,8 +3847,13 @@ func reset_memory() -> void:
 			_memory.reset()
 		_last_known_player_position = Vector2.ZERO
 		if _current_state in [AIState.PURSUING, AIState.COMBAT, AIState.ASSAULT, AIState.FLANKING]:
-			_log_to_file("State reset: %s -> IDLE (no target)" % AIState.keys()[_current_state])
-			_transition_to_idle()
+			# Issue #330: If enemy has left IDLE, start searching instead of returning to IDLE
+			if _has_left_idle:
+				_log_to_file("State reset: %s -> SEARCHING (engaged enemy, no target)" % AIState.keys()[_current_state])
+				_transition_to_searching(global_position)
+			else:
+				_log_to_file("State reset: %s -> IDLE (no target)" % AIState.keys()[_current_state])
+				_transition_to_idle()
 
 
 ## Check if there is a clear line of sight to a position (enemy-to-enemy comms).
