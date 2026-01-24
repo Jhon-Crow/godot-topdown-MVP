@@ -171,6 +171,16 @@ public partial class Player : BaseCharacter
     private bool _debugModeEnabled = false;
 
     /// <summary>
+    /// Whether invincibility mode is enabled (F6 toggle, player takes no damage).
+    /// </summary>
+    private bool _invincibilityEnabled = false;
+
+    /// <summary>
+    /// Label for displaying invincibility mode indicator.
+    /// </summary>
+    private Label? _invincibilityLabel = null;
+
+    /// <summary>
     /// Target rotation for throw animation.
     /// </summary>
     private float _throwTargetRotation = 0.0f;
@@ -1533,6 +1543,14 @@ public partial class Player : BaseCharacter
             return;
         }
 
+        // Check invincibility mode (F6 toggle)
+        if (_invincibilityEnabled)
+        {
+            LogToFile("[Player] Hit blocked by invincibility mode (C#)");
+            ShowHitFlash(); // Still show visual feedback for debugging
+            return;
+        }
+
         GD.Print($"[Player] {Name}: Taking {amount} damage. Current health: {HealthComponent.CurrentHealth}");
 
         // Show hit flash effect
@@ -2711,7 +2729,7 @@ public partial class Player : BaseCharacter
     #region Debug Trajectory Visualization
 
     /// <summary>
-    /// Connects to GameManager's debug_mode_toggled signal for F7 toggle.
+    /// Connects to GameManager's debug_mode_toggled and invincibility_toggled signals.
     /// </summary>
     private void ConnectDebugModeSignal()
     {
@@ -2722,24 +2740,39 @@ public partial class Player : BaseCharacter
             return;
         }
 
-        if (!gameManager.HasSignal("debug_mode_toggled"))
+        // Connect to debug mode signal (F7)
+        if (gameManager.HasSignal("debug_mode_toggled"))
         {
-            LogToFile("[Player.Debug] WARNING: GameManager doesn't have debug_mode_toggled signal");
-            return;
-        }
+            gameManager.Connect("debug_mode_toggled", Callable.From<bool>(OnDebugModeToggled));
 
-        // Connect to the signal using Callable
-        gameManager.Connect("debug_mode_toggled", Callable.From<bool>(OnDebugModeToggled));
-
-        // Check if debug mode is already enabled
-        if (gameManager.HasMethod("is_debug_mode_enabled"))
-        {
-            _debugModeEnabled = (bool)gameManager.Call("is_debug_mode_enabled");
-            LogToFile($"[Player.Debug] Connected to GameManager, debug mode: {_debugModeEnabled}");
+            // Check if debug mode is already enabled
+            if (gameManager.HasMethod("is_debug_mode_enabled"))
+            {
+                _debugModeEnabled = (bool)gameManager.Call("is_debug_mode_enabled");
+                LogToFile($"[Player.Debug] Connected to GameManager, debug mode: {_debugModeEnabled}");
+            }
         }
         else
         {
-            LogToFile("[Player.Debug] Connected to GameManager (is_debug_mode_enabled not found)");
+            LogToFile("[Player.Debug] WARNING: GameManager doesn't have debug_mode_toggled signal");
+        }
+
+        // Connect to invincibility mode signal (F6)
+        if (gameManager.HasSignal("invincibility_toggled"))
+        {
+            gameManager.Connect("invincibility_toggled", Callable.From<bool>(OnInvincibilityToggled));
+
+            // Check if invincibility mode is already enabled
+            if (gameManager.HasMethod("is_invincibility_enabled"))
+            {
+                _invincibilityEnabled = (bool)gameManager.Call("is_invincibility_enabled");
+                LogToFile($"[Player.Debug] Connected to GameManager, invincibility mode: {_invincibilityEnabled}");
+                UpdateInvincibilityIndicator();
+            }
+        }
+        else
+        {
+            LogToFile("[Player.Debug] WARNING: GameManager doesn't have invincibility_toggled signal");
         }
     }
 
@@ -2752,6 +2785,49 @@ public partial class Player : BaseCharacter
         _debugModeEnabled = enabled;
         QueueRedraw();
         LogToFile($"[Player.Debug] Debug mode toggled: {(enabled ? "ON" : "OFF")}");
+    }
+
+    /// <summary>
+    /// Called when invincibility mode is toggled via F6 key.
+    /// </summary>
+    /// <param name="enabled">True if invincibility mode is now enabled.</param>
+    private void OnInvincibilityToggled(bool enabled)
+    {
+        _invincibilityEnabled = enabled;
+        UpdateInvincibilityIndicator();
+        LogToFile($"[Player] Invincibility mode: {(enabled ? "ON" : "OFF")}");
+    }
+
+    /// <summary>
+    /// Updates the visual indicator for invincibility mode.
+    /// Shows "INVINCIBLE" label when enabled, hides it when disabled.
+    /// </summary>
+    private void UpdateInvincibilityIndicator()
+    {
+        // Create label if it doesn't exist
+        if (_invincibilityLabel == null)
+        {
+            _invincibilityLabel = new Label();
+            _invincibilityLabel.Name = "InvincibilityLabel";
+            _invincibilityLabel.Text = "БЕССМЕРТИЕ";
+            _invincibilityLabel.HorizontalAlignment = HorizontalAlignment.Center;
+            _invincibilityLabel.VerticalAlignment = VerticalAlignment.Center;
+
+            // Position above the player
+            _invincibilityLabel.Position = new Vector2(-60, -80);
+            _invincibilityLabel.Size = new Vector2(120, 30);
+
+            // Style: bright yellow/gold color with outline for visibility
+            _invincibilityLabel.AddThemeColorOverride("font_color", new Color(1.0f, 0.9f, 0.2f, 1.0f));
+            _invincibilityLabel.AddThemeColorOverride("font_outline_color", new Color(0.0f, 0.0f, 0.0f, 1.0f));
+            _invincibilityLabel.AddThemeFontSizeOverride("font_size", 14);
+            _invincibilityLabel.AddThemeConstantOverride("outline_size", 3);
+
+            AddChild(_invincibilityLabel);
+        }
+
+        // Show/hide based on invincibility state
+        _invincibilityLabel.Visible = _invincibilityEnabled;
     }
 
     /// <summary>

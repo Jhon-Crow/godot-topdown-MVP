@@ -1382,6 +1382,9 @@ func _finish_reload() -> void:
 	_reserve_ammo -= ammo_to_load
 	_current_ammo += ammo_to_load
 
+	# Play reload complete sound
+	AudioManager.play_reload_full(global_position)
+
 	reload_finished.emit()
 	ammo_changed.emit(_current_ammo, _reserve_ammo)
 	_log_debug("Reload complete. Magazine: %d/%d, Reserve: %d" % [_current_ammo, magazine_size, _reserve_ammo])
