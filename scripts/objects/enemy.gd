@@ -549,6 +549,11 @@ var _evacuating_from_grenade: bool = false
 var _grenade_evacuation_from: Vector2 = Vector2.ZERO
 var _waiting_for_grenade_explosion: bool = false
 var _grenade_explosion_position: Vector2 = Vector2.ZERO
+## Continuous gunfire tracking for grenade trigger #5 (10s gunfire in 520x520 zone)
+var _gunfire_zone_center: Vector2 = Vector2.ZERO
+var _last_gunfire_time: float = 0.0
+const GUNFIRE_ZONE_SIZE: float = 520.0
+const GUNFIRE_TIMEOUT: float = 1.5  # Max gap between shots to count as continuous
 
 ## GOAP world state for goal-oriented planning.
 var _goap_world_state: Dictionary = {}
@@ -989,6 +994,21 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 	if sound_type != 0:
 		return
 
+	# Track continuous gunfire in 520x520 zone for trigger #5
+	if _grenade_thrower and source_type == 0:  # Player gunshots only
+		var current_time := Time.get_ticks_msec() / 1000.0
+		var is_in_zone := _gunfire_zone_center == Vector2.ZERO or position.distance_to(_gunfire_zone_center) <= GUNFIRE_ZONE_SIZE / 2.0
+		var is_continuous := (current_time - _last_gunfire_time) <= GUNFIRE_TIMEOUT
+		if is_in_zone and is_continuous:
+			var delta_time := current_time - _last_gunfire_time
+			_grenade_thrower.update_gunfire_timer(delta_time, true)
+			if _grenade_thrower._continuous_gunfire_timer >= 8.0:  # Log when approaching threshold
+				_log_to_file("Gunfire tracking: accumulated %.1fs (zone center: %s)" % [_grenade_thrower._continuous_gunfire_timer, _gunfire_zone_center])
+		else:
+			_gunfire_zone_center = position  # Reset zone or start new zone tracking
+			_grenade_thrower.update_gunfire_timer(0.0, false)  # Reset timer
+		_last_gunfire_time = current_time
+
 	# React based on current state:
 	# - IDLE: Always react to loud sounds
 	# - Other states: Only react to very loud, close sounds (intensity > 0.5)
@@ -1108,6 +1128,11 @@ func _physics_process(delta: float) -> void:
 	if _grenade_thrower:  # Update grenade thrower cooldown and player hidden timer
 		_grenade_thrower.update_cooldown(delta)
 		_grenade_thrower.update_player_hidden_timer(delta, _can_see_player, _under_fire)
+		# Reset gunfire timer if no gunfire heard for timeout period
+		var current_time := Time.get_ticks_msec() / 1000.0
+		if _last_gunfire_time > 0.0 and (current_time - _last_gunfire_time) > GUNFIRE_TIMEOUT:
+			_grenade_thrower.update_gunfire_timer(0.0, false)
+			_last_gunfire_time = 0.0  # Reset so we don't keep calling this
 
 	# Check for player visibility and try to find player if not found
 	if _player == null:
@@ -1247,67 +1272,29 @@ func _force_model_to_face_direction(direction: Vector2) -> void:
 		_enemy_model.global_rotation = target_angle
 		_enemy_model.scale = Vector2(enemy_model_scale, enemy_model_scale)
 
-## DEPRECATED: This function is no longer used.
-##
-## Previously used to calculate an aim direction that would compensate for the weapon's
-## offset from the enemy center. This caused issues because:
-## 1. The model rotation was different from the bullet direction
-## 2. The weapon would visually point in a different direction than bullets fly
-##
-## The new approach is simpler:
-## 1. Model faces the player (center-to-center direction)
-## 2. Bullets spawn from muzzle and fly FROM MUZZLE TO TARGET
-## 3. This ensures the weapon visually points where bullets go
-##
-## Kept for reference in case the iterative offset approach is needed elsewhere.
-##
-## @param target_pos: The position to aim at (typically the player's position).
-## @return: The direction vector the model should face for the weapon to point at target.
+## DEPRECATED: Kept for reference. Compensates for weapon offset via iteration.
 func _calculate_aim_direction_from_weapon(target_pos: Vector2) -> Vector2:
-	# WeaponMount is at local position (0, 6) in EnemyModel
-	# This offset needs to be accounted for when calculating aim direction
-	var weapon_mount_local := Vector2(0, 6)
-
-	# Start with a rough estimate: direction from enemy center to target
+	var weapon_mount_local := Vector2(0, 6)  # WeaponMount local position
 	var rough_direction := (target_pos - global_position)
 	var rough_distance := rough_direction.length()
-
-	# For distant targets, the offset error is negligible - use simple calculation
-	# threshold is ~3x the weapon offset to avoid unnecessary iteration
-	if rough_distance > 25.0 * enemy_model_scale:
+	if rough_distance > 25.0 * enemy_model_scale:  # Distant target - no iteration needed
 		return rough_direction.normalized()
-
-	# For close targets, iterate to find the correct rotation
-	# Start with the rough direction
 	var current_direction := rough_direction.normalized()
-
-	# Iterate to refine the aim direction (2 iterations is usually enough)
-	for _i in range(2):
+	for _i in range(2):  # Refine aim direction iteratively
 		var estimated_angle := current_direction.angle()
-
-		# Determine if we would flip (affects how weapon offset transforms)
 		var would_flip := absf(estimated_angle) > PI / 2
-
-		# Calculate weapon position with this estimated rotation
 		var weapon_offset_world: Vector2
 		if would_flip:
-			# When flipped, scale.y is negative, which affects the Y component of the offset
-			# Transform: scale then rotate
 			var scaled := Vector2(weapon_mount_local.x * enemy_model_scale, weapon_mount_local.y * -enemy_model_scale)
 			weapon_offset_world = scaled.rotated(estimated_angle)
 		else:
 			var scaled := weapon_mount_local * enemy_model_scale
 			weapon_offset_world = scaled.rotated(estimated_angle)
-
 		var weapon_global_pos := global_position + weapon_offset_world
-
-		# Calculate new direction from weapon to target
 		var new_direction := (target_pos - weapon_global_pos)
 		if new_direction.length_squared() < 0.01:
-			# Target is at weapon position, keep current direction
 			break
 		current_direction = new_direction.normalized()
-
 	return current_direction
 
 ## Updates the walking animation based on enemy movement state.
