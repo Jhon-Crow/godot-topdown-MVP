@@ -245,11 +245,16 @@ func _setup_player_tracking() -> void:
 func _setup_enemy_tracking() -> void:
 	var enemies_node := get_node_or_null("Environment/Enemies")
 	if enemies_node == null:
+		_log_to_file("ERROR: Environment/Enemies node not found!")
 		return
 
+	_log_to_file("Found Environment/Enemies node with %d children" % enemies_node.get_child_count())
 	_enemies.clear()
 	for child in enemies_node.get_children():
-		if child.has_signal("died"):
+		var has_died_signal := child.has_signal("died")
+		var script_attached := child.get_script() != null
+		_log_to_file("Child '%s': script=%s, has_died_signal=%s" % [child.name, script_attached, has_died_signal])
+		if has_died_signal:
 			_enemies.append(child)
 			child.died.connect(_on_enemy_died)
 			# Connect to died_with_info for score tracking if available
@@ -261,6 +266,7 @@ func _setup_enemy_tracking() -> void:
 
 	_initial_enemy_count = _enemies.size()
 	_current_enemy_count = _initial_enemy_count
+	_log_to_file("Enemy tracking complete: %d enemies registered" % _initial_enemy_count)
 	print("Tracking %d enemies" % _initial_enemy_count)
 
 
@@ -953,3 +959,12 @@ func _setup_selected_weapon() -> void:
 				_player.EquipWeapon(assault_rifle)
 			elif _player.get("CurrentWeapon") != null:
 				_player.CurrentWeapon = assault_rifle
+
+
+## Log a message to the file logger if available.
+func _log_to_file(message: String) -> void:
+	var file_logger: Node = get_node_or_null("/root/FileLogger")
+	if file_logger and file_logger.has_method("log_info"):
+		file_logger.log_info("[BuildingLevel] " + message)
+	else:
+		print("[BuildingLevel] " + message)
