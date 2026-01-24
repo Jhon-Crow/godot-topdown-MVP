@@ -175,6 +175,9 @@ var _grenade_drag_active: bool = false
 ## Whether debug mode is enabled (F7 toggle, shows grenade trajectory).
 var _debug_mode_enabled: bool = false
 
+## Whether invincibility mode is enabled (F6 toggle, player takes no damage).
+var _invincibility_enabled: bool = false
+
 
 func _ready() -> void:
 	FileLogger.info("[Player] Initializing player...")
@@ -279,7 +282,7 @@ func _ready() -> void:
 	# to ensure level scripts have finished adding weapons to the player.
 	# See _weapon_pose_applied and _weapon_detect_frame_count variables.
 
-	# Connect to GameManager's debug mode signal for F7 toggle
+	# Connect to GameManager's debug signals (F6 invincibility, F7 debug mode)
 	_connect_debug_mode_signal()
 
 	# Initialize death animation component
@@ -832,6 +835,13 @@ func on_hit() -> void:
 ## @param caliber_data: Caliber resource for effect scaling.
 func on_hit_with_info(hit_direction: Vector2, caliber_data: Resource) -> void:
 	if not _is_alive:
+		return
+
+	# Check invincibility mode (F6 toggle)
+	if _invincibility_enabled:
+		FileLogger.info("[Player] Hit blocked by invincibility mode")
+		# Still show hit flash for visual feedback
+		_show_hit_flash()
 		return
 
 	hit.emit()
@@ -2057,16 +2067,29 @@ func _update_reload_animation(delta: float) -> void:
 # Debug Visualization System
 # ============================================================================
 
-## Connect to GameManager's debug mode signal for F7 toggle.
+## Connect to GameManager's debug signals (F6 invincibility, F7 debug mode).
 func _connect_debug_mode_signal() -> void:
 	var game_manager: Node = get_node_or_null("/root/GameManager")
 	if game_manager:
+		# Connect to invincibility toggle signal
+		if game_manager.has_signal("invincibility_toggled"):
+			game_manager.invincibility_toggled.connect(_on_invincibility_toggled)
+		# Sync with current invincibility state
+		if game_manager.has_method("is_invincibility_enabled"):
+			_invincibility_enabled = game_manager.is_invincibility_enabled()
+
 		# Connect to debug mode toggle signal
 		if game_manager.has_signal("debug_mode_toggled"):
 			game_manager.debug_mode_toggled.connect(_on_debug_mode_toggled)
 		# Sync with current debug mode state
 		if game_manager.has_method("is_debug_mode_enabled"):
 			_debug_mode_enabled = game_manager.is_debug_mode_enabled()
+
+
+## Called when invincibility mode is toggled via F6 key.
+func _on_invincibility_toggled(enabled: bool) -> void:
+	_invincibility_enabled = enabled
+	FileLogger.info("[Player] Invincibility mode: %s" % ("ON" if _invincibility_enabled else "OFF"))
 
 
 ## Called when debug mode is toggled via F7 key.

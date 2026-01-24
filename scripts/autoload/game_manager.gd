@@ -23,6 +23,11 @@ var player: Node2D = null
 ## Toggle with F7 key - works in both editor and exported builds.
 var debug_mode_enabled: bool = false
 
+## Whether invincibility mode is enabled (player takes no damage).
+## Toggle with F6 key - works in both editor and exported builds.
+## For debugging purposes only.
+var invincibility_enabled: bool = false
+
 ## Currently selected weapon ID for player equipment.
 ## Valid values: "m16", "shotgun", "mini_uzi", "silenced_pistol" (corresponds to armory_menu WEAPONS keys)
 ## Default: "m16" (assault rifle)
@@ -48,6 +53,9 @@ signal stats_updated
 ## Signal emitted when debug mode is toggled (F7 key).
 signal debug_mode_toggled(enabled: bool)
 
+## Signal emitted when invincibility mode is toggled (F6 key).
+signal invincibility_toggled(enabled: bool)
+
 ## Signal emitted when weapon selection changes.
 signal weapon_selected(weapon_id: String)
 
@@ -69,6 +77,9 @@ func _input(event: InputEvent) -> void:
 	if event is InputEventKey:
 		if event.pressed and event.physical_keycode == KEY_Q:
 			restart_scene()
+		# Handle invincibility toggle with F6 key (works in exported builds)
+		elif event.pressed and event.physical_keycode == KEY_F6:
+			toggle_invincibility()
 		# Handle debug mode toggle with F7 key (works in exported builds)
 		elif event.pressed and event.physical_keycode == KEY_F7:
 			toggle_debug_mode()
@@ -140,6 +151,20 @@ func toggle_debug_mode() -> void:
 ## Returns whether debug mode is currently enabled.
 func is_debug_mode_enabled() -> bool:
 	return debug_mode_enabled
+
+
+## Toggles invincibility mode on/off.
+## When enabled, player takes no damage from any source.
+## Works in both editor and exported builds.
+func toggle_invincibility() -> void:
+	invincibility_enabled = not invincibility_enabled
+	invincibility_toggled.emit(invincibility_enabled)
+	_log_to_file("Invincibility mode toggled: %s" % ("ON" if invincibility_enabled else "OFF"))
+
+
+## Returns whether invincibility mode is currently enabled.
+func is_invincibility_enabled() -> bool:
+	return invincibility_enabled
 
 
 ## Sets the currently selected weapon.
