@@ -1558,13 +1558,45 @@ func _throw_grenade(drag_end: Vector2) -> void:
 	# Raycast from player to intended spawn position to check for walls
 	var spawn_position := _get_safe_grenade_spawn_position(global_position, intended_spawn_position, throw_direction)
 
-	# Use velocity-based throwing if available, otherwise fall back to legacy
+	# Use velocity-based throwing if available, otherwise fall back to legacy or direct physics
+	var method_called := false
 	if _active_grenade.has_method("throw_grenade_velocity_based"):
 		_active_grenade.throw_grenade_velocity_based(release_velocity, _total_swing_distance)
+		method_called = true
+		FileLogger.info("[Player.Grenade] Called throw_grenade_velocity_based() on grenade")
 	elif _active_grenade.has_method("throw_grenade"):
 		# Legacy fallback: convert velocity to drag distance approximation
 		var legacy_distance := velocity_magnitude * 0.5  # Rough conversion
 		_active_grenade.throw_grenade(throw_direction, legacy_distance)
+		method_called = true
+		FileLogger.info("[Player.Grenade] Called throw_grenade() on grenade (legacy)")
+
+	# CRITICAL FIX for issue #313: Direct physics fallback when GDScript methods not detected
+	# This handles the cross-language interop issue where C# code can't detect GDScript methods
+	# and uses incorrect "player_to_mouse" direction instead of mouse velocity direction
+	if not method_called:
+		FileLogger.info("[Player.Grenade] WARNING: No throw method found via has_method(), using direct physics fallback")
+		# Unfreeze the grenade first
+		if _active_grenade is RigidBody2D:
+			_active_grenade.freeze = false
+			# Calculate throw velocity using the same formula as grenade_base.gd
+			# Default values from GrenadeBase: mouse_velocity_to_throw_multiplier=0.5, min_transfer=0.35
+			var multiplier := 0.5
+			var min_transfer := 0.35
+			var min_swing := 80.0
+			var max_speed := 850.0
+			# Use throw_direction (from mouse velocity) as the direction - THIS IS THE KEY FIX
+			# The direction is already correctly calculated from release_velocity above
+			var swing_transfer := clampf(_total_swing_distance / min_swing, 0.0, 1.0 - min_transfer)
+			var transfer_efficiency := min_transfer + swing_transfer
+			transfer_efficiency = clampf(transfer_efficiency, 0.0, 1.0)
+			var throw_speed := clampf(velocity_magnitude * multiplier * transfer_efficiency, 0.0, max_speed)
+			# Apply velocity in the throw_direction (which is based on mouse VELOCITY, not position)
+			_active_grenade.linear_velocity = throw_direction * throw_speed
+			_active_grenade.rotation = throw_direction.angle()
+			FileLogger.info("[Player.Grenade] Direct physics fallback: direction=%s, speed=%.1f, transfer=%.2f" % [
+				str(throw_direction), throw_speed, transfer_efficiency
+			])
 
 	# Emit signal
 	grenade_thrown.emit()
