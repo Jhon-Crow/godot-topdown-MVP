@@ -2454,7 +2454,9 @@ func _shoot_with_inaccuracy() -> void:
 	var bullet_spawn_pos := _get_bullet_spawn_position(weapon_forward)
 
 	# Calculate direction to target for aim check
-	var to_target := (target_position - bullet_spawn_pos).normalized()
+	# IMPORTANT: Use global_position (enemy center) as origin, NOT bullet_spawn_pos (muzzle).
+	# This fixes Issue #344 where the muzzle offset caused aim checks to fail at close range.
+	var to_target := (target_position - global_position).normalized()
 
 	# Check if weapon is aimed at target (within tolerance)
 	# Bullets fly in barrel direction, so we only shoot when properly aimed (issue #254)
@@ -2524,7 +2526,9 @@ func _shoot_burst_shot() -> void:
 	var bullet_spawn_pos := _get_bullet_spawn_position(weapon_forward)
 
 	# Calculate direction to target for aim check
-	var to_target := (target_position - bullet_spawn_pos).normalized()
+	# IMPORTANT: Use global_position (enemy center) as origin, NOT bullet_spawn_pos (muzzle).
+	# This fixes Issue #344 where the muzzle offset caused aim checks to fail at close range.
+	var to_target := (target_position - global_position).normalized()
 
 	# Check if weapon is aimed at target (within tolerance)
 	# Bullets fly in barrel direction, so we only shoot when properly aimed (issue #254)
@@ -3935,7 +3939,13 @@ func _shoot() -> void:
 	var bullet_spawn_pos := _get_bullet_spawn_position(weapon_forward)
 
 	# Calculate direction to target for aim check
-	var to_target := (target_position - bullet_spawn_pos).normalized()
+	# IMPORTANT: Use global_position (enemy center) as origin, NOT bullet_spawn_pos (muzzle).
+	# Reason: weapon_forward is calculated as direction from enemy center to player.
+	# Using bullet_spawn_pos creates a geometric mismatch at close range because
+	# the muzzle is offset from the center, causing the angle between weapon_forward
+	# and to_target to exceed the tolerance even when the enemy is facing the player.
+	# This was causing Issue #344 where enemies wouldn't shoot at close range.
+	var to_target := (target_position - global_position).normalized()
 
 	# Check if weapon is aimed at target (within tolerance)
 	# Bullets fly in barrel direction, so we only shoot when properly aimed (issue #254)
