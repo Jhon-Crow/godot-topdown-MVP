@@ -190,14 +190,14 @@ func is_safe_throw_distance(throw_origin: Vector2, target_pos: Vector2) -> bool:
 ## Returns true if the path is CLEAR (no wall blocking), false if blocked.
 ## This prevents enemies from throwing grenades at walls point-blank.
 func is_throw_path_clear(throw_origin: Vector2, target_pos: Vector2) -> bool:
-	var parent_node := get_parent()
+	var parent_node: Node = get_parent()
 	if parent_node == null:
 		return true  # Fail-open if no parent
 
-	var world_2d := parent_node.get_world_2d()
+	var world_2d: World2D = parent_node.get_world_2d()
 	if world_2d == null:
 		return true
-	var space_state := world_2d.direct_space_state
+	var space_state: PhysicsDirectSpaceState2D = world_2d.direct_space_state
 	if space_state == null:
 		return true
 
@@ -212,7 +212,7 @@ func is_throw_path_clear(throw_origin: Vector2, target_pos: Vector2) -> bool:
 	spawn_check.collision_mask = 4  # Obstacles (layer 3)
 	spawn_check.exclude = [parent_node.get_rid()] if parent_node.has_method("get_rid") else []
 
-	var spawn_result := space_state.intersect_ray(spawn_check)
+	var spawn_result: Dictionary = space_state.intersect_ray(spawn_check)
 	if not spawn_result.is_empty():
 		_log("Grenade throw blocked: wall between enemy and spawn position")
 		return false
@@ -223,7 +223,7 @@ func is_throw_path_clear(throw_origin: Vector2, target_pos: Vector2) -> bool:
 	target_check.to = target_pos
 	target_check.collision_mask = 4  # Obstacles (layer 3)
 
-	var target_result := space_state.intersect_ray(target_check)
+	var target_result: Dictionary = space_state.intersect_ray(target_check)
 	if not target_result.is_empty():
 		# Check if the wall is very close (point-blank situation)
 		var hit_position: Vector2 = target_result["position"]

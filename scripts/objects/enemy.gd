@@ -766,8 +766,8 @@ func _evacuate_from_grenade_zone(grenade_pos: Vector2, blast_radius: float) -> v
 	var escape_dir := (global_position - grenade_pos).normalized()
 	if escape_dir == Vector2.ZERO:
 		escape_dir = Vector2.RIGHT.rotated(randf() * TAU)
-	if _navigation_agent:
-		_navigation_agent.target_position = grenade_pos + escape_dir * (blast_radius + 100.0)
+	if _nav_agent:
+		_nav_agent.target_position = grenade_pos + escape_dir * (blast_radius + 100.0)
 
 ## Called when ally grenade explodes - signals coordinated assault can begin.
 func on_ally_grenade_exploded(explosion_pos: Vector2, _thrower: Node) -> void:

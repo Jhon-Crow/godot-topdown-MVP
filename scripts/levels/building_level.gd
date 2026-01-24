@@ -256,21 +256,21 @@ func _setup_player_tracking() -> void:
 
 ## Setup tracking for all enemies in the scene.
 func _setup_enemy_tracking() -> void:
-	var enemies_node := get_node_or_null("Environment/Enemies")
+	var enemies_node: Node = get_node_or_null("Environment/Enemies")
 	if enemies_node == null:
 		print("[BuildingLevel] ERROR: Environment/Enemies node not found!")
 		_log_to_file("Enemy tracking setup failed: Environment/Enemies node not found")
 		return
 
-	var child_count := enemies_node.get_child_count()
+	var child_count: int = enemies_node.get_child_count()
 	print("[BuildingLevel] Found Environment/Enemies with %d children" % child_count)
 	_log_to_file("Enemy tracking: Found %d children under Environment/Enemies" % child_count)
 
 	_enemies.clear()
 	for child in enemies_node.get_children():
-		var child_class := child.get_class()
-		var child_script := child.get_script()
-		var has_died_signal := child.has_signal("died")
+		var child_class: String = child.get_class()
+		var child_script: Script = child.get_script()
+		var has_died_signal: bool = child.has_signal("died")
 
 		print("[BuildingLevel] Child '%s': class=%s, script=%s, has_died_signal=%s" % [
 			child.name,
@@ -312,7 +312,7 @@ func _setup_enemy_tracking() -> void:
 
 ## Setup debug UI elements for kills and accuracy.
 func _setup_debug_ui() -> void:
-	var ui := get_node_or_null("CanvasLayer/UI")
+	var ui: CanvasItem = get_node_or_null("CanvasLayer/UI")
 	if ui == null:
 		return
 
@@ -369,7 +369,7 @@ func _setup_debug_ui() -> void:
 
 ## Setup saturation overlay for kill effect.
 func _setup_saturation_overlay() -> void:
-	var canvas_layer := get_node_or_null("CanvasLayer")
+	var canvas_layer: CanvasLayer = get_node_or_null("CanvasLayer")
 	if canvas_layer == null:
 		return
 
@@ -526,7 +526,7 @@ func _on_player_reload_completed() -> void:
 
 ## Broadcast player reloading state to all enemies.
 func _broadcast_player_reloading(is_reloading: bool) -> void:
-	var enemies_node := get_node_or_null("Environment/Enemies")
+	var enemies_node: Node = get_node_or_null("Environment/Enemies")
 	if enemies_node == null:
 		return
 
@@ -537,7 +537,7 @@ func _broadcast_player_reloading(is_reloading: bool) -> void:
 
 ## Broadcast player ammo empty state to all enemies.
 func _broadcast_player_ammo_empty(is_empty: bool) -> void:
-	var enemies_node := get_node_or_null("Environment/Enemies")
+	var enemies_node: Node = get_node_or_null("Environment/Enemies")
 	if enemies_node == null:
 		return
 
@@ -659,7 +659,7 @@ func _show_death_message() -> void:
 
 	_game_over_shown = true
 
-	var ui := get_node_or_null("CanvasLayer/UI")
+	var ui: CanvasItem = get_node_or_null("CanvasLayer/UI")
 	if ui == null:
 		return
 
@@ -683,7 +683,7 @@ func _show_death_message() -> void:
 
 ## Show victory message when all enemies are eliminated.
 func _show_victory_message() -> void:
-	var ui := get_node_or_null("CanvasLayer/UI")
+	var ui: CanvasItem = get_node_or_null("CanvasLayer/UI")
 	if ui == null:
 		return
 
@@ -729,7 +729,7 @@ func _show_victory_message() -> void:
 ## Show the score screen with full breakdown (Hotline Miami style).
 ## @param score_data: Dictionary containing all score components from ScoreManager.
 func _show_score_screen(score_data: Dictionary) -> void:
-	var ui := get_node_or_null("CanvasLayer/UI")
+	var ui: CanvasItem = get_node_or_null("CanvasLayer/UI")
 	if ui == null:
 		_show_victory_message()  # Fallback
 		return
