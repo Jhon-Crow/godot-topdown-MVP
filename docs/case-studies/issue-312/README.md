@@ -3,7 +3,79 @@
 ## Issue Summary
 **Issue**: [#312](https://github.com/Jhon-Crow/godot-topdown-MVP/issues/312)
 **Title**: добавить пистолет с глушителем (Add silenced pistol)
-**Status**: Implementation complete
+**Status**: Fixed - weapon now appears in armory
+
+## Bug Report: Weapon Not Appearing in Armory
+
+### Problem Description
+After initial implementation, the silenced pistol was not appearing in the game's armory menu. The user reported: "пистолет не добавился в armory (возможно проблема с C#)" (pistol was not added to armory, possibly a C# problem).
+
+### Root Cause Analysis
+
+**Root Cause**: The silenced pistol weapon class and scene files were created, but the weapon was **not registered** in the game's weapon registry systems.
+
+In this project, weapons require registration in **two separate GDScript files**:
+
+1. **`scripts/ui/armory_menu.gd`** - Contains `WEAPONS` dictionary for UI display
+2. **`scripts/autoload/game_manager.gd`** - Contains `WEAPON_SCENES` dictionary for scene loading
+
+The C# weapon code (`SilencedPistol.cs`) was correctly implemented, but the integration with the GDScript-based armory system was missed.
+
+### Timeline of Events
+
+| Time | Event |
+|------|-------|
+| 2026-01-24 ~16:27 | Initial PR #315 created with silenced pistol implementation |
+| 2026-01-24 19:44:48 | User tested the game build |
+| 2026-01-24 19:44:49 | User opened armory menu - no silenced pistol visible |
+| 2026-01-24 19:45:05 | User ended game session, filed bug report |
+| 2026-01-24 ~16:46 | User reported issue with game log attached |
+
+### Evidence from Logs
+
+Game log (`game_log_20260124_194448.txt`) shows:
+```
+[19:44:49] [INFO] [PauseMenu] Armory button pressed
+[19:44:49] [INFO] [PauseMenu] armory_menu_scene resource path: res://scenes/ui/ArmoryMenu.tscn
+[19:44:49] [INFO] [PauseMenu] _populate_weapon_grid method exists
+```
+
+The armory menu loaded successfully, but since `silenced_pistol` was not in the `WEAPONS` dictionary, it was never displayed.
+
+### Fix Applied
+
+Added silenced pistol registration to both files:
+
+**`scripts/ui/armory_menu.gd`:**
+```gdscript
+"silenced_pistol": {
+    "name": "Silenced Pistol",
+    "icon_path": "res://assets/sprites/weapons/silenced_pistol_topdown.png",
+    "unlocked": true,
+    "description": "Beretta M9 with suppressor - semi-auto, 9mm, 13 rounds, silent shots (enemies don't hear), 2x recoil, smooth aiming. Press LMB to fire.",
+    "is_grenade": false
+}
+```
+
+**`scripts/autoload/game_manager.gd`:**
+```gdscript
+"silenced_pistol": "res://scenes/weapons/csharp/SilencedPistol.tscn"
+```
+
+### Lessons Learned
+
+1. **Cross-language integration**: When adding C# components to a GDScript-based system, ensure all registration points are updated
+2. **Checklist needed**: A weapon addition checklist would prevent similar issues:
+   - [ ] Create weapon script (C# or GDScript)
+   - [ ] Create weapon data resource (.tres)
+   - [ ] Create weapon scene (.tscn)
+   - [ ] Add sprite/icon asset
+   - [ ] Register in `armory_menu.gd` WEAPONS dictionary
+   - [ ] Register in `game_manager.gd` WEAPON_SCENES dictionary
+   - [ ] Test weapon appears in armory
+   - [ ] Test weapon is selectable and functional
+
+---
 
 ## Requirements Analysis
 
