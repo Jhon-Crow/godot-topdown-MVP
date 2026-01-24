@@ -280,6 +280,72 @@ class PursueVulnerablePlayerAction extends GOAPAction:
 		return 100.0  # Very high cost if player is not vulnerable
 
 
+## Action to investigate a suspected player position when confidence is high (Issue #297).
+## Used when enemy has high confidence (>0.8) about player location but no direct line of sight.
+## Enemy moves directly to the suspected position.
+class InvestigateHighConfidenceAction extends GOAPAction:
+	func _init() -> void:
+		super._init("investigate_high_confidence", 1.5)
+		preconditions = {
+			"player_visible": false,
+			"has_suspected_position": true,
+			"confidence_high": true
+		}
+		effects = {
+			"is_pursuing": true,
+			"player_visible": true  # Goal: reach position and potentially see player
+		}
+
+	func get_cost(_agent: Node, world_state: Dictionary) -> float:
+		# Lower cost when we're very confident about the position
+		var confidence: float = world_state.get("position_confidence", 0.0)
+		if confidence >= 0.9:
+			return 1.0
+		return 1.5
+
+
+## Action to investigate a suspected player position when confidence is medium (Issue #297).
+## Used when enemy has medium confidence (0.5-0.8) about player location.
+## Enemy moves cautiously, checking cover along the way.
+class InvestigateMediumConfidenceAction extends GOAPAction:
+	func _init() -> void:
+		super._init("investigate_medium_confidence", 2.5)
+		preconditions = {
+			"player_visible": false,
+			"has_suspected_position": true,
+			"confidence_medium": true
+		}
+		effects = {
+			"is_pursuing": true
+		}
+
+	func get_cost(_agent: Node, world_state: Dictionary) -> float:
+		# Medium cost - be cautious
+		var confidence: float = world_state.get("position_confidence", 0.0)
+		return 2.0 + (0.8 - confidence)  # Lower confidence = higher cost
+
+
+## Action to search near a suspected position when confidence is low (Issue #297).
+## Used when enemy has low confidence (<0.5) about player location.
+## Enemy searches the area but may return to patrol if nothing found.
+class SearchLowConfidenceAction extends GOAPAction:
+	func _init() -> void:
+		super._init("search_low_confidence", 3.5)
+		preconditions = {
+			"player_visible": false,
+			"has_suspected_position": true,
+			"confidence_low": true
+		}
+		effects = {
+			"area_patrolled": true  # Treat as extended patrol
+		}
+
+	func get_cost(_agent: Node, world_state: Dictionary) -> float:
+		# Higher cost - not very confident, might be waste of time
+		var confidence: float = world_state.get("position_confidence", 0.0)
+		return 3.0 + (0.5 - confidence) * 2.0  # Very low confidence = much higher cost
+
+
 ## Create and return all enemy actions.
 static func create_all_actions() -> Array[GOAPAction]:
 	var actions: Array[GOAPAction] = []
@@ -297,4 +363,8 @@ static func create_all_actions() -> Array[GOAPAction]:
 	actions.append(AttackDistractedPlayerAction.new())
 	actions.append(AttackVulnerablePlayerAction.new())
 	actions.append(PursueVulnerablePlayerAction.new())
+	# Memory-based actions (Issue #297)
+	actions.append(InvestigateHighConfidenceAction.new())
+	actions.append(InvestigateMediumConfidenceAction.new())
+	actions.append(SearchLowConfidenceAction.new())
 	return actions
