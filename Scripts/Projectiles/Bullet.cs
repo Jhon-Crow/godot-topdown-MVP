@@ -213,6 +213,14 @@ public partial class Bullet : Area2D
     public Vector2 ShooterPosition { get; set; } = Vector2.Zero;
 
     /// <summary>
+    /// Duration in seconds to stun enemies on hit (0 = no stun effect).
+    /// Used by special weapons like the silenced pistol.
+    /// Exported to allow setting via Node.Set() with snake_case name "stun_duration".
+    /// </summary>
+    [Export]
+    public float StunDuration { get; set; } = 0.0f;
+
+    /// <summary>
     /// Timer tracking remaining lifetime.
     /// </summary>
     private float _timeAlive;
@@ -614,6 +622,12 @@ public partial class Bullet : Area2D
             TriggerPlayerHitEffects();
         }
 
+        // Apply stun effect if configured (e.g., silenced pistol)
+        if (hitEnemy && StunDuration > 0 && parent != null)
+        {
+            ApplyStunEffect(parent);
+        }
+
         EmitSignal(SignalName.Hit, area);
         QueueFree();
     }
@@ -670,6 +684,45 @@ public partial class Bullet : Area2D
         {
             GD.Print("[Bullet]: Triggering player hit effects");
             hitEffectsManager.Call("on_player_hit_enemy");
+        }
+    }
+
+    /// <summary>
+    /// Applies stun effect to the hit enemy via StatusEffectsManager.
+    /// Used by special weapons like the silenced pistol to briefly stun enemies on hit.
+    /// </summary>
+    /// <param name="enemy">The enemy node (parent of the hit area) to stun.</param>
+    private void ApplyStunEffect(Node enemy)
+    {
+        if (StunDuration <= 0)
+        {
+            return;
+        }
+
+        // Check if enemy is a Node2D (required by StatusEffectsManager)
+        if (enemy is not Node2D enemyNode2D)
+        {
+            GD.Print($"[Bullet]: Cannot apply stun - {enemy.Name} is not a Node2D");
+            return;
+        }
+
+        // Get the StatusEffectsManager autoload singleton
+        var statusEffectsManager = GetNodeOrNull("/root/StatusEffectsManager");
+        if (statusEffectsManager != null && statusEffectsManager.HasMethod("apply_stun"))
+        {
+            GD.Print($"[Bullet]: Applying stun effect to {enemy.Name} for {StunDuration}s");
+            statusEffectsManager.Call("apply_stun", enemyNode2D, StunDuration);
+        }
+        else
+        {
+            // Fallback: try to call set_stunned directly on the enemy
+            if (enemy.HasMethod("set_stunned"))
+            {
+                GD.Print($"[Bullet]: Applying stun directly to {enemy.Name} for {StunDuration}s");
+                enemy.Call("set_stunned", true);
+                // Note: Without StatusEffectsManager, the stun won't auto-expire
+                // This is a fallback for compatibility
+            }
         }
     }
 

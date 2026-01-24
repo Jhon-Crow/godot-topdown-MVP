@@ -194,7 +194,8 @@ public partial class Player : BaseCharacter
     {
         Rifle,      // Default - extended grip (e.g., AssaultRifle)
         SMG,        // Compact grip (e.g., MiniUzi)
-        Shotgun     // Similar to rifle but slightly tighter
+        Shotgun,    // Similar to rifle but slightly tighter
+        Pistol      // Compact one-handed/two-handed pistol grip (e.g., SilencedPistol)
     }
 
     /// <summary>
@@ -1062,9 +1063,10 @@ public partial class Player : BaseCharacter
         var detectedType = WeaponType.Rifle;  // Default to rifle pose
 
         // Check for weapon children - weapons are added directly to player by level scripts
-        // Check in order of specificity: MiniUzi (SMG), Shotgun, then default to Rifle
+        // Check in order of specificity: MiniUzi (SMG), Shotgun, SilencedPistol, then default to Rifle
         var miniUzi = GetNodeOrNull<BaseWeapon>("MiniUzi");
         var shotgun = GetNodeOrNull<BaseWeapon>("Shotgun");
+        var silencedPistol = GetNodeOrNull<BaseWeapon>("SilencedPistol");
 
         if (miniUzi != null)
         {
@@ -1075,6 +1077,11 @@ public partial class Player : BaseCharacter
         {
             detectedType = WeaponType.Shotgun;
             LogToFile("[Player] Detected weapon: Shotgun (Shotgun pose)");
+        }
+        else if (silencedPistol != null)
+        {
+            detectedType = WeaponType.Pistol;
+            LogToFile("[Player] Detected weapon: Silenced Pistol (Pistol pose)");
         }
         else
         {
@@ -1113,6 +1120,16 @@ public partial class Player : BaseCharacter
                 _baseLeftArmPos = originalLeftArmPos + new Vector2(-3, 0);
                 _baseRightArmPos = originalRightArmPos + new Vector2(1, 0);
                 LogToFile($"[Player] Applied Shotgun arm pose: Left={_baseLeftArmPos}, Right={_baseRightArmPos}");
+                break;
+
+            case WeaponType.Pistol:
+                // Pistol pose: Compact two-handed pistol grip (Weaver/Isoceles stance)
+                // Similar to SMG but even more compact - suppressed pistol is shorter than SMG
+                // Left arm supports under the right hand (close to body)
+                // Right arm extends forward slightly for aiming
+                _baseLeftArmPos = originalLeftArmPos + new Vector2(-14, 0);  // More compact than SMG (-10)
+                _baseRightArmPos = originalRightArmPos + new Vector2(4, 0);  // Slightly more forward than SMG (3)
+                LogToFile($"[Player] Applied Pistol arm pose: Left={_baseLeftArmPos}, Right={_baseRightArmPos}");
                 break;
 
             case WeaponType.Rifle:

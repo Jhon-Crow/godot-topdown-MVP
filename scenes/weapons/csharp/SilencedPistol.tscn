@@ -1,0 +1,19 @@
+[gd_scene load_steps=5 format=3 uid="uid://dn7m4k9r3p5q8"]
+
+[ext_resource type="Script" path="res://Scripts/Weapons/SilencedPistol.cs" id="1_silenced_pistol"]
+[ext_resource type="PackedScene" uid="uid://dm5n8k7r3p9q2" path="res://scenes/projectiles/Bullet9mm.tscn" id="2_bullet"]
+[ext_resource type="PackedScene" uid="uid://casing_scene" path="res://scenes/effects/Casing.tscn" id="3_casing"]
+[ext_resource type="Resource" uid="uid://cm8n5k7r3p2q4" path="res://resources/weapons/SilencedPistolData.tres" id="4_weapon_data"]
+[ext_resource type="Texture2D" uid="uid://cq8m5n4r7p6k3" path="res://assets/sprites/weapons/silenced_pistol_topdown.png" id="5_sprite"]
+
+[node name="SilencedPistol" type="Node2D"]
+script = ExtResource("1_silenced_pistol")
+WeaponData = ExtResource("4_weapon_data")
+BulletScene = ExtResource("2_bullet")
+CasingScene = ExtResource("3_casing")
+BulletSpawnOffset = 22.0
+
+[node name="PistolSprite" type="Sprite2D" parent="."]
+z_index = 1
+texture = ExtResource("5_sprite")
+offset = Vector2(11, 0)

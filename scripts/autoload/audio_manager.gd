@@ -84,6 +84,17 @@ const SHOTGUN_EMPTY_CLICK: String = "res://assets/audio/выстрел без п
 ## Shotgun reload (load single shell) sound.
 const SHOTGUN_LOAD_SHELL: String = "res://assets/audio/зарядил один патрон в дробовик.mp3"
 
+## Silenced pistol shot sounds (very quiet suppressed shots).
+## Three variants for variety, randomly selected during playback.
+const SILENCED_SHOTS: Array[String] = [
+	"res://assets/audio/выстрел пистолета с глушителем 1.mp3",
+	"res://assets/audio/выстрел пистолета с глушителем 2.mp3",
+	"res://assets/audio/выстрел пистолета с глушителем 3.mp3"
+]
+
+## Volume for silenced shots (very quiet).
+const VOLUME_SILENCED_SHOT: float = -18.0
+
 ## Grenade sounds.
 ## Activation sound (pin pull) - played when grenade timer starts.
 const GRENADE_ACTIVATION: String = "res://assets/audio/выдернут чека (активирована) короткая версия.wav"
@@ -177,6 +188,8 @@ func _preload_all_sounds() -> void:
 	all_sounds.append(SHOTGUN_EMPTY_CLICK)
 	all_sounds.append(SHOTGUN_LOAD_SHELL)
 	all_sounds.append(SHELL_SHOTGUN)
+	# Silenced weapon sounds
+	all_sounds.append_array(SILENCED_SHOTS)
 
 	for path in all_sounds:
 		if not _audio_cache.has(path):
@@ -404,3 +417,15 @@ func play_shotgun_empty_click(position: Vector2) -> void:
 ## Plays shotgun shell loading sound at the given position.
 func play_shotgun_load_shell(position: Vector2) -> void:
 	play_sound_2d(SHOTGUN_LOAD_SHELL, position, VOLUME_SHOTGUN_ACTION)
+
+
+# ============================================================================
+# Silenced weapon sounds
+# ============================================================================
+
+## Plays a random silenced pistol shot sound at the given position.
+## This is a very quiet sound that simulates a suppressed shot.
+## The sound is only audible at close range and does not alert distant enemies.
+## Randomly selects from 3 silenced pistol shot variants for variety.
+func play_silenced_shot(position: Vector2) -> void:
+	play_random_sound_2d(SILENCED_SHOTS, position, VOLUME_SILENCED_SHOT)

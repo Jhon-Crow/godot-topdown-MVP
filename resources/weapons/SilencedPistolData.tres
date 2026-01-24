@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=3 format=3 uid="uid://cm8n5k7r3p2q4"]
+
+[ext_resource type="Script" path="res://Scripts/Data/WeaponData.cs" id="1_script"]
+[ext_resource type="Resource" uid="uid://cn4m8k7r5p2q9" path="res://resources/calibers/caliber_9x19.tres" id="2_caliber"]
+
+[resource]
+script = ExtResource("1_script")
+Name = "Silenced Pistol"
+Damage = 1.0
+FireRate = 5.0
+MagazineSize = 13
+MaxReserveAmmo = 26
+ReloadTime = 2.0
+BulletSpeed = 1350.0
+Range = 800.0
+SpreadAngle = 2.0
+BulletsPerShot = 1
+IsAutomatic = false
+Sensitivity = 2.0
+ScreenShakeIntensity = 10.0
+ScreenShakeMinRecoveryTime = 0.4
+ScreenShakeMaxRecoveryTime = 0.15
+Loudness = 0.0
+Caliber = ExtResource("2_caliber")

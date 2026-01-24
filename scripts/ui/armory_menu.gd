@@ -58,6 +58,13 @@ const WEAPONS: Dictionary = {
 		"description": "Submachine gun - 15 shots/sec, 9mm bullets (0.5 damage), high spread, ricochets at ≤20°, no wall penetration. Press LMB to fire.",
 		"is_grenade": false
 	},
+	"silenced_pistol": {
+		"name": "Silenced Pistol",
+		"icon_path": "res://assets/sprites/weapons/silenced_pistol_topdown.png",
+		"unlocked": true,
+		"description": "Beretta M9 with suppressor - semi-auto, 9mm, 13 rounds, silent shots, enemies stunned on hit (can't move/shoot until next shot). Press LMB to fire.",
+		"is_grenade": false
+	},
 	"smg": {
 		"name": "???",
 		"icon_path": "",
