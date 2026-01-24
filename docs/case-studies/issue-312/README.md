@@ -3,7 +3,56 @@
 ## Issue Summary
 **Issue**: [#312](https://github.com/Jhon-Crow/godot-topdown-MVP/issues/312)
 **Title**: добавить пистолет с глушителем (Add silenced pistol)
-**Status**: Fixed - weapon now appears in armory and is selectable
+**Status**: Fixed - weapon fully functional with stun effect
+
+---
+
+## Feature Request #3: Stun Effect on Hit
+
+### Request Description
+User requested: "добавь особый эффект этому пистолету - после попадания враг станится (не может стрелять или двигаться) на время, минимально достаточное для следующего выстрела" (add a special effect to this pistol - after hitting, the enemy becomes stunned (cannot shoot or move) for time minimally sufficient for the next shot).
+
+### Implementation Details
+
+**Fire Rate Analysis:**
+- Fire rate: 5.0 shots per second
+- Time between shots: 1/5 = 0.2 seconds
+- Stun duration set to: 0.25 seconds (slightly longer for buffer)
+
+**Implementation:**
+
+1. **`Scripts/Projectiles/Bullet.cs`**:
+   - Added `StunDuration` property (exported, default 0.0)
+   - Added `ApplyStunEffect()` method that uses `StatusEffectsManager.apply_stun()`
+   - Modified `OnAreaEntered()` to apply stun when hitting enemies if `StunDuration > 0`
+
+2. **`Scripts/Weapons/SilencedPistol.cs`**:
+   - Added `StunDurationOnHit` constant (0.25 seconds)
+   - Overrode `SpawnBullet()` to set `StunDuration` on spawned bullets
+
+3. **`scripts/ui/armory_menu.gd`**:
+   - Updated weapon description to mention stun effect
+
+### Stun Mechanics
+
+The existing `StatusEffectsManager` autoload handles stun effects:
+- Tracks stun duration per entity
+- Updates durations each physics frame
+- Applies visual feedback (blue tint)
+- Calls `set_stunned()` on enemies
+
+When stunned, enemies in `enemy.gd`:
+- Have velocity set to Vector2.ZERO
+- Skip all AI processing
+- Cannot move or shoot
+
+### Gameplay Impact
+
+This makes the silenced pistol a tactical weapon where:
+1. First hit stuns the enemy
+2. Player can land follow-up shots while enemy is stunned
+3. Each hit refreshes the stun duration
+4. Enemies cannot retaliate between shots if player maintains fire rate
 
 ---
 

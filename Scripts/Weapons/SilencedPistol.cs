@@ -367,4 +367,85 @@ public partial class SilencedPistol : BaseWeapon
     /// Gets the current aim direction.
     /// </summary>
     public Vector2 AimDirection => _aimDirection;
+
+    /// <summary>
+    /// Stun duration applied to enemies on hit.
+    /// Calculated as slightly longer than the fire rate interval (1/FireRate + buffer)
+    /// to ensure enemies remain stunned between shots.
+    /// </summary>
+    private const float StunDurationOnHit = 0.25f;
+
+    /// <summary>
+    /// Override SpawnBullet to set the stun effect on bullets.
+    /// The silenced pistol has a special effect: enemies hit are briefly stunned,
+    /// preventing them from shooting or moving for just long enough for the next shot.
+    /// </summary>
+    /// <param name="direction">Direction for the bullet to travel.</param>
+    protected override void SpawnBullet(Vector2 direction)
+    {
+        if (BulletScene == null)
+        {
+            return;
+        }
+
+        // Check if the bullet spawn path is blocked by a wall
+        var (isBlocked, hitPosition, hitNormal) = CheckBulletSpawnPath(direction);
+
+        Vector2 spawnPosition;
+        if (isBlocked)
+        {
+            // Wall detected at point-blank range
+            spawnPosition = GlobalPosition + direction * 2.0f;
+            GD.Print($"[SilencedPistol] Point-blank shot: spawning bullet at weapon position for penetration");
+        }
+        else
+        {
+            // Normal case: spawn at offset position
+            spawnPosition = GlobalPosition + direction * BulletSpawnOffset;
+        }
+
+        var bullet = BulletScene.Instantiate<Node2D>();
+        bullet.GlobalPosition = spawnPosition;
+
+        // Set bullet properties - try both PascalCase (C#) and snake_case (GDScript)
+        if (bullet.HasMethod("SetDirection"))
+        {
+            bullet.Call("SetDirection", direction);
+        }
+        else
+        {
+            bullet.Set("Direction", direction);
+            bullet.Set("direction", direction);
+        }
+
+        // Set bullet speed from weapon data
+        if (WeaponData != null)
+        {
+            bullet.Set("Speed", WeaponData.BulletSpeed);
+            bullet.Set("speed", WeaponData.BulletSpeed);
+        }
+
+        // Set shooter ID to prevent self-damage
+        var owner = GetParent();
+        if (owner != null)
+        {
+            bullet.Set("ShooterId", owner.GetInstanceId());
+            bullet.Set("shooter_id", owner.GetInstanceId());
+        }
+
+        // Set shooter position for distance-based penetration calculations
+        bullet.Set("ShooterPosition", GlobalPosition);
+        bullet.Set("shooter_position", GlobalPosition);
+
+        // Set stun duration for silenced pistol special effect
+        // Enemies hit by silenced pistol bullets are briefly stunned,
+        // allowing for follow-up shots while they can't retaliate
+        bullet.Set("StunDuration", StunDurationOnHit);
+        bullet.Set("stun_duration", StunDurationOnHit);
+
+        GetTree().CurrentScene.AddChild(bullet);
+
+        // Spawn casing if casing scene is set
+        SpawnCasing(direction, WeaponData?.Caliber);
+    }
 }
