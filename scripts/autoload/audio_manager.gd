@@ -86,7 +86,9 @@ const SHOTGUN_LOAD_SHELL: String = "res://assets/audio/зарядил один �
 
 ## Grenade sounds.
 ## Activation sound (pin pull) - played when grenade timer starts.
-const GRENADE_ACTIVATION: String = "res://assets/audio/выдернут чека (активирована).wav"
+const GRENADE_ACTIVATION: String = "res://assets/audio/выдернут чека (активирована) короткая версия.wav"
+## Throw sound - played when grenade is thrown (LMB released).
+const GRENADE_THROW: String = "res://assets/audio/звук броска гранаты (в момент отпускания LMB).wav"
 ## Wall collision sound - played when grenade hits a wall.
 const GRENADE_WALL_HIT: String = "res://assets/audio/граната столкнулась со стеной.wav"
 ## Landing sound - played when grenade comes to rest on the ground.
@@ -163,6 +165,7 @@ func _preload_all_sounds() -> void:
 	all_sounds.append(SHELL_PISTOL)
 	# Grenade sounds
 	all_sounds.append(GRENADE_ACTIVATION)
+	all_sounds.append(GRENADE_THROW)
 	all_sounds.append(GRENADE_WALL_HIT)
 	all_sounds.append(GRENADE_LANDING)
 	all_sounds.append(FLASHBANG_EXPLOSION_IN_ZONE)
@@ -343,6 +346,11 @@ func play_bullet_ricochet(position: Vector2) -> void:
 ## Plays grenade activation sound (pin pull) at the given position.
 func play_grenade_activation(position: Vector2) -> void:
 	play_sound_2d(GRENADE_ACTIVATION, position, VOLUME_GRENADE)
+
+
+## Plays grenade throw sound (when LMB is released) at the given position.
+func play_grenade_throw(position: Vector2) -> void:
+	play_sound_2d(GRENADE_THROW, position, VOLUME_GRENADE)
 
 
 ## Plays grenade wall collision sound at the given position.
