@@ -123,13 +123,74 @@ if node.has_method("TakeDamage"):
 node.TakeDamage(damage_amount)  # May crash if C# failed to compile
 ```
 
+### 7. Enemy AI Breaking (Issues #104, #296, #157, PR #308)
+**Problem**: Changes that completely break enemy behavior - enemies not moving, not taking damage, not detecting player
+**Solution**:
+- Never remove or rename critical methods: `_ready`, `_physics_process`, `on_bullet_hit`, `_die`, `_check_player_visibility`
+- Preserve required state variables: `_is_alive`, `_current_health`, `_current_state`, `_player`, `_can_see_player`
+- Maintain all AIState enum values (IDLE, COMBAT, SEEKING_COVER, etc.)
+- Test enemy behavior after ANY changes to `scripts/objects/enemy.gd` or `scripts/ai/`
+- Check `gameplay-validation.yml` CI workflow for issues
+
+```gdscript
+# Critical: Always check _is_alive in state updates
+func _physics_process(delta: float) -> void:
+    if not _is_alive:
+        return
+    # ... rest of behavior
+
+# Critical: _die() must emit signal for proper counting
+func _die() -> void:
+    _is_alive = false
+    died.emit()  # Required for enemy counting!
+```
+
+### 8. Game Counter Breaking (Issue #127)
+**Problem**: Enemy counters, ammo counters, or game state breaking after changes
+**Solution**:
+- Ensure `died` signal is emitted when enemy dies
+- Verify signal connections in GameManager/autoloads
+- Test that game properly ends after clearing all enemies
+- Test ammo display updates correctly during combat
+
+```gdscript
+# Critical: Always emit signals for counter updates
+func _die() -> void:
+    _is_alive = false
+    died.emit()  # GameManager listens for this!
+    died_with_info.emit(is_ricochet, is_penetration)
+
+func shoot() -> void:
+    _current_ammo -= 1
+    ammo_changed.emit(_current_ammo, _reserve_ammo)  # UI listens for this!
+```
+
+### 9. Game Crashes (Issue #155)
+**Problem**: Changes causing the game to crash
+**Solution**:
+- Always add null checks before accessing nodes or properties
+- Verify PackedScene resources exist before instantiating
+- Use `is_instance_valid()` before accessing potentially freed nodes
+- Add error handling for file/resource loading
+
+```gdscript
+# Good: Safe scene instantiation
+if bullet_scene:
+    var bullet = bullet_scene.instantiate()
+    get_tree().root.add_child(bullet)
+
+# Good: Safe node access
+if is_instance_valid(_player):
+    var dir = global_position.direction_to(_player.global_position)
+```
+
 ## Pull Request Checklist
 
 Before submitting a PR, verify:
 
 - [ ] **Tests pass**: All unit and integration tests pass
 - [ ] **New tests added**: For new features or bug fixes
-- [ ] **CI passes**: All workflows pass (`test.yml`, `architecture-check.yml`, `csharp-validation.yml`, `interop-check.yml`)
+- [ ] **CI passes**: All workflows pass (`test.yml`, `architecture-check.yml`, `csharp-validation.yml`, `interop-check.yml`, `gameplay-validation.yml`)
 - [ ] **C# builds locally**: Run `dotnet build` for C# changes
 - [ ] **No regressions**: Related functionality still works
 - [ ] **Code follows style**: snake_case for GDScript, PascalCase for C#
@@ -222,6 +283,21 @@ Verifies:
 - Checks scene signal connections to C# scripts
 - Validates autoload references
 - Warns about potential interoperability issues
+
+### gameplay-validation.yml
+**Protection against critical gameplay breaking** (Issue #308):
+- Validates enemy AI state machine integrity (required states, methods, variables)
+- Detects dangerous code patterns (infinite loops, division by zero risks)
+- Checks health component structure
+- Validates counter/state reset signals
+- Verifies scene-script references exist
+- Warns when critical gameplay files are modified
+
+This workflow was added to prevent issues like:
+- PR #104, #296: Enemy AI completely broken (not moving, not taking damage)
+- PR #127: Game counters broken (enemy count, ammo count)
+- PR #155: Game crashes
+- PR #157: Enemy vision/detection broken
 
 ## Getting Help
 

@@ -1,0 +1,342 @@
+name: Gameplay Critical Systems Validation
+
+# This workflow validates that critical gameplay systems remain functional
+# after code changes. It protects against common breaking issues identified
+# from rejected PRs:
+#
+# Historical issues prevented:
+# - PR #104, #296: Enemy AI completely broken (not moving, not taking damage)
+# - PR #127: Game counters broken (enemy count, ammo count)
+# - PR #155: Game crashes
+# - PR #157: Enemy vision/detection broken
+#
+# This workflow checks for patterns that historically caused these failures.
+
+on:
+  push:
+    branches: [ main, issue-* ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  gameplay-validation:
+    name: Validate Critical Gameplay Systems
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for diff analysis
+
+      - name: Check for critical file modifications
+        id: critical_files
+        run: |
+          echo "Checking for modifications to critical gameplay files..."
+
+          # Get list of changed files (vs base branch or previous commit)
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+            HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+          else
+            # For push events, compare with previous commit
+            BASE_SHA="${{ github.event.before }}"
+            HEAD_SHA="${{ github.sha }}"
+          fi
+
+          # Handle case where BASE_SHA might be empty (first push)
+          if [ -z "$BASE_SHA" ] || [ "$BASE_SHA" = "0000000000000000000000000000000000000000" ]; then
+            echo "First push or no base - checking all files"
+            CHANGED_FILES=$(git ls-files)
+          else
+            CHANGED_FILES=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" 2>/dev/null || git ls-files)
+          fi
+
+          echo "Changed files:"
+          echo "$CHANGED_FILES"
+          echo ""
+
+          # Define critical files that often break gameplay
+          CRITICAL_PATTERNS=(
+            "scripts/objects/enemy.gd"
+            "scripts/ai/"
+            "scripts/characters/player.gd"
+            "scripts/components/health_component.gd"
+            "scripts/components/vision_component.gd"
+            "scripts/autoload/"
+            "scripts/projectiles/"
+          )
+
+          CRITICAL_CHANGES=0
+          for pattern in "${CRITICAL_PATTERNS[@]}"; do
+            if echo "$CHANGED_FILES" | grep -q "$pattern"; then
+              echo "::warning::Critical gameplay file modified: $pattern"
+              CRITICAL_CHANGES=$((CRITICAL_CHANGES + 1))
+            fi
+          done
+
+          echo "critical_changes=$CRITICAL_CHANGES" >> $GITHUB_OUTPUT
+
+          if [ "$CRITICAL_CHANGES" -gt 0 ]; then
+            echo ""
+            echo "=== IMPORTANT ==="
+            echo "Critical gameplay files were modified."
+            echo "Please ensure thorough testing of:"
+            echo "  - Enemy AI behavior (movement, combat, state transitions)"
+            echo "  - Damage/health system"
+            echo "  - Player controls"
+            echo "  - Game counters (enemy count, ammo)"
+            echo "================="
+          fi
+
+      - name: Validate enemy.gd state machine integrity
+        run: |
+          echo "Checking enemy.gd state machine integrity..."
+
+          if [ ! -f "scripts/objects/enemy.gd" ]; then
+            echo "::warning::Enemy script not found - skipping check"
+            exit 0
+          fi
+
+          errors=0
+
+          # Check that AIState enum exists and has required states
+          REQUIRED_STATES=("IDLE" "COMBAT" "SEEKING_COVER" "IN_COVER" "FLANKING" "SUPPRESSED" "RETREATING" "PURSUING")
+
+          for state in "${REQUIRED_STATES[@]}"; do
+            if ! grep -q "^\s*${state}" scripts/objects/enemy.gd; then
+              echo "::error::Missing required AIState: $state"
+              errors=$((errors + 1))
+            fi
+          done
+
+          # Check for critical methods that must exist
+          REQUIRED_METHODS=(
+            "_ready"
+            "_physics_process"
+            "on_bullet_hit"
+            "_die"
+            "_check_player_visibility"
+          )
+
+          for method in "${REQUIRED_METHODS[@]}"; do
+            if ! grep -qE "^func\s+${method}\s*\(" scripts/objects/enemy.gd; then
+              echo "::error::Missing required method in enemy.gd: $method"
+              errors=$((errors + 1))
+            fi
+          done
+
+          # Check for critical variable declarations
+          REQUIRED_VARS=(
+            "_is_alive"
+            "_current_health"
+            "_current_state"
+            "_player"
+            "_can_see_player"
+          )
+
+          for var in "${REQUIRED_VARS[@]}"; do
+            if ! grep -q "var\s\+${var}" scripts/objects/enemy.gd; then
+              echo "::error::Missing required variable in enemy.gd: $var"
+              errors=$((errors + 1))
+            fi
+          done
+
+          if [ "$errors" -gt 0 ]; then
+            echo ""
+            echo "::error::Found $errors critical issues in enemy.gd"
+            echo "These issues could cause enemies to stop functioning!"
+            exit 1
+          fi
+
+          echo "Enemy state machine structure validated."
+
+      - name: Check for dangerous patterns in enemy code
+        run: |
+          echo "Checking for dangerous code patterns..."
+
+          warnings=0
+          errors=0
+
+          if [ -f "scripts/objects/enemy.gd" ]; then
+            # Check for early returns in _physics_process that might skip all behavior
+            # Pattern: return early without checking _is_alive first
+            if grep -n "^func _physics_process" -A 5 scripts/objects/enemy.gd | grep -qE "^\s+return\s*$" | head -1; then
+              # This is a simplified check - real issues need context
+              echo "::notice::_physics_process has early return - verify _is_alive check is present"
+            fi
+
+            # Check for direct state assignment without signal emission
+            # (State changes should emit signal for debugging)
+            if grep -nE "_current_state\s*=\s*AIState\." scripts/objects/enemy.gd | grep -v "emit_signal" | grep -v "state_changed" | head -5; then
+              echo "::notice::Direct state assignment found - consider using set_state() for signal emission"
+            fi
+
+            # Check for potentially infinite loops
+            if grep -nE "while\s+true\s*:" scripts/objects/enemy.gd; then
+              echo "::warning::Infinite while loop detected - ensure break condition exists"
+              warnings=$((warnings + 1))
+            fi
+
+            # Check for division by zero possibilities
+            if grep -nE "/\s*_max_health" scripts/objects/enemy.gd | grep -v "if.*_max_health" | grep -v "_max_health\s*>\s*0" | grep -v "_max_health\s*!=\s*0"; then
+              echo "::notice::Division by _max_health - verify zero check exists"
+            fi
+          fi
+
+          # Check for autoload direct access without null checks
+          while IFS= read -r file; do
+            if grep -qE "^[^#]*(GameManager|AudioManager)\.[a-zA-Z]" "$file"; then
+              if ! grep -qE "get_node_or_null.*/(GameManager|AudioManager)" "$file"; then
+                echo "::notice file=$file::Direct autoload access without null check"
+              fi
+            fi
+          done < <(find scripts -name "*.gd" -type f 2>/dev/null | grep -v "test_")
+
+          echo "Dangerous pattern check completed. ($warnings warnings)"
+
+      - name: Validate health component integrity
+        run: |
+          echo "Checking health component structure..."
+
+          if [ ! -f "scripts/components/health_component.gd" ]; then
+            echo "::notice::health_component.gd not found - skipping"
+            exit 0
+          fi
+
+          errors=0
+
+          # Check for required signals
+          REQUIRED_SIGNALS=("hit" "died" "health_changed")
+          for sig in "${REQUIRED_SIGNALS[@]}"; do
+            if ! grep -qE "^signal\s+${sig}" scripts/components/health_component.gd; then
+              echo "::warning::Missing expected signal in health_component.gd: $sig"
+            fi
+          done
+
+          # Check for take_damage or similar method
+          if ! grep -qE "^func\s+(take_damage|on_hit|receive_damage)" scripts/components/health_component.gd; then
+            echo "::error::Missing damage receiving method in health_component.gd"
+            errors=$((errors + 1))
+          fi
+
+          if [ "$errors" -gt 0 ]; then
+            echo "::error::Health component validation failed"
+            exit 1
+          fi
+
+          echo "Health component structure validated."
+
+      - name: Check for counter/state reset issues
+        run: |
+          echo "Checking for potential counter/state issues..."
+
+          warnings=0
+
+          # Check that enemy death properly signals
+          if [ -f "scripts/objects/enemy.gd" ]; then
+            # Verify _die() emits the died signal
+            if ! grep -A 10 "^func _die" scripts/objects/enemy.gd | grep -qE "(died|emit_signal.*died)"; then
+              echo "::warning::_die() may not emit 'died' signal - could break enemy counting"
+              warnings=$((warnings + 1))
+            fi
+          fi
+
+          # Check autoload files for proper signal connections
+          if [ -d "scripts/autoload" ]; then
+            for file in scripts/autoload/*.gd; do
+              if [ -f "$file" ]; then
+                # Check for enemy counting patterns
+                if grep -q "enemy" "$file" && grep -q "count" "$file"; then
+                  if ! grep -qE "(connect|disconnect)" "$file"; then
+                    echo "::notice file=$file::Contains enemy count logic - verify signal connections"
+                  fi
+                fi
+              fi
+            done
+          fi
+
+          echo "Counter/state check completed. ($warnings warnings)"
+
+      - name: Run GDScript syntax validation
+        run: |
+          echo "Validating GDScript syntax..."
+
+          errors=0
+
+          # Check for obvious syntax errors in critical files
+          while IFS= read -r file; do
+            # Check for mismatched parentheses (basic check)
+            open_parens=$(grep -o "(" "$file" | wc -l)
+            close_parens=$(grep -o ")" "$file" | wc -l)
+            if [ "$open_parens" != "$close_parens" ]; then
+              echo "::warning file=$file::Possible mismatched parentheses ($open_parens open, $close_parens close)"
+            fi
+
+            # Check for mismatched brackets
+            open_brackets=$(grep -o "\[" "$file" | wc -l)
+            close_brackets=$(grep -o "\]" "$file" | wc -l)
+            if [ "$open_brackets" != "$close_brackets" ]; then
+              echo "::warning file=$file::Possible mismatched brackets ($open_brackets open, $close_brackets close)"
+            fi
+
+            # Check for common typos in critical keywords
+            if grep -nE "\bextedns\b|\bretunr\b|\bfucn\b|\bsiganl\b" "$file"; then
+              echo "::error file=$file::Common typo detected in keywords"
+              errors=$((errors + 1))
+            fi
+          done < <(find scripts -name "*.gd" -type f 2>/dev/null)
+
+          if [ "$errors" -gt 0 ]; then
+            echo "::error::Found $errors syntax issues"
+            exit 1
+          fi
+
+          echo "GDScript syntax validation completed."
+
+      - name: Check for scene-script consistency
+        run: |
+          echo "Checking scene-script references..."
+
+          warnings=0
+
+          # Find all .tscn files that reference scripts
+          while IFS= read -r scene; do
+            # Extract script references from scene
+            scripts=$(grep -oE 'script\s*=.*res://[^"]+\.gd' "$scene" | sed 's/.*res:\/\///' | sed 's/".*//')
+
+            for script in $scripts; do
+              if [ ! -f "$script" ]; then
+                echo "::error file=$scene::References non-existent script: $script"
+                warnings=$((warnings + 1))
+              fi
+            done
+          done < <(find scenes -name "*.tscn" -type f 2>/dev/null)
+
+          if [ "$warnings" -gt 0 ]; then
+            echo "::warning::Found $warnings missing script references"
+          else
+            echo "All scene-script references valid."
+          fi
+
+      - name: Summary
+        run: |
+          echo "=== Gameplay Critical Systems Validation Complete ==="
+          echo ""
+          echo "Checks performed:"
+          echo "  ✓ Critical file modification detection"
+          echo "  ✓ Enemy state machine integrity"
+          echo "  ✓ Dangerous code pattern detection"
+          echo "  ✓ Health component validation"
+          echo "  ✓ Counter/state reset issue detection"
+          echo "  ✓ GDScript syntax validation"
+          echo "  ✓ Scene-script consistency"
+          echo ""
+          echo "This workflow protects against issues like:"
+          echo "  - PR #104, #296: Enemy AI completely broken"
+          echo "  - PR #127: Game counters broken"
+          echo "  - PR #155: Game crashes"
+          echo "  - PR #157: Enemy vision/detection broken"
+          echo ""
+          echo "All critical gameplay systems validated!"
