@@ -1913,7 +1913,8 @@ public partial class Player : BaseCharacter
     /// <summary>
     /// Throw the grenade using realistic velocity-based physics.
     /// The throw velocity is determined by mouse velocity at release moment, not drag distance.
-    /// Includes player rotation animation to prevent grenade hitting player.
+    /// FIX for issue #313: Direction is now determined by MOUSE VELOCITY (how user moves the mouse)
+    /// with snapping to 4 cardinal directions to compensate for imprecise human mouse movement.
     /// </summary>
     /// <param name="dragEnd">The end position of the drag (used for direction fallback).</param>
     private void ThrowGrenade(Vector2 dragEnd)
@@ -1925,31 +1926,40 @@ public partial class Player : BaseCharacter
             return;
         }
 
-        // Get the mouse velocity at moment of release (for determining throw speed)
+        // Get the mouse velocity at moment of release (for determining throw speed AND direction)
         Vector2 releaseVelocity = _currentMouseVelocity;
         float velocityMagnitude = releaseVelocity.Length();
 
-        // FIXED: Throw direction is now ALWAYS from player toward mouse cursor
-        // This fixes the issue where throwing right caused the grenade to go up
-        // The mouse velocity magnitude still determines throw SPEED, but direction is player-to-mouse
-        Vector2 mousePos = GetGlobalMousePosition();
-        Vector2 throwDirection = (mousePos - GlobalPosition).Normalized();
+        // FIX for issue #313: Use MOUSE VELOCITY DIRECTION (how the mouse is MOVING)
+        // User requirement: grenade flies in the direction the mouse is moving at release
+        // NOT toward where the mouse cursor is positioned
+        // Example: If user moves mouse DOWN, grenade flies DOWN (regardless of where cursor is)
+        Vector2 throwDirection;
 
-        // If mouse is exactly on player, fall back to drag direction or default
-        if (throwDirection.Length() < 0.5f)
+        if (velocityMagnitude > 10.0f)
         {
-            Vector2 dragVector = dragEnd - _grenadeDragStart;
-            if (dragVector.Length() > 5.0f)
+            // Primary direction: the direction the mouse is MOVING (velocity direction)
+            // FIX for issue #313 v3: Snap to cardinal directions when close to cardinal
+            // This compensates for imprecise human mouse movement
+            Vector2 rawDirection = releaseVelocity.Normalized();
+            throwDirection = SnapToCardinalDirection(rawDirection);
+            LogToFile($"[Player.Grenade] Raw direction: {rawDirection}, Snapped direction: {throwDirection}");
+        }
+        else
+        {
+            // Fallback when mouse is not moving - use player-to-mouse as fallback
+            Vector2 playerToMouse = dragEnd - GlobalPosition;
+            if (playerToMouse.Length() > 10.0f)
             {
-                throwDirection = dragVector.Normalized();
+                throwDirection = playerToMouse.Normalized();
             }
             else
             {
-                throwDirection = new Vector2(1, 0); // Default direction (right)
+                throwDirection = new Vector2(1, 0);  // Default direction (right)
             }
         }
 
-        LogToFile($"[Player.Grenade] Throwing toward mouse! Direction: {throwDirection}, Mouse velocity: {velocityMagnitude:F1} px/s, Swing: {_totalSwingDistance:F1}");
+        LogToFile($"[Player.Grenade] Throwing in mouse velocity direction! Direction: {throwDirection}, Mouse velocity: {velocityMagnitude:F1} px/s, Swing: {_totalSwingDistance:F1}");
 
         // Rotate player to face throw direction (prevents grenade hitting player when throwing upward)
         RotatePlayerForThrow(throwDirection);
@@ -1963,20 +1973,49 @@ public partial class Player : BaseCharacter
         Vector2 spawnPosition = GetSafeGrenadeSpawnPosition(GlobalPosition, intendedSpawnPosition, throwDirection);
         _activeGrenade.GlobalPosition = spawnPosition;
 
-        // Use velocity-based throwing if available, otherwise fall back to legacy
-        // IMPORTANT: We pass a velocity vector with the correct DIRECTION (player-to-mouse)
-        // but with the MAGNITUDE from the actual mouse velocity (for throw speed calculation)
-        if (_activeGrenade.HasMethod("throw_grenade_velocity_based"))
+        // Use direction-based throwing (FIX for issue #313)
+        // Priority: throw_grenade_with_direction > throw_grenade_velocity_based > throw_grenade
+        bool methodCalled = false;
+        if (_activeGrenade.HasMethod("throw_grenade_with_direction"))
         {
-            // Create corrected velocity: direction toward mouse, magnitude from mouse movement speed
-            Vector2 correctedVelocity = throwDirection * velocityMagnitude;
-            _activeGrenade.Call("throw_grenade_velocity_based", correctedVelocity, _totalSwingDistance);
+            // Best method: explicit direction + velocity magnitude + swing distance
+            _activeGrenade.Call("throw_grenade_with_direction", throwDirection, velocityMagnitude, _totalSwingDistance);
+            methodCalled = true;
+            LogToFile("[Player.Grenade] Called throw_grenade_with_direction() - direction is mouse velocity direction");
+        }
+        else if (_activeGrenade.HasMethod("throw_grenade_velocity_based"))
+        {
+            // Legacy velocity-based: construct a velocity vector in the correct direction
+            // This is a workaround - we pass (direction * speed) instead of actual mouse velocity
+            Vector2 directionalVelocity = throwDirection * velocityMagnitude;
+            _activeGrenade.Call("throw_grenade_velocity_based", directionalVelocity, _totalSwingDistance);
+            methodCalled = true;
+            LogToFile("[Player.Grenade] Called throw_grenade_velocity_based() - direction is mouse velocity direction");
         }
         else if (_activeGrenade.HasMethod("throw_grenade"))
         {
-            // Legacy fallback: convert velocity to drag distance approximation
+            // Legacy drag-based: convert velocity to drag distance approximation
             float legacyDistance = velocityMagnitude * 0.5f; // Rough conversion
             _activeGrenade.Call("throw_grenade", throwDirection, legacyDistance);
+            methodCalled = true;
+            LogToFile("[Player.Grenade] Called throw_grenade() on grenade (legacy)");
+        }
+
+        // Direct physics fallback when no throw method is available
+        if (!methodCalled)
+        {
+            LogToFile("[Player.Grenade] WARNING: No throw method found, using direct physics fallback");
+            if (_activeGrenade is RigidBody2D rigidBody)
+            {
+                rigidBody.Freeze = false;
+                // Calculate throw velocity
+                float multiplier = 0.5f;
+                float minSwing = 80.0f;
+                float maxSpeed = 850.0f;
+                float swingTransfer = Mathf.Clamp(_totalSwingDistance / minSwing, 0.0f, 0.65f);
+                float finalSpeed = Mathf.Min(velocityMagnitude * multiplier * (0.35f + swingTransfer), maxSpeed);
+                rigidBody.LinearVelocity = throwDirection * finalSpeed;
+            }
         }
 
         // Emit signal
@@ -2090,6 +2129,30 @@ public partial class Player : BaseCharacter
         LogToFile($"[Player.Grenade] Wall detected at {wallPosition} (collider: {colliderName})! Adjusting spawn from {intendedPos} to {safePosition}");
 
         return safePosition;
+    }
+
+    /// <summary>
+    /// FIX for issue #313: Snap raw mouse velocity direction to the nearest cardinal direction.
+    /// This compensates for imprecise human mouse movement - when a user moves the mouse "down",
+    /// the movement is never perfectly vertical, there's always a small horizontal component.
+    /// By snapping to 4 cardinal directions (right, down, left, up), we ensure the grenade
+    /// flies in the direction the user intended.
+    ///
+    /// Each cardinal direction has a 90° sector (±45° from the axis):
+    /// - RIGHT (0°): from -45° to 45°
+    /// - DOWN (90°): from 45° to 135°
+    /// - LEFT (180°/-180°): from 135° to 180° or -180° to -135°
+    /// - UP (-90°): from -135° to -45°
+    /// </summary>
+    /// <param name="rawDirection">The raw normalized direction from mouse velocity.</param>
+    /// <returns>The snapped direction (one of 4 cardinal unit vectors).</returns>
+    private Vector2 SnapToCardinalDirection(Vector2 rawDirection)
+    {
+        float angle = rawDirection.Angle();  // Returns angle in radians (-PI to PI)
+        float sectorSize = Mathf.Pi / 2.0f;  // 90 degrees per sector
+        int sectorIndex = Mathf.RoundToInt(angle / sectorSize);
+        float snappedAngle = sectorIndex * sectorSize;
+        return new Vector2(Mathf.Cos(snappedAngle), Mathf.Sin(snappedAngle));
     }
 
     /// <summary>
@@ -2690,13 +2753,15 @@ public partial class Player : BaseCharacter
         float velocityMagnitude = releaseVelocity.Length();
 
         // Determine throw direction from velocity, or fallback to drag direction if stationary
+        // FIX for issue #313: Use snapped cardinal directions (same as ThrowGrenade)
         Vector2 throwDirection;
         Vector2 currentMousePos = GetGlobalMousePosition();
         Vector2 dragVector = currentMousePos - _grenadeDragStart;
 
         if (velocityMagnitude > 10.0f) // Mouse is moving
         {
-            throwDirection = releaseVelocity.Normalized();
+            // Snap to cardinal direction (same as ThrowGrenade)
+            throwDirection = SnapToCardinalDirection(releaseVelocity.Normalized());
         }
         else
         {
