@@ -237,6 +237,63 @@ When a GDScript fails to parse, Godot attaches an empty/stub script object. This
      - enemy_grenade.gd (grenade coordination)
      - enemy_movement.gd (pathfinding/movement)
 
+### 2026-01-24 02:09 UTC
+- User reports grenade behavior issue (enemies are working now)
+- "Enemies throw grenades into walls where neither shockwave nor fragments can reach player"
+- User requests: Use RayCast from enemy to **throw landing point**, not to player
+- New logs: game_log_20260124_045343.txt, game_log_20260124_045528.txt
+- Analysis shows enemies throwing grenades that impact walls but blast doesn't reach target
+
+### 2026-01-24 ~02:15 UTC - GRENADE THROW FIX APPLIED
+- Commit `8decadc` fixes the grenade wall-blocking logic in grenade_thrower_component.gd
+- **Previous logic**: Only checked if wall was point-blank or blocking >80% of path
+- **New logic**:
+  1. Check if raycast from spawn position to target hits a wall
+  2. If wall is hit, calculate where grenade will impact
+  3. Check if blast radius from impact point can reach target
+  4. Check line of sight from impact point to target (walls block blast)
+  5. Only approve throw if grenade can actually affect target zone
+
+## Root Cause Analysis: Grenade Throw Effectiveness
+
+**Problem**: Enemies were throwing grenades that hit walls, but the blast couldn't reach the player.
+
+**Previous logic in `is_throw_path_clear()` (flawed):**
+```gdscript
+# If wall blocks more than 80% of the path, don't throw
+if distance_to_wall < distance_to_target * 0.2:
+    return false  # Only blocked if wall is <20% distance away
+```
+
+This allowed throws where:
+- Wall at 25% of distance: throw approved, but blast can't reach target
+- Grenade impacts wall, explosion happens AT wall
+- Wall then blocks blast from reaching player (line of sight)
+
+**New logic in `is_throw_path_clear()` (fixed):**
+```gdscript
+# If wall is hit, grenade will explode there
+var wall_hit_position: Vector2 = target_result["position"]
+var blast_radius := get_blast_radius_for_type(actual_grenade_type)
+var wall_to_target_distance := wall_hit_position.distance_to(target_pos)
+
+# Check if target is within blast radius from impact point
+if wall_to_target_distance > blast_radius:
+    _log("Grenade throw blocked: wall impact, target outside blast radius")
+    return false
+
+# Check line of sight from impact point to target
+var blast_check := PhysicsRayQueryParameters2D.new()
+blast_check.from = wall_hit_position
+blast_check.to = target_pos
+blast_check.collision_mask = 4  # Obstacles
+
+var blast_result := space_state.intersect_ray(blast_check)
+if not blast_result.is_empty():
+    _log("Grenade throw blocked: wall blocks blast line of sight")
+    return false
+```
+
 ## Status
 
 - [x] Architecture check passing
@@ -245,18 +302,28 @@ When a GDScript fails to parse, Godot attaches an empty/stub script object. This
 - [x] Case study analysis completed
 - [x] **RESOLVED**: Parse errors in enemy.gd, grenade_thrower_component.gd, building_level.gd fixed
 - [x] Debug logging added and helped identify the issue
-- [ ] User verification of fix needed - awaiting test of commit `b1a0976`
+- [x] User verified enemies are working (01:49 UTC test with working enemies)
+- [x] **NEW**: Grenade wall-blocking logic improved (commit `8decadc`)
+- [ ] User verification of grenade fix needed
 
 ## Resolution Summary
 
-**Commit `b1a0976`** fixes the critical parse errors:
+### Fix 1: Script Parse Errors (Commit `b1a0976`)
 - Fixed wrong variable name in enemy.gd (`_navigation_agent` → `_nav_agent`)
 - Added explicit type annotations for nullable returns in grenade_thrower_component.gd
 - Added explicit type annotations for get_node_or_null() calls in building_level.gd
 
-**CI Status after fix:**
+### Fix 2: Grenade Throw Effectiveness (Commit `8decadc`)
+- Improved `is_throw_path_clear()` to check if blast can actually reach target
+- Added `get_blast_radius_for_type()` helper function
+- Added check: blast radius from wall impact point must reach target
+- Added check: line of sight from wall impact point to target
+
+**CI Status after all fixes:**
 - Architecture Best Practices Check: ✅ SUCCESS
 - Run GUT Tests: ✅ SUCCESS
 - Build Windows Portable EXE: ✅ SUCCESS
 
-**Next step:** User should download the new Windows Export artifact from CI run #21306989974 and verify enemies work correctly.
+**Next step:** User should download the new Windows Export artifact and verify:
+1. Enemies are working (should be - confirmed working in earlier test)
+2. Enemies no longer throw grenades into walls where blast can't reach player
