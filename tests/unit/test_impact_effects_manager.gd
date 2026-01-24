@@ -1031,3 +1031,32 @@ func test_blood_decal_round11_complete_gradient() -> void:
 		"Edge should have dark red channel (RGB gradient end)")
 	assert_almost_eq(colors[edge_idx].a, 0.0, 0.01,
 		"Edge should be transparent")
+
+
+func test_blood_decal_round12_fill_to_horizontal() -> void:
+	# Round 12: CRITICAL FIX - fill_to must be horizontal for circular gradient
+	# Round 5 ERROR: used fill_to = (1.0, 1.0) which creates diagonal → rectangles
+	# Rounds 3-4: used fill_to = (1.0, 0.5) which creates circle → correct!
+	# With radial fill from center (0.5, 0.5) to right edge (1.0, 0.5),
+	# the gradient radiates as a perfect circle
+	var blood_decal_scene = load("res://scenes/effects/BloodDecal.tscn")
+	var blood_decal = blood_decal_scene.instantiate()
+	add_child_autoqfree(blood_decal)
+
+	var gradient_texture = blood_decal.texture as GradientTexture2D
+
+	# Verify radial fill mode
+	assert_eq(gradient_texture.fill, GradientTexture2D.FILL_RADIAL,
+		"Should use radial fill for circular gradient")
+
+	# Verify fill_from is center
+	assert_almost_eq(gradient_texture.fill_from.x, 0.5, 0.01,
+		"fill_from.x should be at center (0.5)")
+	assert_almost_eq(gradient_texture.fill_from.y, 0.5, 0.01,
+		"fill_from.y should be at center (0.5)")
+
+	# CRITICAL: Verify fill_to is horizontal (right edge, NOT diagonal corner)
+	assert_almost_eq(gradient_texture.fill_to.x, 1.0, 0.01,
+		"fill_to.x should be at right edge (1.0)")
+	assert_almost_eq(gradient_texture.fill_to.y, 0.5, 0.01,
+		"fill_to.y should be at horizontal center (0.5), NOT corner (1.0)!")
