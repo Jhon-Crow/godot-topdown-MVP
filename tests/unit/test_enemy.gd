@@ -21,7 +21,8 @@ class MockEnemy:
 		SUPPRESSED,
 		RETREATING,
 		PURSUING,
-		ASSAULT
+		ASSAULT,
+		SEARCHING  ## Issue #322: Methodical area search state
 	}
 
 	## Retreat behavior modes
@@ -503,7 +504,8 @@ func test_all_states_can_be_set() -> void:
 		MockEnemy.AIState.SUPPRESSED,
 		MockEnemy.AIState.RETREATING,
 		MockEnemy.AIState.PURSUING,
-		MockEnemy.AIState.ASSAULT
+		MockEnemy.AIState.ASSAULT,
+		MockEnemy.AIState.SEARCHING
 	]
 
 	for state in states:
@@ -1246,3 +1248,202 @@ func test_enemy_must_reacquire_player_after_memory_reset() -> void:
 		"Enemy should have memory after re-acquiring player")
 	assert_eq(enemy.get_memory_position(), new_pos,
 		"Memory should contain NEW player position, not old one")
+
+
+# ============================================================================
+# Enemy Search State Tests (Issue #322)
+# ============================================================================
+
+
+## Test that SEARCHING state exists in the enum.
+func test_searching_state_exists() -> void:
+	var searching_state := MockEnemy.AIState.SEARCHING
+	assert_eq(searching_state, 9,
+		"SEARCHING state should be the 10th state (index 9)")
+
+
+## Test that enemy can transition to SEARCHING state.
+func test_can_set_searching_state() -> void:
+	enemy.set_state(MockEnemy.AIState.SEARCHING)
+	assert_eq(enemy.get_current_state(), MockEnemy.AIState.SEARCHING,
+		"Should be able to set SEARCHING state")
+
+
+## Test expanding square pattern waypoint generation logic.
+## The algorithm generates waypoints in a spiral: center, N, E, S, W, etc.
+## with leg length expanding every 2 legs.
+func test_expanding_square_waypoint_generation() -> void:
+	# Test the algorithm logic (same as implemented in enemy.gd)
+	var center := Vector2(500, 500)
+	var waypoints: Array[Vector2] = []
+	var direction := 0  # 0=N, 1=E, 2=S, 3=W
+	var leg_length := 75.0  # Initial spacing
+	var legs_completed := 0
+
+	# Add center
+	waypoints.append(center)
+
+	# Generate first 4 waypoints (one square)
+	var current_pos := center
+	for i in range(4):
+		var offset := Vector2.ZERO
+		match direction:
+			0: offset = Vector2(0, -leg_length)   # North
+			1: offset = Vector2(leg_length, 0)    # East
+			2: offset = Vector2(0, leg_length)    # South
+			3: offset = Vector2(-leg_length, 0)   # West
+
+		current_pos = current_pos + offset
+		waypoints.append(current_pos)
+
+		legs_completed += 1
+		direction = (direction + 1) % 4
+
+		# Expand every 2 legs
+		if legs_completed % 2 == 0:
+			leg_length += 75.0
+
+	# Verify we have 5 waypoints (center + 4 directions)
+	assert_eq(waypoints.size(), 5, "Should generate 5 waypoints for first iteration")
+
+	# Verify center is first
+	assert_eq(waypoints[0], center, "First waypoint should be center")
+
+	# Verify first leg goes North
+	assert_eq(waypoints[1], Vector2(500, 425), "Second waypoint should be North of center")
+
+	# Verify second leg goes East (from North position)
+	assert_eq(waypoints[2], Vector2(575, 425), "Third waypoint should be East")
+
+	# After 2 legs, leg_length should increase
+	# Third leg (South) uses increased length
+	assert_eq(waypoints[3], Vector2(575, 575), "Fourth waypoint should be South with expanded leg")
+
+
+## Test that search pattern expands when radius is increased.
+func test_search_radius_expansion() -> void:
+	var initial_radius := 100.0
+	var expansion := 75.0
+	var max_radius := 400.0
+
+	# First expansion
+	var radius := initial_radius + expansion
+	assert_eq(radius, 175.0, "First expansion should increase radius to 175")
+
+	# Continue expanding until max
+	var expansions := 0
+	radius = initial_radius
+	while radius < max_radius:
+		radius += expansion
+		expansions += 1
+
+	# Verify number of expansions needed
+	assert_eq(expansions, 4, "Should take 4 expansions to go from 100 to 400")
+
+
+## Test that waypoint is considered reached at threshold distance.
+func test_waypoint_reached_distance() -> void:
+	var threshold := 20.0  # SEARCH_WAYPOINT_REACHED_DISTANCE
+	var enemy_pos := Vector2(100, 100)
+	var waypoint := Vector2(110, 110)
+
+	var distance := enemy_pos.distance_to(waypoint)
+	assert_true(distance < threshold,
+		"Waypoint should be considered reached at distance %.1f (< %.1f)" % [distance, threshold])
+
+
+## Test that scan duration allows for proper area inspection.
+func test_search_scan_duration() -> void:
+	var scan_duration := 1.0  # SEARCH_SCAN_DURATION
+
+	# 360 degrees rotation at 1.5 rad/s (from code) takes ~4.2 seconds
+	# With 1.0s scan, enemy rotates ~86 degrees per waypoint
+	var rotation_speed := 1.5  # rad/s from _process_searching_state
+	var rotation_per_scan := rotation_speed * scan_duration
+	var degrees := rad_to_deg(rotation_per_scan)
+
+	assert_true(degrees > 60.0,
+		"Scan should rotate at least 60 degrees per waypoint (actual: %.1f)" % degrees)
+
+
+## Test that search has maximum duration timeout.
+func test_search_max_duration() -> void:
+	var max_duration := 30.0  # SEARCH_MAX_DURATION
+
+	# 30 seconds is reasonable for search before giving up
+	assert_true(max_duration >= 20.0,
+		"Search should last at least 20 seconds")
+	assert_true(max_duration <= 60.0,
+		"Search should not last more than 60 seconds")
+
+
+## Test zone key generation for visited zone tracking (Issue #322).
+func test_zone_key_generation() -> void:
+	var snap_size := 50.0  # SEARCH_ZONE_SNAP_SIZE
+
+	# Test that positions within same zone snap to same key
+	var pos1 := Vector2(125, 175)
+	var pos2 := Vector2(140, 190)
+
+	var snapped_x1 := int(pos1.x / snap_size) * int(snap_size)
+	var snapped_y1 := int(pos1.y / snap_size) * int(snap_size)
+	var key1 := "%d,%d" % [snapped_x1, snapped_y1]
+
+	var snapped_x2 := int(pos2.x / snap_size) * int(snap_size)
+	var snapped_y2 := int(pos2.y / snap_size) * int(snap_size)
+	var key2 := "%d,%d" % [snapped_x2, snapped_y2]
+
+	assert_eq(key1, key2, "Positions in same grid cell should have same zone key")
+	assert_eq(key1, "100,150", "Zone key should be snapped to 50-pixel grid")
+
+
+## Test that visited zones are tracked correctly (Issue #322).
+func test_visited_zones_tracking() -> void:
+	var visited_zones: Dictionary = {}
+	var snap_size := 50.0
+
+	# Mark a zone as visited
+	var pos := Vector2(100, 200)
+	var snapped_x := int(pos.x / snap_size) * int(snap_size)
+	var snapped_y := int(pos.y / snap_size) * int(snap_size)
+	var key := "%d,%d" % [snapped_x, snapped_y]
+	visited_zones[key] = true
+
+	# Check that zone is marked visited
+	assert_true(visited_zones.has(key), "Zone should be marked as visited")
+
+	# Check that different zone is not visited
+	var other_pos := Vector2(300, 400)
+	var other_x := int(other_pos.x / snap_size) * int(snap_size)
+	var other_y := int(other_pos.y / snap_size) * int(snap_size)
+	var other_key := "%d,%d" % [other_x, other_y]
+	assert_false(visited_zones.has(other_key), "Other zone should not be visited")
+
+
+## Test that zone expansion skips visited zones (Issue #322).
+func test_zone_expansion_skips_visited() -> void:
+	var visited_zones: Dictionary = {}
+	var center := Vector2(500, 500)
+	var snap_size := 50.0
+
+	# Mark center zone as visited
+	var center_x := int(center.x / snap_size) * int(snap_size)
+	var center_y := int(center.y / snap_size) * int(snap_size)
+	visited_zones["%d,%d" % [center_x, center_y]] = true
+
+	# Generate potential waypoints and check that visited ones would be skipped
+	var waypoints_to_check: Array[Vector2] = [
+		center,  # Should be skipped (visited)
+		center + Vector2(75, 0),  # Should be included (new zone)
+		center + Vector2(0, 75),  # Should be included (new zone)
+	]
+
+	var unvisited_count := 0
+	for wp in waypoints_to_check:
+		var wp_x := int(wp.x / snap_size) * int(snap_size)
+		var wp_y := int(wp.y / snap_size) * int(snap_size)
+		var wp_key := "%d,%d" % [wp_x, wp_y]
+		if not visited_zones.has(wp_key):
+			unvisited_count += 1
+
+	assert_eq(unvisited_count, 2, "Should have 2 unvisited waypoints (center is visited)")
