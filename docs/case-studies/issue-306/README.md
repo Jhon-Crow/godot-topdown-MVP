@@ -188,6 +188,43 @@ All logs are stored in `./docs/case-studies/issue-306/logs/`:
    - **Green cone** = FOV active (100 degree vision)
    - **Gray cone** = FOV disabled (360 degree vision)
 
+## Open Issues (as of 2026-01-24 20:50 UTC)
+
+### Problem 3: "Still Not Working" - Zero Enemies Detected
+
+**User Report (20:49 UTC):**
+> "всё ещё не работает" (still not working)
+> Attached log: `game_log_20260124_234911.txt`
+
+**Log Analysis:**
+```
+[ScoreManager] Level started with 0 enemies
+[SoundPropagation] Sound emitted: listeners=0
+```
+
+**Investigation Findings:**
+
+| Check | Result |
+|-------|--------|
+| Syntax errors in enemy.gd | ✗ None found |
+| CI checks passed | ✓ All 6 checks pass |
+| BuildingLevel.tscn has enemies | ✓ 10 enemies defined |
+| enemy.gd `_ready()` correct | ✓ Calls `add_to_group("enemies")` |
+| enemy.gd `died` signal declared | ✓ Line 196 |
+
+**Possible Causes:**
+
+1. **User testing old build** - The log was created just 5 minutes after the fix CI completed. User may have downloaded an older artifact from a previous CI run.
+
+2. **Local Godot testing without sync** - If testing from Godot editor, the branch may not be synced with remote.
+
+3. **Script parse error at runtime** - While no obvious errors exist, Godot might silently fail to load the script if there's a runtime issue.
+
+**Next Steps:**
+- Waiting for user clarification on how they tested
+- Need to confirm which exact build/commit they used
+- May need user to run from editor to see console errors
+
 ## References
 
 - [Issue #306](https://github.com/Jhon-Crow/godot-topdown-MVP/issues/306) - Original feature request
@@ -197,6 +234,6 @@ All logs are stored in `./docs/case-studies/issue-306/logs/`:
 
 ---
 
-**Document Version**: 2.0
+**Document Version**: 2.1
 **Last Updated**: 2026-01-24
 **Updated By**: AI Issue Solver (Claude Code)
