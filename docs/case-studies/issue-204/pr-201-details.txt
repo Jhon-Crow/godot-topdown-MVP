@@ -1,0 +1,118 @@
+title:	Implement full pump-action shotgun with cloud pattern and shell-by-shell reload
+state:	OPEN
+author:	konard
+labels:	
+assignees:	
+reviewers:	
+projects:	
+milestone:	
+number:	201
+url:	https://github.com/Jhon-Crow/godot-topdown-MVP/pull/201
+additions:	11353
+deletions:	79
+auto-merge:	disabled
+--
+## Summary
+
+Fixes the shotgun mechanics to address all issues reported in #199:
+
+### Pellet Firing - Cloud Pattern
+- **Changed from burst to cloud**: Pellets now spawn **simultaneously** with **spatial offsets** instead of temporal delays
+- Pellets can appear slightly ahead or behind each other (±15px along fire direction)
+- Creates natural "cloud of pellets" effect instead of burst fire
+
+### Pump-Action Mechanics
+After firing, manual pump cycling is required:
+1. **LMB** - Fire shot
+2. **RMB drag UP** - Eject spent shell
+3. **RMB drag DOWN** - Chamber next round
+
+Cannot fire again until pump cycle is complete.
+
+### Shell-by-Shell Reload
+Tube magazine reload sequence:
+1. **RMB drag UP** - Open bolt (goes directly to Loading state)
+2. **MMB + RMB drag DOWN** - Load one shell (repeat up to 8 times)
+3. **RMB drag DOWN** - Close bolt and chamber round (without MMB)
+
+Note: After opening bolt, can close immediately with RMB drag DOWN (skips loading) if shells present.
+
+### Tutorial Mode - Infinite Shells (Phase 5 Fix)
+- Added tutorial level detection to Shotgun.cs
+- In tutorial mode, shells are infinite (no reserve ammo check)
+- Fixed issue where sound played but shell wasn't added
+
+### MMB+RMB Timing Fix (Phase 6 Fix)
+- Fixed race condition where MMB could be released before gesture processed
+- Added `_wasMiddleMouseHeldDuringDrag` flag to track MMB state during entire drag
+- Shell loading now works reliably even when releasing both buttons simultaneously
+
+### Previous Fixes (Retained)
+- **Ricochet limit**: ShotgunPellet with 35° max ricochet angle
+- **Pellet speed**: 2500 to match assault rifle
+- **Magazine UI hidden**: Shotgun shows shell count, not magazine counter
+
+## Test plan
+
+### Cloud Pattern
+- [ ] Fire shotgun and verify pellets spread in a cloud (some ahead/behind others)
+- [ ] Pellets should NOT fire like a burst (sequentially)
+
+### Pump-Action
+- [ ] After firing, verify RMB drag **UP** is required first (eject shell)
+- [ ] After RMB UP, verify RMB drag **DOWN** is required (chamber round)
+- [ ] Verify cannot fire while pump is needed
+
+### Shell Reload
+- [ ] RMB drag **UP** should open bolt for loading (immediately enters Loading state)
+- [ ] MMB + RMB drag DOWN should load one shell (hear sound, count increases)
+- [ ] Can repeat loading up to 8 shells
+- [ ] RMB drag **DOWN** closes bolt and makes ready to fire
+- [ ] Can also close bolt immediately without loading (RMB DOWN without MMB)
+
+### Tutorial Mode (Phase 5)
+- [ ] In tutorial level, shell loading should work without reserve ammo
+- [ ] Each MMB + RMB drag DOWN should increment shell count
+- [ ] Console should show debug logs: `[Shotgun] LoadShell called - ... Tutorial=True`
+
+### MMB+RMB Timing (Phase 6)
+- [ ] Shell loading works when releasing MMB and RMB at the same time
+- [ ] Shell loading works when holding MMB throughout the gesture
+- [ ] Shell loading works when releasing MMB slightly before RMB
+
+### Existing Tests
+- [ ] Ricochet at walls at steep angles (>35°) should NOT ricochet
+- [ ] Pellet speed matches assault rifle bullets
+- [ ] Magazine UI hidden when shotgun equipped
+
+## Files Changed
+
+### Modified:
+- `Scripts/Weapons/Shotgun.cs` - Fixed gesture sequences, added tutorial mode detection, fixed MMB timing issue
+- `scripts/levels/tutorial_level.gd` - Updated Russian labels to show correct controls
+- `docs/case-studies/issue-199/analysis.md` - Updated case study to Phase 6
+
+### New Log Files:
+- `docs/case-studies/issue-199/game_log_20260122_065828.txt` - Phase 5 feedback log
+- `docs/case-studies/issue-199/game_log_20260122_071250.txt` - Phase 6 feedback log
+
+## Control Reference
+
+| Action | Input |
+|--------|-------|
+| Fire | LMB |
+| Eject Shell (pump up) | RMB drag UP |
+| Chamber Round (pump down) | RMB drag DOWN |
+| Open Bolt (start reload) | RMB drag UP (when ready) |
+| Load Shell | MMB + RMB drag DOWN |
+| Close Bolt | RMB drag DOWN (without MMB) |
+
+### Tutorial Labels (Russian)
+| Step | Label |
+|------|-------|
+| Shooting | [ЛКМ стрельба] [ПКМ↑ извлечь] [ПКМ↓ дослать] |
+| Reload | [ПКМ↑ открыть] [СКМ+ПКМ↓ x8] [ПКМ↓ закрыть] |
+
+Fixes #199
+
+🤖 Generated with [Claude Code](https://claude.ai/code)

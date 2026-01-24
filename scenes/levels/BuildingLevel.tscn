@@ -734,7 +734,6 @@ shape = SubResource("RectangleShape2D_cover_desk")
 
 [node name="Enemy1" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
 position = Vector2(300, 350)
-rotation = 0.785
 behavior_mode = 1
 destroy_on_death = true
 enable_flanking = true
@@ -742,7 +741,6 @@ enable_cover = true
 
 [node name="Enemy2" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
 position = Vector2(400, 550)
-rotation = 0.93
 behavior_mode = 1
 destroy_on_death = true
 enable_flanking = true
@@ -750,7 +748,6 @@ enable_cover = true
 
 [node name="Enemy3" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
 position = Vector2(700, 750)
-rotation = -1.571
 behavior_mode = 1
 destroy_on_death = true
 enable_flanking = true
@@ -758,7 +755,6 @@ enable_cover = true
 
 [node name="Enemy4" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
 position = Vector2(800, 900)
-rotation = -2.356
 behavior_mode = 1
 destroy_on_death = true
 enable_flanking = true
@@ -766,7 +762,6 @@ enable_cover = true
 
 [node name="Enemy5" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
 position = Vector2(1700, 350)
-rotation = 3.142
 behavior_mode = 1
 destroy_on_death = true
 enable_flanking = true
@@ -774,7 +769,6 @@ enable_cover = true
 
 [node name="Enemy6" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
 position = Vector2(1950, 450)
-rotation = 3.142
 behavior_mode = 1
 destroy_on_death = true
 enable_flanking = true
@@ -782,7 +776,6 @@ enable_cover = true
 
 [node name="Enemy7" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
 position = Vector2(1600, 900)
-rotation = 3.142
 behavior_mode = 0
 patrol_offsets = Array[Vector2]([Vector2(100, 0), Vector2(-100, 0)])
 destroy_on_death = true
@@ -791,7 +784,6 @@ enable_cover = true
 
 [node name="Enemy8" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
 position = Vector2(1900, 1450)
-rotation = -2.356
 behavior_mode = 1
 destroy_on_death = true
 enable_flanking = true
@@ -799,7 +791,6 @@ enable_cover = true
 
 [node name="Enemy9" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
 position = Vector2(2100, 1550)
-rotation = 3.142
 behavior_mode = 1
 destroy_on_death = true
 enable_flanking = true
@@ -807,7 +798,6 @@ enable_cover = true
 
 [node name="Enemy10" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
 position = Vector2(1200, 1550)
-rotation = -1.571
 behavior_mode = 0
 patrol_offsets = Array[Vector2]([Vector2(0, 150), Vector2(0, -150)])
 destroy_on_death = true

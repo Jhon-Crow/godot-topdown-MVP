@@ -4,10 +4,14 @@ extends Node2D
 ## This script handles the tutorial flow:
 ## 1. Player approaches the targets (WASD movement)
 ## 2. Player shoots at targets (LMB)
+##    - For shotgun: LMB shoot → RMB UP (eject shell) → RMB DOWN (chamber)
 ## 3. Player switches fire mode (B key) - only if player has assault rifle
 ## 4. Player reloads using R -> F -> R sequence
-## 5. Shows completion message with Q restart hint
+##    - For shotgun: RMB UP (open bolt) → [MMB hold + RMB DOWN]×N (load shells) → RMB DOWN (close bolt)
+## 5. Player throws a grenade (G + RMB drag right, then G+RMB held → release G, then RMB drag and release)
+## 6. Shows completion message with Q restart hint
 ##
+## On this tutorial level, grenades are infinite so player can practice.
 ## Floating key prompts appear near the player until the action is completed.
 
 ## Reference to the player node.
@@ -25,6 +29,7 @@ enum TutorialStep {
 	SHOOT_TARGETS,
 	SWITCH_FIRE_MODE,
 	RELOAD,
+	THROW_GRENADE,
 	COMPLETED
 }
 
@@ -43,11 +48,20 @@ var _has_reloaded: bool = false
 ## Whether the player has switched fire mode.
 var _has_switched_fire_mode: bool = false
 
+## Whether the player has thrown a grenade.
+var _has_thrown_grenade: bool = false
+
 ## Whether the player has an assault rifle (for fire mode tutorial step).
 var _has_assault_rifle: bool = false
 
+## Whether the player has a shotgun (for shotgun-specific tutorial).
+var _has_shotgun: bool = false
+
 ## Reference to the player's assault rifle weapon (for fire mode tracking).
 var _assault_rifle: Node = null
+
+## Reference to the player's shotgun weapon (for shotgun-specific tracking).
+var _shotgun: Node = null
 
 ## Floating prompt label that follows the player.
 var _prompt_label: Label = null
@@ -70,6 +84,9 @@ func _ready() -> void:
 	if _player == null:
 		push_error("Tutorial: Player not found!")
 		return
+
+	# Swap weapon based on GameManager selection
+	_setup_selected_weapon()
 
 	# Find UI container
 	_ui = get_node_or_null("CanvasLayer/UI")
@@ -97,6 +114,77 @@ func _ready() -> void:
 		GameManager.set_player(_player)
 
 
+## Setup the weapon based on GameManager's selected weapon.
+## Removes the default AssaultRifle and loads the selected weapon.
+func _setup_selected_weapon() -> void:
+	if _player == null:
+		return
+
+	# Get selected weapon from GameManager
+	var selected_weapon_id: String = "m16"  # Default
+	if GameManager:
+		selected_weapon_id = GameManager.get_selected_weapon()
+
+	print("Tutorial: Setting up weapon: %s" % selected_weapon_id)
+
+	# If shotgun is selected, we need to swap weapons
+	if selected_weapon_id == "shotgun":
+		# Remove the default AssaultRifle
+		var assault_rifle = _player.get_node_or_null("AssaultRifle")
+		if assault_rifle:
+			assault_rifle.queue_free()
+			print("Tutorial: Removed default AssaultRifle")
+
+		# Load and add the shotgun
+		var shotgun_scene = load("res://scenes/weapons/csharp/Shotgun.tscn")
+		if shotgun_scene:
+			var shotgun = shotgun_scene.instantiate()
+			shotgun.name = "Shotgun"
+			_player.add_child(shotgun)
+
+			# Set the CurrentWeapon reference in C# Player
+			if _player.has_method("EquipWeapon"):
+				_player.EquipWeapon(shotgun)
+			elif _player.get("CurrentWeapon") != null:
+				_player.CurrentWeapon = shotgun
+
+			print("Tutorial: Shotgun equipped successfully")
+		else:
+			push_error("Tutorial: Failed to load Shotgun scene!")
+	# If Mini UZI is selected, swap weapons
+	elif selected_weapon_id == "mini_uzi":
+		# Remove the default AssaultRifle
+		var assault_rifle = _player.get_node_or_null("AssaultRifle")
+		if assault_rifle:
+			assault_rifle.queue_free()
+			print("Tutorial: Removed default AssaultRifle")
+
+		# Load and add the Mini UZI
+		var mini_uzi_scene = load("res://scenes/weapons/csharp/MiniUzi.tscn")
+		if mini_uzi_scene:
+			var mini_uzi = mini_uzi_scene.instantiate()
+			mini_uzi.name = "MiniUzi"
+			_player.add_child(mini_uzi)
+
+			# Set the CurrentWeapon reference in C# Player
+			if _player.has_method("EquipWeapon"):
+				_player.EquipWeapon(mini_uzi)
+			elif _player.get("CurrentWeapon") != null:
+				_player.CurrentWeapon = mini_uzi
+
+			print("Tutorial: Mini UZI equipped successfully")
+		else:
+			push_error("Tutorial: Failed to load MiniUzi scene!")
+	# For M16 (assault rifle), it's already in the scene - just ensure it's equipped
+	else:
+		var assault_rifle = _player.get_node_or_null("AssaultRifle")
+		if assault_rifle and _player.get("CurrentWeapon") == null:
+			if _player.has_method("EquipWeapon"):
+				_player.EquipWeapon(assault_rifle)
+			elif _player.get("CurrentWeapon") != null:
+				_player.CurrentWeapon = assault_rifle
+
+
 func _process(_delta: float) -> void:
 	# Update floating prompt position to follow player
 	_update_prompt_position()
@@ -114,6 +202,9 @@ func _process(_delta: float) -> void:
 		TutorialStep.RELOAD:
 			# Reloading is tracked via player signal
 			pass
+		TutorialStep.THROW_GRENADE:
+			# Grenade throwing is tracked via player signal
+			pass
 		TutorialStep.COMPLETED:
 			# Tutorial is complete
 			pass
@@ -126,7 +217,39 @@ func _connect_player_signals() -> void:
 
 	# Try to connect to weapon signals (C# Player)
 	var weapon = _player.get_node_or_null("AssaultRifle")
-	if weapon != null:
+	var shotgun = _player.get_node_or_null("Shotgun")
+	var mini_uzi = _player.get_node_or_null("MiniUzi")
+
+	if shotgun != null:
+		_shotgun = shotgun
+		_has_shotgun = true
+		print("Tutorial: Player has Shotgun - shotgun-specific tutorial enabled")
+
+		# Connect to reload signals from player (C# Player)
+		if _player.has_signal("ReloadCompleted"):
+			_player.ReloadCompleted.connect(_on_player_reload_completed)
+		elif _player.has_signal("reload_completed"):
+			_player.reload_completed.connect(_on_player_reload_completed)
+
+		# Connect to shotgun ammo signal
+		if shotgun.has_signal("AmmoChanged"):
+			shotgun.AmmoChanged.connect(_on_weapon_ammo_changed)
+
+	elif mini_uzi != null:
+		# Mini UZI uses rifle-like reload (no fire mode switching)
+		print("Tutorial: Player has Mini UZI - rifle-like reload tutorial")
+
+		# Connect to reload signals from player (C# Player)
+		if _player.has_signal("ReloadCompleted"):
+			_player.ReloadCompleted.connect(_on_player_reload_completed)
+		elif _player.has_signal("reload_completed"):
+			_player.reload_completed.connect(_on_player_reload_completed)
+
+		# Connect to Mini UZI ammo signal
+		if mini_uzi.has_signal("AmmoChanged"):
+			mini_uzi.AmmoChanged.connect(_on_weapon_ammo_changed)
+
+	elif weapon != null:
 		_assault_rifle = weapon
 		_has_assault_rifle = true
 		print("Tutorial: Player has AssaultRifle - fire mode tutorial enabled")
@@ -146,6 +269,14 @@ func _connect_player_signals() -> void:
 		if _player.has_signal("reload_completed"):
 			_player.reload_completed.connect(_on_player_reload_completed)
 
+	# Connect to grenade thrown signal (both C# and GDScript players)
+	if _player.has_signal("GrenadeThrown"):
+		_player.GrenadeThrown.connect(_on_player_grenade_thrown)
+		print("Tutorial: Connected to GrenadeThrown signal (C#)")
+	elif _player.has_signal("grenade_thrown"):
+		_player.grenade_thrown.connect(_on_player_grenade_thrown)
+		print("Tutorial: Connected to grenade_thrown signal (GDScript)")
+
 
 ## Setup ammo tracking for the player's weapon.
 func _setup_ammo_tracking() -> void:
@@ -153,9 +284,29 @@ func _setup_ammo_tracking() -> void:
 		return
 
 	# Try to get the player's weapon for C# Player
+	var shotgun = _player.get_node_or_null("Shotgun")
+	var mini_uzi = _player.get_node_or_null("MiniUzi")
 	var weapon = _player.get_node_or_null("AssaultRifle")
-	if weapon != null:
-		# C# Player with weapon - connect to weapon signals
+
+	if shotgun != null:
+		# C# Player with shotgun - connect to weapon signals
+		if shotgun.has_signal("AmmoChanged"):
+			shotgun.AmmoChanged.connect(_on_weapon_ammo_changed)
+		# Connect to ShellCountChanged for real-time UI update during shell-by-shell reload
+		if shotgun.has_signal("ShellCountChanged"):
+			shotgun.ShellCountChanged.connect(_on_shell_count_changed)
+		# Initial ammo display from shotgun
+		if shotgun.get("CurrentAmmo") != null and shotgun.get("ReserveAmmo") != null:
+			_update_ammo_label_magazine(shotgun.CurrentAmmo, shotgun.ReserveAmmo)
+	elif mini_uzi != null:
+		# C# Player with Mini UZI - connect to weapon signals
+		if mini_uzi.has_signal("AmmoChanged"):
+			mini_uzi.AmmoChanged.connect(_on_weapon_ammo_changed)
+		# Initial ammo display from Mini UZI
+		if mini_uzi.get("CurrentAmmo") != null and mini_uzi.get("ReserveAmmo") != null:
+			_update_ammo_label_magazine(mini_uzi.CurrentAmmo, mini_uzi.ReserveAmmo)
+	elif weapon != null:
+		# C# Player with assault rifle - connect to weapon signals
 		if weapon.has_signal("AmmoChanged"):
 			weapon.AmmoChanged.connect(_on_weapon_ammo_changed)
 		# Initial ammo display from weapon
@@ -211,6 +362,18 @@ func _update_ammo_label_magazine(current_mag: int, reserve: int) -> void:
 		_ammo_label.add_theme_color_override("font_color", Color(1.0, 1.0, 0.2, 1.0))
 	else:
 		_ammo_label.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 1.0))
+
+
+## Called when shotgun shell count changes (during shell-by-shell reload).
+## This allows the ammo counter to update immediately as each shell is loaded.
+func _on_shell_count_changed(shell_count: int, _capacity: int) -> void:
+	# Get the reserve ammo from the weapon for display
+	var reserve_ammo: int = 0
+	if _player:
+		var shotgun = _player.get_node_or_null("Shotgun")
+		if shotgun != null and shotgun.get("ReserveAmmo") != null:
+			reserve_ammo = shotgun.ReserveAmmo
+	_update_ammo_label_magazine(shell_count, reserve_ammo)
 
 
 ## Setup targets and connect to their hit signals.
@@ -291,6 +454,17 @@ func _on_player_reload_completed() -> void:
 	if not _has_reloaded:
 		_has_reloaded = true
 		print("Tutorial: Player reloaded")
+		_advance_to_step(TutorialStep.THROW_GRENADE)
+
+
+## Called when player throws a grenade.
+func _on_player_grenade_thrown() -> void:
+	if _current_step != TutorialStep.THROW_GRENADE:
+		return
+
+	if not _has_thrown_grenade:
+		_has_thrown_grenade = true
+		print("Tutorial: Player threw grenade")
 		_advance_to_step(TutorialStep.COMPLETED)
 
 
@@ -360,11 +534,27 @@ func _update_prompt_text() -> void:
 		TutorialStep.MOVE_TO_TARGETS:
 			_prompt_label.text = "[WASD] Подойди к мишеням"
 		TutorialStep.SHOOT_TARGETS:
-			_prompt_label.text = "[ЛКМ] Стреляй по мишеням"
+			if _has_shotgun:
+				# Shotgun-specific shooting instructions with pump-action gestures
+				# LMB shoot → RMB drag UP (eject shell) → RMB drag DOWN (chamber)
+				_prompt_label.text = "[ЛКМ стрельба] [ПКМ↑ извлечь] [ПКМ↓ дослать]"
+			else:
+				_prompt_label.text = "[ЛКМ] Стреляй по мишеням"
 		TutorialStep.SWITCH_FIRE_MODE:
 			_prompt_label.text = "[B] Переключи режим стрельбы"
 		TutorialStep.RELOAD:
-			_prompt_label.text = "[R] [F] [R] Перезарядись"
+			if _has_shotgun:
+				# Shotgun-specific reload instructions with shell loading gestures
+				# RMB drag UP (open bolt) → [MMB hold + RMB DOWN]×N (load shells) → RMB DOWN (close bolt)
+				_prompt_label.text = "[ПКМ↑ открыть] [СКМ+ПКМ↓ x8] [ПКМ↓ закрыть]"
+			else:
+				_prompt_label.text = "[R] [F] [R] Перезарядись"
+		TutorialStep.THROW_GRENADE:
+			# 2-step grenade throwing:
+			# Step 1: G + RMB drag right = start timer (pin pulled)
+			# Step 2: G+RMB held → release G = ready to throw (only RMB held)
+			# Step 3: RMB drag and release = throw
+			_prompt_label.text = "[G+ПКМ вправо] [G+ПКМ→отпусти G] [ПКМ бросок]"
 		TutorialStep.COMPLETED:
 			_prompt_label.text = ""
 

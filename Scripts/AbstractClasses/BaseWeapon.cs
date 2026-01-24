@@ -23,6 +23,12 @@ public abstract partial class BaseWeapon : Node2D
     public PackedScene? BulletScene { get; set; }
 
     /// <summary>
+    /// Casing scene to instantiate when firing (for ejected bullet casings).
+    /// </summary>
+    [Export]
+    public PackedScene? CasingScene { get; set; }
+
+    /// <summary>
     /// Offset from weapon position where bullets spawn.
     /// </summary>
     [Export]
@@ -213,6 +219,99 @@ public abstract partial class BaseWeapon : Node2D
     }
 
     /// <summary>
+    /// Checks if the bullet spawn path is clear (no wall between weapon and spawn point).
+    /// This prevents shooting through walls when standing flush against cover.
+    /// If blocked, spawns wall hit effects and plays impact sound for feedback.
+    ///
+    /// Returns a tuple: (isBlocked, wallHitPosition, wallHitNormal).
+    /// If isBlocked is true, the caller should spawn the bullet at weapon position
+    /// instead of at the offset position, so penetration can occur.
+    /// </summary>
+    /// <param name="direction">Direction to check.</param>
+    /// <returns>Tuple indicating if blocked and wall hit info.</returns>
+    protected virtual (bool isBlocked, Vector2 hitPosition, Vector2 hitNormal) CheckBulletSpawnPath(Vector2 direction)
+    {
+        var spaceState = GetWorld2D()?.DirectSpaceState;
+        if (spaceState == null)
+        {
+            return (false, Vector2.Zero, Vector2.Zero); // Not blocked if physics not ready
+        }
+
+        // Check from weapon center to bullet spawn position plus a small buffer
+        float checkDistance = BulletSpawnOffset + 5.0f;
+
+        var query = PhysicsRayQueryParameters2D.Create(
+            GlobalPosition,
+            GlobalPosition + direction * checkDistance,
+            4 // Collision mask for obstacles (layer 3 = value 4)
+        );
+
+        var result = spaceState.IntersectRay(query);
+        if (result.Count > 0)
+        {
+            Vector2 hitPosition = (Vector2)result["position"];
+            Vector2 hitNormal = (Vector2)result["normal"];
+            GD.Print($"[BaseWeapon] Wall detected at distance {GlobalPosition.DistanceTo(hitPosition):F1} - bullet will spawn at weapon position for penetration");
+
+            return (true, hitPosition, hitNormal);
+        }
+
+        return (false, Vector2.Zero, Vector2.Zero);
+    }
+
+    /// <summary>
+    /// Checks if the bullet spawn path is clear (no wall between weapon and spawn point).
+    /// This prevents shooting through walls when standing flush against cover.
+    /// If blocked, spawns wall hit effects and plays impact sound for feedback.
+    /// </summary>
+    /// <param name="direction">Direction to check.</param>
+    /// <returns>True if the path is clear, false if a wall blocks it.</returns>
+    protected virtual bool IsBulletSpawnClear(Vector2 direction)
+    {
+        var (isBlocked, hitPosition, hitNormal) = CheckBulletSpawnPath(direction);
+
+        if (isBlocked)
+        {
+            // Play wall hit sound for audio feedback
+            PlayBulletWallHitSound(hitPosition);
+
+            // Spawn dust effect at impact point
+            SpawnWallHitEffect(hitPosition, hitNormal);
+
+            return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Plays the bullet wall hit sound at the specified position.
+    /// </summary>
+    /// <param name="position">Position to play the sound at.</param>
+    private void PlayBulletWallHitSound(Vector2 position)
+    {
+        var audioManager = GetNodeOrNull("/root/AudioManager");
+        if (audioManager != null && audioManager.HasMethod("play_bullet_wall_hit"))
+        {
+            audioManager.Call("play_bullet_wall_hit", position);
+        }
+    }
+
+    /// <summary>
+    /// Spawns dust/debris particles at wall hit position.
+    /// </summary>
+    /// <param name="position">Position of the impact.</param>
+    /// <param name="normal">Surface normal at the impact point.</param>
+    private void SpawnWallHitEffect(Vector2 position, Vector2 normal)
+    {
+        var impactManager = GetNodeOrNull("/root/ImpactEffectsManager");
+        if (impactManager != null && impactManager.HasMethod("spawn_dust_effect"))
+        {
+            impactManager.Call("spawn_dust_effect", position, normal, Variant.CreateFrom((Resource?)null));
+        }
+    }
+
+    /// <summary>
     /// Spawns a bullet traveling in the specified direction.
     /// </summary>
     /// <param name="direction">Direction for the bullet to travel.</param>
@@ -223,24 +322,48 @@ public abstract partial class BaseWeapon : Node2D
             return;
         }
 
-        var bullet = BulletScene.Instantiate<Node2D>();
-        bullet.GlobalPosition = GlobalPosition + direction * BulletSpawnOffset;
+        // Check if the bullet spawn path is blocked by a wall
+        var (isBlocked, hitPosition, hitNormal) = CheckBulletSpawnPath(direction);
 
-        // Set bullet properties if it has a Direction property
+        Vector2 spawnPosition;
+        if (isBlocked)
+        {
+            // Wall detected at point-blank range
+            // Spawn bullet at weapon position (not offset) so it can interact with the wall
+            // and trigger penetration instead of being blocked entirely
+            // Use a small offset to ensure the bullet starts moving into the wall
+            spawnPosition = GlobalPosition + direction * 2.0f;
+            GD.Print($"[BaseWeapon] Point-blank shot: spawning bullet at weapon position for penetration");
+        }
+        else
+        {
+            // Normal case: spawn at offset position
+            spawnPosition = GlobalPosition + direction * BulletSpawnOffset;
+        }
+
+        var bullet = BulletScene.Instantiate<Node2D>();
+        bullet.GlobalPosition = spawnPosition;
+
+        // Set bullet properties - try both PascalCase (C#) and snake_case (GDScript)
+        // C# bullets use PascalCase (Direction, Speed, ShooterId, ShooterPosition)
+        // GDScript bullets use snake_case (direction, speed, shooter_id, shooter_position)
         if (bullet.HasMethod("SetDirection"))
         {
             bullet.Call("SetDirection", direction);
         }
         else
         {
-            // Try to set direction via property
+            // Try PascalCase first (C# Bullet.cs), then snake_case (GDScript bullet.gd)
             bullet.Set("Direction", direction);
+            bullet.Set("direction", direction);
         }
 
         // Set bullet speed from weapon data
         if (WeaponData != null)
         {
+            // Try both cases for compatibility with C# and GDScript bullets
             bullet.Set("Speed", WeaponData.BulletSpeed);
+            bullet.Set("speed", WeaponData.BulletSpeed);
         }
 
         // Set shooter ID to prevent self-damage
@@ -248,10 +371,68 @@ public abstract partial class BaseWeapon : Node2D
         var owner = GetParent();
         if (owner != null)
         {
+            // Try both cases for compatibility with C# and GDScript bullets
             bullet.Set("ShooterId", owner.GetInstanceId());
+            bullet.Set("shooter_id", owner.GetInstanceId());
         }
 
+        // Set shooter position for distance-based penetration calculations
+        // Try both cases for compatibility with C# and GDScript bullets
+        bullet.Set("ShooterPosition", GlobalPosition);
+        bullet.Set("shooter_position", GlobalPosition);
+
         GetTree().CurrentScene.AddChild(bullet);
+
+        // Spawn casing if casing scene is set
+        SpawnCasing(direction, WeaponData?.Caliber);
+    }
+
+    /// <summary>
+    /// Spawns a bullet casing that gets ejected from the weapon.
+    /// </summary>
+    /// <param name="direction">Direction the bullet was fired (used to determine casing ejection direction).</param>
+    /// <param name="caliber">Caliber data for the casing appearance.</param>
+    protected virtual void SpawnCasing(Vector2 direction, Resource? caliber)
+    {
+        if (CasingScene == null)
+        {
+            return;
+        }
+
+        // Calculate casing spawn position (near the weapon, slightly offset)
+        Vector2 casingSpawnPosition = GlobalPosition + direction * (BulletSpawnOffset * 0.5f);
+
+        var casing = CasingScene.Instantiate<RigidBody2D>();
+        casing.GlobalPosition = casingSpawnPosition;
+
+        // Calculate ejection direction to the right of the weapon
+        // In a top-down view with Y increasing downward:
+        // - If weapon points right (1, 0), right side of weapon is DOWN (0, 1)
+        // - If weapon points up (0, -1), right side of weapon is RIGHT (1, 0)
+        // This is a 90 degree counter-clockwise rotation (perpendicular to shooting direction)
+        Vector2 weaponRight = new Vector2(-direction.Y, direction.X); // Rotate 90 degrees counter-clockwise
+
+        // Eject to the right with some randomness
+        float randomAngle = (float)GD.RandRange(-0.3f, 0.3f); // ±0.3 radians (~±17 degrees)
+        Vector2 ejectionDirection = weaponRight.Rotated(randomAngle);
+
+        // Add some upward component for realistic ejection
+        ejectionDirection = ejectionDirection.Rotated((float)GD.RandRange(-0.1f, 0.1f));
+
+        // Set initial velocity for the casing (increased for faster ejection animation)
+        float ejectionSpeed = (float)GD.RandRange(300.0f, 450.0f); // Random speed between 300-450 pixels/sec (2x faster)
+        casing.LinearVelocity = ejectionDirection * ejectionSpeed;
+
+        // Add some initial spin for realism
+        casing.AngularVelocity = (float)GD.RandRange(-15.0f, 15.0f);
+
+        // Set caliber data on the casing for appearance
+        if (caliber != null)
+        {
+            casing.Set("caliber_data", caliber);
+        }
+
+        GetTree().CurrentScene.AddChild(casing);
     }
 
     /// <summary>

@@ -47,8 +47,9 @@ enum BehaviorMode {
 @export var combat_move_speed: float = 320.0
 
 ## Rotation speed in radians per second for gradual turning.
-## Default is 15 rad/sec for challenging but fair combat.
-@export var rotation_speed: float = 15.0
+## Default is 25 rad/sec to ensure enemies aim before shooting (realistic barrel direction).
+## Increased from 15 to compensate for aim-before-shoot requirement (see issue #254).
+@export var rotation_speed: float = 25.0
 
 ## Detection range for spotting the player.
 ## Set to 0 or negative to allow unlimited detection range (line-of-sight only).
@@ -73,6 +74,9 @@ enum BehaviorMode {
 
 ## Bullet scene to instantiate when shooting.
 @export var bullet_scene: PackedScene
+
+## Casing scene to instantiate when firing (for ejected bullet casings).
+@export var casing_scene: PackedScene
 
 ## Offset from enemy center for bullet spawn position.
 @export var bullet_spawn_offset: float = 30.0
@@ -175,11 +179,26 @@ enum BehaviorMode {
 ## This prevents pre-firing at players who are at cover edges.
 @export var lead_prediction_visibility_threshold: float = 0.6
 
+## Walking animation speed multiplier - higher = faster leg cycle.
+@export var walk_anim_speed: float = 12.0
+
+## Walking animation intensity - higher = more pronounced movement.
+@export var walk_anim_intensity: float = 1.0
+
+## Scale multiplier for the enemy model (body, head, arms).
+## Default is 1.3 to match the player size.
+@export var enemy_model_scale: float = 1.3
+
 ## Signal emitted when the enemy is hit.
 signal hit
 
 ## Signal emitted when the enemy dies.
 signal died
+
+## Signal emitted when the enemy dies with special kill information.
+## @param is_ricochet_kill: Whether the kill was from a ricocheted bullet.
+## @param is_penetration_kill: Whether the kill was from a bullet that penetrated a wall.
+signal died_with_info(is_ricochet_kill: bool, is_penetration_kill: bool)
 
 ## Signal emitted when AI state changes.
 signal state_changed(new_state: AIState)
@@ -196,13 +215,38 @@ signal reload_finished
 ## Signal emitted when all ammunition is depleted.
 signal ammo_depleted
 
+## Signal emitted when death animation completes.
+signal death_animation_completed
+
 ## Threshold angle (in radians) for considering the player "distracted".
 ## If the player's aim is more than this angle away from the enemy, they are distracted.
 ## 23 degrees ≈ 0.4014 radians.
 const PLAYER_DISTRACTION_ANGLE: float = 0.4014
 
-## Reference to the sprite for color changes.
-@onready var _sprite: Sprite2D = $Sprite2D
+## Minimum dot product between weapon direction and target direction for shooting.
+## Bullets only fire when weapon is aimed within this tolerance of the target.
+## 0.866 ≈ cos(30°), meaning weapon must be within ~30° of target.
+## This ensures bullets fly realistically in the barrel direction (see issue #254).
+## Relaxed from 0.95 (18°) to 0.866 (30°) to fix low fire rate (see issue #264).
+const AIM_TOLERANCE_DOT: float = 0.866
+
+## Reference to the enemy model node containing all sprites.
+@onready var _enemy_model: Node2D = $EnemyModel
+
+## References to individual sprite parts for color changes and animation.
+@onready var _body_sprite: Sprite2D = $EnemyModel/Body
+@onready var _head_sprite: Sprite2D = $EnemyModel/Head
+@onready var _left_arm_sprite: Sprite2D = $EnemyModel/LeftArm
+@onready var _right_arm_sprite: Sprite2D = $EnemyModel/RightArm
+
+## Legacy reference for compatibility (points to body sprite).
+@onready var _sprite: Sprite2D = $EnemyModel/Body
+
+## Reference to the weapon sprite for visual rotation.
+@onready var _weapon_sprite: Sprite2D = $EnemyModel/WeaponMount/WeaponSprite
+
+## Reference to weapon mount for animation.
+@onready var _weapon_mount: Node2D = $EnemyModel/WeaponMount
 
 ## RayCast2D for line of sight detection.
 @onready var _raycast: RayCast2D = $RayCast2D
@@ -225,6 +269,18 @@ const PLAYER_DISTRACTION_ANGLE: float = 0.4014
 ## Original collision layer for HitArea (to restore on respawn).
 var _original_hit_area_layer: int = 0
 var _original_hit_area_mask: int = 0
+
+## Walking animation time accumulator.
+var _walk_anim_time: float = 0.0
+
+## Whether the enemy is currently walking (for animation state).
+var _is_walking: bool = false
+
+## Base positions for body parts (stored on ready for animation offsets).
+var _base_body_pos: Vector2 = Vector2.ZERO
+var _base_head_pos: Vector2 = Vector2.ZERO
+var _base_left_arm_pos: Vector2 = Vector2.ZERO
+var _base_right_arm_pos: Vector2 = Vector2.ZERO
 
 ## Wall detection raycasts for obstacle avoidance (created at runtime).
 var _wall_raycasts: Array[RayCast2D] = []
@@ -560,8 +616,33 @@ var _last_known_player_position: Vector2 = Vector2.ZERO
 ## to that position even without line of sight to the player.
 var _pursuing_vulnerability_sound: bool = false
 
+## --- Score Tracking ---
+## Whether the last hit that killed this enemy was from a ricocheted bullet.
+var _killed_by_ricochet: bool = false
+
+## Whether the last hit that killed this enemy was from a bullet that penetrated a wall.
+var _killed_by_penetration: bool = false
+
+## --- Status Effects ---
+## Whether the enemy is currently blinded (cannot see the player).
+var _is_blinded: bool = false
+
+## Whether the enemy is currently stunned (cannot move or act).
+var _is_stunned: bool = false
+
+## Last hit direction (used for death animation).
+var _last_hit_direction: Vector2 = Vector2.RIGHT
+
+## Death animation component reference.
+var _death_animation: Node = null
+
+## Note: DeathAnimationComponent is available via class_name declaration.
+
 
 func _ready() -> void:
+	# Add to enemies group for grenade targeting
+	add_to_group("enemies")
+
 	_initial_position = global_position
 	_initialize_health()
 	_initialize_ammo()
@@ -584,9 +665,37 @@ func _ready() -> void:
 	# Log that this enemy is ready (use call_deferred to ensure FileLogger is loaded)
 	call_deferred("_log_spawn_info")
 
+	# Debug: Log weapon sprite status
+	if _weapon_sprite:
+		var texture_status := "loaded" if _weapon_sprite.texture else "NULL"
+		print("[Enemy] WeaponSprite found: visible=%s, z_index=%d, texture=%s" % [_weapon_sprite.visible, _weapon_sprite.z_index, texture_status])
+	else:
+		push_error("[Enemy] WARNING: WeaponSprite node not found!")
+
 	# Preload bullet scene if not set in inspector
 	if bullet_scene == null:
 		bullet_scene = preload("res://scenes/projectiles/Bullet.tscn")
+
+	# Preload casing scene if not set in inspector
+	if casing_scene == null:
+		casing_scene = preload("res://scenes/effects/Casing.tscn")
+
+	# Initialize walking animation base positions
+	if _body_sprite:
+		_base_body_pos = _body_sprite.position
+	if _head_sprite:
+		_base_head_pos = _head_sprite.position
+	if _left_arm_sprite:
+		_base_left_arm_pos = _left_arm_sprite.position
+	if _right_arm_sprite:
+		_base_right_arm_pos = _right_arm_sprite.position
+
+	# Apply scale to enemy model for larger appearance (same as player)
+	if _enemy_model:
+		_enemy_model.scale = Vector2(enemy_model_scale, enemy_model_scale)
+
+	# Initialize death animation component
+	_init_death_animation()
 
 
 ## Initialize health with random value between min and max.
@@ -942,7 +1051,15 @@ func _physics_process(delta: float) -> void:
 	_update_goap_state()
 	_update_suppression(delta)
 
-	# Process AI state machine
+	# Update enemy model rotation BEFORE processing AI state (which may shoot).
+	# This ensures the weapon is correctly positioned when bullets are created.
+	# Note: We don't call _update_weapon_sprite_rotation() anymore because:
+	# 1. The EnemyModel rotation already rotates the weapon correctly
+	# 2. The previous _update_weapon_sprite_rotation() was using the Enemy's rotation
+	#    instead of EnemyModel's rotation, causing the weapon to be offset by 90 degrees
+	_update_enemy_model_rotation()
+
+	# Process AI state machine (may trigger shooting)
 	_process_ai_state(delta)
 
 	# Update debug label if enabled
@@ -951,6 +1068,9 @@ func _physics_process(delta: float) -> void:
 	# Request redraw for debug visualization
 	if debug_label_enabled:
 		queue_redraw()
+
+	# Update walking animation based on movement
+	_update_walk_animation(delta)
 
 	move_and_slide()
 
@@ -970,6 +1090,217 @@ func _update_goap_state() -> void:
 	_goap_world_state["can_hit_from_cover"] = _can_hit_player_from_current_position()
 	_goap_world_state["enemies_in_combat"] = _count_enemies_in_combat()
 	_goap_world_state["player_distracted"] = _is_player_distracted()
+
+
+## Updates the enemy model rotation to face the aim/movement direction.
+## The enemy model (body, head, arms) rotates to follow the direction of movement or aim.
+## Note: Enemy sprites face RIGHT (0 radians), same as player sprites.
+##
+## IMPORTANT: When aiming at the player, we calculate the direction from the WEAPON position
+## to the player, not from the enemy center. This ensures the weapon barrel actually points
+## at the player, accounting for the weapon's offset from the enemy center.
+func _update_enemy_model_rotation() -> void:
+	if not _enemy_model:
+		return
+
+	# Determine the direction to face:
+	# - If can see player, face the player (simple direction from enemy center)
+	# - Otherwise, face the movement direction
+	#
+	# NOTE: We use simple center-to-player direction, NOT offset-compensated direction.
+	# This ensures the weapon visually points in the same direction as bullets fly.
+	# The bullets are fired from the muzzle toward the target, and the muzzle is
+	# positioned along the direction the model faces.
+	var face_direction: Vector2
+
+	if _player != null and _can_see_player:
+		# Simple direction from enemy center to player (like player character does)
+		face_direction = (_player.global_position - global_position).normalized()
+	elif velocity.length_squared() > 1.0:
+		# Face movement direction
+		face_direction = velocity.normalized()
+	else:
+		# Keep current rotation
+		return
+
+	# Calculate target rotation angle
+	# Enemy sprites face RIGHT (same as player sprites, 0 radians)
+	var target_angle := face_direction.angle()
+
+	# Handle sprite flipping for left/right aim
+	# When aiming left (angle > 90° or < -90°), flip vertically to avoid upside-down appearance
+	var aiming_left := absf(target_angle) > PI / 2
+
+	# Apply rotation to the enemy model using GLOBAL rotation.
+	# IMPORTANT: We use global_rotation instead of (local) rotation because the Enemy
+	# CharacterBody2D node may also have its own rotation (for aiming/turning). Using
+	# global_rotation ensures the EnemyModel's visual direction is set in world coordinates,
+	# independent of any parent rotation.
+	#
+	# IMPORTANT FIX (Issue #264 - Session 5):
+	# After the transform delay fix in f188853, we now calculate bullet direction directly
+	# as (_player.global_position - global_position).normalized() to avoid stale transforms.
+	# To make the visual model rotation match this bullet direction, we must NOT negate
+	# the angle when flipping vertically. The flip handles the visual appearance, but the
+	# rotation angle should match the actual geometric direction to the player.
+	#
+	# Example: Player is up-left at angle -135°:
+	# - Without flip: global_rotation = -135°, scale.y = 1.3  -> faces down-right (wrong)
+	# - With flip, OLD code: global_rotation = 135°, scale.y = -1.3 -> faces up-left (visual ok, but bullets go wrong)
+	# - With flip, NEW code: global_rotation = -135°, scale.y = -1.3 -> faces up-left (visual matches bullets) ✓
+	if aiming_left:
+		_enemy_model.global_rotation = target_angle
+		_enemy_model.scale = Vector2(enemy_model_scale, -enemy_model_scale)
+	else:
+		_enemy_model.global_rotation = target_angle
+		_enemy_model.scale = Vector2(enemy_model_scale, enemy_model_scale)
+
+
+## Forces the enemy model to face a specific direction immediately.
+## Used for priority attacks where we need to aim and shoot in the same frame.
+##
+## Unlike _update_enemy_model_rotation(), this function:
+## 1. Takes a specific direction to face (doesn't derive it from player position)
+## 2. Is called immediately before shooting in priority attack code
+##
+## This ensures the weapon sprite's transform matches the intended aim direction
+## so that _get_weapon_forward_direction() returns the correct vector for aim checks.
+##
+## @param direction: The direction to face (normalized).
+func _force_model_to_face_direction(direction: Vector2) -> void:
+	if not _enemy_model:
+		return
+
+	var target_angle := direction.angle()
+	var aiming_left := absf(target_angle) > PI / 2
+
+	# Same fix as _update_enemy_model_rotation() - don't negate angle when flipped
+	if aiming_left:
+		_enemy_model.global_rotation = target_angle
+		_enemy_model.scale = Vector2(enemy_model_scale, -enemy_model_scale)
+	else:
+		_enemy_model.global_rotation = target_angle
+		_enemy_model.scale = Vector2(enemy_model_scale, enemy_model_scale)
+
+
+## DEPRECATED: This function is no longer used.
+##
+## Previously used to calculate an aim direction that would compensate for the weapon's
+## offset from the enemy center. This caused issues because:
+## 1. The model rotation was different from the bullet direction
+## 2. The weapon would visually point in a different direction than bullets fly
+##
+## The new approach is simpler:
+## 1. Model faces the player (center-to-center direction)
+## 2. Bullets spawn from muzzle and fly FROM MUZZLE TO TARGET
+## 3. This ensures the weapon visually points where bullets go
+##
+## Kept for reference in case the iterative offset approach is needed elsewhere.
+##
+## @param target_pos: The position to aim at (typically the player's position).
+## @return: The direction vector the model should face for the weapon to point at target.
+func _calculate_aim_direction_from_weapon(target_pos: Vector2) -> Vector2:
+	# WeaponMount is at local position (0, 6) in EnemyModel
+	# This offset needs to be accounted for when calculating aim direction
+	var weapon_mount_local := Vector2(0, 6)
+
+	# Start with a rough estimate: direction from enemy center to target
+	var rough_direction := (target_pos - global_position)
+	var rough_distance := rough_direction.length()
+
+	# For distant targets, the offset error is negligible - use simple calculation
+	# threshold is ~3x the weapon offset to avoid unnecessary iteration
+	if rough_distance > 25.0 * enemy_model_scale:
+		return rough_direction.normalized()
+
+	# For close targets, iterate to find the correct rotation
+	# Start with the rough direction
+	var current_direction := rough_direction.normalized()
+
+	# Iterate to refine the aim direction (2 iterations is usually enough)
+	for _i in range(2):
+		var estimated_angle := current_direction.angle()
+
+		# Determine if we would flip (affects how weapon offset transforms)
+		var would_flip := absf(estimated_angle) > PI / 2
+
+		# Calculate weapon position with this estimated rotation
+		var weapon_offset_world: Vector2
+		if would_flip:
+			# When flipped, scale.y is negative, which affects the Y component of the offset
+			# Transform: scale then rotate
+			var scaled := Vector2(weapon_mount_local.x * enemy_model_scale, weapon_mount_local.y * -enemy_model_scale)
+			weapon_offset_world = scaled.rotated(estimated_angle)
+		else:
+			var scaled := weapon_mount_local * enemy_model_scale
+			weapon_offset_world = scaled.rotated(estimated_angle)
+
+		var weapon_global_pos := global_position + weapon_offset_world
+
+		# Calculate new direction from weapon to target
+		var new_direction := (target_pos - weapon_global_pos)
+		if new_direction.length_squared() < 0.01:
+			# Target is at weapon position, keep current direction
+			break
+		current_direction = new_direction.normalized()
+
+	return current_direction
+
+
+## Updates the walking animation based on enemy movement state.
+## Creates a natural bobbing motion for body parts during movement.
+## @param delta: Time since last frame.
+func _update_walk_animation(delta: float) -> void:
+	var is_moving := velocity.length() > 10.0
+
+	if is_moving:
+		# Accumulate animation time based on movement speed
+		# Use combat_move_speed as max for faster walk animation during combat
+		var max_speed := maxf(move_speed, combat_move_speed)
+		var speed_factor := velocity.length() / max_speed
+		_walk_anim_time += delta * walk_anim_speed * speed_factor
+		_is_walking = true
+
+		# Calculate animation offsets using sine waves
+		# Body bobs up and down (frequency = 2x for double step)
+		var body_bob := sin(_walk_anim_time * 2.0) * 1.5 * walk_anim_intensity
+
+		# Head bobs slightly less than body (dampened)
+		var head_bob := sin(_walk_anim_time * 2.0) * 0.8 * walk_anim_intensity
+
+		# Arms swing opposite to each other (alternating)
+		var arm_swing := sin(_walk_anim_time) * 3.0 * walk_anim_intensity
+
+		# Apply offsets to sprites
+		if _body_sprite:
+			_body_sprite.position = _base_body_pos + Vector2(0, body_bob)
+
+		if _head_sprite:
+			_head_sprite.position = _base_head_pos + Vector2(0, head_bob)
+
+		if _left_arm_sprite:
+			# Left arm swings forward/back (y-axis in top-down)
+			_left_arm_sprite.position = _base_left_arm_pos + Vector2(arm_swing, 0)
+
+		if _right_arm_sprite:
+			# Right arm swings opposite to left arm
+			_right_arm_sprite.position = _base_right_arm_pos + Vector2(-arm_swing, 0)
+	else:
+		# Return to idle pose smoothly
+		if _is_walking:
+			_is_walking = false
+			_walk_anim_time = 0.0
+
+		# Interpolate back to base positions
+		var lerp_speed := 10.0 * delta
+		if _body_sprite:
+			_body_sprite.position = _body_sprite.position.lerp(_base_body_pos, lerp_speed)
+		if _head_sprite:
+			_head_sprite.position = _head_sprite.position.lerp(_base_head_pos, lerp_speed)
+		if _left_arm_sprite:
+			_left_arm_sprite.position = _left_arm_sprite.position.lerp(_base_left_arm_pos, lerp_speed)
+		if _right_arm_sprite:
+			_right_arm_sprite.position = _right_arm_sprite.position.lerp(_base_right_arm_pos, lerp_speed)
 
 
 ## Update suppression state.
@@ -1071,6 +1402,11 @@ func _can_shoot() -> bool:
 
 ## Process the AI state machine.
 func _process_ai_state(delta: float) -> void:
+	# If stunned, stop all movement and actions - do nothing
+	if _is_stunned:
+		velocity = Vector2.ZERO
+		return
+
 	var previous_state := _current_state
 
 	# HIGHEST PRIORITY: If player is distracted (aim > 23° away from enemy),
@@ -1085,15 +1421,20 @@ func _process_ai_state(delta: float) -> void:
 		var direction_to_player := (_player.global_position - global_position).normalized()
 		var has_clear_shot := _is_bullet_spawn_clear(direction_to_player)
 
-		if has_clear_shot and _can_shoot():
+		if has_clear_shot and _can_shoot() and _shoot_timer >= shoot_cooldown:
 			# Log the distraction attack
 			_log_to_file("Player distracted - priority attack triggered")
 
-			# Aim at player immediately
+			# Aim at player immediately - both body rotation and model rotation
 			rotation = direction_to_player.angle()
+			# CRITICAL: Force the model to face the player immediately so that
+			# _get_weapon_forward_direction() returns the correct aim direction.
+			# Without this, the weapon transform would still reflect the old direction
+			# and _shoot() would fail the aim tolerance check. (Fix for issue #264)
+			_force_model_to_face_direction(direction_to_player)
 
-			# Shoot immediately - bypassing ALL timers and state restrictions
-			# This is the highest priority action in the game
+			# Shoot with priority - still respects weapon fire rate cooldown
+			# This is a high priority action but the weapon cannot physically fire faster
 			_shoot()
 			_shoot_timer = 0.0  # Reset shoot timer after distraction shot
 
@@ -1141,15 +1482,21 @@ func _process_ai_state(delta: float) -> void:
 		var direction_to_player := (_player.global_position - global_position).normalized()
 		var has_clear_shot := _is_bullet_spawn_clear(direction_to_player)
 
-		if has_clear_shot and _can_shoot():
+		if has_clear_shot and _can_shoot() and _shoot_timer >= shoot_cooldown:
 			# Log the vulnerability attack
 			var reason: String = "reloading" if player_reloading else "empty ammo"
 			_log_to_file("Player %s - priority attack triggered" % reason)
 
-			# Aim at player immediately
+			# Aim at player immediately - both body rotation and model rotation
 			rotation = direction_to_player.angle()
+			# CRITICAL: Force the model to face the player immediately so that
+			# _get_weapon_forward_direction() returns the correct aim direction.
+			# Without this, the weapon transform would still reflect the old direction
+			# and _shoot() would fail the aim tolerance check. (Fix for issue #264)
+			_force_model_to_face_direction(direction_to_player)
 
-			# Shoot immediately - bypassing ALL timers and state restrictions
+			# Shoot with priority - still respects weapon fire rate cooldown
+			# The weapon cannot physically fire faster than its fire rate
 			_shoot()
 			_shoot_timer = 0.0  # Reset shoot timer after vulnerability shot
 
@@ -1245,15 +1592,8 @@ func _process_combat_state(delta: float) -> void:
 		_transition_to_retreating()
 		return
 
-	# Check if multiple enemies are in combat - transition to assault state
-	var enemies_in_combat := _count_enemies_in_combat()
-	if enemies_in_combat >= 2:
-		_log_debug("Multiple enemies in combat (%d), transitioning to ASSAULT" % enemies_in_combat)
-		_combat_exposed = false
-		_combat_approaching = false
-		_seeking_clear_shot = false
-		_transition_to_assault()
-		return
+	# NOTE: ASSAULT state transition removed per issue #169
+	# Enemies now stay in COMBAT instead of transitioning to coordinated assault
 
 	# If can't see player, pursue them (move cover-to-cover toward player)
 	# But only after minimum time has elapsed to prevent rapid state thrashing
@@ -1564,12 +1904,8 @@ func _process_in_cover_state(delta: float) -> void:
 		_transition_to_seeking_cover()
 		return
 
-	# Check if multiple enemies are in combat - transition to assault state
-	var enemies_in_combat := _count_enemies_in_combat()
-	if enemies_in_combat >= 2:
-		_log_debug("Multiple enemies detected (%d), transitioning to ASSAULT" % enemies_in_combat)
-		_transition_to_assault()
-		return
+	# NOTE: ASSAULT state transition removed per issue #169
+	# Enemies now stay in IN_COVER instead of transitioning to coordinated assault
 
 	# Decision making based on player distance and visibility
 	if _player:
@@ -1904,14 +2240,8 @@ func _process_pursuing_state(delta: float) -> void:
 		_transition_to_retreating()
 		return
 
-	# Check if multiple enemies are in combat - transition to assault state
-	var enemies_in_combat := _count_enemies_in_combat()
-	if enemies_in_combat >= 2:
-		_log_debug("Multiple enemies detected during pursuit (%d), transitioning to ASSAULT" % enemies_in_combat)
-		_pursuit_approaching = false
-		_pursuing_vulnerability_sound = false
-		_transition_to_assault()
-		return
+	# NOTE: ASSAULT state transition removed per issue #169
+	# Enemies now stay in PURSUING instead of transitioning to coordinated assault
 
 	# If can see player and can hit them from current position, engage
 	# But only after minimum time has elapsed to prevent rapid state thrashing
@@ -2056,86 +2386,21 @@ func _process_pursuing_state(delta: float) -> void:
 			_transition_to_combat()
 
 
-## Process ASSAULT state - coordinated multi-enemy rush.
-## Wait at cover for 5 seconds, then all enemies rush the player simultaneously.
-func _process_assault_state(delta: float) -> void:
-	# Check for suppression - transition to retreating behavior
-	if _under_fire and enable_cover and not _assault_ready:
-		_in_assault = false
-		_transition_to_retreating()
-		return
-
-	# Check if we're the only enemy left in assault - switch back to combat
-	var enemies_in_combat := _count_enemies_in_combat()
-	if enemies_in_combat < 2 and not _assault_ready:
-		_log_debug("Not enough enemies for assault, switching to COMBAT")
-		_in_assault = false
-		_transition_to_combat()
-		return
-
-	# Find closest cover to player if we don't have one
-	if not _has_valid_cover:
-		_find_cover_closest_to_player()
-		if _has_valid_cover:
-			_log_debug("Found assault cover at %s" % _cover_position)
-
-	# Move to cover position first
-	if _has_valid_cover and not _in_assault:
-		var distance_to_cover: float = global_position.distance_to(_cover_position)
-		if distance_to_cover > 15.0 and _is_visible_from_player():
-			# Use navigation-based pathfinding to reach cover
-			_move_to_target_nav(_cover_position, combat_move_speed)
-			return
-
-	# At cover, wait for assault timer
-	if not _assault_ready:
-		velocity = Vector2.ZERO
-		_assault_wait_timer += delta
-
-		# Check if all assault enemies are ready (synchronized assault)
-		if _assault_wait_timer >= ASSAULT_WAIT_DURATION:
-			# Check if situation has changed - player might have moved
-			if _player and _is_player_close():
-				_assault_ready = true
-				_in_assault = true
-				_log_debug("ASSAULT ready - rushing player!")
-			else:
-				# Player moved away, reset timer and check if we should pursue
-				_log_debug("Player moved away during assault wait, resetting")
-				_assault_wait_timer = 0.0
-				_in_assault = false
-				_transition_to_pursuing()
-				return
-		return
-
-	# Assault phase - rush the player while shooting
-	if _assault_ready and _player:
-		var distance_to_player: float = global_position.distance_to(_player.global_position)
-
-		# Use navigation-based pathfinding to rush player
-		_move_to_target_nav(_player.global_position, combat_move_speed)
-
-		# Update detection delay timer
-		if not _detection_delay_elapsed:
-			_detection_timer += delta
-			if _detection_timer >= _get_effective_detection_delay():
-				_detection_delay_elapsed = true
-
-		# Shoot while rushing (only after detection delay)
-		if _can_see_player and _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
-			_aim_at_player()
-			_shoot()
-			_shoot_timer = 0.0
-
-		# If very close to player, stay in combat
-		if distance_to_player < 50.0:
-			_log_debug("Assault complete - reached player")
-			_assault_ready = false
-			_in_assault = false
-			_transition_to_combat()
+## Process ASSAULT state - disabled per issue #169.
+## This state is kept for backwards compatibility but immediately transitions to COMBAT.
+## Previously: coordinated multi-enemy rush where enemies wait 5 seconds then rush together.
+func _process_assault_state(_delta: float) -> void:
+	# ASSAULT state is disabled per issue #169
+	# Immediately transition to COMBAT state
+	_log_debug("ASSAULT state disabled (issue #169), transitioning to COMBAT")
+	_in_assault = false
+	_assault_ready = false
+	_transition_to_combat()
 
 
 ## Shoot with reduced accuracy for retreat mode.
+## Bullets fly in barrel direction with added inaccuracy spread.
+## Enemy must be properly aimed before shooting (within AIM_TOLERANCE_DOT).
 func _shoot_with_inaccuracy() -> void:
 	if bullet_scene == null or _player == null:
 		return
@@ -2149,9 +2414,27 @@ func _shoot_with_inaccuracy() -> void:
 	if not _should_shoot_at_target(target_position):
 		return
 
-	var direction := (target_position - global_position).normalized()
+	# Calculate bullet spawn position at weapon muzzle first
+	var weapon_forward := _get_weapon_forward_direction()
+	var bullet_spawn_pos := _get_bullet_spawn_position(weapon_forward)
 
-	# Add inaccuracy spread
+	# Calculate direction to target for aim check
+	var to_target := (target_position - bullet_spawn_pos).normalized()
+
+	# Check if weapon is aimed at target (within tolerance)
+	# Bullets fly in barrel direction, so we only shoot when properly aimed (issue #254)
+	var aim_dot := weapon_forward.dot(to_target)
+	if aim_dot < AIM_TOLERANCE_DOT:
+		if debug_logging:
+			var aim_angle_deg := rad_to_deg(acos(clampf(aim_dot, -1.0, 1.0)))
+			_log_debug("INACCURATE SHOOT BLOCKED: Not aimed at target. aim_dot=%.3f (%.1f deg off)" % [aim_dot, aim_angle_deg])
+		return
+
+	# Bullet direction is the weapon's forward direction (realistic barrel direction)
+	# with added inaccuracy spread for retreat shooting
+	var direction := weapon_forward
+
+	# Add inaccuracy spread to barrel direction
 	var inaccuracy_angle := randf_range(-RETREAT_INACCURACY_SPREAD, RETREAT_INACCURACY_SPREAD)
 	direction = direction.rotated(inaccuracy_angle)
 
@@ -2162,9 +2445,11 @@ func _shoot_with_inaccuracy() -> void:
 
 	# Create and fire bullet
 	var bullet := bullet_scene.instantiate()
-	bullet.global_position = global_position + direction * bullet_spawn_offset
+	bullet.global_position = bullet_spawn_pos
 	bullet.direction = direction
 	bullet.shooter_id = get_instance_id()
+	# Set shooter position for distance-based penetration calculation
+	bullet.shooter_position = bullet_spawn_pos
 	get_tree().current_scene.add_child(bullet)
 
 	# Play sounds
@@ -2189,6 +2474,8 @@ func _shoot_with_inaccuracy() -> void:
 
 
 ## Shoot a burst shot with arc spread for ONE_HIT retreat.
+## Bullets fly in barrel direction with added arc spread.
+## Enemy must be properly aimed before shooting (within AIM_TOLERANCE_DOT).
 func _shoot_burst_shot() -> void:
 	if bullet_scene == null or _player == null:
 		return
@@ -2197,7 +2484,25 @@ func _shoot_burst_shot() -> void:
 		return
 
 	var target_position := _player.global_position
-	var direction := (target_position - global_position).normalized()
+
+	# Calculate bullet spawn position at weapon muzzle first
+	var weapon_forward := _get_weapon_forward_direction()
+	var bullet_spawn_pos := _get_bullet_spawn_position(weapon_forward)
+
+	# Calculate direction to target for aim check
+	var to_target := (target_position - bullet_spawn_pos).normalized()
+
+	# Check if weapon is aimed at target (within tolerance)
+	# Bullets fly in barrel direction, so we only shoot when properly aimed (issue #254)
+	var aim_dot := weapon_forward.dot(to_target)
+	if aim_dot < AIM_TOLERANCE_DOT:
+		if debug_logging:
+			var aim_angle_deg := rad_to_deg(acos(clampf(aim_dot, -1.0, 1.0)))
+			_log_debug("BURST SHOOT BLOCKED: Not aimed at target. aim_dot=%.3f (%.1f deg off)" % [aim_dot, aim_angle_deg])
+		return
+
+	# Bullet direction is the weapon's forward direction (realistic barrel direction)
+	var direction := weapon_forward
 
 	# Apply arc offset for burst spread
 	direction = direction.rotated(_retreat_burst_angle_offset)
@@ -2213,9 +2518,11 @@ func _shoot_burst_shot() -> void:
 
 	# Create and fire bullet
 	var bullet := bullet_scene.instantiate()
-	bullet.global_position = global_position + direction * bullet_spawn_offset
+	bullet.global_position = bullet_spawn_pos
 	bullet.direction = direction
 	bullet.shooter_id = get_instance_id()
+	# Set shooter position for distance-based penetration calculation
+	bullet.shooter_position = bullet_spawn_pos
 	get_tree().current_scene.add_child(bullet)
 
 	# Play sounds
@@ -2633,13 +2940,15 @@ func _is_firing_line_clear_of_friendlies(target_position: Vector2) -> bool:
 	if not enable_friendly_fire_avoidance:
 		return true
 
-	var direction := (target_position - global_position).normalized()
-	var distance := global_position.distance_to(target_position)
+	# Get actual muzzle position for accurate raycast
+	var weapon_forward := _get_weapon_forward_direction()
+	var muzzle_pos := _get_bullet_spawn_position(weapon_forward)
+	var distance := muzzle_pos.distance_to(target_position)
 
 	# Use direct space state to check if any enemies are in the firing line
 	var space_state := get_world_2d().direct_space_state
 	var query := PhysicsRayQueryParameters2D.new()
-	query.from = global_position + direction * bullet_spawn_offset  # Start from bullet spawn point
+	query.from = muzzle_pos  # Start from actual muzzle position
 	query.to = target_position
 	query.collision_mask = 2  # Only check enemies (layer 2)
 	query.exclude = [get_rid()]  # Exclude self using RID
@@ -2651,7 +2960,7 @@ func _is_firing_line_clear_of_friendlies(target_position: Vector2) -> bool:
 
 	# Check if the hit position is before the target
 	var hit_position: Vector2 = result["position"]
-	var distance_to_hit := global_position.distance_to(hit_position)
+	var distance_to_hit := muzzle_pos.distance_to(hit_position)
 
 	if distance_to_hit < distance - 20.0:  # 20 pixel tolerance
 		_log_debug("Friendly in firing line at distance %0.1f (target at %0.1f)" % [distance_to_hit, distance])
@@ -2663,13 +2972,15 @@ func _is_firing_line_clear_of_friendlies(target_position: Vector2) -> bool:
 ## Check if a bullet fired at the target position would be blocked by cover/obstacles.
 ## Returns true if the shot would likely hit the target, false if blocked by cover.
 func _is_shot_clear_of_cover(target_position: Vector2) -> bool:
-	var direction := (target_position - global_position).normalized()
-	var distance := global_position.distance_to(target_position)
+	# Get actual muzzle position for accurate raycast
+	var weapon_forward := _get_weapon_forward_direction()
+	var muzzle_pos := _get_bullet_spawn_position(weapon_forward)
+	var distance := muzzle_pos.distance_to(target_position)
 
 	# Use direct space state to check if obstacles block the shot
 	var space_state := get_world_2d().direct_space_state
 	var query := PhysicsRayQueryParameters2D.new()
-	query.from = global_position + direction * bullet_spawn_offset  # Start from bullet spawn point
+	query.from = muzzle_pos  # Start from actual muzzle position
 	query.to = target_position
 	query.collision_mask = 4  # Only check obstacles (layer 3)
 
@@ -2680,7 +2991,7 @@ func _is_shot_clear_of_cover(target_position: Vector2) -> bool:
 
 	# Check if the obstacle is before the target position
 	var hit_position: Vector2 = result["position"]
-	var distance_to_hit := global_position.distance_to(hit_position)
+	var distance_to_hit := muzzle_pos.distance_to(hit_position)
 
 	if distance_to_hit < distance - 10.0:  # 10 pixel tolerance
 		_log_debug("Shot blocked by cover at distance %0.1f (target at %0.1f)" % [distance_to_hit, distance])
@@ -2775,8 +3086,9 @@ func _find_sidestep_direction_for_clear_shot(direction_to_player: Vector2) -> Ve
 func _should_shoot_at_target(target_position: Vector2) -> bool:
 	# Check if the immediate path to bullet spawn is clear
 	# This prevents shooting into walls the enemy is flush against
-	var direction := (target_position - global_position).normalized()
-	if not _is_bullet_spawn_clear(direction):
+	# Use weapon forward direction since that's where bullets actually spawn and travel
+	var weapon_direction := _get_weapon_forward_direction()
+	if not _is_bullet_spawn_clear(weapon_direction):
 		return false
 
 	# Check if friendlies are in the way
@@ -3391,10 +3703,16 @@ func _is_position_in_fov(target_pos: Vector2) -> bool:
 ## This allows the enemy to see the player even outside the viewport if there's no obstacle.
 ## Also updates the continuous visibility timer and visibility ratio for lead prediction control.
 ## Now includes FOV (field of view) angle check - player must be within the vision cone.
+## Uses multi-point visibility check to handle player near wall corners (issue #264).
 func _check_player_visibility() -> void:
 	var was_visible := _can_see_player
 	_can_see_player = false
 	_player_visibility_ratio = 0.0
+
+	# If blinded, cannot see player at all
+	if _is_blinded:
+		_continuous_visibility_timer = 0.0
+		return
 
 	if _player == null or not _raycast:
 		_continuous_visibility_timer = 0.0
@@ -3408,34 +3726,30 @@ func _check_player_visibility() -> void:
 		_continuous_visibility_timer = 0.0
 		return
 
-	# Check if player is within field of view angle
+	# Check if player is within field of view angle (when FOV is enabled)
 	if not _is_position_in_fov(_player.global_position):
 		_continuous_visibility_timer = 0.0
 		return
 
-	# Point raycast at player - use actual distance to player for the raycast length
-	var direction_to_player := (_player.global_position - global_position).normalized()
-	var raycast_length := distance_to_player + 10.0  # Add small buffer to ensure we reach player
-	_raycast.target_position = direction_to_player * raycast_length
-	_raycast.force_raycast_update()
+	# Check multiple points on the player's body (center + corners) to handle
+	# cases where player is near a wall corner. A single raycast to the center
+	# might hit the wall, but parts of the player's body could still be visible.
+	# This fixes the issue where enemies couldn't see players standing close to
+	# walls in narrow passages (issue #264).
+	var check_points := _get_player_check_points(_player.global_position)
+	var visible_count := 0
 
-	# Check if raycast hit something
-	if _raycast.is_colliding():
-		var collider := _raycast.get_collider()
-		# If we hit the player, we can see them
-		if collider == _player:
+	for point in check_points:
+		if _is_player_point_visible_to_enemy(point):
+			visible_count += 1
+			# If any part of the player is visible, we can see them
 			_can_see_player = true
-		# If we hit a wall/obstacle before the player, we can't see them
-	else:
-		# No collision between us and player - we have clear line of sight
-		_can_see_player = true
+			# Continue checking to calculate visibility ratio
 
-	# Update continuous visibility timer and visibility ratio
+	# Calculate visibility ratio based on how many points are visible
 	if _can_see_player:
+		_player_visibility_ratio = float(visible_count) / float(check_points.size())
 		_continuous_visibility_timer += get_physics_process_delta_time()
-		# Calculate what fraction of the player's body is visible
-		# This is used to determine if lead prediction should be enabled
-		_player_visibility_ratio = _calculate_player_visibility_ratio()
 	else:
 		# Lost line of sight - reset the timer and visibility ratio
 		_continuous_visibility_timer = 0.0
@@ -3466,6 +3780,8 @@ func _aim_at_player() -> void:
 
 
 ## Shoot a bullet towards the player.
+## Bullets fly in the direction the barrel is pointing (realistic behavior).
+## Enemy must be properly aimed before shooting (within AIM_TOLERANCE_DOT).
 func _shoot() -> void:
 	if bullet_scene == null or _player == null:
 		return
@@ -3484,23 +3800,56 @@ func _shoot() -> void:
 	if not _should_shoot_at_target(target_position):
 		return
 
-	var direction := (target_position - global_position).normalized()
+	# Calculate bullet spawn position at weapon muzzle first
+	# We need this to calculate the correct bullet direction
+	var weapon_forward := _get_weapon_forward_direction()
+	var bullet_spawn_pos := _get_bullet_spawn_position(weapon_forward)
+
+	# Calculate direction to target for aim check
+	var to_target := (target_position - bullet_spawn_pos).normalized()
+
+	# Check if weapon is aimed at target (within tolerance)
+	# Bullets fly in barrel direction, so we only shoot when properly aimed (issue #254)
+	var aim_dot := weapon_forward.dot(to_target)
+	if aim_dot < AIM_TOLERANCE_DOT:
+		if debug_logging:
+			var aim_angle_deg := rad_to_deg(acos(clampf(aim_dot, -1.0, 1.0)))
+			_log_debug("SHOOT BLOCKED: Not aimed at target. aim_dot=%.3f (%.1f deg off)" % [aim_dot, aim_angle_deg])
+		return
+
+	# Bullet direction is the weapon's forward direction (realistic barrel direction)
+	# This ensures bullets fly where the barrel is pointing, not toward the target
+	var direction := weapon_forward
 
 	# Create bullet instance
 	var bullet := bullet_scene.instantiate()
+	bullet.global_position = bullet_spawn_pos
 
-	# Set bullet position with offset in shoot direction
-	bullet.global_position = global_position + direction * bullet_spawn_offset
+	# Debug logging for weapon geometry analysis
+	if debug_logging:
+		var weapon_visual_pos := _weapon_sprite.global_position if _weapon_sprite else Vector2.ZERO
+		var model_rot := _enemy_model.rotation if _enemy_model else 0.0
+		var model_scale := _enemy_model.scale if _enemy_model else Vector2.ONE
+		_log_debug("SHOOT: enemy_pos=%v, target_pos=%v" % [global_position, target_position])
+		_log_debug("  model_rotation=%.2f rad (%.1f deg), model_scale=%v" % [model_rot, rad_to_deg(model_rot), model_scale])
+		_log_debug("  weapon_node_pos=%v, muzzle=%v" % [weapon_visual_pos, bullet_spawn_pos])
+		_log_debug("  direction=%v (angle=%.1f deg) - BARREL DIRECTION (realistic)" % [direction, rad_to_deg(direction.angle())])
 
-	# Set bullet direction
+	# Set bullet direction (barrel direction for realistic behavior)
 	bullet.direction = direction
 
 	# Set shooter ID to identify this enemy as the source
 	# This prevents enemies from detecting their own bullets in the threat sphere
 	bullet.shooter_id = get_instance_id()
+	# Set shooter position for distance-based penetration calculation
+	# Use the bullet spawn position (weapon muzzle) for accurate distance calculation
+	bullet.shooter_position = bullet_spawn_pos
 
 	# Add bullet to the scene tree
 	get_tree().current_scene.add_child(bullet)
+
+	# Spawn casing if casing scene is set
+	_spawn_casing(direction, weapon_forward)
 
 	# Play shooting sound
 	var audio_manager: Node = get_node_or_null("/root/AudioManager")
@@ -3531,6 +3880,51 @@ func _play_delayed_shell_sound() -> void:
 	var audio_manager: Node = get_node_or_null("/root/AudioManager")
 	if audio_manager and audio_manager.has_method("play_shell_rifle"):
 		audio_manager.play_shell_rifle(global_position)
+
+
+## Spawns a bullet casing that gets ejected from the weapon.
+## Based on BaseWeapon.cs SpawnCasing method for visual consistency with player weapons.
+## @param shoot_direction: Direction the bullet was fired (used to determine casing ejection direction).
+## @param weapon_forward: The weapon's forward direction (barrel direction).
+func _spawn_casing(shoot_direction: Vector2, weapon_forward: Vector2) -> void:
+	if casing_scene == null:
+		return
+
+	# Calculate casing spawn position (near the weapon, slightly offset)
+	# Use 50% of bullet spawn offset to position casing near weapon muzzle
+	var casing_spawn_position: Vector2 = global_position + weapon_forward * (bullet_spawn_offset * 0.5)
+
+	var casing: RigidBody2D = casing_scene.instantiate()
+	casing.global_position = casing_spawn_position
+
+	# Calculate ejection direction to the right of the weapon
+	# In a top-down view with Y increasing downward:
+	# - If weapon points right (1, 0), right side of weapon is DOWN (0, 1)
+	# - If weapon points up (0, -1), right side of weapon is RIGHT (1, 0)
+	# This is a 90 degree counter-clockwise rotation (perpendicular to shooting direction)
+	var weapon_right: Vector2 = Vector2(-weapon_forward.y, weapon_forward.x)
+
+	# Eject to the right with some randomness
+	var random_angle: float = randf_range(-0.3, 0.3)  # ±0.3 radians (~±17 degrees)
+	var ejection_direction: Vector2 = weapon_right.rotated(random_angle)
+
+	# Add some upward component for realistic ejection
+	ejection_direction = ejection_direction.rotated(randf_range(-0.1, 0.1))
+
+	# Set initial velocity for the casing (increased for faster ejection animation)
+	var ejection_speed: float = randf_range(300.0, 450.0)  # Random speed between 300-450 pixels/sec
+	casing.linear_velocity = ejection_direction * ejection_speed
+
+	# Add some initial spin for realism
+	casing.angular_velocity = randf_range(-15.0, 15.0)
+
+	# Set caliber data on the casing for appearance
+	# Load the 5.45x39mm caliber data for M16 rifle
+	var caliber_data: Resource = load("res://resources/calibers/caliber_545x39.tres")
+	if caliber_data:
+		casing.set("caliber_data", caliber_data)
+
+	get_tree().current_scene.add_child(casing)
 
 
 ## Calculate lead prediction - aims where the player will be, not where they are.
@@ -3670,10 +4064,23 @@ func on_hit() -> void:
 ## @param hit_direction: Direction the bullet was traveling.
 ## @param caliber_data: Caliber resource for effect scaling.
 func on_hit_with_info(hit_direction: Vector2, caliber_data: Resource) -> void:
+	# Call the full version with default special kill flags
+	on_hit_with_bullet_info(hit_direction, caliber_data, false, false)
+
+
+## Called when the enemy is hit with full bullet information.
+## @param hit_direction: Direction the bullet was traveling.
+## @param caliber_data: Caliber resource for effect scaling.
+## @param has_ricocheted: Whether the bullet had ricocheted before this hit.
+## @param has_penetrated: Whether the bullet had penetrated a wall before this hit.
+func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has_ricocheted: bool, has_penetrated: bool) -> void:
 	if not _is_alive:
 		return
 
 	hit.emit()
+
+	# Store hit direction for death animation
+	_last_hit_direction = hit_direction
 
 	# Track hits for retreat behavior
 	_hits_taken_in_encounter += 1
@@ -3690,7 +4097,25 @@ func on_hit_with_info(hit_direction: Vector2, caliber_data: Resource) -> void:
 	var audio_manager: Node = get_node_or_null("/root/AudioManager")
 	var impact_manager: Node = get_node_or_null("/root/ImpactEffectsManager")
 
+	# Log blood effect call for diagnostics
+	if impact_manager:
+		_log_to_file("ImpactEffectsManager found, calling spawn_blood_effect")
+	else:
+		_log_to_file("WARNING: ImpactEffectsManager not found at /root/ImpactEffectsManager")
+		# Debug: List all autoload children of /root for diagnostics
+		var root_node := get_node_or_null("/root")
+		if root_node:
+			var autoload_names: Array = []
+			for child in root_node.get_children():
+				if child.name != get_tree().current_scene.name if get_tree().current_scene else true:
+					autoload_names.append(child.name)
+			_log_to_file("Available autoloads: " + ", ".join(autoload_names))
+
 	if _current_health <= 0:
+		# Track special kill info before death
+		_killed_by_ricochet = has_ricocheted
+		_killed_by_penetration = has_penetrated
+
 		# Play lethal hit sound
 		if audio_manager and audio_manager.has_method("play_hit_lethal"):
 			audio_manager.play_hit_lethal(global_position)
@@ -3710,10 +4135,10 @@ func on_hit_with_info(hit_direction: Vector2, caliber_data: Resource) -> void:
 
 ## Shows a brief flash effect when hit.
 func _show_hit_flash() -> void:
-	if not _sprite:
+	if not _enemy_model:
 		return
 
-	_sprite.modulate = hit_flash_color
+	_set_all_sprites_modulate(hit_flash_color)
 
 	await get_tree().create_timer(hit_flash_duration).timeout
 
@@ -3724,12 +4149,23 @@ func _show_hit_flash() -> void:
 
 ## Updates the sprite color based on current health percentage.
 func _update_health_visual() -> void:
-	if not _sprite:
-		return
-
 	# Interpolate color based on health percentage
 	var health_percent := _get_health_percent()
-	_sprite.modulate = full_health_color.lerp(low_health_color, 1.0 - health_percent)
+	var color := full_health_color.lerp(low_health_color, 1.0 - health_percent)
+	_set_all_sprites_modulate(color)
+
+
+## Sets the modulate color on all enemy sprite parts.
+## @param color: The color to apply to all sprites.
+func _set_all_sprites_modulate(color: Color) -> void:
+	if _body_sprite:
+		_body_sprite.modulate = color
+	if _head_sprite:
+		_head_sprite.modulate = color
+	if _left_arm_sprite:
+		_left_arm_sprite.modulate = color
+	if _right_arm_sprite:
+		_right_arm_sprite.modulate = color
 
 
 ## Returns the current health as a percentage (0.0 to 1.0).
@@ -3737,6 +4173,131 @@ func _get_health_percent() -> float:
 	if _max_health <= 0:
 		return 0.0
 	return float(_current_health) / float(_max_health)
+
+
+## Calculates the bullet spawn position at the weapon's muzzle.
+## The muzzle is positioned relative to the weapon mount, offset in the weapon's forward direction.
+##
+## IMPORTANT FIX (Issue #264 - Session 4):
+## Similar to _get_weapon_forward_direction(), we need to calculate the muzzle position
+## based on the intended aim direction when the player is visible, not from the stale
+## global_transform which may not have updated yet in the same physics frame.
+##
+## @param _direction: The normalized direction the bullet will travel (used for fallback only).
+## @return: The global position where the bullet should spawn.
+func _get_bullet_spawn_position(_direction: Vector2) -> Vector2:
+	# The rifle sprite (m16_rifle_topdown.png) is 64px long with offset (20, 0).
+	# The muzzle (right edge in local space) is at: offset.x + sprite_width/2 = 20 + 32 = 52px
+	# from the WeaponSprite node position.
+	var muzzle_local_offset := 52.0  # Distance from node to muzzle in local +X direction
+	if _weapon_sprite and _enemy_model:
+		var weapon_forward: Vector2
+
+		# When player is visible, calculate direction directly to avoid transform delay.
+		# This matches the fix in _get_weapon_forward_direction().
+		if _player and is_instance_valid(_player) and _can_see_player:
+			weapon_forward = (_player.global_position - global_position).normalized()
+		else:
+			# Fallback to transform-based direction when player is not visible.
+			# Get the weapon's VISUAL forward direction from global_transform.
+			# IMPORTANT: We use global_transform.x because it correctly accounts for the
+			# vertical flip (scale.y negative) that happens when aiming left. The flip
+			# affects where the muzzle visually appears, so we need the transformed direction.
+			# Using Vector2.from_angle(_enemy_model.rotation) would give incorrect results
+			# because it doesn't account for the scale flip.
+			weapon_forward = _weapon_sprite.global_transform.x.normalized()
+
+		# Calculate muzzle offset accounting for enemy model scale
+		var scaled_muzzle_offset := muzzle_local_offset * enemy_model_scale
+		# Use weapon sprite's global position as base, then offset to reach the muzzle
+		var result := _weapon_sprite.global_position + weapon_forward * scaled_muzzle_offset
+		if debug_logging:
+			var angle_forward := Vector2.from_angle(_enemy_model.rotation)
+			_log_debug("  _get_bullet_spawn_position: weapon_forward=%v vs angle_forward=%v" % [weapon_forward, angle_forward])
+			_log_debug("  muzzle_position=%v, weapon_pos=%v, offset=%.1f" % [result, _weapon_sprite.global_position, scaled_muzzle_offset])
+		return result
+	else:
+		# Fallback to old behavior if weapon sprite or enemy model not found
+		return global_position + _direction * bullet_spawn_offset
+
+
+## Returns the weapon's forward direction in world coordinates.
+## This is the direction the weapon barrel is visually pointing.
+##
+## NOTE: This is used to calculate the muzzle position, NOT the bullet direction.
+## The actual bullet direction is calculated in _shoot() as (target - muzzle).normalized()
+## to ensure bullets fly toward the target, not just in the model's facing direction.
+##
+## IMPORTANT: We use global_transform.x to get the actual visual forward direction.
+## This correctly accounts for the vertical flip (scale.y negative) that happens
+## when aiming left. The transform includes all parent transforms, so it gives
+## the true world-space direction the weapon is pointing.
+##
+## IMPORTANT FIX (Issue #264 - Session 4):
+## In Godot 4, when we set global_rotation on a Node2D, the global_transform of
+## child nodes does NOT update immediately in the same physics frame. This caused
+## bullets to be fired in the wrong direction because _weapon_sprite.global_transform.x
+## would return the OLD direction from the previous frame.
+##
+## The fix is to calculate the expected weapon direction directly from the player's
+## position when we can see the player, rather than reading it back from the transform.
+## This ensures bullets always fly toward the intended target, not the stale transform.
+##
+## @returns: Normalized direction vector the weapon should be pointing.
+func _get_weapon_forward_direction() -> Vector2:
+	# When we can see the player, calculate direction directly to avoid transform delay.
+	# This is the same calculation used in _update_enemy_model_rotation(), ensuring
+	# consistency between the visual aim and the actual bullet direction.
+	if _player and is_instance_valid(_player) and _can_see_player:
+		return (_player.global_position - global_position).normalized()
+
+	# Fallback to transform-based direction when player is not visible.
+	# In this case, the transform should have had time to update across frames.
+	if _weapon_sprite:
+		# Use the weapon sprite's global_transform.x for the true visual forward direction.
+		# This correctly handles the vertical flip case (scale.y negative) because
+		# global_transform includes all parent transforms including scale.
+		return _weapon_sprite.global_transform.x.normalized()
+	elif _enemy_model:
+		# Fallback to enemy model's transform if weapon sprite not available
+		return _enemy_model.global_transform.x.normalized()
+	else:
+		# Fallback: calculate direction to player
+		if _player and is_instance_valid(_player):
+			return (_player.global_position - global_position).normalized()
+		return Vector2.RIGHT  # Default fallback
+
+
+## Updates the weapon sprite rotation to match the direction the enemy will shoot.
+## This ensures the rifle visually points where bullets will travel.
+## Also handles vertical flipping when aiming left to avoid upside-down appearance.
+func _update_weapon_sprite_rotation() -> void:
+	if not _weapon_sprite:
+		return
+
+	# Calculate the direction the weapon should point (same as shooting direction)
+	# This matches the logic in _shoot() to ensure visual consistency
+	var aim_angle: float = rotation  # Default to body rotation
+
+	if _player and is_instance_valid(_player):
+		# Calculate direction to player (or predicted position if lead prediction is enabled)
+		var target_position := _player.global_position
+		if enable_lead_prediction and _can_see_player:
+			target_position = _calculate_lead_prediction()
+
+		var direction := (target_position - global_position).normalized()
+		aim_angle = direction.angle()
+
+	# Set the weapon sprite LOCAL rotation relative to parent.
+	# The weapon sprite is a child of the enemy body, so we need to subtract the parent's
+	# rotation to get the correct world-space orientation.
+	# Without this, the rotation would be doubled (parent rotation + own rotation).
+	_weapon_sprite.rotation = aim_angle - rotation
+
+	# Flip the sprite vertically when aiming left (to avoid upside-down rifle)
+	# This happens when the angle is greater than 90 degrees or less than -90 degrees
+	var aiming_left := absf(aim_angle) > PI / 2.0
+	_weapon_sprite.flip_v = aiming_left
 
 
 ## Returns the effective detection delay based on difficulty.
@@ -3752,8 +4313,9 @@ func _get_effective_detection_delay() -> float:
 ## Called when the enemy dies.
 func _on_death() -> void:
 	_is_alive = false
-	_log_to_file("Enemy died")
+	_log_to_file("Enemy died (ricochet: %s, penetration: %s)" % [_killed_by_ricochet, _killed_by_penetration])
 	died.emit()
+	died_with_info.emit(_killed_by_ricochet, _killed_by_penetration)
 
 	# Disable hit area collision so bullets pass through dead enemies.
 	# This prevents dead enemies from "absorbing" bullets before respawn/deletion.
@@ -3765,8 +4327,17 @@ func _on_death() -> void:
 	# Unregister from sound propagation when dying
 	_unregister_sound_listener()
 
+	# Start death animation with the hit direction
+	if _death_animation and _death_animation.has_method("start_death_animation"):
+		_death_animation.start_death_animation(_last_hit_direction)
+		_log_to_file("Death animation started with hit direction: %s" % str(_last_hit_direction))
+
 	if destroy_on_death:
+		# Wait for death animation to complete before destroying
 		await get_tree().create_timer(respawn_delay).timeout
+		# Clean up death animation ragdoll bodies before destroying
+		if _death_animation and _death_animation.has_method("reset"):
+			_death_animation.reset()
 		queue_free()
 	else:
 		await get_tree().create_timer(respawn_delay).timeout
@@ -3775,6 +4346,10 @@ func _on_death() -> void:
 
 ## Resets the enemy to its initial state.
 func _reset() -> void:
+	# Reset death animation first (restores sprites to character model)
+	if _death_animation and _death_animation.has_method("reset"):
+		_death_animation.reset()
+
 	global_position = _initial_position
 	rotation = 0.0
 	_current_patrol_index = 0
@@ -3834,6 +4409,9 @@ func _reset() -> void:
 	# Reset sound detection state
 	_last_known_player_position = Vector2.ZERO
 	_pursuing_vulnerability_sound = false
+	# Reset score tracking state
+	_killed_by_ricochet = false
+	_killed_by_penetration = false
 	_initialize_health()
 	_initialize_ammo()
 	_update_health_visual()
@@ -3887,6 +4465,40 @@ func _enable_hit_area_collision() -> void:
 ## Used by bullets to check if they should pass through or hit.
 func is_alive() -> bool:
 	return _is_alive
+
+
+## Initialize the death animation component.
+func _init_death_animation() -> void:
+	# Create death animation component as a child node
+	_death_animation = DeathAnimationComponent.new()
+	_death_animation.name = "DeathAnimation"
+	add_child(_death_animation)
+
+	# Initialize with sprite references
+	_death_animation.initialize(
+		_body_sprite,
+		_head_sprite,
+		_left_arm_sprite,
+		_right_arm_sprite,
+		_enemy_model
+	)
+
+	# Connect signals
+	_death_animation.death_animation_completed.connect(_on_death_animation_completed)
+	_death_animation.ragdoll_activated.connect(_on_ragdoll_activated)
+
+	_log_to_file("Death animation component initialized")
+
+
+## Called when death animation completes (body at rest).
+func _on_death_animation_completed() -> void:
+	_log_to_file("Death animation completed")
+	death_animation_completed.emit()
+
+
+## Called when ragdoll physics activates.
+func _on_ragdoll_activated() -> void:
+	_log_to_file("Ragdoll activated")
 
 
 ## Log debug message if debug_logging is enabled.
@@ -4102,10 +4714,11 @@ func _draw() -> void:
 		var to_player := _player.global_position - global_position
 		draw_line(Vector2.ZERO, to_player, color_to_player, 1.5)
 
-		# Draw bullet spawn point and check if blocked
-		var direction_to_player := to_player.normalized()
-		var spawn_point := direction_to_player * bullet_spawn_offset
-		if _is_bullet_spawn_clear(direction_to_player):
+		# Draw bullet spawn point (actual muzzle position) and check if blocked
+		var weapon_forward := _get_weapon_forward_direction()
+		var muzzle_global := _get_bullet_spawn_position(weapon_forward)
+		var spawn_point := muzzle_global - global_position  # Convert to local coordinates for draw
+		if _is_bullet_spawn_clear(weapon_forward):
 			draw_circle(spawn_point, 5.0, color_bullet_spawn)
 		else:
 			# Draw X for blocked spawn point
@@ -4320,3 +4933,51 @@ func _get_nav_path_distance(target_pos: Vector2) -> float:
 
 	_nav_agent.target_position = target_pos
 	return _nav_agent.distance_to_target()
+
+
+# ============================================================================
+# Status Effects (Blindness, Stun)
+# ============================================================================
+
+
+## Set the blinded state (from flashbang grenade).
+## When blinded, the enemy cannot see the player.
+func set_blinded(blinded: bool) -> void:
+	var was_blinded := _is_blinded
+	_is_blinded = blinded
+
+	if blinded and not was_blinded:
+		_log_debug("Enemy is now BLINDED - cannot see player")
+		_log_to_file("Status effect: BLINDED applied")
+		# Force lose sight of player
+		_can_see_player = false
+		_continuous_visibility_timer = 0.0
+	elif not blinded and was_blinded:
+		_log_debug("Enemy is no longer blinded")
+		_log_to_file("Status effect: BLINDED removed")
+
+
+## Set the stunned state (from flashbang grenade).
+## When stunned, the enemy cannot move or take actions.
+func set_stunned(stunned: bool) -> void:
+	var was_stunned := _is_stunned
+	_is_stunned = stunned
+
+	if stunned and not was_stunned:
+		_log_debug("Enemy is now STUNNED - cannot move")
+		_log_to_file("Status effect: STUNNED applied")
+		# Stop all movement
+		velocity = Vector2.ZERO
+	elif not stunned and was_stunned:
+		_log_debug("Enemy is no longer stunned")
+		_log_to_file("Status effect: STUNNED removed")
+
+
+## Check if the enemy is currently blinded.
+func is_blinded() -> bool:
+	return _is_blinded
+
+
+## Check if the enemy is currently stunned.
+func is_stunned() -> bool:
+	return _is_stunned

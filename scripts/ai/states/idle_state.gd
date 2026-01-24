@@ -54,8 +54,8 @@ func _process_patrol(delta: float) -> void:
 		return
 
 	# Move toward current patrol point
-	var target := enemy._patrol_points[enemy._current_patrol_index]
-	var direction := (target - enemy.global_position).normalized()
+	var target: Vector2 = enemy._patrol_points[enemy._current_patrol_index]
+	var direction: Vector2 = (target - enemy.global_position).normalized()
 
 	# Check if reached patrol point
 	if enemy.global_position.distance_to(target) < 10.0:

@@ -1,4 +1,6 @@
 using Godot;
+using System;
+using System.Collections.Generic;
 using GodotTopDownTemplate.AbstractClasses;
 using GodotTopDownTemplate.Weapons;
 
@@ -11,6 +13,7 @@ namespace GodotTopDownTemplate.Characters;
 /// Shoots bullets towards the mouse cursor on left mouse button.
 /// Supports both automatic (hold to fire) and semi-automatic (click per shot) weapons.
 /// Uses R-F-R key sequence for instant reload (press R, then F, then R again).
+/// Grenade throwing: G+RMB drag right → hold G+RMB → release G → drag and release RMB to throw.
 /// </summary>
 public partial class Player : BaseCharacter
 {
@@ -57,7 +60,32 @@ public partial class Player : BaseCharacter
     public float HitFlashDuration { get; set; } = 0.1f;
 
     /// <summary>
-    /// Reference to the player's sprite for visual feedback.
+    /// Grenade scene to instantiate when throwing.
+    /// </summary>
+    [Export]
+    public PackedScene? GrenadeScene { get; set; }
+
+    /// <summary>
+    /// Maximum number of grenades the player can carry.
+    /// </summary>
+    [Export]
+    public int MaxGrenades { get; set; } = 3;
+
+    /// <summary>
+    /// Reference to the player model node containing all sprites.
+    /// </summary>
+    private Node2D? _playerModel;
+
+    /// <summary>
+    /// References to individual sprite parts for color changes.
+    /// </summary>
+    private Sprite2D? _bodySprite;
+    private Sprite2D? _headSprite;
+    private Sprite2D? _leftArmSprite;
+    private Sprite2D? _rightArmSprite;
+
+    /// <summary>
+    /// Legacy reference for compatibility (points to body sprite).
     /// </summary>
     private Sprite2D? _sprite;
 
@@ -76,6 +104,396 @@ public partial class Player : BaseCharacter
     /// Used to determine if there was a bullet in the chamber.
     /// </summary>
     private int _ammoAtReloadStart = 0;
+
+    /// <summary>
+    /// Current number of grenades.
+    /// </summary>
+    private int _currentGrenades = 3;
+
+    /// <summary>
+    /// Whether the player is on the tutorial level (infinite grenades).
+    /// </summary>
+    private bool _isTutorialLevel = false;
+
+    /// <summary>
+    /// Grenade state machine states.
+    /// 2-step mechanic:
+    /// Step 1: G + RMB drag right → timer starts (pin pulled)
+    /// Step 2: Hold G → press+hold RMB → release G → ready to throw (only RMB held)
+    /// Step 3: Drag and release RMB → throw grenade
+    /// </summary>
+    private enum GrenadeState
+    {
+        Idle,           // No grenade action
+        TimerStarted,   // Step 1 complete - grenade timer running, G held, waiting for RMB
+        WaitingForGRelease, // Step 2 in progress - G+RMB held, waiting for G release
+        Aiming          // Step 2 complete - only RMB held, waiting for drag and release to throw
+    }
+
+    /// <summary>
+    /// Current grenade state.
+    /// </summary>
+    private GrenadeState _grenadeState = GrenadeState.Idle;
+
+    /// <summary>
+    /// Active grenade instance (created when timer starts).
+    /// </summary>
+    private RigidBody2D? _activeGrenade = null;
+
+    /// <summary>
+    /// Position where the grenade throw drag started.
+    /// </summary>
+    private Vector2 _grenadeDragStart = Vector2.Zero;
+
+    /// <summary>
+    /// Whether the grenade throw drag is active (for step 1).
+    /// </summary>
+    private bool _grenadeDragActive = false;
+
+    /// <summary>
+    /// Minimum drag distance to confirm step 1 (in pixels).
+    /// </summary>
+    private const float MinDragDistanceForStep1 = 30.0f;
+
+    /// <summary>
+    /// Player's rotation before throw (to restore after throw animation).
+    /// </summary>
+    private float _playerRotationBeforeThrow = 0.0f;
+
+    /// <summary>
+    /// Whether player is in throw rotation animation.
+    /// </summary>
+    private bool _isThrowRotating = false;
+
+    /// <summary>
+    /// Whether debug mode is enabled (F7 toggle, shows grenade trajectory).
+    /// </summary>
+    private bool _debugModeEnabled = false;
+
+    /// <summary>
+    /// Target rotation for throw animation.
+    /// </summary>
+    private float _throwTargetRotation = 0.0f;
+
+    /// <summary>
+    /// Time remaining for throw rotation to restore.
+    /// </summary>
+    private float _throwRotationRestoreTimer = 0.0f;
+
+    /// <summary>
+    /// Duration of throw rotation animation.
+    /// </summary>
+    private const float ThrowRotationDuration = 0.15f;
+
+    #region Weapon Pose Detection
+
+    /// <summary>
+    /// Weapon types for arm positioning.
+    /// </summary>
+    private enum WeaponType
+    {
+        Rifle,      // Default - extended grip (e.g., AssaultRifle)
+        SMG,        // Compact grip (e.g., MiniUzi)
+        Shotgun     // Similar to rifle but slightly tighter
+    }
+
+    /// <summary>
+    /// Currently detected weapon type.
+    /// </summary>
+    private WeaponType _currentWeaponType = WeaponType.Rifle;
+
+    /// <summary>
+    /// Whether weapon pose has been detected and applied.
+    /// </summary>
+    private bool _weaponPoseApplied = false;
+
+    /// <summary>
+    /// Frame counter for delayed weapon pose detection.
+    /// Weapons are added by level scripts AFTER player's _Ready() completes.
+    /// </summary>
+    private int _weaponDetectFrameCount = 0;
+
+    /// <summary>
+    /// Number of frames to wait before detecting weapon pose.
+    /// This ensures level scripts have finished adding weapons.
+    /// </summary>
+    private const int WeaponDetectWaitFrames = 3;
+
+    /// <summary>
+    /// Arm position offset for SMG weapons - left arm moves back toward body.
+    /// UZI and similar compact SMGs should have the left arm closer to the body
+    /// for a proper two-handed compact grip.
+    /// </summary>
+    private static readonly Vector2 SmgLeftArmOffset = new Vector2(-10, 0);
+
+    /// <summary>
+    /// Arm position offset for SMG weapons - right arm moves slightly forward.
+    /// </summary>
+    private static readonly Vector2 SmgRightArmOffset = new Vector2(3, 0);
+
+    #endregion
+
+    #region Walking Animation
+
+    /// <summary>
+    /// Walking animation speed multiplier - higher = faster leg cycle.
+    /// </summary>
+    [Export]
+    public float WalkAnimSpeed { get; set; } = 12.0f;
+
+    /// <summary>
+    /// Scale multiplier for the player model (body, head, arms).
+    /// Default is 1.3 to make the player slightly larger.
+    /// </summary>
+    [Export]
+    public float PlayerModelScale { get; set; } = 1.3f;
+
+    /// <summary>
+    /// Walking animation intensity - higher = more pronounced movement.
+    /// </summary>
+    [Export]
+    public float WalkAnimIntensity { get; set; } = 1.0f;
+
+    /// <summary>
+    /// Current walk animation time (accumulator for sine wave).
+    /// </summary>
+    private float _walkAnimTime = 0.0f;
+
+    /// <summary>
+    /// Whether the player is currently walking (for animation state).
+    /// </summary>
+    private bool _isWalking = false;
+
+    /// <summary>
+    /// Base positions for body parts (stored on ready for animation offsets).
+    /// </summary>
+    private Vector2 _baseBodyPos = Vector2.Zero;
+    private Vector2 _baseHeadPos = Vector2.Zero;
+    private Vector2 _baseLeftArmPos = Vector2.Zero;
+    private Vector2 _baseRightArmPos = Vector2.Zero;
+
+    #endregion
+
+    #region Reload Animation System
+
+    /// <summary>
+    /// Animation phases for assault rifle reload sequence.
+    /// Maps to the R-F-R input system for visual feedback.
+    /// Three steps as requested:
+    /// 1. Take magazine with left hand from chest
+    /// 2. Insert magazine into rifle
+    /// 3. Pull the bolt/charging handle
+    /// </summary>
+    private enum ReloadAnimPhase
+    {
+        None,           // Normal arm positions (weapon held)
+        GrabMagazine,   // Step 1: Left hand moves to chest to grab new magazine
+        InsertMagazine, // Step 2: Left hand brings magazine to weapon, inserts it
+        PullBolt,       // Step 3: Character pulls the charging handle
+        ReturnIdle      // Arms return to normal weapon-holding position
+    }
+
+    /// <summary>
+    /// Current reload animation phase.
+    /// </summary>
+    private ReloadAnimPhase _reloadAnimPhase = ReloadAnimPhase.None;
+
+    /// <summary>
+    /// Reload animation phase timer for timed transitions.
+    /// </summary>
+    private float _reloadAnimTimer = 0.0f;
+
+    /// <summary>
+    /// Reload animation phase duration in seconds.
+    /// </summary>
+    private float _reloadAnimDuration = 0.0f;
+
+    // Target positions for reload arm animations (relative offsets from base positions)
+    // These are in local PlayerModel space
+    // Base positions: LeftArm (24, 6), RightArm (-2, 6)
+    // For reload, left arm goes to chest (vest/mag pouch area), then to weapon
+
+    // Step 1: Grab magazine from chest - left arm moves toward body center
+    // Base position: LeftArm (24, 6). We want target around (4, 2) = body/chest area
+    // So offset should be (4-24, 2-6) = (-20, -4)
+    // User feedback: previous -40 was too far (went behind back), -18 was not visible enough
+    private static readonly Vector2 ReloadArmLeftGrab = new Vector2(-20, -4);      // Left hand at chest/vest mag pouch (visible but not behind back)
+    private static readonly Vector2 ReloadArmRightHold = new Vector2(0, 0);        // Right hand stays on weapon grip
+
+    // Step 2: Insert magazine - left arm moves to weapon magwell (at middle of weapon, not at the end)
+    // Weapon length: ~40 pixels from center, magwell at middle
+    // Base (24, 6), want target around (12, 6) = middle of weapon, so offset (-12, 0)
+    private static readonly Vector2 ReloadArmLeftInsert = new Vector2(-12, 0);     // Left hand at weapon magwell (middle of weapon)
+    private static readonly Vector2 ReloadArmRightSteady = new Vector2(0, 2);      // Right hand steadies weapon
+
+    // Step 3: Pull bolt - right arm moves along rifle contour (back and forth motion)
+    // The right hand should trace the rifle's right side: forward, then back to pull bolt, then release
+    // Base RightArm (-2, 6). For dramatic motion: forward (+10, +2), back (-10, -4)
+    private static readonly Vector2 ReloadArmLeftSupport = new Vector2(-10, 0);    // Left hand holds near magwell
+    private static readonly Vector2 ReloadArmRightBoltStart = new Vector2(10, 2);  // Right hand at charging handle (forward on rifle)
+    private static readonly Vector2 ReloadArmRightBoltPull = new Vector2(-12, -4); // Right hand pulls bolt back (toward player)
+    private static readonly Vector2 ReloadArmRightBoltReturn = new Vector2(10, 2); // Right hand returns forward (bolt release)
+
+    // Target rotations for reload arm animations (in degrees)
+    private const float ReloadArmRotLeftGrab = -50.0f;     // Arm rotation when grabbing mag from chest
+    private const float ReloadArmRotRightHold = 0.0f;      // Right arm steady during grab
+    private const float ReloadArmRotLeftInsert = -15.0f;   // Left arm rotation when inserting
+    private const float ReloadArmRotRightSteady = 5.0f;    // Slight tilt while steadying
+    private const float ReloadArmRotLeftSupport = -10.0f;  // Left arm on foregrip/magwell
+    private const float ReloadArmRotRightBoltStart = -10.0f;  // Right arm at bolt handle
+    private const float ReloadArmRotRightBoltPull = -35.0f;   // Right arm rotation when pulling bolt back
+    private const float ReloadArmRotRightBoltReturn = -10.0f; // Right arm rotation when releasing bolt
+
+    // Animation durations for each reload phase (in seconds)
+    // INCREASED bolt durations for visible back-and-forth motion
+    private const float ReloadAnimGrabDuration = 0.25f;    // Time to grab magazine from chest
+    private const float ReloadAnimInsertDuration = 0.3f;   // Time to insert magazine
+    private const float ReloadAnimBoltPullDuration = 0.35f;   // Time to pull bolt back (increased for visibility)
+    private const float ReloadAnimBoltReturnDuration = 0.25f; // Time for bolt to return forward (increased for visibility)
+    private const float ReloadAnimReturnDuration = 0.2f;   // Time to return to idle
+
+    /// <summary>
+    /// Sub-phase for bolt pull animation (0 = pulling, 1 = returning)
+    /// </summary>
+    private int _boltPullSubPhase = 0;
+
+    #endregion
+
+    #region Grenade Animation System
+
+    /// <summary>
+    /// Animation phases for grenade throwing sequence.
+    /// Maps to the multi-step input system for visual feedback.
+    /// </summary>
+    private enum GrenadeAnimPhase
+    {
+        None,           // Normal arm positions (walking/idle)
+        GrabGrenade,    // Left hand moves to chest to grab grenade
+        PullPin,        // Right hand pulls pin (quick snap animation)
+        HandsApproach,  // Right hand moves toward left hand
+        Transfer,       // Grenade transfers to right hand
+        WindUp,         // Dynamic wind-up based on drag
+        Throw,          // Throwing motion
+        ReturnIdle      // Arms return to normal positions
+    }
+
+    /// <summary>
+    /// Current grenade animation phase.
+    /// </summary>
+    private GrenadeAnimPhase _grenadeAnimPhase = GrenadeAnimPhase.None;
+
+    /// <summary>
+    /// Animation phase timer for timed transitions.
+    /// </summary>
+    private float _grenadeAnimTimer = 0.0f;
+
+    /// <summary>
+    /// Animation phase duration in seconds.
+    /// </summary>
+    private float _grenadeAnimDuration = 0.0f;
+
+    /// <summary>
+    /// Current wind-up intensity (0.0 = no wind-up, 1.0 = maximum wind-up).
+    /// </summary>
+    private float _windUpIntensity = 0.0f;
+
+    /// <summary>
+    /// Previous mouse position for velocity calculation.
+    /// </summary>
+    private Vector2 _prevMousePos = Vector2.Zero;
+
+    /// <summary>
+    /// Mouse velocity history for smooth velocity calculation (stores last N velocities).
+    /// Used to get stable velocity at moment of release.
+    /// </summary>
+    private List<Vector2> _mouseVelocityHistory = new List<Vector2>();
+
+    /// <summary>
+    /// Maximum number of velocity samples to keep in history.
+    /// </summary>
+    private const int MouseVelocityHistorySize = 5;
+
+    /// <summary>
+    /// Current calculated mouse velocity (pixels per second).
+    /// </summary>
+    private Vector2 _currentMouseVelocity = Vector2.Zero;
+
+    /// <summary>
+    /// Total swing distance traveled during aiming (for momentum transfer calculation).
+    /// </summary>
+    private float _totalSwingDistance = 0.0f;
+
+    /// <summary>
+    /// Previous frame time for delta calculation in velocity tracking.
+    /// </summary>
+    private double _prevFrameTime = 0.0;
+
+    /// <summary>
+    /// Whether weapon is in sling position (lowered for grenade handling).
+    /// </summary>
+    private bool _weaponSlung = false;
+
+    /// <summary>
+    /// Reference to weapon mount for sling animation.
+    /// </summary>
+    private Node2D? _weaponMount;
+
+    /// <summary>
+    /// Base weapon mount position (for sling animation).
+    /// </summary>
+    private Vector2 _baseWeaponMountPos = Vector2.Zero;
+
+    /// <summary>
+    /// Base weapon mount rotation (for sling animation).
+    /// </summary>
+    private float _baseWeaponMountRot = 0.0f;
+
+    // Target positions for arm animations (relative offsets from base positions)
+    // These are in local PlayerModel space
+    // Base positions: LeftArm (24, 6), RightArm (-2, 6)
+    // Body position: (-4, 0), so left shoulder area is approximately x=0 to x=5
+    // To move left arm from x=24 to shoulder (x~5), we need offset of ~-20
+    // During grenade operations, left arm should be BEHIND the body (toward shoulder)
+    // not holding the weapon at the front
+    private static readonly Vector2 ArmLeftChest = new Vector2(-15, 0);        // Left hand moves back to chest/shoulder area to grab grenade
+    private static readonly Vector2 ArmRightPin = new Vector2(2, -2);          // Right hand slightly up for pin pull
+    private static readonly Vector2 ArmLeftExtended = new Vector2(-10, 2);     // Left hand at chest level with grenade (not extended forward)
+    private static readonly Vector2 ArmRightApproach = new Vector2(4, 0);      // Right hand approaching left
+    private static readonly Vector2 ArmLeftTransfer = new Vector2(-12, 3);     // Left hand drops back after transfer (clearly away from weapon)
+    private static readonly Vector2 ArmRightHold = new Vector2(3, 1);          // Right hand holding grenade
+    private static readonly Vector2 ArmRightWindMin = new Vector2(4, 3);       // Minimum wind-up position (arm back)
+    private static readonly Vector2 ArmRightWindMax = new Vector2(8, 5);       // Maximum wind-up position (arm further back)
+    private static readonly Vector2 ArmRightThrow = new Vector2(-4, -2);       // Throw follow-through (arm forward)
+    private static readonly Vector2 ArmLeftRelaxed = new Vector2(-20, 2);      // Left arm at shoulder/body - well away from weapon during wind-up/throw
+
+    // Target rotations for arm animations (in degrees)
+    // When left arm moves back to shoulder position, rotate to point "down" relative to body
+    // This makes the arm look like it's hanging at the side rather than reaching forward
+    private const float ArmRotGrab = -45.0f;         // Arm rotation when grabbing at chest (points inward/down)
+    private const float ArmRotPinPull = -15.0f;      // Right arm rotation when pulling pin
+    private const float ArmRotLeftAtChest = -30.0f;  // Left arm rotation while holding grenade at chest
+    private const float ArmRotWindMin = 15.0f;       // Right arm minimum wind-up rotation
+    private const float ArmRotWindMax = 35.0f;       // Right arm maximum wind-up rotation
+    private const float ArmRotThrow = -25.0f;        // Right arm throw rotation (swings forward)
+    private const float ArmRotLeftRelaxed = -60.0f;  // Left arm hangs down at side during wind-up/throw (points backward)
+
+    // Animation durations for each phase (in seconds)
+    private const float AnimGrabDuration = 0.2f;
+    private const float AnimPinDuration = 0.15f;
+    private const float AnimApproachDuration = 0.2f;
+    private const float AnimTransferDuration = 0.15f;
+    private const float AnimThrowDuration = 0.2f;
+    private const float AnimReturnDuration = 0.3f;
+
+    // Animation lerp speeds
+    private const float AnimLerpSpeed = 15.0f;        // Position interpolation speed
+    private const float AnimLerpSpeedFast = 25.0f;    // Fast interpolation for snappy movements
+
+    // Weapon sling position (lowered and rotated for chest carry)
+    private static readonly Vector2 WeaponSlingOffset = new Vector2(0, 15);    // Lower weapon
+    private const float WeaponSlingRotation = 1.2f;   // Rotate to hang down (radians, ~70 degrees)
+
+    #endregion
 
     /// <summary>
     /// Signal emitted when reload sequence progresses.
@@ -103,12 +521,38 @@ public partial class Player : BaseCharacter
     [Signal]
     public delegate void AmmoDepletedEventHandler();
 
+    /// <summary>
+    /// Signal emitted when grenade count changes.
+    /// </summary>
+    [Signal]
+    public delegate void GrenadeChangedEventHandler(int current, int maximum);
+
+    /// <summary>
+    /// Signal emitted when a grenade is thrown.
+    /// </summary>
+    [Signal]
+    public delegate void GrenadeThrownEventHandler();
+
     public override void _Ready()
     {
         base._Ready();
 
-        // Get sprite reference for visual feedback
-        _sprite = GetNodeOrNull<Sprite2D>("Sprite2D");
+        // Get player model and sprite references for visual feedback
+        _playerModel = GetNodeOrNull<Node2D>("PlayerModel");
+        if (_playerModel != null)
+        {
+            _bodySprite = _playerModel.GetNodeOrNull<Sprite2D>("Body");
+            _headSprite = _playerModel.GetNodeOrNull<Sprite2D>("Head");
+            _leftArmSprite = _playerModel.GetNodeOrNull<Sprite2D>("LeftArm");
+            _rightArmSprite = _playerModel.GetNodeOrNull<Sprite2D>("RightArm");
+            // Legacy compatibility - _sprite points to body
+            _sprite = _bodySprite;
+        }
+        else
+        {
+            // Fallback to old single sprite structure for compatibility
+            _sprite = GetNodeOrNull<Sprite2D>("Sprite2D");
+        }
 
         // Configure random health (2-4 HP)
         if (HealthComponent != null)
@@ -138,6 +582,83 @@ public partial class Player : BaseCharacter
             }
         }
 
+        // Get grenade scene from GrenadeManager (supports grenade type selection)
+        // GrenadeManager handles the currently selected grenade type (Flashbang or Frag)
+        if (GrenadeScene == null)
+        {
+            var grenadeManager = GetNodeOrNull("/root/GrenadeManager");
+            if (grenadeManager != null && grenadeManager.HasMethod("get_current_grenade_scene"))
+            {
+                var sceneVariant = grenadeManager.Call("get_current_grenade_scene");
+                GrenadeScene = sceneVariant.As<PackedScene>();
+                if (GrenadeScene != null)
+                {
+                    var grenadeNameVariant = grenadeManager.Call("get_grenade_name", grenadeManager.Get("current_grenade_type"));
+                    var grenadeName = grenadeNameVariant.AsString();
+                    LogToFile($"[Player.Grenade] Grenade scene loaded from GrenadeManager: {grenadeName}");
+                }
+                else
+                {
+                    LogToFile($"[Player.Grenade] WARNING: GrenadeManager returned null grenade scene");
+                }
+            }
+            else
+            {
+                // Fallback to flashbang if GrenadeManager is not available
+                var grenadePath = "res://scenes/projectiles/FlashbangGrenade.tscn";
+                GrenadeScene = GD.Load<PackedScene>(grenadePath);
+                if (GrenadeScene != null)
+                {
+                    LogToFile($"[Player.Grenade] Grenade scene loaded from fallback: {grenadePath}");
+                }
+                else
+                {
+                    LogToFile($"[Player.Grenade] WARNING: Grenade scene not found at {grenadePath}");
+                }
+            }
+        }
+        else
+        {
+            LogToFile($"[Player.Grenade] Grenade scene already set in inspector");
+        }
+
+        // Detect if we're on the tutorial level
+        // Tutorial level is: scenes/levels/csharp/TestTier.tscn with tutorial_level.gd script
+        var currentScene = GetTree().CurrentScene;
+        if (currentScene != null)
+        {
+            var scenePath = currentScene.SceneFilePath;
+            // Tutorial level is detected by:
+            // 1. Scene path contains "csharp/TestTier" (the tutorial scene)
+            // 2. OR scene uses tutorial_level.gd script
+            _isTutorialLevel = scenePath.Contains("csharp/TestTier");
+
+            // Also check if the scene script is tutorial_level.gd
+            var script = currentScene.GetScript();
+            if (script.Obj is GodotObject scriptObj)
+            {
+                var scriptPath = scriptObj.Get("resource_path").AsString();
+                if (scriptPath.Contains("tutorial_level"))
+                {
+                    _isTutorialLevel = true;
+                }
+            }
+        }
+
+        // Initialize grenade count based on level type
+        // Tutorial: infinite grenades (max count)
+        // Other levels: 1 grenade
+        if (_isTutorialLevel)
+        {
+            _currentGrenades = MaxGrenades;
+            LogToFile($"[Player.Grenade] Tutorial level detected - infinite grenades enabled");
+        }
+        else
+        {
+            _currentGrenades = 1;
+            LogToFile($"[Player.Grenade] Normal level - starting with 1 grenade");
+        }
+
         // Auto-equip weapon if not set but a weapon child exists
         if (CurrentWeapon == null)
         {
@@ -147,6 +668,88 @@ public partial class Player : BaseCharacter
                 GD.Print($"[Player] {Name}: Auto-equipped weapon {CurrentWeapon.Name}");
             }
         }
+
+        // Store base positions for walking animation
+        if (_bodySprite != null)
+        {
+            _baseBodyPos = _bodySprite.Position;
+            LogToFile($"[Player.Init] Body sprite found at position: {_baseBodyPos}");
+        }
+        else
+        {
+            LogToFile("[Player.Init] WARNING: Body sprite NOT found!");
+        }
+        if (_headSprite != null)
+        {
+            _baseHeadPos = _headSprite.Position;
+            LogToFile($"[Player.Init] Head sprite found at position: {_baseHeadPos}");
+        }
+        else
+        {
+            LogToFile("[Player.Init] WARNING: Head sprite NOT found!");
+        }
+        if (_leftArmSprite != null)
+        {
+            _baseLeftArmPos = _leftArmSprite.Position;
+            LogToFile($"[Player.Init] Left arm sprite found at position: {_baseLeftArmPos}");
+        }
+        else
+        {
+            LogToFile("[Player.Init] WARNING: Left arm sprite NOT found!");
+        }
+        if (_rightArmSprite != null)
+        {
+            _baseRightArmPos = _rightArmSprite.Position;
+            LogToFile($"[Player.Init] Right arm sprite found at position: {_baseRightArmPos}");
+        }
+        else
+        {
+            LogToFile("[Player.Init] WARNING: Right arm sprite NOT found!");
+        }
+
+        // Apply scale to player model for larger appearance
+        if (_playerModel != null)
+        {
+            _playerModel.Scale = new Vector2(PlayerModelScale, PlayerModelScale);
+        }
+
+        // Get weapon mount reference for sling animation
+        _weaponMount = _playerModel?.GetNodeOrNull<Node2D>("WeaponMount");
+        if (_weaponMount != null)
+        {
+            _baseWeaponMountPos = _weaponMount.Position;
+            _baseWeaponMountRot = _weaponMount.Rotation;
+        }
+
+        // Set z-index for proper layering: head should be above weapon
+        // The weapon has z_index = 1, so head should be 2 or higher
+        if (_headSprite != null)
+        {
+            _headSprite.ZIndex = 3;  // Head on top (above weapon)
+        }
+        if (_bodySprite != null)
+        {
+            _bodySprite.ZIndex = 1;  // Body same level as weapon
+        }
+        if (_leftArmSprite != null)
+        {
+            _leftArmSprite.ZIndex = 2;  // Arms between body and head
+        }
+        if (_rightArmSprite != null)
+        {
+            _rightArmSprite.ZIndex = 2;  // Arms between body and head
+        }
+
+        // Connect to GameManager's debug mode signal for F7 toggle
+        ConnectDebugModeSignal();
+
+        // Log ready status with full info
+        int currentAmmo = CurrentWeapon?.CurrentAmmo ?? 0;
+        int maxAmmo = CurrentWeapon?.WeaponData?.MagazineSize ?? 0;
+        int currentHealth = (int)(HealthComponent?.CurrentHealth ?? 0);
+        int maxHealth = (int)(HealthComponent?.MaxHealth ?? 0);
+        LogToFile($"[Player] Ready! Ammo: {currentAmmo}/{maxAmmo}, Grenades: {_currentGrenades}/{MaxGrenades}, Health: {currentHealth}/{maxHealth}");
+        LogToFile("[Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)");
     }
 
     /// <summary>
@@ -163,23 +766,112 @@ public partial class Player : BaseCharacter
     /// </summary>
     private void UpdateHealthVisual()
     {
-        if (_sprite == null || HealthComponent == null)
+        if (HealthComponent == null)
         {
             return;
         }
 
         // Interpolate color based on health percentage
         float healthPercent = HealthComponent.HealthPercent;
-        _sprite.Modulate = FullHealthColor.Lerp(LowHealthColor, 1.0f - healthPercent);
+        Color color = FullHealthColor.Lerp(LowHealthColor, 1.0f - healthPercent);
+        SetAllSpritesModulate(color);
+    }
+
+    /// <summary>
+    /// Public method to refresh the health visual.
+    /// Called by effects managers (like LastChanceEffectsManager) after they finish
+    /// modifying player sprite colors, to ensure the player returns to correct
+    /// health-based coloring.
+    /// </summary>
+    public void RefreshHealthVisual()
+    {
+        UpdateHealthVisual();
+    }
+
+    /// <summary>
+    /// Sets the modulate color on all player sprite parts.
+    /// The armband is a separate sibling sprite (not child of RightArm) that keeps
+    /// its original color, so all body parts use the same health-based color.
+    /// </summary>
+    /// <param name="color">The color to apply to all sprites.</param>
+    private void SetAllSpritesModulate(Color color)
+    {
+        if (_bodySprite != null)
+        {
+            _bodySprite.Modulate = color;
+        }
+        if (_headSprite != null)
+        {
+            _headSprite.Modulate = color;
+        }
+        if (_leftArmSprite != null)
+        {
+            _leftArmSprite.Modulate = color;
+        }
+        if (_rightArmSprite != null)
+        {
+            // Right arm uses the same color as other body parts.
+            // The armband is now a separate sibling sprite (Armband node under PlayerModel)
+            // that doesn't inherit this modulate, keeping its bright red color visible.
+            _rightArmSprite.Modulate = color;
+        }
+        // If using old single sprite structure
+        if (_playerModel == null && _sprite != null)
+        {
+            _sprite.Modulate = color;
+        }
     }
 
     public override void _PhysicsProcess(double delta)
     {
+        // Detect weapon pose after waiting a few frames for level scripts to add weapons
+        if (!_weaponPoseApplied)
+        {
+            _weaponDetectFrameCount++;
+            if (_weaponDetectFrameCount >= WeaponDetectWaitFrames)
+            {
+                DetectAndApplyWeaponPose();
+                _weaponPoseApplied = true;
+            }
+        }
+
         Vector2 inputDirection = GetInputDirection();
         ApplyMovement(inputDirection, (float)delta);
 
+        // Update player model rotation to face the aim direction (rifle direction)
+        UpdatePlayerModelRotation();
+
+        // Update walking animation based on movement (only if not in grenade or reload animation)
+        if (_grenadeAnimPhase == GrenadeAnimPhase.None && _reloadAnimPhase == ReloadAnimPhase.None)
+        {
+            UpdateWalkAnimation((float)delta, inputDirection);
+        }
+
+        // Update grenade animation
+        UpdateGrenadeAnimation((float)delta);
+
+        // Update reload animation
+        UpdateReloadAnimation((float)delta);
+
+        // Handle throw rotation animation (restore player rotation after throw)
+        HandleThrowRotationAnimation((float)delta);
+
+        // Handle grenade input first (so it can consume shoot input)
+        HandleGrenadeInput();
+
+        // Make active grenade follow player if held
+        if (_activeGrenade != null && IsInstanceValid(_activeGrenade))
+        {
+            _activeGrenade.GlobalPosition = GlobalPosition;
+        }
+
         // Handle shooting input - support both automatic and semi-automatic weapons
-        HandleShootingInput();
+        // Allow shooting when not in grenade preparation
+        bool canShoot = _grenadeState == GrenadeState.Idle || _grenadeState == GrenadeState.TimerStarted;
+        if (canShoot)
+        {
+            HandleShootingInput();
+        }
 
         // Handle reload sequence input (R-F-R)
         HandleReloadSequenceInput();
@@ -306,6 +998,144 @@ public partial class Player : BaseCharacter
     }
 
     /// <summary>
+    /// Updates the player model rotation to face the aim direction.
+    /// The player model (body, head, arms) rotates to follow the rifle's aim direction.
+    /// This creates the appearance of the player rotating their whole body toward the target.
+    /// </summary>
+    private void UpdatePlayerModelRotation()
+    {
+        if (_playerModel == null)
+        {
+            return;
+        }
+
+        // Get the aim direction from the weapon if available
+        Vector2 aimDirection;
+        if (CurrentWeapon is AssaultRifle assaultRifle)
+        {
+            aimDirection = assaultRifle.AimDirection;
+        }
+        else
+        {
+            // Fallback: calculate direction to mouse cursor
+            Vector2 mousePos = GetGlobalMousePosition();
+            Vector2 toMouse = mousePos - GlobalPosition;
+            if (toMouse.LengthSquared() > 0.001f)
+            {
+                aimDirection = toMouse.Normalized();
+            }
+            else
+            {
+                return; // No valid direction
+            }
+        }
+
+        // Calculate target rotation angle
+        float targetAngle = aimDirection.Angle();
+
+        // Apply rotation to the player model
+        _playerModel.Rotation = targetAngle;
+
+        // Handle sprite flipping for left/right aim
+        // When aiming left (angle > 90° or < -90°), flip vertically to avoid upside-down appearance
+        bool aimingLeft = Mathf.Abs(targetAngle) > Mathf.Pi / 2;
+
+        // Flip the player model vertically when aiming left
+        if (aimingLeft)
+        {
+            _playerModel.Scale = new Vector2(PlayerModelScale, -PlayerModelScale);
+        }
+        else
+        {
+            _playerModel.Scale = new Vector2(PlayerModelScale, PlayerModelScale);
+        }
+    }
+
+    /// <summary>
+    /// Detects the equipped weapon type and applies appropriate arm positioning.
+    /// Called from _PhysicsProcess() after a few frames to ensure level scripts
+    /// have finished adding weapons to the player node.
+    /// </summary>
+    private void DetectAndApplyWeaponPose()
+    {
+        LogToFile($"[Player] Detecting weapon pose (frame {_weaponDetectFrameCount})...");
+        var detectedType = WeaponType.Rifle;  // Default to rifle pose
+
+        // Check for weapon children - weapons are added directly to player by level scripts
+        // Check in order of specificity: MiniUzi (SMG), Shotgun, then default to Rifle
+        var miniUzi = GetNodeOrNull<BaseWeapon>("MiniUzi");
+        var shotgun = GetNodeOrNull<BaseWeapon>("Shotgun");
+
+        if (miniUzi != null)
+        {
+            detectedType = WeaponType.SMG;
+            LogToFile("[Player] Detected weapon: Mini UZI (SMG pose)");
+        }
+        else if (shotgun != null)
+        {
+            detectedType = WeaponType.Shotgun;
+            LogToFile("[Player] Detected weapon: Shotgun (Shotgun pose)");
+        }
+        else
+        {
+            // Default to rifle (AssaultRifle or no weapon)
+            detectedType = WeaponType.Rifle;
+            LogToFile("[Player] Detected weapon: Rifle (default pose)");
+        }
+
+        _currentWeaponType = detectedType;
+        ApplyWeaponArmOffsets();
+    }
+
+    /// <summary>
+    /// Applies arm position offsets based on current weapon type.
+    /// Modifies base arm positions to create appropriate weapon-holding poses.
+    /// </summary>
+    private void ApplyWeaponArmOffsets()
+    {
+        // Original positions from Player.tscn: LeftArm (24, 6), RightArm (-2, 6)
+        var originalLeftArmPos = new Vector2(24, 6);
+        var originalRightArmPos = new Vector2(-2, 6);
+
+        switch (_currentWeaponType)
+        {
+            case WeaponType.SMG:
+                // SMG pose: Compact two-handed grip
+                // Left arm moves back toward body for shorter weapon
+                // Right arm moves forward slightly to meet left hand
+                _baseLeftArmPos = originalLeftArmPos + SmgLeftArmOffset;
+                _baseRightArmPos = originalRightArmPos + SmgRightArmOffset;
+                LogToFile($"[Player] Applied SMG arm pose: Left={_baseLeftArmPos}, Right={_baseRightArmPos}");
+                break;
+
+            case WeaponType.Shotgun:
+                // Shotgun pose: Similar to rifle but slightly tighter
+                _baseLeftArmPos = originalLeftArmPos + new Vector2(-3, 0);
+                _baseRightArmPos = originalRightArmPos + new Vector2(1, 0);
+                LogToFile($"[Player] Applied Shotgun arm pose: Left={_baseLeftArmPos}, Right={_baseRightArmPos}");
+                break;
+
+            case WeaponType.Rifle:
+            default:
+                // Rifle pose: Standard extended grip (original positions)
+                _baseLeftArmPos = originalLeftArmPos;
+                _baseRightArmPos = originalRightArmPos;
+                LogToFile($"[Player] Applied Rifle arm pose: Left={_baseLeftArmPos}, Right={_baseRightArmPos}");
+                break;
+        }
+
+        // Apply new base positions to sprites immediately
+        if (_leftArmSprite != null)
+        {
+            _leftArmSprite.Position = _baseLeftArmPos;
+        }
+        if (_rightArmSprite != null)
+        {
+            _rightArmSprite.Position = _baseRightArmPos;
+        }
+    }
+
+    /// <summary>
     /// Gets the normalized input direction from player input.
     /// </summary>
     /// <returns>Normalized direction vector.</returns>
@@ -325,6 +1155,86 @@ public partial class Player : BaseCharacter
     }
 
     /// <summary>
+    /// Updates the walking animation based on player movement state.
+    /// Creates a natural bobbing motion for body parts during movement.
+    /// </summary>
+    /// <param name="delta">Time since last frame.</param>
+    /// <param name="inputDirection">Current movement input direction.</param>
+    private void UpdateWalkAnimation(float delta, Vector2 inputDirection)
+    {
+        bool isMoving = inputDirection != Vector2.Zero || Velocity.Length() > 10.0f;
+
+        if (isMoving)
+        {
+            // Accumulate animation time based on movement speed
+            float speedFactor = Velocity.Length() / MaxSpeed;
+            _walkAnimTime += delta * WalkAnimSpeed * speedFactor;
+            _isWalking = true;
+
+            // Calculate animation offsets using sine waves
+            // Body bobs up and down (frequency = 2x for double step)
+            float bodyBob = Mathf.Sin(_walkAnimTime * 2.0f) * 1.5f * WalkAnimIntensity;
+
+            // Head bobs slightly less than body (dampened)
+            float headBob = Mathf.Sin(_walkAnimTime * 2.0f) * 0.8f * WalkAnimIntensity;
+
+            // Arms swing opposite to each other (alternating)
+            float armSwing = Mathf.Sin(_walkAnimTime) * 3.0f * WalkAnimIntensity;
+
+            // Apply offsets to sprites
+            if (_bodySprite != null)
+            {
+                _bodySprite.Position = _baseBodyPos + new Vector2(0, bodyBob);
+            }
+
+            if (_headSprite != null)
+            {
+                _headSprite.Position = _baseHeadPos + new Vector2(0, headBob);
+            }
+
+            if (_leftArmSprite != null)
+            {
+                // Left arm swings forward/back (y-axis in top-down)
+                _leftArmSprite.Position = _baseLeftArmPos + new Vector2(armSwing, 0);
+            }
+
+            if (_rightArmSprite != null)
+            {
+                // Right arm swings opposite to left arm
+                _rightArmSprite.Position = _baseRightArmPos + new Vector2(-armSwing, 0);
+            }
+        }
+        else
+        {
+            // Return to idle pose smoothly
+            if (_isWalking)
+            {
+                _isWalking = false;
+                _walkAnimTime = 0.0f;
+            }
+
+            // Interpolate back to base positions
+            float lerpSpeed = 10.0f * delta;
+            if (_bodySprite != null)
+            {
+                _bodySprite.Position = _bodySprite.Position.Lerp(_baseBodyPos, lerpSpeed);
+            }
+            if (_headSprite != null)
+            {
+                _headSprite.Position = _headSprite.Position.Lerp(_baseHeadPos, lerpSpeed);
+            }
+            if (_leftArmSprite != null)
+            {
+                _leftArmSprite.Position = _leftArmSprite.Position.Lerp(_baseLeftArmPos, lerpSpeed);
+            }
+            if (_rightArmSprite != null)
+            {
+                _rightArmSprite.Position = _rightArmSprite.Position.Lerp(_baseRightArmPos, lerpSpeed);
+            }
+        }
+    }
+
+    /// <summary>
     /// Handles the R-F-R reload sequence input.
     /// Step 0: Press R to start sequence (eject magazine)
     /// Step 1: Press F to continue (insert new magazine)
@@ -334,10 +1244,21 @@ public partial class Player : BaseCharacter
     /// - At step 1 (R pressed): shooting resets the combo
     /// - At step 2 (R->F pressed): if previous magazine had ammo, one chamber bullet can be fired
     /// - After reload: if chamber bullet was fired, subtract one from new magazine
+    ///
+    /// Note: This reload sequence is skipped for weapons that use tube magazines (like Shotgun),
+    /// which have their own shell-by-shell reload mechanism via RMB drag gestures.
     /// </summary>
     private void HandleReloadSequenceInput()
     {
         if (CurrentWeapon == null)
+        {
+            return;
+        }
+
+        // Skip R-F-R reload sequence for weapons that use tube magazines (like Shotgun)
+        // These weapons have their own reload mechanism (shell-by-shell via RMB gestures)
+        // Pressing R key should be ignored for these weapons to avoid breaking ammo tracking
+        if (CurrentWeapon is Shotgun)
         {
             return;
         }
@@ -379,6 +1300,8 @@ public partial class Player : BaseCharacter
                 _reloadSequenceStep = 1;
                 _ammoAtReloadStart = CurrentWeapon.CurrentAmmo;
                 GD.Print($"[Player] Reload sequence started (R pressed) - ammo at start: {_ammoAtReloadStart} - press F next");
+                // Start animation: Step 1 - Grab magazine from chest
+                StartReloadAnimPhase(ReloadAnimPhase.GrabMagazine, ReloadAnimGrabDuration);
                 // Play magazine out sound
                 PlayReloadMagOutSound();
                 EmitSignal(SignalName.ReloadSequenceProgress, 1, 3);
@@ -388,6 +1311,8 @@ public partial class Player : BaseCharacter
             else if (_reloadSequenceStep == 2)
             {
                 // Complete reload sequence - instant reload!
+                // Start animation: Step 3 - Pull bolt/charging handle (back and forth motion)
+                StartReloadAnimPhase(ReloadAnimPhase.PullBolt, ReloadAnimBoltPullDuration);
                 // Play bolt cycling sound
                 PlayM16BoltSound();
                 CompleteReloadSequence();
@@ -407,6 +1332,8 @@ public partial class Player : BaseCharacter
                 CurrentWeapon.StartReloadSequence(hadAmmoInMagazine);
 
                 GD.Print($"[Player] Reload sequence step 2 (F pressed) - bullet in chamber: {hadAmmoInMagazine} - press R to complete");
+                // Start animation: Step 2 - Insert magazine into rifle
+                StartReloadAnimPhase(ReloadAnimPhase.InsertMagazine, ReloadAnimInsertDuration);
                 // Play magazine in sound
                 PlayReloadMagInSound();
                 EmitSignal(SignalName.ReloadSequenceProgress, 2, 3);
@@ -415,6 +1342,8 @@ public partial class Player : BaseCharacter
             {
                 // Wrong key pressed, reset sequence
                 GD.Print("[Player] Wrong key! Reload sequence reset (expected R)");
+                // Restart animation from grab phase
+                StartReloadAnimPhase(ReloadAnimPhase.GrabMagazine, ReloadAnimGrabDuration);
                 ResetReloadSequence();
             }
         }
@@ -486,6 +1415,12 @@ public partial class Player : BaseCharacter
         _isReloadingSequence = false;
         _ammoAtReloadStart = 0;
 
+        // Return arms to idle if reload animation was active
+        if (_reloadAnimPhase != ReloadAnimPhase.None)
+        {
+            StartReloadAnimPhase(ReloadAnimPhase.ReturnIdle, ReloadAnimReturnDuration);
+        }
+
         // Cancel weapon's reload sequence state
         CurrentWeapon?.CancelReloadSequence();
     }
@@ -540,10 +1475,24 @@ public partial class Player : BaseCharacter
         bullet.GlobalPosition = GlobalPosition + direction * BulletSpawnOffset;
 
         // Set bullet direction
-        bullet.Set("Direction", direction);
+        if (bullet.HasMethod("SetDirection"))
+        {
+            bullet.Call("SetDirection", direction);
+        }
+        else
+        {
+            bullet.Set("direction", direction);
+        }
 
         // Set shooter ID to prevent self-damage
-        bullet.Set("ShooterId", GetInstanceId());
+        if (bullet.HasMethod("SetShooterId"))
+        {
+            bullet.Call("SetShooterId", GetInstanceId());
+        }
+        else
+        {
+            bullet.Set("shooter_id", GetInstanceId());
+        }
 
         // Add bullet to the scene tree
         GetTree().CurrentScene.AddChild(bullet);
@@ -617,12 +1566,12 @@ public partial class Player : BaseCharacter
     /// </summary>
     private async void ShowHitFlash()
     {
-        if (_sprite == null)
+        if (_playerModel == null && _sprite == null)
         {
             return;
         }
 
-        _sprite.Modulate = HitFlashColor;
+        SetAllSpritesModulate(HitFlashColor);
 
         await ToSignal(GetTree().CreateTimer(HitFlashDuration), "timeout");
 
@@ -673,4 +1622,1207 @@ public partial class Player : BaseCharacter
         }
         CurrentWeapon = null;
     }
+
+    #region Grenade System
+
+    /// <summary>
+    /// Handle grenade input with 2-step mechanic.
+    /// Step 1: G + RMB drag right → starts 4s timer (pin pulled)
+    /// Step 2: Hold G → press+hold RMB → release G → ready to throw (only RMB held)
+    /// Step 3: Drag and release RMB → throw grenade
+    /// </summary>
+    private void HandleGrenadeInput()
+    {
+        // Check for active grenade explosion (explodes in hand after 4 seconds)
+        if (_activeGrenade != null && !IsInstanceValid(_activeGrenade))
+        {
+            // Grenade exploded while held - return arms to idle
+            StartGrenadeAnimPhase(GrenadeAnimPhase.ReturnIdle, AnimReturnDuration);
+            ResetGrenadeState();
+            return;
+        }
+
+        switch (_grenadeState)
+        {
+            case GrenadeState.Idle:
+                HandleGrenadeIdleState();
+                break;
+            case GrenadeState.TimerStarted:
+                HandleGrenadeTimerStartedState();
+                break;
+            case GrenadeState.WaitingForGRelease:
+                HandleGrenadeWaitingForGReleaseState();
+                break;
+            case GrenadeState.Aiming:
+                HandleGrenadeAimingState();
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Handle grenade input in Idle state.
+    /// Waiting for G + RMB drag right to start timer (Step 1).
+    /// </summary>
+    private void HandleGrenadeIdleState()
+    {
+        // Start grab animation when G is first pressed (check before the is_action_pressed block)
+        if (Input.IsActionJustPressed("grenade_prepare") && _currentGrenades > 0)
+        {
+            StartGrenadeAnimPhase(GrenadeAnimPhase.GrabGrenade, AnimGrabDuration);
+            LogToFile("[Player.Grenade] G pressed - starting grab animation");
+        }
+
+        // Check if G key is held and player has grenades
+        if (Input.IsActionPressed("grenade_prepare") && _currentGrenades > 0)
+        {
+            // Check if RMB was just pressed (start of drag)
+            if (Input.IsActionJustPressed("grenade_throw"))
+            {
+                _grenadeDragStart = GetGlobalMousePosition();
+                _grenadeDragActive = true;
+                LogToFile($"[Player.Grenade] Step 1 started: G held, RMB pressed at {_grenadeDragStart}");
+            }
+
+            // Check if RMB was released (end of drag)
+            if (_grenadeDragActive && Input.IsActionJustReleased("grenade_throw"))
+            {
+                Vector2 dragEnd = GetGlobalMousePosition();
+                Vector2 dragVector = dragEnd - _grenadeDragStart;
+
+                // Check if drag was to the right and long enough
+                if (dragVector.X > MinDragDistanceForStep1)
+                {
+                    StartGrenadeTimer();
+                    // Start pull pin animation
+                    StartGrenadeAnimPhase(GrenadeAnimPhase.PullPin, AnimPinDuration);
+                    LogToFile($"[Player.Grenade] Step 1 complete! Drag: {dragVector}");
+                }
+                else
+                {
+                    LogToFile($"[Player.Grenade] Step 1 failed: drag not far enough right ({dragVector.X} < {MinDragDistanceForStep1})");
+                }
+                _grenadeDragActive = false;
+            }
+        }
+        else
+        {
+            _grenadeDragActive = false;
+            // If G was released and we were in grab animation, return to idle
+            if (_grenadeAnimPhase == GrenadeAnimPhase.GrabGrenade)
+            {
+                StartGrenadeAnimPhase(GrenadeAnimPhase.ReturnIdle, AnimReturnDuration);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Handle grenade input in TimerStarted state.
+    /// Waiting for RMB to be pressed while G is held (Step 2 part 1).
+    /// </summary>
+    private void HandleGrenadeTimerStartedState()
+    {
+        // If G is released, drop grenade at feet
+        if (!Input.IsActionPressed("grenade_prepare"))
+        {
+            LogToFile("[Player.Grenade] G released - dropping grenade at feet");
+            DropGrenadeAtFeet();
+            return;
+        }
+
+        // Check if RMB is pressed to enter WaitingForGRelease state
+        if (Input.IsActionJustPressed("grenade_throw"))
+        {
+            _grenadeState = GrenadeState.WaitingForGRelease;
+            // Start hands approach animation
+            StartGrenadeAnimPhase(GrenadeAnimPhase.HandsApproach, AnimApproachDuration);
+            LogToFile("[Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw");
+        }
+    }
+
+    /// <summary>
+    /// Handle grenade input in WaitingForGRelease state.
+    /// G+RMB are both held, waiting for G to be released (Step 2 part 2).
+    /// </summary>
+    private void HandleGrenadeWaitingForGReleaseState()
+    {
+        // If RMB is released before G, go back to TimerStarted
+        if (!Input.IsActionPressed("grenade_throw"))
+        {
+            _grenadeState = GrenadeState.TimerStarted;
+            LogToFile("[Player.Grenade] RMB released before G - back to waiting for RMB");
+            return;
+        }
+
+        // If G is released while RMB is still held, enter Aiming state
+        if (!Input.IsActionPressed("grenade_prepare"))
+        {
+            _grenadeState = GrenadeState.Aiming;
+            _grenadeDragStart = GetGlobalMousePosition();
+            _prevMousePos = _grenadeDragStart;
+            // Initialize velocity tracking for realistic throwing
+            _mouseVelocityHistory.Clear();
+            _currentMouseVelocity = Vector2.Zero;
+            _totalSwingDistance = 0.0f;
+            _prevFrameTime = Time.GetTicksMsec() / 1000.0;
+            // Start transfer animation (grenade to throwing hand)
+            StartGrenadeAnimPhase(GrenadeAnimPhase.Transfer, AnimTransferDuration);
+            LogToFile("[Player.Grenade] Step 2 complete: G released, RMB held - now aiming (velocity-based throwing enabled)");
+        }
+    }
+
+    /// <summary>
+    /// Handle grenade input in Aiming state.
+    /// Only RMB is held (G was released), waiting for drag and release to throw.
+    /// </summary>
+    private void HandleGrenadeAimingState()
+    {
+        // In this state, G is already released (that's how we got here)
+        // We only care about RMB
+
+        // Transition from transfer to wind-up after transfer completes
+        if (_grenadeAnimPhase == GrenadeAnimPhase.Transfer && _grenadeAnimTimer <= 0)
+        {
+            StartGrenadeAnimPhase(GrenadeAnimPhase.WindUp, 0); // Wind-up is continuous
+            LogToFile("[Player.Grenade.Anim] Entered wind-up phase");
+        }
+
+        // Update wind-up intensity while in wind-up phase
+        if (_grenadeAnimPhase == GrenadeAnimPhase.WindUp)
+        {
+            UpdateWindUpIntensity();
+        }
+
+        // Request redraw for debug trajectory visualization
+        if (_debugModeEnabled)
+        {
+            QueueRedraw();
+        }
+
+        // If RMB is released, throw the grenade
+        if (Input.IsActionJustReleased("grenade_throw"))
+        {
+            // Start throw animation
+            StartGrenadeAnimPhase(GrenadeAnimPhase.Throw, AnimThrowDuration);
+            Vector2 dragEnd = GetGlobalMousePosition();
+            ThrowGrenade(dragEnd);
+        }
+    }
+
+    /// <summary>
+    /// Start the grenade timer (step 1 complete - pin pulled).
+    /// Creates the grenade instance and starts its 4-second fuse.
+    /// </summary>
+    private void StartGrenadeTimer()
+    {
+        if (_currentGrenades <= 0)
+        {
+            LogToFile("[Player.Grenade] Cannot start timer: no grenades");
+            return;
+        }
+
+        if (GrenadeScene == null)
+        {
+            LogToFile("[Player.Grenade] Cannot start timer: GrenadeScene is null");
+            return;
+        }
+
+        // Create grenade instance (held by player)
+        _activeGrenade = GrenadeScene.Instantiate<RigidBody2D>();
+        if (_activeGrenade == null)
+        {
+            LogToFile("[Player.Grenade] Failed to instantiate grenade scene");
+            return;
+        }
+
+        // Add grenade to scene first (must be in tree before setting GlobalPosition)
+        GetTree().CurrentScene.AddChild(_activeGrenade);
+
+        // Set position AFTER AddChild (GlobalPosition only works when node is in the scene tree)
+        _activeGrenade.GlobalPosition = GlobalPosition;
+
+        // Activate the grenade timer (starts 4s countdown)
+        if (_activeGrenade.HasMethod("activate_timer"))
+        {
+            _activeGrenade.Call("activate_timer");
+        }
+
+        _grenadeState = GrenadeState.TimerStarted;
+
+        // Decrement grenade count now (pin is pulled) - but not on tutorial level (infinite)
+        if (!_isTutorialLevel)
+        {
+            _currentGrenades--;
+        }
+        EmitSignal(SignalName.GrenadeChanged, _currentGrenades, MaxGrenades);
+
+        // Play grenade prepare sound
+        var audioManager = GetNodeOrNull("/root/AudioManager");
+        if (audioManager != null && audioManager.HasMethod("play_grenade_prepare"))
+        {
+            audioManager.Call("play_grenade_prepare", GlobalPosition);
+        }
+
+        LogToFile($"[Player.Grenade] Timer started, grenade created at {GlobalPosition}");
+    }
+
+    /// <summary>
+    /// Drop the grenade at player's feet (when G is released before throwing).
+    /// </summary>
+    private void DropGrenadeAtFeet()
+    {
+        if (_activeGrenade != null && IsInstanceValid(_activeGrenade))
+        {
+            // Set position to current player position before unfreezing
+            _activeGrenade.GlobalPosition = GlobalPosition;
+            // Unfreeze the grenade so physics works and it can explode
+            _activeGrenade.Freeze = false;
+            // The grenade stays where it is (at player's feet)
+            LogToFile($"[Player.Grenade] Grenade dropped at feet at {_activeGrenade.GlobalPosition} (unfrozen)");
+        }
+        // Start return animation
+        StartGrenadeAnimPhase(GrenadeAnimPhase.ReturnIdle, AnimReturnDuration);
+        ResetGrenadeState();
+    }
+
+    /// <summary>
+    /// Reset grenade state to idle.
+    /// </summary>
+    private void ResetGrenadeState()
+    {
+        _grenadeState = GrenadeState.Idle;
+        _grenadeDragActive = false;
+        _grenadeDragStart = Vector2.Zero;
+        // Don't null out _activeGrenade - it's now an independent object in the scene
+        _activeGrenade = null;
+        // Reset wind-up intensity
+        _windUpIntensity = 0.0f;
+        // Reset velocity tracking for next throw
+        _mouseVelocityHistory.Clear();
+        _currentMouseVelocity = Vector2.Zero;
+        _totalSwingDistance = 0.0f;
+        LogToFile("[Player.Grenade] State reset to IDLE");
+    }
+
+    /// <summary>
+    /// Sensitivity multiplier for throw distance calculation.
+    /// Higher value = farther throw for same drag distance.
+    /// Must match the value used in debug visualization.
+    /// </summary>
+    private const float ThrowSensitivityMultiplier = 9.0f;
+
+    /// <summary>
+    /// Throw the grenade using realistic velocity-based physics.
+    /// The throw velocity is determined by mouse velocity at release moment, not drag distance.
+    /// Includes player rotation animation to prevent grenade hitting player.
+    /// </summary>
+    /// <param name="dragEnd">The end position of the drag (used for direction fallback).</param>
+    private void ThrowGrenade(Vector2 dragEnd)
+    {
+        if (_activeGrenade == null || !IsInstanceValid(_activeGrenade))
+        {
+            LogToFile("[Player.Grenade] Cannot throw: no active grenade");
+            ResetGrenadeState();
+            return;
+        }
+
+        // Get the mouse velocity at moment of release (for determining throw speed)
+        Vector2 releaseVelocity = _currentMouseVelocity;
+        float velocityMagnitude = releaseVelocity.Length();
+
+        // FIXED: Throw direction is now ALWAYS from player toward mouse cursor
+        // This fixes the issue where throwing right caused the grenade to go up
+        // The mouse velocity magnitude still determines throw SPEED, but direction is player-to-mouse
+        Vector2 mousePos = GetGlobalMousePosition();
+        Vector2 throwDirection = (mousePos - GlobalPosition).Normalized();
+
+        // If mouse is exactly on player, fall back to drag direction or default
+        if (throwDirection.Length() < 0.5f)
+        {
+            Vector2 dragVector = dragEnd - _grenadeDragStart;
+            if (dragVector.Length() > 5.0f)
+            {
+                throwDirection = dragVector.Normalized();
+            }
+            else
+            {
+                throwDirection = new Vector2(1, 0); // Default direction (right)
+            }
+        }
+
+        LogToFile($"[Player.Grenade] Throwing toward mouse! Direction: {throwDirection}, Mouse velocity: {velocityMagnitude:F1} px/s, Swing: {_totalSwingDistance:F1}");
+
+        // Rotate player to face throw direction (prevents grenade hitting player when throwing upward)
+        RotatePlayerForThrow(throwDirection);
+
+        // Calculate intended spawn position (60px in front of player in throw direction)
+        float spawnOffset = 60.0f;
+        Vector2 intendedSpawnPosition = GlobalPosition + throwDirection * spawnOffset;
+
+        // FIXED: Raycast check to prevent spawning grenade behind/inside walls
+        // This fixes grenades passing through walls when thrown at close range ("в упор")
+        Vector2 spawnPosition = GetSafeGrenadeSpawnPosition(GlobalPosition, intendedSpawnPosition, throwDirection);
+        _activeGrenade.GlobalPosition = spawnPosition;
+
+        // Use velocity-based throwing if available, otherwise fall back to legacy
+        // IMPORTANT: We pass a velocity vector with the correct DIRECTION (player-to-mouse)
+        // but with the MAGNITUDE from the actual mouse velocity (for throw speed calculation)
+        if (_activeGrenade.HasMethod("throw_grenade_velocity_based"))
+        {
+            // Create corrected velocity: direction toward mouse, magnitude from mouse movement speed
+            Vector2 correctedVelocity = throwDirection * velocityMagnitude;
+            _activeGrenade.Call("throw_grenade_velocity_based", correctedVelocity, _totalSwingDistance);
+        }
+        else if (_activeGrenade.HasMethod("throw_grenade"))
+        {
+            // Legacy fallback: convert velocity to drag distance approximation
+            float legacyDistance = velocityMagnitude * 0.5f; // Rough conversion
+            _activeGrenade.Call("throw_grenade", throwDirection, legacyDistance);
+        }
+
+        // Emit signal
+        EmitSignal(SignalName.GrenadeThrown);
+
+        // Play grenade throw sound
+        var audioManager = GetNodeOrNull("/root/AudioManager");
+        if (audioManager != null && audioManager.HasMethod("play_grenade_throw"))
+        {
+            audioManager.Call("play_grenade_throw", GlobalPosition);
+        }
+
+        LogToFile($"[Player.Grenade] Thrown! Velocity: {velocityMagnitude:F1}, Swing: {_totalSwingDistance:F1}");
+
+        // Reset state (grenade is now independent)
+        ResetGrenadeState();
+    }
+
+    /// <summary>
+    /// Rotate player to face throw direction (with swing animation).
+    /// Prevents grenade from hitting player when throwing upward.
+    /// </summary>
+    /// <param name="throwDirection">The direction of the throw.</param>
+    private void RotatePlayerForThrow(Vector2 throwDirection)
+    {
+        // Store current rotation to restore later
+        _playerRotationBeforeThrow = Rotation;
+
+        // Calculate target rotation (face throw direction)
+        _throwTargetRotation = throwDirection.Angle();
+
+        // Apply rotation immediately
+        Rotation = _throwTargetRotation;
+
+        // Start restore timer
+        _isThrowRotating = true;
+        _throwRotationRestoreTimer = ThrowRotationDuration;
+
+        LogToFile($"[Player.Grenade] Player rotated for throw: {_playerRotationBeforeThrow} -> {_throwTargetRotation}");
+    }
+
+    /// <summary>
+    /// Handle throw rotation animation - restore player rotation after throw.
+    /// </summary>
+    /// <param name="delta">Time since last frame.</param>
+    private void HandleThrowRotationAnimation(float delta)
+    {
+        if (!_isThrowRotating)
+        {
+            return;
+        }
+
+        _throwRotationRestoreTimer -= delta;
+        if (_throwRotationRestoreTimer <= 0)
+        {
+            // Restore original rotation
+            Rotation = _playerRotationBeforeThrow;
+            _isThrowRotating = false;
+            LogToFile($"[Player.Grenade] Player rotation restored to {_playerRotationBeforeThrow}");
+        }
+    }
+
+    /// <summary>
+    /// Get a safe spawn position for the grenade that doesn't spawn behind/inside walls.
+    /// Uses raycast from player position to intended spawn position to detect walls.
+    /// If a wall is detected, spawns the grenade just before the wall (5px safety margin).
+    /// </summary>
+    /// <param name="fromPos">The player's current position.</param>
+    /// <param name="intendedPos">The intended spawn position (player + offset in throw direction).</param>
+    /// <param name="throwDirection">The normalized throw direction.</param>
+    /// <returns>The safe spawn position for the grenade.</returns>
+    private Vector2 GetSafeGrenadeSpawnPosition(Vector2 fromPos, Vector2 intendedPos, Vector2 throwDirection)
+    {
+        // Get physics space state for raycasting
+        var spaceState = GetWorld2D().DirectSpaceState;
+        if (spaceState == null)
+        {
+            LogToFile("[Player.Grenade] Warning: Could not get DirectSpaceState for raycast");
+            return intendedPos;
+        }
+
+        // Create raycast query from player to intended spawn position
+        // Collision mask 4 = obstacles layer (walls)
+        var query = PhysicsRayQueryParameters2D.Create(fromPos, intendedPos, 4);
+        query.Exclude = new Godot.Collections.Array<Rid> { GetRid() }; // Exclude self
+
+        var result = spaceState.IntersectRay(query);
+
+        // If no wall detected, use intended position
+        if (result.Count == 0)
+        {
+            return intendedPos;
+        }
+
+        // Wall detected! Calculate safe position (5px before the wall)
+        Vector2 wallPosition = (Vector2)result["position"];
+        string colliderName = "Unknown";
+        if (result.ContainsKey("collider"))
+        {
+            var collider = result["collider"].AsGodotObject();
+            if (collider is Node node)
+            {
+                colliderName = node.Name;
+            }
+        }
+
+        float distanceToWall = fromPos.DistanceTo(wallPosition);
+        float safeDistance = Mathf.Max(distanceToWall - 5.0f, 10.0f); // At least 10px from player
+        Vector2 safePosition = fromPos + throwDirection * safeDistance;
+
+        LogToFile($"[Player.Grenade] Wall detected at {wallPosition} (collider: {colliderName})! Adjusting spawn from {intendedPos} to {safePosition}");
+
+        return safePosition;
+    }
+
+    /// <summary>
+    /// Get current grenade count.
+    /// </summary>
+    public int GetCurrentGrenades()
+    {
+        return _currentGrenades;
+    }
+
+    /// <summary>
+    /// Get maximum grenade count.
+    /// </summary>
+    public int GetMaxGrenades()
+    {
+        return MaxGrenades;
+    }
+
+    /// <summary>
+    /// Add grenades to inventory (e.g., from pickup).
+    /// </summary>
+    /// <param name="count">Number of grenades to add.</param>
+    public void AddGrenades(int count)
+    {
+        _currentGrenades = Mathf.Min(_currentGrenades + count, MaxGrenades);
+        EmitSignal(SignalName.GrenadeChanged, _currentGrenades, MaxGrenades);
+    }
+
+    /// <summary>
+    /// Check if player is preparing to throw a grenade.
+    /// </summary>
+    public bool IsPreparingGrenade()
+    {
+        return _grenadeState != GrenadeState.Idle;
+    }
+
+    #endregion
+
+    #region Grenade Animation Methods
+
+    /// <summary>
+    /// Start a new grenade animation phase.
+    /// </summary>
+    /// <param name="phase">The GrenadeAnimPhase to transition to.</param>
+    /// <param name="duration">How long this phase should last (for timed phases).</param>
+    private void StartGrenadeAnimPhase(GrenadeAnimPhase phase, float duration)
+    {
+        _grenadeAnimPhase = phase;
+        _grenadeAnimTimer = duration;
+        _grenadeAnimDuration = duration;
+
+        // Enable weapon sling when handling grenade
+        if (phase != GrenadeAnimPhase.None && phase != GrenadeAnimPhase.ReturnIdle)
+        {
+            _weaponSlung = true;
+        }
+        // RETURN_IDLE will unset _weaponSlung when animation completes
+
+        LogToFile($"[Player.Grenade.Anim] Phase changed to: {phase} (duration: {duration:F2}s)");
+    }
+
+    /// <summary>
+    /// Update grenade animation based on current phase.
+    /// Called every frame from _PhysicsProcess.
+    /// </summary>
+    /// <param name="delta">Time since last frame.</param>
+    private void UpdateGrenadeAnimation(float delta)
+    {
+        // Early exit if no animation active
+        if (_grenadeAnimPhase == GrenadeAnimPhase.None)
+        {
+            // Restore normal z-index when not animating
+            RestoreArmZIndex();
+            return;
+        }
+
+        // Update phase timer
+        if (_grenadeAnimTimer > 0)
+        {
+            _grenadeAnimTimer -= delta;
+        }
+
+        // Calculate animation progress (0.0 to 1.0)
+        float progress = 1.0f;
+        if (_grenadeAnimDuration > 0)
+        {
+            progress = Mathf.Clamp(1.0f - (_grenadeAnimTimer / _grenadeAnimDuration), 0.0f, 1.0f);
+        }
+
+        // Calculate target positions based on current phase
+        Vector2 leftArmTarget = _baseLeftArmPos;
+        Vector2 rightArmTarget = _baseRightArmPos;
+        float leftArmRot = 0.0f;
+        float rightArmRot = 0.0f;
+        float lerpSpeed = AnimLerpSpeed * delta;
+
+        // Set arms to lower z-index during grenade operations (below weapon)
+        // This ensures arms appear below the weapon as user requested
+        SetGrenadeAnimZIndex();
+
+        switch (_grenadeAnimPhase)
+        {
+            case GrenadeAnimPhase.GrabGrenade:
+                // Left arm moves back to shoulder/chest area (away from weapon) to grab grenade
+                // Large negative X offset pulls the arm from weapon front (x=24) toward body (x~5)
+                leftArmTarget = _baseLeftArmPos + ArmLeftChest;
+                leftArmRot = Mathf.DegToRad(ArmRotGrab);
+                lerpSpeed = AnimLerpSpeedFast * delta;
+                break;
+
+            case GrenadeAnimPhase.PullPin:
+                // Left hand holds grenade at chest level, right hand pulls pin
+                leftArmTarget = _baseLeftArmPos + ArmLeftExtended;
+                leftArmRot = Mathf.DegToRad(ArmRotLeftAtChest);
+                rightArmTarget = _baseRightArmPos + ArmRightPin;
+                rightArmRot = Mathf.DegToRad(ArmRotPinPull);
+                lerpSpeed = AnimLerpSpeedFast * delta;
+                break;
+
+            case GrenadeAnimPhase.HandsApproach:
+                // Both hands at chest level, preparing for transfer
+                leftArmTarget = _baseLeftArmPos + ArmLeftExtended;
+                leftArmRot = Mathf.DegToRad(ArmRotLeftAtChest);
+                rightArmTarget = _baseRightArmPos + ArmRightApproach;
+                break;
+
+            case GrenadeAnimPhase.Transfer:
+                // Left arm drops back toward body, right hand takes grenade
+                leftArmTarget = _baseLeftArmPos + ArmLeftTransfer;
+                leftArmRot = Mathf.DegToRad(ArmRotLeftRelaxed * 0.5f);
+                rightArmTarget = _baseRightArmPos + ArmRightHold;
+                lerpSpeed = AnimLerpSpeed * delta;
+                break;
+
+            case GrenadeAnimPhase.WindUp:
+                // LEFT ARM: Fully retracted to shoulder/body area, hangs at side
+                // This is the key position - arm must be clearly NOT on the weapon
+                leftArmTarget = _baseLeftArmPos + ArmLeftRelaxed;
+                leftArmRot = Mathf.DegToRad(ArmRotLeftRelaxed);
+                // RIGHT ARM: Interpolate between min and max wind-up based on intensity
+                Vector2 windUpOffset = ArmRightWindMin.Lerp(ArmRightWindMax, _windUpIntensity);
+                rightArmTarget = _baseRightArmPos + windUpOffset;
+                float windUpRot = Mathf.Lerp(ArmRotWindMin, ArmRotWindMax, _windUpIntensity);
+                rightArmRot = Mathf.DegToRad(windUpRot);
+                lerpSpeed = AnimLerpSpeedFast * delta; // Responsive to input
+                break;
+
+            case GrenadeAnimPhase.Throw:
+                // Throwing motion - right arm swings forward, left stays at body
+                leftArmTarget = _baseLeftArmPos + ArmLeftRelaxed;
+                leftArmRot = Mathf.DegToRad(ArmRotLeftRelaxed);
+                rightArmTarget = _baseRightArmPos + ArmRightThrow;
+                rightArmRot = Mathf.DegToRad(ArmRotThrow);
+                lerpSpeed = AnimLerpSpeedFast * delta;
+
+                // When throw animation completes, transition to return
+                if (_grenadeAnimTimer <= 0)
+                {
+                    StartGrenadeAnimPhase(GrenadeAnimPhase.ReturnIdle, AnimReturnDuration);
+                }
+                break;
+
+            case GrenadeAnimPhase.ReturnIdle:
+                // Arms returning to base positions (back to holding weapon)
+                leftArmTarget = _baseLeftArmPos;
+                rightArmTarget = _baseRightArmPos;
+                lerpSpeed = AnimLerpSpeed * delta;
+
+                // When return animation completes, end animation
+                if (_grenadeAnimTimer <= 0)
+                {
+                    _grenadeAnimPhase = GrenadeAnimPhase.None;
+                    _weaponSlung = false;
+                    RestoreArmZIndex();
+                    LogToFile("[Player.Grenade.Anim] Animation complete, returning to normal");
+                }
+                break;
+        }
+
+        // Apply arm positions with smooth interpolation
+        if (_leftArmSprite != null)
+        {
+            _leftArmSprite.Position = _leftArmSprite.Position.Lerp(leftArmTarget, lerpSpeed);
+            _leftArmSprite.Rotation = Mathf.Lerp(_leftArmSprite.Rotation, leftArmRot, lerpSpeed);
+        }
+
+        if (_rightArmSprite != null)
+        {
+            _rightArmSprite.Position = _rightArmSprite.Position.Lerp(rightArmTarget, lerpSpeed);
+            _rightArmSprite.Rotation = Mathf.Lerp(_rightArmSprite.Rotation, rightArmRot, lerpSpeed);
+        }
+
+        // Update weapon sling animation
+        UpdateWeaponSling(delta);
+    }
+
+    /// <summary>
+    /// Set arm z-index for grenade animation (arms below weapon).
+    /// </summary>
+    private void SetGrenadeAnimZIndex()
+    {
+        // During grenade operations, arms should appear below the weapon
+        // Weapon has z_index = 1, so set arms to 0
+        if (_leftArmSprite != null)
+        {
+            _leftArmSprite.ZIndex = 0;
+        }
+        if (_rightArmSprite != null)
+        {
+            _rightArmSprite.ZIndex = 0;
+        }
+    }
+
+    /// <summary>
+    /// Restore normal arm z-index (arms above weapon for normal aiming).
+    /// </summary>
+    private void RestoreArmZIndex()
+    {
+        // Normal state: arms at z_index 2 (between body and head)
+        if (_leftArmSprite != null)
+        {
+            _leftArmSprite.ZIndex = 2;
+        }
+        if (_rightArmSprite != null)
+        {
+            _rightArmSprite.ZIndex = 2;
+        }
+    }
+
+    /// <summary>
+    /// Update weapon sling position (lower weapon when handling grenade).
+    /// </summary>
+    /// <param name="delta">Time since last frame.</param>
+    private void UpdateWeaponSling(float delta)
+    {
+        if (_weaponMount == null)
+        {
+            return;
+        }
+
+        Vector2 targetPos = _baseWeaponMountPos;
+        float targetRot = _baseWeaponMountRot;
+
+        if (_weaponSlung)
+        {
+            // Lower weapon to chest/sling position
+            targetPos = _baseWeaponMountPos + WeaponSlingOffset;
+            targetRot = _baseWeaponMountRot + WeaponSlingRotation;
+        }
+
+        float lerpSpeed = AnimLerpSpeed * delta;
+        _weaponMount.Position = _weaponMount.Position.Lerp(targetPos, lerpSpeed);
+        _weaponMount.Rotation = Mathf.Lerp(_weaponMount.Rotation, targetRot, lerpSpeed);
+    }
+
+    /// <summary>
+    /// Update wind-up intensity and track mouse velocity during aiming.
+    /// Uses velocity-based physics for realistic throwing.
+    /// </summary>
+    private void UpdateWindUpIntensity()
+    {
+        Vector2 currentMouse = GetGlobalMousePosition();
+        double currentTime = Time.GetTicksMsec() / 1000.0;
+
+        // Calculate time delta since last frame
+        double deltaTime = currentTime - _prevFrameTime;
+        if (deltaTime <= 0.0)
+        {
+            deltaTime = 0.016; // Default to ~60fps if first frame
+        }
+
+        // Calculate mouse displacement since last frame
+        Vector2 mouseDelta = currentMouse - _prevMousePos;
+
+        // Accumulate total swing distance for momentum transfer calculation
+        _totalSwingDistance += mouseDelta.Length();
+
+        // Calculate instantaneous mouse velocity (pixels per second)
+        Vector2 instantaneousVelocity = mouseDelta / (float)deltaTime;
+
+        // Add to velocity history for smoothing
+        _mouseVelocityHistory.Add(instantaneousVelocity);
+        if (_mouseVelocityHistory.Count > MouseVelocityHistorySize)
+        {
+            _mouseVelocityHistory.RemoveAt(0);
+        }
+
+        // Calculate average velocity from history (smoothed velocity)
+        Vector2 velocitySum = Vector2.Zero;
+        foreach (Vector2 vel in _mouseVelocityHistory)
+        {
+            velocitySum += vel;
+        }
+        _currentMouseVelocity = velocitySum / Math.Max(_mouseVelocityHistory.Count, 1);
+
+        // Calculate wind-up intensity based on velocity (for animation)
+        // Higher velocity = more wind-up visual effect
+        float velocityMagnitude = _currentMouseVelocity.Length();
+        // Normalize to a reasonable range (0-2000 pixels/second typical for fast mouse movement)
+        float velocityIntensity = Mathf.Clamp(velocityMagnitude / 1500.0f, 0.0f, 1.0f);
+
+        _windUpIntensity = velocityIntensity;
+
+        // Update tracking for next frame
+        _prevMousePos = currentMouse;
+        _prevFrameTime = currentTime;
+    }
+
+    #endregion
+
+    #region Reload Animation Methods
+
+    /// <summary>
+    /// Start a new reload animation phase.
+    /// </summary>
+    /// <param name="phase">The ReloadAnimPhase to transition to.</param>
+    /// <param name="duration">How long this phase should last.</param>
+    private void StartReloadAnimPhase(ReloadAnimPhase phase, float duration)
+    {
+        _reloadAnimPhase = phase;
+        _reloadAnimTimer = duration;
+        _reloadAnimDuration = duration;
+
+        // Reset bolt pull sub-phase when entering bolt pull phase
+        if (phase == ReloadAnimPhase.PullBolt)
+        {
+            _boltPullSubPhase = 0;
+        }
+
+        LogToFile($"[Player.Reload.Anim] Phase changed to: {phase} (duration: {duration:F2}s)");
+    }
+
+    /// <summary>
+    /// Set arm z-index for reload animation (arms BELOW weapon).
+    /// User feedback: animated hand should be below weapon, not above it.
+    /// </summary>
+    private void SetReloadAnimZIndex()
+    {
+        // During reload operations, arms should appear BELOW the weapon
+        // Weapon has z_index = 1, so set arms to 0
+        if (_leftArmSprite != null)
+        {
+            _leftArmSprite.ZIndex = 0;
+        }
+        if (_rightArmSprite != null)
+        {
+            _rightArmSprite.ZIndex = 0;
+        }
+    }
+
+    /// <summary>
+    /// Update reload animation based on current phase.
+    /// Called every frame from _PhysicsProcess.
+    /// </summary>
+    /// <param name="delta">Time since last frame.</param>
+    private void UpdateReloadAnimation(float delta)
+    {
+        // Early exit if no animation active
+        if (_reloadAnimPhase == ReloadAnimPhase.None)
+        {
+            // Restore normal z-index when not animating
+            RestoreArmZIndex();
+            return;
+        }
+
+        // Update phase timer
+        if (_reloadAnimTimer > 0)
+        {
+            _reloadAnimTimer -= delta;
+        }
+
+        // Calculate target positions based on current phase
+        Vector2 leftArmTarget = _baseLeftArmPos;
+        Vector2 rightArmTarget = _baseRightArmPos;
+        float leftArmRot = 0.0f;
+        float rightArmRot = 0.0f;
+        float lerpSpeed = AnimLerpSpeed * delta;
+
+        // Set arms to lower z-index during reload operations (BELOW weapon)
+        // User feedback: "animated hand should be below weapon, not above it"
+        SetReloadAnimZIndex();
+
+        switch (_reloadAnimPhase)
+        {
+            case ReloadAnimPhase.GrabMagazine:
+                // Step 1: Left arm moves to chest to grab new magazine
+                leftArmTarget = _baseLeftArmPos + ReloadArmLeftGrab;
+                leftArmRot = Mathf.DegToRad(ReloadArmRotLeftGrab);
+                rightArmTarget = _baseRightArmPos + ReloadArmRightHold;
+                rightArmRot = Mathf.DegToRad(ReloadArmRotRightHold);
+                lerpSpeed = AnimLerpSpeedFast * delta;
+                break;
+
+            case ReloadAnimPhase.InsertMagazine:
+                // Step 2: Left arm brings magazine to weapon magwell (at middle of weapon)
+                // User feedback: "step 2 should end at middle of weapon length, not at the end"
+                leftArmTarget = _baseLeftArmPos + ReloadArmLeftInsert;
+                leftArmRot = Mathf.DegToRad(ReloadArmRotLeftInsert);
+                rightArmTarget = _baseRightArmPos + ReloadArmRightSteady;
+                rightArmRot = Mathf.DegToRad(ReloadArmRotRightSteady);
+                lerpSpeed = AnimLerpSpeed * delta;
+                break;
+
+            case ReloadAnimPhase.PullBolt:
+                // Step 3: Right hand traces rifle contour - back and forth motion
+                // User feedback: "step 3 should be a movement along the rifle contour
+                // right towards and away from oneself (back and forth)"
+                leftArmTarget = _baseLeftArmPos + ReloadArmLeftSupport;
+                leftArmRot = Mathf.DegToRad(ReloadArmRotLeftSupport);
+
+                if (_boltPullSubPhase == 0)
+                {
+                    // Sub-phase 0: Pull bolt back (toward player)
+                    rightArmTarget = _baseRightArmPos + ReloadArmRightBoltPull;
+                    rightArmRot = Mathf.DegToRad(ReloadArmRotRightBoltPull);
+                    lerpSpeed = AnimLerpSpeedFast * delta;
+
+                    // Log bolt pull progress periodically
+                    if (Engine.GetFramesDrawn() % 30 == 0)
+                    {
+                        LogToFile($"[Player.Reload.Anim] Bolt sub-phase 0 (pull back): timer={_reloadAnimTimer:F2}s, rightArm target={rightArmTarget}");
+                    }
+
+                    // When pull back completes, transition to return forward
+                    if (_reloadAnimTimer <= 0)
+                    {
+                        _boltPullSubPhase = 1;
+                        _reloadAnimTimer = ReloadAnimBoltReturnDuration;
+                        _reloadAnimDuration = ReloadAnimBoltReturnDuration;
+                        LogToFile($"[Player.Reload.Anim] Bolt sub-phase transition: pull→return (duration: {ReloadAnimBoltReturnDuration:F2}s)");
+                    }
+                }
+                else
+                {
+                    // Sub-phase 1: Release bolt (return forward)
+                    rightArmTarget = _baseRightArmPos + ReloadArmRightBoltReturn;
+                    rightArmRot = Mathf.DegToRad(ReloadArmRotRightBoltReturn);
+                    lerpSpeed = AnimLerpSpeedFast * delta;
+
+                    // Log bolt return progress periodically
+                    if (Engine.GetFramesDrawn() % 30 == 0)
+                    {
+                        LogToFile($"[Player.Reload.Anim] Bolt sub-phase 1 (return): timer={_reloadAnimTimer:F2}s, rightArm target={rightArmTarget}");
+                    }
+
+                    // When return completes, transition to return idle
+                    if (_reloadAnimTimer <= 0)
+                    {
+                        LogToFile("[Player.Reload.Anim] Bolt animation complete, transitioning to idle");
+                        StartReloadAnimPhase(ReloadAnimPhase.ReturnIdle, ReloadAnimReturnDuration);
+                    }
+                }
+                break;
+
+            case ReloadAnimPhase.ReturnIdle:
+                // Arms returning to base positions
+                leftArmTarget = _baseLeftArmPos;
+                rightArmTarget = _baseRightArmPos;
+                leftArmRot = 0.0f;
+                rightArmRot = 0.0f;
+                lerpSpeed = AnimLerpSpeed * delta;
+
+                // When return animation completes, end animation and restore z-index
+                if (_reloadAnimTimer <= 0)
+                {
+                    _reloadAnimPhase = ReloadAnimPhase.None;
+                    RestoreArmZIndex();
+                    LogToFile("[Player.Reload.Anim] Animation complete, returning to normal");
+                }
+                break;
+        }
+
+        // Apply arm positions with smooth interpolation
+        if (_leftArmSprite != null)
+        {
+            Vector2 oldPos = _leftArmSprite.Position;
+            _leftArmSprite.Position = _leftArmSprite.Position.Lerp(leftArmTarget, lerpSpeed);
+            _leftArmSprite.Rotation = Mathf.Lerp(_leftArmSprite.Rotation, leftArmRot, lerpSpeed);
+
+            // Log arm position changes periodically (every 60 frames = ~1 second)
+            if (Engine.GetFramesDrawn() % 60 == 0)
+            {
+                LogToFile($"[Player.Reload.Anim] LeftArm: pos={_leftArmSprite.Position}, target={leftArmTarget}, base={_baseLeftArmPos}");
+            }
+        }
+        else if (Engine.GetFramesDrawn() % 60 == 0)
+        {
+            LogToFile("[Player.Reload.Anim] WARNING: Left arm sprite is null during animation!");
+        }
+
+        if (_rightArmSprite != null)
+        {
+            Vector2 oldPos = _rightArmSprite.Position;
+            _rightArmSprite.Position = _rightArmSprite.Position.Lerp(rightArmTarget, lerpSpeed);
+            _rightArmSprite.Rotation = Mathf.Lerp(_rightArmSprite.Rotation, rightArmRot, lerpSpeed);
+
+            // Log arm position changes periodically (every 60 frames = ~1 second)
+            if (Engine.GetFramesDrawn() % 60 == 0)
+            {
+                LogToFile($"[Player.Reload.Anim] RightArm: pos={_rightArmSprite.Position}, target={rightArmTarget}, base={_baseRightArmPos}");
+            }
+        }
+        else if (Engine.GetFramesDrawn() % 60 == 0)
+        {
+            LogToFile("[Player.Reload.Anim] WARNING: Right arm sprite is null during animation!");
+        }
+    }
+
+    #endregion
+
+    #region Logging
+
+    /// <summary>
+    /// Logs a message to the FileLogger (GDScript autoload) for debugging.
+    /// </summary>
+    /// <param name="message">The message to log.</param>
+    private void LogToFile(string message)
+    {
+        // Print to console
+        GD.Print(message);
+
+        // Also log to FileLogger if available
+        var fileLogger = GetNodeOrNull("/root/FileLogger");
+        if (fileLogger != null && fileLogger.HasMethod("log_info"))
+        {
+            fileLogger.Call("log_info", message);
+        }
+    }
+
+    #endregion
+
+    #region Debug Trajectory Visualization
+
+    /// <summary>
+    /// Connects to GameManager's debug_mode_toggled signal for F7 toggle.
+    /// </summary>
+    private void ConnectDebugModeSignal()
+    {
+        var gameManager = GetNodeOrNull("/root/GameManager");
+        if (gameManager == null)
+        {
+            LogToFile("[Player.Debug] WARNING: GameManager not found, debug visualization disabled");
+            return;
+        }
+
+        if (!gameManager.HasSignal("debug_mode_toggled"))
+        {
+            LogToFile("[Player.Debug] WARNING: GameManager doesn't have debug_mode_toggled signal");
+            return;
+        }
+
+        // Connect to the signal using Callable
+        gameManager.Connect("debug_mode_toggled", Callable.From<bool>(OnDebugModeToggled));
+
+        // Check if debug mode is already enabled
+        if (gameManager.HasMethod("is_debug_mode_enabled"))
+        {
+            _debugModeEnabled = (bool)gameManager.Call("is_debug_mode_enabled");
+            LogToFile($"[Player.Debug] Connected to GameManager, debug mode: {_debugModeEnabled}");
+        }
+        else
+        {
+            LogToFile("[Player.Debug] Connected to GameManager (is_debug_mode_enabled not found)");
+        }
+    }
+
+    /// <summary>
+    /// Called when debug mode is toggled via F7 key.
+    /// </summary>
+    /// <param name="enabled">True if debug mode is now enabled.</param>
+    private void OnDebugModeToggled(bool enabled)
+    {
+        _debugModeEnabled = enabled;
+        QueueRedraw();
+        LogToFile($"[Player.Debug] Debug mode toggled: {(enabled ? "ON" : "OFF")}");
+    }
+
+    /// <summary>
+    /// Override _Draw to visualize grenade trajectory when debug mode is enabled.
+    /// Shows predicted landing position based on current mouse velocity.
+    /// Uses the same velocity-based calculation as ThrowGrenade() to ensure accuracy.
+    /// </summary>
+    public override void _Draw()
+    {
+        // Only draw when debug mode is enabled and we're aiming a grenade
+        if (!_debugModeEnabled)
+        {
+            return;
+        }
+
+        if (_grenadeState != GrenadeState.Aiming)
+        {
+            return;
+        }
+
+        // Get current mouse velocity (same as ThrowGrenade uses)
+        Vector2 releaseVelocity = _currentMouseVelocity;
+        float velocityMagnitude = releaseVelocity.Length();
+
+        // Determine throw direction from velocity, or fallback to drag direction if stationary
+        Vector2 throwDirection;
+        Vector2 currentMousePos = GetGlobalMousePosition();
+        Vector2 dragVector = currentMousePos - _grenadeDragStart;
+
+        if (velocityMagnitude > 10.0f) // Mouse is moving
+        {
+            throwDirection = releaseVelocity.Normalized();
+        }
+        else
+        {
+            // Mouse is stationary - use drag direction
+            if (dragVector.Length() > 5.0f)
+            {
+                throwDirection = dragVector.Normalized();
+            }
+            else
+            {
+                throwDirection = new Vector2(1, 0);
+            }
+        }
+
+        // Constants from grenade_base.gd for velocity-based throwing
+        const float GrenadeMass = 0.36f; // Default flashbang mass
+        const float MouseVelocityMultiplier = 1.5f; // Reduced from 3.5 for better throw control
+        const float MinSwingDistance = 180.0f;
+        const float MinThrowSpeed = 100.0f;
+        const float MaxThrowSpeed = 2500.0f;
+        const float GroundFriction = 300.0f; // Flashbang has higher friction
+        const float SpawnOffset = 60.0f;
+
+        // Calculate velocity-based throw speed (same formula as grenade_base.gd)
+        float massRatio = GrenadeMass / 0.4f; // Reference mass
+        float adjustedMinSwing = MinSwingDistance * massRatio;
+        float transferEfficiency = Mathf.Clamp(_totalSwingDistance / adjustedMinSwing, 0.0f, 1.0f);
+        float massMultiplier = 1.0f / Mathf.Sqrt(massRatio);
+
+        // Calculate throw speed from mouse velocity
+        float throwSpeed = velocityMagnitude * MouseVelocityMultiplier * transferEfficiency * massMultiplier;
+        throwSpeed = Mathf.Clamp(throwSpeed, MinThrowSpeed, MaxThrowSpeed);
+
+        // If mouse is nearly stationary, show minimal trajectory (grenade drops at feet)
+        if (velocityMagnitude < 10.0f)
+        {
+            throwSpeed = MinThrowSpeed * 0.5f; // Very short throw
+        }
+
+        // Calculate landing distance using physics: distance = v² / (2 * friction)
+        float landingDistance = (throwSpeed * throwSpeed) / (2.0f * GroundFriction);
+
+        // Calculate spawn and landing positions
+        Vector2 spawnPosition = GlobalPosition + throwDirection * SpawnOffset;
+        Vector2 landingPosition = spawnPosition + throwDirection * landingDistance;
+
+        // Convert to local coordinates for drawing
+        Vector2 localStart = ToLocal(spawnPosition);
+        Vector2 localEnd = ToLocal(landingPosition);
+
+        // Draw trajectory line with dashes
+        DrawTrajectoryLine(localStart, localEnd, new Color(1.0f, 0.8f, 0.2f, 0.9f), 3.0f);
+
+        // Draw landing point indicator (circle with X)
+        DrawLandingIndicator(localEnd, new Color(1.0f, 0.3f, 0.1f, 0.9f), 12.0f);
+
+        // Draw velocity direction arrow from player (shows current mouse velocity direction)
+        Vector2 localPlayerCenter = Vector2.Zero; // Player is at origin in local coords
+        Vector2 arrowEnd = localPlayerCenter + throwDirection * 40.0f;
+        DrawArrow(localPlayerCenter, arrowEnd, new Color(0.2f, 1.0f, 0.2f, 0.7f), 2.0f);
+    }
+
+    /// <summary>
+    /// Draw a dashed trajectory line from start to end.
+    /// </summary>
+    private void DrawTrajectoryLine(Vector2 start, Vector2 end, Color color, float width)
+    {
+        Vector2 direction = (end - start).Normalized();
+        float totalLength = start.DistanceTo(end);
+        const float DashLength = 15.0f;
+        const float GapLength = 8.0f;
+
+        float currentPos = 0.0f;
+        while (currentPos < totalLength)
+        {
+            float dashEnd = Mathf.Min(currentPos + DashLength, totalLength);
+            Vector2 dashStart = start + direction * currentPos;
+            Vector2 dashEndPos = start + direction * dashEnd;
+            DrawLine(dashStart, dashEndPos, color, width);
+            currentPos = dashEnd + GapLength;
+        }
+    }
+
+    /// <summary>
+    /// Draw a landing indicator (circle with X) at the target position.
+    /// </summary>
+    private void DrawLandingIndicator(Vector2 position, Color color, float radius)
+    {
+        // Draw outer circle
+        const int CirclePoints = 24;
+        Vector2[] circlePoints = new Vector2[CirclePoints + 1];
+        for (int i = 0; i <= CirclePoints; i++)
+        {
+            float angle = i * Mathf.Tau / CirclePoints;
+            circlePoints[i] = position + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * radius;
+        }
+        for (int i = 0; i < CirclePoints; i++)
+        {
+            DrawLine(circlePoints[i], circlePoints[i + 1], color, 2.0f);
+        }
+
+        // Draw X inside
+        float xSize = radius * 0.6f;
+        DrawLine(position + new Vector2(-xSize, -xSize), position + new Vector2(xSize, xSize), color, 2.0f);
+        DrawLine(position + new Vector2(-xSize, xSize), position + new Vector2(xSize, -xSize), color, 2.0f);
+    }
+
+    /// <summary>
+    /// Draw an arrow from start to end with an arrowhead.
+    /// </summary>
+    private void DrawArrow(Vector2 start, Vector2 end, Color color, float width)
+    {
+        // Draw main line
+        DrawLine(start, end, color, width);
+
+        // Draw arrowhead
+        Vector2 direction = (end - start).Normalized();
+        float arrowSize = 8.0f;
+        float arrowAngle = Mathf.Pi / 6.0f; // 30 degrees
+
+        Vector2 arrowLeft = end - direction.Rotated(arrowAngle) * arrowSize;
+        Vector2 arrowRight = end - direction.Rotated(-arrowAngle) * arrowSize;
+
+        DrawLine(end, arrowLeft, color, width);
+        DrawLine(end, arrowRight, color, width);
+    }
+
+    #endregion
 }

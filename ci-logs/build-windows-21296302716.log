@@ -1,0 +1,1222 @@
+Windows Export	Set up job	﻿2026-01-23T18:09:51.6009569Z Current runner version: '2.331.0'
+Windows Export	Set up job	2026-01-23T18:09:51.6045173Z ##[group]Runner Image Provisioner
+Windows Export	Set up job	2026-01-23T18:09:51.6046383Z Hosted Compute Agent
+Windows Export	Set up job	2026-01-23T18:09:51.6047176Z Version: 20260115.477
+Windows Export	Set up job	2026-01-23T18:09:51.6048182Z Commit: 4b342d620503cbe250a3154040964899ea7c9b00
+Windows Export	Set up job	2026-01-23T18:09:51.6049232Z Build Date: 2026-01-15T22:32:41Z
+Windows Export	Set up job	2026-01-23T18:09:51.6050232Z Worker ID: {9c8ccf1a-cea3-4634-8db6-c2fad5706aae}
+Windows Export	Set up job	2026-01-23T18:09:51.6051411Z Azure Region: eastus2
+Windows Export	Set up job	2026-01-23T18:09:51.6052561Z ##[endgroup]
+Windows Export	Set up job	2026-01-23T18:09:51.6055128Z ##[group]Operating System
+Windows Export	Set up job	2026-01-23T18:09:51.6056052Z Ubuntu
+Windows Export	Set up job	2026-01-23T18:09:51.6056770Z 24.04.3
+Windows Export	Set up job	2026-01-23T18:09:51.6057389Z LTS
+Windows Export	Set up job	2026-01-23T18:09:51.6058190Z ##[endgroup]
+Windows Export	Set up job	2026-01-23T18:09:51.6058937Z ##[group]Runner Image
+Windows Export	Set up job	2026-01-23T18:09:51.6059813Z Image: ubuntu-24.04
+Windows Export	Set up job	2026-01-23T18:09:51.6060641Z Version: 20260119.4.1
+Windows Export	Set up job	2026-01-23T18:09:51.6062458Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260119.4/images/ubuntu/Ubuntu2404-Readme.md
+Windows Export	Set up job	2026-01-23T18:09:51.6065172Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260119.4
+Windows Export	Set up job	2026-01-23T18:09:51.6066700Z ##[endgroup]
+Windows Export	Set up job	2026-01-23T18:09:51.6068323Z ##[group]GITHUB_TOKEN Permissions
+Windows Export	Set up job	2026-01-23T18:09:51.6070886Z Contents: read
+Windows Export	Set up job	2026-01-23T18:09:51.6072077Z Metadata: read
+Windows Export	Set up job	2026-01-23T18:09:51.6072885Z ##[endgroup]
+Windows Export	Set up job	2026-01-23T18:09:51.6075613Z Secret source: None
+Windows Export	Set up job	2026-01-23T18:09:51.6077115Z Prepare workflow directory
+Windows Export	Set up job	2026-01-23T18:09:51.6521777Z Prepare all required actions
+Windows Export	Set up job	2026-01-23T18:09:51.6576453Z Getting action download info
+Windows Export	Set up job	2026-01-23T18:09:52.0164356Z Download action repository 'actions/checkout@v4' (SHA:34e114876b0b11c390a56381ad16ebd13914f8d5)
+Windows Export	Set up job	2026-01-23T18:09:52.1608612Z Download action repository 'actions/setup-dotnet@v4' (SHA:67a3573c9a986a3f9c594539f4ab511d57bb3ce9)
+Windows Export	Set up job	2026-01-23T18:09:52.4682180Z Download action repository 'firebelley/godot-export@v7.0.0' (SHA:930577654862a320eef793f399ee911b4479efb9)
+Windows Export	Set up job	2026-01-23T18:09:52.7724316Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+Windows Export	Set up job	2026-01-23T18:09:53.0586157Z Complete job name: Windows Export
+Windows Export	Checkout	﻿2026-01-23T18:09:53.1378332Z ##[group]Run actions/checkout@v4
+Windows Export	Checkout	2026-01-23T18:09:53.1379586Z with:
+Windows Export	Checkout	2026-01-23T18:09:53.1380350Z   repository: Jhon-Crow/godot-topdown-MVP
+Windows Export	Checkout	2026-01-23T18:09:53.1381637Z   token: ***
+Windows Export	Checkout	2026-01-23T18:09:53.1382775Z   ssh-strict: true
+Windows Export	Checkout	2026-01-23T18:09:53.1383521Z   ssh-user: git
+Windows Export	Checkout	2026-01-23T18:09:53.1384266Z   persist-credentials: true
+Windows Export	Checkout	2026-01-23T18:09:53.1385122Z   clean: true
+Windows Export	Checkout	2026-01-23T18:09:53.1385861Z   sparse-checkout-cone-mode: true
+Windows Export	Checkout	2026-01-23T18:09:53.1386786Z   fetch-depth: 1
+Windows Export	Checkout	2026-01-23T18:09:53.1387549Z   fetch-tags: false
+Windows Export	Checkout	2026-01-23T18:09:53.1388309Z   show-progress: true
+Windows Export	Checkout	2026-01-23T18:09:53.1389064Z   lfs: false
+Windows Export	Checkout	2026-01-23T18:09:53.1389749Z   submodules: false
+Windows Export	Checkout	2026-01-23T18:09:53.1390517Z   set-safe-directory: true
+Windows Export	Checkout	2026-01-23T18:09:53.1391645Z ##[endgroup]
+Windows Export	Checkout	2026-01-23T18:09:53.2485021Z Syncing repository: Jhon-Crow/godot-topdown-MVP
+Windows Export	Checkout	2026-01-23T18:09:53.2487999Z ##[group]Getting Git version info
+Windows Export	Checkout	2026-01-23T18:09:53.2489502Z Working directory is '/home/runner/work/godot-topdown-MVP/godot-topdown-MVP'
+Windows Export	Checkout	2026-01-23T18:09:53.2491579Z [command]/usr/bin/git version
+Windows Export	Checkout	2026-01-23T18:09:53.2575204Z git version 2.52.0
+Windows Export	Checkout	2026-01-23T18:09:53.2601113Z ##[endgroup]
+Windows Export	Checkout	2026-01-23T18:09:53.2615522Z Temporarily overriding HOME='/home/runner/work/_temp/fbf01e27-2348-4936-9c93-4bb08055a35b' before making global git config changes
+Windows Export	Checkout	2026-01-23T18:09:53.2618184Z Adding repository directory to the temporary git global config as a safe directory
+Windows Export	Checkout	2026-01-23T18:09:53.2620959Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/godot-topdown-MVP/godot-topdown-MVP
+Windows Export	Checkout	2026-01-23T18:09:53.2657027Z Deleting the contents of '/home/runner/work/godot-topdown-MVP/godot-topdown-MVP'
+Windows Export	Checkout	2026-01-23T18:09:53.2660193Z ##[group]Initializing the repository
+Windows Export	Checkout	2026-01-23T18:09:53.2664931Z [command]/usr/bin/git init /home/runner/work/godot-topdown-MVP/godot-topdown-MVP
+Windows Export	Checkout	2026-01-23T18:09:53.2761800Z hint: Using 'master' as the name for the initial branch. This default branch name
+Windows Export	Checkout	2026-01-23T18:09:53.2764724Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+Windows Export	Checkout	2026-01-23T18:09:53.2767738Z hint: to use in all of your new repositories, which will suppress this warning,
+Windows Export	Checkout	2026-01-23T18:09:53.2770396Z hint: call:
+Windows Export	Checkout	2026-01-23T18:09:53.2771625Z hint:
+Windows Export	Checkout	2026-01-23T18:09:53.2773453Z hint: 	git config --global init.defaultBranch <name>
+Windows Export	Checkout	2026-01-23T18:09:53.2775304Z hint:
+Windows Export	Checkout	2026-01-23T18:09:53.2777092Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+Windows Export	Checkout	2026-01-23T18:09:53.2780170Z hint: 'development'. The just-created branch can be renamed via this command:
+Windows Export	Checkout	2026-01-23T18:09:53.2782719Z hint:
+Windows Export	Checkout	2026-01-23T18:09:53.2783860Z hint: 	git branch -m <name>
+Windows Export	Checkout	2026-01-23T18:09:53.2784930Z hint:
+Windows Export	Checkout	2026-01-23T18:09:53.2786065Z hint: Disable this message with "git config set advice.defaultBranchName false"
+Windows Export	Checkout	2026-01-23T18:09:53.2788192Z Initialized empty Git repository in /home/runner/work/godot-topdown-MVP/godot-topdown-MVP/.git/
+Windows Export	Checkout	2026-01-23T18:09:53.2793753Z [command]/usr/bin/git remote add origin https://github.com/Jhon-Crow/godot-topdown-MVP
+Windows Export	Checkout	2026-01-23T18:09:53.2813335Z ##[endgroup]
+Windows Export	Checkout	2026-01-23T18:09:53.2815963Z ##[group]Disabling automatic garbage collection
+Windows Export	Checkout	2026-01-23T18:09:53.2818318Z [command]/usr/bin/git config --local gc.auto 0
+Windows Export	Checkout	2026-01-23T18:09:53.2847260Z ##[endgroup]
+Windows Export	Checkout	2026-01-23T18:09:53.2849651Z ##[group]Setting up auth
+Windows Export	Checkout	2026-01-23T18:09:53.2854826Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+Windows Export	Checkout	2026-01-23T18:09:53.2887968Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Windows Export	Checkout	2026-01-23T18:09:53.3205888Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Windows Export	Checkout	2026-01-23T18:09:53.3238428Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Windows Export	Checkout	2026-01-23T18:09:53.3456442Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+Windows Export	Checkout	2026-01-23T18:09:53.3488630Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Windows Export	Checkout	2026-01-23T18:09:53.3705128Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+Windows Export	Checkout	2026-01-23T18:09:53.3740273Z ##[endgroup]
+Windows Export	Checkout	2026-01-23T18:09:53.3743209Z ##[group]Fetching the repository
+Windows Export	Checkout	2026-01-23T18:09:53.3752373Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +779df2afcd885f1ac33e723dbc01b538171a4f4b:refs/remotes/pull/258/merge
+Windows Export	Checkout	2026-01-23T18:09:54.5993325Z From https://github.com/Jhon-Crow/godot-topdown-MVP
+Windows Export	Checkout	2026-01-23T18:09:54.5995646Z  * [new ref]         779df2afcd885f1ac33e723dbc01b538171a4f4b -> pull/258/merge
+Windows Export	Checkout	2026-01-23T18:09:54.6029683Z ##[endgroup]
+Windows Export	Checkout	2026-01-23T18:09:54.6030838Z ##[group]Determining the checkout info
+Windows Export	Checkout	2026-01-23T18:09:54.6032639Z ##[endgroup]
+Windows Export	Checkout	2026-01-23T18:09:54.6038326Z [command]/usr/bin/git sparse-checkout disable
+Windows Export	Checkout	2026-01-23T18:09:54.6079643Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+Windows Export	Checkout	2026-01-23T18:09:54.6106737Z ##[group]Checking out the ref
+Windows Export	Checkout	2026-01-23T18:09:54.6111096Z [command]/usr/bin/git checkout --progress --force refs/remotes/pull/258/merge
+Windows Export	Checkout	2026-01-23T18:09:54.8273468Z Note: switching to 'refs/remotes/pull/258/merge'.
+Windows Export	Checkout	2026-01-23T18:09:54.8274000Z 
+Windows Export	Checkout	2026-01-23T18:09:54.8274317Z You are in 'detached HEAD' state. You can look around, make experimental
+Windows Export	Checkout	2026-01-23T18:09:54.8275082Z changes and commit them, and you can discard any commits you make in this
+Windows Export	Checkout	2026-01-23T18:09:54.8275720Z state without impacting any branches by switching back to a branch.
+Windows Export	Checkout	2026-01-23T18:09:54.8276140Z 
+Windows Export	Checkout	2026-01-23T18:09:54.8276398Z If you want to create a new branch to retain commits you create, you may
+Windows Export	Checkout	2026-01-23T18:09:54.8277317Z do so (now or later) by using -c with the switch command. Example:
+Windows Export	Checkout	2026-01-23T18:09:54.8277767Z 
+Windows Export	Checkout	2026-01-23T18:09:54.8277953Z   git switch -c <new-branch-name>
+Windows Export	Checkout	2026-01-23T18:09:54.8278192Z 
+Windows Export	Checkout	2026-01-23T18:09:54.8278394Z Or undo this operation with:
+Windows Export	Checkout	2026-01-23T18:09:54.8278615Z 
+Windows Export	Checkout	2026-01-23T18:09:54.8278784Z   git switch -
+Windows Export	Checkout	2026-01-23T18:09:54.8279099Z 
+Windows Export	Checkout	2026-01-23T18:09:54.8279382Z Turn off this advice by setting config variable advice.detachedHead to false
+Windows Export	Checkout	2026-01-23T18:09:54.8279804Z 
+Windows Export	Checkout	2026-01-23T18:09:54.8280267Z HEAD is now at 779df2a Merge 74a6ddbb1c3cffc0f85aaeb0708b3417b4549f58 into 6ecef584987647c93eaa429bade3646cfc6ddad2
+Windows Export	Checkout	2026-01-23T18:09:54.8302139Z ##[endgroup]
+Windows Export	Checkout	2026-01-23T18:09:54.8341791Z [command]/usr/bin/git log -1 --format=%H
+Windows Export	Checkout	2026-01-23T18:09:54.8365387Z 779df2afcd885f1ac33e723dbc01b538171a4f4b
+Windows Export	Setup .NET	﻿2026-01-23T18:09:54.8602704Z ##[group]Run actions/setup-dotnet@v4
+Windows Export	Setup .NET	2026-01-23T18:09:54.8603197Z with:
+Windows Export	Setup .NET	2026-01-23T18:09:54.8603550Z   dotnet-version: 8.0.x
+Windows Export	Setup .NET	2026-01-23T18:09:54.8603913Z   cache: false
+Windows Export	Setup .NET	2026-01-23T18:09:54.8604339Z ##[endgroup]
+Windows Export	Setup .NET	2026-01-23T18:09:55.0367822Z [command]/home/runner/work/_actions/actions/setup-dotnet/v4/externals/install-dotnet.sh --skip-non-versioned-files --runtime dotnet --channel LTS
+Windows Export	Setup .NET	2026-01-23T18:09:55.5744736Z dotnet-install: .NET Core Runtime with version '10.0.2' is already installed.
+Windows Export	Setup .NET	2026-01-23T18:09:55.5775753Z [command]/home/runner/work/_actions/actions/setup-dotnet/v4/externals/install-dotnet.sh --skip-non-versioned-files --channel 8.0
+Windows Export	Setup .NET	2026-01-23T18:09:55.8390379Z dotnet-install: .NET Core SDK with version '8.0.417' is already installed.
+Windows Export	Export game	﻿2026-01-23T18:09:55.8552406Z ##[group]Run firebelley/godot-export@v7.0.0
+Windows Export	Export game	2026-01-23T18:09:55.8552750Z with:
+Windows Export	Export game	2026-01-23T18:09:55.8553310Z   godot_executable_download_url: https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_mono_linux_x86_64.zip
+Windows Export	Export game	2026-01-23T18:09:55.8554242Z   godot_export_templates_download_url: https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_mono_export_templates.tpz
+Windows Export	Export game	2026-01-23T18:09:55.8554875Z   relative_project_path: ./
+Windows Export	Export game	2026-01-23T18:09:55.8555099Z   archive_output: true
+Windows Export	Export game	2026-01-23T18:09:55.8555304Z   archive_root_folder: false
+Windows Export	Export game	2026-01-23T18:09:55.8555520Z   cache: false
+Windows Export	Export game	2026-01-23T18:09:55.8555706Z   use_preset_export_path: false
+Windows Export	Export game	2026-01-23T18:09:55.8555929Z   export_debug: false
+Windows Export	Export game	2026-01-23T18:09:55.8556131Z   verbose: false
+Windows Export	Export game	2026-01-23T18:09:55.8556315Z   use_godot_3: false
+Windows Export	Export game	2026-01-23T18:09:55.8556526Z   export_as_pack: false
+Windows Export	Export game	2026-01-23T18:09:55.8556725Z env:
+Windows Export	Export game	2026-01-23T18:09:55.8556905Z   DOTNET_ROOT: /usr/share/dotnet
+Windows Export	Export game	2026-01-23T18:09:55.8557126Z ##[endgroup]
+Windows Export	Export game	2026-01-23T18:09:55.9877037Z ##[group]🕹️ Downloading Godot
+Windows Export	Export game	2026-01-23T18:09:55.9890458Z Working path created /home/runner/.local/share/godot
+Windows Export	Export game	2026-01-23T18:09:55.9893502Z Downloading file from https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_mono_linux_x86_64.zip
+Windows Export	Export game	2026-01-23T18:09:55.9930895Z [command]/usr/bin/wget -nv https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_mono_linux_x86_64.zip -O /home/runner/.local/share/godot/godot.zip
+Windows Export	Export game	2026-01-23T18:09:56.3307346Z 2026-01-23 18:09:56 URL:https://release-assets.githubusercontent.com/github-production-release-asset/15634981/a33495e9-6c7d-4203-ae9a-1bd09369c46b?sp=r&sv=2018-11-09&sr=b&spr=https&se=2026-01-23T18%3A58%3A40Z&rscd=attachment%3B+filename%3DGodot_v4.3-stable_mono_linux_x86_64.zip&rsct=application%2Foctet-stream&skoid=96c2d410-5711-43a1-aedd-ab1947aa7ab0&sktid=398a6654-997b-47e9-b12b-9515b896b4de&skt=2026-01-23T17%3A58%3A29Z&ske=2026-01-23T18%3A58%3A40Z&sks=b&skv=2018-11-09&sig=kb3sW0ZgRWxoS9lSrwzBqwaKCTi659VitSoHhEuLNL0%3D&jwt=*** [70627262/70627262] -> "/home/runner/.local/share/godot/godot.zip" [1]
+Windows Export	Export game	2026-01-23T18:09:56.3328701Z Extracting /home/runner/.local/share/godot/godot.zip to /home/runner/.local/share/godot/godot_executable
+Windows Export	Export game	2026-01-23T18:09:56.3358227Z [command]/usr/bin/7z x /home/runner/.local/share/godot/godot.zip -o/home/runner/.local/share/godot/godot_executable -y
+Windows Export	Export game	2026-01-23T18:09:56.4609264Z 
+Windows Export	Export game	2026-01-23T18:09:56.4610053Z 7-Zip 23.01 (x64) : Copyright (c) 1999-2023 Igor Pavlov : 2023-06-20
+Windows Export	Export game	2026-01-23T18:09:56.4610677Z  64-bit locale=C.UTF-8 Threads:4 OPEN_MAX:65536
+Windows Export	Export game	2026-01-23T18:09:56.4611031Z 
+Windows Export	Export game	2026-01-23T18:09:56.4611201Z Scanning the drive for archives:
+Windows Export	Export game	2026-01-23T18:09:56.4611627Z 1 file, 70627262 bytes (68 MiB)
+Windows Export	Export game	2026-01-23T18:09:56.4612104Z 
+Windows Export	Export game	2026-01-23T18:09:56.4612457Z Extracting archive: /home/runner/.local/share/godot/godot.zip
+Windows Export	Export game	2026-01-23T18:09:57.3696639Z --
+Windows Export	Export game	2026-01-23T18:09:57.3697254Z Path = /home/runner/.local/share/godot/godot.zip
+Windows Export	Export game	2026-01-23T18:09:57.3697773Z Type = zip
+Windows Export	Export game	2026-01-23T18:09:57.3698095Z Physical Size = 70627262
+Windows Export	Export game	2026-01-23T18:09:57.3698320Z 
+Windows Export	Export game	2026-01-23T18:09:57.3698652Z Everything is Ok
+Windows Export	Export game	2026-01-23T18:09:57.3698857Z 
+Windows Export	Export game	2026-01-23T18:09:57.3698970Z Folders: 7
+Windows Export	Export game	2026-01-23T18:09:57.3699146Z Files: 42
+Windows Export	Export game	2026-01-23T18:09:57.3699333Z Size:       169544185
+Windows Export	Export game	2026-01-23T18:09:57.3699581Z Compressed: 70627262
+Windows Export	Export game	2026-01-23T18:09:57.3706024Z 🔍 Looking for Godot executable in /home/runner/.local/share/godot/godot_executable
+Windows Export	Export game	2026-01-23T18:09:57.3707890Z 🔍 Looking for Godot executable in /home/runner/.local/share/godot/godot_executable/Godot_v4.3-stable_mono_linux_x86_64
+Windows Export	Export game	2026-01-23T18:09:57.3710727Z Found executable at /home/runner/.local/share/godot/godot_executable/Godot_v4.3-stable_mono_linux_x86_64/Godot_v4.3-stable_mono_linux.x86_64
+Windows Export	Export game	2026-01-23T18:09:57.3711692Z Preparing templates
+Windows Export	Export game	2026-01-23T18:09:57.3717045Z [command]/home/runner/.local/share/godot/godot_executable/Godot_v4.3-stable_mono_linux_x86_64/Godot_v4.3-stable_mono_linux.x86_64 --version
+Windows Export	Export game	2026-01-23T18:09:57.5247214Z 4.3.stable.mono.official.77dcf97d8
+Windows Export	Export game	2026-01-23T18:09:57.5289286Z ⬇️ Missing templates for Godot 4.3.stable.mono. Downloading...
+Windows Export	Export game	2026-01-23T18:09:57.5290483Z Downloading file from https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_mono_export_templates.tpz
+Windows Export	Export game	2026-01-23T18:09:57.5310366Z [command]/usr/bin/wget -nv https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_mono_export_templates.tpz -O /home/runner/.local/share/godot/godot_templates.tpz
+Windows Export	Export game	2026-01-23T18:10:00.2251172Z 2026-01-23 18:10:00 URL:https://release-assets.githubusercontent.com/github-production-release-asset/15634981/597dac49-985f-4d66-b3f8-f8bf34563ce2?sp=r&sv=2018-11-09&sr=b&spr=https&se=2026-01-23T18%3A58%3A10Z&rscd=attachment%3B+filename%3DGodot_v4.3-stable_mono_export_templates.tpz&rsct=application%2Foctet-stream&skoid=96c2d410-5711-43a1-aedd-ab1947aa7ab0&sktid=398a6654-997b-47e9-b12b-9515b896b4de&skt=2026-01-23T17%3A57%3A54Z&ske=2026-01-23T18%3A58%3A10Z&sks=b&skv=2018-11-09&sig=MFwhI4C2PyF2sasNoGMPFEudqzMB5vBVr1MESEdKbuo%3D&jwt=*** [1002307334/1002307334] -> "/home/runner/.local/share/godot/godot_templates.tpz" [1]
+Windows Export	Export game	2026-01-23T18:10:00.2277782Z [command]/usr/bin/unzip -o -j /home/runner/.local/share/godot/godot_templates.tpz -d /home/runner/.local/share/godot/export_templates/4.3.stable.mono
+Windows Export	Export game	2026-01-23T18:10:00.2306870Z Archive:  /home/runner/.local/share/godot/godot_templates.tpz
+Windows Export	Export game	2026-01-23T18:10:01.2159544Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/android_debug.apk  
+Windows Export	Export game	2026-01-23T18:10:01.7976784Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/android_release.apk  
+Windows Export	Export game	2026-01-23T18:10:02.7708198Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/android_source.zip  
+Windows Export	Export game	2026-01-23T18:10:03.8682861Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/ios.zip  
+Windows Export	Export game	2026-01-23T18:10:04.2957340Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/linux_debug.arm32  
+Windows Export	Export game	2026-01-23T18:10:04.7493204Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/linux_debug.arm64  
+Windows Export	Export game	2026-01-23T18:10:05.2354265Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/linux_debug.x86_32  
+Windows Export	Export game	2026-01-23T18:10:05.7146634Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/linux_debug.x86_64  
+Windows Export	Export game	2026-01-23T18:10:06.1596495Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/linux_release.arm32  
+Windows Export	Export game	2026-01-23T18:10:06.6192813Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/linux_release.arm64  
+Windows Export	Export game	2026-01-23T18:10:07.1257040Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/linux_release.x86_32  
+Windows Export	Export game	2026-01-23T18:10:07.6165124Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/linux_release.x86_64  
+Windows Export	Export game	2026-01-23T18:10:08.2493018Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/macos.zip  
+Windows Export	Export game	2026-01-23T18:10:08.2494674Z  extracting: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/version.txt  
+Windows Export	Export game	2026-01-23T18:10:08.2503024Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/windows_debug_arm64_console.exe  
+Windows Export	Export game	2026-01-23T18:10:08.8181680Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/windows_debug_arm64.exe  
+Windows Export	Export game	2026-01-23T18:10:08.8194502Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/windows_debug_x86_32_console.exe  
+Windows Export	Export game	2026-01-23T18:10:09.4760726Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/windows_debug_x86_32.exe  
+Windows Export	Export game	2026-01-23T18:10:09.4772901Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/windows_debug_x86_64_console.exe  
+Windows Export	Export game	2026-01-23T18:10:10.0865770Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/windows_debug_x86_64.exe  
+Windows Export	Export game	2026-01-23T18:10:10.0876104Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/windows_release_arm64_console.exe  
+Windows Export	Export game	2026-01-23T18:10:10.6123709Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/windows_release_arm64.exe  
+Windows Export	Export game	2026-01-23T18:10:10.6134903Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/windows_release_x86_32_console.exe  
+Windows Export	Export game	2026-01-23T18:10:11.2717624Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/windows_release_x86_32.exe  
+Windows Export	Export game	2026-01-23T18:10:11.2729815Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/windows_release_x86_64_console.exe  
+Windows Export	Export game	2026-01-23T18:10:11.8922195Z   inflating: /home/runner/.local/share/godot/export_templates/4.3.stable.mono/windows_release_x86_64.exe  
+Windows Export	Export game	2026-01-23T18:10:11.8932330Z ##[endgroup]
+Windows Export	Export game	2026-01-23T18:10:11.8933374Z ##[group]🔍 Adding Editor Settings
+Windows Export	Export game	2026-01-23T18:10:11.8948338Z Wrote editor settings to /home/runner/.config/godot/editor_settings-4.tres
+Windows Export	Export game	2026-01-23T18:10:11.8949276Z ##[endgroup]
+Windows Export	Export game	2026-01-23T18:10:11.8951490Z ##[group]📝 Configuring android export
+Windows Export	Export game	2026-01-23T18:10:11.8952224Z Made gradlew executable.
+Windows Export	Export game	2026-01-23T18:10:11.8952883Z ##[endgroup]
+Windows Export	Export game	2026-01-23T18:10:11.8953653Z ##[group]🎲 Import project
+Windows Export	Export game	2026-01-23T18:10:11.8955358Z [command]/home/runner/.local/share/godot/godot_executable/Godot_v4.3-stable_mono_linux_x86_64/Godot_v4.3-stable_mono_linux.x86_64 /home/runner/work/godot-topdown-MVP/godot-topdown-MVP/project.godot --headless --import
+Windows Export	Export game	2026-01-23T18:10:11.9135674Z Godot Engine v4.3.stable.mono.official.77dcf97d8 - https://godotengine.org
+Windows Export	Export game	2026-01-23T18:10:11.9310304Z 
+Windows Export	Export game	2026-01-23T18:10:20.8232387Z SCRIPT ERROR: Parse Error: Could not find type "Particles2D" in the current scope.
+Windows Export	Export game	2026-01-23T18:10:20.8233856Z           at: GDScript::reload (res://scripts/autoload/impact_effects_manager.gd:173)
+Windows Export	Export game	2026-01-23T18:10:20.8236104Z SCRIPT ERROR: Parse Error: Cannot infer the type of "effect" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-01-23T18:10:20.8237701Z           at: GDScript::reload (res://scripts/autoload/impact_effects_manager.gd:173)
+Windows Export	Export game	2026-01-23T18:10:20.8240186Z SCRIPT ERROR: Parse Error: Could not find type "Particles2D" in the current scope.
+Windows Export	Export game	2026-01-23T18:10:20.8241396Z           at: GDScript::reload (res://scripts/autoload/impact_effects_manager.gd:217)
+Windows Export	Export game	2026-01-23T18:10:20.8242849Z SCRIPT ERROR: Parse Error: Cannot infer the type of "effect" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-01-23T18:10:20.8244390Z           at: GDScript::reload (res://scripts/autoload/impact_effects_manager.gd:217)
+Windows Export	Export game	2026-01-23T18:10:20.8245409Z SCRIPT ERROR: Parse Error: Could not find type "Particles2D" in the current scope.
+Windows Export	Export game	2026-01-23T18:10:20.8246340Z           at: GDScript::reload (res://scripts/autoload/impact_effects_manager.gd:272)
+Windows Export	Export game	2026-01-23T18:10:20.8247520Z SCRIPT ERROR: Parse Error: Cannot infer the type of "effect" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-01-23T18:10:20.8248616Z           at: GDScript::reload (res://scripts/autoload/impact_effects_manager.gd:272)
+Windows Export	Export game	2026-01-23T18:10:20.8249846Z SCRIPT ERROR: Parse Error: Cannot infer the type of "space_state" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-01-23T18:10:20.8251000Z           at: GDScript::reload (res://scripts/autoload/impact_effects_manager.gd:394)
+Windows Export	Export game	2026-01-23T18:10:20.8252431Z SCRIPT ERROR: Parse Error: Cannot infer the type of "result" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-01-23T18:10:20.8253620Z           at: GDScript::reload (res://scripts/autoload/impact_effects_manager.gd:404)
+Windows Export	Export game	2026-01-23T18:10:20.8254798Z ERROR: Failed to load script "res://scripts/autoload/impact_effects_manager.gd" with error "Parse error".
+Windows Export	Export game	2026-01-23T18:10:20.8255713Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	Export game	2026-01-23T18:10:20.8256734Z ERROR: Failed to create an autoload, script 'res://scripts/autoload/impact_effects_manager.gd' is not compiling.
+Windows Export	Export game	2026-01-23T18:10:20.8257743Z    at: _create_autoload (editor/editor_autoload_settings.cpp:417)
+Windows Export	Export game	2026-01-23T18:10:20.8297135Z SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
+Windows Export	Export game	2026-01-23T18:10:20.8298780Z           at: GDScript::reload (res://scripts/autoload/penultimate_hit_effects_manager.gd:376)
+Windows Export	Export game	2026-01-23T18:10:20.8300179Z SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
+Windows Export	Export game	2026-01-23T18:10:20.8301420Z           at: GDScript::reload (res://scripts/autoload/penultimate_hit_effects_manager.gd:377)
+Windows Export	Export game	2026-01-23T18:10:20.8302736Z SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
+Windows Export	Export game	2026-01-23T18:10:20.8303478Z           at: GDScript::reload (res://scripts/autoload/penultimate_hit_effects_manager.gd:378)
+Windows Export	Export game	2026-01-23T18:10:20.8304180Z ERROR: Failed to load script "res://scripts/autoload/penultimate_hit_effects_manager.gd" with error "Parse error".
+Windows Export	Export game	2026-01-23T18:10:20.8304707Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	Export game	2026-01-23T18:10:20.8307313Z ERROR: Failed to create an autoload, script 'res://scripts/autoload/penultimate_hit_effects_manager.gd' is not compiling.
+Windows Export	Export game	2026-01-23T18:10:20.8308351Z    at: _create_autoload (editor/editor_autoload_settings.cpp:417)
+Windows Export	Export game	2026-01-23T18:10:20.8428116Z SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
+Windows Export	Export game	2026-01-23T18:10:20.8429042Z           at: GDScript::reload (res://scripts/autoload/last_chance_effects_manager.gd:678)
+Windows Export	Export game	2026-01-23T18:10:20.8430094Z SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
+Windows Export	Export game	2026-01-23T18:10:20.8431443Z           at: GDScript::reload (res://scripts/autoload/last_chance_effects_manager.gd:679)
+Windows Export	Export game	2026-01-23T18:10:20.8432680Z SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
+Windows Export	Export game	2026-01-23T18:10:20.8433522Z           at: GDScript::reload (res://scripts/autoload/last_chance_effects_manager.gd:680)
+Windows Export	Export game	2026-01-23T18:10:20.8434281Z ERROR: Failed to load script "res://scripts/autoload/last_chance_effects_manager.gd" with error "Parse error".
+Windows Export	Export game	2026-01-23T18:10:20.8434864Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	Export game	2026-01-23T18:10:20.8435737Z ERROR: Failed to create an autoload, script 'res://scripts/autoload/last_chance_effects_manager.gd' is not compiling.
+Windows Export	Export game	2026-01-23T18:10:20.8436385Z    at: _create_autoload (editor/editor_autoload_settings.cpp:417)
+Windows Export	Export game	2026-01-23T18:10:20.8744747Z ERROR: Unable to open file: res://.godot/imported/play.png-5c90e88e8136487a183a099d67a7de24.ctex.
+Windows Export	Export game	2026-01-23T18:10:20.8745829Z    at: _load_data (scene/resources/compressed_texture.cpp:41)
+Windows Export	Export game	2026-01-23T18:10:20.8747872Z ERROR: Failed loading resource: res://.godot/imported/play.png-5c90e88e8136487a183a099d67a7de24.ctex. Make sure resources have been imported by opening the project in the editor at least once.
+Windows Export	Export game	2026-01-23T18:10:20.8749160Z    at: _load (core/io/resource_loader.cpp:283)
+Windows Export	Export game	2026-01-23T18:10:20.8750099Z ERROR: Failed loading resource: res://addons/gut/gui/play.png. Make sure resources have been imported by opening the project in the editor at least once.
+Windows Export	Export game	2026-01-23T18:10:20.8751516Z    at: _load (core/io/resource_loader.cpp:283)
+Windows Export	Export game	2026-01-23T18:10:20.8752785Z ERROR: Unable to open file: res://.godot/imported/arrow.png-2b5b2d838b5b3467cf300ac2da1630d9.ctex.
+Windows Export	Export game	2026-01-23T18:10:20.8753456Z    at: _load_data (scene/resources/compressed_texture.cpp:41)
+Windows Export	Export game	2026-01-23T18:10:20.8754709Z ERROR: Failed loading resource: res://.godot/imported/arrow.png-2b5b2d838b5b3467cf300ac2da1630d9.ctex. Make sure resources have been imported by opening the project in the editor at least once.
+Windows Export	Export game	2026-01-23T18:10:20.8755758Z    at: _load (core/io/resource_loader.cpp:283)
+Windows Export	Export game	2026-01-23T18:10:20.8756687Z ERROR: Failed loading resource: res://addons/gut/gui/arrow.png. Make sure resources have been imported by opening the project in the editor at least once.
+Windows Export	Export game	2026-01-23T18:10:20.8757544Z    at: _load (core/io/resource_loader.cpp:283)
+Windows Export	Export game	2026-01-23T18:10:20.8758026Z ERROR: Unable to open file: res://.godot/imported/play.png-5c90e88e8136487a183a099d67a7de24.ctex.
+Windows Export	Export game	2026-01-23T18:10:20.8758531Z    at: _load_data (scene/resources/compressed_texture.cpp:41)
+Windows Export	Export game	2026-01-23T18:10:20.8759424Z ERROR: Failed loading resource: res://.godot/imported/play.png-5c90e88e8136487a183a099d67a7de24.ctex. Make sure resources have been imported by opening the project in the editor at least once.
+Windows Export	Export game	2026-01-23T18:10:20.8760209Z    at: _load (core/io/resource_loader.cpp:283)
+Windows Export	Export game	2026-01-23T18:10:20.8760904Z ERROR: Failed loading resource: res://addons/gut/gui/play.png. Make sure resources have been imported by opening the project in the editor at least once.
+Windows Export	Export game	2026-01-23T18:10:20.8761525Z    at: _load (core/io/resource_loader.cpp:283)
+Windows Export	Export game	2026-01-23T18:10:21.2680913Z ERROR: Unable to open file: res://.godot/imported/red.png-47a557c3922e800f76686bc1a4ad0c3c.ctex.
+Windows Export	Export game	2026-01-23T18:10:21.2682655Z    at: _load_data (scene/resources/compressed_texture.cpp:41)
+Windows Export	Export game	2026-01-23T18:10:21.2684547Z ERROR: Failed loading resource: res://.godot/imported/red.png-47a557c3922e800f76686bc1a4ad0c3c.ctex. Make sure resources have been imported by opening the project in the editor at least once.
+Windows Export	Export game	2026-01-23T18:10:21.2685866Z    at: _load (core/io/resource_loader.cpp:283)
+Windows Export	Export game	2026-01-23T18:10:21.2687057Z ERROR: Failed loading resource: res://addons/gut/images/red.png. Make sure resources have been imported by opening the project in the editor at least once.
+Windows Export	Export game	2026-01-23T18:10:21.2688123Z    at: _load (core/io/resource_loader.cpp:283)
+Windows Export	Export game	2026-01-23T18:10:21.2688912Z ERROR: Unable to open file: res://.godot/imported/green.png-e3a17091688e10a7013279b38edc7f8a.ctex.
+Windows Export	Export game	2026-01-23T18:10:21.2689713Z    at: _load_data (scene/resources/compressed_texture.cpp:41)
+Windows Export	Export game	2026-01-23T18:10:21.2690913Z ERROR: Failed loading resource: res://.godot/imported/green.png-e3a17091688e10a7013279b38edc7f8a.ctex. Make sure resources have been imported by opening the project in the editor at least once.
+Windows Export	Export game	2026-01-23T18:10:21.2692248Z    at: _load (core/io/resource_loader.cpp:283)
+Windows Export	Export game	2026-01-23T18:10:21.2693199Z ERROR: Failed loading resource: res://addons/gut/images/green.png. Make sure resources have been imported by opening the project in the editor at least once.
+Windows Export	Export game	2026-01-23T18:10:21.2694051Z    at: _load (core/io/resource_loader.cpp:283)
+Windows Export	Export game	2026-01-23T18:10:21.2694967Z ERROR: Unable to open file: res://.godot/imported/yellow.png-b3cf3d463958a169d909273d3d742052.ctex.
+Windows Export	Export game	2026-01-23T18:10:21.2695612Z    at: _load_data (scene/resources/compressed_texture.cpp:41)
+Windows Export	Export game	2026-01-23T18:10:21.2696562Z ERROR: Failed loading resource: res://.godot/imported/yellow.png-b3cf3d463958a169d909273d3d742052.ctex. Make sure resources have been imported by opening the project in the editor at least once.
+Windows Export	Export game	2026-01-23T18:10:21.2697332Z    at: _load (core/io/resource_loader.cpp:283)
+Windows Export	Export game	2026-01-23T18:10:21.2698033Z ERROR: Failed loading resource: res://addons/gut/images/yellow.png. Make sure resources have been imported by opening the project in the editor at least once.
+Windows Export	Export game	2026-01-23T18:10:21.2698667Z    at: _load (core/io/resource_loader.cpp:283)
+Windows Export	Export game	2026-01-23T18:10:21.2929833Z ERROR:  Config File "user://gut_temp_directory/gut_editor_config.json" does not exist.
+Windows Export	Export game	2026-01-23T18:10:21.4081281Z ERROR: Unable to open file: res://.godot/imported/red.png-47a557c3922e800f76686bc1a4ad0c3c.ctex.
+Windows Export	Export game	2026-01-23T18:10:21.4082783Z    at: _load_data (scene/resources/compressed_texture.cpp:41)
+Windows Export	Export game	2026-01-23T18:10:21.4085147Z ERROR: Failed loading resource: res://.godot/imported/red.png-47a557c3922e800f76686bc1a4ad0c3c.ctex. Make sure resources have been imported by opening the project in the editor at least once.
+Windows Export	Export game	2026-01-23T18:10:21.4087153Z    at: _load (core/io/resource_loader.cpp:283)
+Windows Export	Export game	2026-01-23T18:10:21.4088567Z ERROR: Failed loading resource: res://addons/gut/images/red.png. Make sure resources have been imported by opening the project in the editor at least once.
+Windows Export	Export game	2026-01-23T18:10:21.4089689Z    at: _load (core/io/resource_loader.cpp:283)
+Windows Export	Export game	2026-01-23T18:10:21.4090583Z GUT got some new images that are not imported yet.  Please restart Godot.
+Windows Export	Export game	2026-01-23T18:10:22.2003968Z SCRIPT ERROR: Parse Error: Could not find type "Particles2D" in the current scope.
+Windows Export	Export game	2026-01-23T18:10:22.2005066Z           at: GDScript::reload (res://scripts/autoload/impact_effects_manager.gd:173)
+Windows Export	Export game	2026-01-23T18:10:22.2006247Z SCRIPT ERROR: Parse Error: Cannot infer the type of "effect" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-01-23T18:10:22.2007296Z           at: GDScript::reload (res://scripts/autoload/impact_effects_manager.gd:173)
+Windows Export	Export game	2026-01-23T18:10:22.2008281Z SCRIPT ERROR: Parse Error: Could not find type "Particles2D" in the current scope.
+Windows Export	Export game	2026-01-23T18:10:22.2009204Z           at: GDScript::reload (res://scripts/autoload/impact_effects_manager.gd:217)
+Windows Export	Export game	2026-01-23T18:10:22.2010378Z SCRIPT ERROR: Parse Error: Cannot infer the type of "effect" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-01-23T18:10:22.2011453Z           at: GDScript::reload (res://scripts/autoload/impact_effects_manager.gd:217)
+Windows Export	Export game	2026-01-23T18:10:22.2012656Z SCRIPT ERROR: Parse Error: Could not find type "Particles2D" in the current scope.
+Windows Export	Export game	2026-01-23T18:10:22.2013562Z           at: GDScript::reload (res://scripts/autoload/impact_effects_manager.gd:272)
+Windows Export	Export game	2026-01-23T18:10:22.2014705Z SCRIPT ERROR: Parse Error: Cannot infer the type of "effect" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-01-23T18:10:22.2015768Z           at: GDScript::reload (res://scripts/autoload/impact_effects_manager.gd:272)
+Windows Export	Export game	2026-01-23T18:10:22.2016930Z SCRIPT ERROR: Parse Error: Cannot infer the type of "space_state" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-01-23T18:10:22.2018038Z           at: GDScript::reload (res://scripts/autoload/impact_effects_manager.gd:394)
+Windows Export	Export game	2026-01-23T18:10:22.2019182Z SCRIPT ERROR: Parse Error: Cannot infer the type of "result" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-01-23T18:10:22.2020212Z           at: GDScript::reload (res://scripts/autoload/impact_effects_manager.gd:404)
+Windows Export	Export game	2026-01-23T18:10:22.2020910Z SCRIPT ERROR: Compile Error: 
+Windows Export	Export game	2026-01-23T18:10:22.2021495Z           at: GDScript::reload (res://experiments/test_blood_splatter_logic.gd:-1)
+Windows Export	Export game	2026-01-23T18:10:22.2022743Z ERROR: Failed to load script "res://experiments/test_blood_splatter_logic.gd" with error "Parse error".
+Windows Export	Export game	2026-01-23T18:10:22.2023930Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	Export game	2026-01-23T18:10:22.2861579Z SCRIPT ERROR: Parse Error: Cannot infer the type of "target" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-01-23T18:10:22.2862973Z           at: GDScript::reload (res://scripts/ai/states/idle_state.gd:57)
+Windows Export	Export game	2026-01-23T18:10:22.2864100Z SCRIPT ERROR: Parse Error: Cannot infer the type of "direction" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-01-23T18:10:22.2865102Z           at: GDScript::reload (res://scripts/ai/states/idle_state.gd:58)
+Windows Export	Export game	2026-01-23T18:10:22.2866045Z ERROR: Failed to load script "res://scripts/ai/states/idle_state.gd" with error "Parse error".
+Windows Export	Export game	2026-01-23T18:10:22.2866873Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	Export game	2026-01-23T18:10:22.2884354Z SCRIPT ERROR: Parse Error: Cannot infer the type of "direction" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-01-23T18:10:22.2885475Z           at: GDScript::reload (res://scripts/ai/states/pursuing_state.gd:63)
+Windows Export	Export game	2026-01-23T18:10:22.2886629Z SCRIPT ERROR: Parse Error: Cannot infer the type of "direction" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-01-23T18:10:22.2887635Z           at: GDScript::reload (res://scripts/ai/states/pursuing_state.gd:91)
+Windows Export	Export game	2026-01-23T18:10:22.2888635Z ERROR: Failed to load script "res://scripts/ai/states/pursuing_state.gd" with error "Parse error".
+Windows Export	Export game	2026-01-23T18:10:22.2889533Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	Export game	2026-01-23T18:10:22.3256682Z SCRIPT ERROR: Parse Error: Cannot infer the type of "new_max_ammo" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-01-23T18:10:22.3257853Z           at: GDScript::reload (res://scripts/characters/player.gd:1021)
+Windows Export	Export game	2026-01-23T18:10:22.3266360Z ERROR: Failed to load script "res://scripts/characters/player.gd" with error "Parse error".
+Windows Export	Export game	2026-01-23T18:10:22.3267186Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	Export game	2026-01-23T18:10:22.3402960Z SCRIPT ERROR: Parse Error: Cannot infer the type of "parent" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-01-23T18:10:22.3404107Z           at: GDScript::reload (res://scripts/components/vision_component.gd:124)
+Windows Export	Export game	2026-01-23T18:10:22.3405193Z ERROR: Failed to load script "res://scripts/components/vision_component.gd" with error "Parse error".
+Windows Export	Export game	2026-01-23T18:10:22.3406030Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	Export game	2026-01-23T18:10:22.3444652Z SCRIPT ERROR: Parse Error: Could not find base class "Particles2D".
+Windows Export	Export game	2026-01-23T18:10:22.3445578Z           at: GDScript::reload (res://scripts/effects/effect_cleanup.gd:1)
+Windows Export	Export game	2026-01-23T18:10:22.3446555Z ERROR: Failed to load script "res://scripts/effects/effect_cleanup.gd" with error "Parse error".
+Windows Export	Export game	2026-01-23T18:10:22.3447383Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	Export game	2026-01-23T18:10:22.4274489Z WARNING: res://scenes/ui/ArmoryMenu.tscn:4 - ext_resource, invalid UID: uid://c5qm16rfltop - using text path instead: res://assets/sprites/weapons/m16_rifle.png
+Windows Export	Export game	2026-01-23T18:10:22.4275564Z      at: load (scene/resources/resource_format_text.cpp:453)
+Windows Export	Export game	2026-01-23T18:10:22.6270952Z SCRIPT ERROR: Parse Error: Function "assert_ge()" not found in base self.
+Windows Export	Export game	2026-01-23T18:10:22.6271829Z           at: GDScript::reload (res://tests/unit/test_effects.gd:395)
+Windows Export	Export game	2026-01-23T18:10:22.6272686Z SCRIPT ERROR: Parse Error: Function "assert_le()" not found in base self.
+Windows Export	Export game	2026-01-23T18:10:22.6273242Z           at: GDScript::reload (res://tests/unit/test_effects.gd:396)
+Windows Export	Export game	2026-01-23T18:10:22.6273828Z SCRIPT ERROR: Parse Error: Function "assert_ge()" not found in base self.
+Windows Export	Export game	2026-01-23T18:10:22.6274376Z           at: GDScript::reload (res://tests/unit/test_effects.gd:397)
+Windows Export	Export game	2026-01-23T18:10:22.6274962Z SCRIPT ERROR: Parse Error: Function "assert_le()" not found in base self.
+Windows Export	Export game	2026-01-23T18:10:22.6275536Z           at: GDScript::reload (res://tests/unit/test_effects.gd:398)
+Windows Export	Export game	2026-01-23T18:10:22.6279657Z ERROR: Failed to load script "res://tests/unit/test_effects.gd" with error "Parse error".
+Windows Export	Export game	2026-01-23T18:10:22.6280497Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	Export game	2026-01-23T18:10:22.6514025Z SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
+Windows Export	Export game	2026-01-23T18:10:22.6515621Z           at: GDScript::reload (res://tests/unit/test_enemy.gd:281)
+Windows Export	Export game	2026-01-23T18:10:22.6526700Z ERROR: Failed to load script "res://tests/unit/test_enemy.gd" with error "Parse error".
+Windows Export	Export game	2026-01-23T18:10:22.6527546Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	Export game	2026-01-23T18:10:22.7190091Z SCRIPT ERROR: Parse Error: The function signature doesn't match the parent. Parent signature is "has_method(StringName) -> bool".
+Windows Export	Export game	2026-01-23T18:10:22.7191652Z           at: GDScript::reload (res://tests/unit/test_frag_grenade.gd:37)
+Windows Export	Export game	2026-01-23T18:10:22.7193512Z SCRIPT ERROR: Parse Error: The method "has_method()" overrides a method from native class "Object". This won't be called by the engine and may not work as expected. (Warning treated as error.)
+Windows Export	Export game	2026-01-23T18:10:22.7194567Z           at: GDScript::reload (res://tests/unit/test_frag_grenade.gd:37)
+Windows Export	Export game	2026-01-23T18:10:22.7197369Z ERROR: Failed to load script "res://tests/unit/test_frag_grenade.gd" with error "Parse error".
+Windows Export	Export game	2026-01-23T18:10:22.7198253Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	Export game	2026-01-23T18:10:22.7958701Z SCRIPT ERROR: Parse Error: Function "assert_ge()" not found in base self.
+Windows Export	Export game	2026-01-23T18:10:22.7959761Z           at: GDScript::reload (res://tests/unit/test_grenade_base.gd:336)
+Windows Export	Export game	2026-01-23T18:10:22.7960610Z SCRIPT ERROR: Parse Error: Function "assert_le()" not found in base self.
+Windows Export	Export game	2026-01-23T18:10:22.7961378Z           at: GDScript::reload (res://tests/unit/test_grenade_base.gd:343)
+Windows Export	Export game	2026-01-23T18:10:22.7962446Z SCRIPT ERROR: Parse Error: Function "assert_le()" not found in base self.
+Windows Export	Export game	2026-01-23T18:10:22.7963461Z           at: GDScript::reload (res://tests/unit/test_grenade_base.gd:593)
+Windows Export	Export game	2026-01-23T18:10:22.7967062Z ERROR: Failed to load script "res://tests/unit/test_grenade_base.gd" with error "Parse error".
+Windows Export	Export game	2026-01-23T18:10:22.7968152Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	Export game	2026-01-23T18:10:22.8688776Z SCRIPT ERROR: Parse Error: Could not find type "Particles2D" in the current scope.
+Windows Export	Export game	2026-01-23T18:10:22.8690053Z           at: GDScript::reload (res://scripts/autoload/impact_effects_manager.gd:173)
+Windows Export	Export game	2026-01-23T18:10:22.8691581Z SCRIPT ERROR: Parse Error: Cannot infer the type of "effect" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-01-23T18:10:22.8693254Z           at: GDScript::reload (res://scripts/autoload/impact_effects_manager.gd:173)
+Windows Export	Export game	2026-01-23T18:10:22.8694466Z SCRIPT ERROR: Parse Error: Could not find type "Particles2D" in the current scope.
+Windows Export	Export game	2026-01-23T18:10:22.8695303Z           at: GDScript::reload (res://scripts/autoload/impact_effects_manager.gd:217)
+Windows Export	Export game	2026-01-23T18:10:22.8696421Z SCRIPT ERROR: Parse Error: Cannot infer the type of "effect" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-01-23T18:10:22.8697457Z           at: GDScript::reload (res://scripts/autoload/impact_effects_manager.gd:217)
+Windows Export	Export game	2026-01-23T18:10:22.8698346Z SCRIPT ERROR: Parse Error: Could not find type "Particles2D" in the current scope.
+Windows Export	Export game	2026-01-23T18:10:22.8699181Z           at: GDScript::reload (res://scripts/autoload/impact_effects_manager.gd:272)
+Windows Export	Export game	2026-01-23T18:10:22.8700240Z SCRIPT ERROR: Parse Error: Cannot infer the type of "effect" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-01-23T18:10:22.8701173Z           at: GDScript::reload (res://scripts/autoload/impact_effects_manager.gd:272)
+Windows Export	Export game	2026-01-23T18:10:22.8702393Z SCRIPT ERROR: Parse Error: Cannot infer the type of "space_state" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-01-23T18:10:22.8703375Z           at: GDScript::reload (res://scripts/autoload/impact_effects_manager.gd:394)
+Windows Export	Export game	2026-01-23T18:10:22.8704486Z SCRIPT ERROR: Parse Error: Cannot infer the type of "result" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-01-23T18:10:22.8705488Z           at: GDScript::reload (res://scripts/autoload/impact_effects_manager.gd:404)
+Windows Export	Export game	2026-01-23T18:10:22.8706169Z SCRIPT ERROR: Compile Error: 
+Windows Export	Export game	2026-01-23T18:10:22.8707104Z           at: GDScript::reload (res://tests/unit/test_impact_effects_manager.gd:-1)
+Windows Export	Export game	2026-01-23T18:10:22.8708129Z ERROR: Failed to load script "res://tests/unit/test_impact_effects_manager.gd" with error "Parse error".
+Windows Export	Export game	2026-01-23T18:10:22.8708988Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	Export game	2026-01-23T18:10:23.0874785Z SCRIPT ERROR: Parse Error: Function "assert_le()" not found in base self.
+Windows Export	Export game	2026-01-23T18:10:23.0875632Z           at: GDScript::reload (res://tests/unit/test_shrapnel.gd:369)
+Windows Export	Export game	2026-01-23T18:10:23.0882726Z ERROR: Failed to load script "res://tests/unit/test_shrapnel.gd" with error "Parse error".
+Windows Export	Export game	2026-01-23T18:10:23.0883497Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	Export game	2026-01-23T18:10:23.1308215Z SCRIPT ERROR: Parse Error: The function signature doesn't match the parent. Parent signature is "has_method(StringName) -> bool".
+Windows Export	Export game	2026-01-23T18:10:23.1309448Z           at: GDScript::reload (res://tests/unit/test_status_effects_manager.gd:39)
+Windows Export	Export game	2026-01-23T18:10:23.1311072Z SCRIPT ERROR: Parse Error: The method "get_instance_id()" overrides a method from native class "Object". This won't be called by the engine and may not work as expected. (Warning treated as error.)
+Windows Export	Export game	2026-01-23T18:10:23.1312748Z           at: GDScript::reload (res://tests/unit/test_status_effects_manager.gd:24)
+Windows Export	Export game	2026-01-23T18:10:23.1314283Z SCRIPT ERROR: Parse Error: The method "has_method()" overrides a method from native class "Object". This won't be called by the engine and may not work as expected. (Warning treated as error.)
+Windows Export	Export game	2026-01-23T18:10:23.1315613Z           at: GDScript::reload (res://tests/unit/test_status_effects_manager.gd:39)
+Windows Export	Export game	2026-01-23T18:10:23.1317482Z ERROR: Failed to load script "res://tests/unit/test_status_effects_manager.gd" with error "Parse error".
+Windows Export	Export game	2026-01-23T18:10:23.1318266Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	Export game	2026-01-23T18:10:24.5700703Z ##[endgroup]
+Windows Export	Export game	2026-01-23T18:10:24.5702501Z 🎯 Using project file at /home/runner/work/godot-topdown-MVP/godot-topdown-MVP/project.godot
+Windows Export	Export game	2026-01-23T18:10:24.5717696Z ##[group]1️⃣ Export binary for preset "Windows Desktop"
+Windows Export	Export game	2026-01-23T18:10:24.5727959Z [command]/home/runner/.local/share/godot/godot_executable/Godot_v4.3-stable_mono_linux_x86_64/Godot_v4.3-stable_mono_linux.x86_64 /home/runner/work/godot-topdown-MVP/godot-topdown-MVP/project.godot --headless --export-release Windows Desktop /home/runner/.local/share/godot/builds/Windows Desktop/Godot-Top-Down-Template.exe
+Windows Export	Export game	2026-01-23T18:10:24.5905651Z Godot Engine v4.3.stable.mono.official.77dcf97d8 - https://godotengine.org
+Windows Export	Export game	2026-01-23T18:10:24.6083557Z 
+Windows Export	Export game	2026-01-23T18:10:27.7589298Z SCRIPT ERROR: Parse Error: Could not find type "Particles2D" in the current scope.
+Windows Export	Export game	2026-01-23T18:10:27.7590788Z           at: GDScript::reload (res://scripts/autoload/impact_effects_manager.gd:173)
+Windows Export	Export game	2026-01-23T18:10:27.7593098Z SCRIPT ERROR: Parse Error: Cannot infer the type of "effect" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-01-23T18:10:27.7594228Z           at: GDScript::reload (res://scripts/autoload/impact_effects_manager.gd:173)
+Windows Export	Export game	2026-01-23T18:10:27.7595216Z SCRIPT ERROR: Parse Error: Could not find type "Particles2D" in the current scope.
+Windows Export	Export game	2026-01-23T18:10:27.7596198Z           at: GDScript::reload (res://scripts/autoload/impact_effects_manager.gd:217)
+Windows Export	Export game	2026-01-23T18:10:27.7597353Z SCRIPT ERROR: Parse Error: Cannot infer the type of "effect" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-01-23T18:10:27.7598395Z           at: GDScript::reload (res://scripts/autoload/impact_effects_manager.gd:217)
+Windows Export	Export game	2026-01-23T18:10:27.7599357Z SCRIPT ERROR: Parse Error: Could not find type "Particles2D" in the current scope.
+Windows Export	Export game	2026-01-23T18:10:27.7600230Z           at: GDScript::reload (res://scripts/autoload/impact_effects_manager.gd:272)
+Windows Export	Export game	2026-01-23T18:10:27.7601372Z SCRIPT ERROR: Parse Error: Cannot infer the type of "effect" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-01-23T18:10:27.7602607Z           at: GDScript::reload (res://scripts/autoload/impact_effects_manager.gd:272)
+Windows Export	Export game	2026-01-23T18:10:27.7603770Z SCRIPT ERROR: Parse Error: Cannot infer the type of "space_state" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-01-23T18:10:27.7605388Z           at: GDScript::reload (res://scripts/autoload/impact_effects_manager.gd:394)
+Windows Export	Export game	2026-01-23T18:10:27.7606526Z SCRIPT ERROR: Parse Error: Cannot infer the type of "result" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-01-23T18:10:27.7607553Z           at: GDScript::reload (res://scripts/autoload/impact_effects_manager.gd:404)
+Windows Export	Export game	2026-01-23T18:10:27.7608665Z ERROR: Failed to load script "res://scripts/autoload/impact_effects_manager.gd" with error "Parse error".
+Windows Export	Export game	2026-01-23T18:10:27.7609534Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	Export game	2026-01-23T18:10:27.7610546Z ERROR: Failed to create an autoload, script 'res://scripts/autoload/impact_effects_manager.gd' is not compiling.
+Windows Export	Export game	2026-01-23T18:10:27.7611528Z    at: _create_autoload (editor/editor_autoload_settings.cpp:417)
+Windows Export	Export game	2026-01-23T18:10:27.7646932Z SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
+Windows Export	Export game	2026-01-23T18:10:27.7649894Z           at: GDScript::reload (res://scripts/autoload/penultimate_hit_effects_manager.gd:376)
+Windows Export	Export game	2026-01-23T18:10:27.7651412Z SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
+Windows Export	Export game	2026-01-23T18:10:27.7653005Z           at: GDScript::reload (res://scripts/autoload/penultimate_hit_effects_manager.gd:377)
+Windows Export	Export game	2026-01-23T18:10:27.7654511Z SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
+Windows Export	Export game	2026-01-23T18:10:27.7656230Z           at: GDScript::reload (res://scripts/autoload/penultimate_hit_effects_manager.gd:378)
+Windows Export	Export game	2026-01-23T18:10:27.7657564Z ERROR: Failed to load script "res://scripts/autoload/penultimate_hit_effects_manager.gd" with error "Parse error".
+Windows Export	Export game	2026-01-23T18:10:27.7658593Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	Export game	2026-01-23T18:10:27.7659740Z ERROR: Failed to create an autoload, script 'res://scripts/autoload/penultimate_hit_effects_manager.gd' is not compiling.
+Windows Export	Export game	2026-01-23T18:10:27.7660849Z    at: _create_autoload (editor/editor_autoload_settings.cpp:417)
+Windows Export	Export game	2026-01-23T18:10:27.7759128Z SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
+Windows Export	Export game	2026-01-23T18:10:27.7761035Z           at: GDScript::reload (res://scripts/autoload/last_chance_effects_manager.gd:678)
+Windows Export	Export game	2026-01-23T18:10:27.7766380Z SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
+Windows Export	Export game	2026-01-23T18:10:27.7767744Z           at: GDScript::reload (res://scripts/autoload/last_chance_effects_manager.gd:679)
+Windows Export	Export game	2026-01-23T18:10:27.7769160Z SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
+Windows Export	Export game	2026-01-23T18:10:27.7770431Z           at: GDScript::reload (res://scripts/autoload/last_chance_effects_manager.gd:680)
+Windows Export	Export game	2026-01-23T18:10:27.7771644Z ERROR: Failed to load script "res://scripts/autoload/last_chance_effects_manager.gd" with error "Parse error".
+Windows Export	Export game	2026-01-23T18:10:27.7772786Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	Export game	2026-01-23T18:10:27.7773847Z ERROR: Failed to create an autoload, script 'res://scripts/autoload/last_chance_effects_manager.gd' is not compiling.
+Windows Export	Export game	2026-01-23T18:10:27.7774863Z    at: _create_autoload (editor/editor_autoload_settings.cpp:417)
+Windows Export	Export game	2026-01-23T18:10:28.2358346Z ERROR:  Config File "user://gut_temp_directory/gut_editor_config.json" does not exist.
+Windows Export	Export game	2026-01-23T18:10:28.8002339Z dotnet_publish_project: begin: Publishing .NET project... steps: 1
+Windows Export	Export game	2026-01-23T18:10:28.8003553Z 	dotnet_publish_project: step 0: Running dotnet publish
+Windows Export	Export game	2026-01-23T18:10:40.6697425Z dotnet_publish_project: end
+Windows Export	Export game	2026-01-23T18:10:40.7428774Z WARNING: Resources Modification: Could not start rcedit executable. Configure rcedit path in the Editor Settings (Export > Windows > rcedit), or disable "Application > Modify Resources" in the export preset.
+Windows Export	Export game	2026-01-23T18:10:40.7430303Z      at: add_message (editor/export/editor_export_platform.h:179)
+Windows Export	Export game	2026-01-23T18:10:40.7430752Z savepack: begin: Packing steps: 102
+Windows Export	Export game	2026-01-23T18:10:40.7713420Z 	savepack: step 2: Storing File: res://.godot/imported/AnonymousPro-Bold.ttf-9d8fef4d357af5b52cd60afbe608aa49.fontdata
+Windows Export	Export game	2026-01-23T18:10:40.7714638Z 	savepack: step 2: Storing File: res://addons/gut/fonts/AnonymousPro-Bold.ttf.import
+Windows Export	Export game	2026-01-23T18:10:40.7717140Z 	savepack: step 2: Storing File: res://.godot/imported/AnonymousPro-BoldItalic.ttf-4274bf704d3d6b9cd32c4f0754d8c83d.fontdata
+Windows Export	Export game	2026-01-23T18:10:40.7718408Z 	savepack: step 2: Storing File: res://addons/gut/fonts/AnonymousPro-BoldItalic.ttf.import
+Windows Export	Export game	2026-01-23T18:10:40.7721138Z 	savepack: step 2: Storing File: res://.godot/imported/AnonymousPro-Italic.ttf-9989590b02137b799e13d570de2a42c1.fontdata
+Windows Export	Export game	2026-01-23T18:10:40.7722388Z 	savepack: step 2: Storing File: res://addons/gut/fonts/AnonymousPro-Italic.ttf.import
+Windows Export	Export game	2026-01-23T18:10:40.7725611Z 	savepack: step 2: Storing File: res://.godot/imported/AnonymousPro-Regular.ttf-856c843fd6f89964d2ca8d8ff1724f13.fontdata
+Windows Export	Export game	2026-01-23T18:10:40.7726653Z 	savepack: step 2: Storing File: res://addons/gut/fonts/AnonymousPro-Regular.ttf.import
+Windows Export	Export game	2026-01-23T18:10:40.7728632Z 	savepack: step 3: Storing File: res://.godot/imported/CourierPrime-Bold.ttf-1f003c66d63ebed70964e7756f4fa235.fontdata
+Windows Export	Export game	2026-01-23T18:10:40.7729680Z 	savepack: step 3: Storing File: res://addons/gut/fonts/CourierPrime-Bold.ttf.import
+Windows Export	Export game	2026-01-23T18:10:40.7732706Z 	savepack: step 3: Storing File: res://.godot/imported/CourierPrime-BoldItalic.ttf-65ebcc61dd5e1dfa8f96313da4ad7019.fontdata
+Windows Export	Export game	2026-01-23T18:10:40.7734032Z 	savepack: step 3: Storing File: res://addons/gut/fonts/CourierPrime-BoldItalic.ttf.import
+Windows Export	Export game	2026-01-23T18:10:40.7736798Z 	savepack: step 3: Storing File: res://.godot/imported/CourierPrime-Italic.ttf-baa9156a73770735a0f72fb20b907112.fontdata
+Windows Export	Export game	2026-01-23T18:10:40.7737719Z 	savepack: step 3: Storing File: res://addons/gut/fonts/CourierPrime-Italic.ttf.import
+Windows Export	Export game	2026-01-23T18:10:40.7739669Z 	savepack: step 3: Storing File: res://.godot/imported/CourierPrime-Regular.ttf-3babe7e4a7a588dfc9a84c14b4f1fe23.fontdata
+Windows Export	Export game	2026-01-23T18:10:40.7740547Z 	savepack: step 3: Storing File: res://addons/gut/fonts/CourierPrime-Regular.ttf.import
+Windows Export	Export game	2026-01-23T18:10:40.7744761Z 	savepack: step 4: Storing File: res://.godot/imported/LobsterTwo-Bold.ttf-7c7f734103b58a32491a4788186f3dcb.fontdata
+Windows Export	Export game	2026-01-23T18:10:40.7745725Z 	savepack: step 4: Storing File: res://addons/gut/fonts/LobsterTwo-Bold.ttf.import
+Windows Export	Export game	2026-01-23T18:10:40.7749946Z 	savepack: step 4: Storing File: res://.godot/imported/LobsterTwo-BoldItalic.ttf-227406a33e84448e6aa974176016de19.fontdata
+Windows Export	Export game	2026-01-23T18:10:40.7750914Z 	savepack: step 4: Storing File: res://addons/gut/fonts/LobsterTwo-BoldItalic.ttf.import
+Windows Export	Export game	2026-01-23T18:10:40.7755117Z 	savepack: step 4: Storing File: res://.godot/imported/LobsterTwo-Italic.ttf-f93abf6c25390c85ad5fb6c4ee75159e.fontdata
+Windows Export	Export game	2026-01-23T18:10:40.7756041Z 	savepack: step 4: Storing File: res://addons/gut/fonts/LobsterTwo-Italic.ttf.import
+Windows Export	Export game	2026-01-23T18:10:40.7760223Z 	savepack: step 5: Storing File: res://.godot/imported/LobsterTwo-Regular.ttf-f3fcfa01cd671c8da433dd875d0fe04b.fontdata
+Windows Export	Export game	2026-01-23T18:10:40.7761400Z 	savepack: step 5: Storing File: res://addons/gut/fonts/LobsterTwo-Regular.ttf.import
+Windows Export	Export game	2026-01-23T18:10:40.7762831Z 	savepack: step 5: Storing File: res://.godot/imported/arrow.png-2b5b2d838b5b3467cf300ac2da1630d9.ctex
+Windows Export	Export game	2026-01-23T18:10:40.7763713Z 	savepack: step 5: Storing File: res://addons/gut/gui/arrow.png.import
+Windows Export	Export game	2026-01-23T18:10:40.7770050Z 	savepack: step 5: Storing File: res://addons/gut/gui/BottomPanelShortcuts.gdc
+Windows Export	Export game	2026-01-23T18:10:40.7882245Z 	savepack: step 5: Storing File: res://.godot/exported/133200997/export-7f03a9afb93117c1bd7fd7b5c458d006-BottomPanelShortcuts.scn
+Windows Export	Export game	2026-01-23T18:10:40.7884974Z 	savepack: step 6: Storing File: res://addons/gut/gui/editor_globals.gdc
+Windows Export	Export game	2026-01-23T18:10:40.7899874Z 	savepack: step 6: Storing File: res://addons/gut/gui/GutBottomPanel.gdc
+Windows Export	Export game	2026-01-23T18:10:40.8156386Z 	savepack: step 6: Storing File: res://.godot/exported/133200997/export-8386f4bb580e16d6c15d474a2f0091ee-GutBottomPanel.scn
+Windows Export	Export game	2026-01-23T18:10:40.8167734Z 	savepack: step 7: Storing File: res://addons/gut/gui/GutControl.gdc
+Windows Export	Export game	2026-01-23T18:10:40.8513611Z 	savepack: step 7: Storing File: res://.godot/exported/133200997/export-26e9e30cc7f4a2376e8aa94aba7b910a-GutControl.scn
+Windows Export	Export game	2026-01-23T18:10:40.8520381Z 	savepack: step 7: Storing File: res://addons/gut/gui/GutRunner.gdc
+Windows Export	Export game	2026-01-23T18:10:40.8539883Z 	savepack: step 7: Storing File: res://.godot/exported/133200997/export-a6635ec71365a14084f2ea876d1e36ed-GutRunner.scn
+Windows Export	Export game	2026-01-23T18:10:40.8545231Z 	savepack: step 8: Storing File: res://.godot/exported/133200997/export-1baa7cbab7e02d873ddf15d535bf6df6-GutSceneTheme.res
+Windows Export	Export game	2026-01-23T18:10:40.8559417Z 	savepack: step 8: Storing File: res://addons/gut/gui/gut_config_gui.gdc
+Windows Export	Export game	2026-01-23T18:10:40.8567885Z 	savepack: step 8: Storing File: res://addons/gut/gui/gut_gui.gdc
+Windows Export	Export game	2026-01-23T18:10:40.8572295Z 	savepack: step 9: Storing File: res://addons/gut/gui/gut_user_preferences.gdc
+Windows Export	Export game	2026-01-23T18:10:40.8632447Z 	savepack: step 9: Storing File: res://.godot/exported/133200997/export-d44343f2a7581a7edb4b241fb4052588-MinGui.scn
+Windows Export	Export game	2026-01-23T18:10:40.8690999Z 	savepack: step 9: Storing File: res://.godot/exported/133200997/export-6304928bc07bf73a42a2a313e2981be7-NormalGui.scn
+Windows Export	Export game	2026-01-23T18:10:40.8704475Z 	savepack: step 9: Storing File: res://addons/gut/gui/OutputText.gdc
+Windows Export	Export game	2026-01-23T18:10:41.2101568Z 	savepack: step 10: Storing File: res://.godot/exported/133200997/export-23ab0e44de98fa806ae0e6483b7358fb-OutputText.scn
+Windows Export	Export game	2026-01-23T18:10:41.2114209Z 	savepack: step 10: Storing File: res://addons/gut/gui/panel_controls.gdc
+Windows Export	Export game	2026-01-23T18:10:41.2116870Z 	savepack: step 10: Storing File: res://.godot/imported/play.png-5c90e88e8136487a183a099d67a7de24.ctex
+Windows Export	Export game	2026-01-23T18:10:41.2118124Z 	savepack: step 10: Storing File: res://addons/gut/gui/play.png.import
+Windows Export	Export game	2026-01-23T18:10:41.2122363Z 	savepack: step 10: Storing File: res://addons/gut/gui/ResizeHandle.gdc
+Windows Export	Export game	2026-01-23T18:10:41.2130245Z 	savepack: step 11: Storing File: res://.godot/exported/133200997/export-482904b7140dd0cc672f657fd7ce2fef-ResizeHandle.scn
+Windows Export	Export game	2026-01-23T18:10:41.2144080Z 	savepack: step 11: Storing File: res://addons/gut/gui/ResultsTree.gdc
+Windows Export	Export game	2026-01-23T18:10:41.2196092Z 	savepack: step 11: Storing File: res://.godot/exported/133200997/export-fe3acf32e8ed4a9564381bea2f291b91-ResultsTree.scn
+Windows Export	Export game	2026-01-23T18:10:41.2202254Z 	savepack: step 12: Storing File: res://addons/gut/gui/RunAtCursor.gdc
+Windows Export	Export game	2026-01-23T18:10:41.2223854Z 	savepack: step 12: Storing File: res://.godot/exported/133200997/export-2587591ec4b27857073360f2a05c39c6-RunAtCursor.scn
+Windows Export	Export game	2026-01-23T18:10:41.2232391Z 	savepack: step 12: Storing File: res://addons/gut/gui/RunResults.gdc
+Windows Export	Export game	2026-01-23T18:10:41.2280125Z 	savepack: step 12: Storing File: res://.godot/exported/133200997/export-c8a40db1d8b2c26578d8c30ddc0045e5-RunResults.scn
+Windows Export	Export game	2026-01-23T18:10:41.2287891Z 	savepack: step 13: Storing File: res://addons/gut/gui/script_text_editor_controls.gdc
+Windows Export	Export game	2026-01-23T18:10:41.2293886Z 	savepack: step 13: Storing File: res://.godot/exported/133200997/export-75699124adbc9dbed8ede8495639b2f5-Settings.scn
+Windows Export	Export game	2026-01-23T18:10:41.2299185Z 	savepack: step 13: Storing File: res://addons/gut/gui/ShortcutButton.gdc
+Windows Export	Export game	2026-01-23T18:10:41.2318536Z 	savepack: step 14: Storing File: res://.godot/exported/133200997/export-7b81c37238cfeabde6cd329be7d7ac27-ShortcutButton.scn
+Windows Export	Export game	2026-01-23T18:10:41.2320301Z 	savepack: step 14: Storing File: res://.godot/imported/Folder.svg-caa50e6a0be9d456fd81991dfb537916.ctex
+Windows Export	Export game	2026-01-23T18:10:41.2321439Z 	savepack: step 14: Storing File: res://addons/gut/images/Folder.svg.import
+Windows Export	Export game	2026-01-23T18:10:41.2323185Z 	savepack: step 14: Storing File: res://.godot/imported/green.png-e3a17091688e10a7013279b38edc7f8a.ctex
+Windows Export	Export game	2026-01-23T18:10:41.2324288Z 	savepack: step 14: Storing File: res://addons/gut/images/green.png.import
+Windows Export	Export game	2026-01-23T18:10:41.2325904Z 	savepack: step 14: Storing File: res://.godot/imported/red.png-47a557c3922e800f76686bc1a4ad0c3c.ctex
+Windows Export	Export game	2026-01-23T18:10:41.2327018Z 	savepack: step 14: Storing File: res://addons/gut/images/red.png.import
+Windows Export	Export game	2026-01-23T18:10:41.2328571Z 	savepack: step 15: Storing File: res://.godot/imported/Script.svg-34c66aae9c985e3e0470426acbbcda04.ctex
+Windows Export	Export game	2026-01-23T18:10:41.2329622Z 	savepack: step 15: Storing File: res://addons/gut/images/Script.svg.import
+Windows Export	Export game	2026-01-23T18:10:41.2331056Z 	savepack: step 15: Storing File: res://.godot/imported/yellow.png-b3cf3d463958a169d909273d3d742052.ctex
+Windows Export	Export game	2026-01-23T18:10:41.2332283Z 	savepack: step 15: Storing File: res://addons/gut/images/yellow.png.import
+Windows Export	Export game	2026-01-23T18:10:41.2334544Z 	savepack: step 15: Storing File: res://addons/gut/autofree.gdc
+Windows Export	Export game	2026-01-23T18:10:41.2338254Z 	savepack: step 16: Storing File: res://addons/gut/awaiter.gdc
+Windows Export	Export game	2026-01-23T18:10:41.2345981Z 	savepack: step 16: Storing File: res://addons/gut/collected_script.gdc
+Windows Export	Export game	2026-01-23T18:10:41.2350296Z 	savepack: step 16: Storing File: res://addons/gut/collected_test.gdc
+Windows Export	Export game	2026-01-23T18:10:41.2356606Z 	savepack: step 16: Storing File: res://addons/gut/comparator.gdc
+Windows Export	Export game	2026-01-23T18:10:41.2359782Z 	savepack: step 17: Storing File: res://addons/gut/compare_result.gdc
+Windows Export	Export game	2026-01-23T18:10:41.2363694Z 	savepack: step 17: Storing File: res://addons/gut/diff_formatter.gdc
+Windows Export	Export game	2026-01-23T18:10:41.2370589Z 	savepack: step 17: Storing File: res://addons/gut/diff_tool.gdc
+Windows Export	Export game	2026-01-23T18:10:41.2383539Z 	savepack: step 17: Storing File: res://addons/gut/doubler.gdc
+Windows Export	Export game	2026-01-23T18:10:41.2387267Z 	savepack: step 18: Storing File: res://addons/gut/double_tools.gdc
+Windows Export	Export game	2026-01-23T18:10:41.2432641Z 	savepack: step 18: Storing File: res://addons/gut/gut.gdc
+Windows Export	Export game	2026-01-23T18:10:41.2438271Z 	savepack: step 18: Storing File: res://addons/gut/GutScene.gdc
+Windows Export	Export game	2026-01-23T18:10:41.2460344Z 	savepack: step 19: Storing File: res://.godot/exported/133200997/export-2f0cb05a5e71328ea0af1eb4f93c4e22-GutScene.scn
+Windows Export	Export game	2026-01-23T18:10:41.2475154Z 	savepack: step 19: Storing File: res://addons/gut/gut_cmdln.gdc
+Windows Export	Export game	2026-01-23T18:10:41.2482622Z 	savepack: step 19: Storing File: res://addons/gut/gut_config.gdc
+Windows Export	Export game	2026-01-23T18:10:41.2486120Z 	savepack: step 19: Storing File: res://addons/gut/gut_plugin.gdc
+Windows Export	Export game	2026-01-23T18:10:41.2490502Z 	savepack: step 20: Storing File: res://addons/gut/gut_to_move.gdc
+Windows Export	Export game	2026-01-23T18:10:41.2493046Z 	savepack: step 20: Storing File: res://addons/gut/gut_vscode_debugger.gdc
+Windows Export	Export game	2026-01-23T18:10:41.2495216Z 	savepack: step 20: Storing File: res://addons/gut/hook_script.gdc
+Windows Export	Export game	2026-01-23T18:10:41.2497596Z 	savepack: step 21: Storing File: res://.godot/imported/icon.png-91b084043b8aaf2f1c906e7b9fa92969.ctex
+Windows Export	Export game	2026-01-23T18:10:41.2498637Z 	savepack: step 21: Storing File: res://addons/gut/icon.png.import
+Windows Export	Export game	2026-01-23T18:10:41.2501476Z 	savepack: step 21: Storing File: res://addons/gut/inner_class_registry.gdc
+Windows Export	Export game	2026-01-23T18:10:41.2507056Z 	savepack: step 21: Storing File: res://addons/gut/input_factory.gdc
+Windows Export	Export game	2026-01-23T18:10:41.2524842Z 	savepack: step 21: Storing File: res://addons/gut/input_sender.gdc
+Windows Export	Export game	2026-01-23T18:10:41.2529493Z 	savepack: step 22: Storing File: res://addons/gut/junit_xml_export.gdc
+Windows Export	Export game	2026-01-23T18:10:41.2542850Z 	savepack: step 22: Storing File: res://addons/gut/logger.gdc
+Windows Export	Export game	2026-01-23T18:10:41.2552080Z 	savepack: step 22: Storing File: res://addons/gut/method_maker.gdc
+Windows Export	Export game	2026-01-23T18:10:41.2554693Z 	savepack: step 23: Storing File: res://addons/gut/one_to_many.gdc
+Windows Export	Export game	2026-01-23T18:10:41.2563576Z 	savepack: step 23: Storing File: res://addons/gut/optparse.gdc
+Windows Export	Export game	2026-01-23T18:10:41.2566435Z 	savepack: step 23: Storing File: res://addons/gut/orphan_counter.gdc
+Windows Export	Export game	2026-01-23T18:10:41.2569260Z 	savepack: step 23: Storing File: res://addons/gut/parameter_factory.gdc
+Windows Export	Export game	2026-01-23T18:10:41.2571835Z 	savepack: step 24: Storing File: res://addons/gut/parameter_handler.gdc
+Windows Export	Export game	2026-01-23T18:10:41.2578554Z 	savepack: step 24: Storing File: res://addons/gut/printers.gdc
+Windows Export	Export game	2026-01-23T18:10:41.2583992Z 	savepack: step 24: Storing File: res://addons/gut/result_exporter.gdc
+Windows Export	Export game	2026-01-23T18:10:41.2595338Z 	savepack: step 24: Storing File: res://addons/gut/script_parser.gdc
+Windows Export	Export game	2026-01-23T18:10:41.2603656Z 	savepack: step 25: Storing File: res://addons/gut/signal_watcher.gdc
+Windows Export	Export game	2026-01-23T18:10:41.2605807Z 	savepack: step 25: Storing File: res://.godot/imported/source_code_pro.fnt-042fb383b3c7b4c19e67c852f7fbefca.fontdata
+Windows Export	Export game	2026-01-23T18:10:41.2606833Z 	savepack: step 25: Storing File: res://addons/gut/source_code_pro.fnt.import
+Windows Export	Export game	2026-01-23T18:10:41.2610987Z 	savepack: step 25: Storing File: res://addons/gut/spy.gdc
+Windows Export	Export game	2026-01-23T18:10:41.2618993Z 	savepack: step 26: Storing File: res://addons/gut/strutils.gdc
+Windows Export	Export game	2026-01-23T18:10:41.2627139Z 	savepack: step 26: Storing File: res://addons/gut/stubber.gdc
+Windows Export	Export game	2026-01-23T18:10:41.2632954Z 	savepack: step 26: Storing File: res://addons/gut/stub_params.gdc
+Windows Export	Export game	2026-01-23T18:10:41.2644838Z 	savepack: step 26: Storing File: res://addons/gut/summary.gdc
+Windows Export	Export game	2026-01-23T18:10:41.2700776Z 	savepack: step 27: Storing File: res://addons/gut/test.gdc
+Windows Export	Export game	2026-01-23T18:10:41.2710040Z 	savepack: step 27: Storing File: res://addons/gut/test_collector.gdc
+Windows Export	Export game	2026-01-23T18:10:41.2713044Z 	savepack: step 27: Storing File: res://addons/gut/thing_counter.gdc
+Windows Export	Export game	2026-01-23T18:10:41.2716276Z 	savepack: step 28: Storing File: res://addons/gut/UserFileViewer.gdc
+Windows Export	Export game	2026-01-23T18:10:41.2836064Z 	savepack: step 28: Storing File: res://.godot/exported/133200997/export-009fff9a427a23713aab85c867002442-UserFileViewer.scn
+Windows Export	Export game	2026-01-23T18:10:41.2853644Z 	savepack: step 28: Storing File: res://addons/gut/utils.gdc
+Windows Export	Export game	2026-01-23T18:10:41.2857914Z 	savepack: step 28: Storing File: res://addons/gut/version_conversion.gdc
+Windows Export	Export game	2026-01-23T18:10:41.2862404Z 	savepack: step 29: Storing File: res://.godot/imported/m16 1.wav-6a1b903e503cb67474a279ceb97e5b8e.sample
+Windows Export	Export game	2026-01-23T18:10:41.2863685Z 	savepack: step 29: Storing File: res://assets/audio/m16 1.wav.import
+Windows Export	Export game	2026-01-23T18:10:41.2866982Z 	savepack: step 29: Storing File: res://.godot/imported/m16 2.wav-f22d507777a6c4626521553dcf0cda33.sample
+Windows Export	Export game	2026-01-23T18:10:41.2868008Z 	savepack: step 29: Storing File: res://assets/audio/m16 2.wav.import
+Windows Export	Export game	2026-01-23T18:10:41.2871572Z 	savepack: step 29: Storing File: res://.godot/imported/m16 3.wav-d16966493c2691c632429af98c57bc34.sample
+Windows Export	Export game	2026-01-23T18:10:41.2872962Z 	savepack: step 29: Storing File: res://assets/audio/m16 3.wav.import
+Windows Export	Export game	2026-01-23T18:10:41.2876663Z 	savepack: step 30: Storing File: res://.godot/imported/m16  два выстрела подряд 2.wav-b33f9098acc50f0986e1bf5474544a70.sample
+Windows Export	Export game	2026-01-23T18:10:41.2877722Z 	savepack: step 30: Storing File: res://assets/audio/m16  два выстрела подряд 2.wav.import
+Windows Export	Export game	2026-01-23T18:10:41.2881158Z 	savepack: step 30: Storing File: res://.godot/imported/m16 два выстрела подряд.wav-7ce595de4b78c404238a8ea45b25ae8a.sample
+Windows Export	Export game	2026-01-23T18:10:41.2882389Z 	savepack: step 30: Storing File: res://assets/audio/m16 два выстрела подряд.wav.import
+Windows Export	Export game	2026-01-23T18:10:41.2886141Z 	savepack: step 30: Storing File: res://.godot/imported/взвод затвора m16 1.wav-40b76f9f0823aed803507b0146868ffe.sample
+Windows Export	Export game	2026-01-23T18:10:41.2887102Z 	savepack: step 30: Storing File: res://assets/audio/взвод затвора m16 1.wav.import
+Windows Export	Export game	2026-01-23T18:10:41.2890925Z 	savepack: step 30: Storing File: res://.godot/imported/взвод затвора m16 2.wav-a68a1fd1a60c71ae811de51327fec31c.sample
+Windows Export	Export game	2026-01-23T18:10:41.2892121Z 	savepack: step 30: Storing File: res://assets/audio/взвод затвора m16 2.wav.import
+Windows Export	Export game	2026-01-23T18:10:41.2895832Z 	savepack: step 31: Storing File: res://.godot/imported/взвод затвора m16 3.wav-90e204bd2b78a1f62c0f3d89b7d7e7f9.sample
+Windows Export	Export game	2026-01-23T18:10:41.2896796Z 	savepack: step 31: Storing File: res://assets/audio/взвод затвора m16 3.wav.import
+Windows Export	Export game	2026-01-23T18:10:41.2901022Z 	savepack: step 31: Storing File: res://.godot/imported/взвод затвора m16 4.wav-8ab6c00cb32b2ce2a064765630c597a3.sample
+Windows Export	Export game	2026-01-23T18:10:41.2902234Z 	savepack: step 31: Storing File: res://assets/audio/взвод затвора m16 4.wav.import
+Windows Export	Export game	2026-01-23T18:10:41.2906377Z 	savepack: step 31: Storing File: res://.godot/imported/взвод затвора пистолета.wav-d3a63489e505ea8ae2fe6e3bc1788a57.sample
+Windows Export	Export game	2026-01-23T18:10:41.2907348Z 	savepack: step 31: Storing File: res://assets/audio/взвод затвора пистолета.wav.import
+Windows Export	Export game	2026-01-23T18:10:41.2924548Z 	savepack: step 31: Storing File: res://.godot/imported/взрыв светошумовой гранаты игрок в зоне поражения.wav-fd5086c2ce3958a3b1bc31c695641ab2.sample
+Windows Export	Export game	2026-01-23T18:10:41.2925656Z 	savepack: step 31: Storing File: res://assets/audio/взрыв светошумовой гранаты игрок в зоне поражения.wav.import
+Windows Export	Export game	2026-01-23T18:10:41.2928761Z 	savepack: step 32: Storing File: res://.godot/imported/взрыв светошумовой гранаты игрок вне зоны поражения.wav-e716fc4fc8b39a72bc17ee6a2ad0b35e.sample
+Windows Export	Export game	2026-01-23T18:10:41.2929880Z 	savepack: step 32: Storing File: res://assets/audio/взрыв светошумовой гранаты игрок вне зоны поражения.wav.import
+Windows Export	Export game	2026-01-23T18:10:41.2977996Z 	savepack: step 32: Storing File: res://.godot/imported/выдернут чека (активирована).wav-9b8eb7faa05c031a18ba9a4fbb392ac0.sample
+Windows Export	Export game	2026-01-23T18:10:41.2979077Z 	savepack: step 32: Storing File: res://assets/audio/выдернут чека (активирована).wav.import
+Windows Export	Export game	2026-01-23T18:10:41.2980841Z 	savepack: step 32: Storing File: res://.godot/imported/выстрел без патронов дробовик.mp3-4d83b6723258d3ddf2eee41aad9900b2.mp3str
+Windows Export	Export game	2026-01-23T18:10:41.2982440Z 	savepack: step 32: Storing File: res://assets/audio/выстрел без патронов дробовик.mp3.import
+Windows Export	Export game	2026-01-23T18:10:41.2985847Z 	savepack: step 33: Storing File: res://.godot/imported/выстрел из дробовика 1.wav-d8bdc1352874e2b1976c4785500d0138.sample
+Windows Export	Export game	2026-01-23T18:10:41.2986888Z 	savepack: step 33: Storing File: res://assets/audio/выстрел из дробовика 1.wav.import
+Windows Export	Export game	2026-01-23T18:10:41.2990356Z 	savepack: step 33: Storing File: res://.godot/imported/выстрел из дробовика 2.wav-5ded31cee3010787573e036095734666.sample
+Windows Export	Export game	2026-01-23T18:10:41.2991640Z 	savepack: step 33: Storing File: res://assets/audio/выстрел из дробовика 2.wav.import
+Windows Export	Export game	2026-01-23T18:10:41.2995281Z 	savepack: step 33: Storing File: res://.godot/imported/выстрел из дробовика 3.wav-77cbb46b3e642d6be36a2669e8f34c28.sample
+Windows Export	Export game	2026-01-23T18:10:41.2996392Z 	savepack: step 33: Storing File: res://assets/audio/выстрел из дробовика 3.wav.import
+Windows Export	Export game	2026-01-23T18:10:41.2999930Z 	savepack: step 33: Storing File: res://.godot/imported/выстрел из дробовика 4.wav-b08bcb9bf0e9a834ad4b32dbaf38c58d.sample
+Windows Export	Export game	2026-01-23T18:10:41.3000903Z 	savepack: step 33: Storing File: res://assets/audio/выстрел из дробовика 4.wav.import
+Windows Export	Export game	2026-01-23T18:10:41.3002750Z 	savepack: step 34: Storing File: res://.godot/imported/граната столкнулась со стеной.wav-a5b9113751197da53221b7f1c0c8532e.sample
+Windows Export	Export game	2026-01-23T18:10:41.3003865Z 	savepack: step 34: Storing File: res://assets/audio/граната столкнулась со стеной.wav.import
+Windows Export	Export game	2026-01-23T18:10:41.3007243Z 	savepack: step 34: Storing File: res://.godot/imported/закрытие затвора дробовика.wav-a4064d273a61e43cc56e1c87a5964296.sample
+Windows Export	Export game	2026-01-23T18:10:41.3008248Z 	savepack: step 34: Storing File: res://assets/audio/закрытие затвора дробовика.wav.import
+Windows Export	Export game	2026-01-23T18:10:41.3009751Z 	savepack: step 34: Storing File: res://.godot/imported/зарядил один патрон в дробовик.mp3-a1eee560ca0b4a6dfd5fcb81376f5c49.mp3str
+Windows Export	Export game	2026-01-23T18:10:41.3010809Z 	savepack: step 34: Storing File: res://assets/audio/зарядил один патрон в дробовик.mp3.import
+Windows Export	Export game	2026-01-23T18:10:41.3014268Z 	savepack: step 35: Storing File: res://.godot/imported/звук попадания не смертельного попадания.wav-caa1d346ed764fc4796f97afe28bf7b2.sample
+Windows Export	Export game	2026-01-23T18:10:41.3015293Z 	savepack: step 35: Storing File: res://assets/audio/звук попадания не смертельного попадания.wav.import
+Windows Export	Export game	2026-01-23T18:10:41.3018137Z 	savepack: step 35: Storing File: res://.godot/imported/звук смертельного попадания.wav-1df254e8ea4eac4a0c8ce5675b8ff198.sample
+Windows Export	Export game	2026-01-23T18:10:41.3019093Z 	savepack: step 35: Storing File: res://assets/audio/звук смертельного попадания.wav.import
+Windows Export	Export game	2026-01-23T18:10:41.3021489Z 	savepack: step 35: Storing File: res://.godot/imported/игрок вставил магазин (вторая фаза перезарядки).wav-8a8bbf6b1ae370a8a515266532f7ff0d.sample
+Windows Export	Export game	2026-01-23T18:10:41.3022727Z 	savepack: step 35: Storing File: res://assets/audio/игрок вставил магазин (вторая фаза перезарядки).wav.import
+Windows Export	Export game	2026-01-23T18:10:41.3027534Z 	savepack: step 35: Storing File: res://.godot/imported/игрок достал магазин (первая фаза перезарядки).wav-b296b39f2a65a0f27998a7ccb95acea3.sample
+Windows Export	Export game	2026-01-23T18:10:41.3028637Z 	savepack: step 35: Storing File: res://assets/audio/игрок достал магазин (первая фаза перезарядки).wav.import
+Windows Export	Export game	2026-01-23T18:10:41.3030015Z 	savepack: step 36: Storing File: res://.godot/imported/игрок изменил режим стрельбы (нажал b).mp3-d6b8e1aae015e79931f9923da09c3bc9.mp3str
+Windows Export	Export game	2026-01-23T18:10:41.3030940Z 	savepack: step 36: Storing File: res://assets/audio/игрок изменил режим стрельбы (нажал b).mp3.import
+Windows Export	Export game	2026-01-23T18:10:41.3032458Z 	savepack: step 36: Storing File: res://.godot/imported/игрок изменил режим стрельбы (нажал b).wav-747160df6ca618265a7bb44865ddbfa2.sample
+Windows Export	Export game	2026-01-23T18:10:41.3033527Z 	savepack: step 36: Storing File: res://assets/audio/игрок изменил режим стрельбы (нажал b).wav.import
+Windows Export	Export game	2026-01-23T18:10:41.3036725Z 	savepack: step 36: Storing File: res://.godot/imported/кончились патроны в пистолете.wav-9ed4c1e5adf1c75df6795225fc3478e2.sample
+Windows Export	Export game	2026-01-23T18:10:41.3037699Z 	savepack: step 36: Storing File: res://assets/audio/кончились патроны в пистолете.wav.import
+Windows Export	Export game	2026-01-23T18:10:41.3040502Z 	savepack: step 37: Storing File: res://.godot/imported/открытие затвора дробовика.wav-21faa3af9f3b817743d7d0753e95c336.sample
+Windows Export	Export game	2026-01-23T18:10:41.3041576Z 	savepack: step 37: Storing File: res://assets/audio/открытие затвора дробовика.wav.import
+Windows Export	Export game	2026-01-23T18:10:41.3046309Z 	savepack: step 37: Storing File: res://.godot/imported/падает гильза автомата.wav-66427526953ec184ee89da6921d007df.sample
+Windows Export	Export game	2026-01-23T18:10:41.3047265Z 	savepack: step 37: Storing File: res://assets/audio/падает гильза автомата.wav.import
+Windows Export	Export game	2026-01-23T18:10:41.3055334Z 	savepack: step 37: Storing File: res://.godot/imported/падает гильза пистолета.wav-1d6ae9ddc7f12cd6bbef492ed1bdfed4.sample
+Windows Export	Export game	2026-01-23T18:10:41.3056294Z 	savepack: step 37: Storing File: res://assets/audio/падает гильза пистолета.wav.import
+Windows Export	Export game	2026-01-23T18:10:41.3057988Z 	savepack: step 37: Storing File: res://.godot/imported/падение гильзы дробовик.mp3-4c993b563436b36924dedf8e7887f050.mp3str
+Windows Export	Export game	2026-01-23T18:10:41.3059024Z 	savepack: step 37: Storing File: res://assets/audio/падение гильзы дробовик.mp3.import
+Windows Export	Export game	2026-01-23T18:10:41.3073534Z 	savepack: step 38: Storing File: res://.godot/imported/полная зарядка m16.wav-208339b648d842e833a21f63083f6897.sample
+Windows Export	Export game	2026-01-23T18:10:41.3074494Z 	savepack: step 38: Storing File: res://assets/audio/полная зарядка m16.wav.import
+Windows Export	Export game	2026-01-23T18:10:41.3094381Z 	savepack: step 38: Storing File: res://.godot/imported/попадание пули в укрытие рядом с игроком.wav-22aefd38bcb1e4a2d613016081f456b2.sample
+Windows Export	Export game	2026-01-23T18:10:41.3095462Z 	savepack: step 38: Storing File: res://assets/audio/попадание пули в укрытие рядом с игроком.wav.import
+Windows Export	Export game	2026-01-23T18:10:41.3099544Z 	savepack: step 38: Storing File: res://.godot/imported/приземление гранаты.wav-a7de74eb0430afd44aa4f9ecafa29073.sample
+Windows Export	Export game	2026-01-23T18:10:41.3100524Z 	savepack: step 38: Storing File: res://assets/audio/приземление гранаты.wav.import
+Windows Export	Export game	2026-01-23T18:10:41.3105368Z 	savepack: step 38: Storing File: res://.godot/imported/пуля попала в стену или укрытие (сделать по тише).wav-452e1e004cbc40737b00f41465f631ee.sample
+Windows Export	Export game	2026-01-23T18:10:41.3106440Z 	savepack: step 38: Storing File: res://assets/audio/пуля попала в стену или укрытие (сделать по тише).wav.import
+Windows Export	Export game	2026-01-23T18:10:41.3109519Z 	savepack: step 39: Storing File: res://.godot/imported/пуля пролетела рядом с игроком.wav-689ed43672d5dfb707e55b2869ba106c.sample
+Windows Export	Export game	2026-01-23T18:10:41.3110523Z 	savepack: step 39: Storing File: res://assets/audio/пуля пролетела рядом с игроком.wav.import
+Windows Export	Export game	2026-01-23T18:10:41.3111756Z 	savepack: step 39: Storing File: res://.godot/imported/рикошет 1.mp3-2ad5f0ea68a1fbd9d5bb013dd56775ad.mp3str
+Windows Export	Export game	2026-01-23T18:10:41.3112929Z 	savepack: step 39: Storing File: res://assets/audio/рикошет 1.mp3.import
+Windows Export	Export game	2026-01-23T18:10:41.3114916Z 	savepack: step 39: Storing File: res://.godot/imported/рикошет 2.mp3-5bdaa9763365df0e7b9f0c3625bdcc04.mp3str
+Windows Export	Export game	2026-01-23T18:10:41.3115849Z 	savepack: step 39: Storing File: res://assets/audio/рикошет 2.mp3.import
+Windows Export	Export game	2026-01-23T18:10:41.3117466Z 	savepack: step 40: Storing File: res://.godot/imported/рикошет 3.mp3-31bbf53da98eda475502af3fd5cba85f.mp3str
+Windows Export	Export game	2026-01-23T18:10:41.3118453Z 	savepack: step 40: Storing File: res://assets/audio/рикошет 3.mp3.import
+Windows Export	Export game	2026-01-23T18:10:41.3119993Z 	savepack: step 40: Storing File: res://.godot/imported/рикошет 4.mp3-fa0e738a793beca69e524965be4547a5.mp3str
+Windows Export	Export game	2026-01-23T18:10:41.3120969Z 	savepack: step 40: Storing File: res://assets/audio/рикошет 4.mp3.import
+Windows Export	Export game	2026-01-23T18:10:41.3122398Z 	savepack: step 40: Storing File: res://.godot/imported/enemy_body.png-e13385861b10a18d6342faa91862c30d.ctex
+Windows Export	Export game	2026-01-23T18:10:41.3123630Z 	savepack: step 40: Storing File: res://assets/sprites/characters/enemy/enemy_body.png.import
+Windows Export	Export game	2026-01-23T18:10:41.3125141Z 	savepack: step 40: Storing File: res://.godot/imported/enemy_combined_preview.png-d4a0cb4cb59c209657d4d0a4a46e8a04.ctex
+Windows Export	Export game	2026-01-23T18:10:41.3126246Z 	savepack: step 40: Storing File: res://assets/sprites/characters/enemy/enemy_combined_preview.png.import
+Windows Export	Export game	2026-01-23T18:10:41.3127710Z 	savepack: step 41: Storing File: res://.godot/imported/enemy_head.png-d2add1fbbcda30a71cd3fcb09b54c7a2.ctex
+Windows Export	Export game	2026-01-23T18:10:41.3128737Z 	savepack: step 41: Storing File: res://assets/sprites/characters/enemy/enemy_head.png.import
+Windows Export	Export game	2026-01-23T18:10:41.3130154Z 	savepack: step 41: Storing File: res://.godot/imported/enemy_left_arm.png-d4f9ffb9082680db54a1ea2b6c5169e2.ctex
+Windows Export	Export game	2026-01-23T18:10:41.3131174Z 	savepack: step 41: Storing File: res://assets/sprites/characters/enemy/enemy_left_arm.png.import
+Windows Export	Export game	2026-01-23T18:10:41.3132605Z 	savepack: step 41: Storing File: res://.godot/imported/enemy_right_arm.png-bf72365468c73e62078ff8e23bfcca7a.ctex
+Windows Export	Export game	2026-01-23T18:10:41.3133713Z 	savepack: step 41: Storing File: res://assets/sprites/characters/enemy/enemy_right_arm.png.import
+Windows Export	Export game	2026-01-23T18:10:41.3135323Z 	savepack: step 42: Storing File: res://.godot/imported/player_armband.png-3c5659a797c34be225c72e612ea1e9eb.ctex
+Windows Export	Export game	2026-01-23T18:10:41.3136372Z 	savepack: step 42: Storing File: res://assets/sprites/characters/player/player_armband.png.import
+Windows Export	Export game	2026-01-23T18:10:41.3137608Z 	savepack: step 42: Storing File: res://.godot/imported/player_body.png-19553d94f75f47bdf159b82936a93769.ctex
+Windows Export	Export game	2026-01-23T18:10:41.3138644Z 	savepack: step 42: Storing File: res://assets/sprites/characters/player/player_body.png.import
+Windows Export	Export game	2026-01-23T18:10:41.3140117Z 	savepack: step 42: Storing File: res://.godot/imported/player_combined_preview.png-7405326c3970ea64546dee2e6412553e.ctex
+Windows Export	Export game	2026-01-23T18:10:41.3141218Z 	savepack: step 42: Storing File: res://assets/sprites/characters/player/player_combined_preview.png.import
+Windows Export	Export game	2026-01-23T18:10:41.3142644Z 	savepack: step 42: Storing File: res://.godot/imported/player_head.png-cf9f2cb34854c93faaa1b4be21f1a11b.ctex
+Windows Export	Export game	2026-01-23T18:10:41.3143735Z 	savepack: step 42: Storing File: res://assets/sprites/characters/player/player_head.png.import
+Windows Export	Export game	2026-01-23T18:10:41.3145215Z 	savepack: step 43: Storing File: res://.godot/imported/player_left_arm.png-311806e3f2d5fac158d0544db61f1695.ctex
+Windows Export	Export game	2026-01-23T18:10:41.3146393Z 	savepack: step 43: Storing File: res://assets/sprites/characters/player/player_left_arm.png.import
+Windows Export	Export game	2026-01-23T18:10:41.3147763Z 	savepack: step 43: Storing File: res://.godot/imported/player_right_arm.png-65028ad83587c680e8ead25f59f89cbf.ctex
+Windows Export	Export game	2026-01-23T18:10:41.3148794Z 	savepack: step 43: Storing File: res://assets/sprites/characters/player/player_right_arm.png.import
+Windows Export	Export game	2026-01-23T18:10:41.3150071Z 	savepack: step 43: Storing File: res://.godot/imported/soldier.png-9c357787063e3c5f1479aa24af8ced91.ctex
+Windows Export	Export game	2026-01-23T18:10:41.3151056Z 	savepack: step 43: Storing File: res://assets/sprites/characters/soldier.png.import
+Windows Export	Export game	2026-01-23T18:10:41.3152623Z 	savepack: step 44: Storing File: res://.godot/imported/soldier_officer.png-35cf80e072fca755aeae84c6d7e5776b.ctex
+Windows Export	Export game	2026-01-23T18:10:41.3153691Z 	savepack: step 44: Storing File: res://assets/sprites/characters/soldier_officer.png.import
+Windows Export	Export game	2026-01-23T18:10:41.3155211Z 	savepack: step 44: Storing File: res://.godot/imported/soldier_spear.png-5fe797b5d120f009a9c746a4a9900e12.ctex
+Windows Export	Export game	2026-01-23T18:10:41.3156239Z 	savepack: step 44: Storing File: res://assets/sprites/characters/soldier_spear.png.import
+Windows Export	Export game	2026-01-23T18:10:41.3157615Z 	savepack: step 44: Storing File: res://.godot/imported/flashbang.png-b82b8758883693b648ba5c4dbc3d5d9a.ctex
+Windows Export	Export game	2026-01-23T18:10:41.3158604Z 	savepack: step 44: Storing File: res://assets/sprites/weapons/flashbang.png.import
+Windows Export	Export game	2026-01-23T18:10:41.3160016Z 	savepack: step 44: Storing File: res://.godot/imported/frag_grenade.png-a1e53cfa2409408d65e9e1a6c8274e78.ctex
+Windows Export	Export game	2026-01-23T18:10:41.3181735Z 	savepack: step 44: Storing File: res://assets/sprites/weapons/frag_grenade.png.import
+Windows Export	Export game	2026-01-23T18:10:41.3183214Z 	savepack: step 45: Storing File: res://.godot/imported/m16_basic.png-a48b2462ea047d63e216f8ff7b6e4501.ctex
+Windows Export	Export game	2026-01-23T18:10:41.3184271Z 	savepack: step 45: Storing File: res://assets/sprites/weapons/m16_basic.png.import
+Windows Export	Export game	2026-01-23T18:10:41.3185171Z 	savepack: step 45: Storing File: res://.godot/imported/m16_rifle.png-ae6f4d000f21a27ef505351889307b8c.ctex
+Windows Export	Export game	2026-01-23T18:10:41.3185811Z 	savepack: step 45: Storing File: res://assets/sprites/weapons/m16_rifle.png.import
+Windows Export	Export game	2026-01-23T18:10:41.3186818Z 	savepack: step 45: Storing File: res://.godot/imported/m16_rifle_topdown.png-1f61a820c1445d6a8d831fdfd09c9065.ctex
+Windows Export	Export game	2026-01-23T18:10:41.3187944Z 	savepack: step 45: Storing File: res://assets/sprites/weapons/m16_rifle_topdown.png.import
+Windows Export	Export game	2026-01-23T18:10:41.3188888Z 	savepack: step 45: Storing File: res://.godot/imported/m16_simple.png-af0f3425fd7337a98fbd72f51be89603.ctex
+Windows Export	Export game	2026-01-23T18:10:41.3189904Z 	savepack: step 45: Storing File: res://assets/sprites/weapons/m16_simple.png.import
+Windows Export	Export game	2026-01-23T18:10:41.3190839Z 	savepack: step 46: Storing File: res://.godot/imported/m16_topdown_medium.png-dbb26019252e78f3ee4daaeff151c634.ctex
+Windows Export	Export game	2026-01-23T18:10:41.3191797Z 	savepack: step 46: Storing File: res://assets/sprites/weapons/m16_topdown_medium.png.import
+Windows Export	Export game	2026-01-23T18:10:41.3192990Z 	savepack: step 46: Storing File: res://.godot/imported/m16_topdown_small.png-6e0772cfbf36e8aa574ad180064e6c17.ctex
+Windows Export	Export game	2026-01-23T18:10:41.3193982Z 	savepack: step 46: Storing File: res://assets/sprites/weapons/m16_topdown_small.png.import
+Windows Export	Export game	2026-01-23T18:10:41.3194957Z 	savepack: step 46: Storing File: res://.godot/imported/mini_uzi_icon.png-c7f46c6dc4da0e10901d085df976b7c3.ctex
+Windows Export	Export game	2026-01-23T18:10:41.3196021Z 	savepack: step 46: Storing File: res://assets/sprites/weapons/mini_uzi_icon.png.import
+Windows Export	Export game	2026-01-23T18:10:41.3197090Z 	savepack: step 47: Storing File: res://.godot/imported/mini_uzi_topdown.png-7db84aeb590d6df3fcdc4cbfbad367a8.ctex
+Windows Export	Export game	2026-01-23T18:10:41.3198178Z 	savepack: step 47: Storing File: res://assets/sprites/weapons/mini_uzi_topdown.png.import
+Windows Export	Export game	2026-01-23T18:10:41.3199220Z 	savepack: step 47: Storing File: res://.godot/imported/shotgun.png-49306313d610f9f84fcc8e2b5dd610c6.ctex
+Windows Export	Export game	2026-01-23T18:10:41.3200235Z 	savepack: step 47: Storing File: res://assets/sprites/weapons/shotgun.png.import
+Windows Export	Export game	2026-01-23T18:10:41.3201556Z 	savepack: step 47: Storing File: res://.godot/imported/shotgun_icon.png-34f045dde21ffa00809d6207cd6db1ad.ctex
+Windows Export	Export game	2026-01-23T18:10:41.3202863Z 	savepack: step 47: Storing File: res://assets/sprites/weapons/shotgun_icon.png.import
+Windows Export	Export game	2026-01-23T18:10:41.3203973Z 	savepack: step 47: Storing File: res://.godot/imported/shotgun_topdown.png-2ec0cf5ba9ca2c9b42a5e92e76090eca.ctex
+Windows Export	Export game	2026-01-23T18:10:41.3205043Z 	savepack: step 47: Storing File: res://assets/sprites/weapons/shotgun_topdown.png.import
+Windows Export	Export game	2026-01-23T18:10:41.3206020Z 	savepack: step 48: Storing File: res://docs/case-studies/issue-93/issue-88-details.json
+Windows Export	Export game	2026-01-23T18:10:41.3206997Z 	savepack: step 48: Storing File: res://docs/case-studies/issue-93/issue-93-details.json
+Windows Export	Export game	2026-01-23T18:10:41.3207967Z 	savepack: step 48: Storing File: res://docs/case-studies/issue-93/pr-89-conversation-comments.json
+Windows Export	Export game	2026-01-23T18:10:41.3208975Z 	savepack: step 49: Storing File: res://docs/case-studies/issue-93/pr-89-details.json
+Windows Export	Export game	2026-01-23T18:10:41.3209983Z 	savepack: step 49: Storing File: res://docs/case-studies/issue-93/pr-89-review-comments.json
+Windows Export	Export game	2026-01-23T18:10:41.3211163Z 	savepack: step 49: Storing File: res://.godot/imported/reference-1.png-beb024721904f217c99dfbd6e23c2f4f.ctex
+Windows Export	Export game	2026-01-23T18:10:41.3212564Z 	savepack: step 49: Storing File: res://docs/case-studies/issue-96/images/reference-1.png.import
+Windows Export	Export game	2026-01-23T18:10:41.3213735Z 	savepack: step 49: Storing File: res://.godot/imported/reference-2.png-e7492fecae437699f97893edcb2fa84f.ctex
+Windows Export	Export game	2026-01-23T18:10:41.3214913Z 	savepack: step 49: Storing File: res://docs/case-studies/issue-96/images/reference-2.png.import
+Windows Export	Export game	2026-01-23T18:10:41.3216201Z 	savepack: step 50: Storing File: res://docs/case-studies/issue-103/all-issues.json
+Windows Export	Export game	2026-01-23T18:10:41.3217104Z 	savepack: step 50: Storing File: res://docs/case-studies/issue-103/all-prs.json
+Windows Export	Export game	2026-01-23T18:10:41.3218018Z 	savepack: step 50: Storing File: res://docs/case-studies/issue-103/issue-103-comments.json
+Windows Export	Export game	2026-01-23T18:10:41.3218987Z 	savepack: step 51: Storing File: res://docs/case-studies/issue-103/issue-103-details.json
+Windows Export	Export game	2026-01-23T18:10:41.3220042Z 	savepack: step 51: Storing File: res://docs/case-studies/issue-103/pr-104-conversation-comments.json
+Windows Export	Export game	2026-01-23T18:10:41.3221102Z 	savepack: step 51: Storing File: res://docs/case-studies/issue-103/pr-104-details.json
+Windows Export	Export game	2026-01-23T18:10:41.3222338Z 	savepack: step 51: Storing File: res://docs/case-studies/issue-103/pr-104-review-comments.json
+Windows Export	Export game	2026-01-23T18:10:41.3223432Z 	savepack: step 52: Storing File: res://docs/case-studies/issue-103/pr-106-conversation-comments.json
+Windows Export	Export game	2026-01-23T18:10:41.3224472Z 	savepack: step 52: Storing File: res://docs/case-studies/issue-103/pr-106-details.json
+Windows Export	Export game	2026-01-23T18:10:41.3225522Z 	savepack: step 52: Storing File: res://docs/case-studies/issue-103/pr-106-review-comments.json
+Windows Export	Export game	2026-01-23T18:10:41.3226579Z 	savepack: step 52: Storing File: res://docs/case-studies/issue-109/logs/issue-109-details.json
+Windows Export	Export game	2026-01-23T18:10:41.3227615Z 	savepack: step 53: Storing File: res://docs/case-studies/issue-109/logs/pr-126-comments.json
+Windows Export	Export game	2026-01-23T18:10:41.3228627Z 	savepack: step 53: Storing File: res://docs/case-studies/issue-109/logs/pr-126-details.json
+Windows Export	Export game	2026-01-23T18:10:41.3229597Z 	savepack: step 53: Storing File: res://docs/case-studies/issue-131/issue-data.json
+Windows Export	Export game	2026-01-23T18:10:41.3230526Z 	savepack: step 54: Storing File: res://docs/case-studies/issue-131/pr-120-fullscreen.json
+Windows Export	Export game	2026-01-23T18:10:41.3231485Z 	savepack: step 54: Storing File: res://docs/case-studies/issue-131/pr-125-difficulty.json
+Windows Export	Export game	2026-01-23T18:10:41.3232654Z 	savepack: step 54: Storing File: res://docs/case-studies/issue-131/related-prs.json
+Windows Export	Export game	2026-01-23T18:10:41.3233617Z 	savepack: step 54: Storing File: res://docs/case-studies/issue-139/issue-data.json
+Windows Export	Export game	2026-01-23T18:10:41.3234523Z 	savepack: step 55: Storing File: res://docs/case-studies/issue-139/pr-comments.json
+Windows Export	Export game	2026-01-23T18:10:41.3235397Z 	savepack: step 55: Storing File: res://docs/case-studies/issue-139/pr-data.json
+Windows Export	Export game	2026-01-23T18:10:41.3236315Z 	savepack: step 55: Storing File: res://docs/case-studies/issue-194/issue-comments.json
+Windows Export	Export game	2026-01-23T18:10:41.3237469Z 	savepack: step 56: Storing File: res://docs/case-studies/issue-194/issue-data.json
+Windows Export	Export game	2026-01-23T18:10:41.3238363Z 	savepack: step 56: Storing File: res://docs/case-studies/issue-196/issue_data.json
+Windows Export	Export game	2026-01-23T18:10:41.3239250Z 	savepack: step 56: Storing File: res://docs/case-studies/issue-196/pr_data.json
+Windows Export	Export game	2026-01-23T18:10:41.3247433Z 	savepack: step 56: Storing File: res://.godot/imported/reference_image.png-7982bf7356b20125055f2869d43b75b8.ctex
+Windows Export	Export game	2026-01-23T18:10:41.3249215Z 	savepack: step 56: Storing File: res://docs/case-studies/issue-196/reference_image.png.import
+Windows Export	Export game	2026-01-23T18:10:41.3250296Z 	savepack: step 57: Storing File: res://docs/case-studies/issue-202/logs/issue-data.json
+Windows Export	Export game	2026-01-23T18:10:41.3254856Z 	savepack: step 57: Storing File: res://docs/case-studies/issue-202/logs/pr-data.json
+Windows Export	Export game	2026-01-23T18:10:41.3258129Z 	savepack: step 57: Storing File: res://docs/case-studies/issue-204/issue-204-details.json
+Windows Export	Export game	2026-01-23T18:10:41.3259149Z 	savepack: step 58: Storing File: res://docs/case-studies/issue-204/pr-205-comments.json
+Windows Export	Export game	2026-01-23T18:10:41.3260120Z 	savepack: step 58: Storing File: res://docs/case-studies/issue-204/pr-205-details.json
+Windows Export	Export game	2026-01-23T18:10:41.3261026Z 	savepack: step 58: Storing File: res://docs/case-studies/issue-217/issue-data.json
+Windows Export	Export game	2026-01-23T18:10:41.3262247Z 	savepack: step 58: Storing File: res://docs/case-studies/issue-217/pr-conversation-comments.json
+Windows Export	Export game	2026-01-23T18:10:41.3263792Z 	savepack: step 59: Storing File: res://docs/case-studies/issue-217/pr-data.json
+Windows Export	Export game	2026-01-23T18:10:41.3264930Z 	savepack: step 59: Storing File: res://docs/case-studies/issue-217/pr-review-comments.json
+Windows Export	Export game	2026-01-23T18:10:41.3266280Z 	savepack: step 59: Storing File: res://docs/case-studies/issue-234/issue-details.json
+Windows Export	Export game	2026-01-23T18:10:41.3267167Z 	savepack: step 59: Storing File: res://docs/case-studies/issue-234/pr-details.json
+Windows Export	Export game	2026-01-23T18:10:41.3268060Z 	savepack: step 60: Storing File: res://docs/case-studies/issue-254/issue-245-details.json
+Windows Export	Export game	2026-01-23T18:10:41.3269033Z 	savepack: step 60: Storing File: res://docs/case-studies/issue-254/issue-254-comments.json
+Windows Export	Export game	2026-01-23T18:10:41.3269903Z 	savepack: step 60: Storing File: res://docs/case-studies/issue-254/issue-254-details.json
+Windows Export	Export game	2026-01-23T18:10:41.3270790Z 	savepack: step 61: Storing File: res://docs/case-studies/issue-254/pr-246-details.json
+Windows Export	Export game	2026-01-23T18:10:41.3272048Z 	savepack: step 61: Storing File: res://.godot/imported/shotgun_icon.png-7bc87a0dd0c97d813133ab812678a2a3.ctex
+Windows Export	Export game	2026-01-23T18:10:41.3273070Z 	savepack: step 61: Storing File: res://experiments/shotgun_icon.png.import
+Windows Export	Export game	2026-01-23T18:10:41.3274087Z 	savepack: step 61: Storing File: res://.godot/imported/shotgun_topdown.png-b78a0997401e09f123793838eeccbd24.ctex
+Windows Export	Export game	2026-01-23T18:10:41.3275133Z 	savepack: step 61: Storing File: res://experiments/shotgun_topdown.png.import
+Windows Export	Export game	2026-01-23T18:10:41.3275990Z 	savepack: step 61: Storing File: res://experiments/test_blood_splatter_logic.gdc
+Windows Export	Export game	2026-01-23T18:10:41.3276829Z 	savepack: step 62: Storing File: res://experiments/test_wall_shooting_fix.gdc
+Windows Export	Export game	2026-01-23T18:10:41.3310187Z 	savepack: step 62: Storing File: res://.godot/exported/133200997/export-a76b5ba1e52d9a35f023dac1920cd427-caliber_9x19.res
+Windows Export	Export game	2026-01-23T18:10:41.3316441Z 	savepack: step 62: Storing File: res://.godot/exported/133200997/export-4b2b1934bff25b21e525d303190c78ed-caliber_545x39.res
+Windows Export	Export game	2026-01-23T18:10:41.3322850Z 	savepack: step 63: Storing File: res://.godot/exported/133200997/export-49e8722d56fb87f7233e9a342eeec1d7-caliber_buckshot.res
+Windows Export	Export game	2026-01-23T18:10:41.3338128Z 	savepack: step 63: Storing File: res://.godot/exported/133200997/export-6c20ce96c24adf60ae4fa0795d01b992-AssaultRifleData.res
+Windows Export	Export game	2026-01-23T18:10:41.3345117Z 	savepack: step 63: Storing File: res://.godot/exported/133200997/export-b763a0c584dfe32f94e74fe884b4091a-MiniUziData.res
+Windows Export	Export game	2026-01-23T18:10:41.3351508Z 	savepack: step 63: Storing File: res://.godot/exported/133200997/export-2e0035347c1c1cdb6a997f97c96ff6c2-ShotgunData.res
+Windows Export	Export game	2026-01-23T18:10:41.3454595Z 	savepack: step 64: Storing File: res://.godot/exported/133200997/export-416155497b0a9461b87888dde00e3083-Player.scn
+Windows Export	Export game	2026-01-23T18:10:41.3856337Z SCRIPT ERROR: Parse Error: Cannot infer the type of "new_max_ammo" variable because the value doesn't have a set type.
+Windows Export	Export game	2026-01-23T18:10:41.3857477Z           at: GDScript::reload (res://scripts/characters/player.gd:1021)
+Windows Export	Export game	2026-01-23T18:10:41.3864074Z ERROR: Failed to load script "res://scripts/characters/player.gd" with error "Parse error".
+Windows Export	Export game	2026-01-23T18:10:41.3864779Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	Export game	2026-01-23T18:10:41.4063335Z 	savepack: step 64: Storing File: res://.godot/exported/133200997/export-6ed25e61325b5587cfccd1297eeb66c2-Player.scn
+Windows Export	Export game	2026-01-23T18:10:41.4082959Z 	savepack: step 64: Storing File: res://.godot/exported/133200997/export-bfc8d8b986d844ae60cb5c731056190c-BloodDecal.scn
+Windows Export	Export game	2026-01-23T18:10:41.4086671Z SCRIPT ERROR: Parse Error: Could not find base class "Particles2D".
+Windows Export	Export game	2026-01-23T18:10:41.4087732Z           at: GDScript::reload (res://scripts/effects/effect_cleanup.gd:1)
+Windows Export	Export game	2026-01-23T18:10:41.4088703Z ERROR: Failed to load script "res://scripts/effects/effect_cleanup.gd" with error "Parse error".
+Windows Export	Export game	2026-01-23T18:10:41.4089380Z    at: load (modules/gdscript/gdscript.cpp:2936)
+Windows Export	Export game	2026-01-23T18:10:41.4101219Z 	savepack: step 65: Storing File: res://.godot/exported/133200997/export-57f2c2ccc1cb1f9f785a2cbc59cb64c0-BloodEffect.scn
+Windows Export	Export game	2026-01-23T18:10:41.4119242Z 	savepack: step 65: Storing File: res://.godot/exported/133200997/export-14ed5ad9f2faf40ecdae44848d969340-BulletHole.scn
+Windows Export	Export game	2026-01-23T18:10:41.4129854Z 	savepack: step 65: Storing File: res://.godot/exported/133200997/export-532484316e4d38bf7545f404083ec9ff-DustEffect.scn
+Windows Export	Export game	2026-01-23T18:10:41.4156092Z 	savepack: step 65: Storing File: res://.godot/exported/133200997/export-59b382e54f932d4c23f167bd9e89e811-PenetrationHole.scn
+Windows Export	Export game	2026-01-23T18:10:41.4166298Z 	savepack: step 66: Storing File: res://.godot/exported/133200997/export-7b1f4b6fb70a2205de10a84ba7ac6d60-SparksEffect.scn
+Windows Export	Export game	2026-01-23T18:10:41.4444497Z WARNING: res://scenes/ui/ArmoryMenu.tscn:4 - ext_resource, invalid UID: uid://c5qm16rfltop - using text path instead: res://assets/sprites/weapons/m16_rifle.png
+Windows Export	Export game	2026-01-23T18:10:41.4445579Z      at: load (scene/resources/resource_format_text.cpp:453)
+Windows Export	Export game	2026-01-23T18:10:41.4654129Z 	savepack: step 66: Storing File: res://.godot/exported/133200997/export-4750fa2d8176ae1cf1f742043b7bb695-TestTier.scn
+Windows Export	Export game	2026-01-23T18:10:41.6062685Z 	savepack: step 66: Storing File: res://.godot/exported/133200997/export-c5bb8f8f345ade458f60101c633229d1-BuildingLevel.scn
+Windows Export	Export game	2026-01-23T18:10:41.6409277Z 	savepack: step 66: Storing File: res://.godot/exported/133200997/export-4611a88e25034833338e52b601ec9249-TestTier.scn
+Windows Export	Export game	2026-01-23T18:10:41.6424743Z 	savepack: step 67: Storing File: res://.godot/exported/133200997/export-68a04552abb3f12a362e1db2098e38c9-Main.scn
+Windows Export	Export game	2026-01-23T18:10:41.6432732Z 	savepack: step 67: Storing File: res://.godot/exported/133200997/export-aba84c3490a0cf8f0a573e98c9479f7b-Enemy.scn
+Windows Export	Export game	2026-01-23T18:10:41.6440315Z 	savepack: step 67: Storing File: res://.godot/exported/133200997/export-aa344ae45f20caf271829d2e426a4a71-Target.scn
+Windows Export	Export game	2026-01-23T18:10:41.6458144Z 	savepack: step 68: Storing File: res://.godot/exported/133200997/export-1c95935264ab792c49d4bb92cd17a260-Enemy.scn
+Windows Export	Export game	2026-01-23T18:10:41.6467640Z 	savepack: step 68: Storing File: res://.godot/exported/133200997/export-b05fe8daa55fc2cec0f193a0c41f071e-GrenadeTarget.scn
+Windows Export	Export game	2026-01-23T18:10:41.6517222Z 	savepack: step 68: Storing File: res://.godot/exported/133200997/export-95a7296b39ac2c02f583cafb7e8273aa-Target.scn
+Windows Export	Export game	2026-01-23T18:10:41.6526955Z 	savepack: step 68: Storing File: res://.godot/exported/133200997/export-9907f4adb212a16435a59c7909d4b9be-Bullet.scn
+Windows Export	Export game	2026-01-23T18:10:41.6538041Z 	savepack: step 69: Storing File: res://.godot/exported/133200997/export-dfd566e0094a4624e56a6cce14b73a80-ShotgunPellet.scn
+Windows Export	Export game	2026-01-23T18:10:41.6604285Z 	savepack: step 69: Storing File: res://.godot/exported/133200997/export-d882a687606b8a9bb6ffbe95cfbfaefa-Bullet9mm.scn
+Windows Export	Export game	2026-01-23T18:10:41.6613972Z 	savepack: step 69: Storing File: res://.godot/exported/133200997/export-ac2d8e22ef1e540eb2d999fbf5166a73-Bullet.scn
+Windows Export	Export game	2026-01-23T18:10:41.6701490Z WARNING: res://scenes/projectiles/FlashbangGrenade.tscn:4 - ext_resource, invalid UID: uid://b7qx4h3k5m2n9 - using text path instead: res://assets/sprites/weapons/flashbang.png
+Windows Export	Export game	2026-01-23T18:10:41.6703349Z      at: load (scene/resources/resource_format_text.cpp:453)
+Windows Export	Export game	2026-01-23T18:10:41.6782747Z 	savepack: step 70: Storing File: res://.godot/exported/133200997/export-fcecac6461b6f5000bd1dad068fca2a8-FlashbangGrenade.scn
+Windows Export	Export game	2026-01-23T18:10:41.6870765Z WARNING: res://scenes/projectiles/FragGrenade.tscn:4 - ext_resource, invalid UID: uid://cfrag7qx4h3k5m2 - using text path instead: res://assets/sprites/weapons/frag_grenade.png
+Windows Export	Export game	2026-01-23T18:10:41.6872670Z      at: load (scene/resources/resource_format_text.cpp:453)
+Windows Export	Export game	2026-01-23T18:10:41.6938545Z 	savepack: step 70: Storing File: res://.godot/exported/133200997/export-66ebe6752eef1cf5f07078434ec2282d-FragGrenade.scn
+Windows Export	Export game	2026-01-23T18:10:41.6993487Z 	savepack: step 70: Storing File: res://.godot/exported/133200997/export-071917c4ef7805fa654a12dfd295ff8d-Shrapnel.scn
+Windows Export	Export game	2026-01-23T18:10:41.6995387Z WARNING: res://scenes/ui/ArmoryMenu.tscn:4 - ext_resource, invalid UID: uid://c5qm16rfltop - using text path instead: res://assets/sprites/weapons/m16_rifle.png
+Windows Export	Export game	2026-01-23T18:10:41.6996336Z      at: load (scene/resources/resource_format_text.cpp:453)
+Windows Export	Export game	2026-01-23T18:10:41.7050663Z 	savepack: step 70: Storing File: res://.godot/exported/133200997/export-2a47d0cfa7b389780790fa4cbce1f1b1-ArmoryMenu.scn
+Windows Export	Export game	2026-01-23T18:10:41.7120063Z 	savepack: step 71: Storing File: res://.godot/exported/133200997/export-43af3363fcfc822c3a0add4ca37e41a8-ControlsMenu.scn
+Windows Export	Export game	2026-01-23T18:10:41.7147692Z 	savepack: step 71: Storing File: res://.godot/exported/133200997/export-8a2ecfb51e9714b3b766f7ffac468768-DifficultyMenu.scn
+Windows Export	Export game	2026-01-23T18:10:41.7177238Z 	savepack: step 71: Storing File: res://.godot/exported/133200997/export-c0724cdd98615c4094ab473935da60e3-LevelsMenu.scn
+Windows Export	Export game	2026-01-23T18:10:41.7196644Z 	savepack: step 72: Storing File: res://.godot/exported/133200997/export-f3a0254cbdab81d1efc5e42f39e19dcf-PauseMenu.scn
+Windows Export	Export game	2026-01-23T18:10:41.7204948Z 	savepack: step 72: Storing File: res://.godot/exported/133200997/export-321991f80445845f9164dba256c263c4-AssaultRifle.scn
+Windows Export	Export game	2026-01-23T18:10:41.7211613Z WARNING: res://scenes/weapons/csharp/MiniUzi.tscn:6 - ext_resource, invalid UID: uid://cq8m5n4r7p6k2 - using text path instead: res://assets/sprites/weapons/mini_uzi_topdown.png
+Windows Export	Export game	2026-01-23T18:10:41.7212986Z      at: load (scene/resources/resource_format_text.cpp:453)
+Windows Export	Export game	2026-01-23T18:10:41.7218164Z 	savepack: step 72: Storing File: res://.godot/exported/133200997/export-c5ca7a497c4f21c5d034ec35c214d000-MiniUzi.scn
+Windows Export	Export game	2026-01-23T18:10:41.7232919Z 	savepack: step 72: Storing File: res://.godot/exported/133200997/export-ff68d575c09f528292669aede88e1970-Shotgun.scn
+Windows Export	Export game	2026-01-23T18:10:41.7245458Z 	savepack: step 73: Storing File: res://Scripts/AbstractClasses/BaseCharacter.cs
+Windows Export	Export game	2026-01-23T18:10:41.7246797Z 	savepack: step 73: Storing File: res://Scripts/AbstractClasses/BaseWeapon.cs
+Windows Export	Export game	2026-01-23T18:10:41.7247856Z 	savepack: step 73: Storing File: res://Scripts/Characters/Player.cs
+Windows Export	Export game	2026-01-23T18:10:41.7248917Z 	savepack: step 73: Storing File: res://Scripts/Components/HealthComponent.cs
+Windows Export	Export game	2026-01-23T18:10:41.7249944Z 	savepack: step 74: Storing File: res://Scripts/Data/BulletData.cs
+Windows Export	Export game	2026-01-23T18:10:41.7251011Z 	savepack: step 74: Storing File: res://Scripts/Data/MagazineData.cs
+Windows Export	Export game	2026-01-23T18:10:41.7252319Z 	savepack: step 74: Storing File: res://Scripts/Data/WeaponData.cs
+Windows Export	Export game	2026-01-23T18:10:41.7253453Z 	savepack: step 75: Storing File: res://Scripts/Interfaces/IDamageable.cs
+Windows Export	Export game	2026-01-23T18:10:41.7254649Z 	savepack: step 75: Storing File: res://Scripts/Objects/Enemy.cs
+Windows Export	Export game	2026-01-23T18:10:41.7255868Z 	savepack: step 75: Storing File: res://Scripts/Projectiles/Bullet.cs
+Windows Export	Export game	2026-01-23T18:10:41.7256893Z 	savepack: step 75: Storing File: res://Scripts/Projectiles/ShotgunPellet.cs
+Windows Export	Export game	2026-01-23T18:10:41.7257626Z 	savepack: step 76: Storing File: res://Scripts/Weapons/AssaultRifle.cs
+Windows Export	Export game	2026-01-23T18:10:41.7258672Z 	savepack: step 76: Storing File: res://Scripts/Weapons/MiniUzi.cs
+Windows Export	Export game	2026-01-23T18:10:41.7259646Z 	savepack: step 76: Storing File: res://Scripts/Weapons/Shotgun.cs
+Windows Export	Export game	2026-01-23T18:10:41.7262593Z 	savepack: step 77: Storing File: res://scripts/ai/states/enemy_state.gdc
+Windows Export	Export game	2026-01-23T18:10:41.7266951Z 	savepack: step 77: Storing File: res://scripts/ai/states/idle_state.gdc
+Windows Export	Export game	2026-01-23T18:10:41.7271267Z 	savepack: step 77: Storing File: res://scripts/ai/states/pursuing_state.gdc
+Windows Export	Export game	2026-01-23T18:10:41.7281015Z 	savepack: step 77: Storing File: res://scripts/ai/enemy_actions.gdc
+Windows Export	Export game	2026-01-23T18:10:41.7284341Z 	savepack: step 78: Storing File: res://scripts/ai/goap_action.gdc
+Windows Export	Export game	2026-01-23T18:10:41.7290164Z 	savepack: step 78: Storing File: res://scripts/ai/goap_planner.gdc
+Windows Export	Export game	2026-01-23T18:10:41.7303459Z 	savepack: step 78: Storing File: res://scripts/autoload/audio_manager.gdc
+Windows Export	Export game	2026-01-23T18:10:41.7308017Z 	savepack: step 79: Storing File: res://scripts/autoload/difficulty_manager.gdc
+Windows Export	Export game	2026-01-23T18:10:41.7314375Z 	savepack: step 79: Storing File: res://scripts/autoload/file_logger.gdc
+Windows Export	Export game	2026-01-23T18:10:41.7319835Z 	savepack: step 79: Storing File: res://scripts/autoload/game_manager.gdc
+Windows Export	Export game	2026-01-23T18:10:41.7325285Z 	savepack: step 79: Storing File: res://scripts/autoload/grenade_manager.gdc
+Windows Export	Export game	2026-01-23T18:10:41.7330314Z 	savepack: step 80: Storing File: res://scripts/autoload/hit_effects_manager.gdc
+Windows Export	Export game	2026-01-23T18:10:41.7348152Z 	savepack: step 80: Storing File: res://scripts/autoload/impact_effects_manager.gdc
+Windows Export	Export game	2026-01-23T18:10:41.7355651Z 	savepack: step 80: Storing File: res://scripts/autoload/input_settings.gdc
+Windows Export	Export game	2026-01-23T18:10:41.7383122Z 	savepack: step 80: Storing File: res://scripts/autoload/last_chance_effects_manager.gdc
+Windows Export	Export game	2026-01-23T18:10:41.7395480Z 	savepack: step 81: Storing File: res://scripts/autoload/penultimate_hit_effects_manager.gdc
+Windows Export	Export game	2026-01-23T18:10:41.7407419Z 	savepack: step 81: Storing File: res://scripts/autoload/score_manager.gdc
+Windows Export	Export game	2026-01-23T18:10:41.7412925Z 	savepack: step 81: Storing File: res://scripts/autoload/screen_shake_manager.gdc
+Windows Export	Export game	2026-01-23T18:10:41.7422219Z 	savepack: step 82: Storing File: res://scripts/autoload/sound_propagation.gdc
+Windows Export	Export game	2026-01-23T18:10:41.7430229Z 	savepack: step 82: Storing File: res://scripts/autoload/status_effects_manager.gdc
+Windows Export	Export game	2026-01-23T18:10:41.7482972Z 	savepack: step 82: Storing File: res://scripts/characters/player.gdc
+Windows Export	Export game	2026-01-23T18:10:41.7486824Z 	savepack: step 82: Storing File: res://scripts/components/ammo_component.gdc
+Windows Export	Export game	2026-01-23T18:10:41.7493835Z 	savepack: step 83: Storing File: res://scripts/components/cover_component.gdc
+Windows Export	Export game	2026-01-23T18:10:41.7510995Z 	savepack: step 83: Storing File: res://scripts/components/death_animation_component.gdc
+Windows Export	Export game	2026-01-23T18:10:41.7516489Z 	savepack: step 83: Storing File: res://scripts/components/health_component.gdc
+Windows Export	Export game	2026-01-23T18:10:41.7522800Z 	savepack: step 84: Storing File: res://scripts/components/threat_sphere.gdc
+Windows Export	Export game	2026-01-23T18:10:41.7528986Z 	savepack: step 84: Storing File: res://scripts/components/vision_component.gdc
+Windows Export	Export game	2026-01-23T18:10:41.7534055Z 	savepack: step 84: Storing File: res://scripts/data/caliber_data.gdc
+Windows Export	Export game	2026-01-23T18:10:41.7536658Z 	savepack: step 84: Storing File: res://scripts/effects/blood_decal.gdc
+Windows Export	Export game	2026-01-23T18:10:41.7539085Z 	savepack: step 85: Storing File: res://scripts/effects/bullet_hole.gdc
+Windows Export	Export game	2026-01-23T18:10:41.7541019Z 	savepack: step 85: Storing File: res://scripts/effects/effect_cleanup.gdc
+Windows Export	Export game	2026-01-23T18:10:41.7544778Z 	savepack: step 85: Storing File: res://scripts/effects/penetration_hole.gdc
+Windows Export	Export game	2026-01-23T18:10:41.7571317Z 	savepack: step 86: Storing File: res://scripts/levels/building_level.gdc
+Windows Export	Export game	2026-01-23T18:10:41.7590586Z 	savepack: step 86: Storing File: res://scripts/levels/test_tier.gdc
+Windows Export	Export game	2026-01-23T18:10:41.7606931Z 	savepack: step 86: Storing File: res://scripts/levels/tutorial_level.gdc
+Windows Export	Export game	2026-01-23T18:10:41.7725139Z 	savepack: step 86: Storing File: res://scripts/objects/enemy.gdc
+Windows Export	Export game	2026-01-23T18:10:41.7729598Z 	savepack: step 87: Storing File: res://scripts/objects/grenade_target.gdc
+Windows Export	Export game	2026-01-23T18:10:41.7732562Z 	savepack: step 87: Storing File: res://scripts/objects/hit_area.gdc
+Windows Export	Export game	2026-01-23T18:10:41.7736634Z 	savepack: step 87: Storing File: res://scripts/objects/target.gdc
+Windows Export	Export game	2026-01-23T18:10:41.7758705Z 	savepack: step 87: Storing File: res://scripts/projectiles/bullet.gdc
+Windows Export	Export game	2026-01-23T18:10:41.7765451Z 	savepack: step 88: Storing File: res://scripts/projectiles/flashbang_grenade.gdc
+Windows Export	Export game	2026-01-23T18:10:41.7776679Z 	savepack: step 88: Storing File: res://scripts/projectiles/frag_grenade.gdc
+Windows Export	Export game	2026-01-23T18:10:41.7784895Z 	savepack: step 88: Storing File: res://scripts/projectiles/grenade_base.gdc
+Windows Export	Export game	2026-01-23T18:10:41.7791371Z 	savepack: step 89: Storing File: res://scripts/projectiles/shrapnel.gdc
+Windows Export	Export game	2026-01-23T18:10:41.7792546Z 	savepack: step 89: Storing File: res://scripts/shaders/last_chance.gdshader
+Windows Export	Export game	2026-01-23T18:10:41.7793582Z 	savepack: step 89: Storing File: res://scripts/shaders/saturation.gdshader
+Windows Export	Export game	2026-01-23T18:10:41.7804213Z 	savepack: step 89: Storing File: res://scripts/ui/armory_menu.gdc
+Windows Export	Export game	2026-01-23T18:10:41.7811738Z 	savepack: step 90: Storing File: res://scripts/ui/controls_menu.gdc
+Windows Export	Export game	2026-01-23T18:10:41.7816174Z 	savepack: step 90: Storing File: res://scripts/ui/difficulty_menu.gdc
+Windows Export	Export game	2026-01-23T18:10:41.7820003Z 	savepack: step 90: Storing File: res://scripts/ui/levels_menu.gdc
+Windows Export	Export game	2026-01-23T18:10:41.7827693Z 	savepack: step 91: Storing File: res://scripts/ui/pause_menu.gdc
+Windows Export	Export game	2026-01-23T18:10:41.7829185Z 	savepack: step 91: Storing File: res://scripts/main.gdc
+Windows Export	Export game	2026-01-23T18:10:41.7838805Z 	savepack: step 91: Storing File: res://tests/integration/test_bullet.gdc
+Windows Export	Export game	2026-01-23T18:10:41.7849433Z 	savepack: step 91: Storing File: res://tests/integration/test_enemy_death_bullet_passthrough.gdc
+Windows Export	Export game	2026-01-23T18:10:41.7856228Z 	savepack: step 92: Storing File: res://tests/integration/test_hit_area.gdc
+Windows Export	Export game	2026-01-23T18:10:41.7864634Z 	savepack: step 92: Storing File: res://tests/integration/test_hit_effects_manager.gdc
+Windows Export	Export game	2026-01-23T18:10:41.7870309Z 	savepack: step 92: Storing File: res://tests/integration/test_target.gdc
+Windows Export	Export game	2026-01-23T18:10:41.7880567Z 	savepack: step 93: Storing File: res://tests/unit/test_audio_manager.gdc
+Windows Export	Export game	2026-01-23T18:10:41.7894747Z 	savepack: step 93: Storing File: res://tests/unit/test_cover_component.gdc
+Windows Export	Export game	2026-01-23T18:10:41.7903962Z 	savepack: step 93: Storing File: res://tests/unit/test_death_animation_component.gdc
+Windows Export	Export game	2026-01-23T18:10:41.7912266Z 	savepack: step 93: Storing File: res://tests/unit/test_difficulty_manager.gdc
+Windows Export	Export game	2026-01-23T18:10:41.7920716Z 	savepack: step 94: Storing File: res://tests/unit/test_effects.gdc
+Windows Export	Export game	2026-01-23T18:10:41.7940204Z 	savepack: step 94: Storing File: res://tests/unit/test_enemy.gdc
+Windows Export	Export game	2026-01-23T18:10:41.7959360Z 	savepack: step 94: Storing File: res://tests/unit/test_enemy_actions.gdc
+Windows Export	Export game	2026-01-23T18:10:41.7968825Z 	savepack: step 94: Storing File: res://tests/unit/test_file_logger.gdc
+Windows Export	Export game	2026-01-23T18:10:41.7978516Z 	savepack: step 95: Storing File: res://tests/unit/test_frag_grenade.gdc
+Windows Export	Export game	2026-01-23T18:10:41.7987443Z 	savepack: step 95: Storing File: res://tests/unit/test_game_manager.gdc
+Windows Export	Export game	2026-01-23T18:10:41.7993939Z 	savepack: step 95: Storing File: res://tests/unit/test_goap_action.gdc
+Windows Export	Export game	2026-01-23T18:10:41.8005554Z 	savepack: step 96: Storing File: res://tests/unit/test_goap_planner.gdc
+Windows Export	Export game	2026-01-23T18:10:41.8019263Z 	savepack: step 96: Storing File: res://tests/unit/test_grenade_base.gdc
+Windows Export	Export game	2026-01-23T18:10:41.8028663Z 	savepack: step 96: Storing File: res://tests/unit/test_grenade_manager.gdc
+Windows Export	Export game	2026-01-23T18:10:41.8039135Z 	savepack: step 96: Storing File: res://tests/unit/test_health_component.gdc
+Windows Export	Export game	2026-01-23T18:10:41.8046749Z 	savepack: step 97: Storing File: res://tests/unit/test_impact_effects_manager.gdc
+Windows Export	Export game	2026-01-23T18:10:41.8056265Z 	savepack: step 97: Storing File: res://tests/unit/test_input_settings.gdc
+Windows Export	Export game	2026-01-23T18:10:41.8064935Z 	savepack: step 97: Storing File: res://tests/unit/test_level_helpers.gdc
+Windows Export	Export game	2026-01-23T18:10:41.8076201Z 	savepack: step 98: Storing File: res://tests/unit/test_magazine_inventory.gdc
+Windows Export	Export game	2026-01-23T18:10:41.8087742Z 	savepack: step 98: Storing File: res://tests/unit/test_penetration.gdc
+Windows Export	Export game	2026-01-23T18:10:41.8100553Z 	savepack: step 98: Storing File: res://tests/unit/test_player.gdc
+Windows Export	Export game	2026-01-23T18:10:41.8108912Z 	savepack: step 98: Storing File: res://tests/unit/test_pursuing_state.gdc
+Windows Export	Export game	2026-01-23T18:10:41.8120340Z 	savepack: step 99: Storing File: res://tests/unit/test_ricochet.gdc
+Windows Export	Export game	2026-01-23T18:10:41.8140972Z 	savepack: step 99: Storing File: res://tests/unit/test_score_manager.gdc
+Windows Export	Export game	2026-01-23T18:10:41.8147168Z 	savepack: step 99: Storing File: res://tests/unit/test_screen_shake_manager.gdc
+Windows Export	Export game	2026-01-23T18:10:41.8160699Z 	savepack: step 100: Storing File: res://tests/unit/test_shrapnel.gdc
+Windows Export	Export game	2026-01-23T18:10:41.8175790Z 	savepack: step 100: Storing File: res://tests/unit/test_sound_propagation.gdc
+Windows Export	Export game	2026-01-23T18:10:41.8188971Z 	savepack: step 100: Storing File: res://tests/unit/test_status_effects_manager.gdc
+Windows Export	Export game	2026-01-23T18:10:41.8198787Z 	savepack: step 100: Storing File: res://tests/unit/test_tutorial_level.gdc
+Windows Export	Export game	2026-01-23T18:10:41.8213685Z 	savepack: step 101: Storing File: res://tests/unit/test_ui_menus.gdc
+Windows Export	Export game	2026-01-23T18:10:41.8225686Z 	savepack: step 101: Storing File: res://tests/unit/test_vision_component.gdc
+Windows Export	Export game	2026-01-23T18:10:41.8227969Z 	savepack: step 101: Storing File: res://.godot/imported/icon.svg-218a8f2b3041327d8a5756f3a245f83b.ctex
+Windows Export	Export game	2026-01-23T18:10:41.8229016Z 	savepack: step 101: Storing File: res://icon.svg.import
+Windows Export	Export game	2026-01-23T18:10:41.8239499Z 	savepack: step 101: Storing File: res://addons/gut/gui/BottomPanelShortcuts.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8240651Z 	savepack: step 101: Storing File: res://addons/gut/gui/BottomPanelShortcuts.tscn.remap
+Windows Export	Export game	2026-01-23T18:10:41.8242143Z 	savepack: step 101: Storing File: res://addons/gut/gui/editor_globals.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8243143Z 	savepack: step 101: Storing File: res://addons/gut/gui/GutBottomPanel.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8244124Z 	savepack: step 101: Storing File: res://addons/gut/gui/GutBottomPanel.tscn.remap
+Windows Export	Export game	2026-01-23T18:10:41.8244975Z 	savepack: step 101: Storing File: res://addons/gut/gui/GutControl.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8245746Z 	savepack: step 101: Storing File: res://addons/gut/gui/GutControl.tscn.remap
+Windows Export	Export game	2026-01-23T18:10:41.8246550Z 	savepack: step 101: Storing File: res://addons/gut/gui/GutRunner.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8247411Z 	savepack: step 101: Storing File: res://addons/gut/gui/GutRunner.tscn.remap
+Windows Export	Export game	2026-01-23T18:10:41.8248369Z 	savepack: step 101: Storing File: res://addons/gut/gui/GutSceneTheme.tres.remap
+Windows Export	Export game	2026-01-23T18:10:41.8249295Z 	savepack: step 101: Storing File: res://addons/gut/gui/gut_config_gui.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8250037Z 	savepack: step 101: Storing File: res://addons/gut/gui/gut_gui.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8250950Z 	savepack: step 101: Storing File: res://addons/gut/gui/gut_user_preferences.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8252169Z 	savepack: step 101: Storing File: res://addons/gut/gui/MinGui.tscn.remap
+Windows Export	Export game	2026-01-23T18:10:41.8253020Z 	savepack: step 101: Storing File: res://addons/gut/gui/NormalGui.tscn.remap
+Windows Export	Export game	2026-01-23T18:10:41.8253887Z 	savepack: step 101: Storing File: res://addons/gut/gui/OutputText.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8254737Z 	savepack: step 101: Storing File: res://addons/gut/gui/OutputText.tscn.remap
+Windows Export	Export game	2026-01-23T18:10:41.8255618Z 	savepack: step 101: Storing File: res://addons/gut/gui/panel_controls.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8256485Z 	savepack: step 101: Storing File: res://addons/gut/gui/ResizeHandle.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8257363Z 	savepack: step 101: Storing File: res://addons/gut/gui/ResizeHandle.tscn.remap
+Windows Export	Export game	2026-01-23T18:10:41.8258238Z 	savepack: step 101: Storing File: res://addons/gut/gui/ResultsTree.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8259097Z 	savepack: step 101: Storing File: res://addons/gut/gui/ResultsTree.tscn.remap
+Windows Export	Export game	2026-01-23T18:10:41.8259961Z 	savepack: step 101: Storing File: res://addons/gut/gui/RunAtCursor.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8260816Z 	savepack: step 101: Storing File: res://addons/gut/gui/RunAtCursor.tscn.remap
+Windows Export	Export game	2026-01-23T18:10:41.8261674Z 	savepack: step 101: Storing File: res://addons/gut/gui/RunResults.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8262928Z 	savepack: step 101: Storing File: res://addons/gut/gui/RunResults.tscn.remap
+Windows Export	Export game	2026-01-23T18:10:41.8263889Z 	savepack: step 101: Storing File: res://addons/gut/gui/script_text_editor_controls.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8264851Z 	savepack: step 101: Storing File: res://addons/gut/gui/Settings.tscn.remap
+Windows Export	Export game	2026-01-23T18:10:41.8265711Z 	savepack: step 101: Storing File: res://addons/gut/gui/ShortcutButton.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8266361Z 	savepack: step 101: Storing File: res://addons/gut/gui/ShortcutButton.tscn.remap
+Windows Export	Export game	2026-01-23T18:10:41.8266808Z 	savepack: step 101: Storing File: res://addons/gut/autofree.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8267226Z 	savepack: step 101: Storing File: res://addons/gut/awaiter.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8267651Z 	savepack: step 101: Storing File: res://addons/gut/collected_script.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8268086Z 	savepack: step 101: Storing File: res://addons/gut/collected_test.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8268527Z 	savepack: step 101: Storing File: res://addons/gut/comparator.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8268959Z 	savepack: step 101: Storing File: res://addons/gut/compare_result.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8269407Z 	savepack: step 101: Storing File: res://addons/gut/diff_formatter.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8269833Z 	savepack: step 101: Storing File: res://addons/gut/diff_tool.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8270241Z 	savepack: step 101: Storing File: res://addons/gut/doubler.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8270657Z 	savepack: step 101: Storing File: res://addons/gut/double_tools.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8271060Z 	savepack: step 101: Storing File: res://addons/gut/gut.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8271600Z 	savepack: step 101: Storing File: res://addons/gut/GutScene.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8272285Z 	savepack: step 101: Storing File: res://addons/gut/GutScene.tscn.remap
+Windows Export	Export game	2026-01-23T18:10:41.8272703Z 	savepack: step 101: Storing File: res://addons/gut/gut_cmdln.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8273109Z 	savepack: step 101: Storing File: res://addons/gut/gut_config.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8273747Z 	savepack: step 101: Storing File: res://addons/gut/gut_plugin.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8274460Z 	savepack: step 101: Storing File: res://addons/gut/gut_to_move.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8274961Z 	savepack: step 101: Storing File: res://addons/gut/gut_vscode_debugger.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8275408Z 	savepack: step 101: Storing File: res://addons/gut/hook_script.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8275841Z 	savepack: step 101: Storing File: res://addons/gut/inner_class_registry.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8276290Z 	savepack: step 101: Storing File: res://addons/gut/input_factory.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8276726Z 	savepack: step 101: Storing File: res://addons/gut/input_sender.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8277155Z 	savepack: step 101: Storing File: res://addons/gut/junit_xml_export.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8277588Z 	savepack: step 101: Storing File: res://addons/gut/logger.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8278003Z 	savepack: step 101: Storing File: res://addons/gut/method_maker.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8278427Z 	savepack: step 101: Storing File: res://addons/gut/one_to_many.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8278837Z 	savepack: step 101: Storing File: res://addons/gut/optparse.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8279257Z 	savepack: step 101: Storing File: res://addons/gut/orphan_counter.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8279701Z 	savepack: step 101: Storing File: res://addons/gut/parameter_factory.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8280244Z 	savepack: step 101: Storing File: res://addons/gut/parameter_handler.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8280678Z 	savepack: step 101: Storing File: res://addons/gut/printers.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8281095Z 	savepack: step 101: Storing File: res://addons/gut/result_exporter.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8281536Z 	savepack: step 101: Storing File: res://addons/gut/script_parser.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8282063Z 	savepack: step 101: Storing File: res://addons/gut/signal_watcher.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8282628Z 	savepack: step 101: Storing File: res://addons/gut/spy.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8283020Z 	savepack: step 101: Storing File: res://addons/gut/strutils.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8283418Z 	savepack: step 101: Storing File: res://addons/gut/stubber.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8283823Z 	savepack: step 101: Storing File: res://addons/gut/stub_params.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8284225Z 	savepack: step 101: Storing File: res://addons/gut/summary.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8284615Z 	savepack: step 101: Storing File: res://addons/gut/test.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8285027Z 	savepack: step 101: Storing File: res://addons/gut/test_collector.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8285458Z 	savepack: step 101: Storing File: res://addons/gut/thing_counter.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8285889Z 	savepack: step 101: Storing File: res://addons/gut/UserFileViewer.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8286327Z 	savepack: step 101: Storing File: res://addons/gut/UserFileViewer.tscn.remap
+Windows Export	Export game	2026-01-23T18:10:41.8286758Z 	savepack: step 101: Storing File: res://addons/gut/utils.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8287175Z 	savepack: step 101: Storing File: res://addons/gut/version_conversion.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8287678Z 	savepack: step 101: Storing File: res://experiments/test_blood_splatter_logic.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8288193Z 	savepack: step 101: Storing File: res://experiments/test_wall_shooting_fix.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8288679Z 	savepack: step 101: Storing File: res://resources/calibers/caliber_9x19.tres.remap
+Windows Export	Export game	2026-01-23T18:10:41.8289166Z 	savepack: step 101: Storing File: res://resources/calibers/caliber_545x39.tres.remap
+Windows Export	Export game	2026-01-23T18:10:41.8289814Z 	savepack: step 101: Storing File: res://resources/calibers/caliber_buckshot.tres.remap
+Windows Export	Export game	2026-01-23T18:10:41.8290327Z 	savepack: step 101: Storing File: res://resources/weapons/AssaultRifleData.tres.remap
+Windows Export	Export game	2026-01-23T18:10:41.8290823Z 	savepack: step 101: Storing File: res://resources/weapons/MiniUziData.tres.remap
+Windows Export	Export game	2026-01-23T18:10:41.8291303Z 	savepack: step 101: Storing File: res://resources/weapons/ShotgunData.tres.remap
+Windows Export	Export game	2026-01-23T18:10:41.8291789Z 	savepack: step 101: Storing File: res://scenes/characters/csharp/Player.tscn.remap
+Windows Export	Export game	2026-01-23T18:10:41.8292373Z 	savepack: step 101: Storing File: res://scenes/characters/Player.tscn.remap
+Windows Export	Export game	2026-01-23T18:10:41.8292821Z 	savepack: step 101: Storing File: res://scenes/effects/BloodDecal.tscn.remap
+Windows Export	Export game	2026-01-23T18:10:41.8293361Z 	savepack: step 101: Storing File: res://scenes/effects/BloodEffect.tscn.remap
+Windows Export	Export game	2026-01-23T18:10:41.8293822Z 	savepack: step 101: Storing File: res://scenes/effects/BulletHole.tscn.remap
+Windows Export	Export game	2026-01-23T18:10:41.8294271Z 	savepack: step 101: Storing File: res://scenes/effects/DustEffect.tscn.remap
+Windows Export	Export game	2026-01-23T18:10:41.8294749Z 	savepack: step 101: Storing File: res://scenes/effects/PenetrationHole.tscn.remap
+Windows Export	Export game	2026-01-23T18:10:41.8295228Z 	savepack: step 101: Storing File: res://scenes/effects/SparksEffect.tscn.remap
+Windows Export	Export game	2026-01-23T18:10:41.8295703Z 	savepack: step 101: Storing File: res://scenes/levels/csharp/TestTier.tscn.remap
+Windows Export	Export game	2026-01-23T18:10:41.8296179Z 	savepack: step 101: Storing File: res://scenes/levels/BuildingLevel.tscn.remap
+Windows Export	Export game	2026-01-23T18:10:41.8296625Z 	savepack: step 101: Storing File: res://scenes/levels/TestTier.tscn.remap
+Windows Export	Export game	2026-01-23T18:10:41.8297053Z 	savepack: step 101: Storing File: res://scenes/main/Main.tscn.remap
+Windows Export	Export game	2026-01-23T18:10:41.8297481Z 	savepack: step 101: Storing File: res://scenes/objects/csharp/Enemy.tscn.remap
+Windows Export	Export game	2026-01-23T18:10:41.8297950Z 	savepack: step 101: Storing File: res://scenes/objects/csharp/Target.tscn.remap
+Windows Export	Export game	2026-01-23T18:10:41.8298393Z 	savepack: step 101: Storing File: res://scenes/objects/Enemy.tscn.remap
+Windows Export	Export game	2026-01-23T18:10:41.8298841Z 	savepack: step 101: Storing File: res://scenes/objects/GrenadeTarget.tscn.remap
+Windows Export	Export game	2026-01-23T18:10:41.8299288Z 	savepack: step 101: Storing File: res://scenes/objects/Target.tscn.remap
+Windows Export	Export game	2026-01-23T18:10:41.8299760Z 	savepack: step 101: Storing File: res://scenes/projectiles/csharp/Bullet.tscn.remap
+Windows Export	Export game	2026-01-23T18:10:41.8300444Z 	savepack: step 101: Storing File: res://scenes/projectiles/csharp/ShotgunPellet.tscn.remap
+Windows Export	Export game	2026-01-23T18:10:41.8300952Z 	savepack: step 101: Storing File: res://scenes/projectiles/Bullet9mm.tscn.remap
+Windows Export	Export game	2026-01-23T18:10:41.8301413Z 	savepack: step 101: Storing File: res://scenes/projectiles/Bullet.tscn.remap
+Windows Export	Export game	2026-01-23T18:10:41.8302180Z 	savepack: step 101: Storing File: res://scenes/projectiles/FlashbangGrenade.tscn.remap
+Windows Export	Export game	2026-01-23T18:10:41.8302783Z 	savepack: step 101: Storing File: res://scenes/projectiles/FragGrenade.tscn.remap
+Windows Export	Export game	2026-01-23T18:10:41.8303272Z 	savepack: step 101: Storing File: res://scenes/projectiles/Shrapnel.tscn.remap
+Windows Export	Export game	2026-01-23T18:10:41.8303727Z 	savepack: step 101: Storing File: res://scenes/ui/ArmoryMenu.tscn.remap
+Windows Export	Export game	2026-01-23T18:10:41.8304194Z 	savepack: step 101: Storing File: res://scenes/ui/ControlsMenu.tscn.remap
+Windows Export	Export game	2026-01-23T18:10:41.8304638Z 	savepack: step 101: Storing File: res://scenes/ui/DifficultyMenu.tscn.remap
+Windows Export	Export game	2026-01-23T18:10:41.8305069Z 	savepack: step 101: Storing File: res://scenes/ui/LevelsMenu.tscn.remap
+Windows Export	Export game	2026-01-23T18:10:41.8305498Z 	savepack: step 101: Storing File: res://scenes/ui/PauseMenu.tscn.remap
+Windows Export	Export game	2026-01-23T18:10:41.8305957Z 	savepack: step 101: Storing File: res://scenes/weapons/csharp/AssaultRifle.tscn.remap
+Windows Export	Export game	2026-01-23T18:10:41.8306445Z 	savepack: step 101: Storing File: res://scenes/weapons/csharp/MiniUzi.tscn.remap
+Windows Export	Export game	2026-01-23T18:10:41.8306920Z 	savepack: step 101: Storing File: res://scenes/weapons/csharp/Shotgun.tscn.remap
+Windows Export	Export game	2026-01-23T18:10:41.8307379Z 	savepack: step 101: Storing File: res://scripts/ai/states/enemy_state.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8307832Z 	savepack: step 101: Storing File: res://scripts/ai/states/idle_state.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8308428Z 	savepack: step 101: Storing File: res://scripts/ai/states/pursuing_state.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8308887Z 	savepack: step 101: Storing File: res://scripts/ai/enemy_actions.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8309313Z 	savepack: step 101: Storing File: res://scripts/ai/goap_action.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8309752Z 	savepack: step 101: Storing File: res://scripts/ai/goap_planner.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8310191Z 	savepack: step 101: Storing File: res://scripts/autoload/audio_manager.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8310759Z 	savepack: step 101: Storing File: res://scripts/autoload/difficulty_manager.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8311234Z 	savepack: step 101: Storing File: res://scripts/autoload/file_logger.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8311692Z 	savepack: step 101: Storing File: res://scripts/autoload/game_manager.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8312398Z 	savepack: step 101: Storing File: res://scripts/autoload/grenade_manager.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8312899Z 	savepack: step 101: Storing File: res://scripts/autoload/hit_effects_manager.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8313413Z 	savepack: step 101: Storing File: res://scripts/autoload/impact_effects_manager.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8313909Z 	savepack: step 101: Storing File: res://scripts/autoload/input_settings.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8314429Z 	savepack: step 101: Storing File: res://scripts/autoload/last_chance_effects_manager.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8314995Z 	savepack: step 101: Storing File: res://scripts/autoload/penultimate_hit_effects_manager.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8315521Z 	savepack: step 101: Storing File: res://scripts/autoload/score_manager.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8316006Z 	savepack: step 101: Storing File: res://scripts/autoload/screen_shake_manager.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8316502Z 	savepack: step 101: Storing File: res://scripts/autoload/sound_propagation.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8317003Z 	savepack: step 101: Storing File: res://scripts/autoload/status_effects_manager.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8317486Z 	savepack: step 101: Storing File: res://scripts/characters/player.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8317952Z 	savepack: step 101: Storing File: res://scripts/components/ammo_component.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8318449Z 	savepack: step 101: Storing File: res://scripts/components/cover_component.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8319135Z 	savepack: step 101: Storing File: res://scripts/components/death_animation_component.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8319663Z 	savepack: step 101: Storing File: res://scripts/components/health_component.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8320146Z 	savepack: step 101: Storing File: res://scripts/components/threat_sphere.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8320636Z 	savepack: step 101: Storing File: res://scripts/components/vision_component.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8321104Z 	savepack: step 101: Storing File: res://scripts/data/caliber_data.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8321543Z 	savepack: step 101: Storing File: res://scripts/effects/blood_decal.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8322105Z 	savepack: step 101: Storing File: res://scripts/effects/bullet_hole.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8322558Z 	savepack: step 101: Storing File: res://scripts/effects/effect_cleanup.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8323029Z 	savepack: step 101: Storing File: res://scripts/effects/penetration_hole.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8323503Z 	savepack: step 101: Storing File: res://scripts/levels/building_level.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8323957Z 	savepack: step 101: Storing File: res://scripts/levels/test_tier.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8324400Z 	savepack: step 101: Storing File: res://scripts/levels/tutorial_level.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8324835Z 	savepack: step 101: Storing File: res://scripts/objects/enemy.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8325273Z 	savepack: step 101: Storing File: res://scripts/objects/grenade_target.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8325711Z 	savepack: step 101: Storing File: res://scripts/objects/hit_area.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8326407Z 	savepack: step 101: Storing File: res://scripts/objects/target.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8327082Z 	savepack: step 101: Storing File: res://scripts/projectiles/bullet.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8327555Z 	savepack: step 101: Storing File: res://scripts/projectiles/flashbang_grenade.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8328052Z 	savepack: step 101: Storing File: res://scripts/projectiles/frag_grenade.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8328531Z 	savepack: step 101: Storing File: res://scripts/projectiles/grenade_base.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8329001Z 	savepack: step 101: Storing File: res://scripts/projectiles/shrapnel.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8329433Z 	savepack: step 101: Storing File: res://scripts/ui/armory_menu.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8329857Z 	savepack: step 101: Storing File: res://scripts/ui/controls_menu.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8330292Z 	savepack: step 101: Storing File: res://scripts/ui/difficulty_menu.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8330714Z 	savepack: step 101: Storing File: res://scripts/ui/levels_menu.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8331136Z 	savepack: step 101: Storing File: res://scripts/ui/pause_menu.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8331533Z 	savepack: step 101: Storing File: res://scripts/main.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8332066Z 	savepack: step 101: Storing File: res://tests/integration/test_bullet.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8332608Z 	savepack: step 101: Storing File: res://tests/integration/test_enemy_death_bullet_passthrough.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8333155Z 	savepack: step 101: Storing File: res://tests/integration/test_hit_area.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8333725Z 	savepack: step 101: Storing File: res://tests/integration/test_hit_effects_manager.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8334295Z 	savepack: step 101: Storing File: res://tests/integration/test_target.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8334754Z 	savepack: step 101: Storing File: res://tests/unit/test_audio_manager.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8335211Z 	savepack: step 101: Storing File: res://tests/unit/test_cover_component.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8335716Z 	savepack: step 101: Storing File: res://tests/unit/test_death_animation_component.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8336231Z 	savepack: step 101: Storing File: res://tests/unit/test_difficulty_manager.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8336687Z 	savepack: step 101: Storing File: res://tests/unit/test_effects.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8337108Z 	savepack: step 101: Storing File: res://tests/unit/test_enemy.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8337677Z 	savepack: step 101: Storing File: res://tests/unit/test_enemy_actions.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8338188Z 	savepack: step 101: Storing File: res://tests/unit/test_file_logger.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8338791Z 	savepack: step 101: Storing File: res://tests/unit/test_frag_grenade.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8339236Z 	savepack: step 101: Storing File: res://tests/unit/test_game_manager.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8339688Z 	savepack: step 101: Storing File: res://tests/unit/test_goap_action.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8340129Z 	savepack: step 101: Storing File: res://tests/unit/test_goap_planner.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8340578Z 	savepack: step 101: Storing File: res://tests/unit/test_grenade_base.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8341025Z 	savepack: step 101: Storing File: res://tests/unit/test_grenade_manager.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8341497Z 	savepack: step 101: Storing File: res://tests/unit/test_health_component.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8342255Z 	savepack: step 101: Storing File: res://tests/unit/test_impact_effects_manager.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8342871Z 	savepack: step 101: Storing File: res://tests/unit/test_input_settings.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8343347Z 	savepack: step 101: Storing File: res://tests/unit/test_level_helpers.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8343824Z 	savepack: step 101: Storing File: res://tests/unit/test_magazine_inventory.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8344296Z 	savepack: step 101: Storing File: res://tests/unit/test_penetration.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8344900Z 	savepack: step 101: Storing File: res://tests/unit/test_player.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8345482Z 	savepack: step 101: Storing File: res://tests/unit/test_pursuing_state.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8345931Z 	savepack: step 101: Storing File: res://tests/unit/test_ricochet.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8346379Z 	savepack: step 101: Storing File: res://tests/unit/test_score_manager.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8347244Z 	savepack: step 101: Storing File: res://tests/unit/test_screen_shake_manager.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8348046Z 	savepack: step 101: Storing File: res://tests/unit/test_shrapnel.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8348834Z 	savepack: step 101: Storing File: res://tests/unit/test_sound_propagation.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8349685Z 	savepack: step 101: Storing File: res://tests/unit/test_status_effects_manager.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8350521Z 	savepack: step 101: Storing File: res://tests/unit/test_tutorial_level.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8351283Z 	savepack: step 101: Storing File: res://tests/unit/test_ui_menus.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8352199Z 	savepack: step 101: Storing File: res://tests/unit/test_vision_component.gd.remap
+Windows Export	Export game	2026-01-23T18:10:41.8352996Z 	savepack: step 101: Storing File: res://.godot/global_script_class_cache.cfg
+Windows Export	Export game	2026-01-23T18:10:41.8353645Z 	savepack: step 101: Storing File: res://icon.svg
+Windows Export	Export game	2026-01-23T18:10:41.8354190Z 	savepack: step 101: Storing File: res://.godot/uid_cache.bin
+Windows Export	Export game	2026-01-23T18:10:41.8354790Z 	savepack: step 101: Storing File: res://project.binary
+Windows Export	Export game	2026-01-23T18:10:41.8443406Z savepack: end
+Windows Export	Export game	2026-01-23T18:10:41.9486872Z WARNING: Project export for preset "Windows Desktop" completed with warnings.
+Windows Export	Export game	2026-01-23T18:10:41.9487743Z      at: _fs_changed (editor/editor_node.cpp:1033)
+Windows Export	Export game	2026-01-23T18:10:42.7053111Z WARNING: 1 RID of type "Canvas" was leaked.
+Windows Export	Export game	2026-01-23T18:10:42.7053982Z      at: _free_rids (servers/rendering/renderer_canvas_cull.cpp:2483)
+Windows Export	Export game	2026-01-23T18:10:42.7054706Z WARNING: 75 RIDs of type "CanvasItem" were leaked.
+Windows Export	Export game	2026-01-23T18:10:42.7055291Z      at: _free_rids (servers/rendering/renderer_canvas_cull.cpp:2485)
+Windows Export	Export game	2026-01-23T18:10:42.7056332Z ERROR: 1 RID allocations of type 'PN13RendererDummy14TextureStorage12DummyTextureE' were leaked at exit.
+Windows Export	Export game	2026-01-23T18:10:42.7066278Z ERROR: 86 RID allocations of type 'PN18TextServerAdvanced22ShapedTextDataAdvancedE' were leaked at exit.
+Windows Export	Export game	2026-01-23T18:10:42.7067501Z ERROR: 3 RID allocations of type 'PN18TextServerAdvanced12FontAdvancedE' were leaked at exit.
+Windows Export	Export game	2026-01-23T18:10:42.7086212Z WARNING: ObjectDB instances leaked at exit (run with --verbose for details).
+Windows Export	Export game	2026-01-23T18:10:42.7086898Z      at: cleanup (core/object/object.cpp:2284)
+Windows Export	Export game	2026-01-23T18:10:42.7090515Z ERROR: 7 resources still in use at exit (run with --verbose for details).
+Windows Export	Export game	2026-01-23T18:10:42.7091111Z    at: clear (core/io/resource.cpp:604)
+Windows Export	Export game	2026-01-23T18:10:42.7658930Z ##[endgroup]
+Windows Export	Export game	2026-01-23T18:10:42.7659508Z ##[endgroup]
+Windows Export	Export game	2026-01-23T18:10:42.7662793Z ##[group]⚒️ Zipping binaries
+Windows Export	Export game	2026-01-23T18:10:42.7684590Z [command]/usr/bin/7z a /home/runner/.local/share/godot/archives/Windows Desktop.zip /home/runner/.local/share/godot/builds/Windows Desktop/*
+Windows Export	Export game	2026-01-23T18:10:51.6651653Z 
+Windows Export	Export game	2026-01-23T18:10:51.6652610Z 7-Zip 23.01 (x64) : Copyright (c) 1999-2023 Igor Pavlov : 2023-06-20
+Windows Export	Export game	2026-01-23T18:10:51.6653383Z  64-bit locale=C.UTF-8 Threads:4 OPEN_MAX:65536
+Windows Export	Export game	2026-01-23T18:10:51.6653786Z 
+Windows Export	Export game	2026-01-23T18:10:51.6653980Z Scanning the drive:
+Windows Export	Export game	2026-01-23T18:10:51.6654430Z 1 folder, 228 files, 173654674 bytes (166 MiB)
+Windows Export	Export game	2026-01-23T18:10:51.6654862Z 
+Windows Export	Export game	2026-01-23T18:10:51.6655366Z Creating archive: /home/runner/.local/share/godot/archives/Windows Desktop.zip
+Windows Export	Export game	2026-01-23T18:10:51.6655999Z 
+Windows Export	Export game	2026-01-23T18:10:51.6656400Z Add new data to archive: 1 folder, 228 files, 173654674 bytes (166 MiB)
+Windows Export	Export game	2026-01-23T18:10:51.6656910Z 
+Windows Export	Export game	2026-01-23T18:10:51.6656921Z 
+Windows Export	Export game	2026-01-23T18:10:51.6657115Z Files read from disk: 228
+Windows Export	Export game	2026-01-23T18:10:51.6657715Z Archive size: 68371612 bytes (66 MiB)
+Windows Export	Export game	2026-01-23T18:10:51.6658197Z Everything is Ok
+Windows Export	Export game	2026-01-23T18:10:51.6662356Z 📦 Zipped Windows Desktop to /home/runner/.local/share/godot/archives/Windows Desktop.zip
+Windows Export	Export game	2026-01-23T18:10:51.6663505Z ##[endgroup]
+Windows Export	Upload artifact	﻿2026-01-23T18:10:51.6803582Z ##[group]Run actions/upload-artifact@v4
+Windows Export	Upload artifact	2026-01-23T18:10:51.6803858Z with:
+Windows Export	Upload artifact	2026-01-23T18:10:51.6804025Z   name: windows-build
+Windows Export	Upload artifact	2026-01-23T18:10:51.6804258Z   path: /home/runner/.local/share/godot/archives/*
+Windows Export	Upload artifact	2026-01-23T18:10:51.6804547Z   if-no-files-found: warn
+Windows Export	Upload artifact	2026-01-23T18:10:51.6804758Z   compression-level: 6
+Windows Export	Upload artifact	2026-01-23T18:10:51.6804960Z   overwrite: false
+Windows Export	Upload artifact	2026-01-23T18:10:51.6805153Z   include-hidden-files: false
+Windows Export	Upload artifact	2026-01-23T18:10:51.6805359Z env:
+Windows Export	Upload artifact	2026-01-23T18:10:51.6805532Z   DOTNET_ROOT: /usr/share/dotnet
+Windows Export	Upload artifact	2026-01-23T18:10:51.6805745Z ##[endgroup]
+Windows Export	Upload artifact	2026-01-23T18:10:51.8993998Z With the provided path, there will be 1 file uploaded
+Windows Export	Upload artifact	2026-01-23T18:10:51.8999747Z Artifact name is valid!
+Windows Export	Upload artifact	2026-01-23T18:10:51.9000898Z Root directory input is valid!
+Windows Export	Upload artifact	2026-01-23T18:10:52.0130144Z Beginning upload of artifact content to blob storage
+Windows Export	Upload artifact	2026-01-23T18:10:52.4723968Z Uploaded bytes 8388608
+Windows Export	Upload artifact	2026-01-23T18:10:52.7002383Z Uploaded bytes 16777216
+Windows Export	Upload artifact	2026-01-23T18:10:53.0134470Z Uploaded bytes 25165824
+Windows Export	Upload artifact	2026-01-23T18:10:53.1862139Z Uploaded bytes 33554432
+Windows Export	Upload artifact	2026-01-23T18:10:53.5087075Z Uploaded bytes 41943040
+Windows Export	Upload artifact	2026-01-23T18:10:53.7029382Z Uploaded bytes 50331648
+Windows Export	Upload artifact	2026-01-23T18:10:54.0299136Z Uploaded bytes 58720256
+Windows Export	Upload artifact	2026-01-23T18:10:54.1633918Z Uploaded bytes 67108864
+Windows Export	Upload artifact	2026-01-23T18:10:54.2008091Z Uploaded bytes 68114750
+Windows Export	Upload artifact	2026-01-23T18:10:54.2160341Z Finished uploading artifact content to blob storage!
+Windows Export	Upload artifact	2026-01-23T18:10:54.2163986Z SHA256 digest of uploaded artifact zip is 96a51f120be926fa9eb40abb0d48b5b3b8d05251d6aec5380b0fffcb364972ec
+Windows Export	Upload artifact	2026-01-23T18:10:54.2165582Z Finalizing artifact upload
+Windows Export	Upload artifact	2026-01-23T18:10:54.3222998Z Artifact windows-build.zip successfully finalized. Artifact ID 5237639094
+Windows Export	Upload artifact	2026-01-23T18:10:54.3224621Z Artifact windows-build has been successfully uploaded! Final size is 68114750 bytes. Artifact ID is 5237639094
+Windows Export	Upload artifact	2026-01-23T18:10:54.3228667Z Artifact download URL: https://github.com/Jhon-Crow/godot-topdown-MVP/actions/runs/21296302716/artifacts/5237639094
+Windows Export	Post Setup .NET	﻿2026-01-23T18:10:54.3398335Z Post job cleanup.
+Windows Export	Post Checkout	﻿2026-01-23T18:10:54.5014661Z Post job cleanup.
+Windows Export	Post Checkout	2026-01-23T18:10:54.5942925Z [command]/usr/bin/git version
+Windows Export	Post Checkout	2026-01-23T18:10:54.5984686Z git version 2.52.0
+Windows Export	Post Checkout	2026-01-23T18:10:54.6027835Z Temporarily overriding HOME='/home/runner/work/_temp/b918fe69-2c1b-4460-b5ba-e850843dcd25' before making global git config changes
+Windows Export	Post Checkout	2026-01-23T18:10:54.6029571Z Adding repository directory to the temporary git global config as a safe directory
+Windows Export	Post Checkout	2026-01-23T18:10:54.6034318Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/godot-topdown-MVP/godot-topdown-MVP
+Windows Export	Post Checkout	2026-01-23T18:10:54.6068093Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+Windows Export	Post Checkout	2026-01-23T18:10:54.6099320Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Windows Export	Post Checkout	2026-01-23T18:10:54.6325969Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Windows Export	Post Checkout	2026-01-23T18:10:54.6347443Z http.https://github.com/.extraheader
+Windows Export	Post Checkout	2026-01-23T18:10:54.6360413Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+Windows Export	Post Checkout	2026-01-23T18:10:54.6389792Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Windows Export	Post Checkout	2026-01-23T18:10:54.6627708Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+Windows Export	Post Checkout	2026-01-23T18:10:54.6662037Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Windows Export	Complete job	﻿2026-01-23T18:10:54.7053210Z Cleaning up orphan processes
+Windows Export	Complete job	2026-01-23T18:10:54.7351217Z Terminate orphan process: pid (2525) (VBCSCompiler)

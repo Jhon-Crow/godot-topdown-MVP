@@ -1,0 +1,30 @@
+aef5d94 Initial commit with task details
+7d14dab Revert "Initial commit with task details"
+3edbf35 Initial commit with task details
+2cfe1c6 Revert "Initial commit with task details"
+4685f87 Initial commit with task details
+6f55c58 Revert "Initial commit with task details"
+d6d4db0 Initial commit with task details
+9e1a4ca Remove visual trails, keep only dust effects for penetration feedback
+9c8fbd1 Fix point-blank penetration and visual trail eraser effect
+0d5eef1 Add C# bullet penetration and fix Line2D trail positioning
+581a204 Fix penetration detection and visual trail rendering
+4048f5e Revert "Initial commit with task details"
+dcbfcef Initial commit with task details
+5ed42a4 Revert "Initial commit with task details"
+00fbfd6 Fix player shooting through walls when standing flush against cover
+6092453 Initial commit with task details
+55a0399 Merge FOV implementation from PR #156 into cover aiming branch
+ef4afce Revert "Initial commit with task details"
+93f7834 Add cover exit aiming when player hides behind obstacles
+97630c5 Initial commit with task details
+ae53de2 Revert "Initial commit with task details"
+c5df3de Initial commit with task details
+e9faad7 Revert "Initial commit with task details"
+da996e6 Initial commit with task details
+f3e8ce5 Revert "Initial commit with task details"
+46e578b Initial commit with task details
+426b527 Revert "Initial commit with task details"
+38ee5b9 Initial commit with task details
+f2a8cd0 Initial commit with task details
+2d52c5f Fix critical syntax error in _process_flanking_state

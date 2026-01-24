@@ -1,14 +1,20 @@
-[gd_scene load_steps=7 format=3 uid="uid://dv8nq2vj5r7p2"]
+[gd_scene load_steps=13 format=3 uid="uid://dv8nq2vj5r7p2"]
 
 [ext_resource type="Script" path="res://Scripts/Characters/Player.cs" id="1_player"]
 [ext_resource type="PackedScene" uid="uid://c5q8m3x7n2k1p" path="res://scenes/weapons/csharp/AssaultRifle.tscn" id="2_assault_rifle"]
 [ext_resource type="Script" path="res://scripts/objects/hit_area.gd" id="3_hit_area"]
+[ext_resource type="Script" path="res://scripts/components/threat_sphere.gd" id="4_threat_sphere"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/player/player_body.png" id="5_body"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/player/player_head.png" id="6_head"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/player/player_left_arm.png" id="7_left_arm"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/player/player_right_arm.png" id="8_right_arm"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/player/player_armband.png" id="9_armband"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_player"]
 radius = 16.0
 
-[sub_resource type="PlaceholderTexture2D" id="PlaceholderTexture2D_player"]
-size = Vector2(32, 32)
+[sub_resource type="CircleShape2D" id="CircleShape2D_threat"]
+radius = 150.0
 
 [node name="Player" type="CharacterBody2D" groups=["player"]]
 collision_layer = 1
@@ -19,9 +25,36 @@ MaxSpeed = 330.0
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("CircleShape2D_player")
 
-[node name="Sprite2D" type="Sprite2D" parent="."]
-modulate = Color(0.2, 0.6, 1, 1)
-texture = SubResource("PlaceholderTexture2D_player")
+[node name="PlayerModel" type="Node2D" parent="."]
+
+[node name="Body" type="Sprite2D" parent="PlayerModel"]
+z_index = 1
+position = Vector2(-4, 0)
+texture = ExtResource("5_body")
+
+[node name="LeftArm" type="Sprite2D" parent="PlayerModel"]
+z_index = 4
+position = Vector2(24, 6)
+texture = ExtResource("7_left_arm")
+
+[node name="RightArm" type="Sprite2D" parent="PlayerModel"]
+z_index = 4
+position = Vector2(-2, 6)
+texture = ExtResource("8_right_arm")
+
+[node name="Armband" type="Sprite2D" parent="PlayerModel"]
+z_index = 5
+position = Vector2(-2, 6)
+modulate = Color(2, 0.3, 0.3, 1)
+texture = ExtResource("9_armband")
+
+[node name="Head" type="Sprite2D" parent="PlayerModel"]
+z_index = 3
+position = Vector2(-6, -2)
+texture = ExtResource("6_head")
+
+[node name="WeaponMount" type="Node2D" parent="PlayerModel"]
+position = Vector2(6, 6)
 
 [node name="Camera2D" type="Camera2D" parent="."]
 process_callback = 0
@@ -34,6 +67,7 @@ position_smoothing_enabled = true
 position_smoothing_speed = 5.0
 
 [node name="AssaultRifle" parent="." instance=ExtResource("2_assault_rifle")]
+position = Vector2(0, 6)
 
 [node name="HitArea" type="Area2D" parent="."]
 collision_layer = 1
@@ -42,3 +76,14 @@ script = ExtResource("3_hit_area")
 
 [node name="HitCollisionShape" type="CollisionShape2D" parent="HitArea"]
 shape = SubResource("CircleShape2D_player")
+
+[node name="ThreatSphere" type="Area2D" parent="."]
+collision_layer = 0
+collision_mask = 16
+monitorable = false
+script = ExtResource("4_threat_sphere")
+threat_radius = 150.0
+trajectory_tolerance_degrees = 15.0
+
+[node name="ThreatCollisionShape" type="CollisionShape2D" parent="ThreatSphere"]
+shape = SubResource("CircleShape2D_threat")

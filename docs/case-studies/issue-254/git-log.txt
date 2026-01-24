@@ -1,0 +1,20 @@
+986d06a Initial commit with task details
+e406ffd Merge pull request #246 from konard/issue-245-325e3d16646b
+a088049 Fix model facing direction using global_rotation
+ab8cce3 Merge remote-tracking branch 'upstream/main' into issue-245-325e3d16646b
+814d424 Merge pull request #248 from konard/issue-247-e379ef45e44b
+837dbda Add grenade trajectory debug visualization to C# Player
+b808545 Fix model facing direction when vertically flipped
+20b1fc8 Fix muzzle position calculation using visual transform
+5745926 Revert "Initial commit with task details"
+3d2e3fe Add grenade throw trajectory debug visualization
+4c33522 Initial commit with task details
+002ef36 Merge PR #221 branch with enemy models and fixes
+8c278e0 Revert "Initial commit with task details"
+56555c3 Fix enemy bullets to spawn from weapon muzzle
+db2dd43 Initial commit with task details
+f4a00b8 Fix enemy weapon aim: bullets now fly from muzzle to target
+0cdd1e5 Fix weapon aim direction: account for weapon offset from enemy center
+b90120c Fix enemy aiming direction: use Vector2.from_angle instead of global_transform.x
+cfc24a7 Merge upstream/main branch
+ab20f24 Merge pull request #242 from konard/issue-241-eff45ddf281c

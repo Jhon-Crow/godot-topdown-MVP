@@ -375,7 +375,8 @@ func test_assault_player_action_initialization() -> void:
 	var action := EnemyActions.AssaultPlayerAction.new()
 
 	assert_eq(action.action_name, "assault_player", "Action name should be 'assault_player'")
-	assert_eq(action.cost, 1.0, "Base cost should be 1.0")
+	# NOTE: ASSAULT action is disabled per issue #169 - base cost is now very high
+	assert_eq(action.cost, 100.0, "Base cost should be 100.0 (disabled per issue #169)")
 
 
 func test_assault_player_action_preconditions() -> void:
@@ -392,21 +393,25 @@ func test_assault_player_action_effects() -> void:
 
 
 func test_assault_player_cost_with_multiple_enemies() -> void:
+	# NOTE: ASSAULT action is disabled per issue #169 - always returns high cost
 	var action := EnemyActions.AssaultPlayerAction.new()
 	var world_state := {"enemies_in_combat": 3}
 
 	var cost: float = action.get_cost(null, world_state)
 
-	assert_eq(cost, 0.5, "Cost should be low for coordinated attack")
+	# Disabled per issue #169 - always returns 1000.0 regardless of enemies_in_combat
+	assert_eq(cost, 1000.0, "Cost should always be 1000.0 (disabled per issue #169)")
 
 
 func test_assault_player_cost_alone() -> void:
+	# NOTE: ASSAULT action is disabled per issue #169 - always returns high cost
 	var action := EnemyActions.AssaultPlayerAction.new()
 	var world_state := {"enemies_in_combat": 1}
 
 	var cost: float = action.get_cost(null, world_state)
 
-	assert_eq(cost, 5.0, "Cost should be very high when alone (prefer other actions)")
+	# Disabled per issue #169 - always returns 1000.0 regardless of enemies_in_combat
+	assert_eq(cost, 1000.0, "Cost should always be 1000.0 (disabled per issue #169)")
 
 
 # ============================================================================

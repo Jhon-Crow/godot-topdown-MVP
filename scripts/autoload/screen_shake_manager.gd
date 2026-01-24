@@ -24,7 +24,19 @@ var enabled: bool = true
 const MIN_RECOVERY_TIME: float = 0.05
 
 ## Maximum accumulated shake offset to prevent extreme values.
-const MAX_SHAKE_OFFSET: float = 50.0
+## Increased 4x for UZI balance (was 50.0).
+const MAX_SHAKE_OFFSET: float = 200.0
+
+## Time since last shake was added (for burst suppression).
+var _time_since_last_shake: float = 0.0
+
+## Time threshold to consider burst ended (in seconds).
+## If no new shake is added within this time, recovery resumes at full speed.
+const BURST_END_THRESHOLD: float = 0.15
+
+## Recovery speed multiplier during active burst (0.0 = no recovery, 1.0 = full recovery).
+## Lower values mean recoil doesn't dampen while firing continues.
+const BURST_RECOVERY_MULTIPLIER: float = 0.15
 
 
 func _ready() -> void:
@@ -33,11 +45,20 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	# Track time since last shake for burst detection
+	_time_since_last_shake += delta
+
 	if not enabled or _shake_offset == Vector2.ZERO:
 		return
 
-	# Recover shake offset towards zero
-	var recovery_amount := _current_recovery_speed * delta
+	# Determine recovery multiplier based on whether we're in an active burst
+	var recovery_multiplier := 1.0
+	if _time_since_last_shake < BURST_END_THRESHOLD:
+		# Active burst - significantly reduce recovery to maintain recoil
+		recovery_multiplier = BURST_RECOVERY_MULTIPLIER
+
+	# Recover shake offset towards zero (with burst suppression)
+	var recovery_amount := _current_recovery_speed * delta * recovery_multiplier
 	var current_length := _shake_offset.length()
 
 	if current_length <= recovery_amount:
@@ -58,6 +79,9 @@ func _process(delta: float) -> void:
 func add_shake(shooting_direction: Vector2, intensity: float, recovery_time: float) -> void:
 	if not enabled or intensity <= 0.0:
 		return
+
+	# Reset burst timer - this shot continues the burst
+	_time_since_last_shake = 0.0
 
 	# Shake direction is opposite to shooting direction (recoil effect)
 	var shake_direction := -shooting_direction.normalized()

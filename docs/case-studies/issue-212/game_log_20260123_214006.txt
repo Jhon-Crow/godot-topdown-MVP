@@ -1,0 +1,501 @@
+[21:40:06] [INFO] ============================================================
+[21:40:06] [INFO] GAME LOG STARTED
+[21:40:06] [INFO] ============================================================
+[21:40:06] [INFO] Timestamp: 2026-01-23T21:40:06
+[21:40:06] [INFO] Log file: I:/Загрузки/godot exe/game_log_20260123_214006.txt
+[21:40:06] [INFO] Executable: I:/Загрузки/godot exe/Godot-Top-Down-Template.exe
+[21:40:06] [INFO] OS: Windows
+[21:40:06] [INFO] Debug build: false
+[21:40:06] [INFO] Engine version: 4.3-stable (official)
+[21:40:06] [INFO] Project: Godot Top-Down Template
+[21:40:06] [INFO] ------------------------------------------------------------
+[21:40:06] [INFO] [GameManager] GameManager ready
+[21:40:06] [INFO] [ScoreManager] ScoreManager ready
+[21:40:06] [INFO] [SoundPropagation] SoundPropagation autoload initialized
+[21:40:06] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[21:40:06] [INFO] [PenultimateHit] Saturation shader loaded successfully
+[21:40:06] [INFO] [PenultimateHit] PenultimateHitEffectsManager ready - Configuration:
+[21:40:06] [INFO] [PenultimateHit]   Time scale: 0.10 (10x slowdown)
+[21:40:06] [INFO] [PenultimateHit]   Saturation boost: 2.0 (3.0x)
+[21:40:06] [INFO] [PenultimateHit]   Contrast boost: 1.0 (2.0x)
+[21:40:06] [INFO] [PenultimateHit]   Effect duration: 3.0 real seconds
+[21:40:06] [INFO] [LastChance] Resetting all effects (scene change detected)
+[21:40:06] [INFO] [LastChance] Last chance shader loaded successfully
+[21:40:06] [INFO] [LastChance] LastChanceEffectsManager ready - Configuration:
+[21:40:06] [INFO] [LastChance]   Freeze duration: 6.0 real seconds
+[21:40:06] [INFO] [LastChance]   Sepia intensity: 0.70
+[21:40:06] [INFO] [LastChance]   Brightness: 0.60
+[21:40:07] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FlashbangGrenade.tscn
+[21:40:07] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FragGrenade.tscn
+[21:40:07] [ENEMY] [Enemy1] Death animation component initialized
+[21:40:07] [ENEMY] [Enemy2] Death animation component initialized
+[21:40:07] [ENEMY] [Enemy3] Death animation component initialized
+[21:40:07] [ENEMY] [Enemy4] Death animation component initialized
+[21:40:07] [ENEMY] [Enemy5] Death animation component initialized
+[21:40:07] [ENEMY] [Enemy6] Death animation component initialized
+[21:40:07] [ENEMY] [Enemy7] Death animation component initialized
+[21:40:07] [ENEMY] [Enemy8] Death animation component initialized
+[21:40:07] [ENEMY] [Enemy9] Death animation component initialized
+[21:40:07] [ENEMY] [Enemy10] Death animation component initialized
+[21:40:07] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[21:40:07] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[21:40:07] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[21:40:07] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[21:40:07] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[21:40:07] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[21:40:07] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[21:40:07] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 3/4
+[21:40:07] [INFO] [ScoreManager] Level started with 10 enemies
+[21:40:07] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 1)
+[21:40:07] [ENEMY] [Enemy1] Registered as sound listener
+[21:40:07] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 2, behavior: GUARD, player_found: yes
+[21:40:07] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 2)
+[21:40:07] [ENEMY] [Enemy2] Registered as sound listener
+[21:40:07] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 2, behavior: GUARD, player_found: yes
+[21:40:07] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 3)
+[21:40:07] [ENEMY] [Enemy3] Registered as sound listener
+[21:40:07] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 3, behavior: GUARD, player_found: yes
+[21:40:07] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 4)
+[21:40:07] [ENEMY] [Enemy4] Registered as sound listener
+[21:40:07] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 3, behavior: GUARD, player_found: yes
+[21:40:07] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 5)
+[21:40:07] [ENEMY] [Enemy5] Registered as sound listener
+[21:40:07] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 2, behavior: GUARD, player_found: yes
+[21:40:07] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 6)
+[21:40:07] [ENEMY] [Enemy6] Registered as sound listener
+[21:40:07] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 3, behavior: GUARD, player_found: yes
+[21:40:07] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 7)
+[21:40:07] [ENEMY] [Enemy7] Registered as sound listener
+[21:40:07] [ENEMY] [Enemy7] Enemy spawned at (1606.114, 893.8859), health: 2, behavior: PATROL, player_found: yes
+[21:40:07] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 8)
+[21:40:07] [ENEMY] [Enemy8] Registered as sound listener
+[21:40:07] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 2, behavior: GUARD, player_found: yes
+[21:40:07] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 9)
+[21:40:07] [ENEMY] [Enemy9] Registered as sound listener
+[21:40:07] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 4, behavior: GUARD, player_found: yes
+[21:40:07] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 10)
+[21:40:07] [ENEMY] [Enemy10] Registered as sound listener
+[21:40:07] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 2, behavior: PATROL, player_found: yes
+[21:40:07] [INFO] [Player] Detecting weapon pose (frame 3)...
+[21:40:07] [INFO] [Player] Detected weapon: Rifle (default pose)
+[21:40:07] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[21:40:07] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[21:40:07] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[21:40:07] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[21:40:07] [INFO] [LastChance] Found player: Player
+[21:40:07] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[21:40:07] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[21:40:07] [INFO] [LastChance] Connected to player Died signal (C#)
+[21:40:09] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[21:40:09] [INFO] [LastChance] Resetting all effects (scene change detected)
+[21:40:09] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[21:40:09] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+[21:40:09] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[21:40:09] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[21:40:09] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[21:40:09] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[21:40:09] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[21:40:09] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 3/3, Health: 4/4
+[21:40:09] [INFO] [Player] Detecting weapon pose (frame 3)...
+[21:40:09] [INFO] [Player] Detected weapon: Rifle (default pose)
+[21:40:09] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[21:40:09] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[21:40:09] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[21:40:09] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[21:40:09] [INFO] [LastChance] Found player: Player
+[21:40:09] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[21:40:09] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[21:40:09] [INFO] [LastChance] Connected to player Died signal (C#)
+[21:40:10] [INFO] [PauseMenu] Armory button pressed
+[21:40:10] [INFO] [PauseMenu] Creating new armory menu instance
+[21:40:10] [INFO] [PauseMenu] armory_menu_scene resource path: res://scenes/ui/ArmoryMenu.tscn
+[21:40:10] [INFO] [PauseMenu] Instance created, class: CanvasLayer, name: ArmoryMenu
+[21:40:10] [INFO] [PauseMenu] Script attached: res://scripts/ui/armory_menu.gd
+[21:40:10] [INFO] [PauseMenu] back_pressed signal exists on instance
+[21:40:10] [INFO] [PauseMenu] back_pressed signal connected
+[21:40:10] [INFO] [PauseMenu] Armory menu instance added as child, is_inside_tree: true
+[21:40:10] [INFO] [PauseMenu] _populate_weapon_grid method exists
+[21:40:11] [INFO] [GameManager] Weapon selected: shotgun
+[21:40:11] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[21:40:11] [INFO] [LastChance] Resetting all effects (scene change detected)
+[21:40:11] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[21:40:11] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+[21:40:11] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[21:40:11] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[21:40:11] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[21:40:11] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[21:40:11] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[21:40:11] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 3/3, Health: 4/4
+[21:40:11] [INFO] [Player] Detecting weapon pose (frame 3)...
+[21:40:11] [INFO] [Player] Detected weapon: Shotgun (Shotgun pose)
+[21:40:11] [INFO] [Player] Applied Shotgun arm pose: Left=(21, 6), Right=(-1, 6)
+[21:40:11] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[21:40:11] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[21:40:11] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[21:40:11] [INFO] [LastChance] Found player: Player
+[21:40:11] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[21:40:11] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[21:40:11] [INFO] [LastChance] Connected to player Died signal (C#)
+[21:40:11] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(193.4663, 200.671), source=PLAYER (Shotgun), range=1469, listeners=10
+[21:40:11] [INFO] [SoundPropagation] Cleaned up 10 invalid listeners
+[21:40:11] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[21:40:12] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+[21:40:12] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:12] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:12] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:12] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:12] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:12] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:12] [INFO] [Shotgun.FIX#243] Mid-drag pump DOWN - chambered, ready to fire (MMB not held)
+[21:40:12] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:12] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:12] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:12] [INFO] [Shotgun.FIX#243] RMB released after 13 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[21:40:12] [INFO] [Shotgun.FIX#243] Bolt open BLOCKED by cooldown
+[21:40:13] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(497.3521, 166.3556), source=PLAYER (Shotgun), range=1469, listeners=0
+[21:40:13] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[21:40:13] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+[21:40:13] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:13] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:13] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:13] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:13] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:13] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:13] [INFO] [Shotgun.FIX#243] Mid-drag pump DOWN - chambered, ready to fire (MMB not held)
+[21:40:13] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:13] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:13] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:13] [INFO] [Shotgun.FIX#243] RMB released after 17 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[21:40:13] [INFO] [Shotgun.FIX#243] Bolt open BLOCKED by cooldown
+[21:40:14] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(520.8188, 166.3556), source=PLAYER (Shotgun), range=1469, listeners=0
+[21:40:14] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[21:40:14] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+[21:40:14] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:14] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:14] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:14] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:14] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:14] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:14] [INFO] [Shotgun.FIX#243] Mid-drag pump DOWN - chambered, ready to fire (MMB not held)
+[21:40:14] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:14] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:14] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:15] [INFO] [Shotgun.FIX#243] RMB released after 13 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[21:40:15] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=Ready, ReloadState=NotReloading
+[21:40:15] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:15] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:15] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:15] [INFO] [Shotgun.FIX#243] RMB released after 20 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[21:40:15] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=Ready, ReloadState=NotReloading
+[21:40:15] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:16] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:16] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:16] [INFO] [Shotgun.FIX#243] RMB released after 9 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[21:40:16] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=Ready, ReloadState=NotReloading
+[21:40:16] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:16] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:16] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:16] [INFO] [Shotgun.FIX#243] Bolt opened for loading - ReloadState=Loading, ShellsInTube=5/8
+[21:40:16] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:16] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:16] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:17] [INFO] [Shotgun.FIX#243] RMB released after 51 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[21:40:17] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=Ready, ReloadState=Loading
+[21:40:17] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:17] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:17] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:17] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[21:40:17] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[21:40:17] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[21:40:17] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[21:40:17] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[21:40:17] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[21:40:17] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[21:40:17] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[21:40:17] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[21:40:17] [INFO] [Shotgun.FIX#243] RMB released after 11 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[21:40:17] [INFO] [Shotgun.FIX#266] RMB release in Loading state: wasMMBDuringDrag=False, isMMBHeld=False => shouldLoadShell=False
+[21:40:17] [INFO] [Shotgun.FIX#266] Closing bolt (MMB was not held)
+[21:40:17] [INFO] [Shotgun.FIX#243] Reload complete - bolt closed, ready to fire with 5 shells
+[21:40:18] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(520.8188, 166.3556), source=PLAYER (Shotgun), range=1469, listeners=0
+[21:40:18] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[21:40:19] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+[21:40:19] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:19] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:19] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:19] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:19] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:19] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:19] [INFO] [Shotgun.FIX#243] Mid-drag pump DOWN - chambered, ready to fire (MMB not held)
+[21:40:19] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:19] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:19] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:19] [INFO] [Shotgun.FIX#243] RMB released after 13 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[21:40:20] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(452.9787, 166.3556), source=PLAYER (Shotgun), range=1469, listeners=0
+[21:40:20] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[21:40:20] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+[21:40:20] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:20] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:20] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:20] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:20] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:20] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:20] [INFO] [Shotgun.FIX#243] Mid-drag pump DOWN - chambered, ready to fire (MMB not held)
+[21:40:20] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:20] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:20] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:21] [INFO] [Shotgun.FIX#243] RMB released after 11 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[21:40:21] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(452.9787, 166.3556), source=PLAYER (Shotgun), range=1469, listeners=0
+[21:40:21] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[21:40:21] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+[21:40:21] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:21] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:21] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:21] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:21] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:21] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:22] [INFO] [Shotgun.FIX#243] Mid-drag pump DOWN - chambered, ready to fire (MMB not held)
+[21:40:22] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:22] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:22] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:22] [INFO] [Shotgun.FIX#243] RMB released after 19 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[21:40:22] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(452.9787, 166.3556), source=PLAYER (Shotgun), range=1469, listeners=0
+[21:40:22] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[21:40:23] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+[21:40:23] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:23] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:23] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:23] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:23] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:23] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:23] [INFO] [Shotgun.FIX#243] Mid-drag pump DOWN - chambered, ready to fire (MMB not held)
+[21:40:23] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:23] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:23] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:23] [INFO] [Shotgun.FIX#243] RMB released after 22 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[21:40:23] [INFO] [Shotgun.FIX#243] Bolt open BLOCKED by cooldown
+[21:40:24] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(452.9787, 166.3556), source=PLAYER (Shotgun), range=1469, listeners=0
+[21:40:24] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[21:40:24] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+[21:40:24] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:24] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:24] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:24] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:24] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:24] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:24] [INFO] [Shotgun.FIX#243] RMB released after 11 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[21:40:25] [INFO] [Shotgun.EVENT] MMB event: pressed=True (was False), isDragging=False
+[21:40:25] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=True, raw=True, event=True, any=True, ActionState=NeedsPumpDown, ReloadState=NotReloading
+[21:40:25] [INFO] [Shotgun.DIAG] Frame 1: poll=True, raw=True, event=True, any=True, wasMMB=True
+[21:40:25] [INFO] [Shotgun.DIAG] Frame 2: poll=True, raw=True, event=True, any=True, wasMMB=True
+[21:40:25] [INFO] [Shotgun.DIAG] Frame 3: poll=True, raw=True, event=True, any=True, wasMMB=True
+[21:40:25] [INFO] [Shotgun.FIX#266] Mid-drag MMB+DOWN during pump cycle: transitioning to reload mode
+[21:40:25] [INFO] [Shotgun.FIX#266] Transitioned to Loading state (bolt already open from pump UP)
+[21:40:25] [INFO] [Shotgun.FIX#243] LoadShell called - ReloadState=Loading, ShellsInTube=0/8, Tutorial=True, ReserveAmmo=12
+[21:40:25] [INFO] [Shotgun.FIX#243] Shell LOADED - 1/8 shells in tube
+[21:40:25] [INFO] [Shotgun.FIX#266] Mid-drag shell loaded during pump cycle - staying in Loading state
+[21:40:25] [INFO] [Shotgun.DIAG] Frame 1: poll=True, raw=True, event=True, any=True, wasMMB=True
+[21:40:25] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:40:25] [INFO] [Shotgun.DIAG] Frame 2: poll=True, raw=True, event=True, any=True, wasMMB=True
+[21:40:25] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:40:25] [INFO] [Shotgun.DIAG] Frame 3: poll=True, raw=True, event=True, any=True, wasMMB=True
+[21:40:25] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:40:25] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:40:25] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:40:25] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:40:25] [INFO] [Shotgun.FIX#243] RMB released after 6 frames - wasMMBDuringDrag=True, current: poll=True, raw=True, event=True
+[21:40:25] [INFO] [Shotgun.FIX#266] RMB release in Loading state: shell already loaded mid-drag, skipping duplicate load
+[21:40:26] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=True, raw=True, event=True, any=True, ActionState=Ready, ReloadState=Loading
+[21:40:26] [INFO] [Shotgun.DIAG] Frame 1: poll=True, raw=True, event=True, any=True, wasMMB=True
+[21:40:26] [INFO] [Shotgun.DIAG] Frame 2: poll=True, raw=True, event=True, any=True, wasMMB=True
+[21:40:26] [INFO] [Shotgun.DIAG] Frame 3: poll=True, raw=True, event=True, any=True, wasMMB=True
+[21:40:26] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:40:26] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:40:26] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:40:26] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:40:26] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:40:26] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:40:26] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:40:26] [INFO] [Shotgun.FIX#243] RMB released after 11 frames - wasMMBDuringDrag=True, current: poll=True, raw=True, event=True
+[21:40:26] [INFO] [Shotgun.FIX#266] RMB release in Loading state: wasMMBDuringDrag=True, isMMBHeld=True => shouldLoadShell=True
+[21:40:26] [INFO] [Shotgun.FIX#266] Loading shell (MMB was held during drag)
+[21:40:26] [INFO] [Shotgun.FIX#243] LoadShell called - ReloadState=Loading, ShellsInTube=1/8, Tutorial=True, ReserveAmmo=12
+[21:40:26] [INFO] [Shotgun.FIX#243] Shell LOADED - 2/8 shells in tube
+[21:40:27] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=True, raw=True, event=True, any=True, ActionState=Ready, ReloadState=Loading
+[21:40:27] [INFO] [Shotgun.DIAG] Frame 1: poll=True, raw=True, event=True, any=True, wasMMB=True
+[21:40:27] [INFO] [Shotgun.DIAG] Frame 2: poll=True, raw=True, event=True, any=True, wasMMB=True
+[21:40:27] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:40:27] [INFO] [Shotgun.DIAG] Frame 3: poll=True, raw=True, event=True, any=True, wasMMB=True
+[21:40:27] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:40:27] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:40:27] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:40:27] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:40:27] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:40:27] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:40:27] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:40:27] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:40:27] [INFO] [Shotgun.FIX#243] RMB released after 10 frames - wasMMBDuringDrag=True, current: poll=True, raw=True, event=True
+[21:40:27] [INFO] [Shotgun.FIX#266] RMB release in Loading state: wasMMBDuringDrag=True, isMMBHeld=True => shouldLoadShell=True
+[21:40:27] [INFO] [Shotgun.FIX#266] Loading shell (MMB was held during drag)
+[21:40:27] [INFO] [Shotgun.FIX#243] LoadShell called - ReloadState=Loading, ShellsInTube=2/8, Tutorial=True, ReserveAmmo=12
+[21:40:27] [INFO] [Shotgun.FIX#243] Shell LOADED - 3/8 shells in tube
+[21:40:27] [INFO] [Shotgun.EVENT] MMB event: pressed=False (was True), isDragging=False
+[21:40:28] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[21:40:28] [INFO] [LastChance] Resetting all effects (scene change detected)
+[21:40:28] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[21:40:28] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+[21:40:28] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[21:40:28] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[21:40:28] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[21:40:28] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[21:40:28] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[21:40:28] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 3/3, Health: 3/4
+[21:40:28] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[21:40:28] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[21:40:28] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[21:40:28] [INFO] [LastChance] Found player: Player
+[21:40:28] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[21:40:28] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[21:40:28] [INFO] [LastChance] Connected to player Died signal (C#)
+[21:40:28] [INFO] [Player] Detecting weapon pose (frame 3)...
+[21:40:28] [INFO] [Player] Detected weapon: Shotgun (Shotgun pose)
+[21:40:28] [INFO] [Player] Applied Shotgun arm pose: Left=(21, 6), Right=(-1, 6)
+[21:40:29] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(263.5974, 147.4755), source=PLAYER (Shotgun), range=1469, listeners=0
+[21:40:29] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[21:40:30] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+[21:40:30] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:30] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:30] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:30] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:30] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:30] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:30] [INFO] [Shotgun.FIX#243] RMB released after 10 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[21:40:31] [INFO] [Shotgun.EVENT] MMB event: pressed=True (was False), isDragging=False
+[21:40:31] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=True, raw=True, event=True, any=True, ActionState=NeedsPumpDown, ReloadState=NotReloading
+[21:40:31] [INFO] [Shotgun.DIAG] Frame 1: poll=True, raw=True, event=True, any=True, wasMMB=True
+[21:40:32] [INFO] [Shotgun.DIAG] Frame 2: poll=True, raw=True, event=True, any=True, wasMMB=True
+[21:40:32] [INFO] [Shotgun.DIAG] Frame 3: poll=True, raw=True, event=True, any=True, wasMMB=True
+[21:40:32] [INFO] [Shotgun.FIX#266] Mid-drag MMB+DOWN during pump cycle: transitioning to reload mode
+[21:40:32] [INFO] [Shotgun.FIX#266] Transitioned to Loading state (bolt already open from pump UP)
+[21:40:32] [INFO] [Shotgun.FIX#243] LoadShell called - ReloadState=Loading, ShellsInTube=7/8, Tutorial=True, ReserveAmmo=120
+[21:40:32] [INFO] [Shotgun.FIX#243] Shell LOADED - 8/8 shells in tube
+[21:40:32] [INFO] [Shotgun.FIX#266] Mid-drag shell loaded during pump cycle - staying in Loading state
+[21:40:32] [INFO] [Shotgun.DIAG] Frame 1: poll=True, raw=True, event=True, any=True, wasMMB=True
+[21:40:32] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:40:32] [INFO] [Shotgun.DIAG] Frame 2: poll=True, raw=True, event=True, any=True, wasMMB=True
+[21:40:32] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:40:32] [INFO] [Shotgun.DIAG] Frame 3: poll=True, raw=True, event=True, any=True, wasMMB=True
+[21:40:32] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:40:32] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:40:32] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:40:32] [INFO] [Shotgun.FIX#243] RMB released after 5 frames - wasMMBDuringDrag=True, current: poll=True, raw=True, event=True
+[21:40:32] [INFO] [Shotgun.FIX#266] RMB release in Loading state: shell already loaded mid-drag, skipping duplicate load
+[21:40:33] [INFO] [Shotgun.EVENT] MMB event: pressed=False (was True), isDragging=False
+[21:40:33] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=Ready, ReloadState=Loading
+[21:40:33] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:33] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:33] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:33] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[21:40:33] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[21:40:33] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[21:40:33] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[21:40:33] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[21:40:33] [INFO] [Shotgun.FIX#243] RMB released after 7 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[21:40:33] [INFO] [Shotgun.FIX#266] RMB release in Loading state: wasMMBDuringDrag=False, isMMBHeld=False => shouldLoadShell=False
+[21:40:33] [INFO] [Shotgun.FIX#266] Closing bolt (MMB was not held)
+[21:40:33] [INFO] [Shotgun.FIX#243] Reload complete - bolt closed, ready to fire with 8 shells
+[21:40:34] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(444.4369, 204.4342), source=PLAYER (Shotgun), range=1469, listeners=0
+[21:40:34] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[21:40:34] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+[21:40:34] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:34] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:34] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:34] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:35] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:35] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:35] [INFO] [Shotgun.FIX#243] RMB released after 6 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[21:40:35] [INFO] [Shotgun.EVENT] MMB event: pressed=True (was False), isDragging=False
+[21:40:35] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=True, raw=True, event=True, any=True, ActionState=NeedsPumpDown, ReloadState=NotReloading
+[21:40:35] [INFO] [Shotgun.DIAG] Frame 1: poll=True, raw=True, event=True, any=True, wasMMB=True
+[21:40:35] [INFO] [Shotgun.DIAG] Frame 2: poll=True, raw=True, event=True, any=True, wasMMB=True
+[21:40:35] [INFO] [Shotgun.DIAG] Frame 3: poll=True, raw=True, event=True, any=True, wasMMB=True
+[21:40:35] [INFO] [Shotgun.FIX#266] Mid-drag MMB+DOWN during pump cycle: transitioning to reload mode
+[21:40:35] [INFO] [Shotgun.FIX#266] Transitioned to Loading state (bolt already open from pump UP)
+[21:40:35] [INFO] [Shotgun.FIX#243] LoadShell called - ReloadState=Loading, ShellsInTube=7/8, Tutorial=True, ReserveAmmo=120
+[21:40:35] [INFO] [Shotgun.FIX#243] Shell LOADED - 8/8 shells in tube
+[21:40:35] [INFO] [Shotgun.FIX#266] Mid-drag shell loaded during pump cycle - staying in Loading state
+[21:40:35] [INFO] [Shotgun.DIAG] Frame 1: poll=True, raw=True, event=True, any=True, wasMMB=True
+[21:40:35] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:40:35] [INFO] [Shotgun.DIAG] Frame 2: poll=True, raw=True, event=True, any=True, wasMMB=True
+[21:40:35] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:40:35] [INFO] [Shotgun.DIAG] Frame 3: poll=True, raw=True, event=True, any=True, wasMMB=True
+[21:40:35] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:40:35] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:40:35] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:40:35] [INFO] [Shotgun.FIX#243] RMB released after 5 frames - wasMMBDuringDrag=True, current: poll=True, raw=True, event=True
+[21:40:35] [INFO] [Shotgun.FIX#266] RMB release in Loading state: shell already loaded mid-drag, skipping duplicate load
+[21:40:36] [INFO] [Shotgun.EVENT] MMB event: pressed=False (was True), isDragging=False
+[21:40:36] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=Ready, ReloadState=Loading
+[21:40:36] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:36] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:36] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:36] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[21:40:36] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[21:40:36] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[21:40:36] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[21:40:36] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[21:40:36] [INFO] [Shotgun.FIX#243] RMB released after 7 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[21:40:36] [INFO] [Shotgun.FIX#266] RMB release in Loading state: wasMMBDuringDrag=False, isMMBHeld=False => shouldLoadShell=False
+[21:40:36] [INFO] [Shotgun.FIX#266] Closing bolt (MMB was not held)
+[21:40:36] [INFO] [Shotgun.FIX#243] Reload complete - bolt closed, ready to fire with 8 shells
+[21:40:37] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(444.4369, 204.4342), source=PLAYER (Shotgun), range=1469, listeners=0
+[21:40:37] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[21:40:37] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+[21:40:37] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:37] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:37] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:37] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:37] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:37] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:38] [INFO] [Shotgun.FIX#243] RMB released after 6 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[21:40:38] [INFO] [Shotgun.EVENT] MMB event: pressed=True (was False), isDragging=False
+[21:40:38] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=True, raw=True, event=True, any=True, ActionState=NeedsPumpDown, ReloadState=NotReloading
+[21:40:38] [INFO] [Shotgun.DIAG] Frame 1: poll=True, raw=True, event=True, any=True, wasMMB=True
+[21:40:38] [INFO] [Shotgun.DIAG] Frame 2: poll=True, raw=True, event=True, any=True, wasMMB=True
+[21:40:38] [INFO] [Shotgun.DIAG] Frame 3: poll=True, raw=True, event=True, any=True, wasMMB=True
+[21:40:38] [INFO] [Shotgun.FIX#266] Mid-drag MMB+DOWN during pump cycle: transitioning to reload mode
+[21:40:38] [INFO] [Shotgun.FIX#266] Transitioned to Loading state (bolt already open from pump UP)
+[21:40:38] [INFO] [Shotgun.FIX#243] LoadShell called - ReloadState=Loading, ShellsInTube=7/8, Tutorial=True, ReserveAmmo=120
+[21:40:38] [INFO] [Shotgun.FIX#243] Shell LOADED - 8/8 shells in tube
+[21:40:38] [INFO] [Shotgun.FIX#266] Mid-drag shell loaded during pump cycle - staying in Loading state
+[21:40:38] [INFO] [Shotgun.DIAG] Frame 1: poll=True, raw=True, event=True, any=True, wasMMB=True
+[21:40:38] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:40:38] [INFO] [Shotgun.DIAG] Frame 2: poll=True, raw=True, event=True, any=True, wasMMB=True
+[21:40:38] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:40:38] [INFO] [Shotgun.DIAG] Frame 3: poll=True, raw=True, event=True, any=True, wasMMB=True
+[21:40:38] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:40:38] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:40:38] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:40:38] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:40:38] [INFO] [Shotgun.FIX#243] RMB released after 6 frames - wasMMBDuringDrag=True, current: poll=True, raw=True, event=True
+[21:40:38] [INFO] [Shotgun.FIX#266] RMB release in Loading state: shell already loaded mid-drag, skipping duplicate load
+[21:40:39] [INFO] [Shotgun.EVENT] MMB event: pressed=False (was True), isDragging=False
+[21:40:39] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=Ready, ReloadState=Loading
+[21:40:39] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:39] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:39] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[21:40:39] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:40:39] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[21:40:39] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[21:40:39] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[21:40:39] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[21:40:39] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[21:40:39] [INFO] [Shotgun.FIX#243] RMB released after 7 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[21:40:39] [INFO] [Shotgun.FIX#266] RMB release in Loading state: wasMMBDuringDrag=False, isMMBHeld=False => shouldLoadShell=False
+[21:40:39] [INFO] [Shotgun.FIX#266] Closing bolt (MMB was not held)
+[21:40:39] [INFO] [Shotgun.FIX#243] Reload complete - bolt closed, ready to fire with 8 shells
+[21:40:39] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(444.4369, 204.4342), source=PLAYER (Shotgun), range=1469, listeners=0
+[21:40:39] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[21:40:41] [INFO] ------------------------------------------------------------
+[21:40:41] [INFO] GAME LOG ENDED: 2026-01-23T21:40:41
+[21:40:41] [INFO] ============================================================

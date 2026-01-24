@@ -1,0 +1,1009 @@
+[18:54:09] [INFO] ============================================================
+[18:54:09] [INFO] GAME LOG STARTED
+[18:54:09] [INFO] ============================================================
+[18:54:09] [INFO] Timestamp: 2026-01-21T18:54:09
+[18:54:09] [INFO] Log file: I:/Загрузки/godot exe/game_log_20260121_185409.txt
+[18:54:09] [INFO] Executable: I:/Загрузки/godot exe/Godot-Top-Down-Template.exe
+[18:54:09] [INFO] OS: Windows
+[18:54:09] [INFO] Debug build: false
+[18:54:09] [INFO] Engine version: 4.3-stable (official)
+[18:54:09] [INFO] Project: Godot Top-Down Template
+[18:54:09] [INFO] ------------------------------------------------------------
+[18:54:09] [INFO] [GameManager] GameManager ready
+[18:54:09] [INFO] [ScoreManager] ScoreManager ready
+[18:54:09] [INFO] [SoundPropagation] SoundPropagation autoload initialized
+[18:54:09] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[18:54:09] [INFO] [PenultimateHit] Saturation shader loaded successfully
+[18:54:09] [INFO] [PenultimateHit] PenultimateHitEffectsManager ready - Configuration:
+[18:54:09] [INFO] [PenultimateHit]   Time scale: 0.10 (10x slowdown)
+[18:54:09] [INFO] [PenultimateHit]   Saturation boost: 2.0 (3.0x)
+[18:54:09] [INFO] [PenultimateHit]   Contrast boost: 1.0 (2.0x)
+[18:54:09] [INFO] [PenultimateHit]   Effect duration: 3.0 real seconds
+[18:54:09] [INFO] [LastChance] Resetting all effects (scene change detected)
+[18:54:09] [INFO] [LastChance] Last chance shader loaded successfully
+[18:54:09] [INFO] [LastChance] LastChanceEffectsManager ready - Configuration:
+[18:54:09] [INFO] [LastChance]   Freeze duration: 6.0 real seconds
+[18:54:09] [INFO] [LastChance]   Sepia intensity: 0.70
+[18:54:09] [INFO] [LastChance]   Brightness: 0.60
+[18:54:09] [INFO] [Player.Grenade] Grenade scene loaded
+[18:54:09] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[18:54:09] [INFO] [Player] Ready! Grenades: 1/3
+[18:54:09] [INFO] [ScoreManager] Level started with 10 enemies
+[18:54:09] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 1)
+[18:54:09] [ENEMY] [Enemy1] Registered as sound listener
+[18:54:09] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 3, behavior: GUARD, player_found: yes
+[18:54:09] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 2)
+[18:54:09] [ENEMY] [Enemy2] Registered as sound listener
+[18:54:09] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 2, behavior: GUARD, player_found: yes
+[18:54:09] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 3)
+[18:54:09] [ENEMY] [Enemy3] Registered as sound listener
+[18:54:09] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 2, behavior: GUARD, player_found: yes
+[18:54:09] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 4)
+[18:54:09] [ENEMY] [Enemy4] Registered as sound listener
+[18:54:09] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 2, behavior: GUARD, player_found: yes
+[18:54:09] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 5)
+[18:54:09] [ENEMY] [Enemy5] Registered as sound listener
+[18:54:09] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 3, behavior: GUARD, player_found: yes
+[18:54:09] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 6)
+[18:54:09] [ENEMY] [Enemy6] Registered as sound listener
+[18:54:09] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 4, behavior: GUARD, player_found: yes
+[18:54:09] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 7)
+[18:54:09] [ENEMY] [Enemy7] Registered as sound listener
+[18:54:09] [ENEMY] [Enemy7] Enemy spawned at (1606.114, 893.8859), health: 4, behavior: PATROL, player_found: yes
+[18:54:09] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 8)
+[18:54:09] [ENEMY] [Enemy8] Registered as sound listener
+[18:54:09] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 3, behavior: GUARD, player_found: yes
+[18:54:09] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 9)
+[18:54:09] [ENEMY] [Enemy9] Registered as sound listener
+[18:54:09] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 3, behavior: GUARD, player_found: yes
+[18:54:09] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 10)
+[18:54:09] [ENEMY] [Enemy10] Registered as sound listener
+[18:54:09] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 4, behavior: PATROL, player_found: yes
+[18:54:09] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[18:54:09] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[18:54:09] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[18:54:09] [INFO] [LastChance] Found player: Player
+[18:54:09] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[18:54:09] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[18:54:09] [INFO] [LastChance] Connected to player Died signal (C#)
+[18:54:14] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (332.69275, 1196.5677)
+[18:54:14] [INFO] [GrenadeBase] Grenade created at (450, 1250)
+[18:54:14] [INFO] [GrenadeBase] Timer activated! 4.0 seconds until explosion
+[18:54:14] [INFO] [Player.Grenade] Timer started, grenade created at (450, 1250)
+[18:54:14] [INFO] [Player.Grenade] Step 1 complete! Drag: (849.1023, -13.358032)
+[18:54:14] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[18:54:14] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming, drag and release RMB to throw
+[18:54:15] [INFO] [Player.Grenade] Throwing! Direction: (0.9570621, -0.2898829), Drag distance: 1179,6714 (adjusted: 10617,043)
+[18:54:15] [INFO] [Player.Grenade] Player rotated for throw: 0 -> -0,2941045
+[18:54:15] [INFO] [GrenadeBase] Thrown! Direction: (0.957062, -0.289883), Speed: 3840.0
+[18:54:15] [INFO] [Player.Grenade] Thrown! Direction: (0.9570621, -0.2898829), Distance: 10617,043
+[18:54:15] [INFO] [Player.Grenade] Player rotation restored to 0
+[18:54:17] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[18:54:17] [INFO] [LastChance] Resetting all effects (scene change detected)
+[18:54:17] [INFO] [Player.Grenade] Grenade scene loaded
+[18:54:17] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[18:54:17] [INFO] [Player] Ready! Grenades: 1/3
+[18:54:17] [INFO] [ScoreManager] Level started with 10 enemies
+[18:54:17] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 11)
+[18:54:17] [ENEMY] [Enemy1] Registered as sound listener
+[18:54:17] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 3, behavior: GUARD, player_found: yes
+[18:54:17] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 12)
+[18:54:17] [ENEMY] [Enemy2] Registered as sound listener
+[18:54:17] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 4, behavior: GUARD, player_found: yes
+[18:54:17] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 13)
+[18:54:17] [ENEMY] [Enemy3] Registered as sound listener
+[18:54:17] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 2, behavior: GUARD, player_found: yes
+[18:54:17] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 14)
+[18:54:17] [ENEMY] [Enemy4] Registered as sound listener
+[18:54:17] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 2, behavior: GUARD, player_found: yes
+[18:54:17] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 15)
+[18:54:17] [ENEMY] [Enemy5] Registered as sound listener
+[18:54:17] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 2, behavior: GUARD, player_found: yes
+[18:54:17] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 16)
+[18:54:17] [ENEMY] [Enemy6] Registered as sound listener
+[18:54:17] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 3, behavior: GUARD, player_found: yes
+[18:54:17] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 17)
+[18:54:17] [ENEMY] [Enemy7] Registered as sound listener
+[18:54:17] [ENEMY] [Enemy7] Enemy spawned at (1600, 900), health: 4, behavior: PATROL, player_found: yes
+[18:54:17] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 18)
+[18:54:17] [ENEMY] [Enemy8] Registered as sound listener
+[18:54:17] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 3, behavior: GUARD, player_found: yes
+[18:54:17] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 19)
+[18:54:17] [ENEMY] [Enemy9] Registered as sound listener
+[18:54:17] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 2, behavior: GUARD, player_found: yes
+[18:54:17] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 20)
+[18:54:17] [ENEMY] [Enemy10] Registered as sound listener
+[18:54:17] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 2, behavior: PATROL, player_found: yes
+[18:54:17] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[18:54:17] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[18:54:17] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[18:54:17] [INFO] [LastChance] Found player: Player
+[18:54:17] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[18:54:17] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[18:54:17] [INFO] [LastChance] Connected to player Died signal (C#)
+[18:54:18] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (410.11874, 980.8349)
+[18:54:18] [INFO] [GrenadeBase] Grenade created at (450, 1250)
+[18:54:18] [INFO] [GrenadeBase] Timer activated! 4.0 seconds until explosion
+[18:54:18] [INFO] [Player.Grenade] Timer started, grenade created at (450, 1250)
+[18:54:18] [INFO] [Player.Grenade] Step 1 complete! Drag: (869.8568, -53.432312)
+[18:54:19] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[18:54:19] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming, drag and release RMB to throw
+[18:54:19] [INFO] [Player.Grenade] Throwing! Direction: (0.9913863, -0.13096994), Drag distance: 1203,5223 (adjusted: 10831,701)
+[18:54:19] [INFO] [Player.Grenade] Player rotated for throw: 0 -> -0,1313473
+[18:54:19] [INFO] [GrenadeBase] Thrown! Direction: (0.991386, -0.13097), Speed: 3840.0
+[18:54:19] [INFO] [Player.Grenade] Thrown! Direction: (0.9913863, -0.13096994), Distance: 10831,701
+[18:54:20] [INFO] [Player.Grenade] Player rotation restored to 0
+[18:54:21] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[18:54:21] [INFO] [LastChance] Resetting all effects (scene change detected)
+[18:54:21] [INFO] [Player.Grenade] Grenade scene loaded
+[18:54:21] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[18:54:21] [INFO] [Player] Ready! Grenades: 1/3
+[18:54:21] [INFO] [ScoreManager] Level started with 10 enemies
+[18:54:21] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 21)
+[18:54:21] [ENEMY] [Enemy1] Registered as sound listener
+[18:54:21] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 3, behavior: GUARD, player_found: yes
+[18:54:21] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 22)
+[18:54:21] [ENEMY] [Enemy2] Registered as sound listener
+[18:54:21] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 2, behavior: GUARD, player_found: yes
+[18:54:21] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 23)
+[18:54:21] [ENEMY] [Enemy3] Registered as sound listener
+[18:54:21] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 2, behavior: GUARD, player_found: yes
+[18:54:21] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 24)
+[18:54:21] [ENEMY] [Enemy4] Registered as sound listener
+[18:54:21] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 4, behavior: GUARD, player_found: yes
+[18:54:21] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 25)
+[18:54:21] [ENEMY] [Enemy5] Registered as sound listener
+[18:54:21] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 3, behavior: GUARD, player_found: yes
+[18:54:21] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 26)
+[18:54:21] [ENEMY] [Enemy6] Registered as sound listener
+[18:54:21] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 4, behavior: GUARD, player_found: yes
+[18:54:21] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 27)
+[18:54:21] [ENEMY] [Enemy7] Registered as sound listener
+[18:54:21] [ENEMY] [Enemy7] Enemy spawned at (1600, 900), health: 4, behavior: PATROL, player_found: yes
+[18:54:21] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 28)
+[18:54:21] [ENEMY] [Enemy8] Registered as sound listener
+[18:54:21] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 4, behavior: GUARD, player_found: yes
+[18:54:21] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 29)
+[18:54:21] [ENEMY] [Enemy9] Registered as sound listener
+[18:54:21] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 2, behavior: GUARD, player_found: yes
+[18:54:21] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 30)
+[18:54:21] [ENEMY] [Enemy10] Registered as sound listener
+[18:54:21] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 2, behavior: PATROL, player_found: yes
+[18:54:21] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[18:54:21] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[18:54:21] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[18:54:21] [INFO] [LastChance] Found player: Player
+[18:54:21] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[18:54:21] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[18:54:21] [INFO] [LastChance] Connected to player Died signal (C#)
+[18:54:22] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (252.40952, 1060.9833)
+[18:54:22] [INFO] [GrenadeBase] Grenade created at (450, 1250)
+[18:54:22] [INFO] [GrenadeBase] Timer activated! 4.0 seconds until explosion
+[18:54:22] [INFO] [Player.Grenade] Timer started, grenade created at (450, 1250)
+[18:54:22] [INFO] [Player.Grenade] Step 1 complete! Drag: (986.7943, -21.372925)
+[18:54:23] [INFO] [Player.Grenade] G released - dropping grenade at feet
+[18:54:23] [INFO] [Player.Grenade] Grenade dropped at feet at (450, 1273.7)
+[18:54:23] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[18:54:23] [INFO] [LastChance] Resetting all effects (scene change detected)
+[18:54:23] [INFO] [Player.Grenade] Grenade scene loaded
+[18:54:23] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[18:54:23] [INFO] [Player] Ready! Grenades: 1/3
+[18:54:23] [INFO] [ScoreManager] Level started with 10 enemies
+[18:54:23] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 31)
+[18:54:23] [ENEMY] [Enemy1] Registered as sound listener
+[18:54:23] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 4, behavior: GUARD, player_found: yes
+[18:54:23] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 32)
+[18:54:23] [ENEMY] [Enemy2] Registered as sound listener
+[18:54:23] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 4, behavior: GUARD, player_found: yes
+[18:54:23] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 33)
+[18:54:23] [ENEMY] [Enemy3] Registered as sound listener
+[18:54:23] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 2, behavior: GUARD, player_found: yes
+[18:54:23] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 34)
+[18:54:23] [ENEMY] [Enemy4] Registered as sound listener
+[18:54:23] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 3, behavior: GUARD, player_found: yes
+[18:54:23] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 35)
+[18:54:23] [ENEMY] [Enemy5] Registered as sound listener
+[18:54:23] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 2, behavior: GUARD, player_found: yes
+[18:54:23] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 36)
+[18:54:23] [ENEMY] [Enemy6] Registered as sound listener
+[18:54:23] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 3, behavior: GUARD, player_found: yes
+[18:54:23] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 37)
+[18:54:23] [ENEMY] [Enemy7] Registered as sound listener
+[18:54:23] [ENEMY] [Enemy7] Enemy spawned at (1600, 900), health: 2, behavior: PATROL, player_found: yes
+[18:54:23] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 38)
+[18:54:23] [ENEMY] [Enemy8] Registered as sound listener
+[18:54:23] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 3, behavior: GUARD, player_found: yes
+[18:54:23] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 39)
+[18:54:23] [ENEMY] [Enemy9] Registered as sound listener
+[18:54:23] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 3, behavior: GUARD, player_found: yes
+[18:54:23] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 40)
+[18:54:23] [ENEMY] [Enemy10] Registered as sound listener
+[18:54:23] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 2, behavior: PATROL, player_found: yes
+[18:54:23] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[18:54:23] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[18:54:23] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[18:54:23] [INFO] [LastChance] Found player: Player
+[18:54:23] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[18:54:23] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[18:54:23] [INFO] [LastChance] Connected to player Died signal (C#)
+[18:54:26] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (267.22266, 1172.5232)
+[18:54:26] [INFO] [GrenadeBase] Grenade created at (450, 1250)
+[18:54:26] [INFO] [GrenadeBase] Timer activated! 4.0 seconds until explosion
+[18:54:26] [INFO] [Player.Grenade] Timer started, grenade created at (450, 1250)
+[18:54:26] [INFO] [Player.Grenade] Step 1 complete! Drag: (823.04846, -66.790405)
+[18:54:26] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[18:54:26] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming, drag and release RMB to throw
+[18:54:27] [INFO] [Player.Grenade] Throwing! Direction: (0.9553053, -0.29562113), Drag distance: 1145,4766 (adjusted: 10309,289)
+[18:54:27] [INFO] [Player.Grenade] Player rotated for throw: 0 -> -0,30010563
+[18:54:27] [INFO] [GrenadeBase] Thrown! Direction: (0.955305, -0.295621), Speed: 3840.0
+[18:54:27] [INFO] [Player.Grenade] Thrown! Direction: (0.9553053, -0.29562113), Distance: 10309,289
+[18:54:27] [INFO] [Player.Grenade] Player rotation restored to 0
+[18:54:28] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[18:54:28] [INFO] [LastChance] Resetting all effects (scene change detected)
+[18:54:28] [INFO] [Player.Grenade] Grenade scene loaded
+[18:54:28] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[18:54:28] [INFO] [Player] Ready! Grenades: 1/3
+[18:54:28] [INFO] [ScoreManager] Level started with 10 enemies
+[18:54:28] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 41)
+[18:54:28] [ENEMY] [Enemy1] Registered as sound listener
+[18:54:28] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 3, behavior: GUARD, player_found: yes
+[18:54:28] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 42)
+[18:54:28] [ENEMY] [Enemy2] Registered as sound listener
+[18:54:28] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 3, behavior: GUARD, player_found: yes
+[18:54:28] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 43)
+[18:54:28] [ENEMY] [Enemy3] Registered as sound listener
+[18:54:28] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 4, behavior: GUARD, player_found: yes
+[18:54:28] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 44)
+[18:54:28] [ENEMY] [Enemy4] Registered as sound listener
+[18:54:28] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 3, behavior: GUARD, player_found: yes
+[18:54:28] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 45)
+[18:54:28] [ENEMY] [Enemy5] Registered as sound listener
+[18:54:28] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 4, behavior: GUARD, player_found: yes
+[18:54:28] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 46)
+[18:54:28] [ENEMY] [Enemy6] Registered as sound listener
+[18:54:28] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 4, behavior: GUARD, player_found: yes
+[18:54:28] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 47)
+[18:54:28] [ENEMY] [Enemy7] Registered as sound listener
+[18:54:28] [ENEMY] [Enemy7] Enemy spawned at (1600, 900), health: 2, behavior: PATROL, player_found: yes
+[18:54:28] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 48)
+[18:54:28] [ENEMY] [Enemy8] Registered as sound listener
+[18:54:28] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 4, behavior: GUARD, player_found: yes
+[18:54:28] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 49)
+[18:54:28] [ENEMY] [Enemy9] Registered as sound listener
+[18:54:28] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 3, behavior: GUARD, player_found: yes
+[18:54:28] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 50)
+[18:54:28] [ENEMY] [Enemy10] Registered as sound listener
+[18:54:28] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 2, behavior: PATROL, player_found: yes
+[18:54:28] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[18:54:28] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[18:54:28] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[18:54:28] [INFO] [LastChance] Found player: Player
+[18:54:28] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[18:54:28] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[18:54:28] [INFO] [LastChance] Connected to player Died signal (C#)
+[18:54:29] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (244.81877, 1062.987)
+[18:54:29] [INFO] [GrenadeBase] Grenade created at (450, 1250)
+[18:54:29] [INFO] [GrenadeBase] Timer activated! 4.0 seconds until explosion
+[18:54:29] [INFO] [Player.Grenade] Timer started, grenade created at (450, 1250)
+[18:54:29] [INFO] [Player.Grenade] Step 1 complete! Drag: (794.28595, -91.50281)
+[18:54:29] [INFO] [Player.Grenade] G released - dropping grenade at feet
+[18:54:29] [INFO] [Player.Grenade] Grenade dropped at feet at (450, 1273.7)
+[18:54:30] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[18:54:30] [INFO] [LastChance] Resetting all effects (scene change detected)
+[18:54:30] [INFO] [Player.Grenade] Grenade scene loaded
+[18:54:30] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[18:54:30] [INFO] [Player] Ready! Grenades: 1/3
+[18:54:30] [INFO] [ScoreManager] Level started with 10 enemies
+[18:54:30] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 51)
+[18:54:30] [ENEMY] [Enemy1] Registered as sound listener
+[18:54:30] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 3, behavior: GUARD, player_found: yes
+[18:54:30] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 52)
+[18:54:30] [ENEMY] [Enemy2] Registered as sound listener
+[18:54:30] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 2, behavior: GUARD, player_found: yes
+[18:54:30] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 53)
+[18:54:30] [ENEMY] [Enemy3] Registered as sound listener
+[18:54:30] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 4, behavior: GUARD, player_found: yes
+[18:54:30] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 54)
+[18:54:30] [ENEMY] [Enemy4] Registered as sound listener
+[18:54:30] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 2, behavior: GUARD, player_found: yes
+[18:54:30] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 55)
+[18:54:30] [ENEMY] [Enemy5] Registered as sound listener
+[18:54:30] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 2, behavior: GUARD, player_found: yes
+[18:54:30] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 56)
+[18:54:30] [ENEMY] [Enemy6] Registered as sound listener
+[18:54:30] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 4, behavior: GUARD, player_found: yes
+[18:54:30] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 57)
+[18:54:30] [ENEMY] [Enemy7] Registered as sound listener
+[18:54:30] [ENEMY] [Enemy7] Enemy spawned at (1600, 900), health: 4, behavior: PATROL, player_found: yes
+[18:54:30] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 58)
+[18:54:30] [ENEMY] [Enemy8] Registered as sound listener
+[18:54:30] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 2, behavior: GUARD, player_found: yes
+[18:54:30] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 59)
+[18:54:30] [ENEMY] [Enemy9] Registered as sound listener
+[18:54:30] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 2, behavior: GUARD, player_found: yes
+[18:54:30] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 60)
+[18:54:30] [ENEMY] [Enemy10] Registered as sound listener
+[18:54:30] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 3, behavior: PATROL, player_found: yes
+[18:54:30] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[18:54:30] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[18:54:30] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[18:54:30] [INFO] [LastChance] Found player: Player
+[18:54:30] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[18:54:30] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[18:54:30] [INFO] [LastChance] Connected to player Died signal (C#)
+[18:54:31] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (392.36636, 1117.0872)
+[18:54:31] [INFO] [GrenadeBase] Grenade created at (450, 1250)
+[18:54:31] [INFO] [GrenadeBase] Timer activated! 4.0 seconds until explosion
+[18:54:31] [INFO] [Player.Grenade] Timer started, grenade created at (450, 1250)
+[18:54:31] [INFO] [Player.Grenade] Step 1 complete! Drag: (866.4939, -108.20032)
+[18:54:32] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[18:54:32] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming, drag and release RMB to throw
+[18:54:34] [INFO] [Player.Grenade] Throwing! Direction: (0.9769201, -0.21360497), Drag distance: 1016,21515 (adjusted: 9145,937)
+[18:54:34] [INFO] [Player.Grenade] Player rotated for throw: 0 -> -0,21526362
+[18:54:34] [INFO] [GrenadeBase] Thrown! Direction: (0.97692, -0.213605), Speed: 3840.0
+[18:54:34] [INFO] [Player.Grenade] Thrown! Direction: (0.9769201, -0.21360497), Distance: 9145,937
+[18:54:34] [INFO] [Player.Grenade] Player rotation restored to 0
+[18:54:35] [INFO] [GrenadeBase] EXPLODED at (1597.239, 1273.7)!
+[18:54:35] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(1597.239, 1273.7), source=NEUTRAL (FlashbangGrenade), range=2937, listeners=60
+[18:54:35] [INFO] [SoundPropagation] Cleaned up 50 invalid listeners
+[18:54:35] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0, below_threshold=8
+[18:54:35] [ENEMY] [Enemy7] Status effect: BLINDED applied
+[18:54:35] [ENEMY] [Enemy7] Status effect: STUNNED applied
+[18:54:39] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[18:54:39] [INFO] [LastChance] Resetting all effects (scene change detected)
+[18:54:39] [INFO] [Player.Grenade] Grenade scene loaded
+[18:54:39] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[18:54:39] [INFO] [Player] Ready! Grenades: 1/3
+[18:54:39] [INFO] [ScoreManager] Level started with 10 enemies
+[18:54:39] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 11)
+[18:54:39] [ENEMY] [Enemy1] Registered as sound listener
+[18:54:39] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 4, behavior: GUARD, player_found: yes
+[18:54:39] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 12)
+[18:54:39] [ENEMY] [Enemy2] Registered as sound listener
+[18:54:39] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 4, behavior: GUARD, player_found: yes
+[18:54:39] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 13)
+[18:54:39] [ENEMY] [Enemy3] Registered as sound listener
+[18:54:39] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 2, behavior: GUARD, player_found: yes
+[18:54:39] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 14)
+[18:54:39] [ENEMY] [Enemy4] Registered as sound listener
+[18:54:39] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 3, behavior: GUARD, player_found: yes
+[18:54:39] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 15)
+[18:54:39] [ENEMY] [Enemy5] Registered as sound listener
+[18:54:39] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 3, behavior: GUARD, player_found: yes
+[18:54:39] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 16)
+[18:54:39] [ENEMY] [Enemy6] Registered as sound listener
+[18:54:39] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 4, behavior: GUARD, player_found: yes
+[18:54:39] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 17)
+[18:54:39] [ENEMY] [Enemy7] Registered as sound listener
+[18:54:39] [ENEMY] [Enemy7] Enemy spawned at (1600, 900), health: 4, behavior: PATROL, player_found: yes
+[18:54:39] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 18)
+[18:54:39] [ENEMY] [Enemy8] Registered as sound listener
+[18:54:39] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 3, behavior: GUARD, player_found: yes
+[18:54:39] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 19)
+[18:54:39] [ENEMY] [Enemy9] Registered as sound listener
+[18:54:39] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 2, behavior: GUARD, player_found: yes
+[18:54:39] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 20)
+[18:54:39] [ENEMY] [Enemy10] Registered as sound listener
+[18:54:39] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 3, behavior: PATROL, player_found: yes
+[18:54:39] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[18:54:39] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[18:54:39] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[18:54:39] [INFO] [LastChance] Found player: Player
+[18:54:39] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[18:54:39] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[18:54:39] [INFO] [LastChance] Connected to player Died signal (C#)
+[18:54:40] [ENEMY] [Enemy10] State: IDLE -> COMBAT
+[18:54:41] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[18:54:41] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (684.75885, 705.22485)
+[18:54:41] [INFO] [GrenadeBase] Grenade created at (401.6049, 1029.267)
+[18:54:41] [INFO] [GrenadeBase] Timer activated! 4.0 seconds until explosion
+[18:54:41] [INFO] [Player.Grenade] Timer started, grenade created at (401.6049, 1029.2671)
+[18:54:41] [INFO] [Player.Grenade] Step 1 complete! Drag: (595.2408, -35.290894)
+[18:54:41] [INFO] [Player.Grenade] G released - dropping grenade at feet
+[18:54:41] [INFO] [Player.Grenade] Grenade dropped at feet at (401.6049, 1052.9656)
+[18:54:42] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[18:54:42] [INFO] [LastChance] Resetting all effects (scene change detected)
+[18:54:42] [INFO] [Player.Grenade] Grenade scene loaded
+[18:54:42] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[18:54:42] [INFO] [Player] Ready! Grenades: 1/3
+[18:54:42] [INFO] [ScoreManager] Level started with 10 enemies
+[18:54:42] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 21)
+[18:54:42] [ENEMY] [Enemy1] Registered as sound listener
+[18:54:42] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 3, behavior: GUARD, player_found: yes
+[18:54:42] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 22)
+[18:54:42] [ENEMY] [Enemy2] Registered as sound listener
+[18:54:42] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 4, behavior: GUARD, player_found: yes
+[18:54:42] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 23)
+[18:54:42] [ENEMY] [Enemy3] Registered as sound listener
+[18:54:42] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 3, behavior: GUARD, player_found: yes
+[18:54:42] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 24)
+[18:54:42] [ENEMY] [Enemy4] Registered as sound listener
+[18:54:42] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 2, behavior: GUARD, player_found: yes
+[18:54:42] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 25)
+[18:54:42] [ENEMY] [Enemy5] Registered as sound listener
+[18:54:42] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 4, behavior: GUARD, player_found: yes
+[18:54:42] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 26)
+[18:54:42] [ENEMY] [Enemy6] Registered as sound listener
+[18:54:42] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 2, behavior: GUARD, player_found: yes
+[18:54:42] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 27)
+[18:54:42] [ENEMY] [Enemy7] Registered as sound listener
+[18:54:42] [ENEMY] [Enemy7] Enemy spawned at (1600, 900), health: 4, behavior: PATROL, player_found: yes
+[18:54:42] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 28)
+[18:54:42] [ENEMY] [Enemy8] Registered as sound listener
+[18:54:42] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 2, behavior: GUARD, player_found: yes
+[18:54:42] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 29)
+[18:54:42] [ENEMY] [Enemy9] Registered as sound listener
+[18:54:42] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 3, behavior: GUARD, player_found: yes
+[18:54:42] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 30)
+[18:54:42] [ENEMY] [Enemy10] Registered as sound listener
+[18:54:42] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 3, behavior: PATROL, player_found: yes
+[18:54:42] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[18:54:42] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[18:54:42] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[18:54:42] [INFO] [LastChance] Found player: Player
+[18:54:42] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[18:54:42] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[18:54:42] [INFO] [LastChance] Connected to player Died signal (C#)
+[18:54:43] [ENEMY] [Enemy10] State: IDLE -> COMBAT
+[18:54:44] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[18:54:44] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (285.25955, 844.4535)
+[18:54:44] [INFO] [GrenadeBase] Grenade created at (296.0677, 1013.207)
+[18:54:44] [INFO] [GrenadeBase] Timer activated! 4.0 seconds until explosion
+[18:54:44] [INFO] [Player.Grenade] Timer started, grenade created at (296.06766, 1013.2066)
+[18:54:44] [INFO] [Player.Grenade] Step 1 complete! Drag: (865.13684, -66.855774)
+[18:54:45] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[18:54:45] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming, drag and release RMB to throw
+[18:54:46] [INFO] [Player.Grenade] Throwing! Direction: (0.87279654, -0.48808426), Drag distance: 822,06415 (adjusted: 7398,577)
+[18:54:46] [INFO] [Player.Grenade] Player rotated for throw: 0 -> -0,5098934
+[18:54:46] [INFO] [GrenadeBase] Thrown! Direction: (0.872797, -0.488084), Speed: 3840.0
+[18:54:46] [INFO] [Player.Grenade] Thrown! Direction: (0.87279654, -0.48808426), Distance: 7398,577
+[18:54:46] [INFO] [Player.Grenade] Player rotation restored to 0
+[18:54:47] [ENEMY] [Enemy10] FLANKING started: target=(485.4375, 807.8155), side=left, pos=(956.1227, 1450.71)
+[18:54:47] [ENEMY] [Enemy10] State: PURSUING -> FLANKING
+[18:54:47] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[18:54:47] [INFO] [LastChance] Resetting all effects (scene change detected)
+[18:54:47] [INFO] [Player.Grenade] Grenade scene loaded
+[18:54:47] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[18:54:47] [INFO] [Player] Ready! Grenades: 1/3
+[18:54:47] [INFO] [ScoreManager] Level started with 10 enemies
+[18:54:47] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 31)
+[18:54:47] [ENEMY] [Enemy1] Registered as sound listener
+[18:54:47] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 4, behavior: GUARD, player_found: yes
+[18:54:47] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 32)
+[18:54:47] [ENEMY] [Enemy2] Registered as sound listener
+[18:54:47] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 3, behavior: GUARD, player_found: yes
+[18:54:47] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 33)
+[18:54:47] [ENEMY] [Enemy3] Registered as sound listener
+[18:54:47] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 4, behavior: GUARD, player_found: yes
+[18:54:47] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 34)
+[18:54:47] [ENEMY] [Enemy4] Registered as sound listener
+[18:54:47] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 2, behavior: GUARD, player_found: yes
+[18:54:47] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 35)
+[18:54:47] [ENEMY] [Enemy5] Registered as sound listener
+[18:54:47] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 4, behavior: GUARD, player_found: yes
+[18:54:47] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 36)
+[18:54:47] [ENEMY] [Enemy6] Registered as sound listener
+[18:54:47] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 2, behavior: GUARD, player_found: yes
+[18:54:47] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 37)
+[18:54:47] [ENEMY] [Enemy7] Registered as sound listener
+[18:54:47] [ENEMY] [Enemy7] Enemy spawned at (1600, 900), health: 2, behavior: PATROL, player_found: yes
+[18:54:47] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 38)
+[18:54:47] [ENEMY] [Enemy8] Registered as sound listener
+[18:54:47] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 4, behavior: GUARD, player_found: yes
+[18:54:47] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 39)
+[18:54:47] [ENEMY] [Enemy9] Registered as sound listener
+[18:54:47] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 3, behavior: GUARD, player_found: yes
+[18:54:47] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 40)
+[18:54:47] [ENEMY] [Enemy10] Registered as sound listener
+[18:54:47] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 4, behavior: PATROL, player_found: yes
+[18:54:47] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[18:54:47] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[18:54:47] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[18:54:47] [INFO] [LastChance] Found player: Player
+[18:54:47] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[18:54:47] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[18:54:47] [INFO] [LastChance] Connected to player Died signal (C#)
+[18:54:49] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (571.76825, 890.6679)
+[18:54:49] [INFO] [GrenadeBase] Grenade created at (242.9444, 1250)
+[18:54:49] [INFO] [GrenadeBase] Timer activated! 4.0 seconds until explosion
+[18:54:49] [INFO] [Player.Grenade] Timer started, grenade created at (242.94443, 1250)
+[18:54:49] [INFO] [Player.Grenade] Step 1 complete! Drag: (708.20514, -0.6679077)
+[18:54:49] [INFO] [Player.Grenade] G released - dropping grenade at feet
+[18:54:49] [INFO] [Player.Grenade] Grenade dropped at feet at (242.94443, 1273.7)
+[18:54:50] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[18:54:50] [INFO] [LastChance] Resetting all effects (scene change detected)
+[18:54:50] [INFO] [Player.Grenade] Grenade scene loaded
+[18:54:50] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[18:54:50] [INFO] [Player] Ready! Grenades: 1/3
+[18:54:50] [INFO] [ScoreManager] Level started with 10 enemies
+[18:54:50] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 41)
+[18:54:50] [ENEMY] [Enemy1] Registered as sound listener
+[18:54:50] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 3, behavior: GUARD, player_found: yes
+[18:54:50] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 42)
+[18:54:50] [ENEMY] [Enemy2] Registered as sound listener
+[18:54:50] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 2, behavior: GUARD, player_found: yes
+[18:54:50] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 43)
+[18:54:50] [ENEMY] [Enemy3] Registered as sound listener
+[18:54:50] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 4, behavior: GUARD, player_found: yes
+[18:54:50] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 44)
+[18:54:50] [ENEMY] [Enemy4] Registered as sound listener
+[18:54:50] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 4, behavior: GUARD, player_found: yes
+[18:54:50] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 45)
+[18:54:50] [ENEMY] [Enemy5] Registered as sound listener
+[18:54:50] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 2, behavior: GUARD, player_found: yes
+[18:54:50] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 46)
+[18:54:50] [ENEMY] [Enemy6] Registered as sound listener
+[18:54:50] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 2, behavior: GUARD, player_found: yes
+[18:54:50] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 47)
+[18:54:50] [ENEMY] [Enemy7] Registered as sound listener
+[18:54:50] [ENEMY] [Enemy7] Enemy spawned at (1600, 900), health: 4, behavior: PATROL, player_found: yes
+[18:54:50] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 48)
+[18:54:50] [ENEMY] [Enemy8] Registered as sound listener
+[18:54:50] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 3, behavior: GUARD, player_found: yes
+[18:54:50] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 49)
+[18:54:50] [ENEMY] [Enemy9] Registered as sound listener
+[18:54:50] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 2, behavior: GUARD, player_found: yes
+[18:54:50] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 50)
+[18:54:50] [ENEMY] [Enemy10] Registered as sound listener
+[18:54:50] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 3, behavior: PATROL, player_found: yes
+[18:54:50] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[18:54:50] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[18:54:50] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[18:54:50] [INFO] [LastChance] Found player: Player
+[18:54:50] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[18:54:50] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[18:54:50] [INFO] [LastChance] Connected to player Died signal (C#)
+[18:54:52] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (101.53469, 1149.8145)
+[18:54:52] [INFO] [GrenadeBase] Grenade created at (253.9444, 1250)
+[18:54:52] [INFO] [GrenadeBase] Timer activated! 4.0 seconds until explosion
+[18:54:52] [INFO] [Player.Grenade] Timer started, grenade created at (253.94441, 1250)
+[18:54:52] [INFO] [Player.Grenade] Step 1 complete! Drag: (545.8104, 2.003662)
+[18:54:52] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[18:54:53] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming, drag and release RMB to throw
+[18:54:54] [INFO] [Player.Grenade] Throwing! Direction: (0.6183504, -0.7859025), Drag distance: 736,8247 (adjusted: 6631,4224)
+[18:54:54] [INFO] [Player.Grenade] Player rotated for throw: 0 -> -0,90415436
+[18:54:54] [INFO] [GrenadeBase] Thrown! Direction: (0.61835, -0.785903), Speed: 3840.0
+[18:54:54] [INFO] [Player.Grenade] Thrown! Direction: (0.6183504, -0.7859025), Distance: 6631,4224
+[18:54:54] [INFO] [Player.Grenade] Player rotation restored to 0
+[18:54:55] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[18:54:55] [INFO] [LastChance] Resetting all effects (scene change detected)
+[18:54:55] [INFO] [Player.Grenade] Grenade scene loaded
+[18:54:55] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[18:54:55] [INFO] [Player] Ready! Grenades: 1/3
+[18:54:55] [INFO] [ScoreManager] Level started with 10 enemies
+[18:54:55] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 51)
+[18:54:55] [ENEMY] [Enemy1] Registered as sound listener
+[18:54:55] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 4, behavior: GUARD, player_found: yes
+[18:54:55] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 52)
+[18:54:55] [ENEMY] [Enemy2] Registered as sound listener
+[18:54:55] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 4, behavior: GUARD, player_found: yes
+[18:54:55] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 53)
+[18:54:55] [ENEMY] [Enemy3] Registered as sound listener
+[18:54:55] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 3, behavior: GUARD, player_found: yes
+[18:54:55] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 54)
+[18:54:55] [ENEMY] [Enemy4] Registered as sound listener
+[18:54:55] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 3, behavior: GUARD, player_found: yes
+[18:54:55] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 55)
+[18:54:55] [ENEMY] [Enemy5] Registered as sound listener
+[18:54:55] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 2, behavior: GUARD, player_found: yes
+[18:54:55] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 56)
+[18:54:55] [ENEMY] [Enemy6] Registered as sound listener
+[18:54:55] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 2, behavior: GUARD, player_found: yes
+[18:54:55] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 57)
+[18:54:55] [ENEMY] [Enemy7] Registered as sound listener
+[18:54:55] [ENEMY] [Enemy7] Enemy spawned at (1600, 900), health: 2, behavior: PATROL, player_found: yes
+[18:54:55] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 58)
+[18:54:55] [ENEMY] [Enemy8] Registered as sound listener
+[18:54:55] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 4, behavior: GUARD, player_found: yes
+[18:54:55] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 59)
+[18:54:55] [ENEMY] [Enemy9] Registered as sound listener
+[18:54:55] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 2, behavior: GUARD, player_found: yes
+[18:54:55] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 60)
+[18:54:55] [ENEMY] [Enemy10] Registered as sound listener
+[18:54:55] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 4, behavior: PATROL, player_found: yes
+[18:54:55] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[18:54:55] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[18:54:55] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[18:54:55] [INFO] [LastChance] Found player: Player
+[18:54:55] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[18:54:55] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[18:54:55] [INFO] [LastChance] Connected to player Died signal (C#)
+[18:54:56] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (272.7894, 1158.4972)
+[18:54:56] [INFO] [GrenadeBase] Grenade created at (450, 1250)
+[18:54:56] [INFO] [GrenadeBase] Timer activated! 4.0 seconds until explosion
+[18:54:56] [INFO] [Player.Grenade] Timer started, grenade created at (450, 1250)
+[18:54:56] [INFO] [Player.Grenade] Step 1 complete! Drag: (768.828, -6.679077)
+[18:54:57] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[18:54:57] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming, drag and release RMB to throw
+[18:54:57] [INFO] [Player.Grenade] Throwing! Direction: (0.15432426, -0.9880203), Drag distance: 728,0539 (adjusted: 6552,485)
+[18:54:57] [INFO] [Player.Grenade] Player rotated for throw: 0 -> -1,4158529
+[18:54:57] [INFO] [GrenadeBase] Thrown! Direction: (0.154324, -0.98802), Speed: 3840.0
+[18:54:57] [INFO] [Player.Grenade] Thrown! Direction: (0.15432426, -0.9880203), Distance: 6552,485
+[18:54:57] [INFO] [Player.Grenade] Player rotation restored to 0
+[18:54:59] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[18:54:59] [INFO] [LastChance] Resetting all effects (scene change detected)
+[18:54:59] [INFO] [Player.Grenade] Grenade scene loaded
+[18:54:59] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[18:54:59] [INFO] [Player] Ready! Grenades: 1/3
+[18:55:00] [INFO] [ScoreManager] Level started with 10 enemies
+[18:55:00] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 61)
+[18:55:00] [ENEMY] [Enemy1] Registered as sound listener
+[18:55:00] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 3, behavior: GUARD, player_found: yes
+[18:55:00] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 62)
+[18:55:00] [ENEMY] [Enemy2] Registered as sound listener
+[18:55:00] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 4, behavior: GUARD, player_found: yes
+[18:55:00] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 63)
+[18:55:00] [ENEMY] [Enemy3] Registered as sound listener
+[18:55:00] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 2, behavior: GUARD, player_found: yes
+[18:55:00] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 64)
+[18:55:00] [ENEMY] [Enemy4] Registered as sound listener
+[18:55:00] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 3, behavior: GUARD, player_found: yes
+[18:55:00] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 65)
+[18:55:00] [ENEMY] [Enemy5] Registered as sound listener
+[18:55:00] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 2, behavior: GUARD, player_found: yes
+[18:55:00] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 66)
+[18:55:00] [ENEMY] [Enemy6] Registered as sound listener
+[18:55:00] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 3, behavior: GUARD, player_found: yes
+[18:55:00] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 67)
+[18:55:00] [ENEMY] [Enemy7] Registered as sound listener
+[18:55:00] [ENEMY] [Enemy7] Enemy spawned at (1600, 900), health: 3, behavior: PATROL, player_found: yes
+[18:55:00] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 68)
+[18:55:00] [ENEMY] [Enemy8] Registered as sound listener
+[18:55:00] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 3, behavior: GUARD, player_found: yes
+[18:55:00] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 69)
+[18:55:00] [ENEMY] [Enemy9] Registered as sound listener
+[18:55:00] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 2, behavior: GUARD, player_found: yes
+[18:55:00] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 70)
+[18:55:00] [ENEMY] [Enemy10] Registered as sound listener
+[18:55:00] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 4, behavior: PATROL, player_found: yes
+[18:55:00] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[18:55:00] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[18:55:00] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[18:55:00] [INFO] [LastChance] Found player: Player
+[18:55:00] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[18:55:00] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[18:55:00] [INFO] [LastChance] Connected to player Died signal (C#)
+[18:55:01] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (595.0886, 1163.8405)
+[18:55:02] [INFO] [GrenadeBase] Grenade created at (450, 1250)
+[18:55:02] [INFO] [GrenadeBase] Timer activated! 4.0 seconds until explosion
+[18:55:02] [INFO] [Player.Grenade] Timer started, grenade created at (450, 1250)
+[18:55:02] [INFO] [Player.Grenade] Step 1 complete! Drag: (684.9064, -47.421143)
+[18:55:02] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[18:55:03] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming, drag and release RMB to throw
+[18:55:05] [ENEMY] [Enemy7] State: IDLE -> COMBAT
+[18:55:05] [ENEMY] [Enemy10] State: IDLE -> COMBAT
+[18:55:05] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[18:55:05] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[18:55:06] [INFO] [GrenadeBase] EXPLODED at (956.562, 1116.161)!
+[18:55:06] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(956.562, 1116.161), source=NEUTRAL (FlashbangGrenade), range=2937, listeners=70
+[18:55:06] [INFO] [SoundPropagation] Cleaned up 60 invalid listeners
+[18:55:06] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=0, self=0, below_threshold=7
+[18:55:06] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[18:55:06] [INFO] [LastChance] Resetting all effects (scene change detected)
+[18:55:06] [INFO] [Player.Grenade] Grenade scene loaded
+[18:55:06] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[18:55:06] [INFO] [Player] Ready! Grenades: 1/3
+[18:55:06] [INFO] [ScoreManager] Level started with 10 enemies
+[18:55:06] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 11)
+[18:55:06] [ENEMY] [Enemy1] Registered as sound listener
+[18:55:06] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 2, behavior: GUARD, player_found: yes
+[18:55:06] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 12)
+[18:55:06] [ENEMY] [Enemy2] Registered as sound listener
+[18:55:06] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 4, behavior: GUARD, player_found: yes
+[18:55:06] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 13)
+[18:55:06] [ENEMY] [Enemy3] Registered as sound listener
+[18:55:06] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 4, behavior: GUARD, player_found: yes
+[18:55:06] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 14)
+[18:55:06] [ENEMY] [Enemy4] Registered as sound listener
+[18:55:06] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 4, behavior: GUARD, player_found: yes
+[18:55:06] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 15)
+[18:55:06] [ENEMY] [Enemy5] Registered as sound listener
+[18:55:06] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 3, behavior: GUARD, player_found: yes
+[18:55:06] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 16)
+[18:55:06] [ENEMY] [Enemy6] Registered as sound listener
+[18:55:06] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 3, behavior: GUARD, player_found: yes
+[18:55:06] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 17)
+[18:55:06] [ENEMY] [Enemy7] Registered as sound listener
+[18:55:06] [ENEMY] [Enemy7] Enemy spawned at (1600, 900), health: 3, behavior: PATROL, player_found: yes
+[18:55:06] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 18)
+[18:55:06] [ENEMY] [Enemy8] Registered as sound listener
+[18:55:06] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 2, behavior: GUARD, player_found: yes
+[18:55:06] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 19)
+[18:55:06] [ENEMY] [Enemy9] Registered as sound listener
+[18:55:06] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 2, behavior: GUARD, player_found: yes
+[18:55:06] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 20)
+[18:55:06] [ENEMY] [Enemy10] Registered as sound listener
+[18:55:06] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 4, behavior: PATROL, player_found: yes
+[18:55:06] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[18:55:06] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[18:55:06] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[18:55:06] [INFO] [LastChance] Found player: Player
+[18:55:06] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[18:55:06] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[18:55:06] [INFO] [LastChance] Connected to player Died signal (C#)
+[18:55:08] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (478.26645, 1228.6271)
+[18:55:08] [INFO] [GrenadeBase] Grenade created at (450, 1250)
+[18:55:08] [INFO] [GrenadeBase] Timer activated! 4.0 seconds until explosion
+[18:55:08] [INFO] [Player.Grenade] Timer started, grenade created at (450, 1250)
+[18:55:08] [INFO] [Player.Grenade] Step 1 complete! Drag: (801.713, -20.704956)
+[18:55:09] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[18:55:09] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming, drag and release RMB to throw
+[18:55:09] [INFO] [Player.Grenade] Throwing! Direction: (-0.33176765, 0.9433611), Drag distance: 374,53412 (adjusted: 3370,8071)
+[18:55:09] [INFO] [Player.Grenade] Player rotated for throw: 0 -> 1,9089731
+[18:55:09] [INFO] [GrenadeBase] Thrown! Direction: (-0.331768, 0.943361), Speed: 3840.0
+[18:55:09] [INFO] [Player.Grenade] Thrown! Direction: (-0.33176765, 0.9433611), Distance: 3370,8071
+[18:55:10] [INFO] [Player.Grenade] Player rotation restored to 0
+[18:55:11] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[18:55:11] [INFO] [LastChance] Resetting all effects (scene change detected)
+[18:55:11] [INFO] [Player.Grenade] Grenade scene loaded
+[18:55:11] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[18:55:11] [INFO] [Player] Ready! Grenades: 1/3
+[18:55:11] [INFO] [ScoreManager] Level started with 10 enemies
+[18:55:11] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 21)
+[18:55:11] [ENEMY] [Enemy1] Registered as sound listener
+[18:55:11] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 3, behavior: GUARD, player_found: yes
+[18:55:11] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 22)
+[18:55:11] [ENEMY] [Enemy2] Registered as sound listener
+[18:55:11] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 3, behavior: GUARD, player_found: yes
+[18:55:11] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 23)
+[18:55:11] [ENEMY] [Enemy3] Registered as sound listener
+[18:55:11] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 2, behavior: GUARD, player_found: yes
+[18:55:11] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 24)
+[18:55:11] [ENEMY] [Enemy4] Registered as sound listener
+[18:55:11] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 2, behavior: GUARD, player_found: yes
+[18:55:11] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 25)
+[18:55:11] [ENEMY] [Enemy5] Registered as sound listener
+[18:55:11] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 2, behavior: GUARD, player_found: yes
+[18:55:11] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 26)
+[18:55:11] [ENEMY] [Enemy6] Registered as sound listener
+[18:55:11] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 2, behavior: GUARD, player_found: yes
+[18:55:11] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 27)
+[18:55:11] [ENEMY] [Enemy7] Registered as sound listener
+[18:55:11] [ENEMY] [Enemy7] Enemy spawned at (1600, 900), health: 3, behavior: PATROL, player_found: yes
+[18:55:11] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 28)
+[18:55:11] [ENEMY] [Enemy8] Registered as sound listener
+[18:55:11] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 3, behavior: GUARD, player_found: yes
+[18:55:11] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 29)
+[18:55:11] [ENEMY] [Enemy9] Registered as sound listener
+[18:55:11] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 2, behavior: GUARD, player_found: yes
+[18:55:11] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 30)
+[18:55:11] [ENEMY] [Enemy10] Registered as sound listener
+[18:55:11] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 2, behavior: PATROL, player_found: yes
+[18:55:11] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[18:55:11] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[18:55:11] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[18:55:11] [INFO] [LastChance] Found player: Player
+[18:55:11] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[18:55:11] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[18:55:11] [INFO] [LastChance] Connected to player Died signal (C#)
+[18:55:12] [ENEMY] [Enemy10] State: IDLE -> COMBAT
+[18:55:13] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[18:55:14] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (28.058088, 937.2186)
+[18:55:14] [INFO] [GrenadeBase] Grenade created at (186.0409, 901.3309)
+[18:55:14] [INFO] [GrenadeBase] Timer activated! 4.0 seconds until explosion
+[18:55:14] [INFO] [Player.Grenade] Timer started, grenade created at (186.04092, 901.33093)
+[18:55:14] [INFO] [Player.Grenade] Step 1 complete! Drag: (829.06055, -127.0387)
+[18:55:14] [ENEMY] [Enemy10] FLANKING started: target=(364.4162, 810.875), side=left, pos=(1056.058, 1468.704)
+[18:55:14] [ENEMY] [Enemy10] State: PURSUING -> FLANKING
+[18:55:15] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[18:55:15] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming, drag and release RMB to throw
+[18:55:15] [INFO] [Player.Grenade] Throwing! Direction: (0.89589524, -0.4442655), Drag distance: 1108,0925 (adjusted: 9972,833)
+[18:55:15] [INFO] [Player.Grenade] Player rotated for throw: 0 -> -0,46035424
+[18:55:15] [INFO] [GrenadeBase] Thrown! Direction: (0.895895, -0.444266), Speed: 3840.0
+[18:55:15] [INFO] [Player.Grenade] Thrown! Direction: (0.89589524, -0.4442655), Distance: 9972,833
+[18:55:15] [INFO] [Player.Grenade] Player rotation restored to 0
+[18:55:16] [ENEMY] [Enemy10] State: FLANKING -> COMBAT
+[18:55:16] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[18:55:17] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[18:55:17] [INFO] [LastChance] Resetting all effects (scene change detected)
+[18:55:17] [INFO] [Player.Grenade] Grenade scene loaded
+[18:55:17] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[18:55:17] [INFO] [Player] Ready! Grenades: 1/3
+[18:55:17] [INFO] [ScoreManager] Level started with 10 enemies
+[18:55:17] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 31)
+[18:55:17] [ENEMY] [Enemy1] Registered as sound listener
+[18:55:17] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 2, behavior: GUARD, player_found: yes
+[18:55:17] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 32)
+[18:55:17] [ENEMY] [Enemy2] Registered as sound listener
+[18:55:17] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 2, behavior: GUARD, player_found: yes
+[18:55:17] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 33)
+[18:55:17] [ENEMY] [Enemy3] Registered as sound listener
+[18:55:17] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 4, behavior: GUARD, player_found: yes
+[18:55:17] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 34)
+[18:55:17] [ENEMY] [Enemy4] Registered as sound listener
+[18:55:17] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 4, behavior: GUARD, player_found: yes
+[18:55:17] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 35)
+[18:55:17] [ENEMY] [Enemy5] Registered as sound listener
+[18:55:17] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 3, behavior: GUARD, player_found: yes
+[18:55:17] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 36)
+[18:55:17] [ENEMY] [Enemy6] Registered as sound listener
+[18:55:17] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 4, behavior: GUARD, player_found: yes
+[18:55:17] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 37)
+[18:55:17] [ENEMY] [Enemy7] Registered as sound listener
+[18:55:17] [ENEMY] [Enemy7] Enemy spawned at (1600, 900), health: 4, behavior: PATROL, player_found: yes
+[18:55:17] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 38)
+[18:55:17] [ENEMY] [Enemy8] Registered as sound listener
+[18:55:17] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 2, behavior: GUARD, player_found: yes
+[18:55:17] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 39)
+[18:55:17] [ENEMY] [Enemy9] Registered as sound listener
+[18:55:17] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 2, behavior: GUARD, player_found: yes
+[18:55:17] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 40)
+[18:55:17] [ENEMY] [Enemy10] Registered as sound listener
+[18:55:17] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 4, behavior: PATROL, player_found: yes
+[18:55:17] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[18:55:17] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[18:55:17] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[18:55:17] [INFO] [LastChance] Found player: Player
+[18:55:17] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[18:55:17] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[18:55:17] [INFO] [LastChance] Connected to player Died signal (C#)
+[18:55:18] [ENEMY] [Enemy10] State: IDLE -> COMBAT
+[18:55:18] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[18:55:19] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (767.59753, 778.78546)
+[18:55:19] [INFO] [GrenadeBase] Grenade created at (307.735, 909.3723)
+[18:55:19] [INFO] [GrenadeBase] Timer activated! 4.0 seconds until explosion
+[18:55:19] [INFO] [Player.Grenade] Timer started, grenade created at (307.73495, 909.3723)
+[18:55:19] [INFO] [Player.Grenade] Step 1 complete! Drag: (512.402, -111.9292)
+[18:55:20] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[18:55:20] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming, drag and release RMB to throw
+[18:55:20] [INFO] [Player.Grenade] Throwing! Direction: (0.9466106, -0.322379), Drag distance: 1264,6813 (adjusted: 11382,132)
+[18:55:20] [INFO] [Player.Grenade] Player rotated for throw: 0 -> -0,32824162
+[18:55:20] [INFO] [GrenadeBase] Thrown! Direction: (0.946611, -0.322379), Speed: 3840.0
+[18:55:20] [INFO] [Player.Grenade] Thrown! Direction: (0.9466106, -0.322379), Distance: 11382,132
+[18:55:20] [INFO] [Player.Grenade] Player rotation restored to 0
+[18:55:21] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[18:55:21] [INFO] [LastChance] Resetting all effects (scene change detected)
+[18:55:21] [INFO] [Player.Grenade] Grenade scene loaded
+[18:55:21] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[18:55:21] [INFO] [Player] Ready! Grenades: 1/3
+[18:55:21] [INFO] [ScoreManager] Level started with 10 enemies
+[18:55:21] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 41)
+[18:55:21] [ENEMY] [Enemy1] Registered as sound listener
+[18:55:21] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 2, behavior: GUARD, player_found: yes
+[18:55:21] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 42)
+[18:55:21] [ENEMY] [Enemy2] Registered as sound listener
+[18:55:21] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 3, behavior: GUARD, player_found: yes
+[18:55:21] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 43)
+[18:55:21] [ENEMY] [Enemy3] Registered as sound listener
+[18:55:21] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 2, behavior: GUARD, player_found: yes
+[18:55:21] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 44)
+[18:55:21] [ENEMY] [Enemy4] Registered as sound listener
+[18:55:21] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 3, behavior: GUARD, player_found: yes
+[18:55:21] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 45)
+[18:55:21] [ENEMY] [Enemy5] Registered as sound listener
+[18:55:21] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 4, behavior: GUARD, player_found: yes
+[18:55:21] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 46)
+[18:55:21] [ENEMY] [Enemy6] Registered as sound listener
+[18:55:21] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 2, behavior: GUARD, player_found: yes
+[18:55:21] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 47)
+[18:55:21] [ENEMY] [Enemy7] Registered as sound listener
+[18:55:21] [ENEMY] [Enemy7] Enemy spawned at (1600, 900), health: 4, behavior: PATROL, player_found: yes
+[18:55:21] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 48)
+[18:55:21] [ENEMY] [Enemy8] Registered as sound listener
+[18:55:21] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 4, behavior: GUARD, player_found: yes
+[18:55:21] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 49)
+[18:55:21] [ENEMY] [Enemy9] Registered as sound listener
+[18:55:21] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 3, behavior: GUARD, player_found: yes
+[18:55:21] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 50)
+[18:55:21] [ENEMY] [Enemy10] Registered as sound listener
+[18:55:21] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 4, behavior: PATROL, player_found: yes
+[18:55:21] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[18:55:21] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[18:55:21] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[18:55:21] [INFO] [LastChance] Found player: Player
+[18:55:21] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[18:55:21] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[18:55:21] [INFO] [LastChance] Connected to player Died signal (C#)
+[18:55:23] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (819.03033, 1032.9554)
+[18:55:23] [INFO] [GrenadeBase] Grenade created at (458.5468, 1267.749)
+[18:55:23] [INFO] [GrenadeBase] Timer activated! 4.0 seconds until explosion
+[18:55:23] [INFO] [Player.Grenade] Timer started, grenade created at (458.5468, 1267.7494)
+[18:55:23] [INFO] [Player.Grenade] Step 1 complete! Drag: (460.9665, -95.12744)
+[18:55:24] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[18:55:24] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming, drag and release RMB to throw
+[18:55:25] [INFO] [Player.Grenade] Throwing! Direction: (0.97786033, -0.20925878), Drag distance: 800,00854 (adjusted: 7200,077)
+[18:55:25] [INFO] [Player.Grenade] Player rotated for throw: 0 -> -0,21081689
+[18:55:25] [INFO] [GrenadeBase] Thrown! Direction: (0.97786, -0.209259), Speed: 3840.0
+[18:55:25] [INFO] [Player.Grenade] Thrown! Direction: (0.97786033, -0.20925878), Distance: 7200,077
+[18:55:25] [INFO] [Player.Grenade] Player rotation restored to 0
+[18:55:26] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[18:55:26] [INFO] [LastChance] Resetting all effects (scene change detected)
+[18:55:26] [INFO] [Player.Grenade] Grenade scene loaded
+[18:55:26] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[18:55:26] [INFO] [Player] Ready! Grenades: 1/3
+[18:55:26] [INFO] [ScoreManager] Level started with 10 enemies
+[18:55:26] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 51)
+[18:55:26] [ENEMY] [Enemy1] Registered as sound listener
+[18:55:26] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 2, behavior: GUARD, player_found: yes
+[18:55:26] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 52)
+[18:55:26] [ENEMY] [Enemy2] Registered as sound listener
+[18:55:26] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 3, behavior: GUARD, player_found: yes
+[18:55:26] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 53)
+[18:55:26] [ENEMY] [Enemy3] Registered as sound listener
+[18:55:26] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 2, behavior: GUARD, player_found: yes
+[18:55:26] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 54)
+[18:55:26] [ENEMY] [Enemy4] Registered as sound listener
+[18:55:26] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 2, behavior: GUARD, player_found: yes
+[18:55:26] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 55)
+[18:55:26] [ENEMY] [Enemy5] Registered as sound listener
+[18:55:26] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 4, behavior: GUARD, player_found: yes
+[18:55:26] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 56)
+[18:55:26] [ENEMY] [Enemy6] Registered as sound listener
+[18:55:26] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 3, behavior: GUARD, player_found: yes
+[18:55:26] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 57)
+[18:55:26] [ENEMY] [Enemy7] Registered as sound listener
+[18:55:26] [ENEMY] [Enemy7] Enemy spawned at (1600, 900), health: 2, behavior: PATROL, player_found: yes
+[18:55:26] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 58)
+[18:55:26] [ENEMY] [Enemy8] Registered as sound listener
+[18:55:26] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 3, behavior: GUARD, player_found: yes
+[18:55:26] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 59)
+[18:55:26] [ENEMY] [Enemy9] Registered as sound listener
+[18:55:26] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 2, behavior: GUARD, player_found: yes
+[18:55:26] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 60)
+[18:55:26] [ENEMY] [Enemy10] Registered as sound listener
+[18:55:26] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 2, behavior: PATROL, player_found: yes
+[18:55:26] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[18:55:26] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[18:55:26] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[18:55:26] [INFO] [LastChance] Found player: Player
+[18:55:26] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[18:55:26] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[18:55:26] [INFO] [LastChance] Connected to player Died signal (C#)
+[18:55:27] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (288.47028, 1207.9221)
+[18:55:27] [INFO] [GrenadeBase] Grenade created at (450, 1250)
+[18:55:27] [INFO] [GrenadeBase] Timer activated! 4.0 seconds until explosion
+[18:55:27] [INFO] [Player.Grenade] Timer started, grenade created at (450, 1250)
+[18:55:27] [INFO] [Player.Grenade] Step 1 complete! Drag: (614.859, -128.9054)
+[18:55:27] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[18:55:27] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming, drag and release RMB to throw
+[18:55:28] [INFO] [Player.Grenade] Throwing! Direction: (0.9890588, -0.14752193), Drag distance: 194,6819 (adjusted: 1752,1371)
+[18:55:28] [INFO] [Player.Grenade] Player rotated for throw: 0 -> -0,14806232
+[18:55:28] [INFO] [GrenadeBase] Thrown! Direction: (0.989059, -0.147522), Speed: 3840.0
+[18:55:28] [INFO] [Player.Grenade] Thrown! Direction: (0.9890588, -0.14752193), Distance: 1752,1371
+[18:55:29] [INFO] [Player.Grenade] Player rotation restored to 0
+[18:55:29] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[18:55:29] [INFO] [LastChance] Resetting all effects (scene change detected)
+[18:55:29] [INFO] [Player.Grenade] Grenade scene loaded
+[18:55:29] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[18:55:29] [INFO] [Player] Ready! Grenades: 1/3
+[18:55:29] [INFO] [ScoreManager] Level started with 10 enemies
+[18:55:29] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 61)
+[18:55:29] [ENEMY] [Enemy1] Registered as sound listener
+[18:55:29] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 4, behavior: GUARD, player_found: yes
+[18:55:29] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 62)
+[18:55:29] [ENEMY] [Enemy2] Registered as sound listener
+[18:55:29] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 3, behavior: GUARD, player_found: yes
+[18:55:29] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 63)
+[18:55:29] [ENEMY] [Enemy3] Registered as sound listener
+[18:55:29] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 3, behavior: GUARD, player_found: yes
+[18:55:29] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 64)
+[18:55:29] [ENEMY] [Enemy4] Registered as sound listener
+[18:55:29] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 3, behavior: GUARD, player_found: yes
+[18:55:29] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 65)
+[18:55:29] [ENEMY] [Enemy5] Registered as sound listener
+[18:55:29] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 4, behavior: GUARD, player_found: yes
+[18:55:29] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 66)
+[18:55:29] [ENEMY] [Enemy6] Registered as sound listener
+[18:55:29] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 3, behavior: GUARD, player_found: yes
+[18:55:29] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 67)
+[18:55:29] [ENEMY] [Enemy7] Registered as sound listener
+[18:55:29] [ENEMY] [Enemy7] Enemy spawned at (1600, 900), health: 4, behavior: PATROL, player_found: yes
+[18:55:29] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 68)
+[18:55:29] [ENEMY] [Enemy8] Registered as sound listener
+[18:55:29] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 4, behavior: GUARD, player_found: yes
+[18:55:29] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 69)
+[18:55:29] [ENEMY] [Enemy9] Registered as sound listener
+[18:55:29] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 3, behavior: GUARD, player_found: yes
+[18:55:29] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 70)
+[18:55:29] [ENEMY] [Enemy10] Registered as sound listener
+[18:55:29] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 4, behavior: PATROL, player_found: yes
+[18:55:29] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[18:55:29] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[18:55:29] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[18:55:29] [INFO] [LastChance] Found player: Player
+[18:55:29] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[18:55:29] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[18:55:29] [INFO] [LastChance] Connected to player Died signal (C#)
+[18:55:32] [INFO] ------------------------------------------------------------
+[18:55:32] [INFO] GAME LOG ENDED: 2026-01-21T18:55:32
+[18:55:32] [INFO] ============================================================

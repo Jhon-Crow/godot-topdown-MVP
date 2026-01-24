@@ -1,0 +1,61 @@
+MSBuild version 17.8.43+f0cbb1397 for .NET
+  Determining projects to restore...
+  Restored /tmp/gh-issue-solver-1769204713897/GodotTopDownTemplate.csproj (in 632 ms).
+/tmp/gh-issue-solver-1769204713897/Scripts/Weapons/Shotgun.cs(1027,17): warning CS0114: 'Shotgun.StartReload()' hides inherited member 'BaseWeapon.StartReload()'. To make the current member override that implementation, add the override keyword. Otherwise add the new keyword. [/tmp/gh-issue-solver-1769204713897/GodotTopDownTemplate.csproj]
+/tmp/gh-issue-solver-1769204713897/Scripts/AbstractClasses/BaseWeapon.cs(310,90): warning CS8625: Cannot convert null literal to non-nullable reference type. [/tmp/gh-issue-solver-1769204713897/GodotTopDownTemplate.csproj]
+/tmp/gh-issue-solver-1769204713897/Scripts/Projectiles/ShotgunPellet.cs(211,21): warning CS0162: Unreachable code detected [/tmp/gh-issue-solver-1769204713897/GodotTopDownTemplate.csproj]
+/tmp/gh-issue-solver-1769204713897/Scripts/Projectiles/Bullet.cs(319,21): warning CS0162: Unreachable code detected [/tmp/gh-issue-solver-1769204713897/GodotTopDownTemplate.csproj]
+/tmp/gh-issue-solver-1769204713897/Scripts/Projectiles/ShotgunPellet.cs(287,45): warning CS0618: 'TileMap' is obsolete: 'Use multiple 'TileMapLayer' nodes instead. To convert a TileMap to a set of TileMapLayer nodes, open the TileMap bottom panel with the node selected, click the toolbox icon in the top-right corner and choose 'Extract TileMap layers as individual TileMapLayer nodes'.' [/tmp/gh-issue-solver-1769204713897/GodotTopDownTemplate.csproj]
+/tmp/gh-issue-solver-1769204713897/Scripts/Projectiles/ShotgunPellet.cs(328,99): warning CS8625: Cannot convert null literal to non-nullable reference type. [/tmp/gh-issue-solver-1769204713897/GodotTopDownTemplate.csproj]
+/tmp/gh-issue-solver-1769204713897/Scripts/Projectiles/Bullet.cs(454,45): warning CS0618: 'TileMap' is obsolete: 'Use multiple 'TileMapLayer' nodes instead. To convert a TileMap to a set of TileMapLayer nodes, open the TileMap bottom panel with the node selected, click the toolbox icon in the top-right corner and choose 'Extract TileMap layers as individual TileMapLayer nodes'.' [/tmp/gh-issue-solver-1769204713897/GodotTopDownTemplate.csproj]
+/tmp/gh-issue-solver-1769204713897/Scripts/Projectiles/Bullet.cs(553,99): warning CS8625: Cannot convert null literal to non-nullable reference type. [/tmp/gh-issue-solver-1769204713897/GodotTopDownTemplate.csproj]
+/tmp/gh-issue-solver-1769204713897/Scripts/Projectiles/ShotgunPellet.cs(452,17): warning CS0162: Unreachable code detected [/tmp/gh-issue-solver-1769204713897/GodotTopDownTemplate.csproj]
+/tmp/gh-issue-solver-1769204713897/Scripts/Projectiles/ShotgunPellet.cs(462,17): warning CS0162: Unreachable code detected [/tmp/gh-issue-solver-1769204713897/GodotTopDownTemplate.csproj]
+/tmp/gh-issue-solver-1769204713897/Scripts/Projectiles/ShotgunPellet.cs(472,13): warning CS0162: Unreachable code detected [/tmp/gh-issue-solver-1769204713897/GodotTopDownTemplate.csproj]
+/tmp/gh-issue-solver-1769204713897/Scripts/Projectiles/ShotgunPellet.cs(480,17): warning CS0162: Unreachable code detected [/tmp/gh-issue-solver-1769204713897/GodotTopDownTemplate.csproj]
+/tmp/gh-issue-solver-1769204713897/Scripts/Projectiles/ShotgunPellet.cs(490,13): warning CS0162: Unreachable code detected [/tmp/gh-issue-solver-1769204713897/GodotTopDownTemplate.csproj]
+/tmp/gh-issue-solver-1769204713897/Scripts/Projectiles/ShotgunPellet.cs(497,17): warning CS0162: Unreachable code detected [/tmp/gh-issue-solver-1769204713897/GodotTopDownTemplate.csproj]
+/tmp/gh-issue-solver-1769204713897/Scripts/Projectiles/Bullet.cs(693,17): warning CS0162: Unreachable code detected [/tmp/gh-issue-solver-1769204713897/GodotTopDownTemplate.csproj]
+/tmp/gh-issue-solver-1769204713897/Scripts/Projectiles/Bullet.cs(704,17): warning CS0162: Unreachable code detected [/tmp/gh-issue-solver-1769204713897/GodotTopDownTemplate.csproj]
+/tmp/gh-issue-solver-1769204713897/Scripts/Projectiles/Bullet.cs(717,13): warning CS0162: Unreachable code detected [/tmp/gh-issue-solver-1769204713897/GodotTopDownTemplate.csproj]
+/tmp/gh-issue-solver-1769204713897/Scripts/Projectiles/Bullet.cs(725,13): warning CS0162: Unreachable code detected [/tmp/gh-issue-solver-1769204713897/GodotTopDownTemplate.csproj]
+/tmp/gh-issue-solver-1769204713897/Scripts/Projectiles/Bullet.cs(733,17): warning CS0162: Unreachable code detected [/tmp/gh-issue-solver-1769204713897/GodotTopDownTemplate.csproj]
+/tmp/gh-issue-solver-1769204713897/Scripts/Projectiles/ShotgunPellet.cs(599,13): warning CS0162: Unreachable code detected [/tmp/gh-issue-solver-1769204713897/GodotTopDownTemplate.csproj]
+/tmp/gh-issue-solver-1769204713897/Scripts/Projectiles/Bullet.cs(877,13): warning CS0162: Unreachable code detected [/tmp/gh-issue-solver-1769204713897/GodotTopDownTemplate.csproj]
+/tmp/gh-issue-solver-1769204713897/Scripts/Projectiles/Bullet.cs(935,13): warning CS0162: Unreachable code detected [/tmp/gh-issue-solver-1769204713897/GodotTopDownTemplate.csproj]
+/tmp/gh-issue-solver-1769204713897/Scripts/Projectiles/Bullet.cs(1062,13): warning CS0162: Unreachable code detected [/tmp/gh-issue-solver-1769204713897/GodotTopDownTemplate.csproj]
+/tmp/gh-issue-solver-1769204713897/Scripts/Projectiles/Bullet.cs(1186,93): warning CS8625: Cannot convert null literal to non-nullable reference type. [/tmp/gh-issue-solver-1769204713897/GodotTopDownTemplate.csproj]
+/tmp/gh-issue-solver-1769204713897/Scripts/Projectiles/Bullet.cs(1205,109): warning CS8625: Cannot convert null literal to non-nullable reference type. [/tmp/gh-issue-solver-1769204713897/GodotTopDownTemplate.csproj]
+  GodotTopDownTemplate -> /tmp/gh-issue-solver-1769204713897/.godot/mono/temp/bin/Debug/GodotTopDownTemplate.dll
+
+Build succeeded.
+
+/tmp/gh-issue-solver-1769204713897/Scripts/Weapons/Shotgun.cs(1027,17): warning CS0114: 'Shotgun.StartReload()' hides inherited member 'BaseWeapon.StartReload()'. To make the current member override that implementation, add the override keyword. Otherwise add the new keyword. [/tmp/gh-issue-solver-1769204713897/GodotTopDownTemplate.csproj]
+/tmp/gh-issue-solver-1769204713897/Scripts/AbstractClasses/BaseWeapon.cs(310,90): warning CS8625: Cannot convert null literal to non-nullable reference type. [/tmp/gh-issue-solver-1769204713897/GodotTopDownTemplate.csproj]
+/tmp/gh-issue-solver-1769204713897/Scripts/Projectiles/ShotgunPellet.cs(211,21): warning CS0162: Unreachable code detected [/tmp/gh-issue-solver-1769204713897/GodotTopDownTemplate.csproj]
+/tmp/gh-issue-solver-1769204713897/Scripts/Projectiles/Bullet.cs(319,21): warning CS0162: Unreachable code detected [/tmp/gh-issue-solver-1769204713897/GodotTopDownTemplate.csproj]
+/tmp/gh-issue-solver-1769204713897/Scripts/Projectiles/ShotgunPellet.cs(287,45): warning CS0618: 'TileMap' is obsolete: 'Use multiple 'TileMapLayer' nodes instead. To convert a TileMap to a set of TileMapLayer nodes, open the TileMap bottom panel with the node selected, click the toolbox icon in the top-right corner and choose 'Extract TileMap layers as individual TileMapLayer nodes'.' [/tmp/gh-issue-solver-1769204713897/GodotTopDownTemplate.csproj]
+/tmp/gh-issue-solver-1769204713897/Scripts/Projectiles/ShotgunPellet.cs(328,99): warning CS8625: Cannot convert null literal to non-nullable reference type. [/tmp/gh-issue-solver-1769204713897/GodotTopDownTemplate.csproj]
+/tmp/gh-issue-solver-1769204713897/Scripts/Projectiles/Bullet.cs(454,45): warning CS0618: 'TileMap' is obsolete: 'Use multiple 'TileMapLayer' nodes instead. To convert a TileMap to a set of TileMapLayer nodes, open the TileMap bottom panel with the node selected, click the toolbox icon in the top-right corner and choose 'Extract TileMap layers as individual TileMapLayer nodes'.' [/tmp/gh-issue-solver-1769204713897/GodotTopDownTemplate.csproj]
+/tmp/gh-issue-solver-1769204713897/Scripts/Projectiles/Bullet.cs(553,99): warning CS8625: Cannot convert null literal to non-nullable reference type. [/tmp/gh-issue-solver-1769204713897/GodotTopDownTemplate.csproj]
+/tmp/gh-issue-solver-1769204713897/Scripts/Projectiles/ShotgunPellet.cs(452,17): warning CS0162: Unreachable code detected [/tmp/gh-issue-solver-1769204713897/GodotTopDownTemplate.csproj]
+/tmp/gh-issue-solver-1769204713897/Scripts/Projectiles/ShotgunPellet.cs(462,17): warning CS0162: Unreachable code detected [/tmp/gh-issue-solver-1769204713897/GodotTopDownTemplate.csproj]
+/tmp/gh-issue-solver-1769204713897/Scripts/Projectiles/ShotgunPellet.cs(472,13): warning CS0162: Unreachable code detected [/tmp/gh-issue-solver-1769204713897/GodotTopDownTemplate.csproj]
+/tmp/gh-issue-solver-1769204713897/Scripts/Projectiles/ShotgunPellet.cs(480,17): warning CS0162: Unreachable code detected [/tmp/gh-issue-solver-1769204713897/GodotTopDownTemplate.csproj]
+/tmp/gh-issue-solver-1769204713897/Scripts/Projectiles/ShotgunPellet.cs(490,13): warning CS0162: Unreachable code detected [/tmp/gh-issue-solver-1769204713897/GodotTopDownTemplate.csproj]
+/tmp/gh-issue-solver-1769204713897/Scripts/Projectiles/ShotgunPellet.cs(497,17): warning CS0162: Unreachable code detected [/tmp/gh-issue-solver-1769204713897/GodotTopDownTemplate.csproj]
+/tmp/gh-issue-solver-1769204713897/Scripts/Projectiles/Bullet.cs(693,17): warning CS0162: Unreachable code detected [/tmp/gh-issue-solver-1769204713897/GodotTopDownTemplate.csproj]
+/tmp/gh-issue-solver-1769204713897/Scripts/Projectiles/Bullet.cs(704,17): warning CS0162: Unreachable code detected [/tmp/gh-issue-solver-1769204713897/GodotTopDownTemplate.csproj]
+/tmp/gh-issue-solver-1769204713897/Scripts/Projectiles/Bullet.cs(717,13): warning CS0162: Unreachable code detected [/tmp/gh-issue-solver-1769204713897/GodotTopDownTemplate.csproj]
+/tmp/gh-issue-solver-1769204713897/Scripts/Projectiles/Bullet.cs(725,13): warning CS0162: Unreachable code detected [/tmp/gh-issue-solver-1769204713897/GodotTopDownTemplate.csproj]
+/tmp/gh-issue-solver-1769204713897/Scripts/Projectiles/Bullet.cs(733,17): warning CS0162: Unreachable code detected [/tmp/gh-issue-solver-1769204713897/GodotTopDownTemplate.csproj]
+/tmp/gh-issue-solver-1769204713897/Scripts/Projectiles/ShotgunPellet.cs(599,13): warning CS0162: Unreachable code detected [/tmp/gh-issue-solver-1769204713897/GodotTopDownTemplate.csproj]
+/tmp/gh-issue-solver-1769204713897/Scripts/Projectiles/Bullet.cs(877,13): warning CS0162: Unreachable code detected [/tmp/gh-issue-solver-1769204713897/GodotTopDownTemplate.csproj]
+/tmp/gh-issue-solver-1769204713897/Scripts/Projectiles/Bullet.cs(935,13): warning CS0162: Unreachable code detected [/tmp/gh-issue-solver-1769204713897/GodotTopDownTemplate.csproj]
+/tmp/gh-issue-solver-1769204713897/Scripts/Projectiles/Bullet.cs(1062,13): warning CS0162: Unreachable code detected [/tmp/gh-issue-solver-1769204713897/GodotTopDownTemplate.csproj]
+/tmp/gh-issue-solver-1769204713897/Scripts/Projectiles/Bullet.cs(1186,93): warning CS8625: Cannot convert null literal to non-nullable reference type. [/tmp/gh-issue-solver-1769204713897/GodotTopDownTemplate.csproj]
+/tmp/gh-issue-solver-1769204713897/Scripts/Projectiles/Bullet.cs(1205,109): warning CS8625: Cannot convert null literal to non-nullable reference type. [/tmp/gh-issue-solver-1769204713897/GodotTopDownTemplate.csproj]
+    25 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:04.51

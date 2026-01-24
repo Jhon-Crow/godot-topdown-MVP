@@ -1,0 +1,104 @@
+title:	Add shotgun weapon with multi-pellet spread system
+state:	MERGED
+author:	konard
+labels:	
+assignees:	
+reviewers:	
+projects:	
+milestone:	
+number:	195
+url:	https://github.com/Jhon-Crow/godot-topdown-MVP/pull/195
+additions:	1933
+deletions:	18
+auto-merge:	disabled
+--
+## Summary
+
+This PR implements a fully functional **shotgun weapon** as requested in issue #194.
+
+### Implementation Features
+
+| Feature | Status | Details |
+|---------|--------|---------|
+| Multi-pellet spread | ✅ | 6-12 random pellets per shot |
+| 15° spread cone | ✅ | Pellets distributed evenly with slight randomness |
+| No wall penetration | ✅ | Buckshot caliber with `can_penetrate = false` |
+| 35° max ricochet angle | ✅ | Configured in caliber_buckshot.tres |
+| Large screen shake | ✅ | 25.0 intensity (vs 5.0 for assault rifle) |
+| Semi-automatic fire | ✅ | One shot per click |
+| No laser sight | ✅ | Direct aim at mouse cursor |
+| Same loudness as rifle | ✅ | 1469.0 pixels range |
+| 8 shell capacity | ✅ | Tube magazine system |
+| Armory integration | ✅ | Shotgun now unlocked and selectable |
+| Weapon selection | ✅ | Click to select weapon from armory |
+| Tutorial support | ✅ | Shotgun-specific gesture instructions added |
+
+### New Files
+
+- `Scripts/Weapons/Shotgun.cs` - Shotgun weapon class with multi-pellet logic
+- `scenes/weapons/csharp/Shotgun.tscn` - Shotgun scene file
+- `resources/weapons/ShotgunData.tres` - Weapon configuration resource
+- `resources/calibers/caliber_buckshot.tres` - Buckshot caliber data
+- `assets/sprites/weapons/shotgun.png` - Placeholder icon
+
+### Modified Files
+
+- `scripts/autoload/game_manager.gd` - Add weapon selection persistence
+- `scripts/ui/armory_menu.gd` - Make weapon slots clickable with selection highlighting
+- `scripts/levels/tutorial_level.gd` - Swap weapons based on GameManager selection
+- `scripts/levels/building_level.gd` - Swap weapons based on GameManager selection
+- `tests/unit/test_game_manager.gd` - Add weapon selection tests
+- `tests/unit/test_ui_menus.gd` - Update armory tests for unlocked shotgun
+- `docs/case-studies/issue-194/README.md` - Updated with implementation progress
+
+### Phase 1 Implementation (MVP) - Complete
+
+- ✅ Basic shotgun with multi-pellet spread
+- ✅ Buckshot caliber data (35° ricochet, no penetration)
+- ✅ Large screen shake
+- ✅ Automatic pump-action cycling (0.3s)
+- ✅ Armory integration with weapon selection
+- ✅ Weapon selection persistence via GameManager
+- ✅ Tutorial support with shotgun-specific gestures
+
+### Phase 2 (Future)
+
+- ⏳ Manual pump-action (RMB gestures)
+- ⏳ Shell-by-shell reload (MMB gesture)
+
+### Technical Notes
+
+1. **Multi-Pellet System**: Pellets are distributed across the spread cone with even spacing plus small random deviation for natural feel
+2. **Pump-Action**: Automatic 0.3s cycle after each shot (Phase 1). Manual gesture control planned for Phase 2
+3. **Weapon Selection**: GameManager now stores `selected_weapon` ID, armory menu allows clicking unlocked weapons to select, levels dynamically swap weapon at startup
+
+### Fix Applied (2026-01-22)
+
+**Issue**: Shotgun appeared in armory but couldn't be taken/selected.
+
+**Root Cause**: 
+- Player.tscn had AssaultRifle embedded as hardcoded child node
+- Player.cs auto-equipped "AssaultRifle" by name
+- No mechanism existed for weapon selection persistence
+
+**Solution**:
+- Added `selected_weapon` and `WEAPON_SCENES` to GameManager
+- Made armory slots clickable with visual selection highlighting  
+- Modified level scripts to swap weapons at startup based on GameManager selection
+
+## Test Plan
+
+- [x] Verify shotgun appears in armory and is selectable (click to select)
+- [x] Verify selection highlighting shows currently selected weapon
+- [ ] Test firing produces 6-12 pellets with visible spread
+- [ ] Confirm pellets don't penetrate walls
+- [ ] Verify large screen shake on fire
+- [ ] Test tutorial shows shotgun-specific instructions
+- [ ] Confirm pump-action delay between shots
+
+## References
+
+Fixes #194
+
+---
+🤖 Generated with [Claude Code](https://claude.com/claude-code)

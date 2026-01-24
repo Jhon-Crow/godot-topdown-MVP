@@ -66,11 +66,16 @@ func _on_level_selected(level_path: String) -> void:
 	# Unpause the game before changing scene
 	get_tree().paused = false
 
+	# Restore hidden cursor for gameplay (confined and hidden)
+	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED_HIDDEN)
+
 	# Change to the selected level
 	var error := get_tree().change_scene_to_file(level_path)
 	if error != OK:
 		status_label.text = "Error loading level!"
 		get_tree().paused = true
+		# Show cursor again for menu interaction if error
+		Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
 
 
 func _on_back_pressed() -> void:

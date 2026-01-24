@@ -1,0 +1,75 @@
+title:	Add PURSUING and ASSAULT states for improved enemy AI combat behavior
+state:	MERGED
+author:	konard
+labels:	
+assignees:	
+reviewers:	
+projects:	
+milestone:	
+number:	89
+url:	https://github.com/Jhon-Crow/godot-topdown-MVP/pull/89
+additions:	864
+deletions:	19
+auto-merge:	disabled
+--
+## Summary
+
+Implements enhanced enemy AI combat behavior with three major improvements:
+
+- **Combat Cover Cycling with Approach Phase**: In COMBAT state, enemies now:
+  1. First approach the player (moving toward them while shooting)
+  2. Once close enough (250px) or after 2 seconds of approaching, enter exposed shooting phase
+  3. Stand and shoot for 2-3 seconds (randomized)
+  4. Return to cover
+  
+  This creates more dynamic combat where enemies actively engage the player instead of standing still.
+
+- **Pursuit State (PURSUING)**: When enemies are far from the player and cannot hit them from their current position, they move cover-to-cover toward the player:
+  - Wait 1.5 seconds at each cover position
+  - Move to the next cover that's closer to the player
+  - If no closer cover found, fallback to combat or flanking
+  - Debug labels show (WAIT Xs) or (MOVING) phases
+
+- **Assault State (ASSAULT)**: When 2+ enemies are in combat simultaneously, they coordinate an assault:
+  - Take closest safe covers to the player
+  - Wait 5 seconds
+  - Rush the player together while shooting
+
+### Bug Fixes (Latest Commit)
+
+**Fixed infinite timer loop where enemies would stand behind cover cycling the timer without moving:**
+
+1. **PURSUING state visibility bug**: Removed `or not _is_visible_from_player()` check from "reached cover" condition. Enemies start hidden from player, so this check was immediately true, causing them to never actually move to their target cover.
+
+2. **PURSUING state minimum distance**: Added 30px minimum distance check for pursuit cover candidates. This prevents finding covers too close to current position which caused immediate "arrival" and restarted the waiting loop.
+
+3. **COMBAT state transition**: Changed to transition to PURSUING (not FLANKING/IDLE) when player is not visible. PURSUING is the correct state for chasing a hidden player.
+
+### Technical Changes
+
+- Added `PURSUING` and `ASSAULT` states to the `AIState` enum
+- Combat approach phase variables: `_combat_approaching`, `_combat_approach_timer`
+- Constants: `COMBAT_APPROACH_MAX_TIME` (2.0s), `COMBAT_DIRECT_CONTACT_DISTANCE` (250px)
+- `PURSUIT_COVER_WAIT_DURATION` set to 1.5s
+- Added 30px minimum distance for pursuit cover selection
+- Updated debug labels to show current phase for COMBAT and PURSUING states
+- Added detailed case study documentation in `docs/case-studies/issue-88/`
+
+Fixes #88
+
+## Test plan
+
+- [x] Enable debug mode (F7) to see AI state labels above enemies
+- [ ] Test PURSUING state:
+  - Enemy should wait briefly at cover (WAIT Xs visible)
+  - Enemy should MOVE to next cover (not instantly arrive)
+  - If no cover available, should transition to COMBAT or FLANKING
+- [ ] Test COMBAT state:
+  - Enemy should approach player (APPROACH phase visible in label)
+  - Then stand and shoot (EXPOSED Xs visible)
+  - Then return to cover
+  - If player hides, should transition to PURSUING
+- [ ] Test multiple enemies (2+): should coordinate and enter ASSAULT state
+- [ ] Verify existing behaviors (RETREATING, SUPPRESSED, FLANKING) still work correctly
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)

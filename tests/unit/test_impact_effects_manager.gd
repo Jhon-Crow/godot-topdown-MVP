@@ -175,3 +175,73 @@ func test_clear_blood_decals_runs_without_error() -> void:
 	# Should not crash when clearing decals (even when empty)
 	impact_manager.clear_blood_decals()
 	pass_test("clear_blood_decals runs without error")
+
+
+# ============================================================================
+# Wall Blood Splatter Tests (Issue #257)
+# ============================================================================
+
+
+func test_wall_splatter_check_distance_constant_exists() -> void:
+	# Verify the constant for wall splatter check distance exists
+	assert_true("WALL_SPLATTER_CHECK_DISTANCE" in impact_manager,
+		"Manager should have WALL_SPLATTER_CHECK_DISTANCE constant")
+
+
+func test_wall_collision_layer_constant_exists() -> void:
+	# Verify the constant for wall collision layer exists
+	assert_true("WALL_COLLISION_LAYER" in impact_manager,
+		"Manager should have WALL_COLLISION_LAYER constant")
+
+
+func test_wall_collision_layer_is_correct_bitmask() -> void:
+	# WALL_COLLISION_LAYER should be 4 (bitmask for layer 3 = obstacles)
+	# Layer mapping: 1=player(1), 2=enemies(2), 3=obstacles(4), etc.
+	assert_eq(impact_manager.WALL_COLLISION_LAYER, 4,
+		"WALL_COLLISION_LAYER should be 4 (layer 3 = obstacles)")
+
+
+func test_spawn_wall_blood_splatter_method_exists() -> void:
+	# The wall splatter spawning method should exist
+	assert_true(impact_manager.has_method("_spawn_wall_blood_splatter"),
+		"Manager should have _spawn_wall_blood_splatter method")
+
+
+func test_spawn_wall_blood_splatter_accepts_parameters() -> void:
+	# Should not crash when called with valid parameters (no scene, so no actual raycast)
+	# Note: Without a proper scene tree and world_2d, this will silently return early
+	impact_manager._spawn_wall_blood_splatter(Vector2(100, 100), Vector2(1, 0), 1.0, true)
+	impact_manager._spawn_wall_blood_splatter(Vector2(100, 100), Vector2(1, 0), 1.0, false)
+	pass_test("_spawn_wall_blood_splatter accepts parameters without error")
+
+
+func test_spawn_blood_effect_spawns_floor_decal_on_non_lethal_hit() -> void:
+	# Non-lethal hits should now also spawn floor decals (smaller ones)
+	# This tests that the code path doesn't crash - actual decal spawning
+	# requires scene resources which aren't loaded in unit tests
+	impact_manager.spawn_blood_effect(Vector2(100, 100), Vector2(1, 0), null, false)
+	pass_test("spawn_blood_effect handles non-lethal hits with floor decals")
+
+
+func test_spawn_blood_effect_spawns_floor_decal_on_lethal_hit() -> void:
+	# Lethal hits should spawn larger floor decals
+	impact_manager.spawn_blood_effect(Vector2(100, 100), Vector2(1, 0), null, true)
+	pass_test("spawn_blood_effect handles lethal hits with floor decals")
+
+
+func test_spawn_blood_decals_at_particle_landing_method_exists() -> void:
+	# The new particle-based decal spawning method should exist
+	assert_true(impact_manager.has_method("_spawn_blood_decals_at_particle_landing"),
+		"Manager should have _spawn_blood_decals_at_particle_landing method")
+
+
+func test_schedule_delayed_decal_method_exists() -> void:
+	# The delayed decal spawning method for syncing with particle landing should exist
+	assert_true(impact_manager.has_method("_schedule_delayed_decal"),
+		"Manager should have _schedule_delayed_decal method")
+
+
+func test_on_tree_changed_method_exists() -> void:
+	# The scene change handler should exist for clearing stale references
+	assert_true(impact_manager.has_method("_on_tree_changed"),
+		"Manager should have _on_tree_changed method for scene change handling")

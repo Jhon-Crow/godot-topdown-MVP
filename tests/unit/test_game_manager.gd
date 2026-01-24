@@ -17,6 +17,14 @@ class MockGameManager:
 	var hits_landed: int = 0
 	var player_alive: bool = true
 	var debug_mode_enabled: bool = false
+	var selected_weapon: String = "m16"
+
+	const WEAPON_SCENES: Dictionary = {
+		"m16": "res://scenes/weapons/csharp/AssaultRifle.tscn",
+		"shotgun": "res://scenes/weapons/csharp/Shotgun.tscn"
+	}
+
+	signal weapon_selected(weapon_id: String)
 
 	func register_shot() -> void:
 		shots_fired += 1
@@ -37,6 +45,19 @@ class MockGameManager:
 
 	func is_debug_mode_enabled() -> bool:
 		return debug_mode_enabled
+
+	func set_selected_weapon(weapon_id: String) -> void:
+		if weapon_id in WEAPON_SCENES:
+			selected_weapon = weapon_id
+			weapon_selected.emit(weapon_id)
+
+	func get_selected_weapon() -> String:
+		return selected_weapon
+
+	func get_selected_weapon_scene_path() -> String:
+		if selected_weapon in WEAPON_SCENES:
+			return WEAPON_SCENES[selected_weapon]
+		return WEAPON_SCENES["m16"]
 
 	func _reset_stats() -> void:
 		kills = 0
@@ -260,3 +281,47 @@ func test_terrible_accuracy_scenario() -> void:
 		manager.register_shot()
 
 	assert_eq(manager.get_accuracy(), 0.0, "Zero accuracy")
+
+
+# ============================================================================
+# Weapon Selection Tests
+# ============================================================================
+
+
+func test_default_weapon_is_m16() -> void:
+	assert_eq(manager.get_selected_weapon(), "m16", "Default weapon should be M16")
+
+
+func test_set_selected_weapon_to_shotgun() -> void:
+	manager.set_selected_weapon("shotgun")
+
+	assert_eq(manager.get_selected_weapon(), "shotgun", "Weapon should be shotgun")
+
+
+func test_get_weapon_scene_path_for_m16() -> void:
+	manager.set_selected_weapon("m16")
+	var path := manager.get_selected_weapon_scene_path()
+
+	assert_eq(path, "res://scenes/weapons/csharp/AssaultRifle.tscn", "M16 scene path should be correct")
+
+
+func test_get_weapon_scene_path_for_shotgun() -> void:
+	manager.set_selected_weapon("shotgun")
+	var path := manager.get_selected_weapon_scene_path()
+
+	assert_eq(path, "res://scenes/weapons/csharp/Shotgun.tscn", "Shotgun scene path should be correct")
+
+
+func test_invalid_weapon_selection_ignored() -> void:
+	manager.set_selected_weapon("shotgun")  # Valid selection
+	manager.set_selected_weapon("invalid_weapon")  # Invalid
+
+	assert_eq(manager.get_selected_weapon(), "shotgun", "Invalid selection should be ignored")
+
+
+func test_unknown_weapon_returns_default_scene_path() -> void:
+	# Force an invalid state to test fallback
+	manager.selected_weapon = "invalid"
+	var path := manager.get_selected_weapon_scene_path()
+
+	assert_eq(path, "res://scenes/weapons/csharp/AssaultRifle.tscn", "Should return M16 path as fallback")

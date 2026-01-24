@@ -1,9 +1,11 @@
-[gd_resource type="Resource" script_class="CaliberData" load_steps=2 format=3 uid="uid://dm3k8n5r2p7q1"]
+[gd_resource type="Resource" script_class="CaliberData" load_steps=3 format=3 uid="uid://dm3k8n5r2p7q1"]
 
 [ext_resource type="Script" path="res://scripts/data/caliber_data.gd" id="1_caliber"]
+[ext_resource type="Texture2D" uid="uid://casing_rifle_sprite" path="res://assets/sprites/effects/casing_rifle.png" id="2_casing"]
 
 [resource]
 script = ExtResource("1_caliber")
+casing_sprite = ExtResource("2_casing")
 caliber_name = "5.45x39mm"
 diameter_mm = 5.45
 mass_grams = 3.4
@@ -17,4 +19,8 @@ ricochet_damage_multiplier = 0.5
 ricochet_angle_deviation = 10.0
 penetration_power = 30.0
 min_surface_hardness_for_ricochet = 50.0
+can_penetrate = true
+max_penetration_distance = 48.0
+post_penetration_damage_multiplier = 0.9
+min_penetrable_wall_thickness = 0.0
 effect_scale = 1.0

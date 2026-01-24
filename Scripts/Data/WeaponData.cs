@@ -115,4 +115,11 @@ public partial class WeaponData : Resource
     /// </summary>
     [Export(PropertyHint.Range, "0.05,1.0,0.01")]
     public float ScreenShakeMaxRecoveryTime { get; set; } = 0.05f;
+
+    /// <summary>
+    /// Caliber data for this weapon's ammunition.
+    /// Defines ballistic properties and casing appearance.
+    /// </summary>
+    [Export]
+    public Resource? Caliber { get; set; }
 }

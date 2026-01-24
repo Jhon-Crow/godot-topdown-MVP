@@ -1,0 +1,434 @@
+[21:07:03] [INFO] ============================================================
+[21:07:03] [INFO] GAME LOG STARTED
+[21:07:03] [INFO] ============================================================
+[21:07:03] [INFO] Timestamp: 2026-01-22T21:07:03
+[21:07:03] [INFO] Log file: I:/Загрузки/godot exe/game_log_20260122_210703.txt
+[21:07:03] [INFO] Executable: I:/Загрузки/godot exe/Godot-Top-Down-Template.exe
+[21:07:03] [INFO] OS: Windows
+[21:07:03] [INFO] Debug build: false
+[21:07:03] [INFO] Engine version: 4.3-stable (official)
+[21:07:03] [INFO] Project: Godot Top-Down Template
+[21:07:03] [INFO] ------------------------------------------------------------
+[21:07:03] [INFO] [GameManager] GameManager ready
+[21:07:03] [INFO] [ScoreManager] ScoreManager ready
+[21:07:03] [INFO] [SoundPropagation] SoundPropagation autoload initialized
+[21:07:03] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[21:07:03] [INFO] [PenultimateHit] Saturation shader loaded successfully
+[21:07:03] [INFO] [PenultimateHit] PenultimateHitEffectsManager ready - Configuration:
+[21:07:03] [INFO] [PenultimateHit]   Time scale: 0.10 (10x slowdown)
+[21:07:03] [INFO] [PenultimateHit]   Saturation boost: 2.0 (3.0x)
+[21:07:03] [INFO] [PenultimateHit]   Contrast boost: 1.0 (2.0x)
+[21:07:03] [INFO] [PenultimateHit]   Effect duration: 3.0 real seconds
+[21:07:03] [INFO] [LastChance] Resetting all effects (scene change detected)
+[21:07:03] [INFO] [LastChance] Last chance shader loaded successfully
+[21:07:03] [INFO] [LastChance] LastChanceEffectsManager ready - Configuration:
+[21:07:03] [INFO] [LastChance]   Freeze duration: 6.0 real seconds
+[21:07:03] [INFO] [LastChance]   Sepia intensity: 0.70
+[21:07:03] [INFO] [LastChance]   Brightness: 0.60
+[21:07:03] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FlashbangGrenade.tscn
+[21:07:03] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FragGrenade.tscn
+[21:07:03] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[21:07:03] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[21:07:03] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[21:07:03] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[21:07:03] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[21:07:03] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[21:07:03] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[21:07:03] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 4/4
+[21:07:03] [INFO] [ScoreManager] Level started with 10 enemies
+[21:07:03] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 1)
+[21:07:03] [ENEMY] [Enemy1] Registered as sound listener
+[21:07:03] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 2, behavior: GUARD, player_found: yes
+[21:07:03] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 2)
+[21:07:03] [ENEMY] [Enemy2] Registered as sound listener
+[21:07:03] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 4, behavior: GUARD, player_found: yes
+[21:07:03] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 3)
+[21:07:03] [ENEMY] [Enemy3] Registered as sound listener
+[21:07:03] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 3, behavior: GUARD, player_found: yes
+[21:07:03] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 4)
+[21:07:03] [ENEMY] [Enemy4] Registered as sound listener
+[21:07:03] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 2, behavior: GUARD, player_found: yes
+[21:07:03] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 5)
+[21:07:03] [ENEMY] [Enemy5] Registered as sound listener
+[21:07:03] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 4, behavior: GUARD, player_found: yes
+[21:07:03] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 6)
+[21:07:03] [ENEMY] [Enemy6] Registered as sound listener
+[21:07:03] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 2, behavior: GUARD, player_found: yes
+[21:07:03] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 7)
+[21:07:03] [ENEMY] [Enemy7] Registered as sound listener
+[21:07:03] [ENEMY] [Enemy7] Enemy spawned at (1606.114, 893.8859), health: 2, behavior: PATROL, player_found: yes
+[21:07:03] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 8)
+[21:07:03] [ENEMY] [Enemy8] Registered as sound listener
+[21:07:03] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 2, behavior: GUARD, player_found: yes
+[21:07:03] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 9)
+[21:07:03] [ENEMY] [Enemy9] Registered as sound listener
+[21:07:03] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 2, behavior: GUARD, player_found: yes
+[21:07:03] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 10)
+[21:07:03] [ENEMY] [Enemy10] Registered as sound listener
+[21:07:03] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 4, behavior: PATROL, player_found: yes
+[21:07:03] [INFO] [Player] Detecting weapon pose (frame 3)...
+[21:07:03] [INFO] [Player] Detected weapon: Rifle (default pose)
+[21:07:03] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[21:07:03] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[21:07:03] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[21:07:03] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[21:07:03] [INFO] [LastChance] Found player: Player
+[21:07:03] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[21:07:03] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[21:07:03] [INFO] [LastChance] Connected to player Died signal (C#)
+[21:07:06] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[21:07:06] [INFO] [LastChance] Resetting all effects (scene change detected)
+[21:07:06] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[21:07:06] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+[21:07:06] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[21:07:06] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[21:07:06] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[21:07:06] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[21:07:06] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[21:07:06] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 3/3, Health: 3/4
+[21:07:06] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[21:07:06] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[21:07:06] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[21:07:06] [INFO] [LastChance] Found player: Player
+[21:07:06] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[21:07:06] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[21:07:06] [INFO] [LastChance] Connected to player Died signal (C#)
+[21:07:06] [INFO] [Player] Detecting weapon pose (frame 3)...
+[21:07:06] [INFO] [Player] Detected weapon: Rifle (default pose)
+[21:07:06] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[21:07:09] [INFO] [Player.Debug] Debug mode toggled: ON
+[21:07:09] [INFO] [GameManager] Debug mode toggled: ON
+[21:07:11] [INFO] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
+[21:07:11] [INFO] [Player.Grenade] G pressed - starting grab animation
+[21:07:11] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (378.7888, 206.38219)
+[21:07:11] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[21:07:11] [INFO] [GrenadeBase] Timer activated! 4.0 seconds until explosion
+[21:07:11] [INFO] [Player.Grenade] Timer started, grenade created at (150, 130.94443)
+[21:07:11] [INFO] [Player.Grenade.Anim] Phase changed to: PullPin (duration: 0,15s)
+[21:07:11] [INFO] [Player.Grenade] Step 1 complete! Drag: (431.56577, -55.43599)
+[21:07:11] [INFO] [Player.Grenade.Anim] Phase changed to: HandsApproach (duration: 0,20s)
+[21:07:11] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[21:07:11] [INFO] [Player.Grenade.Anim] Phase changed to: Transfer (duration: 0,15s)
+[21:07:11] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming, drag and release RMB to throw
+[21:07:12] [INFO] [Player.Grenade.Anim] Phase changed to: WindUp (duration: 0,00s)
+[21:07:12] [INFO] [Player.Grenade.Anim] Entered wind-up phase
+[21:07:12] [INFO] [Player.Grenade.Anim] Phase changed to: Throw (duration: 0,20s)
+[21:07:12] [INFO] [Player.Grenade] Throwing! Direction: (0.9969986, 0.07741881), Drag: 138,03435 (adjusted: 1242,3091)
+[21:07:12] [INFO] [Player.Grenade] Player rotated for throw: 0 -> 0,077496365
+[21:07:12] [INFO] [GrenadeBase] LEGACY throw_grenade() called! Direction: (0.996999, 0.077419), Speed: 2484.6 (unfrozen)
+[21:07:12] [INFO] [GrenadeBase] NOTE: Using DRAG-BASED system. If velocity-based is expected, ensure grenade has throw_grenade_velocity_based() method.
+[21:07:12] [INFO] [Player.Grenade] Thrown! Direction: (0.9969986, 0.07741881), Adjusted drag: 1242,3091
+[21:07:12] [INFO] [Player.Grenade] Player rotation restored to 0
+[21:07:12] [INFO] [Player.Grenade.Anim] Phase changed to: ReturnIdle (duration: 0,30s)
+[21:07:13] [INFO] [Player.Grenade.Anim] Animation complete, returning to normal
+[21:07:13] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[21:07:13] [INFO] [LastChance] Resetting all effects (scene change detected)
+[21:07:13] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[21:07:13] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+[21:07:13] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[21:07:13] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[21:07:13] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[21:07:13] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[21:07:13] [INFO] [Player.Debug] Connected to GameManager, debug mode: True
+[21:07:13] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 3/3, Health: 3/4
+[21:07:14] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[21:07:14] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[21:07:14] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[21:07:14] [INFO] [LastChance] Found player: Player
+[21:07:14] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[21:07:14] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[21:07:14] [INFO] [LastChance] Connected to player Died signal (C#)
+[21:07:14] [INFO] [Player] Detecting weapon pose (frame 3)...
+[21:07:14] [INFO] [Player] Detected weapon: Rifle (default pose)
+[21:07:14] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[21:07:14] [INFO] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
+[21:07:14] [INFO] [Player.Grenade] G pressed - starting grab animation
+[21:07:14] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (381.73798, 207.0501)
+[21:07:14] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[21:07:14] [INFO] [GrenadeBase] Timer activated! 4.0 seconds until explosion
+[21:07:14] [INFO] [Player.Grenade] Timer started, grenade created at (150, 360)
+[21:07:14] [INFO] [Player.Grenade.Anim] Phase changed to: PullPin (duration: 0,15s)
+[21:07:14] [INFO] [Player.Grenade] Step 1 complete! Drag: (344.0285, -1.3358002)
+[21:07:14] [INFO] [Player.Grenade.Anim] Phase changed to: HandsApproach (duration: 0,20s)
+[21:07:14] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[21:07:14] [INFO] [Player.Grenade.Anim] Phase changed to: Transfer (duration: 0,15s)
+[21:07:14] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming, drag and release RMB to throw
+[21:07:15] [INFO] [Player.Grenade.Anim] Phase changed to: WindUp (duration: 0,00s)
+[21:07:15] [INFO] [Player.Grenade.Anim] Entered wind-up phase
+[21:07:16] [INFO] [Player.Grenade.Anim] Phase changed to: Throw (duration: 0,20s)
+[21:07:16] [INFO] [Player.Grenade] Throwing! Direction: (0.99683464, -0.07950236), Drag: 42,005337 (adjusted: 378,04803)
+[21:07:16] [INFO] [Player.Grenade] Player rotated for throw: 0 -> -0,07958635
+[21:07:16] [INFO] [GrenadeBase] LEGACY throw_grenade() called! Direction: (0.996835, -0.079502), Speed: 756.1 (unfrozen)
+[21:07:16] [INFO] [GrenadeBase] NOTE: Using DRAG-BASED system. If velocity-based is expected, ensure grenade has throw_grenade_velocity_based() method.
+[21:07:16] [INFO] [Player.Grenade] Thrown! Direction: (0.99683464, -0.07950236), Adjusted drag: 378,04803
+[21:07:16] [INFO] [Player.Grenade] Player rotation restored to 0
+[21:07:16] [INFO] [Player.Grenade.Anim] Phase changed to: ReturnIdle (duration: 0,30s)
+[21:07:16] [INFO] [Player.Grenade.Anim] Animation complete, returning to normal
+[21:07:17] [INFO] [GrenadeBase] Grenade landed at (555.1909, 72.28829)
+[21:07:18] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[21:07:18] [INFO] [LastChance] Resetting all effects (scene change detected)
+[21:07:18] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[21:07:18] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+[21:07:18] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[21:07:18] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[21:07:18] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[21:07:18] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[21:07:18] [INFO] [Player.Debug] Connected to GameManager, debug mode: True
+[21:07:18] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 3/3, Health: 2/4
+[21:07:18] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[21:07:18] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[21:07:18] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[21:07:18] [INFO] [LastChance] Found player: Player
+[21:07:18] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[21:07:18] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[21:07:18] [INFO] [LastChance] Connected to player Died signal (C#)
+[21:07:18] [INFO] [Player] Detecting weapon pose (frame 3)...
+[21:07:18] [INFO] [Player] Detected weapon: Rifle (default pose)
+[21:07:18] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[21:07:18] [INFO] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
+[21:07:18] [INFO] [Player.Grenade] G pressed - starting grab animation
+[21:07:18] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (505.77588, 185.00928)
+[21:07:18] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[21:07:18] [INFO] [GrenadeBase] Timer activated! 4.0 seconds until explosion
+[21:07:18] [INFO] [Player.Grenade] Timer started, grenade created at (150, 360)
+[21:07:18] [INFO] [Player.Grenade.Anim] Phase changed to: PullPin (duration: 0,15s)
+[21:07:18] [INFO] [Player.Grenade] Step 1 complete! Drag: (257.1546, 22.040817)
+[21:07:18] [INFO] [Player.Grenade.Anim] Phase changed to: HandsApproach (duration: 0,20s)
+[21:07:18] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[21:07:18] [INFO] [Player.Grenade.Anim] Phase changed to: Transfer (duration: 0,15s)
+[21:07:18] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming, drag and release RMB to throw
+[21:07:19] [INFO] [Player.Grenade.Anim] Phase changed to: WindUp (duration: 0,00s)
+[21:07:19] [INFO] [Player.Grenade.Anim] Entered wind-up phase
+[21:07:20] [INFO] [Player.Grenade.Anim] Phase changed to: Throw (duration: 0,20s)
+[21:07:20] [INFO] [Player.Grenade] Throwing! Direction: (0.9970475, 0.07678768), Drag: 26,094133 (adjusted: 234,8472)
+[21:07:20] [INFO] [Player.Grenade] Player rotated for throw: 0 -> 0,07686334
+[21:07:20] [INFO] [GrenadeBase] LEGACY throw_grenade() called! Direction: (0.997047, 0.076788), Speed: 469.7 (unfrozen)
+[21:07:20] [INFO] [GrenadeBase] NOTE: Using DRAG-BASED system. If velocity-based is expected, ensure grenade has throw_grenade_velocity_based() method.
+[21:07:20] [INFO] [Player.Grenade] Thrown! Direction: (0.9970475, 0.07678768), Adjusted drag: 234,8472
+[21:07:20] [INFO] [Player.Grenade] Player rotation restored to 0
+[21:07:20] [INFO] [Player.Grenade.Anim] Phase changed to: ReturnIdle (duration: 0,30s)
+[21:07:21] [INFO] [Player.Grenade.Anim] Animation complete, returning to normal
+[21:07:21] [INFO] [GrenadeBase] Grenade landed at (380.4155, 104.6899)
+[21:07:22] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[21:07:22] [INFO] [LastChance] Resetting all effects (scene change detected)
+[21:07:22] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[21:07:22] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+[21:07:22] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[21:07:22] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[21:07:22] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[21:07:22] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[21:07:22] [INFO] [Player.Debug] Connected to GameManager, debug mode: True
+[21:07:22] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 3/3, Health: 3/4
+[21:07:22] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[21:07:22] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[21:07:22] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[21:07:22] [INFO] [LastChance] Found player: Player
+[21:07:22] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[21:07:22] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[21:07:22] [INFO] [LastChance] Connected to player Died signal (C#)
+[21:07:22] [INFO] [Player] Detecting weapon pose (frame 3)...
+[21:07:22] [INFO] [Player] Detected weapon: Rifle (default pose)
+[21:07:22] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[21:07:22] [INFO] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
+[21:07:22] [INFO] [Player.Grenade] G pressed - starting grab animation
+[21:07:22] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (440.20456, 205.7143)
+[21:07:22] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[21:07:22] [INFO] [GrenadeBase] Timer activated! 4.0 seconds until explosion
+[21:07:22] [INFO] [Player.Grenade] Timer started, grenade created at (150, 360)
+[21:07:22] [INFO] [Player.Grenade.Anim] Phase changed to: PullPin (duration: 0,15s)
+[21:07:22] [INFO] [Player.Grenade] Step 1 complete! Drag: (213.4332, 19.369202)
+[21:07:22] [INFO] [Player.Grenade.Anim] Phase changed to: HandsApproach (duration: 0,20s)
+[21:07:22] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[21:07:22] [INFO] [Player.Grenade.Anim] Phase changed to: Transfer (duration: 0,15s)
+[21:07:22] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming, drag and release RMB to throw
+[21:07:22] [INFO] [Player.Grenade.Anim] Phase changed to: WindUp (duration: 0,00s)
+[21:07:22] [INFO] [Player.Grenade.Anim] Entered wind-up phase
+[21:07:24] [INFO] [Player.Grenade.Anim] Phase changed to: Throw (duration: 0,20s)
+[21:07:24] [INFO] [Player.Grenade] Throwing! Direction: (0.9987504, -0.04997603), Drag: 454,39233 (adjusted: 3840)
+[21:07:24] [INFO] [Player.Grenade] Player rotated for throw: 0 -> -0,049996857
+[21:07:24] [INFO] [GrenadeBase] LEGACY throw_grenade() called! Direction: (0.99875, -0.049976), Speed: 2500.0 (unfrozen)
+[21:07:24] [INFO] [GrenadeBase] NOTE: Using DRAG-BASED system. If velocity-based is expected, ensure grenade has throw_grenade_velocity_based() method.
+[21:07:24] [INFO] [Player.Grenade] Thrown! Direction: (0.9987504, -0.04997603), Adjusted drag: 3840
+[21:07:24] [INFO] [Player.Grenade] Player rotation restored to 0
+[21:07:24] [INFO] [Player.Grenade.Anim] Phase changed to: ReturnIdle (duration: 0,30s)
+[21:07:24] [INFO] [Player.Grenade.Anim] Animation complete, returning to normal
+[21:07:25] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[21:07:25] [INFO] [LastChance] Resetting all effects (scene change detected)
+[21:07:25] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[21:07:25] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+[21:07:25] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[21:07:25] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[21:07:25] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[21:07:25] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[21:07:25] [INFO] [Player.Debug] Connected to GameManager, debug mode: True
+[21:07:25] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 3/3, Health: 3/4
+[21:07:25] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[21:07:25] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[21:07:25] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[21:07:25] [INFO] [LastChance] Found player: Player
+[21:07:25] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[21:07:25] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[21:07:25] [INFO] [LastChance] Connected to player Died signal (C#)
+[21:07:25] [INFO] [Player] Detecting weapon pose (frame 3)...
+[21:07:25] [INFO] [Player] Detected weapon: Rifle (default pose)
+[21:07:25] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[21:07:25] [INFO] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
+[21:07:25] [INFO] [Player.Grenade] G pressed - starting grab animation
+[21:07:26] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (564.5103, 204.37848)
+[21:07:26] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[21:07:26] [INFO] [GrenadeBase] Timer activated! 4.0 seconds until explosion
+[21:07:26] [INFO] [Player.Grenade] Timer started, grenade created at (150, 360)
+[21:07:26] [INFO] [Player.Grenade.Anim] Phase changed to: PullPin (duration: 0,15s)
+[21:07:26] [INFO] [Player.Grenade] Step 1 complete! Drag: (238.9602, -20.03711)
+[21:07:26] [INFO] [Player.Grenade.Anim] Phase changed to: HandsApproach (duration: 0,20s)
+[21:07:26] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[21:07:26] [INFO] [Player.Grenade.Anim] Phase changed to: Transfer (duration: 0,15s)
+[21:07:26] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming, drag and release RMB to throw
+[21:07:26] [INFO] [Player.Grenade.Anim] Phase changed to: WindUp (duration: 0,00s)
+[21:07:26] [INFO] [Player.Grenade.Anim] Entered wind-up phase
+[21:07:28] [INFO] [Player.Grenade.Anim] Phase changed to: Throw (duration: 0,20s)
+[21:07:28] [INFO] [Player.Grenade] Throwing! Direction: (0.99270606, 0.12056038), Drag: 426,5794 (adjusted: 3839,2146)
+[21:07:28] [INFO] [Player.Grenade] Player rotated for throw: 0 -> 0,12085435
+[21:07:28] [INFO] [GrenadeBase] LEGACY throw_grenade() called! Direction: (0.992706, 0.12056), Speed: 2500.0 (unfrozen)
+[21:07:28] [INFO] [GrenadeBase] NOTE: Using DRAG-BASED system. If velocity-based is expected, ensure grenade has throw_grenade_velocity_based() method.
+[21:07:28] [INFO] [Player.Grenade] Thrown! Direction: (0.99270606, 0.12056038), Adjusted drag: 3839,2146
+[21:07:28] [INFO] [Player.Grenade] Player rotation restored to 0
+[21:07:28] [INFO] [Player.Grenade.Anim] Phase changed to: ReturnIdle (duration: 0,30s)
+[21:07:28] [INFO] [Player.Grenade.Anim] Animation complete, returning to normal
+[21:07:29] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[21:07:29] [INFO] [LastChance] Resetting all effects (scene change detected)
+[21:07:29] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[21:07:29] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+[21:07:29] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[21:07:29] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[21:07:29] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[21:07:29] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[21:07:29] [INFO] [Player.Debug] Connected to GameManager, debug mode: True
+[21:07:29] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 3/3, Health: 3/4
+[21:07:29] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[21:07:29] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[21:07:29] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[21:07:29] [INFO] [LastChance] Found player: Player
+[21:07:29] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[21:07:29] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[21:07:29] [INFO] [LastChance] Connected to player Died signal (C#)
+[21:07:29] [INFO] [Player] Detecting weapon pose (frame 3)...
+[21:07:29] [INFO] [Player] Detected weapon: Rifle (default pose)
+[21:07:29] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[21:07:29] [INFO] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
+[21:07:29] [INFO] [Player.Grenade] G pressed - starting grab animation
+[21:07:30] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (456.906, 225.0835)
+[21:07:30] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[21:07:30] [INFO] [GrenadeBase] Timer activated! 4.0 seconds until explosion
+[21:07:30] [INFO] [Player.Grenade] Timer started, grenade created at (150, 360)
+[21:07:30] [INFO] [Player.Grenade.Anim] Phase changed to: PullPin (duration: 0,15s)
+[21:07:30] [INFO] [Player.Grenade] Step 1 complete! Drag: (531.23315, 0)
+[21:07:30] [INFO] [Player.Grenade.Anim] Phase changed to: HandsApproach (duration: 0,20s)
+[21:07:30] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[21:07:30] [INFO] [Player.Grenade.Anim] Phase changed to: Transfer (duration: 0,15s)
+[21:07:30] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming, drag and release RMB to throw
+[21:07:30] [INFO] [Player.Grenade.Anim] Phase changed to: WindUp (duration: 0,00s)
+[21:07:30] [INFO] [Player.Grenade.Anim] Entered wind-up phase
+[21:07:32] [INFO] [Player.Grenade.Anim] Phase changed to: Throw (duration: 0,20s)
+[21:07:32] [INFO] [Player.Grenade] Throwing! Direction: (0.9764433, 0.21577407), Drag: 312,6338 (adjusted: 2813,704)
+[21:07:32] [INFO] [Player.Grenade] Player rotated for throw: 0 -> 0,21748452
+[21:07:32] [INFO] [GrenadeBase] LEGACY throw_grenade() called! Direction: (0.976443, 0.215774), Speed: 2500.0 (unfrozen)
+[21:07:32] [INFO] [GrenadeBase] NOTE: Using DRAG-BASED system. If velocity-based is expected, ensure grenade has throw_grenade_velocity_based() method.
+[21:07:32] [INFO] [Player.Grenade] Thrown! Direction: (0.9764433, 0.21577407), Adjusted drag: 2813,704
+[21:07:32] [INFO] [Player.Grenade] Player rotation restored to 0
+[21:07:32] [INFO] [Player.Grenade.Anim] Phase changed to: ReturnIdle (duration: 0,30s)
+[21:07:33] [INFO] [Player.Grenade.Anim] Animation complete, returning to normal
+[21:07:33] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[21:07:33] [INFO] [LastChance] Resetting all effects (scene change detected)
+[21:07:33] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[21:07:33] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+[21:07:33] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[21:07:33] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[21:07:33] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[21:07:33] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[21:07:33] [INFO] [Player.Debug] Connected to GameManager, debug mode: True
+[21:07:33] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 3/3, Health: 3/4
+[21:07:33] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[21:07:33] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[21:07:33] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[21:07:33] [INFO] [LastChance] Found player: Player
+[21:07:33] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[21:07:33] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[21:07:33] [INFO] [LastChance] Connected to player Died signal (C#)
+[21:07:33] [INFO] [Player] Detecting weapon pose (frame 3)...
+[21:07:33] [INFO] [Player] Detected weapon: Rifle (default pose)
+[21:07:33] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[21:07:34] [INFO] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
+[21:07:34] [INFO] [Player.Grenade] G pressed - starting grab animation
+[21:07:34] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (815.755, 270.50092)
+[21:07:34] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[21:07:34] [INFO] [GrenadeBase] Timer activated! 4.0 seconds until explosion
+[21:07:34] [INFO] [Player.Grenade] Timer started, grenade created at (150, 360)
+[21:07:34] [INFO] [Player.Grenade.Anim] Phase changed to: PullPin (duration: 0,15s)
+[21:07:34] [INFO] [Player.Grenade] Step 1 complete! Drag: (314.91418, -15.361771)
+[21:07:34] [INFO] [Player.Grenade.Anim] Phase changed to: HandsApproach (duration: 0,20s)
+[21:07:34] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[21:07:34] [INFO] [Player.Grenade.Anim] Phase changed to: Transfer (duration: 0,15s)
+[21:07:34] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming, drag and release RMB to throw
+[21:07:34] [INFO] [Player.Grenade.Anim] Phase changed to: WindUp (duration: 0,00s)
+[21:07:34] [INFO] [Player.Grenade.Anim] Entered wind-up phase
+[21:07:37] [INFO] [Player.Grenade.Anim] Phase changed to: Throw (duration: 0,20s)
+[21:07:37] [INFO] [Player.Grenade] Throwing! Direction: (1, 0), Drag: 11,621826 (adjusted: 104,596436)
+[21:07:37] [INFO] [Player.Grenade] Player rotated for throw: 0 -> 0
+[21:07:37] [INFO] [GrenadeBase] LEGACY throw_grenade() called! Direction: (1, 0), Speed: 209.2 (unfrozen)
+[21:07:37] [INFO] [GrenadeBase] NOTE: Using DRAG-BASED system. If velocity-based is expected, ensure grenade has throw_grenade_velocity_based() method.
+[21:07:37] [INFO] [Player.Grenade] Thrown! Direction: (1, 0), Adjusted drag: 104,596436
+[21:07:37] [INFO] [Player.Grenade] Player rotation restored to 0
+[21:07:37] [INFO] [Player.Grenade.Anim] Phase changed to: ReturnIdle (duration: 0,30s)
+[21:07:37] [INFO] [GrenadeBase] Grenade landed at (254.1619, 86.94442)
+[21:07:37] [INFO] [Player.Grenade.Anim] Animation complete, returning to normal
+[21:07:38] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[21:07:38] [INFO] [LastChance] Resetting all effects (scene change detected)
+[21:07:38] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[21:07:38] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+[21:07:38] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[21:07:38] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[21:07:38] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[21:07:38] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[21:07:38] [INFO] [Player.Debug] Connected to GameManager, debug mode: True
+[21:07:38] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 3/3, Health: 2/4
+[21:07:38] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[21:07:38] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[21:07:38] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[21:07:38] [INFO] [LastChance] Found player: Player
+[21:07:38] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[21:07:38] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[21:07:38] [INFO] [LastChance] Connected to player Died signal (C#)
+[21:07:38] [INFO] [Player] Detecting weapon pose (frame 3)...
+[21:07:38] [INFO] [Player] Detected weapon: Rifle (default pose)
+[21:07:38] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[21:07:38] [INFO] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
+[21:07:38] [INFO] [Player.Grenade] G pressed - starting grab animation
+[21:07:38] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (820.9333, 261.15027)
+[21:07:38] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[21:07:38] [INFO] [GrenadeBase] Timer activated! 4.0 seconds until explosion
+[21:07:38] [INFO] [Player.Grenade] Timer started, grenade created at (150, 360)
+[21:07:38] [INFO] [Player.Grenade.Anim] Phase changed to: PullPin (duration: 0,15s)
+[21:07:38] [INFO] [Player.Grenade] Step 1 complete! Drag: (280.64923, 20.03711)
+[21:07:38] [INFO] [Player.Grenade.Anim] Phase changed to: HandsApproach (duration: 0,20s)
+[21:07:38] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[21:07:39] [INFO] [Player.Grenade.Anim] Phase changed to: Transfer (duration: 0,15s)
+[21:07:39] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming, drag and release RMB to throw
+[21:07:39] [INFO] [Player.Grenade.Anim] Phase changed to: WindUp (duration: 0,00s)
+[21:07:39] [INFO] [Player.Grenade.Anim] Entered wind-up phase
+[21:07:42] [INFO] [Player.Grenade.Anim] Phase changed to: Throw (duration: 0,20s)
+[21:07:42] [INFO] [Player.Grenade] Throwing! Direction: (0.9952743, 0.09710371), Drag: 55,026028 (adjusted: 495,23425)
+[21:07:42] [INFO] [Player.Grenade] Player rotated for throw: 0 -> 0,09725696
+[21:07:42] [INFO] [GrenadeBase] LEGACY throw_grenade() called! Direction: (0.995274, 0.097104), Speed: 990.5 (unfrozen)
+[21:07:42] [INFO] [GrenadeBase] NOTE: Using DRAG-BASED system. If velocity-based is expected, ensure grenade has throw_grenade_velocity_based() method.
+[21:07:42] [INFO] [Player.Grenade] Thrown! Direction: (0.9952743, 0.09710371), Adjusted drag: 495,23425
+[21:07:42] [INFO] [Player.Grenade] Player rotation restored to 0
+[21:07:42] [INFO] [Player.Grenade.Anim] Phase changed to: ReturnIdle (duration: 0,30s)
+[21:07:42] [INFO] [Player.Grenade.Anim] Animation complete, returning to normal
+[21:07:42] [INFO] [GrenadeBase] EXPLODED at (631.9585, 127.0223)!
+[21:07:42] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(631.9585, 127.0223), source=NEUTRAL (FlashbangGrenade), range=2937, listeners=10
+[21:07:42] [INFO] [SoundPropagation] Cleaned up 10 invalid listeners
+[21:07:42] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[21:07:46] [INFO] ------------------------------------------------------------
+[21:07:46] [INFO] GAME LOG ENDED: 2026-01-22T21:07:46
+[21:07:46] [INFO] ============================================================

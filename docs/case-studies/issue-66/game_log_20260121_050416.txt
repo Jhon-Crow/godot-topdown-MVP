@@ -1,0 +1,124 @@
+[05:04:16] [INFO] ============================================================
+[05:04:16] [INFO] GAME LOG STARTED
+[05:04:16] [INFO] ============================================================
+[05:04:16] [INFO] Timestamp: 2026-01-21T05:04:16
+[05:04:16] [INFO] Log file: I:/Загрузки/godot exe/game_log_20260121_050416.txt
+[05:04:16] [INFO] Executable: I:/Загрузки/godot exe/Godot-Top-Down-Template.exe
+[05:04:16] [INFO] OS: Windows
+[05:04:16] [INFO] Debug build: false
+[05:04:16] [INFO] Engine version: 4.3-stable (official)
+[05:04:16] [INFO] Project: Godot Top-Down Template
+[05:04:16] [INFO] ------------------------------------------------------------
+[05:04:16] [INFO] [GameManager] GameManager ready
+[05:04:16] [INFO] [SoundPropagation] SoundPropagation autoload initialized
+[05:04:16] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 1)
+[05:04:16] [ENEMY] [Enemy1] Registered as sound listener
+[05:04:16] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 3, behavior: GUARD, player_found: yes
+[05:04:16] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 2)
+[05:04:16] [ENEMY] [Enemy2] Registered as sound listener
+[05:04:16] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 4, behavior: GUARD, player_found: yes
+[05:04:16] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 3)
+[05:04:16] [ENEMY] [Enemy3] Registered as sound listener
+[05:04:16] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 4, behavior: GUARD, player_found: yes
+[05:04:16] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 4)
+[05:04:16] [ENEMY] [Enemy4] Registered as sound listener
+[05:04:16] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 4, behavior: GUARD, player_found: yes
+[05:04:16] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 5)
+[05:04:16] [ENEMY] [Enemy5] Registered as sound listener
+[05:04:16] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 4, behavior: GUARD, player_found: yes
+[05:04:16] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 6)
+[05:04:16] [ENEMY] [Enemy6] Registered as sound listener
+[05:04:16] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 4, behavior: GUARD, player_found: yes
+[05:04:16] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 7)
+[05:04:16] [ENEMY] [Enemy7] Registered as sound listener
+[05:04:16] [ENEMY] [Enemy7] Enemy spawned at (1606.114, 893.8859), health: 4, behavior: PATROL, player_found: yes
+[05:04:16] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 8)
+[05:04:16] [ENEMY] [Enemy8] Registered as sound listener
+[05:04:16] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 3, behavior: GUARD, player_found: yes
+[05:04:16] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 9)
+[05:04:16] [ENEMY] [Enemy9] Registered as sound listener
+[05:04:16] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 3, behavior: GUARD, player_found: yes
+[05:04:16] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 10)
+[05:04:16] [ENEMY] [Enemy10] Registered as sound listener
+[05:04:16] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 3, behavior: PATROL, player_found: yes
+[05:04:20] [INFO] [GameManager] Debug mode toggled: ON
+[05:04:23] [ENEMY] [Enemy7] State: IDLE -> COMBAT
+[05:04:24] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[05:04:25] [ENEMY] [Enemy7] FLANKING started: target=(621.6809, 1600.956), side=left, pos=(1482.721, 901.9738)
+[05:04:25] [ENEMY] [Enemy7] State: PURSUING -> FLANKING
+[05:04:28] [ENEMY] [Enemy10] State: IDLE -> COMBAT
+[05:04:28] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[05:04:29] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 11)
+[05:04:29] [ENEMY] [Enemy1] Registered as sound listener
+[05:04:29] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 3, behavior: GUARD, player_found: yes
+[05:04:29] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 12)
+[05:04:29] [ENEMY] [Enemy2] Registered as sound listener
+[05:04:29] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 4, behavior: GUARD, player_found: yes
+[05:04:29] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 13)
+[05:04:29] [ENEMY] [Enemy3] Registered as sound listener
+[05:04:29] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 3, behavior: GUARD, player_found: yes
+[05:04:29] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 14)
+[05:04:29] [ENEMY] [Enemy4] Registered as sound listener
+[05:04:29] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 3, behavior: GUARD, player_found: yes
+[05:04:29] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 15)
+[05:04:29] [ENEMY] [Enemy5] Registered as sound listener
+[05:04:29] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 4, behavior: GUARD, player_found: yes
+[05:04:29] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 16)
+[05:04:29] [ENEMY] [Enemy6] Registered as sound listener
+[05:04:29] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 2, behavior: GUARD, player_found: yes
+[05:04:29] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 17)
+[05:04:29] [ENEMY] [Enemy7] Registered as sound listener
+[05:04:29] [ENEMY] [Enemy7] Enemy spawned at (1600, 900), health: 2, behavior: PATROL, player_found: yes
+[05:04:29] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 18)
+[05:04:29] [ENEMY] [Enemy8] Registered as sound listener
+[05:04:29] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 2, behavior: GUARD, player_found: yes
+[05:04:29] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 19)
+[05:04:29] [ENEMY] [Enemy9] Registered as sound listener
+[05:04:29] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 3, behavior: GUARD, player_found: yes
+[05:04:29] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 20)
+[05:04:29] [ENEMY] [Enemy10] Registered as sound listener
+[05:04:29] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 2, behavior: PATROL, player_found: yes
+[05:04:43] [ENEMY] [Enemy10] State: IDLE -> COMBAT
+[05:04:43] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[05:04:45] [ENEMY] [Enemy10] FLANKING started: target=(996.8604, 1652.463), side=left, pos=(1161.683, 1599.231)
+[05:04:45] [ENEMY] [Enemy10] State: PURSUING -> FLANKING
+[05:04:46] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 21)
+[05:04:46] [ENEMY] [Enemy1] Registered as sound listener
+[05:04:46] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 2, behavior: GUARD, player_found: yes
+[05:04:46] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 22)
+[05:04:46] [ENEMY] [Enemy2] Registered as sound listener
+[05:04:46] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 3, behavior: GUARD, player_found: yes
+[05:04:46] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 23)
+[05:04:46] [ENEMY] [Enemy3] Registered as sound listener
+[05:04:46] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 2, behavior: GUARD, player_found: yes
+[05:04:46] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 24)
+[05:04:46] [ENEMY] [Enemy4] Registered as sound listener
+[05:04:46] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 2, behavior: GUARD, player_found: yes
+[05:04:46] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 25)
+[05:04:46] [ENEMY] [Enemy5] Registered as sound listener
+[05:04:46] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 2, behavior: GUARD, player_found: yes
+[05:04:46] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 26)
+[05:04:46] [ENEMY] [Enemy6] Registered as sound listener
+[05:04:46] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 2, behavior: GUARD, player_found: yes
+[05:04:46] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 27)
+[05:04:46] [ENEMY] [Enemy7] Registered as sound listener
+[05:04:46] [ENEMY] [Enemy7] Enemy spawned at (1600, 900), health: 4, behavior: PATROL, player_found: yes
+[05:04:46] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 28)
+[05:04:46] [ENEMY] [Enemy8] Registered as sound listener
+[05:04:46] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 4, behavior: GUARD, player_found: yes
+[05:04:46] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 29)
+[05:04:46] [ENEMY] [Enemy9] Registered as sound listener
+[05:04:46] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 2, behavior: GUARD, player_found: yes
+[05:04:46] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 30)
+[05:04:46] [ENEMY] [Enemy10] Registered as sound listener
+[05:04:46] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 2, behavior: PATROL, player_found: yes
+[05:04:50] [ENEMY] [Enemy7] State: IDLE -> COMBAT
+[05:04:50] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[05:04:52] [ENEMY] [Enemy7] FLANKING started: target=(1274.075, 1180.279), side=left, pos=(1614.067, 985.2181)
+[05:04:52] [ENEMY] [Enemy7] State: PURSUING -> FLANKING
+[05:04:53] [ENEMY] [Enemy7] State: FLANKING -> COMBAT
+[05:04:55] [ENEMY] [Enemy10] State: IDLE -> COMBAT
+[05:04:55] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[05:04:57] [INFO] ------------------------------------------------------------
+[05:04:57] [INFO] GAME LOG ENDED: 2026-01-21T05:04:57
+[05:04:57] [INFO] ============================================================

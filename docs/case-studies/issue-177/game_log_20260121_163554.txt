@@ -1,0 +1,178 @@
+[16:35:54] [INFO] ============================================================
+[16:35:54] [INFO] GAME LOG STARTED
+[16:35:54] [INFO] ============================================================
+[16:35:54] [INFO] Timestamp: 2026-01-21T16:35:54
+[16:35:54] [INFO] Log file: I:/Загрузки/godot exe/game_log_20260121_163554.txt
+[16:35:54] [INFO] Executable: I:/Загрузки/godot exe/Godot-Top-Down-Template.exe
+[16:35:54] [INFO] OS: Windows
+[16:35:54] [INFO] Debug build: false
+[16:35:54] [INFO] Engine version: 4.3-stable (official)
+[16:35:54] [INFO] Project: Godot Top-Down Template
+[16:35:54] [INFO] ------------------------------------------------------------
+[16:35:54] [INFO] [GameManager] GameManager ready
+[16:35:54] [INFO] [ScoreManager] ScoreManager ready
+[16:35:54] [INFO] [SoundPropagation] SoundPropagation autoload initialized
+[16:35:54] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[16:35:54] [INFO] [PenultimateHit] Saturation shader loaded successfully
+[16:35:54] [INFO] [PenultimateHit] PenultimateHitEffectsManager ready - Configuration:
+[16:35:54] [INFO] [PenultimateHit]   Time scale: 0.10 (10x slowdown)
+[16:35:54] [INFO] [PenultimateHit]   Saturation boost: 2.0 (3.0x)
+[16:35:54] [INFO] [PenultimateHit]   Contrast boost: 1.0 (2.0x)
+[16:35:54] [INFO] [PenultimateHit]   Effect duration: 3.0 real seconds
+[16:35:54] [INFO] [LastChance] Resetting all effects (scene change detected)
+[16:35:54] [INFO] [LastChance] Last chance shader loaded successfully
+[16:35:54] [INFO] [LastChance] LastChanceEffectsManager ready - Configuration:
+[16:35:54] [INFO] [LastChance]   Freeze duration: 6.0 real seconds
+[16:35:54] [INFO] [LastChance]   Sepia intensity: 0.70
+[16:35:54] [INFO] [LastChance]   Brightness: 0.60
+[16:35:54] [INFO] [ScoreManager] Level started with 10 enemies
+[16:35:54] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 1)
+[16:35:54] [ENEMY] [Enemy1] Registered as sound listener
+[16:35:54] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 2, behavior: GUARD, player_found: yes
+[16:35:54] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 2)
+[16:35:54] [ENEMY] [Enemy2] Registered as sound listener
+[16:35:54] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 4, behavior: GUARD, player_found: yes
+[16:35:54] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 3)
+[16:35:54] [ENEMY] [Enemy3] Registered as sound listener
+[16:35:54] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 4, behavior: GUARD, player_found: yes
+[16:35:54] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 4)
+[16:35:54] [ENEMY] [Enemy4] Registered as sound listener
+[16:35:54] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 3, behavior: GUARD, player_found: yes
+[16:35:54] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 5)
+[16:35:54] [ENEMY] [Enemy5] Registered as sound listener
+[16:35:54] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 2, behavior: GUARD, player_found: yes
+[16:35:54] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 6)
+[16:35:54] [ENEMY] [Enemy6] Registered as sound listener
+[16:35:54] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 4, behavior: GUARD, player_found: yes
+[16:35:54] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 7)
+[16:35:54] [ENEMY] [Enemy7] Registered as sound listener
+[16:35:54] [ENEMY] [Enemy7] Enemy spawned at (1606.114, 893.8859), health: 4, behavior: PATROL, player_found: yes
+[16:35:54] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 8)
+[16:35:54] [ENEMY] [Enemy8] Registered as sound listener
+[16:35:54] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 4, behavior: GUARD, player_found: yes
+[16:35:54] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 9)
+[16:35:54] [ENEMY] [Enemy9] Registered as sound listener
+[16:35:54] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 4, behavior: GUARD, player_found: yes
+[16:35:54] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 10)
+[16:35:54] [ENEMY] [Enemy10] Registered as sound listener
+[16:35:54] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 4, behavior: PATROL, player_found: yes
+[16:35:54] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[16:35:54] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[16:35:54] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[16:35:54] [INFO] [LastChance] Found player: Player
+[16:35:54] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[16:35:54] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[16:35:54] [INFO] [LastChance] Connected to player Died signal (C#)
+[16:36:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(450, 1250), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[16:36:08] [ENEMY] [Enemy4] Heard gunshot at (450, 1250), source_type=0, intensity=0.01, distance=495
+[16:36:08] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=3, self=0, below_threshold=6
+[16:36:09] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(450, 1250), shooter_id=39963330168, bullet_pos=(50.96437, 1222.2406)
+[16:36:09] [INFO] [Bullet] Using shooter_position, distance=400,00003
+[16:36:09] [INFO] [Bullet] Distance to wall: 400,00003 (27,236738% of viewport)
+[16:36:09] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[16:36:09] [INFO] [Bullet] Starting wall penetration at (50.96437, 1222.2406)
+[16:36:09] [INFO] [Bullet] Raycast backward hit penetrating body at distance 27,656462
+[16:36:09] [INFO] [Bullet] Body exited signal received for penetrating body
+[16:36:09] [INFO] [Bullet] Exiting penetration at (4.4102173, 1219.002) after traveling 41,666668 pixels through wall
+[16:36:09] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[16:36:09] [ENEMY] [Enemy4] State: COMBAT -> PURSUING
+[16:36:10] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[16:36:10] [INFO] [LastChance] Resetting all effects (scene change detected)
+[16:36:10] [INFO] [ScoreManager] Level started with 10 enemies
+[16:36:10] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 11)
+[16:36:10] [ENEMY] [Enemy1] Registered as sound listener
+[16:36:10] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 4, behavior: GUARD, player_found: yes
+[16:36:10] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 12)
+[16:36:10] [ENEMY] [Enemy2] Registered as sound listener
+[16:36:10] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 3, behavior: GUARD, player_found: yes
+[16:36:10] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 13)
+[16:36:10] [ENEMY] [Enemy3] Registered as sound listener
+[16:36:10] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 2, behavior: GUARD, player_found: yes
+[16:36:10] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 14)
+[16:36:10] [ENEMY] [Enemy4] Registered as sound listener
+[16:36:10] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 3, behavior: GUARD, player_found: yes
+[16:36:10] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 15)
+[16:36:10] [ENEMY] [Enemy5] Registered as sound listener
+[16:36:10] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 4, behavior: GUARD, player_found: yes
+[16:36:10] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 16)
+[16:36:10] [ENEMY] [Enemy6] Registered as sound listener
+[16:36:10] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 2, behavior: GUARD, player_found: yes
+[16:36:10] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 17)
+[16:36:10] [ENEMY] [Enemy7] Registered as sound listener
+[16:36:10] [ENEMY] [Enemy7] Enemy spawned at (1600, 900), health: 4, behavior: PATROL, player_found: yes
+[16:36:10] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 18)
+[16:36:10] [ENEMY] [Enemy8] Registered as sound listener
+[16:36:10] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 3, behavior: GUARD, player_found: yes
+[16:36:10] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 19)
+[16:36:10] [ENEMY] [Enemy9] Registered as sound listener
+[16:36:10] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 4, behavior: GUARD, player_found: yes
+[16:36:10] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 20)
+[16:36:10] [ENEMY] [Enemy10] Registered as sound listener
+[16:36:10] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 3, behavior: PATROL, player_found: yes
+[16:36:10] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[16:36:10] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[16:36:10] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[16:36:10] [INFO] [LastChance] Found player: Player
+[16:36:10] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[16:36:10] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[16:36:10] [INFO] [LastChance] Connected to player Died signal (C#)
+[16:36:45] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(450, 1250), source=PLAYER (AssaultRifle), range=1469, listeners=20
+[16:36:45] [INFO] [SoundPropagation] Cleaned up 10 invalid listeners
+[16:36:45] [ENEMY] [Enemy4] Heard gunshot at (450, 1250), source_type=0, intensity=0.01, distance=495
+[16:36:45] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=3, self=0, below_threshold=6
+[16:36:45] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(450, 1250), shooter_id=85295369050, bullet_pos=(499.63153, 979.51587)
+[16:36:45] [INFO] [Bullet] Using shooter_position, distance=274,9999
+[16:36:45] [INFO] [Bullet] Distance to wall: 274,9999 (18,72525% of viewport)
+[16:36:45] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[16:36:45] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(450, 1250), shooter_id=85295369050, bullet_pos=(480.23737, 691.8353)
+[16:36:45] [INFO] [Bullet] Using shooter_position, distance=558,9831
+[16:36:45] [INFO] [Bullet] Distance to wall: 558,9831 (38,062187% of viewport)
+[16:36:45] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[16:36:45] [INFO] [Bullet] Starting wall penetration at (480.23737, 691.8353)
+[16:36:45] [INFO] [Bullet] Raycast backward hit penetrating body at distance 36,57263
+[16:36:45] [INFO] [Bullet] Body exited signal received for penetrating body
+[16:36:45] [INFO] [Bullet] Exiting penetration at (477.51883, 651.5102) after traveling 35,416668 pixels through wall
+[16:36:45] [INFO] [Bullet] Damage multiplier after penetration: 0,45
+[16:36:46] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[16:36:46] [INFO] [LastChance] Resetting all effects (scene change detected)
+[16:36:46] [INFO] [ScoreManager] Level started with 10 enemies
+[16:36:46] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 11)
+[16:36:46] [ENEMY] [Enemy1] Registered as sound listener
+[16:36:46] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 4, behavior: GUARD, player_found: yes
+[16:36:46] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 12)
+[16:36:46] [ENEMY] [Enemy2] Registered as sound listener
+[16:36:46] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 2, behavior: GUARD, player_found: yes
+[16:36:46] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 13)
+[16:36:46] [ENEMY] [Enemy3] Registered as sound listener
+[16:36:46] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 3, behavior: GUARD, player_found: yes
+[16:36:46] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 14)
+[16:36:46] [ENEMY] [Enemy4] Registered as sound listener
+[16:36:46] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 2, behavior: GUARD, player_found: yes
+[16:36:46] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 15)
+[16:36:46] [ENEMY] [Enemy5] Registered as sound listener
+[16:36:46] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 4, behavior: GUARD, player_found: yes
+[16:36:46] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 16)
+[16:36:46] [ENEMY] [Enemy6] Registered as sound listener
+[16:36:46] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 4, behavior: GUARD, player_found: yes
+[16:36:46] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 17)
+[16:36:46] [ENEMY] [Enemy7] Registered as sound listener
+[16:36:46] [ENEMY] [Enemy7] Enemy spawned at (1600, 900), health: 3, behavior: PATROL, player_found: yes
+[16:36:46] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 18)
+[16:36:46] [ENEMY] [Enemy8] Registered as sound listener
+[16:36:46] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 4, behavior: GUARD, player_found: yes
+[16:36:46] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 19)
+[16:36:46] [ENEMY] [Enemy9] Registered as sound listener
+[16:36:46] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 4, behavior: GUARD, player_found: yes
+[16:36:46] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 20)
+[16:36:46] [ENEMY] [Enemy10] Registered as sound listener
+[16:36:46] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 3, behavior: PATROL, player_found: yes
+[16:36:46] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[16:36:46] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[16:36:46] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[16:36:46] [INFO] [LastChance] Found player: Player
+[16:36:46] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[16:36:46] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[16:36:46] [INFO] [LastChance] Connected to player Died signal (C#)
+[16:36:57] [INFO] ------------------------------------------------------------
+[16:36:57] [INFO] GAME LOG ENDED: 2026-01-21T16:36:57
+[16:36:57] [INFO] ============================================================

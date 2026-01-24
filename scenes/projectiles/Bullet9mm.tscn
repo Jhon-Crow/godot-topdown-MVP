@@ -1,0 +1,38 @@
+[gd_scene load_steps=7 format=3 uid="uid://dm5n8k7r3p9q2"]
+
+[ext_resource type="Script" path="res://scripts/projectiles/bullet.gd" id="1_bullet"]
+[ext_resource type="Resource" uid="uid://cn4m8k7r5p2q9" path="res://resources/calibers/caliber_9x19.tres" id="2_caliber"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_bullet"]
+radius = 3.0
+
+[sub_resource type="PlaceholderTexture2D" id="PlaceholderTexture2D_bullet"]
+size = Vector2(12, 3)
+
+[sub_resource type="Gradient" id="Gradient_trail"]
+colors = PackedColorArray(1, 0.8, 0.3, 1, 1, 0.8, 0.3, 0)
+
+[sub_resource type="Curve" id="Curve_trail"]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[node name="Bullet9mm" type="Area2D"]
+collision_layer = 16
+collision_mask = 39
+script = ExtResource("1_bullet")
+caliber_data = ExtResource("2_caliber")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+modulate = Color(1, 0.8, 0.3, 1)
+texture = SubResource("PlaceholderTexture2D_bullet")
+
+[node name="Trail" type="Line2D" parent="."]
+width = 2.0
+width_curve = SubResource("Curve_trail")
+default_color = Color(1, 0.8, 0.3, 1)
+gradient = SubResource("Gradient_trail")
+begin_cap_mode = 2
+end_cap_mode = 2
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_bullet")

@@ -60,7 +60,7 @@ func _process_approach_phase(delta: float) -> void:
 
 	# Move toward player
 	if enemy._player:
-		var direction := (enemy._player.global_position - enemy.global_position).normalized()
+		var direction: Vector2 = (enemy._player.global_position - enemy.global_position).normalized()
 
 		# Apply wall avoidance
 		if enemy.has_method("_apply_wall_avoidance"):
@@ -88,7 +88,7 @@ func _process_cover_movement(delta: float) -> void:
 			_find_next_cover()
 	else:
 		# Move toward cover
-		var direction := (enemy._pursuit_next_cover - enemy.global_position).normalized()
+		var direction: Vector2 = (enemy._pursuit_next_cover - enemy.global_position).normalized()
 
 		# Apply wall avoidance
 		if enemy.has_method("_apply_wall_avoidance"):

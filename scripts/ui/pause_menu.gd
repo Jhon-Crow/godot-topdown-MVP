@@ -12,6 +12,7 @@ extends CanvasLayer
 @onready var resume_button: Button = $MenuContainer/VBoxContainer/ResumeButton
 @onready var controls_button: Button = $MenuContainer/VBoxContainer/ControlsButton
 @onready var difficulty_button: Button = $MenuContainer/VBoxContainer/DifficultyButton
+@onready var armory_button: Button = $MenuContainer/VBoxContainer/ArmoryButton
 @onready var levels_button: Button = $MenuContainer/VBoxContainer/LevelsButton
 @onready var experimental_button: Button = $MenuContainer/VBoxContainer/ExperimentalButton
 @onready var quit_button: Button = $MenuContainer/VBoxContainer/QuitButton
@@ -28,6 +29,9 @@ var _levels_menu: CanvasLayer = null
 ## The instantiated experimental menu.
 var _experimental_menu: CanvasLayer = null
 
+## The instantiated armory menu.
+var _armory_menu: CanvasLayer = null
+
 ## Reference to the difficulty menu scene.
 @export var difficulty_menu_scene: PackedScene
 
@@ -36,6 +40,9 @@ var _experimental_menu: CanvasLayer = null
 
 ## Reference to the experimental menu scene.
 @export var experimental_menu_scene: PackedScene
+
+## Reference to the armory menu scene.
+@export var armory_menu_scene: PackedScene
 
 
 func _ready() -> void:
@@ -47,6 +54,7 @@ func _ready() -> void:
 	resume_button.pressed.connect(_on_resume_pressed)
 	controls_button.pressed.connect(_on_controls_pressed)
 	difficulty_button.pressed.connect(_on_difficulty_pressed)
+	armory_button.pressed.connect(_on_armory_pressed)
 	levels_button.pressed.connect(_on_levels_pressed)
 	experimental_button.pressed.connect(_on_experimental_pressed)
 	quit_button.pressed.connect(_on_quit_pressed)
@@ -66,6 +74,10 @@ func _ready() -> void:
 	# Preload experimental menu if not set
 	if experimental_menu_scene == null:
 		experimental_menu_scene = preload("res://scenes/ui/ExperimentalMenu.tscn")
+
+	# Preload armory menu if not set
+	if armory_menu_scene == null:
+		armory_menu_scene = preload("res://scenes/ui/ArmoryMenu.tscn")
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -87,6 +99,20 @@ func pause_game() -> void:
 	get_tree().paused = true
 	# Show cursor for menu interaction (still confined to window)
 	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
+
+	# Close any open submenus and restore main menu container
+	if _controls_menu and _controls_menu.visible:
+		_controls_menu.hide()
+	if _difficulty_menu and _difficulty_menu.visible:
+		_difficulty_menu.hide()
+	if _levels_menu and _levels_menu.visible:
+		_levels_menu.hide()
+	if _armory_menu and _armory_menu.visible:
+		_armory_menu.hide()
+
+	# Ensure main menu container is visible
+	menu_container.show()
+
 	show()
 	resume_button.grab_focus()
 
@@ -113,6 +139,10 @@ func resume_game() -> void:
 	# Also close experimental menu if open
 	if _experimental_menu and _experimental_menu.visible:
 		_experimental_menu.hide()
+
+	# Also close armory menu if open
+	if _armory_menu and _armory_menu.visible:
+		_armory_menu.hide()
 
 
 func _on_resume_pressed() -> void:
@@ -157,6 +187,52 @@ func _on_difficulty_back() -> void:
 		_difficulty_menu.hide()
 	menu_container.show()
 	difficulty_button.grab_focus()
+
+
+func _on_armory_pressed() -> void:
+	FileLogger.info("[PauseMenu] Armory button pressed")
+	# Hide main menu, show armory menu
+	menu_container.hide()
+
+	if _armory_menu == null:
+		FileLogger.info("[PauseMenu] Creating new armory menu instance")
+		FileLogger.info("[PauseMenu] armory_menu_scene resource path: %s" % armory_menu_scene.resource_path)
+		_armory_menu = armory_menu_scene.instantiate()
+		FileLogger.info("[PauseMenu] Instance created, class: %s, name: %s" % [_armory_menu.get_class(), _armory_menu.name])
+		# Check if the script is properly attached
+		var script = _armory_menu.get_script()
+		if script:
+			FileLogger.info("[PauseMenu] Script attached: %s" % script.resource_path)
+		else:
+			FileLogger.info("[PauseMenu] WARNING: No script attached to armory menu instance!")
+		# Check if it has the expected signal (proves script is loaded)
+		if _armory_menu.has_signal("back_pressed"):
+			FileLogger.info("[PauseMenu] back_pressed signal exists on instance")
+		else:
+			FileLogger.info("[PauseMenu] WARNING: back_pressed signal NOT found on instance!")
+		_armory_menu.back_pressed.connect(_on_armory_back)
+		FileLogger.info("[PauseMenu] back_pressed signal connected")
+		add_child(_armory_menu)
+		FileLogger.info("[PauseMenu] Armory menu instance added as child, is_inside_tree: %s" % _armory_menu.is_inside_tree())
+		# Check method existence after adding to tree
+		if _armory_menu.has_method("_populate_weapon_grid"):
+			FileLogger.info("[PauseMenu] _populate_weapon_grid method exists")
+		else:
+			FileLogger.info("[PauseMenu] WARNING: _populate_weapon_grid method NOT found!")
+	else:
+		FileLogger.info("[PauseMenu] Showing existing armory menu")
+		# Refresh the weapon grid in case grenade selection changed
+		if _armory_menu.has_method("_populate_weapon_grid"):
+			_armory_menu._populate_weapon_grid()
+		_armory_menu.show()
+
+
+func _on_armory_back() -> void:
+	# Show main menu again
+	if _armory_menu:
+		_armory_menu.hide()
+	menu_container.show()
+	armory_button.grab_focus()
 
 
 func _on_levels_pressed() -> void:

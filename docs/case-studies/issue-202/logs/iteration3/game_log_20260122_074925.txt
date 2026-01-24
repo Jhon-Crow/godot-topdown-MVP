@@ -1,0 +1,165 @@
+[07:49:25] [INFO] ============================================================
+[07:49:25] [INFO] GAME LOG STARTED
+[07:49:25] [INFO] ============================================================
+[07:49:25] [INFO] Timestamp: 2026-01-22T07:49:25
+[07:49:25] [INFO] Log file: I:/Загрузки/godot exe/game_log_20260122_074925.txt
+[07:49:25] [INFO] Executable: I:/Загрузки/godot exe/Godot-Top-Down-Template.exe
+[07:49:25] [INFO] OS: Windows
+[07:49:25] [INFO] Debug build: false
+[07:49:25] [INFO] Engine version: 4.3-stable (official)
+[07:49:25] [INFO] Project: Godot Top-Down Template
+[07:49:25] [INFO] ------------------------------------------------------------
+[07:49:25] [INFO] [GameManager] GameManager ready
+[07:49:25] [INFO] [ScoreManager] ScoreManager ready
+[07:49:25] [INFO] [SoundPropagation] SoundPropagation autoload initialized
+[07:49:25] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[07:49:25] [INFO] [PenultimateHit] Saturation shader loaded successfully
+[07:49:25] [INFO] [PenultimateHit] PenultimateHitEffectsManager ready - Configuration:
+[07:49:25] [INFO] [PenultimateHit]   Time scale: 0.10 (10x slowdown)
+[07:49:25] [INFO] [PenultimateHit]   Saturation boost: 2.0 (3.0x)
+[07:49:25] [INFO] [PenultimateHit]   Contrast boost: 1.0 (2.0x)
+[07:49:25] [INFO] [PenultimateHit]   Effect duration: 3.0 real seconds
+[07:49:25] [INFO] [LastChance] Resetting all effects (scene change detected)
+[07:49:25] [INFO] [LastChance] Last chance shader loaded successfully
+[07:49:25] [INFO] [LastChance] LastChanceEffectsManager ready - Configuration:
+[07:49:25] [INFO] [LastChance]   Freeze duration: 6.0 real seconds
+[07:49:25] [INFO] [LastChance]   Sepia intensity: 0.70
+[07:49:25] [INFO] [LastChance]   Brightness: 0.60
+[07:49:25] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FlashbangGrenade.tscn
+[07:49:25] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FragGrenade.tscn
+[07:49:25] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[07:49:25] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[07:49:25] [INFO] [Player] Ready! Grenades: 1/3
+[07:49:25] [INFO] [ScoreManager] Level started with 10 enemies
+[07:49:25] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 1)
+[07:49:25] [ENEMY] [Enemy1] Registered as sound listener
+[07:49:25] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 3, behavior: GUARD, player_found: yes
+[07:49:25] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 2)
+[07:49:25] [ENEMY] [Enemy2] Registered as sound listener
+[07:49:25] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 4, behavior: GUARD, player_found: yes
+[07:49:25] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 3)
+[07:49:25] [ENEMY] [Enemy3] Registered as sound listener
+[07:49:25] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 2, behavior: GUARD, player_found: yes
+[07:49:25] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 4)
+[07:49:25] [ENEMY] [Enemy4] Registered as sound listener
+[07:49:25] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 3, behavior: GUARD, player_found: yes
+[07:49:25] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 5)
+[07:49:25] [ENEMY] [Enemy5] Registered as sound listener
+[07:49:25] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 2, behavior: GUARD, player_found: yes
+[07:49:25] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 6)
+[07:49:25] [ENEMY] [Enemy6] Registered as sound listener
+[07:49:25] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 4, behavior: GUARD, player_found: yes
+[07:49:25] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 7)
+[07:49:25] [ENEMY] [Enemy7] Registered as sound listener
+[07:49:25] [ENEMY] [Enemy7] Enemy spawned at (1606.114, 893.8859), health: 4, behavior: PATROL, player_found: yes
+[07:49:25] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 8)
+[07:49:25] [ENEMY] [Enemy8] Registered as sound listener
+[07:49:25] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 3, behavior: GUARD, player_found: yes
+[07:49:25] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 9)
+[07:49:25] [ENEMY] [Enemy9] Registered as sound listener
+[07:49:25] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 3, behavior: GUARD, player_found: yes
+[07:49:25] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 10)
+[07:49:25] [ENEMY] [Enemy10] Registered as sound listener
+[07:49:25] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 4, behavior: PATROL, player_found: yes
+[07:49:25] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[07:49:25] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[07:49:25] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[07:49:25] [INFO] [LastChance] Found player: Player
+[07:49:25] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[07:49:25] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[07:49:25] [INFO] [LastChance] Connected to player Died signal (C#)
+[07:49:26] [INFO] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
+[07:49:26] [INFO] [Player.Grenade] G pressed - starting grab animation
+[07:49:26] [INFO] [Player.Grenade.Anim] Phase changed to: ReturnIdle (duration: 0,30s)
+[07:49:27] [INFO] [Player.Grenade.Anim] Animation complete, returning to normal
+[07:49:27] [INFO] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
+[07:49:27] [INFO] [Player.Grenade] G pressed - starting grab animation
+[07:49:28] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (412.19147, 1034.935)
+[07:49:30] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[07:49:30] [INFO] [GrenadeBase] Timer activated! 4.0 seconds until explosion
+[07:49:30] [INFO] [Player.Grenade] Timer started, grenade created at (450, 1250)
+[07:49:30] [INFO] [Player.Grenade.Anim] Phase changed to: PullPin (duration: 0,15s)
+[07:49:30] [INFO] [Player.Grenade] Step 1 complete! Drag: (499.70795, -4.0074463)
+[07:49:31] [INFO] [Player.Grenade.Anim] Phase changed to: HandsApproach (duration: 0,20s)
+[07:49:31] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[07:49:32] [INFO] [Player.Grenade] RMB released before G - back to waiting for RMB
+[07:49:33] [INFO] [Player.Grenade] G released - dropping grenade at feet
+[07:49:33] [INFO] [Player.Grenade] Grenade dropped at feet at (450, 1250) (unfrozen)
+[07:49:33] [INFO] [Player.Grenade.Anim] Phase changed to: ReturnIdle (duration: 0,30s)
+[07:49:33] [INFO] [Player.Grenade.Anim] Animation complete, returning to normal
+[07:49:34] [INFO] [GrenadeBase] EXPLODED at (450, 1250)!
+[07:49:34] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(450, 1250), source=NEUTRAL (FlashbangGrenade), range=2937, listeners=10
+[07:49:34] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=0, below_threshold=9
+[07:49:35] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[07:49:35] [INFO] [LastChance] Resetting all effects (scene change detected)
+[07:49:35] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[07:49:35] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[07:49:35] [INFO] [Player] Ready! Grenades: 1/3
+[07:49:35] [INFO] [ScoreManager] Level started with 10 enemies
+[07:49:35] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 11)
+[07:49:35] [ENEMY] [Enemy1] Registered as sound listener
+[07:49:35] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 4, behavior: GUARD, player_found: yes
+[07:49:35] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 12)
+[07:49:35] [ENEMY] [Enemy2] Registered as sound listener
+[07:49:35] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 3, behavior: GUARD, player_found: yes
+[07:49:35] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 13)
+[07:49:35] [ENEMY] [Enemy3] Registered as sound listener
+[07:49:35] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 3, behavior: GUARD, player_found: yes
+[07:49:35] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 14)
+[07:49:35] [ENEMY] [Enemy4] Registered as sound listener
+[07:49:35] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 2, behavior: GUARD, player_found: yes
+[07:49:35] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 15)
+[07:49:35] [ENEMY] [Enemy5] Registered as sound listener
+[07:49:35] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 2, behavior: GUARD, player_found: yes
+[07:49:35] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 16)
+[07:49:35] [ENEMY] [Enemy6] Registered as sound listener
+[07:49:35] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 4, behavior: GUARD, player_found: yes
+[07:49:35] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 17)
+[07:49:35] [ENEMY] [Enemy7] Registered as sound listener
+[07:49:35] [ENEMY] [Enemy7] Enemy spawned at (1600, 900), health: 3, behavior: PATROL, player_found: yes
+[07:49:35] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 18)
+[07:49:35] [ENEMY] [Enemy8] Registered as sound listener
+[07:49:35] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 2, behavior: GUARD, player_found: yes
+[07:49:35] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 19)
+[07:49:35] [ENEMY] [Enemy9] Registered as sound listener
+[07:49:35] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 3, behavior: GUARD, player_found: yes
+[07:49:35] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 20)
+[07:49:35] [ENEMY] [Enemy10] Registered as sound listener
+[07:49:35] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 3, behavior: PATROL, player_found: yes
+[07:49:35] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[07:49:35] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[07:49:35] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[07:49:35] [INFO] [LastChance] Found player: Player
+[07:49:35] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[07:49:35] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[07:49:35] [INFO] [LastChance] Connected to player Died signal (C#)
+[07:49:36] [INFO] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
+[07:49:36] [INFO] [Player.Grenade] G pressed - starting grab animation
+[07:49:37] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (442.2436, 891.3358)
+[07:49:37] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[07:49:37] [INFO] [GrenadeBase] Timer activated! 4.0 seconds until explosion
+[07:49:37] [INFO] [Player.Grenade] Timer started, grenade created at (450, 1250)
+[07:49:37] [INFO] [Player.Grenade.Anim] Phase changed to: PullPin (duration: 0,15s)
+[07:49:37] [INFO] [Player.Grenade] Step 1 complete! Drag: (356.08124, -1.3358154)
+[07:49:38] [INFO] [Player.Grenade.Anim] Phase changed to: HandsApproach (duration: 0,20s)
+[07:49:38] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[07:49:38] [INFO] [Player.Grenade.Anim] Phase changed to: Transfer (duration: 0,15s)
+[07:49:38] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming, drag and release RMB to throw
+[07:49:38] [INFO] [Player.Grenade.Anim] Phase changed to: WindUp (duration: 0,00s)
+[07:49:38] [INFO] [Player.Grenade.Anim] Entered wind-up phase
+[07:49:39] [INFO] [Player.Grenade.Anim] Phase changed to: Throw (duration: 0,20s)
+[07:49:39] [INFO] [Player.Grenade] Throwing! Direction: (-0.019544827, -0.999809), Drag distance: 205,08556
+[07:49:39] [INFO] [Player.Grenade] Player rotated for throw: 0 -> -1,5903424
+[07:49:39] [INFO] [GrenadeBase] Thrown! Direction: (-0.019545, -0.999809), Speed: 410.2 (unfrozen)
+[07:49:39] [INFO] [Player.Grenade] Thrown! Direction: (-0.019544827, -0.999809), Drag distance: 205,08556
+[07:49:40] [INFO] [Player.Grenade] Player rotation restored to 0
+[07:49:40] [INFO] [Player.Grenade.Anim] Phase changed to: ReturnIdle (duration: 0,30s)
+[07:49:40] [INFO] [Player.Grenade.Anim] Animation complete, returning to normal
+[07:49:40] [INFO] [GrenadeBase] Grenade landed at (446.1162, 1051.322)
+[07:49:41] [INFO] [GrenadeBase] EXPLODED at (446.0517, 1048.021)!
+[07:49:41] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(446.0517, 1048.021), source=NEUTRAL (FlashbangGrenade), range=2937, listeners=20
+[07:49:41] [INFO] [SoundPropagation] Cleaned up 10 invalid listeners
+[07:49:41] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0, below_threshold=8
+[07:49:43] [INFO] ------------------------------------------------------------
+[07:49:43] [INFO] GAME LOG ENDED: 2026-01-22T07:49:43
+[07:49:43] [INFO] ============================================================

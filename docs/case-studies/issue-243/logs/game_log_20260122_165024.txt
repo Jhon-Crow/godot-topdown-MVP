@@ -1,0 +1,400 @@
+[16:50:24] [INFO] ============================================================
+[16:50:24] [INFO] GAME LOG STARTED
+[16:50:24] [INFO] ============================================================
+[16:50:24] [INFO] Timestamp: 2026-01-22T16:50:24
+[16:50:24] [INFO] Log file: I:/Загрузки/godot exe/game_log_20260122_165024.txt
+[16:50:24] [INFO] Executable: I:/Загрузки/godot exe/Godot-Top-Down-Template.exe
+[16:50:24] [INFO] OS: Windows
+[16:50:24] [INFO] Debug build: false
+[16:50:24] [INFO] Engine version: 4.3-stable (official)
+[16:50:24] [INFO] Project: Godot Top-Down Template
+[16:50:24] [INFO] ------------------------------------------------------------
+[16:50:24] [INFO] [GameManager] GameManager ready
+[16:50:24] [INFO] [ScoreManager] ScoreManager ready
+[16:50:24] [INFO] [SoundPropagation] SoundPropagation autoload initialized
+[16:50:24] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[16:50:24] [INFO] [PenultimateHit] Saturation shader loaded successfully
+[16:50:24] [INFO] [PenultimateHit] PenultimateHitEffectsManager ready - Configuration:
+[16:50:24] [INFO] [PenultimateHit]   Time scale: 0.10 (10x slowdown)
+[16:50:24] [INFO] [PenultimateHit]   Saturation boost: 2.0 (3.0x)
+[16:50:24] [INFO] [PenultimateHit]   Contrast boost: 1.0 (2.0x)
+[16:50:24] [INFO] [PenultimateHit]   Effect duration: 3.0 real seconds
+[16:50:24] [INFO] [LastChance] Resetting all effects (scene change detected)
+[16:50:24] [INFO] [LastChance] Last chance shader loaded successfully
+[16:50:24] [INFO] [LastChance] LastChanceEffectsManager ready - Configuration:
+[16:50:24] [INFO] [LastChance]   Freeze duration: 6.0 real seconds
+[16:50:24] [INFO] [LastChance]   Sepia intensity: 0.70
+[16:50:24] [INFO] [LastChance]   Brightness: 0.60
+[16:50:24] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FlashbangGrenade.tscn
+[16:50:24] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FragGrenade.tscn
+[16:50:24] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[16:50:24] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[16:50:24] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[16:50:24] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[16:50:24] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[16:50:24] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[16:50:24] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 3/4
+[16:50:24] [INFO] [ScoreManager] Level started with 10 enemies
+[16:50:24] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 1)
+[16:50:24] [ENEMY] [Enemy1] Registered as sound listener
+[16:50:24] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 4, behavior: GUARD, player_found: yes
+[16:50:24] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 2)
+[16:50:24] [ENEMY] [Enemy2] Registered as sound listener
+[16:50:24] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 2, behavior: GUARD, player_found: yes
+[16:50:24] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 3)
+[16:50:24] [ENEMY] [Enemy3] Registered as sound listener
+[16:50:24] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 4, behavior: GUARD, player_found: yes
+[16:50:24] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 4)
+[16:50:24] [ENEMY] [Enemy4] Registered as sound listener
+[16:50:24] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 3, behavior: GUARD, player_found: yes
+[16:50:24] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 5)
+[16:50:24] [ENEMY] [Enemy5] Registered as sound listener
+[16:50:24] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 3, behavior: GUARD, player_found: yes
+[16:50:24] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 6)
+[16:50:24] [ENEMY] [Enemy6] Registered as sound listener
+[16:50:24] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 3, behavior: GUARD, player_found: yes
+[16:50:24] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 7)
+[16:50:24] [ENEMY] [Enemy7] Registered as sound listener
+[16:50:24] [ENEMY] [Enemy7] Enemy spawned at (1606.114, 893.8859), health: 2, behavior: PATROL, player_found: yes
+[16:50:24] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 8)
+[16:50:24] [ENEMY] [Enemy8] Registered as sound listener
+[16:50:24] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 4, behavior: GUARD, player_found: yes
+[16:50:24] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 9)
+[16:50:24] [ENEMY] [Enemy9] Registered as sound listener
+[16:50:24] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 4, behavior: GUARD, player_found: yes
+[16:50:24] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 10)
+[16:50:24] [ENEMY] [Enemy10] Registered as sound listener
+[16:50:24] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 3, behavior: PATROL, player_found: yes
+[16:50:24] [INFO] [Player] Detecting weapon pose (frame 3)...
+[16:50:24] [INFO] [Player] Detected weapon: Rifle (default pose)
+[16:50:24] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[16:50:24] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[16:50:24] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[16:50:24] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[16:50:24] [INFO] [LastChance] Found player: Player
+[16:50:24] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[16:50:24] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[16:50:24] [INFO] [LastChance] Connected to player Died signal (C#)
+[16:50:28] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[16:50:28] [INFO] [LastChance] Resetting all effects (scene change detected)
+[16:50:28] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[16:50:28] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+[16:50:28] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[16:50:28] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[16:50:28] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[16:50:28] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[16:50:28] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 3/3, Health: 4/4
+[16:50:28] [INFO] [Player] Detecting weapon pose (frame 3)...
+[16:50:28] [INFO] [Player] Detected weapon: Rifle (default pose)
+[16:50:28] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[16:50:28] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[16:50:28] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[16:50:28] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[16:50:28] [INFO] [LastChance] Found player: Player
+[16:50:28] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[16:50:28] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[16:50:28] [INFO] [LastChance] Connected to player Died signal (C#)
+[16:50:28] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[16:50:28] [INFO] [LastChance] Resetting all effects (scene change detected)
+[16:50:28] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[16:50:28] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+[16:50:28] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[16:50:28] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[16:50:28] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[16:50:28] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[16:50:28] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 3/3, Health: 4/4
+[16:50:28] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[16:50:28] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[16:50:28] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[16:50:28] [INFO] [LastChance] Found player: Player
+[16:50:28] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[16:50:28] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[16:50:28] [INFO] [LastChance] Connected to player Died signal (C#)
+[16:50:28] [INFO] [Player] Detecting weapon pose (frame 3)...
+[16:50:28] [INFO] [Player] Detected weapon: Rifle (default pose)
+[16:50:28] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[16:50:30] [INFO] [PauseMenu] Armory button pressed
+[16:50:30] [INFO] [PauseMenu] Creating new armory menu instance
+[16:50:30] [INFO] [PauseMenu] armory_menu_scene resource path: res://scenes/ui/ArmoryMenu.tscn
+[16:50:30] [INFO] [PauseMenu] Instance created, class: CanvasLayer, name: ArmoryMenu
+[16:50:30] [INFO] [PauseMenu] Script attached: res://scripts/ui/armory_menu.gd
+[16:50:30] [INFO] [PauseMenu] back_pressed signal exists on instance
+[16:50:30] [INFO] [PauseMenu] back_pressed signal connected
+[16:50:30] [INFO] [PauseMenu] Armory menu instance added as child, is_inside_tree: true
+[16:50:30] [INFO] [PauseMenu] _populate_weapon_grid method exists
+[16:50:31] [INFO] [GameManager] Weapon selected: shotgun
+[16:50:31] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[16:50:31] [INFO] [LastChance] Resetting all effects (scene change detected)
+[16:50:31] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[16:50:31] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+[16:50:31] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[16:50:31] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[16:50:31] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[16:50:31] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[16:50:31] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 3/3, Health: 4/4
+[16:50:31] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[16:50:31] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[16:50:31] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[16:50:31] [INFO] [LastChance] Found player: Player
+[16:50:31] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[16:50:31] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[16:50:31] [INFO] [LastChance] Connected to player Died signal (C#)
+[16:50:31] [INFO] [Player] Detecting weapon pose (frame 3)...
+[16:50:31] [INFO] [Player] Detected weapon: Shotgun (Shotgun pose)
+[16:50:31] [INFO] [Player] Applied Shotgun arm pose: Left=(21, 6), Right=(-1, 6)
+[16:50:33] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(496.6902, 191.2453), source=PLAYER (Shotgun), range=1469, listeners=10
+[16:50:33] [INFO] [SoundPropagation] Cleaned up 10 invalid listeners
+[16:50:33] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[16:50:34] [INFO] [Shotgun.FIX#243] RMB drag started - initial MMB state: False
+[16:50:34] [INFO] [Shotgun.FIX#243] RMB released - processing drag gesture (wasMMBDuringDrag=False)
+[16:50:34] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(496.6902, 191.2453), source=PLAYER (Shotgun), range=1469, listeners=0
+[16:50:34] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[16:50:35] [INFO] [Shotgun.FIX#243] RMB drag started - initial MMB state: False
+[16:50:35] [INFO] [Shotgun.FIX#243] RMB released - processing drag gesture (wasMMBDuringDrag=False)
+[16:50:35] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(496.6902, 191.2453), source=PLAYER (Shotgun), range=1469, listeners=0
+[16:50:35] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[16:50:36] [INFO] [Shotgun.FIX#243] RMB drag started - initial MMB state: False
+[16:50:36] [INFO] [Shotgun.FIX#243] RMB released - processing drag gesture (wasMMBDuringDrag=False)
+[16:50:36] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(496.6902, 191.2453), source=PLAYER (Shotgun), range=1469, listeners=0
+[16:50:36] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[16:50:37] [INFO] [Shotgun.FIX#243] RMB drag started - initial MMB state: False
+[16:50:37] [INFO] [Shotgun.FIX#243] RMB released - processing drag gesture (wasMMBDuringDrag=False)
+[16:50:38] [INFO] [Shotgun.FIX#243] RMB drag started - initial MMB state: True
+[16:50:39] [INFO] [Shotgun.FIX#243] RMB released - processing drag gesture (wasMMBDuringDrag=True)
+[16:50:39] [INFO] [Shotgun.FIX#243] RMB drag started - initial MMB state: True
+[16:50:39] [INFO] [Shotgun.FIX#243] RMB released - processing drag gesture (wasMMBDuringDrag=True)
+[16:50:40] [INFO] [Shotgun.FIX#243] RMB drag started - initial MMB state: False
+[16:50:40] [INFO] [Shotgun.FIX#243] RMB released - processing drag gesture (wasMMBDuringDrag=False)
+[16:50:43] [INFO] [Shotgun.FIX#243] RMB drag started - initial MMB state: False
+[16:50:44] [INFO] [Shotgun.FIX#243] RMB released - processing drag gesture (wasMMBDuringDrag=False)
+[16:50:44] [INFO] [Shotgun.FIX#243] RMB drag started - initial MMB state: False
+[16:50:44] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[16:50:44] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[16:50:44] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[16:50:44] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[16:50:44] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[16:50:44] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[16:50:44] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[16:50:44] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[16:50:44] [INFO] [Shotgun.FIX#243] RMB released - processing drag gesture (wasMMBDuringDrag=False)
+[16:50:44] [INFO] [Shotgun.FIX#243] RMB release in Loading state: wasMMBDuringDrag=False, isMMBHeld=False => shouldLoadShell=False
+[16:50:44] [INFO] [Shotgun.FIX#243] Closing bolt (MMB was not held)
+[16:50:45] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(626.7458, 191.2453), source=PLAYER (Shotgun), range=1469, listeners=0
+[16:50:45] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[16:50:45] [INFO] [Shotgun.FIX#243] RMB drag started - initial MMB state: False
+[16:50:46] [INFO] [Shotgun.FIX#243] RMB released - processing drag gesture (wasMMBDuringDrag=False)
+[16:50:46] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(626.7458, 191.2453), source=PLAYER (Shotgun), range=1469, listeners=0
+[16:50:46] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[16:50:47] [INFO] [Shotgun.FIX#243] RMB drag started - initial MMB state: False
+[16:50:48] [INFO] [Shotgun.FIX#243] RMB released - processing drag gesture (wasMMBDuringDrag=False)
+[16:50:49] [INFO] [Shotgun.FIX#243] RMB drag started - initial MMB state: True
+[16:50:49] [INFO] [Shotgun.FIX#243] RMB released - processing drag gesture (wasMMBDuringDrag=True)
+[16:50:50] [INFO] [Shotgun.FIX#243] RMB drag started - initial MMB state: False
+[16:50:50] [INFO] [Shotgun.FIX#243] RMB released - processing drag gesture (wasMMBDuringDrag=False)
+[16:50:51] [INFO] [Shotgun.FIX#243] RMB drag started - initial MMB state: True
+[16:50:51] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:51] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:51] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:51] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:51] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:51] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:51] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:51] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:51] [INFO] [Shotgun.FIX#243] RMB released - processing drag gesture (wasMMBDuringDrag=True)
+[16:50:51] [INFO] [Shotgun.FIX#243] RMB release in Loading state: wasMMBDuringDrag=True, isMMBHeld=True => shouldLoadShell=True
+[16:50:51] [INFO] [Shotgun.FIX#243] Loading shell (MMB was held during drag)
+[16:50:51] [INFO] [Shotgun.FIX#243] RMB drag started - initial MMB state: True
+[16:50:51] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:51] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:51] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:51] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:51] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:52] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:52] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:52] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:52] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:52] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:52] [INFO] [Shotgun.FIX#243] RMB released - processing drag gesture (wasMMBDuringDrag=True)
+[16:50:52] [INFO] [Shotgun.FIX#243] RMB release in Loading state: wasMMBDuringDrag=True, isMMBHeld=True => shouldLoadShell=True
+[16:50:52] [INFO] [Shotgun.FIX#243] Loading shell (MMB was held during drag)
+[16:50:52] [INFO] [Shotgun.FIX#243] RMB drag started - initial MMB state: True
+[16:50:52] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:52] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:52] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:52] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:52] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:52] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:52] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:52] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:52] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:52] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:52] [INFO] [Shotgun.FIX#243] RMB released - processing drag gesture (wasMMBDuringDrag=True)
+[16:50:52] [INFO] [Shotgun.FIX#243] RMB release in Loading state: wasMMBDuringDrag=True, isMMBHeld=True => shouldLoadShell=True
+[16:50:52] [INFO] [Shotgun.FIX#243] Loading shell (MMB was held during drag)
+[16:50:52] [INFO] [Shotgun.FIX#243] RMB drag started - initial MMB state: True
+[16:50:52] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:52] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:52] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:52] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:52] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:53] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:53] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:53] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:53] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:53] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:53] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:53] [INFO] [Shotgun.FIX#243] RMB released - processing drag gesture (wasMMBDuringDrag=True)
+[16:50:53] [INFO] [Shotgun.FIX#243] RMB release in Loading state: wasMMBDuringDrag=True, isMMBHeld=True => shouldLoadShell=True
+[16:50:53] [INFO] [Shotgun.FIX#243] Loading shell (MMB was held during drag)
+[16:50:53] [INFO] [Shotgun.FIX#243] RMB drag started - initial MMB state: True
+[16:50:53] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:53] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:53] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:53] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:53] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:53] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:53] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:53] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:53] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:53] [INFO] [Shotgun.FIX#243] RMB released - processing drag gesture (wasMMBDuringDrag=True)
+[16:50:53] [INFO] [Shotgun.FIX#243] RMB release in Loading state: wasMMBDuringDrag=True, isMMBHeld=True => shouldLoadShell=True
+[16:50:53] [INFO] [Shotgun.FIX#243] Loading shell (MMB was held during drag)
+[16:50:53] [INFO] [Shotgun.FIX#243] RMB drag started - initial MMB state: True
+[16:50:53] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:54] [INFO] [Shotgun.FIX#243] RMB released - processing drag gesture (wasMMBDuringDrag=True)
+[16:50:54] [INFO] [Shotgun.FIX#243] RMB release in Loading state: wasMMBDuringDrag=True, isMMBHeld=True => shouldLoadShell=True
+[16:50:54] [INFO] [Shotgun.FIX#243] Loading shell (MMB was held during drag)
+[16:50:54] [INFO] [Shotgun.FIX#243] RMB drag started - initial MMB state: True
+[16:50:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:54] [INFO] [Shotgun.FIX#243] RMB released - processing drag gesture (wasMMBDuringDrag=True)
+[16:50:54] [INFO] [Shotgun.FIX#243] RMB release in Loading state: wasMMBDuringDrag=True, isMMBHeld=True => shouldLoadShell=True
+[16:50:54] [INFO] [Shotgun.FIX#243] Loading shell (MMB was held during drag)
+[16:50:54] [INFO] [Shotgun.FIX#243] RMB drag started - initial MMB state: True
+[16:50:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:55] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:55] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:55] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:55] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:55] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:55] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:55] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:55] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:55] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:55] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:55] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:55] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:55] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:55] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:50:55] [INFO] [Shotgun.FIX#243] RMB released - processing drag gesture (wasMMBDuringDrag=True)
+[16:50:55] [INFO] [Shotgun.FIX#243] RMB release in Loading state: wasMMBDuringDrag=True, isMMBHeld=True => shouldLoadShell=True
+[16:50:55] [INFO] [Shotgun.FIX#243] Loading shell (MMB was held during drag)
+[16:50:55] [INFO] [Shotgun.FIX#243] RMB drag started - initial MMB state: False
+[16:50:55] [INFO] [Shotgun.FIX#243] RMB released - processing drag gesture (wasMMBDuringDrag=False)
+[16:50:56] [INFO] [Shotgun.FIX#243] RMB drag started - initial MMB state: False
+[16:50:56] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[16:50:56] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[16:50:56] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[16:50:56] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[16:50:56] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[16:50:56] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[16:50:56] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[16:50:56] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[16:50:56] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[16:50:56] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[16:50:56] [INFO] [Shotgun.FIX#243] RMB released - processing drag gesture (wasMMBDuringDrag=False)
+[16:50:56] [INFO] [Shotgun.FIX#243] RMB release in Loading state: wasMMBDuringDrag=False, isMMBHeld=False => shouldLoadShell=False
+[16:50:56] [INFO] [Shotgun.FIX#243] Closing bolt (MMB was not held)
+[16:50:57] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(626.7458, 191.2453), source=PLAYER (Shotgun), range=1469, listeners=0
+[16:50:57] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[16:50:57] [INFO] [Shotgun.FIX#243] RMB drag started - initial MMB state: False
+[16:50:58] [INFO] [Shotgun.FIX#243] RMB released - processing drag gesture (wasMMBDuringDrag=False)
+[16:50:58] [INFO] [Shotgun.FIX#243] RMB drag started - initial MMB state: False
+[16:50:58] [INFO] [Shotgun.FIX#243] RMB released - processing drag gesture (wasMMBDuringDrag=False)
+[16:51:00] [INFO] [Shotgun.FIX#243] RMB drag started - initial MMB state: False
+[16:51:01] [INFO] [Shotgun.FIX#243] RMB released - processing drag gesture (wasMMBDuringDrag=False)
+[16:51:01] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(626.7458, 191.2453), source=PLAYER (Shotgun), range=1469, listeners=0
+[16:51:01] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[16:51:02] [INFO] [Shotgun.FIX#243] RMB drag started - initial MMB state: False
+[16:51:03] [INFO] [Shotgun.FIX#243] RMB released - processing drag gesture (wasMMBDuringDrag=False)
+[16:51:03] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(626.7458, 191.2453), source=PLAYER (Shotgun), range=1469, listeners=0
+[16:51:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[16:51:04] [INFO] [Shotgun.FIX#243] RMB drag started - initial MMB state: False
+[16:51:04] [INFO] [Shotgun.FIX#243] RMB released - processing drag gesture (wasMMBDuringDrag=False)
+[16:51:05] [INFO] [Shotgun.FIX#243] RMB drag started - initial MMB state: True
+[16:51:05] [INFO] [Shotgun.FIX#243] RMB released - processing drag gesture (wasMMBDuringDrag=True)
+[16:51:05] [INFO] [Shotgun.FIX#243] RMB drag started - initial MMB state: True
+[16:51:06] [INFO] [Shotgun.FIX#243] RMB released - processing drag gesture (wasMMBDuringDrag=True)
+[16:51:06] [INFO] [Shotgun.FIX#243] RMB drag started - initial MMB state: False
+[16:51:06] [INFO] [Shotgun.FIX#243] RMB released - processing drag gesture (wasMMBDuringDrag=False)
+[16:51:06] [INFO] [Shotgun.FIX#243] RMB drag started - initial MMB state: True
+[16:51:07] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:51:07] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:51:07] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:51:07] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:51:07] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:51:07] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:51:07] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:51:07] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:51:07] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:51:07] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:51:07] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:51:07] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:51:07] [INFO] [Shotgun.FIX#243] RMB released - processing drag gesture (wasMMBDuringDrag=True)
+[16:51:07] [INFO] [Shotgun.FIX#243] RMB release in Loading state: wasMMBDuringDrag=True, isMMBHeld=True => shouldLoadShell=True
+[16:51:07] [INFO] [Shotgun.FIX#243] Loading shell (MMB was held during drag)
+[16:51:07] [INFO] [Shotgun.FIX#243] RMB drag started - initial MMB state: True
+[16:51:07] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:51:07] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:51:07] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:51:07] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:51:07] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:51:07] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:51:07] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:51:07] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:51:07] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:51:07] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:51:07] [INFO] [Shotgun.FIX#243] RMB released - processing drag gesture (wasMMBDuringDrag=True)
+[16:51:07] [INFO] [Shotgun.FIX#243] RMB release in Loading state: wasMMBDuringDrag=True, isMMBHeld=True => shouldLoadShell=True
+[16:51:07] [INFO] [Shotgun.FIX#243] Loading shell (MMB was held during drag)
+[16:51:07] [INFO] [Shotgun.FIX#243] RMB drag started - initial MMB state: True
+[16:51:07] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:51:07] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:51:07] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:51:07] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:51:07] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:51:07] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:51:07] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:51:07] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:51:07] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:51:07] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:51:08] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:51:08] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[16:51:08] [INFO] [Shotgun.FIX#243] RMB released - processing drag gesture (wasMMBDuringDrag=True)
+[16:51:08] [INFO] [Shotgun.FIX#243] RMB release in Loading state: wasMMBDuringDrag=True, isMMBHeld=False => shouldLoadShell=True
+[16:51:08] [INFO] [Shotgun.FIX#243] Loading shell (MMB was held during drag)
+[16:51:09] [INFO] ------------------------------------------------------------
+[16:51:09] [INFO] GAME LOG ENDED: 2026-01-22T16:51:09
+[16:51:09] [INFO] ============================================================
