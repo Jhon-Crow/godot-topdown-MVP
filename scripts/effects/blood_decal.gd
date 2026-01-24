@@ -2,7 +2,8 @@ extends Sprite2D
 ## Persistent blood decal (stain) that remains on the floor.
 ##
 ## Blood decals slowly fade over time and can be configured
-## to disappear after a set duration.
+## to disappear after a set duration. Blood also gradually darkens
+## to simulate drying/oxidation (fresh red to dried brown).
 
 ## Time in seconds before the decal starts fading.
 @export var fade_delay: float = 30.0
@@ -11,7 +12,23 @@ extends Sprite2D
 @export var fade_duration: float = 5.0
 
 ## Whether the decal should fade out over time.
-@export var auto_fade: bool = true
+## Disabled by default per issue #293 - puddles should never disappear.
+@export var auto_fade: bool = false
+
+## Whether blood should gradually darken over time (drying effect).
+## Disabled by default per issue #293 round 7 - blood should be dark immediately.
+@export var color_aging: bool = false
+
+## Time in seconds for blood to fully transition from fresh to dried color.
+@export var aging_duration: float = 60.0
+
+## Fresh blood color tint (applied via modulate).
+## Per issue #293 round 7: blood should always be dark, no bright colors.
+const FRESH_BLOOD_TINT := Color(0.8, 0.7, 0.7, 0.95)
+
+## Dried blood color tint (darker, more brown).
+## This is now the default starting color since color_aging is disabled.
+const DRIED_BLOOD_TINT := Color(0.8, 0.7, 0.7, 0.95)
 
 ## Initial alpha value.
 var _initial_alpha: float = 0.85
@@ -20,8 +37,27 @@ var _initial_alpha: float = 0.85
 func _ready() -> void:
 	_initial_alpha = modulate.a
 
+	# Start with fresh blood color
+	if color_aging:
+		modulate = FRESH_BLOOD_TINT
+		_start_color_aging()
+
 	if auto_fade:
 		_start_fade_timer()
+
+
+## Starts gradual color transition from fresh to dried blood.
+func _start_color_aging() -> void:
+	var tree := get_tree()
+	if tree == null:
+		return
+
+	var tween := create_tween()
+	if tween == null:
+		return
+
+	# Gradual transition from fresh red to dried brown over aging_duration
+	tween.tween_property(self, "modulate", DRIED_BLOOD_TINT, aging_duration)
 
 
 ## Starts the timer for automatic fade-out.
