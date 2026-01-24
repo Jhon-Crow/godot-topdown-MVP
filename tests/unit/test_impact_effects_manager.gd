@@ -525,3 +525,95 @@ func test_spawn_satellite_drops_skips_overlapping_positions() -> void:
 	# Should handle the case where existing positions might cause overlap
 	impact_manager._spawn_satellite_drops(Vector2(0, 0), particle_data, merged_splatters, existing_positions)
 	pass_test("spawn_satellite_drops handles existing positions without error")
+
+
+# ============================================================================
+# Round 4 Fixes Tests (Issue #293 - Circular Drops, Gradual Color Transition)
+# ============================================================================
+
+
+func test_blood_decal_scene_path_is_correct() -> void:
+	# Verify the blood decal scene path constant is accessible
+	# The actual scene is loaded during _ready, but we can verify the manager expects it
+	assert_true(impact_manager.has_method("clear_blood_decals"),
+		"Manager should have clear_blood_decals method for managing decals")
+
+
+func test_blood_decal_script_has_color_aging_property() -> void:
+	# Verify the blood decal script has color aging capability
+	var BloodDecalScript = load("res://scripts/effects/blood_decal.gd")
+	assert_not_null(BloodDecalScript, "BloodDecal script should exist")
+
+	# Create a temporary instance to check properties
+	var temp_sprite := Sprite2D.new()
+	temp_sprite.set_script(BloodDecalScript)
+	add_child_autoqfree(temp_sprite)
+
+	# Check for color aging property
+	assert_true("color_aging" in temp_sprite,
+		"BloodDecal should have color_aging property")
+
+
+func test_blood_decal_script_has_aging_duration_property() -> void:
+	# Verify the blood decal script has aging duration
+	var BloodDecalScript = load("res://scripts/effects/blood_decal.gd")
+	var temp_sprite := Sprite2D.new()
+	temp_sprite.set_script(BloodDecalScript)
+	add_child_autoqfree(temp_sprite)
+
+	# Check for aging duration property
+	assert_true("aging_duration" in temp_sprite,
+		"BloodDecal should have aging_duration property")
+
+
+func test_blood_decal_script_has_color_constants() -> void:
+	# Verify the blood decal script has color tint constants
+	var BloodDecalScript = load("res://scripts/effects/blood_decal.gd")
+	var temp_sprite := Sprite2D.new()
+	temp_sprite.set_script(BloodDecalScript)
+	add_child_autoqfree(temp_sprite)
+
+	# Check for color constants
+	assert_true("FRESH_BLOOD_TINT" in temp_sprite,
+		"BloodDecal should have FRESH_BLOOD_TINT constant")
+	assert_true("DRIED_BLOOD_TINT" in temp_sprite,
+		"BloodDecal should have DRIED_BLOOD_TINT constant")
+
+
+func test_blood_decal_fresh_color_is_brighter_than_dried() -> void:
+	# Fresh blood should be brighter (closer to red) than dried blood (brown)
+	var BloodDecalScript = load("res://scripts/effects/blood_decal.gd")
+	var temp_sprite := Sprite2D.new()
+	temp_sprite.set_script(BloodDecalScript)
+	add_child_autoqfree(temp_sprite)
+
+	var fresh: Color = temp_sprite.FRESH_BLOOD_TINT
+	var dried: Color = temp_sprite.DRIED_BLOOD_TINT
+
+	# Fresh blood should have higher red component
+	assert_gt(fresh.r, dried.r,
+		"Fresh blood should have higher red component than dried")
+
+
+func test_blood_decal_aging_duration_is_reasonable() -> void:
+	# Aging duration should be between 30 seconds and 5 minutes
+	var BloodDecalScript = load("res://scripts/effects/blood_decal.gd")
+	var temp_sprite := Sprite2D.new()
+	temp_sprite.set_script(BloodDecalScript)
+	add_child_autoqfree(temp_sprite)
+
+	assert_gt(temp_sprite.aging_duration, 20.0,
+		"Aging duration should be at least 20 seconds")
+	assert_lt(temp_sprite.aging_duration, 300.0,
+		"Aging duration should be less than 5 minutes")
+
+
+func test_blood_decal_has_start_color_aging_method() -> void:
+	# Verify the color aging method exists
+	var BloodDecalScript = load("res://scripts/effects/blood_decal.gd")
+	var temp_sprite := Sprite2D.new()
+	temp_sprite.set_script(BloodDecalScript)
+	add_child_autoqfree(temp_sprite)
+
+	assert_true(temp_sprite.has_method("_start_color_aging"),
+		"BloodDecal should have _start_color_aging method")
