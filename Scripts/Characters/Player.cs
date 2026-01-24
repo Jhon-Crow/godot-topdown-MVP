@@ -1856,10 +1856,17 @@ public partial class Player : BaseCharacter
         }
 
         // Create grenade instance (held by player)
-        _activeGrenade = GrenadeScene.Instantiate<RigidBody2D>();
+        // Use Node.Instantiate() without type parameter to preserve GDScript type information
+        // This allows HasMethod() to correctly detect GDScript methods like throw_grenade_velocity_based()
+        var grenadeNode = GrenadeScene.Instantiate();
+        _activeGrenade = grenadeNode as RigidBody2D;
         if (_activeGrenade == null)
         {
-            LogToFile("[Player.Grenade] Failed to instantiate grenade scene");
+            LogToFile("[Player.Grenade] Failed to instantiate grenade scene or cast to RigidBody2D");
+            if (grenadeNode != null)
+            {
+                grenadeNode.QueueFree();
+            }
             return;
         }
 
@@ -2074,12 +2081,14 @@ public partial class Player : BaseCharacter
         // Emit signal
         EmitSignal(SignalName.GrenadeThrown);
 
-        // Play grenade throw sound
-        var audioManager = GetNodeOrNull("/root/AudioManager");
-        if (audioManager != null && audioManager.HasMethod("play_grenade_throw"))
-        {
-            audioManager.Call("play_grenade_throw", GlobalPosition);
-        }
+        // NOTE: Grenade throw sound (pin pull / activation) is played by grenade_base.gd
+        // in activate_timer() when the timer starts (not when thrown).
+        // There is no dedicated "throw" sound effect in the game.
+        // The sounds during grenade lifecycle are:
+        // 1. Activation (pin pull) - when timer starts
+        // 2. Wall collision - when hitting obstacles
+        // 3. Landing - when coming to rest
+        // 4. Explosion - when detonating
 
         LogToFile($"[Player.Grenade] Thrown! Velocity: {velocityMagnitude:F1}, Swing: {_totalSwingDistance:F1}");
 
