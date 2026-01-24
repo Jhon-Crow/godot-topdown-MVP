@@ -245,3 +245,135 @@ func test_on_tree_changed_method_exists() -> void:
 	# The scene change handler should exist for clearing stale references
 	assert_true(impact_manager.has_method("_on_tree_changed"),
 		"Manager should have _on_tree_changed method for scene change handling")
+
+
+# ============================================================================
+# Blood Decal Merging and Directional Deformation Tests (Issue #293)
+# ============================================================================
+
+
+func test_decal_merge_distance_constant_exists() -> void:
+	# Verify the constant for decal merge distance exists
+	assert_true("DECAL_MERGE_DISTANCE" in impact_manager,
+		"Manager should have DECAL_MERGE_DISTANCE constant")
+
+
+func test_max_merged_splatters_constant_exists() -> void:
+	# Verify the constant for maximum merged splatters exists
+	assert_true("MAX_MERGED_SPLATTERS" in impact_manager,
+		"Manager should have MAX_MERGED_SPLATTERS constant")
+
+
+func test_cluster_drops_into_splatters_method_exists() -> void:
+	# The method for clustering nearby drops should exist
+	assert_true(impact_manager.has_method("_cluster_drops_into_splatters"),
+		"Manager should have _cluster_drops_into_splatters method")
+
+
+func test_schedule_delayed_decal_directional_method_exists() -> void:
+	# The directional decal spawning method should exist
+	assert_true(impact_manager.has_method("_schedule_delayed_decal_directional"),
+		"Manager should have _schedule_delayed_decal_directional method")
+
+
+func test_cluster_drops_empty_array_returns_empty() -> void:
+	# Empty input should return empty array
+	var result: Array = impact_manager._cluster_drops_into_splatters([])
+	assert_eq(result.size(), 0, "Empty input should return empty array")
+
+
+func test_cluster_drops_single_particle_not_merged() -> void:
+	# Single particle should not create a merged splatter
+	var particle_data: Array = [{
+		"position": Vector2(100, 100),
+		"velocity": Vector2(50, 0),
+		"land_time": 0.5,
+		"merged": false
+	}]
+	var result: Array = impact_manager._cluster_drops_into_splatters(particle_data)
+	assert_eq(result.size(), 0, "Single particle should not create merged splatter")
+	assert_false(particle_data[0]["merged"], "Single particle should not be marked as merged")
+
+
+func test_cluster_drops_nearby_particles_merge() -> void:
+	# Two particles close together should merge
+	var particle_data: Array = [
+		{
+			"position": Vector2(100, 100),
+			"velocity": Vector2(50, 0),
+			"land_time": 0.5,
+			"merged": false
+		},
+		{
+			"position": Vector2(105, 100),  # Within DECAL_MERGE_DISTANCE (12.0)
+			"velocity": Vector2(60, 0),
+			"land_time": 0.4,
+			"merged": false
+		}
+	]
+	var result: Array = impact_manager._cluster_drops_into_splatters(particle_data)
+	assert_eq(result.size(), 1, "Two nearby particles should create one merged splatter")
+	assert_eq(result[0]["count"], 2, "Merged splatter should contain 2 drops")
+
+
+func test_cluster_drops_distant_particles_not_merged() -> void:
+	# Two particles far apart should not merge
+	var particle_data: Array = [
+		{
+			"position": Vector2(100, 100),
+			"velocity": Vector2(50, 0),
+			"land_time": 0.5,
+			"merged": false
+		},
+		{
+			"position": Vector2(200, 100),  # Far beyond DECAL_MERGE_DISTANCE
+			"velocity": Vector2(60, 0),
+			"land_time": 0.4,
+			"merged": false
+		}
+	]
+	var result: Array = impact_manager._cluster_drops_into_splatters(particle_data)
+	assert_eq(result.size(), 0, "Distant particles should not create merged splatter")
+
+
+func test_cluster_drops_calculates_center_position() -> void:
+	# Verify center position is calculated as average
+	var particle_data: Array = [
+		{
+			"position": Vector2(100, 100),
+			"velocity": Vector2(50, 0),
+			"land_time": 0.5,
+			"merged": false
+		},
+		{
+			"position": Vector2(110, 100),
+			"velocity": Vector2(60, 0),
+			"land_time": 0.4,
+			"merged": false
+		}
+	]
+	var result: Array = impact_manager._cluster_drops_into_splatters(particle_data)
+	assert_eq(result.size(), 1, "Should create one merged splatter")
+	# Center should be average: (100+110)/2 = 105, (100+100)/2 = 100
+	assert_eq(result[0]["center"], Vector2(105, 100), "Center should be average of positions")
+
+
+func test_cluster_drops_uses_earliest_land_time() -> void:
+	# Verify earliest land time is used for merged splatter
+	var particle_data: Array = [
+		{
+			"position": Vector2(100, 100),
+			"velocity": Vector2(50, 0),
+			"land_time": 0.6,
+			"merged": false
+		},
+		{
+			"position": Vector2(108, 100),
+			"velocity": Vector2(60, 0),
+			"land_time": 0.3,
+			"merged": false
+		}
+	]
+	var result: Array = impact_manager._cluster_drops_into_splatters(particle_data)
+	assert_eq(result.size(), 1, "Should create one merged splatter")
+	assert_eq(result[0]["earliest_land_time"], 0.3, "Should use earliest land time")

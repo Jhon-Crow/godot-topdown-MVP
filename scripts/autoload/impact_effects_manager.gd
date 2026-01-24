@@ -26,7 +26,13 @@ const MIN_EFFECT_SCALE: float = 0.3
 const MAX_EFFECT_SCALE: float = 2.0
 
 ## Maximum number of blood decals before oldest ones are removed.
-const MAX_BLOOD_DECALS: int = 100
+const MAX_BLOOD_DECALS: int = 500
+
+## Minimum distance between decals before they start merging (in pixels).
+const DECAL_MERGE_DISTANCE: float = 12.0
+
+## Maximum number of merged decals (splatters) to create from nearby drops.
+const MAX_MERGED_SPLATTERS: int = 10
 
 ## Maximum distance to check for walls for blood splatters (in pixels).
 const WALL_SPLATTER_CHECK_DISTANCE: float = 100.0
@@ -250,9 +256,9 @@ func spawn_blood_effect(position: Vector2, hit_direction: Vector2, caliber_data:
 	# Start emitting
 	effect.emitting = true
 
-	# Spawn many small blood decals that simulate where particles land
-	# Number of decals based on hit intensity and lethality
-	var num_decals := 8 if is_lethal else 4
+	# Spawn blood decals matching the particle count from the effect
+	# This creates as many floor drops as visible particles in the spray
+	var num_decals := effect.amount if is_lethal else int(effect.amount * 0.5)
 	_spawn_blood_decals_at_particle_landing(position, hit_direction, effect, num_decals)
 
 	# Check for nearby walls and spawn wall splatters
@@ -368,11 +374,13 @@ func _spawn_blood_decals_at_particle_landing(origin: Vector2, hit_direction: Vec
 ## Internal helper to spawn decals with given physics parameters.
 ## Checks for wall collisions to prevent decals from appearing through walls.
 ## Decals are spawned with a delay matching when particles would "land".
+## Nearby drops are merged into unified splatters, and drops are elongated based on velocity.
 func _spawn_decals_with_params(origin: Vector2, hit_direction: Vector2, initial_velocity_min: float, initial_velocity_max: float, gravity: Vector2, spread_angle: float, lifetime: float, count: int) -> void:
 	# Base direction (effect rotation is in the hit direction)
 	var base_angle: float = hit_direction.angle()
 
-	var decals_scheduled := 0
+	# First pass: collect all particle landing data for clustering
+	var particle_data: Array = []
 	for i in range(count):
 		# Simulate a random particle trajectory
 		# Random angle within spread range
@@ -389,20 +397,197 @@ func _spawn_decals_with_params(origin: Vector2, hit_direction: Vector2, initial_
 		# Calculate landing position using physics: pos = origin + v*t + 0.5*g*t^2
 		var landing_pos: Vector2 = origin + velocity * land_time + 0.5 * gravity * land_time * land_time
 
-		# Random rotation and scale for variety
-		var decal_rotation: float = randf() * TAU
-		var decal_scale: float = randf_range(0.8, 1.5)
+		particle_data.append({
+			"position": landing_pos,
+			"velocity": velocity,
+			"land_time": land_time,
+			"merged": false
+		})
 
-		# Schedule decal to spawn after land_time (when particle would land)
-		_schedule_delayed_decal(origin, landing_pos, decal_rotation, decal_scale, land_time)
+	# Second pass: cluster nearby drops into merged splatters
+	var merged_splatters: Array = _cluster_drops_into_splatters(particle_data)
+
+	# Third pass: spawn individual drops with directional elongation and merged splatters
+	var decals_scheduled := 0
+
+	# Spawn merged splatters (larger combined drops)
+	for splatter in merged_splatters:
+		var center_pos: Vector2 = splatter["center"]
+		var avg_velocity: Vector2 = splatter["avg_velocity"]
+		var drop_count: int = splatter["count"]
+		var earliest_land_time: float = splatter["earliest_land_time"]
+
+		# Calculate directional elongation based on velocity
+		var speed: float = avg_velocity.length()
+		# Elongation factor: faster drops are more elongated (splashed)
+		var elongation: float = clampf(1.0 + speed / 300.0, 1.0, 3.0)
+
+		# Rotation aligned with velocity direction for splash effect
+		var decal_rotation: float = avg_velocity.angle() if speed > 10.0 else randf() * TAU
+
+		# Scale based on number of merged drops (more drops = larger splatter)
+		var base_scale: float = 0.8 + (drop_count * 0.15)
+		var decal_scale_x: float = base_scale * elongation
+		var decal_scale_y: float = base_scale
+
+		_schedule_delayed_decal_directional(origin, center_pos, decal_rotation, decal_scale_x, decal_scale_y, earliest_land_time)
 		decals_scheduled += 1
 
-	_log_info("Blood decals scheduled: %d to spawn at particle landing times" % [decals_scheduled])
+	# Spawn remaining individual drops with directional elongation
+	for particle in particle_data:
+		if particle["merged"]:
+			continue  # Already part of a merged splatter
+
+		var landing_pos: Vector2 = particle["position"]
+		var velocity: Vector2 = particle["velocity"]
+		var land_time: float = particle["land_time"]
+
+		# Calculate directional elongation based on velocity
+		var speed: float = velocity.length()
+		# Elongation factor: faster drops are more elongated (splashed)
+		var elongation: float = clampf(1.0 + speed / 400.0, 1.0, 2.5)
+
+		# Rotation aligned with velocity direction for splash effect
+		var decal_rotation: float = velocity.angle() if speed > 10.0 else randf() * TAU
+
+		# Random scale with elongation applied
+		var base_scale: float = randf_range(0.6, 1.2)
+		var decal_scale_x: float = base_scale * elongation
+		var decal_scale_y: float = base_scale
+
+		_schedule_delayed_decal_directional(origin, landing_pos, decal_rotation, decal_scale_x, decal_scale_y, land_time)
+		decals_scheduled += 1
+
+	_log_info("Blood decals scheduled: %d (%d merged splatters)" % [decals_scheduled, merged_splatters.size()])
 	if _debug_effects:
-		print("[ImpactEffectsManager] Blood decals scheduled: ", decals_scheduled)
+		print("[ImpactEffectsManager] Blood decals scheduled: ", decals_scheduled, " (", merged_splatters.size(), " merged)")
+
+
+## Clusters nearby drops into merged splatters.
+## Returns an array of splatter data: {center, avg_velocity, count, earliest_land_time}
+func _cluster_drops_into_splatters(particle_data: Array) -> Array:
+	var splatters: Array = []
+
+	for i in range(particle_data.size()):
+		if particle_data[i]["merged"]:
+			continue
+
+		var cluster_positions: Array = [particle_data[i]["position"]]
+		var cluster_velocities: Array = [particle_data[i]["velocity"]]
+		var cluster_land_times: Array = [particle_data[i]["land_time"]]
+		particle_data[i]["merged"] = true
+
+		# Find all nearby drops within merge distance
+		for j in range(i + 1, particle_data.size()):
+			if particle_data[j]["merged"]:
+				continue
+
+			var dist: float = particle_data[i]["position"].distance_to(particle_data[j]["position"])
+			if dist < DECAL_MERGE_DISTANCE:
+				cluster_positions.append(particle_data[j]["position"])
+				cluster_velocities.append(particle_data[j]["velocity"])
+				cluster_land_times.append(particle_data[j]["land_time"])
+				particle_data[j]["merged"] = true
+
+		# Only create merged splatter if we have multiple drops
+		if cluster_positions.size() >= 2:
+			# Calculate center position (average of all clustered drops)
+			var center := Vector2.ZERO
+			for pos in cluster_positions:
+				center += pos
+			center /= cluster_positions.size()
+
+			# Calculate average velocity for directional elongation
+			var avg_velocity := Vector2.ZERO
+			for vel in cluster_velocities:
+				avg_velocity += vel
+			avg_velocity /= cluster_velocities.size()
+
+			# Use earliest land time for the merged splatter
+			var earliest_time: float = cluster_land_times[0]
+			for t in cluster_land_times:
+				if t < earliest_time:
+					earliest_time = t
+
+			splatters.append({
+				"center": center,
+				"avg_velocity": avg_velocity,
+				"count": cluster_positions.size(),
+				"earliest_land_time": earliest_time
+			})
+
+			# Limit number of merged splatters
+			if splatters.size() >= MAX_MERGED_SPLATTERS:
+				break
+		else:
+			# Single drop, mark as not merged so it spawns individually
+			particle_data[i]["merged"] = false
+
+	return splatters
+
+
+## Schedules a single blood decal with directional scaling (elongation) to spawn after a delay.
+func _schedule_delayed_decal_directional(origin: Vector2, landing_pos: Vector2, decal_rotation: float, scale_x: float, scale_y: float, delay: float) -> void:
+	# Use a timer to delay the spawn
+	var tree := get_tree()
+	if tree == null:
+		return
+
+	await tree.create_timer(delay).timeout
+
+	# Check if we're still valid after await (scene might have changed)
+	if not is_instance_valid(self):
+		return
+
+	if _blood_decal_scene == null:
+		return
+
+	# Get the current scene for raycasting at spawn time
+	var scene := get_tree().current_scene
+	if scene == null:
+		return
+
+	var space_state: PhysicsDirectSpaceState2D = scene.get_world_2d().direct_space_state
+	if space_state == null:
+		return
+
+	# Check if there's a wall between origin and landing position
+	var query := PhysicsRayQueryParameters2D.create(origin, landing_pos, WALL_COLLISION_LAYER)
+	query.collide_with_bodies = true
+	query.collide_with_areas = false
+	var result: Dictionary = space_state.intersect_ray(query)
+	if not result.is_empty():
+		# Wall detected between origin and landing - skip this decal
+		return
+
+	# Create the decal
+	var decal := _blood_decal_scene.instantiate() as Node2D
+	if decal == null:
+		return
+
+	decal.global_position = landing_pos
+	decal.rotation = decal_rotation
+	# Apply directional scaling (elongation based on velocity direction)
+	decal.scale = Vector2(scale_x, scale_y)
+
+	# Add to scene
+	_add_effect_to_scene(decal)
+
+	# Track decal for cleanup
+	_blood_decals.append(decal)
+
+	# Remove oldest decals if limit exceeded
+	while _blood_decals.size() > MAX_BLOOD_DECALS:
+		var oldest := _blood_decals.pop_front() as Node2D
+		if oldest and is_instance_valid(oldest):
+			oldest.queue_free()
+
+	if _debug_effects:
+		print("[ImpactEffectsManager] Directional blood decal spawned at ", landing_pos, " scale=", Vector2(scale_x, scale_y))
 
 
 ## Schedules a single blood decal to spawn after a delay, checking for wall collisions at spawn time.
+## @deprecated Use _schedule_delayed_decal_directional for new code.
 func _schedule_delayed_decal(origin: Vector2, landing_pos: Vector2, decal_rotation: float, decal_scale: float, delay: float) -> void:
 	# Use a timer to delay the spawn
 	var tree := get_tree()
