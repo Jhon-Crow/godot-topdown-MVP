@@ -5,7 +5,7 @@
 [ext_resource type="PackedScene" uid="uid://dx3k7pm5t2auc" path="res://scenes/objects/csharp/Target.tscn" id="3_target"]
 [ext_resource type="PackedScene" uid="uid://dxqmk8f3nw5pe" path="res://scenes/ui/PauseMenu.tscn" id="4_pause_menu"]
 [ext_resource type="PackedScene" uid="uid://dg4k8pm5t2bvc" path="res://scenes/objects/GrenadeTarget.tscn" id="5_grenade_target"]
-[ext_resource type="PackedScene" uid="uid://dx5m8np6u3bwe" path="res://scenes/objects/csharp/Enemy.tscn" id="6_enemy"]
+[ext_resource type="PackedScene" uid="uid://cx5m8np6u3bwd" path="res://scenes/objects/Enemy.tscn" id="6_enemy"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_wall_horizontal"]
 size = Vector2(1800, 32)
