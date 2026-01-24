@@ -316,8 +316,7 @@ const COMBAT_APPROACH_MAX_TIME: float = 2.0
 ## Distance at which enemy is considered "close enough" to start shooting phase.
 const COMBAT_DIRECT_CONTACT_DISTANCE: float = 250.0
 
-## Minimum time in COMBAT state before allowing transition to PURSUING due to lost line of sight.
-## This prevents rapid state thrashing when visibility flickers at edges of walls/obstacles.
+## Min COMBAT time before PURSUING (prevents thrashing at wall edges).
 const COMBAT_MIN_DURATION_BEFORE_PURSUE: float = 0.5
 
 ## --- Pursuit State (cover-to-cover movement) ---
@@ -443,6 +442,8 @@ var _search_legs_completed: int = 0  ## Legs completed in pattern
 const SEARCH_WAYPOINT_REACHED_DISTANCE: float = 20.0  ## Waypoint reached threshold
 var _search_moving_to_waypoint: bool = true  ## Moving (vs scanning)
 const SEARCH_WAYPOINT_SPACING: float = 75.0  ## Spacing between waypoints
+var _search_visited_zones: Dictionary = {}  ## Tracks visited positions (key=snapped pos, val=true)
+const SEARCH_ZONE_SNAP_SIZE: float = 50.0  ## Grid size for snapping positions to zones
 
 ## Distance threshold for "close" vs "far" from player.
 ## Used to determine if enemy can engage from current position or needs to pursue.
@@ -516,7 +517,7 @@ const INTEL_SHARE_RANGE_NO_LOS: float = 300.0
 var _intel_share_timer: float = 0.0
 const INTEL_SHARE_INTERVAL: float = 0.5  ## Share intel every 0.5 seconds
 
-## Timer for memory reset confusion effect (Issue #318). Blocks visibility and sounds after teleport.
+## Memory reset confusion timer (Issue #318): blocks visibility after teleport.
 var _memory_reset_confusion_timer: float = 0.0
 const MEMORY_RESET_CONFUSION_DURATION: float = 2.0  ## Extended to 2s for better player escape window
 
@@ -1482,9 +1483,7 @@ func _process_idle_state(delta: float) -> void:
 		BehaviorMode.GUARD:
 			_process_guard(delta)
 
-## Process COMBAT state - approach player for direct contact, shoot for 2-3 seconds, return to cover.
-## Implements the combat cycling behavior: exit cover -> exposed shooting -> return to cover.
-## Phase 0 (seeking clear shot): If bullet spawn blocked, move out from cover to find clear shot.
+## Process COMBAT state - combat cycle: exit cover -> exposed shooting -> return to cover.
 ## Phase 1 (approaching): Move toward player to get into direct contact range.
 ## Phase 2 (exposed): Stand and shoot for 2-3 seconds.
 ## Phase 3: Return to cover via SEEKING_COVER state.
@@ -2322,19 +2321,20 @@ func _process_assault_state(_delta: float) -> void:
 	_assault_ready = false
 	_transition_to_combat()
 
-
-## Generate search waypoints in expanding square spiral pattern (Issue #322).
+## Generate search waypoints in expanding square spiral (Issue #322). Skips visited zones.
 func _generate_search_waypoints() -> void:
 	_search_waypoints.clear()
 	_search_current_waypoint_index = 0
 	_search_direction = 0
 	_search_leg_length = SEARCH_WAYPOINT_SPACING
 	_search_legs_completed = 0
-	_search_waypoints.append(_search_center)
+	if not _is_zone_visited(_search_center):
+		_search_waypoints.append(_search_center)
 	var current_pos := _search_center
-	var waypoints_generated := 1
-	var max_waypoints := 16
-	while waypoints_generated < max_waypoints and _search_leg_length <= _search_radius * 2:
+	var waypoints_generated := _search_waypoints.size()
+	var iters := 0
+	while waypoints_generated < 20 and _search_leg_length <= _search_radius * 2 and iters < 100:
+		iters += 1
 		var offset := Vector2.ZERO
 		match _search_direction:
 			0: offset = Vector2(0, -_search_leg_length)
@@ -2342,18 +2342,15 @@ func _generate_search_waypoints() -> void:
 			2: offset = Vector2(0, _search_leg_length)
 			3: offset = Vector2(-_search_leg_length, 0)
 		var next_pos := current_pos + offset
-		if _is_waypoint_navigable(next_pos):
+		if _is_waypoint_navigable(next_pos) and not _is_zone_visited(next_pos):
 			_search_waypoints.append(next_pos)
 			waypoints_generated += 1
-			current_pos = next_pos
-		else:
-			current_pos = next_pos
+		current_pos = next_pos
 		_search_legs_completed += 1
 		_search_direction = (_search_direction + 1) % 4
 		if _search_legs_completed % 2 == 0:
 			_search_leg_length += SEARCH_WAYPOINT_SPACING
-	_log_debug("Generated %d search waypoints within radius %.0f" % [_search_waypoints.size(), _search_radius])
-
+	_log_debug("Generated %d unvisited waypoints (radius=%.0f, visited=%d)" % [_search_waypoints.size(), _search_radius, _search_visited_zones.size()])
 
 ## Check if position is navigable via NavigationServer2D.
 func _is_waypoint_navigable(pos: Vector2) -> bool:
@@ -2361,6 +2358,20 @@ func _is_waypoint_navigable(pos: Vector2) -> bool:
 	var closest := NavigationServer2D.map_get_closest_point(nav_map, pos)
 	return pos.distance_to(closest) < 50.0
 
+## Zone tracking for visited areas (Issue #322): snaps position to grid for consistent identification.
+func _get_zone_key(pos: Vector2) -> String:
+	var sx := int(pos.x / SEARCH_ZONE_SNAP_SIZE) * int(SEARCH_ZONE_SNAP_SIZE)
+	var sy := int(pos.y / SEARCH_ZONE_SNAP_SIZE) * int(SEARCH_ZONE_SNAP_SIZE)
+	return "%d,%d" % [sx, sy]
+
+func _is_zone_visited(pos: Vector2) -> bool:
+	return _search_visited_zones.has(_get_zone_key(pos))
+
+func _mark_zone_visited(pos: Vector2) -> void:
+	var key := _get_zone_key(pos)
+	if not _search_visited_zones.has(key):
+		_search_visited_zones[key] = true
+		_log_debug("SEARCHING: Marked zone %s as visited (total: %d)" % [key, _search_visited_zones.size()])
 
 ## Process SEARCHING state - move through waypoints, scan at each (Issue #322).
 func _process_searching_state(delta: float) -> void:
@@ -2373,13 +2384,15 @@ func _process_searching_state(delta: float) -> void:
 		_log_to_file("SEARCHING: Player spotted! Transitioning to COMBAT")
 		_transition_to_combat()
 		return
-	if _search_current_waypoint_index >= _search_waypoints.size():
+	if _search_current_waypoint_index >= _search_waypoints.size() or _search_waypoints.is_empty():
 		if _search_radius < SEARCH_MAX_RADIUS:
 			_search_radius += SEARCH_RADIUS_EXPANSION
 			_generate_search_waypoints()
-			_log_to_file("SEARCHING: Expanding radius to %.0f, waypoints=%d" % [_search_radius, _search_waypoints.size()])
+			_log_to_file("SEARCHING: Expand outer ring r=%.0f wps=%d" % [_search_radius, _search_waypoints.size()])
+			if _search_waypoints.is_empty() and _search_radius < SEARCH_MAX_RADIUS:
+				return
 		else:
-			_log_to_file("SEARCHING: Max radius (%.0f), returning to IDLE" % _search_radius)
+			_log_to_file("SEARCHING: Max radius, returning to IDLE")
 			_transition_to_idle()
 			return
 	if _search_waypoints.is_empty():
@@ -2395,6 +2408,7 @@ func _process_searching_state(delta: float) -> void:
 		else:
 			_nav_agent.target_position = target_waypoint
 			if _nav_agent.is_navigation_finished():
+				_mark_zone_visited(target_waypoint)
 				_search_current_waypoint_index += 1
 				_search_moving_to_waypoint = true
 			else:
@@ -2408,14 +2422,12 @@ func _process_searching_state(delta: float) -> void:
 		_search_scan_timer += delta
 		rotation += delta * 1.5
 		if _search_scan_timer >= SEARCH_SCAN_DURATION:
+			_mark_zone_visited(target_waypoint)
 			_search_current_waypoint_index += 1
 			_search_moving_to_waypoint = true
-			_log_debug("SEARCHING: Scan complete, moving to waypoint %d" % _search_current_waypoint_index)
+			_log_debug("SEARCHING: Scan done, next wp %d" % _search_current_waypoint_index)
 
-
-## Shoot with reduced accuracy for retreat mode.
-## Bullets fly in barrel direction with added inaccuracy spread.
-## Enemy must be properly aimed before shooting (within AIM_TOLERANCE_DOT).
+## Shoot with reduced accuracy for retreat mode (bullets fly in barrel direction with spread).
 func _shoot_with_inaccuracy() -> void:
 	if bullet_scene == null or _player == null:
 		return
@@ -2728,6 +2740,7 @@ func _transition_to_searching(center_position: Vector2) -> void:
 	_search_leg_length = SEARCH_WAYPOINT_SPACING
 	_search_legs_completed = 0
 	_search_moving_to_waypoint = true
+	_search_visited_zones.clear()  # Clear visited zones for new search
 	# Generate initial search waypoints using expanding square pattern
 	_generate_search_waypoints()
 	var msg := "SEARCHING started: center=%s, radius=%.0f, waypoints=%d" % [_search_center, _search_radius, _search_waypoints.size()]
@@ -3792,12 +3805,9 @@ func receive_intel_from_ally(ally_memory: EnemyMemory) -> void:
 		_log_debug("Received intel from ally: suspected pos=%s, conf=%.2f" % [
 			_memory.suspected_position, _memory.confidence
 		])
-		# Update legacy position for compatibility
 		_last_known_player_position = _memory.suspected_position
 
-
-## Reset enemy memory for last chance teleport effect (Issue #318). Preserves old position
-## with LOW confidence so enemies search there instead of immediately knowing player's new position.
+## Reset enemy memory for last chance teleport effect (Issue #318). Preserves old position.
 func reset_memory() -> void:
 	# Save old position before resetting - enemies will search here
 	var old_position := _memory.suspected_position if _memory != null and _memory.has_target() else Vector2.ZERO
@@ -3826,9 +3836,7 @@ func reset_memory() -> void:
 			_log_to_file("State reset: %s -> IDLE (no target)" % AIState.keys()[_current_state])
 			_transition_to_idle()
 
-
-## Check if there is a clear line of sight to a position.
-## Used for enemy-to-enemy communication range checking.
+## Check if there is a clear line of sight to a position (enemy-to-enemy comms).
 func _has_line_of_sight_to_position(target_pos: Vector2) -> bool:
 	if _raycast == null:
 		return false
@@ -3984,9 +3992,7 @@ func _play_delayed_shell_sound() -> void:
 		audio_manager.play_shell_rifle(global_position)
 
 ## Spawns a bullet casing that gets ejected from the weapon.
-## Based on BaseWeapon.cs SpawnCasing method for visual consistency with player weapons.
-## @param shoot_direction: Direction the bullet was fired (used to determine casing ejection direction).
-## @param weapon_forward: The weapon's forward direction (barrel direction).
+## Spawn bullet casing (based on BaseWeapon.cs for visual consistency with player).
 func _spawn_casing(shoot_direction: Vector2, weapon_forward: Vector2) -> void:
 	if casing_scene == null:
 		return

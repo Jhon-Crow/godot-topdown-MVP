@@ -298,11 +298,55 @@ func generate_next_waypoint():
    - Player hiding and observing enemy search behavior
    - Zone expansion over time
 
+## Implementation Status
+
+### Completed Features
+
+#### Phase 1-5: Core SEARCHING State (Commits 1ef10c3 and earlier)
+- Added `AIState.SEARCHING` enum value
+- Implemented expanding square spiral pattern
+- NavigationServer2D validation for waypoints
+- Search zone expansion when all waypoints visited
+- Integration with Last Chance effect (triggers SEARCHING after effect ends)
+- Timeout and max radius limits
+
+#### Phase 6: Zone Tracking System (Latest Implementation)
+**New requirements from user feedback:**
+1. Enemies should mark searched zones as "checked" and not re-check them
+2. Search zone should expand until player is found
+3. After expansion, enemies should only check the outer ring (new unchecked zones)
+
+**Implementation details:**
+
+```gdscript
+# New variables added:
+var _search_visited_zones: Dictionary = {}  # Tracks visited positions
+const SEARCH_ZONE_SNAP_SIZE: float = 50.0  # Grid size for zone identification
+
+# New functions:
+func _get_zone_key(pos: Vector2) -> String  # Converts position to grid-snapped key
+func _is_zone_visited(pos: Vector2) -> bool  # Checks if zone already visited
+func _mark_zone_visited(pos: Vector2) -> void  # Marks zone as visited
+```
+
+**Key changes:**
+- `_generate_search_waypoints()`: Only adds waypoints in unvisited zones
+- `_process_searching_state()`: Marks zones as visited after scanning
+- When expanding radius, only generates waypoints in the new outer ring (unvisited zones)
+
+**Grid-based zone tracking:**
+- Positions are snapped to a 50-pixel grid for consistent zone identification
+- Uses string keys like "100,200" for dictionary lookup (O(1) performance)
+- Zones are marked visited when:
+  - Scan completes at a waypoint
+  - Navigation fails to reach a waypoint (prevents getting stuck)
+
 ## Conclusion
 
-The recommended approach is **Solution 4 (Hybrid)** which combines:
+The implemented approach is **Solution 4 (Hybrid)** which combines:
 - Expanding square pattern for systematic coverage
 - Navigation validation for geometry awareness
-- Optional wall-following for natural obstacle handling
+- **Zone tracking system** for preventing redundant searches
+- Automatic outer ring detection when expanding
 
-This provides realistic, methodical enemy search behavior while respecting level geometry and integrating with the existing GOAP system.
+This provides realistic, methodical enemy search behavior while respecting level geometry and integrating with the existing GOAP system. The zone tracking ensures enemies efficiently search new areas without wasting time re-checking already cleared zones.

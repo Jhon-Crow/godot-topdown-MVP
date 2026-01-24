@@ -1375,3 +1375,75 @@ func test_search_max_duration() -> void:
 		"Search should last at least 20 seconds")
 	assert_true(max_duration <= 60.0,
 		"Search should not last more than 60 seconds")
+
+
+## Test zone key generation for visited zone tracking (Issue #322).
+func test_zone_key_generation() -> void:
+	var snap_size := 50.0  # SEARCH_ZONE_SNAP_SIZE
+
+	# Test that positions within same zone snap to same key
+	var pos1 := Vector2(125, 175)
+	var pos2 := Vector2(140, 190)
+
+	var snapped_x1 := int(pos1.x / snap_size) * int(snap_size)
+	var snapped_y1 := int(pos1.y / snap_size) * int(snap_size)
+	var key1 := "%d,%d" % [snapped_x1, snapped_y1]
+
+	var snapped_x2 := int(pos2.x / snap_size) * int(snap_size)
+	var snapped_y2 := int(pos2.y / snap_size) * int(snap_size)
+	var key2 := "%d,%d" % [snapped_x2, snapped_y2]
+
+	assert_eq(key1, key2, "Positions in same grid cell should have same zone key")
+	assert_eq(key1, "100,150", "Zone key should be snapped to 50-pixel grid")
+
+
+## Test that visited zones are tracked correctly (Issue #322).
+func test_visited_zones_tracking() -> void:
+	var visited_zones: Dictionary = {}
+	var snap_size := 50.0
+
+	# Mark a zone as visited
+	var pos := Vector2(100, 200)
+	var snapped_x := int(pos.x / snap_size) * int(snap_size)
+	var snapped_y := int(pos.y / snap_size) * int(snap_size)
+	var key := "%d,%d" % [snapped_x, snapped_y]
+	visited_zones[key] = true
+
+	# Check that zone is marked visited
+	assert_true(visited_zones.has(key), "Zone should be marked as visited")
+
+	# Check that different zone is not visited
+	var other_pos := Vector2(300, 400)
+	var other_x := int(other_pos.x / snap_size) * int(snap_size)
+	var other_y := int(other_pos.y / snap_size) * int(snap_size)
+	var other_key := "%d,%d" % [other_x, other_y]
+	assert_false(visited_zones.has(other_key), "Other zone should not be visited")
+
+
+## Test that zone expansion skips visited zones (Issue #322).
+func test_zone_expansion_skips_visited() -> void:
+	var visited_zones: Dictionary = {}
+	var center := Vector2(500, 500)
+	var snap_size := 50.0
+
+	# Mark center zone as visited
+	var center_x := int(center.x / snap_size) * int(snap_size)
+	var center_y := int(center.y / snap_size) * int(snap_size)
+	visited_zones["%d,%d" % [center_x, center_y]] = true
+
+	# Generate potential waypoints and check that visited ones would be skipped
+	var waypoints_to_check: Array[Vector2] = [
+		center,  # Should be skipped (visited)
+		center + Vector2(75, 0),  # Should be included (new zone)
+		center + Vector2(0, 75),  # Should be included (new zone)
+	]
+
+	var unvisited_count := 0
+	for wp in waypoints_to_check:
+		var wp_x := int(wp.x / snap_size) * int(snap_size)
+		var wp_y := int(wp.y / snap_size) * int(snap_size)
+		var wp_key := "%d,%d" % [wp_x, wp_y]
+		if not visited_zones.has(wp_key):
+			unvisited_count += 1
+
+	assert_eq(unvisited_count, 2, "Should have 2 unvisited waypoints (center is visited)")
