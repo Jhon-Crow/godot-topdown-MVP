@@ -123,6 +123,12 @@ func throw_grenade_velocity_based(mouse_velocity: Vector2, swing_distance: float
 ## collides with them immediately after being thrown. Characters are affected
 ## by the blast radius when the grenade lands/explodes, not direct collision.
 func _on_body_entered(body: Node) -> void:
+	# Check if this is the thrower and we should ignore this collision
+	# This must be checked BEFORE calling super to prevent logging spam
+	if _should_ignore_collision(body):
+		FileLogger.info("[FragGrenade] Ignoring collision with thrower %s" % body.name)
+		return
+
 	super._on_body_entered(body)
 
 	# Only explode on impact if we've been thrown and haven't exploded yet

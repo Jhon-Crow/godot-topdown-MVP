@@ -2784,7 +2784,8 @@ func _check_grenade_throw() -> bool:
 		return false
 	var distance := global_position.distance_to(_player.global_position)
 	var is_suppressed := _current_state == AIState.SUPPRESSED
-	if _grenade_thrower.should_throw(_current_health, _can_see_player, is_suppressed, distance):
+	# Pass positions for safety distance check - enemy won't throw if they'd be in blast radius
+	if _grenade_thrower.should_throw(_current_health, _can_see_player, is_suppressed, distance, global_position, _player.global_position):
 		var grenade_type := _grenade_thrower.get_best_grenade_type()
 		_transition_to_throwing_grenade(_player.global_position, grenade_type)
 		return true

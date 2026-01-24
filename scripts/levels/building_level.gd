@@ -933,9 +933,10 @@ func _setup_selected_weapon() -> void:
 
 
 ## Configure grenades for enemies based on difficulty level (per issue #273).
-## At HARD difficulty, the enemy in the main hall (Enemy10) gets 2 offensive grenades.
+## At HARD difficulty, ALL enemies in the building get 2 offensive grenades.
 ## Per issue requirement: "по дефолту у врагов нет гранат, для каждой карты я сам скажу"
 ## Translation: "by default enemies have no grenades, I'll specify for each map"
+## User feedback (2026-01-24): All enemies in the building level should have grenades.
 func _configure_enemy_grenades() -> void:
 	# Check if difficulty is HARD
 	var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
@@ -948,26 +949,27 @@ func _configure_enemy_grenades() -> void:
 		print("BuildingLevel: Difficulty is not HARD, no grenades configured")
 		return
 
-	# Find Enemy10 (main hall enemy)
+	# Find all enemies in the building
 	var enemies_node := get_node_or_null("Environment/Enemies")
 	if enemies_node == null:
+		print("BuildingLevel: Enemies node not found")
 		return
 
-	var enemy10 = enemies_node.get_node_or_null("Enemy10")
-	if enemy10 == null:
-		print("BuildingLevel: Enemy10 not found, no grenades configured")
-		return
+	# Configure ALL enemies with 2 offensive grenades (per user feedback)
+	var configured_count := 0
+	for child in enemies_node.get_children():
+		# Use configure_grenades() method for late initialization since _ready() has already run
+		if child.has_method("configure_grenades"):
+			child.configure_grenades(true, 2, 0)
+			configured_count += 1
+		elif child.get("enable_grenades") != null:
+			# Fallback for older enemy versions without configure_grenades method
+			child.enable_grenades = true
+			child.offensive_grenades = 2
+			child.flashbang_grenades = 0
+			configured_count += 1
 
-	# Configure Enemy10 with 2 offensive grenades (per issue requirement)
-	# Use configure_grenades() method for late initialization since _ready() has already run
-	if enemy10.has_method("configure_grenades"):
-		enemy10.configure_grenades(true, 2, 0)
-		print("BuildingLevel: [HARD] Enemy10 (main hall) equipped with 2 offensive grenades")
-	elif enemy10.get("enable_grenades") != null:
-		# Fallback for older enemy versions without configure_grenades method
-		enemy10.enable_grenades = true
-		enemy10.offensive_grenades = 2
-		enemy10.flashbang_grenades = 0
-		print("BuildingLevel: [HARD] Enemy10 (main hall) equipped with grenades (fallback)")
+	if configured_count > 0:
+		print("BuildingLevel: [HARD] Equipped %d enemies with 2 offensive grenades each" % configured_count)
 	else:
-		print("BuildingLevel: Enemy10 does not have grenade properties")
+		print("BuildingLevel: No enemies found with grenade capability")

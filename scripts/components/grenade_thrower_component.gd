@@ -36,6 +36,13 @@ signal ally_death_witnessed(death_count: int)
 ## Grenade throw accuracy deviation in degrees (±5° per issue #273 requirement).
 @export var throw_deviation: float = 5.0
 
+## Minimum safe distance from grenade explosion (blast radius + safety margin).
+## Enemy will not throw if they would be within this distance of the target.
+@export var min_safe_distance: float = 250.0
+
+## Offset distance from enemy to spawn grenade (to avoid immediate collision).
+@export var grenade_spawn_offset: float = 50.0
+
 ## Frag grenade scene to instantiate when throwing.
 @export var frag_grenade_scene: PackedScene
 
@@ -139,13 +146,22 @@ func has_grenades() -> bool:
 	return offensive_grenades > 0 or flashbang_grenades > 0
 
 
+## Check if throwing at target_pos would put the thrower in the blast radius.
+## Returns true if it's SAFE to throw (thrower is outside blast radius).
+func is_safe_throw_distance(throw_origin: Vector2, target_pos: Vector2) -> bool:
+	var distance_to_target := throw_origin.distance_to(target_pos)
+	return distance_to_target >= min_safe_distance
+
+
 ## Check if a grenade throw should be triggered.
 ## Parameters:
 ## - current_health: The enemy's current health
 ## - can_see_player: Whether the enemy can currently see the player
 ## - is_suppressed: Whether the enemy is in suppressed state
 ## - distance_to_player: Distance to the player
-func should_throw(current_health: int, can_see_player: bool, is_suppressed: bool, distance_to_player: float) -> bool:
+## - throw_origin: (Optional) Thrower's position for safety check
+## - target_pos: (Optional) Target position for safety check
+func should_throw(current_health: int, can_see_player: bool, is_suppressed: bool, distance_to_player: float, throw_origin: Vector2 = Vector2.ZERO, target_pos: Vector2 = Vector2.ZERO) -> bool:
 	# Must have grenades enabled and available
 	if not enabled:
 		return false
@@ -164,6 +180,13 @@ func should_throw(current_health: int, can_see_player: bool, is_suppressed: bool
 	# Check distance (must be within throw range)
 	if distance_to_player > throw_range:
 		return false
+
+	# Safety check: don't throw if thrower would be in blast radius
+	# Skip this check if positions aren't provided (backwards compatibility)
+	if throw_origin != Vector2.ZERO and target_pos != Vector2.ZERO:
+		if not is_safe_throw_distance(throw_origin, target_pos):
+			_log("Grenade throw blocked: too close to target (would be in blast radius)")
+			return false
 
 	# Trigger conditions from issue #273:
 
@@ -283,12 +306,23 @@ func execute_throw(throw_origin: Vector2) -> RigidBody2D:
 	var distance_to_target := throw_origin.distance_to(_target_position)
 	var actual_distance := minf(distance_to_target, throw_range)
 
-	# Position grenade at throw origin with offset
-	grenade.global_position = throw_origin + deviated_direction * 30.0
+	# Position grenade at throw origin with larger offset to avoid collision with thrower
+	# This prevents the grenade from immediately colliding with the enemy who threw it
+	grenade.global_position = throw_origin + deviated_direction * grenade_spawn_offset
 
 	# Store throw data for deferred execution (after grenade is added to scene)
+	# NOTE: Using actual_distance directly (not * 0.5) for proper throw strength
+	# The legacy throw_grenade() uses drag_distance * drag_to_speed_multiplier (2.0)
+	# So for a 400px target, we need 200 drag_distance to get 400 speed
+	# Adjusted formula: actual_distance / drag_to_speed_multiplier = actual_distance / 2.0
+	# But this was causing weak throws. The real issue is the speed calculation.
+	# For proper throw: use actual_distance as-is, the grenade physics will handle it.
 	grenade.set_meta("throw_direction", deviated_direction)
-	grenade.set_meta("throw_distance", actual_distance * 0.5)
+	grenade.set_meta("throw_distance", actual_distance)
+
+	# Store thrower reference so grenade can exclude thrower from initial collision
+	# This prevents the grenade from triggering on the enemy who threw it
+	grenade.set_meta("thrower_id", get_parent().get_instance_id() if get_parent() else 0)
 
 	var type_name: String = "frag" if _type_to_throw == GrenadeType.OFFENSIVE else "flashbang"
 	_log("Threw %s grenade: target=%s, deviation=%.1f°, distance=%.0f" % [

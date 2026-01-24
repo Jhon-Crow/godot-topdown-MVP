@@ -179,22 +179,24 @@ if _current_state == AIState.THROWING_GRENADE:
         state_text += "\n(GRENADES: %d)" % grenades_left
 ```
 
-#### Verification: Grenade Configuration
+#### ~~Verification: Grenade Configuration~~
 
-**User question**: Are all enemies at HARD difficulty on Building level equipped with grenades?
+~~**User question**: Are all enemies at HARD difficulty on Building level equipped with grenades?~~
 
-**Answer**: No, and this is **correct per the original issue requirements**. The original issue specified:
-> "дай 2 наступательные гранаты врагу находящемуся на карте здание в помещении main hall."
-> Translation: "give 2 offensive grenades to the enemy located on the Building map in the main hall room."
+~~**Answer**: No, and this is **correct per the original issue requirements**. The original issue specified:~~
+> ~~"дай 2 наступательные гранаты врагу находящемуся на карте здание в помещении main hall."~~
+> ~~Translation: "give 2 offensive grenades to the enemy located on the Building map in the main hall room."~~
 
-Only **Enemy10** (the enemy in the main hall) is configured with grenades, which matches the requirement.
+~~Only **Enemy10** (the enemy in the main hall) is configured with grenades, which matches the requirement.~~
 
-**Evidence from logs**:
+~~**Evidence from logs**:~~
 ```
 [02:12:56] [ENEMY] [Enemy10] Grenade system configured: offensive=2, flashbangs=0
 ```
 
-No other enemies show grenade configuration logs.
+~~No other enemies show grenade configuration logs.~~
+
+**UPDATE (2026-01-24 Session 2)**: User clarified that ALL enemies in the Building level should have grenades at HARD difficulty, not just Enemy10. See Bug #3 in the next section.
 
 #### Verification: GOAP Integration
 
@@ -208,3 +210,129 @@ _goap_world_state["is_throwing_grenade"] = _current_state == AIState.THROWING_GR
 ```
 
 The grenade throw check is called from `IN_COVER` and `SUPPRESSED` states, which aligns with the tactical behavior described in the issue requirements.
+
+---
+
+## User Feedback Session #2 - 2026-01-24
+
+### Bugs Identified from PR Comment
+
+From PR #274 comment by @Jhon-Crow:
+1. "враг кидает гранату себе под ноги (слишком слабо)" - Enemy throws grenade at their feet (too weak)
+2. "враг не должен кидать гранату так, чтоб попасть в её зону поражения" - Enemy should not throw grenade in a way that puts them in the blast radius
+3. "похоже граната только у одного врага, а должна быть у всех на уровне Здание" - Only one enemy has grenades, but all enemies on the Building level should have them
+
+### Bug #1: Weak Grenade Throw (Lands at Enemy's Feet)
+
+**Symptom**: Enemy throws grenade but it lands too close, often at their feet.
+
+**Evidence from logs** (`game_log_20260124_025128.txt`):
+```
+[02:53:07] [ENEMY] [Enemy10] Threw frag grenade: target=(962.8579, 1371.319), deviation=4.6°, distance=121
+[02:53:07] [INFO] [GrenadeBase] LEGACY throw_grenade() called! Direction: (-0.77326, -0.634089), Speed: 121.5 (unfrozen)
+[02:53:07] [INFO] [GrenadeBase] Collision detected with Enemy10 (type: CharacterBody2D)
+[02:53:07] [INFO] [GrenadeBase] Grenade landed at (1025.411, 1409.952)
+[02:53:07] [INFO] [FragGrenade] Applied 99 HE damage to enemy at distance 48.2
+```
+
+**Root Cause**:
+In `grenade_thrower_component.gd:291`, the throw distance was multiplied by 0.5:
+```gdscript
+grenade.set_meta("throw_distance", actual_distance * 0.5)
+```
+
+Combined with the legacy drag-based throw system where `throw_speed = drag_distance * drag_to_speed_multiplier (2.0)`, this meant:
+- Target distance: 121px
+- Stored throw_distance: 121 * 0.5 = 60.5px
+- Throw speed: 60.5 * 2.0 = 121 px/s (very weak)
+
+The grenade barely traveled any distance before landing.
+
+**Fix**: Remove the 0.5 multiplier and use actual_distance directly:
+```gdscript
+grenade.set_meta("throw_distance", actual_distance)
+```
+
+### Bug #2: Enemy Self-Damage (Thrower in Blast Radius)
+
+**Symptom**: Enemy throws grenade and damages themselves with the explosion.
+
+**Evidence from logs** (`game_log_20260124_025037.txt`):
+```
+[02:50:53] [INFO] [GrenadeBase] Collision detected with Enemy10 (type: CharacterBody2D)
+[02:50:53] [INFO] [GrenadeBase] Collision detected with MainHall_WallLeft (type: StaticBody2D)
+[02:50:53] [INFO] [FragGrenade] Impact detected! Body: MainHall_WallLeft (type: StaticBody2D), triggering explosion
+[02:50:53] [INFO] [FragGrenade] Applied 99 HE damage to enemy at distance 32.6
+```
+
+**Root Cause Analysis**:
+Two issues:
+1. **Immediate collision with thrower**: Grenade spawns close to enemy (30px offset) and collides immediately
+2. **No safety distance check**: Enemy throws at close targets without checking if they'd be in blast radius
+
+**Fixes Applied**:
+1. **Thrower collision ignore**: Added `thrower_id` tracking and `THROWER_IGNORE_DURATION` (0.5s) window to ignore collisions with thrower
+2. **Increased spawn offset**: Changed grenade spawn offset from 30px to 50px (`grenade_spawn_offset`)
+3. **Safety distance check**: Added `min_safe_distance` (250px) parameter and `is_safe_throw_distance()` check before throwing
+
+```gdscript
+# grenade_thrower_component.gd
+@export var min_safe_distance: float = 250.0
+@export var grenade_spawn_offset: float = 50.0
+
+func is_safe_throw_distance(throw_origin: Vector2, target_pos: Vector2) -> bool:
+    var distance_to_target := throw_origin.distance_to(target_pos)
+    return distance_to_target >= min_safe_distance
+```
+
+```gdscript
+# grenade_base.gd
+var _thrower_id: int = 0
+var _time_since_thrown: float = 0.0
+const THROWER_IGNORE_DURATION: float = 0.5
+
+func _should_ignore_collision(body: Node) -> bool:
+    if _is_thrower(body) and _time_since_thrown < THROWER_IGNORE_DURATION:
+        return true
+    return false
+```
+
+### Bug #3: Only One Enemy Has Grenades
+
+**Symptom**: Only Enemy10 has grenades, but user expects all enemies in Building level to have them.
+
+**Evidence from logs**: Only `[ENEMY] [Enemy10] Grenade system configured: offensive=2, flashbangs=0` appears, no other enemies.
+
+**Root Cause**:
+In `building_level.gd:_configure_enemy_grenades()`, only Enemy10 was being configured:
+```gdscript
+var enemy10 = enemies_node.get_node_or_null("Enemy10")
+if enemy10:
+    enemy10.configure_grenades(true, 2, 0)
+```
+
+**Clarification**: Initial implementation followed the literal translation:
+> "дай 2 наступательные гранаты врагу находящемуся на карте здание в помещении main hall."
+
+However, user feedback clarified that ALL enemies in the Building level should have grenades at HARD difficulty.
+
+**Fix**: Modified `_configure_enemy_grenades()` to iterate through all enemies:
+```gdscript
+func _configure_enemy_grenades() -> void:
+    # ... difficulty check ...
+    for child in enemies_node.get_children():
+        if child.has_method("configure_grenades"):
+            child.configure_grenades(true, 2, 0)
+            configured_count += 1
+    print("BuildingLevel: [HARD] Equipped %d enemies with 2 offensive grenades each" % configured_count)
+```
+
+### Summary of Changes
+
+| File | Change |
+|------|--------|
+| `grenade_thrower_component.gd` | Added `min_safe_distance`, `grenade_spawn_offset`, `is_safe_throw_distance()`, removed 0.5 multiplier |
+| `grenade_base.gd` | Added thrower tracking (`_thrower_id`, `_time_since_thrown`, `_should_ignore_collision()`) |
+| `frag_grenade.gd` | Added thrower collision check in `_on_body_entered()` |
+| `enemy.gd` | Updated `_check_grenade_throw()` to pass positions for safety check |
+| `building_level.gd` | Changed to configure ALL enemies with grenades at HARD difficulty |
