@@ -1,5 +1,6 @@
 using Godot;
 using GodotTopDownTemplate.AbstractClasses;
+using GodotTopDownTemplate.Projectiles;
 
 namespace GodotTopDownTemplate.Weapons;
 
@@ -14,10 +15,11 @@ namespace GodotTopDownTemplate.Weapons;
 /// - Very low aiming sensitivity (smooth aiming)
 /// - Ricochets like other 9mm (same as Uzi)
 /// - Does not penetrate walls
-/// - No scope/laser sight
+/// - Green laser sight for tactical aiming
+/// - Stun effect on hit (enemies briefly stunned)
 /// - 13 rounds magazine (Beretta M9 style)
 /// - Reload similar to M16
-/// Reference: Beretta M9 with suppressor
+/// Reference: Beretta M9 with suppressor and laser sight
 /// </summary>
 public partial class SilencedPistol : BaseWeapon
 {
@@ -78,6 +80,40 @@ public partial class SilencedPistol : BaseWeapon
     /// </summary>
     private const float RecoilPerShot = 0.06f;
 
+    // =========================================================================
+    // Laser Sight Configuration
+    // =========================================================================
+
+    /// <summary>
+    /// Whether the laser sight is enabled.
+    /// </summary>
+    [Export]
+    public bool LaserSightEnabled { get; set; } = true;
+
+    /// <summary>
+    /// Maximum length of the laser sight in pixels.
+    /// The actual laser length is calculated based on viewport size to appear infinite.
+    /// </summary>
+    [Export]
+    public float LaserSightLength { get; set; } = 500.0f;
+
+    /// <summary>
+    /// Color of the laser sight (green for tactical silenced pistol).
+    /// </summary>
+    [Export]
+    public Color LaserSightColor { get; set; } = new Color(0.0f, 1.0f, 0.0f, 0.5f);
+
+    /// <summary>
+    /// Width of the laser sight line.
+    /// </summary>
+    [Export]
+    public float LaserSightWidth { get; set; } = 2.0f;
+
+    /// <summary>
+    /// Reference to the Line2D node for the laser sight.
+    /// </summary>
+    private Line2D? _laserSight;
+
     public override void _Ready()
     {
         base._Ready();
@@ -94,6 +130,33 @@ public partial class SilencedPistol : BaseWeapon
         {
             GD.Print("[SilencedPistol] No PistolSprite node (visual model not yet added)");
         }
+
+        // Get or create the laser sight Line2D
+        _laserSight = GetNodeOrNull<Line2D>("LaserSight");
+
+        if (_laserSight == null && LaserSightEnabled)
+        {
+            CreateLaserSight();
+        }
+        else if (_laserSight != null)
+        {
+            // Ensure the existing laser sight has the correct properties
+            _laserSight.Width = LaserSightWidth;
+            _laserSight.DefaultColor = LaserSightColor;
+            _laserSight.BeginCapMode = Line2D.LineCapMode.Round;
+            _laserSight.EndCapMode = Line2D.LineCapMode.Round;
+
+            // Ensure proper points exist
+            if (_laserSight.GetPointCount() < 2)
+            {
+                _laserSight.ClearPoints();
+                _laserSight.AddPoint(Vector2.Zero);
+                _laserSight.AddPoint(Vector2.Right * LaserSightLength);
+            }
+        }
+
+        UpdateLaserSightVisibility();
+        GD.Print($"[SilencedPistol] Green laser sight initialized: enabled={LaserSightEnabled}");
     }
 
     public override void _Process(double delta)
@@ -112,6 +175,12 @@ public partial class SilencedPistol : BaseWeapon
 
         // Update aim direction and weapon sprite rotation
         UpdateAimDirection();
+
+        // Update laser sight to point towards mouse (with recoil offset)
+        if (LaserSightEnabled && _laserSight != null)
+        {
+            UpdateLaserSight();
+        }
     }
 
     /// <summary>
@@ -186,6 +255,106 @@ public partial class SilencedPistol : BaseWeapon
         // Flip the sprite vertically when aiming left
         bool aimingLeft = Mathf.Abs(angle) > Mathf.Pi / 2;
         _weaponSprite.FlipV = aimingLeft;
+    }
+
+    // =========================================================================
+    // Laser Sight Methods
+    // =========================================================================
+
+    /// <summary>
+    /// Creates the laser sight Line2D programmatically.
+    /// </summary>
+    private void CreateLaserSight()
+    {
+        _laserSight = new Line2D
+        {
+            Name = "LaserSight",
+            Width = LaserSightWidth,
+            DefaultColor = LaserSightColor,
+            BeginCapMode = Line2D.LineCapMode.Round,
+            EndCapMode = Line2D.LineCapMode.Round
+        };
+
+        // Initialize with two points (start and end)
+        _laserSight.AddPoint(Vector2.Zero);
+        _laserSight.AddPoint(Vector2.Right * LaserSightLength);
+
+        AddChild(_laserSight);
+    }
+
+    /// <summary>
+    /// Updates the laser sight visualization.
+    /// Uses the aim direction and applies recoil offset.
+    /// Uses raycasting to stop at obstacles.
+    /// </summary>
+    private void UpdateLaserSight()
+    {
+        if (_laserSight == null)
+        {
+            return;
+        }
+
+        // Apply recoil offset to aim direction for laser visualization
+        // This makes the laser show where the bullet will actually go
+        Vector2 laserDirection = _aimDirection.Rotated(_recoilOffset);
+
+        // Calculate maximum laser length based on viewport size
+        // This ensures the laser extends to viewport edges regardless of direction
+        Viewport? viewport = GetViewport();
+        if (viewport == null)
+        {
+            return;
+        }
+
+        Vector2 viewportSize = viewport.GetVisibleRect().Size;
+        // Use diagonal of viewport to ensure laser reaches edge in any direction
+        float maxLaserLength = viewportSize.Length();
+
+        // Calculate the end point of the laser using viewport-based length
+        // Use laserDirection (with recoil) instead of base direction
+        Vector2 endPoint = laserDirection * maxLaserLength;
+
+        // Perform raycast to check for obstacles
+        var spaceState = GetWorld2D().DirectSpaceState;
+        var query = PhysicsRayQueryParameters2D.Create(
+            GlobalPosition,
+            GlobalPosition + endPoint,
+            4 // Collision mask for obstacles (layer 3 = value 4)
+        );
+
+        var result = spaceState.IntersectRay(query);
+
+        if (result.Count > 0)
+        {
+            // Hit an obstacle, shorten the laser
+            Vector2 hitPosition = (Vector2)result["position"];
+            endPoint = hitPosition - GlobalPosition;
+        }
+
+        // Update the laser sight line points (in local coordinates)
+        _laserSight.SetPointPosition(0, Vector2.Zero);
+        _laserSight.SetPointPosition(1, endPoint);
+    }
+
+    /// <summary>
+    /// Updates the visibility of the laser sight based on LaserSightEnabled.
+    /// </summary>
+    private void UpdateLaserSightVisibility()
+    {
+        if (_laserSight != null)
+        {
+            _laserSight.Visible = LaserSightEnabled;
+        }
+    }
+
+    /// <summary>
+    /// Enables or disables the laser sight.
+    /// </summary>
+    /// <param name="enabled">Whether to enable the laser sight.</param>
+    public void SetLaserSightEnabled(bool enabled)
+    {
+        LaserSightEnabled = enabled;
+        UpdateLaserSightVisibility();
     }
 
     /// <summary>
@@ -370,10 +539,10 @@ public partial class SilencedPistol : BaseWeapon
 
     /// <summary>
     /// Stun duration applied to enemies on hit.
-    /// Calculated as slightly longer than the fire rate interval (1/FireRate + buffer)
-    /// to ensure enemies remain stunned between shots.
+    /// Duration of 0.6 seconds provides noticeable stun effect and
+    /// allows for tactical follow-up shots on stunned enemies.
     /// </summary>
-    private const float StunDurationOnHit = 0.25f;
+    private const float StunDurationOnHit = 0.6f;
 
     /// <summary>
     /// Override SpawnBullet to set the stun effect on bullets.
@@ -404,46 +573,69 @@ public partial class SilencedPistol : BaseWeapon
             spawnPosition = GlobalPosition + direction * BulletSpawnOffset;
         }
 
-        var bullet = BulletScene.Instantiate<Node2D>();
-        bullet.GlobalPosition = spawnPosition;
+        var bulletNode = BulletScene.Instantiate<Node2D>();
+        bulletNode.GlobalPosition = spawnPosition;
 
-        // Set bullet properties - try both PascalCase (C#) and snake_case (GDScript)
-        if (bullet.HasMethod("SetDirection"))
+        // Try to cast to C# Bullet type for direct property access
+        var bullet = bulletNode as Bullet;
+
+        if (bullet != null)
         {
-            bullet.Call("SetDirection", direction);
+            // C# Bullet - set properties directly for reliable stun effect
+            bullet.Direction = direction;
+            if (WeaponData != null)
+            {
+                bullet.Speed = WeaponData.BulletSpeed;
+            }
+            var owner = GetParent();
+            if (owner != null)
+            {
+                bullet.ShooterId = owner.GetInstanceId();
+            }
+            bullet.ShooterPosition = GlobalPosition;
+
+            // Set stun duration for silenced pistol special effect
+            // Enemies hit by silenced pistol bullets are briefly stunned,
+            // allowing for follow-up shots while they can't retaliate
+            bullet.StunDuration = StunDurationOnHit;
+            GD.Print($"[SilencedPistol] Spawned C# bullet with StunDuration={StunDurationOnHit}s");
         }
         else
         {
-            bullet.Set("Direction", direction);
-            bullet.Set("direction", direction);
+            // GDScript bullet fallback - use Node.Set() for compatibility
+            if (bulletNode.HasMethod("SetDirection"))
+            {
+                bulletNode.Call("SetDirection", direction);
+            }
+            else
+            {
+                bulletNode.Set("Direction", direction);
+                bulletNode.Set("direction", direction);
+            }
+
+            if (WeaponData != null)
+            {
+                bulletNode.Set("Speed", WeaponData.BulletSpeed);
+                bulletNode.Set("speed", WeaponData.BulletSpeed);
+            }
+
+            var owner = GetParent();
+            if (owner != null)
+            {
+                bulletNode.Set("ShooterId", owner.GetInstanceId());
+                bulletNode.Set("shooter_id", owner.GetInstanceId());
+            }
+
+            bulletNode.Set("ShooterPosition", GlobalPosition);
+            bulletNode.Set("shooter_position", GlobalPosition);
+
+            // Try to set stun duration via Set() for GDScript bullets
+            bulletNode.Set("StunDuration", StunDurationOnHit);
+            bulletNode.Set("stun_duration", StunDurationOnHit);
+            GD.Print($"[SilencedPistol] Spawned GDScript bullet, attempted to set stun_duration={StunDurationOnHit}s");
         }
 
-        // Set bullet speed from weapon data
-        if (WeaponData != null)
-        {
-            bullet.Set("Speed", WeaponData.BulletSpeed);
-            bullet.Set("speed", WeaponData.BulletSpeed);
-        }
-
-        // Set shooter ID to prevent self-damage
-        var owner = GetParent();
-        if (owner != null)
-        {
-            bullet.Set("ShooterId", owner.GetInstanceId());
-            bullet.Set("shooter_id", owner.GetInstanceId());
-        }
-
-        // Set shooter position for distance-based penetration calculations
-        bullet.Set("ShooterPosition", GlobalPosition);
-        bullet.Set("shooter_position", GlobalPosition);
-
-        // Set stun duration for silenced pistol special effect
-        // Enemies hit by silenced pistol bullets are briefly stunned,
-        // allowing for follow-up shots while they can't retaliate
-        bullet.Set("StunDuration", StunDurationOnHit);
-        bullet.Set("stun_duration", StunDurationOnHit);
-
-        GetTree().CurrentScene.AddChild(bullet);
+        GetTree().CurrentScene.AddChild(bulletNode);
 
         // Spawn casing if casing scene is set
         SpawnCasing(direction, WeaponData?.Caliber);

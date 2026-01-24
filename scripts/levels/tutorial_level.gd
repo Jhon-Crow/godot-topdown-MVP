@@ -310,6 +310,7 @@ func _setup_ammo_tracking() -> void:
 	# Try to get the player's weapon for C# Player
 	var shotgun = _player.get_node_or_null("Shotgun")
 	var mini_uzi = _player.get_node_or_null("MiniUzi")
+	var silenced_pistol = _player.get_node_or_null("SilencedPistol")
 	var weapon = _player.get_node_or_null("AssaultRifle")
 
 	if shotgun != null:
@@ -329,6 +330,13 @@ func _setup_ammo_tracking() -> void:
 		# Initial ammo display from Mini UZI
 		if mini_uzi.get("CurrentAmmo") != null and mini_uzi.get("ReserveAmmo") != null:
 			_update_ammo_label_magazine(mini_uzi.CurrentAmmo, mini_uzi.ReserveAmmo)
+	elif silenced_pistol != null:
+		# C# Player with Silenced Pistol - connect to weapon signals
+		if silenced_pistol.has_signal("AmmoChanged"):
+			silenced_pistol.AmmoChanged.connect(_on_weapon_ammo_changed)
+		# Initial ammo display from Silenced Pistol
+		if silenced_pistol.get("CurrentAmmo") != null and silenced_pistol.get("ReserveAmmo") != null:
+			_update_ammo_label_magazine(silenced_pistol.CurrentAmmo, silenced_pistol.ReserveAmmo)
 	elif weapon != null:
 		# C# Player with assault rifle - connect to weapon signals
 		if weapon.has_signal("AmmoChanged"):
