@@ -175,6 +175,16 @@ var _grenade_drag_active: bool = false
 ## Whether debug mode is enabled (F7 toggle, shows grenade trajectory).
 var _debug_mode_enabled: bool = false
 
+## Whether detailed grenade throw debug logging is enabled (F8 toggle).
+## When enabled, logs every frame of mouse movement during aiming for debugging throw direction issues.
+var _grenade_debug_logging_enabled: bool = false
+
+## Counter for debug log entries during a single throw (for readability).
+var _grenade_debug_frame_counter: int = 0
+
+## Store the player's global position at the start of aiming for relative calculations.
+var _grenade_debug_aim_start_player_pos: Vector2 = Vector2.ZERO
+
 
 func _ready() -> void:
 	FileLogger.info("[Player] Initializing player...")
@@ -1409,9 +1419,19 @@ func _handle_grenade_waiting_for_g_release_state() -> void:
 		_current_mouse_velocity = Vector2.ZERO
 		_total_swing_distance = 0.0
 		_prev_frame_time = Time.get_ticks_msec() / 1000.0
+		# Reset debug frame counter for new throw
+		_grenade_debug_frame_counter = 0
+		_grenade_debug_aim_start_player_pos = global_position
 		# Start transfer animation, then wind-up
 		_start_grenade_anim_phase(GrenadeAnimPhase.TRANSFER, ANIM_TRANSFER_DURATION)
 		FileLogger.info("[Player.Grenade] Step 2 complete: G released, RMB held - now aiming (velocity-based throwing enabled)")
+		# Log aiming start with detailed context (F8 debug logging)
+		if _grenade_debug_logging_enabled:
+			FileLogger.info("[Player.Grenade.Debug] ====== AIMING STARTED ======")
+			FileLogger.info("[Player.Grenade.Debug] Player position: (%.1f, %.1f)" % [global_position.x, global_position.y])
+			FileLogger.info("[Player.Grenade.Debug] Player rotation: %.2f rad (%.1f deg)" % [rotation, rad_to_deg(rotation)])
+			FileLogger.info("[Player.Grenade.Debug] Aim start mouse position: (%.1f, %.1f)" % [_aim_drag_start.x, _aim_drag_start.y])
+			FileLogger.info("[Player.Grenade.Debug] Mouse relative to player: (%.1f, %.1f)" % [(_aim_drag_start - global_position).x, (_aim_drag_start - global_position).y])
 
 
 ## Handle AIMING state: only RMB held (G released), drag to aim and release to throw.
@@ -1529,21 +1549,60 @@ func _throw_grenade(drag_end: Vector2) -> void:
 	# Determine throw direction from velocity, or fallback to drag direction if stationary
 	var throw_direction: Vector2
 	var velocity_magnitude := release_velocity.length()
+	var direction_source := "velocity"  # Track where direction came from for debug logging
 
 	if velocity_magnitude > 10.0:  # Mouse was moving at release
 		throw_direction = release_velocity.normalized()
+		direction_source = "velocity"
 	else:
 		# Mouse was stationary at release - grenade drops at feet
 		# Use a slight forward direction so it doesn't appear exactly at player
 		var drag_vector := drag_end - _aim_drag_start
 		if drag_vector.length() > 5.0:
 			throw_direction = drag_vector.normalized()
+			direction_source = "drag_fallback"
 		else:
 			throw_direction = Vector2(1, 0)  # Default direction
+			direction_source = "default_right"
 
 	FileLogger.info("[Player.Grenade] Velocity-based throw! Mouse velocity: %s (%.1f px/s), Swing distance: %.1f" % [
 		str(release_velocity), velocity_magnitude, _total_swing_distance
 	])
+
+	# Comprehensive debug logging at throw moment (F8 toggle, issue #310)
+	if _grenade_debug_logging_enabled:
+		FileLogger.info("[Player.Grenade.Debug] ====== THROW EXECUTED ======")
+		FileLogger.info("[Player.Grenade.Debug] Total frames tracked: %d" % _grenade_debug_frame_counter)
+		FileLogger.info("[Player.Grenade.Debug] --- PLAYER STATE ---")
+		FileLogger.info("[Player.Grenade.Debug] Player position at throw: (%.1f, %.1f)" % [global_position.x, global_position.y])
+		FileLogger.info("[Player.Grenade.Debug] Player position at aim start: (%.1f, %.1f)" % [_grenade_debug_aim_start_player_pos.x, _grenade_debug_aim_start_player_pos.y])
+		FileLogger.info("[Player.Grenade.Debug] Player moved during aiming: (%.1f, %.1f)" % [(global_position - _grenade_debug_aim_start_player_pos).x, (global_position - _grenade_debug_aim_start_player_pos).y])
+		FileLogger.info("[Player.Grenade.Debug] Player rotation: %.2f rad (%.1f deg)" % [rotation, rad_to_deg(rotation)])
+		FileLogger.info("[Player.Grenade.Debug] --- MOUSE INPUT ---")
+		FileLogger.info("[Player.Grenade.Debug] Aim start mouse: (%.1f, %.1f)" % [_aim_drag_start.x, _aim_drag_start.y])
+		FileLogger.info("[Player.Grenade.Debug] Aim end mouse (drag_end): (%.1f, %.1f)" % [drag_end.x, drag_end.y])
+		FileLogger.info("[Player.Grenade.Debug] Total drag vector: (%.1f, %.1f)" % [(drag_end - _aim_drag_start).x, (drag_end - _aim_drag_start).y])
+		FileLogger.info("[Player.Grenade.Debug] Total drag distance: %.1f px" % (drag_end - _aim_drag_start).length())
+		FileLogger.info("[Player.Grenade.Debug] Total swing distance: %.1f px" % _total_swing_distance)
+		FileLogger.info("[Player.Grenade.Debug] --- VELOCITY CALCULATION ---")
+		FileLogger.info("[Player.Grenade.Debug] Release mouse velocity: (%.1f, %.1f) px/s" % [release_velocity.x, release_velocity.y])
+		FileLogger.info("[Player.Grenade.Debug] Velocity magnitude: %.1f px/s" % velocity_magnitude)
+		FileLogger.info("[Player.Grenade.Debug] Velocity angle: %.2f rad (%.1f deg)" % [release_velocity.angle(), rad_to_deg(release_velocity.angle())])
+		FileLogger.info("[Player.Grenade.Debug] --- THROW DIRECTION ---")
+		FileLogger.info("[Player.Grenade.Debug] Direction source: %s" % direction_source)
+		FileLogger.info("[Player.Grenade.Debug] Throw direction: (%.3f, %.3f)" % [throw_direction.x, throw_direction.y])
+		FileLogger.info("[Player.Grenade.Debug] Throw angle: %.2f rad (%.1f deg)" % [throw_direction.angle(), rad_to_deg(throw_direction.angle())])
+		# Calculate expected throw based on grenade physics parameters
+		var grenade_params := _get_grenade_debug_params()
+		if grenade_params.size() > 0:
+			FileLogger.info("[Player.Grenade.Debug] --- GRENADE PHYSICS PREDICTION ---")
+			FileLogger.info("[Player.Grenade.Debug] Grenade mass: %.2f kg" % grenade_params.get("mass", 0.4))
+			FileLogger.info("[Player.Grenade.Debug] Mouse-to-throw multiplier: %.2f" % grenade_params.get("mouse_multiplier", 0.5))
+			FileLogger.info("[Player.Grenade.Debug] Min transfer efficiency: %.2f" % grenade_params.get("min_transfer", 0.35))
+			FileLogger.info("[Player.Grenade.Debug] Min swing distance: %.1f px" % grenade_params.get("min_swing", 80.0))
+			FileLogger.info("[Player.Grenade.Debug] Max throw speed: %.1f px/s" % grenade_params.get("max_speed", 850.0))
+			FileLogger.info("[Player.Grenade.Debug] Ground friction: %.1f" % grenade_params.get("friction", 300.0))
+		FileLogger.info("[Player.Grenade.Debug] ====== END THROW DATA ======")
 
 	# Rotate player to face throw direction (prevents grenade hitting player when throwing upward)
 	_rotate_player_for_throw(throw_direction)
@@ -1578,6 +1637,31 @@ func _throw_grenade(drag_end: Vector2) -> void:
 
 	# Reset state (grenade is now independent)
 	_reset_grenade_state()
+
+
+## Get grenade physics parameters for debug logging.
+## Returns a dictionary with the grenade's physics settings.
+## @return: Dictionary with grenade physics parameters, or empty if grenade unavailable.
+func _get_grenade_debug_params() -> Dictionary:
+	if _active_grenade == null or not is_instance_valid(_active_grenade):
+		return {}
+
+	var params := {}
+	# Try to read grenade properties - these are @export vars in grenade_base.gd
+	if "grenade_mass" in _active_grenade:
+		params["mass"] = _active_grenade.grenade_mass
+	if "mouse_velocity_to_throw_multiplier" in _active_grenade:
+		params["mouse_multiplier"] = _active_grenade.mouse_velocity_to_throw_multiplier
+	if "min_transfer_efficiency" in _active_grenade:
+		params["min_transfer"] = _active_grenade.min_transfer_efficiency
+	if "min_swing_distance" in _active_grenade:
+		params["min_swing"] = _active_grenade.min_swing_distance
+	if "max_throw_speed" in _active_grenade:
+		params["max_speed"] = _active_grenade.max_throw_speed
+	if "ground_friction" in _active_grenade:
+		params["friction"] = _active_grenade.ground_friction
+
+	return params
 
 
 ## Get a safe spawn position for the grenade that doesn't spawn behind/inside a wall.
@@ -1868,6 +1952,23 @@ func _update_wind_up_intensity() -> void:
 
 	_wind_up_intensity = velocity_intensity
 
+	# Detailed debug logging for throw debugging (F8 toggle, issue #310)
+	if _grenade_debug_logging_enabled:
+		_grenade_debug_frame_counter += 1
+		# Log every frame with detailed mouse tracking data
+		# Format: Frame# | Mouse position (global) | Mouse position (relative to player) |
+		#         Delta from last frame | Instantaneous velocity | Smoothed velocity | Total swing
+		var mouse_relative_to_player := current_mouse - global_position
+		FileLogger.info("[Player.Grenade.Debug] Frame %d | MouseGlobal: (%.1f, %.1f) | MouseRelPlayer: (%.1f, %.1f) | Delta: (%.1f, %.1f) | InstVel: (%.1f, %.1f) px/s | SmoothVel: (%.1f, %.1f) px/s | TotalSwing: %.1f px" % [
+			_grenade_debug_frame_counter,
+			current_mouse.x, current_mouse.y,
+			mouse_relative_to_player.x, mouse_relative_to_player.y,
+			mouse_delta.x, mouse_delta.y,
+			instantaneous_velocity.x, instantaneous_velocity.y,
+			_current_mouse_velocity.x, _current_mouse_velocity.y,
+			_total_swing_distance
+		])
+
 	# Update tracking for next frame
 	_prev_mouse_pos = current_mouse
 	_prev_frame_time = current_time
@@ -1980,18 +2081,29 @@ func _update_reload_animation(delta: float) -> void:
 func _connect_debug_mode_signal() -> void:
 	var game_manager: Node = get_node_or_null("/root/GameManager")
 	if game_manager:
-		# Connect to debug mode toggle signal
+		# Connect to debug mode toggle signal (F7 - trajectory visualization)
 		if game_manager.has_signal("debug_mode_toggled"):
 			game_manager.debug_mode_toggled.connect(_on_debug_mode_toggled)
-		# Sync with current debug mode state
+		# Connect to grenade debug logging toggle signal (F8 - detailed throw logging)
+		if game_manager.has_signal("grenade_debug_logging_toggled"):
+			game_manager.grenade_debug_logging_toggled.connect(_on_grenade_debug_logging_toggled)
+		# Sync with current debug mode states
 		if game_manager.has_method("is_debug_mode_enabled"):
 			_debug_mode_enabled = game_manager.is_debug_mode_enabled()
+		if game_manager.has_method("is_grenade_debug_logging_enabled"):
+			_grenade_debug_logging_enabled = game_manager.is_grenade_debug_logging_enabled()
 
 
 ## Called when debug mode is toggled via F7 key.
 func _on_debug_mode_toggled(enabled: bool) -> void:
 	_debug_mode_enabled = enabled
 	queue_redraw()
+
+
+## Called when grenade debug logging is toggled via F8 key.
+func _on_grenade_debug_logging_toggled(enabled: bool) -> void:
+	_grenade_debug_logging_enabled = enabled
+	FileLogger.info("[Player.Grenade.Debug] Detailed throw logging %s (F8 toggle)" % ("ENABLED" if enabled else "DISABLED"))
 
 
 ## Draw debug visualization for grenade throw trajectory.

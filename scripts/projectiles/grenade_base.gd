@@ -226,6 +226,41 @@ func throw_grenade_velocity_based(mouse_velocity: Vector2, swing_distance: float
 		str(mouse_velocity), swing_distance, transfer_efficiency, throw_speed
 	])
 
+	# Detailed debug logging for throw physics (F8 toggle, issue #310)
+	var game_manager: Node = get_node_or_null("/root/GameManager")
+	if game_manager and game_manager.has_method("is_grenade_debug_logging_enabled") and game_manager.is_grenade_debug_logging_enabled():
+		FileLogger.info("[GrenadeBase.Debug] ====== GRENADE PHYSICS CALCULATION ======")
+		FileLogger.info("[GrenadeBase.Debug] Input mouse velocity: (%.1f, %.1f) px/s" % [mouse_velocity.x, mouse_velocity.y])
+		FileLogger.info("[GrenadeBase.Debug] Input mouse velocity magnitude: %.1f px/s" % mouse_velocity.length())
+		FileLogger.info("[GrenadeBase.Debug] Input mouse velocity angle: %.2f rad (%.1f deg)" % [mouse_velocity.angle(), rad_to_deg(mouse_velocity.angle())])
+		FileLogger.info("[GrenadeBase.Debug] Input swing distance: %.1f px" % swing_distance)
+		FileLogger.info("[GrenadeBase.Debug] --- GRENADE PARAMS ---")
+		FileLogger.info("[GrenadeBase.Debug] Grenade mass: %.2f kg" % grenade_mass)
+		FileLogger.info("[GrenadeBase.Debug] Mass ratio (vs 0.4kg): %.2f" % mass_ratio)
+		FileLogger.info("[GrenadeBase.Debug] Min swing distance: %.1f px" % min_swing_distance)
+		FileLogger.info("[GrenadeBase.Debug] Required swing (mass-adjusted): %.1f px" % required_swing)
+		FileLogger.info("[GrenadeBase.Debug] Mouse-to-throw multiplier: %.2f" % mouse_velocity_to_throw_multiplier)
+		FileLogger.info("[GrenadeBase.Debug] Min transfer efficiency: %.2f" % min_transfer_efficiency)
+		FileLogger.info("[GrenadeBase.Debug] Max throw speed: %.1f px/s" % max_throw_speed)
+		FileLogger.info("[GrenadeBase.Debug] Ground friction: %.1f" % ground_friction)
+		FileLogger.info("[GrenadeBase.Debug] --- CALCULATION STEPS ---")
+		FileLogger.info("[GrenadeBase.Debug] Swing transfer (swing/required): %.3f" % swing_transfer)
+		FileLogger.info("[GrenadeBase.Debug] Total transfer efficiency: %.3f" % transfer_efficiency)
+		FileLogger.info("[GrenadeBase.Debug] Base throw velocity: (%.1f, %.1f) px/s" % [base_throw_velocity.x, base_throw_velocity.y])
+		FileLogger.info("[GrenadeBase.Debug] Mass-adjusted velocity: (%.1f, %.1f) px/s" % [mass_adjusted_velocity.x, mass_adjusted_velocity.y])
+		FileLogger.info("[GrenadeBase.Debug] Mass-adjusted speed (pre-clamp): %.1f px/s" % mass_adjusted_velocity.length())
+		FileLogger.info("[GrenadeBase.Debug] --- FINAL OUTPUT ---")
+		FileLogger.info("[GrenadeBase.Debug] Final throw speed (clamped): %.1f px/s" % throw_speed)
+		FileLogger.info("[GrenadeBase.Debug] Final velocity: (%.1f, %.1f) px/s" % [linear_velocity.x, linear_velocity.y])
+		FileLogger.info("[GrenadeBase.Debug] Final direction angle: %.2f rad (%.1f deg)" % [linear_velocity.angle() if linear_velocity.length() > 0 else 0, rad_to_deg(linear_velocity.angle()) if linear_velocity.length() > 0 else 0])
+		FileLogger.info("[GrenadeBase.Debug] Grenade spawn position: (%.1f, %.1f)" % [global_position.x, global_position.y])
+		# Calculate predicted landing distance using kinematic formula: d = v²/(2*friction)
+		var predicted_distance := (throw_speed * throw_speed) / (2.0 * ground_friction) if ground_friction > 0 else 0
+		FileLogger.info("[GrenadeBase.Debug] Predicted travel distance: %.1f px (based on friction deceleration)" % predicted_distance)
+		var landing_pos := global_position + linear_velocity.normalized() * predicted_distance if linear_velocity.length() > 0 else global_position
+		FileLogger.info("[GrenadeBase.Debug] Predicted landing position: (%.1f, %.1f)" % [landing_pos.x, landing_pos.y])
+		FileLogger.info("[GrenadeBase.Debug] ====== END GRENADE PHYSICS ======")
+
 
 ## Throw the grenade in a direction with speed based on drag distance (LEGACY method).
 ## @param direction: Normalized direction to throw.

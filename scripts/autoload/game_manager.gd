@@ -23,6 +23,11 @@ var player: Node2D = null
 ## Toggle with F7 key - works in both editor and exported builds.
 var debug_mode_enabled: bool = false
 
+## Whether grenade throw debug logging is enabled.
+## Toggle with F8 key - logs detailed mouse movement and throw calculations.
+## Used for debugging throw direction issues (issue #310).
+var grenade_debug_logging_enabled: bool = false
+
 ## Currently selected weapon ID for player equipment.
 ## Valid values: "m16", "shotgun", "mini_uzi" (corresponds to armory_menu WEAPONS keys)
 ## Default: "m16" (assault rifle)
@@ -46,6 +51,9 @@ signal stats_updated
 
 ## Signal emitted when debug mode is toggled (F7 key).
 signal debug_mode_toggled(enabled: bool)
+
+## Signal emitted when grenade debug logging is toggled (F8 key).
+signal grenade_debug_logging_toggled(enabled: bool)
 
 ## Signal emitted when weapon selection changes.
 signal weapon_selected(weapon_id: String)
@@ -71,6 +79,9 @@ func _input(event: InputEvent) -> void:
 		# Handle debug mode toggle with F7 key (works in exported builds)
 		elif event.pressed and event.physical_keycode == KEY_F7:
 			toggle_debug_mode()
+		# Handle grenade debug logging toggle with F8 key (issue #310)
+		elif event.pressed and event.physical_keycode == KEY_F8:
+			toggle_grenade_debug_logging()
 
 
 ## Resets all statistics to initial values.
@@ -139,6 +150,20 @@ func toggle_debug_mode() -> void:
 ## Returns whether debug mode is currently enabled.
 func is_debug_mode_enabled() -> bool:
 	return debug_mode_enabled
+
+
+## Toggles grenade throw debug logging on/off.
+## When enabled, logs detailed mouse movement and throw calculations for debugging.
+## Works in both editor and exported builds.
+func toggle_grenade_debug_logging() -> void:
+	grenade_debug_logging_enabled = not grenade_debug_logging_enabled
+	grenade_debug_logging_toggled.emit(grenade_debug_logging_enabled)
+	_log_to_file("Grenade debug logging toggled: %s" % ("ON" if grenade_debug_logging_enabled else "OFF"))
+
+
+## Returns whether grenade debug logging is currently enabled.
+func is_grenade_debug_logging_enabled() -> bool:
+	return grenade_debug_logging_enabled
 
 
 ## Sets the currently selected weapon.

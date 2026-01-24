@@ -17,6 +17,7 @@ class MockGameManager:
 	var hits_landed: int = 0
 	var player_alive: bool = true
 	var debug_mode_enabled: bool = false
+	var grenade_debug_logging_enabled: bool = false
 	var selected_weapon: String = "m16"
 
 	const WEAPON_SCENES: Dictionary = {
@@ -25,6 +26,7 @@ class MockGameManager:
 	}
 
 	signal weapon_selected(weapon_id: String)
+	signal grenade_debug_logging_toggled(enabled: bool)
 
 	func register_shot() -> void:
 		shots_fired += 1
@@ -45,6 +47,13 @@ class MockGameManager:
 
 	func is_debug_mode_enabled() -> bool:
 		return debug_mode_enabled
+
+	func toggle_grenade_debug_logging() -> void:
+		grenade_debug_logging_enabled = not grenade_debug_logging_enabled
+		grenade_debug_logging_toggled.emit(grenade_debug_logging_enabled)
+
+	func is_grenade_debug_logging_enabled() -> bool:
+		return grenade_debug_logging_enabled
 
 	func set_selected_weapon(weapon_id: String) -> void:
 		if weapon_id in WEAPON_SCENES:
@@ -325,3 +334,66 @@ func test_unknown_weapon_returns_default_scene_path() -> void:
 	var path := manager.get_selected_weapon_scene_path()
 
 	assert_eq(path, "res://scenes/weapons/csharp/AssaultRifle.tscn", "Should return M16 path as fallback")
+
+
+# ============================================================================
+# Grenade Debug Logging Tests (issue #310)
+# ============================================================================
+
+
+func test_grenade_debug_logging_initially_disabled() -> void:
+	assert_false(manager.grenade_debug_logging_enabled, "Grenade debug logging should be disabled initially")
+
+
+func test_toggle_grenade_debug_logging_enables() -> void:
+	manager.toggle_grenade_debug_logging()
+
+	assert_true(manager.is_grenade_debug_logging_enabled(), "Grenade debug logging should be enabled after toggle")
+
+
+func test_toggle_grenade_debug_logging_disables() -> void:
+	manager.grenade_debug_logging_enabled = true
+
+	manager.toggle_grenade_debug_logging()
+
+	assert_false(manager.is_grenade_debug_logging_enabled(), "Grenade debug logging should be disabled after toggle")
+
+
+func test_toggle_grenade_debug_logging_multiple_times() -> void:
+	manager.toggle_grenade_debug_logging()  # Enable
+	assert_true(manager.is_grenade_debug_logging_enabled(), "Should be enabled")
+
+	manager.toggle_grenade_debug_logging()  # Disable
+	assert_false(manager.is_grenade_debug_logging_enabled(), "Should be disabled")
+
+	manager.toggle_grenade_debug_logging()  # Enable again
+	assert_true(manager.is_grenade_debug_logging_enabled(), "Should be enabled again")
+
+
+func test_grenade_debug_logging_signal_emitted_on_toggle() -> void:
+	var signal_received := false
+	var signal_value := false
+
+	manager.grenade_debug_logging_toggled.connect(func(enabled: bool):
+		signal_received = true
+		signal_value = enabled
+	)
+
+	manager.toggle_grenade_debug_logging()
+
+	assert_true(signal_received, "Signal should be emitted when toggling grenade debug logging")
+	assert_true(signal_value, "Signal should emit true when enabling grenade debug logging")
+
+
+func test_grenade_debug_logging_independent_from_debug_mode() -> void:
+	# Test that grenade debug logging and debug mode are independent
+	manager.toggle_debug_mode()  # Enable debug mode
+	manager.toggle_grenade_debug_logging()  # Enable grenade debug logging
+
+	assert_true(manager.is_debug_mode_enabled(), "Debug mode should be enabled")
+	assert_true(manager.is_grenade_debug_logging_enabled(), "Grenade debug logging should be enabled")
+
+	manager.toggle_debug_mode()  # Disable debug mode
+
+	assert_false(manager.is_debug_mode_enabled(), "Debug mode should be disabled")
+	assert_true(manager.is_grenade_debug_logging_enabled(), "Grenade debug logging should still be enabled")
