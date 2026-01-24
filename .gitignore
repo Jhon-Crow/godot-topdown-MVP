@@ -39,3 +39,6 @@ Thumbs.db
 
 # Export files
 # export_presets.cfg - commented out to allow CI/CD builds
+
+# CI diagnostic logs
+ci-logs/
