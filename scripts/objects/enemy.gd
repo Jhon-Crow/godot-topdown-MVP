@@ -56,6 +56,18 @@ enum BehaviorMode {
 ## This allows enemies to see the player even outside the viewport if no obstacles block view.
 @export var detection_range: float = 0.0
 
+## Field of view angle in degrees.
+## Enemy can only see targets within this cone centered on their facing direction.
+## Set to 0 or negative to disable FOV check (360 degree vision).
+## Default is 100 degrees as requested in issue #66.
+@export var fov_angle: float = 100.0
+
+## Whether FOV checking is enabled for this specific enemy.
+## This is combined with the global ExperimentalSettings.fov_enabled setting.
+## Both must be true for FOV to be active.
+## Note: The global setting in ExperimentalSettings is disabled by default.
+@export var fov_enabled: bool = true
+
 ## Time between shots in seconds.
 ## Default matches assault rifle fire rate (10 shots/second = 0.1s cooldown).
 @export var shoot_cooldown: float = 0.1
@@ -263,6 +275,22 @@ var _walk_anim_time: float = 0.0
 
 ## Whether the enemy is currently walking (for animation state).
 var _is_walking: bool = false
+
+## Target rotation angle for smooth rotation interpolation (radians).
+## The enemy model smoothly rotates towards this target angle.
+var _target_model_rotation: float = 0.0
+
+## Whether the model is currently flipped for left-facing direction.
+var _model_facing_left: bool = false
+
+## Max model rotation speed (3.0 rad/s ≈ 172°/s - realistic head turning).
+const MODEL_ROTATION_SPEED: float = 3.0
+
+## IDLE scanning state for GUARD enemies.
+var _idle_scan_timer: float = 0.0
+var _idle_scan_target_index: int = 0
+var _idle_scan_targets: Array[float] = []
+const IDLE_SCAN_INTERVAL: float = 10.0
 
 ## Base positions for body parts (stored on ready for animation offsets).
 var _base_body_pos: Vector2 = Vector2.ZERO
@@ -985,6 +1013,7 @@ func _connect_debug_mode_signal() -> void:
 func _on_debug_mode_toggled(enabled: bool) -> void:
 	debug_label_enabled = enabled
 	_update_debug_label()
+	queue_redraw()  # Redraw to show/hide FOV cone
 
 
 ## Find the player node in the scene tree.
@@ -1079,44 +1108,64 @@ func _update_goap_state() -> void:
 	_goap_world_state["player_distracted"] = _is_player_distracted()
 
 
-## Updates the enemy model rotation to face the aim/movement direction.
-## The enemy model (body, head, arms) rotates to follow the direction of movement or aim.
-## Note: Enemy sprites face RIGHT (0 radians), same as player sprites.
-##
-## IMPORTANT: When aiming at the player, we calculate the direction from the WEAPON position
-## to the player, not from the enemy center. This ensures the weapon barrel actually points
-## at the player, accounting for the weapon's offset from the enemy center.
+## Updates model rotation smoothly using MODEL_ROTATION_SPEED (fix for issue #66).
 func _update_enemy_model_rotation() -> void:
 	if not _enemy_model:
 		return
 
+	var delta := get_physics_process_delta_time()
+
 	# Determine the direction to face:
 	# - If can see player, face the player (simple direction from enemy center)
 	# - Otherwise, face the movement direction
+	# - In IDLE state without movement/player, use idle scan targets
 	#
 	# NOTE: We use simple center-to-player direction, NOT offset-compensated direction.
 	# This ensures the weapon visually points in the same direction as bullets fly.
 	# The bullets are fired from the muzzle toward the target, and the muzzle is
 	# positioned along the direction the model faces.
-	var face_direction: Vector2
+	var has_target := false
 
 	if _player != null and _can_see_player:
 		# Simple direction from enemy center to player (like player character does)
-		face_direction = (_player.global_position - global_position).normalized()
+		var face_direction := (_player.global_position - global_position).normalized()
+		_target_model_rotation = face_direction.angle()
+		has_target = true
 	elif velocity.length_squared() > 1.0:
 		# Face movement direction
-		face_direction = velocity.normalized()
-	else:
-		# Keep current rotation
-		return
+		var face_direction := velocity.normalized()
+		_target_model_rotation = face_direction.angle()
+		has_target = true
+	elif _current_state == AIState.IDLE and _idle_scan_targets.size() > 0:
+		# In IDLE, use scan targets for looking at passages
+		_target_model_rotation = _idle_scan_targets[_idle_scan_target_index]
+		has_target = true
 
-	# Calculate target rotation angle
-	# Enemy sprites face RIGHT (same as player sprites, 0 radians)
-	var target_angle := face_direction.angle()
+	# If no target to face, keep current rotation (don't update)
+	if not has_target:
+		return
 
 	# Handle sprite flipping for left/right aim
 	# When aiming left (angle > 90° or < -90°), flip vertically to avoid upside-down appearance
-	var aiming_left := absf(target_angle) > PI / 2
+	var aiming_left := absf(_target_model_rotation) > PI / 2
+	_model_facing_left = aiming_left
+
+	# Smoothly interpolate current rotation towards target rotation
+	# Use MODEL_ROTATION_SPEED for realistic head/body turning
+	var current_rotation := _enemy_model.global_rotation
+
+	# Calculate the shortest rotation direction (handle wrap-around at ±PI)
+	var angle_diff := wrapf(_target_model_rotation - current_rotation, -PI, PI)
+
+	# Apply gradual rotation based on MODEL_ROTATION_SPEED
+	var new_rotation: float
+	if abs(angle_diff) <= MODEL_ROTATION_SPEED * delta:
+		# Close enough to snap to target
+		new_rotation = _target_model_rotation
+	elif angle_diff > 0:
+		new_rotation = current_rotation + MODEL_ROTATION_SPEED * delta
+	else:
+		new_rotation = current_rotation - MODEL_ROTATION_SPEED * delta
 
 	# Apply rotation to the enemy model using GLOBAL rotation.
 	# IMPORTANT: We use global_rotation instead of (local) rotation because the Enemy
@@ -1135,11 +1184,10 @@ func _update_enemy_model_rotation() -> void:
 	# - Without flip: global_rotation = -135°, scale.y = 1.3  -> faces down-right (wrong)
 	# - With flip, OLD code: global_rotation = 135°, scale.y = -1.3 -> faces up-left (visual ok, but bullets go wrong)
 	# - With flip, NEW code: global_rotation = -135°, scale.y = -1.3 -> faces up-left (visual matches bullets) ✓
+	_enemy_model.global_rotation = new_rotation
 	if aiming_left:
-		_enemy_model.global_rotation = target_angle
 		_enemy_model.scale = Vector2(enemy_model_scale, -enemy_model_scale)
 	else:
-		_enemy_model.global_rotation = target_angle
 		_enemy_model.scale = Vector2(enemy_model_scale, enemy_model_scale)
 
 
@@ -2541,6 +2589,9 @@ func _transition_to_idle() -> void:
 	# Reset alarm mode when returning to idle
 	_in_alarm_mode = false
 	_cover_burst_pending = false
+	# Reset idle scanning state for GUARD enemies
+	_idle_scan_timer = 0.0
+	_idle_scan_targets.clear()  # Will be re-initialized in _process_guard
 
 
 ## Transition to COMBAT state.
@@ -3649,54 +3700,43 @@ func _get_wall_avoidance_weight(direction: Vector2) -> float:
 	return lerpf(WALL_AVOIDANCE_MIN_WEIGHT, WALL_AVOIDANCE_MAX_WEIGHT, normalized_distance)
 
 
-## Check if the player is visible using raycast.
-## If detection_range is 0 or negative, uses unlimited detection range (line-of-sight only).
-## This allows the enemy to see the player even outside the viewport if there's no obstacle.
-## Also updates the continuous visibility timer and visibility ratio for lead prediction control.
-## Uses multi-point visibility check to handle player near wall corners (issue #264).
+## Check if target is within FOV cone. FOV uses _enemy_model.global_rotation for facing.
+func _is_position_in_fov(target_pos: Vector2) -> bool:
+	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+	var global_fov_enabled := experimental_settings and experimental_settings.has_method("is_fov_enabled") and experimental_settings.is_fov_enabled()
+	if not global_fov_enabled or not fov_enabled or fov_angle <= 0.0:
+		return true  # FOV disabled - 360° vision
+	var facing_angle := _enemy_model.global_rotation if _enemy_model else rotation
+	var dir_to_target := (target_pos - global_position).normalized()
+	var dot := Vector2.from_angle(facing_angle).dot(dir_to_target)
+	var angle_to_target := rad_to_deg(acos(clampf(dot, -1.0, 1.0)))
+	var in_fov := angle_to_target <= fov_angle / 2.0
+	return in_fov
+
+
+## Check player visibility with FOV and multi-point LOS check (issue #264).
 func _check_player_visibility() -> void:
-	var was_visible := _can_see_player
 	_can_see_player = false
 	_player_visibility_ratio = 0.0
-
-	# If blinded, cannot see player at all
-	if _is_blinded:
+	if _is_blinded or _player == null or not _raycast:
 		_continuous_visibility_timer = 0.0
 		return
-
-	if _player == null or not _raycast:
+	if detection_range > 0 and global_position.distance_to(_player.global_position) > detection_range:
 		_continuous_visibility_timer = 0.0
 		return
-
-	var distance_to_player := global_position.distance_to(_player.global_position)
-
-	# Check if player is within detection range (only if detection_range is positive)
-	# If detection_range <= 0, detection is unlimited (line-of-sight only)
-	if detection_range > 0 and distance_to_player > detection_range:
+	if not _is_position_in_fov(_player.global_position):
 		_continuous_visibility_timer = 0.0
 		return
-
-	# Check multiple points on the player's body (center + corners) to handle
-	# cases where player is near a wall corner. A single raycast to the center
-	# might hit the wall, but parts of the player's body could still be visible.
-	# This fixes the issue where enemies couldn't see players standing close to
-	# walls in narrow passages (issue #264).
 	var check_points := _get_player_check_points(_player.global_position)
 	var visible_count := 0
-
 	for point in check_points:
 		if _is_player_point_visible_to_enemy(point):
 			visible_count += 1
-			# If any part of the player is visible, we can see them
 			_can_see_player = true
-			# Continue checking to calculate visibility ratio
-
-	# Calculate visibility ratio based on how many points are visible
 	if _can_see_player:
 		_player_visibility_ratio = float(visible_count) / float(check_points.size())
 		_continuous_visibility_timer += get_physics_process_delta_time()
 	else:
-		# Lost line of sight - reset the timer and visibility ratio
 		_continuous_visibility_timer = 0.0
 		_player_visibility_ratio = 0.0
 
@@ -3972,10 +4012,66 @@ func _process_patrol(delta: float) -> void:
 		rotation = direction.angle()
 
 
-## Process guard behavior - stand still and look around.
-func _process_guard(_delta: float) -> void:
+## Process guard behavior - stand still and scan for threats.
+## GUARD enemies look at different passages/directions every IDLE_SCAN_INTERVAL seconds.
+## This makes them more realistic and gives players stealth opportunities.
+func _process_guard(delta: float) -> void:
 	velocity = Vector2.ZERO
-	# In guard mode, enemy doesn't move but can still aim at player when visible
+
+	# Initialize scan targets if not already done
+	if _idle_scan_targets.is_empty():
+		_initialize_idle_scan_targets()
+
+	# Update scan timer and switch targets
+	_idle_scan_timer += delta
+	if _idle_scan_timer >= IDLE_SCAN_INTERVAL:
+		_idle_scan_timer = 0.0
+		# Move to next scan target
+		if _idle_scan_targets.size() > 0:
+			_idle_scan_target_index = (_idle_scan_target_index + 1) % _idle_scan_targets.size()
+			_log_debug("Scanning new direction: %d/%d (angle: %.1f°)" % [
+				_idle_scan_target_index + 1,
+				_idle_scan_targets.size(),
+				rad_to_deg(_idle_scan_targets[_idle_scan_target_index])
+			])
+
+
+## Initialize scan targets - detects passages using raycasts, falls back to left/right.
+func _initialize_idle_scan_targets() -> void:
+	_idle_scan_targets.clear()
+	var space_state := get_world_2d().direct_space_state
+	var opening_angles: Array[float] = []
+	for i in range(16):
+		var angle := (float(i) / 16.0) * TAU
+		var query := PhysicsRayQueryParameters2D.create(global_position, global_position + Vector2.from_angle(angle) * 500.0)
+		query.collision_mask = 0b100
+		query.exclude = [self]
+		var result := space_state.intersect_ray(query)
+		if result.is_empty() or global_position.distance_to(result.position) > 200.0:
+			opening_angles.append(angle)
+	# Cluster angles within 30° into single targets
+	if opening_angles.size() > 0:
+		var clusters: Array[Array] = []
+		opening_angles.sort()
+		for angle in opening_angles:
+			var found := false
+			for cluster in clusters:
+				var avg: float = 0.0
+				for a in cluster: avg += a
+				avg /= cluster.size()
+				if abs(wrapf(angle - avg, -PI, PI)) < deg_to_rad(30.0):
+					cluster.append(angle)
+					found = true
+					break
+			if not found: clusters.append([angle])
+		for cluster in clusters:
+			var avg: float = 0.0
+			for a in cluster: avg += a
+			_idle_scan_targets.append(avg / cluster.size())
+	if _idle_scan_targets.size() < 2:
+		_idle_scan_targets = [0.0, PI]
+	_idle_scan_target_index = randi() % _idle_scan_targets.size()
+	_log_debug("Initialized %d scan targets" % _idle_scan_targets.size())
 
 
 ## Called when a bullet enters the threat sphere.
@@ -4629,7 +4725,7 @@ func get_player_visibility_ratio() -> float:
 
 
 ## Draw debug visualization when debug mode is enabled.
-## Shows: line to target (cover, clear shot, player), bullet spawn point status.
+## Shows: FOV cone, line to target (cover, clear shot, player), bullet spawn point status.
 func _draw() -> void:
 	if not debug_label_enabled:
 		return
@@ -4642,6 +4738,31 @@ func _draw() -> void:
 	var color_flank := Color.MAGENTA  # Line to flank position
 	var color_bullet_spawn := Color.GREEN  # Bullet spawn point indicator
 	var color_blocked := Color.RED  # Blocked path indicator
+	# Draw FOV cone in debug mode - always visible to show FOV configuration
+	# Color indicates whether FOV is actually active (green) or just visualization (gray)
+	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+	var global_fov_enabled := false
+	if experimental_settings and experimental_settings.has_method("is_fov_enabled"):
+		global_fov_enabled = experimental_settings.is_fov_enabled()
+
+	# Determine if FOV is actually active for this enemy
+	var fov_active := global_fov_enabled and fov_enabled and fov_angle > 0.0
+
+	# Choose color based on whether FOV is active
+	# Green = FOV is active (100° vision)
+	# Gray = FOV is disabled (360° vision, but showing what the cone would be)
+	var color_fov: Color
+	var color_fov_edge: Color
+	if fov_active:
+		color_fov = Color(0.2, 0.8, 0.2, 0.3)  # Semi-transparent green (active)
+		color_fov_edge = Color(0.2, 0.8, 0.2, 0.8)  # Bright green edge (active)
+	else:
+		color_fov = Color(0.5, 0.5, 0.5, 0.2)  # Semi-transparent gray (inactive)
+		color_fov_edge = Color(0.5, 0.5, 0.5, 0.5)  # Gray edge (inactive)
+
+	# Always draw FOV cone in debug mode (if fov_angle is set)
+	if fov_angle > 0.0:
+		_draw_fov_cone(color_fov, color_fov_edge)
 
 	# Draw line to player if visible
 	if _can_see_player and _player:
@@ -4697,6 +4818,25 @@ func _draw() -> void:
 			draw_line(flank_pos + Vector2(8, 0), flank_pos + Vector2(0, 8), color_flank, 2.0)
 			draw_line(flank_pos + Vector2(0, 8), flank_pos + Vector2(-8, 0), color_flank, 2.0)
 			draw_line(flank_pos + Vector2(-8, 0), flank_pos + Vector2(0, -8), color_flank, 2.0)
+
+
+## Draw FOV cone for debug visualization.
+func _draw_fov_cone(fill_color: Color, edge_color: Color) -> void:
+	var half_fov := deg_to_rad(fov_angle / 2.0)
+	var cone_length := 400.0
+	var left_end := Vector2.from_angle(-half_fov) * cone_length
+	var right_end := Vector2.from_angle(half_fov) * cone_length
+	var cone_points: PackedVector2Array = [Vector2.ZERO]
+	var arc_segments := 16
+	for i in range(arc_segments + 1):
+		cone_points.append(Vector2.from_angle(-half_fov + (float(i) / arc_segments) * 2 * half_fov) * cone_length)
+	draw_colored_polygon(cone_points, fill_color)
+	draw_line(Vector2.ZERO, left_end, edge_color, 2.0)
+	draw_line(Vector2.ZERO, right_end, edge_color, 2.0)
+	for i in range(arc_segments):
+		var a1 := -half_fov + (float(i) / arc_segments) * 2 * half_fov
+		var a2 := -half_fov + (float(i + 1) / arc_segments) * 2 * half_fov
+		draw_line(Vector2.from_angle(a1) * cone_length, Vector2.from_angle(a2) * cone_length, edge_color, 1.5)
 
 
 ## Check if the player is "distracted" (not aiming at the enemy).
