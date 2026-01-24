@@ -5,10 +5,12 @@
 [sub_resource type="Gradient" id="Gradient_decal"]
 # Flat matte blood: uniform dark red-brown color with only alpha fading at edges
 # No bright center (removes 3D ball appearance) - issue #293 round 7
-# Round 8 fix: smoother alpha gradient to prevent rectangular appearance
-# Gradual fade from offset 0.55 to 0.707 (circle edge) prevents visible rings
-offsets = PackedFloat32Array(0, 0.55, 0.62, 0.68, 0.707, 1.0)
-colors = PackedColorArray(0.25, 0.02, 0.02, 0.95, 0.25, 0.02, 0.02, 0.85, 0.25, 0.02, 0.02, 0.5, 0.25, 0.02, 0.02, 0.15, 0.25, 0.02, 0.02, 0, 0.25, 0.02, 0.02, 0)
+# Round 9 fix: restore smooth offset distribution from Round 5 to prevent rectangular appearance
+# Root cause: Round 8 removed offsets 0.2, 0.35, 0.45 creating 0.55 gap from center
+# This large gap caused visible banding that appeared rectangular
+# Solution: 9 offsets with max gap 0.2 in visible range (0-0.707) ensures smooth circular fade
+offsets = PackedFloat32Array(0, 0.2, 0.35, 0.45, 0.55, 0.62, 0.68, 0.707, 1.0)
+colors = PackedColorArray(0.25, 0.02, 0.02, 1.0, 0.25, 0.02, 0.02, 0.98, 0.25, 0.02, 0.02, 0.92, 0.25, 0.02, 0.02, 0.75, 0.25, 0.02, 0.02, 0.5, 0.25, 0.02, 0.02, 0.25, 0.25, 0.02, 0.02, 0.08, 0.25, 0.02, 0.02, 0, 0.25, 0.02, 0.02, 0)
 
 [sub_resource type="GradientTexture2D" id="GradientTexture2D_decal"]
 gradient = SubResource("Gradient_decal")

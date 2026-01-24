@@ -703,3 +703,169 @@ func test_blood_decal_gradient_is_flat() -> void:
 	# The texture should exist and be a gradient
 	assert_not_null(blood_decal.texture, "BloodDecal should have a texture")
 	pass_test("Blood decal has flat gradient texture")
+
+
+# ============================================================================
+# Round 9: Gradient Offset Distribution Tests (Issue #293)
+# ============================================================================
+
+
+func test_blood_decal_gradient_has_sufficient_offsets() -> void:
+	# Round 9: Gradient should have enough offsets to prevent banding/rectangular appearance
+	var blood_decal_scene = load("res://scenes/effects/BloodDecal.tscn")
+	var blood_decal = blood_decal_scene.instantiate()
+	add_child_autoqfree(blood_decal)
+
+	var gradient_texture = blood_decal.texture as GradientTexture2D
+	assert_not_null(gradient_texture, "BloodDecal texture should be GradientTexture2D")
+
+	var gradient = gradient_texture.gradient
+	assert_not_null(gradient, "GradientTexture2D should have a Gradient")
+
+	# Should have at least 7 offsets to prevent visible banding
+	# Round 5 (working): 9 offsets
+	# Round 8 (broken): 6 offsets with large gap
+	assert_gte(gradient.get_point_count(), 7,
+		"Gradient should have at least 7 offsets for smooth circular appearance")
+
+
+func test_blood_decal_gradient_no_large_gaps() -> void:
+	# Round 9: Maximum gap between offsets should be < 0.25 in visible range (0-0.707)
+	# to prevent rectangular banding artifacts
+	var blood_decal_scene = load("res://scenes/effects/BloodDecal.tscn")
+	var blood_decal = blood_decal_scene.instantiate()
+	add_child_autoqfree(blood_decal)
+
+	var gradient_texture = blood_decal.texture as GradientTexture2D
+	var gradient = gradient_texture.gradient
+
+	var offsets = gradient.offsets
+	var max_gap := 0.0
+
+	# Check gaps in visible range (0 to 0.707 - inscribed circle edge)
+	for i in range(len(offsets) - 1):
+		if offsets[i] <= 0.707:
+			var gap = offsets[i + 1] - offsets[i]
+			max_gap = max(max_gap, gap)
+
+	assert_lt(max_gap, 0.25,
+		"Maximum offset gap should be < 0.25 in visible range to prevent banding")
+
+
+func test_blood_decal_gradient_uniform_color() -> void:
+	# Round 9: All color stops should have same RGB values (uniform dark color)
+	# Only alpha should vary
+	var blood_decal_scene = load("res://scenes/effects/BloodDecal.tscn")
+	var blood_decal = blood_decal_scene.instantiate()
+	add_child_autoqfree(blood_decal)
+
+	var gradient_texture = blood_decal.texture as GradientTexture2D
+	var gradient = gradient_texture.gradient
+
+	var colors = gradient.colors
+	var first_rgb = Vector3(colors[0].r, colors[0].g, colors[0].b)
+
+	# All colors should have same RGB (only alpha differs)
+	for i in range(1, len(colors)):
+		var current_rgb = Vector3(colors[i].r, colors[i].g, colors[i].b)
+		assert_almost_eq(current_rgb.x, first_rgb.x, 0.01,
+			"All gradient colors should have same red value (uniform color)")
+		assert_almost_eq(current_rgb.y, first_rgb.y, 0.01,
+			"All gradient colors should have same green value (uniform color)")
+		assert_almost_eq(current_rgb.z, first_rgb.z, 0.01,
+			"All gradient colors should have same blue value (uniform color)")
+
+
+func test_blood_decal_gradient_has_edge_offset() -> void:
+	# Round 9: Should have offset at circle edge (≈0.707)
+	var blood_decal_scene = load("res://scenes/effects/BloodDecal.tscn")
+	var blood_decal = blood_decal_scene.instantiate()
+	add_child_autoqfree(blood_decal)
+
+	var gradient_texture = blood_decal.texture as GradientTexture2D
+	var gradient = gradient_texture.gradient
+
+	var offsets = gradient.offsets
+	var has_edge_offset := false
+
+	# Look for offset near 0.707 (inscribed circle edge)
+	for offset in offsets:
+		if abs(offset - 0.707) < 0.01:
+			has_edge_offset = true
+			break
+
+	assert_true(has_edge_offset,
+		"Gradient should have offset at circle edge (≈0.707) for clean circular appearance")
+
+
+func test_blood_decal_gradient_fades_to_transparent() -> void:
+	# Round 9: Gradient should fade to transparent (alpha 0) at edges
+	var blood_decal_scene = load("res://scenes/effects/BloodDecal.tscn")
+	var blood_decal = blood_decal_scene.instantiate()
+	add_child_autoqfree(blood_decal)
+
+	var gradient_texture = blood_decal.texture as GradientTexture2D
+	var gradient = gradient_texture.gradient
+
+	var colors = gradient.colors
+	var last_color = colors[len(colors) - 1]
+
+	assert_almost_eq(last_color.a, 0.0, 0.01,
+		"Last gradient color should be fully transparent (alpha 0)")
+
+
+func test_blood_decal_gradient_starts_opaque() -> void:
+	# Round 9: Gradient should start mostly opaque at center
+	var blood_decal_scene = load("res://scenes/effects/BloodDecal.tscn")
+	var blood_decal = blood_decal_scene.instantiate()
+	add_child_autoqfree(blood_decal)
+
+	var gradient_texture = blood_decal.texture as GradientTexture2D
+	var gradient = gradient_texture.gradient
+
+	var colors = gradient.colors
+	var first_color = colors[0]
+
+	assert_gt(first_color.a, 0.8,
+		"First gradient color should be mostly opaque (alpha > 0.8)")
+
+
+func test_blood_decal_gradient_radial_fill() -> void:
+	# Round 9: GradientTexture2D should use radial fill mode
+	var blood_decal_scene = load("res://scenes/effects/BloodDecal.tscn")
+	var blood_decal = blood_decal_scene.instantiate()
+	add_child_autoqfree(blood_decal)
+
+	var gradient_texture = blood_decal.texture as GradientTexture2D
+
+	# Fill mode 1 = RADIAL
+	assert_eq(gradient_texture.fill, GradientTexture2D.FILL_RADIAL,
+		"GradientTexture2D should use FILL_RADIAL mode")
+
+
+func test_blood_decal_gradient_centered() -> void:
+	# Round 9: Radial gradient should be centered at (0.5, 0.5)
+	var blood_decal_scene = load("res://scenes/effects/BloodDecal.tscn")
+	var blood_decal = blood_decal_scene.instantiate()
+	add_child_autoqfree(blood_decal)
+
+	var gradient_texture = blood_decal.texture as GradientTexture2D
+
+	assert_almost_eq(gradient_texture.fill_from.x, 0.5, 0.01,
+		"Radial gradient should be centered horizontally (fill_from.x = 0.5)")
+	assert_almost_eq(gradient_texture.fill_from.y, 0.5, 0.01,
+		"Radial gradient should be centered vertically (fill_from.y = 0.5)")
+
+
+func test_blood_decal_gradient_fill_to_corner() -> void:
+	# Round 9: Radial gradient should extend to corner (1.0, 1.0) for proper circular coverage
+	var blood_decal_scene = load("res://scenes/effects/BloodDecal.tscn")
+	var blood_decal = blood_decal_scene.instantiate()
+	add_child_autoqfree(blood_decal)
+
+	var gradient_texture = blood_decal.texture as GradientTexture2D
+
+	assert_almost_eq(gradient_texture.fill_to.x, 1.0, 0.01,
+		"Radial gradient fill_to.x should be 1.0 (corner)")
+	assert_almost_eq(gradient_texture.fill_to.y, 1.0, 0.01,
+		"Radial gradient fill_to.y should be 1.0 (corner)")
