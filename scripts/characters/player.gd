@@ -1537,20 +1537,26 @@ func _throw_grenade(drag_end: Vector2) -> void:
 
 	if velocity_magnitude > 10.0:
 		# Primary direction: the direction the mouse is MOVING (velocity direction)
-		# FIX for issue #313 v3: Snap to cardinal directions when close to cardinal
-		# This compensates for imprecise human mouse movement
+		# FIX for issue #313 v4: Snap to 8 directions (4 cardinal + 4 diagonal)
+		# This compensates for imprecise human mouse movement while allowing diagonal throws
 		var raw_direction := release_velocity.normalized()
-		throw_direction = _snap_to_cardinal_direction(raw_direction)
+		throw_direction = _snap_to_octant_direction(raw_direction)
 		FileLogger.info("[Player.Grenade] Raw direction: %s, Snapped direction: %s" % [
 			str(raw_direction), str(throw_direction)
 		])
 	else:
-		# Fallback when mouse is not moving - use player-to-mouse as fallback
+		# Fallback when mouse is not moving - use player-to-mouse as fallback direction
+		# FIX for issue #313 v4: Also snap fallback to 8 directions
 		var player_to_mouse := drag_end - global_position
 		if player_to_mouse.length() > 10.0:
-			throw_direction = player_to_mouse.normalized()
+			throw_direction = _snap_to_octant_direction(player_to_mouse.normalized())
 		else:
 			throw_direction = Vector2(1, 0)  # Default direction (right)
+		# FIX for issue #313 v4: When velocity is 0, use a minimum throw speed
+		# This prevents grenade from getting "stuck" when user stops mouse before release
+		var min_fallback_velocity := 2000.0  # Minimum velocity to ensure grenade travels
+		velocity_magnitude = min_fallback_velocity
+		FileLogger.info("[Player.Grenade] Fallback mode: Using minimum velocity %.1f px/s" % min_fallback_velocity)
 
 	FileLogger.info("[Player.Grenade] Throwing in mouse velocity direction! Direction: %s, Mouse velocity: %.1f px/s, Swing: %.1f" % [
 		str(throw_direction), velocity_magnitude, _total_swing_distance
@@ -1680,29 +1686,23 @@ func _get_safe_grenade_spawn_position(from_pos: Vector2, intended_pos: Vector2, 
 	return safe_position
 
 
-## Snap a direction vector to the nearest cardinal direction (4 directions).
-## FIX for issue #313 v3: Compensates for imprecise human mouse movement.
-## Uses 4 cardinal directions (right, down, left, up) with 90° sectors each.
-## User requirement: When moving mouse DOWN, grenade flies DOWN (not diagonally).
-## This is achieved by snapping to the nearest of 4 cardinal directions.
+## Snap a direction vector to the nearest of 8 directions (4 cardinal + 4 diagonal).
+## FIX for issue #313 v4: Compensates for imprecise human mouse movement while allowing diagonal throws.
+## Uses 8 directions with 45° sectors each:
+## - RIGHT (0°), DOWN-RIGHT (45°), DOWN (90°), DOWN-LEFT (135°)
+## - LEFT (180°), UP-LEFT (-135°), UP (-90°), UP-RIGHT (-45°)
 ## @param raw_direction: The raw normalized direction from mouse velocity.
-## @return: A snapped direction vector pointing to the nearest cardinal direction.
-func _snap_to_cardinal_direction(raw_direction: Vector2) -> Vector2:
+## @return: A snapped direction vector pointing to the nearest of 8 directions.
+func _snap_to_octant_direction(raw_direction: Vector2) -> Vector2:
 	# Calculate angle in radians (-PI to PI)
 	var angle := raw_direction.angle()
 
-	# Use 4 cardinal directions with 90° sectors each
-	# 0 = right, PI/2 = down, PI = left, -PI/2 = up
-	var sector_size := PI / 2.0  # 90 degrees per sector
+	# Use 8 directions with 45° sectors each
+	var sector_size := PI / 4.0  # 45 degrees per sector
 
-	# Snap to nearest sector (round to nearest multiple of 90°)
+	# Snap to nearest sector (round to nearest multiple of 45°)
 	var sector_index := roundi(angle / sector_size)
 	var snapped_angle := sector_index * sector_size
-
-	# Handle the PI/-PI boundary (both represent "left")
-	# When sector_index is 2 or -2, it's "left" direction
-	if sector_index == 2 or sector_index == -2:
-		snapped_angle = PI  # Use positive PI for left
 
 	# Convert back to direction vector
 	var snapped_direction := Vector2(cos(snapped_angle), sin(snapped_angle))

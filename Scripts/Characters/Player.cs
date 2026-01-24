@@ -1939,24 +1939,30 @@ public partial class Player : BaseCharacter
         if (velocityMagnitude > 10.0f)
         {
             // Primary direction: the direction the mouse is MOVING (velocity direction)
-            // FIX for issue #313 v3: Snap to cardinal directions when close to cardinal
-            // This compensates for imprecise human mouse movement
+            // FIX for issue #313 v4: Snap to 8 directions (4 cardinal + 4 diagonal)
+            // This compensates for imprecise human mouse movement while allowing diagonal throws
             Vector2 rawDirection = releaseVelocity.Normalized();
-            throwDirection = SnapToCardinalDirection(rawDirection);
+            throwDirection = SnapToOctantDirection(rawDirection);
             LogToFile($"[Player.Grenade] Raw direction: {rawDirection}, Snapped direction: {throwDirection}");
         }
         else
         {
-            // Fallback when mouse is not moving - use player-to-mouse as fallback
+            // Fallback when mouse is not moving - use player-to-mouse as fallback direction
+            // FIX for issue #313 v4: Also snap fallback to 8 directions
             Vector2 playerToMouse = dragEnd - GlobalPosition;
             if (playerToMouse.Length() > 10.0f)
             {
-                throwDirection = playerToMouse.Normalized();
+                throwDirection = SnapToOctantDirection(playerToMouse.Normalized());
             }
             else
             {
                 throwDirection = new Vector2(1, 0);  // Default direction (right)
             }
+            // FIX for issue #313 v4: When velocity is 0, use a minimum throw speed
+            // This prevents grenade from getting "stuck" when user stops mouse before release
+            float minFallbackVelocity = 2000.0f;  // Minimum velocity to ensure grenade travels
+            velocityMagnitude = minFallbackVelocity;
+            LogToFile($"[Player.Grenade] Fallback mode: Using minimum velocity {minFallbackVelocity:F1} px/s");
         }
 
         LogToFile($"[Player.Grenade] Throwing in mouse velocity direction! Direction: {throwDirection}, Mouse velocity: {velocityMagnitude:F1} px/s, Swing: {_totalSwingDistance:F1}");
@@ -2132,24 +2138,25 @@ public partial class Player : BaseCharacter
     }
 
     /// <summary>
-    /// FIX for issue #313: Snap raw mouse velocity direction to the nearest cardinal direction.
-    /// This compensates for imprecise human mouse movement - when a user moves the mouse "down",
-    /// the movement is never perfectly vertical, there's always a small horizontal component.
-    /// By snapping to 4 cardinal directions (right, down, left, up), we ensure the grenade
-    /// flies in the direction the user intended.
+    /// FIX for issue #313 v4: Snap raw mouse velocity direction to the nearest of 8 directions.
+    /// This compensates for imprecise human mouse movement while allowing diagonal throws.
     ///
-    /// Each cardinal direction has a 90° sector (±45° from the axis):
-    /// - RIGHT (0°): from -45° to 45°
-    /// - DOWN (90°): from 45° to 135°
-    /// - LEFT (180°/-180°): from 135° to 180° or -180° to -135°
-    /// - UP (-90°): from -135° to -45°
+    /// Uses 8 directions (45° sectors each):
+    /// - RIGHT (0°): 0°
+    /// - DOWN-RIGHT (45°): 45°
+    /// - DOWN (90°): 90°
+    /// - DOWN-LEFT (135°): 135°
+    /// - LEFT (180°): 180°
+    /// - UP-LEFT (-135°): -135°
+    /// - UP (-90°): -90°
+    /// - UP-RIGHT (-45°): -45°
     /// </summary>
     /// <param name="rawDirection">The raw normalized direction from mouse velocity.</param>
-    /// <returns>The snapped direction (one of 4 cardinal unit vectors).</returns>
-    private Vector2 SnapToCardinalDirection(Vector2 rawDirection)
+    /// <returns>The snapped direction (one of 8 unit vectors).</returns>
+    private Vector2 SnapToOctantDirection(Vector2 rawDirection)
     {
         float angle = rawDirection.Angle();  // Returns angle in radians (-PI to PI)
-        float sectorSize = Mathf.Pi / 2.0f;  // 90 degrees per sector
+        float sectorSize = Mathf.Pi / 4.0f;  // 45 degrees per sector (8 directions)
         int sectorIndex = Mathf.RoundToInt(angle / sectorSize);
         float snappedAngle = sectorIndex * sectorSize;
         return new Vector2(Mathf.Cos(snappedAngle), Mathf.Sin(snappedAngle));
@@ -2760,15 +2767,15 @@ public partial class Player : BaseCharacter
 
         if (velocityMagnitude > 10.0f) // Mouse is moving
         {
-            // Snap to cardinal direction (same as ThrowGrenade)
-            throwDirection = SnapToCardinalDirection(releaseVelocity.Normalized());
+            // Snap to 8 directions (same as ThrowGrenade)
+            throwDirection = SnapToOctantDirection(releaseVelocity.Normalized());
         }
         else
         {
-            // Mouse is stationary - use drag direction
+            // Mouse is stationary - use drag direction, also snapped to 8 directions
             if (dragVector.Length() > 5.0f)
             {
-                throwDirection = dragVector.Normalized();
+                throwDirection = SnapToOctantDirection(dragVector.Normalized());
             }
             else
             {
