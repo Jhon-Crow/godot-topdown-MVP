@@ -3,7 +3,7 @@ extends Sprite2D
 ##
 ## Blood decals slowly fade over time and can be configured
 ## to disappear after a set duration. Blood also gradually darkens
-## to simulate drying/oxidation (fresh red → dried brown).
+## to simulate drying/oxidation (fresh red to dried brown).
 
 ## Time in seconds before the decal starts fading.
 @export var fade_delay: float = 30.0

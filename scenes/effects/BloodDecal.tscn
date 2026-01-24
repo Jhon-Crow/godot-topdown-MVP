@@ -3,11 +3,6 @@
 [ext_resource type="Script" path="res://scripts/effects/blood_decal.gd" id="1_blood_decal"]
 
 [sub_resource type="Gradient" id="Gradient_decal"]
-# Circular blood drop: fill_to is corner (1,1), so gradient radius = sqrt(0.5) ≈ 0.707
-# For a perfect circle inscribed in the square: radius reaches the midpoint of edges
-# The inscribed circle edge is at offset 0.707 (1/sqrt(2)) of the diagonal distance
-# Solid blood core until 0.5, then smooth fade to fully transparent at 0.707 (circle edge)
-# Corners (0.707 to 1.0) are also transparent to ensure no rectangular artifacts
 offsets = PackedFloat32Array(0, 0.2, 0.35, 0.45, 0.55, 0.62, 0.68, 0.707, 1.0)
 colors = PackedColorArray(0.4, 0.03, 0.03, 1.0, 0.38, 0.025, 0.025, 1.0, 0.36, 0.022, 0.022, 0.95, 0.33, 0.018, 0.018, 0.8, 0.30, 0.014, 0.014, 0.5, 0.28, 0.01, 0.01, 0.25, 0.26, 0.008, 0.008, 0.08, 0.25, 0.005, 0.005, 0, 0.25, 0.005, 0.005, 0)
 

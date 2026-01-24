@@ -152,36 +152,53 @@ func _preload_effect_scenes() -> void:
 
 	if ResourceLoader.exists(dust_path):
 		_dust_effect_scene = load(dust_path)
-		loaded_scenes.append("DustEffect")
-		if _debug_effects:
-			print("[ImpactEffectsManager] Loaded DustEffect scene")
+		if _dust_effect_scene != null:
+			loaded_scenes.append("DustEffect")
+			if _debug_effects:
+				print("[ImpactEffectsManager] Loaded DustEffect scene")
+		else:
+			missing_scenes.append("DustEffect (load failed)")
+			push_warning("ImpactEffectsManager: DustEffect scene exists but failed to load from " + dust_path)
 	else:
 		missing_scenes.append("DustEffect")
 		push_warning("ImpactEffectsManager: DustEffect scene not found at " + dust_path)
 
 	if ResourceLoader.exists(blood_path):
 		_blood_effect_scene = load(blood_path)
-		loaded_scenes.append("BloodEffect")
-		if _debug_effects:
-			print("[ImpactEffectsManager] Loaded BloodEffect scene")
+		if _blood_effect_scene != null:
+			loaded_scenes.append("BloodEffect")
+			if _debug_effects:
+				print("[ImpactEffectsManager] Loaded BloodEffect scene")
+		else:
+			missing_scenes.append("BloodEffect (load failed)")
+			push_warning("ImpactEffectsManager: BloodEffect scene exists but failed to load from " + blood_path)
 	else:
 		missing_scenes.append("BloodEffect")
 		push_warning("ImpactEffectsManager: BloodEffect scene not found at " + blood_path)
 
 	if ResourceLoader.exists(sparks_path):
 		_sparks_effect_scene = load(sparks_path)
-		loaded_scenes.append("SparksEffect")
-		if _debug_effects:
-			print("[ImpactEffectsManager] Loaded SparksEffect scene")
+		if _sparks_effect_scene != null:
+			loaded_scenes.append("SparksEffect")
+			if _debug_effects:
+				print("[ImpactEffectsManager] Loaded SparksEffect scene")
+		else:
+			missing_scenes.append("SparksEffect (load failed)")
+			push_warning("ImpactEffectsManager: SparksEffect scene exists but failed to load from " + sparks_path)
 	else:
 		missing_scenes.append("SparksEffect")
 		push_warning("ImpactEffectsManager: SparksEffect scene not found at " + sparks_path)
 
 	if ResourceLoader.exists(blood_decal_path):
 		_blood_decal_scene = load(blood_decal_path)
-		loaded_scenes.append("BloodDecal")
-		if _debug_effects:
-			print("[ImpactEffectsManager] Loaded BloodDecal scene")
+		if _blood_decal_scene != null:
+			loaded_scenes.append("BloodDecal")
+			if _debug_effects:
+				print("[ImpactEffectsManager] Loaded BloodDecal scene")
+		else:
+			# Scene file exists but failed to load - this is a problem
+			missing_scenes.append("BloodDecal (load failed)")
+			push_warning("ImpactEffectsManager: BloodDecal scene exists but failed to load from " + blood_decal_path)
 	else:
 		missing_scenes.append("BloodDecal")
 		# Blood decals are optional - don't warn, just log in debug mode
@@ -385,8 +402,19 @@ func _add_effect_to_scene(effect: Node2D) -> void:
 ## @param count: Number of decals to spawn.
 func _spawn_blood_decals_at_particle_landing(origin: Vector2, hit_direction: Vector2, effect: GPUParticles2D, count: int) -> void:
 	if _blood_decal_scene == null:
-		_log_info("Blood decal scene is null - skipping floor decals")
-		return
+		_log_info("Blood decal scene is null - attempting to reload")
+		# Try to reload the scene (it may have been unloaded or failed initially)
+		var blood_decal_path := "res://scenes/effects/BloodDecal.tscn"
+		if ResourceLoader.exists(blood_decal_path):
+			_blood_decal_scene = load(blood_decal_path)
+			if _blood_decal_scene != null:
+				_log_info("Blood decal scene reloaded successfully")
+			else:
+				_log_info("Blood decal scene reload FAILED - skipping floor decals")
+				return
+		else:
+			_log_info("Blood decal scene file not found - skipping floor decals")
+			return
 
 	# Get particle physics parameters from the effect's process material
 	var process_mat: ParticleProcessMaterial = effect.process_material as ParticleProcessMaterial
