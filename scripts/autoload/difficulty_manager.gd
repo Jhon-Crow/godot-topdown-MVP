@@ -107,18 +107,18 @@ func is_distraction_attack_enabled() -> bool:
 ## Get the detection delay based on difficulty.
 ## This is the delay before enemies start shooting after spotting the player.
 ## Easy: 0.5s - gives player more time to react after peeking from cover
-## Normal: 0.2s - default reaction time
-## Hard: 0.2s - same as normal (hard mode uses other mechanics)
+## Normal: 0.6s - slower reaction than easy, gives player even more time
+## Hard: 0.2s - quick reaction (hard mode uses other mechanics too)
 func get_detection_delay() -> float:
 	match current_difficulty:
 		Difficulty.EASY:
 			return 0.5
 		Difficulty.NORMAL:
-			return 0.2
+			return 0.6
 		Difficulty.HARD:
 			return 0.2
 		_:
-			return 0.2
+			return 0.6
 
 
 ## Save settings to file.

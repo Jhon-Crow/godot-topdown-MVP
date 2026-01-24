@@ -79,11 +79,11 @@ class MockDifficultyManager:
 			Difficulty.EASY:
 				return 0.5
 			Difficulty.NORMAL:
-				return 0.2
+				return 0.6
 			Difficulty.HARD:
 				return 0.2
 			_:
-				return 0.2
+				return 0.6
 
 
 var manager: MockDifficultyManager
@@ -265,15 +265,15 @@ func test_detection_delay_easy_mode() -> void:
 
 func test_detection_delay_normal_mode() -> void:
 	# Default is NORMAL
-	assert_eq(manager.get_detection_delay(), 0.2,
-		"Normal mode should have 0.2s detection delay")
+	assert_eq(manager.get_detection_delay(), 0.6,
+		"Normal mode should have 0.6s detection delay")
 
 
 func test_detection_delay_hard_mode() -> void:
 	manager.set_difficulty(MockDifficultyManager.Difficulty.HARD)
 
 	assert_eq(manager.get_detection_delay(), 0.2,
-		"Hard mode should have 0.2s detection delay (same as normal)")
+		"Hard mode should have 0.2s detection delay (fastest reaction)")
 
 
 # ============================================================================
