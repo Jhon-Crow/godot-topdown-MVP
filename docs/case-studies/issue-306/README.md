@@ -257,21 +257,86 @@ Changes made:
 - [Pull Request #156](https://github.com/Jhon-Crow/godot-topdown-MVP/pull/156) - Reference implementation
 - [Issue #66](https://github.com/Jhon-Crow/godot-topdown-MVP/issues/66) - Related FOV request
 
-## Status: RESOLVED
+## Problem 4: "Enemies Instantly Turn Outside FOV" (User Clarification Needed)
 
-All issues have been identified and fixed:
+### User Report (21:54 UTC):
+> "враги работают. враги мгновенно поворачиваются к игроку даже если он вне их поля зрения"
+> (enemies work. enemies instantly turn towards the player even if he is outside their field of view)
+
+### Log Analysis (game_log_20260125_005310.txt):
+
+```
+[ExperimentalSettings] ExperimentalSettings initialized - FOV enabled: false
+[BuildingLevel] Found Environment/Enemies node with 10 children
+[ScoreManager] Level started with 10 enemies
+```
+
+**Key Finding:** `FOV enabled: false`
+
+The user tested with **FOV disabled** (default setting). This is expected behavior:
+
+| FOV Setting | Enemy Vision | Behavior |
+|-------------|--------------|----------|
+| **Disabled** (default) | 360 degrees | Enemies see in all directions - instant turn is correct |
+| **Enabled** | 100 degrees | Enemies only see in front cone |
+
+### Resolution:
+This is **not a bug** - it's expected default behavior. User needs to:
+1. Press **Esc** → **Experimental** → Enable **Enemy FOV Limitation**
+2. Then test again with FOV active
+
+### Why FOV is Disabled by Default:
+
+The FOV feature is experimental and disabled by default for several reasons:
+1. **Backwards compatibility** - Existing gameplay behavior preserved
+2. **Difficulty change** - Limited FOV significantly reduces game difficulty
+3. **Testing period** - Feature needs validation before becoming default
+
+## Merge Conflict Resolution (January 24, 2026 ~22:00 UTC)
+
+### Conflict Source:
+Upstream main added new features (Issue #322 - SEARCHING state) that conflicted with our FOV changes in enemy.gd.
+
+### Resolution:
+- ✅ Merged upstream/main successfully
+- ✅ Preserved all FOV features from this branch
+- ✅ Integrated new SEARCHING state from upstream
+- ✅ Combined improved code comments from both branches
+
+### Files Modified:
+- `scripts/objects/enemy.gd` - Major merge (4993 lines after merge)
+- Various CI workflow files and case study documents from upstream
+
+## Status: RESOLVED (AWAITING USER CONFIRMATION)
+
+All technical issues have been identified and fixed:
 
 | Problem | Root Cause | Fix | Status |
 |---------|------------|-----|--------|
 | CI failure | enemy.gd > 5000 lines | Removed redundant comments/spacing | ✓ Fixed |
 | Enemies broken | Slow rotation for all modes | Hybrid: instant for combat, smooth for idle | ✓ Fixed |
 | 0 enemies detected | GDScript type inference error | Explicit `bool` type declaration | ✓ Fixed |
+| Merge conflicts | Upstream changes | Resolved all conflicts manually | ✓ Fixed |
+| "Instant turn" report | FOV was disabled | User education (enable FOV to test) | ⏳ Awaiting |
 
-**Latest Commit:** `3d26a88` - All 6 CI checks passing
+**Latest Commit:** `6f755be` - Merge upstream/main and resolve conflicts
 **Ready for Testing:** Download latest Windows build from [GitHub Actions](https://github.com/konard/Jhon-Crow-godot-topdown-MVP/actions?query=branch%3Aissue-306-47b23d61f66b)
+
+### Testing Instructions:
+
+1. **Download new build** from GitHub Actions (after CI completes)
+2. **Enable FOV:**
+   - Press **Esc** to open Pause Menu
+   - Click **Experimental**
+   - Check **Enemy FOV Limitation**
+   - Click **Back**
+3. **Verify FOV works:**
+   - Press **F7** to see green vision cones
+   - Approach enemies from behind - they should NOT see you
+   - Walk into their vision cone - they SHOULD detect you
 
 ---
 
-**Document Version**: 3.0
+**Document Version**: 4.0
 **Last Updated**: 2026-01-24
 **Updated By**: AI Issue Solver (Claude Code)
