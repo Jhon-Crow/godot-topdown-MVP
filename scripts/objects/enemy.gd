@@ -283,24 +283,13 @@ var _target_model_rotation: float = 0.0
 ## Whether the model is currently flipped for left-facing direction.
 var _model_facing_left: bool = false
 
-## Maximum rotation speed for the enemy model in radians per second.
-## This is the visual rotation speed (head/body turning), not aim speed.
-## 3.0 rad/s ≈ 172°/s - realistic human head turning speed.
-## Humans can turn their head about 90° in ~0.5 seconds.
+## Max model rotation speed (3.0 rad/s ≈ 172°/s - realistic head turning).
 const MODEL_ROTATION_SPEED: float = 3.0
 
-## --- IDLE Scanning Behavior (for GUARD enemies) ---
-## Timer for idle scanning - looking at different passages.
+## IDLE scanning state for GUARD enemies.
 var _idle_scan_timer: float = 0.0
-
-## Current scan target index in the list of scan targets.
 var _idle_scan_target_index: int = 0
-
-## List of scan target angles (radians) for GUARD enemies.
-## Populated when the enemy enters IDLE state based on nearby passages.
 var _idle_scan_targets: Array[float] = []
-
-## Interval between changing scan targets (seconds).
 const IDLE_SCAN_INTERVAL: float = 10.0
 
 ## Base positions for body parts (stored on ready for animation offsets).
@@ -1119,16 +1108,7 @@ func _update_goap_state() -> void:
 	_goap_world_state["player_distracted"] = _is_player_distracted()
 
 
-## Updates the enemy model rotation to face the aim/movement direction.
-## The enemy model (body, head, arms) rotates to follow the direction of movement or aim.
-## Note: Enemy sprites face RIGHT (0 radians), same as player sprites.
-##
-## IMPORTANT: When aiming at the player, we calculate the direction from the WEAPON position
-## to the player, not from the enemy center. This ensures the weapon barrel actually points
-## at the player, accounting for the weapon's offset from the enemy center.
-##
-## FIX for issue #66: Model rotation is now smooth (not instant) using MODEL_ROTATION_SPEED.
-## This provides realistic head/body turning speed.
+## Updates model rotation smoothly using MODEL_ROTATION_SPEED (fix for issue #66).
 func _update_enemy_model_rotation() -> void:
 	if not _enemy_model:
 		return
@@ -3720,102 +3700,43 @@ func _get_wall_avoidance_weight(direction: Vector2) -> float:
 	return lerpf(WALL_AVOIDANCE_MIN_WEIGHT, WALL_AVOIDANCE_MAX_WEIGHT, normalized_distance)
 
 
-## Check if a target position is within the enemy's field of view cone.
-## The FOV is centered on the enemy's current rotation (facing direction).
-## Returns true if position is in FOV, or if FOV checking is disabled.
-## FOV is only active if both the global ExperimentalSettings.fov_enabled
-## and this enemy's fov_enabled property are true.
+## Check if target is within FOV cone. FOV uses _enemy_model.global_rotation for facing.
 func _is_position_in_fov(target_pos: Vector2) -> bool:
-	# Check global experimental settings first
 	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
-	var global_fov_enabled := false
-	if experimental_settings and experimental_settings.has_method("is_fov_enabled"):
-		global_fov_enabled = experimental_settings.is_fov_enabled()
-
-	# If FOV is disabled globally or for this enemy, everything is visible
+	var global_fov_enabled := experimental_settings and experimental_settings.has_method("is_fov_enabled") and experimental_settings.is_fov_enabled()
 	if not global_fov_enabled or not fov_enabled or fov_angle <= 0.0:
-		return true
-
-	# Calculate direction to target
-	var direction_to_target := (target_pos - global_position).normalized()
-
-	# Get facing direction from enemy model's visual rotation (not CharacterBody2D rotation).
-	# The enemy model is what visually shows where the enemy is looking, so FOV should
-	# be based on that. We also need to account for sprite flipping (scale.y negative
-	# means facing left).
-	# FIX for issue #66: Previously used CharacterBody2D's rotation which was incorrect
-	# because the visual facing is controlled by _enemy_model.global_rotation.
+		return true  # FOV disabled - 360° vision
 	var facing_angle := _enemy_model.global_rotation if _enemy_model else rotation
-	var facing_vector := Vector2.from_angle(facing_angle)
-
-	# Calculate angle between facing direction and direction to target
-	# Using dot product: cos(angle) = a · b for normalized vectors
-	var dot := facing_vector.dot(direction_to_target)
-
-	# Clamp to handle floating point errors
-	dot = clampf(dot, -1.0, 1.0)
-
-	var angle_to_target := acos(dot)
-
-	# Check if angle is within half the FOV angle
-	var half_fov := deg_to_rad(fov_angle / 2.0)
-	return angle_to_target <= half_fov
+	var dir_to_target := (target_pos - global_position).normalized()
+	var dot := Vector2.from_angle(facing_angle).dot(dir_to_target)
+	var angle_to_target := rad_to_deg(acos(clampf(dot, -1.0, 1.0)))
+	var in_fov := angle_to_target <= fov_angle / 2.0
+	return in_fov
 
 
-## Check if the player is visible using raycast.
-## If detection_range is 0 or negative, uses unlimited detection range (line-of-sight only).
-## This allows the enemy to see the player even outside the viewport if there's no obstacle.
-## Also updates the continuous visibility timer and visibility ratio for lead prediction control.
-## Now includes FOV (field of view) angle check - player must be within the vision cone.
-## Uses multi-point visibility check to handle player near wall corners (issue #264).
+## Check player visibility with FOV and multi-point LOS check (issue #264).
 func _check_player_visibility() -> void:
-	var was_visible := _can_see_player
 	_can_see_player = false
 	_player_visibility_ratio = 0.0
-
-	# If blinded, cannot see player at all
-	if _is_blinded:
+	if _is_blinded or _player == null or not _raycast:
 		_continuous_visibility_timer = 0.0
 		return
-
-	if _player == null or not _raycast:
+	if detection_range > 0 and global_position.distance_to(_player.global_position) > detection_range:
 		_continuous_visibility_timer = 0.0
 		return
-
-	var distance_to_player := global_position.distance_to(_player.global_position)
-
-	# Check if player is within detection range (only if detection_range is positive)
-	# If detection_range <= 0, detection is unlimited (line-of-sight only)
-	if detection_range > 0 and distance_to_player > detection_range:
-		_continuous_visibility_timer = 0.0
-		return
-
-	# Check if player is within field of view angle (when FOV is enabled)
 	if not _is_position_in_fov(_player.global_position):
 		_continuous_visibility_timer = 0.0
 		return
-
-	# Check multiple points on the player's body (center + corners) to handle
-	# cases where player is near a wall corner. A single raycast to the center
-	# might hit the wall, but parts of the player's body could still be visible.
-	# This fixes the issue where enemies couldn't see players standing close to
-	# walls in narrow passages (issue #264).
 	var check_points := _get_player_check_points(_player.global_position)
 	var visible_count := 0
-
 	for point in check_points:
 		if _is_player_point_visible_to_enemy(point):
 			visible_count += 1
-			# If any part of the player is visible, we can see them
 			_can_see_player = true
-			# Continue checking to calculate visibility ratio
-
-	# Calculate visibility ratio based on how many points are visible
 	if _can_see_player:
 		_player_visibility_ratio = float(visible_count) / float(check_points.size())
 		_continuous_visibility_timer += get_physics_process_delta_time()
 	else:
-		# Lost line of sight - reset the timer and visibility ratio
 		_continuous_visibility_timer = 0.0
 		_player_visibility_ratio = 0.0
 
@@ -4115,81 +4036,42 @@ func _process_guard(delta: float) -> void:
 			])
 
 
-## Initialize scan targets for GUARD enemies.
-## Detects nearby passages/openings using raycasts and creates scan targets for them.
-## If no passages are detected, uses default cardinal directions.
+## Initialize scan targets - detects passages using raycasts, falls back to left/right.
 func _initialize_idle_scan_targets() -> void:
 	_idle_scan_targets.clear()
-
-	# Detect passages/openings using raycasts in all directions
 	var space_state := get_world_2d().direct_space_state
-	var check_distance := 500.0  # Distance to check for openings
-	var num_directions := 16  # Number of directions to check
 	var opening_angles: Array[float] = []
-
-	for i in range(num_directions):
-		var angle := (float(i) / float(num_directions)) * TAU
-		var direction := Vector2.from_angle(angle)
-		var end_point := global_position + direction * check_distance
-
-		var query := PhysicsRayQueryParameters2D.create(global_position, end_point)
-		query.collision_mask = 0b100  # Layer 3 (walls/obstacles)
+	for i in range(16):
+		var angle := (float(i) / 16.0) * TAU
+		var query := PhysicsRayQueryParameters2D.create(global_position, global_position + Vector2.from_angle(angle) * 500.0)
+		query.collision_mask = 0b100
 		query.exclude = [self]
-
 		var result := space_state.intersect_ray(query)
-
-		# If raycast doesn't hit anything within check_distance, it's likely an opening/passage
-		if result.is_empty():
+		if result.is_empty() or global_position.distance_to(result.position) > 200.0:
 			opening_angles.append(angle)
-		else:
-			# If hit is far away (> 200 pixels), it could be a wider opening
-			var hit_distance := global_position.distance_to(result.position)
-			if hit_distance > 200.0:
-				opening_angles.append(angle)
-
-	# Cluster nearby angles to find distinct passages
+	# Cluster angles within 30° into single targets
 	if opening_angles.size() > 0:
-		# Group angles that are within 30° of each other into single scan targets
 		var clusters: Array[Array] = []
 		opening_angles.sort()
-
 		for angle in opening_angles:
-			var found_cluster := false
+			var found := false
 			for cluster in clusters:
-				# Check if angle is close to any angle in cluster
-				var cluster_avg: float = 0.0
-				for a in cluster:
-					cluster_avg += a
-				cluster_avg /= cluster.size()
-
-				var diff := wrapf(angle - cluster_avg, -PI, PI)
-				if abs(diff) < deg_to_rad(30.0):
+				var avg: float = 0.0
+				for a in cluster: avg += a
+				avg /= cluster.size()
+				if abs(wrapf(angle - avg, -PI, PI)) < deg_to_rad(30.0):
 					cluster.append(angle)
-					found_cluster = true
+					found = true
 					break
-
-			if not found_cluster:
-				clusters.append([angle])
-
-		# Use cluster centers as scan targets
+			if not found: clusters.append([angle])
 		for cluster in clusters:
-			var avg_angle: float = 0.0
-			for a in cluster:
-				avg_angle += a
-			avg_angle /= cluster.size()
-			_idle_scan_targets.append(avg_angle)
-
-	# If no passages found or only one, use default directions
+			var avg: float = 0.0
+			for a in cluster: avg += a
+			_idle_scan_targets.append(avg / cluster.size())
 	if _idle_scan_targets.size() < 2:
-		_idle_scan_targets.clear()
-		# Default: look left and right
-		_idle_scan_targets.append(0.0)      # Right
-		_idle_scan_targets.append(PI)       # Left
-
-	# Randomize starting target
+		_idle_scan_targets = [0.0, PI]
 	_idle_scan_target_index = randi() % _idle_scan_targets.size()
-
-	_log_debug("Initialized %d scan targets for GUARD behavior" % _idle_scan_targets.size())
+	_log_debug("Initialized %d scan targets" % _idle_scan_targets.size())
 
 
 ## Called when a bullet enters the threat sphere.
@@ -4938,61 +4820,23 @@ func _draw() -> void:
 			draw_line(flank_pos + Vector2(-8, 0), flank_pos + Vector2(0, -8), color_flank, 2.0)
 
 
-## Draw the field of view cone for debug visualization.
-## The cone is drawn from the enemy's position in the direction they're facing.
+## Draw FOV cone for debug visualization.
 func _draw_fov_cone(fill_color: Color, edge_color: Color) -> void:
-	# FOV cone parameters
 	var half_fov := deg_to_rad(fov_angle / 2.0)
-	var cone_length := 400.0  # Length of the FOV cone visualization
-
-	# Calculate the two edge points of the FOV cone
-	# The cone is relative to local space (rotation is applied by the node's transform)
-	# Since _draw() draws in local space and the node is rotated, we need to account for this
-	# The facing direction in local space is always Vector2.RIGHT (1, 0)
-	# We need to counter-rotate by the node's rotation to draw correctly
-
-	# Get the facing direction (in local space, taking into account the node's rotation)
-	var facing_angle := 0.0  # In local space, facing is always 0 (right)
-
-	# Calculate cone edge directions (relative to facing direction)
-	var left_edge_angle := facing_angle - half_fov
-	var right_edge_angle := facing_angle + half_fov
-
-	var left_edge_dir := Vector2.from_angle(left_edge_angle)
-	var right_edge_dir := Vector2.from_angle(right_edge_angle)
-
-	# Calculate end points of the cone
-	var left_end := left_edge_dir * cone_length
-	var right_end := right_edge_dir * cone_length
-
-	# Draw filled cone using polygon (triangle fan approximation)
-	var cone_points: PackedVector2Array = []
-	cone_points.append(Vector2.ZERO)  # Center point (enemy position)
-
-	# Add points along the arc for a smoother cone
+	var cone_length := 400.0
+	var left_end := Vector2.from_angle(-half_fov) * cone_length
+	var right_end := Vector2.from_angle(half_fov) * cone_length
+	var cone_points: PackedVector2Array = [Vector2.ZERO]
 	var arc_segments := 16
 	for i in range(arc_segments + 1):
-		var t := float(i) / float(arc_segments)
-		var angle := left_edge_angle + t * (right_edge_angle - left_edge_angle)
-		var point := Vector2.from_angle(angle) * cone_length
-		cone_points.append(point)
-
-	# Draw the filled polygon
+		cone_points.append(Vector2.from_angle(-half_fov + (float(i) / arc_segments) * 2 * half_fov) * cone_length)
 	draw_colored_polygon(cone_points, fill_color)
-
-	# Draw cone edges
 	draw_line(Vector2.ZERO, left_end, edge_color, 2.0)
 	draw_line(Vector2.ZERO, right_end, edge_color, 2.0)
-
-	# Draw arc at the end of the cone
 	for i in range(arc_segments):
-		var t1 := float(i) / float(arc_segments)
-		var t2 := float(i + 1) / float(arc_segments)
-		var angle1 := left_edge_angle + t1 * (right_edge_angle - left_edge_angle)
-		var angle2 := left_edge_angle + t2 * (right_edge_angle - left_edge_angle)
-		var p1 := Vector2.from_angle(angle1) * cone_length
-		var p2 := Vector2.from_angle(angle2) * cone_length
-		draw_line(p1, p2, edge_color, 1.5)
+		var a1 := -half_fov + (float(i) / arc_segments) * 2 * half_fov
+		var a2 := -half_fov + (float(i + 1) / arc_segments) * 2 * half_fov
+		draw_line(Vector2.from_angle(a1) * cone_length, Vector2.from_angle(a2) * cone_length, edge_color, 1.5)
 
 
 ## Check if the player is "distracted" (not aiming at the enemy).
