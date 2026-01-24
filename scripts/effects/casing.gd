@@ -23,6 +23,13 @@ var _auto_land_timer: float = 0.0
 ## Time before casing automatically "lands" and stops moving.
 const AUTO_LAND_TIME: float = 2.0
 
+## Stores velocity before time freeze (to restore after unfreeze).
+var _frozen_linear_velocity: Vector2 = Vector2.ZERO
+var _frozen_angular_velocity: float = 0.0
+
+## Whether the casing is currently frozen in time.
+var _is_time_frozen: bool = false
+
 
 func _ready() -> void:
 	# Connect to collision signals to detect landing
@@ -36,6 +43,12 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	# If time is frozen, maintain frozen state (velocity should stay at zero)
+	if _is_time_frozen:
+		linear_velocity = Vector2.ZERO
+		angular_velocity = 0.0
+		return
+
 	# Handle lifetime if set
 	if lifetime > 0:
 		_lifetime_timer += delta
@@ -104,3 +117,37 @@ func _on_body_entered(body: Node2D) -> void:
 	# Only consider landing if we hit a static body (ground/walls)
 	if body is StaticBody2D or body is TileMap:
 		_land()
+
+
+## Freezes the casing's movement during time stop effects.
+## Called by LastChanceEffectsManager or other time-manipulation systems.
+func freeze_time() -> void:
+	if _is_time_frozen:
+		return
+
+	# Store current velocities to restore later
+	_frozen_linear_velocity = linear_velocity
+	_frozen_angular_velocity = angular_velocity
+
+	# Stop all movement
+	linear_velocity = Vector2.ZERO
+	angular_velocity = 0.0
+
+	# Mark as frozen
+	_is_time_frozen = true
+
+
+## Unfreezes the casing's movement after time stop effects end.
+## Called by LastChanceEffectsManager or other time-manipulation systems.
+func unfreeze_time() -> void:
+	if not _is_time_frozen:
+		return
+
+	# Restore velocities from before the freeze
+	linear_velocity = _frozen_linear_velocity
+	angular_velocity = _frozen_angular_velocity
+
+	# Clear frozen state
+	_is_time_frozen = false
+	_frozen_linear_velocity = Vector2.ZERO
+	_frozen_angular_velocity = 0.0
