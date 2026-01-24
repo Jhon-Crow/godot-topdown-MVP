@@ -187,9 +187,19 @@ func is_safe_throw_distance(throw_origin: Vector2, target_pos: Vector2) -> bool:
 
 
 ## Check if there's a wall blocking the throw path from origin to target.
-## Returns true if the path is CLEAR (no wall blocking), false if blocked.
-## This prevents enemies from throwing grenades at walls point-blank.
-func is_throw_path_clear(throw_origin: Vector2, target_pos: Vector2) -> bool:
+## Returns true if the path is CLEAR and the grenade can be effective, false if blocked.
+## This prevents enemies from throwing grenades into walls where neither shockwave
+## nor shrapnel can reach the target position.
+##
+## Per issue #295 user feedback: Use RayCast from enemy to the THROW LANDING POINT,
+## not to the player. If the ray hits an obstacle before the target, don't throw
+## because the grenade will explode at the wall and the blast won't reach the target.
+##
+## Parameters:
+## - throw_origin: Position where the enemy is throwing from
+## - target_pos: Target position (where the grenade should land/affect)
+## - grenade_type: Optional - the type of grenade to check (defaults to best available)
+func is_throw_path_clear(throw_origin: Vector2, target_pos: Vector2, grenade_type: int = -1) -> bool:
 	var parent_node: Node = get_parent()
 	if parent_node == null:
 		return true  # Fail-open if no parent
@@ -218,6 +228,7 @@ func is_throw_path_clear(throw_origin: Vector2, target_pos: Vector2) -> bool:
 		return false
 
 	# Second check: Is there a wall between spawn position and target?
+	# If grenade hits a wall, it will explode there - check if blast can reach target
 	var target_check := PhysicsRayQueryParameters2D.new()
 	target_check.from = spawn_pos
 	target_check.to = target_pos
@@ -225,30 +236,58 @@ func is_throw_path_clear(throw_origin: Vector2, target_pos: Vector2) -> bool:
 
 	var target_result: Dictionary = space_state.intersect_ray(target_check)
 	if not target_result.is_empty():
-		# Check if the wall is very close (point-blank situation)
-		var hit_position: Vector2 = target_result["position"]
-		var distance_to_wall := spawn_pos.distance_to(hit_position)
-		var distance_to_target := spawn_pos.distance_to(target_pos)
+		var wall_hit_position: Vector2 = target_result["position"]
+		var distance_to_wall := spawn_pos.distance_to(wall_hit_position)
 
 		# If wall is less than 50 pixels away, it's point-blank - don't throw
 		if distance_to_wall < 50.0:
 			_log("Grenade throw blocked: wall point-blank (%.1f pixels away)" % distance_to_wall)
 			return false
 
-		# If wall blocks more than 80% of the path, don't throw
-		if distance_to_wall < distance_to_target * 0.2:
-			_log("Grenade throw blocked: wall blocking throw path (%.1f%% of distance)" % [(distance_to_wall / distance_to_target) * 100])
+		# The grenade will explode at wall_hit_position when it impacts
+		# Check if the blast radius from that point can reach the target
+		var actual_grenade_type := grenade_type if grenade_type >= 0 else get_best_grenade_type()
+		var blast_radius := get_blast_radius_for_type(actual_grenade_type)
+		var wall_to_target_distance := wall_hit_position.distance_to(target_pos)
+
+		# If target is outside blast radius from wall impact point, don't throw
+		if wall_to_target_distance > blast_radius:
+			_log("Grenade throw blocked: wall impact at (%.0f, %.0f), target is %.1f px away, blast radius is %.1f px" % [
+				wall_hit_position.x, wall_hit_position.y, wall_to_target_distance, blast_radius])
 			return false
+
+		# Even if target is within blast radius distance, wall may still block blast line of sight
+		# Check if there's a clear line from wall impact point to target
+		var blast_check := PhysicsRayQueryParameters2D.new()
+		blast_check.from = wall_hit_position
+		blast_check.to = target_pos
+		blast_check.collision_mask = 4  # Obstacles
+
+		var blast_result: Dictionary = space_state.intersect_ray(blast_check)
+		if not blast_result.is_empty():
+			# Wall blocks the blast from reaching target
+			_log("Grenade throw blocked: blast from wall impact (%.0f, %.0f) cannot reach target (wall blocks line of sight)" % [
+				wall_hit_position.x, wall_hit_position.y])
+			return false
+
+		# Blast can reach target from wall impact point - allow throw
+		_log("Grenade throw approved: wall impact at (%.0f, %.0f) but blast can reach target (%.1f px away, radius %.1f px)" % [
+			wall_hit_position.x, wall_hit_position.y, wall_to_target_distance, blast_radius])
 
 	return true
 
 
-## Get the blast radius for the currently selected grenade type.
-func get_current_blast_radius() -> float:
-	if _type_to_throw == GrenadeType.OFFENSIVE:
+## Get the blast radius for a specific grenade type.
+func get_blast_radius_for_type(grenade_type: int) -> float:
+	if grenade_type == GrenadeType.OFFENSIVE:
 		return frag_blast_radius
 	else:
 		return flashbang_blast_radius
+
+
+## Get the blast radius for the currently selected grenade type.
+func get_current_blast_radius() -> float:
+	return get_blast_radius_for_type(_type_to_throw)
 
 
 ## Check if a grenade throw should be triggered.
