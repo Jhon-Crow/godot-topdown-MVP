@@ -11,7 +11,8 @@ extends Sprite2D
 @export var fade_duration: float = 5.0
 
 ## Whether the decal should fade out over time.
-@export var auto_fade: bool = true
+## Disabled by default per issue #293 - puddles should never disappear.
+@export var auto_fade: bool = false
 
 ## Initial alpha value.
 var _initial_alpha: float = 0.85

@@ -26,7 +26,8 @@ const MIN_EFFECT_SCALE: float = 0.3
 const MAX_EFFECT_SCALE: float = 2.0
 
 ## Maximum number of blood decals before oldest ones are removed.
-const MAX_BLOOD_DECALS: int = 500
+## Set to 0 for unlimited decals (puddles should never disappear per issue #293).
+const MAX_BLOOD_DECALS: int = 0
 
 ## Minimum distance between decals before they start merging (in pixels).
 const DECAL_MERGE_DISTANCE: float = 12.0
@@ -52,6 +53,13 @@ const SATELLITE_DROPS_PER_MAIN: int = 3
 
 ## Distance threshold to consider a drop as "outermost" (percentile from center).
 const OUTERMOST_DROP_PERCENTILE: float = 0.7
+
+## Minimum distance between satellite drops and existing drops to prevent overlap.
+const SATELLITE_MIN_SEPARATION: float = 4.0
+
+## Edge drop scaling: drops at the edge are scaled down by this factor.
+## Drops at center = 1.0, drops at edge = this value.
+const EDGE_DROP_SCALE_MIN: float = 0.4
 
 ## Probability of spawning crown/blossom spines around larger drops.
 const CROWN_EFFECT_PROBABILITY: float = 0.25
@@ -408,6 +416,7 @@ func _spawn_blood_decals_at_particle_landing(origin: Vector2, hit_direction: Vec
 ## Checks for wall collisions to prevent decals from appearing through walls.
 ## Decals are spawned with a delay matching when particles would "land".
 ## Nearby drops are merged into unified splatters, and drops are elongated based on velocity.
+## Edge drops (farther from center) are scaled smaller for realistic blood pattern.
 func _spawn_decals_with_params(origin: Vector2, hit_direction: Vector2, initial_velocity_min: float, initial_velocity_max: float, gravity: Vector2, spread_angle: float, lifetime: float, count: int) -> void:
 	# Base direction (effect rotation is in the hit direction)
 	var base_angle: float = hit_direction.angle()
@@ -437,8 +446,19 @@ func _spawn_decals_with_params(origin: Vector2, hit_direction: Vector2, initial_
 			"merged": false
 		})
 
+	# Calculate spread metrics for edge-based scaling
+	# Drops closer to edge should be smaller (per issue #293 feedback)
+	var max_distance_from_origin: float = 0.0
+	for particle in particle_data:
+		var dist: float = origin.distance_to(particle["position"])
+		if dist > max_distance_from_origin:
+			max_distance_from_origin = dist
+
 	# Second pass: cluster nearby drops into merged splatters
 	var merged_splatters: Array = _cluster_drops_into_splatters(particle_data)
+
+	# Track all spawned positions for satellite overlap checking
+	var spawned_positions: Array = []
 
 	# Third pass: spawn individual drops with directional elongation and merged splatters
 	var decals_scheduled := 0
@@ -452,6 +472,13 @@ func _spawn_decals_with_params(origin: Vector2, hit_direction: Vector2, initial_
 		var drop_count: int = splatter["count"]
 		var earliest_land_time: float = splatter["earliest_land_time"]
 
+		# Calculate distance-based edge scaling
+		# Merged splatters near center are larger, near edge are smaller
+		var dist_from_origin: float = origin.distance_to(center_pos)
+		var edge_factor: float = 1.0
+		if max_distance_from_origin > 0.0:
+			edge_factor = 1.0 - ((dist_from_origin / max_distance_from_origin) * (1.0 - EDGE_DROP_SCALE_MIN))
+
 		# Calculate directional elongation based on velocity
 		var speed: float = avg_velocity.length()
 		# Elongation factor: faster drops are more elongated (splashed)
@@ -461,7 +488,8 @@ func _spawn_decals_with_params(origin: Vector2, hit_direction: Vector2, initial_
 		var base_rotation: float = avg_velocity.angle() if speed > 10.0 else randf() * TAU
 
 		# Scale based on number of merged drops (more drops = larger splatter)
-		var base_scale: float = 0.8 + (drop_count * 0.12)
+		# Apply edge factor: drops at edge are smaller
+		var base_scale: float = (0.8 + (drop_count * 0.12)) * edge_factor
 
 		# For merged puddles with 3+ drops, create complex blob by spawning multiple overlapping decals
 		# This creates the "unified blob with gradient contour" effect requested
@@ -495,6 +523,7 @@ func _spawn_decals_with_params(origin: Vector2, hit_direction: Vector2, initial_
 			var time_offset: float = k * 0.01
 
 			_schedule_delayed_decal_directional(origin, decal_pos, decal_rotation, decal_scale_x, decal_scale_y, earliest_land_time + time_offset)
+			spawned_positions.append(decal_pos)
 			decals_scheduled += 1
 
 	# Spawn remaining individual drops with directional elongation
@@ -506,6 +535,13 @@ func _spawn_decals_with_params(origin: Vector2, hit_direction: Vector2, initial_
 		var velocity: Vector2 = particle["velocity"]
 		var land_time: float = particle["land_time"]
 
+		# Calculate distance-based edge scaling
+		# Drops closer to edge are smaller (per issue #293 feedback)
+		var dist_from_origin: float = origin.distance_to(landing_pos)
+		var edge_factor: float = 1.0
+		if max_distance_from_origin > 0.0:
+			edge_factor = 1.0 - ((dist_from_origin / max_distance_from_origin) * (1.0 - EDGE_DROP_SCALE_MIN))
+
 		# Calculate directional elongation based on velocity
 		var speed: float = velocity.length()
 		# Elongation factor: faster drops are more elongated (splashed)
@@ -514,12 +550,13 @@ func _spawn_decals_with_params(origin: Vector2, hit_direction: Vector2, initial_
 		# Rotation aligned with velocity direction for splash effect
 		var decal_rotation: float = velocity.angle() if speed > 10.0 else randf() * TAU
 
-		# Random scale with elongation applied
-		var base_scale: float = randf_range(0.6, 1.2)
+		# Random scale with elongation applied, multiplied by edge factor
+		var base_scale: float = randf_range(0.6, 1.2) * edge_factor
 		var decal_scale_x: float = base_scale * elongation
 		var decal_scale_y: float = base_scale
 
 		_schedule_delayed_decal_directional(origin, landing_pos, decal_rotation, decal_scale_x, decal_scale_y, land_time)
+		spawned_positions.append(landing_pos)
 		decals_scheduled += 1
 
 		# Crown/blossom effect: larger drops may have radiating spines
@@ -529,7 +566,8 @@ func _spawn_decals_with_params(origin: Vector2, hit_direction: Vector2, initial_
 			decals_scheduled += crown_count
 
 	# Fourth pass: spawn satellite drops near outermost drops for realistic secondary spatter
-	var satellite_count := _spawn_satellite_drops(origin, particle_data, merged_splatters)
+	# Pass spawned_positions to avoid overlap with existing drops
+	var satellite_count := _spawn_satellite_drops(origin, particle_data, merged_splatters, spawned_positions)
 	decals_scheduled += satellite_count
 
 	_log_info("Blood decals scheduled: %d (%d merged splatters, %d satellite drops)" % [decals_scheduled, merged_splatters.size(), satellite_count])
@@ -607,8 +645,9 @@ func _cluster_drops_into_splatters(particle_data: Array) -> Array:
 ## @param origin: The origin point of the blood spray.
 ## @param particle_data: Array of particle landing data.
 ## @param merged_splatters: Array of merged splatter data.
+## @param existing_positions: Array of already spawned drop positions to avoid overlap.
 ## @return: Number of satellite drops spawned.
-func _spawn_satellite_drops(origin: Vector2, particle_data: Array, merged_splatters: Array) -> int:
+func _spawn_satellite_drops(origin: Vector2, particle_data: Array, merged_splatters: Array, existing_positions: Array = []) -> int:
 	if _blood_decal_scene == null:
 		return 0
 
@@ -643,6 +682,9 @@ func _spawn_satellite_drops(origin: Vector2, particle_data: Array, merged_splatt
 	var threshold_index := int(sorted_distances.size() * OUTERMOST_DROP_PERCENTILE)
 	var distance_threshold: float = sorted_distances[threshold_index] if threshold_index < sorted_distances.size() else 0.0
 
+	# Track all positions (existing + newly spawned satellites) for overlap checking
+	var all_positions: Array = existing_positions.duplicate()
+
 	# Spawn satellite drops near outermost drops
 	for i in range(valid_drops.size()):
 		if distances[i] < distance_threshold:
@@ -659,16 +701,36 @@ func _spawn_satellite_drops(origin: Vector2, particle_data: Array, merged_splatt
 
 		# Spawn multiple small satellite drops around this main drop
 		for _j in range(SATELLITE_DROPS_PER_MAIN):
-			# Random angle, biased toward the direction of velocity (splash direction)
-			var velocity_angle: float = drop_velocity.angle() if drop_velocity.length() > 10.0 else randf() * TAU
-			var angle_spread: float = PI * 0.8  # Allow satellites in a wide arc
-			var satellite_angle: float = velocity_angle + randf_range(-angle_spread, angle_spread)
+			# Try multiple times to find a non-overlapping position
+			var satellite_pos: Vector2 = Vector2.ZERO
+			var found_valid_position := false
 
-			# Random distance from parent drop
-			var satellite_dist: float = randf_range(SATELLITE_DROP_MIN_DISTANCE, SATELLITE_DROP_MAX_DISTANCE)
+			for _attempt in range(5):  # Try up to 5 times to find valid position
+				# Random angle, biased toward the direction of velocity (splash direction)
+				var velocity_angle: float = drop_velocity.angle() if drop_velocity.length() > 10.0 else randf() * TAU
+				var angle_spread: float = PI * 0.8  # Allow satellites in a wide arc
+				var satellite_angle: float = velocity_angle + randf_range(-angle_spread, angle_spread)
 
-			# Calculate satellite position
-			var satellite_pos: Vector2 = drop_pos + Vector2.RIGHT.rotated(satellite_angle) * satellite_dist
+				# Random distance from parent drop
+				var satellite_dist: float = randf_range(SATELLITE_DROP_MIN_DISTANCE, SATELLITE_DROP_MAX_DISTANCE)
+
+				# Calculate satellite position
+				satellite_pos = drop_pos + Vector2.RIGHT.rotated(satellite_angle) * satellite_dist
+
+				# Check if position overlaps with any existing drop
+				var has_overlap := false
+				for existing_pos in all_positions:
+					if satellite_pos.distance_to(existing_pos) < SATELLITE_MIN_SEPARATION:
+						has_overlap = true
+						break
+
+				if not has_overlap:
+					found_valid_position = true
+					break
+
+			# Skip this satellite if we couldn't find a valid position
+			if not found_valid_position:
+				continue
 
 			# Random small scale for satellite drops
 			var satellite_scale: float = randf_range(SATELLITE_DROP_SCALE_MIN, SATELLITE_DROP_SCALE_MAX)
@@ -681,6 +743,9 @@ func _spawn_satellite_drops(origin: Vector2, particle_data: Array, merged_splatt
 
 			# Schedule the satellite decal
 			_schedule_delayed_decal_directional(origin, satellite_pos, satellite_rotation, satellite_scale, satellite_scale, satellite_delay)
+
+			# Track this position to avoid future overlaps
+			all_positions.append(satellite_pos)
 			satellite_count += 1
 
 	return satellite_count
@@ -776,14 +841,15 @@ func _schedule_delayed_decal_directional(origin: Vector2, landing_pos: Vector2, 
 	# Add to scene
 	_add_effect_to_scene(decal)
 
-	# Track decal for cleanup
+	# Track decal for cleanup (only if limit is enabled)
 	_blood_decals.append(decal)
 
-	# Remove oldest decals if limit exceeded
-	while _blood_decals.size() > MAX_BLOOD_DECALS:
-		var oldest := _blood_decals.pop_front() as Node2D
-		if oldest and is_instance_valid(oldest):
-			oldest.queue_free()
+	# Remove oldest decals if limit exceeded (0 = unlimited, no cleanup)
+	if MAX_BLOOD_DECALS > 0:
+		while _blood_decals.size() > MAX_BLOOD_DECALS:
+			var oldest := _blood_decals.pop_front() as Node2D
+			if oldest and is_instance_valid(oldest):
+				oldest.queue_free()
 
 	if _debug_effects:
 		print("[ImpactEffectsManager] Directional blood decal spawned at ", landing_pos, " scale=", Vector2(scale_x, scale_y))
@@ -836,14 +902,15 @@ func _schedule_delayed_decal(origin: Vector2, landing_pos: Vector2, decal_rotati
 	# Add to scene
 	_add_effect_to_scene(decal)
 
-	# Track decal for cleanup
+	# Track decal for cleanup (only if limit is enabled)
 	_blood_decals.append(decal)
 
-	# Remove oldest decals if limit exceeded
-	while _blood_decals.size() > MAX_BLOOD_DECALS:
-		var oldest := _blood_decals.pop_front() as Node2D
-		if oldest and is_instance_valid(oldest):
-			oldest.queue_free()
+	# Remove oldest decals if limit exceeded (0 = unlimited, no cleanup)
+	if MAX_BLOOD_DECALS > 0:
+		while _blood_decals.size() > MAX_BLOOD_DECALS:
+			var oldest := _blood_decals.pop_front() as Node2D
+			if oldest and is_instance_valid(oldest):
+				oldest.queue_free()
 
 	if _debug_effects:
 		print("[ImpactEffectsManager] Delayed blood decal spawned at ", landing_pos)
@@ -932,14 +999,15 @@ func _spawn_wall_blood_splatter(hit_position: Vector2, hit_direction: Vector2, i
 	# Add to scene
 	_add_effect_to_scene(splatter)
 
-	# Track as blood decal for cleanup
+	# Track as blood decal for cleanup (only if limit is enabled)
 	_blood_decals.append(splatter)
 
-	# Remove oldest decals if limit exceeded
-	while _blood_decals.size() > MAX_BLOOD_DECALS:
-		var oldest := _blood_decals.pop_front() as Node2D
-		if oldest and is_instance_valid(oldest):
-			oldest.queue_free()
+	# Remove oldest decals if limit exceeded (0 = unlimited, no cleanup)
+	if MAX_BLOOD_DECALS > 0:
+		while _blood_decals.size() > MAX_BLOOD_DECALS:
+			var oldest := _blood_decals.pop_front() as Node2D
+			if oldest and is_instance_valid(oldest):
+				oldest.queue_free()
 
 	if _debug_effects:
 		print("[ImpactEffectsManager] Wall blood splatter spawned at ", wall_hit_pos)

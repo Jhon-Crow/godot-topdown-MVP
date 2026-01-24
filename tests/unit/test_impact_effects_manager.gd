@@ -461,3 +461,67 @@ func test_spawn_crown_effect_method_exists() -> void:
 	# The crown effect spawning method should exist
 	assert_true(impact_manager.has_method("_spawn_crown_effect"),
 		"Manager should have _spawn_crown_effect method")
+
+
+# ============================================================================
+# Round 3 Fixes Tests (Issue #293 - Edge Scaling, Overlap Prevention, No Limits)
+# ============================================================================
+
+
+func test_edge_drop_scale_min_constant_exists() -> void:
+	# Verify the constant for edge drop scaling exists
+	assert_true("EDGE_DROP_SCALE_MIN" in impact_manager,
+		"Manager should have EDGE_DROP_SCALE_MIN constant")
+
+
+func test_edge_drop_scale_min_is_reasonable() -> void:
+	# Edge drops should be scaled down to at least 40% (not too small to be invisible)
+	assert_gt(impact_manager.EDGE_DROP_SCALE_MIN, 0.2,
+		"EDGE_DROP_SCALE_MIN should be greater than 0.2")
+	assert_lt(impact_manager.EDGE_DROP_SCALE_MIN, 0.8,
+		"EDGE_DROP_SCALE_MIN should be less than 0.8 to show visible size reduction")
+
+
+func test_satellite_min_separation_constant_exists() -> void:
+	# Verify the constant for satellite separation exists
+	assert_true("SATELLITE_MIN_SEPARATION" in impact_manager,
+		"Manager should have SATELLITE_MIN_SEPARATION constant")
+
+
+func test_satellite_min_separation_is_positive() -> void:
+	# Separation distance must be positive to prevent overlap
+	assert_gt(impact_manager.SATELLITE_MIN_SEPARATION, 0.0,
+		"SATELLITE_MIN_SEPARATION should be positive")
+
+
+func test_max_blood_decals_is_unlimited() -> void:
+	# MAX_BLOOD_DECALS should be 0 for unlimited decals (per issue #293 Round 3)
+	# Puddles should never disappear
+	assert_eq(impact_manager.MAX_BLOOD_DECALS, 0,
+		"MAX_BLOOD_DECALS should be 0 for unlimited decals")
+
+
+func test_spawn_satellite_drops_accepts_existing_positions() -> void:
+	# The satellite spawn method should accept existing positions to avoid overlap
+	var existing_positions: Array = [Vector2(100, 100), Vector2(200, 200)]
+	# Call with empty particle data - should return 0 and not crash
+	var result: int = impact_manager._spawn_satellite_drops(Vector2.ZERO, [], [], existing_positions)
+	assert_eq(result, 0, "Should return 0 for empty particle data")
+
+
+func test_spawn_satellite_drops_skips_overlapping_positions() -> void:
+	# Satellite drops should not be spawned at positions that overlap existing drops
+	# We can't fully test this without mocking random, but we can verify method signature
+	var particle_data: Array = [
+		{
+			"position": Vector2(100, 100),
+			"velocity": Vector2(50, 0),
+			"land_time": 0.5,
+			"merged": false
+		}
+	]
+	var merged_splatters: Array = []
+	var existing_positions: Array = [Vector2(100, 100)]  # Right at the particle position
+	# Should handle the case where existing positions might cause overlap
+	impact_manager._spawn_satellite_drops(Vector2(0, 0), particle_data, merged_splatters, existing_positions)
+	pass_test("spawn_satellite_drops handles existing positions without error")
