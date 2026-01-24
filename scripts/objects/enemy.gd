@@ -629,11 +629,9 @@ const INTEL_SHARE_RANGE_NO_LOS: float = 300.0
 var _intel_share_timer: float = 0.0
 const INTEL_SHARE_INTERVAL: float = 0.5  ## Share intel every 0.5 seconds
 
-## Timer for memory reset confusion effect (Issue #318).
-## When memory is reset (e.g., last chance teleport), enemies cannot see the player
-## for a brief moment, simulating "confusion" from the player's apparent teleportation.
+## Timer for memory reset confusion effect (Issue #318). Blocks visibility after teleport.
 var _memory_reset_confusion_timer: float = 0.0
-const MEMORY_RESET_CONFUSION_DURATION: float = 0.5  ## 0.5 seconds of confusion
+const MEMORY_RESET_CONFUSION_DURATION: float = 0.5
 
 ## --- Score Tracking ---
 ## Whether the last hit that killed this enemy was from a ricocheted bullet.
@@ -1067,12 +1065,8 @@ func _physics_process(delta: float) -> void:
 			_flank_fail_count = 0
 
 	# Update memory reset confusion timer (Issue #318)
-	# When confused, enemy cannot see player for a brief period after teleportation
 	if _memory_reset_confusion_timer > 0.0:
-		_memory_reset_confusion_timer -= delta
-		if _memory_reset_confusion_timer <= 0.0:
-			_memory_reset_confusion_timer = 0.0
-			_log_debug("Memory reset confusion ended")
+		_memory_reset_confusion_timer = maxf(0.0, _memory_reset_confusion_timer - delta)
 
 	# Check for player visibility and try to find player if not found
 	if _player == null:
@@ -2352,16 +2346,13 @@ func _process_pursuing_state(delta: float) -> void:
 					_pursuit_approaching = false
 					return
 
-			# Use navigation-based pathfinding to move toward target position (Issue #318)
-			# Uses _get_target_position() instead of _player.global_position to respect memory
+			# Use navigation to move toward target position (Issue #318)
 			var target_pos := _get_target_position()
 			if target_pos != global_position:
 				_move_to_target_nav(target_pos, combat_move_speed)
 			else:
-				# No valid target position - transition to IDLE
-				_log_debug("No valid target during approach, transitioning to IDLE")
 				_pursuit_approaching = false
-				_transition_to_idle()
+				_transition_to_idle()  # No valid target
 		return
 
 	# Check if we're waiting at cover
@@ -3144,28 +3135,15 @@ func _is_player_close() -> bool:
 		return false
 	return global_position.distance_to(_player.global_position) <= CLOSE_COMBAT_DISTANCE
 
-## Get the best known target position to move toward (Issue #297, #318).
-## Priority: 1. Direct player position (if visible), 2. Memory suspected position, 3. Last known position
-## Returns current position if no valid target is available (enemy stays in place).
-## NOTE: The fallback to direct player position was removed (Issue #318) to prevent
-## enemies from "magically" knowing the player's position when memory is reset.
+## Get target position: visible player > memory > last known > stay in place (Issue #297, #318).
 func _get_target_position() -> Vector2:
-	# If we can see the player, use their actual position
 	if _can_see_player and _player:
 		return _player.global_position
-
-	# If memory has a target with reasonable confidence, use that
 	if _memory and _memory.has_target():
 		return _memory.suspected_position
-
-	# Fallback to legacy last known position
 	if _last_known_player_position != Vector2.ZERO:
 		return _last_known_player_position
-
-	# No valid target - stay in place (Issue #318)
-	# Previously this fell back to _player.global_position, which allowed enemies
-	# to "magically" know the player's position even without visual/audio contact.
-	return global_position
+	return global_position  # No valid target - stay in place
 
 ## Check if the enemy can hit the player from their current position.
 ## Returns true if there's a clear line of fire to the player.
@@ -3725,8 +3703,7 @@ func _check_player_visibility() -> void:
 		_continuous_visibility_timer = 0.0
 		return
 
-	# If confused from memory reset (last chance teleport), cannot see player (Issue #318)
-	# This prevents enemies from immediately re-acquiring the player after teleportation
+	# If confused from memory reset, cannot see player (Issue #318)
 	if _memory_reset_confusion_timer > 0.0:
 		_continuous_visibility_timer = 0.0
 		return
@@ -3836,37 +3813,19 @@ func receive_intel_from_ally(ally_memory: EnemyMemory) -> void:
 		_last_known_player_position = _memory.suspected_position
 
 
-## Reset enemy memory - called when player "teleports" during last chance effect (Issue #318).
-## This makes the enemy forget the player's last known position, forcing them to
-## re-acquire the player through visual contact or sound detection.
-## Also resets visibility state and applies a confusion period to prevent immediate re-acquisition.
+## Reset enemy memory for last chance teleport effect (Issue #318).
+## Clears memory, resets visibility, applies confusion cooldown, and transitions to IDLE.
 func reset_memory() -> void:
 	if _memory != null:
 		_memory.reset()
 		_log_to_file("Memory reset (last chance teleport effect)")
-
-	# Also reset the legacy last known position
 	_last_known_player_position = Vector2.ZERO
-
-	# Reset the intel sharing timer to prevent immediate re-acquisition from allies
-	# This ensures enemies don't immediately get new intel after memory reset
-	_intel_share_timer = 0.0
-
-	# CRITICAL: Reset visibility state to prevent immediate re-acquisition (Issue #318)
-	# Without this, enemies would see the player in the next frame via _check_player_visibility()
+	_intel_share_timer = 0.0  # Prevents immediate intel from allies
 	_can_see_player = false
 	_continuous_visibility_timer = 0.0
-
-	# Apply confusion cooldown - prevents seeing player for a brief moment
-	# This simulates "confusion" from the player's apparent teleportation
 	_memory_reset_confusion_timer = MEMORY_RESET_CONFUSION_DURATION
 	_log_to_file("Confusion applied for %.1f seconds" % MEMORY_RESET_CONFUSION_DURATION)
-
-	# Clear any ongoing pursuit of vulnerability sounds
 	_pursuing_vulnerability_sound = false
-
-	# Transition active combat/pursuit states to IDLE to require re-detection
-	# Enemies must re-acquire the player through normal means (visibility, sound)
 	if _current_state in [AIState.PURSUING, AIState.COMBAT, AIState.ASSAULT, AIState.FLANKING]:
 		_log_to_file("State reset: %s -> IDLE (memory reset)" % AIState.keys()[_current_state])
 		_transition_to_idle()
