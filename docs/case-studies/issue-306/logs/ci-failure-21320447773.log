@@ -1,0 +1,182 @@
+Check Architecture Best Practices	UNKNOWN STEP	﻿2026-01-24T19:32:21.8890660Z Current runner version: '2.331.0'
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:21.8916396Z ##[group]Runner Image Provisioner
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:21.8917369Z Hosted Compute Agent
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:21.8917996Z Version: 20260115.477
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:21.8918609Z Commit: 4b342d620503cbe250a3154040964899ea7c9b00
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:21.8919410Z Build Date: 2026-01-15T22:32:41Z
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:21.8920076Z Worker ID: {ebda2726-9827-4aa9-b28b-e6a53b0a3ad3}
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:21.8920845Z Azure Region: northcentralus
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:21.8921469Z ##[endgroup]
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:21.8923366Z ##[group]Operating System
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:21.8924049Z Ubuntu
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:21.8924613Z 24.04.3
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:21.8925145Z LTS
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:21.8925654Z ##[endgroup]
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:21.8926281Z ##[group]Runner Image
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:21.8926935Z Image: ubuntu-24.04
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:21.8927498Z Version: 20260119.4.1
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:21.8928739Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260119.4/images/ubuntu/Ubuntu2404-Readme.md
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:21.8930255Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260119.4
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:21.8931203Z ##[endgroup]
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:21.8932306Z ##[group]GITHUB_TOKEN Permissions
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:21.8934796Z Contents: read
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:21.8935524Z Metadata: read
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:21.8936101Z Packages: read
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:21.8936627Z ##[endgroup]
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:21.8938840Z Secret source: None
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:21.8939908Z Prepare workflow directory
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:21.9272026Z Prepare all required actions
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:21.9309849Z Getting action download info
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:22.2427046Z Download action repository 'actions/checkout@v4' (SHA:34e114876b0b11c390a56381ad16ebd13914f8d5)
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:22.4586256Z Complete job name: Check Architecture Best Practices
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:22.5286289Z ##[group]Run actions/checkout@v4
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:22.5287125Z with:
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:22.5287540Z   repository: Jhon-Crow/godot-topdown-MVP
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:22.5288225Z   token: ***
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:22.5288626Z   ssh-strict: true
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:22.5289064Z   ssh-user: git
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:22.5289460Z   persist-credentials: true
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:22.5289897Z   clean: true
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:22.5290288Z   sparse-checkout-cone-mode: true
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:22.5290755Z   fetch-depth: 1
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:22.5291130Z   fetch-tags: false
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:22.5291520Z   show-progress: true
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:22.5291905Z   lfs: false
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:22.5292259Z   submodules: false
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:22.5292873Z   set-safe-directory: true
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:22.5293602Z ##[endgroup]
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:22.6377290Z Syncing repository: Jhon-Crow/godot-topdown-MVP
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:22.6379191Z ##[group]Getting Git version info
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:22.6380071Z Working directory is '/home/runner/work/godot-topdown-MVP/godot-topdown-MVP'
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:22.6381235Z [command]/usr/bin/git version
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:22.6479599Z git version 2.52.0
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:22.6506456Z ##[endgroup]
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:22.6522586Z Temporarily overriding HOME='/home/runner/work/_temp/9764e278-f17c-4573-a90e-39e192cd3245' before making global git config changes
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:22.6525193Z Adding repository directory to the temporary git global config as a safe directory
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:22.6529715Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/godot-topdown-MVP/godot-topdown-MVP
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:22.6572702Z Deleting the contents of '/home/runner/work/godot-topdown-MVP/godot-topdown-MVP'
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:22.6576772Z ##[group]Initializing the repository
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:22.6581716Z [command]/usr/bin/git init /home/runner/work/godot-topdown-MVP/godot-topdown-MVP
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:22.6713402Z hint: Using 'master' as the name for the initial branch. This default branch name
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:22.6715001Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:22.6716533Z hint: to use in all of your new repositories, which will suppress this warning,
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:22.6717984Z hint: call:
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:22.6718543Z hint:
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:22.6719268Z hint: 	git config --global init.defaultBranch <name>
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:22.6719961Z hint:
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:22.6720497Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:22.6721349Z hint: 'development'. The just-created branch can be renamed via this command:
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:22.6722010Z hint:
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:22.6722364Z hint: 	git branch -m <name>
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:22.6723031Z hint:
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:22.6723618Z hint: Disable this message with "git config set advice.defaultBranchName false"
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:22.6725106Z Initialized empty Git repository in /home/runner/work/godot-topdown-MVP/godot-topdown-MVP/.git/
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:22.6730342Z [command]/usr/bin/git remote add origin https://github.com/Jhon-Crow/godot-topdown-MVP
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:22.6764859Z ##[endgroup]
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:22.6765557Z ##[group]Disabling automatic garbage collection
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:22.6768657Z [command]/usr/bin/git config --local gc.auto 0
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:22.6796530Z ##[endgroup]
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:22.6797185Z ##[group]Setting up auth
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:22.6803419Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:22.6832457Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:22.7198828Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:22.7227890Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:22.7454776Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:22.7484384Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:22.7706701Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:22.7741401Z ##[endgroup]
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:22.7742324Z ##[group]Fetching the repository
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:22.7750247Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +959ab48a34b589f08774364def9199f72de36a0a:refs/remotes/pull/325/merge
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.5117283Z From https://github.com/Jhon-Crow/godot-topdown-MVP
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.5119072Z  * [new ref]         959ab48a34b589f08774364def9199f72de36a0a -> pull/325/merge
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.5156243Z ##[endgroup]
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.5157525Z ##[group]Determining the checkout info
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.5159299Z ##[endgroup]
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.5163532Z [command]/usr/bin/git sparse-checkout disable
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.5206561Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.5233799Z ##[group]Checking out the ref
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.5237924Z [command]/usr/bin/git checkout --progress --force refs/remotes/pull/325/merge
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.8351169Z Note: switching to 'refs/remotes/pull/325/merge'.
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.8352048Z 
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.8352708Z You are in 'detached HEAD' state. You can look around, make experimental
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.8354765Z changes and commit them, and you can discard any commits you make in this
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.8356077Z state without impacting any branches by switching back to a branch.
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.8356773Z 
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.8357274Z If you want to create a new branch to retain commits you create, you may
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.8358475Z do so (now or later) by using -c with the switch command. Example:
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.8359271Z 
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.8359604Z   git switch -c <new-branch-name>
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.8360125Z 
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.8360423Z Or undo this operation with:
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.8360871Z 
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.8361412Z   git switch -
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.8361796Z 
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.8362495Z Turn off this advice by setting config variable advice.detachedHead to false
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.8363711Z 
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.8364750Z HEAD is now at 959ab48 Merge 02acc3d210a6d2165a5b9246f5dc81b4ae2d3075 into 1614a3dd58c7e8a9a659cbafefff358477d0911b
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.8387396Z ##[endgroup]
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.8425491Z [command]/usr/bin/git log -1 --format=%H
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.8448156Z 959ab48a34b589f08774364def9199f72de36a0a
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.8675711Z ##[group]Run echo "Checking GDScript file sizes..."
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.8677401Z [36;1mecho "Checking GDScript file sizes..."[0m
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.8679183Z [36;1m# Current limits - these will be reduced as refactoring progresses[0m
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.8680961Z [36;1m# Target: MAX_LINES=800, WARN_LINES=500[0m
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.8683083Z [36;1m# Current: Higher limits to allow existing large scripts while encouraging refactoring[0m
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.8685370Z [36;1mMAX_LINES=5000  # Will be reduced to 800 as refactoring progresses[0m
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.8687426Z [36;1mWARN_LINES=800  # Warns for scripts that should be considered for refactoring[0m
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.8689100Z [36;1merrors=0[0m
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.8690006Z [36;1mwarnings=0[0m
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.8690931Z [36;1mlarge_scripts=0[0m
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.8691895Z [36;1m[0m
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.8693117Z [36;1m# Find all GDScript files (excluding addons and tests)[0m
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.8694566Z [36;1mwhile IFS= read -r file; do[0m
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.8695667Z [36;1m  lines=$(wc -l < "$file")[0m
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.8696819Z [36;1m  if [ "$lines" -gt "$MAX_LINES" ]; then[0m
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.8698741Z [36;1m    echo "::error file=$file::Script exceeds $MAX_LINES lines ($lines lines). Refactoring required."[0m
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.8700629Z [36;1m    errors=$((errors + 1))[0m
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.8701810Z [36;1m  elif [ "$lines" -gt "$WARN_LINES" ]; then[0m
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.8704795Z [36;1m    echo "::warning file=$file::Script has $lines lines (warning threshold: $WARN_LINES). Consider splitting into components using the patterns in scripts/components/."[0m
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.8707546Z [36;1m    warnings=$((warnings + 1))[0m
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.8708618Z [36;1m  fi[0m
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.8709497Z [36;1m  if [ "$lines" -gt 500 ]; then[0m
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.8710695Z [36;1m    large_scripts=$((large_scripts + 1))[0m
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.8711901Z [36;1m  fi[0m
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.8713081Z [36;1mdone < <(find scripts -name "*.gd" -type f 2>/dev/null)[0m
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.8714461Z [36;1m[0m
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.8715374Z [36;1mecho "errors=$errors" >> $GITHUB_OUTPUT[0m
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.8716697Z [36;1mecho "warnings=$warnings" >> $GITHUB_OUTPUT[0m
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.8718154Z [36;1mecho "large_scripts=$large_scripts" >> $GITHUB_OUTPUT[0m
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.8719464Z [36;1m[0m
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.8720283Z [36;1mif [ "$errors" -gt 0 ]; then[0m
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.8721610Z [36;1m  echo "Found $errors script(s) exceeding line limit."[0m
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.8723066Z [36;1m  exit 1[0m
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.8723913Z [36;1mfi[0m
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.8724701Z [36;1m[0m
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.8726307Z [36;1mecho "All scripts within size limits. ($warnings warnings, $large_scripts scripts over 500 lines)"[0m
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.8728176Z [36;1mecho ""[0m
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.8729925Z [36;1mecho "Note: Gradual refactoring is encouraged. See scripts/components/ for reusable component patterns."[0m
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.8768096Z shell: /usr/bin/bash -e {0}
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.8769143Z ##[endgroup]
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.8849398Z Checking GDScript file sizes...
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.9056210Z ##[warning]Script has 2181 lines (warning threshold: 800). Consider splitting into components using the patterns in scripts/components/.
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.9302575Z ##[error]Script exceeds 5000 lines (5003 lines). Refactoring required.
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.9478520Z ##[warning]Script has 893 lines (warning threshold: 800). Consider splitting into components using the patterns in scripts/components/.
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.9620060Z ##[warning]Script has 1058 lines (warning threshold: 800). Consider splitting into components using the patterns in scripts/components/.
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.9827941Z ##[warning]Script has 955 lines (warning threshold: 800). Consider splitting into components using the patterns in scripts/components/.
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.9860657Z Found 1 script(s) exceeding line limit.
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:24.9869722Z ##[error]Process completed with exit code 1.
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:25.0131191Z Post job cleanup.
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:25.1085072Z [command]/usr/bin/git version
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:25.1129709Z git version 2.52.0
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:25.1175516Z Temporarily overriding HOME='/home/runner/work/_temp/b1a86dbd-0927-414b-9fda-37e1fc043b44' before making global git config changes
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:25.1179902Z Adding repository directory to the temporary git global config as a safe directory
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:25.1182395Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/godot-topdown-MVP/godot-topdown-MVP
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:25.1215101Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:25.1291964Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:25.1486553Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:25.1506617Z http.https://github.com/.extraheader
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:25.1520663Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:25.1555066Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:25.1772598Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:25.1804927Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Check Architecture Best Practices	UNKNOWN STEP	2026-01-24T19:32:25.2140319Z Cleaning up orphan processes

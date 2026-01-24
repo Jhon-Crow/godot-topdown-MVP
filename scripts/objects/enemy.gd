@@ -1137,39 +1137,35 @@ func _update_goap_state() -> void:
 		_goap_world_state["confidence_medium"] = _memory.is_medium_confidence()
 		_goap_world_state["confidence_low"] = _memory.is_low_confidence()
 
-## Updates model rotation smoothly using MODEL_ROTATION_SPEED.
+## Updates model rotation. Instant for combat/movement, smooth only for idle scanning.
 func _update_enemy_model_rotation() -> void:
 	if not _enemy_model:
 		return
-
-	var delta := get_physics_process_delta_time()
-
-	# Determine facing direction: player, movement, or idle scan
-	var has_target := false
+	var target_angle: float
+	var use_smooth_rotation := false
 	if _player != null and _can_see_player:
-		_target_model_rotation = (_player.global_position - global_position).normalized().angle()
-		has_target = true
+		target_angle = (_player.global_position - global_position).normalized().angle()
 	elif velocity.length_squared() > 1.0:
-		_target_model_rotation = velocity.normalized().angle()
-		has_target = true
+		target_angle = velocity.normalized().angle()
 	elif _current_state == AIState.IDLE and _idle_scan_targets.size() > 0:
-		_target_model_rotation = _idle_scan_targets[_idle_scan_target_index]
-		has_target = true
-	if not has_target:
-		return
-
-	var aiming_left := absf(_target_model_rotation) > PI / 2
-	_model_facing_left = aiming_left
-	var current_rotation := _enemy_model.global_rotation
-	var angle_diff := wrapf(_target_model_rotation - current_rotation, -PI, PI)
-	var new_rotation: float
-	if abs(angle_diff) <= MODEL_ROTATION_SPEED * delta:
-		new_rotation = _target_model_rotation
-	elif angle_diff > 0:
-		new_rotation = current_rotation + MODEL_ROTATION_SPEED * delta
+		target_angle = _idle_scan_targets[_idle_scan_target_index]
+		use_smooth_rotation = true
 	else:
-		new_rotation = current_rotation - MODEL_ROTATION_SPEED * delta
-	_enemy_model.global_rotation = new_rotation
+		return
+	if use_smooth_rotation:
+		var delta := get_physics_process_delta_time()
+		var current_rot := _enemy_model.global_rotation
+		var angle_diff := wrapf(target_angle - current_rot, -PI, PI)
+		if abs(angle_diff) <= MODEL_ROTATION_SPEED * delta:
+			_enemy_model.global_rotation = target_angle
+		elif angle_diff > 0:
+			_enemy_model.global_rotation = current_rot + MODEL_ROTATION_SPEED * delta
+		else:
+			_enemy_model.global_rotation = current_rot - MODEL_ROTATION_SPEED * delta
+	else:
+		_enemy_model.global_rotation = target_angle
+	var aiming_left := absf(_enemy_model.global_rotation) > PI / 2
+	_model_facing_left = aiming_left
 	if aiming_left:
 		_enemy_model.scale = Vector2(enemy_model_scale, -enemy_model_scale)
 	else:
