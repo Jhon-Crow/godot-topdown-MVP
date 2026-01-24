@@ -16,19 +16,19 @@ extends Sprite2D
 @export var auto_fade: bool = false
 
 ## Whether blood should gradually darken over time (drying effect).
-## Enabled by default for realistic blood aging.
-@export var color_aging: bool = true
+## Disabled by default per issue #293 round 7 - blood should be dark immediately.
+@export var color_aging: bool = false
 
 ## Time in seconds for blood to fully transition from fresh to dried color.
 @export var aging_duration: float = 60.0
 
 ## Fresh blood color tint (applied via modulate).
-## Default is slightly bright red to match fresh blood appearance.
-const FRESH_BLOOD_TINT := Color(1.0, 0.9, 0.9, 0.9)
+## Per issue #293 round 7: blood should always be dark, no bright colors.
+const FRESH_BLOOD_TINT := Color(0.8, 0.7, 0.7, 0.95)
 
 ## Dried blood color tint (darker, more brown).
-## Blood oxidizes over time, turning from bright red to dark brown.
-const DRIED_BLOOD_TINT := Color(0.6, 0.35, 0.3, 0.85)
+## This is now the default starting color since color_aging is disabled.
+const DRIED_BLOOD_TINT := Color(0.8, 0.7, 0.7, 0.95)
 
 ## Initial alpha value.
 var _initial_alpha: float = 0.85

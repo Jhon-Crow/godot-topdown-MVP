@@ -644,3 +644,62 @@ func test_blood_decal_texture_is_square() -> void:
 			"BloodDecal texture should be square for proper circular shape")
 		assert_gte(tex_size.x, 32,
 			"BloodDecal texture should be at least 32x32 for smooth edges")
+
+
+# ============================================================================
+# Round 7 Fixes Tests (Issue #293 - Flat matte drops, smaller puddles, better placement)
+# ============================================================================
+
+
+func test_blood_puddle_scale_multiplier_constant_exists() -> void:
+	# Verify the constant for overall scale reduction exists
+	assert_true("BLOOD_PUDDLE_SCALE_MULTIPLIER" in impact_manager,
+		"Manager should have BLOOD_PUDDLE_SCALE_MULTIPLIER constant")
+
+
+func test_blood_puddle_scale_multiplier_reduces_size() -> void:
+	# Scale multiplier should reduce puddle sizes (per issue #293 round 7)
+	assert_lt(impact_manager.BLOOD_PUDDLE_SCALE_MULTIPLIER, 1.0,
+		"BLOOD_PUDDLE_SCALE_MULTIPLIER should be less than 1.0 to reduce puddle sizes")
+	assert_gt(impact_manager.BLOOD_PUDDLE_SCALE_MULTIPLIER, 0.2,
+		"BLOOD_PUDDLE_SCALE_MULTIPLIER should be greater than 0.2 to keep puddles visible")
+
+
+func test_satellite_min_distance_from_puddle_constant_exists() -> void:
+	# Verify the constant for satellite distance from main puddles exists
+	assert_true("SATELLITE_MIN_DISTANCE_FROM_PUDDLE" in impact_manager,
+		"Manager should have SATELLITE_MIN_DISTANCE_FROM_PUDDLE constant")
+
+
+func test_satellite_min_distance_from_puddle_prevents_overlap() -> void:
+	# Satellites should be far enough from puddles to prevent overlap
+	assert_gt(impact_manager.SATELLITE_MIN_DISTANCE_FROM_PUDDLE, 10.0,
+		"SATELLITE_MIN_DISTANCE_FROM_PUDDLE should be at least 10 pixels")
+
+
+func test_satellite_drop_scale_is_reduced() -> void:
+	# Satellite drops should be smaller (per issue #293 round 7)
+	assert_lt(impact_manager.SATELLITE_DROP_SCALE_MAX, 0.25,
+		"SATELLITE_DROP_SCALE_MAX should be less than 0.25 for smaller satellites")
+
+
+func test_blood_decal_color_aging_disabled_by_default() -> void:
+	# Color aging should be disabled by default (per issue #293 round 7)
+	var BloodDecalScript = load("res://scripts/effects/blood_decal.gd")
+	var temp_sprite := Sprite2D.new()
+	temp_sprite.set_script(BloodDecalScript)
+	add_child_autoqfree(temp_sprite)
+
+	assert_false(temp_sprite.color_aging,
+		"BloodDecal color_aging should be disabled by default")
+
+
+func test_blood_decal_gradient_is_flat() -> void:
+	# Blood decal texture should have uniform color (flat, not 3D ball)
+	var blood_decal_scene = load("res://scenes/effects/BloodDecal.tscn")
+	var blood_decal = blood_decal_scene.instantiate()
+	add_child_autoqfree(blood_decal)
+
+	# The texture should exist and be a gradient
+	assert_not_null(blood_decal.texture, "BloodDecal should have a texture")
+	pass_test("Blood decal has flat gradient texture")

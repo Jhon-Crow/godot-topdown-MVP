@@ -3,8 +3,10 @@
 [ext_resource type="Script" path="res://scripts/effects/blood_decal.gd" id="1_blood_decal"]
 
 [sub_resource type="Gradient" id="Gradient_decal"]
-offsets = PackedFloat32Array(0, 0.2, 0.35, 0.45, 0.55, 0.62, 0.68, 0.707, 1.0)
-colors = PackedColorArray(0.4, 0.03, 0.03, 1.0, 0.38, 0.025, 0.025, 1.0, 0.36, 0.022, 0.022, 0.95, 0.33, 0.018, 0.018, 0.8, 0.30, 0.014, 0.014, 0.5, 0.28, 0.01, 0.01, 0.25, 0.26, 0.008, 0.008, 0.08, 0.25, 0.005, 0.005, 0, 0.25, 0.005, 0.005, 0)
+# Flat matte blood: uniform dark red-brown color with only alpha fading at edges
+# No bright center (removes 3D ball appearance) - issue #293 round 7
+offsets = PackedFloat32Array(0, 0.5, 0.65, 0.707, 1.0)
+colors = PackedColorArray(0.25, 0.02, 0.02, 0.95, 0.25, 0.02, 0.02, 0.95, 0.25, 0.02, 0.02, 0.7, 0.25, 0.02, 0.02, 0, 0.25, 0.02, 0.02, 0)
 
 [sub_resource type="GradientTexture2D" id="GradientTexture2D_decal"]
 gradient = SubResource("Gradient_decal")
@@ -16,6 +18,6 @@ fill_to = Vector2(1.0, 1.0)
 
 [node name="BloodDecal" type="Sprite2D"]
 z_index = 1
-modulate = Color(1, 1, 1, 0.9)
+modulate = Color(1, 1, 1, 1)
 texture = SubResource("GradientTexture2D_decal")
 script = ExtResource("1_blood_decal")

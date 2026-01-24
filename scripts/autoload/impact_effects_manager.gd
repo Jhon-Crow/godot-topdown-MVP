@@ -45,8 +45,9 @@ const SATELLITE_DROP_MAX_DISTANCE: float = 8.0
 const SATELLITE_DROP_MIN_DISTANCE: float = 3.0
 
 ## Scale range for satellite drops (smaller than main drops).
-const SATELLITE_DROP_SCALE_MIN: float = 0.15
-const SATELLITE_DROP_SCALE_MAX: float = 0.35
+## Reduced by 50% per issue #293 round 7.
+const SATELLITE_DROP_SCALE_MIN: float = 0.08
+const SATELLITE_DROP_SCALE_MAX: float = 0.18
 
 ## Number of satellite drops to spawn per main outermost drop.
 const SATELLITE_DROPS_PER_MAIN: int = 3
@@ -55,11 +56,20 @@ const SATELLITE_DROPS_PER_MAIN: int = 3
 const OUTERMOST_DROP_PERCENTILE: float = 0.7
 
 ## Minimum distance between satellite drops and existing drops to prevent overlap.
-const SATELLITE_MIN_SEPARATION: float = 4.0
+## Increased per issue #293 round 7 - satellites must be on free floor only.
+const SATELLITE_MIN_SEPARATION: float = 12.0
+
+## Minimum distance from any main puddle center for satellite placement.
+## Satellites should only appear outside the main puddle area.
+const SATELLITE_MIN_DISTANCE_FROM_PUDDLE: float = 15.0
 
 ## Edge drop scaling: drops at the edge are scaled down by this factor.
 ## Drops at center = 1.0, drops at edge = this value.
 const EDGE_DROP_SCALE_MIN: float = 0.4
+
+## Overall scale multiplier for all blood puddles.
+## Reduced by 50% per issue #293 round 7 - puddles were too large.
+const BLOOD_PUDDLE_SCALE_MULTIPLIER: float = 0.5
 
 ## Probability of spawning crown/blossom spines around larger drops.
 const CROWN_EFFECT_PROBABILITY: float = 0.25
@@ -517,7 +527,8 @@ func _spawn_decals_with_params(origin: Vector2, hit_direction: Vector2, initial_
 
 		# Scale based on number of merged drops (more drops = larger splatter)
 		# Apply edge factor: drops at edge are smaller
-		var base_scale: float = (0.8 + (drop_count * 0.12)) * edge_factor
+		# Apply overall scale reduction per issue #293 round 7
+		var base_scale: float = (0.8 + (drop_count * 0.12)) * edge_factor * BLOOD_PUDDLE_SCALE_MULTIPLIER
 
 		# For merged puddles with 3+ drops, create complex blob by spawning multiple overlapping decals
 		# This creates the "unified blob with gradient contour" effect requested
@@ -579,7 +590,8 @@ func _spawn_decals_with_params(origin: Vector2, hit_direction: Vector2, initial_
 		var decal_rotation: float = velocity.angle() if speed > 10.0 else randf() * TAU
 
 		# Random scale with elongation applied, multiplied by edge factor
-		var base_scale: float = randf_range(0.6, 1.2) * edge_factor
+		# Apply overall scale reduction per issue #293 round 7
+		var base_scale: float = randf_range(0.6, 1.2) * edge_factor * BLOOD_PUDDLE_SCALE_MULTIPLIER
 		var decal_scale_x: float = base_scale * elongation
 		var decal_scale_y: float = base_scale
 
@@ -713,6 +725,15 @@ func _spawn_satellite_drops(origin: Vector2, particle_data: Array, merged_splatt
 	# Track all positions (existing + newly spawned satellites) for overlap checking
 	var all_positions: Array = existing_positions.duplicate()
 
+	# Collect all main puddle centers for distance checking
+	# Satellites must not spawn on top of any main puddle (issue #293 round 7)
+	var main_puddle_centers: Array = []
+	for splatter in merged_splatters:
+		main_puddle_centers.append(splatter["center"])
+	for particle in particle_data:
+		if not particle["merged"]:
+			main_puddle_centers.append(particle["position"])
+
 	# Spawn satellite drops near outermost drops
 	for i in range(valid_drops.size()):
 		if distances[i] < distance_threshold:
@@ -733,28 +754,42 @@ func _spawn_satellite_drops(origin: Vector2, particle_data: Array, merged_splatt
 			var satellite_pos: Vector2 = Vector2.ZERO
 			var found_valid_position := false
 
-			for _attempt in range(5):  # Try up to 5 times to find valid position
-				# Random angle, biased toward the direction of velocity (splash direction)
-				var velocity_angle: float = drop_velocity.angle() if drop_velocity.length() > 10.0 else randf() * TAU
-				var angle_spread: float = PI * 0.8  # Allow satellites in a wide arc
-				var satellite_angle: float = velocity_angle + randf_range(-angle_spread, angle_spread)
+			for _attempt in range(8):  # Try up to 8 times to find valid position
+				# Random angle, biased AWAY from center (outward direction)
+				# This ensures satellites spawn on free floor at edges, not inside puddles
+				var outward_angle: float = (drop_pos - center).angle()
+				var angle_spread: float = PI * 0.5  # Narrower arc, mostly outward
+				var satellite_angle: float = outward_angle + randf_range(-angle_spread, angle_spread)
 
-				# Random distance from parent drop
-				var satellite_dist: float = randf_range(SATELLITE_DROP_MIN_DISTANCE, SATELLITE_DROP_MAX_DISTANCE)
+				# Random distance from parent drop - push further out
+				var satellite_dist: float = randf_range(SATELLITE_DROP_MIN_DISTANCE, SATELLITE_DROP_MAX_DISTANCE * 1.5)
 
 				# Calculate satellite position
 				satellite_pos = drop_pos + Vector2.RIGHT.rotated(satellite_angle) * satellite_dist
 
-				# Check if position overlaps with any existing drop
+				# Check if position overlaps with any existing drop position
 				var has_overlap := false
 				for existing_pos in all_positions:
 					if satellite_pos.distance_to(existing_pos) < SATELLITE_MIN_SEPARATION:
 						has_overlap = true
 						break
 
-				if not has_overlap:
-					found_valid_position = true
-					break
+				if has_overlap:
+					continue
+
+				# Check if position is too close to any main puddle center
+				# Satellites must only be on free floor, not on top of puddles
+				var too_close_to_puddle := false
+				for puddle_center in main_puddle_centers:
+					if satellite_pos.distance_to(puddle_center) < SATELLITE_MIN_DISTANCE_FROM_PUDDLE:
+						too_close_to_puddle = true
+						break
+
+				if too_close_to_puddle:
+					continue
+
+				found_valid_position = true
+				break
 
 			# Skip this satellite if we couldn't find a valid position
 			if not found_valid_position:
