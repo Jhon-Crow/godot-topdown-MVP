@@ -1368,17 +1368,6 @@ destroy_on_death = true
 enable_flanking = true
 enable_cover = true
 
-[node name="TutorialEnemy" parent="Environment/Enemies" instance=ExtResource("5_enemy")]
-position = Vector2(700, 1544)
-behavior_mode = 1
-destroy_on_death = true
-enable_flanking = false
-enable_cover = true
-enable_grenades = true
-flashbang_grenades = 999
-magazine_size = 0
-total_magazines = 0
-
 [node name="NavigationRegion2D" type="NavigationRegion2D" parent="."]
 navigation_polygon = SubResource("NavigationPolygon_level")
 

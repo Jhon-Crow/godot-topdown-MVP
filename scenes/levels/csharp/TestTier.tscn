@@ -1,10 +1,11 @@
-[gd_scene load_steps=13 format=3 uid="uid://e3kv7pm5r2auc"]
+[gd_scene load_steps=14 format=3 uid="uid://e3kv7pm5r2auc"]
 
 [ext_resource type="Script" path="res://scripts/levels/tutorial_level.gd" id="1_test_tier"]
 [ext_resource type="PackedScene" uid="uid://dv8nq2vj5r7p2" path="res://scenes/characters/csharp/Player.tscn" id="2_player"]
 [ext_resource type="PackedScene" uid="uid://dx3k7pm5t2auc" path="res://scenes/objects/csharp/Target.tscn" id="3_target"]
 [ext_resource type="PackedScene" uid="uid://dxqmk8f3nw5pe" path="res://scenes/ui/PauseMenu.tscn" id="4_pause_menu"]
 [ext_resource type="PackedScene" uid="uid://dg4k8pm5t2bvc" path="res://scenes/objects/GrenadeTarget.tscn" id="5_grenade_target"]
+[ext_resource type="PackedScene" uid="uid://dx5m8np6u3bwe" path="res://scenes/objects/csharp/Enemy.tscn" id="6_enemy"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_wall_horizontal"]
 size = Vector2(1800, 32)
@@ -323,6 +324,19 @@ is_valid_target = false
 [node name="FriendlyTarget4" parent="Environment/GrenadeTrainingArea/GrenadeTargets" instance=ExtResource("5_grenade_target")]
 position = Vector2(1550, 1050)
 is_valid_target = false
+
+[node name="Enemies" type="Node2D" parent="Environment"]
+
+[node name="TutorialEnemy" parent="Environment/Enemies" instance=ExtResource("6_enemy")]
+position = Vector2(700, 900)
+behavior_mode = 1
+destroy_on_death = true
+enable_flanking = false
+enable_cover = true
+enable_grenades = true
+flashbang_grenades = 999
+magazine_size = 0
+total_magazines = 0
 
 [node name="Entities" type="Node2D" parent="."]
 
