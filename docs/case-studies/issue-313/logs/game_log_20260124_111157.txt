@@ -1,0 +1,354 @@
+[11:11:57] [INFO] ============================================================
+[11:11:57] [INFO] GAME LOG STARTED
+[11:11:57] [INFO] ============================================================
+[11:11:57] [INFO] Timestamp: 2026-01-24T11:11:57
+[11:11:57] [INFO] Log file: I:/Загрузки/godot exe/game_log_20260124_111157.txt
+[11:11:57] [INFO] Executable: I:/Загрузки/godot exe/Godot-Top-Down-Template.exe
+[11:11:57] [INFO] OS: Windows
+[11:11:57] [INFO] Debug build: false
+[11:11:57] [INFO] Engine version: 4.3-stable (official)
+[11:11:57] [INFO] Project: Godot Top-Down Template
+[11:11:57] [INFO] ------------------------------------------------------------
+[11:11:57] [INFO] [GameManager] GameManager ready
+[11:11:57] [INFO] [ScoreManager] ScoreManager ready
+[11:11:57] [INFO] [SoundPropagation] SoundPropagation autoload initialized
+[11:11:57] [INFO] [ImpactEffects] Scenes loaded: DustEffect, BloodEffect, SparksEffect, BloodDecal
+[11:11:57] [INFO] [ImpactEffects] ImpactEffectsManager ready - FULL VERSION with blood effects enabled
+[11:11:57] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[11:11:57] [INFO] [PenultimateHit] Saturation shader loaded successfully
+[11:11:57] [INFO] [PenultimateHit] PenultimateHitEffectsManager ready - Configuration:
+[11:11:57] [INFO] [PenultimateHit]   Time scale: 0.10 (10x slowdown)
+[11:11:57] [INFO] [PenultimateHit]   Saturation boost: 2.0 (3.0x)
+[11:11:57] [INFO] [PenultimateHit]   Contrast boost: 1.0 (2.0x)
+[11:11:57] [INFO] [PenultimateHit]   Effect duration: 3.0 real seconds
+[11:11:57] [INFO] [LastChance] Resetting all effects (scene change detected)
+[11:11:57] [INFO] [LastChance] Last chance shader loaded successfully
+[11:11:57] [INFO] [LastChance] LastChanceEffectsManager ready - Configuration:
+[11:11:57] [INFO] [LastChance]   Freeze duration: 6.0 real seconds
+[11:11:57] [INFO] [LastChance]   Sepia intensity: 0.70
+[11:11:57] [INFO] [LastChance]   Brightness: 0.60
+[11:11:57] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FlashbangGrenade.tscn
+[11:11:57] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FragGrenade.tscn
+[11:11:57] [ENEMY] [Enemy1] Death animation component initialized
+[11:11:57] [ENEMY] [Enemy2] Death animation component initialized
+[11:11:57] [ENEMY] [Enemy3] Death animation component initialized
+[11:11:57] [ENEMY] [Enemy4] Death animation component initialized
+[11:11:57] [ENEMY] [Enemy5] Death animation component initialized
+[11:11:57] [ENEMY] [Enemy6] Death animation component initialized
+[11:11:57] [ENEMY] [Enemy7] Death animation component initialized
+[11:11:57] [ENEMY] [Enemy8] Death animation component initialized
+[11:11:57] [ENEMY] [Enemy9] Death animation component initialized
+[11:11:57] [ENEMY] [Enemy10] Death animation component initialized
+[11:11:57] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[11:11:57] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[11:11:57] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[11:11:57] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[11:11:57] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[11:11:57] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[11:11:57] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[11:11:57] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 3/4
+[11:11:57] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[11:11:57] [INFO] [ScoreManager] Level started with 10 enemies
+[11:11:57] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 1)
+[11:11:57] [ENEMY] [Enemy1] Registered as sound listener
+[11:11:57] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 4, behavior: GUARD, player_found: yes
+[11:11:57] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 2)
+[11:11:57] [ENEMY] [Enemy2] Registered as sound listener
+[11:11:57] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 2, behavior: GUARD, player_found: yes
+[11:11:57] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 3)
+[11:11:57] [ENEMY] [Enemy3] Registered as sound listener
+[11:11:57] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 3, behavior: GUARD, player_found: yes
+[11:11:57] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 4)
+[11:11:57] [ENEMY] [Enemy4] Registered as sound listener
+[11:11:57] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 2, behavior: GUARD, player_found: yes
+[11:11:57] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 5)
+[11:11:57] [ENEMY] [Enemy5] Registered as sound listener
+[11:11:57] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 4, behavior: GUARD, player_found: yes
+[11:11:57] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 6)
+[11:11:57] [ENEMY] [Enemy6] Registered as sound listener
+[11:11:57] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 4, behavior: GUARD, player_found: yes
+[11:11:57] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 7)
+[11:11:57] [ENEMY] [Enemy7] Registered as sound listener
+[11:11:57] [ENEMY] [Enemy7] Enemy spawned at (1606.114, 893.8859), health: 3, behavior: PATROL, player_found: yes
+[11:11:57] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 8)
+[11:11:57] [ENEMY] [Enemy8] Registered as sound listener
+[11:11:57] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 2, behavior: GUARD, player_found: yes
+[11:11:57] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 9)
+[11:11:57] [ENEMY] [Enemy9] Registered as sound listener
+[11:11:57] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 3, behavior: GUARD, player_found: yes
+[11:11:57] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 10)
+[11:11:57] [ENEMY] [Enemy10] Registered as sound listener
+[11:11:57] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 3, behavior: PATROL, player_found: yes
+[11:11:57] [INFO] [Player] Detecting weapon pose (frame 3)...
+[11:11:57] [INFO] [Player] Detected weapon: Rifle (default pose)
+[11:11:57] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[11:11:57] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[11:11:57] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[11:11:57] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[11:11:57] [INFO] [LastChance] Found player: Player
+[11:11:57] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[11:11:57] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[11:11:57] [INFO] [LastChance] Connected to player Died signal (C#)
+[11:11:59] [INFO] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
+[11:11:59] [INFO] [Player.Grenade] G pressed - starting grab animation
+[11:12:00] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (532.4422, 1228.6271)
+[11:12:00] [INFO] [GrenadeBase] CCD enabled (mode: CAST_RAY) to prevent wall tunneling
+[11:12:00] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[11:12:00] [INFO] [GrenadeBase] Timer activated! 4.0 seconds until explosion
+[11:12:00] [INFO] [Player.Grenade] Timer started, grenade created at (450, 1250)
+[11:12:00] [INFO] [Player.Grenade.Anim] Phase changed to: PullPin (duration: 0,15s)
+[11:12:00] [INFO] [Player.Grenade] Step 1 complete! Drag: (293.2777, -28.05188)
+[11:12:00] [INFO] [Player.Grenade.Anim] Phase changed to: HandsApproach (duration: 0,20s)
+[11:12:00] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[11:12:00] [INFO] [Player.Grenade.Anim] Phase changed to: Transfer (duration: 0,15s)
+[11:12:00] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming (velocity-based throwing enabled)
+[11:12:00] [INFO] [Player.Grenade.Anim] Phase changed to: WindUp (duration: 0,00s)
+[11:12:00] [INFO] [Player.Grenade.Anim] Entered wind-up phase
+[11:12:01] [INFO] [Player.Grenade.Anim] Phase changed to: Throw (duration: 0,20s)
+[11:12:01] [INFO] [Player.Grenade] Throwing toward mouse! Direction: (0.1817343, 0.98334765), Mouse velocity: 3473,1 px/s, Swing: 989,5
+[11:12:01] [INFO] [Player.Grenade] Player rotated for throw: 0 -> 1,3880465
+[11:12:01] [INFO] [GrenadeBase] Velocity-based throw! Mouse vel: (631.1871, 3415.296), Swing: 989.5, Transfer: 1.00, Final speed: 1352.8
+[11:12:01] [INFO] [Player.Grenade] Thrown! Velocity: 3473,1, Swing: 989,5
+[11:12:01] [INFO] [Player.Grenade] State reset to IDLE
+[11:12:01] [INFO] [Player.Grenade] Player rotation restored to 0
+[11:12:01] [INFO] [Player.Grenade.Anim] Phase changed to: ReturnIdle (duration: 0,30s)
+[11:12:01] [INFO] [GrenadeBase] Collision detected with StorageRoom_CornerTR (type: StaticBody2D)
+[11:12:01] [INFO] [Player.Grenade.Anim] Animation complete, returning to normal
+[11:12:02] [INFO] [GrenadeBase] Grenade landed at (683.4131, 1995.673)
+[11:12:05] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[11:12:05] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[11:12:05] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[11:12:05] [INFO] [LastChance] Resetting all effects (scene change detected)
+[11:12:05] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[11:12:05] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+[11:12:05] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[11:12:05] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[11:12:05] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[11:12:05] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[11:12:05] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[11:12:05] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 3/3, Health: 4/4
+[11:12:05] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[11:12:05] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[11:12:05] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[11:12:05] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[11:12:05] [INFO] [LastChance] Found player: Player
+[11:12:05] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[11:12:05] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[11:12:05] [INFO] [LastChance] Connected to player Died signal (C#)
+[11:12:05] [INFO] [Player] Detecting weapon pose (frame 3)...
+[11:12:05] [INFO] [Player] Detected weapon: Rifle (default pose)
+[11:12:05] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[11:12:06] [INFO] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
+[11:12:06] [INFO] [Player.Grenade] G pressed - starting grab animation
+[11:12:06] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (504.21057, 392.0594)
+[11:12:06] [INFO] [GrenadeBase] CCD enabled (mode: CAST_RAY) to prevent wall tunneling
+[11:12:06] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[11:12:06] [INFO] [GrenadeBase] Timer activated! 4.0 seconds until explosion
+[11:12:06] [INFO] [Player.Grenade] Timer started, grenade created at (150, 360)
+[11:12:06] [INFO] [Player.Grenade.Anim] Phase changed to: PullPin (duration: 0,15s)
+[11:12:06] [INFO] [Player.Grenade] Step 1 complete! Drag: (346.12396, -64.118744)
+[11:12:06] [INFO] [Player.Grenade.Anim] Phase changed to: HandsApproach (duration: 0,20s)
+[11:12:06] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[11:12:07] [INFO] [Player.Grenade.Anim] Phase changed to: Transfer (duration: 0,15s)
+[11:12:07] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming (velocity-based throwing enabled)
+[11:12:07] [INFO] [Player.Grenade.Anim] Phase changed to: WindUp (duration: 0,00s)
+[11:12:07] [INFO] [Player.Grenade.Anim] Entered wind-up phase
+[11:12:07] [INFO] [Player.Grenade.Anim] Phase changed to: Throw (duration: 0,20s)
+[11:12:07] [INFO] [Player.Grenade] Throwing toward mouse! Direction: (0.7622539, 0.6472782), Mouse velocity: 5690,3 px/s, Swing: 871,5
+[11:12:07] [INFO] [Player.Grenade] Player rotated for throw: 0 -> 0,7040082
+[11:12:07] [INFO] [GrenadeBase] Velocity-based throw! Mouse vel: (4337.468, 3683.219), Swing: 871.5, Transfer: 1.00, Final speed: 1352.8
+[11:12:07] [INFO] [Player.Grenade] Thrown! Velocity: 5690,3, Swing: 871,5
+[11:12:07] [INFO] [Player.Grenade] State reset to IDLE
+[11:12:07] [INFO] [GrenadeBase] Collision detected with Obstacle2 (type: StaticBody2D)
+[11:12:07] [INFO] [Player.Grenade] Player rotation restored to 0
+[11:12:07] [INFO] [Player.Grenade.Anim] Phase changed to: ReturnIdle (duration: 0,30s)
+[11:12:07] [INFO] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
+[11:12:07] [INFO] [Player.Grenade] G pressed - starting grab animation
+[11:12:07] [INFO] [GrenadeBase] Grenade landed at (269.9151, 518.3558)
+[11:12:08] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (511.0633, 522.30054)
+[11:12:08] [INFO] [GrenadeBase] CCD enabled (mode: CAST_RAY) to prevent wall tunneling
+[11:12:08] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[11:12:08] [INFO] [GrenadeBase] Timer activated! 4.0 seconds until explosion
+[11:12:08] [INFO] [Player.Grenade] Timer started, grenade created at (150, 360)
+[11:12:08] [INFO] [Player.Grenade.Anim] Phase changed to: PullPin (duration: 0,15s)
+[11:12:08] [INFO] [Player.Grenade] Step 1 complete! Drag: (169.01953, -49.424835)
+[11:12:08] [INFO] [Player.Grenade.Anim] Phase changed to: HandsApproach (duration: 0,20s)
+[11:12:08] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[11:12:08] [INFO] [Player.Grenade.Anim] Phase changed to: Transfer (duration: 0,15s)
+[11:12:08] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming (velocity-based throwing enabled)
+[11:12:08] [INFO] [Player.Grenade.Anim] Phase changed to: WindUp (duration: 0,00s)
+[11:12:08] [INFO] [Player.Grenade.Anim] Entered wind-up phase
+[11:12:09] [INFO] [Player.Grenade.Anim] Phase changed to: Throw (duration: 0,20s)
+[11:12:09] [INFO] [Player.Grenade] Throwing toward mouse! Direction: (0.7293793, 0.68410945), Mouse velocity: 2258,1 px/s, Swing: 1154,6
+[11:12:09] [INFO] [Player.Grenade] Player rotated for throw: 0 -> 0,7533821
+[11:12:09] [INFO] [GrenadeBase] Velocity-based throw! Mouse vel: (1647.037, 1544.812), Swing: 1154.6, Transfer: 1.00, Final speed: 1190.1
+[11:12:09] [INFO] [Player.Grenade] Thrown! Velocity: 2258,1, Swing: 1154,6
+[11:12:09] [INFO] [Player.Grenade] State reset to IDLE
+[11:12:09] [INFO] [GrenadeBase] Collision detected with Obstacle2 (type: StaticBody2D)
+[11:12:09] [INFO] [Player.Grenade] Player rotation restored to 0
+[11:12:09] [INFO] [Player.Grenade.Anim] Phase changed to: ReturnIdle (duration: 0,30s)
+[11:12:09] [INFO] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
+[11:12:09] [INFO] [Player.Grenade] G pressed - starting grab animation
+[11:12:09] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (418.87228, 374.69388)
+[11:12:09] [INFO] [GrenadeBase] CCD enabled (mode: CAST_RAY) to prevent wall tunneling
+[11:12:09] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[11:12:09] [INFO] [GrenadeBase] Timer activated! 4.0 seconds until explosion
+[11:12:09] [INFO] [Player.Grenade] Timer started, grenade created at (150, 360)
+[11:12:09] [INFO] [Player.Grenade.Anim] Phase changed to: PullPin (duration: 0,15s)
+[11:12:09] [INFO] [Player.Grenade] Step 1 complete! Drag: (276.5762, -9.350647)
+[11:12:09] [INFO] [Player.Grenade.Anim] Phase changed to: HandsApproach (duration: 0,20s)
+[11:12:09] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[11:12:09] [INFO] [GrenadeBase] Grenade landed at (206.8933, 631.942)
+[11:12:10] [INFO] [Player.Grenade.Anim] Phase changed to: Transfer (duration: 0,15s)
+[11:12:10] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming (velocity-based throwing enabled)
+[11:12:10] [INFO] [Player.Grenade.Anim] Phase changed to: WindUp (duration: 0,00s)
+[11:12:10] [INFO] [Player.Grenade.Anim] Entered wind-up phase
+[11:12:10] [INFO] [Player.Grenade.Anim] Phase changed to: Throw (duration: 0,20s)
+[11:12:10] [INFO] [Player.Grenade] Throwing toward mouse! Direction: (0.74095917, 0.67155004), Mouse velocity: 6914,5 px/s, Swing: 903,7
+[11:12:10] [INFO] [Player.Grenade] Player rotated for throw: 0 -> 0,73629874
+[11:12:10] [INFO] [GrenadeBase] Velocity-based throw! Mouse vel: (5123.388, 4643.457), Swing: 903.7, Transfer: 1.00, Final speed: 1352.8
+[11:12:10] [INFO] [Player.Grenade] Thrown! Velocity: 6914,5, Swing: 903,7
+[11:12:10] [INFO] [Player.Grenade] State reset to IDLE
+[11:12:10] [INFO] [GrenadeBase] Collision detected with Obstacle2 (type: StaticBody2D)
+[11:12:10] [INFO] [Player.Grenade] Player rotation restored to 0
+[11:12:10] [INFO] [Player.Grenade.Anim] Phase changed to: ReturnIdle (duration: 0,30s)
+[11:12:10] [INFO] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
+[11:12:10] [INFO] [Player.Grenade] G pressed - starting grab animation
+[11:12:10] [INFO] [GrenadeBase] EXPLODED at (267.7033, 521.4286)!
+[11:12:10] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(267.7033, 521.4286), source=NEUTRAL (FlashbangGrenade), range=2937, listeners=10
+[11:12:10] [INFO] [SoundPropagation] Cleaned up 10 invalid listeners
+[11:12:10] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[11:12:11] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (440.9182, 392.0594)
+[11:12:11] [INFO] [GrenadeBase] CCD enabled (mode: CAST_RAY) to prevent wall tunneling
+[11:12:11] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[11:12:11] [INFO] [GrenadeBase] Timer activated! 4.0 seconds until explosion
+[11:12:11] [INFO] [Player.Grenade] Timer started, grenade created at (150, 360)
+[11:12:11] [INFO] [Player.Grenade.Anim] Phase changed to: PullPin (duration: 0,15s)
+[11:12:11] [INFO] [Player.Grenade] Step 1 complete! Drag: (400.167, -48.756958)
+[11:12:11] [INFO] [Player.Grenade.Anim] Phase changed to: HandsApproach (duration: 0,20s)
+[11:12:11] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[11:12:11] [INFO] [GrenadeBase] Grenade landed at (222.115, 600.0967)
+[11:12:11] [INFO] [Player.Grenade.Anim] Phase changed to: Transfer (duration: 0,15s)
+[11:12:11] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming (velocity-based throwing enabled)
+[11:12:11] [INFO] [Player.Grenade.Anim] Phase changed to: WindUp (duration: 0,00s)
+[11:12:11] [INFO] [Player.Grenade.Anim] Entered wind-up phase
+[11:12:11] [INFO] [Player.Grenade.Anim] Phase changed to: Throw (duration: 0,20s)
+[11:12:11] [INFO] [Player.Grenade] Throwing toward mouse! Direction: (0.9034518, 0.4286897), Mouse velocity: 7638,4 px/s, Swing: 971,1
+[11:12:11] [INFO] [Player.Grenade] Player rotated for throw: 0 -> 0,44304195
+[11:12:11] [INFO] [GrenadeBase] Velocity-based throw! Mouse vel: (6900.905, 3274.493), Swing: 971.1, Transfer: 1.00, Final speed: 1352.8
+[11:12:11] [INFO] [Player.Grenade] Thrown! Velocity: 7638,4, Swing: 971,1
+[11:12:11] [INFO] [Player.Grenade] State reset to IDLE
+[11:12:12] [INFO] [GrenadeBase] Collision detected with Obstacle2 (type: StaticBody2D)
+[11:12:12] [INFO] [Player.Grenade] Player rotation restored to 0
+[11:12:12] [INFO] [Player.Grenade.Anim] Phase changed to: ReturnIdle (duration: 0,30s)
+[11:12:12] [INFO] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
+[11:12:12] [INFO] [Player.Grenade] G pressed - starting grab animation
+[11:12:12] [INFO] [GrenadeBase] EXPLODED at (205.0266, 634.8065)!
+[11:12:12] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(205.0266, 634.8065), source=NEUTRAL (@RigidBody2D@294), range=2937, listeners=0
+[11:12:12] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[11:12:12] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (589.89526, 532.3191)
+[11:12:12] [INFO] [GrenadeBase] CCD enabled (mode: CAST_RAY) to prevent wall tunneling
+[11:12:12] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[11:12:12] [INFO] [GrenadeBase] Timer activated! 4.0 seconds until explosion
+[11:12:12] [INFO] [Player.Grenade] Timer started, grenade created at (150, 360)
+[11:12:12] [INFO] [Player.Grenade.Anim] Phase changed to: PullPin (duration: 0,15s)
+[11:12:12] [INFO] [Player.Grenade] Step 1 complete! Drag: (658.7057, -83.487915)
+[11:12:12] [INFO] [Player.Grenade.Anim] Phase changed to: HandsApproach (duration: 0,20s)
+[11:12:12] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[11:12:12] [INFO] [GrenadeBase] Grenade landed at (178.8891, 518.4572)
+[11:12:13] [INFO] [Player.Grenade.Anim] Phase changed to: Transfer (duration: 0,15s)
+[11:12:13] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming (velocity-based throwing enabled)
+[11:12:13] [INFO] [Player.Grenade.Anim] Phase changed to: Throw (duration: 0,20s)
+[11:12:13] [INFO] [Player.Grenade] Throwing toward mouse! Direction: (0.9110131, -0.4123774), Mouse velocity: 0,0 px/s, Swing: 0,0
+[11:12:13] [INFO] [Player.Grenade] Player rotated for throw: 0 -> -0,42506212
+[11:12:13] [INFO] [GrenadeBase] Velocity-based throw! Mouse vel: (0, 0), Swing: 0.0, Transfer: 0.35, Final speed: 0.0
+[11:12:13] [INFO] [Player.Grenade] Thrown! Velocity: 0,0, Swing: 0,0
+[11:12:13] [INFO] [Player.Grenade] State reset to IDLE
+[11:12:13] [INFO] [Player.Grenade] Player rotation restored to 0
+[11:12:13] [INFO] [Player.Grenade.Anim] Phase changed to: ReturnIdle (duration: 0,30s)
+[11:12:13] [INFO] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
+[11:12:13] [INFO] [Player.Grenade] G pressed - starting grab animation
+[11:12:13] [INFO] [GrenadeBase] EXPLODED at (219.9348, 603.3296)!
+[11:12:13] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(219.9348, 603.3296), source=NEUTRAL (@RigidBody2D@295), range=2937, listeners=0
+[11:12:13] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[11:12:14] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (892.5257, 705.30615)
+[11:12:14] [INFO] [GrenadeBase] CCD enabled (mode: CAST_RAY) to prevent wall tunneling
+[11:12:14] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[11:12:14] [INFO] [GrenadeBase] Timer activated! 4.0 seconds until explosion
+[11:12:14] [INFO] [Player.Grenade] Timer started, grenade created at (150, 360)
+[11:12:14] [INFO] [Player.Grenade.Anim] Phase changed to: PullPin (duration: 0,15s)
+[11:12:14] [INFO] [Player.Grenade] Step 1 complete! Drag: (285.92914, -88.83118)
+[11:12:14] [INFO] [Player.Grenade.Anim] Phase changed to: HandsApproach (duration: 0,20s)
+[11:12:14] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[11:12:14] [INFO] [Player.Grenade.Anim] Phase changed to: Transfer (duration: 0,15s)
+[11:12:14] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming (velocity-based throwing enabled)
+[11:12:14] [INFO] [Player.Grenade.Anim] Phase changed to: WindUp (duration: 0,00s)
+[11:12:14] [INFO] [Player.Grenade.Anim] Entered wind-up phase
+[11:12:14] [INFO] [Player.Grenade.Anim] Phase changed to: Throw (duration: 0,20s)
+[11:12:14] [INFO] [Player.Grenade] Throwing toward mouse! Direction: (0.85630924, -0.5164634), Mouse velocity: 10636,7 px/s, Swing: 951,7
+[11:12:14] [INFO] [Player.Grenade] Player rotated for throw: 0 -> -0,5427157
+[11:12:14] [INFO] [GrenadeBase] Velocity-based throw! Mouse vel: (9108.33, -5493.481), Swing: 951.7, Transfer: 1.00, Final speed: 1352.8
+[11:12:14] [INFO] [Player.Grenade] Thrown! Velocity: 10636,7, Swing: 951,7
+[11:12:14] [INFO] [Player.Grenade] State reset to IDLE
+[11:12:15] [INFO] [GrenadeBase] Collision detected with Obstacle1 (type: StaticBody2D)
+[11:12:15] [INFO] [Player.Grenade] Player rotation restored to 0
+[11:12:15] [INFO] [Player.Grenade.Anim] Phase changed to: ReturnIdle (duration: 0,30s)
+[11:12:15] [INFO] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
+[11:12:15] [INFO] [Player.Grenade] G pressed - starting grab animation
+[11:12:15] [INFO] [GrenadeBase] Grenade landed at (283.4314, 261.4541)
+[11:12:15] [INFO] [GrenadeBase] EXPLODED at (176.2077, 520.5388)!
+[11:12:15] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(176.2077, 520.5388), source=NEUTRAL (FlashbangGrenade), range=2937, listeners=0
+[11:12:15] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[11:12:15] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (1040.8347, 466.86456)
+[11:12:15] [INFO] [GrenadeBase] CCD enabled (mode: CAST_RAY) to prevent wall tunneling
+[11:12:15] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[11:12:15] [INFO] [GrenadeBase] Timer activated! 4.0 seconds until explosion
+[11:12:15] [INFO] [Player.Grenade] Timer started, grenade created at (150, 360)
+[11:12:15] [INFO] [Player.Grenade.Anim] Phase changed to: PullPin (duration: 0,15s)
+[11:12:15] [INFO] [Player.Grenade] Step 1 complete! Drag: (239.16492, 48.756958)
+[11:12:15] [INFO] [Player.Grenade.Anim] Phase changed to: HandsApproach (duration: 0,20s)
+[11:12:15] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[11:12:15] [INFO] [Player.Grenade.Anim] Phase changed to: Transfer (duration: 0,15s)
+[11:12:15] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming (velocity-based throwing enabled)
+[11:12:16] [INFO] [Player.Grenade.Anim] Phase changed to: WindUp (duration: 0,00s)
+[11:12:16] [INFO] [Player.Grenade.Anim] Entered wind-up phase
+[11:12:16] [INFO] [Player.Grenade.Anim] Phase changed to: Throw (duration: 0,20s)
+[11:12:16] [INFO] [Player.Grenade] Throwing toward mouse! Direction: (0.90268785, -0.43029597), Mouse velocity: 9218,0 px/s, Swing: 967,3
+[11:12:16] [INFO] [Player.Grenade] Player rotated for throw: 0 -> -0,44482064
+[11:12:16] [INFO] [GrenadeBase] Velocity-based throw! Mouse vel: (8320.936, -3966.448), Swing: 967.3, Transfer: 1.00, Final speed: 1352.8
+[11:12:16] [INFO] [Player.Grenade] Thrown! Velocity: 9218,0, Swing: 967,3
+[11:12:16] [INFO] [Player.Grenade] State reset to IDLE
+[11:12:16] [INFO] [GrenadeBase] Collision detected with Obstacle1 (type: StaticBody2D)
+[11:12:16] [INFO] [Player.Grenade] Player rotation restored to 0
+[11:12:16] [INFO] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
+[11:12:16] [INFO] [Player.Grenade] G pressed - starting grab animation
+[11:12:16] [INFO] [GrenadeBase] EXPLODED at (204.6608, 335.2574)!
+[11:12:16] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(204.6608, 335.2574), source=NEUTRAL (@RigidBody2D@298), range=2937, listeners=0
+[11:12:16] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[11:12:16] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (794.9892, 719.3321)
+[11:12:16] [INFO] [GrenadeBase] CCD enabled (mode: CAST_RAY) to prevent wall tunneling
+[11:12:16] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[11:12:16] [INFO] [GrenadeBase] Timer activated! 4.0 seconds until explosion
+[11:12:16] [INFO] [Player.Grenade] Timer started, grenade created at (150, 360)
+[11:12:16] [INFO] [Player.Grenade.Anim] Phase changed to: PullPin (duration: 0,15s)
+[11:12:16] [INFO] [Player.Grenade] Step 1 complete! Drag: (290.60553, -2.003662)
+[11:12:16] [INFO] [Player.Grenade.Anim] Phase changed to: HandsApproach (duration: 0,20s)
+[11:12:16] [INFO] [Player.Grenade] Step 2 part 1: G+RMB held - now release G to ready the throw
+[11:12:17] [INFO] [GrenadeBase] Grenade landed at (177.4339, 199.676)
+[11:12:17] [INFO] [Player.Grenade.Anim] Phase changed to: Transfer (duration: 0,15s)
+[11:12:17] [INFO] [Player.Grenade] Step 2 complete: G released, RMB held - now aiming (velocity-based throwing enabled)
+[11:12:17] [INFO] [Player.Grenade.Anim] Phase changed to: Throw (duration: 0,20s)
+[11:12:17] [INFO] [Player.Grenade] Throwing toward mouse! Direction: (0.93794316, -0.3467891), Mouse velocity: 0,0 px/s, Swing: 0,0
+[11:12:17] [INFO] [Player.Grenade] Player rotated for throw: 0 -> -0,35414556
+[11:12:17] [INFO] [GrenadeBase] Velocity-based throw! Mouse vel: (0, 0), Swing: 0.0, Transfer: 0.35, Final speed: 0.0
+[11:12:17] [INFO] [Player.Grenade] Thrown! Velocity: 0,0, Swing: 0,0
+[11:12:17] [INFO] [Player.Grenade] State reset to IDLE
+[11:12:17] [INFO] [Player.Grenade] Player rotation restored to 0
+[11:12:17] [INFO] [Player.Grenade.Anim] Phase changed to: ReturnIdle (duration: 0,30s)
+[11:12:18] [INFO] [Player.Grenade.Anim] Animation complete, returning to normal
+[11:12:18] [INFO] [GrenadeBase] EXPLODED at (280.7534, 258.8116)!
+[11:12:18] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(280.7534, 258.8116), source=NEUTRAL (@RigidBody2D@300), range=2937, listeners=0
+[11:12:18] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[11:12:19] [INFO] ------------------------------------------------------------
+[11:12:19] [INFO] GAME LOG ENDED: 2026-01-24T11:12:19
+[11:12:19] [INFO] ============================================================

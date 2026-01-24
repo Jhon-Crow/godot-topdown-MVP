@@ -1515,36 +1515,38 @@ func _reset_grenade_state() -> void:
 
 ## Throw the grenade using realistic velocity-based physics.
 ## The throw velocity is determined by mouse velocity at release moment, not drag distance.
-## Direction is determined by player-to-mouse vector (where the mouse IS at release).
+## FIX for issue #313: Direction is determined ONLY by mouse velocity direction (how the mouse is MOVING),
+## NOT by the mouse cursor position relative to player.
 ## Includes player rotation animation to prevent grenade hitting player.
-## @param drag_end: The position where the mouse drag ended (used for direction).
+## @param drag_end: The position where the mouse drag ended (unused, kept for API compatibility).
 func _throw_grenade(drag_end: Vector2) -> void:
 	if _active_grenade == null or not is_instance_valid(_active_grenade):
 		FileLogger.info("[Player.Grenade] Cannot throw: no active grenade")
 		_reset_grenade_state()
 		return
 
-	# Get the mouse velocity at moment of release (used for throw STRENGTH, not direction)
+	# Get the mouse velocity at moment of release (used for BOTH direction AND strength)
 	var release_velocity := _current_mouse_velocity
 	var velocity_magnitude := release_velocity.length()
 
-	# FIX for issue #313: Use PLAYER-TO-MOUSE direction (where mouse IS), not mouse velocity direction
-	# The user expectation: grenade flies toward where the mouse cursor is positioned
-	# NOT in the direction the mouse is moving (which was the previous buggy behavior)
-	var player_to_mouse := drag_end - global_position
+	# FIX for issue #313: Use MOUSE VELOCITY DIRECTION (how the mouse is MOVING)
+	# User requirement: grenade flies in the direction the mouse is moving at release
+	# NOT toward where the mouse cursor is positioned
+	# Example: If user moves mouse DOWN, grenade flies DOWN (regardless of where cursor is)
 	var throw_direction: Vector2
 
-	if player_to_mouse.length() > 10.0:
-		# Primary direction: toward the mouse cursor position
-		throw_direction = player_to_mouse.normalized()
+	if velocity_magnitude > 10.0:
+		# Primary direction: the direction the mouse is MOVING (velocity direction)
+		throw_direction = release_velocity.normalized()
 	else:
-		# Fallback when mouse is very close to player - use velocity direction or default
-		if velocity_magnitude > 10.0:
-			throw_direction = release_velocity.normalized()
+		# Fallback when mouse is not moving - use player-to-mouse as fallback
+		var player_to_mouse := drag_end - global_position
+		if player_to_mouse.length() > 10.0:
+			throw_direction = player_to_mouse.normalized()
 		else:
 			throw_direction = Vector2(1, 0)  # Default direction (right)
 
-	FileLogger.info("[Player.Grenade] Throwing toward mouse! Direction: %s, Mouse velocity: %.1f px/s, Swing: %.1f" % [
+	FileLogger.info("[Player.Grenade] Throwing in mouse velocity direction! Direction: %s, Mouse velocity: %.1f px/s, Swing: %.1f" % [
 		str(throw_direction), velocity_magnitude, _total_swing_distance
 	])
 
@@ -1568,14 +1570,14 @@ func _throw_grenade(drag_end: Vector2) -> void:
 		# Best method: explicit direction + velocity magnitude + swing distance
 		_active_grenade.throw_grenade_with_direction(throw_direction, velocity_magnitude, _total_swing_distance)
 		method_called = true
-		FileLogger.info("[Player.Grenade] Called throw_grenade_with_direction() - direction is player-to-mouse")
+		FileLogger.info("[Player.Grenade] Called throw_grenade_with_direction() - direction is mouse velocity direction")
 	elif _active_grenade.has_method("throw_grenade_velocity_based"):
 		# Legacy velocity-based: construct a velocity vector in the correct direction
 		# This is a workaround - we pass (direction * speed) instead of actual mouse velocity
 		var directional_velocity := throw_direction * velocity_magnitude
 		_active_grenade.throw_grenade_velocity_based(directional_velocity, _total_swing_distance)
 		method_called = true
-		FileLogger.info("[Player.Grenade] Called throw_grenade_velocity_based() with corrected direction")
+		FileLogger.info("[Player.Grenade] Called throw_grenade_velocity_based() - direction is mouse velocity direction")
 	elif _active_grenade.has_method("throw_grenade"):
 		# Legacy drag-based: convert velocity to drag distance approximation
 		var legacy_distance := velocity_magnitude * 0.5  # Rough conversion
@@ -1596,13 +1598,13 @@ func _throw_grenade(drag_end: Vector2) -> void:
 			var min_transfer := 0.35
 			var min_swing := 80.0
 			var max_speed := 850.0
-			# Use throw_direction (player-to-mouse) as the direction - FIX for issue #313
-			# The direction is now correctly pointing toward where the mouse cursor IS
+			# Use throw_direction (mouse velocity direction) - FIX for issue #313
+			# The direction is now the direction the mouse is MOVING at release
 			var swing_transfer := clampf(_total_swing_distance / min_swing, 0.0, 1.0 - min_transfer)
 			var transfer_efficiency := min_transfer + swing_transfer
 			transfer_efficiency = clampf(transfer_efficiency, 0.0, 1.0)
 			var throw_speed := clampf(velocity_magnitude * multiplier * transfer_efficiency, 0.0, max_speed)
-			# Apply velocity in the throw_direction (player-to-mouse, not mouse velocity)
+			# Apply velocity in the throw_direction (mouse velocity direction)
 			_active_grenade.linear_velocity = throw_direction * throw_speed
 			_active_grenade.rotation = throw_direction.angle()
 			FileLogger.info("[Player.Grenade] Direct physics fallback: direction=%s, speed=%.1f, transfer=%.2f" % [

@@ -228,8 +228,8 @@ func throw_grenade_velocity_based(mouse_velocity: Vector2, swing_distance: float
 
 
 ## Throw the grenade with explicit direction and speed derived from mouse velocity.
-## This is the FIX for issue #313: direction is now separate from velocity.
-## @param throw_direction: The normalized direction to throw (player-to-mouse).
+## FIX for issue #313: direction is now mouse velocity direction (how mouse is MOVING).
+## @param throw_direction: The normalized direction to throw (mouse velocity direction).
 ## @param velocity_magnitude: The mouse velocity magnitude at release (pixels/second).
 ## @param swing_distance: Total distance the mouse traveled during the swing (pixels).
 func throw_grenade_with_direction(throw_direction: Vector2, velocity_magnitude: float, swing_distance: float) -> void:
@@ -249,14 +249,14 @@ func throw_grenade_with_direction(throw_direction: Vector2, velocity_magnitude: 
 	var base_speed := velocity_magnitude * mouse_velocity_to_throw_multiplier * transfer_efficiency
 	var throw_speed := clampf(base_speed / sqrt(mass_ratio), 0.0, max_throw_speed)
 
-	# Set velocity using the provided direction (NOT from mouse velocity)
+	# Set velocity using the provided direction (mouse velocity direction)
 	if throw_speed > 1.0:
 		linear_velocity = throw_direction.normalized() * throw_speed
 		rotation = throw_direction.angle()
 	else:
 		linear_velocity = Vector2.ZERO
 
-	FileLogger.info("[GrenadeBase] Direction-based throw! Dir: %s, Vel mag: %.1f, Swing: %.1f, Transfer: %.2f, Speed: %.1f" % [
+	FileLogger.info("[GrenadeBase] Mouse velocity direction throw! Dir: %s, Vel mag: %.1f, Swing: %.1f, Transfer: %.2f, Speed: %.1f" % [
 		str(throw_direction), velocity_magnitude, swing_distance, transfer_efficiency, throw_speed
 	])
 
