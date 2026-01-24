@@ -121,7 +121,7 @@ This document analyzes rejected pull requests to identify recurring patterns tha
 - State transitions not working
 
 **Common Causes**:
-1. Removing or renaming critical methods (`_ready`, `_physics_process`, `on_bullet_hit`, `_die`)
+1. Removing or renaming critical methods (`_ready`, `_physics_process`, `on_hit`, `_die`)
 2. Breaking early return conditions in `_physics_process`
 3. Modifying state enum without updating all switch/match cases
 4. Null references to `_player` variable

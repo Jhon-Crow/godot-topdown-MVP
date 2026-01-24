@@ -320,6 +320,109 @@ jobs:
             echo "All scene-script references valid."
           fi
 
+      - name: Validate C# entity implementations
+        run: |
+          echo "Checking C# entity implementations for required patterns..."
+          echo "See issue #328 and PR #327 for context on dual-language validation."
+          echo ""
+
+          errors=0
+          warnings=0
+
+          # Check C# Enemy.cs if it exists
+          if [ -f "Scripts/Objects/Enemy.cs" ]; then
+            echo "Validating C# Enemy implementation..."
+
+            # Check for IDamageable implementation
+            if ! grep -q "IDamageable" "Scripts/Objects/Enemy.cs"; then
+              echo "::warning file=Scripts/Objects/Enemy.cs::C# Enemy should implement IDamageable interface"
+              warnings=$((warnings + 1))
+            else
+              echo "  ✓ Implements IDamageable"
+            fi
+
+            # Check for required damage methods
+            if ! grep -qE "(public|override).*TakeDamage" "Scripts/Objects/Enemy.cs"; then
+              echo "::error file=Scripts/Objects/Enemy.cs::Missing TakeDamage method in C# Enemy"
+              errors=$((errors + 1))
+            else
+              echo "  ✓ Has TakeDamage method"
+            fi
+
+            # Check for on_hit method (for GDScript interop)
+            if ! grep -q "on_hit\(\)" "Scripts/Objects/Enemy.cs"; then
+              echo "::warning file=Scripts/Objects/Enemy.cs::Missing on_hit() method for GDScript interoperability"
+              warnings=$((warnings + 1))
+            else
+              echo "  ✓ Has on_hit() method for GDScript interop"
+            fi
+
+            # Check for Died signal
+            if ! grep -q "DiedEventHandler\|signal.*Died" "Scripts/Objects/Enemy.cs"; then
+              echo "::error file=Scripts/Objects/Enemy.cs::Missing Died signal - required for enemy counting"
+              errors=$((errors + 1))
+            else
+              echo "  ✓ Has Died signal"
+            fi
+          fi
+
+          # Check C# Player.cs if it exists
+          if [ -f "Scripts/Characters/Player.cs" ]; then
+            echo ""
+            echo "Validating C# Player implementation..."
+
+            # Check for TakeDamage method
+            if ! grep -qE "(public|override).*TakeDamage" "Scripts/Characters/Player.cs"; then
+              echo "::error file=Scripts/Characters/Player.cs::Missing TakeDamage method in C# Player"
+              errors=$((errors + 1))
+            else
+              echo "  ✓ Has TakeDamage method"
+            fi
+
+            # Check for invincibility check in TakeDamage (added in PR #327)
+            if grep -q "TakeDamage" "Scripts/Characters/Player.cs"; then
+              if ! grep -q "_invincibilityEnabled\|invincibility" "Scripts/Characters/Player.cs"; then
+                echo "::warning file=Scripts/Characters/Player.cs::TakeDamage may not check invincibility mode (see PR #327)"
+                warnings=$((warnings + 1))
+              else
+                echo "  ✓ Has invincibility check"
+              fi
+            fi
+          fi
+
+          # Check C# HealthComponent if it exists
+          if [ -f "Scripts/Components/HealthComponent.cs" ]; then
+            echo ""
+            echo "Validating C# HealthComponent..."
+
+            # Check for required signals
+            if ! grep -q "DiedEventHandler\|signal.*Died" "Scripts/Components/HealthComponent.cs"; then
+              echo "::warning file=Scripts/Components/HealthComponent.cs::Missing Died signal"
+              warnings=$((warnings + 1))
+            else
+              echo "  ✓ Has Died signal"
+            fi
+
+            if ! grep -q "HealthChangedEventHandler\|signal.*HealthChanged" "Scripts/Components/HealthComponent.cs"; then
+              echo "::warning file=Scripts/Components/HealthComponent.cs::Missing HealthChanged signal"
+              warnings=$((warnings + 1))
+            else
+              echo "  ✓ Has HealthChanged signal"
+            fi
+          fi
+
+          echo ""
+          if [ "$errors" -gt 0 ]; then
+            echo "::error::Found $errors critical issues in C# implementations"
+            exit 1
+          fi
+
+          if [ "$warnings" -gt 0 ]; then
+            echo "Found $warnings warnings in C# implementations."
+          else
+            echo "All C# entity implementations validated successfully."
+          fi
+
       - name: Summary
         run: |
           echo "=== Gameplay Critical Systems Validation Complete ==="
@@ -332,11 +435,13 @@ jobs:
           echo "  ✓ Counter/state reset issue detection"
           echo "  ✓ GDScript syntax validation"
           echo "  ✓ Scene-script consistency"
+          echo "  ✓ C# entity implementations (Issue #328)"
           echo ""
           echo "This workflow protects against issues like:"
           echo "  - PR #104, #296: Enemy AI completely broken"
           echo "  - PR #127: Game counters broken"
           echo "  - PR #155: Game crashes"
           echo "  - PR #157: Enemy vision/detection broken"
+          echo "  - PR #327: Dual-language implementation inconsistency"
           echo ""
           echo "All critical gameplay systems validated!"

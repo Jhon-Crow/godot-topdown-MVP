@@ -25,8 +25,10 @@ jobs:
           # Current: Higher limits to allow existing large scripts while encouraging refactoring
           MAX_LINES=5000  # Will be reduced to 800 as refactoring progresses
           WARN_LINES=800  # Warns for scripts that should be considered for refactoring
+          CRITICAL_THRESHOLD=4500  # 90% of MAX_LINES - pre-emptive warning (Issue #328)
           errors=0
           warnings=0
+          critical_warnings=0
           large_scripts=0
 
           # Find all GDScript files (excluding addons and tests)
@@ -35,6 +37,12 @@ jobs:
             if [ "$lines" -gt "$MAX_LINES" ]; then
               echo "::error file=$file::Script exceeds $MAX_LINES lines ($lines lines). Refactoring required."
               errors=$((errors + 1))
+            elif [ "$lines" -gt "$CRITICAL_THRESHOLD" ]; then
+              # Pre-emptive warning at 90% of MAX_LINES (Issue #328)
+              remaining=$((MAX_LINES - lines))
+              echo "::warning file=$file::CRITICAL: Script has $lines lines (only $remaining lines remaining before limit). Immediate refactoring recommended!"
+              critical_warnings=$((critical_warnings + 1))
+              warnings=$((warnings + 1))
             elif [ "$lines" -gt "$WARN_LINES" ]; then
               echo "::warning file=$file::Script has $lines lines (warning threshold: $WARN_LINES). Consider splitting into components using the patterns in scripts/components/."
               warnings=$((warnings + 1))
@@ -46,6 +54,7 @@ jobs:
 
           echo "errors=$errors" >> $GITHUB_OUTPUT
           echo "warnings=$warnings" >> $GITHUB_OUTPUT
+          echo "critical_warnings=$critical_warnings" >> $GITHUB_OUTPUT
           echo "large_scripts=$large_scripts" >> $GITHUB_OUTPUT
 
           if [ "$errors" -gt 0 ]; then
@@ -53,7 +62,13 @@ jobs:
             exit 1
           fi
 
-          echo "All scripts within size limits. ($warnings warnings, $large_scripts scripts over 500 lines)"
+          echo "All scripts within size limits. ($warnings warnings, $critical_warnings critical, $large_scripts scripts over 500 lines)"
+          echo ""
+          if [ "$critical_warnings" -gt 0 ]; then
+            echo "⚠️  ATTENTION: $critical_warnings script(s) are approaching the line limit!"
+            echo "   These scripts should be prioritized for refactoring to avoid CI failures."
+            echo "   See PR #323 for an example of CI failure due to exceeding line limit."
+          fi
           echo ""
           echo "Note: Gradual refactoring is encouraged. See scripts/components/ for reusable component patterns."
 
@@ -170,10 +185,13 @@ jobs:
           echo "=== Architecture Check Complete ==="
           echo ""
           echo "Checks performed:"
-          echo "  ✓ Script line counts (max 800, warn at 500)"
+          echo "  ✓ Script line counts (max 5000, critical at 4500, warn at 800)"
           echo "  ✓ class_name declarations for components"
           echo "  ✓ Required folder structure"
           echo "  ✓ snake_case naming convention"
           echo "  ✓ Autoload coupling patterns"
+          echo ""
+          echo "Note: Scripts approaching the line limit (>4500 lines) trigger critical warnings."
+          echo "This helps prevent CI failures like those seen in PR #323 (Issue #328)."
           echo ""
           echo "All critical checks passed!"
