@@ -1,15 +1,5 @@
 extends CharacterBody2D
-## Enemy AI with tactical behaviors including patrol, guard, cover, and flanking.
-##
-## Supports multiple behavior modes:
-## - PATROL: Moves between patrol points
-## - GUARD: Stands in place watching for the player
-##
-## Tactical features:
-## - Uses cover when under fire (suppression)
-## - Attempts to flank the player from the sides
-## - Coordinates with other enemies (optional)
-## - GOAP foundation for goal-oriented planning
+## Enemy AI with patrol/guard modes, cover/flanking tactics, and GOAP planning.
 
 ## AI States for tactical behavior.
 enum AIState {
@@ -47,18 +37,13 @@ enum BehaviorMode {
 ## Combat movement speed (faster when flanking/seeking cover).
 @export var combat_move_speed: float = 320.0
 
-## Rotation speed in radians per second for gradual turning.
-## Default is 25 rad/sec to ensure enemies aim before shooting (realistic barrel direction).
-## Increased from 15 to compensate for aim-before-shoot requirement (see issue #254).
+## Rotation speed (rad/sec). 25 ensures aim-before-shoot (issue #254).
 @export var rotation_speed: float = 25.0
 
-## Detection range for spotting the player.
-## Set to 0 or negative to allow unlimited detection range (line-of-sight only).
-## This allows enemies to see the player even outside the viewport if no obstacles block view.
+## Detection range (0 = unlimited, line-of-sight only).
 @export var detection_range: float = 0.0
 
-## Time between shots in seconds.
-## Default matches assault rifle fire rate (10 shots/second = 0.1s cooldown).
+## Time between shots (default 0.1s = assault rifle fire rate).
 @export var shoot_cooldown: float = 0.1
 
 ## Bullet scene to instantiate when shooting.
@@ -70,12 +55,10 @@ enum BehaviorMode {
 ## Offset from enemy center for bullet spawn position.
 @export var bullet_spawn_offset: float = 30.0
 
-## Weapon loudness - determines how far gunshots propagate for alerting other enemies.
-## Set to viewport diagonal (~1469 pixels) for assault rifle by default.
+## How far gunshots propagate (default ~viewport diagonal for rifle).
 @export var weapon_loudness: float = 1469.0
 
-## Patrol points as offsets from the initial position.
-## Only used when behavior_mode is PATROL.
+## Patrol points as offsets from initial position (PATROL mode only).
 @export var patrol_offsets: Array[Vector2] = [Vector2(100, 0), Vector2(-100, 0)]
 
 ## Wait time at each patrol point in seconds.
@@ -111,8 +94,7 @@ enum BehaviorMode {
 ## Time to stay suppressed after bullets leave threat sphere.
 @export var suppression_cooldown: float = 2.0
 
-## Delay (in seconds) before reacting to bullets in the threat sphere.
-## This prevents instant reactions to nearby gunfire, giving the player more time.
+## Delay before reacting to bullets in threat sphere (player reaction time).
 @export var threat_reaction_delay: float = 0.2
 
 ## Flank angle from player's facing direction (radians).
@@ -127,8 +109,7 @@ enum BehaviorMode {
 ## Enable/disable cover behavior.
 @export var enable_cover: bool = true
 
-## --- Grenade System (per issue #273) ---
-## Enable/disable grenade throwing behavior.
+## Enable grenade throwing (issue #273).
 @export var enable_grenades: bool = false
 
 ## Number of offensive (frag) grenades this enemy carries.
@@ -161,8 +142,7 @@ enum BehaviorMode {
 ## Enable/disable lead prediction (shooting ahead of moving targets).
 @export var enable_lead_prediction: bool = true
 
-## Bullet speed for lead prediction calculation.
-## Should match the actual bullet speed (default is 2500 for assault rifle).
+## Bullet speed for lead prediction (default 2500 = assault rifle).
 @export var bullet_speed: float = 2500.0
 
 ## Ammunition system - magazine size (bullets per magazine).
@@ -174,20 +154,13 @@ enum BehaviorMode {
 ## Ammunition system - time to reload in seconds.
 @export var reload_time: float = 3.0
 
-## Delay (in seconds) between spotting player and starting to shoot.
-## Gives player a brief reaction time when entering enemy line of sight.
-## This delay "recharges" each time the player breaks direct contact with the enemy.
+## Delay between spotting player and shooting (recharges on contact break).
 @export var detection_delay: float = 0.2
 
-## Minimum time (in seconds) the player must be continuously visible before
-## lead prediction is enabled. This prevents enemies from predicting player
-## position immediately when they emerge from cover.
+## Time player must be visible before lead prediction activates.
 @export var lead_prediction_delay: float = 0.3
 
-## Minimum visibility ratio (0.0 to 1.0) of player body that must be visible
-## before lead prediction is enabled. At 1.0, the player's entire body must be
-## visible. At 0.5, at least half of the check points must be visible.
-## This prevents pre-firing at players who are at cover edges.
+## Min visible body fraction for lead prediction (prevents pre-fire at cover).
 @export var lead_prediction_visibility_threshold: float = 0.6
 
 ## Walking animation speed multiplier - higher = faster leg cycle.
@@ -196,8 +169,7 @@ enum BehaviorMode {
 ## Walking animation intensity - higher = more pronounced movement.
 @export var walk_anim_intensity: float = 1.0
 
-## Scale multiplier for the enemy model (body, head, arms).
-## Default is 1.3 to match the player size.
+## Scale for enemy model (default 1.3 matches player).
 @export var enemy_model_scale: float = 1.3
 
 ## Signal emitted when the enemy is hit.
@@ -206,9 +178,7 @@ signal hit
 ## Signal emitted when the enemy dies.
 signal died
 
-## Signal emitted when the enemy dies with special kill information.
-## @param is_ricochet_kill: Whether the kill was from a ricocheted bullet.
-## @param is_penetration_kill: Whether the kill was from a bullet that penetrated a wall.
+## Signal emitted when enemy dies with ricochet/penetration kill info.
 signal died_with_info(is_ricochet_kill: bool, is_penetration_kill: bool)
 
 ## Signal emitted when AI state changes.
@@ -229,16 +199,10 @@ signal ammo_depleted
 ## Signal emitted when death animation completes.
 signal death_animation_completed
 
-## Threshold angle (in radians) for considering the player "distracted".
-## If the player's aim is more than this angle away from the enemy, they are distracted.
-## 23 degrees ≈ 0.4014 radians.
+## Threshold angle for player "distracted" (23° ≈ 0.4014 rad).
 const PLAYER_DISTRACTION_ANGLE: float = 0.4014
 
-## Minimum dot product between weapon direction and target direction for shooting.
-## Bullets only fire when weapon is aimed within this tolerance of the target.
-## 0.866 ≈ cos(30°), meaning weapon must be within ~30° of target.
-## This ensures bullets fly realistically in the barrel direction (see issue #254).
-## Relaxed from 0.95 (18°) to 0.866 (30°) to fix low fire rate (see issue #264).
+## Min dot product for shooting (0.866 = 30°, issues #254, #264).
 const AIM_TOLERANCE_DOT: float = 0.866
 
 ## Reference to the enemy model node containing all sprites.
@@ -268,13 +232,9 @@ const AIM_TOLERANCE_DOT: float = 0.866
 ## NavigationAgent2D for pathfinding around obstacles.
 @onready var _nav_agent: NavigationAgent2D = $NavigationAgent2D
 
-## HitArea for bullet collision detection.
-## Used to disable collision when enemy dies so bullets pass through.
+## HitArea for bullet collision (disabled on death).
 @onready var _hit_area: Area2D = $HitArea
-
-## HitCollisionShape for physically disabling collision on death.
-## Disabling the shape is more reliable than just toggling monitorable/monitoring
-## due to Godot engine limitations (see issue #62506, #100687).
+## HitCollisionShape (disable shape is more reliable, Godot #62506, #100687).
 @onready var _hit_collision_shape: CollisionShape2D = $HitArea/HitCollisionShape
 
 ## Original collision layer for HitArea (to restore on respawn).
@@ -299,8 +259,7 @@ var _wall_raycasts: Array[RayCast2D] = []
 ## Distance to check for walls ahead.
 const WALL_CHECK_DISTANCE: float = 60.0
 
-## Number of raycasts for wall detection (spread around the enemy).
-## Uses 8 raycasts for better angular coverage: center + 3 on each side + 1 rear
+## Raycast count for wall detection (8 for full angular coverage).
 const WALL_CHECK_COUNT: int = 8
 
 ## Minimum avoidance weight when close to a wall (stronger avoidance).
@@ -388,13 +347,9 @@ var _threat_reaction_timer: float = 0.0
 ## Whether the threat reaction delay has elapsed (enemy can react to bullets).
 var _threat_reaction_delay_elapsed: bool = false
 
-## Memory of bullets that have passed through the threat sphere recently.
-## This allows the enemy to react even after fast-moving bullets have exited.
+## Memory of bullets passed through threat sphere (react after fast bullets).
 var _threat_memory_timer: float = 0.0
-
-## Duration to remember that a bullet passed through the threat sphere.
-## This should be longer than the reaction delay to ensure enemies can complete
-## their reaction even after bullets have passed through quickly.
+## Time to remember bullet passage (must exceed reaction delay).
 const THREAT_MEMORY_DURATION: float = 0.5
 
 ## Current retreat mode determined by damage taken.
@@ -587,22 +542,12 @@ const CLOSE_COMBAT_DISTANCE: float = 400.0
 ## Grenade thrower component (per issue #273).
 var _grenade_thrower: GrenadeThrowerComponent = null
 
-## Flag indicating we need to reposition to throw grenade (wall blocking - issue #295).
+## Grenade coordination state (issue #295)
 var _needs_grenade_throw_position: bool = false
-
-## Target position for pending grenade throw (when repositioning - issue #295).
 var _grenade_throw_target: Vector2 = Vector2.ZERO
-
-## Flag indicating we're evacuating from a grenade blast zone (issue #295).
 var _evacuating_from_grenade: bool = false
-
-## Position to evacuate away from (grenade target position - issue #295).
 var _grenade_evacuation_from: Vector2 = Vector2.ZERO
-
-## Flag indicating we're waiting for grenade explosion to assault (issue #295).
 var _waiting_for_grenade_explosion: bool = false
-
-## Position of the grenade explosion (for assault direction - issue #295).
 var _grenade_explosion_position: Vector2 = Vector2.ZERO
 
 ## GOAP world state for goal-oriented planning.
@@ -741,16 +686,10 @@ func _ready() -> void:
 		_grenade_thrower.initialize(_log_to_file)
 		add_child(_grenade_thrower)
 		call_deferred("_register_ally_death_listener")
-		# Connect grenade signals for ally notification (issue #295)
 		_grenade_thrower.notify_allies_of_grenade.connect(_on_grenade_notification_broadcast)
 		_grenade_thrower.grenade_exploded.connect(_on_grenade_exploded)
 
-## Configure grenade system after _ready() has completed.
-## This method is designed to be called by level scripts that need to configure
-## enemy grenades based on difficulty or other runtime conditions.
-## @param enabled: Whether to enable grenade throwing
-## @param offensive: Number of offensive (frag) grenades
-## @param flashbangs: Number of flashbang grenades (default 0)
+## Configure grenade system after _ready() - called by level scripts.
 func configure_grenades(enabled: bool, offensive: int, flashbangs: int = 0) -> void:
 	enable_grenades = enabled
 	offensive_grenades = offensive
@@ -768,155 +707,85 @@ func configure_grenades(enabled: bool, offensive: int, flashbangs: int = 0) -> v
 		_grenade_thrower.initialize(_log_to_file)
 		add_child(_grenade_thrower)
 		call_deferred("_register_ally_death_listener")
-		# Connect grenade signals for ally notification (issue #295)
 		_grenade_thrower.notify_allies_of_grenade.connect(_on_grenade_notification_broadcast)
 		_grenade_thrower.grenade_exploded.connect(_on_grenade_exploded)
-		_log_to_file("Grenade system configured: offensive=%d, flashbangs=%d" % [offensive, flashbangs])
 	elif not enabled and _grenade_thrower != null:
-		# Disable grenades - clean up the component
 		_grenade_thrower.queue_free()
 		_grenade_thrower = null
-		_log_to_file("Grenade system disabled")
 
-## Register to listen for other enemies dying (for grenade trigger condition #3).
+## Register to listen for other enemies dying.
 func _register_ally_death_listener() -> void:
-	var enemies := get_tree().get_nodes_in_group("enemies")
-	for enemy in enemies:
-		if enemy != self and enemy.has_signal("died"):
-			if not enemy.is_connected("died", _on_ally_died):
-				enemy.connect("died", _on_ally_died)
+	for enemy in get_tree().get_nodes_in_group("enemies"):
+		if enemy != self and enemy.has_signal("died") and not enemy.is_connected("died", _on_ally_died):
+			enemy.connect("died", _on_ally_died)
 
-## Called when an ally enemy dies (for grenade trigger condition #3).
 func _on_ally_died() -> void:
 	if _can_see_player and _player and _grenade_thrower:
-		# Only count if we can see the player (witnessed the kill)
 		_grenade_thrower.register_ally_death()
-		_log_to_file("Witnessed ally death #%d" % _grenade_thrower._witnessed_ally_deaths)
 
-
-## Called when this enemy broadcasts a grenade notification to allies (issue #295).
-## This broadcasts to all other enemies in the scene.
+## Broadcast grenade notification to allies.
 func _on_grenade_notification_broadcast(target_pos: Vector2, blast_radius: float) -> void:
-	# Notify all other enemies in the scene about the incoming grenade
-	var enemies := get_tree().get_nodes_in_group("enemies")
-	for enemy in enemies:
+	for enemy in get_tree().get_nodes_in_group("enemies"):
 		if enemy != self and enemy.has_method("on_ally_grenade_incoming"):
 			enemy.on_ally_grenade_incoming(target_pos, blast_radius, self)
-	_log_to_file("Broadcasted grenade warning to %d allies" % (enemies.size() - 1))
 
-
-## Called when a grenade thrown by this enemy explodes (issue #295).
-## This triggers the coordinated assault behavior.
+## Called when own grenade explodes - notify allies and begin assault.
 func _on_grenade_exploded(explosion_pos: Vector2) -> void:
 	_grenade_explosion_position = explosion_pos
-	_log_to_file("Own grenade exploded at %s - initiating assault" % explosion_pos)
-
-	# Notify all allies that they can begin the assault
-	var enemies := get_tree().get_nodes_in_group("enemies")
-	for enemy in enemies:
+	for enemy in get_tree().get_nodes_in_group("enemies"):
 		if enemy != self and enemy.has_method("on_ally_grenade_exploded"):
 			enemy.on_ally_grenade_exploded(explosion_pos, self)
-
-	# The thrower should assault through the grenade passage (per issue #295 requirement 6)
 	_waiting_for_grenade_explosion = false
 	_begin_post_grenade_assault(explosion_pos)
 
-
-## Called by another enemy when they're about to throw a grenade (issue #295).
-## This enemy should evacuate if in the blast zone or throw line.
-## Parameters:
-## - target_pos: Where the grenade will land
-## - blast_radius: Danger zone radius around target
-## - thrower: The enemy throwing the grenade
+## Called when ally throws grenade - evacuate if in blast zone or throw line.
 func on_ally_grenade_incoming(target_pos: Vector2, blast_radius: float, thrower: Node) -> void:
-	# Check if we're in the blast zone
-	var distance_to_target := global_position.distance_to(target_pos)
-	var in_blast_zone := distance_to_target < blast_radius
-
-	# Check if we're on the throw line (between thrower and target)
+	var in_blast := global_position.distance_to(target_pos) < blast_radius
 	var thrower_pos: Vector2 = thrower.global_position if thrower else Vector2.ZERO
-	var on_throw_line := _is_on_throw_line(thrower_pos, target_pos)
-
-	if in_blast_zone or on_throw_line:
-		_log_to_file("Grenade incoming! Distance: %.0f, blast radius: %.0f, evacuating!" % [distance_to_target, blast_radius])
+	if in_blast or _is_on_throw_line(thrower_pos, target_pos):
 		_evacuating_from_grenade = true
 		_grenade_evacuation_from = target_pos
 		_waiting_for_grenade_explosion = true
-
-		# Prioritize evacuation - find safe position away from blast
 		_evacuate_from_grenade_zone(target_pos, blast_radius)
-
 
 ## Check if this enemy is on the throw line between thrower and target.
 func _is_on_throw_line(thrower_pos: Vector2, target_pos: Vector2) -> bool:
 	if thrower_pos == Vector2.ZERO:
 		return false
-
-	# Check if our position is close to the line from thrower to target
 	var line_dir := (target_pos - thrower_pos).normalized()
 	var to_self := global_position - thrower_pos
 	var projection := to_self.dot(line_dir)
-
-	# Only consider if we're between thrower and target
 	var line_length := thrower_pos.distance_to(target_pos)
 	if projection < 0 or projection > line_length:
 		return false
-
-	# Get perpendicular distance to the line
 	var closest_point := thrower_pos + line_dir * projection
-	var perpendicular_distance := global_position.distance_to(closest_point)
+	return global_position.distance_to(closest_point) < 50.0
 
-	# Consider within 50 pixels of the line as "on the throw line"
-	return perpendicular_distance < 50.0
-
-
-## Evacuate from grenade blast zone with maximum priority (issue #295).
+## Evacuate from grenade blast zone with maximum priority.
 func _evacuate_from_grenade_zone(grenade_pos: Vector2, blast_radius: float) -> void:
-	# Find direction away from grenade
-	var escape_direction := (global_position - grenade_pos).normalized()
-	if escape_direction == Vector2.ZERO:
-		escape_direction = Vector2.RIGHT.rotated(randf() * TAU)  # Random direction if at same position
-
-	# Calculate safe escape position (outside blast radius + safety margin)
-	var safe_distance := blast_radius + 100.0  # Extra 100px safety margin
-	var escape_target := grenade_pos + escape_direction * safe_distance
-
-	# Use navigation to find a reachable position
+	var escape_dir := (global_position - grenade_pos).normalized()
+	if escape_dir == Vector2.ZERO:
+		escape_dir = Vector2.RIGHT.rotated(randf() * TAU)
 	if _navigation_agent:
-		_navigation_agent.target_position = escape_target
+		_navigation_agent.target_position = grenade_pos + escape_dir * (blast_radius + 100.0)
 
-	# Override current state to prioritize evacuation
-	# We don't change state machine, just set flag so movement is handled in current state
-	_log_to_file("Evacuating to %s (away from grenade at %s)" % [escape_target, grenade_pos])
-
-
-## Called by another enemy when their grenade explodes (issue #295).
-## This signals that the coordinated assault can begin.
-func on_ally_grenade_exploded(explosion_pos: Vector2, thrower: Node) -> void:
+## Called when ally grenade explodes - signals coordinated assault can begin.
+func on_ally_grenade_exploded(explosion_pos: Vector2, _thrower: Node) -> void:
 	if _waiting_for_grenade_explosion:
 		_waiting_for_grenade_explosion = false
 		_evacuating_from_grenade = false
 		_grenade_explosion_position = explosion_pos
-		_log_to_file("Ally grenade exploded at %s - beginning coordinated assault" % explosion_pos)
-
-		# Begin coordinated assault toward the explosion position
 		_begin_post_grenade_assault(explosion_pos)
 
-
-## Begin assault after grenade explosion (issue #295 requirement 6).
-## The enemy storms through the passage where the grenade was thrown.
+## Begin assault after grenade explosion - storm through the passage.
 func _begin_post_grenade_assault(explosion_pos: Vector2) -> void:
-	# Transition to ASSAULT or PURSUING state to attack toward explosion position
-	if _player:
-		# If we can see the player, go to combat
-		if _can_see_player:
-			_transition_to_combat()
-		else:
-			# Move toward the explosion position (the passage where grenade was thrown)
-			_grenade_explosion_position = explosion_pos
-			_transition_to_pursuing()
-			_log_to_file("Assaulting through grenade passage at %s" % explosion_pos)
-
+	if not _player:
+		return
+	if _can_see_player:
+		_transition_to_combat()
+	else:
+		_grenade_explosion_position = explosion_pos
+		_transition_to_pursuing()
 
 ## Initialize health with random value between min and max.
 func _initialize_health() -> void:
@@ -1048,7 +917,6 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 		# Set flag to pursue to sound position even without line of sight
 		_pursuing_vulnerability_sound = true
 
-		# Issue #295 trigger #4: If thrower has grenades and can't see player, throw at sound
 		if _grenade_thrower and _grenade_thrower.has_grenades() and not _can_see_player:
 			_try_grenade_throw_at_sound(position)
 			return
@@ -1080,7 +948,6 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 		# Set flag to pursue to sound position even without line of sight
 		_pursuing_vulnerability_sound = true
 
-		# Issue #295 trigger #4: If thrower has grenades and can't see player, throw at sound
 		if _grenade_thrower and _grenade_thrower.has_grenades() and not _can_see_player:
 			_try_grenade_throw_at_sound(position)
 			return
@@ -2073,17 +1940,11 @@ func _process_seeking_cover_state(_delta: float) -> void:
 ## 4. If player is far and can't hit -> PURSUING (move cover-to-cover)
 func _process_in_cover_state(delta: float) -> void:
 	velocity = Vector2.ZERO
-
-	# Check if we need to exit cover for grenade throw (issue #295)
 	if _needs_grenade_throw_position and _grenade_thrower:
 		_exit_cover_for_grenade_throw()
 		return
-
-	# Check for grenade throw opportunity (per issue #273)
 	if _check_grenade_throw():
 		return
-
-	# If still under fire, stay suppressed
 	if _under_fire:
 		_transition_to_suppressed()
 		return
@@ -2255,13 +2116,9 @@ func _process_flanking_state(delta: float) -> void:
 ## Process SUPPRESSED state - staying in cover under fire.
 func _process_suppressed_state(delta: float) -> void:
 	velocity = Vector2.ZERO
-
-	# Check for grenade throw opportunity (per issue #273)
 	if _check_grenade_throw():
 		return
-
-	# Check if player has flanked us - if we're now visible from player's position,
-	# we need to find new cover even while suppressed
+	# Check if player has flanked us
 	if _is_visible_from_player():
 		# In suppressed state we're always in alarm mode - fire a burst before escaping if we can see player
 		if _can_see_player and _player:
@@ -2942,118 +2799,70 @@ func _transition_to_retreating() -> void:
 	# Find cover position for retreating
 	_find_cover_position()
 
-## Exit cover to find a clear position for grenade throw (issue #295).
-## Called when grenade throw was blocked by a wall point-blank.
+## Exit cover to find clear throw position when blocked by wall.
 func _exit_cover_for_grenade_throw() -> void:
 	if not _grenade_thrower or not _player:
 		_needs_grenade_throw_position = false
 		return
-
-	# Find a position where we can throw without wall obstruction
 	var direction_to_target := (_grenade_throw_target - global_position).normalized()
-
-	# Try to find a position by moving perpendicular to throw direction
 	var perpendicular := Vector2(-direction_to_target.y, direction_to_target.x)
-	var check_distance := 100.0  # Try 100 pixels to the side
-
 	var best_position := Vector2.ZERO
-	var found_clear_position := false
-
-	for side_multiplier: float in [1.0, -1.0]:  # Try both sides
-		var test_pos := global_position + perpendicular * side_multiplier * check_distance
-
-		# Check if we can reach this position (no wall blocking movement)
-		var world_2d := get_world_2d()
-		if world_2d:
-			var space_state := world_2d.direct_space_state
-			if space_state:
-				var move_query := PhysicsRayQueryParameters2D.new()
-				move_query.from = global_position
-				move_query.to = test_pos
-				move_query.collision_mask = 4  # Obstacles
-				move_query.exclude = [get_rid()]
-				var move_result := space_state.intersect_ray(move_query)
-
-				if move_result.is_empty():
-					# Can reach this position, check if throw would be clear from there
-					if _grenade_thrower.is_throw_path_clear(test_pos, _grenade_throw_target):
-						best_position = test_pos
-						found_clear_position = true
-						break
-
-	if found_clear_position:
-		# Move to the clear throw position
-		_log_to_file("Found clear throw position at %s, moving to throw" % best_position)
+	var found := false
+	var world_2d := get_world_2d()
+	if world_2d == null:
+		_needs_grenade_throw_position = false
+		return
+	var space_state := world_2d.direct_space_state
+	if space_state == null:
+		_needs_grenade_throw_position = false
+		return
+	for side: float in [1.0, -1.0]:
+		var test_pos := global_position + perpendicular * side * 100.0
+		var query := PhysicsRayQueryParameters2D.new()
+		query.from = global_position
+		query.to = test_pos
+		query.collision_mask = 4
+		query.exclude = [get_rid()]
+		if space_state.intersect_ray(query).is_empty():
+			if _grenade_thrower.is_throw_path_clear(test_pos, _grenade_throw_target):
+				best_position = test_pos
+				found = true
+				break
+	if found:
 		_move_to_target_nav(best_position, combat_move_speed)
-
-		# Check if we've reached the position
 		if global_position.distance_to(best_position) < 30.0:
-			# We're close enough, try to throw now
 			_needs_grenade_throw_position = false
 			if _grenade_thrower.is_throw_path_clear(global_position, _grenade_throw_target):
-				var grenade_type := _grenade_thrower.get_best_grenade_type()
-				_transition_to_throwing_grenade(_grenade_throw_target, grenade_type)
+				_transition_to_throwing_grenade(_grenade_throw_target, _grenade_thrower.get_best_grenade_type())
 	else:
-		# Couldn't find a clear position, give up on this throw attempt
-		_log_to_file("Could not find clear throw position, abandoning grenade throw")
 		_needs_grenade_throw_position = false
 
-
-## Try to throw a grenade at a sound position (issue #295 trigger #4).
-## Called when enemy hears reload/empty click but can't see player.
+## Try to throw a grenade at a sound position (trigger #4: reload/empty click).
 func _try_grenade_throw_at_sound(sound_position: Vector2) -> void:
 	if not _grenade_thrower:
 		return
-
 	var distance := global_position.distance_to(sound_position)
-
-	# Check if within throw range
-	if distance > _grenade_thrower.throw_range:
-		_log_to_file("Grenade throw at sound blocked: too far (%.0f > %.0f)" % [distance, _grenade_thrower.throw_range])
+	if distance > _grenade_thrower.throw_range or _grenade_thrower.is_on_cooldown():
 		return
-
-	# Check if on cooldown
-	if _grenade_thrower.is_on_cooldown():
-		_log_to_file("Grenade throw at sound blocked: on cooldown")
-		return
-
-	# Check if throw path is clear
 	if not _grenade_thrower.is_throw_path_clear(global_position, sound_position):
-		_log_to_file("Grenade throw at sound blocked: wall in the way")
-		# Try to find a throw position
 		_needs_grenade_throw_position = true
 		_grenade_throw_target = sound_position
 		return
+	_transition_to_throwing_grenade(sound_position, _grenade_thrower.get_best_grenade_type())
 
-	# All checks passed - throw at sound position
-	_log_to_file("Throwing grenade at reload/empty sound position: %s" % sound_position)
-	var grenade_type := _grenade_thrower.get_best_grenade_type()
-	_transition_to_throwing_grenade(sound_position, grenade_type)
-
-
-## Check if grenade throw should happen and initiate it. Returns true if transitioned.
-## Per issue #295: Enemy should NOT throw at wall point-blank - should come out first.
+## Check if grenade throw should happen. Returns true if transitioned.
 func _check_grenade_throw() -> bool:
 	if not _grenade_thrower or not _player:
 		return false
-	var distance := global_position.distance_to(_player.global_position)
+	var dist := global_position.distance_to(_player.global_position)
 	var is_suppressed := _current_state == AIState.SUPPRESSED
-
-	# Check if throw conditions are met (triggers, cooldown, distance, etc.)
-	if not _grenade_thrower.should_throw(_current_health, _can_see_player, is_suppressed, distance, global_position, _player.global_position):
+	if not _grenade_thrower.should_throw(_current_health, _can_see_player, is_suppressed, dist, global_position, _player.global_position):
 		return false
-
-	# FIX issue #295: Check if throw path is clear (no wall point-blank)
 	if not _grenade_thrower.is_throw_path_clear(global_position, _player.global_position):
-		# Path blocked - need to exit cover first (per issue #295)
-		_log_to_file("Grenade throw blocked by wall - need to reposition")
-		# Store that we want to throw and try to find a better position
 		_needs_grenade_throw_position = true
 		_grenade_throw_target = _player.global_position
 		return false
-
-	var grenade_type := _grenade_thrower.get_best_grenade_type()
-	_transition_to_throwing_grenade(_player.global_position, grenade_type)
+	_transition_to_throwing_grenade(_player.global_position, _grenade_thrower.get_best_grenade_type())
 	return true
 
 ## Transition to THROWING_GRENADE state.
@@ -3063,157 +2872,88 @@ func _transition_to_throwing_grenade(target_pos: Vector2, grenade_type: int) -> 
 		_grenade_thrower.begin_throw(target_pos, grenade_type)
 	_log_debug("Entering THROWING_GRENADE state: target=%s" % target_pos)
 
-## Process THROWING_GRENADE state - prepare and throw grenade at player.
-## Per issue #295:
-## - After throwing, aim at landing spot and approach to safe distance
-## - If non-offensive grenade, find cover from blast rays
-## - After explosion, assault through the grenade passage
+## Process THROWING_GRENADE state - prepare, throw, then post-throw behavior.
 func _process_throwing_grenade_state(delta: float) -> void:
 	if not _player or not _grenade_thrower:
 		_transition_to_idle()
 		return
-
-	# Aim at the target position
 	var target_pos := _grenade_thrower.get_target_position()
-	var direction := (target_pos - global_position).normalized()
-	rotation = lerp_angle(rotation, direction.angle(), rotation_speed * delta)
-
-	# Update prep and execute when ready
+	rotation = lerp_angle(rotation, (target_pos - global_position).angle(), rotation_speed * delta)
 	if _grenade_thrower.update_throw_prep(delta):
 		var grenade := _grenade_thrower.execute_throw(global_position)
 		if grenade:
 			get_tree().current_scene.add_child(grenade)
 			GrenadeThrowerComponent.activate_thrown_grenade(grenade)
-
-		# Post-throw behavior per issue #295 requirement 5:
-		# - Aim at landing spot (keep rotation pointing at target)
-		# - Approach to safe distance OR find cover from blast
 		_handle_post_grenade_throw_behavior(target_pos)
 
-
-## Handle behavior after throwing a grenade (issue #295 requirement 5).
-## - Offensive grenade: approach safe distance while aiming at landing spot
-## - Non-offensive grenade: hide behind cover from blast rays
+## Post-throw behavior: approach safe distance or find cover from blast rays.
 func _handle_post_grenade_throw_behavior(throw_target: Vector2) -> void:
-	var distance_to_target := global_position.distance_to(throw_target)
-	var safe_distance := _grenade_thrower.min_safe_distance if _grenade_thrower else 250.0
+	var dist := global_position.distance_to(throw_target)
+	var safe_dist := _grenade_thrower.min_safe_distance if _grenade_thrower else 250.0
 	var is_offensive := _grenade_thrower.was_last_grenade_offensive() if _grenade_thrower else true
-
+	_waiting_for_grenade_explosion = true
+	_grenade_explosion_position = throw_target
 	if is_offensive:
-		# Offensive grenade: approach to safe distance while aiming at landing spot
-		if distance_to_target < safe_distance:
-			# Too close - need to back up to safe distance
-			var away_direction := (global_position - throw_target).normalized()
-			var safe_position := throw_target + away_direction * safe_distance
-			_log_to_file("Post-throw: moving to safe distance from explosion (%.0f -> %.0f)" % [distance_to_target, safe_distance])
-
-			# Mark that we're waiting for explosion to assault
-			_waiting_for_grenade_explosion = true
-			_grenade_explosion_position = throw_target
-
+		if dist < safe_dist:
 			if enable_cover:
-				# Find cover that's at safe distance
-				_find_cover_away_from_position(throw_target, safe_distance)
+				_find_cover_away_from_position(throw_target, safe_dist)
 				_transition_to_seeking_cover()
 			else:
-				# Just move away
-				_move_to_target_nav(safe_position, combat_move_speed)
+				var safe_pos := throw_target + (global_position - throw_target).normalized() * safe_dist
+				_move_to_target_nav(safe_pos, combat_move_speed)
 				_transition_to_combat()
 		else:
-			# Already at safe distance - wait for explosion then assault
-			_waiting_for_grenade_explosion = true
-			_grenade_explosion_position = throw_target
-			_log_to_file("Post-throw: at safe distance, waiting for explosion")
 			_transition_to_combat()
 	else:
-		# Non-offensive grenade (flashbang): find cover from blast rays
-		_log_to_file("Post-throw: flashbang - finding cover from blast rays")
-		_waiting_for_grenade_explosion = true
-		_grenade_explosion_position = throw_target
 		_find_cover_from_blast_rays(throw_target)
 		if _has_valid_cover:
 			_transition_to_seeking_cover()
 		else:
 			_transition_to_combat()
 
-
-## Find cover position that is away from a given position (for post-grenade safety).
+## Find cover position far enough from danger position.
 func _find_cover_away_from_position(danger_pos: Vector2, min_distance: float) -> void:
-	# Use existing cover finding but filter for positions that are far enough from danger
 	var best_cover := Vector2.ZERO
 	var best_score := -999.0
-
 	for i in range(COVER_CHECK_COUNT):
 		var angle := (i / float(COVER_CHECK_COUNT)) * TAU
-		var check_direction := Vector2.from_angle(angle)
-		var check_distance := randf_range(150.0, 300.0)
-		var test_position := global_position + check_direction * check_distance
-
-		# Must be far enough from danger position
-		var distance_from_danger := test_position.distance_to(danger_pos)
-		if distance_from_danger < min_distance:
-			continue
-
-		# Check if this position provides cover from player
-		if not _is_position_visible_from_player(test_position):
-			var score := distance_from_danger / min_distance  # Prefer further from danger
-			if score > best_score:
-				best_score = score
-				best_cover = test_position
-
-	if best_score > 0.0:
+		var test_pos := global_position + Vector2.from_angle(angle) * randf_range(150.0, 300.0)
+		var dist := test_pos.distance_to(danger_pos)
+		if dist >= min_distance and not _is_position_visible_from_player(test_pos):
+			if dist / min_distance > best_score:
+				best_score = dist / min_distance
+				best_cover = test_pos
+	_has_valid_cover = best_score > 0.0
+	if _has_valid_cover:
 		_cover_position = best_cover
-		_has_valid_cover = true
-		_log_to_file("Found safe cover at %s (%.0f from danger)" % [best_cover, best_cover.distance_to(danger_pos)])
-	else:
-		_has_valid_cover = false
 
-
-## Find cover from blast rays (for non-offensive grenades like flashbang).
-## Finds cover that shields from rays emanating from the blast position.
+## Find cover shielded from blast position (for flashbangs).
 func _find_cover_from_blast_rays(blast_pos: Vector2) -> void:
-	# Similar to regular cover finding, but checks visibility from blast position
 	var best_cover := Vector2.ZERO
 	var best_score := -999.0
-
+	var world_2d := get_world_2d()
+	if world_2d == null:
+		_has_valid_cover = false
+		return
+	var space_state := world_2d.direct_space_state
+	if space_state == null:
+		_has_valid_cover = false
+		return
 	for i in range(COVER_CHECK_COUNT):
 		var angle := (i / float(COVER_CHECK_COUNT)) * TAU
-		var check_direction := Vector2.from_angle(angle)
-		var check_distance := randf_range(100.0, 250.0)
-		var test_position := global_position + check_direction * check_distance
-
-		# Check if this position is hidden from the blast position
-		var world_2d := get_world_2d()
-		if world_2d == null:
-			continue
-
-		var space_state := world_2d.direct_space_state
-		if space_state == null:
-			continue
-
+		var test_pos := global_position + Vector2.from_angle(angle) * randf_range(100.0, 250.0)
 		var query := PhysicsRayQueryParameters2D.new()
 		query.from = blast_pos
-		query.to = test_position
-		query.collision_mask = 4  # Obstacles
-		var result := space_state.intersect_ray(query)
-
-		if not result.is_empty():
-			# There's an obstacle between blast and this position - good cover
-			var distance_to_cover := global_position.distance_to(test_position)
-			var distance_from_blast := test_position.distance_to(blast_pos)
-
-			# Prefer closer cover that's farther from blast
-			var score := distance_from_blast / 100.0 - distance_to_cover / 200.0
+		query.to = test_pos
+		query.collision_mask = 4
+		if not space_state.intersect_ray(query).is_empty():
+			var score := test_pos.distance_to(blast_pos) / 100.0 - global_position.distance_to(test_pos) / 200.0
 			if score > best_score:
 				best_score = score
-				best_cover = test_position
-
-	if best_score > -999.0:
+				best_cover = test_pos
+	_has_valid_cover = best_score > -999.0
+	if _has_valid_cover:
 		_cover_position = best_cover
-		_has_valid_cover = true
-		_log_to_file("Found blast cover at %s" % best_cover)
-	else:
-		_has_valid_cover = false
 
 ## Check if the enemy is visible from the player's position.
 ## Uses raycasting from player to enemy to determine if there are obstacles blocking line of sight.
@@ -4485,20 +4225,6 @@ func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has
 	# Play appropriate hit sound and spawn visual effects
 	var audio_manager: Node = get_node_or_null("/root/AudioManager")
 	var impact_manager: Node = get_node_or_null("/root/ImpactEffectsManager")
-
-	# Log blood effect call for diagnostics
-	if impact_manager:
-		_log_to_file("ImpactEffectsManager found, calling spawn_blood_effect")
-	else:
-		_log_to_file("WARNING: ImpactEffectsManager not found at /root/ImpactEffectsManager")
-		# Debug: List all autoload children of /root for diagnostics
-		var root_node := get_node_or_null("/root")
-		if root_node:
-			var autoload_names: Array = []
-			for child in root_node.get_children():
-				if child.name != get_tree().current_scene.name if get_tree().current_scene else true:
-					autoload_names.append(child.name)
-			_log_to_file("Available autoloads: " + ", ".join(autoload_names))
 
 	if _current_health <= 0:
 		# Track special kill info before death
