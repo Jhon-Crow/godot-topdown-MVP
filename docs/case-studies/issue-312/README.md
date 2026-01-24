@@ -3,7 +3,110 @@
 ## Issue Summary
 **Issue**: [#312](https://github.com/Jhon-Crow/godot-topdown-MVP/issues/312)
 **Title**: добавить пистолет с глушителем (Add silenced pistol)
-**Status**: Fixed - weapon fully functional with stun effect
+**Status**: Fixed - weapon fully functional with stun effect and green laser sight
+
+---
+
+## Feature Request #4: Green Laser Sight (2026-01-24)
+
+### Request Description
+User requested: "добавь зелёный лазер (как в М16 - но другого цвета)" (add green laser like M16 but different color).
+
+### Implementation Details
+
+**Added laser sight with green color to SilencedPistol.cs**:
+- Color: `new Color(0.0f, 1.0f, 0.0f, 0.5f)` (bright green, 50% alpha)
+- Uses same raycast-based implementation as M16
+- Stops at obstacles
+- Follows aim direction with recoil offset
+
+**Properties added**:
+```csharp
+[Export] public bool LaserSightEnabled { get; set; } = true;
+[Export] public float LaserSightLength { get; set; } = 500.0f;
+[Export] public Color LaserSightColor { get; set; } = new Color(0.0f, 1.0f, 0.0f, 0.5f);
+[Export] public float LaserSightWidth { get; set; } = 2.0f;
+```
+
+---
+
+## Bug Report #4: Stun Effect Not Working (2026-01-24)
+
+### Problem Description
+User reported: "стан не работает или слишком короткий" (stun is not working or too short).
+
+From game logs (`game_log_20260124_205408.txt`), no stun effect messages were being logged.
+
+### Root Cause Analysis
+
+**Root Cause**: The `SpawnBullet()` method was using `Node.Set("StunDuration", value)` to set the stun duration on the bullet. However, Godot's `Set()` method doesn't reliably work for C# properties when the object is accessed through a base type reference (`Node2D`).
+
+The bullet was instantiated as:
+```csharp
+var bullet = BulletScene.Instantiate<Node2D>();
+bullet.Set("StunDuration", StunDurationOnHit);  // This fails silently!
+```
+
+### Fix Applied
+
+Changed to cast to `Bullet` type for direct property access:
+```csharp
+var bulletNode = BulletScene.Instantiate<Node2D>();
+var bullet = bulletNode as Bullet;
+if (bullet != null)
+{
+    bullet.StunDuration = StunDurationOnHit;  // Direct property access works!
+}
+```
+
+Also increased stun duration from 0.25s to 0.6s for a more noticeable effect.
+
+### Lesson Learned
+When setting properties on C# objects from C# code, always cast to the specific type rather than using `Node.Set()`. The `Set()` method is designed for GDScript interoperability and may not work correctly with pure C# properties.
+
+---
+
+## Bug Report #3: Ammo Counter Not Working (2026-01-24)
+
+### Problem Description
+User reported: "амmo counter не работает для pistol (возможно проблема C#)" (ammo counter not working for pistol, possibly C# problem).
+
+From game logs, the ammo display constantly showed 30/30 (the M16's magazine size) even when using the silenced pistol (which has 13 rounds).
+
+### Evidence from Logs
+```
+[20:54:16] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 4/4
+...
+[20:55:35] [ENEMY] [Enemy1] Player ammo empty state changed: false -> true
+```
+
+The log shows the ammo was tracked correctly internally (enemy detected player ran out of ammo), but the UI displayed 30/30.
+
+### Root Cause Analysis
+
+**Root Cause**: The level scripts' `_setup_ammo_tracking()` function only checked for three weapon node names:
+- `Shotgun`
+- `MiniUzi`
+- `AssaultRifle`
+
+The `SilencedPistol` node was not included, so the signal connection was never made.
+
+### Fix Applied
+
+Added SilencedPistol detection to all three level scripts:
+
+**`scripts/levels/tutorial_level.gd`**:
+```gdscript
+var silenced_pistol = _player.get_node_or_null("SilencedPistol")
+# ...
+elif silenced_pistol != null:
+    if silenced_pistol.has_signal("AmmoChanged"):
+        silenced_pistol.AmmoChanged.connect(_on_weapon_ammo_changed)
+    if silenced_pistol.get("CurrentAmmo") != null and silenced_pistol.get("ReserveAmmo") != null:
+        _update_ammo_label_magazine(silenced_pistol.CurrentAmmo, silenced_pistol.ReserveAmmo)
+```
+
+Same fix applied to `test_tier.gd` and `building_level.gd`.
 
 ---
 
@@ -17,7 +120,7 @@ User requested: "добавь особый эффект этому пистол�
 **Fire Rate Analysis:**
 - Fire rate: 5.0 shots per second
 - Time between shots: 1/5 = 0.2 seconds
-- Stun duration set to: 0.25 seconds (slightly longer for buffer)
+- Stun duration set to: 0.6 seconds (increased from 0.25s for better tactical effect)
 
 **Implementation:**
 
@@ -27,8 +130,9 @@ User requested: "добавь особый эффект этому пистол�
    - Modified `OnAreaEntered()` to apply stun when hitting enemies if `StunDuration > 0`
 
 2. **`Scripts/Weapons/SilencedPistol.cs`**:
-   - Added `StunDurationOnHit` constant (0.25 seconds)
+   - Added `StunDurationOnHit` constant (0.6 seconds - increased from original 0.25s)
    - Overrode `SpawnBullet()` to set `StunDuration` on spawned bullets
+   - Uses direct C# property access (not Node.Set()) for reliable stun effect
 
 3. **`scripts/ui/armory_menu.gd`**:
    - Updated weapon description to mention stun effect
@@ -103,10 +207,12 @@ When adding a new weapon, ensure these are updated:
 - [ ] Register in `armory_menu.gd` WEAPONS dictionary
 - [ ] Register in `game_manager.gd` WEAPON_SCENES dictionary
 - [ ] **Add weapon loading case to ALL level scripts** (`tutorial_level.gd`, `test_tier.gd`, `building_level.gd`)
+- [ ] **Add ammo tracking in `_setup_ammo_tracking()` for all level scripts**
 - [ ] **Add weapon type enum and detection in `Player.cs`** (if new weapon type)
 - [ ] Test weapon appears in armory
 - [ ] Test weapon is selectable and actually loads
 - [ ] Test weapon is functional in gameplay
+- [ ] Test ammo counter displays correctly
 
 ---
 
@@ -253,6 +359,8 @@ Added silenced pistol registration to both files:
 | Automatic | No | Yes | Yes |
 | Recoil Recovery | 0.35s | 0.1s | 0.08s |
 | Max Recoil | ±10° | ±5° | ±8° |
+| Laser Sight | Green | Red | None |
+| Stun on Hit | 0.6s | None | None |
 
 ## Key Implementation Decisions
 
