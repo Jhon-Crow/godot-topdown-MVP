@@ -2358,20 +2358,13 @@ func _is_waypoint_navigable(pos: Vector2) -> bool:
 	var closest := NavigationServer2D.map_get_closest_point(nav_map, pos)
 	return pos.distance_to(closest) < 50.0
 
-## Zone tracking for visited areas (Issue #322): snaps position to grid for consistent identification.
+## Zone tracking helpers for visited areas (Issue #322): snaps to 50px grid.
 func _get_zone_key(pos: Vector2) -> String:
-	var sx := int(pos.x / SEARCH_ZONE_SNAP_SIZE) * int(SEARCH_ZONE_SNAP_SIZE)
-	var sy := int(pos.y / SEARCH_ZONE_SNAP_SIZE) * int(SEARCH_ZONE_SNAP_SIZE)
-	return "%d,%d" % [sx, sy]
-
-func _is_zone_visited(pos: Vector2) -> bool:
-	return _search_visited_zones.has(_get_zone_key(pos))
-
+	return "%d,%d" % [int(pos.x / SEARCH_ZONE_SNAP_SIZE) * int(SEARCH_ZONE_SNAP_SIZE), int(pos.y / SEARCH_ZONE_SNAP_SIZE) * int(SEARCH_ZONE_SNAP_SIZE)]
+func _is_zone_visited(pos: Vector2) -> bool: return _search_visited_zones.has(_get_zone_key(pos))
 func _mark_zone_visited(pos: Vector2) -> void:
-	var key := _get_zone_key(pos)
-	if not _search_visited_zones.has(key):
-		_search_visited_zones[key] = true
-		_log_debug("SEARCHING: Marked zone %s as visited (total: %d)" % [key, _search_visited_zones.size()])
+	var k := _get_zone_key(pos)
+	if not _search_visited_zones.has(k): _search_visited_zones[k] = true; _log_debug("SEARCHING: Marked zone %s as visited (total: %d)" % [k, _search_visited_zones.size()])
 
 ## Process SEARCHING state - move through waypoints, scan at each (Issue #322).
 func _process_searching_state(delta: float) -> void:
@@ -2726,26 +2719,15 @@ func _transition_to_assault() -> void:
 	# Find closest cover to player for assault position
 	_find_cover_closest_to_player()
 
-## Transition to SEARCHING state (Issue #322).
-## Begins methodical search pattern around a center position.
-## @param center_position: The position to search around (typically last known player position).
+## Transition to SEARCHING state - methodical search around last known player position (Issue #322).
 func _transition_to_searching(center_position: Vector2) -> void:
-	_current_state = AIState.SEARCHING
-	_search_center = center_position
-	_search_radius = SEARCH_INITIAL_RADIUS
-	_search_state_timer = 0.0
-	_search_scan_timer = 0.0
-	_search_current_waypoint_index = 0
-	_search_direction = 0
-	_search_leg_length = SEARCH_WAYPOINT_SPACING
-	_search_legs_completed = 0
-	_search_moving_to_waypoint = true
-	_search_visited_zones.clear()  # Clear visited zones for new search
-	# Generate initial search waypoints using expanding square pattern
+	_current_state = AIState.SEARCHING; _search_center = center_position; _search_radius = SEARCH_INITIAL_RADIUS
+	_search_state_timer = 0.0; _search_scan_timer = 0.0; _search_current_waypoint_index = 0
+	_search_direction = 0; _search_leg_length = SEARCH_WAYPOINT_SPACING; _search_legs_completed = 0
+	_search_moving_to_waypoint = true; _search_visited_zones.clear()
 	_generate_search_waypoints()
 	var msg := "SEARCHING started: center=%s, radius=%.0f, waypoints=%d" % [_search_center, _search_radius, _search_waypoints.size()]
-	_log_debug(msg)
-	_log_to_file(msg)
+	_log_debug(msg); _log_to_file(msg)
 
 ## Transition to RETREATING state with appropriate retreat mode.
 func _transition_to_retreating() -> void:
