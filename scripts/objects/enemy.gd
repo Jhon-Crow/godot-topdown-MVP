@@ -832,19 +832,31 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 		return
 
 	# React based on current state:
-	# - IDLE: Always react to loud sounds
-	# - Other states: Only react to very loud, close sounds (intensity > 0.5)
+	# - IDLE: Always react to sounds above minimal threshold
+	# - Defensive states: React to loud nearby sounds (update memory)
+	# - Tactical movement: React to loud sounds
+	# - Active combat: Ignore sounds (avoid distraction)
+	# Issue #337: Improved sound detection for enemies in various states
 	var should_react := false
 
 	if _current_state == AIState.IDLE:
 		# In IDLE state, always investigate sounds above minimal threshold
 		should_react = intensity >= 0.01
+	elif _current_state in [AIState.IN_COVER, AIState.SUPPRESSED, AIState.SEEKING_COVER]:
+		# In defensive states, react to loud nearby sounds (intensity > 0.15)
+		# This allows enemies to update their knowledge of player position
+		# without leaving cover for every distant sound
+		should_react = intensity >= 0.15
 	elif _current_state in [AIState.FLANKING, AIState.RETREATING]:
 		# In tactical movement states, react to loud nearby sounds
 		should_react = intensity >= 0.3
+	elif _current_state == AIState.SEARCHING:
+		# While searching, react to any reasonably loud sound
+		# This helps enemies find the player when investigating
+		should_react = intensity >= 0.1
 	else:
-		# In combat-related states, only react to very loud sounds
-		# This prevents enemies from being distracted during active combat
+		# In active combat states (COMBAT, PURSUING, ASSAULT), ignore sounds
+		# to prevent being distracted during active engagement
 		should_react = false
 
 	if not should_react:

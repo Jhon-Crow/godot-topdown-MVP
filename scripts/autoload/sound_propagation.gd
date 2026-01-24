@@ -193,8 +193,12 @@ func emit_sound(sound_type: SoundType, position: Vector2, source_type: SourceTyp
 		_log_debug("Sound notified %d listeners" % listeners_notified)
 
 
-## Calculate sound intensity at a given distance using inverse square law.
-## Uses physically-inspired attenuation: intensity = (reference_distance / distance)²
+## Calculate sound intensity at a given distance using sound pressure model.
+## Uses 1/r attenuation for perceived loudness (sound pressure).
+## Note: Sound intensity (power) falls off as 1/r², but sound pressure
+## (what we actually perceive) falls off as 1/r. Using 1/r provides
+## more realistic sound detection at longer distances.
+## Issue #337: Enemies should better detect sounds from adjacent rooms.
 ##
 ## Parameters:
 ## - distance: Distance from sound source in pixels
@@ -206,15 +210,16 @@ func calculate_intensity(distance: float) -> float:
 	if distance <= REFERENCE_DISTANCE:
 		return 1.0
 
-	# Inverse square law: I = I₀ * (r₀/r)²
-	# Where I₀ = 1.0 at reference distance r₀
-	var intensity := pow(REFERENCE_DISTANCE / distance, 2.0)
+	# Sound pressure model: P = P₀ * (r₀/r)
+	# Where P₀ = 1.0 at reference distance r₀
+	# This gives more realistic detection at longer distances compared to 1/r²
+	var intensity := REFERENCE_DISTANCE / distance
 
 	return clampf(intensity, 0.0, 1.0)
 
 
 ## Calculate sound intensity with atmospheric absorption for more realism.
-## Includes both inverse square law and high-frequency absorption.
+## Includes both sound pressure model and high-frequency absorption.
 ##
 ## Parameters:
 ## - distance: Distance from sound source in pixels
@@ -223,7 +228,7 @@ func calculate_intensity(distance: float) -> float:
 ## Returns:
 ## - Intensity value from 0.0 to 1.0 (clamped)
 func calculate_intensity_with_absorption(distance: float, absorption_coefficient: float = 0.001) -> float:
-	# Start with inverse square law intensity
+	# Start with sound pressure model intensity
 	var base_intensity := calculate_intensity(distance)
 
 	# Apply exponential atmospheric absorption

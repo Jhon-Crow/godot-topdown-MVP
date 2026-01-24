@@ -1,0 +1,1444 @@
+[01:58:47] [INFO] ============================================================
+[01:58:47] [INFO] GAME LOG STARTED
+[01:58:47] [INFO] ============================================================
+[01:58:47] [INFO] Timestamp: 2026-01-25T01:58:47
+[01:58:47] [INFO] Log file: I:/Загрузки/godot exe/game_log_20260125_015847.txt
+[01:58:47] [INFO] Executable: I:/Загрузки/godot exe/Godot-Top-Down-Template.exe
+[01:58:47] [INFO] OS: Windows
+[01:58:47] [INFO] Debug build: false
+[01:58:47] [INFO] Engine version: 4.3-stable (official)
+[01:58:47] [INFO] Project: Godot Top-Down Template
+[01:58:47] [INFO] ------------------------------------------------------------
+[01:58:47] [INFO] [GameManager] GameManager ready
+[01:58:47] [INFO] [ScoreManager] ScoreManager ready
+[01:58:47] [INFO] [SoundPropagation] SoundPropagation autoload initialized
+[01:58:47] [INFO] [ImpactEffects] Scenes loaded: DustEffect, BloodEffect, SparksEffect, BloodDecal
+[01:58:47] [INFO] [ImpactEffects] ImpactEffectsManager ready - FULL VERSION with blood effects enabled
+[01:58:47] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[01:58:47] [INFO] [PenultimateHit] Saturation shader loaded successfully
+[01:58:47] [INFO] [PenultimateHit] PenultimateHitEffectsManager ready - Configuration:
+[01:58:47] [INFO] [PenultimateHit]   Time scale: 0.10 (10x slowdown)
+[01:58:47] [INFO] [PenultimateHit]   Saturation boost: 2.0 (3.0x)
+[01:58:47] [INFO] [PenultimateHit]   Contrast boost: 1.0 (2.0x)
+[01:58:47] [INFO] [PenultimateHit]   Effect duration: 3.0 real seconds
+[01:58:47] [INFO] [LastChance] Resetting all effects (scene change detected)
+[01:58:47] [INFO] [LastChance] Last chance shader loaded successfully
+[01:58:47] [INFO] [LastChance] LastChanceEffectsManager ready - Configuration:
+[01:58:47] [INFO] [LastChance]   Freeze duration: 6.0 real seconds
+[01:58:47] [INFO] [LastChance]   Sepia intensity: 0.70
+[01:58:47] [INFO] [LastChance]   Brightness: 0.60
+[01:58:47] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FlashbangGrenade.tscn
+[01:58:48] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FragGrenade.tscn
+[01:58:48] [INFO] [ExperimentalSettings] ExperimentalSettings initialized - FOV enabled: true
+[01:58:48] [ENEMY] [Enemy1] Death animation component initialized
+[01:58:48] [ENEMY] [Enemy2] Death animation component initialized
+[01:58:48] [ENEMY] [Enemy3] Death animation component initialized
+[01:58:48] [ENEMY] [Enemy4] Death animation component initialized
+[01:58:48] [ENEMY] [Enemy5] Death animation component initialized
+[01:58:48] [ENEMY] [Enemy6] Death animation component initialized
+[01:58:48] [ENEMY] [Enemy7] Death animation component initialized
+[01:58:48] [ENEMY] [Enemy8] Death animation component initialized
+[01:58:48] [ENEMY] [Enemy9] Death animation component initialized
+[01:58:48] [ENEMY] [Enemy10] Death animation component initialized
+[01:58:48] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[01:58:48] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[01:58:48] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[01:58:48] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[01:58:48] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[01:58:48] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[01:58:48] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[01:58:48] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[01:58:48] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 4/4
+[01:58:48] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[01:58:48] [INFO] [BuildingLevel] Found Environment/Enemies node with 10 children
+[01:58:48] [INFO] [BuildingLevel] Child 'Enemy1': script=true, has_died_signal=true
+[01:58:48] [INFO] [BuildingLevel] Child 'Enemy2': script=true, has_died_signal=true
+[01:58:48] [INFO] [BuildingLevel] Child 'Enemy3': script=true, has_died_signal=true
+[01:58:48] [INFO] [BuildingLevel] Child 'Enemy4': script=true, has_died_signal=true
+[01:58:48] [INFO] [BuildingLevel] Child 'Enemy5': script=true, has_died_signal=true
+[01:58:48] [INFO] [BuildingLevel] Child 'Enemy6': script=true, has_died_signal=true
+[01:58:48] [INFO] [BuildingLevel] Child 'Enemy7': script=true, has_died_signal=true
+[01:58:48] [INFO] [BuildingLevel] Child 'Enemy8': script=true, has_died_signal=true
+[01:58:48] [INFO] [BuildingLevel] Child 'Enemy9': script=true, has_died_signal=true
+[01:58:48] [INFO] [BuildingLevel] Child 'Enemy10': script=true, has_died_signal=true
+[01:58:48] [INFO] [BuildingLevel] Enemy tracking complete: 10 enemies registered
+[01:58:48] [INFO] [ScoreManager] Level started with 10 enemies
+[01:58:48] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 1)
+[01:58:48] [ENEMY] [Enemy1] Registered as sound listener
+[01:58:48] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 4, behavior: GUARD, player_found: yes
+[01:58:48] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 2)
+[01:58:48] [ENEMY] [Enemy2] Registered as sound listener
+[01:58:48] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 3, behavior: GUARD, player_found: yes
+[01:58:48] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 3)
+[01:58:48] [ENEMY] [Enemy3] Registered as sound listener
+[01:58:48] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 4, behavior: GUARD, player_found: yes
+[01:58:48] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 4)
+[01:58:48] [ENEMY] [Enemy4] Registered as sound listener
+[01:58:48] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 2, behavior: GUARD, player_found: yes
+[01:58:48] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 5)
+[01:58:48] [ENEMY] [Enemy5] Registered as sound listener
+[01:58:48] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 4, behavior: GUARD, player_found: yes
+[01:58:48] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 6)
+[01:58:48] [ENEMY] [Enemy6] Registered as sound listener
+[01:58:48] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 2, behavior: GUARD, player_found: yes
+[01:58:48] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 7)
+[01:58:48] [ENEMY] [Enemy7] Registered as sound listener
+[01:58:48] [ENEMY] [Enemy7] Enemy spawned at (1606.114, 893.8859), health: 4, behavior: PATROL, player_found: yes
+[01:58:48] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 8)
+[01:58:48] [ENEMY] [Enemy8] Registered as sound listener
+[01:58:48] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 2, behavior: GUARD, player_found: yes
+[01:58:48] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 9)
+[01:58:48] [ENEMY] [Enemy9] Registered as sound listener
+[01:58:48] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 4, behavior: GUARD, player_found: yes
+[01:58:48] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 10)
+[01:58:48] [ENEMY] [Enemy10] Registered as sound listener
+[01:58:48] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 2, behavior: PATROL, player_found: yes
+[01:58:48] [INFO] [Player] Detecting weapon pose (frame 3)...
+[01:58:48] [INFO] [Player] Detected weapon: Rifle (default pose)
+[01:58:48] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[01:58:48] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[01:58:48] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[01:58:48] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[01:58:48] [INFO] [LastChance] Found player: Player
+[01:58:48] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[01:58:48] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[01:58:48] [INFO] [LastChance] Connected to player Died signal (C#)
+[01:58:50] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[01:58:50] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[01:58:50] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1156.339, 1581.842), source=ENEMY (Enemy10), range=1469, listeners=10
+[01:58:50] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=1, below_threshold=8
+[01:58:50] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[01:58:50] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1132.194, 1557.626), source=ENEMY (Enemy10), range=1469, listeners=10
+[01:58:50] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=1, below_threshold=9
+[01:58:50] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[01:58:50] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1098.652, 1545.748), shooter_id=45634029200, bullet_pos=(56.84927, 713.6272)
+[01:58:50] [INFO] [Bullet] Using shooter_position, distance=1333.33349609375
+[01:58:50] [INFO] [Bullet] Distance to wall: 1333.33349609375 (90.7891295331299% of viewport)
+[01:58:51] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1075.59, 1519.856), shooter_id=45634029200, bullet_pos=(122.197, 711.4374)
+[01:58:51] [INFO] [Bullet] Using shooter_position, distance=1249.99975585938
+[01:58:51] [INFO] [Bullet] Distance to wall: 1249.99975585938 (85.1147819233352% of viewport)
+[01:58:51] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1075.59, 1519.856), shooter_id=45634029200, bullet_pos=(66.10849, 762.4743)
+[01:58:51] [INFO] [Bullet] Using shooter_position, distance=1262.01440429688
+[01:58:51] [INFO] [Bullet] Distance to wall: 1262.01440429688 (85.9328814284349% of viewport)
+[01:58:51] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1098.652, 1545.748), shooter_id=45634029200, bullet_pos=(522.749, 448.1058)
+[01:58:51] [INFO] [Bullet] Using shooter_position, distance=1239.54956054688
+[01:58:51] [INFO] [Bullet] Distance to wall: 1239.54956054688 (84.4032089082923% of viewport)
+[01:58:51] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1098.652, 1545.748), shooter_id=45634029200, bullet_pos=(235.1963, 274.0153)
+[01:58:51] [INFO] [Bullet] Using shooter_position, distance=1537.15991210938
+[01:58:51] [INFO] [Bullet] Distance to wall: 1537.15991210938 (104.668045003364% of viewport)
+[01:58:51] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1098.652, 1545.748), shooter_id=45634029200, bullet_pos=(64.04412, 341.8903)
+[01:58:51] [INFO] [Bullet] Using shooter_position, distance=1587.35229492188
+[01:58:51] [INFO] [Bullet] Distance to wall: 1587.35229492188 (108.08573664472% of viewport)
+[01:58:51] [INFO] [Bullet] Distance-based penetration chance: 28.382852671056%
+[01:58:51] [INFO] [Bullet] Penetration failed (distance roll)
+[01:58:51] [ENEMY] [Enemy1] Player distracted - priority attack triggered
+[01:58:51] [ENEMY] [Enemy1] State: COMBAT -> RETREATING
+[01:58:51] [ENEMY] [Enemy1] State: RETREATING -> IN_COVER
+[01:58:51] [ENEMY] [Enemy2] Player distracted - priority attack triggered
+[01:58:51] [ENEMY] [Enemy1] State: IN_COVER -> SUPPRESSED
+[01:58:51] [ENEMY] [Enemy2] State: COMBAT -> RETREATING
+[01:58:51] [ENEMY] [Enemy2] State: RETREATING -> IN_COVER
+[01:58:51] [ENEMY] [Enemy2] State: IN_COVER -> SUPPRESSED
+[01:58:51] [ENEMY] [Enemy1] Player distracted - priority attack triggered
+[01:58:51] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(300, 350), source=ENEMY (Enemy1), range=1469, listeners=10
+[01:58:51] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=4, self=1, below_threshold=4
+[01:58:51] [ENEMY] [Enemy2] Player distracted - priority attack triggered
+[01:58:51] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(400, 550), source=ENEMY (Enemy2), range=1469, listeners=10
+[01:58:51] [ENEMY] [Enemy3] Heard gunshot at (400, 550), source_type=1, intensity=0.02, distance=361
+[01:58:51] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=1, below_threshold=4
+[01:58:51] [INFO] [LastChance] Threat detected: @Area2D@293
+[01:58:51] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[01:58:51] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[01:58:51] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(300, 350), source=ENEMY (Enemy1), range=1469, listeners=10
+[01:58:51] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=3, self=1, below_threshold=5
+[01:58:51] [ENEMY] [Enemy1] State: SUPPRESSED -> SEEKING_COVER
+[01:58:51] [ENEMY] [Enemy1] Player distracted - priority attack triggered
+[01:58:51] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(400, 550), source=ENEMY (Enemy2), range=1469, listeners=10
+[01:58:51] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=1, below_threshold=4
+[01:58:51] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(327.8878, 412.0857), shooter_id=43067114999, bullet_pos=(501.4295, 592.0392)
+[01:58:51] [INFO] [Bullet] Using shooter_position, distance=249.999969482422
+[01:58:51] [INFO] [Bullet] Distance to wall: 249.999969482422 (17.0229576314658% of viewport)
+[01:58:51] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[01:58:51] [INFO] [Bullet] Starting wall penetration at (501.4295, 592.0392)
+[01:58:51] [ENEMY] [Enemy2] State: SUPPRESSED -> SEEKING_COVER
+[01:58:51] [INFO] [Bullet] Raycast backward hit penetrating body at distance 35.6070899963379
+[01:58:51] [INFO] [LastChance] Threat detected: @Area2D@295
+[01:58:51] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[01:58:51] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[01:58:51] [INFO] [Bullet] Body exited signal received for penetrating body
+[01:58:51] [INFO] [Bullet] Exiting penetration at (533.8239, 625.6305) after traveling 41.6666679382324 pixels through wall
+[01:58:51] [INFO] [Bullet] Damage multiplier after penetration: 0.9
+[01:58:51] [ENEMY] [Enemy2] Player distracted - priority attack triggered
+[01:58:51] [ENEMY] [Enemy2] Hit taken, health: 2/3
+[01:58:51] [ENEMY] [Enemy2] ImpactEffectsManager found, calling spawn_blood_effect
+[01:58:51] [INFO] [ImpactEffects] spawn_blood_effect called at (400, 550), dir=(0.583889, 0.811834), lethal=false
+[01:58:51] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[01:58:51] [INFO] [ImpactEffects] Blood decals scheduled: 4 to spawn at particle landing times
+[01:58:51] [INFO] [ImpactEffects] Blood effect spawned at (400, 550) (scale=1)
+[01:58:51] [INFO] [PenultimateHit] Player damaged: 1.0 damage, current health: 3.0
+[01:58:51] [INFO] [LastChance] Player health updated (C# Damaged): 3.0
+[01:58:51] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(432.1371, 609.9916), shooter_id=43352327688, bullet_pos=(700.2294, 872.1968)
+[01:58:51] [INFO] [Bullet] Using shooter_position, distance=375.000030517578
+[01:58:51] [INFO] [Bullet] Distance to wall: 375.000030517578 (25.5344416421938% of viewport)
+[01:58:51] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[01:58:51] [ENEMY] [Enemy2] State: SEEKING_COVER -> IN_COVER
+[01:58:51] [ENEMY] [Enemy2] State: IN_COVER -> SUPPRESSED
+[01:58:51] [ENEMY] [Enemy1] State: SEEKING_COVER -> IN_COVER
+[01:58:51] [ENEMY] [Enemy1] State: IN_COVER -> SUPPRESSED
+[01:58:51] [ENEMY] [Enemy2] Player distracted - priority attack triggered
+[01:58:51] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(432.1371, 609.9916), shooter_id=43352327688, bullet_pos=(585.6797, 1013.734)
+[01:58:51] [INFO] [Bullet] Using shooter_position, distance=431.952697753906
+[01:58:51] [INFO] [Bullet] Distance to wall: 431.952697753906 (29.4124534810359% of viewport)
+[01:58:51] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[01:58:51] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(432.1371, 609.9916), shooter_id=43352327688, bullet_pos=(512.9802, 911.5375)
+[01:58:51] [INFO] [Bullet] Using shooter_position, distance=312.194702148438
+[01:58:51] [INFO] [Bullet] Distance to wall: 312.194702148438 (21.2579113447237% of viewport)
+[01:58:51] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[01:58:51] [ENEMY] [Enemy3] State: COMBAT -> RETREATING
+[01:58:52] [ENEMY] [Enemy4] Memory: medium confidence (0.58) - transitioning to PURSUING
+[01:58:52] [ENEMY] [Enemy4] State: IDLE -> PURSUING
+[01:58:52] [ENEMY] [Enemy4] State: PURSUING -> RETREATING
+[01:58:52] [ENEMY] [Enemy4] State: RETREATING -> IN_COVER
+[01:58:52] [ENEMY] [Enemy4] State: IN_COVER -> SUPPRESSED
+[01:58:52] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[01:58:52] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[01:58:52] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[01:58:52] [INFO] [LastChance] Resetting all effects (scene change detected)
+[01:58:52] [ENEMY] [Enemy1] Death animation component initialized
+[01:58:52] [ENEMY] [Enemy2] Death animation component initialized
+[01:58:52] [ENEMY] [Enemy3] Death animation component initialized
+[01:58:52] [ENEMY] [Enemy4] Death animation component initialized
+[01:58:52] [ENEMY] [Enemy5] Death animation component initialized
+[01:58:52] [ENEMY] [Enemy6] Death animation component initialized
+[01:58:52] [ENEMY] [Enemy7] Death animation component initialized
+[01:58:52] [ENEMY] [Enemy8] Death animation component initialized
+[01:58:52] [ENEMY] [Enemy9] Death animation component initialized
+[01:58:52] [ENEMY] [Enemy10] Death animation component initialized
+[01:58:52] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[01:58:52] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[01:58:52] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[01:58:52] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[01:58:52] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[01:58:52] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[01:58:52] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[01:58:52] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[01:58:52] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 2/4
+[01:58:52] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[01:58:52] [INFO] [BuildingLevel] Found Environment/Enemies node with 10 children
+[01:58:52] [INFO] [BuildingLevel] Child 'Enemy1': script=true, has_died_signal=true
+[01:58:52] [INFO] [BuildingLevel] Child 'Enemy2': script=true, has_died_signal=true
+[01:58:52] [INFO] [BuildingLevel] Child 'Enemy3': script=true, has_died_signal=true
+[01:58:52] [INFO] [BuildingLevel] Child 'Enemy4': script=true, has_died_signal=true
+[01:58:52] [INFO] [BuildingLevel] Child 'Enemy5': script=true, has_died_signal=true
+[01:58:52] [INFO] [BuildingLevel] Child 'Enemy6': script=true, has_died_signal=true
+[01:58:52] [INFO] [BuildingLevel] Child 'Enemy7': script=true, has_died_signal=true
+[01:58:52] [INFO] [BuildingLevel] Child 'Enemy8': script=true, has_died_signal=true
+[01:58:52] [INFO] [BuildingLevel] Child 'Enemy9': script=true, has_died_signal=true
+[01:58:52] [INFO] [BuildingLevel] Child 'Enemy10': script=true, has_died_signal=true
+[01:58:52] [INFO] [BuildingLevel] Enemy tracking complete: 10 enemies registered
+[01:58:52] [INFO] [ScoreManager] Level started with 10 enemies
+[01:58:52] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 11)
+[01:58:52] [ENEMY] [Enemy1] Registered as sound listener
+[01:58:52] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 2, behavior: GUARD, player_found: yes
+[01:58:52] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 12)
+[01:58:52] [ENEMY] [Enemy2] Registered as sound listener
+[01:58:52] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 4, behavior: GUARD, player_found: yes
+[01:58:52] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 13)
+[01:58:52] [ENEMY] [Enemy3] Registered as sound listener
+[01:58:52] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 4, behavior: GUARD, player_found: yes
+[01:58:52] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 14)
+[01:58:52] [ENEMY] [Enemy4] Registered as sound listener
+[01:58:52] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 4, behavior: GUARD, player_found: yes
+[01:58:52] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 15)
+[01:58:52] [ENEMY] [Enemy5] Registered as sound listener
+[01:58:52] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 4, behavior: GUARD, player_found: yes
+[01:58:52] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 16)
+[01:58:52] [ENEMY] [Enemy6] Registered as sound listener
+[01:58:52] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 2, behavior: GUARD, player_found: yes
+[01:58:52] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 17)
+[01:58:52] [ENEMY] [Enemy7] Registered as sound listener
+[01:58:52] [ENEMY] [Enemy7] Enemy spawned at (1600, 900), health: 2, behavior: PATROL, player_found: yes
+[01:58:52] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 18)
+[01:58:52] [ENEMY] [Enemy8] Registered as sound listener
+[01:58:52] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 3, behavior: GUARD, player_found: yes
+[01:58:52] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 19)
+[01:58:52] [ENEMY] [Enemy9] Registered as sound listener
+[01:58:52] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 4, behavior: GUARD, player_found: yes
+[01:58:52] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 20)
+[01:58:52] [ENEMY] [Enemy10] Registered as sound listener
+[01:58:52] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 3, behavior: PATROL, player_found: yes
+[01:58:52] [INFO] [Player] Detecting weapon pose (frame 3)...
+[01:58:52] [INFO] [Player] Detected weapon: Rifle (default pose)
+[01:58:52] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[01:58:52] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[01:58:52] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[01:58:52] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[01:58:52] [INFO] [LastChance] Found player: Player
+[01:58:52] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[01:58:52] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[01:58:52] [INFO] [LastChance] Connected to player Died signal (C#)
+[01:58:55] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(548.7382, 713.9092), source=PLAYER (AssaultRifle), range=1469, listeners=20
+[01:58:55] [INFO] [SoundPropagation] Cleaned up 10 invalid listeners
+[01:58:55] [ENEMY] [Enemy1] Heard gunshot at (548.7382, 713.9092), source_type=0, intensity=0.01, distance=441
+[01:58:55] [ENEMY] [Enemy2] Heard gunshot at (548.7382, 713.9092), source_type=0, intensity=0.05, distance=221
+[01:58:55] [ENEMY] [Enemy3] Heard gunshot at (548.7382, 713.9092), source_type=0, intensity=0.10, distance=156
+[01:58:55] [ENEMY] [Enemy4] Heard gunshot at (548.7382, 713.9092), source_type=0, intensity=0.03, distance=313
+[01:58:55] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=2, self=0, below_threshold=4
+[01:58:55] [ENEMY] [Enemy3] Player distracted - priority attack triggered
+[01:58:55] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(700, 750), source=ENEMY (Enemy3), range=1469, listeners=10
+[01:58:55] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[01:58:55] [INFO] [LastChance] Threat detected: @Area2D@553
+[01:58:55] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[01:58:55] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[01:58:55] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(558.3761, 689.3981), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[01:58:55] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=2, self=0, below_threshold=4
+[01:58:55] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(548.73816, 713.9092), shooter_id=219513097031, bullet_pos=(279.48767, 477.4627)
+[01:58:55] [INFO] [Bullet] Using shooter_position, distance=358,3333
+[01:58:55] [INFO] [Bullet] Distance to wall: 358,3333 (24,399576% of viewport)
+[01:58:55] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[01:58:55] [INFO] [PenultimateHit] Player damaged: 1.0 damage, current health: 1.0
+[01:58:55] [INFO] [PenultimateHit] Hard mode active - skipping regular penultimate hit effect (using last chance instead)
+[01:58:55] [INFO] [LastChance] Player health updated (C# Damaged): 1.0
+[01:58:55] [ENEMY] [Enemy2] Hit taken, health: 3/4
+[01:58:55] [ENEMY] [Enemy2] ImpactEffectsManager found, calling spawn_blood_effect
+[01:58:55] [INFO] [ImpactEffects] spawn_blood_effect called at (400, 550), dir=(1, 0), lethal=false
+[01:58:55] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[01:58:55] [INFO] [ImpactEffects] Blood decals scheduled: 4 to spawn at particle landing times
+[01:58:55] [INFO] [ImpactEffects] Wall found for blood splatter at (500, 550) (dist=100 px)
+[01:58:55] [INFO] [ImpactEffects] Blood effect spawned at (400, 550) (scale=1)
+[01:58:55] [ENEMY] [Enemy3] Player distracted - priority attack triggered
+[01:58:55] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(700, 750), source=ENEMY (Enemy3), range=1469, listeners=10
+[01:58:55] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[01:58:55] [INFO] [LastChance] Threat detected: @Area2D@558
+[01:58:55] [INFO] [LastChance] Triggering last chance effect!
+[01:58:55] [INFO] [LastChance] Starting last chance effect:
+[01:58:55] [INFO] [LastChance]   - Time will be frozen (except player)
+[01:58:55] [INFO] [LastChance]   - Duration: 6.0 real seconds
+[01:58:55] [INFO] [LastChance]   - Sepia intensity: 0.70
+[01:58:55] [INFO] [LastChance]   - Brightness: 0.60
+[01:58:55] [INFO] [LastChance] Pushed bullet @Area2D@558 from distance 90.5 to 200.0
+[01:58:55] [INFO] [LastChance] Pushed 1 threatening bullets away from player
+[01:58:55] [INFO] [LastChance] Set player Player and all 19 children to PROCESS_MODE_ALWAYS
+[01:58:55] [INFO] [LastChance] Set StaticBody2D 'WallTop' to PROCESS_MODE_ALWAYS for collision
+[01:58:55] [INFO] [LastChance] Set StaticBody2D 'WallBottom' to PROCESS_MODE_ALWAYS for collision
+[01:58:55] [INFO] [LastChance] Set StaticBody2D 'WallLeft' to PROCESS_MODE_ALWAYS for collision
+[01:58:55] [INFO] [LastChance] Set StaticBody2D 'WallRight' to PROCESS_MODE_ALWAYS for collision
+[01:58:55] [INFO] [LastChance] Set StaticBody2D 'Room1_WallBottom' to PROCESS_MODE_ALWAYS for collision
+[01:58:55] [INFO] [LastChance] Set StaticBody2D 'Room1_WallRight' to PROCESS_MODE_ALWAYS for collision
+[01:58:55] [INFO] [LastChance] Set StaticBody2D 'Room2_WallLeft' to PROCESS_MODE_ALWAYS for collision
+[01:58:55] [INFO] [LastChance] Set StaticBody2D 'Room2_WallBottom' to PROCESS_MODE_ALWAYS for collision
+[01:58:55] [INFO] [LastChance] Set StaticBody2D 'Room2_WallRight' to PROCESS_MODE_ALWAYS for collision
+[01:58:55] [INFO] [LastChance] Set StaticBody2D 'Corridor_WallTop' to PROCESS_MODE_ALWAYS for collision
+[01:58:55] [INFO] [LastChance] Set StaticBody2D 'Corridor_WallBottom' to PROCESS_MODE_ALWAYS for collision
+[01:58:55] [INFO] [LastChance] Set StaticBody2D 'Room3_WallLeft' to PROCESS_MODE_ALWAYS for collision
+[01:58:55] [INFO] [LastChance] Set StaticBody2D 'Room3_WallBottom' to PROCESS_MODE_ALWAYS for collision
+[01:58:55] [INFO] [LastChance] Set StaticBody2D 'Room4_WallLeft' to PROCESS_MODE_ALWAYS for collision
+[01:58:55] [INFO] [LastChance] Set StaticBody2D 'Room4_WallTop' to PROCESS_MODE_ALWAYS for collision
+[01:58:55] [INFO] [LastChance] Set StaticBody2D 'Room5_WallTop' to PROCESS_MODE_ALWAYS for collision
+[01:58:55] [INFO] [LastChance] Set StaticBody2D 'Room5_WallLeft' to PROCESS_MODE_ALWAYS for collision
+[01:58:55] [INFO] [LastChance] Set StaticBody2D 'LobbyDivider_Left' to PROCESS_MODE_ALWAYS for collision
+[01:58:55] [INFO] [LastChance] Set StaticBody2D 'LobbyDivider_Right' to PROCESS_MODE_ALWAYS for collision
+[01:58:55] [INFO] [LastChance] Set StaticBody2D 'StorageRoom_WallTop' to PROCESS_MODE_ALWAYS for collision
+[01:58:55] [INFO] [LastChance] Set StaticBody2D 'StorageRoom_WallRight' to PROCESS_MODE_ALWAYS for collision
+[01:58:55] [INFO] [LastChance] Set StaticBody2D 'MainHall_WallLeft' to PROCESS_MODE_ALWAYS for collision
+[01:58:55] [INFO] [LastChance] Set StaticBody2D 'MainHall_WallRight' to PROCESS_MODE_ALWAYS for collision
+[01:58:55] [INFO] [LastChance] Set StaticBody2D 'MainHall_WallTop' to PROCESS_MODE_ALWAYS for collision
+[01:58:55] [INFO] [LastChance] Set StaticBody2D 'Room2_CornerBL' to PROCESS_MODE_ALWAYS for collision
+[01:58:55] [INFO] [LastChance] Set StaticBody2D 'Room2_CornerBR' to PROCESS_MODE_ALWAYS for collision
+[01:58:55] [INFO] [LastChance] Set StaticBody2D 'Corridor_CornerTR' to PROCESS_MODE_ALWAYS for collision
+[01:58:55] [INFO] [LastChance] Set StaticBody2D 'Corridor_CornerBR' to PROCESS_MODE_ALWAYS for collision
+[01:58:55] [INFO] [LastChance] Set StaticBody2D 'MainHall_CornerTL' to PROCESS_MODE_ALWAYS for collision
+[01:58:55] [INFO] [LastChance] Set StaticBody2D 'MainHall_CornerTR' to PROCESS_MODE_ALWAYS for collision
+[01:58:55] [INFO] [LastChance] Set StaticBody2D 'StorageRoom_CornerTR' to PROCESS_MODE_ALWAYS for collision
+[01:58:55] [INFO] [LastChance] Set StaticBody2D 'Desk1' to PROCESS_MODE_ALWAYS for collision
+[01:58:55] [INFO] [LastChance] Set StaticBody2D 'Desk2' to PROCESS_MODE_ALWAYS for collision
+[01:58:55] [INFO] [LastChance] Set StaticBody2D 'Table1' to PROCESS_MODE_ALWAYS for collision
+[01:58:55] [INFO] [LastChance] Set StaticBody2D 'Cabinet1' to PROCESS_MODE_ALWAYS for collision
+[01:58:55] [INFO] [LastChance] Set StaticBody2D 'Cabinet2' to PROCESS_MODE_ALWAYS for collision
+[01:58:55] [INFO] [LastChance] Set StaticBody2D 'Desk3' to PROCESS_MODE_ALWAYS for collision
+[01:58:55] [INFO] [LastChance] Set StaticBody2D 'Desk4' to PROCESS_MODE_ALWAYS for collision
+[01:58:55] [INFO] [LastChance] Set StaticBody2D 'Table2' to PROCESS_MODE_ALWAYS for collision
+[01:58:55] [INFO] [LastChance] Set StaticBody2D 'Table3' to PROCESS_MODE_ALWAYS for collision
+[01:58:55] [INFO] [LastChance] Set StaticBody2D 'Cabinet3' to PROCESS_MODE_ALWAYS for collision
+[01:58:55] [INFO] [LastChance] Set StaticBody2D 'StorageCrate1' to PROCESS_MODE_ALWAYS for collision
+[01:58:55] [INFO] [LastChance] Set StaticBody2D 'StorageCrate2' to PROCESS_MODE_ALWAYS for collision
+[01:58:55] [INFO] [LastChance] Set StaticBody2D 'HallTable' to PROCESS_MODE_ALWAYS for collision
+[01:58:55] [INFO] [LastChance] Skipping player node: Player
+[01:58:55] [INFO] [LastChance] Froze existing bullet casing: Casing
+[01:58:55] [INFO] [LastChance] Froze existing bullet casing: @RigidBody2D@554
+[01:58:55] [INFO] [LastChance] Froze existing bullet casing: @RigidBody2D@556
+[01:58:55] [INFO] [LastChance] Froze existing bullet casing: @RigidBody2D@559
+[01:58:55] [INFO] [LastChance] Froze all nodes except player and autoloads (including GameManager for quick restart)
+[01:58:55] [INFO] [LastChance] Applied visual effects: sepia=0.70, brightness=0.60, ripple=0.0080
+[01:58:55] [INFO] [LastChance] Applied 4.0x saturation to 6 player sprites
+[01:58:55] [INFO] [LastChance] Freezing newly fired player bullet: @Area2D@560
+[01:58:55] [INFO] [LastChance] Registered frozen player bullet: @Area2D@560
+[01:58:55] [INFO] [LastChance] Freezing newly created bullet casing: @RigidBody2D@561
+[01:58:55] [INFO] [LastChance] Registered frozen bullet casing: @RigidBody2D@561
+[01:58:55] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(563.2253, 677.2454), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[01:58:55] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=2, self=0, below_threshold=4
+[01:58:55] [INFO] [LastChance] Freezing newly fired player bullet: @Area2D@562
+[01:58:55] [INFO] [LastChance] Registered frozen player bullet: @Area2D@562
+[01:58:55] [INFO] [LastChance] Freezing newly created bullet casing: @RigidBody2D@563
+[01:58:55] [INFO] [LastChance] Registered frozen bullet casing: @RigidBody2D@563
+[01:58:55] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(565.2156, 680.0872), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[01:58:55] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=2, self=0, below_threshold=4
+[01:58:55] [INFO] [LastChance] Freezing newly fired player bullet: @Area2D@564
+[01:58:55] [INFO] [LastChance] Registered frozen player bullet: @Area2D@564
+[01:58:55] [INFO] [LastChance] Freezing newly created bullet casing: @RigidBody2D@565
+[01:58:55] [INFO] [LastChance] Registered frozen bullet casing: @RigidBody2D@565
+[01:58:55] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(566.3676, 696.5566), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[01:58:55] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=2, self=0, below_threshold=4
+[01:58:56] [INFO] [LastChance] Freezing newly fired player bullet: @Area2D@567
+[01:58:56] [INFO] [LastChance] Registered frozen player bullet: @Area2D@567
+[01:58:56] [INFO] [LastChance] Freezing newly created bullet casing: @RigidBody2D@568
+[01:58:56] [INFO] [LastChance] Registered frozen bullet casing: @RigidBody2D@568
+[01:58:56] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(566.6881, 726.5462), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[01:58:56] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=2, self=0, below_threshold=4
+[01:58:56] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[01:58:56] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[01:58:56] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[01:58:56] [INFO] [LastChance] Resetting all effects (scene change detected)
+[01:58:56] [INFO] [LastChance] Ending last chance effect
+[01:58:56] [ENEMY] [Enemy1] Memory reset: confusion=2.0s, had_target=false
+[01:58:56] [ENEMY] [Enemy2] Memory reset: confusion=2.0s, had_target=false
+[01:58:56] [ENEMY] [Enemy3] Memory reset: confusion=2.0s, had_target=false
+[01:58:56] [ENEMY] [Enemy4] Memory reset: confusion=2.0s, had_target=false
+[01:58:56] [ENEMY] [Enemy5] Memory reset: confusion=2.0s, had_target=false
+[01:58:56] [ENEMY] [Enemy6] Memory reset: confusion=2.0s, had_target=false
+[01:58:56] [ENEMY] [Enemy7] Memory reset: confusion=2.0s, had_target=false
+[01:58:56] [ENEMY] [Enemy8] Memory reset: confusion=2.0s, had_target=false
+[01:58:56] [ENEMY] [Enemy9] Memory reset: confusion=2.0s, had_target=false
+[01:58:56] [ENEMY] [Enemy10] Memory reset: confusion=2.0s, had_target=false
+[01:58:56] [INFO] [LastChance] Reset memory for 10 enemies (player teleport effect)
+[01:58:56] [INFO] [LastChance] All process modes restored
+[01:58:56] [INFO] [LastChance] Restored original colors to 5 player sprites
+[01:58:56] [ENEMY] [Enemy1] Death animation component initialized
+[01:58:56] [ENEMY] [Enemy2] Death animation component initialized
+[01:58:56] [ENEMY] [Enemy3] Death animation component initialized
+[01:58:56] [ENEMY] [Enemy4] Death animation component initialized
+[01:58:56] [ENEMY] [Enemy5] Death animation component initialized
+[01:58:56] [ENEMY] [Enemy6] Death animation component initialized
+[01:58:56] [ENEMY] [Enemy7] Death animation component initialized
+[01:58:56] [ENEMY] [Enemy8] Death animation component initialized
+[01:58:56] [ENEMY] [Enemy9] Death animation component initialized
+[01:58:56] [ENEMY] [Enemy10] Death animation component initialized
+[01:58:56] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[01:58:56] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[01:58:56] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[01:58:56] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[01:58:56] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[01:58:56] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[01:58:56] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[01:58:56] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[01:58:56] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 3/4
+[01:58:56] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[01:58:56] [INFO] [BuildingLevel] Found Environment/Enemies node with 10 children
+[01:58:56] [INFO] [BuildingLevel] Child 'Enemy1': script=true, has_died_signal=true
+[01:58:56] [INFO] [BuildingLevel] Child 'Enemy2': script=true, has_died_signal=true
+[01:58:56] [INFO] [BuildingLevel] Child 'Enemy3': script=true, has_died_signal=true
+[01:58:56] [INFO] [BuildingLevel] Child 'Enemy4': script=true, has_died_signal=true
+[01:58:56] [INFO] [BuildingLevel] Child 'Enemy5': script=true, has_died_signal=true
+[01:58:56] [INFO] [BuildingLevel] Child 'Enemy6': script=true, has_died_signal=true
+[01:58:56] [INFO] [BuildingLevel] Child 'Enemy7': script=true, has_died_signal=true
+[01:58:56] [INFO] [BuildingLevel] Child 'Enemy8': script=true, has_died_signal=true
+[01:58:56] [INFO] [BuildingLevel] Child 'Enemy9': script=true, has_died_signal=true
+[01:58:56] [INFO] [BuildingLevel] Child 'Enemy10': script=true, has_died_signal=true
+[01:58:56] [INFO] [BuildingLevel] Enemy tracking complete: 10 enemies registered
+[01:58:56] [INFO] [ScoreManager] Level started with 10 enemies
+[01:58:56] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 11)
+[01:58:56] [ENEMY] [Enemy1] Registered as sound listener
+[01:58:56] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 4, behavior: GUARD, player_found: yes
+[01:58:56] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 12)
+[01:58:56] [ENEMY] [Enemy2] Registered as sound listener
+[01:58:56] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 3, behavior: GUARD, player_found: yes
+[01:58:56] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 13)
+[01:58:56] [ENEMY] [Enemy3] Registered as sound listener
+[01:58:56] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 2, behavior: GUARD, player_found: yes
+[01:58:56] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 14)
+[01:58:56] [ENEMY] [Enemy4] Registered as sound listener
+[01:58:56] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 4, behavior: GUARD, player_found: yes
+[01:58:56] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 15)
+[01:58:56] [ENEMY] [Enemy5] Registered as sound listener
+[01:58:56] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 2, behavior: GUARD, player_found: yes
+[01:58:56] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 16)
+[01:58:56] [ENEMY] [Enemy6] Registered as sound listener
+[01:58:56] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 4, behavior: GUARD, player_found: yes
+[01:58:56] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 17)
+[01:58:56] [ENEMY] [Enemy7] Registered as sound listener
+[01:58:56] [ENEMY] [Enemy7] Enemy spawned at (1600, 900), health: 2, behavior: PATROL, player_found: yes
+[01:58:56] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 18)
+[01:58:56] [ENEMY] [Enemy8] Registered as sound listener
+[01:58:56] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 2, behavior: GUARD, player_found: yes
+[01:58:56] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 19)
+[01:58:56] [ENEMY] [Enemy9] Registered as sound listener
+[01:58:56] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 4, behavior: GUARD, player_found: yes
+[01:58:56] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 20)
+[01:58:56] [ENEMY] [Enemy10] Registered as sound listener
+[01:58:56] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 3, behavior: PATROL, player_found: yes
+[01:58:56] [INFO] [Player] Detecting weapon pose (frame 3)...
+[01:58:56] [INFO] [Player] Detected weapon: Rifle (default pose)
+[01:58:56] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[01:58:56] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[01:58:56] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[01:58:56] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[01:58:56] [INFO] [LastChance] Found player: Player
+[01:58:56] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[01:58:56] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[01:58:56] [INFO] [LastChance] Connected to player Died signal (C#)
+[01:58:58] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(460.5018, 792.5442), source=PLAYER (AssaultRifle), range=1469, listeners=20
+[01:58:58] [INFO] [SoundPropagation] Cleaned up 10 invalid listeners
+[01:58:58] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=3, self=0, below_threshold=3
+[01:58:58] [ENEMY] [Enemy3] Hit taken, health: 1/2
+[01:58:58] [ENEMY] [Enemy3] ImpactEffectsManager found, calling spawn_blood_effect
+[01:58:58] [INFO] [ImpactEffects] spawn_blood_effect called at (700, 750), dir=(1, 0), lethal=false
+[01:58:58] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[01:58:58] [INFO] [ImpactEffects] Blood decals scheduled: 4 to spawn at particle landing times
+[01:58:58] [INFO] [ImpactEffects] Blood effect spawned at (700, 750) (scale=1)
+[01:58:58] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(480.8326, 771.5872), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[01:58:58] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=3, self=0, below_threshold=3
+[01:58:58] [ENEMY] [Enemy3] Hit taken, health: 0/2
+[01:58:58] [ENEMY] [Enemy3] ImpactEffectsManager found, calling spawn_blood_effect
+[01:58:58] [INFO] [ImpactEffects] spawn_blood_effect called at (700, 750), dir=(1, 0), lethal=true
+[01:58:58] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[01:58:58] [INFO] [ImpactEffects] Blood decals scheduled: 8 to spawn at particle landing times
+[01:58:58] [INFO] [ImpactEffects] Blood effect spawned at (700, 750) (scale=1.5)
+[01:58:58] [ENEMY] [Enemy3] Enemy died (ricochet: false, penetration: false)
+[01:58:58] [INFO] [ScoreManager] Kill registered. Combo: 1 (points: 500)
+[01:58:58] [INFO] [SoundPropagation] Unregistered listener: Enemy3 (remaining: 9)
+[01:58:58] [INFO] [DeathAnim] Started - Angle: 0.0 deg, Index: 12
+[01:58:58] [ENEMY] [Enemy3] Death animation started with hit direction: (1, 0)
+[01:58:58] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(507.7957, 762.9144), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[01:58:58] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=3, self=0, below_threshold=3
+[01:58:58] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(534.5056, 767.1776), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[01:58:58] [ENEMY] [Enemy1] Heard gunshot at (534.5056, 767.1776), source_type=0, intensity=0.01, distance=479
+[01:58:58] [ENEMY] [Enemy2] Heard gunshot at (534.5056, 767.1776), source_type=0, intensity=0.04, distance=255
+[01:58:58] [ENEMY] [Enemy4] Heard gunshot at (534.5056, 767.1776), source_type=0, intensity=0.03, distance=297
+[01:58:58] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=2, self=0, below_threshold=4
+[01:58:58] [ENEMY] [Enemy1] Player distracted - priority attack triggered
+[01:58:58] [ENEMY] [Enemy2] Player distracted - priority attack triggered
+[01:58:58] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(507.7957, 762.91437), shooter_id=284608693994, bullet_pos=(931.6725, 732.03937)
+[01:58:58] [INFO] [Bullet] Using shooter_position, distance=424,9998
+[01:58:58] [INFO] [Bullet] Distance to wall: 424,9998 (28,939018% of viewport)
+[01:58:58] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[01:58:58] [INFO] [Bullet] Starting wall penetration at (931.6725, 732.03937)
+[01:58:58] [INFO] [Bullet] Raycast backward hit penetrating body at distance 33,99436
+[01:58:58] [INFO] [Bullet] Body exited signal received for penetrating body
+[01:58:58] [INFO] [Bullet] Exiting penetration at (969.90454, 729.2546) after traveling 33,333336 pixels through wall
+[01:58:58] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[01:58:58] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(553.6746, 782.201), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[01:58:58] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=2, self=0, below_threshold=4
+[01:58:58] [ENEMY] [Enemy2] Player distracted - priority attack triggered
+[01:58:58] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(534.5056, 767.17755), shooter_id=284608693994, bullet_pos=(925.0475, 737.5121)
+[01:58:58] [INFO] [Bullet] Using shooter_position, distance=391,66696
+[01:58:58] [INFO] [Bullet] Distance to wall: 391,66696 (26,669323% of viewport)
+[01:58:58] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[01:58:59] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(553.67456, 782.201), shooter_id=284608693994, bullet_pos=(909.765, 742.17194)
+[01:58:59] [INFO] [Bullet] Using shooter_position, distance=358,33328
+[01:58:59] [INFO] [Bullet] Distance to wall: 358,33328 (24,399572% of viewport)
+[01:58:59] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[01:58:59] [INFO] [Bullet] Starting wall penetration at (909.765, 742.17194)
+[01:58:59] [INFO] [Bullet] Raycast backward hit penetrating body at distance 11,933085
+[01:58:59] [INFO] [Bullet] Body exited signal received for penetrating body
+[01:58:59] [INFO] [Bullet] Exiting penetration at (947.8584, 737.8898) after traveling 33,33334 pixels through wall
+[01:58:59] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[01:58:59] [ENEMY] [Enemy3] Ragdoll activated
+[01:58:59] [INFO] [DeathAnim] Ragdoll activated at 60% fall progress
+[01:58:59] [ENEMY] [Enemy4] State: COMBAT -> RETREATING
+[01:58:59] [ENEMY] [Enemy4] State: RETREATING -> IN_COVER
+[01:58:59] [ENEMY] [Enemy4] State: IN_COVER -> SUPPRESSED
+[01:58:59] [ENEMY] [Enemy1] State: COMBAT -> PURSUING
+[01:58:59] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[01:58:59] [ENEMY] [Enemy2] Player distracted - priority attack triggered
+[01:59:00] [ENEMY] [Enemy2] Player distracted - priority attack triggered
+[01:59:00] [ENEMY] [Enemy4] State: SUPPRESSED -> SEEKING_COVER
+[01:59:00] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[01:59:00] [ENEMY] [Enemy2] Player distracted - priority attack triggered
+[01:59:00] [ENEMY] [Enemy4] State: SEEKING_COVER -> IN_COVER
+[01:59:00] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(797.2462, 969.5182), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[01:59:00] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=0, below_threshold=8
+[01:59:00] [ENEMY] [Enemy4] State: IN_COVER -> SUPPRESSED
+[01:59:00] [ENEMY] [Enemy4] State: SUPPRESSED -> SEEKING_COVER
+[01:59:00] [ENEMY] [Enemy4] State: SEEKING_COVER -> IN_COVER
+[01:59:00] [ENEMY] [Enemy3] Death animation completed
+[01:59:00] [ENEMY] [Enemy4] State: IN_COVER -> SUPPRESSED
+[01:59:00] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(825.6719, 955.0034), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[01:59:00] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0, below_threshold=7
+[01:59:00] [ENEMY] [Enemy4] State: SUPPRESSED -> SEEKING_COVER
+[01:59:00] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(825.6719, 955.0034), shooter_id=284608693994, bullet_pos=(763.7279, 809.29)
+[01:59:00] [INFO] [Bullet] Using shooter_position, distance=158,33339
+[01:59:00] [INFO] [Bullet] Distance to wall: 158,33339 (10,781212% of viewport)
+[01:59:00] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[01:59:00] [INFO] [Bullet] Starting wall penetration at (763.7279, 809.29)
+[01:59:00] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[01:59:00] [INFO] [Bullet] Exiting penetration at (748.73096, 774.01196) after traveling 33,333332 pixels through wall
+[01:59:00] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[01:59:00] [ENEMY] [Enemy4] State: SEEKING_COVER -> IN_COVER
+[01:59:00] [ENEMY] [Enemy4] State: IN_COVER -> SUPPRESSED
+[01:59:00] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(843.7454, 932.0541), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[01:59:00] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0, below_threshold=7
+[01:59:00] [ENEMY] [Enemy4] State: SUPPRESSED -> SEEKING_COVER
+[01:59:00] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(843.74536, 932.0541), shooter_id=284608693994, bullet_pos=(749.35065, 850.11115)
+[01:59:00] [INFO] [Bullet] Using shooter_position, distance=125,00002
+[01:59:00] [INFO] [Bullet] Distance to wall: 125,00002 (8,511481% of viewport)
+[01:59:00] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[01:59:00] [INFO] [Bullet] Starting wall penetration at (749.35065, 850.11115)
+[01:59:00] [ENEMY] [Enemy4] State: SEEKING_COVER -> IN_COVER
+[01:59:00] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[01:59:00] [INFO] [Bullet] Exiting penetration at (720.40295, 824.982) after traveling 33,333332 pixels through wall
+[01:59:00] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[01:59:00] [ENEMY] [Enemy4] State: IN_COVER -> SUPPRESSED
+[01:59:00] [ENEMY] [Enemy4] State: SUPPRESSED -> SEEKING_COVER
+[01:59:00] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(850.5172, 901.4442), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[01:59:00] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0, below_threshold=7
+[01:59:00] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[01:59:00] [ENEMY] [Enemy4] State: SEEKING_COVER -> IN_COVER
+[01:59:00] [ENEMY] [Enemy4] State: IN_COVER -> SUPPRESSED
+[01:59:00] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(850.51715, 901.44415), shooter_id=284608693994, bullet_pos=(741.2732, 840.6925)
+[01:59:00] [INFO] [Bullet] Using shooter_position, distance=125,00002
+[01:59:00] [INFO] [Bullet] Distance to wall: 125,00002 (8,511481% of viewport)
+[01:59:00] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[01:59:00] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(797.24615, 969.5182), shooter_id=284608693994, bullet_pos=(633.0632, 59.20517)
+[01:59:00] [INFO] [Bullet] Using shooter_position, distance=925,0004
+[01:59:00] [INFO] [Bullet] Distance to wall: 925,0004 (62,984978% of viewport)
+[01:59:00] [INFO] [Bullet] Distance-based penetration chance: 73,18419%
+[01:59:00] [INFO] [Bullet] Penetration failed (distance roll)
+[01:59:00] [ENEMY] [Enemy4] State: SUPPRESSED -> SEEKING_COVER
+[01:59:00] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(850.569, 866.2791), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[01:59:00] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0, below_threshold=7
+[01:59:00] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(850.51715, 901.44415), shooter_id=284608693994, bullet_pos=(927.21185, 758.40485)
+[01:59:00] [INFO] [Bullet] Using shooter_position, distance=162,30318
+[01:59:00] [INFO] [Bullet] Distance to wall: 162,30318 (11,051522% of viewport)
+[01:59:00] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[01:59:00] [INFO] [Bullet] Starting wall penetration at (927.21185, 758.40485)
+[01:59:00] [INFO] [Bullet] Raycast backward hit penetrating body at distance 23,723063
+[01:59:00] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(850.569, 866.2791), shooter_id=284608693994, bullet_pos=(737.2683, 813.4779)
+[01:59:00] [INFO] [Bullet] Using shooter_position, distance=125,00003
+[01:59:00] [INFO] [Bullet] Distance to wall: 125,00003 (8,511482% of viewport)
+[01:59:00] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[01:59:00] [INFO] [Bullet] Body exited signal received for penetrating body
+[01:59:00] [INFO] [Bullet] Exiting penetration at (957.6936, 744.91504) after traveling 28,333334 pixels through wall
+[01:59:00] [INFO] [Bullet] Damage multiplier after penetration: 0,45
+[01:59:01] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(850.569, 831.0789), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[01:59:01] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0, below_threshold=7
+[01:59:01] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(850.569, 866.2791), shooter_id=284608693994, bullet_pos=(930.6414, 750.61896)
+[01:59:01] [INFO] [Bullet] Using shooter_position, distance=140,67291
+[01:59:01] [INFO] [Bullet] Distance to wall: 140,67291 (9,578677% of viewport)
+[01:59:01] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[01:59:01] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[01:59:01] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(850.569, 796.0565), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[01:59:01] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0, below_threshold=7
+[01:59:01] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(850.569, 831.0789), shooter_id=284608693994, bullet_pos=(442.7705, 711.3905)
+[01:59:01] [INFO] [Bullet] Using shooter_position, distance=424,99988
+[01:59:01] [INFO] [Bullet] Distance to wall: 424,99988 (28,939024% of viewport)
+[01:59:01] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[01:59:01] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(850.569, 768.6788), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[01:59:01] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=0, below_threshold=6
+[01:59:01] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(850.569, 796.0565), shooter_id=284608693994, bullet_pos=(433.63837, 713.6329)
+[01:59:01] [INFO] [Bullet] Using shooter_position, distance=424,99976
+[01:59:01] [INFO] [Bullet] Distance to wall: 424,99976 (28,939014% of viewport)
+[01:59:01] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[01:59:01] [ENEMY] [Enemy2] State: COMBAT -> RETREATING
+[01:59:01] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(850.569, 753.9588), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[01:59:01] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=0, below_threshold=6
+[01:59:01] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(850.569, 768.6788), shooter_id=284608693994, bullet_pos=(500.5995, 691.7104)
+[01:59:01] [INFO] [Bullet] Using shooter_position, distance=358,3333
+[01:59:01] [INFO] [Bullet] Distance to wall: 358,3333 (24,399576% of viewport)
+[01:59:01] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[01:59:01] [INFO] [Bullet] Starting wall penetration at (500.5995, 691.7104)
+[01:59:01] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(850.569, 831.0789), shooter_id=284608693994, bullet_pos=(57.765175, 825.87604)
+[01:59:01] [INFO] [Bullet] Using shooter_position, distance=792,82086
+[01:59:01] [INFO] [Bullet] Distance to wall: 792,82086 (53,98463% of viewport)
+[01:59:01] [INFO] [Bullet] Distance-based penetration chance: 83,6846%
+[01:59:01] [INFO] [Bullet] Starting wall penetration at (57.765175, 825.87604)
+[01:59:01] [INFO] [Bullet] Raycast backward hit penetrating body at distance 6,4531536
+[01:59:01] [INFO] [Bullet] Raycast backward hit penetrating body at distance 21,059233
+[01:59:01] [INFO] [Bullet] Body exited signal received for penetrating body
+[01:59:01] [INFO] [Bullet] Exiting penetration at (25.814518, 835.3769) after traveling 28,333334 pixels through wall
+[01:59:01] [INFO] [Bullet] Damage multiplier after penetration: 0,45
+[01:59:01] [INFO] [Bullet] Body exited signal received for penetrating body
+[01:59:01] [INFO] [Bullet] Exiting penetration at (463.1609, 683.47656) after traveling 33,333336 pixels through wall
+[01:59:01] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[01:59:01] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(850.569, 752.8922), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[01:59:01] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=0, below_threshold=6
+[01:59:01] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(850.569, 796.0565), shooter_id=284608693994, bullet_pos=(50.357204, 833.76514)
+[01:59:01] [INFO] [Bullet] Using shooter_position, distance=801,0998
+[01:59:01] [INFO] [Bullet] Distance to wall: 801,0998 (54,54836% of viewport)
+[01:59:01] [ENEMY] [Enemy4] State: SEEKING_COVER -> IN_COVER
+[01:59:01] [ENEMY] [Enemy4] State: IN_COVER -> SUPPRESSED
+[01:59:01] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(850.569, 768.1455), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[01:59:01] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=0, below_threshold=6
+[01:59:01] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(850.569, 752.89215), shooter_id=284608693994, bullet_pos=(518.50287, 597.40405)
+[01:59:01] [INFO] [Bullet] Using shooter_position, distance=366,6667
+[01:59:01] [INFO] [Bullet] Distance to wall: 366,6667 (24,96701% of viewport)
+[01:59:01] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[01:59:01] [INFO] [Bullet] Starting wall penetration at (518.50287, 597.40405)
+[01:59:01] [INFO] [Bullet] Raycast backward hit penetrating body at distance 26,235886
+[01:59:01] [INFO] [Bullet] Body exited signal received for penetrating body
+[01:59:01] [INFO] [Bullet] Exiting penetration at (476.23987, 577.6146) after traveling 41,666668 pixels through wall
+[01:59:01] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[01:59:01] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(850.569, 753.9588), shooter_id=284608693994, bullet_pos=(54.69504, 480.11905)
+[01:59:01] [INFO] [Bullet] Using shooter_position, distance=841,66705
+[01:59:01] [INFO] [Bullet] Distance to wall: 841,66705 (57,310658% of viewport)
+[01:59:01] [INFO] [Bullet] Distance-based penetration chance: 79,80424%
+[01:59:01] [INFO] [Bullet] Starting wall penetration at (54.69504, 480.11905)
+[01:59:01] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(850.569, 799.6455), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[01:59:01] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0, below_threshold=7
+[01:59:01] [INFO] [Bullet] Raycast backward hit penetrating body at distance 22,665794
+[01:59:01] [INFO] [Bullet] Body exited signal received for penetrating body
+[01:59:01] [INFO] [Bullet] Exiting penetration at (10.567394, 464.93585) after traveling 41,66667 pixels through wall
+[01:59:01] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[01:59:01] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(850.569, 768.1455), shooter_id=284608693994, bullet_pos=(507.50552, 562.4574)
+[01:59:01] [INFO] [Bullet] Using shooter_position, distance=400,00015
+[01:59:01] [INFO] [Bullet] Distance to wall: 400,00015 (27,236748% of viewport)
+[01:59:01] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[01:59:01] [INFO] [Bullet] Starting wall penetration at (507.50552, 562.4574)
+[01:59:01] [INFO] [Bullet] Raycast backward hit penetrating body at distance 37,915504
+[01:59:01] [INFO] [Bullet] Body exited signal received for penetrating body
+[01:59:01] [INFO] [Bullet] Exiting penetration at (467.48148, 538.46045) after traveling 41,666668 pixels through wall
+[01:59:01] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[01:59:01] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(850.569, 838.1455), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[01:59:01] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0, below_threshold=7
+[01:59:01] [ENEMY] [Enemy2] State: RETREATING -> IN_COVER
+[01:59:01] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(850.569, 799.6455), shooter_id=284608693994, bullet_pos=(509.64532, 590.4301)
+[01:59:01] [INFO] [Bullet] Using shooter_position, distance=400,00003
+[01:59:01] [INFO] [Bullet] Distance to wall: 400,00003 (27,236738% of viewport)
+[01:59:01] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[01:59:01] [ENEMY] [Enemy2] State: IN_COVER -> SUPPRESSED
+[01:59:02] [ENEMY] [Enemy4] State: SUPPRESSED -> SEEKING_COVER
+[01:59:02] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[01:59:02] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(555.3441, 879.4536), source=ENEMY (Enemy4), range=1469, listeners=9
+[01:59:02] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=5
+[01:59:02] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(850.569, 838.1455), shooter_id=284608693994, bullet_pos=(268.96634, 463.7905)
+[01:59:02] [INFO] [Bullet] Using shooter_position, distance=691,66705
+[01:59:02] [INFO] [Bullet] Distance to wall: 691,66705 (47,096886% of viewport)
+[01:59:02] [INFO] [LastChance] Threat detected: @Area2D@889
+[01:59:02] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[01:59:02] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[01:59:02] [INFO] [ScoreManager] Combo ended at 1. Max combo: 1
+[01:59:02] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(622.0812, 892.7485), shooter_id=282075334787, bullet_pos=(912.7734, 916.5692)
+[01:59:02] [INFO] [Bullet] Using shooter_position, distance=291.666625976563
+[01:59:02] [INFO] [Bullet] Distance to wall: 291.666625976563 (19.8601168903771% of viewport)
+[01:59:02] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[01:59:02] [INFO] [Bullet] Starting wall penetration at (912.7734, 916.5692)
+[01:59:02] [INFO] [Bullet] Raycast backward hit penetrating body at distance 23.3622245788574
+[01:59:02] [INFO] [Bullet] Body exited signal received for penetrating body
+[01:59:02] [INFO] [Bullet] Exiting penetration at (959.2842, 920.3804) after traveling 41.6666679382324 pixels through wall
+[01:59:02] [INFO] [Bullet] Damage multiplier after penetration: 0.9
+[01:59:02] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(850.569, 838.1455), shooter_id=284608693994, bullet_pos=(55.115112, 657.1911)
+[01:59:02] [INFO] [Bullet] Using shooter_position, distance=815,7765
+[01:59:02] [INFO] [Bullet] Distance to wall: 815,7765 (55,54772% of viewport)
+[01:59:02] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(850.569, 838.1455), shooter_id=284608693994, bullet_pos=(110.145004, 692.17444)
+[01:59:02] [INFO] [Bullet] Using shooter_position, distance=754,67554
+[01:59:02] [INFO] [Bullet] Distance to wall: 754,67554 (51,387245% of viewport)
+[01:59:02] [INFO] [Bullet] Distance-based penetration chance: 86,71488%
+[01:59:02] [INFO] [Bullet] Starting wall penetration at (110.145004, 692.17444)
+[01:59:02] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[01:59:02] [INFO] [Bullet] Exiting penetration at (139.76973, 711.0073) after traveling 30,104164 pixels through wall
+[01:59:02] [INFO] [Bullet] Damage multiplier after penetration: 0,225
+[01:59:02] [INFO] [Player.Reload.Anim] Phase changed to: GrabMagazine (duration: 0,25s)
+[01:59:02] [ENEMY] [Enemy1] Player reloading state changed: false -> true
+[01:59:02] [ENEMY] [Enemy2] Player reloading state changed: false -> true
+[01:59:02] [ENEMY] [Enemy4] Player reloading state changed: false -> true
+[01:59:02] [ENEMY] [Enemy5] Player reloading state changed: false -> true
+[01:59:02] [ENEMY] [Enemy6] Player reloading state changed: false -> true
+[01:59:02] [ENEMY] [Enemy7] Player reloading state changed: false -> true
+[01:59:02] [ENEMY] [Enemy8] Player reloading state changed: false -> true
+[01:59:02] [ENEMY] [Enemy9] Player reloading state changed: false -> true
+[01:59:02] [ENEMY] [Enemy10] Player reloading state changed: false -> true
+[01:59:02] [INFO] [SoundPropagation] Sound emitted: type=RELOAD, pos=(850.569, 960.8678), source=PLAYER (Player), range=900, listeners=9
+[01:59:02] [ENEMY] [Enemy2] Heard player RELOAD at (850.569, 960.8678), intensity=0.02, distance=322
+[01:59:02] [ENEMY] [Enemy2] Vulnerability sound triggered pursuit - transitioning from SUPPRESSED to PURSUING
+[01:59:02] [ENEMY] [Enemy4] Heard player RELOAD at (850.569, 960.8678), intensity=0.02, distance=319
+[01:59:02] [ENEMY] [Enemy4] Vulnerability sound triggered pursuit - transitioning from SEEKING_COVER to PURSUING
+[01:59:02] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=4, self=0, below_threshold=3
+[01:59:02] [ENEMY] [Enemy1] Player vulnerable (reloading) but cannot attack: close=false (dist=641), can_see=false
+[01:59:02] [ENEMY] [Enemy2] Player vulnerable (reloading) but cannot attack: close=true (dist=322), can_see=false
+[01:59:02] [ENEMY] [Enemy2] Pursuing vulnerability sound at (850.569, 960.8678), distance=322
+[01:59:02] [ENEMY] [Enemy4] Player vulnerable (reloading) but cannot attack: close=true (dist=319), can_see=false
+[01:59:02] [ENEMY] [Enemy4] Pursuing vulnerability sound at (850.569, 960.8678), distance=319
+[01:59:02] [ENEMY] [Enemy5] Player vulnerable (reloading) but cannot attack: close=false (dist=1046), can_see=false
+[01:59:02] [ENEMY] [Enemy6] Player vulnerable (reloading) but cannot attack: close=false (dist=1212), can_see=false
+[01:59:02] [ENEMY] [Enemy7] Player vulnerable (reloading) but cannot attack: close=false (dist=763), can_see=false
+[01:59:02] [ENEMY] [Enemy8] Player vulnerable (reloading) but cannot attack: close=false (dist=1158), can_see=false
+[01:59:02] [ENEMY] [Enemy9] Player vulnerable (reloading) but cannot attack: close=false (dist=1381), can_see=false
+[01:59:02] [ENEMY] [Enemy10] Player vulnerable (reloading) but cannot attack: close=false (dist=711), can_see=false
+[01:59:02] [ENEMY] [Enemy4] Player reloading - priority attack triggered
+[01:59:02] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(596.434, 846.5302), source=ENEMY (Enemy4), range=1469, listeners=9
+[01:59:02] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=5
+[01:59:02] [INFO] [Player.Reload.Anim] Phase changed to: InsertMagazine (duration: 0,30s)
+[01:59:02] [INFO] [Player.Reload.Anim] LeftArm: pos=(7.595394, 3.7675967), target=(12, 6), base=(24, 6)
+[01:59:02] [INFO] [Player.Reload.Anim] RightArm: pos=(-2.0074105, 6.875), target=(-2, 8), base=(-2, 6)
+[01:59:02] [INFO] [LastChance] Threat detected: Bullet
+[01:59:02] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[01:59:02] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[01:59:02] [INFO] [PenultimateHit] Player damaged: 1.0 damage, current health: 2.0
+[01:59:02] [INFO] [LastChance] Player health updated (C# Damaged): 2.0
+[01:59:02] [ENEMY] [Enemy4] Player reloading - priority attack triggered
+[01:59:02] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(621.1425, 874.5173), source=ENEMY (Enemy4), range=1469, listeners=9
+[01:59:02] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=5
+[01:59:02] [INFO] [LastChance] Threat detected: Bullet
+[01:59:02] [INFO] [LastChance] Player health is 2.0 - effect requires exactly 1 HP or less but alive
+[01:59:02] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[01:59:02] [ENEMY] [Enemy2] Player reloading - priority attack triggered
+[01:59:02] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(626.6492, 864.1479), source=ENEMY (Enemy2), range=1469, listeners=9
+[01:59:02] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=5
+[01:59:02] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[01:59:02] [INFO] [LastChance] Threat detected: @Area2D@897
+[01:59:02] [INFO] [LastChance] Player health is 2.0 - effect requires exactly 1 HP or less but alive
+[01:59:02] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[01:59:02] [ENEMY] [Enemy2] State: COMBAT -> RETREATING
+[01:59:02] [ENEMY] [Enemy4] State: PURSUING -> COMBAT
+[01:59:02] [INFO] [PenultimateHit] Player damaged: 1.0 damage, current health: 1.0
+[01:59:02] [INFO] [PenultimateHit] Hard mode active - skipping regular penultimate hit effect (using last chance instead)
+[01:59:02] [INFO] [LastChance] Player health updated (C# Damaged): 1.0
+[01:59:02] [ENEMY] [Enemy4] State: COMBAT -> RETREATING
+[01:59:02] [INFO] [Player.Reload.Anim] Phase changed to: PullBolt (duration: 0,35s)
+[01:59:02] [ENEMY] [Enemy1] Player reloading state changed: true -> false
+[01:59:02] [ENEMY] [Enemy2] Player reloading state changed: true -> false
+[01:59:02] [ENEMY] [Enemy4] Player reloading state changed: true -> false
+[01:59:02] [ENEMY] [Enemy5] Player reloading state changed: true -> false
+[01:59:02] [ENEMY] [Enemy6] Player reloading state changed: true -> false
+[01:59:02] [ENEMY] [Enemy7] Player reloading state changed: true -> false
+[01:59:02] [ENEMY] [Enemy8] Player reloading state changed: true -> false
+[01:59:02] [ENEMY] [Enemy9] Player reloading state changed: true -> false
+[01:59:02] [ENEMY] [Enemy10] Player reloading state changed: true -> false
+[01:59:02] [INFO] [Player.Reload.Anim] Phase changed to: ReturnIdle (duration: 0,20s)
+[01:59:02] [INFO] [PenultimateHit] Player damaged: 1.0 damage, current health: 0.0
+[01:59:02] [INFO] [LastChance] Player health updated (C# Damaged): 0.0
+[01:59:02] [INFO] [PenultimateHit] Player died - ending penultimate effect
+[01:59:02] [INFO] [LastChance] Player died
+[01:59:02] [ENEMY] [Enemy2] State: RETREATING -> IN_COVER
+[01:59:02] [ENEMY] [Enemy2] State: IN_COVER -> SUPPRESSED
+[01:59:02] [INFO] [Player.Reload.Anim] Animation complete, returning to normal
+[01:59:02] [ENEMY] [Enemy4] State: RETREATING -> IN_COVER
+[01:59:02] [ENEMY] [Enemy4] State: IN_COVER -> SUPPRESSED
+[01:59:03] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[01:59:03] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[01:59:03] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[01:59:03] [INFO] [LastChance] Resetting all effects (scene change detected)
+[01:59:03] [ENEMY] [Enemy1] Death animation component initialized
+[01:59:03] [ENEMY] [Enemy2] Death animation component initialized
+[01:59:03] [ENEMY] [Enemy3] Death animation component initialized
+[01:59:03] [ENEMY] [Enemy4] Death animation component initialized
+[01:59:03] [ENEMY] [Enemy5] Death animation component initialized
+[01:59:03] [ENEMY] [Enemy6] Death animation component initialized
+[01:59:03] [ENEMY] [Enemy7] Death animation component initialized
+[01:59:03] [ENEMY] [Enemy8] Death animation component initialized
+[01:59:03] [ENEMY] [Enemy9] Death animation component initialized
+[01:59:03] [ENEMY] [Enemy10] Death animation component initialized
+[01:59:03] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[01:59:03] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[01:59:03] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[01:59:03] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[01:59:03] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[01:59:03] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[01:59:03] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[01:59:03] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[01:59:03] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 4/4
+[01:59:03] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[01:59:03] [INFO] [BuildingLevel] Found Environment/Enemies node with 10 children
+[01:59:03] [INFO] [BuildingLevel] Child 'Enemy1': script=true, has_died_signal=true
+[01:59:03] [INFO] [BuildingLevel] Child 'Enemy2': script=true, has_died_signal=true
+[01:59:03] [INFO] [BuildingLevel] Child 'Enemy3': script=true, has_died_signal=true
+[01:59:03] [INFO] [BuildingLevel] Child 'Enemy4': script=true, has_died_signal=true
+[01:59:03] [INFO] [BuildingLevel] Child 'Enemy5': script=true, has_died_signal=true
+[01:59:03] [INFO] [BuildingLevel] Child 'Enemy6': script=true, has_died_signal=true
+[01:59:03] [INFO] [BuildingLevel] Child 'Enemy7': script=true, has_died_signal=true
+[01:59:03] [INFO] [BuildingLevel] Child 'Enemy8': script=true, has_died_signal=true
+[01:59:03] [INFO] [BuildingLevel] Child 'Enemy9': script=true, has_died_signal=true
+[01:59:03] [INFO] [BuildingLevel] Child 'Enemy10': script=true, has_died_signal=true
+[01:59:03] [INFO] [BuildingLevel] Enemy tracking complete: 10 enemies registered
+[01:59:03] [INFO] [ScoreManager] Level started with 10 enemies
+[01:59:03] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 10)
+[01:59:03] [ENEMY] [Enemy1] Registered as sound listener
+[01:59:03] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 4, behavior: GUARD, player_found: yes
+[01:59:03] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 11)
+[01:59:03] [ENEMY] [Enemy2] Registered as sound listener
+[01:59:03] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 3, behavior: GUARD, player_found: yes
+[01:59:03] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 12)
+[01:59:03] [ENEMY] [Enemy3] Registered as sound listener
+[01:59:03] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 2, behavior: GUARD, player_found: yes
+[01:59:03] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 13)
+[01:59:03] [ENEMY] [Enemy4] Registered as sound listener
+[01:59:03] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 3, behavior: GUARD, player_found: yes
+[01:59:03] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 14)
+[01:59:03] [ENEMY] [Enemy5] Registered as sound listener
+[01:59:03] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 2, behavior: GUARD, player_found: yes
+[01:59:03] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 15)
+[01:59:03] [ENEMY] [Enemy6] Registered as sound listener
+[01:59:03] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 3, behavior: GUARD, player_found: yes
+[01:59:03] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 16)
+[01:59:03] [ENEMY] [Enemy7] Registered as sound listener
+[01:59:03] [ENEMY] [Enemy7] Enemy spawned at (1600, 900), health: 3, behavior: PATROL, player_found: yes
+[01:59:03] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 17)
+[01:59:03] [ENEMY] [Enemy8] Registered as sound listener
+[01:59:03] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 4, behavior: GUARD, player_found: yes
+[01:59:03] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 18)
+[01:59:03] [ENEMY] [Enemy9] Registered as sound listener
+[01:59:03] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 3, behavior: GUARD, player_found: yes
+[01:59:03] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 19)
+[01:59:03] [ENEMY] [Enemy10] Registered as sound listener
+[01:59:03] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 2, behavior: PATROL, player_found: yes
+[01:59:03] [INFO] [Player] Detecting weapon pose (frame 3)...
+[01:59:03] [INFO] [Player] Detected weapon: Rifle (default pose)
+[01:59:03] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[01:59:03] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[01:59:03] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[01:59:03] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[01:59:03] [INFO] [LastChance] Found player: Player
+[01:59:03] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[01:59:03] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[01:59:03] [INFO] [LastChance] Connected to player Died signal (C#)
+[01:59:04] [ENEMY] [Enemy3] State: IDLE -> COMBAT
+[01:59:04] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(453.0796, 793.9423), source=PLAYER (AssaultRifle), range=1469, listeners=19
+[01:59:04] [INFO] [SoundPropagation] Cleaned up 9 invalid listeners
+[01:59:04] [ENEMY] [Enemy1] Heard gunshot at (453.0796, 793.9423), source_type=0, intensity=0.01, distance=470
+[01:59:04] [ENEMY] [Enemy2] Heard gunshot at (453.0796, 793.9423), source_type=0, intensity=0.04, distance=250
+[01:59:04] [ENEMY] [Enemy4] Heard gunshot at (453.0796, 793.9423), source_type=0, intensity=0.02, distance=363
+[01:59:04] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=3, self=0, below_threshold=3
+[01:59:04] [ENEMY] [Enemy3] Hit taken, health: 1/2
+[01:59:04] [ENEMY] [Enemy3] ImpactEffectsManager found, calling spawn_blood_effect
+[01:59:04] [INFO] [ImpactEffects] spawn_blood_effect called at (684.4485, 753.7583), dir=(1, 0), lethal=false
+[01:59:04] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[01:59:04] [INFO] [ImpactEffects] Blood decals scheduled: 4 to spawn at particle landing times
+[01:59:04] [INFO] [ImpactEffects] Blood effect spawned at (684.4485, 753.7583) (scale=1)
+[01:59:05] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(467.185, 766.7093), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[01:59:05] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=3, self=0, below_threshold=3
+[01:59:05] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(684.4485, 753.7583), source=ENEMY (Enemy3), range=1469, listeners=10
+[01:59:05] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[01:59:05] [INFO] [LastChance] Threat detected: @Area2D@1152
+[01:59:05] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[01:59:05] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[01:59:05] [INFO] [PenultimateHit] Player damaged: 1.0 damage, current health: 3.0
+[01:59:05] [INFO] [LastChance] Player health updated (C# Damaged): 3.0
+[01:59:05] [ENEMY] [Enemy3] Hit taken, health: 0/2
+[01:59:05] [ENEMY] [Enemy3] ImpactEffectsManager found, calling spawn_blood_effect
+[01:59:05] [INFO] [ImpactEffects] spawn_blood_effect called at (684.4485, 753.7583), dir=(1, 0), lethal=true
+[01:59:05] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[01:59:05] [INFO] [ImpactEffects] Blood decals scheduled: 8 to spawn at particle landing times
+[01:59:05] [INFO] [ImpactEffects] Blood effect spawned at (684.4485, 753.7583) (scale=1.5)
+[01:59:05] [ENEMY] [Enemy3] Enemy died (ricochet: false, penetration: false)
+[01:59:05] [INFO] [ScoreManager] Kill registered. Combo: 1 (points: 500)
+[01:59:05] [INFO] [SoundPropagation] Unregistered listener: Enemy3 (remaining: 9)
+[01:59:05] [INFO] [DeathAnim] Started - Angle: 0.0 deg, Index: 12
+[01:59:05] [ENEMY] [Enemy3] Death animation started with hit direction: (1, 0)
+[01:59:05] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(488.7246, 751.9404), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[01:59:05] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=3, self=0, below_threshold=3
+[01:59:05] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(510.4464, 749.8534), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[01:59:05] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=3, self=0, below_threshold=3
+[01:59:05] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(488.72458, 751.9404), shooter_id=434060135267, bullet_pos=(910.6823, 701.1762)
+[01:59:05] [INFO] [Bullet] Using shooter_position, distance=425,0004
+[01:59:05] [INFO] [Bullet] Distance to wall: 425,0004 (28,93906% of viewport)
+[01:59:05] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[01:59:05] [INFO] [Bullet] Starting wall penetration at (910.6823, 701.1762)
+[01:59:05] [INFO] [Bullet] Raycast backward hit penetrating body at distance 12,833145
+[01:59:05] [INFO] [Bullet] Body exited signal received for penetrating body
+[01:59:05] [INFO] [Bullet] Exiting penetration at (948.7413, 696.5975) after traveling 33,33334 pixels through wall
+[01:59:05] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[01:59:05] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(525.5585, 759.5958), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[01:59:05] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=2, self=0, below_threshold=4
+[01:59:05] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(510.44638, 749.8534), shooter_id=434060135267, bullet_pos=(934.83057, 772.7239)
+[01:59:05] [INFO] [Bullet] Using shooter_position, distance=425
+[01:59:05] [INFO] [Bullet] Distance to wall: 425 (28,939034% of viewport)
+[01:59:05] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[01:59:05] [INFO] [Bullet] Starting wall penetration at (934.83057, 772.7239)
+[01:59:05] [INFO] [Bullet] Raycast backward hit penetrating body at distance 37,162186
+[01:59:05] [INFO] [Bullet] Body exited signal received for penetrating body
+[01:59:05] [INFO] [Bullet] Exiting penetration at (973.10834, 774.7867) after traveling 33,33334 pixels through wall
+[01:59:05] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[01:59:05] [ENEMY] [Enemy1] State: COMBAT -> PURSUING
+[01:59:05] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[01:59:05] [ENEMY] [Enemy4] State: COMBAT -> PURSUING
+[01:59:05] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(525.5585, 759.59576), shooter_id=434060135267, bullet_pos=(916.75446, 778.7914)
+[01:59:05] [INFO] [Bullet] Using shooter_position, distance=391,66666
+[01:59:05] [INFO] [Bullet] Distance to wall: 391,66666 (26,669302% of viewport)
+[01:59:05] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[01:59:05] [INFO] [Bullet] Starting wall penetration at (916.75446, 778.7914)
+[01:59:05] [INFO] [Bullet] Raycast backward hit penetrating body at distance 19,06466
+[01:59:05] [INFO] [Bullet] Body exited signal received for penetrating body
+[01:59:05] [INFO] [Bullet] Exiting penetration at (955.04175, 780.6701) after traveling 33,333336 pixels through wall
+[01:59:05] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[01:59:05] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[01:59:05] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(724.5833, 914.0654), source=ENEMY (Enemy4), range=1469, listeners=9
+[01:59:05] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=1, below_threshold=6
+[01:59:05] [INFO] [LastChance] Threat detected: Bullet
+[01:59:05] [INFO] [LastChance] Player health is 3.0 - effect requires exactly 1 HP or less but alive
+[01:59:05] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[01:59:05] [ENEMY] [Enemy3] Ragdoll activated
+[01:59:05] [INFO] [DeathAnim] Ragdoll activated at 60% fall progress
+[01:59:05] [INFO] [PenultimateHit] Player damaged: 1.0 damage, current health: 2.0
+[01:59:05] [INFO] [LastChance] Player health updated (C# Damaged): 2.0
+[01:59:05] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[01:59:05] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(724.5833, 914.0654), source=ENEMY (Enemy4), range=1469, listeners=9
+[01:59:05] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=1, below_threshold=6
+[01:59:05] [INFO] [LastChance] Threat detected: Bullet
+[01:59:05] [INFO] [LastChance] Player health is 2.0 - effect requires exactly 1 HP or less but alive
+[01:59:05] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[01:59:05] [INFO] [PenultimateHit] Player damaged: 1.0 damage, current health: 1.0
+[01:59:05] [INFO] [PenultimateHit] Hard mode active - skipping regular penultimate hit effect (using last chance instead)
+[01:59:05] [INFO] [LastChance] Player health updated (C# Damaged): 1.0
+[01:59:05] [ENEMY] [Enemy4] State: PURSUING -> COMBAT
+[01:59:06] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(566.4357, 889.6307), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[01:59:06] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=0, below_threshold=6
+[01:59:06] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(566.4357, 889.6307), shooter_id=434060135267, bullet_pos=(691.115, 880.6807)
+[01:59:06] [INFO] [Bullet] Using shooter_position, distance=125,00008
+[01:59:06] [INFO] [Bullet] Distance to wall: 125,00008 (8,511485% of viewport)
+[01:59:06] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[01:59:06] [INFO] [Bullet] Starting wall penetration at (691.115, 880.6807)
+[01:59:06] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[01:59:06] [INFO] [Bullet] Exiting penetration at (729.35, 877.9361) after traveling 33,333336 pixels through wall
+[01:59:06] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[01:59:06] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(570.5747, 923.1163), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[01:59:06] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=0, below_threshold=6
+[01:59:06] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(724.5833, 914.0654), source=ENEMY (Enemy4), range=1469, listeners=9
+[01:59:06] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=1, below_threshold=6
+[01:59:06] [INFO] [LastChance] Threat detected: @Area2D@1185
+[01:59:06] [INFO] [LastChance] Triggering last chance effect!
+[01:59:06] [INFO] [LastChance] Starting last chance effect:
+[01:59:06] [INFO] [LastChance]   - Time will be frozen (except player)
+[01:59:06] [INFO] [LastChance]   - Duration: 6.0 real seconds
+[01:59:06] [INFO] [LastChance]   - Sepia intensity: 0.70
+[01:59:06] [INFO] [LastChance]   - Brightness: 0.60
+[01:59:06] [INFO] [LastChance] Pushed bullet Bullet from distance 56.8 to 200.0
+[01:59:06] [INFO] [LastChance] Pushed bullet @Area2D@1185 from distance 85.4 to 200.0
+[01:59:06] [INFO] [LastChance] Pushed 2 threatening bullets away from player
+[01:59:06] [INFO] [LastChance] Set player Player and all 19 children to PROCESS_MODE_ALWAYS
+[01:59:06] [INFO] [LastChance] Set StaticBody2D 'WallTop' to PROCESS_MODE_ALWAYS for collision
+[01:59:06] [INFO] [LastChance] Set StaticBody2D 'WallBottom' to PROCESS_MODE_ALWAYS for collision
+[01:59:06] [INFO] [LastChance] Set StaticBody2D 'WallLeft' to PROCESS_MODE_ALWAYS for collision
+[01:59:06] [INFO] [LastChance] Set StaticBody2D 'WallRight' to PROCESS_MODE_ALWAYS for collision
+[01:59:06] [INFO] [LastChance] Set StaticBody2D 'Room1_WallBottom' to PROCESS_MODE_ALWAYS for collision
+[01:59:06] [INFO] [LastChance] Set StaticBody2D 'Room1_WallRight' to PROCESS_MODE_ALWAYS for collision
+[01:59:06] [INFO] [LastChance] Set StaticBody2D 'Room2_WallLeft' to PROCESS_MODE_ALWAYS for collision
+[01:59:06] [INFO] [LastChance] Set StaticBody2D 'Room2_WallBottom' to PROCESS_MODE_ALWAYS for collision
+[01:59:06] [INFO] [LastChance] Set StaticBody2D 'Room2_WallRight' to PROCESS_MODE_ALWAYS for collision
+[01:59:06] [INFO] [LastChance] Set StaticBody2D 'Corridor_WallTop' to PROCESS_MODE_ALWAYS for collision
+[01:59:06] [INFO] [LastChance] Set StaticBody2D 'Corridor_WallBottom' to PROCESS_MODE_ALWAYS for collision
+[01:59:06] [INFO] [LastChance] Set StaticBody2D 'Room3_WallLeft' to PROCESS_MODE_ALWAYS for collision
+[01:59:06] [INFO] [LastChance] Set StaticBody2D 'Room3_WallBottom' to PROCESS_MODE_ALWAYS for collision
+[01:59:06] [INFO] [LastChance] Set StaticBody2D 'Room4_WallLeft' to PROCESS_MODE_ALWAYS for collision
+[01:59:06] [INFO] [LastChance] Set StaticBody2D 'Room4_WallTop' to PROCESS_MODE_ALWAYS for collision
+[01:59:06] [INFO] [LastChance] Set StaticBody2D 'Room5_WallTop' to PROCESS_MODE_ALWAYS for collision
+[01:59:06] [INFO] [LastChance] Set StaticBody2D 'Room5_WallLeft' to PROCESS_MODE_ALWAYS for collision
+[01:59:06] [INFO] [LastChance] Set StaticBody2D 'LobbyDivider_Left' to PROCESS_MODE_ALWAYS for collision
+[01:59:06] [INFO] [LastChance] Set StaticBody2D 'LobbyDivider_Right' to PROCESS_MODE_ALWAYS for collision
+[01:59:06] [INFO] [LastChance] Set StaticBody2D 'StorageRoom_WallTop' to PROCESS_MODE_ALWAYS for collision
+[01:59:06] [INFO] [LastChance] Set StaticBody2D 'StorageRoom_WallRight' to PROCESS_MODE_ALWAYS for collision
+[01:59:06] [INFO] [LastChance] Set StaticBody2D 'MainHall_WallLeft' to PROCESS_MODE_ALWAYS for collision
+[01:59:06] [INFO] [LastChance] Set StaticBody2D 'MainHall_WallRight' to PROCESS_MODE_ALWAYS for collision
+[01:59:06] [INFO] [LastChance] Set StaticBody2D 'MainHall_WallTop' to PROCESS_MODE_ALWAYS for collision
+[01:59:06] [INFO] [LastChance] Set StaticBody2D 'Room2_CornerBL' to PROCESS_MODE_ALWAYS for collision
+[01:59:06] [INFO] [LastChance] Set StaticBody2D 'Room2_CornerBR' to PROCESS_MODE_ALWAYS for collision
+[01:59:06] [INFO] [LastChance] Set StaticBody2D 'Corridor_CornerTR' to PROCESS_MODE_ALWAYS for collision
+[01:59:06] [INFO] [LastChance] Set StaticBody2D 'Corridor_CornerBR' to PROCESS_MODE_ALWAYS for collision
+[01:59:06] [INFO] [LastChance] Set StaticBody2D 'MainHall_CornerTL' to PROCESS_MODE_ALWAYS for collision
+[01:59:06] [INFO] [LastChance] Set StaticBody2D 'MainHall_CornerTR' to PROCESS_MODE_ALWAYS for collision
+[01:59:06] [INFO] [LastChance] Set StaticBody2D 'StorageRoom_CornerTR' to PROCESS_MODE_ALWAYS for collision
+[01:59:06] [INFO] [LastChance] Set StaticBody2D 'Desk1' to PROCESS_MODE_ALWAYS for collision
+[01:59:06] [INFO] [LastChance] Set StaticBody2D 'Desk2' to PROCESS_MODE_ALWAYS for collision
+[01:59:06] [INFO] [LastChance] Set StaticBody2D 'Table1' to PROCESS_MODE_ALWAYS for collision
+[01:59:06] [INFO] [LastChance] Set StaticBody2D 'Cabinet1' to PROCESS_MODE_ALWAYS for collision
+[01:59:06] [INFO] [LastChance] Set StaticBody2D 'Cabinet2' to PROCESS_MODE_ALWAYS for collision
+[01:59:06] [INFO] [LastChance] Set StaticBody2D 'Desk3' to PROCESS_MODE_ALWAYS for collision
+[01:59:06] [INFO] [LastChance] Set StaticBody2D 'Desk4' to PROCESS_MODE_ALWAYS for collision
+[01:59:06] [INFO] [LastChance] Set StaticBody2D 'Table2' to PROCESS_MODE_ALWAYS for collision
+[01:59:06] [INFO] [LastChance] Set StaticBody2D 'Table3' to PROCESS_MODE_ALWAYS for collision
+[01:59:06] [INFO] [LastChance] Set StaticBody2D 'Cabinet3' to PROCESS_MODE_ALWAYS for collision
+[01:59:06] [INFO] [LastChance] Set StaticBody2D 'StorageCrate1' to PROCESS_MODE_ALWAYS for collision
+[01:59:06] [INFO] [LastChance] Set StaticBody2D 'StorageCrate2' to PROCESS_MODE_ALWAYS for collision
+[01:59:06] [INFO] [LastChance] Set StaticBody2D 'HallTable' to PROCESS_MODE_ALWAYS for collision
+[01:59:06] [INFO] [LastChance] Skipping player node: Player
+[01:59:06] [INFO] [LastChance] Froze existing bullet casing: Casing
+[01:59:06] [INFO] [LastChance] Froze existing bullet casing: @RigidBody2D@1151
+[01:59:06] [INFO] [LastChance] Froze existing bullet casing: @RigidBody2D@1153
+[01:59:06] [INFO] [LastChance] Froze existing bullet casing: @RigidBody2D@1155
+[01:59:06] [INFO] [LastChance] Froze existing bullet casing: @RigidBody2D@1157
+[01:59:06] [INFO] [LastChance] Froze existing bullet casing: @RigidBody2D@1159
+[01:59:06] [INFO] [LastChance] Froze existing bullet casing: @RigidBody2D@1165
+[01:59:06] [INFO] [LastChance] Froze existing bullet casing: @RigidBody2D@1179
+[01:59:06] [INFO] [LastChance] Froze existing bullet casing: @RigidBody2D@1182
+[01:59:06] [INFO] [LastChance] Froze existing bullet casing: @RigidBody2D@1184
+[01:59:06] [INFO] [LastChance] Froze existing bullet casing: @RigidBody2D@1186
+[01:59:06] [INFO] [LastChance] Froze all nodes except player and autoloads (including GameManager for quick restart)
+[01:59:06] [INFO] [LastChance] Applied visual effects: sepia=0.70, brightness=0.60, ripple=0.0080
+[01:59:06] [INFO] [LastChance] Applied 4.0x saturation to 6 player sprites
+[01:59:06] [INFO] [LastChance] Freezing newly fired player bullet: @Area2D@1187
+[01:59:06] [INFO] [LastChance] Registered frozen player bullet: @Area2D@1187
+[01:59:06] [INFO] [LastChance] Freezing newly created bullet casing: @RigidBody2D@1188
+[01:59:06] [INFO] [LastChance] Registered frozen bullet casing: @RigidBody2D@1188
+[01:59:06] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(586.3566, 950.5091), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[01:59:06] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=0, below_threshold=6
+[01:59:06] [INFO] [LastChance] Freezing newly fired player bullet: @Area2D@1189
+[01:59:06] [INFO] [LastChance] Registered frozen player bullet: @Area2D@1189
+[01:59:06] [INFO] [LastChance] Freezing newly created bullet casing: @RigidBody2D@1190
+[01:59:06] [INFO] [LastChance] Registered frozen bullet casing: @RigidBody2D@1190
+[01:59:06] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(610.2635, 967.1699), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[01:59:06] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=0, below_threshold=6
+[01:59:06] [INFO] [LastChance] Freezing newly fired player bullet: @Area2D@1191
+[01:59:06] [INFO] [LastChance] Registered frozen player bullet: @Area2D@1191
+[01:59:06] [INFO] [LastChance] Freezing newly created bullet casing: @RigidBody2D@1192
+[01:59:06] [INFO] [LastChance] Registered frozen bullet casing: @RigidBody2D@1192
+[01:59:06] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(641.8311, 972.5289), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[01:59:06] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=0, below_threshold=6
+[01:59:06] [INFO] [LastChance] Freezing newly fired player bullet: @Area2D@1193
+[01:59:06] [INFO] [LastChance] Registered frozen player bullet: @Area2D@1193
+[01:59:06] [INFO] [LastChance] Freezing newly created bullet casing: @RigidBody2D@1194
+[01:59:06] [INFO] [LastChance] Registered frozen bullet casing: @RigidBody2D@1194
+[01:59:06] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(677.0313, 972.5289), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[01:59:06] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=7
+[01:59:08] [INFO] [LastChance] Freezing newly fired player bullet: @Area2D@1195
+[01:59:08] [INFO] [LastChance] Registered frozen player bullet: @Area2D@1195
+[01:59:08] [INFO] [LastChance] Freezing newly created bullet casing: @RigidBody2D@1196
+[01:59:08] [INFO] [LastChance] Registered frozen bullet casing: @RigidBody2D@1196
+[01:59:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(748.1588, 734.9188), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[01:59:08] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=0, below_threshold=6
+[01:59:08] [INFO] [LastChance] Freezing newly fired player bullet: @Area2D@1197
+[01:59:08] [INFO] [LastChance] Registered frozen player bullet: @Area2D@1197
+[01:59:08] [INFO] [LastChance] Freezing newly created bullet casing: @RigidBody2D@1198
+[01:59:08] [INFO] [LastChance] Registered frozen bullet casing: @RigidBody2D@1198
+[01:59:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(713.8254, 734.9188), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[01:59:08] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=0, below_threshold=6
+[01:59:08] [INFO] [LastChance] Freezing newly fired player bullet: @Area2D@1199
+[01:59:08] [INFO] [LastChance] Registered frozen player bullet: @Area2D@1199
+[01:59:08] [INFO] [LastChance] Freezing newly created bullet casing: @RigidBody2D@1200
+[01:59:08] [INFO] [LastChance] Registered frozen bullet casing: @RigidBody2D@1200
+[01:59:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(691.7542, 737.7822), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[01:59:08] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=0, below_threshold=6
+[01:59:08] [INFO] [LastChance] Freezing newly fired player bullet: @Area2D@1201
+[01:59:08] [INFO] [LastChance] Registered frozen player bullet: @Area2D@1201
+[01:59:08] [INFO] [LastChance] Freezing newly created bullet casing: @RigidBody2D@1202
+[01:59:08] [INFO] [LastChance] Registered frozen bullet casing: @RigidBody2D@1202
+[01:59:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(678.366, 753.8172), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[01:59:08] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=0, below_threshold=6
+[01:59:08] [INFO] [LastChance] Freezing newly fired player bullet: @Area2D@1203
+[01:59:08] [INFO] [LastChance] Registered frozen player bullet: @Area2D@1203
+[01:59:08] [INFO] [LastChance] Freezing newly created bullet casing: @RigidBody2D@1204
+[01:59:08] [INFO] [LastChance] Registered frozen bullet casing: @RigidBody2D@1204
+[01:59:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(675.7142, 779.55), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[01:59:08] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=0, below_threshold=6
+[01:59:08] [INFO] [ScoreManager] Combo ended at 1. Max combo: 1
+[01:59:08] [INFO] [LastChance] Freezing newly fired player bullet: @Area2D@1205
+[01:59:08] [INFO] [LastChance] Registered frozen player bullet: @Area2D@1205
+[01:59:08] [INFO] [LastChance] Freezing newly created bullet casing: @RigidBody2D@1206
+[01:59:08] [INFO] [LastChance] Registered frozen bullet casing: @RigidBody2D@1206
+[01:59:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(687.0912, 799.0995), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[01:59:08] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=0, below_threshold=6
+[01:59:08] [INFO] [LastChance] Freezing newly fired player bullet: @Area2D@1207
+[01:59:08] [INFO] [LastChance] Registered frozen player bullet: @Area2D@1207
+[01:59:08] [INFO] [LastChance] Freezing newly created bullet casing: @RigidBody2D@1208
+[01:59:08] [INFO] [LastChance] Registered frozen bullet casing: @RigidBody2D@1208
+[01:59:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(713.0397, 799.9338), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[01:59:08] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=0, below_threshold=6
+[01:59:09] [INFO] [LastChance] Freezing newly fired player bullet: @Area2D@1209
+[01:59:09] [INFO] [LastChance] Registered frozen player bullet: @Area2D@1209
+[01:59:09] [INFO] [LastChance] Freezing newly created bullet casing: @RigidBody2D@1210
+[01:59:09] [INFO] [LastChance] Registered frozen bullet casing: @RigidBody2D@1210
+[01:59:09] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(750.9536, 799.9338), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[01:59:09] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=0, below_threshold=6
+[01:59:09] [INFO] [Player.Reload.Anim] Phase changed to: GrabMagazine (duration: 0,25s)
+[01:59:09] [ENEMY] [Enemy1] Player reloading state changed: false -> true
+[01:59:09] [ENEMY] [Enemy2] Player reloading state changed: false -> true
+[01:59:09] [ENEMY] [Enemy4] Player reloading state changed: false -> true
+[01:59:09] [ENEMY] [Enemy5] Player reloading state changed: false -> true
+[01:59:09] [ENEMY] [Enemy6] Player reloading state changed: false -> true
+[01:59:09] [ENEMY] [Enemy7] Player reloading state changed: false -> true
+[01:59:09] [ENEMY] [Enemy8] Player reloading state changed: false -> true
+[01:59:09] [ENEMY] [Enemy9] Player reloading state changed: false -> true
+[01:59:09] [ENEMY] [Enemy10] Player reloading state changed: false -> true
+[01:59:09] [INFO] [SoundPropagation] Sound emitted: type=RELOAD, pos=(835.1824, 912.6559), source=PLAYER (Player), range=900, listeners=9
+[01:59:09] [ENEMY] [Enemy4] Heard player RELOAD at (835.1824, 912.6559), intensity=0.20, distance=111
+[01:59:09] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=4, self=0, below_threshold=4
+[01:59:10] [INFO] [Player.Reload.Anim] Phase changed to: InsertMagazine (duration: 0,30s)
+[01:59:10] [INFO] [Player.Reload.Anim] Phase changed to: PullBolt (duration: 0,35s)
+[01:59:10] [ENEMY] [Enemy1] Player reloading state changed: true -> false
+[01:59:10] [ENEMY] [Enemy2] Player reloading state changed: true -> false
+[01:59:10] [ENEMY] [Enemy4] Player reloading state changed: true -> false
+[01:59:10] [ENEMY] [Enemy5] Player reloading state changed: true -> false
+[01:59:10] [ENEMY] [Enemy6] Player reloading state changed: true -> false
+[01:59:10] [ENEMY] [Enemy7] Player reloading state changed: true -> false
+[01:59:10] [ENEMY] [Enemy8] Player reloading state changed: true -> false
+[01:59:10] [ENEMY] [Enemy9] Player reloading state changed: true -> false
+[01:59:10] [ENEMY] [Enemy10] Player reloading state changed: true -> false
+[01:59:10] [INFO] [Player.Reload.Anim] Phase changed to: ReturnIdle (duration: 0,20s)
+[01:59:10] [INFO] [Player.Reload.Anim] Animation complete, returning to normal
+[01:59:12] [INFO] [LastChance] Effect duration expired after 6.00 real seconds
+[01:59:12] [INFO] [LastChance] Ending last chance effect
+[01:59:12] [ENEMY] [Enemy1] Memory reset: confusion=2.0s, had_target=true
+[01:59:12] [ENEMY] [Enemy1] Search mode: PURSUING -> SEARCHING at (453.0796, 793.9423)
+[01:59:12] [ENEMY] [Enemy1] SEARCHING started: center=(453.0796, 793.9423), radius=100, waypoints=5
+[01:59:12] [ENEMY] [Enemy2] Memory reset: confusion=2.0s, had_target=true
+[01:59:12] [ENEMY] [Enemy2] Search mode: PURSUING -> SEARCHING at (453.0796, 793.9423)
+[01:59:12] [ENEMY] [Enemy2] SEARCHING started: center=(453.0796, 793.9423), radius=100, waypoints=5
+[01:59:12] [ENEMY] [Enemy4] Memory reset: confusion=2.0s, had_target=true
+[01:59:12] [ENEMY] [Enemy4] Search mode: COMBAT -> SEARCHING at (570.5747, 917.1163)
+[01:59:12] [ENEMY] [Enemy4] SEARCHING started: center=(570.5747, 917.1163), radius=100, waypoints=5
+[01:59:12] [ENEMY] [Enemy5] Memory reset: confusion=2.0s, had_target=false
+[01:59:12] [ENEMY] [Enemy6] Memory reset: confusion=2.0s, had_target=false
+[01:59:12] [ENEMY] [Enemy7] Memory reset: confusion=2.0s, had_target=false
+[01:59:12] [ENEMY] [Enemy8] Memory reset: confusion=2.0s, had_target=false
+[01:59:12] [ENEMY] [Enemy9] Memory reset: confusion=2.0s, had_target=false
+[01:59:12] [ENEMY] [Enemy10] Memory reset: confusion=2.0s, had_target=false
+[01:59:12] [INFO] [LastChance] Reset memory for 9 enemies (player teleport effect)
+[01:59:12] [INFO] [LastChance] All process modes restored
+[01:59:12] [INFO] [LastChance] Unfroze player bullet: @Area2D@1187
+[01:59:12] [INFO] [LastChance] Unfroze player bullet: @Area2D@1189
+[01:59:12] [INFO] [LastChance] Unfroze player bullet: @Area2D@1191
+[01:59:12] [INFO] [LastChance] Unfroze player bullet: @Area2D@1193
+[01:59:12] [INFO] [LastChance] Unfroze player bullet: @Area2D@1195
+[01:59:12] [INFO] [LastChance] Unfroze player bullet: @Area2D@1197
+[01:59:12] [INFO] [LastChance] Unfroze player bullet: @Area2D@1199
+[01:59:12] [INFO] [LastChance] Unfroze player bullet: @Area2D@1201
+[01:59:12] [INFO] [LastChance] Unfroze player bullet: @Area2D@1203
+[01:59:12] [INFO] [LastChance] Unfroze player bullet: @Area2D@1205
+[01:59:12] [INFO] [LastChance] Unfroze player bullet: @Area2D@1207
+[01:59:12] [INFO] [LastChance] Unfroze player bullet: @Area2D@1209
+[01:59:12] [INFO] [LastChance] Unfroze bullet casing: Casing
+[01:59:12] [INFO] [LastChance] Unfroze bullet casing: @RigidBody2D@1151
+[01:59:12] [INFO] [LastChance] Unfroze bullet casing: @RigidBody2D@1153
+[01:59:12] [INFO] [LastChance] Unfroze bullet casing: @RigidBody2D@1155
+[01:59:12] [INFO] [LastChance] Unfroze bullet casing: @RigidBody2D@1157
+[01:59:12] [INFO] [LastChance] Unfroze bullet casing: @RigidBody2D@1159
+[01:59:12] [INFO] [LastChance] Unfroze bullet casing: @RigidBody2D@1165
+[01:59:12] [INFO] [LastChance] Unfroze bullet casing: @RigidBody2D@1179
+[01:59:12] [INFO] [LastChance] Unfroze bullet casing: @RigidBody2D@1182
+[01:59:12] [INFO] [LastChance] Unfroze bullet casing: @RigidBody2D@1184
+[01:59:12] [INFO] [LastChance] Unfroze bullet casing: @RigidBody2D@1186
+[01:59:12] [INFO] [LastChance] Unfroze bullet casing: @RigidBody2D@1188
+[01:59:12] [INFO] [LastChance] Unfroze bullet casing: @RigidBody2D@1190
+[01:59:12] [INFO] [LastChance] Unfroze bullet casing: @RigidBody2D@1192
+[01:59:12] [INFO] [LastChance] Unfroze bullet casing: @RigidBody2D@1194
+[01:59:12] [INFO] [LastChance] Unfroze bullet casing: @RigidBody2D@1196
+[01:59:12] [INFO] [LastChance] Unfroze bullet casing: @RigidBody2D@1198
+[01:59:12] [INFO] [LastChance] Unfroze bullet casing: @RigidBody2D@1200
+[01:59:12] [INFO] [LastChance] Unfroze bullet casing: @RigidBody2D@1202
+[01:59:12] [INFO] [LastChance] Unfroze bullet casing: @RigidBody2D@1204
+[01:59:12] [INFO] [LastChance] Unfroze bullet casing: @RigidBody2D@1206
+[01:59:12] [INFO] [LastChance] Unfroze bullet casing: @RigidBody2D@1208
+[01:59:12] [INFO] [LastChance] Unfroze bullet casing: @RigidBody2D@1210
+[01:59:12] [INFO] [LastChance] Restored original colors to 5 player sprites
+[01:59:12] [INFO] [LastChance] Called player RefreshHealthVisual (C#)
+[01:59:12] [INFO] [LastChance] Threat detected: @Area2D@1189
+[01:59:12] [INFO] [LastChance] Effect already used this life
+[01:59:12] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[01:59:12] [INFO] [LastChance] Threat detected: @Area2D@1191
+[01:59:12] [INFO] [LastChance] Effect already used this life
+[01:59:12] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[01:59:12] [ENEMY] [Enemy4] Hit taken, health: 2/3
+[01:59:12] [ENEMY] [Enemy4] ImpactEffectsManager found, calling spawn_blood_effect
+[01:59:12] [INFO] [ImpactEffects] spawn_blood_effect called at (719.4507, 914.1671), dir=(1, 0), lethal=false
+[01:59:12] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[01:59:12] [INFO] [ImpactEffects] Blood decals scheduled: 4 to spawn at particle landing times
+[01:59:12] [INFO] [ImpactEffects] Blood effect spawned at (719.4507, 914.1671) (scale=1)
+[01:59:12] [ENEMY] [Enemy4] Hit taken, health: 1/3
+[01:59:12] [ENEMY] [Enemy4] ImpactEffectsManager found, calling spawn_blood_effect
+[01:59:12] [INFO] [ImpactEffects] spawn_blood_effect called at (714.3184, 914.2688), dir=(1, 0), lethal=false
+[01:59:12] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[01:59:12] [INFO] [ImpactEffects] Blood decals scheduled: 4 to spawn at particle landing times
+[01:59:12] [INFO] [ImpactEffects] Blood effect spawned at (714.3184, 914.2688) (scale=1)
+[01:59:12] [ENEMY] [Enemy4] Hit taken, health: 0/3
+[01:59:12] [ENEMY] [Enemy4] ImpactEffectsManager found, calling spawn_blood_effect
+[01:59:12] [INFO] [ImpactEffects] spawn_blood_effect called at (714.3184, 914.2688), dir=(1, 0), lethal=true
+[01:59:12] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[01:59:12] [INFO] [ImpactEffects] Blood decals scheduled: 8 to spawn at particle landing times
+[01:59:12] [INFO] [ImpactEffects] Blood effect spawned at (714.3184, 914.2688) (scale=1.5)
+[01:59:12] [ENEMY] [Enemy4] Enemy died (ricochet: false, penetration: false)
+[01:59:12] [INFO] [ScoreManager] Kill registered. Combo: 1 (points: 500)
+[01:59:12] [INFO] [SoundPropagation] Unregistered listener: Enemy4 (remaining: 8)
+[01:59:12] [INFO] [DeathAnim] Started - Angle: 0.0 deg, Index: 12
+[01:59:12] [ENEMY] [Enemy4] Death animation started with hit direction: (1, 0)
+[01:59:12] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(570.5747, 923.1163), shooter_id=434060135267, bullet_pos=(921.38196, 901.9495)
+[01:59:12] [INFO] [Bullet] Using shooter_position, distance=351,44525
+[01:59:12] [INFO] [Bullet] Distance to wall: 351,44525 (23,930553% of viewport)
+[01:59:12] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[01:59:12] [INFO] [Bullet] Starting wall penetration at (921.38196, 901.9495)
+[01:59:12] [INFO] [Bullet] Raycast backward hit penetrating body at distance 23,673994
+[01:59:12] [INFO] [Bullet] Body exited signal received for penetrating body
+[01:59:12] [INFO] [Bullet] Exiting penetration at (959.60736, 899.0755) after traveling 33,333332 pixels through wall
+[01:59:12] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[01:59:12] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(713.82544, 734.91876), shooter_id=434060135267, bullet_pos=(511.18124, 603.24426)
+[01:59:12] [INFO] [Bullet] Using shooter_position, distance=241,66681
+[01:59:12] [INFO] [Bullet] Distance to wall: 241,66681 (16,455538% of viewport)
+[01:59:12] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[01:59:12] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(748.1588, 734.91876), shooter_id=434060135267, bullet_pos=(512.38074, 593.3783)
+[01:59:12] [INFO] [Bullet] Using shooter_position, distance=275
+[01:59:12] [INFO] [Bullet] Distance to wall: 275 (18,725256% of viewport)
+[01:59:12] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[01:59:12] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(657.3486, 923.1964), shooter_id=431526774226, bullet_pos=(521.934, 931.1678)
+[01:59:12] [INFO] [Bullet] Using shooter_position, distance=135.649032592773
+[01:59:12] [INFO] [Bullet] Distance to wall: 135.649032592773 (9.23659206581812% of viewport)
+[01:59:12] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[01:59:12] [INFO] [Bullet] Starting wall penetration at (521.934, 931.1678)
+[01:59:12] [INFO] [Bullet] Raycast backward hit penetrating body at distance 16.3950614929199
+[01:59:12] [ENEMY] [Enemy2] Hit taken, health: 2/3
+[01:59:12] [ENEMY] [Enemy2] ImpactEffectsManager found, calling spawn_blood_effect
+[01:59:12] [INFO] [ImpactEffects] spawn_blood_effect called at (425.0096, 574.3513), dir=(1, 0), lethal=false
+[01:59:12] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[01:59:12] [INFO] [ImpactEffects] Blood decals scheduled: 4 to spawn at particle landing times
+[01:59:12] [INFO] [ImpactEffects] Wall found for blood splatter at (500, 574.3513) (dist=74 px)
+[01:59:12] [INFO] [ImpactEffects] Blood effect spawned at (425.0096, 574.3513) (scale=1)
+[01:59:12] [ENEMY] [Enemy2] Hit taken, health: 1/3
+[01:59:12] [ENEMY] [Enemy2] ImpactEffectsManager found, calling spawn_blood_effect
+[01:59:12] [INFO] [ImpactEffects] spawn_blood_effect called at (425.0096, 574.3513), dir=(1, 0), lethal=false
+[01:59:12] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[01:59:12] [INFO] [ImpactEffects] Blood decals scheduled: 4 to spawn at particle landing times
+[01:59:12] [INFO] [ImpactEffects] Wall found for blood splatter at (500, 574.3513) (dist=74 px)
+[01:59:12] [INFO] [ImpactEffects] Blood effect spawned at (425.0096, 574.3513) (scale=1)
+[01:59:12] [INFO] [Bullet] Body exited signal received for penetrating body
+[01:59:12] [INFO] [Bullet] Exiting penetration at (483.6082, 931.9271) after traveling 33.3333320617676 pixels through wall
+[01:59:12] [INFO] [Bullet] Damage multiplier after penetration: 0.9
+[01:59:12] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(641.83105, 972.52893), shooter_id=434060135267, bullet_pos=(936.08057, 798.8814)
+[01:59:12] [INFO] [Bullet] Using shooter_position, distance=341,66684
+[01:59:12] [INFO] [Bullet] Distance to wall: 341,66684 (23,264725% of viewport)
+[01:59:12] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[01:59:12] [INFO] [Bullet] Starting wall penetration at (936.08057, 798.8814)
+[01:59:12] [ENEMY] [Enemy2] Hit taken, health: 0/3
+[01:59:12] [ENEMY] [Enemy2] ImpactEffectsManager found, calling spawn_blood_effect
+[01:59:12] [INFO] [ImpactEffects] spawn_blood_effect called at (427.952, 577.2162), dir=(1, 0), lethal=true
+[01:59:12] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[01:59:12] [INFO] [ImpactEffects] Blood decals scheduled: 8 to spawn at particle landing times
+[01:59:12] [INFO] [ImpactEffects] Wall found for blood splatter at (500, 577.2162) (dist=72 px)
+[01:59:12] [INFO] [ImpactEffects] Blood effect spawned at (427.952, 577.2162) (scale=1.5)
+[01:59:12] [ENEMY] [Enemy2] Enemy died (ricochet: false, penetration: false)
+[01:59:12] [INFO] [ScoreManager] Kill registered. Combo: 2 (points: 1500)
+[01:59:12] [INFO] [SoundPropagation] Unregistered listener: Enemy2 (remaining: 7)
+[01:59:12] [INFO] [DeathAnim] Started - Angle: 0.0 deg, Index: 12
+[01:59:12] [ENEMY] [Enemy2] Death animation started with hit direction: (1, 0)
+[01:59:12] [INFO] [Bullet] Raycast backward hit penetrating body at distance 38,426918
+[01:59:12] [INFO] [Bullet] Body exited signal received for penetrating body
+[01:59:12] [INFO] [Bullet] Exiting penetration at (969.09393, 779.399) after traveling 33,333336 pixels through wall
+[01:59:12] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[01:59:12] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(713.82544, 734.91876), shooter_id=434060135267, bullet_pos=(395.5029, 693.4088)
+[01:59:12] [INFO] [Bullet] Using shooter_position, distance=321,01764
+[01:59:12] [INFO] [Bullet] Distance to wall: 321,01764 (21,858683% of viewport)
+[01:59:12] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[01:59:12] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(748.1588, 734.91876), shooter_id=434060135267, bullet_pos=(338.2199, 698.3184)
+[01:59:12] [INFO] [Bullet] Using shooter_position, distance=411,56955
+[01:59:12] [INFO] [Bullet] Distance to wall: 411,56955 (28,024527% of viewport)
+[01:59:12] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[01:59:12] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(750.95355, 799.93384), shooter_id=434060135267, bullet_pos=(326.4494, 463.48315)
+[01:59:12] [INFO] [Bullet] Using shooter_position, distance=541,66675
+[01:59:12] [INFO] [Bullet] Distance to wall: 541,66675 (36,883087% of viewport)
+[01:59:12] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[01:59:12] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(713.0397, 799.93384), shooter_id=434060135267, bullet_pos=(292.1117, 459.02008)
+[01:59:12] [INFO] [Bullet] Using shooter_position, distance=541,66644
+[01:59:12] [INFO] [Bullet] Distance to wall: 541,66644 (36,883064% of viewport)
+[01:59:12] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[01:59:12] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(675.71423, 779.55005), shooter_id=434060135267, bullet_pos=(232.2457, 468.52185)
+[01:59:12] [INFO] [Bullet] Using shooter_position, distance=541,66675
+[01:59:12] [INFO] [Bullet] Distance to wall: 541,66675 (36,883087% of viewport)
+[01:59:12] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[01:59:12] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(675.71423, 779.55005), shooter_id=434060135267, bullet_pos=(67.08763, 630.9788)
+[01:59:12] [INFO] [Bullet] Using shooter_position, distance=626,498
+[01:59:12] [INFO] [Bullet] Distance to wall: 626,498 (42,6594% of viewport)
+[01:59:12] [ENEMY] [Enemy1] Hit taken, health: 3/4
+[01:59:12] [ENEMY] [Enemy1] ImpactEffectsManager found, calling spawn_blood_effect
+[01:59:12] [INFO] [ImpactEffects] spawn_blood_effect called at (195.9254, 459.4925), dir=(1, 0), lethal=false
+[01:59:12] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[01:59:12] [INFO] [ImpactEffects] Blood decals scheduled: 4 to spawn at particle landing times
+[01:59:12] [INFO] [ImpactEffects] Wall found for blood splatter at (220, 459.4925) (dist=24 px)
+[01:59:12] [INFO] [ImpactEffects] Blood effect spawned at (195.9254, 459.4925) (scale=1)
+[01:59:12] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(750.95355, 799.93384), shooter_id=434060135267, bullet_pos=(60.338234, 635.12976)
+[01:59:12] [INFO] [Bullet] Using shooter_position, distance=710,00696
+[01:59:12] [INFO] [Bullet] Distance to wall: 710,00696 (48,34568% of viewport)
+[01:59:12] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(748.1588, 734.91876), shooter_id=434060135267, bullet_pos=(64.552414, 590.88416)
+[01:59:12] [INFO] [Bullet] Using shooter_position, distance=698,61554
+[01:59:12] [INFO] [Bullet] Distance to wall: 698,61554 (47,57002% of viewport)
+[01:59:12] [INFO] [Bullet] Distance-based penetration chance: 91,16831%
+[01:59:12] [INFO] [Bullet] Starting wall penetration at (64.552414, 590.88416)
+[01:59:12] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[01:59:12] [INFO] [Bullet] Exiting penetration at (37.48043, 580.2565) after traveling 24,08333 pixels through wall
+[01:59:12] [INFO] [Bullet] Damage multiplier after penetration: 0,225
+[01:59:12] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(713.0397, 799.93384), shooter_id=434060135267, bullet_pos=(63.539932, 717.4379)
+[01:59:12] [INFO] [Bullet] Using shooter_position, distance=654,7179
+[01:59:12] [INFO] [Bullet] Distance to wall: 654,7179 (44,580944% of viewport)
+[01:59:12] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(675.71423, 779.55005), shooter_id=434060135267, bullet_pos=(149.05685, 690.55646)
+[01:59:12] [INFO] [Bullet] Using shooter_position, distance=534,1234
+[01:59:12] [INFO] [Bullet] Distance to wall: 534,1234 (36,369446% of viewport)
+[01:59:12] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[01:59:12] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(750.95355, 799.93384), shooter_id=434060135267, bullet_pos=(175.83325, 684.0198)
+[01:59:12] [INFO] [Bullet] Using shooter_position, distance=586,6851
+[01:59:12] [INFO] [Bullet] Distance to wall: 586,6851 (39,94847% of viewport)
+[01:59:12] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[01:59:12] [INFO] [Bullet] Starting wall penetration at (175.83325, 684.0198)
+[01:59:12] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[01:59:12] [INFO] [Bullet] Exiting penetration at (202.61581, 695.35706) after traveling 24,083334 pixels through wall
+[01:59:12] [INFO] [Bullet] Damage multiplier after penetration: 0,225
+[01:59:12] [ENEMY] [Enemy4] Ragdoll activated
+[01:59:12] [INFO] [DeathAnim] Ragdoll activated at 60% fall progress
+[01:59:12] [ENEMY] [Enemy2] Ragdoll activated
+[01:59:12] [INFO] [DeathAnim] Ragdoll activated at 60% fall progress
+[01:59:13] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(675.71423, 779.55005), shooter_id=434060135267, bullet_pos=(510.24622, 413.25958)
+[01:59:13] [INFO] [Bullet] Using shooter_position, distance=401,93082
+[01:59:13] [INFO] [Bullet] Distance to wall: 401,93082 (27,368208% of viewport)
+[01:59:13] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[01:59:13] [INFO] [Bullet] Starting wall penetration at (510.24622, 413.25958)
+[01:59:13] [INFO] [Bullet] Raycast backward hit penetrating body at distance 8,131191
+[01:59:13] [INFO] [Bullet] Body exited signal received for penetrating body
+[01:59:13] [INFO] [Bullet] Exiting penetration at (530.44965, 397.74875) after traveling 20,470835 pixels through wall
+[01:59:13] [INFO] [Bullet] Damage multiplier after penetration: 0,1125
+[01:59:14] [ENEMY] [Enemy4] Death animation completed
+[01:59:14] [ENEMY] [Enemy2] Death animation completed
+[01:59:15] [INFO] [ScoreManager] Combo ended at 2. Max combo: 2
+[01:59:18] [INFO] [Player.Debug] Debug mode toggled: ON
+[01:59:18] [INFO] [GameManager] Debug mode toggled: ON
+[01:59:22] [ENEMY] [Enemy1] SEARCHING: Expand outer ring r=175 wps=4
+[01:59:27] [ENEMY] [Enemy1] Player distracted - priority attack triggered
+[01:59:27] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(736.6415, 660.8019), source=ENEMY (Enemy1), range=1469, listeners=7
+[01:59:27] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=1, below_threshold=5
+[01:59:27] [INFO] [LastChance] Threat detected: Bullet
+[01:59:27] [INFO] [LastChance] Effect already used this life
+[01:59:27] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[01:59:27] [ENEMY] [Enemy1] SEARCHING: Player spotted! Transitioning to COMBAT
+[01:59:27] [ENEMY] [Enemy1] State: SEARCHING -> COMBAT
+[01:59:27] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(741.7998, 728.6546), shooter_id=430671136180, bullet_pos=(757.5996, 810.4764)
+[01:59:27] [INFO] [Bullet] Using shooter_position, distance=83.3332901000977
+[01:59:27] [INFO] [Bullet] Distance to wall: 83.3332901000977 (5.6743169593241% of viewport)
+[01:59:27] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[01:59:27] [ENEMY] [Enemy1] Player distracted - priority attack triggered
+[01:59:27] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(732.472, 667.2753), source=ENEMY (Enemy1), range=1469, listeners=7
+[01:59:27] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=1, below_threshold=5
+[01:59:27] [INFO] [LastChance] Threat detected: @Area2D@1289
+[01:59:27] [INFO] [LastChance] Effect already used this life
+[01:59:27] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[01:59:27] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(739.412, 734.969), shooter_id=430671136180, bullet_pos=(757.3568, 816.3473)
+[01:59:27] [INFO] [Bullet] Using shooter_position, distance=83.3333282470703
+[01:59:27] [INFO] [Bullet] Distance to wall: 83.3333282470703 (5.67431955682162% of viewport)
+[01:59:27] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[01:59:27] [INFO] [Bullet] Starting wall penetration at (757.3568, 816.3473)
+[01:59:27] [INFO] [Bullet] Raycast backward hit penetrating body at distance 34.3921813964844
+[01:59:27] [INFO] [Bullet] Body exited signal received for penetrating body
+[01:59:27] [INFO] [Bullet] Exiting penetration at (767.4059, 861.9191) after traveling 41.6666641235352 pixels through wall
+[01:59:27] [INFO] [Bullet] Damage multiplier after penetration: 0.9
+[01:59:27] [INFO] [PenultimateHit] Player damaged: 1.0 damage, current health: 0.0
+[01:59:27] [INFO] [LastChance] Player health updated (C# Damaged): 0.0
+[01:59:27] [INFO] [PenultimateHit] Player died - ending penultimate effect
+[01:59:27] [INFO] [LastChance] Player died
+[01:59:27] [ENEMY] [Enemy1] Player distracted - priority attack triggered
+[01:59:27] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(732.472, 667.2753), source=ENEMY (Enemy1), range=1469, listeners=7
+[01:59:27] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=1, below_threshold=5
+[01:59:27] [INFO] [LastChance] Threat detected: Bullet
+[01:59:27] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[01:59:27] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[01:59:27] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(739.412, 734.969), shooter_id=430671136180, bullet_pos=(757.3568, 816.3473)
+[01:59:27] [INFO] [Bullet] Using shooter_position, distance=83.3333282470703
+[01:59:27] [INFO] [Bullet] Distance to wall: 83.3333282470703 (5.67431955682162% of viewport)
+[01:59:27] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[01:59:27] [INFO] [Bullet] Starting wall penetration at (757.3568, 816.3473)
+[01:59:27] [INFO] [Bullet] Raycast backward hit penetrating body at distance 34.3921813964844
+[01:59:27] [INFO] [Bullet] Body exited signal received for penetrating body
+[01:59:27] [INFO] [Bullet] Exiting penetration at (767.4059, 861.9191) after traveling 41.6666641235352 pixels through wall
+[01:59:27] [INFO] [Bullet] Damage multiplier after penetration: 0.9
+[01:59:28] [ENEMY] [Enemy1] Player distracted - priority attack triggered
+[01:59:28] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(732.472, 667.2753), source=ENEMY (Enemy1), range=1469, listeners=7
+[01:59:28] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=1, below_threshold=5
+[01:59:28] [INFO] [LastChance] Threat detected: Bullet
+[01:59:28] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[01:59:28] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[01:59:28] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(739.412, 734.969), shooter_id=430671136180, bullet_pos=(757.3568, 816.3473)
+[01:59:28] [INFO] [Bullet] Using shooter_position, distance=83.3333282470703
+[01:59:28] [INFO] [Bullet] Distance to wall: 83.3333282470703 (5.67431955682162% of viewport)
+[01:59:28] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[01:59:28] [INFO] ------------------------------------------------------------
+[01:59:28] [INFO] GAME LOG ENDED: 2026-01-25T01:59:28
+[01:59:28] [INFO] ============================================================
