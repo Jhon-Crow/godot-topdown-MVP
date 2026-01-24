@@ -1,15 +1,5 @@
 extends CharacterBody2D
-## Enemy AI with tactical behaviors including patrol, guard, cover, and flanking.
-##
-## Supports multiple behavior modes:
-## - PATROL: Moves between patrol points
-## - GUARD: Stands in place watching for the player
-##
-## Tactical features:
-## - Uses cover when under fire (suppression)
-## - Attempts to flank the player from the sides
-## - Coordinates with other enemies (optional)
-## - GOAP foundation for goal-oriented planning
+## Enemy AI with tactical behaviors: patrol, guard, cover, flanking, GOAP.
 
 ## AI States for tactical behavior.
 enum AIState {
@@ -21,7 +11,8 @@ enum AIState {
 	SUPPRESSED, ## Under fire, staying in cover
 	RETREATING, ## Retreating to cover while possibly shooting
 	PURSUING,   ## Moving cover-to-cover toward player (when far and can't hit)
-	ASSAULT     ## Coordinated multi-enemy assault (rush player after 5s wait)
+	ASSAULT,    ## Coordinated multi-enemy assault (rush player after 5s wait)
+	SEARCHING   ## Methodically searching area where player was last seen (Issue #322)
 }
 
 ## Retreat behavior modes based on damage taken.
@@ -46,14 +37,9 @@ enum BehaviorMode {
 ## Combat movement speed (faster when flanking/seeking cover).
 @export var combat_move_speed: float = 320.0
 
-## Rotation speed in radians per second for gradual turning.
-## Default is 25 rad/sec to ensure enemies aim before shooting (realistic barrel direction).
-## Increased from 15 to compensate for aim-before-shoot requirement (see issue #254).
+## Rotation speed in rad/sec (25 for aim-before-shoot per issue #254).
 @export var rotation_speed: float = 25.0
-
-## Detection range for spotting the player.
-## Set to 0 or negative to allow unlimited detection range (line-of-sight only).
-## This allows enemies to see the player even outside the viewport if no obstacles block view.
+## Detection range (0=unlimited, line-of-sight only).
 @export var detection_range: float = 0.0
 
 ## Field of view angle in degrees.
@@ -68,8 +54,7 @@ enum BehaviorMode {
 ## Note: The global setting in ExperimentalSettings is disabled by default.
 @export var fov_enabled: bool = true
 
-## Time between shots in seconds.
-## Default matches assault rifle fire rate (10 shots/second = 0.1s cooldown).
+## Time between shots (0.1s = 10 rounds/sec).
 @export var shoot_cooldown: float = 0.1
 
 ## Bullet scene to instantiate when shooting.
@@ -81,12 +66,9 @@ enum BehaviorMode {
 ## Offset from enemy center for bullet spawn position.
 @export var bullet_spawn_offset: float = 30.0
 
-## Weapon loudness - determines how far gunshots propagate for alerting other enemies.
-## Set to viewport diagonal (~1469 pixels) for assault rifle by default.
+## Weapon loudness for alerting enemies (viewport diagonal ~1469 for AR).
 @export var weapon_loudness: float = 1469.0
-
-## Patrol points as offsets from the initial position.
-## Only used when behavior_mode is PATROL.
+## Patrol point offsets from initial position (PATROL mode only).
 @export var patrol_offsets: Array[Vector2] = [Vector2(100, 0), Vector2(-100, 0)]
 
 ## Wait time at each patrol point in seconds.
@@ -122,8 +104,7 @@ enum BehaviorMode {
 ## Time to stay suppressed after bullets leave threat sphere.
 @export var suppression_cooldown: float = 2.0
 
-## Delay (in seconds) before reacting to bullets in the threat sphere.
-## This prevents instant reactions to nearby gunfire, giving the player more time.
+## Delay before reacting to threats (gives player reaction time).
 @export var threat_reaction_delay: float = 0.2
 
 ## Flank angle from player's facing direction (radians).
@@ -150,8 +131,7 @@ enum BehaviorMode {
 ## Enable/disable lead prediction (shooting ahead of moving targets).
 @export var enable_lead_prediction: bool = true
 
-## Bullet speed for lead prediction calculation.
-## Should match the actual bullet speed (default is 2500 for assault rifle).
+## Bullet speed for lead prediction (2500 for AR).
 @export var bullet_speed: float = 2500.0
 
 ## Ammunition system - magazine size (bullets per magazine).
@@ -163,20 +143,11 @@ enum BehaviorMode {
 ## Ammunition system - time to reload in seconds.
 @export var reload_time: float = 3.0
 
-## Delay (in seconds) between spotting player and starting to shoot.
-## Gives player a brief reaction time when entering enemy line of sight.
-## This delay "recharges" each time the player breaks direct contact with the enemy.
+## Delay between spotting player and shooting (gives reaction time).
 @export var detection_delay: float = 0.2
-
-## Minimum time (in seconds) the player must be continuously visible before
-## lead prediction is enabled. This prevents enemies from predicting player
-## position immediately when they emerge from cover.
+## Min visibility time before enabling lead prediction.
 @export var lead_prediction_delay: float = 0.3
-
-## Minimum visibility ratio (0.0 to 1.0) of player body that must be visible
-## before lead prediction is enabled. At 1.0, the player's entire body must be
-## visible. At 0.5, at least half of the check points must be visible.
-## This prevents pre-firing at players who are at cover edges.
+## Min visibility ratio (0-1) for lead prediction (prevents pre-firing at cover edges).
 @export var lead_prediction_visibility_threshold: float = 0.6
 
 ## Walking animation speed multiplier - higher = faster leg cycle.
@@ -185,77 +156,33 @@ enum BehaviorMode {
 ## Walking animation intensity - higher = more pronounced movement.
 @export var walk_anim_intensity: float = 1.0
 
-## Scale multiplier for the enemy model (body, head, arms).
-## Default is 1.3 to match the player size.
+## Scale multiplier for enemy model (1.3 matches player size).
 @export var enemy_model_scale: float = 1.3
 
-## Signal emitted when the enemy is hit.
-signal hit
+signal hit  ## Enemy hit
+signal died  ## Enemy died
+signal died_with_info(is_ricochet_kill: bool, is_penetration_kill: bool)  ## Death with kill info
+signal state_changed(new_state: AIState)  ## AI state changed
+signal ammo_changed(current_ammo: int, reserve_ammo: int)  ## Ammo changed
+signal reload_started  ## Reload started
+signal reload_finished  ## Reload finished
+signal ammo_depleted  ## All ammo depleted
+signal death_animation_completed  ## Death animation done
 
-## Signal emitted when the enemy dies.
-signal died
+const PLAYER_DISTRACTION_ANGLE: float = 0.4014  ## ~23° - player distracted threshold
+const AIM_TOLERANCE_DOT: float = 0.866  ## cos(30°) - aim tolerance (issue #254/#264)
 
-## Signal emitted when the enemy dies with special kill information.
-## @param is_ricochet_kill: Whether the kill was from a ricocheted bullet.
-## @param is_penetration_kill: Whether the kill was from a bullet that penetrated a wall.
-signal died_with_info(is_ricochet_kill: bool, is_penetration_kill: bool)
-
-## Signal emitted when AI state changes.
-signal state_changed(new_state: AIState)
-
-## Signal emitted when ammunition changes.
-signal ammo_changed(current_ammo: int, reserve_ammo: int)
-
-## Signal emitted when reloading starts.
-signal reload_started
-
-## Signal emitted when reloading finishes.
-signal reload_finished
-
-## Signal emitted when all ammunition is depleted.
-signal ammo_depleted
-
-## Signal emitted when death animation completes.
-signal death_animation_completed
-
-## Threshold angle (in radians) for considering the player "distracted".
-## If the player's aim is more than this angle away from the enemy, they are distracted.
-## 23 degrees ≈ 0.4014 radians.
-const PLAYER_DISTRACTION_ANGLE: float = 0.4014
-
-## Minimum dot product between weapon direction and target direction for shooting.
-## Bullets only fire when weapon is aimed within this tolerance of the target.
-## 0.866 ≈ cos(30°), meaning weapon must be within ~30° of target.
-## This ensures bullets fly realistically in the barrel direction (see issue #254).
-## Relaxed from 0.95 (18°) to 0.866 (30°) to fix low fire rate (see issue #264).
-const AIM_TOLERANCE_DOT: float = 0.866
-
-## Reference to the enemy model node containing all sprites.
-@onready var _enemy_model: Node2D = $EnemyModel
-
-## References to individual sprite parts for color changes and animation.
-@onready var _body_sprite: Sprite2D = $EnemyModel/Body
-@onready var _head_sprite: Sprite2D = $EnemyModel/Head
-@onready var _left_arm_sprite: Sprite2D = $EnemyModel/LeftArm
-@onready var _right_arm_sprite: Sprite2D = $EnemyModel/RightArm
-
-## Legacy reference for compatibility (points to body sprite).
-@onready var _sprite: Sprite2D = $EnemyModel/Body
-
-## Reference to the weapon sprite for visual rotation.
-@onready var _weapon_sprite: Sprite2D = $EnemyModel/WeaponMount/WeaponSprite
-
-## Reference to weapon mount for animation.
-@onready var _weapon_mount: Node2D = $EnemyModel/WeaponMount
-
-## RayCast2D for line of sight detection.
-@onready var _raycast: RayCast2D = $RayCast2D
-
-## Debug label for showing current AI state above the enemy.
-@onready var _debug_label: Label = $DebugLabel
-
-## NavigationAgent2D for pathfinding around obstacles.
-@onready var _nav_agent: NavigationAgent2D = $NavigationAgent2D
+@onready var _enemy_model: Node2D = $EnemyModel  ## Model node with all sprites
+@onready var _body_sprite: Sprite2D = $EnemyModel/Body  ## Body sprite
+@onready var _head_sprite: Sprite2D = $EnemyModel/Head  ## Head sprite
+@onready var _left_arm_sprite: Sprite2D = $EnemyModel/LeftArm  ## Left arm sprite
+@onready var _right_arm_sprite: Sprite2D = $EnemyModel/RightArm  ## Right arm sprite
+@onready var _sprite: Sprite2D = $EnemyModel/Body  ## Legacy ref (body)
+@onready var _weapon_sprite: Sprite2D = $EnemyModel/WeaponMount/WeaponSprite  ## Weapon sprite
+@onready var _weapon_mount: Node2D = $EnemyModel/WeaponMount  ## Weapon mount
+@onready var _raycast: RayCast2D = $RayCast2D  ## Line of sight raycast
+@onready var _debug_label: Label = $DebugLabel  ## Debug state label
+@onready var _nav_agent: NavigationAgent2D = $NavigationAgent2D  ## Pathfinding
 
 ## HitArea for bullet collision detection.
 ## Used to disable collision when enemy dies so bullets pass through.
@@ -266,117 +193,51 @@ const AIM_TOLERANCE_DOT: float = 0.866
 ## due to Godot engine limitations (see issue #62506, #100687).
 @onready var _hit_collision_shape: CollisionShape2D = $HitArea/HitCollisionShape
 
-## Original collision layer for HitArea (to restore on respawn).
-var _original_hit_area_layer: int = 0
+var _original_hit_area_layer: int = 0  ## Original collision layer (restore on respawn)
 var _original_hit_area_mask: int = 0
 
-## Walking animation time accumulator.
-var _walk_anim_time: float = 0.0
-
-## Whether the enemy is currently walking (for animation state).
-var _is_walking: bool = false
-
-## Target rotation angle for smooth rotation interpolation (radians).
-## The enemy model smoothly rotates towards this target angle.
-var _target_model_rotation: float = 0.0
-
-## Whether the model is currently flipped for left-facing direction.
-var _model_facing_left: bool = false
-
-## Max model rotation speed (3.0 rad/s = 172 deg/s - realistic head turning).
-const MODEL_ROTATION_SPEED: float = 3.0
-
-## IDLE scanning state for GUARD enemies.
-var _idle_scan_timer: float = 0.0
+var _walk_anim_time: float = 0.0  ## Walking animation accumulator
+var _is_walking: bool = false  ## Currently walking (for anim)
+var _target_model_rotation: float = 0.0  ## Target rotation for smooth interpolation
+var _model_facing_left: bool = false  ## Model flipped for left-facing direction
+const MODEL_ROTATION_SPEED: float = 3.0  ## Max model rotation speed (3.0 rad/s = 172 deg/s)
+var _idle_scan_timer: float = 0.0  ## IDLE scanning state for GUARD enemies
 var _idle_scan_target_index: int = 0
 var _idle_scan_targets: Array[float] = []
 const IDLE_SCAN_INTERVAL: float = 10.0
-
-## Base positions for body parts (stored on ready for animation offsets).
-var _base_body_pos: Vector2 = Vector2.ZERO
+var _base_body_pos: Vector2 = Vector2.ZERO  ## Base positions for animation
 var _base_head_pos: Vector2 = Vector2.ZERO
 var _base_left_arm_pos: Vector2 = Vector2.ZERO
 var _base_right_arm_pos: Vector2 = Vector2.ZERO
-
-## Wall detection raycasts for obstacle avoidance (created at runtime).
-var _wall_raycasts: Array[RayCast2D] = []
-
-## Distance to check for walls ahead.
-const WALL_CHECK_DISTANCE: float = 60.0
-
-## Number of raycasts for wall detection (spread around the enemy).
-## Uses 8 raycasts for better angular coverage: center + 3 on each side + 1 rear
-const WALL_CHECK_COUNT: int = 8
-
-## Minimum avoidance weight when close to a wall (stronger avoidance).
-const WALL_AVOIDANCE_MIN_WEIGHT: float = 0.7
-
-## Maximum avoidance weight when far from detected wall.
-const WALL_AVOIDANCE_MAX_WEIGHT: float = 0.3
-
-## Distance at which to start wall-sliding behavior (hugging walls).
-const WALL_SLIDE_DISTANCE: float = 30.0
-
-## Cover detection raycasts (created at runtime).
-var _cover_raycasts: Array[RayCast2D] = []
-
-## Number of raycasts for cover detection.
-const COVER_CHECK_COUNT: int = 16
-
-## Distance to check for cover.
-const COVER_CHECK_DISTANCE: float = 300.0
-
-## Current health of the enemy.
-var _current_health: int = 0
-
-## Maximum health of the enemy (set at spawn).
-var _max_health: int = 0
-
-## Whether the enemy is alive.
-var _is_alive: bool = true
-
-## Reference to the player (found at runtime).
-var _player: Node2D = null
-
-## Time since last shot.
-var _shoot_timer: float = 0.0
-
-## Current ammo in the magazine.
-var _current_ammo: int = 0
-
-## Reserve ammo (ammo in remaining magazines).
-var _reserve_ammo: int = 0
-
-## Whether the enemy is currently reloading.
-var _is_reloading: bool = false
-
-## Timer for reload progress.
-var _reload_timer: float = 0.0
-
-## Patrol state variables.
-var _patrol_points: Array[Vector2] = []
+var _wall_raycasts: Array[RayCast2D] = []  ## Wall detection raycasts
+const WALL_CHECK_DISTANCE: float = 60.0  ## Wall check distance
+const WALL_CHECK_COUNT: int = 8  ## Number of wall raycasts
+const WALL_AVOIDANCE_MIN_WEIGHT: float = 0.7  ## Min avoidance (close)
+const WALL_AVOIDANCE_MAX_WEIGHT: float = 0.3  ## Max avoidance (far)
+const WALL_SLIDE_DISTANCE: float = 30.0  ## Wall slide threshold
+var _cover_raycasts: Array[RayCast2D] = []  ## Cover detection raycasts
+const COVER_CHECK_COUNT: int = 16  ## Number of cover raycasts
+const COVER_CHECK_DISTANCE: float = 300.0  ## Cover check distance
+var _current_health: int = 0  ## Current health
+var _max_health: int = 0  ## Max health (set at spawn)
+var _is_alive: bool = true  ## Is alive
+var _player: Node2D = null  ## Player reference
+var _shoot_timer: float = 0.0  ## Time since last shot
+var _current_ammo: int = 0  ## Ammo in magazine
+var _reserve_ammo: int = 0  ## Reserve ammo
+var _is_reloading: bool = false  ## Currently reloading
+var _reload_timer: float = 0.0  ## Reload progress
+var _patrol_points: Array[Vector2] = []  ## Patrol state
 var _current_patrol_index: int = 0
 var _is_waiting_at_patrol_point: bool = false
 var _patrol_wait_timer: float = 0.0
 var _initial_position: Vector2
-
-## Whether the enemy can currently see the player.
-var _can_see_player: bool = false
-
-## Current AI state.
-var _current_state: AIState = AIState.IDLE
-
-## Current cover position (if any).
-var _cover_position: Vector2 = Vector2.ZERO
-
-## Is currently in a valid cover position.
-var _has_valid_cover: bool = false
-
-## Timer for suppression cooldown.
-var _suppression_timer: float = 0.0
-
-## Whether enemy is currently under fire (bullets in threat sphere).
-var _under_fire: bool = false
+var _can_see_player: bool = false  ## Can see player
+var _current_state: AIState = AIState.IDLE  ## AI state
+var _cover_position: Vector2 = Vector2.ZERO  ## Cover position
+var _has_valid_cover: bool = false  ## Has valid cover
+var _suppression_timer: float = 0.0  ## Suppression cooldown
+var _under_fire: bool = false  ## Under fire (bullets in threat sphere)
 
 ## Flank target position.
 var _flank_target: Vector2 = Vector2.ZERO
@@ -476,8 +337,7 @@ const COMBAT_APPROACH_MAX_TIME: float = 2.0
 ## Distance at which enemy is considered "close enough" to start shooting phase.
 const COMBAT_DIRECT_CONTACT_DISTANCE: float = 250.0
 
-## Minimum time in COMBAT state before allowing transition to PURSUING due to lost line of sight.
-## This prevents rapid state thrashing when visibility flickers at edges of walls/obstacles.
+## Min COMBAT time before PURSUING (prevents thrashing at wall edges).
 const COMBAT_MIN_DURATION_BEFORE_PURSUE: float = 0.5
 
 ## --- Pursuit State (cover-to-cover movement) ---
@@ -585,6 +445,27 @@ var _assault_ready: bool = false
 ## Whether this enemy is currently participating in an assault.
 var _in_assault: bool = false
 
+## Search State - Issue #322: methodical area search with expanding square pattern
+var _search_center: Vector2 = Vector2.ZERO  ## Center position for search pattern
+var _search_radius: float = 100.0  ## Current search radius (expands over time)
+const SEARCH_INITIAL_RADIUS: float = 100.0  ## Initial radius when search begins
+const SEARCH_RADIUS_EXPANSION: float = 75.0  ## Expand by this when all waypoints visited
+const SEARCH_MAX_RADIUS: float = 400.0  ## Max radius before giving up
+var _search_waypoints: Array[Vector2] = []  ## Waypoints to visit during search
+var _search_current_waypoint_index: int = 0  ## Current waypoint index
+var _search_scan_timer: float = 0.0  ## Timer for scanning at waypoint
+const SEARCH_SCAN_DURATION: float = 1.0  ## Seconds to scan at each waypoint
+var _search_state_timer: float = 0.0  ## Total time in SEARCHING state
+const SEARCH_MAX_DURATION: float = 30.0  ## Max time searching before idle
+var _search_direction: int = 0  ## Direction: 0=N, 1=E, 2=S, 3=W
+var _search_leg_length: float = 50.0  ## Current leg length for spiral
+var _search_legs_completed: int = 0  ## Legs completed in pattern
+const SEARCH_WAYPOINT_REACHED_DISTANCE: float = 20.0  ## Waypoint reached threshold
+var _search_moving_to_waypoint: bool = true  ## Moving (vs scanning)
+const SEARCH_WAYPOINT_SPACING: float = 75.0  ## Spacing between waypoints
+var _search_visited_zones: Dictionary = {}  ## Tracks visited positions (key=snapped pos, val=true)
+const SEARCH_ZONE_SNAP_SIZE: float = 50.0  ## Grid size for snapping positions to zones
+
 ## Distance threshold for "close" vs "far" from player.
 ## Used to determine if enemy can engage from current position or needs to pursue.
 const CLOSE_COMBAT_DISTANCE: float = 400.0
@@ -657,7 +538,7 @@ const INTEL_SHARE_RANGE_NO_LOS: float = 300.0
 var _intel_share_timer: float = 0.0
 const INTEL_SHARE_INTERVAL: float = 0.5  ## Share intel every 0.5 seconds
 
-## Timer for memory reset confusion effect (Issue #318). Blocks visibility and sounds after teleport.
+## Memory reset confusion timer (Issue #318): blocks visibility after teleport.
 var _memory_reset_confusion_timer: float = 0.0
 const MEMORY_RESET_CONFUSION_DURATION: float = 2.0  ## Extended to 2s for better player escape window
 
@@ -1543,6 +1424,8 @@ func _process_ai_state(delta: float) -> void:
 			_process_pursuing_state(delta)
 		AIState.ASSAULT:
 			_process_assault_state(delta)
+		AIState.SEARCHING:
+			_process_searching_state(delta)
 
 	if previous_state != _current_state:
 		state_changed.emit(_current_state)
@@ -1581,7 +1464,10 @@ func _process_idle_state(delta: float) -> void:
 		BehaviorMode.GUARD:
 			_process_guard(delta)
 
-## Process COMBAT state - combat cycling: exit cover -> shoot 2-3s -> return to cover.
+## Process COMBAT state - combat cycle: exit cover -> exposed shooting -> return to cover.
+## Phase 1 (approaching): Move toward player to get into direct contact range.
+## Phase 2 (exposed): Stand and shoot for 2-3 seconds.
+## Phase 3: Return to cover via SEEKING_COVER state.
 func _process_combat_state(delta: float) -> void:
 	# Track time in COMBAT state (for preventing rapid state thrashing)
 	_combat_state_timer += delta
@@ -2407,7 +2293,106 @@ func _process_assault_state(_delta: float) -> void:
 	_assault_ready = false
 	_transition_to_combat()
 
-## Shoot with inaccuracy spread for retreat mode. Enemy must be aimed within AIM_TOLERANCE_DOT.
+## Generate search waypoints in expanding square spiral (Issue #322). Skips visited zones.
+func _generate_search_waypoints() -> void:
+	_search_waypoints.clear()
+	_search_current_waypoint_index = 0
+	_search_direction = 0
+	_search_leg_length = SEARCH_WAYPOINT_SPACING
+	_search_legs_completed = 0
+	if not _is_zone_visited(_search_center):
+		_search_waypoints.append(_search_center)
+	var current_pos := _search_center
+	var waypoints_generated := _search_waypoints.size()
+	var iters := 0
+	while waypoints_generated < 20 and _search_leg_length <= _search_radius * 2 and iters < 100:
+		iters += 1
+		var offset := Vector2.ZERO
+		match _search_direction:
+			0: offset = Vector2(0, -_search_leg_length)
+			1: offset = Vector2(_search_leg_length, 0)
+			2: offset = Vector2(0, _search_leg_length)
+			3: offset = Vector2(-_search_leg_length, 0)
+		var next_pos := current_pos + offset
+		if _is_waypoint_navigable(next_pos) and not _is_zone_visited(next_pos):
+			_search_waypoints.append(next_pos)
+			waypoints_generated += 1
+		current_pos = next_pos
+		_search_legs_completed += 1
+		_search_direction = (_search_direction + 1) % 4
+		if _search_legs_completed % 2 == 0:
+			_search_leg_length += SEARCH_WAYPOINT_SPACING
+	_log_debug("Generated %d unvisited waypoints (radius=%.0f, visited=%d)" % [_search_waypoints.size(), _search_radius, _search_visited_zones.size()])
+
+## Check if position is navigable via NavigationServer2D.
+func _is_waypoint_navigable(pos: Vector2) -> bool:
+	var nav_map := get_world_2d().navigation_map
+	var closest := NavigationServer2D.map_get_closest_point(nav_map, pos)
+	return pos.distance_to(closest) < 50.0
+
+## Zone tracking helpers for visited areas (Issue #322): snaps to 50px grid.
+func _get_zone_key(pos: Vector2) -> String:
+	return "%d,%d" % [int(pos.x / SEARCH_ZONE_SNAP_SIZE) * int(SEARCH_ZONE_SNAP_SIZE), int(pos.y / SEARCH_ZONE_SNAP_SIZE) * int(SEARCH_ZONE_SNAP_SIZE)]
+func _is_zone_visited(pos: Vector2) -> bool: return _search_visited_zones.has(_get_zone_key(pos))
+func _mark_zone_visited(pos: Vector2) -> void:
+	var k := _get_zone_key(pos)
+	if not _search_visited_zones.has(k): _search_visited_zones[k] = true; _log_debug("SEARCHING: Marked zone %s as visited (total: %d)" % [k, _search_visited_zones.size()])
+
+## Process SEARCHING state - move through waypoints, scan at each (Issue #322).
+func _process_searching_state(delta: float) -> void:
+	_search_state_timer += delta
+	if _search_state_timer >= SEARCH_MAX_DURATION:
+		_log_to_file("SEARCHING timeout after %.1fs, returning to IDLE" % _search_state_timer)
+		_transition_to_idle()
+		return
+	if _can_see_player:
+		_log_to_file("SEARCHING: Player spotted! Transitioning to COMBAT")
+		_transition_to_combat()
+		return
+	if _search_current_waypoint_index >= _search_waypoints.size() or _search_waypoints.is_empty():
+		if _search_radius < SEARCH_MAX_RADIUS:
+			_search_radius += SEARCH_RADIUS_EXPANSION
+			_generate_search_waypoints()
+			_log_to_file("SEARCHING: Expand outer ring r=%.0f wps=%d" % [_search_radius, _search_waypoints.size()])
+			if _search_waypoints.is_empty() and _search_radius < SEARCH_MAX_RADIUS:
+				return
+		else:
+			_log_to_file("SEARCHING: Max radius, returning to IDLE")
+			_transition_to_idle()
+			return
+	if _search_waypoints.is_empty():
+		_transition_to_idle()
+		return
+	var target_waypoint := _search_waypoints[_search_current_waypoint_index]
+	var dist := global_position.distance_to(target_waypoint)
+	if _search_moving_to_waypoint:
+		if dist <= SEARCH_WAYPOINT_REACHED_DISTANCE:
+			_search_moving_to_waypoint = false
+			_search_scan_timer = 0.0
+			_log_debug("SEARCHING: Reached waypoint %d, scanning..." % _search_current_waypoint_index)
+		else:
+			_nav_agent.target_position = target_waypoint
+			if _nav_agent.is_navigation_finished():
+				_mark_zone_visited(target_waypoint)
+				_search_current_waypoint_index += 1
+				_search_moving_to_waypoint = true
+			else:
+				var next_pos := _nav_agent.get_next_path_position()
+				var dir := (next_pos - global_position).normalized()
+				velocity = dir * move_speed * 0.7
+				move_and_slide()
+				if dir.length() > 0.1:
+					rotation = lerp_angle(rotation, dir.angle(), 5.0 * delta)
+	else:
+		_search_scan_timer += delta
+		rotation += delta * 1.5
+		if _search_scan_timer >= SEARCH_SCAN_DURATION:
+			_mark_zone_visited(target_waypoint)
+			_search_current_waypoint_index += 1
+			_search_moving_to_waypoint = true
+			_log_debug("SEARCHING: Scan done, next wp %d" % _search_current_waypoint_index)
+
+## Shoot with reduced accuracy for retreat mode (bullets fly in barrel direction with spread).
 func _shoot_with_inaccuracy() -> void:
 	if bullet_scene == null or _player == null:
 		return
@@ -2707,6 +2692,16 @@ func _transition_to_assault() -> void:
 	_detection_delay_elapsed = false
 	# Find closest cover to player for assault position
 	_find_cover_closest_to_player()
+
+## Transition to SEARCHING state - methodical search around last known player position (Issue #322).
+func _transition_to_searching(center_position: Vector2) -> void:
+	_current_state = AIState.SEARCHING; _search_center = center_position; _search_radius = SEARCH_INITIAL_RADIUS
+	_search_state_timer = 0.0; _search_scan_timer = 0.0; _search_current_waypoint_index = 0
+	_search_direction = 0; _search_leg_length = SEARCH_WAYPOINT_SPACING; _search_legs_completed = 0
+	_search_moving_to_waypoint = true; _search_visited_zones.clear()
+	_generate_search_waypoints()
+	var msg := "SEARCHING started: center=%s, radius=%.0f, waypoints=%d" % [_search_center, _search_radius, _search_waypoints.size()]
+	_log_debug(msg); _log_to_file(msg)
 
 ## Transition to RETREATING state with appropriate retreat mode.
 func _transition_to_retreating() -> void:
@@ -3762,12 +3757,9 @@ func receive_intel_from_ally(ally_memory: EnemyMemory) -> void:
 		_log_debug("Received intel from ally: suspected pos=%s, conf=%.2f" % [
 			_memory.suspected_position, _memory.confidence
 		])
-		# Update legacy position for compatibility
 		_last_known_player_position = _memory.suspected_position
 
-
-## Reset enemy memory for last chance teleport effect (Issue #318). Preserves old position
-## with LOW confidence so enemies search there instead of immediately knowing player's new position.
+## Reset enemy memory for last chance teleport effect (Issue #318). Preserves old position.
 func reset_memory() -> void:
 	# Save old position before resetting - enemies will search here
 	var old_position := _memory.suspected_position if _memory != null and _memory.has_target() else Vector2.ZERO
@@ -3786,8 +3778,8 @@ func reset_memory() -> void:
 			_memory.confidence = 0.35
 			_memory.last_updated = Time.get_ticks_msec()
 		_last_known_player_position = old_position
-		_log_to_file("Search mode: %s -> PURSUING at %s" % [AIState.keys()[_current_state], old_position])
-		_transition_to_pursuing()
+		_log_to_file("Search mode: %s -> SEARCHING at %s" % [AIState.keys()[_current_state], old_position])
+		_transition_to_searching(old_position)
 	else:
 		if _memory != null:
 			_memory.reset()
@@ -3797,7 +3789,7 @@ func reset_memory() -> void:
 			_transition_to_idle()
 
 
-## Check if there is a clear line of sight to a position.
+## Check if there is a clear line of sight to a position (enemy-to-enemy comms).
 func _has_line_of_sight_to_position(target_pos: Vector2) -> bool:
 	if _raycast == null:
 		return false
@@ -3950,7 +3942,7 @@ func _play_delayed_shell_sound() -> void:
 	if audio_manager and audio_manager.has_method("play_shell_rifle"):
 		audio_manager.play_shell_rifle(global_position)
 
-## Spawns a bullet casing that gets ejected from the weapon.
+## Spawn bullet casing (based on BaseWeapon.cs for visual consistency with player).
 func _spawn_casing(shoot_direction: Vector2, weapon_forward: Vector2) -> void:
 	if casing_scene == null:
 		return
@@ -4579,6 +4571,8 @@ func _get_state_name(state: AIState) -> String:
 			return "PURSUING"
 		AIState.ASSAULT:
 			return "ASSAULT"
+		AIState.SEARCHING:
+			return "SEARCHING"
 		_:
 			return "UNKNOWN"
 
