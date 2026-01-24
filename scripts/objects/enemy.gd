@@ -1023,33 +1023,39 @@ func _update_goap_state() -> void:
 		_goap_world_state["confidence_medium"] = _memory.is_medium_confidence()
 		_goap_world_state["confidence_low"] = _memory.is_low_confidence()
 
-## Updates model rotation. Instant for combat/movement, smooth only for idle scanning.
+## Updates model rotation. Now always uses smooth rotation for all states (Issue #347).
 func _update_enemy_model_rotation() -> void:
 	if not _enemy_model:
 		return
 	var target_angle: float
-	var use_smooth_rotation := false
+	var has_target := false
+
 	if _player != null and _can_see_player:
 		target_angle = (_player.global_position - global_position).normalized().angle()
+		has_target = true
 	elif velocity.length_squared() > 1.0:
 		target_angle = velocity.normalized().angle()
+		has_target = true
 	elif _current_state == AIState.IDLE and _idle_scan_targets.size() > 0:
 		target_angle = _idle_scan_targets[_idle_scan_target_index]
-		use_smooth_rotation = true
-	else:
+		has_target = true
+
+	if not has_target:
 		return
-	if use_smooth_rotation:
-		var delta := get_physics_process_delta_time()
-		var current_rot := _enemy_model.global_rotation
-		var angle_diff := wrapf(target_angle - current_rot, -PI, PI)
-		if abs(angle_diff) <= MODEL_ROTATION_SPEED * delta:
-			_enemy_model.global_rotation = target_angle
-		elif angle_diff > 0:
-			_enemy_model.global_rotation = current_rot + MODEL_ROTATION_SPEED * delta
-		else:
-			_enemy_model.global_rotation = current_rot - MODEL_ROTATION_SPEED * delta
-	else:
+
+	# Always use smooth rotation for visual polish (Issue #347)
+	var delta := get_physics_process_delta_time()
+	var current_rot := _enemy_model.global_rotation
+	var angle_diff := wrapf(target_angle - current_rot, -PI, PI)
+
+	if abs(angle_diff) <= MODEL_ROTATION_SPEED * delta:
 		_enemy_model.global_rotation = target_angle
+	elif angle_diff > 0:
+		_enemy_model.global_rotation = current_rot + MODEL_ROTATION_SPEED * delta
+	else:
+		_enemy_model.global_rotation = current_rot - MODEL_ROTATION_SPEED * delta
+
+	# Update facing direction and scale
 	var aiming_left := absf(_enemy_model.global_rotation) > PI / 2
 	_model_facing_left = aiming_left
 	if aiming_left:
