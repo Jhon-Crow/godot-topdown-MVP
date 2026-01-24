@@ -94,6 +94,16 @@ var _activation_sound_played: bool = false
 ## Track previous velocity for landing detection.
 var _previous_velocity: Vector2 = Vector2.ZERO
 
+## Instance ID of the thrower (enemy who threw this grenade), used to ignore initial collisions.
+## Set via metadata "thrower_id" when spawned by enemy grenade thrower.
+var _thrower_id: int = 0
+
+## Time since grenade was thrown - used to ignore thrower collisions for a brief period.
+var _time_since_thrown: float = 0.0
+
+## Duration to ignore collisions with thrower after throw (in seconds).
+const THROWER_IGNORE_DURATION: float = 0.5
+
 ## Signal emitted when the grenade explodes.
 signal exploded(position: Vector2, grenade: GrenadeBase)
 
@@ -133,12 +143,20 @@ func _ready() -> void:
 	# Connect to body entered for bounce effects
 	body_entered.connect(_on_body_entered)
 
+	# Load thrower ID from metadata (set by GrenadeThrowerComponent for enemy throws)
+	if has_meta("thrower_id"):
+		_thrower_id = get_meta("thrower_id")
+
 	FileLogger.info("[GrenadeBase] Grenade created at %s (frozen)" % str(global_position))
 
 
 func _physics_process(delta: float) -> void:
 	if _has_exploded:
 		return
+
+	# Track time since thrown (for thrower collision ignore)
+	if _timer_active:
+		_time_since_thrown += delta
 
 	# Apply ground friction to slow down
 	if linear_velocity.length() > 0:
@@ -327,6 +345,21 @@ func _update_blink_effect(delta: float) -> void:
 			_sprite.modulate = Color(1.0, 1.0, 1.0, 1.0)  # Normal
 
 
+## Check if a body is the thrower (should be ignored for initial collisions).
+func _is_thrower(body: Node) -> bool:
+	if _thrower_id == 0:
+		return false
+	return body.get_instance_id() == _thrower_id
+
+
+## Check if we should ignore collision with this body (thrower during ignore period).
+func _should_ignore_collision(body: Node) -> bool:
+	# Only ignore thrower collisions during the ignore window
+	if _is_thrower(body) and _time_since_thrown < THROWER_IGNORE_DURATION:
+		return true
+	return false
+
+
 ## Handle collision with bodies (bounce off walls).
 func _on_body_entered(body: Node) -> void:
 	# Log collision for debugging
@@ -339,6 +372,11 @@ func _on_body_entered(body: Node) -> void:
 		body_type = "CharacterBody2D"
 	elif body is RigidBody2D:
 		body_type = "RigidBody2D"
+
+	# Check if this is the thrower and we should ignore this collision
+	if _should_ignore_collision(body):
+		FileLogger.info("[GrenadeBase] Ignoring collision with thrower %s (within %.2fs ignore window)" % [body.name, THROWER_IGNORE_DURATION])
+		return
 
 	FileLogger.info("[GrenadeBase] Collision detected with %s (type: %s)" % [body.name, body_type])
 

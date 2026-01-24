@@ -1,0 +1,49 @@
+{
+  "number": 274,
+  "title": "[WIP] добавь врагам возможность тактически кидать гранаты",
+  "author": "konard",
+  "state": "OPEN",
+  "isDraft": true,
+  "createdAt": "2026-01-22T21:31:14Z",
+  "updatedAt": "2026-01-23T20:28:46Z",
+  "branch": "issue-273-56e967c72775",
+  "baseBranch": "main",
+  "url": "https://github.com/Jhon-Crow/godot-topdown-MVP/pull/274",
+  "commits": [
+    {
+      "sha": "2da8346955eeb77d4fc058ec023ea8fc3ece50fb",
+      "date": "2026-01-22T21:31:05Z",
+      "message": "Initial commit with task details",
+      "messageBody": "Adding CLAUDE.md with task information for AI processing. This file will be removed when the task is complete. Issue: https://github.com/Jhon-Crow/godot-topdown-MVP/issues/273"
+    },
+    {
+      "sha": "af5d7a0532be27fe617478e285ef160771d71148",
+      "date": "2026-01-22T21:31:36Z",
+      "message": "Revert \"Initial commit with task details\"",
+      "messageBody": "This reverts commit 2da8346955eeb77d4fc058ec023ea8fc3ece50fb."
+    }
+  ],
+  "comments": [
+    {
+      "id": 3786781872,
+      "author": "konard",
+      "createdAt": "2026-01-22T21:31:36Z",
+      "type": "usage_limit_reached",
+      "summary": "AI work session was interrupted due to Claude usage limit being reached. Session ID: e972cdf1-0fd6-431c-90c2-74e00d8e00f4. Limit reset time: Jan 27, 10:00 AM."
+    },
+    {
+      "id": 3792259858,
+      "author": "Jhon-Crow",
+      "createdAt": "2026-01-23T20:28:09Z",
+      "type": "user_request",
+      "content": "не продолжилось после https://github.com/Jhon-Crow/godot-topdown-MVP/pull/274#issuecomment-3786781872\n\nPlease download all logs and data related about the issue to this repository, make sure we compile that data to `./docs/case-studies/issue-{id}` folder, and use it to do deep case study analysis (also make sure to search online for additional facts and data), in which we will reconstruct timeline/sequence of events, find root causes of the problem, and propose possible solutions."
+    },
+    {
+      "id": 3792262216,
+      "author": "konard",
+      "createdAt": "2026-01-23T20:28:45Z",
+      "type": "ai_session_started",
+      "content": "AI Work Session Started - automated work session at 2026-01-23T20:28:44.875Z"
+    }
+  ]
+}
