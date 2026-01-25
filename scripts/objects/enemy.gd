@@ -904,6 +904,9 @@ func _physics_process(delta: float) -> void:
 
 	move_and_slide()
 
+	# Push any casings we collided with (Issue #341)
+	_push_casings()
+
 ## Update GOAP world state based on current conditions.
 func _update_goap_state() -> void:
 	_goap_world_state["player_visible"] = _can_see_player
@@ -1051,6 +1054,21 @@ func _update_walk_animation(delta: float) -> void:
 			_left_arm_sprite.position = _left_arm_sprite.position.lerp(_base_left_arm_pos, lerp_speed)
 		if _right_arm_sprite:
 			_right_arm_sprite.position = _right_arm_sprite.position.lerp(_base_right_arm_pos, lerp_speed)
+
+## Push casings that we collided with after move_and_slide() (Issue #341).
+## Force to apply to casings when pushed by characters.
+const CASING_PUSH_FORCE: float = 50.0
+
+func _push_casings() -> void:
+	for i in get_slide_collision_count():
+		var collision := get_slide_collision(i)
+		var collider := collision.get_collider()
+		# Check if collider is a RigidBody2D with receive_kick method (casing)
+		if collider is RigidBody2D and collider.has_method("receive_kick"):
+			var push_dir := -collision.get_normal()
+			var push_strength := velocity.length() * CASING_PUSH_FORCE / 100.0
+			collider.receive_kick(push_dir * push_strength)
+
 
 ## Update suppression state.
 func _update_suppression(delta: float) -> void:
@@ -2257,6 +2275,7 @@ func _process_searching_state(delta: float) -> void:
 				var dir := (next_pos - global_position).normalized()
 				velocity = dir * move_speed * 0.7
 				move_and_slide()
+				_push_casings()  # Issue #341: Push casings after movement
 
 				# Issue #354: Stuck detection - check if making progress toward waypoint
 				var progress := global_position.distance_to(_search_last_progress_position)

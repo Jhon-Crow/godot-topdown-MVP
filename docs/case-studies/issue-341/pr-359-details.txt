@@ -1,0 +1,63 @@
+title:	feat: implement interactive shell casings with kick physics and sounds (Issue #341)
+state:	DRAFT
+author:	konard
+labels:	
+assignees:	
+reviewers:	
+projects:	
+milestone:	
+number:	359
+url:	https://github.com/Jhon-Crow/godot-topdown-MVP/pull/359
+additions:	1324
+deletions:	20
+auto-merge:	disabled
+--
+## Summary
+
+Shell casings on the floor can now be kicked by players and enemies walking through them. This adds a new layer of immersion and environmental interactivity to the game.
+
+- Add Area2D-based kick detection for casings
+- Casings receive impulse based on character walking velocity
+- Realistic physics with bounce, friction, and angular momentum
+- Sound effects play when casings are kicked with sufficient force
+- Casings can be re-kicked after landing (infinite interactivity)
+- Time freeze correctly prevents kicks during bullet-time effects
+
+## Test plan
+
+- [x] Add unit tests for kick detection logic
+- [x] Add unit tests for sound playback threshold
+- [x] Add unit tests for sound cooldown
+- [x] Add unit tests for time freeze interaction
+- [ ] Manual testing: walk player through casings
+- [ ] Manual testing: walk enemies through casings
+- [ ] Manual testing: verify sounds play at appropriate velocity
+- [ ] Manual testing: verify bullet-time freezes casings correctly
+
+## Technical Details
+
+### Collision Layer Configuration
+- Added new collision layer 7: `interactive_items`
+- Casing collision_layer: 64 (layer 7)
+- Casing collision_mask: 7 (layers 1-3 for player, enemies, obstacles)
+- KickDetector Area2D mask: 3 (layers 1-2 for player and enemies)
+
+### Physics Parameters
+- Kick force multiplier: 0.5 (50% of character velocity)
+- Direction randomness: ±17 degrees for natural scatter
+- Angular velocity: -10 to +10 rad/s for tumbling
+- PhysicsMaterial2D: bounce=0.35, friction=0.55
+
+### Sound System
+- Velocity threshold: 75 px/s (no sound for gentle kicks)
+- Sound cooldown: 0.1 seconds (prevents audio spam)
+- Uses existing AudioManager shell casing sounds
+- Caliber-based sound selection (rifle/pistol/shotgun)
+
+## References
+
+- Fixes #341
+- [KidsCanCode - Character to Rigid Body Interaction](https://kidscancode.org/godot_recipes/4.x/physics/character_vs_rigid/index.html)
+- [Catlike Coding - Movable Objects in Top-Down 2D](https://catlikecoding.com/godot/true-top-down-2d/3-movable-objects/)
+
+🤖 Generated with [Claude Code](https://claude.ai/claude-code)
