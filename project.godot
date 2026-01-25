@@ -25,6 +25,7 @@ LastChanceEffectsManager="*res://scripts/autoload/last_chance_effects_manager.gd
 StatusEffectsManager="*res://scripts/autoload/status_effects_manager.gd"
 GrenadeManager="*res://scripts/autoload/grenade_manager.gd"
 ExperimentalSettings="*res://scripts/autoload/experimental_settings.gd"
+RagdollManager="*res://scripts/autoload/ragdoll_manager.gd"
 
 [application]
 

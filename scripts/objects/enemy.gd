@@ -125,6 +125,9 @@ enum BehaviorMode {
 ## Enable/disable lead prediction (shooting ahead of moving targets).
 @export var enable_lead_prediction: bool = true
 
+## Disable shooting for testing purposes (enemies will still be hittable).
+@export var disable_shooting: bool = false
+
 ## Bullet speed for lead prediction (2500 for AR).
 @export var bullet_speed: float = 2500.0
 
@@ -538,13 +541,11 @@ var _is_blinded: bool = false
 ## Whether the enemy is currently stunned (cannot move or act).
 var _is_stunned: bool = false
 
-## Last hit direction (used for death animation).
+## Last hit direction and weapon type (used for death animation).
 var _last_hit_direction: Vector2 = Vector2.RIGHT
-
-## Death animation component reference.
+var _last_weapon_type: String = "rifle"
+## Death animation component reference (DeathAnimationComponent is available via class_name).
 var _death_animation: Node = null
-
-## Note: DeathAnimationComponent is available via class_name declaration.
 
 func _ready() -> void:
 	# Add to enemies group for grenade targeting
@@ -1193,23 +1194,16 @@ func _finish_reload() -> void:
 
 ## Check if the enemy can shoot (has ammo and not reloading).
 func _can_shoot() -> bool:
-	# Can't shoot if reloading
-	if _is_reloading:
+	if disable_shooting or _is_reloading:
 		return false
-
-	# Can't shoot if no ammo in magazine
 	if _current_ammo <= 0:
-		# Try to start reload if we have reserve ammo
 		if _reserve_ammo > 0:
 			_start_reload()
-		else:
-			# No ammo at all - emit depleted signal once
-			if not _goap_world_state.get("ammo_depleted", false):
-				_goap_world_state["ammo_depleted"] = true
-				ammo_depleted.emit()
-				_log_debug("All ammunition depleted!")
+		elif not _goap_world_state.get("ammo_depleted", false):
+			_goap_world_state["ammo_depleted"] = true
+			ammo_depleted.emit()
+			_log_debug("All ammunition depleted!")
 		return false
-
 	return true
 
 ## Process the AI state machine.
@@ -4191,6 +4185,10 @@ func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has
 		_force_model_to_face_direction(attacker_direction)
 		_log_debug("Hit reaction: turning toward attacker (direction: %s)" % attacker_direction)
 
+	# Determine weapon type from caliber data for death animation variation
+	if caliber_data and caliber_data.has("name"):
+		_last_weapon_type = {"9x19": "pistol", "545x39": "rifle", "buckshot": "shotgun"}.get(caliber_data.name, "rifle")
+
 	# Track hits for retreat behavior
 	_hits_taken_in_encounter += 1
 	_log_debug("Hit taken! Total hits in encounter: %d" % _hits_taken_in_encounter)
@@ -4398,10 +4396,10 @@ func _on_death() -> void:
 	# Unregister from sound propagation when dying
 	_unregister_sound_listener()
 
-	# Start death animation with the hit direction
+	# Start death animation with the hit direction and weapon type
 	if _death_animation and _death_animation.has_method("start_death_animation"):
-		_death_animation.start_death_animation(_last_hit_direction)
-		_log_to_file("Death animation started with hit direction: %s" % str(_last_hit_direction))
+		_death_animation.start_death_animation(_last_hit_direction, _last_weapon_type)
+		_log_to_file("Death animation started with hit direction: %s, weapon: %s" % [str(_last_hit_direction), _last_weapon_type])
 
 	if destroy_on_death:
 		# Wait for death animation to complete before destroying
@@ -4417,8 +4415,9 @@ func _on_death() -> void:
 ## Resets the enemy to its initial state.
 func _reset() -> void:
 	# Reset death animation first (restores sprites to character model)
+	# Don't force cleanup to allow bodies to persist for testing/debugging
 	if _death_animation and _death_animation.has_method("reset"):
-		_death_animation.reset()
+		_death_animation.reset(false)
 
 	global_position = _initial_position
 	rotation = 0.0
@@ -4540,13 +4539,14 @@ func _init_death_animation() -> void:
 	_death_animation.name = "DeathAnimation"
 	add_child(_death_animation)
 
-	# Initialize with sprite references
+	# Initialize with sprite references (including weapon sprite for persistence)
 	_death_animation.initialize(
 		_body_sprite,
 		_head_sprite,
 		_left_arm_sprite,
 		_right_arm_sprite,
-		_enemy_model
+		_enemy_model,
+		_weapon_sprite
 	)
 
 	# Connect signals

@@ -76,7 +76,7 @@ func _input(event: InputEvent) -> void:
 	# Handle quick restart with Q key
 	if event is InputEventKey:
 		if event.pressed and event.physical_keycode == KEY_Q:
-			restart_scene()
+			quick_restart()
 		# Handle invincibility toggle with F6 key (works in exported builds)
 		elif event.pressed and event.physical_keycode == KEY_F6:
 			toggle_invincibility()
@@ -129,9 +129,29 @@ func on_player_death() -> void:
 
 
 ## Restarts the current scene.
+## Bodies and persistent effects will remain (used for player death restart).
 func restart_scene() -> void:
 	_reset_stats()
 	get_tree().reload_current_scene()
+
+
+## Quick restart - clears all persistent ragdolls, blood, and effects.
+## Called when player manually restarts with Q key.
+func quick_restart() -> void:
+	_log_to_file("Quick restart initiated - clearing all persistent effects")
+
+	# Clear all ragdoll bodies (dead corpses)
+	var ragdoll_manager: Node = get_node_or_null("/root/RagdollManager")
+	if ragdoll_manager and ragdoll_manager.has_method("clear_all_ragdolls"):
+		ragdoll_manager.clear_all_ragdolls()
+
+	# Clear all blood decals, bullet holes, and penetration holes
+	var impact_effects: Node = get_node_or_null("/root/ImpactEffectsManager")
+	if impact_effects and impact_effects.has_method("clear_all_persistent_effects"):
+		impact_effects.clear_all_persistent_effects()
+
+	# Now restart the scene normally
+	restart_scene()
 
 
 ## Sets the player reference.

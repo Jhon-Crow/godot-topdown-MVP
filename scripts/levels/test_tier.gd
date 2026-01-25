@@ -63,6 +63,9 @@ func _ready() -> void:
 	# Find and connect to all enemies
 	_setup_enemy_tracking()
 
+	# Add test enemies for death animation testing
+	_add_test_enemies()
+
 	# Find the enemy count label
 	_enemy_count_label = get_node_or_null("CanvasLayer/UI/EnemyCountLabel")
 	_update_enemy_count_label()
@@ -217,6 +220,57 @@ func _setup_enemy_tracking() -> void:
 	_initial_enemy_count = enemies.size()
 	_current_enemy_count = _initial_enemy_count
 	print("Tracking %d enemies" % _initial_enemy_count)
+
+
+## Add non-attacking test enemies for death animation testing.
+func _add_test_enemies() -> void:
+	var enemies_node := get_node_or_null("Environment/Enemies")
+	if enemies_node == null:
+		return
+
+	# Load enemy scene
+	var enemy_scene = load("res://scenes/objects/Enemy.tscn")
+	if enemy_scene == null:
+		push_error("Failed to load enemy scene for test enemies")
+		return
+
+	# Define test positions and animation speeds
+	# Index 0: Real-time fall (animation_speed = 1.0)
+	# Index 1: Slow-motion fall (animation_speed = 0.1)
+	var test_positions = [
+		Vector2(500, 500),  # Real-time test enemy
+		Vector2(600, 500)   # Slow-motion test enemy
+	]
+	var animation_speeds = [1.0, 0.1]
+
+	for i in range(test_positions.size()):
+		var test_enemy = enemy_scene.instantiate()
+		test_enemy.name = "TestEnemy%d" % (i + 1)
+		test_enemy.position = test_positions[i]
+		test_enemy.behavior_mode = test_enemy.BehaviorMode.GUARD  # Don't move or attack
+		test_enemy.disable_shooting = true  # Don't shoot
+		test_enemy.destroy_on_death = false  # Don't destroy, keep body for testing
+		test_enemy.respawn_delay = 999999.0  # Effectively disable respawn for testing
+
+		# Add to scene tree first (this triggers _ready() which creates DeathAnimation)
+		enemies_node.add_child(test_enemy)
+
+		# Now set animation speed (DeathAnimation exists after _ready())
+		var death_anim = test_enemy.get_node_or_null("DeathAnimation")
+		if death_anim:
+			death_anim.animation_speed = animation_speeds[i]
+
+		# Connect signals
+		if test_enemy.has_signal("died"):
+			test_enemy.died.connect(_on_enemy_died)
+		if test_enemy.has_signal("hit"):
+			test_enemy.hit.connect(_on_enemy_hit)
+
+		# Update counts
+		_initial_enemy_count += 1
+		_current_enemy_count += 1
+
+	print("Added %d test enemies for death animation testing" % test_positions.size())
 
 
 ## Setup debug UI elements for kills and accuracy.

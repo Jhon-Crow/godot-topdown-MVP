@@ -1,0 +1,29 @@
+title:	[WIP] отладить анимации смерти
+state:	DRAFT
+author:	konard
+labels:	
+assignees:	
+reviewers:	
+projects:	
+milestone:	
+number:	272
+url:	https://github.com/Jhon-Crow/godot-topdown-MVP/pull/272
+additions:	0
+deletions:	0
+auto-merge:	disabled
+--
+## 🤖 AI-Powered Solution Draft
+
+This pull request is being automatically generated to solve issue Jhon-Crow/godot-topdown-MVP#267.
+
+### 📋 Issue Reference
+Fixes Jhon-Crow/godot-topdown-MVP#267
+
+### 🚧 Status
+**Work in Progress** - The AI assistant is currently analyzing and implementing the solution draft.
+
+### 📝 Implementation Details
+_Details will be added as the solution draft is developed..._
+
+---
+*This PR was created automatically by the AI issue solver*
