@@ -896,19 +896,13 @@ func _update_goap_state() -> void:
 		_goap_world_state["confidence_medium"] = _memory.is_medium_confidence()
 		_goap_world_state["confidence_low"] = _memory.is_low_confidence()
 
-## Updates model rotation smoothly (#347). Priority: player > flank target > corner check > velocity > idle scan.
-## Issue #386: FLANKING state now prioritizes facing the player over corner checks.
+## Updates model rotation smoothly (#347). Priority: player > flank > corner check > velocity > idle scan
 func _update_enemy_model_rotation() -> void:
-	if not _enemy_model:
-		return
+	if not _enemy_model: return
 	var target_angle: float
 	var has_target := false
-	if _player != null and _can_see_player:
-		target_angle = (_player.global_position - global_position).normalized().angle()
-		has_target = true
-	# Issue #386: During FLANKING, face the player (even if not visible) instead of corner check.
-	# This prevents the enemy from facing backwards/sideways while flanking.
-	elif _current_state == AIState.FLANKING and _player != null:
+	# Face player if visible, or during FLANKING (Issue #386: prevents facing backwards while flanking)
+	if _player != null and (_can_see_player or _current_state == AIState.FLANKING):
 		target_angle = (_player.global_position - global_position).normalized().angle()
 		has_target = true
 	elif _corner_check_timer > 0:
