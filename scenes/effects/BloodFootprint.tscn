@@ -1,0 +1,21 @@
+[gd_scene load_steps=3 format=3 uid="uid://blood_footprint_scene"]
+
+[ext_resource type="Script" path="res://scripts/effects/blood_footprint.gd" id="1_blood_footprint"]
+
+[sub_resource type="Gradient" id="Gradient_footprint"]
+offsets = PackedFloat32Array(0, 0.4, 0.7, 1)
+colors = PackedColorArray(0.5, 0.02, 0.02, 1.0, 0.5, 0.02, 0.02, 0.9, 0.5, 0.02, 0.02, 0.5, 0.5, 0.02, 0.02, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_footprint"]
+gradient = SubResource("Gradient_footprint")
+width = 12
+height = 18
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(1.0, 0.5)
+
+[node name="BloodFootprint" type="Sprite2D"]
+z_index = -1
+modulate = Color(1, 1, 1, 0.8)
+texture = SubResource("GradientTexture2D_footprint")
+script = ExtResource("1_blood_footprint")
