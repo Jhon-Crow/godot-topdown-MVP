@@ -223,8 +223,9 @@ var _is_waiting_at_patrol_point: bool = false
 var _patrol_wait_timer: float = 0.0
 var _corner_check_angle: float = 0.0  ## Angle to look toward when checking a corner
 var _corner_check_timer: float = 0.0  ## Timer for corner check duration
-const CORNER_CHECK_DURATION: float = 0.3  ## How long to look at a corner (seconds)
+const CORNER_CHECK_DURATION: float = 0.3  ## How long to look at a corner (seconds) - Issue #357: reverted to 0.3
 const CORNER_CHECK_DISTANCE: float = 150.0  ## Max distance to detect openings
+const CORNER_CHECK_TACTICAL_ANGLE_THRESHOLD: float = deg_to_rad(30.0)  ## Issue #357: Min angle diff to trigger tactical corner check
 var _initial_position: Vector2
 var _can_see_player: bool = false  ## Can see player
 var _current_state: AIState = AIState.IDLE  ## AI state
@@ -496,12 +497,7 @@ var _last_known_player_position: Vector2 = Vector2.ZERO
 ## Pursuing vulnerability sound (reload/empty click) without line of sight.
 var _pursuing_vulnerability_sound: bool = false
 
-## --- Enemy Memory System (Issue #297) ---
-## Tracks suspected player position with confidence (0.0=none, 1.0=visual contact).
-## The memory influences AI behavior:
-## - High confidence (>0.8): Direct pursuit to suspected position
-## - Medium confidence (0.5-0.8): Cautious approach with cover checks
-## - Low confidence (<0.5): Return to patrol/guard behavior
+## Enemy Memory (Issue #297): tracks suspected player pos with confidence (0-1).
 var _memory: EnemyMemory = null
 
 ## Confidence values for different detection sources.
@@ -1036,17 +1032,7 @@ func _update_enemy_model_rotation() -> void:
 	else:
 		_enemy_model.scale = Vector2(enemy_model_scale, enemy_model_scale)
 
-## Forces the enemy model to face a specific direction immediately.
-## Used for priority attacks where we need to aim and shoot in the same frame.
-##
-## Unlike _update_enemy_model_rotation(), this function:
-## 1. Takes a specific direction to face (doesn't derive it from player position)
-## 2. Is called immediately before shooting in priority attack code
-##
-## This ensures the weapon sprite's transform matches the intended aim direction
-## so that _get_weapon_forward_direction() returns the correct vector for aim checks.
-##
-## @param direction: The direction to face (normalized).
+## Force model to face direction immediately for priority attacks (ensures weapon aim is correct).
 func _force_model_to_face_direction(direction: Vector2) -> void:
 	if not _enemy_model:
 		return
@@ -2747,16 +2733,11 @@ func _transition_to_retreating() -> void:
 	# Find cover position for retreating
 	_find_cover_position()
 
-## Check if the enemy is visible from the player's position.
-## Uses raycasting from player to enemy to determine if there are obstacles blocking line of sight.
-## This is the inverse of _can_see_player - it checks if the PLAYER can see the ENEMY.
-## Checks multiple points on the enemy body (center and corners) to account for enemy size.
+## Check if the player can see this enemy (inverse of _can_see_player).
 func _is_visible_from_player() -> bool:
 	if _player == null:
 		return false
 
-	# Check visibility to multiple points on the enemy body
-	# This accounts for the enemy's size - corners can stick out from cover
 	var check_points := _get_enemy_check_points(global_position)
 
 	for point in check_points:
@@ -2912,6 +2893,16 @@ func _is_player_point_visible_to_enemy(point: Vector2) -> bool:
 		return false
 
 	return true
+
+## Issue #357: Check if player has clear LOS (ignoring FOV) and is within range.
+## Used to cancel corner checks when the enemy should turn to face the player.
+func _has_clear_los_to_player() -> bool:
+	if _player == null:
+		return false
+	var dist := global_position.distance_to(_player.global_position)
+	if detection_range > 0 and dist > detection_range:
+		return false
+	return _is_player_point_visible_to_enemy(_player.global_position)
 
 ## Calculate what fraction of the player's body is visible to the enemy.
 ## Returns a value from 0.0 (completely hidden) to 1.0 (fully visible).
@@ -3680,9 +3671,14 @@ func _check_player_visibility() -> void:
 		return
 
 	# Check FOV angle (if FOV is enabled via ExperimentalSettings)
+	# Issue #357: If corner check is active but player has clear LOS, cancel corner check
+	# so the enemy turns toward the player instead of continuing to look at the corner
 	if not _is_position_in_fov(_player.global_position):
-		_continuous_visibility_timer = 0.0
-		return
+		if _corner_check_timer > 0 and _has_clear_los_to_player():
+			_corner_check_timer = 0.0  # Cancel corner check - player takes priority
+		else:
+			_continuous_visibility_timer = 0.0
+			return
 
 	# Check multiple points on the player's body (center + corners) to handle
 	# cases where player is near a wall corner. A single raycast to the center
@@ -3699,14 +3695,17 @@ func _check_player_visibility() -> void:
 			_can_see_player = true
 			# Continue checking to calculate visibility ratio
 
-	# Calculate visibility ratio based on how many points are visible
 	if _can_see_player:
 		_player_visibility_ratio = float(visible_count) / float(check_points.size())
 		_continuous_visibility_timer += get_physics_process_delta_time()
 	else:
-		# Lost line of sight - reset the timer and visibility ratio
 		_continuous_visibility_timer = 0.0
 		_player_visibility_ratio = 0.0
+		# Issue #357: Hold aim toward threat when losing sight in tactical states
+		if was_visible and _player and _current_state in [AIState.COMBAT, AIState.PURSUING, AIState.FLANKING, AIState.SEARCHING]:
+			_corner_check_angle = (_player.global_position - global_position).normalized().angle()
+			_corner_check_timer = CORNER_CHECK_DURATION
+			_log_to_file("Lost sight in %s: holding aim (%.1f°)" % [AIState.keys()[_current_state], rad_to_deg(_corner_check_angle)])
 
 ## Update enemy memory: visual detection, decay, and periodic intel sharing (Issue #297).
 func _update_memory(delta: float) -> void:
@@ -4100,11 +4099,33 @@ func _detect_perpendicular_opening(move_dir: Vector2) -> bool:
 			return true
 	return false
 
-## Handle corner checking during movement (Issue #332). Issue #347: smooth rotation.
+## Issue #357: Detect tactical opening toward target, then fall back to perpendicular.
+func _detect_tactical_opening(move_dir: Vector2, target_pos: Vector2) -> bool:
+	var dir_to_target := (target_pos - global_position).normalized()
+	var facing := _enemy_model.global_rotation if _enemy_model else rotation
+	var target_ang := dir_to_target.angle()
+	var diff_move := absf(wrapf(target_ang - move_dir.angle(), -PI, PI))
+	var diff_facing := absf(wrapf(target_ang - facing, -PI, PI))
+	if diff_move > CORNER_CHECK_TACTICAL_ANGLE_THRESHOLD and diff_facing > deg_to_rad(15.0):
+		var q := PhysicsRayQueryParameters2D.create(global_position, global_position + dir_to_target * CORNER_CHECK_DISTANCE)
+		q.collision_mask = 0b100
+		q.exclude = [self]
+		if get_world_2d().direct_space_state.intersect_ray(q).is_empty():
+			_corner_check_angle = target_ang
+			return true
+	return _detect_perpendicular_opening(move_dir)
+
+## Handle corner checking during movement (#332, #347, #357: tactical states look toward target).
 func _process_corner_check(delta: float, move_dir: Vector2, state_name: String) -> void:
 	if _corner_check_timer > 0:
-		_corner_check_timer -= delta  # #347: rotation via _update_enemy_model_rotation()
-	elif _detect_perpendicular_opening(move_dir):
+		_corner_check_timer -= delta
+		return
+	var detected := false
+	if state_name in ["PURSUING", "PURSUING_MEMORY", "FLANKING", "SEARCHING"] and _memory and _memory.has_target():
+		detected = _detect_tactical_opening(move_dir, _memory.suspected_position)
+	else:
+		detected = _detect_perpendicular_opening(move_dir)
+	if detected:
 		_corner_check_timer = CORNER_CHECK_DURATION
 		_log_to_file("%s corner check: angle %.1f°" % [state_name, rad_to_deg(_corner_check_angle)])
 
@@ -4955,45 +4976,25 @@ func _get_nav_path_distance(target_pos: Vector2) -> float:
 	_nav_agent.target_position = target_pos
 	return _nav_agent.distance_to_target()
 
-# ============================================================================
 # Status Effects (Blindness, Stun)
-# ============================================================================
-
-## Set the blinded state (from flashbang grenade).
-## When blinded, the enemy cannot see the player.
 func set_blinded(blinded: bool) -> void:
-	var was_blinded := _is_blinded
+	var was := _is_blinded
 	_is_blinded = blinded
-
-	if blinded and not was_blinded:
-		_log_debug("Enemy is now BLINDED - cannot see player")
+	if blinded and not was:
 		_log_to_file("Status effect: BLINDED applied")
-		# Force lose sight of player
 		_can_see_player = false
 		_continuous_visibility_timer = 0.0
-	elif not blinded and was_blinded:
-		_log_debug("Enemy is no longer blinded")
+	elif not blinded and was:
 		_log_to_file("Status effect: BLINDED removed")
 
-## Set the stunned state (from flashbang grenade).
-## When stunned, the enemy cannot move or take actions.
 func set_stunned(stunned: bool) -> void:
-	var was_stunned := _is_stunned
+	var was := _is_stunned
 	_is_stunned = stunned
-
-	if stunned and not was_stunned:
-		_log_debug("Enemy is now STUNNED - cannot move")
+	if stunned and not was:
 		_log_to_file("Status effect: STUNNED applied")
-		# Stop all movement
 		velocity = Vector2.ZERO
-	elif not stunned and was_stunned:
-		_log_debug("Enemy is no longer stunned")
+	elif not stunned and was:
 		_log_to_file("Status effect: STUNNED removed")
 
-## Check if the enemy is currently blinded.
-func is_blinded() -> bool:
-	return _is_blinded
-
-## Check if the enemy is currently stunned.
-func is_stunned() -> bool:
-	return _is_stunned
+func is_blinded() -> bool: return _is_blinded
+func is_stunned() -> bool: return _is_stunned
