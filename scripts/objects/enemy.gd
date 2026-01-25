@@ -634,6 +634,9 @@ var _fire_zone_total_duration: float = 0.0
 ## Whether fire zone tracking is active (Trigger 5).
 var _fire_zone_valid: bool = false
 
+## Timer tracking how long player has been hidden with high suspicion (Trigger 7, Issue #379).
+var _high_suspicion_hidden_timer: float = 0.0
+
 ## Constants for grenade trigger conditions.
 const GRENADE_HIDDEN_THRESHOLD: float = 6.0  ## Seconds player must be hidden (Trigger 1)
 const GRENADE_PURSUIT_SPEED_THRESHOLD: float = 50.0  ## Player approach speed (Trigger 2)
@@ -644,6 +647,7 @@ const GRENADE_SUSTAINED_FIRE_THRESHOLD: float = 10.0  ## Seconds of sustained fi
 const GRENADE_FIRE_GAP_TOLERANCE: float = 2.0  ## Max gap between shots (Trigger 5)
 const GRENADE_VIEWPORT_ZONE_FRACTION: float = 6.0  ## Zone is 1/6 of viewport (Trigger 5)
 const GRENADE_DESPERATION_HEALTH_THRESHOLD: int = 1  ## HP threshold (Trigger 6)
+const GRENADE_SUSPICION_HIDDEN_TIME: float = 3.0  ## Seconds player must be hidden with high suspicion (Trigger 7, Issue #379)
 
 ## Last hit direction (used for death animation).
 var _last_hit_direction: Vector2 = Vector2.RIGHT
@@ -5205,6 +5209,9 @@ func _update_grenade_triggers(delta: float) -> void:
 	# Update sustained fire tracking (Trigger 5)
 	_update_trigger_sustained_fire(delta)
 
+	# Update suspicion-based tracking (Trigger 7, Issue #379)
+	_update_trigger_suspicion(delta)
+
 	# Update GOAP world state with trigger flags
 	_update_grenade_world_state()
 
@@ -5371,8 +5378,12 @@ func _update_grenade_world_state() -> void:
 	var t6 := _should_trigger_desperation_grenade()
 	_goap_world_state["trigger_6_desperation"] = t6
 
+	# Trigger 7: Suspicion-based (Issue #379)
+	var t7 := _should_trigger_suspicion_grenade()
+	_goap_world_state["trigger_7_suspicion"] = t7
+
 	# Combined flag for any trigger
-	var any_trigger := t1 or t2 or t3 or t4 or t5 or t6
+	var any_trigger := t1 or t2 or t3 or t4 or t5 or t6 or t7
 	var was_ready: bool = _goap_world_state.get("ready_to_throw_grenade", false)
 	_goap_world_state["ready_to_throw_grenade"] = _grenade_cooldown_timer <= 0.0 and _grenades_remaining > 0 and any_trigger
 
@@ -5385,6 +5396,7 @@ func _update_grenade_world_state() -> void:
 		if t4: triggers.append("T4:SoundBased")
 		if t5: triggers.append("T5:SustainedFire")
 		if t6: triggers.append("T6:Desperation")
+		if t7: triggers.append("T7:Suspicion")
 		_log_grenade("TRIGGER ACTIVE: %s (grenades: %d)" % [", ".join(triggers), _grenades_remaining])
 
 ## Check Trigger 1: Player suppressed us, then hid for 6 seconds.
@@ -5440,6 +5452,38 @@ func _should_trigger_sustained_fire_grenade() -> bool:
 func _should_trigger_desperation_grenade() -> bool:
 	return _current_health <= GRENADE_DESPERATION_HEALTH_THRESHOLD
 
+## Check Trigger 7: High suspicion + player hidden for threshold time (Issue #379).
+## This implements "enemy strongly suspects player is somewhere" behavior.
+## Fires when enemy has high confidence (0.8+) about player location but cannot see them.
+func _should_trigger_suspicion_grenade() -> bool:
+	if _memory == null or not _memory.has_target():
+		return false
+
+	# Must have high confidence (0.8+)
+	if not _memory.is_high_confidence():
+		return false
+
+	# Must not currently see player
+	if _can_see_player:
+		return false
+
+	# Player must have been hidden for threshold time with high suspicion
+	return _high_suspicion_hidden_timer >= GRENADE_SUSPICION_HIDDEN_TIME
+
+## Update Trigger 7: High suspicion but player is hidden (Issue #379).
+## Tracks time enemy has high confidence but cannot see player.
+func _update_trigger_suspicion(delta: float) -> void:
+	if _memory == null:
+		_high_suspicion_hidden_timer = 0.0
+		return
+
+	# Check if we have high confidence but can't see player
+	if _memory.is_high_confidence() and not _can_see_player and _memory.has_target():
+		_high_suspicion_hidden_timer += delta
+	else:
+		# Player visible OR confidence too low - reset timer
+		_high_suspicion_hidden_timer = 0.0
+
 ## Get the best grenade target position based on active triggers.
 ## Returns Vector2.ZERO if no valid target.
 func _get_grenade_target_position() -> Vector2:
@@ -5468,6 +5512,11 @@ func _get_grenade_target_position() -> Vector2:
 	if _should_trigger_witness_grenade():
 		if _player != null and _can_see_player:
 			return _player.global_position
+		if _memory and _memory.has_target():
+			return _memory.suspected_position
+
+	# Trigger 7: Suspicion-based - throw at suspected position (Issue #379)
+	if _should_trigger_suspicion_grenade():
 		if _memory and _memory.has_target():
 			return _memory.suspected_position
 
@@ -5669,6 +5718,39 @@ func _execute_grenade_throw(target_position: Vector2) -> void:
 	# Emit signal
 	grenade_thrown.emit(grenade, target_position)
 
+	# Issue #379: Initiate assault after suspicion-based grenade throw
+	# If this was a Trigger 7 throw, transition to PURSUING to rush the position
+	if trigger_name == "Trigger7_Suspicion":
+		_initiate_assault_after_suspicion_grenade(target_position)
+
+## Initiate assault behavior after suspicion-based grenade throw (Issue #379).
+## Waits for grenade to detonate, then transitions to PURSUING toward the target position.
+func _initiate_assault_after_suspicion_grenade(target_position: Vector2) -> void:
+	# Wait for grenade to detonate (~1.5 seconds for frag grenade)
+	await get_tree().create_timer(1.5).timeout
+
+	# Safety checks - enemy may have died or been incapacitated
+	if not is_instance_valid(self):
+		return
+	if not _is_alive or _is_stunned or _is_blinded:
+		_log_grenade("Assault cancelled - incapacitated after grenade")
+		return
+
+	# Don't assault if player is now visible (situation changed)
+	if _can_see_player:
+		_log_grenade("Assault cancelled - player now visible")
+		return
+
+	# Transition to PURSUING state to rush toward the grenade impact position
+	_log_grenade("Initiating assault toward %s after suspicion grenade" % target_position)
+	_log_to_file("Issue #379: Assault initiated after suspicion grenade at %s" % target_position)
+
+	# Update memory with target position (maintain high confidence for assault)
+	if _memory != null:
+		_memory.update_position(target_position, 0.85)  # Slightly below high threshold to allow decay
+
+	_transition_to_pursuing()
+
 ## Get the name of the currently active trigger (for logging).
 func _get_active_trigger_name() -> String:
 	if _should_trigger_desperation_grenade():
@@ -5679,6 +5761,8 @@ func _get_active_trigger_name() -> String:
 		return "Trigger2_Pursuit"
 	elif _should_trigger_witness_grenade():
 		return "Trigger3_WitnessKills"
+	elif _should_trigger_suspicion_grenade():
+		return "Trigger7_Suspicion"
 	elif _should_trigger_sustained_fire_grenade():
 		return "Trigger5_SustainedFire"
 	elif _should_trigger_suppression_grenade():
@@ -5700,6 +5784,9 @@ func _clear_acted_triggers() -> void:
 	# Clear Trigger 5 state
 	_fire_zone_valid = false
 	_fire_zone_total_duration = 0.0
+
+	# Clear Trigger 7 state (Issue #379)
+	_high_suspicion_hidden_timer = 0.0
 
 ## Get the number of grenades remaining.
 func get_grenades_remaining() -> int:
