@@ -282,9 +282,40 @@ func _get_facing_direction() -> Vector2:
 		return _last_move_direction
 
 
+## Checks if the character is currently standing on a blood puddle.
+## Uses both Area2D overlap detection and distance-based fallback.
+func _is_on_blood_puddle() -> bool:
+	# Check via Area2D overlap
+	if _blood_detector:
+		var overlapping_areas := _blood_detector.get_overlapping_areas()
+		for area in overlapping_areas:
+			if area.is_in_group("blood_puddle") or (area.get_parent() and area.get_parent().is_in_group("blood_puddle")):
+				return true
+
+	# Fallback: distance-based detection
+	if _parent_body:
+		var parent_pos := _parent_body.global_position
+		var blood_puddles := get_tree().get_nodes_in_group("blood_puddle")
+		for puddle in blood_puddles:
+			if puddle is Node2D:
+				var dist := parent_pos.distance_to(puddle.global_position)
+				if dist <= BLOOD_DETECTION_RADIUS:
+					return true
+
+	return false
+
+
 ## Spawns a footprint at the current position.
+## Footprints are only spawned on floor without blood.
 func _spawn_footprint() -> void:
 	if _footprint_scene == null or _blood_level <= 0:
+		return
+
+	# Don't spawn footprint if currently standing on blood
+	# Footprints should only appear on floor without blood
+	if _is_on_blood_puddle():
+		if debug_logging:
+			_log_info("Skipping footprint - currently on blood puddle")
 		return
 
 	var footprint := _footprint_scene.instantiate() as Node2D
@@ -303,7 +334,8 @@ func _spawn_footprint() -> void:
 	# Set footprint properties
 	footprint.global_position = _parent_body.global_position
 	# Use facing direction for rotation (the direction character is looking)
-	footprint.rotation = facing_direction.angle()
+	# Add PI/2 (90 degrees clockwise) to align boot texture with facing direction
+	footprint.rotation = facing_direction.angle() + PI / 2.0
 	footprint.scale = Vector2(footprint_scale, footprint_scale)
 	# Ensure footprint renders above floor (z_index 0) but below characters
 	footprint.z_index = 1
