@@ -705,155 +705,59 @@ func on_sound_heard(sound_type: int, position: Vector2, source_type: int, source
 
 ## Called by SoundPropagation with intensity. Reacts to reload/empty_click/gunshot sounds.
 func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_type: int, source_node: Node2D, intensity: float) -> void:
-	# Only react if alive and not confused from memory reset (Issue #318 - block sounds during confusion)
 	if not _is_alive or _memory_reset_confusion_timer > 0.0:
 		return
-	# Calculate distance to sound for logging
 	var distance := global_position.distance_to(position)
 
 	# Handle reload sound (sound_type 3 = RELOAD) - player is vulnerable!
-	# This sound propagates through walls and alerts enemies even behind cover.
-	if sound_type == 3 and source_type == 0:  # RELOAD from PLAYER
-		_log_debug("Heard player RELOAD (intensity=%.2f, distance=%.0f) at %s" % [
-			intensity, distance, position
-		])
-		_log_to_file("Heard player RELOAD at %s, intensity=%.2f, distance=%.0f" % [
-			position, intensity, distance
-		])
-
-		# Set player vulnerability state - reloading
+	if sound_type == 3 and source_type == 0:
+		_log_to_file("Heard player RELOAD at %s, intensity=%.2f, distance=%.0f" % [position, intensity, distance])
 		_goap_world_state["player_reloading"] = true
 		_last_known_player_position = position
-		# Set flag to pursue to sound position even without line of sight
 		_pursuing_vulnerability_sound = true
-
-		# Update memory system with sound-based detection (Issue #297)
-		if _memory:
-			_memory.update_position(position, SOUND_RELOAD_CONFIDENCE)
-
-		# React to vulnerable player sound - transition to combat/pursuing
-		# All enemies in hearing range should pursue the vulnerable player!
-		# This makes reload sounds a high-risk action when enemies are nearby.
+		if _memory: _memory.update_position(position, SOUND_RELOAD_CONFIDENCE)
 		if _current_state in [AIState.IDLE, AIState.IN_COVER, AIState.SUPPRESSED, AIState.RETREATING, AIState.SEEKING_COVER]:
-			# Leave cover/defensive state to attack vulnerable player
-			_log_to_file("Vulnerability sound triggered pursuit - transitioning from %s to PURSUING" % AIState.keys()[_current_state])
+			_log_to_file("Vulnerability sound triggered pursuit from %s" % AIState.keys()[_current_state])
 			_transition_to_pursuing()
-		# For COMBAT, PURSUING, FLANKING states: the flag is set and they'll use it
-		# (COMBAT/PURSUING now check _pursuing_vulnerability_sound before retreating)
 		return
 
 	# Handle empty click sound (sound_type 5 = EMPTY_CLICK) - player is vulnerable!
-	# This sound has shorter range than reload but still propagates through walls.
-	if sound_type == 5 and source_type == 0:  # EMPTY_CLICK from PLAYER
-		_log_debug("Heard player EMPTY_CLICK (intensity=%.2f, distance=%.0f) at %s" % [
-			intensity, distance, position
-		])
-		_log_to_file("Heard player EMPTY_CLICK at %s, intensity=%.2f, distance=%.0f" % [
-			position, intensity, distance
-		])
-
-		# Set player vulnerability state - out of ammo
+	if sound_type == 5 and source_type == 0:
+		_log_to_file("Heard player EMPTY_CLICK at %s, intensity=%.2f, distance=%.0f" % [position, intensity, distance])
 		_goap_world_state["player_ammo_empty"] = true
 		_last_known_player_position = position
-		# Set flag to pursue to sound position even without line of sight
 		_pursuing_vulnerability_sound = true
-
-		# Update memory system with sound-based detection (Issue #297)
-		if _memory:
-			_memory.update_position(position, SOUND_EMPTY_CLICK_CONFIDENCE)
-
-		# React to vulnerable player sound - transition to combat/pursuing
-		# All enemies in hearing range should pursue the vulnerable player!
-		# This makes empty click sounds a high-risk action when enemies are nearby.
+		if _memory: _memory.update_position(position, SOUND_EMPTY_CLICK_CONFIDENCE)
 		if _current_state in [AIState.IDLE, AIState.IN_COVER, AIState.SUPPRESSED, AIState.RETREATING, AIState.SEEKING_COVER]:
-			# Leave cover/defensive state to attack vulnerable player
-			_log_to_file("Vulnerability sound triggered pursuit - transitioning from %s to PURSUING" % AIState.keys()[_current_state])
+			_log_to_file("Vulnerability sound triggered pursuit from %s" % AIState.keys()[_current_state])
 			_transition_to_pursuing()
-		# For COMBAT, PURSUING, FLANKING states: the flag is set and they'll use it
-		# (COMBAT/PURSUING now check _pursuing_vulnerability_sound before retreating)
 		return
 
-	# Handle reload complete sound (sound_type 6 = RELOAD_COMPLETE) - player is NO LONGER vulnerable!
-	# This sound propagates through walls and signals enemies to become cautious.
-	if sound_type == 6 and source_type == 0:  # RELOAD_COMPLETE from PLAYER
-		_log_debug("Heard player RELOAD_COMPLETE (intensity=%.2f, distance=%.0f) at %s" % [
-			intensity, distance, position
-		])
-		_log_to_file("Heard player RELOAD_COMPLETE at %s, intensity=%.2f, distance=%.0f" % [
-			position, intensity, distance
-		])
-
-		# Clear player vulnerability state - reload finished, player is armed again
+	# Handle reload complete sound (sound_type 6 = RELOAD_COMPLETE) - player armed again
+	if sound_type == 6 and source_type == 0:
+		_log_to_file("Heard player RELOAD_COMPLETE at %s" % [position])
 		_goap_world_state["player_reloading"] = false
 		_goap_world_state["player_ammo_empty"] = false
-		# Clear the aggressive pursuit flag - no longer pursuing vulnerable player
 		_pursuing_vulnerability_sound = false
-
-		# React to reload completion - transition to cautious/defensive mode after a short delay.
-		# The 200ms delay gives enemies a brief reaction time before becoming cautious,
-		# making the transition feel more natural and giving player a small window.
-		# Enemies who were pursuing the vulnerable player should now become more cautious.
-		# This makes completing reload a way to "reset" aggressive enemy behavior.
 		if _current_state in [AIState.PURSUING, AIState.COMBAT, AIState.ASSAULT]:
-			var state_before_delay := _current_state
-			_log_to_file("Reload complete sound heard - waiting 200ms before cautious transition from %s" % AIState.keys()[_current_state])
+			var state_before := _current_state
 			await get_tree().create_timer(0.2).timeout
-			# After delay, check if still alive and in an aggressive state
-			if not _is_alive:
-				return
-			# Only transition if still in an aggressive state (state might have changed during delay)
+			if not _is_alive: return
 			if _current_state in [AIState.PURSUING, AIState.COMBAT, AIState.ASSAULT]:
-				# Return to cover/defensive state since player is no longer vulnerable
-				if _has_valid_cover:
-					_log_to_file("Reload complete sound triggered retreat - transitioning from %s to RETREATING (delayed from %s)" % [AIState.keys()[_current_state], AIState.keys()[state_before_delay]])
-					_transition_to_retreating()
-				elif enable_cover:
-					_log_to_file("Reload complete sound triggered cover seek - transitioning from %s to SEEKING_COVER (delayed from %s)" % [AIState.keys()[_current_state], AIState.keys()[state_before_delay]])
-					_transition_to_seeking_cover()
-				# If no cover available, stay in current state but with cleared vulnerability flags
+				if _has_valid_cover: _transition_to_retreating()
+				elif enable_cover: _transition_to_seeking_cover()
 		return
 
-	# Handle gunshot sounds (sound_type 0 = GUNSHOT)
-	if sound_type != 0:
-		return
-
-	# React based on current state:
-	# - IDLE: Always react to loud sounds
-	# - Other states: Only react to very loud, close sounds (intensity > 0.5)
+	# Handle gunshot sounds (sound_type 0)
+	if sound_type != 0: return
 	var should_react := false
+	if _current_state == AIState.IDLE: should_react = intensity >= 0.01
+	elif _current_state in [AIState.FLANKING, AIState.RETREATING]: should_react = intensity >= 0.3
+	if not should_react: return
 
-	if _current_state == AIState.IDLE:
-		# In IDLE state, always investigate sounds above minimal threshold
-		should_react = intensity >= 0.01
-	elif _current_state in [AIState.FLANKING, AIState.RETREATING]:
-		# In tactical movement states, react to loud nearby sounds
-		should_react = intensity >= 0.3
-	else:
-		# In combat-related states, only react to very loud sounds
-		# This prevents enemies from being distracted during active combat
-		should_react = false
-
-	if not should_react:
-		return
-
-	# React to sounds: transition to combat mode to investigate
-	_log_debug("Heard gunshot (intensity=%.2f, distance=%.0f) from %s at %s, entering COMBAT" % [
-		intensity,
-		distance,
-		"player" if source_type == 0 else ("enemy" if source_type == 1 else "neutral"),
-		position
-	])
-	_log_to_file("Heard gunshot at %s, source_type=%d, intensity=%.2f, distance=%.0f" % [
-		position, source_type, intensity, distance
-	])
-
-	# Store the position of the sound as a point of interest
-	# The enemy will investigate this location
+	_log_to_file("Heard gunshot at %s, source_type=%d, intensity=%.2f" % [position, source_type, intensity])
 	_last_known_player_position = position
-
-	# Update memory system with sound-based detection (Issue #297)
-	if _memory:
-		_memory.update_position(position, SOUND_GUNSHOT_CONFIDENCE)
+	if _memory: _memory.update_position(position, SOUND_GUNSHOT_CONFIDENCE)
 
 	# Transition to combat mode to investigate the sound
 	_transition_to_combat()
@@ -4004,92 +3908,38 @@ func _shoot() -> void:
 	if bullet_scene == null or _player == null:
 		return
 
-	# Check if we can shoot (have ammo and not reloading)
-	if not _can_shoot():
-		return
-
+	if not _can_shoot(): return
 	var target_position := _player.global_position
-
-	# Apply lead prediction if enabled
-	if enable_lead_prediction:
-		target_position = _calculate_lead_prediction()
-
-	# Check if the shot should be taken (friendly fire and cover checks)
-	if not _should_shoot_at_target(target_position):
-		return
-
-	# Calculate bullet spawn position at weapon muzzle first
-	# We need this to calculate the correct bullet direction
+	if enable_lead_prediction: target_position = _calculate_lead_prediction()
+	if not _should_shoot_at_target(target_position): return
 	var weapon_forward := _get_weapon_forward_direction()
 	var bullet_spawn_pos := _get_bullet_spawn_position(weapon_forward)
-
-	# Use enemy center (not muzzle) for aim check to fix close-range issues (Issue #344)
-	var to_target := (target_position - global_position).normalized()
-
-	# Check if weapon is aimed at target (within tolerance)
-	# Bullets fly in barrel direction, so we only shoot when properly aimed (issue #254)
-	var aim_dot := weapon_forward.dot(to_target)
+	var to_target := (target_position - global_position).normalized()  # Issue #344: Use enemy center for aim check
+	var aim_dot := weapon_forward.dot(to_target)  # Bullets fly in barrel direction (issue #254)
 	if aim_dot < AIM_TOLERANCE_DOT:
 		if debug_logging:
 			var aim_angle_deg := rad_to_deg(acos(clampf(aim_dot, -1.0, 1.0)))
 			_log_debug("SHOOT BLOCKED: Not aimed at target. aim_dot=%.3f (%.1f deg off)" % [aim_dot, aim_angle_deg])
 		return
 
-	# Bullet direction is the weapon's forward direction (realistic barrel direction)
-	# This ensures bullets fly where the barrel is pointing, not toward the target
-	var direction := weapon_forward
-
-	# Create bullet instance
+	var direction := weapon_forward  # Bullet flies in barrel direction
 	var bullet := bullet_scene.instantiate()
 	bullet.global_position = bullet_spawn_pos
-
-	# Debug logging for weapon geometry analysis
 	if debug_logging:
-		var weapon_visual_pos := _weapon_sprite.global_position if _weapon_sprite else Vector2.ZERO
-		var model_rot := _enemy_model.rotation if _enemy_model else 0.0
-		var model_scale := _enemy_model.scale if _enemy_model else Vector2.ONE
-		_log_debug("SHOOT: enemy_pos=%v, target_pos=%v" % [global_position, target_position])
-		_log_debug("  model_rotation=%.2f rad (%.1f deg), model_scale=%v" % [model_rot, rad_to_deg(model_rot), model_scale])
-		_log_debug("  weapon_node_pos=%v, muzzle=%v" % [weapon_visual_pos, bullet_spawn_pos])
-		_log_debug("  direction=%v (angle=%.1f deg) - BARREL DIRECTION (realistic)" % [direction, rad_to_deg(direction.angle())])
-
-	# Set bullet direction (barrel direction for realistic behavior)
+		_log_debug("SHOOT: pos=%v, dir=%v (%.1f deg)" % [bullet_spawn_pos, direction, rad_to_deg(direction.angle())])
 	bullet.direction = direction
-
-	# Set shooter ID to identify this enemy as the source
-	# This prevents enemies from detecting their own bullets in the threat sphere
-	bullet.shooter_id = get_instance_id()
-	# Set shooter position for distance-based penetration calculation
-	# Use the bullet spawn position (weapon muzzle) for accurate distance calculation
-	bullet.shooter_position = bullet_spawn_pos
-
-	# Add bullet to the scene tree
+	bullet.shooter_id = get_instance_id()  # Prevents threat sphere self-detection
+	bullet.shooter_position = bullet_spawn_pos  # For penetration distance calc
 	get_tree().current_scene.add_child(bullet)
-
-	# Spawn casing if casing scene is set
 	_spawn_casing(direction, weapon_forward)
-
-	# Play shooting sound
 	var audio_manager: Node = get_node_or_null("/root/AudioManager")
-	if audio_manager and audio_manager.has_method("play_m16_shot"):
-		audio_manager.play_m16_shot(global_position)
-
-	# Emit gunshot sound for in-game sound propagation (alerts other enemies)
-	# Uses weapon_loudness to determine propagation range
+	if audio_manager and audio_manager.has_method("play_m16_shot"): audio_manager.play_m16_shot(global_position)
 	var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
-	if sound_propagation and sound_propagation.has_method("emit_sound"):
-		sound_propagation.emit_sound(0, global_position, 1, self, weapon_loudness)  # 0 = GUNSHOT, 1 = ENEMY
-
-	# Play shell casing sound with a small delay
+	if sound_propagation and sound_propagation.has_method("emit_sound"): sound_propagation.emit_sound(0, global_position, 1, self, weapon_loudness)
 	_play_delayed_shell_sound()
-
-	# Consume ammo
 	_current_ammo -= 1
 	ammo_changed.emit(_current_ammo, _reserve_ammo)
-
-	# Auto-reload when magazine is empty
-	if _current_ammo <= 0 and _reserve_ammo > 0:
-		_start_reload()
+	if _current_ammo <= 0 and _reserve_ammo > 0: _start_reload()
 
 ## Play shell casing sound with a delay to simulate the casing hitting the ground.
 func _play_delayed_shell_sound() -> void:
