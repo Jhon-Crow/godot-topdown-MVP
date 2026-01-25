@@ -4795,6 +4795,11 @@ func _update_debug_label() -> void:
 
 	_debug_label.text = state_text
 
+	# Keep debug label upright regardless of enemy rotation (Issue #383)
+	# The label is a child of the Enemy node, so it inherits the rotation.
+	# Reset global_rotation to 0 to keep the text horizontal and readable.
+	_debug_label.global_rotation = 0
+
 ## Get current AI state (for external access/debugging).
 func get_current_state() -> AIState:
 	return _current_state

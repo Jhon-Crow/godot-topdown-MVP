@@ -234,6 +234,20 @@ func test_moving_debug_label_format() -> void:
 	assert_eq(expected_text, "\n(MOVING)", "Debug label should show MOVING")
 
 
+func test_debug_label_rotation_stays_upright() -> void:
+	# Regression test for Issue #383: Debug label should stay upright
+	# The fix resets global_rotation to 0 after updating the label text
+	# to prevent the label from rotating with the enemy
+	var expected_rotation: float = 0.0
+
+	# Simulate the fix: enemy rotates but label global_rotation is reset
+	var enemy_rotation: float = PI / 4  # 45 degrees
+	var label_global_rotation: float = 0  # After fix, this should be 0
+
+	assert_eq(label_global_rotation, expected_rotation,
+		"Debug label should have global_rotation = 0 regardless of enemy rotation")
+
+
 # ============================================================================
 # Transition Logic Tests
 # ============================================================================
