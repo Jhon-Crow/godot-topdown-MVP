@@ -337,6 +337,58 @@ _parent_body.add_child(_blood_detector)  # FIX: adds to CharacterBody2D
 6. **Investigation:** Discovered Area2D positioning bug
 7. **Fixes applied:** Added component to C# scene + fixed detector positioning
 
+#### Bug #3: Footprints Rendered Behind Floor (z_index Issue)
+
+**Log File:** `game_log_20260125_071709.txt`
+
+**Symptoms:**
+- Fallback distance detection was working correctly
+- 77 footprints were spawned according to logs ("Footprint spawned" messages)
+- User reported "не видно изменений" (I don't see changes)
+- Footprints were invisible despite being spawned
+
+**Root Cause:** The footprints used `z_index = -1` in both the scene file and script:
+```gdscript
+# In blood_footprint.gd
+func _ready() -> void:
+    z_index = -1  # BUG: renders BEHIND floor
+
+# In BloodFootprint.tscn
+[node name="BloodFootprint" type="Sprite2D"]
+z_index = -1  # BUG: lower than floor's z_index = 0
+```
+
+In Godot, **higher z_index = rendered on top**. The floor ColorRect uses the default `z_index = 0`, so footprints with `z_index = -1` were being rendered behind the floor and were completely invisible.
+
+**Evidence from logs:**
+```
+[07:17:29] [INFO] [BloodyFeet:Player] FALLBACK: Blood detected at distance 18.7 (pos: (754.2126, 795.1438))
+[07:17:29] [INFO] [BloodyFeet:Player] Stepped in blood! 6 footprints to spawn
+[07:17:29] [INFO] [BloodyFeet:Player] Footprint spawned (steps remaining: 5, alpha: 0.80)
+```
+
+The code was working perfectly - the footprints were spawning, but they were simply invisible!
+
+**Fix:**
+1. Changed `z_index` from `-1` to `1` in both scene and script
+2. Added explicit `z_index = 1` when spawning footprints in `_spawn_footprint()`
+3. Increased footprint size (16x24 vs 12x18 pixels) for better visibility
+4. Brightened footprint color (0.6 red vs 0.5)
+5. Increased default `footprint_scale` from 0.8 to 1.0
+
+### Timeline of Events
+
+1. **Initial implementation:** BloodyFeetComponent created and added to GDScript scenes
+2. **User testing (attempt 1):** User runs game (uses C# Player scene) - no footprints for player
+3. **Fix #1:** Added component to C# Player scene
+4. **Fix #2:** Fixed Area2D positioning (added to CharacterBody2D parent)
+5. **User testing (attempt 2):** Still no visible footprints
+6. **Fix #3:** Added fallback distance-based detection
+7. **User testing (attempt 3):** Still "не видно изменений" (no visible changes)
+8. **Log analysis:** Found 77 footprints were spawned! Detection working perfectly.
+9. **Root cause discovery:** z_index = -1 caused footprints to render behind floor
+10. **Fix #4:** Changed z_index to 1, improved texture visibility
+
 ### Lessons Learned
 
 1. **Always check which scene version is actually used in levels**
@@ -350,6 +402,16 @@ _parent_body.add_child(_blood_detector)  # FIX: adds to CharacterBody2D
 3. **Enable debug logging during development**
    - Set `debug_logging = true` in scene files for testing
    - Log periodic status updates (e.g., overlap counts, positions)
+
+4. **Understand Godot's z_index system**
+   - Higher z_index = rendered on TOP (in front)
+   - Lower z_index = rendered BEHIND (in back)
+   - Default z_index is 0, so use positive values for decals that should be visible on floor
+   - The comment "ensure footprint stays below characters" led to using -1, but should have been "above floor, below characters" = positive value like 1
+
+5. **When code works but feature doesn't appear - check rendering**
+   - If logs show feature is triggering correctly, check visual rendering
+   - z_index, modulate alpha, scale, and position can all cause invisible sprites
 
 ## Performance Considerations
 
