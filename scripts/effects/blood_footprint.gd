@@ -10,8 +10,9 @@ var _initial_alpha: float = 0.8
 
 
 func _ready() -> void:
-	# Ensure footprint stays below characters
-	z_index = -1
+	# Ensure footprint renders above floor but below characters
+	# Higher z_index = rendered on top in Godot
+	z_index = 1
 
 
 ## Sets the footprint's alpha value.

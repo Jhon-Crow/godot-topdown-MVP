@@ -19,7 +19,7 @@ class_name BloodyFeetComponent
 @export var alpha_decay_rate: float = 0.12
 
 ## Footprint scale multiplier.
-@export var footprint_scale: float = 0.8
+@export var footprint_scale: float = 1.0
 
 ## Enable debug logging.
 @export var debug_logging: bool = false
@@ -253,6 +253,8 @@ func _spawn_footprint() -> void:
 	footprint.global_position = _parent_body.global_position
 	footprint.rotation = _last_move_direction.angle()
 	footprint.scale = Vector2(footprint_scale, footprint_scale)
+	# Ensure footprint renders above floor (z_index 0) but below characters
+	footprint.z_index = 1
 
 	# Alternate left/right foot by slightly offsetting perpendicular to movement
 	var perpendicular := _last_move_direction.rotated(PI / 2.0)
