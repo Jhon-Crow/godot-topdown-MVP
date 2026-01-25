@@ -142,17 +142,60 @@ func _check_blood_puddle_overlap() -> void:
 	if debug_logging and _debug_frame_counter >= 120:
 		_debug_frame_counter = 0
 		var blood_puddles_in_scene := get_tree().get_nodes_in_group("blood_puddle")
-		_log_info("Overlap check: areas=%d, blood_puddles_in_scene=%d, detector_pos=%s" % [
+		var parent_pos := _parent_body.global_position if _parent_body else Vector2.ZERO
+		var detector_global := _blood_detector.global_position
+		var detector_in_tree := _blood_detector.is_inside_tree()
+		_log_info("Overlap check: areas=%d, puddles=%d, parent_pos=%s, detector_global=%s, in_tree=%s, layer=%d, mask=%d" % [
 			overlapping_areas.size(),
 			blood_puddles_in_scene.size(),
-			_blood_detector.global_position
+			parent_pos,
+			detector_global,
+			detector_in_tree,
+			_blood_detector.collision_layer,
+			_blood_detector.collision_mask
 		])
+		# Log closest blood puddle distance for debugging
+		if blood_puddles_in_scene.size() > 0:
+			var closest_dist := INF
+			var closest_puddle_pos := Vector2.ZERO
+			for puddle in blood_puddles_in_scene:
+				if puddle is Node2D:
+					var dist := parent_pos.distance_to(puddle.global_position)
+					if dist < closest_dist:
+						closest_dist = dist
+						closest_puddle_pos = puddle.global_position
+			_log_info("Closest puddle at %s, distance=%.1f" % [closest_puddle_pos, closest_dist])
 
 	for area in overlapping_areas:
 		# Check if the area or its parent is a blood puddle
 		if area.is_in_group("blood_puddle") or (area.get_parent() and area.get_parent().is_in_group("blood_puddle")):
 			_on_blood_puddle_contact()
-			break
+			return  # Early return if found via physics
+
+	# FALLBACK: If physics detection fails, use distance-based detection
+	# This handles cases where Area2D physics isn't working correctly
+	_check_blood_puddle_by_distance()
+
+
+## Radius in pixels for distance-based blood detection fallback.
+const BLOOD_DETECTION_RADIUS := 20.0
+
+## Fallback distance-based detection when Area2D physics fails.
+func _check_blood_puddle_by_distance() -> void:
+	if _parent_body == null:
+		return
+
+	var parent_pos := _parent_body.global_position
+	var blood_puddles := get_tree().get_nodes_in_group("blood_puddle")
+
+	for puddle in blood_puddles:
+		if puddle is Node2D:
+			var dist := parent_pos.distance_to(puddle.global_position)
+			if dist <= BLOOD_DETECTION_RADIUS:
+				if debug_logging:
+					_log_info("FALLBACK: Blood detected at distance %.1f (pos: %s)" % [dist, puddle.global_position])
+				_on_blood_puddle_contact()
+				return
 
 
 ## Called when the character contacts a blood puddle.
