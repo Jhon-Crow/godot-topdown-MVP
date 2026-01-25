@@ -7,7 +7,7 @@ extends Node
 class_name BloodyFeetComponent
 
 ## Number of bloody footprints before the blood runs out.
-@export var blood_steps_count: int = 6
+@export var blood_steps_count: int = 12
 
 ## Distance in pixels between footprint spawns.
 @export var step_distance: float = 30.0
@@ -16,7 +16,7 @@ class_name BloodyFeetComponent
 @export var initial_alpha: float = 0.8
 
 ## Alpha reduction per step. Last footprint will be at (initial_alpha - (blood_steps_count - 1) * alpha_decay_rate).
-@export var alpha_decay_rate: float = 0.12
+@export var alpha_decay_rate: float = 0.06
 
 ## Footprint scale multiplier.
 @export var footprint_scale: float = 1.0
