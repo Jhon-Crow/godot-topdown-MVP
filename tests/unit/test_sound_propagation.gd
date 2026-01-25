@@ -294,26 +294,29 @@ func test_calculate_intensity_at_zero_distance() -> void:
 	assert_almost_eq(intensity, 1.0, 0.001, "Intensity at zero distance should be 1.0")
 
 
-func test_calculate_intensity_inverse_square_law() -> void:
-	# At double reference distance (100), intensity should be 1/4 = 0.25
-	# Using formula: (50/100)² = 0.25
+func test_calculate_intensity_sound_pressure_model() -> void:
+	# At double reference distance (100), intensity should be 1/2 = 0.5
+	# Using formula: 50/100 = 0.5 (sound pressure model 1/r)
+	# Issue #337: Changed from 1/r² to 1/r for better long-range detection
 	var intensity: float = _sound_propagation.calculate_intensity(100.0)
-	assert_almost_eq(intensity, 0.25, 0.001, "Intensity at 2x reference should be 0.25")
+	assert_almost_eq(intensity, 0.5, 0.001, "Intensity at 2x reference should be 0.5")
 
 
 func test_calculate_intensity_at_triple_reference() -> void:
-	# At triple reference distance (150), intensity should be 1/9 ≈ 0.111
-	# Using formula: (50/150)² = 0.111
+	# At triple reference distance (150), intensity should be 1/3 ≈ 0.333
+	# Using formula: 50/150 = 0.333 (sound pressure model 1/r)
+	# Issue #337: Changed from 1/r² to 1/r for better long-range detection
 	var intensity: float = _sound_propagation.calculate_intensity(150.0)
-	assert_almost_eq(intensity, 0.111, 0.01, "Intensity at 3x reference should be ~0.111")
+	assert_almost_eq(intensity, 0.333, 0.01, "Intensity at 3x reference should be ~0.333")
 
 
 func test_calculate_intensity_at_viewport_distance() -> void:
-	# At viewport diagonal distance (~1468.6), intensity should be very low
-	# Using formula: (50/1468.6)² ≈ 0.00116
+	# At viewport diagonal distance (~1468.6), intensity should be low but audible
+	# Using formula: 50/1468.6 ≈ 0.034 (sound pressure model 1/r)
+	# Issue #337: With 1/r model, sounds at viewport distance are still detectable
 	var intensity: float = _sound_propagation.calculate_intensity(1468.6)
-	assert_lt(intensity, 0.01, "Intensity at viewport distance should be less than 0.01")
-	assert_gt(intensity, 0.0, "Intensity at viewport distance should be greater than 0")
+	assert_almost_eq(intensity, 0.034, 0.005, "Intensity at viewport distance should be ~0.034")
+	assert_gt(intensity, 0.01, "Intensity at viewport distance should be above minimum threshold")
 
 
 func test_calculate_intensity_with_absorption() -> void:
@@ -363,8 +366,9 @@ func test_emit_sound_passes_intensity_to_listener() -> void:
 	_sound_propagation.emit_sound(0, Vector2.ZERO, 0, null)
 
 	assert_eq(listener.get_sound_count(), 1, "Listener should receive 1 sound")
-	# At 100 pixels, intensity should be (50/100)² = 0.25
-	assert_almost_eq(listener.last_intensity, 0.25, 0.01, "Intensity at 100 pixels should be 0.25")
+	# At 100 pixels, intensity should be 50/100 = 0.5 (sound pressure model 1/r)
+	# Issue #337: Changed from 1/r² to 1/r for better long-range detection
+	assert_almost_eq(listener.last_intensity, 0.5, 0.01, "Intensity at 100 pixels should be 0.5")
 
 	listener.queue_free()
 
@@ -372,16 +376,16 @@ func test_emit_sound_passes_intensity_to_listener() -> void:
 func test_emit_sound_respects_min_intensity_threshold() -> void:
 	var listener := MockListenerWithIntensity.new()
 	# Place listener at a distance where intensity is below threshold
-	# At 1000 pixels, intensity = (50/1000)² = 0.0025
-	# With threshold of 0.01, this should still be received
-	# But at 2000 pixels, intensity = (50/2000)² = 0.000625, below threshold
-	listener.global_position = Vector2(2000, 0)
+	# With 1/r model: At 5000 pixels, intensity = 50/5000 = 0.01 (at threshold)
+	# At 6000 pixels, intensity = 50/6000 = 0.0083, below threshold
+	# Issue #337: With 1/r model, threshold distance is much farther than before
+	listener.global_position = Vector2(6000, 0)
 	add_child(listener)
 
 	_sound_propagation.register_listener(listener)
 
 	# Use custom range to ensure listener is in range
-	_sound_propagation.emit_sound(0, Vector2.ZERO, 0, null, 3000.0)
+	_sound_propagation.emit_sound(0, Vector2.ZERO, 0, null, 7000.0)
 
 	# Listener should NOT receive sound because intensity is below threshold
 	assert_eq(listener.get_sound_count(), 0, "Listener should not receive very low intensity sound")
@@ -500,3 +504,48 @@ func test_reload_complete_sound_propagates_to_distant_listener() -> void:
 	assert_eq(listener.get_sound_count(), 1, "Reload complete should reach listener at 700 pixels")
 
 	listener.queue_free()
+
+
+# =====================================================
+# Tests for Issue #337: Adjacent room sound detection
+# =====================================================
+
+func test_gunshot_intensity_at_adjacent_room_distance() -> void:
+	# Issue #337: Enemies in adjacent rooms (~1200 pixels) should detect gunshots
+	# With 1/r model: At 1200 pixels, intensity = 50/1200 = 0.042
+	# This should be well above the 0.01 minimum threshold
+	var intensity: float = _sound_propagation.calculate_intensity(1200.0)
+	assert_gt(intensity, 0.01, "Intensity at adjacent room distance (1200px) should be above threshold")
+	assert_almost_eq(intensity, 0.042, 0.005, "Intensity at 1200px should be ~0.042")
+
+
+func test_gunshot_reaches_adjacent_room_listener() -> void:
+	# Issue #337: Test that gunshots can be heard at typical adjacent room distances
+	var listener := MockListenerWithIntensity.new()
+	listener.global_position = Vector2(1200, 0)  # Adjacent room distance
+	add_child(listener)
+
+	_sound_propagation.register_listener(listener)
+
+	# Emit a gunshot (range ~1469 pixels)
+	_sound_propagation.emit_sound(0, Vector2.ZERO, 0, null)
+
+	assert_eq(listener.get_sound_count(), 1, "Listener in adjacent room should receive gunshot")
+	assert_gt(listener.last_intensity, 0.01, "Intensity should be above minimum threshold")
+
+	listener.queue_free()
+
+
+func test_intensity_comparison_old_vs_new_model() -> void:
+	# Verify that 1/r model provides better detection than 1/r² would have
+	# This documents the improvement from Issue #337
+	#
+	# Old model (1/r²): At 1200px, intensity = (50/1200)² = 0.0017 (below threshold!)
+	# New model (1/r):  At 1200px, intensity = 50/1200 = 0.042 (above threshold)
+	#
+	var intensity: float = _sound_propagation.calculate_intensity(1200.0)
+	var old_model_intensity: float = pow(50.0 / 1200.0, 2.0)  # What 1/r² would give
+
+	assert_gt(intensity, old_model_intensity, "New 1/r model should give higher intensity than 1/r²")
+	assert_lt(old_model_intensity, 0.01, "Old 1/r² model would have been below threshold at 1200px")
+	assert_gt(intensity, 0.01, "New 1/r model should be above threshold at 1200px")
