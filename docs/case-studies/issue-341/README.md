@@ -460,3 +460,71 @@ The current casing system in the codebase has these characteristics:
 - [ ] Verify time freeze still works correctly (manual)
 - [ ] Performance testing with many casings (manual)
 - [ ] Verify exported EXE runs without crashing (manual)
+
+---
+
+## Additional Investigation: C# Export Requirements (2026-01-25)
+
+### Project Configuration Analysis
+
+The project configuration reveals the game uses **C# (.NET)** features:
+
+**From `project.godot`:**
+```ini
+config/features=PackedStringArray("4.3", "C#")
+[dotnet]
+project/assembly_name="GodotTopDownTemplate"
+```
+
+**Main scene uses C# Player:**
+```
+BuildingLevel.tscn → res://scenes/characters/csharp/Player.tscn
+csharp/Player.tscn → res://Scripts/Characters/Player.cs
+```
+
+### Assembly Name Consistency Check
+
+The project assembly name configuration appears consistent:
+- `project.godot`: `project/assembly_name="GodotTopDownTemplate"`
+- `GodotTopDownTemplate.csproj`: `<RootNamespace>GodotTopDownTemplate</RootNamespace>`
+- `GodotTopDownTemplate.sln`: Contains "GodotTopDownTemplate"
+
+### Potential C# Export Crash Causes
+
+Based on research from [Godot Issue #91998](https://github.com/godotengine/godot/issues/91998):
+
+| Issue | Description | Impact |
+|-------|-------------|--------|
+| **Wrong Export Templates** | Using GDScript templates instead of .NET/Mono templates | Crash immediately after splash |
+| **Assembly Name Mismatch** | Solution/project/assembly names don't match | Silent export build failure |
+| **.NET Runtime Not Bundled** | Missing .NET runtime in export | Crash on C# script load |
+| **Missing C# Build** | C# project not building during export | Editor runs, export crashes |
+
+### Root Cause Hypothesis
+
+The user's crash behavior (game showing Godot splash screen then immediately closing) is consistent with one of two scenarios:
+
+1. **C# Export Issue**: The export is using GDScript-only templates when the project requires .NET templates
+2. **GDScript Fixes Worked**: Our fixes to `casing.gd` are correct, but a separate C# issue exists
+
+### Key Finding: GDScript Player Alternative
+
+A **pure GDScript Player scene** exists that could be used as a diagnostic:
+- **C# version** (currently used): `res://scenes/characters/csharp/Player.tscn`
+- **GDScript version**: `res://scenes/characters/Player.tscn`
+
+The GDScript version uses `res://scripts/characters/player.gd` instead of `res://Scripts/Characters/Player.cs`.
+
+### Recommended Diagnostic Steps
+
+1. **Check Export Type**: Ask user if they're using "Godot Editor (.NET)" or standard editor
+2. **Check Export Templates**: Verify .NET export templates are installed (not GDScript templates)
+3. **Test GDScript Player**: Temporarily switch `BuildingLevel.tscn` to use GDScript Player
+4. **Check Log File**: Look for `game_log_*.txt` next to the exported .exe
+
+### Related Online Resources
+
+- [Godot Forum: Release Export crashes at start](https://forum.godotengine.org/t/release-export-of-the-game-crashes-at-start/120339)
+- [Godot Forum: Godot 4.4.1 C# Export Issue](https://forum.godotengine.org/t/godot-4-4-1-c-export-issue/119567)
+- [Godot Issue #91998: C# exports crash on launch if assembly names don't match](https://github.com/godotengine/godot/issues/91998)
+- [Godot Forum: 4.3 stable exported build crashes immediately](https://forum.godotengine.org/t/4-3-stable-exported-build-crashes-immediately-upon-starting-up-game-everything-fails-to-load/101339)
