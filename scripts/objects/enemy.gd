@@ -386,12 +386,7 @@ var _last_known_player_position: Vector2 = Vector2.ZERO
 ## Pursuing vulnerability sound (reload/empty click) without line of sight.
 var _pursuing_vulnerability_sound: bool = false
 
-## --- Enemy Memory System (Issue #297) ---
-## Tracks suspected player position with confidence (0.0=none, 1.0=visual contact).
-## The memory influences AI behavior:
-## - High confidence (>0.8): Direct pursuit to suspected position
-## - Medium confidence (0.5-0.8): Cautious approach with cover checks
-## - Low confidence (<0.5): Return to patrol/guard behavior
+## Enemy Memory System (Issue #297): tracks suspected player position with confidence.
 var _memory: EnemyMemory = null
 
 ## Confidence values for different detection sources.
@@ -676,11 +671,7 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 		# Clear the aggressive pursuit flag - no longer pursuing vulnerable player
 		_pursuing_vulnerability_sound = false
 
-		# React to reload completion - transition to cautious/defensive mode after a short delay.
-		# The 200ms delay gives enemies a brief reaction time before becoming cautious,
-		# making the transition feel more natural and giving player a small window.
-		# Enemies who were pursuing the vulnerable player should now become more cautious.
-		# This makes completing reload a way to "reset" aggressive enemy behavior.
+		# Reload complete - wait 200ms then transition to cautious mode to "reset" aggression.
 		if _current_state in [AIState.PURSUING, AIState.COMBAT, AIState.ASSAULT]:
 			var state_before_delay := _current_state
 			_log_to_file("Reload complete sound heard - waiting 200ms before cautious transition from %s" % AIState.keys()[_current_state])
@@ -881,12 +872,7 @@ func _physics_process(delta: float) -> void:
 	_update_suppression(delta)
 	_update_grenade_triggers(delta)
 
-	# Update enemy model rotation BEFORE processing AI state (which may shoot).
-	# This ensures the weapon is correctly positioned when bullets are created.
-	# Note: We don't call _update_weapon_sprite_rotation() anymore because:
-	# 1. The EnemyModel rotation already rotates the weapon correctly
-	# 2. The previous _update_weapon_sprite_rotation() was using the Enemy's rotation
-	#    instead of EnemyModel's rotation, causing the weapon to be offset by 90 degrees
+	# Update enemy model rotation BEFORE processing AI state (ensures weapon positioned for shots).
 	_update_enemy_model_rotation()
 
 	# Process AI state machine (may trigger shooting)
@@ -931,73 +917,147 @@ func _update_goap_state() -> void:
 		_goap_world_state["confidence_medium"] = _memory.is_medium_confidence()
 		_goap_world_state["confidence_low"] = _memory.is_low_confidence()
 
+## Returns the visual rotation angle of the enemy model (Issue #373).
+## When Y-scale is negative (facing left), visual angle = -raw_rotation.
+func _get_visual_rotation() -> float:
+	if not _enemy_model:
+		return rotation
+	var raw_rot := _enemy_model.global_rotation
+	return -raw_rot if _model_facing_left else raw_rot
+
 ## Updates model rotation smoothly (#347). Priority: player > flank target > corner check > velocity > idle scan.
+## Issue #373: Fixed sprite flip to use DELAYED FLIP approach - flip only at ±90° boundary.
 ## Issue #386: FLANKING state now prioritizes facing the player over corner checks.
 func _update_enemy_model_rotation() -> void:
 	if not _enemy_model:
 		return
 	var target_angle: float
 	var has_target := false
-	if _player != null and _can_see_player:
+	# Determine target angle based on state (merged from Issue #373 and #386)
+	var active_combat := _current_state in [AIState.COMBAT, AIState.FLANKING, AIState.ASSAULT, AIState.RETREATING, AIState.SEEKING_COVER, AIState.IN_COVER, AIState.SUPPRESSED]
+	var tracking_mode := _current_state in [AIState.PURSUING, AIState.SEARCHING]
+	# Priority 1: Active combat states - face player directly (Issue #373)
+	if active_combat and _player != null:
 		target_angle = (_player.global_position - global_position).normalized().angle()
 		has_target = true
-	# Issue #386: During FLANKING, face the player (even if not visible) instead of corner check.
-	# This prevents the enemy from facing backwards/sideways while flanking.
-	elif _current_state == AIState.FLANKING and _player != null:
+	# Priority 2: Tracking states - use memory/last known position (Issue #373)
+	elif tracking_mode:
+		var target_pos := _get_target_position()
+		if target_pos != global_position:
+			target_angle = (target_pos - global_position).normalized().angle()
+			has_target = true
+		elif _player != null:
+			target_angle = (_player.global_position - global_position).normalized().angle()
+			has_target = true
+	# Priority 3: Can see player in non-combat state
+	elif _player != null and _can_see_player:
 		target_angle = (_player.global_position - global_position).normalized().angle()
 		has_target = true
+	# Priority 4: Corner check
 	elif _corner_check_timer > 0:
-		target_angle = _corner_check_angle  # Corner check: smooth rotation (Issue #347)
+		target_angle = _corner_check_angle
 		has_target = true
+	# Priority 5: Movement direction
 	elif velocity.length_squared() > 1.0:
 		target_angle = velocity.normalized().angle()
 		has_target = true
+	# Priority 6: Idle scanning
 	elif _current_state == AIState.IDLE and _idle_scan_targets.size() > 0:
 		target_angle = _idle_scan_targets[_idle_scan_target_index]
 		has_target = true
 	if not has_target:
 		return
-	# Smooth rotation for visual polish (Issue #347)
-	var delta := get_physics_process_delta_time()
-	var current_rot := _enemy_model.global_rotation
-	var angle_diff := wrapf(target_angle - current_rot, -PI, PI)
-	if abs(angle_diff) <= MODEL_ROTATION_SPEED * delta:
-		_enemy_model.global_rotation = target_angle
-	elif angle_diff > 0:
-		_enemy_model.global_rotation = current_rot + MODEL_ROTATION_SPEED * delta
-	else:
-		_enemy_model.global_rotation = current_rot - MODEL_ROTATION_SPEED * delta
-	var aiming_left := absf(_enemy_model.global_rotation) > PI / 2
-	_model_facing_left = aiming_left
-	if aiming_left:
-		_enemy_model.scale = Vector2(enemy_model_scale, -enemy_model_scale)
-	else:
-		_enemy_model.scale = Vector2(enemy_model_scale, enemy_model_scale)
 
-## Forces the enemy model to face a specific direction immediately.
-## Used for priority attacks where we need to aim and shoot in the same frame.
-##
-## Unlike _update_enemy_model_rotation(), this function:
-## 1. Takes a specific direction to face (doesn't derive it from player position)
-## 2. Is called immediately before shooting in priority attack code
-##
-## This ensures the weapon sprite's transform matches the intended aim direction
-## so that _get_weapon_forward_direction() returns the correct vector for aim checks.
-##
-## @param direction: The direction to face (normalized).
+	# Issue #373 FIX: Natural boundary crossing - always rotate toward target via shortest path.
+	# Only flip Y-scale when naturally crossing ±90° boundary (flip is invisible at that angle).
+
+	var target_facing_left := absf(target_angle) > PI / 2
+	var current_facing_left := _model_facing_left
+	var delta := get_physics_process_delta_time()
+
+	# Get current visual rotation (accounting for Y-scale flip)
+	var raw_rot := _enemy_model.global_rotation
+	var visual_rot := -raw_rot if _model_facing_left else raw_rot
+
+	# Calculate shortest path to target
+	var angle_diff := wrapf(target_angle - visual_rot, -PI, PI)
+
+	# Calculate the rotation step for this frame
+	var rotation_step: float
+	if absf(angle_diff) <= MODEL_ROTATION_SPEED * delta:
+		rotation_step = angle_diff
+	elif angle_diff > 0:
+		rotation_step = MODEL_ROTATION_SPEED * delta
+	else:
+		rotation_step = -MODEL_ROTATION_SPEED * delta
+
+	var new_visual_rot := visual_rot + rotation_step
+
+	# Check if this rotation step crosses the ±90° boundary
+	var should_flip := false
+	var boundary_crossed := 0.0  # Which boundary we crossed (PI/2 or -PI/2)
+
+	if target_facing_left != current_facing_left:
+		# We need to cross a boundary to reach the target side
+		# Check if this step crosses +90° or -90°
+		var crossed_upper := (visual_rot < PI / 2 and new_visual_rot >= PI / 2) or (visual_rot > PI / 2 and new_visual_rot <= PI / 2)
+		var crossed_lower := (visual_rot > -PI / 2 and new_visual_rot <= -PI / 2) or (visual_rot < -PI / 2 and new_visual_rot >= -PI / 2)
+
+		# More robust boundary check: also consider if we're AT the boundary moving toward target side
+		var at_upper := absf(visual_rot - PI / 2) < 0.15
+		var at_lower := absf(visual_rot + PI / 2) < 0.15
+		var moving_past_upper := at_upper and ((angle_diff > 0 and visual_rot < PI / 2) or (angle_diff < 0 and visual_rot > PI / 2))
+		var moving_past_lower := at_lower and ((angle_diff < 0 and visual_rot > -PI / 2) or (angle_diff > 0 and visual_rot < -PI / 2))
+
+		if crossed_upper or moving_past_upper:
+			should_flip = true
+			boundary_crossed = PI / 2
+		elif crossed_lower or moving_past_lower:
+			should_flip = true
+			boundary_crossed = -PI / 2
+
+	# Perform flip if we're crossing a boundary
+	if should_flip:
+		_model_facing_left = target_facing_left
+		_enemy_model.scale = Vector2(enemy_model_scale, -enemy_model_scale if _model_facing_left else enemy_model_scale)
+
+		# At the boundary, visual rotation is preserved but raw rotation inverts
+		# Snap to exact boundary for clean flip, then continue from there
+		var flip_visual_rot := boundary_crossed
+		_enemy_model.global_rotation = -flip_visual_rot if _model_facing_left else flip_visual_rot
+
+		# Recalculate remaining rotation from the boundary to the target
+		var remaining_angle := wrapf(target_angle - flip_visual_rot, -PI, PI)
+		var remaining_step: float
+		if absf(remaining_angle) <= MODEL_ROTATION_SPEED * delta:
+			remaining_step = remaining_angle
+		elif remaining_angle > 0:
+			remaining_step = MODEL_ROTATION_SPEED * delta
+		else:
+			remaining_step = -MODEL_ROTATION_SPEED * delta
+
+		new_visual_rot = flip_visual_rot + remaining_step
+		_enemy_model.global_rotation = -new_visual_rot if _model_facing_left else new_visual_rot
+	else:
+		# No flip needed - just apply the rotation
+		_enemy_model.global_rotation = -new_visual_rot if _model_facing_left else new_visual_rot
+
+## Forces enemy model to face direction immediately (for priority attacks).
 func _force_model_to_face_direction(direction: Vector2) -> void:
 	if not _enemy_model:
 		return
 
 	var target_angle := direction.angle()
-	var aiming_left := absf(target_angle) > PI / 2
+	var target_facing_left := absf(target_angle) > PI / 2
 
-	# Same fix as _update_enemy_model_rotation() - don't negate angle when flipped
-	if aiming_left:
-		_enemy_model.global_rotation = target_angle
+	# Update model facing state for consistency with _update_enemy_model_rotation()
+	_model_facing_left = target_facing_left
+	# Issue #373: When Y-scale is negative, visual angle = -raw_rotation.
+	# So to achieve visual angle = target_angle, we need raw_rotation = -target_angle.
+	_enemy_model.global_rotation = -target_angle if target_facing_left else target_angle
+	if target_facing_left:
 		_enemy_model.scale = Vector2(enemy_model_scale, -enemy_model_scale)
 	else:
-		_enemy_model.global_rotation = target_angle
 		_enemy_model.scale = Vector2(enemy_model_scale, enemy_model_scale)
 
 ## Updates the walking animation based on enemy movement state.
@@ -1238,10 +1298,7 @@ func _process_ai_state(delta: float) -> void:
 
 			# Aim at player immediately - both body rotation and model rotation
 			rotation = direction_to_player.angle()
-			# CRITICAL: Force the model to face the player immediately so that
-			# _get_weapon_forward_direction() returns the correct aim direction.
-			# Without this, the weapon transform would still reflect the old direction
-			# and _shoot() would fail the aim tolerance check. (Fix for issue #264)
+			# Force model to face player so weapon direction is correct (issue #264).
 			_force_model_to_face_direction(direction_to_player)
 
 			# Shoot with priority - still respects weapon fire rate cooldown
@@ -1346,10 +1403,7 @@ func _process_idle_state(delta: float) -> void:
 		BehaviorMode.GUARD:
 			_process_guard(delta)
 
-## Process COMBAT state - combat cycle: exit cover -> exposed shooting -> return to cover.
-## Phase 1 (approaching): Move toward player to get into direct contact range.
-## Phase 2 (exposed): Stand and shoot for 2-3 seconds.
-## Phase 3: Return to cover via SEEKING_COVER state.
+## Process COMBAT state - combat cycle: approach, shoot exposed, then return to cover.
 func _process_combat_state(delta: float) -> void:
 	# Track time in COMBAT state (for preventing rapid state thrashing)
 	_combat_state_timer += delta
@@ -1626,12 +1680,7 @@ func _process_seeking_cover_state(_delta: float) -> void:
 		_shoot()
 		_shoot_timer = 0.0
 
-## Process IN_COVER state - taking cover from enemy fire.
-## Decides next action based on:
-## 1. If under fire -> suppressed
-## 2. If player is close (can exit cover for direct contact) -> COMBAT
-## 3. If player is far but can hit from current position -> COMBAT (stay and shoot)
-## 4. If player is far and can't hit -> PURSUING (move cover-to-cover)
+## Process IN_COVER state - decides to stay suppressed, fight, or pursue.
 func _process_in_cover_state(delta: float) -> void:
 	velocity = Vector2.ZERO
 
@@ -2095,10 +2144,7 @@ func _process_pursuing_state(delta: float) -> void:
 	if _has_pursuit_cover:
 		var distance: float = global_position.distance_to(_pursuit_next_cover)
 
-		# Check if we've reached the pursuit cover
-		# Note: We only check distance here, NOT visibility from player.
-		# If we checked visibility, the enemy would immediately consider themselves
-		# "at cover" even before moving, since they start hidden from player.
+		# Check distance only (not visibility) to avoid false early arrival.
 		if distance < 15.0:
 			_log_debug("Reached pursuit cover at distance %.1f" % distance)
 			_has_pursuit_cover = false
@@ -2660,10 +2706,7 @@ func _transition_to_retreating() -> void:
 	# Find cover position for retreating
 	_find_cover_position()
 
-## Check if the enemy is visible from the player's position.
-## Uses raycasting from player to enemy to determine if there are obstacles blocking line of sight.
-## This is the inverse of _can_see_player - it checks if the PLAYER can see the ENEMY.
-## Checks multiple points on the enemy body (center and corners) to account for enemy size.
+## Check if the enemy is visible from the player's position (inverse of _can_see_player).
 func _is_visible_from_player() -> bool:
 	if _player == null:
 		return false
@@ -2745,10 +2788,7 @@ func _is_position_visible_from_player(pos: Vector2) -> bool:
 
 	return false
 
-## Check if a target position is visible from the enemy's perspective.
-## Uses raycast to verify there are no obstacles between enemy and the target position.
-## This is used to validate lead prediction targets - enemies should only aim at
-## positions they can actually see.
+## Check if target position is visible from enemy (used for lead prediction validation).
 func _is_position_visible_to_enemy(target_pos: Vector2) -> bool:
 	var distance := global_position.distance_to(target_pos)
 
@@ -3063,12 +3103,7 @@ func _count_enemies_in_combat() -> int:
 func is_in_combat_engagement() -> bool:
 	return _can_see_player and _current_state in [AIState.COMBAT, AIState.IN_COVER, AIState.ASSAULT]
 
-## Find cover position closer to the player for pursuit.
-## Used during PURSUING state to move cover-to-cover toward the player.
-## Improvements for issue #93:
-## - Penalizes covers on the same obstacle to avoid shuffling along walls
-## - Requires minimum progress toward player to skip insignificant moves
-## - Verifies the path to cover is clear (no walls blocking)
+## Find cover position closer to the player for pursuit (issue #93 improvements).
 func _find_pursuit_cover_toward_player() -> void:
 	# Use memory-based target position instead of direct player position (Issue #297)
 	# This allows pursuing toward a suspected position even when player is not visible
@@ -3106,13 +3141,7 @@ func _find_pursuit_cover_toward_player() -> void:
 			# Cover position is offset from collision point along normal
 			var cover_pos := collision_point + collision_normal * 35.0
 
-			# For pursuit, we want cover that is:
-			# 1. Closer to the player than we currently are (with minimum progress)
-			# 2. Hidden from the player (or mostly hidden)
-			# 3. Not too far from our current position
-			# 4. Preferably on a different obstacle than current cover
-			# 5. Reachable (no walls blocking the path)
-
+			# For pursuit: closer to player, hidden, reachable, preferably different obstacle.
 			var cover_distance_to_player := cover_pos.distance_to(player_pos)
 			var cover_distance_from_me := global_position.distance_to(cover_pos)
 			var progress := my_distance_to_player - cover_distance_to_player
@@ -3143,12 +3172,7 @@ func _find_pursuit_cover_toward_player() -> void:
 			if _current_cover_obstacle != null and collider == _current_cover_obstacle:
 				same_obstacle_penalty = PURSUIT_SAME_OBSTACLE_PENALTY
 
-			# Score calculation:
-			# Higher score for positions that are:
-			# - Hidden from player (priority)
-			# - Closer to player
-			# - Not too far from current position
-			# - On a different obstacle than current cover
+			# Score: prioritize hidden, closer to player, reachable, different obstacle.
 			var hidden_score: float = 5.0 if is_hidden else 0.0
 			var approach_score: float = progress / CLOSE_COMBAT_DISTANCE
 			var distance_penalty: float = cover_distance_from_me / COVER_CHECK_DISTANCE
@@ -3488,12 +3512,7 @@ func _check_wall_ahead(direction: Vector2) -> Vector2:
 	var closest_wall_distance: float = WALL_CHECK_DISTANCE
 	var hit_count: int = 0
 
-	# Raycast angles: spread from -90 to +90 degrees relative to movement direction
-	# Index 0: center (0°)
-	# Index 1-3: left side (-20°, -45°, -70°)
-	# Index 4-6: right side (+20°, +45°, +70°)
-	# Index 7: rear check for wall sliding (-180°)
-	# IMPORTANT: Use explicit Array[float] type to avoid type inference errors
+	# Raycast angles: center, left (-20,-45,-70), right (+20,+45,+70), rear for wall slide.
 	var angles: Array[float] = [0.0, -0.35, -0.79, -1.22, 0.35, 0.79, 1.22, PI]
 
 	var raycast_count: int = mini(WALL_CHECK_COUNT, _wall_raycasts.size())
@@ -3565,13 +3584,13 @@ func _get_wall_avoidance_weight(direction: Vector2) -> float:
 	var normalized_distance: float = clampf(closest_distance / WALL_CHECK_DISTANCE, 0.0, 1.0)
 	return lerpf(WALL_AVOIDANCE_MIN_WEIGHT, WALL_AVOIDANCE_MAX_WEIGHT, normalized_distance)
 
-## Check if target is within FOV cone. FOV uses _enemy_model.global_rotation for facing.
+## Check if target is within FOV cone. Uses visual rotation for facing direction (Issue #373).
 func _is_position_in_fov(target_pos: Vector2) -> bool:
 	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
 	var global_fov_enabled: bool = experimental_settings != null and experimental_settings.has_method("is_fov_enabled") and experimental_settings.is_fov_enabled()
 	if not global_fov_enabled or not fov_enabled or fov_angle <= 0.0:
 		return true  # FOV disabled - 360 degree vision
-	var facing_angle := _enemy_model.global_rotation if _enemy_model else rotation
+	var facing_angle := _get_visual_rotation()
 	var dir_to_target := (target_pos - global_position).normalized()
 	var dot := Vector2.from_angle(facing_angle).dot(dir_to_target)
 	var angle_to_target := rad_to_deg(acos(clampf(dot, -1.0, 1.0)))
@@ -3606,16 +3625,14 @@ func _check_player_visibility() -> void:
 		_continuous_visibility_timer = 0.0
 		return
 
-	# Check FOV angle (if FOV is enabled via ExperimentalSettings)
-	if not _is_position_in_fov(_player.global_position):
+	# Issue #373: FOV restricts initial detection only. In combat states, skip FOV check
+	# (enemy maintains awareness of player). Line-of-sight raycast still required below.
+	var in_combat_state := _current_state in [AIState.COMBAT, AIState.PURSUING, AIState.FLANKING, AIState.ASSAULT, AIState.RETREATING, AIState.SEEKING_COVER, AIState.IN_COVER, AIState.SUPPRESSED, AIState.SEARCHING]
+	if not in_combat_state and not _is_position_in_fov(_player.global_position):
 		_continuous_visibility_timer = 0.0
 		return
 
-	# Check multiple points on the player's body (center + corners) to handle
-	# cases where player is near a wall corner. A single raycast to the center
-	# might hit the wall, but parts of the player's body could still be visible.
-	# This fixes the issue where enemies couldn't see players standing close to
-	# walls in narrow passages (issue #264).
+	# Check multiple points on player body for corner visibility (issue #264).
 	var check_points := _get_player_check_points(_player.global_position)
 	var visible_count := 0
 
@@ -3895,11 +3912,7 @@ func _spawn_casing(shoot_direction: Vector2, weapon_forward: Vector2) -> void:
 	var casing: RigidBody2D = casing_scene.instantiate()
 	casing.global_position = casing_spawn_position
 
-	# Calculate ejection direction to the right of the weapon
-	# In a top-down view with Y increasing downward:
-	# - If weapon points right (1, 0), right side of weapon is DOWN (0, 1)
-	# - If weapon points up (0, -1), right side of weapon is RIGHT (1, 0)
-	# This is a 90 degree counter-clockwise rotation (perpendicular to shooting direction)
+	# Eject casing perpendicular to weapon (90° CCW rotation).
 	var weapon_right: Vector2 = Vector2(-weapon_forward.y, weapon_forward.x)
 
 	# Eject to the right with some randomness
@@ -4205,16 +4218,7 @@ func _get_health_percent() -> float:
 		return 0.0
 	return float(_current_health) / float(_max_health)
 
-## Calculates the bullet spawn position at the weapon's muzzle.
-## The muzzle is positioned relative to the weapon mount, offset in the weapon's forward direction.
-##
-## IMPORTANT FIX (Issue #264 - Session 4):
-## Similar to _get_weapon_forward_direction(), we need to calculate the muzzle position
-## based on the intended aim direction when the player is visible, not from the stale
-## global_transform which may not have updated yet in the same physics frame.
-##
-## @param _direction: The normalized direction the bullet will travel (used for fallback only).
-## @return: The global position where the bullet should spawn.
+## Calculates bullet spawn position at weapon muzzle (Issue #264 fix for same-frame aiming).
 func _get_bullet_spawn_position(_direction: Vector2) -> Vector2:
 	# The rifle sprite (m16_rifle_topdown.png) is 64px long with offset (20, 0).
 	# The muzzle (right edge in local space) is at: offset.x + sprite_width/2 = 20 + 32 = 52px
@@ -4228,13 +4232,7 @@ func _get_bullet_spawn_position(_direction: Vector2) -> Vector2:
 		if _player and is_instance_valid(_player) and _can_see_player:
 			weapon_forward = (_player.global_position - global_position).normalized()
 		else:
-			# Fallback to transform-based direction when player is not visible.
-			# Get the weapon's VISUAL forward direction from global_transform.
-			# IMPORTANT: We use global_transform.x because it correctly accounts for the
-			# vertical flip (scale.y negative) that happens when aiming left. The flip
-			# affects where the muzzle visually appears, so we need the transformed direction.
-			# Using Vector2.from_angle(_enemy_model.rotation) would give incorrect results
-			# because it doesn't account for the scale flip.
+			# Fallback: use global_transform.x (accounts for scale flip unlike rotation).
 			weapon_forward = _weapon_sprite.global_transform.x.normalized()
 
 		# Calculate muzzle offset accounting for enemy model scale
@@ -4785,10 +4783,10 @@ func _draw() -> void:
 		# Draw small filled circle at center
 		draw_circle(to_suspected, 5.0, confidence_color)
 
-## Draw FOV cone with obstacle occlusion. Follows model rotation, rays stop at walls.
+## Draw FOV cone with obstacle occlusion. Uses visual rotation, rays stop at walls (Issue #373).
 func _draw_fov_cone(fill_color: Color, edge_color: Color) -> void:
 	var half_fov := deg_to_rad(fov_angle / 2.0)
-	var global_facing := _enemy_model.global_rotation if _enemy_model else global_rotation
+	var global_facing := _get_visual_rotation()
 	var local_facing := global_facing - global_rotation  # Convert to local space for drawing
 	var space_state := get_world_2d().direct_space_state
 	var cone_points: PackedVector2Array = [Vector2.ZERO]

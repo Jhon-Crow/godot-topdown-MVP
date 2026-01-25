@@ -1,0 +1,1901 @@
+[09:22:58] [INFO] ============================================================
+[09:22:58] [INFO] GAME LOG STARTED
+[09:22:58] [INFO] ============================================================
+[09:22:58] [INFO] Timestamp: 2026-01-25T09:22:58
+[09:22:58] [INFO] Log file: I:/Загрузки/godot exe/game_log_20260125_092258.txt
+[09:22:58] [INFO] Executable: I:/Загрузки/godot exe/Godot-Top-Down-Template.exe
+[09:22:58] [INFO] OS: Windows
+[09:22:58] [INFO] Debug build: false
+[09:22:58] [INFO] Engine version: 4.3-stable (official)
+[09:22:58] [INFO] Project: Godot Top-Down Template
+[09:22:58] [INFO] ------------------------------------------------------------
+[09:22:58] [INFO] [GameManager] GameManager ready
+[09:22:58] [INFO] [ScoreManager] ScoreManager ready
+[09:22:58] [INFO] [SoundPropagation] SoundPropagation autoload initialized
+[09:22:58] [INFO] [ImpactEffects] Scenes loaded: DustEffect, BloodEffect, SparksEffect, BloodDecal
+[09:22:58] [INFO] [ImpactEffects] ImpactEffectsManager ready - FULL VERSION with blood effects enabled
+[09:22:58] [INFO] [ImpactEffects] Starting particle shader warmup (Issue #343 fix)...
+[09:22:58] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[09:22:58] [INFO] [PenultimateHit] Saturation shader loaded successfully
+[09:22:58] [INFO] [PenultimateHit] Starting shader warmup (Issue #343 fix)...
+[09:22:58] [INFO] [PenultimateHit] PenultimateHitEffectsManager ready - Configuration:
+[09:22:58] [INFO] [PenultimateHit]   Time scale: 0.10 (10x slowdown)
+[09:22:58] [INFO] [PenultimateHit]   Saturation boost: 2.0 (3.0x)
+[09:22:58] [INFO] [PenultimateHit]   Contrast boost: 1.0 (2.0x)
+[09:22:58] [INFO] [PenultimateHit]   Effect duration: 3.0 real seconds
+[09:22:58] [INFO] [LastChance] Resetting all effects (scene change detected)
+[09:22:58] [INFO] [LastChance] Last chance shader loaded successfully
+[09:22:58] [INFO] [LastChance] Starting shader warmup (Issue #343 fix)...
+[09:22:58] [INFO] [LastChance] LastChanceEffectsManager ready - Configuration:
+[09:22:58] [INFO] [LastChance]   Freeze duration: 6.0 real seconds
+[09:22:58] [INFO] [LastChance]   Sepia intensity: 0.70
+[09:22:58] [INFO] [LastChance]   Brightness: 0.60
+[09:22:58] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FlashbangGrenade.tscn
+[09:22:58] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FragGrenade.tscn
+[09:22:58] [INFO] [ExperimentalSettings] ExperimentalSettings initialized - FOV enabled: true
+[09:22:58] [ENEMY] [Enemy1] Death animation component initialized
+[09:22:58] [ENEMY] [Enemy2] Death animation component initialized
+[09:22:58] [ENEMY] [Enemy3] Death animation component initialized
+[09:22:58] [ENEMY] [Enemy4] Death animation component initialized
+[09:22:58] [ENEMY] [Enemy5] Death animation component initialized
+[09:22:58] [ENEMY] [Enemy6] Death animation component initialized
+[09:22:58] [ENEMY] [Enemy7] Death animation component initialized
+[09:22:58] [ENEMY] [Enemy8] Death animation component initialized
+[09:22:58] [ENEMY] [Enemy9] Death animation component initialized
+[09:22:58] [ENEMY] [Enemy10] Death animation component initialized
+[09:22:58] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[09:22:58] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[09:22:58] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[09:22:58] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[09:22:58] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[09:22:58] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[09:22:58] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[09:22:58] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[09:22:58] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 3/4
+[09:22:58] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[09:22:58] [INFO] [BuildingLevel] Found Environment/Enemies node with 10 children
+[09:22:58] [INFO] [BuildingLevel] Child 'Enemy1': script=true, has_died_signal=true
+[09:22:58] [INFO] [BuildingLevel] Child 'Enemy2': script=true, has_died_signal=true
+[09:22:58] [INFO] [BuildingLevel] Child 'Enemy3': script=true, has_died_signal=true
+[09:22:58] [INFO] [BuildingLevel] Child 'Enemy4': script=true, has_died_signal=true
+[09:22:58] [INFO] [BuildingLevel] Child 'Enemy5': script=true, has_died_signal=true
+[09:22:58] [INFO] [BuildingLevel] Child 'Enemy6': script=true, has_died_signal=true
+[09:22:58] [INFO] [BuildingLevel] Child 'Enemy7': script=true, has_died_signal=true
+[09:22:58] [INFO] [BuildingLevel] Child 'Enemy8': script=true, has_died_signal=true
+[09:22:58] [INFO] [BuildingLevel] Child 'Enemy9': script=true, has_died_signal=true
+[09:22:58] [INFO] [BuildingLevel] Child 'Enemy10': script=true, has_died_signal=true
+[09:22:58] [INFO] [BuildingLevel] Enemy tracking complete: 10 enemies registered
+[09:22:58] [INFO] [ScoreManager] Level started with 10 enemies
+[09:22:58] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 1)
+[09:22:58] [ENEMY] [Enemy1] Registered as sound listener
+[09:22:58] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 2, behavior: GUARD, player_found: yes
+[09:22:58] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 2)
+[09:22:58] [ENEMY] [Enemy2] Registered as sound listener
+[09:22:58] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 3, behavior: GUARD, player_found: yes
+[09:22:58] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 3)
+[09:22:58] [ENEMY] [Enemy3] Registered as sound listener
+[09:22:58] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 3, behavior: GUARD, player_found: yes
+[09:22:58] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 4)
+[09:22:58] [ENEMY] [Enemy4] Registered as sound listener
+[09:22:58] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 3, behavior: GUARD, player_found: yes
+[09:22:58] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 5)
+[09:22:58] [ENEMY] [Enemy5] Registered as sound listener
+[09:22:58] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 3, behavior: GUARD, player_found: yes
+[09:22:58] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 6)
+[09:22:58] [ENEMY] [Enemy6] Registered as sound listener
+[09:22:58] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 3, behavior: GUARD, player_found: yes
+[09:22:58] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 7)
+[09:22:58] [ENEMY] [Enemy7] Registered as sound listener
+[09:22:58] [ENEMY] [Enemy7] Enemy spawned at (1606.114, 893.8859), health: 2, behavior: PATROL, player_found: yes
+[09:22:58] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 8)
+[09:22:58] [ENEMY] [Enemy8] Registered as sound listener
+[09:22:58] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 4, behavior: GUARD, player_found: yes
+[09:22:58] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 9)
+[09:22:58] [ENEMY] [Enemy9] Registered as sound listener
+[09:22:58] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 3, behavior: GUARD, player_found: yes
+[09:22:58] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 10)
+[09:22:58] [ENEMY] [Enemy10] Registered as sound listener
+[09:22:58] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 3, behavior: PATROL, player_found: yes
+[09:22:58] [INFO] [Player] Detecting weapon pose (frame 3)...
+[09:22:58] [INFO] [Player] Detected weapon: Rifle (default pose)
+[09:22:58] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[09:22:58] [INFO] [PenultimateHit] Shader warmup complete in 178 ms
+[09:22:58] [INFO] [LastChance] Shader warmup complete in 177 ms
+[09:22:58] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[09:22:58] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[09:22:58] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[09:22:58] [INFO] [LastChance] Found player: Player
+[09:22:58] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[09:22:58] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[09:22:58] [INFO] [LastChance] Connected to player Died signal (C#)
+[09:22:58] [INFO] [ImpactEffects] Particle shader warmup complete: 5 effects warmed up in 411 ms
+[09:23:00] [ENEMY] [Enemy7] PATROL corner check: angle 94.3°
+[09:23:00] [ENEMY] [Enemy10] PATROL corner check: angle -0.0°
+[09:23:00] [ENEMY] [Enemy7] PATROL corner check: angle 94.3°
+[09:23:00] [ENEMY] [Enemy10] PATROL corner check: angle 14.3°
+[09:23:00] [INFO] [Player.Debug] Debug mode toggled: ON
+[09:23:00] [INFO] [GameManager] Debug mode toggled: ON
+[09:23:00] [ENEMY] [Enemy10] PATROL corner check: angle 7.0°
+[09:23:01] [ENEMY] [Enemy10] PATROL corner check: angle 3.5°
+[09:23:01] [ENEMY] [Enemy10] PATROL corner check: angle 1.8°
+[09:23:01] [ENEMY] [Enemy10] PATROL corner check: angle 0.9°
+[09:23:02] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:23:02] [ENEMY] [Enemy3] State: IDLE -> COMBAT
+[09:23:02] [ENEMY] [Enemy4] Memory: high confidence (0.90) - transitioning to PURSUING
+[09:23:02] [ENEMY] [Enemy4] State: IDLE -> PURSUING
+[09:23:02] [ENEMY] [Enemy2] Memory: high confidence (0.90) - transitioning to PURSUING
+[09:23:02] [ENEMY] [Enemy2] State: IDLE -> PURSUING
+[09:23:02] [ENEMY] [Enemy4] PURSUING corner check: angle -113.2°
+[09:23:02] [ENEMY] [Enemy2] PURSUING corner check: angle -180.0°
+[09:23:02] [ENEMY] [Enemy7] PATROL corner check: angle 90.0°
+[09:23:02] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(684.4485, 753.7583), source=ENEMY (Enemy3), range=1469, listeners=10
+[09:23:02] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[09:23:02] [INFO] [LastChance] Threat detected: Bullet
+[09:23:02] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[09:23:02] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[09:23:02] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:23:02] [INFO] [Player] Spawning blood effect at (450, 759.2778), dir=(-0.99852645, 0.0542672), lethal=False (C#)
+[09:23:02] [INFO] [ImpactEffects] spawn_blood_effect called at (450, 759.2778), dir=(-0.998526, 0.054267), lethal=false
+[09:23:02] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[09:23:02] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[09:23:02] [INFO] [ImpactEffects] Blood effect spawned at (450, 759.2778) (scale=1)
+[09:23:02] [INFO] [PenultimateHit] Player damaged: 1.0 damage, current health: 2.0
+[09:23:02] [INFO] [LastChance] Player health updated (C# Damaged): 2.0
+[09:23:02] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(684.4485, 753.7583), source=ENEMY (Enemy3), range=1469, listeners=10
+[09:23:02] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[09:23:02] [INFO] [LastChance] Threat detected: Bullet
+[09:23:02] [INFO] [LastChance] Player health is 2.0 - effect requires exactly 1 HP or less but alive
+[09:23:02] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[09:23:02] [ENEMY] [Enemy4] PURSUING corner check: angle -89.5°
+[09:23:02] [INFO] [Player] Spawning blood effect at (450, 763.1667), dir=(-0.9997759, 0.021168044), lethal=False (C#)
+[09:23:02] [INFO] [ImpactEffects] spawn_blood_effect called at (450, 763.1667), dir=(-0.999776, 0.021168), lethal=false
+[09:23:02] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[09:23:02] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[09:23:02] [INFO] [ImpactEffects] Blood effect spawned at (450, 763.1667) (scale=1)
+[09:23:02] [INFO] [PenultimateHit] Player damaged: 1.0 damage, current health: 1.0
+[09:23:02] [INFO] [PenultimateHit] Hard mode active - skipping regular penultimate hit effect (using last chance instead)
+[09:23:02] [INFO] [LastChance] Player health updated (C# Damaged): 1.0
+[09:23:02] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(684.4485, 753.7583), source=ENEMY (Enemy3), range=1469, listeners=10
+[09:23:02] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[09:23:02] [INFO] [LastChance] Threat detected: Bullet
+[09:23:02] [INFO] [LastChance] Triggering last chance effect!
+[09:23:02] [INFO] [LastChance] Starting last chance effect:
+[09:23:02] [INFO] [LastChance]   - Time will be frozen (except player)
+[09:23:02] [INFO] [LastChance]   - Duration: 6.0 real seconds
+[09:23:02] [INFO] [LastChance]   - Sepia intensity: 0.70
+[09:23:02] [INFO] [LastChance]   - Brightness: 0.60
+[09:23:02] [INFO] [LastChance] Pushed bullet Bullet from distance 118.3 to 200.0
+[09:23:02] [INFO] [LastChance] Pushed 1 threatening bullets away from player
+[09:23:02] [INFO] [LastChance] Set player Player and all 19 children to PROCESS_MODE_ALWAYS
+[09:23:02] [INFO] [LastChance] Set StaticBody2D 'WallTop' to PROCESS_MODE_ALWAYS for collision
+[09:23:02] [INFO] [LastChance] Set StaticBody2D 'WallBottom' to PROCESS_MODE_ALWAYS for collision
+[09:23:02] [INFO] [LastChance] Set StaticBody2D 'WallLeft' to PROCESS_MODE_ALWAYS for collision
+[09:23:02] [INFO] [LastChance] Set StaticBody2D 'WallRight' to PROCESS_MODE_ALWAYS for collision
+[09:23:02] [INFO] [LastChance] Set StaticBody2D 'Room1_WallBottom' to PROCESS_MODE_ALWAYS for collision
+[09:23:02] [INFO] [LastChance] Set StaticBody2D 'Room1_WallRight' to PROCESS_MODE_ALWAYS for collision
+[09:23:02] [INFO] [LastChance] Set StaticBody2D 'Room2_WallLeft' to PROCESS_MODE_ALWAYS for collision
+[09:23:02] [INFO] [LastChance] Set StaticBody2D 'Room2_WallBottom' to PROCESS_MODE_ALWAYS for collision
+[09:23:02] [INFO] [LastChance] Set StaticBody2D 'Room2_WallRight' to PROCESS_MODE_ALWAYS for collision
+[09:23:02] [INFO] [LastChance] Set StaticBody2D 'Corridor_WallTop' to PROCESS_MODE_ALWAYS for collision
+[09:23:02] [INFO] [LastChance] Set StaticBody2D 'Corridor_WallBottom' to PROCESS_MODE_ALWAYS for collision
+[09:23:02] [INFO] [LastChance] Set StaticBody2D 'Room3_WallLeft' to PROCESS_MODE_ALWAYS for collision
+[09:23:02] [INFO] [LastChance] Set StaticBody2D 'Room3_WallBottom' to PROCESS_MODE_ALWAYS for collision
+[09:23:02] [INFO] [LastChance] Set StaticBody2D 'Room4_WallLeft' to PROCESS_MODE_ALWAYS for collision
+[09:23:02] [INFO] [LastChance] Set StaticBody2D 'Room4_WallTop' to PROCESS_MODE_ALWAYS for collision
+[09:23:02] [INFO] [LastChance] Set StaticBody2D 'Room5_WallTop' to PROCESS_MODE_ALWAYS for collision
+[09:23:02] [INFO] [LastChance] Set StaticBody2D 'Room5_WallLeft' to PROCESS_MODE_ALWAYS for collision
+[09:23:02] [INFO] [LastChance] Set StaticBody2D 'LobbyDivider_Left' to PROCESS_MODE_ALWAYS for collision
+[09:23:02] [INFO] [LastChance] Set StaticBody2D 'LobbyDivider_Right' to PROCESS_MODE_ALWAYS for collision
+[09:23:02] [INFO] [LastChance] Set StaticBody2D 'StorageRoom_WallTop' to PROCESS_MODE_ALWAYS for collision
+[09:23:02] [INFO] [LastChance] Set StaticBody2D 'StorageRoom_WallRight' to PROCESS_MODE_ALWAYS for collision
+[09:23:02] [INFO] [LastChance] Set StaticBody2D 'MainHall_WallLeft' to PROCESS_MODE_ALWAYS for collision
+[09:23:02] [INFO] [LastChance] Set StaticBody2D 'MainHall_WallRight' to PROCESS_MODE_ALWAYS for collision
+[09:23:02] [INFO] [LastChance] Set StaticBody2D 'MainHall_WallTop' to PROCESS_MODE_ALWAYS for collision
+[09:23:02] [INFO] [LastChance] Set StaticBody2D 'Room2_CornerBL' to PROCESS_MODE_ALWAYS for collision
+[09:23:02] [INFO] [LastChance] Set StaticBody2D 'Room2_CornerBR' to PROCESS_MODE_ALWAYS for collision
+[09:23:02] [INFO] [LastChance] Set StaticBody2D 'Corridor_CornerTR' to PROCESS_MODE_ALWAYS for collision
+[09:23:02] [INFO] [LastChance] Set StaticBody2D 'Corridor_CornerBR' to PROCESS_MODE_ALWAYS for collision
+[09:23:02] [INFO] [LastChance] Set StaticBody2D 'MainHall_CornerTL' to PROCESS_MODE_ALWAYS for collision
+[09:23:02] [INFO] [LastChance] Set StaticBody2D 'MainHall_CornerTR' to PROCESS_MODE_ALWAYS for collision
+[09:23:02] [INFO] [LastChance] Set StaticBody2D 'StorageRoom_CornerTR' to PROCESS_MODE_ALWAYS for collision
+[09:23:02] [INFO] [LastChance] Set StaticBody2D 'Desk1' to PROCESS_MODE_ALWAYS for collision
+[09:23:02] [INFO] [LastChance] Set StaticBody2D 'Desk2' to PROCESS_MODE_ALWAYS for collision
+[09:23:02] [INFO] [LastChance] Set StaticBody2D 'Table1' to PROCESS_MODE_ALWAYS for collision
+[09:23:02] [INFO] [LastChance] Set StaticBody2D 'Cabinet1' to PROCESS_MODE_ALWAYS for collision
+[09:23:02] [INFO] [LastChance] Set StaticBody2D 'Cabinet2' to PROCESS_MODE_ALWAYS for collision
+[09:23:02] [INFO] [LastChance] Set StaticBody2D 'Desk3' to PROCESS_MODE_ALWAYS for collision
+[09:23:02] [INFO] [LastChance] Set StaticBody2D 'Desk4' to PROCESS_MODE_ALWAYS for collision
+[09:23:02] [INFO] [LastChance] Set StaticBody2D 'Table2' to PROCESS_MODE_ALWAYS for collision
+[09:23:02] [INFO] [LastChance] Set StaticBody2D 'Table3' to PROCESS_MODE_ALWAYS for collision
+[09:23:02] [INFO] [LastChance] Set StaticBody2D 'Cabinet3' to PROCESS_MODE_ALWAYS for collision
+[09:23:02] [INFO] [LastChance] Set StaticBody2D 'StorageCrate1' to PROCESS_MODE_ALWAYS for collision
+[09:23:02] [INFO] [LastChance] Set StaticBody2D 'StorageCrate2' to PROCESS_MODE_ALWAYS for collision
+[09:23:02] [INFO] [LastChance] Set StaticBody2D 'HallTable' to PROCESS_MODE_ALWAYS for collision
+[09:23:02] [INFO] [LastChance] Skipping player node: Player
+[09:23:02] [INFO] [LastChance] Froze existing bullet casing: Casing
+[09:23:02] [INFO] [LastChance] Froze existing bullet casing: @RigidBody2D@286
+[09:23:02] [INFO] [LastChance] Froze existing bullet casing: @RigidBody2D@288
+[09:23:02] [INFO] [LastChance] Froze all nodes except player and autoloads (including GameManager for quick restart)
+[09:23:02] [INFO] [LastChance] Applied visual effects: sepia=0.70, brightness=0.60, ripple=0.0080
+[09:23:02] [INFO] [LastChance] Applied 4.0x saturation to 6 player sprites
+[09:23:03] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[09:23:03] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[09:23:03] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[09:23:03] [INFO] [LastChance] Resetting all effects (scene change detected)
+[09:23:03] [INFO] [LastChance] Ending last chance effect
+[09:23:03] [ENEMY] [Enemy1] Memory reset: confusion=2.0s, had_target=false
+[09:23:03] [ENEMY] [Enemy2] Memory reset: confusion=2.0s, had_target=false
+[09:23:03] [ENEMY] [Enemy3] Memory reset: confusion=2.0s, had_target=false
+[09:23:03] [ENEMY] [Enemy4] Memory reset: confusion=2.0s, had_target=false
+[09:23:03] [ENEMY] [Enemy5] Memory reset: confusion=2.0s, had_target=false
+[09:23:03] [ENEMY] [Enemy6] Memory reset: confusion=2.0s, had_target=false
+[09:23:03] [ENEMY] [Enemy7] Memory reset: confusion=2.0s, had_target=false
+[09:23:03] [ENEMY] [Enemy8] Memory reset: confusion=2.0s, had_target=false
+[09:23:03] [ENEMY] [Enemy9] Memory reset: confusion=2.0s, had_target=false
+[09:23:03] [ENEMY] [Enemy10] Memory reset: confusion=2.0s, had_target=false
+[09:23:03] [INFO] [LastChance] Reset memory for 10 enemies (player teleport effect)
+[09:23:03] [INFO] [LastChance] All process modes restored
+[09:23:03] [INFO] [LastChance] Restored original colors to 5 player sprites
+[09:23:03] [ENEMY] [Enemy1] Death animation component initialized
+[09:23:03] [ENEMY] [Enemy2] Death animation component initialized
+[09:23:03] [ENEMY] [Enemy3] Death animation component initialized
+[09:23:03] [ENEMY] [Enemy4] Death animation component initialized
+[09:23:03] [ENEMY] [Enemy5] Death animation component initialized
+[09:23:03] [ENEMY] [Enemy6] Death animation component initialized
+[09:23:03] [ENEMY] [Enemy7] Death animation component initialized
+[09:23:03] [ENEMY] [Enemy8] Death animation component initialized
+[09:23:03] [ENEMY] [Enemy9] Death animation component initialized
+[09:23:03] [ENEMY] [Enemy10] Death animation component initialized
+[09:23:03] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[09:23:03] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[09:23:03] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[09:23:03] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[09:23:03] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[09:23:03] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[09:23:03] [INFO] [Player.Debug] Connected to GameManager, debug mode: True
+[09:23:03] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[09:23:03] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 3/4
+[09:23:03] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[09:23:03] [INFO] [BuildingLevel] Found Environment/Enemies node with 10 children
+[09:23:03] [INFO] [BuildingLevel] Child 'Enemy1': script=true, has_died_signal=true
+[09:23:03] [INFO] [BuildingLevel] Child 'Enemy2': script=true, has_died_signal=true
+[09:23:03] [INFO] [BuildingLevel] Child 'Enemy3': script=true, has_died_signal=true
+[09:23:03] [INFO] [BuildingLevel] Child 'Enemy4': script=true, has_died_signal=true
+[09:23:03] [INFO] [BuildingLevel] Child 'Enemy5': script=true, has_died_signal=true
+[09:23:03] [INFO] [BuildingLevel] Child 'Enemy6': script=true, has_died_signal=true
+[09:23:03] [INFO] [BuildingLevel] Child 'Enemy7': script=true, has_died_signal=true
+[09:23:03] [INFO] [BuildingLevel] Child 'Enemy8': script=true, has_died_signal=true
+[09:23:03] [INFO] [BuildingLevel] Child 'Enemy9': script=true, has_died_signal=true
+[09:23:03] [INFO] [BuildingLevel] Child 'Enemy10': script=true, has_died_signal=true
+[09:23:03] [INFO] [BuildingLevel] Enemy tracking complete: 10 enemies registered
+[09:23:03] [INFO] [ScoreManager] Level started with 10 enemies
+[09:23:03] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 11)
+[09:23:03] [ENEMY] [Enemy1] Registered as sound listener
+[09:23:03] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 2, behavior: GUARD, player_found: yes
+[09:23:03] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 12)
+[09:23:03] [ENEMY] [Enemy2] Registered as sound listener
+[09:23:03] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 4, behavior: GUARD, player_found: yes
+[09:23:03] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 13)
+[09:23:03] [ENEMY] [Enemy3] Registered as sound listener
+[09:23:03] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 4, behavior: GUARD, player_found: yes
+[09:23:03] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 14)
+[09:23:03] [ENEMY] [Enemy4] Registered as sound listener
+[09:23:03] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 4, behavior: GUARD, player_found: yes
+[09:23:03] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 15)
+[09:23:03] [ENEMY] [Enemy5] Registered as sound listener
+[09:23:03] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 4, behavior: GUARD, player_found: yes
+[09:23:03] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 16)
+[09:23:03] [ENEMY] [Enemy6] Registered as sound listener
+[09:23:03] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 4, behavior: GUARD, player_found: yes
+[09:23:03] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 17)
+[09:23:03] [ENEMY] [Enemy7] Registered as sound listener
+[09:23:03] [ENEMY] [Enemy7] Enemy spawned at (1600, 900), health: 3, behavior: PATROL, player_found: yes
+[09:23:03] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 18)
+[09:23:03] [ENEMY] [Enemy8] Registered as sound listener
+[09:23:03] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 4, behavior: GUARD, player_found: yes
+[09:23:03] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 19)
+[09:23:03] [ENEMY] [Enemy9] Registered as sound listener
+[09:23:03] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 2, behavior: GUARD, player_found: yes
+[09:23:03] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 20)
+[09:23:03] [ENEMY] [Enemy10] Registered as sound listener
+[09:23:03] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 3, behavior: PATROL, player_found: yes
+[09:23:03] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[09:23:03] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[09:23:03] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[09:23:03] [INFO] [LastChance] Found player: Player
+[09:23:03] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[09:23:03] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[09:23:03] [INFO] [LastChance] Connected to player Died signal (C#)
+[09:23:03] [INFO] [Player] Detecting weapon pose (frame 3)...
+[09:23:03] [INFO] [Player] Detected weapon: Rifle (default pose)
+[09:23:03] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[09:23:04] [ENEMY] [Enemy7] PATROL corner check: angle 94.3°
+[09:23:04] [ENEMY] [Enemy10] PATROL corner check: angle -0.0°
+[09:23:05] [ENEMY] [Enemy7] PATROL corner check: angle 94.3°
+[09:23:05] [ENEMY] [Enemy10] PATROL corner check: angle 14.3°
+[09:23:05] [ENEMY] [Enemy3] State: IDLE -> COMBAT
+[09:23:05] [ENEMY] [Enemy4] Memory: high confidence (0.90) - transitioning to PURSUING
+[09:23:05] [ENEMY] [Enemy4] State: IDLE -> PURSUING
+[09:23:05] [ENEMY] [Enemy4] PURSUING corner check: angle -100.7°
+[09:23:05] [ENEMY] [Enemy10] PATROL corner check: angle 7.0°
+[09:23:05] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(689.4604, 751.6418), source=ENEMY (Enemy3), range=1469, listeners=20
+[09:23:05] [INFO] [SoundPropagation] Cleaned up 10 invalid listeners
+[09:23:05] [ENEMY] [Enemy2] Heard gunshot at (689.4604, 751.6418), source_type=1, intensity=0.02, distance=353
+[09:23:05] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[09:23:05] [INFO] [LastChance] Threat detected: Bullet
+[09:23:05] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[09:23:05] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[09:23:05] [INFO] [Player] Spawning blood effect at (450, 764.38885), dir=(-0.9985365, 0.054080993), lethal=False (C#)
+[09:23:05] [INFO] [ImpactEffects] spawn_blood_effect called at (450, 764.3889), dir=(-0.998537, 0.054081), lethal=false
+[09:23:05] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[09:23:05] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[09:23:05] [INFO] [ImpactEffects] Blood effect spawned at (450, 764.3889) (scale=1)
+[09:23:05] [INFO] [PenultimateHit] Player damaged: 1.0 damage, current health: 2.0
+[09:23:05] [INFO] [LastChance] Player health updated (C# Damaged): 2.0
+[09:23:05] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(689.4604, 751.6418), source=ENEMY (Enemy3), range=1469, listeners=10
+[09:23:05] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[09:23:05] [INFO] [LastChance] Threat detected: Bullet
+[09:23:05] [INFO] [LastChance] Player health is 2.0 - effect requires exactly 1 HP or less but alive
+[09:23:05] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[09:23:05] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[09:23:05] [INFO] [Player] Spawning blood effect at (450, 764.38885), dir=(-0.9985862, 0.05315695), lethal=False (C#)
+[09:23:05] [INFO] [ImpactEffects] spawn_blood_effect called at (450, 764.3889), dir=(-0.998586, 0.053157), lethal=false
+[09:23:05] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[09:23:05] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[09:23:05] [INFO] [ImpactEffects] Blood effect spawned at (450, 764.3889) (scale=1)
+[09:23:05] [INFO] [PenultimateHit] Player damaged: 1.0 damage, current health: 1.0
+[09:23:05] [INFO] [PenultimateHit] Hard mode active - skipping regular penultimate hit effect (using last chance instead)
+[09:23:05] [INFO] [LastChance] Player health updated (C# Damaged): 1.0
+[09:23:05] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(689.4604, 751.6418), source=ENEMY (Enemy3), range=1469, listeners=10
+[09:23:05] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[09:23:05] [INFO] [LastChance] Threat detected: Bullet
+[09:23:05] [INFO] [LastChance] Triggering last chance effect!
+[09:23:05] [INFO] [LastChance] Starting last chance effect:
+[09:23:05] [INFO] [LastChance]   - Time will be frozen (except player)
+[09:23:05] [INFO] [LastChance]   - Duration: 6.0 real seconds
+[09:23:05] [INFO] [LastChance]   - Sepia intensity: 0.70
+[09:23:05] [INFO] [LastChance]   - Brightness: 0.60
+[09:23:05] [INFO] [LastChance] Pushed bullet Bullet from distance 124.2 to 200.0
+[09:23:05] [INFO] [LastChance] Pushed 1 threatening bullets away from player
+[09:23:05] [INFO] [LastChance] Set player Player and all 19 children to PROCESS_MODE_ALWAYS
+[09:23:05] [INFO] [LastChance] Set StaticBody2D 'WallTop' to PROCESS_MODE_ALWAYS for collision
+[09:23:05] [INFO] [LastChance] Set StaticBody2D 'WallBottom' to PROCESS_MODE_ALWAYS for collision
+[09:23:05] [INFO] [LastChance] Set StaticBody2D 'WallLeft' to PROCESS_MODE_ALWAYS for collision
+[09:23:05] [INFO] [LastChance] Set StaticBody2D 'WallRight' to PROCESS_MODE_ALWAYS for collision
+[09:23:05] [INFO] [LastChance] Set StaticBody2D 'Room1_WallBottom' to PROCESS_MODE_ALWAYS for collision
+[09:23:05] [INFO] [LastChance] Set StaticBody2D 'Room1_WallRight' to PROCESS_MODE_ALWAYS for collision
+[09:23:05] [INFO] [LastChance] Set StaticBody2D 'Room2_WallLeft' to PROCESS_MODE_ALWAYS for collision
+[09:23:05] [INFO] [LastChance] Set StaticBody2D 'Room2_WallBottom' to PROCESS_MODE_ALWAYS for collision
+[09:23:05] [INFO] [LastChance] Set StaticBody2D 'Room2_WallRight' to PROCESS_MODE_ALWAYS for collision
+[09:23:05] [INFO] [LastChance] Set StaticBody2D 'Corridor_WallTop' to PROCESS_MODE_ALWAYS for collision
+[09:23:05] [INFO] [LastChance] Set StaticBody2D 'Corridor_WallBottom' to PROCESS_MODE_ALWAYS for collision
+[09:23:05] [INFO] [LastChance] Set StaticBody2D 'Room3_WallLeft' to PROCESS_MODE_ALWAYS for collision
+[09:23:05] [INFO] [LastChance] Set StaticBody2D 'Room3_WallBottom' to PROCESS_MODE_ALWAYS for collision
+[09:23:05] [INFO] [LastChance] Set StaticBody2D 'Room4_WallLeft' to PROCESS_MODE_ALWAYS for collision
+[09:23:05] [INFO] [LastChance] Set StaticBody2D 'Room4_WallTop' to PROCESS_MODE_ALWAYS for collision
+[09:23:05] [INFO] [LastChance] Set StaticBody2D 'Room5_WallTop' to PROCESS_MODE_ALWAYS for collision
+[09:23:05] [INFO] [LastChance] Set StaticBody2D 'Room5_WallLeft' to PROCESS_MODE_ALWAYS for collision
+[09:23:05] [INFO] [LastChance] Set StaticBody2D 'LobbyDivider_Left' to PROCESS_MODE_ALWAYS for collision
+[09:23:05] [INFO] [LastChance] Set StaticBody2D 'LobbyDivider_Right' to PROCESS_MODE_ALWAYS for collision
+[09:23:05] [INFO] [LastChance] Set StaticBody2D 'StorageRoom_WallTop' to PROCESS_MODE_ALWAYS for collision
+[09:23:05] [INFO] [LastChance] Set StaticBody2D 'StorageRoom_WallRight' to PROCESS_MODE_ALWAYS for collision
+[09:23:05] [INFO] [LastChance] Set StaticBody2D 'MainHall_WallLeft' to PROCESS_MODE_ALWAYS for collision
+[09:23:05] [INFO] [LastChance] Set StaticBody2D 'MainHall_WallRight' to PROCESS_MODE_ALWAYS for collision
+[09:23:05] [INFO] [LastChance] Set StaticBody2D 'MainHall_WallTop' to PROCESS_MODE_ALWAYS for collision
+[09:23:05] [INFO] [LastChance] Set StaticBody2D 'Room2_CornerBL' to PROCESS_MODE_ALWAYS for collision
+[09:23:05] [INFO] [LastChance] Set StaticBody2D 'Room2_CornerBR' to PROCESS_MODE_ALWAYS for collision
+[09:23:05] [INFO] [LastChance] Set StaticBody2D 'Corridor_CornerTR' to PROCESS_MODE_ALWAYS for collision
+[09:23:05] [INFO] [LastChance] Set StaticBody2D 'Corridor_CornerBR' to PROCESS_MODE_ALWAYS for collision
+[09:23:05] [INFO] [LastChance] Set StaticBody2D 'MainHall_CornerTL' to PROCESS_MODE_ALWAYS for collision
+[09:23:05] [INFO] [LastChance] Set StaticBody2D 'MainHall_CornerTR' to PROCESS_MODE_ALWAYS for collision
+[09:23:05] [INFO] [LastChance] Set StaticBody2D 'StorageRoom_CornerTR' to PROCESS_MODE_ALWAYS for collision
+[09:23:05] [INFO] [LastChance] Set StaticBody2D 'Desk1' to PROCESS_MODE_ALWAYS for collision
+[09:23:05] [INFO] [LastChance] Set StaticBody2D 'Desk2' to PROCESS_MODE_ALWAYS for collision
+[09:23:05] [INFO] [LastChance] Set StaticBody2D 'Table1' to PROCESS_MODE_ALWAYS for collision
+[09:23:05] [INFO] [LastChance] Set StaticBody2D 'Cabinet1' to PROCESS_MODE_ALWAYS for collision
+[09:23:05] [INFO] [LastChance] Set StaticBody2D 'Cabinet2' to PROCESS_MODE_ALWAYS for collision
+[09:23:05] [INFO] [LastChance] Set StaticBody2D 'Desk3' to PROCESS_MODE_ALWAYS for collision
+[09:23:05] [INFO] [LastChance] Set StaticBody2D 'Desk4' to PROCESS_MODE_ALWAYS for collision
+[09:23:05] [INFO] [LastChance] Set StaticBody2D 'Table2' to PROCESS_MODE_ALWAYS for collision
+[09:23:05] [INFO] [LastChance] Set StaticBody2D 'Table3' to PROCESS_MODE_ALWAYS for collision
+[09:23:05] [INFO] [LastChance] Set StaticBody2D 'Cabinet3' to PROCESS_MODE_ALWAYS for collision
+[09:23:05] [INFO] [LastChance] Set StaticBody2D 'StorageCrate1' to PROCESS_MODE_ALWAYS for collision
+[09:23:05] [INFO] [LastChance] Set StaticBody2D 'StorageCrate2' to PROCESS_MODE_ALWAYS for collision
+[09:23:05] [INFO] [LastChance] Set StaticBody2D 'HallTable' to PROCESS_MODE_ALWAYS for collision
+[09:23:05] [INFO] [LastChance] Skipping player node: Player
+[09:23:05] [INFO] [LastChance] Froze existing bullet casing: Casing
+[09:23:05] [INFO] [LastChance] Froze existing bullet casing: @RigidBody2D@560
+[09:23:05] [INFO] [LastChance] Froze existing bullet casing: @RigidBody2D@562
+[09:23:05] [INFO] [LastChance] Froze all nodes except player and autoloads (including GameManager for quick restart)
+[09:23:05] [INFO] [LastChance] Applied visual effects: sepia=0.70, brightness=0.60, ripple=0.0080
+[09:23:05] [INFO] [LastChance] Applied 4.0x saturation to 6 player sprites
+[09:23:05] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[09:23:05] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[09:23:05] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[09:23:05] [INFO] [LastChance] Resetting all effects (scene change detected)
+[09:23:05] [INFO] [LastChance] Ending last chance effect
+[09:23:05] [ENEMY] [Enemy1] Memory reset: confusion=2.0s, had_target=false
+[09:23:05] [ENEMY] [Enemy2] Memory reset: confusion=2.0s, had_target=false
+[09:23:05] [ENEMY] [Enemy3] Memory reset: confusion=2.0s, had_target=false
+[09:23:05] [ENEMY] [Enemy4] Memory reset: confusion=2.0s, had_target=false
+[09:23:05] [ENEMY] [Enemy5] Memory reset: confusion=2.0s, had_target=false
+[09:23:05] [ENEMY] [Enemy6] Memory reset: confusion=2.0s, had_target=false
+[09:23:05] [ENEMY] [Enemy7] Memory reset: confusion=2.0s, had_target=false
+[09:23:05] [ENEMY] [Enemy8] Memory reset: confusion=2.0s, had_target=false
+[09:23:05] [ENEMY] [Enemy9] Memory reset: confusion=2.0s, had_target=false
+[09:23:05] [ENEMY] [Enemy10] Memory reset: confusion=2.0s, had_target=false
+[09:23:05] [INFO] [LastChance] Reset memory for 10 enemies (player teleport effect)
+[09:23:05] [INFO] [LastChance] All process modes restored
+[09:23:05] [INFO] [LastChance] Restored original colors to 5 player sprites
+[09:23:05] [ENEMY] [Enemy1] Death animation component initialized
+[09:23:05] [ENEMY] [Enemy2] Death animation component initialized
+[09:23:05] [ENEMY] [Enemy3] Death animation component initialized
+[09:23:05] [ENEMY] [Enemy4] Death animation component initialized
+[09:23:05] [ENEMY] [Enemy5] Death animation component initialized
+[09:23:05] [ENEMY] [Enemy6] Death animation component initialized
+[09:23:05] [ENEMY] [Enemy7] Death animation component initialized
+[09:23:05] [ENEMY] [Enemy8] Death animation component initialized
+[09:23:05] [ENEMY] [Enemy9] Death animation component initialized
+[09:23:05] [ENEMY] [Enemy10] Death animation component initialized
+[09:23:06] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[09:23:06] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[09:23:06] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[09:23:06] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[09:23:06] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[09:23:06] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[09:23:06] [INFO] [Player.Debug] Connected to GameManager, debug mode: True
+[09:23:06] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[09:23:06] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 4/4
+[09:23:06] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[09:23:06] [INFO] [BuildingLevel] Found Environment/Enemies node with 10 children
+[09:23:06] [INFO] [BuildingLevel] Child 'Enemy1': script=true, has_died_signal=true
+[09:23:06] [INFO] [BuildingLevel] Child 'Enemy2': script=true, has_died_signal=true
+[09:23:06] [INFO] [BuildingLevel] Child 'Enemy3': script=true, has_died_signal=true
+[09:23:06] [INFO] [BuildingLevel] Child 'Enemy4': script=true, has_died_signal=true
+[09:23:06] [INFO] [BuildingLevel] Child 'Enemy5': script=true, has_died_signal=true
+[09:23:06] [INFO] [BuildingLevel] Child 'Enemy6': script=true, has_died_signal=true
+[09:23:06] [INFO] [BuildingLevel] Child 'Enemy7': script=true, has_died_signal=true
+[09:23:06] [INFO] [BuildingLevel] Child 'Enemy8': script=true, has_died_signal=true
+[09:23:06] [INFO] [BuildingLevel] Child 'Enemy9': script=true, has_died_signal=true
+[09:23:06] [INFO] [BuildingLevel] Child 'Enemy10': script=true, has_died_signal=true
+[09:23:06] [INFO] [BuildingLevel] Enemy tracking complete: 10 enemies registered
+[09:23:06] [INFO] [ScoreManager] Level started with 10 enemies
+[09:23:06] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 11)
+[09:23:06] [ENEMY] [Enemy1] Registered as sound listener
+[09:23:06] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 3, behavior: GUARD, player_found: yes
+[09:23:06] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 12)
+[09:23:06] [ENEMY] [Enemy2] Registered as sound listener
+[09:23:06] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 3, behavior: GUARD, player_found: yes
+[09:23:06] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 13)
+[09:23:06] [ENEMY] [Enemy3] Registered as sound listener
+[09:23:06] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 2, behavior: GUARD, player_found: yes
+[09:23:06] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 14)
+[09:23:06] [ENEMY] [Enemy4] Registered as sound listener
+[09:23:06] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 2, behavior: GUARD, player_found: yes
+[09:23:06] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 15)
+[09:23:06] [ENEMY] [Enemy5] Registered as sound listener
+[09:23:06] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 3, behavior: GUARD, player_found: yes
+[09:23:06] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 16)
+[09:23:06] [ENEMY] [Enemy6] Registered as sound listener
+[09:23:06] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 4, behavior: GUARD, player_found: yes
+[09:23:06] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 17)
+[09:23:06] [ENEMY] [Enemy7] Registered as sound listener
+[09:23:06] [ENEMY] [Enemy7] Enemy spawned at (1600, 900), health: 4, behavior: PATROL, player_found: yes
+[09:23:06] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 18)
+[09:23:06] [ENEMY] [Enemy8] Registered as sound listener
+[09:23:06] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 3, behavior: GUARD, player_found: yes
+[09:23:06] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 19)
+[09:23:06] [ENEMY] [Enemy9] Registered as sound listener
+[09:23:06] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 4, behavior: GUARD, player_found: yes
+[09:23:06] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 20)
+[09:23:06] [ENEMY] [Enemy10] Registered as sound listener
+[09:23:06] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 2, behavior: PATROL, player_found: yes
+[09:23:06] [INFO] [Player] Detecting weapon pose (frame 3)...
+[09:23:06] [INFO] [Player] Detected weapon: Rifle (default pose)
+[09:23:06] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[09:23:06] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[09:23:06] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[09:23:06] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[09:23:06] [INFO] [LastChance] Found player: Player
+[09:23:06] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[09:23:06] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[09:23:06] [INFO] [LastChance] Connected to player Died signal (C#)
+[09:23:07] [ENEMY] [Enemy7] PATROL corner check: angle 94.3°
+[09:23:07] [ENEMY] [Enemy10] PATROL corner check: angle -0.0°
+[09:23:07] [ENEMY] [Enemy7] PATROL corner check: angle 94.3°
+[09:23:07] [ENEMY] [Enemy10] PATROL corner check: angle 14.3°
+[09:23:08] [ENEMY] [Enemy10] PATROL corner check: angle 7.0°
+[09:23:08] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[09:23:08] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[09:23:08] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[09:23:08] [INFO] [LastChance] Resetting all effects (scene change detected)
+[09:23:08] [ENEMY] [Enemy1] Death animation component initialized
+[09:23:08] [ENEMY] [Enemy2] Death animation component initialized
+[09:23:08] [ENEMY] [Enemy3] Death animation component initialized
+[09:23:08] [ENEMY] [Enemy4] Death animation component initialized
+[09:23:08] [ENEMY] [Enemy5] Death animation component initialized
+[09:23:08] [ENEMY] [Enemy6] Death animation component initialized
+[09:23:08] [ENEMY] [Enemy7] Death animation component initialized
+[09:23:08] [ENEMY] [Enemy8] Death animation component initialized
+[09:23:08] [ENEMY] [Enemy9] Death animation component initialized
+[09:23:08] [ENEMY] [Enemy10] Death animation component initialized
+[09:23:08] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[09:23:08] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[09:23:08] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[09:23:08] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[09:23:08] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[09:23:08] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[09:23:08] [INFO] [Player.Debug] Connected to GameManager, debug mode: True
+[09:23:08] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[09:23:08] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 4/4
+[09:23:08] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[09:23:08] [INFO] [BuildingLevel] Found Environment/Enemies node with 10 children
+[09:23:08] [INFO] [BuildingLevel] Child 'Enemy1': script=true, has_died_signal=true
+[09:23:08] [INFO] [BuildingLevel] Child 'Enemy2': script=true, has_died_signal=true
+[09:23:08] [INFO] [BuildingLevel] Child 'Enemy3': script=true, has_died_signal=true
+[09:23:08] [INFO] [BuildingLevel] Child 'Enemy4': script=true, has_died_signal=true
+[09:23:08] [INFO] [BuildingLevel] Child 'Enemy5': script=true, has_died_signal=true
+[09:23:08] [INFO] [BuildingLevel] Child 'Enemy6': script=true, has_died_signal=true
+[09:23:08] [INFO] [BuildingLevel] Child 'Enemy7': script=true, has_died_signal=true
+[09:23:08] [INFO] [BuildingLevel] Child 'Enemy8': script=true, has_died_signal=true
+[09:23:08] [INFO] [BuildingLevel] Child 'Enemy9': script=true, has_died_signal=true
+[09:23:08] [INFO] [BuildingLevel] Child 'Enemy10': script=true, has_died_signal=true
+[09:23:08] [INFO] [BuildingLevel] Enemy tracking complete: 10 enemies registered
+[09:23:08] [INFO] [ScoreManager] Level started with 10 enemies
+[09:23:08] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 21)
+[09:23:08] [ENEMY] [Enemy1] Registered as sound listener
+[09:23:08] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 2, behavior: GUARD, player_found: yes
+[09:23:08] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 22)
+[09:23:08] [ENEMY] [Enemy2] Registered as sound listener
+[09:23:08] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 4, behavior: GUARD, player_found: yes
+[09:23:08] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 23)
+[09:23:08] [ENEMY] [Enemy3] Registered as sound listener
+[09:23:08] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 3, behavior: GUARD, player_found: yes
+[09:23:08] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 24)
+[09:23:08] [ENEMY] [Enemy4] Registered as sound listener
+[09:23:08] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 4, behavior: GUARD, player_found: yes
+[09:23:08] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 25)
+[09:23:08] [ENEMY] [Enemy5] Registered as sound listener
+[09:23:08] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 2, behavior: GUARD, player_found: yes
+[09:23:08] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 26)
+[09:23:08] [ENEMY] [Enemy6] Registered as sound listener
+[09:23:08] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 2, behavior: GUARD, player_found: yes
+[09:23:08] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 27)
+[09:23:08] [ENEMY] [Enemy7] Registered as sound listener
+[09:23:08] [ENEMY] [Enemy7] Enemy spawned at (1600, 900), health: 3, behavior: PATROL, player_found: yes
+[09:23:08] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 28)
+[09:23:08] [ENEMY] [Enemy8] Registered as sound listener
+[09:23:08] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 3, behavior: GUARD, player_found: yes
+[09:23:08] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 29)
+[09:23:08] [ENEMY] [Enemy9] Registered as sound listener
+[09:23:08] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 4, behavior: GUARD, player_found: yes
+[09:23:08] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 30)
+[09:23:08] [ENEMY] [Enemy10] Registered as sound listener
+[09:23:08] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 4, behavior: PATROL, player_found: yes
+[09:23:08] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[09:23:08] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[09:23:08] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[09:23:08] [INFO] [LastChance] Found player: Player
+[09:23:08] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[09:23:08] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[09:23:08] [INFO] [LastChance] Connected to player Died signal (C#)
+[09:23:08] [INFO] [Player] Detecting weapon pose (frame 3)...
+[09:23:08] [INFO] [Player] Detected weapon: Rifle (default pose)
+[09:23:08] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[09:23:09] [ENEMY] [Enemy7] PATROL corner check: angle 94.3°
+[09:23:09] [ENEMY] [Enemy10] PATROL corner check: angle -0.0°
+[09:23:10] [ENEMY] [Enemy7] PATROL corner check: angle 94.3°
+[09:23:10] [ENEMY] [Enemy10] PATROL corner check: angle 14.3°
+[09:23:10] [ENEMY] [Enemy10] PATROL corner check: angle 7.0°
+[09:23:10] [ENEMY] [Enemy10] PATROL corner check: angle 3.5°
+[09:23:11] [ENEMY] [Enemy10] PATROL corner check: angle 1.8°
+[09:23:11] [ENEMY] [Enemy10] PATROL corner check: angle 0.9°
+[09:23:11] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:23:11] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[09:23:11] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(800, 900), source=ENEMY (Enemy4), range=1469, listeners=30
+[09:23:11] [INFO] [SoundPropagation] Cleaned up 20 invalid listeners
+[09:23:11] [ENEMY] [Enemy3] Heard gunshot at (800, 900), source_type=1, intensity=0.08, distance=180
+[09:23:11] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=1, below_threshold=8
+[09:23:11] [INFO] [LastChance] Threat detected: Bullet
+[09:23:11] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[09:23:11] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[09:23:11] [ENEMY] [Enemy7] PATROL corner check: angle 90.0°
+[09:23:12] [INFO] [Player] Spawning blood effect at (574.1037, 895.46436), dir=(-0.9938878, -0.11039501), lethal=False (C#)
+[09:23:12] [INFO] [ImpactEffects] spawn_blood_effect called at (574.1037, 895.4644), dir=(-0.993888, -0.110395), lethal=false
+[09:23:12] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[09:23:12] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[09:23:12] [INFO] [ImpactEffects] Wall found for blood splatter at (524, 889.8992) (dist=50 px)
+[09:23:12] [INFO] [ImpactEffects] Blood effect spawned at (574.1037, 895.4644) (scale=1)
+[09:23:12] [INFO] [PenultimateHit] Player damaged: 1.0 damage, current health: 3.0
+[09:23:12] [INFO] [LastChance] Player health updated (C# Damaged): 3.0
+[09:23:12] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[09:23:12] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(800, 900), source=ENEMY (Enemy4), range=1469, listeners=10
+[09:23:12] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=1, below_threshold=8
+[09:23:12] [INFO] [LastChance] Threat detected: Bullet
+[09:23:12] [INFO] [LastChance] Player health is 3.0 - effect requires exactly 1 HP or less but alive
+[09:23:12] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[09:23:12] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:23:12] [INFO] [Player] Spawning blood effect at (574.1037, 912.5755), dir=(-0.9999702, 0.007711833), lethal=False (C#)
+[09:23:12] [INFO] [ImpactEffects] spawn_blood_effect called at (574.1037, 912.5755), dir=(-0.99997, 0.007712), lethal=false
+[09:23:12] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[09:23:12] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[09:23:12] [INFO] [ImpactEffects] Wall found for blood splatter at (524, 912.9619) (dist=50 px)
+[09:23:12] [INFO] [ImpactEffects] Blood effect spawned at (574.1037, 912.5755) (scale=1)
+[09:23:12] [INFO] [PenultimateHit] Player damaged: 1.0 damage, current health: 2.0
+[09:23:12] [INFO] [LastChance] Player health updated (C# Damaged): 2.0
+[09:23:12] [ENEMY] [Enemy3] Player distracted - priority attack triggered
+[09:23:12] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(700, 750), source=ENEMY (Enemy3), range=1469, listeners=10
+[09:23:12] [ENEMY] [Enemy2] Heard gunshot at (700, 750), source_type=1, intensity=0.02, distance=361
+[09:23:12] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[09:23:12] [INFO] [LastChance] Threat detected: Bullet
+[09:23:12] [INFO] [LastChance] Player health is 2.0 - effect requires exactly 1 HP or less but alive
+[09:23:12] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[09:23:12] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[09:23:12] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(800, 900), source=ENEMY (Enemy4), range=1469, listeners=10
+[09:23:12] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=1, below_threshold=8
+[09:23:12] [INFO] [LastChance] Threat detected: @Area2D@1089
+[09:23:12] [INFO] [LastChance] Player health is 2.0 - effect requires exactly 1 HP or less but alive
+[09:23:12] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[09:23:12] [INFO] [Player] Spawning blood effect at (574.1037, 916.46436), dir=(-0.60914093, 0.793062), lethal=False (C#)
+[09:23:12] [INFO] [ImpactEffects] spawn_blood_effect called at (574.1037, 916.4644), dir=(-0.609141, 0.793062), lethal=false
+[09:23:12] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[09:23:12] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[09:23:12] [INFO] [ImpactEffects] Wall found for blood splatter at (524, 981.6961) (dist=82 px)
+[09:23:12] [INFO] [ImpactEffects] Blood effect spawned at (574.1037, 916.4644) (scale=1)
+[09:23:12] [INFO] [PenultimateHit] Player damaged: 1.0 damage, current health: 1.0
+[09:23:12] [INFO] [PenultimateHit] Hard mode active - skipping regular penultimate hit effect (using last chance instead)
+[09:23:12] [INFO] [LastChance] Player health updated (C# Damaged): 1.0
+[09:23:12] [INFO] [Player] Spawning blood effect at (574.1037, 916.46436), dir=(-0.997813, 0.06609948), lethal=True (C#)
+[09:23:12] [INFO] [ImpactEffects] spawn_blood_effect called at (574.1037, 916.4644), dir=(-0.997813, 0.066099), lethal=true
+[09:23:12] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[09:23:12] [INFO] [ImpactEffects] Blood decals scheduled: 20 to spawn at particle landing times
+[09:23:12] [INFO] [ImpactEffects] Wall found for blood splatter at (524, 919.7834) (dist=50 px)
+[09:23:12] [INFO] [ImpactEffects] Blood effect spawned at (574.1037, 916.4644) (scale=1.5)
+[09:23:12] [INFO] [PenultimateHit] Player damaged: 1.0 damage, current health: 0.0
+[09:23:12] [INFO] [LastChance] Player health updated (C# Damaged): 0.0
+[09:23:12] [INFO] [PenultimateHit] Player died - ending penultimate effect
+[09:23:12] [INFO] [LastChance] Player died
+[09:23:12] [ENEMY] [Enemy3] Player distracted - priority attack triggered
+[09:23:12] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(700, 750), source=ENEMY (Enemy3), range=1469, listeners=10
+[09:23:12] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[09:23:12] [INFO] [LastChance] Threat detected: Bullet
+[09:23:12] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[09:23:12] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[09:23:12] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(800, 900), source=ENEMY (Enemy4), range=1469, listeners=10
+[09:23:12] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=1, below_threshold=7
+[09:23:12] [INFO] [LastChance] Threat detected: @Area2D@1096
+[09:23:12] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[09:23:12] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[09:23:12] [ENEMY] [Enemy7] PATROL corner check: angle 89.8°
+[09:23:12] [ENEMY] [Enemy1] Memory: medium confidence (0.61) - transitioning to PURSUING
+[09:23:12] [ENEMY] [Enemy1] State: IDLE -> PURSUING
+[09:23:12] [ENEMY] [Enemy3] Player distracted - priority attack triggered
+[09:23:12] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(700, 750), source=ENEMY (Enemy3), range=1469, listeners=10
+[09:23:12] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[09:23:12] [INFO] [LastChance] Threat detected: Bullet
+[09:23:12] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[09:23:12] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[09:23:12] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(800, 900), source=ENEMY (Enemy4), range=1469, listeners=10
+[09:23:12] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=1, below_threshold=7
+[09:23:12] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[09:23:12] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[09:23:12] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[09:23:12] [INFO] [LastChance] Resetting all effects (scene change detected)
+[09:23:12] [ENEMY] [Enemy1] Death animation component initialized
+[09:23:12] [ENEMY] [Enemy2] Death animation component initialized
+[09:23:12] [ENEMY] [Enemy3] Death animation component initialized
+[09:23:12] [ENEMY] [Enemy4] Death animation component initialized
+[09:23:12] [ENEMY] [Enemy5] Death animation component initialized
+[09:23:12] [ENEMY] [Enemy6] Death animation component initialized
+[09:23:12] [ENEMY] [Enemy7] Death animation component initialized
+[09:23:12] [ENEMY] [Enemy8] Death animation component initialized
+[09:23:12] [ENEMY] [Enemy9] Death animation component initialized
+[09:23:12] [ENEMY] [Enemy10] Death animation component initialized
+[09:23:12] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[09:23:12] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[09:23:12] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[09:23:12] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[09:23:12] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[09:23:12] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[09:23:12] [INFO] [Player.Debug] Connected to GameManager, debug mode: True
+[09:23:12] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[09:23:12] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 2/4
+[09:23:12] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[09:23:12] [INFO] [BuildingLevel] Found Environment/Enemies node with 10 children
+[09:23:12] [INFO] [BuildingLevel] Child 'Enemy1': script=true, has_died_signal=true
+[09:23:12] [INFO] [BuildingLevel] Child 'Enemy2': script=true, has_died_signal=true
+[09:23:12] [INFO] [BuildingLevel] Child 'Enemy3': script=true, has_died_signal=true
+[09:23:12] [INFO] [BuildingLevel] Child 'Enemy4': script=true, has_died_signal=true
+[09:23:12] [INFO] [BuildingLevel] Child 'Enemy5': script=true, has_died_signal=true
+[09:23:12] [INFO] [BuildingLevel] Child 'Enemy6': script=true, has_died_signal=true
+[09:23:12] [INFO] [BuildingLevel] Child 'Enemy7': script=true, has_died_signal=true
+[09:23:12] [INFO] [BuildingLevel] Child 'Enemy8': script=true, has_died_signal=true
+[09:23:12] [INFO] [BuildingLevel] Child 'Enemy9': script=true, has_died_signal=true
+[09:23:12] [INFO] [BuildingLevel] Child 'Enemy10': script=true, has_died_signal=true
+[09:23:12] [INFO] [BuildingLevel] Enemy tracking complete: 10 enemies registered
+[09:23:12] [INFO] [ScoreManager] Level started with 10 enemies
+[09:23:12] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 11)
+[09:23:12] [ENEMY] [Enemy1] Registered as sound listener
+[09:23:12] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 3, behavior: GUARD, player_found: yes
+[09:23:12] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 12)
+[09:23:12] [ENEMY] [Enemy2] Registered as sound listener
+[09:23:12] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 3, behavior: GUARD, player_found: yes
+[09:23:12] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 13)
+[09:23:12] [ENEMY] [Enemy3] Registered as sound listener
+[09:23:12] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 2, behavior: GUARD, player_found: yes
+[09:23:12] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 14)
+[09:23:12] [ENEMY] [Enemy4] Registered as sound listener
+[09:23:12] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 4, behavior: GUARD, player_found: yes
+[09:23:12] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 15)
+[09:23:12] [ENEMY] [Enemy5] Registered as sound listener
+[09:23:12] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 3, behavior: GUARD, player_found: yes
+[09:23:12] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 16)
+[09:23:12] [ENEMY] [Enemy6] Registered as sound listener
+[09:23:12] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 4, behavior: GUARD, player_found: yes
+[09:23:12] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 17)
+[09:23:12] [ENEMY] [Enemy7] Registered as sound listener
+[09:23:12] [ENEMY] [Enemy7] Enemy spawned at (1600, 900), health: 3, behavior: PATROL, player_found: yes
+[09:23:12] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 18)
+[09:23:12] [ENEMY] [Enemy8] Registered as sound listener
+[09:23:12] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 4, behavior: GUARD, player_found: yes
+[09:23:12] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 19)
+[09:23:12] [ENEMY] [Enemy9] Registered as sound listener
+[09:23:12] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 2, behavior: GUARD, player_found: yes
+[09:23:12] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 20)
+[09:23:12] [ENEMY] [Enemy10] Registered as sound listener
+[09:23:12] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 3, behavior: PATROL, player_found: yes
+[09:23:12] [INFO] [Player] Detecting weapon pose (frame 3)...
+[09:23:12] [INFO] [Player] Detected weapon: Rifle (default pose)
+[09:23:12] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[09:23:12] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[09:23:12] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[09:23:12] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[09:23:12] [INFO] [LastChance] Found player: Player
+[09:23:12] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[09:23:12] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[09:23:12] [INFO] [LastChance] Connected to player Died signal (C#)
+[09:23:13] [ENEMY] [Enemy7] PATROL corner check: angle 94.3°
+[09:23:13] [ENEMY] [Enemy10] PATROL corner check: angle -0.0°
+[09:23:14] [ENEMY] [Enemy3] State: IDLE -> COMBAT
+[09:23:14] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(684.4684, 753.8406), source=ENEMY (Enemy3), range=1469, listeners=20
+[09:23:14] [INFO] [SoundPropagation] Cleaned up 10 invalid listeners
+[09:23:14] [ENEMY] [Enemy2] Heard gunshot at (684.4684, 753.8406), source_type=1, intensity=0.02, distance=350
+[09:23:14] [ENEMY] [Enemy4] Heard gunshot at (684.4684, 753.8406), source_type=1, intensity=0.07, distance=186
+[09:23:14] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[09:23:14] [INFO] [LastChance] Threat detected: Bullet
+[09:23:14] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[09:23:14] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[09:23:14] [ENEMY] [Enemy7] PATROL corner check: angle 94.3°
+[09:23:14] [ENEMY] [Enemy10] PATROL corner check: angle 14.3°
+[09:23:14] [INFO] [Player] Spawning blood effect at (450, 773.4444), dir=(-0.9950179, 0.09969631), lethal=False (C#)
+[09:23:14] [INFO] [ImpactEffects] spawn_blood_effect called at (450, 773.4444), dir=(-0.995018, 0.099696), lethal=false
+[09:23:14] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[09:23:14] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[09:23:14] [INFO] [ImpactEffects] Blood effect spawned at (450, 773.4444) (scale=1)
+[09:23:14] [INFO] [PenultimateHit] Player damaged: 1.0 damage, current health: 1.0
+[09:23:14] [INFO] [PenultimateHit] Hard mode active - skipping regular penultimate hit effect (using last chance instead)
+[09:23:14] [INFO] [LastChance] Player health updated (C# Damaged): 1.0
+[09:23:14] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(684.4684, 753.8406), source=ENEMY (Enemy3), range=1469, listeners=10
+[09:23:14] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[09:23:14] [INFO] [LastChance] Threat detected: Bullet
+[09:23:14] [INFO] [LastChance] Triggering last chance effect!
+[09:23:14] [INFO] [LastChance] Starting last chance effect:
+[09:23:14] [INFO] [LastChance]   - Time will be frozen (except player)
+[09:23:14] [INFO] [LastChance]   - Duration: 6.0 real seconds
+[09:23:14] [INFO] [LastChance]   - Sepia intensity: 0.70
+[09:23:14] [INFO] [LastChance]   - Brightness: 0.60
+[09:23:14] [INFO] [LastChance] Pushed bullet Bullet from distance 118.5 to 200.0
+[09:23:14] [INFO] [LastChance] Pushed 1 threatening bullets away from player
+[09:23:14] [INFO] [LastChance] Set player Player and all 19 children to PROCESS_MODE_ALWAYS
+[09:23:14] [INFO] [LastChance] Set StaticBody2D 'WallTop' to PROCESS_MODE_ALWAYS for collision
+[09:23:14] [INFO] [LastChance] Set StaticBody2D 'WallBottom' to PROCESS_MODE_ALWAYS for collision
+[09:23:14] [INFO] [LastChance] Set StaticBody2D 'WallLeft' to PROCESS_MODE_ALWAYS for collision
+[09:23:14] [INFO] [LastChance] Set StaticBody2D 'WallRight' to PROCESS_MODE_ALWAYS for collision
+[09:23:14] [INFO] [LastChance] Set StaticBody2D 'Room1_WallBottom' to PROCESS_MODE_ALWAYS for collision
+[09:23:14] [INFO] [LastChance] Set StaticBody2D 'Room1_WallRight' to PROCESS_MODE_ALWAYS for collision
+[09:23:14] [INFO] [LastChance] Set StaticBody2D 'Room2_WallLeft' to PROCESS_MODE_ALWAYS for collision
+[09:23:14] [INFO] [LastChance] Set StaticBody2D 'Room2_WallBottom' to PROCESS_MODE_ALWAYS for collision
+[09:23:14] [INFO] [LastChance] Set StaticBody2D 'Room2_WallRight' to PROCESS_MODE_ALWAYS for collision
+[09:23:14] [INFO] [LastChance] Set StaticBody2D 'Corridor_WallTop' to PROCESS_MODE_ALWAYS for collision
+[09:23:14] [INFO] [LastChance] Set StaticBody2D 'Corridor_WallBottom' to PROCESS_MODE_ALWAYS for collision
+[09:23:14] [INFO] [LastChance] Set StaticBody2D 'Room3_WallLeft' to PROCESS_MODE_ALWAYS for collision
+[09:23:14] [INFO] [LastChance] Set StaticBody2D 'Room3_WallBottom' to PROCESS_MODE_ALWAYS for collision
+[09:23:14] [INFO] [LastChance] Set StaticBody2D 'Room4_WallLeft' to PROCESS_MODE_ALWAYS for collision
+[09:23:14] [INFO] [LastChance] Set StaticBody2D 'Room4_WallTop' to PROCESS_MODE_ALWAYS for collision
+[09:23:14] [INFO] [LastChance] Set StaticBody2D 'Room5_WallTop' to PROCESS_MODE_ALWAYS for collision
+[09:23:14] [INFO] [LastChance] Set StaticBody2D 'Room5_WallLeft' to PROCESS_MODE_ALWAYS for collision
+[09:23:14] [INFO] [LastChance] Set StaticBody2D 'LobbyDivider_Left' to PROCESS_MODE_ALWAYS for collision
+[09:23:14] [INFO] [LastChance] Set StaticBody2D 'LobbyDivider_Right' to PROCESS_MODE_ALWAYS for collision
+[09:23:14] [INFO] [LastChance] Set StaticBody2D 'StorageRoom_WallTop' to PROCESS_MODE_ALWAYS for collision
+[09:23:14] [INFO] [LastChance] Set StaticBody2D 'StorageRoom_WallRight' to PROCESS_MODE_ALWAYS for collision
+[09:23:14] [INFO] [LastChance] Set StaticBody2D 'MainHall_WallLeft' to PROCESS_MODE_ALWAYS for collision
+[09:23:14] [INFO] [LastChance] Set StaticBody2D 'MainHall_WallRight' to PROCESS_MODE_ALWAYS for collision
+[09:23:14] [INFO] [LastChance] Set StaticBody2D 'MainHall_WallTop' to PROCESS_MODE_ALWAYS for collision
+[09:23:14] [INFO] [LastChance] Set StaticBody2D 'Room2_CornerBL' to PROCESS_MODE_ALWAYS for collision
+[09:23:14] [INFO] [LastChance] Set StaticBody2D 'Room2_CornerBR' to PROCESS_MODE_ALWAYS for collision
+[09:23:14] [INFO] [LastChance] Set StaticBody2D 'Corridor_CornerTR' to PROCESS_MODE_ALWAYS for collision
+[09:23:14] [INFO] [LastChance] Set StaticBody2D 'Corridor_CornerBR' to PROCESS_MODE_ALWAYS for collision
+[09:23:14] [INFO] [LastChance] Set StaticBody2D 'MainHall_CornerTL' to PROCESS_MODE_ALWAYS for collision
+[09:23:14] [INFO] [LastChance] Set StaticBody2D 'MainHall_CornerTR' to PROCESS_MODE_ALWAYS for collision
+[09:23:14] [INFO] [LastChance] Set StaticBody2D 'StorageRoom_CornerTR' to PROCESS_MODE_ALWAYS for collision
+[09:23:14] [INFO] [LastChance] Set StaticBody2D 'Desk1' to PROCESS_MODE_ALWAYS for collision
+[09:23:14] [INFO] [LastChance] Set StaticBody2D 'Desk2' to PROCESS_MODE_ALWAYS for collision
+[09:23:14] [INFO] [LastChance] Set StaticBody2D 'Table1' to PROCESS_MODE_ALWAYS for collision
+[09:23:14] [INFO] [LastChance] Set StaticBody2D 'Cabinet1' to PROCESS_MODE_ALWAYS for collision
+[09:23:14] [INFO] [LastChance] Set StaticBody2D 'Cabinet2' to PROCESS_MODE_ALWAYS for collision
+[09:23:14] [INFO] [LastChance] Set StaticBody2D 'Desk3' to PROCESS_MODE_ALWAYS for collision
+[09:23:14] [INFO] [LastChance] Set StaticBody2D 'Desk4' to PROCESS_MODE_ALWAYS for collision
+[09:23:14] [INFO] [LastChance] Set StaticBody2D 'Table2' to PROCESS_MODE_ALWAYS for collision
+[09:23:14] [INFO] [LastChance] Set StaticBody2D 'Table3' to PROCESS_MODE_ALWAYS for collision
+[09:23:14] [INFO] [LastChance] Set StaticBody2D 'Cabinet3' to PROCESS_MODE_ALWAYS for collision
+[09:23:14] [INFO] [LastChance] Set StaticBody2D 'StorageCrate1' to PROCESS_MODE_ALWAYS for collision
+[09:23:14] [INFO] [LastChance] Set StaticBody2D 'StorageCrate2' to PROCESS_MODE_ALWAYS for collision
+[09:23:14] [INFO] [LastChance] Set StaticBody2D 'HallTable' to PROCESS_MODE_ALWAYS for collision
+[09:23:14] [INFO] [LastChance] Skipping player node: Player
+[09:23:14] [INFO] [LastChance] Froze existing bullet casing: Casing
+[09:23:14] [INFO] [LastChance] Froze existing bullet casing: @RigidBody2D@1365
+[09:23:14] [INFO] [LastChance] Froze all nodes except player and autoloads (including GameManager for quick restart)
+[09:23:14] [INFO] [LastChance] Applied visual effects: sepia=0.70, brightness=0.60, ripple=0.0080
+[09:23:14] [INFO] [LastChance] Applied 4.0x saturation to 6 player sprites
+[09:23:14] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[09:23:14] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[09:23:14] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[09:23:14] [INFO] [LastChance] Resetting all effects (scene change detected)
+[09:23:14] [INFO] [LastChance] Ending last chance effect
+[09:23:14] [ENEMY] [Enemy1] Memory reset: confusion=2.0s, had_target=false
+[09:23:14] [ENEMY] [Enemy2] Memory reset: confusion=2.0s, had_target=false
+[09:23:14] [ENEMY] [Enemy3] Memory reset: confusion=2.0s, had_target=false
+[09:23:14] [ENEMY] [Enemy4] Memory reset: confusion=2.0s, had_target=false
+[09:23:14] [ENEMY] [Enemy5] Memory reset: confusion=2.0s, had_target=false
+[09:23:14] [ENEMY] [Enemy6] Memory reset: confusion=2.0s, had_target=false
+[09:23:14] [ENEMY] [Enemy7] Memory reset: confusion=2.0s, had_target=false
+[09:23:14] [ENEMY] [Enemy8] Memory reset: confusion=2.0s, had_target=false
+[09:23:14] [ENEMY] [Enemy9] Memory reset: confusion=2.0s, had_target=false
+[09:23:14] [ENEMY] [Enemy10] Memory reset: confusion=2.0s, had_target=false
+[09:23:14] [INFO] [LastChance] Reset memory for 10 enemies (player teleport effect)
+[09:23:14] [INFO] [LastChance] All process modes restored
+[09:23:14] [INFO] [LastChance] Restored original colors to 5 player sprites
+[09:23:14] [ENEMY] [Enemy1] Death animation component initialized
+[09:23:14] [ENEMY] [Enemy2] Death animation component initialized
+[09:23:14] [ENEMY] [Enemy3] Death animation component initialized
+[09:23:14] [ENEMY] [Enemy4] Death animation component initialized
+[09:23:14] [ENEMY] [Enemy5] Death animation component initialized
+[09:23:14] [ENEMY] [Enemy6] Death animation component initialized
+[09:23:14] [ENEMY] [Enemy7] Death animation component initialized
+[09:23:14] [ENEMY] [Enemy8] Death animation component initialized
+[09:23:14] [ENEMY] [Enemy9] Death animation component initialized
+[09:23:14] [ENEMY] [Enemy10] Death animation component initialized
+[09:23:14] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[09:23:14] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[09:23:14] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[09:23:14] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[09:23:14] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[09:23:14] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[09:23:14] [INFO] [Player.Debug] Connected to GameManager, debug mode: True
+[09:23:14] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[09:23:14] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 4/4
+[09:23:14] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[09:23:14] [INFO] [BuildingLevel] Found Environment/Enemies node with 10 children
+[09:23:14] [INFO] [BuildingLevel] Child 'Enemy1': script=true, has_died_signal=true
+[09:23:14] [INFO] [BuildingLevel] Child 'Enemy2': script=true, has_died_signal=true
+[09:23:14] [INFO] [BuildingLevel] Child 'Enemy3': script=true, has_died_signal=true
+[09:23:14] [INFO] [BuildingLevel] Child 'Enemy4': script=true, has_died_signal=true
+[09:23:14] [INFO] [BuildingLevel] Child 'Enemy5': script=true, has_died_signal=true
+[09:23:14] [INFO] [BuildingLevel] Child 'Enemy6': script=true, has_died_signal=true
+[09:23:14] [INFO] [BuildingLevel] Child 'Enemy7': script=true, has_died_signal=true
+[09:23:14] [INFO] [BuildingLevel] Child 'Enemy8': script=true, has_died_signal=true
+[09:23:14] [INFO] [BuildingLevel] Child 'Enemy9': script=true, has_died_signal=true
+[09:23:14] [INFO] [BuildingLevel] Child 'Enemy10': script=true, has_died_signal=true
+[09:23:14] [INFO] [BuildingLevel] Enemy tracking complete: 10 enemies registered
+[09:23:14] [INFO] [ScoreManager] Level started with 10 enemies
+[09:23:14] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 11)
+[09:23:14] [ENEMY] [Enemy1] Registered as sound listener
+[09:23:14] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 2, behavior: GUARD, player_found: yes
+[09:23:14] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 12)
+[09:23:14] [ENEMY] [Enemy2] Registered as sound listener
+[09:23:14] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 3, behavior: GUARD, player_found: yes
+[09:23:14] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 13)
+[09:23:14] [ENEMY] [Enemy3] Registered as sound listener
+[09:23:14] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 4, behavior: GUARD, player_found: yes
+[09:23:14] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 14)
+[09:23:14] [ENEMY] [Enemy4] Registered as sound listener
+[09:23:14] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 4, behavior: GUARD, player_found: yes
+[09:23:14] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 15)
+[09:23:14] [ENEMY] [Enemy5] Registered as sound listener
+[09:23:14] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 2, behavior: GUARD, player_found: yes
+[09:23:14] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 16)
+[09:23:14] [ENEMY] [Enemy6] Registered as sound listener
+[09:23:14] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 4, behavior: GUARD, player_found: yes
+[09:23:14] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 17)
+[09:23:14] [ENEMY] [Enemy7] Registered as sound listener
+[09:23:14] [ENEMY] [Enemy7] Enemy spawned at (1600, 900), health: 2, behavior: PATROL, player_found: yes
+[09:23:14] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 18)
+[09:23:14] [ENEMY] [Enemy8] Registered as sound listener
+[09:23:14] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 2, behavior: GUARD, player_found: yes
+[09:23:14] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 19)
+[09:23:14] [ENEMY] [Enemy9] Registered as sound listener
+[09:23:14] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 2, behavior: GUARD, player_found: yes
+[09:23:14] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 20)
+[09:23:14] [ENEMY] [Enemy10] Registered as sound listener
+[09:23:14] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 2, behavior: PATROL, player_found: yes
+[09:23:14] [INFO] [Player] Detecting weapon pose (frame 3)...
+[09:23:14] [INFO] [Player] Detected weapon: Rifle (default pose)
+[09:23:14] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[09:23:14] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[09:23:14] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[09:23:14] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[09:23:14] [INFO] [LastChance] Found player: Player
+[09:23:14] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[09:23:14] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[09:23:14] [INFO] [LastChance] Connected to player Died signal (C#)
+[09:23:16] [ENEMY] [Enemy7] PATROL corner check: angle 94.3°
+[09:23:16] [ENEMY] [Enemy10] PATROL corner check: angle -0.0°
+[09:23:16] [ENEMY] [Enemy7] PATROL corner check: angle 94.3°
+[09:23:16] [ENEMY] [Enemy10] PATROL corner check: angle 14.3°
+[09:23:17] [ENEMY] [Enemy10] PATROL corner check: angle 7.0°
+[09:23:17] [ENEMY] [Enemy10] PATROL corner check: angle 3.5°
+[09:23:17] [ENEMY] [Enemy10] PATROL corner check: angle 1.8°
+[09:23:18] [ENEMY] [Enemy10] PATROL corner check: angle 0.9°
+[09:23:18] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:23:18] [ENEMY] [Enemy3] Player distracted - priority attack triggered
+[09:23:18] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(700, 750), source=ENEMY (Enemy3), range=1469, listeners=20
+[09:23:18] [INFO] [SoundPropagation] Cleaned up 10 invalid listeners
+[09:23:18] [ENEMY] [Enemy2] Heard gunshot at (700, 750), source_type=1, intensity=0.02, distance=361
+[09:23:18] [ENEMY] [Enemy4] Heard gunshot at (700, 750), source_type=1, intensity=0.08, distance=180
+[09:23:18] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[09:23:18] [INFO] [LastChance] Threat detected: Bullet
+[09:23:18] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[09:23:18] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[09:23:18] [INFO] [Player] Spawning blood effect at (506.17297, 728.06494), dir=(-0.9939785, -0.10957498), lethal=False (C#)
+[09:23:18] [INFO] [ImpactEffects] spawn_blood_effect called at (506.173, 728.0649), dir=(-0.993979, -0.109575), lethal=false
+[09:23:18] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[09:23:18] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[09:23:18] [INFO] [ImpactEffects] Blood effect spawned at (506.173, 728.0649) (scale=1)
+[09:23:18] [INFO] [PenultimateHit] Player damaged: 1.0 damage, current health: 3.0
+[09:23:18] [INFO] [LastChance] Player health updated (C# Damaged): 3.0
+[09:23:18] [ENEMY] [Enemy3] Player distracted - priority attack triggered
+[09:23:18] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(700, 750), source=ENEMY (Enemy3), range=1469, listeners=10
+[09:23:18] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[09:23:18] [INFO] [LastChance] Threat detected: Bullet
+[09:23:18] [INFO] [LastChance] Player health is 3.0 - effect requires exactly 1 HP or less but alive
+[09:23:18] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[09:23:18] [ENEMY] [Enemy7] PATROL corner check: angle 90.0°
+[09:23:18] [INFO] [Player] Spawning blood effect at (507.11932, 728.06494), dir=(-0.9935955, -0.11299512), lethal=False (C#)
+[09:23:18] [INFO] [ImpactEffects] spawn_blood_effect called at (507.1193, 728.0649), dir=(-0.993595, -0.112995), lethal=false
+[09:23:18] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[09:23:18] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[09:23:18] [INFO] [ImpactEffects] Blood effect spawned at (507.1193, 728.0649) (scale=1)
+[09:23:18] [INFO] [PenultimateHit] Player damaged: 1.0 damage, current health: 2.0
+[09:23:18] [INFO] [LastChance] Player health updated (C# Damaged): 2.0
+[09:23:18] [ENEMY] [Enemy3] Player distracted - priority attack triggered
+[09:23:18] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(700, 750), source=ENEMY (Enemy3), range=1469, listeners=10
+[09:23:18] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[09:23:18] [INFO] [LastChance] Threat detected: Bullet
+[09:23:18] [INFO] [LastChance] Player health is 2.0 - effect requires exactly 1 HP or less but alive
+[09:23:18] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[09:23:18] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:23:18] [INFO] [Player] Spawning blood effect at (507.11932, 728.06494), dir=(-0.9935955, -0.11299512), lethal=False (C#)
+[09:23:18] [INFO] [ImpactEffects] spawn_blood_effect called at (507.1193, 728.0649), dir=(-0.993595, -0.112995), lethal=false
+[09:23:18] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[09:23:18] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[09:23:18] [INFO] [ImpactEffects] Blood effect spawned at (507.1193, 728.0649) (scale=1)
+[09:23:18] [INFO] [PenultimateHit] Player damaged: 1.0 damage, current health: 1.0
+[09:23:18] [INFO] [PenultimateHit] Hard mode active - skipping regular penultimate hit effect (using last chance instead)
+[09:23:18] [INFO] [LastChance] Player health updated (C# Damaged): 1.0
+[09:23:18] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[09:23:18] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(784.066, 814.0154), source=ENEMY (Enemy4), range=1469, listeners=10
+[09:23:18] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[09:23:18] [INFO] [LastChance] Threat detected: @Area2D@1631
+[09:23:18] [INFO] [LastChance] Triggering last chance effect!
+[09:23:18] [INFO] [LastChance] Starting last chance effect:
+[09:23:18] [INFO] [LastChance]   - Time will be frozen (except player)
+[09:23:18] [INFO] [LastChance]   - Duration: 6.0 real seconds
+[09:23:18] [INFO] [LastChance]   - Sepia intensity: 0.70
+[09:23:18] [INFO] [LastChance]   - Brightness: 0.60
+[09:23:18] [INFO] [LastChance] Pushed bullet @Area2D@1631 from distance 139.3 to 200.0
+[09:23:18] [INFO] [LastChance] Pushed 1 threatening bullets away from player
+[09:23:18] [INFO] [LastChance] Set player Player and all 19 children to PROCESS_MODE_ALWAYS
+[09:23:18] [INFO] [LastChance] Set StaticBody2D 'WallTop' to PROCESS_MODE_ALWAYS for collision
+[09:23:18] [INFO] [LastChance] Set StaticBody2D 'WallBottom' to PROCESS_MODE_ALWAYS for collision
+[09:23:18] [INFO] [LastChance] Set StaticBody2D 'WallLeft' to PROCESS_MODE_ALWAYS for collision
+[09:23:18] [INFO] [LastChance] Set StaticBody2D 'WallRight' to PROCESS_MODE_ALWAYS for collision
+[09:23:18] [INFO] [LastChance] Set StaticBody2D 'Room1_WallBottom' to PROCESS_MODE_ALWAYS for collision
+[09:23:18] [INFO] [LastChance] Set StaticBody2D 'Room1_WallRight' to PROCESS_MODE_ALWAYS for collision
+[09:23:18] [INFO] [LastChance] Set StaticBody2D 'Room2_WallLeft' to PROCESS_MODE_ALWAYS for collision
+[09:23:18] [INFO] [LastChance] Set StaticBody2D 'Room2_WallBottom' to PROCESS_MODE_ALWAYS for collision
+[09:23:18] [INFO] [LastChance] Set StaticBody2D 'Room2_WallRight' to PROCESS_MODE_ALWAYS for collision
+[09:23:18] [INFO] [LastChance] Set StaticBody2D 'Corridor_WallTop' to PROCESS_MODE_ALWAYS for collision
+[09:23:18] [INFO] [LastChance] Set StaticBody2D 'Corridor_WallBottom' to PROCESS_MODE_ALWAYS for collision
+[09:23:18] [INFO] [LastChance] Set StaticBody2D 'Room3_WallLeft' to PROCESS_MODE_ALWAYS for collision
+[09:23:18] [INFO] [LastChance] Set StaticBody2D 'Room3_WallBottom' to PROCESS_MODE_ALWAYS for collision
+[09:23:18] [INFO] [LastChance] Set StaticBody2D 'Room4_WallLeft' to PROCESS_MODE_ALWAYS for collision
+[09:23:18] [INFO] [LastChance] Set StaticBody2D 'Room4_WallTop' to PROCESS_MODE_ALWAYS for collision
+[09:23:18] [INFO] [LastChance] Set StaticBody2D 'Room5_WallTop' to PROCESS_MODE_ALWAYS for collision
+[09:23:18] [INFO] [LastChance] Set StaticBody2D 'Room5_WallLeft' to PROCESS_MODE_ALWAYS for collision
+[09:23:18] [INFO] [LastChance] Set StaticBody2D 'LobbyDivider_Left' to PROCESS_MODE_ALWAYS for collision
+[09:23:18] [INFO] [LastChance] Set StaticBody2D 'LobbyDivider_Right' to PROCESS_MODE_ALWAYS for collision
+[09:23:18] [INFO] [LastChance] Set StaticBody2D 'StorageRoom_WallTop' to PROCESS_MODE_ALWAYS for collision
+[09:23:18] [INFO] [LastChance] Set StaticBody2D 'StorageRoom_WallRight' to PROCESS_MODE_ALWAYS for collision
+[09:23:18] [INFO] [LastChance] Set StaticBody2D 'MainHall_WallLeft' to PROCESS_MODE_ALWAYS for collision
+[09:23:18] [INFO] [LastChance] Set StaticBody2D 'MainHall_WallRight' to PROCESS_MODE_ALWAYS for collision
+[09:23:18] [INFO] [LastChance] Set StaticBody2D 'MainHall_WallTop' to PROCESS_MODE_ALWAYS for collision
+[09:23:18] [INFO] [LastChance] Set StaticBody2D 'Room2_CornerBL' to PROCESS_MODE_ALWAYS for collision
+[09:23:18] [INFO] [LastChance] Set StaticBody2D 'Room2_CornerBR' to PROCESS_MODE_ALWAYS for collision
+[09:23:18] [INFO] [LastChance] Set StaticBody2D 'Corridor_CornerTR' to PROCESS_MODE_ALWAYS for collision
+[09:23:18] [INFO] [LastChance] Set StaticBody2D 'Corridor_CornerBR' to PROCESS_MODE_ALWAYS for collision
+[09:23:18] [INFO] [LastChance] Set StaticBody2D 'MainHall_CornerTL' to PROCESS_MODE_ALWAYS for collision
+[09:23:18] [INFO] [LastChance] Set StaticBody2D 'MainHall_CornerTR' to PROCESS_MODE_ALWAYS for collision
+[09:23:18] [INFO] [LastChance] Set StaticBody2D 'StorageRoom_CornerTR' to PROCESS_MODE_ALWAYS for collision
+[09:23:18] [INFO] [LastChance] Set StaticBody2D 'Desk1' to PROCESS_MODE_ALWAYS for collision
+[09:23:18] [INFO] [LastChance] Set StaticBody2D 'Desk2' to PROCESS_MODE_ALWAYS for collision
+[09:23:18] [INFO] [LastChance] Set StaticBody2D 'Table1' to PROCESS_MODE_ALWAYS for collision
+[09:23:18] [INFO] [LastChance] Set StaticBody2D 'Cabinet1' to PROCESS_MODE_ALWAYS for collision
+[09:23:18] [INFO] [LastChance] Set StaticBody2D 'Cabinet2' to PROCESS_MODE_ALWAYS for collision
+[09:23:18] [INFO] [LastChance] Set StaticBody2D 'Desk3' to PROCESS_MODE_ALWAYS for collision
+[09:23:18] [INFO] [LastChance] Set StaticBody2D 'Desk4' to PROCESS_MODE_ALWAYS for collision
+[09:23:18] [INFO] [LastChance] Set StaticBody2D 'Table2' to PROCESS_MODE_ALWAYS for collision
+[09:23:18] [INFO] [LastChance] Set StaticBody2D 'Table3' to PROCESS_MODE_ALWAYS for collision
+[09:23:18] [INFO] [LastChance] Set StaticBody2D 'Cabinet3' to PROCESS_MODE_ALWAYS for collision
+[09:23:18] [INFO] [LastChance] Set StaticBody2D 'StorageCrate1' to PROCESS_MODE_ALWAYS for collision
+[09:23:18] [INFO] [LastChance] Set StaticBody2D 'StorageCrate2' to PROCESS_MODE_ALWAYS for collision
+[09:23:18] [INFO] [LastChance] Set StaticBody2D 'HallTable' to PROCESS_MODE_ALWAYS for collision
+[09:23:18] [INFO] [LastChance] Skipping player node: Player
+[09:23:18] [INFO] [LastChance] Froze existing bullet casing: Casing
+[09:23:18] [INFO] [LastChance] Froze existing bullet casing: @RigidBody2D@1627
+[09:23:18] [INFO] [LastChance] Froze existing bullet casing: @RigidBody2D@1629
+[09:23:18] [INFO] [LastChance] Froze existing bullet casing: @RigidBody2D@1632
+[09:23:18] [INFO] [LastChance] Froze all nodes except player and autoloads (including GameManager for quick restart)
+[09:23:18] [INFO] [LastChance] Applied visual effects: sepia=0.70, brightness=0.60, ripple=0.0080
+[09:23:18] [INFO] [LastChance] Applied 4.0x saturation to 6 player sprites
+[09:23:18] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[09:23:18] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[09:23:18] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[09:23:18] [INFO] [LastChance] Resetting all effects (scene change detected)
+[09:23:18] [INFO] [LastChance] Ending last chance effect
+[09:23:18] [ENEMY] [Enemy1] Memory reset: confusion=2.0s, had_target=false
+[09:23:18] [ENEMY] [Enemy2] Memory reset: confusion=2.0s, had_target=false
+[09:23:18] [ENEMY] [Enemy3] Memory reset: confusion=2.0s, had_target=false
+[09:23:18] [ENEMY] [Enemy4] Memory reset: confusion=2.0s, had_target=false
+[09:23:18] [ENEMY] [Enemy5] Memory reset: confusion=2.0s, had_target=false
+[09:23:18] [ENEMY] [Enemy6] Memory reset: confusion=2.0s, had_target=false
+[09:23:18] [ENEMY] [Enemy7] Memory reset: confusion=2.0s, had_target=false
+[09:23:18] [ENEMY] [Enemy8] Memory reset: confusion=2.0s, had_target=false
+[09:23:18] [ENEMY] [Enemy9] Memory reset: confusion=2.0s, had_target=false
+[09:23:18] [ENEMY] [Enemy10] Memory reset: confusion=2.0s, had_target=false
+[09:23:18] [INFO] [LastChance] Reset memory for 10 enemies (player teleport effect)
+[09:23:18] [INFO] [LastChance] All process modes restored
+[09:23:18] [INFO] [LastChance] Restored original colors to 5 player sprites
+[09:23:18] [ENEMY] [Enemy1] Death animation component initialized
+[09:23:18] [ENEMY] [Enemy2] Death animation component initialized
+[09:23:18] [ENEMY] [Enemy3] Death animation component initialized
+[09:23:18] [ENEMY] [Enemy4] Death animation component initialized
+[09:23:18] [ENEMY] [Enemy5] Death animation component initialized
+[09:23:18] [ENEMY] [Enemy6] Death animation component initialized
+[09:23:18] [ENEMY] [Enemy7] Death animation component initialized
+[09:23:18] [ENEMY] [Enemy8] Death animation component initialized
+[09:23:18] [ENEMY] [Enemy9] Death animation component initialized
+[09:23:18] [ENEMY] [Enemy10] Death animation component initialized
+[09:23:18] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[09:23:18] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[09:23:18] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[09:23:18] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[09:23:18] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[09:23:18] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[09:23:18] [INFO] [Player.Debug] Connected to GameManager, debug mode: True
+[09:23:18] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[09:23:18] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 4/4
+[09:23:18] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[09:23:18] [INFO] [BuildingLevel] Found Environment/Enemies node with 10 children
+[09:23:18] [INFO] [BuildingLevel] Child 'Enemy1': script=true, has_died_signal=true
+[09:23:18] [INFO] [BuildingLevel] Child 'Enemy2': script=true, has_died_signal=true
+[09:23:18] [INFO] [BuildingLevel] Child 'Enemy3': script=true, has_died_signal=true
+[09:23:18] [INFO] [BuildingLevel] Child 'Enemy4': script=true, has_died_signal=true
+[09:23:18] [INFO] [BuildingLevel] Child 'Enemy5': script=true, has_died_signal=true
+[09:23:18] [INFO] [BuildingLevel] Child 'Enemy6': script=true, has_died_signal=true
+[09:23:18] [INFO] [BuildingLevel] Child 'Enemy7': script=true, has_died_signal=true
+[09:23:18] [INFO] [BuildingLevel] Child 'Enemy8': script=true, has_died_signal=true
+[09:23:18] [INFO] [BuildingLevel] Child 'Enemy9': script=true, has_died_signal=true
+[09:23:18] [INFO] [BuildingLevel] Child 'Enemy10': script=true, has_died_signal=true
+[09:23:18] [INFO] [BuildingLevel] Enemy tracking complete: 10 enemies registered
+[09:23:18] [INFO] [ScoreManager] Level started with 10 enemies
+[09:23:18] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 11)
+[09:23:18] [ENEMY] [Enemy1] Registered as sound listener
+[09:23:18] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 3, behavior: GUARD, player_found: yes
+[09:23:18] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 12)
+[09:23:18] [ENEMY] [Enemy2] Registered as sound listener
+[09:23:18] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 4, behavior: GUARD, player_found: yes
+[09:23:18] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 13)
+[09:23:18] [ENEMY] [Enemy3] Registered as sound listener
+[09:23:18] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 3, behavior: GUARD, player_found: yes
+[09:23:18] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 14)
+[09:23:18] [ENEMY] [Enemy4] Registered as sound listener
+[09:23:18] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 2, behavior: GUARD, player_found: yes
+[09:23:18] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 15)
+[09:23:18] [ENEMY] [Enemy5] Registered as sound listener
+[09:23:18] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 4, behavior: GUARD, player_found: yes
+[09:23:18] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 16)
+[09:23:18] [ENEMY] [Enemy6] Registered as sound listener
+[09:23:18] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 2, behavior: GUARD, player_found: yes
+[09:23:18] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 17)
+[09:23:18] [ENEMY] [Enemy7] Registered as sound listener
+[09:23:18] [ENEMY] [Enemy7] Enemy spawned at (1600, 900), health: 2, behavior: PATROL, player_found: yes
+[09:23:18] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 18)
+[09:23:18] [ENEMY] [Enemy8] Registered as sound listener
+[09:23:18] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 4, behavior: GUARD, player_found: yes
+[09:23:18] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 19)
+[09:23:18] [ENEMY] [Enemy9] Registered as sound listener
+[09:23:18] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 2, behavior: GUARD, player_found: yes
+[09:23:18] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 20)
+[09:23:18] [ENEMY] [Enemy10] Registered as sound listener
+[09:23:18] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 4, behavior: PATROL, player_found: yes
+[09:23:18] [INFO] [Player] Detecting weapon pose (frame 3)...
+[09:23:18] [INFO] [Player] Detected weapon: Rifle (default pose)
+[09:23:18] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[09:23:18] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[09:23:18] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[09:23:18] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[09:23:18] [INFO] [LastChance] Found player: Player
+[09:23:18] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[09:23:18] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[09:23:18] [INFO] [LastChance] Connected to player Died signal (C#)
+[09:23:20] [ENEMY] [Enemy7] PATROL corner check: angle 94.3°
+[09:23:20] [ENEMY] [Enemy10] PATROL corner check: angle -0.0°
+[09:23:20] [ENEMY] [Enemy7] PATROL corner check: angle 94.3°
+[09:23:20] [ENEMY] [Enemy10] PATROL corner check: angle 14.3°
+[09:23:21] [ENEMY] [Enemy10] PATROL corner check: angle 7.0°
+[09:23:21] [ENEMY] [Enemy10] PATROL corner check: angle 3.5°
+[09:23:21] [ENEMY] [Enemy10] PATROL corner check: angle 1.8°
+[09:23:22] [ENEMY] [Enemy10] PATROL corner check: angle 0.9°
+[09:23:22] [ENEMY] [Enemy1] Player distracted - priority attack triggered
+[09:23:22] [ENEMY] [Enemy1] Player distracted - priority attack triggered
+[09:23:22] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:23:22] [ENEMY] [Enemy2] Memory: high confidence (0.88) - transitioning to PURSUING
+[09:23:22] [ENEMY] [Enemy2] State: IDLE -> PURSUING
+[09:23:22] [ENEMY] [Enemy3] Memory: medium confidence (0.79) - transitioning to PURSUING
+[09:23:22] [ENEMY] [Enemy3] State: IDLE -> PURSUING
+[09:23:22] [ENEMY] [Enemy4] Memory: medium confidence (0.71) - transitioning to PURSUING
+[09:23:22] [ENEMY] [Enemy4] State: IDLE -> PURSUING
+[09:23:22] [ENEMY] [Enemy2] Player distracted - priority attack triggered
+[09:23:22] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(400, 550), source=ENEMY (Enemy2), range=1469, listeners=20
+[09:23:22] [INFO] [SoundPropagation] Cleaned up 10 invalid listeners
+[09:23:22] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=1, below_threshold=4
+[09:23:22] [ENEMY] [Enemy3] Player distracted - priority attack triggered
+[09:23:22] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(700, 750), source=ENEMY (Enemy3), range=1469, listeners=10
+[09:23:22] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[09:23:22] [INFO] [LastChance] Threat detected: @Area2D@1913
+[09:23:22] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[09:23:22] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[09:23:22] [INFO] [LastChance] Threat detected: Bullet
+[09:23:22] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[09:23:22] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[09:23:22] [ENEMY] [Enemy2] PURSUING corner check: angle -175.5°
+[09:23:22] [ENEMY] [Enemy3] PURSUING corner check: angle -89.3°
+[09:23:22] [ENEMY] [Enemy4] PURSUING corner check: angle -100.7°
+[09:23:22] [INFO] [Player] Spawning blood effect at (558.05743, 728.01294), dir=(-0.98821455, -0.15307553), lethal=False (C#)
+[09:23:22] [INFO] [ImpactEffects] spawn_blood_effect called at (558.0574, 728.0129), dir=(-0.988215, -0.153076), lethal=false
+[09:23:22] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[09:23:22] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[09:23:22] [INFO] [ImpactEffects] Blood effect spawned at (558.0574, 728.0129) (scale=1)
+[09:23:22] [INFO] [PenultimateHit] Player damaged: 1.0 damage, current health: 3.0
+[09:23:22] [INFO] [LastChance] Player health updated (C# Damaged): 3.0
+[09:23:22] [INFO] [Player] Spawning blood effect at (558.05743, 728.01294), dir=(0.66395, 0.7477769), lethal=False (C#)
+[09:23:22] [INFO] [ImpactEffects] spawn_blood_effect called at (558.0574, 728.0129), dir=(0.66395, 0.747777), lethal=false
+[09:23:22] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[09:23:22] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[09:23:22] [INFO] [ImpactEffects] Blood effect spawned at (558.0574, 728.0129) (scale=1)
+[09:23:22] [INFO] [PenultimateHit] Player damaged: 1.0 damage, current health: 2.0
+[09:23:22] [INFO] [LastChance] Player health updated (C# Damaged): 2.0
+[09:23:22] [ENEMY] [Enemy2] Player distracted - priority attack triggered
+[09:23:22] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(397.8851, 576.5826), source=ENEMY (Enemy2), range=1469, listeners=10
+[09:23:22] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=1, below_threshold=4
+[09:23:22] [ENEMY] [Enemy3] Player distracted - priority attack triggered
+[09:23:22] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(673.3353, 749.6738), source=ENEMY (Enemy3), range=1469, listeners=10
+[09:23:22] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[09:23:22] [ENEMY] [Enemy7] PATROL corner check: angle 90.0°
+[09:23:22] [INFO] [LastChance] Threat detected: Bullet
+[09:23:22] [INFO] [LastChance] Player health is 2.0 - effect requires exactly 1 HP or less but alive
+[09:23:22] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[09:23:22] [INFO] [LastChance] Threat detected: @Area2D@1917
+[09:23:22] [INFO] [LastChance] Player health is 2.0 - effect requires exactly 1 HP or less but alive
+[09:23:22] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[09:23:22] [INFO] [Player] Spawning blood effect at (558.05743, 727.6796), dir=(-0.98280066, -0.18466981), lethal=False (C#)
+[09:23:22] [INFO] [ImpactEffects] spawn_blood_effect called at (558.0574, 727.6796), dir=(-0.982801, -0.18467), lethal=false
+[09:23:22] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[09:23:22] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[09:23:22] [INFO] [ImpactEffects] Wall found for blood splatter at (474.6115, 712) (dist=84 px)
+[09:23:22] [INFO] [ImpactEffects] Blood effect spawned at (558.0574, 727.6796) (scale=1)
+[09:23:22] [INFO] [PenultimateHit] Player damaged: 1.0 damage, current health: 1.0
+[09:23:22] [INFO] [PenultimateHit] Hard mode active - skipping regular penultimate hit effect (using last chance instead)
+[09:23:22] [INFO] [LastChance] Player health updated (C# Damaged): 1.0
+[09:23:22] [ENEMY] [Enemy1] State: COMBAT -> PURSUING
+[09:23:22] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(441.6487, 628.6917), shooter_id=5984802048001, bullet_pos=(502.2036, 685.9415)
+[09:23:22] [INFO] [Bullet] Using shooter_position, distance=83.3333129882813
+[09:23:22] [INFO] [Bullet] Distance to wall: 83.3333129882813 (5.67431851782261% of viewport)
+[09:23:22] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[09:23:22] [INFO] [Bullet] Starting wall penetration at (502.2036, 685.9415)
+[09:23:22] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[09:23:22] [INFO] [Bullet] Exiting penetration at (536.1143, 718.0015) after traveling 41.6666679382324 pixels through wall
+[09:23:22] [INFO] [Bullet] Damage multiplier after penetration: 0.9
+[09:23:22] [ENEMY] [Enemy2] Player distracted - priority attack triggered
+[09:23:22] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(394.9244, 613.7983), source=ENEMY (Enemy2), range=1469, listeners=10
+[09:23:22] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=3, self=1, below_threshold=3
+[09:23:22] [ENEMY] [Enemy3] Player distracted - priority attack triggered
+[09:23:22] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(636.0046, 749.2173), source=ENEMY (Enemy3), range=1469, listeners=10
+[09:23:22] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[09:23:22] [INFO] [LastChance] Threat detected: Bullet
+[09:23:22] [INFO] [LastChance] Triggering last chance effect!
+[09:23:22] [INFO] [LastChance] Starting last chance effect:
+[09:23:22] [INFO] [LastChance]   - Time will be frozen (except player)
+[09:23:22] [INFO] [LastChance]   - Duration: 6.0 real seconds
+[09:23:22] [INFO] [LastChance]   - Sepia intensity: 0.70
+[09:23:22] [INFO] [LastChance]   - Brightness: 0.60
+[09:23:22] [INFO] [LastChance] Pushed bullet Bullet from distance 126.7 to 200.0
+[09:23:22] [INFO] [LastChance] Pushed bullet @Area2D@1922 from distance 18.9 to 200.0
+[09:23:22] [INFO] [LastChance] Pushed 2 threatening bullets away from player
+[09:23:22] [INFO] [LastChance] Set player Player and all 19 children to PROCESS_MODE_ALWAYS
+[09:23:22] [INFO] [LastChance] Set StaticBody2D 'WallTop' to PROCESS_MODE_ALWAYS for collision
+[09:23:22] [INFO] [LastChance] Set StaticBody2D 'WallBottom' to PROCESS_MODE_ALWAYS for collision
+[09:23:22] [INFO] [LastChance] Set StaticBody2D 'WallLeft' to PROCESS_MODE_ALWAYS for collision
+[09:23:22] [INFO] [LastChance] Set StaticBody2D 'WallRight' to PROCESS_MODE_ALWAYS for collision
+[09:23:22] [INFO] [LastChance] Set StaticBody2D 'Room1_WallBottom' to PROCESS_MODE_ALWAYS for collision
+[09:23:22] [INFO] [LastChance] Set StaticBody2D 'Room1_WallRight' to PROCESS_MODE_ALWAYS for collision
+[09:23:22] [INFO] [LastChance] Set StaticBody2D 'Room2_WallLeft' to PROCESS_MODE_ALWAYS for collision
+[09:23:22] [INFO] [LastChance] Set StaticBody2D 'Room2_WallBottom' to PROCESS_MODE_ALWAYS for collision
+[09:23:22] [INFO] [LastChance] Set StaticBody2D 'Room2_WallRight' to PROCESS_MODE_ALWAYS for collision
+[09:23:22] [INFO] [LastChance] Set StaticBody2D 'Corridor_WallTop' to PROCESS_MODE_ALWAYS for collision
+[09:23:22] [INFO] [LastChance] Set StaticBody2D 'Corridor_WallBottom' to PROCESS_MODE_ALWAYS for collision
+[09:23:22] [INFO] [LastChance] Set StaticBody2D 'Room3_WallLeft' to PROCESS_MODE_ALWAYS for collision
+[09:23:22] [INFO] [LastChance] Set StaticBody2D 'Room3_WallBottom' to PROCESS_MODE_ALWAYS for collision
+[09:23:22] [INFO] [LastChance] Set StaticBody2D 'Room4_WallLeft' to PROCESS_MODE_ALWAYS for collision
+[09:23:22] [INFO] [LastChance] Set StaticBody2D 'Room4_WallTop' to PROCESS_MODE_ALWAYS for collision
+[09:23:22] [INFO] [LastChance] Set StaticBody2D 'Room5_WallTop' to PROCESS_MODE_ALWAYS for collision
+[09:23:22] [INFO] [LastChance] Set StaticBody2D 'Room5_WallLeft' to PROCESS_MODE_ALWAYS for collision
+[09:23:22] [INFO] [LastChance] Set StaticBody2D 'LobbyDivider_Left' to PROCESS_MODE_ALWAYS for collision
+[09:23:22] [INFO] [LastChance] Set StaticBody2D 'LobbyDivider_Right' to PROCESS_MODE_ALWAYS for collision
+[09:23:22] [INFO] [LastChance] Set StaticBody2D 'StorageRoom_WallTop' to PROCESS_MODE_ALWAYS for collision
+[09:23:22] [INFO] [LastChance] Set StaticBody2D 'StorageRoom_WallRight' to PROCESS_MODE_ALWAYS for collision
+[09:23:22] [INFO] [LastChance] Set StaticBody2D 'MainHall_WallLeft' to PROCESS_MODE_ALWAYS for collision
+[09:23:22] [INFO] [LastChance] Set StaticBody2D 'MainHall_WallRight' to PROCESS_MODE_ALWAYS for collision
+[09:23:22] [INFO] [LastChance] Set StaticBody2D 'MainHall_WallTop' to PROCESS_MODE_ALWAYS for collision
+[09:23:22] [INFO] [LastChance] Set StaticBody2D 'Room2_CornerBL' to PROCESS_MODE_ALWAYS for collision
+[09:23:22] [INFO] [LastChance] Set StaticBody2D 'Room2_CornerBR' to PROCESS_MODE_ALWAYS for collision
+[09:23:22] [INFO] [LastChance] Set StaticBody2D 'Corridor_CornerTR' to PROCESS_MODE_ALWAYS for collision
+[09:23:22] [INFO] [LastChance] Set StaticBody2D 'Corridor_CornerBR' to PROCESS_MODE_ALWAYS for collision
+[09:23:22] [INFO] [LastChance] Set StaticBody2D 'MainHall_CornerTL' to PROCESS_MODE_ALWAYS for collision
+[09:23:22] [INFO] [LastChance] Set StaticBody2D 'MainHall_CornerTR' to PROCESS_MODE_ALWAYS for collision
+[09:23:22] [INFO] [LastChance] Set StaticBody2D 'StorageRoom_CornerTR' to PROCESS_MODE_ALWAYS for collision
+[09:23:22] [INFO] [LastChance] Set StaticBody2D 'Desk1' to PROCESS_MODE_ALWAYS for collision
+[09:23:22] [INFO] [LastChance] Set StaticBody2D 'Desk2' to PROCESS_MODE_ALWAYS for collision
+[09:23:22] [INFO] [LastChance] Set StaticBody2D 'Table1' to PROCESS_MODE_ALWAYS for collision
+[09:23:22] [INFO] [LastChance] Set StaticBody2D 'Cabinet1' to PROCESS_MODE_ALWAYS for collision
+[09:23:22] [INFO] [LastChance] Set StaticBody2D 'Cabinet2' to PROCESS_MODE_ALWAYS for collision
+[09:23:22] [INFO] [LastChance] Set StaticBody2D 'Desk3' to PROCESS_MODE_ALWAYS for collision
+[09:23:22] [INFO] [LastChance] Set StaticBody2D 'Desk4' to PROCESS_MODE_ALWAYS for collision
+[09:23:22] [INFO] [LastChance] Set StaticBody2D 'Table2' to PROCESS_MODE_ALWAYS for collision
+[09:23:22] [INFO] [LastChance] Set StaticBody2D 'Table3' to PROCESS_MODE_ALWAYS for collision
+[09:23:22] [INFO] [LastChance] Set StaticBody2D 'Cabinet3' to PROCESS_MODE_ALWAYS for collision
+[09:23:22] [INFO] [LastChance] Set StaticBody2D 'StorageCrate1' to PROCESS_MODE_ALWAYS for collision
+[09:23:22] [INFO] [LastChance] Set StaticBody2D 'StorageCrate2' to PROCESS_MODE_ALWAYS for collision
+[09:23:22] [INFO] [LastChance] Set StaticBody2D 'HallTable' to PROCESS_MODE_ALWAYS for collision
+[09:23:22] [INFO] [LastChance] Skipping player node: Player
+[09:23:22] [INFO] [LastChance] Froze existing bullet casing: Casing
+[09:23:22] [INFO] [LastChance] Froze existing bullet casing: @RigidBody2D@1914
+[09:23:22] [INFO] [LastChance] Froze existing bullet casing: @RigidBody2D@1916
+[09:23:22] [INFO] [LastChance] Froze existing bullet casing: @RigidBody2D@1918
+[09:23:22] [INFO] [LastChance] Froze existing bullet casing: @RigidBody2D@1921
+[09:23:22] [INFO] [LastChance] Froze existing bullet casing: @RigidBody2D@1923
+[09:23:22] [INFO] [LastChance] Froze all nodes except player and autoloads (including GameManager for quick restart)
+[09:23:22] [INFO] [LastChance] Applied visual effects: sepia=0.70, brightness=0.60, ripple=0.0080
+[09:23:22] [INFO] [LastChance] Applied 4.0x saturation to 6 player sprites
+[09:23:23] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[09:23:23] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[09:23:23] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[09:23:23] [INFO] [LastChance] Resetting all effects (scene change detected)
+[09:23:23] [INFO] [LastChance] Ending last chance effect
+[09:23:23] [ENEMY] [Enemy1] Memory reset: confusion=2.0s, had_target=false
+[09:23:23] [ENEMY] [Enemy2] Memory reset: confusion=2.0s, had_target=false
+[09:23:23] [ENEMY] [Enemy3] Memory reset: confusion=2.0s, had_target=false
+[09:23:23] [ENEMY] [Enemy4] Memory reset: confusion=2.0s, had_target=false
+[09:23:23] [ENEMY] [Enemy5] Memory reset: confusion=2.0s, had_target=false
+[09:23:23] [ENEMY] [Enemy6] Memory reset: confusion=2.0s, had_target=false
+[09:23:23] [ENEMY] [Enemy7] Memory reset: confusion=2.0s, had_target=false
+[09:23:23] [ENEMY] [Enemy8] Memory reset: confusion=2.0s, had_target=false
+[09:23:23] [ENEMY] [Enemy9] Memory reset: confusion=2.0s, had_target=false
+[09:23:23] [ENEMY] [Enemy10] Memory reset: confusion=2.0s, had_target=false
+[09:23:23] [INFO] [LastChance] Reset memory for 10 enemies (player teleport effect)
+[09:23:23] [INFO] [LastChance] All process modes restored
+[09:23:23] [INFO] [LastChance] Restored original colors to 5 player sprites
+[09:23:23] [ENEMY] [Enemy1] Death animation component initialized
+[09:23:23] [ENEMY] [Enemy2] Death animation component initialized
+[09:23:23] [ENEMY] [Enemy3] Death animation component initialized
+[09:23:23] [ENEMY] [Enemy4] Death animation component initialized
+[09:23:23] [ENEMY] [Enemy5] Death animation component initialized
+[09:23:23] [ENEMY] [Enemy6] Death animation component initialized
+[09:23:23] [ENEMY] [Enemy7] Death animation component initialized
+[09:23:23] [ENEMY] [Enemy8] Death animation component initialized
+[09:23:23] [ENEMY] [Enemy9] Death animation component initialized
+[09:23:23] [ENEMY] [Enemy10] Death animation component initialized
+[09:23:23] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[09:23:23] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[09:23:23] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[09:23:23] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[09:23:23] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[09:23:23] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[09:23:23] [INFO] [Player.Debug] Connected to GameManager, debug mode: True
+[09:23:23] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[09:23:23] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 4/4
+[09:23:23] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[09:23:23] [INFO] [BuildingLevel] Found Environment/Enemies node with 10 children
+[09:23:23] [INFO] [BuildingLevel] Child 'Enemy1': script=true, has_died_signal=true
+[09:23:23] [INFO] [BuildingLevel] Child 'Enemy2': script=true, has_died_signal=true
+[09:23:23] [INFO] [BuildingLevel] Child 'Enemy3': script=true, has_died_signal=true
+[09:23:23] [INFO] [BuildingLevel] Child 'Enemy4': script=true, has_died_signal=true
+[09:23:23] [INFO] [BuildingLevel] Child 'Enemy5': script=true, has_died_signal=true
+[09:23:23] [INFO] [BuildingLevel] Child 'Enemy6': script=true, has_died_signal=true
+[09:23:23] [INFO] [BuildingLevel] Child 'Enemy7': script=true, has_died_signal=true
+[09:23:23] [INFO] [BuildingLevel] Child 'Enemy8': script=true, has_died_signal=true
+[09:23:23] [INFO] [BuildingLevel] Child 'Enemy9': script=true, has_died_signal=true
+[09:23:23] [INFO] [BuildingLevel] Child 'Enemy10': script=true, has_died_signal=true
+[09:23:23] [INFO] [BuildingLevel] Enemy tracking complete: 10 enemies registered
+[09:23:23] [INFO] [ScoreManager] Level started with 10 enemies
+[09:23:23] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 11)
+[09:23:23] [ENEMY] [Enemy1] Registered as sound listener
+[09:23:23] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 4, behavior: GUARD, player_found: yes
+[09:23:23] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 12)
+[09:23:23] [ENEMY] [Enemy2] Registered as sound listener
+[09:23:23] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 3, behavior: GUARD, player_found: yes
+[09:23:23] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 13)
+[09:23:23] [ENEMY] [Enemy3] Registered as sound listener
+[09:23:23] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 2, behavior: GUARD, player_found: yes
+[09:23:23] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 14)
+[09:23:23] [ENEMY] [Enemy4] Registered as sound listener
+[09:23:23] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 3, behavior: GUARD, player_found: yes
+[09:23:23] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 15)
+[09:23:23] [ENEMY] [Enemy5] Registered as sound listener
+[09:23:23] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 2, behavior: GUARD, player_found: yes
+[09:23:23] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 16)
+[09:23:23] [ENEMY] [Enemy6] Registered as sound listener
+[09:23:23] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 4, behavior: GUARD, player_found: yes
+[09:23:23] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 17)
+[09:23:23] [ENEMY] [Enemy7] Registered as sound listener
+[09:23:23] [ENEMY] [Enemy7] Enemy spawned at (1600, 900), health: 4, behavior: PATROL, player_found: yes
+[09:23:23] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 18)
+[09:23:23] [ENEMY] [Enemy8] Registered as sound listener
+[09:23:23] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 2, behavior: GUARD, player_found: yes
+[09:23:23] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 19)
+[09:23:23] [ENEMY] [Enemy9] Registered as sound listener
+[09:23:23] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 2, behavior: GUARD, player_found: yes
+[09:23:23] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 20)
+[09:23:23] [ENEMY] [Enemy10] Registered as sound listener
+[09:23:23] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 2, behavior: PATROL, player_found: yes
+[09:23:23] [INFO] [Player] Detecting weapon pose (frame 3)...
+[09:23:23] [INFO] [Player] Detected weapon: Rifle (default pose)
+[09:23:23] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[09:23:23] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[09:23:23] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[09:23:23] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[09:23:23] [INFO] [LastChance] Found player: Player
+[09:23:23] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[09:23:23] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[09:23:23] [INFO] [LastChance] Connected to player Died signal (C#)
+[09:23:24] [ENEMY] [Enemy7] PATROL corner check: angle 94.3°
+[09:23:24] [ENEMY] [Enemy10] PATROL corner check: angle -0.0°
+[09:23:24] [ENEMY] [Enemy7] PATROL corner check: angle 94.3°
+[09:23:24] [ENEMY] [Enemy10] PATROL corner check: angle 14.3°
+[09:23:25] [ENEMY] [Enemy1] Player distracted - priority attack triggered
+[09:23:25] [ENEMY] [Enemy2] Player distracted - priority attack triggered
+[09:23:25] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(400, 550), source=ENEMY (Enemy2), range=1469, listeners=20
+[09:23:25] [INFO] [SoundPropagation] Cleaned up 10 invalid listeners
+[09:23:25] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=1, below_threshold=4
+[09:23:25] [INFO] [LastChance] Threat detected: Bullet
+[09:23:25] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[09:23:25] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[09:23:25] [ENEMY] [Enemy1] Player distracted - priority attack triggered
+[09:23:25] [ENEMY] [Enemy2] Player distracted - priority attack triggered
+[09:23:25] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(400, 550), source=ENEMY (Enemy2), range=1469, listeners=10
+[09:23:25] [ENEMY] [Enemy3] Heard gunshot at (400, 550), source_type=1, intensity=0.02, distance=361
+[09:23:25] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=1, below_threshold=4
+[09:23:25] [ENEMY] [Enemy3] Player distracted - priority attack triggered
+[09:23:25] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(700, 750), source=ENEMY (Enemy3), range=1469, listeners=10
+[09:23:25] [ENEMY] [Enemy4] Heard gunshot at (700, 750), source_type=1, intensity=0.08, distance=180
+[09:23:25] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[09:23:25] [INFO] [LastChance] Threat detected: @Area2D@2207
+[09:23:25] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[09:23:25] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[09:23:25] [INFO] [LastChance] Threat detected: @Area2D@2209
+[09:23:25] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[09:23:25] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[09:23:25] [INFO] [Player] Spawning blood effect at (539.8454, 706.5184), dir=(-0.9673461, -0.25345933), lethal=False (C#)
+[09:23:25] [INFO] [ImpactEffects] spawn_blood_effect called at (539.8454, 706.5184), dir=(-0.967346, -0.253459), lethal=false
+[09:23:25] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[09:23:25] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[09:23:25] [INFO] [ImpactEffects] Wall found for blood splatter at (500, 696.0782) (dist=41 px)
+[09:23:25] [INFO] [ImpactEffects] Blood effect spawned at (539.8454, 706.5184) (scale=1)
+[09:23:25] [INFO] [PenultimateHit] Player damaged: 1.0 damage, current health: 3.0
+[09:23:25] [INFO] [LastChance] Player health updated (C# Damaged): 3.0
+[09:23:25] [ENEMY] [Enemy10] PATROL corner check: angle 7.0°
+[09:23:25] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(435.1633, 608.2593), shooter_id=7328959039619, bullet_pos=(740.8968, 1003.894)
+[09:23:25] [INFO] [Bullet] Using shooter_position, distance=499.999664306641
+[09:23:25] [INFO] [Bullet] Distance to wall: 499.999664306641 (34.0458965609496% of viewport)
+[09:23:25] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[09:23:25] [ENEMY] [Enemy2] Player distracted - priority attack triggered
+[09:23:25] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(400, 550), source=ENEMY (Enemy2), range=1469, listeners=10
+[09:23:25] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=3, self=1, below_threshold=3
+[09:23:25] [ENEMY] [Enemy3] Player distracted - priority attack triggered
+[09:23:25] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(700, 750), source=ENEMY (Enemy3), range=1469, listeners=10
+[09:23:25] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[09:23:25] [INFO] [LastChance] Threat detected: @Area2D@2212
+[09:23:25] [INFO] [LastChance] Player health is 3.0 - effect requires exactly 1 HP or less but alive
+[09:23:25] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[09:23:25] [INFO] [LastChance] Threat detected: @Area2D@2214
+[09:23:25] [INFO] [LastChance] Player health is 3.0 - effect requires exactly 1 HP or less but alive
+[09:23:25] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[09:23:25] [INFO] [Player] Spawning blood effect at (542.4766, 715.55646), dir=(-0.9691403, -0.24650963), lethal=False (C#)
+[09:23:25] [INFO] [ImpactEffects] spawn_blood_effect called at (542.4766, 715.5565), dir=(-0.96914, -0.24651), lethal=false
+[09:23:25] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[09:23:25] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[09:23:25] [INFO] [ImpactEffects] Wall found for blood splatter at (500, 704.7521) (dist=43 px)
+[09:23:25] [INFO] [ImpactEffects] Blood effect spawned at (542.4766, 715.5565) (scale=1)
+[09:23:25] [INFO] [PenultimateHit] Player damaged: 1.0 damage, current health: 2.0
+[09:23:25] [INFO] [LastChance] Player health updated (C# Damaged): 2.0
+[09:23:25] [INFO] [Player] Spawning blood effect at (542.9615, 721.1269), dir=(0.66326195, 0.74838734), lethal=False (C#)
+[09:23:25] [INFO] [ImpactEffects] spawn_blood_effect called at (542.9615, 721.1269), dir=(0.663262, 0.748387), lethal=false
+[09:23:25] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[09:23:25] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[09:23:25] [INFO] [ImpactEffects] Blood effect spawned at (542.9615, 721.1269) (scale=1)
+[09:23:25] [INFO] [PenultimateHit] Player damaged: 1.0 damage, current health: 1.0
+[09:23:25] [INFO] [PenultimateHit] Hard mode active - skipping regular penultimate hit effect (using last chance instead)
+[09:23:25] [INFO] [LastChance] Player health updated (C# Damaged): 1.0
+[09:23:25] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(435.1633, 608.2593), shooter_id=7328959039619, bullet_pos=(911.9976, 771.8151)
+[09:23:25] [INFO] [Bullet] Using shooter_position, distance=504.104675292969
+[09:23:25] [INFO] [Bullet] Distance to wall: 504.104675292969 (34.3254143074583% of viewport)
+[09:23:25] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[09:23:25] [INFO] [Bullet] Starting wall penetration at (911.9976, 771.8151)
+[09:23:25] [ENEMY] [Enemy2] Player distracted - priority attack triggered
+[09:23:25] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(400, 550), source=ENEMY (Enemy2), range=1469, listeners=10
+[09:23:25] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=3, self=1, below_threshold=3
+[09:23:25] [ENEMY] [Enemy3] Player distracted - priority attack triggered
+[09:23:25] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(700, 750), source=ENEMY (Enemy3), range=1469, listeners=10
+[09:23:25] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[09:23:25] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[09:23:25] [INFO] [Bullet] Exiting penetration at (935.9814, 739.2839) after traveling 35.4166717529297 pixels through wall
+[09:23:25] [INFO] [Bullet] Damage multiplier after penetration: 0.45
+[09:23:25] [INFO] [LastChance] Threat detected: @Area2D@2222
+[09:23:25] [INFO] [LastChance] Triggering last chance effect!
+[09:23:25] [INFO] [LastChance] Starting last chance effect:
+[09:23:25] [INFO] [LastChance]   - Time will be frozen (except player)
+[09:23:25] [INFO] [LastChance]   - Duration: 6.0 real seconds
+[09:23:25] [INFO] [LastChance]   - Sepia intensity: 0.70
+[09:23:25] [INFO] [LastChance]   - Brightness: 0.60
+[09:23:25] [INFO] [LastChance] Pushed bullet @Area2D@2222 from distance 90.0 to 200.0
+[09:23:25] [INFO] [LastChance] Pushed 1 threatening bullets away from player
+[09:23:25] [INFO] [LastChance] Set player Player and all 19 children to PROCESS_MODE_ALWAYS
+[09:23:25] [INFO] [LastChance] Set StaticBody2D 'WallTop' to PROCESS_MODE_ALWAYS for collision
+[09:23:25] [INFO] [LastChance] Set StaticBody2D 'WallBottom' to PROCESS_MODE_ALWAYS for collision
+[09:23:25] [INFO] [LastChance] Set StaticBody2D 'WallLeft' to PROCESS_MODE_ALWAYS for collision
+[09:23:25] [INFO] [LastChance] Set StaticBody2D 'WallRight' to PROCESS_MODE_ALWAYS for collision
+[09:23:25] [INFO] [LastChance] Set StaticBody2D 'Room1_WallBottom' to PROCESS_MODE_ALWAYS for collision
+[09:23:25] [INFO] [LastChance] Set StaticBody2D 'Room1_WallRight' to PROCESS_MODE_ALWAYS for collision
+[09:23:25] [INFO] [LastChance] Set StaticBody2D 'Room2_WallLeft' to PROCESS_MODE_ALWAYS for collision
+[09:23:25] [INFO] [LastChance] Set StaticBody2D 'Room2_WallBottom' to PROCESS_MODE_ALWAYS for collision
+[09:23:25] [INFO] [LastChance] Set StaticBody2D 'Room2_WallRight' to PROCESS_MODE_ALWAYS for collision
+[09:23:25] [INFO] [LastChance] Set StaticBody2D 'Corridor_WallTop' to PROCESS_MODE_ALWAYS for collision
+[09:23:25] [INFO] [LastChance] Set StaticBody2D 'Corridor_WallBottom' to PROCESS_MODE_ALWAYS for collision
+[09:23:25] [INFO] [LastChance] Set StaticBody2D 'Room3_WallLeft' to PROCESS_MODE_ALWAYS for collision
+[09:23:25] [INFO] [LastChance] Set StaticBody2D 'Room3_WallBottom' to PROCESS_MODE_ALWAYS for collision
+[09:23:25] [INFO] [LastChance] Set StaticBody2D 'Room4_WallLeft' to PROCESS_MODE_ALWAYS for collision
+[09:23:25] [INFO] [LastChance] Set StaticBody2D 'Room4_WallTop' to PROCESS_MODE_ALWAYS for collision
+[09:23:25] [INFO] [LastChance] Set StaticBody2D 'Room5_WallTop' to PROCESS_MODE_ALWAYS for collision
+[09:23:25] [INFO] [LastChance] Set StaticBody2D 'Room5_WallLeft' to PROCESS_MODE_ALWAYS for collision
+[09:23:25] [INFO] [LastChance] Set StaticBody2D 'LobbyDivider_Left' to PROCESS_MODE_ALWAYS for collision
+[09:23:25] [INFO] [LastChance] Set StaticBody2D 'LobbyDivider_Right' to PROCESS_MODE_ALWAYS for collision
+[09:23:25] [INFO] [LastChance] Set StaticBody2D 'StorageRoom_WallTop' to PROCESS_MODE_ALWAYS for collision
+[09:23:25] [INFO] [LastChance] Set StaticBody2D 'StorageRoom_WallRight' to PROCESS_MODE_ALWAYS for collision
+[09:23:25] [INFO] [LastChance] Set StaticBody2D 'MainHall_WallLeft' to PROCESS_MODE_ALWAYS for collision
+[09:23:25] [INFO] [LastChance] Set StaticBody2D 'MainHall_WallRight' to PROCESS_MODE_ALWAYS for collision
+[09:23:25] [INFO] [LastChance] Set StaticBody2D 'MainHall_WallTop' to PROCESS_MODE_ALWAYS for collision
+[09:23:25] [INFO] [LastChance] Set StaticBody2D 'Room2_CornerBL' to PROCESS_MODE_ALWAYS for collision
+[09:23:25] [INFO] [LastChance] Set StaticBody2D 'Room2_CornerBR' to PROCESS_MODE_ALWAYS for collision
+[09:23:25] [INFO] [LastChance] Set StaticBody2D 'Corridor_CornerTR' to PROCESS_MODE_ALWAYS for collision
+[09:23:25] [INFO] [LastChance] Set StaticBody2D 'Corridor_CornerBR' to PROCESS_MODE_ALWAYS for collision
+[09:23:25] [INFO] [LastChance] Set StaticBody2D 'MainHall_CornerTL' to PROCESS_MODE_ALWAYS for collision
+[09:23:25] [INFO] [LastChance] Set StaticBody2D 'MainHall_CornerTR' to PROCESS_MODE_ALWAYS for collision
+[09:23:25] [INFO] [LastChance] Set StaticBody2D 'StorageRoom_CornerTR' to PROCESS_MODE_ALWAYS for collision
+[09:23:25] [INFO] [LastChance] Set StaticBody2D 'Desk1' to PROCESS_MODE_ALWAYS for collision
+[09:23:25] [INFO] [LastChance] Set StaticBody2D 'Desk2' to PROCESS_MODE_ALWAYS for collision
+[09:23:25] [INFO] [LastChance] Set StaticBody2D 'Table1' to PROCESS_MODE_ALWAYS for collision
+[09:23:25] [INFO] [LastChance] Set StaticBody2D 'Cabinet1' to PROCESS_MODE_ALWAYS for collision
+[09:23:25] [INFO] [LastChance] Set StaticBody2D 'Cabinet2' to PROCESS_MODE_ALWAYS for collision
+[09:23:25] [INFO] [LastChance] Set StaticBody2D 'Desk3' to PROCESS_MODE_ALWAYS for collision
+[09:23:25] [INFO] [LastChance] Set StaticBody2D 'Desk4' to PROCESS_MODE_ALWAYS for collision
+[09:23:25] [INFO] [LastChance] Set StaticBody2D 'Table2' to PROCESS_MODE_ALWAYS for collision
+[09:23:25] [INFO] [LastChance] Set StaticBody2D 'Table3' to PROCESS_MODE_ALWAYS for collision
+[09:23:25] [INFO] [LastChance] Set StaticBody2D 'Cabinet3' to PROCESS_MODE_ALWAYS for collision
+[09:23:25] [INFO] [LastChance] Set StaticBody2D 'StorageCrate1' to PROCESS_MODE_ALWAYS for collision
+[09:23:25] [INFO] [LastChance] Set StaticBody2D 'StorageCrate2' to PROCESS_MODE_ALWAYS for collision
+[09:23:25] [INFO] [LastChance] Set StaticBody2D 'HallTable' to PROCESS_MODE_ALWAYS for collision
+[09:23:25] [INFO] [LastChance] Skipping player node: Player
+[09:23:25] [INFO] [LastChance] Froze existing bullet casing: Casing
+[09:23:25] [INFO] [LastChance] Froze existing bullet casing: @RigidBody2D@2208
+[09:23:25] [INFO] [LastChance] Froze existing bullet casing: @RigidBody2D@2210
+[09:23:25] [INFO] [LastChance] Froze existing bullet casing: @RigidBody2D@2213
+[09:23:25] [INFO] [LastChance] Froze existing bullet casing: @RigidBody2D@2215
+[09:23:25] [INFO] [LastChance] Froze existing bullet casing: @RigidBody2D@2221
+[09:23:25] [INFO] [LastChance] Froze existing bullet casing: @RigidBody2D@2223
+[09:23:25] [INFO] [LastChance] Froze all nodes except player and autoloads (including GameManager for quick restart)
+[09:23:25] [INFO] [LastChance] Applied visual effects: sepia=0.70, brightness=0.60, ripple=0.0080
+[09:23:25] [INFO] [LastChance] Applied 4.0x saturation to 6 player sprites
+[09:23:25] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[09:23:25] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[09:23:25] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[09:23:25] [INFO] [LastChance] Resetting all effects (scene change detected)
+[09:23:25] [INFO] [LastChance] Ending last chance effect
+[09:23:25] [ENEMY] [Enemy1] Memory reset: confusion=2.0s, had_target=false
+[09:23:25] [ENEMY] [Enemy2] Memory reset: confusion=2.0s, had_target=false
+[09:23:25] [ENEMY] [Enemy3] Memory reset: confusion=2.0s, had_target=false
+[09:23:25] [ENEMY] [Enemy4] Memory reset: confusion=2.0s, had_target=false
+[09:23:25] [ENEMY] [Enemy5] Memory reset: confusion=2.0s, had_target=false
+[09:23:25] [ENEMY] [Enemy6] Memory reset: confusion=2.0s, had_target=false
+[09:23:25] [ENEMY] [Enemy7] Memory reset: confusion=2.0s, had_target=false
+[09:23:25] [ENEMY] [Enemy8] Memory reset: confusion=2.0s, had_target=false
+[09:23:25] [ENEMY] [Enemy9] Memory reset: confusion=2.0s, had_target=false
+[09:23:25] [ENEMY] [Enemy10] Memory reset: confusion=2.0s, had_target=false
+[09:23:25] [INFO] [LastChance] Reset memory for 10 enemies (player teleport effect)
+[09:23:25] [INFO] [LastChance] All process modes restored
+[09:23:25] [INFO] [LastChance] Restored original colors to 5 player sprites
+[09:23:25] [ENEMY] [Enemy1] Death animation component initialized
+[09:23:25] [ENEMY] [Enemy2] Death animation component initialized
+[09:23:25] [ENEMY] [Enemy3] Death animation component initialized
+[09:23:25] [ENEMY] [Enemy4] Death animation component initialized
+[09:23:25] [ENEMY] [Enemy5] Death animation component initialized
+[09:23:25] [ENEMY] [Enemy6] Death animation component initialized
+[09:23:25] [ENEMY] [Enemy7] Death animation component initialized
+[09:23:25] [ENEMY] [Enemy8] Death animation component initialized
+[09:23:25] [ENEMY] [Enemy9] Death animation component initialized
+[09:23:25] [ENEMY] [Enemy10] Death animation component initialized
+[09:23:25] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[09:23:25] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[09:23:25] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[09:23:25] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[09:23:25] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[09:23:25] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[09:23:25] [INFO] [Player.Debug] Connected to GameManager, debug mode: True
+[09:23:25] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[09:23:25] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 3/4
+[09:23:25] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[09:23:25] [INFO] [BuildingLevel] Found Environment/Enemies node with 10 children
+[09:23:25] [INFO] [BuildingLevel] Child 'Enemy1': script=true, has_died_signal=true
+[09:23:25] [INFO] [BuildingLevel] Child 'Enemy2': script=true, has_died_signal=true
+[09:23:25] [INFO] [BuildingLevel] Child 'Enemy3': script=true, has_died_signal=true
+[09:23:25] [INFO] [BuildingLevel] Child 'Enemy4': script=true, has_died_signal=true
+[09:23:25] [INFO] [BuildingLevel] Child 'Enemy5': script=true, has_died_signal=true
+[09:23:25] [INFO] [BuildingLevel] Child 'Enemy6': script=true, has_died_signal=true
+[09:23:25] [INFO] [BuildingLevel] Child 'Enemy7': script=true, has_died_signal=true
+[09:23:25] [INFO] [BuildingLevel] Child 'Enemy8': script=true, has_died_signal=true
+[09:23:25] [INFO] [BuildingLevel] Child 'Enemy9': script=true, has_died_signal=true
+[09:23:25] [INFO] [BuildingLevel] Child 'Enemy10': script=true, has_died_signal=true
+[09:23:25] [INFO] [BuildingLevel] Enemy tracking complete: 10 enemies registered
+[09:23:25] [INFO] [ScoreManager] Level started with 10 enemies
+[09:23:25] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 11)
+[09:23:25] [ENEMY] [Enemy1] Registered as sound listener
+[09:23:25] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 3, behavior: GUARD, player_found: yes
+[09:23:25] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 12)
+[09:23:25] [ENEMY] [Enemy2] Registered as sound listener
+[09:23:25] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 2, behavior: GUARD, player_found: yes
+[09:23:25] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 13)
+[09:23:25] [ENEMY] [Enemy3] Registered as sound listener
+[09:23:25] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 3, behavior: GUARD, player_found: yes
+[09:23:25] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 14)
+[09:23:25] [ENEMY] [Enemy4] Registered as sound listener
+[09:23:25] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 4, behavior: GUARD, player_found: yes
+[09:23:25] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 15)
+[09:23:25] [ENEMY] [Enemy5] Registered as sound listener
+[09:23:25] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 2, behavior: GUARD, player_found: yes
+[09:23:25] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 16)
+[09:23:25] [ENEMY] [Enemy6] Registered as sound listener
+[09:23:25] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 3, behavior: GUARD, player_found: yes
+[09:23:25] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 17)
+[09:23:25] [ENEMY] [Enemy7] Registered as sound listener
+[09:23:25] [ENEMY] [Enemy7] Enemy spawned at (1600, 900), health: 2, behavior: PATROL, player_found: yes
+[09:23:25] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 18)
+[09:23:25] [ENEMY] [Enemy8] Registered as sound listener
+[09:23:25] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 3, behavior: GUARD, player_found: yes
+[09:23:25] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 19)
+[09:23:25] [ENEMY] [Enemy9] Registered as sound listener
+[09:23:25] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 2, behavior: GUARD, player_found: yes
+[09:23:25] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 20)
+[09:23:25] [ENEMY] [Enemy10] Registered as sound listener
+[09:23:25] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 4, behavior: PATROL, player_found: yes
+[09:23:25] [INFO] [Player] Detecting weapon pose (frame 3)...
+[09:23:25] [INFO] [Player] Detected weapon: Rifle (default pose)
+[09:23:25] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[09:23:25] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[09:23:25] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[09:23:25] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[09:23:25] [INFO] [LastChance] Found player: Player
+[09:23:25] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[09:23:25] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[09:23:25] [INFO] [LastChance] Connected to player Died signal (C#)
+[09:23:27] [ENEMY] [Enemy7] PATROL corner check: angle 94.3°
+[09:23:27] [ENEMY] [Enemy10] PATROL corner check: angle -0.0°
+[09:23:27] [ENEMY] [Enemy7] PATROL corner check: angle 94.3°
+[09:23:27] [ENEMY] [Enemy10] PATROL corner check: angle 14.3°
+[09:23:28] [ENEMY] [Enemy10] PATROL corner check: angle 7.0°
+[09:23:28] [ENEMY] [Enemy10] PATROL corner check: angle 3.5°
+[09:23:28] [ENEMY] [Enemy10] PATROL corner check: angle 1.8°
+[09:23:29] [ENEMY] [Enemy10] PATROL corner check: angle 0.9°
+[09:23:29] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:23:29] [ENEMY] [Enemy7] PATROL corner check: angle 90.0°
+[09:23:29] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:23:29] [ENEMY] [Enemy7] PATROL corner check: angle 89.8°
+[09:23:30] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:23:30] [ENEMY] [Enemy7] PATROL corner check: angle 89.7°
+[09:23:30] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:23:30] [ENEMY] [Enemy7] PATROL corner check: angle 89.6°
+[09:23:30] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:23:30] [ENEMY] [Enemy7] PATROL corner check: angle 89.5°
+[09:23:31] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:23:31] [ENEMY] [Enemy7] PATROL corner check: angle 89.5°
+[09:23:31] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:23:31] [ENEMY] [Enemy7] PATROL corner check: angle 89.5°
+[09:23:31] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:23:31] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[09:23:31] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[09:23:31] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(800, 900), source=ENEMY (Enemy4), range=1469, listeners=20
+[09:23:31] [INFO] [SoundPropagation] Cleaned up 10 invalid listeners
+[09:23:31] [ENEMY] [Enemy3] Heard gunshot at (800, 900), source_type=1, intensity=0.08, distance=180
+[09:23:31] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=1, below_threshold=8
+[09:23:31] [INFO] [LastChance] Threat detected: Bullet
+[09:23:31] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[09:23:31] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[09:23:31] [INFO] [Player] Spawning blood effect at (646.68896, 912.0895), dir=(-0.9995191, 0.031007659), lethal=False (C#)
+[09:23:31] [INFO] [ImpactEffects] spawn_blood_effect called at (646.689, 912.0895), dir=(-0.999519, 0.031008), lethal=false
+[09:23:31] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[09:23:31] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[09:23:31] [INFO] [ImpactEffects] Blood effect spawned at (646.689, 912.0895) (scale=1)
+[09:23:31] [INFO] [PenultimateHit] Player damaged: 1.0 damage, current health: 2.0
+[09:23:31] [INFO] [LastChance] Player health updated (C# Damaged): 2.0
+[09:23:31] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[09:23:31] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[09:23:31] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(800, 900), source=ENEMY (Enemy4), range=1469, listeners=10
+[09:23:31] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=1, below_threshold=8
+[09:23:31] [INFO] [LastChance] Threat detected: Bullet
+[09:23:31] [INFO] [LastChance] Player health is 2.0 - effect requires exactly 1 HP or less but alive
+[09:23:31] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[09:23:31] [INFO] [Player] Spawning blood effect at (646.68896, 919.47833), dir=(-0.9931943, 0.116468966), lethal=False (C#)
+[09:23:31] [INFO] [ImpactEffects] spawn_blood_effect called at (646.689, 919.4783), dir=(-0.993194, 0.116469), lethal=false
+[09:23:31] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[09:23:31] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[09:23:31] [INFO] [ImpactEffects] Blood effect spawned at (646.689, 919.4783) (scale=1)
+[09:23:31] [INFO] [PenultimateHit] Player damaged: 1.0 damage, current health: 1.0
+[09:23:31] [INFO] [PenultimateHit] Hard mode active - skipping regular penultimate hit effect (using last chance instead)
+[09:23:31] [INFO] [LastChance] Player health updated (C# Damaged): 1.0
+[09:23:32] [ENEMY] [Enemy2] Memory: high confidence (0.90) - transitioning to PURSUING
+[09:23:32] [ENEMY] [Enemy2] State: IDLE -> PURSUING
+[09:23:32] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:23:32] [ENEMY] [Enemy3] Player distracted - priority attack triggered
+[09:23:32] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(700, 750), source=ENEMY (Enemy3), range=1469, listeners=10
+[09:23:32] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[09:23:32] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(687.1562, 816.8254), shooter_id=8160051989019, bullet_pos=(687.1562, 816.8254)
+[09:23:32] [INFO] [Bullet] Using shooter_position, distance=0
+[09:23:32] [INFO] [Bullet] Distance to wall: 0 (0% of viewport)
+[09:23:32] [INFO] [Bullet] Point-blank shot - 100% penetration, ignoring ricochet
+[09:23:32] [INFO] [Bullet] Starting wall penetration at (687.1562, 816.8254)
+[09:23:32] [INFO] [LastChance] Threat detected: Bullet
+[09:23:32] [INFO] [LastChance] Triggering last chance effect!
+[09:23:32] [INFO] [LastChance] Starting last chance effect:
+[09:23:32] [INFO] [LastChance]   - Time will be frozen (except player)
+[09:23:32] [INFO] [LastChance]   - Duration: 6.0 real seconds
+[09:23:32] [INFO] [LastChance]   - Sepia intensity: 0.70
+[09:23:32] [INFO] [LastChance]   - Brightness: 0.60
+[09:23:32] [INFO] [LastChance] Pushed bullet Bullet from distance 105.4 to 200.0
+[09:23:32] [INFO] [LastChance] Pushed 1 threatening bullets away from player
+[09:23:32] [INFO] [LastChance] Set player Player and all 19 children to PROCESS_MODE_ALWAYS
+[09:23:32] [INFO] [LastChance] Set StaticBody2D 'WallTop' to PROCESS_MODE_ALWAYS for collision
+[09:23:32] [INFO] [LastChance] Set StaticBody2D 'WallBottom' to PROCESS_MODE_ALWAYS for collision
+[09:23:32] [INFO] [LastChance] Set StaticBody2D 'WallLeft' to PROCESS_MODE_ALWAYS for collision
+[09:23:32] [INFO] [LastChance] Set StaticBody2D 'WallRight' to PROCESS_MODE_ALWAYS for collision
+[09:23:32] [INFO] [LastChance] Set StaticBody2D 'Room1_WallBottom' to PROCESS_MODE_ALWAYS for collision
+[09:23:32] [INFO] [LastChance] Set StaticBody2D 'Room1_WallRight' to PROCESS_MODE_ALWAYS for collision
+[09:23:32] [INFO] [LastChance] Set StaticBody2D 'Room2_WallLeft' to PROCESS_MODE_ALWAYS for collision
+[09:23:32] [INFO] [LastChance] Set StaticBody2D 'Room2_WallBottom' to PROCESS_MODE_ALWAYS for collision
+[09:23:32] [INFO] [LastChance] Set StaticBody2D 'Room2_WallRight' to PROCESS_MODE_ALWAYS for collision
+[09:23:32] [INFO] [LastChance] Set StaticBody2D 'Corridor_WallTop' to PROCESS_MODE_ALWAYS for collision
+[09:23:32] [INFO] [LastChance] Set StaticBody2D 'Corridor_WallBottom' to PROCESS_MODE_ALWAYS for collision
+[09:23:32] [INFO] [LastChance] Set StaticBody2D 'Room3_WallLeft' to PROCESS_MODE_ALWAYS for collision
+[09:23:32] [INFO] [LastChance] Set StaticBody2D 'Room3_WallBottom' to PROCESS_MODE_ALWAYS for collision
+[09:23:32] [INFO] [LastChance] Set StaticBody2D 'Room4_WallLeft' to PROCESS_MODE_ALWAYS for collision
+[09:23:32] [INFO] [LastChance] Set StaticBody2D 'Room4_WallTop' to PROCESS_MODE_ALWAYS for collision
+[09:23:32] [INFO] [LastChance] Set StaticBody2D 'Room5_WallTop' to PROCESS_MODE_ALWAYS for collision
+[09:23:32] [INFO] [LastChance] Set StaticBody2D 'Room5_WallLeft' to PROCESS_MODE_ALWAYS for collision
+[09:23:32] [INFO] [LastChance] Set StaticBody2D 'LobbyDivider_Left' to PROCESS_MODE_ALWAYS for collision
+[09:23:32] [INFO] [LastChance] Set StaticBody2D 'LobbyDivider_Right' to PROCESS_MODE_ALWAYS for collision
+[09:23:32] [INFO] [LastChance] Set StaticBody2D 'StorageRoom_WallTop' to PROCESS_MODE_ALWAYS for collision
+[09:23:32] [INFO] [LastChance] Set StaticBody2D 'StorageRoom_WallRight' to PROCESS_MODE_ALWAYS for collision
+[09:23:32] [INFO] [LastChance] Set StaticBody2D 'MainHall_WallLeft' to PROCESS_MODE_ALWAYS for collision
+[09:23:32] [INFO] [LastChance] Set StaticBody2D 'MainHall_WallRight' to PROCESS_MODE_ALWAYS for collision
+[09:23:32] [INFO] [LastChance] Set StaticBody2D 'MainHall_WallTop' to PROCESS_MODE_ALWAYS for collision
+[09:23:32] [INFO] [LastChance] Set StaticBody2D 'Room2_CornerBL' to PROCESS_MODE_ALWAYS for collision
+[09:23:32] [INFO] [LastChance] Set StaticBody2D 'Room2_CornerBR' to PROCESS_MODE_ALWAYS for collision
+[09:23:32] [INFO] [LastChance] Set StaticBody2D 'Corridor_CornerTR' to PROCESS_MODE_ALWAYS for collision
+[09:23:32] [INFO] [LastChance] Set StaticBody2D 'Corridor_CornerBR' to PROCESS_MODE_ALWAYS for collision
+[09:23:32] [INFO] [LastChance] Set StaticBody2D 'MainHall_CornerTL' to PROCESS_MODE_ALWAYS for collision
+[09:23:32] [INFO] [LastChance] Set StaticBody2D 'MainHall_CornerTR' to PROCESS_MODE_ALWAYS for collision
+[09:23:32] [INFO] [LastChance] Set StaticBody2D 'StorageRoom_CornerTR' to PROCESS_MODE_ALWAYS for collision
+[09:23:32] [INFO] [LastChance] Set StaticBody2D 'Desk1' to PROCESS_MODE_ALWAYS for collision
+[09:23:32] [INFO] [LastChance] Set StaticBody2D 'Desk2' to PROCESS_MODE_ALWAYS for collision
+[09:23:32] [INFO] [LastChance] Set StaticBody2D 'Table1' to PROCESS_MODE_ALWAYS for collision
+[09:23:32] [INFO] [LastChance] Set StaticBody2D 'Cabinet1' to PROCESS_MODE_ALWAYS for collision
+[09:23:32] [INFO] [LastChance] Set StaticBody2D 'Cabinet2' to PROCESS_MODE_ALWAYS for collision
+[09:23:32] [INFO] [LastChance] Set StaticBody2D 'Desk3' to PROCESS_MODE_ALWAYS for collision
+[09:23:32] [INFO] [LastChance] Set StaticBody2D 'Desk4' to PROCESS_MODE_ALWAYS for collision
+[09:23:32] [INFO] [LastChance] Set StaticBody2D 'Table2' to PROCESS_MODE_ALWAYS for collision
+[09:23:32] [INFO] [LastChance] Set StaticBody2D 'Table3' to PROCESS_MODE_ALWAYS for collision
+[09:23:32] [INFO] [LastChance] Set StaticBody2D 'Cabinet3' to PROCESS_MODE_ALWAYS for collision
+[09:23:32] [INFO] [LastChance] Set StaticBody2D 'StorageCrate1' to PROCESS_MODE_ALWAYS for collision
+[09:23:32] [INFO] [LastChance] Set StaticBody2D 'StorageCrate2' to PROCESS_MODE_ALWAYS for collision
+[09:23:32] [INFO] [LastChance] Set StaticBody2D 'HallTable' to PROCESS_MODE_ALWAYS for collision
+[09:23:32] [INFO] [LastChance] Skipping player node: Player
+[09:23:32] [INFO] [LastChance] Froze existing bullet casing: Casing
+[09:23:32] [INFO] [LastChance] Froze existing bullet casing: @RigidBody2D@2504
+[09:23:32] [INFO] [Bullet] Body exited signal received for penetrating body
+[09:23:32] [INFO] [Bullet] Exiting penetration at (720.662, 733.6613) after traveling 0 pixels through wall
+[09:23:32] [INFO] [Bullet] Damage multiplier after penetration: 0.9
+[09:23:32] [INFO] [LastChance] Froze existing bullet casing: @RigidBody2D@2506
+[09:23:32] [INFO] [LastChance] Froze all nodes except player and autoloads (including GameManager for quick restart)
+[09:23:32] [INFO] [LastChance] Applied visual effects: sepia=0.70, brightness=0.60, ripple=0.0080
+[09:23:32] [INFO] [LastChance] Applied 4.0x saturation to 6 player sprites
+[09:23:32] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[09:23:32] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[09:23:32] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[09:23:32] [INFO] [LastChance] Resetting all effects (scene change detected)
+[09:23:32] [INFO] [LastChance] Ending last chance effect
+[09:23:32] [ENEMY] [Enemy1] Memory reset: confusion=2.0s, had_target=false
+[09:23:32] [ENEMY] [Enemy2] Memory reset: confusion=2.0s, had_target=false
+[09:23:32] [ENEMY] [Enemy3] Memory reset: confusion=2.0s, had_target=false
+[09:23:32] [ENEMY] [Enemy4] Memory reset: confusion=2.0s, had_target=false
+[09:23:32] [ENEMY] [Enemy5] Memory reset: confusion=2.0s, had_target=false
+[09:23:32] [ENEMY] [Enemy6] Memory reset: confusion=2.0s, had_target=false
+[09:23:32] [ENEMY] [Enemy7] Memory reset: confusion=2.0s, had_target=false
+[09:23:32] [ENEMY] [Enemy8] Memory reset: confusion=2.0s, had_target=false
+[09:23:32] [ENEMY] [Enemy9] Memory reset: confusion=2.0s, had_target=false
+[09:23:32] [ENEMY] [Enemy10] Memory reset: confusion=2.0s, had_target=false
+[09:23:32] [INFO] [LastChance] Reset memory for 10 enemies (player teleport effect)
+[09:23:32] [INFO] [LastChance] All process modes restored
+[09:23:32] [INFO] [LastChance] Restored original colors to 5 player sprites
+[09:23:32] [ENEMY] [Enemy1] Death animation component initialized
+[09:23:32] [ENEMY] [Enemy2] Death animation component initialized
+[09:23:32] [ENEMY] [Enemy3] Death animation component initialized
+[09:23:32] [ENEMY] [Enemy4] Death animation component initialized
+[09:23:32] [ENEMY] [Enemy5] Death animation component initialized
+[09:23:32] [ENEMY] [Enemy6] Death animation component initialized
+[09:23:32] [ENEMY] [Enemy7] Death animation component initialized
+[09:23:32] [ENEMY] [Enemy8] Death animation component initialized
+[09:23:32] [ENEMY] [Enemy9] Death animation component initialized
+[09:23:32] [ENEMY] [Enemy10] Death animation component initialized
+[09:23:32] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[09:23:32] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[09:23:32] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[09:23:32] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[09:23:32] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[09:23:32] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[09:23:32] [INFO] [Player.Debug] Connected to GameManager, debug mode: True
+[09:23:32] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[09:23:32] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 2/4
+[09:23:32] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[09:23:32] [INFO] [BuildingLevel] Found Environment/Enemies node with 10 children
+[09:23:32] [INFO] [BuildingLevel] Child 'Enemy1': script=true, has_died_signal=true
+[09:23:32] [INFO] [BuildingLevel] Child 'Enemy2': script=true, has_died_signal=true
+[09:23:32] [INFO] [BuildingLevel] Child 'Enemy3': script=true, has_died_signal=true
+[09:23:32] [INFO] [BuildingLevel] Child 'Enemy4': script=true, has_died_signal=true
+[09:23:32] [INFO] [BuildingLevel] Child 'Enemy5': script=true, has_died_signal=true
+[09:23:32] [INFO] [BuildingLevel] Child 'Enemy6': script=true, has_died_signal=true
+[09:23:32] [INFO] [BuildingLevel] Child 'Enemy7': script=true, has_died_signal=true
+[09:23:32] [INFO] [BuildingLevel] Child 'Enemy8': script=true, has_died_signal=true
+[09:23:32] [INFO] [BuildingLevel] Child 'Enemy9': script=true, has_died_signal=true
+[09:23:32] [INFO] [BuildingLevel] Child 'Enemy10': script=true, has_died_signal=true
+[09:23:32] [INFO] [BuildingLevel] Enemy tracking complete: 10 enemies registered
+[09:23:32] [INFO] [ScoreManager] Level started with 10 enemies
+[09:23:32] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 11)
+[09:23:32] [ENEMY] [Enemy1] Registered as sound listener
+[09:23:32] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 3, behavior: GUARD, player_found: yes
+[09:23:32] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 12)
+[09:23:32] [ENEMY] [Enemy2] Registered as sound listener
+[09:23:32] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 4, behavior: GUARD, player_found: yes
+[09:23:32] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 13)
+[09:23:32] [ENEMY] [Enemy3] Registered as sound listener
+[09:23:32] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 2, behavior: GUARD, player_found: yes
+[09:23:32] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 14)
+[09:23:32] [ENEMY] [Enemy4] Registered as sound listener
+[09:23:32] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 2, behavior: GUARD, player_found: yes
+[09:23:32] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 15)
+[09:23:32] [ENEMY] [Enemy5] Registered as sound listener
+[09:23:32] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 2, behavior: GUARD, player_found: yes
+[09:23:32] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 16)
+[09:23:32] [ENEMY] [Enemy6] Registered as sound listener
+[09:23:32] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 4, behavior: GUARD, player_found: yes
+[09:23:32] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 17)
+[09:23:32] [ENEMY] [Enemy7] Registered as sound listener
+[09:23:32] [ENEMY] [Enemy7] Enemy spawned at (1600, 900), health: 2, behavior: PATROL, player_found: yes
+[09:23:32] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 18)
+[09:23:32] [ENEMY] [Enemy8] Registered as sound listener
+[09:23:32] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 3, behavior: GUARD, player_found: yes
+[09:23:32] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 19)
+[09:23:32] [ENEMY] [Enemy9] Registered as sound listener
+[09:23:32] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 2, behavior: GUARD, player_found: yes
+[09:23:32] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 20)
+[09:23:32] [ENEMY] [Enemy10] Registered as sound listener
+[09:23:32] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 4, behavior: PATROL, player_found: yes
+[09:23:32] [INFO] [Player] Detecting weapon pose (frame 3)...
+[09:23:32] [INFO] [Player] Detected weapon: Rifle (default pose)
+[09:23:32] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[09:23:32] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[09:23:32] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[09:23:32] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[09:23:32] [INFO] [LastChance] Found player: Player
+[09:23:32] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[09:23:32] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[09:23:32] [INFO] [LastChance] Connected to player Died signal (C#)
+[09:23:33] [ENEMY] [Enemy7] PATROL corner check: angle 94.3°
+[09:23:33] [ENEMY] [Enemy10] PATROL corner check: angle -0.0°
+[09:23:34] [ENEMY] [Enemy7] PATROL corner check: angle 94.3°
+[09:23:34] [ENEMY] [Enemy10] PATROL corner check: angle 14.3°
+[09:23:34] [ENEMY] [Enemy3] State: IDLE -> COMBAT
+[09:23:34] [ENEMY] [Enemy4] Memory: high confidence (0.90) - transitioning to PURSUING
+[09:23:34] [ENEMY] [Enemy4] State: IDLE -> PURSUING
+[09:23:34] [ENEMY] [Enemy4] PURSUING corner check: angle -100.7°
+[09:23:34] [ENEMY] [Enemy10] PATROL corner check: angle 7.0°
+[09:23:34] [ENEMY] [Enemy3] State: COMBAT -> PURSUING
+[09:23:34] [ENEMY] [Enemy10] PATROL corner check: angle 3.5°
+[09:23:34] [ENEMY] [Enemy4] PURSUING corner check: angle -94.0°
+[09:23:35] [ENEMY] [Enemy10] PATROL corner check: angle 1.8°
+[09:23:35] [ENEMY] [Enemy10] PATROL corner check: angle 0.9°
+[09:23:35] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:23:35] [ENEMY] [Enemy7] PATROL corner check: angle 90.0°
+[09:23:36] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:23:36] [ENEMY] [Enemy3] PURSUING corner check: angle -119.1°
+[09:23:36] [ENEMY] [Enemy7] PATROL corner check: angle 89.8°
+[09:23:36] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:23:36] [ENEMY] [Enemy3] PURSUING corner check: angle 60.9°
+[09:23:36] [ENEMY] [Enemy7] PATROL corner check: angle 89.7°
+[09:23:36] [ENEMY] [Enemy4] PURSUING corner check: angle -34.9°
+[09:23:36] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:23:36] [ENEMY] [Enemy7] PATROL corner check: angle 89.6°
+[09:23:37] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:23:37] [ENEMY] [Enemy7] PATROL corner check: angle 89.5°
+[09:23:37] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:23:37] [ENEMY] [Enemy7] PATROL corner check: angle 89.5°
+[09:23:37] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:23:37] [ENEMY] [Enemy7] PATROL corner check: angle 89.5°
+[09:23:38] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:23:38] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[09:23:38] [ENEMY] [Enemy2] Memory: medium confidence (0.53) - transitioning to PURSUING
+[09:23:38] [ENEMY] [Enemy2] State: IDLE -> PURSUING
+[09:23:38] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:23:38] [ENEMY] [Enemy2] PURSUING corner check: angle 180.0°
+[09:23:38] [ENEMY] [Enemy3] PURSUING corner check: angle 80.5°
+[09:23:38] [ENEMY] [Enemy3] State: PURSUING -> COMBAT
+[09:23:38] [ENEMY] [Enemy3] Player distracted - priority attack triggered
+[09:23:38] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(505.9745, 772.636), source=ENEMY (Enemy3), range=1469, listeners=20
+[09:23:38] [INFO] [SoundPropagation] Cleaned up 10 invalid listeners
+[09:23:38] [ENEMY] [Enemy1] Heard gunshot at (505.9745, 772.636), source_type=1, intensity=0.01, distance=470
+[09:23:38] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=3, self=1, below_threshold=3
+[09:23:38] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(496.1634, 839.9736), shooter_id=10292536805546, bullet_pos=(496.1634, 839.9736)
+[09:23:38] [INFO] [Bullet] Using shooter_position, distance=0
+[09:23:38] [INFO] [Bullet] Distance to wall: 0 (0% of viewport)
+[09:23:38] [INFO] [Bullet] Point-blank shot - 100% penetration, ignoring ricochet
+[09:23:38] [INFO] [Bullet] Starting wall penetration at (496.1634, 839.9736)
+[09:23:38] [INFO] [Player] Spawning blood effect at (483.99957, 855.3887), dir=(-0.25665438, 0.9665032), lethal=False (C#)
+[09:23:38] [INFO] [ImpactEffects] spawn_blood_effect called at (483.9996, 855.3887), dir=(-0.256654, 0.966503), lethal=false
+[09:23:38] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[09:23:38] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[09:23:38] [INFO] [ImpactEffects] Blood effect spawned at (483.9996, 855.3887) (scale=1)
+[09:23:38] [INFO] [PenultimateHit] Player damaged: 1.0 damage, current health: 1.0
+[09:23:38] [INFO] [PenultimateHit] Hard mode active - skipping regular penultimate hit effect (using last chance instead)
+[09:23:38] [INFO] [LastChance] Player health updated (C# Damaged): 1.0
+[09:23:38] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[09:23:38] [INFO] [Bullet] Exiting penetration at (484.1862, 885.0771) after traveling 41.6666679382324 pixels through wall
+[09:23:38] [INFO] [Bullet] Damage multiplier after penetration: 0.9
+[09:23:38] [INFO] ------------------------------------------------------------
+[09:23:38] [INFO] GAME LOG ENDED: 2026-01-25T09:23:38
+[09:23:38] [INFO] ============================================================

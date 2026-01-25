@@ -1,0 +1,1457 @@
+[09:00:13] [INFO] ============================================================
+[09:00:13] [INFO] GAME LOG STARTED
+[09:00:13] [INFO] ============================================================
+[09:00:13] [INFO] Timestamp: 2026-01-25T09:00:13
+[09:00:13] [INFO] Log file: I:/Загрузки/godot exe/game_log_20260125_090013.txt
+[09:00:13] [INFO] Executable: I:/Загрузки/godot exe/Godot-Top-Down-Template.exe
+[09:00:13] [INFO] OS: Windows
+[09:00:13] [INFO] Debug build: false
+[09:00:13] [INFO] Engine version: 4.3-stable (official)
+[09:00:13] [INFO] Project: Godot Top-Down Template
+[09:00:13] [INFO] ------------------------------------------------------------
+[09:00:13] [INFO] [GameManager] GameManager ready
+[09:00:13] [INFO] [ScoreManager] ScoreManager ready
+[09:00:13] [INFO] [SoundPropagation] SoundPropagation autoload initialized
+[09:00:13] [INFO] [ImpactEffects] Scenes loaded: DustEffect, BloodEffect, SparksEffect, BloodDecal
+[09:00:13] [INFO] [ImpactEffects] ImpactEffectsManager ready - FULL VERSION with blood effects enabled
+[09:00:13] [INFO] [ImpactEffects] Starting particle shader warmup (Issue #343 fix)...
+[09:00:13] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[09:00:13] [INFO] [PenultimateHit] Saturation shader loaded successfully
+[09:00:13] [INFO] [PenultimateHit] Starting shader warmup (Issue #343 fix)...
+[09:00:13] [INFO] [PenultimateHit] PenultimateHitEffectsManager ready - Configuration:
+[09:00:13] [INFO] [PenultimateHit]   Time scale: 0.10 (10x slowdown)
+[09:00:13] [INFO] [PenultimateHit]   Saturation boost: 2.0 (3.0x)
+[09:00:13] [INFO] [PenultimateHit]   Contrast boost: 1.0 (2.0x)
+[09:00:13] [INFO] [PenultimateHit]   Effect duration: 3.0 real seconds
+[09:00:13] [INFO] [LastChance] Resetting all effects (scene change detected)
+[09:00:13] [INFO] [LastChance] Last chance shader loaded successfully
+[09:00:13] [INFO] [LastChance] Starting shader warmup (Issue #343 fix)...
+[09:00:13] [INFO] [LastChance] LastChanceEffectsManager ready - Configuration:
+[09:00:13] [INFO] [LastChance]   Freeze duration: 6.0 real seconds
+[09:00:13] [INFO] [LastChance]   Sepia intensity: 0.70
+[09:00:13] [INFO] [LastChance]   Brightness: 0.60
+[09:00:13] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FlashbangGrenade.tscn
+[09:00:13] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FragGrenade.tscn
+[09:00:13] [INFO] [ExperimentalSettings] ExperimentalSettings initialized - FOV enabled: true
+[09:00:13] [ENEMY] [Enemy1] Death animation component initialized
+[09:00:13] [ENEMY] [Enemy2] Death animation component initialized
+[09:00:13] [ENEMY] [Enemy3] Death animation component initialized
+[09:00:13] [ENEMY] [Enemy4] Death animation component initialized
+[09:00:13] [ENEMY] [Enemy5] Death animation component initialized
+[09:00:13] [ENEMY] [Enemy6] Death animation component initialized
+[09:00:13] [ENEMY] [Enemy7] Death animation component initialized
+[09:00:13] [ENEMY] [Enemy8] Death animation component initialized
+[09:00:13] [ENEMY] [Enemy9] Death animation component initialized
+[09:00:13] [ENEMY] [Enemy10] Death animation component initialized
+[09:00:13] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[09:00:13] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[09:00:13] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[09:00:13] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[09:00:13] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[09:00:13] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[09:00:13] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[09:00:13] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[09:00:13] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 2/4
+[09:00:13] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[09:00:13] [INFO] [BuildingLevel] Found Environment/Enemies node with 10 children
+[09:00:13] [INFO] [BuildingLevel] Child 'Enemy1': script=true, has_died_signal=true
+[09:00:13] [INFO] [BuildingLevel] Child 'Enemy2': script=true, has_died_signal=true
+[09:00:13] [INFO] [BuildingLevel] Child 'Enemy3': script=true, has_died_signal=true
+[09:00:13] [INFO] [BuildingLevel] Child 'Enemy4': script=true, has_died_signal=true
+[09:00:13] [INFO] [BuildingLevel] Child 'Enemy5': script=true, has_died_signal=true
+[09:00:13] [INFO] [BuildingLevel] Child 'Enemy6': script=true, has_died_signal=true
+[09:00:13] [INFO] [BuildingLevel] Child 'Enemy7': script=true, has_died_signal=true
+[09:00:13] [INFO] [BuildingLevel] Child 'Enemy8': script=true, has_died_signal=true
+[09:00:13] [INFO] [BuildingLevel] Child 'Enemy9': script=true, has_died_signal=true
+[09:00:13] [INFO] [BuildingLevel] Child 'Enemy10': script=true, has_died_signal=true
+[09:00:13] [INFO] [BuildingLevel] Enemy tracking complete: 10 enemies registered
+[09:00:13] [INFO] [ScoreManager] Level started with 10 enemies
+[09:00:13] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 1)
+[09:00:13] [ENEMY] [Enemy1] Registered as sound listener
+[09:00:13] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 3, behavior: GUARD, player_found: yes
+[09:00:13] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 2)
+[09:00:13] [ENEMY] [Enemy2] Registered as sound listener
+[09:00:13] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 4, behavior: GUARD, player_found: yes
+[09:00:13] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 3)
+[09:00:13] [ENEMY] [Enemy3] Registered as sound listener
+[09:00:13] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 4, behavior: GUARD, player_found: yes
+[09:00:13] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 4)
+[09:00:13] [ENEMY] [Enemy4] Registered as sound listener
+[09:00:13] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 4, behavior: GUARD, player_found: yes
+[09:00:13] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 5)
+[09:00:13] [ENEMY] [Enemy5] Registered as sound listener
+[09:00:13] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 3, behavior: GUARD, player_found: yes
+[09:00:13] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 6)
+[09:00:13] [ENEMY] [Enemy6] Registered as sound listener
+[09:00:13] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 2, behavior: GUARD, player_found: yes
+[09:00:13] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 7)
+[09:00:13] [ENEMY] [Enemy7] Registered as sound listener
+[09:00:13] [ENEMY] [Enemy7] Enemy spawned at (1606.114, 893.8859), health: 3, behavior: PATROL, player_found: yes
+[09:00:13] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 8)
+[09:00:13] [ENEMY] [Enemy8] Registered as sound listener
+[09:00:13] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 3, behavior: GUARD, player_found: yes
+[09:00:13] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 9)
+[09:00:13] [ENEMY] [Enemy9] Registered as sound listener
+[09:00:13] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 4, behavior: GUARD, player_found: yes
+[09:00:13] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 10)
+[09:00:13] [ENEMY] [Enemy10] Registered as sound listener
+[09:00:13] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 2, behavior: PATROL, player_found: yes
+[09:00:13] [INFO] [Player] Detecting weapon pose (frame 3)...
+[09:00:13] [INFO] [Player] Detected weapon: Rifle (default pose)
+[09:00:13] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[09:00:13] [INFO] [PenultimateHit] Shader warmup complete in 176 ms
+[09:00:13] [INFO] [LastChance] Shader warmup complete in 174 ms
+[09:00:13] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[09:00:13] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[09:00:13] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[09:00:13] [INFO] [LastChance] Found player: Player
+[09:00:13] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[09:00:13] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[09:00:13] [INFO] [LastChance] Connected to player Died signal (C#)
+[09:00:13] [INFO] [ImpactEffects] Particle shader warmup complete: 5 effects warmed up in 389 ms
+[09:00:14] [ENEMY] [Enemy7] PATROL corner check: angle 94.3°
+[09:00:14] [ENEMY] [Enemy10] PATROL corner check: angle -0.0°
+[09:00:15] [ENEMY] [Enemy7] PATROL corner check: angle 94.3°
+[09:00:15] [ENEMY] [Enemy10] PATROL corner check: angle 14.3°
+[09:00:15] [ENEMY] [Enemy10] PATROL corner check: angle 7.0°
+[09:00:15] [ENEMY] [Enemy10] PATROL corner check: angle 3.5°
+[09:00:16] [ENEMY] [Enemy10] PATROL corner check: angle 1.8°
+[09:00:16] [INFO] [Player] Invincibility mode: ON
+[09:00:16] [INFO] [GameManager] Invincibility mode toggled: ON
+[09:00:16] [ENEMY] [Enemy10] PATROL corner check: angle 0.9°
+[09:00:16] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:00:16] [INFO] [Player.Debug] Debug mode toggled: ON
+[09:00:16] [INFO] [GameManager] Debug mode toggled: ON
+[09:00:16] [ENEMY] [Enemy7] PATROL corner check: angle 90.0°
+[09:00:17] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:00:17] [ENEMY] [Enemy7] PATROL corner check: angle 89.8°
+[09:00:17] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:00:17] [ENEMY] [Enemy7] PATROL corner check: angle 89.7°
+[09:00:17] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:00:17] [ENEMY] [Enemy3] State: IDLE -> COMBAT
+[09:00:17] [ENEMY] [Enemy7] PATROL corner check: angle 89.6°
+[09:00:18] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:00:18] [ENEMY] [Enemy7] PATROL corner check: angle 89.5°
+[09:00:18] [ENEMY] [Enemy4] Memory: high confidence (0.86) - transitioning to PURSUING
+[09:00:18] [ENEMY] [Enemy4] State: IDLE -> PURSUING
+[09:00:18] [ENEMY] [Enemy4] PURSUING corner check: angle -113.2°
+[09:00:18] [ENEMY] [Enemy3] State: COMBAT -> PURSUING
+[09:00:18] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:00:18] [ENEMY] [Enemy7] PATROL corner check: angle 89.5°
+[09:00:18] [ENEMY] [Enemy4] PURSUING corner check: angle -89.5°
+[09:00:18] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:00:18] [ENEMY] [Enemy7] PATROL corner check: angle 89.5°
+[09:00:19] [ENEMY] [Enemy4] PURSUING corner check: angle -89.5°
+[09:00:19] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:00:19] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[09:00:19] [ENEMY] [Enemy4] PURSUING corner check: angle -89.5°
+[09:00:19] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[09:00:19] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[09:00:19] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[09:00:19] [INFO] [LastChance] Resetting all effects (scene change detected)
+[09:00:19] [ENEMY] [Enemy1] Death animation component initialized
+[09:00:19] [ENEMY] [Enemy2] Death animation component initialized
+[09:00:19] [ENEMY] [Enemy3] Death animation component initialized
+[09:00:19] [ENEMY] [Enemy4] Death animation component initialized
+[09:00:19] [ENEMY] [Enemy5] Death animation component initialized
+[09:00:19] [ENEMY] [Enemy6] Death animation component initialized
+[09:00:19] [ENEMY] [Enemy7] Death animation component initialized
+[09:00:19] [ENEMY] [Enemy8] Death animation component initialized
+[09:00:19] [ENEMY] [Enemy9] Death animation component initialized
+[09:00:19] [ENEMY] [Enemy10] Death animation component initialized
+[09:00:19] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[09:00:19] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[09:00:19] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[09:00:19] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[09:00:19] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[09:00:19] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[09:00:19] [INFO] [Player.Debug] Connected to GameManager, debug mode: True
+[09:00:19] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: True
+[09:00:19] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 3/4
+[09:00:19] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[09:00:19] [INFO] [BuildingLevel] Found Environment/Enemies node with 10 children
+[09:00:19] [INFO] [BuildingLevel] Child 'Enemy1': script=true, has_died_signal=true
+[09:00:19] [INFO] [BuildingLevel] Child 'Enemy2': script=true, has_died_signal=true
+[09:00:19] [INFO] [BuildingLevel] Child 'Enemy3': script=true, has_died_signal=true
+[09:00:19] [INFO] [BuildingLevel] Child 'Enemy4': script=true, has_died_signal=true
+[09:00:19] [INFO] [BuildingLevel] Child 'Enemy5': script=true, has_died_signal=true
+[09:00:19] [INFO] [BuildingLevel] Child 'Enemy6': script=true, has_died_signal=true
+[09:00:19] [INFO] [BuildingLevel] Child 'Enemy7': script=true, has_died_signal=true
+[09:00:19] [INFO] [BuildingLevel] Child 'Enemy8': script=true, has_died_signal=true
+[09:00:19] [INFO] [BuildingLevel] Child 'Enemy9': script=true, has_died_signal=true
+[09:00:19] [INFO] [BuildingLevel] Child 'Enemy10': script=true, has_died_signal=true
+[09:00:19] [INFO] [BuildingLevel] Enemy tracking complete: 10 enemies registered
+[09:00:19] [INFO] [ScoreManager] Level started with 10 enemies
+[09:00:19] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 11)
+[09:00:19] [ENEMY] [Enemy1] Registered as sound listener
+[09:00:19] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 2, behavior: GUARD, player_found: yes
+[09:00:19] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 12)
+[09:00:19] [ENEMY] [Enemy2] Registered as sound listener
+[09:00:19] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 3, behavior: GUARD, player_found: yes
+[09:00:19] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 13)
+[09:00:19] [ENEMY] [Enemy3] Registered as sound listener
+[09:00:19] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 2, behavior: GUARD, player_found: yes
+[09:00:19] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 14)
+[09:00:19] [ENEMY] [Enemy4] Registered as sound listener
+[09:00:19] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 3, behavior: GUARD, player_found: yes
+[09:00:19] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 15)
+[09:00:19] [ENEMY] [Enemy5] Registered as sound listener
+[09:00:19] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 3, behavior: GUARD, player_found: yes
+[09:00:19] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 16)
+[09:00:19] [ENEMY] [Enemy6] Registered as sound listener
+[09:00:19] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 2, behavior: GUARD, player_found: yes
+[09:00:19] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 17)
+[09:00:19] [ENEMY] [Enemy7] Registered as sound listener
+[09:00:19] [ENEMY] [Enemy7] Enemy spawned at (1600, 900), health: 2, behavior: PATROL, player_found: yes
+[09:00:19] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 18)
+[09:00:19] [ENEMY] [Enemy8] Registered as sound listener
+[09:00:19] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 3, behavior: GUARD, player_found: yes
+[09:00:19] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 19)
+[09:00:19] [ENEMY] [Enemy9] Registered as sound listener
+[09:00:19] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 3, behavior: GUARD, player_found: yes
+[09:00:19] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 20)
+[09:00:19] [ENEMY] [Enemy10] Registered as sound listener
+[09:00:19] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 3, behavior: PATROL, player_found: yes
+[09:00:19] [INFO] [Player] Detecting weapon pose (frame 3)...
+[09:00:19] [INFO] [Player] Detected weapon: Rifle (default pose)
+[09:00:19] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[09:00:19] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[09:00:19] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[09:00:19] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[09:00:19] [INFO] [LastChance] Found player: Player
+[09:00:19] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[09:00:19] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[09:00:19] [INFO] [LastChance] Connected to player Died signal (C#)
+[09:00:20] [ENEMY] [Enemy7] PATROL corner check: angle 94.3°
+[09:00:20] [ENEMY] [Enemy10] PATROL corner check: angle -0.0°
+[09:00:21] [ENEMY] [Enemy7] PATROL corner check: angle 94.3°
+[09:00:21] [ENEMY] [Enemy10] PATROL corner check: angle 14.3°
+[09:00:21] [ENEMY] [Enemy10] PATROL corner check: angle 7.0°
+[09:00:21] [ENEMY] [Enemy10] PATROL corner check: angle 3.5°
+[09:00:22] [ENEMY] [Enemy10] PATROL corner check: angle 1.8°
+[09:00:22] [ENEMY] [Enemy10] PATROL corner check: angle 0.9°
+[09:00:22] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:00:23] [ENEMY] [Enemy7] PATROL corner check: angle 90.0°
+[09:00:23] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:00:23] [ENEMY] [Enemy7] PATROL corner check: angle 89.8°
+[09:00:23] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:00:23] [ENEMY] [Enemy7] PATROL corner check: angle 89.7°
+[09:00:23] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:00:24] [ENEMY] [Enemy7] PATROL corner check: angle 89.6°
+[09:00:24] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:00:24] [ENEMY] [Enemy7] PATROL corner check: angle 89.5°
+[09:00:24] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:00:24] [ENEMY] [Enemy7] PATROL corner check: angle 89.5°
+[09:00:24] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:00:25] [ENEMY] [Enemy7] PATROL corner check: angle 89.5°
+[09:00:25] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:00:25] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[09:00:25] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:00:25] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[09:00:25] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:00:26] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[09:00:26] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:00:26] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[09:00:26] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:00:26] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[09:00:26] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:00:27] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[09:00:27] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:00:27] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[09:00:27] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:00:27] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[09:00:27] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:00:28] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[09:00:28] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:00:28] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[09:00:28] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:00:28] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[09:00:28] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:00:29] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[09:00:29] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:00:29] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[09:00:29] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:00:29] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[09:00:29] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:00:30] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[09:00:30] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:00:30] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[09:00:30] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:00:30] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[09:00:30] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:00:31] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[09:00:31] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:00:31] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[09:00:31] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:00:31] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[09:00:31] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:00:32] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[09:00:32] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:00:32] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[09:00:32] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:00:32] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[09:00:32] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:00:33] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[09:00:33] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:00:33] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[09:00:33] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:00:33] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[09:00:33] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:00:34] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[09:00:34] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:00:34] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[09:00:34] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:00:34] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[09:00:34] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:00:35] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[09:00:35] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:00:35] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[09:00:35] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:00:35] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[09:00:35] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:00:36] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[09:00:36] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:00:36] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[09:00:36] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:00:36] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[09:00:36] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:00:37] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[09:00:37] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:00:37] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[09:00:37] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:00:37] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[09:00:37] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:00:38] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[09:00:38] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:00:38] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[09:00:38] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:00:38] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[09:00:38] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:00:39] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[09:00:39] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:00:39] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[09:00:39] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:00:39] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[09:00:39] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:00:40] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[09:00:40] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:00:40] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[09:00:40] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:00:40] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[09:00:40] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:00:41] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[09:00:41] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:00:41] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[09:00:41] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:00:41] [ENEMY] [Enemy3] State: IDLE -> COMBAT
+[09:00:41] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[09:00:41] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:00:42] [ENEMY] [Enemy4] Memory: high confidence (0.86) - transitioning to PURSUING
+[09:00:42] [ENEMY] [Enemy4] State: IDLE -> PURSUING
+[09:00:42] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[09:00:42] [ENEMY] [Enemy4] PURSUING corner check: angle -100.7°
+[09:00:42] [ENEMY] [Enemy3] State: COMBAT -> PURSUING
+[09:00:42] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:00:42] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[09:00:42] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[09:00:42] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[09:00:42] [INFO] [LastChance] Resetting all effects (scene change detected)
+[09:00:42] [ENEMY] [Enemy1] Death animation component initialized
+[09:00:42] [ENEMY] [Enemy2] Death animation component initialized
+[09:00:42] [ENEMY] [Enemy3] Death animation component initialized
+[09:00:42] [ENEMY] [Enemy4] Death animation component initialized
+[09:00:42] [ENEMY] [Enemy5] Death animation component initialized
+[09:00:42] [ENEMY] [Enemy6] Death animation component initialized
+[09:00:42] [ENEMY] [Enemy7] Death animation component initialized
+[09:00:42] [ENEMY] [Enemy8] Death animation component initialized
+[09:00:42] [ENEMY] [Enemy9] Death animation component initialized
+[09:00:42] [ENEMY] [Enemy10] Death animation component initialized
+[09:00:42] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[09:00:42] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[09:00:42] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[09:00:42] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[09:00:42] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[09:00:42] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[09:00:42] [INFO] [Player.Debug] Connected to GameManager, debug mode: True
+[09:00:42] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: True
+[09:00:42] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 2/4
+[09:00:42] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[09:00:42] [INFO] [BuildingLevel] Found Environment/Enemies node with 10 children
+[09:00:42] [INFO] [BuildingLevel] Child 'Enemy1': script=true, has_died_signal=true
+[09:00:42] [INFO] [BuildingLevel] Child 'Enemy2': script=true, has_died_signal=true
+[09:00:42] [INFO] [BuildingLevel] Child 'Enemy3': script=true, has_died_signal=true
+[09:00:42] [INFO] [BuildingLevel] Child 'Enemy4': script=true, has_died_signal=true
+[09:00:42] [INFO] [BuildingLevel] Child 'Enemy5': script=true, has_died_signal=true
+[09:00:42] [INFO] [BuildingLevel] Child 'Enemy6': script=true, has_died_signal=true
+[09:00:42] [INFO] [BuildingLevel] Child 'Enemy7': script=true, has_died_signal=true
+[09:00:42] [INFO] [BuildingLevel] Child 'Enemy8': script=true, has_died_signal=true
+[09:00:42] [INFO] [BuildingLevel] Child 'Enemy9': script=true, has_died_signal=true
+[09:00:42] [INFO] [BuildingLevel] Child 'Enemy10': script=true, has_died_signal=true
+[09:00:42] [INFO] [BuildingLevel] Enemy tracking complete: 10 enemies registered
+[09:00:42] [INFO] [ScoreManager] Level started with 10 enemies
+[09:00:42] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 21)
+[09:00:42] [ENEMY] [Enemy1] Registered as sound listener
+[09:00:42] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 3, behavior: GUARD, player_found: yes
+[09:00:42] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 22)
+[09:00:42] [ENEMY] [Enemy2] Registered as sound listener
+[09:00:42] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 2, behavior: GUARD, player_found: yes
+[09:00:42] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 23)
+[09:00:42] [ENEMY] [Enemy3] Registered as sound listener
+[09:00:42] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 3, behavior: GUARD, player_found: yes
+[09:00:42] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 24)
+[09:00:42] [ENEMY] [Enemy4] Registered as sound listener
+[09:00:42] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 4, behavior: GUARD, player_found: yes
+[09:00:42] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 25)
+[09:00:42] [ENEMY] [Enemy5] Registered as sound listener
+[09:00:42] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 4, behavior: GUARD, player_found: yes
+[09:00:42] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 26)
+[09:00:42] [ENEMY] [Enemy6] Registered as sound listener
+[09:00:42] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 3, behavior: GUARD, player_found: yes
+[09:00:42] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 27)
+[09:00:42] [ENEMY] [Enemy7] Registered as sound listener
+[09:00:42] [ENEMY] [Enemy7] Enemy spawned at (1600, 900), health: 2, behavior: PATROL, player_found: yes
+[09:00:42] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 28)
+[09:00:42] [ENEMY] [Enemy8] Registered as sound listener
+[09:00:42] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 2, behavior: GUARD, player_found: yes
+[09:00:42] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 29)
+[09:00:42] [ENEMY] [Enemy9] Registered as sound listener
+[09:00:42] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 3, behavior: GUARD, player_found: yes
+[09:00:42] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 30)
+[09:00:42] [ENEMY] [Enemy10] Registered as sound listener
+[09:00:42] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 4, behavior: PATROL, player_found: yes
+[09:00:42] [INFO] [Player] Detecting weapon pose (frame 3)...
+[09:00:42] [INFO] [Player] Detected weapon: Rifle (default pose)
+[09:00:42] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[09:00:42] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[09:00:42] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[09:00:42] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[09:00:42] [INFO] [LastChance] Found player: Player
+[09:00:42] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[09:00:42] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[09:00:42] [INFO] [LastChance] Connected to player Died signal (C#)
+[09:00:43] [ENEMY] [Enemy7] PATROL corner check: angle 94.3°
+[09:00:43] [ENEMY] [Enemy10] PATROL corner check: angle -0.0°
+[09:00:44] [ENEMY] [Enemy7] PATROL corner check: angle 94.3°
+[09:00:44] [ENEMY] [Enemy10] PATROL corner check: angle 14.3°
+[09:00:44] [ENEMY] [Enemy10] PATROL corner check: angle 7.0°
+[09:00:44] [ENEMY] [Enemy10] PATROL corner check: angle 3.5°
+[09:00:45] [ENEMY] [Enemy3] State: IDLE -> COMBAT
+[09:00:45] [ENEMY] [Enemy10] PATROL corner check: angle 1.8°
+[09:00:45] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[09:00:45] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[09:00:45] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[09:00:45] [INFO] [LastChance] Resetting all effects (scene change detected)
+[09:00:45] [ENEMY] [Enemy1] Death animation component initialized
+[09:00:45] [ENEMY] [Enemy2] Death animation component initialized
+[09:00:45] [ENEMY] [Enemy3] Death animation component initialized
+[09:00:45] [ENEMY] [Enemy4] Death animation component initialized
+[09:00:45] [ENEMY] [Enemy5] Death animation component initialized
+[09:00:45] [ENEMY] [Enemy6] Death animation component initialized
+[09:00:45] [ENEMY] [Enemy7] Death animation component initialized
+[09:00:45] [ENEMY] [Enemy8] Death animation component initialized
+[09:00:45] [ENEMY] [Enemy9] Death animation component initialized
+[09:00:45] [ENEMY] [Enemy10] Death animation component initialized
+[09:00:45] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[09:00:45] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[09:00:45] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[09:00:45] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[09:00:45] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[09:00:45] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[09:00:45] [INFO] [Player.Debug] Connected to GameManager, debug mode: True
+[09:00:45] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: True
+[09:00:45] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 2/4
+[09:00:45] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[09:00:45] [INFO] [BuildingLevel] Found Environment/Enemies node with 10 children
+[09:00:45] [INFO] [BuildingLevel] Child 'Enemy1': script=true, has_died_signal=true
+[09:00:45] [INFO] [BuildingLevel] Child 'Enemy2': script=true, has_died_signal=true
+[09:00:45] [INFO] [BuildingLevel] Child 'Enemy3': script=true, has_died_signal=true
+[09:00:45] [INFO] [BuildingLevel] Child 'Enemy4': script=true, has_died_signal=true
+[09:00:45] [INFO] [BuildingLevel] Child 'Enemy5': script=true, has_died_signal=true
+[09:00:45] [INFO] [BuildingLevel] Child 'Enemy6': script=true, has_died_signal=true
+[09:00:45] [INFO] [BuildingLevel] Child 'Enemy7': script=true, has_died_signal=true
+[09:00:45] [INFO] [BuildingLevel] Child 'Enemy8': script=true, has_died_signal=true
+[09:00:45] [INFO] [BuildingLevel] Child 'Enemy9': script=true, has_died_signal=true
+[09:00:45] [INFO] [BuildingLevel] Child 'Enemy10': script=true, has_died_signal=true
+[09:00:45] [INFO] [BuildingLevel] Enemy tracking complete: 10 enemies registered
+[09:00:45] [INFO] [ScoreManager] Level started with 10 enemies
+[09:00:45] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 31)
+[09:00:45] [ENEMY] [Enemy1] Registered as sound listener
+[09:00:45] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 2, behavior: GUARD, player_found: yes
+[09:00:45] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 32)
+[09:00:45] [ENEMY] [Enemy2] Registered as sound listener
+[09:00:45] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 3, behavior: GUARD, player_found: yes
+[09:00:45] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 33)
+[09:00:45] [ENEMY] [Enemy3] Registered as sound listener
+[09:00:45] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 2, behavior: GUARD, player_found: yes
+[09:00:45] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 34)
+[09:00:45] [ENEMY] [Enemy4] Registered as sound listener
+[09:00:45] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 4, behavior: GUARD, player_found: yes
+[09:00:45] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 35)
+[09:00:45] [ENEMY] [Enemy5] Registered as sound listener
+[09:00:45] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 4, behavior: GUARD, player_found: yes
+[09:00:45] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 36)
+[09:00:45] [ENEMY] [Enemy6] Registered as sound listener
+[09:00:45] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 2, behavior: GUARD, player_found: yes
+[09:00:45] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 37)
+[09:00:45] [ENEMY] [Enemy7] Registered as sound listener
+[09:00:45] [ENEMY] [Enemy7] Enemy spawned at (1600, 900), health: 2, behavior: PATROL, player_found: yes
+[09:00:45] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 38)
+[09:00:45] [ENEMY] [Enemy8] Registered as sound listener
+[09:00:45] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 3, behavior: GUARD, player_found: yes
+[09:00:45] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 39)
+[09:00:45] [ENEMY] [Enemy9] Registered as sound listener
+[09:00:45] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 2, behavior: GUARD, player_found: yes
+[09:00:45] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 40)
+[09:00:45] [ENEMY] [Enemy10] Registered as sound listener
+[09:00:45] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 3, behavior: PATROL, player_found: yes
+[09:00:45] [INFO] [Player] Detecting weapon pose (frame 3)...
+[09:00:45] [INFO] [Player] Detected weapon: Rifle (default pose)
+[09:00:45] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[09:00:45] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[09:00:45] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[09:00:45] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[09:00:45] [INFO] [LastChance] Found player: Player
+[09:00:45] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[09:00:45] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[09:00:45] [INFO] [LastChance] Connected to player Died signal (C#)
+[09:00:46] [ENEMY] [Enemy7] PATROL corner check: angle 94.3°
+[09:00:46] [ENEMY] [Enemy10] PATROL corner check: angle -0.0°
+[09:00:47] [ENEMY] [Enemy7] PATROL corner check: angle 94.3°
+[09:00:47] [ENEMY] [Enemy10] PATROL corner check: angle 14.3°
+[09:00:47] [ENEMY] [Enemy10] PATROL corner check: angle 7.0°
+[09:00:47] [ENEMY] [Enemy10] PATROL corner check: angle 3.5°
+[09:00:48] [ENEMY] [Enemy3] State: IDLE -> COMBAT
+[09:00:48] [ENEMY] [Enemy10] PATROL corner check: angle 1.8°
+[09:00:48] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[09:00:48] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[09:00:48] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[09:00:48] [INFO] [LastChance] Resetting all effects (scene change detected)
+[09:00:48] [ENEMY] [Enemy1] Death animation component initialized
+[09:00:48] [ENEMY] [Enemy2] Death animation component initialized
+[09:00:48] [ENEMY] [Enemy3] Death animation component initialized
+[09:00:48] [ENEMY] [Enemy4] Death animation component initialized
+[09:00:48] [ENEMY] [Enemy5] Death animation component initialized
+[09:00:48] [ENEMY] [Enemy6] Death animation component initialized
+[09:00:48] [ENEMY] [Enemy7] Death animation component initialized
+[09:00:48] [ENEMY] [Enemy8] Death animation component initialized
+[09:00:48] [ENEMY] [Enemy9] Death animation component initialized
+[09:00:48] [ENEMY] [Enemy10] Death animation component initialized
+[09:00:48] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[09:00:48] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[09:00:48] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[09:00:48] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[09:00:48] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[09:00:48] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[09:00:48] [INFO] [Player.Debug] Connected to GameManager, debug mode: True
+[09:00:48] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: True
+[09:00:48] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 2/4
+[09:00:48] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[09:00:48] [INFO] [BuildingLevel] Found Environment/Enemies node with 10 children
+[09:00:48] [INFO] [BuildingLevel] Child 'Enemy1': script=true, has_died_signal=true
+[09:00:48] [INFO] [BuildingLevel] Child 'Enemy2': script=true, has_died_signal=true
+[09:00:48] [INFO] [BuildingLevel] Child 'Enemy3': script=true, has_died_signal=true
+[09:00:48] [INFO] [BuildingLevel] Child 'Enemy4': script=true, has_died_signal=true
+[09:00:48] [INFO] [BuildingLevel] Child 'Enemy5': script=true, has_died_signal=true
+[09:00:48] [INFO] [BuildingLevel] Child 'Enemy6': script=true, has_died_signal=true
+[09:00:48] [INFO] [BuildingLevel] Child 'Enemy7': script=true, has_died_signal=true
+[09:00:48] [INFO] [BuildingLevel] Child 'Enemy8': script=true, has_died_signal=true
+[09:00:48] [INFO] [BuildingLevel] Child 'Enemy9': script=true, has_died_signal=true
+[09:00:48] [INFO] [BuildingLevel] Child 'Enemy10': script=true, has_died_signal=true
+[09:00:48] [INFO] [BuildingLevel] Enemy tracking complete: 10 enemies registered
+[09:00:48] [INFO] [ScoreManager] Level started with 10 enemies
+[09:00:48] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 41)
+[09:00:48] [ENEMY] [Enemy1] Registered as sound listener
+[09:00:48] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 2, behavior: GUARD, player_found: yes
+[09:00:48] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 42)
+[09:00:48] [ENEMY] [Enemy2] Registered as sound listener
+[09:00:48] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 2, behavior: GUARD, player_found: yes
+[09:00:48] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 43)
+[09:00:48] [ENEMY] [Enemy3] Registered as sound listener
+[09:00:48] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 3, behavior: GUARD, player_found: yes
+[09:00:48] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 44)
+[09:00:48] [ENEMY] [Enemy4] Registered as sound listener
+[09:00:48] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 3, behavior: GUARD, player_found: yes
+[09:00:48] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 45)
+[09:00:48] [ENEMY] [Enemy5] Registered as sound listener
+[09:00:48] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 4, behavior: GUARD, player_found: yes
+[09:00:48] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 46)
+[09:00:48] [ENEMY] [Enemy6] Registered as sound listener
+[09:00:48] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 2, behavior: GUARD, player_found: yes
+[09:00:48] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 47)
+[09:00:48] [ENEMY] [Enemy7] Registered as sound listener
+[09:00:48] [ENEMY] [Enemy7] Enemy spawned at (1600, 900), health: 2, behavior: PATROL, player_found: yes
+[09:00:48] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 48)
+[09:00:48] [ENEMY] [Enemy8] Registered as sound listener
+[09:00:48] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 4, behavior: GUARD, player_found: yes
+[09:00:48] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 49)
+[09:00:48] [ENEMY] [Enemy9] Registered as sound listener
+[09:00:48] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 3, behavior: GUARD, player_found: yes
+[09:00:48] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 50)
+[09:00:48] [ENEMY] [Enemy10] Registered as sound listener
+[09:00:48] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 4, behavior: PATROL, player_found: yes
+[09:00:48] [INFO] [Player] Detecting weapon pose (frame 3)...
+[09:00:48] [INFO] [Player] Detected weapon: Rifle (default pose)
+[09:00:48] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[09:00:48] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[09:00:48] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[09:00:48] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[09:00:48] [INFO] [LastChance] Found player: Player
+[09:00:48] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[09:00:48] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[09:00:48] [INFO] [LastChance] Connected to player Died signal (C#)
+[09:00:50] [ENEMY] [Enemy7] PATROL corner check: angle 94.3°
+[09:00:50] [ENEMY] [Enemy10] PATROL corner check: angle -0.0°
+[09:00:50] [ENEMY] [Enemy3] Player distracted - priority attack triggered
+[09:00:50] [ENEMY] [Enemy3] Player distracted - priority attack triggered
+[09:00:50] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(684.4832, 753.9004), source=ENEMY (Enemy3), range=1469, listeners=50
+[09:00:50] [INFO] [SoundPropagation] Cleaned up 40 invalid listeners
+[09:00:50] [ENEMY] [Enemy2] Heard gunshot at (684.4832, 753.9004), source_type=1, intensity=0.02, distance=350
+[09:00:50] [ENEMY] [Enemy4] Heard gunshot at (684.4832, 753.9004), source_type=1, intensity=0.07, distance=186
+[09:00:50] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[09:00:50] [INFO] [LastChance] Threat detected: Bullet
+[09:00:50] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[09:00:50] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[09:00:50] [ENEMY] [Enemy7] PATROL corner check: angle 94.3°
+[09:00:50] [ENEMY] [Enemy10] PATROL corner check: angle 14.3°
+[09:00:50] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[09:00:50] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(684.4832, 753.9004), source=ENEMY (Enemy3), range=1469, listeners=10
+[09:00:50] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[09:00:50] [INFO] [LastChance] Threat detected: Bullet
+[09:00:50] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[09:00:50] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[09:00:50] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[09:00:50] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[09:00:50] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[09:00:50] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[09:00:50] [INFO] [LastChance] Resetting all effects (scene change detected)
+[09:00:50] [ENEMY] [Enemy1] Death animation component initialized
+[09:00:50] [ENEMY] [Enemy2] Death animation component initialized
+[09:00:50] [ENEMY] [Enemy3] Death animation component initialized
+[09:00:50] [ENEMY] [Enemy4] Death animation component initialized
+[09:00:50] [ENEMY] [Enemy5] Death animation component initialized
+[09:00:50] [ENEMY] [Enemy6] Death animation component initialized
+[09:00:50] [ENEMY] [Enemy7] Death animation component initialized
+[09:00:50] [ENEMY] [Enemy8] Death animation component initialized
+[09:00:50] [ENEMY] [Enemy9] Death animation component initialized
+[09:00:50] [ENEMY] [Enemy10] Death animation component initialized
+[09:00:50] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[09:00:50] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[09:00:50] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[09:00:50] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[09:00:50] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[09:00:50] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[09:00:50] [INFO] [Player.Debug] Connected to GameManager, debug mode: True
+[09:00:50] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: True
+[09:00:50] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 3/4
+[09:00:50] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[09:00:50] [INFO] [BuildingLevel] Found Environment/Enemies node with 10 children
+[09:00:50] [INFO] [BuildingLevel] Child 'Enemy1': script=true, has_died_signal=true
+[09:00:50] [INFO] [BuildingLevel] Child 'Enemy2': script=true, has_died_signal=true
+[09:00:50] [INFO] [BuildingLevel] Child 'Enemy3': script=true, has_died_signal=true
+[09:00:50] [INFO] [BuildingLevel] Child 'Enemy4': script=true, has_died_signal=true
+[09:00:50] [INFO] [BuildingLevel] Child 'Enemy5': script=true, has_died_signal=true
+[09:00:50] [INFO] [BuildingLevel] Child 'Enemy6': script=true, has_died_signal=true
+[09:00:50] [INFO] [BuildingLevel] Child 'Enemy7': script=true, has_died_signal=true
+[09:00:50] [INFO] [BuildingLevel] Child 'Enemy8': script=true, has_died_signal=true
+[09:00:50] [INFO] [BuildingLevel] Child 'Enemy9': script=true, has_died_signal=true
+[09:00:50] [INFO] [BuildingLevel] Child 'Enemy10': script=true, has_died_signal=true
+[09:00:50] [INFO] [BuildingLevel] Enemy tracking complete: 10 enemies registered
+[09:00:50] [INFO] [ScoreManager] Level started with 10 enemies
+[09:00:50] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 11)
+[09:00:50] [ENEMY] [Enemy1] Registered as sound listener
+[09:00:50] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 3, behavior: GUARD, player_found: yes
+[09:00:50] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 12)
+[09:00:50] [ENEMY] [Enemy2] Registered as sound listener
+[09:00:50] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 2, behavior: GUARD, player_found: yes
+[09:00:50] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 13)
+[09:00:50] [ENEMY] [Enemy3] Registered as sound listener
+[09:00:50] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 3, behavior: GUARD, player_found: yes
+[09:00:50] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 14)
+[09:00:50] [ENEMY] [Enemy4] Registered as sound listener
+[09:00:50] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 2, behavior: GUARD, player_found: yes
+[09:00:50] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 15)
+[09:00:50] [ENEMY] [Enemy5] Registered as sound listener
+[09:00:50] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 4, behavior: GUARD, player_found: yes
+[09:00:50] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 16)
+[09:00:50] [ENEMY] [Enemy6] Registered as sound listener
+[09:00:50] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 3, behavior: GUARD, player_found: yes
+[09:00:50] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 17)
+[09:00:50] [ENEMY] [Enemy7] Registered as sound listener
+[09:00:50] [ENEMY] [Enemy7] Enemy spawned at (1600, 900), health: 3, behavior: PATROL, player_found: yes
+[09:00:50] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 18)
+[09:00:50] [ENEMY] [Enemy8] Registered as sound listener
+[09:00:50] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 3, behavior: GUARD, player_found: yes
+[09:00:50] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 19)
+[09:00:50] [ENEMY] [Enemy9] Registered as sound listener
+[09:00:50] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 4, behavior: GUARD, player_found: yes
+[09:00:50] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 20)
+[09:00:50] [ENEMY] [Enemy10] Registered as sound listener
+[09:00:50] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 3, behavior: PATROL, player_found: yes
+[09:00:50] [INFO] [Player] Detecting weapon pose (frame 3)...
+[09:00:50] [INFO] [Player] Detected weapon: Rifle (default pose)
+[09:00:50] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[09:00:50] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[09:00:50] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[09:00:50] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[09:00:50] [INFO] [LastChance] Found player: Player
+[09:00:50] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[09:00:50] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[09:00:50] [INFO] [LastChance] Connected to player Died signal (C#)
+[09:00:52] [ENEMY] [Enemy7] PATROL corner check: angle 94.3°
+[09:00:52] [ENEMY] [Enemy10] PATROL corner check: angle -0.0°
+[09:00:52] [ENEMY] [Enemy3] Player distracted - priority attack triggered
+[09:00:52] [ENEMY] [Enemy3] Player distracted - priority attack triggered
+[09:00:52] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(684.4485, 753.7583), source=ENEMY (Enemy3), range=1469, listeners=20
+[09:00:52] [INFO] [SoundPropagation] Cleaned up 10 invalid listeners
+[09:00:52] [ENEMY] [Enemy2] Heard gunshot at (684.4485, 753.7583), source_type=1, intensity=0.02, distance=350
+[09:00:52] [ENEMY] [Enemy4] Heard gunshot at (684.4485, 753.7583), source_type=1, intensity=0.07, distance=186
+[09:00:52] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[09:00:52] [ENEMY] [Enemy7] PATROL corner check: angle 94.3°
+[09:00:52] [ENEMY] [Enemy10] PATROL corner check: angle 14.3°
+[09:00:52] [INFO] [LastChance] Threat detected: Bullet
+[09:00:52] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[09:00:52] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[09:00:52] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(684.4485, 753.7583), source=ENEMY (Enemy3), range=1469, listeners=10
+[09:00:52] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[09:00:52] [INFO] [LastChance] Threat detected: @Area2D@1547
+[09:00:52] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[09:00:52] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[09:00:52] [ENEMY] [Enemy1] Memory: medium confidence (0.61) - transitioning to PURSUING
+[09:00:52] [ENEMY] [Enemy1] State: IDLE -> PURSUING
+[09:00:52] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(684.4485, 753.7583), source=ENEMY (Enemy3), range=1469, listeners=10
+[09:00:52] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[09:00:52] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(618.2297, 769.4323), shooter_id=11697544760263, bullet_pos=(38.92165, 837.8429)
+[09:00:52] [INFO] [Bullet] Using shooter_position, distance=583.333435058594
+[09:00:52] [INFO] [Bullet] Distance to wall: 583.333435058594 (39.7202462487424% of viewport)
+[09:00:52] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[09:00:52] [INFO] [Bullet] Starting wall penetration at (38.92165, 837.8429)
+[09:00:52] [ENEMY] [Enemy1] PURSUING corner check: angle -50.9°
+[09:00:52] [INFO] [Bullet] Raycast backward hit penetrating body at distance 39.6969146728516
+[09:00:52] [INFO] [Bullet] Body exited signal received for penetrating body
+[09:00:52] [INFO] [Bullet] Exiting penetration at (-7.422985, 843.3157) after traveling 41.6666679382324 pixels through wall
+[09:00:52] [INFO] [Bullet] Damage multiplier after penetration: 0.9
+[09:00:52] [INFO] [LastChance] Threat detected: @Area2D@1549
+[09:00:52] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[09:00:52] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[09:00:52] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[09:00:52] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(684.4485, 753.7583), source=ENEMY (Enemy3), range=1469, listeners=10
+[09:00:52] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[09:00:52] [ENEMY] [Enemy10] PATROL corner check: angle 7.0°
+[09:00:52] [INFO] [LastChance] Threat detected: Bullet
+[09:00:52] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[09:00:52] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[09:00:52] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[09:00:52] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(684.4485, 753.7583), source=ENEMY (Enemy3), range=1469, listeners=10
+[09:00:52] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=1, self=1, below_threshold=5
+[09:00:52] [INFO] [LastChance] Threat detected: Bullet
+[09:00:52] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[09:00:52] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[09:00:52] [ENEMY] [Enemy4] State: COMBAT -> PURSUING
+[09:00:52] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[09:00:52] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[09:00:52] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[09:00:52] [INFO] [LastChance] Resetting all effects (scene change detected)
+[09:00:52] [ENEMY] [Enemy1] Death animation component initialized
+[09:00:52] [ENEMY] [Enemy2] Death animation component initialized
+[09:00:52] [ENEMY] [Enemy3] Death animation component initialized
+[09:00:52] [ENEMY] [Enemy4] Death animation component initialized
+[09:00:52] [ENEMY] [Enemy5] Death animation component initialized
+[09:00:52] [ENEMY] [Enemy6] Death animation component initialized
+[09:00:52] [ENEMY] [Enemy7] Death animation component initialized
+[09:00:52] [ENEMY] [Enemy8] Death animation component initialized
+[09:00:52] [ENEMY] [Enemy9] Death animation component initialized
+[09:00:52] [ENEMY] [Enemy10] Death animation component initialized
+[09:00:52] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[09:00:52] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[09:00:52] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[09:00:52] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[09:00:52] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[09:00:52] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[09:00:52] [INFO] [Player.Debug] Connected to GameManager, debug mode: True
+[09:00:52] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: True
+[09:00:52] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 3/4
+[09:00:52] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[09:00:52] [INFO] [BuildingLevel] Found Environment/Enemies node with 10 children
+[09:00:52] [INFO] [BuildingLevel] Child 'Enemy1': script=true, has_died_signal=true
+[09:00:52] [INFO] [BuildingLevel] Child 'Enemy2': script=true, has_died_signal=true
+[09:00:52] [INFO] [BuildingLevel] Child 'Enemy3': script=true, has_died_signal=true
+[09:00:52] [INFO] [BuildingLevel] Child 'Enemy4': script=true, has_died_signal=true
+[09:00:52] [INFO] [BuildingLevel] Child 'Enemy5': script=true, has_died_signal=true
+[09:00:52] [INFO] [BuildingLevel] Child 'Enemy6': script=true, has_died_signal=true
+[09:00:52] [INFO] [BuildingLevel] Child 'Enemy7': script=true, has_died_signal=true
+[09:00:52] [INFO] [BuildingLevel] Child 'Enemy8': script=true, has_died_signal=true
+[09:00:52] [INFO] [BuildingLevel] Child 'Enemy9': script=true, has_died_signal=true
+[09:00:52] [INFO] [BuildingLevel] Child 'Enemy10': script=true, has_died_signal=true
+[09:00:52] [INFO] [BuildingLevel] Enemy tracking complete: 10 enemies registered
+[09:00:52] [INFO] [ScoreManager] Level started with 10 enemies
+[09:00:52] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 11)
+[09:00:52] [ENEMY] [Enemy1] Registered as sound listener
+[09:00:52] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 2, behavior: GUARD, player_found: yes
+[09:00:52] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 12)
+[09:00:52] [ENEMY] [Enemy2] Registered as sound listener
+[09:00:52] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 3, behavior: GUARD, player_found: yes
+[09:00:52] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 13)
+[09:00:52] [ENEMY] [Enemy3] Registered as sound listener
+[09:00:52] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 3, behavior: GUARD, player_found: yes
+[09:00:52] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 14)
+[09:00:52] [ENEMY] [Enemy4] Registered as sound listener
+[09:00:52] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 3, behavior: GUARD, player_found: yes
+[09:00:52] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 15)
+[09:00:52] [ENEMY] [Enemy5] Registered as sound listener
+[09:00:52] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 4, behavior: GUARD, player_found: yes
+[09:00:52] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 16)
+[09:00:52] [ENEMY] [Enemy6] Registered as sound listener
+[09:00:52] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 3, behavior: GUARD, player_found: yes
+[09:00:52] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 17)
+[09:00:52] [ENEMY] [Enemy7] Registered as sound listener
+[09:00:52] [ENEMY] [Enemy7] Enemy spawned at (1600, 900), health: 4, behavior: PATROL, player_found: yes
+[09:00:52] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 18)
+[09:00:52] [ENEMY] [Enemy8] Registered as sound listener
+[09:00:52] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 4, behavior: GUARD, player_found: yes
+[09:00:52] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 19)
+[09:00:52] [ENEMY] [Enemy9] Registered as sound listener
+[09:00:52] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 2, behavior: GUARD, player_found: yes
+[09:00:52] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 20)
+[09:00:52] [ENEMY] [Enemy10] Registered as sound listener
+[09:00:52] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 3, behavior: PATROL, player_found: yes
+[09:00:52] [INFO] [Player] Detecting weapon pose (frame 3)...
+[09:00:52] [INFO] [Player] Detected weapon: Rifle (default pose)
+[09:00:52] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[09:00:52] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[09:00:52] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[09:00:52] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[09:00:52] [INFO] [LastChance] Found player: Player
+[09:00:52] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[09:00:52] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[09:00:52] [INFO] [LastChance] Connected to player Died signal (C#)
+[09:00:54] [ENEMY] [Enemy7] PATROL corner check: angle 94.3°
+[09:00:54] [ENEMY] [Enemy10] PATROL corner check: angle -0.0°
+[09:00:54] [ENEMY] [Enemy7] PATROL corner check: angle 94.3°
+[09:00:54] [ENEMY] [Enemy10] PATROL corner check: angle 14.3°
+[09:00:54] [ENEMY] [Enemy1] Player distracted - priority attack triggered
+[09:00:54] [ENEMY] [Enemy2] Memory: high confidence (0.90) - transitioning to PURSUING
+[09:00:54] [ENEMY] [Enemy2] State: IDLE -> PURSUING
+[09:00:54] [ENEMY] [Enemy3] Memory: high confidence (0.81) - transitioning to PURSUING
+[09:00:54] [ENEMY] [Enemy3] State: IDLE -> PURSUING
+[09:00:54] [ENEMY] [Enemy4] Memory: medium confidence (0.72) - transitioning to PURSUING
+[09:00:54] [ENEMY] [Enemy4] State: IDLE -> PURSUING
+[09:00:55] [ENEMY] [Enemy2] PURSUING corner check: angle 180.0°
+[09:00:55] [ENEMY] [Enemy3] PURSUING corner check: angle -117.3°
+[09:00:55] [ENEMY] [Enemy1] Player distracted - priority attack triggered
+[09:00:55] [ENEMY] [Enemy4] PURSUING corner check: angle -100.7°
+[09:00:55] [ENEMY] [Enemy10] PATROL corner check: angle 7.0°
+[09:00:55] [ENEMY] [Enemy3] PURSUING corner check: angle 62.7°
+[09:00:55] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[09:00:55] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(683.0109, 914.0658), source=ENEMY (Enemy4), range=1469, listeners=20
+[09:00:55] [INFO] [SoundPropagation] Cleaned up 10 invalid listeners
+[09:00:55] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[09:00:55] [ENEMY] [Enemy4] State: PURSUING -> COMBAT
+[09:00:55] [ENEMY] [Enemy1] State: COMBAT -> PURSUING
+[09:00:55] [INFO] [LastChance] Threat detected: Bullet
+[09:00:55] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[09:00:55] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[09:00:55] [ENEMY] [Enemy10] PATROL corner check: angle 3.5°
+[09:00:55] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[09:00:55] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(662.6772, 906.988), source=ENEMY (Enemy4), range=1469, listeners=10
+[09:00:55] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[09:00:55] [INFO] [LastChance] Threat detected: @Area2D@1805
+[09:00:55] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[09:00:55] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[09:00:55] [ENEMY] [Enemy3] State: PURSUING -> RETREATING
+[09:00:55] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[09:00:55] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[09:00:55] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(654.3398, 875.7028), source=ENEMY (Enemy4), range=1469, listeners=10
+[09:00:55] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[09:00:55] [INFO] [LastChance] Threat detected: @Area2D@1807
+[09:00:55] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[09:00:55] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[09:00:55] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(665.588, 848.2855), shooter_id=12537210866310, bullet_pos=(551.9487, 64.81734)
+[09:00:55] [INFO] [Bullet] Using shooter_position, distance=791.666809082031
+[09:00:55] [INFO] [Bullet] Distance to wall: 791.666809082031 (53.9060487772929% of viewport)
+[09:00:55] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[09:00:55] [ENEMY] [Enemy3] Player distracted - priority attack triggered
+[09:00:55] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(579.1584, 837.0115), source=ENEMY (Enemy3), range=1469, listeners=10
+[09:00:55] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[09:00:55] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[09:00:55] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(651.3768, 839.3976), source=ENEMY (Enemy4), range=1469, listeners=10
+[09:00:55] [ENEMY] [Enemy3] Heard gunshot at (651.3768, 839.3976), source_type=1, intensity=0.56, distance=67
+[09:00:55] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[09:00:55] [ENEMY] [Enemy3] State: COMBAT -> RETREATING
+[09:00:55] [INFO] [LastChance] Threat detected: @Area2D@1809
+[09:00:55] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[09:00:55] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[09:00:55] [INFO] [LastChance] Threat detected: @Area2D@1811
+[09:00:55] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[09:00:55] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[09:00:55] [ENEMY] [Enemy10] PATROL corner check: angle 1.8°
+[09:00:55] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(665.588, 848.2855), shooter_id=12537210866310, bullet_pos=(506.4508, 204.2485)
+[09:00:55] [INFO] [Bullet] Using shooter_position, distance=663.406616210938
+[09:00:55] [INFO] [Bullet] Distance to wall: 663.406616210938 (45.1725763950022% of viewport)
+[09:00:55] [INFO] [Bullet] Distance-based penetration chance: 93.9653275391642%
+[09:00:55] [INFO] [Bullet] Starting wall penetration at (506.4508, 204.2485)
+[09:00:55] [INFO] [Bullet] Body exited signal received for penetrating body
+[09:00:55] [INFO] [Bullet] Exiting penetration at (493.9131, 242.6713) after traveling 0 pixels through wall
+[09:00:55] [INFO] [Bullet] Damage multiplier after penetration: 0.45
+[09:00:55] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[09:00:55] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[09:00:55] [ENEMY] [Enemy3] Player distracted - priority attack triggered
+[09:00:55] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(597.6197, 855.5083), source=ENEMY (Enemy3), range=1469, listeners=10
+[09:00:55] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[09:00:55] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[09:00:55] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(653.4212, 818.5722), source=ENEMY (Enemy4), range=1469, listeners=10
+[09:00:55] [ENEMY] [Enemy3] Heard gunshot at (653.4212, 818.5722), source_type=1, intensity=0.58, distance=66
+[09:00:55] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[09:00:55] [ENEMY] [Enemy3] State: COMBAT -> RETREATING
+[09:00:55] [INFO] [LastChance] Threat detected: @Area2D@1815
+[09:00:55] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[09:00:55] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[09:00:55] [INFO] [LastChance] Threat detected: Bullet
+[09:00:55] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[09:00:55] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[09:00:55] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[09:00:55] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[09:00:55] [ENEMY] [Enemy4] State: COMBAT -> RETREATING
+[09:00:55] [ENEMY] [Enemy3] Player distracted - priority attack triggered
+[09:00:55] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(616.081, 874.0051), source=ENEMY (Enemy3), range=1469, listeners=10
+[09:00:55] [ENEMY] [Enemy4] Heard gunshot at (616.081, 874.0051), source_type=1, intensity=0.56, distance=67
+[09:00:55] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[09:00:55] [ENEMY] [Enemy4] State: COMBAT -> RETREATING
+[09:00:56] [ENEMY] [Enemy4] Hit taken, health: 2/3
+[09:00:56] [ENEMY] [Enemy4] ImpactEffectsManager found, calling spawn_blood_effect
+[09:00:56] [INFO] [ImpactEffects] spawn_blood_effect called at (653.4212, 818.5722), dir=(0.290527, -0.956867), lethal=false
+[09:00:56] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[09:00:56] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[09:00:56] [INFO] [ImpactEffects] Blood effect spawned at (653.4212, 818.5722) (scale=1)
+[09:00:56] [ENEMY] [Enemy3] Player distracted - priority attack triggered
+[09:00:56] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(638.4969, 886.6756), source=ENEMY (Enemy3), range=1469, listeners=10
+[09:00:56] [ENEMY] [Enemy4] Heard gunshot at (638.4969, 886.6756), source_type=1, intensity=0.99, distance=50
+[09:00:56] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[09:00:56] [ENEMY] [Enemy4] State: COMBAT -> RETREATING
+[09:00:56] [ENEMY] [Enemy10] PATROL corner check: angle 0.9°
+[09:00:56] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[09:00:56] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[09:00:56] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[09:00:56] [INFO] [LastChance] Resetting all effects (scene change detected)
+[09:00:56] [ENEMY] [Enemy1] Death animation component initialized
+[09:00:56] [ENEMY] [Enemy2] Death animation component initialized
+[09:00:56] [ENEMY] [Enemy3] Death animation component initialized
+[09:00:56] [ENEMY] [Enemy4] Death animation component initialized
+[09:00:56] [ENEMY] [Enemy5] Death animation component initialized
+[09:00:56] [ENEMY] [Enemy6] Death animation component initialized
+[09:00:56] [ENEMY] [Enemy7] Death animation component initialized
+[09:00:56] [ENEMY] [Enemy8] Death animation component initialized
+[09:00:56] [ENEMY] [Enemy9] Death animation component initialized
+[09:00:56] [ENEMY] [Enemy10] Death animation component initialized
+[09:00:56] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[09:00:56] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[09:00:56] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[09:00:56] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[09:00:56] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[09:00:56] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[09:00:56] [INFO] [Player.Debug] Connected to GameManager, debug mode: True
+[09:00:56] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: True
+[09:00:56] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 2/4
+[09:00:56] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[09:00:56] [INFO] [BuildingLevel] Found Environment/Enemies node with 10 children
+[09:00:56] [INFO] [BuildingLevel] Child 'Enemy1': script=true, has_died_signal=true
+[09:00:56] [INFO] [BuildingLevel] Child 'Enemy2': script=true, has_died_signal=true
+[09:00:56] [INFO] [BuildingLevel] Child 'Enemy3': script=true, has_died_signal=true
+[09:00:56] [INFO] [BuildingLevel] Child 'Enemy4': script=true, has_died_signal=true
+[09:00:56] [INFO] [BuildingLevel] Child 'Enemy5': script=true, has_died_signal=true
+[09:00:56] [INFO] [BuildingLevel] Child 'Enemy6': script=true, has_died_signal=true
+[09:00:56] [INFO] [BuildingLevel] Child 'Enemy7': script=true, has_died_signal=true
+[09:00:56] [INFO] [BuildingLevel] Child 'Enemy8': script=true, has_died_signal=true
+[09:00:56] [INFO] [BuildingLevel] Child 'Enemy9': script=true, has_died_signal=true
+[09:00:56] [INFO] [BuildingLevel] Child 'Enemy10': script=true, has_died_signal=true
+[09:00:56] [INFO] [BuildingLevel] Enemy tracking complete: 10 enemies registered
+[09:00:56] [INFO] [ScoreManager] Level started with 10 enemies
+[09:00:56] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 11)
+[09:00:56] [ENEMY] [Enemy1] Registered as sound listener
+[09:00:56] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 3, behavior: GUARD, player_found: yes
+[09:00:56] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 12)
+[09:00:56] [ENEMY] [Enemy2] Registered as sound listener
+[09:00:56] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 4, behavior: GUARD, player_found: yes
+[09:00:56] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 13)
+[09:00:56] [ENEMY] [Enemy3] Registered as sound listener
+[09:00:56] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 2, behavior: GUARD, player_found: yes
+[09:00:56] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 14)
+[09:00:56] [ENEMY] [Enemy4] Registered as sound listener
+[09:00:56] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 2, behavior: GUARD, player_found: yes
+[09:00:56] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 15)
+[09:00:56] [ENEMY] [Enemy5] Registered as sound listener
+[09:00:56] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 4, behavior: GUARD, player_found: yes
+[09:00:56] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 16)
+[09:00:56] [ENEMY] [Enemy6] Registered as sound listener
+[09:00:56] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 4, behavior: GUARD, player_found: yes
+[09:00:56] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 17)
+[09:00:56] [ENEMY] [Enemy7] Registered as sound listener
+[09:00:56] [ENEMY] [Enemy7] Enemy spawned at (1600, 900), health: 4, behavior: PATROL, player_found: yes
+[09:00:56] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 18)
+[09:00:56] [ENEMY] [Enemy8] Registered as sound listener
+[09:00:56] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 2, behavior: GUARD, player_found: yes
+[09:00:56] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 19)
+[09:00:56] [ENEMY] [Enemy9] Registered as sound listener
+[09:00:56] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 4, behavior: GUARD, player_found: yes
+[09:00:56] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 20)
+[09:00:56] [ENEMY] [Enemy10] Registered as sound listener
+[09:00:56] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 4, behavior: PATROL, player_found: yes
+[09:00:56] [INFO] [Player] Detecting weapon pose (frame 3)...
+[09:00:56] [INFO] [Player] Detected weapon: Rifle (default pose)
+[09:00:56] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[09:00:56] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[09:00:56] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[09:00:56] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[09:00:56] [INFO] [LastChance] Found player: Player
+[09:00:56] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[09:00:56] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[09:00:56] [INFO] [LastChance] Connected to player Died signal (C#)
+[09:00:57] [ENEMY] [Enemy7] PATROL corner check: angle 94.3°
+[09:00:57] [ENEMY] [Enemy10] PATROL corner check: angle -0.0°
+[09:00:58] [ENEMY] [Enemy7] PATROL corner check: angle 94.3°
+[09:00:58] [ENEMY] [Enemy10] PATROL corner check: angle 14.3°
+[09:00:58] [ENEMY] [Enemy10] PATROL corner check: angle 7.0°
+[09:00:58] [ENEMY] [Enemy3] State: IDLE -> COMBAT
+[09:00:58] [ENEMY] [Enemy10] PATROL corner check: angle 3.5°
+[09:00:58] [ENEMY] [Enemy4] Memory: high confidence (0.90) - transitioning to PURSUING
+[09:00:58] [ENEMY] [Enemy4] State: IDLE -> PURSUING
+[09:00:58] [ENEMY] [Enemy2] Memory: high confidence (0.90) - transitioning to PURSUING
+[09:00:58] [ENEMY] [Enemy2] State: IDLE -> PURSUING
+[09:00:58] [ENEMY] [Enemy3] Player distracted - priority attack triggered
+[09:00:58] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(700, 750), source=ENEMY (Enemy3), range=1469, listeners=20
+[09:00:58] [INFO] [SoundPropagation] Cleaned up 10 invalid listeners
+[09:00:58] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[09:00:58] [INFO] [LastChance] Threat detected: Bullet
+[09:00:58] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[09:00:58] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[09:00:58] [ENEMY] [Enemy2] PURSUING corner check: angle -90.0°
+[09:00:58] [ENEMY] [Enemy4] PURSUING corner check: angle -100.7°
+[09:00:58] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[09:00:58] [ENEMY] [Enemy3] Player distracted - priority attack triggered
+[09:00:58] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(700, 750), source=ENEMY (Enemy3), range=1469, listeners=10
+[09:00:58] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[09:00:58] [INFO] [LastChance] Threat detected: Bullet
+[09:00:58] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[09:00:58] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[09:00:58] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[09:00:59] [ENEMY] [Enemy3] Player distracted - priority attack triggered
+[09:00:59] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(700, 750), source=ENEMY (Enemy3), range=1469, listeners=10
+[09:00:59] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[09:00:59] [INFO] [LastChance] Threat detected: Bullet
+[09:00:59] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[09:00:59] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[09:00:59] [ENEMY] [Enemy10] PATROL corner check: angle 1.8°
+[09:00:59] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[09:00:59] [ENEMY] [Enemy3] Player distracted - priority attack triggered
+[09:00:59] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(700, 750), source=ENEMY (Enemy3), range=1469, listeners=10
+[09:00:59] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[09:00:59] [INFO] [LastChance] Threat detected: Bullet
+[09:00:59] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[09:00:59] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[09:00:59] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[09:00:59] [ENEMY] [Enemy3] Player distracted - priority attack triggered
+[09:00:59] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(700, 750), source=ENEMY (Enemy3), range=1469, listeners=10
+[09:00:59] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[09:00:59] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[09:00:59] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[09:00:59] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[09:00:59] [INFO] [LastChance] Resetting all effects (scene change detected)
+[09:00:59] [ENEMY] [Enemy1] Death animation component initialized
+[09:00:59] [ENEMY] [Enemy2] Death animation component initialized
+[09:00:59] [ENEMY] [Enemy3] Death animation component initialized
+[09:00:59] [ENEMY] [Enemy4] Death animation component initialized
+[09:00:59] [ENEMY] [Enemy5] Death animation component initialized
+[09:00:59] [ENEMY] [Enemy6] Death animation component initialized
+[09:00:59] [ENEMY] [Enemy7] Death animation component initialized
+[09:00:59] [ENEMY] [Enemy8] Death animation component initialized
+[09:00:59] [ENEMY] [Enemy9] Death animation component initialized
+[09:00:59] [ENEMY] [Enemy10] Death animation component initialized
+[09:00:59] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[09:00:59] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[09:00:59] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[09:00:59] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[09:00:59] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[09:00:59] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[09:00:59] [INFO] [Player.Debug] Connected to GameManager, debug mode: True
+[09:00:59] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: True
+[09:00:59] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 3/4
+[09:00:59] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[09:00:59] [INFO] [BuildingLevel] Found Environment/Enemies node with 10 children
+[09:00:59] [INFO] [BuildingLevel] Child 'Enemy1': script=true, has_died_signal=true
+[09:00:59] [INFO] [BuildingLevel] Child 'Enemy2': script=true, has_died_signal=true
+[09:00:59] [INFO] [BuildingLevel] Child 'Enemy3': script=true, has_died_signal=true
+[09:00:59] [INFO] [BuildingLevel] Child 'Enemy4': script=true, has_died_signal=true
+[09:00:59] [INFO] [BuildingLevel] Child 'Enemy5': script=true, has_died_signal=true
+[09:00:59] [INFO] [BuildingLevel] Child 'Enemy6': script=true, has_died_signal=true
+[09:00:59] [INFO] [BuildingLevel] Child 'Enemy7': script=true, has_died_signal=true
+[09:00:59] [INFO] [BuildingLevel] Child 'Enemy8': script=true, has_died_signal=true
+[09:00:59] [INFO] [BuildingLevel] Child 'Enemy9': script=true, has_died_signal=true
+[09:00:59] [INFO] [BuildingLevel] Child 'Enemy10': script=true, has_died_signal=true
+[09:00:59] [INFO] [BuildingLevel] Enemy tracking complete: 10 enemies registered
+[09:00:59] [INFO] [ScoreManager] Level started with 10 enemies
+[09:00:59] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 11)
+[09:00:59] [ENEMY] [Enemy1] Registered as sound listener
+[09:00:59] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 2, behavior: GUARD, player_found: yes
+[09:00:59] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 12)
+[09:00:59] [ENEMY] [Enemy2] Registered as sound listener
+[09:00:59] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 2, behavior: GUARD, player_found: yes
+[09:00:59] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 13)
+[09:00:59] [ENEMY] [Enemy3] Registered as sound listener
+[09:00:59] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 2, behavior: GUARD, player_found: yes
+[09:00:59] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 14)
+[09:00:59] [ENEMY] [Enemy4] Registered as sound listener
+[09:00:59] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 4, behavior: GUARD, player_found: yes
+[09:00:59] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 15)
+[09:00:59] [ENEMY] [Enemy5] Registered as sound listener
+[09:00:59] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 3, behavior: GUARD, player_found: yes
+[09:00:59] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 16)
+[09:00:59] [ENEMY] [Enemy6] Registered as sound listener
+[09:00:59] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 2, behavior: GUARD, player_found: yes
+[09:00:59] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 17)
+[09:00:59] [ENEMY] [Enemy7] Registered as sound listener
+[09:00:59] [ENEMY] [Enemy7] Enemy spawned at (1600, 900), health: 4, behavior: PATROL, player_found: yes
+[09:00:59] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 18)
+[09:00:59] [ENEMY] [Enemy8] Registered as sound listener
+[09:00:59] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 2, behavior: GUARD, player_found: yes
+[09:00:59] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 19)
+[09:00:59] [ENEMY] [Enemy9] Registered as sound listener
+[09:00:59] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 2, behavior: GUARD, player_found: yes
+[09:00:59] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 20)
+[09:00:59] [ENEMY] [Enemy10] Registered as sound listener
+[09:00:59] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 3, behavior: PATROL, player_found: yes
+[09:00:59] [INFO] [Player] Detecting weapon pose (frame 3)...
+[09:00:59] [INFO] [Player] Detected weapon: Rifle (default pose)
+[09:00:59] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[09:00:59] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[09:00:59] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[09:00:59] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[09:00:59] [INFO] [LastChance] Found player: Player
+[09:00:59] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[09:00:59] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[09:00:59] [INFO] [LastChance] Connected to player Died signal (C#)
+[09:01:00] [ENEMY] [Enemy7] PATROL corner check: angle 94.3°
+[09:01:00] [ENEMY] [Enemy10] PATROL corner check: angle -0.0°
+[09:01:01] [ENEMY] [Enemy7] PATROL corner check: angle 94.3°
+[09:01:01] [ENEMY] [Enemy10] PATROL corner check: angle 14.3°
+[09:01:01] [ENEMY] [Enemy10] PATROL corner check: angle 7.0°
+[09:01:01] [ENEMY] [Enemy10] PATROL corner check: angle 3.5°
+[09:01:02] [ENEMY] [Enemy4] State: IDLE -> COMBAT
+[09:01:02] [ENEMY] [Enemy10] PATROL corner check: angle 1.8°
+[09:01:02] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(784.066, 858.1348), source=ENEMY (Enemy4), range=1469, listeners=20
+[09:01:02] [INFO] [SoundPropagation] Cleaned up 10 invalid listeners
+[09:01:02] [ENEMY] [Enemy2] Heard gunshot at (784.066, 858.1348), source_type=1, intensity=0.01, distance=492
+[09:01:02] [ENEMY] [Enemy3] Heard gunshot at (784.066, 858.1348), source_type=1, intensity=0.13, distance=137
+[09:01:02] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[09:01:02] [ENEMY] [Enemy3] Player distracted - priority attack triggered
+[09:01:02] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(700, 750), source=ENEMY (Enemy3), range=1469, listeners=10
+[09:01:02] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[09:01:02] [INFO] [LastChance] Threat detected: @Area2D@2345
+[09:01:02] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[09:01:02] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[09:01:02] [INFO] [LastChance] Threat detected: Bullet
+[09:01:02] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[09:01:02] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[09:01:02] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(784.0661, 840.4901), source=ENEMY (Enemy4), range=1469, listeners=10
+[09:01:02] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[09:01:02] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[09:01:02] [ENEMY] [Enemy1] Memory: medium confidence (0.61) - transitioning to PURSUING
+[09:01:02] [ENEMY] [Enemy1] State: IDLE -> PURSUING
+[09:01:02] [ENEMY] [Enemy3] Player distracted - priority attack triggered
+[09:01:02] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(700, 750), source=ENEMY (Enemy3), range=1469, listeners=10
+[09:01:02] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[09:01:02] [INFO] [LastChance] Threat detected: @Area2D@2347
+[09:01:02] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[09:01:02] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[09:01:02] [INFO] [LastChance] Threat detected: @Area2D@2349
+[09:01:02] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[09:01:02] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[09:01:02] [ENEMY] [Enemy1] PURSUING corner check: angle -50.9°
+[09:01:02] [ENEMY] [Enemy3] State: COMBAT -> RETREATING
+[09:01:02] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[09:01:02] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[09:01:02] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(784.0661, 822.697), source=ENEMY (Enemy4), range=1469, listeners=10
+[09:01:02] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[09:01:02] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[09:01:02] [ENEMY] [Enemy10] PATROL corner check: angle 0.9°
+[09:01:02] [ENEMY] [Enemy3] Player distracted - priority attack triggered
+[09:01:02] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(702.4651, 760.7507), source=ENEMY (Enemy3), range=1469, listeners=10
+[09:01:02] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[09:01:02] [INFO] [LastChance] Threat detected: @Area2D@2351
+[09:01:02] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[09:01:02] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[09:01:02] [INFO] [LastChance] Threat detected: @Area2D@2353
+[09:01:02] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[09:01:02] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[09:01:02] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(760.768, 799.6005), shooter_id=14747122534563, bullet_pos=(540.2885, 39.25516)
+[09:01:02] [INFO] [Bullet] Using shooter_position, distance=791.666687011719
+[09:01:02] [INFO] [Bullet] Distance to wall: 791.666687011719 (53.9060404653009% of viewport)
+[09:01:02] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[09:01:02] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[09:01:02] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(784.1996, 800.5391), source=ENEMY (Enemy4), range=1469, listeners=10
+[09:01:02] [ENEMY] [Enemy3] Heard gunshot at (784.1996, 800.5391), source_type=1, intensity=0.37, distance=83
+[09:01:02] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[09:01:02] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[09:01:02] [ENEMY] [Enemy3] State: COMBAT -> RETREATING
+[09:01:02] [ENEMY] [Enemy3] Player distracted - priority attack triggered
+[09:01:02] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(704.5837, 785.9335), source=ENEMY (Enemy3), range=1469, listeners=10
+[09:01:02] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[09:01:02] [INFO] [LastChance] Threat detected: @Area2D@2355
+[09:01:02] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[09:01:02] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[09:01:02] [INFO] [LastChance] Threat detected: @Area2D@2359
+[09:01:02] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[09:01:02] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[09:01:02] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[09:01:02] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(789.3703, 767.4919), source=ENEMY (Enemy4), range=1469, listeners=10
+[09:01:02] [ENEMY] [Enemy3] Heard gunshot at (789.3703, 767.4919), source_type=1, intensity=0.34, distance=86
+[09:01:02] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[09:01:02] [ENEMY] [Enemy3] State: COMBAT -> RETREATING
+[09:01:02] [INFO] [LastChance] Threat detected: Bullet
+[09:01:02] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[09:01:02] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[09:01:02] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[09:01:02] [ENEMY] [Enemy3] Player distracted - priority attack triggered
+[09:01:02] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(698.4753, 768.0792), source=ENEMY (Enemy3), range=1469, listeners=10
+[09:01:02] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=1, self=1, below_threshold=5
+[09:01:02] [ENEMY] [Enemy1] PURSUING corner check: angle -51.1°
+[09:01:02] [INFO] [LastChance] Threat detected: @Area2D@2368
+[09:01:02] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[09:01:02] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[09:01:02] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[09:01:02] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(774.4435, 734.6654), source=ENEMY (Enemy4), range=1469, listeners=10
+[09:01:02] [ENEMY] [Enemy3] Heard gunshot at (774.4435, 734.6654), source_type=1, intensity=0.32, distance=89
+[09:01:02] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=1, self=1, below_threshold=5
+[09:01:02] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[09:01:02] [ENEMY] [Enemy3] State: COMBAT -> RETREATING
+[09:01:02] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[09:01:02] [INFO] [LastChance] Threat detected: Bullet
+[09:01:02] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[09:01:02] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[09:01:02] [ENEMY] [Enemy3] Player distracted - priority attack triggered
+[09:01:02] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(698.0865, 780.079), source=ENEMY (Enemy3), range=1469, listeners=10
+[09:01:02] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=1, self=1, below_threshold=5
+[09:01:02] [INFO] [LastChance] Threat detected: @Area2D@2375
+[09:01:02] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[09:01:02] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[09:01:02] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[09:01:02] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[09:01:02] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(771.3882, 730.2939), source=ENEMY (Enemy4), range=1469, listeners=10
+[09:01:02] [ENEMY] [Enemy3] Heard gunshot at (771.3882, 730.2939), source_type=1, intensity=0.37, distance=82
+[09:01:02] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=1, self=1, below_threshold=5
+[09:01:02] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[09:01:02] [ENEMY] [Enemy3] State: COMBAT -> RETREATING
+[09:01:02] [INFO] [LastChance] Threat detected: Bullet
+[09:01:02] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[09:01:02] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[09:01:02] [ENEMY] [Enemy3] Player distracted - priority attack triggered
+[09:01:02] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(695.0704, 761.5513), source=ENEMY (Enemy3), range=1469, listeners=10
+[09:01:02] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=1, self=1, below_threshold=5
+[09:01:02] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[09:01:03] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[09:01:03] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[09:01:03] [INFO] [LastChance] Resetting all effects (scene change detected)
+[09:01:03] [ENEMY] [Enemy1] Death animation component initialized
+[09:01:03] [ENEMY] [Enemy2] Death animation component initialized
+[09:01:03] [ENEMY] [Enemy3] Death animation component initialized
+[09:01:03] [ENEMY] [Enemy4] Death animation component initialized
+[09:01:03] [ENEMY] [Enemy5] Death animation component initialized
+[09:01:03] [ENEMY] [Enemy6] Death animation component initialized
+[09:01:03] [ENEMY] [Enemy7] Death animation component initialized
+[09:01:03] [ENEMY] [Enemy8] Death animation component initialized
+[09:01:03] [ENEMY] [Enemy9] Death animation component initialized
+[09:01:03] [ENEMY] [Enemy10] Death animation component initialized
+[09:01:03] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[09:01:03] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[09:01:03] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[09:01:03] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[09:01:03] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[09:01:03] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[09:01:03] [INFO] [Player.Debug] Connected to GameManager, debug mode: True
+[09:01:03] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: True
+[09:01:03] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 2/4
+[09:01:03] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[09:01:03] [INFO] [BuildingLevel] Found Environment/Enemies node with 10 children
+[09:01:03] [INFO] [BuildingLevel] Child 'Enemy1': script=true, has_died_signal=true
+[09:01:03] [INFO] [BuildingLevel] Child 'Enemy2': script=true, has_died_signal=true
+[09:01:03] [INFO] [BuildingLevel] Child 'Enemy3': script=true, has_died_signal=true
+[09:01:03] [INFO] [BuildingLevel] Child 'Enemy4': script=true, has_died_signal=true
+[09:01:03] [INFO] [BuildingLevel] Child 'Enemy5': script=true, has_died_signal=true
+[09:01:03] [INFO] [BuildingLevel] Child 'Enemy6': script=true, has_died_signal=true
+[09:01:03] [INFO] [BuildingLevel] Child 'Enemy7': script=true, has_died_signal=true
+[09:01:03] [INFO] [BuildingLevel] Child 'Enemy8': script=true, has_died_signal=true
+[09:01:03] [INFO] [BuildingLevel] Child 'Enemy9': script=true, has_died_signal=true
+[09:01:03] [INFO] [BuildingLevel] Child 'Enemy10': script=true, has_died_signal=true
+[09:01:03] [INFO] [BuildingLevel] Enemy tracking complete: 10 enemies registered
+[09:01:03] [INFO] [ScoreManager] Level started with 10 enemies
+[09:01:03] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 11)
+[09:01:03] [ENEMY] [Enemy1] Registered as sound listener
+[09:01:03] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 4, behavior: GUARD, player_found: yes
+[09:01:03] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 12)
+[09:01:03] [ENEMY] [Enemy2] Registered as sound listener
+[09:01:03] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 3, behavior: GUARD, player_found: yes
+[09:01:03] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 13)
+[09:01:03] [ENEMY] [Enemy3] Registered as sound listener
+[09:01:03] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 3, behavior: GUARD, player_found: yes
+[09:01:03] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 14)
+[09:01:03] [ENEMY] [Enemy4] Registered as sound listener
+[09:01:03] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 2, behavior: GUARD, player_found: yes
+[09:01:03] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 15)
+[09:01:03] [ENEMY] [Enemy5] Registered as sound listener
+[09:01:03] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 2, behavior: GUARD, player_found: yes
+[09:01:03] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 16)
+[09:01:03] [ENEMY] [Enemy6] Registered as sound listener
+[09:01:03] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 2, behavior: GUARD, player_found: yes
+[09:01:03] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 17)
+[09:01:03] [ENEMY] [Enemy7] Registered as sound listener
+[09:01:03] [ENEMY] [Enemy7] Enemy spawned at (1600, 900), health: 3, behavior: PATROL, player_found: yes
+[09:01:03] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 18)
+[09:01:03] [ENEMY] [Enemy8] Registered as sound listener
+[09:01:03] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 4, behavior: GUARD, player_found: yes
+[09:01:03] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 19)
+[09:01:03] [ENEMY] [Enemy9] Registered as sound listener
+[09:01:03] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 4, behavior: GUARD, player_found: yes
+[09:01:03] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 20)
+[09:01:03] [ENEMY] [Enemy10] Registered as sound listener
+[09:01:03] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 4, behavior: PATROL, player_found: yes
+[09:01:03] [INFO] [Player] Detecting weapon pose (frame 3)...
+[09:01:03] [INFO] [Player] Detected weapon: Rifle (default pose)
+[09:01:03] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[09:01:03] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[09:01:03] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[09:01:03] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[09:01:03] [INFO] [LastChance] Found player: Player
+[09:01:03] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[09:01:03] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[09:01:03] [INFO] [LastChance] Connected to player Died signal (C#)
+[09:01:04] [ENEMY] [Enemy7] PATROL corner check: angle 94.3°
+[09:01:04] [ENEMY] [Enemy10] PATROL corner check: angle -0.0°
+[09:01:04] [ENEMY] [Enemy3] Player distracted - priority attack triggered
+[09:01:04] [ENEMY] [Enemy3] Player distracted - priority attack triggered
+[09:01:04] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(684.5262, 754.0678), source=ENEMY (Enemy3), range=1469, listeners=20
+[09:01:04] [INFO] [SoundPropagation] Cleaned up 10 invalid listeners
+[09:01:04] [ENEMY] [Enemy2] Heard gunshot at (684.5262, 754.0678), source_type=1, intensity=0.02, distance=350
+[09:01:04] [ENEMY] [Enemy4] Heard gunshot at (684.5262, 754.0678), source_type=1, intensity=0.07, distance=186
+[09:01:04] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[09:01:04] [INFO] [LastChance] Threat detected: Bullet
+[09:01:04] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[09:01:04] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[09:01:04] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(619.6434, 774.5818), shooter_id=16047054785549, bullet_pos=(496.9248, 798.3548)
+[09:01:04] [INFO] [Bullet] Using shooter_position, distance=125
+[09:01:04] [INFO] [Bullet] Distance to wall: 125 (8.51147985473193% of viewport)
+[09:01:04] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[09:01:04] [INFO] [Bullet] Starting wall penetration at (496.9248, 798.3548)
+[09:01:04] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[09:01:04] [INFO] [Bullet] Exiting penetration at (451.1099, 807.23) after traveling 41.6666717529297 pixels through wall
+[09:01:04] [INFO] [Bullet] Damage multiplier after penetration: 0.9
+[09:01:04] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(684.5262, 754.0678), source=ENEMY (Enemy3), range=1469, listeners=10
+[09:01:04] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[09:01:04] [ENEMY] [Enemy7] PATROL corner check: angle 94.3°
+[09:01:04] [ENEMY] [Enemy10] PATROL corner check: angle 14.3°
+[09:01:04] [INFO] [LastChance] Threat detected: Bullet
+[09:01:04] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[09:01:04] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[09:01:04] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[09:01:04] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(684.5262, 754.0678), source=ENEMY (Enemy3), range=1469, listeners=10
+[09:01:04] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[09:01:05] [INFO] [LastChance] Threat detected: Bullet
+[09:01:05] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[09:01:05] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[09:01:05] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[09:01:05] [ENEMY] [Enemy1] Memory: medium confidence (0.60) - transitioning to PURSUING
+[09:01:05] [ENEMY] [Enemy1] State: IDLE -> PURSUING
+[09:01:05] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(684.5262, 754.0678), source=ENEMY (Enemy3), range=1469, listeners=10
+[09:01:05] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[09:01:05] [ENEMY] [Enemy1] PURSUING corner check: angle -50.9°
+[09:01:05] [INFO] [LastChance] Threat detected: Bullet
+[09:01:05] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[09:01:05] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[09:01:05] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[09:01:05] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(684.5262, 754.0678), source=ENEMY (Enemy3), range=1469, listeners=10
+[09:01:05] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[09:01:05] [ENEMY] [Enemy10] PATROL corner check: angle 7.0°
+[09:01:05] [INFO] [LastChance] Threat detected: Bullet
+[09:01:05] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[09:01:05] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[09:01:05] [ENEMY] [Enemy4] State: COMBAT -> PURSUING
+[09:01:05] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[09:01:05] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[09:01:05] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[09:01:05] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[09:01:05] [INFO] [LastChance] Resetting all effects (scene change detected)
+[09:01:05] [ENEMY] [Enemy1] Death animation component initialized
+[09:01:05] [ENEMY] [Enemy2] Death animation component initialized
+[09:01:05] [ENEMY] [Enemy3] Death animation component initialized
+[09:01:05] [ENEMY] [Enemy4] Death animation component initialized
+[09:01:05] [ENEMY] [Enemy5] Death animation component initialized
+[09:01:05] [ENEMY] [Enemy6] Death animation component initialized
+[09:01:05] [ENEMY] [Enemy7] Death animation component initialized
+[09:01:05] [ENEMY] [Enemy8] Death animation component initialized
+[09:01:05] [ENEMY] [Enemy9] Death animation component initialized
+[09:01:05] [ENEMY] [Enemy10] Death animation component initialized
+[09:01:05] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[09:01:05] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[09:01:05] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[09:01:05] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[09:01:05] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[09:01:05] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[09:01:05] [INFO] [Player.Debug] Connected to GameManager, debug mode: True
+[09:01:05] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: True
+[09:01:05] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 3/4
+[09:01:05] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[09:01:05] [INFO] [BuildingLevel] Found Environment/Enemies node with 10 children
+[09:01:05] [INFO] [BuildingLevel] Child 'Enemy1': script=true, has_died_signal=true
+[09:01:05] [INFO] [BuildingLevel] Child 'Enemy2': script=true, has_died_signal=true
+[09:01:05] [INFO] [BuildingLevel] Child 'Enemy3': script=true, has_died_signal=true
+[09:01:05] [INFO] [BuildingLevel] Child 'Enemy4': script=true, has_died_signal=true
+[09:01:05] [INFO] [BuildingLevel] Child 'Enemy5': script=true, has_died_signal=true
+[09:01:05] [INFO] [BuildingLevel] Child 'Enemy6': script=true, has_died_signal=true
+[09:01:05] [INFO] [BuildingLevel] Child 'Enemy7': script=true, has_died_signal=true
+[09:01:05] [INFO] [BuildingLevel] Child 'Enemy8': script=true, has_died_signal=true
+[09:01:05] [INFO] [BuildingLevel] Child 'Enemy9': script=true, has_died_signal=true
+[09:01:05] [INFO] [BuildingLevel] Child 'Enemy10': script=true, has_died_signal=true
+[09:01:05] [INFO] [BuildingLevel] Enemy tracking complete: 10 enemies registered
+[09:01:05] [INFO] [ScoreManager] Level started with 10 enemies
+[09:01:05] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 11)
+[09:01:05] [ENEMY] [Enemy1] Registered as sound listener
+[09:01:05] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 2, behavior: GUARD, player_found: yes
+[09:01:05] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 12)
+[09:01:05] [ENEMY] [Enemy2] Registered as sound listener
+[09:01:05] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 3, behavior: GUARD, player_found: yes
+[09:01:05] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 13)
+[09:01:05] [ENEMY] [Enemy3] Registered as sound listener
+[09:01:05] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 2, behavior: GUARD, player_found: yes
+[09:01:05] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 14)
+[09:01:05] [ENEMY] [Enemy4] Registered as sound listener
+[09:01:05] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 2, behavior: GUARD, player_found: yes
+[09:01:05] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 15)
+[09:01:05] [ENEMY] [Enemy5] Registered as sound listener
+[09:01:05] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 3, behavior: GUARD, player_found: yes
+[09:01:05] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 16)
+[09:01:05] [ENEMY] [Enemy6] Registered as sound listener
+[09:01:05] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 3, behavior: GUARD, player_found: yes
+[09:01:05] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 17)
+[09:01:05] [ENEMY] [Enemy7] Registered as sound listener
+[09:01:05] [ENEMY] [Enemy7] Enemy spawned at (1600, 900), health: 3, behavior: PATROL, player_found: yes
+[09:01:05] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 18)
+[09:01:05] [ENEMY] [Enemy8] Registered as sound listener
+[09:01:05] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 4, behavior: GUARD, player_found: yes
+[09:01:05] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 19)
+[09:01:05] [ENEMY] [Enemy9] Registered as sound listener
+[09:01:05] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 2, behavior: GUARD, player_found: yes
+[09:01:05] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 20)
+[09:01:05] [ENEMY] [Enemy10] Registered as sound listener
+[09:01:05] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 3, behavior: PATROL, player_found: yes
+[09:01:05] [INFO] [Player] Detecting weapon pose (frame 3)...
+[09:01:05] [INFO] [Player] Detected weapon: Rifle (default pose)
+[09:01:05] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[09:01:05] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[09:01:05] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[09:01:05] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[09:01:05] [INFO] [LastChance] Found player: Player
+[09:01:05] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[09:01:05] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[09:01:05] [INFO] [LastChance] Connected to player Died signal (C#)
+[09:01:06] [ENEMY] [Enemy7] PATROL corner check: angle 94.3°
+[09:01:06] [ENEMY] [Enemy10] PATROL corner check: angle -0.0°
+[09:01:06] [INFO] ------------------------------------------------------------
+[09:01:06] [INFO] GAME LOG ENDED: 2026-01-25T09:01:06
+[09:01:06] [INFO] ============================================================
