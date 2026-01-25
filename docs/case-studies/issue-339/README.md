@@ -27,6 +27,9 @@
 2. Blood now covers the player completely
 3. Player should also emit blood when hit
 
+#### Third Round of Feedback
+1. Blood pools stopped displaying entirely (invisible)
+
 ## Root Cause Analysis
 
 ### Problem 1: Blood Layer Z-Index Too High
@@ -145,11 +148,45 @@ if _invincibility_enabled:
 
 **Status:** Already fixed in previous commits on this branch.
 
+### Problem 6: Blood Decals Invisible (z_index -1 Below Floor)
+**Location:** `scenes/effects/BloodDecal.tscn:18`
+
+**Previous Fix (Iteration 2):**
+```gdscript
+z_index = -1  # Render below player
+```
+
+**Analysis:**
+- The z_index = -1 fix was intended to render blood below the player
+- However, the level floor is a `ColorRect` with default z_index = 0
+- Blood decals at z_index = -1 render BELOW the floor, making them invisible!
+- This is a classic Godot rendering order issue
+
+**Level Structure (BuildingLevel.tscn):**
+```
+Environment/
+  Background (ColorRect, z_index = 0 default)
+  Floor (ColorRect, z_index = 0 default)
+  ...
+```
+
+**Final Fix:**
+```gdscript
+z_index = 0  # Same as floor, but added after floor in tree = renders on top
+```
+
+**Result:**
+- Blood decals now have z_index = 0 (same as floor)
+- Since decals are added as children of current_scene AFTER floor is rendered, they appear on top of floor
+- Player body has z_index ≥ 1, so blood still renders below player
+- Blood decals are now visible
+
 ## Implemented Solutions Summary
 
 | Issue | File | Change |
 |-------|------|--------|
-| Blood overlaps player | `BloodDecal.tscn` | Changed z_index from 10 to -1 |
+| Blood overlaps player | `BloodDecal.tscn` | Changed z_index from 10 to 0 |
+| Blood invisible (below floor) | `BloodDecal.tscn` | Changed z_index from -1 to 0 |
 | Wall splatter overlap | `impact_effects_manager.gd` | Changed z_index from 1 to 0 |
 | Blood color variation | `BloodDecal.tscn` | Simplified gradient to uniform color |
 | Player no blood in god mode | `player.gd` | Added blood spawn in invincibility mode |
@@ -161,16 +198,18 @@ After fixes, the z-index layering is:
 
 | Layer | Z-Index | Contents |
 |-------|---------|----------|
-| Below characters | -1 | Floor blood decals |
-| Floor level | 0 | Wall blood splatters |
+| Background | 0 | Level background (ColorRect) |
+| Floor level | 0 | Level floor (ColorRect), blood decals, wall splatters |
 | Character body | 1 | Player body, weapon |
-| Character arms | 2 | Player arms, blood particles (effect) |
-| Character head | 3 | Player head |
+| Character arms | 4 | Player arms |
+| Character head | 3-5 | Player head |
+
+**Key Insight:** Blood decals and floor both have z_index = 0, but rendering order depends on tree order. Since blood decals are added as scene children AFTER the Environment node (which contains the floor), they render on top of the floor despite having the same z_index.
 
 ## Files Modified in This Fix
 
 1. **scenes/effects/BloodDecal.tscn**
-   - Changed z_index from 10 to -1
+   - Changed z_index from 10 to 0 (not -1, which rendered below floor)
    - Simplified gradient to uniform color with alpha falloff
 
 2. **scripts/autoload/impact_effects_manager.gd**
@@ -190,4 +229,5 @@ After fixes, the z-index layering is:
 
 ## Related Files
 
-- [Game Log](./game_log_20260125_024157.txt) - Full game session log showing blood effects
+- [Game Log - Session 1](./game_log_20260125_024157.txt) - Game log from feedback session 1
+- [Game Log - Session 2](./game_log_20260125_025545.txt) - Game log showing invisible blood issue
