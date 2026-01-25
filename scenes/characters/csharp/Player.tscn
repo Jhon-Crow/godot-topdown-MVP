@@ -1,4 +1,4 @@
-[gd_scene load_steps=13 format=3 uid="uid://dv8nq2vj5r7p2"]
+[gd_scene load_steps=14 format=3 uid="uid://dv8nq2vj5r7p2"]
 
 [ext_resource type="Script" path="res://Scripts/Characters/Player.cs" id="1_player"]
 [ext_resource type="PackedScene" uid="uid://c5q8m3x7n2k1p" path="res://scenes/weapons/csharp/AssaultRifle.tscn" id="2_assault_rifle"]
@@ -9,6 +9,7 @@
 [ext_resource type="Texture2D" path="res://assets/sprites/characters/player/player_left_arm.png" id="7_left_arm"]
 [ext_resource type="Texture2D" path="res://assets/sprites/characters/player/player_right_arm.png" id="8_right_arm"]
 [ext_resource type="Texture2D" path="res://assets/sprites/characters/player/player_armband.png" id="9_armband"]
+[ext_resource type="Script" path="res://scripts/components/bloody_feet_component.gd" id="10_bloody_feet"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_player"]
 radius = 16.0
@@ -87,3 +88,12 @@ trajectory_tolerance_degrees = 15.0
 
 [node name="ThreatCollisionShape" type="CollisionShape2D" parent="ThreatSphere"]
 shape = SubResource("CircleShape2D_threat")
+
+[node name="BloodyFeetComponent" type="Node" parent="."]
+script = ExtResource("10_bloody_feet")
+blood_steps_count = 6
+step_distance = 30.0
+initial_alpha = 0.8
+alpha_decay_rate = 0.12
+footprint_scale = 0.72
+debug_logging = true

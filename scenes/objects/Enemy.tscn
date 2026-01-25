@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3 uid="uid://cx5m8np6u3bwd"]
+[gd_scene load_steps=12 format=3 uid="uid://cx5m8np6u3bwd"]
 
 [ext_resource type="Script" path="res://scripts/objects/enemy.gd" id="1_enemy"]
 [ext_resource type="Script" path="res://scripts/objects/hit_area.gd" id="2_hit_area"]
@@ -8,6 +8,7 @@
 [ext_resource type="Texture2D" path="res://assets/sprites/characters/enemy/enemy_left_arm.png" id="6_left_arm"]
 [ext_resource type="Texture2D" path="res://assets/sprites/characters/enemy/enemy_right_arm.png" id="7_right_arm"]
 [ext_resource type="PackedScene" uid="uid://casing_scene" path="res://scenes/effects/Casing.tscn" id="8_casing"]
+[ext_resource type="Script" path="res://scripts/components/bloody_feet_component.gd" id="9_bloody_feet"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_enemy"]
 radius = 24.0
@@ -82,3 +83,12 @@ offset_right = 50.0
 offset_bottom = -30.0
 horizontal_alignment = 1
 vertical_alignment = 1
+
+[node name="BloodyFeetComponent" type="Node" parent="."]
+script = ExtResource("9_bloody_feet")
+blood_steps_count = 6
+step_distance = 30.0
+initial_alpha = 0.8
+alpha_decay_rate = 0.12
+footprint_scale = 0.72
+debug_logging = true

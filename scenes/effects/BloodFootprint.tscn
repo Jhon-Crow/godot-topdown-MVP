@@ -1,0 +1,8 @@
+[gd_scene load_steps=2 format=3 uid="uid://blood_footprint_scene"]
+
+[ext_resource type="Script" path="res://scripts/effects/blood_footprint.gd" id="1_blood_footprint"]
+
+[node name="BloodFootprint" type="Sprite2D"]
+z_index = 1
+modulate = Color(1, 1, 1, 0.9)
+script = ExtResource("1_blood_footprint")
