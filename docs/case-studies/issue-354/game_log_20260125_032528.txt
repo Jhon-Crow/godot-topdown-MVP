@@ -1,0 +1,2173 @@
+[03:25:28] [INFO] ============================================================
+[03:25:28] [INFO] GAME LOG STARTED
+[03:25:28] [INFO] ============================================================
+[03:25:28] [INFO] Timestamp: 2026-01-25T03:25:28
+[03:25:28] [INFO] Log file: I:/Рабочий стол/godot old version game/99/game_log_20260125_032528.txt
+[03:25:28] [INFO] Executable: I:/Рабочий стол/godot old version game/99/Godot-Top-Down-Template.exe
+[03:25:28] [INFO] OS: Windows
+[03:25:28] [INFO] Debug build: false
+[03:25:28] [INFO] Engine version: 4.3-stable (official)
+[03:25:28] [INFO] Project: Godot Top-Down Template
+[03:25:28] [INFO] ------------------------------------------------------------
+[03:25:28] [INFO] [GameManager] GameManager ready
+[03:25:28] [INFO] [ScoreManager] ScoreManager ready
+[03:25:28] [INFO] [SoundPropagation] SoundPropagation autoload initialized
+[03:25:28] [INFO] [ImpactEffects] Scenes loaded: DustEffect, BloodEffect, SparksEffect, BloodDecal
+[03:25:28] [INFO] [ImpactEffects] ImpactEffectsManager ready - FULL VERSION with blood effects enabled
+[03:25:28] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[03:25:28] [INFO] [PenultimateHit] Saturation shader loaded successfully
+[03:25:28] [INFO] [PenultimateHit] PenultimateHitEffectsManager ready - Configuration:
+[03:25:28] [INFO] [PenultimateHit]   Time scale: 0.10 (10x slowdown)
+[03:25:28] [INFO] [PenultimateHit]   Saturation boost: 2.0 (3.0x)
+[03:25:28] [INFO] [PenultimateHit]   Contrast boost: 1.0 (2.0x)
+[03:25:28] [INFO] [PenultimateHit]   Effect duration: 3.0 real seconds
+[03:25:28] [INFO] [LastChance] Resetting all effects (scene change detected)
+[03:25:28] [INFO] [LastChance] Last chance shader loaded successfully
+[03:25:28] [INFO] [LastChance] LastChanceEffectsManager ready - Configuration:
+[03:25:28] [INFO] [LastChance]   Freeze duration: 6.0 real seconds
+[03:25:28] [INFO] [LastChance]   Sepia intensity: 0.70
+[03:25:28] [INFO] [LastChance]   Brightness: 0.60
+[03:25:28] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FlashbangGrenade.tscn
+[03:25:28] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FragGrenade.tscn
+[03:25:28] [INFO] [ExperimentalSettings] ExperimentalSettings initialized - FOV enabled: true
+[03:25:28] [ENEMY] [Enemy1] Death animation component initialized
+[03:25:28] [ENEMY] [Enemy2] Death animation component initialized
+[03:25:28] [ENEMY] [Enemy3] Death animation component initialized
+[03:25:28] [ENEMY] [Enemy4] Death animation component initialized
+[03:25:28] [ENEMY] [Enemy5] Death animation component initialized
+[03:25:28] [ENEMY] [Enemy6] Death animation component initialized
+[03:25:28] [ENEMY] [Enemy7] Death animation component initialized
+[03:25:28] [ENEMY] [Enemy8] Death animation component initialized
+[03:25:28] [ENEMY] [Enemy9] Death animation component initialized
+[03:25:28] [ENEMY] [Enemy10] Death animation component initialized
+[03:25:28] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[03:25:28] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[03:25:28] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[03:25:28] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[03:25:28] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[03:25:28] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[03:25:28] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[03:25:28] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[03:25:28] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 2/4
+[03:25:28] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[03:25:28] [INFO] [BuildingLevel] Found Environment/Enemies node with 10 children
+[03:25:28] [INFO] [BuildingLevel] Child 'Enemy1': script=true, has_died_signal=true
+[03:25:28] [INFO] [BuildingLevel] Child 'Enemy2': script=true, has_died_signal=true
+[03:25:28] [INFO] [BuildingLevel] Child 'Enemy3': script=true, has_died_signal=true
+[03:25:28] [INFO] [BuildingLevel] Child 'Enemy4': script=true, has_died_signal=true
+[03:25:28] [INFO] [BuildingLevel] Child 'Enemy5': script=true, has_died_signal=true
+[03:25:28] [INFO] [BuildingLevel] Child 'Enemy6': script=true, has_died_signal=true
+[03:25:28] [INFO] [BuildingLevel] Child 'Enemy7': script=true, has_died_signal=true
+[03:25:28] [INFO] [BuildingLevel] Child 'Enemy8': script=true, has_died_signal=true
+[03:25:28] [INFO] [BuildingLevel] Child 'Enemy9': script=true, has_died_signal=true
+[03:25:28] [INFO] [BuildingLevel] Child 'Enemy10': script=true, has_died_signal=true
+[03:25:28] [INFO] [BuildingLevel] Enemy tracking complete: 10 enemies registered
+[03:25:28] [INFO] [ScoreManager] Level started with 10 enemies
+[03:25:28] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 1)
+[03:25:28] [ENEMY] [Enemy1] Registered as sound listener
+[03:25:28] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 3, behavior: GUARD, player_found: yes
+[03:25:28] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 2)
+[03:25:28] [ENEMY] [Enemy2] Registered as sound listener
+[03:25:28] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 2, behavior: GUARD, player_found: yes
+[03:25:28] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 3)
+[03:25:28] [ENEMY] [Enemy3] Registered as sound listener
+[03:25:28] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 4, behavior: GUARD, player_found: yes
+[03:25:28] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 4)
+[03:25:28] [ENEMY] [Enemy4] Registered as sound listener
+[03:25:28] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 4, behavior: GUARD, player_found: yes
+[03:25:28] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 5)
+[03:25:28] [ENEMY] [Enemy5] Registered as sound listener
+[03:25:28] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 4, behavior: GUARD, player_found: yes
+[03:25:28] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 6)
+[03:25:28] [ENEMY] [Enemy6] Registered as sound listener
+[03:25:28] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 4, behavior: GUARD, player_found: yes
+[03:25:28] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 7)
+[03:25:28] [ENEMY] [Enemy7] Registered as sound listener
+[03:25:28] [ENEMY] [Enemy7] Enemy spawned at (1606.114, 893.8859), health: 3, behavior: PATROL, player_found: yes
+[03:25:28] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 8)
+[03:25:28] [ENEMY] [Enemy8] Registered as sound listener
+[03:25:28] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 2, behavior: GUARD, player_found: yes
+[03:25:28] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 9)
+[03:25:28] [ENEMY] [Enemy9] Registered as sound listener
+[03:25:28] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 3, behavior: GUARD, player_found: yes
+[03:25:28] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 10)
+[03:25:28] [ENEMY] [Enemy10] Registered as sound listener
+[03:25:28] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 2, behavior: PATROL, player_found: yes
+[03:25:28] [INFO] [Player] Detecting weapon pose (frame 3)...
+[03:25:28] [INFO] [Player] Detected weapon: Rifle (default pose)
+[03:25:28] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[03:25:28] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[03:25:28] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[03:25:28] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[03:25:28] [INFO] [LastChance] Found player: Player
+[03:25:28] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[03:25:28] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[03:25:28] [INFO] [LastChance] Connected to player Died signal (C#)
+[03:25:29] [ENEMY] [Enemy7] PATROL corner check: angle 94.3°
+[03:25:29] [ENEMY] [Enemy10] PATROL corner check: angle -0.0°
+[03:25:29] [ENEMY] [Enemy7] PATROL corner check: angle 94.3°
+[03:25:29] [ENEMY] [Enemy10] PATROL corner check: angle 14.3°
+[03:25:30] [ENEMY] [Enemy10] PATROL corner check: angle 7.0°
+[03:25:30] [ENEMY] [Enemy10] PATROL corner check: angle 3.5°
+[03:25:30] [ENEMY] [Enemy10] PATROL corner check: angle 1.8°
+[03:25:31] [INFO] [Player.Debug] Debug mode toggled: ON
+[03:25:31] [INFO] [GameManager] Debug mode toggled: ON
+[03:25:31] [ENEMY] [Enemy10] PATROL corner check: angle 0.9°
+[03:25:31] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:25:31] [ENEMY] [Enemy7] PATROL corner check: angle 90.0°
+[03:25:32] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:25:32] [ENEMY] [Enemy7] PATROL corner check: angle 89.8°
+[03:25:32] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:25:32] [ENEMY] [Enemy7] PATROL corner check: angle 89.7°
+[03:25:32] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:25:32] [ENEMY] [Enemy7] PATROL corner check: angle 89.6°
+[03:25:33] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:25:33] [ENEMY] [Enemy7] PATROL corner check: angle 89.5°
+[03:25:33] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:25:33] [ENEMY] [Enemy3] State: IDLE -> COMBAT
+[03:25:33] [ENEMY] [Enemy7] PATROL corner check: angle 89.5°
+[03:25:33] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:25:33] [ENEMY] [Enemy4] Memory: high confidence (0.87) - transitioning to PURSUING
+[03:25:33] [ENEMY] [Enemy4] State: IDLE -> PURSUING
+[03:25:33] [ENEMY] [Enemy4] PURSUING corner check: angle -113.2°
+[03:25:33] [ENEMY] [Enemy7] PATROL corner check: angle 89.5°
+[03:25:33] [ENEMY] [Enemy2] Player distracted - priority attack triggered
+[03:25:34] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:25:34] [ENEMY] [Enemy3] State: COMBAT -> PURSUING
+[03:25:34] [ENEMY] [Enemy2] Player distracted - priority attack triggered
+[03:25:34] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(400, 550), source=ENEMY (Enemy2), range=1469, listeners=10
+[03:25:34] [ENEMY] [Enemy1] Heard gunshot at (400, 550), source_type=1, intensity=0.05, distance=224
+[03:25:34] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=1, below_threshold=4
+[03:25:34] [INFO] [LastChance] Threat detected: Bullet
+[03:25:34] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[03:25:34] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[03:25:34] [ENEMY] [Enemy4] PURSUING corner check: angle -89.5°
+[03:25:34] [ENEMY] [Enemy2] Player distracted - priority attack triggered
+[03:25:34] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(400, 550), source=ENEMY (Enemy2), range=1469, listeners=10
+[03:25:34] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=1, below_threshold=4
+[03:25:34] [INFO] [LastChance] Threat detected: @Area2D@286
+[03:25:34] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[03:25:34] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[03:25:34] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:25:34] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(438.7182, 605.9598), shooter_id=43352327688, bullet_pos=(686.027, 887.8525)
+[03:25:34] [INFO] [Bullet] Using shooter_position, distance=375.000244140625
+[03:25:34] [INFO] [Bullet] Distance to wall: 375.000244140625 (25.5344561881799% of viewport)
+[03:25:34] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[03:25:34] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(438.7182, 605.9598), shooter_id=43352327688, bullet_pos=(590.1807, 998.8687)
+[03:25:34] [INFO] [Bullet] Using shooter_position, distance=421.091705322266
+[03:25:34] [INFO] [Bullet] Distance to wall: 421.091705322266 (28.6729085347614% of viewport)
+[03:25:34] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[03:25:34] [ENEMY] [Enemy2] Player distracted - priority attack triggered
+[03:25:34] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(400, 550), source=ENEMY (Enemy2), range=1469, listeners=10
+[03:25:34] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=1, below_threshold=4
+[03:25:34] [INFO] [LastChance] Threat detected: @Area2D@289
+[03:25:34] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[03:25:34] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[03:25:34] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(447.801, 598.4321), shooter_id=43352327688, bullet_pos=(707.6027, 807.2719)
+[03:25:34] [INFO] [Bullet] Using shooter_position, distance=333.333221435547
+[03:25:34] [INFO] [Bullet] Distance to wall: 333.333221435547 (22.6972719932924% of viewport)
+[03:25:34] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[03:25:34] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:25:34] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(438.7182, 605.9598), shooter_id=43352327688, bullet_pos=(512.6513, 900.2858)
+[03:25:34] [INFO] [Bullet] Using shooter_position, distance=303.469757080078
+[03:25:34] [INFO] [Bullet] Distance to wall: 303.469757080078 (20.6638137912598% of viewport)
+[03:25:34] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[03:25:34] [ENEMY] [Enemy3] State: PURSUING -> RETREATING
+[03:25:34] [ENEMY] [Enemy4] State: PURSUING -> RETREATING
+[03:25:34] [ENEMY] [Enemy4] State: RETREATING -> IN_COVER
+[03:25:34] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(447.801, 598.4321), shooter_id=43352327688, bullet_pos=(917.3906, 609.4713)
+[03:25:34] [INFO] [Bullet] Using shooter_position, distance=469.719329833984
+[03:25:34] [INFO] [Bullet] Distance to wall: 469.719329833984 (31.9840529060811% of viewport)
+[03:25:34] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[03:25:34] [ENEMY] [Enemy4] State: IN_COVER -> SUPPRESSED
+[03:25:34] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[03:25:34] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(455.1627, 589.8456), shooter_id=43352327688, bullet_pos=(927.7195, 854.5961)
+[03:25:34] [INFO] [Bullet] Using shooter_position, distance=541.666687011719
+[03:25:34] [INFO] [Bullet] Distance to wall: 541.666687011719 (36.883080755837% of viewport)
+[03:25:34] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[03:25:34] [INFO] [Bullet] Starting wall penetration at (927.7195, 854.5961)
+[03:25:34] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:25:34] [INFO] [Bullet] Raycast backward hit penetrating body at distance 37.1752014160156
+[03:25:34] [INFO] [Bullet] Body exited signal received for penetrating body
+[03:25:34] [INFO] [Bullet] Exiting penetration at (968.4321, 877.4053) after traveling 41.6666679382324 pixels through wall
+[03:25:34] [INFO] [Bullet] Damage multiplier after penetration: 0.9
+[03:25:34] [ENEMY] [Enemy1] State: COMBAT -> PURSUING
+[03:25:34] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:25:34] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(447.801, 598.4321), shooter_id=43352327688, bullet_pos=(516.8285, 237.1507)
+[03:25:34] [INFO] [Bullet] Using shooter_position, distance=367.816558837891
+[03:25:34] [INFO] [Bullet] Distance to wall: 367.816558837891 (25.0453058462842% of viewport)
+[03:25:34] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[03:25:34] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:25:34] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(447.801, 598.4321), shooter_id=43352327688, bullet_pos=(666.0494, 55.22276)
+[03:25:34] [INFO] [Bullet] Using shooter_position, distance=585.413330078125
+[03:25:34] [INFO] [Bullet] Distance to wall: 585.413330078125 (39.8618701252119% of viewport)
+[03:25:34] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[03:25:35] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:25:35] [ENEMY] [Enemy2] Player distracted - priority attack triggered
+[03:25:35] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[03:25:35] [ENEMY] [Enemy2] Player distracted - priority attack triggered
+[03:25:35] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(400, 550), source=ENEMY (Enemy2), range=1469, listeners=10
+[03:25:35] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=1, below_threshold=4
+[03:25:35] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:25:35] [INFO] [LastChance] Threat detected: Bullet
+[03:25:35] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[03:25:35] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[03:25:35] [ENEMY] [Enemy2] Player distracted - priority attack triggered
+[03:25:35] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(400, 550), source=ENEMY (Enemy2), range=1469, listeners=10
+[03:25:35] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=1, below_threshold=4
+[03:25:35] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:25:35] [INFO] [LastChance] Threat detected: @Area2D@298
+[03:25:35] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[03:25:35] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[03:25:35] [INFO] [PenultimateHit] Player damaged: 1.0 damage, current health: 1.0
+[03:25:35] [INFO] [PenultimateHit] Hard mode active - skipping regular penultimate hit effect (using last chance instead)
+[03:25:35] [INFO] [LastChance] Player health updated (C# Damaged): 1.0
+[03:25:35] [ENEMY] [Enemy2] Player distracted - priority attack triggered
+[03:25:35] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(400, 550), source=ENEMY (Enemy2), range=1469, listeners=10
+[03:25:35] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=1, below_threshold=4
+[03:25:35] [INFO] [LastChance] Threat detected: @Area2D@300
+[03:25:35] [INFO] [LastChance] Triggering last chance effect!
+[03:25:35] [INFO] [LastChance] Starting last chance effect:
+[03:25:35] [INFO] [LastChance]   - Time will be frozen (except player)
+[03:25:35] [INFO] [LastChance]   - Duration: 6.0 real seconds
+[03:25:35] [INFO] [LastChance]   - Sepia intensity: 0.70
+[03:25:35] [INFO] [LastChance]   - Brightness: 0.60
+[03:25:35] [INFO] [LastChance] Pushed bullet @Area2D@300 from distance 128.7 to 200.0
+[03:25:35] [INFO] [LastChance] Pushed 1 threatening bullets away from player
+[03:25:35] [INFO] [LastChance] Set player Player and all 19 children to PROCESS_MODE_ALWAYS
+[03:25:35] [INFO] [LastChance] Set StaticBody2D 'WallTop' to PROCESS_MODE_ALWAYS for collision
+[03:25:35] [INFO] [LastChance] Set StaticBody2D 'WallBottom' to PROCESS_MODE_ALWAYS for collision
+[03:25:35] [INFO] [LastChance] Set StaticBody2D 'WallLeft' to PROCESS_MODE_ALWAYS for collision
+[03:25:35] [INFO] [LastChance] Set StaticBody2D 'WallRight' to PROCESS_MODE_ALWAYS for collision
+[03:25:35] [INFO] [LastChance] Set StaticBody2D 'Room1_WallBottom' to PROCESS_MODE_ALWAYS for collision
+[03:25:35] [INFO] [LastChance] Set StaticBody2D 'Room1_WallRight' to PROCESS_MODE_ALWAYS for collision
+[03:25:35] [INFO] [LastChance] Set StaticBody2D 'Room2_WallLeft' to PROCESS_MODE_ALWAYS for collision
+[03:25:35] [INFO] [LastChance] Set StaticBody2D 'Room2_WallBottom' to PROCESS_MODE_ALWAYS for collision
+[03:25:35] [INFO] [LastChance] Set StaticBody2D 'Room2_WallRight' to PROCESS_MODE_ALWAYS for collision
+[03:25:35] [INFO] [LastChance] Set StaticBody2D 'Corridor_WallTop' to PROCESS_MODE_ALWAYS for collision
+[03:25:35] [INFO] [LastChance] Set StaticBody2D 'Corridor_WallBottom' to PROCESS_MODE_ALWAYS for collision
+[03:25:35] [INFO] [LastChance] Set StaticBody2D 'Room3_WallLeft' to PROCESS_MODE_ALWAYS for collision
+[03:25:35] [INFO] [LastChance] Set StaticBody2D 'Room3_WallBottom' to PROCESS_MODE_ALWAYS for collision
+[03:25:35] [INFO] [LastChance] Set StaticBody2D 'Room4_WallLeft' to PROCESS_MODE_ALWAYS for collision
+[03:25:35] [INFO] [LastChance] Set StaticBody2D 'Room4_WallTop' to PROCESS_MODE_ALWAYS for collision
+[03:25:35] [INFO] [LastChance] Set StaticBody2D 'Room5_WallTop' to PROCESS_MODE_ALWAYS for collision
+[03:25:35] [INFO] [LastChance] Set StaticBody2D 'Room5_WallLeft' to PROCESS_MODE_ALWAYS for collision
+[03:25:35] [INFO] [LastChance] Set StaticBody2D 'LobbyDivider_Left' to PROCESS_MODE_ALWAYS for collision
+[03:25:35] [INFO] [LastChance] Set StaticBody2D 'LobbyDivider_Right' to PROCESS_MODE_ALWAYS for collision
+[03:25:35] [INFO] [LastChance] Set StaticBody2D 'StorageRoom_WallTop' to PROCESS_MODE_ALWAYS for collision
+[03:25:35] [INFO] [LastChance] Set StaticBody2D 'StorageRoom_WallRight' to PROCESS_MODE_ALWAYS for collision
+[03:25:35] [INFO] [LastChance] Set StaticBody2D 'MainHall_WallLeft' to PROCESS_MODE_ALWAYS for collision
+[03:25:35] [INFO] [LastChance] Set StaticBody2D 'MainHall_WallRight' to PROCESS_MODE_ALWAYS for collision
+[03:25:35] [INFO] [LastChance] Set StaticBody2D 'MainHall_WallTop' to PROCESS_MODE_ALWAYS for collision
+[03:25:35] [INFO] [LastChance] Set StaticBody2D 'Room2_CornerBL' to PROCESS_MODE_ALWAYS for collision
+[03:25:35] [INFO] [LastChance] Set StaticBody2D 'Room2_CornerBR' to PROCESS_MODE_ALWAYS for collision
+[03:25:35] [INFO] [LastChance] Set StaticBody2D 'Corridor_CornerTR' to PROCESS_MODE_ALWAYS for collision
+[03:25:35] [INFO] [LastChance] Set StaticBody2D 'Corridor_CornerBR' to PROCESS_MODE_ALWAYS for collision
+[03:25:35] [INFO] [LastChance] Set StaticBody2D 'MainHall_CornerTL' to PROCESS_MODE_ALWAYS for collision
+[03:25:35] [INFO] [LastChance] Set StaticBody2D 'MainHall_CornerTR' to PROCESS_MODE_ALWAYS for collision
+[03:25:35] [INFO] [LastChance] Set StaticBody2D 'StorageRoom_CornerTR' to PROCESS_MODE_ALWAYS for collision
+[03:25:35] [INFO] [LastChance] Set StaticBody2D 'Desk1' to PROCESS_MODE_ALWAYS for collision
+[03:25:35] [INFO] [LastChance] Set StaticBody2D 'Desk2' to PROCESS_MODE_ALWAYS for collision
+[03:25:35] [INFO] [LastChance] Set StaticBody2D 'Table1' to PROCESS_MODE_ALWAYS for collision
+[03:25:35] [INFO] [LastChance] Set StaticBody2D 'Cabinet1' to PROCESS_MODE_ALWAYS for collision
+[03:25:35] [INFO] [LastChance] Set StaticBody2D 'Cabinet2' to PROCESS_MODE_ALWAYS for collision
+[03:25:35] [INFO] [LastChance] Set StaticBody2D 'Desk3' to PROCESS_MODE_ALWAYS for collision
+[03:25:35] [INFO] [LastChance] Set StaticBody2D 'Desk4' to PROCESS_MODE_ALWAYS for collision
+[03:25:35] [INFO] [LastChance] Set StaticBody2D 'Table2' to PROCESS_MODE_ALWAYS for collision
+[03:25:35] [INFO] [LastChance] Set StaticBody2D 'Table3' to PROCESS_MODE_ALWAYS for collision
+[03:25:35] [INFO] [LastChance] Set StaticBody2D 'Cabinet3' to PROCESS_MODE_ALWAYS for collision
+[03:25:35] [INFO] [LastChance] Set StaticBody2D 'StorageCrate1' to PROCESS_MODE_ALWAYS for collision
+[03:25:35] [INFO] [LastChance] Set StaticBody2D 'StorageCrate2' to PROCESS_MODE_ALWAYS for collision
+[03:25:35] [INFO] [LastChance] Set StaticBody2D 'HallTable' to PROCESS_MODE_ALWAYS for collision
+[03:25:35] [INFO] [LastChance] Skipping player node: Player
+[03:25:35] [INFO] [LastChance] Froze existing bullet casing: Casing
+[03:25:35] [INFO] [LastChance] Froze existing bullet casing: @RigidBody2D@287
+[03:25:35] [INFO] [LastChance] Froze existing bullet casing: @RigidBody2D@290
+[03:25:35] [INFO] [LastChance] Froze existing bullet casing: @RigidBody2D@297
+[03:25:35] [INFO] [LastChance] Froze existing bullet casing: @RigidBody2D@299
+[03:25:35] [INFO] [LastChance] Froze existing bullet casing: @RigidBody2D@301
+[03:25:35] [INFO] [LastChance] Froze all nodes except player and autoloads (including GameManager for quick restart)
+[03:25:35] [INFO] [LastChance] Applied visual effects: sepia=0.70, brightness=0.60, ripple=0.0080
+[03:25:35] [INFO] [LastChance] Applied 4.0x saturation to 6 player sprites
+[03:25:36] [INFO] [Player] Invincibility mode: ON
+[03:25:36] [INFO] [GameManager] Invincibility mode toggled: ON
+[03:25:41] [INFO] [LastChance] Effect duration expired after 6.01 real seconds
+[03:25:41] [INFO] [LastChance] Ending last chance effect
+[03:25:41] [ENEMY] [Enemy1] Memory reset: confusion=2.0s, had_target=true
+[03:25:41] [ENEMY] [Enemy1] Search mode: PURSUING -> SEARCHING at (570.5618, 700.6684)
+[03:25:41] [ENEMY] [Enemy1] SEARCHING started: center=(570.5618, 700.6684), radius=100, waypoints=5
+[03:25:41] [ENEMY] [Enemy2] Memory reset: confusion=2.0s, had_target=true
+[03:25:41] [ENEMY] [Enemy2] Search mode: COMBAT -> SEARCHING at (570.5618, 714.5018)
+[03:25:41] [ENEMY] [Enemy2] SEARCHING started: center=(570.5618, 714.5018), radius=100, waypoints=5
+[03:25:41] [ENEMY] [Enemy3] Memory reset: confusion=2.0s, had_target=true
+[03:25:41] [ENEMY] [Enemy3] Search mode: RETREATING -> SEARCHING at (570.5618, 700.6684)
+[03:25:41] [ENEMY] [Enemy3] SEARCHING started: center=(570.5618, 700.6684), radius=100, waypoints=5
+[03:25:41] [ENEMY] [Enemy4] Memory reset: confusion=2.0s, had_target=true
+[03:25:41] [ENEMY] [Enemy4] Search mode: SUPPRESSED -> SEARCHING at (570.5618, 700.6684)
+[03:25:41] [ENEMY] [Enemy4] SEARCHING started: center=(570.5618, 700.6684), radius=100, waypoints=5
+[03:25:41] [ENEMY] [Enemy5] Memory reset: confusion=2.0s, had_target=false
+[03:25:41] [ENEMY] [Enemy6] Memory reset: confusion=2.0s, had_target=false
+[03:25:41] [ENEMY] [Enemy7] Memory reset: confusion=2.0s, had_target=false
+[03:25:41] [ENEMY] [Enemy8] Memory reset: confusion=2.0s, had_target=false
+[03:25:41] [ENEMY] [Enemy9] Memory reset: confusion=2.0s, had_target=false
+[03:25:41] [ENEMY] [Enemy10] Memory reset: confusion=2.0s, had_target=false
+[03:25:41] [INFO] [LastChance] Reset memory for 10 enemies (player teleport effect)
+[03:25:41] [INFO] [LastChance] All process modes restored
+[03:25:41] [INFO] [LastChance] Unfroze bullet casing: Casing
+[03:25:41] [INFO] [LastChance] Unfroze bullet casing: @RigidBody2D@287
+[03:25:41] [INFO] [LastChance] Unfroze bullet casing: @RigidBody2D@290
+[03:25:41] [INFO] [LastChance] Unfroze bullet casing: @RigidBody2D@297
+[03:25:41] [INFO] [LastChance] Unfroze bullet casing: @RigidBody2D@299
+[03:25:41] [INFO] [LastChance] Unfroze bullet casing: @RigidBody2D@301
+[03:25:41] [INFO] [LastChance] Restored original colors to 5 player sprites
+[03:25:41] [INFO] [LastChance] Called player RefreshHealthVisual (C#)
+[03:25:41] [ENEMY] [Enemy2] SEARCHING corner check: angle 134.0°
+[03:25:41] [ENEMY] [Enemy3] SEARCHING corner check: angle 49.2°
+[03:25:41] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(452.3737, 593.4465), shooter_id=43352327688, bullet_pos=(1080.695, 1002.973)
+[03:25:41] [INFO] [Bullet] Using shooter_position, distance=749.999755859375
+[03:25:41] [INFO] [Bullet] Distance to wall: 749.999755859375 (51.0688625044075% of viewport)
+[03:25:41] [ENEMY] [Enemy4] SEARCHING corner check: angle -48.5°
+[03:25:41] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:25:41] [ENEMY] [Enemy1] SEARCHING corner check: angle 147.4°
+[03:25:41] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(443.5, 602.3292), shooter_id=43352327688, bullet_pos=(691.175, 843.2047)
+[03:25:41] [INFO] [Bullet] Using shooter_position, distance=345.490753173828
+[03:25:41] [INFO] [Bullet] Distance to wall: 345.490753173828 (23.5251006850816% of viewport)
+[03:25:41] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[03:25:41] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:25:41] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(452.3737, 593.4465), shooter_id=43352327688, bullet_pos=(1388.345, 817.6284)
+[03:25:41] [INFO] [Bullet] Using shooter_position, distance=962.4443359375
+[03:25:41] [INFO] [Bullet] Distance to wall: 962.4443359375 (65.534604613063% of viewport)
+[03:25:41] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(443.5, 602.3292), shooter_id=43352327688, bullet_pos=(551.8115, 1010.19)
+[03:25:41] [INFO] [Bullet] Using shooter_position, distance=421.997375488281
+[03:25:41] [INFO] [Bullet] Distance to wall: 421.997375488281 (28.734577281746% of viewport)
+[03:25:41] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[03:25:41] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(443.5, 602.3292), shooter_id=43352327688, bullet_pos=(511.6394, 958.8252)
+[03:25:41] [INFO] [Bullet] Using shooter_position, distance=362.949523925781
+[03:25:41] [INFO] [Bullet] Distance to wall: 362.949523925781 (24.7139004894306% of viewport)
+[03:25:41] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[03:25:41] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(452.3737, 593.4465), shooter_id=43352327688, bullet_pos=(1168.698, 707.2247)
+[03:25:41] [INFO] [Bullet] Using shooter_position, distance=725.303649902344
+[03:25:41] [INFO] [Bullet] Distance to wall: 725.303649902344 (49.3872592376587% of viewport)
+[03:25:41] [ENEMY] [Enemy2] SEARCHING corner check: angle -46.0°
+[03:25:41] [ENEMY] [Enemy4] SEARCHING corner check: angle -59.1°
+[03:25:41] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:25:41] [ENEMY] [Enemy1] SEARCHING corner check: angle 147.4°
+[03:25:42] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(452.3737, 593.4465), shooter_id=43352327688, bullet_pos=(921.1554, 789.5913)
+[03:25:42] [INFO] [Bullet] Using shooter_position, distance=508.162475585938
+[03:25:42] [INFO] [Bullet] Distance to wall: 508.162475585938 (34.6017173910433% of viewport)
+[03:25:42] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[03:25:42] [INFO] [Bullet] Starting wall penetration at (921.1554, 789.5913)
+[03:25:42] [INFO] [Bullet] Raycast backward hit penetrating body at distance 20.9396495819092
+[03:25:42] [INFO] [Bullet] Body exited signal received for penetrating body
+[03:25:42] [INFO] [Bullet] Exiting penetration at (892.1313, 799.2487) after traveling 25.5885448455811 pixels through wall
+[03:25:42] [INFO] [Bullet] Damage multiplier after penetration: 0.1125
+[03:25:42] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:25:42] [ENEMY] [Enemy4] SEARCHING corner check: angle -66.3°
+[03:25:42] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:25:42] [ENEMY] [Enemy1] SEARCHING corner check: angle -46.4°
+[03:25:42] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:25:42] [ENEMY] [Enemy4] SEARCHING corner check: angle 113.7°
+[03:25:42] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:25:42] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:25:42] [ENEMY] [Enemy3] SEARCHING corner check: angle 81.9°
+[03:25:42] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:25:43] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:25:43] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:25:43] [ENEMY] [Enemy2] SEARCHING corner check: angle -26.5°
+[03:25:43] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:25:43] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:25:43] [ENEMY] [Enemy2] SEARCHING corner check: angle 153.5°
+[03:25:43] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:25:43] [ENEMY] [Enemy1] SEARCHING corner check: angle 148.7°
+[03:25:43] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:25:43] [ENEMY] [Enemy4] SEARCHING corner check: angle 73.5°
+[03:25:44] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:25:44] [ENEMY] [Enemy1] SEARCHING corner check: angle 148.7°
+[03:25:44] [ENEMY] [Enemy3] SEARCHING corner check: angle -95.2°
+[03:25:44] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:25:44] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:25:44] [ENEMY] [Enemy3] SEARCHING corner check: angle -95.2°
+[03:25:44] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:25:44] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:25:44] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:25:44] [ENEMY] [Enemy2] SEARCHING corner check: angle -38.0°
+[03:25:45] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:25:45] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:25:45] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:25:45] [ENEMY] [Enemy1] SEARCHING corner check: angle -39.0°
+[03:25:45] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:25:45] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:25:45] [ENEMY] [Enemy3] SEARCHING corner check: angle 40.3°
+[03:25:45] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:25:46] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:25:46] [ENEMY] [Enemy3] SEARCHING corner check: angle -139.7°
+[03:25:46] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:25:46] [ENEMY] [Enemy2] SEARCHING corner check: angle -116.6°
+[03:25:46] [ENEMY] [Enemy4] SEARCHING corner check: angle -58.4°
+[03:25:46] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:25:46] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:25:46] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:25:46] [ENEMY] [Enemy1] SEARCHING corner check: angle -114.9°
+[03:25:46] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:25:47] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:25:47] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:25:47] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:25:47] [ENEMY] [Enemy3] SEARCHING corner check: angle -54.5°
+[03:25:47] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:25:47] [ENEMY] [Enemy2] SEARCHING corner check: angle -50.0°
+[03:25:47] [ENEMY] [Enemy4] SEARCHING corner check: angle -87.8°
+[03:25:47] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:25:47] [ENEMY] [Enemy3] SEARCHING corner check: angle -85.2°
+[03:25:47] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:25:47] [ENEMY] [Enemy2] SEARCHING corner check: angle 97.3°
+[03:25:47] [ENEMY] [Enemy4] SEARCHING corner check: angle 92.2°
+[03:25:48] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:25:48] [ENEMY] [Enemy1] SEARCHING corner check: angle -53.9°
+[03:25:48] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:25:48] [ENEMY] [Enemy2] SEARCHING corner check: angle 90.6°
+[03:25:48] [ENEMY] [Enemy4] SEARCHING corner check: angle 92.2°
+[03:25:48] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:25:48] [ENEMY] [Enemy1] SEARCHING corner check: angle -83.9°
+[03:25:48] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:25:48] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.5°
+[03:25:48] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:25:48] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:25:48] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:25:49] [ENEMY] [Enemy3] SEARCHING: Expand outer ring r=175 wps=4
+[03:25:49] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:25:49] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:25:49] [ENEMY] [Enemy3] SEARCHING corner check: angle 27.3°
+[03:25:49] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:25:49] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:25:49] [ENEMY] [Enemy4] SEARCHING: Expand outer ring r=175 wps=4
+[03:25:49] [ENEMY] [Enemy1] SEARCHING: Expand outer ring r=175 wps=4
+[03:25:49] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:25:49] [ENEMY] [Enemy3] SEARCHING corner check: angle 17.1°
+[03:25:49] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:25:49] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:25:49] [ENEMY] [Enemy4] SEARCHING corner check: angle 27.2°
+[03:25:49] [ENEMY] [Enemy1] SEARCHING corner check: angle 26.9°
+[03:25:49] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:25:49] [ENEMY] [Enemy3] SEARCHING corner check: angle 10.1°
+[03:25:49] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:25:50] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:25:50] [ENEMY] [Enemy4] SEARCHING corner check: angle 17.0°
+[03:25:50] [ENEMY] [Enemy1] SEARCHING corner check: angle 16.8°
+[03:25:50] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:25:50] [ENEMY] [Enemy3] SEARCHING corner check: angle -174.2°
+[03:25:50] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:25:50] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:25:50] [ENEMY] [Enemy4] SEARCHING corner check: angle 10.0°
+[03:25:50] [ENEMY] [Enemy1] SEARCHING corner check: angle 9.9°
+[03:25:50] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:25:50] [ENEMY] [Enemy3] SEARCHING corner check: angle -176.7°
+[03:25:50] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:25:50] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:25:50] [ENEMY] [Enemy4] SEARCHING corner check: angle -174.2°
+[03:25:50] [ENEMY] [Enemy1] SEARCHING corner check: angle -174.3°
+[03:25:50] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:25:50] [ENEMY] [Enemy3] SEARCHING corner check: angle -178.1°
+[03:25:50] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:25:51] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:25:51] [ENEMY] [Enemy4] SEARCHING corner check: angle -176.7°
+[03:25:51] [ENEMY] [Enemy1] SEARCHING corner check: angle -176.7°
+[03:25:51] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:25:51] [ENEMY] [Enemy3] SEARCHING corner check: angle -178.9°
+[03:25:51] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:25:51] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:25:51] [ENEMY] [Enemy4] SEARCHING corner check: angle -178.1°
+[03:25:51] [ENEMY] [Enemy1] SEARCHING corner check: angle -178.1°
+[03:25:51] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:25:51] [ENEMY] [Enemy3] SEARCHING corner check: angle -179.4°
+[03:25:51] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:25:51] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:25:51] [ENEMY] [Enemy4] SEARCHING corner check: angle -178.9°
+[03:25:51] [ENEMY] [Enemy1] SEARCHING corner check: angle -178.9°
+[03:25:51] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:25:51] [ENEMY] [Enemy3] SEARCHING corner check: angle -179.6°
+[03:25:51] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:25:52] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:25:52] [ENEMY] [Enemy4] SEARCHING corner check: angle -179.4°
+[03:25:52] [ENEMY] [Enemy1] SEARCHING corner check: angle -179.4°
+[03:25:52] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:25:52] [ENEMY] [Enemy3] SEARCHING corner check: angle -179.8°
+[03:25:52] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:25:52] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:25:52] [ENEMY] [Enemy4] SEARCHING corner check: angle -179.6°
+[03:25:52] [ENEMY] [Enemy1] SEARCHING corner check: angle -179.7°
+[03:25:52] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:25:52] [ENEMY] [Enemy3] SEARCHING corner check: angle -179.9°
+[03:25:52] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:25:52] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:25:52] [ENEMY] [Enemy4] SEARCHING corner check: angle -179.8°
+[03:25:52] [ENEMY] [Enemy1] SEARCHING corner check: angle -179.8°
+[03:25:52] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:25:52] [ENEMY] [Enemy3] SEARCHING corner check: angle -179.9°
+[03:25:52] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:25:53] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:25:53] [ENEMY] [Enemy4] SEARCHING corner check: angle -179.9°
+[03:25:53] [ENEMY] [Enemy1] SEARCHING corner check: angle -179.9°
+[03:25:53] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:25:53] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:25:53] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:25:53] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:25:53] [ENEMY] [Enemy4] SEARCHING corner check: angle -179.9°
+[03:25:53] [ENEMY] [Enemy1] SEARCHING corner check: angle -179.9°
+[03:25:53] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:25:53] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:25:53] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:25:53] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:25:53] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:25:53] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:25:53] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:25:53] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:25:53] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:25:54] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:25:54] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:25:54] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:25:54] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:25:54] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:25:54] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:25:54] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:25:54] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:25:54] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:25:54] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:25:54] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:25:54] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:25:54] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:25:54] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:25:54] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:25:54] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:25:54] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:25:54] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:25:55] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:25:55] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:25:55] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:25:55] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:25:55] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:25:55] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:25:55] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:25:55] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:25:55] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:25:55] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:25:55] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:25:55] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:25:55] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:25:55] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:25:55] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:25:55] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:25:55] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:25:55] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:25:56] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:25:56] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:25:56] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:25:56] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:25:56] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:25:56] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:25:56] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:25:56] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:25:56] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:25:56] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:25:56] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:25:56] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:25:56] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:25:56] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:25:56] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:25:56] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:25:56] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:25:56] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:25:57] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:25:57] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:25:57] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:25:57] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:25:57] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:25:57] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:25:57] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:25:57] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:25:57] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:25:57] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:25:57] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:25:57] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:25:57] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:25:57] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:25:57] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:25:57] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:25:57] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:25:57] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:25:58] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:25:58] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:25:58] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:25:58] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:25:58] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:25:58] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:25:58] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:25:58] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:25:58] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:25:58] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:25:58] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:25:58] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:25:58] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:25:58] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:25:58] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:25:58] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:25:58] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:25:58] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:25:59] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:25:59] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:25:59] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:25:59] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:25:59] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:25:59] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:25:59] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:25:59] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:25:59] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:25:59] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:25:59] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:25:59] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:25:59] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:25:59] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:25:59] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:25:59] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:25:59] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:25:59] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:26:00] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:00] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:26:00] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:26:00] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:00] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:26:00] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:26:00] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:00] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:26:00] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:26:00] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:00] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:26:00] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:26:00] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:00] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:26:00] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:26:00] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:00] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:26:00] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:26:01] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:01] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:26:01] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:26:01] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:01] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:26:01] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:26:01] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:01] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:26:01] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:26:01] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:01] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:26:01] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:26:01] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:01] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:26:01] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:26:01] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:01] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:26:01] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:26:02] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:02] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:26:02] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:26:02] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:02] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:26:02] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:26:02] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:02] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:26:02] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:26:02] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:02] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:26:02] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:26:02] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:02] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:26:02] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:26:02] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:02] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:26:02] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:26:03] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:03] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:26:03] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:26:03] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:03] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:26:03] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:26:03] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:03] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:26:03] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:26:03] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:03] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:26:03] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:26:03] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:03] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:26:03] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:26:03] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:03] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:26:03] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:26:04] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:04] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:26:04] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:26:04] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:04] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:26:04] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:26:04] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:04] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:26:04] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:26:04] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:04] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:26:04] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:26:04] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:04] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:26:04] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:26:04] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:04] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:26:04] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:26:05] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:05] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:26:05] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:26:05] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:05] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:26:05] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:26:05] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:05] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:26:05] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:26:05] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:05] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:26:05] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:26:05] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:05] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:26:05] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:26:05] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:05] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:26:05] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:26:06] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:06] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:26:06] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:26:06] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:06] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:26:06] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:26:06] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:06] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:26:06] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:26:06] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:06] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:26:06] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:26:06] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:06] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:26:06] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:26:06] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:06] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:26:06] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:26:07] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:07] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:26:07] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:26:07] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:07] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:26:07] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:26:07] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:07] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:26:07] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:26:07] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:07] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:26:07] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:26:07] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:07] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:26:07] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:26:07] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:07] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:26:07] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:26:08] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:08] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:26:08] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:26:08] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:08] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:26:08] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:26:08] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:08] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:26:08] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:26:08] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:08] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:26:08] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:26:08] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:08] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:26:08] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:26:08] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:08] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:26:08] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:26:09] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:09] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:26:09] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:26:09] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:09] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:26:09] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:26:09] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:09] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:26:09] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:26:09] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:09] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:26:09] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:26:09] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:09] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:26:09] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:26:09] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:09] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:26:09] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:26:10] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:10] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:26:10] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:26:10] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:10] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:26:10] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:26:10] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:10] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:26:10] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:26:10] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:10] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:26:10] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:26:10] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:10] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:26:10] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:26:10] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:10] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:26:10] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:26:11] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:11] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:26:11] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:26:11] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:11] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:26:11] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:26:11] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:11] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:26:11] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:26:11] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:11] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:26:11] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:26:11] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:11] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:26:11] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:26:11] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:11] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:26:11] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:26:12] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:12] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:26:12] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:26:12] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:12] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:26:12] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:26:12] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:12] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:26:12] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:26:12] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:12] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:26:12] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:26:12] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:12] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:26:12] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:26:12] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:12] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:26:12] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:26:13] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:13] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:26:13] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:26:13] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:13] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:26:13] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:26:13] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:13] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:26:13] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:26:13] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:13] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:26:13] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:26:13] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:13] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:26:13] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:26:13] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:13] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:26:13] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:26:14] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:14] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:26:14] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:26:14] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:14] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:26:14] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:26:14] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:14] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:26:14] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:26:14] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:14] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:26:14] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:26:14] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:14] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:26:14] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:26:14] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:14] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:26:14] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:26:15] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:15] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:26:15] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:26:15] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:15] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:26:15] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:26:15] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:15] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:26:15] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:26:15] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:15] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:26:15] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:26:15] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:15] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:26:15] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:26:15] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:15] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:26:15] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:26:16] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:16] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:26:16] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:26:16] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:16] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:26:16] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:26:16] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:16] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:26:16] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:26:16] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:16] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:26:16] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:26:16] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:16] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:26:16] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:26:16] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:16] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:26:16] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:26:17] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:17] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:26:17] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:26:17] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:17] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:26:17] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:26:17] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:17] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:26:17] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:26:17] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:17] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:26:17] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:26:17] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:17] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:26:17] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:26:17] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:17] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:26:17] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:26:18] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:18] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:26:18] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:26:18] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:18] [ENEMY] [Enemy3] SEARCHING corner check: angle -180.0°
+[03:26:18] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.2°
+[03:26:18] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:18] [ENEMY] [Enemy4] SEARCHING corner check: angle -180.0°
+[03:26:18] [ENEMY] [Enemy1] SEARCHING corner check: angle -180.0°
+[03:26:18] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:18] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[03:26:18] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[03:26:18] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[03:26:18] [INFO] [LastChance] Resetting all effects (scene change detected)
+[03:26:18] [ENEMY] [Enemy1] Death animation component initialized
+[03:26:18] [ENEMY] [Enemy2] Death animation component initialized
+[03:26:18] [ENEMY] [Enemy3] Death animation component initialized
+[03:26:18] [ENEMY] [Enemy4] Death animation component initialized
+[03:26:18] [ENEMY] [Enemy5] Death animation component initialized
+[03:26:18] [ENEMY] [Enemy6] Death animation component initialized
+[03:26:18] [ENEMY] [Enemy7] Death animation component initialized
+[03:26:18] [ENEMY] [Enemy8] Death animation component initialized
+[03:26:18] [ENEMY] [Enemy9] Death animation component initialized
+[03:26:18] [ENEMY] [Enemy10] Death animation component initialized
+[03:26:18] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[03:26:18] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[03:26:18] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[03:26:18] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[03:26:18] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[03:26:18] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[03:26:18] [INFO] [Player.Debug] Connected to GameManager, debug mode: True
+[03:26:18] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: True
+[03:26:18] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 3/4
+[03:26:18] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[03:26:18] [INFO] [BuildingLevel] Found Environment/Enemies node with 10 children
+[03:26:18] [INFO] [BuildingLevel] Child 'Enemy1': script=true, has_died_signal=true
+[03:26:18] [INFO] [BuildingLevel] Child 'Enemy2': script=true, has_died_signal=true
+[03:26:18] [INFO] [BuildingLevel] Child 'Enemy3': script=true, has_died_signal=true
+[03:26:18] [INFO] [BuildingLevel] Child 'Enemy4': script=true, has_died_signal=true
+[03:26:18] [INFO] [BuildingLevel] Child 'Enemy5': script=true, has_died_signal=true
+[03:26:18] [INFO] [BuildingLevel] Child 'Enemy6': script=true, has_died_signal=true
+[03:26:18] [INFO] [BuildingLevel] Child 'Enemy7': script=true, has_died_signal=true
+[03:26:18] [INFO] [BuildingLevel] Child 'Enemy8': script=true, has_died_signal=true
+[03:26:18] [INFO] [BuildingLevel] Child 'Enemy9': script=true, has_died_signal=true
+[03:26:18] [INFO] [BuildingLevel] Child 'Enemy10': script=true, has_died_signal=true
+[03:26:18] [INFO] [BuildingLevel] Enemy tracking complete: 10 enemies registered
+[03:26:18] [INFO] [ScoreManager] Level started with 10 enemies
+[03:26:18] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 11)
+[03:26:18] [ENEMY] [Enemy1] Registered as sound listener
+[03:26:18] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 4, behavior: GUARD, player_found: yes
+[03:26:18] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 12)
+[03:26:18] [ENEMY] [Enemy2] Registered as sound listener
+[03:26:18] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 3, behavior: GUARD, player_found: yes
+[03:26:18] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 13)
+[03:26:18] [ENEMY] [Enemy3] Registered as sound listener
+[03:26:18] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 2, behavior: GUARD, player_found: yes
+[03:26:18] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 14)
+[03:26:18] [ENEMY] [Enemy4] Registered as sound listener
+[03:26:18] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 4, behavior: GUARD, player_found: yes
+[03:26:18] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 15)
+[03:26:18] [ENEMY] [Enemy5] Registered as sound listener
+[03:26:18] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 3, behavior: GUARD, player_found: yes
+[03:26:18] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 16)
+[03:26:18] [ENEMY] [Enemy6] Registered as sound listener
+[03:26:18] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 2, behavior: GUARD, player_found: yes
+[03:26:18] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 17)
+[03:26:18] [ENEMY] [Enemy7] Registered as sound listener
+[03:26:18] [ENEMY] [Enemy7] Enemy spawned at (1600, 900), health: 3, behavior: PATROL, player_found: yes
+[03:26:18] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 18)
+[03:26:18] [ENEMY] [Enemy8] Registered as sound listener
+[03:26:18] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 4, behavior: GUARD, player_found: yes
+[03:26:18] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 19)
+[03:26:18] [ENEMY] [Enemy9] Registered as sound listener
+[03:26:18] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 3, behavior: GUARD, player_found: yes
+[03:26:18] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 20)
+[03:26:18] [ENEMY] [Enemy10] Registered as sound listener
+[03:26:18] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 2, behavior: PATROL, player_found: yes
+[03:26:18] [INFO] [Player] Detecting weapon pose (frame 3)...
+[03:26:18] [INFO] [Player] Detected weapon: Rifle (default pose)
+[03:26:18] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[03:26:18] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[03:26:18] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[03:26:18] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[03:26:18] [INFO] [LastChance] Found player: Player
+[03:26:18] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[03:26:18] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[03:26:18] [INFO] [LastChance] Connected to player Died signal (C#)
+[03:26:20] [ENEMY] [Enemy7] PATROL corner check: angle 94.3°
+[03:26:20] [ENEMY] [Enemy10] PATROL corner check: angle -0.0°
+[03:26:20] [ENEMY] [Enemy7] PATROL corner check: angle 94.3°
+[03:26:20] [ENEMY] [Enemy10] PATROL corner check: angle 14.3°
+[03:26:20] [ENEMY] [Enemy10] PATROL corner check: angle 7.0°
+[03:26:21] [ENEMY] [Enemy10] PATROL corner check: angle 3.5°
+[03:26:21] [ENEMY] [Enemy10] PATROL corner check: angle 1.8°
+[03:26:21] [INFO] [Player] Invincibility mode: OFF
+[03:26:21] [INFO] [GameManager] Invincibility mode toggled: OFF
+[03:26:21] [ENEMY] [Enemy10] PATROL corner check: angle 0.9°
+[03:26:22] [ENEMY] [Enemy3] Player distracted - priority attack triggered
+[03:26:22] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(700, 750), source=ENEMY (Enemy3), range=1469, listeners=20
+[03:26:22] [INFO] [SoundPropagation] Cleaned up 10 invalid listeners
+[03:26:22] [ENEMY] [Enemy2] Heard gunshot at (700, 750), source_type=1, intensity=0.02, distance=361
+[03:26:22] [ENEMY] [Enemy4] Heard gunshot at (700, 750), source_type=1, intensity=0.08, distance=180
+[03:26:22] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[03:26:22] [INFO] [LastChance] Threat detected: Bullet
+[03:26:22] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[03:26:22] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[03:26:22] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:22] [ENEMY] [Enemy1] Memory: medium confidence (0.62) - transitioning to PURSUING
+[03:26:22] [ENEMY] [Enemy1] State: IDLE -> PURSUING
+[03:26:22] [ENEMY] [Enemy3] Player distracted - priority attack triggered
+[03:26:22] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(700, 750), source=ENEMY (Enemy3), range=1469, listeners=10
+[03:26:22] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[03:26:22] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(631.957, 749.1331), shooter_id=14253318736882, bullet_pos=(342.6622, 712.0122)
+[03:26:22] [INFO] [Bullet] Using shooter_position, distance=291.666595458984
+[03:26:22] [INFO] [Bullet] Distance to wall: 291.666595458984 (19.8601148123791% of viewport)
+[03:26:22] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[03:26:22] [INFO] [LastChance] Threat detected: @Area2D@560
+[03:26:22] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[03:26:22] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[03:26:22] [ENEMY] [Enemy1] PURSUING corner check: angle -63.3°
+[03:26:22] [ENEMY] [Enemy3] Player distracted - priority attack triggered
+[03:26:22] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(700, 750), source=ENEMY (Enemy3), range=1469, listeners=10
+[03:26:22] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[03:26:22] [ENEMY] [Enemy7] PATROL corner check: angle 90.0°
+[03:26:22] [INFO] [LastChance] Threat detected: @Area2D@562
+[03:26:22] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[03:26:22] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[03:26:22] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(631.957, 749.1331), shooter_id=14253318736882, bullet_pos=(54.34977, 715.4825)
+[03:26:22] [INFO] [Bullet] Using shooter_position, distance=578.586547851563
+[03:26:22] [INFO] [Bullet] Distance to wall: 578.586547851563 (39.3970219700597% of viewport)
+[03:26:22] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[03:26:22] [INFO] [Bullet] Starting wall penetration at (54.34977, 715.4825)
+[03:26:22] [INFO] [Bullet] Raycast backward hit penetrating body at distance 18.0652847290039
+[03:26:22] [INFO] [Bullet] Body exited signal received for penetrating body
+[03:26:22] [INFO] [Bullet] Exiting penetration at (13.93602, 715.969) after traveling 35.4166679382324 pixels through wall
+[03:26:22] [INFO] [Bullet] Damage multiplier after penetration: 0.45
+[03:26:22] [ENEMY] [Enemy3] Player distracted - priority attack triggered
+[03:26:22] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(700, 750), source=ENEMY (Enemy3), range=1469, listeners=10
+[03:26:22] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[03:26:22] [INFO] [LastChance] Threat detected: Bullet
+[03:26:22] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[03:26:22] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[03:26:22] [ENEMY] [Enemy2] Hit taken, health: 2/3
+[03:26:22] [ENEMY] [Enemy2] ImpactEffectsManager found, calling spawn_blood_effect
+[03:26:22] [INFO] [ImpactEffects] spawn_blood_effect called at (400, 550), dir=(-0.843854, -0.536573), lethal=false
+[03:26:22] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[03:26:22] [INFO] [ImpactEffects] Blood decals scheduled: 4 to spawn at particle landing times
+[03:26:22] [INFO] [ImpactEffects] Blood effect spawned at (400, 550) (scale=1)
+[03:26:22] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:22] [INFO] [PenultimateHit] Player damaged: 1.0 damage, current health: 2.0
+[03:26:22] [INFO] [LastChance] Player health updated (C# Damaged): 2.0
+[03:26:22] [ENEMY] [Enemy2] Player distracted - priority attack triggered
+[03:26:22] [ENEMY] [Enemy3] Player distracted - priority attack triggered
+[03:26:22] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(700, 750), source=ENEMY (Enemy3), range=1469, listeners=10
+[03:26:22] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=1, self=1, below_threshold=5
+[03:26:22] [INFO] [LastChance] Threat detected: Bullet
+[03:26:22] [INFO] [LastChance] Player health is 2.0 - effect requires exactly 1 HP or less but alive
+[03:26:22] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[03:26:22] [ENEMY] [Enemy1] PURSUING corner check: angle -58.4°
+[03:26:22] [ENEMY] [Enemy4] State: COMBAT -> PURSUING
+[03:26:22] [INFO] [PenultimateHit] Player damaged: 1.0 damage, current health: 1.0
+[03:26:22] [INFO] [PenultimateHit] Hard mode active - skipping regular penultimate hit effect (using last chance instead)
+[03:26:22] [INFO] [LastChance] Player health updated (C# Damaged): 1.0
+[03:26:22] [ENEMY] [Enemy2] State: COMBAT -> RETREATING
+[03:26:22] [ENEMY] [Enemy2] State: RETREATING -> IN_COVER
+[03:26:22] [ENEMY] [Enemy2] State: IN_COVER -> SUPPRESSED
+[03:26:22] [ENEMY] [Enemy7] PATROL corner check: angle 89.8°
+[03:26:22] [ENEMY] [Enemy3] Player distracted - priority attack triggered
+[03:26:22] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(700, 750), source=ENEMY (Enemy3), range=1469, listeners=10
+[03:26:22] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=1, self=1, below_threshold=5
+[03:26:22] [INFO] [LastChance] Threat detected: Bullet
+[03:26:22] [INFO] [LastChance] Triggering last chance effect!
+[03:26:22] [INFO] [LastChance] Starting last chance effect:
+[03:26:22] [INFO] [LastChance]   - Time will be frozen (except player)
+[03:26:22] [INFO] [LastChance]   - Duration: 6.0 real seconds
+[03:26:22] [INFO] [LastChance]   - Sepia intensity: 0.70
+[03:26:22] [INFO] [LastChance]   - Brightness: 0.60
+[03:26:22] [INFO] [LastChance] Pushed bullet Bullet from distance 125.0 to 200.0
+[03:26:22] [INFO] [LastChance] Pushed 1 threatening bullets away from player
+[03:26:22] [INFO] [LastChance] Set player Player and all 19 children to PROCESS_MODE_ALWAYS
+[03:26:22] [INFO] [LastChance] Set StaticBody2D 'WallTop' to PROCESS_MODE_ALWAYS for collision
+[03:26:22] [INFO] [LastChance] Set StaticBody2D 'WallBottom' to PROCESS_MODE_ALWAYS for collision
+[03:26:22] [INFO] [LastChance] Set StaticBody2D 'WallLeft' to PROCESS_MODE_ALWAYS for collision
+[03:26:22] [INFO] [LastChance] Set StaticBody2D 'WallRight' to PROCESS_MODE_ALWAYS for collision
+[03:26:22] [INFO] [LastChance] Set StaticBody2D 'Room1_WallBottom' to PROCESS_MODE_ALWAYS for collision
+[03:26:22] [INFO] [LastChance] Set StaticBody2D 'Room1_WallRight' to PROCESS_MODE_ALWAYS for collision
+[03:26:22] [INFO] [LastChance] Set StaticBody2D 'Room2_WallLeft' to PROCESS_MODE_ALWAYS for collision
+[03:26:22] [INFO] [LastChance] Set StaticBody2D 'Room2_WallBottom' to PROCESS_MODE_ALWAYS for collision
+[03:26:22] [INFO] [LastChance] Set StaticBody2D 'Room2_WallRight' to PROCESS_MODE_ALWAYS for collision
+[03:26:22] [INFO] [LastChance] Set StaticBody2D 'Corridor_WallTop' to PROCESS_MODE_ALWAYS for collision
+[03:26:22] [INFO] [LastChance] Set StaticBody2D 'Corridor_WallBottom' to PROCESS_MODE_ALWAYS for collision
+[03:26:22] [INFO] [LastChance] Set StaticBody2D 'Room3_WallLeft' to PROCESS_MODE_ALWAYS for collision
+[03:26:22] [INFO] [LastChance] Set StaticBody2D 'Room3_WallBottom' to PROCESS_MODE_ALWAYS for collision
+[03:26:22] [INFO] [LastChance] Set StaticBody2D 'Room4_WallLeft' to PROCESS_MODE_ALWAYS for collision
+[03:26:22] [INFO] [LastChance] Set StaticBody2D 'Room4_WallTop' to PROCESS_MODE_ALWAYS for collision
+[03:26:22] [INFO] [LastChance] Set StaticBody2D 'Room5_WallTop' to PROCESS_MODE_ALWAYS for collision
+[03:26:22] [INFO] [LastChance] Set StaticBody2D 'Room5_WallLeft' to PROCESS_MODE_ALWAYS for collision
+[03:26:22] [INFO] [LastChance] Set StaticBody2D 'LobbyDivider_Left' to PROCESS_MODE_ALWAYS for collision
+[03:26:22] [INFO] [LastChance] Set StaticBody2D 'LobbyDivider_Right' to PROCESS_MODE_ALWAYS for collision
+[03:26:22] [INFO] [LastChance] Set StaticBody2D 'StorageRoom_WallTop' to PROCESS_MODE_ALWAYS for collision
+[03:26:22] [INFO] [LastChance] Set StaticBody2D 'StorageRoom_WallRight' to PROCESS_MODE_ALWAYS for collision
+[03:26:22] [INFO] [LastChance] Set StaticBody2D 'MainHall_WallLeft' to PROCESS_MODE_ALWAYS for collision
+[03:26:22] [INFO] [LastChance] Set StaticBody2D 'MainHall_WallRight' to PROCESS_MODE_ALWAYS for collision
+[03:26:22] [INFO] [LastChance] Set StaticBody2D 'MainHall_WallTop' to PROCESS_MODE_ALWAYS for collision
+[03:26:22] [INFO] [LastChance] Set StaticBody2D 'Room2_CornerBL' to PROCESS_MODE_ALWAYS for collision
+[03:26:22] [INFO] [LastChance] Set StaticBody2D 'Room2_CornerBR' to PROCESS_MODE_ALWAYS for collision
+[03:26:22] [INFO] [LastChance] Set StaticBody2D 'Corridor_CornerTR' to PROCESS_MODE_ALWAYS for collision
+[03:26:22] [INFO] [LastChance] Set StaticBody2D 'Corridor_CornerBR' to PROCESS_MODE_ALWAYS for collision
+[03:26:22] [INFO] [LastChance] Set StaticBody2D 'MainHall_CornerTL' to PROCESS_MODE_ALWAYS for collision
+[03:26:22] [INFO] [LastChance] Set StaticBody2D 'MainHall_CornerTR' to PROCESS_MODE_ALWAYS for collision
+[03:26:22] [INFO] [LastChance] Set StaticBody2D 'StorageRoom_CornerTR' to PROCESS_MODE_ALWAYS for collision
+[03:26:22] [INFO] [LastChance] Set StaticBody2D 'Desk1' to PROCESS_MODE_ALWAYS for collision
+[03:26:22] [INFO] [LastChance] Set StaticBody2D 'Desk2' to PROCESS_MODE_ALWAYS for collision
+[03:26:22] [INFO] [LastChance] Set StaticBody2D 'Table1' to PROCESS_MODE_ALWAYS for collision
+[03:26:22] [INFO] [LastChance] Set StaticBody2D 'Cabinet1' to PROCESS_MODE_ALWAYS for collision
+[03:26:22] [INFO] [LastChance] Set StaticBody2D 'Cabinet2' to PROCESS_MODE_ALWAYS for collision
+[03:26:22] [INFO] [LastChance] Set StaticBody2D 'Desk3' to PROCESS_MODE_ALWAYS for collision
+[03:26:22] [INFO] [LastChance] Set StaticBody2D 'Desk4' to PROCESS_MODE_ALWAYS for collision
+[03:26:22] [INFO] [LastChance] Set StaticBody2D 'Table2' to PROCESS_MODE_ALWAYS for collision
+[03:26:22] [INFO] [LastChance] Set StaticBody2D 'Table3' to PROCESS_MODE_ALWAYS for collision
+[03:26:22] [INFO] [LastChance] Set StaticBody2D 'Cabinet3' to PROCESS_MODE_ALWAYS for collision
+[03:26:22] [INFO] [LastChance] Set StaticBody2D 'StorageCrate1' to PROCESS_MODE_ALWAYS for collision
+[03:26:22] [INFO] [LastChance] Set StaticBody2D 'StorageCrate2' to PROCESS_MODE_ALWAYS for collision
+[03:26:22] [INFO] [LastChance] Set StaticBody2D 'HallTable' to PROCESS_MODE_ALWAYS for collision
+[03:26:22] [INFO] [LastChance] Skipping player node: Player
+[03:26:22] [INFO] [LastChance] Froze existing bullet casing: Casing
+[03:26:22] [INFO] [LastChance] Froze existing bullet casing: @RigidBody2D@561
+[03:26:22] [INFO] [LastChance] Froze existing bullet casing: @RigidBody2D@563
+[03:26:22] [INFO] [LastChance] Froze existing bullet casing: @RigidBody2D@565
+[03:26:22] [INFO] [LastChance] Froze existing bullet casing: @RigidBody2D@566
+[03:26:22] [INFO] [LastChance] Froze existing bullet casing: @RigidBody2D@567
+[03:26:22] [INFO] [LastChance] Froze all nodes except player and autoloads (including GameManager for quick restart)
+[03:26:22] [INFO] [LastChance] Applied visual effects: sepia=0.70, brightness=0.60, ripple=0.0080
+[03:26:22] [INFO] [LastChance] Applied 4.0x saturation to 6 player sprites
+[03:26:23] [INFO] [Player] Invincibility mode: ON
+[03:26:23] [INFO] [GameManager] Invincibility mode toggled: ON
+[03:26:28] [INFO] [LastChance] Effect duration expired after 6.00 real seconds
+[03:26:28] [INFO] [LastChance] Ending last chance effect
+[03:26:28] [ENEMY] [Enemy1] Memory reset: confusion=2.0s, had_target=true
+[03:26:28] [ENEMY] [Enemy1] Search mode: PURSUING -> SEARCHING at (700, 750)
+[03:26:28] [ENEMY] [Enemy1] SEARCHING started: center=(700, 750), radius=100, waypoints=5
+[03:26:28] [ENEMY] [Enemy2] Memory reset: confusion=2.0s, had_target=true
+[03:26:28] [ENEMY] [Enemy2] Search mode: SUPPRESSED -> SEARCHING at (563.7466, 617.1394)
+[03:26:28] [ENEMY] [Enemy2] SEARCHING started: center=(563.7466, 617.1394), radius=100, waypoints=5
+[03:26:28] [ENEMY] [Enemy3] Memory reset: confusion=2.0s, had_target=true
+[03:26:28] [ENEMY] [Enemy3] Search mode: COMBAT -> SEARCHING at (565.9608, 611.1331)
+[03:26:28] [ENEMY] [Enemy3] SEARCHING started: center=(565.9608, 611.1331), radius=100, waypoints=5
+[03:26:28] [ENEMY] [Enemy4] Memory reset: confusion=2.0s, had_target=true
+[03:26:28] [ENEMY] [Enemy4] Search mode: PURSUING -> SEARCHING at (551.9611, 702.1223)
+[03:26:28] [ENEMY] [Enemy4] SEARCHING started: center=(551.9611, 702.1223), radius=100, waypoints=5
+[03:26:28] [ENEMY] [Enemy5] Memory reset: confusion=2.0s, had_target=false
+[03:26:28] [ENEMY] [Enemy6] Memory reset: confusion=2.0s, had_target=false
+[03:26:28] [ENEMY] [Enemy7] Memory reset: confusion=2.0s, had_target=false
+[03:26:28] [ENEMY] [Enemy8] Memory reset: confusion=2.0s, had_target=false
+[03:26:28] [ENEMY] [Enemy9] Memory reset: confusion=2.0s, had_target=false
+[03:26:28] [ENEMY] [Enemy10] Memory reset: confusion=2.0s, had_target=false
+[03:26:28] [INFO] [LastChance] Reset memory for 10 enemies (player teleport effect)
+[03:26:28] [INFO] [LastChance] All process modes restored
+[03:26:28] [INFO] [LastChance] Unfroze bullet casing: Casing
+[03:26:28] [INFO] [LastChance] Unfroze bullet casing: @RigidBody2D@561
+[03:26:28] [INFO] [LastChance] Unfroze bullet casing: @RigidBody2D@563
+[03:26:28] [INFO] [LastChance] Unfroze bullet casing: @RigidBody2D@565
+[03:26:28] [INFO] [LastChance] Unfroze bullet casing: @RigidBody2D@566
+[03:26:28] [INFO] [LastChance] Unfroze bullet casing: @RigidBody2D@567
+[03:26:28] [INFO] [LastChance] Restored original colors to 5 player sprites
+[03:26:28] [INFO] [LastChance] Called player RefreshHealthVisual (C#)
+[03:26:28] [ENEMY] [Enemy2] SEARCHING corner check: angle 134.2°
+[03:26:28] [ENEMY] [Enemy3] SEARCHING corner check: angle 136.0°
+[03:26:28] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(647.4404, 706.7786), shooter_id=14253318736882, bullet_pos=(521.8739, 584.4523)
+[03:26:28] [INFO] [Bullet] Using shooter_position, distance=175.301620483398
+[03:26:28] [INFO] [Bullet] Distance to wall: 175.301620483398 (11.9366096899705% of viewport)
+[03:26:28] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[03:26:28] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:28] [ENEMY] [Enemy4] SEARCHING corner check: angle 179.8°
+[03:26:28] [ENEMY] [Enemy1] SEARCHING corner check: angle 167.5°
+[03:26:29] [ENEMY] [Enemy7] PATROL corner check: angle 89.7°
+[03:26:29] [ENEMY] [Enemy2] SEARCHING corner check: angle -88.2°
+[03:26:29] [ENEMY] [Enemy3] SEARCHING corner check: angle 136.0°
+[03:26:29] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(647.4404, 706.7786), shooter_id=14253318736882, bullet_pos=(1001.795, 56.70298)
+[03:26:29] [INFO] [Bullet] Using shooter_position, distance=740.382263183594
+[03:26:29] [INFO] [Bullet] Distance to wall: 740.382263183594 (50.4139897431039% of viewport)
+[03:26:29] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:29] [ENEMY] [Enemy4] SEARCHING corner check: angle -69.9°
+[03:26:29] [ENEMY] [Enemy1] SEARCHING corner check: angle 167.5°
+[03:26:29] [ENEMY] [Enemy7] PATROL corner check: angle 89.6°
+[03:26:29] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(647.4404, 706.7786), shooter_id=14253318736882, bullet_pos=(1368.916, 462.0356)
+[03:26:29] [INFO] [Bullet] Using shooter_position, distance=761.856994628906
+[03:26:29] [INFO] [Bullet] Distance to wall: 761.856994628906 (51.8762436957644% of viewport)
+[03:26:29] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:29] [ENEMY] [Enemy4] SEARCHING corner check: angle 110.1°
+[03:26:29] [ENEMY] [Enemy1] SEARCHING corner check: angle -60.1°
+[03:26:29] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(647.4404, 706.7786), shooter_id=14253318736882, bullet_pos=(1150.98, 685.3891)
+[03:26:29] [INFO] [Bullet] Using shooter_position, distance=503.993469238281
+[03:26:29] [INFO] [Bullet] Distance to wall: 503.993469238281 (34.3178420827047% of viewport)
+[03:26:29] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[03:26:29] [ENEMY] [Enemy7] PATROL corner check: angle 89.5°
+[03:26:29] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:29] [ENEMY] [Enemy1] SEARCHING corner check: angle -60.1°
+[03:26:30] [ENEMY] [Enemy7] PATROL corner check: angle 89.5°
+[03:26:30] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:30] [ENEMY] [Enemy7] PATROL corner check: angle 89.5°
+[03:26:30] [ENEMY] [Enemy2] SEARCHING corner check: angle 101.2°
+[03:26:30] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:30] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:30] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:31] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:31] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:31] [ENEMY] [Enemy1] SEARCHING corner check: angle -46.9°
+[03:26:31] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:31] [ENEMY] [Enemy3] SEARCHING corner check: angle 176.9°
+[03:26:31] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:31] [ENEMY] [Enemy1] SEARCHING corner check: angle 133.1°
+[03:26:31] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:31] [ENEMY] [Enemy2] SEARCHING corner check: angle -73.4°
+[03:26:31] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:31] [ENEMY] [Enemy4] SEARCHING corner check: angle 14.5°
+[03:26:32] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:32] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:32] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:32] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:32] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:32] [ENEMY] [Enemy3] SEARCHING corner check: angle -1.5°
+[03:26:32] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:32] [ENEMY] [Enemy1] SEARCHING corner check: angle -61.6°
+[03:26:33] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:33] [ENEMY] [Enemy2] SEARCHING corner check: angle 50.4°
+[03:26:33] [ENEMY] [Enemy3] SEARCHING corner check: angle -1.5°
+[03:26:33] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:33] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:33] [ENEMY] [Enemy2] SEARCHING corner check: angle 50.4°
+[03:26:33] [ENEMY] [Enemy3] SEARCHING corner check: angle -1.5°
+[03:26:33] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:33] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:33] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:34] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:34] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:34] [ENEMY] [Enemy4] SEARCHING corner check: angle -87.2°
+[03:26:34] [ENEMY] [Enemy1] SEARCHING corner check: angle -128.8°
+[03:26:34] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:34] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:34] [ENEMY] [Enemy4] SEARCHING corner check: angle 92.8°
+[03:26:34] [ENEMY] [Enemy1] SEARCHING corner check: angle 51.2°
+[03:26:34] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:34] [ENEMY] [Enemy2] SEARCHING corner check: angle -4.9°
+[03:26:34] [ENEMY] [Enemy3] SEARCHING corner check: angle -36.6°
+[03:26:34] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:34] [ENEMY] [Enemy4] SEARCHING corner check: angle -90.1°
+[03:26:35] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:35] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=175 wps=4
+[03:26:35] [ENEMY] [Enemy3] SEARCHING corner check: angle 143.4°
+[03:26:35] [ENEMY] [Enemy2] SEARCHING corner check: angle 166.3°
+[03:26:35] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:35] [ENEMY] [Enemy3] SEARCHING: Expand outer ring r=175 wps=4
+[03:26:35] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:35] [ENEMY] [Enemy2] SEARCHING corner check: angle -179.9°
+[03:26:35] [ENEMY] [Enemy3] SEARCHING corner check: angle 179.8°
+[03:26:35] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:35] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:35] [ENEMY] [Enemy3] SEARCHING corner check: angle -179.9°
+[03:26:35] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:35] [ENEMY] [Enemy4] SEARCHING: Expand outer ring r=175 wps=4
+[03:26:36] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:36] [ENEMY] [Enemy1] SEARCHING corner check: angle -88.8°
+[03:26:36] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:36] [ENEMY] [Enemy4] SEARCHING corner check: angle 77.9°
+[03:26:36] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:36] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:36] [ENEMY] [Enemy4] SEARCHING corner check: angle -179.2°
+[03:26:36] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:36] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:36] [ENEMY] [Enemy4] SEARCHING corner check: angle -49.8°
+[03:26:36] [ENEMY] [Enemy2] SEARCHING corner check: angle -179.9°
+[03:26:37] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:37] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:37] [ENEMY] [Enemy3] SEARCHING corner check: angle -179.9°
+[03:26:37] [ENEMY] [Enemy2] SEARCHING corner check: angle 90.9°
+[03:26:37] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:37] [ENEMY] [Enemy1] SEARCHING: Expand outer ring r=175 wps=4
+[03:26:37] [ENEMY] [Enemy1] SEARCHING corner check: angle -154.0°
+[03:26:37] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:37] [ENEMY] [Enemy3] SEARCHING corner check: angle 89.4°
+[03:26:37] [ENEMY] [Enemy2] SEARCHING corner check: angle -29.7°
+[03:26:37] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:37] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:37] [ENEMY] [Enemy3] SEARCHING corner check: angle -30.5°
+[03:26:37] [ENEMY] [Enemy2] SEARCHING corner check: angle -29.7°
+[03:26:38] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:38] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:38] [ENEMY] [Enemy3] SEARCHING corner check: angle -30.5°
+[03:26:38] [ENEMY] [Enemy2] SEARCHING corner check: angle -29.7°
+[03:26:38] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:38] [ENEMY] [Enemy4] SEARCHING corner check: angle 180.0°
+[03:26:38] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:38] [ENEMY] [Enemy3] SEARCHING corner check: angle -30.5°
+[03:26:38] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:38] [ENEMY] [Enemy4] SEARCHING corner check: angle 179.9°
+[03:26:38] [ENEMY] [Enemy1] SEARCHING corner check: angle -52.4°
+[03:26:38] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:39] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:39] [ENEMY] [Enemy4] SEARCHING corner check: angle -90.2°
+[03:26:39] [ENEMY] [Enemy1] SEARCHING corner check: angle -52.4°
+[03:26:39] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:39] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:39] [ENEMY] [Enemy4] SEARCHING corner check: angle -114.6°
+[03:26:39] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:39] [ENEMY] [Enemy2] SEARCHING corner check: angle 21.2°
+[03:26:39] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:39] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:39] [ENEMY] [Enemy3] SEARCHING corner check: angle 21.3°
+[03:26:40] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:40] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:40] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:40] [ENEMY] [Enemy1] SEARCHING corner check: angle -170.0°
+[03:26:40] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:40] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:40] [ENEMY] [Enemy4] SEARCHING corner check: angle 30.5°
+[03:26:40] [ENEMY] [Enemy1] SEARCHING corner check: angle -170.0°
+[03:26:40] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:41] [ENEMY] [Enemy2] SEARCHING corner check: angle 90.0°
+[03:26:41] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:41] [ENEMY] [Enemy4] SEARCHING corner check: angle 30.5°
+[03:26:41] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:41] [ENEMY] [Enemy3] SEARCHING corner check: angle 95.6°
+[03:26:41] [ENEMY] [Enemy2] SEARCHING corner check: angle 98.9°
+[03:26:41] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:41] [ENEMY] [Enemy4] SEARCHING corner check: angle 30.5°
+[03:26:41] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:41] [ENEMY] [Enemy3] SEARCHING corner check: angle 95.6°
+[03:26:41] [ENEMY] [Enemy2] SEARCHING corner check: angle 93.9°
+[03:26:41] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:41] [ENEMY] [Enemy4] SEARCHING corner check: angle -0.4°
+[03:26:41] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:41] [ENEMY] [Enemy3] SEARCHING corner check: angle 95.6°
+[03:26:42] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:42] [ENEMY] [Enemy4] SEARCHING corner check: angle 124.8°
+[03:26:42] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:42] [ENEMY] [Enemy1] SEARCHING corner check: angle -74.6°
+[03:26:42] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:42] [ENEMY] [Enemy4] SEARCHING corner check: angle 91.3°
+[03:26:42] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:42] [ENEMY] [Enemy1] SEARCHING corner check: angle -74.6°
+[03:26:42] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:42] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=250 wps=4
+[03:26:42] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:42] [ENEMY] [Enemy4] SEARCHING corner check: angle -134.6°
+[03:26:43] [ENEMY] [Enemy2] SEARCHING corner check: angle 84.9°
+[03:26:43] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:43] [ENEMY] [Enemy3] SEARCHING: Expand outer ring r=250 wps=4
+[03:26:43] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:43] [ENEMY] [Enemy3] SEARCHING corner check: angle 87.4°
+[03:26:43] [ENEMY] [Enemy2] SEARCHING corner check: angle 84.9°
+[03:26:43] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:43] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:43] [ENEMY] [Enemy3] SEARCHING corner check: angle 87.4°
+[03:26:43] [ENEMY] [Enemy2] SEARCHING corner check: angle -0.1°
+[03:26:43] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:43] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:43] [ENEMY] [Enemy1] SEARCHING: Expand outer ring r=250 wps=4
+[03:26:43] [ENEMY] [Enemy4] SEARCHING: Expand outer ring r=250 wps=4
+[03:26:43] [ENEMY] [Enemy3] SEARCHING corner check: angle -0.1°
+[03:26:44] [ENEMY] [Enemy2] SEARCHING corner check: angle 164.8°
+[03:26:44] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:44] [ENEMY] [Enemy1] SEARCHING corner check: angle 0.3°
+[03:26:44] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:44] [ENEMY] [Enemy4] SEARCHING corner check: angle -135.1°
+[03:26:44] [ENEMY] [Enemy3] SEARCHING corner check: angle 165.6°
+[03:26:44] [ENEMY] [Enemy2] SEARCHING corner check: angle 164.8°
+[03:26:44] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:44] [ENEMY] [Enemy1] SEARCHING corner check: angle 0.3°
+[03:26:44] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:44] [ENEMY] [Enemy4] SEARCHING corner check: angle -135.1°
+[03:26:44] [ENEMY] [Enemy3] SEARCHING corner check: angle 165.6°
+[03:26:44] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:44] [ENEMY] [Enemy1] SEARCHING corner check: angle 0.3°
+[03:26:44] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:44] [ENEMY] [Enemy4] SEARCHING corner check: angle 50.1°
+[03:26:45] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:45] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:45] [ENEMY] [Enemy4] SEARCHING corner check: angle -49.3°
+[03:26:45] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:45] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:45] [ENEMY] [Enemy4] SEARCHING corner check: angle 153.0°
+[03:26:45] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:45] [ENEMY] [Enemy2] SEARCHING corner check: angle -128.8°
+[03:26:45] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:45] [ENEMY] [Enemy4] SEARCHING corner check: angle 153.0°
+[03:26:46] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:46] [ENEMY] [Enemy2] SEARCHING corner check: angle -128.8°
+[03:26:46] [ENEMY] [Enemy3] SEARCHING corner check: angle -127.7°
+[03:26:46] [ENEMY] [Enemy1] SEARCHING corner check: angle -69.3°
+[03:26:46] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:46] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:46] [ENEMY] [Enemy2] SEARCHING corner check: angle -48.0°
+[03:26:46] [ENEMY] [Enemy3] SEARCHING corner check: angle -127.7°
+[03:26:46] [ENEMY] [Enemy1] SEARCHING corner check: angle -69.3°
+[03:26:46] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:46] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:46] [ENEMY] [Enemy2] SEARCHING corner check: angle -48.0°
+[03:26:46] [ENEMY] [Enemy3] SEARCHING corner check: angle -49.4°
+[03:26:46] [ENEMY] [Enemy1] SEARCHING corner check: angle -69.3°
+[03:26:46] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:47] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:47] [ENEMY] [Enemy2] SEARCHING corner check: angle -48.0°
+[03:26:47] [ENEMY] [Enemy3] SEARCHING corner check: angle -49.4°
+[03:26:47] [ENEMY] [Enemy1] SEARCHING corner check: angle -69.3°
+[03:26:47] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:47] [ENEMY] [Enemy4] SEARCHING corner check: angle -142.2°
+[03:26:47] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:47] [ENEMY] [Enemy3] SEARCHING corner check: angle -49.4°
+[03:26:47] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:47] [ENEMY] [Enemy4] SEARCHING corner check: angle -142.2°
+[03:26:47] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:47] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:47] [ENEMY] [Enemy4] SEARCHING corner check: angle -37.6°
+[03:26:48] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:48] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:48] [ENEMY] [Enemy4] SEARCHING corner check: angle -37.6°
+[03:26:48] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:48] [ENEMY] [Enemy2] SEARCHING corner check: angle 16.5°
+[03:26:48] [ENEMY] [Enemy1] SEARCHING corner check: angle -75.4°
+[03:26:48] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:48] [ENEMY] [Enemy4] SEARCHING corner check: angle -37.6°
+[03:26:48] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:48] [ENEMY] [Enemy2] SEARCHING corner check: angle -163.5°
+[03:26:48] [ENEMY] [Enemy3] SEARCHING corner check: angle 16.0°
+[03:26:48] [ENEMY] [Enemy1] SEARCHING corner check: angle -75.4°
+[03:26:48] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:48] [ENEMY] [Enemy4] SEARCHING corner check: angle -37.6°
+[03:26:49] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:49] [ENEMY] [Enemy2] SEARCHING corner check: angle -163.5°
+[03:26:49] [ENEMY] [Enemy3] SEARCHING corner check: angle -164.0°
+[03:26:49] [ENEMY] [Enemy1] SEARCHING corner check: angle -75.4°
+[03:26:49] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:49] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:49] [ENEMY] [Enemy2] SEARCHING corner check: angle -163.5°
+[03:26:49] [ENEMY] [Enemy3] SEARCHING corner check: angle -164.0°
+[03:26:49] [ENEMY] [Enemy1] SEARCHING corner check: angle 0.2°
+[03:26:49] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:49] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:49] [ENEMY] [Enemy3] SEARCHING corner check: angle -164.0°
+[03:26:49] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:50] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:50] [ENEMY] [Enemy1] SEARCHING corner check: angle 60.3°
+[03:26:50] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:50] [ENEMY] [Enemy4] SEARCHING corner check: angle -166.3°
+[03:26:50] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:50] [ENEMY] [Enemy1] SEARCHING corner check: angle 60.3°
+[03:26:50] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:50] [ENEMY] [Enemy4] SEARCHING corner check: angle -166.3°
+[03:26:50] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:50] [ENEMY] [Enemy1] SEARCHING corner check: angle -119.7°
+[03:26:50] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:51] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:51] [ENEMY] [Enemy1] SEARCHING corner check: angle -119.7°
+[03:26:51] [ENEMY] [Enemy2] SEARCHING corner check: angle 141.4°
+[03:26:51] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:51] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:51] [ENEMY] [Enemy3] SEARCHING corner check: angle 141.7°
+[03:26:51] [ENEMY] [Enemy2] SEARCHING corner check: angle -38.6°
+[03:26:51] [ENEMY] [Enemy1] SEARCHING corner check: angle -119.6°
+[03:26:51] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:51] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:51] [ENEMY] [Enemy3] SEARCHING corner check: angle -38.3°
+[03:26:51] [ENEMY] [Enemy2] SEARCHING corner check: angle -90.1°
+[03:26:51] [ENEMY] [Enemy1] SEARCHING corner check: angle -119.6°
+[03:26:51] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:52] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:52] [ENEMY] [Enemy3] SEARCHING corner check: angle -90.1°
+[03:26:52] [ENEMY] [Enemy2] SEARCHING corner check: angle 64.9°
+[03:26:52] [ENEMY] [Enemy1] SEARCHING corner check: angle -119.6°
+[03:26:52] [ENEMY] [Enemy4] SEARCHING corner check: angle -55.8°
+[03:26:52] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:52] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:52] [ENEMY] [Enemy3] SEARCHING corner check: angle 66.3°
+[03:26:52] [ENEMY] [Enemy1] SEARCHING corner check: angle 60.4°
+[03:26:52] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:52] [ENEMY] [Enemy4] SEARCHING corner check: angle 141.7°
+[03:26:52] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:52] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:52] [ENEMY] [Enemy4] SEARCHING corner check: angle -38.3°
+[03:26:52] [ENEMY] [Enemy1] SEARCHING corner check: angle -109.1°
+[03:26:53] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:53] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:53] [ENEMY] [Enemy4] SEARCHING corner check: angle -90.1°
+[03:26:53] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=325 wps=4
+[03:26:53] [ENEMY] [Enemy1] SEARCHING corner check: angle -78.5°
+[03:26:53] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:53] [ENEMY] [Enemy2] SEARCHING corner check: angle -118.0°
+[03:26:53] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:53] [ENEMY] [Enemy4] SEARCHING corner check: angle -134.9°
+[03:26:53] [ENEMY] [Enemy3] SEARCHING: Expand outer ring r=325 wps=4
+[03:26:53] [ENEMY] [Enemy1] SEARCHING corner check: angle -78.5°
+[03:26:53] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:53] [ENEMY] [Enemy3] SEARCHING corner check: angle -116.7°
+[03:26:53] [ENEMY] [Enemy2] SEARCHING corner check: angle 62.0°
+[03:26:53] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:53] [ENEMY] [Enemy4] SEARCHING corner check: angle 45.1°
+[03:26:54] [ENEMY] [Enemy1] SEARCHING corner check: angle -78.5°
+[03:26:54] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:54] [ENEMY] [Enemy3] SEARCHING corner check: angle 63.3°
+[03:26:54] [ENEMY] [Enemy2] SEARCHING corner check: angle 62.0°
+[03:26:54] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:54] [ENEMY] [Enemy1] SEARCHING corner check: angle -78.5°
+[03:26:54] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:54] [ENEMY] [Enemy2] SEARCHING corner check: angle 62.0°
+[03:26:54] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:54] [ENEMY] [Enemy3] SEARCHING corner check: angle 63.3°
+[03:26:54] [ENEMY] [Enemy1] SEARCHING corner check: angle -90.0°
+[03:26:54] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:54] [ENEMY] [Enemy2] SEARCHING corner check: angle -48.2°
+[03:26:54] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:54] [ENEMY] [Enemy4] SEARCHING: Expand outer ring r=325 wps=4
+[03:26:54] [ENEMY] [Enemy3] SEARCHING corner check: angle -50.1°
+[03:26:55] [ENEMY] [Enemy1] SEARCHING corner check: angle 64.3°
+[03:26:55] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:55] [ENEMY] [Enemy2] SEARCHING corner check: angle 155.7°
+[03:26:55] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:55] [ENEMY] [Enemy4] SEARCHING corner check: angle -135.2°
+[03:26:55] [ENEMY] [Enemy3] SEARCHING corner check: angle 156.6°
+[03:26:55] [ENEMY] [Enemy1] SEARCHING corner check: angle 64.3°
+[03:26:55] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:55] [ENEMY] [Enemy2] SEARCHING corner check: angle 155.7°
+[03:26:55] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:55] [ENEMY] [Enemy4] SEARCHING corner check: angle -135.2°
+[03:26:55] [ENEMY] [Enemy3] SEARCHING corner check: angle 156.6°
+[03:26:55] [ENEMY] [Enemy1] SEARCHING corner check: angle -115.7°
+[03:26:55] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:55] [ENEMY] [Enemy2] SEARCHING corner check: angle -24.3°
+[03:26:55] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:55] [ENEMY] [Enemy4] SEARCHING corner check: angle -135.2°
+[03:26:56] [ENEMY] [Enemy1] SEARCHING corner check: angle 64.3°
+[03:26:56] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:56] [ENEMY] [Enemy3] SEARCHING corner check: angle 156.6°
+[03:26:56] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:56] [ENEMY] [Enemy4] SEARCHING corner check: angle 50.1°
+[03:26:56] [ENEMY] [Enemy1] SEARCHING corner check: angle 1.0°
+[03:26:56] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:56] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:56] [ENEMY] [Enemy4] SEARCHING corner check: angle -49.2°
+[03:26:56] [ENEMY] [Enemy1] SEARCHING corner check: angle -179.7°
+[03:26:56] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:56] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:56] [ENEMY] [Enemy4] SEARCHING corner check: angle 153.1°
+[03:26:57] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:57] [ENEMY] [Enemy2] SEARCHING corner check: angle 89.8°
+[03:26:57] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:57] [ENEMY] [Enemy4] SEARCHING corner check: angle 153.1°
+[03:26:57] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:57] [ENEMY] [Enemy3] SEARCHING corner check: angle -90.2°
+[03:26:57] [ENEMY] [Enemy2] SEARCHING corner check: angle -137.1°
+[03:26:57] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:57] [ENEMY] [Enemy4] SEARCHING corner check: angle 95.1°
+[03:26:57] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:57] [ENEMY] [Enemy3] SEARCHING corner check: angle -137.2°
+[03:26:57] [ENEMY] [Enemy2] SEARCHING corner check: angle 88.8°
+[03:26:57] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:57] [ENEMY] [Enemy1] SEARCHING: Expand outer ring r=325 wps=4
+[03:26:58] [ENEMY] [Enemy1] SEARCHING corner check: angle -179.7°
+[03:26:58] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:58] [ENEMY] [Enemy2] SEARCHING corner check: angle 114.0°
+[03:26:58] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:58] [ENEMY] [Enemy3] SEARCHING corner check: angle 89.9°
+[03:26:58] [ENEMY] [Enemy1] SEARCHING corner check: angle -179.7°
+[03:26:58] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:58] [ENEMY] [Enemy2] SEARCHING corner check: angle -66.0°
+[03:26:58] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:58] [ENEMY] [Enemy3] SEARCHING corner check: angle -67.1°
+[03:26:58] [ENEMY] [Enemy1] SEARCHING corner check: angle -179.7°
+[03:26:58] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:58] [ENEMY] [Enemy2] SEARCHING corner check: angle -66.0°
+[03:26:58] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:58] [ENEMY] [Enemy3] SEARCHING corner check: angle -67.1°
+[03:26:58] [ENEMY] [Enemy4] SEARCHING corner check: angle 1.9°
+[03:26:59] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:59] [ENEMY] [Enemy1] SEARCHING corner check: angle 50.1°
+[03:26:59] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:59] [ENEMY] [Enemy3] SEARCHING corner check: angle -67.1°
+[03:26:59] [ENEMY] [Enemy4] SEARCHING corner check: angle 84.4°
+[03:26:59] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:59] [ENEMY] [Enemy1] SEARCHING corner check: angle 179.8°
+[03:26:59] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:59] [ENEMY] [Enemy4] SEARCHING corner check: angle 84.4°
+[03:26:59] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:26:59] [ENEMY] [Enemy1] SEARCHING corner check: angle 179.6°
+[03:26:59] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:26:59] [ENEMY] [Enemy4] SEARCHING corner check: angle 84.4°
+[03:27:00] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:27:00] [ENEMY] [Enemy1] SEARCHING corner check: angle 179.6°
+[03:27:00] [ENEMY] [Enemy2] SEARCHING corner check: angle 26.5°
+[03:27:00] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:27:00] [ENEMY] [Enemy4] SEARCHING corner check: angle 88.9°
+[03:27:00] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:27:00] [ENEMY] [Enemy2] SEARCHING corner check: angle 26.5°
+[03:27:00] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:27:00] [ENEMY] [Enemy3] SEARCHING corner check: angle 26.4°
+[03:27:00] [ENEMY] [Enemy4] SEARCHING corner check: angle -53.3°
+[03:27:00] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:27:00] [ENEMY] [Enemy2] SEARCHING corner check: angle 4.1°
+[03:27:00] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:27:00] [ENEMY] [Enemy3] SEARCHING corner check: angle 26.4°
+[03:27:00] [ENEMY] [Enemy4] SEARCHING corner check: angle -53.3°
+[03:27:01] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:27:01] [ENEMY] [Enemy2] SEARCHING corner check: angle -175.9°
+[03:27:01] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:27:01] [ENEMY] [Enemy3] SEARCHING corner check: angle -176.3°
+[03:27:01] [ENEMY] [Enemy4] SEARCHING corner check: angle -53.3°
+[03:27:01] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:27:01] [ENEMY] [Enemy1] SEARCHING corner check: angle -179.2°
+[03:27:01] [ENEMY] [Enemy2] SEARCHING corner check: angle -175.9°
+[03:27:01] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:27:01] [ENEMY] [Enemy3] SEARCHING corner check: angle -176.3°
+[03:27:01] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:27:01] [ENEMY] [Enemy1] SEARCHING corner check: angle 89.4°
+[03:27:01] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:27:01] [ENEMY] [Enemy3] SEARCHING corner check: angle -176.3°
+[03:27:02] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:27:02] [ENEMY] [Enemy1] SEARCHING corner check: angle -58.8°
+[03:27:02] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:27:02] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:27:02] [ENEMY] [Enemy1] SEARCHING corner check: angle -58.8°
+[03:27:02] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:27:02] [ENEMY] [Enemy4] SEARCHING corner check: angle 39.1°
+[03:27:02] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:27:02] [ENEMY] [Enemy1] SEARCHING corner check: angle -58.8°
+[03:27:02] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:27:02] [ENEMY] [Enemy2] SEARCHING corner check: angle -72.6°
+[03:27:02] [ENEMY] [Enemy4] SEARCHING corner check: angle -174.9°
+[03:27:03] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:27:03] [ENEMY] [Enemy1] SEARCHING corner check: angle -58.8°
+[03:27:03] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:27:03] [ENEMY] [Enemy2] SEARCHING corner check: angle -72.6°
+[03:27:03] [ENEMY] [Enemy3] SEARCHING corner check: angle -72.9°
+[03:27:03] [ENEMY] [Enemy4] SEARCHING corner check: angle -174.9°
+[03:27:03] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:27:03] [ENEMY] [Enemy1] SEARCHING corner check: angle -58.8°
+[03:27:03] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:27:03] [ENEMY] [Enemy2] SEARCHING corner check: angle 141.6°
+[03:27:03] [ENEMY] [Enemy4] SEARCHING corner check: angle -174.9°
+[03:27:03] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:27:03] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:27:03] [ENEMY] [Enemy3] SEARCHING corner check: angle 142.0°
+[03:27:03] [ENEMY] [Enemy2] SEARCHING corner check: angle -38.4°
+[03:27:03] [ENEMY] [Enemy4] SEARCHING corner check: angle -174.9°
+[03:27:04] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:27:04] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:27:04] [ENEMY] [Enemy3] SEARCHING corner check: angle -38.0°
+[03:27:04] [ENEMY] [Enemy2] SEARCHING corner check: angle -90.1°
+[03:27:04] [ENEMY] [Enemy4] SEARCHING corner check: angle -72.4°
+[03:27:04] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:27:04] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:27:04] [ENEMY] [Enemy3] SEARCHING corner check: angle -90.1°
+[03:27:04] [ENEMY] [Enemy2] SEARCHING corner check: angle 56.6°
+[03:27:04] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:27:04] [ENEMY] [Enemy1] SEARCHING corner check: angle -102.8°
+[03:27:04] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:27:04] [ENEMY] [Enemy3] SEARCHING corner check: angle 57.3°
+[03:27:04] [ENEMY] [Enemy2] SEARCHING corner check: angle 56.6°
+[03:27:04] [ENEMY] [Enemy4] SEARCHING corner check: angle 141.9°
+[03:27:05] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:27:05] [ENEMY] [Enemy1] SEARCHING corner check: angle -102.8°
+[03:27:05] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:27:05] [ENEMY] [Enemy3] SEARCHING corner check: angle 57.3°
+[03:27:05] [ENEMY] [Enemy4] SEARCHING corner check: angle -38.1°
+[03:27:05] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:27:05] [ENEMY] [Enemy1] SEARCHING corner check: angle 64.2°
+[03:27:05] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:27:05] [ENEMY] [Enemy4] SEARCHING corner check: angle -90.1°
+[03:27:05] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:27:05] [ENEMY] [Enemy1] SEARCHING corner check: angle 64.2°
+[03:27:05] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:27:05] [ENEMY] [Enemy4] SEARCHING corner check: angle -135.2°
+[03:27:06] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:27:06] [ENEMY] [Enemy1] SEARCHING corner check: angle -115.8°
+[03:27:06] [ENEMY] [Enemy2] SEARCHING: Expand outer ring r=400 wps=4
+[03:27:06] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:27:06] [ENEMY] [Enemy2] SEARCHING corner check: angle -124.4°
+[03:27:06] [ENEMY] [Enemy4] SEARCHING corner check: angle 44.8°
+[03:27:06] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:27:06] [ENEMY] [Enemy3] SEARCHING: Expand outer ring r=400 wps=4
+[03:27:06] [ENEMY] [Enemy1] SEARCHING corner check: angle 64.2°
+[03:27:06] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:27:06] [ENEMY] [Enemy3] SEARCHING corner check: angle -123.7°
+[03:27:06] [ENEMY] [Enemy2] SEARCHING corner check: angle -124.4°
+[03:27:06] [ENEMY] [Enemy4] SEARCHING corner check: angle 44.8°
+[03:27:06] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:27:06] [ENEMY] [Enemy1] SEARCHING corner check: angle 0.7°
+[03:27:06] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:27:06] [ENEMY] [Enemy3] SEARCHING corner check: angle -123.7°
+[03:27:06] [ENEMY] [Enemy2] SEARCHING corner check: angle -124.4°
+[03:27:07] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:27:07] [ENEMY] [Enemy1] SEARCHING corner check: angle 180.0°
+[03:27:07] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:27:07] [ENEMY] [Enemy3] SEARCHING corner check: angle -123.7°
+[03:27:07] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:27:07] [ENEMY] [Enemy1] SEARCHING corner check: angle 179.9°
+[03:27:07] [ENEMY] [Enemy2] SEARCHING corner check: angle 55.6°
+[03:27:07] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:27:07] [ENEMY] [Enemy4] SEARCHING: Expand outer ring r=400 wps=4
+[03:27:07] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:27:07] [ENEMY] [Enemy3] SEARCHING corner check: angle 56.3°
+[03:27:07] [ENEMY] [Enemy1] SEARCHING corner check: angle 90.2°
+[03:27:07] [ENEMY] [Enemy2] SEARCHING corner check: angle 179.8°
+[03:27:07] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:27:07] [ENEMY] [Enemy4] SEARCHING corner check: angle -135.2°
+[03:27:08] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:27:08] [ENEMY] [Enemy3] SEARCHING corner check: angle -48.8°
+[03:27:08] [ENEMY] [Enemy1] SEARCHING corner check: angle 90.2°
+[03:27:08] [ENEMY] [Enemy2] SEARCHING corner check: angle 165.0°
+[03:27:08] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:27:08] [ENEMY] [Enemy4] SEARCHING corner check: angle -135.2°
+[03:27:08] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:27:08] [ENEMY] [Enemy3] SEARCHING corner check: angle 165.0°
+[03:27:08] [ENEMY] [Enemy1] SEARCHING corner check: angle 90.2°
+[03:27:08] [ENEMY] [Enemy2] SEARCHING corner check: angle 165.0°
+[03:27:08] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:27:08] [ENEMY] [Enemy4] SEARCHING corner check: angle -135.2°
+[03:27:08] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:27:08] [ENEMY] [Enemy3] SEARCHING corner check: angle 165.0°
+[03:27:08] [ENEMY] [Enemy1] SEARCHING corner check: angle 90.2°
+[03:27:08] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:27:08] [ENEMY] [Enemy2] SEARCHING corner check: angle 165.0°
+[03:27:08] [ENEMY] [Enemy4] SEARCHING corner check: angle -135.2°
+[03:27:09] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:27:09] [ENEMY] [Enemy3] SEARCHING corner check: angle 165.0°
+[03:27:09] [ENEMY] [Enemy1] SEARCHING corner check: angle 90.2°
+[03:27:09] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:27:09] [ENEMY] [Enemy2] SEARCHING corner check: angle 165.0°
+[03:27:09] [ENEMY] [Enemy4] SEARCHING corner check: angle 50.0°
+[03:27:09] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:27:09] [ENEMY] [Enemy3] SEARCHING corner check: angle 165.0°
+[03:27:09] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:27:09] [ENEMY] [Enemy2] SEARCHING corner check: angle 90.9°
+[03:27:09] [ENEMY] [Enemy4] SEARCHING corner check: angle -48.4°
+[03:27:09] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:27:09] [ENEMY] [Enemy3] SEARCHING corner check: angle 91.2°
+[03:27:09] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:27:09] [ENEMY] [Enemy4] SEARCHING corner check: angle 153.0°
+[03:27:10] [ENEMY] [Enemy2] SEARCHING corner check: angle 83.0°
+[03:27:10] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:27:10] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:27:10] [ENEMY] [Enemy3] SEARCHING corner check: angle 83.0°
+[03:27:10] [ENEMY] [Enemy4] SEARCHING corner check: angle 153.0°
+[03:27:10] [ENEMY] [Enemy2] SEARCHING corner check: angle 83.0°
+[03:27:10] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:27:10] [ENEMY] [Enemy1] SEARCHING corner check: angle 90.0°
+[03:27:10] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:27:10] [ENEMY] [Enemy3] SEARCHING corner check: angle 83.0°
+[03:27:10] [ENEMY] [Enemy4] SEARCHING corner check: angle -27.0°
+[03:27:10] [ENEMY] [Enemy2] SEARCHING corner check: angle 87.6°
+[03:27:10] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:27:10] [ENEMY] [Enemy1] SEARCHING corner check: angle 90.0°
+[03:27:10] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:27:10] [ENEMY] [Enemy3] SEARCHING corner check: angle 87.3°
+[03:27:10] [ENEMY] [Enemy4] SEARCHING corner check: angle 123.7°
+[03:27:11] [ENEMY] [Enemy2] SEARCHING corner check: angle 99.5°
+[03:27:11] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:27:11] [ENEMY] [Enemy1] SEARCHING corner check: angle 90.0°
+[03:27:11] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:27:11] [ENEMY] [Enemy3] SEARCHING corner check: angle 98.6°
+[03:27:11] [ENEMY] [Enemy2] SEARCHING corner check: angle 99.5°
+[03:27:11] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:27:11] [ENEMY] [Enemy1] SEARCHING corner check: angle 90.0°
+[03:27:11] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:27:11] [ENEMY] [Enemy3] SEARCHING corner check: angle 98.6°
+[03:27:11] [ENEMY] [Enemy2] SEARCHING corner check: angle -80.5°
+[03:27:11] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:27:11] [ENEMY] [Enemy1] SEARCHING corner check: angle 90.0°
+[03:27:11] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:27:11] [ENEMY] [Enemy3] SEARCHING corner check: angle -81.4°
+[03:27:12] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:27:12] [ENEMY] [Enemy1] SEARCHING corner check: angle 90.0°
+[03:27:12] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:27:12] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:27:12] [ENEMY] [Enemy1] SEARCHING corner check: angle 90.0°
+[03:27:12] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:27:12] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:27:12] [ENEMY] [Enemy4] SEARCHING corner check: angle 84.7°
+[03:27:12] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:27:13] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:27:13] [ENEMY] [Enemy2] SEARCHING corner check: angle 179.9°
+[03:27:13] [ENEMY] [Enemy4] SEARCHING corner check: angle 84.7°
+[03:27:13] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:27:13] [ENEMY] [Enemy3] SEARCHING corner check: angle 179.9°
+[03:27:13] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:27:13] [ENEMY] [Enemy2] SEARCHING corner check: angle 129.2°
+[03:27:13] [ENEMY] [Enemy4] SEARCHING corner check: angle 88.8°
+[03:27:13] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:27:13] [ENEMY] [Enemy3] SEARCHING corner check: angle 129.5°
+[03:27:13] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:27:13] [ENEMY] [Enemy1] SEARCHING: Expand outer ring r=400 wps=4
+[03:27:13] [ENEMY] [Enemy2] SEARCHING corner check: angle -50.8°
+[03:27:13] [ENEMY] [Enemy4] SEARCHING corner check: angle -68.2°
+[03:27:13] [ENEMY] [Enemy1] SEARCHING corner check: angle -141.8°
+[03:27:13] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:27:13] [ENEMY] [Enemy3] SEARCHING corner check: angle -50.5°
+[03:27:14] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:27:14] [ENEMY] [Enemy2] SEARCHING corner check: angle -50.8°
+[03:27:14] [ENEMY] [Enemy4] SEARCHING corner check: angle -68.2°
+[03:27:14] [ENEMY] [Enemy1] SEARCHING corner check: angle -141.8°
+[03:27:14] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:27:14] [ENEMY] [Enemy3] SEARCHING corner check: angle -50.5°
+[03:27:14] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:27:14] [ENEMY] [Enemy2] SEARCHING corner check: angle -50.8°
+[03:27:14] [ENEMY] [Enemy4] SEARCHING corner check: angle -68.2°
+[03:27:14] [ENEMY] [Enemy1] SEARCHING corner check: angle -141.8°
+[03:27:14] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:27:14] [ENEMY] [Enemy3] SEARCHING corner check: angle -50.5°
+[03:27:14] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:27:14] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:27:14] [ENEMY] [Enemy1] SEARCHING corner check: angle 50.3°
+[03:27:14] [ENEMY] [Enemy2] SEARCHING corner check: angle 109.6°
+[03:27:15] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:27:15] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:27:15] [ENEMY] [Enemy3] SEARCHING corner check: angle 108.4°
+[03:27:15] [ENEMY] [Enemy1] SEARCHING corner check: angle 179.9°
+[03:27:15] [ENEMY] [Enemy2] SEARCHING: Player spotted! Transitioning to COMBAT
+[03:27:15] [ENEMY] [Enemy2] State: SEARCHING -> COMBAT
+[03:27:15] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[03:27:15] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:27:15] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1311.171, 736.0646), source=ENEMY (Enemy2), range=1469, listeners=10
+[03:27:15] [ENEMY] [Enemy7] Heard gunshot at (1311.171, 736.0646), source_type=1, intensity=0.02, distance=341
+[03:27:15] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=0, self=1, below_threshold=6
+[03:27:15] [ENEMY] [Enemy3] SEARCHING: Player spotted! Transitioning to COMBAT
+[03:27:15] [ENEMY] [Enemy3] State: SEARCHING -> COMBAT
+[03:27:15] [INFO] [LastChance] Threat detected: Bullet
+[03:27:15] [INFO] [LastChance] Effect already used this life
+[03:27:15] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[03:27:15] [ENEMY] [Enemy1] SEARCHING corner check: angle 162.9°
+[03:27:15] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[03:27:15] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1275.376, 736.0646), source=ENEMY (Enemy2), range=1469, listeners=10
+[03:27:15] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=0, self=1, below_threshold=6
+[03:27:15] [INFO] [LastChance] Threat detected: Bullet
+[03:27:15] [INFO] [LastChance] Effect already used this life
+[03:27:15] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[03:27:15] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[03:27:15] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1265.077, 736.0643), source=ENEMY (Enemy2), range=1469, listeners=10
+[03:27:15] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=0, self=1, below_threshold=6
+[03:27:15] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1315.686, 736.0644), source=ENEMY (Enemy3), range=1469, listeners=10
+[03:27:15] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=0, self=1, below_threshold=6
+[03:27:15] [ENEMY] [Enemy4] SEARCHING corner check: angle 55.6°
+[03:27:15] [INFO] [LastChance] Threat detected: Bullet
+[03:27:15] [INFO] [LastChance] Effect already used this life
+[03:27:15] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[03:27:15] [INFO] [LastChance] Threat detected: @Area2D@577
+[03:27:15] [INFO] [LastChance] Effect already used this life
+[03:27:15] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[03:27:15] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[03:27:15] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:27:15] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[03:27:15] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1265.077, 736.0643), source=ENEMY (Enemy2), range=1469, listeners=10
+[03:27:15] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=0, self=1, below_threshold=6
+[03:27:15] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1279.94, 736.0643), source=ENEMY (Enemy3), range=1469, listeners=10
+[03:27:15] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=0, self=1, below_threshold=6
+[03:27:15] [INFO] [LastChance] Threat detected: Bullet
+[03:27:15] [INFO] [LastChance] Effect already used this life
+[03:27:15] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[03:27:15] [INFO] [LastChance] Threat detected: @Area2D@580
+[03:27:15] [INFO] [LastChance] Effect already used this life
+[03:27:15] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[03:27:15] [ENEMY] [Enemy1] SEARCHING corner check: angle 162.9°
+[03:27:15] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[03:27:15] [ENEMY] [Enemy2] State: COMBAT -> RETREATING
+[03:27:15] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1265.077, 736.0643), source=ENEMY (Enemy2), range=1469, listeners=10
+[03:27:15] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=0, self=1, below_threshold=6
+[03:27:15] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1264.498, 736.0642), source=ENEMY (Enemy3), range=1469, listeners=10
+[03:27:15] [ENEMY] [Enemy2] Heard gunshot at (1264.498, 736.0642), source_type=1, intensity=1.00, distance=4
+[03:27:15] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=0, self=1, below_threshold=6
+[03:27:16] [ENEMY] [Enemy2] State: COMBAT -> RETREATING
+[03:27:16] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[03:27:16] [INFO] [LastChance] Threat detected: Bullet
+[03:27:16] [INFO] [LastChance] Effect already used this life
+[03:27:16] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[03:27:16] [INFO] [LastChance] Threat detected: @Area2D@582
+[03:27:16] [INFO] [LastChance] Effect already used this life
+[03:27:16] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[03:27:16] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1226.712, 778.3289), shooter_id=14253318736882, bullet_pos=(908.2135, 976.2778)
+[03:27:16] [INFO] [Bullet] Using shooter_position, distance=374.999908447266
+[03:27:16] [INFO] [Bullet] Distance to wall: 374.999908447266 (25.5344333302017% of viewport)
+[03:27:16] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[03:27:16] [INFO] [Bullet] Starting wall penetration at (908.2135, 976.2778)
+[03:27:16] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[03:27:16] [INFO] [Bullet] Exiting penetration at (868.5781, 1000.911) after traveling 41.6666679382324 pixels through wall
+[03:27:16] [INFO] [Bullet] Damage multiplier after penetration: 0.9
+[03:27:16] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[03:27:16] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[03:27:16] [ENEMY] [Enemy3] State: COMBAT -> RETREATING
+[03:27:16] [ENEMY] [Enemy4] SEARCHING corner check: angle 55.6°
+[03:27:16] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:27:16] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1296.001, 756.1072), source=ENEMY (Enemy3), range=1469, listeners=10
+[03:27:16] [ENEMY] [Enemy2] Heard gunshot at (1296.001, 756.1072), source_type=1, intensity=1.00, distance=20
+[03:27:16] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=0, self=1, below_threshold=6
+[03:27:16] [ENEMY] [Enemy2] State: COMBAT -> RETREATING
+[03:27:16] [INFO] [LastChance] Threat detected: Bullet
+[03:27:16] [INFO] [LastChance] Effect already used this life
+[03:27:16] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[03:27:16] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1237.839, 793.3502), shooter_id=14253318736882, bullet_pos=(919.8619, 992.1346)
+[03:27:16] [INFO] [Bullet] Using shooter_position, distance=374.999908447266
+[03:27:16] [INFO] [Bullet] Distance to wall: 374.999908447266 (25.5344333302017% of viewport)
+[03:27:16] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[03:27:16] [INFO] [Bullet] Starting wall penetration at (919.8619, 992.1346)
+[03:27:16] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1237.839, 793.3502), shooter_id=14253318736882, bullet_pos=(915.6222, 994.7851)
+[03:27:16] [INFO] [Bullet] Using shooter_position, distance=379.999877929688
+[03:27:16] [INFO] [Bullet] Distance to wall: 379.999877929688 (25.874890446393% of viewport)
+[03:27:16] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[03:27:16] [INFO] [Bullet] Already penetrating, cannot start new penetration
+[03:27:16] [ENEMY] [Enemy4] SEARCHING corner check: angle 55.6°
+[03:27:16] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[03:27:16] [INFO] [Bullet] Exiting penetration at (880.2913, 1016.872) after traveling 41.6666679382324 pixels through wall
+[03:27:16] [INFO] [Bullet] Damage multiplier after penetration: 0.9
+[03:27:16] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:27:16] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1255.072, 757.3783), source=ENEMY (Enemy3), range=1469, listeners=10
+[03:27:16] [ENEMY] [Enemy2] Heard gunshot at (1255.072, 757.3783), source_type=1, intensity=1.00, distance=18
+[03:27:16] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=0, self=1, below_threshold=6
+[03:27:16] [ENEMY] [Enemy2] State: COMBAT -> RETREATING
+[03:27:16] [ENEMY] [Enemy4] SEARCHING corner check: angle 55.6°
+[03:27:16] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1265.806, 758.325), source=ENEMY (Enemy3), range=1469, listeners=10
+[03:27:16] [ENEMY] [Enemy2] Heard gunshot at (1265.806, 758.325), source_type=1, intensity=1.00, distance=21
+[03:27:16] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=1, below_threshold=7
+[03:27:16] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:27:16] [ENEMY] [Enemy2] State: COMBAT -> RETREATING
+[03:27:16] [INFO] [LastChance] Threat detected: @Area2D@586
+[03:27:16] [INFO] [LastChance] Effect already used this life
+[03:27:16] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[03:27:16] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1209.683, 798.3234), shooter_id=14253318736882, bullet_pos=(935.1536, 987.3864)
+[03:27:16] [INFO] [Bullet] Using shooter_position, distance=333.333404541016
+[03:27:16] [INFO] [Bullet] Distance to wall: 333.333404541016 (22.6972844612805% of viewport)
+[03:27:16] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[03:27:16] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1209.683, 798.3234), shooter_id=14253318736882, bullet_pos=(968.9899, 1009.491)
+[03:27:16] [INFO] [Bullet] Using shooter_position, distance=320.194976806641
+[03:27:16] [INFO] [Bullet] Distance to wall: 320.194976806641 (21.8026647574086% of viewport)
+[03:27:16] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[03:27:17] [ENEMY] [Enemy4] SEARCHING corner check: angle 55.6°
+[03:27:17] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1201.046, 798.3556), shooter_id=14253318736882, bullet_pos=(194.4594, 1607.792)
+[03:27:17] [INFO] [Bullet] Using shooter_position, distance=1291.6669921875
+[03:27:17] [INFO] [Bullet] Distance to wall: 1291.6669921875 (87.9519806642087% of viewport)
+[03:27:17] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:27:17] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1201.046, 798.3556), shooter_id=14253318736882, bullet_pos=(45.39362, 1503.227)
+[03:27:17] [INFO] [Bullet] Using shooter_position, distance=1353.65307617188
+[03:27:17] [INFO] [Bullet] Distance to wall: 1353.65307617188 (92.1727271050625% of viewport)
+[03:27:17] [INFO] [Bullet] Distance-based penetration chance: 39.1318183774271%
+[03:27:17] [INFO] [Bullet] Starting wall penetration at (45.39362, 1503.227)
+[03:27:17] [INFO] [Bullet] Raycast backward hit penetrating body at distance 24.0564212799072
+[03:27:17] [INFO] [Bullet] Body exited signal received for penetrating body
+[03:27:17] [INFO] [Bullet] Exiting penetration at (12.30578, 1480.017) after traveling 35.4166717529297 pixels through wall
+[03:27:17] [INFO] [Bullet] Damage multiplier after penetration: 0.45
+[03:27:17] [ENEMY] [Enemy1] SEARCHING corner check: angle -119.6°
+[03:27:17] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1195.289, 756.8173), source=ENEMY (Enemy3), range=1469, listeners=10
+[03:27:17] [ENEMY] [Enemy2] Heard gunshot at (1195.289, 756.8173), source_type=1, intensity=1.00, distance=19
+[03:27:17] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=1, below_threshold=7
+[03:27:17] [INFO] [LastChance] Threat detected: Bullet
+[03:27:17] [INFO] [LastChance] Effect already used this life
+[03:27:17] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[03:27:17] [ENEMY] [Enemy2] State: COMBAT -> RETREATING
+[03:27:17] [ENEMY] [Enemy4] SEARCHING corner check: angle 55.6°
+[03:27:17] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:27:17] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1207.673, 757.8868), source=ENEMY (Enemy3), range=1469, listeners=10
+[03:27:17] [ENEMY] [Enemy2] Heard gunshot at (1207.673, 757.8868), source_type=1, intensity=1.00, distance=19
+[03:27:17] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=1, below_threshold=7
+[03:27:17] [INFO] [LastChance] Threat detected: @Area2D@591
+[03:27:17] [INFO] [LastChance] Effect already used this life
+[03:27:17] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[03:27:17] [ENEMY] [Enemy2] State: COMBAT -> RETREATING
+[03:27:17] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[03:27:17] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1150.073, 806.0646), shooter_id=14253318736882, bullet_pos=(569.9479, 1404.311)
+[03:27:17] [INFO] [Bullet] Using shooter_position, distance=833.333435058594
+[03:27:17] [INFO] [Bullet] Distance to wall: 833.333435058594 (56.7432059582062% of viewport)
+[03:27:17] [ENEMY] [Enemy1] SEARCHING corner check: angle 89.8°
+[03:27:17] [ENEMY] [Enemy4] SEARCHING corner check: angle 55.6°
+[03:27:17] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1224.86, 758.9393), source=ENEMY (Enemy3), range=1469, listeners=10
+[03:27:17] [ENEMY] [Enemy2] Heard gunshot at (1224.86, 758.9393), source_type=1, intensity=1.00, distance=20
+[03:27:17] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=1, below_threshold=7
+[03:27:17] [INFO] [LastChance] Threat detected: @Area2D@593
+[03:27:17] [INFO] [LastChance] Effect already used this life
+[03:27:17] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[03:27:17] [ENEMY] [Enemy2] State: COMBAT -> RETREATING
+[03:27:17] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:27:17] [ENEMY] [Enemy7] PURSUING corner check: angle 90.8°
+[03:27:18] [ENEMY] [Enemy1] SEARCHING corner check: angle 110.7°
+[03:27:18] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1250.547, 758.9175), source=ENEMY (Enemy3), range=1469, listeners=10
+[03:27:18] [ENEMY] [Enemy2] Heard gunshot at (1250.547, 758.9175), source_type=1, intensity=1.00, distance=20
+[03:27:18] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=1, below_threshold=7
+[03:27:18] [INFO] [LastChance] Threat detected: Bullet
+[03:27:18] [INFO] [LastChance] Effect already used this life
+[03:27:18] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[03:27:18] [ENEMY] [Enemy2] State: COMBAT -> RETREATING
+[03:27:18] [ENEMY] [Enemy4] SEARCHING corner check: angle 180.0°
+[03:27:18] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[03:27:18] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1172.55, 804.4859), shooter_id=14253318736882, bullet_pos=(528.9722, 1397.303)
+[03:27:18] [INFO] [Bullet] Using shooter_position, distance=874.999694824219
+[03:27:18] [INFO] [Bullet] Distance to wall: 874.999694824219 (59.5803382031434% of viewport)
+[03:27:18] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:27:18] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1261.48, 756.629), source=ENEMY (Enemy3), range=1469, listeners=10
+[03:27:18] [ENEMY] [Enemy2] Heard gunshot at (1261.48, 756.629), source_type=1, intensity=1.00, distance=21
+[03:27:18] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=1, below_threshold=7
+[03:27:18] [ENEMY] [Enemy2] State: COMBAT -> RETREATING
+[03:27:18] [INFO] [LastChance] Threat detected: Bullet
+[03:27:18] [INFO] [LastChance] Effect already used this life
+[03:27:18] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[03:27:18] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[03:27:18] [ENEMY] [Enemy1] SEARCHING corner check: angle -69.3°
+[03:27:18] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1172.55, 804.4859), shooter_id=14253318736882, bullet_pos=(55.65619, 1076.718)
+[03:27:18] [INFO] [Bullet] Using shooter_position, distance=1149.59204101563
+[03:27:18] [INFO] [Bullet] Distance to wall: 1149.59204101563 (78.2778359861172% of viewport)
+[03:27:18] [INFO] [Bullet] Distance-based penetration chance: 55.3425246828633%
+[03:27:18] [INFO] [Bullet] Penetration failed (distance roll)
+[03:27:18] [ENEMY] [Enemy4] SEARCHING corner check: angle 180.0°
+[03:27:18] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:27:18] [ENEMY] [Enemy1] SEARCHING corner check: angle -69.3°
+[03:27:18] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1184.782, 756.5005), source=ENEMY (Enemy3), range=1469, listeners=10
+[03:27:18] [ENEMY] [Enemy2] Heard gunshot at (1184.782, 756.5005), source_type=1, intensity=1.00, distance=18
+[03:27:18] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=1, below_threshold=7
+[03:27:18] [INFO] [LastChance] Threat detected: Bullet
+[03:27:18] [INFO] [LastChance] Effect already used this life
+[03:27:18] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[03:27:18] [ENEMY] [Enemy2] State: COMBAT -> RETREATING
+[03:27:18] [ENEMY] [Enemy4] SEARCHING corner check: angle 179.8°
+[03:27:18] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:27:18] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1141.869, 807.4335), shooter_id=14253318736882, bullet_pos=(979.8899, 997.8613)
+[03:27:18] [INFO] [Bullet] Using shooter_position, distance=249.999862670898
+[03:27:18] [INFO] [Bullet] Distance to wall: 249.999862670898 (17.0229503584728% of viewport)
+[03:27:18] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[03:27:18] [INFO] [Bullet] Starting wall penetration at (979.8899, 997.8613)
+[03:27:18] [INFO] [Bullet] Raycast backward hit penetrating body at distance 22.1420402526855
+[03:27:18] [INFO] [Bullet] Body exited signal received for penetrating body
+[03:27:18] [INFO] [Bullet] Exiting penetration at (949.6538, 1033.408) after traveling 41.6666679382324 pixels through wall
+[03:27:18] [INFO] [Bullet] Damage multiplier after penetration: 0.9
+[03:27:18] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1192.935, 755.8071), source=ENEMY (Enemy3), range=1469, listeners=10
+[03:27:18] [ENEMY] [Enemy2] Heard gunshot at (1192.935, 755.8071), source_type=1, intensity=1.00, distance=14
+[03:27:18] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=1, below_threshold=7
+[03:27:18] [INFO] [LastChance] Threat detected: Bullet
+[03:27:18] [INFO] [LastChance] Effect already used this life
+[03:27:18] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[03:27:18] [ENEMY] [Enemy2] State: COMBAT -> RETREATING
+[03:27:19] [ENEMY] [Enemy1] SEARCHING corner check: angle -69.3°
+[03:27:19] [ENEMY] [Enemy4] SEARCHING corner check: angle 93.7°
+[03:27:19] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:27:19] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1209.204, 757.46), source=ENEMY (Enemy3), range=1469, listeners=10
+[03:27:19] [ENEMY] [Enemy2] Heard gunshot at (1209.204, 757.46), source_type=1, intensity=1.00, distance=16
+[03:27:19] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=1, below_threshold=7
+[03:27:19] [INFO] [LastChance] Threat detected: @Area2D@597
+[03:27:19] [INFO] [LastChance] Effect already used this life
+[03:27:19] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[03:27:19] [ENEMY] [Enemy2] State: COMBAT -> RETREATING
+[03:27:19] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[03:27:19] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1146.621, 807.2195), shooter_id=14253318736882, bullet_pos=(502.694, 1399.657)
+[03:27:19] [INFO] [Bullet] Using shooter_position, distance=874.999755859375
+[03:27:19] [INFO] [Bullet] Distance to wall: 874.999755859375 (59.5803423591394% of viewport)
+[03:27:19] [ENEMY] [Enemy1] SEARCHING corner check: angle 110.7°
+[03:27:19] [ENEMY] [Enemy4] SEARCHING corner check: angle 93.7°
+[03:27:19] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1226.088, 758.8318), source=ENEMY (Enemy3), range=1469, listeners=10
+[03:27:19] [ENEMY] [Enemy2] Heard gunshot at (1226.088, 758.8318), source_type=1, intensity=1.00, distance=18
+[03:27:19] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=0, self=1, below_threshold=6
+[03:27:19] [INFO] [LastChance] Threat detected: @Area2D@599
+[03:27:19] [INFO] [LastChance] Effect already used this life
+[03:27:19] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[03:27:19] [ENEMY] [Enemy2] State: COMBAT -> RETREATING
+[03:27:19] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:27:19] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[03:27:19] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1146.621, 807.2195), shooter_id=14253318736882, bullet_pos=(44.68724, 949.0618)
+[03:27:19] [INFO] [Bullet] Using shooter_position, distance=1111.02563476563
+[03:27:19] [INFO] [Bullet] Distance to wall: 1111.02563476563 (75.6517784671869% of viewport)
+[03:27:19] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1251.945, 758.9528), source=ENEMY (Enemy3), range=1469, listeners=10
+[03:27:19] [ENEMY] [Enemy2] Heard gunshot at (1251.945, 758.9528), source_type=1, intensity=1.00, distance=16
+[03:27:19] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=0, self=1, below_threshold=6
+[03:27:19] [INFO] [LastChance] Threat detected: @Area2D@600
+[03:27:19] [INFO] [LastChance] Effect already used this life
+[03:27:19] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[03:27:19] [ENEMY] [Enemy2] State: COMBAT -> RETREATING
+[03:27:19] [ENEMY] [Enemy4] SEARCHING corner check: angle 93.7°
+[03:27:19] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[03:27:19] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1146.621, 807.2195), shooter_id=14253318736882, bullet_pos=(262.6581, 693.1658)
+[03:27:19] [INFO] [Bullet] Using shooter_position, distance=891.290832519531
+[03:27:19] [INFO] [Bullet] Distance to wall: 891.290832519531 (60.6896317255779% of viewport)
+[03:27:19] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[03:27:19] [ENEMY] [Enemy10] Memory: medium confidence (0.53) - transitioning to PURSUING
+[03:27:19] [ENEMY] [Enemy10] State: IDLE -> PURSUING
+[03:27:19] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1263.258, 756.6855), source=ENEMY (Enemy3), range=1469, listeners=10
+[03:27:19] [ENEMY] [Enemy2] Heard gunshot at (1263.258, 756.6855), source_type=1, intensity=1.00, distance=28
+[03:27:19] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=0, self=1, below_threshold=6
+[03:27:19] [ENEMY] [Enemy2] State: COMBAT -> RETREATING
+[03:27:19] [INFO] [LastChance] Threat detected: @Area2D@602
+[03:27:19] [INFO] [LastChance] Effect already used this life
+[03:27:19] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[03:27:20] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1207.723, 797.282), shooter_id=14253318736882, bullet_pos=(932.1252, 984.7839)
+[03:27:20] [INFO] [Bullet] Using shooter_position, distance=333.333251953125
+[03:27:20] [INFO] [Bullet] Distance to wall: 333.333251953125 (22.6972740712904% of viewport)
+[03:27:20] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[03:27:20] [INFO] [Bullet] Starting wall penetration at (932.1252, 984.7839)
+[03:27:20] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[03:27:20] [INFO] [Bullet] Exiting penetration at (893.5416, 1011.034) after traveling 41.6666679382324 pixels through wall
+[03:27:20] [INFO] [Bullet] Damage multiplier after penetration: 0.9
+[03:27:20] [ENEMY] [Enemy4] SEARCHING corner check: angle 93.7°
+[03:27:20] [ENEMY] [Enemy10] PURSUING corner check: angle 179.0°
+[03:27:20] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1186.783, 756.4845), source=ENEMY (Enemy3), range=1469, listeners=10
+[03:27:20] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=0, self=1, below_threshold=5
+[03:27:20] [INFO] [LastChance] Threat detected: Bullet
+[03:27:20] [INFO] [LastChance] Effect already used this life
+[03:27:20] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[03:27:20] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1195.555, 755.6329), source=ENEMY (Enemy3), range=1469, listeners=10
+[03:27:20] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=0, self=1, below_threshold=5
+[03:27:20] [INFO] [LastChance] Threat detected: @Area2D@604
+[03:27:20] [INFO] [LastChance] Effect already used this life
+[03:27:20] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[03:27:20] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[03:27:20] [ENEMY] [Enemy1] SEARCHING corner check: angle -33.5°
+[03:27:20] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1143.444, 807.0861), shooter_id=14253318736882, bullet_pos=(604.2799, 1386.774)
+[03:27:20] [INFO] [Bullet] Using shooter_position, distance=791.666809082031
+[03:27:20] [INFO] [Bullet] Distance to wall: 791.666809082031 (53.9060487772929% of viewport)
+[03:27:20] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1212.705, 758.9614), source=ENEMY (Enemy3), range=1469, listeners=10
+[03:27:20] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=0, self=1, below_threshold=5
+[03:27:20] [INFO] [LastChance] Threat detected: @Area2D@606
+[03:27:20] [INFO] [LastChance] Effect already used this life
+[03:27:20] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[03:27:20] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[03:27:20] [INFO] ------------------------------------------------------------
+[03:27:20] [INFO] GAME LOG ENDED: 2026-01-25T03:27:20
+[03:27:20] [INFO] ============================================================
