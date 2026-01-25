@@ -61,43 +61,42 @@ The issue requests triggering a grenade when confidence is **high** (0.8+) but p
 | Sound-based position | No | Trigger 4 |
 | After suppression | No | Trigger 1 |
 
-## Proposed Solution: Trigger 7 - Suspicion-Based
+## Implemented Solution: Trigger 7 - Suspicion-Based
+
+### Implementation Location
+
+**File**: `scripts/components/enemy_grenade_component.gd`
+
+All grenade functionality, including Trigger 7, is now consolidated in `EnemyGrenadeComponent` (extracted in Issue #377 to reduce `enemy.gd` file size below 5000 lines for CI compliance).
 
 ### Trigger Condition
 
-**When**: Enemy has high confidence (≥0.8) about suspected position AND cannot see player AND has not been able to see player for X seconds
+**When**: Enemy has medium+ confidence (≥0.5) about suspected position AND cannot see player AND has not been able to see player for 3 seconds
 
-**Action**: Throw grenade to suspected position, then transition to ASSAULT state
+**Action**: Throw grenade to suspected position
+
+**Note**: Originally designed for high confidence (≥0.8), but changed to medium+ confidence (≥0.5) after root cause analysis showed the timer could never reach 3 seconds with high confidence due to confidence decay rate. See [root-cause-analysis-2026-01-25.md](./root-cause-analysis-2026-01-25.md) for details.
 
 ### Implementation Design
 
 ```gdscript
-## Constants for Trigger 7
-const GRENADE_SUSPICION_CONFIDENCE_THRESHOLD: float = 0.8
-const GRENADE_SUSPICION_HIDDEN_TIME: float = 3.0  # Seconds player must be hidden
+## Constants for Trigger 7 (in EnemyGrenadeComponent)
+const SUSPICION_HIDDEN_TIME := 3.0  # Seconds player must be hidden with medium+ suspicion
 
 ## State variables for Trigger 7
-var _high_suspicion_hidden_timer: float = 0.0
+var _suspicion_timer: float = 0.0
 
-## Update Trigger 7: High suspicion but player hidden
-func _update_trigger_suspicion_hidden(delta: float) -> void:
-    if _memory == null:
-        return
+## Update Trigger 7 in component.update()
+# Trigger 7: Suspicion-based (Issue #379)
+if memory != null and (memory.is_medium_confidence() or memory.is_high_confidence()) and not can_see:
+    _suspicion_timer += delta
+else:
+    _suspicion_timer = 0.0
 
-    # Check if we have high confidence but can't see player
-    if _memory.is_high_confidence() and not _can_see_player:
-        _high_suspicion_hidden_timer += delta
-    else:
-        _high_suspicion_hidden_timer = 0.0
-
-## Check Trigger 7: High suspicion + player hidden for threshold time
-func _should_trigger_suspicion_grenade() -> bool:
-    if _memory == null or not _memory.has_target():
-        return false
-
-    # Must have high confidence
-    if not _memory.is_high_confidence():
-        return false
+## Check Trigger 7
+func _t7() -> bool:
+    # Trigger 7: Suspicion-based grenade (Issue #379)
+    return _suspicion_timer >= SUSPICION_HIDDEN_TIME
 
     # Must not be able to see player
     if _can_see_player:
@@ -156,8 +155,16 @@ Rationale: This trigger represents active hunting behavior based on strong suspi
 
 - PR #364: Enemy grenade throwing system implementation
 - PR #376: Prevent enemy self-damage from grenade throws
+- PR #377: Extract grenade logic to component (EnemyGrenadeComponent)
 - Issue #363: Original grenade system request
+
+## Implementation History
+
+- **2026-01-25 (Initial)**: Trigger 7 implemented directly in `enemy.gd` with high confidence (0.8+) threshold
+- **2026-01-25 (Bug Fix)**: Changed to medium+ confidence (0.5+) after discovering mathematical impossibility
+- **2026-01-25 (Component Migration)**: Merged with main branch and migrated Trigger 7 to `EnemyGrenadeComponent` to resolve conflict with Issue #377
 
 ---
 
 *Case study created: 2026-01-25*
+*Last updated: 2026-01-25*
