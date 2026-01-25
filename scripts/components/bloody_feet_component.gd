@@ -4,10 +4,7 @@ extends Node
 ## Attach this component to any CharacterBody2D (Player or Enemy) to enable
 ## bloody footprint tracking. The component monitors for blood puddle contact
 ## and spawns footprint decals at regular intervals while moving.
-##
-## Note: class_name intentionally omitted to prevent export build script loading issues.
-## See Issue #363 root cause analysis for details on why typed component references
-## can cause scripts to fail parsing in export builds due to load order differences.
+class_name BloodyFeetComponent
 
 ## Number of bloody footprints before the blood runs out.
 @export var blood_steps_count: int = 6

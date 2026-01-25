@@ -547,7 +547,9 @@ var _pursuing_vulnerability_sound: bool = false
 ## - High confidence (>0.8): Direct pursuit to suspected position
 ## - Medium confidence (0.5-0.8): Cautious approach with cover checks
 ## - Low confidence (<0.5): Return to patrol/guard behavior
-var _memory: EnemyMemory = null
+## Note: Duck typed (no EnemyMemory type annotation) to avoid export build script loading issues.
+## See Issue #363/369 root cause analysis for why typed class_name references can break exports.
+var _memory = null
 
 ## Confidence values for different detection sources.
 const VISUAL_DETECTION_CONFIDENCE: float = 1.0
