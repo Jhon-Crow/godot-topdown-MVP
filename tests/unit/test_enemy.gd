@@ -89,6 +89,11 @@ class MockEnemy:
 	const MEMORY_RESET_CONFUSION_DURATION: float = 0.5
 	var _continuous_visibility_timer: float = 0.0
 
+	## Hit reaction state (Issue #390)
+	var _hit_reaction_timer: float = 0.0
+	var _hit_reaction_direction: Vector2 = Vector2.ZERO
+	const HIT_REACTION_DURATION: float = 0.8
+
 	## Patrol state
 	var _patrol_points: Array[Vector2] = []
 	var _current_patrol_index: int = 0
@@ -117,6 +122,9 @@ class MockEnemy:
 		_memory = EnemyMemory.new()
 		_last_known_player_position = Vector2.ZERO
 		_intel_share_timer = 0.0
+		# Issue #390: Initialize hit reaction state
+		_hit_reaction_timer = 0.0
+		_hit_reaction_direction = Vector2.ZERO
 
 
 	func get_current_health() -> int:
@@ -148,12 +156,18 @@ class MockEnemy:
 				on_state_changed.call(new_state)
 
 
-	func on_bullet_hit() -> void:
+	func on_bullet_hit(hit_direction: Vector2 = Vector2.RIGHT) -> void:
 		if not _is_alive:
 			return
 
 		_current_health -= 1
 		_hits_taken += 1
+
+		# Issue #390: Set hit reaction to face attacker
+		var attacker_direction := -hit_direction.normalized()
+		if attacker_direction.length_squared() > 0.01:
+			_hit_reaction_direction = attacker_direction
+			_hit_reaction_timer = HIT_REACTION_DURATION
 
 		if on_hit:
 			on_hit.call()
@@ -187,6 +201,25 @@ class MockEnemy:
 
 	func update_shoot_timer(delta: float) -> void:
 		_shoot_timer += delta
+
+
+	## Issue #390: Update hit reaction timer
+	func update_hit_reaction(delta: float) -> void:
+		if _hit_reaction_timer > 0:
+			_hit_reaction_timer -= delta
+			if _hit_reaction_timer <= 0:
+				_hit_reaction_timer = 0.0
+				_hit_reaction_direction = Vector2.ZERO
+
+
+	## Issue #390: Check if hit reaction is active
+	func is_hit_reaction_active() -> bool:
+		return _hit_reaction_timer > 0 and _hit_reaction_direction.length_squared() > 0.01
+
+
+	## Issue #390: Get the direction the enemy should face during hit reaction
+	func get_hit_reaction_direction() -> Vector2:
+		return _hit_reaction_direction
 
 
 	func needs_reload() -> bool:
@@ -1518,3 +1551,90 @@ func test_aim_check_consistent_at_all_distances_issue_344() -> void:
 			"Aim check should pass at distance %.0f when enemy faces player" % distance)
 		assert_true(aim_dot >= tolerance,
 			"Aim check should pass tolerance at distance %.0f" % distance)
+
+
+# ============================================================================
+# Hit Reaction Tests (Issue #390)
+# ============================================================================
+
+
+## Test that hit reaction is activated when enemy is hit
+func test_hit_reaction_activated_on_hit_issue_390() -> void:
+	# Hit from the right (bullet traveling left-to-right)
+	var hit_direction := Vector2.RIGHT
+
+	enemy.on_bullet_hit(hit_direction)
+
+	assert_true(enemy.is_hit_reaction_active(),
+		"Hit reaction should be active after being hit")
+	assert_almost_eq(enemy._hit_reaction_timer, MockEnemy.HIT_REACTION_DURATION, 0.001,
+		"Hit reaction timer should be set to full duration")
+
+
+## Test that hit reaction makes enemy face the attacker
+func test_hit_reaction_faces_attacker_issue_390() -> void:
+	# Hit from the right (bullet traveling left-to-right)
+	var hit_direction := Vector2.RIGHT
+
+	enemy.on_bullet_hit(hit_direction)
+
+	# Enemy should face opposite direction (toward attacker on the left)
+	var expected_direction := -hit_direction.normalized()
+	var actual_direction := enemy.get_hit_reaction_direction()
+
+	assert_almost_eq(actual_direction.x, expected_direction.x, 0.001,
+		"Hit reaction direction X should match attacker direction")
+	assert_almost_eq(actual_direction.y, expected_direction.y, 0.001,
+		"Hit reaction direction Y should match attacker direction")
+
+
+## Test that hit reaction decays over time
+func test_hit_reaction_decays_over_time_issue_390() -> void:
+	enemy.on_bullet_hit(Vector2.RIGHT)
+
+	# Simulate time passing (half duration)
+	enemy.update_hit_reaction(MockEnemy.HIT_REACTION_DURATION / 2.0)
+
+	assert_true(enemy.is_hit_reaction_active(),
+		"Hit reaction should still be active at half duration")
+
+	# Simulate remaining time
+	enemy.update_hit_reaction(MockEnemy.HIT_REACTION_DURATION / 2.0 + 0.1)
+
+	assert_false(enemy.is_hit_reaction_active(),
+		"Hit reaction should end after full duration")
+	assert_eq(enemy._hit_reaction_direction, Vector2.ZERO,
+		"Hit reaction direction should be reset after duration")
+
+
+## Test that multiple hits reset the hit reaction timer
+func test_hit_reaction_resets_on_multiple_hits_issue_390() -> void:
+	# First hit
+	enemy.on_bullet_hit(Vector2.RIGHT)
+
+	# Simulate some time passing
+	enemy.update_hit_reaction(MockEnemy.HIT_REACTION_DURATION / 2.0)
+
+	# Second hit from different direction
+	enemy.on_bullet_hit(Vector2.UP)
+
+	# Timer should be reset to full duration
+	assert_almost_eq(enemy._hit_reaction_timer, MockEnemy.HIT_REACTION_DURATION, 0.001,
+		"Hit reaction timer should reset on new hit")
+
+	# Direction should update to new attacker
+	var expected_direction := -Vector2.UP.normalized()
+	assert_almost_eq(enemy._hit_reaction_direction.x, expected_direction.x, 0.001,
+		"Hit reaction direction X should update to new attacker")
+	assert_almost_eq(enemy._hit_reaction_direction.y, expected_direction.y, 0.001,
+		"Hit reaction direction Y should update to new attacker")
+
+
+## Test that hit reaction is properly initialized
+func test_hit_reaction_initialized_issue_390() -> void:
+	assert_eq(enemy._hit_reaction_timer, 0.0,
+		"Hit reaction timer should be zero at start")
+	assert_eq(enemy._hit_reaction_direction, Vector2.ZERO,
+		"Hit reaction direction should be zero at start")
+	assert_false(enemy.is_hit_reaction_active(),
+		"Hit reaction should not be active at start")
