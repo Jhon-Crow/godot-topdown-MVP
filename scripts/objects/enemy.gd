@@ -1023,33 +1023,36 @@ func _update_goap_state() -> void:
 		_goap_world_state["confidence_medium"] = _memory.is_medium_confidence()
 		_goap_world_state["confidence_low"] = _memory.is_low_confidence()
 
-## Updates model rotation. Instant for combat/movement, smooth only for idle scanning.
+## Updates model rotation smoothly (#347). Priority: player > corner check > velocity > idle scan.
 func _update_enemy_model_rotation() -> void:
 	if not _enemy_model:
 		return
 	var target_angle: float
-	var use_smooth_rotation := false
+	var has_target := false
 	if _player != null and _can_see_player:
 		target_angle = (_player.global_position - global_position).normalized().angle()
+		has_target = true
+	elif _corner_check_timer > 0:
+		target_angle = _corner_check_angle  # Corner check: smooth rotation (Issue #347)
+		has_target = true
 	elif velocity.length_squared() > 1.0:
 		target_angle = velocity.normalized().angle()
+		has_target = true
 	elif _current_state == AIState.IDLE and _idle_scan_targets.size() > 0:
 		target_angle = _idle_scan_targets[_idle_scan_target_index]
-		use_smooth_rotation = true
-	else:
+		has_target = true
+	if not has_target:
 		return
-	if use_smooth_rotation:
-		var delta := get_physics_process_delta_time()
-		var current_rot := _enemy_model.global_rotation
-		var angle_diff := wrapf(target_angle - current_rot, -PI, PI)
-		if abs(angle_diff) <= MODEL_ROTATION_SPEED * delta:
-			_enemy_model.global_rotation = target_angle
-		elif angle_diff > 0:
-			_enemy_model.global_rotation = current_rot + MODEL_ROTATION_SPEED * delta
-		else:
-			_enemy_model.global_rotation = current_rot - MODEL_ROTATION_SPEED * delta
-	else:
+	# Smooth rotation for visual polish (Issue #347)
+	var delta := get_physics_process_delta_time()
+	var current_rot := _enemy_model.global_rotation
+	var angle_diff := wrapf(target_angle - current_rot, -PI, PI)
+	if abs(angle_diff) <= MODEL_ROTATION_SPEED * delta:
 		_enemy_model.global_rotation = target_angle
+	elif angle_diff > 0:
+		_enemy_model.global_rotation = current_rot + MODEL_ROTATION_SPEED * delta
+	else:
+		_enemy_model.global_rotation = current_rot - MODEL_ROTATION_SPEED * delta
 	var aiming_left := absf(_enemy_model.global_rotation) > PI / 2
 	_model_facing_left = aiming_left
 	if aiming_left:
@@ -4085,7 +4088,7 @@ func _process_patrol(delta: float) -> void:
 		# Check for corners/openings perpendicular to movement direction
 		_process_corner_check(get_physics_process_delta_time(), direction, "PATROL")
 
-## Detect openings perpendicular to movement direction (for corner checking).
+## Detect openings perpendicular to movement (for corner checking). Issue #347: smooth rotation.
 func _detect_perpendicular_opening(move_dir: Vector2) -> bool:
 	var space_state := get_world_2d().direct_space_state
 	for side in [-1.0, 1.0]:
@@ -4094,16 +4097,14 @@ func _detect_perpendicular_opening(move_dir: Vector2) -> bool:
 		query.collision_mask = 0b100
 		query.exclude = [self]
 		if space_state.intersect_ray(query).is_empty():
-			_corner_check_angle = perp_dir.angle()
-			_force_model_to_face_direction(perp_dir)
+			_corner_check_angle = perp_dir.angle()  # Issue #347: smooth rotation via _update_enemy_model_rotation()
 			return true
 	return false
 
-## Handle corner checking during movement (Issue #332).
+## Handle corner checking during movement (Issue #332). Issue #347: smooth rotation.
 func _process_corner_check(delta: float, move_dir: Vector2, state_name: String) -> void:
 	if _corner_check_timer > 0:
-		_corner_check_timer -= delta
-		_force_model_to_face_direction(Vector2.from_angle(_corner_check_angle))
+		_corner_check_timer -= delta  # #347: rotation via _update_enemy_model_rotation()
 	elif _detect_perpendicular_opening(move_dir):
 		_corner_check_timer = CORNER_CHECK_DURATION
 		_log_to_file("%s corner check: angle %.1f°" % [state_name, rad_to_deg(_corner_check_angle)])
