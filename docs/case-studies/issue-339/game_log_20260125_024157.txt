@@ -1,0 +1,1425 @@
+[02:41:57] [INFO] ============================================================
+[02:41:57] [INFO] GAME LOG STARTED
+[02:41:57] [INFO] ============================================================
+[02:41:57] [INFO] Timestamp: 2026-01-25T02:41:57
+[02:41:57] [INFO] Log file: I:/Загрузки/godot exe/game_log_20260125_024157.txt
+[02:41:57] [INFO] Executable: I:/Загрузки/godot exe/Godot-Top-Down-Template.exe
+[02:41:57] [INFO] OS: Windows
+[02:41:57] [INFO] Debug build: false
+[02:41:57] [INFO] Engine version: 4.3-stable (official)
+[02:41:57] [INFO] Project: Godot Top-Down Template
+[02:41:57] [INFO] ------------------------------------------------------------
+[02:41:57] [INFO] [GameManager] GameManager ready
+[02:41:57] [INFO] [ScoreManager] ScoreManager ready
+[02:41:57] [INFO] [SoundPropagation] SoundPropagation autoload initialized
+[02:41:57] [INFO] [ImpactEffects] Scenes loaded: DustEffect, BloodEffect, SparksEffect, BloodDecal
+[02:41:57] [INFO] [ImpactEffects] ImpactEffectsManager ready - FULL VERSION with blood effects enabled
+[02:41:57] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[02:41:57] [INFO] [PenultimateHit] Saturation shader loaded successfully
+[02:41:57] [INFO] [PenultimateHit] PenultimateHitEffectsManager ready - Configuration:
+[02:41:57] [INFO] [PenultimateHit]   Time scale: 0.10 (10x slowdown)
+[02:41:57] [INFO] [PenultimateHit]   Saturation boost: 2.0 (3.0x)
+[02:41:57] [INFO] [PenultimateHit]   Contrast boost: 1.0 (2.0x)
+[02:41:57] [INFO] [PenultimateHit]   Effect duration: 3.0 real seconds
+[02:41:57] [INFO] [LastChance] Resetting all effects (scene change detected)
+[02:41:57] [INFO] [LastChance] Last chance shader loaded successfully
+[02:41:57] [INFO] [LastChance] LastChanceEffectsManager ready - Configuration:
+[02:41:57] [INFO] [LastChance]   Freeze duration: 6.0 real seconds
+[02:41:57] [INFO] [LastChance]   Sepia intensity: 0.70
+[02:41:57] [INFO] [LastChance]   Brightness: 0.60
+[02:41:57] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FlashbangGrenade.tscn
+[02:41:57] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FragGrenade.tscn
+[02:41:57] [INFO] [ExperimentalSettings] ExperimentalSettings initialized - FOV enabled: true
+[02:41:57] [ENEMY] [Enemy1] Death animation component initialized
+[02:41:57] [ENEMY] [Enemy2] Death animation component initialized
+[02:41:57] [ENEMY] [Enemy3] Death animation component initialized
+[02:41:57] [ENEMY] [Enemy4] Death animation component initialized
+[02:41:57] [ENEMY] [Enemy5] Death animation component initialized
+[02:41:57] [ENEMY] [Enemy6] Death animation component initialized
+[02:41:57] [ENEMY] [Enemy7] Death animation component initialized
+[02:41:57] [ENEMY] [Enemy8] Death animation component initialized
+[02:41:57] [ENEMY] [Enemy9] Death animation component initialized
+[02:41:57] [ENEMY] [Enemy10] Death animation component initialized
+[02:41:57] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[02:41:57] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[02:41:57] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[02:41:57] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[02:41:57] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[02:41:57] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[02:41:57] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[02:41:57] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[02:41:57] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 4/4
+[02:41:57] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[02:41:57] [INFO] [BuildingLevel] Found Environment/Enemies node with 10 children
+[02:41:57] [INFO] [BuildingLevel] Child 'Enemy1': script=true, has_died_signal=true
+[02:41:57] [INFO] [BuildingLevel] Child 'Enemy2': script=true, has_died_signal=true
+[02:41:57] [INFO] [BuildingLevel] Child 'Enemy3': script=true, has_died_signal=true
+[02:41:57] [INFO] [BuildingLevel] Child 'Enemy4': script=true, has_died_signal=true
+[02:41:57] [INFO] [BuildingLevel] Child 'Enemy5': script=true, has_died_signal=true
+[02:41:57] [INFO] [BuildingLevel] Child 'Enemy6': script=true, has_died_signal=true
+[02:41:57] [INFO] [BuildingLevel] Child 'Enemy7': script=true, has_died_signal=true
+[02:41:57] [INFO] [BuildingLevel] Child 'Enemy8': script=true, has_died_signal=true
+[02:41:57] [INFO] [BuildingLevel] Child 'Enemy9': script=true, has_died_signal=true
+[02:41:57] [INFO] [BuildingLevel] Child 'Enemy10': script=true, has_died_signal=true
+[02:41:57] [INFO] [BuildingLevel] Enemy tracking complete: 10 enemies registered
+[02:41:57] [INFO] [ScoreManager] Level started with 10 enemies
+[02:41:57] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 1)
+[02:41:57] [ENEMY] [Enemy1] Registered as sound listener
+[02:41:57] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 2, behavior: GUARD, player_found: yes
+[02:41:57] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 2)
+[02:41:57] [ENEMY] [Enemy2] Registered as sound listener
+[02:41:57] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 4, behavior: GUARD, player_found: yes
+[02:41:57] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 3)
+[02:41:57] [ENEMY] [Enemy3] Registered as sound listener
+[02:41:57] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 3, behavior: GUARD, player_found: yes
+[02:41:57] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 4)
+[02:41:57] [ENEMY] [Enemy4] Registered as sound listener
+[02:41:57] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 4, behavior: GUARD, player_found: yes
+[02:41:57] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 5)
+[02:41:57] [ENEMY] [Enemy5] Registered as sound listener
+[02:41:57] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 2, behavior: GUARD, player_found: yes
+[02:41:57] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 6)
+[02:41:57] [ENEMY] [Enemy6] Registered as sound listener
+[02:41:57] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 3, behavior: GUARD, player_found: yes
+[02:41:57] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 7)
+[02:41:57] [ENEMY] [Enemy7] Registered as sound listener
+[02:41:57] [ENEMY] [Enemy7] Enemy spawned at (1606.114, 893.8859), health: 4, behavior: PATROL, player_found: yes
+[02:41:57] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 8)
+[02:41:57] [ENEMY] [Enemy8] Registered as sound listener
+[02:41:57] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 2, behavior: GUARD, player_found: yes
+[02:41:57] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 9)
+[02:41:57] [ENEMY] [Enemy9] Registered as sound listener
+[02:41:57] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 4, behavior: GUARD, player_found: yes
+[02:41:57] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 10)
+[02:41:57] [ENEMY] [Enemy10] Registered as sound listener
+[02:41:57] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 2, behavior: PATROL, player_found: yes
+[02:41:57] [INFO] [Player] Detecting weapon pose (frame 3)...
+[02:41:57] [INFO] [Player] Detected weapon: Rifle (default pose)
+[02:41:57] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[02:41:57] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[02:41:57] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[02:41:57] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[02:41:57] [INFO] [LastChance] Found player: Player
+[02:41:57] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[02:41:57] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[02:41:57] [INFO] [LastChance] Connected to player Died signal (C#)
+[02:41:58] [INFO] [Player] Invincibility mode: ON
+[02:41:58] [INFO] [GameManager] Invincibility mode toggled: ON
+[02:42:00] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[02:42:00] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[02:42:00] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1149.682, 1574.92), source=ENEMY (Enemy10), range=1469, listeners=10
+[02:42:00] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=1, below_threshold=8
+[02:42:00] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[02:42:00] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[02:42:01] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1092.463, 1538.087), shooter_id=45634029200, bullet_pos=(61.44994, 692.634)
+[02:42:01] [INFO] [Bullet] Using shooter_position, distance=1333.33410644531
+[02:42:01] [INFO] [Bullet] Distance to wall: 1333.33410644531 (90.7891710930902% of viewport)
+[02:42:01] [INFO] [Bullet] Distance-based penetration chance: 40.7459670580615%
+[02:42:01] [INFO] [Bullet] Starting wall penetration at (61.44994, 692.634)
+[02:42:01] [ENEMY] [Enemy3] State: IDLE -> COMBAT
+[02:42:01] [INFO] [Bullet] Raycast backward hit penetrating body at distance 8.58124446868896
+[02:42:01] [INFO] [Bullet] Body exited signal received for penetrating body
+[02:42:01] [INFO] [Bullet] Exiting penetration at (25.36448, 663.0432) after traveling 41.6666679382324 pixels through wall
+[02:42:01] [INFO] [Bullet] Damage multiplier after penetration: 0.9
+[02:42:01] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(684.4832, 753.9004), source=ENEMY (Enemy3), range=1469, listeners=10
+[02:42:01] [ENEMY] [Enemy2] Heard gunshot at (684.4832, 753.9004), source_type=1, intensity=0.02, distance=350
+[02:42:01] [ENEMY] [Enemy4] Heard gunshot at (684.4832, 753.9004), source_type=1, intensity=0.07, distance=186
+[02:42:01] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[02:42:01] [INFO] [LastChance] Threat detected: Bullet
+[02:42:01] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:01] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:01] [ENEMY] [Enemy1] Memory: medium confidence (0.63) - transitioning to PURSUING
+[02:42:01] [ENEMY] [Enemy1] State: IDLE -> PURSUING
+[02:42:01] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:01] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(684.4832, 753.9004), source=ENEMY (Enemy3), range=1469, listeners=10
+[02:42:01] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[02:42:01] [INFO] [LastChance] Threat detected: Bullet
+[02:42:01] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:01] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:01] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:01] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(684.4832, 753.9004), source=ENEMY (Enemy3), range=1469, listeners=10
+[02:42:01] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[02:42:01] [INFO] [LastChance] Threat detected: Bullet
+[02:42:01] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:01] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:01] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:01] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(684.4832, 753.9004), source=ENEMY (Enemy3), range=1469, listeners=10
+[02:42:01] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[02:42:01] [INFO] [LastChance] Threat detected: Bullet
+[02:42:01] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:01] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:01] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:01] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(684.4832, 753.9004), source=ENEMY (Enemy3), range=1469, listeners=10
+[02:42:01] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[02:42:01] [INFO] [LastChance] Threat detected: Bullet
+[02:42:01] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:01] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:01] [ENEMY] [Enemy4] State: COMBAT -> PURSUING
+[02:42:01] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[02:42:01] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:01] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(684.4832, 753.9004), source=ENEMY (Enemy3), range=1469, listeners=10
+[02:42:01] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[02:42:01] [INFO] [LastChance] Threat detected: Bullet
+[02:42:01] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:01] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:01] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:01] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(684.4832, 753.9004), source=ENEMY (Enemy3), range=1469, listeners=10
+[02:42:01] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[02:42:02] [INFO] [LastChance] Threat detected: Bullet
+[02:42:02] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:02] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:02] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:02] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(684.4832, 753.9004), source=ENEMY (Enemy3), range=1469, listeners=10
+[02:42:02] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[02:42:02] [INFO] [LastChance] Threat detected: Bullet
+[02:42:02] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:02] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:02] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:02] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(684.4832, 753.9004), source=ENEMY (Enemy3), range=1469, listeners=10
+[02:42:02] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[02:42:02] [INFO] [LastChance] Threat detected: Bullet
+[02:42:02] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:02] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:02] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:02] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(684.4832, 753.9004), source=ENEMY (Enemy3), range=1469, listeners=10
+[02:42:02] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=1, self=1, below_threshold=5
+[02:42:02] [INFO] [LastChance] Threat detected: Bullet
+[02:42:02] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:02] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:02] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:02] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(684.4832, 753.9004), source=ENEMY (Enemy3), range=1469, listeners=10
+[02:42:02] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=1, self=1, below_threshold=5
+[02:42:02] [INFO] [LastChance] Threat detected: Bullet
+[02:42:02] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:02] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:02] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:02] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(684.4832, 753.9004), source=ENEMY (Enemy3), range=1469, listeners=10
+[02:42:02] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=1, self=1, below_threshold=5
+[02:42:02] [INFO] [LastChance] Threat detected: Bullet
+[02:42:02] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:02] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:02] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:02] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(684.4832, 753.9004), source=ENEMY (Enemy3), range=1469, listeners=10
+[02:42:02] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=1, self=1, below_threshold=5
+[02:42:02] [INFO] [LastChance] Threat detected: Bullet
+[02:42:02] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:02] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:02] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:02] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(684.4832, 753.9004), source=ENEMY (Enemy3), range=1469, listeners=10
+[02:42:02] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=1, self=1, below_threshold=5
+[02:42:02] [INFO] [LastChance] Threat detected: Bullet
+[02:42:02] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:02] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:02] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:02] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(684.4832, 753.9004), source=ENEMY (Enemy3), range=1469, listeners=10
+[02:42:02] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=1, self=1, below_threshold=5
+[02:42:02] [INFO] [LastChance] Threat detected: Bullet
+[02:42:02] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:02] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:03] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:03] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(684.4832, 753.9004), source=ENEMY (Enemy3), range=1469, listeners=10
+[02:42:03] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=1, self=1, below_threshold=5
+[02:42:03] [INFO] [LastChance] Threat detected: Bullet
+[02:42:03] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:03] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:03] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:03] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(684.4832, 753.9004), source=ENEMY (Enemy3), range=1469, listeners=10
+[02:42:03] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=1, self=1, below_threshold=5
+[02:42:03] [INFO] [LastChance] Threat detected: Bullet
+[02:42:03] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:03] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:03] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:03] [ENEMY] [Enemy3] State: COMBAT -> SEEKING_COVER
+[02:42:03] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(684.4832, 753.9004), source=ENEMY (Enemy3), range=1469, listeners=10
+[02:42:03] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=1, self=1, below_threshold=5
+[02:42:03] [INFO] [LastChance] Threat detected: Bullet
+[02:42:03] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:03] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:03] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:03] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(653.8582, 775.2516), source=ENEMY (Enemy3), range=1469, listeners=10
+[02:42:03] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=1, self=1, below_threshold=5
+[02:42:03] [INFO] [LastChance] Threat detected: Bullet
+[02:42:03] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:03] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:03] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:03] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(623.2332, 796.6029), source=ENEMY (Enemy3), range=1469, listeners=10
+[02:42:03] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=1, self=1, below_threshold=5
+[02:42:03] [INFO] [LastChance] Threat detected: Bullet
+[02:42:03] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:03] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:03] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(592.6082, 817.9543), source=ENEMY (Enemy3), range=1469, listeners=10
+[02:42:03] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=1, self=1, below_threshold=5
+[02:42:03] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(522.4769, 806.1649), shooter_id=43637540377, bullet_pos=(522.4769, 806.1649)
+[02:42:03] [INFO] [Bullet] Using shooter_position, distance=0
+[02:42:03] [INFO] [Bullet] Distance to wall: 0 (0% of viewport)
+[02:42:03] [INFO] [Bullet] Point-blank shot - 100% penetration, ignoring ricochet
+[02:42:03] [INFO] [Bullet] Starting wall penetration at (522.4769, 806.1649)
+[02:42:03] [INFO] [LastChance] Threat detected: @Area2D@306
+[02:42:03] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:03] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:03] [INFO] [Bullet] Raycast backward hit penetrating body at distance 23.3640270233154
+[02:42:03] [INFO] [Bullet] Body exited signal received for penetrating body
+[02:42:03] [INFO] [Bullet] Exiting penetration at (477.4639, 793.8517) after traveling 41.6666679382324 pixels through wall
+[02:42:03] [INFO] [Bullet] Damage multiplier after penetration: 0.9
+[02:42:03] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(552.1179, 796.5234), shooter_id=43637540377, bullet_pos=(54.69538, 745.8185)
+[02:42:03] [INFO] [Bullet] Using shooter_position, distance=500.000122070313
+[02:42:03] [INFO] [Bullet] Distance to wall: 500.000122070313 (34.0459277309198% of viewport)
+[02:42:03] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[02:42:03] [ENEMY] [Enemy3] State: SEEKING_COVER -> IN_COVER
+[02:42:03] [ENEMY] [Enemy3] State: IN_COVER -> PURSUING
+[02:42:04] [ENEMY] [Enemy10] FLANKING started: target=(421.2209, 959.9302), side=right, pos=(954.4076, 1423.309)
+[02:42:04] [ENEMY] [Enemy10] State: PURSUING -> FLANKING
+[02:42:04] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[02:42:04] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(602.218, 737.5889), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[02:42:04] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=2, self=0, below_threshold=4
+[02:42:04] [ENEMY] [Enemy1] Player distracted - priority attack triggered
+[02:42:04] [ENEMY] [Enemy2] Hit taken, health: 3/4
+[02:42:04] [ENEMY] [Enemy2] ImpactEffectsManager found, calling spawn_blood_effect
+[02:42:04] [INFO] [ImpactEffects] spawn_blood_effect called at (447.0854, 663.933), dir=(1, 0), lethal=false
+[02:42:04] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[02:42:04] [INFO] [ImpactEffects] Blood decals scheduled: 4 to spawn at particle landing times
+[02:42:04] [INFO] [ImpactEffects] Blood effect spawned at (447.0854, 663.933) (scale=1)
+[02:42:04] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(627.7429, 710.3786), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[02:42:04] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=2, self=0, below_threshold=4
+[02:42:04] [ENEMY] [Enemy2] Hit taken, health: 2/4
+[02:42:04] [ENEMY] [Enemy2] ImpactEffectsManager found, calling spawn_blood_effect
+[02:42:04] [INFO] [ImpactEffects] spawn_blood_effect called at (447.0854, 663.933), dir=(1, 0), lethal=false
+[02:42:04] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[02:42:04] [INFO] [ImpactEffects] Blood decals scheduled: 4 to spawn at particle landing times
+[02:42:04] [INFO] [ImpactEffects] Blood effect spawned at (447.0854, 663.933) (scale=1)
+[02:42:04] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[02:42:04] [ENEMY] [Enemy2] State: PURSUING -> RETREATING
+[02:42:04] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(643.9441, 692.2072), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[02:42:04] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=1, self=0, below_threshold=5
+[02:42:05] [ENEMY] [Enemy2] Hit taken, health: 1/4
+[02:42:05] [ENEMY] [Enemy2] ImpactEffectsManager found, calling spawn_blood_effect
+[02:42:05] [INFO] [ImpactEffects] spawn_blood_effect called at (447.9699, 653.2968), dir=(1, 0), lethal=false
+[02:42:05] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[02:42:05] [INFO] [ImpactEffects] Blood decals scheduled: 4 to spawn at particle landing times
+[02:42:05] [INFO] [ImpactEffects] Blood effect spawned at (447.9699, 653.2968) (scale=1)
+[02:42:05] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(650.3002, 685.0781), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[02:42:05] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=1, self=0, below_threshold=5
+[02:42:05] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(650.7317, 684.5941), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[02:42:05] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=1, self=0, below_threshold=5
+[02:42:05] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(650.30023, 685.07806), shooter_id=46456112833, bullet_pos=(60.811928, 634.3534)
+[02:42:05] [INFO] [Bullet] Using shooter_position, distance=591,6667
+[02:42:05] [INFO] [Bullet] Distance to wall: 591,6667 (40,287674% of viewport)
+[02:42:05] [ENEMY] [Enemy2] State: RETREATING -> IN_COVER
+[02:42:05] [ENEMY] [Enemy3] Player distracted - priority attack triggered
+[02:42:05] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(548.0664, 829.2661), source=ENEMY (Enemy3), range=1469, listeners=10
+[02:42:05] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=2, self=1, below_threshold=3
+[02:42:05] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(650.7317, 684.5941), shooter_id=46456112833, bullet_pos=(63.656067, 611.0287)
+[02:42:05] [INFO] [Bullet] Using shooter_position, distance=591,6669
+[02:42:05] [INFO] [Bullet] Distance to wall: 591,6669 (40,287685% of viewport)
+[02:42:05] [INFO] [Bullet] Distance-based penetration chance: 99,66437%
+[02:42:05] [INFO] [Bullet] Starting wall penetration at (63.656067, 611.0287)
+[02:42:05] [INFO] [LastChance] Threat detected: Bullet
+[02:42:05] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:05] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:05] [ENEMY] [Enemy2] State: IN_COVER -> SUPPRESSED
+[02:42:05] [ENEMY] [Enemy3] State: PURSUING -> COMBAT
+[02:42:05] [INFO] [Bullet] Raycast backward hit penetrating body at distance 6,429703
+[02:42:05] [INFO] [Bullet] Body exited signal received for penetrating body
+[02:42:05] [INFO] [Bullet] Exiting penetration at (25.62019, 606.26245) after traveling 33,333336 pixels through wall
+[02:42:05] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[02:42:05] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:05] [ENEMY] [Enemy3] Player distracted - priority attack triggered
+[02:42:05] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(548.0664, 823.8306), source=ENEMY (Enemy3), range=1469, listeners=10
+[02:42:05] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=2, self=1, below_threshold=3
+[02:42:05] [INFO] [LastChance] Threat detected: Bullet
+[02:42:05] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:05] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:05] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:05] [ENEMY] [Enemy3] Player distracted - priority attack triggered
+[02:42:05] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(548.0664, 823.8306), source=ENEMY (Enemy3), range=1469, listeners=10
+[02:42:05] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=2, self=1, below_threshold=3
+[02:42:05] [INFO] [LastChance] Threat detected: Bullet
+[02:42:05] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:05] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:05] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:05] [ENEMY] [Enemy3] Player distracted - priority attack triggered
+[02:42:05] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(548.0664, 823.8306), source=ENEMY (Enemy3), range=1469, listeners=10
+[02:42:05] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=2, self=1, below_threshold=3
+[02:42:05] [INFO] [LastChance] Threat detected: Bullet
+[02:42:05] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:05] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:05] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:06] [ENEMY] [Enemy3] Player distracted - priority attack triggered
+[02:42:06] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(548.0664, 823.8306), source=ENEMY (Enemy3), range=1469, listeners=10
+[02:42:06] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=2, self=1, below_threshold=3
+[02:42:06] [INFO] [LastChance] Threat detected: Bullet
+[02:42:06] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:06] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:06] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:06] [ENEMY] [Enemy3] Player distracted - priority attack triggered
+[02:42:06] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(548.0664, 823.8306), source=ENEMY (Enemy3), range=1469, listeners=10
+[02:42:06] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=2, self=1, below_threshold=3
+[02:42:06] [INFO] [LastChance] Threat detected: Bullet
+[02:42:06] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:06] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:06] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:06] [ENEMY] [Enemy3] Player distracted - priority attack triggered
+[02:42:06] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(548.0664, 823.8306), source=ENEMY (Enemy3), range=1469, listeners=10
+[02:42:06] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=2, self=1, below_threshold=3
+[02:42:06] [INFO] [LastChance] Threat detected: Bullet
+[02:42:06] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:06] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:06] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:06] [ENEMY] [Enemy3] Player distracted - priority attack triggered
+[02:42:06] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(548.0664, 823.8306), source=ENEMY (Enemy3), range=1469, listeners=10
+[02:42:06] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=2, self=1, below_threshold=3
+[02:42:06] [INFO] [LastChance] Threat detected: Bullet
+[02:42:06] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:06] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:06] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:06] [ENEMY] [Enemy3] Player distracted - priority attack triggered
+[02:42:06] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(548.0664, 823.8306), source=ENEMY (Enemy3), range=1469, listeners=10
+[02:42:06] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=2, self=1, below_threshold=3
+[02:42:06] [INFO] [LastChance] Threat detected: Bullet
+[02:42:06] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:06] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:06] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:06] [ENEMY] [Enemy2] State: SUPPRESSED -> SEEKING_COVER
+[02:42:06] [ENEMY] [Enemy2] State: SEEKING_COVER -> IN_COVER
+[02:42:06] [ENEMY] [Enemy2] State: IN_COVER -> SUPPRESSED
+[02:42:06] [ENEMY] [Enemy2] State: SUPPRESSED -> SEEKING_COVER
+[02:42:06] [ENEMY] [Enemy2] State: SEEKING_COVER -> IN_COVER
+[02:42:06] [ENEMY] [Enemy2] State: IN_COVER -> SUPPRESSED
+[02:42:07] [ENEMY] [Enemy1] Player distracted - priority attack triggered
+[02:42:07] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(464.0569, 563.0496), source=ENEMY (Enemy1), range=1469, listeners=10
+[02:42:07] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=3, self=1, below_threshold=2
+[02:42:07] [ENEMY] [Enemy1] State: PURSUING -> COMBAT
+[02:42:07] [INFO] [LastChance] Threat detected: Bullet
+[02:42:07] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:07] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:07] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[02:42:07] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(568.8437, 901.2082), source=ENEMY (Enemy4), range=1469, listeners=10
+[02:42:07] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=1, self=1, below_threshold=4
+[02:42:07] [INFO] [LastChance] Threat detected: @Area2D@335
+[02:42:07] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:07] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:07] [ENEMY] [Enemy4] State: PURSUING -> COMBAT
+[02:42:07] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:07] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:07] [ENEMY] [Enemy1] Player distracted - priority attack triggered
+[02:42:07] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(466.2569, 575.6592), source=ENEMY (Enemy1), range=1469, listeners=10
+[02:42:07] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=3, self=1, below_threshold=2
+[02:42:07] [INFO] [LastChance] Threat detected: Bullet
+[02:42:07] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:07] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:07] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[02:42:07] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(573.772, 889.395), source=ENEMY (Enemy4), range=1469, listeners=10
+[02:42:07] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=1, self=1, below_threshold=4
+[02:42:07] [INFO] [LastChance] Threat detected: @Area2D@338
+[02:42:07] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:07] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:07] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:07] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:07] [ENEMY] [Enemy1] Player distracted - priority attack triggered
+[02:42:07] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(466.2569, 575.6592), source=ENEMY (Enemy1), range=1469, listeners=10
+[02:42:07] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=3, self=1, below_threshold=2
+[02:42:07] [INFO] [LastChance] Threat detected: Bullet
+[02:42:07] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:07] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:07] [ENEMY] [Enemy3] State: COMBAT -> RETREATING
+[02:42:07] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[02:42:07] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(573.772, 889.395), source=ENEMY (Enemy4), range=1469, listeners=10
+[02:42:07] [ENEMY] [Enemy3] Heard gunshot at (573.772, 889.395), source_type=1, intensity=0.51, distance=70
+[02:42:07] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=1, self=1, below_threshold=4
+[02:42:07] [INFO] [LastChance] Threat detected: @Area2D@341
+[02:42:07] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:07] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:07] [ENEMY] [Enemy3] State: COMBAT -> RETREATING
+[02:42:07] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:07] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:07] [ENEMY] [Enemy1] Player distracted - priority attack triggered
+[02:42:07] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(466.2569, 575.6592), source=ENEMY (Enemy1), range=1469, listeners=10
+[02:42:07] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=3, self=1, below_threshold=2
+[02:42:07] [INFO] [LastChance] Threat detected: Bullet
+[02:42:07] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:07] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:07] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[02:42:07] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(573.772, 889.395), source=ENEMY (Enemy4), range=1469, listeners=10
+[02:42:07] [ENEMY] [Enemy3] Heard gunshot at (573.772, 889.395), source_type=1, intensity=0.58, distance=66
+[02:42:07] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=1, self=1, below_threshold=4
+[02:42:07] [INFO] [LastChance] Threat detected: @Area2D@344
+[02:42:07] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:07] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:07] [ENEMY] [Enemy3] State: COMBAT -> RETREATING
+[02:42:07] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:07] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:07] [ENEMY] [Enemy1] Player distracted - priority attack triggered
+[02:42:07] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(466.2569, 575.6592), source=ENEMY (Enemy1), range=1469, listeners=10
+[02:42:07] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=3, self=1, below_threshold=2
+[02:42:08] [INFO] [LastChance] Threat detected: Bullet
+[02:42:08] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:08] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:08] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[02:42:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(573.772, 889.395), source=ENEMY (Enemy4), range=1469, listeners=10
+[02:42:08] [ENEMY] [Enemy3] Heard gunshot at (573.772, 889.395), source_type=1, intensity=0.87, distance=54
+[02:42:08] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=1, self=1, below_threshold=4
+[02:42:08] [INFO] [LastChance] Threat detected: @Area2D@347
+[02:42:08] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:08] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:08] [ENEMY] [Enemy3] Hit taken, health: 2/3
+[02:42:08] [ENEMY] [Enemy3] ImpactEffectsManager found, calling spawn_blood_effect
+[02:42:08] [INFO] [ImpactEffects] spawn_blood_effect called at (591.4727, 838.6964), dir=(0.45478, -0.890604), lethal=false
+[02:42:08] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[02:42:08] [INFO] [ImpactEffects] Blood decals scheduled: 4 to spawn at particle landing times
+[02:42:08] [INFO] [ImpactEffects] Blood effect spawned at (591.4727, 838.6964) (scale=1)
+[02:42:08] [ENEMY] [Enemy3] State: COMBAT -> RETREATING
+[02:42:08] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:08] [ENEMY] [Enemy1] Player distracted - priority attack triggered
+[02:42:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(466.2569, 575.6592), source=ENEMY (Enemy1), range=1469, listeners=10
+[02:42:08] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=3, self=1, below_threshold=2
+[02:42:08] [INFO] [LastChance] Threat detected: Bullet
+[02:42:08] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:08] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:08] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[02:42:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(573.772, 889.395), source=ENEMY (Enemy4), range=1469, listeners=10
+[02:42:08] [ENEMY] [Enemy3] Heard gunshot at (573.772, 889.395), source_type=1, intensity=0.88, distance=53
+[02:42:08] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=1, self=1, below_threshold=4
+[02:42:08] [INFO] [LastChance] Threat detected: @Area2D@350
+[02:42:08] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:08] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:08] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:08] [ENEMY] [Enemy3] State: COMBAT -> RETREATING
+[02:42:08] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:08] [ENEMY] [Enemy1] Player distracted - priority attack triggered
+[02:42:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(466.2569, 575.6592), source=ENEMY (Enemy1), range=1469, listeners=10
+[02:42:08] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=3, self=1, below_threshold=2
+[02:42:08] [INFO] [LastChance] Threat detected: Bullet
+[02:42:08] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:08] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:08] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[02:42:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(573.772, 889.395), source=ENEMY (Enemy4), range=1469, listeners=10
+[02:42:08] [ENEMY] [Enemy3] Heard gunshot at (573.772, 889.395), source_type=1, intensity=1.00, distance=46
+[02:42:08] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=1, self=1, below_threshold=4
+[02:42:08] [INFO] [LastChance] Threat detected: @Area2D@353
+[02:42:08] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:08] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:08] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:08] [ENEMY] [Enemy3] Hit taken, health: 1/3
+[02:42:08] [ENEMY] [Enemy3] ImpactEffectsManager found, calling spawn_blood_effect
+[02:42:08] [INFO] [ImpactEffects] spawn_blood_effect called at (589.5193, 845.8819), dir=(0.45478, -0.890604), lethal=false
+[02:42:08] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[02:42:08] [INFO] [ImpactEffects] Blood decals scheduled: 4 to spawn at particle landing times
+[02:42:08] [INFO] [ImpactEffects] Blood effect spawned at (589.5193, 845.8819) (scale=1)
+[02:42:08] [ENEMY] [Enemy3] State: COMBAT -> RETREATING
+[02:42:08] [ENEMY] [Enemy1] Player distracted - priority attack triggered
+[02:42:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(466.2569, 575.6592), source=ENEMY (Enemy1), range=1469, listeners=10
+[02:42:08] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=3, self=1, below_threshold=2
+[02:42:08] [INFO] [LastChance] Threat detected: Bullet
+[02:42:08] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:08] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:08] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[02:42:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(573.772, 889.395), source=ENEMY (Enemy4), range=1469, listeners=10
+[02:42:08] [ENEMY] [Enemy3] Heard gunshot at (573.772, 889.395), source_type=1, intensity=1.00, distance=45
+[02:42:08] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=1, self=1, below_threshold=4
+[02:42:08] [INFO] [LastChance] Threat detected: @Area2D@358
+[02:42:08] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:08] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:08] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:08] [ENEMY] [Enemy3] Hit taken, health: 0/3
+[02:42:08] [ENEMY] [Enemy3] ImpactEffectsManager found, calling spawn_blood_effect
+[02:42:08] [INFO] [ImpactEffects] spawn_blood_effect called at (604.8112, 856.5855), dir=(0.45478, -0.890604), lethal=true
+[02:42:08] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[02:42:08] [INFO] [ImpactEffects] Blood decals scheduled: 8 to spawn at particle landing times
+[02:42:08] [INFO] [ImpactEffects] Blood effect spawned at (604.8112, 856.5855) (scale=1.5)
+[02:42:08] [ENEMY] [Enemy3] Enemy died (ricochet: false, penetration: false)
+[02:42:08] [INFO] [ScoreManager] Kill registered. Combo: 1 (points: 500)
+[02:42:08] [INFO] [SoundPropagation] Unregistered listener: Enemy3 (remaining: 9)
+[02:42:08] [INFO] [DeathAnim] Started - Angle: -62.9 deg, Index: 7
+[02:42:08] [ENEMY] [Enemy3] Death animation started with hit direction: (0.45478, -0.890604)
+[02:42:08] [ENEMY] [Enemy1] Player distracted - priority attack triggered
+[02:42:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(466.2569, 575.6592), source=ENEMY (Enemy1), range=1469, listeners=9
+[02:42:08] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=3, self=1, below_threshold=2
+[02:42:08] [INFO] [LastChance] Threat detected: Bullet
+[02:42:08] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:08] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:08] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[02:42:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(573.772, 889.395), source=ENEMY (Enemy4), range=1469, listeners=9
+[02:42:08] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=1, self=1, below_threshold=4
+[02:42:08] [INFO] [LastChance] Threat detected: @Area2D@363
+[02:42:08] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:08] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:08] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:08] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:08] [ENEMY] [Enemy1] Player distracted - priority attack triggered
+[02:42:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(466.2569, 575.6592), source=ENEMY (Enemy1), range=1469, listeners=9
+[02:42:08] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=3, self=1, below_threshold=2
+[02:42:08] [INFO] [LastChance] Threat detected: Bullet
+[02:42:08] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:08] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:08] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[02:42:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(573.772, 889.395), source=ENEMY (Enemy4), range=1469, listeners=9
+[02:42:08] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=1, self=1, below_threshold=4
+[02:42:08] [INFO] [LastChance] Threat detected: @Area2D@368
+[02:42:08] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:08] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:08] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:08] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:08] [ENEMY] [Enemy1] Player distracted - priority attack triggered
+[02:42:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(466.2569, 575.6592), source=ENEMY (Enemy1), range=1469, listeners=9
+[02:42:08] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=3, self=1, below_threshold=2
+[02:42:08] [INFO] [LastChance] Threat detected: Bullet
+[02:42:08] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:08] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:08] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[02:42:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(573.772, 889.395), source=ENEMY (Enemy4), range=1469, listeners=9
+[02:42:08] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=1, self=1, below_threshold=4
+[02:42:08] [INFO] [LastChance] Threat detected: @Area2D@375
+[02:42:08] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:08] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:08] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:08] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:08] [ENEMY] [Enemy1] Player distracted - priority attack triggered
+[02:42:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(466.2569, 575.6592), source=ENEMY (Enemy1), range=1469, listeners=9
+[02:42:08] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=3, self=1, below_threshold=2
+[02:42:08] [INFO] [LastChance] Threat detected: Bullet
+[02:42:08] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:08] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:08] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[02:42:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(573.772, 889.395), source=ENEMY (Enemy4), range=1469, listeners=9
+[02:42:08] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=1, self=1, below_threshold=4
+[02:42:08] [INFO] [LastChance] Threat detected: @Area2D@378
+[02:42:08] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:08] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:08] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:08] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[02:42:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(473.331, 736.067), source=ENEMY (Enemy10), range=1469, listeners=9
+[02:42:08] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=3, self=1, below_threshold=2
+[02:42:08] [ENEMY] [Enemy3] Ragdoll activated
+[02:42:08] [INFO] [DeathAnim] Ragdoll activated at 60% fall progress
+[02:42:08] [INFO] [LastChance] Threat detected: @Area2D@382
+[02:42:08] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:08] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:08] [ENEMY] [Enemy10] State: FLANKING -> COMBAT
+[02:42:08] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:08] [ENEMY] [Enemy1] Player distracted - priority attack triggered
+[02:42:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(466.2569, 575.6592), source=ENEMY (Enemy1), range=1469, listeners=9
+[02:42:08] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=3, self=1, below_threshold=2
+[02:42:08] [INFO] [LastChance] Threat detected: Bullet
+[02:42:08] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:08] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:08] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:08] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[02:42:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(573.772, 889.395), source=ENEMY (Enemy4), range=1469, listeners=9
+[02:42:08] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=1, self=1, below_threshold=4
+[02:42:08] [INFO] [LastChance] Threat detected: @Area2D@398
+[02:42:08] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:08] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:08] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:08] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[02:42:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(472.814, 736.067), source=ENEMY (Enemy10), range=1469, listeners=9
+[02:42:08] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=3, self=1, below_threshold=2
+[02:42:09] [INFO] [LastChance] Threat detected: @Area2D@400
+[02:42:09] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:09] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:09] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:09] [ENEMY] [Enemy1] Player distracted - priority attack triggered
+[02:42:09] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(466.2569, 575.6592), source=ENEMY (Enemy1), range=1469, listeners=9
+[02:42:09] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=3, self=1, below_threshold=2
+[02:42:09] [INFO] [LastChance] Threat detected: Bullet
+[02:42:09] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:09] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:09] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:09] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[02:42:09] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(573.772, 889.395), source=ENEMY (Enemy4), range=1469, listeners=9
+[02:42:09] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=1, self=1, below_threshold=4
+[02:42:09] [INFO] [LastChance] Threat detected: @Area2D@406
+[02:42:09] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:09] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:09] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:09] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[02:42:09] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(472.814, 736.067), source=ENEMY (Enemy10), range=1469, listeners=9
+[02:42:09] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=3, self=1, below_threshold=2
+[02:42:09] [INFO] [LastChance] Threat detected: @Area2D@408
+[02:42:09] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:09] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:09] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:09] [ENEMY] [Enemy1] Player distracted - priority attack triggered
+[02:42:09] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(466.2569, 575.6592), source=ENEMY (Enemy1), range=1469, listeners=9
+[02:42:09] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=3, self=1, below_threshold=2
+[02:42:09] [INFO] [LastChance] Threat detected: Bullet
+[02:42:09] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:09] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:09] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:09] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[02:42:09] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(573.772, 889.395), source=ENEMY (Enemy4), range=1469, listeners=9
+[02:42:09] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=1, self=1, below_threshold=4
+[02:42:09] [INFO] [LastChance] Threat detected: @Area2D@411
+[02:42:09] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:09] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:09] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:09] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[02:42:09] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(472.814, 736.067), source=ENEMY (Enemy10), range=1469, listeners=9
+[02:42:09] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=3, self=1, below_threshold=2
+[02:42:09] [INFO] [LastChance] Threat detected: @Area2D@413
+[02:42:09] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:09] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:09] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:09] [ENEMY] [Enemy1] Player distracted - priority attack triggered
+[02:42:09] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(466.2569, 575.6592), source=ENEMY (Enemy1), range=1469, listeners=9
+[02:42:09] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=3, self=1, below_threshold=2
+[02:42:09] [INFO] [LastChance] Threat detected: Bullet
+[02:42:09] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:09] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:09] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:09] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[02:42:09] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(573.772, 889.395), source=ENEMY (Enemy4), range=1469, listeners=9
+[02:42:09] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=1, self=1, below_threshold=4
+[02:42:09] [INFO] [LastChance] Threat detected: @Area2D@416
+[02:42:09] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:09] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:09] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:09] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[02:42:09] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(472.814, 736.067), source=ENEMY (Enemy10), range=1469, listeners=9
+[02:42:09] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=3, self=1, below_threshold=2
+[02:42:09] [INFO] [LastChance] Threat detected: @Area2D@418
+[02:42:09] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:09] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:09] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:09] [ENEMY] [Enemy1] Player distracted - priority attack triggered
+[02:42:09] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(466.2569, 575.6592), source=ENEMY (Enemy1), range=1469, listeners=9
+[02:42:09] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=3, self=1, below_threshold=2
+[02:42:09] [INFO] [LastChance] Threat detected: Bullet
+[02:42:09] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:09] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:09] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:09] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[02:42:09] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(573.772, 889.395), source=ENEMY (Enemy4), range=1469, listeners=9
+[02:42:09] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=1, self=1, below_threshold=4
+[02:42:09] [INFO] [LastChance] Threat detected: @Area2D@421
+[02:42:09] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:09] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:09] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:09] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[02:42:09] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(472.814, 736.067), source=ENEMY (Enemy10), range=1469, listeners=9
+[02:42:09] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=3, self=1, below_threshold=2
+[02:42:09] [INFO] [LastChance] Threat detected: @Area2D@423
+[02:42:09] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:09] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:09] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:09] [ENEMY] [Enemy1] Player distracted - priority attack triggered
+[02:42:09] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(466.2569, 575.6592), source=ENEMY (Enemy1), range=1469, listeners=9
+[02:42:09] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=3, self=1, below_threshold=2
+[02:42:09] [INFO] [LastChance] Threat detected: Bullet
+[02:42:09] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:09] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:09] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:09] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[02:42:09] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(573.772, 889.395), source=ENEMY (Enemy4), range=1469, listeners=9
+[02:42:09] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=1, self=1, below_threshold=4
+[02:42:09] [INFO] [LastChance] Threat detected: @Area2D@426
+[02:42:09] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:09] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:09] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:09] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[02:42:09] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(472.814, 736.067), source=ENEMY (Enemy10), range=1469, listeners=9
+[02:42:09] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=3, self=1, below_threshold=2
+[02:42:09] [INFO] [LastChance] Threat detected: @Area2D@428
+[02:42:09] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:09] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:09] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:09] [ENEMY] [Enemy1] Player distracted - priority attack triggered
+[02:42:09] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(466.2569, 575.6592), source=ENEMY (Enemy1), range=1469, listeners=9
+[02:42:09] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=3, self=1, below_threshold=2
+[02:42:09] [INFO] [LastChance] Threat detected: Bullet
+[02:42:09] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:09] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:09] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:09] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[02:42:09] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(573.772, 889.395), source=ENEMY (Enemy4), range=1469, listeners=9
+[02:42:09] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=1, self=1, below_threshold=4
+[02:42:09] [INFO] [LastChance] Threat detected: @Area2D@431
+[02:42:09] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:09] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:09] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:09] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[02:42:09] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(472.814, 736.067), source=ENEMY (Enemy10), range=1469, listeners=9
+[02:42:09] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=3, self=1, below_threshold=2
+[02:42:09] [INFO] [LastChance] Threat detected: @Area2D@433
+[02:42:09] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:09] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:09] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:09] [ENEMY] [Enemy1] Player distracted - priority attack triggered
+[02:42:09] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(466.2569, 575.6592), source=ENEMY (Enemy1), range=1469, listeners=9
+[02:42:09] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=3, self=1, below_threshold=2
+[02:42:09] [INFO] [LastChance] Threat detected: Bullet
+[02:42:09] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:09] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:09] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[02:42:09] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(573.772, 889.395), source=ENEMY (Enemy4), range=1469, listeners=9
+[02:42:09] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=1, self=1, below_threshold=4
+[02:42:09] [INFO] [LastChance] Threat detected: @Area2D@436
+[02:42:09] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:09] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:09] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:09] [ENEMY] [Enemy2] State: SUPPRESSED -> SEEKING_COVER
+[02:42:09] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[02:42:09] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(472.814, 736.067), source=ENEMY (Enemy10), range=1469, listeners=9
+[02:42:09] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=3, self=1, below_threshold=2
+[02:42:09] [INFO] [LastChance] Threat detected: @Area2D@438
+[02:42:09] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:09] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:09] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:09] [ENEMY] [Enemy1] Player distracted - priority attack triggered
+[02:42:09] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(466.2569, 575.6592), source=ENEMY (Enemy1), range=1469, listeners=9
+[02:42:09] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=3, self=1, below_threshold=2
+[02:42:09] [ENEMY] [Enemy2] State: SEEKING_COVER -> IN_COVER
+[02:42:09] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(540.2913, 744.8655), shooter_id=45634029200, bullet_pos=(915.2503, 750.4103)
+[02:42:09] [INFO] [Bullet] Using shooter_position, distance=374.999969482422
+[02:42:09] [INFO] [Bullet] Distance to wall: 374.999969482422 (25.5344374861978% of viewport)
+[02:42:09] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[02:42:09] [INFO] [Bullet] Starting wall penetration at (915.2503, 750.4103)
+[02:42:09] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:09] [ENEMY] [Enemy2] State: IN_COVER -> SUPPRESSED
+[02:42:09] [INFO] [Bullet] Raycast backward hit penetrating body at distance 25.9146976470947
+[02:42:09] [INFO] [Bullet] Body exited signal received for penetrating body
+[02:42:09] [INFO] [Bullet] Exiting penetration at (961.9119, 751.1003) after traveling 41.6666717529297 pixels through wall
+[02:42:09] [INFO] [Bullet] Damage multiplier after penetration: 0.9
+[02:42:09] [INFO] [LastChance] Threat detected: Bullet
+[02:42:09] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:09] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:09] [ENEMY] [Enemy3] Death animation completed
+[02:42:09] [ENEMY] [Enemy2] State: SUPPRESSED -> SEEKING_COVER
+[02:42:09] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[02:42:09] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(573.772, 889.395), source=ENEMY (Enemy4), range=1469, listeners=9
+[02:42:09] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=1, self=1, below_threshold=4
+[02:42:09] [INFO] [LastChance] Threat detected: @Area2D@441
+[02:42:09] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:09] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:09] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[02:42:09] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(472.814, 736.067), source=ENEMY (Enemy10), range=1469, listeners=9
+[02:42:09] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=3, self=1, below_threshold=2
+[02:42:09] [INFO] [LastChance] Threat detected: @Area2D@443
+[02:42:09] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:09] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:09] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:09] [ENEMY] [Enemy1] Player distracted - priority attack triggered
+[02:42:09] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(466.2569, 575.6592), source=ENEMY (Enemy1), range=1469, listeners=9
+[02:42:09] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=3, self=1, below_threshold=2
+[02:42:09] [INFO] [LastChance] Threat detected: Bullet
+[02:42:09] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:09] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:09] [ENEMY] [Enemy2] State: SEEKING_COVER -> IN_COVER
+[02:42:09] [ENEMY] [Enemy2] State: IN_COVER -> SUPPRESSED
+[02:42:10] [ENEMY] [Enemy1] State: COMBAT -> SEEKING_COVER
+[02:42:10] [ENEMY] [Enemy2] State: SUPPRESSED -> SEEKING_COVER
+[02:42:10] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:10] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[02:42:10] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(573.772, 889.395), source=ENEMY (Enemy4), range=1469, listeners=9
+[02:42:10] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=1, self=1, below_threshold=4
+[02:42:10] [INFO] [LastChance] Threat detected: @Area2D@446
+[02:42:10] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:10] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:10] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[02:42:10] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(472.814, 736.067), source=ENEMY (Enemy10), range=1469, listeners=9
+[02:42:10] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=3, self=1, below_threshold=2
+[02:42:10] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:10] [ENEMY] [Enemy10] State: COMBAT -> RETREATING
+[02:42:10] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[02:42:10] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(573.772, 889.395), source=ENEMY (Enemy4), range=1469, listeners=9
+[02:42:10] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=1, self=1, below_threshold=4
+[02:42:10] [INFO] [LastChance] Threat detected: @Area2D@449
+[02:42:10] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:10] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:10] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[02:42:10] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:10] [ENEMY] [Enemy1] State: SEEKING_COVER -> IN_COVER
+[02:42:10] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(540.1711, 745.7429), shooter_id=45634029200, bullet_pos=(915.0262, 756.1667)
+[02:42:10] [INFO] [Bullet] Using shooter_position, distance=375.000061035156
+[02:42:10] [INFO] [Bullet] Distance to wall: 375.000061035156 (25.5344437201918% of viewport)
+[02:42:10] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[02:42:10] [INFO] [Bullet] Starting wall penetration at (915.0262, 756.1667)
+[02:42:10] [ENEMY] [Enemy1] State: IN_COVER -> PURSUING
+[02:42:10] [INFO] [Bullet] Raycast backward hit penetrating body at distance 25.6847896575928
+[02:42:10] [INFO] [Bullet] Body exited signal received for penetrating body
+[02:42:10] [INFO] [Bullet] Exiting penetration at (961.6749, 757.4639) after traveling 41.6666679382324 pixels through wall
+[02:42:10] [INFO] [Bullet] Damage multiplier after penetration: 0.9
+[02:42:10] [ENEMY] [Enemy2] State: SEEKING_COVER -> IN_COVER
+[02:42:10] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[02:42:10] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(573.772, 889.395), source=ENEMY (Enemy4), range=1469, listeners=9
+[02:42:10] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=1, self=1, below_threshold=4
+[02:42:10] [INFO] [LastChance] Threat detected: Bullet
+[02:42:10] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:10] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:10] [ENEMY] [Enemy2] State: IN_COVER -> PURSUING
+[02:42:10] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[02:42:10] [ENEMY] [Enemy10] Hit taken, health: 1/2
+[02:42:10] [ENEMY] [Enemy10] ImpactEffectsManager found, calling spawn_blood_effect
+[02:42:10] [INFO] [ImpactEffects] spawn_blood_effect called at (477.9751, 763.9475), dir=(-0.424186, -0.905575), lethal=false
+[02:42:10] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[02:42:10] [INFO] [ImpactEffects] Blood decals scheduled: 4 to spawn at particle landing times
+[02:42:10] [INFO] [ImpactEffects] Wall found for blood splatter at (453.6421, 712) (dist=57 px)
+[02:42:10] [INFO] [ImpactEffects] Blood effect spawned at (477.9751, 763.9475) (scale=1)
+[02:42:10] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:10] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[02:42:10] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[02:42:10] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[02:42:10] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[02:42:10] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[02:42:10] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[02:42:10] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(573.772, 889.395), source=ENEMY (Enemy4), range=1469, listeners=9
+[02:42:10] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=1, self=1, below_threshold=4
+[02:42:10] [INFO] [LastChance] Threat detected: Bullet
+[02:42:10] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:10] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:10] [ENEMY] [Enemy10] Player distracted - priority attack triggered
+[02:42:10] [ENEMY] [Enemy10] Hit taken, health: 0/2
+[02:42:10] [ENEMY] [Enemy10] ImpactEffectsManager found, calling spawn_blood_effect
+[02:42:10] [INFO] [ImpactEffects] spawn_blood_effect called at (520.9703, 764.0069), dir=(-0.296662, -0.954983), lethal=true
+[02:42:10] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[02:42:10] [INFO] [ImpactEffects] Blood decals scheduled: 8 to spawn at particle landing times
+[02:42:10] [INFO] [ImpactEffects] Wall found for blood splatter at (500, 696.5014) (dist=70 px)
+[02:42:10] [INFO] [ImpactEffects] Blood effect spawned at (520.9703, 764.0069) (scale=1.5)
+[02:42:10] [ENEMY] [Enemy10] Enemy died (ricochet: false, penetration: false)
+[02:42:10] [INFO] [ScoreManager] Kill registered. Combo: 2 (points: 1500)
+[02:42:10] [INFO] [SoundPropagation] Unregistered listener: Enemy10 (remaining: 8)
+[02:42:10] [INFO] [DeathAnim] Started - Angle: -107.3 deg, Index: 4
+[02:42:10] [ENEMY] [Enemy10] Death animation started with hit direction: (-0.296662, -0.954983)
+[02:42:10] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[02:42:10] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(573.772, 889.395), source=ENEMY (Enemy4), range=1469, listeners=8
+[02:42:10] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=4
+[02:42:10] [INFO] [LastChance] Threat detected: Bullet
+[02:42:10] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:10] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:10] [ENEMY] [Enemy4] State: COMBAT -> SEEKING_COVER
+[02:42:11] [ENEMY] [Enemy10] Ragdoll activated
+[02:42:11] [INFO] [DeathAnim] Ragdoll activated at 60% fall progress
+[02:42:11] [ENEMY] [Enemy4] State: SEEKING_COVER -> IN_COVER
+[02:42:11] [ENEMY] [Enemy4] State: IN_COVER -> PURSUING
+[02:42:11] [ENEMY] [Enemy1] Player distracted - priority attack triggered
+[02:42:11] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(441.239, 627.5663), source=ENEMY (Enemy1), range=1469, listeners=8
+[02:42:11] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=1, below_threshold=2
+[02:42:11] [ENEMY] [Enemy1] State: PURSUING -> COMBAT
+[02:42:11] [INFO] [LastChance] Threat detected: Bullet
+[02:42:11] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:11] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:11] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:11] [ENEMY] [Enemy1] Player distracted - priority attack triggered
+[02:42:11] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(471.1315, 637.6318), source=ENEMY (Enemy1), range=1469, listeners=8
+[02:42:11] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=1, below_threshold=2
+[02:42:11] [INFO] [LastChance] Threat detected: Bullet
+[02:42:11] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:11] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:11] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:11] [ENEMY] [Enemy1] Player distracted - priority attack triggered
+[02:42:11] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(471.1315, 637.6318), source=ENEMY (Enemy1), range=1469, listeners=8
+[02:42:11] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=1, below_threshold=2
+[02:42:12] [INFO] [LastChance] Threat detected: Bullet
+[02:42:12] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:12] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:12] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:12] [ENEMY] [Enemy1] Player distracted - priority attack triggered
+[02:42:12] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(471.1315, 637.6318), source=ENEMY (Enemy1), range=1469, listeners=8
+[02:42:12] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=1, below_threshold=2
+[02:42:12] [INFO] [LastChance] Threat detected: Bullet
+[02:42:12] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:12] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:12] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:12] [ENEMY] [Enemy1] Player distracted - priority attack triggered
+[02:42:12] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(471.1315, 637.6318), source=ENEMY (Enemy1), range=1469, listeners=8
+[02:42:12] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=1, below_threshold=2
+[02:42:12] [INFO] [LastChance] Threat detected: Bullet
+[02:42:12] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:12] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:12] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:12] [ENEMY] [Enemy1] Player distracted - priority attack triggered
+[02:42:12] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(471.1315, 637.6318), source=ENEMY (Enemy1), range=1469, listeners=8
+[02:42:12] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=1, below_threshold=2
+[02:42:12] [ENEMY] [Enemy10] Death animation completed
+[02:42:12] [INFO] [LastChance] Threat detected: Bullet
+[02:42:12] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:12] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:12] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:12] [ENEMY] [Enemy1] Player distracted - priority attack triggered
+[02:42:12] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(471.1315, 637.6318), source=ENEMY (Enemy1), range=1469, listeners=8
+[02:42:12] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=1, below_threshold=2
+[02:42:12] [INFO] [LastChance] Threat detected: Bullet
+[02:42:12] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:12] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:12] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:12] [ENEMY] [Enemy1] Player distracted - priority attack triggered
+[02:42:12] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(471.1315, 637.6318), source=ENEMY (Enemy1), range=1469, listeners=8
+[02:42:12] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=1, below_threshold=2
+[02:42:12] [INFO] [LastChance] Threat detected: Bullet
+[02:42:12] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:12] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:12] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:13] [ENEMY] [Enemy4] State: PURSUING -> COMBAT
+[02:42:13] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(683.1166, 931.5366), source=ENEMY (Enemy4), range=1469, listeners=8
+[02:42:13] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=4
+[02:42:13] [INFO] [LastChance] Threat detected: Bullet
+[02:42:13] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:13] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:13] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:13] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[02:42:13] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(683.1166, 931.5366), source=ENEMY (Enemy4), range=1469, listeners=8
+[02:42:13] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=4
+[02:42:13] [INFO] [LastChance] Threat detected: Bullet
+[02:42:13] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:13] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:13] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:13] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[02:42:13] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(683.1166, 931.5366), source=ENEMY (Enemy4), range=1469, listeners=8
+[02:42:13] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=4
+[02:42:13] [INFO] [LastChance] Threat detected: Bullet
+[02:42:13] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:13] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:13] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:13] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[02:42:13] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(683.1166, 931.5366), source=ENEMY (Enemy4), range=1469, listeners=8
+[02:42:13] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=4
+[02:42:13] [INFO] [LastChance] Threat detected: Bullet
+[02:42:13] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:13] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:13] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:13] [INFO] [ScoreManager] Combo ended at 2. Max combo: 2
+[02:42:14] [ENEMY] [Enemy1] State: COMBAT -> SEEKING_COVER
+[02:42:14] [ENEMY] [Enemy1] State: SEEKING_COVER -> IN_COVER
+[02:42:14] [ENEMY] [Enemy1] State: IN_COVER -> PURSUING
+[02:42:15] [ENEMY] [Enemy4] State: COMBAT -> SEEKING_COVER
+[02:42:15] [ENEMY] [Enemy2] Player distracted - priority attack triggered
+[02:42:15] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[02:42:15] [ENEMY] [Enemy2] Player distracted - priority attack triggered
+[02:42:15] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(459.5632, 636.1097), source=ENEMY (Enemy2), range=1469, listeners=8
+[02:42:15] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=1, below_threshold=2
+[02:42:15] [INFO] [LastChance] Threat detected: Bullet
+[02:42:15] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:15] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:15] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(507.1284, 684.7734), shooter_id=43352327688, bullet_pos=(701.2165, 842.3481)
+[02:42:15] [INFO] [Bullet] Using shooter_position, distance=249.999984741211
+[02:42:15] [INFO] [Bullet] Distance to wall: 249.999984741211 (17.0229586704648% of viewport)
+[02:42:15] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[02:42:15] [INFO] [Bullet] Starting wall penetration at (701.2165, 842.3481)
+[02:42:15] [ENEMY] [Enemy2] Player distracted - priority attack triggered
+[02:42:15] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(468.7126, 647.0988), source=ENEMY (Enemy2), range=1469, listeners=8
+[02:42:15] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=1, below_threshold=2
+[02:42:15] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[02:42:15] [INFO] [Bullet] Exiting penetration at (737.4463, 871.7621) after traveling 41.6666679382324 pixels through wall
+[02:42:15] [INFO] [Bullet] Damage multiplier after penetration: 0.9
+[02:42:15] [INFO] [LastChance] Threat detected: @Area2D@491
+[02:42:15] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:15] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:16] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:16] [ENEMY] [Enemy1] State: PURSUING -> RETREATING
+[02:42:16] [ENEMY] [Enemy1] State: RETREATING -> IN_COVER
+[02:42:16] [ENEMY] [Enemy2] Player distracted - priority attack triggered
+[02:42:16] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(468.7126, 647.0988), source=ENEMY (Enemy2), range=1469, listeners=8
+[02:42:16] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=1, below_threshold=2
+[02:42:16] [ENEMY] [Enemy1] State: IN_COVER -> SUPPRESSED
+[02:42:16] [INFO] [LastChance] Threat detected: Bullet
+[02:42:16] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:16] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:16] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:16] [ENEMY] [Enemy4] State: SEEKING_COVER -> IN_COVER
+[02:42:16] [ENEMY] [Enemy2] Player distracted - priority attack triggered
+[02:42:16] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(468.7126, 647.0988), source=ENEMY (Enemy2), range=1469, listeners=8
+[02:42:16] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=1, below_threshold=2
+[02:42:16] [ENEMY] [Enemy4] State: IN_COVER -> SUPPRESSED
+[02:42:16] [INFO] [LastChance] Threat detected: Bullet
+[02:42:16] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:16] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:16] [ENEMY] [Enemy4] State: SUPPRESSED -> SEEKING_COVER
+[02:42:16] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:16] [ENEMY] [Enemy2] Player distracted - priority attack triggered
+[02:42:16] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(468.7126, 647.0988), source=ENEMY (Enemy2), range=1469, listeners=8
+[02:42:16] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=1, below_threshold=2
+[02:42:16] [INFO] [LastChance] Threat detected: Bullet
+[02:42:16] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:16] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:16] [ENEMY] [Enemy4] State: SEEKING_COVER -> IN_COVER
+[02:42:16] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:16] [ENEMY] [Enemy4] State: IN_COVER -> SUPPRESSED
+[02:42:16] [ENEMY] [Enemy2] Player distracted - priority attack triggered
+[02:42:16] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(468.7126, 647.0988), source=ENEMY (Enemy2), range=1469, listeners=8
+[02:42:16] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=1, below_threshold=2
+[02:42:16] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(500.6904, 707.1656), shooter_id=43352327688, bullet_pos=(500.6904, 707.1656)
+[02:42:16] [INFO] [Bullet] Using shooter_position, distance=0
+[02:42:16] [INFO] [Bullet] Distance to wall: 0 (0% of viewport)
+[02:42:16] [INFO] [Bullet] Point-blank shot - 100% penetration, ignoring ricochet
+[02:42:16] [INFO] [Bullet] Starting wall penetration at (500.6904, 707.1656)
+[02:42:16] [INFO] [LastChance] Threat detected: Bullet
+[02:42:16] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:16] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:16] [INFO] [Bullet] Raycast backward hit penetrating body at distance 47.8821449279785
+[02:42:16] [INFO] [Bullet] Body exited signal received for penetrating body
+[02:42:16] [INFO] [Bullet] Exiting penetration at (527.1974, 745.5734) after traveling 41.6666679382324 pixels through wall
+[02:42:16] [INFO] [Bullet] Damage multiplier after penetration: 0.9
+[02:42:16] [ENEMY] [Enemy2] Player distracted - priority attack triggered
+[02:42:16] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(468.7126, 647.0988), source=ENEMY (Enemy2), range=1469, listeners=8
+[02:42:16] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=1, below_threshold=2
+[02:42:16] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(501.8039, 706.5594), shooter_id=43352327688, bullet_pos=(501.8039, 706.5594)
+[02:42:16] [INFO] [Bullet] Using shooter_position, distance=0
+[02:42:16] [INFO] [Bullet] Distance to wall: 0 (0% of viewport)
+[02:42:16] [INFO] [Bullet] Point-blank shot - 100% penetration, ignoring ricochet
+[02:42:16] [INFO] [Bullet] Starting wall penetration at (501.8039, 706.5594)
+[02:42:16] [INFO] [LastChance] Threat detected: Bullet
+[02:42:16] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:16] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:16] [INFO] [Bullet] Raycast backward hit penetrating body at distance 49.7594718933105
+[02:42:16] [INFO] [Bullet] Body exited signal received for penetrating body
+[02:42:16] [INFO] [Bullet] Exiting penetration at (529.0218, 744.4667) after traveling 41.6666679382324 pixels through wall
+[02:42:16] [INFO] [Bullet] Damage multiplier after penetration: 0.9
+[02:42:16] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:16] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(468.7126, 647.0988), source=ENEMY (Enemy2), range=1469, listeners=8
+[02:42:16] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=1, below_threshold=2
+[02:42:16] [INFO] [LastChance] Threat detected: Bullet
+[02:42:16] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:16] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:16] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:16] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(468.7126, 647.0988), source=ENEMY (Enemy2), range=1469, listeners=8
+[02:42:16] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=1, below_threshold=2
+[02:42:16] [INFO] [LastChance] Threat detected: Bullet
+[02:42:16] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:16] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:16] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:16] [ENEMY] [Enemy1] State: SUPPRESSED -> SEEKING_COVER
+[02:42:16] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(468.7126, 647.0988), source=ENEMY (Enemy2), range=1469, listeners=8
+[02:42:16] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=1, below_threshold=2
+[02:42:16] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(513.4448, 698.5414), shooter_id=43352327688, bullet_pos=(697.9935, 867.1882)
+[02:42:16] [INFO] [Bullet] Using shooter_position, distance=249.999938964844
+[02:42:16] [INFO] [Bullet] Distance to wall: 249.999938964844 (17.0229555534678% of viewport)
+[02:42:16] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[02:42:16] [INFO] [Bullet] Starting wall penetration at (697.9935, 867.1882)
+[02:42:16] [INFO] [Bullet] Raycast backward hit penetrating body at distance 12.8507204055786
+[02:42:16] [INFO] [Bullet] Body exited signal received for penetrating body
+[02:42:16] [INFO] [Bullet] Exiting penetration at (732.4426, 898.6689) after traveling 41.6666679382324 pixels through wall
+[02:42:16] [INFO] [Bullet] Damage multiplier after penetration: 0.9
+[02:42:17] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(536.8604, 668.1856), source=PLAYER (AssaultRifle), range=1469, listeners=8
+[02:42:17] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=2, self=0, below_threshold=3
+[02:42:17] [ENEMY] [Enemy2] Hit taken, health: 0/4
+[02:42:17] [ENEMY] [Enemy2] ImpactEffectsManager found, calling spawn_blood_effect
+[02:42:17] [INFO] [ImpactEffects] spawn_blood_effect called at (468.7126, 647.0988), dir=(1, 0), lethal=true
+[02:42:17] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[02:42:17] [INFO] [ImpactEffects] Blood decals scheduled: 8 to spawn at particle landing times
+[02:42:17] [INFO] [ImpactEffects] Blood effect spawned at (468.7126, 647.0988) (scale=1.5)
+[02:42:17] [ENEMY] [Enemy2] Enemy died (ricochet: false, penetration: false)
+[02:42:17] [INFO] [ScoreManager] Kill registered. Combo: 1 (points: 500)
+[02:42:17] [INFO] [SoundPropagation] Unregistered listener: Enemy2 (remaining: 7)
+[02:42:17] [INFO] [DeathAnim] Started - Angle: 0.0 deg, Index: 12
+[02:42:17] [ENEMY] [Enemy2] Death animation started with hit direction: (1, 0)
+[02:42:17] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(536.8604, 668.1856), source=PLAYER (AssaultRifle), range=1469, listeners=7
+[02:42:17] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=2, self=0, below_threshold=3
+[02:42:17] [ENEMY] [Enemy1] Player distracted - priority attack triggered
+[02:42:17] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(420.5507, 555.3154), source=ENEMY (Enemy1), range=1469, listeners=7
+[02:42:17] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=3, self=1, below_threshold=3
+[02:42:17] [INFO] [LastChance] Threat detected: @Area2D@506
+[02:42:17] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:17] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:17] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:17] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(536.8604, 668.1856), source=PLAYER (AssaultRifle), range=1469, listeners=7
+[02:42:17] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=2, self=0, below_threshold=3
+[02:42:17] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(536.8604, 668.1856), shooter_id=46456112833, bullet_pos=(46.881523, 479.6499)
+[02:42:17] [INFO] [Bullet] Using shooter_position, distance=525
+[02:42:17] [INFO] [Bullet] Distance to wall: 525 (35,748215% of viewport)
+[02:42:17] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[02:42:17] [ENEMY] [Enemy1] State: SEEKING_COVER -> IN_COVER
+[02:42:17] [ENEMY] [Enemy1] State: IN_COVER -> SUPPRESSED
+[02:42:17] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(536.8604, 668.1856), shooter_id=46456112833, bullet_pos=(66.060394, 526.46985)
+[02:42:17] [INFO] [Bullet] Using shooter_position, distance=491,66656
+[02:42:17] [INFO] [Bullet] Distance to wall: 491,66656 (33,47848% of viewport)
+[02:42:17] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[02:42:17] [INFO] [Bullet] Starting wall penetration at (66.060394, 526.46985)
+[02:42:17] [INFO] [Bullet] Raycast backward hit penetrating body at distance 2,7633376
+[02:42:17] [INFO] [Bullet] Max penetration distance exceeded: 66,66667 >= 48
+[02:42:17] [INFO] [Bullet] Body exited signal received for penetrating body
+[02:42:17] [INFO] [Bullet] Exiting penetration at (-2.5647087, 505.813) after traveling 66,66667 pixels through wall
+[02:42:17] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[02:42:17] [ENEMY] [Enemy2] Ragdoll activated
+[02:42:17] [INFO] [DeathAnim] Ragdoll activated at 60% fall progress
+[02:42:18] [ENEMY] [Enemy1] State: SUPPRESSED -> SEEKING_COVER
+[02:42:19] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(452.9346, 626.6144), source=PLAYER (AssaultRifle), range=1469, listeners=7
+[02:42:19] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=0, below_threshold=2
+[02:42:19] [ENEMY] [Enemy2] Death animation completed
+[02:42:19] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(452.93457, 626.61444), shooter_id=46456112833, bullet_pos=(503.65717, 441.78125)
+[02:42:19] [INFO] [Bullet] Using shooter_position, distance=191,66661
+[02:42:19] [INFO] [Bullet] Distance to wall: 191,66661 (13,050932% of viewport)
+[02:42:19] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[02:42:19] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(435.8799, 626.4926), source=PLAYER (AssaultRifle), range=1469, listeners=7
+[02:42:19] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=0, below_threshold=2
+[02:42:19] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(435.8799, 626.4926), shooter_id=46456112833, bullet_pos=(503.22028, 447.04517)
+[02:42:19] [INFO] [Bullet] Using shooter_position, distance=191,66666
+[02:42:19] [INFO] [Bullet] Distance to wall: 191,66666 (13,050936% of viewport)
+[02:42:19] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[02:42:19] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(430.2027, 626.4521), source=PLAYER (AssaultRifle), range=1469, listeners=7
+[02:42:19] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=0, below_threshold=2
+[02:42:19] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(452.93457, 626.61444), shooter_id=46456112833, bullet_pos=(453.09464, 43.309814)
+[02:42:19] [INFO] [Bullet] Using shooter_position, distance=583,3046
+[02:42:19] [INFO] [Bullet] Distance to wall: 583,3046 (39,718285% of viewport)
+[02:42:19] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[02:42:19] [ENEMY] [Enemy1] Hit taken, health: 1/2
+[02:42:19] [ENEMY] [Enemy1] ImpactEffectsManager found, calling spawn_blood_effect
+[02:42:19] [INFO] [ImpactEffects] spawn_blood_effect called at (464.5307, 469.795), dir=(1, 0), lethal=false
+[02:42:19] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[02:42:19] [INFO] [ImpactEffects] Blood decals scheduled: 4 to spawn at particle landing times
+[02:42:19] [INFO] [ImpactEffects] Wall found for blood splatter at (500, 469.795) (dist=35 px)
+[02:42:19] [INFO] [ImpactEffects] Blood effect spawned at (464.5307, 469.795) (scale=1)
+[02:42:19] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(430.2027, 626.4521), source=PLAYER (AssaultRifle), range=1469, listeners=7
+[02:42:19] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=3, self=0, below_threshold=2
+[02:42:19] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(435.8799, 626.4926), shooter_id=46456112833, bullet_pos=(388.6136, 62.075775)
+[02:42:19] [INFO] [Bullet] Using shooter_position, distance=566,3925
+[02:42:19] [INFO] [Bullet] Distance to wall: 566,3925 (38,566708% of viewport)
+[02:42:19] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[02:42:19] [INFO] [Bullet] Starting wall penetration at (388.6136, 62.075775)
+[02:42:19] [INFO] [Bullet] Raycast backward hit penetrating body at distance 1,9530739
+[02:42:19] [ENEMY] [Enemy1] Hit taken, health: 0/2
+[02:42:19] [ENEMY] [Enemy1] ImpactEffectsManager found, calling spawn_blood_effect
+[02:42:19] [INFO] [ImpactEffects] spawn_blood_effect called at (464.5307, 469.795), dir=(1, 0), lethal=true
+[02:42:19] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[02:42:19] [INFO] [ImpactEffects] Blood decals scheduled: 8 to spawn at particle landing times
+[02:42:19] [INFO] [ImpactEffects] Wall found for blood splatter at (500, 469.795) (dist=35 px)
+[02:42:19] [INFO] [ImpactEffects] Blood effect spawned at (464.5307, 469.795) (scale=1.5)
+[02:42:19] [ENEMY] [Enemy1] Enemy died (ricochet: false, penetration: false)
+[02:42:19] [INFO] [ScoreManager] Kill registered. Combo: 2 (points: 1500)
+[02:42:19] [INFO] [SoundPropagation] Unregistered listener: Enemy1 (remaining: 6)
+[02:42:19] [INFO] [DeathAnim] Started - Angle: 0.0 deg, Index: 12
+[02:42:19] [ENEMY] [Enemy1] Death animation started with hit direction: (1, 0)
+[02:42:19] [INFO] [Bullet] Max penetration distance exceeded: 56,66667 >= 48
+[02:42:19] [INFO] [Bullet] Body exited signal received for penetrating body
+[02:42:19] [INFO] [Bullet] Exiting penetration at (371.01837, 2.9725952) after traveling 56,66667 pixels through wall
+[02:42:19] [INFO] [Bullet] Damage multiplier after penetration: 0,45
+[02:42:19] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(430.2027, 626.4521), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[02:42:19] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=3, self=0, below_threshold=2
+[02:42:19] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(430.2027, 626.4521), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[02:42:19] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=3, self=0, below_threshold=2
+[02:42:20] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(430.20273, 626.4521), shooter_id=46456112833, bullet_pos=(497.46756, 342.64764)
+[02:42:20] [INFO] [Bullet] Using shooter_position, distance=291,66678
+[02:42:20] [INFO] [Bullet] Distance to wall: 291,66678 (19,860128% of viewport)
+[02:42:20] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[02:42:20] [INFO] [Bullet] Starting wall penetration at (497.46756, 342.64764)
+[02:42:20] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[02:42:20] [INFO] [Bullet] Exiting penetration at (506.30807, 305.34766) after traveling 33,333336 pixels through wall
+[02:42:20] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[02:42:20] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(430.20273, 626.4521), shooter_id=46456112833, bullet_pos=(512.28076, 40.505985)
+[02:42:20] [INFO] [Bullet] Using shooter_position, distance=591,6669
+[02:42:20] [INFO] [Bullet] Distance to wall: 591,6669 (40,287685% of viewport)
+[02:42:20] [INFO] [Bullet] Distance-based penetration chance: 99,66437%
+[02:42:20] [INFO] [Bullet] Starting wall penetration at (512.28076, 40.505985)
+[02:42:20] [ENEMY] [Enemy4] State: SUPPRESSED -> IN_COVER
+[02:42:20] [INFO] [Bullet] Raycast backward hit penetrating body at distance 29,744305
+[02:42:20] [INFO] [Bullet] Body exited signal received for penetrating body
+[02:42:20] [INFO] [Bullet] Exiting penetration at (517.59845, 2.5432854) after traveling 33,333336 pixels through wall
+[02:42:20] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[02:42:20] [ENEMY] [Enemy4] State: IN_COVER -> PURSUING
+[02:42:20] [ENEMY] [Enemy1] Ragdoll activated
+[02:42:20] [INFO] [DeathAnim] Ragdoll activated at 60% fall progress
+[02:42:21] [ENEMY] [Enemy1] Death animation completed
+[02:42:23] [INFO] [ScoreManager] Combo ended at 2. Max combo: 2
+[02:42:23] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[02:42:23] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(691.582, 914.0671), source=ENEMY (Enemy4), range=1469, listeners=6
+[02:42:23] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=1, below_threshold=4
+[02:42:23] [ENEMY] [Enemy4] State: PURSUING -> COMBAT
+[02:42:23] [INFO] [LastChance] Threat detected: Bullet
+[02:42:23] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:23] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:23] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:23] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[02:42:23] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(660.993, 905.2834), source=ENEMY (Enemy4), range=1469, listeners=6
+[02:42:23] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=1, below_threshold=4
+[02:42:24] [INFO] [LastChance] Threat detected: Bullet
+[02:42:24] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:24] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:24] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:24] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[02:42:24] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(649.7399, 887.3829), source=ENEMY (Enemy4), range=1469, listeners=6
+[02:42:24] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=1, below_threshold=4
+[02:42:24] [INFO] [LastChance] Threat detected: Bullet
+[02:42:24] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:24] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:24] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:24] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[02:42:24] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(649.7399, 887.3829), source=ENEMY (Enemy4), range=1469, listeners=6
+[02:42:24] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=1, below_threshold=4
+[02:42:24] [INFO] [LastChance] Threat detected: Bullet
+[02:42:24] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:24] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:24] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:24] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[02:42:24] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(649.7399, 887.3829), source=ENEMY (Enemy4), range=1469, listeners=6
+[02:42:24] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=1, below_threshold=4
+[02:42:24] [INFO] [LastChance] Threat detected: Bullet
+[02:42:24] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:24] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:24] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:24] [ENEMY] [Enemy4] Player distracted - priority attack triggered
+[02:42:24] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(649.7399, 887.3829), source=ENEMY (Enemy4), range=1469, listeners=6
+[02:42:24] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=1, below_threshold=4
+[02:42:24] [INFO] [LastChance] Threat detected: Bullet
+[02:42:24] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:24] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:24] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:24] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(649.7399, 887.3829), source=ENEMY (Enemy4), range=1469, listeners=6
+[02:42:24] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=1, below_threshold=4
+[02:42:24] [INFO] [LastChance] Threat detected: Bullet
+[02:42:24] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:24] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:24] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:24] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(649.7399, 887.3829), source=ENEMY (Enemy4), range=1469, listeners=6
+[02:42:24] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=1, below_threshold=4
+[02:42:24] [INFO] [LastChance] Threat detected: Bullet
+[02:42:24] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:24] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:24] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:24] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(649.7399, 887.3829), source=ENEMY (Enemy4), range=1469, listeners=6
+[02:42:24] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=1, below_threshold=4
+[02:42:24] [INFO] [LastChance] Threat detected: Bullet
+[02:42:24] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:24] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:24] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:24] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(649.7399, 887.3829), source=ENEMY (Enemy4), range=1469, listeners=6
+[02:42:24] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=1, below_threshold=4
+[02:42:24] [INFO] [LastChance] Threat detected: Bullet
+[02:42:24] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:24] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:24] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:25] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(649.7399, 887.3829), source=ENEMY (Enemy4), range=1469, listeners=6
+[02:42:25] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=1, below_threshold=4
+[02:42:25] [INFO] [LastChance] Threat detected: Bullet
+[02:42:25] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:25] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:25] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:25] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(649.7399, 887.3829), source=ENEMY (Enemy4), range=1469, listeners=6
+[02:42:25] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=1, below_threshold=4
+[02:42:25] [INFO] [LastChance] Threat detected: Bullet
+[02:42:25] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:25] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:25] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:25] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(649.7399, 887.3829), source=ENEMY (Enemy4), range=1469, listeners=6
+[02:42:25] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=1, below_threshold=4
+[02:42:25] [INFO] [LastChance] Threat detected: Bullet
+[02:42:25] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:25] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:25] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:25] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(649.7399, 887.3829), source=ENEMY (Enemy4), range=1469, listeners=6
+[02:42:25] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=1, below_threshold=4
+[02:42:25] [INFO] [LastChance] Threat detected: Bullet
+[02:42:25] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:25] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:25] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:25] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(649.7399, 887.3829), source=ENEMY (Enemy4), range=1469, listeners=6
+[02:42:25] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=1, below_threshold=4
+[02:42:25] [INFO] [LastChance] Threat detected: Bullet
+[02:42:25] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[02:42:25] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:42:25] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:25] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(649.7399, 887.3829), source=ENEMY (Enemy4), range=1469, listeners=6
+[02:42:25] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=1, below_threshold=4
+[02:42:25] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(582.7559, 875.9066), shooter_id=43922753066, bullet_pos=(502.7771, 852.5007)
+[02:42:25] [INFO] [Bullet] Using shooter_position, distance=83.3333206176758
+[02:42:25] [INFO] [Bullet] Distance to wall: 83.3333206176758 (5.67431903732211% of viewport)
+[02:42:25] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[02:42:25] [INFO] [Bullet] Starting wall penetration at (502.7771, 852.5007)
+[02:42:25] [INFO] [Bullet] Raycast backward hit penetrating body at distance 43.7730712890625
+[02:42:25] [INFO] [Bullet] Body exited signal received for penetrating body
+[02:42:25] [INFO] [Bullet] Exiting penetration at (457.989, 839.3934) after traveling 41.6666679382324 pixels through wall
+[02:42:25] [INFO] [Bullet] Damage multiplier after penetration: 0.9
+[02:42:25] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(649.7399, 887.3829), source=ENEMY (Enemy4), range=1469, listeners=6
+[02:42:25] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=1, below_threshold=4
+[02:42:25] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(582.4913, 876.9796), shooter_id=43922753066, bullet_pos=(502.1407, 854.8838)
+[02:42:25] [INFO] [Bullet] Using shooter_position, distance=83.3333511352539
+[02:42:25] [INFO] [Bullet] Distance to wall: 83.3333511352539 (5.67432111532012% of viewport)
+[02:42:25] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[02:42:25] [INFO] [Bullet] Starting wall penetration at (502.1407, 854.8838)
+[02:42:25] [INFO] [Bullet] Raycast backward hit penetrating body at distance 44.4465141296387
+[02:42:25] [INFO] [Bullet] Body exited signal received for penetrating body
+[02:42:25] [INFO] [Bullet] Exiting penetration at (457.1443, 842.5101) after traveling 41.6666717529297 pixels through wall
+[02:42:25] [INFO] [Bullet] Damage multiplier after penetration: 0.9
+[02:42:25] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(564.7996, 870.025), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[02:42:25] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=4
+[02:42:25] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(649.7399, 887.3829), source=ENEMY (Enemy4), range=1469, listeners=6
+[02:42:25] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=1, below_threshold=4
+[02:42:25] [ENEMY] [Enemy4] Hit taken, health: 3/4
+[02:42:25] [ENEMY] [Enemy4] ImpactEffectsManager found, calling spawn_blood_effect
+[02:42:25] [INFO] [ImpactEffects] spawn_blood_effect called at (649.7399, 887.3829), dir=(1, 0), lethal=false
+[02:42:25] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[02:42:25] [INFO] [ImpactEffects] Blood decals scheduled: 4 to spawn at particle landing times
+[02:42:25] [INFO] [ImpactEffects] Wall found for blood splatter at (680, 887.3829) (dist=30 px)
+[02:42:25] [INFO] [ImpactEffects] Blood effect spawned at (649.7399, 887.3829) (scale=1)
+[02:42:25] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(582.4913, 876.9796), shooter_id=43922753066, bullet_pos=(510.1758, 857.0934)
+[02:42:25] [INFO] [Bullet] Using shooter_position, distance=75.0000076293945
+[02:42:25] [INFO] [Bullet] Distance to wall: 75.0000076293945 (5.10688843233866% of viewport)
+[02:42:25] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[02:42:25] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(564.7996, 870.025), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[02:42:25] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=4
+[02:42:25] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(649.7399, 887.3829), source=ENEMY (Enemy4), range=1469, listeners=6
+[02:42:25] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=1, below_threshold=4
+[02:42:25] [ENEMY] [Enemy4] Hit taken, health: 2/4
+[02:42:25] [ENEMY] [Enemy4] ImpactEffectsManager found, calling spawn_blood_effect
+[02:42:25] [INFO] [ImpactEffects] spawn_blood_effect called at (649.7399, 887.3829), dir=(1, 0), lethal=false
+[02:42:25] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[02:42:25] [INFO] [ImpactEffects] Blood decals scheduled: 4 to spawn at particle landing times
+[02:42:25] [INFO] [ImpactEffects] Wall found for blood splatter at (680, 887.3829) (dist=30 px)
+[02:42:25] [INFO] [ImpactEffects] Blood effect spawned at (649.7399, 887.3829) (scale=1)
+[02:42:25] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:42:26] [ENEMY] [Enemy4] State: COMBAT -> RETREATING
+[02:42:26] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(564.7996, 870.025), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[02:42:26] [ENEMY] [Enemy4] Heard gunshot at (564.7996, 870.025), source_type=0, intensity=0.33, distance=87
+[02:42:26] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=4
+[02:42:26] [ENEMY] [Enemy4] State: COMBAT -> RETREATING
+[02:42:26] [ENEMY] [Enemy4] Hit taken, health: 1/4
+[02:42:26] [ENEMY] [Enemy4] ImpactEffectsManager found, calling spawn_blood_effect
+[02:42:26] [INFO] [ImpactEffects] spawn_blood_effect called at (649.7399, 887.3829), dir=(1, 0), lethal=false
+[02:42:26] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[02:42:26] [INFO] [ImpactEffects] Blood decals scheduled: 4 to spawn at particle landing times
+[02:42:26] [INFO] [ImpactEffects] Wall found for blood splatter at (680, 887.3829) (dist=30 px)
+[02:42:26] [INFO] [ImpactEffects] Blood effect spawned at (649.7399, 887.3829) (scale=1)
+[02:42:26] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(564.7996, 870.025), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[02:42:26] [ENEMY] [Enemy4] Heard gunshot at (564.7996, 870.025), source_type=0, intensity=0.33, distance=87
+[02:42:26] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=4
+[02:42:26] [ENEMY] [Enemy4] State: COMBAT -> RETREATING
+[02:42:26] [ENEMY] [Enemy4] Hit taken, health: 0/4
+[02:42:26] [ENEMY] [Enemy4] ImpactEffectsManager found, calling spawn_blood_effect
+[02:42:26] [INFO] [ImpactEffects] spawn_blood_effect called at (649.7399, 887.3829), dir=(1, 0), lethal=true
+[02:42:26] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[02:42:26] [INFO] [ImpactEffects] Blood decals scheduled: 8 to spawn at particle landing times
+[02:42:26] [INFO] [ImpactEffects] Wall found for blood splatter at (680, 887.3829) (dist=30 px)
+[02:42:26] [INFO] [ImpactEffects] Blood effect spawned at (649.7399, 887.3829) (scale=1.5)
+[02:42:26] [ENEMY] [Enemy4] Enemy died (ricochet: false, penetration: false)
+[02:42:26] [INFO] [ScoreManager] Kill registered. Combo: 1 (points: 500)
+[02:42:26] [INFO] [SoundPropagation] Unregistered listener: Enemy4 (remaining: 5)
+[02:42:26] [INFO] [DeathAnim] Started - Angle: 0.0 deg, Index: 12
+[02:42:26] [ENEMY] [Enemy4] Death animation started with hit direction: (1, 0)
+[02:42:26] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(564.7996, 870.025), source=PLAYER (AssaultRifle), range=1469, listeners=5
+[02:42:26] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=0, below_threshold=4
+[02:42:26] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(564.79956, 870.025), shooter_id=46456112833, bullet_pos=(688.4491, 888.34973)
+[02:42:26] [INFO] [Bullet] Using shooter_position, distance=125,000015
+[02:42:26] [INFO] [Bullet] Distance to wall: 125,000015 (8,511481% of viewport)
+[02:42:26] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[02:42:26] [INFO] [Bullet] Starting wall penetration at (688.4491, 888.34973)
+[02:42:26] [INFO] [Bullet] Raycast backward hit penetrating body at distance 27,076094
+[02:42:26] [INFO] [Bullet] Max penetration distance exceeded: 66,66667 >= 48
+[02:42:26] [INFO] [Bullet] Body exited signal received for penetrating body
+[02:42:26] [INFO] [Bullet] Exiting penetration at (759.3415, 898.8559) after traveling 66,66667 pixels through wall
+[02:42:26] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[02:42:26] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(564.7996, 870.025), source=PLAYER (AssaultRifle), range=1469, listeners=5
+[02:42:26] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=0, below_threshold=4
+[02:42:26] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(564.79956, 870.025), shooter_id=46456112833, bullet_pos=(688.35, 889.00574)
+[02:42:26] [INFO] [Bullet] Using shooter_position, distance=124,99989
+[02:42:26] [INFO] [Bullet] Distance to wall: 124,99989 (8,511473% of viewport)
+[02:42:26] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[02:42:26] [INFO] [Bullet] Starting wall penetration at (688.35, 889.00574)
+[02:42:26] [INFO] [Bullet] Raycast backward hit penetrating body at distance 31,785385
+[02:42:26] [INFO] [Bullet] Body exited signal received for penetrating body
+[02:42:26] [INFO] [Bullet] Exiting penetration at (726.2388, 894.8265) after traveling 33,333336 pixels through wall
+[02:42:26] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[02:42:26] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(564.7996, 870.025), source=PLAYER (AssaultRifle), range=1469, listeners=5
+[02:42:26] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=0, below_threshold=4
+[02:42:26] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(564.79956, 870.025), shooter_id=46456112833, bullet_pos=(688.29004, 889.3925)
+[02:42:26] [INFO] [Bullet] Using shooter_position, distance=124,99999
+[02:42:26] [INFO] [Bullet] Distance to wall: 124,99999 (8,51148% of viewport)
+[02:42:26] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[02:42:26] [INFO] [Bullet] Starting wall penetration at (688.29004, 889.3925)
+[02:42:26] [INFO] [Bullet] Raycast backward hit penetrating body at distance 34,412704
+[02:42:26] [INFO] [Bullet] Body exited signal received for penetrating body
+[02:42:26] [INFO] [Bullet] Exiting penetration at (726.16046, 895.3319) after traveling 33,333332 pixels through wall
+[02:42:26] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[02:42:26] [ENEMY] [Enemy4] Ragdoll activated
+[02:42:26] [INFO] [DeathAnim] Ragdoll activated at 60% fall progress
+[02:42:28] [ENEMY] [Enemy4] Death animation completed
+[02:42:29] [INFO] [ScoreManager] Combo ended at 1. Max combo: 2
+[02:42:32] [INFO] ------------------------------------------------------------
+[02:42:32] [INFO] GAME LOG ENDED: 2026-01-25T02:42:32
+[02:42:32] [INFO] ============================================================

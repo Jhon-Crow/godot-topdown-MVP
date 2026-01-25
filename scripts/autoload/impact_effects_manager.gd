@@ -537,9 +537,10 @@ func _spawn_wall_blood_splatter(hit_position: Vector2, hit_direction: Vector2, i
 	# Elongated shape for dripping effect (taller than wide)
 	splatter.scale = Vector2(splatter_scale, splatter_scale * randf_range(1.5, 2.5))
 
-	# Wall splatters at same z-index as floor decals (both above floor ColorRect)
+	# Wall splatters need to be visible on walls but below characters
+	# Note: Floor decals use z_index = -1 (below characters), wall splatters use 0
 	if splatter is CanvasItem:
-		splatter.z_index = 1  # Same as floor decals (above floor)
+		splatter.z_index = 0  # Wall splatters: above floor but below characters
 
 	# Add to scene
 	_add_effect_to_scene(splatter)

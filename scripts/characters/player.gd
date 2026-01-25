@@ -842,6 +842,10 @@ func on_hit_with_info(hit_direction: Vector2, caliber_data: Resource) -> void:
 		FileLogger.info("[Player] Hit blocked by invincibility mode")
 		# Still show hit flash for visual feedback
 		_show_hit_flash()
+		# Spawn blood effect for visual feedback even in invincibility mode
+		var impact_manager: Node = get_node_or_null("/root/ImpactEffectsManager")
+		if impact_manager and impact_manager.has_method("spawn_blood_effect"):
+			impact_manager.spawn_blood_effect(global_position, hit_direction, caliber_data, false)
 		return
 
 	hit.emit()
