@@ -8,7 +8,7 @@ from PIL import Image, ImageDraw
 import math
 
 
-def create_boot_print(width=32, height=48, output_path="boot_print.png"):
+def create_boot_print(width=11, height=16, output_path="boot_print.png"):
     """
     Create a boot print texture with visible tread pattern.
 
@@ -26,9 +26,9 @@ def create_boot_print(width=32, height=48, output_path="boot_print.png"):
     blood_edge = (140, 15, 15, 255)     # Edge color
     transparent = (0, 0, 0, 0)          # Tread gaps
 
-    # Boot sole parameters
-    margin_x = 3
-    margin_y = 3
+    # Boot sole parameters (scaled for smaller size)
+    margin_x = 1
+    margin_y = 1
 
     sole_left = margin_x
     sole_right = width - margin_x
@@ -66,10 +66,11 @@ def create_boot_print(width=32, height=48, output_path="boot_print.png"):
             img.putpixel((x, y), blood_main)
 
     # Second pass: add horizontal tread gaps (make them transparent)
-    tread_spacing = 4  # Pixels between tread lines
-    tread_gap = 2      # Pixel height of gap (transparent area)
+    # Scaled for smaller texture: 2 pixels spacing, 1 pixel gap
+    tread_spacing = 2  # Pixels between tread lines
+    tread_gap = 1      # Pixel height of gap (transparent area)
 
-    for tread_y in range(sole_top + 3, sole_bottom - 3, tread_spacing):
+    for tread_y in range(sole_top + 1, sole_bottom - 1, tread_spacing):
         rel_y = (tread_y - sole_top) / sole_height
         width_factor = get_width_factor(rel_y)
 
@@ -77,13 +78,13 @@ def create_boot_print(width=32, height=48, output_path="boot_print.png"):
         actual_half = int(half_width * width_factor)
         center_x = width // 2
 
-        # Inset the treads from edge
-        x_left = max(0, center_x - actual_half + 2)
-        x_right = min(width - 1, center_x + actual_half - 2)
+        # Inset the treads from edge (smaller inset for small texture)
+        x_left = max(0, center_x - actual_half + 1)
+        x_right = min(width - 1, center_x + actual_half - 1)
 
         # Draw the tread gap
         for gap in range(tread_gap):
-            if tread_y + gap < sole_bottom - 2:
+            if tread_y + gap < sole_bottom - 1:
                 for x in range(x_left, x_right + 1):
                     img.putpixel((x, tread_y + gap), transparent)
 
@@ -99,8 +100,8 @@ def create_boot_print(width=32, height=48, output_path="boot_print.png"):
         x_left = max(0, center_x - actual_half)
         x_right = min(width - 1, center_x + actual_half)
 
-        # Darken left and right edges (2 pixels each side)
-        for edge_offset in range(2):
+        # Darken left and right edges (1 pixel each side for small texture)
+        for edge_offset in range(1):
             if x_left + edge_offset < width:
                 current = img.getpixel((x_left + edge_offset, y))
                 if current[3] > 0:
@@ -113,10 +114,10 @@ def create_boot_print(width=32, height=48, output_path="boot_print.png"):
     # Fourth pass: add some texture/splatter effect around edges
     import random
     random.seed(42)  # Consistent output
-    for _ in range(15):
+    for _ in range(5):  # Fewer droplets for smaller texture
         # Add small blood droplets near the boot
         angle = random.uniform(0, 2 * math.pi)
-        dist = random.uniform(0, 4)
+        dist = random.uniform(0, 1.5)  # Smaller distance for small texture
         base_y = random.randint(sole_top, sole_bottom - 1)
         rel_y = (base_y - sole_top) / sole_height
         width_factor = get_width_factor(rel_y)
@@ -149,18 +150,28 @@ def create_boot_print(width=32, height=48, output_path="boot_print.png"):
 
 
 def create_left_right_boot_prints():
-    """Create both left and right boot prints."""
-    # Create right boot print (the original)
+    """Create both left and right boot prints (1/3 size: 11x16 pixels)."""
+    import os
+
+    # Determine correct output path based on script location
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    assets_dir = os.path.join(os.path.dirname(script_dir), "assets", "sprites", "effects")
+    os.makedirs(assets_dir, exist_ok=True)
+
+    right_path = os.path.join(assets_dir, "boot_print_right.png")
+    left_path = os.path.join(assets_dir, "boot_print_left.png")
+
+    # Create right boot print (the original) - 11x16 pixels (1/3 of 32x48)
     right_print = create_boot_print(
-        width=32,
-        height=48,
-        output_path="/tmp/gh-issue-solver-1769316734794/assets/sprites/effects/boot_print_right.png"
+        width=11,
+        height=16,
+        output_path=right_path
     )
 
     # Create left boot print (mirrored)
     left_print = right_print.transpose(Image.FLIP_LEFT_RIGHT)
-    left_print.save("/tmp/gh-issue-solver-1769316734794/assets/sprites/effects/boot_print_left.png")
-    print("Left boot print saved (mirrored)")
+    left_print.save(left_path)
+    print(f"Left boot print saved (mirrored) to: {left_path}")
 
 
 if __name__ == "__main__":
