@@ -7,7 +7,7 @@ extends Node
 class_name BloodyFeetComponent
 
 ## Number of bloody footprints before the blood runs out.
-@export var blood_steps_count: int = 24
+@export var blood_steps_count: int = 48
 
 ## Distance in pixels between footprint spawns.
 @export var step_distance: float = 30.0
