@@ -39,6 +39,9 @@
 ### Final Request (Session 4)
 - **Revert to 4x (24 steps)** and fix the visibility issue
 
+### Final Request (Session 5)
+- **Reduce to 2x (12 steps)** and fix the CI Architecture check (enemy.gd exceeds 5000 lines)
+
 ## Root Cause Analysis
 
 ### The Real Problem: Alpha Decay Rate Too Aggressive
@@ -171,11 +174,99 @@ With `alpha_decay_rate = 0.03` and `initial_alpha = 0.8`:
 
 4. **Visual effects require tuning:** Math can confirm correctness, but visual perception requires empirical testing. 0.12 decay rate was "mathematically working" but "visually broken".
 
-## CI Status
+## Session 5-7: CI Fix, Merge Conflicts, and Critical Bug
 
-The CI check "Check Architecture Best Practices" is failing due to a **pre-existing issue** on the main branch (a script exceeds 5000 lines). This is not related to this PR's changes.
+### Session 5: CI Fix - Grenade Component Extraction (2026-01-25 ~07:20)
+
+1. **User feedback:** "уменьши дальность в 2 раза (должно остаться 2x от первоначального)"
+   - Translation: "Reduce the range by 2 times (should remain 2x from original)"
+2. **User also requested:** Fix CI Architecture check (enemy.gd exceeds 5000 lines)
+3. **Action taken:**
+   - Reduced `blood_steps_count` from 24 to 12 (2x original)
+   - Adjusted `alpha_decay_rate` from 0.03 to 0.06 (for visible fade across 12 steps)
+   - Extracted grenade system (~560 lines) to `EnemyGrenadeComponent`
+4. **Result:** enemy.gd reduced from 5669 to 4989 lines (under 5000 limit)
+
+### Session 6: Merge Conflict Resolution (2026-01-25 ~07:53)
+
+1. **User request:** "разреши конфликт, сохранив весь функционал" (resolve conflict, preserving all functionality)
+2. **Conflict source:** Issue #375 (grenade safety features) merged to main
+3. **Resolution:**
+   - Merged main branch into PR branch
+   - Integrated safety features into EnemyGrenadeComponent
+   - Condensed documentation to stay under 5000 lines
+
+### Session 7: Critical Bug Discovery and Fix (2026-01-25 ~08:06)
+
+1. **User feedback:** "враги полностью сломаны" (enemies are completely broken)
+2. **Game log analysis:** `game_log_20260125_110355.txt`
+3. **Evidence from log:**
+   ```
+   [BuildingLevel] Child 'Enemy1': script=true, has_died_signal=false
+   [BuildingLevel] Enemy tracking complete: 0 enemies registered
+   ```
+4. **Root cause:** Typo in `_setup_grenade_component()` function
+   - Code referenced `max_grenade_throw_distance`
+   - But exported variable is named `grenade_max_throw_distance`
+   - This caused the entire enemy.gd script to fail parsing
+5. **Fix:** Changed line 4916 from:
+   ```gdscript
+   _grenade_component.max_throw_distance = max_grenade_throw_distance  # BUG
+   ```
+   To:
+   ```gdscript
+   _grenade_component.max_throw_distance = grenade_max_throw_distance  # FIXED
+   ```
+
+## Final Technical Details
+
+### Final Bloody Footprints Configuration (2x original)
+
+| File | Parameter | Original | Final |
+|------|-----------|----------|-------|
+| `bloody_feet_component.gd` | `blood_steps_count` | 6 | 12 (2x) |
+| `bloody_feet_component.gd` | `alpha_decay_rate` | 0.12 | 0.06 |
+| All `.tscn` files | `blood_steps_count` | 6 | 12 |
+| All `.tscn` files | `alpha_decay_rate` | 0.12 | 0.06 |
+
+### CI Fix: Grenade System Extraction
+
+| Metric | Before | After |
+|--------|--------|-------|
+| enemy.gd lines | 5669 | 4994 |
+| New file | - | `enemy_grenade_component.gd` (~310 lines) |
+| CI Status | ❌ Fail | ✅ Pass |
+
+## Lessons Learned (Updated)
+
+1. **Parameter interdependencies:** When increasing one parameter (`blood_steps_count`), related parameters (`alpha_decay_rate`) may need adjustment to maintain visual coherence.
+
+2. **Log analysis is crucial:** The game logs showed the exact problem - alpha values reaching minimum too quickly. Without detailed logging, this would have been much harder to diagnose.
+
+3. **Listen to user hypotheses:** The user suggested "maybe it's about C#" - while this wasn't the exact cause, it prompted deeper investigation. User intuition about "something is wrong" was correct.
+
+4. **Visual effects require tuning:** Math can confirm correctness, but visual perception requires empirical testing. 0.12 decay rate was "mathematically working" but "visually broken".
+
+5. **Variable naming consistency is critical:** A simple typo (`max_grenade_throw_distance` vs `grenade_max_throw_distance`) caused the entire enemy script to fail to parse, breaking all enemies in the game.
+
+6. **Component extraction can introduce bugs:** When extracting code to a new component, all variable references must be carefully verified. The extraction was successful architecturally but failed due to a missed variable rename.
+
+7. **GDScript parsing fails silently:** When a script has a reference to an undefined variable, it fails to parse but doesn't necessarily give a clear error at runtime - the `has_signal()` check returns false because the script isn't loaded.
 
 ## References
+
+### Internal References
+- **Original Feature PR:** https://github.com/Jhon-Crow/godot-topdown-MVP/pull/361
+- **Original Feature Issue:** https://github.com/Jhon-Crow/godot-topdown-MVP/issues/360
+- **This PR:** https://github.com/Jhon-Crow/godot-topdown-MVP/pull/378
+- **Related Case Study:** `docs/case-studies/issue-360/README.md`
+- **Grenade Safety Issue:** https://github.com/Jhon-Crow/godot-topdown-MVP/issues/375
+
+### Files
+- `logs/game_log_20260125_094415.txt` - First test session log (4x change)
+- `logs/game_log_20260125_095541.txt` - Second test session log (8x change, revealed alpha decay issue)
+- `logs/game_log_20260125_110355.txt` - Fifth test session log (enemies broken, revealed variable name bug)
+- `logs/solution-draft-log-pr-1769323401165.txt` - Initial AI solution draft log
 
 ### Internal References
 - **Original Feature PR:** https://github.com/Jhon-Crow/godot-topdown-MVP/pull/361

@@ -4913,7 +4913,7 @@ func _setup_grenade_component() -> void:
 	_grenade_component.grenade_scene = grenade_scene
 	_grenade_component.enabled = enable_grenade_throwing
 	_grenade_component.throw_cooldown = grenade_throw_cooldown
-	_grenade_component.max_throw_distance = max_grenade_throw_distance
+	_grenade_component.max_throw_distance = grenade_max_throw_distance
 	_grenade_component.min_throw_distance = grenade_min_throw_distance
 	_grenade_component.safety_margin = grenade_safety_margin
 	_grenade_component.inaccuracy = grenade_inaccuracy
