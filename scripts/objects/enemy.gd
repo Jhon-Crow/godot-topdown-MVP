@@ -4932,7 +4932,7 @@ func _setup_grenade_component() -> void:
 func _update_grenade_triggers(delta: float) -> void:
 	if _grenade_component == null:
 		return
-	_grenade_component.update(delta, _can_see_player, _under_fire, _player, _current_health)
+	_grenade_component.update(delta, _can_see_player, _under_fire, _player, _current_health, _memory)
 	_update_grenade_world_state()
 
 ## Notify grenade component of gunshots for sustained fire tracking (Trigger 5).
