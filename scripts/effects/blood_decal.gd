@@ -25,13 +25,19 @@ var _initial_alpha: float = 0.85
 var _puddle_area: Area2D = null
 
 
+## Reference to FileLogger for persistent logging.
+var _file_logger: Node = null
+
+
 func _ready() -> void:
+	_file_logger = get_node_or_null("/root/FileLogger")
 	_initial_alpha = modulate.a
 
 	# Add to blood_puddle group for detection
 	if is_puddle:
 		add_to_group("blood_puddle")
 		_setup_puddle_area()
+		_log_info("Blood puddle created at %s (added to group)" % global_position)
 
 	if auto_fade:
 		_start_fade_timer()
@@ -98,3 +104,10 @@ func fade_out_quick() -> void:
 	var tween := create_tween()
 	tween.tween_property(self, "modulate:a", 0.0, 0.5)
 	tween.tween_callback(queue_free)
+
+
+## Logs to FileLogger.
+func _log_info(message: String) -> void:
+	var log_message := "[BloodDecal] %s" % message
+	if _file_logger and _file_logger.has_method("log_info"):
+		_file_logger.log_info(log_message)

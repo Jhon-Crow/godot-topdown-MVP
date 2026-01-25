@@ -243,8 +243,113 @@ Blood puddles need Area2D collision to be detected. Options:
 ### Modified Files
 - `scenes/effects/BloodDecal.tscn` - Add Area2D for detection
 - `scripts/effects/blood_decal.gd` - Add group membership
-- `scenes/characters/Player.tscn` - Add BloodyFeetComponent
+- `scenes/characters/Player.tscn` - Add BloodyFeetComponent (GDScript version)
+- `scenes/characters/csharp/Player.tscn` - Add BloodyFeetComponent (C# version)
 - `scenes/objects/Enemy.tscn` - Add BloodyFeetComponent
+
+---
+
+## Debugging Session #2 (2026-01-25)
+
+### Problem Report
+
+User reported "не вижу изменений" (I don't see changes) and "проверь C#" (check C#).
+
+The initial implementation was deployed but footprints were not appearing in the game.
+
+### Log File Analysis
+
+**Log file:** `logs/game_log_20260125_044305.txt`
+
+Key observations from the log:
+
+1. **BloodyFeetComponent is initializing for enemies:**
+   ```
+   [04:43:05] [INFO] [BloodyFeet:Enemy1] Footprint scene loaded
+   [04:43:05] [INFO] [BloodyFeet:Enemy1] Blood detector created
+   [04:43:05] [INFO] [BloodyFeet:Enemy1] BloodyFeetComponent ready on Enemy1
+   ```
+   (repeated for all 10 enemies)
+
+2. **No BloodyFeetComponent initialization for Player:**
+   - No "[BloodyFeet:Player]" messages in the log
+
+3. **Blood effects are being spawned correctly:**
+   ```
+   [04:43:10] [INFO] [ImpactEffects] spawn_blood_effect called at (700, 750)
+   [04:43:10] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn
+   ```
+
+4. **No blood puddle contact logs appear:**
+   - Missing "Stepped in blood!" messages
+   - Missing footprint spawning logs
+
+### Root Cause Analysis
+
+**Two distinct bugs were identified:**
+
+#### Bug #1: C# Player Scene Missing BloodyFeetComponent
+
+**Location:** `scenes/characters/csharp/Player.tscn`
+
+**Cause:** The project has two versions of scenes:
+- GDScript version in `scenes/characters/Player.tscn` (has BloodyFeetComponent)
+- C# version in `scenes/characters/csharp/Player.tscn` (missing BloodyFeetComponent)
+
+The `BuildingLevel.tscn` uses the C# Player:
+```
+[ext_resource ... path="res://scenes/characters/csharp/Player.tscn" id="2_player"]
+```
+
+But the BloodyFeetComponent was only added to the GDScript Player scene.
+
+**Fix:** Added BloodyFeetComponent to the C# Player scene.
+
+#### Bug #2: Blood Detector Not Following Character Movement
+
+**Location:** `scripts/components/bloody_feet_component.gd` line 105
+
+**Cause:** The blood detector Area2D was added as a child of the BloodyFeetComponent Node:
+```gdscript
+add_child(_blood_detector)  # BUG: adds to Node, not CharacterBody2D
+```
+
+In Godot, a regular `Node` has no transform. When an Area2D is added to a Node, its global_position stays at (0, 0) in world space and does not follow the parent character's movement.
+
+**Technical Details:**
+- `BloodyFeetComponent` extends `Node` (not `Node2D`)
+- Nodes don't have position/rotation/scale transforms
+- Area2D needs a Node2D parent to inherit transform
+- The detector was at origin (0, 0) instead of at the character's feet
+
+**Fix:** Changed to add the detector to the parent CharacterBody2D:
+```gdscript
+_parent_body.add_child(_blood_detector)  # FIX: adds to CharacterBody2D
+```
+
+### Timeline of Events
+
+1. **Initial implementation:** BloodyFeetComponent created and added to GDScript scenes
+2. **User testing:** User runs game (uses C# Player scene)
+3. **Observation:** No footprints appear for player or enemies
+4. **Log analysis:** Found missing Player initialization + no blood contact events
+5. **Investigation:** Discovered dual scene structure (GDScript vs C#)
+6. **Investigation:** Discovered Area2D positioning bug
+7. **Fixes applied:** Added component to C# scene + fixed detector positioning
+
+### Lessons Learned
+
+1. **Always check which scene version is actually used in levels**
+   - Projects may have multiple versions of scenes (GDScript, C#)
+   - Level scenes reference specific scene files by path
+
+2. **Node hierarchy affects Area2D detection**
+   - Area2D requires Node2D parent for proper positioning
+   - Regular Node has no transform, so children stay at origin
+
+3. **Enable debug logging during development**
+   - Set `debug_logging = true` in scene files for testing
+   - Log periodic status updates (e.g., overlap counts, positions)
 
 ## Performance Considerations
 

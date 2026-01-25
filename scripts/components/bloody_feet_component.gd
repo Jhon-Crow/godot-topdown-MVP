@@ -102,12 +102,16 @@ func _setup_blood_detector() -> void:
 	collision_shape.shape = shape
 
 	_blood_detector.add_child(collision_shape)
-	add_child(_blood_detector)
+
+	# IMPORTANT: Add detector to the parent CharacterBody2D, not to this Node,
+	# so that its position follows the character's movement.
+	# If we add to this Node (which has no transform), the detector stays at (0, 0).
+	_parent_body.add_child(_blood_detector)
 
 	# Connect signals for blood detection
 	_blood_detector.area_entered.connect(_on_area_entered)
 
-	_log_info("Blood detector created")
+	_log_info("Blood detector created and attached to %s" % _parent_body.name)
 
 
 func _physics_process(delta: float) -> void:
@@ -122,6 +126,9 @@ func _physics_process(delta: float) -> void:
 		_track_movement()
 
 
+## Debug: Frame counter for periodic overlap logging
+var _debug_frame_counter: int = 0
+
 ## Checks if we're overlapping with any blood puddle via group detection.
 func _check_blood_puddle_overlap() -> void:
 	if _blood_detector == null:
@@ -129,6 +136,18 @@ func _check_blood_puddle_overlap() -> void:
 
 	# Get all overlapping areas
 	var overlapping_areas := _blood_detector.get_overlapping_areas()
+
+	# Periodic debug logging (every 120 frames = ~2 seconds at 60fps)
+	_debug_frame_counter += 1
+	if debug_logging and _debug_frame_counter >= 120:
+		_debug_frame_counter = 0
+		var blood_puddles_in_scene := get_tree().get_nodes_in_group("blood_puddle")
+		_log_info("Overlap check: areas=%d, blood_puddles_in_scene=%d, detector_pos=%s" % [
+			overlapping_areas.size(),
+			blood_puddles_in_scene.size(),
+			_blood_detector.global_position
+		])
+
 	for area in overlapping_areas:
 		# Check if the area or its parent is a blood puddle
 		if area.is_in_group("blood_puddle") or (area.get_parent() and area.get_parent().is_in_group("blood_puddle")):
