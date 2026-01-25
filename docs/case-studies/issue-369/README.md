@@ -728,3 +728,115 @@ The problematic game log was saved for reference:
 - `logs/game_log_20260125_094956.txt`
 
 ---
+
+## Session 4: BloodyFeetComponent class_name Issue (2026-01-25)
+
+### User Report
+
+User continued to report enemies being broken after supposedly testing the PR branch:
+> "всё ещё сломано" (Translation: "still broken")
+> "вот последний рабочий коммит, сверься с ним"
+> (Reference to commit 858a4174838543395f0388ed33ad55977299fcce as last working)
+
+Attached log: `game_log_20260125_101524.txt`
+
+### Log Analysis
+
+#### Evidence of Main Branch Code
+
+The log still shows BloodyFeetComponent output:
+```
+[10:15:24] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[10:15:24] [INFO] [BloodyFeet:Enemy1] Footprint scene loaded
+[10:15:24] [INFO] [BloodyFeet:Enemy1] Blood detector created and attached to Enemy1
+[10:15:24] [INFO] [BloodyFeet:Enemy1] Found EnemyModel for facing direction
+[10:15:24] [INFO] [BloodyFeet:Enemy1] BloodyFeetComponent ready on Enemy1
+```
+
+**Key insight:** BloodyFeetComponent did NOT exist in our PR branch before this session. It only exists in `main`. The user's exported build contained main branch code with BloodyFeetComponent.
+
+#### Same Symptom Pattern as Issue #363
+
+```
+[10:15:24] [INFO] [BuildingLevel] Child 'Enemy1': script=true, has_died_signal=false
+[10:15:24] [INFO] [BuildingLevel] Child 'Enemy2': script=true, has_died_signal=false
+...
+[10:15:24] [INFO] [BuildingLevel] Enemy tracking complete: 0 enemies registered
+```
+
+And later:
+```
+[10:15:26] [INFO] [BloodyFeet:Enemy1] Overlap check: ... in_tree=false
+[10:15:26] [INFO] [BloodyFeet:Enemy2] Overlap check: ... in_tree=false
+```
+
+This is the EXACT same failure pattern we identified in Issue #363!
+
+### Root Cause Identified
+
+**BloodyFeetComponent uses `class_name BloodyFeetComponent`** (line 7 of the original file):
+
+```gdscript
+extends Node
+## Component that tracks when a character steps in blood and spawns footprints.
+##
+## Attach this component to any CharacterBody2D (Player or Enemy) to enable
+## bloody footprint tracking. The component monitors for blood puddle contact
+## and spawns footprint decals at regular intervals while moving.
+class_name BloodyFeetComponent
+```
+
+This is the SAME pattern that caused Issue #363:
+
+1. **Export build script loading order differs from editor**
+2. **When a script references a `class_name`, that class must be loaded first**
+3. **In export builds, the loading order can cause the class to not be found**
+4. **This causes the referencing script to FAIL TO PARSE**
+5. **A script that fails to parse has NO SIGNALS at runtime**
+6. **`has_died_signal=false` because the enemy script is broken**
+7. **0 enemies registered, game appears to work but enemies don't function**
+
+### Solution Applied
+
+**Removed `class_name BloodyFeetComponent`** from `scripts/components/bloody_feet_component.gd`:
+
+```gdscript
+extends Node
+## Component that tracks when a character steps in blood and spawns footprints.
+##
+## Attach this component to any CharacterBody2D (Player or Enemy) to enable
+## bloody footprint tracking. The component monitors for blood puddle contact
+## and spawns footprint decals at regular intervals while moving.
+##
+## Note: class_name intentionally omitted to prevent export build script loading issues.
+## See Issue #363 root cause analysis for details on why typed component references
+## can cause scripts to fail parsing in export builds due to load order differences.
+```
+
+### Cross-Reference to Issue #363 Root Cause Analysis
+
+The complete technical analysis of this problem is documented in:
+- `docs/case-studies/issue-363/root-cause-analysis-20260125.md`
+
+Key points:
+- Using `class_name` in component scripts is risky for export builds
+- GDScript class loading order is undefined in exports
+- Godot doesn't crash on script parse errors - it runs with broken scripts silently
+- The fix is to either remove `class_name` or use duck typing (`var x = null` instead of `var x: MyClass = null`)
+
+### Files Modified
+
+- `scripts/components/bloody_feet_component.gd` - Removed `class_name` declaration
+
+### Log File Added
+
+- `logs/game_log_20260125_101524.txt`
+
+### Recommendations
+
+1. **Never use `class_name` in component scripts** that are attached to scene files
+2. **Test export builds regularly** to catch these issues early
+3. **Add CI step for export build testing** to verify basic functionality
+4. **Use duck typing** for cross-script references when possible
+
+---
