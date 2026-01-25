@@ -409,6 +409,13 @@ var _flank_cooldown_timer: float = 0.0
 ## Duration to wait after flanking failures before allowing retry (seconds).
 const FLANK_COOLDOWN_DURATION: float = 5.0
 
+## Issue #367: Global position-based stuck detection for PURSUING/FLANKING states.
+## If enemy stays near same position for too long without direct player contact, transition to SEARCHING.
+var _global_stuck_timer: float = 0.0  ## Timer for position-based stuck detection
+var _global_stuck_last_position: Vector2 = Vector2.ZERO  ## Last recorded position for stuck check
+const GLOBAL_STUCK_MAX_TIME: float = 4.0  ## Max time in same area before forced transition
+const GLOBAL_STUCK_DISTANCE_THRESHOLD: float = 30.0  ## Min distance to count as "moved"
+
 ## --- Assault State (coordinated multi-enemy rush) ---
 ## Timer for assault wait period (5 seconds before rushing).
 var _assault_wait_timer: float = 0.0
@@ -572,13 +579,6 @@ func _ready() -> void:
 
 	# Log that this enemy is ready (use call_deferred to ensure FileLogger is loaded)
 	call_deferred("_log_spawn_info")
-
-	# Debug: Log weapon sprite status
-	if _weapon_sprite:
-		var texture_status := "loaded" if _weapon_sprite.texture else "NULL"
-		print("[Enemy] WeaponSprite found: visible=%s, z_index=%d, texture=%s" % [_weapon_sprite.visible, _weapon_sprite.z_index, texture_status])
-	else:
-		push_error("[Enemy] WARNING: WeaponSprite node not found!")
 
 	# Preload bullet scene if not set in inspector
 	if bullet_scene == null:
@@ -942,6 +942,35 @@ func _physics_process(delta: float) -> void:
 	# Update memory reset confusion timer (Issue #318)
 	if _memory_reset_confusion_timer > 0.0:
 		_memory_reset_confusion_timer = maxf(0.0, _memory_reset_confusion_timer - delta)
+
+	# Issue #367: Global position-based stuck detection for PURSUING/FLANKING states.
+	# If enemy stays in same position for too long without direct player contact, force SEARCHING.
+	if _current_state == AIState.PURSUING or _current_state == AIState.FLANKING:
+		var moved_distance := global_position.distance_to(_global_stuck_last_position)
+		if moved_distance < GLOBAL_STUCK_DISTANCE_THRESHOLD:
+			# Not making significant progress - increment stuck timer
+			# Only count if NOT in direct player contact (can't see and shoot player)
+			if not (_can_see_player and _can_hit_player_from_current_position()):
+				_global_stuck_timer += delta
+				if _global_stuck_timer >= GLOBAL_STUCK_MAX_TIME:
+					_log_to_file("GLOBAL STUCK: pos=%s for %.1fs without player contact, State: %s -> SEARCHING" % [global_position, _global_stuck_timer, AIState.keys()[_current_state]])
+					_global_stuck_timer = 0.0
+					_global_stuck_last_position = global_position
+					# Reset flanking state if applicable
+					if _current_state == AIState.FLANKING:
+						_flank_side_initialized = false
+						_flank_fail_count += 1
+						_flank_cooldown_timer = FLANK_COOLDOWN_DURATION
+					_transition_to_searching(global_position)
+					return  # Skip rest of physics process this frame
+		else:
+			# Making progress - reset stuck timer and update position
+			_global_stuck_timer = 0.0
+			_global_stuck_last_position = global_position
+	else:
+		# Not in PURSUING/FLANKING - reset stuck detection
+		_global_stuck_timer = 0.0
+		_global_stuck_last_position = global_position
 
 	# Check for player visibility and try to find player if not found
 	if _player == null:
@@ -1751,104 +1780,66 @@ func _process_in_cover_state(delta: float) -> void:
 		_log_debug("Lost sight of player from cover, transitioning to PURSUING")
 		_transition_to_pursuing()
 
-## Process FLANKING state - attempting to flank the player using cover-to-cover movement.
-## Uses intermediate cover positions to navigate around obstacles instead of walking
-## directly toward the flank target.
+## Process FLANKING state - flank player using cover-to-cover movement.
 func _process_flanking_state(delta: float) -> void:
-	# Update state timer
 	_flank_state_timer += delta
 
-	# Check for overall FLANKING state timeout
 	if _flank_state_timer >= FLANK_STATE_MAX_TIME:
-		var msg := "FLANKING timeout (%.1fs), target=%s, pos=%s" % [_flank_state_timer, _flank_target, global_position]
-		_log_debug(msg)
-		_log_to_file(msg)
+		_log_to_file("FLANKING timeout (%.1fs), target=%s, pos=%s" % [_flank_state_timer, _flank_target, global_position])
 		_flank_side_initialized = false
-		# Try combat if we can see the player, otherwise pursue
-		if _can_see_player:
-			_transition_to_combat()
-		else:
-			_transition_to_pursuing()
+		if _can_see_player: _transition_to_combat()
+		else: _transition_to_pursuing()
 		return
 
-	# Check for stuck detection - not making progress toward flank target
 	var distance_moved := global_position.distance_to(_flank_last_position)
 	if distance_moved < FLANK_PROGRESS_THRESHOLD:
 		_flank_stuck_timer += delta
 		if _flank_stuck_timer >= FLANK_STUCK_MAX_TIME:
-			var msg := "FLANKING stuck (%.1fs no progress), target=%s, pos=%s, fail_count=%d" % [_flank_stuck_timer, _flank_target, global_position, _flank_fail_count + 1]
-			_log_debug(msg)
-			_log_to_file(msg)
+			_log_to_file("FLANKING stuck (%.1fs), pos=%s, fail=%d" % [_flank_stuck_timer, global_position, _flank_fail_count + 1])
 			_flank_side_initialized = false
-			# Increment failure counter and start cooldown
 			_flank_fail_count += 1
 			_flank_cooldown_timer = FLANK_COOLDOWN_DURATION
-			# After multiple failures, go directly to combat or assault to break the loop
 			if _flank_fail_count >= FLANK_FAIL_MAX_COUNT:
-				var msg2 := "FLANKING disabled after %d failures, switching to direct engagement" % _flank_fail_count
-				_log_debug(msg2)
-				_log_to_file(msg2)
-				# Go to combat instead of pursuing to break the FLANKING->PURSUING->FLANKING loop
+				_log_to_file("FLANKING disabled after %d failures" % _flank_fail_count)
 				_transition_to_combat()
 				return
-			# Try combat if we can see the player, otherwise pursue
-			if _can_see_player:
-				_transition_to_combat()
-			else:
-				_transition_to_pursuing()
+			if _can_see_player: _transition_to_combat()
+			else: _transition_to_pursuing()
 			return
 	else:
-		# Making progress - reset stuck timer and update last position
 		_flank_stuck_timer = 0.0
 		_flank_last_position = global_position
-		# Success clears failure count
 		if _flank_fail_count > 0:
 			_flank_fail_count = 0
 
-	# If under fire, retreat with shooting behavior
 	if _under_fire and enable_cover:
 		_flank_side_initialized = false
 		_transition_to_retreating()
 		return
 
-	# Only transition to combat if we can ACTUALLY HIT the player, not just see them.
-	# This is critical for the "last cover" scenario where enemy can see player
-	# but there's a wall blocking the shot. We must continue flanking until we
-	# have a clear shot, otherwise we get stuck in a FLANKING->COMBAT->PURSUING loop.
+	# Only transition to combat if we can ACTUALLY HIT the player (not just see)
 	if _can_see_player and _can_hit_player_from_current_position():
-		_log_debug("Can see AND hit player from flanking position, engaging")
 		_flank_side_initialized = false
 		_transition_to_combat()
 		return
 
 	if _player == null:
 		_flank_side_initialized = false
-		# Issue #330: If enemy has left IDLE, start searching instead of returning to IDLE
-		if _has_left_idle:
-			_log_to_file("FLANKING: Lost player reference, starting search (engaged enemy)")
+		if _has_left_idle:  # Issue #330: search instead of idle
 			_transition_to_searching(global_position)
 		else:
 			_transition_to_idle()
 		return
 
-	# Recalculate flank position (player may have moved)
-	# Note: _flank_side is stable, only the target position is recalculated
-	_calculate_flank_position()
+	_calculate_flank_position()  # Recalculate (player may have moved)
 
-	var distance_to_flank := global_position.distance_to(_flank_target)
-
-	# Check if we've reached the flank target
-	if distance_to_flank < 30.0:
-		_log_debug("Reached flank position, engaging")
+	if global_position.distance_to(_flank_target) < 30.0:
 		_flank_side_initialized = false
 		_transition_to_combat()
 		return
 
-	# Use navigation-based pathfinding to move toward flank target
-	# This handles obstacles properly unlike direct movement with wall avoidance
 	_move_to_target_nav(_flank_target, combat_move_speed)
-
-	# Corner checking during FLANKING (Issue #332)
+	# Corner checking during FLANKING movement (Issue #332)
 	if velocity.length_squared() > 1.0:
 		_process_corner_check(delta, velocity.normalized(), "FLANKING")
 
@@ -2531,35 +2522,18 @@ func _shoot_burst_shot() -> void:
 ## Transition to IDLE state.
 func _transition_to_idle() -> void:
 	_current_state = AIState.IDLE
-	# Reset encounter hit tracking when returning to idle
-	_hits_taken_in_encounter = 0
-	# Reset alarm mode when returning to idle
-	_in_alarm_mode = false
-	_cover_burst_pending = false
-	# Reset idle scanning state for GUARD enemies
-	_idle_scan_timer = 0.0
-	_idle_scan_targets.clear()  # Will be re-initialized in _process_guard
+	# Reset various state tracking when returning to idle
+	_hits_taken_in_encounter = 0; _in_alarm_mode = false; _cover_burst_pending = false
+	_idle_scan_timer = 0.0; _idle_scan_targets.clear()  # Will be re-initialized in _process_guard
 
 ## Transition to COMBAT state.
 func _transition_to_combat() -> void:
 	_current_state = AIState.COMBAT
-	# Mark that enemy has left IDLE state (Issue #330)
-	_has_left_idle = true
-	# Reset detection delay timer when entering combat
-	_detection_timer = 0.0
-	_detection_delay_elapsed = false
-	# Reset combat phase variables
-	_combat_exposed = false
-	_combat_approaching = false
-	_combat_shoot_timer = 0.0
-	_combat_approach_timer = 0.0
-	# Reset state duration timer (prevents rapid state thrashing)
-	_combat_state_timer = 0.0
-	# Reset clear shot seeking variables
-	_seeking_clear_shot = false
-	_clear_shot_timer = 0.0
-	_clear_shot_target = Vector2.ZERO
-	# Clear vulnerability sound pursuit flag
+	_has_left_idle = true  # Issue #330
+	_detection_timer = 0.0; _detection_delay_elapsed = false
+	_combat_exposed = false; _combat_approaching = false
+	_combat_shoot_timer = 0.0; _combat_approach_timer = 0.0; _combat_state_timer = 0.0
+	_seeking_clear_shot = false; _clear_shot_timer = 0.0; _clear_shot_target = Vector2.ZERO
 	_pursuing_vulnerability_sound = false
 
 ## Transition to SEEKING_COVER state.
@@ -2624,10 +2598,13 @@ func _transition_to_flanking() -> bool:
 	_flank_cover_wait_timer = 0.0
 	_has_flank_cover = false
 	_has_valid_cover = false
-	# Initialize timeout and progress tracking for stuck detection
+	# Initialize timeout and progress tracking for stuck detection (Issue #367)
 	_flank_state_timer = 0.0
 	_flank_stuck_timer = 0.0
 	_flank_last_position = global_position
+	# Reset global stuck detection
+	_global_stuck_timer = 0.0
+	_global_stuck_last_position = global_position
 	var msg := "FLANKING started: target=%s, side=%s, pos=%s" % [_flank_target, "right" if _flank_side > 0 else "left", global_position]
 	_log_debug(msg)
 	_log_to_file(msg)
@@ -2680,6 +2657,9 @@ func _transition_to_pursuing() -> void:
 	_current_cover_obstacle = null
 	# Reset state duration timer (prevents rapid state thrashing)
 	_pursuing_state_timer = 0.0
+	# Reset global stuck detection (Issue #367)
+	_global_stuck_timer = 0.0
+	_global_stuck_last_position = global_position
 	# Reset detection delay for new engagement
 	_detection_timer = 0.0
 	_detection_delay_elapsed = false
@@ -3424,6 +3404,8 @@ func _calculate_flank_position() -> void:
 	_log_debug("Flank target: %s (side: %s)" % [_flank_target, "right" if _flank_side > 0 else "left"])
 
 ## Choose the best flank side (1.0=right, -1.0=left) based on obstacle presence.
+## Issue #367: Also checks if the flank position has line-of-sight to the player,
+## to avoid choosing positions behind walls relative to the player.
 func _choose_best_flank_side() -> float:
 	if _player == null:
 		return 1.0 if randf() > 0.5 else -1.0
@@ -3438,29 +3420,41 @@ func _choose_best_flank_side() -> float:
 	var right_flank_pos := player_pos + right_flank_dir * flank_distance
 	var left_flank_pos := player_pos + left_flank_dir * flank_distance
 
-	# Check if paths are clear for both sides
-	var right_clear := _has_clear_path_to(right_flank_pos)
-	var left_clear := _has_clear_path_to(left_flank_pos)
+	# Check if paths are clear for both sides (from enemy to flank position)
+	var right_path_clear := _has_clear_path_to(right_flank_pos)
+	var left_path_clear := _has_clear_path_to(left_flank_pos)
 
-	# If only one side is clear, use that side
-	if right_clear and not left_clear:
-		_log_debug("Choosing right flank (left blocked)")
+	# Issue #367: Check LOS to player and combine with path checks
+	var right_valid := right_path_clear and _flank_position_has_los_to_player(right_flank_pos, player_pos)
+	var left_valid := left_path_clear and _flank_position_has_los_to_player(left_flank_pos, player_pos)
+
+	if right_valid and not left_valid:
 		return 1.0
-	elif left_clear and not right_clear:
-		_log_debug("Choosing left flank (right blocked)")
+	elif left_valid and not right_valid:
 		return -1.0
 
-	# If both or neither are clear, choose based on which side we're already closer to
-	# This creates more natural movement patterns
-	var right_distance := global_position.distance_to(right_flank_pos)
-	var left_distance := global_position.distance_to(left_flank_pos)
+	# Issue #367: If neither valid, try reduced distance (50%)
+	if not right_valid and not left_valid:
+		var rd := flank_distance * 0.5
+		var rr := player_pos + right_flank_dir * rd
+		var lr := player_pos + left_flank_dir * rd
+		var rrv := _has_clear_path_to(rr) and _flank_position_has_los_to_player(rr, player_pos)
+		var lrv := _has_clear_path_to(lr) and _flank_position_has_los_to_player(lr, player_pos)
+		if rrv and not lrv:
+			return 1.0
+		elif lrv and not rrv:
+			return -1.0
+		if not rrv and not lrv:
+			_log_to_file("Warning: No valid flank position (both sides behind walls)")
 
-	if right_distance < left_distance:
-		_log_debug("Choosing right flank (closer)")
-		return 1.0
-	else:
-		_log_debug("Choosing left flank (closer)")
-		return -1.0
+	# Choose closer side
+	return 1.0 if global_position.distance_squared_to(right_flank_pos) < global_position.distance_squared_to(left_flank_pos) else -1.0
+
+## Check if flank position has LOS to player (Issue #367).
+func _flank_position_has_los_to_player(flank_pos: Vector2, player_pos: Vector2) -> bool:
+	var query := PhysicsRayQueryParameters2D.create(flank_pos, player_pos)
+	query.collision_mask = 0b100  # Walls only
+	return get_world_2d().direct_space_state.intersect_ray(query).is_empty()
 
 ## Check if there's a clear path (no obstacles) to the target position.
 func _has_clear_path_to(target: Vector2) -> bool:
@@ -4463,6 +4457,9 @@ func _reset() -> void:
 	_pursuit_approaching = false
 	_pursuit_approach_timer = 0.0
 	_pursuing_state_timer = 0.0
+	# Reset global stuck detection (Issue #367)
+	_global_stuck_timer = 0.0
+	_global_stuck_last_position = Vector2.ZERO
 	# Reset assault state variables
 	_assault_wait_timer = 0.0
 	_assault_ready = false

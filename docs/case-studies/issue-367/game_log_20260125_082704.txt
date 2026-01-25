@@ -1,0 +1,1031 @@
+[08:27:04] [INFO] ============================================================
+[08:27:04] [INFO] GAME LOG STARTED
+[08:27:04] [INFO] ============================================================
+[08:27:04] [INFO] Timestamp: 2026-01-25T08:27:04
+[08:27:04] [INFO] Log file: I:/Загрузки/godot exe/game_log_20260125_082704.txt
+[08:27:04] [INFO] Executable: I:/Загрузки/godot exe/Godot-Top-Down-Template.exe
+[08:27:04] [INFO] OS: Windows
+[08:27:04] [INFO] Debug build: false
+[08:27:04] [INFO] Engine version: 4.3-stable (official)
+[08:27:04] [INFO] Project: Godot Top-Down Template
+[08:27:04] [INFO] ------------------------------------------------------------
+[08:27:04] [INFO] [GameManager] GameManager ready
+[08:27:04] [INFO] [ScoreManager] ScoreManager ready
+[08:27:04] [INFO] [SoundPropagation] SoundPropagation autoload initialized
+[08:27:04] [INFO] [ImpactEffects] Scenes loaded: DustEffect, BloodEffect, SparksEffect, BloodDecal
+[08:27:04] [INFO] [ImpactEffects] ImpactEffectsManager ready - FULL VERSION with blood effects enabled
+[08:27:04] [INFO] [ImpactEffects] Starting particle shader warmup (Issue #343 fix)...
+[08:27:04] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[08:27:04] [INFO] [PenultimateHit] Saturation shader loaded successfully
+[08:27:04] [INFO] [PenultimateHit] Starting shader warmup (Issue #343 fix)...
+[08:27:04] [INFO] [PenultimateHit] PenultimateHitEffectsManager ready - Configuration:
+[08:27:04] [INFO] [PenultimateHit]   Time scale: 0.10 (10x slowdown)
+[08:27:04] [INFO] [PenultimateHit]   Saturation boost: 2.0 (3.0x)
+[08:27:04] [INFO] [PenultimateHit]   Contrast boost: 1.0 (2.0x)
+[08:27:04] [INFO] [PenultimateHit]   Effect duration: 3.0 real seconds
+[08:27:04] [INFO] [LastChance] Resetting all effects (scene change detected)
+[08:27:04] [INFO] [LastChance] Last chance shader loaded successfully
+[08:27:04] [INFO] [LastChance] Starting shader warmup (Issue #343 fix)...
+[08:27:04] [INFO] [LastChance] LastChanceEffectsManager ready - Configuration:
+[08:27:04] [INFO] [LastChance]   Freeze duration: 6.0 real seconds
+[08:27:04] [INFO] [LastChance]   Sepia intensity: 0.70
+[08:27:04] [INFO] [LastChance]   Brightness: 0.60
+[08:27:04] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FlashbangGrenade.tscn
+[08:27:04] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FragGrenade.tscn
+[08:27:04] [INFO] [ExperimentalSettings] ExperimentalSettings initialized - FOV enabled: true
+[08:27:04] [ENEMY] [Enemy1] Death animation component initialized
+[08:27:04] [ENEMY] [Enemy2] Death animation component initialized
+[08:27:04] [ENEMY] [Enemy3] Death animation component initialized
+[08:27:04] [ENEMY] [Enemy4] Death animation component initialized
+[08:27:04] [ENEMY] [Enemy5] Death animation component initialized
+[08:27:04] [ENEMY] [Enemy6] Death animation component initialized
+[08:27:04] [ENEMY] [Enemy7] Death animation component initialized
+[08:27:04] [ENEMY] [Enemy8] Death animation component initialized
+[08:27:04] [ENEMY] [Enemy9] Death animation component initialized
+[08:27:04] [ENEMY] [Enemy10] Death animation component initialized
+[08:27:04] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[08:27:04] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[08:27:04] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[08:27:04] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[08:27:04] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[08:27:04] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[08:27:04] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[08:27:04] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[08:27:04] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 3/4
+[08:27:04] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[08:27:04] [INFO] [BuildingLevel] Found Environment/Enemies node with 10 children
+[08:27:04] [INFO] [BuildingLevel] Child 'Enemy1': script=true, has_died_signal=true
+[08:27:04] [INFO] [BuildingLevel] Child 'Enemy2': script=true, has_died_signal=true
+[08:27:04] [INFO] [BuildingLevel] Child 'Enemy3': script=true, has_died_signal=true
+[08:27:04] [INFO] [BuildingLevel] Child 'Enemy4': script=true, has_died_signal=true
+[08:27:04] [INFO] [BuildingLevel] Child 'Enemy5': script=true, has_died_signal=true
+[08:27:04] [INFO] [BuildingLevel] Child 'Enemy6': script=true, has_died_signal=true
+[08:27:04] [INFO] [BuildingLevel] Child 'Enemy7': script=true, has_died_signal=true
+[08:27:04] [INFO] [BuildingLevel] Child 'Enemy8': script=true, has_died_signal=true
+[08:27:04] [INFO] [BuildingLevel] Child 'Enemy9': script=true, has_died_signal=true
+[08:27:04] [INFO] [BuildingLevel] Child 'Enemy10': script=true, has_died_signal=true
+[08:27:04] [INFO] [BuildingLevel] Enemy tracking complete: 10 enemies registered
+[08:27:04] [INFO] [ScoreManager] Level started with 10 enemies
+[08:27:04] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 1)
+[08:27:04] [ENEMY] [Enemy1] Registered as sound listener
+[08:27:04] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 3, behavior: GUARD, player_found: yes
+[08:27:04] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 2)
+[08:27:04] [ENEMY] [Enemy2] Registered as sound listener
+[08:27:04] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 3, behavior: GUARD, player_found: yes
+[08:27:04] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 3)
+[08:27:04] [ENEMY] [Enemy3] Registered as sound listener
+[08:27:04] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 4, behavior: GUARD, player_found: yes
+[08:27:04] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 4)
+[08:27:04] [ENEMY] [Enemy4] Registered as sound listener
+[08:27:04] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 3, behavior: GUARD, player_found: yes
+[08:27:04] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 5)
+[08:27:04] [ENEMY] [Enemy5] Registered as sound listener
+[08:27:04] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 3, behavior: GUARD, player_found: yes
+[08:27:04] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 6)
+[08:27:04] [ENEMY] [Enemy6] Registered as sound listener
+[08:27:04] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 2, behavior: GUARD, player_found: yes
+[08:27:04] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 7)
+[08:27:04] [ENEMY] [Enemy7] Registered as sound listener
+[08:27:04] [ENEMY] [Enemy7] Enemy spawned at (1606.114, 893.8859), health: 4, behavior: PATROL, player_found: yes
+[08:27:04] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 8)
+[08:27:04] [ENEMY] [Enemy8] Registered as sound listener
+[08:27:04] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 4, behavior: GUARD, player_found: yes
+[08:27:04] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 9)
+[08:27:04] [ENEMY] [Enemy9] Registered as sound listener
+[08:27:04] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 2, behavior: GUARD, player_found: yes
+[08:27:04] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 10)
+[08:27:04] [ENEMY] [Enemy10] Registered as sound listener
+[08:27:04] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 2, behavior: PATROL, player_found: yes
+[08:27:04] [INFO] [Player] Detecting weapon pose (frame 3)...
+[08:27:04] [INFO] [Player] Detected weapon: Rifle (default pose)
+[08:27:04] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[08:27:04] [INFO] [PenultimateHit] Shader warmup complete in 166 ms
+[08:27:04] [INFO] [LastChance] Shader warmup complete in 164 ms
+[08:27:04] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[08:27:04] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[08:27:04] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[08:27:04] [INFO] [LastChance] Found player: Player
+[08:27:04] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[08:27:04] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[08:27:04] [INFO] [LastChance] Connected to player Died signal (C#)
+[08:27:04] [INFO] [ImpactEffects] Particle shader warmup complete: 5 effects warmed up in 364 ms
+[08:27:06] [ENEMY] [Enemy7] PATROL corner check: angle 94.3°
+[08:27:06] [ENEMY] [Enemy10] PATROL corner check: angle -0.0°
+[08:27:06] [ENEMY] [Enemy7] PATROL corner check: angle 94.3°
+[08:27:06] [ENEMY] [Enemy10] PATROL corner check: angle 14.3°
+[08:27:06] [ENEMY] [Enemy10] PATROL corner check: angle 7.0°
+[08:27:06] [INFO] [Player.Debug] Debug mode toggled: ON
+[08:27:06] [INFO] [GameManager] Debug mode toggled: ON
+[08:27:07] [ENEMY] [Enemy10] PATROL corner check: angle 3.5°
+[08:27:07] [ENEMY] [Enemy10] PATROL corner check: angle 1.8°
+[08:27:07] [ENEMY] [Enemy10] PATROL corner check: angle 0.9°
+[08:27:08] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:08] [ENEMY] [Enemy7] PATROL corner check: angle 90.0°
+[08:27:08] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:08] [ENEMY] [Enemy7] PATROL corner check: angle 89.8°
+[08:27:08] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:08] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(477.91, 765.7275), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[08:27:08] [ENEMY] [Enemy1] Heard gunshot at (477.91, 765.7275), source_type=0, intensity=0.01, distance=452
+[08:27:08] [ENEMY] [Enemy2] Heard gunshot at (477.91, 765.7275), source_type=0, intensity=0.05, distance=229
+[08:27:08] [ENEMY] [Enemy3] Heard gunshot at (477.91, 765.7275), source_type=0, intensity=0.05, distance=223
+[08:27:08] [ENEMY] [Enemy4] Heard gunshot at (477.91, 765.7275), source_type=0, intensity=0.02, distance=349
+[08:27:08] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=3, self=0, below_threshold=3
+[08:27:09] [ENEMY] [Enemy7] PATROL corner check: angle 89.7°
+[08:27:09] [ENEMY] [Enemy3] Hit taken, health: 3/4
+[08:27:09] [ENEMY] [Enemy3] ImpactEffectsManager found, calling spawn_blood_effect
+[08:27:09] [INFO] [ImpactEffects] spawn_blood_effect called at (700, 750), dir=(1, 0), lethal=false
+[08:27:09] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[08:27:09] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[08:27:09] [INFO] [ImpactEffects] Blood effect spawned at (700, 750) (scale=1)
+[08:27:09] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(501.2446, 742.3929), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[08:27:09] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=3, self=0, below_threshold=3
+[08:27:09] [ENEMY] [Enemy3] Hit taken, health: 2/4
+[08:27:09] [ENEMY] [Enemy3] ImpactEffectsManager found, calling spawn_blood_effect
+[08:27:09] [INFO] [ImpactEffects] spawn_blood_effect called at (700, 750), dir=(1, 0), lethal=false
+[08:27:09] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[08:27:09] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[08:27:09] [INFO] [ImpactEffects] Blood effect spawned at (700, 750) (scale=1)
+[08:27:09] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(700, 750), source=ENEMY (Enemy3), range=1469, listeners=10
+[08:27:09] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[08:27:09] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:09] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(526.1347, 717.5027), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[08:27:09] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=2, self=0, below_threshold=4
+[08:27:09] [INFO] [LastChance] Threat detected: Bullet
+[08:27:09] [INFO] [LastChance] Player health is 0.0 - effect requires exactly 1 HP or less but alive
+[08:27:09] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[08:27:09] [ENEMY] [Enemy3] State: COMBAT -> RETREATING
+[08:27:09] [ENEMY] [Enemy3] Hit taken, health: 1/4
+[08:27:09] [ENEMY] [Enemy3] ImpactEffectsManager found, calling spawn_blood_effect
+[08:27:09] [INFO] [ImpactEffects] spawn_blood_effect called at (700, 750), dir=(1, 0), lethal=false
+[08:27:09] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[08:27:09] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[08:27:09] [INFO] [ImpactEffects] Blood effect spawned at (700, 750) (scale=1)
+[08:27:09] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(547.9136, 695.7239), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[08:27:09] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=2, self=0, below_threshold=4
+[08:27:09] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(706.2896, 755.7671), source=ENEMY (Enemy3), range=1469, listeners=10
+[08:27:09] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[08:27:09] [ENEMY] [Enemy3] Hit taken, health: 0/4
+[08:27:09] [ENEMY] [Enemy3] ImpactEffectsManager found, calling spawn_blood_effect
+[08:27:09] [INFO] [ImpactEffects] spawn_blood_effect called at (711.0067, 760.0924), dir=(1, 0), lethal=true
+[08:27:09] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[08:27:09] [INFO] [ImpactEffects] Blood decals scheduled: 20 to spawn at particle landing times
+[08:27:09] [INFO] [ImpactEffects] Blood effect spawned at (711.0067, 760.0924) (scale=1.5)
+[08:27:09] [ENEMY] [Enemy3] Enemy died (ricochet: false, penetration: false)
+[08:27:09] [INFO] [ScoreManager] Kill registered. Combo: 1 (points: 500)
+[08:27:09] [INFO] [SoundPropagation] Unregistered listener: Enemy3 (remaining: 9)
+[08:27:09] [INFO] [DeathAnim] Started - Angle: 0.0 deg, Index: 12
+[08:27:09] [ENEMY] [Enemy3] Death animation started with hit direction: (1, 0)
+[08:27:09] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(642.0094, 735.6418), shooter_id=43637540377, bullet_pos=(479.3614, 699.2634)
+[08:27:09] [INFO] [Bullet] Using shooter_position, distance=166.666641235352
+[08:27:09] [INFO] [Bullet] Distance to wall: 166.666641235352 (11.3486380746442% of viewport)
+[08:27:09] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[08:27:09] [ENEMY] [Enemy7] PATROL corner check: angle 89.5°
+[08:27:09] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(572.8037, 670.8337), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[08:27:09] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=2, self=0, below_threshold=4
+[08:27:09] [INFO] [Player] Spawning blood effect at (579.02625, 658.6112), dir=(0.9469017, -0.32152322), lethal=False (C#)
+[08:27:09] [INFO] [ImpactEffects] spawn_blood_effect called at (579.0262, 658.6112), dir=(0.946902, -0.321523), lethal=false
+[08:27:09] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[08:27:09] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[08:27:09] [INFO] [ImpactEffects] Blood effect spawned at (579.0262, 658.6112) (scale=1)
+[08:27:09] [INFO] [PenultimateHit] Player damaged: 1.0 damage, current health: 2.0
+[08:27:09] [INFO] [LastChance] Player health updated (C# Damaged): 2.0
+[08:27:09] [ENEMY] [Enemy1] State: COMBAT -> PURSUING
+[08:27:09] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[08:27:09] [ENEMY] [Enemy4] State: COMBAT -> PURSUING
+[08:27:09] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:09] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(572.8037, 670.83374), shooter_id=46456112833, bullet_pos=(913.94604, 863.25146)
+[08:27:09] [INFO] [Bullet] Using shooter_position, distance=391,66653
+[08:27:09] [INFO] [Bullet] Distance to wall: 391,66653 (26,669296% of viewport)
+[08:27:09] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[08:27:09] [INFO] [Bullet] Starting wall penetration at (913.94604, 863.25146)
+[08:27:09] [INFO] [Bullet] Raycast backward hit penetrating body at distance 13,013131
+[08:27:09] [INFO] [Bullet] Body exited signal received for penetrating body
+[08:27:09] [INFO] [Bullet] Exiting penetration at (947.3345, 882.08386) after traveling 33,333336 pixels through wall
+[08:27:09] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[08:27:09] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:10] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:10] [ENEMY] [Enemy3] Ragdoll activated
+[08:27:10] [INFO] [DeathAnim] Ragdoll activated at 60% fall progress
+[08:27:10] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:10] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:10] [ENEMY] [Enemy7] PATROL corner check: angle 89.3°
+[08:27:10] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:11] [ENEMY] [Enemy7] PATROL corner check: angle 89.3°
+[08:27:11] [ENEMY] [Enemy3] Death animation completed
+[08:27:11] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:11] [ENEMY] [Enemy7] PATROL corner check: angle 89.3°
+[08:27:11] [ENEMY] [Enemy2] PURSUING corner check: angle 156.1°
+[08:27:11] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:11] [ENEMY] [Enemy1] PURSUING corner check: angle -87.4°
+[08:27:11] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[08:27:11] [ENEMY] [Enemy7] PATROL corner check: angle 89.2°
+[08:27:11] [ENEMY] [Enemy4] PURSUING corner check: angle -60.1°
+[08:27:12] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:12] [ENEMY] [Enemy1] PURSUING corner check: angle 122.1°
+[08:27:12] [ENEMY] [Enemy7] PATROL corner check: angle 89.2°
+[08:27:12] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[08:27:12] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:12] [ENEMY] [Enemy7] PATROL corner check: angle 89.3°
+[08:27:12] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:12] [ENEMY] [Enemy7] PATROL corner check: angle 89.3°
+[08:27:13] [INFO] [ScoreManager] Combo ended at 1. Max combo: 1
+[08:27:13] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:13] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:13] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:13] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:13] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:13] [ENEMY] [Enemy1] Warning: No valid flank position (both sides behind walls)
+[08:27:13] [ENEMY] [Enemy1] FLANKING started: target=(1123.51, 892.1345), side=left, pos=(456.7182, 459.1705)
+[08:27:13] [ENEMY] [Enemy1] State: PURSUING -> FLANKING
+[08:27:13] [ENEMY] [Enemy4] PURSUING corner check: angle -85.2°
+[08:27:13] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:14] [ENEMY] [Enemy1] FLANKING corner check: angle 148.6°
+[08:27:14] [ENEMY] [Enemy2] PURSUING corner check: angle -49.7°
+[08:27:14] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:14] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:14] [ENEMY] [Enemy2] PURSUING corner check: angle -49.7°
+[08:27:14] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:14] [ENEMY] [Enemy1] FLANKING corner check: angle -69.1°
+[08:27:14] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:14] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:14] [ENEMY] [Enemy1] FLANKING corner check: angle -34.8°
+[08:27:14] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:15] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:15] [ENEMY] [Enemy1] FLANKING corner check: angle -9.3°
+[08:27:15] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:15] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:15] [ENEMY] [Enemy4] Warning: No valid flank position (both sides behind walls)
+[08:27:15] [ENEMY] [Enemy4] FLANKING started: target=(960.4705, 787.6857), side=right, pos=(638.4036, 860.5734)
+[08:27:15] [ENEMY] [Enemy4] State: PURSUING -> FLANKING
+[08:27:15] [ENEMY] [Enemy1] FLANKING corner check: angle 139.0°
+[08:27:15] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:15] [ENEMY] [Enemy4] FLANKING corner check: angle -85.8°
+[08:27:15] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:15] [ENEMY] [Enemy1] FLANKING corner check: angle -3.0°
+[08:27:15] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:16] [ENEMY] [Enemy4] FLANKING corner check: angle -90.6°
+[08:27:16] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:16] [ENEMY] [Enemy1] FLANKING corner check: angle -2.6°
+[08:27:16] [ENEMY] [Enemy2] PURSUING corner check: angle -117.6°
+[08:27:16] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:16] [ENEMY] [Enemy4] FLANKING corner check: angle -102.2°
+[08:27:16] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:16] [ENEMY] [Enemy1] FLANKING corner check: angle -1.9°
+[08:27:16] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:16] [ENEMY] [Enemy4] FLANKING corner check: angle -129.9°
+[08:27:16] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:16] [ENEMY] [Enemy1] FLANKING corner check: angle 0.3°
+[08:27:16] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:17] [ENEMY] [Enemy4] FLANKING corner check: angle -123.8°
+[08:27:17] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:17] [ENEMY] [Enemy1] FLANKING corner check: angle 0.3°
+[08:27:17] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:17] [ENEMY] [Enemy4] FLANKING corner check: angle 132.4°
+[08:27:17] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:17] [ENEMY] [Enemy1] FLANKING corner check: angle 0.3°
+[08:27:17] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:17] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:17] [ENEMY] [Enemy4] FLANKING corner check: angle -141.9°
+[08:27:17] [ENEMY] [Enemy1] FLANKING corner check: angle 0.3°
+[08:27:17] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:18] [ENEMY] [Enemy2] Warning: No valid flank position (both sides behind walls)
+[08:27:18] [ENEMY] [Enemy2] FLANKING started: target=(1091.735, 840.9543), side=right, pos=(870.2803, 692.9144)
+[08:27:18] [ENEMY] [Enemy2] State: PURSUING -> FLANKING
+[08:27:18] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:18] [ENEMY] [Enemy2] FLANKING corner check: angle 145.9°
+[08:27:18] [ENEMY] [Enemy4] FLANKING corner check: angle -130.2°
+[08:27:18] [ENEMY] [Enemy1] FLANKING corner check: angle 0.3°
+[08:27:18] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:18] [ENEMY] [Enemy1] FLANKING stuck (2.0s), pos=(714.9278, 975.9339), fail=1
+[08:27:18] [ENEMY] [Enemy1] State: FLANKING -> PURSUING
+[08:27:18] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:18] [ENEMY] [Enemy2] FLANKING corner check: angle 134.1°
+[08:27:18] [ENEMY] [Enemy4] FLANKING corner check: angle 140.5°
+[08:27:18] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:18] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:18] [ENEMY] [Enemy2] FLANKING corner check: angle 125.4°
+[08:27:18] [ENEMY] [Enemy4] FLANKING corner check: angle 122.6°
+[08:27:18] [ENEMY] [Enemy1] PURSUING corner check: angle -153.6°
+[08:27:18] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:19] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:19] [ENEMY] [Enemy2] FLANKING corner check: angle -135.7°
+[08:27:19] [ENEMY] [Enemy4] FLANKING corner check: angle -134.7°
+[08:27:19] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:19] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:19] [ENEMY] [Enemy2] FLANKING corner check: angle -128.1°
+[08:27:19] [ENEMY] [Enemy4] FLANKING corner check: angle -125.8°
+[08:27:19] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:19] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:19] [ENEMY] [Enemy2] FLANKING corner check: angle 132.7°
+[08:27:19] [ENEMY] [Enemy4] FLANKING corner check: angle 134.7°
+[08:27:19] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:20] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:20] [ENEMY] [Enemy2] FLANKING corner check: angle -141.8°
+[08:27:20] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:20] [ENEMY] [Enemy4] FLANKING corner check: angle -141.7°
+[08:27:20] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:20] [ENEMY] [Enemy4] FLANKING timeout (5.0s), target=(1067.342, 820.6526), pos=(887.9338, 841.4641)
+[08:27:20] [ENEMY] [Enemy4] State: FLANKING -> PURSUING
+[08:27:20] [ENEMY] [Enemy2] FLANKING corner check: angle -130.2°
+[08:27:20] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:20] [ENEMY] [Enemy4] PURSUING_MEMORY corner check: angle -153.7°
+[08:27:20] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:20] [ENEMY] [Enemy1] PURSUING corner check: angle -177.5°
+[08:27:20] [ENEMY] [Enemy2] FLANKING corner check: angle 140.5°
+[08:27:20] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:21] [ENEMY] [Enemy4] PURSUING corner check: angle 178.5°
+[08:27:21] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:21] [ENEMY] [Enemy2] FLANKING corner check: angle 122.7°
+[08:27:21] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:21] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:21] [ENEMY] [Enemy2] FLANKING corner check: angle -134.8°
+[08:27:21] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:21] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:21] [ENEMY] [Enemy2] FLANKING corner check: angle -125.8°
+[08:27:21] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:22] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:22] [ENEMY] [Enemy2] FLANKING corner check: angle 134.7°
+[08:27:22] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:22] [ENEMY] [Enemy1] State: PURSUING -> COMBAT
+[08:27:22] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:22] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:22] [ENEMY] [Enemy2] FLANKING corner check: angle -141.7°
+[08:27:22] [ENEMY] [Enemy4] FLANKING started: target=(1101.954, 851.7028), side=right, pos=(877.2346, 614.2357)
+[08:27:22] [ENEMY] [Enemy4] State: PURSUING -> FLANKING
+[08:27:22] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:22] [ENEMY] [Enemy4] FLANKING corner check: angle 157.8°
+[08:27:22] [ENEMY] [Enemy1] State: COMBAT -> PURSUING
+[08:27:22] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:23] [ENEMY] [Enemy2] FLANKING timeout (5.0s), target=(1077.142, 828.031), pos=(887.9343, 815.9006)
+[08:27:23] [ENEMY] [Enemy2] State: FLANKING -> PURSUING
+[08:27:23] [ENEMY] [Enemy2] Warning: No valid flank position (both sides behind walls)
+[08:27:23] [ENEMY] [Enemy2] FLANKING started: target=(1079.311, 829.7963), side=right, pos=(887.9343, 812.368)
+[08:27:23] [ENEMY] [Enemy2] State: PURSUING -> FLANKING
+[08:27:23] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:23] [ENEMY] [Enemy2] FLANKING corner check: angle -128.7°
+[08:27:23] [ENEMY] [Enemy4] FLANKING corner check: angle 141.3°
+[08:27:23] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:23] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:23] [ENEMY] [Enemy2] FLANKING corner check: angle 138.7°
+[08:27:23] [ENEMY] [Enemy4] FLANKING corner check: angle 135.1°
+[08:27:23] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:23] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:23] [ENEMY] [Enemy2] FLANKING corner check: angle 120.5°
+[08:27:23] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:24] [ENEMY] [Enemy4] FLANKING corner check: angle -142.4°
+[08:27:24] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:24] [ENEMY] [Enemy2] FLANKING corner check: angle -134.9°
+[08:27:24] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:24] [ENEMY] [Enemy4] FLANKING corner check: angle -130.3°
+[08:27:24] [ENEMY] [Enemy1] FLANKING started: target=(1090.464, 839.7239), side=right, pos=(884.8253, 752.6182)
+[08:27:24] [ENEMY] [Enemy1] State: PURSUING -> FLANKING
+[08:27:24] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:24] [ENEMY] [Enemy2] FLANKING corner check: angle -124.3°
+[08:27:24] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:24] [ENEMY] [Enemy1] FLANKING corner check: angle 134.3°
+[08:27:24] [ENEMY] [Enemy4] FLANKING corner check: angle 140.4°
+[08:27:24] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:24] [ENEMY] [Enemy2] FLANKING corner check: angle 133.3°
+[08:27:24] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:25] [ENEMY] [Enemy4] FLANKING corner check: angle 122.5°
+[08:27:25] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:25] [ENEMY] [Enemy1] FLANKING corner check: angle -142.1°
+[08:27:25] [ENEMY] [Enemy2] FLANKING corner check: angle -141.7°
+[08:27:25] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:25] [ENEMY] [Enemy4] FLANKING corner check: angle -134.4°
+[08:27:25] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:25] [ENEMY] [Enemy1] FLANKING corner check: angle -130.2°
+[08:27:25] [ENEMY] [Enemy2] FLANKING corner check: angle -130.1°
+[08:27:25] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:25] [ENEMY] [Enemy4] FLANKING corner check: angle -125.8°
+[08:27:25] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:25] [ENEMY] [Enemy1] FLANKING corner check: angle 140.5°
+[08:27:25] [ENEMY] [Enemy2] FLANKING corner check: angle 140.6°
+[08:27:25] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:26] [ENEMY] [Enemy4] FLANKING corner check: angle 134.7°
+[08:27:26] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:26] [ENEMY] [Enemy1] FLANKING corner check: angle 122.6°
+[08:27:26] [ENEMY] [Enemy2] FLANKING corner check: angle 122.7°
+[08:27:26] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:26] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:26] [ENEMY] [Enemy4] FLANKING corner check: angle -141.8°
+[08:27:26] [ENEMY] [Enemy1] FLANKING corner check: angle -134.6°
+[08:27:26] [ENEMY] [Enemy2] FLANKING corner check: angle -134.9°
+[08:27:26] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:26] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:26] [ENEMY] [Enemy4] FLANKING corner check: angle -130.1°
+[08:27:26] [ENEMY] [Enemy1] FLANKING corner check: angle -125.8°
+[08:27:26] [ENEMY] [Enemy2] FLANKING corner check: angle -125.7°
+[08:27:26] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:27] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:27] [ENEMY] [Enemy4] FLANKING corner check: angle 140.6°
+[08:27:27] [ENEMY] [Enemy1] FLANKING corner check: angle 134.7°
+[08:27:27] [ENEMY] [Enemy2] FLANKING corner check: angle 134.7°
+[08:27:27] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:27] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:27] [ENEMY] [Enemy4] FLANKING corner check: angle 122.7°
+[08:27:27] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:27] [ENEMY] [Enemy1] FLANKING corner check: angle -141.7°
+[08:27:27] [ENEMY] [Enemy2] FLANKING corner check: angle -141.7°
+[08:27:27] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:27] [ENEMY] [Enemy4] FLANKING timeout (5.0s), target=(1044.223, 806.5743), pos=(887.9346, 879.5863)
+[08:27:27] [ENEMY] [Enemy4] State: FLANKING -> PURSUING
+[08:27:27] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:27] [ENEMY] [Enemy1] FLANKING corner check: angle -130.1°
+[08:27:28] [ENEMY] [Enemy2] FLANKING corner check: angle -130.1°
+[08:27:28] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:28] [ENEMY] [Enemy2] FLANKING timeout (5.0s), target=(1082.965, 832.8862), pos=(887.9332, 795.738)
+[08:27:28] [ENEMY] [Enemy2] State: FLANKING -> PURSUING
+[08:27:28] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:28] [ENEMY] [Enemy1] FLANKING corner check: angle 140.6°
+[08:27:28] [ENEMY] [Enemy2] PURSUING corner check: angle 178.6°
+[08:27:28] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:28] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:28] [ENEMY] [Enemy1] FLANKING corner check: angle 122.7°
+[08:27:28] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:28] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:28] [ENEMY] [Enemy1] FLANKING corner check: angle -134.9°
+[08:27:29] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:29] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:29] [ENEMY] [Enemy1] FLANKING corner check: angle -125.7°
+[08:27:29] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:29] [ENEMY] [Enemy1] FLANKING timeout (5.0s), target=(1088.355, 837.7299), pos=(887.9338, 771.939)
+[08:27:29] [ENEMY] [Enemy1] State: FLANKING -> PURSUING
+[08:27:29] [ENEMY] [Enemy4] PURSUING corner check: angle 179.7°
+[08:27:29] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:29] [ENEMY] [Enemy1] PURSUING corner check: angle 176.3°
+[08:27:29] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:29] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:30] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:30] [ENEMY] [Enemy2] FLANKING started: target=(1101.13, 850.7749), side=right, pos=(877.214, 625.5988)
+[08:27:30] [ENEMY] [Enemy2] State: PURSUING -> FLANKING
+[08:27:30] [ENEMY] [Enemy2] FLANKING corner check: angle 156.9°
+[08:27:30] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:30] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:30] [ENEMY] [Enemy2] FLANKING corner check: angle 140.1°
+[08:27:30] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:30] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:30] [ENEMY] [Enemy2] FLANKING corner check: angle 134.0°
+[08:27:30] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:31] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:31] [ENEMY] [Enemy1] Warning: No valid flank position (both sides behind walls)
+[08:27:31] [ENEMY] [Enemy1] FLANKING started: target=(1096.73, 846.0084), side=right, pos=(877.5143, 677.1802)
+[08:27:31] [ENEMY] [Enemy1] State: PURSUING -> FLANKING
+[08:27:31] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:31] [ENEMY] [Enemy4] Warning: No valid flank position (both sides behind walls)
+[08:27:31] [ENEMY] [Enemy4] FLANKING started: target=(758.6544, 932.8859), side=left, pos=(877.0511, 707.7969)
+[08:27:31] [ENEMY] [Enemy4] State: PURSUING -> FLANKING
+[08:27:31] [ENEMY] [Enemy2] FLANKING corner check: angle -141.7°
+[08:27:31] [ENEMY] [Enemy4] FLANKING corner check: angle -152.9°
+[08:27:31] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:31] [ENEMY] [Enemy1] FLANKING corner check: angle 137.6°
+[08:27:31] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:31] [ENEMY] [Enemy2] FLANKING corner check: angle -130.1°
+[08:27:31] [ENEMY] [Enemy4] FLANKING corner check: angle -159.6°
+[08:27:31] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:31] [ENEMY] [Enemy1] FLANKING corner check: angle 132.9°
+[08:27:31] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:32] [ENEMY] [Enemy2] FLANKING corner check: angle 140.6°
+[08:27:32] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:32] [ENEMY] [Enemy4] FLANKING corner check: angle -47.4°
+[08:27:32] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:32] [ENEMY] [Enemy1] FLANKING corner check: angle -142.2°
+[08:27:32] [ENEMY] [Enemy2] FLANKING corner check: angle 122.7°
+[08:27:32] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:32] [ENEMY] [Enemy4] FLANKING corner check: angle -177.4°
+[08:27:32] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:32] [ENEMY] [Enemy1] FLANKING corner check: angle -130.3°
+[08:27:32] [ENEMY] [Enemy2] FLANKING corner check: angle -134.9°
+[08:27:32] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:32] [ENEMY] [Enemy4] FLANKING corner check: angle -178.5°
+[08:27:32] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:32] [ENEMY] [Enemy1] FLANKING corner check: angle 140.5°
+[08:27:33] [ENEMY] [Enemy2] FLANKING corner check: angle -125.7°
+[08:27:33] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:33] [ENEMY] [Enemy4] FLANKING corner check: angle -179.1°
+[08:27:33] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:33] [ENEMY] [Enemy1] FLANKING corner check: angle 122.5°
+[08:27:33] [ENEMY] [Enemy2] FLANKING corner check: angle 134.7°
+[08:27:33] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:33] [ENEMY] [Enemy4] FLANKING corner check: angle -179.4°
+[08:27:33] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:33] [ENEMY] [Enemy1] FLANKING corner check: angle -134.5°
+[08:27:33] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:33] [ENEMY] [Enemy4] FLANKING corner check: angle -179.4°
+[08:27:33] [ENEMY] [Enemy2] FLANKING corner check: angle -141.7°
+[08:27:33] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:33] [ENEMY] [Enemy1] FLANKING corner check: angle -125.8°
+[08:27:34] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:34] [ENEMY] [Enemy4] FLANKING corner check: angle -179.4°
+[08:27:34] [ENEMY] [Enemy2] FLANKING corner check: angle -130.1°
+[08:27:34] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:34] [ENEMY] [Enemy1] FLANKING corner check: angle 134.7°
+[08:27:34] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:34] [ENEMY] [Enemy4] FLANKING stuck (2.0s), pos=(770.7183, 975.9341), fail=1
+[08:27:34] [ENEMY] [Enemy4] State: FLANKING -> PURSUING
+[08:27:34] [ENEMY] [Enemy4] PURSUING corner check: angle -142.1°
+[08:27:34] [ENEMY] [Enemy2] FLANKING corner check: angle 140.6°
+[08:27:34] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:34] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:34] [ENEMY] [Enemy1] FLANKING corner check: angle -141.7°
+[08:27:34] [ENEMY] [Enemy2] FLANKING corner check: angle 122.7°
+[08:27:34] [ENEMY] [Enemy4] PURSUING corner check: angle -142.1°
+[08:27:34] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:35] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:35] [ENEMY] [Enemy1] FLANKING corner check: angle -130.1°
+[08:27:35] [ENEMY] [Enemy2] FLANKING timeout (5.0s), target=(1052.819, 811.3132), pos=(887.934, 868.0974)
+[08:27:35] [ENEMY] [Enemy2] State: FLANKING -> PURSUING
+[08:27:35] [ENEMY] [Enemy2] Warning: No valid flank position (both sides behind walls)
+[08:27:35] [ENEMY] [Enemy2] FLANKING started: target=(752.1046, 977.61), side=left, pos=(887.934, 864.3416)
+[08:27:35] [ENEMY] [Enemy2] State: PURSUING -> FLANKING
+[08:27:35] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:35] [ENEMY] [Enemy2] FLANKING corner check: angle -138.8°
+[08:27:35] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:35] [ENEMY] [Enemy1] FLANKING corner check: angle 140.6°
+[08:27:35] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:35] [ENEMY] [Enemy2] FLANKING corner check: angle -160.7°
+[08:27:35] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:35] [ENEMY] [Enemy1] FLANKING corner check: angle 122.7°
+[08:27:35] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:35] [ENEMY] [Enemy2] FLANKING corner check: angle -169.8°
+[08:27:36] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:36] [ENEMY] [Enemy1] FLANKING corner check: angle -134.9°
+[08:27:36] [ENEMY] [Enemy1] FLANKING timeout (5.0s), target=(1072.031, 824.0659), pos=(887.9343, 830.2904)
+[08:27:36] [ENEMY] [Enemy1] State: FLANKING -> PURSUING
+[08:27:36] [ENEMY] [Enemy1] Warning: No valid flank position (both sides behind walls)
+[08:27:36] [ENEMY] [Enemy1] FLANKING started: target=(753.8788, 956.7012), side=left, pos=(887.9343, 826.601)
+[08:27:36] [ENEMY] [Enemy1] State: PURSUING -> FLANKING
+[08:27:36] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:36] [ENEMY] [Enemy2] FLANKING corner check: angle -174.4°
+[08:27:36] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:36] [ENEMY] [Enemy1] FLANKING corner check: angle -142.8°
+[08:27:36] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:36] [ENEMY] [Enemy2] FLANKING corner check: angle -176.8°
+[08:27:36] [ENEMY] [Enemy4] PURSUING corner check: angle -177.4°
+[08:27:36] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:36] [ENEMY] [Enemy1] FLANKING corner check: angle -161.0°
+[08:27:36] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:36] [ENEMY] [Enemy2] FLANKING corner check: angle -178.2°
+[08:27:37] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:37] [ENEMY] [Enemy1] FLANKING corner check: angle -171.0°
+[08:27:37] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:37] [ENEMY] [Enemy2] FLANKING corner check: angle -178.9°
+[08:27:37] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:37] [ENEMY] [Enemy1] FLANKING corner check: angle -175.0°
+[08:27:37] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:37] [ENEMY] [Enemy2] FLANKING corner check: angle -179.4°
+[08:27:37] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:37] [ENEMY] [Enemy1] FLANKING corner check: angle -177.2°
+[08:27:37] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:37] [ENEMY] [Enemy2] FLANKING corner check: angle -179.4°
+[08:27:38] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:38] [ENEMY] [Enemy1] FLANKING corner check: angle -178.4°
+[08:27:38] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:38] [ENEMY] [Enemy2] FLANKING corner check: angle -179.4°
+[08:27:38] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:38] [ENEMY] [Enemy1] FLANKING corner check: angle -179.1°
+[08:27:38] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:38] [ENEMY] [Enemy2] FLANKING corner check: angle -179.4°
+[08:27:38] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:38] [ENEMY] [Enemy1] FLANKING corner check: angle -179.4°
+[08:27:38] [ENEMY] [Enemy2] FLANKING stuck (2.0s), pos=(770.7261, 975.9341), fail=1
+[08:27:38] [ENEMY] [Enemy2] State: FLANKING -> PURSUING
+[08:27:38] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:39] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:39] [ENEMY] [Enemy1] FLANKING corner check: angle -179.4°
+[08:27:39] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:39] [ENEMY] [Enemy2] PURSUING corner check: angle -142.1°
+[08:27:39] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:39] [ENEMY] [Enemy1] FLANKING corner check: angle -179.4°
+[08:27:39] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:39] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:39] [ENEMY] [Enemy1] FLANKING corner check: angle -179.4°
+[08:27:39] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:40] [ENEMY] [Enemy4] Warning: No valid flank position (both sides behind walls)
+[08:27:40] [ENEMY] [Enemy4] FLANKING started: target=(759.5728, 929.533), side=left, pos=(876.9654, 687.1544)
+[08:27:40] [ENEMY] [Enemy4] State: PURSUING -> FLANKING
+[08:27:40] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:40] [ENEMY] [Enemy4] FLANKING corner check: angle -155.0°
+[08:27:40] [ENEMY] [Enemy1] FLANKING corner check: angle -179.4°
+[08:27:40] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:40] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:40] [ENEMY] [Enemy1] FLANKING stuck (2.0s), pos=(770.7104, 975.9342), fail=1
+[08:27:40] [ENEMY] [Enemy1] State: FLANKING -> PURSUING
+[08:27:40] [ENEMY] [Enemy4] FLANKING corner check: angle -160.9°
+[08:27:40] [ENEMY] [Enemy1] PURSUING corner check: angle -142.1°
+[08:27:40] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:40] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:40] [ENEMY] [Enemy4] FLANKING corner check: angle 43.2°
+[08:27:40] [ENEMY] [Enemy1] PURSUING corner check: angle -142.1°
+[08:27:40] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:41] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:41] [ENEMY] [Enemy4] FLANKING corner check: angle -177.7°
+[08:27:41] [ENEMY] [Enemy2] PURSUING corner check: angle -177.4°
+[08:27:41] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:41] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:41] [ENEMY] [Enemy4] FLANKING corner check: angle -178.7°
+[08:27:41] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:41] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:41] [ENEMY] [Enemy4] FLANKING corner check: angle -179.2°
+[08:27:41] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:42] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:42] [ENEMY] [Enemy4] FLANKING corner check: angle -179.4°
+[08:27:42] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:42] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:42] [ENEMY] [Enemy4] FLANKING corner check: angle -179.4°
+[08:27:42] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:42] [ENEMY] [Enemy1] PURSUING corner check: angle -177.4°
+[08:27:42] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:42] [ENEMY] [Enemy4] FLANKING corner check: angle -179.4°
+[08:27:42] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:43] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:43] [ENEMY] [Enemy4] FLANKING stuck (2.0s), pos=(770.684, 975.9341), fail=1
+[08:27:43] [ENEMY] [Enemy4] State: FLANKING -> PURSUING
+[08:27:43] [ENEMY] [Enemy4] PURSUING corner check: angle -142.1°
+[08:27:43] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:43] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:43] [ENEMY] [Enemy4] PURSUING corner check: angle -142.1°
+[08:27:43] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:43] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:43] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:44] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:44] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:44] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:44] [ENEMY] [Enemy2] Warning: No valid flank position (both sides behind walls)
+[08:27:44] [ENEMY] [Enemy2] FLANKING started: target=(759.5726, 929.5335), side=left, pos=(876.9657, 687.1586)
+[08:27:44] [ENEMY] [Enemy2] State: PURSUING -> FLANKING
+[08:27:44] [ENEMY] [Enemy2] FLANKING corner check: angle -155.0°
+[08:27:44] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:44] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:44] [ENEMY] [Enemy2] FLANKING corner check: angle -160.9°
+[08:27:44] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:45] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:45] [ENEMY] [Enemy2] FLANKING corner check: angle 43.2°
+[08:27:45] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:45] [ENEMY] [Enemy4] PURSUING corner check: angle -177.4°
+[08:27:45] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:45] [ENEMY] [Enemy2] FLANKING corner check: angle -177.7°
+[08:27:45] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:45] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:45] [ENEMY] [Enemy2] FLANKING corner check: angle -178.7°
+[08:27:45] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:46] [ENEMY] [Enemy1] Warning: No valid flank position (both sides behind walls)
+[08:27:46] [ENEMY] [Enemy1] FLANKING started: target=(759.5728, 929.5328), side=left, pos=(876.965, 687.1517)
+[08:27:46] [ENEMY] [Enemy1] State: PURSUING -> FLANKING
+[08:27:46] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:46] [ENEMY] [Enemy1] FLANKING corner check: angle -155.0°
+[08:27:46] [ENEMY] [Enemy2] FLANKING corner check: angle -179.2°
+[08:27:46] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:46] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:46] [ENEMY] [Enemy1] FLANKING corner check: angle -160.9°
+[08:27:46] [ENEMY] [Enemy2] FLANKING corner check: angle -179.4°
+[08:27:46] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:46] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:46] [ENEMY] [Enemy1] FLANKING corner check: angle 43.2°
+[08:27:46] [ENEMY] [Enemy2] FLANKING corner check: angle -179.4°
+[08:27:46] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:47] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:47] [ENEMY] [Enemy1] FLANKING corner check: angle -177.7°
+[08:27:47] [ENEMY] [Enemy2] FLANKING corner check: angle -179.4°
+[08:27:47] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:47] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:47] [ENEMY] [Enemy1] FLANKING corner check: angle -178.7°
+[08:27:47] [ENEMY] [Enemy2] FLANKING stuck (2.0s), pos=(770.684, 975.9343), fail=1
+[08:27:47] [ENEMY] [Enemy2] State: FLANKING -> PURSUING
+[08:27:47] [ENEMY] [Enemy2] PURSUING corner check: angle -142.1°
+[08:27:47] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:47] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:47] [ENEMY] [Enemy1] FLANKING corner check: angle -179.2°
+[08:27:47] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:47] [ENEMY] [Enemy2] PURSUING corner check: angle -142.1°
+[08:27:48] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:48] [ENEMY] [Enemy1] FLANKING corner check: angle -179.4°
+[08:27:48] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:48] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:48] [ENEMY] [Enemy1] FLANKING corner check: angle -179.4°
+[08:27:48] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:48] [ENEMY] [Enemy4] Warning: No valid flank position (both sides behind walls)
+[08:27:48] [ENEMY] [Enemy4] FLANKING started: target=(759.5732, 929.5314), side=left, pos=(876.9639, 687.1376)
+[08:27:48] [ENEMY] [Enemy4] State: PURSUING -> FLANKING
+[08:27:48] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:48] [ENEMY] [Enemy4] FLANKING corner check: angle -155.0°
+[08:27:48] [ENEMY] [Enemy1] FLANKING corner check: angle -179.4°
+[08:27:48] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:49] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:49] [ENEMY] [Enemy1] FLANKING stuck (2.0s), pos=(770.6836, 975.9344), fail=1
+[08:27:49] [ENEMY] [Enemy1] State: FLANKING -> PURSUING
+[08:27:49] [ENEMY] [Enemy4] FLANKING corner check: angle -160.9°
+[08:27:49] [ENEMY] [Enemy1] PURSUING corner check: angle -142.1°
+[08:27:49] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:49] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:49] [ENEMY] [Enemy4] FLANKING corner check: angle 43.2°
+[08:27:49] [ENEMY] [Enemy1] PURSUING corner check: angle -142.1°
+[08:27:49] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:49] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:49] [ENEMY] [Enemy4] FLANKING corner check: angle -177.7°
+[08:27:49] [ENEMY] [Enemy2] PURSUING corner check: angle -177.4°
+[08:27:49] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:50] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:50] [ENEMY] [Enemy4] FLANKING corner check: angle -178.7°
+[08:27:50] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:50] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:50] [ENEMY] [Enemy4] FLANKING corner check: angle -179.2°
+[08:27:50] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:50] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:50] [ENEMY] [Enemy4] FLANKING corner check: angle -179.4°
+[08:27:50] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:51] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:51] [ENEMY] [Enemy4] FLANKING corner check: angle -179.4°
+[08:27:51] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:51] [ENEMY] [Enemy1] PURSUING corner check: angle -177.4°
+[08:27:51] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:51] [ENEMY] [Enemy4] FLANKING corner check: angle -179.4°
+[08:27:51] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:51] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:51] [ENEMY] [Enemy4] FLANKING stuck (2.0s), pos=(770.6852, 975.9342), fail=1
+[08:27:51] [ENEMY] [Enemy4] State: FLANKING -> PURSUING
+[08:27:51] [ENEMY] [Enemy4] PURSUING corner check: angle -142.1°
+[08:27:51] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:52] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:52] [ENEMY] [Enemy4] PURSUING corner check: angle -142.1°
+[08:27:52] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:52] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:52] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:52] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:52] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:53] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:53] [ENEMY] [Enemy2] Warning: No valid flank position (both sides behind walls)
+[08:27:53] [ENEMY] [Enemy2] FLANKING started: target=(759.5732, 929.5314), side=left, pos=(876.9639, 687.1378)
+[08:27:53] [ENEMY] [Enemy2] State: PURSUING -> FLANKING
+[08:27:53] [ENEMY] [Enemy2] FLANKING corner check: angle -155.0°
+[08:27:53] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:53] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:53] [ENEMY] [Enemy2] FLANKING corner check: angle -160.9°
+[08:27:53] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:53] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:53] [ENEMY] [Enemy2] FLANKING corner check: angle 43.2°
+[08:27:53] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:54] [ENEMY] [Enemy4] PURSUING corner check: angle -177.4°
+[08:27:54] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:54] [ENEMY] [Enemy2] FLANKING corner check: angle -177.7°
+[08:27:54] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:54] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:54] [ENEMY] [Enemy2] FLANKING corner check: angle -178.7°
+[08:27:54] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:54] [ENEMY] [Enemy1] Warning: No valid flank position (both sides behind walls)
+[08:27:54] [ENEMY] [Enemy1] FLANKING started: target=(759.5732, 929.5314), side=left, pos=(876.9639, 687.1378)
+[08:27:54] [ENEMY] [Enemy1] State: PURSUING -> FLANKING
+[08:27:54] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:54] [ENEMY] [Enemy1] FLANKING corner check: angle -155.0°
+[08:27:54] [ENEMY] [Enemy2] FLANKING corner check: angle -179.2°
+[08:27:54] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:55] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:55] [ENEMY] [Enemy1] FLANKING corner check: angle -160.9°
+[08:27:55] [ENEMY] [Enemy2] FLANKING corner check: angle -179.4°
+[08:27:55] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:55] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:55] [ENEMY] [Enemy1] FLANKING corner check: angle 43.2°
+[08:27:55] [ENEMY] [Enemy2] FLANKING corner check: angle -179.4°
+[08:27:55] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:55] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:55] [ENEMY] [Enemy1] FLANKING corner check: angle -177.7°
+[08:27:55] [ENEMY] [Enemy2] FLANKING corner check: angle -179.4°
+[08:27:55] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:56] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:56] [ENEMY] [Enemy1] FLANKING corner check: angle -178.7°
+[08:27:56] [ENEMY] [Enemy2] FLANKING stuck (2.0s), pos=(770.6852, 975.9344), fail=1
+[08:27:56] [ENEMY] [Enemy2] State: FLANKING -> PURSUING
+[08:27:56] [ENEMY] [Enemy2] PURSUING corner check: angle -142.1°
+[08:27:56] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:56] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:56] [ENEMY] [Enemy1] FLANKING corner check: angle -179.2°
+[08:27:56] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:56] [ENEMY] [Enemy2] PURSUING corner check: angle -142.1°
+[08:27:56] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:56] [ENEMY] [Enemy1] FLANKING corner check: angle -179.4°
+[08:27:56] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:57] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:57] [ENEMY] [Enemy1] FLANKING corner check: angle -179.4°
+[08:27:57] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:57] [ENEMY] [Enemy4] Warning: No valid flank position (both sides behind walls)
+[08:27:57] [ENEMY] [Enemy4] FLANKING started: target=(759.5732, 929.5314), side=left, pos=(876.964, 687.1384)
+[08:27:57] [ENEMY] [Enemy4] State: PURSUING -> FLANKING
+[08:27:57] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:57] [ENEMY] [Enemy4] FLANKING corner check: angle -155.0°
+[08:27:57] [ENEMY] [Enemy1] FLANKING corner check: angle -179.4°
+[08:27:57] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:57] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:57] [ENEMY] [Enemy1] FLANKING stuck (2.0s), pos=(770.6843, 975.9344), fail=1
+[08:27:57] [ENEMY] [Enemy1] State: FLANKING -> PURSUING
+[08:27:57] [ENEMY] [Enemy4] FLANKING corner check: angle -160.9°
+[08:27:57] [ENEMY] [Enemy1] PURSUING corner check: angle -142.1°
+[08:27:57] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:58] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:58] [ENEMY] [Enemy4] FLANKING corner check: angle 43.2°
+[08:27:58] [ENEMY] [Enemy1] PURSUING corner check: angle -142.1°
+[08:27:58] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:58] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:58] [ENEMY] [Enemy4] FLANKING corner check: angle -177.7°
+[08:27:58] [ENEMY] [Enemy2] PURSUING corner check: angle -177.4°
+[08:27:58] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:58] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:58] [ENEMY] [Enemy4] FLANKING corner check: angle -178.7°
+[08:27:58] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:59] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:59] [ENEMY] [Enemy4] FLANKING corner check: angle -179.2°
+[08:27:59] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:59] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:59] [ENEMY] [Enemy4] FLANKING corner check: angle -179.4°
+[08:27:59] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:27:59] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:27:59] [ENEMY] [Enemy4] FLANKING corner check: angle -179.4°
+[08:27:59] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:28:00] [ENEMY] [Enemy1] PURSUING corner check: angle -177.4°
+[08:28:00] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:28:00] [ENEMY] [Enemy4] FLANKING corner check: angle -179.4°
+[08:28:00] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:28:00] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:28:00] [ENEMY] [Enemy4] FLANKING stuck (2.0s), pos=(770.6853, 975.9343), fail=1
+[08:28:00] [ENEMY] [Enemy4] State: FLANKING -> PURSUING
+[08:28:00] [ENEMY] [Enemy4] PURSUING corner check: angle -142.1°
+[08:28:00] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:28:00] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:28:00] [ENEMY] [Enemy4] PURSUING corner check: angle -142.1°
+[08:28:00] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:28:01] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:28:01] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:28:01] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:28:01] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:28:01] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:28:01] [ENEMY] [Enemy2] Warning: No valid flank position (both sides behind walls)
+[08:28:01] [ENEMY] [Enemy2] FLANKING started: target=(759.5732, 929.5315), side=left, pos=(876.9639, 687.1385)
+[08:28:01] [ENEMY] [Enemy2] State: PURSUING -> FLANKING
+[08:28:01] [ENEMY] [Enemy2] FLANKING corner check: angle -155.0°
+[08:28:01] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:28:02] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:28:02] [ENEMY] [Enemy2] FLANKING corner check: angle -160.9°
+[08:28:02] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:28:02] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:28:02] [ENEMY] [Enemy2] FLANKING corner check: angle 43.2°
+[08:28:02] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:28:02] [ENEMY] [Enemy4] PURSUING corner check: angle -177.4°
+[08:28:02] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:28:02] [ENEMY] [Enemy2] FLANKING corner check: angle -177.7°
+[08:28:02] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:28:03] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:28:03] [ENEMY] [Enemy2] FLANKING corner check: angle -178.7°
+[08:28:03] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:28:03] [ENEMY] [Enemy1] Warning: No valid flank position (both sides behind walls)
+[08:28:03] [ENEMY] [Enemy1] FLANKING started: target=(759.5732, 929.5314), side=left, pos=(876.9639, 687.1379)
+[08:28:03] [ENEMY] [Enemy1] State: PURSUING -> FLANKING
+[08:28:03] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:28:03] [ENEMY] [Enemy1] FLANKING corner check: angle -155.0°
+[08:28:03] [ENEMY] [Enemy2] FLANKING corner check: angle -179.2°
+[08:28:03] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:28:03] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:28:03] [ENEMY] [Enemy1] FLANKING corner check: angle -160.9°
+[08:28:03] [ENEMY] [Enemy2] FLANKING corner check: angle -179.4°
+[08:28:03] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:28:04] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:28:04] [ENEMY] [Enemy1] FLANKING corner check: angle 43.2°
+[08:28:04] [ENEMY] [Enemy2] FLANKING corner check: angle -179.4°
+[08:28:04] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:28:04] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:28:04] [ENEMY] [Enemy1] FLANKING corner check: angle -177.7°
+[08:28:04] [ENEMY] [Enemy2] FLANKING corner check: angle -179.4°
+[08:28:04] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:28:04] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:28:04] [ENEMY] [Enemy1] FLANKING corner check: angle -178.7°
+[08:28:04] [ENEMY] [Enemy2] FLANKING stuck (2.0s), pos=(770.684, 975.9346), fail=1
+[08:28:04] [ENEMY] [Enemy2] State: FLANKING -> PURSUING
+[08:28:04] [ENEMY] [Enemy2] PURSUING corner check: angle -142.1°
+[08:28:04] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:28:05] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:28:05] [ENEMY] [Enemy1] FLANKING corner check: angle -179.2°
+[08:28:05] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:28:05] [ENEMY] [Enemy2] PURSUING corner check: angle -142.1°
+[08:28:05] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:28:05] [ENEMY] [Enemy1] FLANKING corner check: angle -179.4°
+[08:28:05] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:28:05] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:28:05] [ENEMY] [Enemy1] FLANKING corner check: angle -179.4°
+[08:28:05] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:28:06] [ENEMY] [Enemy4] Warning: No valid flank position (both sides behind walls)
+[08:28:06] [ENEMY] [Enemy4] FLANKING started: target=(1095.423, 844.6516), side=right, pos=(876.964, 687.1385)
+[08:28:06] [ENEMY] [Enemy4] State: PURSUING -> FLANKING
+[08:28:06] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:28:06] [ENEMY] [Enemy4] FLANKING corner check: angle 146.1°
+[08:28:06] [ENEMY] [Enemy1] FLANKING corner check: angle -179.4°
+[08:28:06] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:28:06] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:28:06] [ENEMY] [Enemy1] FLANKING stuck (2.0s), pos=(770.6854, 975.9345), fail=1
+[08:28:06] [ENEMY] [Enemy1] State: FLANKING -> PURSUING
+[08:28:06] [ENEMY] [Enemy4] FLANKING corner check: angle 133.9°
+[08:28:06] [ENEMY] [Enemy1] PURSUING corner check: angle -142.1°
+[08:28:06] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:28:06] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:28:06] [ENEMY] [Enemy4] FLANKING corner check: angle 123.1°
+[08:28:06] [ENEMY] [Enemy1] PURSUING corner check: angle -142.1°
+[08:28:06] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:28:07] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:28:07] [ENEMY] [Enemy4] FLANKING corner check: angle -137.2°
+[08:28:07] [ENEMY] [Enemy2] PURSUING corner check: angle -177.4°
+[08:28:07] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:28:07] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:28:07] [ENEMY] [Enemy4] FLANKING corner check: angle -126.7°
+[08:28:07] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:28:07] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:28:07] [ENEMY] [Enemy4] FLANKING corner check: angle 133.6°
+[08:28:07] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:28:08] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:28:08] [ENEMY] [Enemy4] FLANKING corner check: angle -141.9°
+[08:28:08] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:28:08] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:28:08] [ENEMY] [Enemy4] FLANKING corner check: angle -130.2°
+[08:28:08] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:28:08] [ENEMY] [Enemy1] PURSUING corner check: angle -177.4°
+[08:28:08] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:28:08] [ENEMY] [Enemy4] FLANKING corner check: angle 140.5°
+[08:28:08] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:28:09] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:28:09] [ENEMY] [Enemy4] FLANKING corner check: angle 122.7°
+[08:28:09] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:28:09] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:28:09] [ENEMY] [Enemy4] FLANKING corner check: angle -134.8°
+[08:28:09] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:28:09] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:28:09] [ENEMY] [Enemy4] FLANKING corner check: angle -125.8°
+[08:28:09] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:28:10] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:28:10] [ENEMY] [Enemy4] FLANKING corner check: angle 134.7°
+[08:28:10] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:28:10] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:28:10] [ENEMY] [Enemy2] Warning: No valid flank position (both sides behind walls)
+[08:28:10] [ENEMY] [Enemy2] FLANKING started: target=(759.5732, 929.5314), side=left, pos=(876.964, 687.138)
+[08:28:10] [ENEMY] [Enemy2] State: PURSUING -> FLANKING
+[08:28:10] [ENEMY] [Enemy2] FLANKING corner check: angle -155.0°
+[08:28:10] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:28:10] [ENEMY] [Enemy4] FLANKING corner check: angle -141.7°
+[08:28:10] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:28:10] [ENEMY] [Enemy2] FLANKING corner check: angle -160.9°
+[08:28:10] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:28:11] [ENEMY] [Enemy4] FLANKING timeout (5.0s), target=(1074.73, 826.127), pos=(887.9346, 823.0136)
+[08:28:11] [ENEMY] [Enemy4] State: FLANKING -> PURSUING
+[08:28:11] [ENEMY] [Enemy4] Warning: No valid flank position (both sides behind walls)
+[08:28:11] [ENEMY] [Enemy4] FLANKING started: target=(754.3226, 953.6583), side=left, pos=(887.9346, 819.3949)
+[08:28:11] [ENEMY] [Enemy4] State: PURSUING -> FLANKING
+[08:28:11] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:28:11] [ENEMY] [Enemy4] FLANKING corner check: angle -160.7°
+[08:28:11] [ENEMY] [Enemy2] FLANKING corner check: angle 43.2°
+[08:28:11] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:28:11] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:28:11] [ENEMY] [Enemy4] FLANKING corner check: angle -165.8°
+[08:28:11] [ENEMY] [Enemy2] FLANKING corner check: angle -177.7°
+[08:28:11] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:28:11] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:28:11] [ENEMY] [Enemy4] FLANKING corner check: angle -168.5°
+[08:28:11] [ENEMY] [Enemy2] FLANKING corner check: angle -178.7°
+[08:28:11] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:28:12] [ENEMY] [Enemy1] Warning: No valid flank position (both sides behind walls)
+[08:28:12] [ENEMY] [Enemy1] FLANKING started: target=(1095.423, 844.6516), side=right, pos=(876.964, 687.1386)
+[08:28:12] [ENEMY] [Enemy1] State: PURSUING -> FLANKING
+[08:28:12] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:28:12] [ENEMY] [Enemy4] FLANKING corner check: angle -173.7°
+[08:28:12] [ENEMY] [Enemy1] FLANKING corner check: angle 146.1°
+[08:28:12] [ENEMY] [Enemy2] FLANKING corner check: angle -179.2°
+[08:28:12] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:28:12] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:28:12] [ENEMY] [Enemy4] FLANKING corner check: angle -176.5°
+[08:28:12] [ENEMY] [Enemy1] FLANKING corner check: angle 133.9°
+[08:28:12] [ENEMY] [Enemy2] FLANKING corner check: angle -179.4°
+[08:28:12] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:28:12] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:28:12] [ENEMY] [Enemy4] FLANKING corner check: angle -178.0°
+[08:28:12] [ENEMY] [Enemy1] FLANKING corner check: angle 123.1°
+[08:28:12] [ENEMY] [Enemy2] FLANKING corner check: angle -179.4°
+[08:28:12] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:28:13] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:28:13] [ENEMY] [Enemy4] FLANKING corner check: angle -178.8°
+[08:28:13] [ENEMY] [Enemy1] FLANKING corner check: angle -137.2°
+[08:28:13] [ENEMY] [Enemy2] FLANKING corner check: angle -179.4°
+[08:28:13] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:28:13] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:28:13] [ENEMY] [Enemy4] FLANKING corner check: angle -179.3°
+[08:28:13] [ENEMY] [Enemy1] FLANKING corner check: angle -126.7°
+[08:28:13] [ENEMY] [Enemy2] FLANKING stuck (2.0s), pos=(770.6855, 975.9347), fail=1
+[08:28:13] [ENEMY] [Enemy2] State: FLANKING -> PURSUING
+[08:28:13] [ENEMY] [Enemy2] PURSUING corner check: angle -142.1°
+[08:28:13] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:28:13] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:28:13] [ENEMY] [Enemy4] FLANKING corner check: angle -179.4°
+[08:28:13] [ENEMY] [Enemy1] FLANKING corner check: angle 133.6°
+[08:28:13] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:28:13] [ENEMY] [Enemy2] PURSUING corner check: angle -142.1°
+[08:28:14] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:28:14] [ENEMY] [Enemy4] FLANKING corner check: angle -179.4°
+[08:28:14] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[08:28:14] [ENEMY] [Enemy1] FLANKING corner check: angle -141.9°
+[08:28:14] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[08:28:14] [INFO] ------------------------------------------------------------
+[08:28:14] [INFO] GAME LOG ENDED: 2026-01-25T08:28:14
+[08:28:14] [INFO] ============================================================
