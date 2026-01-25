@@ -669,6 +669,7 @@ func _ready() -> void:
 	_initialize_goap_state()
 	_initialize_memory()
 	_connect_debug_mode_signal()
+	_setup_debug_label_top_level()  # Issue #383: Make debug label independent of parent rotation
 	_update_debug_label()
 	_register_sound_listener()
 	_initialize_grenade_system()
@@ -1007,6 +1008,17 @@ func _on_debug_mode_toggled(enabled: bool) -> void:
 	debug_label_enabled = enabled
 	_update_debug_label()
 	queue_redraw()  # Redraw to show/hide FOV cone
+
+## Setup debug label to be independent of parent rotation (Issue #383).
+## Using top_level = true makes the label ignore parent transforms completely,
+## preventing it from rotating when the enemy rotates.
+func _setup_debug_label_top_level() -> void:
+	if _debug_label == null:
+		return
+	# Make the label independent of parent transforms - it will now use global coordinates
+	# and will NOT inherit rotation from the Enemy node.
+	_debug_label.top_level = true
+	# Position will be manually updated in _update_debug_label()
 
 ## Find the player node in the scene tree.
 func _find_player() -> void:
@@ -4795,10 +4807,11 @@ func _update_debug_label() -> void:
 
 	_debug_label.text = state_text
 
-	# Keep debug label upright regardless of enemy rotation (Issue #383)
-	# The label is a child of the Enemy node, so it inherits the rotation.
-	# Reset global_rotation to 0 to keep the text horizontal and readable.
-	_debug_label.global_rotation = 0
+	# Issue #383: Position the label manually above the enemy.
+	# Since top_level = true, the label uses global coordinates and does not inherit
+	# any transforms from the parent. We manually position it with an offset.
+	# The offset matches the original scene values: offset_left=-50, offset_top=-50
+	_debug_label.global_position = global_position + Vector2(-50, -50)
 
 ## Get current AI state (for external access/debugging).
 func get_current_state() -> AIState:

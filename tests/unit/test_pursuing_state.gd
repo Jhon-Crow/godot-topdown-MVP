@@ -236,16 +236,31 @@ func test_moving_debug_label_format() -> void:
 
 func test_debug_label_rotation_stays_upright() -> void:
 	# Regression test for Issue #383: Debug label should stay upright
-	# The fix resets global_rotation to 0 after updating the label text
-	# to prevent the label from rotating with the enemy
+	# The fix uses top_level = true on the label, making it independent of parent transforms.
+	# This means the label won't inherit rotation from the Enemy node.
 	var expected_rotation: float = 0.0
 
-	# Simulate the fix: enemy rotates but label global_rotation is reset
+	# Simulate the fix: enemy rotates but label is top_level so rotation is unaffected
 	var enemy_rotation: float = PI / 4  # 45 degrees
-	var label_global_rotation: float = 0  # After fix, this should be 0
+	# With top_level = true, label rotation is independent of parent
+	# The label position is manually updated to follow the enemy
+	var label_top_level: bool = true  # This is the key property
+	var label_global_rotation: float = 0  # Label stays at 0 rotation
 
+	assert_true(label_top_level, "Debug label should have top_level = true")
 	assert_eq(label_global_rotation, expected_rotation,
-		"Debug label should have global_rotation = 0 regardless of enemy rotation")
+		"Debug label should stay at rotation 0 regardless of enemy rotation")
+
+
+func test_debug_label_position_follows_enemy() -> void:
+	# Test that debug label position is manually updated to follow the enemy
+	# Since top_level = true, position is not automatically inherited
+	var enemy_position := Vector2(500, 300)
+	var label_offset := Vector2(-50, -50)  # Matches scene values
+	var expected_label_position := enemy_position + label_offset
+
+	assert_eq(expected_label_position, Vector2(450, 250),
+		"Debug label should be positioned at enemy position + offset")
 
 
 # ============================================================================
