@@ -832,7 +832,104 @@ ANY flip that happens when the sprite is NOT at ±90° will create a visual disc
 | 7 | Compensate rotation when flipping | Fixed flip compensation but smooth rotation still in wrong space |
 | 8 | Work in visual space for all rotation math | Fixed smooth rotation direction but flip still causes visual snap |
 | 9 | Snap to boundary on flip | Snap still causes visual jump (90°) |
-| 10 | **DELAYED FLIP - only flip at ±90° boundary** | **Flip is invisible, no visual discontinuity** |
+| 10 | Delayed flip - only flip at ±90° boundary | Redirected to boundary instead of player |
+| 11 | **Natural boundary crossing** | **Direct rotation + invisible flip at crossing** |
+
+---
+
+## Update: Eleventh Fix (2026-01-25) - THE REAL SOLUTION
+
+### Why Fix #10 Still Didn't Work
+
+User reported "проблема сохранилась" (problem persists) after fix #10 (game_log_20260125_195035.txt).
+
+**The bug in fix #10:** The code was redirecting rotation **toward the boundary** instead of toward the player:
+
+```gdscript
+# BUG: This redirects rotation to boundary instead of player
+if target_angle > 0:
+    effective_target = PI / 2   # Redirects to UP
+elif target_angle < 0:
+    effective_target = -PI / 2  # Redirects to DOWN
+```
+
+**Example of the bug:**
+- Enemy facing RIGHT (0°), player appears at UPPER-LEFT (165°)
+- Code sets `effective_target = PI/2` (90°, UP direction)
+- Enemy rotates from 0° → 90° (toward UP, not toward player at 165°!)
+- Player sees enemy rotating toward UP/DOWN first, which looks like "turning away"
+
+### The Real Solution: Natural Boundary Crossing
+
+Instead of redirecting toward the boundary, always rotate toward the actual target via shortest path. Only flip when we **naturally cross** the ±90° boundary.
+
+```gdscript
+# Issue #373 FIX: Natural boundary crossing - always rotate toward target via shortest path.
+# Only flip Y-scale when naturally crossing ±90° boundary (flip is invisible at that angle).
+
+var target_facing_left := absf(target_angle) > PI / 2
+var current_facing_left := _model_facing_left
+
+# Get current visual rotation (accounting for Y-scale flip)
+var raw_rot := _enemy_model.global_rotation
+var visual_rot := -raw_rot if _model_facing_left else raw_rot
+
+# Calculate shortest path to target (ALWAYS toward target, no redirection)
+var angle_diff := wrapf(target_angle - visual_rot, -PI, PI)
+
+# Rotate toward target
+var rotation_step: float
+if absf(angle_diff) <= MODEL_ROTATION_SPEED * delta:
+    rotation_step = angle_diff
+elif angle_diff > 0:
+    rotation_step = MODEL_ROTATION_SPEED * delta
+else:
+    rotation_step = -MODEL_ROTATION_SPEED * delta
+
+var new_visual_rot := visual_rot + rotation_step
+
+# Check if this rotation step NATURALLY crosses the ±90° boundary
+var should_flip := false
+if target_facing_left != current_facing_left:
+    var crossed_upper := (visual_rot < PI/2 and new_visual_rot >= PI/2) or ...
+    var crossed_lower := (visual_rot > -PI/2 and new_visual_rot <= -PI/2) or ...
+
+    if crossed_upper:
+        should_flip = true
+        boundary_crossed = PI / 2
+    elif crossed_lower:
+        should_flip = true
+        boundary_crossed = -PI / 2
+
+if should_flip:
+    # Flip at boundary (invisible because sprite looks same at ±90°)
+    _model_facing_left = target_facing_left
+    _enemy_model.scale = Vector2(enemy_model_scale, -enemy_model_scale if _model_facing_left else enemy_model_scale)
+    # Continue rotating toward target after flip
+```
+
+### Why This Finally Works
+
+1. **No misdirection:** Enemy always rotates directly toward player (not toward boundary)
+2. **Natural crossing:** Flip only when rotation path naturally crosses ±90°
+3. **Invisible flip:** At ±90°, flipped and non-flipped sprites look identical
+4. **Mathematically correct:** Visual rotation is preserved across the flip
+
+### Example Walkthrough (Fixed)
+
+Enemy facing RIGHT (0°), player appears at UPPER-LEFT (165°):
+
+**Before (Fix #10 - Bug):**
+- `effective_target = PI/2` (redirected to UP)
+- Enemy rotates: 0° → 90° (toward UP, looks like turning away from player at 165°)
+- Eventually rotates: 90° → 165°
+
+**After (Fix #11 - Correct):**
+- `effective_target = 165°` (always toward player)
+- Shortest path is counter-clockwise: 0° → 90° → 165°
+- At 90°: naturally crossing boundary → flip Y-scale (invisible)
+- Continue: 90° → 165°
+- **Result:** Enemy rotates directly toward player, flip is seamless
 
 ---
 
