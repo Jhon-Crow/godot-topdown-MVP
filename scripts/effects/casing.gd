@@ -50,6 +50,11 @@ var _cached_caliber_type: String = "rifle"
 
 
 func _ready() -> void:
+	# Log casing initialization for debugging crash issues
+	var logger = get_node_or_null("/root/FileLogger")
+	if logger:
+		logger.log_debug("Casing: _ready() starting")
+
 	# Connect to collision signals to detect landing
 	body_entered.connect(_on_body_entered)
 
@@ -66,6 +71,9 @@ func _ready() -> void:
 
 	# Cache the caliber type for sound selection
 	_cached_caliber_type = _determine_caliber_type()
+
+	if logger:
+		logger.log_debug("Casing: _ready() completed, caliber_type=%s" % _cached_caliber_type)
 
 
 func _physics_process(delta: float) -> void:
@@ -176,12 +184,13 @@ func _determine_caliber_type() -> String:
 	if caliber_data == null:
 		return "rifle"
 
-	var caliber_name: String = ""
+	# Only use CaliberData type - avoid calling methods on unknown Resource types
+	# which can crash exported builds (e.g., .has() only works on Dictionary)
+	if not (caliber_data is CaliberData):
+		return "rifle"
 
-	if caliber_data is CaliberData:
-		caliber_name = (caliber_data as CaliberData).caliber_name
-	elif caliber_data.has_method("get"):
-		caliber_name = caliber_data.get("caliber_name") if caliber_data.has("caliber_name") else ""
+	var caliber: CaliberData = caliber_data as CaliberData
+	var caliber_name: String = caliber.caliber_name
 
 	# Determine type from name
 	var name_lower = caliber_name.to_lower()
@@ -212,13 +221,11 @@ func _set_casing_appearance() -> void:
 	# Default color (rifle casing - brass)
 	var casing_color = Color(0.9, 0.8, 0.4)  # Brass color
 
-	if caliber_data != null:
-		# Check caliber name to determine color
-		var caliber_name: String = ""
-		if caliber_data is CaliberData:
-			caliber_name = (caliber_data as CaliberData).caliber_name
-		elif caliber_data.has_method("get"):
-			caliber_name = caliber_data.get("caliber_name") if caliber_data.has("caliber_name") else ""
+	# Only use CaliberData type for color determination
+	# Avoid calling methods on unknown Resource types which can crash exported builds
+	if caliber_data != null and caliber_data is CaliberData:
+		var caliber: CaliberData = caliber_data as CaliberData
+		var caliber_name: String = caliber.caliber_name
 
 		if "buckshot" in caliber_name.to_lower() or "Buckshot" in caliber_name:
 			casing_color = Color(0.8, 0.2, 0.2)  # Red for shotgun

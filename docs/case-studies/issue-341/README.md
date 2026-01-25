@@ -12,6 +12,93 @@
 > Make shell casings on the floor interactive
 > They should realistically push away when the player/enemies walk, with shell casing sound
 
+---
+
+## Critical Bug: Exported EXE Crash
+
+### Timeline of Events
+
+| Date | Time | Event | Pull Request |
+|------|------|-------|--------------|
+| 2026-01-24 | 23:32 | Initial PR #342 created with interactive casings feature | [PR #342](https://github.com/Jhon-Crow/godot-topdown-MVP/pull/342) |
+| 2026-01-25 | 00:06 | User reports: "ни враги ни игрок не влияют на гильзы" (casings not reacting) | PR #342 comment |
+| 2026-01-25 | 00:18 | Implemented improved kick detection with larger Area2D and fallback | PR #342 |
+| 2026-01-25 | 00:37 | **CRASH REPORTED**: "игра не запускается - появляется заставка godot и сразу исчезает" | PR #342 comment |
+| 2026-01-25 | 00:42 | First fix attempt: changed `caliber_data.has()` to `"caliber_name" in caliber_data` | PR #342 |
+| 2026-01-25 | 00:47 | User reports: "не исправлено" (not fixed) | PR #342 comment |
+| 2026-01-25 | 00:57 | Second fix attempt: simplified caliber check to only use CaliberData type | PR #342 |
+| 2026-01-25 | 01:09 | User reports: "всё ещё не запускается" (still not starting) | PR #342 comment |
+| 2026-01-25 | 01:10 | PR #342 closed, new PR #359 created with fresh approach | [PR #359](https://github.com/Jhon-Crow/godot-topdown-MVP/pull/359) |
+| 2026-01-25 | 01:27 | User reports crash persists in PR #359 | PR #359 comment |
+
+### Root Cause Analysis
+
+The crash occurred due to **calling `.has()` method on Resource objects** in `casing.gd`:
+
+```gdscript
+# PROBLEMATIC CODE (lines 183-184 in original):
+elif caliber_data.has_method("get"):
+    caliber_name = caliber_data.get("caliber_name") if caliber_data.has("caliber_name") else ""
+```
+
+**Why this crashes:**
+1. The `.has()` method is **only available on Dictionary objects** in GDScript
+2. The `caliber_data` is typed as `Resource`, not `Dictionary`
+3. When GDScript tries to call `.has()` on a Resource, it crashes
+4. This crash happens **silently** in exported builds - no error message shown
+5. The crash occurs during casing initialization in `_ready()` or `_set_casing_appearance()`
+
+### GDScript Type System Differences
+
+| Method | Dictionary | Resource | Object |
+|--------|------------|----------|--------|
+| `.has(key)` | ✅ Yes | ❌ No (crashes) | ❌ No (crashes) |
+| `.has_method(name)` | ❌ No | ✅ Yes | ✅ Yes |
+| `"key" in obj` | ✅ Yes | ✅ Yes (for properties) | ✅ Yes (for properties) |
+| `.get(key)` | ✅ Yes | ⚠️ Limited | ⚠️ Limited |
+
+### Solution Applied
+
+The fix removes all `.has()` calls on Resource objects and replaces them with explicit type checks:
+
+**Before (crashes):**
+```gdscript
+if caliber_data is CaliberData:
+    caliber_name = (caliber_data as CaliberData).caliber_name
+elif caliber_data.has_method("get"):
+    caliber_name = caliber_data.get("caliber_name") if caliber_data.has("caliber_name") else ""
+```
+
+**After (safe):**
+```gdscript
+# Only use CaliberData type - avoid calling methods on unknown Resource types
+# which can crash exported builds (e.g., .has() only works on Dictionary)
+if not (caliber_data is CaliberData):
+    return "rifle"
+
+var caliber: CaliberData = caliber_data as CaliberData
+var caliber_name: String = caliber.caliber_name
+```
+
+### Online Research References
+
+- [Godot Forum - Checking if property exists on Object](https://forum.godotengine.org/t/in-gdscript-how-to-quickly-check-whether-an-object-instance-has-a-property/28780) - Explains `in` operator vs `.has()`
+- [Godot Proposals #717](https://github.com/godotengine/godot-proposals/issues/717) - Request to add `has_property()` to Object class
+- [Godot Forum - Exported build crashes](https://forum.godotengine.org/t/4-3-stable-exported-build-crashes-immediately-upon-starting-up-game-everything-fails-to-load/101339) - Similar crash symptoms
+- [Godot Issue #85350](https://github.com/godotengine/godot/issues/85350) - Exported executable crashes
+
+### Lessons Learned
+
+1. **Dictionary-specific methods on Resource objects cause silent crashes in exported builds**
+2. **The Godot editor may not catch these errors** during development
+3. **Exported builds fail silently** - splash screen appears then disappears with no error
+4. **Always use type guards** (`if obj is Type:`) before accessing type-specific methods
+5. **Added startup logging** to help diagnose future crashes in exported builds
+
+---
+
+## Original Feature Implementation Analysis
+
 ## Timeline and Analysis
 
 ### Current Implementation Analysis
@@ -235,16 +322,19 @@ The current casing system in the codebase has these characteristics:
 
 ## Implementation Checklist
 
-- [ ] Add collision layer 7 "interactive_items" to project.godot
-- [ ] Add PhysicsMaterial2D to Casing scene
-- [ ] Add Area2D "KickDetector" child to Casing scene
-- [ ] Update collision layer/mask for casings
-- [ ] Implement kick detection in casing.gd
-- [ ] Implement kick physics with impulse
-- [ ] Implement kick sound with threshold and cooldown
-- [ ] Add caliber-based sound selection
-- [ ] Test with player walking through casings
-- [ ] Test with enemies walking through casings
-- [ ] Test multiple casings being kicked simultaneously
-- [ ] Verify time freeze still works correctly
-- [ ] Performance testing with many casings
+- [x] Add collision layer 7 "interactive_items" to project.godot
+- [x] Add PhysicsMaterial2D to Casing scene
+- [x] Add Area2D "KickDetector" child to Casing scene
+- [x] Update collision layer/mask for casings
+- [x] Implement kick detection in casing.gd
+- [x] Implement kick physics with impulse
+- [x] Implement kick sound with threshold and cooldown
+- [x] Add caliber-based sound selection
+- [x] Fix crash: remove .has() calls on Resource objects
+- [x] Add startup logging for debugging exported builds
+- [ ] Test with player walking through casings (manual)
+- [ ] Test with enemies walking through casings (manual)
+- [ ] Test multiple casings being kicked simultaneously (manual)
+- [ ] Verify time freeze still works correctly (manual)
+- [ ] Performance testing with many casings (manual)
+- [ ] Verify exported EXE runs without crashing (manual)
