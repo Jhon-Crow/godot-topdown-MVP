@@ -252,7 +252,7 @@ func spawn_blood_effect(position: Vector2, hit_direction: Vector2, caliber_data:
 
 	# Spawn many small blood decals that simulate where particles land
 	# Number of decals based on hit intensity and lethality
-	var num_decals := 8 if is_lethal else 4
+	var num_decals := 20 if is_lethal else 10
 	_spawn_blood_decals_at_particle_landing(position, hit_direction, effect, num_decals)
 
 	# Check for nearby walls and spawn wall splatters
