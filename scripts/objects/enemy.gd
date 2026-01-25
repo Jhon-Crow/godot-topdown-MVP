@@ -1140,12 +1140,16 @@ func _update_goap_state() -> void:
 		_goap_world_state["confidence_low"] = _memory.is_low_confidence()
 
 ## Updates model rotation smoothly (#347). Priority: player > corner check > velocity > idle scan.
-## Issue #373 fix: In combat states, ALWAYS face player/target position to prevent turn-away.
+## Issue #373 fix: In active combat states, ALWAYS face player directly (not memory) to prevent turn-away.
 func _update_enemy_model_rotation() -> void:
 	if not _enemy_model: return
 	var target_angle: float; var has_target := false
-	var in_combat := _current_state in [AIState.COMBAT, AIState.PURSUING, AIState.FLANKING, AIState.ASSAULT, AIState.RETREATING, AIState.SEEKING_COVER, AIState.IN_COVER, AIState.SUPPRESSED, AIState.SEARCHING]
-	if in_combat:  # Issue #373: always face player/target in combat, no velocity fallback
+	# Active combat = face player directly. PURSUING/SEARCHING = use memory for last known position.
+	var active_combat := _current_state in [AIState.COMBAT, AIState.FLANKING, AIState.ASSAULT, AIState.RETREATING, AIState.SEEKING_COVER, AIState.IN_COVER, AIState.SUPPRESSED]
+	var tracking_mode := _current_state in [AIState.PURSUING, AIState.SEARCHING]
+	if active_combat and _player != null:  # Issue #373: face player directly in active combat
+		target_angle = (_player.global_position - global_position).normalized().angle(); has_target = true
+	elif tracking_mode:  # PURSUING/SEARCHING: use memory/last known position
 		var target_pos := _get_target_position()
 		if target_pos != global_position: target_angle = (target_pos - global_position).normalized().angle(); has_target = true
 		elif _player != null: target_angle = (_player.global_position - global_position).normalized().angle(); has_target = true

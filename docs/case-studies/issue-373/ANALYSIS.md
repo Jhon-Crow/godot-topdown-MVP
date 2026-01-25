@@ -331,6 +331,63 @@ This ensures enemies maintain facing toward the player throughout combat, regard
 
 ---
 
+## Update: Fourth Fix Attempt (2026-01-25)
+
+### Why the Third Fix Was Still Insufficient
+
+After the third fix, the user reported the problem persists (log: `game_log_20260125_102545.txt`). The user's comment "может дело в рассогласованности языков или в резком включении какого то поведения?" (maybe it's due to language inconsistency or sudden activation of some behavior?) provided a key insight.
+
+Analysis revealed the **fundamental flaw** in the previous approach:
+
+1. All previous fixes still used `_get_target_position()` as the PRIMARY source for rotation
+2. `_get_target_position()` returns memory/last known position when `_can_see_player` is false
+3. **Memory positions can be STALE** - the player may have moved significantly since the position was recorded
+4. When the player moves and the raycast flickers, the enemy would face the OLD (stale) position
+5. This causes the visual "turn-away" behavior even though the fallback to player position exists
+
+### Root Cause (Final Analysis)
+
+The problem is a **priority inversion**: We were prioritizing stale memory positions over the player's ACTUAL position in active combat states.
+
+In states like COMBAT, FLANKING, ASSAULT, etc., the enemy is actively engaging and can reasonably be assumed to know where the player is - they should face the player DIRECTLY, not rely on potentially stale memory.
+
+Memory-based facing makes sense for PURSUING and SEARCHING states where the enemy has genuinely lost sight of the player and is tracking their last known location.
+
+### Fourth Fix Applied
+
+Changed the rotation logic to distinguish between:
+- **Active combat states** (COMBAT, FLANKING, ASSAULT, RETREATING, SEEKING_COVER, IN_COVER, SUPPRESSED) - face player DIRECTLY
+- **Tracking states** (PURSUING, SEARCHING) - use memory/last known position
+
+```gdscript
+# Active combat = face player directly. PURSUING/SEARCHING = use memory for last known position.
+var active_combat := _current_state in [AIState.COMBAT, AIState.FLANKING, AIState.ASSAULT,
+                                         AIState.RETREATING, AIState.SEEKING_COVER,
+                                         AIState.IN_COVER, AIState.SUPPRESSED]
+var tracking_mode := _current_state in [AIState.PURSUING, AIState.SEARCHING]
+
+if active_combat and _player != null:  # Face player directly in active combat
+    target_angle = (_player.global_position - global_position).normalized().angle()
+    has_target = true
+elif tracking_mode:  # Use memory/last known for PURSUING/SEARCHING
+    var target_pos := _get_target_position()
+    if target_pos != global_position:
+        target_angle = (target_pos - global_position).normalized().angle()
+        has_target = true
+    elif _player != null:
+        target_angle = (_player.global_position - global_position).normalized().angle()
+        has_target = true
+```
+
+### Why This Works
+
+1. In active combat, enemy ALWAYS faces player's ACTUAL position - no stale memory interference
+2. Memory/last known position is still used for PURSUING/SEARCHING where it makes gameplay sense
+3. The priority is now correct: actual player position > memory position for active engagement
+4. This eliminates the "turn-away" caused by facing stale memory positions
+
+---
+
 ## References
 
 - Issue #347: Smooth rotation for visual polish
