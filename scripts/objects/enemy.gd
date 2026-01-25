@@ -1178,6 +1178,17 @@ func _update_enemy_model_rotation() -> void:
 	var angle_change_degrees := rad_to_deg(abs(angle_diff))
 	if angle_change_degrees > 30.0:  # Log significant rotation changes
 		_log_to_file("ROT %s: %.1f° -> %.1f° (diff=%.1f°, src=%s, state=%s)" % [name, rad_to_deg(current_rot), rad_to_deg(target_angle), angle_change_degrees, rotation_source, AIState.keys()[_current_state]])
+	# Issue #373 fix: Flip sprite based on TARGET angle, not current rotation.
+	# This prevents the visual "pop" when rotation smoothly crosses the PI/2 threshold.
+	# The flip now happens at the START of rotation (when we decide to face the player),
+	# not during the smooth transition. This eliminates the "turn away" illusion.
+	var target_facing_left := absf(target_angle) > PI / 2
+	if target_facing_left != _model_facing_left:
+		_model_facing_left = target_facing_left
+		if _model_facing_left:
+			_enemy_model.scale = Vector2(enemy_model_scale, -enemy_model_scale)
+		else:
+			_enemy_model.scale = Vector2(enemy_model_scale, enemy_model_scale)
 	# Smooth rotation for visual polish (Issue #347)
 	var delta := get_physics_process_delta_time()
 	if abs(angle_diff) <= MODEL_ROTATION_SPEED * delta:
@@ -1186,12 +1197,6 @@ func _update_enemy_model_rotation() -> void:
 		_enemy_model.global_rotation = current_rot + MODEL_ROTATION_SPEED * delta
 	else:
 		_enemy_model.global_rotation = current_rot - MODEL_ROTATION_SPEED * delta
-	var aiming_left := absf(_enemy_model.global_rotation) > PI / 2
-	_model_facing_left = aiming_left
-	if aiming_left:
-		_enemy_model.scale = Vector2(enemy_model_scale, -enemy_model_scale)
-	else:
-		_enemy_model.scale = Vector2(enemy_model_scale, enemy_model_scale)
 
 ## Forces the enemy model to face a specific direction immediately.
 ## Used for priority attacks where we need to aim and shoot in the same frame.
@@ -1209,14 +1214,14 @@ func _force_model_to_face_direction(direction: Vector2) -> void:
 		return
 
 	var target_angle := direction.angle()
-	var aiming_left := absf(target_angle) > PI / 2
+	var target_facing_left := absf(target_angle) > PI / 2
 
-	# Same fix as _update_enemy_model_rotation() - don't negate angle when flipped
-	if aiming_left:
-		_enemy_model.global_rotation = target_angle
+	# Update model facing state for consistency with _update_enemy_model_rotation()
+	_model_facing_left = target_facing_left
+	_enemy_model.global_rotation = target_angle
+	if target_facing_left:
 		_enemy_model.scale = Vector2(enemy_model_scale, -enemy_model_scale)
 	else:
-		_enemy_model.global_rotation = target_angle
 		_enemy_model.scale = Vector2(enemy_model_scale, enemy_model_scale)
 
 ## Updates the walking animation based on enemy movement state.
