@@ -65,8 +65,8 @@ func test_set_blood_level() -> void:
 
 ## Test that blood level is clamped to max.
 func test_blood_level_clamped_to_max() -> void:
-	_component.set_blood_level(100)  # Way above default max of 48
-	assert_eq(_component.get_blood_level(), 48, "Blood level should be clamped to blood_steps_count")
+	_component.set_blood_level(100)  # Way above default max of 24
+	assert_eq(_component.get_blood_level(), 24, "Blood level should be clamped to blood_steps_count")
 
 
 ## Test that blood level is clamped to zero.
@@ -77,10 +77,10 @@ func test_blood_level_clamped_to_zero() -> void:
 
 ## Test that component exports are accessible.
 func test_exports_accessible() -> void:
-	assert_eq(_component.blood_steps_count, 48, "Default blood_steps_count should be 48")
+	assert_eq(_component.blood_steps_count, 24, "Default blood_steps_count should be 24")
 	assert_eq(_component.step_distance, 30.0, "Default step_distance should be 30.0")
 	assert_eq(_component.initial_alpha, 0.8, "Default initial_alpha should be 0.8")
-	assert_eq(_component.alpha_decay_rate, 0.12, "Default alpha_decay_rate should be 0.12")
+	assert_eq(_component.alpha_decay_rate, 0.03, "Default alpha_decay_rate should be 0.03")
 
 
 ## Test custom configuration of exports.
