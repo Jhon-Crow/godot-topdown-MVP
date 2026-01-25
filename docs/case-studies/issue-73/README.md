@@ -431,12 +431,12 @@ For this project, I recommend **Solution 2 (Dynamic Pool with Auto-Expansion)** 
 
 ### Implementation Plan
 
-1. **Phase 1**: Implement dynamic pool expansion
+1. **Phase 1**: Implement dynamic pool expansion ✅ **IMPLEMENTED**
    - Allow pool to grow from 16 up to 128 players
    - Add cleanup mechanism for idle players
    - Minimal API changes
 
-2. **Phase 2**: Add basic priority system
+2. **Phase 2**: Add basic priority system ✅ **IMPLEMENTED**
    - Define priority levels for different sound types
    - Player actions (shooting, reloading) = CRITICAL
    - Shell casings, ambient = LOW
@@ -446,12 +446,83 @@ For this project, I recommend **Solution 2 (Dynamic Pool with Auto-Expansion)** 
    - Allow users to set max pool size in game settings
    - Add audio quality setting that affects pool size
 
-### Estimated Changes
+---
+
+## Implementation Status
+
+### Changes Made (PR #362)
+
+The fix was implemented in `scripts/autoload/audio_manager.gd`:
+
+#### 1. Priority System
+
+Added `SoundPriority` enum with four levels:
+
+```gdscript
+enum SoundPriority {
+    CRITICAL = 0,  ## Never cut off (player shooting, reloading)
+    HIGH = 1,      ## Cut off last (enemy shooting, explosions)
+    MEDIUM = 2,    ## Normal (bullet impacts)
+    LOW = 3        ## Cut off first (shell casings, ambient)
+}
+```
+
+#### 2. Dynamic Pool Expansion
+
+- `MIN_POOL_SIZE`: 16 (preallocated at startup)
+- `MAX_POOL_SIZE`: 128 (hard limit to prevent memory issues)
+- Pool grows automatically when all players are busy
+- Idle players are cleaned up every 5 seconds
+
+#### 3. Priority-Based Voice Stealing
+
+When pool is at max size, the system:
+1. Looks for lower-priority sounds to steal from
+2. If same priority, steals from oldest sound
+3. CRITICAL sounds are never stolen
+
+#### 4. Priority Assignments
+
+| Sound Type | Priority | Rationale |
+|------------|----------|-----------|
+| Player shooting (M16, shotgun, silenced) | CRITICAL | Must always be heard |
+| Player reload sounds | CRITICAL | Must always be heard |
+| Player empty click | CRITICAL | Feedback for player actions |
+| Grenade activation/throw | CRITICAL | Player action feedback |
+| Enemy shooting | HIGH | Important for gameplay |
+| Hit sounds (lethal/non-lethal) | HIGH | Combat feedback |
+| Bullets near player | HIGH | Player awareness |
+| Explosions | HIGH | Significant events |
+| Bullet wall impacts | MEDIUM | Environmental feedback |
+| Ricochets | MEDIUM | Environmental feedback |
+| Grenade impacts | MEDIUM | Environmental feedback |
+| Shell casings (rifle, pistol, shotgun) | LOW | Can be cut off without breaking gameplay |
+
+#### 5. Backward Compatibility
+
+All existing API methods work unchanged. New priority-aware methods added:
+- `play_sound_with_priority()`
+- `play_sound_2d_with_priority()`
+- `play_random_sound_with_priority()`
+- `play_random_sound_2d_with_priority()`
+
+#### 6. Debug Utilities
+
+Added helper methods for debugging:
+- `set_debug_logging()` - Enable/disable pool debug logs
+- `get_pool_size()` / `get_pool_2d_size()` - Current pool sizes
+- `get_playing_count()` / `get_playing_2d_count()` - Active sounds
+
+### Files Changed
 
 | File | Changes |
 |------|---------|
-| `scripts/autoload/audio_manager.gd` | Add dynamic pool, priority enum, updated methods |
-| `tests/unit/test_audio_manager.gd` | Add tests for new functionality |
+| `scripts/autoload/audio_manager.gd` | +300 lines: dynamic pool, priority system, updated methods |
+| `docs/case-studies/issue-73/logs/` | Game log from user testing |
+
+### Log Files
+
+- `logs/game_log_20260125_050205.txt` - Combat log showing high sound activity
 
 ## References
 
