@@ -58,6 +58,10 @@ var _blood_detector: Area2D = null
 ## This is PlayerModel for Player or EnemyModel for Enemy.
 var _character_model: Node2D = null
 
+## Color of the blood puddle the character stepped in.
+## Used to tint footprints to match/be darker than the puddle.
+var _blood_color: Color = Color(0.545, 0.0, 0.0, 1.0)  # Default dark red
+
 
 func _ready() -> void:
 	_file_logger = get_node_or_null("/root/FileLogger")
@@ -196,8 +200,11 @@ func _check_blood_puddle_overlap() -> void:
 
 	for area in overlapping_areas:
 		# Check if the area or its parent is a blood puddle
-		if area.is_in_group("blood_puddle") or (area.get_parent() and area.get_parent().is_in_group("blood_puddle")):
-			_on_blood_puddle_contact()
+		if area.is_in_group("blood_puddle"):
+			_on_blood_puddle_contact(_get_puddle_color(area))
+			return  # Early return if found via physics
+		elif area.get_parent() and area.get_parent().is_in_group("blood_puddle"):
+			_on_blood_puddle_contact(_get_puddle_color(area.get_parent()))
 			return  # Early return if found via physics
 
 	# FALLBACK: If physics detection fails, use distance-based detection
@@ -222,26 +229,48 @@ func _check_blood_puddle_by_distance() -> void:
 			if dist <= BLOOD_DETECTION_RADIUS:
 				if debug_logging:
 					_log_info("FALLBACK: Blood detected at distance %.1f (pos: %s)" % [dist, puddle.global_position])
-				_on_blood_puddle_contact()
+				_on_blood_puddle_contact(_get_puddle_color(puddle))
 				return
 
 
+## Extracts the color from a blood puddle node.
+## Returns the modulate color of the puddle, or default red if not available.
+func _get_puddle_color(puddle_node: Node) -> Color:
+	if puddle_node == null:
+		return Color(0.545, 0.0, 0.0, 1.0)  # Default dark red
+
+	# If it's a CanvasItem (Sprite2D, etc.), get its modulate color
+	if puddle_node is CanvasItem:
+		var color := (puddle_node as CanvasItem).modulate
+		if debug_logging:
+			_log_info("Puddle color: %s (R=%.2f, G=%.2f, B=%.2f)" % [color, color.r, color.g, color.b])
+		return color
+
+	return Color(0.545, 0.0, 0.0, 1.0)  # Default dark red
+
+
 ## Called when the character contacts a blood puddle.
-func _on_blood_puddle_contact() -> void:
+## puddle_color: The color of the blood puddle stepped in.
+func _on_blood_puddle_contact(puddle_color: Color = Color(0.545, 0.0, 0.0, 1.0)) -> void:
 	# Reset blood level to maximum
 	var previous_level := _blood_level
 	_blood_level = blood_steps_count
 
+	# Store the blood color for footprints
+	_blood_color = puddle_color
+
 	if previous_level == 0:
-		_log_info("Stepped in blood! %d footprints to spawn" % _blood_level)
+		_log_info("Stepped in blood! %d footprints to spawn, color: %s" % [_blood_level, puddle_color])
 		# Reset distance counter when first stepping in blood
 		_distance_since_last_footprint = 0.0
 
 
 ## Called when an area enters the blood detector.
 func _on_area_entered(area: Area2D) -> void:
-	if area.is_in_group("blood_puddle") or (area.get_parent() and area.get_parent().is_in_group("blood_puddle")):
-		_on_blood_puddle_contact()
+	if area.is_in_group("blood_puddle"):
+		_on_blood_puddle_contact(_get_puddle_color(area))
+	elif area.get_parent() and area.get_parent().is_in_group("blood_puddle"):
+		_on_blood_puddle_contact(_get_puddle_color(area.get_parent()))
 
 
 ## Tracks movement and spawns footprints at regular intervals.
@@ -350,7 +379,16 @@ func _spawn_footprint() -> void:
 	footprint.global_position += perpendicular * foot_offset
 	_is_left_foot = not _is_left_foot
 
-	# Set alpha using the footprint's method
+	# Set the blood color (same or darker than puddle)
+	if footprint.has_method("set_blood_color"):
+		footprint.set_blood_color(_blood_color)
+	else:
+		# Fallback: apply color directly to modulate
+		footprint.modulate.r = _blood_color.r
+		footprint.modulate.g = _blood_color.g
+		footprint.modulate.b = _blood_color.b
+
+	# Set alpha using the footprint's method (after color to preserve alpha)
 	if footprint.has_method("set_alpha"):
 		footprint.set_alpha(alpha)
 	else:
@@ -367,7 +405,7 @@ func _spawn_footprint() -> void:
 	_blood_level -= 1
 
 	if debug_logging:
-		_log_info("Footprint spawned (steps remaining: %d, alpha: %.2f, facing: %.2f)" % [_blood_level, alpha, facing_direction.angle()])
+		_log_info("Footprint spawned (steps remaining: %d, alpha: %.2f, facing: %.2f, color: %s)" % [_blood_level, alpha, facing_direction.angle(), _blood_color])
 
 	if _blood_level <= 0:
 		_log_info("Blood ran out - no more footprints")
