@@ -497,12 +497,7 @@ var _last_known_player_position: Vector2 = Vector2.ZERO
 ## Pursuing vulnerability sound (reload/empty click) without line of sight.
 var _pursuing_vulnerability_sound: bool = false
 
-## --- Enemy Memory System (Issue #297) ---
-## Tracks suspected player position with confidence (0.0=none, 1.0=visual contact).
-## The memory influences AI behavior:
-## - High confidence (>0.8): Direct pursuit to suspected position
-## - Medium confidence (0.5-0.8): Cautious approach with cover checks
-## - Low confidence (<0.5): Return to patrol/guard behavior
+## Enemy Memory (Issue #297): tracks suspected player pos with confidence (0-1).
 var _memory: EnemyMemory = null
 
 ## Confidence values for different detection sources.
@@ -1037,17 +1032,7 @@ func _update_enemy_model_rotation() -> void:
 	else:
 		_enemy_model.scale = Vector2(enemy_model_scale, enemy_model_scale)
 
-## Forces the enemy model to face a specific direction immediately.
-## Used for priority attacks where we need to aim and shoot in the same frame.
-##
-## Unlike _update_enemy_model_rotation(), this function:
-## 1. Takes a specific direction to face (doesn't derive it from player position)
-## 2. Is called immediately before shooting in priority attack code
-##
-## This ensures the weapon sprite's transform matches the intended aim direction
-## so that _get_weapon_forward_direction() returns the correct vector for aim checks.
-##
-## @param direction: The direction to face (normalized).
+## Force model to face direction immediately for priority attacks (ensures weapon aim is correct).
 func _force_model_to_face_direction(direction: Vector2) -> void:
 	if not _enemy_model:
 		return
@@ -2748,16 +2733,11 @@ func _transition_to_retreating() -> void:
 	# Find cover position for retreating
 	_find_cover_position()
 
-## Check if the enemy is visible from the player's position.
-## Uses raycasting from player to enemy to determine if there are obstacles blocking line of sight.
-## This is the inverse of _can_see_player - it checks if the PLAYER can see the ENEMY.
-## Checks multiple points on the enemy body (center and corners) to account for enemy size.
+## Check if the player can see this enemy (inverse of _can_see_player).
 func _is_visible_from_player() -> bool:
 	if _player == null:
 		return false
 
-	# Check visibility to multiple points on the enemy body
-	# This accounts for the enemy's size - corners can stick out from cover
 	var check_points := _get_enemy_check_points(global_position)
 
 	for point in check_points:
@@ -2913,6 +2893,16 @@ func _is_player_point_visible_to_enemy(point: Vector2) -> bool:
 		return false
 
 	return true
+
+## Issue #357: Check if player has clear LOS (ignoring FOV) and is within range.
+## Used to cancel corner checks when the enemy should turn to face the player.
+func _has_clear_los_to_player() -> bool:
+	if _player == null:
+		return false
+	var dist := global_position.distance_to(_player.global_position)
+	if detection_range > 0 and dist > detection_range:
+		return false
+	return _is_player_point_visible_to_enemy(_player.global_position)
 
 ## Calculate what fraction of the player's body is visible to the enemy.
 ## Returns a value from 0.0 (completely hidden) to 1.0 (fully visible).
@@ -3681,9 +3671,14 @@ func _check_player_visibility() -> void:
 		return
 
 	# Check FOV angle (if FOV is enabled via ExperimentalSettings)
+	# Issue #357: If corner check is active but player has clear LOS, cancel corner check
+	# so the enemy turns toward the player instead of continuing to look at the corner
 	if not _is_position_in_fov(_player.global_position):
-		_continuous_visibility_timer = 0.0
-		return
+		if _corner_check_timer > 0 and _has_clear_los_to_player():
+			_corner_check_timer = 0.0  # Cancel corner check - player takes priority
+		else:
+			_continuous_visibility_timer = 0.0
+			return
 
 	# Check multiple points on the player's body (center + corners) to handle
 	# cases where player is near a wall corner. A single raycast to the center
