@@ -753,8 +753,61 @@ func _check_manual_overlaps() -> void:
 
 ---
 
+### Game Crash Fix (2026-01-25)
+
+After the area detection fix, user reported that **the game would not start** - the Godot splash screen appeared and immediately disappeared without any error messages.
+
+#### Root Cause
+
+**Symptom:** Game crashes on startup with no visible error.
+
+**Investigation:**
+1. Reviewed casing.gd script for syntax errors
+2. Found incorrect GDScript method calls on Resource objects
+
+**Root Cause:** Invalid method call on Resource objects:
+
+```gdscript
+# INCORRECT - crashes at runtime
+elif caliber_data.has_method("get"):
+    caliber_name = caliber_data.get("caliber_name") if caliber_data.has("caliber_name") else ""
+```
+
+The code called `.has("caliber_name")` on a Resource object, but **Resources in GDScript don't have a `has()` method** - that's only for Dictionary objects. This caused a crash during script loading.
+
+#### Fix Applied
+
+Changed to proper GDScript syntax for checking if a property exists on an object:
+
+```gdscript
+# CORRECT - proper GDScript property checking
+elif "caliber_name" in caliber_data:
+    caliber_name = caliber_data.caliber_name
+```
+
+The `"property" in object` syntax is the correct way to check if a property exists on any GDScript object, including Resources.
+
+#### Files Modified
+
+| File | Lines Changed | Description |
+|------|---------------|-------------|
+| scripts/effects/casing.gd | 4 | Fixed .has() to use `in` operator |
+
+#### Key Learnings
+
+1. **GDScript Type Differences:** Dictionary and Resource have different methods:
+   - `Dictionary.has(key)` - check if key exists in dictionary
+   - `"property" in Resource` - check if property exists on object/Resource
+
+2. **Silent Crashes:** GDScript syntax errors in `_set_casing_appearance()` and similar methods may not show visible error messages if the scene loads but crashes during `_ready()` callback.
+
+3. **Code Review:** When adapting code patterns from one context (dictionaries) to another (resources), verify the method signatures are compatible.
+
+---
+
 *Case study compiled: 2026-01-25*
 *Initial implementation: 2026-01-25*
 *Post-fix revision: 2026-01-25*
+*Crash fix: 2026-01-25*
 *Branch: issue-341-9704ef182b3c*
 *PR: [#342](https://github.com/Jhon-Crow/godot-topdown-MVP/pull/342)*

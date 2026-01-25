@@ -259,8 +259,8 @@ func _set_casing_appearance() -> void:
 		var caliber_name: String = ""
 		if caliber_data is CaliberData:
 			caliber_name = (caliber_data as CaliberData).caliber_name
-		elif caliber_data.has_method("get"):
-			caliber_name = caliber_data.get("caliber_name") if caliber_data.has("caliber_name") else ""
+		elif "caliber_name" in caliber_data:
+			caliber_name = caliber_data.caliber_name
 
 		if "buckshot" in caliber_name.to_lower() or "Buckshot" in caliber_name:
 			casing_color = Color(0.8, 0.2, 0.2)  # Red for shotgun
@@ -308,8 +308,8 @@ func _play_bounce_sound() -> void:
 		var caliber_name: String = ""
 		if caliber_data is CaliberData:
 			caliber_name = (caliber_data as CaliberData).caliber_name
-		elif caliber_data.has_method("get"):
-			caliber_name = caliber_data.get("caliber_name") if caliber_data.has("caliber_name") else ""
+		elif "caliber_name" in caliber_data:
+			caliber_name = caliber_data.caliber_name
 
 		if "buckshot" in caliber_name.to_lower() or "Buckshot" in caliber_name:
 			casing_type = "shotgun"
