@@ -7,13 +7,13 @@
 script = ExtResource("1_script")
 Name = "Silenced Pistol"
 Damage = 1.0
-FireRate = 5.0
+FireRate = 8.0
 MagazineSize = 13
 MaxReserveAmmo = 26
 ReloadTime = 2.0
 BulletSpeed = 1350.0
 Range = 800.0
-SpreadAngle = 2.0
+SpreadAngle = 1.5
 BulletsPerShot = 1
 IsAutomatic = false
 Sensitivity = 2.0
