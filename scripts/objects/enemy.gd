@@ -1139,6 +1139,14 @@ func _update_goap_state() -> void:
 		_goap_world_state["confidence_medium"] = _memory.is_medium_confidence()
 		_goap_world_state["confidence_low"] = _memory.is_low_confidence()
 
+## Returns the visual rotation angle of the enemy model (Issue #373).
+## When Y-scale is negative (facing left), visual angle = -raw_rotation.
+func _get_visual_rotation() -> float:
+	if not _enemy_model:
+		return rotation
+	var raw_rot := _enemy_model.global_rotation
+	return -raw_rot if _model_facing_left else raw_rot
+
 ## Updates model rotation smoothly (#347). Priority: player > corner check > velocity > idle scan.
 ## Updates enemy model rotation to face targets. Issue #373: fixed sprite flip rotation compensation.
 func _update_enemy_model_rotation() -> void:
@@ -1164,23 +1172,29 @@ func _update_enemy_model_rotation() -> void:
 	elif not has_target and _current_state == AIState.IDLE and _idle_scan_targets.size() > 0:
 		target_angle = _idle_scan_targets[_idle_scan_target_index]; has_target = true
 	if not has_target: return
-	# Issue #373 FIX: When flipping Y-scale, compensate rotation to maintain visual direction.
-	# Flipping Y-scale mirrors the sprite, so we negate rotation to keep visual direction unchanged.
+	# Issue #373 FIX (eighth attempt): Handle Y-scale flip with proper rotation compensation.
+	# When Y-scale is negative, the visual angle is the negation of the stored rotation.
+	# We must work in "visual space" for smooth rotation, then convert back to raw rotation.
 	var target_facing_left := absf(target_angle) > PI / 2
 	if target_facing_left != _model_facing_left:
 		_model_facing_left = target_facing_left
 		_enemy_model.global_rotation = -_enemy_model.global_rotation  # Compensate for flip
 		_enemy_model.scale = Vector2(enemy_model_scale, -enemy_model_scale if _model_facing_left else enemy_model_scale)
-	# Smooth rotation
-	var current_rot := _enemy_model.global_rotation
-	var angle_diff := wrapf(target_angle - current_rot, -PI, PI)
+	# Get current VISUAL rotation (accounting for Y-scale flip)
+	var raw_rot := _enemy_model.global_rotation
+	var visual_rot := -raw_rot if _model_facing_left else raw_rot
+	# Smooth rotation in VISUAL space
+	var angle_diff := wrapf(target_angle - visual_rot, -PI, PI)
 	var delta := get_physics_process_delta_time()
+	var new_visual_rot: float
 	if abs(angle_diff) <= MODEL_ROTATION_SPEED * delta:
-		_enemy_model.global_rotation = target_angle
+		new_visual_rot = target_angle
 	elif angle_diff > 0:
-		_enemy_model.global_rotation = current_rot + MODEL_ROTATION_SPEED * delta
+		new_visual_rot = visual_rot + MODEL_ROTATION_SPEED * delta
 	else:
-		_enemy_model.global_rotation = current_rot - MODEL_ROTATION_SPEED * delta
+		new_visual_rot = visual_rot - MODEL_ROTATION_SPEED * delta
+	# Convert back to RAW rotation (accounting for Y-scale flip)
+	_enemy_model.global_rotation = -new_visual_rot if _model_facing_left else new_visual_rot
 
 ## Forces the enemy model to face a specific direction immediately.
 ## Used for priority attacks where we need to aim and shoot in the same frame.
@@ -1202,7 +1216,9 @@ func _force_model_to_face_direction(direction: Vector2) -> void:
 
 	# Update model facing state for consistency with _update_enemy_model_rotation()
 	_model_facing_left = target_facing_left
-	_enemy_model.global_rotation = target_angle
+	# Issue #373: When Y-scale is negative, visual angle = -raw_rotation.
+	# So to achieve visual angle = target_angle, we need raw_rotation = -target_angle.
+	_enemy_model.global_rotation = -target_angle if target_facing_left else target_angle
 	if target_facing_left:
 		_enemy_model.scale = Vector2(enemy_model_scale, -enemy_model_scale)
 	else:
@@ -3757,13 +3773,13 @@ func _get_wall_avoidance_weight(direction: Vector2) -> float:
 	var normalized_distance: float = clampf(closest_distance / WALL_CHECK_DISTANCE, 0.0, 1.0)
 	return lerpf(WALL_AVOIDANCE_MIN_WEIGHT, WALL_AVOIDANCE_MAX_WEIGHT, normalized_distance)
 
-## Check if target is within FOV cone. FOV uses _enemy_model.global_rotation for facing.
+## Check if target is within FOV cone. Uses visual rotation for facing direction (Issue #373).
 func _is_position_in_fov(target_pos: Vector2) -> bool:
 	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
 	var global_fov_enabled: bool = experimental_settings != null and experimental_settings.has_method("is_fov_enabled") and experimental_settings.is_fov_enabled()
 	if not global_fov_enabled or not fov_enabled or fov_angle <= 0.0:
 		return true  # FOV disabled - 360 degree vision
-	var facing_angle := _enemy_model.global_rotation if _enemy_model else rotation
+	var facing_angle := _get_visual_rotation()
 	var dir_to_target := (target_pos - global_position).normalized()
 	var dot := Vector2.from_angle(facing_angle).dot(dir_to_target)
 	var angle_to_target := rad_to_deg(acos(clampf(dot, -1.0, 1.0)))
@@ -4979,10 +4995,10 @@ func _draw() -> void:
 		# Draw small filled circle at center
 		draw_circle(to_suspected, 5.0, confidence_color)
 
-## Draw FOV cone with obstacle occlusion. Follows model rotation, rays stop at walls.
+## Draw FOV cone with obstacle occlusion. Uses visual rotation, rays stop at walls (Issue #373).
 func _draw_fov_cone(fill_color: Color, edge_color: Color) -> void:
 	var half_fov := deg_to_rad(fov_angle / 2.0)
-	var global_facing := _enemy_model.global_rotation if _enemy_model else global_rotation
+	var global_facing := _get_visual_rotation()
 	var local_facing := global_facing - global_rotation  # Convert to local space for drawing
 	var space_state := get_world_2d().direct_space_state
 	var cone_points: PackedVector2Array = [Vector2.ZERO]

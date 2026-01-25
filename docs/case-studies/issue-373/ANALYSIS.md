@@ -582,6 +582,89 @@ We must negate the rotation when we flip the Y-scale.
 
 ---
 
+## Update: Eighth Fix Attempt (2026-01-25)
+
+### Why the Seventh Fix Was Still Insufficient
+
+After the seventh fix, the user reported the problem persists (log: `game_log_20260125_111417.txt`). The user's description was clear: "когда я попадаю в поле зрения врага слева - он резко поворачивается вправо и плавно поворачивается по часовой стрелке ко мне" (When I enter the enemy's field of view from the left - he sharply turns to the right and then smoothly turns clockwise toward me).
+
+Analysis revealed **TWO remaining issues**:
+
+#### Issue 1: Smooth rotation didn't account for "visual space"
+
+The seventh fix compensated the rotation when the Y-scale flipped, but the smooth rotation calculation still operated in "raw" rotation space, not "visual" space:
+
+```gdscript
+# After flip, current_rot is negated (correct)
+var current_rot := _enemy_model.global_rotation  // e.g., -30° (raw)
+// But with Y-scale negative, visual is actually +30°!
+var angle_diff := wrapf(target_angle - current_rot, -PI, PI)
+// target_angle = 165°, current_rot = -30°
+// angle_diff = 165° - (-30°) = 195° (almost full circle!)
+```
+
+The math was comparing target angle (in visual space) with current rotation (in raw space), causing the enemy to take the "long way around" when rotating.
+
+#### Issue 2: `_force_model_to_face_direction()` wasn't compensating
+
+The function `_force_model_to_face_direction()` (used for priority attacks) was setting rotation directly without accounting for Y-scale:
+
+```gdscript
+_enemy_model.global_rotation = target_angle  // Visual appears as -target_angle when Y-scale negative!
+```
+
+This caused instant visual "snap" in the wrong direction when the enemy performed a priority attack.
+
+### The Eighth Fix
+
+Two changes were made:
+
+**1. Smooth rotation in "visual space":**
+```gdscript
+# Get current VISUAL rotation (accounting for Y-scale flip)
+var raw_rot := _enemy_model.global_rotation
+var visual_rot := -raw_rot if _model_facing_left else raw_rot
+
+# Smooth rotation in VISUAL space
+var angle_diff := wrapf(target_angle - visual_rot, -PI, PI)
+var new_visual_rot: float
+if abs(angle_diff) <= MODEL_ROTATION_SPEED * delta:
+    new_visual_rot = target_angle
+elif angle_diff > 0:
+    new_visual_rot = visual_rot + MODEL_ROTATION_SPEED * delta
+else:
+    new_visual_rot = visual_rot - MODEL_ROTATION_SPEED * delta
+
+# Convert back to RAW rotation
+_enemy_model.global_rotation = -new_visual_rot if _model_facing_left else new_visual_rot
+```
+
+**2. Fix `_force_model_to_face_direction()`:**
+```gdscript
+# When Y-scale is negative, visual angle = -raw_rotation
+# So to achieve visual = target_angle, raw must be -target_angle
+_enemy_model.global_rotation = -target_angle if target_facing_left else target_angle
+```
+
+**3. Added `_get_visual_rotation()` helper and updated FOV functions:**
+
+All functions that read the enemy model's rotation to determine facing direction now use the visual rotation (via `_get_visual_rotation()`), ensuring consistent behavior throughout the codebase.
+
+### Why This Works
+
+The fix introduces the concept of two coordinate spaces:
+- **Raw rotation**: The actual value stored in `_enemy_model.global_rotation`
+- **Visual rotation**: What the player sees on screen
+
+When Y-scale is negative: `visual_rotation = -raw_rotation`
+
+All rotation math now happens in visual space, then converts back to raw space for storage. This ensures:
+1. Smooth rotation takes the shortest visual path
+2. Instant rotation sets the correct visual direction
+3. FOV checks use the actual visual facing direction
+
+---
+
 ## Summary of All Fix Attempts
 
 | Fix # | What It Addressed | Why It Wasn't Enough |
@@ -592,9 +675,10 @@ We must negate the rotation when we flip the Y-scale.
 | 4 | Face player DIRECTLY in active combat | Rotation target was correct, flip still broken |
 | 5 | Add rotation tracing | Diagnostic only |
 | 6 | Flip based on TARGET angle | Fixed flip timing but no rotation compensation |
-| 7 | **Compensate rotation when flipping** | **✅ ACTUAL ROOT CAUSE FIXED** |
+| 7 | Compensate rotation when flipping | Fixed flip compensation but smooth rotation still in wrong space |
+| 8 | **Work in visual space for all rotation math** | **✅ ACTUAL ROOT CAUSE FIXED** |
 
-The real issue was never about which direction the enemy was rotating toward - it was about the visual discontinuity caused by the Y-scale flip without corresponding rotation adjustment.
+The real issue was a coordinate space mismatch: rotation math was happening in "raw" space while Y-scale flip operates in "visual" space.
 
 ---
 
