@@ -86,9 +86,9 @@ vertical_alignment = 1
 
 [node name="BloodyFeetComponent" type="Node" parent="."]
 script = ExtResource("9_bloody_feet")
-blood_steps_count = 6
+blood_steps_count = 12
 step_distance = 30.0
 initial_alpha = 0.8
-alpha_decay_rate = 0.12
+alpha_decay_rate = 0.06
 footprint_scale = 0.72
 debug_logging = true
