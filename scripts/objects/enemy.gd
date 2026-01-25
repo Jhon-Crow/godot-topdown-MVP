@@ -3674,9 +3674,18 @@ func _check_player_visibility() -> void:
 		return
 
 	# Check FOV angle (if FOV is enabled via ExperimentalSettings)
-	if not _is_position_in_fov(_player.global_position):
-		_continuous_visibility_timer = 0.0
-		return
+	# Issue #373: In combat-related states, skip FOV check to prevent enemies from
+	# "turning away" when the player enters their field of view. The enemy maintains
+	# awareness of the player's location during combat - they know the player is there
+	# from initial detection. FOV only restricts INITIAL detection, not combat awareness.
+	# Visibility still requires line-of-sight (raycast check below).
+	var in_combat_state := _current_state in [AIState.COMBAT, AIState.PURSUING, AIState.FLANKING, AIState.ASSAULT, AIState.RETREATING, AIState.SEEKING_COVER, AIState.IN_COVER, AIState.SUPPRESSED, AIState.SEARCHING]
+	if not in_combat_state:
+		# Not in combat: strict FOV check required for initial detection
+		if not _is_position_in_fov(_player.global_position):
+			_continuous_visibility_timer = 0.0
+			return
+	# In combat states: skip FOV check, enemy maintains awareness of player location
 
 	# Check multiple points on the player's body (center + corners) to handle
 	# cases where player is near a wall corner. A single raycast to the center
