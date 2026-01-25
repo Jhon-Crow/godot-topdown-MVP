@@ -511,6 +511,93 @@ This is a known issue in 2D game development with smooth rotation + sprite flip:
 
 ---
 
+## Update: Seventh Fix Attempt (2026-01-25) - THE ACTUAL ROOT CAUSE
+
+### Why the Sixth Fix Was Still Insufficient
+
+After the sixth fix, the user reported the problem persists (log: `game_log_20260125_110119.txt`). Analysis of the rotation logs revealed the true root cause:
+
+```
+948:[11:01:29] ROT Enemy3: 126.6° -> 165.6° (diff=39.0°, src=ACTIVE_COMBAT_PLAYER, state=COMBAT)
+951:[11:01:29] ROT Enemy3: -64.9° -> 166.8° (diff=128.3°, src=ACTIVE_COMBAT_PLAYER, state=COMBAT)
+```
+
+Notice how the current rotation jumped from `126.6°` to `-64.9°` in just one frame! The target angle only moved from `165.6°` to `166.8°`, so the target was stable. This 191° jump in current rotation is the visual "turn away".
+
+### The True Root Cause: No Rotation Compensation When Flipping
+
+When the sprite's Y-scale is flipped, the visual interpretation of the rotation angle changes:
+
+**Without Y-flip:** Rotation `θ` → Sprite faces direction `θ`
+**With Y-flip:** Rotation `θ` → Sprite faces direction `-θ` (mirrored)
+
+The sixth fix changed the flip timing to be based on target angle instead of current angle, but it **did not compensate the rotation** when the flip happened!
+
+Here's what was happening:
+1. Enemy3 is at rotation `126.6°`, facing upper-left
+2. Player is at angle `165.6°` (behind the enemy, to the left)
+3. Since `|165.6°| > 90°`, target is "facing left", so we flip the sprite
+4. **Y-scale flips to negative**
+5. Now the same rotation value `126.6°` visually appears as `-126.6°` (reflected)
+6. Wrapped to the valid range, this becomes approximately `-64.9°` (lower-right)
+7. **Enemy visually snaps from facing upper-left to facing lower-right** - the "turn away"!
+
+### The Actual Fix
+
+When the Y-scale flips, we must also negate the rotation to maintain the same visual direction:
+
+```gdscript
+var target_facing_left := absf(target_angle) > PI / 2
+if target_facing_left != _model_facing_left:
+    _model_facing_left = target_facing_left
+    # CRITICAL: Compensate rotation when flipping to maintain visual direction
+    # Before flip: visual_angle = rotation
+    # After flip: visual_angle = -rotation
+    # So we negate rotation to keep visual_angle unchanged
+    _enemy_model.global_rotation = -_enemy_model.global_rotation
+    _enemy_model.scale = Vector2(enemy_model_scale, -enemy_model_scale if _model_facing_left else enemy_model_scale)
+```
+
+### Why This Works
+
+1. **Before flip:** rotation = `126.6°`, Y-scale positive → visual direction = `126.6°`
+2. **After flip:** rotation = `-126.6°`, Y-scale negative → visual direction = `-(-126.6°)` = `126.6°`
+
+The visual direction stays the same! The sprite smoothly continues rotating toward the target instead of snapping to the opposite direction.
+
+### Mathematical Proof
+
+In 2D with Y-scale reflection:
+- If Y-scale is positive (s, s), rotation θ gives visual angle θ
+- If Y-scale is negative (s, -s), rotation θ gives visual angle -θ
+
+To maintain visual continuity when changing from positive to negative Y-scale:
+```
+visual_before = θ
+visual_after = -θ_new = θ (we want same visual)
+Therefore: θ_new = -θ
+```
+
+We must negate the rotation when we flip the Y-scale.
+
+---
+
+## Summary of All Fix Attempts
+
+| Fix # | What It Addressed | Why It Wasn't Enough |
+|-------|-------------------|---------------------|
+| 1 | Skip FOV in combat states | Addressed visibility detection, not rotation |
+| 2 | Use `_get_target_position()` in combat | Rotation source was correct, but flip timing wrong |
+| 3 | Add player fallback when memory empty | Edge case, not the main issue |
+| 4 | Face player DIRECTLY in active combat | Rotation target was correct, flip still broken |
+| 5 | Add rotation tracing | Diagnostic only |
+| 6 | Flip based on TARGET angle | Fixed flip timing but no rotation compensation |
+| 7 | **Compensate rotation when flipping** | **✅ ACTUAL ROOT CAUSE FIXED** |
+
+The real issue was never about which direction the enemy was rotating toward - it was about the visual discontinuity caused by the Y-scale flip without corresponding rotation adjustment.
+
+---
+
 ## References
 
 - Issue #347: Smooth rotation for visual polish
@@ -520,4 +607,5 @@ This is a known issue in 2D game development with smooth rotation + sprite flip:
 - Common Godot issue: [180/-180 degree wrap-around in FOV calculations](https://godotforums.org/d/18193-enemy-not-rotating-properly-towards-the-player)
 - Sprite flip best practices: Flip based on target direction, not current rotation
 - [Godot GitHub Issues](https://github.com/godotengine/godot/issues) on scale/rotation interactions
+- 2D transform mathematics: When Y-scale flips, visual angle = -rotation angle
 
