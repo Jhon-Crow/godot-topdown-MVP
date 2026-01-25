@@ -422,26 +422,15 @@ var _assault_ready: bool = false
 ## Whether this enemy is currently participating in an assault.
 var _in_assault: bool = false
 
-## Search State - Issue #322: methodical area search with expanding square pattern
-var _search_center: Vector2 = Vector2.ZERO  ## Center position for search pattern
-var _search_radius: float = 100.0  ## Current search radius (expands over time)
-const SEARCH_INITIAL_RADIUS: float = 100.0  ## Initial radius when search begins
-const SEARCH_RADIUS_EXPANSION: float = 100.0  ## Expand by this when all waypoints visited (Issue #369: increased from 75)
-const SEARCH_MAX_RADIUS: float = 400.0  ## Max radius before giving up
-var _search_waypoints: Array[Vector2] = []  ## Waypoints to visit during search
-var _search_current_waypoint_index: int = 0  ## Current waypoint index
-var _search_scan_timer: float = 0.0  ## Timer for scanning at waypoint
-const SEARCH_SCAN_DURATION: float = 1.0  ## Seconds to scan at each waypoint
-var _search_state_timer: float = 0.0  ## Total time in SEARCHING state
-const SEARCH_MAX_DURATION: float = 30.0  ## Max time searching before idle
-var _search_direction: int = 0  ## Direction: 0=N, 1=E, 2=S, 3=W
-var _search_leg_length: float = 50.0  ## Current leg length for spiral
-var _search_legs_completed: int = 0  ## Legs completed in pattern
-const SEARCH_WAYPOINT_REACHED_DISTANCE: float = 20.0  ## Waypoint reached threshold
-var _search_moving_to_waypoint: bool = true  ## Moving (vs scanning)
-const SEARCH_WAYPOINT_SPACING: float = 75.0  ## Spacing between waypoints
-var _search_visited_zones: Dictionary = {}  ## Tracks visited positions (key=snapped pos, val=true)
-const SEARCH_ZONE_SNAP_SIZE: float = 50.0  ## Grid size for snapping positions to zones
+## Search State - Issue #322/#369: Coordinated search using SearchCoordinator autoload.
+## Routes are now generated at iteration start and distributed among all searching enemies.
+var _search_scan_timer: float = 0.0  ## Timer for scanning at waypoint.
+const SEARCH_SCAN_DURATION: float = 1.0  ## Seconds to scan at each waypoint.
+var _search_state_timer: float = 0.0  ## Total time in SEARCHING state.
+const SEARCH_MAX_DURATION: float = 30.0  ## Max time searching before idle (patrol only).
+const SEARCH_WAYPOINT_REACHED_DISTANCE: float = 20.0  ## Waypoint reached threshold.
+var _search_moving_to_waypoint: bool = true  ## Moving (vs scanning).
+var _coordinated_search_iteration: int = -1  ## Current search iteration ID from coordinator.
 
 ## Issue #354: Stuck detection for SEARCHING state.
 var _search_stuck_timer: float = 0.0  ## Timer for no progress toward waypoint.
@@ -2248,36 +2237,20 @@ func _process_assault_state(_delta: float) -> void:
 	_assault_ready = false
 	_transition_to_combat()
 
-## Generate search waypoints in expanding square spiral (Issue #322). Skips visited zones.
-func _generate_search_waypoints() -> void:
-	_search_waypoints.clear()
-	_search_current_waypoint_index = 0
-	_search_direction = 0
-	_search_leg_length = SEARCH_WAYPOINT_SPACING
-	_search_legs_completed = 0
-	if not _is_zone_visited(_search_center):
-		_search_waypoints.append(_search_center)
-	var current_pos := _search_center
-	var waypoints_generated := _search_waypoints.size()
-	var iters := 0
-	while waypoints_generated < 20 and _search_leg_length <= _search_radius * 2 and iters < 100:
-		iters += 1
-		var offset := Vector2.ZERO
-		match _search_direction:
-			0: offset = Vector2(0, -_search_leg_length)
-			1: offset = Vector2(_search_leg_length, 0)
-			2: offset = Vector2(0, _search_leg_length)
-			3: offset = Vector2(-_search_leg_length, 0)
-		var next_pos := current_pos + offset
-		if _is_waypoint_navigable(next_pos) and not _is_zone_visited(next_pos):
-			_search_waypoints.append(next_pos)
-			waypoints_generated += 1
-		current_pos = next_pos
-		_search_legs_completed += 1
-		_search_direction = (_search_direction + 1) % 4
-		if _search_legs_completed % 2 == 0:
-			_search_leg_length += SEARCH_WAYPOINT_SPACING
-	_log_debug("Generated %d unvisited waypoints (radius=%.0f, visited=%d)" % [_search_waypoints.size(), _search_radius, _search_visited_zones.size()])
+## Issue #369: Check if this enemy is in SEARCHING state (for SearchCoordinator).
+func is_searching() -> bool:
+	return _current_state == AIState.SEARCHING
+
+## Issue #369: Check if this enemy should join a coordinated search.
+func should_join_search() -> bool:
+	# Enemies that just lost sight of the player should join search
+	return _current_state == AIState.PURSUING and not _can_see_player
+
+## Issue #369: Mark a zone as visited via the SearchCoordinator.
+func _mark_zone_visited_coordinated(pos: Vector2) -> void:
+	var coordinator: Node = get_node_or_null("/root/SearchCoordinator")
+	if coordinator:
+		coordinator.mark_zone_visited(pos)
 
 ## Check if position is navigable via NavigationServer2D.
 func _is_waypoint_navigable(pos: Vector2) -> bool:
@@ -2285,113 +2258,123 @@ func _is_waypoint_navigable(pos: Vector2) -> bool:
 	var closest := NavigationServer2D.map_get_closest_point(nav_map, pos)
 	return pos.distance_to(closest) < 50.0
 
-## Zone tracking helpers for visited areas (Issue #322): snaps to 50px grid.
-func _get_zone_key(pos: Vector2) -> String:
-	return "%d,%d" % [int(pos.x / SEARCH_ZONE_SNAP_SIZE) * int(SEARCH_ZONE_SNAP_SIZE), int(pos.y / SEARCH_ZONE_SNAP_SIZE) * int(SEARCH_ZONE_SNAP_SIZE)]
-func _is_zone_visited(pos: Vector2) -> bool: return _search_visited_zones.has(_get_zone_key(pos))
-func _mark_zone_visited(pos: Vector2) -> void:
-	var k := _get_zone_key(pos)
-	if not _search_visited_zones.has(k): _search_visited_zones[k] = true; _log_debug("SEARCHING: Marked zone %s as visited (total: %d)" % [k, _search_visited_zones.size()])
-
-## Process SEARCHING state - move through waypoints, scan at each (Issue #322).
+## Process SEARCHING state - Issue #369: Now uses coordinated search from SearchCoordinator.
+## Routes are pre-planned at iteration start for all searching enemies.
 ## Issue #330: If enemy has ever left IDLE, they NEVER return to IDLE - search infinitely.
 func _process_searching_state(delta: float) -> void:
 	_search_state_timer += delta
+
 	# Issue #330: Only timeout if enemy has never engaged (still in patrol mode)
-	# Once an enemy has left IDLE, they search infinitely until finding player
 	if _search_state_timer >= SEARCH_MAX_DURATION and not _has_left_idle:
 		_log_to_file("SEARCHING timeout after %.1fs, returning to IDLE (patrol enemy)" % _search_state_timer)
+		_remove_from_coordinated_search()
 		_transition_to_idle()
 		return
+
+	# Player spotted - exit search and engage
 	if _can_see_player:
 		_log_to_file("SEARCHING: Player spotted! Transitioning to COMBAT")
+		_remove_from_coordinated_search()
 		_transition_to_combat()
 		return
-	if _search_current_waypoint_index >= _search_waypoints.size() or _search_waypoints.is_empty():
-		if _search_radius < SEARCH_MAX_RADIUS:
-			_search_radius += SEARCH_RADIUS_EXPANSION
-			_generate_search_waypoints()
-			_log_to_file("SEARCHING: Expand outer ring r=%.0f wps=%d" % [_search_radius, _search_waypoints.size()])
-			if _search_waypoints.is_empty() and _search_radius < SEARCH_MAX_RADIUS:
-				return
+
+	# Get coordinator and current waypoint
+	var coordinator: Node = get_node_or_null("/root/SearchCoordinator")
+	if coordinator == null:
+		_log_debug("SEARCHING: SearchCoordinator not available, using fallback")
+		_process_searching_state_fallback(delta)
+		return
+
+	# Get next waypoint from coordinator
+	var target_waypoint: Vector2 = coordinator.get_next_waypoint(self)
+
+	# Check if route is complete
+	if target_waypoint == Vector2.ZERO or coordinator.is_route_complete(self):
+		# Try to expand search
+		if coordinator.expand_search():
+			_log_to_file("SEARCHING: Route complete, expanding search radius")
+			_search_state_timer = 0.0
+			return
 		else:
-			# Issue #330: If enemy has left IDLE, reset search and keep searching
+			# Max radius reached
 			if _has_left_idle:
-				# Move search center to current position (so enemy explores new area)
-				var old_center := _search_center
-				_search_center = global_position
-				_search_radius = SEARCH_INITIAL_RADIUS
+				# Start new search from current position
+				var new_center := global_position
+				_coordinated_search_iteration = coordinator.start_coordinated_search(new_center, self)
+				_log_to_file("SEARCHING: Max radius, starting new search from %s (engaged enemy)" % new_center)
 				_search_state_timer = 0.0
-				# Keep visited zones to avoid re-visiting same spots
-				_generate_search_waypoints()
-				_log_to_file("SEARCHING: Max radius reached, moved center from %s to %s (engaged enemy, wps=%d)" % [old_center, _search_center, _search_waypoints.size()])
 				return
 			else:
 				_log_to_file("SEARCHING: Max radius, returning to IDLE (patrol enemy)")
+				_remove_from_coordinated_search()
 				_transition_to_idle()
 				return
-	if _search_waypoints.is_empty():
-		# Issue #330: If enemy has left IDLE, regenerate waypoints from new position
-		if _has_left_idle:
-			var old_center := _search_center
-			_search_center = global_position
-			_search_radius = SEARCH_INITIAL_RADIUS
-			_generate_search_waypoints()
-			_log_to_file("SEARCHING: No waypoints, moved center from %s to %s (engaged enemy, wps=%d)" % [old_center, _search_center, _search_waypoints.size()])
-			return
-		_transition_to_idle()
-		return
-	var target_waypoint := _search_waypoints[_search_current_waypoint_index]
+
 	var dist := global_position.distance_to(target_waypoint)
+
 	if _search_moving_to_waypoint:
 		if dist <= SEARCH_WAYPOINT_REACHED_DISTANCE:
 			_search_moving_to_waypoint = false
 			_search_scan_timer = 0.0
-			_search_stuck_timer = 0.0  # Issue #354: Reset stuck timer on waypoint reached
-			_log_debug("SEARCHING: Reached waypoint %d, scanning..." % _search_current_waypoint_index)
+			_search_stuck_timer = 0.0
+			_log_debug("SEARCHING: Reached coordinated waypoint, scanning...")
 		else:
 			_nav_agent.target_position = target_waypoint
 			if _nav_agent.is_navigation_finished():
-				_mark_zone_visited(target_waypoint)
-				_search_current_waypoint_index += 1
+				_mark_zone_visited_coordinated(target_waypoint)
+				coordinator.advance_waypoint(self)
 				_search_moving_to_waypoint = true
-				_search_stuck_timer = 0.0  # Issue #354: Reset stuck timer
+				_search_stuck_timer = 0.0
 			else:
 				var next_pos := _nav_agent.get_next_path_position()
 				var dir := (next_pos - global_position).normalized()
 				velocity = dir * move_speed * 0.7
 				move_and_slide()
 
-				# Issue #354: Stuck detection - check if making progress toward waypoint
+				# Stuck detection
 				var progress := global_position.distance_to(_search_last_progress_position)
 				if progress < SEARCH_PROGRESS_THRESHOLD:
 					_search_stuck_timer += delta
 					if _search_stuck_timer >= SEARCH_STUCK_MAX_TIME:
-						# Stuck for too long - skip to next waypoint
-						_log_to_file("SEARCHING: Stuck at waypoint %d (no progress for %.1fs), skipping" % [_search_current_waypoint_index, _search_stuck_timer])
-						_mark_zone_visited(target_waypoint)
-						_search_current_waypoint_index += 1
+						_log_to_file("SEARCHING: Stuck (no progress for %.1fs), skipping waypoint" % _search_stuck_timer)
+						_mark_zone_visited_coordinated(target_waypoint)
+						coordinator.advance_waypoint(self)
 						_search_moving_to_waypoint = true
 						_search_stuck_timer = 0.0
 						_search_last_progress_position = global_position
 						return
 				else:
-					# Making progress - reset stuck timer and update position
 					_search_stuck_timer = 0.0
 					_search_last_progress_position = global_position
 
 				if dir.length() > 0.1:
 					rotation = lerp_angle(rotation, dir.angle(), 5.0 * delta)
-					# Corner checking during SEARCHING movement (Issue #332)
 					_process_corner_check(delta, dir, "SEARCHING")
 	else:
 		_search_scan_timer += delta
 		rotation += delta * 1.5
 		if _search_scan_timer >= SEARCH_SCAN_DURATION:
-			_mark_zone_visited(target_waypoint)
-			_search_current_waypoint_index += 1
+			_mark_zone_visited_coordinated(target_waypoint)
+			var coordinator_ref: Node = get_node_or_null("/root/SearchCoordinator")
+			if coordinator_ref:
+				coordinator_ref.advance_waypoint(self)
 			_search_moving_to_waypoint = true
-			_log_debug("SEARCHING: Scan done, next wp %d" % _search_current_waypoint_index)
+			_log_debug("SEARCHING: Scan done, advancing to next waypoint")
+
+## Remove this enemy from coordinated search.
+func _remove_from_coordinated_search() -> void:
+	var coordinator: Node = get_node_or_null("/root/SearchCoordinator")
+	if coordinator:
+		coordinator.remove_enemy_from_search(self)
+	_coordinated_search_iteration = -1
+
+## Fallback search behavior when SearchCoordinator is not available.
+func _process_searching_state_fallback(delta: float) -> void:
+	# Simple fallback: rotate and move in small circle
+	rotation += delta * 1.5
+	var dir := Vector2.from_angle(rotation)
+	velocity = dir * move_speed * 0.3
+	move_and_slide()
 
 ## Shoot with reduced accuracy for retreat mode (bullets fly in barrel direction with spread).
 func _shoot_with_inaccuracy() -> void:
@@ -2708,151 +2691,91 @@ func _transition_to_assault() -> void:
 	_find_cover_closest_to_player()
 
 ## Transition to SEARCHING state - methodical search around last known player position (Issue #322).
-## Issue #369: Now uses player position prediction based on time elapsed and nearby covers.
+## Issue #369: Now uses coordinated search via SearchCoordinator with Voronoi-like partitioning.
 func _transition_to_searching(center_position: Vector2) -> void:
 	_current_state = AIState.SEARCHING
 	# Mark that enemy has left IDLE state (Issue #330)
 	_has_left_idle = true
 
-	# Issue #369: Try to predict player position instead of using raw last known position
+	# Issue #369: Use prediction for search center
 	var predicted_center := _predict_player_position(center_position)
-	_search_center = predicted_center
-	_search_radius = SEARCH_INITIAL_RADIUS
-	_search_state_timer = 0.0; _search_scan_timer = 0.0; _search_current_waypoint_index = 0
-	_search_direction = 0; _search_leg_length = SEARCH_WAYPOINT_SPACING; _search_legs_completed = 0
-	_search_moving_to_waypoint = true; _search_visited_zones.clear()
-	# Issue #354: Initialize stuck detection
-	_search_stuck_timer = 0.0; _search_last_progress_position = global_position
-	_generate_search_waypoints()
-	var used_prediction := predicted_center != center_position
-	var msg := "SEARCHING started: center=%s, radius=%.0f, waypoints=%d%s" % [
-		_search_center, _search_radius, _search_waypoints.size(),
-		" (predicted from %s)" % center_position if used_prediction else ""
-	]
-	_log_debug(msg); _log_to_file(msg)
 
-## Issue #369: Predict where player might have moved based on time elapsed and environment.
-## Each enemy generates their own prediction with randomness for individual behavior.
+	# Initialize search state
+	_search_state_timer = 0.0
+	_search_scan_timer = 0.0
+	_search_moving_to_waypoint = true
+	_search_stuck_timer = 0.0
+	_search_last_progress_position = global_position
+
+	# Issue #369: Start or join coordinated search via SearchCoordinator
+	var coordinator: Node = get_node_or_null("/root/SearchCoordinator")
+	if coordinator:
+		_coordinated_search_iteration = coordinator.start_coordinated_search(predicted_center, self)
+		_log_to_file("SEARCHING started: coordinated iter=%d, center=%s (predicted from %s)" % [
+			_coordinated_search_iteration, predicted_center, center_position
+		])
+	else:
+		_coordinated_search_iteration = -1
+		_log_to_file("SEARCHING started: center=%s (no coordinator, fallback mode)" % predicted_center)
+
+## Issue #369: Predict where player might have moved based on time and environment.
 func _predict_player_position(last_known_pos: Vector2) -> Vector2:
-	# Check if we should use prediction (based on probability threshold)
-	if randf() > PREDICTION_MIN_PROBABILITY:
-		return last_known_pos  # Skip prediction sometimes for variety
-
-	# Get time since we last saw the player
-	var time_elapsed := 0.0
-	if _memory != null:
-		time_elapsed = _memory.get_time_since_update()
-
-	# If we just saw the player, use their last known position
-	if time_elapsed < 0.5:
-		return last_known_pos
-
-	# Calculate maximum distance player could have traveled
-	var max_distance := PLAYER_SPEED_ESTIMATE * time_elapsed
-	max_distance = minf(max_distance, PREDICTION_CHECK_DISTANCE)  # Cap at check distance
-
-	# Collect prediction candidates with weights
+	if randf() > PREDICTION_MIN_PROBABILITY: return last_known_pos
+	var time_elapsed := _memory.get_time_since_update() if _memory else 0.0
+	if time_elapsed < 0.5: return last_known_pos
+	var max_dist := minf(PLAYER_SPEED_ESTIMATE * time_elapsed, PREDICTION_CHECK_DISTANCE)
 	var candidates: Array[Dictionary] = []
 	var total_weight := 0.0
-
-	# 1. Find nearby cover positions (player likely moved to cover)
-	var covers := _find_prediction_covers(last_known_pos, max_distance)
-	for cover_pos in covers:
-		var weight := PREDICTION_COVER_WEIGHT + randf() * 0.1  # Add slight randomness
-		candidates.append({"pos": cover_pos, "weight": weight, "type": "cover"})
-		total_weight += weight
-
-	# 2. Add flank positions relative to this enemy (player might flank)
-	var flanks := _get_prediction_flanks(last_known_pos, max_distance)
-	for flank_pos in flanks:
-		var weight := PREDICTION_FLANK_WEIGHT + randf() * 0.1
-		candidates.append({"pos": flank_pos, "weight": weight, "type": "flank"})
-		total_weight += weight
-
-	# 3. Add random offset from last known position (unpredictable movement)
-	var random_angle := randf() * TAU
-	var random_distance := randf() * max_distance * 0.5  # Up to half max distance
-	var random_pos := last_known_pos + Vector2.from_angle(random_angle) * random_distance
-	if _is_waypoint_navigable(random_pos):
-		var weight := PREDICTION_RANDOM_WEIGHT
-		candidates.append({"pos": random_pos, "weight": weight, "type": "random"})
-		total_weight += weight
-
-	# 4. Add last known position as fallback
+	for cover_pos in _find_prediction_covers(last_known_pos, max_dist):
+		var w := PREDICTION_COVER_WEIGHT + randf() * 0.1
+		candidates.append({"pos": cover_pos, "weight": w, "type": "cover"})
+		total_weight += w
+	for flank_pos in _get_prediction_flanks(last_known_pos, max_dist):
+		var w := PREDICTION_FLANK_WEIGHT + randf() * 0.1
+		candidates.append({"pos": flank_pos, "weight": w, "type": "flank"})
+		total_weight += w
+	var rand_pos := last_known_pos + Vector2.from_angle(randf() * TAU) * randf() * max_dist * 0.5
+	if _is_waypoint_navigable(rand_pos):
+		candidates.append({"pos": rand_pos, "weight": PREDICTION_RANDOM_WEIGHT, "type": "random"})
+		total_weight += PREDICTION_RANDOM_WEIGHT
 	candidates.append({"pos": last_known_pos, "weight": 0.1, "type": "last_known"})
 	total_weight += 0.1
-
-	# If no good candidates, use last known position
-	if candidates.is_empty():
-		return last_known_pos
-
-	# Weighted random selection - each enemy gets different result due to randf()
+	if candidates.is_empty(): return last_known_pos
 	var roll := randf() * total_weight
 	var cumulative := 0.0
-	for candidate in candidates:
-		cumulative += candidate.weight
+	for c in candidates:
+		cumulative += c.weight
 		if roll <= cumulative:
-			_log_to_file("Prediction selected: %s at %s (time_elapsed=%.1fs, max_dist=%.0f)" % [
-				candidate.type, candidate.pos, time_elapsed, max_distance
-			])
-			return candidate.pos
-
-	# Fallback to last known
+			_log_to_file("Prediction: %s at %s (t=%.1fs)" % [c.type, c.pos, time_elapsed])
+			return c.pos
 	return last_known_pos
 
 ## Issue #369: Find cover positions near a point for prediction.
-func _find_prediction_covers(center: Vector2, max_distance: float) -> Array[Vector2]:
+func _find_prediction_covers(center: Vector2, max_dist: float) -> Array[Vector2]:
 	var covers: Array[Vector2] = []
 	var nav_map := get_world_2d().navigation_map
-
-	# Use cover raycasts to find nearby obstacles that could provide cover
 	for i in range(COVER_CHECK_COUNT):
-		var angle := (float(i) / COVER_CHECK_COUNT) * TAU
-		var direction := Vector2.from_angle(angle)
-
 		var raycast := _cover_raycasts[i]
-		raycast.global_position = center  # Temporarily move raycast to center
-		raycast.target_position = direction * minf(max_distance, COVER_CHECK_DISTANCE)
+		raycast.global_position = center
+		raycast.target_position = Vector2.from_angle(float(i) / COVER_CHECK_COUNT * TAU) * minf(max_dist, COVER_CHECK_DISTANCE)
 		raycast.force_raycast_update()
-
 		if raycast.is_colliding():
-			var collision_point := raycast.get_collision_point()
-			var collision_normal := raycast.get_collision_normal()
-			var cover_pos := collision_point + collision_normal * 35.0
-
-			# Check if cover is within reachable distance and navigable
-			if center.distance_to(cover_pos) <= max_distance:
+			var cover_pos := raycast.get_collision_point() + raycast.get_collision_normal() * 35.0
+			if center.distance_to(cover_pos) <= max_dist:
 				var closest := NavigationServer2D.map_get_closest_point(nav_map, cover_pos)
-				if cover_pos.distance_to(closest) < 50.0:
-					covers.append(cover_pos)
-
-		# Reset raycast position
+				if cover_pos.distance_to(closest) < 50.0: covers.append(cover_pos)
 		raycast.global_position = global_position
-
 	return covers
 
 ## Issue #369: Calculate flank positions for prediction.
-func _get_prediction_flanks(center: Vector2, max_distance: float) -> Array[Vector2]:
+func _get_prediction_flanks(center: Vector2, max_dist: float) -> Array[Vector2]:
 	var flanks: Array[Vector2] = []
-	var my_pos := global_position
-
-	# Calculate direction from enemy to center
-	var to_center := (center - my_pos).normalized()
-
-	# Left and right flank positions (perpendicular to line of sight)
-	var left_dir := to_center.rotated(-PI / 2)
-	var right_dir := to_center.rotated(PI / 2)
-
-	var flank_distance := minf(max_distance * 0.7, 200.0)  # Reasonable flank distance
-	var left_flank := center + left_dir * flank_distance
-	var right_flank := center + right_dir * flank_distance
-
-	# Check if flanks are navigable
-	if _is_waypoint_navigable(left_flank):
-		flanks.append(left_flank)
-	if _is_waypoint_navigable(right_flank):
-		flanks.append(right_flank)
-
+	var to_center := (center - global_position).normalized()
+	var flank_dist := minf(max_dist * 0.7, 200.0)
+	var left := center + to_center.rotated(-PI / 2) * flank_dist
+	var right := center + to_center.rotated(PI / 2) * flank_dist
+	if _is_waypoint_navigable(left): flanks.append(left)
+	if _is_waypoint_navigable(right): flanks.append(right)
 	return flanks
 
 ## Transition to RETREATING state with appropriate retreat mode.
@@ -2890,120 +2813,46 @@ func _transition_to_retreating() -> void:
 	_find_cover_position()
 
 ## Check if the enemy is visible from the player's position.
-## Uses raycasting from player to enemy to determine if there are obstacles blocking line of sight.
-## This is the inverse of _can_see_player - it checks if the PLAYER can see the ENEMY.
-## Checks multiple points on the enemy body (center and corners) to account for enemy size.
+## Check if PLAYER can see the ENEMY (inverse of _can_see_player). Checks multiple body points.
 func _is_visible_from_player() -> bool:
-	if _player == null:
-		return false
-
-	# Check visibility to multiple points on the enemy body
-	# This accounts for the enemy's size - corners can stick out from cover
-	var check_points := _get_enemy_check_points(global_position)
-
-	for point in check_points:
-		if _is_point_visible_from_player(point):
-			return true
-
+	if _player == null: return false
+	for point in _get_enemy_check_points(global_position):
+		if _is_point_visible_from_player(point): return true
 	return false
 
-## Get multiple check points on the enemy body for visibility testing.
-## Returns center and 4 corner points offset by the enemy's radius.
+## Get center + 4 corner check points on enemy body (ENEMY_RADIUS=22, diagonal offset ~15.5).
 func _get_enemy_check_points(center: Vector2) -> Array[Vector2]:
-	# Enemy collision radius is 24, sprite is 48x48
-	# Use a slightly smaller radius to avoid edge cases
-	const ENEMY_RADIUS: float = 22.0
+	const D := 15.554  # 22.0 * 0.707 (cos45)
+	return [center, center + Vector2(D, D), center + Vector2(-D, D), center + Vector2(D, -D), center + Vector2(-D, -D)]
 
-	var points: Array[Vector2] = []
-	points.append(center)  # Center point
-
-	# 4 corner points (diagonal directions)
-	var diagonal_offset := ENEMY_RADIUS * 0.707  # cos(45°) ≈ 0.707
-	points.append(center + Vector2(diagonal_offset, diagonal_offset))
-	points.append(center + Vector2(-diagonal_offset, diagonal_offset))
-	points.append(center + Vector2(diagonal_offset, -diagonal_offset))
-	points.append(center + Vector2(-diagonal_offset, -diagonal_offset))
-
-	return points
-
-## Check if a single point is visible from the player's position.
+## Check if a single point is visible from the player's position via raycast.
 func _is_point_visible_from_player(point: Vector2) -> bool:
-	if _player == null:
-		return false
-
+	if _player == null: return false
 	var player_pos := _player.global_position
-	var distance := player_pos.distance_to(point)
-
-	# Use direct space state to check line of sight from player to point
-	var space_state := get_world_2d().direct_space_state
 	var query := PhysicsRayQueryParameters2D.new()
-	query.from = player_pos
-	query.to = point
-	query.collision_mask = 4  # Only check obstacles (layer 3)
-	query.exclude = []
+	query.from = player_pos; query.to = point; query.collision_mask = 4; query.exclude = []
+	var result := get_world_2d().direct_space_state.intersect_ray(query)
+	if result.is_empty(): return true
+	return player_pos.distance_to(result["position"]) >= player_pos.distance_to(point) - 10.0
 
-	var result := space_state.intersect_ray(query)
-
-	if result.is_empty():
-		# No obstacle between player and point - point is visible
-		return true
-	else:
-		# Check if we hit an obstacle before reaching the point
-		var hit_position: Vector2 = result["position"]
-		var distance_to_hit := player_pos.distance_to(hit_position)
-
-		# If we hit something closer than the point, the point is hidden
-		if distance_to_hit < distance - 10.0:  # 10 pixel tolerance
-			return false
-		else:
-			return true
-
-## Check if a specific position would make the enemy visible from the player's position.
-## Checks all enemy body points (center and corners) to account for enemy size.
-## Used to validate cover positions before moving to them.
+## Check if enemy at given position would be visible from player. Used for cover validation.
 func _is_position_visible_from_player(pos: Vector2) -> bool:
-	if _player == null:
-		return true  # Assume visible if no player
-
-	# Check visibility for all enemy body points at the given position
-	var check_points := _get_enemy_check_points(pos)
-
-	for point in check_points:
-		if _is_point_visible_from_player(point):
-			return true
-
+	if _player == null: return true
+	for point in _get_enemy_check_points(pos):
+		if _is_point_visible_from_player(point): return true
 	return false
 
-## Check if a target position is visible from the enemy's perspective.
-## Uses raycast to verify there are no obstacles between enemy and the target position.
-## This is used to validate lead prediction targets - enemies should only aim at
-## positions they can actually see.
+## Check if target position is visible from enemy. Used for lead prediction validation.
 func _is_position_visible_to_enemy(target_pos: Vector2) -> bool:
 	var distance := global_position.distance_to(target_pos)
-
-	# Use direct space state to check line of sight from enemy to target
-	var space_state := get_world_2d().direct_space_state
 	var query := PhysicsRayQueryParameters2D.new()
-	query.from = global_position
-	query.to = target_pos
-	query.collision_mask = 4  # Only check obstacles (layer 3)
-	query.exclude = [get_rid()]  # Exclude self
-
-	var result := space_state.intersect_ray(query)
-
-	if result.is_empty():
-		# No obstacle between enemy and target - position is visible
-		return true
-
-	# Check if we hit an obstacle before reaching the target
-	var hit_position: Vector2 = result["position"]
-	var distance_to_hit := global_position.distance_to(hit_position)
-
-	if distance_to_hit < distance - 10.0:  # 10 pixel tolerance
-		# Hit obstacle before target - position is NOT visible
-		_log_debug("Position %s blocked by obstacle at distance %.1f (target at %.1f)" % [target_pos, distance_to_hit, distance])
+	query.from = global_position; query.to = target_pos; query.collision_mask = 4; query.exclude = [get_rid()]
+	var result := get_world_2d().direct_space_state.intersect_ray(query)
+	if result.is_empty(): return true
+	var dist_to_hit := global_position.distance_to(result["position"])
+	if dist_to_hit < distance - 10.0:
+		_log_debug("Position %s blocked at %.1f (target at %.1f)" % [target_pos, dist_to_hit, distance])
 		return false
-
 	return true
 
 ## Get multiple check points on the player's body for visibility testing.

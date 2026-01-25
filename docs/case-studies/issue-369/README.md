@@ -520,18 +520,125 @@ func _transition_to_searching(center_position: Vector2) -> void:
 
 ---
 
+## Update: Coordinated Search System (PR #372 v2)
+
+Based on user feedback, a second major iteration was implemented to address the issue of enemies walking in circles and slowly reaching new zones.
+
+### User Feedback (2026-01-25):
+> "сейчас враги очень много ходят по кругу и медленно добираются до новых зон. сделай чтоб маршрут поиска на итерацию строился в начале итерации. маршрут должен строиться для всех врагов, участвующих в поиске так, чтобы за минимальные передвижения осмотреть всю зону, при этом не ходить 2 раза по одному месту и чтоб один враг не проверял то, что уже проверял другой."
+
+Translation: "Currently enemies walk in circles a lot and slowly reach new zones. Make the search route for the iteration be built at the beginning of the iteration. The route should be built for all enemies participating in the search so that they cover the entire zone with minimal movement, without visiting the same place twice and without one enemy checking what another has already checked."
+
+### Solution: SearchCoordinator Autoload
+
+A new `SearchCoordinator` autoload was created to manage coordinated search operations across all enemies.
+
+#### Key Features:
+
+1. **Voronoi-like Area Partitioning:**
+   - Divides the search area into sectors based on enemy count
+   - Each enemy is assigned a unique angular sector (360° / N enemies)
+   - Prevents overlap between enemy search areas
+   - Reference: [Voronoi diagram - Wikipedia](https://en.wikipedia.org/wiki/Voronoi_diagram)
+
+2. **Pre-planned Route Generation:**
+   - Routes are generated at the start of each search iteration
+   - All waypoints are assigned upfront, not dynamically
+   - Enemies follow assigned routes efficiently
+
+3. **Global Zone Tracking:**
+   - Shared dictionary of visited zones (`_globally_visited_zones`)
+   - Any zone visited by one enemy is marked for all
+   - Prevents redundant searches
+
+4. **Coordinated Search Functions:**
+   ```gdscript
+   # SearchCoordinator API
+   func start_coordinated_search(center: Vector2, requesting_enemy: Node) -> int
+   func get_next_waypoint(enemy: Node) -> Vector2
+   func advance_waypoint(enemy: Node) -> bool
+   func is_route_complete(enemy: Node) -> bool
+   func expand_search() -> bool
+   func mark_zone_visited(pos: Vector2) -> void
+   ```
+
+5. **Sector-based Waypoint Distribution:**
+   ```gdscript
+   # Each enemy gets waypoints within their assigned sector
+   var sector_angle := TAU / float(enemy_count)
+   var sector_start := i * sector_angle
+   var sector_end := (i + 1) * sector_angle
+   # Generate waypoints in spiral pattern within sector
+   ```
+
+### Files Added:
+
+- `scripts/autoload/search_coordinator.gd` - New coordinated search manager
+- `project.godot` - Added SearchCoordinator to autoloads
+
+### Files Modified:
+
+- `scripts/objects/enemy.gd` - Updated to use SearchCoordinator:
+  - Removed individual waypoint generation
+  - Added `is_searching()` and `should_join_search()` helper methods
+  - Modified `_transition_to_searching()` to register with coordinator
+  - Modified `_process_searching_state()` to use coordinated waypoints
+  - Added `_remove_from_coordinated_search()` cleanup method
+  - Added `_process_searching_state_fallback()` for when coordinator unavailable
+  - Reduced file size from 5141 to 4990 lines (below 5000 limit)
+
+### Algorithm: Voronoi-like Sector Partitioning
+
+```
+1. When first enemy starts search:
+   - Create new search iteration with center position
+   - Find all nearby enemies that should join
+
+2. Divide search area into sectors:
+   - N enemies → 360°/N sectors per enemy
+   - Enemy 0: 0° to 72° (if 5 enemies)
+   - Enemy 1: 72° to 144°
+   - etc.
+
+3. Generate waypoints per sector:
+   - Start from sector center
+   - Spiral outward within sector bounds
+   - Skip globally visited zones
+   - Sort by distance for efficient traversal
+
+4. During search:
+   - Each enemy follows their assigned waypoints
+   - Zones marked visited globally when completed
+   - On route completion, expand radius or start new search
+```
+
+### Research Sources:
+
+- [Voronoi diagram - Wikipedia](https://en.wikipedia.org/wiki/Voronoi_diagram) - Area partitioning
+- [Dynamic Guard Patrol in Stealth Games](https://ojs.aaai.org/index.php/AIIDE/article/download/7425/7308/10903) - AAAI AIIDE
+- [Cooperative Target Capture using Voronoi Region Shaping](https://arxiv.org/html/2406.19181) - Multi-agent coordination
+- [Weighted Buffered Voronoi Cells for Distributed Semi-Cooperative Behavior](https://sites.bu.edu/pierson/files/2021/05/pierson2020icra.pdf) - ICRA 2020
+
+---
+
 ## Conclusion
 
-Issue #369 requests a significant improvement to the enemy AI search behavior. The current implementation uses a fixed expanding spiral pattern from the last known position. The requested feature would make enemies more intelligent by:
+Issue #369 has been addressed through two major iterations:
 
-1. Predicting where the player might have moved
-2. Having each enemy make independent predictions
-3. Searching around predicted positions rather than just the last known position
-
-**Implementation Status:** Solution 1 (Simple Position Prediction) has been implemented with the following key features:
+### Iteration 1: Individual Prediction
 - Increased search expansion speed (75 → 100 pixels per expansion)
 - Individual prediction per enemy based on covers, flanks, and random variance
 - Logging for debugging prediction selections
-- 30% base probability to use prediction (configurable via `PREDICTION_MIN_PROBABILITY`)
 
-This can later be enhanced with the full hypothesis system (Solution 2) as described in Issue #298.
+### Iteration 2: Coordinated Search (Current)
+- New `SearchCoordinator` autoload for multi-enemy coordination
+- Voronoi-like area partitioning prevents search overlap
+- Pre-planned routes at iteration start for efficient coverage
+- Global zone tracking ensures no area is searched twice
+- Reduced enemy.gd line count to comply with CI limits
+
+The coordinated search system ensures that when multiple enemies are searching for the player:
+1. Each enemy is assigned a unique sector of the search area
+2. Routes are planned upfront for minimal movement
+3. No enemy visits areas already checked by others
+4. The search is completed faster with better coverage
