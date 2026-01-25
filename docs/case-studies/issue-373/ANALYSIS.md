@@ -221,6 +221,78 @@ else:
 
 ---
 
+## Update: Second Fix Attempt (2026-01-25)
+
+### What the First Fix Did (Commit 0ea96d1)
+
+The first fix modified `_check_player_visibility()` to skip FOV checks in combat states:
+```gdscript
+var in_combat_state := _current_state in [AIState.COMBAT, AIState.PURSUING, ...]
+if not in_combat_state and not _is_position_in_fov(_player.global_position):
+    return  # Only check FOV for initial detection
+```
+
+**Result:** Issue persisted - enemies still turning away.
+
+### Why the First Fix Was Insufficient
+
+The first fix addressed the **visibility detection** problem but NOT the **rotation control** problem. Even with FOV check skipped, the model was still being rotated away from the player in `_update_enemy_model_rotation()`:
+
+```gdscript
+# Original code (buggy)
+if _player != null and _can_see_player:
+    target_angle = player.angle()
+elif velocity.length_squared() > 1.0:
+    target_angle = velocity.angle()  # <-- Falls back to velocity when _can_see_player flickers
+```
+
+When `_can_see_player` becomes false (due to raycast flicker at wall edges), the model rotates toward velocity direction, causing the visual "turn away" behavior.
+
+### New Log Files Analyzed (Session 2)
+
+- `game_log_20260125_092258.txt` (1901 lines)
+- `game_log_20260125_092345.txt` (1177 lines)
+
+Key observations from logs:
+1. COMBAT->PURSUING transitions happen without "Lost sight of player" message
+2. Transitions are triggered by vulnerability pursuit code, not visibility loss
+3. Corner check angles show model facing various directions during combat
+
+### Root Cause (Refined)
+
+The issue has TWO components:
+1. **Visibility detection** - Fixed by skipping FOV in combat states (first fix)
+2. **Rotation control** - The model stops facing the player when `_can_see_player` flickers
+
+### Second Fix Applied
+
+Modified `_update_enemy_model_rotation()` to use `_get_target_position()` in combat states:
+
+```gdscript
+func _update_enemy_model_rotation() -> void:
+    var in_combat_state := _current_state in [AIState.COMBAT, AIState.PURSUING, ...]
+
+    if in_combat_state:
+        # Always face target position (player > memory > last known)
+        var target_pos := _get_target_position()
+        if target_pos != global_position:
+            target_angle = (target_pos - global_position).angle()
+            has_target = true
+    elif _player != null and _can_see_player:
+        # Non-combat: only face when visible
+        target_angle = (_player.global_position - global_position).angle()
+        has_target = true
+```
+
+### Why This Works
+
+1. `_get_target_position()` returns: visible player > memory position > last known position
+2. In combat states, enemy ALWAYS has a target to face (no velocity fallback)
+3. Even if raycast flickers, enemy maintains facing toward last known player position
+4. Combined with first fix: enemy doesn't "turn away" during combat
+
+---
+
 ## References
 
 - Issue #347: Smooth rotation for visual polish

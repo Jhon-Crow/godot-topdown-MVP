@@ -1029,21 +1029,37 @@ func _update_goap_state() -> void:
 		_goap_world_state["confidence_low"] = _memory.is_low_confidence()
 
 ## Updates model rotation smoothly (#347). Priority: player > corner check > velocity > idle scan.
+## Issue #373 fix: In combat states, ALWAYS face player/target position to prevent turn-away.
 func _update_enemy_model_rotation() -> void:
 	if not _enemy_model:
 		return
 	var target_angle: float
 	var has_target := false
-	if _player != null and _can_see_player:
+
+	# Issue #373: In combat states, always face the target position (player or last known)
+	# This prevents enemies from "turning away" when _can_see_player flickers due to
+	# raycast edge cases. The enemy maintains facing direction based on known target.
+	var in_combat_state := _current_state in [AIState.COMBAT, AIState.PURSUING, AIState.FLANKING, AIState.ASSAULT, AIState.RETREATING, AIState.SEEKING_COVER, AIState.IN_COVER, AIState.SUPPRESSED, AIState.SEARCHING]
+
+	if in_combat_state:
+		# Use _get_target_position() which returns: visible player > memory > last known
+		var target_pos := _get_target_position()
+		if target_pos != global_position:  # Has a valid target (not staying in place)
+			target_angle = (target_pos - global_position).normalized().angle()
+			has_target = true
+	elif _player != null and _can_see_player:
+		# Non-combat state: only face player when actually visible (FOV-based)
 		target_angle = (_player.global_position - global_position).normalized().angle()
 		has_target = true
-	elif _corner_check_timer > 0:
+
+	# Fallback priorities if no target yet
+	if not has_target and _corner_check_timer > 0:
 		target_angle = _corner_check_angle  # Corner check: smooth rotation (Issue #347)
 		has_target = true
-	elif velocity.length_squared() > 1.0:
+	elif not has_target and velocity.length_squared() > 1.0:
 		target_angle = velocity.normalized().angle()
 		has_target = true
-	elif _current_state == AIState.IDLE and _idle_scan_targets.size() > 0:
+	elif not has_target and _current_state == AIState.IDLE and _idle_scan_targets.size() > 0:
 		target_angle = _idle_scan_targets[_idle_scan_target_index]
 		has_target = true
 	if not has_target:
