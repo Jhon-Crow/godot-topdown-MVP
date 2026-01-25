@@ -60,6 +60,10 @@ var _file_logger: Node = null
 ## Track the last known scene to detect scene changes.
 var _last_scene: Node = null
 
+## Whether the shader warmup has been completed.
+## Warmup pre-compiles GPU shaders to prevent first-shot lag (Issue #343).
+var _warmup_completed: bool = false
+
 
 func _ready() -> void:
 	# CRITICAL: First line diagnostic - if this doesn't appear, script failed to load
@@ -79,6 +83,10 @@ func _ready() -> void:
 	_last_scene = get_tree().current_scene
 
 	_log_info("ImpactEffectsManager ready - FULL VERSION with blood effects enabled")
+
+	# Perform shader warmup to prevent first-shot lag (Issue #343)
+	# This pre-compiles GPU shaders for particle effects during loading
+	_warmup_particle_shaders()
 
 
 ## Logs to FileLogger and always prints to console for diagnostics.
@@ -709,3 +717,157 @@ func _on_tree_changed() -> void:
 		_bullet_holes.clear()
 		_penetration_holes.clear()
 		_last_scene = current_scene
+
+
+## Performs warmup to pre-compile all particle effect shaders.
+## This prevents the noticeable freeze on first shot when hitting enemies (Issue #343).
+##
+## The freeze occurs because GPUParticles2D shaders are compiled just-in-time by the GPU
+## driver the first time they're used. This warmup ensures all shaders are compiled during
+## level loading, before gameplay begins.
+##
+## IMPORTANT: Shader compilation only happens when particles are ACTUALLY RENDERED on screen.
+## Simply setting emitting=true with off-screen positions (-10000, -10000) doesn't work because
+## the GPU may cull particles outside the viewport frustum before compiling shaders.
+##
+## Solution: We position particles at the camera center (within viewport) but make them
+## nearly invisible using modulate alpha. This forces the GPU to compile shaders while
+## keeping the warmup visually imperceptible to players.
+##
+## References:
+## - https://github.com/godotengine/godot/issues/34627
+## - https://github.com/godotengine/godot/issues/87891
+## - https://github.com/godotengine/godot/issues/76241
+## - https://forum.godotengine.org/t/particles-huge-lag-spike-on-first-instance/45839
+## - https://forum.godotengine.org/t/gpuparticles2d-is-hanginging-the-first-time-emitting-is-set-true/84587
+func _warmup_particle_shaders() -> void:
+	if _warmup_completed:
+		return
+
+	_log_info("Starting particle shader warmup (Issue #343 fix)...")
+	var start_time := Time.get_ticks_msec()
+
+	# Track how many effects we warmed up
+	var warmed_up_count := 0
+	var warmup_nodes: Array[Node] = []
+
+	# Get viewport center for positioning (particles must be on-screen to compile shaders)
+	# Default to reasonable center position if viewport not available yet
+	var warmup_pos := Vector2(400, 300)
+	var viewport := get_viewport()
+	if viewport:
+		var viewport_size := viewport.get_visible_rect().size
+		warmup_pos = viewport_size / 2.0
+
+	# Get scene root for adding effects
+	var scene_root := get_tree().current_scene
+
+	# --- PART 1: Warmup GPU particle effects ---
+	# Warmup each effect type by instantiating, emitting, and letting GPU compile shaders
+	var particle_effects_to_warmup: Array[PackedScene] = [
+		_dust_effect_scene,
+		_blood_effect_scene,
+		_sparks_effect_scene
+	]
+
+	var particle_effect_names: Array[String] = ["DustEffect", "BloodEffect", "SparksEffect"]
+
+	for i in range(particle_effects_to_warmup.size()):
+		var scene := particle_effects_to_warmup[i]
+		var effect_name := particle_effect_names[i]
+
+		if scene == null:
+			if _debug_effects:
+				print("[ImpactEffectsManager] Warmup: %s scene is null, skipping" % effect_name)
+			continue
+
+		var effect: GPUParticles2D = scene.instantiate() as GPUParticles2D
+		if effect == null:
+			if _debug_effects:
+				print("[ImpactEffectsManager] Warmup: Failed to instantiate %s" % effect_name)
+			continue
+
+		# Position within viewport (on-screen) so GPU actually compiles shaders
+		# Particles outside the frustum may be culled before shader compilation
+		effect.global_position = warmup_pos
+
+		# Make particles nearly invisible but still rendered (alpha must be > 0)
+		# This forces GPU to compile shaders while keeping warmup imperceptible
+		effect.modulate = Color(1, 1, 1, 0.01)
+
+		# Ensure the effect is rendered at the lowest z-index (behind everything)
+		effect.z_index = -100
+
+		# Add to the current scene so it's rendered in the proper context
+		# (Adding to autoload may have different rendering behavior)
+		if scene_root:
+			scene_root.add_child(effect)
+		else:
+			# Fallback to autoload if no scene loaded yet
+			add_child(effect)
+
+		# Start emitting to trigger shader compilation
+		effect.emitting = true
+
+		if _debug_effects:
+			print("[ImpactEffectsManager] Warmup: %s emitting at %s (alpha=0.01)" % [effect_name, warmup_pos])
+
+		warmed_up_count += 1
+		warmup_nodes.append(effect)
+
+	# --- PART 2: Warmup blood decal (Sprite2D with GradientTexture2D) ---
+	# Blood decals also use GradientTexture2D which may trigger shader compilation
+	if _blood_decal_scene:
+		var decal: Node2D = _blood_decal_scene.instantiate() as Node2D
+		if decal:
+			decal.global_position = warmup_pos
+			# Make nearly invisible but still rendered
+			decal.modulate = Color(1, 1, 1, 0.01)
+			decal.z_index = -100
+
+			if scene_root:
+				scene_root.add_child(decal)
+			else:
+				add_child(decal)
+
+			if _debug_effects:
+				print("[ImpactEffectsManager] Warmup: BloodDecal at %s (alpha=0.01)" % warmup_pos)
+
+			warmed_up_count += 1
+			warmup_nodes.append(decal)
+
+	# --- PART 3: Warmup bullet hole if available ---
+	if _bullet_hole_scene:
+		var hole: Node2D = _bullet_hole_scene.instantiate() as Node2D
+		if hole:
+			hole.global_position = warmup_pos
+			hole.modulate = Color(1, 1, 1, 0.01)
+			hole.z_index = -100
+
+			if scene_root:
+				scene_root.add_child(hole)
+			else:
+				add_child(hole)
+
+			if _debug_effects:
+				print("[ImpactEffectsManager] Warmup: BulletHole at %s (alpha=0.01)" % warmup_pos)
+
+			warmed_up_count += 1
+			warmup_nodes.append(hole)
+
+	# Wait multiple frames to ensure GPU fully processes and compiles all shaders
+	# One frame may not be enough for complex particle systems
+	if warmed_up_count > 0:
+		# Wait 3 frames to ensure shader compilation completes
+		await get_tree().process_frame
+		await get_tree().process_frame
+		await get_tree().process_frame
+
+		# Clean up all warmup effects
+		for node in warmup_nodes:
+			if is_instance_valid(node):
+				node.queue_free()
+
+	var elapsed := Time.get_ticks_msec() - start_time
+	_warmup_completed = true
+	_log_info("Particle shader warmup complete: %d effects warmed up in %d ms" % [warmed_up_count, elapsed])

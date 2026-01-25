@@ -65,6 +65,10 @@ func _ready() -> void:
 	_saturation_rect.visible = false
 	_effects_layer.add_child(_saturation_rect)
 
+	# Perform shader warmup to prevent first-shot lag (Issue #343)
+	# This pre-compiles the saturation shader during loading
+	_warmup_saturation_shader()
+
 
 func _process(delta: float) -> void:
 	# Use unscaled delta for timers so they run correctly regardless of time_scale
@@ -144,3 +148,35 @@ func _on_tree_changed() -> void:
 	if current_scene != null and current_scene != _previous_scene_root:
 		_previous_scene_root = current_scene
 		reset_effects()
+
+
+## Performs warmup to pre-compile the saturation shader.
+## This prevents a shader compilation stutter on first hit (Issue #343).
+##
+## The saturation shader uses hint_screen_texture which requires specific
+## framebuffer setup. By briefly enabling and rendering the shader during
+## loading, we force the GPU to compile it before gameplay begins.
+func _warmup_saturation_shader() -> void:
+	if _saturation_rect == null or _saturation_rect.material == null:
+		return
+
+	print("[HitEffectsManager] Starting saturation shader warmup (Issue #343 fix)...")
+	var start_time := Time.get_ticks_msec()
+
+	# Briefly enable the saturation rect with zero boost (invisible effect)
+	# This forces the GPU to compile the shader
+	var material := _saturation_rect.material as ShaderMaterial
+	if material:
+		# Set boost to 0 so there's no visible effect during warmup
+		material.set_shader_parameter("saturation_boost", 0.0)
+
+	_saturation_rect.visible = true
+
+	# Wait one frame to ensure GPU processes and compiles the shader
+	await get_tree().process_frame
+
+	# Hide the overlay again
+	_saturation_rect.visible = false
+
+	var elapsed := Time.get_ticks_msec() - start_time
+	print("[HitEffectsManager] Saturation shader warmup complete in %d ms" % elapsed)

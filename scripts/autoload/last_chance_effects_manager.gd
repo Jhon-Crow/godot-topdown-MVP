@@ -131,6 +131,9 @@ func _ready() -> void:
 	_effect_rect.visible = false
 	_effects_layer.add_child(_effect_rect)
 
+	# Perform shader warmup to prevent first-use lag (Issue #343)
+	_warmup_shader()
+
 	_log("LastChanceEffectsManager ready - Configuration:")
 	_log("  Freeze duration: %.1f real seconds" % FREEZE_DURATION_REAL_SECONDS)
 	_log("  Sepia intensity: %.2f" % SEPIA_INTENSITY)
@@ -1046,6 +1049,34 @@ func _on_tree_changed() -> void:
 	if current_scene != null and current_scene != _previous_scene_root:
 		_previous_scene_root = current_scene
 		reset_effects()
+
+
+## Performs warmup to pre-compile the last chance shader.
+## This prevents a shader compilation stutter on first use (Issue #343).
+func _warmup_shader() -> void:
+	if _effect_rect == null or _effect_rect.material == null:
+		return
+
+	_log("Starting shader warmup (Issue #343 fix)...")
+	var start_time := Time.get_ticks_msec()
+
+	# Briefly enable the effect rect with zero visual effect
+	var material := _effect_rect.material as ShaderMaterial
+	if material:
+		material.set_shader_parameter("sepia_intensity", 0.0)
+		material.set_shader_parameter("brightness", 1.0)
+		material.set_shader_parameter("ripple_strength", 0.0)
+
+	_effect_rect.visible = true
+
+	# Wait one frame to ensure GPU processes and compiles the shader
+	await get_tree().process_frame
+
+	# Hide the overlay again
+	_effect_rect.visible = false
+
+	var elapsed := Time.get_ticks_msec() - start_time
+	_log("Shader warmup complete in %d ms" % elapsed)
 
 
 ## Returns whether the last chance effect is currently active.

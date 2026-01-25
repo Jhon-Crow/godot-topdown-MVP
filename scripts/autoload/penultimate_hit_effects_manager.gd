@@ -91,6 +91,9 @@ func _ready() -> void:
 	_saturation_rect.visible = false
 	_effects_layer.add_child(_saturation_rect)
 
+	# Perform shader warmup to prevent first-use lag (Issue #343)
+	_warmup_shader()
+
 	_log("PenultimateHitEffectsManager ready - Configuration:")
 	_log("  Time scale: %.2f (%.0fx slowdown)" % [PENULTIMATE_TIME_SCALE, 1.0 / PENULTIMATE_TIME_SCALE])
 	_log("  Saturation boost: %.1f (%.1fx)" % [SCREEN_SATURATION_BOOST, 1.0 + SCREEN_SATURATION_BOOST])
@@ -402,3 +405,30 @@ func _on_tree_changed() -> void:
 	if current_scene != null and current_scene != _previous_scene_root:
 		_previous_scene_root = current_scene
 		reset_effects()
+
+
+## Performs warmup to pre-compile the saturation shader.
+## This prevents a shader compilation stutter on first use (Issue #343).
+func _warmup_shader() -> void:
+	if _saturation_rect == null or _saturation_rect.material == null:
+		return
+
+	_log("Starting shader warmup (Issue #343 fix)...")
+	var start_time := Time.get_ticks_msec()
+
+	# Briefly enable the saturation rect with zero effect (invisible)
+	var material := _saturation_rect.material as ShaderMaterial
+	if material:
+		material.set_shader_parameter("saturation_boost", 0.0)
+		material.set_shader_parameter("contrast_boost", 0.0)
+
+	_saturation_rect.visible = true
+
+	# Wait one frame to ensure GPU processes and compiles the shader
+	await get_tree().process_frame
+
+	# Hide the overlay again
+	_saturation_rect.visible = false
+
+	var elapsed := Time.get_ticks_msec() - start_time
+	_log("Shader warmup complete in %d ms" % elapsed)
