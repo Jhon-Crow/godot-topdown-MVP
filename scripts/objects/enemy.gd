@@ -4808,94 +4808,38 @@ func _get_grenade_target_position() -> Vector2:
 	# No valid target
 	return Vector2.ZERO
 
-## Get the blast radius of the current grenade type.
-## Returns the effect radius from the grenade scene, or a default value.
-## Per issue #375: Used to calculate safe throw distance.
+## Get grenade blast radius (Issue #375). Instantiates grenade to query effect_radius.
 func _get_grenade_blast_radius() -> float:
-	if grenade_scene == null:
-		return 225.0  # Default frag grenade radius
-
-	# Try to instantiate grenade temporarily to query its radius
+	if grenade_scene == null: return 225.0  # Default frag grenade radius
 	var temp_grenade = grenade_scene.instantiate()
-	if temp_grenade == null:
-		return 225.0  # Fallback
-
-	var radius := 225.0  # Default
-
-	# Check if grenade has effect_radius property
-	if temp_grenade.get("effect_radius") != null:
-		radius = temp_grenade.effect_radius
-
-	# Clean up temporary instance
+	if temp_grenade == null: return 225.0  # Fallback
+	var radius := temp_grenade.effect_radius if temp_grenade.get("effect_radius") != null else 225.0
 	temp_grenade.queue_free()
-
 	return radius
 
 ## Check if the enemy can throw a grenade right now.
 func _can_throw_grenade() -> bool:
-	# Basic checks
-	if not enable_grenade_throwing:
-		return false
-
-	if _grenades_remaining <= 0:
-		return false
-
-	if _grenade_cooldown_timer > 0.0:
-		return false
-
-	if _is_throwing_grenade:
-		return false
-
-	if not _is_alive:
-		return false
-
-	if _is_stunned or _is_blinded:
-		return false
-
-	# Must have a valid trigger active
+	if not enable_grenade_throwing or _grenades_remaining <= 0 or _grenade_cooldown_timer > 0.0: return false
+	if _is_throwing_grenade or not _is_alive or _is_stunned or _is_blinded: return false
 	return _goap_world_state.get("ready_to_throw_grenade", false)
 
 ## Attempt to throw a grenade. Returns true if throw was initiated.
 func try_throw_grenade() -> bool:
-	if not _can_throw_grenade():
-		return false
-
+	if not _can_throw_grenade(): return false
 	var target_position := _get_grenade_target_position()
-	if target_position == Vector2.ZERO:
-		return false
-
-	# Check distance constraints
+	if target_position == Vector2.ZERO: return false
 	var distance := global_position.distance_to(target_position)
-
-	# Calculate minimum safe distance based on grenade blast radius (Issue #375)
-	var blast_radius := _get_grenade_blast_radius()
-	var min_safe_distance := blast_radius + grenade_safety_margin
-
-	# Ensure enemy won't be caught in own grenade blast
+	# Issue #375: Check safe distance based on blast radius
+	var min_safe_distance := _get_grenade_blast_radius() + grenade_safety_margin
 	if distance < min_safe_distance:
-		_log_grenade("Unsafe throw distance (%.0f < %.0f safe distance, blast=%.0f, margin=%.0f) - skipping throw" %
-			[distance, min_safe_distance, blast_radius, grenade_safety_margin])
-		return false
-
-	# Legacy minimum distance check (should be covered by above, but kept for compatibility)
+		_log_grenade("Unsafe throw (%.0f < %.0f safe)" % [distance, min_safe_distance]); return false
 	if distance < grenade_min_throw_distance:
-		_log_grenade("Target too close (%.0f < %.0f) - skipping throw" % [distance, grenade_min_throw_distance])
-		return false
-
+		_log_grenade("Target too close (%.0f < %.0f)" % [distance, grenade_min_throw_distance]); return false
 	if distance > grenade_max_throw_distance:
-		# Clamp to max distance
-		var direction := (target_position - global_position).normalized()
-		target_position = global_position + direction * grenade_max_throw_distance
-		distance = grenade_max_throw_distance
-
-	# Check line of sight for throw (not blocked by walls)
+		target_position = global_position + (target_position - global_position).normalized() * grenade_max_throw_distance
 	if not _is_throw_path_clear(target_position):
-		_log_grenade("Throw path blocked to %s" % target_position)
-		return false
-
-	# Execute the throw
-	_execute_grenade_throw(target_position)
-	return true
+		_log_grenade("Throw path blocked to %s" % target_position); return false
+	_execute_grenade_throw(target_position); return true
 
 ## Check if the grenade throw path is clear.
 func _is_throw_path_clear(target_position: Vector2) -> bool:
