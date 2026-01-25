@@ -4539,13 +4539,14 @@ func _init_death_animation() -> void:
 	_death_animation.name = "DeathAnimation"
 	add_child(_death_animation)
 
-	# Initialize with sprite references
+	# Initialize with sprite references (including weapon sprite for persistence)
 	_death_animation.initialize(
 		_body_sprite,
 		_head_sprite,
 		_left_arm_sprite,
 		_right_arm_sprite,
-		_enemy_model
+		_enemy_model,
+		_weapon_sprite
 	)
 
 	# Connect signals

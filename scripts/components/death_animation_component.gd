@@ -108,9 +108,15 @@ var _body_sprite: Sprite2D = null
 var _head_sprite: Sprite2D = null
 var _left_arm_sprite: Sprite2D = null
 var _right_arm_sprite: Sprite2D = null
+var _weapon_sprite: Sprite2D = null
 
 ## Reference to character model container.
 var _character_model: Node2D = null
+
+## Original weapon transform.
+var _original_weapon_pos: Vector2 = Vector2.ZERO
+var _original_weapon_rot: float = 0.0
+var _original_weapon_offset: Vector2 = Vector2.ZERO
 
 ## Ragdoll bodies created during ragdoll phase.
 var _ragdoll_bodies: Array[RigidBody2D] = []
@@ -181,12 +187,14 @@ func _process(delta: float) -> void:
 ## @param left_arm: The left arm Sprite2D node.
 ## @param right_arm: The right arm Sprite2D node.
 ## @param model: The character model Node2D container.
-func initialize(body: Sprite2D, head: Sprite2D, left_arm: Sprite2D, right_arm: Sprite2D, model: Node2D) -> void:
+## @param weapon: Optional weapon Sprite2D node.
+func initialize(body: Sprite2D, head: Sprite2D, left_arm: Sprite2D, right_arm: Sprite2D, model: Node2D, weapon: Sprite2D = null) -> void:
 	_body_sprite = body
 	_head_sprite = head
 	_left_arm_sprite = left_arm
 	_right_arm_sprite = right_arm
 	_character_model = model
+	_weapon_sprite = weapon
 
 
 ## Start the death animation with the given hit direction and weapon type.
@@ -259,6 +267,10 @@ func _store_original_transforms() -> void:
 	if _right_arm_sprite:
 		_original_right_arm_pos = _right_arm_sprite.position
 		_original_right_arm_rot = _right_arm_sprite.rotation
+	if _weapon_sprite:
+		_original_weapon_pos = _weapon_sprite.position
+		_original_weapon_rot = _weapon_sprite.rotation
+		_original_weapon_offset = _weapon_sprite.offset
 
 
 ## Restore original sprite transforms after death animation reset.
@@ -279,6 +291,11 @@ func _restore_original_transforms() -> void:
 		_right_arm_sprite.position = _original_right_arm_pos
 		_right_arm_sprite.rotation = _original_right_arm_rot
 		_right_arm_sprite.visible = true
+	if _weapon_sprite:
+		_weapon_sprite.position = _original_weapon_pos
+		_weapon_sprite.rotation = _original_weapon_rot
+		_weapon_sprite.offset = _original_weapon_offset
+		_weapon_sprite.visible = true
 
 
 ## Update the pre-made fall animation.
@@ -389,12 +406,15 @@ func _activate_ragdoll() -> void:
 		_left_arm_sprite.visible = false
 	if _right_arm_sprite:
 		_right_arm_sprite.visible = false
+	if _weapon_sprite:
+		_weapon_sprite.visible = false
 
 	# Create ragdoll bodies for each sprite
 	var body_rb: RigidBody2D = null
 	var head_rb: RigidBody2D = null
 	var left_arm_rb: RigidBody2D = null
 	var right_arm_rb: RigidBody2D = null
+	var weapon_rb: RigidBody2D = null
 
 	if _body_sprite:
 		body_rb = _create_ragdoll_body(_body_sprite, 1.5, 12.0 * model_scale)  # Body is heavier and larger
@@ -407,6 +427,10 @@ func _activate_ragdoll() -> void:
 
 	if _right_arm_sprite:
 		right_arm_rb = _create_ragdoll_body(_right_arm_sprite, 0.3, 6.0 * model_scale)
+
+	# Create weapon ragdoll body (weapon stays with dead body)
+	if _weapon_sprite:
+		weapon_rb = _create_ragdoll_body_for_weapon(_weapon_sprite, 0.2, 4.0 * model_scale)
 
 	# Create joints connecting body parts
 	# Head to body
@@ -423,6 +447,12 @@ func _activate_ragdoll() -> void:
 	if body_rb and right_arm_rb:
 		var right_arm_joint := _create_ragdoll_joint(body_rb, right_arm_rb, Vector2(-8, 6) * model_scale)
 		_ragdoll_joints.append(right_arm_joint)
+
+	# Weapon to right arm (held in hand)
+	if right_arm_rb and weapon_rb:
+		# Weapon attaches at the end of the right arm (hand position)
+		var weapon_joint := _create_ragdoll_joint(right_arm_rb, weapon_rb, Vector2(12, 0) * model_scale)
+		_ragdoll_joints.append(weapon_joint)
 
 	# Apply impulse based on hit direction
 	if body_rb:
@@ -507,6 +537,67 @@ func _create_ragdoll_body(sprite: Sprite2D, mass: float, collision_radius: float
 		rb.add_child(hit_area)
 		hit_area.area_entered.connect(_on_ragdoll_bullet_hit.bind(rb))
 
+	return rb
+
+
+## Create a ragdoll RigidBody2D for a weapon sprite.
+## Similar to _create_ragdoll_body but handles weapon offset properly.
+func _create_ragdoll_body_for_weapon(sprite: Sprite2D, mass: float, collision_radius: float) -> RigidBody2D:
+	if not sprite or not _character_model:
+		return null
+
+	# Create RigidBody2D
+	var rb := RigidBody2D.new()
+	rb.mass = mass
+	rb.linear_damp = ragdoll_linear_damping
+	rb.angular_damp = ragdoll_angular_damping
+	rb.max_contacts_reported = 0
+	rb.contact_monitor = false
+	rb.gravity_scale = 0.0  # Top-down, no gravity
+
+	# Set physics material properties via properties
+	rb.physics_material_override = PhysicsMaterial.new()
+	rb.physics_material_override.friction = ragdoll_friction
+	rb.physics_material_override.bounce = 0.0
+
+	# Create collision shape (rectangle for weapons is better, but circle is simpler)
+	var collision := CollisionShape2D.new()
+	var shape := CircleShape2D.new()
+	shape.radius = collision_radius
+	collision.shape = shape
+	rb.add_child(collision)
+
+	# Position the rigid body at the sprite's global position (accounting for weapon offset)
+	var global_pos := sprite.global_position
+	rb.global_position = global_pos
+	rb.rotation = sprite.global_rotation
+
+	# Set collision layer to avoid player/enemy collision
+	rb.collision_layer = 32  # Custom layer for ragdoll
+	rb.collision_mask = 4    # Collide with obstacles only
+
+	# Add to scene
+	get_tree().current_scene.add_child(rb)
+	_ragdoll_bodies.append(rb)
+
+	# Create a duplicate sprite for the ragdoll body
+	var ragdoll_sprite := Sprite2D.new()
+	ragdoll_sprite.texture = sprite.texture
+	ragdoll_sprite.region_enabled = sprite.region_enabled
+	ragdoll_sprite.region_rect = sprite.region_rect
+	# For weapon, preserve the offset so it looks correct
+	ragdoll_sprite.offset = sprite.offset
+	ragdoll_sprite.flip_h = sprite.flip_h
+	ragdoll_sprite.flip_v = sprite.flip_v
+	ragdoll_sprite.modulate = sprite.modulate
+	ragdoll_sprite.z_index = sprite.z_index
+	ragdoll_sprite.z_as_relative = sprite.z_as_relative
+
+	rb.add_child(ragdoll_sprite)
+	ragdoll_sprite.position = Vector2.ZERO
+	ragdoll_sprite.rotation = 0.0
+
+	# Weapons don't need bullet hit detection (they're not body parts)
 	return rb
 
 
