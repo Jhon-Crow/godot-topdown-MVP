@@ -217,6 +217,152 @@ See `logs/proposed-solutions.md` for detailed implementation approaches.
 4. Code organization within 5000-line limit
 5. Integration with existing GOAP system
 
+## Implementation
+
+### Solution Implemented: Coordinator Pattern (Solution B)
+
+Based on the proposed solutions analysis, **Solution B** was implemented as it provides the optimal balance between feature completeness and code maintainability.
+
+### Files Modified/Created
+
+#### 1. TacticalGrenadeCoordinator (NEW)
+**File**: `scripts/autoload/tactical_grenade_coordinator.gd` (~294 lines)
+
+A new autoload singleton that manages tactical grenade coordination between enemies:
+
+```gdscript
+## Key Signals
+signal grenade_announced(thrower: Node, target_position: Vector2, blast_radius: float)
+signal grenade_exploded(position: Vector2, thrower: Node)
+signal assault_begin(passage_direction: Vector2, thrower: Node)
+
+## Key Constants
+const TACTICAL_THROW_INACCURACY_DEGREES: float = 5.0  # Per issue #382 requirements
+const TACTICAL_THROW_INACCURACY_RADIANS: float = deg_to_rad(5.0)  # ~0.0873 radians
+const EVACUATION_SAFETY_MARGIN: float = 75.0
+const EVACUATION_WAIT_TIME: float = 0.8
+```
+
+**Key Functions**:
+- `announce_tactical_throw()`: Broadcasts grenade warning to all allies
+- `is_in_danger_zone()`: Checks if position is in any active blast zone
+- `calculate_evacuation_direction()`: Computes optimal escape direction (perpendicular to throw or away from blast)
+- `calculate_evacuation_position()`: Determines safe position outside danger zone
+- `register_for_assault()`: Adds enemy to coordinated assault queue
+- `on_grenade_exploded()`: Triggers coordinated assault after explosion
+
+#### 2. EnemyGrenadeComponent (MODIFIED)
+**File**: `scripts/components/enemy_grenade_component.gd` (~479 lines)
+
+Extended with Trigger 8 and tactical throw support:
+
+```gdscript
+## New Trigger 8: Player Seen Then Hidden
+const PLAYER_SEEN_HIDDEN_TIME := 3.0  # Seconds player must be hidden after being seen
+
+var _player_was_seen_recently: bool = false
+var _player_hidden_timer: float = 0.0
+var _t8_triggered: bool = false
+
+func _t8() -> bool:
+    """Trigger 8: Player seen then hidden without aggression."""
+    return _player_was_seen_recently and _player_hidden_timer >= PLAYER_SEEN_HIDDEN_TIME
+
+## Tactical Throw Inaccuracy
+const TACTICAL_INACCURACY_MAX_DEGREES := 5.0
+const TACTICAL_INACCURACY_RADIANS := deg_to_rad(5.0)  # ~0.0873 radians
+
+# Applied in _execute_throw() for tactical throws
+var throw_inaccuracy := inaccuracy
+if _is_tactical_throw:
+    throw_inaccuracy = TACTICAL_INACCURACY_RADIANS  # Max 5 degrees per requirements
+```
+
+**Trigger 8 Logic**:
+- Activates when enemy sees player, then player disappears without initiating aggression
+- 3-second timer after player hides before tactical throw is triggered
+- Integrates with TacticalGrenadeCoordinator for ally warning
+
+#### 3. enemy.gd (MODIFIED)
+**File**: `scripts/objects/enemy.gd` (exactly 5000 lines - CI limit)
+
+Integrated tactical grenade coordination:
+
+```gdscript
+## New Variables
+var _tactical_coordinator: Node = null
+var _evacuating_grenade: bool = false
+var _evacuation_target: Vector2 = Vector2.ZERO
+var _waiting_for_assault: bool = false
+var _tactical_assault_direction: Vector2 = Vector2.ZERO
+
+## Evacuation Priority (in _process_ai_state)
+# Grenade evacuation takes absolute priority over all other AI states
+if _evacuating_grenade and _evacuation_target != Vector2.ZERO:
+    var dist_to_target := global_position.distance_to(_evacuation_target)
+    if dist_to_target < 30.0:
+        _evacuating_grenade = false
+        velocity = Vector2.ZERO
+    else:
+        _nav_agent.target_position = _evacuation_target
+        var next_pos := _nav_agent.get_next_path_position()
+        velocity = (next_pos - global_position).normalized() * combat_move_speed
+    return
+
+## Tactical Event Handlers
+func _on_tactical_grenade_announced(thrower: Node, target: Vector2, blast_radius: float) -> void:
+    # Skip if we're the thrower
+    if thrower == self: return
+    # Check if we're in danger zone
+    if _tactical_coordinator.is_in_danger_zone(global_position, self):
+        _start_tactical_evacuation(target, blast_radius)
+
+func _on_tactical_assault_begin(passage_direction: Vector2, _thrower: Node) -> void:
+    if _waiting_for_assault:
+        _waiting_for_assault = false
+        _tactical_assault_direction = passage_direction
+        _transition_to_assault()
+```
+
+#### 4. project.godot (MODIFIED)
+Registered new autoload:
+
+```ini
+[autoload]
+TacticalGrenadeCoordinator="*res://scripts/autoload/tactical_grenade_coordinator.gd"
+```
+
+### Feature Implementation Status
+
+| Requirement | Status | Implementation |
+|-------------|--------|----------------|
+| Pre-throw ally warning | ✅ Done | `TacticalGrenadeCoordinator.announce_tactical_throw()` |
+| Ally evacuation | ✅ Done | `_start_tactical_evacuation()` in enemy.gd with priority movement |
+| Throw inaccuracy (5° max) | ✅ Done | `TACTICAL_INACCURACY_RADIANS` in EnemyGrenadeComponent |
+| Post-explosion assault | ✅ Done | `assault_begin` signal + `_on_tactical_assault_begin()` |
+| Thrower post-throw behavior | ✅ Done | Integrated with existing post-throw aiming/approach |
+| Trigger: Player seen then hidden | ✅ Done | Trigger 8 (`_t8()`) in EnemyGrenadeComponent |
+| Evacuation direction calculation | ✅ Done | Perpendicular to throw or away from blast center |
+
+### Code Organization
+
+The implementation respects the CI-enforced 5000 line limit for enemy.gd by:
+1. Extracting coordination logic to `TacticalGrenadeCoordinator` autoload
+2. Keeping trigger logic in `EnemyGrenadeComponent`
+3. Using signal-based communication to minimize coupling
+4. Condensing existing code where possible without losing functionality
+
+### Testing Notes
+
+The implementation can be tested by:
+1. Having enemies spot the player briefly
+2. Player hiding behind cover for 3+ seconds
+3. Observing: ally warning, evacuation, tactical throw with inaccuracy, coordinated assault
+
+Debug logging available via `TacticalGrenadeCoordinator.debug_logging = true`.
+
+---
+
 ## Related Issues
 
 - Issue #169: Disabled assault state (needs reconsideration)

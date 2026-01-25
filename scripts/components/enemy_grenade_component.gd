@@ -1,10 +1,15 @@
 extends Node
 ## Component that handles enemy grenade throwing behavior (Issue #363).
 ## Extracted from enemy.gd to reduce file size below 5000 lines.
+## Issue #382: Added tactical grenade coordination with ally warning and assault.
 class_name EnemyGrenadeComponent
 
 ## Grenade thrown signal.
 signal grenade_thrown(grenade: Node, target_position: Vector2)
+
+## Tactical throw warning signal (Issue #382).
+## Emitted before throwing to warn allies in the blast zone.
+signal tactical_throw_warning(thrower: Node, target: Vector2, blast_radius: float)
 
 # Configuration - set these from enemy's export vars
 var grenade_count: int = 0
@@ -17,6 +22,8 @@ var safety_margin: float = 50.0  # Safety margin for blast radius (Issue #375)
 var inaccuracy: float = 0.15
 var throw_delay: float = 0.4
 var debug_logging: bool = false
+## Enable tactical grenade throwing (Issue #382).
+var enable_tactical_throw: bool = true
 
 # Constants
 const HIDDEN_THRESHOLD := 6.0
@@ -29,6 +36,11 @@ const FIRE_GAP_TOLERANCE := 2.0
 const VIEWPORT_ZONE_FRACTION := 6.0
 const DESPERATION_HEALTH_THRESHOLD := 1
 const SUSPICION_HIDDEN_TIME := 3.0  # Trigger 7: Seconds player must be hidden with medium+ suspicion (Issue #379)
+## Trigger 8: Player seen then hidden - time player must be hidden (Issue #382).
+const PLAYER_SEEN_HIDDEN_TIME := 3.0
+## Trigger 8: Max 5 degrees inaccuracy for tactical throws (Issue #382).
+const TACTICAL_INACCURACY_MAX_DEGREES := 5.0
+const TACTICAL_INACCURACY_RADIANS := deg_to_rad(5.0)  # ~0.0873 radians
 
 # State
 var grenades_remaining: int = 0
@@ -63,10 +75,22 @@ var _fire_valid: bool = false
 # Trigger 7: Suspicion (Issue #379)
 var _suspicion_timer: float = 0.0
 
+# Trigger 8: Player seen then hidden (Issue #382)
+var _player_was_seen_recently: bool = false
+var _player_hidden_timer: float = 0.0
+var _t8_triggered: bool = false  # Track if T8 was the trigger for this throw
+
+# Tactical throw state (Issue #382)
+var _tactical_throw_target: Vector2 = Vector2.ZERO
+var _is_tactical_throw: bool = false
+var _tactical_coordinator: Node = null
+
 
 func _ready() -> void:
 	_logger = get_node_or_null("/root/FileLogger")
 	_enemy = get_parent() as CharacterBody2D
+	# Get reference to TacticalGrenadeCoordinator (Issue #382)
+	_tactical_coordinator = get_node_or_null("/root/TacticalGrenadeCoordinator")
 
 
 func initialize() -> void:
@@ -104,6 +128,12 @@ func _reset_triggers() -> void:
 	_fire_valid = false
 	_fire_duration = 0.0
 	_suspicion_timer = 0.0
+	# Trigger 8 (Issue #382)
+	_player_was_seen_recently = false
+	_player_hidden_timer = 0.0
+	_t8_triggered = false
+	_is_tactical_throw = false
+	_tactical_throw_target = Vector2.ZERO
 
 
 func update(delta: float, can_see: bool, under_fire: bool, player: Node2D, health: int, memory = null) -> void:
@@ -145,6 +175,20 @@ func update(delta: float, can_see: bool, under_fire: bool, player: Node2D, healt
 		_suspicion_timer += delta
 	else:
 		_suspicion_timer = 0.0
+
+	# Trigger 8: Player seen then hidden (Issue #382)
+	# Activates when player appears in FOV and disappears without aggression.
+	if can_see:
+		_player_was_seen_recently = true
+		_player_hidden_timer = 0.0
+	elif _player_was_seen_recently and not under_fire:
+		# Player was seen but now hidden, and enemy is not under fire (no aggression)
+		_player_hidden_timer += delta
+	else:
+		# Reset if under fire (player initiated aggression)
+		if under_fire:
+			_player_was_seen_recently = false
+			_player_hidden_timer = 0.0
 
 
 func on_gunshot(pos: Vector2) -> void:
@@ -219,16 +263,41 @@ func _t7() -> bool:
 	return _suspicion_timer >= SUSPICION_HIDDEN_TIME
 
 
+func _t8() -> bool:
+	# Trigger 8: Player seen then hidden without aggression (Issue #382)
+	# This is the tactical grenade trigger condition.
+	return _player_was_seen_recently and _player_hidden_timer >= PLAYER_SEEN_HIDDEN_TIME
+
+
+## Check if Trigger 8 (tactical) is active.
+## Used by enemy to determine if this will be a tactical throw with ally coordination.
+func is_tactical_trigger_active() -> bool:
+	return _t8()
+
+
 func is_ready(can_see: bool, under_fire: bool, health: int) -> bool:
 	if not enabled or grenades_remaining <= 0 or _cooldown > 0.0 or _is_throwing:
 		return false
-	return _t1() or _t2(under_fire) or _t3() or _t4(can_see) or _t5() or _t6(health) or _t7()
+	return _t1() or _t2(under_fire) or _t3() or _t4(can_see) or _t5() or _t6(health) or _t7() or _t8()
 
 
 func get_target(can_see: bool, under_fire: bool, health: int, player: Node2D,
 				last_known: Vector2, memory_pos: Vector2) -> Vector2:
 	if _t6(health):
+		_t8_triggered = false
 		return player.global_position if player else memory_pos
+
+	# Trigger 8: Tactical throw (Issue #382) - high priority
+	# Player appeared and disappeared without aggression
+	if _t8():
+		_t8_triggered = true
+		_is_tactical_throw = enable_tactical_throw
+		var target := memory_pos if memory_pos != Vector2.ZERO else last_known
+		_tactical_throw_target = target
+		_log("Trigger 8 (tactical) activated: target=%s" % target)
+		return target
+
+	_t8_triggered = false
 	if _t7():  # Trigger 7: Suspicion-based (Issue #379) - higher priority than other indirect triggers
 		return memory_pos if memory_pos != Vector2.ZERO else last_known
 	if _t4(can_see):
@@ -274,6 +343,12 @@ func try_throw(target: Vector2, is_alive: bool, is_stunned: bool, is_blinded: bo
 	if not _path_clear(target):
 		_log("Throw path blocked to %s" % target)
 		return false
+
+	# Issue #382: If this is a tactical throw, announce to coordinator and warn allies
+	if _is_tactical_throw and _tactical_coordinator:
+		_log("Initiating tactical throw to %s (blast_radius=%.0f)" % [target, blast_radius])
+		_tactical_coordinator.announce_tactical_throw(_enemy, target, blast_radius)
+		tactical_throw_warning.emit(_enemy, target, blast_radius)
 
 	_execute_throw(target, is_alive, is_stunned, is_blinded)
 	return true
@@ -328,7 +403,13 @@ func _execute_throw(target: Vector2, is_alive: bool, is_stunned: bool, is_blinde
 		_is_throwing = false
 		return
 
-	var dir := (target - _enemy.global_position).normalized().rotated(randf_range(-inaccuracy, inaccuracy))
+	# Issue #382: Use tactical inaccuracy (max 5 degrees) for tactical throws
+	var throw_inaccuracy := inaccuracy
+	if _is_tactical_throw:
+		throw_inaccuracy = TACTICAL_INACCURACY_RADIANS
+		_log("Using tactical inaccuracy: %.4f rad (%.1f deg)" % [throw_inaccuracy, TACTICAL_INACCURACY_MAX_DEGREES])
+
+	var dir := (target - _enemy.global_position).normalized().rotated(randf_range(-throw_inaccuracy, throw_inaccuracy))
 	var grenade: Node2D = grenade_scene.instantiate()
 	grenade.global_position = _enemy.global_position + dir * 40.0
 
@@ -346,6 +427,12 @@ func _execute_throw(target: Vector2, is_alive: bool, is_stunned: bool, is_blinde
 		grenade.linear_velocity = dir * clampf(dist * 1.5, 200.0, 800.0)
 		grenade.rotation = dir.angle()
 
+	# Issue #382: Connect grenade explosion to coordinator for assault coordination
+	var was_tactical := _is_tactical_throw
+	var tactical_target := target
+	if was_tactical and grenade.has_signal("exploded"):
+		grenade.exploded.connect(_on_grenade_exploded.bind(tactical_target))
+
 	grenades_remaining -= 1
 	_cooldown = throw_cooldown
 	_is_throwing = false
@@ -355,6 +442,34 @@ func _execute_throw(target: Vector2, is_alive: bool, is_stunned: bool, is_blinde
 
 func add_grenades(count: int) -> void:
 	grenades_remaining += count
+
+
+## Called when a tactical grenade explodes (Issue #382).
+## Notifies the coordinator to trigger coordinated assault.
+func _on_grenade_exploded(target: Vector2) -> void:
+	if _tactical_coordinator:
+		_tactical_coordinator.on_grenade_exploded(target, _enemy)
+		_log("Tactical grenade exploded at %s, triggering assault" % target)
+
+
+## Check if a tactical throw is currently in progress.
+func is_tactical_throw_in_progress() -> bool:
+	return _is_tactical_throw and _is_throwing
+
+
+## Get the tactical throw target position.
+func get_tactical_throw_target() -> Vector2:
+	return _tactical_throw_target
+
+
+## Check if the last throw was triggered by T8 (tactical condition).
+func was_tactical_trigger() -> bool:
+	return _t8_triggered
+
+
+## Expose blast radius for external use (e.g., evacuation calculations).
+func get_blast_radius() -> float:
+	return _get_blast_radius()
 
 
 func _log(msg: String) -> void:

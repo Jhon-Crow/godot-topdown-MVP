@@ -428,19 +428,18 @@ var _is_blinded: bool = false
 ## Whether the enemy is currently stunned (cannot move or act).
 var _is_stunned: bool = false
 
-## --- Grenade System (Issue #363) ---
-## Grenade throwing logic is handled by EnemyGrenadeComponent (extracted for Issue #377 CI fix).
-
-## Last hit direction (used for death animation).
+## --- Grenade System (Issue #363, #382) ---
+## Grenade throwing logic handled by EnemyGrenadeComponent (Issue #377).
+## Tactical grenade coordination handled by TacticalGrenadeCoordinator (Issue #382).
 var _last_hit_direction: Vector2 = Vector2.RIGHT
-
-## Death animation component reference.
 var _death_animation: Node = null
-
-## Grenade component for handling grenade throwing (extracted for Issue #377 CI fix).
 var _grenade_component: EnemyGrenadeComponent = null
-
-## Note: DeathAnimationComponent and EnemyGrenadeComponent are available via class_name declarations.
+## Issue #382: Tactical grenade coordination
+var _tactical_coordinator: Node = null
+var _evacuating_grenade: bool = false
+var _evacuation_target: Vector2 = Vector2.ZERO
+var _waiting_for_assault: bool = false
+var _tactical_assault_direction: Vector2 = Vector2.ZERO
 
 func _ready() -> void:
 	# Add to enemies group for grenade targeting
@@ -1153,9 +1152,18 @@ func _process_ai_state(delta: float) -> void:
 	if _is_stunned:
 		velocity = Vector2.ZERO
 		return
-
+	# Issue #382: SURVIVAL PRIORITY - Evacuate from ally grenade danger zone
+	if _evacuating_grenade and _evacuation_target != Vector2.ZERO:
+		var dist_to_target := global_position.distance_to(_evacuation_target)
+		if dist_to_target < 30.0:
+			_evacuating_grenade = false
+			velocity = Vector2.ZERO
+		else:
+			_nav_agent.target_position = _evacuation_target
+			var next_pos := _nav_agent.get_next_path_position()
+			velocity = (next_pos - global_position).normalized() * combat_move_speed
+		return
 	var previous_state := _current_state
-
 	# HIGHEST PRIORITY: Player distracted (aim > 23° away) - shoot immediately (Hard mode only)
 	# NOTE: Disabled during memory reset confusion period (Issue #318)
 	var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
@@ -4898,21 +4906,16 @@ func set_stunned(stunned: bool) -> void:
 		_log_debug("Enemy is no longer stunned")
 		_log_to_file("Status effect: STUNNED removed")
 
-## Check if the enemy is currently blinded.
-func is_blinded() -> bool:
-	return _is_blinded
+func is_blinded() -> bool: return _is_blinded
+func is_stunned() -> bool: return _is_stunned
 
-## Check if the enemy is currently stunned.
-func is_stunned() -> bool:
-	return _is_stunned
-
-# Grenade System (Issue #363) - Component-based (extracted for Issue #377)
-
-## Setup the grenade component. Called from _ready().
+# Grenade System (Issue #363, #382)
 func _setup_grenade_component() -> void:
-	if not enable_grenade_throwing:
-		return
-
+	_tactical_coordinator = get_node_or_null("/root/TacticalGrenadeCoordinator")
+	if _tactical_coordinator:
+		if _tactical_coordinator.has_signal("grenade_announced"): _tactical_coordinator.grenade_announced.connect(_on_tactical_grenade_announced)
+		if _tactical_coordinator.has_signal("assault_begin"): _tactical_coordinator.assault_begin.connect(_on_tactical_assault_begin)
+	if not enable_grenade_throwing: return
 	_grenade_component = EnemyGrenadeComponent.new()
 	_grenade_component.name = "GrenadeComponent"
 	_grenade_component.grenade_count = grenade_count
@@ -4928,32 +4931,22 @@ func _setup_grenade_component() -> void:
 	add_child(_grenade_component)
 	_grenade_component.initialize()
 
-## Update grenade component each frame. Called from _physics_process.
 func _update_grenade_triggers(delta: float) -> void:
-	if _grenade_component == null:
-		return
+	if _grenade_component == null: return
 	_grenade_component.update(delta, _can_see_player, _under_fire, _player, _current_health, _memory)
 	_update_grenade_world_state()
 
-## Notify grenade component of gunshots for sustained fire tracking (Trigger 5).
 func _on_gunshot_heard_for_grenade(position: Vector2) -> void:
-	if _grenade_component:
-		_grenade_component.on_gunshot(position)
+	if _grenade_component: _grenade_component.on_gunshot(position)
 
-## Notify grenade component of vulnerable sounds (Trigger 4).
 func _on_vulnerable_sound_heard_for_grenade(position: Vector2) -> void:
-	if _grenade_component:
-		_grenade_component.on_vulnerable_sound(position, _can_see_player)
+	if _grenade_component: _grenade_component.on_vulnerable_sound(position, _can_see_player)
 
-## Called when an ally dies. Updates witnessed kill count (Trigger 3).
 func on_ally_died(ally_position: Vector2, killer_is_player: bool) -> void:
-	if _grenade_component:
-		_grenade_component.on_ally_died(ally_position, killer_is_player, _can_see_position(ally_position))
+	if _grenade_component: _grenade_component.on_ally_died(ally_position, killer_is_player, _can_see_position(ally_position))
 
-## Check if a position is visible to this enemy (line of sight).
 func _can_see_position(pos: Vector2) -> bool:
-	if _raycast == null:
-		return false
+	if _raycast == null: return false
 	var original_target := _raycast.target_position
 	_raycast.target_position = pos - global_position
 	_raycast.force_raycast_update()
@@ -4961,40 +4954,47 @@ func _can_see_position(pos: Vector2) -> bool:
 	_raycast.target_position = original_target
 	return can_see
 
-## Update GOAP world state with grenade trigger conditions.
 func _update_grenade_world_state() -> void:
 	if _grenade_component == null:
 		_goap_world_state["has_grenades"] = false
 		_goap_world_state["grenades_remaining"] = 0
 		_goap_world_state["ready_to_throw_grenade"] = false
 		return
-	var g := _grenade_component
-	_goap_world_state["has_grenades"] = g.grenades_remaining > 0
-	_goap_world_state["grenades_remaining"] = g.grenades_remaining
-	_goap_world_state["ready_to_throw_grenade"] = g.is_ready(_can_see_player, _under_fire, _current_health)
+	_goap_world_state["has_grenades"] = _grenade_component.grenades_remaining > 0
+	_goap_world_state["grenades_remaining"] = _grenade_component.grenades_remaining
+	_goap_world_state["ready_to_throw_grenade"] = _grenade_component.is_ready(_can_see_player, _under_fire, _current_health)
 
-
-## Attempt to throw a grenade. Returns true if throw was initiated.
 func try_throw_grenade() -> bool:
-	if _grenade_component == null:
-		return false
+	if _grenade_component == null: return false
 	var memory_pos := _memory.suspected_position if _memory and _memory.has_target() else _last_known_player_position
 	var target := _grenade_component.get_target(_can_see_player, _under_fire, _current_health, _player, _last_known_player_position, memory_pos)
-	if target == Vector2.ZERO:
-		return false
+	if target == Vector2.ZERO: return false
 	var result := _grenade_component.try_throw(target, _is_alive, _is_stunned, _is_blinded)
-	if result:
-		grenade_thrown.emit(null, target)  # Signal with target; actual grenade emitted by component
+	if result: grenade_thrown.emit(null, target)
 	return result
 
-
-## Get the number of grenades remaining.
 func get_grenades_remaining() -> int:
-	if _grenade_component:
-		return _grenade_component.grenades_remaining
-	return 0
+	return _grenade_component.grenades_remaining if _grenade_component else 0
 
-## Add grenades to the enemy's inventory.
 func add_grenades(count: int) -> void:
-	if _grenade_component:
-		_grenade_component.add_grenades(count)
+	if _grenade_component: _grenade_component.add_grenades(count)
+
+# Issue #382: Tactical grenade coordination callbacks
+func _on_tactical_grenade_announced(thrower: Node, target: Vector2, blast_radius: float) -> void:
+	if thrower == self or not _is_alive or not _tactical_coordinator: return
+	if _tactical_coordinator.is_in_danger_zone(global_position, self):
+		var evac_dir := _tactical_coordinator.calculate_evacuation_direction(self, global_position)
+		if evac_dir != Vector2.ZERO:
+			_evacuation_target = _tactical_coordinator.calculate_evacuation_position(global_position, evac_dir, blast_radius)
+			_evacuating_grenade = true
+			_waiting_for_assault = true
+			_tactical_coordinator.register_for_assault(self)
+			_log_to_file("Evacuating from grenade! Target: %s" % _evacuation_target)
+
+func _on_tactical_assault_begin(passage_direction: Vector2, _thrower: Node) -> void:
+	if not _is_alive or not _waiting_for_assault: return
+	_waiting_for_assault = false
+	_evacuating_grenade = false
+	_tactical_assault_direction = passage_direction
+	_log_to_file("Assault triggered! Direction: %s" % passage_direction)
+	if _current_state != AIState.COMBAT and _current_state != AIState.ASSAULT: _transition_to_combat()

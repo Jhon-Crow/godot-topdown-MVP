@@ -24,6 +24,7 @@ PenultimateHitEffectsManager="*res://scripts/autoload/penultimate_hit_effects_ma
 LastChanceEffectsManager="*res://scripts/autoload/last_chance_effects_manager.gd"
 StatusEffectsManager="*res://scripts/autoload/status_effects_manager.gd"
 GrenadeManager="*res://scripts/autoload/grenade_manager.gd"
+TacticalGrenadeCoordinator="*res://scripts/autoload/tactical_grenade_coordinator.gd"
 ExperimentalSettings="*res://scripts/autoload/experimental_settings.gd"
 
 [application]
