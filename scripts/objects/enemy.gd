@@ -565,16 +565,11 @@ var _is_blinded: bool = false
 ## Whether the enemy is currently stunned (cannot move or act).
 var _is_stunned: bool = false
 
-## Last hit direction (used for death animation).
+## Last hit direction and weapon type (used for death animation).
 var _last_hit_direction: Vector2 = Vector2.RIGHT
-
-## Last weapon type that hit (used for death animation).
 var _last_weapon_type: String = "rifle"
-
-## Death animation component reference.
+## Death animation component reference (DeathAnimationComponent is available via class_name).
 var _death_animation: Node = null
-
-## Note: DeathAnimationComponent is available via class_name declaration.
 
 func _ready() -> void:
 	# Add to enemies group for grenade targeting
@@ -1223,27 +1218,16 @@ func _finish_reload() -> void:
 
 ## Check if the enemy can shoot (has ammo and not reloading).
 func _can_shoot() -> bool:
-	# Can't shoot if shooting is disabled
-	if disable_shooting:
+	if disable_shooting or _is_reloading:
 		return false
-
-	# Can't shoot if reloading
-	if _is_reloading:
-		return false
-
-	# Can't shoot if no ammo in magazine
 	if _current_ammo <= 0:
-		# Try to start reload if we have reserve ammo
 		if _reserve_ammo > 0:
 			_start_reload()
-		else:
-			# No ammo at all - emit depleted signal once
-			if not _goap_world_state.get("ammo_depleted", false):
-				_goap_world_state["ammo_depleted"] = true
-				ammo_depleted.emit()
-				_log_debug("All ammunition depleted!")
+		elif not _goap_world_state.get("ammo_depleted", false):
+			_goap_world_state["ammo_depleted"] = true
+			ammo_depleted.emit()
+			_log_debug("All ammunition depleted!")
 		return false
-
 	return true
 
 ## Process the AI state machine.
@@ -4204,16 +4188,7 @@ func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has
 
 	# Determine weapon type from caliber data for death animation variation
 	if caliber_data and caliber_data.has("name"):
-		var caliber_name: String = caliber_data.name
-		match caliber_name:
-			"9x19":
-				_last_weapon_type = "pistol"
-			"545x39":
-				_last_weapon_type = "rifle"
-			"buckshot":
-				_last_weapon_type = "shotgun"
-			_:
-				_last_weapon_type = "rifle"  # Default
+		_last_weapon_type = {"9x19": "pistol", "545x39": "rifle", "buckshot": "shotgun"}.get(caliber_data.name, "rifle")
 
 	# Track hits for retreat behavior
 	_hits_taken_in_encounter += 1
