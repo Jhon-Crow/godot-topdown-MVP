@@ -1,7 +1,0 @@
-Issue to solve: https://github.com/Jhon-Crow/godot-topdown-MVP/issues/363
-Your prepared branch: issue-363-138125f6d974
-Your prepared working directory: /tmp/gh-issue-solver-1769305962954
-Your forked repository: konard/Jhon-Crow-godot-topdown-MVP
-Original repository (upstream): Jhon-Crow/godot-topdown-MVP
-
-Proceed.
