@@ -1119,3 +1119,164 @@ Multiple enemies converge on the same center, get stuck at waypoints, and expand
 - `logs/game_log_20260125_193914.txt` - Detailed search state logs
 
 ---
+
+## Session 6: GDScript 4 Type Inference Parse Errors (2026-01-25 17:03)
+
+### User Report
+
+User Jhon-Crow reported:
+> "враги полностью сломались" (Translation: "enemies completely broke")
+
+Attached log: `game_log_20260125_200237.txt`
+
+### Log Analysis
+
+The log shows the familiar pattern of broken enemies:
+```
+[20:02:37] [INFO] [BuildingLevel] Child 'Enemy1': script=true, has_died_signal=false
+[20:02:37] [INFO] [BuildingLevel] Child 'Enemy2': script=true, has_died_signal=false
+...
+[20:02:37] [INFO] [BuildingLevel] Enemy tracking complete: 0 enemies registered
+```
+
+And enemies being removed from the scene tree:
+```
+[20:02:39] [INFO] [BloodyFeet:Enemy1] Overlap check: ... in_tree=false
+```
+
+### Root Cause: GDScript 4 Type Inference Errors
+
+Analysis of the CI build logs revealed the actual cause - **script parse errors** due to GDScript 4's strict type inference:
+
+```
+SCRIPT ERROR: Parse Error: Cannot infer the type of "check_angle" variable because the value doesn't have a set type.
+SCRIPT ERROR: Parse Error: The variable type is being inferred from a Variant value, so it will be typed as Variant. (Warning treated as error.)
+ERROR: Failed to load script "res://scripts/objects/enemy.gd" with error "Parse error".
+```
+
+And for the SearchCoordinator autoload:
+```
+ERROR: Failed to load script "res://scripts/autoload/search_coordinator.gd" with error "Parse error".
+ERROR: Failed to create an autoload, script 'res://scripts/autoload/search_coordinator.gd' is not compiling.
+```
+
+### Technical Explanation
+
+In GDScript 4 with strict mode enabled, using the `:=` operator for type inference can fail in certain situations:
+
+1. **Functions returning Variant**: `lerp()`, `max()`, `min()`, `clamp()` all return Variant types in GDScript 4
+2. **Ternary operators**: When using ternary expressions like `x if condition else y`, the type may not be determinable
+3. **Arithmetic with different types**: Operations like `int * float` may produce Variant results
+
+**Example of broken code:**
+```gdscript
+# BROKEN: lerp returns Variant, ternary makes type undeterminable
+var angle_offset := lerp(-half_fov, half_fov, t) if cond > 1 else 0.0
+var check_angle := facing_angle + angle_offset  # Cannot infer type!
+```
+
+**Fixed code:**
+```gdscript
+# FIXED: Explicit type annotations
+var angle_offset: float = lerp(-half_fov, half_fov, t) if cond > 1 else 0.0
+var check_angle: float = facing_angle + angle_offset
+```
+
+### Files Fixed
+
+#### 1. `scripts/objects/enemy.gd` (line 2145-2147)
+
+**Before:**
+```gdscript
+var angle_offset := lerp(-half_fov, half_fov, float(i) / float(angles_to_check - 1)) if angles_to_check > 1 else 0.0
+var check_angle := facing_angle + angle_offset
+var check_pos := pos + Vector2(cos(check_angle), sin(check_angle)) * dist
+```
+
+**After:**
+```gdscript
+var angle_offset: float = lerp(-half_fov, half_fov, float(i) / float(angles_to_check - 1)) if angles_to_check > 1 else 0.0
+var check_angle: float = facing_angle + angle_offset
+var check_pos: Vector2 = pos + Vector2(cos(check_angle), sin(check_angle)) * dist
+```
+
+#### 2. `scripts/autoload/search_coordinator.gd` (multiple locations)
+
+**Lines 133-134:**
+```gdscript
+# Before:
+var sector_start := i * sector_angle
+var sector_end := (i + 1) * sector_angle
+
+# After:
+var sector_start: float = i * sector_angle
+var sector_end: float = (i + 1) * sector_angle
+```
+
+**Lines 161-167:**
+```gdscript
+# Before:
+var sector_mid := (sector_start + sector_end) / 2.0
+var to_center := (search_center - enemy_pos)
+var to_center_dist := to_center.length()
+var entry_point := search_center + Vector2.from_angle(sector_mid) * radius * 0.3
+
+# After:
+var sector_mid: float = (sector_start + sector_end) / 2.0
+var to_center: Vector2 = (search_center - enemy_pos)
+var to_center_dist: float = to_center.length()
+var entry_point: Vector2 = search_center + Vector2.from_angle(sector_mid) * radius * 0.3
+```
+
+**Lines 172-180:**
+```gdscript
+# Before:
+var rings := int(radius / SEARCH_WAYPOINT_SPACING) + 1
+var ring_radius := ring * SEARCH_WAYPOINT_SPACING
+var arc_length := ring_radius * (sector_end - sector_start)
+var points_in_arc := max(1, int(arc_length / SEARCH_WAYPOINT_SPACING))
+var angle := sector_start + (sector_end - sector_start) * ...
+var point := search_center + Vector2.from_angle(angle) * ring_radius
+var zone_key := _get_zone_key(point)
+
+# After:
+var rings: int = int(radius / SEARCH_WAYPOINT_SPACING) + 1
+var ring_radius: float = ring * SEARCH_WAYPOINT_SPACING
+var arc_length: float = ring_radius * (sector_end - sector_start)
+var points_in_arc: int = maxi(1, int(arc_length / SEARCH_WAYPOINT_SPACING))  # Note: maxi() for int
+var angle: float = sector_start + (sector_end - sector_start) * ...
+var point: Vector2 = search_center + Vector2.from_angle(angle) * ring_radius
+var zone_key: String = _get_zone_key(point)
+```
+
+### Key Lessons Learned
+
+| Pattern | Risk | Solution |
+|---------|------|----------|
+| `var x := lerp(a, b, t)` | HIGH | `var x: float = lerp(a, b, t)` |
+| `var x := max(a, b)` | HIGH | `var x: float = maxf(a, b)` or explicit type |
+| `var x := a if cond else b` | MEDIUM | `var x: Type = a if cond else b` |
+| `var x := int_val * float_val` | MEDIUM | `var x: float = ...` |
+| `var x := func_returning_variant()` | HIGH | `var x: ExpectedType = func()` |
+
+### GDScript 4 Type-Safe Alternatives
+
+| Variant Function | Type-Safe Alternative |
+|-----------------|----------------------|
+| `max(a, b)` | `maxf(a, b)` for float, `maxi(a, b)` for int |
+| `min(a, b)` | `minf(a, b)` for float, `mini(a, b)` for int |
+| `clamp(v, a, b)` | `clampf(v, a, b)` for float, `clampi(v, a, b)` for int |
+| `lerp(a, b, t)` | Use explicit type annotation |
+
+### Recommendations
+
+1. **Always use explicit type annotations** when the right-hand side involves function calls that return Variant
+2. **Use type-safe math functions** (`maxi`, `maxf`, `mini`, `minf`, `clampi`, `clampf`) instead of generic `max`, `min`, `clamp`
+3. **Test export builds regularly** - these parse errors only manifest in export builds with strict mode
+4. **Add CI export build testing** to catch these issues before merging
+
+### Log File Added
+
+- `logs/game_log_20260125_200237.txt` - User-provided log showing broken enemy state
+
+---
