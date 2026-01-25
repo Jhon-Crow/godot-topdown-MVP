@@ -896,13 +896,19 @@ func _update_goap_state() -> void:
 		_goap_world_state["confidence_medium"] = _memory.is_medium_confidence()
 		_goap_world_state["confidence_low"] = _memory.is_low_confidence()
 
-## Updates model rotation smoothly (#347). Priority: player > corner check > velocity > idle scan.
+## Updates model rotation smoothly (#347). Priority: player > flank target > corner check > velocity > idle scan.
+## Issue #386: FLANKING state now prioritizes facing the player over corner checks.
 func _update_enemy_model_rotation() -> void:
 	if not _enemy_model:
 		return
 	var target_angle: float
 	var has_target := false
 	if _player != null and _can_see_player:
+		target_angle = (_player.global_position - global_position).normalized().angle()
+		has_target = true
+	# Issue #386: During FLANKING, face the player (even if not visible) instead of corner check.
+	# This prevents the enemy from facing backwards/sideways while flanking.
+	elif _current_state == AIState.FLANKING and _player != null:
 		target_angle = (_player.global_position - global_position).normalized().angle()
 		has_target = true
 	elif _corner_check_timer > 0:
@@ -4933,7 +4939,7 @@ func _setup_grenade_component() -> void:
 func _update_grenade_triggers(delta: float) -> void:
 	if _grenade_component == null:
 		return
-	_grenade_component.update(delta, _can_see_player, _under_fire, _player, _current_health)
+	_grenade_component.update(delta, _can_see_player, _under_fire, _player, _current_health, _memory)
 	_update_grenade_world_state()
 
 ## Notify grenade component of gunshots for sustained fire tracking (Trigger 5).

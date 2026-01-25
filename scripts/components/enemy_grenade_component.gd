@@ -28,6 +28,7 @@ const SUSTAINED_FIRE_THRESHOLD := 10.0
 const FIRE_GAP_TOLERANCE := 2.0
 const VIEWPORT_ZONE_FRACTION := 6.0
 const DESPERATION_HEALTH_THRESHOLD := 1
+const SUSPICION_HIDDEN_TIME := 3.0  # Trigger 7: Seconds player must be hidden with medium+ suspicion (Issue #379)
 
 # State
 var grenades_remaining: int = 0
@@ -58,6 +59,9 @@ var _fire_zone: Vector2 = Vector2.ZERO
 var _fire_time: float = 0.0
 var _fire_duration: float = 0.0
 var _fire_valid: bool = false
+
+# Trigger 7: Suspicion (Issue #379)
+var _suspicion_timer: float = 0.0
 
 
 func _ready() -> void:
@@ -99,9 +103,10 @@ func _reset_triggers() -> void:
 	_heard_sound = false
 	_fire_valid = false
 	_fire_duration = 0.0
+	_suspicion_timer = 0.0
 
 
-func update(delta: float, can_see: bool, under_fire: bool, player: Node2D, health: int) -> void:
+func update(delta: float, can_see: bool, under_fire: bool, player: Node2D, health: int, memory = null) -> void:
 	if not enabled or grenades_remaining <= 0:
 		return
 
@@ -134,6 +139,12 @@ func update(delta: float, can_see: bool, under_fire: bool, player: Node2D, healt
 		if Time.get_ticks_msec() / 1000.0 - _fire_time > FIRE_GAP_TOLERANCE:
 			_fire_valid = false
 			_fire_duration = 0.0
+
+	# Trigger 7: Suspicion-based (Issue #379)
+	if memory != null and (memory.is_medium_confidence() or memory.is_high_confidence()) and not can_see:
+		_suspicion_timer += delta
+	else:
+		_suspicion_timer = 0.0
 
 
 func on_gunshot(pos: Vector2) -> void:
@@ -203,17 +214,23 @@ func _t5() -> bool:
 func _t6(health: int) -> bool:
 	return health <= DESPERATION_HEALTH_THRESHOLD
 
+func _t7() -> bool:
+	# Trigger 7: Suspicion-based grenade (Issue #379)
+	return _suspicion_timer >= SUSPICION_HIDDEN_TIME
+
 
 func is_ready(can_see: bool, under_fire: bool, health: int) -> bool:
 	if not enabled or grenades_remaining <= 0 or _cooldown > 0.0 or _is_throwing:
 		return false
-	return _t1() or _t2(under_fire) or _t3() or _t4(can_see) or _t5() or _t6(health)
+	return _t1() or _t2(under_fire) or _t3() or _t4(can_see) or _t5() or _t6(health) or _t7()
 
 
 func get_target(can_see: bool, under_fire: bool, health: int, player: Node2D,
 				last_known: Vector2, memory_pos: Vector2) -> Vector2:
 	if _t6(health):
 		return player.global_position if player else memory_pos
+	if _t7():  # Trigger 7: Suspicion-based (Issue #379) - higher priority than other indirect triggers
+		return memory_pos if memory_pos != Vector2.ZERO else last_known
 	if _t4(can_see):
 		return _sound_pos
 	if _t2(under_fire) and player and _enemy:
