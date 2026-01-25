@@ -1,0 +1,78 @@
+[09:10:50] [INFO] ============================================================
+[09:10:50] [INFO] GAME LOG STARTED
+[09:10:50] [INFO] ============================================================
+[09:10:50] [INFO] Timestamp: 2026-01-25T09:10:50
+[09:10:50] [INFO] Log file: I:/Загрузки/godot exe/game_log_20260125_091050.txt
+[09:10:50] [INFO] Executable: I:/Загрузки/godot exe/Godot-Top-Down-Template.exe
+[09:10:50] [INFO] OS: Windows
+[09:10:50] [INFO] Debug build: false
+[09:10:50] [INFO] Engine version: 4.3-stable (official)
+[09:10:50] [INFO] Project: Godot Top-Down Template
+[09:10:50] [INFO] ------------------------------------------------------------
+[09:10:50] [INFO] [GameManager] GameManager ready
+[09:10:50] [INFO] [ScoreManager] ScoreManager ready
+[09:10:50] [INFO] [SoundPropagation] SoundPropagation autoload initialized
+[09:10:50] [INFO] [ImpactEffects] Scenes loaded: DustEffect, BloodEffect, SparksEffect, BloodDecal
+[09:10:50] [INFO] [ImpactEffects] ImpactEffectsManager ready - FULL VERSION with blood effects enabled
+[09:10:50] [INFO] [ImpactEffects] Starting particle shader warmup (Issue #343 fix)...
+[09:10:50] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[09:10:50] [INFO] [PenultimateHit] Saturation shader loaded successfully
+[09:10:50] [INFO] [PenultimateHit] Starting shader warmup (Issue #343 fix)...
+[09:10:50] [INFO] [PenultimateHit] PenultimateHitEffectsManager ready - Configuration:
+[09:10:50] [INFO] [PenultimateHit]   Time scale: 0.10 (10x slowdown)
+[09:10:50] [INFO] [PenultimateHit]   Saturation boost: 2.0 (3.0x)
+[09:10:50] [INFO] [PenultimateHit]   Contrast boost: 1.0 (2.0x)
+[09:10:50] [INFO] [PenultimateHit]   Effect duration: 3.0 real seconds
+[09:10:50] [INFO] [LastChance] Resetting all effects (scene change detected)
+[09:10:50] [INFO] [LastChance] Last chance shader loaded successfully
+[09:10:50] [INFO] [LastChance] Starting shader warmup (Issue #343 fix)...
+[09:10:50] [INFO] [LastChance] LastChanceEffectsManager ready - Configuration:
+[09:10:50] [INFO] [LastChance]   Freeze duration: 6.0 real seconds
+[09:10:50] [INFO] [LastChance]   Sepia intensity: 0.70
+[09:10:50] [INFO] [LastChance]   Brightness: 0.60
+[09:10:50] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FlashbangGrenade.tscn
+[09:10:50] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FragGrenade.tscn
+[09:10:50] [INFO] [ExperimentalSettings] ExperimentalSettings initialized - FOV enabled: true
+[09:10:50] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[09:10:50] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[09:10:50] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[09:10:50] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[09:10:50] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[09:10:50] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[09:10:50] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[09:10:50] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[09:10:50] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 3/4
+[09:10:50] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[09:10:50] [INFO] [BuildingLevel] Found Environment/Enemies node with 10 children
+[09:10:50] [INFO] [BuildingLevel] Child 'Enemy1': script=true, has_died_signal=false
+[09:10:50] [INFO] [BuildingLevel] Child 'Enemy2': script=true, has_died_signal=false
+[09:10:50] [INFO] [BuildingLevel] Child 'Enemy3': script=true, has_died_signal=false
+[09:10:50] [INFO] [BuildingLevel] Child 'Enemy4': script=true, has_died_signal=false
+[09:10:50] [INFO] [BuildingLevel] Child 'Enemy5': script=true, has_died_signal=false
+[09:10:50] [INFO] [BuildingLevel] Child 'Enemy6': script=true, has_died_signal=false
+[09:10:50] [INFO] [BuildingLevel] Child 'Enemy7': script=true, has_died_signal=false
+[09:10:50] [INFO] [BuildingLevel] Child 'Enemy8': script=true, has_died_signal=false
+[09:10:50] [INFO] [BuildingLevel] Child 'Enemy9': script=true, has_died_signal=false
+[09:10:50] [INFO] [BuildingLevel] Child 'Enemy10': script=true, has_died_signal=false
+[09:10:50] [INFO] [BuildingLevel] Enemy tracking complete: 0 enemies registered
+[09:10:50] [INFO] [ScoreManager] Level started with 0 enemies
+[09:10:51] [INFO] [Player] Detecting weapon pose (frame 3)...
+[09:10:51] [INFO] [Player] Detected weapon: Rifle (default pose)
+[09:10:51] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[09:10:51] [INFO] [PenultimateHit] Shader warmup complete in 142 ms
+[09:10:51] [INFO] [LastChance] Shader warmup complete in 141 ms
+[09:10:51] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[09:10:51] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[09:10:51] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[09:10:51] [INFO] [LastChance] Found player: Player
+[09:10:51] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[09:10:51] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[09:10:51] [INFO] [LastChance] Connected to player Died signal (C#)
+[09:10:51] [INFO] [ImpactEffects] Particle shader warmup complete: 5 effects warmed up in 351 ms
+[09:10:51] [INFO] [Player] Invincibility mode: ON
+[09:10:51] [INFO] [GameManager] Invincibility mode toggled: ON
+[09:10:55] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(450, 757.4444), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[09:10:55] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:10:59] [INFO] ------------------------------------------------------------
+[09:10:59] [INFO] GAME LOG ENDED: 2026-01-25T09:10:59
+[09:10:59] [INFO] ============================================================

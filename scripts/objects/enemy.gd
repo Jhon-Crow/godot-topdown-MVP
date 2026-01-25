@@ -153,6 +153,38 @@ enum BehaviorMode {
 ## Scale multiplier for enemy model (1.3 matches player size).
 @export var enemy_model_scale: float = 1.3
 
+# ============================================================================
+# Grenade System Configuration (Issue #363)
+# ============================================================================
+
+## Number of grenades this enemy carries. Set by DifficultyManager or per-enemy override.
+## Default 0 means no grenades unless configured by difficulty/map settings.
+@export var grenade_count: int = 0
+
+## Grenade scene to instantiate when throwing.
+@export var grenade_scene: PackedScene
+
+## Enable/disable grenade throwing behavior.
+@export var enable_grenade_throwing: bool = true
+
+## Minimum cooldown between grenade throws (prevents spam).
+@export var grenade_throw_cooldown: float = 15.0
+
+## Maximum throw distance for grenades (pixels).
+@export var grenade_max_throw_distance: float = 600.0
+
+## Minimum throw distance for grenades (pixels) - prevents point-blank throws.
+@export var grenade_min_throw_distance: float = 150.0
+
+## Inaccuracy spread when throwing grenades (radians).
+@export var grenade_inaccuracy: float = 0.15
+
+## Delay before throwing grenade (seconds) - allows animation/telegraph.
+@export var grenade_throw_delay: float = 0.4
+
+## Enable grenade debug logging (separate from general debug_logging).
+@export var grenade_debug_logging: bool = false
+
 signal hit  ## Enemy hit
 signal died  ## Enemy died
 signal died_with_info(is_ricochet_kill: bool, is_penetration_kill: bool)  ## Death with kill info
@@ -162,6 +194,7 @@ signal reload_started  ## Reload started
 signal reload_finished  ## Reload finished
 signal ammo_depleted  ## All ammo depleted
 signal death_animation_completed  ## Death animation done
+signal grenade_thrown(grenade: Node, target_position: Vector2)  ## Grenade thrown (Issue #363)
 
 const PLAYER_DISTRACTION_ANGLE: float = 0.4014  ## ~23° - player distracted threshold
 const AIM_TOLERANCE_DOT: float = 0.866  ## cos(30°) - aim tolerance (issue #254/#264)
@@ -409,6 +442,13 @@ var _flank_cooldown_timer: float = 0.0
 ## Duration to wait after flanking failures before allowing retry (seconds).
 const FLANK_COOLDOWN_DURATION: float = 5.0
 
+## Issue #367: Global position-based stuck detection for PURSUING/FLANKING states.
+## If enemy stays near same position for too long without direct player contact, transition to SEARCHING.
+var _global_stuck_timer: float = 0.0  ## Timer for position-based stuck detection
+var _global_stuck_last_position: Vector2 = Vector2.ZERO  ## Last recorded position for stuck check
+const GLOBAL_STUCK_MAX_TIME: float = 4.0  ## Max time in same area before forced transition
+const GLOBAL_STUCK_DISTANCE_THRESHOLD: float = 30.0  ## Min distance to count as "moved"
+
 ## --- Assault State (coordinated multi-enemy rush) ---
 ## Timer for assault wait period (5 seconds before rushing).
 var _assault_wait_timer: float = 0.0
@@ -536,6 +576,66 @@ var _is_blinded: bool = false
 ## Whether the enemy is currently stunned (cannot move or act).
 var _is_stunned: bool = false
 
+## --- Grenade System State (Issue #363) ---
+## Current number of grenades remaining.
+var _grenades_remaining: int = 0
+
+## Time since last grenade throw (for cooldown).
+var _grenade_cooldown_timer: float = 0.0
+
+## Whether currently in the process of throwing a grenade.
+var _is_throwing_grenade: bool = false
+
+## Timer tracking how long player has been hidden after suppression (Trigger 1).
+var _player_hidden_after_suppression_timer: float = 0.0
+
+## Whether the enemy was suppressed before player hid (Trigger 1).
+var _was_suppressed_before_hidden: bool = false
+
+## Whether an ally was suppressed in view before player hid (Trigger 1).
+var _saw_ally_suppressed: bool = false
+
+## Previous player distance for approach detection (Trigger 2).
+var _previous_player_distance: float = 0.0
+
+## Number of ally deaths witnessed while player was visible (Trigger 3).
+var _witnessed_kills_count: int = 0
+
+## Timer to reset witnessed kill count (Trigger 3).
+var _kill_witness_reset_timer: float = 0.0
+
+## Whether a vulnerable sound (reload/empty click) was heard while player not visible (Trigger 4).
+var _heard_vulnerable_sound: bool = false
+
+## Position where vulnerable sound was heard (Trigger 4).
+var _vulnerable_sound_position: Vector2 = Vector2.ZERO
+
+## Timestamp when vulnerable sound was heard (Trigger 4).
+var _vulnerable_sound_timestamp: float = 0.0
+
+## Center of sustained fire zone (Trigger 5).
+var _fire_zone_center: Vector2 = Vector2.ZERO
+
+## Last gunshot time in fire zone (Trigger 5).
+var _fire_zone_last_sound: float = 0.0
+
+## Total duration of sustained fire in zone (Trigger 5).
+var _fire_zone_total_duration: float = 0.0
+
+## Whether fire zone tracking is active (Trigger 5).
+var _fire_zone_valid: bool = false
+
+## Constants for grenade trigger conditions.
+const GRENADE_HIDDEN_THRESHOLD: float = 6.0  ## Seconds player must be hidden (Trigger 1)
+const GRENADE_PURSUIT_SPEED_THRESHOLD: float = 50.0  ## Player approach speed (Trigger 2)
+const GRENADE_KILL_THRESHOLD: int = 2  ## Kills to witness (Trigger 3)
+const GRENADE_KILL_WITNESS_WINDOW: float = 30.0  ## Window to reset kill count (Trigger 3)
+const GRENADE_SOUND_VALIDITY_WINDOW: float = 5.0  ## How long sound position is valid (Trigger 4)
+const GRENADE_SUSTAINED_FIRE_THRESHOLD: float = 10.0  ## Seconds of sustained fire (Trigger 5)
+const GRENADE_FIRE_GAP_TOLERANCE: float = 2.0  ## Max gap between shots (Trigger 5)
+const GRENADE_VIEWPORT_ZONE_FRACTION: float = 6.0  ## Zone is 1/6 of viewport (Trigger 5)
+const GRENADE_DESPERATION_HEALTH_THRESHOLD: int = 1  ## HP threshold (Trigger 6)
+
 ## Last hit direction (used for death animation).
 var _last_hit_direction: Vector2 = Vector2.RIGHT
 
@@ -562,6 +662,7 @@ func _ready() -> void:
 	_connect_debug_mode_signal()
 	_update_debug_label()
 	_register_sound_listener()
+	_initialize_grenade_system()
 
 	# Store original collision layers for HitArea (to restore on respawn)
 	if _hit_area:
@@ -570,13 +671,6 @@ func _ready() -> void:
 
 	# Log that this enemy is ready (use call_deferred to ensure FileLogger is loaded)
 	call_deferred("_log_spawn_info")
-
-	# Debug: Log weapon sprite status
-	if _weapon_sprite:
-		var texture_status := "loaded" if _weapon_sprite.texture else "NULL"
-		print("[Enemy] WeaponSprite found: visible=%s, z_index=%d, texture=%s" % [_weapon_sprite.visible, _weapon_sprite.z_index, texture_status])
-	else:
-		push_error("[Enemy] WARNING: WeaponSprite node not found!")
 
 	# Preload bullet scene if not set in inspector
 	if bullet_scene == null:
@@ -716,6 +810,9 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 		# Set flag to pursue to sound position even without line of sight
 		_pursuing_vulnerability_sound = true
 
+		# Issue #363: Notify grenade system of vulnerable sound for Trigger 4
+		_on_vulnerable_sound_heard_for_grenade(position)
+
 		# Update memory system with sound-based detection (Issue #297)
 		if _memory:
 			_memory.update_position(position, SOUND_RELOAD_CONFIDENCE)
@@ -746,6 +843,9 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 		_last_known_player_position = position
 		# Set flag to pursue to sound position even without line of sight
 		_pursuing_vulnerability_sound = true
+
+		# Issue #363: Notify grenade system of vulnerable sound for Trigger 4
+		_on_vulnerable_sound_heard_for_grenade(position)
 
 		# Update memory system with sound-based detection (Issue #297)
 		if _memory:
@@ -835,6 +935,9 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 	_log_to_file("Heard gunshot at %s, source_type=%d, intensity=%.2f, distance=%.0f" % [
 		position, source_type, intensity, distance
 	])
+
+	# Issue #363: Track gunshots for sustained fire detection (Trigger 5)
+	_on_gunshot_heard_for_grenade(position)
 
 	# Store the position of the sound as a point of interest
 	# The enemy will investigate this location
@@ -941,6 +1044,35 @@ func _physics_process(delta: float) -> void:
 	if _memory_reset_confusion_timer > 0.0:
 		_memory_reset_confusion_timer = maxf(0.0, _memory_reset_confusion_timer - delta)
 
+	# Issue #367: Global position-based stuck detection for PURSUING/FLANKING states.
+	# If enemy stays in same position for too long without direct player contact, force SEARCHING.
+	if _current_state == AIState.PURSUING or _current_state == AIState.FLANKING:
+		var moved_distance := global_position.distance_to(_global_stuck_last_position)
+		if moved_distance < GLOBAL_STUCK_DISTANCE_THRESHOLD:
+			# Not making significant progress - increment stuck timer
+			# Only count if NOT in direct player contact (can't see and shoot player)
+			if not (_can_see_player and _can_hit_player_from_current_position()):
+				_global_stuck_timer += delta
+				if _global_stuck_timer >= GLOBAL_STUCK_MAX_TIME:
+					_log_to_file("GLOBAL STUCK: pos=%s for %.1fs without player contact, State: %s -> SEARCHING" % [global_position, _global_stuck_timer, AIState.keys()[_current_state]])
+					_global_stuck_timer = 0.0
+					_global_stuck_last_position = global_position
+					# Reset flanking state if applicable
+					if _current_state == AIState.FLANKING:
+						_flank_side_initialized = false
+						_flank_fail_count += 1
+						_flank_cooldown_timer = FLANK_COOLDOWN_DURATION
+					_transition_to_searching(global_position)
+					return  # Skip rest of physics process this frame
+		else:
+			# Making progress - reset stuck timer and update position
+			_global_stuck_timer = 0.0
+			_global_stuck_last_position = global_position
+	else:
+		# Not in PURSUING/FLANKING - reset stuck detection
+		_global_stuck_timer = 0.0
+		_global_stuck_last_position = global_position
+
 	# Check for player visibility and try to find player if not found
 	if _player == null:
 		_find_player()
@@ -949,6 +1081,7 @@ func _physics_process(delta: float) -> void:
 	_update_memory(delta)
 	_update_goap_state()
 	_update_suppression(delta)
+	_update_grenade_triggers(delta)
 
 	# Update enemy model rotation BEFORE processing AI state (which may shoot).
 	# This ensures the weapon is correctly positioned when bullets are created.
@@ -1322,6 +1455,14 @@ func _process_ai_state(delta: float) -> void:
 		if _current_state != AIState.PURSUING and _current_state != AIState.ASSAULT:
 			_transition_to_pursuing()
 			# Don't return - let the state machine continue to process the PURSUING state
+
+	# GRENADE THROW PRIORITY (Issue #363): Check if we should throw a grenade.
+	# Grenades are thrown based on 6 trigger conditions (see trigger-conditions.md).
+	# This takes priority over normal state actions when conditions are met.
+	if _goap_world_state.get("ready_to_throw_grenade", false):
+		if try_throw_grenade():
+			# Grenade was thrown - return early to skip normal state processing this frame
+			return
 
 	# State transitions based on conditions
 	match _current_state:
@@ -1749,104 +1890,66 @@ func _process_in_cover_state(delta: float) -> void:
 		_log_debug("Lost sight of player from cover, transitioning to PURSUING")
 		_transition_to_pursuing()
 
-## Process FLANKING state - attempting to flank the player using cover-to-cover movement.
-## Uses intermediate cover positions to navigate around obstacles instead of walking
-## directly toward the flank target.
+## Process FLANKING state - flank player using cover-to-cover movement.
 func _process_flanking_state(delta: float) -> void:
-	# Update state timer
 	_flank_state_timer += delta
 
-	# Check for overall FLANKING state timeout
 	if _flank_state_timer >= FLANK_STATE_MAX_TIME:
-		var msg := "FLANKING timeout (%.1fs), target=%s, pos=%s" % [_flank_state_timer, _flank_target, global_position]
-		_log_debug(msg)
-		_log_to_file(msg)
+		_log_to_file("FLANKING timeout (%.1fs), target=%s, pos=%s" % [_flank_state_timer, _flank_target, global_position])
 		_flank_side_initialized = false
-		# Try combat if we can see the player, otherwise pursue
-		if _can_see_player:
-			_transition_to_combat()
-		else:
-			_transition_to_pursuing()
+		if _can_see_player: _transition_to_combat()
+		else: _transition_to_pursuing()
 		return
 
-	# Check for stuck detection - not making progress toward flank target
 	var distance_moved := global_position.distance_to(_flank_last_position)
 	if distance_moved < FLANK_PROGRESS_THRESHOLD:
 		_flank_stuck_timer += delta
 		if _flank_stuck_timer >= FLANK_STUCK_MAX_TIME:
-			var msg := "FLANKING stuck (%.1fs no progress), target=%s, pos=%s, fail_count=%d" % [_flank_stuck_timer, _flank_target, global_position, _flank_fail_count + 1]
-			_log_debug(msg)
-			_log_to_file(msg)
+			_log_to_file("FLANKING stuck (%.1fs), pos=%s, fail=%d" % [_flank_stuck_timer, global_position, _flank_fail_count + 1])
 			_flank_side_initialized = false
-			# Increment failure counter and start cooldown
 			_flank_fail_count += 1
 			_flank_cooldown_timer = FLANK_COOLDOWN_DURATION
-			# After multiple failures, go directly to combat or assault to break the loop
 			if _flank_fail_count >= FLANK_FAIL_MAX_COUNT:
-				var msg2 := "FLANKING disabled after %d failures, switching to direct engagement" % _flank_fail_count
-				_log_debug(msg2)
-				_log_to_file(msg2)
-				# Go to combat instead of pursuing to break the FLANKING->PURSUING->FLANKING loop
+				_log_to_file("FLANKING disabled after %d failures" % _flank_fail_count)
 				_transition_to_combat()
 				return
-			# Try combat if we can see the player, otherwise pursue
-			if _can_see_player:
-				_transition_to_combat()
-			else:
-				_transition_to_pursuing()
+			if _can_see_player: _transition_to_combat()
+			else: _transition_to_pursuing()
 			return
 	else:
-		# Making progress - reset stuck timer and update last position
 		_flank_stuck_timer = 0.0
 		_flank_last_position = global_position
-		# Success clears failure count
 		if _flank_fail_count > 0:
 			_flank_fail_count = 0
 
-	# If under fire, retreat with shooting behavior
 	if _under_fire and enable_cover:
 		_flank_side_initialized = false
 		_transition_to_retreating()
 		return
 
-	# Only transition to combat if we can ACTUALLY HIT the player, not just see them.
-	# This is critical for the "last cover" scenario where enemy can see player
-	# but there's a wall blocking the shot. We must continue flanking until we
-	# have a clear shot, otherwise we get stuck in a FLANKING->COMBAT->PURSUING loop.
+	# Only transition to combat if we can ACTUALLY HIT the player (not just see)
 	if _can_see_player and _can_hit_player_from_current_position():
-		_log_debug("Can see AND hit player from flanking position, engaging")
 		_flank_side_initialized = false
 		_transition_to_combat()
 		return
 
 	if _player == null:
 		_flank_side_initialized = false
-		# Issue #330: If enemy has left IDLE, start searching instead of returning to IDLE
-		if _has_left_idle:
-			_log_to_file("FLANKING: Lost player reference, starting search (engaged enemy)")
+		if _has_left_idle:  # Issue #330: search instead of idle
 			_transition_to_searching(global_position)
 		else:
 			_transition_to_idle()
 		return
 
-	# Recalculate flank position (player may have moved)
-	# Note: _flank_side is stable, only the target position is recalculated
-	_calculate_flank_position()
+	_calculate_flank_position()  # Recalculate (player may have moved)
 
-	var distance_to_flank := global_position.distance_to(_flank_target)
-
-	# Check if we've reached the flank target
-	if distance_to_flank < 30.0:
-		_log_debug("Reached flank position, engaging")
+	if global_position.distance_to(_flank_target) < 30.0:
 		_flank_side_initialized = false
 		_transition_to_combat()
 		return
 
-	# Use navigation-based pathfinding to move toward flank target
-	# This handles obstacles properly unlike direct movement with wall avoidance
 	_move_to_target_nav(_flank_target, combat_move_speed)
-
-	# Corner checking during FLANKING (Issue #332)
+	# Corner checking during FLANKING movement (Issue #332)
 	if velocity.length_squared() > 1.0:
 		_process_corner_check(delta, velocity.normalized(), "FLANKING")
 
@@ -2523,35 +2626,18 @@ func _shoot_burst_shot() -> void:
 ## Transition to IDLE state.
 func _transition_to_idle() -> void:
 	_current_state = AIState.IDLE
-	# Reset encounter hit tracking when returning to idle
-	_hits_taken_in_encounter = 0
-	# Reset alarm mode when returning to idle
-	_in_alarm_mode = false
-	_cover_burst_pending = false
-	# Reset idle scanning state for GUARD enemies
-	_idle_scan_timer = 0.0
-	_idle_scan_targets.clear()  # Will be re-initialized in _process_guard
+	# Reset various state tracking when returning to idle
+	_hits_taken_in_encounter = 0; _in_alarm_mode = false; _cover_burst_pending = false
+	_idle_scan_timer = 0.0; _idle_scan_targets.clear()  # Will be re-initialized in _process_guard
 
 ## Transition to COMBAT state.
 func _transition_to_combat() -> void:
 	_current_state = AIState.COMBAT
-	# Mark that enemy has left IDLE state (Issue #330)
-	_has_left_idle = true
-	# Reset detection delay timer when entering combat
-	_detection_timer = 0.0
-	_detection_delay_elapsed = false
-	# Reset combat phase variables
-	_combat_exposed = false
-	_combat_approaching = false
-	_combat_shoot_timer = 0.0
-	_combat_approach_timer = 0.0
-	# Reset state duration timer (prevents rapid state thrashing)
-	_combat_state_timer = 0.0
-	# Reset clear shot seeking variables
-	_seeking_clear_shot = false
-	_clear_shot_timer = 0.0
-	_clear_shot_target = Vector2.ZERO
-	# Clear vulnerability sound pursuit flag
+	_has_left_idle = true  # Issue #330
+	_detection_timer = 0.0; _detection_delay_elapsed = false
+	_combat_exposed = false; _combat_approaching = false
+	_combat_shoot_timer = 0.0; _combat_approach_timer = 0.0; _combat_state_timer = 0.0
+	_seeking_clear_shot = false; _clear_shot_timer = 0.0; _clear_shot_target = Vector2.ZERO
 	_pursuing_vulnerability_sound = false
 
 ## Transition to SEEKING_COVER state.
@@ -2616,10 +2702,13 @@ func _transition_to_flanking() -> bool:
 	_flank_cover_wait_timer = 0.0
 	_has_flank_cover = false
 	_has_valid_cover = false
-	# Initialize timeout and progress tracking for stuck detection
+	# Initialize timeout and progress tracking for stuck detection (Issue #367)
 	_flank_state_timer = 0.0
 	_flank_stuck_timer = 0.0
 	_flank_last_position = global_position
+	# Reset global stuck detection
+	_global_stuck_timer = 0.0
+	_global_stuck_last_position = global_position
 	var msg := "FLANKING started: target=%s, side=%s, pos=%s" % [_flank_target, "right" if _flank_side > 0 else "left", global_position]
 	_log_debug(msg)
 	_log_to_file(msg)
@@ -2672,6 +2761,9 @@ func _transition_to_pursuing() -> void:
 	_current_cover_obstacle = null
 	# Reset state duration timer (prevents rapid state thrashing)
 	_pursuing_state_timer = 0.0
+	# Reset global stuck detection (Issue #367)
+	_global_stuck_timer = 0.0
+	_global_stuck_last_position = global_position
 	# Reset detection delay for new engagement
 	_detection_timer = 0.0
 	_detection_delay_elapsed = false
@@ -3415,6 +3507,8 @@ func _calculate_flank_position() -> void:
 	_log_debug("Flank target: %s (side: %s)" % [_flank_target, "right" if _flank_side > 0 else "left"])
 
 ## Choose the best flank side (1.0=right, -1.0=left) based on obstacle presence.
+## Issue #367: Also checks if the flank position has line-of-sight to the player,
+## to avoid choosing positions behind walls relative to the player.
 func _choose_best_flank_side() -> float:
 	if _player == null:
 		return 1.0 if randf() > 0.5 else -1.0
@@ -3429,29 +3523,41 @@ func _choose_best_flank_side() -> float:
 	var right_flank_pos := player_pos + right_flank_dir * flank_distance
 	var left_flank_pos := player_pos + left_flank_dir * flank_distance
 
-	# Check if paths are clear for both sides
-	var right_clear := _has_clear_path_to(right_flank_pos)
-	var left_clear := _has_clear_path_to(left_flank_pos)
+	# Check if paths are clear for both sides (from enemy to flank position)
+	var right_path_clear := _has_clear_path_to(right_flank_pos)
+	var left_path_clear := _has_clear_path_to(left_flank_pos)
 
-	# If only one side is clear, use that side
-	if right_clear and not left_clear:
-		_log_debug("Choosing right flank (left blocked)")
+	# Issue #367: Check LOS to player and combine with path checks
+	var right_valid := right_path_clear and _flank_position_has_los_to_player(right_flank_pos, player_pos)
+	var left_valid := left_path_clear and _flank_position_has_los_to_player(left_flank_pos, player_pos)
+
+	if right_valid and not left_valid:
 		return 1.0
-	elif left_clear and not right_clear:
-		_log_debug("Choosing left flank (right blocked)")
+	elif left_valid and not right_valid:
 		return -1.0
 
-	# If both or neither are clear, choose based on which side we're already closer to
-	# This creates more natural movement patterns
-	var right_distance := global_position.distance_to(right_flank_pos)
-	var left_distance := global_position.distance_to(left_flank_pos)
+	# Issue #367: If neither valid, try reduced distance (50%)
+	if not right_valid and not left_valid:
+		var rd := flank_distance * 0.5
+		var rr := player_pos + right_flank_dir * rd
+		var lr := player_pos + left_flank_dir * rd
+		var rrv := _has_clear_path_to(rr) and _flank_position_has_los_to_player(rr, player_pos)
+		var lrv := _has_clear_path_to(lr) and _flank_position_has_los_to_player(lr, player_pos)
+		if rrv and not lrv:
+			return 1.0
+		elif lrv and not rrv:
+			return -1.0
+		if not rrv and not lrv:
+			_log_to_file("Warning: No valid flank position (both sides behind walls)")
 
-	if right_distance < left_distance:
-		_log_debug("Choosing right flank (closer)")
-		return 1.0
-	else:
-		_log_debug("Choosing left flank (closer)")
-		return -1.0
+	# Choose closer side
+	return 1.0 if global_position.distance_squared_to(right_flank_pos) < global_position.distance_squared_to(left_flank_pos) else -1.0
+
+## Check if flank position has LOS to player (Issue #367).
+func _flank_position_has_los_to_player(flank_pos: Vector2, player_pos: Vector2) -> bool:
+	var query := PhysicsRayQueryParameters2D.create(flank_pos, player_pos)
+	query.collision_mask = 0b100  # Walls only
+	return get_world_2d().direct_space_state.intersect_ray(query).is_empty()
 
 ## Check if there's a clear path (no obstacles) to the target position.
 func _has_clear_path_to(target: Vector2) -> bool:
@@ -4454,6 +4560,9 @@ func _reset() -> void:
 	_pursuit_approaching = false
 	_pursuit_approach_timer = 0.0
 	_pursuing_state_timer = 0.0
+	# Reset global stuck detection (Issue #367)
+	_global_stuck_timer = 0.0
+	_global_stuck_last_position = Vector2.ZERO
 	# Reset assault state variables
 	_assault_wait_timer = 0.0
 	_assault_ready = false
@@ -4988,3 +5097,564 @@ func is_blinded() -> bool:
 ## Check if the enemy is currently stunned.
 func is_stunned() -> bool:
 	return _is_stunned
+
+# ============================================================================
+# Grenade System (Issue #363)
+# ============================================================================
+
+## Get the current map/scene name for DifficultyManager queries.
+func _get_current_map_name() -> String:
+	var current_scene := get_tree().current_scene
+	if current_scene != null:
+		return current_scene.name
+	return ""
+
+## Initialize the grenade system with configured grenade count.
+## Called from _ready() and can also be called to reset grenades.
+func _initialize_grenade_system() -> void:
+	_grenade_cooldown_timer = 0.0
+	_is_throwing_grenade = false
+
+	# Reset all trigger condition states
+	_player_hidden_after_suppression_timer = 0.0
+	_was_suppressed_before_hidden = false
+	_saw_ally_suppressed = false
+	_previous_player_distance = 0.0
+	_witnessed_kills_count = 0
+	_kill_witness_reset_timer = 0.0
+	_heard_vulnerable_sound = false
+	_vulnerable_sound_position = Vector2.ZERO
+	_vulnerable_sound_timestamp = 0.0
+	_fire_zone_center = Vector2.ZERO
+	_fire_zone_last_sound = 0.0
+	_fire_zone_total_duration = 0.0
+	_fire_zone_valid = false
+
+	# Determine grenade count: use export value if set, otherwise query DifficultyManager
+	if grenade_count > 0:
+		# Use explicitly set grenade count from export
+		_grenades_remaining = grenade_count
+		_log_grenade("Using export grenade_count: %d" % grenade_count)
+	else:
+		# Query DifficultyManager for map-based grenade assignment
+		var map_name := _get_current_map_name()
+		if DifficultyManager.are_enemy_grenades_enabled(map_name):
+			_grenades_remaining = DifficultyManager.get_enemy_grenade_count(map_name)
+			if _grenades_remaining > 0:
+				_log_grenade("DifficultyManager assigned %d grenades (map: %s)" % [_grenades_remaining, map_name])
+		else:
+			_grenades_remaining = 0
+
+	# Load grenade scene if needed
+	if grenade_scene == null and _grenades_remaining > 0:
+		var map_name := _get_current_map_name()
+		var scene_path := DifficultyManager.get_enemy_grenade_scene_path(map_name)
+		grenade_scene = load(scene_path)
+		if grenade_scene == null:
+			# Fallback to default frag grenade
+			grenade_scene = preload("res://scenes/projectiles/FragGrenade.tscn")
+			push_warning("[Enemy] Failed to load grenade scene: %s, using default" % scene_path)
+
+	if _grenades_remaining > 0:
+		_log_grenade("Grenade system initialized: %d grenades" % _grenades_remaining)
+
+## Log grenade-specific debug messages.
+func _log_grenade(message: String) -> void:
+	if grenade_debug_logging:
+		print("[Enemy.Grenade] %s" % message)
+	_log_to_file("[Grenade] %s" % message)
+
+## Update grenade trigger conditions. Called every physics frame.
+## This updates the world state flags for grenade-related decisions.
+func _update_grenade_triggers(delta: float) -> void:
+	if not enable_grenade_throwing or _grenades_remaining <= 0:
+		return
+
+	# Update grenade cooldown timer
+	if _grenade_cooldown_timer > 0.0:
+		_grenade_cooldown_timer -= delta
+
+	# Update kill witness reset timer (Trigger 3)
+	if _kill_witness_reset_timer > 0.0:
+		_kill_witness_reset_timer -= delta
+		if _kill_witness_reset_timer <= 0.0:
+			_witnessed_kills_count = 0
+
+	# Update player hidden timer (Trigger 1)
+	_update_trigger_suppression_hidden(delta)
+
+	# Update player approach tracking (Trigger 2)
+	_update_trigger_pursuit(delta)
+
+	# Update sustained fire tracking (Trigger 5)
+	_update_trigger_sustained_fire(delta)
+
+	# Update GOAP world state with trigger flags
+	_update_grenade_world_state()
+
+## Update Trigger 1: Player suppressed us/allies, then hid for 6 seconds.
+func _update_trigger_suppression_hidden(delta: float) -> void:
+	# Check if we're currently suppressed or saw an ally get suppressed
+	if _under_fire:
+		_was_suppressed_before_hidden = true
+
+	# If player was suppressing us but is now hidden
+	if _was_suppressed_before_hidden and not _can_see_player:
+		_player_hidden_after_suppression_timer += delta
+	else:
+		# Player is visible or we weren't suppressed - reset
+		if _can_see_player:
+			_player_hidden_after_suppression_timer = 0.0
+			_was_suppressed_before_hidden = false
+
+## Update Trigger 2: Player is pursuing suppressed thrower.
+func _update_trigger_pursuit(delta: float) -> void:
+	if _player == null:
+		return
+
+	var current_distance := global_position.distance_to(_player.global_position)
+
+	# Track if player is getting closer (pursuit detection)
+	# Only update if we had a previous measurement
+	if _previous_player_distance > 0.0:
+		var distance_delta := _previous_player_distance - current_distance
+		var approach_speed := distance_delta / delta if delta > 0 else 0.0
+
+		# Store in world state for GOAP planning
+		_goap_world_state["player_approaching_speed"] = approach_speed
+
+	_previous_player_distance = current_distance
+
+## Update Trigger 5: 10 seconds of sustained fire in 1/6 viewport zone.
+func _update_trigger_sustained_fire(delta: float) -> void:
+	if not _fire_zone_valid:
+		return
+
+	var current_time := Time.get_ticks_msec() / 1000.0
+	var time_since_last := current_time - _fire_zone_last_sound
+
+	# If gap too long, invalidate the zone
+	if time_since_last > GRENADE_FIRE_GAP_TOLERANCE:
+		_fire_zone_valid = false
+		_fire_zone_total_duration = 0.0
+
+## Calculate the zone radius for sustained fire detection.
+func _get_grenade_zone_radius() -> float:
+	var viewport := get_viewport()
+	if viewport == null:
+		return 200.0  # Default fallback
+
+	var viewport_size := viewport.get_visible_rect().size
+	var viewport_diagonal := sqrt(viewport_size.x ** 2 + viewport_size.y ** 2)
+	return viewport_diagonal / GRENADE_VIEWPORT_ZONE_FRACTION / 2.0
+
+## Handle gunshot sounds for sustained fire tracking (Trigger 5).
+## Called from on_sound_heard_with_intensity when a gunshot is detected.
+func _on_gunshot_heard_for_grenade(position: Vector2) -> void:
+	if not enable_grenade_throwing or _grenades_remaining <= 0:
+		return
+
+	var zone_radius := _get_grenade_zone_radius()
+	var current_time := Time.get_ticks_msec() / 1000.0
+
+	if _fire_zone_valid:
+		var distance_to_zone := position.distance_to(_fire_zone_center)
+		var time_since_last := current_time - _fire_zone_last_sound
+
+		if distance_to_zone <= zone_radius and time_since_last <= GRENADE_FIRE_GAP_TOLERANCE:
+			# Same zone, continuous fire
+			_fire_zone_total_duration += time_since_last
+			_fire_zone_last_sound = current_time
+
+			if grenade_debug_logging:
+				_log_grenade("Sustained fire: %.1fs in zone at %s" % [_fire_zone_total_duration, position])
+		else:
+			# Different zone or gap too long, reset
+			_start_new_fire_zone(position, current_time)
+	else:
+		_start_new_fire_zone(position, current_time)
+
+## Start tracking a new fire zone.
+func _start_new_fire_zone(position: Vector2, time: float) -> void:
+	_fire_zone_center = position
+	_fire_zone_last_sound = time
+	_fire_zone_total_duration = 0.0
+	_fire_zone_valid = true
+
+## Handle reload/empty click sounds for grenade targeting (Trigger 4).
+## Called from on_sound_heard_with_intensity.
+func _on_vulnerable_sound_heard_for_grenade(position: Vector2) -> void:
+	if not enable_grenade_throwing or _grenades_remaining <= 0:
+		return
+
+	# Only react if we can't see the player
+	if not _can_see_player:
+		_heard_vulnerable_sound = true
+		_vulnerable_sound_position = position
+		_vulnerable_sound_timestamp = Time.get_ticks_msec() / 1000.0
+		_log_grenade("Heard vulnerable sound at %s - potential grenade target" % position)
+
+## Called when an ally dies. Updates witnessed kill count (Trigger 3).
+## Connect this to ally death signals.
+func on_ally_died(ally_position: Vector2, killer_is_player: bool) -> void:
+	if not killer_is_player:
+		return
+
+	if not enable_grenade_throwing or _grenades_remaining <= 0:
+		return
+
+	# Check if we can see where the ally died
+	if _can_see_position(ally_position):
+		_witnessed_kills_count += 1
+		_kill_witness_reset_timer = GRENADE_KILL_WITNESS_WINDOW
+		_log_grenade("Witnessed ally kill #%d at %s" % [_witnessed_kills_count, ally_position])
+
+## Check if a position is visible to this enemy (line of sight).
+func _can_see_position(pos: Vector2) -> bool:
+	if _raycast == null:
+		return false
+
+	# Temporarily set raycast to check this position
+	var original_target := _raycast.target_position
+	_raycast.target_position = pos - global_position
+	_raycast.force_raycast_update()
+
+	var can_see := not _raycast.is_colliding()
+	_raycast.target_position = original_target
+
+	return can_see
+
+## Update GOAP world state with grenade trigger conditions.
+func _update_grenade_world_state() -> void:
+	# Basic grenade availability
+	_goap_world_state["has_grenades"] = _grenades_remaining > 0
+	_goap_world_state["grenades_remaining"] = _grenades_remaining
+	_goap_world_state["grenade_cooldown_ready"] = _grenade_cooldown_timer <= 0.0
+
+	# Trigger 1: Suppression hidden
+	var t1 := _should_trigger_suppression_grenade()
+	_goap_world_state["trigger_1_suppression_hidden"] = t1
+
+	# Trigger 2: Player pursuing
+	var t2 := _should_trigger_pursuit_grenade()
+	_goap_world_state["trigger_2_pursuit"] = t2
+
+	# Trigger 3: Witnessed kills
+	var t3 := _should_trigger_witness_grenade()
+	_goap_world_state["trigger_3_witness_kills"] = t3
+
+	# Trigger 4: Sound-based
+	var t4 := _should_trigger_sound_grenade()
+	_goap_world_state["trigger_4_sound_based"] = t4
+
+	# Trigger 5: Sustained fire
+	var t5 := _should_trigger_sustained_fire_grenade()
+	_goap_world_state["trigger_5_sustained_fire"] = t5
+
+	# Trigger 6: Desperation
+	var t6 := _should_trigger_desperation_grenade()
+	_goap_world_state["trigger_6_desperation"] = t6
+
+	# Combined flag for any trigger
+	var any_trigger := t1 or t2 or t3 or t4 or t5 or t6
+	var was_ready: bool = _goap_world_state.get("ready_to_throw_grenade", false)
+	_goap_world_state["ready_to_throw_grenade"] = _grenade_cooldown_timer <= 0.0 and _grenades_remaining > 0 and any_trigger
+
+	# Log trigger state changes for debugging
+	if _goap_world_state["ready_to_throw_grenade"] and not was_ready:
+		var triggers: PackedStringArray = []
+		if t1: triggers.append("T1:SuppressionHidden")
+		if t2: triggers.append("T2:Pursuit")
+		if t3: triggers.append("T3:WitnessKills")
+		if t4: triggers.append("T4:SoundBased")
+		if t5: triggers.append("T5:SustainedFire")
+		if t6: triggers.append("T6:Desperation")
+		_log_grenade("TRIGGER ACTIVE: %s (grenades: %d)" % [", ".join(triggers), _grenades_remaining])
+
+## Check Trigger 1: Player suppressed us, then hid for 6 seconds.
+func _should_trigger_suppression_grenade() -> bool:
+	# Must have been suppressed and player now hidden
+	if not _was_suppressed_before_hidden:
+		return false
+
+	# Player must still be hidden
+	if _can_see_player:
+		return false
+
+	# 6 seconds must have passed
+	return _player_hidden_after_suppression_timer >= GRENADE_HIDDEN_THRESHOLD
+
+## Check Trigger 2: Player is pursuing suppressed thrower.
+func _should_trigger_pursuit_grenade() -> bool:
+	# Must be under fire (suppressed)
+	if not _under_fire:
+		return false
+
+	# Check if player is approaching
+	var approach_speed: float = _goap_world_state.get("player_approaching_speed", 0.0)
+	return approach_speed >= GRENADE_PURSUIT_SPEED_THRESHOLD
+
+## Check Trigger 3: Witnessed 2+ player kills.
+func _should_trigger_witness_grenade() -> bool:
+	return _witnessed_kills_count >= GRENADE_KILL_THRESHOLD
+
+## Check Trigger 4: Heard reload/empty click but can't see player.
+func _should_trigger_sound_grenade() -> bool:
+	if not _heard_vulnerable_sound:
+		return false
+
+	# Sound must be recent
+	var current_time := Time.get_ticks_msec() / 1000.0
+	var sound_age := current_time - _vulnerable_sound_timestamp
+	if sound_age > GRENADE_SOUND_VALIDITY_WINDOW:
+		_heard_vulnerable_sound = false
+		return false
+
+	# Must still not see player
+	return not _can_see_player
+
+## Check Trigger 5: 10 seconds of sustained fire in small zone.
+func _should_trigger_sustained_fire_grenade() -> bool:
+	if not _fire_zone_valid:
+		return false
+
+	return _fire_zone_total_duration >= GRENADE_SUSTAINED_FIRE_THRESHOLD
+
+## Check Trigger 6: Low health desperation.
+func _should_trigger_desperation_grenade() -> bool:
+	return _current_health <= GRENADE_DESPERATION_HEALTH_THRESHOLD
+
+## Get the best grenade target position based on active triggers.
+## Returns Vector2.ZERO if no valid target.
+func _get_grenade_target_position() -> Vector2:
+	# Priority order from lowest cost (highest priority) to highest cost
+
+	# Trigger 6: Desperation - throw at last known player position
+	if _should_trigger_desperation_grenade():
+		if _player != null:
+			return _player.global_position
+		if _memory and _memory.has_target():
+			return _memory.suspected_position
+
+	# Trigger 4: Sound-based - throw where sound came from
+	if _should_trigger_sound_grenade():
+		return _vulnerable_sound_position
+
+	# Trigger 2: Pursuit - throw behind us to slow pursuer
+	if _should_trigger_pursuit_grenade():
+		if _player != null:
+			# Throw between us and the player
+			var direction_to_player := (_player.global_position - global_position).normalized()
+			var throw_distance := minf(200.0, global_position.distance_to(_player.global_position) * 0.5)
+			return global_position + direction_to_player * throw_distance
+
+	# Trigger 3: Witness kills - throw at last known player position
+	if _should_trigger_witness_grenade():
+		if _player != null and _can_see_player:
+			return _player.global_position
+		if _memory and _memory.has_target():
+			return _memory.suspected_position
+
+	# Trigger 5: Sustained fire - throw at fire zone center
+	if _should_trigger_sustained_fire_grenade():
+		return _fire_zone_center
+
+	# Trigger 1: Suppression hidden - throw at last known position
+	if _should_trigger_suppression_grenade():
+		if _memory and _memory.has_target():
+			return _memory.suspected_position
+		return _last_known_player_position
+
+	# No valid target
+	return Vector2.ZERO
+
+## Check if the enemy can throw a grenade right now.
+func _can_throw_grenade() -> bool:
+	# Basic checks
+	if not enable_grenade_throwing:
+		return false
+
+	if _grenades_remaining <= 0:
+		return false
+
+	if _grenade_cooldown_timer > 0.0:
+		return false
+
+	if _is_throwing_grenade:
+		return false
+
+	if not _is_alive:
+		return false
+
+	if _is_stunned or _is_blinded:
+		return false
+
+	# Must have a valid trigger active
+	return _goap_world_state.get("ready_to_throw_grenade", false)
+
+## Attempt to throw a grenade. Returns true if throw was initiated.
+func try_throw_grenade() -> bool:
+	if not _can_throw_grenade():
+		return false
+
+	var target_position := _get_grenade_target_position()
+	if target_position == Vector2.ZERO:
+		return false
+
+	# Check distance constraints
+	var distance := global_position.distance_to(target_position)
+	if distance < grenade_min_throw_distance:
+		_log_grenade("Target too close (%.0f < %.0f) - skipping throw" % [distance, grenade_min_throw_distance])
+		return false
+
+	if distance > grenade_max_throw_distance:
+		# Clamp to max distance
+		var direction := (target_position - global_position).normalized()
+		target_position = global_position + direction * grenade_max_throw_distance
+		distance = grenade_max_throw_distance
+
+	# Check line of sight for throw (not blocked by walls)
+	if not _is_throw_path_clear(target_position):
+		_log_grenade("Throw path blocked to %s" % target_position)
+		return false
+
+	# Execute the throw
+	_execute_grenade_throw(target_position)
+	return true
+
+## Check if the grenade throw path is clear.
+func _is_throw_path_clear(target_position: Vector2) -> bool:
+	var space_state := get_world_2d().direct_space_state
+	if space_state == null:
+		return true  # Assume clear if we can't check
+
+	var query := PhysicsRayQueryParameters2D.create(global_position, target_position)
+	query.collision_mask = 4  # Only check obstacles (layer 3)
+	query.exclude = [self]
+
+	var result := space_state.intersect_ray(query)
+
+	# Path is clear if no collision, or collision is past halfway point
+	if result.is_empty():
+		return true
+
+	var collision_distance := global_position.distance_to(result.position)
+	var total_distance := global_position.distance_to(target_position)
+
+	# Allow throw if collision is past 60% of the way (grenade can arc over)
+	return collision_distance > total_distance * 0.6
+
+## Execute the grenade throw.
+func _execute_grenade_throw(target_position: Vector2) -> void:
+	if grenade_scene == null:
+		_log_grenade("ERROR: No grenade scene configured!")
+		return
+
+	_is_throwing_grenade = true
+
+	# Add delay before throwing grenade (telegraph/wind-up animation)
+	if grenade_throw_delay > 0.0:
+		_log_grenade("Preparing throw (%.0fms delay)..." % (grenade_throw_delay * 1000))
+		await get_tree().create_timer(grenade_throw_delay).timeout
+
+	# Safety checks after delay - enemy may have died or been incapacitated
+	if not _is_alive or _is_stunned or _is_blinded:
+		_log_grenade("Throw cancelled - incapacitated during delay")
+		_is_throwing_grenade = false
+		return
+	if not is_instance_valid(self):
+		return
+
+	# Calculate throw direction with inaccuracy
+	var base_direction := (target_position - global_position).normalized()
+	var inaccuracy_angle := randf_range(-grenade_inaccuracy, grenade_inaccuracy)
+	var throw_direction := base_direction.rotated(inaccuracy_angle)
+
+	# Calculate throw distance
+	var distance := global_position.distance_to(target_position)
+
+	# Instantiate grenade
+	var grenade: Node2D = grenade_scene.instantiate()
+
+	# Set initial position slightly in front of enemy
+	var spawn_offset := 40.0
+	grenade.global_position = global_position + throw_direction * spawn_offset
+
+	# Add to scene tree
+	var parent := get_tree().current_scene
+	if parent:
+		parent.add_child(grenade)
+	else:
+		get_parent().add_child(grenade)
+
+	# Activate and throw the grenade
+	if grenade.has_method("activate_timer"):
+		grenade.activate_timer()
+
+	# Calculate throw velocity - use similar formula to player grenades
+	var throw_speed := clampf(distance * 1.5, 200.0, 800.0)
+
+	if grenade.has_method("throw_grenade"):
+		grenade.throw_grenade(throw_direction, distance)
+	elif grenade is RigidBody2D:
+		# Direct physics fallback
+		grenade.freeze = false
+		grenade.linear_velocity = throw_direction * throw_speed
+		grenade.rotation = throw_direction.angle()
+
+	# Log the throw
+	var trigger_name := _get_active_trigger_name()
+	_log_grenade("THROWN! Target: %s, Distance: %.0f, Trigger: %s" % [target_position, distance, trigger_name])
+	_log_to_file("Grenade thrown at %s (distance=%.0f, trigger=%s)" % [target_position, distance, trigger_name])
+
+	# Update state
+	_grenades_remaining -= 1
+	_grenade_cooldown_timer = grenade_throw_cooldown
+	_is_throwing_grenade = false
+
+	# Clear trigger states that have been acted on
+	_clear_acted_triggers()
+
+	# Emit signal
+	grenade_thrown.emit(grenade, target_position)
+
+## Get the name of the currently active trigger (for logging).
+func _get_active_trigger_name() -> String:
+	if _should_trigger_desperation_grenade():
+		return "Trigger6_Desperation"
+	elif _should_trigger_sound_grenade():
+		return "Trigger4_Sound"
+	elif _should_trigger_pursuit_grenade():
+		return "Trigger2_Pursuit"
+	elif _should_trigger_witness_grenade():
+		return "Trigger3_WitnessKills"
+	elif _should_trigger_sustained_fire_grenade():
+		return "Trigger5_SustainedFire"
+	elif _should_trigger_suppression_grenade():
+		return "Trigger1_SuppressionHidden"
+	return "Unknown"
+
+## Clear trigger states after a grenade has been thrown.
+func _clear_acted_triggers() -> void:
+	# Clear Trigger 1 state
+	_player_hidden_after_suppression_timer = 0.0
+	_was_suppressed_before_hidden = false
+
+	# Clear Trigger 3 state
+	_witnessed_kills_count = 0
+
+	# Clear Trigger 4 state
+	_heard_vulnerable_sound = false
+
+	# Clear Trigger 5 state
+	_fire_zone_valid = false
+	_fire_zone_total_duration = 0.0
+
+## Get the number of grenades remaining.
+func get_grenades_remaining() -> int:
+	return _grenades_remaining
+
+## Add grenades to the enemy's inventory.
+func add_grenades(count: int) -> void:
+	_grenades_remaining += count
+	_log_grenade("Added %d grenades, now have %d" % [count, _grenades_remaining])
