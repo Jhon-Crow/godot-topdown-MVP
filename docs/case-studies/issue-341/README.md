@@ -600,6 +600,73 @@ The implementation uses proven Godot patterns documented in official resources a
 
 ---
 
+## Implementation Results
+
+### Final Implementation (2026-01-25)
+
+Following the review feedback from @Jhon-Crow, the implementation was completed using the Area2D approach for character detection, which proved more reliable than the collision-based approach for top-down physics.
+
+#### Changes Made
+
+**1. Updated `scenes/effects/Casing.tscn`:**
+- `collision_layer = 64` (layer 7 for items)
+- `collision_mask = 7` (layers 1 + 2 + 3 = player + enemies + walls)
+- Added `PhysicsMaterial2D` with bounce = 0.35, friction = 0.55
+- Added `KickDetector` Area2D with `collision_mask = 3` (player + enemies)
+- Set `mass = 0.1` for easy pushing
+
+**2. Enhanced `scripts/effects/casing.gd`:**
+- Added `_on_kick_detector_body_entered()` to detect character overlap
+- Implemented impulse-based kick physics based on character velocity
+- Added bounce sound system with velocity threshold (75 px/s)
+- Added sound cooldown (0.1s) to prevent audio spam
+- Casings wake from "landed" state when kicked
+- Different sounds for rifle/pistol/shotgun calibers via AudioManager
+
+**3. CI Fix:**
+- Merged main branch to resolve enemy.gd line count issue
+- Final: 4999 lines (within 5000 limit)
+
+#### Design Decision: Area2D vs Collision
+
+The implementation uses an Area2D "KickDetector" child node instead of relying on `get_slide_collision()` because:
+
+1. **Reliability:** CharacterBody2D's collision system filters out low-mass RigidBody2D objects
+2. **Top-Down Physics:** In a top-down game with `gravity_scale = 0`, RigidBody2D behavior differs from platformers
+3. **Simplicity:** Area2D overlap detection is more straightforward for this use case
+4. **One-Way Detection:** Casings detect characters, not the other way around, keeping character collision masks simple
+
+#### Collision Layer Summary
+
+| Object | collision_layer | collision_mask | Purpose |
+|--------|-----------------|----------------|---------|
+| Player | 1 | 4 | Characters (layer 1), detects walls only |
+| Enemy | 2 | 4 | Characters (layer 2), detects walls only |
+| Walls | 4 | 0 | Static environment |
+| Casings | 64 | 7 | Items (layer 7), detects player+enemies+walls |
+| KickDetector | 0 | 3 | No layer (invisible), detects player+enemies |
+
+#### Test Criteria Met
+
+- ✅ Player walking through casings pushes them realistically
+- ✅ Enemies walking through casings pushes them realistically
+- ✅ Casings bounce off walls with metallic cling sound
+- ✅ Sound plays on significant impacts (velocity > 75 px/s)
+- ✅ No sound spam (0.1s cooldown)
+- ✅ Correct caliber-specific sounds (rifle/pistol/shotgun)
+- ✅ Time freeze still works
+- ✅ All CI checks pass
+
+#### Files Modified
+
+| File | Lines Changed | Description |
+|------|--------------|-------------|
+| scenes/effects/Casing.tscn | +19, -6 | Collision layers, physics material, KickDetector |
+| scripts/effects/casing.gd | +130, -10 | Kick detection, sound system, improved landing |
+
+---
+
 *Case study compiled: 2026-01-25*
+*Implementation completed: 2026-01-25*
 *Branch: issue-341-9704ef182b3c*
 *PR: [#342](https://github.com/Jhon-Crow/godot-topdown-MVP/pull/342)*
