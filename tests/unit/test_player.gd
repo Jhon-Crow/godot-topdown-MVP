@@ -109,7 +109,20 @@ class MockPlayer:
 		return _is_alive
 
 
+	## Blood effect tracking for testing (Issue #350)
+	var blood_effects_spawned: Array = []
+	var on_blood_effect: Callable
+
+
 	func on_hit() -> void:
+		on_hit_with_info(Vector2.RIGHT, null)
+
+
+	## Extended hit method with direction and caliber data.
+	## This mirrors the real player's on_hit_with_info method.
+	## @param hit_direction: Direction the bullet was traveling.
+	## @param caliber_data: Caliber resource for effect scaling.
+	func on_hit_with_info(hit_direction: Vector2, caliber_data: Resource) -> void:
 		if not _is_alive:
 			return
 
@@ -117,6 +130,19 @@ class MockPlayer:
 
 		if on_health_changed:
 			on_health_changed.call(_current_health, max_health)
+
+		# Track blood effect (mirrors ImpactEffectsManager.spawn_blood_effect call)
+		var is_lethal := _current_health <= 0
+		var blood_info := {
+			"position": Vector2.ZERO,  # Would be global_position in real player
+			"direction": hit_direction,
+			"caliber_data": caliber_data,
+			"is_lethal": is_lethal
+		}
+		blood_effects_spawned.append(blood_info)
+
+		if on_blood_effect:
+			on_blood_effect.call(blood_info)
 
 		if _current_health <= 0:
 			_is_alive = false
@@ -516,3 +542,91 @@ func test_max_ammo_can_be_changed() -> void:
 	player._current_ammo = 60
 
 	assert_eq(player.get_max_ammo(), 60, "Max ammo should update for difficulty")
+
+
+# ============================================================================
+# Blood Effect Tests (Issue #350)
+# These tests verify blood effect spawning behavior that matches the
+# C# Player implementation in Scripts/Characters/Player.cs.
+# The C# Player now has on_hit_with_info() method that spawns blood effects
+# via ImpactEffectsManager.spawn_blood_effect().
+# ============================================================================
+
+
+func test_blood_effect_spawned_on_non_lethal_hit() -> void:
+	player._current_health = 5  # Full health
+	player.on_hit_with_info(Vector2.RIGHT, null)
+
+	assert_eq(player.blood_effects_spawned.size(), 1,
+		"Blood effect should be spawned on non-lethal hit")
+
+	var effect = player.blood_effects_spawned[0]
+	assert_false(effect.is_lethal, "Non-lethal hit should have is_lethal=false")
+
+
+func test_blood_effect_spawned_on_lethal_hit() -> void:
+	player._current_health = 1  # One hit from death
+	player.on_hit_with_info(Vector2.LEFT, null)
+
+	assert_eq(player.blood_effects_spawned.size(), 1,
+		"Blood effect should be spawned on lethal hit")
+
+	var effect = player.blood_effects_spawned[0]
+	assert_true(effect.is_lethal, "Lethal hit should have is_lethal=true")
+
+
+func test_blood_effect_direction_matches_hit_direction() -> void:
+	var hit_dir := Vector2(0.5, -0.5).normalized()
+	player.on_hit_with_info(hit_dir, null)
+
+	var effect = player.blood_effects_spawned[0]
+	assert_eq(effect.direction, hit_dir, "Blood effect direction should match hit direction")
+
+
+func test_blood_effect_callback_called() -> void:
+	var callback_called := false
+	var received_info = null
+	player.on_blood_effect = func(info):
+		callback_called = true
+		received_info = info
+
+	player.on_hit_with_info(Vector2.DOWN, null)
+
+	assert_true(callback_called, "Blood effect callback should be called on hit")
+	assert_not_null(received_info, "Blood effect info should be passed to callback")
+
+
+func test_multiple_hits_spawn_multiple_blood_effects() -> void:
+	player._current_health = 5
+
+	# Take 3 non-lethal hits
+	for i in range(3):
+		player.on_hit_with_info(Vector2.RIGHT, null)
+
+	assert_eq(player.blood_effects_spawned.size(), 3,
+		"Each hit should spawn a blood effect")
+
+	# Verify first 2 are non-lethal, last one is lethal (5-3=2 health left, then dead)
+	# Wait, health goes 5->4->3->2, so none are lethal
+	for i in range(3):
+		assert_false(player.blood_effects_spawned[i].is_lethal,
+			"Non-lethal hits should have is_lethal=false")
+
+
+func test_blood_effect_with_caliber_data() -> void:
+	# Create a mock caliber data object
+	var caliber = RefCounted.new()
+	caliber.set_meta("effect_scale", 1.5)
+
+	player.on_hit_with_info(Vector2.UP, caliber)
+
+	var effect = player.blood_effects_spawned[0]
+	assert_eq(effect.caliber_data, caliber, "Blood effect should include caliber data")
+
+
+func test_no_blood_effect_on_dead_player() -> void:
+	player._is_alive = false
+	player.on_hit_with_info(Vector2.RIGHT, null)
+
+	assert_eq(player.blood_effects_spawned.size(), 0,
+		"Dead player should not spawn blood effects")

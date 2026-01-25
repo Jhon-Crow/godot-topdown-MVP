@@ -1526,12 +1526,36 @@ public partial class Player : BaseCharacter
     }
 
     /// <summary>
+    /// Last hit direction stored for blood effect spawning (Issue #350).
+    /// </summary>
+    private Vector2 _lastHitDirection = Vector2.Right;
+
+    /// <summary>
+    /// Last caliber data stored for blood effect scaling (Issue #350).
+    /// </summary>
+    private Godot.Resource? _lastCaliberData = null;
+
+    /// <summary>
     /// Called when hit by a projectile via hit_area.gd.
     /// This method name follows GDScript naming convention for cross-language compatibility
     /// with the hit detection system that uses has_method("on_hit") checks.
     /// </summary>
     public void on_hit()
     {
+        on_hit_with_info(Vector2.Right, null);
+    }
+
+    /// <summary>
+    /// Called when hit by a projectile with extended hit information (Issue #350).
+    /// This method name follows GDScript naming convention for cross-language compatibility
+    /// with the hit detection system that uses has_method("on_hit_with_info") checks.
+    /// </summary>
+    /// <param name="hitDirection">Direction the bullet was traveling.</param>
+    /// <param name="caliberData">Caliber resource for effect scaling (can be null).</param>
+    public void on_hit_with_info(Vector2 hitDirection, Godot.Resource? caliberData)
+    {
+        _lastHitDirection = hitDirection;
+        _lastCaliberData = caliberData;
         TakeDamage(1);
     }
 
@@ -1548,6 +1572,8 @@ public partial class Player : BaseCharacter
         {
             LogToFile("[Player] Hit blocked by invincibility mode (C#)");
             ShowHitFlash(); // Still show visual feedback for debugging
+            // Spawn blood effect for visual feedback even in invincibility mode (Issue #350)
+            SpawnBloodEffect(false);
             return;
         }
 
@@ -1559,17 +1585,38 @@ public partial class Player : BaseCharacter
         // Determine if this hit will be lethal before applying damage
         bool willBeFatal = HealthComponent.CurrentHealth <= amount;
 
-        // Play appropriate hit sound
+        // Play appropriate hit sound and spawn blood effect (Issue #350)
         if (willBeFatal)
         {
             PlayHitLethalSound();
+            SpawnBloodEffect(true);
         }
         else
         {
             PlayHitNonLethalSound();
+            SpawnBloodEffect(false);
         }
 
         base.TakeDamage(amount);
+    }
+
+    /// <summary>
+    /// Spawns blood effect at the player's position (Issue #350).
+    /// This makes blood effects appear when the player is hit, just like for enemies.
+    /// </summary>
+    /// <param name="isLethal">Whether this was a lethal hit (affects effect scale).</param>
+    private void SpawnBloodEffect(bool isLethal)
+    {
+        var impactManager = GetNodeOrNull("/root/ImpactEffectsManager");
+        if (impactManager != null && impactManager.HasMethod("spawn_blood_effect"))
+        {
+            LogToFile($"[Player] Spawning blood effect at {GlobalPosition}, dir={_lastHitDirection}, lethal={isLethal} (C#)");
+            impactManager.Call("spawn_blood_effect", GlobalPosition, _lastHitDirection, _lastCaliberData, isLethal);
+        }
+        else
+        {
+            LogToFile("[Player] WARNING: ImpactEffectsManager not found, blood effect not spawned (C#)");
+        }
     }
 
     /// <summary>
