@@ -41,13 +41,14 @@ signal death_animation_completed
 @export var max_angular_velocity: float = 2.0
 
 ## Impulse strength applied to ragdoll based on hit direction.
-@export var ragdoll_impulse_strength: float = 100.0
+@export var ragdoll_impulse_strength: float = 150.0
 
 ## Joint softness for PinJoint2D (0 = stiff, higher = more flexible).
-@export var joint_softness: float = 0.0
+## Higher values allow body parts to move more independently (floppy ragdoll effect).
+@export var joint_softness: float = 0.1
 
 ## Joint bias for PinJoint2D (affects constraint solving, higher = stiffer).
-@export var joint_bias: float = 0.2
+@export var joint_bias: float = 0.0
 
 ## Whether to persist the ragdoll after death (don't clean up).
 ## When true, the body parts will remain as physics objects in the scene.
