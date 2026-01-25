@@ -165,7 +165,6 @@ enum BehaviorMode {
 @export var grenade_throw_delay: float = 0.4  ## Delay before throw (sec)
 @export var grenade_debug_logging: bool = false  ## Grenade debug logging
 
-
 signal hit  ## Enemy hit
 signal died  ## Enemy died
 signal died_with_info(is_ricochet_kill: bool, is_penetration_kill: bool)  ## Death with kill info
@@ -357,6 +356,12 @@ const SEARCH_WAYPOINT_SPACING: float = 75.0  ## Spacing between waypoints
 var _search_visited_zones: Dictionary = {}  ## Tracks visited positions (key=snapped pos, val=true)
 const SEARCH_ZONE_SNAP_SIZE: float = 50.0  ## Grid size for snapping positions to zones
 
+# Issue #369: FOV-based coverage tracking for 100% new area per iteration
+const SEARCH_FOV_CELL_SIZE: float = 30.0  ## Grid cell size for FOV coverage (smaller = more precise)
+const SEARCH_FOV_RANGE: float = 150.0  ## How far enemy can see during search
+const SEARCH_MIN_NEW_COVERAGE: float = 0.6  ## Min ratio of new cells to stop at waypoint (60%)
+var _search_fov_coverage: Dictionary = {}  ## Tracks seen cells (key="x,y" -> true)
+
 # Issue #354: Stuck detection for SEARCHING
 var _search_stuck_timer: float = 0.0  ## Stuck timer
 var _search_last_progress_position: Vector2 = Vector2.ZERO  ## Last progress pos
@@ -369,78 +374,47 @@ var _detection_timer: float = 0.0  ## Combat detection timer
 var _detection_delay_elapsed: bool = false  ## Detection delay done
 var _continuous_visibility_timer: float = 0.0  ## Continuous visibility timer
 var _player_visibility_ratio: float = 0.0  ## Player visibility (0-1)
-# --- Clear Shot Movement ---
-var _clear_shot_target: Vector2 = Vector2.ZERO  ## Clear shot target
-var _seeking_clear_shot: bool = false  ## Moving to clear shot
-var _clear_shot_timer: float = 0.0  ## Clear shot attempt timer
-
-## Maximum time to spend finding a clear shot before giving up (seconds).
-const CLEAR_SHOT_MAX_TIME: float = 3.0
+# Clear Shot Movement
+var _clear_shot_target: Vector2 = Vector2.ZERO
+var _seeking_clear_shot: bool = false
+var _clear_shot_timer: float = 0.0
+const CLEAR_SHOT_MAX_TIME: float = 3.0  ## Max time finding clear shot (sec)
 
 ## Distance to move when exiting cover to find a clear shot.
 const CLEAR_SHOT_EXIT_DISTANCE: float = 60.0
 
-## --- Sound-Based Detection ---
-## Last known sound source position (for investigation when player not visible).
-var _last_known_player_position: Vector2 = Vector2.ZERO
-## Pursuing vulnerability sound (reload/empty click) without line of sight.
-var _pursuing_vulnerability_sound: bool = false
+## Sound-Based Detection
+var _last_known_player_position: Vector2 = Vector2.ZERO  ## Last known sound position
+var _pursuing_vulnerability_sound: bool = false  ## Pursuing vulnerability sound (reload/click)
 
-## --- Enemy Memory System (Issue #297) ---
-## Tracks suspected player position with confidence (0.0=none, 1.0=visual contact).
-## The memory influences AI behavior:
-## - High confidence (>0.8): Direct pursuit to suspected position
-## - Medium confidence (0.5-0.8): Cautious approach with cover checks
-## - Low confidence (<0.5): Return to patrol/guard behavior
+## Enemy Memory System (Issue #297): tracks player position with confidence (0.0-1.0, visual=1.0)
 var _memory: EnemyMemory = null
 
-## Confidence values for different detection sources.
+## Detection confidence values (0.0-1.0)
 const VISUAL_DETECTION_CONFIDENCE: float = 1.0
 const SOUND_GUNSHOT_CONFIDENCE: float = 0.7
 const SOUND_RELOAD_CONFIDENCE: float = 0.6
 const SOUND_EMPTY_CLICK_CONFIDENCE: float = 0.6
 const INTEL_SHARE_FACTOR: float = 0.9  ## Confidence reduction when sharing intel
-
-## Communication range for enemy-to-enemy information sharing.
-## 660px with direct line of sight, 300px without line of sight.
+## Intel sharing range (LOS=660px, no LOS=300px)
 const INTEL_SHARE_RANGE_LOS: float = 660.0
 const INTEL_SHARE_RANGE_NO_LOS: float = 300.0
-
-## Timer for periodic intel sharing (to avoid per-frame overhead).
 var _intel_share_timer: float = 0.0
 const INTEL_SHARE_INTERVAL: float = 0.5  ## Share intel every 0.5 seconds
-
-## Memory reset confusion timer (Issue #318): blocks visibility after teleport.
+## Memory reset confusion (Issue #318): blocks visibility after teleport
 var _memory_reset_confusion_timer: float = 0.0
-const MEMORY_RESET_CONFUSION_DURATION: float = 2.0  ## Extended to 2s for better player escape window
+const MEMORY_RESET_CONFUSION_DURATION: float = 2.0  ## 2s confusion for player escape
 
-## --- Score Tracking ---
-## Whether the last hit that killed this enemy was from a ricocheted bullet.
-var _killed_by_ricochet: bool = false
-
-## Whether the last hit that killed this enemy was from a bullet that penetrated a wall.
-var _killed_by_penetration: bool = false
-
-## --- Status Effects ---
-## Whether the enemy is currently blinded (cannot see the player).
-var _is_blinded: bool = false
-
-## Whether the enemy is currently stunned (cannot move or act).
-var _is_stunned: bool = false
-
-## --- Grenade System (Issue #363) ---
-## Grenade throwing logic is handled by EnemyGrenadeComponent (extracted for Issue #377 CI fix).
-
-## Last hit direction (used for death animation).
-var _last_hit_direction: Vector2 = Vector2.RIGHT
-
-## Death animation component reference.
-var _death_animation: Node = null
-
-## Grenade component for handling grenade throwing (extracted for Issue #377 CI fix).
-var _grenade_component: EnemyGrenadeComponent = null
-
-## Note: DeathAnimationComponent and EnemyGrenadeComponent are available via class_name declarations.
+## Score Tracking
+var _killed_by_ricochet: bool = false  ## Killed by ricocheted bullet
+var _killed_by_penetration: bool = false  ## Killed by penetrating bullet
+## Status Effects
+var _is_blinded: bool = false  ## Cannot see player
+var _is_stunned: bool = false  ## Cannot move or act
+## Grenade System (Issue #363) - logic in EnemyGrenadeComponent
+var _last_hit_direction: Vector2 = Vector2.RIGHT  ## Death animation direction
+var _death_animation: Node = null  ## Death animation component
+var _grenade_component: EnemyGrenadeComponent = null  ## Grenade component
 
 func _ready() -> void:
 	# Add to enemies group for grenade targeting
@@ -556,13 +530,9 @@ func _setup_threat_sphere() -> void:
 	_threat_sphere.area_entered.connect(_on_threat_area_entered)
 	_threat_sphere.area_exited.connect(_on_threat_area_exited)
 
-## Register this enemy as a listener for in-game sound propagation.
-## This allows the enemy to react to sounds like gunshots even when not in direct combat.
-## Uses call_deferred to ensure SoundPropagation autoload is fully initialized.
-func _register_sound_listener() -> void:
-	call_deferred("_deferred_register_sound_listener")
+## Register as sound listener (deferred to ensure SoundPropagation ready)
+func _register_sound_listener() -> void: call_deferred("_deferred_register_sound_listener")
 
-## Deferred registration to ensure SoundPropagation is ready.
 func _deferred_register_sound_listener() -> void:
 	var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
 	if sound_propagation and sound_propagation.has_method("register_listener"):
@@ -573,15 +543,13 @@ func _deferred_register_sound_listener() -> void:
 		_log_to_file("WARNING: Could not register as sound listener (SoundPropagation not found)")
 		push_warning("[%s] Could not register as sound listener - SoundPropagation not found" % name)
 
-## Unregister this enemy from sound propagation when dying or being destroyed.
+## Unregister from sound propagation (called on death/destroy)
 func _unregister_sound_listener() -> void:
-	var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
-	if sound_propagation and sound_propagation.has_method("unregister_listener"):
-		sound_propagation.unregister_listener(self)
+	var sp: Node = get_node_or_null("/root/SoundPropagation")
+	if sp and sp.has_method("unregister_listener"): sp.unregister_listener(self)
 
-## Called by SoundPropagation when a sound is heard. Delegates to on_sound_heard_with_intensity.
+## SoundPropagation callback (delegates to intensity version)
 func on_sound_heard(sound_type: int, position: Vector2, source_type: int, source_node: Node2D) -> void:
-	# Default to full intensity if called without intensity parameter
 	on_sound_heard_with_intensity(sound_type, position, source_type, source_node, 1.0)
 
 ## Called by SoundPropagation with intensity. Reacts to reload/empty_click/gunshot sounds.
@@ -931,19 +899,13 @@ func _update_goap_state() -> void:
 		_goap_world_state["confidence_medium"] = _memory.is_medium_confidence()
 		_goap_world_state["confidence_low"] = _memory.is_low_confidence()
 
-## Updates model rotation smoothly (#347). Priority: player > flank target > corner check > velocity > idle scan.
-## Issue #386: FLANKING state now prioritizes facing the player over corner checks.
+## Updates model rotation smoothly (#347). Priority: player > flank > corner check > velocity > idle scan
 func _update_enemy_model_rotation() -> void:
-	if not _enemy_model:
-		return
+	if not _enemy_model: return
 	var target_angle: float
 	var has_target := false
-	if _player != null and _can_see_player:
-		target_angle = (_player.global_position - global_position).normalized().angle()
-		has_target = true
-	# Issue #386: During FLANKING, face the player (even if not visible) instead of corner check.
-	# This prevents the enemy from facing backwards/sideways while flanking.
-	elif _current_state == AIState.FLANKING and _player != null:
+	# Face player if visible, or during FLANKING (Issue #386: prevents facing backwards while flanking)
+	if _player != null and (_can_see_player or _current_state == AIState.FLANKING):
 		target_angle = (_player.global_position - global_position).normalized().angle()
 		has_target = true
 	elif _corner_check_timer > 0:
@@ -974,17 +936,7 @@ func _update_enemy_model_rotation() -> void:
 	else:
 		_enemy_model.scale = Vector2(enemy_model_scale, enemy_model_scale)
 
-## Forces the enemy model to face a specific direction immediately.
-## Used for priority attacks where we need to aim and shoot in the same frame.
-##
-## Unlike _update_enemy_model_rotation(), this function:
-## 1. Takes a specific direction to face (doesn't derive it from player position)
-## 2. Is called immediately before shooting in priority attack code
-##
-## This ensures the weapon sprite's transform matches the intended aim direction
-## so that _get_weapon_forward_direction() returns the correct vector for aim checks.
-##
-## @param direction: The direction to face (normalized).
+## Force model to face direction immediately (for priority attacks, syncs weapon sprite)
 func _force_model_to_face_direction(direction: Vector2) -> void:
 	if not _enemy_model:
 		return
@@ -1000,9 +952,7 @@ func _force_model_to_face_direction(direction: Vector2) -> void:
 		_enemy_model.global_rotation = target_angle
 		_enemy_model.scale = Vector2(enemy_model_scale, enemy_model_scale)
 
-## Updates the walking animation based on enemy movement state.
-## Creates a natural bobbing motion for body parts during movement.
-## @param delta: Time since last frame.
+## Update walking animation bobbing based on movement
 func _update_walk_animation(delta: float) -> void:
 	var is_moving := velocity.length() > 10.0
 
@@ -1346,10 +1296,7 @@ func _process_idle_state(delta: float) -> void:
 		BehaviorMode.GUARD:
 			_process_guard(delta)
 
-## Process COMBAT state - combat cycle: exit cover -> exposed shooting -> return to cover.
-## Phase 1 (approaching): Move toward player to get into direct contact range.
-## Phase 2 (exposed): Stand and shoot for 2-3 seconds.
-## Phase 3: Return to cover via SEEKING_COVER state.
+## Process COMBAT state - approach -> exposed shooting (2-3s) -> return to cover
 func _process_combat_state(delta: float) -> void:
 	# Track time in COMBAT state (for preventing rapid state thrashing)
 	_combat_state_timer += delta
@@ -1626,12 +1573,7 @@ func _process_seeking_cover_state(_delta: float) -> void:
 		_shoot()
 		_shoot_timer = 0.0
 
-## Process IN_COVER state - taking cover from enemy fire.
-## Decides next action based on:
-## 1. If under fire -> suppressed
-## 2. If player is close (can exit cover for direct contact) -> COMBAT
-## 3. If player is far but can hit from current position -> COMBAT (stay and shoot)
-## 4. If player is far and can't hit -> PURSUING (move cover-to-cover)
+## Process IN_COVER state - under fire -> suppressed, close -> COMBAT, far+can hit -> COMBAT, far+can't -> PURSUING
 func _process_in_cover_state(delta: float) -> void:
 	velocity = Vector2.ZERO
 
@@ -2153,23 +2095,20 @@ func _process_pursuing_state(delta: float) -> void:
 		else:
 			_transition_to_combat()
 
-## Process ASSAULT state - disabled per issue #169. Immediately transitions to COMBAT.
+## Process ASSAULT state - disabled per issue #169, transitions to COMBAT
 func _process_assault_state(_delta: float) -> void:
-	# ASSAULT state is disabled per issue #169
-	# Immediately transition to COMBAT state
 	_log_debug("ASSAULT state disabled (issue #169), transitioning to COMBAT")
-	_in_assault = false
-	_assault_ready = false
-	_transition_to_combat()
+	_in_assault = false; _assault_ready = false; _transition_to_combat()
 
-## Generate search waypoints in expanding square spiral (Issue #322). Skips visited zones.
+## Generate search waypoints (Issue #322). Issue #369: considers FOV coverage.
 func _generate_search_waypoints() -> void:
 	_search_waypoints.clear()
 	_search_current_waypoint_index = 0
 	_search_direction = 0
 	_search_leg_length = SEARCH_WAYPOINT_SPACING
 	_search_legs_completed = 0
-	if not _is_zone_visited(_search_center):
+	# Issue #369: Check if center provides new FOV coverage
+	if not _is_zone_visited(_search_center) and _get_new_coverage_ratio(_search_center, rotation) >= SEARCH_MIN_NEW_COVERAGE:
 		_search_waypoints.append(_search_center)
 	var current_pos := _search_center
 	var waypoints_generated := _search_waypoints.size()
@@ -2183,7 +2122,9 @@ func _generate_search_waypoints() -> void:
 			2: offset = Vector2(0, _search_leg_length)
 			3: offset = Vector2(-_search_leg_length, 0)
 		var next_pos := current_pos + offset
-		if _is_waypoint_navigable(next_pos) and not _is_zone_visited(next_pos):
+		# Issue #369: Check FOV coverage in addition to zone visited
+		var has_new_coverage := _get_new_coverage_ratio(next_pos, (next_pos - current_pos).angle()) >= SEARCH_MIN_NEW_COVERAGE
+		if _is_waypoint_navigable(next_pos) and not _is_zone_visited(next_pos) and has_new_coverage:
 			_search_waypoints.append(next_pos)
 			waypoints_generated += 1
 		current_pos = next_pos
@@ -2191,7 +2132,7 @@ func _generate_search_waypoints() -> void:
 		_search_direction = (_search_direction + 1) % 4
 		if _search_legs_completed % 2 == 0:
 			_search_leg_length += SEARCH_WAYPOINT_SPACING
-	_log_debug("Generated %d unvisited waypoints (radius=%.0f, visited=%d)" % [_search_waypoints.size(), _search_radius, _search_visited_zones.size()])
+	_log_debug("Generated %d waypoints with new coverage (radius=%.0f, fov_cells=%d)" % [_search_waypoints.size(), _search_radius, _search_fov_coverage.size()])
 
 ## Check if position is navigable via NavigationServer2D.
 func _is_waypoint_navigable(pos: Vector2) -> bool:
@@ -2206,6 +2147,60 @@ func _is_zone_visited(pos: Vector2) -> bool: return _search_visited_zones.has(_g
 func _mark_zone_visited(pos: Vector2) -> void:
 	var k := _get_zone_key(pos)
 	if not _search_visited_zones.has(k): _search_visited_zones[k] = true; _log_debug("SEARCHING: Marked zone %s as visited (total: %d)" % [k, _search_visited_zones.size()])
+
+## Issue #369: FOV-based coverage tracking helpers
+func _get_fov_cell_key(pos: Vector2) -> String:
+	return "%d,%d" % [int(pos.x / SEARCH_FOV_CELL_SIZE), int(pos.y / SEARCH_FOV_CELL_SIZE)]
+
+## Get cells visible from a position at given angle (simplified cone check)
+func _get_fov_cells(pos: Vector2, facing_angle: float) -> Array[String]:
+	var cells: Array[String] = []
+	var half_fov := deg_to_rad(fov_angle / 2.0) if fov_angle > 0 else PI
+	var step := SEARCH_FOV_CELL_SIZE
+	for dist in range(int(step), int(SEARCH_FOV_RANGE), int(step)):
+		var angles_to_check := maxi(3, int(dist / step))
+		for i in range(angles_to_check):
+			var angle_offset: float = lerp(-half_fov, half_fov, float(i) / float(angles_to_check - 1)) if angles_to_check > 1 else 0.0
+			var check_angle: float = facing_angle + angle_offset
+			var check_pos: Vector2 = pos + Vector2(cos(check_angle), sin(check_angle)) * dist
+			var key := _get_fov_cell_key(check_pos)
+			if not cells.has(key):
+				cells.append(key)
+	return cells
+
+## Mark all cells in current FOV as covered
+func _mark_fov_covered() -> void:
+	var cells := _get_fov_cells(global_position, rotation)
+	var new_count := 0
+	for cell in cells:
+		if not _search_fov_coverage.has(cell):
+			_search_fov_coverage[cell] = true
+			new_count += 1
+	if new_count > 0:
+		_log_debug("SEARCHING: Marked %d new FOV cells (total: %d)" % [new_count, _search_fov_coverage.size()])
+
+## Calculate ratio of new (uncovered) cells visible from a position
+func _get_new_coverage_ratio(pos: Vector2, facing_angle: float) -> float:
+	var cells := _get_fov_cells(pos, facing_angle)
+	if cells.is_empty(): return 0.0
+	var new_count := 0
+	for cell in cells:
+		if not _search_fov_coverage.has(cell):
+			new_count += 1
+	return float(new_count) / float(cells.size())
+
+## Find waypoint that maximizes new FOV coverage
+func _find_best_coverage_waypoint(candidates: Array[Vector2]) -> Vector2:
+	var best_pos := Vector2.ZERO
+	var best_ratio := 0.0
+	for pos in candidates:
+		# Check multiple facing angles at this position
+		for angle_deg in [0, 90, 180, 270]:
+			var ratio := _get_new_coverage_ratio(pos, deg_to_rad(angle_deg))
+			if ratio > best_ratio:
+				best_ratio = ratio
+				best_pos = pos
+	return best_pos if best_ratio >= SEARCH_MIN_NEW_COVERAGE else Vector2.ZERO
 
 ## Process SEARCHING state - move through waypoints, scan at each (Issue #322).
 ## Issue #330: If enemy has ever left IDLE, they NEVER return to IDLE - search infinitely.
@@ -2297,16 +2292,20 @@ func _process_searching_state(delta: float) -> void:
 
 				if dir.length() > 0.1:
 					rotation = lerp_angle(rotation, dir.angle(), 5.0 * delta)
+					# Issue #369: Mark FOV cells as covered while moving
+					_mark_fov_covered()
 					# Corner checking during SEARCHING movement (Issue #332)
 					_process_corner_check(delta, dir, "SEARCHING")
 	else:
 		_search_scan_timer += delta
 		rotation += delta * 1.5
+		# Issue #369: Mark FOV cells as covered during scan rotation
+		_mark_fov_covered()
 		if _search_scan_timer >= SEARCH_SCAN_DURATION:
 			_mark_zone_visited(target_waypoint)
 			_search_current_waypoint_index += 1
 			_search_moving_to_waypoint = true
-			_log_debug("SEARCHING: Scan done, next wp %d" % _search_current_waypoint_index)
+			_log_debug("SEARCHING: Scan done, next wp %d (fov_cells=%d)" % [_search_current_waypoint_index, _search_fov_coverage.size()])
 
 ## Shoot with reduced accuracy for retreat mode (bullets fly in barrel direction with spread).
 func _shoot_with_inaccuracy() -> void:
@@ -2620,6 +2619,8 @@ func _transition_to_searching(center_position: Vector2) -> void:
 	_search_state_timer = 0.0; _search_scan_timer = 0.0; _search_current_waypoint_index = 0
 	_search_direction = 0; _search_leg_length = SEARCH_WAYPOINT_SPACING; _search_legs_completed = 0
 	_search_moving_to_waypoint = true; _search_visited_zones.clear()
+	# Issue #369: Clear FOV coverage for new search session
+	_search_fov_coverage.clear()
 	# Issue #354: Initialize stuck detection
 	_search_stuck_timer = 0.0; _search_last_progress_position = global_position
 	_generate_search_waypoints()
@@ -4992,7 +4993,6 @@ func _update_grenade_world_state() -> void:
 	_goap_world_state["grenades_remaining"] = g.grenades_remaining
 	_goap_world_state["ready_to_throw_grenade"] = g.is_ready(_can_see_player, _under_fire, _current_health)
 
-
 ## Attempt to throw a grenade. Returns true if throw was initiated.
 func try_throw_grenade() -> bool:
 	if _grenade_component == null:
@@ -5005,7 +5005,6 @@ func try_throw_grenade() -> bool:
 	if result:
 		grenade_thrown.emit(null, target)  # Signal with target; actual grenade emitted by component
 	return result
-
 
 ## Get the number of grenades remaining.
 func get_grenades_remaining() -> int:
