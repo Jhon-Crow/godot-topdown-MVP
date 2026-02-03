@@ -369,6 +369,28 @@ class EvadeGrenadeAction extends GOAPAction:
 		return 100.0  # Should never happen if preconditions are correct
 
 
+## Action to investigate when an ally death is witnessed (Issue #409).
+## This action has high priority when enemy observes a teammate die.
+## Enemy will search the area considering multiple possible player directions.
+class InvestigateAllyDeathAction extends GOAPAction:
+	func _init() -> void:
+		super._init("investigate_ally_death", 0.8)  # High priority (low cost)
+		preconditions = {
+			"witnessed_ally_death": true,
+			"player_visible": false
+		}
+		effects = {
+			"is_searching": true,
+			"witnessed_ally_death": false  # Clear the flag after responding
+		}
+
+	func get_cost(_agent: Node, world_state: Dictionary) -> float:
+		# Very high priority when ally death is witnessed
+		if world_state.get("witnessed_ally_death", false):
+			return 0.3  # Lower cost than most actions for immediate response
+		return 100.0  # Very high cost if condition not met
+
+
 ## Create and return all enemy actions.
 static func create_all_actions() -> Array[GOAPAction]:
 	var actions: Array[GOAPAction] = []
@@ -392,4 +414,6 @@ static func create_all_actions() -> Array[GOAPAction]:
 	actions.append(SearchLowConfidenceAction.new())
 	# Grenade avoidance action (Issue #407)
 	actions.append(EvadeGrenadeAction.new())
+	# Ally death awareness action (Issue #409)
+	actions.append(InvestigateAllyDeathAction.new())
 	return actions
