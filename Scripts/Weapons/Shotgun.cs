@@ -536,7 +536,9 @@ public partial class Shotgun : BaseWeapon
                 if (VerboseInputLogging)
                 {
                     // Log both ReloadState AND ActionState for full context
+                    // Issue #445: Also log drag start position and aim direction for diagnosis
                     LogToFile($"[Shotgun.FIX#243] RMB drag started - MMB: poll={_isMiddleMouseHeld}, raw={rawMMBState}, event={_isMiddleMouseHeldEvent}, any={anyMMBDetected}, ActionState={ActionState}, ReloadState={ReloadState}");
+                    LogToFile($"[Shotgun.FIX#445] dragStartPos=({_dragStartPosition.X:F0}, {_dragStartPosition.Y:F0}), aimDir=({_aimDirection.X:F2}, {_aimDirection.Y:F2})");
                 }
             }
             else
@@ -629,6 +631,12 @@ public partial class Shotgun : BaseWeapon
     /// <returns>True if a gesture was processed, false otherwise.</returns>
     private bool TryProcessMidDragGesture(Vector2 dragVector)
     {
+        // Issue #445: Log drag vector periodically to diagnose why pump gestures fail when looking up
+        if (_dragFrameCount % 10 == 0 && VerboseInputLogging)
+        {
+            LogToFile($"[Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=({dragVector.X:F1}, {dragVector.Y:F1}), length={dragVector.Length():F1}, minDist={MinDragDistance}");
+        }
+
         // Check if drag is long enough for a gesture
         if (dragVector.Length() < MinDragDistance)
         {
@@ -639,6 +647,11 @@ public partial class Shotgun : BaseWeapon
         bool isVerticalDrag = Mathf.Abs(dragVector.Y) > Mathf.Abs(dragVector.X);
         if (!isVerticalDrag)
         {
+            // Issue #445: Log when drag is rejected for not being vertical
+            if (VerboseInputLogging && _dragFrameCount % 20 == 0)
+            {
+                LogToFile($"[Shotgun.FIX#445] Drag rejected - not vertical: absY={Mathf.Abs(dragVector.Y):F1} <= absX={Mathf.Abs(dragVector.X):F1}");
+            }
             return false; // Only vertical drags are used for shotgun
         }
 
@@ -667,6 +680,11 @@ public partial class Shotgun : BaseWeapon
                         EmitSignal(SignalName.PumpActionCycled, "up");
                         GD.Print("[Shotgun] Mid-drag pump UP - shell ejected, continue dragging DOWN to chamber");
                         gestureProcessed = true;
+                    }
+                    else if (VerboseInputLogging)
+                    {
+                        // Issue #445: Log when in NeedsPumpUp state but drag is DOWN instead of UP
+                        LogToFile($"[Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown={isDragDown}), dragVector.Y={dragVector.Y:F1}");
                     }
                     break;
 
@@ -821,9 +839,19 @@ public partial class Shotgun : BaseWeapon
     /// </summary>
     private void ProcessDragGesture(Vector2 dragVector)
     {
+        // Issue #445: Log the final drag vector when RMB is released
+        if (VerboseInputLogging)
+        {
+            LogToFile($"[Shotgun.FIX#445] ProcessDragGesture - dragVector=({dragVector.X:F1}, {dragVector.Y:F1}), length={dragVector.Length():F1}, ActionState={ActionState}");
+        }
+
         // Check if drag is long enough
         if (dragVector.Length() < MinDragDistance)
         {
+            if (VerboseInputLogging)
+            {
+                LogToFile($"[Shotgun.FIX#445] Drag too short: {dragVector.Length():F1} < {MinDragDistance}");
+            }
             return;
         }
 
@@ -831,11 +859,20 @@ public partial class Shotgun : BaseWeapon
         bool isVerticalDrag = Mathf.Abs(dragVector.Y) > Mathf.Abs(dragVector.X);
         if (!isVerticalDrag)
         {
+            if (VerboseInputLogging)
+            {
+                LogToFile($"[Shotgun.FIX#445] Drag not vertical: absY={Mathf.Abs(dragVector.Y):F1} <= absX={Mathf.Abs(dragVector.X):F1}");
+            }
             return; // Only vertical drags are used for shotgun
         }
 
         bool isDragUp = dragVector.Y < 0;
         bool isDragDown = dragVector.Y > 0;
+
+        if (VerboseInputLogging)
+        {
+            LogToFile($"[Shotgun.FIX#445] Valid vertical drag detected: isDragUp={isDragUp}, isDragDown={isDragDown}");
+        }
 
         // Handle based on current state (reload takes priority)
         if (ReloadState != ShotgunReloadState.NotReloading)
