@@ -9,7 +9,7 @@ extends Node
 ##
 ## The effect can be enabled/disabled and parameters can be adjusted at runtime.
 ##
-## ARCHITECTURE (v5.0):
+## ARCHITECTURE (v5.1):
 ## This manager uses an OVERLAY-BASED approach that does NOT use hint_screen_texture.
 ## This avoids known bugs in Godot's gl_compatibility renderer that cause white screens.
 ## Instead of sampling the screen and modifying it, we create transparent overlays
@@ -18,13 +18,21 @@ extends Node
 ## v5.0 ADDITIONS:
 ## - Micro scratches (small 2px scratches) for more authentic film look
 ## - Death effects: cigarette burn + end of reel countdown triggered on player death
+##
+## v5.1 FIXES (Issue #431):
+## - Fixed player death signal connection (now supports C# 'Died' signal naming)
+## - Changed micro scratches to small dots/specks like real film dust particles
+## - Moved end of reel effect to top-left corner as requested
+## - Increased grain intensity from 0.07 to 0.10
+## - Reduced micro speck probability for rare appearance
 
 # ============================================================================
 # DEFAULT VALUES
 # ============================================================================
 
 ## Default grain intensity (0.0 = no grain, 0.5 = maximum)
-const DEFAULT_GRAIN_INTENSITY: float = 0.07
+## Issue #431: Increased from 0.07 to 0.10 for more visible grain
+const DEFAULT_GRAIN_INTENSITY: float = 0.10
 
 ## Default warm color tint (slightly warm/golden)
 const DEFAULT_WARM_COLOR: Color = Color(1.0, 0.95, 0.85)
@@ -53,11 +61,13 @@ const DEFAULT_DUST_INTENSITY: float = 0.5
 ## Default flicker intensity
 const DEFAULT_FLICKER_INTENSITY: float = 0.03
 
-## Default micro scratch intensity
-const DEFAULT_MICRO_SCRATCH_INTENSITY: float = 0.4
+## Default micro scratch (now micro specks/dots) intensity
+## Issue #431: Slightly reduced for subtlety
+const DEFAULT_MICRO_SCRATCH_INTENSITY: float = 0.35
 
-## Default micro scratch probability
-const DEFAULT_MICRO_SCRATCH_PROBABILITY: float = 0.03
+## Default micro scratch (now micro specks/dots) probability
+## Issue #431: Reduced from 0.03 to 0.015 for rare appearance
+const DEFAULT_MICRO_SCRATCH_PROBABILITY: float = 0.015
 
 ## Default cigarette burn size
 const DEFAULT_CIGARETTE_BURN_SIZE: float = 0.15
@@ -572,19 +582,26 @@ func _connect_player_signals(player: Node) -> void:
 
 	# Disconnect from old player if any
 	if _player_ref and is_instance_valid(_player_ref):
-		if _player_ref.has_signal("died") and _player_ref.is_connected("died", _on_player_died):
+		# Try both "Died" (C# convention) and "died" (GDScript convention)
+		if _player_ref.has_signal("Died") and _player_ref.is_connected("Died", _on_player_died):
+			_player_ref.disconnect("Died", _on_player_died)
+		elif _player_ref.has_signal("died") and _player_ref.is_connected("died", _on_player_died):
 			_player_ref.disconnect("died", _on_player_died)
 
 	_player_ref = player
 	_log("Found player node: %s" % player.name)
 
-	# Connect to death signal
-	if player.has_signal("died"):
+	# Connect to death signal - try both C# ("Died") and GDScript ("died") conventions
+	if player.has_signal("Died"):
+		if not player.is_connected("Died", _on_player_died):
+			player.connect("Died", _on_player_died)
+			_log("Connected to player 'Died' signal (C# naming)")
+	elif player.has_signal("died"):
 		if not player.is_connected("died", _on_player_died):
 			player.connect("died", _on_player_died)
-			_log("Connected to player 'died' signal")
+			_log("Connected to player 'died' signal (GDScript naming)")
 	else:
-		_log("WARNING: Player node does not have 'died' signal")
+		_log("WARNING: Player node does not have 'Died' or 'died' signal")
 
 
 ## Called when the player dies.

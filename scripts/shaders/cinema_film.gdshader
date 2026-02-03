@@ -1,9 +1,10 @@
 shader_type canvas_item;
 
 // ============================================================================
-// CINEMA FILM EFFECT SHADER v5.0
+// CINEMA FILM EFFECT SHADER v5.1
 // Simulates vintage film look with grain, warm tones, and film defects
 // v5.0: Added micro scratches, cigarette burn, and end of reel death effects
+// v5.1: Issue #431 fixes - increased grain, realistic micro dots, death effects in left corner
 //
 // APPROACH: OVERLAY-BASED (no screen_texture)
 // This shader creates visual overlays that blend on top of the rendered scene
@@ -20,7 +21,8 @@ shader_type canvas_item;
 // ============================================================================
 
 // --- Film Grain Parameters ---
-uniform float grain_intensity : hint_range(0.0, 0.5) = 0.07;
+// Increased from 0.07 to 0.10 per Issue #431 request for more grain
+uniform float grain_intensity : hint_range(0.0, 0.5) = 0.10;
 uniform bool grain_enabled = true;
 
 // --- Warm/Sunny Color Tint Parameters ---
@@ -45,10 +47,12 @@ uniform float scratch_intensity : hint_range(0.0, 1.0) = 0.6;
 uniform float dust_intensity : hint_range(0.0, 1.0) = 0.5;
 uniform float flicker_intensity : hint_range(0.0, 0.3) = 0.03;
 
-// --- Small Scratches Parameters (short micro-scratches, max 2px) ---
+// --- Micro Specks/Dots Parameters (tiny dust-like particles on old film) ---
+// Issue #431: Changed to small dots instead of scratches, appearing rarely
 uniform bool micro_scratches_enabled = true;
-uniform float micro_scratch_intensity : hint_range(0.0, 1.0) = 0.4;
-uniform float micro_scratch_probability : hint_range(0.0, 0.2) = 0.03;
+uniform float micro_scratch_intensity : hint_range(0.0, 1.0) = 0.35;
+// Reduced probability from 0.03 to 0.015 for rare appearance as requested
+uniform float micro_scratch_probability : hint_range(0.0, 0.2) = 0.015;
 
 // --- Death Effects Parameters ---
 // Cigarette burn: circular burn mark that appears on death
@@ -149,44 +153,45 @@ float projector_flicker(float time_val) {
 }
 
 // ============================================================================
-// MICRO SCRATCHES (small, max 2px length)
+// MICRO SCRATCHES (small dots/specks like on old film, Issue #431)
+// Changed from line scratches to small dot/speck particles that appear
+// rarely and briefly, simulating dust and tiny defects on vintage film.
 // ============================================================================
 
-// Generate small micro-scratches (max 2px long)
+// Generate small dots/specks (tiny particles like dust on old film)
 float micro_scratches(vec2 uv, float time_val) {
 	float scratch_total = 0.0;
-	float frame = floor(time_val * 12.0) + 1.0;
+	// Slower frame rate for more stable appearance (8fps instead of 12fps)
+	float frame = floor(time_val * 8.0) + 1.0;
 
-	// Generate multiple tiny scratches
-	for (int i = 0; i < 8; i++) {
+	// Generate multiple tiny dot specks (like dust particles on old film)
+	for (int i = 0; i < 6; i++) {
 		float seed = float(i) * 73.156 + 1.0;
 		float scratch_seed = hash(vec2(frame + seed, frame * 0.3 + seed));
 
 		if (scratch_seed < micro_scratch_probability) {
-			// Random position for the scratch
-			vec2 scratch_start = hash2(vec2(frame + seed + 0.7, seed + 0.3));
+			// Random position for the speck
+			vec2 speck_pos = hash2(vec2(frame + seed + 0.7, seed + 0.3));
 
-			// Calculate scratch length (max ~2px, which is about 0.003 in UV space for 640px width)
-			float scratch_length = 0.001 + hash(vec2(seed + 0.5, frame + 0.5)) * 0.002;
+			// Distance from current pixel to speck center
+			float dist = length(uv - speck_pos);
 
-			// Random angle for the scratch (mostly vertical with slight variation)
-			float angle = 3.14159 * 0.5 + (hash(vec2(seed + 0.8, frame + 0.8)) - 0.5) * 0.5;
-			vec2 scratch_dir = vec2(cos(angle), sin(angle));
+			// Very small dot size (about 1-2px = 0.001 to 0.002 in UV space)
+			// Randomize size slightly for natural look
+			float speck_size = 0.001 + hash(vec2(seed + 0.5, frame + 0.5)) * 0.0015;
 
-			// Calculate distance from point to line segment
-			vec2 to_point = uv - scratch_start;
-			float proj_length = dot(to_point, scratch_dir);
-			proj_length = clamp(proj_length, 0.0, scratch_length);
-			vec2 closest_point = scratch_start + scratch_dir * proj_length;
-			float dist = length(uv - closest_point);
+			// Create soft-edged tiny dot
+			float speck = 1.0 - smoothstep(0.0, speck_size, dist);
 
-			// Thin scratch (about 1px wide = 0.0015 in UV space)
-			float scratch_width = 0.0015;
-			float scratch = 1.0 - smoothstep(0.0, scratch_width, dist);
-
-			// Only show if we're within the scratch segment
-			if (proj_length > 0.0 && proj_length < scratch_length) {
-				scratch_total = max(scratch_total, scratch * 0.6);
+			// Some specks are lighter (white dust), some darker (dark specks)
+			// This creates more variety like real film artifacts
+			float brightness_var = hash(vec2(seed + 0.9, frame + 0.9));
+			if (brightness_var > 0.7) {
+				// Bright speck (white dust particle)
+				scratch_total = max(scratch_total, speck * 0.5);
+			} else {
+				// Dark speck (tiny dark particle)
+				scratch_total = max(scratch_total, speck * 0.4);
 			}
 		}
 	}
@@ -251,8 +256,8 @@ vec3 cigarette_burn_color(vec2 uv, vec2 center, float size) {
 float end_of_reel(vec2 uv, float intensity, float time_val, float reel_time) {
 	if (intensity <= 0.0) return 0.0;
 
-	// Position in top-right corner
-	vec2 corner = vec2(0.85, 0.15);
+	// Position in top-left corner (as per Issue #431 request)
+	vec2 corner = vec2(0.15, 0.15);
 	float corner_size = 0.12;
 
 	vec2 to_corner = uv - corner;
