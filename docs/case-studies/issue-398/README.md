@@ -519,3 +519,96 @@ Set `linear_damp = 0` in all grenade files to ensure ONLY the custom friction ap
 2. **Scene files can override script values**: Even if `_ready()` sets a property, the scene file's property value may have been set before or could override it depending on the order of operations.
 
 3. **Physics formulas must match physics implementation**: If using `d = v² / (2×a)`, the actual deceleration must be constant (`v -= a×dt`), not proportional (`v *= (1-k×dt)`).
+
+## Sixth Round of Testing (2026-02-03 16:19)
+
+### User Feedback
+
+User reported:
+- "уже лучше, но чуть чуть не долетает" (it's better now, but it still doesn't quite reach)
+
+Game log provided: `game_log_20260203_161904.txt`
+
+### Analysis of Log
+
+From the game log:
+```
+[16:20:00] [Player.Grenade.Simple] Throwing! Target: (281.91473, 337.9592), Distance: 73,7, Speed: 210,3
+[16:20:00] [GrenadeBase] Simple mode throw! Dir: (0.986327, -0.164799), Speed: 210.3 (clamped from 210.3, max: 1352.8)
+[16:20:00] [GrenadeBase] Grenade landed at (213.5497, 349.3818)
+```
+
+Key observation:
+- Target: (281.91, 337.96)
+- Landed: (213.55, 349.38)
+- **Grenade landed ~68 pixels short of target for a 73.7 pixel throw**
+
+This is a ~92% error rate! The grenade barely traveled at all before "landing".
+
+### Root Cause Discovery
+
+**CRITICAL FINDING**: The grenade position was NOT being updated before throwing!
+
+In `ThrowSimpleGrenade()`:
+```csharp
+// Calculate safe spawn position with wall check
+Vector2 intendedSpawnPosition = GlobalPosition + throwDirection * spawnOffset;
+Vector2 safeSpawnPosition = GetSafeGrenadeSpawnPosition(...);
+
+// Unfreeze and throw the grenade
+_activeGrenade.Freeze = false;
+_activeGrenade.Call("throw_grenade_simple", throwDirection, throwSpeed);
+```
+
+The `safeSpawnPosition` was calculated but **NEVER APPLIED** to the grenade!
+
+During the `HandleSimpleGrenadeAimingState()` phase, the grenade follows the player at `GlobalPosition`:
+```csharp
+_activeGrenade.GlobalPosition = GlobalPosition;  // Grenade at player position, not 60px ahead
+```
+
+But the distance calculation assumes the grenade starts from `spawnPosition` (60px ahead):
+```csharp
+Vector2 spawnPosition = GlobalPosition + throwDirection * spawnOffset;
+float throwDistance = (targetPos - spawnPosition).Length();
+```
+
+So the grenade was:
+1. Starting from player position (not spawn position 60px ahead)
+2. Thrown with speed calculated for `throwDistance` (from spawn to target)
+3. Landing `throwDistance` pixels from player position
+4. Which is 60px SHORT of the target!
+
+### Fix Applied
+
+Added the missing line to set grenade position before throwing:
+
+```csharp
+// Calculate safe spawn position with wall check
+Vector2 intendedSpawnPosition = GlobalPosition + throwDirection * spawnOffset;
+Vector2 safeSpawnPosition = GetSafeGrenadeSpawnPosition(...);
+
+// FIX for issue #398: Set grenade position to spawn point BEFORE throwing
+// The grenade follows the player during aiming at GlobalPosition,
+// but the distance calculation assumes it starts from spawnPosition (60px ahead).
+// Without this fix, the grenade lands ~60px short of the target.
+_activeGrenade.GlobalPosition = safeSpawnPosition;
+
+// Unfreeze and throw the grenade
+_activeGrenade.Freeze = false;
+_activeGrenade.Call("throw_grenade_simple", throwDirection, throwSpeed);
+```
+
+### Files Modified
+
+1. `Scripts/Characters/Player.cs` - Added grenade position update before throwing
+
+### Lessons Learned
+
+1. **Verify position consistency**: When calculating physics based on spawn position, ensure the object is ACTUALLY at that position before applying forces.
+
+2. **Follow the position chain**: In multi-state systems (idle → aiming → throw), track where positions are set and verify they're consistent with calculations.
+
+3. **Log positions at critical moments**: Add logging for spawn positions to catch position mismatches early.
+
+4. **The ~60px error was a clue**: The consistent shortfall approximately equal to the spawn offset should have immediately pointed to a spawn position issue.

@@ -2104,7 +2104,7 @@ public partial class Player : BaseCharacter
         // Calculate actual landing distance with clamped speed (for logging)
         float actualDistance = (throwSpeed * throwSpeed) / (2.0f * groundFriction);
 
-        LogToFile($"[Player.Grenade.Simple] Throwing! Target: {targetPos}, Distance: {actualDistance:F1}, Speed: {throwSpeed:F1}");
+        LogToFile($"[Player.Grenade.Simple] Throwing! Target: {targetPos}, Distance: {actualDistance:F1}, Speed: {throwSpeed:F1}, Friction: {groundFriction:F1}");
 
         // Rotate player to face throw direction
         RotatePlayerForThrow(throwDirection);
@@ -2112,6 +2112,12 @@ public partial class Player : BaseCharacter
         // Calculate safe spawn position with wall check
         Vector2 intendedSpawnPosition = GlobalPosition + throwDirection * spawnOffset;
         Vector2 safeSpawnPosition = GetSafeGrenadeSpawnPosition(GlobalPosition, intendedSpawnPosition, throwDirection);
+
+        // FIX for issue #398: Set grenade position to spawn point BEFORE throwing
+        // The grenade follows the player during aiming at GlobalPosition,
+        // but the distance calculation assumes it starts from spawnPosition (60px ahead).
+        // Without this fix, the grenade lands ~60px short of the target.
+        _activeGrenade.GlobalPosition = safeSpawnPosition;
 
         // Unfreeze and throw the grenade
         _activeGrenade.Freeze = false;
