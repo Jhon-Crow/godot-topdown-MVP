@@ -14,7 +14,7 @@ class MockScoreManager:
 	## Mock class that mirrors ScoreManager's testable functionality
 
 	# Constants (matching ScoreManager)
-	const COMBO_TIMEOUT: float = 3.0
+	const COMBO_TIMEOUT: float = 9.0
 	const POINTS_PER_KILL: int = 100
 	const TIME_BONUS_MAX: int = 5000
 	const TIME_BONUS_DURATION: float = 120.0

@@ -13,7 +13,7 @@ extends Node
 ## Ranks: F, D, C, B, A, A+, S (highest)
 
 ## Combo timeout in seconds - kills within this time continue the combo.
-const COMBO_TIMEOUT: float = 3.0
+const COMBO_TIMEOUT: float = 9.0
 
 ## Base points per kill.
 const POINTS_PER_KILL: int = 100
