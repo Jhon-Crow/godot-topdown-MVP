@@ -1778,20 +1778,26 @@ public partial class Player : BaseCharacter
         }
         else
         {
-            // Simple trajectory aiming mode
+            // Simple trajectory aiming mode - uses same pin-pull mechanic (G+RMB drag)
+            // but replaces mouse-velocity throwing with trajectory-to-cursor aiming
             switch (_grenadeState)
             {
                 case GrenadeState.Idle:
-                    HandleSimpleGrenadeIdleState();
+                    // Use same G+RMB drag mechanic as complex mode for pin pull (Step 1)
+                    HandleGrenadeIdleState();
+                    break;
+                case GrenadeState.TimerStarted:
+                    // After pin is pulled, RMB starts trajectory aiming (instead of Step 2)
+                    HandleSimpleGrenadeTimerStartedState();
                     break;
                 case GrenadeState.SimpleAiming:
+                    // RMB held: show trajectory preview, release to throw to cursor
                     HandleSimpleGrenadeAimingState();
                     break;
                 default:
                     // If we're in a complex-mode state but simple mode is now enabled,
                     // reset to allow starting fresh (handles mode switch mid-throw)
-                    if (_grenadeState == GrenadeState.TimerStarted ||
-                        _grenadeState == GrenadeState.WaitingForGRelease ||
+                    if (_grenadeState == GrenadeState.WaitingForGRelease ||
                         _grenadeState == GrenadeState.Aiming)
                     {
                         LogToFile($"[Player.Grenade] Mode mismatch: resetting from complex state {_grenadeState} to IDLE");
@@ -1961,94 +1967,43 @@ public partial class Player : BaseCharacter
     #region Simple Grenade Throwing Mode
 
     /// <summary>
-    /// Handle IDLE state for simple grenade throwing mode.
-    /// When RMB is pressed, create grenade and start aiming.
+    /// Handle TIMER_STARTED state for simple grenade throwing mode.
+    /// After pin is pulled (G+RMB drag), wait for RMB to start trajectory aiming.
+    /// If G is released, drop grenade at feet.
     /// </summary>
-    private void HandleSimpleGrenadeIdleState()
+    private void HandleSimpleGrenadeTimerStartedState()
     {
-        // Log when RMB is pressed to confirm simple mode handler is active
+        // Make grenade follow player while G is held
+        if (_activeGrenade != null && IsInstanceValid(_activeGrenade))
+        {
+            _activeGrenade.GlobalPosition = GlobalPosition;
+        }
+
+        // If G is released, drop grenade at feet
+        if (!Input.IsActionPressed("grenade_prepare"))
+        {
+            LogToFile("[Player.Grenade.Simple] G released - dropping grenade at feet");
+            DropGrenadeAtFeet();
+            return;
+        }
+
+        // Check if RMB is pressed to enter SimpleAiming state
         if (Input.IsActionJustPressed("grenade_throw"))
         {
-            LogToFile($"[Player.Grenade.Simple] RMB pressed in IDLE state, grenades={_currentGrenades}");
-            if (_currentGrenades > 0)
-            {
-                // Start simple aiming mode
-                StartSimpleGrenadeAiming();
-            }
-            else
-            {
-                LogToFile("[Player.Grenade.Simple] No grenades available");
-            }
+            _grenadeState = GrenadeState.SimpleAiming;
+            _isPreparingGrenade = true;
+            // Store initial mouse position for aiming
+            _aimDragStart = GetGlobalMousePosition();
+            // Start hands approach animation
+            StartGrenadeAnimPhase(GrenadeAnimPhase.HandsApproach, AnimApproachDuration);
+            LogToFile("[Player.Grenade.Simple] RMB pressed after pin pull - starting trajectory aiming");
         }
-    }
-
-    /// <summary>
-    /// Start simple grenade aiming mode.
-    /// Creates grenade, starts timer, and enters aiming state.
-    /// </summary>
-    private void StartSimpleGrenadeAiming()
-    {
-        if (_currentGrenades <= 0)
-        {
-            LogToFile("[Player.Grenade.Simple] Cannot start: no grenades");
-            return;
-        }
-
-        if (GrenadeScene == null)
-        {
-            LogToFile("[Player.Grenade.Simple] Cannot start: GrenadeScene is null");
-            return;
-        }
-
-        // Create grenade instance
-        _activeGrenade = GrenadeScene.Instantiate<RigidBody2D>();
-        if (_activeGrenade == null)
-        {
-            LogToFile("[Player.Grenade.Simple] Failed to instantiate grenade scene");
-            return;
-        }
-
-        // Add grenade to scene (must be in tree before setting GlobalPosition)
-        GetTree().CurrentScene.AddChild(_activeGrenade);
-        _activeGrenade.GlobalPosition = GlobalPosition;
-
-        // Activate the grenade timer (starts countdown)
-        if (_activeGrenade.HasMethod("activate_timer"))
-        {
-            _activeGrenade.Call("activate_timer");
-        }
-
-        // Update state
-        _grenadeState = GrenadeState.SimpleAiming;
-        _grenadeTimerStartTime = Time.GetTicksMsec() / 1000.0;
-        _isPreparingGrenade = true;
-
-        // Store initial mouse position for aiming
-        _aimDragStart = GetGlobalMousePosition();
-
-        // Decrement grenade count now - but not on tutorial level (infinite)
-        if (!_isTutorialLevel)
-        {
-            _currentGrenades--;
-        }
-        EmitSignal(SignalName.GrenadeChanged, _currentGrenades, MaxGrenades);
-
-        // Start arm animation - go directly to wind-up style position
-        StartGrenadeAnimPhase(GrenadeAnimPhase.GrabGrenade, AnimGrabDuration * 0.5f);
-
-        // Play pin pull sound
-        var audioManager = GetNodeOrNull("/root/AudioManager");
-        if (audioManager != null && audioManager.HasMethod("play_grenade_prepare"))
-        {
-            audioManager.Call("play_grenade_prepare", GlobalPosition);
-        }
-
-        LogToFile($"[Player.Grenade.Simple] Aiming started at {GlobalPosition}");
     }
 
     /// <summary>
     /// Handle SIMPLE_AIMING state: RMB held, showing trajectory preview.
     /// Cursor position = landing point. Release RMB to throw.
+    /// G can be released while RMB is held - grenade stays ready.
     /// </summary>
     private void HandleSimpleGrenadeAimingState()
     {
@@ -2065,7 +2020,7 @@ public partial class Player : BaseCharacter
         UpdateSimpleWindUpAnimation();
 
         // If animation phases need to transition
-        if (_grenadeAnimPhase == GrenadeAnimPhase.GrabGrenade && _grenadeAnimTimer <= 0)
+        if (_grenadeAnimPhase == GrenadeAnimPhase.HandsApproach && _grenadeAnimTimer <= 0)
         {
             _grenadeAnimPhase = GrenadeAnimPhase.WindUp;
         }

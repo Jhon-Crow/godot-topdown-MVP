@@ -1365,16 +1365,22 @@ func _handle_grenade_input() -> void:
 			GrenadeState.AIMING:
 				_handle_grenade_aiming_state()
 	else:
-		# Simple trajectory aiming mode
+		# Simple trajectory aiming mode - uses same pin-pull mechanic (G+RMB drag)
+		# but replaces mouse-velocity throwing with trajectory-to-cursor aiming
 		match _grenade_state:
 			GrenadeState.IDLE:
-				_handle_simple_grenade_idle_state()
+				# Use same G+RMB drag mechanic as complex mode for pin pull (Step 1)
+				_handle_grenade_idle_state()
+			GrenadeState.TIMER_STARTED:
+				# After pin is pulled, RMB starts trajectory aiming (instead of Step 2)
+				_handle_simple_grenade_timer_started_state()
 			GrenadeState.SIMPLE_AIMING:
+				# RMB held: show trajectory preview, release to throw to cursor
 				_handle_simple_grenade_aiming_state()
 			_:
 				# If we're in a complex-mode state but simple mode is now enabled,
 				# reset to allow starting fresh (handles mode switch mid-throw)
-				if _grenade_state in [GrenadeState.TIMER_STARTED, GrenadeState.WAITING_FOR_G_RELEASE, GrenadeState.AIMING]:
+				if _grenade_state in [GrenadeState.WAITING_FOR_G_RELEASE, GrenadeState.AIMING]:
 					FileLogger.info("[Player.Grenade] Mode mismatch: resetting from complex state %d to IDLE" % _grenade_state)
 					if _active_grenade != null and is_instance_valid(_active_grenade):
 						# Drop the grenade if we have one
@@ -1496,70 +1502,34 @@ func _handle_grenade_aiming_state() -> void:
 # Simple Grenade Throwing Mode (Default)
 # ============================================================================
 
-## Handle IDLE state for simple grenade throwing mode.
-## When RMB is pressed, create grenade and start aiming.
-func _handle_simple_grenade_idle_state() -> void:
-	# Log when RMB is pressed to confirm simple mode handler is active
+## Handle TIMER_STARTED state for simple grenade throwing mode.
+## After pin is pulled (G+RMB drag), wait for RMB to start trajectory aiming.
+## If G is released, drop grenade at feet.
+func _handle_simple_grenade_timer_started_state() -> void:
+	# Make grenade follow player while G is held
+	if _active_grenade != null and is_instance_valid(_active_grenade):
+		_active_grenade.global_position = global_position
+
+	# If G is released, drop grenade at feet
+	if not Input.is_action_pressed("grenade_prepare"):
+		FileLogger.info("[Player.Grenade.Simple] G released - dropping grenade at feet")
+		_drop_grenade_at_feet()
+		return
+
+	# Check if RMB is pressed to enter SimpleAiming state
 	if Input.is_action_just_pressed("grenade_throw"):
-		FileLogger.info("[Player.Grenade.Simple] RMB pressed in IDLE state, grenades=%d" % _current_grenades)
-		if _current_grenades > 0:
-			# Start simple aiming mode
-			_start_simple_grenade_aiming()
-		else:
-			FileLogger.info("[Player.Grenade.Simple] No grenades available")
-
-
-## Start simple grenade aiming mode.
-## Creates grenade, starts timer, and enters aiming state.
-func _start_simple_grenade_aiming() -> void:
-	if _current_grenades <= 0:
-		FileLogger.info("[Player.Grenade.Simple] Cannot start: no grenades")
-		return
-
-	if grenade_scene == null:
-		FileLogger.info("[Player.Grenade.Simple] Cannot start: grenade_scene is null")
-		return
-
-	# Create grenade instance
-	_active_grenade = grenade_scene.instantiate()
-	if _active_grenade == null:
-		FileLogger.info("[Player.Grenade.Simple] Failed to instantiate grenade scene")
-		return
-
-	# Add grenade to scene (must be in tree before setting global_position)
-	get_tree().current_scene.add_child(_active_grenade)
-	_active_grenade.global_position = global_position
-
-	# Activate the grenade timer (starts countdown)
-	if _active_grenade.has_method("activate_timer"):
-		_active_grenade.activate_timer()
-
-	# Update state
-	_grenade_state = GrenadeState.SIMPLE_AIMING
-	_grenade_timer_start_time = Time.get_ticks_msec() / 1000.0
-	_is_preparing_grenade = true
-
-	# Store initial mouse position for aiming
-	_aim_drag_start = get_global_mouse_position()
-
-	# Decrement grenade count now - but not on tutorial level (infinite)
-	if not _is_tutorial_level:
-		_current_grenades -= 1
-	grenade_changed.emit(_current_grenades, max_grenades)
-
-	# Start arm animation - go directly to wind-up style position
-	_start_grenade_anim_phase(GrenadeAnimPhase.GRAB_GRENADE, ANIM_GRAB_DURATION * 0.5)
-
-	# Play pin pull sound
-	var audio_manager: Node = get_node_or_null("/root/AudioManager")
-	if audio_manager and audio_manager.has_method("play_grenade_prepare"):
-		audio_manager.play_grenade_prepare(global_position)
-
-	FileLogger.info("[Player.Grenade.Simple] Aiming started at %s" % str(global_position))
+		_grenade_state = GrenadeState.SIMPLE_AIMING
+		_is_preparing_grenade = true
+		# Store initial mouse position for aiming
+		_aim_drag_start = get_global_mouse_position()
+		# Start hands approach animation
+		_start_grenade_anim_phase(GrenadeAnimPhase.HANDS_APPROACH, ANIM_APPROACH_DURATION)
+		FileLogger.info("[Player.Grenade.Simple] RMB pressed after pin pull - starting trajectory aiming")
 
 
 ## Handle SIMPLE_AIMING state: RMB held, showing trajectory preview.
 ## Cursor position = landing point. Release RMB to throw.
+## G can be released while RMB is held - grenade stays ready.
 func _handle_simple_grenade_aiming_state() -> void:
 	# Request redraw for trajectory visualization (always show in simple mode)
 	queue_redraw()
@@ -1572,7 +1542,7 @@ func _handle_simple_grenade_aiming_state() -> void:
 	_update_simple_wind_up_animation()
 
 	# If animation phases need to transition
-	if _grenade_anim_phase == GrenadeAnimPhase.GRAB_GRENADE and _grenade_anim_timer <= 0:
+	if _grenade_anim_phase == GrenadeAnimPhase.HANDS_APPROACH and _grenade_anim_timer <= 0:
 		_grenade_anim_phase = GrenadeAnimPhase.WIND_UP
 
 	# Check for RMB release - throw the grenade!
