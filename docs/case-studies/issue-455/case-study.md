@@ -141,6 +141,104 @@ The game uses C# for the player and GDScript for enemies, which explains why ene
    - Increased `FLASH_DURATION` to 0.3s (3x)
    - Increased `LIGHT_START_ENERGY` to 4.5 (3x)
 
+## Iteration 3: Light Falloff and Position Refinements (2026-02-03)
+
+### User Feedback (Comment #3843752470)
+User reported additional issues:
+1. **Brightness zone too large** - Maximum brightness area should be 2x smaller, fade zone should cover entire viewport
+2. **Flash passes through walls** - Flash light shouldn't penetrate walls or go behind the shooter
+3. **Player muzzle flash position wrong** - Fire appears inside weapon body, not at barrel end
+4. **Muzzle fire too long** - Barrel flame particle effect should be shorter
+
+### Root Cause Analysis
+
+#### Issue 1: Light Falloff Zone Too Small
+**Root Cause**: Light gradient had limited range:
+- Original gradient: 3 stops (0, 0.4, 1) with max brightness extending to 40%
+- Texture scale 3.0 with 256x256 = 768px coverage radius
+- Viewport is typically ~1920x1080, diagonal ~2200px
+
+**Fix**:
+- Modified gradient: 5 stops (0, 0.1, 0.2, 0.5, 1) - max brightness only to 10%, then gradual fade
+- Increased texture: 256x256 → 512x512
+- Increased texture_scale: 3.0 → 4.5 (effective radius ~1152px, covers half viewport)
+- This creates a smaller bright center (2x smaller at 10% vs 40%) with viewport-wide fade
+
+#### Issue 2: Light Penetrating Walls
+**Root Cause**: Shadow settings needed refinement:
+- Shadow was enabled but filter/smoothing settings were default
+- Shadow color at 0.6 alpha wasn't dark enough
+
+**Fix**:
+- Enhanced shadow_color: alpha 0.6 → 0.8 (darker shadows)
+- Added shadow_filter = 1 (PCF5 filtering for smoother shadows)
+- Added shadow_filter_smooth = 4.0 (softened shadow edges)
+
+#### Issue 3: Player Muzzle Flash Position Wrong
+**Root Cause**: `BulletSpawnOffset` in weapon scenes didn't match visual barrel length.
+
+Weapon sprite analysis:
+- **AssaultRifle** (m16_rifle_topdown.png): 64x16px, offset=20, barrel end = 20+32 = 52px
+  - Original BulletSpawnOffset = 25.0 (27px too short!)
+- **MiniUzi** (mini_uzi_topdown.png): 40x10px, offset=15, barrel end = 15+20 = 35px
+  - Original BulletSpawnOffset = 20.0 (15px too short!)
+- **SilencedPistol** (silenced_pistol_topdown.png): 44x12px, offset=11, barrel end = 11+22 = 33px
+  - Original BulletSpawnOffset = 22.0 (11px too short!)
+- **Shotgun** (shotgun_topdown.png): 64x16px, offset=20, barrel end = 20+32 = 52px
+  - Original BulletSpawnOffset = 25.0 (27px too short!)
+
+**Fix**: Updated all weapon scenes with correct barrel-end offset:
+- `AssaultRifle.tscn`: 25.0 → 52.0
+- `MiniUzi.tscn`: 20.0 → 35.0
+- `SilencedPistol.tscn`: 22.0 → 33.0
+- `Shotgun.tscn`: 25.0 → 52.0
+
+#### Issue 4: Barrel Particle Effect Too Long
+**Root Cause**: Particle lifetime and count were still too prominent:
+- Lifetime was 0.08s (after iteration 2 fix)
+- Still slightly visible as a "blob" instead of instant flash
+
+**Fix**:
+- Reduced lifetime: 0.08s → 0.04s (instantaneous)
+- Reduced amount: 6 → 5
+- Increased explosiveness: 0.98 → 1.0 (all particles emit at once)
+- Reduced randomness: 0.15 → 0.1
+
+### Effect Parameter Comparison (Final)
+
+| Parameter | Original | Iteration 2 | Iteration 3 | Change |
+|-----------|----------|-------------|-------------|--------|
+| Particle amount | 10 | 6 | 5 | 50% reduction |
+| Particle lifetime | 0.12s | 0.08s | 0.04s | 3x shorter |
+| Particle explosiveness | - | 0.98 | 1.0 | All at once |
+| Light texture | 128x128 | 256x256 | 512x512 | 4x larger |
+| Light scale | 1.5 | 3.0 | 4.5 | 3x larger |
+| Light gradient stops | 3 | 3 | 5 | More gradual fade |
+| Shadow alpha | 0 | 0.6 | 0.8 | Darker |
+| Shadow filter | none | none | PCF5 | Smoother |
+| BulletSpawnOffset (rifle) | - | 25.0 | 52.0 | Correct barrel |
+
+### Files Modified (Iteration 3)
+
+1. **scenes/effects/MuzzleFlash.tscn**
+   - Light gradient: smaller bright center (10% vs 40%), 5 stops for gradual fade
+   - Light texture: 512x512 (larger coverage)
+   - Light scale: 4.5 (viewport-wide fade)
+   - Shadow: darker (0.8 alpha), PCF5 filter, 4.0 smoothing
+   - Particles: shorter lifetime (0.04s), less randomness
+
+2. **scenes/weapons/csharp/AssaultRifle.tscn**
+   - BulletSpawnOffset: 25.0 → 52.0
+
+3. **scenes/weapons/csharp/MiniUzi.tscn**
+   - BulletSpawnOffset: 20.0 → 35.0
+
+4. **scenes/weapons/csharp/SilencedPistol.tscn**
+   - BulletSpawnOffset: 22.0 → 33.0
+
+5. **scenes/weapons/csharp/Shotgun.tscn**
+   - BulletSpawnOffset: 25.0 → 52.0
+
 ## Lessons Learned
 
 1. **Always verify which language implementation is used** - The codebase has both C# and GDScript versions of the same functionality. Need to check which one is actually being used at runtime.
@@ -155,9 +253,14 @@ The game uses C# for the player and GDScript for enemies, which explains why ene
 
 4. **User feedback is essential** - Initial implementation was technically correct but visually wrong. User testing revealed specific adjustments needed.
 
+5. **Sprite offset calculations are critical** - BulletSpawnOffset must account for sprite offset + half sprite width to position effects at the visual barrel end, not just an arbitrary offset from the weapon node center.
+
+6. **Light gradients control visual perception** - A 5-stop gradient with concentrated brightness (0-10%) and long fade (10-100%) creates the perception of a smaller bright center with viewport-wide illumination.
+
 ## References
 
 - Game logs: `game_log_20260203_232835.txt`, `game_log_20260203_233151.txt`
 - Initial research: `research.md`
 - Godot PointLight2D shadow documentation
 - Godot GPUParticles2D material properties
+- Weapon sprite dimensions: m16=64x16, uzi=40x10, pistol=44x12, shotgun=64x16
