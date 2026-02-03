@@ -9,11 +9,12 @@ uniform float saturation_boost : hint_range(0.0, 10.0) = 0.0;
 uniform float contrast_boost : hint_range(0.0, 10.0) = 0.0;
 
 // Screen texture sampler for reading the rendered scene
-uniform sampler2D screen_texture : hint_screen_texture, filter_linear_mipmap;
+// Use filter_nearest and textureLod for gl_compatibility mode support
+uniform sampler2D screen_texture : hint_screen_texture, repeat_disable, filter_nearest;
 
 void fragment() {
-	// Sample the screen texture at the current screen UV position
-	vec4 screen_color = texture(screen_texture, SCREEN_UV);
+	// Sample the screen texture using textureLod for gl_compatibility mode support
+	vec4 screen_color = textureLod(screen_texture, SCREEN_UV, 0.0);
 
 	// Calculate luminance (grayscale value) using standard weights
 	float luminance = dot(screen_color.rgb, vec3(0.299, 0.587, 0.114));
