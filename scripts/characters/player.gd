@@ -2519,15 +2519,17 @@ func _draw_trajectory_with_bounces(spawn_pos: Vector2, direction: Vector2, speed
 		var wall_hit := _raycast_for_wall(global_position + current_pos, global_position + next_pos)
 		if wall_hit.hit and bounces < max_bounces:
 			# Wall hit! Calculate bounce
-			var hit_pos := wall_hit.position - global_position  # Convert to local coords
+			var wall_hit_pos: Vector2 = wall_hit.position
+			var hit_pos: Vector2 = wall_hit_pos - global_position  # Convert to local coords
 			trajectory_points.append(hit_pos)
 			bounce_points.append(hit_pos)
 
 			# Reflect velocity off wall normal
-			var reflected := current_velocity.bounce(wall_hit.normal)
+			var wall_normal: Vector2 = wall_hit.normal
+			var reflected := current_velocity.bounce(wall_normal)
 			current_velocity = reflected * wall_bounce_coefficient
 
-			current_pos = hit_pos + wall_hit.normal * 2.0  # Small offset from wall
+			current_pos = hit_pos + wall_normal * 2.0  # Small offset from wall
 			bounces += 1
 		else:
 			current_pos = next_pos
