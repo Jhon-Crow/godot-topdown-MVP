@@ -619,3 +619,119 @@ func _push_casings() -> void:
    - No single detection method is 100% reliable
    - Combining multiple approaches catches edge cases
    - Extra code complexity is worth it for robust gameplay
+
+### User Feedback #7 (2026-02-03)
+- Feedback from log `game_log_20260203_123943.txt`:
+  1. "гильзы не дают пройти игроку" - Casings are not letting the player pass
+- The log shows no casing-related debug output at all
+- User was testing on the Tutorial level (`csharp/TestTier.tscn`)
+
+### Root Cause Discovery (Iteration 8)
+- **The C# Player scene was never updated!**
+- `scenes/characters/csharp/Player.tscn` still had:
+  - `collision_mask = 68` (includes layer 7 where casings are)
+  - No CasingPusher Area2D node
+- The GDScript fixes were only applied to `scenes/characters/Player.tscn`
+- Tutorial level (`scenes/levels/csharp/TestTier.tscn`) uses the C# Player scene
+
+### Fix Iteration 8 - Update C# Player Scene and Script (2026-02-03)
+**Problem**: All previous fixes were only applied to the GDScript version. The C# version was untouched.
+
+**Solution**: Apply the same fixes to the C# Player scene and script:
+
+1. **Update C# Player.tscn** (`scenes/characters/csharp/Player.tscn`):
+   - Changed `collision_mask = 68` to `collision_mask = 4`
+   - Added `CasingPusher` Area2D with `collision_mask = 64` (layer 7)
+   - Added `CasingPusherShape` CollisionShape2D with radius 20
+
+2. **Update C# Player.cs** (`Scripts/Characters/Player.cs`):
+   - Added `_casingPusher` Area2D reference
+   - Added `_overlappingCasings` list for signal-based tracking
+   - Added `ConnectCasingPusherSignals()` method
+   - Added `OnCasingPusherBodyEntered()` and `OnCasingPusherBodyExited()` signal handlers
+   - Added `PushCasingsWithArea2D()` method called from `_PhysicsProcess()`
+
+**Code Changes** (Scripts/Characters/Player.cs):
+
+```csharp
+// New fields
+private Area2D? _casingPusher;
+private const float CasingPushForce = 50.0f;
+private readonly List<RigidBody2D> _overlappingCasings = new();
+
+// In _Ready():
+ConnectCasingPusherSignals();
+
+// In _PhysicsProcess():
+PushCasingsWithArea2D();
+
+// New methods
+private void ConnectCasingPusherSignals()
+{
+    _casingPusher = GetNodeOrNull<Area2D>("CasingPusher");
+    if (_casingPusher == null) return;
+    _casingPusher.BodyEntered += OnCasingPusherBodyEntered;
+    _casingPusher.BodyExited += OnCasingPusherBodyExited;
+}
+
+private void OnCasingPusherBodyEntered(Node2D body)
+{
+    if (body is RigidBody2D rigidBody && rigidBody.HasMethod("receive_kick"))
+    {
+        if (!_overlappingCasings.Contains(rigidBody))
+            _overlappingCasings.Add(rigidBody);
+    }
+}
+
+private void OnCasingPusherBodyExited(Node2D body)
+{
+    if (body is RigidBody2D rigidBody)
+        _overlappingCasings.Remove(rigidBody);
+}
+
+private void PushCasingsWithArea2D()
+{
+    if (_casingPusher == null || Velocity.LengthSquared() < 1.0f) return;
+
+    var casingsToPush = new HashSet<RigidBody2D>();
+
+    // Add signal-tracked casings
+    foreach (var casing in _overlappingCasings)
+        if (IsInstanceValid(casing)) casingsToPush.Add(casing);
+
+    // Also poll for any missed casings
+    foreach (var body in _casingPusher.GetOverlappingBodies())
+        if (body is RigidBody2D rigidBody && rigidBody.HasMethod("receive_kick"))
+            casingsToPush.Add(rigidBody);
+
+    // Push all detected casings
+    foreach (var casing in casingsToPush)
+    {
+        var pushDir = Velocity.Normalized();
+        var pushStrength = Velocity.Length() * CasingPushForce / 100.0f;
+        casing.Call("receive_kick", pushDir * pushStrength);
+    }
+}
+```
+
+**Rationale**:
+- The game has BOTH GDScript and C# versions of key scenes/scripts
+- Levels in `scenes/levels/csharp/` use C# versions (Player.tscn, Enemy.tscn, etc.)
+- The Tutorial level specifically uses the C# Player
+- All fixes must be applied to BOTH versions for consistency
+
+### Lessons Learned (Iteration 8)
+1. **Dual Codebase Awareness**
+   - This project has both GDScript and C# implementations
+   - Fixes must be applied to BOTH versions
+   - Always check which version is used by the affected scenes/levels
+
+2. **Verify Affected Code Paths**
+   - The user was on the Tutorial level which uses C# Player
+   - Previous testing may have been with GDScript version
+   - When a "fix" doesn't work, verify the actual code path being executed
+
+3. **Log Analysis is Critical**
+   - The log showed no casing debug output → CasingPusher logic not running
+   - This indicated the C# version was being used (no CasingPusher signals)
+   - Log analysis can reveal which code path is active

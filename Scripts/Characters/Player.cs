@@ -90,6 +90,22 @@ public partial class Player : BaseCharacter
     private Sprite2D? _sprite;
 
     /// <summary>
+    /// Reference to the CasingPusher Area2D for detecting shell casings (Issue #392).
+    /// </summary>
+    private Area2D? _casingPusher;
+
+    /// <summary>
+    /// Force to apply to casings when pushed by player walking over them (Issue #392).
+    /// </summary>
+    private const float CasingPushForce = 50.0f;
+
+    /// <summary>
+    /// List of casings currently overlapping with the CasingPusher Area2D (Issue #392 Iteration 8).
+    /// Uses signal-based tracking for reliable detection from all directions.
+    /// </summary>
+    private readonly System.Collections.Generic.List<RigidBody2D> _overlappingCasings = new();
+
+    /// <summary>
     /// Current step in the reload sequence (0 = waiting for R, 1 = waiting for F, 2 = waiting for R).
     /// </summary>
     private int _reloadSequenceStep = 0;
@@ -754,6 +770,9 @@ public partial class Player : BaseCharacter
         // Connect to GameManager's debug mode signal for F7 toggle
         ConnectDebugModeSignal();
 
+        // Initialize CasingPusher Area2D for pushing shell casings (Issue #392 Iteration 8)
+        ConnectCasingPusherSignals();
+
         // Log ready status with full info
         int currentAmmo = CurrentWeapon?.CurrentAmmo ?? 0;
         int maxAmmo = CurrentWeapon?.WeaponData?.MagazineSize ?? 0;
@@ -833,6 +852,104 @@ public partial class Player : BaseCharacter
         }
     }
 
+    #region Casing Pusher (Issue #392)
+
+    /// <summary>
+    /// Connects the CasingPusher Area2D signals for reliable casing detection (Issue #392 Iteration 8).
+    /// Using body_entered/body_exited signals instead of polling get_overlapping_bodies()
+    /// ensures casings are detected even when player approaches from narrow side.
+    /// </summary>
+    private void ConnectCasingPusherSignals()
+    {
+        _casingPusher = GetNodeOrNull<Area2D>("CasingPusher");
+        if (_casingPusher == null)
+        {
+            // CasingPusher not present in scene - this is fine for older scenes
+            return;
+        }
+
+        // Connect body_entered and body_exited signals
+        _casingPusher.BodyEntered += OnCasingPusherBodyEntered;
+        _casingPusher.BodyExited += OnCasingPusherBodyExited;
+    }
+
+    /// <summary>
+    /// Called when a body enters the CasingPusher Area2D.
+    /// Tracks casings for reliable pushing detection.
+    /// </summary>
+    private void OnCasingPusherBodyEntered(Node2D body)
+    {
+        if (body is RigidBody2D rigidBody && rigidBody.HasMethod("receive_kick"))
+        {
+            if (!_overlappingCasings.Contains(rigidBody))
+            {
+                _overlappingCasings.Add(rigidBody);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Called when a body exits the CasingPusher Area2D.
+    /// Removes casings from tracking list.
+    /// </summary>
+    private void OnCasingPusherBodyExited(Node2D body)
+    {
+        if (body is RigidBody2D rigidBody)
+        {
+            _overlappingCasings.Remove(rigidBody);
+        }
+    }
+
+    /// <summary>
+    /// Pushes casings that we're overlapping with using Area2D detection (Issue #392 Iteration 8).
+    /// Uses signal-tracked casings combined with polling for maximum reliability.
+    /// </summary>
+    private void PushCasingsWithArea2D()
+    {
+        if (_casingPusher == null)
+        {
+            return;
+        }
+
+        // Don't push if not moving
+        if (Velocity.LengthSquared() < 1.0f)
+        {
+            return;
+        }
+
+        // Combine both signal-tracked casings and polled overlapping bodies for reliability
+        var casingsToPush = new System.Collections.Generic.HashSet<RigidBody2D>();
+
+        // Add signal-tracked casings
+        foreach (var casing in _overlappingCasings)
+        {
+            if (IsInstanceValid(casing))
+            {
+                casingsToPush.Add(casing);
+            }
+        }
+
+        // Also poll for any casings that might have been missed by signals
+        foreach (var body in _casingPusher.GetOverlappingBodies())
+        {
+            if (body is RigidBody2D rigidBody && rigidBody.HasMethod("receive_kick"))
+            {
+                casingsToPush.Add(rigidBody);
+            }
+        }
+
+        // Push all detected casings
+        foreach (var casing in casingsToPush)
+        {
+            var pushDir = Velocity.Normalized();
+            var pushStrength = Velocity.Length() * CasingPushForce / 100.0f;
+            var impulse = pushDir * pushStrength;
+            casing.Call("receive_kick", impulse);
+        }
+    }
+
+    #endregion
+
     public override void _PhysicsProcess(double delta)
     {
         // Detect weapon pose after waiting a few frames for level scripts to add weapons
@@ -848,6 +965,9 @@ public partial class Player : BaseCharacter
 
         Vector2 inputDirection = GetInputDirection();
         ApplyMovement(inputDirection, (float)delta);
+
+        // Push any casings we're overlapping with using Area2D detection (Issue #392 Iteration 8)
+        PushCasingsWithArea2D();
 
         // Update player model rotation to face the aim direction (rifle direction)
         UpdatePlayerModelRotation();
