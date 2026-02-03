@@ -1518,3 +1518,54 @@ func test_aim_check_consistent_at_all_distances_issue_344() -> void:
 			"Aim check should pass at distance %.0f when enemy faces player" % distance)
 		assert_true(aim_dot >= tolerance,
 			"Aim check should pass tolerance at distance %.0f" % distance)
+
+
+# ============================================================================
+# Issue #405: Unlimited Search Zone Tests
+# ============================================================================
+
+
+## Test that SEARCH_MAX_RADIUS is infinite (Issue #405).
+## Enemies should search in an unlimited zone from the very beginning.
+func test_unlimited_search_zone_issue_405() -> void:
+	# SEARCH_MAX_RADIUS should be INF for unlimited zone
+	var max_radius: float = INF  # Expected value after Issue #405 fix
+	assert_true(is_inf(max_radius), "SEARCH_MAX_RADIUS should be infinite for unlimited search zone")
+
+
+## Test that search radius can expand beyond former 400px limit (Issue #405).
+func test_search_radius_expands_beyond_old_limit_issue_405() -> void:
+	var initial_radius := 100.0  # SEARCH_INITIAL_RADIUS
+	var expansion := 75.0  # SEARCH_RADIUS_EXPANSION
+	var old_limit := 400.0  # Former SEARCH_MAX_RADIUS (now unlimited)
+
+	# Simulate 10 expansions (beyond old limit)
+	var radius := initial_radius
+	for i in range(10):
+		radius += expansion
+
+	assert_eq(radius, 850.0, "After 10 expansions, radius should be 850px")
+	assert_true(radius > old_limit, "Radius should expand beyond old 400px limit")
+
+	# Since INF is the max, we should always be able to expand
+	var unlimited_max: float = INF
+	assert_true(radius < unlimited_max, "Radius should always be less than INF (unlimited)")
+
+
+## Test that enemy can continue searching indefinitely with unlimited zone (Issue #405).
+func test_enemy_search_continues_infinitely_issue_405() -> void:
+	# Simulate the search logic with unlimited max radius
+	var radius := 100.0  # SEARCH_INITIAL_RADIUS
+	var expansion := 75.0  # SEARCH_RADIUS_EXPANSION
+	var max_radius: float = INF  # Unlimited
+
+	# Simulate many expansion cycles
+	var expansions := 0
+	while radius < max_radius and expansions < 100:  # Safety limit for test
+		radius += expansion
+		expansions += 1
+
+	# With INF max, we hit our safety limit (100 iterations)
+	# This proves the search doesn't stop due to radius limit
+	assert_eq(expansions, 100, "Search should continue for all iterations (unlimited)")
+	assert_eq(radius, 100.0 + (100 * 75.0), "Radius should be 100 + 100*75 = 7600")

@@ -341,7 +341,7 @@ var _search_center: Vector2 = Vector2.ZERO  ## Search center
 var _search_radius: float = 100.0  ## Current radius
 const SEARCH_INITIAL_RADIUS: float = 100.0  ## Initial radius
 const SEARCH_RADIUS_EXPANSION: float = 75.0  ## Radius expansion
-const SEARCH_MAX_RADIUS: float = 400.0  ## Max radius
+const SEARCH_MAX_RADIUS: float = INF  ## Max radius (Issue #405: unlimited search zone)
 var _search_waypoints: Array[Vector2] = []  ## Search waypoints
 var _search_current_waypoint_index: int = 0  ## Current waypoint index
 var _search_scan_timer: float = 0.0  ## Timer for scanning at waypoint
@@ -494,6 +494,7 @@ func _ready() -> void:
 
 	# Initialize death animation component
 	_init_death_animation()
+	call_deferred("_start_initial_search")  # Issue #405: Search from spawn targeting player position
 
 ## Initialize health with random value between min and max.
 func _initialize_health() -> void:
@@ -2211,8 +2212,7 @@ func _mark_zone_visited(pos: Vector2) -> void:
 ## Issue #330: If enemy has ever left IDLE, they NEVER return to IDLE - search infinitely.
 func _process_searching_state(delta: float) -> void:
 	_search_state_timer += delta
-	# Issue #330: Only timeout if enemy has never engaged (still in patrol mode)
-	# Once an enemy has left IDLE, they search infinitely until finding player
+	# Issue #330: Only timeout for patrol enemies; engaged enemies search infinitely
 	if _search_state_timer >= SEARCH_MAX_DURATION and not _has_left_idle:
 		_log_to_file("SEARCHING timeout after %.1fs, returning to IDLE (patrol enemy)" % _search_state_timer)
 		_transition_to_idle()
@@ -2229,82 +2229,54 @@ func _process_searching_state(delta: float) -> void:
 			if _search_waypoints.is_empty() and _search_radius < SEARCH_MAX_RADIUS:
 				return
 		else:
-			# Issue #330: If enemy has left IDLE, reset search and keep searching
-			if _has_left_idle:
-				# Move search center to current position (so enemy explores new area)
-				var old_center := _search_center
-				_search_center = global_position
-				_search_radius = SEARCH_INITIAL_RADIUS
-				_search_state_timer = 0.0
-				# Keep visited zones to avoid re-visiting same spots
-				_generate_search_waypoints()
-				_log_to_file("SEARCHING: Max radius reached, moved center from %s to %s (engaged enemy, wps=%d)" % [old_center, _search_center, _search_waypoints.size()])
+			if _has_left_idle:  # Issue #330: Engaged enemy - move center to current pos, continue searching
+				var old_center := _search_center; _search_center = global_position
+				_search_radius = SEARCH_INITIAL_RADIUS; _search_state_timer = 0.0
+				_generate_search_waypoints()  # Keep visited zones
+				_log_to_file("SEARCHING: Max radius, moved center from %s to %s (wps=%d)" % [old_center, _search_center, _search_waypoints.size()])
 				return
-			else:
-				_log_to_file("SEARCHING: Max radius, returning to IDLE (patrol enemy)")
-				_transition_to_idle()
-				return
+			_log_to_file("SEARCHING: Max radius, returning to IDLE (patrol enemy)")
+			_transition_to_idle(); return
 	if _search_waypoints.is_empty():
-		# Issue #330: If enemy has left IDLE, regenerate waypoints from new position
-		if _has_left_idle:
-			var old_center := _search_center
-			_search_center = global_position
-			_search_radius = SEARCH_INITIAL_RADIUS
+		if _has_left_idle:  # Issue #330: Regenerate from current position
+			var old := _search_center; _search_center = global_position; _search_radius = SEARCH_INITIAL_RADIUS
 			_generate_search_waypoints()
-			_log_to_file("SEARCHING: No waypoints, moved center from %s to %s (engaged enemy, wps=%d)" % [old_center, _search_center, _search_waypoints.size()])
+			_log_to_file("SEARCHING: No waypoints, moved center %s->%s (wps=%d)" % [old, _search_center, _search_waypoints.size()])
 			return
-		_transition_to_idle()
-		return
+		_transition_to_idle(); return
 	var target_waypoint := _search_waypoints[_search_current_waypoint_index]
 	var dist := global_position.distance_to(target_waypoint)
 	if _search_moving_to_waypoint:
 		if dist <= SEARCH_WAYPOINT_REACHED_DISTANCE:
-			_search_moving_to_waypoint = false
-			_search_scan_timer = 0.0
-			_search_stuck_timer = 0.0  # Issue #354: Reset stuck timer on waypoint reached
+			_search_moving_to_waypoint = false; _search_scan_timer = 0.0; _search_stuck_timer = 0.0
 			_log_debug("SEARCHING: Reached waypoint %d, scanning..." % _search_current_waypoint_index)
 		else:
 			_nav_agent.target_position = target_waypoint
 			if _nav_agent.is_navigation_finished():
-				_mark_zone_visited(target_waypoint)
-				_search_current_waypoint_index += 1
-				_search_moving_to_waypoint = true
-				_search_stuck_timer = 0.0  # Issue #354: Reset stuck timer
+				_mark_zone_visited(target_waypoint); _search_current_waypoint_index += 1
+				_search_moving_to_waypoint = true; _search_stuck_timer = 0.0
 			else:
 				var next_pos := _nav_agent.get_next_path_position()
 				var dir := (next_pos - global_position).normalized()
-				velocity = dir * move_speed * 0.7
-				move_and_slide()
-				_push_casings()  # Issue #341: Push casings after movement
-
-				# Issue #354: Stuck detection - check if making progress toward waypoint
+				velocity = dir * move_speed * 0.7; move_and_slide(); _push_casings()  # Issue #341
+				# Issue #354: Stuck detection
 				var progress := global_position.distance_to(_search_last_progress_position)
 				if progress < SEARCH_PROGRESS_THRESHOLD:
 					_search_stuck_timer += delta
-					if _search_stuck_timer >= SEARCH_STUCK_MAX_TIME:
-						# Stuck for too long - skip to next waypoint
-						_log_to_file("SEARCHING: Stuck at waypoint %d (no progress for %.1fs), skipping" % [_search_current_waypoint_index, _search_stuck_timer])
-						_mark_zone_visited(target_waypoint)
-						_search_current_waypoint_index += 1
-						_search_moving_to_waypoint = true
-						_search_stuck_timer = 0.0
-						_search_last_progress_position = global_position
-						return
+					if _search_stuck_timer >= SEARCH_STUCK_MAX_TIME:  # Stuck - skip waypoint
+						_log_to_file("SEARCHING: Stuck at wp %d, skipping" % _search_current_waypoint_index)
+						_mark_zone_visited(target_waypoint); _search_current_waypoint_index += 1
+						_search_moving_to_waypoint = true; _search_stuck_timer = 0.0
+						_search_last_progress_position = global_position; return
 				else:
-					# Making progress - reset stuck timer and update position
-					_search_stuck_timer = 0.0
-					_search_last_progress_position = global_position
-
+					_search_stuck_timer = 0.0; _search_last_progress_position = global_position
 				if dir.length() > 0.1:
 					rotation = lerp_angle(rotation, dir.angle(), 5.0 * delta)
-					# Corner checking during SEARCHING movement (Issue #332)
-					_process_corner_check(delta, dir, "SEARCHING")
+					_process_corner_check(delta, dir, "SEARCHING")  # Issue #332
 	else:
-		_search_scan_timer += delta
-		rotation += delta * 1.5
+		_search_scan_timer += delta; rotation += delta * 1.5
 		if _search_scan_timer >= SEARCH_SCAN_DURATION:
-			_mark_zone_visited(target_waypoint)
-			_search_current_waypoint_index += 1
+			_mark_zone_visited(target_waypoint); _search_current_waypoint_index += 1
 			_search_moving_to_waypoint = true
 			_log_debug("SEARCHING: Scan done, next wp %d" % _search_current_waypoint_index)
 
@@ -2625,6 +2597,13 @@ func _transition_to_searching(center_position: Vector2) -> void:
 	_generate_search_waypoints()
 	var msg := "SEARCHING started: center=%s, radius=%.0f, waypoints=%d" % [_search_center, _search_radius, _search_waypoints.size()]
 	_log_debug(msg); _log_to_file(msg)
+
+## Issue #405: Start initial search from enemy spawn - unlimited zone, starting from player's position.
+func _start_initial_search() -> void:
+	if not _is_alive: return
+	var start_pos := _player.global_position if _player and is_instance_valid(_player) else global_position
+	_transition_to_searching(start_pos)
+	_log_to_file("Issue #405: Initial search started from %s" % start_pos)
 
 ## Transition to RETREATING state with appropriate retreat mode.
 func _transition_to_retreating() -> void:
