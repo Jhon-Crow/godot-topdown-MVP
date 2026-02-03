@@ -260,6 +260,106 @@ Every Frame:
 
 ---
 
+## User Feedback and Refinement (2026-02-03)
+
+### Feedback Received
+
+After the initial fix was implemented (checking `ReloadState != NotReloading`), the user reported:
+
+> "при перезарядке одним движением (драгндроп вверх затем вниз) ствол не тормозится.
+> ствол должен замораживаться как только RMB нажата в первый раз - чтоб ствол не успел сместиться."
+
+**Translation:** "During reload with one motion (drag up then down), the barrel doesn't stop. The barrel should freeze as soon as RMB is pressed the first time - so the barrel doesn't have time to shift."
+
+### Root Cause of the Feedback Issue
+
+The initial fix only checked `ReloadState != NotReloading`, but the state doesn't change immediately when RMB is pressed. The sequence is:
+
+1. User presses RMB → `_isDragging = true`, but `ReloadState` is still `NotReloading`
+2. User drags up → during drag, aim still follows mouse (BUG!)
+3. Once drag distance exceeds `MinDragDistance` and direction is UP → `ReloadState` changes to `Loading`
+4. Only then does aim lock kick in
+
+**The gap between step 1 and step 3 allows the barrel to shift!**
+
+### Refined Solution
+
+Lock aim direction as soon as RMB is pressed (i.e., when `_isDragging` becomes true), not just when `ReloadState` changes.
+
+#### Changes Made
+
+1. **Shotgun.cs** - Added `IsDragging` public property:
+```csharp
+/// <summary>
+/// Gets whether a drag gesture is currently in progress (RMB is held).
+/// TACTICAL RELOAD (Issue #437): Used to lock aim direction as soon as RMB is pressed,
+/// before any state changes occur.
+/// </summary>
+public bool IsDragging => _isDragging;
+```
+
+2. **Shotgun.cs** - Updated `UpdateAimDirection()`:
+```csharp
+// TACTICAL RELOAD: Don't update aim direction during reload
+// OR when dragging (RMB is held). This ensures the barrel freezes immediately
+// when RMB is pressed, before any state change occurs.
+if (ReloadState != ShotgunReloadState.NotReloading || _isDragging)
+{
+    return; // Keep current _aimDirection locked
+}
+```
+
+3. **Player.cs** - Updated `UpdatePlayerModelRotation()`:
+```csharp
+// TACTICAL RELOAD: Don't rotate player model during shotgun reload
+// OR when dragging (RMB is held).
+var shotgun = GetNodeOrNull<Shotgun>("Shotgun");
+if (shotgun != null && (shotgun.ReloadState != ShotgunReloadState.NotReloading || shotgun.IsDragging))
+{
+    return; // Keep current rotation locked
+}
+```
+
+### Updated Code Flow
+
+```
+Every Frame:
+│
+├─► Shotgun._Process()
+│   ├─► UpdateAimDirection()
+│   │   ├─► IF ReloadState != NotReloading OR _isDragging → RETURN (aim locked immediately!)
+│   │   ├─► _aimDirection = mouseDirection
+│   │   └─► UpdateShotgunSpriteRotation()
+│   └─► HandleDragGestures() [processes reload]
+│
+└─► Player._PhysicsProcess()
+    └─► UpdatePlayerModelRotation()
+        ├─► IF shotgun.ReloadState != NotReloading OR shotgun.IsDragging → RETURN
+        └─► _playerModel.Rotation = mouseAngle
+```
+
+### Sequence After Fix
+
+1. User presses RMB → `_isDragging = true` → **aim locks immediately!**
+2. User drags up → aim stays locked, barrel doesn't move
+3. `ReloadState` changes to `Loading` → aim remains locked
+4. User completes reload and releases RMB → `_isDragging = false`, `ReloadState = NotReloading` → aim tracking resumes
+
+---
+
+## Solution Draft Logs
+
+The following logs were captured during the development of this fix:
+
+| Log File | Description |
+|----------|-------------|
+| `solution-draft-log-1.txt` | Initial solution draft session |
+| `solution-draft-log-restart-1.txt` | Auto-restart session to clean up uncommitted changes |
+| `solution-draft-log-2.txt` | Second solution draft session |
+| `failure-log.txt` | Failed session log for debugging |
+
+---
+
 ## References
 
 - [Tactical Reload - Wikipedia](https://en.wikipedia.org/wiki/Tactical_reload)
