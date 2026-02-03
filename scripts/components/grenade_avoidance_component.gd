@@ -38,11 +38,26 @@ func _ready() -> void:
 	_enemy = get_parent() as CharacterBody2D
 
 
+## Cooldown timer to prevent state thrashing when at danger zone edge.
+## When enemy exits danger zone, they ignore grenades for this duration.
+var _exit_cooldown: float = 0.0
+
+## Cooldown duration in seconds after exiting danger zone.
+const EXIT_COOLDOWN_DURATION: float = 1.0
+
+
 ## Update grenade danger detection. Call this each physics frame.
 ## Returns true if in danger zone.
 func update() -> bool:
 	if _enemy == null:
 		return false
+
+	# Decrement exit cooldown timer
+	if _exit_cooldown > 0.0:
+		_exit_cooldown -= get_physics_process_delta_time()
+		# During cooldown, maintain "not in danger" state to prevent thrashing
+		if _exit_cooldown > 0.0:
+			return false
 
 	# Clear previous tracking
 	_grenades_in_range.clear()
@@ -53,15 +68,14 @@ func update() -> bool:
 	# Find all active grenades in the scene
 	var grenades := get_tree().get_nodes_in_group("grenades")
 
-	# If no grenades in group, check for GrenadeBase instances
-	if grenades.is_empty():
-		var root := get_tree().current_scene
-		if root:
-			grenades = _find_grenades_in_scene(root)
+	# PERFORMANCE FIX: Do NOT do recursive scene tree search - that's O(n) where n is all nodes!
+	# If grenades aren't in the group, they aren't active grenades we need to worry about.
+	# The grenade_base.gd adds grenades to this group when thrown.
 
 	if grenades.is_empty():
 		if was_in_danger:
 			exited_danger_zone.emit()
+			_exit_cooldown = EXIT_COOLDOWN_DURATION  # Start cooldown to prevent thrashing
 		return false
 
 	var closest_danger_distance: float = INF
@@ -106,22 +120,20 @@ func update() -> bool:
 		entered_danger_zone.emit(most_dangerous_grenade)
 	elif not in_danger_zone and was_in_danger:
 		exited_danger_zone.emit()
+		_exit_cooldown = EXIT_COOLDOWN_DURATION  # Start cooldown to prevent thrashing
 
 	return in_danger_zone
 
 
 ## Find all grenade nodes in the scene tree.
-func _find_grenades_in_scene(node: Node) -> Array:
-	var grenades: Array = []
-
-	# Check by class name for GrenadeBase
-	if node.get_class() == "GrenadeBase" or (node.has_method("is_timer_active") and node.has_method("_get_effect_radius")):
-		grenades.append(node)
-
-	for child in node.get_children():
-		grenades.append_array(_find_grenades_in_scene(child))
-
-	return grenades
+## NOTE: This function is kept for backwards compatibility but should NOT be used.
+## PERFORMANCE WARNING: This is O(n) where n is total scene nodes - very expensive!
+## Active grenades should be in the "grenades" group instead.
+func _find_grenades_in_scene(_node: Node) -> Array:
+	# PERFORMANCE FIX: Return empty array - do not recursively search scene tree.
+	# Grenades should be in the "grenades" group. If they're not, the grenade
+	# system needs to be fixed, not worked around with expensive searches.
+	return []
 
 
 ## Calculate the best escape position from grenade danger.
@@ -188,3 +200,4 @@ func reset() -> void:
 	evasion_target = Vector2.ZERO
 	most_dangerous_grenade = null
 	_grenades_in_range.clear()
+	_exit_cooldown = 0.0

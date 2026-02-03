@@ -142,12 +142,67 @@ The FPS drop is caused by the BloodyFeetComponent's distance-based blood detecti
 
 **Immediate recommendation:** Fix the Area2D detection so the fallback isn't needed, and add throttling as a safety measure.
 
-## Note on Grenade Avoidance (Issue #407 Feature)
+## Update: Additional Performance Issues Found (2026-02-03)
 
-The new `GrenadeAvoidanceComponent` is NOT contributing to performance issues:
-- Only iterates through grenades (typically 0-2 active at any time)
-- Has early returns when no grenades exist
-- Uses the "grenades" group efficiently
+### New Log File Analyzed
+- `game_log_20260203_121003.txt` (3445 lines, ~82 seconds gameplay)
+
+### Issues Discovered
+
+#### Issue 1: GrenadeAvoidanceComponent State Thrashing
+
+**Problem:** When an enemy is at the edge of the grenade danger zone, they rapidly oscillate between `EVADING_GRENADE` and `PURSUING` states - **dozens of times per second**.
+
+**Evidence from logs:**
+```
+[12:11:19] [ENEMY] [Enemy1] EVADING_GRENADE: Escaped danger zone, returning to PURSUING
+[12:11:19] [ENEMY] [Enemy1] State: EVADING_GRENADE -> PURSUING
+[12:11:19] [ENEMY] [Enemy1] GRENADE DANGER: Entering EVADING_GRENADE state from PURSUING
+[12:11:19] [ENEMY] [Enemy1] EVADING_GRENADE started: escaping to (1384.423, 525.4119)
+... (repeats 40+ times in 1 second)
+```
+
+**Root cause:** The danger zone boundary creates oscillation:
+1. Enemy moves to edge of danger zone
+2. Exits danger → returns to PURSUING
+3. State machine immediately rechecks → still in danger
+4. Re-enters EVADING_GRENADE
+5. Repeat every frame
+
+**Fix applied:** Added 1-second cooldown (`EXIT_COOLDOWN_DURATION`) after exiting danger zone.
+
+#### Issue 2: Expensive Scene Tree Search
+
+**Problem:** `GrenadeAvoidanceComponent._find_grenades_in_scene()` was recursively searching the entire scene tree every frame when no grenades were in the "grenades" group.
+
+**Performance impact:** O(n) where n = total scene nodes (potentially thousands).
+
+**Fix applied:** Removed recursive scene tree search. Grenades should be in the "grenades" group; if not, the grenade system needs fixing, not expensive workarounds.
+
+#### Issue 3: Debug Logging Still Enabled in Scenes
+
+**Problem:** BloodyFeetComponent had `debug_logging = true` in scene files:
+- `scenes/objects/Enemy.tscn`
+- `scenes/characters/Player.tscn`
+- `scenes/characters/csharp/Player.tscn`
+
+This caused thousands of log lines even when the code default was false.
+
+**Fix applied:** Changed all scene files to `debug_logging = false`.
+
+### Summary of All Performance Fixes Applied
+
+| Fix | Component | Impact |
+|-----|-----------|--------|
+| Signal-based detection | BloodyFeetComponent | Eliminates per-frame puddle iteration |
+| Throttled fallback check | BloodyFeetComponent | 660 → 22 checks/sec |
+| Distance squared optimization | BloodyFeetComponent | Eliminates ~314k sqrt/sec |
+| Puddle check limit (50 max) | BloodyFeetComponent | Caps worst-case iterations |
+| Exit cooldown (1s) | GrenadeAvoidanceComponent | Prevents state thrashing |
+| Removed scene tree search | GrenadeAvoidanceComponent | Eliminates O(n) recursion |
+| Disabled debug logging | Scene files | Reduces log overhead |
+
+### Note on Original Grenade Avoidance Feature (Issue #407)
 
 ## Implementation (Applied Fix)
 

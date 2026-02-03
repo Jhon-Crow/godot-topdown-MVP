@@ -96,4 +96,4 @@ step_distance = 30.0
 initial_alpha = 0.8
 alpha_decay_rate = 0.06
 footprint_scale = 0.72
-debug_logging = true
+debug_logging = false
