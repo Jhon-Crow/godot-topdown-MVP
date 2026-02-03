@@ -14,6 +14,9 @@ class MockExperimentalSettings:
 	## Whether FOV (Field of View) limitation for enemies is enabled.
 	var fov_enabled: bool = false
 
+	## Whether complex grenade throwing is enabled.
+	var complex_grenade_throwing: bool = false
+
 	## Signal tracking
 	var settings_changed_emitted: int = 0
 
@@ -31,9 +34,21 @@ class MockExperimentalSettings:
 	func is_fov_enabled() -> bool:
 		return fov_enabled
 
+	## Set complex grenade throwing enabled/disabled.
+	func set_complex_grenade_throwing(enabled: bool) -> void:
+		if complex_grenade_throwing != enabled:
+			complex_grenade_throwing = enabled
+			settings_changed_emitted += 1
+			_save_settings()
+
+	## Check if complex grenade throwing is enabled.
+	func is_complex_grenade_throwing() -> bool:
+		return complex_grenade_throwing
+
 	## Save settings (simulated).
 	func _save_settings() -> void:
 		_saved_settings["fov_enabled"] = fov_enabled
+		_saved_settings["complex_grenade_throwing"] = complex_grenade_throwing
 
 	## Load settings (simulated).
 	func _load_settings() -> void:
@@ -41,10 +56,15 @@ class MockExperimentalSettings:
 			fov_enabled = _saved_settings["fov_enabled"]
 		else:
 			fov_enabled = false
+		if _saved_settings.has("complex_grenade_throwing"):
+			complex_grenade_throwing = _saved_settings["complex_grenade_throwing"]
+		else:
+			complex_grenade_throwing = false
 
 	## Reset to defaults.
 	func reset_to_defaults() -> void:
 		fov_enabled = false
+		complex_grenade_throwing = false
 		settings_changed_emitted += 1
 		_saved_settings.clear()
 
@@ -362,3 +382,116 @@ func test_multiple_settings_instances() -> void:
 
 	assert_true(settings2.is_fov_enabled(),
 		"Second instance should load shared settings")
+
+
+# ============================================================================
+# Complex Grenade Throwing Tests (Issue #398)
+# ============================================================================
+
+
+func test_default_complex_grenade_throwing_disabled() -> void:
+	assert_false(settings.complex_grenade_throwing,
+		"Complex grenade throwing should be disabled by default")
+
+
+func test_is_complex_grenade_throwing_returns_false_by_default() -> void:
+	assert_false(settings.is_complex_grenade_throwing(),
+		"is_complex_grenade_throwing should return false by default")
+
+
+func test_set_complex_grenade_throwing_true() -> void:
+	settings.set_complex_grenade_throwing(true)
+
+	assert_true(settings.complex_grenade_throwing,
+		"Complex grenade throwing should be enabled after set_complex_grenade_throwing(true)")
+
+
+func test_set_complex_grenade_throwing_false() -> void:
+	settings.complex_grenade_throwing = true
+	settings.set_complex_grenade_throwing(false)
+
+	assert_false(settings.complex_grenade_throwing,
+		"Complex grenade throwing should be disabled after set_complex_grenade_throwing(false)")
+
+
+func test_set_complex_grenade_throwing_emits_signal() -> void:
+	settings.set_complex_grenade_throwing(true)
+
+	assert_eq(settings.settings_changed_emitted, 1,
+		"Should emit settings_changed signal when changing complex grenade throwing")
+
+
+func test_set_complex_grenade_throwing_no_signal_if_same_value() -> void:
+	settings.complex_grenade_throwing = true
+	settings.settings_changed_emitted = 0
+
+	settings.set_complex_grenade_throwing(true)  # Same value
+
+	assert_eq(settings.settings_changed_emitted, 0,
+		"Should not emit signal if complex grenade throwing value unchanged")
+
+
+func test_set_complex_grenade_throwing_saves_settings() -> void:
+	settings.set_complex_grenade_throwing(true)
+
+	assert_true(settings._saved_settings.has("complex_grenade_throwing"),
+		"Settings should contain complex_grenade_throwing")
+	assert_true(settings._saved_settings["complex_grenade_throwing"],
+		"Saved value should match")
+
+
+func test_load_settings_restores_complex_grenade_throwing() -> void:
+	settings._saved_settings["complex_grenade_throwing"] = true
+	settings._load_settings()
+
+	assert_true(settings.complex_grenade_throwing,
+		"Load should restore saved complex grenade throwing setting")
+
+
+func test_load_settings_complex_grenade_defaults_when_empty() -> void:
+	settings.complex_grenade_throwing = true
+	settings._saved_settings.clear()
+	settings._load_settings()
+
+	assert_false(settings.complex_grenade_throwing,
+		"Load should default complex grenade throwing to false when no saved settings")
+
+
+func test_reset_clears_complex_grenade_throwing() -> void:
+	settings.complex_grenade_throwing = true
+	settings.reset_to_defaults()
+
+	assert_false(settings.complex_grenade_throwing,
+		"Reset should disable complex grenade throwing")
+
+
+func test_both_settings_independent() -> void:
+	# Enable FOV but not complex grenade
+	settings.set_fov_enabled(true)
+	assert_true(settings.is_fov_enabled(), "FOV should be enabled")
+	assert_false(settings.is_complex_grenade_throwing(), "Complex grenade should still be disabled")
+
+	# Enable complex grenade too
+	settings.set_complex_grenade_throwing(true)
+	assert_true(settings.is_fov_enabled(), "FOV should still be enabled")
+	assert_true(settings.is_complex_grenade_throwing(), "Complex grenade should now be enabled")
+
+	# Disable FOV only
+	settings.set_fov_enabled(false)
+	assert_false(settings.is_fov_enabled(), "FOV should be disabled")
+	assert_true(settings.is_complex_grenade_throwing(), "Complex grenade should still be enabled")
+
+
+func test_save_and_load_both_settings() -> void:
+	settings.set_fov_enabled(true)
+	settings.set_complex_grenade_throwing(true)
+
+	# Reset in-memory state
+	settings.fov_enabled = false
+	settings.complex_grenade_throwing = false
+
+	# Load from saved
+	settings._load_settings()
+
+	assert_true(settings.is_fov_enabled(), "FOV should be restored")
+	assert_true(settings.is_complex_grenade_throwing(), "Complex grenade should be restored")
