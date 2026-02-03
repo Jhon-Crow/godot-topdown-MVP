@@ -4643,8 +4643,18 @@ func has_ammo() -> bool:
 func get_player_visibility_ratio() -> float:
 	return _player_visibility_ratio
 
+## Convert a global position offset to local draw coordinates.
+## Issue #395: The enemy's body rotation affects _draw() coordinates, so we must
+## counter-rotate global vectors to draw them correctly in local space.
+## @param global_offset: Vector from global_position to target (e.g., target_pos - global_position)
+## @return: The vector in local coordinates suitable for _draw() functions
+func _global_to_local_draw(global_offset: Vector2) -> Vector2:
+	return global_offset.rotated(-rotation)
+
 ## Draw debug visualization when debug mode is enabled.
 ## Shows: line to target (cover, clear shot, player), bullet spawn point status.
+## Issue #395: All positions are converted from global to local coordinates using
+## _global_to_local_draw() to account for the enemy's rotation.
 func _draw() -> void:
 	if not debug_label_enabled:
 		return
@@ -4686,13 +4696,13 @@ func _draw() -> void:
 
 	# Draw line to player if visible
 	if _can_see_player and _player:
-		var to_player := _player.global_position - global_position
+		var to_player := _global_to_local_draw(_player.global_position - global_position)
 		draw_line(Vector2.ZERO, to_player, color_to_player, 1.5)
 
 		# Draw bullet spawn point (actual muzzle position) and check if blocked
 		var weapon_forward := _get_weapon_forward_direction()
 		var muzzle_global := _get_bullet_spawn_position(weapon_forward)
-		var spawn_point := muzzle_global - global_position  # Convert to local coordinates for draw
+		var spawn_point := _global_to_local_draw(muzzle_global - global_position)
 		if _is_bullet_spawn_clear(weapon_forward):
 			draw_circle(spawn_point, 5.0, color_bullet_spawn)
 		else:
@@ -4702,14 +4712,14 @@ func _draw() -> void:
 
 	# Draw line to cover position if we have one
 	if _has_valid_cover:
-		var to_cover := _cover_position - global_position
+		var to_cover := _global_to_local_draw(_cover_position - global_position)
 		draw_line(Vector2.ZERO, to_cover, color_to_cover, 1.5)
 		# Draw small circle at cover position
 		draw_circle(to_cover, 8.0, color_to_cover)
 
 	# Draw line to clear shot target if seeking clear shot
 	if _seeking_clear_shot and _clear_shot_target != Vector2.ZERO:
-		var to_target := _clear_shot_target - global_position
+		var to_target := _global_to_local_draw(_clear_shot_target - global_position)
 		draw_line(Vector2.ZERO, to_target, color_clear_shot, 2.0)
 		# Draw triangle at target position
 		var target_pos := to_target
@@ -4719,18 +4729,18 @@ func _draw() -> void:
 
 	# Draw line to pursuit cover if pursuing
 	if _current_state == AIState.PURSUING and _has_pursuit_cover:
-		var to_pursuit := _pursuit_next_cover - global_position
+		var to_pursuit := _global_to_local_draw(_pursuit_next_cover - global_position)
 		draw_line(Vector2.ZERO, to_pursuit, color_pursuit, 2.0)
 		draw_circle(to_pursuit, 8.0, color_pursuit)
 
 	# Draw line to flank target if flanking
 	if _current_state == AIState.FLANKING:
 		if _has_flank_cover:
-			var to_flank_cover := _flank_next_cover - global_position
+			var to_flank_cover := _global_to_local_draw(_flank_next_cover - global_position)
 			draw_line(Vector2.ZERO, to_flank_cover, color_flank, 2.0)
 			draw_circle(to_flank_cover, 8.0, color_flank)
 		elif _flank_target != Vector2.ZERO:
-			var to_flank := _flank_target - global_position
+			var to_flank := _global_to_local_draw(_flank_target - global_position)
 			draw_line(Vector2.ZERO, to_flank, color_flank, 1.5)
 			# Draw diamond at flank target
 			var flank_pos := to_flank
@@ -4739,10 +4749,11 @@ func _draw() -> void:
 			draw_line(flank_pos + Vector2(0, 8), flank_pos + Vector2(-8, 0), color_flank, 2.0)
 			draw_line(flank_pos + Vector2(-8, 0), flank_pos + Vector2(0, -8), color_flank, 2.0)
 
-	# Draw suspected position from memory system (Issue #297)
+	# Draw suspected position from memory system (Issue #297, #395)
+	# Issue #395: Convert to local coordinates to fix incorrect indicator direction
 	# The circle radius is inversely proportional to confidence (larger = less certain)
 	if _memory and _memory.has_target():
-		var to_suspected := _memory.suspected_position - global_position
+		var to_suspected := _global_to_local_draw(_memory.suspected_position - global_position)
 		# Color varies from yellow (low confidence) to orange (high confidence)
 		var confidence_color := Color.YELLOW.lerp(Color.ORANGE_RED, _memory.confidence)
 		# Draw dashed line to suspected position

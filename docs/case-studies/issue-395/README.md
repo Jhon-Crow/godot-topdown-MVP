@@ -178,6 +178,99 @@ elif _current_state in [AIState.COMBAT, AIState.PURSUING, AIState.FLANKING, AISt
 
 ---
 
+## Phase 2: Debug Indicator Bug (February 3, 2026)
+
+### Problem Report
+
+After the initial fix was deployed, user reported that the debug indicator (yellow/orange line showing suspected position) was STILL pointing in the wrong direction, even though the rotation logic was now using `_memory.suspected_position`.
+
+### Root Cause Analysis
+
+Investigation of the `_draw()` function revealed a coordinate system bug:
+
+```gdscript
+# In _draw() - BUGGY CODE
+var to_suspected := _memory.suspected_position - global_position
+draw_line(Vector2.ZERO, to_suspected, confidence_color, 1.0)
+```
+
+**THE PROBLEM:**
+- `_draw()` uses LOCAL coordinates for all drawing operations
+- The enemy's `rotation` property affects the coordinate system
+- `to_suspected` is calculated in GLOBAL coordinates
+- When the enemy rotates (via `rotation = ...` calls in priority attacks, hit reactions, etc.), the draw coordinates are incorrectly rotated
+
+### Evidence from Logs
+
+In `game_log_20260203_120643.txt`, we can see multiple places where `rotation` is modified:
+- Line 1167: `rotation = direction_to_player.angle()` (priority attack)
+- Line 1218: `rotation = direction_to_player.angle()` (vulnerability attack)
+- Line 4099: `_force_model_to_face_direction(attacker_direction)` (hit reaction)
+
+These rotations cause the debug indicator to appear to point in the wrong direction, even though the underlying `_memory.suspected_position` is correct.
+
+### The Fix
+
+Added a helper function to convert global position offsets to local draw coordinates:
+
+```gdscript
+## Convert a global position offset to local draw coordinates.
+## Issue #395: The enemy's body rotation affects _draw() coordinates, so we must
+## counter-rotate global vectors to draw them correctly in local space.
+func _global_to_local_draw(global_offset: Vector2) -> Vector2:
+    return global_offset.rotated(-rotation)
+```
+
+Applied this conversion to ALL draw calls in `_draw()`:
+- Line to player (when visible)
+- Bullet spawn point
+- Cover position
+- Clear shot target
+- Pursuit cover
+- Flank target/cover
+- **Suspected position** (the key indicator!)
+
+### Visual Demonstration
+
+```
+Before fix:
+  Enemy rotation = 45°
+  Global vector to target = (100, 0) → points EAST
+  _draw() interprets (100, 0) in LOCAL coords → appears to point NORTHEAST
+
+After fix:
+  Enemy rotation = 45°
+  Global vector to target = (100, 0) → points EAST
+  _global_to_local_draw((100,0)) = (70.7, -70.7) → rotated by -45°
+  _draw() draws this in LOCAL coords → appears to point EAST (correct!)
+```
+
+### Files Changed
+
+| File | Change |
+|------|--------|
+| `scripts/objects/enemy.gd` | Added `_global_to_local_draw()` helper function |
+| `scripts/objects/enemy.gd` | Fixed all `_draw()` calls to use local coordinates |
+
+---
+
 ## Conclusion
 
-This is a classic case of a fix for one issue (enemies turning away) introducing a regression for another scenario (sound-based detection). The solution requires making the rotation logic context-aware: use actual player position only when the enemy has visual confirmation, otherwise use the memory/suspected position from sound detection.
+This issue had TWO bugs:
+
+1. **Rotation Priority Bug (Initial Fix):** Priority 2 rotation was using actual player position instead of memory/suspected position.
+
+2. **Debug Indicator Bug (Phase 2 Fix):** The `_draw()` function was calculating positions in global coordinates but Godot's draw functions use local coordinates. When the enemy's body rotates, all debug indicators appeared rotated.
+
+The combination of these bugs created a confusing situation where:
+- The rotation logic was ACTUALLY working correctly (pointing to memory position)
+- But the debug indicator showed the WRONG direction (due to coordinate system bug)
+- This made it appear like the rotation was wrong, when it was actually the visualization that was wrong
+
+### Lessons Learned
+
+1. **Coordinate Systems:** Always be explicit about whether you're working in global or local coordinates, especially in `_draw()` functions.
+
+2. **Debug Tools Can Lie:** When debug visualization disagrees with expected behavior, verify the debug code itself before assuming the underlying logic is wrong.
+
+3. **Multiple Rotations:** In Godot, CharacterBody2D can have BOTH a body `rotation` AND a child model `global_rotation`. These are independent and affect different things.
