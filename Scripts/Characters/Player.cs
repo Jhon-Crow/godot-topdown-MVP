@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using GodotTopDownTemplate.AbstractClasses;
 using GodotTopDownTemplate.Weapons;
+using GodotTopdown.Scripts.Projectiles;
 
 namespace GodotTopDownTemplate.Characters;
 
@@ -2271,6 +2272,13 @@ public partial class Player : BaseCharacter
             _activeGrenade.Rotation = throwDirection.Angle();
         }
 
+        // FIX for Issue #432: Mark grenade as thrown in C# GrenadeTimer for reliable impact detection
+        var grenadeTimer = _activeGrenade.GetNodeOrNull<GrenadeTimer>("GrenadeTimer");
+        if (grenadeTimer != null)
+        {
+            grenadeTimer.MarkAsThrown();
+        }
+
         // Start throw animation
         StartGrenadeAnimPhase(GrenadeAnimPhase.Throw, AnimThrowDuration);
 
@@ -2322,10 +2330,22 @@ public partial class Player : BaseCharacter
         // Set position AFTER AddChild (GlobalPosition only works when node is in the scene tree)
         _activeGrenade.GlobalPosition = GlobalPosition;
 
+        // FIX for Issue #432: Add C# GrenadeTimer component for reliable explosion handling.
+        // GDScript methods called via Call() may silently fail in exports, causing grenades
+        // to fly infinitely without exploding. This C# component provides a reliable fallback.
+        AddGrenadeTimerComponent(_activeGrenade);
+
         // Activate the grenade timer (starts 4s countdown)
+        // Try GDScript first, but C# GrenadeTimer will handle it if this fails
         if (_activeGrenade.HasMethod("activate_timer"))
         {
             _activeGrenade.Call("activate_timer");
+        }
+        // Also activate C# timer as reliable fallback
+        var grenadeTimer = _activeGrenade.GetNodeOrNull<GrenadeTimer>("GrenadeTimer");
+        if (grenadeTimer != null)
+        {
+            grenadeTimer.ActivateTimer();
         }
 
         _grenadeState = GrenadeState.TimerStarted;
@@ -2345,6 +2365,52 @@ public partial class Player : BaseCharacter
         }
 
         LogToFile($"[Player.Grenade] Timer started, grenade created at {GlobalPosition}");
+    }
+
+    /// <summary>
+    /// Add C# GrenadeTimer component to grenade for reliable explosion handling.
+    /// FIX for Issue #432: GDScript methods called via Call() may silently fail in exports.
+    /// </summary>
+    private void AddGrenadeTimerComponent(RigidBody2D grenade)
+    {
+        // Determine grenade type from scene name
+        var grenadeType = GrenadeTimer.GrenadeType.Flashbang;
+        var scenePath = grenade.SceneFilePath;
+        if (scenePath.Contains("Frag", StringComparison.OrdinalIgnoreCase))
+        {
+            grenadeType = GrenadeTimer.GrenadeType.Frag;
+        }
+
+        // Create and configure the GrenadeTimer component
+        var timer = new GrenadeTimer();
+        timer.Name = "GrenadeTimer";
+        timer.Type = grenadeType;
+
+        // Copy relevant properties from grenade (if they exist as exported properties)
+        if (grenade.HasMeta("fuse_time") || grenade.Get("fuse_time").VariantType != Variant.Type.Nil)
+        {
+            timer.FuseTime = (float)grenade.Get("fuse_time");
+        }
+        if (grenade.HasMeta("effect_radius") || grenade.Get("effect_radius").VariantType != Variant.Type.Nil)
+        {
+            timer.EffectRadius = (float)grenade.Get("effect_radius");
+        }
+        if (grenade.HasMeta("explosion_damage") || grenade.Get("explosion_damage").VariantType != Variant.Type.Nil)
+        {
+            timer.ExplosionDamage = (int)grenade.Get("explosion_damage");
+        }
+        if (grenade.HasMeta("blindness_duration") || grenade.Get("blindness_duration").VariantType != Variant.Type.Nil)
+        {
+            timer.BlindnessDuration = (float)grenade.Get("blindness_duration");
+        }
+        if (grenade.HasMeta("stun_duration") || grenade.Get("stun_duration").VariantType != Variant.Type.Nil)
+        {
+            timer.StunDuration = (float)grenade.Get("stun_duration");
+        }
+
+        // Add the timer component to the grenade
+        grenade.AddChild(timer);
+        LogToFile($"[Player.Grenade] Added GrenadeTimer component (type: {grenadeType})");
     }
 
     /// <summary>
@@ -2504,6 +2570,13 @@ public partial class Player : BaseCharacter
                 float finalSpeed = Mathf.Min(velocityMagnitude * multiplier * (0.35f + swingTransfer), maxSpeed);
                 rigidBody.LinearVelocity = throwDirection * finalSpeed;
             }
+        }
+
+        // FIX for Issue #432: Mark grenade as thrown in C# GrenadeTimer for reliable impact detection
+        var grenadeTimer = _activeGrenade.GetNodeOrNull<GrenadeTimer>("GrenadeTimer");
+        if (grenadeTimer != null)
+        {
+            grenadeTimer.MarkAsThrown();
         }
 
         // Emit signal
