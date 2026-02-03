@@ -1,0 +1,190 @@
+extends Node
+class_name GrenadeAvoidanceComponent
+## Component that handles enemy grenade avoidance behavior (Issue #407).
+## Enemies should flee from grenades (their own or others') to avoid self-damage.
+##
+## This component:
+## - Detects grenades within danger range (effect_radius + safety_margin)
+## - Calculates escape positions away from grenades
+## - Updates GOAP world state for grenade danger
+## - Provides evasion target for enemy movement
+
+## Signal emitted when entering grenade danger zone.
+signal entered_danger_zone(grenade: Node2D)
+
+## Signal emitted when exiting grenade danger zone.
+signal exited_danger_zone()
+
+## Safety margin beyond grenade effect radius (pixels).
+@export var safety_margin: float = 75.0
+
+## Whether we're currently in a grenade danger zone.
+var in_danger_zone: bool = false
+
+## Target position to flee to when evading a grenade.
+var evasion_target: Vector2 = Vector2.ZERO
+
+## The most dangerous grenade (closest) affecting this enemy.
+var most_dangerous_grenade: Node2D = null
+
+## Tracked grenades in danger range.
+var _grenades_in_range: Array = []
+
+## Reference to parent enemy.
+var _enemy: CharacterBody2D = null
+
+
+func _ready() -> void:
+	_enemy = get_parent() as CharacterBody2D
+
+
+## Update grenade danger detection. Call this each physics frame.
+## Returns true if in danger zone.
+func update() -> bool:
+	if _enemy == null:
+		return false
+
+	# Clear previous tracking
+	_grenades_in_range.clear()
+	most_dangerous_grenade = null
+	var was_in_danger := in_danger_zone
+	in_danger_zone = false
+
+	# Find all active grenades in the scene
+	var grenades := get_tree().get_nodes_in_group("grenades")
+
+	# If no grenades in group, check for GrenadeBase instances
+	if grenades.is_empty():
+		var root := get_tree().current_scene
+		if root:
+			grenades = _find_grenades_in_scene(root)
+
+	if grenades.is_empty():
+		if was_in_danger:
+			exited_danger_zone.emit()
+		return false
+
+	var closest_danger_distance: float = INF
+
+	for grenade in grenades:
+		if not is_instance_valid(grenade):
+			continue
+
+		# Skip grenades that haven't been thrown yet (still held by player/enemy)
+		# Check if grenade has is_timer_active method (GrenadeBase)
+		if grenade.has_method("is_timer_active"):
+			if not grenade.is_timer_active():
+				continue
+
+		# Check if grenade has already exploded
+		if grenade.has_method("has_exploded"):
+			if grenade.has_exploded():
+				continue
+
+		# Get grenade effect radius
+		var effect_radius: float = 225.0  # Default
+		if grenade.has_method("_get_effect_radius"):
+			effect_radius = grenade._get_effect_radius()
+
+		var danger_radius: float = effect_radius + safety_margin
+
+		# Calculate distance to grenade
+		var distance := _enemy.global_position.distance_to(grenade.global_position)
+
+		# Check if we're in danger zone
+		if distance < danger_radius:
+			_grenades_in_range.append(grenade)
+			in_danger_zone = true
+
+			# Track the most dangerous grenade (closest one)
+			if distance < closest_danger_distance:
+				closest_danger_distance = distance
+				most_dangerous_grenade = grenade
+
+	# Emit signals for state changes
+	if in_danger_zone and not was_in_danger:
+		entered_danger_zone.emit(most_dangerous_grenade)
+	elif not in_danger_zone and was_in_danger:
+		exited_danger_zone.emit()
+
+	return in_danger_zone
+
+
+## Find all grenade nodes in the scene tree.
+func _find_grenades_in_scene(node: Node) -> Array:
+	var grenades: Array = []
+
+	# Check by class name for GrenadeBase
+	if node.get_class() == "GrenadeBase" or (node.has_method("is_timer_active") and node.has_method("_get_effect_radius")):
+		grenades.append(node)
+
+	for child in node.get_children():
+		grenades.append_array(_find_grenades_in_scene(child))
+
+	return grenades
+
+
+## Calculate the best escape position from grenade danger.
+## Moves directly away from the grenade, with fallback to alternative directions.
+## @param nav_agent: The NavigationAgent2D to use for pathfinding
+func calculate_evasion_target(nav_agent: NavigationAgent2D = null) -> void:
+	if most_dangerous_grenade == null or _enemy == null:
+		evasion_target = Vector2.ZERO
+		return
+
+	var grenade_pos := most_dangerous_grenade.global_position
+	var effect_radius: float = 225.0
+	if most_dangerous_grenade.has_method("_get_effect_radius"):
+		effect_radius = most_dangerous_grenade._get_effect_radius()
+
+	var safe_distance: float = effect_radius + safety_margin + 50.0  # Extra margin for safety
+
+	# Calculate direction away from grenade
+	var escape_direction := (_enemy.global_position - grenade_pos).normalized()
+
+	# If we're very close to the grenade, pick any direction
+	if escape_direction.length() < 0.1:
+		escape_direction = Vector2.RIGHT.rotated(randf() * TAU)
+
+	# Calculate target position at safe distance
+	var ideal_target := grenade_pos + escape_direction * safe_distance
+
+	# Try to find a valid navigation position near the ideal target
+	if nav_agent != null:
+		nav_agent.target_position = ideal_target
+
+		# If navigation can reach it, use it
+		if not nav_agent.is_navigation_finished():
+			evasion_target = ideal_target
+			return
+
+	# Fallback: try perpendicular directions
+	var alt_direction1 := escape_direction.rotated(PI / 4)  # 45 degrees
+	var alt_direction2 := escape_direction.rotated(-PI / 4)  # -45 degrees
+
+	var alt_target1 := grenade_pos + alt_direction1 * safe_distance
+	var alt_target2 := grenade_pos + alt_direction2 * safe_distance
+
+	# Check which alternative is farther from current position
+	var dist1 := _enemy.global_position.distance_to(alt_target1)
+	var dist2 := _enemy.global_position.distance_to(alt_target2)
+
+	evasion_target = alt_target1 if dist1 < dist2 else alt_target2
+
+
+## Get the number of grenades in danger range.
+func get_grenade_count() -> int:
+	return _grenades_in_range.size()
+
+
+## Check if a specific grenade is in our danger range.
+func is_grenade_in_range(grenade: Node) -> bool:
+	return grenade in _grenades_in_range
+
+
+## Reset the component state.
+func reset() -> void:
+	in_danger_zone = false
+	evasion_target = Vector2.ZERO
+	most_dangerous_grenade = null
+	_grenades_in_range.clear()
