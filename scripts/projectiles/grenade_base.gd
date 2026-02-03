@@ -431,6 +431,12 @@ func has_exploded() -> bool:
 	return _has_exploded
 
 
+## Check if the grenade has been thrown (unfrozen and moving/resting).
+## Issue #426: Used to prevent enemies from reacting to grenades still held by player.
+func is_thrown() -> bool:
+	return not freeze
+
+
 ## Play activation sound (pin pull) when grenade timer is activated.
 func _play_activation_sound() -> void:
 	var audio_manager: Node = get_node_or_null("/root/AudioManager")
@@ -451,4 +457,13 @@ func _on_grenade_landed() -> void:
 	var audio_manager: Node = get_node_or_null("/root/AudioManager")
 	if audio_manager and audio_manager.has_method("play_grenade_landing"):
 		audio_manager.play_grenade_landing(global_position)
+
+	# Issue #426: Emit grenade landing sound through SoundPropagation system
+	# so enemies within hearing range (450px = half reload distance) can react.
+	# This allows enemies to flee from grenades they hear land nearby, even if
+	# they didn't see the throw (e.g., grenade lands behind them or around corner).
+	var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
+	if sound_propagation and sound_propagation.has_method("emit_grenade_landing"):
+		sound_propagation.emit_grenade_landing(global_position, self)
+
 	FileLogger.info("[GrenadeBase] Grenade landed at %s" % str(global_position))
