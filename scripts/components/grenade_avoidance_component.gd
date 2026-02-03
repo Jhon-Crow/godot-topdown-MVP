@@ -85,8 +85,13 @@ func update() -> bool:
 			continue
 
 		# Skip grenades that haven't been thrown yet (still held by player/enemy)
-		# Check if grenade has is_timer_active method (GrenadeBase)
-		if grenade.has_method("is_timer_active"):
+		# Issue #426: Use is_thrown() instead of is_timer_active() because timer starts
+		# when pin is pulled (before throw), but enemies should only react once thrown.
+		if grenade.has_method("is_thrown"):
+			if not grenade.is_thrown():
+				continue
+		elif grenade.has_method("is_timer_active"):
+			# Fallback for grenades without is_thrown method
 			if not grenade.is_timer_active():
 				continue
 

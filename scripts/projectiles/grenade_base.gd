@@ -404,6 +404,12 @@ func has_exploded() -> bool:
 	return _has_exploded
 
 
+## Check if the grenade has been thrown (unfrozen and moving/resting).
+## Issue #426: Used to prevent enemies from reacting to grenades still held by player.
+func is_thrown() -> bool:
+	return not freeze
+
+
 ## Play activation sound (pin pull) when grenade timer is activated.
 func _play_activation_sound() -> void:
 	var audio_manager: Node = get_node_or_null("/root/AudioManager")
