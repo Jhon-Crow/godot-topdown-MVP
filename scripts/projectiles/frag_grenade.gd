@@ -81,9 +81,30 @@ func _physics_process(delta: float) -> void:
 	if _has_exploded:
 		return
 
-	# Apply ground friction to slow down (copied from base class)
+	# Apply velocity-dependent ground friction to slow down
+	# FIX for issue #435: Grenade should maintain speed for most of flight,
+	# only slowing down noticeably at the very end of its path.
+	# At high velocities: minimal friction (grenade flies fast)
+	# At low velocities: full friction (grenade slows to stop)
 	if linear_velocity.length() > 0:
-		var friction_force := linear_velocity.normalized() * ground_friction * delta
+		var current_speed := linear_velocity.length()
+
+		# Calculate friction multiplier based on velocity
+		# Above friction_ramp_velocity: use min_friction_multiplier (minimal drag)
+		# Below friction_ramp_velocity: smoothly ramp up to full friction
+		var friction_multiplier: float
+		if current_speed >= friction_ramp_velocity:
+			# High speed: minimal friction to maintain velocity
+			friction_multiplier = min_friction_multiplier
+		else:
+			# Low speed: smoothly increase friction from min to full (1.0)
+			# Use quadratic curve for smooth transition: more aggressive braking at very low speeds
+			var t := current_speed / friction_ramp_velocity  # 0.0 at stopped, 1.0 at threshold
+			# Quadratic ease-out: starts slow, ends fast (more natural deceleration feel)
+			friction_multiplier = min_friction_multiplier + (1.0 - min_friction_multiplier) * (1.0 - t * t)
+
+		var effective_friction := ground_friction * friction_multiplier
+		var friction_force := linear_velocity.normalized() * effective_friction * delta
 		if friction_force.length() > linear_velocity.length():
 			linear_velocity = Vector2.ZERO
 		else:
