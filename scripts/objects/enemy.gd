@@ -1038,9 +1038,10 @@ func _update_walk_animation(delta: float) -> void:
 		if _right_arm_sprite:
 			_right_arm_sprite.position = _right_arm_sprite.position.lerp(_base_right_arm_pos, lerp_speed)
 
-## Push casings that we collided with after move_and_slide() (Issue #341).
+## Push casings that we collided with after move_and_slide() (Issue #341, #424).
 ## Force to apply to casings when pushed by characters.
-const CASING_PUSH_FORCE: float = 50.0
+## Reduced by 2.5x from 50.0 to 20.0 for Issue #424.
+const CASING_PUSH_FORCE: float = 20.0
 
 func _push_casings() -> void:
 	for i in get_slide_collision_count():
@@ -1048,9 +1049,13 @@ func _push_casings() -> void:
 		var collider := collision.get_collider()
 		# Check if collider is a RigidBody2D with receive_kick method (casing)
 		if collider is RigidBody2D and collider.has_method("receive_kick"):
-			var push_dir := -collision.get_normal()
+			# Cast to RigidBody2D for proper type access (fixes export build issue #424)
+			var casing: RigidBody2D = collider as RigidBody2D
+			# Calculate push direction from enemy center to casing position (Issue #424)
+			# This makes casings fly away based on which side they're pushed from
+			var push_dir := (casing.global_position - global_position).normalized()
 			var push_strength := velocity.length() * CASING_PUSH_FORCE / 100.0
-			collider.receive_kick(push_dir * push_strength)
+			casing.receive_kick(push_dir * push_strength)
 
 ## Update suppression state.
 func _update_suppression(delta: float) -> void:
@@ -3931,7 +3936,7 @@ func _spawn_casing(shoot_direction: Vector2, weapon_forward: Vector2) -> void:
 	ejection_direction = ejection_direction.rotated(randf_range(-0.1, 0.1))
 
 	# Set initial velocity for the casing (increased for faster ejection animation)
-	var ejection_speed: float = randf_range(300.0, 450.0)  # Random speed between 300-450 pixels/sec
+	var ejection_speed: float = randf_range(120.0, 180.0)  # Random speed between 120-180 pixels/sec (reduced 2.5x for Issue #424)
 	casing.linear_velocity = ejection_direction * ejection_speed
 
 	# Add some initial spin for realism

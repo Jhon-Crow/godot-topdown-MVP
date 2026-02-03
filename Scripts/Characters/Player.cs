@@ -95,9 +95,10 @@ public partial class Player : BaseCharacter
     private Area2D? _casingPusher;
 
     /// <summary>
-    /// Force to apply to casings when pushed by player walking over them (Issue #392).
+    /// Force to apply to casings when pushed by player walking over them (Issue #392, #424).
+    /// Reduced by 2.5x from 50.0 to 20.0 for Issue #424.
     /// </summary>
-    private const float CasingPushForce = 50.0f;
+    private const float CasingPushForce = 20.0f;
 
     /// <summary>
     /// List of casings currently overlapping with the CasingPusher Area2D (Issue #392 Iteration 8).
@@ -957,7 +958,9 @@ public partial class Player : BaseCharacter
         // Push all detected casings
         foreach (var casing in casingsToPush)
         {
-            var pushDir = Velocity.Normalized();
+            // Calculate push direction from player center to casing position (Issue #424)
+            // This makes casings fly away based on which side they're pushed from
+            var pushDir = (casing.GlobalPosition - GlobalPosition).Normalized();
             var pushStrength = Velocity.Length() * CasingPushForce / 100.0f;
             var impulse = pushDir * pushStrength;
             casing.Call("receive_kick", impulse);

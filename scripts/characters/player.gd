@@ -102,8 +102,9 @@ const SPREAD_INCREMENT: float = 0.6
 const MAX_SPREAD: float = 4.0
 ## Time in seconds for spread to reset after stopping fire.
 const SPREAD_RESET_TIME: float = 0.25
-## Force to apply to casings when pushed by player (Issue #392).
-const CASING_PUSH_FORCE: float = 50.0
+## Force to apply to casings when pushed by player (Issue #392, #424).
+## Reduced by 2.5x from 50.0 to 20.0 for Issue #424.
+const CASING_PUSH_FORCE: float = 20.0
 
 ## Set of casings currently overlapping with the CasingPusher Area2D (Issue #392 Iteration 7).
 ## Using signal-based tracking instead of polling get_overlapping_bodies() for reliable detection.
@@ -2644,9 +2645,10 @@ func _push_casings() -> void:
 		])
 
 	# Push all detected casings
-	for casing in casings_to_push:
-		# Calculate push direction based on player movement
-		var push_dir := velocity.normalized()
+	for casing: RigidBody2D in casings_to_push:
+		# Calculate push direction from player center to casing position (Issue #424)
+		# This makes casings fly away based on which side they're pushed from
+		var push_dir := (casing.global_position - global_position).normalized()
 		var push_strength := velocity.length() * CASING_PUSH_FORCE / 100.0
 		var impulse := push_dir * push_strength
 		if DEBUG_CASING_PUSHING:
