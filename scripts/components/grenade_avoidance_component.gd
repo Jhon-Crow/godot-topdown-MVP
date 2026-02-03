@@ -27,6 +27,17 @@ var evasion_target: Vector2 = Vector2.ZERO
 ## The most dangerous grenade (closest) affecting this enemy.
 var most_dangerous_grenade: Node2D = null
 
+## Issue #450: Predicted landing position of the most dangerous grenade.
+## Enemies flee from this position instead of the grenade's current position.
+var predicted_landing_position: Vector2 = Vector2.ZERO
+
+## Issue #450: Whether we've locked onto a grenade target (prevents recalculation jitter).
+## Once enemy starts fleeing from a grenade, they commit to that escape route.
+var _locked_grenade: Node2D = null
+
+## Issue #450: The locked predicted position we're fleeing from.
+var _locked_position: Vector2 = Vector2.ZERO
+
 ## Tracked grenades in danger range.
 var _grenades_in_range: Array = []
 
@@ -119,6 +130,7 @@ const EXIT_COOLDOWN_DURATION: float = 1.0
 
 
 ## Update grenade danger detection. Call this each physics frame.
+## Issue #450: Uses predicted landing position instead of current grenade position.
 ## Returns true if in danger zone.
 func update() -> bool:
 	if _enemy == null:
@@ -131,9 +143,41 @@ func update() -> bool:
 		if _exit_cooldown > 0.0:
 			return false
 
+	# Issue #450: Check if we have a locked grenade that's still valid
+	if _locked_grenade != null:
+		if not is_instance_valid(_locked_grenade):
+			# Grenade was destroyed (exploded) - clear lock
+			_locked_grenade = null
+			_locked_position = Vector2.ZERO
+		elif _locked_grenade.has_method("has_exploded") and _locked_grenade.has_exploded():
+			# Grenade exploded - clear lock
+			_locked_grenade = null
+			_locked_position = Vector2.ZERO
+		else:
+			# Still locked onto a valid grenade - check if we're still in danger from it
+			var effect_radius: float = 225.0
+			if _locked_grenade.has_method("_get_effect_radius"):
+				effect_radius = _locked_grenade._get_effect_radius()
+			var danger_radius: float = effect_radius + safety_margin
+
+			# Use locked position for danger check (not current grenade position)
+			var distance_to_danger := _enemy.global_position.distance_to(_locked_position)
+			if distance_to_danger < danger_radius:
+				# Still in danger from locked grenade - stay locked
+				in_danger_zone = true
+				most_dangerous_grenade = _locked_grenade
+				predicted_landing_position = _locked_position
+				_grenades_in_range = [_locked_grenade]
+				return true
+			else:
+				# Escaped danger zone - clear lock
+				_locked_grenade = null
+				_locked_position = Vector2.ZERO
+
 	# Clear previous tracking
 	_grenades_in_range.clear()
 	most_dangerous_grenade = null
+	predicted_landing_position = Vector2.ZERO
 	var was_in_danger := in_danger_zone
 	in_danger_zone = false
 
@@ -172,6 +216,11 @@ func update() -> bool:
 			if grenade.has_exploded():
 				continue
 
+		# Issue #450: Get predicted landing position instead of current position
+		var grenade_danger_pos: Vector2 = grenade.global_position
+		if grenade.has_method("get_predicted_landing_position"):
+			grenade_danger_pos = grenade.get_predicted_landing_position()
+
 		# Get grenade effect radius
 		var effect_radius: float = 225.0  # Default
 		if grenade.has_method("_get_effect_radius"):
@@ -179,14 +228,13 @@ func update() -> bool:
 
 		var danger_radius: float = effect_radius + safety_margin
 
-		# Calculate distance to grenade
-		var distance := _enemy.global_position.distance_to(grenade.global_position)
+		# Issue #450: Calculate distance to PREDICTED landing position
+		var distance := _enemy.global_position.distance_to(grenade_danger_pos)
 
-		# Check if we're in danger zone
+		# Check if we're in danger zone of the predicted landing area
 		if distance < danger_radius:
-			# Issue #426: Check line-of-sight - enemies should only react to grenades
-			# they can actually see or hear. A grenade behind a wall is not a threat
-			# they would know about (no "sixth sense" through walls).
+			# Issue #426: Check line-of-sight to grenade's CURRENT position
+			# (enemies react to grenades they can see, but predict where it will land)
 			if not _can_see_position(grenade.global_position):
 				continue  # Skip grenades blocked by walls
 
@@ -198,10 +246,16 @@ func update() -> bool:
 			_grenades_in_range.append(grenade)
 			in_danger_zone = true
 
-			# Track the most dangerous grenade (closest one)
+			# Track the most dangerous grenade (closest predicted landing)
 			if distance < closest_danger_distance:
 				closest_danger_distance = distance
 				most_dangerous_grenade = grenade
+				predicted_landing_position = grenade_danger_pos
+
+	# Issue #450: Lock onto the most dangerous grenade to prevent jitter
+	if in_danger_zone and most_dangerous_grenade != null:
+		_locked_grenade = most_dangerous_grenade
+		_locked_position = predicted_landing_position
 
 	# Emit signals for state changes
 	if in_danger_zone and not was_in_danger:
@@ -225,28 +279,38 @@ func _find_grenades_in_scene(_node: Node) -> Array:
 
 
 ## Calculate the best escape position from grenade danger.
-## Moves directly away from the grenade, with fallback to alternative directions.
+## Issue #450: Uses predicted landing position instead of current grenade position.
+## Moves directly away from the predicted landing spot, with fallback to alternative directions.
 ## @param nav_agent: The NavigationAgent2D to use for pathfinding
 func calculate_evasion_target(nav_agent: NavigationAgent2D = null) -> void:
 	if most_dangerous_grenade == null or _enemy == null:
 		evasion_target = Vector2.ZERO
 		return
 
-	var grenade_pos := most_dangerous_grenade.global_position
+	# Issue #450: Use predicted landing position (or locked position) instead of current position
+	var grenade_pos: Vector2
+	if _locked_position != Vector2.ZERO:
+		grenade_pos = _locked_position
+	elif predicted_landing_position != Vector2.ZERO:
+		grenade_pos = predicted_landing_position
+	else:
+		# Fallback to current position if no prediction available
+		grenade_pos = most_dangerous_grenade.global_position
+
 	var effect_radius: float = 225.0
 	if most_dangerous_grenade.has_method("_get_effect_radius"):
 		effect_radius = most_dangerous_grenade._get_effect_radius()
 
 	var safe_distance: float = effect_radius + safety_margin + 50.0  # Extra margin for safety
 
-	# Calculate direction away from grenade
+	# Calculate direction away from predicted landing position
 	var escape_direction := (_enemy.global_position - grenade_pos).normalized()
 
-	# If we're very close to the grenade, pick any direction
+	# If we're very close to the predicted landing spot, pick any direction
 	if escape_direction.length() < 0.1:
 		escape_direction = Vector2.RIGHT.rotated(randf() * TAU)
 
-	# Calculate target position at safe distance
+	# Calculate target position at safe distance from predicted landing
 	var ideal_target := grenade_pos + escape_direction * safe_distance
 
 	# Try to find a valid navigation position near the ideal target
@@ -287,6 +351,10 @@ func reset() -> void:
 	in_danger_zone = false
 	evasion_target = Vector2.ZERO
 	most_dangerous_grenade = null
+	# Issue #450: Clear predicted landing position and locked grenade
+	predicted_landing_position = Vector2.ZERO
+	_locked_grenade = null
+	_locked_position = Vector2.ZERO
 	_grenades_in_range.clear()
 	_exit_cooldown = 0.0
 	# Issue #426: Clear remembered grenade position
@@ -349,18 +417,37 @@ func get_safe_distance(grenade_node: Node2D = null) -> float:
 	return effect_radius + safety_margin + SAFE_DISTANCE_BUFFER
 
 
-## Issue #426: Check if enemy is at guaranteed safe distance from remembered grenade.
+## Issue #426, #450: Check if enemy is at guaranteed safe distance from grenade danger.
+## Issue #450: Uses predicted landing position / locked position instead of current grenade position.
 ## @returns: True if at safe distance, false otherwise.
 func is_at_safe_distance() -> bool:
 	if _enemy == null:
 		return true
-	var grenade_pos := get_remembered_grenade_position()
-	if grenade_pos == Vector2.ZERO:
-		# No remembered position - check most dangerous grenade
-		if most_dangerous_grenade and is_instance_valid(most_dangerous_grenade):
-			grenade_pos = most_dangerous_grenade.global_position
-		else:
-			return true  # No grenade to flee from
+
+	# Issue #450: Priority order for danger position:
+	# 1. Locked position (committed escape route)
+	# 2. Predicted landing position (moving grenade)
+	# 3. Remembered position (heard grenade land)
+	# 4. Current grenade position (fallback)
+	var grenade_pos: Vector2 = Vector2.ZERO
+
+	if _locked_position != Vector2.ZERO:
+		grenade_pos = _locked_position
+	elif predicted_landing_position != Vector2.ZERO:
+		grenade_pos = predicted_landing_position
+	else:
+		grenade_pos = get_remembered_grenade_position()
+		if grenade_pos == Vector2.ZERO:
+			# No remembered position - check most dangerous grenade
+			if most_dangerous_grenade and is_instance_valid(most_dangerous_grenade):
+				# Issue #450: Try to get predicted position from grenade
+				if most_dangerous_grenade.has_method("get_predicted_landing_position"):
+					grenade_pos = most_dangerous_grenade.get_predicted_landing_position()
+				else:
+					grenade_pos = most_dangerous_grenade.global_position
+			else:
+				return true  # No grenade to flee from
+
 	var distance := _enemy.global_position.distance_to(grenade_pos)
 	var safe_dist := get_safe_distance(most_dangerous_grenade)
 	return distance >= safe_dist

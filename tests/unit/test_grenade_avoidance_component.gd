@@ -21,6 +21,12 @@ class MockGrenade extends Node2D:
 	var _has_exploded: bool = false
 	var _is_thrown: bool = true
 	var _effect_radius: float = 225.0
+	## Issue #450: Mock velocity for landing prediction
+	var linear_velocity: Vector2 = Vector2.ZERO
+	## Issue #450: Mock friction for landing prediction
+	var ground_friction: float = 300.0
+	## Issue #450: Mock landing threshold
+	var landing_velocity_threshold: float = 50.0
 
 	func is_timer_active() -> bool:
 		return _timer_active
@@ -33,6 +39,19 @@ class MockGrenade extends Node2D:
 
 	func _get_effect_radius() -> float:
 		return _effect_radius
+
+	## Issue #450: Predict landing position based on velocity and friction.
+	func get_predicted_landing_position() -> Vector2:
+		var speed := linear_velocity.length()
+		if speed < landing_velocity_threshold:
+			return global_position
+		var stopping_distance := (speed * speed) / (2.0 * ground_friction)
+		var direction := linear_velocity.normalized()
+		return global_position + direction * stopping_distance
+
+	## Issue #450: Check if grenade is moving.
+	func is_moving() -> bool:
+		return linear_velocity.length() >= landing_velocity_threshold
 
 
 ## Mock RayCast2D for testing line-of-sight.
@@ -580,3 +599,225 @@ func test_fov_check_combined_with_los() -> void:
 
 	grenade.queue_free()
 	mock_model.queue_free()
+
+
+# ============================================================================
+# Issue #450: Predicted Landing Position Tests
+# ============================================================================
+
+
+func test_issue_450_predicted_landing_position_stored() -> void:
+	# Create a moving grenade
+	var grenade := MockGrenade.new()
+	grenade.global_position = Vector2(200, 100)  # Current position
+	grenade.linear_velocity = Vector2(-300, 0)  # Moving toward enemy at (100, 100)
+	grenade.add_to_group("grenades")
+	add_child(grenade)
+
+	mock_raycast.set_force_colliding(false)
+
+	component.update()
+
+	# Predicted landing should be different from current position
+	assert_ne(component.predicted_landing_position, Vector2.ZERO,
+		"Predicted landing position should be calculated")
+
+	grenade.queue_free()
+
+
+func test_issue_450_danger_detection_uses_predicted_position() -> void:
+	# Scenario: Grenade is far away but will land near enemy
+	var grenade := MockGrenade.new()
+	grenade.global_position = Vector2(500, 100)  # Far from enemy at (100, 100)
+	# Grenade moving fast toward enemy - will land near (100, 100)
+	# velocity 600 px/s, friction 300 -> stopping distance = 600
+	grenade.linear_velocity = Vector2(-600, 0)
+	grenade.add_to_group("grenades")
+	add_child(grenade)
+
+	mock_raycast.set_force_colliding(false)
+
+	var in_danger := component.update()
+
+	# Predicted landing at 500 - 600 = -100, close to enemy
+	# Actually, the calculation is: 500 + (-600 normalized) * (600^2 / (2*300))
+	# = 500 + (-1) * (360000 / 600) = 500 - 600 = -100
+	# Distance from enemy (100,100) to (-100, 100) = 200px
+	# Danger radius = 225 + 75 = 300
+	# So enemy IS in danger of predicted landing
+	assert_true(in_danger,
+		"Should detect danger from predicted landing position, not current position")
+
+	grenade.queue_free()
+
+
+func test_issue_450_stationary_grenade_uses_current_position() -> void:
+	# Grenade not moving (already landed)
+	var grenade := MockGrenade.new()
+	grenade.global_position = Vector2(150, 100)  # Near enemy
+	grenade.linear_velocity = Vector2.ZERO  # Not moving
+	grenade.add_to_group("grenades")
+	add_child(grenade)
+
+	mock_raycast.set_force_colliding(false)
+
+	var in_danger := component.update()
+
+	assert_true(in_danger, "Stationary grenade near enemy should trigger danger")
+	# Predicted position should be same as current for stationary grenade
+	assert_eq(component.predicted_landing_position, grenade.global_position,
+		"Stationary grenade's predicted position should equal current position")
+
+	grenade.queue_free()
+
+
+func test_issue_450_target_locking_prevents_jitter() -> void:
+	# First detection - grenade moving
+	var grenade := MockGrenade.new()
+	grenade.global_position = Vector2(200, 100)
+	grenade.linear_velocity = Vector2(-200, 0)
+	grenade.add_to_group("grenades")
+	add_child(grenade)
+
+	mock_raycast.set_force_colliding(false)
+
+	# First update - should lock position
+	component.update()
+	var first_predicted := component.predicted_landing_position
+
+	# Simulate grenade moving (changing position)
+	grenade.global_position = Vector2(180, 100)
+	grenade.linear_velocity = Vector2(-150, 0)
+
+	# Second update - should use locked position
+	component.update()
+	var second_predicted := component.predicted_landing_position
+
+	# Locked position should persist
+	assert_eq(first_predicted, second_predicted,
+		"Target locking should prevent position from changing during evasion")
+
+	grenade.queue_free()
+
+
+func test_issue_450_reset_clears_locked_position() -> void:
+	# Create danger scenario
+	var grenade := MockGrenade.new()
+	grenade.global_position = Vector2(150, 100)
+	grenade.linear_velocity = Vector2(-100, 0)
+	grenade.add_to_group("grenades")
+	add_child(grenade)
+
+	mock_raycast.set_force_colliding(false)
+	component.update()
+
+	assert_ne(component.predicted_landing_position, Vector2.ZERO)
+
+	# Reset should clear everything
+	component.reset()
+
+	assert_eq(component.predicted_landing_position, Vector2.ZERO,
+		"Reset should clear predicted landing position")
+
+	grenade.queue_free()
+
+
+func test_issue_450_evasion_target_uses_predicted_position() -> void:
+	# Create grenade with known predicted landing
+	var grenade := MockGrenade.new()
+	grenade.global_position = Vector2(200, 100)
+	grenade.linear_velocity = Vector2(-100, 0)  # Will land at ~183px from current
+	grenade.add_to_group("grenades")
+	add_child(grenade)
+
+	mock_raycast.set_force_colliding(false)
+	component.update()
+
+	# Calculate evasion target
+	component.calculate_evasion_target(null)
+
+	# Evasion target should be away from predicted landing, not current position
+	var predicted_pos := component.predicted_landing_position
+	var evasion_target := component.evasion_target
+
+	# Evasion target should be at safe distance from predicted position
+	var safe_dist := component.get_safe_distance(grenade)
+	var dist_from_predicted := evasion_target.distance_to(predicted_pos)
+
+	assert_gte(dist_from_predicted, safe_dist - 10.0,
+		"Evasion target should be at safe distance from predicted landing")
+
+	grenade.queue_free()
+
+
+func test_issue_450_is_at_safe_distance_uses_predicted_position() -> void:
+	var grenade := MockGrenade.new()
+	grenade.global_position = Vector2(500, 100)  # Far from enemy
+	grenade.linear_velocity = Vector2(-400, 0)  # Will land at ~233px from current
+	grenade.add_to_group("grenades")
+	add_child(grenade)
+
+	mock_raycast.set_force_colliding(false)
+	component.update()
+
+	# Enemy is at (100, 100), check safe distance from predicted landing
+	var at_safe := component.is_at_safe_distance()
+
+	# Predicted landing is at 500 - (400^2 / (2*300)) = 500 - 266.67 = ~233
+	# Distance from enemy (100,100) to (233, 100) = 133px
+	# Safe distance = 225 + 75 + 100 = 400px
+	# So enemy is NOT at safe distance
+	assert_false(at_safe,
+		"is_at_safe_distance should use predicted landing, not current grenade position")
+
+	grenade.queue_free()
+
+
+func test_issue_450_lock_released_when_at_safe_distance() -> void:
+	# Enemy at (100, 100)
+	# Create grenade that will land near enemy
+	var grenade := MockGrenade.new()
+	grenade.global_position = Vector2(200, 100)
+	grenade.linear_velocity = Vector2(-100, 0)  # Will land near enemy
+	grenade.add_to_group("grenades")
+	add_child(grenade)
+
+	mock_raycast.set_force_colliding(false)
+	component.update()
+
+	# Now move enemy far away from predicted landing
+	mock_enemy.global_position = Vector2(1000, 1000)
+
+	# Update should detect we're now at safe distance and release lock
+	component.update()
+
+	# Check that danger has been cleared after moving to safety
+	# Note: The actual release happens because distance check fails
+	assert_false(component.in_danger_zone,
+		"Should no longer be in danger after moving far from predicted landing")
+
+	grenade.queue_free()
+
+
+func test_issue_450_lock_released_when_grenade_explodes() -> void:
+	var grenade := MockGrenade.new()
+	grenade.global_position = Vector2(150, 100)
+	grenade.linear_velocity = Vector2(-50, 0)
+	grenade.add_to_group("grenades")
+	add_child(grenade)
+
+	mock_raycast.set_force_colliding(false)
+	component.update()
+
+	assert_true(component.in_danger_zone)
+
+	# Grenade explodes
+	grenade._has_exploded = true
+
+	# Update should detect exploded grenade and clear lock
+	component.update()
+
+	assert_false(component.in_danger_zone,
+		"Should exit danger zone when grenade explodes")
+
+	grenade.queue_free()
