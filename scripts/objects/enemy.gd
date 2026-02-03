@@ -28,57 +28,24 @@ enum BehaviorMode {
 	GUARD    ## Stands in one place
 }
 
-## Current behavior mode.
-@export var behavior_mode: BehaviorMode = BehaviorMode.GUARD
-
-## Maximum movement speed in pixels per second.
-@export var move_speed: float = 220.0
-
-## Combat movement speed (faster when flanking/seeking cover).
-@export var combat_move_speed: float = 320.0
-
-## Rotation speed in rad/sec (25 for aim-before-shoot per issue #254).
-@export var rotation_speed: float = 25.0
-## Detection range (0=unlimited, line-of-sight only).
-@export var detection_range: float = 0.0
-
-## Field of view angle in degrees (cone centered on facing dir). 0 or negative = 360° vision. Default 100° per issue #66.
-@export var fov_angle: float = 100.0
-
-## FOV enabled for this enemy (combined with ExperimentalSettings.fov_enabled, both must be true).
-@export var fov_enabled: bool = true
-
-## Time between shots (0.1s = 10 rounds/sec).
-@export var shoot_cooldown: float = 0.1
-
-## Bullet scene to instantiate when shooting.
-@export var bullet_scene: PackedScene
-
-## Casing scene to instantiate when firing (for ejected bullet casings).
-@export var casing_scene: PackedScene
-
-## Offset from enemy center for bullet spawn position.
-@export var bullet_spawn_offset: float = 30.0
-
-## Weapon loudness for alerting enemies (viewport diagonal ~1469 for AR).
-@export var weapon_loudness: float = 1469.0
-## Patrol point offsets from initial position (PATROL mode only).
-@export var patrol_offsets: Array[Vector2] = [Vector2(100, 0), Vector2(-100, 0)]
-
-## Wait time at each patrol point in seconds.
-@export var patrol_wait_time: float = 1.5
-
-## Color when at full health.
-@export var full_health_color: Color = Color(0.9, 0.2, 0.2, 1.0)
-
-## Color when at low health (interpolates based on health percentage).
-@export var low_health_color: Color = Color(0.3, 0.1, 0.1, 1.0)
-
-## Color to flash when hit.
-@export var hit_flash_color: Color = Color(1.0, 1.0, 1.0, 1.0)
-
-## Duration of hit flash effect in seconds.
-@export var hit_flash_duration: float = 0.1
+@export var behavior_mode: BehaviorMode = BehaviorMode.GUARD  ## Current behavior mode.
+@export var move_speed: float = 220.0  ## Maximum movement speed in pixels per second.
+@export var combat_move_speed: float = 320.0  ## Combat movement speed (faster when flanking/seeking cover).
+@export var rotation_speed: float = 25.0  ## Rotation speed in rad/sec (25 for aim-before-shoot per issue #254).
+@export var detection_range: float = 0.0  ## Detection range (0=unlimited, line-of-sight only).
+@export var fov_angle: float = 100.0  ## FOV angle in degrees (cone centered on facing dir). 0 or negative = 360° vision.
+@export var fov_enabled: bool = true  ## FOV enabled for this enemy.
+@export var shoot_cooldown: float = 0.1  ## Time between shots (0.1s = 10 rounds/sec).
+@export var bullet_scene: PackedScene  ## Bullet scene to instantiate when shooting.
+@export var casing_scene: PackedScene  ## Casing scene for ejected bullet casings.
+@export var bullet_spawn_offset: float = 30.0  ## Offset from enemy center for bullet spawn position.
+@export var weapon_loudness: float = 1469.0  ## Weapon loudness for alerting enemies.
+@export var patrol_offsets: Array[Vector2] = [Vector2(100, 0), Vector2(-100, 0)]  ## Patrol point offsets.
+@export var patrol_wait_time: float = 1.5  ## Wait time at each patrol point in seconds.
+@export var full_health_color: Color = Color(0.9, 0.2, 0.2, 1.0)  ## Color when at full health.
+@export var low_health_color: Color = Color(0.3, 0.1, 0.1, 1.0)  ## Color when at low health.
+@export var hit_flash_color: Color = Color(1.0, 1.0, 1.0, 1.0)  ## Color to flash when hit.
+@export var hit_flash_duration: float = 0.1  ## Duration of hit flash effect in seconds.
 
 ## Whether to destroy the enemy after death.
 @export var destroy_on_death: bool = false
@@ -400,12 +367,9 @@ const INTEL_SHARE_INTERVAL: float = 0.5  ## Share intel every 0.5 seconds
 var _memory_reset_confusion_timer: float = 0.0
 const MEMORY_RESET_CONFUSION_DURATION: float = 2.0  ## Extended to 2s for better player escape window
 
-## [Ally Death Observation Issue #409] Range and confidence for observing ally deaths.
-## Enemies who witness an ally die will enter SEARCHING state.
-const ALLY_DEATH_OBSERVE_RANGE: float = 500.0  ## Max distance to observe ally death
-const ALLY_DEATH_CONFIDENCE: float = 0.6  ## Medium confidence when observing death
-## Multiple suspected directions where the player might be when ally dies.
-var _suspected_directions: Array[Vector2] = []  ## Up to 3 directions to check
+## Ally Death Observation (Issue #409): range, confidence, and directions for witnessing ally death
+const ALLY_DEATH_OBSERVE_RANGE: float = 500.0; const ALLY_DEATH_CONFIDENCE: float = 0.6
+var _suspected_directions: Array[Vector2] = []
 
 ## [Score Tracking] Whether the last hit that killed this enemy was from a ricocheted bullet.
 var _killed_by_ricochet: bool = false
@@ -4959,203 +4923,27 @@ func _on_vulnerable_sound_heard_for_grenade(position: Vector2) -> void:
 	if _grenade_component:
 		_grenade_component.on_vulnerable_sound(position, _can_see_player)
 
-## Called when an ally dies. Updates witnessed kill count and triggers SEARCHING (Issue #409).
-## @param ally_position: Position where the ally died.
-## @param killer_is_player: True if the player caused the death.
-## @param hit_direction: Direction the killing blow came from (bullet travel direction).
-func on_ally_died(ally_position: Vector2, killer_is_player: bool, hit_direction: Vector2 = Vector2.ZERO) -> void:
-	# Update grenade component with ally death
-	if _grenade_component:
-		_grenade_component.on_ally_died(ally_position, killer_is_player, _can_see_position(ally_position))
-
-	# Issue #409: If this enemy can see the death position and is alive, enter SEARCHING
-	if not _is_alive:
-		return
-
-	# Check if we can see the ally's death position
-	if not _can_see_position(ally_position):
-		return
-
-	# Don't interrupt if already engaged with player or under fire
-	if _current_state in [AIState.COMBAT, AIState.SUPPRESSED, AIState.RETREATING]:
-		_log_to_file("Ally death observed but currently in combat state: %s" % AIState.keys()[_current_state])
-		return
-
-	# Calculate multiple suspected directions where player might be (Issue #409)
-	_calculate_suspected_directions_from_death(ally_position, hit_direction)
-
-	# Update memory with suspected position (medium confidence - uncertain of exact location)
-	if _suspected_directions.size() > 0:
-		var primary_direction := _suspected_directions[0]
-		var suspected_player_pos := ally_position + primary_direction * 200.0  # Estimate 200px away
-		_memory.update_position(suspected_player_pos, ALLY_DEATH_CONFIDENCE)
-		_log_to_file("Ally death observed at %s, suspecting player in direction %s (conf=%.2f)" % [
-			ally_position, primary_direction, ALLY_DEATH_CONFIDENCE
-		])
-
-	# Mark that enemy has engaged (Issue #330)
-	_has_left_idle = true
-
-	# Set GOAP world state for ally death response (Issue #409)
-	_goap_world_state["witnessed_ally_death"] = true
-
-	# Transition to SEARCHING state centered on ally death position
-	_transition_to_searching_with_directions(ally_position)
-
-## Calculate multiple suspected directions where player might be based on ally death.
-## Uses hit direction, perpendicular directions, and memory to estimate possible player locations.
-## @param death_position: Where the ally died.
-## @param hit_direction: Direction the bullet traveled (from player to enemy).
-func _calculate_suspected_directions_from_death(death_position: Vector2, hit_direction: Vector2) -> void:
+## Called when an ally dies. Updates grenade component and triggers SEARCHING (Issue #409).
+## Called when ally dies. Triggers SEARCHING with priority directions (Issue #409).
+func on_ally_died(ally_pos: Vector2, killer_is_player: bool, hit_dir: Vector2 = Vector2.ZERO) -> void:
+	if _grenade_component: _grenade_component.on_ally_died(ally_pos, killer_is_player, _can_see_position(ally_pos))
+	if not _is_alive or not _can_see_position(ally_pos) or _current_state in [AIState.COMBAT, AIState.SUPPRESSED, AIState.RETREATING]: return
 	_suspected_directions.clear()
-
-	# Direction 1: Primary - opposite of hit direction (where bullet came from)
-	if hit_direction.length_squared() > 0.01:
-		var primary := -hit_direction.normalized()
-		_suspected_directions.append(primary)
-
-		# Direction 2: Perpendicular left (player might have moved after shooting)
-		var perp_left := Vector2(-primary.y, primary.x)
-		_suspected_directions.append(perp_left)
-
-		# Direction 3: Perpendicular right
-		var perp_right := Vector2(primary.y, -primary.x)
-		_suspected_directions.append(perp_right)
-	else:
-		# No hit direction info - use memory or default to scanning all directions
-		if _memory != null and _memory.has_target():
-			var to_suspected := (_memory.suspected_position - death_position).normalized()
-			_suspected_directions.append(to_suspected)
-		else:
-			# Default: scan in cardinal directions
-			_suspected_directions.append(Vector2(1, 0))   # East
-			_suspected_directions.append(Vector2(0, -1))  # North
-			_suspected_directions.append(Vector2(-1, 0))  # West
-
-	_log_debug("Calculated %d suspected directions from ally death" % _suspected_directions.size())
-
-## Transition to SEARCHING state with multiple suspected directions (Issue #409).
-## Similar to _transition_to_searching but prioritizes suspected directions.
-## @param center_position: Center of search (death position).
-func _transition_to_searching_with_directions(center_position: Vector2) -> void:
-	_current_state = AIState.SEARCHING
-	_search_center = center_position
-	_search_radius = SEARCH_INITIAL_RADIUS
-	_search_state_timer = 0.0
-	_search_scan_timer = 0.0
-	_search_current_waypoint_index = 0
-	_search_direction = 0
-	_search_leg_length = SEARCH_WAYPOINT_SPACING
-	_search_legs_completed = 0
-	_search_moving_to_waypoint = true
-	_search_visited_zones.clear()
-	# Issue #354: Initialize stuck detection
-	_search_stuck_timer = 0.0
-	_search_last_progress_position = global_position
-
-	# Generate waypoints prioritizing suspected directions (Issue #409)
-	_generate_search_waypoints_with_directions()
-
-	var msg := "SEARCHING (ally death): center=%s, radius=%.0f, waypoints=%d, directions=%d" % [
-		_search_center, _search_radius, _search_waypoints.size(), _suspected_directions.size()
-	]
-	_log_debug(msg)
-	_log_to_file(msg)
-
-	# Clear the witnessed flag now that we're responding (Issue #409)
+	if hit_dir.length_squared() > 0.01: var p := -hit_dir.normalized(); _suspected_directions.append_array([p, Vector2(-p.y, p.x), Vector2(p.y, -p.x)])
+	elif _memory != null and _memory.has_target(): _suspected_directions.append((_memory.suspected_position - ally_pos).normalized())
+	else: _suspected_directions.append_array([Vector2(1, 0), Vector2(0, -1), Vector2(-1, 0)])
+	if _suspected_directions.size() > 0: _memory.update_position(ally_pos + _suspected_directions[0] * 200.0, ALLY_DEATH_CONFIDENCE)
+	_has_left_idle = true; _goap_world_state["witnessed_ally_death"] = true; _transition_to_searching(ally_pos)
+	for d in _suspected_directions:
+		for dist in [75.0, 150.0, 225.0]:
+			var wp := _search_center + d * dist
+			if _is_waypoint_navigable(wp) and not _is_zone_visited(wp): _search_waypoints.insert(0, wp)
 	_goap_world_state["witnessed_ally_death"] = false
 
-	state_changed.emit(AIState.SEARCHING)
-
-## Generate search waypoints prioritizing suspected directions (Issue #409).
-## Places waypoints in suspected directions first, then fills with normal spiral.
-func _generate_search_waypoints_with_directions() -> void:
-	_search_waypoints.clear()
-
-	# First, add waypoints in each suspected direction at varying distances
-	for dir in _suspected_directions:
-		for dist in [75.0, 150.0, 225.0]:
-			var wp := _search_center + dir * dist
-			# Validate waypoint is navigable
-			if _is_waypoint_reachable(wp) and not _is_zone_visited(wp):
-				_search_waypoints.append(wp)
-
-	# Then add normal spiral waypoints to fill in gaps
-	var spiral_waypoints := _generate_spiral_waypoints(_search_center, _search_radius)
-	for wp in spiral_waypoints:
-		if not _is_zone_visited(wp) and wp not in _search_waypoints:
-			_search_waypoints.append(wp)
-
-	_log_debug("Generated %d waypoints (%d from directions)" % [
-		_search_waypoints.size(),
-		_suspected_directions.size() * 3
-	])
-
-## Generate spiral waypoints around a center position.
-## @param center: Center of the spiral.
-## @param radius: Radius to cover.
-## @return Array of waypoint positions.
-func _generate_spiral_waypoints(center: Vector2, radius: float) -> Array[Vector2]:
-	var waypoints: Array[Vector2] = []
-	var direction := 0  # 0=N, 1=E, 2=S, 3=W
-	var leg_length := SEARCH_WAYPOINT_SPACING
-	var legs_completed := 0
-	var current_pos := center
-
-	while current_pos.distance_to(center) < radius or waypoints.size() < 4:
-		# Move in current direction
-		var offset := Vector2.ZERO
-		match direction:
-			0: offset = Vector2(0, -leg_length)  # North
-			1: offset = Vector2(leg_length, 0)   # East
-			2: offset = Vector2(0, leg_length)   # South
-			3: offset = Vector2(-leg_length, 0)  # West
-
-		current_pos = current_pos + offset
-
-		# Add waypoint if within radius and reachable
-		if current_pos.distance_to(center) <= radius and _is_waypoint_reachable(current_pos):
-			waypoints.append(current_pos)
-
-		# Turn and possibly expand
-		legs_completed += 1
-		direction = (direction + 1) % 4
-		if legs_completed % 2 == 0:
-			leg_length += SEARCH_WAYPOINT_SPACING
-
-		# Safety limit
-		if waypoints.size() >= 20:
-			break
-
-	return waypoints
-
-## Check if a waypoint is reachable (has valid navigation).
-func _is_waypoint_reachable(pos: Vector2) -> bool:
-	if _nav_agent == null:
-		return true  # No nav agent, assume reachable
-	# Use navigation to check if path exists
-	_nav_agent.target_position = pos
-	return _nav_agent.is_target_reachable()
-
-## Notify nearby enemies when this enemy dies (Issue #409).
-## Enemies within range with line of sight will enter SEARCHING state.
+## Notify nearby enemies of death (Issue #409).
 func _notify_nearby_enemies_of_death() -> void:
-	var enemies := get_tree().get_nodes_in_group("enemies")
-	for node in enemies:
-		if node == self or not is_instance_valid(node):
-			continue
-
-		var other_enemy: Node2D = node as Node2D
-		if other_enemy == null:
-			continue
-
-		var distance := global_position.distance_to(other_enemy.global_position)
-		if distance > ALLY_DEATH_OBSERVE_RANGE:
-			continue
-
-		# Notify the enemy with death position and hit direction
-		if other_enemy.has_method("on_ally_died"):
-			other_enemy.on_ally_died(global_position, true, _last_hit_direction)
+	for n in get_tree().get_nodes_in_group("enemies"):
+		if n != self and is_instance_valid(n) and n.global_position.distance_to(global_position) <= ALLY_DEATH_OBSERVE_RANGE and n.has_method("on_ally_died"): n.on_ally_died(global_position, true, _last_hit_direction)
 
 ## Check if a position is visible to this enemy (line of sight).
 func _can_see_position(pos: Vector2) -> bool:
