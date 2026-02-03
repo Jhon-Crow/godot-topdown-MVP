@@ -6,8 +6,8 @@ shader_type canvas_item;
 // v5.0: Added micro scratches, cigarette burn, and end of reel death effects
 // v5.1: Issue #431 fixes - increased grain, realistic micro dots, death effects
 // v5.2: Issue #431 feedback - top-right corner, expanding spots, visible specks
-// v5.3: Issue #440 fix - simplified end of reel to ~160x160 white circle ring
-//       that blinks exactly 2 times
+// v5.3: Issue #440 fix - simplified end of reel to ~80x80 white circle ring
+//       that blinks exactly 2 times (updated: made 2x smaller per feedback)
 //
 // APPROACH: OVERLAY-BASED (no screen_texture)
 // This shader creates visual overlays that blend on top of the rendered scene
@@ -67,7 +67,7 @@ uniform float cigarette_burn_size : hint_range(0.0, 0.5) = 0.15;
 
 // End of reel: white circle ring in the corner on death
 // Issue #431: Position changed to top-RIGHT corner
-// Issue #440: Simplified to ~160x160 pixel white ring that blinks 2 times
+// Issue #440: Simplified to ~80x80 pixel white ring that blinks 2 times (updated: 2x smaller)
 uniform bool end_of_reel_enabled = false;
 uniform float end_of_reel_intensity : hint_range(0.0, 1.0) = 0.0;
 uniform float end_of_reel_time : hint_range(0.0, 10.0) = 0.0;
@@ -265,16 +265,16 @@ vec3 cigarette_burn_color(vec2 uv, vec2 center, float size) {
 }
 
 // End of reel effect - simple white circle outline in corner
-// Issue #440: Changed to a simple ~160x160 pixel white ring that blinks 2 times
+// Issue #440: Changed to a simple ~80x80 pixel white ring that blinks 2 times
 // Position: top-RIGHT corner
 float end_of_reel(vec2 uv, float intensity, float time_val, float reel_time) {
 	if (intensity <= 0.0) return 0.0;
 
 	// Position in top-RIGHT corner with some padding
-	// Circle size: ~160x160 pixels on 1280x720 viewport
-	// For a 160px circle: radius = 80px, in UV space ≈ 80/720 = 0.111 for Y
+	// Circle size: ~80x80 pixels on 1280x720 viewport
+	// For an 80px circle: radius = 40px, in UV space ≈ 40/720 = 0.056 for Y
 	// Using average for circle appearance on different aspect ratios
-	float circle_radius = 0.11;  // ~160px diameter on 720p
+	float circle_radius = 0.055;  // ~80px diameter on 720p (2x smaller than before)
 	float ring_thickness = 0.008;  // Thin ring outline (~6px)
 
 	// Position: top-right corner with padding (circle center)

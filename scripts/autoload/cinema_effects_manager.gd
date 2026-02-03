@@ -33,9 +33,10 @@ extends Node
 ## - Increased grain intensity further to 0.15
 ##
 ## v5.3 FIXES (Issue #440):
-## - Simplified end of reel effect to a clean ~160x160 pixel white circle ring
+## - Simplified end of reel effect to a clean ~80x80 pixel white circle ring
 ## - Changed from complex countdown markers to simple ring outline
 ## - Circle now blinks exactly 2 times then stays visible
+## - Updated: Made circle 2x smaller per feedback (was ~160x160, now ~80x80)
 
 # ============================================================================
 # DEFAULT VALUES
