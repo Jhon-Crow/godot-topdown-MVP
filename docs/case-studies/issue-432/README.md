@@ -354,6 +354,92 @@ Evidence from log: When C# was added, GDScript started working too (possibly exp
    - Falls back to `_create_simple_explosion()`
    - Final fallback to `ImpactEffectsManager.spawn_flashbang_effect()`
 
+### Sixth Investigation (User Feedback #6)
+
+**Analysis of Game Logs (`logs/game_log_20260203_221832.txt`, `logs/game_log_20260203_222057.txt`):**
+
+User reported two remaining issues:
+
+1. **Grenade launches from activation position**: Grenade starts from wrong position (where pin was pulled, not current player position)
+2. **Grenade flies infinitely**: Should stop at the aimed cursor position but flies forever
+
+**Detailed Log Analysis:**
+
+```
+[22:19:30] Timer started, grenade created at (213.80525, 176.33162)
+[22:19:33] Throwing! Target: (575.866, 226.29036), Distance: 547,1, Speed: 572,9
+[22:19:37] EXPLODED at (85.92131, 305.69998)!
+```
+
+The explosion position (85, 305) is completely different from both:
+- The grenade spawn position (213, 176)
+- The target position (575, 226)
+
+This is very unusual behavior indicating a fundamental problem.
+
+**Root Cause Discovery: GDScript Method Calls Still Failing**
+
+Deep analysis of the C# code revealed:
+
+1. C# code checks `HasMethod("throw_grenade_simple")` → returns `true`
+2. C# code calls `_activeGrenade.Call("throw_grenade_simple", throwDirection, throwSpeed)`
+3. **The Call() silently fails** - GDScript method doesn't execute
+4. Because `HasMethod()` returned true, the C# fallback code is never reached
+5. Result: **Grenade velocity is never set!**
+
+The grenade is unfrozen (`Freeze = false`) but has zero velocity because:
+- The GDScript `throw_grenade_simple()` method was supposed to set `linear_velocity`
+- That method call failed silently
+- The C# code assumed it worked and didn't apply its own velocity
+
+**Why did the grenade move at all?**
+
+Looking at the code, we discovered that both GDScript `_physics_process()` and the C# code modify the grenade position during aiming. The unexpected explosion positions were likely due to:
+1. Physics engine quirks with zero-velocity unfrozen bodies
+2. Possible collision responses moving the grenade
+3. The grenade being at a different position than expected when thrown
+
+**Final Fix: C# Sets Velocity Directly as Primary Mechanism**
+
+The solution is to ALWAYS set the grenade velocity directly in C#, regardless of whether GDScript methods exist:
+
+```csharp
+// FIX for Issue #432: ALWAYS set velocity directly in C#
+_activeGrenade.GlobalPosition = safeSpawnPosition;
+_activeGrenade.Freeze = false;
+_activeGrenade.LinearVelocity = throwDirection * throwSpeed;
+_activeGrenade.Rotation = throwDirection.Angle();
+
+// Also try GDScript for any additional effects (but velocity is already set)
+if (_activeGrenade.HasMethod("throw_grenade_simple"))
+{
+    _activeGrenade.Call("throw_grenade_simple", throwDirection, throwSpeed);
+}
+```
+
+This ensures:
+1. **Position is correct**: Set to spawn point (60px in front of player) before throw
+2. **Velocity is always set**: C# sets it directly, doesn't rely on GDScript
+3. **GDScript effects work if available**: Still tries to call the method for visual/sound effects
+
+Also simplified the GrenadeTimer friction handling:
+- Removed complex friction detection logic
+- GDScript `_physics_process()` DOES run and applies friction correctly
+- Only the GDScript METHOD CALLS (via C# Call()) fail
+- C# no longer applies friction, preventing the double-friction issue
+
+## Final Resolution
+
+The root cause of all grenade issues was the same: **GDScript methods called via C# `Call()` fail silently in exported builds**. However, GDScript lifecycle methods (`_ready()`, `_physics_process()`) DO run correctly.
+
+The fix strategy:
+1. **C# directly controls velocity**: Don't rely on GDScript method calls
+2. **GDScript handles friction**: Its `_physics_process()` works correctly
+3. **C# handles explosion timing**: The GrenadeTimer component is reliable backup
+4. **Call GDScript methods optionally**: For effects, but not for critical physics
+
+This hybrid approach ensures grenades work correctly regardless of the C#/GDScript interop state.
+
 ## References
 
 - [Godot RigidBody2D Documentation](https://docs.godotengine.org/en/stable/classes/class_rigidbody2d.html)

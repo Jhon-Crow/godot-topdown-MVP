@@ -116,10 +116,11 @@ namespace GodotTopdown.Scripts.Projectiles
             if (HasExploded || _grenadeBody == null)
                 return;
 
-            // CRITICAL FIX for Issue #432: Apply ground friction in C# ONLY if GDScript is not doing it.
-            // GDScript _physics_process() applies friction, so we must detect if it's running.
-            // If velocity is NOT being reduced each frame, GDScript friction isn't working.
-            DetectAndApplyFriction((float)delta);
+            // FIX for Issue #432 (simplified): Do NOT apply C# friction.
+            // GDScript _physics_process() DOES run and applies friction correctly.
+            // The problem was only that GDScript METHOD CALLS (via C# Call()) fail silently.
+            // We now set velocity directly in C#, and let GDScript handle friction.
+            // This prevents double-friction which was causing grenades to stop too early.
 
             // Timer countdown for Flashbang grenades
             if (IsTimerActive && Type == GrenadeType.Flashbang)

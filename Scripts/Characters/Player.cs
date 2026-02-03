@@ -2252,24 +2252,20 @@ public partial class Player : BaseCharacter
         // Unfreeze and throw the grenade
         _activeGrenade.Freeze = false;
 
-        // Use the simple throw method for direct speed control
-        // This bypasses velocity-to-throw multipliers for accurate cursor-based aiming
+        // FIX for Issue #432: ALWAYS set velocity directly in C# as primary mechanism.
+        // GDScript methods called via Call() may silently fail in exported builds,
+        // causing grenades to fly infinitely (no velocity set) or not move at all.
+        // By setting velocity directly in C#, we guarantee the grenade moves correctly.
+        _activeGrenade.LinearVelocity = throwDirection * throwSpeed;
+        _activeGrenade.Rotation = throwDirection.Angle();
+
+        LogToFile($"[Player.Grenade.Simple] C# set velocity directly: dir={throwDirection}, speed={throwSpeed:F1}, spawn={safeSpawnPosition}");
+
+        // Also try to call GDScript method for any additional setup it might do
+        // (visual effects, sound, etc.), but the velocity is already set above
         if (_activeGrenade.HasMethod("throw_grenade_simple"))
         {
-            // Simple mode: pass throw speed directly without any multipliers
             _activeGrenade.Call("throw_grenade_simple", throwDirection, throwSpeed);
-        }
-        else if (_activeGrenade.HasMethod("throw_grenade"))
-        {
-            // Legacy method: use drag distance that produces desired speed
-            float dragDistance = throwSpeed / 2.0f; // drag_to_speed_multiplier = 2.0
-            _activeGrenade.Call("throw_grenade", throwDirection, dragDistance);
-        }
-        else
-        {
-            // Direct physics fallback
-            _activeGrenade.LinearVelocity = throwDirection * throwSpeed;
-            _activeGrenade.Rotation = throwDirection.Angle();
         }
 
         // FIX for Issue #432: Mark grenade as thrown in C# GrenadeTimer for reliable impact detection
@@ -2533,49 +2529,36 @@ public partial class Player : BaseCharacter
         Vector2 spawnPosition = GetSafeGrenadeSpawnPosition(GlobalPosition, intendedSpawnPosition, throwDirection);
         _activeGrenade.GlobalPosition = spawnPosition;
 
-        // Use direction-based throwing (FIX for issue #313)
-        // Priority: throw_grenade_with_direction > throw_grenade_velocity_based > throw_grenade
-        bool methodCalled = false;
+        // FIX for Issue #432: ALWAYS set velocity directly in C# as primary mechanism.
+        // GDScript methods called via Call() may silently fail in exported builds.
+        // Calculate throw speed using the same formula as GDScript
+        float multiplier = 0.5f;
+        float minSwing = 80.0f;
+        float maxSpeed = 850.0f;
+        float swingTransfer = Mathf.Clamp(_totalSwingDistance / minSwing, 0.0f, 0.65f);
+        float finalSpeed = Mathf.Min(velocityMagnitude * multiplier * (0.35f + swingTransfer), maxSpeed);
+
+        // Unfreeze and set velocity directly
+        _activeGrenade.Freeze = false;
+        _activeGrenade.LinearVelocity = throwDirection * finalSpeed;
+        _activeGrenade.Rotation = throwDirection.Angle();
+
+        LogToFile($"[Player.Grenade] C# set velocity directly: dir={throwDirection}, speed={finalSpeed:F1}, spawn={spawnPosition}");
+
+        // Also try to call GDScript method for any additional setup
         if (_activeGrenade.HasMethod("throw_grenade_with_direction"))
         {
-            // Best method: explicit direction + velocity magnitude + swing distance
             _activeGrenade.Call("throw_grenade_with_direction", throwDirection, velocityMagnitude, _totalSwingDistance);
-            methodCalled = true;
-            LogToFile("[Player.Grenade] Called throw_grenade_with_direction() - direction is mouse velocity direction");
         }
         else if (_activeGrenade.HasMethod("throw_grenade_velocity_based"))
         {
-            // Legacy velocity-based: construct a velocity vector in the correct direction
-            // This is a workaround - we pass (direction * speed) instead of actual mouse velocity
             Vector2 directionalVelocity = throwDirection * velocityMagnitude;
             _activeGrenade.Call("throw_grenade_velocity_based", directionalVelocity, _totalSwingDistance);
-            methodCalled = true;
-            LogToFile("[Player.Grenade] Called throw_grenade_velocity_based() - direction is mouse velocity direction");
         }
         else if (_activeGrenade.HasMethod("throw_grenade"))
         {
-            // Legacy drag-based: convert velocity to drag distance approximation
-            float legacyDistance = velocityMagnitude * 0.5f; // Rough conversion
+            float legacyDistance = velocityMagnitude * 0.5f;
             _activeGrenade.Call("throw_grenade", throwDirection, legacyDistance);
-            methodCalled = true;
-            LogToFile("[Player.Grenade] Called throw_grenade() on grenade (legacy)");
-        }
-
-        // Direct physics fallback when no throw method is available
-        if (!methodCalled)
-        {
-            LogToFile("[Player.Grenade] WARNING: No throw method found, using direct physics fallback");
-            if (_activeGrenade is RigidBody2D rigidBody)
-            {
-                rigidBody.Freeze = false;
-                // Calculate throw velocity
-                float multiplier = 0.5f;
-                float minSwing = 80.0f;
-                float maxSpeed = 850.0f;
-                float swingTransfer = Mathf.Clamp(_totalSwingDistance / minSwing, 0.0f, 0.65f);
-                float finalSpeed = Mathf.Min(velocityMagnitude * multiplier * (0.35f + swingTransfer), maxSpeed);
-                rigidBody.LinearVelocity = throwDirection * finalSpeed;
-            }
         }
 
         // FIX for Issue #432: Mark grenade as thrown in C# GrenadeTimer for reliable impact detection
