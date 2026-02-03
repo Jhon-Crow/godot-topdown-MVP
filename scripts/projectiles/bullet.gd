@@ -29,6 +29,11 @@ extends Area2D
 ## If not set, default ricochet behavior is used.
 @export var caliber_data: Resource = null
 
+## Base damage dealt by this bullet.
+## This can be set by the weapon when spawning the bullet.
+## Default is 1.0, but weapons like the silenced pistol override this.
+@export var damage: float = 1.0
+
 ## Direction the bullet travels (set by the shooter).
 var direction: Vector2 = Vector2.RIGHT
 
@@ -345,9 +350,15 @@ func _on_area_entered(area: Area2D) -> void:
 		if parent and parent.has_method("is_alive") and not parent.is_alive():
 			return  # Pass through dead entities
 
+		# Calculate effective damage (base damage × multiplier from ricochets/penetration)
+		var effective_damage: float = damage * damage_multiplier
+
 		# Call on_hit with extended parameters if supported, otherwise use basic call
-		if area.has_method("on_hit_with_bullet_info"):
-			# Pass full bullet information including ricochet and penetration status
+		if area.has_method("on_hit_with_bullet_info_and_damage"):
+			# Pass full bullet information including damage amount
+			area.on_hit_with_bullet_info_and_damage(direction, caliber_data, _has_ricocheted, _has_penetrated, effective_damage)
+		elif area.has_method("on_hit_with_bullet_info"):
+			# Legacy path - pass bullet info without explicit damage (will use default)
 			area.on_hit_with_bullet_info(direction, caliber_data, _has_ricocheted, _has_penetrated)
 		elif area.has_method("on_hit_with_info"):
 			area.on_hit_with_info(direction, caliber_data)
