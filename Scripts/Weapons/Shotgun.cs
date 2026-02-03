@@ -631,26 +631,41 @@ public partial class Shotgun : BaseWeapon
     /// <returns>True if a gesture was processed, false otherwise.</returns>
     private bool TryProcessMidDragGesture(Vector2 dragVector)
     {
+        // Issue #445: Determine if this is a pump action context (more lenient detection)
+        bool isPumpActionContext = ReloadState == ShotgunReloadState.NotReloading &&
+                                   (ActionState == ShotgunActionState.NeedsPumpUp ||
+                                    ActionState == ShotgunActionState.NeedsPumpDown);
+
+        // Issue #445: Use reduced minimum distance for pump actions to make them more responsive
+        // Pump actions need to be quick between shots, so 20px is sufficient
+        float effectiveMinDistance = isPumpActionContext ? 20.0f : MinDragDistance;
+
         // Issue #445: Log drag vector periodically to diagnose why pump gestures fail when looking up
         if (_dragFrameCount % 10 == 0 && VerboseInputLogging)
         {
-            LogToFile($"[Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=({dragVector.X:F1}, {dragVector.Y:F1}), length={dragVector.Length():F1}, minDist={MinDragDistance}");
+            LogToFile($"[Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=({dragVector.X:F1}, {dragVector.Y:F1}), length={dragVector.Length():F1}, minDist={effectiveMinDistance}, isPump={isPumpActionContext}");
         }
 
         // Check if drag is long enough for a gesture
-        if (dragVector.Length() < MinDragDistance)
+        if (dragVector.Length() < effectiveMinDistance)
         {
             return false;
         }
 
-        // Determine if drag is primarily vertical
-        bool isVerticalDrag = Mathf.Abs(dragVector.Y) > Mathf.Abs(dragVector.X);
+        // Issue #445: For pump actions, use a more lenient verticality check
+        // This helps when looking UP where the player has limited vertical drag space
+        // Standard check: Y component must be greater than X component (45° cone)
+        // Lenient check: Y component must be greater than X * 0.5 (63° cone, ~60°)
+        // This allows more diagonal movement while still requiring mostly vertical intent
+        float verticalityFactor = isPumpActionContext ? 0.5f : 1.0f;
+        bool isVerticalDrag = Mathf.Abs(dragVector.Y) > Mathf.Abs(dragVector.X) * verticalityFactor;
+
         if (!isVerticalDrag)
         {
             // Issue #445: Log when drag is rejected for not being vertical
             if (VerboseInputLogging && _dragFrameCount % 20 == 0)
             {
-                LogToFile($"[Shotgun.FIX#445] Drag rejected - not vertical: absY={Mathf.Abs(dragVector.Y):F1} <= absX={Mathf.Abs(dragVector.X):F1}");
+                LogToFile($"[Shotgun.FIX#445] Drag rejected - not vertical: absY={Mathf.Abs(dragVector.Y):F1} <= absX={Mathf.Abs(dragVector.X):F1} * {verticalityFactor}");
             }
             return false; // Only vertical drags are used for shotgun
         }
@@ -839,29 +854,39 @@ public partial class Shotgun : BaseWeapon
     /// </summary>
     private void ProcessDragGesture(Vector2 dragVector)
     {
+        // Issue #445: Determine if this is a pump action context (more lenient detection)
+        bool isPumpActionContext = ReloadState == ShotgunReloadState.NotReloading &&
+                                   (ActionState == ShotgunActionState.NeedsPumpUp ||
+                                    ActionState == ShotgunActionState.NeedsPumpDown);
+
+        // Issue #445: Use reduced minimum distance for pump actions
+        float effectiveMinDistance = isPumpActionContext ? 20.0f : MinDragDistance;
+
         // Issue #445: Log the final drag vector when RMB is released
         if (VerboseInputLogging)
         {
-            LogToFile($"[Shotgun.FIX#445] ProcessDragGesture - dragVector=({dragVector.X:F1}, {dragVector.Y:F1}), length={dragVector.Length():F1}, ActionState={ActionState}");
+            LogToFile($"[Shotgun.FIX#445] ProcessDragGesture - dragVector=({dragVector.X:F1}, {dragVector.Y:F1}), length={dragVector.Length():F1}, ActionState={ActionState}, minDist={effectiveMinDistance}");
         }
 
         // Check if drag is long enough
-        if (dragVector.Length() < MinDragDistance)
+        if (dragVector.Length() < effectiveMinDistance)
         {
             if (VerboseInputLogging)
             {
-                LogToFile($"[Shotgun.FIX#445] Drag too short: {dragVector.Length():F1} < {MinDragDistance}");
+                LogToFile($"[Shotgun.FIX#445] Drag too short: {dragVector.Length():F1} < {effectiveMinDistance}");
             }
             return;
         }
 
-        // Determine if drag is primarily vertical
-        bool isVerticalDrag = Mathf.Abs(dragVector.Y) > Mathf.Abs(dragVector.X);
+        // Issue #445: For pump actions, use more lenient verticality check (63° cone instead of 45°)
+        float verticalityFactor = isPumpActionContext ? 0.5f : 1.0f;
+        bool isVerticalDrag = Mathf.Abs(dragVector.Y) > Mathf.Abs(dragVector.X) * verticalityFactor;
+
         if (!isVerticalDrag)
         {
             if (VerboseInputLogging)
             {
-                LogToFile($"[Shotgun.FIX#445] Drag not vertical: absY={Mathf.Abs(dragVector.Y):F1} <= absX={Mathf.Abs(dragVector.X):F1}");
+                LogToFile($"[Shotgun.FIX#445] Drag not vertical: absY={Mathf.Abs(dragVector.Y):F1} <= absX={Mathf.Abs(dragVector.X):F1} * {verticalityFactor}");
             }
             return; // Only vertical drags are used for shotgun
         }

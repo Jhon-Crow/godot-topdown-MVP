@@ -212,9 +212,53 @@ This would require significant changes and might be confusing for players.
 
 ---
 
+## Implemented Fix
+
+Based on the hypothesis that the gesture fails due to limited vertical space when looking UP (causing more horizontal drift in the drag), the following changes were implemented:
+
+### 1. Reduced Minimum Drag Distance for Pump Actions
+
+For pump actions (NeedsPumpUp/NeedsPumpDown states), the minimum drag distance is reduced from 30px to 20px:
+
+```csharp
+float effectiveMinDistance = isPumpActionContext ? 20.0f : MinDragDistance;
+```
+
+This makes pump actions more responsive and easier to trigger with smaller gestures.
+
+### 2. Relaxed Verticality Requirement for Pump Actions
+
+For pump actions, the verticality check uses a 63° cone instead of the standard 45° cone:
+
+```csharp
+// Standard: Y > X (45° cone)
+// Lenient: Y > X * 0.5 (63° cone)
+float verticalityFactor = isPumpActionContext ? 0.5f : 1.0f;
+bool isVerticalDrag = Mathf.Abs(dragVector.Y) > Mathf.Abs(dragVector.X) * verticalityFactor;
+```
+
+This allows more diagonal movement while still requiring mostly vertical intent, accommodating players who have less vertical space when looking UP.
+
+### Code Changes Summary
+
+| File | Change | Purpose |
+|------|--------|---------|
+| `Scripts/Weapons/Shotgun.cs` | `TryProcessMidDragGesture()` | Lenient detection for pump actions |
+| `Scripts/Weapons/Shotgun.cs` | `ProcessDragGesture()` | Same lenient detection on RMB release |
+
+### Why These Values?
+
+- **20px minimum**: Still requires intentional gesture, but accommodates limited space scenarios
+- **0.5 verticality factor**: Allows up to ~63° diagonal angle (was 45°), making it easier to register vertical intent with some horizontal drift
+- **Only for pump actions**: Reload gestures keep the stricter requirements since they typically have more space/time
+
+---
+
 ## Status
 
-**Investigation in progress.** Diagnostic logging has been added. Next steps:
-1. User tests with new build
-2. Analyze logs to identify exact failure point
-3. Implement targeted fix based on findings
+**Fix implemented.** The changes:
+1. Add detailed diagnostic logging for future debugging
+2. Make pump action gestures more lenient to handle the "looking UP" scenario
+3. Preserve strict detection for reload operations
+
+Testing required to confirm the fix resolves the issue without introducing unintended gesture detection.
