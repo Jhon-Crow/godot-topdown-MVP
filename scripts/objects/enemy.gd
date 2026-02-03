@@ -341,7 +341,7 @@ var _search_center: Vector2 = Vector2.ZERO  ## Search center
 var _search_radius: float = 100.0  ## Current radius
 const SEARCH_INITIAL_RADIUS: float = 100.0  ## Initial radius
 const SEARCH_RADIUS_EXPANSION: float = 75.0  ## Radius expansion
-const SEARCH_MAX_RADIUS: float = INF  ## Max radius (Issue #405: unlimited search zone)
+const SEARCH_MAX_RADIUS: float = 2000.0  ## Max radius before relocating center (Issue #405: search continues indefinitely)
 var _search_waypoints: Array[Vector2] = []  ## Search waypoints
 var _search_current_waypoint_index: int = 0  ## Current waypoint index
 var _search_scan_timer: float = 0.0  ## Timer for scanning at waypoint
@@ -494,7 +494,8 @@ func _ready() -> void:
 
 	# Initialize death animation component
 	_init_death_animation()
-	call_deferred("_start_initial_search")  # Issue #405: Search from spawn targeting player position
+	# Issue #405: Enemies start in their default state (IDLE/PATROL/GUARD)
+	# Unlimited search zone is activated AFTER enemy detects and loses player
 
 ## Initialize health with random value between min and max.
 func _initialize_health() -> void:
@@ -2229,19 +2230,23 @@ func _process_searching_state(delta: float) -> void:
 			if _search_waypoints.is_empty() and _search_radius < SEARCH_MAX_RADIUS:
 				return
 		else:
-			if _has_left_idle:  # Issue #330: Engaged enemy - move center to current pos, continue searching
+			if _has_left_idle:  # Issue #330/#405: Engaged enemy - move center, clear old zones, continue searching
 				var old_center := _search_center; _search_center = global_position
 				_search_radius = SEARCH_INITIAL_RADIUS; _search_state_timer = 0.0
-				_generate_search_waypoints()  # Keep visited zones
-				_log_to_file("SEARCHING: Max radius, moved center from %s to %s (wps=%d)" % [old_center, _search_center, _search_waypoints.size()])
+				# Issue #405: Clear visited zones to allow exploring new areas
+				_search_visited_zones.clear()
+				_generate_search_waypoints()
+				_log_to_file("SEARCHING: Max radius reached, relocated center %s->%s, cleared zones (wps=%d)" % [old_center, _search_center, _search_waypoints.size()])
 				return
 			_log_to_file("SEARCHING: Max radius, returning to IDLE (patrol enemy)")
 			_transition_to_idle(); return
 	if _search_waypoints.is_empty():
-		if _has_left_idle:  # Issue #330: Regenerate from current position
+		if _has_left_idle:  # Issue #330/#405: Regenerate from current position, clear old zones
 			var old := _search_center; _search_center = global_position; _search_radius = SEARCH_INITIAL_RADIUS
+			# Issue #405: Clear visited zones to allow exploring new areas
+			_search_visited_zones.clear()
 			_generate_search_waypoints()
-			_log_to_file("SEARCHING: No waypoints, moved center %s->%s (wps=%d)" % [old, _search_center, _search_waypoints.size()])
+			_log_to_file("SEARCHING: No waypoints, relocated center %s->%s, cleared zones (wps=%d)" % [old, _search_center, _search_waypoints.size()])
 			return
 		_transition_to_idle(); return
 	var target_waypoint := _search_waypoints[_search_current_waypoint_index]
@@ -2597,13 +2602,6 @@ func _transition_to_searching(center_position: Vector2) -> void:
 	_generate_search_waypoints()
 	var msg := "SEARCHING started: center=%s, radius=%.0f, waypoints=%d" % [_search_center, _search_radius, _search_waypoints.size()]
 	_log_debug(msg); _log_to_file(msg)
-
-## Issue #405: Start initial search from enemy spawn - unlimited zone, starting from player's position.
-func _start_initial_search() -> void:
-	if not _is_alive: return
-	var start_pos := _player.global_position if _player and is_instance_valid(_player) else global_position
-	_transition_to_searching(start_pos)
-	_log_to_file("Issue #405: Initial search started from %s" % start_pos)
 
 ## Transition to RETREATING state with appropriate retreat mode.
 func _transition_to_retreating() -> void:
