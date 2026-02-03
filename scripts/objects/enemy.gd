@@ -12,7 +12,8 @@ enum AIState {
 	RETREATING, ## Retreating to cover while possibly shooting
 	PURSUING,   ## Moving cover-to-cover toward player (when far and can't hit)
 	ASSAULT,    ## Coordinated multi-enemy assault (rush player after 5s wait)
-	SEARCHING   ## Methodically searching area where player was last seen (Issue #322)
+	SEARCHING,  ## Methodically searching area where player was last seen (Issue #322)
+	EVADING_GRENADE  ## Fleeing from grenade danger zone (Issue #407)
 }
 
 ## Retreat behavior modes based on damage taken.
@@ -431,6 +432,32 @@ var _is_stunned: bool = false
 ## --- Grenade System (Issue #363) ---
 ## Grenade throwing logic is handled by EnemyGrenadeComponent (extracted for Issue #377 CI fix).
 
+## --- Grenade Avoidance System (Issue #407) ---
+## Enemies should avoid zones where grenades are about to explode.
+## Tracked grenades that pose a danger to this enemy.
+var _grenades_in_danger_range: Array = []
+
+## Target position to flee to when evading a grenade.
+var _grenade_evasion_target: Vector2 = Vector2.ZERO
+
+## Whether we're currently in a grenade danger zone (for GOAP world state).
+var _in_grenade_danger_zone: bool = false
+
+## The most dangerous grenade (closest or soonest to explode) affecting this enemy.
+var _most_dangerous_grenade: Node2D = null
+
+## Timer for how long we've been evading grenades (to prevent getting stuck).
+var _grenade_evasion_timer: float = 0.0
+
+## Maximum time to spend evading before giving up (seconds).
+const GRENADE_EVASION_MAX_TIME: float = 4.0
+
+## Safety margin beyond grenade effect radius (pixels).
+const GRENADE_SAFETY_MARGIN: float = 75.0
+
+## State to return to after grenade evasion completes.
+var _pre_evasion_state: AIState = AIState.IDLE
+
 ## Last hit direction (used for death animation).
 var _last_hit_direction: Vector2 = Vector2.RIGHT
 
@@ -461,6 +488,7 @@ func _ready() -> void:
 	_update_debug_label()
 	_register_sound_listener()
 	_setup_grenade_component()
+	_setup_grenade_avoidance()
 
 	# Store original collision layers for HitArea (to restore on respawn)
 	if _hit_area:
@@ -773,7 +801,9 @@ func _initialize_goap_state() -> void:
 		"position_confidence": 0.0,
 		"confidence_high": false,
 		"confidence_medium": false,
-		"confidence_low": false
+		"confidence_low": false,
+		# Grenade avoidance state (Issue #407)
+		"in_grenade_danger_zone": false
 	}
 
 ## Initialize the enemy memory system (Issue #297).
@@ -880,6 +910,7 @@ func _physics_process(delta: float) -> void:
 	_update_goap_state()
 	_update_suppression(delta)
 	_update_grenade_triggers(delta)
+	_update_grenade_danger_detection()  # Issue #407: Check for nearby grenades
 
 	# Update enemy model rotation BEFORE processing AI state (which may shoot).
 	# This ensures the weapon is correctly positioned when bullets are created.
@@ -930,6 +961,9 @@ func _update_goap_state() -> void:
 		_goap_world_state["confidence_high"] = _memory.is_high_confidence()
 		_goap_world_state["confidence_medium"] = _memory.is_medium_confidence()
 		_goap_world_state["confidence_low"] = _memory.is_low_confidence()
+
+	# Grenade avoidance state (Issue #407)
+	_goap_world_state["in_grenade_danger_zone"] = _in_grenade_danger_zone
 
 ## Updates model rotation smoothly (#347). Priority: player > flank target > corner check > velocity > idle scan.
 ## Issue #386: FLANKING state now prioritizes facing the player over corner checks.
@@ -1174,6 +1208,13 @@ func _process_ai_state(delta: float) -> void:
 
 	var previous_state := _current_state
 
+	# ABSOLUTE HIGHEST PRIORITY: Grenade danger zone evasion (Issue #407)
+	# Survival instinct - enemies flee from grenades before any other action
+	if _in_grenade_danger_zone and _current_state != AIState.EVADING_GRENADE:
+		_log_to_file("GRENADE DANGER: Entering EVADING_GRENADE state from %s" % AIState.keys()[_current_state])
+		_transition_to_evading_grenade()
+		return
+
 	# HIGHEST PRIORITY: Player distracted (aim > 23° away) - shoot immediately (Hard mode only)
 	# NOTE: Disabled during memory reset confusion period (Issue #318)
 	var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
@@ -1308,6 +1349,8 @@ func _process_ai_state(delta: float) -> void:
 			_process_assault_state(delta)
 		AIState.SEARCHING:
 			_process_searching_state(delta)
+		AIState.EVADING_GRENADE:
+			_process_evading_grenade_state(delta)
 
 	if previous_state != _current_state:
 		state_changed.emit(_current_state)
@@ -2308,6 +2351,104 @@ func _process_searching_state(delta: float) -> void:
 			_search_moving_to_waypoint = true
 			_log_debug("SEARCHING: Scan done, next wp %d" % _search_current_waypoint_index)
 
+
+## Process EVADING_GRENADE state - flee from grenade danger zone (Issue #407).
+## Enemy moves at maximum speed away from the grenade until out of danger zone.
+func _process_evading_grenade_state(delta: float) -> void:
+	_grenade_evasion_timer += delta
+
+	# Check if we're still in danger - update grenade tracking
+	_update_grenade_danger_detection()
+
+	# If no longer in danger zone, return to previous state
+	if not _in_grenade_danger_zone:
+		_log_to_file("EVADING_GRENADE: Escaped danger zone, returning to %s" % AIState.keys()[_pre_evasion_state])
+		_return_from_grenade_evasion()
+		return
+
+	# If we've been evading too long, give up and return to previous state
+	# (grenade may have already exploded or enemy is stuck)
+	if _grenade_evasion_timer >= GRENADE_EVASION_MAX_TIME:
+		_log_to_file("EVADING_GRENADE: Timeout after %.1fs, returning to %s" % [_grenade_evasion_timer, AIState.keys()[_pre_evasion_state]])
+		_return_from_grenade_evasion()
+		return
+
+	# Move toward evasion target at combat speed (faster than normal)
+	if _grenade_evasion_target != Vector2.ZERO:
+		var distance_to_target := global_position.distance_to(_grenade_evasion_target)
+
+		if distance_to_target < 20.0:
+			# Reached evasion target - recalculate if still in danger
+			if _in_grenade_danger_zone:
+				_calculate_grenade_evasion_target()
+			else:
+				_return_from_grenade_evasion()
+				return
+		else:
+			# Use navigation to avoid obstacles while fleeing
+			_nav_agent.target_position = _grenade_evasion_target
+			if not _nav_agent.is_navigation_finished():
+				var next_pos := _nav_agent.get_next_path_position()
+				var direction := (next_pos - global_position).normalized()
+				# Move at combat speed (faster) for evasion
+				velocity = direction * combat_move_speed
+				move_and_slide()
+				_push_casings()
+
+				# Face movement direction
+				if direction.length() > 0.1:
+					rotation = lerp_angle(rotation, direction.angle(), 10.0 * delta)
+			else:
+				# Navigation finished but not at target - move directly
+				var direction := (_grenade_evasion_target - global_position).normalized()
+				velocity = direction * combat_move_speed
+				move_and_slide()
+				_push_casings()
+
+
+## Return from grenade evasion to the appropriate state.
+func _return_from_grenade_evasion() -> void:
+	# Clear evasion state
+	_in_grenade_danger_zone = false
+	_grenade_evasion_target = Vector2.ZERO
+	_grenade_evasion_timer = 0.0
+
+	# Return to previous state or a sensible default
+	match _pre_evasion_state:
+		AIState.IDLE:
+			_transition_to_idle()
+		AIState.COMBAT:
+			_transition_to_combat()
+		AIState.IN_COVER:
+			if _has_valid_cover:
+				_transition_to_in_cover()
+			else:
+				_transition_to_combat()
+		AIState.SEEKING_COVER:
+			_transition_to_seeking_cover()
+		AIState.FLANKING:
+			_transition_to_flanking()
+		AIState.SUPPRESSED:
+			if _has_valid_cover:
+				_transition_to_suppressed()
+			else:
+				_transition_to_combat()
+		AIState.RETREATING:
+			_transition_to_retreating()
+		AIState.PURSUING:
+			_transition_to_pursuing()
+		AIState.ASSAULT:
+			_transition_to_assault()
+		AIState.SEARCHING:
+			_transition_to_searching(global_position)
+		_:
+			# Default: go to combat if player is visible, otherwise idle
+			if _can_see_player:
+				_transition_to_combat()
+			else:
+				_transition_to_idle()
+
+
 ## Shoot with reduced accuracy for retreat mode (bullets fly in barrel direction with spread).
 func _shoot_with_inaccuracy() -> void:
 	if bullet_scene == null or _player == null:
@@ -2625,6 +2766,25 @@ func _transition_to_searching(center_position: Vector2) -> void:
 	_generate_search_waypoints()
 	var msg := "SEARCHING started: center=%s, radius=%.0f, waypoints=%d" % [_search_center, _search_radius, _search_waypoints.size()]
 	_log_debug(msg); _log_to_file(msg)
+
+## Transition to EVADING_GRENADE state - flee from grenade danger zone (Issue #407).
+func _transition_to_evading_grenade() -> void:
+	# Store the previous state to return to after evasion
+	_pre_evasion_state = _current_state
+	_current_state = AIState.EVADING_GRENADE
+	# Mark that enemy has left IDLE state (Issue #330)
+	_has_left_idle = true
+	_grenade_evasion_timer = 0.0
+
+	# Calculate escape target - move away from the most dangerous grenade
+	_calculate_grenade_evasion_target()
+
+	_log_debug("EVADING_GRENADE: Fleeing from grenade at %s, target=%s" % [
+		str(_most_dangerous_grenade.global_position) if _most_dangerous_grenade else "unknown",
+		str(_grenade_evasion_target)
+	])
+	_log_to_file("EVADING_GRENADE started: escaping to %s" % str(_grenade_evasion_target))
+
 
 ## Transition to RETREATING state with appropriate retreat mode.
 func _transition_to_retreating() -> void:
@@ -4537,6 +4697,8 @@ func _get_state_name(state: AIState) -> String:
 			return "ASSAULT"
 		AIState.SEARCHING:
 			return "SEARCHING"
+		AIState.EVADING_GRENADE:
+			return "EVADING_GRENADE"
 		_:
 			return "UNKNOWN"
 
@@ -5005,6 +5167,135 @@ func try_throw_grenade() -> bool:
 	if result:
 		grenade_thrown.emit(null, target)  # Signal with target; actual grenade emitted by component
 	return result
+
+
+# ============================================================================
+# GRENADE AVOIDANCE SYSTEM (Issue #407)
+# Enemies should avoid zones where grenades have been thrown or are about to explode.
+# ============================================================================
+
+## Setup grenade avoidance detection. Called from _ready().
+func _setup_grenade_avoidance() -> void:
+	# Connect to tree signals to detect when grenades are added/removed
+	# We check for grenades each physics frame instead of using signals
+	# because grenade positions change as they roll
+	pass
+
+
+## Update grenade danger detection. Called from _physics_process.
+## Checks all active grenades in the scene and determines if this enemy is in danger.
+func _update_grenade_danger_detection() -> void:
+	# Clear previous tracking
+	_grenades_in_danger_range.clear()
+	_most_dangerous_grenade = null
+	_in_grenade_danger_zone = false
+
+	# Find all active grenades in the scene
+	# Grenades should be in the "grenades" group or we check by class
+	var grenades := get_tree().get_nodes_in_group("grenades")
+
+	# If no grenades in group, check for GrenadeBase instances
+	if grenades.is_empty():
+		var root := get_tree().current_scene
+		if root:
+			grenades = _find_grenades_in_scene(root)
+
+	if grenades.is_empty():
+		return
+
+	var closest_danger_distance: float = INF
+	var my_enemy_id := get_instance_id()
+
+	for grenade in grenades:
+		if not is_instance_valid(grenade):
+			continue
+
+		# Skip grenades that haven't been thrown yet (still held by player/enemy)
+		if grenade is GrenadeBase:
+			# Check if grenade timer is active (has been thrown)
+			if not grenade.is_timer_active():
+				continue
+
+			# Check if grenade has already exploded
+			if grenade.has_exploded():
+				continue
+
+			# Get grenade effect radius
+			var effect_radius: float = grenade._get_effect_radius()
+			var danger_radius: float = effect_radius + GRENADE_SAFETY_MARGIN
+
+			# Calculate distance to grenade
+			var distance := global_position.distance_to(grenade.global_position)
+
+			# Check if we're in danger zone
+			if distance < danger_radius:
+				_grenades_in_danger_range.append(grenade)
+				_in_grenade_danger_zone = true
+
+				# Track the most dangerous grenade (closest one)
+				if distance < closest_danger_distance:
+					closest_danger_distance = distance
+					_most_dangerous_grenade = grenade
+
+
+## Find all grenade nodes in the scene tree.
+func _find_grenades_in_scene(node: Node) -> Array:
+	var grenades: Array = []
+
+	if node is GrenadeBase:
+		grenades.append(node)
+
+	for child in node.get_children():
+		grenades.append_array(_find_grenades_in_scene(child))
+
+	return grenades
+
+
+## Calculate the best escape position from grenade danger.
+## Moves directly away from the grenade, with fallback to navigation.
+func _calculate_grenade_evasion_target() -> void:
+	if _most_dangerous_grenade == null:
+		_grenade_evasion_target = Vector2.ZERO
+		return
+
+	var grenade_pos := _most_dangerous_grenade.global_position
+	var effect_radius: float = _most_dangerous_grenade._get_effect_radius()
+	var safe_distance: float = effect_radius + GRENADE_SAFETY_MARGIN + 50.0  # Extra margin for safety
+
+	# Calculate direction away from grenade
+	var escape_direction := (global_position - grenade_pos).normalized()
+
+	# If we're very close to the grenade, pick any direction
+	if escape_direction.length() < 0.1:
+		escape_direction = Vector2.RIGHT.rotated(randf() * TAU)
+
+	# Calculate target position at safe distance
+	var ideal_target := grenade_pos + escape_direction * safe_distance
+
+	# Try to find a valid navigation position near the ideal target
+	# Check if ideal target is reachable
+	_nav_agent.target_position = ideal_target
+
+	# If navigation can reach it, use it
+	if not _nav_agent.is_navigation_finished():
+		_grenade_evasion_target = ideal_target
+	else:
+		# Fallback: try perpendicular directions
+		var alt_direction1 := escape_direction.rotated(PI / 4)  # 45 degrees
+		var alt_direction2 := escape_direction.rotated(-PI / 4)  # -45 degrees
+
+		var alt_target1 := grenade_pos + alt_direction1 * safe_distance
+		var alt_target2 := grenade_pos + alt_direction2 * safe_distance
+
+		# Check which alternative is farther from current position
+		var dist1 := global_position.distance_to(alt_target1)
+		var dist2 := global_position.distance_to(alt_target2)
+
+		_grenade_evasion_target = alt_target1 if dist1 < dist2 else alt_target2
+
+	_log_debug("GRENADE EVASION: target=%s, grenade at %s, safe_dist=%.0f" % [
+		str(_grenade_evasion_target), str(grenade_pos), safe_distance
+	])
 
 
 ## Get the number of grenades remaining.
