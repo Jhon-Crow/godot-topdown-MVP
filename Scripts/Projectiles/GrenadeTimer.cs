@@ -478,36 +478,77 @@ namespace GodotTopdown.Scripts.Projectiles
 
         /// <summary>
         /// Spawn visual explosion effect.
+        /// FIX for Issue #432: GDScript Call() silently fails in exports, so we implement
+        /// the explosion effect directly in C# to ensure it always works.
         /// </summary>
         private void SpawnExplosionEffect(Vector2 position)
         {
-            // First, try to trigger the GDScript explosion effect method on the grenade itself
-            // This handles the visual effects defined in the GDScript subclass (FragGrenade, FlashbangGrenade)
-            if (_grenadeBody != null && _grenadeBody.HasMethod("_spawn_explosion_effect"))
+            // Create explosion flash effect directly in C# (GDScript calls don't work in exports)
+            // This replicates the GDScript _create_simple_explosion() / _create_simple_flash() logic
+            CreateExplosionFlash(position);
+            LogToFile($"[GrenadeTimer] Spawned C# explosion effect at {position}");
+        }
+
+        /// <summary>
+        /// Create a visual explosion flash effect.
+        /// Replicates the GDScript _create_simple_explosion() and _create_simple_flash() methods.
+        /// </summary>
+        private void CreateExplosionFlash(Vector2 position)
+        {
+            // Create a colored flash sprite
+            var flash = new Sprite2D();
+            flash.Texture = CreateCircleTexture((int)EffectRadius);
+            flash.GlobalPosition = position;
+            flash.ZIndex = 100; // Draw on top
+
+            // Set color based on grenade type
+            // Flashbang: bright white flash
+            // Frag: orange/red explosion
+            if (Type == GrenadeType.Flashbang)
             {
-                _grenadeBody.Call("_spawn_explosion_effect");
-                LogToFile("[GrenadeTimer] Called GDScript _spawn_explosion_effect()");
-            }
-            else if (_grenadeBody != null && _grenadeBody.HasMethod("_create_simple_explosion"))
-            {
-                // Fallback to simple explosion if the specific method isn't available
-                _grenadeBody.Call("_create_simple_explosion");
-                LogToFile("[GrenadeTimer] Called GDScript _create_simple_explosion()");
+                flash.Modulate = new Color(1.0f, 1.0f, 1.0f, 0.8f);
             }
             else
             {
-                // Final fallback: use ImpactEffectsManager directly
-                var impactManager = GetNodeOrNull("/root/ImpactEffectsManager");
-                if (impactManager != null && impactManager.HasMethod("spawn_flashbang_effect"))
+                flash.Modulate = new Color(1.0f, 0.6f, 0.2f, 0.8f);
+            }
+
+            // Add to scene
+            GetTree().CurrentScene.AddChild(flash);
+
+            // Create tween to fade out the flash
+            var tween = GetTree().CreateTween();
+            float fadeDuration = Type == GrenadeType.Flashbang ? 0.3f : 0.2f;
+            tween.TweenProperty(flash, "modulate:a", 0.0f, fadeDuration);
+            tween.TweenCallback(Callable.From(() => flash.QueueFree()));
+        }
+
+        /// <summary>
+        /// Create a circular gradient texture for explosion effects.
+        /// Replicates the GDScript _create_explosion_texture() / _create_white_circle_texture() methods.
+        /// </summary>
+        private static ImageTexture CreateCircleTexture(int radius)
+        {
+            int size = radius * 2;
+            var image = Image.CreateEmpty(size, size, false, Image.Format.Rgba8);
+            var center = new Vector2(radius, radius);
+
+            for (int x = 0; x < size; x++)
+            {
+                for (int y = 0; y < size; y++)
                 {
-                    impactManager.Call("spawn_flashbang_effect", position, EffectRadius);
-                    LogToFile("[GrenadeTimer] Called ImpactEffectsManager.spawn_flashbang_effect()");
-                }
-                else
-                {
-                    LogToFile("[GrenadeTimer] WARNING: No explosion effect method available");
+                    var pos = new Vector2(x, y);
+                    float distance = pos.DistanceTo(center);
+                    if (distance <= radius)
+                    {
+                        // Fade from center (alpha decreases toward edges)
+                        float alpha = 1.0f - (distance / radius);
+                        image.SetPixel(x, y, new Color(1.0f, 1.0f, 1.0f, alpha));
+                    }
                 }
             }
+
+            return ImageTexture.CreateFromImage(image);
         }
 
         /// <summary>

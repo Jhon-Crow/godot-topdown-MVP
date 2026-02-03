@@ -32,6 +32,10 @@ The issue describes three requirements for shell casing behavior:
 | 2026-02-03 18:17 | User feedback #3: Problem persists - GDScript `_physics_process` not running |
 | 2026-02-03 | Root cause confirmed: GDScript not executing at all in exported builds |
 | 2026-02-03 | Fix #2: Created C# GrenadeTimer component for reliable explosion handling |
+| 2026-02-03 19:51 | User feedback #6: Throw from activation position + no explosion effects |
+| 2026-02-03 | Root cause #6a: GDScript `_ready()` doesn't run → grenade not frozen on creation |
+| 2026-02-03 | Root cause #6b: GDScript `Call()` fails → explosion effects not showing |
+| 2026-02-03 | Fix #6: C# explicitly freezes grenade + implements explosion effects directly |
 
 ## User Feedback Investigation
 
@@ -440,8 +444,103 @@ The fix strategy:
 
 This hybrid approach ensures grenades work correctly regardless of the C#/GDScript interop state.
 
+### Sixth Investigation (User Feedback #6)
+
+**Analysis of Game Log (`logs/game_log_20260203_224846.txt`):**
+
+User reported two remaining issues:
+1. **Grenade thrown from activation position instead of player position** - Same issue previously fixed in PR #183/commit 60f7cae
+2. **No explosion visual effects**
+
+**Root Cause #1: Grenade Not Frozen on Creation**
+
+The original fix for the "activation position" bug (commit 60f7cae) was in GDScript:
+```gdscript
+# In grenade_base.gd _ready():
+freeze = true
+freeze_mode = RigidBody2D.FREEZE_MODE_KINEMATIC
+```
+
+However, **GDScript `_ready()` doesn't run in exports** (as established earlier). This means:
+1. Grenade is created unfrozen (RigidBody2D default)
+2. Physics engine can interfere with position while player moves
+3. Grenade ends up at activation position instead of player's current position
+
+**Fix Applied:**
+C# now explicitly freezes the grenade immediately after creation:
+```csharp
+// In Player.cs StartGrenadeTimer():
+GetTree().CurrentScene.AddChild(_activeGrenade);
+
+// FIX: Freeze grenade IMMEDIATELY - GDScript _ready() doesn't run in exports!
+_activeGrenade.FreezeMode = RigidBody2D.FreezeModeEnum.Kinematic;
+_activeGrenade.Freeze = true;
+
+_activeGrenade.GlobalPosition = GlobalPosition;
+```
+
+**Root Cause #2: Explosion Visual Effects Not Showing**
+
+The GrenadeTimer was trying to call GDScript methods for explosion effects:
+```csharp
+if (_grenadeBody.HasMethod("_spawn_explosion_effect"))
+{
+    _grenadeBody.Call("_spawn_explosion_effect"); // FAILS in exports!
+}
+```
+
+The `HasMethod()` check returns true (method exists), but `Call()` fails silently. The fallback to `ImpactEffectsManager` also failed because that autoload doesn't have the `spawn_flashbang_effect` method.
+
+**Fix Applied:**
+Implemented explosion visual effects directly in C#:
+```csharp
+private void SpawnExplosionEffect(Vector2 position)
+{
+    // Create explosion flash effect directly in C#
+    CreateExplosionFlash(position);
+}
+
+private void CreateExplosionFlash(Vector2 position)
+{
+    var flash = new Sprite2D();
+    flash.Texture = CreateCircleTexture((int)EffectRadius);
+    flash.GlobalPosition = position;
+
+    // Flashbang: white, Frag: orange/red
+    if (Type == GrenadeType.Flashbang)
+        flash.Modulate = new Color(1.0f, 1.0f, 1.0f, 0.8f);
+    else
+        flash.Modulate = new Color(1.0f, 0.6f, 0.2f, 0.8f);
+
+    GetTree().CurrentScene.AddChild(flash);
+
+    // Fade out animation
+    var tween = GetTree().CreateTween();
+    tween.TweenProperty(flash, "modulate:a", 0.0f, 0.3f);
+    tween.TweenCallback(Callable.From(() => flash.QueueFree()));
+}
+```
+
+This C# implementation replicates the GDScript `_create_simple_explosion()` and `_create_simple_flash()` methods, ensuring explosion effects always appear.
+
+## Final Resolution (Updated)
+
+The complete solution for reliable grenade behavior in exports:
+
+| Component | Issue | Solution |
+|-----------|-------|----------|
+| Grenade Creation | GDScript `_ready()` doesn't run | C# explicitly freezes grenade on creation |
+| Grenade Velocity | GDScript `Call()` fails | C# sets velocity directly before calling GDScript |
+| Grenade Friction | Double friction (C# + GDScript) | Disable C# friction, rely on GDScript `_physics_process()` |
+| Explosion Timing | Method calls fail | C# GrenadeTimer handles timer/impact detection |
+| Explosion Effects | GDScript effect methods not called | C# creates explosion flash directly |
+| Casing Scatter | Relies on explosion | Both C# and GDScript implementations |
+
+**Key Insight**: In Godot 4 C#/GDScript mixed projects, while GDScript method **calls** via `Call()` fail in exports, the GDScript **lifecycle methods** (`_ready()`, `_physics_process()`, signals) DO work. However, for maximum reliability in exported builds, critical functionality should be implemented in C# for the player-owned grenades.
+
 ## References
 
 - [Godot RigidBody2D Documentation](https://docs.godotengine.org/en/stable/classes/class_rigidbody2d.html)
 - [Godot Physics - Impulse vs Force](https://docs.godotengine.org/en/stable/tutorials/physics/physics_introduction.html)
 - [Godot 4 C#/GDScript Interop Issues](https://github.com/godotengine/godot/issues) - Various reports of Call() failing in exports
+- [Issue #183](https://github.com/Jhon-Crow/godot-topdown-MVP/issues/183) - Original "activation position" bug and fix (commit 60f7cae)

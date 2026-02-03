@@ -2323,7 +2323,16 @@ public partial class Player : BaseCharacter
         // Add grenade to scene first (must be in tree before setting GlobalPosition)
         GetTree().CurrentScene.AddChild(_activeGrenade);
 
-        // Set position AFTER AddChild (GlobalPosition only works when node is in the scene tree)
+        // FIX for Issue #432 (activation position bug): Freeze the grenade IMMEDIATELY after creation.
+        // This MUST happen before setting position to prevent physics engine interference.
+        // Root cause: GDScript _ready() sets freeze=true, but GDScript doesn't run in exports!
+        // Without this fix, the physics engine can move the unfrozen grenade while player moves,
+        // causing the grenade to be thrown from the activation position instead of player's current position.
+        // See commit 60f7cae for original fix and docs/case-studies/issue-183/ for detailed analysis.
+        _activeGrenade.FreezeMode = RigidBody2D.FreezeModeEnum.Kinematic;
+        _activeGrenade.Freeze = true;
+
+        // Set position AFTER AddChild and AFTER freezing (GlobalPosition only works when node is in the scene tree)
         _activeGrenade.GlobalPosition = GlobalPosition;
 
         // FIX for Issue #432: Add C# GrenadeTimer component for reliable explosion handling.
