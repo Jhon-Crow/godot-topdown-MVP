@@ -59,15 +59,8 @@ namespace GodotTopdown.Scripts.Projectiles
         /// </summary>
         public bool IsTimerActive { get; private set; } = false;
 
-        /// <summary>
-        /// Whether C# should apply friction (only when GDScript is not running).
-        /// We detect this by checking if velocity is being reduced each frame.
-        /// If velocity is NOT being reduced (GDScript friction not working), we apply it.
-        /// </summary>
-        private bool _shouldApplyFriction = false;
-        private Vector2 _lastVelocityForFrictionCheck = Vector2.Zero;
-        private int _framesWithoutFriction = 0;
-        private const int FramesToDetectNoFriction = 3;
+        // NOTE: We always apply C# friction because GDScript _physics_process() does NOT run
+        // in exported builds. Detection logic was removed as it added complexity without benefit.
 
         /// <summary>
         /// Whether the grenade has been thrown (can explode on impact).
@@ -116,11 +109,15 @@ namespace GodotTopdown.Scripts.Projectiles
             if (HasExploded || _grenadeBody == null)
                 return;
 
-            // FIX for Issue #432 (simplified): Do NOT apply C# friction.
-            // GDScript _physics_process() DOES run and applies friction correctly.
-            // The problem was only that GDScript METHOD CALLS (via C# Call()) fail silently.
-            // We now set velocity directly in C#, and let GDScript handle friction.
-            // This prevents double-friction which was causing grenades to stop too early.
+            // CRITICAL FIX for Issue #432: GDScript _physics_process() does NOT run in exported builds!
+            // Evidence from user logs (game_log_20260203_223841.txt):
+            //   - Flashbang target: 221.7px, actually traveled: 560px (2.5x overshoot!)
+            //   - No friction applied whatsoever
+            // We MUST apply friction in C# since GDScript is completely non-functional in exports.
+            if (IsThrown && !_grenadeBody.Freeze)
+            {
+                ApplyGroundFriction((float)delta);
+            }
 
             // Timer countdown for Flashbang grenades
             if (IsTimerActive && Type == GrenadeType.Flashbang)
@@ -179,66 +176,6 @@ namespace GodotTopdown.Scripts.Projectiles
 
             IsThrown = true;
             LogToFile("[GrenadeTimer] Grenade marked as thrown - impact detection enabled");
-        }
-
-        /// <summary>
-        /// Detect if GDScript friction is working and apply C# friction only if needed.
-        /// This prevents double-friction which causes grenades to stop way too early.
-        /// </summary>
-        private void DetectAndApplyFriction(float delta)
-        {
-            if (_grenadeBody == null || _grenadeBody.Freeze)
-                return;
-
-            Vector2 currentVelocity = _grenadeBody.LinearVelocity;
-
-            // Skip if grenade is already stopped
-            if (currentVelocity.Length() <= 0.01f)
-            {
-                _lastVelocityForFrictionCheck = currentVelocity;
-                return;
-            }
-
-            // Check if velocity has been reduced since last frame (GDScript friction working)
-            if (_lastVelocityForFrictionCheck.Length() > 0.01f)
-            {
-                float expectedVelocityWithoutFriction = _lastVelocityForFrictionCheck.Length();
-                float actualVelocity = currentVelocity.Length();
-
-                // Calculate how much friction SHOULD have reduced velocity this frame
-                float expectedFrictionReduction = GroundFriction * delta;
-
-                // If velocity dropped by roughly the expected amount, GDScript friction is working
-                float velocityDrop = expectedVelocityWithoutFriction - actualVelocity;
-
-                // GDScript is applying friction if velocity dropped by at least 50% of expected
-                if (velocityDrop >= expectedFrictionReduction * 0.5f)
-                {
-                    // GDScript friction is working - don't apply C# friction
-                    _framesWithoutFriction = 0;
-                    _shouldApplyFriction = false;
-                }
-                else
-                {
-                    // Velocity didn't drop as expected - GDScript might not be working
-                    _framesWithoutFriction++;
-
-                    // After several frames with no friction, enable C# friction
-                    if (_framesWithoutFriction >= FramesToDetectNoFriction)
-                    {
-                        _shouldApplyFriction = true;
-                    }
-                }
-            }
-
-            // Store current velocity for next frame comparison
-            _lastVelocityForFrictionCheck = currentVelocity;
-
-            // Apply C# friction only if GDScript friction is not working
-            if (_shouldApplyFriction)
-            {
-                ApplyGroundFriction(delta);
-            }
         }
 
         /// <summary>
