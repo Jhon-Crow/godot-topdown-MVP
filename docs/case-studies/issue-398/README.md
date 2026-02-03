@@ -253,10 +253,29 @@ Evidence:
 
 4. **User logs are invaluable**: Without the game logs, this issue would have been much harder to diagnose.
 
+## Additional Fix: GDScript Type Inference (2026-02-03)
+
+**Issue**: CI logs showed parse errors in `player.gd`:
+```
+SCRIPT ERROR: Parse Error: Cannot infer the type of "hit_pos" variable because the value doesn't have a set type.
+```
+
+**Root Cause**: The `_raycast_for_wall()` function returns a `Dictionary`. Accessing dictionary values returns `Variant`, which cannot be used with `:=` type inference when combined with `Vector2` operations.
+
+**Fix Applied**: Explicit type declarations for dictionary values:
+```gdscript
+# Before (caused parse error)
+var hit_pos := wall_hit.position - global_position
+
+# After (explicit type casting)
+var wall_hit_pos: Vector2 = wall_hit.position
+var hit_pos: Vector2 = wall_hit_pos - global_position
+```
+
 ## Files Modified (Final)
 
 1. `Scripts/Characters/Player.cs` - Full simple grenade mode implementation (C# version)
-2. `scripts/characters/player.gd` - Debug logging and mode mismatch handling (GDScript version)
+2. `scripts/characters/player.gd` - Debug logging, mode mismatch handling, and type inference fixes (GDScript version)
 3. `scripts/objects/enemy.gd` - Line count reduction for CI compliance
 
 ## Final Test Plan
