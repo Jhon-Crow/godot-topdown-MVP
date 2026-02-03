@@ -932,6 +932,13 @@ func _setup_selected_weapon() -> void:
 		if mini_uzi_scene:
 			var mini_uzi = mini_uzi_scene.instantiate()
 			mini_uzi.name = "MiniUzi"
+
+			# Reduce Mini UZI ammunition by half for Building level (issue #413)
+			# Default StartingMagazineCount is 4, reduce to 2
+			if mini_uzi.get("StartingMagazineCount") != null:
+				mini_uzi.StartingMagazineCount = 2
+				print("BuildingLevel: Mini UZI magazine count set to 2 (reduced by half)")
+
 			_player.add_child(mini_uzi)
 
 			# Set the CurrentWeapon reference in C# Player
@@ -939,12 +946,6 @@ func _setup_selected_weapon() -> void:
 				_player.EquipWeapon(mini_uzi)
 			elif _player.get("CurrentWeapon") != null:
 				_player.CurrentWeapon = mini_uzi
-
-			# Add an extra magazine for the Mini UZI in the building level
-			# This gives the player more ammo to handle the indoor combat
-			if mini_uzi.has_method("AddMagazine"):
-				mini_uzi.AddMagazine()
-				print("BuildingLevel: Added extra Mini UZI magazine")
 
 			print("BuildingLevel: Mini UZI equipped successfully")
 		else:
@@ -976,11 +977,18 @@ func _setup_selected_weapon() -> void:
 	# For M16 (assault rifle), it's already in the scene
 	else:
 		var assault_rifle = _player.get_node_or_null("AssaultRifle")
-		if assault_rifle and _player.get("CurrentWeapon") == null:
-			if _player.has_method("EquipWeapon"):
-				_player.EquipWeapon(assault_rifle)
-			elif _player.get("CurrentWeapon") != null:
-				_player.CurrentWeapon = assault_rifle
+		if assault_rifle:
+			# Reduce M16 ammunition by half for Building level (issue #413)
+			# Default StartingMagazineCount is 4, reduce to 2
+			if assault_rifle.get("StartingMagazineCount") != null:
+				assault_rifle.StartingMagazineCount = 2
+				print("BuildingLevel: M16 magazine count set to 2 (reduced by half)")
+
+			if _player.get("CurrentWeapon") == null:
+				if _player.has_method("EquipWeapon"):
+					_player.EquipWeapon(assault_rifle)
+				elif _player.get("CurrentWeapon") != null:
+					_player.CurrentWeapon = assault_rifle
 
 
 ## Log a message to the file logger if available.
