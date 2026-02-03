@@ -105,6 +105,11 @@ const SPREAD_RESET_TIME: float = 0.25
 ## Force to apply to casings when pushed by player (Issue #392).
 const CASING_PUSH_FORCE: float = 50.0
 
+## Set of casings currently overlapping with the CasingPusher Area2D (Issue #392 Iteration 7).
+## Using signal-based tracking instead of polling get_overlapping_bodies() for reliable detection.
+## This ensures casings are detected even when approaching from narrow sides.
+var _overlapping_casings: Array[RigidBody2D] = []
+
 ## Current number of consecutive shots.
 var _shot_count: int = 0
 ## Timer since last shot.
@@ -292,6 +297,11 @@ func _ready() -> void:
 
 	# Initialize death animation component
 	_init_death_animation()
+
+	# Connect CasingPusher signals for reliable casing detection (Issue #392 Iteration 7)
+	# Using body_entered/body_exited signals instead of polling get_overlapping_bodies()
+	# This ensures casings are detected even when player approaches from narrow side
+	_connect_casing_pusher_signals()
 
 	FileLogger.info("[Player] Ready! Ammo: %d/%d, Grenades: %d/%d, Health: %d/%d" % [
 		_current_ammo, max_ammo,
@@ -2223,6 +2233,7 @@ const DEBUG_CASING_PUSHING: bool = false
 ## Push casings that we're overlapping with (Issue #392).
 ## Uses an Area2D to detect casings without blocking player movement.
 ## Casings should be pushed by the player but should not affect player movement.
+## Iteration 7: Uses signal-tracked casings combined with polling for reliability.
 func _push_casings() -> void:
 	if _casing_pusher == null:
 		if DEBUG_CASING_PUSHING:
@@ -2233,17 +2244,71 @@ func _push_casings() -> void:
 	if velocity.length_squared() < 1.0:
 		return
 
-	# Get all overlapping bodies (casings are RigidBody2D on layer 7)
-	var overlapping_bodies := _casing_pusher.get_overlapping_bodies()
-	if DEBUG_CASING_PUSHING and overlapping_bodies.size() > 0:
-		print("[Player.CasingPusher] Overlapping %d bodies" % overlapping_bodies.size())
-	for body in overlapping_bodies:
-		# Check if this is a casing (RigidBody2D with receive_kick method)
+	# Combine both signal-tracked casings and polled overlapping bodies for reliability
+	# This ensures detection works even with narrow-side approaches (Issue #392 Iteration 7)
+	var casings_to_push: Array[RigidBody2D] = []
+
+	# Add signal-tracked casings
+	for casing in _overlapping_casings:
+		if is_instance_valid(casing) and casing not in casings_to_push:
+			casings_to_push.append(casing)
+
+	# Also poll for any casings that might have been missed by signals
+	var polled_bodies := _casing_pusher.get_overlapping_bodies()
+	for body in polled_bodies:
 		if body is RigidBody2D and body.has_method("receive_kick"):
-			# Calculate push direction based on player movement
-			var push_dir := velocity.normalized()
-			var push_strength := velocity.length() * CASING_PUSH_FORCE / 100.0
-			var impulse := push_dir * push_strength
+			if body not in casings_to_push:
+				casings_to_push.append(body)
+
+	if DEBUG_CASING_PUSHING and casings_to_push.size() > 0:
+		print("[Player.CasingPusher] Found %d casings (signal-tracked: %d, polled: %d)" % [
+			casings_to_push.size(), _overlapping_casings.size(), polled_bodies.size()
+		])
+
+	# Push all detected casings
+	for casing in casings_to_push:
+		# Calculate push direction based on player movement
+		var push_dir := velocity.normalized()
+		var push_strength := velocity.length() * CASING_PUSH_FORCE / 100.0
+		var impulse := push_dir * push_strength
+		if DEBUG_CASING_PUSHING:
+			print("[Player.CasingPusher] Kicking casing with impulse %s" % impulse)
+		casing.receive_kick(impulse)
+
+
+## Connect CasingPusher Area2D signals for reliable casing detection (Issue #392 Iteration 7).
+## Using body_entered/body_exited signals instead of only polling get_overlapping_bodies()
+## ensures casings are detected even when player approaches from narrow side.
+func _connect_casing_pusher_signals() -> void:
+	if _casing_pusher == null:
+		return
+
+	# Connect body_entered and body_exited signals
+	if not _casing_pusher.body_entered.is_connected(_on_casing_pusher_body_entered):
+		_casing_pusher.body_entered.connect(_on_casing_pusher_body_entered)
+	if not _casing_pusher.body_exited.is_connected(_on_casing_pusher_body_exited):
+		_casing_pusher.body_exited.connect(_on_casing_pusher_body_exited)
+
+	if DEBUG_CASING_PUSHING:
+		print("[Player.CasingPusher] Connected body_entered/body_exited signals")
+
+
+## Called when a body enters the CasingPusher Area2D.
+## Tracks casings for reliable pushing detection.
+func _on_casing_pusher_body_entered(body: Node2D) -> void:
+	if body is RigidBody2D and body.has_method("receive_kick"):
+		if body not in _overlapping_casings:
+			_overlapping_casings.append(body)
 			if DEBUG_CASING_PUSHING:
-				print("[Player.CasingPusher] Kicking casing with impulse %s" % impulse)
-			body.receive_kick(impulse)
+				print("[Player.CasingPusher] Casing entered: %s (total: %d)" % [body.name, _overlapping_casings.size()])
+
+
+## Called when a body exits the CasingPusher Area2D.
+## Removes casings from tracking list.
+func _on_casing_pusher_body_exited(body: Node2D) -> void:
+	if body is RigidBody2D:
+		var idx := _overlapping_casings.find(body)
+		if idx >= 0:
+			_overlapping_casings.remove_at(idx)
+			if DEBUG_CASING_PUSHING:
+				print("[Player.CasingPusher] Casing exited: %s (total: %d)" % [body.name, _overlapping_casings.size()])

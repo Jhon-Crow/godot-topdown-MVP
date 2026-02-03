@@ -496,3 +496,126 @@ func _ready() -> void:
 - Trust the collision layer/mask system which is the standard Godot approach
 - The spawn delay handles the spawn-time edge case
 - No collision exception means no unexpected side effects on casing physics
+
+### User Feedback #6 (2026-02-03)
+- Feedback from log `game_log_20260203_120120.txt`:
+  1. "гильзы не толкаются если игрок врезается в них с узкой стороны" - Casings don't get pushed if player bumps into them from the narrow side
+- The casing collision shape is a thin rectangle (4x14 pixels)
+- When approaching from the narrow 4-pixel side, the CasingPusher Area2D may not reliably detect the overlap
+
+### Root Cause Analysis (Iteration 7)
+- **Casing shape**: RectangleShape2D with size (4, 14) - tall, thin rectangle
+- **CasingPusher shape**: CircleShape2D with radius 20 - covers player vicinity
+- **Casing rotation**: Random rotation at spawn (0 to 2π)
+- **Issue**: When casing is rotated so its narrow side (4px) faces the player, the overlap detection via `get_overlapping_bodies()` polling may be unreliable
+- **Research findings** (from Godot forums and GitHub issues):
+  - `Area2D.get_overlapping_bodies()` can miss bodies that only briefly enter the detection area
+  - The function doesn't account for RigidBody2D moves in the same frame
+  - Polling-based detection can miss narrow overlaps when player moves quickly
+
+### Fix Iteration 7 - Signal-Based Casing Detection (2026-02-03)
+**Problem**: Polling `get_overlapping_bodies()` every frame may miss casings when:
+1. Player approaches casing from narrow side (4px edge)
+2. Player moves quickly past the casing
+3. Timing issues between physics and Area2D detection
+
+**Solution**: Use `body_entered` and `body_exited` signals for more reliable casing tracking:
+- Connect to CasingPusher's `body_entered` signal to track casings as they enter
+- Connect to `body_exited` signal to remove casings when they leave
+- Maintain an array of currently overlapping casings
+- Use BOTH signal-tracked casings AND polled bodies for redundancy
+
+**Code Changes** (scripts/characters/player.gd):
+
+1. Added tracking array:
+```gdscript
+## Set of casings currently overlapping with the CasingPusher Area2D (Issue #392 Iteration 7).
+## Using signal-based tracking instead of polling get_overlapping_bodies() for reliable detection.
+## This ensures casings are detected even when approaching from narrow sides.
+var _overlapping_casings: Array[RigidBody2D] = []
+```
+
+2. Connect signals in _ready():
+```gdscript
+# Connect CasingPusher signals for reliable casing detection (Issue #392 Iteration 7)
+_connect_casing_pusher_signals()
+```
+
+3. Signal connection function:
+```gdscript
+func _connect_casing_pusher_signals() -> void:
+    if _casing_pusher == null:
+        return
+    if not _casing_pusher.body_entered.is_connected(_on_casing_pusher_body_entered):
+        _casing_pusher.body_entered.connect(_on_casing_pusher_body_entered)
+    if not _casing_pusher.body_exited.is_connected(_on_casing_pusher_body_exited):
+        _casing_pusher.body_exited.connect(_on_casing_pusher_body_exited)
+```
+
+4. Signal handlers:
+```gdscript
+func _on_casing_pusher_body_entered(body: Node2D) -> void:
+    if body is RigidBody2D and body.has_method("receive_kick"):
+        if body not in _overlapping_casings:
+            _overlapping_casings.append(body)
+
+func _on_casing_pusher_body_exited(body: Node2D) -> void:
+    if body is RigidBody2D:
+        var idx := _overlapping_casings.find(body)
+        if idx >= 0:
+            _overlapping_casings.remove_at(idx)
+```
+
+5. Updated _push_casings() to use both sources:
+```gdscript
+func _push_casings() -> void:
+    # ... null/velocity checks ...
+
+    # Combine both signal-tracked casings and polled overlapping bodies for reliability
+    var casings_to_push: Array[RigidBody2D] = []
+
+    # Add signal-tracked casings
+    for casing in _overlapping_casings:
+        if is_instance_valid(casing) and casing not in casings_to_push:
+            casings_to_push.append(casing)
+
+    # Also poll for any casings that might have been missed by signals
+    var polled_bodies := _casing_pusher.get_overlapping_bodies()
+    for body in polled_bodies:
+        if body is RigidBody2D and body.has_method("receive_kick"):
+            if body not in casings_to_push:
+                casings_to_push.append(body)
+
+    # Push all detected casings
+    for casing in casings_to_push:
+        var push_dir := velocity.normalized()
+        var push_strength := velocity.length() * CASING_PUSH_FORCE / 100.0
+        casing.receive_kick(push_dir * push_strength)
+```
+
+**Rationale**:
+- Signal-based tracking ensures casings are tracked from the moment they enter the detection area
+- Signals fire at the physics engine level, not just during polling
+- Combining both methods provides maximum reliability (defense-in-depth)
+- If signals miss something, polling catches it; if polling misses something, signals catch it
+
+### Research References (Iteration 7)
+- [Area2D.get_overlapping_bodies() not detecting - Godot Forum](https://forum.godotengine.org/t/area2d-get-overlapping-bodies-not-detecting/74632)
+- [Disabling process of PhysicsBody2D and Area2D bug - GitHub Issue #76219](https://github.com/godotengine/godot/issues/76219)
+- [Area 2D fails to detect Rigidbody 2D - Godot Forum](https://forum.godotengine.org/t/area-2d-fails-to-detect-rigidbody-2d-on-body-entered-not-triggered/48113)
+
+### Lessons Learned (Iteration 7)
+1. **Polling vs Signals for Collision Detection**
+   - `get_overlapping_bodies()` is convenient but can miss brief overlaps
+   - `body_entered`/`body_exited` signals are more reliable for tracking
+   - Use BOTH methods for maximum reliability in critical systems
+
+2. **Shape Geometry Affects Detection**
+   - Thin shapes (4x14 rectangle) with random rotation create edge cases
+   - Players moving quickly past narrow edges may not trigger reliable detection
+   - Consider shape geometry when designing collision detection systems
+
+3. **Defense-in-Depth is Essential**
+   - No single detection method is 100% reliable
+   - Combining multiple approaches catches edge cases
+   - Extra code complexity is worth it for robust gameplay
