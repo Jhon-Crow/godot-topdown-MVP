@@ -1050,9 +1050,10 @@ func _update_walk_animation(delta: float) -> void:
 		if _right_arm_sprite:
 			_right_arm_sprite.position = _right_arm_sprite.position.lerp(_base_right_arm_pos, lerp_speed)
 
-## Push casings that we collided with after move_and_slide() (Issue #341).
+## Push casings that we collided with after move_and_slide() (Issue #341, #424).
 ## Force to apply to casings when pushed by characters.
-const CASING_PUSH_FORCE: float = 50.0
+## Reduced by 2.5x from 50.0 to 20.0 for Issue #424.
+const CASING_PUSH_FORCE: float = 20.0
 
 func _push_casings() -> void:
 	for i in get_slide_collision_count():
@@ -1060,9 +1061,13 @@ func _push_casings() -> void:
 		var collider := collision.get_collider()
 		# Check if collider is a RigidBody2D with receive_kick method (casing)
 		if collider is RigidBody2D and collider.has_method("receive_kick"):
-			var push_dir := -collision.get_normal()
+			# Cast to RigidBody2D for proper type access (fixes export build issue #424)
+			var casing: RigidBody2D = collider as RigidBody2D
+			# Calculate push direction from enemy center to casing position (Issue #424)
+			# This makes casings fly away based on which side they're pushed from
+			var push_dir := (casing.global_position - global_position).normalized()
 			var push_strength := velocity.length() * CASING_PUSH_FORCE / 100.0
-			collider.receive_kick(push_dir * push_strength)
+			casing.receive_kick(push_dir * push_strength)
 
 ## Update suppression state.
 func _update_suppression(delta: float) -> void:
@@ -1337,10 +1342,7 @@ func _process_idle_state(delta: float) -> void:
 		BehaviorMode.PATROL: _process_patrol(delta)
 		BehaviorMode.GUARD: _process_guard(delta)
 
-## Process COMBAT state - combat cycle: exit cover -> exposed shooting -> return to cover.
-## Phase 1 (approaching): Move toward player to get into direct contact range.
-## Phase 2 (exposed): Stand and shoot for 2-3 seconds.
-## Phase 3: Return to cover via SEEKING_COVER state.
+## Process COMBAT state - cycle: approach->exposed shooting (2-3s)->return to cover via SEEKING_COVER.
 func _process_combat_state(delta: float) -> void:
 	# Track time in COMBAT state (for preventing rapid state thrashing)
 	_combat_state_timer += delta
@@ -1617,12 +1619,7 @@ func _process_seeking_cover_state(_delta: float) -> void:
 		_shoot()
 		_shoot_timer = 0.0
 
-## Process IN_COVER state - taking cover from enemy fire.
-## Decides next action based on:
-## 1. If under fire -> suppressed
-## 2. If player is close (can exit cover for direct contact) -> COMBAT
-## 3. If player is far but can hit from current position -> COMBAT (stay and shoot)
-## 4. If player is far and can't hit -> PURSUING (move cover-to-cover)
+## Process IN_COVER state. Under fire->suppressed, close->COMBAT, far+can hit->stay and shoot, far+can't hit->PURSUING.
 func _process_in_cover_state(delta: float) -> void:
 	velocity = Vector2.ZERO
 
@@ -3110,12 +3107,8 @@ func _count_enemies_in_combat() -> int:
 func is_in_combat_engagement() -> bool:
 	return _can_see_player and _current_state in [AIState.COMBAT, AIState.IN_COVER, AIState.ASSAULT]
 
-## Find cover position closer to the player for pursuit.
-## Used during PURSUING state to move cover-to-cover toward the player.
-## Improvements for issue #93:
-## - Penalizes covers on the same obstacle to avoid shuffling along walls
-## - Requires minimum progress toward player to skip insignificant moves
-## - Verifies the path to cover is clear (no walls blocking)
+## Find cover closer to player for PURSUING state. Penalizes same-obstacle covers, requires min progress,
+## verifies clear path (Issue #93).
 func _find_pursuit_cover_toward_player() -> void:
 	# Use memory-based target position instead of direct player position (Issue #297)
 	# This allows pursuing toward a suspected position even when player is not visible
@@ -3957,7 +3950,7 @@ func _spawn_casing(shoot_direction: Vector2, weapon_forward: Vector2) -> void:
 	ejection_direction = ejection_direction.rotated(randf_range(-0.1, 0.1))
 
 	# Set initial velocity for the casing (increased for faster ejection animation)
-	var ejection_speed: float = randf_range(300.0, 450.0)  # Random speed between 300-450 pixels/sec
+	var ejection_speed: float = randf_range(120.0, 180.0)  # Random speed between 120-180 pixels/sec (reduced 2.5x for Issue #424)
 	casing.linear_velocity = ejection_direction * ejection_speed
 
 	# Add some initial spin for realism

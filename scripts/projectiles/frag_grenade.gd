@@ -126,6 +126,15 @@ func throw_grenade_with_direction(throw_direction: Vector2, velocity_magnitude: 
 	FileLogger.info("[FragGrenade] Grenade thrown (direction-based) - impact detection enabled")
 
 
+## Override simple throw to mark grenade as thrown.
+## FIX for issue #398: Simple mode (trajectory aiming to cursor) uses this method.
+## Without this override, _is_thrown stays false and impact detection never triggers!
+func throw_grenade_simple(throw_direction: Vector2, throw_speed: float) -> void:
+	super.throw_grenade_simple(throw_direction, throw_speed)
+	_is_thrown = true
+	FileLogger.info("[FragGrenade] Grenade thrown (simple mode) - impact detection enabled")
+
+
 ## Override body_entered to detect wall impacts.
 func _on_body_entered(body: Node) -> void:
 	super._on_body_entered(body)
