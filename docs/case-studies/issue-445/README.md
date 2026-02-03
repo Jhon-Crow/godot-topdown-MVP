@@ -491,3 +491,87 @@ private bool GetDirectionAwarePumpGesture(Vector2 dragVector, float minDistance,
 ### Build Status
 
 ✅ Build successful (0 errors, 26 pre-existing warnings)
+
+---
+
+## Version 3 (v3): Direction Correction
+
+**Issue:** Version 2 had inverted direction logic. The dot product interpretation was wrong:
+- v2 mapped negative dot → PumpUp (incorrect)
+- Should be: positive dot = drag aligned with aim direction = "away from player"
+
+**Fix:** Corrected the dot product interpretation:
+```csharp
+// v3 CORRECT interpretation:
+// - Positive dot = drag AWAY from player (in aim direction) = PumpUp (eject)
+// - Negative dot = drag TOWARD player (opposite to aim) = PumpDown (chamber)
+if (dragAlongAim > threshold) isPumpUp = true;
+else if (dragAlongAim < -threshold) isPumpDown = true;
+```
+
+---
+
+## Version 4 (v4): Reduced Drag Distance
+
+**User Feedback:** "сделай чтоб драг для взвода и закрытия затвора был в 2 раза короче (сейчас он стал или ощущается на много длиннее чем был в main)"
+
+**Translation:** "Make the drag for cocking and closing the bolt 2x shorter (now it has become or feels much longer than it was in main)"
+
+### Analysis of Log File: `game_log_20260203_231943.txt`
+
+Looking at the logs, we can see cases where gestures were rejected due to threshold requirements:
+
+```
+[23:20:06] TryProcessMidDragGesture - dragVector=(22,4, -3,9), length=22,7, dotWithAim=5,6 ... isValid=False
+[23:20:06] In NeedsPumpUp - waiting for drag AWAY from player (positive dot). Current dot=5,6
+[23:20:06] TryProcessMidDragGesture - dragVector=(46,5, -1,9), length=46,5, dotWithAim=5,5 ... isValid=False
+```
+
+The user dragged 46.5 pixels but `dotWithAim=5.5` was not enough to exceed the threshold of 14.0 (20 * 0.7).
+
+When looking UP and the user drags mostly **horizontally** (perpendicular to aim direction), the dot product is small even with a large drag. This makes the gesture feel "longer" than in main.
+
+### Root Cause
+
+In **main branch**:
+- Used simple `dragVector.Y < 0` check (screen-based)
+- MinDragDistance = 30.0f directly
+
+In **v3 branch**:
+- `effectiveMinDistance` = 20.0f for pump actions
+- `gestureThreshold` = 20 * 0.7 = 14.0f for dot product
+- Requires BOTH length >= 20 AND projection >= 14
+
+For diagonal drags, the effective requirement is higher than in main because the dot product projection reduces the effective distance.
+
+### v4 Fix
+
+Reduced drag threshold by 50%:
+- `effectiveMinDistance`: 20.0f → **10.0f**
+- `gestureThreshold`: 14.0f → **7.0f** (10 * 0.7)
+
+```csharp
+// Issue #445 v4: Use reduced minimum distance for pump actions to make them more responsive
+// User feedback: gestures feel longer than main branch, reduce by 50% (was 20, now 10)
+float effectiveMinDistance = isPumpActionContext ? 10.0f : MinDragDistance;
+```
+
+### Expected Improvement
+
+With v4 thresholds:
+- A 15px drag at 45° angle will project ~10.6px → passes threshold of 7.0
+- A 22.7px drag with dotWithAim=5.6 (from logs) still fails, BUT...
+- Smaller more precise drags along the aim direction will now register
+- User can use shorter, more intentional gestures
+
+### Files Changed (v4)
+
+| File | Change |
+|------|--------|
+| `Scripts/Weapons/Shotgun.cs` | Reduced `effectiveMinDistance` from 20.0f to 10.0f |
+| `docs/case-studies/issue-445/README.md` | Added v4 documentation |
+| `docs/case-studies/issue-445/game_log_20260203_231943.txt` | Added user's log file |
+
+### Log Messages
+
+v4 log messages are tagged with `[Shotgun.FIX#445v4]` for easy filtering.
