@@ -28,6 +28,9 @@ var _current_enemy_count: int = 0
 ## Whether game over has been shown.
 var _game_over_shown: bool = false
 
+## Whether level has been completed (all enemies killed).
+var _level_completed: bool = false
+
 ## Reference to the kills label.
 var _kills_label: Label = null
 
@@ -405,12 +408,16 @@ func _on_enemy_died_with_info(is_ricochet_kill: bool, is_penetration_kill: bool)
 
 ## Complete the level and show the score screen.
 func _complete_level_with_score() -> void:
+	_level_completed = true
+	_log_to_file("Level completed, setting _level_completed = true")
+
 	var score_manager: Node = get_node_or_null("/root/ScoreManager")
 	if score_manager and score_manager.has_method("complete_level"):
 		var score_data: Dictionary = score_manager.complete_level()
 		_show_score_screen(score_data)
 	else:
 		# Fallback to simple victory message if ScoreManager not available
+		_log_to_file("ScoreManager not available, showing simple victory message")
 		_show_victory_message()
 
 
@@ -437,9 +444,9 @@ func _on_player_ammo_changed(current: int, maximum: int) -> void:
 ## Called when weapon ammo changes (C# Player).
 func _on_weapon_ammo_changed(current_ammo: int, reserve_ammo: int) -> void:
 	_update_ammo_label_magazine(current_ammo, reserve_ammo)
-	# Check if completely out of ammo
+	# Check if completely out of ammo (but not if level is already completed)
 	if current_ammo <= 0 and reserve_ammo <= 0:
-		if _current_enemy_count > 0 and not _game_over_shown:
+		if _current_enemy_count > 0 and not _game_over_shown and not _level_completed:
 			_show_game_over_message()
 
 
@@ -481,7 +488,7 @@ func _on_player_ammo_depleted() -> void:
 	if _player and _player.has_method("get_current_ammo"):
 		# GDScript player - max_ammo is the only ammo they have
 		var current_ammo: int = _player.get_current_ammo()
-		if current_ammo <= 0 and _current_enemy_count > 0 and not _game_over_shown:
+		if current_ammo <= 0 and _current_enemy_count > 0 and not _game_over_shown and not _level_completed:
 			_show_game_over_message()
 	# C# player game over is handled via _on_weapon_ammo_changed signal
 
@@ -714,19 +721,41 @@ func _show_victory_message() -> void:
 ## Features sequential item reveal, counting animations, pulsing effects,
 ## retro sound effects, and dramatic rank reveal animation.
 func _show_score_screen(score_data: Dictionary) -> void:
+	_log_to_file("_show_score_screen called with score_data: %s" % str(score_data))
+
 	var ui := get_node_or_null("CanvasLayer/UI")
 	if ui == null:
+		_log_to_file("ERROR: CanvasLayer/UI not found, falling back to victory message")
 		_show_victory_message()  # Fallback
 		return
 
+	_log_to_file("Found UI node: %s, size: %s" % [ui.name, str(ui.size) if ui is Control else "N/A"])
+
+	# Hide the "OUT OF AMMO" message if it was shown (level was completed despite low ammo)
+	var game_over_label := ui.get_node_or_null("GameOverLabel")
+	if game_over_label:
+		game_over_label.queue_free()
+		_log_to_file("Removed GameOverLabel (out of ammo message)")
+
 	# Load and instantiate the animated score screen
 	var AnimatedScoreScreen = load("res://scripts/ui/animated_score_screen.gd")
+	if AnimatedScoreScreen == null:
+		_log_to_file("ERROR: Failed to load animated_score_screen.gd")
+		_show_victory_message()  # Fallback
+		return
+
+	_log_to_file("Loaded AnimatedScoreScreen script successfully")
+
 	var score_screen = AnimatedScoreScreen.new()
 	score_screen.name = "AnimatedScoreScreen"
+
+	# Add to UI and ensure it's visible
 	ui.add_child(score_screen)
+	_log_to_file("Added AnimatedScoreScreen to UI, child count now: %d" % ui.get_child_count())
 
 	# Start the animated score display
 	score_screen.show_score(score_data)
+	_log_to_file("Called show_score() on AnimatedScoreScreen")
 
 
 ## Get the color for a given rank.

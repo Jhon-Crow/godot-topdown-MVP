@@ -85,14 +85,25 @@ var _last_beep_value: int = -1
 
 
 func _ready() -> void:
+	_log_debug("AnimatedScoreScreen _ready() called")
+
 	# Set to cover full screen - must also set size to parent's size
 	set_anchors_preset(Control.PRESET_FULL_RECT)
-	# Force size update to match parent immediately
-	size = get_parent_area_size() if get_parent() else get_viewport_rect().size
+
+	# Get the viewport size for proper sizing
+	var viewport_size := get_viewport_rect().size
+	_log_debug("Viewport size: %s" % str(viewport_size))
+
+	# Force size update to match viewport
+	size = viewport_size
+	_log_debug("Set size to: %s" % str(size))
+
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 	# Create beep audio player with generator
 	_setup_beep_audio()
+
+	_log_debug("AnimatedScoreScreen _ready() completed")
 
 
 func _process(delta: float) -> void:
@@ -200,6 +211,9 @@ func _apply_pulse_effect() -> void:
 ## Show the animated score screen with the given score data.
 ## @param score_data: Dictionary from ScoreManager.complete_level()
 func show_score(score_data: Dictionary) -> void:
+	_log_debug("show_score() called with data: %s" % str(score_data))
+	_log_debug("Control size: %s, position: %s" % [str(size), str(position)])
+
 	_score_data = score_data
 	_is_animating = true
 
@@ -210,6 +224,7 @@ func show_score(score_data: Dictionary) -> void:
 	_background.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_background.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_background)
+	_log_debug("Background created, size will be: full rect")
 
 	# Create main container
 	_container = VBoxContainer.new()
@@ -222,12 +237,15 @@ func show_score(score_data: Dictionary) -> void:
 	_container.add_theme_constant_override("separation", 8)
 	_container.modulate.a = 0.0
 	add_child(_container)
+	_log_debug("Container created at center with offsets: left=%d, right=%d, top=%d, bottom=%d" % [-300, 300, -280, 350])
 
 	# Build score items list
 	_build_score_items()
+	_log_debug("Built %d score items" % _score_items.size())
 
 	# Start animation sequence
 	_animate_background_fade()
+	_log_debug("Animation sequence started")
 
 
 ## Build the list of score items to display.
@@ -591,3 +609,12 @@ func _on_animation_complete() -> void:
 ## Get the rank color for a given rank string.
 static func get_rank_color(rank: String) -> Color:
 	return RANK_COLORS.get(rank, Color.WHITE)
+
+
+## Log a debug message to the file logger if available.
+func _log_debug(message: String) -> void:
+	var file_logger: Node = get_node_or_null("/root/FileLogger")
+	if file_logger and file_logger.has_method("log_info"):
+		file_logger.log_info("[AnimatedScoreScreen] " + message)
+	else:
+		print("[AnimatedScoreScreen] " + message)
