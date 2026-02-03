@@ -358,12 +358,15 @@ public abstract partial class BaseWeapon : Node2D
             bullet.Set("direction", direction);
         }
 
-        // Set bullet speed from weapon data
+        // Set bullet speed and damage from weapon data
         if (WeaponData != null)
         {
             // Try both cases for compatibility with C# and GDScript bullets
             bullet.Set("Speed", WeaponData.BulletSpeed);
             bullet.Set("speed", WeaponData.BulletSpeed);
+            // Set damage - critical for weapons with custom damage values
+            bullet.Set("Damage", WeaponData.Damage);
+            bullet.Set("damage", WeaponData.Damage);
         }
 
         // Set shooter ID to prevent self-damage
