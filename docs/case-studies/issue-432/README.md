@@ -538,6 +538,144 @@ The complete solution for reliable grenade behavior in exports:
 
 **Key Insight**: In Godot 4 C#/GDScript mixed projects, while GDScript method **calls** via `Call()` fail in exports, the GDScript **lifecycle methods** (`_ready()`, `_physics_process()`, signals) DO work. However, for maximum reliability in exported builds, critical functionality should be implemented in C# for the player-owned grenades.
 
+### Seventh Investigation (User Feedback #7 - 2026-02-03 20:19)
+
+**User Feedback:**
+User reported two remaining issues with attached log files:
+
+1. **Enemy grenades fly infinitely and don't explode** (гранаты врагов летят бесконечно и не взрываются)
+2. **Player offensive (frag) grenades sometimes don't explode when hitting an enemy** (наступательные гранаты игрока иногда не взрываются при попадании во врага)
+
+**Log Files Analyzed:**
+- `logs/game_log_20260203_230921.txt` (33,888 lines) - Extended gameplay session
+- `logs/game_log_20260203_231827.txt` (201 lines) - Short session showing initialization
+
+**Root Cause Analysis - Issue 1: Enemy Grenades Flying Infinitely**
+
+The enemy grenade throwing code in `scripts/components/enemy_grenade_component.gd` was NOT modified to use the C# GrenadeTimer component. Analysis of `_execute_throw()` function (lines 319-354):
+
+```gdscript
+var grenade: Node2D = grenade_scene.instantiate()
+grenade.global_position = _enemy.global_position + dir * 40.0
+parent.add_child(grenade)
+
+if grenade.has_method("activate_timer"):
+    grenade.activate_timer()  # FAILS in exports - GDScript Call() doesn't work
+
+if grenade.has_method("throw_grenade"):
+    grenade.throw_grenade(dir, dist)  # FAILS in exports
+elif grenade is RigidBody2D:
+    grenade.freeze = false
+    grenade.linear_velocity = dir * clampf(dist * 1.5, 200.0, 800.0)  # Works but no timer!
+```
+
+The GDScript method calls (`activate_timer()`, `throw_grenade()`) fail silently in exports. The fallback sets velocity directly, making the grenade fly visually, but:
+- No timer is ever activated
+- No impact detection is enabled
+- Grenade flies forever without exploding
+
+**Fix Applied - Enemy Grenades:**
+
+1. Created `Scripts/Autoload/GrenadeTimerHelper.cs` - C# autoload that provides methods callable from GDScript:
+   - `AttachGrenadeTimer(grenade, grenadeType)` - Attaches C# GrenadeTimer component
+   - `ActivateTimer(grenade)` - Calls `GrenadeTimer.ActivateTimer()`
+   - `MarkAsThrown(grenade)` - Calls `GrenadeTimer.MarkAsThrown()`
+
+2. Added autoload to `project.godot`:
+   ```ini
+   GrenadeTimerHelper="*res://Scripts/Autoload/GrenadeTimerHelper.cs"
+   ```
+
+3. Modified `scripts/components/enemy_grenade_component.gd` `_execute_throw()`:
+   - Attach C# GrenadeTimer via helper
+   - Activate timer via helper
+   - Mark as thrown via helper
+   - Added logging for enemy grenade throws
+
+**Root Cause Analysis - Issue 2: Frag Grenades Sometimes Not Exploding on Enemy Hit**
+
+Intermittent behavior suggests a timing/race condition. Analysis of `Scripts/Projectiles/GrenadeTimer.cs` `OnBodyEntered()`:
+
+```csharp
+private void OnBodyEntered(Node body)
+{
+    if (!IsThrown)  // Race condition check
+        return;
+    // ...trigger explosion
+}
+```
+
+And in `Scripts/Characters/Player.cs`:
+```csharp
+_activeGrenade.Freeze = false;  // Line 2253 - Grenade unfrozen
+_activeGrenade.LinearVelocity = ...;  // Line 2259 - Velocity set
+// ...
+grenadeTimer.MarkAsThrown();  // Line 2275 - AFTER unfreezing!
+```
+
+**The Race Condition:**
+1. Grenade is unfrozen and starts moving
+2. Physics processing occurs
+3. `BodyEntered` signal can fire if grenade collides with enemy
+4. At this point `IsThrown` is still `false` because `MarkAsThrown()` hasn't been called yet
+5. Collision is ignored, grenade passes through enemy
+
+**Fix Applied - Race Condition:**
+
+Moved `MarkAsThrown()` call BEFORE unfreezing in both throw paths:
+
+```csharp
+// Set position before throw
+_activeGrenade.GlobalPosition = safeSpawnPosition;
+
+// FIX: Mark as thrown BEFORE unfreezing to avoid race condition
+var grenadeTimer = _activeGrenade.GetNodeOrNull<GrenadeTimer>("GrenadeTimer");
+if (grenadeTimer != null)
+{
+    grenadeTimer.MarkAsThrown();  // NOW: Set flag first
+}
+
+// Then unfreeze and set velocity
+_activeGrenade.Freeze = false;  // THEN: Unfreeze
+_activeGrenade.LinearVelocity = throwDirection * throwSpeed;
+```
+
+Also fixed TileMap type check in `GrenadeTimer.cs`:
+```csharp
+// Was: TileMapLayer (newer Godot 4 only)
+// Fixed: Added TileMap for compatibility with older tilemaps
+if (body is StaticBody2D || body is TileMap || body is TileMapLayer || body is CharacterBody2D)
+```
+
+## Files Modified (Update)
+
+### New Files
+- `Scripts/Autoload/GrenadeTimerHelper.cs` - C# autoload for GDScript to attach GrenadeTimer
+
+### Modified Files
+- `project.godot` - Added GrenadeTimerHelper autoload
+- `scripts/components/enemy_grenade_component.gd` - Use GrenadeTimerHelper for reliable explosion
+- `Scripts/Projectiles/GrenadeTimer.cs` - Fixed TileMap type check
+- `Scripts/Characters/Player.cs` - Fixed race condition: MarkAsThrown() before Freeze=false
+
+## Final Resolution (Updated)
+
+The complete solution now covers both player and enemy grenades:
+
+| Component | Issue | Solution |
+|-----------|-------|----------|
+| Player Grenade Creation | GDScript `_ready()` doesn't run | C# explicitly freezes grenade on creation |
+| Player Grenade Velocity | GDScript `Call()` fails | C# sets velocity directly |
+| Player Grenade Impact | Race condition in impact detection | MarkAsThrown() called BEFORE unfreezing |
+| Enemy Grenade Timer | GDScript `Call()` fails | C# GrenadeTimerHelper autoload attaches timer |
+| Enemy Grenade Impact | No C# component attached | GrenadeTimerHelper attaches and configures |
+| TileMap Collision | Wrong type check | Added TileMap alongside TileMapLayer |
+
+**Key Insight Update**: The solution requires:
+1. **C# for critical physics** in player code
+2. **C# autoload bridge** for GDScript code (enemy grenades) to access C# functionality
+3. **Proper timing** of state changes to avoid race conditions
+
 ## References
 
 - [Godot RigidBody2D Documentation](https://docs.godotengine.org/en/stable/classes/class_rigidbody2d.html)

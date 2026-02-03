@@ -224,7 +224,8 @@ namespace GodotTopdown.Scripts.Projectiles
                 return;
 
             // Trigger explosion on solid body contact
-            if (body is StaticBody2D || body is TileMapLayer || body is CharacterBody2D)
+            // Note: Check TileMap for legacy Godot 4 and TileMapLayer for newer versions
+            if (body is StaticBody2D || body is TileMap || body is TileMapLayer || body is CharacterBody2D)
             {
                 LogToFile($"[GrenadeTimer] Impact detected with {body.Name} - EXPLODING!");
                 Explode();

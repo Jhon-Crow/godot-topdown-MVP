@@ -2249,6 +2249,15 @@ public partial class Player : BaseCharacter
         // Without this fix, the grenade lands ~60px short of the target.
         _activeGrenade.GlobalPosition = safeSpawnPosition;
 
+        // FIX for Issue #432: Mark grenade as thrown BEFORE unfreezing to avoid race condition.
+        // If MarkAsThrown() is called after unfreezing, the BodyEntered signal could fire
+        // before IsThrown is set, causing impact detection to fail.
+        var grenadeTimer = _activeGrenade.GetNodeOrNull<GrenadeTimer>("GrenadeTimer");
+        if (grenadeTimer != null)
+        {
+            grenadeTimer.MarkAsThrown();
+        }
+
         // Unfreeze and throw the grenade
         _activeGrenade.Freeze = false;
 
@@ -2266,13 +2275,6 @@ public partial class Player : BaseCharacter
         if (_activeGrenade.HasMethod("throw_grenade_simple"))
         {
             _activeGrenade.Call("throw_grenade_simple", throwDirection, throwSpeed);
-        }
-
-        // FIX for Issue #432: Mark grenade as thrown in C# GrenadeTimer for reliable impact detection
-        var grenadeTimer = _activeGrenade.GetNodeOrNull<GrenadeTimer>("GrenadeTimer");
-        if (grenadeTimer != null)
-        {
-            grenadeTimer.MarkAsThrown();
         }
 
         // Start throw animation
@@ -2547,6 +2549,15 @@ public partial class Player : BaseCharacter
         float swingTransfer = Mathf.Clamp(_totalSwingDistance / minSwing, 0.0f, 0.65f);
         float finalSpeed = Mathf.Min(velocityMagnitude * multiplier * (0.35f + swingTransfer), maxSpeed);
 
+        // FIX for Issue #432: Mark grenade as thrown BEFORE unfreezing to avoid race condition.
+        // If MarkAsThrown() is called after unfreezing, the BodyEntered signal could fire
+        // before IsThrown is set, causing impact detection to fail.
+        var grenadeTimer = _activeGrenade.GetNodeOrNull<GrenadeTimer>("GrenadeTimer");
+        if (grenadeTimer != null)
+        {
+            grenadeTimer.MarkAsThrown();
+        }
+
         // Unfreeze and set velocity directly
         _activeGrenade.Freeze = false;
         _activeGrenade.LinearVelocity = throwDirection * finalSpeed;
@@ -2568,13 +2579,6 @@ public partial class Player : BaseCharacter
         {
             float legacyDistance = velocityMagnitude * 0.5f;
             _activeGrenade.Call("throw_grenade", throwDirection, legacyDistance);
-        }
-
-        // FIX for Issue #432: Mark grenade as thrown in C# GrenadeTimer for reliable impact detection
-        var grenadeTimer = _activeGrenade.GetNodeOrNull<GrenadeTimer>("GrenadeTimer");
-        if (grenadeTimer != null)
-        {
-            grenadeTimer.MarkAsThrown();
         }
 
         // Emit signal
