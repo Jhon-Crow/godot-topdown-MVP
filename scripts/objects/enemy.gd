@@ -674,26 +674,36 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 		return
 
 	# React to sounds: transition to combat mode to investigate
+	var source_name := "player" if source_type == 0 else ("enemy" if source_type == 1 else "neutral")
 	_log_debug("Heard gunshot (intensity=%.2f, distance=%.0f) from %s at %s, entering COMBAT" % [
 		intensity,
 		distance,
-		"player" if source_type == 0 else ("enemy" if source_type == 1 else "neutral"),
+		source_name,
 		position
 	])
-	_log_to_file("Heard gunshot at %s, source_type=%d, intensity=%.2f, distance=%.0f" % [
-		position, source_type, intensity, distance
+	_log_to_file("Heard gunshot at %s, source_type=%s (%d), intensity=%.2f, distance=%.0f" % [
+		position, source_name, source_type, intensity, distance
 	])
 
 	# Issue #363: Track gunshots for sustained fire detection (Trigger 5)
+	# Note: Track ALL gunshots regardless of source for grenade system
 	_on_gunshot_heard_for_grenade(position)
 
-	# Store the position of the sound as a point of interest
-	# The enemy will investigate this location
-	_last_known_player_position = position
+	# Issue #395 Phase 5: Only update memory/last_known_position for PLAYER gunshots
+	# When another ENEMY fires, we should NOT update our suspected player position
+	# to point at that enemy! This was causing enemies to turn toward each other
+	# instead of toward the player after the player fired and allies returned fire.
+	if source_type == 0:  # PLAYER gunshot
+		# Store the position of the sound as a point of interest
+		# The enemy will investigate this location
+		_last_known_player_position = position
 
-	# Update memory system with sound-based detection (Issue #297)
-	if _memory:
-		_memory.update_position(position, SOUND_GUNSHOT_CONFIDENCE)
+		# Update memory system with sound-based detection (Issue #297)
+		if _memory:
+			_memory.update_position(position, SOUND_GUNSHOT_CONFIDENCE)
+		_log_to_file("Updated memory to PLAYER gunshot position: %s" % position)
+	else:
+		_log_to_file("Ignoring ENEMY gunshot position for memory update (source_type=%d)" % source_type)
 
 	# Transition to combat mode to investigate the sound
 	_transition_to_combat()

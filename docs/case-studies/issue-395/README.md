@@ -510,13 +510,118 @@ The following game logs document the bug behavior across multiple phases:
 
 ---
 
+## Phase 5: Enemy Gunshots Overwriting Player Position in Memory (February 3, 2026)
+
+### Problem Report
+
+After Phase 4 fix was deployed, the user reported: "проблема сохраняется" (problem persists), with new game log `game_log_20260203_130414.txt`.
+
+The ROT_SNAP instant rotation feature was working (confirmed in logs), but enemies were STILL facing the wrong direction in some scenarios.
+
+### Game Log Evidence
+
+From `game_log_20260203_130414.txt`:
+
+```
+[13:04:17] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(483.9346, 897.1678), source=PLAYER
+[13:04:18] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(412.0446, 649.1752), source=ENEMY (Enemy2)
+
+[13:04:20] [ENEMY] [Enemy1] ROT_CHANGE: P5:idle_scan -> P2:memory, state=COMBAT,
+    target=69.3°, current=168.8°, player=(478,916), memory=(412,649), last_known=(412,649)
+```
+
+Key observation:
+- Player shot at position (483, 897)
+- Enemy2 returned fire at position (412, 649)
+- Enemy1's memory shows (412, 649) - the **ENEMY** position, NOT the player position!
+
+### Root Cause Analysis
+
+In `enemy.gd` lines 653-699, the gunshot handling code was updating memory for **ALL** gunshots regardless of source:
+
+```gdscript
+# Handle gunshot sounds (sound_type 0 = GUNSHOT)
+if sound_type != 0:
+    return
+
+# ... reaction logic ...
+
+# BUG: This ran for ALL gunshots, not just PLAYER gunshots!
+_last_known_player_position = position
+if _memory:
+    _memory.update_position(position, SOUND_GUNSHOT_CONFIDENCE)
+```
+
+When an **enemy** fired their weapon:
+1. Sound propagated to other enemies
+2. Other enemies heard the gunshot and reacted
+3. They updated their memory to point at the **shooting enemy's position**
+4. This overwrote the correct player position from earlier
+
+### Timeline of a Typical Bug Scenario
+
+```
+T=0: Player shoots at (483, 897)
+     → All enemies update memory to (483, 897) ✓
+
+T=1: Enemy2 sees player and returns fire from (412, 649)
+     → Other enemies hear Enemy2's gunshot
+     → They update memory to (412, 649) ✗ (This is Enemy2's position!)
+
+T=2: Player moves, now at (478, 916)
+     → Enemies still have memory pointing to (412, 649)
+     → They turn toward their ally, NOT toward the player!
+```
+
+### The Fix
+
+Modified the gunshot handling to only update memory for PLAYER gunshots:
+
+```gdscript
+# Issue #395 Phase 5: Only update memory/last_known_position for PLAYER gunshots
+# When another ENEMY fires, we should NOT update our suspected player position
+# to point at that enemy! This was causing enemies to turn toward each other
+# instead of toward the player after the player fired and allies returned fire.
+if source_type == 0:  # PLAYER gunshot
+    _last_known_player_position = position
+    if _memory:
+        _memory.update_position(position, SOUND_GUNSHOT_CONFIDENCE)
+    _log_to_file("Updated memory to PLAYER gunshot position: %s" % position)
+else:
+    _log_to_file("Ignoring ENEMY gunshot position for memory update (source_type=%d)" % source_type)
+
+# Enemies still enter combat mode for any loud gunshot (be alert)
+_transition_to_combat()
+```
+
+### Why This Matters
+
+Sound propagation correctly distinguishes between PLAYER and ENEMY gunshots:
+- `source_type == 0` = PLAYER (from `sound_propagation.emit_player_gunshot()`)
+- `source_type == 1` = ENEMY (from `sound_propagation.emit_enemy_gunshot()`)
+
+The reload and empty_click handlers already checked `source_type == 0` before updating memory. The gunshot handler was missing this crucial check!
+
+### Files Changed
+
+| File | Change |
+|------|--------|
+| `scripts/objects/enemy.gd` | Added source_type check to gunshot handler, only update memory for PLAYER gunshots |
+
+### Related Log Files
+
+- `game_log_20260203_130414.txt` - Shows enemy gunshots overwriting player position in memory
+
+---
+
 ## Final Conclusion
 
-This issue involved **FOUR distinct bugs** that all contributed to the perception of "enemies turning wrong direction":
+This issue involved **FIVE distinct bugs** that all contributed to the perception of "enemies turning wrong direction":
 
 1. **Rotation Priority Bug (Initial):** Used actual player position instead of memory position
 2. **Coordinate System Bug (Phase 2):** Debug draw used global instead of local coordinates
 3. **Wrong Rotation Reference Bug (Phase 3):** Used body rotation instead of model rotation for debug
 4. **Visual Perception Bug (Phase 4):** Shortest-path rotation through -180° looked like "turning away"
+5. **Enemy Gunshot Memory Bug (Phase 5):** All gunshots updated memory, not just player gunshots
 
-The final fix ensures enemies snap to face threats immediately when entering combat, providing responsive, intuitive behavior that matches player expectations.
+The Phase 5 fix ensures that only PLAYER gunshots update the enemy's memory of the suspected player position. When allied enemies fire, other enemies become alert (enter combat mode) but do NOT update their memory to point at their ally.
