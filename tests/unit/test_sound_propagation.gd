@@ -500,3 +500,92 @@ func test_reload_complete_sound_propagates_to_distant_listener() -> void:
 	assert_eq(listener.get_sound_count(), 1, "Reload complete should reach listener at 700 pixels")
 
 	listener.queue_free()
+
+
+# =====================================================
+# Tests for grenade landing sound (Issue #426)
+# =====================================================
+
+func test_grenade_landing_sound_type_exists() -> void:
+	# GRENADE_LANDING = 7
+	var range_val: float = _sound_propagation.get_propagation_distance(7)
+	assert_almost_eq(range_val, 112.0, 0.1, "Grenade landing should have 112 range (very close)")
+
+
+func test_grenade_landing_is_much_shorter_than_reload() -> void:
+	# Issue #426: Grenade landing sound should be 1/8 of reload sound distance (very close range)
+	var reload_range: float = _sound_propagation.get_propagation_distance(3)  # RELOAD = 900
+	var grenade_landing_range: float = _sound_propagation.get_propagation_distance(7)  # GRENADE_LANDING = 112
+
+	assert_almost_eq(grenade_landing_range, reload_range / 8.0, 0.5,
+		"Grenade landing range should be approximately 1/8 of reload range")
+
+
+func test_emit_grenade_landing_convenience_method() -> void:
+	var listener := MockListener.new()
+	listener.global_position = Vector2(100, 0)
+	add_child(listener)
+
+	_sound_propagation.register_listener(listener)
+
+	_sound_propagation.emit_grenade_landing(Vector2(50, 50), null)
+
+	assert_eq(listener.get_sound_count(), 1, "Listener should receive grenade landing sound")
+	assert_eq(listener.last_sound_type, 7, "Sound type should be GRENADE_LANDING (7)")
+	assert_eq(listener.last_sound_position, Vector2(50, 50), "Sound position should match")
+	assert_eq(listener.last_source_type, 2, "Source type should be NEUTRAL (2)")
+
+	listener.queue_free()
+
+
+func test_grenade_landing_does_not_reach_distant_listener() -> void:
+	# A listener at 150 pixels should NOT hear grenade landing (112 range)
+	var listener := MockListener.new()
+	listener.global_position = Vector2(150, 0)
+	add_child(listener)
+
+	_sound_propagation.register_listener(listener)
+
+	_sound_propagation.emit_grenade_landing(Vector2.ZERO, null)
+
+	assert_eq(listener.get_sound_count(), 0,
+		"Grenade landing should not reach listener at 150 pixels (beyond 112 range)")
+
+	listener.queue_free()
+
+
+func test_grenade_landing_reaches_nearby_listener() -> void:
+	# A listener at 100 pixels should hear grenade landing (112 range)
+	var listener := MockListener.new()
+	listener.global_position = Vector2(100, 0)
+	add_child(listener)
+
+	_sound_propagation.register_listener(listener)
+
+	_sound_propagation.emit_grenade_landing(Vector2.ZERO, null)
+
+	assert_eq(listener.get_sound_count(), 1,
+		"Grenade landing should reach listener at 100 pixels (within 112 range)")
+
+	listener.queue_free()
+
+
+func test_grenade_landing_shorter_range_than_reload() -> void:
+	# A listener at 200 pixels should hear reload but NOT grenade landing
+	var listener := MockListener.new()
+	listener.global_position = Vector2(200, 0)
+	add_child(listener)
+
+	_sound_propagation.register_listener(listener)
+
+	# Grenade landing should NOT be heard (112 range, listener at 200)
+	_sound_propagation.emit_grenade_landing(Vector2.ZERO, null)
+	assert_eq(listener.get_sound_count(), 0,
+		"Grenade landing should not reach listener at 200 pixels")
+
+	# Reload SHOULD be heard (900 range, listener at 200)
+	_sound_propagation.emit_player_reload(Vector2.ZERO, null)
+	assert_eq(listener.get_sound_count(), 1,
+		"Reload should reach listener at 200 pixels")
+
+	listener.queue_free()
