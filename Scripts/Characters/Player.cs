@@ -127,7 +127,8 @@ public partial class Player : BaseCharacter
         Idle,           // No grenade action
         TimerStarted,   // Step 1 complete - grenade timer running, G held, waiting for RMB
         WaitingForGRelease, // Step 2 in progress - G+RMB held, waiting for G release
-        Aiming          // Step 2 complete - only RMB held, waiting for drag and release to throw
+        Aiming,         // Step 2 complete - only RMB held, waiting for drag and release to throw
+        SimpleAiming    // Simple mode: RMB held, showing trajectory preview
     }
 
     /// <summary>
@@ -154,6 +155,21 @@ public partial class Player : BaseCharacter
     /// Minimum drag distance to confirm step 1 (in pixels).
     /// </summary>
     private const float MinDragDistanceForStep1 = 30.0f;
+
+    /// <summary>
+    /// Position where aiming started (for simple mode trajectory).
+    /// </summary>
+    private Vector2 _aimDragStart = Vector2.Zero;
+
+    /// <summary>
+    /// Timestamp when grenade timer was started.
+    /// </summary>
+    private double _grenadeTimerStartTime = 0.0;
+
+    /// <summary>
+    /// Whether player is currently preparing to throw a grenade (for animations).
+    /// </summary>
+    private bool _isPreparingGrenade = false;
 
     /// <summary>
     /// Player's rotation before throw (to restore after throw animation).
@@ -878,7 +894,8 @@ public partial class Player : BaseCharacter
 
         // Handle shooting input - support both automatic and semi-automatic weapons
         // Allow shooting when not in grenade preparation
-        bool canShoot = _grenadeState == GrenadeState.Idle || _grenadeState == GrenadeState.TimerStarted;
+        // In simple mode, RMB is for grenades so only LMB (shoot) should work
+        bool canShoot = _grenadeState == GrenadeState.Idle || _grenadeState == GrenadeState.TimerStarted || _grenadeState == GrenadeState.SimpleAiming;
         if (canShoot)
         {
             HandleShootingInput();
@@ -1708,13 +1725,15 @@ public partial class Player : BaseCharacter
     #region Grenade System
 
     /// <summary>
-    /// Handle grenade input with 2-step mechanic.
-    /// Step 1: G + RMB drag right → starts 4s timer (pin pulled)
-    /// Step 2: Hold G → press+hold RMB → release G → ready to throw (only RMB held)
-    /// Step 3: Drag and release RMB → throw grenade
+    /// Handle grenade input with either simple or complex mechanic.
+    /// Simple mode (default): Hold RMB to aim with trajectory preview, release to throw.
+    /// Complex mode (experimental): G + RMB drag right → hold G+RMB → release G → drag and release RMB.
     /// </summary>
     private void HandleGrenadeInput()
     {
+        // Handle throw rotation animation
+        HandleThrowRotationAnimation((float)GetPhysicsProcessDeltaTime());
+
         // Check for active grenade explosion (explodes in hand after 4 seconds)
         if (_activeGrenade != null && !IsInstanceValid(_activeGrenade))
         {
@@ -1724,20 +1743,69 @@ public partial class Player : BaseCharacter
             return;
         }
 
-        switch (_grenadeState)
+        // Check if complex grenade throwing is enabled (experimental setting)
+        var experimentalSettings = GetNodeOrNull("/root/ExperimentalSettings");
+        bool useComplexThrowing = false;
+        if (experimentalSettings != null && experimentalSettings.HasMethod("is_complex_grenade_throwing"))
         {
-            case GrenadeState.Idle:
-                HandleGrenadeIdleState();
-                break;
-            case GrenadeState.TimerStarted:
-                HandleGrenadeTimerStartedState();
-                break;
-            case GrenadeState.WaitingForGRelease:
-                HandleGrenadeWaitingForGReleaseState();
-                break;
-            case GrenadeState.Aiming:
-                HandleGrenadeAimingState();
-                break;
+            useComplexThrowing = (bool)experimentalSettings.Call("is_complex_grenade_throwing");
+        }
+
+        // Debug log once per state change to track mode (logged once when grenade action starts)
+        if (_grenadeState == GrenadeState.Idle && (Input.IsActionJustPressed("grenade_throw") || Input.IsActionJustPressed("grenade_prepare")))
+        {
+            LogToFile($"[Player.Grenade] Mode check: complex={useComplexThrowing}, settings_node={experimentalSettings != null}");
+        }
+
+        if (useComplexThrowing)
+        {
+            // Complex 3-step throwing mechanic
+            switch (_grenadeState)
+            {
+                case GrenadeState.Idle:
+                    HandleGrenadeIdleState();
+                    break;
+                case GrenadeState.TimerStarted:
+                    HandleGrenadeTimerStartedState();
+                    break;
+                case GrenadeState.WaitingForGRelease:
+                    HandleGrenadeWaitingForGReleaseState();
+                    break;
+                case GrenadeState.Aiming:
+                    HandleGrenadeAimingState();
+                    break;
+            }
+        }
+        else
+        {
+            // Simple trajectory aiming mode
+            switch (_grenadeState)
+            {
+                case GrenadeState.Idle:
+                    HandleSimpleGrenadeIdleState();
+                    break;
+                case GrenadeState.SimpleAiming:
+                    HandleSimpleGrenadeAimingState();
+                    break;
+                default:
+                    // If we're in a complex-mode state but simple mode is now enabled,
+                    // reset to allow starting fresh (handles mode switch mid-throw)
+                    if (_grenadeState == GrenadeState.TimerStarted ||
+                        _grenadeState == GrenadeState.WaitingForGRelease ||
+                        _grenadeState == GrenadeState.Aiming)
+                    {
+                        LogToFile($"[Player.Grenade] Mode mismatch: resetting from complex state {_grenadeState} to IDLE");
+                        if (_activeGrenade != null && IsInstanceValid(_activeGrenade))
+                        {
+                            DropGrenadeAtFeet();
+                        }
+                        else
+                        {
+                            ResetGrenadeState();
+                        }
+                    }
+                    break;
+            }
         }
     }
 
@@ -1889,6 +1957,231 @@ public partial class Player : BaseCharacter
             ThrowGrenade(dragEnd);
         }
     }
+
+    #region Simple Grenade Throwing Mode
+
+    /// <summary>
+    /// Handle IDLE state for simple grenade throwing mode.
+    /// When RMB is pressed, create grenade and start aiming.
+    /// </summary>
+    private void HandleSimpleGrenadeIdleState()
+    {
+        // Log when RMB is pressed to confirm simple mode handler is active
+        if (Input.IsActionJustPressed("grenade_throw"))
+        {
+            LogToFile($"[Player.Grenade.Simple] RMB pressed in IDLE state, grenades={_currentGrenades}");
+            if (_currentGrenades > 0)
+            {
+                // Start simple aiming mode
+                StartSimpleGrenadeAiming();
+            }
+            else
+            {
+                LogToFile("[Player.Grenade.Simple] No grenades available");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Start simple grenade aiming mode.
+    /// Creates grenade, starts timer, and enters aiming state.
+    /// </summary>
+    private void StartSimpleGrenadeAiming()
+    {
+        if (_currentGrenades <= 0)
+        {
+            LogToFile("[Player.Grenade.Simple] Cannot start: no grenades");
+            return;
+        }
+
+        if (GrenadeScene == null)
+        {
+            LogToFile("[Player.Grenade.Simple] Cannot start: GrenadeScene is null");
+            return;
+        }
+
+        // Create grenade instance
+        _activeGrenade = GrenadeScene.Instantiate<RigidBody2D>();
+        if (_activeGrenade == null)
+        {
+            LogToFile("[Player.Grenade.Simple] Failed to instantiate grenade scene");
+            return;
+        }
+
+        // Add grenade to scene (must be in tree before setting GlobalPosition)
+        GetTree().CurrentScene.AddChild(_activeGrenade);
+        _activeGrenade.GlobalPosition = GlobalPosition;
+
+        // Activate the grenade timer (starts countdown)
+        if (_activeGrenade.HasMethod("activate_timer"))
+        {
+            _activeGrenade.Call("activate_timer");
+        }
+
+        // Update state
+        _grenadeState = GrenadeState.SimpleAiming;
+        _grenadeTimerStartTime = Time.GetTicksMsec() / 1000.0;
+        _isPreparingGrenade = true;
+
+        // Store initial mouse position for aiming
+        _aimDragStart = GetGlobalMousePosition();
+
+        // Decrement grenade count now - but not on tutorial level (infinite)
+        if (!_isTutorialLevel)
+        {
+            _currentGrenades--;
+        }
+        EmitSignal(SignalName.GrenadeChanged, _currentGrenades, MaxGrenades);
+
+        // Start arm animation - go directly to wind-up style position
+        StartGrenadeAnimPhase(GrenadeAnimPhase.GrabGrenade, AnimGrabDuration * 0.5f);
+
+        // Play pin pull sound
+        var audioManager = GetNodeOrNull("/root/AudioManager");
+        if (audioManager != null && audioManager.HasMethod("play_grenade_prepare"))
+        {
+            audioManager.Call("play_grenade_prepare", GlobalPosition);
+        }
+
+        LogToFile($"[Player.Grenade.Simple] Aiming started at {GlobalPosition}");
+    }
+
+    /// <summary>
+    /// Handle SIMPLE_AIMING state: RMB held, showing trajectory preview.
+    /// Cursor position = landing point. Release RMB to throw.
+    /// </summary>
+    private void HandleSimpleGrenadeAimingState()
+    {
+        // Request redraw for trajectory visualization (always show in simple mode)
+        QueueRedraw();
+
+        // Make grenade follow player
+        if (_activeGrenade != null && IsInstanceValid(_activeGrenade))
+        {
+            _activeGrenade.GlobalPosition = GlobalPosition;
+        }
+
+        // Update arm animation based on wind-up
+        UpdateSimpleWindUpAnimation();
+
+        // If animation phases need to transition
+        if (_grenadeAnimPhase == GrenadeAnimPhase.GrabGrenade && _grenadeAnimTimer <= 0)
+        {
+            _grenadeAnimPhase = GrenadeAnimPhase.WindUp;
+        }
+
+        // Check for RMB release - throw the grenade!
+        if (Input.IsActionJustReleased("grenade_throw"))
+        {
+            ThrowSimpleGrenade();
+        }
+
+        // Check for cancellation (if grenade was somehow destroyed)
+        if (_activeGrenade == null || !IsInstanceValid(_activeGrenade))
+        {
+            ResetGrenadeState();
+            StartGrenadeAnimPhase(GrenadeAnimPhase.ReturnIdle, AnimReturnDuration);
+        }
+    }
+
+    /// <summary>
+    /// Update wind-up animation based on distance from player to cursor.
+    /// </summary>
+    private void UpdateSimpleWindUpAnimation()
+    {
+        Vector2 currentMouse = GetGlobalMousePosition();
+        float distance = GlobalPosition.DistanceTo(currentMouse);
+
+        // Calculate wind-up intensity based on distance (0-500 pixels = 0-1 intensity)
+        const float maxDistance = 500.0f;
+        _windUpIntensity = Mathf.Clamp(distance / maxDistance, 0.0f, 1.0f);
+    }
+
+    /// <summary>
+    /// Throw the grenade in simple mode.
+    /// Direction and distance based on cursor position relative to player.
+    /// </summary>
+    private void ThrowSimpleGrenade()
+    {
+        if (_activeGrenade == null || !IsInstanceValid(_activeGrenade))
+        {
+            LogToFile("[Player.Grenade.Simple] Cannot throw: no active grenade");
+            ResetGrenadeState();
+            return;
+        }
+
+        Vector2 targetPos = GetGlobalMousePosition();
+        Vector2 toTarget = targetPos - GlobalPosition;
+
+        // Calculate throw direction and distance
+        Vector2 throwDirection = toTarget.Length() > 10.0f ? toTarget.Normalized() : new Vector2(1, 0);
+        float throwDistance = toTarget.Length();
+
+        // Calculate throw speed needed to reach target (using physics)
+        // From grenade_base.gd: ground_friction = 300.0
+        // Distance = v^2 / (2 * friction) → v = sqrt(2 * friction * distance)
+        const float groundFriction = 300.0f;
+        float requiredSpeed = Mathf.Sqrt(2.0f * groundFriction * throwDistance);
+
+        // Clamp to grenade's max throw speed
+        const float maxThrowSpeed = 850.0f;
+        float throwSpeed = Mathf.Min(requiredSpeed, maxThrowSpeed);
+
+        // Calculate actual landing distance with clamped speed
+        float actualDistance = (throwSpeed * throwSpeed) / (2.0f * groundFriction);
+
+        LogToFile($"[Player.Grenade.Simple] Throwing! Target: {targetPos}, Distance: {actualDistance:F1}, Speed: {throwSpeed:F1}");
+
+        // Rotate player to face throw direction
+        RotatePlayerForThrow(throwDirection);
+
+        // Calculate spawn position with wall check
+        const float spawnOffset = 60.0f;
+        Vector2 intendedSpawnPosition = GlobalPosition + throwDirection * spawnOffset;
+        Vector2 spawnPosition = GetSafeGrenadeSpawnPosition(GlobalPosition, intendedSpawnPosition, throwDirection);
+
+        // Unfreeze and throw the grenade
+        _activeGrenade.Freeze = false;
+
+        // Use the most appropriate throw method
+        if (_activeGrenade.HasMethod("throw_grenade_with_direction"))
+        {
+            // Construct velocity from direction and speed
+            // Pass a calculated "swing distance" that matches the desired throw speed
+            float fakeSwing = 100.0f; // Ensures good transfer efficiency
+            _activeGrenade.Call("throw_grenade_with_direction", throwDirection, throwSpeed * 2.0f, fakeSwing);
+        }
+        else if (_activeGrenade.HasMethod("throw_grenade"))
+        {
+            // Legacy method: use drag distance that produces desired speed
+            float dragDistance = throwSpeed / 2.0f; // drag_to_speed_multiplier = 2.0
+            _activeGrenade.Call("throw_grenade", throwDirection, dragDistance);
+        }
+        else
+        {
+            // Direct physics fallback
+            _activeGrenade.LinearVelocity = throwDirection * throwSpeed;
+            _activeGrenade.Rotation = throwDirection.Angle();
+        }
+
+        // Start throw animation
+        StartGrenadeAnimPhase(GrenadeAnimPhase.Throw, AnimThrowDuration);
+
+        // Emit signal and play sound
+        EmitSignal(SignalName.GrenadeThrown);
+        var audioManager = GetNodeOrNull("/root/AudioManager");
+        if (audioManager != null && audioManager.HasMethod("play_grenade_throw"))
+        {
+            audioManager.Call("play_grenade_throw", GlobalPosition);
+        }
+
+        LogToFile("[Player.Grenade.Simple] Grenade thrown!");
+
+        // Reset state
+        ResetGrenadeState();
+    }
+
+    #endregion
 
     /// <summary>
     /// Start the grenade timer (step 1 complete - pin pulled).
@@ -2878,42 +3171,81 @@ public partial class Player : BaseCharacter
     }
 
     /// <summary>
-    /// Override _Draw to visualize grenade trajectory when debug mode is enabled.
-    /// Shows predicted landing position based on current mouse velocity.
-    /// Uses the same velocity-based calculation as ThrowGrenade() to ensure accuracy.
+    /// Override _Draw to visualize grenade trajectory.
+    /// In simple mode: Always shows trajectory preview (semi-transparent arc).
+    /// In complex mode: Only shows when debug mode is enabled (F7).
     /// </summary>
     public override void _Draw()
     {
-        // Only draw when debug mode is enabled and we're aiming a grenade
-        if (!_debugModeEnabled)
+        // Determine if we should draw trajectory
+        bool isSimpleAiming = _grenadeState == GrenadeState.SimpleAiming;
+        bool isComplexAiming = _grenadeState == GrenadeState.Aiming;
+
+        // In simple mode: always show trajectory
+        // In complex mode: only show if debug mode is enabled
+        if (!isSimpleAiming && !(isComplexAiming && _debugModeEnabled))
         {
             return;
         }
 
-        if (_grenadeState != GrenadeState.Aiming)
+        // Use different colors for simple mode (more subtle) vs debug mode (bright)
+        Color colorTrajectory;
+        Color colorLanding;
+        Color colorRadius;
+        float lineWidth;
+
+        if (isSimpleAiming)
         {
-            return;
-        }
-
-        // Get current mouse velocity (same as ThrowGrenade uses)
-        Vector2 releaseVelocity = _currentMouseVelocity;
-        float velocityMagnitude = releaseVelocity.Length();
-
-        // Determine throw direction from velocity, or fallback to drag direction if stationary
-        // FIX for issue #313: Use snapped cardinal directions (same as ThrowGrenade)
-        Vector2 throwDirection;
-        Vector2 currentMousePos = GetGlobalMousePosition();
-        Vector2 dragVector = currentMousePos - _grenadeDragStart;
-
-        if (velocityMagnitude > 10.0f) // Mouse is moving
-        {
-            // Snap to 8 directions (same as ThrowGrenade)
-            throwDirection = SnapToOctantDirection(releaseVelocity.Normalized());
+            // Semi-transparent colors for simple mode
+            colorTrajectory = new Color(1.0f, 1.0f, 1.0f, 0.4f); // White semi-transparent
+            colorLanding = new Color(1.0f, 0.8f, 0.2f, 0.6f); // Yellow-orange
+            colorRadius = new Color(1.0f, 0.5f, 0.0f, 0.2f); // Effect radius
+            lineWidth = 2.0f;
         }
         else
         {
-            // Mouse is stationary - use drag direction, also snapped to 8 directions
-            if (dragVector.Length() > 5.0f)
+            // Bright colors for debug mode
+            colorTrajectory = new Color(1.0f, 0.8f, 0.2f, 0.9f);
+            colorLanding = new Color(1.0f, 0.3f, 0.1f, 0.9f);
+            colorRadius = new Color(1.0f, 0.5f, 0.0f, 0.3f);
+            lineWidth = 3.0f;
+        }
+
+        // Calculate throw parameters
+        Vector2 currentMousePos = GetGlobalMousePosition();
+        Vector2 throwDirection;
+        float throwSpeed;
+        float landingDistance;
+        const float GroundFriction = 300.0f;
+        const float SpawnOffset = 60.0f;
+
+        if (isSimpleAiming)
+        {
+            // Simple mode: direction and distance based on cursor position
+            Vector2 toTarget = currentMousePos - GlobalPosition;
+            throwDirection = toTarget.Length() > 10.0f ? toTarget.Normalized() : new Vector2(1, 0);
+            float throwDistance = toTarget.Length();
+
+            // Calculate throw speed needed to reach target
+            float requiredSpeed = Mathf.Sqrt(2.0f * GroundFriction * throwDistance);
+            const float maxThrowSpeed = 850.0f;
+            throwSpeed = Mathf.Min(requiredSpeed, maxThrowSpeed);
+
+            // Calculate actual landing distance with clamped speed
+            landingDistance = (throwSpeed * throwSpeed) / (2.0f * GroundFriction);
+        }
+        else
+        {
+            // Complex mode: direction based on mouse velocity
+            Vector2 releaseVelocity = _currentMouseVelocity;
+            float velocityMagnitude = releaseVelocity.Length();
+            Vector2 dragVector = currentMousePos - _grenadeDragStart;
+
+            if (velocityMagnitude > 10.0f)
+            {
+                throwDirection = SnapToOctantDirection(releaseVelocity.Normalized());
+            }
+            else if (dragVector.Length() > 5.0f)
             {
                 throwDirection = SnapToOctantDirection(dragVector.Normalized());
             }
@@ -2921,35 +3253,29 @@ public partial class Player : BaseCharacter
             {
                 throwDirection = new Vector2(1, 0);
             }
+
+            // Calculate velocity-based throw speed
+            const float GrenadeMass = 0.36f;
+            const float MouseVelocityMultiplier = 1.5f;
+            const float MinSwingDistance = 180.0f;
+            const float MinThrowSpeed = 100.0f;
+            const float MaxThrowSpeed = 2500.0f;
+
+            float massRatio = GrenadeMass / 0.4f;
+            float adjustedMinSwing = MinSwingDistance * massRatio;
+            float transferEfficiency = Mathf.Clamp(_totalSwingDistance / adjustedMinSwing, 0.0f, 1.0f);
+            float massMultiplier = 1.0f / Mathf.Sqrt(massRatio);
+
+            throwSpeed = velocityMagnitude * MouseVelocityMultiplier * transferEfficiency * massMultiplier;
+            throwSpeed = Mathf.Clamp(throwSpeed, MinThrowSpeed, MaxThrowSpeed);
+
+            if (velocityMagnitude < 10.0f)
+            {
+                throwSpeed = MinThrowSpeed * 0.5f;
+            }
+
+            landingDistance = (throwSpeed * throwSpeed) / (2.0f * GroundFriction);
         }
-
-        // Constants from grenade_base.gd for velocity-based throwing
-        const float GrenadeMass = 0.36f; // Default flashbang mass
-        const float MouseVelocityMultiplier = 1.5f; // Reduced from 3.5 for better throw control
-        const float MinSwingDistance = 180.0f;
-        const float MinThrowSpeed = 100.0f;
-        const float MaxThrowSpeed = 2500.0f;
-        const float GroundFriction = 300.0f; // Flashbang has higher friction
-        const float SpawnOffset = 60.0f;
-
-        // Calculate velocity-based throw speed (same formula as grenade_base.gd)
-        float massRatio = GrenadeMass / 0.4f; // Reference mass
-        float adjustedMinSwing = MinSwingDistance * massRatio;
-        float transferEfficiency = Mathf.Clamp(_totalSwingDistance / adjustedMinSwing, 0.0f, 1.0f);
-        float massMultiplier = 1.0f / Mathf.Sqrt(massRatio);
-
-        // Calculate throw speed from mouse velocity
-        float throwSpeed = velocityMagnitude * MouseVelocityMultiplier * transferEfficiency * massMultiplier;
-        throwSpeed = Mathf.Clamp(throwSpeed, MinThrowSpeed, MaxThrowSpeed);
-
-        // If mouse is nearly stationary, show minimal trajectory (grenade drops at feet)
-        if (velocityMagnitude < 10.0f)
-        {
-            throwSpeed = MinThrowSpeed * 0.5f; // Very short throw
-        }
-
-        // Calculate landing distance using physics: distance = v² / (2 * friction)
-        float landingDistance = (throwSpeed * throwSpeed) / (2.0f * GroundFriction);
 
         // Calculate spawn and landing positions
         Vector2 spawnPosition = GlobalPosition + throwDirection * SpawnOffset;
@@ -2960,15 +3286,53 @@ public partial class Player : BaseCharacter
         Vector2 localEnd = ToLocal(landingPosition);
 
         // Draw trajectory line with dashes
-        DrawTrajectoryLine(localStart, localEnd, new Color(1.0f, 0.8f, 0.2f, 0.9f), 3.0f);
+        DrawTrajectoryLine(localStart, localEnd, colorTrajectory, lineWidth);
 
         // Draw landing point indicator (circle with X)
-        DrawLandingIndicator(localEnd, new Color(1.0f, 0.3f, 0.1f, 0.9f), 12.0f);
+        DrawLandingIndicator(localEnd, colorLanding, 12.0f);
 
-        // Draw velocity direction arrow from player (shows current mouse velocity direction)
-        Vector2 localPlayerCenter = Vector2.Zero; // Player is at origin in local coords
-        Vector2 arrowEnd = localPlayerCenter + throwDirection * 40.0f;
-        DrawArrow(localPlayerCenter, arrowEnd, new Color(0.2f, 1.0f, 0.2f, 0.7f), 2.0f);
+        // Draw effect radius circle at landing position
+        float effectRadius = GetGrenadeEffectRadius();
+        DrawCircleOutline(localEnd, effectRadius, colorRadius, 2.0f);
+
+        // In complex mode, also draw velocity direction arrow
+        if (isComplexAiming)
+        {
+            Vector2 localPlayerCenter = Vector2.Zero;
+            Vector2 arrowEnd = localPlayerCenter + throwDirection * 40.0f;
+            DrawArrow(localPlayerCenter, arrowEnd, new Color(0.2f, 1.0f, 0.2f, 0.7f), 2.0f);
+        }
+    }
+
+    /// <summary>
+    /// Get the effect radius of the current grenade type.
+    /// </summary>
+    private float GetGrenadeEffectRadius()
+    {
+        if (_activeGrenade != null && IsInstanceValid(_activeGrenade) && _activeGrenade.HasMethod("_get_effect_radius"))
+        {
+            return (float)_activeGrenade.Call("_get_effect_radius");
+        }
+        // Default effect radius (flashbang)
+        return 200.0f;
+    }
+
+    /// <summary>
+    /// Draw a circle outline at the specified position.
+    /// </summary>
+    private void DrawCircleOutline(Vector2 position, float radius, Color color, float width)
+    {
+        const int segments = 32;
+        var points = new List<Vector2>();
+        for (int i = 0; i <= segments; i++)
+        {
+            float angle = (float)i / segments * Mathf.Tau;
+            points.Add(position + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * radius);
+        }
+        for (int i = 0; i < points.Count - 1; i++)
+        {
+            DrawLine(points[i], points[i + 1], color, width);
+        }
     }
 
     /// <summary>
