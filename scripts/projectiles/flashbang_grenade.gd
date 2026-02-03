@@ -33,6 +33,11 @@ func _on_explode() -> void:
 	for enemy in enemies:
 		_apply_flashbang_effects(enemy)
 
+	# Scatter shell casings on the floor (Issue #432)
+	# Flashbang has larger radius but weaker physical effect (non-lethal)
+	# Use 40% of effect radius as "lethal-equivalent" zone for casing scatter
+	_scatter_casings(effect_radius * 0.4)
+
 	# Spawn visual flash effect
 	_spawn_flash_effect()
 

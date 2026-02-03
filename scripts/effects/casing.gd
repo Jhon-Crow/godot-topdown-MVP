@@ -46,6 +46,9 @@ const DEBUG_CASING_PHYSICS: bool = false
 
 
 func _ready() -> void:
+	# Add to casings group for explosion detection (Issue #432)
+	add_to_group("casings")
+
 	# Connect to collision signals to detect landing
 	body_entered.connect(_on_body_entered)
 

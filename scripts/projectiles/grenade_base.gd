@@ -452,3 +452,65 @@ func _on_grenade_landed() -> void:
 	if audio_manager and audio_manager.has_method("play_grenade_landing"):
 		audio_manager.play_grenade_landing(global_position)
 	FileLogger.info("[GrenadeBase] Grenade landed at %s" % str(global_position))
+
+
+## Scatter shell casings within and near the explosion radius (Issue #432).
+## Casings inside the lethal zone receive strong impulse (scatter effect).
+## Casings in the proximity zone (1.0-1.5x radius) receive weak impulse.
+## @param effect_radius: The lethal blast radius of the explosion.
+func _scatter_casings(effect_radius: float) -> void:
+	# Get all casings in the scene
+	var casings := get_tree().get_nodes_in_group("casings")
+	if casings.is_empty():
+		return
+
+	# Proximity zone extends to 1.5x the effect radius
+	var proximity_radius := effect_radius * 1.5
+
+	# Impulse strengths (calibrated based on player kick force ~6-9 units)
+	# Strong impulse for lethal zone (scatter effect)
+	var lethal_impulse_base: float = 45.0
+	# Weak impulse for proximity zone (weaker than player/enemy push)
+	var proximity_impulse_base: float = 10.0
+
+	var scattered_count := 0
+	var proximity_count := 0
+
+	for casing in casings:
+		if not is_instance_valid(casing) or not casing is RigidBody2D:
+			continue
+
+		var distance := global_position.distance_to(casing.global_position)
+
+		# Skip casings too far away
+		if distance > proximity_radius:
+			continue
+
+		# Calculate direction from explosion to casing
+		var direction := (casing.global_position - global_position).normalized()
+		# Add small random offset to prevent identical trajectories
+		direction = direction.rotated(randf_range(-0.2, 0.2))
+
+		var impulse_strength: float = 0.0
+
+		if distance <= effect_radius:
+			# Inside lethal zone - strong scatter effect
+			# Closer casings get stronger impulse (inverse falloff)
+			var distance_factor := 1.0 - (distance / effect_radius)
+			# Use square root for more gradual falloff
+			impulse_strength = lethal_impulse_base * sqrt(distance_factor + 0.1)
+			scattered_count += 1
+		else:
+			# Proximity zone - weak push
+			# Linear falloff from effect_radius to proximity_radius
+			var proximity_factor := 1.0 - ((distance - effect_radius) / (proximity_radius - effect_radius))
+			impulse_strength = proximity_impulse_base * proximity_factor
+			proximity_count += 1
+
+		# Apply the kick impulse to the casing
+		if casing.has_method("receive_kick"):
+			var impulse := direction * impulse_strength
+			casing.receive_kick(impulse)
+
+	if scattered_count > 0 or proximity_count > 0:
+		FileLogger.info("[GrenadeBase] Scattered %d casings (lethal zone) + %d casings (proximity) from explosion" % [scattered_count, proximity_count])

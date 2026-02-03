@@ -184,6 +184,9 @@ func _on_explode() -> void:
 	if player != null:
 		_apply_explosion_damage(player)
 
+	# Scatter shell casings on the floor (Issue #432)
+	_scatter_casings(effect_radius)
+
 	# Spawn shrapnel in all directions
 	_spawn_shrapnel()
 
