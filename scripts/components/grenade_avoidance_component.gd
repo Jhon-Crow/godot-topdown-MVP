@@ -33,9 +33,34 @@ var _grenades_in_range: Array = []
 ## Reference to parent enemy.
 var _enemy: CharacterBody2D = null
 
+## Reference to RayCast2D for line-of-sight checks (Issue #426).
+## Enemies should only react to grenades they can see/hear (not through walls).
+var _raycast: RayCast2D = null
+
 
 func _ready() -> void:
 	_enemy = get_parent() as CharacterBody2D
+
+
+## Set the raycast to use for line-of-sight visibility checks (Issue #426).
+## @param raycast: The RayCast2D node to use for visibility checks.
+func set_raycast(raycast: RayCast2D) -> void:
+	_raycast = raycast
+
+
+## Check if a position is visible from the enemy (no walls blocking).
+## @param pos: The position to check visibility to.
+## @returns: True if position is visible, false if blocked by walls.
+func _can_see_position(pos: Vector2) -> bool:
+	if _raycast == null or _enemy == null:
+		return true  # Fallback: assume visible if no raycast available
+
+	var orig := _raycast.target_position
+	_raycast.target_position = pos - _enemy.global_position
+	_raycast.force_raycast_update()
+	var result := not _raycast.is_colliding()
+	_raycast.target_position = orig
+	return result
 
 
 ## Cooldown timer to prevent state thrashing when at danger zone edge.
@@ -112,6 +137,12 @@ func update() -> bool:
 
 		# Check if we're in danger zone
 		if distance < danger_radius:
+			# Issue #426: Check line-of-sight - enemies should only react to grenades
+			# they can actually see or hear. A grenade behind a wall is not a threat
+			# they would know about (no "sixth sense" through walls).
+			if not _can_see_position(grenade.global_position):
+				continue  # Skip grenades blocked by walls
+
 			_grenades_in_range.append(grenade)
 			in_danger_zone = true
 

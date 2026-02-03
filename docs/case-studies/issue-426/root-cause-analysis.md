@@ -8,72 +8,105 @@
 ## Expected Behavior
 
 Enemies should only flee from grenades when they:
-1. **SEE** the player throw the grenade, OR
-2. **HEAR** the grenade land after being thrown (while grenade is in flight), OR
-3. See a nearby enemy throwing a grenade
+1. **SEE** the grenade being thrown or in flight, OR
+2. **HEAR** the grenade land nearby, OR
+3. Have **direct line-of-sight** to the grenade
 
-## Actual Behavior
+Enemies should **NOT** react to grenades:
+- When the player is holding the grenade (pin pulled but not thrown)
+- When the grenade is behind a wall (no line-of-sight)
 
-Enemies flee when the player activates a grenade (pulls the pin), even if:
-- They don't see the player
-- They don't hear the player
-- They're in IDLE state
-- The grenade hasn't been thrown yet
+## Bug Evolution
 
-## Timeline from Log File
+### Phase 1: Held Grenade Detection (Fixed in first commit)
 
-| Time | Event | Issue |
-|------|-------|-------|
-| 16:01:29 | Player presses G to grab grenade | Normal |
-| 16:01:30 | Timer activated (pin pulled) | Normal |
-| **16:01:30** | **Enemy2, Enemy3, Enemy4 enter EVADING_GRENADE from IDLE** | **BUG** |
-| 16:01:32 | Grenade actually thrown | Normal |
+**Problem:** Enemies fled when the player pulled the pin, before throwing.
 
-**Key evidence from log (lines 200-214):**
+**Root Cause:** `GrenadeAvoidanceComponent` used `is_timer_active()` to check if grenade was a threat, but the timer activates when the pin is pulled, not when thrown.
+
+**Solution:** Added `is_thrown()` method to `GrenadeBase` that returns `true` only when `freeze == false` (grenade physically moving/resting).
+
+### Phase 2: Wall Penetration Detection (Fixed in second commit)
+
+**Problem:** Enemies still fled from grenades behind walls.
+
+**Timeline from game_log_20260203_164039.txt (user-provided log):**
+| Time | Event | Enemy Positions | Issue |
+|------|-------|-----------------|-------|
+| 16:40:46 | Grenade thrown at player position (334, 759) | Enemy1 at ~(274, 247), Enemy2 at ~(396, 231) | - |
+| 16:40:46 | Enemy1, Enemy2, Enemy3, Enemy4 enter EVADING_GRENADE | All enemies in separate rooms/areas | **BUG** |
+
+**Key evidence from log:**
 ```
-[16:01:30] [INFO] [GrenadeBase] Timer activated! 4.0 seconds until explosion
-...
-[16:01:30] [ENEMY] [Enemy2] GRENADE DANGER: Entering EVADING_GRENADE state from IDLE
-[16:01:30] [ENEMY] [Enemy3] GRENADE DANGER: Entering EVADING_GRENADE state from IDLE
-[16:01:30] [ENEMY] [Enemy4] GRENADE DANGER: Entering EVADING_GRENADE state from IDLE
+[16:40:46] [ENEMY] [Enemy1] GRENADE DANGER: Entering EVADING_GRENADE state from IDLE
+[16:40:46] [ENEMY] [Enemy1] EVADING_GRENADE started: escaping to (274.0811, 247.0762)
+[16:40:46] [ENEMY] [Enemy2] GRENADE DANGER: Entering EVADING_GRENADE state from IDLE
 ```
 
-The enemies were in **IDLE** state (not aware of player) but immediately reacted to the grenade.
+Enemies at positions like (274, 247) are clearly in different rooms from the player at (334, 759) based on escape directions and map layout.
 
-## Root Cause
-
-The bug is in `scripts/components/grenade_avoidance_component.gd` lines 87-91:
+**Root Cause:** The `update()` function in `GrenadeAvoidanceComponent` only checked **distance** to determine if enemy was in danger:
 
 ```gdscript
-# Skip grenades that haven't been thrown yet (still held by player/enemy)
-# Check if grenade has is_timer_active method (GrenadeBase)
-if grenade.has_method("is_timer_active"):
-    if not grenade.is_timer_active():
-        continue
+# Calculate distance to grenade
+var distance := _enemy.global_position.distance_to(grenade.global_position)
+
+# Check if we're in danger zone
+if distance < danger_radius:
+    _grenades_in_range.append(grenade)  # ← No visibility check!
 ```
 
-**The problem:** This check only verifies if the timer is active, but the timer is activated when the player **pulls the pin** (starts throwing motion), NOT when the grenade is actually thrown.
+This caused enemies to react to grenades they couldn't possibly know about (no "sixth sense" through walls).
 
-**Grenade lifecycle:**
-1. `_ready()`: Grenade created, added to "grenades" group, `freeze = true`
-2. `activate_timer()`: Timer starts, `_timer_active = true` ← **Comment says "hasn't been thrown yet" but this is BEFORE throw**
-3. `throw_grenade*()`: `freeze = false`, grenade starts moving ← **This is the actual throw**
+**Solution:** Added line-of-sight (LOS) check using raycast before considering a grenade as a threat:
 
-## Solution
+```gdscript
+if distance < danger_radius:
+    # Issue #426: Check line-of-sight - enemies should only react to grenades
+    # they can actually see or hear. A grenade behind a wall is not a threat
+    # they would know about (no "sixth sense" through walls).
+    if not _can_see_position(grenade.global_position):
+        continue  # Skip grenades blocked by walls
+```
 
-Add a proper check for whether the grenade has been **thrown** (unfrozen), not just whether the timer is active.
+## Solution Architecture
 
-### Changes Required
+### Changes to `grenade_avoidance_component.gd`
 
-1. **Add `is_thrown()` method to `grenade_base.gd`**
-   - Returns `true` when `freeze == false` (grenade is physically moving)
+1. **Added `_raycast` property** - Reference to RayCast2D for visibility checks
+2. **Added `set_raycast()` method** - To configure the raycast reference
+3. **Added `_can_see_position()` method** - Line-of-sight check implementation
+4. **Modified `update()` function** - Added LOS check before considering grenade as threat
 
-2. **Update `grenade_avoidance_component.gd`**
-   - Change the check from `is_timer_active()` to `is_thrown()`
-   - This ensures enemies only react to grenades that are actually in flight or on the ground
+### Changes to `enemy.gd`
+
+1. **Updated `_setup_grenade_avoidance()`** - Pass raycast reference to component
+
+### Changes to `grenade_base.gd` (from Phase 1)
+
+1. **Added `is_thrown()` method** - Returns `true` when grenade is unfrozen
+
+## Test Coverage
+
+Unit tests added in `tests/unit/test_grenade_avoidance_component.gd`:
+- Line-of-sight visibility checks
+- Danger zone detection with/without wall blocking
+- Thrown state detection
+- Exploded grenade handling
+- Cooldown behavior
+- Multiple grenade scenarios
 
 ## Impact
 
-- Enemies will no longer have "sixth sense" about grenades the player is holding
-- More realistic and tactical gameplay
-- Players can now hold grenades without alerting unaware enemies
+- **Realistic behavior:** Enemies only react to grenades they can actually perceive
+- **Tactical gameplay:** Players can use walls for cover when throwing grenades
+- **No "sixth sense":** Enemies behave consistently with what they can see/hear
+- **Backward compatible:** Fallback behavior when no raycast available
+
+## Files Modified
+
+1. `scripts/components/grenade_avoidance_component.gd` - Added LOS checks
+2. `scripts/objects/enemy.gd` - Pass raycast reference to component
+3. `scripts/projectiles/grenade_base.gd` - Added `is_thrown()` method (Phase 1)
+4. `tests/unit/test_grenade_avoidance_component.gd` - New test file
+5. `tests/unit/test_grenade_base.gd` - Added `is_thrown()` tests (Phase 1)

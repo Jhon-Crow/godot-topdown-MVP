@@ -4919,6 +4919,10 @@ func _setup_grenade_avoidance() -> void:
 	_grenade_avoidance = GrenadeAvoidanceComponent.new()
 	_grenade_avoidance.name = "GrenadeAvoidance"
 	add_child(_grenade_avoidance)
+	# Issue #426: Pass raycast reference for line-of-sight checks.
+	# Enemies should only react to grenades they can see (not through walls).
+	if _raycast:
+		_grenade_avoidance.set_raycast(_raycast)
 
 func _update_grenade_danger_detection() -> void:
 	if _grenade_avoidance: _grenade_avoidance.update()
