@@ -892,12 +892,29 @@ func _update_enemy_model_rotation() -> void:
 		target_angle = (_player.global_position - global_position).normalized().angle()
 		has_target = true
 		rotation_reason = "P1:visible"
-	# Priority 2: During active combat states, maintain focus on player even without visibility (#386, #397)
-	# Includes SEARCHING and ASSAULT - enemies should always face player during these states
-	elif _current_state in [AIState.COMBAT, AIState.PURSUING, AIState.FLANKING, AIState.SEARCHING, AIState.ASSAULT] and _player != null:
-		target_angle = (_player.global_position - global_position).normalized().angle()
-		has_target = true
-		rotation_reason = "P2:combat_state"
+	# Priority 2: During active combat states, face last known/suspected position (Issue #395, #386, #397)
+	# When player not visible, use memory system's suspected_position (from sounds, etc.)
+	# This ensures enemy turns toward sound source, not player's actual position.
+	elif _current_state in [AIState.COMBAT, AIState.PURSUING, AIState.FLANKING, AIState.SEARCHING, AIState.ASSAULT]:
+		var target_position: Vector2
+		# Use memory system's suspected position if available (preferred - has confidence tracking)
+		if _memory and _memory.has_target():
+			target_position = _memory.suspected_position
+			rotation_reason = "P2:memory"
+		# Fallback to last known position (legacy tracking)
+		elif _last_known_player_position != Vector2.ZERO:
+			target_position = _last_known_player_position
+			rotation_reason = "P2:last_known"
+		# Final fallback: use actual player position if no other info available
+		elif _player != null:
+			target_position = _player.global_position
+			rotation_reason = "P2:fallback"
+		else:
+			# No target information available, skip this priority
+			target_position = Vector2.ZERO
+		if target_position != Vector2.ZERO:
+			target_angle = (target_position - global_position).normalized().angle()
+			has_target = true
 	elif _corner_check_timer > 0:
 		target_angle = _corner_check_angle  # Corner check: smooth rotation (Issue #347)
 		has_target = true
@@ -912,10 +929,12 @@ func _update_enemy_model_rotation() -> void:
 		rotation_reason = "P5:idle_scan"
 	if not has_target:
 		return
-	# Issue #397 debug: Log rotation priority changes
+	# Issue #395, #397 debug: Log rotation priority changes with memory info
 	if rotation_reason != _last_rotation_reason:
 		var ppos := "(%d,%d)" % [int(_player.global_position.x), int(_player.global_position.y)] if _player else "null"
-		_log_to_file("ROT_CHANGE: %s -> %s, state=%s, target=%.1f°, current=%.1f°, player=%s, corner_timer=%.2f" % [_last_rotation_reason if _last_rotation_reason != "" else "none", rotation_reason, AIState.keys()[_current_state], rad_to_deg(target_angle), rad_to_deg(_enemy_model.global_rotation), ppos, _corner_check_timer])
+		var mpos := "(%d,%d)" % [int(_memory.suspected_position.x), int(_memory.suspected_position.y)] if _memory and _memory.has_target() else "none"
+		var lkp := "(%d,%d)" % [int(_last_known_player_position.x), int(_last_known_player_position.y)] if _last_known_player_position != Vector2.ZERO else "none"
+		_log_to_file("ROT_CHANGE: %s -> %s, state=%s, target=%.1f°, current=%.1f°, player=%s, memory=%s, last_known=%s" % [_last_rotation_reason if _last_rotation_reason != "" else "none", rotation_reason, AIState.keys()[_current_state], rad_to_deg(target_angle), rad_to_deg(_enemy_model.global_rotation), ppos, mpos, lkp])
 		_last_rotation_reason = rotation_reason
 	# Smooth rotation for visual polish (Issue #347)
 	var delta := get_physics_process_delta_time()
