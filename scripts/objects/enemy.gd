@@ -158,11 +158,11 @@ const AIM_TOLERANCE_DOT: float = 0.866  ## cos(30°) - aim tolerance (issue #254
 
 ## HitArea for bullet collision detection (disabled on death).
 @onready var _hit_area: Area2D = $HitArea
-## HitCollisionShape for disabling collision on death (more reliable than toggling monitorable).
-@onready var _hit_collision_shape: CollisionShape2D = $HitArea/HitCollisionShape
-
+@onready var _hit_collision_shape: CollisionShape2D = $HitArea/HitCollisionShape  ## Collision on death
+@onready var _casing_pusher: Area2D = $CasingPusher  ## Casing pusher Area2D (Issue #438)
 var _original_hit_area_layer: int = 0  ## Original collision layer (restore on respawn)
 var _original_hit_area_mask: int = 0
+var _overlapping_casings: Array[RigidBody2D] = []  ## Casings in CasingPusher (Issue #438)
 
 var _walk_anim_time: float = 0.0  ## Walking animation accumulator
 var _is_walking: bool = false  ## Currently walking (for anim)
@@ -431,6 +431,7 @@ func _ready() -> void:
 	_register_sound_listener()
 	_setup_grenade_component()
 	_setup_grenade_avoidance()
+	_connect_casing_pusher_signals()  # Issue #438: Connect casing pusher signals
 
 	# Store original collision layers for HitArea (to restore on respawn)
 	if _hit_area:
@@ -1050,24 +1051,22 @@ func _update_walk_animation(delta: float) -> void:
 		if _right_arm_sprite:
 			_right_arm_sprite.position = _right_arm_sprite.position.lerp(_base_right_arm_pos, lerp_speed)
 
-## Push casings that we collided with after move_and_slide() (Issue #341, #424).
-## Force to apply to casings when pushed by characters.
-## Reduced by 2.5x from 50.0 to 20.0 for Issue #424.
-const CASING_PUSH_FORCE: float = 20.0
+## Push casings using Area2D detection (Issue #438, pattern from player Issue #392).
+const CASING_PUSH_FORCE: float = 20.0  # Reduced from 50.0 for Issue #424
 
 func _push_casings() -> void:
-	for i in get_slide_collision_count():
-		var collision := get_slide_collision(i)
-		var collider := collision.get_collider()
-		# Check if collider is a RigidBody2D with receive_kick method (casing)
-		if collider is RigidBody2D and collider.has_method("receive_kick"):
-			# Cast to RigidBody2D for proper type access (fixes export build issue #424)
-			var casing: RigidBody2D = collider as RigidBody2D
-			# Calculate push direction from enemy center to casing position (Issue #424)
-			# This makes casings fly away based on which side they're pushed from
-			var push_dir := (casing.global_position - global_position).normalized()
-			var push_strength := velocity.length() * CASING_PUSH_FORCE / 100.0
-			casing.receive_kick(push_dir * push_strength)
+	if _casing_pusher == null or velocity.length_squared() < 1.0: return
+	# Combine signal-tracked casings and polled bodies for reliable detection (Issue #438)
+	var casings_to_push: Array[RigidBody2D] = []
+	for casing in _overlapping_casings:
+		if is_instance_valid(casing) and casing not in casings_to_push: casings_to_push.append(casing)
+	for body in _casing_pusher.get_overlapping_bodies():
+		if body is RigidBody2D and body.has_method("receive_kick") and body not in casings_to_push:
+			casings_to_push.append(body)
+	# Push casings away from enemy center (Issue #424)
+	for casing: RigidBody2D in casings_to_push:
+		var push_dir := (casing.global_position - global_position).normalized()
+		casing.receive_kick(push_dir * velocity.length() * CASING_PUSH_FORCE / 100.0)
 
 ## Update suppression state.
 func _update_suppression(delta: float) -> void:
@@ -4978,3 +4977,20 @@ func get_grenades_remaining() -> int:
 
 func add_grenades(count: int) -> void:
 	if _grenade_component: _grenade_component.add_grenades(count)
+
+## Connect CasingPusher Area2D signals (Issue #438, same pattern as player Issue #392).
+func _connect_casing_pusher_signals() -> void:
+	if _casing_pusher == null: return
+	if not _casing_pusher.body_entered.is_connected(_on_casing_pusher_body_entered):
+		_casing_pusher.body_entered.connect(_on_casing_pusher_body_entered)
+	if not _casing_pusher.body_exited.is_connected(_on_casing_pusher_body_exited):
+		_casing_pusher.body_exited.connect(_on_casing_pusher_body_exited)
+
+func _on_casing_pusher_body_entered(body: Node2D) -> void:
+	if body is RigidBody2D and body.has_method("receive_kick") and body not in _overlapping_casings:
+		_overlapping_casings.append(body)
+
+func _on_casing_pusher_body_exited(body: Node2D) -> void:
+	if body is RigidBody2D:
+		var idx := _overlapping_casings.find(body)
+		if idx >= 0: _overlapping_casings.remove_at(idx)
