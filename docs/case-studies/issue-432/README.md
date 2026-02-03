@@ -23,6 +23,41 @@ The issue describes three requirements for shell casing behavior:
 |------|-------|
 | 2026-02-03 | Issue created |
 | 2026-02-03 | Implementation started |
+| 2026-02-03 | Initial PR #434 opened |
+| 2026-02-03 | User feedback: "grenades fly infinitely and don't explode" |
+| 2026-02-03 | Investigation: Branch was missing fixes from main (Issue #428, #438) |
+| 2026-02-03 | Merged main branch to include latest fixes |
+
+## User Feedback Investigation
+
+### Bug Report
+User reported: "гранаты теперь летят бесконечно и не взрываются" (grenades now fly infinitely and don't explode)
+
+### Analysis of Game Log (`logs/game_log_20260203_180528.txt`)
+
+**Key observations:**
+1. Grenades are being thrown (log entries show "Grenade thrown!" at multiple timestamps)
+2. NO subsequent grenade lifecycle logs appear:
+   - Missing: `[GrenadeBase] Grenade created at...`
+   - Missing: `[FragGrenade] Pin pulled...`
+   - Missing: `[GrenadeBase] Grenade landed at...`
+   - Missing: `[FragGrenade] Impact detected - exploding immediately!`
+   - Missing: `[GrenadeBase] EXPLODED at...`
+
+**Root cause investigation:**
+The Issue #432 changes (adding casing scatter to explosions) cannot cause grenades to not explode because:
+1. `casing.gd` change: Only adds casing to a group - does not affect grenade logic
+2. `grenade_base.gd` change: Adds `_scatter_casings()` method - only called AFTER explosion
+3. `frag_grenade.gd`/`flashbang_grenade.gd` changes: Call `_scatter_casings()` inside `_on_explode()` - only executes after explosion
+
+**Alternative hypotheses:**
+1. **Build version mismatch**: User may have been testing an older exported build
+2. **Missing branch synchronization**: Branch was missing commits from main:
+   - Issue #428 fix (grenade targeting physics compensation)
+   - Issue #438 fix (enemies getting stuck in casings)
+
+**Resolution:**
+Merged main branch to include all recent fixes. The user should rebuild the export and test again.
 
 ## Technical Analysis
 
