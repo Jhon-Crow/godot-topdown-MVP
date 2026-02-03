@@ -152,9 +152,7 @@ enum BehaviorMode {
 
 ## Scale multiplier for enemy model (1.3 matches player size).
 @export var enemy_model_scale: float = 1.3
-
-# Grenade System Configuration (Issue #363, #375)
-@export var grenade_count: int = 0  ## Grenades carried (0 = use DifficultyManager)
+@export var grenade_count: int = 0  ## Grenades carried (Grenade System - Issue #363, #375)
 @export var grenade_scene: PackedScene  ## Grenade scene to throw
 @export var enable_grenade_throwing: bool = true  ## Enable grenade throwing
 @export var grenade_throw_cooldown: float = 15.0  ## Cooldown between throws (sec)
@@ -164,7 +162,6 @@ enum BehaviorMode {
 @export var grenade_inaccuracy: float = 0.15  ## Throw inaccuracy (radians)
 @export var grenade_throw_delay: float = 0.4  ## Delay before throw (sec)
 @export var grenade_debug_logging: bool = false  ## Grenade debug logging
-
 
 signal hit  ## Enemy hit
 signal died  ## Enemy died
@@ -286,8 +283,7 @@ const RETREAT_BURST_ARC: float = 0.4  ## ONE_HIT burst arc (rad)
 var _retreat_burst_angle_offset: float = 0.0  ## Current burst angle offset
 var _in_alarm_mode: bool = false  ## Suppressed/retreating alarm mode
 var _cover_burst_pending: bool = false  ## Fire cover burst when leaving cover
-# --- Combat Cover Cycling ---
-var _combat_shoot_timer: float = 0.0  ## Exposed shooting timer
+var _combat_shoot_timer: float = 0.0  ## Exposed shooting timer (Combat Cover Cycling)
 var _combat_shoot_duration: float = 2.5  ## Shoot duration out of cover
 var _combat_exposed: bool = false  ## In exposed shooting phase
 var _combat_approaching: bool = false  ## Approaching player phase
@@ -296,8 +292,7 @@ var _combat_state_timer: float = 0.0  ## Total COMBAT time this cycle
 const COMBAT_APPROACH_MAX_TIME: float = 2.0  ## Max approach time (sec)
 const COMBAT_DIRECT_CONTACT_DISTANCE: float = 250.0  ## Close enough to shoot
 const COMBAT_MIN_DURATION_BEFORE_PURSUE: float = 0.5  ## Min COMBAT before PURSUING
-# --- Pursuit State ---
-var _pursuit_cover_wait_timer: float = 0.0  ## Cover wait timer
+var _pursuit_cover_wait_timer: float = 0.0  ## Cover wait timer (Pursuit State)
 const PURSUIT_COVER_WAIT_DURATION: float = 1.5  ## Wait at cover (sec)
 var _pursuit_next_cover: Vector2 = Vector2.ZERO  ## Next cover position
 var _has_pursuit_cover: bool = false  ## Has valid pursuit cover
@@ -309,8 +304,7 @@ const PURSUIT_APPROACH_MAX_TIME: float = 3.0  ## Max approach time (sec)
 const PURSUING_MIN_DURATION_BEFORE_COMBAT: float = 0.3  ## Min before COMBAT
 const PURSUIT_MIN_PROGRESS_FRACTION: float = 0.10  ## Min progress fraction
 const PURSUIT_SAME_OBSTACLE_PENALTY: float = 4.0  ## Penalty for same cover
-# --- Flanking State ---
-var _flank_cover_wait_timer: float = 0.0  ## Wait at cover timer
+var _flank_cover_wait_timer: float = 0.0  ## Wait at cover timer (Flanking State)
 const FLANK_COVER_WAIT_DURATION: float = 0.8  ## Cover wait time (sec)
 var _flank_next_cover: Vector2 = Vector2.ZERO  ## Next cover position
 var _has_flank_cover: bool = false  ## Has valid flank cover
@@ -326,18 +320,15 @@ var _flank_fail_count: int = 0  ## Consecutive flank failures
 const FLANK_FAIL_MAX_COUNT: int = 2  ## Max failures before cooldown
 var _flank_cooldown_timer: float = 0.0  ## Cooldown after failures
 const FLANK_COOLDOWN_DURATION: float = 5.0  ## Failure cooldown (sec)
-# Issue #367: Global stuck detection
-var _global_stuck_timer: float = 0.0  ## Stuck timer
+var _global_stuck_timer: float = 0.0  ## Stuck timer (Issue #367: Global stuck detection)
 var _global_stuck_last_position: Vector2 = Vector2.ZERO  ## Last position
 const GLOBAL_STUCK_MAX_TIME: float = 4.0  ## Max stuck time
 const GLOBAL_STUCK_DISTANCE_THRESHOLD: float = 30.0  ## Min move distance
-# --- Assault State ---
-var _assault_wait_timer: float = 0.0  ## Assault wait timer
+var _assault_wait_timer: float = 0.0  ## Assault wait timer (Assault State)
 const ASSAULT_WAIT_DURATION: float = 5.0  ## Pre-assault wait (sec)
 var _assault_ready: bool = false  ## Assault wait complete
 var _in_assault: bool = false  ## In assault
-# Search State - Issue #322
-var _search_center: Vector2 = Vector2.ZERO  ## Search center
+var _search_center: Vector2 = Vector2.ZERO  ## Search center (Search State - Issue #322)
 var _search_radius: float = 100.0  ## Current radius
 const SEARCH_INITIAL_RADIUS: float = 100.0  ## Initial radius
 const SEARCH_RADIUS_EXPANSION: float = 75.0  ## Radius expansion
@@ -356,9 +347,7 @@ var _search_moving_to_waypoint: bool = true  ## Moving (vs scanning)
 const SEARCH_WAYPOINT_SPACING: float = 75.0  ## Spacing between waypoints
 var _search_visited_zones: Dictionary = {}  ## Tracks visited positions (key=snapped pos, val=true)
 const SEARCH_ZONE_SNAP_SIZE: float = 50.0  ## Grid size for snapping positions to zones
-
-# Issue #354: Stuck detection for SEARCHING
-var _search_stuck_timer: float = 0.0  ## Stuck timer
+var _search_stuck_timer: float = 0.0  ## Stuck timer (Issue #354: Stuck detection for SEARCHING)
 var _search_last_progress_position: Vector2 = Vector2.ZERO  ## Last progress pos
 const SEARCH_STUCK_MAX_TIME: float = 2.0  ## Max stuck time
 const SEARCH_PROGRESS_THRESHOLD: float = 10.0  ## Min progress distance
@@ -369,8 +358,7 @@ var _detection_timer: float = 0.0  ## Combat detection timer
 var _detection_delay_elapsed: bool = false  ## Detection delay done
 var _continuous_visibility_timer: float = 0.0  ## Continuous visibility timer
 var _player_visibility_ratio: float = 0.0  ## Player visibility (0-1)
-# --- Clear Shot Movement ---
-var _clear_shot_target: Vector2 = Vector2.ZERO  ## Clear shot target
+var _clear_shot_target: Vector2 = Vector2.ZERO  ## Clear shot target (Clear Shot Movement)
 var _seeking_clear_shot: bool = false  ## Moving to clear shot
 var _clear_shot_timer: float = 0.0  ## Clear shot attempt timer
 
@@ -1068,7 +1056,6 @@ func _push_casings() -> void:
 			var push_dir := -collision.get_normal()
 			var push_strength := velocity.length() * CASING_PUSH_FORCE / 100.0
 			collider.receive_kick(push_dir * push_strength)
-
 
 ## Update suppression state.
 func _update_suppression(delta: float) -> void:
@@ -4885,9 +4872,7 @@ func _get_nav_path_distance(target_pos: Vector2) -> float:
 	_nav_agent.target_position = target_pos
 	return _nav_agent.distance_to_target()
 
-# Status Effects (Blindness, Stun)
-
-## Set blinded state (from flashbang). When blinded, enemy cannot see player.
+## Set blinded state (from flashbang). When blinded, enemy cannot see player. (Status Effects)
 func set_blinded(blinded: bool) -> void:
 	var was_blinded := _is_blinded
 	_is_blinded = blinded
@@ -4925,9 +4910,7 @@ func is_blinded() -> bool:
 func is_stunned() -> bool:
 	return _is_stunned
 
-# Grenade System (Issue #363) - Component-based (extracted for Issue #377)
-
-## Setup the grenade component. Called from _ready().
+## Setup the grenade component. Called from _ready(). (Grenade System - Issue #363/#377)
 func _setup_grenade_component() -> void:
 	if not enable_grenade_throwing:
 		return
@@ -4992,7 +4975,6 @@ func _update_grenade_world_state() -> void:
 	_goap_world_state["grenades_remaining"] = g.grenades_remaining
 	_goap_world_state["ready_to_throw_grenade"] = g.is_ready(_can_see_player, _under_fire, _current_health)
 
-
 ## Attempt to throw a grenade. Returns true if throw was initiated.
 func try_throw_grenade() -> bool:
 	if _grenade_component == null:
@@ -5005,7 +4987,6 @@ func try_throw_grenade() -> bool:
 	if result:
 		grenade_thrown.emit(null, target)  # Signal with target; actual grenade emitted by component
 	return result
-
 
 ## Get the number of grenades remaining.
 func get_grenades_remaining() -> int:

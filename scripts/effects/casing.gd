@@ -30,6 +30,16 @@ var _frozen_angular_velocity: float = 0.0
 ## Whether the casing is currently frozen in time.
 var _is_time_frozen: bool = false
 
+## Time before enabling collision after spawn (to prevent colliding with player at spawn).
+## This fixes Issue #392 where casings would push the player at spawn time.
+const SPAWN_COLLISION_DELAY: float = 0.1
+
+## Timer for spawn collision delay.
+var _spawn_timer: float = 0.0
+
+## Whether collision has been enabled after spawn delay.
+var _spawn_collision_enabled: bool = false
+
 
 func _ready() -> void:
 	# Connect to collision signals to detect landing
@@ -41,6 +51,10 @@ func _ready() -> void:
 	# Set casing appearance based on caliber
 	_set_casing_appearance()
 
+	# Disable collision at spawn to prevent pushing player (Issue #392)
+	# Collision will be re-enabled after SPAWN_COLLISION_DELAY seconds
+	_disable_collision()
+
 
 func _physics_process(delta: float) -> void:
 	# If time is frozen, maintain frozen state (velocity should stay at zero)
@@ -48,6 +62,14 @@ func _physics_process(delta: float) -> void:
 		linear_velocity = Vector2.ZERO
 		angular_velocity = 0.0
 		return
+
+	# Handle spawn collision delay (Issue #392)
+	# Enable collision after the casing has moved away from spawn point
+	if not _spawn_collision_enabled:
+		_spawn_timer += delta
+		if _spawn_timer >= SPAWN_COLLISION_DELAY:
+			_enable_collision()
+			_spawn_collision_enabled = true
 
 	# Handle lifetime if set
 	if lifetime > 0:
@@ -192,3 +214,19 @@ func _play_kick_sound(impulse_strength: float) -> void:
 	# Use the shell rifle sound for casing kicks (similar metallic clink)
 	if audio_manager.has_method("play_shell_rifle"):
 		audio_manager.play_shell_rifle(global_position)
+
+
+## Disables collision shape to prevent physics interactions.
+## Used at spawn time to prevent pushing the player (Issue #392).
+func _disable_collision() -> void:
+	var collision_shape := get_node_or_null("CollisionShape2D") as CollisionShape2D
+	if collision_shape != null:
+		collision_shape.disabled = true
+
+
+## Enables collision shape after spawn delay.
+## Called after SPAWN_COLLISION_DELAY seconds to allow normal physics interactions.
+func _enable_collision() -> void:
+	var collision_shape := get_node_or_null("CollisionShape2D") as CollisionShape2D
+	if collision_shape != null:
+		collision_shape.disabled = false
