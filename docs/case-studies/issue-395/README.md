@@ -267,10 +267,130 @@ The combination of these bugs created a confusing situation where:
 - But the debug indicator showed the WRONG direction (due to coordinate system bug)
 - This made it appear like the rotation was wrong, when it was actually the visualization that was wrong
 
+---
+
+## Phase 3: Model vs Body Rotation Bug (February 3, 2026)
+
+### Problem Report
+
+After the Phase 2 fix, the debug indicator was STILL showing incorrect directions in some scenarios. The user continued to report that enemies were "sharply turning in the wrong direction."
+
+### Root Cause Analysis (Deep Dive)
+
+A careful analysis of the game log revealed that the **rotation calculations were mathematically correct**. For example, at line 219 of the game log:
+
+```
+[Enemy2] ROT_CHANGE: P5:idle_scan -> P2:memory, state=COMBAT, target=75.6°, ...
+```
+
+- Enemy2 at (400, 550), memory position at (483, 876)
+- Vector = (83, 326)
+- Expected angle = atan2(326, 83) = **75.6°** ✓
+
+The target angles were correct! So why was the visualization wrong?
+
+### The REAL Problem
+
+The Phase 2 fix used `rotation` (the CharacterBody2D's body rotation):
+
+```gdscript
+# Phase 2 code (STILL BUGGY):
+func _global_to_local_draw(global_offset: Vector2) -> Vector2:
+    return global_offset.rotated(-rotation)  # <-- WRONG rotation!
+```
+
+**BUT** the enemy's visual model rotates independently via `_enemy_model.global_rotation`!
+
+In Godot, a CharacterBody2D and its child nodes can have different rotations:
+- `rotation` = CharacterBody2D's body rotation (often 0 or set during priority attacks)
+- `_enemy_model.global_rotation` = The visual model's rotation (set by `_update_enemy_model_rotation()`)
+
+The `_update_enemy_model_rotation()` function at line 944 sets:
+```gdscript
+_enemy_model.global_rotation = target_angle  # Model rotation
+```
+
+But it does NOT always update the parent body's `rotation`. So:
+- When enemy hears a sound → model rotates toward sound via `_update_enemy_model_rotation()`
+- Body `rotation` stays at 0 or whatever it was before
+- `_global_to_local_draw()` uses `rotation` (0) instead of model rotation
+- Debug indicator points in completely wrong direction!
+
+### Evidence from Code
+
+Looking at line 4772-4773 in `_draw_fov_cone()`:
+```gdscript
+var global_facing := _enemy_model.global_rotation if _enemy_model else global_rotation
+var local_facing := global_facing - global_rotation  # Correctly uses model rotation!
+```
+
+The FOV cone already correctly used `_enemy_model.global_rotation`, but `_global_to_local_draw()` was using the wrong `rotation` property.
+
+### The Fix
+
+Changed `_global_to_local_draw()` to use `_enemy_model.global_rotation`:
+
+```gdscript
+## Convert global offset to local draw coords (Issue #395 Phase 3: use model rotation).
+## CRITICAL: The debug visualization must match the EnemyModel's visual rotation, NOT the
+## parent CharacterBody2D's rotation. The EnemyModel rotates independently via
+## _update_enemy_model_rotation(), while the parent body's rotation may lag behind or
+## stay at 0 in some states.
+func _global_to_local_draw(global_offset: Vector2) -> Vector2:
+    var model_rot := _enemy_model.global_rotation if _enemy_model else global_rotation
+    return global_offset.rotated(-model_rot)
+```
+
+### Visual Demonstration of the Bug
+
+```
+State: Enemy just heard a gunshot, model rotates to face sound
+
+EnemyModel.global_rotation = 75° (facing toward sound source)
+CharacterBody2D.rotation = 0° (not updated)
+
+Phase 2 (buggy):
+  _global_to_local_draw() uses rotation (0°)
+  → No counter-rotation applied
+  → Debug indicator shows global coordinates directly
+  → Appears to point ~75° away from where model is facing!
+
+Phase 3 (fixed):
+  _global_to_local_draw() uses _enemy_model.global_rotation (75°)
+  → Counter-rotates by -75°
+  → Debug indicator correctly aligns with model's visual facing direction
+```
+
+### Files Changed
+
+| File | Change |
+|------|--------|
+| `scripts/objects/enemy.gd` | Fixed `_global_to_local_draw()` to use `_enemy_model.global_rotation` |
+
+---
+
+## Conclusion (Updated)
+
+This issue had THREE bugs:
+
+1. **Rotation Priority Bug (Initial Fix):** Priority 2 rotation was using actual player position instead of memory/suspected position.
+
+2. **Coordinate System Bug (Phase 2):** The `_draw()` function was calculating positions in global coordinates but Godot's draw functions use local coordinates.
+
+3. **Wrong Rotation Reference Bug (Phase 3):** The coordinate conversion was using `rotation` (CharacterBody2D body) instead of `_enemy_model.global_rotation` (visual model rotation).
+
+The Phase 3 bug was particularly subtle because:
+- The rotation logic was working correctly (model faced right direction)
+- The coordinate conversion was applied (Phase 2 fix)
+- But it used the WRONG rotation value, causing indicators to appear wrong
+- This made it look like the rotation was buggy, when it was actually correct!
+
 ### Lessons Learned
 
 1. **Coordinate Systems:** Always be explicit about whether you're working in global or local coordinates, especially in `_draw()` functions.
 
 2. **Debug Tools Can Lie:** When debug visualization disagrees with expected behavior, verify the debug code itself before assuming the underlying logic is wrong.
 
-3. **Multiple Rotations:** In Godot, CharacterBody2D can have BOTH a body `rotation` AND a child model `global_rotation`. These are independent and affect different things.
+3. **Multiple Rotations:** In Godot, CharacterBody2D can have BOTH a body `rotation` AND a child model `global_rotation`. These are independent and affect different things. **Always verify which rotation you're using and why.**
+
+4. **Test Assumptions:** When math appears correct but behavior is wrong, trace through exactly which variable values are being used. The "obvious" variable may not be the right one.
