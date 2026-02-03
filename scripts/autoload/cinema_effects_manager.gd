@@ -9,7 +9,7 @@ extends Node
 ##
 ## The effect can be enabled/disabled and parameters can be adjusted at runtime.
 ##
-## ARCHITECTURE (v5.1):
+## ARCHITECTURE (v5.2):
 ## This manager uses an OVERLAY-BASED approach that does NOT use hint_screen_texture.
 ## This avoids known bugs in Godot's gl_compatibility renderer that cause white screens.
 ## Instead of sampling the screen and modifying it, we create transparent overlays
@@ -25,14 +25,20 @@ extends Node
 ## - Moved end of reel effect to top-left corner as requested
 ## - Increased grain intensity from 0.07 to 0.10
 ## - Reduced micro speck probability for rare appearance
+##
+## v5.2 FIXES (Issue #431 feedback):
+## - Moved end of reel (white circle) to TOP-RIGHT corner
+## - Added expanding death spots that grow and multiply over time
+## - Made white specks/motes much more visible (larger size, higher intensity)
+## - Increased grain intensity further to 0.15
 
 # ============================================================================
 # DEFAULT VALUES
 # ============================================================================
 
 ## Default grain intensity (0.0 = no grain, 0.5 = maximum)
-## Issue #431: Increased from 0.07 to 0.10 for more visible grain
-const DEFAULT_GRAIN_INTENSITY: float = 0.10
+## Issue #431 feedback: Increased from 0.10 to 0.15 for even more visible grain
+const DEFAULT_GRAIN_INTENSITY: float = 0.15
 
 ## Default warm color tint (slightly warm/golden)
 const DEFAULT_WARM_COLOR: Color = Color(1.0, 0.95, 0.85)
@@ -62,12 +68,12 @@ const DEFAULT_DUST_INTENSITY: float = 0.5
 const DEFAULT_FLICKER_INTENSITY: float = 0.03
 
 ## Default micro scratch (now micro specks/dots) intensity
-## Issue #431: Slightly reduced for subtlety
-const DEFAULT_MICRO_SCRATCH_INTENSITY: float = 0.35
+## Issue #431 feedback: Increased from 0.35 to 0.7 for visibility
+const DEFAULT_MICRO_SCRATCH_INTENSITY: float = 0.7
 
 ## Default micro scratch (now micro specks/dots) probability
-## Issue #431: Reduced from 0.03 to 0.015 for rare appearance
-const DEFAULT_MICRO_SCRATCH_PROBABILITY: float = 0.015
+## Issue #431 feedback: Increased from 0.015 to 0.04 for more frequent appearance
+const DEFAULT_MICRO_SCRATCH_PROBABILITY: float = 0.04
 
 ## Default cigarette burn size
 const DEFAULT_CIGARETTE_BURN_SIZE: float = 0.15
@@ -109,12 +115,15 @@ var _end_of_reel_timer: float = 0.0
 ## Duration for end of reel effect.
 var _end_of_reel_duration: float = DEFAULT_END_OF_REEL_DURATION
 
+## Time tracker for death spots animation (Issue #431).
+var _death_spots_timer: float = 0.0
+
 ## Reference to the current player node (for death signal connection).
 var _player_ref: Node = null
 
 
 func _ready() -> void:
-	_log("CinemaEffectsManager initializing (v5.0 - overlay approach with death effects)...")
+	_log("CinemaEffectsManager initializing (v5.2 - overlay approach with enhanced death effects)...")
 
 	# Connect to scene tree changes to handle scene reloads
 	get_tree().tree_changed.connect(_on_tree_changed)
@@ -153,15 +162,15 @@ func _ready() -> void:
 	# Perform shader warmup to prevent first-frame stutter (Issue #343 pattern)
 	_warmup_shader()
 
-	_log("Cinema film effect initialized (v5.0) - Configuration:")
+	_log("Cinema film effect initialized (v5.2) - Configuration:")
 	_log("  Approach: Overlay-based (no screen_texture)")
 	_log("  Grain intensity: %.2f" % DEFAULT_GRAIN_INTENSITY)
 	_log("  Warm tint: %.2f intensity" % DEFAULT_WARM_INTENSITY)
 	_log("  Sunny effect: %.2f intensity" % DEFAULT_SUNNY_INTENSITY)
 	_log("  Vignette: %.2f intensity" % DEFAULT_VIGNETTE_INTENSITY)
 	_log("  Film defects: %.1f%% probability" % (DEFAULT_DEFECT_PROBABILITY * 100.0))
-	_log("  Micro scratches: %.2f intensity, %.1f%% probability" % [DEFAULT_MICRO_SCRATCH_INTENSITY, DEFAULT_MICRO_SCRATCH_PROBABILITY * 100.0])
-	_log("  Death effects: cigarette burn + end of reel (activated on player death)")
+	_log("  White specks: %.2f intensity, %.1f%% probability" % [DEFAULT_MICRO_SCRATCH_INTENSITY, DEFAULT_MICRO_SCRATCH_PROBABILITY * 100.0])
+	_log("  Death effects: cigarette burn + expanding spots + end of reel (top-right)")
 
 	# Start delayed activation - minimal delay needed since we don't use screen_texture
 	_waiting_for_activation = true
@@ -192,10 +201,12 @@ func _process(delta: float) -> void:
 				_cinema_rect.visible = true
 				_log("Cinema effect now enabled (after %d frames delay)" % ACTIVATION_DELAY_FRAMES)
 
-	# Handle death effects animation (end of reel countdown)
+	# Handle death effects animation (end of reel countdown + expanding spots)
 	if _death_effects_active and _material:
 		_end_of_reel_timer += delta
+		_death_spots_timer += delta
 		_material.set_shader_parameter("end_of_reel_time", _end_of_reel_timer)
+		_material.set_shader_parameter("death_spots_time", _death_spots_timer)
 
 		# Animate cigarette burn intensity (fade in over 0.5 seconds)
 		var burn_intensity := clamp(_end_of_reel_timer / 0.5, 0.0, 1.0)
@@ -204,6 +215,10 @@ func _process(delta: float) -> void:
 		# Animate end of reel intensity (fade in over 0.3 seconds)
 		var reel_intensity := clamp(_end_of_reel_timer / 0.3, 0.0, 1.0)
 		_material.set_shader_parameter("end_of_reel_intensity", reel_intensity)
+
+		# Animate death spots intensity (fade in over 0.5 seconds, stays at full)
+		var spots_intensity := clamp(_death_spots_timer / 0.5, 0.0, 1.0)
+		_material.set_shader_parameter("death_spots_intensity", spots_intensity)
 
 
 ## Sets all shader parameters to default values.
@@ -247,6 +262,10 @@ func _set_default_parameters() -> void:
 		_material.set_shader_parameter("end_of_reel_enabled", false)
 		_material.set_shader_parameter("end_of_reel_intensity", 0.0)
 		_material.set_shader_parameter("end_of_reel_time", 0.0)
+		# Death spots (Issue #431 - expanding spots that multiply)
+		_material.set_shader_parameter("death_spots_enabled", false)
+		_material.set_shader_parameter("death_spots_intensity", 0.0)
+		_material.set_shader_parameter("death_spots_time", 0.0)
 
 
 ## Enables or disables the entire cinema effect.
@@ -462,28 +481,31 @@ func set_micro_scratch_probability(probability: float) -> void:
 # DEATH EFFECTS CONTROLS (cigarette burn + end of reel)
 # ============================================================================
 
-## Triggers the death effects (cigarette burn + end of reel countdown).
+## Triggers the death effects (cigarette burn + expanding spots + end of reel).
 ## Call this when the player dies to show the cinematic death sequence.
 func trigger_death_effects() -> void:
 	if not _material:
 		return
 
-	_log("Death effects triggered - starting cigarette burn and end of reel")
+	_log("Death effects triggered - starting cigarette burn, expanding spots, and end of reel (top-right)")
 	_death_effects_active = true
 	_end_of_reel_timer = 0.0
+	_death_spots_timer = 0.0
 
 	# Generate random position for cigarette burn (biased toward center-ish area)
 	var burn_x := 0.3 + randf() * 0.4  # 0.3 to 0.7
 	var burn_y := 0.3 + randf() * 0.4  # 0.3 to 0.7
 	_material.set_shader_parameter("cigarette_burn_position", Vector2(burn_x, burn_y))
 
-	# Enable both death effects
+	# Enable all death effects
 	_material.set_shader_parameter("cigarette_burn_enabled", true)
 	_material.set_shader_parameter("end_of_reel_enabled", true)
+	_material.set_shader_parameter("death_spots_enabled", true)
 
 	# Start with zero intensity (will animate in _process)
 	_material.set_shader_parameter("cigarette_burn_intensity", 0.0)
 	_material.set_shader_parameter("end_of_reel_intensity", 0.0)
+	_material.set_shader_parameter("death_spots_intensity", 0.0)
 
 
 ## Stops and resets the death effects.
@@ -495,13 +517,17 @@ func reset_death_effects() -> void:
 	_log("Death effects reset")
 	_death_effects_active = false
 	_end_of_reel_timer = 0.0
+	_death_spots_timer = 0.0
 
-	# Disable both death effects
+	# Disable all death effects
 	_material.set_shader_parameter("cigarette_burn_enabled", false)
 	_material.set_shader_parameter("cigarette_burn_intensity", 0.0)
 	_material.set_shader_parameter("end_of_reel_enabled", false)
 	_material.set_shader_parameter("end_of_reel_intensity", 0.0)
 	_material.set_shader_parameter("end_of_reel_time", 0.0)
+	_material.set_shader_parameter("death_spots_enabled", false)
+	_material.set_shader_parameter("death_spots_intensity", 0.0)
+	_material.set_shader_parameter("death_spots_time", 0.0)
 
 
 ## Returns whether death effects are currently active.

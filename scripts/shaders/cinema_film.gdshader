@@ -1,10 +1,11 @@
 shader_type canvas_item;
 
 // ============================================================================
-// CINEMA FILM EFFECT SHADER v5.1
+// CINEMA FILM EFFECT SHADER v5.2
 // Simulates vintage film look with grain, warm tones, and film defects
 // v5.0: Added micro scratches, cigarette burn, and end of reel death effects
-// v5.1: Issue #431 fixes - increased grain, realistic micro dots, death effects in left corner
+// v5.1: Issue #431 fixes - increased grain, realistic micro dots, death effects
+// v5.2: Issue #431 feedback - top-right corner, expanding spots, visible specks
 //
 // APPROACH: OVERLAY-BASED (no screen_texture)
 // This shader creates visual overlays that blend on top of the rendered scene
@@ -21,8 +22,8 @@ shader_type canvas_item;
 // ============================================================================
 
 // --- Film Grain Parameters ---
-// Increased from 0.07 to 0.10 per Issue #431 request for more grain
-uniform float grain_intensity : hint_range(0.0, 0.5) = 0.10;
+// Issue #431: Increased from 0.07 to 0.15 for more visible grain
+uniform float grain_intensity : hint_range(0.0, 0.5) = 0.15;
 uniform bool grain_enabled = true;
 
 // --- Warm/Sunny Color Tint Parameters ---
@@ -48,11 +49,12 @@ uniform float dust_intensity : hint_range(0.0, 1.0) = 0.5;
 uniform float flicker_intensity : hint_range(0.0, 0.3) = 0.03;
 
 // --- Micro Specks/Dots Parameters (tiny dust-like particles on old film) ---
-// Issue #431: Changed to small dots instead of scratches, appearing rarely
+// Issue #431: White specks/motes like dust on old film - now more visible
 uniform bool micro_scratches_enabled = true;
-uniform float micro_scratch_intensity : hint_range(0.0, 1.0) = 0.35;
-// Reduced probability from 0.03 to 0.015 for rare appearance as requested
-uniform float micro_scratch_probability : hint_range(0.0, 0.2) = 0.015;
+// Increased intensity from 0.35 to 0.7 for visibility
+uniform float micro_scratch_intensity : hint_range(0.0, 1.0) = 0.7;
+// Increased probability from 0.015 to 0.04 for more frequent appearance
+uniform float micro_scratch_probability : hint_range(0.0, 0.2) = 0.04;
 
 // --- Death Effects Parameters ---
 // Cigarette burn: circular burn mark that appears on death
@@ -62,9 +64,16 @@ uniform vec2 cigarette_burn_position = vec2(0.5, 0.5);
 uniform float cigarette_burn_size : hint_range(0.0, 0.5) = 0.15;
 
 // End of reel: flickering countdown effect in the corner on death
+// Issue #431: Position changed to top-RIGHT corner as requested
 uniform bool end_of_reel_enabled = false;
 uniform float end_of_reel_intensity : hint_range(0.0, 1.0) = 0.0;
 uniform float end_of_reel_time : hint_range(0.0, 10.0) = 0.0;
+
+// --- Expanding Death Spots Parameters ---
+// Issue #431: Spots that gradually expand and multiply on death
+uniform bool death_spots_enabled = false;
+uniform float death_spots_intensity : hint_range(0.0, 1.0) = 0.0;
+uniform float death_spots_time : hint_range(0.0, 10.0) = 0.0;
 
 
 // ============================================================================
@@ -154,18 +163,19 @@ float projector_flicker(float time_val) {
 
 // ============================================================================
 // MICRO SCRATCHES (small dots/specks like on old film, Issue #431)
-// Changed from line scratches to small dot/speck particles that appear
-// rarely and briefly, simulating dust and tiny defects on vintage film.
+// White/light specks (motes) like dust particles on vintage film.
+// Issue #431 feedback: Made more visible with larger size and higher intensity.
 // ============================================================================
 
 // Generate small dots/specks (tiny particles like dust on old film)
+// Returns: positive values for white specks, negative for dark specks
 float micro_scratches(vec2 uv, float time_val) {
 	float scratch_total = 0.0;
-	// Slower frame rate for more stable appearance (8fps instead of 12fps)
-	float frame = floor(time_val * 8.0) + 1.0;
+	// Frame rate for appearance changes
+	float frame = floor(time_val * 6.0) + 1.0;
 
-	// Generate multiple tiny dot specks (like dust particles on old film)
-	for (int i = 0; i < 6; i++) {
+	// Generate multiple specks (like white dust/motes on old film)
+	for (int i = 0; i < 10; i++) {
 		float seed = float(i) * 73.156 + 1.0;
 		float scratch_seed = hash(vec2(frame + seed, frame * 0.3 + seed));
 
@@ -176,22 +186,21 @@ float micro_scratches(vec2 uv, float time_val) {
 			// Distance from current pixel to speck center
 			float dist = length(uv - speck_pos);
 
-			// Very small dot size (about 1-2px = 0.001 to 0.002 in UV space)
-			// Randomize size slightly for natural look
-			float speck_size = 0.001 + hash(vec2(seed + 0.5, frame + 0.5)) * 0.0015;
+			// Larger dot size for visibility (3-6px = 0.003 to 0.006 in UV space)
+			float speck_size = 0.003 + hash(vec2(seed + 0.5, frame + 0.5)) * 0.003;
 
-			// Create soft-edged tiny dot
+			// Create soft-edged dot
 			float speck = 1.0 - smoothstep(0.0, speck_size, dist);
 
-			// Some specks are lighter (white dust), some darker (dark specks)
-			// This creates more variety like real film artifacts
+			// Most specks are white (like dust motes in projector light)
+			// Some specks are dark (like film imperfections)
 			float brightness_var = hash(vec2(seed + 0.9, frame + 0.9));
-			if (brightness_var > 0.7) {
-				// Bright speck (white dust particle)
-				scratch_total = max(scratch_total, speck * 0.5);
+			if (brightness_var > 0.3) {
+				// White/bright speck (dust motes in light) - more common
+				scratch_total = max(scratch_total, speck * 0.8);
 			} else {
-				// Dark speck (tiny dark particle)
-				scratch_total = max(scratch_total, speck * 0.4);
+				// Dark speck (film imperfection) - less common
+				scratch_total = max(scratch_total, speck * 0.5);
 			}
 		}
 	}
@@ -253,11 +262,12 @@ vec3 cigarette_burn_color(vec2 uv, vec2 center, float size) {
 }
 
 // End of reel effect - flickering countdown markers in corner
+// Issue #431 feedback: Changed to top-RIGHT corner
 float end_of_reel(vec2 uv, float intensity, float time_val, float reel_time) {
 	if (intensity <= 0.0) return 0.0;
 
-	// Position in top-left corner (as per Issue #431 request)
-	vec2 corner = vec2(0.15, 0.15);
+	// Position in top-RIGHT corner (Issue #431 feedback)
+	vec2 corner = vec2(0.85, 0.15);
 	float corner_size = 0.12;
 
 	vec2 to_corner = uv - corner;
@@ -295,6 +305,72 @@ float end_of_reel(vec2 uv, float intensity, float time_val, float reel_time) {
 	float pulse = 0.5 + 0.5 * sin(reel_time * 6.28318);
 
 	return markers * intensity * flicker * pulse;
+}
+
+
+// ============================================================================
+// EXPANDING DEATH SPOTS (Issue #431)
+// Dark spots that gradually expand and multiply when player dies,
+// simulating film damage/burning spreading across the frame.
+// ============================================================================
+
+float death_spots(vec2 uv, float intensity, float time_val) {
+	if (intensity <= 0.0) return 0.0;
+
+	float spots_total = 0.0;
+
+	// Number of spots increases over time (starts with 2, grows to 8)
+	int num_spots = int(2.0 + time_val * 2.0);
+	num_spots = min(num_spots, 8);
+
+	for (int i = 0; i < 8; i++) {
+		if (i >= num_spots) break;
+
+		float seed = float(i) * 37.891 + 1.0;
+
+		// Each spot has a fixed position based on seed
+		vec2 spot_pos = hash2(vec2(seed + 0.3, seed * 0.7 + 0.5));
+
+		// Distance from current pixel to spot center
+		float dist = length(uv - spot_pos);
+
+		// Spot size grows over time
+		// Each spot starts appearing at different times (staggered)
+		float spot_delay = float(i) * 0.3;
+		float spot_time = max(0.0, time_val - spot_delay);
+
+		// Base size + growth over time (starts small, grows larger)
+		float base_size = 0.02 + hash(vec2(seed + 0.1, 0.1)) * 0.03;
+		float growth_rate = 0.015 + hash(vec2(seed + 0.2, 0.2)) * 0.01;
+		float spot_size = base_size + spot_time * growth_rate;
+		spot_size = min(spot_size, 0.15); // Cap maximum size
+
+		// Create irregular edges for organic look
+		float edge_noise = hash(uv * 30.0 + vec2(seed, spot_time)) * 0.3;
+		float norm_dist = dist / spot_size;
+		norm_dist += edge_noise * 0.2;
+
+		// Dark center with charred edges
+		float spot = 1.0 - smoothstep(0.0, 1.0, norm_dist);
+
+		// Pulsing/flickering effect
+		float pulse = 0.8 + 0.2 * sin(time_val * 3.0 + seed);
+
+		spots_total = max(spots_total, spot * pulse);
+	}
+
+	return spots_total * intensity;
+}
+
+// Get color for death spots (dark charred appearance)
+vec3 death_spots_color(vec2 uv, float time_val) {
+	// Dark brown/black charred color
+	vec3 center_color = vec3(0.02, 0.01, 0.005);
+	vec3 edge_color = vec3(0.15, 0.08, 0.02);
+
+	// Slight variation based on position
+	float variation = hash(uv * 20.0);
+	return mix(center_color, edge_color, variation * 0.5);
 }
 
 
@@ -392,13 +468,24 @@ void fragment() {
 		}
 	}
 
-	// End of reel countdown effect
+	// End of reel countdown effect (white circle in top-right corner)
 	if (end_of_reel_enabled && end_of_reel_intensity > 0.0) {
 		float reel = end_of_reel(UV, end_of_reel_intensity, TIME, end_of_reel_time);
 		if (reel > 0.0) {
-			vec3 reel_color = vec3(0.1, 0.08, 0.05); // Dark film leader color
+			// White/light color for the reel marker circle
+			vec3 reel_color = vec3(0.95, 0.92, 0.88);
 			overlay.rgb = mix(overlay.rgb, reel_color, reel);
-			overlay.a = max(overlay.a, reel * 0.8);
+			overlay.a = max(overlay.a, reel * 0.9);
+		}
+	}
+
+	// Expanding death spots (Issue #431 - spots that grow and multiply)
+	if (death_spots_enabled && death_spots_intensity > 0.0) {
+		float spots = death_spots(UV, death_spots_intensity, death_spots_time);
+		if (spots > 0.0) {
+			vec3 spots_color = death_spots_color(UV, death_spots_time);
+			overlay.rgb = mix(overlay.rgb, spots_color, spots);
+			overlay.a = max(overlay.a, spots * 0.95);
 		}
 	}
 
