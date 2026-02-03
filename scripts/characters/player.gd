@@ -1349,6 +1349,10 @@ func _handle_grenade_input() -> void:
 	if experimental_settings and experimental_settings.has_method("is_complex_grenade_throwing"):
 		use_complex_throwing = experimental_settings.is_complex_grenade_throwing()
 
+	# Debug log once per state change to track mode (logged once when state changes)
+	if _grenade_state == GrenadeState.IDLE and (Input.is_action_just_pressed("grenade_throw") or Input.is_action_just_pressed("grenade_prepare")):
+		FileLogger.info("[Player.Grenade] Mode check: complex=%s, settings_node=%s" % [use_complex_throwing, experimental_settings != null])
+
 	if use_complex_throwing:
 		# Complex 3-step throwing mechanic
 		match _grenade_state:
@@ -1367,6 +1371,16 @@ func _handle_grenade_input() -> void:
 				_handle_simple_grenade_idle_state()
 			GrenadeState.SIMPLE_AIMING:
 				_handle_simple_grenade_aiming_state()
+			_:
+				# If we're in a complex-mode state but simple mode is now enabled,
+				# reset to allow starting fresh (handles mode switch mid-throw)
+				if _grenade_state in [GrenadeState.TIMER_STARTED, GrenadeState.WAITING_FOR_G_RELEASE, GrenadeState.AIMING]:
+					FileLogger.info("[Player.Grenade] Mode mismatch: resetting from complex state %d to IDLE" % _grenade_state)
+					if _active_grenade != null and is_instance_valid(_active_grenade):
+						# Drop the grenade if we have one
+						_drop_grenade_at_feet()
+					else:
+						_reset_grenade_state()
 
 
 ## Handle IDLE state: waiting for G + RMB drag right to start timer.
@@ -2543,8 +2557,10 @@ func _draw_trajectory_with_bounces(spawn_pos: Vector2, direction: Vector2, speed
 		draw_line(landing_pos + Vector2(-cross_size, 0), landing_pos + Vector2(cross_size, 0), color_landing, 3.0)
 		draw_line(landing_pos + Vector2(0, -cross_size), landing_pos + Vector2(0, cross_size), color_landing, 3.0)
 
-		# Draw effect radius
+		# Draw effect radius at landing position
 		var effect_radius := 200.0
+		if _active_grenade != null and is_instance_valid(_active_grenade) and _active_grenade.has_method("_get_effect_radius"):
+			effect_radius = _active_grenade._get_effect_radius()
 		_draw_circle_outline(landing_pos, effect_radius, color_radius, 2.0)
 
 

@@ -165,7 +165,6 @@ enum BehaviorMode {
 @export var grenade_throw_delay: float = 0.4  ## Delay before throw (sec)
 @export var grenade_debug_logging: bool = false  ## Grenade debug logging
 
-
 signal hit  ## Enemy hit
 signal died  ## Enemy died
 signal died_with_info(is_ricochet_kill: bool, is_penetration_kill: bool)  ## Death with kill info
@@ -386,12 +385,8 @@ var _last_known_player_position: Vector2 = Vector2.ZERO
 ## Pursuing vulnerability sound (reload/empty click) without line of sight.
 var _pursuing_vulnerability_sound: bool = false
 
-## --- Enemy Memory System (Issue #297) ---
-## Tracks suspected player position with confidence (0.0=none, 1.0=visual contact).
-## The memory influences AI behavior:
-## - High confidence (>0.8): Direct pursuit to suspected position
-## - Medium confidence (0.5-0.8): Cautious approach with cover checks
-## - Low confidence (<0.5): Return to patrol/guard behavior
+## Enemy Memory System (Issue #297): Tracks suspected player position with confidence.
+## High (>0.8)=direct pursuit, Medium (0.5-0.8)=cautious, Low (<0.5)=return to patrol.
 var _memory: EnemyMemory = null
 
 ## Confidence values for different detection sources.
@@ -1069,7 +1064,6 @@ func _push_casings() -> void:
 			var push_strength := velocity.length() * CASING_PUSH_FORCE / 100.0
 			collider.receive_kick(push_dir * push_strength)
 
-
 ## Update suppression state.
 func _update_suppression(delta: float) -> void:
 	# Clean up destroyed bullets from tracking
@@ -1346,10 +1340,7 @@ func _process_idle_state(delta: float) -> void:
 		BehaviorMode.GUARD:
 			_process_guard(delta)
 
-## Process COMBAT state - combat cycle: exit cover -> exposed shooting -> return to cover.
-## Phase 1 (approaching): Move toward player to get into direct contact range.
-## Phase 2 (exposed): Stand and shoot for 2-3 seconds.
-## Phase 3: Return to cover via SEEKING_COVER state.
+## Process COMBAT state - cycle: approach->exposed shooting (2-3s)->return to cover via SEEKING_COVER.
 func _process_combat_state(delta: float) -> void:
 	# Track time in COMBAT state (for preventing rapid state thrashing)
 	_combat_state_timer += delta
@@ -1626,12 +1617,7 @@ func _process_seeking_cover_state(_delta: float) -> void:
 		_shoot()
 		_shoot_timer = 0.0
 
-## Process IN_COVER state - taking cover from enemy fire.
-## Decides next action based on:
-## 1. If under fire -> suppressed
-## 2. If player is close (can exit cover for direct contact) -> COMBAT
-## 3. If player is far but can hit from current position -> COMBAT (stay and shoot)
-## 4. If player is far and can't hit -> PURSUING (move cover-to-cover)
+## Process IN_COVER state. Under fire->suppressed, close->COMBAT, far+can hit->stay and shoot, far+can't hit->PURSUING.
 func _process_in_cover_state(delta: float) -> void:
 	velocity = Vector2.ZERO
 
@@ -3063,12 +3049,8 @@ func _count_enemies_in_combat() -> int:
 func is_in_combat_engagement() -> bool:
 	return _can_see_player and _current_state in [AIState.COMBAT, AIState.IN_COVER, AIState.ASSAULT]
 
-## Find cover position closer to the player for pursuit.
-## Used during PURSUING state to move cover-to-cover toward the player.
-## Improvements for issue #93:
-## - Penalizes covers on the same obstacle to avoid shuffling along walls
-## - Requires minimum progress toward player to skip insignificant moves
-## - Verifies the path to cover is clear (no walls blocking)
+## Find cover closer to player for PURSUING state. Penalizes same-obstacle covers, requires min progress,
+## verifies clear path (Issue #93).
 func _find_pursuit_cover_toward_player() -> void:
 	# Use memory-based target position instead of direct player position (Issue #297)
 	# This allows pursuing toward a suspected position even when player is not visible
@@ -4992,7 +4974,6 @@ func _update_grenade_world_state() -> void:
 	_goap_world_state["grenades_remaining"] = g.grenades_remaining
 	_goap_world_state["ready_to_throw_grenade"] = g.is_ready(_can_see_player, _under_fire, _current_health)
 
-
 ## Attempt to throw a grenade. Returns true if throw was initiated.
 func try_throw_grenade() -> bool:
 	if _grenade_component == null:
@@ -5005,7 +4986,6 @@ func try_throw_grenade() -> bool:
 	if result:
 		grenade_thrown.emit(null, target)  # Signal with target; actual grenade emitted by component
 	return result
-
 
 ## Get the number of grenades remaining.
 func get_grenades_remaining() -> int:
