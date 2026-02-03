@@ -88,6 +88,9 @@ var _is_alive: bool = true
 ## Legacy reference for compatibility (points to body sprite).
 @onready var _sprite: Sprite2D = $PlayerModel/Body
 
+## Reference to the casing pusher area (for pushing shell casings when walking over them).
+@onready var _casing_pusher: Area2D = $CasingPusher
+
 ## Progressive spread system parameters.
 ## Number of shots before spread starts increasing.
 const SPREAD_THRESHOLD: int = 3
@@ -99,6 +102,8 @@ const SPREAD_INCREMENT: float = 0.6
 const MAX_SPREAD: float = 4.0
 ## Time in seconds for spread to reset after stopping fire.
 const SPREAD_RESET_TIME: float = 0.25
+## Force to apply to casings when pushed by player (Issue #392).
+const CASING_PUSH_FORCE: float = 50.0
 
 ## Current number of consecutive shots.
 var _shot_count: int = 0
@@ -317,6 +322,9 @@ func _physics_process(delta: float) -> void:
 		velocity = velocity.move_toward(Vector2.ZERO, friction * delta)
 
 	move_and_slide()
+
+	# Push any casings we're overlapping with (Issue #392)
+	_push_casings()
 
 	# Update player model rotation to face the aim direction (rifle direction)
 	_update_player_model_rotation()
@@ -2206,3 +2214,26 @@ func _draw_circle_outline(center: Vector2, radius: float, color: Color, width: f
 		var next_point := center + Vector2(cos(angle), sin(angle)) * radius
 		draw_line(prev_point, next_point, color, width)
 		prev_point = next_point
+
+
+## Push casings that we're overlapping with (Issue #392).
+## Uses an Area2D to detect casings without blocking player movement.
+## Casings should be pushed by the player but should not affect player movement.
+func _push_casings() -> void:
+	if _casing_pusher == null:
+		return
+
+	# Only push if we're moving
+	if velocity.length_squared() < 1.0:
+		return
+
+	# Get all overlapping bodies (casings are RigidBody2D on layer 7)
+	var overlapping_bodies := _casing_pusher.get_overlapping_bodies()
+	for body in overlapping_bodies:
+		# Check if this is a casing (RigidBody2D with receive_kick method)
+		if body is RigidBody2D and body.has_method("receive_kick"):
+			# Calculate push direction based on player movement
+			var push_dir := velocity.normalized()
+			var push_strength := velocity.length() * CASING_PUSH_FORCE / 100.0
+			var impulse := push_dir * push_strength
+			body.receive_kick(impulse)
