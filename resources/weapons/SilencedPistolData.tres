@@ -6,7 +6,7 @@
 [resource]
 script = ExtResource("1_script")
 Name = "Silenced Pistol"
-Damage = 5.0
+Damage = 10.0
 FireRate = 8.0
 MagazineSize = 13
 MaxReserveAmmo = 26

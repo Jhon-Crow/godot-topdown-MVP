@@ -4075,16 +4075,20 @@ func _on_threat_area_entered(area: Area2D) -> void:
 func _on_threat_area_exited(area: Area2D) -> void:
 	_bullets_in_threat_sphere.erase(area)
 
-## Called when the enemy is hit (by bullet.gd).
+## Apply damage to the enemy (IDamageable interface for C# Bullet). Primary entry point for C# bullets.
+func take_damage(amount: float) -> void:
+	on_hit_with_bullet_info(Vector2.RIGHT, null, false, false, amount)
+
+## Called when the enemy is hit (by bullet.gd). Default damage = 1.
 func on_hit() -> void:
 	on_hit_with_info(Vector2.RIGHT, null)
 
 ## Called when the enemy is hit with extended hit information.
 func on_hit_with_info(hit_direction: Vector2, caliber_data: Resource) -> void:
-	on_hit_with_bullet_info(hit_direction, caliber_data, false, false)
+	on_hit_with_bullet_info(hit_direction, caliber_data, false, false, 1.0)
 
-## Called when the enemy is hit with full bullet information.
-func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has_ricocheted: bool, has_penetrated: bool) -> void:
+## Called when enemy is hit with full bullet information. @param damage: Damage amount (default 1.0).
+func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has_ricocheted: bool, has_penetrated: bool, damage: float = 1.0) -> void:
 	if not _is_alive:
 		return
 
@@ -4093,23 +4097,18 @@ func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has
 	# Store hit direction for death animation
 	_last_hit_direction = hit_direction
 
-	# Turn toward attacker: the attacker is in the opposite direction of the bullet travel
-	# This makes the enemy face where the shot came from
+	# Turn toward attacker (opposite direction of bullet travel)
 	var attacker_direction := -hit_direction.normalized()
 	if attacker_direction.length_squared() > 0.01:
 		_force_model_to_face_direction(attacker_direction)
 		_log_debug("Hit reaction: turning toward attacker (direction: %s)" % attacker_direction)
-
 	# Track hits for retreat behavior
 	_hits_taken_in_encounter += 1
 	_log_debug("Hit taken! Total hits in encounter: %d" % _hits_taken_in_encounter)
-	_log_to_file("Hit taken, health: %d/%d" % [_current_health - 1, _max_health])
-
-	# Show hit flash effect
+	var actual_damage: int = maxi(int(round(damage)), 1)  # Calculate damage (min 1)
+	_log_to_file("Hit taken, damage: %d, health: %d/%d -> %d/%d" % [actual_damage, _current_health, _max_health, _current_health - actual_damage, _max_health])
 	_show_hit_flash()
-
-	# Apply damage
-	_current_health -= 1
+	_current_health -= actual_damage  # Apply damage
 
 	# Play appropriate hit sound and spawn visual effects
 	var audio_manager: Node = get_node_or_null("/root/AudioManager")
