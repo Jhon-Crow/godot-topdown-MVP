@@ -4923,6 +4923,10 @@ func _setup_grenade_avoidance() -> void:
 	# Enemies should only react to grenades they can see (not through walls).
 	if _raycast:
 		_grenade_avoidance.set_raycast(_raycast)
+	# Issue #426: Pass FOV parameters for field-of-view checks.
+	# Enemies should only react to grenades within their vision cone (not behind them).
+	if _enemy_model:
+		_grenade_avoidance.set_fov_parameters(_enemy_model, fov_angle, fov_enabled)
 
 func _update_grenade_danger_detection() -> void:
 	if _grenade_avoidance: _grenade_avoidance.update()

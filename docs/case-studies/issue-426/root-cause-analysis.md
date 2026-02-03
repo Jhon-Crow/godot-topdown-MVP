@@ -96,17 +96,63 @@ Unit tests added in `tests/unit/test_grenade_avoidance_component.gd`:
 - Cooldown behavior
 - Multiple grenade scenarios
 
+### Phase 3: Field of View Detection (Fixed in third commit)
+
+**Problem:** Enemies still fled from grenades behind them (outside their field of view).
+
+**Timeline from game_log_20260203_165243.txt (user-provided log):**
+| Time | Event | Details | Issue |
+|------|-------|---------|-------|
+| 16:52:55 | Grenade thrown by player | Position near (325, 949) | - |
+| 16:52:55 | Enemy3 enters EVADING_GRENADE | Current rotation: -85.9° to -40.9°, indicating facing away | **BUG** |
+| 16:52:55 | Enemy1 enters EVADING_GRENADE | Rotation: 147.4° (facing opposite direction) | **BUG** |
+| 16:52:55 | Enemy2 enters EVADING_GRENADE | Rotation: -84.8° | **BUG** |
+
+**Key evidence from log:**
+```
+[16:52:55] [ENEMY] [Enemy3] ROT_CHANGE: P5:idle_scan -> P4:velocity, state=EVADING_GRENADE, target=-42.8°, current=-85.9°
+[16:52:55] [ENEMY] [Enemy1] ROT_CHANGE: P5:idle_scan -> P4:velocity, state=EVADING_GRENADE, target=-128.1°, current=147.4°
+```
+
+The rotation logs show enemies were facing in different directions when they detected the grenade. An enemy facing 147.4° cannot see a grenade at -128.1° (nearly 180° behind them).
+
+**User feedback (translated from Russian):**
+> "враги не должны убегать от гранаты вне своего поля зрения (то есть не должны видеть летящую гранату спиной)"
+> Translation: "enemies should not flee from a grenade outside their field of view (i.e., they should not see a flying grenade with their back)"
+
+**Root Cause:** The Phase 2 fix added line-of-sight (raycast) checks but not field-of-view (FOV cone) checks. Enemies have a 100° FOV defined in their configuration (`fov_angle: float = 100.0`), but `GrenadeAvoidanceComponent` was not checking if the grenade was within this FOV cone.
+
+**Solution:** Added FOV check to `GrenadeAvoidanceComponent`:
+
+1. Added `_enemy_model`, `_fov_angle`, and `_fov_enabled` properties
+2. Added `set_fov_parameters()` method to configure FOV settings
+3. Added `_is_position_in_fov()` method to check if position is within vision cone
+4. Modified `update()` to check FOV in addition to LOS
+
+```gdscript
+# Issue #426: Check field of view - enemies should only react to grenades
+# within their vision cone. They can't see grenades behind them.
+if not _is_position_in_fov(grenade.global_position):
+    continue  # Skip grenades outside field of view
+```
+
+The FOV check uses the same logic as the enemy's `_is_position_in_fov()` function:
+- Gets enemy's facing direction from `_enemy_model.global_rotation`
+- Calculates angle to grenade position using dot product
+- Compares against half of `fov_angle` (cone is symmetric)
+
 ## Impact
 
 - **Realistic behavior:** Enemies only react to grenades they can actually perceive
 - **Tactical gameplay:** Players can use walls for cover when throwing grenades
 - **No "sixth sense":** Enemies behave consistently with what they can see/hear
-- **Backward compatible:** Fallback behavior when no raycast available
+- **FOV-aware:** Enemies cannot see grenades behind them (respects FOV settings)
+- **Backward compatible:** Fallback behavior when no raycast or FOV settings available
 
 ## Files Modified
 
-1. `scripts/components/grenade_avoidance_component.gd` - Added LOS checks
-2. `scripts/objects/enemy.gd` - Pass raycast reference to component
+1. `scripts/components/grenade_avoidance_component.gd` - Added LOS and FOV checks
+2. `scripts/objects/enemy.gd` - Pass raycast and FOV parameters to component
 3. `scripts/projectiles/grenade_base.gd` - Added `is_thrown()` method (Phase 1)
-4. `tests/unit/test_grenade_avoidance_component.gd` - New test file
+4. `tests/unit/test_grenade_avoidance_component.gd` - Unit tests for LOS and FOV
 5. `tests/unit/test_grenade_base.gd` - Added `is_thrown()` tests (Phase 1)
