@@ -289,3 +289,115 @@ func reset() -> void:
 	most_dangerous_grenade = null
 	_grenades_in_range.clear()
 	_exit_cooldown = 0.0
+	# Issue #426: Clear remembered grenade position
+	_remembered_grenade_position = Vector2.ZERO
+	_remembered_grenade_time = 0.0
+
+
+# ============================================================================
+# Issue #426: Grenade Sound Detection and Position Memory
+# ============================================================================
+
+## Issue #426: Remembered grenade position from sound detection.
+## Enemies can hear grenades land nearby and remember their position to flee to safety.
+var _remembered_grenade_position: Vector2 = Vector2.ZERO
+
+## Issue #426: Timestamp when grenade position was remembered (for expiration).
+var _remembered_grenade_time: float = 0.0
+
+## Issue #426: How long to remember a grenade position (seconds). After this time, the memory expires.
+const GRENADE_MEMORY_DURATION: float = 5.0
+
+## Issue #426: Extra buffer distance for guaranteed safe escape (on top of effect_radius + safety_margin).
+const SAFE_DISTANCE_BUFFER: float = 100.0
+
+
+## Issue #426: Get remembered grenade position (if still valid).
+## @returns: Remembered position, or Vector2.ZERO if expired/not set.
+func get_remembered_grenade_position() -> Vector2:
+	if _remembered_grenade_position == Vector2.ZERO:
+		return Vector2.ZERO
+	var current_time := Time.get_ticks_msec() / 1000.0
+	if current_time - _remembered_grenade_time >= GRENADE_MEMORY_DURATION:
+		# Memory expired
+		_remembered_grenade_position = Vector2.ZERO
+		return Vector2.ZERO
+	return _remembered_grenade_position
+
+
+## Issue #426: Store grenade position from heard sound.
+## @param position: Position where grenade landed.
+func remember_grenade_position(position: Vector2) -> void:
+	_remembered_grenade_position = position
+	_remembered_grenade_time = Time.get_ticks_msec() / 1000.0
+
+
+## Issue #426: Clear remembered grenade position.
+func clear_remembered_position() -> void:
+	_remembered_grenade_position = Vector2.ZERO
+	_remembered_grenade_time = 0.0
+
+
+## Issue #426: Calculate guaranteed safe distance from a grenade position.
+## @param grenade_position: Position of the grenade.
+## @param grenade_node: Optional grenade node to get effect radius from.
+## @returns: Safe distance in pixels.
+func get_safe_distance(grenade_node: Node2D = null) -> float:
+	var effect_radius: float = 225.0  # Default grenade effect radius
+	if grenade_node and grenade_node.has_method("_get_effect_radius"):
+		effect_radius = grenade_node._get_effect_radius()
+	return effect_radius + safety_margin + SAFE_DISTANCE_BUFFER
+
+
+## Issue #426: Check if enemy is at guaranteed safe distance from remembered grenade.
+## @returns: True if at safe distance, false otherwise.
+func is_at_safe_distance() -> bool:
+	if _enemy == null:
+		return true
+	var grenade_pos := get_remembered_grenade_position()
+	if grenade_pos == Vector2.ZERO:
+		# No remembered position - check most dangerous grenade
+		if most_dangerous_grenade and is_instance_valid(most_dangerous_grenade):
+			grenade_pos = most_dangerous_grenade.global_position
+		else:
+			return true  # No grenade to flee from
+	var distance := _enemy.global_position.distance_to(grenade_pos)
+	var safe_dist := get_safe_distance(most_dangerous_grenade)
+	return distance >= safe_dist
+
+
+## Issue #426: Trigger evasion from heard sound (bypasses visual detection).
+## @param grenade_position: Position where grenade was heard landing.
+## @param grenade_node: Optional grenade node.
+## @returns: True if evasion was triggered, false if outside danger zone.
+func trigger_evasion_from_sound(grenade_position: Vector2, grenade_node: Node2D = null) -> bool:
+	if _enemy == null:
+		return false
+
+	# Store the position for memory-based evasion
+	remember_grenade_position(grenade_position)
+
+	# Calculate if we're within the grenade's danger zone
+	var effect_radius: float = 225.0
+	if grenade_node and grenade_node.has_method("_get_effect_radius"):
+		effect_radius = grenade_node._get_effect_radius()
+	var danger_radius: float = effect_radius + safety_margin
+	var distance_to_grenade := _enemy.global_position.distance_to(grenade_position)
+
+	# Only trigger evasion if we're within the danger zone
+	if distance_to_grenade >= danger_radius:
+		return false
+
+	# Calculate escape direction (away from grenade)
+	var escape_direction := (_enemy.global_position - grenade_position).normalized()
+	if escape_direction.length() < 0.1:
+		escape_direction = Vector2.RIGHT.rotated(randf() * TAU)
+
+	# Calculate safe distance for evasion target
+	var safe_distance := get_safe_distance(grenade_node)
+
+	# Set evasion target at safe distance from grenade
+	evasion_target = grenade_position + escape_direction * safe_distance
+	in_danger_zone = true
+
+	return true
