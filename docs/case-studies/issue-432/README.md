@@ -769,6 +769,61 @@ The complete solution now handles all identified export issues:
 
 **Key Insight Update**: Even GDScript property access via `Get()` can fail silently in exports, not just method calls. Critical configuration values should have type-based C# fallbacks.
 
+### Ninth Investigation (User Feedback #9)
+
+**Analysis of Game Logs (`logs/game_log_20260204_003107.txt`, `logs/game_log_20260204_003240.txt`):**
+
+User reported three new issues:
+
+1. **"гильзы дробовика должны быть со звуком гильз дробовика"** - Shotgun shell casings should have shotgun casing sounds (not rifle sounds)
+2. **"обновись из main чтобы враги реагировали на гранаты"** - Update from main so enemies react to grenades
+3. **"светошумовая граната не влияет на врагов"** - Flashbang grenade doesn't affect enemies
+
+**Root Cause Analysis:**
+
+**Issue 1: Shotgun casing sounds**
+The `casing.gd` script always used `play_shell_rifle()` for all casings, regardless of caliber type. The AudioManager already has `play_shell_shotgun()` and `play_shell_pistol()` methods, but they weren't being used.
+
+**Fix:** Modified `casing.gd` to:
+1. Check caliber name (buckshot = shotgun, 9x19/9mm = pistol, others = rifle)
+2. Play appropriate sound based on caliber type
+3. Apply this for both landing sounds and kick sounds
+
+**Issue 2: Enemies not reacting to grenades**
+The branch was behind main, missing commits for Issue #426 and #450 which added:
+- `GrenadeAvoidanceComponent` for enemies
+- Sound propagation for grenade landing
+- Enemy fleeing from grenade landing positions
+
+**Fix:** Merged main branch into issue branch.
+
+**Issue 3: Flashbang not affecting enemies**
+The logs showed:
+```
+[GrenadeTimer] Applied flashbang to enemy at distance 259,1 (intensity: 0,35)
+[GrenadeTimer] Applied flashbang to enemy at distance 187,4 (intensity: 0,53)
+```
+
+The C# code was calling `enemy.Call("apply_flashbang_effect", ...)` but this method didn't exist on the enemy!
+- Enemy has `set_stunned(bool)` and `set_blinded(bool)`
+- But NOT `apply_flashbang_effect(duration, duration)` or `stun(duration)`
+
+The C# `HasMethod()` check was passing (likely returning false for `apply_flashbang_effect`) and falling through to `stun()` check which also didn't exist, so no effect was applied.
+
+**Fix:** Added to `enemy.gd`:
+1. Timer variables `_blindness_timer` and `_stun_timer`
+2. `apply_flashbang_effect(blindness_duration, stun_duration)` method
+3. `_update_flashbang_timers(delta)` called from `_physics_process()`
+
+This allows the C# `GrenadeTimer` to properly apply flashbang effects with duration-based auto-clearing.
+
+**Files Modified:**
+- `scripts/effects/casing.gd` - Caliber-based sound selection for landing and kick
+- `scripts/objects/enemy.gd` - Added flashbang effect timer system
+
+**Additional Merge:**
+- Merged main branch for enemy grenade avoidance (Issue #426, #450)
+
 ## References
 
 - [Godot RigidBody2D Documentation](https://docs.godotengine.org/en/stable/classes/class_rigidbody2d.html)
