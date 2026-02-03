@@ -270,6 +270,57 @@ After investigating the v2.0 shader, several potential causes were identified:
 **Game Logs Analyzed**:
 - `game_log_20260203_154430.txt` - Shows game loading normally but CinemaEffectsManager initialization logs are missing, indicating potential script loading issues or shader compilation problems.
 
+### Version 2.2 (Persistent White Screen Fix)
+
+**Issue Reported**: White screen persists after v2.1 fix; no CinemaEffectsManager logs in game output.
+
+**Root Cause Analysis**:
+
+After analyzing the new game log (`game_log_20260203_160817.txt`), the root cause was identified:
+
+1. **Render timing issue**: The cinema effect shader samples `screen_texture` (what's already been rendered). If the shader is visible BEFORE the scene renders, it samples an empty/white framebuffer.
+
+2. **Always-on effect timing**: Unlike other effect managers (HitEffectsManager, LastChanceEffectsManager) that only show their overlays temporarily, the CinemaEffectsManager keeps its overlay always visible. This creates a timing problem at startup and scene changes.
+
+3. **No delayed activation**: The shader was being made visible immediately after warmup, before the actual game scene had rendered. The `hint_screen_texture` sampled an empty white buffer, causing the white screen.
+
+**Research Sources**:
+- [Godot Forum: hint_screen_texture empty texture](https://forum.godotengine.org/t/why-is-hint-screen-texture-giving-an-empty-texture/120012) - Explains that screen_texture captures what's ALREADY rendered before the current object.
+- [Godot GitHub Issue #69885](https://github.com/godotengine/godot/issues/69885) - White rectangle rendering issue with ShaderMaterial.
+
+**Fixes Applied**:
+
+1. **Added delayed activation**: The cinema effect now waits 3 frames before becoming visible, ensuring the scene has fully rendered.
+
+2. **Start with overlay hidden**: Changed from starting visible to starting hidden, matching the pattern used by other effect managers.
+
+3. **Re-delay on scene changes**: When the scene changes, the effect temporarily hides and re-enables after a delay to ensure the new scene renders first.
+
+4. **Added comprehensive logging**: The manager now outputs detailed logs to FileLogger for better debugging.
+
+**Key Code Changes**:
+
+```gdscript
+# New constants
+const ACTIVATION_DELAY_FRAMES: int = 3
+
+# New state variables
+var _activation_frame_counter: int = 0
+var _waiting_for_activation: bool = false
+
+# Process function for delayed activation
+func _process(_delta: float) -> void:
+    if _waiting_for_activation:
+        _activation_frame_counter += 1
+        if _activation_frame_counter >= ACTIVATION_DELAY_FRAMES:
+            _waiting_for_activation = false
+            if _is_active:
+                _cinema_rect.visible = true
+```
+
+**Game Logs Added for Debugging**:
+- `game_log_20260203_160817.txt` - Added to case study folder for reference.
+
 ## Implementation Notes
 
 ### Performance Considerations

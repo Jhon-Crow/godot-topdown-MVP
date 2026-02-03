@@ -65,7 +65,20 @@ var _is_active: bool = true
 var _material: ShaderMaterial = null
 
 
+## Number of frames to wait before enabling the effect.
+## This ensures the scene has fully rendered before applying the shader.
+const ACTIVATION_DELAY_FRAMES: int = 3
+
+## Counter for delayed activation.
+var _activation_frame_counter: int = 0
+
+## Whether we're waiting to activate the effect.
+var _waiting_for_activation: bool = false
+
+
 func _ready() -> void:
+	_log("CinemaEffectsManager initializing...")
+
 	# Connect to scene tree changes to handle scene reloads
 	get_tree().tree_changed.connect(_on_tree_changed)
 
@@ -74,6 +87,7 @@ func _ready() -> void:
 	_effects_layer.name = "CinemaEffectsLayer"
 	_effects_layer.layer = 99  # Below hit effects (100) but above UI
 	add_child(_effects_layer)
+	_log("Created effects layer at layer 99")
 
 	# Create full-screen overlay
 	_cinema_rect = ColorRect.new()
@@ -88,20 +102,51 @@ func _ready() -> void:
 		_material.shader = shader
 		_set_default_parameters()
 		_cinema_rect.material = _material
+		_log("Cinema shader loaded and applied successfully")
 	else:
 		push_warning("CinemaEffectsManager: Could not load cinema_film shader")
+		_log("WARNING: Could not load cinema_film shader!")
 
+	# CRITICAL: Start with overlay HIDDEN to prevent white screen
+	# The shader will be enabled after the scene renders
+	_cinema_rect.visible = false
 	_effects_layer.add_child(_cinema_rect)
 
 	# Perform shader warmup to prevent first-frame stutter (Issue #343 pattern)
 	_warmup_shader()
 
-	print("[CinemaEffectsManager] Cinema film effect initialized - Configuration:")
-	print("[CinemaEffectsManager]   Grain intensity: %.2f" % DEFAULT_GRAIN_INTENSITY)
-	print("[CinemaEffectsManager]   Warm tint: %.2f intensity" % DEFAULT_WARM_INTENSITY)
-	print("[CinemaEffectsManager]   Sunny effect: %.2f intensity" % DEFAULT_SUNNY_INTENSITY)
-	print("[CinemaEffectsManager]   Vignette: %.2f intensity" % DEFAULT_VIGNETTE_INTENSITY)
-	print("[CinemaEffectsManager]   Film defects: %.1f%% probability" % (DEFAULT_DEFECT_PROBABILITY * 100.0))
+	_log("Cinema film effect initialized - Configuration:")
+	_log("  Grain intensity: %.2f" % DEFAULT_GRAIN_INTENSITY)
+	_log("  Warm tint: %.2f intensity" % DEFAULT_WARM_INTENSITY)
+	_log("  Sunny effect: %.2f intensity" % DEFAULT_SUNNY_INTENSITY)
+	_log("  Vignette: %.2f intensity" % DEFAULT_VIGNETTE_INTENSITY)
+	_log("  Film defects: %.1f%% probability" % (DEFAULT_DEFECT_PROBABILITY * 100.0))
+
+	# Start delayed activation - wait for scene to render
+	_waiting_for_activation = true
+	_activation_frame_counter = 0
+	_log("Waiting %d frames before enabling effect..." % ACTIVATION_DELAY_FRAMES)
+
+
+## Log a message with the CinemaEffects prefix.
+func _log(message: String) -> void:
+	var logger: Node = get_node_or_null("/root/FileLogger")
+	if logger and logger.has_method("log_info"):
+		logger.log_info("[CinemaEffects] " + message)
+	else:
+		print("[CinemaEffects] " + message)
+
+
+## Process function for delayed activation.
+func _process(_delta: float) -> void:
+	# Handle delayed activation to ensure scene has rendered before enabling effect
+	if _waiting_for_activation:
+		_activation_frame_counter += 1
+		if _activation_frame_counter >= ACTIVATION_DELAY_FRAMES:
+			_waiting_for_activation = false
+			if _is_active:
+				_cinema_rect.visible = true
+				_log("Cinema effect now enabled (after %d frames delay)" % ACTIVATION_DELAY_FRAMES)
 
 
 ## Sets all shader parameters to default values.
@@ -141,7 +186,13 @@ func _set_default_parameters() -> void:
 ## Enables or disables the entire cinema effect.
 func set_enabled(enabled: bool) -> void:
 	_is_active = enabled
-	_cinema_rect.visible = enabled
+	if enabled:
+		# Use delayed activation when enabling to prevent white screen
+		_start_delayed_activation()
+	else:
+		# Disable immediately
+		_cinema_rect.visible = false
+		_waiting_for_activation = false
 
 
 ## Returns whether the effect is currently enabled.
@@ -342,7 +393,8 @@ func set_flicker_intensity(intensity: float) -> void:
 func reset_to_defaults() -> void:
 	_set_default_parameters()
 	_is_active = true
-	_cinema_rect.visible = true
+	# Trigger delayed activation instead of immediate enable
+	_start_delayed_activation()
 
 
 ## Tracks the previous scene root to detect scene changes.
@@ -355,8 +407,19 @@ func _on_tree_changed() -> void:
 	var current_scene := get_tree().current_scene
 	if current_scene != null and current_scene != _previous_scene_root:
 		_previous_scene_root = current_scene
-		# Keep the effect active across scene changes
-		# The effect settings persist as this is an autoload
+		_log("Scene changed to: %s" % current_scene.name)
+		# Re-trigger delayed activation on scene changes
+		# This ensures the new scene has rendered before enabling the effect
+		if _is_active:
+			_start_delayed_activation()
+
+
+## Starts the delayed activation process.
+## Hides the overlay and waits for the scene to render before showing it.
+func _start_delayed_activation() -> void:
+	_cinema_rect.visible = false
+	_waiting_for_activation = true
+	_activation_frame_counter = 0
 
 
 ## Performs warmup to pre-compile the cinema shader.
@@ -365,7 +428,7 @@ func _warmup_shader() -> void:
 	if _cinema_rect == null or _cinema_rect.material == null:
 		return
 
-	print("[CinemaEffectsManager] Starting cinema shader warmup...")
+	_log("Starting cinema shader warmup (Issue #343 fix)...")
 	var start_time := Time.get_ticks_msec()
 
 	# Ensure shader is visible briefly to trigger compilation
@@ -374,5 +437,9 @@ func _warmup_shader() -> void:
 	# Wait one frame to ensure GPU processes and compiles the shader
 	await get_tree().process_frame
 
+	# CRITICAL: Hide the overlay after warmup
+	# It will be re-enabled by delayed activation
+	_cinema_rect.visible = false
+
 	var elapsed := Time.get_ticks_msec() - start_time
-	print("[CinemaEffectsManager] Cinema shader warmup complete in %d ms" % elapsed)
+	_log("Cinema shader warmup complete in %d ms" % elapsed)
