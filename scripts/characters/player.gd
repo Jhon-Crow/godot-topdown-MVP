@@ -624,6 +624,12 @@ func _shoot() -> void:
 	# Add bullet to the scene tree (parent's parent to avoid it being a child of player)
 	get_tree().current_scene.add_child(bullet)
 
+	# Spawn muzzle flash effect at bullet spawn position
+	var impact_effects: Node = get_node_or_null("/root/ImpactEffectsManager")
+	if impact_effects and impact_effects.has_method("spawn_muzzle_flash"):
+		var muzzle_pos := global_position + shoot_direction * bullet_spawn_offset
+		impact_effects.spawn_muzzle_flash(muzzle_pos, shoot_direction)
+
 	# Play shooting sound
 	var audio_manager: Node = get_node_or_null("/root/AudioManager")
 	if audio_manager and audio_manager.has_method("play_m16_shot"):

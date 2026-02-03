@@ -2387,24 +2387,18 @@ func _shoot_with_inaccuracy() -> void:
 	# Set shooter position for distance-based penetration calculation
 	bullet.shooter_position = bullet_spawn_pos
 	get_tree().current_scene.add_child(bullet)
-
+	_spawn_muzzle_flash(bullet_spawn_pos, direction)
 	# Play sounds
 	var audio_manager: Node = get_node_or_null("/root/AudioManager")
 	if audio_manager and audio_manager.has_method("play_m16_shot"):
 		audio_manager.play_m16_shot(global_position)
-
 	# Emit gunshot sound for in-game sound propagation (alerts other enemies)
-	# Uses weapon_loudness to determine propagation range
 	var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
 	if sound_propagation and sound_propagation.has_method("emit_sound"):
 		sound_propagation.emit_sound(0, global_position, 1, self, weapon_loudness)  # 0 = GUNSHOT, 1 = ENEMY
-
 	_play_delayed_shell_sound()
-
-	# Consume ammo
-	_current_ammo -= 1
+	_current_ammo -= 1  # Consume ammo
 	ammo_changed.emit(_current_ammo, _reserve_ammo)
-
 	if _current_ammo <= 0 and _reserve_ammo > 0:
 		_start_reload()
 
@@ -2459,6 +2453,7 @@ func _shoot_burst_shot() -> void:
 	# Set shooter position for distance-based penetration calculation
 	bullet.shooter_position = bullet_spawn_pos
 	get_tree().current_scene.add_child(bullet)
+	_spawn_muzzle_flash(bullet_spawn_pos, direction)
 
 	# Play sounds
 	var audio_manager: Node = get_node_or_null("/root/AudioManager")
@@ -3888,9 +3883,8 @@ func _shoot() -> void:
 
 	# Add bullet to the scene tree
 	get_tree().current_scene.add_child(bullet)
-
-	# Spawn casing if casing scene is set
-	_spawn_casing(direction, weapon_forward)
+	_spawn_muzzle_flash(bullet_spawn_pos, direction)
+	_spawn_casing(direction, weapon_forward)  # Spawn casing if set
 
 	# Play shooting sound
 	var audio_manager: Node = get_node_or_null("/root/AudioManager")
@@ -3913,6 +3907,10 @@ func _shoot() -> void:
 	# Auto-reload when magazine is empty
 	if _current_ammo <= 0 and _reserve_ammo > 0:
 		_start_reload()
+
+func _spawn_muzzle_flash(p: Vector2, d: Vector2) -> void:
+	var m = get_node_or_null("/root/ImpactEffectsManager")
+	if m: m.spawn_muzzle_flash(p, d)
 
 ## Play shell casing sound with a delay to simulate the casing hitting the ground.
 func _play_delayed_shell_sound() -> void:
