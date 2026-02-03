@@ -1,25 +1,56 @@
 extends Node
 ## Autoload singleton for managing cinema film effects.
 ##
-## Provides a screen-wide film grain and warm color tint effect
-## that simulates a vintage/cinematic look.
+## Provides a screen-wide film effect that simulates a vintage/cinematic look including:
+## - Film grain (without ripple/wave artifacts)
+## - Warm/sunny color tint
+## - Vignette effect
+## - Rare film defects (scratches, dust, flicker)
 ##
 ## The effect can be enabled/disabled and parameters can be adjusted at runtime.
 
+# ============================================================================
+# DEFAULT VALUES
+# ============================================================================
+
 ## Default grain intensity (0.0 = no grain, 0.5 = maximum)
-const DEFAULT_GRAIN_INTENSITY: float = 0.05
+const DEFAULT_GRAIN_INTENSITY: float = 0.04
 
-## Default grain animation speed
-const DEFAULT_GRAIN_SPEED: float = 15.0
-
-## Default warm color tint (slightly warm/sepia)
-const DEFAULT_WARM_COLOR: Color = Color(1.0, 0.9, 0.7)
+## Default warm color tint (slightly warm/golden)
+const DEFAULT_WARM_COLOR: Color = Color(1.0, 0.95, 0.85)
 
 ## Default warm tint intensity (0.0 = no tint, 1.0 = full tint)
-const DEFAULT_WARM_INTENSITY: float = 0.15
+const DEFAULT_WARM_INTENSITY: float = 0.12
 
 ## Default brightness
-const DEFAULT_BRIGHTNESS: float = 1.0
+const DEFAULT_BRIGHTNESS: float = 1.05
+
+## Default contrast
+const DEFAULT_CONTRAST: float = 1.05
+
+## Default sunny effect intensity
+const DEFAULT_SUNNY_INTENSITY: float = 0.08
+
+## Default sunny highlight boost
+const DEFAULT_SUNNY_HIGHLIGHT_BOOST: float = 1.15
+
+## Default vignette intensity
+const DEFAULT_VIGNETTE_INTENSITY: float = 0.25
+
+## Default vignette softness
+const DEFAULT_VIGNETTE_SOFTNESS: float = 0.45
+
+## Default film defect probability (1.5% chance)
+const DEFAULT_DEFECT_PROBABILITY: float = 0.015
+
+## Default scratch intensity
+const DEFAULT_SCRATCH_INTENSITY: float = 0.6
+
+## Default dust intensity
+const DEFAULT_DUST_INTENSITY: float = 0.5
+
+## Default flicker intensity
+const DEFAULT_FLICKER_INTENSITY: float = 0.03
 
 ## The CanvasLayer for cinema effects.
 var _effects_layer: CanvasLayer = null
@@ -65,19 +96,46 @@ func _ready() -> void:
 	# Perform shader warmup to prevent first-frame stutter (Issue #343 pattern)
 	_warmup_shader()
 
-	print("[CinemaEffectsManager] Cinema film effect initialized")
+	print("[CinemaEffectsManager] Cinema film effect initialized - Configuration:")
+	print("[CinemaEffectsManager]   Grain intensity: %.2f" % DEFAULT_GRAIN_INTENSITY)
+	print("[CinemaEffectsManager]   Warm tint: %.2f intensity" % DEFAULT_WARM_INTENSITY)
+	print("[CinemaEffectsManager]   Sunny effect: %.2f intensity" % DEFAULT_SUNNY_INTENSITY)
+	print("[CinemaEffectsManager]   Vignette: %.2f intensity" % DEFAULT_VIGNETTE_INTENSITY)
+	print("[CinemaEffectsManager]   Film defects: %.1f%% probability" % (DEFAULT_DEFECT_PROBABILITY * 100.0))
 
 
 ## Sets all shader parameters to default values.
 func _set_default_parameters() -> void:
 	if _material:
+		# Grain parameters
 		_material.set_shader_parameter("grain_intensity", DEFAULT_GRAIN_INTENSITY)
-		_material.set_shader_parameter("grain_speed", DEFAULT_GRAIN_SPEED)
+		_material.set_shader_parameter("grain_enabled", true)
+
+		# Warm color parameters
 		_material.set_shader_parameter("warm_color", DEFAULT_WARM_COLOR)
 		_material.set_shader_parameter("warm_intensity", DEFAULT_WARM_INTENSITY)
-		_material.set_shader_parameter("brightness", DEFAULT_BRIGHTNESS)
-		_material.set_shader_parameter("grain_enabled", true)
 		_material.set_shader_parameter("warm_enabled", true)
+
+		# Sunny/bright effect parameters
+		_material.set_shader_parameter("sunny_intensity", DEFAULT_SUNNY_INTENSITY)
+		_material.set_shader_parameter("sunny_highlight_boost", DEFAULT_SUNNY_HIGHLIGHT_BOOST)
+		_material.set_shader_parameter("sunny_enabled", true)
+
+		# Vignette parameters
+		_material.set_shader_parameter("vignette_intensity", DEFAULT_VIGNETTE_INTENSITY)
+		_material.set_shader_parameter("vignette_softness", DEFAULT_VIGNETTE_SOFTNESS)
+		_material.set_shader_parameter("vignette_enabled", true)
+
+		# Brightness and contrast
+		_material.set_shader_parameter("brightness", DEFAULT_BRIGHTNESS)
+		_material.set_shader_parameter("contrast", DEFAULT_CONTRAST)
+
+		# Film defect parameters
+		_material.set_shader_parameter("defects_enabled", true)
+		_material.set_shader_parameter("defect_probability", DEFAULT_DEFECT_PROBABILITY)
+		_material.set_shader_parameter("scratch_intensity", DEFAULT_SCRATCH_INTENSITY)
+		_material.set_shader_parameter("dust_intensity", DEFAULT_DUST_INTENSITY)
+		_material.set_shader_parameter("flicker_intensity", DEFAULT_FLICKER_INTENSITY)
 
 
 ## Enables or disables the entire cinema effect.
@@ -103,13 +161,6 @@ func get_grain_intensity() -> float:
 	if _material:
 		return _material.get_shader_parameter("grain_intensity")
 	return DEFAULT_GRAIN_INTENSITY
-
-
-## Sets the grain animation speed.
-## @param speed: Higher values = faster grain animation
-func set_grain_speed(speed: float) -> void:
-	if _material:
-		_material.set_shader_parameter("grain_speed", max(speed, 0.0))
 
 
 ## Enables or disables just the grain effect.
@@ -157,6 +208,134 @@ func get_brightness() -> float:
 	if _material:
 		return _material.get_shader_parameter("brightness")
 	return DEFAULT_BRIGHTNESS
+
+
+## Sets the contrast level.
+## @param value: 1.0 = normal, <1.0 = lower contrast, >1.0 = higher contrast
+func set_contrast(value: float) -> void:
+	if _material:
+		_material.set_shader_parameter("contrast", clamp(value, 0.5, 2.0))
+
+
+## Gets the current contrast value.
+func get_contrast() -> float:
+	if _material:
+		return _material.get_shader_parameter("contrast")
+	return DEFAULT_CONTRAST
+
+
+# ============================================================================
+# SUNNY EFFECT CONTROLS
+# ============================================================================
+
+## Sets the sunny/golden highlight effect intensity.
+## @param intensity: Value from 0.0 (no sunny effect) to 0.5 (maximum)
+func set_sunny_intensity(intensity: float) -> void:
+	if _material:
+		_material.set_shader_parameter("sunny_intensity", clamp(intensity, 0.0, 0.5))
+
+
+## Gets the current sunny effect intensity.
+func get_sunny_intensity() -> float:
+	if _material:
+		return _material.get_shader_parameter("sunny_intensity")
+	return DEFAULT_SUNNY_INTENSITY
+
+
+## Sets the highlight boost for bright areas in sunny effect.
+## @param boost: Value from 1.0 (no boost) to 2.0 (double brightness)
+func set_sunny_highlight_boost(boost: float) -> void:
+	if _material:
+		_material.set_shader_parameter("sunny_highlight_boost", clamp(boost, 1.0, 2.0))
+
+
+## Enables or disables the sunny/golden highlight effect.
+func set_sunny_enabled(enabled: bool) -> void:
+	if _material:
+		_material.set_shader_parameter("sunny_enabled", enabled)
+
+
+# ============================================================================
+# VIGNETTE CONTROLS
+# ============================================================================
+
+## Sets the vignette (edge darkening) intensity.
+## @param intensity: Value from 0.0 (no vignette) to 1.0 (strong vignette)
+func set_vignette_intensity(intensity: float) -> void:
+	if _material:
+		_material.set_shader_parameter("vignette_intensity", clamp(intensity, 0.0, 1.0))
+
+
+## Gets the current vignette intensity.
+func get_vignette_intensity() -> float:
+	if _material:
+		return _material.get_shader_parameter("vignette_intensity")
+	return DEFAULT_VIGNETTE_INTENSITY
+
+
+## Sets the vignette softness (how gradual the edge darkening is).
+## @param softness: Value from 0.0 (sharp edges) to 1.0 (soft gradient)
+func set_vignette_softness(softness: float) -> void:
+	if _material:
+		_material.set_shader_parameter("vignette_softness", clamp(softness, 0.0, 1.0))
+
+
+## Enables or disables the vignette effect.
+func set_vignette_enabled(enabled: bool) -> void:
+	if _material:
+		_material.set_shader_parameter("vignette_enabled", enabled)
+
+
+# ============================================================================
+# FILM DEFECTS CONTROLS (scratches, dust, flicker)
+# ============================================================================
+
+## Enables or disables all film defect effects (scratches, dust, flicker).
+func set_defects_enabled(enabled: bool) -> void:
+	if _material:
+		_material.set_shader_parameter("defects_enabled", enabled)
+
+
+## Returns whether film defects are enabled.
+func is_defects_enabled() -> bool:
+	if _material:
+		return _material.get_shader_parameter("defects_enabled")
+	return true
+
+
+## Sets the probability of film defects appearing.
+## @param probability: Value from 0.0 (never) to 0.1 (10% chance per frame)
+func set_defect_probability(probability: float) -> void:
+	if _material:
+		_material.set_shader_parameter("defect_probability", clamp(probability, 0.0, 0.1))
+
+
+## Gets the current defect probability.
+func get_defect_probability() -> float:
+	if _material:
+		return _material.get_shader_parameter("defect_probability")
+	return DEFAULT_DEFECT_PROBABILITY
+
+
+## Sets the intensity of vertical scratch lines.
+## @param intensity: Value from 0.0 (invisible) to 1.0 (fully visible)
+func set_scratch_intensity(intensity: float) -> void:
+	if _material:
+		_material.set_shader_parameter("scratch_intensity", clamp(intensity, 0.0, 1.0))
+
+
+## Sets the intensity of dust particles.
+## @param intensity: Value from 0.0 (no dust) to 1.0 (dark dust)
+func set_dust_intensity(intensity: float) -> void:
+	if _material:
+		_material.set_shader_parameter("dust_intensity", clamp(intensity, 0.0, 1.0))
+
+
+## Sets the intensity of projector flicker effect.
+## @param intensity: Value from 0.0 (no flicker) to 0.3 (strong flicker)
+func set_flicker_intensity(intensity: float) -> void:
+	if _material:
+		_material.set_shader_parameter("flicker_intensity", clamp(intensity, 0.0, 0.3))
 
 
 ## Resets all parameters to defaults.
