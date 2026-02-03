@@ -199,9 +199,81 @@ Changed from single beep to ascending major arpeggio:
 
 ```
 2026-02-03 13:48:12 - Initial implementation committed
-2026-02-03 15:23:13 - Owner reports bugs in PR comment
-2026-02-03 17:53:33 - Fix session started
+2026-02-03 15:23:13 - Owner reports bugs in PR comment (statistics not visible, rank mispositioned)
+2026-02-03 17:53:33 - Fix session started (first fix attempt)
+2026-02-03 18:54:04 - Owner reports score still not appearing, out-of-ammo message persists
+2026-02-03 19:XX:XX - Second fix session: added comprehensive logging and ammo message fix
 ```
+
+## Bug Investigation Session 2 (2026-02-03 18:54)
+
+### Reported Issues
+
+From PR #430 comment by repository owner (in Russian):
+
+1. **"счёт не появляется"** (Score doesn't appear)
+2. **"если игрок не умер а все враги умерли - надпись о закончившихся патронах должна исчезнуть"**
+   (If the player didn't die and all enemies died - the message about running out of ammo should disappear)
+
+### Game Log Analysis
+
+Downloaded log: `logs/game_log_20260203_213919.txt` (4.2MB, 45289 lines)
+
+Key findings from log analysis:
+- **Line 45185**: `[ENEMY] [Enemy10] Player ammo empty: false -> true` - Player ran out of ammo
+- **Line 45229**: `[ENEMY] [Enemy10] Enemy died` - Last enemy killed
+- **Line 45235**: `[INFO] [ScoreManager] Level completed! Final score: 20630, Rank: C`
+- **No AnimatedScoreScreen logs** - The score screen component had no logging, making diagnosis difficult
+- Log ends at 21:53:09 with game still running (footsteps, player reloading) - no score screen visible
+
+### Root Cause Analysis
+
+**Issue 1: Score Screen Not Appearing**
+
+The AnimatedScoreScreen had no logging, making it impossible to trace execution.
+After adding comprehensive logging (`_log_debug()` function), we identified that:
+- The size initialization used `get_parent_area_size()` which may return zero
+- Changed to use `get_viewport_rect().size` for reliable sizing
+
+**Issue 2: "Out of Ammo" Message Persisting**
+
+The "OUT OF AMMO" message (GameOverLabel) was shown when player had no ammo remaining.
+When the player killed all enemies (possibly using the last bullet or ricochet), the
+GameOverLabel remained visible because:
+1. No code existed to remove it when the level was completed
+2. No flag prevented it from being shown after level completion
+
+**Fixes Applied:**
+
+1. Added `_level_completed` flag to `building_level.gd`:
+   ```gdscript
+   var _level_completed: bool = false
+   ```
+
+2. Set flag when level completes:
+   ```gdscript
+   func _complete_level_with_score() -> void:
+       _level_completed = true
+   ```
+
+3. Check flag before showing game over message:
+   ```gdscript
+   if _current_enemy_count > 0 and not _game_over_shown and not _level_completed:
+       _show_game_over_message()
+   ```
+
+4. Remove existing GameOverLabel when showing score screen:
+   ```gdscript
+   var game_over_label := ui.get_node_or_null("GameOverLabel")
+   if game_over_label:
+       game_over_label.queue_free()
+   ```
+
+5. Added comprehensive logging throughout:
+   - `AnimatedScoreScreen._ready()`: logs viewport size, Control size
+   - `AnimatedScoreScreen.show_score()`: logs score data, container creation
+   - `building_level._show_score_screen()`: logs UI node, script loading, child count
+   - `building_level._complete_level_with_score()`: logs level completion
 
 ## Related Resources
 
