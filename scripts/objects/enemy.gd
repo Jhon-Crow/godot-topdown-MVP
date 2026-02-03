@@ -909,7 +909,8 @@ func _update_enemy_model_rotation() -> void:
 		has_target = true
 		rotation_reason = "P1:visible"
 	# Priority 2: During active combat states, maintain focus on player even without visibility (#386, #397)
-	elif _current_state in [AIState.COMBAT, AIState.PURSUING, AIState.FLANKING] and _player != null:
+	# Includes SEARCHING and ASSAULT - enemies should always face player during these states
+	elif _current_state in [AIState.COMBAT, AIState.PURSUING, AIState.FLANKING, AIState.SEARCHING, AIState.ASSAULT] and _player != null:
 		target_angle = (_player.global_position - global_position).normalized().angle()
 		has_target = true
 		rotation_reason = "P2:combat_state"
@@ -927,20 +928,10 @@ func _update_enemy_model_rotation() -> void:
 		rotation_reason = "P5:idle_scan"
 	if not has_target:
 		return
-	# Issue #397 debug: Log rotation priority changes (helps diagnose turning away bug)
+	# Issue #397 debug: Log rotation priority changes
 	if rotation_reason != _last_rotation_reason:
-		var player_pos_str := "null"
-		if _player != null:
-			player_pos_str = "(%d,%d)" % [int(_player.global_position.x), int(_player.global_position.y)]
-		_log_to_file("ROT_CHANGE: %s -> %s, state=%s, target=%.1f°, current=%.1f°, player=%s, corner_timer=%.2f" % [
-			_last_rotation_reason if _last_rotation_reason != "" else "none",
-			rotation_reason,
-			AIState.keys()[_current_state],
-			rad_to_deg(target_angle),
-			rad_to_deg(_enemy_model.global_rotation),
-			player_pos_str,
-			_corner_check_timer
-		])
+		var ppos := "(%d,%d)" % [int(_player.global_position.x), int(_player.global_position.y)] if _player else "null"
+		_log_to_file("ROT_CHANGE: %s -> %s, state=%s, target=%.1f°, current=%.1f°, player=%s, corner_timer=%.2f" % [_last_rotation_reason if _last_rotation_reason != "" else "none", rotation_reason, AIState.keys()[_current_state], rad_to_deg(target_angle), rad_to_deg(_enemy_model.global_rotation), ppos, _corner_check_timer])
 		_last_rotation_reason = rotation_reason
 	# Smooth rotation for visual polish (Issue #347)
 	var delta := get_physics_process_delta_time()

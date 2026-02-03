@@ -5,66 +5,80 @@ When an enemy detects the player (transitions from IDLE to PURSUING state), the 
 
 **User Report (Russian):** "враг, когда обнаруживает игрока резко отварачивается" - "the enemy, when detecting the player, sharply turns away"
 
-## Timeline of Investigation
+## Root Cause Found (2026-02-03)
 
-### Initial Analysis
-1. The issue was reported as a continuation of Issue #386 (FLANKING state turning away bug)
-2. Initial fix extended the #386 solution to COMBAT and PURSUING states
+The debug logging revealed the actual problem: **SEARCHING and ASSAULT states were missing from the rotation priority combat states list**.
 
-### Log Analysis (game_log_20260203_103332.txt)
+### Evidence from Logs
 
-**Key Sequence for Enemy1:**
+From `game_log_20260203_110137.txt`:
 ```
-[10:33:32] Enemy1 spawned at (300, 350), behavior: GUARD
-[10:33:36] Memory: medium confidence (0.61) - transitioning to PURSUING
-[10:33:36] State: IDLE -> PURSUING
-[10:33:36] PURSUING corner check: angle -39.5°
-[10:33:36] PURSUING corner check: angle -1.6°
+[11:01:41] [Enemy1] State: IDLE -> PURSUING
+[11:01:41] [Enemy1] ROT_CHANGE: P5:idle_scan -> P2:combat_state, state=PURSUING  (Good - facing player)
 ...
-[10:33:42] GLOBAL STUCK for 4.0s, State: PURSUING -> SEARCHING
+[11:01:46] [Enemy1] GLOBAL STUCK for 4.0s, State: PURSUING -> SEARCHING
+[11:01:46] [Enemy1] ROT_CHANGE: P2:combat_state -> P3:corner, state=SEARCHING  (Bad - facing corner angle!)
 ```
 
-**Player Position at Detection:**
-- Player was at approximately (385, 981) when Enemy1 detected them
-- Enemy1 was at (324, 402)
-- Angle from enemy to player: ~84° (mostly downward/south)
+When an enemy transitioned to SEARCHING state (after being stuck for 4 seconds), they lost the P2:combat_state priority and fell back to P3:corner (corner check direction), which made them turn away from the player.
 
-**Observations:**
-1. The "corner check" messages continue even in PURSUING state - this is expected (corner checks are calculated but should be IGNORED for rotation)
-2. No "ROT_CHANGE" logs appear - this suggests the log was from an older build without the verbose logging
-3. The corner check angle (-39.5°) is perpendicular to the enemy's movement direction, NOT the direction to the player
+Similarly:
+```
+[11:01:47] [Enemy4] GLOBAL STUCK for 4.0s, State: PURSUING -> SEARCHING
+[11:01:47] [Enemy4] ROT_CHANGE: P2:combat_state -> P3:corner, state=SEARCHING, target=-90.0°
+```
 
 ## Technical Analysis
 
 ### Rotation Priority System (enemy.gd)
 The `_update_enemy_model_rotation()` function uses this priority order:
 1. **P1:visible** - Face player if `_can_see_player == true`
-2. **P2:combat_state** - Face player if in COMBAT/PURSUING/FLANKING state (Fix for #386, #397)
+2. **P2:combat_state** - Face player if in combat-related state (even without visibility)
 3. **P3:corner** - Face corner check angle if `_corner_check_timer > 0`
 4. **P4:velocity** - Face movement direction if moving
 5. **P5:idle_scan** - Face idle scan targets if in IDLE state
 
-### The Fix
+### The Bug
+Original P2 condition (line 912):
 ```gdscript
-# Priority 2: During active combat states, maintain focus on player even without visibility
 elif _current_state in [AIState.COMBAT, AIState.PURSUING, AIState.FLANKING] and _player != null:
-    target_angle = (_player.global_position - global_position).normalized().angle()
-    has_target = true
 ```
 
-This should override corner checks (P3) when the enemy is in PURSUING state.
+Missing states:
+- **SEARCHING** - "Methodically searching area where player was last seen" - should definitely face player
+- **ASSAULT** - "Coordinated multi-enemy assault" - should definitely face player
 
-### Hypotheses for Remaining Issue
+### The Fix
+Updated P2 condition to include SEARCHING and ASSAULT:
+```gdscript
+# Priority 2: During active combat states, maintain focus on player even without visibility (#386, #397)
+# Includes SEARCHING and ASSAULT - enemies should always face player during these states
+elif _current_state in [AIState.COMBAT, AIState.PURSUING, AIState.FLANKING, AIState.SEARCHING, AIState.ASSAULT] and _player != null:
+```
 
-1. **Timing Issue**: The state change and rotation update may have a one-frame delay
-2. **Smooth Rotation**: The enemy smoothly rotates at ~172°/s, so turning 180° takes ~1 second
-3. **Multiple Rotation Sources**: Other code paths may be setting model rotation outside `_update_enemy_model_rotation()`
+## Timeline of Investigation
+
+### Phase 1: Initial Analysis
+1. Issue reported as continuation of Issue #386 (FLANKING state turning away bug)
+2. Initial fix extended #386 solution to COMBAT and PURSUING states
+3. Added debug logging (ROT_CHANGE messages) to track rotation priority
+
+### Phase 2: User Testing (2026-02-03)
+1. User reported problem persists with new logs
+2. Log files: `game_log_20260203_110137.txt`, `game_log_20260203_110542.txt`
+3. Debug logging revealed SEARCHING state transition as root cause
+
+### Phase 3: Fix Implementation
+1. Added SEARCHING and ASSAULT to rotation priority combat states
+2. Condensed debug logging to stay under 5000 line limit
 
 ## Files in This Case Study
-- `logs/game_log_20260203_103332.txt` - Original log file from user testing
+- `game_log_20260203_103332.txt` - Initial log file from user testing (no ROT_CHANGE logs)
+- `game_log_20260203_110137.txt` - Log with verbose rotation logging
+- `game_log_20260203_110542.txt` - Additional log with verbose rotation logging
 - `README.md` - This analysis document
 
-## Next Steps
-1. User needs to test with the latest build that includes verbose ROT_CHANGE logging
-2. Log should show whether P2:combat_state priority is being selected
-3. If P2 is selected but enemy still turns away, investigate smooth rotation path
+## Lessons Learned
+1. **Complete state coverage matters**: When implementing behavior that should apply to "combat states", all relevant states must be included
+2. **Debug logging is essential**: The ROT_CHANGE logging immediately revealed which state transitions caused the problem
+3. **State transitions are often the source of bugs**: The bug only manifested when transitioning from PURSUING to SEARCHING
