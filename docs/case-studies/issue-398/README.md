@@ -186,3 +186,85 @@ The user comment requested:
 All three issues have been addressed. The remaining issue is that the user needs to:
 1. Use a fresh build with the latest changes
 2. Press **only RMB** (not G) to use simple mode
+
+## Third Round of Testing (2026-02-03 11:19)
+
+### User Feedback
+- Game log: `game_log_20260203_111919.txt`
+- User reported: "не вижу прицела для простого метания. кажется вообще не работает." (I don't see the aiming for simple throwing. It seems to not work at all.)
+
+### Analysis of Third Log
+
+1. **Settings were correct at initialization**:
+   ```
+   [11:19:19] ExperimentalSettings initialized - FOV enabled: true, Complex grenade throwing: false
+   ```
+
+2. **User pressed G key (triggering complex mode)**:
+   ```
+   [11:19:20] [Player.Grenade] G pressed - starting grab animation
+   [11:19:20] [Player.Grenade] Step 1 started: G held, RMB pressed at (492.1165, 1235.3062)
+   ```
+
+3. **"Mode check" debug log did NOT appear**
+
+4. **User toggled the experimental setting multiple times**:
+   ```
+   [11:19:27] Complex grenade throwing enabled
+   [11:19:28] Complex grenade throwing disabled
+   [11:19:30] Complex grenade throwing enabled
+   [11:19:33] Complex grenade throwing disabled
+   ```
+
+### REAL Root Cause Discovery (2026-02-03 11:19)
+
+**CRITICAL FINDING**: The game uses a **C# Player** (`Scripts/Characters/Player.cs`), not the GDScript version (`scripts/characters/player.gd`).
+
+Evidence:
+- The log message `[Player.Grenade] G pressed - starting grab animation` at line 1754 exists only in `Player.cs`
+- The GDScript version (player.gd) was modified with simple mode, but the game's main levels use the C# version
+- The level files confirm this:
+  ```
+  scenes/levels/TestTier.tscn:
+  [ext_resource type="PackedScene" path="res://scenes/characters/csharp/Player.tscn" id="2_player"]
+  ```
+
+### The Fix
+
+**Commit 8a9991f**: Ported the entire simple grenade mode implementation from `player.gd` to `Player.cs`:
+
+1. Added `SimpleAiming` state to `GrenadeState` enum
+2. Added ExperimentalSettings check for complex/simple mode selection
+3. Implemented `HandleSimpleGrenadeIdleState()` - RMB triggers aiming
+4. Implemented `HandleSimpleGrenadeAimingState()` - shows trajectory preview
+5. Implemented `StartSimpleGrenadeAiming()` - creates grenade, starts timer
+6. Implemented `ThrowSimpleGrenade()` - calculates physics-based throw
+7. Updated `_Draw()` to show trajectory in simple mode (always visible)
+8. Added effect radius circle visualization
+9. Added debug logging for mode detection
+
+### Lessons Learned
+
+1. **Dual-language codebases require careful synchronization**: When implementing features, check if both GDScript and C# versions of classes exist and need updates.
+
+2. **Follow the scene references**: Always verify which script a scene is actually using by checking the `.tscn` files.
+
+3. **Log analysis is crucial**: The specific log message format (`[Player.Grenade] G pressed`) helped identify that the C# code path was being executed, not the GDScript path.
+
+4. **User logs are invaluable**: Without the game logs, this issue would have been much harder to diagnose.
+
+## Files Modified (Final)
+
+1. `Scripts/Characters/Player.cs` - Full simple grenade mode implementation (C# version)
+2. `scripts/characters/player.gd` - Debug logging and mode mismatch handling (GDScript version)
+3. `scripts/objects/enemy.gd` - Line count reduction for CI compliance
+
+## Final Test Plan
+
+- [x] C# build compiles successfully
+- [ ] Verify simple mode works: Hold RMB only (no G key) to aim, release to throw
+- [ ] Verify trajectory preview appears with effect radius circle
+- [ ] Verify effect radius circle matches grenade type (flashbang: 400px, frag: 225px)
+- [ ] Verify complex mode still works when enabled in experimental settings
+- [ ] Verify CI passes (all checks)
+- [ ] Check game log for new debug messages: `[Player.Grenade.Simple]`
