@@ -1,8 +1,9 @@
 shader_type canvas_item;
 
 // ============================================================================
-// CINEMA FILM EFFECT SHADER v4.0
+// CINEMA FILM EFFECT SHADER v5.0
 // Simulates vintage film look with grain, warm tones, and film defects
+// v5.0: Added micro scratches, cigarette burn, and end of reel death effects
 //
 // APPROACH: OVERLAY-BASED (no screen_texture)
 // This shader creates visual overlays that blend on top of the rendered scene
@@ -19,7 +20,7 @@ shader_type canvas_item;
 // ============================================================================
 
 // --- Film Grain Parameters ---
-uniform float grain_intensity : hint_range(0.0, 0.5) = 0.04;
+uniform float grain_intensity : hint_range(0.0, 0.5) = 0.07;
 uniform bool grain_enabled = true;
 
 // --- Warm/Sunny Color Tint Parameters ---
@@ -43,6 +44,23 @@ uniform float defect_probability : hint_range(0.0, 0.1) = 0.015;
 uniform float scratch_intensity : hint_range(0.0, 1.0) = 0.6;
 uniform float dust_intensity : hint_range(0.0, 1.0) = 0.5;
 uniform float flicker_intensity : hint_range(0.0, 0.3) = 0.03;
+
+// --- Small Scratches Parameters (short micro-scratches, max 2px) ---
+uniform bool micro_scratches_enabled = true;
+uniform float micro_scratch_intensity : hint_range(0.0, 1.0) = 0.4;
+uniform float micro_scratch_probability : hint_range(0.0, 0.2) = 0.03;
+
+// --- Death Effects Parameters ---
+// Cigarette burn: circular burn mark that appears on death
+uniform bool cigarette_burn_enabled = false;
+uniform float cigarette_burn_intensity : hint_range(0.0, 1.0) = 0.0;
+uniform vec2 cigarette_burn_position = vec2(0.5, 0.5);
+uniform float cigarette_burn_size : hint_range(0.0, 0.5) = 0.15;
+
+// End of reel: flickering countdown effect in the corner on death
+uniform bool end_of_reel_enabled = false;
+uniform float end_of_reel_intensity : hint_range(0.0, 1.0) = 0.0;
+uniform float end_of_reel_time : hint_range(0.0, 10.0) = 0.0;
 
 
 // ============================================================================
@@ -130,6 +148,150 @@ float projector_flicker(float time_val) {
 	return mix(1.0, slow_flicker, flicker_intensity);
 }
 
+// ============================================================================
+// MICRO SCRATCHES (small, max 2px length)
+// ============================================================================
+
+// Generate small micro-scratches (max 2px long)
+float micro_scratches(vec2 uv, float time_val) {
+	float scratch_total = 0.0;
+	float frame = floor(time_val * 12.0) + 1.0;
+
+	// Generate multiple tiny scratches
+	for (int i = 0; i < 8; i++) {
+		float seed = float(i) * 73.156 + 1.0;
+		float scratch_seed = hash(vec2(frame + seed, frame * 0.3 + seed));
+
+		if (scratch_seed < micro_scratch_probability) {
+			// Random position for the scratch
+			vec2 scratch_start = hash2(vec2(frame + seed + 0.7, seed + 0.3));
+
+			// Calculate scratch length (max ~2px, which is about 0.003 in UV space for 640px width)
+			float scratch_length = 0.001 + hash(vec2(seed + 0.5, frame + 0.5)) * 0.002;
+
+			// Random angle for the scratch (mostly vertical with slight variation)
+			float angle = 3.14159 * 0.5 + (hash(vec2(seed + 0.8, frame + 0.8)) - 0.5) * 0.5;
+			vec2 scratch_dir = vec2(cos(angle), sin(angle));
+
+			// Calculate distance from point to line segment
+			vec2 to_point = uv - scratch_start;
+			float proj_length = dot(to_point, scratch_dir);
+			proj_length = clamp(proj_length, 0.0, scratch_length);
+			vec2 closest_point = scratch_start + scratch_dir * proj_length;
+			float dist = length(uv - closest_point);
+
+			// Thin scratch (about 1px wide = 0.0015 in UV space)
+			float scratch_width = 0.0015;
+			float scratch = 1.0 - smoothstep(0.0, scratch_width, dist);
+
+			// Only show if we're within the scratch segment
+			if (proj_length > 0.0 && proj_length < scratch_length) {
+				scratch_total = max(scratch_total, scratch * 0.6);
+			}
+		}
+	}
+
+	return scratch_total;
+}
+
+
+// ============================================================================
+// DEATH EFFECTS
+// ============================================================================
+
+// Cigarette burn effect - circular burn mark with charred edge
+float cigarette_burn(vec2 uv, vec2 center, float size, float intensity, float time_val) {
+	if (intensity <= 0.0) return 0.0;
+
+	vec2 to_center = uv - center;
+	float dist = length(to_center);
+
+	// Normalize distance by size
+	float norm_dist = dist / size;
+
+	// Create irregular edge using noise
+	float edge_noise = hash(to_center * 50.0 + vec2(floor(time_val * 2.0), 0.0)) * 0.3;
+	norm_dist += edge_noise * 0.2;
+
+	// Inner dark hole (burnt through)
+	float inner_hole = 1.0 - smoothstep(0.0, 0.3, norm_dist);
+
+	// Charred brown/orange ring
+	float char_ring = smoothstep(0.2, 0.5, norm_dist) * (1.0 - smoothstep(0.5, 1.0, norm_dist));
+
+	// Outer burnt edge
+	float outer_edge = smoothstep(0.7, 1.0, norm_dist) * (1.0 - smoothstep(1.0, 1.3, norm_dist));
+
+	// Flickering/burning animation
+	float flicker = 0.8 + 0.2 * hash(vec2(floor(time_val * 8.0), center.x));
+
+	return (inner_hole * 0.9 + char_ring * 0.5 + outer_edge * 0.3) * intensity * flicker;
+}
+
+// Get cigarette burn color (dark center, orange/brown edge)
+vec3 cigarette_burn_color(vec2 uv, vec2 center, float size) {
+	vec2 to_center = uv - center;
+	float dist = length(to_center);
+	float norm_dist = dist / size;
+
+	// Dark black center
+	vec3 center_color = vec3(0.05, 0.02, 0.01);
+	// Charred brown/orange edge
+	vec3 edge_color = vec3(0.4, 0.2, 0.05);
+	// Outer singed edge
+	vec3 outer_color = vec3(0.3, 0.15, 0.05);
+
+	vec3 burn_color = mix(center_color, edge_color, smoothstep(0.0, 0.5, norm_dist));
+	burn_color = mix(burn_color, outer_color, smoothstep(0.5, 1.0, norm_dist));
+
+	return burn_color;
+}
+
+// End of reel effect - flickering countdown markers in corner
+float end_of_reel(vec2 uv, float intensity, float time_val, float reel_time) {
+	if (intensity <= 0.0) return 0.0;
+
+	// Position in top-right corner
+	vec2 corner = vec2(0.85, 0.15);
+	float corner_size = 0.12;
+
+	vec2 to_corner = uv - corner;
+	float dist = length(to_corner);
+
+	// Create countdown circles (film reel markers)
+	float markers = 0.0;
+	float marker_count = floor(reel_time * 3.0); // 3 markers per second
+
+	// Draw countdown circles
+	for (float i = 0.0; i < 4.0; i++) {
+		if (i >= mod(marker_count, 4.0) + 1.0) break;
+
+		float ring_radius = corner_size * (0.3 + i * 0.2);
+		float ring_width = 0.008;
+		float ring = abs(dist - ring_radius);
+		markers += (1.0 - smoothstep(0.0, ring_width, ring)) * 0.4;
+	}
+
+	// Add center dot
+	float center_dot = 1.0 - smoothstep(0.0, corner_size * 0.15, dist);
+	markers += center_dot * 0.6;
+
+	// Add crosshairs
+	float cross_h = 1.0 - smoothstep(0.0, 0.004, abs(to_corner.y));
+	float cross_v = 1.0 - smoothstep(0.0, 0.004, abs(to_corner.x));
+	cross_h *= step(abs(to_corner.x), corner_size * 0.8);
+	cross_v *= step(abs(to_corner.y), corner_size * 0.8);
+	markers += (cross_h + cross_v) * 0.3;
+
+	// Flickering effect (classic projector countdown)
+	float flicker = 0.6 + 0.4 * hash(vec2(floor(time_val * 18.0), reel_time));
+
+	// Fade in/out based on reel_time fractional part
+	float pulse = 0.5 + 0.5 * sin(reel_time * 6.28318);
+
+	return markers * intensity * flicker * pulse;
+}
+
 
 // ============================================================================
 // MAIN FRAGMENT SHADER
@@ -201,6 +363,37 @@ void fragment() {
 			// Darken slightly on flicker
 			overlay.rgb *= flicker;
 			overlay.a = max(overlay.a, (1.0 - flicker) * 0.5);
+		}
+	}
+
+	// --- Apply Micro Scratches (small, max 2px) ---
+	if (micro_scratches_enabled && micro_scratch_intensity > 0.0) {
+		float micro_scratch = micro_scratches(UV, TIME);
+		if (micro_scratch > 0.0) {
+			vec3 scratch_color = vec3(0.9, 0.88, 0.85);
+			overlay.rgb = mix(overlay.rgb, scratch_color, micro_scratch * micro_scratch_intensity);
+			overlay.a = max(overlay.a, micro_scratch * micro_scratch_intensity * 0.4);
+		}
+	}
+
+	// --- Apply Death Effects ---
+	// Cigarette burn effect
+	if (cigarette_burn_enabled && cigarette_burn_intensity > 0.0) {
+		float burn = cigarette_burn(UV, cigarette_burn_position, cigarette_burn_size, cigarette_burn_intensity, TIME);
+		if (burn > 0.0) {
+			vec3 burn_color = cigarette_burn_color(UV, cigarette_burn_position, cigarette_burn_size);
+			overlay.rgb = mix(overlay.rgb, burn_color, burn);
+			overlay.a = max(overlay.a, burn * 0.95);
+		}
+	}
+
+	// End of reel countdown effect
+	if (end_of_reel_enabled && end_of_reel_intensity > 0.0) {
+		float reel = end_of_reel(UV, end_of_reel_intensity, TIME, end_of_reel_time);
+		if (reel > 0.0) {
+			vec3 reel_color = vec3(0.1, 0.08, 0.05); // Dark film leader color
+			overlay.rgb = mix(overlay.rgb, reel_color, reel);
+			overlay.a = max(overlay.a, reel * 0.8);
 		}
 	}
 

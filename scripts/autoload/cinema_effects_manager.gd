@@ -9,18 +9,22 @@ extends Node
 ##
 ## The effect can be enabled/disabled and parameters can be adjusted at runtime.
 ##
-## ARCHITECTURE (v4.0):
+## ARCHITECTURE (v5.0):
 ## This manager uses an OVERLAY-BASED approach that does NOT use hint_screen_texture.
 ## This avoids known bugs in Godot's gl_compatibility renderer that cause white screens.
 ## Instead of sampling the screen and modifying it, we create transparent overlays
 ## that blend on top of the rendered scene using standard alpha blending.
+##
+## v5.0 ADDITIONS:
+## - Micro scratches (small 2px scratches) for more authentic film look
+## - Death effects: cigarette burn + end of reel countdown triggered on player death
 
 # ============================================================================
 # DEFAULT VALUES
 # ============================================================================
 
 ## Default grain intensity (0.0 = no grain, 0.5 = maximum)
-const DEFAULT_GRAIN_INTENSITY: float = 0.04
+const DEFAULT_GRAIN_INTENSITY: float = 0.07
 
 ## Default warm color tint (slightly warm/golden)
 const DEFAULT_WARM_COLOR: Color = Color(1.0, 0.95, 0.85)
@@ -49,6 +53,18 @@ const DEFAULT_DUST_INTENSITY: float = 0.5
 ## Default flicker intensity
 const DEFAULT_FLICKER_INTENSITY: float = 0.03
 
+## Default micro scratch intensity
+const DEFAULT_MICRO_SCRATCH_INTENSITY: float = 0.4
+
+## Default micro scratch probability
+const DEFAULT_MICRO_SCRATCH_PROBABILITY: float = 0.03
+
+## Default cigarette burn size
+const DEFAULT_CIGARETTE_BURN_SIZE: float = 0.15
+
+## Default end of reel duration (seconds)
+const DEFAULT_END_OF_REEL_DURATION: float = 3.0
+
 ## The CanvasLayer for cinema effects.
 var _effects_layer: CanvasLayer = null
 
@@ -74,9 +90,21 @@ var _activation_frame_counter: int = 0
 ## Whether we're waiting to activate the effect.
 var _waiting_for_activation: bool = false
 
+## Whether death effects are currently playing.
+var _death_effects_active: bool = false
+
+## Time tracker for end of reel animation.
+var _end_of_reel_timer: float = 0.0
+
+## Duration for end of reel effect.
+var _end_of_reel_duration: float = DEFAULT_END_OF_REEL_DURATION
+
+## Reference to the current player node (for death signal connection).
+var _player_ref: Node = null
+
 
 func _ready() -> void:
-	_log("CinemaEffectsManager initializing (v4.0 - overlay approach)...")
+	_log("CinemaEffectsManager initializing (v5.0 - overlay approach with death effects)...")
 
 	# Connect to scene tree changes to handle scene reloads
 	get_tree().tree_changed.connect(_on_tree_changed)
@@ -103,7 +131,7 @@ func _ready() -> void:
 		_material.shader = shader
 		_set_default_parameters()
 		_cinema_rect.material = _material
-		_log("Cinema shader loaded successfully (v4.0 - no screen_texture)")
+		_log("Cinema shader loaded successfully (v5.0 - no screen_texture)")
 	else:
 		push_warning("CinemaEffectsManager: Could not load cinema_film shader")
 		_log("WARNING: Could not load cinema_film shader!")
@@ -115,18 +143,23 @@ func _ready() -> void:
 	# Perform shader warmup to prevent first-frame stutter (Issue #343 pattern)
 	_warmup_shader()
 
-	_log("Cinema film effect initialized (v4.0) - Configuration:")
+	_log("Cinema film effect initialized (v5.0) - Configuration:")
 	_log("  Approach: Overlay-based (no screen_texture)")
 	_log("  Grain intensity: %.2f" % DEFAULT_GRAIN_INTENSITY)
 	_log("  Warm tint: %.2f intensity" % DEFAULT_WARM_INTENSITY)
 	_log("  Sunny effect: %.2f intensity" % DEFAULT_SUNNY_INTENSITY)
 	_log("  Vignette: %.2f intensity" % DEFAULT_VIGNETTE_INTENSITY)
 	_log("  Film defects: %.1f%% probability" % (DEFAULT_DEFECT_PROBABILITY * 100.0))
+	_log("  Micro scratches: %.2f intensity, %.1f%% probability" % [DEFAULT_MICRO_SCRATCH_INTENSITY, DEFAULT_MICRO_SCRATCH_PROBABILITY * 100.0])
+	_log("  Death effects: cigarette burn + end of reel (activated on player death)")
 
 	# Start delayed activation - minimal delay needed since we don't use screen_texture
 	_waiting_for_activation = true
 	_activation_frame_counter = 0
 	_log("Enabling effect after %d frame(s)..." % ACTIVATION_DELAY_FRAMES)
+
+	# Connect to player death when player becomes available
+	call_deferred("_connect_to_player_death")
 
 
 ## Log a message with the CinemaEffects prefix.
@@ -138,8 +171,8 @@ func _log(message: String) -> void:
 		print("[CinemaEffects] " + message)
 
 
-## Process function for delayed activation.
-func _process(_delta: float) -> void:
+## Process function for delayed activation and death effects animation.
+func _process(delta: float) -> void:
 	# Handle delayed activation to ensure scene has rendered before enabling effect
 	if _waiting_for_activation:
 		_activation_frame_counter += 1
@@ -148,6 +181,19 @@ func _process(_delta: float) -> void:
 			if _is_active:
 				_cinema_rect.visible = true
 				_log("Cinema effect now enabled (after %d frames delay)" % ACTIVATION_DELAY_FRAMES)
+
+	# Handle death effects animation (end of reel countdown)
+	if _death_effects_active and _material:
+		_end_of_reel_timer += delta
+		_material.set_shader_parameter("end_of_reel_time", _end_of_reel_timer)
+
+		# Animate cigarette burn intensity (fade in over 0.5 seconds)
+		var burn_intensity := clamp(_end_of_reel_timer / 0.5, 0.0, 1.0)
+		_material.set_shader_parameter("cigarette_burn_intensity", burn_intensity)
+
+		# Animate end of reel intensity (fade in over 0.3 seconds)
+		var reel_intensity := clamp(_end_of_reel_timer / 0.3, 0.0, 1.0)
+		_material.set_shader_parameter("end_of_reel_intensity", reel_intensity)
 
 
 ## Sets all shader parameters to default values.
@@ -177,6 +223,20 @@ func _set_default_parameters() -> void:
 		_material.set_shader_parameter("scratch_intensity", DEFAULT_SCRATCH_INTENSITY)
 		_material.set_shader_parameter("dust_intensity", DEFAULT_DUST_INTENSITY)
 		_material.set_shader_parameter("flicker_intensity", DEFAULT_FLICKER_INTENSITY)
+
+		# Micro scratches parameters (small 2px scratches)
+		_material.set_shader_parameter("micro_scratches_enabled", true)
+		_material.set_shader_parameter("micro_scratch_intensity", DEFAULT_MICRO_SCRATCH_INTENSITY)
+		_material.set_shader_parameter("micro_scratch_probability", DEFAULT_MICRO_SCRATCH_PROBABILITY)
+
+		# Death effects (disabled by default, activated on player death)
+		_material.set_shader_parameter("cigarette_burn_enabled", false)
+		_material.set_shader_parameter("cigarette_burn_intensity", 0.0)
+		_material.set_shader_parameter("cigarette_burn_position", Vector2(0.5, 0.5))
+		_material.set_shader_parameter("cigarette_burn_size", DEFAULT_CIGARETTE_BURN_SIZE)
+		_material.set_shader_parameter("end_of_reel_enabled", false)
+		_material.set_shader_parameter("end_of_reel_intensity", 0.0)
+		_material.set_shader_parameter("end_of_reel_time", 0.0)
 
 
 ## Enables or disables the entire cinema effect.
@@ -350,6 +410,189 @@ func set_flicker_intensity(intensity: float) -> void:
 		_material.set_shader_parameter("flicker_intensity", clamp(intensity, 0.0, 0.3))
 
 
+# ============================================================================
+# MICRO SCRATCHES CONTROLS (small 2px scratches)
+# ============================================================================
+
+## Enables or disables micro scratches effect.
+func set_micro_scratches_enabled(enabled: bool) -> void:
+	if _material:
+		_material.set_shader_parameter("micro_scratches_enabled", enabled)
+
+
+## Returns whether micro scratches are enabled.
+func is_micro_scratches_enabled() -> bool:
+	if _material:
+		return _material.get_shader_parameter("micro_scratches_enabled")
+	return true
+
+
+## Sets the micro scratch intensity.
+## @param intensity: Value from 0.0 (invisible) to 1.0 (fully visible)
+func set_micro_scratch_intensity(intensity: float) -> void:
+	if _material:
+		_material.set_shader_parameter("micro_scratch_intensity", clamp(intensity, 0.0, 1.0))
+
+
+## Gets the current micro scratch intensity.
+func get_micro_scratch_intensity() -> float:
+	if _material:
+		return _material.get_shader_parameter("micro_scratch_intensity")
+	return DEFAULT_MICRO_SCRATCH_INTENSITY
+
+
+## Sets the probability of micro scratches appearing.
+## @param probability: Value from 0.0 (never) to 0.2 (20% chance)
+func set_micro_scratch_probability(probability: float) -> void:
+	if _material:
+		_material.set_shader_parameter("micro_scratch_probability", clamp(probability, 0.0, 0.2))
+
+
+# ============================================================================
+# DEATH EFFECTS CONTROLS (cigarette burn + end of reel)
+# ============================================================================
+
+## Triggers the death effects (cigarette burn + end of reel countdown).
+## Call this when the player dies to show the cinematic death sequence.
+func trigger_death_effects() -> void:
+	if not _material:
+		return
+
+	_log("Death effects triggered - starting cigarette burn and end of reel")
+	_death_effects_active = true
+	_end_of_reel_timer = 0.0
+
+	# Generate random position for cigarette burn (biased toward center-ish area)
+	var burn_x := 0.3 + randf() * 0.4  # 0.3 to 0.7
+	var burn_y := 0.3 + randf() * 0.4  # 0.3 to 0.7
+	_material.set_shader_parameter("cigarette_burn_position", Vector2(burn_x, burn_y))
+
+	# Enable both death effects
+	_material.set_shader_parameter("cigarette_burn_enabled", true)
+	_material.set_shader_parameter("end_of_reel_enabled", true)
+
+	# Start with zero intensity (will animate in _process)
+	_material.set_shader_parameter("cigarette_burn_intensity", 0.0)
+	_material.set_shader_parameter("end_of_reel_intensity", 0.0)
+
+
+## Stops and resets the death effects.
+## Call this when the player respawns.
+func reset_death_effects() -> void:
+	if not _material:
+		return
+
+	_log("Death effects reset")
+	_death_effects_active = false
+	_end_of_reel_timer = 0.0
+
+	# Disable both death effects
+	_material.set_shader_parameter("cigarette_burn_enabled", false)
+	_material.set_shader_parameter("cigarette_burn_intensity", 0.0)
+	_material.set_shader_parameter("end_of_reel_enabled", false)
+	_material.set_shader_parameter("end_of_reel_intensity", 0.0)
+	_material.set_shader_parameter("end_of_reel_time", 0.0)
+
+
+## Returns whether death effects are currently active.
+func is_death_effects_active() -> bool:
+	return _death_effects_active
+
+
+## Sets the size of the cigarette burn.
+## @param size: Value from 0.0 to 0.5 (fraction of screen)
+func set_cigarette_burn_size(size: float) -> void:
+	if _material:
+		_material.set_shader_parameter("cigarette_burn_size", clamp(size, 0.0, 0.5))
+
+
+## Sets the duration of the end of reel countdown.
+## @param duration: Time in seconds
+func set_end_of_reel_duration(duration: float) -> void:
+	_end_of_reel_duration = max(0.1, duration)
+
+
+# ============================================================================
+# PLAYER DEATH CONNECTION
+# ============================================================================
+
+## Connects to the player's death signal to trigger death effects automatically.
+func _connect_to_player_death() -> void:
+	# Try to find the player node
+	var player := _find_player_node()
+	if player:
+		_connect_player_signals(player)
+	else:
+		# If player not found yet, try again when scene changes
+		_log("Player not found yet, will connect when scene changes")
+
+
+## Finds the player node in the scene tree.
+func _find_player_node() -> Node:
+	# Try common paths for player
+	var possible_paths := [
+		"/root/MainScene/Player",
+		"/root/Game/Player",
+		"/root/World/Player",
+	]
+
+	for path in possible_paths:
+		var node := get_node_or_null(path)
+		if node:
+			return node
+
+	# Try to find by group
+	var players := get_tree().get_nodes_in_group("player")
+	if players.size() > 0:
+		return players[0]
+
+	# Try to find by class name pattern
+	var root := get_tree().current_scene
+	if root:
+		return _find_node_by_name_pattern(root, "player")
+
+	return null
+
+
+## Recursively searches for a node whose name contains the pattern.
+func _find_node_by_name_pattern(node: Node, pattern: String) -> Node:
+	if node.name.to_lower().contains(pattern):
+		return node
+	for child in node.get_children():
+		var found := _find_node_by_name_pattern(child, pattern)
+		if found:
+			return found
+	return null
+
+
+## Connects to the player's signals.
+func _connect_player_signals(player: Node) -> void:
+	if player == _player_ref:
+		return  # Already connected
+
+	# Disconnect from old player if any
+	if _player_ref and is_instance_valid(_player_ref):
+		if _player_ref.has_signal("died") and _player_ref.is_connected("died", _on_player_died):
+			_player_ref.disconnect("died", _on_player_died)
+
+	_player_ref = player
+	_log("Found player node: %s" % player.name)
+
+	# Connect to death signal
+	if player.has_signal("died"):
+		if not player.is_connected("died", _on_player_died):
+			player.connect("died", _on_player_died)
+			_log("Connected to player 'died' signal")
+	else:
+		_log("WARNING: Player node does not have 'died' signal")
+
+
+## Called when the player dies.
+func _on_player_died() -> void:
+	_log("Player died - triggering death effects")
+	trigger_death_effects()
+
+
 ## Resets all parameters to defaults.
 func reset_to_defaults() -> void:
 	_set_default_parameters()
@@ -373,6 +616,11 @@ func _on_tree_changed() -> void:
 		# This ensures the new scene has rendered before enabling the effect
 		if _is_active:
 			_start_delayed_activation()
+		# Try to connect to the new player
+		call_deferred("_connect_to_player_death")
+		# Reset death effects on scene change (player respawn)
+		if _death_effects_active:
+			reset_death_effects()
 
 
 ## Starts the delayed activation process.
