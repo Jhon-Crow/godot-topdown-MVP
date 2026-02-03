@@ -633,18 +633,13 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 		# (COMBAT/PURSUING now check _pursuing_vulnerability_sound before retreating)
 		return
 
-	# Handle grenade landing sound (sound_type 7 = GRENADE_LANDING) - Issue #426
-	# Enemies can hear grenades land nearby (450px = half reload distance) and should evade.
-	if sound_type == 7:  # GRENADE_LANDING from NEUTRAL (grenade)
-		_log_to_file("Heard GRENADE_LANDING at %s, intensity=%.2f, distance=%.0f" % [position, intensity, distance])
-		# Trigger evasion via component (handles position memory and safe distance calculation)
-		if _current_state != AIState.EVADING_GRENADE and _grenade_avoidance:
-			if _grenade_avoidance.trigger_evasion_from_sound(position, source_node):
-				_pre_evasion_state = _current_state
-				_current_state = AIState.EVADING_GRENADE
-				_has_left_idle = true
-				_grenade_evasion_timer = 0.0
-				_log_to_file("EVADING_GRENADE (from sound): escaping from %s" % position)
+	# Issue #426: Handle grenade landing sound (GRENADE_LANDING) - evade if heard nearby
+	if sound_type == 7 and _current_state != AIState.EVADING_GRENADE and _grenade_avoidance:
+		_log_to_file("Heard GRENADE_LANDING at %s, intensity=%.2f" % [position, intensity])
+		if _grenade_avoidance.trigger_evasion_from_sound(position, source_node):
+			_pre_evasion_state = _current_state; _current_state = AIState.EVADING_GRENADE
+			_has_left_idle = true; _grenade_evasion_timer = 0.0
+			_log_to_file("EVADING_GRENADE (from sound): escaping from %s" % position)
 		return
 
 	# Handle reload complete sound (sound_type 6 = RELOAD_COMPLETE) - player is NO LONGER vulnerable!
@@ -2281,10 +2276,7 @@ func _process_searching_state(delta: float) -> void:
 			_search_moving_to_waypoint = true
 			_log_debug("SEARCHING: Scan done, next wp %d" % _search_current_waypoint_index)
 
-
-## Process EVADING_GRENADE state - flee from grenade danger zone (Issue #407).
-## Enemy moves at maximum speed away from the grenade until out of danger zone.
-## Issue #426: Uses component's position memory to ensure fleeing to guaranteed safe distance.
+## Process EVADING_GRENADE state - flee to guaranteed safe distance (Issue #407, #426).
 func _process_evading_grenade_state(delta: float) -> void:
 	_grenade_evasion_timer += delta
 	_update_grenade_danger_detection()  # Update component state
@@ -2292,19 +2284,12 @@ func _process_evading_grenade_state(delta: float) -> void:
 	var evasion_target := _grenade_avoidance.evasion_target if _grenade_avoidance else Vector2.ZERO
 	var at_safe_distance := _grenade_avoidance.is_at_safe_distance() if _grenade_avoidance else true
 
-	# Issue #426: Only return from evasion if at guaranteed safe distance AND not in danger
+	# Issue #426: Return only if at safe distance and not in danger; timeout after max time
 	if not in_danger and at_safe_distance:
-		_log_to_file("EVADING_GRENADE: Escaped to safe distance, returning to %s" % AIState.keys()[_pre_evasion_state])
-		_return_from_grenade_evasion()
-		return
-
-	# Timeout - give up if evading too long (grenade may have exploded or enemy is stuck)
+		_log_to_file("EVADING_GRENADE: Escaped to safe distance"); _return_from_grenade_evasion(); return
 	if _grenade_evasion_timer >= GRENADE_EVASION_MAX_TIME:
-		_log_to_file("EVADING_GRENADE: Timeout after %.1fs, returning to %s" % [_grenade_evasion_timer, AIState.keys()[_pre_evasion_state]])
-		_return_from_grenade_evasion()
-		return
-
-	# Issue #426: Calculate evasion target from remembered position if needed
+		_log_to_file("EVADING_GRENADE: Timeout after %.1fs" % _grenade_evasion_timer); _return_from_grenade_evasion(); return
+	# Calculate evasion target from remembered position if needed
 	if evasion_target == Vector2.ZERO and _grenade_avoidance:
 		var grenade_pos := _grenade_avoidance.get_remembered_grenade_position()
 		if grenade_pos == Vector2.ZERO and _grenade_avoidance.most_dangerous_grenade:
@@ -2333,7 +2318,6 @@ func _process_evading_grenade_state(delta: float) -> void:
 				velocity = (evasion_target - global_position).normalized() * combat_move_speed
 				move_and_slide(); _push_casings()
 
-
 ## Return from grenade evasion to the appropriate state.
 func _return_from_grenade_evasion() -> void:
 	_grenade_evasion_timer = 0.0
@@ -2351,7 +2335,6 @@ func _return_from_grenade_evasion() -> void:
 		AIState.ASSAULT: _transition_to_assault()
 		AIState.SEARCHING: _transition_to_searching(global_position)
 		_: _transition_to_combat() if _can_see_player else _transition_to_idle()
-
 
 ## Shoot with reduced accuracy for retreat mode (bullets fly in barrel direction with spread).
 func _shoot_with_inaccuracy() -> void:
@@ -2684,7 +2667,6 @@ func _transition_to_evading_grenade() -> void:
 	var evasion_target := _grenade_avoidance.evasion_target if _grenade_avoidance else Vector2.ZERO
 	_log_debug("EVADING_GRENADE: Fleeing from grenade at %s, target=%s" % [str(grenade_pos), str(evasion_target)])
 	_log_to_file("EVADING_GRENADE started: escaping to %s" % str(evasion_target))
-
 
 ## Transition to RETREATING state with appropriate retreat mode.
 func _transition_to_retreating() -> void:
@@ -4979,21 +4961,16 @@ func _setup_grenade_avoidance() -> void:
 	_grenade_avoidance = GrenadeAvoidanceComponent.new()
 	_grenade_avoidance.name = "GrenadeAvoidance"
 	add_child(_grenade_avoidance)
-	# Issue #426: Pass raycast reference for line-of-sight checks.
-	# Enemies should only react to grenades they can see (not through walls).
-	if _raycast:
-		_grenade_avoidance.set_raycast(_raycast)
-	# Issue #426: Pass FOV parameters for field-of-view checks.
-	# Enemies should only react to grenades within their vision cone (not behind them).
-	if _enemy_model:
-		_grenade_avoidance.set_fov_parameters(_enemy_model, fov_angle, fov_enabled)
+	# Issue #426: Pass raycast for LOS check (enemies only react to visible grenades)
+	if _raycast: _grenade_avoidance.set_raycast(_raycast)
+	# Issue #426: Pass FOV params (enemies only react to grenades in vision cone)
+	if _enemy_model: _grenade_avoidance.set_fov_parameters(_enemy_model, fov_angle, fov_enabled)
 
 func _update_grenade_danger_detection() -> void:
 	if _grenade_avoidance: _grenade_avoidance.update()
 
 func _calculate_grenade_evasion_target() -> void:
 	if _grenade_avoidance: _grenade_avoidance.calculate_evasion_target(_nav_agent)
-
 
 ## Get the number of grenades remaining.
 func get_grenades_remaining() -> int:
