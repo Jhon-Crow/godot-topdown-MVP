@@ -689,26 +689,36 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 		return
 
 	# React to sounds: transition to combat mode to investigate
+	var source_name := "player" if source_type == 0 else ("enemy" if source_type == 1 else "neutral")
 	_log_debug("Heard gunshot (intensity=%.2f, distance=%.0f) from %s at %s, entering COMBAT" % [
 		intensity,
 		distance,
-		"player" if source_type == 0 else ("enemy" if source_type == 1 else "neutral"),
+		source_name,
 		position
 	])
-	_log_to_file("Heard gunshot at %s, source_type=%d, intensity=%.2f, distance=%.0f" % [
-		position, source_type, intensity, distance
+	_log_to_file("Heard gunshot at %s, source_type=%s (%d), intensity=%.2f, distance=%.0f" % [
+		position, source_name, source_type, intensity, distance
 	])
 
 	# Issue #363: Track gunshots for sustained fire detection (Trigger 5)
+	# Note: Track ALL gunshots regardless of source for grenade system
 	_on_gunshot_heard_for_grenade(position)
 
-	# Store the position of the sound as a point of interest
-	# The enemy will investigate this location
-	_last_known_player_position = position
+	# Issue #395 Phase 5: Only update memory/last_known_position for PLAYER gunshots
+	# When another ENEMY fires, we should NOT update our suspected player position
+	# to point at that enemy! This was causing enemies to turn toward each other
+	# instead of toward the player after the player fired and allies returned fire.
+	if source_type == 0:  # PLAYER gunshot
+		# Store the position of the sound as a point of interest
+		# The enemy will investigate this location
+		_last_known_player_position = position
 
-	# Update memory system with sound-based detection (Issue #297)
-	if _memory:
-		_memory.update_position(position, SOUND_GUNSHOT_CONFIDENCE)
+		# Update memory system with sound-based detection (Issue #297)
+		if _memory:
+			_memory.update_position(position, SOUND_GUNSHOT_CONFIDENCE)
+		_log_to_file("Updated memory to PLAYER gunshot position: %s" % position)
+	else:
+		_log_to_file("Ignoring ENEMY gunshot position for memory update (source_type=%d)" % source_type)
 
 	# Transition to combat mode to investigate the sound
 	_transition_to_combat()
@@ -915,12 +925,29 @@ func _update_enemy_model_rotation() -> void:
 		target_angle = (_player.global_position - global_position).normalized().angle()
 		has_target = true
 		rotation_reason = "P1:visible"
-	# Priority 2: During active combat states, maintain focus on player even without visibility (#386, #397)
-	# Includes SEARCHING and ASSAULT - enemies should always face player during these states
-	elif _current_state in [AIState.COMBAT, AIState.PURSUING, AIState.FLANKING, AIState.SEARCHING, AIState.ASSAULT] and _player != null:
-		target_angle = (_player.global_position - global_position).normalized().angle()
-		has_target = true
-		rotation_reason = "P2:combat_state"
+	# Priority 2: During active combat states, face last known/suspected position (Issue #395, #386, #397)
+	# When player not visible, use memory system's suspected_position (from sounds, etc.)
+	# This ensures enemy turns toward sound source, not player's actual position.
+	elif _current_state in [AIState.COMBAT, AIState.PURSUING, AIState.FLANKING, AIState.SEARCHING, AIState.ASSAULT]:
+		var target_position: Vector2
+		# Use memory system's suspected position if available (preferred - has confidence tracking)
+		if _memory and _memory.has_target():
+			target_position = _memory.suspected_position
+			rotation_reason = "P2:memory"
+		# Fallback to last known position (legacy tracking)
+		elif _last_known_player_position != Vector2.ZERO:
+			target_position = _last_known_player_position
+			rotation_reason = "P2:last_known"
+		# Final fallback: use actual player position if no other info available
+		elif _player != null:
+			target_position = _player.global_position
+			rotation_reason = "P2:fallback"
+		else:
+			# No target information available, skip this priority
+			target_position = Vector2.ZERO
+		if target_position != Vector2.ZERO:
+			target_angle = (target_position - global_position).normalized().angle()
+			has_target = true
 	elif _corner_check_timer > 0:
 		target_angle = _corner_check_angle  # Corner check: smooth rotation (Issue #347)
 		has_target = true
@@ -935,16 +962,30 @@ func _update_enemy_model_rotation() -> void:
 		rotation_reason = "P5:idle_scan"
 	if not has_target:
 		return
-	# Issue #397 debug: Log rotation priority changes
+	# Issue #395, #397 debug: Log rotation priority changes with memory info
+	# Issue #395 Phase 4: Track if we're transitioning INTO combat from idle (for instant rotation)
+	var entering_combat_from_idle := false
 	if rotation_reason != _last_rotation_reason:
 		var ppos := "(%d,%d)" % [int(_player.global_position.x), int(_player.global_position.y)] if _player else "null"
-		_log_to_file("ROT_CHANGE: %s -> %s, state=%s, target=%.1f°, current=%.1f°, player=%s, corner_timer=%.2f" % [_last_rotation_reason if _last_rotation_reason != "" else "none", rotation_reason, AIState.keys()[_current_state], rad_to_deg(target_angle), rad_to_deg(_enemy_model.global_rotation), ppos, _corner_check_timer])
+		var mpos := "(%d,%d)" % [int(_memory.suspected_position.x), int(_memory.suspected_position.y)] if _memory and _memory.has_target() else "none"
+		var lkp := "(%d,%d)" % [int(_last_known_player_position.x), int(_last_known_player_position.y)] if _last_known_player_position != Vector2.ZERO else "none"
+		_log_to_file("ROT_CHANGE: %s -> %s, state=%s, target=%.1f°, current=%.1f°, player=%s, memory=%s, last_known=%s" % [_last_rotation_reason if _last_rotation_reason != "" else "none", rotation_reason, AIState.keys()[_current_state], rad_to_deg(target_angle), rad_to_deg(_enemy_model.global_rotation), ppos, mpos, lkp])
+		# Issue #395 Phase 4: Detect transition from idle scanning to combat priority
+		# When entering combat (from P5:idle_scan to P2:memory/P1:visible), snap rotation instantly
+		# This prevents the visually confusing "turn away then turn back" behavior
+		if _last_rotation_reason in ["", "none", "P5:idle_scan", "P3:corner", "P4:velocity"] and rotation_reason in ["P1:visible", "P2:memory", "P2:last_known", "P2:fallback"]:
+			entering_combat_from_idle = true
 		_last_rotation_reason = rotation_reason
 	# Smooth rotation for visual polish (Issue #347)
 	var delta := get_physics_process_delta_time()
 	var current_rot := _enemy_model.global_rotation
 	var angle_diff := wrapf(target_angle - current_rot, -PI, PI)
-	if abs(angle_diff) <= MODEL_ROTATION_SPEED * delta:
+	# Issue #395 Phase 4: When entering combat from idle, snap rotation instantly
+	# This prevents the "turn away first" visual bug when angle difference is large
+	if entering_combat_from_idle:
+		_enemy_model.global_rotation = target_angle
+		_log_to_file("ROT_SNAP: instant rotation on combat entry (diff=%.1f°)" % rad_to_deg(angle_diff))
+	elif abs(angle_diff) <= MODEL_ROTATION_SPEED * delta:
 		_enemy_model.global_rotation = target_angle
 	elif angle_diff > 0:
 		_enemy_model.global_rotation = current_rot + MODEL_ROTATION_SPEED * delta
@@ -4608,8 +4649,12 @@ func has_ammo() -> bool:
 func get_player_visibility_ratio() -> float:
 	return _player_visibility_ratio
 
-## Draw debug visualization when debug mode is enabled.
-## Shows: line to target (cover, clear shot, player), bullet spawn point status.
+## Issue #395 Phase 3: Convert global offset to local draw coords using MODEL rotation (not body).
+func _global_to_local_draw(global_offset: Vector2) -> Vector2:
+	var model_rot := _enemy_model.global_rotation if _enemy_model else global_rotation
+	return global_offset.rotated(-model_rot)
+
+## Draw debug visualization (Issue #395: uses _global_to_local_draw with model rotation).
 func _draw() -> void:
 	if not debug_label_enabled:
 		return
@@ -4651,13 +4696,13 @@ func _draw() -> void:
 
 	# Draw line to player if visible
 	if _can_see_player and _player:
-		var to_player := _player.global_position - global_position
+		var to_player := _global_to_local_draw(_player.global_position - global_position)
 		draw_line(Vector2.ZERO, to_player, color_to_player, 1.5)
 
 		# Draw bullet spawn point (actual muzzle position) and check if blocked
 		var weapon_forward := _get_weapon_forward_direction()
 		var muzzle_global := _get_bullet_spawn_position(weapon_forward)
-		var spawn_point := muzzle_global - global_position  # Convert to local coordinates for draw
+		var spawn_point := _global_to_local_draw(muzzle_global - global_position)
 		if _is_bullet_spawn_clear(weapon_forward):
 			draw_circle(spawn_point, 5.0, color_bullet_spawn)
 		else:
@@ -4667,14 +4712,14 @@ func _draw() -> void:
 
 	# Draw line to cover position if we have one
 	if _has_valid_cover:
-		var to_cover := _cover_position - global_position
+		var to_cover := _global_to_local_draw(_cover_position - global_position)
 		draw_line(Vector2.ZERO, to_cover, color_to_cover, 1.5)
 		# Draw small circle at cover position
 		draw_circle(to_cover, 8.0, color_to_cover)
 
 	# Draw line to clear shot target if seeking clear shot
 	if _seeking_clear_shot and _clear_shot_target != Vector2.ZERO:
-		var to_target := _clear_shot_target - global_position
+		var to_target := _global_to_local_draw(_clear_shot_target - global_position)
 		draw_line(Vector2.ZERO, to_target, color_clear_shot, 2.0)
 		# Draw triangle at target position
 		var target_pos := to_target
@@ -4684,18 +4729,18 @@ func _draw() -> void:
 
 	# Draw line to pursuit cover if pursuing
 	if _current_state == AIState.PURSUING and _has_pursuit_cover:
-		var to_pursuit := _pursuit_next_cover - global_position
+		var to_pursuit := _global_to_local_draw(_pursuit_next_cover - global_position)
 		draw_line(Vector2.ZERO, to_pursuit, color_pursuit, 2.0)
 		draw_circle(to_pursuit, 8.0, color_pursuit)
 
 	# Draw line to flank target if flanking
 	if _current_state == AIState.FLANKING:
 		if _has_flank_cover:
-			var to_flank_cover := _flank_next_cover - global_position
+			var to_flank_cover := _global_to_local_draw(_flank_next_cover - global_position)
 			draw_line(Vector2.ZERO, to_flank_cover, color_flank, 2.0)
 			draw_circle(to_flank_cover, 8.0, color_flank)
 		elif _flank_target != Vector2.ZERO:
-			var to_flank := _flank_target - global_position
+			var to_flank := _global_to_local_draw(_flank_target - global_position)
 			draw_line(Vector2.ZERO, to_flank, color_flank, 1.5)
 			# Draw diamond at flank target
 			var flank_pos := to_flank
@@ -4704,10 +4749,11 @@ func _draw() -> void:
 			draw_line(flank_pos + Vector2(0, 8), flank_pos + Vector2(-8, 0), color_flank, 2.0)
 			draw_line(flank_pos + Vector2(-8, 0), flank_pos + Vector2(0, -8), color_flank, 2.0)
 
-	# Draw suspected position from memory system (Issue #297)
+	# Draw suspected position from memory system (Issue #297, #395)
+	# Issue #395: Convert to local coordinates to fix incorrect indicator direction
 	# The circle radius is inversely proportional to confidence (larger = less certain)
 	if _memory and _memory.has_target():
-		var to_suspected := _memory.suspected_position - global_position
+		var to_suspected := _global_to_local_draw(_memory.suspected_position - global_position)
 		# Color varies from yellow (low confidence) to orange (high confidence)
 		var confidence_color := Color.YELLOW.lerp(Color.ORANGE_RED, _memory.confidence)
 		# Draw dashed line to suspected position

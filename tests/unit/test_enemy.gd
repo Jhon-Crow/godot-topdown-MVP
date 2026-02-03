@@ -353,6 +353,31 @@ class MockEnemy:
 		return _memory.confidence if _memory != null else 0.0
 
 
+	## Issue #395: Calculate the rotation target position during combat states.
+	## When enemy can see player: use actual player position.
+	## When enemy cannot see player: use memory/last_known position from sound detection.
+	## This mirrors the logic in _update_enemy_model_rotation() Priority 2.
+	func get_rotation_target_position(player_position: Vector2) -> Vector2:
+		# Priority 1: Face player if visible (handled separately)
+		if _can_see_player:
+			return player_position
+
+		# Priority 2: During active combat states, use memory system's suspected position
+		if _current_state in [AIState.COMBAT, AIState.PURSUING, AIState.FLANKING, AIState.SEARCHING, AIState.ASSAULT]:
+			# Use memory system's suspected position if available (preferred - has confidence tracking)
+			if _memory and _memory.has_target():
+				return _memory.suspected_position
+			# Fallback to last known position (legacy tracking)
+			elif _last_known_player_position != Vector2.ZERO:
+				return _last_known_player_position
+			# Final fallback: use actual player position if no other info available
+			else:
+				return player_position
+
+		# Not in combat state - no rotation target from this priority
+		return Vector2.ZERO
+
+
 var enemy: MockEnemy
 
 
@@ -1518,6 +1543,154 @@ func test_aim_check_consistent_at_all_distances_issue_344() -> void:
 			"Aim check should pass at distance %.0f when enemy faces player" % distance)
 		assert_true(aim_dot >= tolerance,
 			"Aim check should pass tolerance at distance %.0f" % distance)
+
+
+# ============================================================================
+# Issue #395: Enemies Turn Wrong Direction on Gunshot Sound
+# ============================================================================
+
+
+## Regression test for Issue #395: enemies turning in wrong direction after hearing gunshot.
+##
+## Root Cause: In _update_enemy_model_rotation() Priority 2, enemies were always facing
+## _player.global_position (the player's actual position) instead of the last known
+## position from sound detection. This caused enemies to face the player's current
+## position when they shouldn't know it - they only heard a sound.
+##
+## Fix: In combat states when enemy cannot see player, use _memory.suspected_position
+## (from sound detection) instead of the actual player position.
+func test_rotation_uses_sound_position_not_actual_player_position_issue_395() -> void:
+	# Scenario: Player shoots from behind cover, then moves to a different position.
+	# The enemy should face the SOUND SOURCE (where player was when they shot),
+	# not the player's CURRENT position.
+
+	var enemy_pos := Vector2(500, 500)
+	var sound_source_pos := Vector2(200, 500)  # Where player shot from (left of enemy)
+	var actual_player_pos := Vector2(800, 500)  # Player has moved to the right
+
+	# Enemy hears the gunshot - memory is updated with sound position
+	enemy.update_memory(sound_source_pos, 0.7)  # SOUND_GUNSHOT_CONFIDENCE
+
+	# Enemy transitions to COMBAT state
+	enemy._current_state = MockEnemy.AIState.COMBAT
+
+	# Enemy CANNOT see the player (player is behind cover)
+	enemy._can_see_player = false
+
+	# Get the rotation target - should be the sound position, NOT actual player position
+	var rotation_target := enemy.get_rotation_target_position(actual_player_pos)
+
+	# The enemy should face the sound source (where they heard the shot)
+	assert_eq(rotation_target, sound_source_pos,
+		"Enemy should face sound source position when they can't see player")
+
+	# Verify the enemy is NOT facing the actual player position
+	assert_ne(rotation_target, actual_player_pos,
+		"Enemy should NOT face actual player position when player is not visible")
+
+
+## Test that enemy faces player directly when player IS visible (Issue #395 regression check).
+## This ensures the fix doesn't break the Issue #397 fix where enemies must face visible players.
+func test_rotation_uses_actual_player_when_visible_issue_395_regression() -> void:
+	# Scenario: Player is visible - enemy should face actual player position
+	var actual_player_pos := Vector2(800, 500)
+	var old_memory_pos := Vector2(200, 500)  # Old memory from earlier
+
+	# Enemy has old memory from earlier sound
+	enemy.update_memory(old_memory_pos, 0.7)
+
+	# Enemy CAN see the player now
+	enemy._can_see_player = true
+	enemy._current_state = MockEnemy.AIState.COMBAT
+
+	# Get the rotation target - should be actual player position since player is visible
+	var rotation_target := enemy.get_rotation_target_position(actual_player_pos)
+
+	# When player is visible, enemy should face actual player position (not old memory)
+	assert_eq(rotation_target, actual_player_pos,
+		"Enemy should face actual player position when player IS visible")
+
+
+## Test that memory system takes priority over legacy _last_known_player_position (Issue #395).
+func test_rotation_prefers_memory_over_legacy_position_issue_395() -> void:
+	var enemy_pos := Vector2(500, 500)
+	var memory_pos := Vector2(300, 500)  # From memory system
+	var legacy_pos := Vector2(700, 500)  # From legacy _last_known_player_position
+	var actual_player_pos := Vector2(100, 100)  # Actual position (unknown to enemy)
+
+	# Setup: Memory has one position, legacy has another
+	enemy.update_memory(memory_pos, 0.7)
+	enemy._last_known_player_position = legacy_pos
+
+	# Enemy in combat but cannot see player
+	enemy._current_state = MockEnemy.AIState.COMBAT
+	enemy._can_see_player = false
+
+	var rotation_target := enemy.get_rotation_target_position(actual_player_pos)
+
+	# Memory system should take priority
+	assert_eq(rotation_target, memory_pos,
+		"Memory system position should take priority over legacy _last_known_player_position")
+
+
+## Test fallback to last_known_player_position when memory is empty (Issue #395).
+func test_rotation_falls_back_to_last_known_when_no_memory_issue_395() -> void:
+	var last_known := Vector2(600, 400)
+	var actual_player_pos := Vector2(100, 100)
+
+	# No memory target (confidence decayed to 0)
+	enemy._memory.reset()
+	# But legacy position is set
+	enemy._last_known_player_position = last_known
+
+	# Enemy in combat but cannot see player
+	enemy._current_state = MockEnemy.AIState.PURSUING
+	enemy._can_see_player = false
+
+	var rotation_target := enemy.get_rotation_target_position(actual_player_pos)
+
+	# Should fall back to legacy position
+	assert_eq(rotation_target, last_known,
+		"Should fall back to _last_known_player_position when memory is empty")
+
+
+## Test that SEARCHING state also uses memory position (Issue #395).
+func test_searching_state_uses_memory_position_issue_395() -> void:
+	var sound_pos := Vector2(400, 400)
+	var actual_player_pos := Vector2(900, 900)
+
+	enemy.update_memory(sound_pos, 0.6)
+	enemy._current_state = MockEnemy.AIState.SEARCHING
+	enemy._can_see_player = false
+
+	var rotation_target := enemy.get_rotation_target_position(actual_player_pos)
+
+	assert_eq(rotation_target, sound_pos,
+		"SEARCHING state should use memory position, not actual player position")
+
+
+## Test direction calculation from rotation target (Issue #395).
+## Ensures the calculated direction points toward the sound source.
+func test_rotation_direction_points_to_sound_source_issue_395() -> void:
+	var enemy_pos := Vector2(500, 500)
+	var sound_pos := Vector2(200, 500)  # Sound to the left of enemy
+	var actual_player_pos := Vector2(800, 500)  # Player to the right (different direction!)
+
+	enemy.update_memory(sound_pos, 0.7)
+	enemy._current_state = MockEnemy.AIState.COMBAT
+	enemy._can_see_player = false
+
+	var rotation_target := enemy.get_rotation_target_position(actual_player_pos)
+	var direction_to_target := (rotation_target - enemy_pos).normalized()
+
+	# Direction should be toward the LEFT (sound source), not RIGHT (actual player)
+	assert_true(direction_to_target.x < 0,
+		"Enemy should face LEFT toward sound source, not RIGHT toward actual player")
+
+	# Calculate target angle - should be PI (facing left)
+	var target_angle := direction_to_target.angle()
+	assert_almost_eq(absf(target_angle), PI, 0.01,
+		"Target angle should be approximately PI (facing left toward sound)")
 
 
 # ============================================================================
