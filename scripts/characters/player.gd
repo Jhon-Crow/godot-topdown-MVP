@@ -2645,7 +2645,7 @@ func _push_casings() -> void:
 		])
 
 	# Push all detected casings
-	for casing in casings_to_push:
+	for casing: RigidBody2D in casings_to_push:
 		# Calculate push direction from player center to casing position (Issue #424)
 		# This makes casings fly away based on which side they're pushed from
 		var push_dir := (casing.global_position - global_position).normalized()

@@ -1049,11 +1049,13 @@ func _push_casings() -> void:
 		var collider := collision.get_collider()
 		# Check if collider is a RigidBody2D with receive_kick method (casing)
 		if collider is RigidBody2D and collider.has_method("receive_kick"):
+			# Cast to RigidBody2D for proper type access (fixes export build issue #424)
+			var casing: RigidBody2D = collider as RigidBody2D
 			# Calculate push direction from enemy center to casing position (Issue #424)
 			# This makes casings fly away based on which side they're pushed from
-			var push_dir := (collider.global_position - global_position).normalized()
+			var push_dir := (casing.global_position - global_position).normalized()
 			var push_strength := velocity.length() * CASING_PUSH_FORCE / 100.0
-			collider.receive_kick(push_dir * push_strength)
+			casing.receive_kick(push_dir * push_strength)
 
 ## Update suppression state.
 func _update_suppression(delta: float) -> void:

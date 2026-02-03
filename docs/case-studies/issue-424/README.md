@@ -239,20 +239,59 @@ This confirms:
 2. The `died` signal exists and is accessible
 3. The interoperability between C# and GDScript is working
 
-#### Final Conclusion
+#### Final Conclusion (Iteration 5)
 
-The issue is **NOT in the code** - all CI checks pass and the code changes are syntactically correct.
+The issue was initially thought to be a cache/export issue. However, further investigation identified the actual root cause.
 
-**Root cause is likely one of:**
-1. **Stale export:** User is testing an export built before the latest changes
-2. **Godot cache corruption:** The `.godot/` directory contains stale compiled scripts
-3. **Incomplete sync:** User's local copy doesn't have the latest code from the PR
+### Iteration 6: True Root Cause Discovery (game_log_20260203_170612.txt)
 
-**Recommended actions for user:**
-1. Delete the `.godot/` directory in the project
-2. Download a fresh copy of the code from the PR branch
-3. Open project in Godot Editor to force reimport
-4. Create a new export
+**Problem:** The user continued to report broken enemies after multiple tests.
+
+**Deep analysis** of the code revealed the actual root cause:
+
+#### Root Cause: Implicit Type Inference in GDScript Exports
+
+In the original push code change:
+```gdscript
+var collider := collision.get_collider()
+# ...
+var push_dir := (collider.global_position - global_position).normalized()
+```
+
+The variable `collider` is typed as `Object` (the return type of `get_collider()`). While we check `if collider is RigidBody2D`, the **type inference** doesn't update the variable's type for subsequent access.
+
+**Why CI passes but exports fail:**
+1. **In Editor/CI:** GDScript type checking is more lenient - it sees the `is` check and allows the property access
+2. **In Export builds:** The script compilation may be stricter, and accessing `global_position` on an `Object`-typed variable can cause the script to fail to parse
+
+**Historical precedent:**
+- Issue #363: Similar script load failure caused by typed class reference
+- Issue #377: Script load failure caused by undefined variable reference
+
+Both cases showed the same symptom: `has_died_signal=false` because the script fails to fully load.
+
+#### The Fix
+
+Added explicit type cast after the `is` check:
+
+**enemy.gd:**
+```gdscript
+if collider is RigidBody2D and collider.has_method("receive_kick"):
+    # Cast to RigidBody2D for proper type access (fixes export build issue #424)
+    var casing: RigidBody2D = collider as RigidBody2D
+    var push_dir := (casing.global_position - global_position).normalized()
+    var push_strength := velocity.length() * CASING_PUSH_FORCE / 100.0
+    casing.receive_kick(push_dir * push_strength)
+```
+
+**player.gd:**
+```gdscript
+for casing: RigidBody2D in casings_to_push:
+    var push_dir := (casing.global_position - global_position).normalized()
+    # ...
+```
+
+By explicitly typing the variable as `RigidBody2D`, the GDScript compiler knows at parse time that `global_position` is a valid property, preventing script load failures in exports.
 
 ## Lessons Learned
 
@@ -263,6 +302,9 @@ The issue is **NOT in the code** - all CI checks pass and the code changes are s
 5. **Audio perception:** Reducing volume by ~6 dB roughly halves perceived loudness.
 6. **CI validation is crucial:** When users report issues but CI passes, the problem may be in the user's build environment rather than the code.
 7. **Pattern consistency:** Using established patterns from existing code (like `(target.global_position - global_position).normalized()`) reduces the risk of introducing errors.
+8. **CRITICAL - Explicit type casting in GDScript:** When accessing properties on variables from polymorphic sources (like `collision.get_collider()` returning `Object`), always use explicit type casting (`var typed_var: Type = untyped_var as Type`) before accessing type-specific properties. GDScript type inference after `is` checks works in editor but may fail in export builds.
+9. **Editor vs Export differences:** GDScript may behave differently between Godot Editor and export builds. Always test with actual exports, not just editor runs, especially when dealing with typed variable access.
+10. **Trust recurring patterns:** When a user says "this happened many times" and logs show the same signature (`has_died_signal=false`), the root cause is likely related to previous similar issues - search the codebase history for patterns.
 
 ## References
 
