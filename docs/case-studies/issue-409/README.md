@@ -277,7 +277,7 @@ Enemy A dies
     ↓
 _on_death() emits died signal + calls _notify_nearby_enemies_of_death()
     ↓
-Nearby enemies within 500px with LOS receive on_ally_died() call
+Nearby enemies within 500px with FOV check AND LOS receive on_ally_died() call
     ↓
 Observer calculates 3 suspected directions from hit_direction
     ↓
@@ -287,3 +287,72 @@ Observer transitions to SEARCHING state
     ↓
 Search waypoints prioritize suspected directions
 ```
+
+## Bug Fix: FOV Not Checked for Ally Death Observation (2026-02-03)
+
+### Issue Report
+
+User reported that enemies facing away from an ally death were still reacting to it:
+> "сейчас даже враг, который смотрит в другую сторону видит смерть реагирует на смерть другого врага"
+> (Translation: "Currently, even an enemy looking in another direction sees the death and reacts to another enemy's death")
+
+### Root Cause Analysis
+
+The `on_ally_died()` function was only checking:
+1. ✅ Distance within `ALLY_DEATH_OBSERVE_RANGE` (500px)
+2. ✅ Line of sight via `_can_see_position()` (raycast for obstacles)
+
+But it was **NOT** checking:
+3. ❌ Field of view direction via `_is_position_in_fov()` (facing angle)
+
+This meant enemies could "see" deaths happening behind them, which is unrealistic.
+
+### Fix Applied
+
+Added FOV check to `on_ally_died()`:
+
+**Before:**
+```gdscript
+if distance > ALLY_DEATH_OBSERVE_RANGE or not _can_see_position(ally_position): return
+```
+
+**After:**
+```gdscript
+if distance > ALLY_DEATH_OBSERVE_RANGE or not _is_position_in_fov(ally_position) or not _can_see_position(ally_position): return
+```
+
+### Additional Changes: FOV Default Behavior
+
+User also requested that FOV limitation become the default behavior:
+> "замени пункт у experimental меню с включить ограниченную область зрения на выключить ограниченную область зрения (то есть ограниченная область зрения теперь не экспериментальная функция)"
+> (Translation: "Replace the item in the experimental menu from 'enable limited field of view' to 'disable limited field of view' (meaning limited FOV is now not an experimental feature)")
+
+Changes made:
+1. `experimental_settings.gd`: Changed `fov_enabled` default from `false` to `true`
+2. `ExperimentalMenu.tscn`: Changed label from "Enable FOV" to "Disable FOV Limitation"
+3. `experimental_menu.gd`: Inverted checkbox logic (checked = FOV disabled)
+
+### Updated Flow
+
+```
+Enemy A dies
+    ↓
+_on_death() emits died signal + calls _notify_nearby_enemies_of_death()
+    ↓
+For each nearby enemy:
+    ├── Check distance <= 500px
+    ├── Check within FOV cone (100° default)  ← NEW CHECK
+    └── Check line of sight (raycast)
+    ↓
+Only enemies who can ACTUALLY SEE the death receive on_ally_died() call
+```
+
+### Log Evidence
+
+From `game_log_20260203_164327.txt`:
+```
+[16:44:06] [ENEMY] [Enemy2] [AllyDeath] Witnessed at (700, 750), entering SEARCHING
+[16:44:06] [ENEMY] [Enemy3] [AllyDeath] Notified 2 enemies
+```
+
+Enemy2 was being notified even when facing away from Enemy3's death position. With the fix, Enemy2 will only be notified if the death position is within their 100° FOV cone.

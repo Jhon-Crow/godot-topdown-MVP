@@ -36,8 +36,8 @@ func _update_ui() -> void:
 		status_label.text = "Error: ExperimentalSettings not found"
 		return
 
-	# Update checkbox state
-	fov_checkbox.button_pressed = experimental_settings.is_fov_enabled()
+	# Update checkbox state (inverted: checked = FOV disabled)
+	fov_checkbox.button_pressed = not experimental_settings.is_fov_enabled()
 
 	# Update status label
 	if experimental_settings.is_fov_enabled():
@@ -46,10 +46,11 @@ func _update_ui() -> void:
 		status_label.text = "FOV disabled: Enemies have 360 degree vision"
 
 
-func _on_fov_toggled(enabled: bool) -> void:
+func _on_fov_toggled(disabled: bool) -> void:
 	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
 	if experimental_settings:
-		experimental_settings.set_fov_enabled(enabled)
+		# Inverted: checkbox checked = FOV disabled
+		experimental_settings.set_fov_enabled(not disabled)
 	_update_ui()
 
 

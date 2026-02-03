@@ -8,9 +8,9 @@ extends Node
 signal settings_changed
 
 ## Whether FOV (Field of View) limitation for enemies is enabled.
-## When enabled, enemies can only see within a 100-degree cone.
-## When disabled (default), enemies have 360-degree vision.
-var fov_enabled: bool = false
+## When enabled (default), enemies can only see within a 100-degree cone.
+## When disabled, enemies have 360-degree vision.
+var fov_enabled: bool = true
 
 ## Settings file path for persistence.
 const SETTINGS_PATH := "user://experimental_settings.cfg"
@@ -50,10 +50,10 @@ func _load_settings() -> void:
 	var config := ConfigFile.new()
 	var error := config.load(SETTINGS_PATH)
 	if error == OK:
-		fov_enabled = config.get_value("experimental", "fov_enabled", false)
+		fov_enabled = config.get_value("experimental", "fov_enabled", true)
 	else:
 		# File doesn't exist or failed to load - use defaults
-		fov_enabled = false
+		fov_enabled = true
 
 
 ## Log a message to the file logger if available.

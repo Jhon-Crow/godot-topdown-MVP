@@ -4914,11 +4914,11 @@ func _on_vulnerable_sound_heard_for_grenade(position: Vector2) -> void:
 
 ## Called when ally dies. Handles grenade awareness (#407) and death observation (#409).
 func on_ally_died(ally_position: Vector2, killer_is_player: bool, hit_direction: Vector2 = Vector2.ZERO) -> void:
-	if _grenade_component: _grenade_component.on_ally_died(ally_position, killer_is_player, _can_see_position(ally_position))
+	if _grenade_component: _grenade_component.on_ally_died(ally_position, killer_is_player, _is_position_in_fov(ally_position) and _can_see_position(ally_position))
 	if not _is_alive: return
 	if _current_state in [AIState.COMBAT, AIState.SUPPRESSED, AIState.RETREATING]: return
 	var distance := global_position.distance_to(ally_position)
-	if distance > ALLY_DEATH_OBSERVE_RANGE or not _can_see_position(ally_position): return
+	if distance > ALLY_DEATH_OBSERVE_RANGE or not _is_position_in_fov(ally_position) or not _can_see_position(ally_position): return
 	_calculate_suspected_directions(ally_position, hit_direction)
 	_witnessed_ally_death = true; _goap_world_state["witnessed_ally_death"] = true
 	if hit_direction != Vector2.ZERO and _memory:
