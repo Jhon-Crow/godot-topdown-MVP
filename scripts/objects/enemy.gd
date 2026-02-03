@@ -4643,18 +4643,11 @@ func has_ammo() -> bool:
 func get_player_visibility_ratio() -> float:
 	return _player_visibility_ratio
 
-## Convert a global position offset to local draw coordinates.
-## Issue #395: The enemy's body rotation affects _draw() coordinates, so we must
-## counter-rotate global vectors to draw them correctly in local space.
-## @param global_offset: Vector from global_position to target (e.g., target_pos - global_position)
-## @return: The vector in local coordinates suitable for _draw() functions
+## Convert global offset to local draw coords (Issue #395: counter-rotate for enemy rotation).
 func _global_to_local_draw(global_offset: Vector2) -> Vector2:
 	return global_offset.rotated(-rotation)
 
-## Draw debug visualization when debug mode is enabled.
-## Shows: line to target (cover, clear shot, player), bullet spawn point status.
-## Issue #395: All positions are converted from global to local coordinates using
-## _global_to_local_draw() to account for the enemy's rotation.
+## Draw debug visualization. Issue #395: All positions use _global_to_local_draw().
 func _draw() -> void:
 	if not debug_label_enabled:
 		return
