@@ -31,6 +31,10 @@ const RIPPLE_FREQUENCY: float = 25.0
 ## Ripple effect speed.
 const RIPPLE_SPEED: float = 2.0
 
+## Duration of the fade-out animation in seconds (Issue #442).
+## Visual effects fade smoothly over this duration for a smooth transition to normal mode.
+const FADE_OUT_DURATION_SECONDS: float = 0.4
+
 ## Player saturation multiplier during last chance (same as enemy saturation).
 ## Makes the player more vivid and visible during the effect.
 const PLAYER_SATURATION_MULTIPLIER: float = 4.0
@@ -94,6 +98,12 @@ var _player_current_health: float = 0.0
 ## Key: sprite node, Value: original modulate Color
 var _player_original_colors: Dictionary = {}
 
+## Whether the visual effects are currently fading out (Issue #442).
+var _is_fading_out: bool = false
+
+## The time when the fade-out started (in real time seconds).
+var _fade_out_start_time: float = 0.0
+
 
 func _ready() -> void:
 	# Connect to scene tree changes to find player and reset effects on scene reload
@@ -144,6 +154,11 @@ func _process(delta: float) -> void:
 	# Check if we need to find the player
 	if _player == null or not is_instance_valid(_player):
 		_find_player()
+
+	# Handle fade-out animation (Issue #442)
+	if _is_fading_out:
+		_update_fade_out()
+		return
 
 	# Update shader time for ripple animation (using real time)
 	if _is_effect_active:
@@ -564,6 +579,7 @@ func _apply_visual_effects() -> void:
 
 
 ## Ends the last chance effect.
+## Starts the fade-out animation for visual effects (Issue #442).
 func _end_last_chance_effect() -> void:
 	if not _is_effect_active:
 		return
@@ -579,7 +595,65 @@ func _end_last_chance_effect() -> void:
 	# Restore normal time
 	_unfreeze_time()
 
-	# Remove visual effects
+	# Start visual effects fade-out animation instead of removing instantly (Issue #442)
+	_start_fade_out()
+
+
+## Starts the visual effects fade-out animation (Issue #442).
+## Visual effects fade smoothly over FADE_OUT_DURATION_SECONDS for a smooth transition.
+func _start_fade_out() -> void:
+	_is_fading_out = true
+	_fade_out_start_time = Time.get_ticks_msec() / 1000.0
+	_log("Starting visual effects fade-out over %.0fms" % (FADE_OUT_DURATION_SECONDS * 1000.0))
+
+
+## Updates the fade-out animation each frame (Issue #442).
+## Uses real time to ensure the fade works correctly regardless of Engine.time_scale.
+func _update_fade_out() -> void:
+	var current_time := Time.get_ticks_msec() / 1000.0
+	var elapsed := current_time - _fade_out_start_time
+	var progress := clampf(elapsed / FADE_OUT_DURATION_SECONDS, 0.0, 1.0)
+
+	# Interpolate shader parameters from effect values to neutral values
+	var material := _effect_rect.material as ShaderMaterial
+	if material:
+		# Fade sepia intensity: SEPIA_INTENSITY -> 0.0
+		var current_sepia := lerpf(SEPIA_INTENSITY, 0.0, progress)
+		material.set_shader_parameter("sepia_intensity", current_sepia)
+
+		# Fade brightness: BRIGHTNESS -> 1.0
+		var current_brightness := lerpf(BRIGHTNESS, 1.0, progress)
+		material.set_shader_parameter("brightness", current_brightness)
+
+		# Fade ripple strength: RIPPLE_STRENGTH -> 0.0
+		var current_ripple := lerpf(RIPPLE_STRENGTH, 0.0, progress)
+		material.set_shader_parameter("ripple_strength", current_ripple)
+
+	# Fade player sprite saturation back to original colors
+	_update_player_colors_fade(progress)
+
+	# Check if fade-out is complete
+	if progress >= 1.0:
+		_complete_fade_out()
+
+
+## Updates player sprite colors during fade-out animation (Issue #442).
+## Gradually interpolates from saturated colors back to original colors.
+func _update_player_colors_fade(progress: float) -> void:
+	for sprite in _player_original_colors.keys():
+		if is_instance_valid(sprite):
+			var original_color: Color = _player_original_colors[sprite]
+			var saturated_color: Color = _saturate_color(original_color, PLAYER_SATURATION_MULTIPLIER)
+			# Interpolate from saturated color back to original color
+			sprite.modulate = saturated_color.lerp(original_color, progress)
+
+
+## Completes the fade-out animation and removes visual effects (Issue #442).
+func _complete_fade_out() -> void:
+	_is_fading_out = false
+	_log("Visual effects fade-out complete")
+
+	# Now fully remove the visual effects
 	_remove_visual_effects()
 
 
@@ -1029,6 +1103,11 @@ func reset_effects() -> void:
 
 	if _is_effect_active:
 		_end_last_chance_effect()
+
+	# Reset fade-out state (Issue #442)
+	_is_fading_out = false
+	_fade_out_start_time = 0.0
+
 	_player = null
 	_threat_sphere = null
 	_connected_to_player = false

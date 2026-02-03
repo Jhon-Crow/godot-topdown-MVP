@@ -1,0 +1,198 @@
+Check Architecture Best Practices	Set up job	﻿2026-02-03T07:17:31.1881803Z Current runner version: '2.331.0'
+Check Architecture Best Practices	Set up job	2026-02-03T07:17:31.1912976Z ##[group]Runner Image Provisioner
+Check Architecture Best Practices	Set up job	2026-02-03T07:17:31.1913942Z Hosted Compute Agent
+Check Architecture Best Practices	Set up job	2026-02-03T07:17:31.1914462Z Version: 20260123.484
+Check Architecture Best Practices	Set up job	2026-02-03T07:17:31.1915048Z Commit: 6bd6555ca37d84114959e1c76d2c01448ff61c5d
+Check Architecture Best Practices	Set up job	2026-02-03T07:17:31.1915773Z Build Date: 2026-01-23T19:41:17Z
+Check Architecture Best Practices	Set up job	2026-02-03T07:17:31.1916426Z Worker ID: {82f0c863-2e6a-4d73-9a7e-b5f9bebd96d9}
+Check Architecture Best Practices	Set up job	2026-02-03T07:17:31.1917140Z Azure Region: northcentralus
+Check Architecture Best Practices	Set up job	2026-02-03T07:17:31.1917746Z ##[endgroup]
+Check Architecture Best Practices	Set up job	2026-02-03T07:17:31.1919236Z ##[group]Operating System
+Check Architecture Best Practices	Set up job	2026-02-03T07:17:31.1919804Z Ubuntu
+Check Architecture Best Practices	Set up job	2026-02-03T07:17:31.1920338Z 24.04.3
+Check Architecture Best Practices	Set up job	2026-02-03T07:17:31.1920746Z LTS
+Check Architecture Best Practices	Set up job	2026-02-03T07:17:31.1921222Z ##[endgroup]
+Check Architecture Best Practices	Set up job	2026-02-03T07:17:31.1921703Z ##[group]Runner Image
+Check Architecture Best Practices	Set up job	2026-02-03T07:17:31.1922519Z Image: ubuntu-24.04
+Check Architecture Best Practices	Set up job	2026-02-03T07:17:31.1923025Z Version: 20260126.10.1
+Check Architecture Best Practices	Set up job	2026-02-03T07:17:31.1924016Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260126.10/images/ubuntu/Ubuntu2404-Readme.md
+Check Architecture Best Practices	Set up job	2026-02-03T07:17:31.1925674Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260126.10
+Check Architecture Best Practices	Set up job	2026-02-03T07:17:31.1926613Z ##[endgroup]
+Check Architecture Best Practices	Set up job	2026-02-03T07:17:31.1927663Z ##[group]GITHUB_TOKEN Permissions
+Check Architecture Best Practices	Set up job	2026-02-03T07:17:31.1929611Z Contents: read
+Check Architecture Best Practices	Set up job	2026-02-03T07:17:31.1930161Z Metadata: read
+Check Architecture Best Practices	Set up job	2026-02-03T07:17:31.1930693Z Packages: read
+Check Architecture Best Practices	Set up job	2026-02-03T07:17:31.1931134Z ##[endgroup]
+Check Architecture Best Practices	Set up job	2026-02-03T07:17:31.1933867Z Secret source: None
+Check Architecture Best Practices	Set up job	2026-02-03T07:17:31.1934516Z Prepare workflow directory
+Check Architecture Best Practices	Set up job	2026-02-03T07:17:31.2275632Z Prepare all required actions
+Check Architecture Best Practices	Set up job	2026-02-03T07:17:31.2314889Z Getting action download info
+Check Architecture Best Practices	Set up job	2026-02-03T07:17:31.5280609Z Download action repository 'actions/checkout@v4' (SHA:34e114876b0b11c390a56381ad16ebd13914f8d5)
+Check Architecture Best Practices	Set up job	2026-02-03T07:17:31.7434997Z Complete job name: Check Architecture Best Practices
+Check Architecture Best Practices	Checkout	﻿2026-02-03T07:17:31.8143904Z ##[group]Run actions/checkout@v4
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:31.8144773Z with:
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:31.8145215Z   repository: Jhon-Crow/godot-topdown-MVP
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:31.8145943Z   token: ***
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:31.8146345Z   ssh-strict: true
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:31.8146752Z   ssh-user: git
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:31.8147155Z   persist-credentials: true
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:31.8147618Z   clean: true
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:31.8148031Z   sparse-checkout-cone-mode: true
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:31.8148499Z   fetch-depth: 1
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:31.8148891Z   fetch-tags: false
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:31.8149284Z   show-progress: true
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:31.8149688Z   lfs: false
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:31.8150056Z   submodules: false
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:31.8150474Z   set-safe-directory: true
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:31.8151124Z ##[endgroup]
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:31.9245758Z Syncing repository: Jhon-Crow/godot-topdown-MVP
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:31.9248178Z ##[group]Getting Git version info
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:31.9249427Z Working directory is '/home/runner/work/godot-topdown-MVP/godot-topdown-MVP'
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:31.9251140Z [command]/usr/bin/git version
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:31.9350450Z git version 2.52.0
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:31.9376853Z ##[endgroup]
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:31.9392368Z Temporarily overriding HOME='/home/runner/work/_temp/7dd537ec-d0e0-48a3-969b-603e206ec678' before making global git config changes
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:31.9393799Z Adding repository directory to the temporary git global config as a safe directory
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:31.9398076Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/godot-topdown-MVP/godot-topdown-MVP
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:31.9440542Z Deleting the contents of '/home/runner/work/godot-topdown-MVP/godot-topdown-MVP'
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:31.9444040Z ##[group]Initializing the repository
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:31.9448130Z [command]/usr/bin/git init /home/runner/work/godot-topdown-MVP/godot-topdown-MVP
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:31.9584911Z hint: Using 'master' as the name for the initial branch. This default branch name
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:31.9586160Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:31.9587139Z hint: to use in all of your new repositories, which will suppress this warning,
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:31.9588134Z hint: call:
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:31.9588501Z hint:
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:31.9589273Z hint: 	git config --global init.defaultBranch <name>
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:31.9590230Z hint:
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:31.9591120Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:31.9592743Z hint: 'development'. The just-created branch can be renamed via this command:
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:31.9593533Z hint:
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:31.9593936Z hint: 	git branch -m <name>
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:31.9594397Z hint:
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:31.9595006Z hint: Disable this message with "git config set advice.defaultBranchName false"
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:31.9596617Z Initialized empty Git repository in /home/runner/work/godot-topdown-MVP/godot-topdown-MVP/.git/
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:31.9602046Z [command]/usr/bin/git remote add origin https://github.com/Jhon-Crow/godot-topdown-MVP
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:31.9637306Z ##[endgroup]
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:31.9638088Z ##[group]Disabling automatic garbage collection
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:31.9641385Z [command]/usr/bin/git config --local gc.auto 0
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:31.9670406Z ##[endgroup]
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:31.9671107Z ##[group]Setting up auth
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:31.9677585Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:31.9708289Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:32.0075185Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:32.0108645Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:32.0347374Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:32.0381262Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:32.0612234Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:32.0648864Z ##[endgroup]
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:32.0650098Z ##[group]Fetching the repository
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:32.0658033Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +2e8f32dc10dc31efb1e436afa546404a1769a3b1:refs/remotes/pull/401/merge
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:34.0337560Z From https://github.com/Jhon-Crow/godot-topdown-MVP
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:34.0340051Z  * [new ref]         2e8f32dc10dc31efb1e436afa546404a1769a3b1 -> pull/401/merge
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:34.0372452Z ##[endgroup]
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:34.0374444Z ##[group]Determining the checkout info
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:34.0376535Z ##[endgroup]
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:34.0380450Z [command]/usr/bin/git sparse-checkout disable
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:34.0438580Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:34.0467515Z ##[group]Checking out the ref
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:34.0472264Z [command]/usr/bin/git checkout --progress --force refs/remotes/pull/401/merge
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:34.4576482Z Note: switching to 'refs/remotes/pull/401/merge'.
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:34.4578087Z 
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:34.4578499Z You are in 'detached HEAD' state. You can look around, make experimental
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:34.4579392Z changes and commit them, and you can discard any commits you make in this
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:34.4580261Z state without impacting any branches by switching back to a branch.
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:34.4580777Z 
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:34.4581158Z If you want to create a new branch to retain commits you create, you may
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:34.4581961Z do so (now or later) by using -c with the switch command. Example:
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:34.4582688Z 
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:34.4582988Z   git switch -c <new-branch-name>
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:34.4583305Z 
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:34.4583515Z Or undo this operation with:
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:34.4584121Z 
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:34.4584394Z   git switch -
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:34.4584636Z 
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:34.4585065Z Turn off this advice by setting config variable advice.detachedHead to false
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:34.4585598Z 
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:34.4586215Z HEAD is now at 2e8f32d Merge 210d2d07480ade1d0e9ee5cb221a372991454cfd into c2599856341d46368f80ecc43a7bc2a04a8d65f7
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:34.4623609Z ##[endgroup]
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:34.4663071Z [command]/usr/bin/git log -1 --format=%H
+Check Architecture Best Practices	Checkout	2026-02-03T07:17:34.4686352Z 2e8f32dc10dc31efb1e436afa546404a1769a3b1
+Check Architecture Best Practices	Check script line counts	﻿2026-02-03T07:17:34.4883214Z ##[group]Run echo "Checking GDScript file sizes..."
+Check Architecture Best Practices	Check script line counts	2026-02-03T07:17:34.4883796Z [36;1mecho "Checking GDScript file sizes..."[0m
+Check Architecture Best Practices	Check script line counts	2026-02-03T07:17:34.4884268Z [36;1m# Current limits - these will be reduced as refactoring progresses[0m
+Check Architecture Best Practices	Check script line counts	2026-02-03T07:17:34.4884706Z [36;1m# Target: MAX_LINES=800, WARN_LINES=500[0m
+Check Architecture Best Practices	Check script line counts	2026-02-03T07:17:34.4885184Z [36;1m# Current: Higher limits to allow existing large scripts while encouraging refactoring[0m
+Check Architecture Best Practices	Check script line counts	2026-02-03T07:17:34.4885769Z [36;1mMAX_LINES=5000  # Will be reduced to 800 as refactoring progresses[0m
+Check Architecture Best Practices	Check script line counts	2026-02-03T07:17:34.4886309Z [36;1mWARN_LINES=800  # Warns for scripts that should be considered for refactoring[0m
+Check Architecture Best Practices	Check script line counts	2026-02-03T07:17:34.4886883Z [36;1mCRITICAL_THRESHOLD=4500  # 90% of MAX_LINES - pre-emptive warning (Issue #328)[0m
+Check Architecture Best Practices	Check script line counts	2026-02-03T07:17:34.4887307Z [36;1merrors=0[0m
+Check Architecture Best Practices	Check script line counts	2026-02-03T07:17:34.4887520Z [36;1mwarnings=0[0m
+Check Architecture Best Practices	Check script line counts	2026-02-03T07:17:34.4887755Z [36;1mcritical_warnings=0[0m
+Check Architecture Best Practices	Check script line counts	2026-02-03T07:17:34.4888004Z [36;1mlarge_scripts=0[0m
+Check Architecture Best Practices	Check script line counts	2026-02-03T07:17:34.4888268Z [36;1m[0m
+Check Architecture Best Practices	Check script line counts	2026-02-03T07:17:34.4888540Z [36;1m# Find all GDScript files (excluding addons and tests)[0m
+Check Architecture Best Practices	Check script line counts	2026-02-03T07:17:34.4888904Z [36;1mwhile IFS= read -r file; do[0m
+Check Architecture Best Practices	Check script line counts	2026-02-03T07:17:34.4889196Z [36;1m  lines=$(wc -l < "$file")[0m
+Check Architecture Best Practices	Check script line counts	2026-02-03T07:17:34.4889501Z [36;1m  if [ "$lines" -gt "$MAX_LINES" ]; then[0m
+Check Architecture Best Practices	Check script line counts	2026-02-03T07:17:34.4890000Z [36;1m    echo "::error file=$file::Script exceeds $MAX_LINES lines ($lines lines). Refactoring required."[0m
+Check Architecture Best Practices	Check script line counts	2026-02-03T07:17:34.4890496Z [36;1m    errors=$((errors + 1))[0m
+Check Architecture Best Practices	Check script line counts	2026-02-03T07:17:34.4890815Z [36;1m  elif [ "$lines" -gt "$CRITICAL_THRESHOLD" ]; then[0m
+Check Architecture Best Practices	Check script line counts	2026-02-03T07:17:34.4891223Z [36;1m    # Pre-emptive warning at 90% of MAX_LINES (Issue #328)[0m
+Check Architecture Best Practices	Check script line counts	2026-02-03T07:17:34.4891588Z [36;1m    remaining=$((MAX_LINES - lines))[0m
+Check Architecture Best Practices	Check script line counts	2026-02-03T07:17:34.4892440Z [36;1m    echo "::warning file=$file::CRITICAL: Script has $lines lines (only $remaining lines remaining before limit). Immediate refactoring recommended!"[0m
+Check Architecture Best Practices	Check script line counts	2026-02-03T07:17:34.4893175Z [36;1m    critical_warnings=$((critical_warnings + 1))[0m
+Check Architecture Best Practices	Check script line counts	2026-02-03T07:17:34.4893507Z [36;1m    warnings=$((warnings + 1))[0m
+Check Architecture Best Practices	Check script line counts	2026-02-03T07:17:34.4893870Z [36;1m  elif [ "$lines" -gt "$WARN_LINES" ]; then[0m
+Check Architecture Best Practices	Check script line counts	2026-02-03T07:17:34.4894604Z [36;1m    echo "::warning file=$file::Script has $lines lines (warning threshold: $WARN_LINES). Consider splitting into components using the patterns in scripts/components/."[0m
+Check Architecture Best Practices	Check script line counts	2026-02-03T07:17:34.4895329Z [36;1m    warnings=$((warnings + 1))[0m
+Check Architecture Best Practices	Check script line counts	2026-02-03T07:17:34.4895658Z [36;1m  fi[0m
+Check Architecture Best Practices	Check script line counts	2026-02-03T07:17:34.4895872Z [36;1m  if [ "$lines" -gt 500 ]; then[0m
+Check Architecture Best Practices	Check script line counts	2026-02-03T07:17:34.4896185Z [36;1m    large_scripts=$((large_scripts + 1))[0m
+Check Architecture Best Practices	Check script line counts	2026-02-03T07:17:34.4896472Z [36;1m  fi[0m
+Check Architecture Best Practices	Check script line counts	2026-02-03T07:17:34.4896753Z [36;1mdone < <(find scripts -name "*.gd" -type f 2>/dev/null)[0m
+Check Architecture Best Practices	Check script line counts	2026-02-03T07:17:34.4897086Z [36;1m[0m
+Check Architecture Best Practices	Check script line counts	2026-02-03T07:17:34.4897330Z [36;1mecho "errors=$errors" >> $GITHUB_OUTPUT[0m
+Check Architecture Best Practices	Check script line counts	2026-02-03T07:17:34.4897689Z [36;1mecho "warnings=$warnings" >> $GITHUB_OUTPUT[0m
+Check Architecture Best Practices	Check script line counts	2026-02-03T07:17:34.4898092Z [36;1mecho "critical_warnings=$critical_warnings" >> $GITHUB_OUTPUT[0m
+Check Architecture Best Practices	Check script line counts	2026-02-03T07:17:34.4898532Z [36;1mecho "large_scripts=$large_scripts" >> $GITHUB_OUTPUT[0m
+Check Architecture Best Practices	Check script line counts	2026-02-03T07:17:34.4898854Z [36;1m[0m
+Check Architecture Best Practices	Check script line counts	2026-02-03T07:17:34.4899070Z [36;1mif [ "$errors" -gt 0 ]; then[0m
+Check Architecture Best Practices	Check script line counts	2026-02-03T07:17:34.4899407Z [36;1m  echo "Found $errors script(s) exceeding line limit."[0m
+Check Architecture Best Practices	Check script line counts	2026-02-03T07:17:34.4899742Z [36;1m  exit 1[0m
+Check Architecture Best Practices	Check script line counts	2026-02-03T07:17:34.4900132Z [36;1mfi[0m
+Check Architecture Best Practices	Check script line counts	2026-02-03T07:17:34.4900332Z [36;1m[0m
+Check Architecture Best Practices	Check script line counts	2026-02-03T07:17:34.4900848Z [36;1mecho "All scripts within size limits. ($warnings warnings, $critical_warnings critical, $large_scripts scripts over 500 lines)"[0m
+Check Architecture Best Practices	Check script line counts	2026-02-03T07:17:34.4901425Z [36;1mecho ""[0m
+Check Architecture Best Practices	Check script line counts	2026-02-03T07:17:34.4901674Z [36;1mif [ "$critical_warnings" -gt 0 ]; then[0m
+Check Architecture Best Practices	Check script line counts	2026-02-03T07:17:34.4902356Z [36;1m  echo "⚠️  ATTENTION: $critical_warnings script(s) are approaching the line limit!"[0m
+Check Architecture Best Practices	Check script line counts	2026-02-03T07:17:34.4903017Z [36;1m  echo "   These scripts should be prioritized for refactoring to avoid CI failures."[0m
+Check Architecture Best Practices	Check script line counts	2026-02-03T07:17:34.4903806Z [36;1m  echo "   See PR #323 for an example of CI failure due to exceeding line limit."[0m
+Check Architecture Best Practices	Check script line counts	2026-02-03T07:17:34.4904207Z [36;1mfi[0m
+Check Architecture Best Practices	Check script line counts	2026-02-03T07:17:34.4904474Z [36;1mecho ""[0m
+Check Architecture Best Practices	Check script line counts	2026-02-03T07:17:34.4904944Z [36;1mecho "Note: Gradual refactoring is encouraged. See scripts/components/ for reusable component patterns."[0m
+Check Architecture Best Practices	Check script line counts	2026-02-03T07:17:34.4940944Z shell: /usr/bin/bash -e {0}
+Check Architecture Best Practices	Check script line counts	2026-02-03T07:17:34.4941268Z ##[endgroup]
+Check Architecture Best Practices	Check script line counts	2026-02-03T07:17:34.5017736Z Checking GDScript file sizes...
+Check Architecture Best Practices	Check script line counts	2026-02-03T07:17:34.5219069Z ##[warning]Script has 2595 lines (warning threshold: 800). Consider splitting into components using the patterns in scripts/components/.
+Check Architecture Best Practices	Check script line counts	2026-02-03T07:17:34.5525688Z ##[error]Script exceeds 5000 lines (5019 lines). Refactoring required.
+Check Architecture Best Practices	Check script line counts	2026-02-03T07:17:34.5699136Z ##[warning]Script has 893 lines (warning threshold: 800). Consider splitting into components using the patterns in scripts/components/.
+Check Architecture Best Practices	Check script line counts	2026-02-03T07:17:34.5841029Z ##[warning]Script has 1089 lines (warning threshold: 800). Consider splitting into components using the patterns in scripts/components/.
+Check Architecture Best Practices	Check script line counts	2026-02-03T07:17:34.5948333Z ##[warning]Script has 877 lines (warning threshold: 800). Consider splitting into components using the patterns in scripts/components/.
+Check Architecture Best Practices	Check script line counts	2026-02-03T07:17:34.6055766Z ##[warning]Script has 970 lines (warning threshold: 800). Consider splitting into components using the patterns in scripts/components/.
+Check Architecture Best Practices	Check script line counts	2026-02-03T07:17:34.6092230Z Found 1 script(s) exceeding line limit.
+Check Architecture Best Practices	Check script line counts	2026-02-03T07:17:34.6100148Z ##[error]Process completed with exit code 1.
+Check Architecture Best Practices	Post Checkout	﻿2026-02-03T07:17:34.6249362Z Post job cleanup.
+Check Architecture Best Practices	Post Checkout	2026-02-03T07:17:34.7219809Z [command]/usr/bin/git version
+Check Architecture Best Practices	Post Checkout	2026-02-03T07:17:34.7262993Z git version 2.52.0
+Check Architecture Best Practices	Post Checkout	2026-02-03T07:17:34.7306391Z Temporarily overriding HOME='/home/runner/work/_temp/5a61fa30-ad3f-4dd4-98fc-8f56eefaa7f6' before making global git config changes
+Check Architecture Best Practices	Post Checkout	2026-02-03T07:17:34.7307281Z Adding repository directory to the temporary git global config as a safe directory
+Check Architecture Best Practices	Post Checkout	2026-02-03T07:17:34.7311567Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/godot-topdown-MVP/godot-topdown-MVP
+Check Architecture Best Practices	Post Checkout	2026-02-03T07:17:34.7347023Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+Check Architecture Best Practices	Post Checkout	2026-02-03T07:17:34.7423248Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Check Architecture Best Practices	Post Checkout	2026-02-03T07:17:34.7627787Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Check Architecture Best Practices	Post Checkout	2026-02-03T07:17:34.7651550Z http.https://github.com/.extraheader
+Check Architecture Best Practices	Post Checkout	2026-02-03T07:17:34.7666236Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+Check Architecture Best Practices	Post Checkout	2026-02-03T07:17:34.7700069Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Check Architecture Best Practices	Post Checkout	2026-02-03T07:17:34.7928922Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+Check Architecture Best Practices	Post Checkout	2026-02-03T07:17:34.7960915Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Check Architecture Best Practices	Complete job	﻿2026-02-03T07:17:34.8306926Z Cleaning up orphan processes
