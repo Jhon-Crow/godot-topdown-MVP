@@ -257,10 +257,123 @@ Weapon sprite analysis:
 
 6. **Light gradients control visual perception** - A 5-stop gradient with concentrated brightness (0-10%) and long fade (10-100%) creates the perception of a smaller bright center with viewport-wide illumination.
 
+## Iteration 4: Light Occlusion - Flash Passing Through Walls (2026-02-03)
+
+### User Feedback (Comment #3843825427)
+User reported:
+> "сейчас вспышка проходит сквозь стены" (currently the flash passes through walls)
+
+### Root Cause Analysis
+
+**Root Cause**: The walls in the level scenes were **missing LightOccluder2D nodes**.
+
+In Godot 4, for PointLight2D shadows to work correctly, walls need TWO things:
+1. `shadow_enabled = true` on the PointLight2D ✓ (already done in Iteration 3)
+2. `LightOccluder2D` nodes on objects that should block light ✗ (was missing!)
+
+The current walls had:
+- `StaticBody2D` - for physics
+- `ColorRect` - for visual rendering
+- `CollisionShape2D` - for collision detection
+
+But they were **missing**:
+- `LightOccluder2D` with `OccluderPolygon2D` - for shadow casting
+
+This is why shadows weren't appearing despite `shadow_enabled = true` - there were no occluders for the light to cast shadows against.
+
+### Technical Details
+
+In Godot 4's 2D lighting system:
+- `PointLight2D` emits light and can cast shadows when `shadow_enabled = true`
+- Shadows require `LightOccluder2D` nodes that define the shadow-casting geometry
+- Each occluder needs an `OccluderPolygon2D` resource that defines the shape
+- The polygon vertices should match the collision shape for consistency
+
+### Fix Implementation
+
+Added `LightOccluder2D` nodes to all wall and obstacle objects in both level scenes:
+
+**BuildingLevel.tscn** (62 occluders):
+- 4 outer walls (WallTop, WallBottom, WallLeft, WallRight)
+- 18 interior walls (Room1-5, Corridor, LobbyDivider, StorageRoom, MainHall walls)
+- 7 corner fills
+- 13 cover objects (desks, tables, cabinets, crates)
+
+**TestTier.tscn** (56 occluders):
+- 4 outer walls
+- 8 large building obstacles
+- 4 medium obstacles
+- 12 wide cover objects
+- 8 tall cover objects
+- 6 barricades
+- 7 pillars
+- 6 square crates
+- 1 spawn cover
+
+### OccluderPolygon2D Resources Added
+
+Created reusable `OccluderPolygon2D` sub-resources matching each collision shape:
+
+| Shape | Dimensions | Polygon |
+|-------|------------|---------|
+| wall_horizontal | 2464x32 | -1232,-16 to 1232,16 |
+| wall_vertical | 32x2064 | -16,-1032 to 16,1032 |
+| interior_wall_h | 400x24 | -200,-12 to 200,12 |
+| interior_wall_v | 24x400 | -12,-200 to 12,200 |
+| cover_desk | 120x48 | -60,-24 to 60,24 |
+| cover_table | 80x80 | -40,-40 to 40,40 |
+| cover_cabinet | 48x96 | -24,-48 to 24,48 |
+| obstacle_large | 160x160 | -80,-80 to 80,80 |
+| pillar | 48x48 | -24,-24 to 24,24 |
+| barricade | 128x24 | -64,-12 to 64,12 |
+
+### Files Modified (Iteration 4)
+
+1. **scenes/levels/BuildingLevel.tscn**
+   - Added 12 OccluderPolygon2D sub-resources
+   - Added LightOccluder2D child nodes to all 62 wall/cover objects
+
+2. **scenes/levels/TestTier.tscn**
+   - Added 10 OccluderPolygon2D sub-resources
+   - Added LightOccluder2D child nodes to all 56 wall/obstacle/cover objects
+
+### Effect Parameter Comparison (Complete History)
+
+| Feature | Iteration 1 | Iteration 2 | Iteration 3 | Iteration 4 |
+|---------|-------------|-------------|-------------|-------------|
+| Player muzzle flash | GDScript only | C# added | ✓ | ✓ |
+| Particle sparks | Large | 4x smaller | Shorter duration | ✓ |
+| Light radius | Small | 2x bigger | Viewport-wide | ✓ |
+| Residual glow | Short | 3x longer | ✓ | ✓ |
+| Shadow enabled | No | Yes | Enhanced (PCF5) | ✓ |
+| **LightOccluder2D** | No | No | No | **Yes** |
+| Flash blocked by walls | No | No | No | **Yes** |
+
+## Lessons Learned
+
+1. **Always verify which language implementation is used** - The codebase has both C# and GDScript versions of the same functionality. Need to check which one is actually being used at runtime.
+
+2. **Log analysis helps identify root cause** - The absence of muzzle flash logs in game logs pointed to the player implementation issue.
+
+3. **Visual effects have multiple components** - Muzzle flash consists of:
+   - Barrel particles (small, directed sparks)
+   - Light effect (larger, illuminates surroundings)
+   - Shadows (adds realism)
+   - Residual glow (persistence)
+
+4. **User feedback is essential** - Initial implementation was technically correct but visually wrong. User testing revealed specific adjustments needed.
+
+5. **Sprite offset calculations are critical** - BulletSpawnOffset must account for sprite offset + half sprite width to position effects at the visual barrel end, not just an arbitrary offset from the weapon node center.
+
+6. **Light gradients control visual perception** - A 5-stop gradient with concentrated brightness (0-10%) and long fade (10-100%) creates the perception of a smaller bright center with viewport-wide illumination.
+
+7. **2D shadows require BOTH light settings AND occluders** - Enabling `shadow_enabled` on PointLight2D is only half the solution. The level geometry needs `LightOccluder2D` nodes with `OccluderPolygon2D` resources that define the shadow-casting shapes. Without occluders, light passes through everything regardless of shadow settings.
+
 ## References
 
 - Game logs: `game_log_20260203_232835.txt`, `game_log_20260203_233151.txt`
 - Initial research: `research.md`
 - Godot PointLight2D shadow documentation
 - Godot GPUParticles2D material properties
+- Godot LightOccluder2D and OccluderPolygon2D documentation
 - Weapon sprite dimensions: m16=64x16, uzi=40x10, pistol=44x12, shotgun=64x16
