@@ -509,16 +509,16 @@ func test_reload_complete_sound_propagates_to_distant_listener() -> void:
 func test_grenade_landing_sound_type_exists() -> void:
 	# GRENADE_LANDING = 7
 	var range_val: float = _sound_propagation.get_propagation_distance(7)
-	assert_almost_eq(range_val, 450.0, 0.1, "Grenade landing should have 450 range")
+	assert_almost_eq(range_val, 112.0, 0.1, "Grenade landing should have 112 range (very close)")
 
 
-func test_grenade_landing_is_half_reload_distance() -> void:
-	# Issue #426: Grenade landing sound should be half the reload sound distance
+func test_grenade_landing_is_much_shorter_than_reload() -> void:
+	# Issue #426: Grenade landing sound should be 1/8 of reload sound distance (very close range)
 	var reload_range: float = _sound_propagation.get_propagation_distance(3)  # RELOAD = 900
-	var grenade_landing_range: float = _sound_propagation.get_propagation_distance(7)  # GRENADE_LANDING = 450
+	var grenade_landing_range: float = _sound_propagation.get_propagation_distance(7)  # GRENADE_LANDING = 112
 
-	assert_almost_eq(grenade_landing_range, reload_range / 2.0, 0.1,
-		"Grenade landing range should be exactly half of reload range")
+	assert_almost_eq(grenade_landing_range, reload_range / 8.0, 0.5,
+		"Grenade landing range should be approximately 1/8 of reload range")
 
 
 func test_emit_grenade_landing_convenience_method() -> void:
@@ -539,9 +539,9 @@ func test_emit_grenade_landing_convenience_method() -> void:
 
 
 func test_grenade_landing_does_not_reach_distant_listener() -> void:
-	# A listener at 500 pixels should NOT hear grenade landing (450 range)
+	# A listener at 150 pixels should NOT hear grenade landing (112 range)
 	var listener := MockListener.new()
-	listener.global_position = Vector2(500, 0)
+	listener.global_position = Vector2(150, 0)
 	add_child(listener)
 
 	_sound_propagation.register_listener(listener)
@@ -549,15 +549,15 @@ func test_grenade_landing_does_not_reach_distant_listener() -> void:
 	_sound_propagation.emit_grenade_landing(Vector2.ZERO, null)
 
 	assert_eq(listener.get_sound_count(), 0,
-		"Grenade landing should not reach listener at 500 pixels (beyond 450 range)")
+		"Grenade landing should not reach listener at 150 pixels (beyond 112 range)")
 
 	listener.queue_free()
 
 
 func test_grenade_landing_reaches_nearby_listener() -> void:
-	# A listener at 400 pixels should hear grenade landing (450 range)
+	# A listener at 100 pixels should hear grenade landing (112 range)
 	var listener := MockListener.new()
-	listener.global_position = Vector2(400, 0)
+	listener.global_position = Vector2(100, 0)
 	add_child(listener)
 
 	_sound_propagation.register_listener(listener)
@@ -565,27 +565,27 @@ func test_grenade_landing_reaches_nearby_listener() -> void:
 	_sound_propagation.emit_grenade_landing(Vector2.ZERO, null)
 
 	assert_eq(listener.get_sound_count(), 1,
-		"Grenade landing should reach listener at 400 pixels (within 450 range)")
+		"Grenade landing should reach listener at 100 pixels (within 112 range)")
 
 	listener.queue_free()
 
 
 func test_grenade_landing_shorter_range_than_reload() -> void:
-	# A listener at 600 pixels should hear reload but NOT grenade landing
+	# A listener at 200 pixels should hear reload but NOT grenade landing
 	var listener := MockListener.new()
-	listener.global_position = Vector2(600, 0)
+	listener.global_position = Vector2(200, 0)
 	add_child(listener)
 
 	_sound_propagation.register_listener(listener)
 
-	# Grenade landing should NOT be heard (450 range, listener at 600)
+	# Grenade landing should NOT be heard (112 range, listener at 200)
 	_sound_propagation.emit_grenade_landing(Vector2.ZERO, null)
 	assert_eq(listener.get_sound_count(), 0,
-		"Grenade landing should not reach listener at 600 pixels")
+		"Grenade landing should not reach listener at 200 pixels")
 
-	# Reload SHOULD be heard (900 range, listener at 600)
+	# Reload SHOULD be heard (900 range, listener at 200)
 	_sound_propagation.emit_player_reload(Vector2.ZERO, null)
 	assert_eq(listener.get_sound_count(), 1,
-		"Reload should reach listener at 600 pixels")
+		"Reload should reach listener at 200 pixels")
 
 	listener.queue_free()

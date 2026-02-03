@@ -149,10 +149,86 @@ The FOV check uses the same logic as the enemy's `_is_position_in_fov()` functio
 - **FOV-aware:** Enemies cannot see grenades behind them (respects FOV settings)
 - **Backward compatible:** Fallback behavior when no raycast or FOV settings available
 
+### Phase 4: Sound Detection & Safe Distance (Fixed in fourth commit)
+
+**Problem 1:** Enemies couldn't hear grenades land nearby (e.g., behind them or around corners).
+
+**Problem 2:** Enemies stopped fleeing as soon as they left the immediate danger zone, not at a guaranteed safe distance.
+
+**Timeline from game_log_20260203_170848.txt (user-provided log):**
+| Time | Event | Details | Issue |
+|------|-------|---------|-------|
+| 17:08:50 | Grenade thrown behind enemy | Enemy facing away from grenade | - |
+| 17:08:50 | Enemy does NOT flee | Enemy can't see grenade (correct FOV behavior) | - |
+| 17:08:51 | Grenade lands 200px from enemy | Enemy still doesn't flee | **BUG** - should hear landing |
+| 17:08:52 | Enemy hit by grenade effect | No audio warning occurred | **BUG** |
+
+**Root Cause 1:** No sound propagation for grenade landing. Enemies rely solely on vision, but grenades make audible sounds when they hit the ground.
+
+**Root Cause 2:** `GrenadeAvoidanceComponent` checked if enemy was outside `danger_radius` to return to IDLE, but this didn't guarantee safety from the explosion effect.
+
+**Solution:**
+1. Added `GRENADE_LANDING` sound type to `SoundPropagation` system with 450px range (later reduced to 112px in Phase 5)
+2. Added grenade position memory to `GrenadeAvoidanceComponent` via `remember_grenade_position()`
+3. Added safe distance calculation: `effect_radius + safety_margin + 100px buffer`
+4. Added `trigger_evasion_from_sound()` method for sound-triggered evasion
+
+### Phase 5: Sound Range Adjustment (Final refinement)
+
+**Problem:** Grenade landing sound range (450px) was too far, causing enemies to hear grenades from unrealistic distances.
+
+**User feedback (translated from Russian):**
+> "сделай чтоб звук гранаты был слышан на расстоянии ещё в 4 раза меньше"
+> Translation: "make it so that the grenade sound is heard at a distance 4 times smaller"
+
+**Timeline from game_log_20260203_175333.txt:**
+| Time | Event | Details |
+|------|-------|---------|
+| 17:53:38 | Grenade landing sound emitted | Range: 450px, position: (547, 728) |
+| 17:53:38 | Enemy2 heard sound | Distance: 258px, intensity: 0.04 |
+| 17:53:38 | Enemy3 heard sound | Distance: 216px, intensity: 0.05 |
+| 17:53:38 | Enemy4 heard sound | Distance: 305px, intensity: 0.03 |
+
+**Key evidence from log:**
+```
+[17:53:38] [INFO] [SoundPropagation] Sound emitted: type=GRENADE_LANDING, pos=(547.4562, 728.3003), source=NEUTRAL (FlashbangGrenade), range=450, listeners=10
+[17:53:38] [ENEMY] [Enemy2] Heard GRENADE_LANDING at (547.4562, 728.3003), intensity=0.04, distance=258
+[17:53:38] [ENEMY] [Enemy3] Heard GRENADE_LANDING at (547.4562, 728.3003), intensity=0.05, distance=216
+```
+
+The 450px range was causing enemies at 216-305px to hear grenades, which the user found too sensitive.
+
+**Solution:** Reduced `GRENADE_LANDING` range from 450px to 112px (1/4 of the original value).
+- New range: 112px ≈ 1/8 of reload sound range (900px)
+- This makes grenade landing sounds only audible at very close range
+
+## Impact
+
+- **Realistic behavior:** Enemies only react to grenades they can actually perceive
+- **Tactical gameplay:** Players can use walls for cover when throwing grenades
+- **No "sixth sense":** Enemies behave consistently with what they can see/hear
+- **FOV-aware:** Enemies cannot see grenades behind them (respects FOV settings)
+- **Sound-aware:** Enemies hear grenades landing very close (112px range)
+- **Safe retreat:** Enemies flee to guaranteed safe distance before stopping
+- **Backward compatible:** Fallback behavior when no raycast or FOV settings available
+
 ## Files Modified
 
-1. `scripts/components/grenade_avoidance_component.gd` - Added LOS and FOV checks
-2. `scripts/objects/enemy.gd` - Pass raycast and FOV parameters to component
-3. `scripts/projectiles/grenade_base.gd` - Added `is_thrown()` method (Phase 1)
-4. `tests/unit/test_grenade_avoidance_component.gd` - Unit tests for LOS and FOV
-5. `tests/unit/test_grenade_base.gd` - Added `is_thrown()` tests (Phase 1)
+1. `scripts/components/grenade_avoidance_component.gd` - Added LOS, FOV checks, position memory, safe distance
+2. `scripts/objects/enemy.gd` - Pass raycast, FOV parameters, handle GRENADE_LANDING sound
+3. `scripts/projectiles/grenade_base.gd` - Added `is_thrown()` method, emit landing sound
+4. `scripts/autoload/sound_propagation.gd` - Added GRENADE_LANDING sound type (112px range)
+5. `tests/unit/test_grenade_avoidance_component.gd` - Unit tests for LOS and FOV
+6. `tests/unit/test_sound_propagation.gd` - Unit tests for grenade landing sound
+7. `tests/unit/test_grenade_base.gd` - Added `is_thrown()` tests (Phase 1)
+
+## Summary Table
+
+| Phase | Problem | Solution | Key Files |
+|-------|---------|----------|-----------|
+| 1 | Fled when pin pulled | Check `is_thrown()` instead of `is_timer_active()` | grenade_base.gd |
+| 2 | Fled through walls | Raycast LOS check via `_can_see_position()` | grenade_avoidance_component.gd |
+| 3 | Fled with back turned | FOV cone check via `_is_position_in_fov()` | grenade_avoidance_component.gd |
+| 4 | No sound detection | `GRENADE_LANDING` sound via SoundPropagation | sound_propagation.gd |
+| 4 | Didn't flee far enough | Position memory + guaranteed safe distance | grenade_avoidance_component.gd |
+| 5 | Sound range too far | Reduced from 450px to 112px (1/4) | sound_propagation.gd |

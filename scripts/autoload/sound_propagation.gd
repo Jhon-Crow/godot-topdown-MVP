@@ -27,7 +27,7 @@ enum SoundType {
 	IMPACT,          ## Bullet impacts - medium range (for future use)
 	EMPTY_CLICK,     ## Empty weapon click - audible but shorter range than reload
 	RELOAD_COMPLETE, ## Weapon reload finished - bolt cycling sound, enemies become cautious
-	GRENADE_LANDING  ## Grenade landing on ground - Issue #426: half reload distance (450px)
+	GRENADE_LANDING  ## Grenade landing on ground - Issue #426: very close range (112px)
 }
 
 ## Source types for sounds - used to determine if listener should react.
@@ -55,7 +55,7 @@ const PROPAGATION_DISTANCES: Dictionary = {
 	SoundType.IMPACT: 550.0,           ## Medium range
 	SoundType.EMPTY_CLICK: 600.0,      ## Shorter than reload but still audible through walls
 	SoundType.RELOAD_COMPLETE: 900.0,  ## Bolt cycling sound - same range as reload start
-	SoundType.GRENADE_LANDING: 450.0   ## Issue #426: Half reload distance (900/2) - enemies can hear grenade land nearby
+	SoundType.GRENADE_LANDING: 112.0   ## Issue #426: 1/4 of half-reload (450/4) - enemies hear grenade very close
 }
 
 ## Reference distance for sound intensity calculations (in pixels).
@@ -265,7 +265,7 @@ func emit_player_reload_complete(position: Vector2, source_node: Node2D = null) 
 
 
 ## Convenience method to emit a grenade landing sound (Issue #426).
-## This sound has half the range of reload sounds (450px vs 900px).
+## This sound has a very short range (112px) - enemies only hear grenades landing very close.
 ## Enemies within range will hear the grenade land and can react to evade.
 func emit_grenade_landing(position: Vector2, source_node: Node2D = null) -> void:
 	emit_sound(SoundType.GRENADE_LANDING, position, SourceType.NEUTRAL, source_node)
