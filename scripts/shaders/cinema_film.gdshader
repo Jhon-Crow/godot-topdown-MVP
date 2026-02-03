@@ -1,11 +1,13 @@
 shader_type canvas_item;
 
 // ============================================================================
-// CINEMA FILM EFFECT SHADER v5.2
+// CINEMA FILM EFFECT SHADER v5.3
 // Simulates vintage film look with grain, warm tones, and film defects
 // v5.0: Added micro scratches, cigarette burn, and end of reel death effects
 // v5.1: Issue #431 fixes - increased grain, realistic micro dots, death effects
 // v5.2: Issue #431 feedback - top-right corner, expanding spots, visible specks
+// v5.3: Issue #440 fix - simplified end of reel to ~80x80 white circle ring
+//       that blinks exactly 2 times (updated: made 2x smaller per feedback)
 //
 // APPROACH: OVERLAY-BASED (no screen_texture)
 // This shader creates visual overlays that blend on top of the rendered scene
@@ -63,8 +65,9 @@ uniform float cigarette_burn_intensity : hint_range(0.0, 1.0) = 0.0;
 uniform vec2 cigarette_burn_position = vec2(0.5, 0.5);
 uniform float cigarette_burn_size : hint_range(0.0, 0.5) = 0.15;
 
-// End of reel: flickering countdown effect in the corner on death
-// Issue #431: Position changed to top-RIGHT corner as requested
+// End of reel: white circle ring in the corner on death
+// Issue #431: Position changed to top-RIGHT corner
+// Issue #440: Simplified to ~80x80 pixel white ring that blinks 2 times (updated: 2x smaller)
 uniform bool end_of_reel_enabled = false;
 uniform float end_of_reel_intensity : hint_range(0.0, 1.0) = 0.0;
 uniform float end_of_reel_time : hint_range(0.0, 10.0) = 0.0;
@@ -261,50 +264,53 @@ vec3 cigarette_burn_color(vec2 uv, vec2 center, float size) {
 	return burn_color;
 }
 
-// End of reel effect - flickering countdown markers in corner
-// Issue #431 feedback: Changed to top-RIGHT corner
+// End of reel effect - simple white circle outline in corner
+// Issue #440: Changed to a simple ~80x80 pixel white ring that blinks 2 times
+// Position: top-RIGHT corner
 float end_of_reel(vec2 uv, float intensity, float time_val, float reel_time) {
 	if (intensity <= 0.0) return 0.0;
 
-	// Position in top-RIGHT corner (Issue #431 feedback)
-	vec2 corner = vec2(0.85, 0.15);
-	float corner_size = 0.12;
+	// Position in top-RIGHT corner with some padding
+	// Circle size: ~80x80 pixels on 1280x720 viewport
+	// For an 80px circle: radius = 40px, in UV space ≈ 40/720 = 0.056 for Y
+	// Using average for circle appearance on different aspect ratios
+	float circle_radius = 0.055;  // ~80px diameter on 720p (2x smaller than before)
+	float ring_thickness = 0.008;  // Thin ring outline (~6px)
 
-	vec2 to_corner = uv - corner;
+	// Position: top-right corner with padding (circle center)
+	// Padding of ~20px from edges: (1280-100)/1280 ≈ 0.92 for X, 100/720 ≈ 0.14 for Y
+	vec2 corner = vec2(0.88, 0.16);
+
+	// Adjust for aspect ratio to make circle appear round
+	// Viewport is 1280x720, aspect = 1280/720 = 1.78
+	vec2 aspect_adjusted_uv = uv;
+	aspect_adjusted_uv.x *= 1.78;
+	vec2 aspect_adjusted_corner = corner;
+	aspect_adjusted_corner.x *= 1.78;
+
+	vec2 to_corner = aspect_adjusted_uv - aspect_adjusted_corner;
 	float dist = length(to_corner);
 
-	// Create countdown circles (film reel markers)
-	float markers = 0.0;
-	float marker_count = floor(reel_time * 3.0); // 3 markers per second
+	// Adjust radius for aspect ratio
+	float adjusted_radius = circle_radius;
 
-	// Draw countdown circles
-	for (float i = 0.0; i < 4.0; i++) {
-		if (i >= mod(marker_count, 4.0) + 1.0) break;
+	// Create single ring (circle outline)
+	float ring = abs(dist - adjusted_radius);
+	float circle = 1.0 - smoothstep(0.0, ring_thickness, ring);
 
-		float ring_radius = corner_size * (0.3 + i * 0.2);
-		float ring_width = 0.008;
-		float ring = abs(dist - ring_radius);
-		markers += (1.0 - smoothstep(0.0, ring_width, ring)) * 0.4;
+	// Blinking effect: blink 2 times over the death sequence
+	// Each blink cycle: 0.4s visible, 0.2s hidden = 0.6s per blink
+	// Total: 2 blinks = 1.2s, then stay visible
+	float blink = 1.0;
+	if (reel_time < 1.2) {
+		// During blinking period (first 1.2 seconds)
+		float blink_cycle = mod(reel_time, 0.6);
+		// Visible for 0.4s, hidden for 0.2s
+		blink = step(blink_cycle, 0.4);
 	}
+	// After 1.2 seconds, circle stays visible (blink = 1.0)
 
-	// Add center dot
-	float center_dot = 1.0 - smoothstep(0.0, corner_size * 0.15, dist);
-	markers += center_dot * 0.6;
-
-	// Add crosshairs
-	float cross_h = 1.0 - smoothstep(0.0, 0.004, abs(to_corner.y));
-	float cross_v = 1.0 - smoothstep(0.0, 0.004, abs(to_corner.x));
-	cross_h *= step(abs(to_corner.x), corner_size * 0.8);
-	cross_v *= step(abs(to_corner.y), corner_size * 0.8);
-	markers += (cross_h + cross_v) * 0.3;
-
-	// Flickering effect (classic projector countdown)
-	float flicker = 0.6 + 0.4 * hash(vec2(floor(time_val * 18.0), reel_time));
-
-	// Fade in/out based on reel_time fractional part
-	float pulse = 0.5 + 0.5 * sin(reel_time * 6.28318);
-
-	return markers * intensity * flicker * pulse;
+	return circle * intensity * blink;
 }
 
 
