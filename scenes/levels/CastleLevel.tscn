@@ -1,4 +1,4 @@
-[gd_scene load_steps=15 format=3 uid="uid://dkl8m4wq7r3y2"]
+[gd_scene load_steps=19 format=3 uid="uid://dkl8m4wq7r3y2"]
 
 [ext_resource type="Script" path="res://scripts/levels/castle_level.gd" id="1_castle_level"]
 [ext_resource type="PackedScene" uid="uid://dv8nq2vj5r7p2" path="res://scenes/characters/csharp/Player.tscn" id="2_player"]
@@ -42,6 +42,18 @@ radius = 100.0
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_wall_section"]
 size = Vector2(200, 32)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_castle_wall_h"]
+size = Vector2(400, 24)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_castle_wall_v"]
+size = Vector2(24, 300)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_castle_wall_short_h"]
+size = Vector2(200, 24)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_castle_wall_short_v"]
+size = Vector2(24, 150)
 
 [node name="CastleLevel" type="Node2D"]
 script = ExtResource("1_castle_level")
@@ -124,6 +136,158 @@ color = Color(0.45, 0.4, 0.3, 1)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/InnerTower"]
 shape = SubResource("RectangleShape2D_pillar")
 scale = Vector2(2.5, 2.5)
+
+[node name="CastleBuilding" type="Node2D" parent="Environment"]
+
+[node name="LeftWingTop" type="StaticBody2D" parent="Environment/CastleBuilding"]
+position = Vector2(1900, 400)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/CastleBuilding/LeftWingTop"]
+offset_left = -200.0
+offset_top = -12.0
+offset_right = 200.0
+offset_bottom = 12.0
+color = Color(0.35, 0.3, 0.25, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/CastleBuilding/LeftWingTop"]
+shape = SubResource("RectangleShape2D_castle_wall_h")
+
+[node name="LeftWingBottom" type="StaticBody2D" parent="Environment/CastleBuilding"]
+position = Vector2(1900, 800)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/CastleBuilding/LeftWingBottom"]
+offset_left = -200.0
+offset_top = -12.0
+offset_right = 200.0
+offset_bottom = 12.0
+color = Color(0.35, 0.3, 0.25, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/CastleBuilding/LeftWingBottom"]
+shape = SubResource("RectangleShape2D_castle_wall_h")
+
+[node name="LeftWingLeft" type="StaticBody2D" parent="Environment/CastleBuilding"]
+position = Vector2(1700, 600)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/CastleBuilding/LeftWingLeft"]
+offset_left = -12.0
+offset_top = -150.0
+offset_right = 12.0
+offset_bottom = 150.0
+color = Color(0.35, 0.3, 0.25, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/CastleBuilding/LeftWingLeft"]
+shape = SubResource("RectangleShape2D_castle_wall_v")
+
+[node name="RightWingTop" type="StaticBody2D" parent="Environment/CastleBuilding"]
+position = Vector2(4100, 400)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/CastleBuilding/RightWingTop"]
+offset_left = -200.0
+offset_top = -12.0
+offset_right = 200.0
+offset_bottom = 12.0
+color = Color(0.35, 0.3, 0.25, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/CastleBuilding/RightWingTop"]
+shape = SubResource("RectangleShape2D_castle_wall_h")
+
+[node name="RightWingBottom" type="StaticBody2D" parent="Environment/CastleBuilding"]
+position = Vector2(4100, 800)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/CastleBuilding/RightWingBottom"]
+offset_left = -200.0
+offset_top = -12.0
+offset_right = 200.0
+offset_bottom = 12.0
+color = Color(0.35, 0.3, 0.25, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/CastleBuilding/RightWingBottom"]
+shape = SubResource("RectangleShape2D_castle_wall_h")
+
+[node name="RightWingRight" type="StaticBody2D" parent="Environment/CastleBuilding"]
+position = Vector2(4300, 600)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/CastleBuilding/RightWingRight"]
+offset_left = -12.0
+offset_top = -150.0
+offset_right = 12.0
+offset_bottom = 150.0
+color = Color(0.35, 0.3, 0.25, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/CastleBuilding/RightWingRight"]
+shape = SubResource("RectangleShape2D_castle_wall_v")
+
+[node name="CenterConnectorLeft" type="StaticBody2D" parent="Environment/CastleBuilding"]
+position = Vector2(2400, 600)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/CastleBuilding/CenterConnectorLeft"]
+offset_left = -100.0
+offset_top = -12.0
+offset_right = 100.0
+offset_bottom = 12.0
+color = Color(0.35, 0.3, 0.25, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/CastleBuilding/CenterConnectorLeft"]
+shape = SubResource("RectangleShape2D_castle_wall_short_h")
+
+[node name="CenterConnectorRight" type="StaticBody2D" parent="Environment/CastleBuilding"]
+position = Vector2(3600, 600)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/CastleBuilding/CenterConnectorRight"]
+offset_left = -100.0
+offset_top = -12.0
+offset_right = 100.0
+offset_bottom = 12.0
+color = Color(0.35, 0.3, 0.25, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/CastleBuilding/CenterConnectorRight"]
+shape = SubResource("RectangleShape2D_castle_wall_short_h")
+
+[node name="CenterWallLeftTop" type="StaticBody2D" parent="Environment/CastleBuilding"]
+position = Vector2(2500, 500)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/CastleBuilding/CenterWallLeftTop"]
+offset_left = -12.0
+offset_top = -75.0
+offset_right = 12.0
+offset_bottom = 75.0
+color = Color(0.35, 0.3, 0.25, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/CastleBuilding/CenterWallLeftTop"]
+shape = SubResource("RectangleShape2D_castle_wall_short_v")
+
+[node name="CenterWallRightTop" type="StaticBody2D" parent="Environment/CastleBuilding"]
+position = Vector2(3500, 500)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/CastleBuilding/CenterWallRightTop"]
+offset_left = -12.0
+offset_top = -75.0
+offset_right = 12.0
+offset_bottom = 75.0
+color = Color(0.35, 0.3, 0.25, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/CastleBuilding/CenterWallRightTop"]
+shape = SubResource("RectangleShape2D_castle_wall_short_v")
 
 [node name="Cover" type="Node2D" parent="Environment"]
 
@@ -503,6 +667,7 @@ horizontal_alignment = 1
 [node name="ShotgunEnemy1" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
 position = Vector2(800, 550)
 behavior_mode = 1
+weapon_type = 1
 destroy_on_death = true
 enable_flanking = true
 enable_cover = true
@@ -510,6 +675,7 @@ enable_cover = true
 [node name="ShotgunEnemy2" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
 position = Vector2(1000, 700)
 behavior_mode = 1
+weapon_type = 1
 destroy_on_death = true
 enable_flanking = true
 enable_cover = true
@@ -517,6 +683,7 @@ enable_cover = true
 [node name="ShotgunEnemy3" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
 position = Vector2(1200, 550)
 behavior_mode = 1
+weapon_type = 1
 destroy_on_death = true
 enable_flanking = true
 enable_cover = true
@@ -524,6 +691,7 @@ enable_cover = true
 [node name="UziEnemy1" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
 position = Vector2(2800, 400)
 behavior_mode = 1
+weapon_type = 2
 destroy_on_death = true
 enable_flanking = true
 enable_cover = true
@@ -531,6 +699,7 @@ enable_cover = true
 [node name="UziEnemy2" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
 position = Vector2(3200, 400)
 behavior_mode = 1
+weapon_type = 2
 destroy_on_death = true
 enable_flanking = true
 enable_cover = true
@@ -538,6 +707,7 @@ enable_cover = true
 [node name="UziEnemy3" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
 position = Vector2(2700, 700)
 behavior_mode = 1
+weapon_type = 2
 destroy_on_death = true
 enable_flanking = true
 enable_cover = true
@@ -545,6 +715,7 @@ enable_cover = true
 [node name="UziEnemy4" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
 position = Vector2(3300, 700)
 behavior_mode = 1
+weapon_type = 2
 destroy_on_death = true
 enable_flanking = true
 enable_cover = true
@@ -552,6 +723,7 @@ enable_cover = true
 [node name="UziEnemyRight1" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
 position = Vector2(5200, 550)
 behavior_mode = 1
+weapon_type = 2
 destroy_on_death = true
 enable_flanking = true
 enable_cover = true
@@ -559,6 +731,7 @@ enable_cover = true
 [node name="ShotgunEnemyRight1" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
 position = Vector2(5000, 700)
 behavior_mode = 1
+weapon_type = 1
 destroy_on_death = true
 enable_flanking = true
 enable_cover = true
@@ -566,6 +739,7 @@ enable_cover = true
 [node name="PatrolEnemy1" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
 position = Vector2(1000, 900)
 behavior_mode = 0
+weapon_type = 2
 patrol_offsets = Array[Vector2]([Vector2(200, 0), Vector2(-200, 0)])
 destroy_on_death = true
 enable_flanking = true
@@ -574,6 +748,7 @@ enable_cover = true
 [node name="PatrolEnemy2" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
 position = Vector2(4100, 1450)
 behavior_mode = 0
+weapon_type = 2
 patrol_offsets = Array[Vector2]([Vector2(150, 0), Vector2(-150, 0)])
 destroy_on_death = true
 enable_flanking = true
@@ -582,6 +757,7 @@ enable_cover = true
 [node name="LowerEnemy1" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
 position = Vector2(1900, 1500)
 behavior_mode = 1
+weapon_type = 0
 destroy_on_death = true
 enable_flanking = true
 enable_cover = true
@@ -589,6 +765,7 @@ enable_cover = true
 [node name="LowerEnemy2" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
 position = Vector2(4100, 1500)
 behavior_mode = 1
+weapon_type = 0
 destroy_on_death = true
 enable_flanking = true
 enable_cover = true

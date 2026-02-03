@@ -73,6 +73,9 @@ func _ready() -> void:
 	# Find and setup player tracking
 	_setup_player_tracking()
 
+	# Configure camera to follow player everywhere (no limits)
+	_configure_camera()
+
 	# Setup debug UI
 	_setup_debug_ui()
 
@@ -174,6 +177,27 @@ func _setup_navigation() -> void:
 	NavigationServer2D.bake_from_source_geometry_data(nav_poly, source_geometry)
 
 	print("Navigation mesh baked successfully")
+
+
+## Configure the player's camera to follow without limits.
+## This ensures the camera follows the player everywhere on this large map.
+func _configure_camera() -> void:
+	if _player == null:
+		return
+
+	var camera: Camera2D = _player.get_node_or_null("Camera2D")
+	if camera == null:
+		return
+
+	# Remove all camera limits so it follows the player everywhere
+	# This is important for large maps like the Castle where the map extends
+	# beyond the default camera limits set in Player.tscn
+	camera.limit_left = -10000000
+	camera.limit_top = -10000000
+	camera.limit_right = 10000000
+	camera.limit_bottom = 10000000
+
+	print("Camera configured: limits removed to follow player everywhere")
 
 
 ## Setup tracking for the player.
