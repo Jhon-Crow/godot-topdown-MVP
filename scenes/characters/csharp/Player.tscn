@@ -1,4 +1,4 @@
-[gd_scene load_steps=15 format=3 uid="uid://dv8nq2vj5r7p2"]
+[gd_scene load_steps=19 format=3 uid="uid://dv8nq2vj5r7p2"]
 
 [ext_resource type="Script" path="res://Scripts/Characters/Player.cs" id="1_player"]
 [ext_resource type="PackedScene" uid="uid://c5q8m3x7n2k1p" path="res://scenes/weapons/csharp/AssaultRifle.tscn" id="2_assault_rifle"]
@@ -6,10 +6,12 @@
 [ext_resource type="Script" path="res://scripts/components/threat_sphere.gd" id="4_threat_sphere"]
 [ext_resource type="Texture2D" path="res://assets/sprites/characters/player/player_body.png" id="5_body"]
 [ext_resource type="Texture2D" path="res://assets/sprites/characters/player/player_head.png" id="6_head"]
-[ext_resource type="Texture2D" path="res://assets/sprites/characters/player/player_left_arm.png" id="7_left_arm"]
-[ext_resource type="Texture2D" path="res://assets/sprites/characters/player/player_right_arm.png" id="8_right_arm"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/player/player_right_shoulder.png" id="7_right_shoulder"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/player/player_right_forearm.png" id="8_right_forearm"]
 [ext_resource type="Texture2D" path="res://assets/sprites/characters/player/player_armband.png" id="9_armband"]
 [ext_resource type="Script" path="res://scripts/components/bloody_feet_component.gd" id="10_bloody_feet"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/player/player_left_shoulder.png" id="11_left_shoulder"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/player/player_left_forearm.png" id="12_left_forearm"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_player"]
 radius = 16.0
@@ -36,15 +38,25 @@ z_index = 1
 position = Vector2(-4, 0)
 texture = ExtResource("5_body")
 
-[node name="LeftArm" type="Sprite2D" parent="PlayerModel"]
+[node name="LeftShoulder" type="Sprite2D" parent="PlayerModel"]
+z_index = 0
+position = Vector2(-24, -6)
+texture = ExtResource("11_left_shoulder")
+
+[node name="LeftForearm" type="Sprite2D" parent="PlayerModel"]
+z_index = 0
+position = Vector2(2, -6)
+texture = ExtResource("12_left_forearm")
+
+[node name="RightShoulder" type="Sprite2D" parent="PlayerModel"]
 z_index = 4
 position = Vector2(24, 6)
-texture = ExtResource("7_left_arm")
+texture = ExtResource("7_right_shoulder")
 
-[node name="RightArm" type="Sprite2D" parent="PlayerModel"]
+[node name="RightForearm" type="Sprite2D" parent="PlayerModel"]
 z_index = 4
 position = Vector2(-2, 6)
-texture = ExtResource("8_right_arm")
+texture = ExtResource("8_right_forearm")
 
 [node name="Armband" type="Sprite2D" parent="PlayerModel"]
 z_index = 5

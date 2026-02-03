@@ -719,7 +719,7 @@ func _apply_player_saturation() -> void:
 		_log("WARNING: PlayerModel not found on player")
 		return
 
-	# Apply saturation to all direct sprite children (Body, Head, LeftArm, RightArm)
+	# Apply saturation to all direct sprite children (Body, Head, LeftShoulder, LeftForearm, RightShoulder, RightForearm)
 	var sprites_saturated: int = 0
 	for child in player_model.get_children():
 		if child is Sprite2D:
@@ -727,7 +727,7 @@ func _apply_player_saturation() -> void:
 			child.modulate = _saturate_color(child.modulate, PLAYER_SATURATION_MULTIPLIER)
 			sprites_saturated += 1
 
-	# Also apply saturation to armband (sibling of RightArm, not child - to avoid inheriting health modulate)
+	# Also apply saturation to armband (sibling of RightForearm, not child - to avoid inheriting health modulate)
 	var armband := player_model.get_node_or_null("Armband") as Sprite2D
 	if armband:
 		_player_original_colors[armband] = armband.modulate

@@ -81,6 +81,21 @@ public partial class Player : BaseCharacter
     /// </summary>
     private Sprite2D? _bodySprite;
     private Sprite2D? _headSprite;
+    /// <summary>
+    /// Left arm sprites (shoulder and forearm on the left/back side of the character).
+    /// </summary>
+    private Sprite2D? _leftShoulderSprite;
+    private Sprite2D? _leftForearmSprite;
+    /// <summary>
+    /// Right arm sprites (shoulder and forearm on the right/front side of the character).
+    /// </summary>
+    private Sprite2D? _rightShoulderSprite;
+    private Sprite2D? _rightForearmSprite;
+    /// <summary>
+    /// Legacy aliases for backward compatibility with existing animation code.
+    /// _leftArmSprite points to RightShoulder (front arm, was originally named LeftArm).
+    /// _rightArmSprite points to RightForearm (front arm, was originally named RightArm).
+    /// </summary>
     private Sprite2D? _leftArmSprite;
     private Sprite2D? _rightArmSprite;
 
@@ -587,8 +602,16 @@ public partial class Player : BaseCharacter
         {
             _bodySprite = _playerModel.GetNodeOrNull<Sprite2D>("Body");
             _headSprite = _playerModel.GetNodeOrNull<Sprite2D>("Head");
-            _leftArmSprite = _playerModel.GetNodeOrNull<Sprite2D>("LeftArm");
-            _rightArmSprite = _playerModel.GetNodeOrNull<Sprite2D>("RightArm");
+            // New arm structure: 4 parts (left shoulder, left forearm, right shoulder, right forearm)
+            _leftShoulderSprite = _playerModel.GetNodeOrNull<Sprite2D>("LeftShoulder");
+            _leftForearmSprite = _playerModel.GetNodeOrNull<Sprite2D>("LeftForearm");
+            _rightShoulderSprite = _playerModel.GetNodeOrNull<Sprite2D>("RightShoulder");
+            _rightForearmSprite = _playerModel.GetNodeOrNull<Sprite2D>("RightForearm");
+            // Legacy aliases for backward compatibility with existing animation code
+            // _leftArmSprite points to RightShoulder (front arm, originally named LeftArm)
+            // _rightArmSprite points to RightForearm (front arm, originally named RightArm)
+            _leftArmSprite = _rightShoulderSprite;
+            _rightArmSprite = _rightForearmSprite;
             // Legacy compatibility - _sprite points to body
             _sprite = _bodySprite;
         }
@@ -837,7 +860,7 @@ public partial class Player : BaseCharacter
 
     /// <summary>
     /// Sets the modulate color on all player sprite parts.
-    /// The armband is a separate sibling sprite (not child of RightArm) that keeps
+    /// The armband is a separate sibling sprite (not child of RightForearm) that keeps
     /// its original color, so all body parts use the same health-based color.
     /// </summary>
     /// <param name="color">The color to apply to all sprites.</param>
@@ -851,16 +874,24 @@ public partial class Player : BaseCharacter
         {
             _headSprite.Modulate = color;
         }
-        if (_leftArmSprite != null)
+        // Apply color to all 4 arm parts (left shoulder, left forearm, right shoulder, right forearm)
+        if (_leftShoulderSprite != null)
         {
-            _leftArmSprite.Modulate = color;
+            _leftShoulderSprite.Modulate = color;
         }
-        if (_rightArmSprite != null)
+        if (_leftForearmSprite != null)
         {
-            // Right arm uses the same color as other body parts.
+            _leftForearmSprite.Modulate = color;
+        }
+        if (_rightShoulderSprite != null)
+        {
+            _rightShoulderSprite.Modulate = color;
+        }
+        if (_rightForearmSprite != null)
+        {
             // The armband is now a separate sibling sprite (Armband node under PlayerModel)
             // that doesn't inherit this modulate, keeping its bright red color visible.
-            _rightArmSprite.Modulate = color;
+            _rightForearmSprite.Modulate = color;
         }
         // If using old single sprite structure
         if (_playerModel == null && _sprite != null)

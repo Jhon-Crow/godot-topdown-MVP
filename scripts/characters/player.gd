@@ -82,8 +82,17 @@ var _is_alive: bool = true
 ## References to individual sprite parts for color changes.
 @onready var _body_sprite: Sprite2D = $PlayerModel/Body
 @onready var _head_sprite: Sprite2D = $PlayerModel/Head
-@onready var _left_arm_sprite: Sprite2D = $PlayerModel/LeftArm
-@onready var _right_arm_sprite: Sprite2D = $PlayerModel/RightArm
+## Left arm sprites (shoulder and forearm on the left/back side of the character).
+@onready var _left_shoulder_sprite: Sprite2D = $PlayerModel/LeftShoulder
+@onready var _left_forearm_sprite: Sprite2D = $PlayerModel/LeftForearm
+## Right arm sprites (shoulder and forearm on the right/front side of the character).
+@onready var _right_shoulder_sprite: Sprite2D = $PlayerModel/RightShoulder
+@onready var _right_forearm_sprite: Sprite2D = $PlayerModel/RightForearm
+## Legacy aliases for backward compatibility with existing animation code.
+## _left_arm_sprite points to right shoulder (front arm, was originally named LeftArm).
+## _right_arm_sprite points to right forearm (front arm, was originally named RightArm).
+@onready var _left_arm_sprite: Sprite2D = $PlayerModel/RightShoulder
+@onready var _right_arm_sprite: Sprite2D = $PlayerModel/RightForearm
 
 ## Legacy reference for compatibility (points to body sprite).
 @onready var _sprite: Sprite2D = $PlayerModel/Body
@@ -284,10 +293,16 @@ func _ready() -> void:
 		_head_sprite.z_index = 3  # Head on top (above weapon)
 	if _body_sprite:
 		_body_sprite.z_index = 1  # Body same level as weapon
-	if _left_arm_sprite:
-		_left_arm_sprite.z_index = 2  # Arms between body and head
-	if _right_arm_sprite:
-		_right_arm_sprite.z_index = 2  # Arms between body and head
+	# Right arm (front side) should be visible above weapon
+	if _right_shoulder_sprite:
+		_right_shoulder_sprite.z_index = 4  # Right shoulder above head
+	if _right_forearm_sprite:
+		_right_forearm_sprite.z_index = 4  # Right forearm above head
+	# Left arm (back side) should be behind body
+	if _left_shoulder_sprite:
+		_left_shoulder_sprite.z_index = 0  # Left shoulder behind body
+	if _left_forearm_sprite:
+		_left_forearm_sprite.z_index = 0  # Left forearm behind body
 
 	# Note: Weapon pose detection is done in _process() after a few frames
 	# to ensure level scripts have finished adding weapons to the player.
@@ -942,20 +957,24 @@ func refresh_health_visual() -> void:
 
 ## Sets the modulate color on all player sprite parts.
 ## The armband is a separate child sprite that keeps its original color,
-## so all body parts including right arm use the same health-based color.
+## so all body parts including all arm parts use the same health-based color.
 ## @param color: The color to apply to all sprites.
 func _set_all_sprites_modulate(color: Color) -> void:
 	if _body_sprite:
 		_body_sprite.modulate = color
 	if _head_sprite:
 		_head_sprite.modulate = color
-	if _left_arm_sprite:
-		_left_arm_sprite.modulate = color
-	if _right_arm_sprite:
-		# Right arm uses the same color as other body parts.
+	# Apply color to all 4 arm parts (left shoulder, left forearm, right shoulder, right forearm).
+	if _left_shoulder_sprite:
+		_left_shoulder_sprite.modulate = color
+	if _left_forearm_sprite:
+		_left_forearm_sprite.modulate = color
+	if _right_shoulder_sprite:
+		_right_shoulder_sprite.modulate = color
+	if _right_forearm_sprite:
 		# The armband is now a separate child sprite (Armband node) that
 		# doesn't inherit this modulate, keeping its bright red color visible.
-		_right_arm_sprite.modulate = color
+		_right_forearm_sprite.modulate = color
 
 
 ## Returns the current health as a percentage (0.0 to 1.0).

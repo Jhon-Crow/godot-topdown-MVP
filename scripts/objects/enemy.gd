@@ -147,8 +147,15 @@ const AIM_TOLERANCE_DOT: float = 0.866  ## cos(30°) - aim tolerance (issue #254
 @onready var _enemy_model: Node2D = $EnemyModel  ## Model node with all sprites
 @onready var _body_sprite: Sprite2D = $EnemyModel/Body  ## Body sprite
 @onready var _head_sprite: Sprite2D = $EnemyModel/Head  ## Head sprite
-@onready var _left_arm_sprite: Sprite2D = $EnemyModel/LeftArm  ## Left arm sprite
-@onready var _right_arm_sprite: Sprite2D = $EnemyModel/RightArm  ## Right arm sprite
+## Left arm sprites (shoulder and forearm on the left/back side of the character).
+@onready var _left_shoulder_sprite: Sprite2D = $EnemyModel/LeftShoulder
+@onready var _left_forearm_sprite: Sprite2D = $EnemyModel/LeftForearm
+## Right arm sprites (shoulder and forearm on the right/front side of the character).
+@onready var _right_shoulder_sprite: Sprite2D = $EnemyModel/RightShoulder
+@onready var _right_forearm_sprite: Sprite2D = $EnemyModel/RightForearm
+## Legacy aliases for backward compatibility with existing animation code.
+@onready var _left_arm_sprite: Sprite2D = $EnemyModel/RightShoulder  ## Alias for right shoulder
+@onready var _right_arm_sprite: Sprite2D = $EnemyModel/RightForearm  ## Alias for right forearm
 @onready var _sprite: Sprite2D = $EnemyModel/Body  ## Legacy ref (body)
 @onready var _weapon_sprite: Sprite2D = $EnemyModel/WeaponMount/WeaponSprite  ## Weapon sprite
 @onready var _weapon_mount: Node2D = $EnemyModel/WeaponMount  ## Weapon mount
@@ -4232,10 +4239,15 @@ func _set_all_sprites_modulate(color: Color) -> void:
 		_body_sprite.modulate = color
 	if _head_sprite:
 		_head_sprite.modulate = color
-	if _left_arm_sprite:
-		_left_arm_sprite.modulate = color
-	if _right_arm_sprite:
-		_right_arm_sprite.modulate = color
+	# Apply color to all 4 arm parts (left shoulder, left forearm, right shoulder, right forearm).
+	if _left_shoulder_sprite:
+		_left_shoulder_sprite.modulate = color
+	if _left_forearm_sprite:
+		_left_forearm_sprite.modulate = color
+	if _right_shoulder_sprite:
+		_right_shoulder_sprite.modulate = color
+	if _right_forearm_sprite:
+		_right_forearm_sprite.modulate = color
 
 ## Returns the current health as a percentage (0.0 to 1.0).
 func _get_health_percent() -> float:

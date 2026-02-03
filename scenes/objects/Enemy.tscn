@@ -1,14 +1,16 @@
-[gd_scene load_steps=13 format=3 uid="uid://cx5m8np6u3bwd"]
+[gd_scene load_steps=17 format=3 uid="uid://cx5m8np6u3bwd"]
 
 [ext_resource type="Script" path="res://scripts/objects/enemy.gd" id="1_enemy"]
 [ext_resource type="Script" path="res://scripts/objects/hit_area.gd" id="2_hit_area"]
 [ext_resource type="Texture2D" path="res://assets/sprites/weapons/m16_rifle_topdown.png" id="3_rifle_sprite"]
 [ext_resource type="Texture2D" path="res://assets/sprites/characters/enemy/enemy_body.png" id="4_body"]
 [ext_resource type="Texture2D" path="res://assets/sprites/characters/enemy/enemy_head.png" id="5_head"]
-[ext_resource type="Texture2D" path="res://assets/sprites/characters/enemy/enemy_left_arm.png" id="6_left_arm"]
-[ext_resource type="Texture2D" path="res://assets/sprites/characters/enemy/enemy_right_arm.png" id="7_right_arm"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/enemy/enemy_right_shoulder.png" id="6_right_shoulder"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/enemy/enemy_right_forearm.png" id="7_right_forearm"]
 [ext_resource type="PackedScene" uid="uid://casing_scene" path="res://scenes/effects/Casing.tscn" id="8_casing"]
 [ext_resource type="Script" path="res://scripts/components/bloody_feet_component.gd" id="9_bloody_feet"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/enemy/enemy_left_shoulder.png" id="10_left_shoulder"]
+[ext_resource type="Texture2D" path="res://assets/sprites/characters/enemy/enemy_left_forearm.png" id="11_left_forearm"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_enemy"]
 radius = 24.0
@@ -28,15 +30,25 @@ z_index = 1
 position = Vector2(-4, 0)
 texture = ExtResource("4_body")
 
-[node name="LeftArm" type="Sprite2D" parent="EnemyModel"]
+[node name="LeftShoulder" type="Sprite2D" parent="EnemyModel"]
+z_index = 0
+position = Vector2(-24, -6)
+texture = ExtResource("10_left_shoulder")
+
+[node name="LeftForearm" type="Sprite2D" parent="EnemyModel"]
+z_index = 0
+position = Vector2(2, -6)
+texture = ExtResource("11_left_forearm")
+
+[node name="RightShoulder" type="Sprite2D" parent="EnemyModel"]
 z_index = 4
 position = Vector2(24, 6)
-texture = ExtResource("6_left_arm")
+texture = ExtResource("6_right_shoulder")
 
-[node name="RightArm" type="Sprite2D" parent="EnemyModel"]
+[node name="RightForearm" type="Sprite2D" parent="EnemyModel"]
 z_index = 4
 position = Vector2(-2, 6)
-texture = ExtResource("7_right_arm")
+texture = ExtResource("7_right_forearm")
 
 [node name="Head" type="Sprite2D" parent="EnemyModel"]
 z_index = 3
