@@ -5,11 +5,11 @@ extends Node2D
 ## The light illuminates nearby walls with intensity that fades over distance.
 ## Both the particles and light fade out quickly (0.1 seconds) for realistic effect.
 
-## Duration of the muzzle flash effect in seconds.
-const FLASH_DURATION: float = 0.1
+## Duration of the muzzle flash effect in seconds (3x longer for residual glow).
+const FLASH_DURATION: float = 0.3
 
-## Starting energy (intensity) of the point light.
-const LIGHT_START_ENERGY: float = 1.5
+## Starting energy (intensity) of the point light (3x larger).
+const LIGHT_START_ENERGY: float = 4.5
 
 ## Reference to the point light child node.
 var _point_light: PointLight2D = null

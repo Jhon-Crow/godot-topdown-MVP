@@ -386,8 +386,25 @@ public abstract partial class BaseWeapon : Node2D
 
         GetTree().CurrentScene.AddChild(bullet);
 
+        // Spawn muzzle flash effect at the bullet spawn position
+        SpawnMuzzleFlash(spawnPosition, direction);
+
         // Spawn casing if casing scene is set
         SpawnCasing(direction, WeaponData?.Caliber);
+    }
+
+    /// <summary>
+    /// Spawns a muzzle flash effect at the specified position.
+    /// </summary>
+    /// <param name="position">Position to spawn the muzzle flash.</param>
+    /// <param name="direction">Direction the weapon is firing.</param>
+    protected virtual void SpawnMuzzleFlash(Vector2 position, Vector2 direction)
+    {
+        var impactManager = GetNodeOrNull("/root/ImpactEffectsManager");
+        if (impactManager != null && impactManager.HasMethod("spawn_muzzle_flash"))
+        {
+            impactManager.Call("spawn_muzzle_flash", position, direction);
+        }
     }
 
     /// <summary>
