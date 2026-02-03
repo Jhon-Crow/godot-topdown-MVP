@@ -30,61 +30,25 @@ enum BehaviorMode {
 
 ## Current behavior mode.
 @export var behavior_mode: BehaviorMode = BehaviorMode.GUARD
-
-## Maximum movement speed in pixels per second.
-@export var move_speed: float = 220.0
-
-## Combat movement speed (faster when flanking/seeking cover).
-@export var combat_move_speed: float = 320.0
-
-## Rotation speed in rad/sec (25 for aim-before-shoot per issue #254).
-@export var rotation_speed: float = 25.0
-## Detection range (0=unlimited, line-of-sight only).
-@export var detection_range: float = 0.0
-
-## Field of view angle in degrees (cone centered on facing dir). 0 or negative = 360° vision. Default 100° per issue #66.
-@export var fov_angle: float = 100.0
-
-## FOV enabled for this enemy (combined with ExperimentalSettings.fov_enabled, both must be true).
-@export var fov_enabled: bool = true
-
-## Time between shots (0.1s = 10 rounds/sec).
-@export var shoot_cooldown: float = 0.1
-
-## Bullet scene to instantiate when shooting.
-@export var bullet_scene: PackedScene
-
-## Casing scene to instantiate when firing (for ejected bullet casings).
-@export var casing_scene: PackedScene
-
-## Offset from enemy center for bullet spawn position.
-@export var bullet_spawn_offset: float = 30.0
-
-## Weapon loudness for alerting enemies (viewport diagonal ~1469 for AR).
-@export var weapon_loudness: float = 1469.0
-## Patrol point offsets from initial position (PATROL mode only).
-@export var patrol_offsets: Array[Vector2] = [Vector2(100, 0), Vector2(-100, 0)]
-
-## Wait time at each patrol point in seconds.
-@export var patrol_wait_time: float = 1.5
-
-## Color when at full health.
-@export var full_health_color: Color = Color(0.9, 0.2, 0.2, 1.0)
-
-## Color when at low health (interpolates based on health percentage).
-@export var low_health_color: Color = Color(0.3, 0.1, 0.1, 1.0)
-
-## Color to flash when hit.
-@export var hit_flash_color: Color = Color(1.0, 1.0, 1.0, 1.0)
-
-## Duration of hit flash effect in seconds.
-@export var hit_flash_duration: float = 0.1
-
-## Whether to destroy the enemy after death.
-@export var destroy_on_death: bool = false
-
-## Delay before respawning or destroying (in seconds).
-@export var respawn_delay: float = 2.0
+@export var move_speed: float = 220.0  ## Maximum movement speed (px/s).
+@export var combat_move_speed: float = 320.0  ## Combat movement speed (flanking/cover).
+@export var rotation_speed: float = 25.0  ## Rotation speed (rad/s, 25 for aim-before-shoot #254).
+@export var detection_range: float = 0.0  ## Detection range (0=unlimited, line-of-sight only).
+@export var fov_angle: float = 100.0  ## FOV angle (deg). 0/negative = 360°. Default 100° per #66.
+@export var fov_enabled: bool = true  ## FOV enabled (combined with ExperimentalSettings).
+@export var shoot_cooldown: float = 0.1  ## Time between shots (0.1s = 10 rounds/sec).
+@export var bullet_scene: PackedScene  ## Bullet scene to instantiate when shooting.
+@export var casing_scene: PackedScene  ## Casing scene for ejected bullet casings.
+@export var bullet_spawn_offset: float = 30.0  ## Offset from center for bullet spawn.
+@export var weapon_loudness: float = 1469.0  ## Weapon loudness for alerting enemies.
+@export var patrol_offsets: Array[Vector2] = [Vector2(100, 0), Vector2(-100, 0)]  ## Patrol points.
+@export var patrol_wait_time: float = 1.5  ## Wait time at each patrol point (seconds).
+@export var full_health_color: Color = Color(0.9, 0.2, 0.2, 1.0)  ## Color at full health.
+@export var low_health_color: Color = Color(0.3, 0.1, 0.1, 1.0)  ## Color at low health.
+@export var hit_flash_color: Color = Color(1.0, 1.0, 1.0, 1.0)  ## Color to flash when hit.
+@export var hit_flash_duration: float = 0.1  ## Hit flash duration (seconds).
+@export var destroy_on_death: bool = false  ## Destroy enemy after death.
+@export var respawn_delay: float = 2.0  ## Delay before respawn/destroy (seconds).
 
 ## Minimum random health.
 @export var min_health: int = 2
@@ -236,6 +200,7 @@ var _is_waiting_at_patrol_point: bool = false
 var _patrol_wait_timer: float = 0.0
 var _corner_check_angle: float = 0.0  ## Angle to look toward when checking a corner
 var _corner_check_timer: float = 0.0  ## Timer for corner check duration
+var _last_rotation_reason: String = ""  ## Issue #397 debug: track rotation priority changes
 const CORNER_CHECK_DURATION: float = 0.3  ## How long to look at a corner (seconds)
 const CORNER_CHECK_DISTANCE: float = 150.0  ## Max distance to detect openings
 var _initial_position: Vector2
@@ -914,32 +879,44 @@ func _update_goap_state() -> void:
 		_goap_world_state["confidence_medium"] = _memory.is_medium_confidence()
 		_goap_world_state["confidence_low"] = _memory.is_low_confidence()
 
-## Updates model rotation smoothly (#347). Priority: player > flank target > corner check > velocity > idle scan.
-## Issue #386: FLANKING state now prioritizes facing the player over corner checks.
+## Updates model rotation smoothly (#347). Priority: player > combat/pursuit/flank > corner check > velocity > idle scan.
+## Issues #386, #397: COMBAT/PURSUING/FLANKING states prioritize facing the player to prevent turning away.
 func _update_enemy_model_rotation() -> void:
 	if not _enemy_model:
 		return
 	var target_angle: float
 	var has_target := false
+	var rotation_reason := ""  # Issue #397 debug: track which priority was used
+	# Priority 1: Face player if visible
 	if _player != null and _can_see_player:
 		target_angle = (_player.global_position - global_position).normalized().angle()
 		has_target = true
-	# Issue #386: During FLANKING, face the player (even if not visible) instead of corner check.
-	# This prevents the enemy from facing backwards/sideways while flanking.
-	elif _current_state == AIState.FLANKING and _player != null:
+		rotation_reason = "P1:visible"
+	# Priority 2: During active combat states, maintain focus on player even without visibility (#386, #397)
+	# Includes SEARCHING and ASSAULT - enemies should always face player during these states
+	elif _current_state in [AIState.COMBAT, AIState.PURSUING, AIState.FLANKING, AIState.SEARCHING, AIState.ASSAULT] and _player != null:
 		target_angle = (_player.global_position - global_position).normalized().angle()
 		has_target = true
+		rotation_reason = "P2:combat_state"
 	elif _corner_check_timer > 0:
 		target_angle = _corner_check_angle  # Corner check: smooth rotation (Issue #347)
 		has_target = true
+		rotation_reason = "P3:corner"
 	elif velocity.length_squared() > 1.0:
 		target_angle = velocity.normalized().angle()
 		has_target = true
+		rotation_reason = "P4:velocity"
 	elif _current_state == AIState.IDLE and _idle_scan_targets.size() > 0:
 		target_angle = _idle_scan_targets[_idle_scan_target_index]
 		has_target = true
+		rotation_reason = "P5:idle_scan"
 	if not has_target:
 		return
+	# Issue #397 debug: Log rotation priority changes
+	if rotation_reason != _last_rotation_reason:
+		var ppos := "(%d,%d)" % [int(_player.global_position.x), int(_player.global_position.y)] if _player else "null"
+		_log_to_file("ROT_CHANGE: %s -> %s, state=%s, target=%.1f°, current=%.1f°, player=%s, corner_timer=%.2f" % [_last_rotation_reason if _last_rotation_reason != "" else "none", rotation_reason, AIState.keys()[_current_state], rad_to_deg(target_angle), rad_to_deg(_enemy_model.global_rotation), ppos, _corner_check_timer])
+		_last_rotation_reason = rotation_reason
 	# Smooth rotation for visual polish (Issue #347)
 	var delta := get_physics_process_delta_time()
 	var current_rot := _enemy_model.global_rotation
