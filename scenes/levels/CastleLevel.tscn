@@ -110,369 +110,249 @@ color = Color(0.4, 0.35, 0.25, 1)
 polygon = PackedVector2Array(500, 1280, 520, 900, 700, 500, 1200, 250, 2000, 150, 3000, 100, 4000, 150, 4800, 250, 5300, 500, 5480, 900, 5500, 1280, 5480, 1660, 5300, 2060, 4800, 2310, 4000, 2410, 3000, 2460, 2000, 2410, 1200, 2310, 700, 2060, 520, 1660, 600, 1280, 620, 920, 780, 560, 1250, 330, 2000, 230, 3000, 180, 4000, 230, 4750, 330, 5220, 560, 5380, 920, 5400, 1280, 5380, 1640, 5220, 2000, 4750, 2230, 4000, 2330, 3000, 2380, 2000, 2330, 1250, 2230, 780, 2000, 620, 1640)
 
 [node name="CenterTower" type="StaticBody2D" parent="Environment"]
-position = Vector2(3000, 700)
+position = Vector2(3000, 600)
 collision_layer = 4
 collision_mask = 0
 
 [node name="TowerVisual" type="Polygon2D" parent="Environment/CenterTower"]
 color = Color(0.5, 0.45, 0.35, 1)
-polygon = PackedVector2Array(-120, 0, -100, -80, -60, -110, 0, -120, 60, -110, 100, -80, 120, 0, 100, 80, 60, 110, 0, 120, -60, 110, -100, 80)
+polygon = PackedVector2Array(-180, 0, -160, -100, -100, -160, 0, -180, 100, -160, 160, -100, 180, 0, 160, 100, 100, 160, 0, 180, -100, 160, -160, 100)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/CenterTower"]
 shape = SubResource("CircleShape2D_inner_tower")
+scale = Vector2(1.8, 1.8)
 
 [node name="InnerTower" type="StaticBody2D" parent="Environment"]
-position = Vector2(3000, 500)
+position = Vector2(3000, 600)
 collision_layer = 4
 collision_mask = 0
 
-[node name="TowerVisual" type="ColorRect" parent="Environment/InnerTower"]
-offset_left = -60.0
-offset_top = -60.0
-offset_right = 60.0
-offset_bottom = 60.0
+[node name="TowerVisual" type="Polygon2D" parent="Environment/InnerTower"]
 color = Color(0.45, 0.4, 0.3, 1)
+polygon = PackedVector2Array(-80, 0, -70, -50, -50, -70, 0, -80, 50, -70, 70, -50, 80, 0, 70, 50, 50, 70, 0, 80, -50, 70, -70, 50)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/InnerTower"]
 shape = SubResource("RectangleShape2D_pillar")
-scale = Vector2(2.5, 2.5)
+scale = Vector2(1.5, 1.5)
 
 [node name="CastleBuilding" type="Node2D" parent="Environment"]
 
-[node name="LeftWingTop" type="StaticBody2D" parent="Environment/CastleBuilding"]
-position = Vector2(1900, 400)
+[node name="LeftWingTopWall" type="StaticBody2D" parent="Environment/CastleBuilding"]
+position = Vector2(1700, 450)
 collision_layer = 4
 collision_mask = 0
 
-[node name="ColorRect" type="ColorRect" parent="Environment/CastleBuilding/LeftWingTop"]
-offset_left = -200.0
+[node name="ColorRect" type="ColorRect" parent="Environment/CastleBuilding/LeftWingTopWall"]
+offset_left = -900.0
 offset_top = -12.0
-offset_right = 200.0
+offset_right = 500.0
 offset_bottom = 12.0
 color = Color(0.35, 0.3, 0.25, 1)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/CastleBuilding/LeftWingTop"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/CastleBuilding/LeftWingTopWall"]
 shape = SubResource("RectangleShape2D_castle_wall_h")
+scale = Vector2(3.5, 1.0)
 
-[node name="LeftWingBottom" type="StaticBody2D" parent="Environment/CastleBuilding"]
-position = Vector2(1900, 800)
+[node name="LeftWingBottomWall" type="StaticBody2D" parent="Environment/CastleBuilding"]
+position = Vector2(1700, 750)
 collision_layer = 4
 collision_mask = 0
 
-[node name="ColorRect" type="ColorRect" parent="Environment/CastleBuilding/LeftWingBottom"]
-offset_left = -200.0
+[node name="ColorRect" type="ColorRect" parent="Environment/CastleBuilding/LeftWingBottomWall"]
+offset_left = -900.0
 offset_top = -12.0
-offset_right = 200.0
+offset_right = 500.0
 offset_bottom = 12.0
 color = Color(0.35, 0.3, 0.25, 1)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/CastleBuilding/LeftWingBottom"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/CastleBuilding/LeftWingBottomWall"]
 shape = SubResource("RectangleShape2D_castle_wall_h")
+scale = Vector2(3.5, 1.0)
 
-[node name="LeftWingLeft" type="StaticBody2D" parent="Environment/CastleBuilding"]
-position = Vector2(1700, 600)
+[node name="LeftWingEndWall" type="StaticBody2D" parent="Environment/CastleBuilding"]
+position = Vector2(800, 600)
 collision_layer = 4
 collision_mask = 0
 
-[node name="ColorRect" type="ColorRect" parent="Environment/CastleBuilding/LeftWingLeft"]
+[node name="ColorRect" type="ColorRect" parent="Environment/CastleBuilding/LeftWingEndWall"]
 offset_left = -12.0
-offset_top = -150.0
+offset_top = -162.0
 offset_right = 12.0
-offset_bottom = 150.0
+offset_bottom = 162.0
 color = Color(0.35, 0.3, 0.25, 1)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/CastleBuilding/LeftWingLeft"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/CastleBuilding/LeftWingEndWall"]
 shape = SubResource("RectangleShape2D_castle_wall_v")
+scale = Vector2(1.0, 1.08)
 
-[node name="RightWingTop" type="StaticBody2D" parent="Environment/CastleBuilding"]
-position = Vector2(4100, 400)
+[node name="LeftWingRoom1Top" type="StaticBody2D" parent="Environment/CastleBuilding"]
+position = Vector2(1100, 520)
 collision_layer = 4
 collision_mask = 0
 
-[node name="ColorRect" type="ColorRect" parent="Environment/CastleBuilding/RightWingTop"]
-offset_left = -200.0
+[node name="ColorRect" type="ColorRect" parent="Environment/CastleBuilding/LeftWingRoom1Top"]
+offset_left = -60.0
+offset_top = -58.0
+offset_right = 60.0
+offset_bottom = 0.0
+color = Color(0.35, 0.3, 0.25, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/CastleBuilding/LeftWingRoom1Top"]
+shape = SubResource("RectangleShape2D_cover_medium")
+
+[node name="LeftWingRoom2Top" type="StaticBody2D" parent="Environment/CastleBuilding"]
+position = Vector2(1500, 520)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/CastleBuilding/LeftWingRoom2Top"]
+offset_left = -60.0
+offset_top = -58.0
+offset_right = 60.0
+offset_bottom = 0.0
+color = Color(0.35, 0.3, 0.25, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/CastleBuilding/LeftWingRoom2Top"]
+shape = SubResource("RectangleShape2D_cover_medium")
+
+[node name="RightWingTopWall" type="StaticBody2D" parent="Environment/CastleBuilding"]
+position = Vector2(4300, 450)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/CastleBuilding/RightWingTopWall"]
+offset_left = -500.0
 offset_top = -12.0
-offset_right = 200.0
+offset_right = 900.0
 offset_bottom = 12.0
 color = Color(0.35, 0.3, 0.25, 1)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/CastleBuilding/RightWingTop"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/CastleBuilding/RightWingTopWall"]
 shape = SubResource("RectangleShape2D_castle_wall_h")
+scale = Vector2(3.5, 1.0)
 
-[node name="RightWingBottom" type="StaticBody2D" parent="Environment/CastleBuilding"]
-position = Vector2(4100, 800)
+[node name="RightWingBottomWall" type="StaticBody2D" parent="Environment/CastleBuilding"]
+position = Vector2(4300, 750)
 collision_layer = 4
 collision_mask = 0
 
-[node name="ColorRect" type="ColorRect" parent="Environment/CastleBuilding/RightWingBottom"]
-offset_left = -200.0
+[node name="ColorRect" type="ColorRect" parent="Environment/CastleBuilding/RightWingBottomWall"]
+offset_left = -500.0
 offset_top = -12.0
-offset_right = 200.0
+offset_right = 900.0
 offset_bottom = 12.0
 color = Color(0.35, 0.3, 0.25, 1)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/CastleBuilding/RightWingBottom"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/CastleBuilding/RightWingBottomWall"]
 shape = SubResource("RectangleShape2D_castle_wall_h")
+scale = Vector2(3.5, 1.0)
 
-[node name="RightWingRight" type="StaticBody2D" parent="Environment/CastleBuilding"]
-position = Vector2(4300, 600)
+[node name="RightWingEndWall" type="StaticBody2D" parent="Environment/CastleBuilding"]
+position = Vector2(5200, 600)
 collision_layer = 4
 collision_mask = 0
 
-[node name="ColorRect" type="ColorRect" parent="Environment/CastleBuilding/RightWingRight"]
+[node name="ColorRect" type="ColorRect" parent="Environment/CastleBuilding/RightWingEndWall"]
 offset_left = -12.0
-offset_top = -150.0
+offset_top = -162.0
 offset_right = 12.0
-offset_bottom = 150.0
+offset_bottom = 162.0
 color = Color(0.35, 0.3, 0.25, 1)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/CastleBuilding/RightWingRight"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/CastleBuilding/RightWingEndWall"]
 shape = SubResource("RectangleShape2D_castle_wall_v")
+scale = Vector2(1.0, 1.08)
 
-[node name="CenterConnectorLeft" type="StaticBody2D" parent="Environment/CastleBuilding"]
-position = Vector2(2400, 600)
+[node name="RightWingRoom1Top" type="StaticBody2D" parent="Environment/CastleBuilding"]
+position = Vector2(4500, 520)
 collision_layer = 4
 collision_mask = 0
 
-[node name="ColorRect" type="ColorRect" parent="Environment/CastleBuilding/CenterConnectorLeft"]
-offset_left = -100.0
+[node name="ColorRect" type="ColorRect" parent="Environment/CastleBuilding/RightWingRoom1Top"]
+offset_left = -60.0
+offset_top = -58.0
+offset_right = 60.0
+offset_bottom = 0.0
+color = Color(0.35, 0.3, 0.25, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/CastleBuilding/RightWingRoom1Top"]
+shape = SubResource("RectangleShape2D_cover_medium")
+
+[node name="RightWingRoom2Top" type="StaticBody2D" parent="Environment/CastleBuilding"]
+position = Vector2(4900, 520)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/CastleBuilding/RightWingRoom2Top"]
+offset_left = -60.0
+offset_top = -58.0
+offset_right = 60.0
+offset_bottom = 0.0
+color = Color(0.35, 0.3, 0.25, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/CastleBuilding/RightWingRoom2Top"]
+shape = SubResource("RectangleShape2D_cover_medium")
+
+[node name="LeftLowerLWall" type="StaticBody2D" parent="Environment/CastleBuilding"]
+position = Vector2(1100, 1000)
+collision_layer = 4
+collision_mask = 0
+
+[node name="HorizontalWall" type="ColorRect" parent="Environment/CastleBuilding/LeftLowerLWall"]
+offset_left = -400.0
 offset_top = -12.0
 offset_right = 100.0
 offset_bottom = 12.0
 color = Color(0.35, 0.3, 0.25, 1)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/CastleBuilding/CenterConnectorLeft"]
-shape = SubResource("RectangleShape2D_castle_wall_short_h")
-
-[node name="CenterConnectorRight" type="StaticBody2D" parent="Environment/CastleBuilding"]
-position = Vector2(3600, 600)
-collision_layer = 4
-collision_mask = 0
-
-[node name="ColorRect" type="ColorRect" parent="Environment/CastleBuilding/CenterConnectorRight"]
-offset_left = -100.0
-offset_top = -12.0
-offset_right = 100.0
+[node name="VerticalWall" type="ColorRect" parent="Environment/CastleBuilding/LeftLowerLWall"]
+offset_left = -12.0
+offset_top = -200.0
+offset_right = 12.0
 offset_bottom = 12.0
 color = Color(0.35, 0.3, 0.25, 1)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/CastleBuilding/CenterConnectorRight"]
-shape = SubResource("RectangleShape2D_castle_wall_short_h")
+[node name="CollisionShapeH" type="CollisionShape2D" parent="Environment/CastleBuilding/LeftLowerLWall"]
+shape = SubResource("RectangleShape2D_castle_wall_h")
+scale = Vector2(1.25, 1.0)
 
-[node name="CenterWallLeftTop" type="StaticBody2D" parent="Environment/CastleBuilding"]
-position = Vector2(2500, 500)
+[node name="CollisionShapeV" type="CollisionShape2D" parent="Environment/CastleBuilding/LeftLowerLWall"]
+position = Vector2(0, -100)
+shape = SubResource("RectangleShape2D_castle_wall_short_v")
+scale = Vector2(1.0, 1.33)
+
+[node name="RightLowerLWall" type="StaticBody2D" parent="Environment/CastleBuilding"]
+position = Vector2(4900, 1000)
 collision_layer = 4
 collision_mask = 0
 
-[node name="ColorRect" type="ColorRect" parent="Environment/CastleBuilding/CenterWallLeftTop"]
-offset_left = -12.0
-offset_top = -75.0
-offset_right = 12.0
-offset_bottom = 75.0
+[node name="HorizontalWall" type="ColorRect" parent="Environment/CastleBuilding/RightLowerLWall"]
+offset_left = -100.0
+offset_top = -12.0
+offset_right = 400.0
+offset_bottom = 12.0
 color = Color(0.35, 0.3, 0.25, 1)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/CastleBuilding/CenterWallLeftTop"]
-shape = SubResource("RectangleShape2D_castle_wall_short_v")
-
-[node name="CenterWallRightTop" type="StaticBody2D" parent="Environment/CastleBuilding"]
-position = Vector2(3500, 500)
-collision_layer = 4
-collision_mask = 0
-
-[node name="ColorRect" type="ColorRect" parent="Environment/CastleBuilding/CenterWallRightTop"]
+[node name="VerticalWall" type="ColorRect" parent="Environment/CastleBuilding/RightLowerLWall"]
 offset_left = -12.0
-offset_top = -75.0
+offset_top = -200.0
 offset_right = 12.0
-offset_bottom = 75.0
+offset_bottom = 12.0
 color = Color(0.35, 0.3, 0.25, 1)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/CastleBuilding/CenterWallRightTop"]
+[node name="CollisionShapeH" type="CollisionShape2D" parent="Environment/CastleBuilding/RightLowerLWall"]
+shape = SubResource("RectangleShape2D_castle_wall_h")
+scale = Vector2(1.25, 1.0)
+
+[node name="CollisionShapeV" type="CollisionShape2D" parent="Environment/CastleBuilding/RightLowerLWall"]
+position = Vector2(0, -100)
 shape = SubResource("RectangleShape2D_castle_wall_short_v")
+scale = Vector2(1.0, 1.33)
 
 [node name="Cover" type="Node2D" parent="Environment"]
 
-[node name="CoverLeft1" type="StaticBody2D" parent="Environment/Cover"]
-position = Vector2(900, 800)
-collision_layer = 4
-collision_mask = 0
-
-[node name="ColorRect" type="ColorRect" parent="Environment/Cover/CoverLeft1"]
-offset_left = -80.0
-offset_top = -24.0
-offset_right = 80.0
-offset_bottom = 24.0
-color = Color(0.3, 0.25, 0.18, 1)
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/CoverLeft1"]
-shape = SubResource("RectangleShape2D_cover_large")
-
-[node name="CoverLeft2" type="StaticBody2D" parent="Environment/Cover"]
-position = Vector2(1100, 800)
-collision_layer = 4
-collision_mask = 0
-
-[node name="ColorRect" type="ColorRect" parent="Environment/Cover/CoverLeft2"]
-offset_left = -80.0
-offset_top = -24.0
-offset_right = 80.0
-offset_bottom = 24.0
-color = Color(0.3, 0.25, 0.18, 1)
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/CoverLeft2"]
-shape = SubResource("RectangleShape2D_cover_large")
-
-[node name="CoverLeft3" type="StaticBody2D" parent="Environment/Cover"]
-position = Vector2(1300, 800)
-collision_layer = 4
-collision_mask = 0
-
-[node name="ColorRect" type="ColorRect" parent="Environment/Cover/CoverLeft3"]
-offset_left = -80.0
-offset_top = -24.0
-offset_right = 80.0
-offset_bottom = 24.0
-color = Color(0.3, 0.25, 0.18, 1)
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/CoverLeft3"]
-shape = SubResource("RectangleShape2D_cover_large")
-
-[node name="CoverLeft4" type="StaticBody2D" parent="Environment/Cover"]
-position = Vector2(900, 950)
-collision_layer = 4
-collision_mask = 0
-
-[node name="ColorRect" type="ColorRect" parent="Environment/Cover/CoverLeft4"]
-offset_left = -60.0
-offset_top = -20.0
-offset_right = 60.0
-offset_bottom = 20.0
-color = Color(0.3, 0.25, 0.18, 1)
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/CoverLeft4"]
-shape = SubResource("RectangleShape2D_cover_medium")
-
-[node name="CoverLeft5" type="StaticBody2D" parent="Environment/Cover"]
-position = Vector2(1100, 950)
-collision_layer = 4
-collision_mask = 0
-
-[node name="ColorRect" type="ColorRect" parent="Environment/Cover/CoverLeft5"]
-offset_left = -60.0
-offset_top = -20.0
-offset_right = 60.0
-offset_bottom = 20.0
-color = Color(0.3, 0.25, 0.18, 1)
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/CoverLeft5"]
-shape = SubResource("RectangleShape2D_cover_medium")
-
-[node name="CoverRight1" type="StaticBody2D" parent="Environment/Cover"]
-position = Vector2(4700, 800)
-collision_layer = 4
-collision_mask = 0
-
-[node name="ColorRect" type="ColorRect" parent="Environment/Cover/CoverRight1"]
-offset_left = -80.0
-offset_top = -24.0
-offset_right = 80.0
-offset_bottom = 24.0
-color = Color(0.3, 0.25, 0.18, 1)
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/CoverRight1"]
-shape = SubResource("RectangleShape2D_cover_large")
-
-[node name="CoverRight2" type="StaticBody2D" parent="Environment/Cover"]
-position = Vector2(4900, 800)
-collision_layer = 4
-collision_mask = 0
-
-[node name="ColorRect" type="ColorRect" parent="Environment/Cover/CoverRight2"]
-offset_left = -80.0
-offset_top = -24.0
-offset_right = 80.0
-offset_bottom = 24.0
-color = Color(0.3, 0.25, 0.18, 1)
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/CoverRight2"]
-shape = SubResource("RectangleShape2D_cover_large")
-
-[node name="CoverRight3" type="StaticBody2D" parent="Environment/Cover"]
-position = Vector2(5100, 800)
-collision_layer = 4
-collision_mask = 0
-
-[node name="ColorRect" type="ColorRect" parent="Environment/Cover/CoverRight3"]
-offset_left = -80.0
-offset_top = -24.0
-offset_right = 80.0
-offset_bottom = 24.0
-color = Color(0.3, 0.25, 0.18, 1)
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/CoverRight3"]
-shape = SubResource("RectangleShape2D_cover_large")
-
-[node name="CoverRight4" type="StaticBody2D" parent="Environment/Cover"]
-position = Vector2(4800, 950)
-collision_layer = 4
-collision_mask = 0
-
-[node name="ColorRect" type="ColorRect" parent="Environment/Cover/CoverRight4"]
-offset_left = -60.0
-offset_top = -20.0
-offset_right = 60.0
-offset_bottom = 20.0
-color = Color(0.3, 0.25, 0.18, 1)
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/CoverRight4"]
-shape = SubResource("RectangleShape2D_cover_medium")
-
-[node name="CoverRight5" type="StaticBody2D" parent="Environment/Cover"]
-position = Vector2(5000, 950)
-collision_layer = 4
-collision_mask = 0
-
-[node name="ColorRect" type="ColorRect" parent="Environment/Cover/CoverRight5"]
-offset_left = -60.0
-offset_top = -20.0
-offset_right = 60.0
-offset_bottom = 20.0
-color = Color(0.3, 0.25, 0.18, 1)
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/CoverRight5"]
-shape = SubResource("RectangleShape2D_cover_medium")
-
-[node name="CoverCenter1" type="StaticBody2D" parent="Environment/Cover"]
-position = Vector2(2600, 800)
-collision_layer = 4
-collision_mask = 0
-
-[node name="ColorRect" type="ColorRect" parent="Environment/Cover/CoverCenter1"]
-offset_left = -60.0
-offset_top = -20.0
-offset_right = 60.0
-offset_bottom = 20.0
-color = Color(0.3, 0.25, 0.18, 1)
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/CoverCenter1"]
-shape = SubResource("RectangleShape2D_cover_medium")
-
-[node name="CoverCenter2" type="StaticBody2D" parent="Environment/Cover"]
-position = Vector2(3400, 800)
-collision_layer = 4
-collision_mask = 0
-
-[node name="ColorRect" type="ColorRect" parent="Environment/Cover/CoverCenter2"]
-offset_left = -60.0
-offset_top = -20.0
-offset_right = 60.0
-offset_bottom = 20.0
-color = Color(0.3, 0.25, 0.18, 1)
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/CoverCenter2"]
-shape = SubResource("RectangleShape2D_cover_medium")
-
 [node name="CoverLowerLeft1" type="StaticBody2D" parent="Environment/Cover"]
-position = Vector2(1800, 1400)
+position = Vector2(800, 1200)
 collision_layer = 4
 collision_mask = 0
 
@@ -487,7 +367,7 @@ color = Color(0.3, 0.25, 0.18, 1)
 shape = SubResource("RectangleShape2D_cover_large")
 
 [node name="CoverLowerLeft2" type="StaticBody2D" parent="Environment/Cover"]
-position = Vector2(2000, 1400)
+position = Vector2(1100, 1200)
 collision_layer = 4
 collision_mask = 0
 
@@ -502,52 +382,22 @@ color = Color(0.3, 0.25, 0.18, 1)
 shape = SubResource("RectangleShape2D_cover_large")
 
 [node name="CoverLowerLeft3" type="StaticBody2D" parent="Environment/Cover"]
-position = Vector2(1800, 1550)
+position = Vector2(1400, 1200)
 collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/Cover/CoverLowerLeft3"]
-offset_left = -60.0
-offset_top = -20.0
-offset_right = 60.0
-offset_bottom = 20.0
+offset_left = -80.0
+offset_top = -24.0
+offset_right = 80.0
+offset_bottom = 24.0
 color = Color(0.3, 0.25, 0.18, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/CoverLowerLeft3"]
-shape = SubResource("RectangleShape2D_cover_medium")
-
-[node name="CoverLowerLeft4" type="StaticBody2D" parent="Environment/Cover"]
-position = Vector2(2000, 1550)
-collision_layer = 4
-collision_mask = 0
-
-[node name="ColorRect" type="ColorRect" parent="Environment/Cover/CoverLowerLeft4"]
-offset_left = -60.0
-offset_top = -20.0
-offset_right = 60.0
-offset_bottom = 20.0
-color = Color(0.3, 0.25, 0.18, 1)
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/CoverLowerLeft4"]
-shape = SubResource("RectangleShape2D_cover_medium")
-
-[node name="CoverLowerLeft5" type="StaticBody2D" parent="Environment/Cover"]
-position = Vector2(1900, 1700)
-collision_layer = 4
-collision_mask = 0
-
-[node name="ColorRect" type="ColorRect" parent="Environment/Cover/CoverLowerLeft5"]
-offset_left = -40.0
-offset_top = -16.0
-offset_right = 40.0
-offset_bottom = 16.0
-color = Color(0.3, 0.25, 0.18, 1)
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/CoverLowerLeft5"]
-shape = SubResource("RectangleShape2D_cover_small")
+shape = SubResource("RectangleShape2D_cover_large")
 
 [node name="CoverLowerRight1" type="StaticBody2D" parent="Environment/Cover"]
-position = Vector2(4000, 1400)
+position = Vector2(4600, 1200)
 collision_layer = 4
 collision_mask = 0
 
@@ -562,7 +412,7 @@ color = Color(0.3, 0.25, 0.18, 1)
 shape = SubResource("RectangleShape2D_cover_large")
 
 [node name="CoverLowerRight2" type="StaticBody2D" parent="Environment/Cover"]
-position = Vector2(4200, 1400)
+position = Vector2(4900, 1200)
 collision_layer = 4
 collision_mask = 0
 
@@ -577,49 +427,49 @@ color = Color(0.3, 0.25, 0.18, 1)
 shape = SubResource("RectangleShape2D_cover_large")
 
 [node name="CoverLowerRight3" type="StaticBody2D" parent="Environment/Cover"]
-position = Vector2(4000, 1550)
+position = Vector2(5200, 1200)
 collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/Cover/CoverLowerRight3"]
-offset_left = -60.0
-offset_top = -20.0
-offset_right = 60.0
-offset_bottom = 20.0
+offset_left = -80.0
+offset_top = -24.0
+offset_right = 80.0
+offset_bottom = 24.0
 color = Color(0.3, 0.25, 0.18, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/CoverLowerRight3"]
-shape = SubResource("RectangleShape2D_cover_medium")
+shape = SubResource("RectangleShape2D_cover_large")
 
-[node name="CoverLowerRight4" type="StaticBody2D" parent="Environment/Cover"]
-position = Vector2(4200, 1550)
+[node name="CoverCenter1" type="StaticBody2D" parent="Environment/Cover"]
+position = Vector2(2500, 900)
 collision_layer = 4
 collision_mask = 0
 
-[node name="ColorRect" type="ColorRect" parent="Environment/Cover/CoverLowerRight4"]
+[node name="ColorRect" type="ColorRect" parent="Environment/Cover/CoverCenter1"]
 offset_left = -60.0
 offset_top = -20.0
 offset_right = 60.0
 offset_bottom = 20.0
 color = Color(0.3, 0.25, 0.18, 1)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/CoverLowerRight4"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/CoverCenter1"]
 shape = SubResource("RectangleShape2D_cover_medium")
 
-[node name="CoverLowerRight5" type="StaticBody2D" parent="Environment/Cover"]
-position = Vector2(4100, 1700)
+[node name="CoverCenter2" type="StaticBody2D" parent="Environment/Cover"]
+position = Vector2(3500, 900)
 collision_layer = 4
 collision_mask = 0
 
-[node name="ColorRect" type="ColorRect" parent="Environment/Cover/CoverLowerRight5"]
-offset_left = -40.0
-offset_top = -16.0
-offset_right = 40.0
-offset_bottom = 16.0
+[node name="ColorRect" type="ColorRect" parent="Environment/Cover/CoverCenter2"]
+offset_left = -60.0
+offset_top = -20.0
+offset_right = 60.0
+offset_bottom = 20.0
 color = Color(0.3, 0.25, 0.18, 1)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/CoverLowerRight5"]
-shape = SubResource("RectangleShape2D_cover_small")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/CoverCenter2"]
+shape = SubResource("RectangleShape2D_cover_medium")
 
 [node name="PatrolZones" type="Node2D" parent="Environment"]
 
