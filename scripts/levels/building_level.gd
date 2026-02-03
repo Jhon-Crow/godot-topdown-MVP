@@ -720,6 +720,9 @@ func _show_victory_message() -> void:
 ##
 ## Features sequential item reveal, counting animations, pulsing effects,
 ## retro sound effects, and dramatic rank reveal animation.
+##
+## Note: The score screen is created in its own CanvasLayer (layer 100) to ensure
+## it renders on top of all other UI elements, including cinema effects (layer 99).
 func _show_score_screen(score_data: Dictionary) -> void:
 	_log_to_file("_show_score_screen called with score_data: %s" % str(score_data))
 
@@ -738,20 +741,39 @@ func _show_score_screen(score_data: Dictionary) -> void:
 		_log_to_file("Removed GameOverLabel (out of ammo message)")
 
 	# Load and instantiate the animated score screen
-	var AnimatedScoreScreen = load("res://scripts/ui/animated_score_screen.gd")
-	if AnimatedScoreScreen == null:
+	var AnimatedScoreScreenScript = load("res://scripts/ui/animated_score_screen.gd")
+	if AnimatedScoreScreenScript == null:
 		_log_to_file("ERROR: Failed to load animated_score_screen.gd")
 		_show_victory_message()  # Fallback
 		return
 
 	_log_to_file("Loaded AnimatedScoreScreen script successfully")
 
-	var score_screen = AnimatedScoreScreen.new()
+	# Create a dedicated CanvasLayer for the score screen
+	# Layer 100 ensures it renders above everything, including CinemaEffects (layer 99)
+	var score_canvas_layer := CanvasLayer.new()
+	score_canvas_layer.name = "ScoreScreenCanvasLayer"
+	score_canvas_layer.layer = 100
+	add_child(score_canvas_layer)
+	_log_to_file("Created ScoreScreenCanvasLayer at layer 100")
+
+	# Create the score screen Control
+	var score_screen = AnimatedScoreScreenScript.new()
 	score_screen.name = "AnimatedScoreScreen"
 
-	# Add to UI and ensure it's visible
-	ui.add_child(score_screen)
-	_log_to_file("Added AnimatedScoreScreen to UI, child count now: %d" % ui.get_child_count())
+	# Ensure the Control is visible and properly sized
+	score_screen.visible = true
+	score_screen.modulate = Color.WHITE
+	score_screen.set_anchors_preset(Control.PRESET_FULL_RECT)
+
+	# Add to the dedicated CanvasLayer
+	score_canvas_layer.add_child(score_screen)
+	_log_to_file("Added AnimatedScoreScreen to ScoreScreenCanvasLayer")
+
+	# Force the size to match viewport after being added to tree
+	var viewport_size := get_viewport().get_visible_rect().size
+	score_screen.size = viewport_size
+	_log_to_file("Set score_screen size to viewport: %s" % str(viewport_size))
 
 	# Start the animated score display
 	score_screen.show_score(score_data)

@@ -212,21 +212,26 @@ func _apply_pulse_effect() -> void:
 ## @param score_data: Dictionary from ScoreManager.complete_level()
 func show_score(score_data: Dictionary) -> void:
 	_log_debug("show_score() called with data: %s" % str(score_data))
-	_log_debug("Control size: %s, position: %s" % [str(size), str(position)])
+	_log_debug("Control properties - size: %s, position: %s, visible: %s, modulate: %s" % [
+		str(size), str(position), str(visible), str(modulate)])
+	_log_debug("Is in tree: %s, parent: %s" % [
+		str(is_inside_tree()),
+		get_parent().name if get_parent() else "null"])
 
 	_score_data = score_data
 	_is_animating = true
 
-	# Create background
+	# Create background - starts transparent, will animate to semi-opaque
 	_background = ColorRect.new()
 	_background.name = "ScoreBackground"
-	_background.color = Color(0.0, 0.0, 0.0, 0.0)
+	_background.color = Color(0.0, 0.0, 0.0, 0.0)  # Starts fully transparent
 	_background.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_background.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_background.visible = true  # Ensure visible
 	add_child(_background)
-	_log_debug("Background created, size will be: full rect")
+	_log_debug("Background created - color.a: %f, visible: %s" % [_background.color.a, str(_background.visible)])
 
-	# Create main container
+	# Create main container - starts invisible, will animate to visible
 	_container = VBoxContainer.new()
 	_container.name = "ScoreContainer"
 	_container.set_anchors_preset(Control.PRESET_CENTER)
@@ -235,9 +240,11 @@ func show_score(score_data: Dictionary) -> void:
 	_container.offset_top = -280
 	_container.offset_bottom = 350
 	_container.add_theme_constant_override("separation", 8)
-	_container.modulate.a = 0.0
+	_container.modulate.a = 0.0  # Starts invisible, will animate to 1.0
+	_container.visible = true  # Ensure visible property is set
 	add_child(_container)
-	_log_debug("Container created at center with offsets: left=%d, right=%d, top=%d, bottom=%d" % [-300, 300, -280, 350])
+	_log_debug("Container created - modulate.a: %f, visible: %s, offsets: l=%d r=%d t=%d b=%d" % [
+		_container.modulate.a, str(_container.visible), -300, 300, -280, 350])
 
 	# Build score items list
 	_build_score_items()
@@ -315,10 +322,23 @@ func _build_score_items() -> void:
 
 ## Animate background fade in.
 func _animate_background_fade() -> void:
+	_log_debug("_animate_background_fade() starting")
+
 	var tween := create_tween()
+	if tween == null:
+		_log_debug("ERROR: create_tween() returned null! Is node in tree: %s" % str(is_inside_tree()))
+		# Fallback: directly set values without animation
+		_background.color.a = 0.7
+		_container.modulate.a = 1.0
+		_create_title()
+		return
+
+	_log_debug("Tween created successfully, animating background and container")
+
 	tween.tween_property(_background, "color:a", 0.7, TITLE_FADE_DURATION)
 	tween.tween_property(_container, "modulate:a", 1.0, TITLE_FADE_DURATION)
 	tween.tween_callback(_create_title)
+	_log_debug("Tween animations queued")
 
 
 ## Create and animate the title.
@@ -612,9 +632,21 @@ static func get_rank_color(rank: String) -> Color:
 
 
 ## Log a debug message to the file logger if available.
+## Uses the autoload pattern to ensure logging works even in dynamically created nodes.
 func _log_debug(message: String) -> void:
-	var file_logger: Node = get_node_or_null("/root/FileLogger")
-	if file_logger and file_logger.has_method("log_info"):
+	# Try to get FileLogger from autoload singleton pattern
+	var file_logger: Node = null
+
+	# Method 1: Try getting from scene tree root
+	if is_inside_tree():
+		file_logger = get_tree().root.get_node_or_null("FileLogger")
+
+	# Method 2: Fallback to absolute path
+	if file_logger == null:
+		file_logger = get_node_or_null("/root/FileLogger")
+
+	if file_logger != null and file_logger.has_method("log_info"):
 		file_logger.log_info("[AnimatedScoreScreen] " + message)
 	else:
+		# Always print to console as fallback - this still helps debugging
 		print("[AnimatedScoreScreen] " + message)

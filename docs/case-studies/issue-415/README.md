@@ -275,6 +275,98 @@ GameOverLabel remained visible because:
    - `building_level._show_score_screen()`: logs UI node, script loading, child count
    - `building_level._complete_level_with_score()`: logs level completion
 
+## Bug Investigation Session 3 (2026-02-04)
+
+### Reported Issue
+
+From PR #430 comment by repository owner (in Russian):
+- **"после завершения миссии ничего не отображается"** (After completing the mission nothing is displayed)
+
+### Game Log Analysis
+
+Downloaded log: `logs/game_log_20260204_004744.txt` (186KB, 2124 lines)
+
+Key findings:
+- **Line 2080**: `[BuildingLevel] Level completed, setting _level_completed = true`
+- **Line 2082**: `[ScoreManager] Level completed! Final score: 21776, Rank: C`
+- **Line 2083**: `[BuildingLevel] _show_score_screen called with score_data: {...}`
+- **Line 2084**: `[BuildingLevel] Found UI node: UI, size: (1280, 720)`
+- **Line 2085**: `[BuildingLevel] Removed GameOverLabel (out of ammo message)`
+- **Line 2086**: `[BuildingLevel] Loaded AnimatedScoreScreen script successfully`
+- **Line 2087**: `[BuildingLevel] Added AnimatedScoreScreen to UI, child count now: 8`
+- **Line 2088**: `[BuildingLevel] Called show_score() on AnimatedScoreScreen`
+- **NO AnimatedScoreScreen internal logs appeared** (despite logging being added)
+- **Lines 2089-2111**: Game continues normally (blood decals, enemy death animation)
+- **Lines 2112-2121**: Player clicking empty gun (6 seconds after score screen creation)
+- **Line 2122**: Game log ends normally at 00:49:20
+
+### Critical Observation
+
+The score screen was created and `show_score()` was called, but:
+1. No internal AnimatedScoreScreen logs appeared (e.g., "show_score() called with data:")
+2. Player continued interacting with the game (clicking empty gun)
+3. Game ran for 17 seconds after level completion before closing
+
+This indicates the score screen was added to the scene but was NOT visible.
+
+### Root Cause Hypothesis
+
+**Z-Order / Layer Issue**: The AnimatedScoreScreen is added to the UI Control inside the main CanvasLayer (layer 1 by default). However, the CinemaEffects manager creates its effects at CanvasLayer layer 99:
+```
+[CinemaEffects] Created effects layer at layer 99
+```
+
+This means the CinemaEffects (film grain, vignette) are rendered ON TOP of the score screen, potentially obscuring it entirely.
+
+Additionally, the `_log_debug()` function uses `get_node_or_null("/root/FileLogger")` which may not work correctly for dynamically created nodes, causing logs to fall back to `print()` (stdout only, not captured in file log).
+
+### Fixes Applied
+
+1. **Created dedicated CanvasLayer (layer 100)** for the score screen:
+   ```gdscript
+   var score_canvas_layer := CanvasLayer.new()
+   score_canvas_layer.name = "ScoreScreenCanvasLayer"
+   score_canvas_layer.layer = 100  # Above CinemaEffects (layer 99)
+   add_child(score_canvas_layer)
+   ```
+
+2. **Improved `_log_debug()` function** to use multiple methods:
+   ```gdscript
+   func _log_debug(message: String) -> void:
+       var file_logger: Node = null
+       # Method 1: Try scene tree root
+       if is_inside_tree():
+           file_logger = get_tree().root.get_node_or_null("FileLogger")
+       # Method 2: Fallback to absolute path
+       if file_logger == null:
+           file_logger = get_node_or_null("/root/FileLogger")
+   ```
+
+3. **Added explicit visibility settings**:
+   ```gdscript
+   score_screen.visible = true
+   score_screen.modulate = Color.WHITE
+   _background.visible = true
+   _container.visible = true
+   ```
+
+4. **Enhanced logging** with more detail about Control properties:
+   - Size, position, visibility, modulate
+   - Parent node name
+   - Is in tree status
+   - Tween creation success/failure
+
+5. **Added fallback for tween failure**:
+   ```gdscript
+   if tween == null:
+       _log_debug("ERROR: create_tween() returned null!")
+       # Fallback: directly set values
+       _background.color.a = 0.7
+       _container.modulate.a = 1.0
+       _create_title()
+       return
+   ```
+
 ## Related Resources
 
 - [Hotline Miami Scoring Wiki](https://hotlinemiami.fandom.com/wiki/Scoring)
