@@ -366,6 +366,13 @@ const INTEL_SHARE_INTERVAL: float = 0.5  ## Share intel every 0.5 seconds
 var _memory_reset_confusion_timer: float = 0.0
 const MEMORY_RESET_CONFUSION_DURATION: float = 2.0  ## Extended to 2s for better player escape window
 
+## [Ally Death Observation Issue #409] Enemy enters SEARCHING when witnessing ally death.
+## Observing enemy estimates player location based on bullet travel direction.
+const ALLY_DEATH_OBSERVE_RANGE: float = 500.0  ## Max distance to observe ally death (px)
+const ALLY_DEATH_CONFIDENCE: float = 0.6  ## Medium confidence when observing death
+var _suspected_directions: Array[Vector2] = []  ## Up to 3 estimated player directions
+var _witnessed_ally_death: bool = false  ## Flag for GOAP action trigger
+
 ## [Score Tracking] Whether the last hit that killed this enemy was from a ricocheted bullet.
 var _killed_by_ricochet: bool = false
 
@@ -740,7 +747,9 @@ func _initialize_goap_state() -> void:
 		"confidence_medium": false,
 		"confidence_low": false,
 		# Grenade avoidance state (Issue #407)
-		"in_grenade_danger_zone": false
+		"in_grenade_danger_zone": false,
+		# Ally death observation state (Issue #409)
+		"witnessed_ally_death": false
 	}
 
 ## Initialize the enemy memory system (Issue #297).
@@ -901,6 +910,9 @@ func _update_goap_state() -> void:
 
 	# Grenade avoidance state (Issue #407)
 	_goap_world_state["in_grenade_danger_zone"] = _grenade_avoidance.in_danger_zone if _grenade_avoidance else false
+
+	# Ally death observation state (Issue #409)
+	_goap_world_state["witnessed_ally_death"] = _witnessed_ally_death
 
 ## Updates model rotation smoothly (#347). Priority: player > combat/pursuit/flank > corner check > velocity > idle scan.
 ## Issues #386, #397: COMBAT/PURSUING/FLANKING states prioritize facing the player to prevent turning away.
@@ -2484,6 +2496,8 @@ func _transition_to_combat() -> void:
 	_combat_exposed = false; _combat_approaching = false
 	_combat_shoot_timer = 0.0; _combat_approach_timer = 0.0; _combat_state_timer = 0.0
 	_seeking_clear_shot = false; _clear_shot_timer = 0.0; _clear_shot_target = Vector2.ZERO
+	# Issue #409: Clear witnessed ally death flag when engaging player
+	_witnessed_ally_death = false; _suspected_directions.clear()
 	_pursuing_vulnerability_sound = false
 
 ## Transition to SEEKING_COVER state.
@@ -4337,12 +4351,24 @@ func _get_effective_detection_delay() -> float:
 	# Fall back to export variable if DifficultyManager is not available
 	return detection_delay
 
+## Issue #409: Notify nearby enemies of this death so they can observe and enter SEARCHING.
+func _notify_nearby_enemies_of_death() -> void:
+	var notified := 0
+	for e in get_tree().get_nodes_in_group("enemies"):
+		if e == self or not e.has_method("on_ally_died") or not e.has_method("is_alive"): continue
+		if not e.is_alive() or e.global_position.distance_to(global_position) > ALLY_DEATH_OBSERVE_RANGE: continue
+		e.on_ally_died(global_position, true, _last_hit_direction); notified += 1
+	if notified > 0: _log_to_file("[AllyDeath] Notified %d enemies" % notified)
+
 ## Called when the enemy dies.
 func _on_death() -> void:
 	_is_alive = false
 	_log_to_file("Enemy died (ricochet: %s, penetration: %s)" % [_killed_by_ricochet, _killed_by_penetration])
 	died.emit()
 	died_with_info.emit(_killed_by_ricochet, _killed_by_penetration)
+
+	# Issue #409: Notify nearby enemies of this death so they can enter SEARCHING
+	_notify_nearby_enemies_of_death()
 
 	# Disable hit area collision so bullets pass through dead enemies
 	_disable_hit_area_collision()
@@ -4434,6 +4460,9 @@ func _reset() -> void:
 	# Reset sound detection state
 	_last_known_player_position = Vector2.ZERO
 	_pursuing_vulnerability_sound = false
+	# Reset ally death observation state (Issue #409)
+	_witnessed_ally_death = false
+	_suspected_directions.clear()
 	# Reset score tracking state
 	_killed_by_ricochet = false
 	_killed_by_penetration = false
@@ -4561,12 +4590,12 @@ func get_current_state() -> AIState: return _current_state
 func get_goap_world_state() -> Dictionary: return _goap_world_state.duplicate()
 
 func set_player_reloading(is_reloading: bool) -> void:
-	var old := _goap_world_state.get("player_reloading", false)
+	var old: bool = _goap_world_state.get("player_reloading", false)
 	_goap_world_state["player_reloading"] = is_reloading
 	if is_reloading != old: _log_to_file("Player reloading: %s -> %s" % [old, is_reloading])
 
 func set_player_ammo_empty(is_empty: bool) -> void:
-	var old := _goap_world_state.get("player_ammo_empty", false)
+	var old: bool = _goap_world_state.get("player_ammo_empty", false)
 	_goap_world_state["player_ammo_empty"] = is_empty
 	if is_empty != old: _log_to_file("Player ammo empty: %s -> %s" % [old, is_empty])
 
@@ -4876,8 +4905,30 @@ func _on_gunshot_heard_for_grenade(position: Vector2) -> void:
 func _on_vulnerable_sound_heard_for_grenade(position: Vector2) -> void:
 	if _grenade_component: _grenade_component.on_vulnerable_sound(position, _can_see_player)
 
-func on_ally_died(ally_position: Vector2, killer_is_player: bool) -> void:
-	if _grenade_component: _grenade_component.on_ally_died(ally_position, killer_is_player, _can_see_position(ally_position))
+## Called when ally dies. Handles grenade awareness (#407) and death observation (#409).
+func on_ally_died(ally_position: Vector2, killer_is_player: bool, hit_direction: Vector2 = Vector2.ZERO) -> void:
+	if _grenade_component: _grenade_component.on_ally_died(ally_position, killer_is_player, _is_position_in_fov(ally_position) and _can_see_position(ally_position))
+	if not _is_alive: return
+	if _current_state in [AIState.COMBAT, AIState.SUPPRESSED, AIState.RETREATING]: return
+	var distance := global_position.distance_to(ally_position)
+	if distance > ALLY_DEATH_OBSERVE_RANGE or not _is_position_in_fov(ally_position) or not _can_see_position(ally_position): return
+	_calculate_suspected_directions(ally_position, hit_direction)
+	_witnessed_ally_death = true; _goap_world_state["witnessed_ally_death"] = true
+	if hit_direction != Vector2.ZERO and _memory:
+		var susp_dir := -hit_direction.normalized()
+		_memory.update_position(ally_position + susp_dir * 200.0, ALLY_DEATH_CONFIDENCE)
+	_log_to_file("[AllyDeath] Witnessed at %s, entering SEARCHING" % ally_position)
+	_transition_to_searching(ally_position)
+
+## Calculate suspected directions from bullet hit direction (Issue #409).
+func _calculate_suspected_directions(death_position: Vector2, hit_direction: Vector2) -> void:
+	_suspected_directions.clear()
+	if hit_direction == Vector2.ZERO:
+		_suspected_directions.append((global_position - death_position).normalized()); return
+	var primary := -hit_direction.normalized()
+	_suspected_directions.append(primary)
+	_suspected_directions.append(Vector2(-primary.y, primary.x))  # perp left
+	_suspected_directions.append(Vector2(primary.y, -primary.x))  # perp right
 
 func _can_see_position(pos: Vector2) -> bool:
 	if _raycast == null: return false
