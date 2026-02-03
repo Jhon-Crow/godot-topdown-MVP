@@ -238,13 +238,17 @@ func _enable_collision() -> void:
 
 ## Adds collision exception for player to prevent casings from blocking player movement.
 ## This is a defense-in-depth measure on top of collision layer separation.
-## Uses add_collision_exception_with() which makes two bodies completely ignore each other.
+## Uses add_collision_exception_with() which makes the casing ignore the player.
+## Note: We only add exception in ONE direction (casing ignores player).
+## The player's CasingPusher Area2D handles pushing casings without needing physics collision.
+## Adding player.add_collision_exception_with(self) would break CasingPusher detection.
 func _add_player_collision_exception() -> void:
 	# Find player in scene tree (player is in "player" group)
 	var players := get_tree().get_nodes_in_group("player")
 	for player in players:
 		if player is PhysicsBody2D:
 			# Make this casing ignore the player in collision detection
+			# This prevents the casing from pushing the player when they overlap
 			add_collision_exception_with(player)
-			# Also make player ignore this casing (bidirectional exclusion)
-			player.add_collision_exception_with(self)
+			# NOTE: Do NOT add player.add_collision_exception_with(self)
+			# That would break the player's CasingPusher Area2D detection

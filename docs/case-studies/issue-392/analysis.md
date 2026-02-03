@@ -58,11 +58,27 @@
 - The spawn collision delay fixed the spawn-time push issue
 - But casings still block player when walking into them after they land
 
-### Final Fix - Collision Exception (2026-02-03)
+### Fix Iteration 4 - Collision Exception (2026-02-03)
 - Research discovered that collision layers/masks may not be 100% reliable in some physics edge cases
 - Godot's physics system uses bidirectional checking: `collision_layer & p_other->collision_mask OR p_other->collision_layer & collision_mask`
 - Solution: Use `add_collision_exception_with()` for guaranteed collision exclusion
 - This makes the two physics bodies completely ignore each other at the physics engine level
+
+### User Feedback #4 (2026-02-03)
+- Feedback from log `game_log_20260203_112501.txt`:
+  1. "физика гильз перестала работать полностью" - Casing physics stopped working completely
+  2. "возможно стоит сделать отдельную коллизию для взаимодействия с гильзами" - Maybe we should create a separate collision for casing interaction
+- The bidirectional collision exception broke the CasingPusher Area2D detection
+- Player could no longer push casings at all
+
+### Fix Iteration 5 - Unidirectional Exception (2026-02-03)
+- Root cause: The bidirectional `add_collision_exception_with()` (both casing ignoring player AND player ignoring casing) was breaking the CasingPusher Area2D's ability to detect casings
+- Research confirmed that `add_collision_exception_with()` is UNIDIRECTIONAL - each body has its own exception list
+- Solution: Only add exception in ONE direction (casing ignores player, player does NOT ignore casing)
+- This allows:
+  1. Casing ignores player → Casing physics not affected by player collisions
+  2. CasingPusher Area2D can still detect casings → Player can push casings
+  3. Player's move_and_slide() doesn't collide with casings anyway (mask=4 doesn't include layer 64)
 
 ## Root Cause Analysis
 
@@ -230,33 +246,44 @@ func _enable_collision() -> void:
 - Enables collision only when casing is safely away from player
 - Prevents any spawn-time physics interaction with player
 
-#### 6. Collision Exception (Final Fix)
+#### 6. Collision Exception (Iteration 4) - PARTIAL FIX
 **File**: `scripts/effects/casing.gd`
 
-Added explicit collision exception with player:
+Added explicit collision exception with player (bidirectional - PROBLEMATIC):
 ```gdscript
-func _ready() -> void:
-    # ... existing code ...
-    _add_player_collision_exception()  # Add collision exception
+func _add_player_collision_exception() -> void:
+    var players := get_tree().get_nodes_in_group("player")
+    for player in players:
+        if player is PhysicsBody2D:
+            add_collision_exception_with(player)  # Casing ignores player
+            player.add_collision_exception_with(self)  # Player ignores casing - BREAKS Area2D!
+```
 
+**Issue**: Bidirectional exception broke CasingPusher Area2D detection
+
+#### 7. Unidirectional Collision Exception (Iteration 5) - FINAL FIX
+**File**: `scripts/effects/casing.gd`
+
+Changed to unidirectional collision exception:
+```gdscript
 func _add_player_collision_exception() -> void:
     # Find player in scene tree (player is in "player" group)
     var players := get_tree().get_nodes_in_group("player")
     for player in players:
         if player is PhysicsBody2D:
             # Make this casing ignore the player in collision detection
+            # This prevents the casing from pushing the player when they overlap
             add_collision_exception_with(player)
-            # Also make player ignore this casing (bidirectional exclusion)
-            player.add_collision_exception_with(self)
+            # NOTE: Do NOT add player.add_collision_exception_with(self)
+            # That would break the player's CasingPusher Area2D detection
 ```
 
 **Rationale**:
-- `add_collision_exception_with()` is a Godot physics system function that makes two bodies completely ignore each other
-- This works at the physics engine level, bypassing any layer/mask configuration
-- Bidirectional exclusion ensures neither body affects the other
-- Defense-in-depth: Works even if layer/mask configuration has edge cases
-- Research showed Godot uses bidirectional checking for collision, which can cause unexpected interactions
-- This is the most reliable way to ensure casings NEVER block player movement
+- `add_collision_exception_with()` is UNIDIRECTIONAL - only affects the calling body's collision detection
+- Casing ignores player → Casing doesn't push player when overlapping
+- Player does NOT ignore casing → CasingPusher Area2D can still detect casings for pushing
+- Player's collision mask (4) doesn't include casing layer (64) anyway, so move_and_slide() won't be blocked
+- This preserves the intended one-way interaction: casings don't affect player, but player can push casings
 
 ### Why This Solution Works
 
@@ -376,11 +403,16 @@ All logs saved to `docs/case-studies/issue-392/logs/` for reference.
    - `add_collision_exception_with()` provides direct physics engine exclusion
    - This bypasses all layer/mask complexity
    - Useful when layer configuration alone doesn't fully work
-   - Bidirectional exceptions ensure both bodies ignore each other
+   - **IMPORTANT**: The function is UNIDIRECTIONAL - only affects the calling body's collision list
 
-7. **Defense-in-Depth for Physics**
+7. **Bidirectional vs Unidirectional Exceptions**
+   - Adding exceptions on BOTH bodies (A ignores B, B ignores A) can break Area2D detection
+   - Area2D relies on detecting overlapping bodies - if both bodies ignore each other, Area2D may not work
+   - Use UNIDIRECTIONAL exceptions when you need Area2D to still detect one body
+
+8. **Defense-in-Depth for Physics**
    - Use multiple complementary techniques for reliability
-   - Layer separation + spawn delay + collision exception = robust solution
+   - Layer separation + spawn delay + unidirectional collision exception = robust solution
    - Don't rely on a single mechanism for critical physics behavior
 
 ## References
@@ -402,7 +434,7 @@ The shell casing physics issue was resolved through a multi-layer defense-in-dep
 2. **Area2D Detection**: Adding Area2D to detect and push casings (player can still interact)
 3. **Mass Restoration**: Removing mass reduction (casings eject at normal distance)
 4. **Spawn Collision Delay**: Disabling casing collision at spawn, enabling after 0.1s delay (prevents spawn-time physics interaction)
-5. **Collision Exception (Final Fix)**: Using `add_collision_exception_with()` to guarantee mutual exclusion at the physics engine level
+5. **Unidirectional Collision Exception (Final Fix)**: Using `add_collision_exception_with()` ONLY on casing (casing ignores player, NOT vice versa)
 
 This solution achieves the exact behavior requested:
 - Casings NEVER affect player movement (including at spawn time AND when walking into casings)
@@ -413,8 +445,17 @@ This solution achieves the exact behavior requested:
 
 The fix uses multiple complementary techniques for maximum reliability:
 - Collision layers/masks for primary separation
-- Area2D for one-way push detection
-- Spawn delay for edge case protection
-- `add_collision_exception_with()` for guaranteed physics exclusion
+- Area2D for one-way push detection (CasingPusher)
+- Spawn delay for spawn-time edge case protection
+- Unidirectional `add_collision_exception_with()` for guaranteed casing→player exclusion while preserving Area2D detection
 
 This defense-in-depth approach ensures the fix works regardless of any physics engine edge cases or timing issues.
+
+### Critical Lesson: Unidirectional vs Bidirectional Collision Exceptions
+
+The key breakthrough in Iteration 5 was understanding that `add_collision_exception_with()` is **unidirectional**:
+- `casing.add_collision_exception_with(player)` makes casing ignore player
+- This does NOT make player ignore casing
+- If you also add `player.add_collision_exception_with(casing)`, the player's child Area2D (CasingPusher) may also be affected, breaking the push detection
+
+For one-way interactions (A doesn't affect B, but B can push A), use unidirectional exceptions on only one body.
