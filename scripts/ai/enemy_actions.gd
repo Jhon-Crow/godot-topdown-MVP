@@ -346,6 +346,29 @@ class SearchLowConfidenceAction extends GOAPAction:
 		return 3.0 + (0.5 - confidence) * 2.0  # Very low confidence = much higher cost
 
 
+## Action to evade a grenade danger zone (Issue #407).
+## When an enemy is in a grenade's blast radius, this action has HIGHEST priority.
+## Enemies should flee from grenades (their own or others') to avoid self-damage.
+## This action causes the enemy to move away from the grenade's predicted explosion zone.
+class EvadeGrenadeAction extends GOAPAction:
+	func _init() -> void:
+		super._init("evade_grenade", 0.01)  # Extremely low cost = absolute highest priority
+		preconditions = {
+			"in_grenade_danger_zone": true
+		}
+		effects = {
+			"in_grenade_danger_zone": false
+		}
+
+	func get_cost(_agent: Node, world_state: Dictionary) -> float:
+		# Always return extremely low cost when in danger zone
+		# This ensures grenade evasion takes priority over ALL other actions
+		# Including attacking distracted/vulnerable players (0.05 cost)
+		if world_state.get("in_grenade_danger_zone", false):
+			return 0.005  # Lower than any other action - survival is paramount
+		return 100.0  # Should never happen if preconditions are correct
+
+
 ## Action to investigate when an ally death is witnessed (Issue #409).
 ## This action has high priority when enemy observes a teammate die.
 ## Enemy will search the area considering multiple possible player directions.
@@ -389,6 +412,8 @@ static func create_all_actions() -> Array[GOAPAction]:
 	actions.append(InvestigateHighConfidenceAction.new())
 	actions.append(InvestigateMediumConfidenceAction.new())
 	actions.append(SearchLowConfidenceAction.new())
+	# Grenade avoidance action (Issue #407)
+	actions.append(EvadeGrenadeAction.new())
 	# Ally death awareness action (Issue #409)
 	actions.append(InvestigateAllyDeathAction.new())
 	return actions

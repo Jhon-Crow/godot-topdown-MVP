@@ -99,6 +99,9 @@ signal exploded(position: Vector2, grenade: GrenadeBase)
 
 
 func _ready() -> void:
+	# Add to grenades group for enemy grenade avoidance detection (Issue #407)
+	add_to_group("grenades")
+
 	# Set up collision
 	collision_layer = 32  # Layer 6 (custom for grenades)
 	collision_mask = 4 | 2  # obstacles + enemies (NOT player, to avoid collision when throwing)
