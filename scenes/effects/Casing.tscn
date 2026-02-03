@@ -7,8 +7,9 @@
 size = Vector2(4, 14)
 
 [node name="Casing" type="RigidBody2D"]
-collision_layer = 0
+collision_layer = 128
 collision_mask = 4
+mass = 0.01
 gravity_scale = 0.0
 linear_damp = 3.0
 angular_damp = 5.0
