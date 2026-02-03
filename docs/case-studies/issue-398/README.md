@@ -123,6 +123,59 @@ Reduced `scripts/objects/enemy.gd` from 5019 to 4999 lines by:
 - [ ] Verify CI passes (architecture check)
 - [ ] Check game log for new debug messages
 
+## Second Round of Testing (2026-02-03 10:48)
+
+### User Feedback
+- Game log: `game_log_20260203_104814.txt`
+- User reported: "не заработало" (didn't work)
+- User requested: "мне нужно отображение прицела для бросков при обычном бросании гранаты" (I need aiming display for simple grenade throwing)
+
+### Analysis of Second Log
+
+1. **Settings were correct**:
+   ```
+   [10:48:14] ExperimentalSettings initialized - FOV enabled: true, Complex grenade throwing: false
+   ```
+
+2. **User pressed G key (complex mode behavior)**:
+   ```
+   [10:48:20] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
+   [10:48:20] [Player.Grenade] G pressed - starting grab animation
+   [10:48:20] [Player.Grenade] Step 1 started: G held, RMB pressed at (654.6913, 1283.3951)
+   ```
+
+3. **"Mode check" debug log did NOT appear**
+   - This indicates the user was running an older build (before commit 94fa5bc)
+
+### Root Cause (Confirmed)
+
+The user was testing with a build compiled before the latest changes. The evidence:
+- Debug log "Mode check" was added in commit 94fa5bc at 07:42:18Z UTC
+- User's log created at ~07:48:14Z UTC (10:48:14 Moscow time = UTC+3)
+- The "Mode check" log never appears in the game log
+- Complex mode messages appear even though settings show simple mode
+
+### Key Insight: User Behavior
+
+The user is pressing **G key** (the old complex mode trigger) instead of **only RMB** (the new simple mode trigger).
+
+**Simple mode usage**:
+1. Point cursor at desired landing position
+2. Press and hold **RMB only** (do NOT press G)
+3. See trajectory preview appear
+4. Release RMB to throw
+
+### Fix Applied in This Round
+
+Added enhanced logging in simple mode handler:
+```gdscript
+func _handle_simple_grenade_idle_state() -> void:
+    if Input.is_action_just_pressed("grenade_throw"):
+        FileLogger.info("[Player.Grenade.Simple] RMB pressed in IDLE state, grenades=%d" % _current_grenades)
+```
+
+This will help confirm that simple mode is being triggered correctly when the user presses RMB without G.
+
 ## Additional Notes
 
 The user comment requested:
@@ -130,4 +183,6 @@ The user comment requested:
 2. Show effect radius around landing point when aiming
 3. Fix architecture problems
 
-All three issues have been addressed in this update.
+All three issues have been addressed. The remaining issue is that the user needs to:
+1. Use a fresh build with the latest changes
+2. Press **only RMB** (not G) to use simple mode

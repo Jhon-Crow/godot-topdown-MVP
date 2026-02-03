@@ -1499,10 +1499,14 @@ func _handle_grenade_aiming_state() -> void:
 ## Handle IDLE state for simple grenade throwing mode.
 ## When RMB is pressed, create grenade and start aiming.
 func _handle_simple_grenade_idle_state() -> void:
-	# Check if RMB is just pressed and player has grenades
-	if Input.is_action_just_pressed("grenade_throw") and _current_grenades > 0:
-		# Start simple aiming mode
-		_start_simple_grenade_aiming()
+	# Log when RMB is pressed to confirm simple mode handler is active
+	if Input.is_action_just_pressed("grenade_throw"):
+		FileLogger.info("[Player.Grenade.Simple] RMB pressed in IDLE state, grenades=%d" % _current_grenades)
+		if _current_grenades > 0:
+			# Start simple aiming mode
+			_start_simple_grenade_aiming()
+		else:
+			FileLogger.info("[Player.Grenade.Simple] No grenades available")
 
 
 ## Start simple grenade aiming mode.
