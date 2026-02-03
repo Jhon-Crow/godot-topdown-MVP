@@ -125,7 +125,8 @@ const VOLUME_SHOT: float = -5.0
 const VOLUME_RELOAD: float = -3.0
 const VOLUME_IMPACT: float = -8.0
 const VOLUME_HIT: float = -3.0
-const VOLUME_SHELL: float = -10.0
+## Shell casing volume reduced by 6dB for Issue #424 (2x quieter).
+const VOLUME_SHELL: float = -16.0
 const VOLUME_EMPTY_CLICK: float = -3.0
 const VOLUME_RICOCHET: float = -6.0
 const VOLUME_GRENADE: float = -3.0

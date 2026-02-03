@@ -101,16 +101,66 @@ This vector points from the character's center outward to where the casing is lo
 
 The following game logs were provided by the user for analysis:
 
-1. `game_log_20260203_155149.txt` (1.3MB) - Full gameplay session log
+1. `game_log_20260203_155149.txt` (1.3MB) - Full gameplay session log (before push force fix)
 2. `game_log_20260203_155558.txt` (36KB) - Shorter gameplay session log
+3. `game_log_20260203_161125.txt` (682KB) - Post-fix test session showing enemy issue
 
 These logs contain standard gameplay events (enemy AI, gunshots, blood effects, etc.) but don't show specific casing push events, as there was no debug logging enabled for casing physics during the user's test.
+
+### Iteration 3: Enemy System Issue Investigation
+
+After the push force fix was deployed, the user reported that enemies were "completely broken" with a suspected "language conflict" (GDScript vs C#).
+
+#### Analysis of game_log_20260203_161125.txt
+
+**Comparison of working vs broken logs:**
+
+| Metric | Working Log (15:51) | Broken Log (16:11) |
+|--------|--------------------|--------------------|
+| Death animation init | ✅ Present | ❌ Missing |
+| Sound listeners | ✅ 10 registered | ❌ 0 registered |
+| Enemy spawns | ✅ 10 spawned | ❌ None logged |
+| `has_died_signal` | ✅ true | ❌ false |
+| Enemies registered | 10 | 0 |
+
+**Key finding:** The `BuildingLevel` script uses `child.has_signal("died")` to detect enemies. The broken build returns `false` even though the signal is defined in `enemy.gd`.
+
+#### Root Cause Hypothesis
+
+The code changes to `enemy.gd` are syntactically correct and only affect:
+- Line 1044: `CASING_PUSH_FORCE = 20.0` (was 50.0)
+- Lines 1052-1054: Push direction calculation
+- Line 3949: Ejection speed (120-180 vs 300-450)
+
+None of these changes affect the `died` signal or `_ready()` function. The most likely causes are:
+
+1. **Godot cache corruption:** Compiled scripts in `.godot/` directory are stale
+2. **Incomplete export:** The GDScript files weren't properly bundled in the export
+3. **Editor reimport needed:** Godot needs to reimport/recompile the scripts
+
+**Recommended fix:** User should:
+1. Close Godot Editor
+2. Delete the `.godot/` directory
+3. Reopen the project to force reimport
+4. Rebuild the export
+
+### Iteration 3: Sound Volume Reduction
+
+User requested casing push sound to be 2x quieter.
+
+**Change made:**
+- File: `scripts/autoload/audio_manager.gd`
+- Constant: `VOLUME_SHELL`
+- Old value: `-10.0` dB
+- New value: `-16.0` dB (6 dB reduction = ~2x quieter perceived volume)
 
 ## Lessons Learned
 
 1. **Identify all affected systems:** When fixing physics behavior, identify ALL code paths that affect the behavior (ejection vs push).
 2. **User feedback is valuable:** The user correctly identified that changes weren't visible, leading to discovery of the actual issue.
 3. **Direction matters:** Using position-based direction calculation provides more realistic physics behavior than velocity-based direction.
+4. **Build cache issues:** Godot may have stale compiled scripts that don't reflect code changes - clearing `.godot/` directory can fix unexplained behavior.
+5. **Audio perception:** Reducing volume by ~6 dB roughly halves perceived loudness.
 
 ## References
 
