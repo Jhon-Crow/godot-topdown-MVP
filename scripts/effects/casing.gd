@@ -41,6 +41,10 @@ var _spawn_timer: float = 0.0
 var _spawn_collision_enabled: bool = false
 
 
+## Enable debug logging for casing physics (Issue #392 debugging).
+const DEBUG_CASING_PHYSICS: bool = false
+
+
 func _ready() -> void:
 	# Connect to collision signals to detect landing
 	body_entered.connect(_on_body_entered)
@@ -55,9 +59,16 @@ func _ready() -> void:
 	# Collision will be re-enabled after SPAWN_COLLISION_DELAY seconds
 	_disable_collision()
 
-	# Add collision exception with player to prevent blocking (Issue #392)
-	# This ensures casings NEVER block player movement, even after collision re-enables
-	_add_player_collision_exception()
+	# NOTE: Collision exception with player has been REMOVED (Issue #392 Iteration 6)
+	# The collision layer/mask setup is sufficient:
+	# - Player collision_mask = 4 (doesn't include layer 7 where casings are)
+	# - Casing collision_layer = 64 (layer 7)
+	# - CasingPusher Area2D collision_mask = 64 (detects layer 7)
+	# The collision exception was causing issues with casing physics.
+	# _add_player_collision_exception()  # DISABLED
+
+	if DEBUG_CASING_PHYSICS:
+		print("[Casing] Spawned at %s with velocity %s (speed: %.1f)" % [global_position, linear_velocity, linear_velocity.length()])
 
 
 func _physics_process(delta: float) -> void:
@@ -183,6 +194,9 @@ func unfreeze_time() -> void:
 ## Called by BaseCharacter after MoveAndSlide() detects collision with the casing.
 ## @param impulse The kick impulse vector (direction * force).
 func receive_kick(impulse: Vector2) -> void:
+	if DEBUG_CASING_PHYSICS:
+		print("[Casing] receive_kick called with impulse %s (frozen: %s, landed: %s)" % [impulse, _is_time_frozen, _has_landed])
+
 	if _is_time_frozen:
 		return
 
@@ -245,10 +259,14 @@ func _enable_collision() -> void:
 func _add_player_collision_exception() -> void:
 	# Find player in scene tree (player is in "player" group)
 	var players := get_tree().get_nodes_in_group("player")
+	if DEBUG_CASING_PHYSICS:
+		print("[Casing] Found %d players in 'player' group" % players.size())
 	for player in players:
 		if player is PhysicsBody2D:
 			# Make this casing ignore the player in collision detection
 			# This prevents the casing from pushing the player when they overlap
 			add_collision_exception_with(player)
+			if DEBUG_CASING_PHYSICS:
+				print("[Casing] Added collision exception with player: %s" % player.name)
 			# NOTE: Do NOT add player.add_collision_exception_with(self)
 			# That would break the player's CasingPusher Area2D detection

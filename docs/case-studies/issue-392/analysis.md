@@ -459,3 +459,40 @@ The key breakthrough in Iteration 5 was understanding that `add_collision_except
 - If you also add `player.add_collision_exception_with(casing)`, the player's child Area2D (CasingPusher) may also be affected, breaking the push detection
 
 For one-way interactions (A doesn't affect B, but B can push A), use unidirectional exceptions on only one body.
+
+### User Feedback #5 (2026-02-03)
+- Feedback from log `game_log_20260203_114135.txt`:
+  1. "сейчас вообще не работает физика гильз" - Casing physics are not working at all now
+- The unidirectional collision exception from Iteration 5 broke something
+- Casings may not be moving or responding to physics properly
+
+### Fix Iteration 6 - Remove Collision Exception Entirely (2026-02-03)
+- **Hypothesis**: Even unidirectional collision exceptions may have unintended side effects
+- **Solution**: Remove the collision exception call entirely, rely only on collision layer/mask separation
+- The collision layer/mask setup should already be sufficient:
+  - Player `collision_mask = 4` (doesn't include layer 7)
+  - Casing `collision_layer = 64` (layer 7)
+  - CasingPusher Area2D `collision_mask = 64` (detects layer 7)
+- The spawn collision delay (0.1s) still prevents spawn-time issues
+- No collision exception needed - layers/masks handle the separation
+
+**Code Change**:
+```gdscript
+func _ready() -> void:
+    # ... existing code ...
+    _disable_collision()
+
+    # NOTE: Collision exception with player has been REMOVED (Issue #392 Iteration 6)
+    # The collision layer/mask setup is sufficient:
+    # - Player collision_mask = 4 (doesn't include layer 7 where casings are)
+    # - Casing collision_layer = 64 (layer 7)
+    # - CasingPusher Area2D collision_mask = 64 (detects layer 7)
+    # The collision exception was causing issues with casing physics.
+    # _add_player_collision_exception()  # DISABLED
+```
+
+**Rationale**:
+- Simplify the solution by removing unnecessary complexity
+- Trust the collision layer/mask system which is the standard Godot approach
+- The spawn delay handles the spawn-time edge case
+- No collision exception means no unexpected side effects on casing physics

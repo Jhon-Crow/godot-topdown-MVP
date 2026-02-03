@@ -2216,11 +2216,17 @@ func _draw_circle_outline(center: Vector2, radius: float, color: Color, width: f
 		prev_point = next_point
 
 
+## Enable debug logging for casing pushing (Issue #392 debugging).
+const DEBUG_CASING_PUSHING: bool = false
+
+
 ## Push casings that we're overlapping with (Issue #392).
 ## Uses an Area2D to detect casings without blocking player movement.
 ## Casings should be pushed by the player but should not affect player movement.
 func _push_casings() -> void:
 	if _casing_pusher == null:
+		if DEBUG_CASING_PUSHING:
+			print("[Player.CasingPusher] _casing_pusher is null!")
 		return
 
 	# Only push if we're moving
@@ -2229,6 +2235,8 @@ func _push_casings() -> void:
 
 	# Get all overlapping bodies (casings are RigidBody2D on layer 7)
 	var overlapping_bodies := _casing_pusher.get_overlapping_bodies()
+	if DEBUG_CASING_PUSHING and overlapping_bodies.size() > 0:
+		print("[Player.CasingPusher] Overlapping %d bodies" % overlapping_bodies.size())
 	for body in overlapping_bodies:
 		# Check if this is a casing (RigidBody2D with receive_kick method)
 		if body is RigidBody2D and body.has_method("receive_kick"):
@@ -2236,4 +2244,6 @@ func _push_casings() -> void:
 			var push_dir := velocity.normalized()
 			var push_strength := velocity.length() * CASING_PUSH_FORCE / 100.0
 			var impulse := push_dir * push_strength
+			if DEBUG_CASING_PUSHING:
+				print("[Player.CasingPusher] Kicking casing with impulse %s" % impulse)
 			body.receive_kick(impulse)
