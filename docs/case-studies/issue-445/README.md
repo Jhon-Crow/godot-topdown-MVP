@@ -575,3 +575,133 @@ With v4 thresholds:
 ### Log Messages
 
 v4 log messages are tagged with `[Shotgun.FIX#445v4]` for easy filtering.
+
+---
+
+## Version 5 (v5): Fixed Instability with Small Direction Threshold
+
+**User Feedback:** "перезарядка работает не стабильно, особенно если вести огонь не отпуская RMB"
+
+**Translation:** "Reloading works unstably, especially when firing without releasing RMB"
+
+### Analysis of Log File: `game_log_20260204_000716.txt`
+
+Analyzing the v4 logs revealed a pattern of instability. The pump gesture would sometimes trigger and sometimes not, even with similar drag distances:
+
+```
+[00:07:45] In NeedsPumpUp - waiting for drag AWAY from player (positive dot). Current dot=6,8
+[00:07:46] In NeedsPumpUp - waiting for drag AWAY from player (positive dot). Current dot=6,8
+[00:07:46] In NeedsPumpUp - waiting for drag AWAY from player (positive dot). Current dot=6,8
+[00:07:46] In NeedsPumpUp - waiting for drag AWAY from player (positive dot). Current dot=-22,1
+...
+[00:07:48] In NeedsPumpUp - waiting for drag AWAY from player (positive dot). Current dot=6,8
+[00:07:48] In NeedsPumpUp - waiting for drag AWAY from player (positive dot). Current dot=-1,9
+```
+
+### Root Cause of Instability
+
+The v4 threshold of 7.0 pixels was still too high for perpendicular drags. When the user:
+1. Looks UP (aim direction ≈ (0, -1))
+2. Drags mostly HORIZONTALLY (e.g., dragging toward a target to the side)
+3. The dot product with aim direction is very small (around 6.8)
+4. Threshold of 7.0 is JUST above this → gesture fails
+
+The dot product values like `6.8`, `6.7`, `5.4` repeatedly appear in the logs, all just below the threshold of 7.0 (which is `10 * 0.7`).
+
+### Mathematical Analysis
+
+When dragging at an angle θ to the aim direction:
+- Dot product = drag_length × cos(θ)
+- For θ = 85° (almost perpendicular): cos(85°) ≈ 0.087
+- A 80px drag yields only 80 × 0.087 ≈ 7.0 projection
+
+This means with v4's 7.0 threshold, even LARGE perpendicular drags (80+ pixels) barely register.
+
+### v5 Solution: Small Direction Threshold with Fallback
+
+The key insight: we only need the dot product to determine **direction** (positive = pump up, negative = pump down), not magnitude. The total drag length check already ensures the gesture is intentional.
+
+**v5 Changes:**
+1. Reduced direction threshold from 7.0 to **3.0 pixels**
+2. Added fallback to screen-based detection for perfectly perpendicular drags
+3. Keep total drag length check (10px) for intentionality
+
+```csharp
+private bool GetDirectionAwarePumpGesture(Vector2 dragVector, float minDistance,
+    out bool isPumpUp, out bool isPumpDown)
+{
+    isPumpUp = false;
+    isPumpDown = false;
+
+    // Check minimum distance (total drag length, not just projection)
+    if (dragVector.Length() < minDistance)
+        return false;
+
+    float dragAlongAim = dragVector.Dot(_aimDirection);
+
+    // v5: Use SMALL threshold (3px) just to filter noise
+    // The total length check above ensures intentional gesture
+    const float DirectionThreshold = 3.0f;
+
+    if (dragAlongAim > DirectionThreshold)
+    {
+        isPumpUp = true;  // Drag away from player = eject
+        return true;
+    }
+    else if (dragAlongAim < -DirectionThreshold)
+    {
+        isPumpDown = true;  // Drag toward player = chamber
+        return true;
+    }
+
+    // Fallback: For perfectly perpendicular drags, use screen-based detection
+    bool isVerticalDrag = Mathf.Abs(dragVector.Y) > Mathf.Abs(dragVector.X);
+    if (isVerticalDrag)
+    {
+        if (dragVector.Y < -minDistance * 0.7f)  // Screen-up
+        {
+            isPumpUp = true;
+            return true;
+        }
+        else if (dragVector.Y > minDistance * 0.7f)  // Screen-down
+        {
+            isPumpDown = true;
+            return true;
+        }
+    }
+
+    return false;
+}
+```
+
+### Why This Fixes the Instability
+
+| Scenario | v4 (threshold=7) | v5 (threshold=3) |
+|----------|------------------|------------------|
+| 50px drag, dot=6.8 | ❌ FAILS (6.8 < 7) | ✅ PASSES (6.8 > 3) |
+| 30px drag, dot=4.2 | ❌ FAILS (4.2 < 7) | ✅ PASSES (4.2 > 3) |
+| 20px drag, dot=2.1 | ❌ FAILS (2.1 < 7) | ❌ FAILS (2.1 < 3) but fallback may work |
+| 10px drag, dot=0.8 | ❌ FAILS | Uses screen fallback if vertical |
+
+The small threshold ensures that any drag with meaningful directional intent (dot > 3) is detected, while the total length check (10px) prevents accidental triggers.
+
+### Screen-Based Fallback
+
+When the drag is **perfectly perpendicular** to aim direction (dot ≈ 0), the v5 fallback uses traditional screen-based detection:
+- Screen-UP drag (Y < 0) → Pump UP
+- Screen-DOWN drag (Y > 0) → Pump DOWN
+
+This handles edge cases where the aim direction is exactly horizontal and the user drags exactly vertically.
+
+### Files Changed (v5)
+
+| File | Change |
+|------|--------|
+| `Scripts/Weapons/Shotgun.cs` | Changed direction threshold from `minDistance * 0.7f` to fixed `3.0f` |
+| `Scripts/Weapons/Shotgun.cs` | Added screen-based fallback for perpendicular drags |
+| `docs/case-studies/issue-445/README.md` | Added v5 documentation |
+| `docs/case-studies/issue-445/game_log_20260204_000716.txt` | Added user's log file |
+
+### Log Messages
+
+v5 log messages are tagged with `[Shotgun.FIX#445v5]` for easy filtering.
