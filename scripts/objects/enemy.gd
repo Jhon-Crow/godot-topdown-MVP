@@ -4597,12 +4597,12 @@ func get_current_state() -> AIState: return _current_state
 func get_goap_world_state() -> Dictionary: return _goap_world_state.duplicate()
 
 func set_player_reloading(is_reloading: bool) -> void:
-	var old := _goap_world_state.get("player_reloading", false)
+	var old: bool = _goap_world_state.get("player_reloading", false)
 	_goap_world_state["player_reloading"] = is_reloading
 	if is_reloading != old: _log_to_file("Player reloading: %s -> %s" % [old, is_reloading])
 
 func set_player_ammo_empty(is_empty: bool) -> void:
-	var old := _goap_world_state.get("player_ammo_empty", false)
+	var old: bool = _goap_world_state.get("player_ammo_empty", false)
 	_goap_world_state["player_ammo_empty"] = is_empty
 	if is_empty != old: _log_to_file("Player ammo empty: %s -> %s" % [old, is_empty])
 
@@ -4925,7 +4925,7 @@ func on_ally_died(ally_position: Vector2, killer_is_player: bool, hit_direction:
 		var susp_dir := -hit_direction.normalized()
 		_memory.update_position(ally_position + susp_dir * 200.0, ALLY_DEATH_CONFIDENCE)
 	_log_to_file("[AllyDeath] Witnessed at %s, entering SEARCHING" % ally_position)
-	_enter_searching_state(ally_position)
+	_transition_to_searching(ally_position)
 
 ## Calculate suspected directions from bullet hit direction (Issue #409).
 func _calculate_suspected_directions(death_position: Vector2, hit_direction: Vector2) -> void:
