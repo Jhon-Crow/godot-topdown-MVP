@@ -311,6 +311,49 @@ Test scenarios:
 - Issue #424: Reduce casing push force (fixed with 2.5x reduction)
 - Issue #375: Enemy grenade safe distance
 
+### Fifth Investigation (User Feedback #5)
+
+**Analysis of Game Log (`logs/game_log_20260203_220140.txt`):**
+
+After implementing the C# friction fix, user reported three new issues:
+
+1. **Casing scatter too weak**: User requested casings scatter "almost as fast as bullets" (bullet speed is 2500 px/s)
+2. **Explosion visual effects missing**: No visual explosion effects visible
+3. **Grenades undershooting by ~150px**: Grenades land short of target
+
+**Detailed Log Analysis (Frag grenade throw):**
+```
+[22:02:23] Timer started, grenade created at (150, 199.16666)
+[22:02:24] Throwing! Target: (746.8878, 160.29684), Distance: 602,6, Speed: 601,3, Friction: 300,0
+[22:02:25] Frag grenade landed - EXPLODING!
+[22:02:25] EXPLODED at (294.2355, 219.98558)!
+```
+
+The grenade was supposed to travel 602.6 pixels but only traveled ~144 pixels (294-150)!
+
+**Root Cause: Double Friction!**
+
+Both C# `GrenadeTimer.ApplyGroundFriction()` AND GDScript `_physics_process()` are running and applying friction! The GDScript is actually working in this build, but both scripts apply friction, causing **2x the expected deceleration**.
+
+Evidence from log: When C# was added, GDScript started working too (possibly export rebuild triggered correct script compilation).
+
+**Fixes Applied:**
+
+1. **Smart Friction Detection**: Modified `GrenadeTimer.cs` to detect if GDScript friction is already working:
+   - Track velocity changes each frame
+   - If velocity is being reduced by expected amount, GDScript friction is working → don't apply C# friction
+   - If velocity NOT being reduced after several frames, GDScript isn't working → apply C# friction
+
+2. **Massive Casing Scatter Increase**: User requested near-bullet-speed scatter (2500 px/s):
+   - Lethal zone impulse: 150 → **2000** (bullet-like scatter)
+   - Proximity zone impulse: 25 → **500** (strong push)
+   - Updated both C# and GDScript for consistency
+
+3. **Explosion Visual Effects Fix**: GrenadeTimer now tries to call the GDScript explosion effect methods:
+   - First tries `_spawn_explosion_effect()` on the grenade
+   - Falls back to `_create_simple_explosion()`
+   - Final fallback to `ImpactEffectsManager.spawn_flashbang_effect()`
+
 ## References
 
 - [Godot RigidBody2D Documentation](https://docs.godotengine.org/en/stable/classes/class_rigidbody2d.html)

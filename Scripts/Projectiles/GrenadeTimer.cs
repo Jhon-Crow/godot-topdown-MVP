@@ -60,6 +60,16 @@ namespace GodotTopdown.Scripts.Projectiles
         public bool IsTimerActive { get; private set; } = false;
 
         /// <summary>
+        /// Whether C# should apply friction (only when GDScript is not running).
+        /// We detect this by checking if velocity is being reduced each frame.
+        /// If velocity is NOT being reduced (GDScript friction not working), we apply it.
+        /// </summary>
+        private bool _shouldApplyFriction = false;
+        private Vector2 _lastVelocityForFrictionCheck = Vector2.Zero;
+        private int _framesWithoutFriction = 0;
+        private const int FramesToDetectNoFriction = 3;
+
+        /// <summary>
         /// Whether the grenade has been thrown (can explode on impact).
         /// </summary>
         public bool IsThrown { get; private set; } = false;
@@ -106,10 +116,10 @@ namespace GodotTopdown.Scripts.Projectiles
             if (HasExploded || _grenadeBody == null)
                 return;
 
-            // CRITICAL FIX for Issue #432: Apply ground friction in C#
-            // GDScript _physics_process() may not run in exports, so grenades would fly forever
-            // without any friction. We must apply the same friction logic here.
-            ApplyGroundFriction((float)delta);
+            // CRITICAL FIX for Issue #432: Apply ground friction in C# ONLY if GDScript is not doing it.
+            // GDScript _physics_process() applies friction, so we must detect if it's running.
+            // If velocity is NOT being reduced each frame, GDScript friction isn't working.
+            DetectAndApplyFriction((float)delta);
 
             // Timer countdown for Flashbang grenades
             if (IsTimerActive && Type == GrenadeType.Flashbang)
@@ -168,6 +178,66 @@ namespace GodotTopdown.Scripts.Projectiles
 
             IsThrown = true;
             LogToFile("[GrenadeTimer] Grenade marked as thrown - impact detection enabled");
+        }
+
+        /// <summary>
+        /// Detect if GDScript friction is working and apply C# friction only if needed.
+        /// This prevents double-friction which causes grenades to stop way too early.
+        /// </summary>
+        private void DetectAndApplyFriction(float delta)
+        {
+            if (_grenadeBody == null || _grenadeBody.Freeze)
+                return;
+
+            Vector2 currentVelocity = _grenadeBody.LinearVelocity;
+
+            // Skip if grenade is already stopped
+            if (currentVelocity.Length() <= 0.01f)
+            {
+                _lastVelocityForFrictionCheck = currentVelocity;
+                return;
+            }
+
+            // Check if velocity has been reduced since last frame (GDScript friction working)
+            if (_lastVelocityForFrictionCheck.Length() > 0.01f)
+            {
+                float expectedVelocityWithoutFriction = _lastVelocityForFrictionCheck.Length();
+                float actualVelocity = currentVelocity.Length();
+
+                // Calculate how much friction SHOULD have reduced velocity this frame
+                float expectedFrictionReduction = GroundFriction * delta;
+
+                // If velocity dropped by roughly the expected amount, GDScript friction is working
+                float velocityDrop = expectedVelocityWithoutFriction - actualVelocity;
+
+                // GDScript is applying friction if velocity dropped by at least 50% of expected
+                if (velocityDrop >= expectedFrictionReduction * 0.5f)
+                {
+                    // GDScript friction is working - don't apply C# friction
+                    _framesWithoutFriction = 0;
+                    _shouldApplyFriction = false;
+                }
+                else
+                {
+                    // Velocity didn't drop as expected - GDScript might not be working
+                    _framesWithoutFriction++;
+
+                    // After several frames with no friction, enable C# friction
+                    if (_framesWithoutFriction >= FramesToDetectNoFriction)
+                    {
+                        _shouldApplyFriction = true;
+                    }
+                }
+            }
+
+            // Store current velocity for next frame comparison
+            _lastVelocityForFrictionCheck = currentVelocity;
+
+            // Apply C# friction only if GDScript friction is not working
+            if (_shouldApplyFriction)
+            {
+                ApplyGroundFriction(delta);
+            }
         }
 
         /// <summary>
@@ -473,10 +543,32 @@ namespace GodotTopdown.Scripts.Projectiles
         /// </summary>
         private void SpawnExplosionEffect(Vector2 position)
         {
-            var impactManager = GetNodeOrNull("/root/ImpactEffectsManager");
-            if (impactManager != null && impactManager.HasMethod("spawn_flashbang_effect"))
+            // First, try to trigger the GDScript explosion effect method on the grenade itself
+            // This handles the visual effects defined in the GDScript subclass (FragGrenade, FlashbangGrenade)
+            if (_grenadeBody != null && _grenadeBody.HasMethod("_spawn_explosion_effect"))
             {
-                impactManager.Call("spawn_flashbang_effect", position, EffectRadius);
+                _grenadeBody.Call("_spawn_explosion_effect");
+                LogToFile("[GrenadeTimer] Called GDScript _spawn_explosion_effect()");
+            }
+            else if (_grenadeBody != null && _grenadeBody.HasMethod("_create_simple_explosion"))
+            {
+                // Fallback to simple explosion if the specific method isn't available
+                _grenadeBody.Call("_create_simple_explosion");
+                LogToFile("[GrenadeTimer] Called GDScript _create_simple_explosion()");
+            }
+            else
+            {
+                // Final fallback: use ImpactEffectsManager directly
+                var impactManager = GetNodeOrNull("/root/ImpactEffectsManager");
+                if (impactManager != null && impactManager.HasMethod("spawn_flashbang_effect"))
+                {
+                    impactManager.Call("spawn_flashbang_effect", position, EffectRadius);
+                    LogToFile("[GrenadeTimer] Called ImpactEffectsManager.spawn_flashbang_effect()");
+                }
+                else
+                {
+                    LogToFile("[GrenadeTimer] WARNING: No explosion effect method available");
+                }
             }
         }
 
@@ -524,10 +616,11 @@ namespace GodotTopdown.Scripts.Projectiles
         {
             var casings = GetTree().GetNodesInGroup("casings");
             float proximityRadius = EffectRadius * 1.5f;
-            // FIX for Issue #432: User requested "shell casings should scatter much stronger"
-            // Increased lethal impulse from 45 to 150 for much more dramatic effect
-            float lethalImpulse = 150.0f;
-            float proximityImpulse = 25.0f;
+            // FIX for Issue #432: User requested casings scatter "almost as fast as bullets"
+            // Bullet speed is 2500 px/s, so lethal zone casings should get ~2000 impulse
+            // Casings have mass and friction so actual velocity will be lower
+            float lethalImpulse = 2000.0f;  // Near bullet speed for dramatic scatter
+            float proximityImpulse = 500.0f;  // Strong push for outer zone too
 
             int scatteredCount = 0;
 

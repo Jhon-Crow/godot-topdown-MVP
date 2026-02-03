@@ -483,12 +483,13 @@ func _scatter_casings(effect_radius: float) -> void:
 	# Proximity zone extends to 1.5x the effect radius
 	var proximity_radius := effect_radius * 1.5
 
-	# Impulse strengths (calibrated based on player kick force ~6-9 units)
-	# Strong impulse for lethal zone (scatter effect)
-	# FIX for Issue #432: Increased from 45 to 150 for much more dramatic scatter
-	var lethal_impulse_base: float = 150.0
-	# Weak impulse for proximity zone (weaker than player/enemy push)
-	var proximity_impulse_base: float = 25.0
+	# Impulse strengths (calibrated for dramatic scatter effect)
+	# FIX for Issue #432: User requested casings scatter "almost as fast as bullets"
+	# Bullet speed is 2500 px/s, so lethal zone casings should get ~2000 impulse
+	# Casings have mass and friction so actual velocity will be lower
+	var lethal_impulse_base: float = 2000.0  # Near bullet speed for dramatic scatter
+	# Strong impulse for proximity zone too
+	var proximity_impulse_base: float = 500.0
 
 	var scattered_count := 0
 	var proximity_count := 0
