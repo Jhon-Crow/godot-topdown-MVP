@@ -440,17 +440,22 @@ public partial class Shotgun : BaseWeapon
 
     /// <summary>
     /// Updates the aim direction based on mouse position.
-    /// TACTICAL RELOAD (Issue #437): During reload, aim direction is locked to allow
-    /// the player to keep the weapon pointed at a specific spot (e.g., doorway) while
-    /// performing RMB drag gestures to reload. This prevents the barrel from following
-    /// the mouse during reload operations.
+    /// TACTICAL RELOAD (Issue #437): During reload OR when RMB is held (dragging),
+    /// aim direction is locked to allow the player to keep the weapon pointed at
+    /// a specific spot (e.g., doorway) while performing RMB drag gestures to reload.
+    /// This prevents the barrel from following the mouse during reload operations.
+    ///
+    /// FIX (Issue #437 feedback): Lock aim as soon as RMB is pressed, not just when
+    /// reload state changes. This prevents barrel shift during quick one-motion
+    /// reload gestures (drag up then down without releasing RMB).
     /// </summary>
     private void UpdateAimDirection()
     {
-        // TACTICAL RELOAD (Issue #437): Don't update aim direction during reload.
-        // This allows player to keep aiming at a specific spot while reloading.
-        // The aim direction is "locked" at the moment reload starts.
-        if (ReloadState != ShotgunReloadState.NotReloading)
+        // TACTICAL RELOAD (Issue #437): Don't update aim direction during reload
+        // OR when dragging (RMB is held). This ensures the barrel freezes immediately
+        // when RMB is pressed, before any state change occurs.
+        // The aim direction is "locked" at the moment RMB is first pressed.
+        if (ReloadState != ShotgunReloadState.NotReloading || _isDragging)
         {
             // Keep current _aimDirection locked - don't follow mouse
             // Sprite rotation is also not updated (stays pointing at locked direction)
@@ -1579,6 +1584,14 @@ public partial class Shotgun : BaseWeapon
     /// Gets whether the shotgun needs pump action.
     /// </summary>
     public bool NeedsPumpAction => ActionState != ShotgunActionState.Ready;
+
+    /// <summary>
+    /// Gets whether a drag gesture is currently in progress (RMB is held).
+    /// TACTICAL RELOAD (Issue #437): Used to lock aim direction as soon as RMB is pressed,
+    /// before any state changes occur. This prevents the barrel from shifting during
+    /// quick one-motion reload gestures (drag up then down without releasing RMB).
+    /// </summary>
+    public bool IsDragging => _isDragging;
 
     /// <summary>
     /// Gets a human-readable description of the current state.
