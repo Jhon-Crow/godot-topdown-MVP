@@ -2216,7 +2216,10 @@ public partial class Player : BaseCharacter
 
         // Calculate throw speed needed to reach target (using physics)
         // Distance = v^2 / (2 * friction) → v = sqrt(2 * friction * distance)
-        float requiredSpeed = Mathf.Sqrt(2.0f * groundFriction * throwDistance);
+        // FIX for issue #428: Apply 0.8% compensation factor for discrete time integration error
+        // Godot's 60 FPS Euler integration causes grenades to land ~0.75-0.8% short of target
+        const float discreteIntegrationCompensation = 1.008f;
+        float requiredSpeed = Mathf.Sqrt(2.0f * groundFriction * throwDistance * discreteIntegrationCompensation);
 
         // Clamp to grenade's max throw speed
         float throwSpeed = Mathf.Min(requiredSpeed, maxThrowSpeed);
