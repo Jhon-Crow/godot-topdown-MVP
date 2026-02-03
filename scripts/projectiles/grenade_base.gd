@@ -116,7 +116,11 @@ func _ready() -> void:
 
 	# Set up physics
 	gravity_scale = 0.0  # Top-down, no gravity
-	linear_damp = 1.0  # Reduced for easier rolling
+	# FIX for issue #398: Set linear_damp to 0 to prevent double-damping
+	# We use manual ground_friction in _physics_process() for predictable constant deceleration.
+	# This ensures grenades travel the exact distance calculated by: d = v² / (2 * ground_friction)
+	# Previously linear_damp=1.0 was causing grenades to land significantly short of their target.
+	linear_damp = 0.0
 
 	# Set up physics material for wall bouncing
 	var physics_material := PhysicsMaterial.new()

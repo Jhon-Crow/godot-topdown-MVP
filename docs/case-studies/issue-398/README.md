@@ -425,3 +425,97 @@ The `_Draw()` method was also updated to use actual grenade properties and accou
 3. **Account for spawn positions**: When calculating throw physics, remember that projectiles often spawn offset from the player to avoid self-collision.
 
 4. **Wall collisions cause landing short**: Even with correct physics, walls in the path will stop the grenade early. This is expected behavior, not a bug.
+
+## Fifth Round of Testing (2026-02-03 16:01)
+
+### User Feedback
+
+User reported:
+- "всё ещё слишком слабо кидает гранаты" (grenades are still thrown too weakly)
+- "граната должна всегда долетать до прицела, если между игроком и прицелом нет стены" (grenade should always reach the cursor if there's no wall between player and cursor)
+
+Game log provided: `game_log_20260203_160127.txt`
+
+### Analysis of Log
+
+From the game log:
+```
+[16:01:32] [Player.Grenade.Simple] Throwing! Target: (845.76166, 730.2807), Distance: 562,4, Speed: 580,9
+[16:01:32] [GrenadeBase] Simple mode throw! Dir: (0.997822, -0.065968), Speed: 580.9 (clamped from 580.9, max: 1352.8)
+```
+
+The grenade was thrown with:
+- Target distance from spawn: 562.4 pixels
+- Initial speed: 580.9 pixels/s
+- Physics formula expects: d = v² / (2×f) = 580.9² / (2×300) = 337445 / 600 = **562.4 pixels** ✓
+
+The formula is correct and the grenade SHOULD have traveled 562.4 pixels to reach the target. But it landed significantly short.
+
+### Root Cause Discovery
+
+**CRITICAL FINDING**: The grenade physics has TWO damping mechanisms active simultaneously!
+
+1. **Godot's built-in `linear_damp`** (set in scene files):
+   - FlashbangGrenade.tscn: `linear_damp = 2.0`
+   - FragGrenade.tscn: `linear_damp = 2.0`
+
+2. **Custom friction** (in `grenade_base.gd` `_physics_process()`):
+   ```gdscript
+   var friction_force := linear_velocity.normalized() * ground_friction * delta
+   linear_velocity -= friction_force
+   ```
+
+Even though `grenade_base.gd` _ready() sets `linear_damp = 1.0`, this only partially mitigates the issue. The problem is that:
+
+- **Godot's linear_damp**: Proportional damping (`v = v × (1 - damp × dt)`)
+- **Custom friction**: Constant deceleration (`v = v - friction × dt`)
+
+The physics calculation assumes ONLY constant deceleration (formula: `d = v² / (2×friction)`), but Godot's linear_damp was ALSO slowing the grenade down, causing it to land significantly short.
+
+### Mathematical Analysis
+
+With both damping systems active:
+- Initial velocity: 580.9 px/s
+- Linear damp effect per frame (60 FPS): `v × (1 - 1.0 × 0.0167) = v × 0.9833`
+- Friction effect per frame: `v - 300 × 0.0167 = v - 5 px/s`
+
+Combined, the grenade slows down much faster than the formula predicts:
+- Expected stopping distance (formula): 562.4 pixels
+- Actual stopping distance: ~183 pixels (only 32.6% of expected!)
+
+### Fix Applied
+
+Set `linear_damp = 0` in all grenade files to ensure ONLY the custom friction applies:
+
+1. **grenade_base.gd** (line 119):
+   ```gdscript
+   # Before
+   linear_damp = 1.0  # Reduced for easier rolling
+
+   # After
+   linear_damp = 0.0  # Disabled - we use manual ground_friction for predictable physics
+   ```
+
+2. **FlashbangGrenade.tscn** (line 14):
+   ```
+   linear_damp = 0.0
+   ```
+
+3. **FragGrenade.tscn** (line 14):
+   ```
+   linear_damp = 0.0
+   ```
+
+### Files Modified
+
+1. `scripts/projectiles/grenade_base.gd` - Set linear_damp = 0 in _ready()
+2. `scenes/projectiles/FlashbangGrenade.tscn` - Set linear_damp = 0
+3. `scenes/projectiles/FragGrenade.tscn` - Set linear_damp = 0
+
+### Lessons Learned
+
+1. **Check for competing physics systems**: When implementing custom physics, verify there are no built-in engine features (like `linear_damp`) that would interfere with your calculations.
+
+2. **Scene files can override script values**: Even if `_ready()` sets a property, the scene file's property value may have been set before or could override it depending on the order of operations.
+
+3. **Physics formulas must match physics implementation**: If using `d = v² / (2×a)`, the actual deceleration must be constant (`v -= a×dt`), not proportional (`v *= (1-k×dt)`).
