@@ -21,12 +21,29 @@
 - Set `collision_layer = 64` (layer 7, "decorative")
 - Added layer naming in project.godot
 
-### User Feedback (2026-02-03)
+### User Feedback #1 (2026-02-03)
 - Feedback from Jhon-Crow indicated the fix was incomplete:
   1. "Casings at the moment of spawn still push the player"
   2. "Casings fly too far" (mass reduction caused this)
   3. "Player still bumps into casings"
 - **Critical requirement clarified**: Casings should NOT affect player, BUT player SHOULD push casings
+
+### Second Fix Attempt (2026-02-03)
+- Changed player collision_mask from 68 to 4 (removed layer 7)
+- Added CasingPusher Area2D to detect and push casings
+- Removed mass property (restored default 1.0)
+- Player could now push casings without being blocked
+
+### User Feedback #2 (2026-02-03)
+- Feedback indicated improvement but issues remained:
+  1. "Casings push better now, but player still gets stuck in them"
+  2. "Player is still pushed back when shooting"
+- Log file provided: `game_log_20260203_103825.txt`
+
+### Final Fix (2026-02-03)
+- Identified root cause: casings spawn close to player, Godot physics interacts even with correct layers when objects spawn overlapping
+- Solution: Disable casing CollisionShape2D at spawn time, enable after 0.1s delay
+- This ensures casing has moved away from player before enabling physics
 
 ### Root Cause Discovery (2026-02-03)
 - Analyzed Player.tscn collision settings
@@ -53,6 +70,11 @@ The issue had multiple contributing factors:
 3. **Spawn-Time Collision Issue**
    - Casings spawned at high velocity near player position
    - Even with layer separation, physics engine resolved initial overlap
+
+4. **Spawn-Time Collision Edge Case**
+   - Even with correct collision layers/masks, Godot physics can interact when objects spawn overlapping
+   - Casings spawn at weapon position which is very close to player collision shape
+   - Initial high velocity (300-450 px/sec) causes physics resolution during the first frames
 
 ### Research Findings
 
@@ -156,6 +178,45 @@ mass = 0.01
 - Casings now eject with realistic distance
 - Linear damping (3.0) still slows them naturally
 
+#### 5. Spawn Collision Delay (Final Fix)
+**File**: `scripts/effects/casing.gd`
+
+Added spawn collision delay system:
+```gdscript
+const SPAWN_COLLISION_DELAY: float = 0.1
+var _spawn_timer: float = 0.0
+var _spawn_collision_enabled: bool = false
+
+func _ready() -> void:
+    # ... existing code ...
+    _disable_collision()  # Disable at spawn
+
+func _physics_process(delta: float) -> void:
+    # Enable collision after delay
+    if not _spawn_collision_enabled:
+        _spawn_timer += delta
+        if _spawn_timer >= SPAWN_COLLISION_DELAY:
+            _enable_collision()
+            _spawn_collision_enabled = true
+    # ... existing code ...
+
+func _disable_collision() -> void:
+    var collision_shape := get_node_or_null("CollisionShape2D")
+    if collision_shape != null:
+        collision_shape.disabled = true
+
+func _enable_collision() -> void:
+    var collision_shape := get_node_or_null("CollisionShape2D")
+    if collision_shape != null:
+        collision_shape.disabled = false
+```
+
+**Rationale**:
+- Disables casing collision shape at spawn time
+- After 0.1 seconds, casing has moved away from spawn point
+- Enables collision only when casing is safely away from player
+- Prevents any spawn-time physics interaction with player
+
 ### Why This Solution Works
 
 1. **Complete Collision Separation**
@@ -168,8 +229,14 @@ mass = 0.01
    - Player can push casings by applying impulses
    - Casings respond naturally with existing `receive_kick()` method
 
-3. **Maintains Visual Fidelity**
-   - Casings still collide with obstacles (walls, floor)
+3. **Spawn Collision Delay Prevents Edge Cases**
+   - Disabling collision at spawn prevents any physics interaction during spawn
+   - 0.1s delay allows casing to move ~30-45 pixels away at ejection speed
+   - Collision is re-enabled when casing is safely away from player
+   - No spawn-time "bump" or "stuck" issues
+
+4. **Maintains Visual Fidelity**
+   - Casings still collide with obstacles (walls, floor) after delay
    - Casings eject at realistic distance (no mass reduction)
    - Player pushing casings looks natural
 
@@ -202,7 +269,13 @@ mass = 0.01
 - Similar issues observed
 - 256 lines of gameplay data
 
-Both logs saved to `docs/case-studies/issue-392/` for reference.
+### game_log_20260203_103825.txt
+- Third testing session after Area2D fix
+- Player pushing improved but still getting stuck at spawn
+- Led to discovery of spawn-time collision issue
+- 1001 lines of gameplay data
+
+All logs saved to `docs/case-studies/issue-392/logs/` for reference.
 
 ## Alternative Solutions Considered
 
@@ -246,9 +319,15 @@ Both logs saved to `docs/case-studies/issue-392/` for reference.
    - Reducing mass also affects how far objects travel
    - Consider all physics effects when adjusting mass
 
-4. **User Feedback is Critical**
+4. **Spawn-Time Physics Edge Cases**
+   - Godot physics can interact with overlapping objects even when collision layers don't match
+   - Objects spawning inside other objects can cause unexpected physics behavior
+   - Disabling collision at spawn and enabling after a delay is a robust workaround
+
+5. **User Feedback is Critical**
    - First fix seemed reasonable but didn't meet actual requirements
-   - Clarifying exact behavior expectations saves time
+   - Second fix improved behavior but revealed spawn-time edge case
+   - Clarifying exact behavior expectations and iterating on feedback saves time
 
 ## References
 
@@ -267,10 +346,12 @@ The shell casing physics issue was resolved by:
 1. Removing layer 7 from player's collision mask (player no longer blocked)
 2. Adding Area2D to detect and push casings (player can still interact)
 3. Removing mass reduction (casings eject at normal distance)
+4. **Disabling casing collision at spawn, enabling after 0.1s delay** (prevents spawn-time physics interaction)
 
 This solution achieves the exact behavior requested:
-- Casings NEVER affect player movement
+- Casings NEVER affect player movement (including at spawn time)
 - Player CAN push casings when walking over them
 - Casings behave realistically during ejection and landing
+- No spawn-time "bump" or "stuck" issues
 
-The fix is minimal, targeted, and follows Godot best practices for one-way physics interactions.
+The fix is minimal, targeted, and follows Godot best practices for one-way physics interactions. The spawn collision delay pattern is a useful technique for any scenario where objects spawn close to the player.
