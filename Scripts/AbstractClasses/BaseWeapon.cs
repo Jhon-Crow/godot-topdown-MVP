@@ -423,7 +423,7 @@ public abstract partial class BaseWeapon : Node2D
         ejectionDirection = ejectionDirection.Rotated((float)GD.RandRange(-0.1f, 0.1f));
 
         // Set initial velocity for the casing (increased for faster ejection animation)
-        float ejectionSpeed = (float)GD.RandRange(300.0f, 450.0f); // Random speed between 300-450 pixels/sec (2x faster)
+        float ejectionSpeed = (float)GD.RandRange(120.0f, 180.0f); // Random speed between 120-180 pixels/sec (reduced 2.5x for Issue #424)
         casing.LinearVelocity = ejectionDirection * ejectionSpeed;
 
         // Add some initial spin for realism

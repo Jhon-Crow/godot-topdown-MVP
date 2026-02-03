@@ -3943,7 +3943,7 @@ func _spawn_casing(shoot_direction: Vector2, weapon_forward: Vector2) -> void:
 	ejection_direction = ejection_direction.rotated(randf_range(-0.1, 0.1))
 
 	# Set initial velocity for the casing (increased for faster ejection animation)
-	var ejection_speed: float = randf_range(300.0, 450.0)  # Random speed between 300-450 pixels/sec
+	var ejection_speed: float = randf_range(120.0, 180.0)  # Random speed between 120-180 pixels/sec (reduced 2.5x for Issue #424)
 	casing.linear_velocity = ejection_direction * ejection_speed
 
 	# Add some initial spin for realism
