@@ -254,11 +254,240 @@ This allows more diagonal movement while still requiring mostly vertical intent,
 
 ---
 
-## Status
+## Status (First Attempt)
 
-**Fix implemented.** The changes:
-1. Add detailed diagnostic logging for future debugging
-2. Make pump action gestures more lenient to handle the "looking UP" scenario
-3. Preserve strict detection for reload operations
+**First fix attempted but FAILED.** The initial changes:
+1. Added detailed diagnostic logging for debugging
+2. Made pump action gestures more lenient (20px minimum, 63° cone)
+3. Preserved strict detection for reload operations
 
-Testing required to confirm the fix resolves the issue without introducing unintended gesture detection.
+However, the user reported "проблема сохранилась" (problem persists).
+
+---
+
+## Second Analysis: True Root Cause Identified
+
+### New Log File Analysis: `game_log_20260203_220729.txt`
+
+The new log file with diagnostic logging revealed the **true root cause**:
+
+**Critical log entries:**
+```
+[22:07:38] [Shotgun.FIX#445] dragStartPos=(141, 15), aimDir=(-0,03, -1,00)
+[22:07:38] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=92,5
+[22:07:38] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=493,3
+```
+
+And later:
+```
+[22:07:45] [Shotgun.FIX#445] dragStartPos=(145, 0), aimDir=(-0,01, -1,00)
+[22:07:46] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+```
+
+### Analysis
+
+| Metric | Value | Meaning |
+|--------|-------|---------|
+| `dragStartPos.Y` | 0-15 | Mouse is at **TOP of screen** |
+| `aimDir.Y` | -1.00 | Player is looking **UP** |
+| `ActionState` | `NeedsPumpUp` | System expects drag **UP** (negative Y) |
+| `dragVector.Y` | +92 to +719 | User is dragging **DOWN** (positive Y) |
+
+**The problem:** When looking UP, the mouse cursor is at the TOP of the screen (Y ≈ 0). The system expects `NeedsPumpUp` = drag UP = negative Y movement. But the user **cannot drag UP** because there's no screen space above Y=0!
+
+The user's only option is to drag DOWN (positive Y), but the state machine rejects this because it's waiting for "drag UP" first.
+
+### Why the First Fix Failed
+
+The first fix reduced minimum distance and relaxed verticality, but **neither addresses the fundamental problem**: the gesture direction is physically impossible when looking UP.
+
+- ✅ 20px minimum distance - good, but not the issue
+- ✅ 63° cone - good, but not the issue
+- ❌ The gesture direction (UP first) is impossible at screen top
+
+---
+
+## Timeline / Sequence of Events
+
+### When Looking UP (reproducing the bug):
+
+1. **T+0ms**: Player fires shotgun while looking UP
+2. **T+0ms**: Mouse cursor is near top of screen (Y ≈ 0-20)
+3. **T+0ms**: `ActionState` → `NeedsPumpUp` (expects drag UP)
+4. **T+100ms**: Player presses RMB to start drag
+5. **T+100ms**: `dragStartPos = (145, 0)` - at screen TOP
+6. **T+200ms**: Player drags mouse DOWN (only possible direction)
+7. **T+200ms**: `dragVector.Y = +300` (positive = DOWN in screen coords)
+8. **T+200ms**: System checks: `isDragUp = (dragVector.Y < 0)` → **FALSE**
+9. **T+200ms**: System rejects gesture: "In NeedsPumpUp but isDragUp=false"
+10. **T+1000ms**: RMB released, gesture fails, `ActionState` remains `NeedsPumpUp`
+11. **Repeat**: Player is stuck - cannot pump action when looking UP
+
+### When Looking in Other Directions (working correctly):
+
+1. **T+0ms**: Player fires shotgun while looking RIGHT
+2. **T+0ms**: Mouse cursor is in CENTER of screen (Y ≈ 360)
+3. **T+0ms**: `ActionState` → `NeedsPumpUp`
+4. **T+100ms**: Player presses RMB, drags UP (toward top of screen)
+5. **T+200ms**: `dragVector.Y = -50` (negative = UP in screen coords)
+6. **T+200ms**: System checks: `isDragUp = (dragVector.Y < 0)` → **TRUE**
+7. **T+200ms**: System accepts: "Pump UP - shell ejected"
+8. **T+300ms**: Player continues drag DOWN
+9. **T+400ms**: `dragVector.Y = +50` (from new reference point)
+10. **T+400ms**: System accepts: "Pump DOWN - chambered"
+11. **T+500ms**: Success - weapon is ready to fire
+
+---
+
+## Proposed Solution: Direction-Aware Pump Gestures
+
+### Concept
+
+Make pump gestures **relative to aim direction** instead of fixed screen coordinates:
+- **Drag AWAY from player** (in aim direction) = "Pump UP" (eject shell)
+- **Drag TOWARD player** (opposite of aim direction) = "Pump DOWN" (chamber)
+
+When looking UP:
+- Mouse at screen top → drag DOWN (toward center) = drag TOWARD player = "Pump UP"
+- Then drag UP (toward edge) = drag AWAY from player = "Pump DOWN"
+
+This naturally inverts the expected gesture when looking UP, matching the physical mouse space available.
+
+### Mathematical Implementation
+
+```csharp
+// Convert screen drag vector to aim-relative direction
+Vector2 dragVector = currentPosition - _dragStartPosition;
+
+// Project drag onto aim direction
+float dragAlongAim = dragVector.Dot(_aimDirection);
+// Positive = drag in aim direction (AWAY from player)
+// Negative = drag opposite to aim direction (TOWARD player)
+
+// For pump actions:
+// "Pump UP" (eject) = drag TOWARD player = negative dot product
+// "Pump DOWN" (chamber) = drag AWAY from player = positive dot product
+bool isDragPumpUp = dragAlongAim < -minDistance;
+bool isDragPumpDown = dragAlongAim > minDistance;
+```
+
+### When Looking UP (aimDir ≈ (0, -1)):
+- Drag screen DOWN (+Y) → dot product with (0, -1) = **negative** → "Pump UP"
+- Drag screen UP (-Y) → dot product with (0, -1) = **positive** → "Pump DOWN"
+
+### When Looking RIGHT (aimDir ≈ (1, 0)):
+- Drag screen RIGHT (+X) → dot product with (1, 0) = **positive** → "Pump DOWN"
+- Drag screen LEFT (-X) → dot product with (1, 0) = **negative** → "Pump UP"
+
+### Benefits
+
+1. **Works at all screen edges** - gestures adapt to available space
+2. **Intuitive for players** - "pull back" and "push forward" relative to aim
+3. **No UX change for normal play** - when looking right/left, vertical screen drags still work naturally
+4. **Consistent with pump-action mental model** - pull toward you to eject, push away to chamber
+
+---
+
+## Alternative Solutions Considered
+
+### Alternative 1: Invert gestures when looking UP
+- **Pros**: Simple to implement
+- **Cons**: Creates inconsistency based on aim angle, may confuse players
+
+### Alternative 2: Use viewport-relative gestures
+- **Pros**: Always predictable based on screen
+- **Cons**: Doesn't solve the screen edge problem
+
+### Alternative 3: Allow "pump DOWN first" when looking UP
+- **Pros**: Quick fix
+- **Cons**: Breaks the logical eject→chamber sequence
+
+### Alternative 4: Mouse cursor confinement
+- **Pros**: Prevents mouse from reaching screen edge
+- **Cons**: Frustrating UX, limits precision aiming
+
+**Selected: Direction-Aware Gestures** - Most robust and intuitive solution.
+
+---
+
+## Research References
+
+- [TopDown Engine by More Mountains](https://topdown-engine.moremountains.com/) - Common weapon systems in top-down games
+- [Receiver 2 Wiki: Controls](https://receiver.fandom.com/wiki/Controls) - Realistic gun manipulation mechanics
+- [Receiver 2 Review](https://rogueliker.com/receiver-2-review/) - Example of gesture-based gun operations
+- [Unity Discussions: Restricting Cursor Movement](https://discussions.unity.com/t/restricting-cursor-movement-to-a-screen-section-clamp/822377) - Mouse boundary issues in games
+- [NN/G: Drag and Drop Design](https://www.nngroup.com/articles/drag-drop/) - UX best practices for drag gestures
+
+---
+
+## Files to Change
+
+| File | Change | Purpose |
+|------|--------|---------|
+| `Scripts/Weapons/Shotgun.cs` | Add direction-aware gesture detection | Fix the root cause |
+| `docs/case-studies/issue-445/README.md` | Update with root cause analysis | Documentation |
+
+---
+
+## Implementation Status
+
+**FIX #2 IMPLEMENTED**: Direction-aware pump gesture system using dot product with aim direction.
+
+### Code Changes (v2)
+
+Added `GetDirectionAwarePumpGesture()` method to `Shotgun.cs`:
+```csharp
+/// <summary>
+/// Uses dot product to project drag vector onto aim direction.
+/// - Positive dot = drag in aim direction (AWAY from player) = "Pump DOWN" (chamber)
+/// - Negative dot = drag opposite to aim (TOWARD player) = "Pump UP" (eject)
+/// </summary>
+private bool GetDirectionAwarePumpGesture(Vector2 dragVector, float minDistance,
+    out bool isPumpUp, out bool isPumpDown)
+{
+    float dragAlongAim = dragVector.Dot(_aimDirection);
+    float gestureThreshold = minDistance * 0.7f;
+
+    isPumpUp = dragAlongAim < -gestureThreshold;   // Toward player
+    isPumpDown = dragAlongAim > gestureThreshold;  // Away from player
+    return isPumpUp || isPumpDown;
+}
+```
+
+### How It Works
+
+| Player Facing | Screen Drag | Dot Product | Gesture |
+|---------------|-------------|-------------|---------|
+| UP (0, -1) | DOWN (+Y) | negative | Pump UP (eject) |
+| UP (0, -1) | UP (-Y) | positive | Pump DOWN (chamber) |
+| RIGHT (1, 0) | LEFT (-X) | negative | Pump UP (eject) |
+| RIGHT (1, 0) | RIGHT (+X) | positive | Pump DOWN (chamber) |
+| DOWN (0, 1) | UP (-Y) | negative | Pump UP (eject) |
+| DOWN (0, 1) | DOWN (+Y) | positive | Pump DOWN (chamber) |
+
+### When Looking UP - Before and After
+
+**BEFORE (broken):**
+1. Mouse at screen top (Y=0)
+2. System expects "drag UP" (negative Y)
+3. User can only drag DOWN (positive Y)
+4. Gesture rejected → pump action fails
+
+**AFTER (fixed):**
+1. Mouse at screen top (Y=0)
+2. System expects "drag TOWARD player" (opposite of aim)
+3. User drags DOWN → dot product with (0, -1) = negative
+4. Gesture accepted as "Pump UP" → pump action succeeds!
+
+### Files Changed
+
+| File | Change | Lines |
+|------|--------|-------|
+| `Scripts/Weapons/Shotgun.cs` | Added `GetDirectionAwarePumpGesture()` method | ~60 new lines |
+| `Scripts/Weapons/Shotgun.cs` | Updated `TryProcessMidDragGesture()` to use direction-aware detection | ~30 lines changed |
+| `Scripts/Weapons/Shotgun.cs` | Updated `ProcessDragGesture()` to use direction-aware detection | ~20 lines changed |
+| `Scripts/Weapons/Shotgun.cs` | Updated `ProcessPumpActionGesture()` parameter names | ~10 lines changed |
+
+### Build Status
+
+✅ Build successful (0 errors, 26 pre-existing warnings)

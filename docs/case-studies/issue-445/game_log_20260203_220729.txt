@@ -1,0 +1,900 @@
+[22:07:29] [INFO] ============================================================
+[22:07:29] [INFO] GAME LOG STARTED
+[22:07:29] [INFO] ============================================================
+[22:07:29] [INFO] Timestamp: 2026-02-03T22:07:29
+[22:07:29] [INFO] Log file: I:/Загрузки/godot exe/взвод дроб вверх/game_log_20260203_220729.txt
+[22:07:29] [INFO] Executable: I:/Загрузки/godot exe/взвод дроб вверх/Godot-Top-Down-Template.exe
+[22:07:29] [INFO] OS: Windows
+[22:07:29] [INFO] Debug build: false
+[22:07:29] [INFO] Engine version: 4.3-stable (official)
+[22:07:29] [INFO] Project: Godot Top-Down Template
+[22:07:29] [INFO] ------------------------------------------------------------
+[22:07:29] [INFO] [GameManager] GameManager ready
+[22:07:29] [INFO] [ScoreManager] ScoreManager ready
+[22:07:29] [INFO] [SoundPropagation] SoundPropagation autoload initialized
+[22:07:29] [INFO] [ImpactEffects] Scenes loaded: DustEffect, BloodEffect, SparksEffect, BloodDecal
+[22:07:29] [INFO] [ImpactEffects] ImpactEffectsManager ready - FULL VERSION with blood effects enabled
+[22:07:29] [INFO] [ImpactEffects] Starting particle shader warmup (Issue #343 fix)...
+[22:07:29] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[22:07:29] [INFO] [PenultimateHit] Saturation shader loaded successfully
+[22:07:29] [INFO] [PenultimateHit] Starting shader warmup (Issue #343 fix)...
+[22:07:29] [INFO] [PenultimateHit] PenultimateHitEffectsManager ready - Configuration:
+[22:07:29] [INFO] [PenultimateHit]   Time scale: 0.10 (10x slowdown)
+[22:07:29] [INFO] [PenultimateHit]   Saturation boost: 2.0 (3.0x)
+[22:07:29] [INFO] [PenultimateHit]   Contrast boost: 1.0 (2.0x)
+[22:07:29] [INFO] [PenultimateHit]   Effect duration: 3.0 real seconds
+[22:07:29] [INFO] [LastChance] Resetting all effects (scene change detected)
+[22:07:29] [INFO] [LastChance] Last chance shader loaded successfully
+[22:07:29] [INFO] [LastChance] Starting shader warmup (Issue #343 fix)...
+[22:07:29] [INFO] [LastChance] LastChanceEffectsManager ready - Configuration:
+[22:07:29] [INFO] [LastChance]   Freeze duration: 6.0 real seconds
+[22:07:29] [INFO] [LastChance]   Sepia intensity: 0.70
+[22:07:29] [INFO] [LastChance]   Brightness: 0.60
+[22:07:29] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FlashbangGrenade.tscn
+[22:07:29] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FragGrenade.tscn
+[22:07:29] [INFO] [ExperimentalSettings] ExperimentalSettings initialized - FOV enabled: true, Complex grenade throwing: false
+[22:07:29] [INFO] [CinemaEffects] CinemaEffectsManager initializing (v5.2 - overlay approach with enhanced death effects)...
+[22:07:29] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+[22:07:29] [INFO] [CinemaEffects] Created effects layer at layer 99
+[22:07:29] [INFO] [CinemaEffects] Cinema shader loaded successfully (v5.0 - no screen_texture)
+[22:07:29] [INFO] [CinemaEffects] Starting cinema shader warmup (Issue #343 fix)...
+[22:07:29] [INFO] [CinemaEffects] Cinema film effect initialized (v5.2) - Configuration:
+[22:07:29] [INFO] [CinemaEffects]   Approach: Overlay-based (no screen_texture)
+[22:07:29] [INFO] [CinemaEffects]   Grain intensity: 0.15
+[22:07:29] [INFO] [CinemaEffects]   Warm tint: 0.12 intensity
+[22:07:29] [INFO] [CinemaEffects]   Sunny effect: 0.08 intensity
+[22:07:29] [INFO] [CinemaEffects]   Vignette: 0.25 intensity
+[22:07:29] [INFO] [CinemaEffects]   Film defects: 1.5% probability
+[22:07:29] [INFO] [CinemaEffects]   White specks: 0.70 intensity, 4.0% probability
+[22:07:29] [INFO] [CinemaEffects]   Death effects: cigarette burn + expanding spots + end of reel (top-right)
+[22:07:29] [INFO] [CinemaEffects] Enabling effect after 1 frame(s)...
+[22:07:29] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[22:07:29] [INFO] [BloodyFeet:Enemy1] Footprint scene loaded
+[22:07:29] [INFO] [BloodyFeet:Enemy1] Found EnemyModel for facing direction
+[22:07:29] [INFO] [BloodyFeet:Enemy1] BloodyFeetComponent ready on Enemy1
+[22:07:29] [INFO] [EnemyGrenade] Initialized: 1 grenades
+[22:07:29] [ENEMY] [Enemy1] Death animation component initialized
+[22:07:29] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[22:07:29] [INFO] [BloodyFeet:Enemy2] Footprint scene loaded
+[22:07:29] [INFO] [BloodyFeet:Enemy2] Found EnemyModel for facing direction
+[22:07:29] [INFO] [BloodyFeet:Enemy2] BloodyFeetComponent ready on Enemy2
+[22:07:29] [ENEMY] [Enemy2] Death animation component initialized
+[22:07:29] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[22:07:29] [INFO] [BloodyFeet:Enemy3] Footprint scene loaded
+[22:07:29] [INFO] [BloodyFeet:Enemy3] Found EnemyModel for facing direction
+[22:07:29] [INFO] [BloodyFeet:Enemy3] BloodyFeetComponent ready on Enemy3
+[22:07:29] [INFO] [EnemyGrenade] Initialized: 1 grenades
+[22:07:29] [ENEMY] [Enemy3] Death animation component initialized
+[22:07:29] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[22:07:29] [INFO] [BloodyFeet:Enemy4] Footprint scene loaded
+[22:07:29] [INFO] [BloodyFeet:Enemy4] Found EnemyModel for facing direction
+[22:07:29] [INFO] [BloodyFeet:Enemy4] BloodyFeetComponent ready on Enemy4
+[22:07:29] [ENEMY] [Enemy4] Death animation component initialized
+[22:07:29] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[22:07:29] [INFO] [BloodyFeet:Enemy5] Footprint scene loaded
+[22:07:29] [INFO] [BloodyFeet:Enemy5] Found EnemyModel for facing direction
+[22:07:29] [INFO] [BloodyFeet:Enemy5] BloodyFeetComponent ready on Enemy5
+[22:07:29] [INFO] [EnemyGrenade] Initialized: 1 grenades
+[22:07:29] [ENEMY] [Enemy5] Death animation component initialized
+[22:07:29] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[22:07:29] [INFO] [BloodyFeet:Enemy6] Footprint scene loaded
+[22:07:29] [INFO] [BloodyFeet:Enemy6] Found EnemyModel for facing direction
+[22:07:29] [INFO] [BloodyFeet:Enemy6] BloodyFeetComponent ready on Enemy6
+[22:07:29] [ENEMY] [Enemy6] Death animation component initialized
+[22:07:29] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[22:07:29] [INFO] [BloodyFeet:Enemy7] Footprint scene loaded
+[22:07:29] [INFO] [BloodyFeet:Enemy7] Found EnemyModel for facing direction
+[22:07:29] [INFO] [BloodyFeet:Enemy7] BloodyFeetComponent ready on Enemy7
+[22:07:29] [ENEMY] [Enemy7] Death animation component initialized
+[22:07:29] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[22:07:29] [INFO] [BloodyFeet:Enemy8] Footprint scene loaded
+[22:07:29] [INFO] [BloodyFeet:Enemy8] Found EnemyModel for facing direction
+[22:07:29] [INFO] [BloodyFeet:Enemy8] BloodyFeetComponent ready on Enemy8
+[22:07:29] [INFO] [EnemyGrenade] Initialized: 1 grenades
+[22:07:29] [ENEMY] [Enemy8] Death animation component initialized
+[22:07:29] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[22:07:29] [INFO] [BloodyFeet:Enemy9] Footprint scene loaded
+[22:07:29] [INFO] [BloodyFeet:Enemy9] Found EnemyModel for facing direction
+[22:07:29] [INFO] [BloodyFeet:Enemy9] BloodyFeetComponent ready on Enemy9
+[22:07:29] [INFO] [EnemyGrenade] Initialized: 1 grenades
+[22:07:29] [ENEMY] [Enemy9] Death animation component initialized
+[22:07:29] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[22:07:29] [INFO] [BloodyFeet:Enemy10] Footprint scene loaded
+[22:07:29] [INFO] [BloodyFeet:Enemy10] Found EnemyModel for facing direction
+[22:07:29] [INFO] [BloodyFeet:Enemy10] BloodyFeetComponent ready on Enemy10
+[22:07:29] [ENEMY] [Enemy10] Death animation component initialized
+[22:07:29] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[22:07:29] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[22:07:29] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[22:07:29] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[22:07:29] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[22:07:29] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[22:07:29] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[22:07:29] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[22:07:29] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[22:07:29] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[22:07:29] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[22:07:29] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[22:07:29] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 2/4
+[22:07:29] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[22:07:29] [INFO] [BloodDecal] Blood puddle created at (640, 360) (added to group)
+[22:07:29] [INFO] [BuildingLevel] Found Environment/Enemies node with 10 children
+[22:07:29] [INFO] [BuildingLevel] Child 'Enemy1': script=true, has_died_signal=true
+[22:07:29] [INFO] [BuildingLevel] Child 'Enemy2': script=true, has_died_signal=true
+[22:07:29] [INFO] [BuildingLevel] Child 'Enemy3': script=true, has_died_signal=true
+[22:07:29] [INFO] [BuildingLevel] Child 'Enemy4': script=true, has_died_signal=true
+[22:07:29] [INFO] [BuildingLevel] Child 'Enemy5': script=true, has_died_signal=true
+[22:07:29] [INFO] [BuildingLevel] Child 'Enemy6': script=true, has_died_signal=true
+[22:07:29] [INFO] [BuildingLevel] Child 'Enemy7': script=true, has_died_signal=true
+[22:07:29] [INFO] [BuildingLevel] Child 'Enemy8': script=true, has_died_signal=true
+[22:07:29] [INFO] [BuildingLevel] Child 'Enemy9': script=true, has_died_signal=true
+[22:07:29] [INFO] [BuildingLevel] Child 'Enemy10': script=true, has_died_signal=true
+[22:07:29] [INFO] [BuildingLevel] Enemy tracking complete: 10 enemies registered
+[22:07:29] [INFO] [ScoreManager] Level started with 10 enemies
+[22:07:29] [INFO] [CinemaEffects] Found player node: Player
+[22:07:29] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[22:07:29] [INFO] [BloodyFeet:Enemy1] Blood detector created and attached to Enemy1
+[22:07:29] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 1)
+[22:07:29] [ENEMY] [Enemy1] Registered as sound listener
+[22:07:29] [ENEMY] [Enemy1] Spawned at (300, 350), hp: 4, behavior: GUARD
+[22:07:29] [INFO] [BloodyFeet:Enemy2] Blood detector created and attached to Enemy2
+[22:07:29] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 2)
+[22:07:29] [ENEMY] [Enemy2] Registered as sound listener
+[22:07:29] [ENEMY] [Enemy2] Spawned at (400, 550), hp: 4, behavior: GUARD
+[22:07:29] [INFO] [BloodyFeet:Enemy3] Blood detector created and attached to Enemy3
+[22:07:29] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 3)
+[22:07:29] [ENEMY] [Enemy3] Registered as sound listener
+[22:07:29] [ENEMY] [Enemy3] Spawned at (700, 750), hp: 2, behavior: GUARD
+[22:07:29] [INFO] [BloodyFeet:Enemy4] Blood detector created and attached to Enemy4
+[22:07:29] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 4)
+[22:07:29] [ENEMY] [Enemy4] Registered as sound listener
+[22:07:29] [ENEMY] [Enemy4] Spawned at (800, 900), hp: 2, behavior: GUARD
+[22:07:29] [INFO] [BloodyFeet:Enemy5] Blood detector created and attached to Enemy5
+[22:07:29] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 5)
+[22:07:29] [ENEMY] [Enemy5] Registered as sound listener
+[22:07:29] [ENEMY] [Enemy5] Spawned at (1700, 350), hp: 3, behavior: GUARD
+[22:07:29] [INFO] [BloodyFeet:Enemy6] Blood detector created and attached to Enemy6
+[22:07:29] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 6)
+[22:07:29] [ENEMY] [Enemy6] Registered as sound listener
+[22:07:29] [ENEMY] [Enemy6] Spawned at (1950, 450), hp: 3, behavior: GUARD
+[22:07:29] [INFO] [BloodyFeet:Enemy7] Blood detector created and attached to Enemy7
+[22:07:29] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 7)
+[22:07:29] [ENEMY] [Enemy7] Registered as sound listener
+[22:07:29] [ENEMY] [Enemy7] Spawned at (1606.114, 893.8859), hp: 4, behavior: PATROL
+[22:07:29] [INFO] [BloodyFeet:Enemy8] Blood detector created and attached to Enemy8
+[22:07:29] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 8)
+[22:07:29] [ENEMY] [Enemy8] Registered as sound listener
+[22:07:29] [ENEMY] [Enemy8] Spawned at (1900, 1450), hp: 2, behavior: GUARD
+[22:07:29] [INFO] [BloodyFeet:Enemy9] Blood detector created and attached to Enemy9
+[22:07:29] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 9)
+[22:07:29] [ENEMY] [Enemy9] Registered as sound listener
+[22:07:29] [ENEMY] [Enemy9] Spawned at (2100, 1550), hp: 3, behavior: GUARD
+[22:07:29] [INFO] [BloodyFeet:Enemy10] Blood detector created and attached to Enemy10
+[22:07:29] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 10)
+[22:07:29] [ENEMY] [Enemy10] Registered as sound listener
+[22:07:29] [ENEMY] [Enemy10] Spawned at (1200, 1550), hp: 4, behavior: PATROL
+[22:07:29] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[22:07:29] [ENEMY] [Enemy1] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=33.8°, current=0.0°, player=(450,1250), corner_timer=0.00
+[22:07:29] [ENEMY] [Enemy2] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=258.8°, current=0.0°, player=(450,1250), corner_timer=0.00
+[22:07:29] [ENEMY] [Enemy3] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=123.7°, current=0.0°, player=(450,1250), corner_timer=0.00
+[22:07:29] [ENEMY] [Enemy4] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=258.8°, current=0.0°, player=(450,1250), corner_timer=0.00
+[22:07:29] [ENEMY] [Enemy5] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=180.0°, current=0.0°, player=(450,1250), corner_timer=0.00
+[22:07:29] [ENEMY] [Enemy6] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=337.5°, current=0.0°, player=(450,1250), corner_timer=0.00
+[22:07:29] [ENEMY] [Enemy8] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=168.8°, current=0.0°, player=(450,1250), corner_timer=0.00
+[22:07:29] [ENEMY] [Enemy9] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=11.3°, current=0.0°, player=(450,1250), corner_timer=0.00
+[22:07:29] [INFO] [Player] Detecting weapon pose (frame 3)...
+[22:07:29] [INFO] [Player] Detected weapon: Rifle (default pose)
+[22:07:29] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[22:07:29] [INFO] [PenultimateHit] Shader warmup complete in 186 ms
+[22:07:29] [INFO] [LastChance] Shader warmup complete in 184 ms
+[22:07:29] [INFO] [CinemaEffects] Cinema shader warmup complete in 158 ms
+[22:07:29] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[22:07:29] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[22:07:29] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[22:07:29] [INFO] [LastChance] Found player: Player
+[22:07:29] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[22:07:29] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[22:07:29] [INFO] [LastChance] Connected to player Died signal (C#)
+[22:07:29] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[22:07:29] [INFO] [ImpactEffects] Particle shader warmup complete: 5 effects warmed up in 444 ms
+[22:07:31] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[22:07:31] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[22:07:31] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[22:07:31] [INFO] [LastChance] Resetting all effects (scene change detected)
+[22:07:31] [INFO] [CinemaEffects] Scene changed to: TestTier
+[22:07:31] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[22:07:31] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[22:07:31] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[22:07:31] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[22:07:31] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[22:07:31] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+[22:07:31] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[22:07:31] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[22:07:31] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[22:07:31] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[22:07:31] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[22:07:31] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[22:07:31] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 3/3, Health: 3/4
+[22:07:31] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[22:07:32] [INFO] [CinemaEffects] Found player node: Player
+[22:07:32] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[22:07:32] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[22:07:32] [INFO] [Player] Detecting weapon pose (frame 3)...
+[22:07:32] [INFO] [Player] Detected weapon: Rifle (default pose)
+[22:07:32] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[22:07:32] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[22:07:32] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[22:07:32] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[22:07:32] [INFO] [LastChance] Found player: Player
+[22:07:32] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[22:07:32] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[22:07:32] [INFO] [LastChance] Connected to player Died signal (C#)
+[22:07:32] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[22:07:36] [INFO] [PauseMenu] Armory button pressed
+[22:07:36] [INFO] [PauseMenu] Creating new armory menu instance
+[22:07:36] [INFO] [PauseMenu] armory_menu_scene resource path: res://scenes/ui/ArmoryMenu.tscn
+[22:07:36] [INFO] [PauseMenu] Instance created, class: CanvasLayer, name: ArmoryMenu
+[22:07:36] [INFO] [PauseMenu] Script attached: res://scripts/ui/armory_menu.gd
+[22:07:36] [INFO] [PauseMenu] back_pressed signal exists on instance
+[22:07:36] [INFO] [PauseMenu] back_pressed signal connected
+[22:07:36] [INFO] [PauseMenu] Armory menu instance added as child, is_inside_tree: true
+[22:07:36] [INFO] [PauseMenu] _populate_weapon_grid method exists
+[22:07:36] [INFO] [GameManager] Weapon selected: shotgun
+[22:07:36] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[22:07:36] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[22:07:36] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[22:07:36] [INFO] [LastChance] Resetting all effects (scene change detected)
+[22:07:36] [INFO] [CinemaEffects] Scene changed to: TestTier
+[22:07:36] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[22:07:36] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[22:07:36] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[22:07:36] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[22:07:36] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[22:07:36] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+[22:07:36] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[22:07:36] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[22:07:36] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[22:07:36] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[22:07:36] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[22:07:36] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[22:07:36] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 3/3, Health: 4/4
+[22:07:36] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[22:07:36] [INFO] [CinemaEffects] Found player node: Player
+[22:07:36] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[22:07:36] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[22:07:36] [INFO] [Player] Detecting weapon pose (frame 3)...
+[22:07:36] [INFO] [Player] Detected weapon: Shotgun (Shotgun pose)
+[22:07:36] [INFO] [Player] Applied Shotgun arm pose: Left=(21, 6), Right=(-1, 6)
+[22:07:36] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[22:07:36] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[22:07:36] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[22:07:36] [INFO] [LastChance] Found player: Player
+[22:07:36] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[22:07:36] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[22:07:36] [INFO] [LastChance] Connected to player Died signal (C#)
+[22:07:36] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[22:07:38] [INFO] [Shotgun.FIX#212] Firing 6 pellets with 15° spread at pos=(150, 360)
+[22:07:38] [INFO] [Shotgun.FIX#212] Normal pellet 1/6: extraOffset=9,1, distance=34,1px, pos=(144.70776, 326.2869)
+[22:07:38] [INFO] [Shotgun.FIX#212] Normal pellet 2/6: extraOffset=-9,4, distance=15,6px, pos=(148.48755, 344.4792)
+[22:07:38] [INFO] [Shotgun.FIX#212] Normal pellet 3/6: extraOffset=8,0, distance=33,0px, pos=(148.67366, 326.9912)
+[22:07:38] [INFO] [Shotgun.FIX#212] Normal pellet 4/6: extraOffset=-10,2, distance=14,8px, pos=(150.01445, 345.19293)
+[22:07:38] [INFO] [Shotgun.FIX#212] Normal pellet 5/6: extraOffset=10,0, distance=35,0px, pos=(151.23712, 324.9977)
+[22:07:38] [INFO] [Shotgun.FIX#212] Normal pellet 6/6: extraOffset=-4,3, distance=20,7px, pos=(151.93849, 339.43854)
+[22:07:38] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(150, 360), source=PLAYER (Shotgun), range=1469, listeners=10
+[22:07:38] [INFO] [SoundPropagation] Cleaned up 10 invalid listeners
+[22:07:38] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[22:07:38] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[22:07:38] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+[22:07:38] [INFO] [Shotgun.FIX#445] dragStartPos=(141, 15), aimDir=(-0,03, -1,00)
+[22:07:38] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:07:38] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:07:38] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:07:38] [INFO] [Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=(49,8, -11,1), length=51,1, minDist=20, isPump=True
+[22:07:38] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=92,5
+[22:07:38] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=257,5
+[22:07:38] [INFO] [Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=(59,8, 360,4), length=365,3, minDist=20, isPump=True
+[22:07:38] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=360,4
+[22:07:38] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=447,9
+[22:07:38] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=485,9
+[22:07:38] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=493,3
+[22:07:38] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=493,3
+[22:07:38] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=493,3
+[22:07:38] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=493,3
+[22:07:38] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=493,3
+[22:07:38] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=493,3
+[22:07:38] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=493,3
+[22:07:38] [INFO] [Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=(54,4, 493,3), length=496,3, minDist=20, isPump=True
+[22:07:38] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=493,3
+[22:07:38] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=493,3
+[22:07:38] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=493,3
+[22:07:38] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=493,3
+[22:07:38] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=493,3
+[22:07:38] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=493,3
+[22:07:38] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=488,6
+[22:07:38] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=471,9
+[22:07:38] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=431,2
+[22:07:39] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=361,0
+[22:07:39] [INFO] [Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=(77,1, 277,5), length=288,1, minDist=20, isPump=True
+[22:07:39] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=277,5
+[22:07:39] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=185,4
+[22:07:39] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=107,9
+[22:07:39] [INFO] [Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=(278,9, -15,0), length=279,3, minDist=20, isPump=True
+[22:07:39] [INFO] [Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=(351,7, -15,0), length=352,0, minDist=20, isPump=True
+[22:07:39] [INFO] [Shotgun.FIX#445] Drag rejected - not vertical: absY=15,0 <= absX=351,7 * 0,5
+[22:07:39] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=367,0
+[22:07:39] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=593,5
+[22:07:39] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=704,3
+[22:07:39] [INFO] [Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=(358,4, 704,3), length=790,3, minDist=20, isPump=True
+[22:07:39] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=704,3
+[22:07:39] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=704,3
+[22:07:39] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=704,3
+[22:07:39] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=704,3
+[22:07:39] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=704,3
+[22:07:39] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=704,3
+[22:07:39] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=704,3
+[22:07:39] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=704,3
+[22:07:39] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=704,3
+[22:07:39] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=704,3
+[22:07:39] [INFO] [Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=(357,7, 694,3), length=781,0, minDist=20, isPump=True
+[22:07:39] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=694,3
+[22:07:39] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=687,6
+[22:07:39] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=684,3
+[22:07:39] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=684,3
+[22:07:39] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=684,3
+[22:07:39] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=684,3
+[22:07:39] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=684,3
+[22:07:39] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=684,3
+[22:07:39] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=684,3
+[22:07:39] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=683,6
+[22:07:39] [INFO] [Shotgun.FIX#243] RMB released after 89 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[22:07:39] [INFO] [Shotgun.FIX#445] ProcessDragGesture - dragVector=(355,7, 681,6), length=768,9, ActionState=NeedsPumpUp, minDist=20
+[22:07:39] [INFO] [Shotgun.FIX#445] Valid vertical drag detected: isDragUp=False, isDragDown=True
+[22:07:41] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[22:07:41] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+[22:07:41] [INFO] [Shotgun.FIX#445] dragStartPos=(170, 0), aimDir=(0,05, -1,00)
+[22:07:41] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:07:41] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:07:41] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:07:41] [INFO] [Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=(37,4, 0,0), length=37,4, minDist=20, isPump=True
+[22:07:41] [INFO] [Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=(94,9, 0,0), length=94,9, minDist=20, isPump=True
+[22:07:41] [INFO] [Shotgun.FIX#445] Drag rejected - not vertical: absY=0,0 <= absX=94,9 * 0,5
+[22:07:41] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=132,2
+[22:07:41] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=324,6
+[22:07:41] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=581,7
+[22:07:41] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:41] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:41] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:41] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:41] [INFO] [Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=(94,9, 719,3), length=725,6, minDist=20, isPump=True
+[22:07:41] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:41] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:41] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:41] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:41] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=669,2
+[22:07:41] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=619,8
+[22:07:41] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=572,4
+[22:07:41] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=542,3
+[22:07:41] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=527,6
+[22:07:41] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=520,3
+[22:07:41] [INFO] [Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=(90,2, 512,9), length=520,8, minDist=20, isPump=True
+[22:07:41] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=512,9
+[22:07:41] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=507,6
+[22:07:42] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=501,6
+[22:07:42] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=497,6
+[22:07:42] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=493,6
+[22:07:42] [INFO] [Shotgun.FIX#243] RMB released after 44 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[22:07:42] [INFO] [Shotgun.FIX#445] ProcessDragGesture - dragVector=(87,5, 486,9), length=494,7, ActionState=NeedsPumpUp, minDist=20
+[22:07:42] [INFO] [Shotgun.FIX#445] Valid vertical drag detected: isDragUp=False, isDragDown=True
+[22:07:43] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[22:07:43] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+[22:07:43] [INFO] [Shotgun.FIX#445] dragStartPos=(445, 384), aimDir=(1,00, 0,08)
+[22:07:43] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:07:43] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:07:43] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:07:43] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:07:43] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:07:43] [INFO] [Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=(-34,1, -323,3), length=325,1, minDist=20, isPump=True
+[22:07:43] [INFO] [Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=(22,0, 56,1), length=60,3, minDist=20, isPump=True
+[22:07:43] [INFO] [Shotgun.FIX#243] Mid-drag pump DOWN - chambered, ready to fire (MMB not held)
+[22:07:43] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:07:43] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:07:43] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:07:44] [INFO] [Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=(78,8, 303,9), length=314,0, minDist=30, isPump=False
+[22:07:44] [INFO] [Shotgun.FIX#243] RMB released after 12 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[22:07:44] [INFO] [Shotgun.FIX#445] ProcessDragGesture - dragVector=(80,8, 293,2), length=304,1, ActionState=Ready, minDist=30
+[22:07:44] [INFO] [Shotgun.FIX#445] Valid vertical drag detected: isDragUp=False, isDragDown=True
+[22:07:45] [INFO] [Shotgun.FIX#212] Firing 6 pellets with 15° spread at pos=(150, 360)
+[22:07:45] [INFO] [Shotgun.FIX#212] Normal pellet 1/6: extraOffset=13,7, distance=38,7px, pos=(143.82468, 321.84262)
+[22:07:45] [INFO] [Shotgun.FIX#212] Normal pellet 2/6: extraOffset=10,7, distance=35,7px, pos=(146.87778, 324.42926)
+[22:07:45] [INFO] [Shotgun.FIX#212] Normal pellet 3/6: extraOffset=-9,7, distance=15,3px, pos=(149.4447, 344.68643)
+[22:07:45] [INFO] [Shotgun.FIX#212] Normal pellet 4/6: extraOffset=1,5, distance=26,5px, pos=(150.21808, 333.49094)
+[22:07:45] [INFO] [Shotgun.FIX#212] Normal pellet 5/6: extraOffset=-10,0, distance=15,0px, pos=(151.00095, 344.9848)
+[22:07:45] [INFO] [Shotgun.FIX#212] Normal pellet 6/6: extraOffset=12,6, distance=37,6px, pos=(154.4343, 322.62244)
+[22:07:45] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(150, 360), source=PLAYER (Shotgun), range=1469, listeners=0
+[22:07:45] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[22:07:45] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[22:07:45] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+[22:07:45] [INFO] [Shotgun.FIX#445] dragStartPos=(145, 0), aimDir=(-0,01, -1,00)
+[22:07:45] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:07:45] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:07:45] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:07:46] [INFO] [Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=(172,4, 0,0), length=172,4, minDist=20, isPump=True
+[22:07:46] [INFO] [Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=(521,1, 0,0), length=521,1, minDist=20, isPump=True
+[22:07:46] [INFO] [Shotgun.FIX#445] Drag rejected - not vertical: absY=0,0 <= absX=521,1 * 0,5
+[22:07:46] [INFO] [Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=(624,6, 0,0), length=624,6, minDist=20, isPump=True
+[22:07:46] [INFO] [Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=(588,6, 277,2), length=650,6, minDist=20, isPump=True
+[22:07:46] [INFO] [Shotgun.FIX#445] Drag rejected - not vertical: absY=277,2 <= absX=588,6 * 0,5
+[22:07:46] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=423,5
+[22:07:46] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=610,5
+[22:07:46] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:46] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:46] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:46] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:46] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:46] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:46] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:46] [INFO] [Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=(171,7, 719,3), length=739,5, minDist=20, isPump=True
+[22:07:46] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:46] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:46] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:46] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:46] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:46] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:46] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:46] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:46] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:46] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:46] [INFO] [Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=(106,2, 719,3), length=727,1, minDist=20, isPump=True
+[22:07:46] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:46] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:46] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:46] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:46] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:46] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:46] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:46] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:46] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:46] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:47] [INFO] [Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=(106,2, 719,3), length=727,1, minDist=20, isPump=True
+[22:07:47] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:47] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:47] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:47] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:47] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=712,7
+[22:07:47] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=702,6
+[22:07:47] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=685,9
+[22:07:47] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=677,3
+[22:07:47] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=677,3
+[22:07:47] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=677,3
+[22:07:47] [INFO] [Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=(871,8, 677,3), length=1104,0, minDist=20, isPump=True
+[22:07:47] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=677,3
+[22:07:47] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=677,3
+[22:07:47] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=677,3
+[22:07:47] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=675,3
+[22:07:47] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=675,3
+[22:07:47] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=674,6
+[22:07:47] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=674,6
+[22:07:47] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=674,6
+[22:07:47] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=674,6
+[22:07:47] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=674,6
+[22:07:47] [INFO] [Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=(426,2, 673,2), length=796,8, minDist=20, isPump=True
+[22:07:47] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=673,2
+[22:07:47] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=673,2
+[22:07:47] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=671,9
+[22:07:47] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=675,9
+[22:07:47] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=676,6
+[22:07:47] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=685,3
+[22:07:47] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=702,0
+[22:07:47] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=716,0
+[22:07:47] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:47] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:47] [INFO] [Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=(524,4, 719,3), length=890,2, minDist=20, isPump=True
+[22:07:47] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:47] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:47] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:47] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:47] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:47] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:47] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:47] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:47] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:47] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:47] [INFO] [Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=(369,4, 719,3), length=808,7, minDist=20, isPump=True
+[22:07:47] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:47] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:47] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:47] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:47] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:47] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=718,7
+[22:07:47] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=683,9
+[22:07:47] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=602,4
+[22:07:47] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=483,6
+[22:07:47] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=321,3
+[22:07:47] [INFO] [Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=(366,1, 98,8), length=379,2, minDist=20, isPump=True
+[22:07:47] [INFO] [Shotgun.FIX#445] Drag rejected - not vertical: absY=98,8 <= absX=366,1 * 0,5
+[22:07:48] [INFO] [Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=(819,0, 0,0), length=819,0, minDist=20, isPump=True
+[22:07:48] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=446,2
+[22:07:48] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:48] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:48] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:48] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:48] [INFO] [Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=(318,7, 719,3), length=786,8, minDist=20, isPump=True
+[22:07:48] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:48] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:48] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:48] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:48] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:48] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:48] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:48] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:48] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:48] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=718,7
+[22:07:48] [INFO] [Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=(165,0, 673,2), length=693,2, minDist=20, isPump=True
+[22:07:48] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=673,2
+[22:07:48] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=586,4
+[22:07:48] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=512,3
+[22:07:48] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=448,8
+[22:07:48] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=407,4
+[22:07:48] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=388,1
+[22:07:48] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=378,0
+[22:07:48] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=373,4
+[22:07:48] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=372,0
+[22:07:48] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=371,4
+[22:07:48] [INFO] [Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=(165,0, 371,4), length=406,4, minDist=20, isPump=True
+[22:07:48] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=371,4
+[22:07:48] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=370,0
+[22:07:48] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=365,3
+[22:07:48] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=356,7
+[22:07:48] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=340,0
+[22:07:48] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=316,6
+[22:07:48] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=291,9
+[22:07:48] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=271,2
+[22:07:48] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=239,1
+[22:07:48] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=209,7
+[22:07:48] [INFO] [Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=(155,7, 183,7), length=240,8, minDist=20, isPump=True
+[22:07:48] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=183,7
+[22:07:48] [INFO] [Shotgun.FIX#243] RMB released after 170 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[22:07:48] [INFO] [Shotgun.FIX#445] ProcessDragGesture - dragVector=(153,7, 165,6), length=225,9, ActionState=NeedsPumpUp, minDist=20
+[22:07:48] [INFO] [Shotgun.FIX#445] Valid vertical drag detected: isDragUp=False, isDragDown=True
+[22:07:49] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[22:07:49] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+[22:07:49] [INFO] [Shotgun.FIX#445] dragStartPos=(156, 8), aimDir=(0,02, -1,00)
+[22:07:49] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:07:49] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:07:49] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:07:50] [INFO] [Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=(149,0, -8,0), length=149,2, minDist=20, isPump=True
+[22:07:50] [INFO] [Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=(853,1, -8,0), length=853,1, minDist=20, isPump=True
+[22:07:50] [INFO] [Shotgun.FIX#445] Drag rejected - not vertical: absY=8,0 <= absX=853,1 * 0,5
+[22:07:50] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=479,6
+[22:07:50] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=711,3
+[22:07:50] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=711,3
+[22:07:50] [INFO] [Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=(614,6, 711,3), length=940,1, minDist=20, isPump=True
+[22:07:50] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=711,3
+[22:07:50] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=711,3
+[22:07:50] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=711,3
+[22:07:50] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=711,3
+[22:07:50] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=711,3
+[22:07:50] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=711,3
+[22:07:50] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=711,3
+[22:07:50] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=711,3
+[22:07:50] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=711,3
+[22:07:50] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=711,3
+[22:07:50] [INFO] [Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=(435,6, 711,3), length=834,1, minDist=20, isPump=True
+[22:07:50] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=711,3
+[22:07:50] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=711,3
+[22:07:50] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=711,3
+[22:07:50] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=689,3
+[22:07:50] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=649,2
+[22:07:50] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=619,8
+[22:07:50] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=605,8
+[22:07:50] [INFO] [Shotgun.FIX#243] RMB released after 46 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[22:07:50] [INFO] [Shotgun.FIX#445] ProcessDragGesture - dragVector=(435,6, 599,8), length=741,3, ActionState=NeedsPumpUp, minDist=20
+[22:07:50] [INFO] [Shotgun.FIX#445] Valid vertical drag detected: isDragUp=False, isDragDown=True
+[22:07:52] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[22:07:52] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+[22:07:52] [INFO] [Shotgun.FIX#445] dragStartPos=(132, 3), aimDir=(-0,05, -1,00)
+[22:07:52] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:07:52] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:07:52] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:07:52] [INFO] [Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=(70,1, -3,3), length=70,2, minDist=20, isPump=True
+[22:07:52] [INFO] [Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=(788,3, -3,3), length=788,3, minDist=20, isPump=True
+[22:07:52] [INFO] [Shotgun.FIX#445] Drag rejected - not vertical: absY=3,3 <= absX=788,3 * 0,5
+[22:07:53] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=374,7
+[22:07:53] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=582,4
+[22:07:53] [INFO] [Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=(642,0, 716,0), length=961,7, minDist=20, isPump=True
+[22:07:53] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=716,0
+[22:07:53] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=716,0
+[22:07:53] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=716,0
+[22:07:53] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=716,0
+[22:07:53] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=716,0
+[22:07:53] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=716,0
+[22:07:53] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=716,0
+[22:07:53] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=716,0
+[22:07:53] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=716,0
+[22:07:53] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=716,0
+[22:07:53] [INFO] [Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=(416,2, 716,0), length=828,2, minDist=20, isPump=True
+[22:07:53] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=716,0
+[22:07:53] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=716,0
+[22:07:53] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=716,0
+[22:07:53] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=716,0
+[22:07:53] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=716,0
+[22:07:53] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=715,3
+[22:07:53] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=707,3
+[22:07:53] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=701,3
+[22:07:53] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=698,6
+[22:07:53] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=698,6
+[22:07:53] [INFO] [Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=(416,2, 698,6), length=813,2, minDist=20, isPump=True
+[22:07:53] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=698,6
+[22:07:53] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=698,6
+[22:07:53] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=698,6
+[22:07:53] [INFO] [Shotgun.FIX#243] RMB released after 52 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[22:07:53] [INFO] [Shotgun.FIX#445] ProcessDragGesture - dragVector=(416,2, 698,6), length=813,2, ActionState=NeedsPumpUp, minDist=20
+[22:07:53] [INFO] [Shotgun.FIX#445] Valid vertical drag detected: isDragUp=False, isDragDown=True
+[22:07:55] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[22:07:55] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+[22:07:55] [INFO] [Shotgun.FIX#445] dragStartPos=(153, 0), aimDir=(0,01, -1,00)
+[22:07:55] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:07:55] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:07:55] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:07:55] [INFO] [Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=(104,2, 0,0), length=104,2, minDist=20, isPump=True
+[22:07:55] [INFO] [Shotgun.FIX#243] RMB released after 12 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[22:07:55] [INFO] [Shotgun.FIX#445] ProcessDragGesture - dragVector=(235,2, 0,0), length=235,2, ActionState=NeedsPumpUp, minDist=20
+[22:07:55] [INFO] [Shotgun.FIX#445] Drag not vertical: absY=0,0 <= absX=235,2 * 0,5
+[22:07:56] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[22:07:56] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+[22:07:56] [INFO] [Shotgun.FIX#445] dragStartPos=(138, 0), aimDir=(-0,03, -1,00)
+[22:07:56] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:07:56] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:07:56] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:07:56] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=28,7
+[22:07:56] [INFO] [Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=(0,0, 78,1), length=78,1, minDist=20, isPump=True
+[22:07:56] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=78,1
+[22:07:56] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=206,4
+[22:07:56] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=330,6
+[22:07:56] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=478,9
+[22:07:56] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=637,2
+[22:07:56] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:56] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:56] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:56] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:56] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:56] [INFO] [Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=(-138,3, 719,3), length=732,5, minDist=20, isPump=True
+[22:07:56] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:56] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:56] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:56] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:56] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:56] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:56] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:56] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:56] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:56] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:56] [INFO] [Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=(-133,6, 719,3), length=731,6, minDist=20, isPump=True
+[22:07:56] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:56] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:57] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:57] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:57] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:57] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:57] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:57] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:57] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:57] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:57] [INFO] [Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=(-138,3, 719,3), length=732,5, minDist=20, isPump=True
+[22:07:57] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:57] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:57] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:57] [INFO] [Shotgun.FIX#243] RMB released after 42 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[22:07:57] [INFO] [Shotgun.FIX#445] ProcessDragGesture - dragVector=(-138,3, 719,3), length=732,5, ActionState=NeedsPumpUp, minDist=20
+[22:07:57] [INFO] [Shotgun.FIX#445] Valid vertical drag detected: isDragUp=False, isDragDown=True
+[22:07:59] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[22:07:59] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+[22:07:59] [INFO] [Shotgun.FIX#445] dragStartPos=(355, 0), aimDir=(0,49, -0,87)
+[22:07:59] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:07:59] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:07:59] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=24,0
+[22:07:59] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:07:59] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=169,0
+[22:07:59] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=336,0
+[22:07:59] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=535,7
+[22:07:59] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:59] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:59] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:59] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:07:59] [INFO] [Shotgun.FIX#243] RMB released after 9 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[22:07:59] [INFO] [Shotgun.FIX#445] ProcessDragGesture - dragVector=(-9,4, 719,3), length=719,4, ActionState=NeedsPumpUp, minDist=20
+[22:07:59] [INFO] [Shotgun.FIX#445] Valid vertical drag detected: isDragUp=False, isDragDown=True
+[22:07:59] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[22:07:59] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+[22:07:59] [INFO] [Shotgun.FIX#445] dragStartPos=(379, 0), aimDir=(0,54, -0,84)
+[22:07:59] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:07:59] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=20,0
+[22:07:59] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:07:59] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=95,5
+[22:07:59] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:07:59] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=191,0
+[22:07:59] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=297,2
+[22:07:59] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=380,0
+[22:07:59] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=432,8
+[22:07:59] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=448,2
+[22:07:59] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=451,5
+[22:07:59] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=451,5
+[22:07:59] [INFO] [Shotgun.FIX#243] RMB released after 9 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[22:07:59] [INFO] [Shotgun.FIX#445] ProcessDragGesture - dragVector=(-44,8, 446,2), length=448,4, ActionState=NeedsPumpUp, minDist=20
+[22:07:59] [INFO] [Shotgun.FIX#445] Valid vertical drag detected: isDragUp=False, isDragDown=True
+[22:08:01] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[22:08:01] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+[22:08:01] [INFO] [Shotgun.FIX#445] dragStartPos=(171, 3), aimDir=(0,06, -1,00)
+[22:08:01] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:08:01] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:08:01] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:08:01] [INFO] [Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=(-10,0, -3,3), length=10,6, minDist=20, isPump=True
+[22:08:02] [INFO] [Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=(714,8, -3,3), length=714,8, minDist=20, isPump=True
+[22:08:02] [INFO] [Shotgun.FIX#445] Drag rejected - not vertical: absY=3,3 <= absX=714,8 * 0,5
+[22:08:02] [INFO] [Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=(726,2, -3,3), length=726,2, minDist=20, isPump=True
+[22:08:02] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=633,8
+[22:08:02] [INFO] [Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=(666,1, 716,0), length=977,9, minDist=20, isPump=True
+[22:08:02] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=716,0
+[22:08:02] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=716,0
+[22:08:02] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=716,0
+[22:08:02] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=716,0
+[22:08:02] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=716,0
+[22:08:02] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=716,0
+[22:08:02] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=716,0
+[22:08:02] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=716,0
+[22:08:02] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=716,0
+[22:08:02] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=716,0
+[22:08:02] [INFO] [Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=(372,1, 716,0), length=806,9, minDist=20, isPump=True
+[22:08:02] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=716,0
+[22:08:02] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=716,0
+[22:08:02] [INFO] [Shotgun.FIX#243] RMB released after 51 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[22:08:02] [INFO] [Shotgun.FIX#445] ProcessDragGesture - dragVector=(374,1, 715,3), length=807,2, ActionState=NeedsPumpUp, minDist=20
+[22:08:02] [INFO] [Shotgun.FIX#445] Valid vertical drag detected: isDragUp=False, isDragDown=True
+[22:08:05] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[22:08:05] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+[22:08:05] [INFO] [Shotgun.FIX#445] dragStartPos=(179, 0), aimDir=(0,08, -1,00)
+[22:08:05] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:08:05] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:08:05] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:08:05] [INFO] [Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=(-87,5, 0,0), length=87,5, minDist=20, isPump=True
+[22:08:05] [INFO] [Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=(295,9, 0,0), length=295,9, minDist=20, isPump=True
+[22:08:05] [INFO] [Shotgun.FIX#445] Drag rejected - not vertical: absY=0,0 <= absX=295,9 * 0,5
+[22:08:05] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=193,0
+[22:08:05] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=364,7
+[22:08:05] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=610,5
+[22:08:05] [INFO] [Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=(138,3, 719,3), length=732,5, minDist=20, isPump=True
+[22:08:05] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:08:05] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:08:05] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:08:05] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:08:05] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:08:05] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:08:05] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:08:05] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:08:05] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:08:05] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:08:05] [INFO] [Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=(-179,7, 719,3), length=741,4, minDist=20, isPump=True
+[22:08:05] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:08:05] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=719,3
+[22:08:05] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=718,7
+[22:08:05] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=668,6
+[22:08:05] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=577,7
+[22:08:05] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=466,2
+[22:08:05] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=361,3
+[22:08:06] [INFO] [Shotgun.FIX#243] RMB released after 46 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[22:08:06] [INFO] [Shotgun.FIX#445] ProcessDragGesture - dragVector=(-126,9, 272,5), length=300,6, ActionState=NeedsPumpUp, minDist=20
+[22:08:06] [INFO] [Shotgun.FIX#445] Valid vertical drag detected: isDragUp=False, isDragDown=True
+[22:08:07] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[22:08:07] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+[22:08:07] [INFO] [Shotgun.FIX#445] dragStartPos=(708, 336), aimDir=(1,00, -0,04)
+[22:08:07] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:08:07] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:08:07] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:08:07] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:08:07] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:08:07] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:08:07] [INFO] [Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=(142,3, -251,8), length=289,2, minDist=20, isPump=True
+[22:08:07] [INFO] [Shotgun.FIX#243] Mid-drag pump DOWN - chambered, ready to fire (MMB not held)
+[22:08:07] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:08:07] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:08:07] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:08:07] [INFO] [Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=(45,4, 307,9), length=311,2, minDist=30, isPump=False
+[22:08:07] [INFO] [Shotgun.FIX#243] RMB released after 15 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[22:08:07] [INFO] [Shotgun.FIX#445] ProcessDragGesture - dragVector=(47,4, 298,6), length=302,3, ActionState=Ready, minDist=30
+[22:08:07] [INFO] [Shotgun.FIX#445] Valid vertical drag detected: isDragUp=False, isDragDown=True
+[22:08:09] [INFO] [Shotgun.FIX#212] Firing 11 pellets with 15° spread at pos=(150, 360)
+[22:08:09] [INFO] [Shotgun.FIX#212] Normal pellet 1/11: extraOffset=9,7, distance=34,7px, pos=(146.68521, 325.4582)
+[22:08:09] [INFO] [Shotgun.FIX#212] Normal pellet 2/11: extraOffset=0,0, distance=25,0px, pos=(148.19624, 335.0603)
+[22:08:09] [INFO] [Shotgun.FIX#212] Normal pellet 3/11: extraOffset=14,9, distance=39,9px, pos=(148.23708, 320.1642)
+[22:08:09] [INFO] [Shotgun.FIX#212] Normal pellet 4/11: extraOffset=-9,5, distance=15,5px, pos=(149.55315, 344.4777)
+[22:08:09] [INFO] [Shotgun.FIX#212] Normal pellet 5/11: extraOffset=9,5, distance=34,5px, pos=(151.1026, 325.5443)
+[22:08:09] [INFO] [Shotgun.FIX#212] Normal pellet 6/11: extraOffset=-11,5, distance=13,5px, pos=(150.44823, 346.52344)
+[22:08:09] [INFO] [Shotgun.FIX#212] Normal pellet 7/11: extraOffset=-2,5, distance=22,5px, pos=(150.90334, 337.52542)
+[22:08:09] [INFO] [Shotgun.FIX#212] Normal pellet 8/11: extraOffset=4,5, distance=29,5px, pos=(153.10034, 330.64557)
+[22:08:09] [INFO] [Shotgun.FIX#212] Normal pellet 9/11: extraOffset=-7,8, distance=17,2px, pos=(151.63983, 342.92453)
+[22:08:09] [INFO] [Shotgun.FIX#212] Normal pellet 10/11: extraOffset=12,8, distance=37,8px, pos=(155.29434, 322.59927)
+[22:08:09] [INFO] [Shotgun.FIX#212] Normal pellet 11/11: extraOffset=-2,5, distance=22,5px, pos=(153.8064, 337.8037)
+[22:08:09] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(150, 360), source=PLAYER (Shotgun), range=1469, listeners=0
+[22:08:09] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[22:08:09] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[22:08:09] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+[22:08:09] [INFO] [Shotgun.FIX#445] dragStartPos=(156, 1), aimDir=(0,02, -1,00)
+[22:08:09] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:08:09] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:08:09] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:08:09] [INFO] [Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=(-96,2, -1,3), length=96,2, minDist=20, isPump=True
+[22:08:10] [INFO] [Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=(116,9, -1,3), length=116,9, minDist=20, isPump=True
+[22:08:10] [INFO] [Shotgun.FIX#445] Drag rejected - not vertical: absY=1,3 <= absX=116,9 * 0,5
+[22:08:10] [INFO] [Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=(132,9, 4,7), length=133,0, minDist=20, isPump=True
+[22:08:10] [INFO] [Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=(132,9, 4,7), length=133,0, minDist=20, isPump=True
+[22:08:10] [INFO] [Shotgun.FIX#445] Drag rejected - not vertical: absY=4,7 <= absX=132,9 * 0,5
+[22:08:10] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=114,2
+[22:08:10] [INFO] [Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=(88,2, 279,9), length=293,4, minDist=20, isPump=True
+[22:08:10] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=279,9
+[22:08:10] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=521,6
+[22:08:10] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=718,0
+[22:08:10] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=718,0
+[22:08:10] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=718,0
+[22:08:10] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=718,0
+[22:08:10] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=718,0
+[22:08:10] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=718,0
+[22:08:10] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=718,0
+[22:08:10] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=718,0
+[22:08:10] [INFO] [Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=(-156,3, 718,0), length=734,8, minDist=20, isPump=True
+[22:08:10] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=718,0
+[22:08:10] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=718,0
+[22:08:10] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=718,0
+[22:08:10] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=718,0
+[22:08:10] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=718,0
+[22:08:10] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=718,0
+[22:08:10] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=718,0
+[22:08:10] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=718,0
+[22:08:10] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=718,0
+[22:08:10] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=718,0
+[22:08:10] [INFO] [Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=(-156,3, 718,0), length=734,8, minDist=20, isPump=True
+[22:08:10] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=718,0
+[22:08:10] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=718,0
+[22:08:10] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=718,0
+[22:08:11] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=718,0
+[22:08:11] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=718,0
+[22:08:11] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=718,0
+[22:08:11] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=718,0
+[22:08:11] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=718,0
+[22:08:11] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=718,0
+[22:08:11] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=718,0
+[22:08:11] [INFO] [Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=(-156,3, 718,0), length=734,8, minDist=20, isPump=True
+[22:08:11] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=718,0
+[22:08:11] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=718,0
+[22:08:11] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=718,0
+[22:08:11] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=718,0
+[22:08:11] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=718,0
+[22:08:11] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=718,0
+[22:08:11] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=718,0
+[22:08:11] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=718,0
+[22:08:11] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=718,0
+[22:08:11] [INFO] [Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown=True), dragVector.Y=718,0
+[22:08:11] [INFO] [Shotgun.FIX#243] RMB released after 89 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[22:08:11] [INFO] [Shotgun.FIX#445] ProcessDragGesture - dragVector=(-156,3, 718,0), length=734,8, ActionState=NeedsPumpUp, minDist=20
+[22:08:11] [INFO] [Shotgun.FIX#445] Valid vertical drag detected: isDragUp=False, isDragDown=True
+[22:08:11] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[22:08:11] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+[22:08:11] [INFO] [Shotgun.FIX#445] dragStartPos=(408, 427), aimDir=(0,97, 0,25)
+[22:08:11] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:08:11] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:08:12] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:08:12] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:08:12] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:08:12] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:08:12] [INFO] [Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=(181,0, -400,7), length=439,7, minDist=20, isPump=True
+[22:08:12] [INFO] [Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=(209,1, -318,6), length=381,1, minDist=20, isPump=True
+[22:08:12] [INFO] [Shotgun.FIX#243] Mid-drag pump DOWN - chambered, ready to fire (MMB not held)
+[22:08:12] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:08:12] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:08:12] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:08:12] [INFO] [Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=(-166,3, 0,0), length=166,3, minDist=30, isPump=False
+[22:08:12] [INFO] [Shotgun.FIX#243] RMB released after 11 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[22:08:12] [INFO] [Shotgun.FIX#445] ProcessDragGesture - dragVector=(-166,3, -4,0), length=166,4, ActionState=Ready, minDist=30
+[22:08:12] [INFO] [Shotgun.FIX#445] Drag not vertical: absY=4,0 <= absX=166,3 * 1
+[22:08:14] [INFO] ------------------------------------------------------------
+[22:08:14] [INFO] GAME LOG ENDED: 2026-02-03T22:08:14
+[22:08:14] [INFO] ============================================================

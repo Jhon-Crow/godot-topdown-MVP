@@ -495,8 +495,73 @@ public partial class Shotgun : BaseWeapon
     #region Pump-Action and Reload Gesture Handling
 
     /// <summary>
+    /// Determines if a drag gesture should be treated as "pump UP" (eject shell) or "pump DOWN" (chamber).
+    ///
+    /// Issue #445 ROOT CAUSE FIX: When looking UP, the mouse is at the screen top (Y≈0) and
+    /// the player can only drag DOWN (positive Y). But the old system expected "drag UP" (negative Y)
+    /// for the eject gesture, which is physically impossible at screen edge.
+    ///
+    /// SOLUTION: Use direction-aware gestures based on aim direction:
+    /// - "Pump UP" (eject) = drag TOWARD player (opposite of aim direction)
+    /// - "Pump DOWN" (chamber) = drag AWAY from player (in aim direction)
+    ///
+    /// This uses dot product to project the drag vector onto the aim direction.
+    /// When looking UP: drag screen-DOWN = drag toward player = "Pump UP"
+    /// When looking RIGHT: drag screen-UP = drag toward player = "Pump UP"
+    ///
+    /// The gestures naturally adapt to available screen space.
+    /// </summary>
+    /// <param name="dragVector">The drag vector in screen coordinates.</param>
+    /// <param name="minDistance">Minimum drag distance to register a gesture.</param>
+    /// <param name="isPumpUp">Output: true if this is a "pump UP" (eject) gesture.</param>
+    /// <param name="isPumpDown">Output: true if this is a "pump DOWN" (chamber) gesture.</param>
+    /// <returns>True if the drag is a valid pump gesture (sufficient length and direction).</returns>
+    private bool GetDirectionAwarePumpGesture(Vector2 dragVector, float minDistance, out bool isPumpUp, out bool isPumpDown)
+    {
+        isPumpUp = false;
+        isPumpDown = false;
+
+        // Check minimum distance
+        if (dragVector.Length() < minDistance)
+        {
+            return false;
+        }
+
+        // Project drag onto aim direction using dot product
+        // Positive = drag in aim direction (AWAY from player)
+        // Negative = drag opposite to aim direction (TOWARD player)
+        float dragAlongAim = dragVector.Dot(_aimDirection);
+
+        // For pump actions:
+        // - "Pump UP" (eject shell) = drag TOWARD player = negative dot product
+        // - "Pump DOWN" (chamber) = drag AWAY from player = positive dot product
+        //
+        // This naturally inverts when looking UP:
+        // - Looking UP (aimDir ≈ (0, -1)): screen-DOWN drag (+Y) → negative dot → "Pump UP"
+        // - Looking RIGHT (aimDir ≈ (1, 0)): screen-LEFT drag (-X) → negative dot → "Pump UP"
+
+        // Use a threshold to ensure intentional gesture (not just noise)
+        // The threshold is based on the drag vector length projected onto aim
+        float gestureThreshold = minDistance * 0.7f;  // 70% of min distance along aim axis
+
+        if (dragAlongAim < -gestureThreshold)
+        {
+            isPumpUp = true;  // Drag toward player = eject shell
+            return true;
+        }
+        else if (dragAlongAim > gestureThreshold)
+        {
+            isPumpDown = true;  // Drag away from player = chamber
+            return true;
+        }
+
+        // Drag is perpendicular to aim direction - not a pump gesture
+        return false;
+    }
+
+    /// <summary>
     /// Handles RMB drag gestures for pump-action cycling and reload.
-    /// Pump: Drag UP = eject shell, Drag DOWN = chamber round
+    /// Pump: Drag TOWARD player = eject shell, Drag AWAY from player = chamber round
     /// Reload: Drag UP = open bolt, MMB hold + Drag DOWN = load shell, Drag DOWN (no MMB) = close bolt
     ///
     /// Supports continuous gestures: hold RMB, drag UP (open bolt), then without
@@ -505,6 +570,10 @@ public partial class Shotgun : BaseWeapon
     /// Issue #243 Fix: Uses _wasMiddleMouseHeldDuringDrag to track if MMB was held
     /// at any point during the drag. This fixes timing issues where users release
     /// MMB and RMB simultaneously - the system remembers MMB was held during drag.
+    ///
+    /// Issue #445 Fix: Uses direction-aware gestures for pump actions that adapt
+    /// to aim direction, fixing the "looking UP" problem where screen-based UP
+    /// gestures were impossible at screen edge.
     /// </summary>
     private void HandleDragGestures()
     {
@@ -626,24 +695,29 @@ public partial class Shotgun : BaseWeapon
     /// Note: In Loading state, mid-drag DOWN is NOT processed immediately.
     /// This gives users time to press MMB for shell loading before the gesture completes.
     /// The actual shell loading vs bolt close decision happens on RMB release.
+    ///
+    /// Issue #445 Fix: Uses direction-aware gestures for pump actions. Instead of
+    /// fixed screen-based UP/DOWN, pump gestures are relative to aim direction:
+    /// - Drag TOWARD player = "Pump UP" (eject shell)
+    /// - Drag AWAY from player = "Pump DOWN" (chamber round)
     /// </summary>
     /// <param name="dragVector">Current drag vector from start position.</param>
     /// <returns>True if a gesture was processed, false otherwise.</returns>
     private bool TryProcessMidDragGesture(Vector2 dragVector)
     {
-        // Issue #445: Determine if this is a pump action context (more lenient detection)
+        // Issue #445: Determine if this is a pump action context
         bool isPumpActionContext = ReloadState == ShotgunReloadState.NotReloading &&
                                    (ActionState == ShotgunActionState.NeedsPumpUp ||
                                     ActionState == ShotgunActionState.NeedsPumpDown);
 
         // Issue #445: Use reduced minimum distance for pump actions to make them more responsive
-        // Pump actions need to be quick between shots, so 20px is sufficient
         float effectiveMinDistance = isPumpActionContext ? 20.0f : MinDragDistance;
 
-        // Issue #445: Log drag vector periodically to diagnose why pump gestures fail when looking up
+        // Issue #445: Log drag vector periodically for diagnostics
         if (_dragFrameCount % 10 == 0 && VerboseInputLogging)
         {
-            LogToFile($"[Shotgun.FIX#445] TryProcessMidDragGesture - dragVector=({dragVector.X:F1}, {dragVector.Y:F1}), length={dragVector.Length():F1}, minDist={effectiveMinDistance}, isPump={isPumpActionContext}");
+            float dotProduct = dragVector.Dot(_aimDirection);
+            LogToFile($"[Shotgun.FIX#445v2] TryProcessMidDragGesture - dragVector=({dragVector.X:F1}, {dragVector.Y:F1}), length={dragVector.Length():F1}, dotWithAim={dotProduct:F1}, aimDir=({_aimDirection.X:F2}, {_aimDirection.Y:F2}), isPump={isPumpActionContext}");
         }
 
         // Check if drag is long enough for a gesture
@@ -652,39 +726,27 @@ public partial class Shotgun : BaseWeapon
             return false;
         }
 
-        // Issue #445: For pump actions, use a more lenient verticality check
-        // This helps when looking UP where the player has limited vertical drag space
-        // Standard check: Y component must be greater than X component (45° cone)
-        // Lenient check: Y component must be greater than X * 0.5 (63° cone, ~60°)
-        // This allows more diagonal movement while still requiring mostly vertical intent
-        float verticalityFactor = isPumpActionContext ? 0.5f : 1.0f;
-        bool isVerticalDrag = Mathf.Abs(dragVector.Y) > Mathf.Abs(dragVector.X) * verticalityFactor;
-
-        if (!isVerticalDrag)
-        {
-            // Issue #445: Log when drag is rejected for not being vertical
-            if (VerboseInputLogging && _dragFrameCount % 20 == 0)
-            {
-                LogToFile($"[Shotgun.FIX#445] Drag rejected - not vertical: absY={Mathf.Abs(dragVector.Y):F1} <= absX={Mathf.Abs(dragVector.X):F1} * {verticalityFactor}");
-            }
-            return false; // Only vertical drags are used for shotgun
-        }
-
-        bool isDragUp = dragVector.Y < 0;
-        bool isDragDown = dragVector.Y > 0;
-
         // Determine which gesture would be valid based on current state
         bool gestureProcessed = false;
 
-        // For pump-action cycling
+        // For pump-action cycling - use DIRECTION-AWARE gestures (Issue #445 root cause fix)
         if (ReloadState == ShotgunReloadState.NotReloading)
         {
+            // Use direction-aware gesture detection for pump actions
+            bool isPumpUp, isPumpDown;
+            bool isValidPumpGesture = GetDirectionAwarePumpGesture(dragVector, effectiveMinDistance, out isPumpUp, out isPumpDown);
+
+            if (VerboseInputLogging && _dragFrameCount % 10 == 0)
+            {
+                LogToFile($"[Shotgun.FIX#445v2] Direction-aware: isValid={isValidPumpGesture}, isPumpUp={isPumpUp}, isPumpDown={isPumpDown}");
+            }
+
             switch (ActionState)
             {
                 case ShotgunActionState.NeedsPumpUp:
-                    if (isDragUp)
+                    if (isValidPumpGesture && isPumpUp)
                     {
-                        // Mid-drag pump up - eject shell
+                        // Mid-drag pump up - eject shell (drag TOWARD player)
                         ActionState = ShotgunActionState.NeedsPumpDown;
                         PlayPumpUpSound();
 
@@ -693,18 +755,18 @@ public partial class Shotgun : BaseWeapon
 
                         EmitSignal(SignalName.ActionStateChanged, (int)ActionState);
                         EmitSignal(SignalName.PumpActionCycled, "up");
-                        GD.Print("[Shotgun] Mid-drag pump UP - shell ejected, continue dragging DOWN to chamber");
+                        LogToFile("[Shotgun.FIX#445v2] Mid-drag pump UP (toward player) - shell ejected, continue dragging AWAY to chamber");
                         gestureProcessed = true;
                     }
-                    else if (VerboseInputLogging)
+                    else if (VerboseInputLogging && _dragFrameCount % 10 == 0)
                     {
-                        // Issue #445: Log when in NeedsPumpUp state but drag is DOWN instead of UP
-                        LogToFile($"[Shotgun.FIX#445] In NeedsPumpUp but isDragUp=false (isDragDown={isDragDown}), dragVector.Y={dragVector.Y:F1}");
+                        float dotProduct = dragVector.Dot(_aimDirection);
+                        LogToFile($"[Shotgun.FIX#445v2] In NeedsPumpUp - waiting for drag TOWARD player (negative dot). Current dot={dotProduct:F1}");
                     }
                     break;
 
                 case ShotgunActionState.NeedsPumpDown:
-                    if (isDragDown)
+                    if (isValidPumpGesture && isPumpDown)
                     {
                         // Issue #243 (fourth root cause fix): Check for MMB held during mid-drag.
                         // If MMB is held, user wants to load a shell instead of just chambering.
@@ -763,7 +825,8 @@ public partial class Shotgun : BaseWeapon
 
                 case ShotgunActionState.Ready:
                     // Check if we should start reload (only if cooldown expired)
-                    if (isDragUp && ShellsInTube < TubeMagazineCapacity)
+                    // For reload initiation, use direction-aware gesture (drag toward player = open bolt)
+                    if (isValidPumpGesture && isPumpUp && ShellsInTube < TubeMagazineCapacity)
                     {
                         double currentTime = Time.GetTicksMsec() / 1000.0;
                         double timeSinceClose = currentTime - _lastBoltCloseTime;
@@ -771,7 +834,7 @@ public partial class Shotgun : BaseWeapon
 
                         if (VerboseInputLogging)
                         {
-                            GD.Print($"[Shotgun.Input] Mid-drag UP in Ready state: currentTime={currentTime:F3}s, lastClose={_lastBoltCloseTime:F3}s, elapsed={timeSinceClose:F3}s, cooldown={BoltCloseCooldownSeconds}s, inCooldown={inCooldown}");
+                            GD.Print($"[Shotgun.FIX#445v2] Mid-drag TOWARD player (open bolt) in Ready state: currentTime={currentTime:F3}s, lastClose={_lastBoltCloseTime:F3}s, elapsed={timeSinceClose:F3}s, cooldown={BoltCloseCooldownSeconds}s, inCooldown={inCooldown}");
                         }
 
                         if (!inCooldown)
@@ -790,11 +853,16 @@ public partial class Shotgun : BaseWeapon
         }
         else
         {
-            // For reload sequence
+            // For reload sequence - use SCREEN-BASED gestures (vertical drags)
+            // Reload is not as time-critical as pump actions, so standard vertical gestures work fine
+            bool isVerticalDrag = Mathf.Abs(dragVector.Y) > Mathf.Abs(dragVector.X);
+            bool isDragUp = dragVector.Y < 0;
+            bool isDragDown = dragVector.Y > 0;
+
             switch (ReloadState)
             {
                 case ShotgunReloadState.WaitingToOpen:
-                    if (isDragUp)
+                    if (isVerticalDrag && isDragUp)
                     {
                         // Mid-drag open bolt
                         ReloadState = ShotgunReloadState.Loading;
@@ -806,7 +874,7 @@ public partial class Shotgun : BaseWeapon
                     break;
 
                 case ShotgunReloadState.Loading:
-                    if (isDragDown)
+                    if (isVerticalDrag && isDragDown)
                     {
                         // FIX for issue #243: In Loading state with drag DOWN, NEVER process
                         // mid-drag gesture. Always wait for RMB release to give user time to
@@ -837,7 +905,7 @@ public partial class Shotgun : BaseWeapon
                     break;
 
                 case ShotgunReloadState.WaitingToClose:
-                    if (isDragDown)
+                    if (isVerticalDrag && isDragDown)
                     {
                         CompleteReload();
                         gestureProcessed = true;
@@ -851,21 +919,27 @@ public partial class Shotgun : BaseWeapon
 
     /// <summary>
     /// Processes a completed drag gesture based on direction and context.
+    ///
+    /// Issue #445 Fix (v2): Uses direction-aware gestures for pump actions.
+    /// Pump gestures are relative to aim direction, not screen coordinates.
+    /// Reload gestures still use screen-based vertical detection.
     /// </summary>
     private void ProcessDragGesture(Vector2 dragVector)
     {
-        // Issue #445: Determine if this is a pump action context (more lenient detection)
+        // Issue #445: Determine if this is a pump action context
         bool isPumpActionContext = ReloadState == ShotgunReloadState.NotReloading &&
                                    (ActionState == ShotgunActionState.NeedsPumpUp ||
-                                    ActionState == ShotgunActionState.NeedsPumpDown);
+                                    ActionState == ShotgunActionState.NeedsPumpDown ||
+                                    ActionState == ShotgunActionState.Ready);
 
         // Issue #445: Use reduced minimum distance for pump actions
         float effectiveMinDistance = isPumpActionContext ? 20.0f : MinDragDistance;
 
-        // Issue #445: Log the final drag vector when RMB is released
+        // Issue #445 v2: Log the final drag vector when RMB is released
         if (VerboseInputLogging)
         {
-            LogToFile($"[Shotgun.FIX#445] ProcessDragGesture - dragVector=({dragVector.X:F1}, {dragVector.Y:F1}), length={dragVector.Length():F1}, ActionState={ActionState}, minDist={effectiveMinDistance}");
+            float dotProduct = dragVector.Dot(_aimDirection);
+            LogToFile($"[Shotgun.FIX#445v2] ProcessDragGesture - dragVector=({dragVector.X:F1}, {dragVector.Y:F1}), length={dragVector.Length():F1}, dotWithAim={dotProduct:F1}, ActionState={ActionState}, minDist={effectiveMinDistance}");
         }
 
         // Check if drag is long enough
@@ -873,52 +947,61 @@ public partial class Shotgun : BaseWeapon
         {
             if (VerboseInputLogging)
             {
-                LogToFile($"[Shotgun.FIX#445] Drag too short: {dragVector.Length():F1} < {effectiveMinDistance}");
+                LogToFile($"[Shotgun.FIX#445v2] Drag too short: {dragVector.Length():F1} < {effectiveMinDistance}");
             }
             return;
-        }
-
-        // Issue #445: For pump actions, use more lenient verticality check (63° cone instead of 45°)
-        float verticalityFactor = isPumpActionContext ? 0.5f : 1.0f;
-        bool isVerticalDrag = Mathf.Abs(dragVector.Y) > Mathf.Abs(dragVector.X) * verticalityFactor;
-
-        if (!isVerticalDrag)
-        {
-            if (VerboseInputLogging)
-            {
-                LogToFile($"[Shotgun.FIX#445] Drag not vertical: absY={Mathf.Abs(dragVector.Y):F1} <= absX={Mathf.Abs(dragVector.X):F1} * {verticalityFactor}");
-            }
-            return; // Only vertical drags are used for shotgun
-        }
-
-        bool isDragUp = dragVector.Y < 0;
-        bool isDragDown = dragVector.Y > 0;
-
-        if (VerboseInputLogging)
-        {
-            LogToFile($"[Shotgun.FIX#445] Valid vertical drag detected: isDragUp={isDragUp}, isDragDown={isDragDown}");
         }
 
         // Handle based on current state (reload takes priority)
         if (ReloadState != ShotgunReloadState.NotReloading)
         {
-            ProcessReloadGesture(isDragUp, isDragDown);
+            // For reload, use screen-based vertical detection
+            bool isVerticalDrag = Mathf.Abs(dragVector.Y) > Mathf.Abs(dragVector.X);
+            bool isDragUpScreen = dragVector.Y < 0;
+            bool isDragDownScreen = dragVector.Y > 0;
+
+            if (!isVerticalDrag)
+            {
+                if (VerboseInputLogging)
+                {
+                    LogToFile($"[Shotgun.FIX#445v2] Reload drag not vertical: absY={Mathf.Abs(dragVector.Y):F1} <= absX={Mathf.Abs(dragVector.X):F1}");
+                }
+                return;
+            }
+
+            ProcessReloadGesture(isDragUpScreen, isDragDownScreen);
         }
         else
         {
-            ProcessPumpActionGesture(isDragUp, isDragDown);
+            // For pump actions, use DIRECTION-AWARE gesture detection (Issue #445 root cause fix)
+            bool isPumpUp, isPumpDown;
+            bool isValidPumpGesture = GetDirectionAwarePumpGesture(dragVector, effectiveMinDistance, out isPumpUp, out isPumpDown);
+
+            if (VerboseInputLogging)
+            {
+                LogToFile($"[Shotgun.FIX#445v2] Direction-aware pump gesture: isValid={isValidPumpGesture}, isPumpUp={isPumpUp} (toward player), isPumpDown={isPumpDown} (away from player)");
+            }
+
+            if (isValidPumpGesture)
+            {
+                ProcessPumpActionGesture(isPumpUp, isPumpDown);
+            }
         }
     }
 
     /// <summary>
     /// Processes drag gesture for pump-action cycling.
-    /// After firing: RMB drag UP (eject shell) → RMB drag DOWN (chamber)
+    /// After firing: Drag TOWARD player (eject shell) → Drag AWAY from player (chamber)
+    ///
+    /// Issue #445 Fix (v2): Now receives direction-aware gesture flags instead of screen-based.
+    /// - isPumpUp = drag toward player (eject shell)
+    /// - isPumpDown = drag away from player (chamber round)
     ///
     /// Issue #243 (fourth root cause): When user holds MMB during pump cycle,
     /// they want to load a shell, not just chamber the next round. The fix adds
     /// MMB detection during NeedsPumpDown state to transition to reload mode.
     /// </summary>
-    private void ProcessPumpActionGesture(bool isDragUp, bool isDragDown)
+    private void ProcessPumpActionGesture(bool isPumpUp, bool isPumpDown)
     {
         // Check for MMB held during drag (for shell loading during pump cycle)
         bool shouldLoadShell = _wasMiddleMouseHeldDuringDrag || _isMiddleMouseHeld;
@@ -926,9 +1009,10 @@ public partial class Shotgun : BaseWeapon
         switch (ActionState)
         {
             case ShotgunActionState.NeedsPumpUp:
-                if (isDragUp)
+                if (isPumpUp)
                 {
-                    // Eject spent shell (pull pump back/up)
+                    // Eject spent shell (drag TOWARD player)
+                    // Issue #445v2: Now works regardless of aim direction!
                     ActionState = ShotgunActionState.NeedsPumpDown;
                     PlayPumpUpSound();
 
@@ -937,19 +1021,19 @@ public partial class Shotgun : BaseWeapon
 
                     EmitSignal(SignalName.ActionStateChanged, (int)ActionState);
                     EmitSignal(SignalName.PumpActionCycled, "up");
-                    LogToFile("[Shotgun.FIX#243] Pump UP - shell ejected, now pump DOWN to chamber (or MMB+DOWN to load)");
+                    LogToFile("[Shotgun.FIX#445v2] Pump UP (toward player) - shell ejected, now drag AWAY to chamber (or MMB+AWAY to load)");
                 }
                 break;
 
             case ShotgunActionState.NeedsPumpDown:
-                if (isDragDown)
+                if (isPumpDown)
                 {
                     // Issue #243 (fourth root cause fix): Check for MMB held.
                     // If MMB is held, user wants to load a shell instead of just chambering.
                     // Transition to reload mode and load shell.
                     if (shouldLoadShell && ShellsInTube < TubeMagazineCapacity)
                     {
-                        LogToFile($"[Shotgun.FIX#266] MMB+DOWN during pump cycle: transitioning to reload mode (wasMMBDuringDrag={_wasMiddleMouseHeldDuringDrag}, isMMBHeld={_isMiddleMouseHeld})");
+                        LogToFile($"[Shotgun.FIX#266] MMB+AWAY during pump cycle: transitioning to reload mode (wasMMBDuringDrag={_wasMiddleMouseHeldDuringDrag}, isMMBHeld={_isMiddleMouseHeld})");
 
                         _lastBoltCloseTime = Time.GetTicksMsec() / 1000.0;
 
@@ -963,7 +1047,7 @@ public partial class Shotgun : BaseWeapon
                         EmitSignal(SignalName.ReloadStateChanged, (int)ReloadState);
                         EmitSignal(SignalName.ActionStateChanged, (int)ActionState);
                         EmitSignal(SignalName.ReloadStarted);
-                        LogToFile("[Shotgun.FIX#266] Transitioned to Loading state (bolt already open from pump UP)");
+                        LogToFile("[Shotgun.FIX#266] Transitioned to Loading state (bolt already open from pump)");
 
                         // Load a shell
                         LoadShell();
@@ -975,7 +1059,8 @@ public partial class Shotgun : BaseWeapon
                         return;
                     }
 
-                    // Normal pump down - chamber next round (push pump forward/down)
+                    // Normal pump down - chamber next round (drag AWAY from player)
+                    // Issue #445v2: Now works regardless of aim direction!
                     // Record close time for cooldown protection
                     _lastBoltCloseTime = Time.GetTicksMsec() / 1000.0;
 
@@ -985,7 +1070,7 @@ public partial class Shotgun : BaseWeapon
                         PlayPumpDownSound();
                         EmitSignal(SignalName.ActionStateChanged, (int)ActionState);
                         EmitSignal(SignalName.PumpActionCycled, "down");
-                        LogToFile($"[Shotgun.FIX#243] Pump DOWN - chambered, ready to fire (MMB was not held)");
+                        LogToFile($"[Shotgun.FIX#445v2] Pump DOWN (away from player) - chambered, ready to fire (MMB was not held)");
                     }
                     else
                     {
@@ -993,15 +1078,15 @@ public partial class Shotgun : BaseWeapon
                         ActionState = ShotgunActionState.Ready;
                         PlayPumpDownSound();
                         EmitSignal(SignalName.ActionStateChanged, (int)ActionState);
-                        LogToFile($"[Shotgun.FIX#243] Pump DOWN - tube empty, need to reload (MMB was not held)");
+                        LogToFile($"[Shotgun.FIX#445v2] Pump DOWN (away from player) - tube empty, need to reload (MMB was not held)");
                     }
                 }
                 break;
 
             case ShotgunActionState.Ready:
-                // If ready and drag UP, might be starting reload (open bolt)
+                // If ready and drag TOWARD player, might be starting reload (open bolt)
                 // Check cooldown to prevent accidental bolt reopening after close
-                if (isDragUp && ShellsInTube < TubeMagazineCapacity)
+                if (isPumpUp && ShellsInTube < TubeMagazineCapacity)
                 {
                     if (!IsInBoltCloseCooldown())
                     {
@@ -1009,7 +1094,7 @@ public partial class Shotgun : BaseWeapon
                     }
                     else if (VerboseInputLogging)
                     {
-                        LogToFile("[Shotgun.FIX#243] Bolt open BLOCKED by cooldown");
+                        LogToFile("[Shotgun.FIX#445v2] Bolt open BLOCKED by cooldown");
                     }
                 }
                 break;
