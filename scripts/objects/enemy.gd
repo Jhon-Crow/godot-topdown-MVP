@@ -929,11 +929,17 @@ func _update_enemy_model_rotation() -> void:
 		return
 	# Issue #397 debug: Log rotation priority changes (helps diagnose turning away bug)
 	if rotation_reason != _last_rotation_reason:
-		_log_to_file("Rotation: %s -> %s, state=%s, target=%.1f°" % [
+		var player_pos_str := "null"
+		if _player != null:
+			player_pos_str = "(%d,%d)" % [int(_player.global_position.x), int(_player.global_position.y)]
+		_log_to_file("ROT_CHANGE: %s -> %s, state=%s, target=%.1f°, current=%.1f°, player=%s, corner_timer=%.2f" % [
 			_last_rotation_reason if _last_rotation_reason != "" else "none",
 			rotation_reason,
 			AIState.keys()[_current_state],
-			rad_to_deg(target_angle)
+			rad_to_deg(target_angle),
+			rad_to_deg(_enemy_model.global_rotation),
+			player_pos_str,
+			_corner_check_timer
 		])
 		_last_rotation_reason = rotation_reason
 	# Smooth rotation for visual polish (Issue #347)
