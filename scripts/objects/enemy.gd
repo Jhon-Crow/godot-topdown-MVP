@@ -1328,10 +1328,7 @@ func _process_idle_state(delta: float) -> void:
 		BehaviorMode.PATROL: _process_patrol(delta)
 		BehaviorMode.GUARD: _process_guard(delta)
 
-## Process COMBAT state - combat cycle: exit cover -> exposed shooting -> return to cover.
-## Phase 1 (approaching): Move toward player to get into direct contact range.
-## Phase 2 (exposed): Stand and shoot for 2-3 seconds.
-## Phase 3: Return to cover via SEEKING_COVER state.
+## Process COMBAT state - cycle: approach->exposed shooting (2-3s)->return to cover via SEEKING_COVER.
 func _process_combat_state(delta: float) -> void:
 	# Track time in COMBAT state (for preventing rapid state thrashing)
 	_combat_state_timer += delta
@@ -1608,12 +1605,7 @@ func _process_seeking_cover_state(_delta: float) -> void:
 		_shoot()
 		_shoot_timer = 0.0
 
-## Process IN_COVER state - taking cover from enemy fire.
-## Decides next action based on:
-## 1. If under fire -> suppressed
-## 2. If player is close (can exit cover for direct contact) -> COMBAT
-## 3. If player is far but can hit from current position -> COMBAT (stay and shoot)
-## 4. If player is far and can't hit -> PURSUING (move cover-to-cover)
+## Process IN_COVER state. Under fire->suppressed, close->COMBAT, far+can hit->stay and shoot, far+can't hit->PURSUING.
 func _process_in_cover_state(delta: float) -> void:
 	velocity = Vector2.ZERO
 
@@ -3099,12 +3091,8 @@ func _count_enemies_in_combat() -> int:
 func is_in_combat_engagement() -> bool:
 	return _can_see_player and _current_state in [AIState.COMBAT, AIState.IN_COVER, AIState.ASSAULT]
 
-## Find cover position closer to the player for pursuit.
-## Used during PURSUING state to move cover-to-cover toward the player.
-## Improvements for issue #93:
-## - Penalizes covers on the same obstacle to avoid shuffling along walls
-## - Requires minimum progress toward player to skip insignificant moves
-## - Verifies the path to cover is clear (no walls blocking)
+## Find cover closer to player for PURSUING state. Penalizes same-obstacle covers, requires min progress,
+## verifies clear path (Issue #93).
 func _find_pursuit_cover_toward_player() -> void:
 	# Use memory-based target position instead of direct player position (Issue #297)
 	# This allows pursuing toward a suspected position even when player is not visible

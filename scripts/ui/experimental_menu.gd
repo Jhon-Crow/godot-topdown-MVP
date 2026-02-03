@@ -9,6 +9,7 @@ signal back_pressed
 
 ## Reference to UI elements.
 @onready var fov_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/FOVContainer/FOVCheckbox
+@onready var complex_grenade_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/ComplexGrenadeContainer/ComplexGrenadeCheckbox
 @onready var back_button: Button = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/BackButton
 @onready var status_label: Label = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/StatusLabel
 
@@ -16,6 +17,7 @@ signal back_pressed
 func _ready() -> void:
 	# Connect button signals
 	fov_checkbox.toggled.connect(_on_fov_toggled)
+	complex_grenade_checkbox.toggled.connect(_on_complex_grenade_toggled)
 	back_button.pressed.connect(_on_back_pressed)
 
 	# Update UI based on current settings
@@ -36,20 +38,34 @@ func _update_ui() -> void:
 		status_label.text = "Error: ExperimentalSettings not found"
 		return
 
-	# Update checkbox state
+	# Update checkbox states
 	fov_checkbox.button_pressed = experimental_settings.is_fov_enabled()
+	complex_grenade_checkbox.button_pressed = experimental_settings.is_complex_grenade_throwing()
 
-	# Update status label
+	# Update status label - show status of both settings
+	var status_parts: Array[String] = []
 	if experimental_settings.is_fov_enabled():
-		status_label.text = "FOV enabled: Enemies see in 100 degree cone"
+		status_parts.append("FOV: 100° cone")
+	if experimental_settings.is_complex_grenade_throwing():
+		status_parts.append("Grenades: complex throwing")
+
+	if status_parts.is_empty():
+		status_label.text = "All experimental features disabled"
 	else:
-		status_label.text = "FOV disabled: Enemies have 360 degree vision"
+		status_label.text = "Enabled: " + ", ".join(status_parts)
 
 
 func _on_fov_toggled(enabled: bool) -> void:
 	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
 	if experimental_settings:
 		experimental_settings.set_fov_enabled(enabled)
+	_update_ui()
+
+
+func _on_complex_grenade_toggled(enabled: bool) -> void:
+	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+	if experimental_settings:
+		experimental_settings.set_complex_grenade_throwing(enabled)
 	_update_ui()
 
 
