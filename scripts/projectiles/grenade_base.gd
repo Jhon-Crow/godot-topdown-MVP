@@ -261,6 +261,29 @@ func throw_grenade_with_direction(throw_direction: Vector2, velocity_magnitude: 
 	])
 
 
+## Throw the grenade in SIMPLE mode with direct speed control.
+## Used for trajectory-to-cursor aiming where we calculate the exact speed needed.
+## @param throw_direction: The normalized direction to throw.
+## @param throw_speed: The exact speed to throw at (pixels/second). Will be clamped to max_throw_speed.
+func throw_grenade_simple(throw_direction: Vector2, throw_speed: float) -> void:
+	# Unfreeze the grenade so physics can take over
+	freeze = false
+
+	# Clamp speed to max throw speed
+	var final_speed := clampf(throw_speed, 0.0, max_throw_speed)
+
+	# Set velocity directly with the calculated speed
+	if final_speed > 1.0:
+		linear_velocity = throw_direction.normalized() * final_speed
+		rotation = throw_direction.angle()
+	else:
+		linear_velocity = Vector2.ZERO
+
+	FileLogger.info("[GrenadeBase] Simple mode throw! Dir: %s, Speed: %.1f (clamped from %.1f, max: %.1f)" % [
+		str(throw_direction), final_speed, throw_speed, max_throw_speed
+	])
+
+
 ## Throw the grenade in a direction with speed based on drag distance (LEGACY method).
 ## @param direction: Normalized direction to throw.
 ## @param drag_distance: Distance of the drag in pixels.

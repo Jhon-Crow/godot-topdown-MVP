@@ -1608,12 +1608,11 @@ func _throw_simple_grenade() -> void:
 	# Unfreeze and throw the grenade
 	_active_grenade.freeze = false
 
-	# Use the most appropriate throw method
-	if _active_grenade.has_method("throw_grenade_with_direction"):
-		# Construct velocity from direction and speed
-		# Pass a calculated "swing distance" that matches the desired throw speed
-		var fake_swing := 100.0  # Ensures good transfer efficiency
-		_active_grenade.throw_grenade_with_direction(throw_direction, throw_speed * 2.0, fake_swing)
+	# Use the simple throw method for direct speed control
+	# This bypasses velocity-to-throw multipliers for accurate cursor-based aiming
+	if _active_grenade.has_method("throw_grenade_simple"):
+		# Simple mode: pass throw speed directly without any multipliers
+		_active_grenade.throw_grenade_simple(throw_direction, throw_speed)
 	elif _active_grenade.has_method("throw_grenade"):
 		# Legacy method: use drag distance that produces desired speed
 		var drag_distance := throw_speed / 2.0  # drag_to_speed_multiplier = 2.0

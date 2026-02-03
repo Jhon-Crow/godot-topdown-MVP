@@ -2098,13 +2098,12 @@ public partial class Player : BaseCharacter
         // Unfreeze and throw the grenade
         _activeGrenade.Freeze = false;
 
-        // Use the most appropriate throw method
-        if (_activeGrenade.HasMethod("throw_grenade_with_direction"))
+        // Use the simple throw method for direct speed control
+        // This bypasses velocity-to-throw multipliers for accurate cursor-based aiming
+        if (_activeGrenade.HasMethod("throw_grenade_simple"))
         {
-            // Construct velocity from direction and speed
-            // Pass a calculated "swing distance" that matches the desired throw speed
-            float fakeSwing = 100.0f; // Ensures good transfer efficiency
-            _activeGrenade.Call("throw_grenade_with_direction", throwDirection, throwSpeed * 2.0f, fakeSwing);
+            // Simple mode: pass throw speed directly without any multipliers
+            _activeGrenade.Call("throw_grenade_simple", throwDirection, throwSpeed);
         }
         else if (_activeGrenade.HasMethod("throw_grenade"))
         {
