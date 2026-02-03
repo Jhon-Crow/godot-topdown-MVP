@@ -29,8 +29,11 @@ enum BehaviorMode {
 	GUARD    ## Stands in one place
 }
 
-## Current behavior mode.
-@export var behavior_mode: BehaviorMode = BehaviorMode.GUARD
+## Weapon types: RIFLE (M16), SHOTGUN (slow/powerful), UZI (fast SMG).
+enum WeaponType { RIFLE, SHOTGUN, UZI }
+
+@export var behavior_mode: BehaviorMode = BehaviorMode.GUARD  ## Current behavior mode.
+@export var weapon_type: WeaponType = WeaponType.RIFLE  ## Weapon type for this enemy.
 @export var move_speed: float = 220.0  ## Maximum movement speed (px/s).
 @export var combat_move_speed: float = 320.0  ## Combat movement speed (flanking/cover).
 @export var rotation_speed: float = 25.0  ## Rotation speed (rad/s, 25 for aim-before-shoot #254).
@@ -51,53 +54,22 @@ enum BehaviorMode {
 @export var destroy_on_death: bool = false  ## Destroy enemy after death.
 @export var respawn_delay: float = 2.0  ## Delay before respawn/destroy (seconds).
 
-## Minimum random health.
-@export var min_health: int = 2
-
-## Maximum random health.
-@export var max_health: int = 4
-
-## Threat sphere radius - bullets within this radius trigger suppression.
-@export var threat_sphere_radius: float = 100.0
-
-## Time to stay suppressed after bullets leave threat sphere.
-@export var suppression_cooldown: float = 2.0
-
-## Delay before reacting to threats (gives player reaction time).
-@export var threat_reaction_delay: float = 0.2
-
-## Flank angle from player's facing direction (radians).
-@export var flank_angle: float = PI / 3.0  # 60 degrees
-
-## Distance to maintain while flanking.
-@export var flank_distance: float = 200.0
-
-## Enable/disable flanking behavior.
-@export var enable_flanking: bool = true
-
-## Enable/disable cover behavior.
-@export var enable_cover: bool = true
-
-## Enable/disable debug logging.
-@export var debug_logging: bool = false
-
-## Enable/disable debug label above enemy showing current AI state.
-@export var debug_label_enabled: bool = false
-
-## Enable/disable friendly fire avoidance (don't shoot if other enemies are in the way).
-@export var enable_friendly_fire_avoidance: bool = true
-
-## Enable/disable lead prediction (shooting ahead of moving targets).
-@export var enable_lead_prediction: bool = true
-
-## Bullet speed for lead prediction (2500 for AR).
-@export var bullet_speed: float = 2500.0
-
-## Ammunition system - magazine size (bullets per magazine).
-@export var magazine_size: int = 30
-
-## Ammunition system - number of magazines the enemy carries.
-@export var total_magazines: int = 5
+@export var min_health: int = 2  ## Minimum random health.
+@export var max_health: int = 4  ## Maximum random health.
+@export var threat_sphere_radius: float = 100.0  ## Bullets within radius trigger suppression.
+@export var suppression_cooldown: float = 2.0  ## Time suppressed after bullets leave.
+@export var threat_reaction_delay: float = 0.2  ## Delay before reacting to threats.
+@export var flank_angle: float = PI / 3.0  ## Flank angle from player facing (60 deg).
+@export var flank_distance: float = 200.0  ## Distance to maintain while flanking.
+@export var enable_flanking: bool = true  ## Enable flanking behavior.
+@export var enable_cover: bool = true  ## Enable cover behavior.
+@export var debug_logging: bool = false  ## Enable debug logging.
+@export var debug_label_enabled: bool = false  ## Enable debug label above enemy.
+@export var enable_friendly_fire_avoidance: bool = true  ## Don't shoot if allies in way.
+@export var enable_lead_prediction: bool = true  ## Shoot ahead of moving targets.
+@export var bullet_speed: float = 2500.0  ## Bullet speed for lead prediction.
+@export var magazine_size: int = 30  ## Bullets per magazine.
+@export var total_magazines: int = 5  ## Number of magazines carried.
 
 ## Ammunition system - time to reload in seconds.
 @export var reload_time: float = 3.0
@@ -195,6 +167,12 @@ var _current_ammo: int = 0  ## Ammo in magazine
 var _reserve_ammo: int = 0  ## Reserve ammo
 var _is_reloading: bool = false  ## Currently reloading
 var _reload_timer: float = 0.0  ## Reload progress
+## Weapon configuration for player-like weapons (Issue #417 PR feedback).
+var _is_shotgun_weapon: bool = false  ## Whether weapon fires multiple pellets
+var _pellet_count_min: int = 1  ## Minimum pellets per shot (for shotgun)
+var _pellet_count_max: int = 1  ## Maximum pellets per shot (for shotgun)
+var _spread_angle: float = 0.0  ## Spread angle in degrees (for shotgun)
+var _caliber_data: Resource = null  ## Caliber data for casings
 var _patrol_points: Array[Vector2] = []  ## Patrol state
 var _current_patrol_index: int = 0
 var _is_waiting_at_patrol_point: bool = false
@@ -415,6 +393,9 @@ func _ready() -> void:
 	# Add to enemies group for grenade targeting
 	add_to_group("enemies")
 
+	# Configure weapon parameters based on weapon type (before ammo init)
+	_configure_weapon_type()
+
 	_initial_position = global_position
 	_initialize_health()
 	_initialize_ammo()
@@ -481,6 +462,30 @@ func _initialize_ammo() -> void:
 	_reserve_ammo = (total_magazines - 1) * magazine_size
 	_is_reloading = false
 	_reload_timer = 0.0
+
+## Configure weapon parameters based on weapon type using WeaponConfigComponent.
+## Loads player-like bullet scenes and caliber data (Issue #417 PR feedback).
+func _configure_weapon_type() -> void:
+	var c := WeaponConfigComponent.get_config(weapon_type)
+	shoot_cooldown = c["shoot_cooldown"]; bullet_speed = c["bullet_speed"]; magazine_size = c["magazine_size"]
+	bullet_spawn_offset = c["bullet_spawn_offset"]; weapon_loudness = c["weapon_loudness"]
+	if c["sprite_path"] != "" and _weapon_sprite:
+		var tex := load(c["sprite_path"]) as Texture2D
+		if tex: _weapon_sprite.texture = tex
+	# Load bullet/casing scenes and caliber data for player-like projectiles
+	if c.get("bullet_scene_path", "") != "":
+		var s := load(c["bullet_scene_path"]) as PackedScene
+		if s: bullet_scene = s
+	if c.get("casing_scene_path", "") != "":
+		var s := load(c["casing_scene_path"]) as PackedScene
+		if s: casing_scene = s
+	if c.get("caliber_path", "") != "": _caliber_data = load(c["caliber_path"])
+	# Shotgun config
+	_is_shotgun_weapon = c.get("is_shotgun", false)
+	_pellet_count_min = c.get("pellet_count_min", 1)
+	_pellet_count_max = c.get("pellet_count_max", 1)
+	_spread_angle = c.get("spread_angle", 0.0)
+	print("[Enemy] Weapon: %s" % WeaponConfigComponent.get_type_name(weapon_type))
 
 ## Setup patrol points based on patrol offsets from initial position.
 func _setup_patrol_points() -> void:
@@ -3823,6 +3828,7 @@ func _aim_at_player() -> void:
 		rotation -= rotation_speed * delta
 
 ## Shoot a bullet in barrel direction. Enemy must be aimed within AIM_TOLERANCE_DOT.
+## Updated to support shotgun firing with multiple pellets (Issue #417 PR feedback).
 func _shoot() -> void:
 	if bullet_scene == null or _player == null:
 		return
@@ -3858,61 +3864,50 @@ func _shoot() -> void:
 			_log_debug("SHOOT BLOCKED: Not aimed at target. aim_dot=%.3f (%.1f deg off)" % [aim_dot, aim_angle_deg])
 		return
 
-	# Bullet direction is the weapon's forward direction (realistic barrel direction)
-	# This ensures bullets fly where the barrel is pointing, not toward the target
-	var direction := weapon_forward
-
-	# Create bullet instance
-	var bullet := bullet_scene.instantiate()
-	bullet.global_position = bullet_spawn_pos
-
-	# Debug logging for weapon geometry analysis
-	if debug_logging:
-		var weapon_visual_pos := _weapon_sprite.global_position if _weapon_sprite else Vector2.ZERO
-		var model_rot := _enemy_model.rotation if _enemy_model else 0.0
-		var model_scale := _enemy_model.scale if _enemy_model else Vector2.ONE
-		_log_debug("SHOOT: enemy_pos=%v, target_pos=%v" % [global_position, target_position])
-		_log_debug("  model_rotation=%.2f rad (%.1f deg), model_scale=%v" % [model_rot, rad_to_deg(model_rot), model_scale])
-		_log_debug("  weapon_node_pos=%v, muzzle=%v" % [weapon_visual_pos, bullet_spawn_pos])
-		_log_debug("  direction=%v (angle=%.1f deg) - BARREL DIRECTION (realistic)" % [direction, rad_to_deg(direction.angle())])
-
-	# Set bullet direction (barrel direction for realistic behavior)
-	bullet.direction = direction
-
-	# Set shooter ID to identify this enemy as the source
-	# This prevents enemies from detecting their own bullets in the threat sphere
-	bullet.shooter_id = get_instance_id()
-	# Set shooter position for distance-based penetration calculation
-	# Use the bullet spawn position (weapon muzzle) for accurate distance calculation
-	bullet.shooter_position = bullet_spawn_pos
-
-	# Add bullet to the scene tree
-	get_tree().current_scene.add_child(bullet)
-
-	# Spawn casing if casing scene is set
+	var direction := weapon_forward  # Barrel direction for realistic behavior
+	# Fire projectiles and spawn casing
+	if _is_shotgun_weapon: _shoot_shotgun_pellets(direction, bullet_spawn_pos)
+	else: _shoot_single_bullet(direction, bullet_spawn_pos)
 	_spawn_casing(direction, weapon_forward)
-
-	# Play shooting sound
-	var audio_manager: Node = get_node_or_null("/root/AudioManager")
-	if audio_manager and audio_manager.has_method("play_m16_shot"):
-		audio_manager.play_m16_shot(global_position)
-
-	# Emit gunshot sound for in-game sound propagation (alerts other enemies)
-	# Uses weapon_loudness to determine propagation range
-	var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
-	if sound_propagation and sound_propagation.has_method("emit_sound"):
-		sound_propagation.emit_sound(0, global_position, 1, self, weapon_loudness)  # 0 = GUNSHOT, 1 = ENEMY
-
-	# Play shell casing sound with a small delay
+	# Play sound
+	var audio: Node = get_node_or_null("/root/AudioManager")
+	if audio:
+		if _is_shotgun_weapon and audio.has_method("play_shotgun_shot"): audio.play_shotgun_shot(global_position)
+		elif audio.has_method("play_m16_shot"): audio.play_m16_shot(global_position)
+	var sp: Node = get_node_or_null("/root/SoundPropagation")
+	if sp and sp.has_method("emit_sound"): sp.emit_sound(0, global_position, 1, self, weapon_loudness)
 	_play_delayed_shell_sound()
-
-	# Consume ammo
 	_current_ammo -= 1
 	ammo_changed.emit(_current_ammo, _reserve_ammo)
+	if _current_ammo <= 0 and _reserve_ammo > 0: _start_reload()
 
-	# Auto-reload when magazine is empty
-	if _current_ammo <= 0 and _reserve_ammo > 0:
-		_start_reload()
+
+## Spawn a projectile (handles both GDScript snake_case and C# PascalCase properties).
+func _spawn_projectile(direction: Vector2, spawn_pos: Vector2) -> void:
+	var p := bullet_scene.instantiate()
+	p.global_position = spawn_pos
+	if p.get("direction") != null: p.direction = direction
+	elif p.get("Direction") != null: p.Direction = direction
+	if p.get("shooter_id") != null: p.shooter_id = get_instance_id()
+	elif p.get("ShooterId") != null: p.ShooterId = get_instance_id()
+	if p.get("shooter_position") != null: p.shooter_position = spawn_pos
+	elif p.get("ShooterPosition") != null: p.ShooterPosition = spawn_pos
+	get_tree().current_scene.add_child(p)
+
+## Shoot a single bullet (rifle/UZI).
+func _shoot_single_bullet(direction: Vector2, spawn_pos: Vector2) -> void:
+	_spawn_projectile(direction, spawn_pos)
+
+## Shoot multiple pellets with spread (shotgun - like player's Shotgun.cs).
+func _shoot_shotgun_pellets(base_direction: Vector2, spawn_pos: Vector2) -> void:
+	var count: int = randi_range(_pellet_count_min, _pellet_count_max)
+	var spread_rad: float = deg_to_rad(_spread_angle)
+	var half: float = spread_rad / 2.0
+	for i in range(count):
+		var angle: float = 0.0
+		if count > 1:
+			angle = lerp(-half, half, float(i) / float(count - 1)) + randf_range(-spread_rad * 0.15, spread_rad * 0.15)
+		_spawn_projectile(base_direction.rotated(angle), spawn_pos)
 
 ## Play shell casing sound with a delay to simulate the casing hitting the ground.
 func _play_delayed_shell_sound() -> void:
@@ -3954,11 +3949,15 @@ func _spawn_casing(shoot_direction: Vector2, weapon_forward: Vector2) -> void:
 	# Add some initial spin for realism
 	casing.angular_velocity = randf_range(-15.0, 15.0)
 
-	# Set caliber data on the casing for appearance
-	# Load the 5.45x39mm caliber data for M16 rifle
-	var caliber_data: Resource = load("res://resources/calibers/caliber_545x39.tres")
-	if caliber_data:
-		casing.set("caliber_data", caliber_data)
+	# Set caliber data on the casing for appearance (Issue #417 PR feedback)
+	# Use the loaded caliber data for this weapon type (same as player weapons)
+	if _caliber_data:
+		casing.set("caliber_data", _caliber_data)
+	else:
+		# Fallback to 5.45x39mm for M16 rifle if no caliber data loaded
+		var fallback_caliber: Resource = load("res://resources/calibers/caliber_545x39.tres")
+		if fallback_caliber:
+			casing.set("caliber_data", fallback_caliber)
 
 	get_tree().current_scene.add_child(casing)
 
