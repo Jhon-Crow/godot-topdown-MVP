@@ -321,23 +321,84 @@ func _process(_delta: float) -> void:
 **Game Logs Added for Debugging**:
 - `game_log_20260203_160817.txt` - Added to case study folder for reference.
 
+### Version 3.0 (gl_compatibility Mode Fix)
+
+**Issue Reported**: "моргает уровень, затем всё белое" (level blinks, then everything is white)
+
+The user continued to experience white screen issues after v2.2. The level would briefly flash/render correctly, then turn completely white when the cinema effect activated.
+
+**Root Cause Analysis**:
+
+1. **Renderer-Specific Bug**: The project uses `gl_compatibility` renderer (as seen in `project.godot`: `renderer/rendering_method="gl_compatibility"`). This renderer has known issues with `hint_screen_texture`.
+
+2. **GitHub Issue #79914**: There's a confirmed bug in Godot where using `texture()` with `filter_linear_mipmap` on `hint_screen_texture` causes rendering glitches (pink gridded lines, white screens) in Compatibility mode.
+
+3. **Workaround Required**: The fix is to use `textureLod()` instead of `texture()` and use `filter_nearest` instead of `filter_linear_mipmap`.
+
+**Research Sources**:
+- [GitHub Issue #79914: Glitch in shader when using screen_texture and Compatibility mode](https://github.com/godotengine/godot/issues/79914)
+- [The Shaggy Dev: The fix for UI and post-processing shaders in Godot 4](https://shaggydev.com/2025/04/09/godot-ui-postprocessing-shaders/)
+- [Godot Forum: Why is hint_screen_texture giving an empty texture?](https://forum.godotengine.org/t/why-is-hint-screen-texture-giving-an-empty-texture/120012)
+- [Godot Docs: Screen-reading shaders](https://docs.godotengine.org/en/stable/tutorials/shaders/screen-reading_shaders.html)
+
+**Fixes Applied**:
+
+1. **Changed texture sampling function**: Replaced `texture(screen_texture, SCREEN_UV)` with `textureLod(screen_texture, SCREEN_UV, 0.0)` in all shaders.
+
+2. **Changed filter mode**: Replaced `filter_linear_mipmap` with `filter_nearest` in the uniform declaration.
+
+3. **Added repeat_disable**: Added `repeat_disable` hint for proper edge handling.
+
+4. **Updated all shaders**: Applied the same fixes to `saturation.gdshader` and `last_chance.gdshader` for consistency.
+
+**Key Code Changes (cinema_film.gdshader)**:
+
+Before (v2.2):
+```glsl
+uniform sampler2D screen_texture : hint_screen_texture, filter_linear_mipmap;
+...
+vec4 screen_color = texture(screen_texture, SCREEN_UV);
+```
+
+After (v3.0):
+```glsl
+// Use filter_nearest and textureLod for gl_compatibility mode support
+uniform sampler2D screen_texture : hint_screen_texture, repeat_disable, filter_nearest;
+...
+// Using textureLod() is required for Compatibility renderer (Issue #79914)
+vec4 screen_color = textureLod(screen_texture, SCREEN_UV, 0.0);
+```
+
+**Why This Works**:
+
+In Godot's Compatibility renderer (OpenGL ES 3.0 / WebGL 2.0):
+- The `texture()` function with mipmapped screen textures can return incorrect values
+- `textureLod()` explicitly specifies the LOD level, bypassing mipmap-related bugs
+- `filter_nearest` avoids interpolation issues that can occur with screen textures
+
+**Game Logs Added**:
+- `game_log_20260203_162259.txt` - Shows the "blink then white" behavior
+
 ## Implementation Notes
 
 ### Performance Considerations
 - Shader warmup on startup to prevent first-frame stutter (Issue #343 pattern)
-- Modulo-based noise function (efficient, no texture lookups)
+- Hash-based noise function (efficient, no texture lookups)
 - Single pass shader combining all effects
 - Film defects use probability-based triggering to minimize calculations
 
 ### Compatibility
 - Uses `canvas_item` shader type (2D compatible)
-- Uses `hint_screen_texture` for screen sampling
-- Works with GL Compatibility rendering mode
+- Uses `hint_screen_texture` with `filter_nearest` for screen sampling
+- **Requires `textureLod()` instead of `texture()` for gl_compatibility mode**
+- Works with all Godot 4 rendering modes (Forward+, Mobile, Compatibility)
 
 ### Key Technical Decisions
 
-1. **Modulo-based noise over sine-based**: Eliminates visible wave patterns
-2. **Frame-quantized time**: Prevents smooth transitions that can look like waves
-3. **Multiplicative warm tint**: Preserves more color detail than luminance-based
-4. **Probability-based defects**: Realistic rare occurrence, minimal performance impact
-5. **Hash function for randomness**: High-quality pseudo-random without patterns
+1. **textureLod() over texture()**: Required for gl_compatibility renderer support
+2. **filter_nearest over filter_linear_mipmap**: Avoids Compatibility mode rendering bugs
+3. **Hash-based noise over sine-based**: Eliminates visible wave patterns
+4. **Frame-quantized time**: Prevents smooth transitions that can look like waves
+5. **Multiplicative warm tint**: Preserves more color detail than luminance-based
+6. **Probability-based defects**: Realistic rare occurrence, minimal performance impact
+7. **Delayed activation (3 frames)**: Ensures scene renders before effect activates

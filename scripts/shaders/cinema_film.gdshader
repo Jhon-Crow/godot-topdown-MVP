@@ -1,13 +1,18 @@
 shader_type canvas_item;
 
 // ============================================================================
-// CINEMA FILM EFFECT SHADER v2.1
+// CINEMA FILM EFFECT SHADER v3.0
 // Simulates vintage film look with grain, warm tones, and film defects
-// Fixed: White screen issue, improved noise stability
+// Fixed: White screen issue in gl_compatibility mode
+// Fix: Use textureLod() and filter_nearest for Compatibility renderer support
+// Reference: https://github.com/godotengine/godot/issues/79914
 // ============================================================================
 
 // Screen texture sampler for reading the rendered scene
-uniform sampler2D screen_texture : hint_screen_texture, filter_linear_mipmap;
+// IMPORTANT: Use filter_nearest and repeat_disable for gl_compatibility mode
+// Using filter_linear_mipmap can cause issues (pink lines, white screen) in Compatibility renderer
+// The textureLod() function must be used instead of texture() for proper sampling
+uniform sampler2D screen_texture : hint_screen_texture, repeat_disable, filter_nearest;
 
 // --- Film Grain Parameters ---
 uniform float grain_intensity : hint_range(0.0, 0.5) = 0.04;
@@ -143,11 +148,14 @@ float projector_flicker(float time_val) {
 // ============================================================================
 
 void fragment() {
-	// Sample the screen texture
-	vec4 screen_color = texture(screen_texture, SCREEN_UV);
+	// Sample the screen texture using textureLod for gl_compatibility mode support
+	// Using texture() instead of textureLod() can cause white screen or pink grid lines
+	// in Compatibility renderer (Issue #79914)
+	vec4 screen_color = textureLod(screen_texture, SCREEN_UV, 0.0);
 	vec3 color = screen_color.rgb;
 
-	// Early exit if screen_color alpha is 0 (no content)
+	// Early exit if screen_color alpha is 0 (no content rendered yet)
+	// This can happen on the first frame before the scene is fully rendered
 	if (screen_color.a < 0.001) {
 		COLOR = screen_color;
 		return;
