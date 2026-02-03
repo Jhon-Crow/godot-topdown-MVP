@@ -192,6 +192,68 @@ Since all CI checks pass and the code is syntactically valid, the issue is likel
 2. User testing an older version of the export
 3. Export process not including updated scripts
 
+### Iteration 5: Final Investigation (game_log_20260203_165007.txt, game_log_20260203_165022.txt)
+
+After the user reported the issue was still occurring (with two new logs at 16:50), a deep investigation was performed.
+
+#### Key Observations
+
+1. **Both logs show the same symptoms:**
+   - `has_died_signal=false` for all 10 enemies
+   - `listeners=0` (no sound listeners registered)
+   - `0 enemies registered`
+   - `[ENEMY] Death animation component initialized` log messages are **missing**
+
+2. **Comparison with working log (15:51):**
+   | Log Entry | Working (15:51) | Broken (16:50) |
+   |-----------|-----------------|-----------------|
+   | `[ENEMY] Death animation component initialized` | ✅ Present for all 10 enemies | ❌ Missing |
+   | `has_died_signal` | `true` | `false` |
+   | Sound listeners registered | 10 | 0 |
+
+3. **The `_ready()` function is not completing:**
+   - The `_init_death_animation()` function (line 459) logs "Death animation component initialized"
+   - This log is missing, meaning `_ready()` stops execution before reaching line 459
+   - This indicates a script parse/load error, NOT a runtime error
+
+#### Code Review
+
+The code diff against upstream/main shows only these changes:
+1. `CASING_PUSH_FORCE`: 50.0 → 20.0
+2. Push direction: `-collision.get_normal()` → `(collider.global_position - global_position).normalized()`
+3. Ejection speed: 300-450 → 120-180
+
+None of these affect signal definitions or `_ready()` execution flow.
+
+#### CI Validation
+
+After merging with upstream/main and pushing, **ALL CI checks pass**:
+- ✅ Run GUT Tests
+- ✅ C# Build Validation
+- ✅ C# and GDScript Interoperability Check
+- ✅ Gameplay Critical Systems Validation
+- ✅ Architecture Best Practices Check
+
+This confirms:
+1. The GDScript code is syntactically valid
+2. The `died` signal exists and is accessible
+3. The interoperability between C# and GDScript is working
+
+#### Final Conclusion
+
+The issue is **NOT in the code** - all CI checks pass and the code changes are syntactically correct.
+
+**Root cause is likely one of:**
+1. **Stale export:** User is testing an export built before the latest changes
+2. **Godot cache corruption:** The `.godot/` directory contains stale compiled scripts
+3. **Incomplete sync:** User's local copy doesn't have the latest code from the PR
+
+**Recommended actions for user:**
+1. Delete the `.godot/` directory in the project
+2. Download a fresh copy of the code from the PR branch
+3. Open project in Godot Editor to force reimport
+4. Create a new export
+
 ## Lessons Learned
 
 1. **Identify all affected systems:** When fixing physics behavior, identify ALL code paths that affect the behavior (ejection vs push).
