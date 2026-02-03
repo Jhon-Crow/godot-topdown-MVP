@@ -932,17 +932,29 @@ func _update_enemy_model_rotation() -> void:
 	if not has_target:
 		return
 	# Issue #395, #397 debug: Log rotation priority changes with memory info
+	# Issue #395 Phase 4: Track if we're transitioning INTO combat from idle (for instant rotation)
+	var entering_combat_from_idle := false
 	if rotation_reason != _last_rotation_reason:
 		var ppos := "(%d,%d)" % [int(_player.global_position.x), int(_player.global_position.y)] if _player else "null"
 		var mpos := "(%d,%d)" % [int(_memory.suspected_position.x), int(_memory.suspected_position.y)] if _memory and _memory.has_target() else "none"
 		var lkp := "(%d,%d)" % [int(_last_known_player_position.x), int(_last_known_player_position.y)] if _last_known_player_position != Vector2.ZERO else "none"
 		_log_to_file("ROT_CHANGE: %s -> %s, state=%s, target=%.1f°, current=%.1f°, player=%s, memory=%s, last_known=%s" % [_last_rotation_reason if _last_rotation_reason != "" else "none", rotation_reason, AIState.keys()[_current_state], rad_to_deg(target_angle), rad_to_deg(_enemy_model.global_rotation), ppos, mpos, lkp])
+		# Issue #395 Phase 4: Detect transition from idle scanning to combat priority
+		# When entering combat (from P5:idle_scan to P2:memory/P1:visible), snap rotation instantly
+		# This prevents the visually confusing "turn away then turn back" behavior
+		if _last_rotation_reason in ["", "none", "P5:idle_scan", "P3:corner", "P4:velocity"] and rotation_reason in ["P1:visible", "P2:memory", "P2:last_known", "P2:fallback"]:
+			entering_combat_from_idle = true
 		_last_rotation_reason = rotation_reason
 	# Smooth rotation for visual polish (Issue #347)
 	var delta := get_physics_process_delta_time()
 	var current_rot := _enemy_model.global_rotation
 	var angle_diff := wrapf(target_angle - current_rot, -PI, PI)
-	if abs(angle_diff) <= MODEL_ROTATION_SPEED * delta:
+	# Issue #395 Phase 4: When entering combat from idle, snap rotation instantly
+	# This prevents the "turn away first" visual bug when angle difference is large
+	if entering_combat_from_idle:
+		_enemy_model.global_rotation = target_angle
+		_log_to_file("ROT_SNAP: instant rotation on combat entry (diff=%.1f°)" % rad_to_deg(angle_diff))
+	elif abs(angle_diff) <= MODEL_ROTATION_SPEED * delta:
 		_enemy_model.global_rotation = target_angle
 	elif angle_diff > 0:
 		_enemy_model.global_rotation = current_rot + MODEL_ROTATION_SPEED * delta

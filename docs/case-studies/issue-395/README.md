@@ -394,3 +394,129 @@ The Phase 3 bug was particularly subtle because:
 3. **Multiple Rotations:** In Godot, CharacterBody2D can have BOTH a body `rotation` AND a child model `global_rotation`. These are independent and affect different things. **Always verify which rotation you're using and why.**
 
 4. **Test Assumptions:** When math appears correct but behavior is wrong, trace through exactly which variable values are being used. The "obvious" variable may not be the right one.
+
+---
+
+## Phase 4: Visually Confusing "Turn Away First" Bug (February 3, 2026)
+
+### Problem Report
+
+After all previous fixes, the user continued to report: "enemies first turn away, then slowly turn toward the player" (Russian: "сначала враги отворачиваются, затем начинают медленно поворачиваться в сторону игрока").
+
+The debug indicators were now correct, but the **visual behavior** was still confusing. Enemies appeared to turn in the "wrong" direction before eventually facing the player.
+
+### Game Log Evidence
+
+From `game_log_20260203_123618.txt`:
+
+```
+[12:36:25] [ENEMY] [Enemy2] ROT_CHANGE: P5:idle_scan -> P2:memory, state=COMBAT, target=76.9°, current=-157.5°, player=(483,905), memory=(483,911), last_known=(483,911)
+```
+
+Key values:
+- **current** = -157.5° (enemy facing roughly left-down during idle scan)
+- **target** = 76.9° (enemy should face right-down toward memory position)
+- **angle_diff** = wrapf(76.9 - (-157.5), -180, 180) = wrapf(234.4, -180, 180) = **-125.6°**
+
+### Root Cause Analysis
+
+The rotation code at line 942-950 uses `wrapf()` to find the **shortest angular path**:
+
+```gdscript
+var angle_diff := wrapf(target_angle - current_rot, -PI, PI)
+if abs(angle_diff) <= MODEL_ROTATION_SPEED * delta:
+    _enemy_model.global_rotation = target_angle
+elif angle_diff > 0:
+    _enemy_model.global_rotation = current_rot + MODEL_ROTATION_SPEED * delta
+else:
+    _enemy_model.global_rotation = current_rot - MODEL_ROTATION_SPEED * delta
+```
+
+With `angle_diff = -125.6°`:
+- The code rotates in the **negative direction** (clockwise)
+- Enemy rotates: -157.5° → -180°/+180° → +76.9°
+- This IS the shortest path (126° vs 234° the other way)
+
+**THE VISUAL PROBLEM:**
+When rotating from -157.5° (facing left-down) to +76.9° (facing right-down) via the -180°/+180° wrap-around:
+- The enemy first rotates FURTHER LEFT (toward -180°)
+- Visually, this looks like "turning away from the target"
+- Then wraps around and continues toward +76.9°
+- Visually, this is the "slowly turning toward player" phase
+
+### Why This Feels Wrong to Players
+
+Human perception expects enemies to turn **directly toward** a threat. Even though the mathematical path is shorter, rotating through -180° (the "back" direction) creates a momentary impression that the enemy is:
+1. Ignoring the threat
+2. Turning the "wrong way"
+3. Being confused or bugged
+
+At MODEL_ROTATION_SPEED = 3.0 rad/s (172°/s), a 126° rotation takes about 0.73 seconds. The initial "turning away" phase (≈22.5° to reach -180°) takes about 0.13 seconds - brief but noticeable.
+
+### The Fix
+
+When transitioning from an idle priority (P5:idle_scan, P3:corner, P4:velocity) to a combat priority (P1:visible, P2:memory), **snap the rotation instantly** instead of smooth interpolation:
+
+```gdscript
+# Issue #395 Phase 4: Track if we're transitioning INTO combat from idle
+var entering_combat_from_idle := false
+if rotation_reason != _last_rotation_reason:
+    # Detect transition from idle to combat priority
+    if _last_rotation_reason in ["", "none", "P5:idle_scan", "P3:corner", "P4:velocity"] \
+       and rotation_reason in ["P1:visible", "P2:memory", "P2:last_known", "P2:fallback"]:
+        entering_combat_from_idle = true
+
+# ... later in the rotation code ...
+
+# Issue #395 Phase 4: When entering combat from idle, snap rotation instantly
+if entering_combat_from_idle:
+    _enemy_model.global_rotation = target_angle
+    _log_to_file("ROT_SNAP: instant rotation on combat entry (diff=%.1f°)" % rad_to_deg(angle_diff))
+```
+
+### Why Instant Snap is Better
+
+1. **Matches Player Expectations:** Enemies immediately face threats, appearing alert and competent
+2. **No Visual Confusion:** No "turning away" moment that looks like a bug
+3. **Combat-Appropriate:** In real combat, soldiers would snap to face a threat, not smoothly rotate
+4. **Preserves Smooth Rotation Elsewhere:** Non-combat priorities (patrol, corner check, velocity) still use smooth rotation for visual polish
+
+### Alternative Solutions Considered
+
+1. **Increase rotation speed:** Would reduce the problem but not eliminate it. Also affects all rotation, not just combat entry.
+
+2. **Always take "intuitive" path:** Complex to define "intuitive" - sometimes short path IS intuitive.
+
+3. **Two-stage rotation:** Rotate to intermediate angle first, then to target. Adds complexity without clear benefit.
+
+4. **Instant snap only for large angles:** Inconsistent behavior depending on angle difference.
+
+The chosen solution (instant snap on combat entry) is simple, targeted, and matches player expectations about how enemies should react to threats.
+
+### Files Changed
+
+| File | Change |
+|------|--------|
+| `scripts/objects/enemy.gd` | Added combat entry detection and instant rotation snap |
+
+---
+
+## Game Logs
+
+The following game logs document the bug behavior across multiple phases:
+
+1. `game_log_20260203_120643.txt` - Initial report showing rotation issues
+2. `game_log_20260203_123618.txt` - Phase 4 investigation showing "turn away first" behavior
+
+---
+
+## Final Conclusion
+
+This issue involved **FOUR distinct bugs** that all contributed to the perception of "enemies turning wrong direction":
+
+1. **Rotation Priority Bug (Initial):** Used actual player position instead of memory position
+2. **Coordinate System Bug (Phase 2):** Debug draw used global instead of local coordinates
+3. **Wrong Rotation Reference Bug (Phase 3):** Used body rotation instead of model rotation for debug
+4. **Visual Perception Bug (Phase 4):** Shortest-path rotation through -180° looked like "turning away"
+
+The final fix ensures enemies snap to face threats immediately when entering combat, providing responsive, intuitive behavior that matches player expectations.
