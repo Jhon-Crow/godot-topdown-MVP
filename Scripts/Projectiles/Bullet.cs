@@ -601,10 +601,19 @@ public partial class Bullet : Area2D
             damageable.TakeDamage(Damage);
             hitEnemy = true;
         }
-        // Fallback: Check for on_hit method (compatibility with GDScript targets)
+        // Check if the parent (enemy) has take_damage method (GDScript IDamageable support)
+        // This is the primary path for GDScript enemies hit through their HitArea
+        else if (parent != null && parent.HasMethod("take_damage"))
+        {
+            float effectiveDamage = GetEffectiveDamage();
+            GD.Print($"[Bullet]: Target {parent.Name} has take_damage method, applying {effectiveDamage} damage");
+            parent.Call("take_damage", effectiveDamage);
+            hitEnemy = true;
+        }
+        // Fallback: Check for on_hit method (legacy compatibility with GDScript targets)
         else if (area.HasMethod("on_hit"))
         {
-            GD.Print($"[Bullet]: Target {area.Name} has on_hit method, calling it");
+            GD.Print($"[Bullet]: Target {area.Name} has on_hit method, calling it (damage={Damage} NOT applied - legacy path)");
             area.Call("on_hit");
             hitEnemy = true;
         }

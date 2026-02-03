@@ -213,6 +213,8 @@ func _setup_player_tracking() -> void:
 		if weapon.has_method("GetMagazineAmmoCounts"):
 			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
 			_update_magazines_label(mag_counts)
+		# Configure silenced pistol ammo based on enemy count
+		_configure_silenced_pistol_ammo(weapon)
 	else:
 		# GDScript Player - connect to player signals
 		if _player.has_signal("ammo_changed"):
@@ -268,6 +270,26 @@ func _setup_enemy_tracking() -> void:
 	_current_enemy_count = _initial_enemy_count
 	_log_to_file("Enemy tracking complete: %d enemies registered" % _initial_enemy_count)
 	print("Tracking %d enemies" % _initial_enemy_count)
+
+
+## Configure silenced pistol ammo based on enemy count.
+## This ensures the pistol has exactly enough bullets for all enemies in the level.
+func _configure_silenced_pistol_ammo(weapon: Node) -> void:
+	# Check if this is a silenced pistol
+	if weapon.name != "SilencedPistol":
+		return
+
+	# Call the ConfigureAmmoForEnemyCount method if it exists
+	if weapon.has_method("ConfigureAmmoForEnemyCount"):
+		weapon.ConfigureAmmoForEnemyCount(_initial_enemy_count)
+		print("[BuildingLevel] Configured silenced pistol ammo for %d enemies" % _initial_enemy_count)
+
+		# Update the ammo display after configuration
+		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
+			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
+		if weapon.has_method("GetMagazineAmmoCounts"):
+			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
+			_update_magazines_label(mag_counts)
 
 
 ## Setup debug UI elements for kills and accuracy.
