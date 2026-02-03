@@ -85,8 +85,10 @@ var _last_beep_value: int = -1
 
 
 func _ready() -> void:
-	# Set to cover full screen
+	# Set to cover full screen - must also set size to parent's size
 	set_anchors_preset(Control.PRESET_FULL_RECT)
+	# Force size update to match parent immediately
+	size = get_parent_area_size() if get_parent() else get_viewport_rect().size
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 	# Create beep audio player with generator
@@ -133,7 +135,8 @@ func _setup_beep_audio() -> void:
 	_beep_player.stream = _beep_generator
 
 
-## Play a short beep sound.
+## Play a short major arpeggio sound.
+## Major arpeggio: root, major third (+4 semitones), perfect fifth (+7 semitones)
 func _play_beep() -> void:
 	if _beep_player == null:
 		return
@@ -146,19 +149,30 @@ func _play_beep() -> void:
 	if _beep_playback == null:
 		return
 
-	# Generate a short square wave beep
+	# Generate a short major arpeggio (root, major third, perfect fifth)
 	var sample_rate := _beep_generator.mix_rate
-	var samples_needed := int(BEEP_DURATION * sample_rate)
-	var frequency := BEEP_BASE_FREQUENCY + randf_range(-50.0, 50.0)  # Slight variation
+	var note_duration := BEEP_DURATION / 3.0  # Each note gets 1/3 of total duration
+	var samples_per_note := int(note_duration * sample_rate)
 
-	for i in range(samples_needed):
-		if _beep_playback.can_push_buffer(1):
-			var t := float(i) / sample_rate
-			# Square wave
-			var sample := 0.3 if fmod(t * frequency, 1.0) < 0.5 else -0.3
-			# Apply simple envelope
-			var envelope := 1.0 - (float(i) / float(samples_needed))
-			_beep_playback.push_frame(Vector2(sample * envelope, sample * envelope))
+	# Calculate frequencies for major arpeggio
+	# Major third = root * 2^(4/12), Perfect fifth = root * 2^(7/12)
+	var root_freq := BEEP_BASE_FREQUENCY + randf_range(-20.0, 20.0)
+	var third_freq := root_freq * pow(2.0, 4.0 / 12.0)  # Major third
+	var fifth_freq := root_freq * pow(2.0, 7.0 / 12.0)  # Perfect fifth
+
+	var arpeggio_freqs := [root_freq, third_freq, fifth_freq]
+
+	for note_idx in range(3):
+		var frequency := arpeggio_freqs[note_idx]
+		for i in range(samples_per_note):
+			if _beep_playback.can_push_buffer(1):
+				var t := float(i) / sample_rate
+				# Square wave for retro sound
+				var sample := 0.25 if fmod(t * frequency, 1.0) < 0.5 else -0.25
+				# Apply envelope for each note (attack and decay)
+				var note_progress := float(i) / float(samples_per_note)
+				var envelope := 1.0 - (note_progress * 0.5)  # Gentle decay
+				_beep_playback.push_frame(Vector2(sample * envelope, sample * envelope))
 
 
 ## Format counting value with sign and proper formatting.
@@ -532,21 +546,23 @@ func _shrink_rank_to_position() -> void:
 	var tween := create_tween()
 	tween.tween_property(_rank_background, "modulate:a", 0.0, RANK_SHRINK_DURATION * 0.5)
 
-	# Calculate final position (below total, slightly right)
+	# Calculate final position (below total, centered)
 	var final_font_size := 48
 	var final_offset_top := 250  # Below total score in container
+	# Keep rank centered horizontally (symmetric offsets around center)
+	var final_half_width := 75  # Half of the label width
 
 	# Animate rank shrinking
 	tween.parallel().tween_method(
-		func(size: int): _rank_label.add_theme_font_size_override("font_size", size),
+		func(font_size: int): _rank_label.add_theme_font_size_override("font_size", font_size),
 		200, final_font_size, RANK_SHRINK_DURATION
 	)
 
-	# Move to final position
+	# Move to final position (centered horizontally, below total score)
 	tween.parallel().tween_property(_rank_label, "offset_top", final_offset_top, RANK_SHRINK_DURATION)
 	tween.parallel().tween_property(_rank_label, "offset_bottom", final_offset_top + 60, RANK_SHRINK_DURATION)
-	tween.parallel().tween_property(_rank_label, "offset_left", -50, RANK_SHRINK_DURATION)
-	tween.parallel().tween_property(_rank_label, "offset_right", 200, RANK_SHRINK_DURATION)
+	tween.parallel().tween_property(_rank_label, "offset_left", -final_half_width, RANK_SHRINK_DURATION)
+	tween.parallel().tween_property(_rank_label, "offset_right", final_half_width, RANK_SHRINK_DURATION)
 
 	tween.tween_callback(_show_restart_hint)
 

@@ -133,6 +133,76 @@ Time (seconds)
 - **MODIFY**: `scripts/levels/building_level.gd` - Use new animated screen
 - **MODIFY**: `scripts/autoload/audio_manager.gd` - Add score counting sound
 
+## Bug Investigation (2026-02-03)
+
+### Reported Issues
+
+From PR #430 comment by repository owner:
+
+1. **Statistics not visible** - Score items were not appearing on screen
+2. **Rank in far left corner** - The rank letter appeared in the wrong position
+3. **Rank color should depend on grade** - Already implemented in RANK_COLORS dictionary
+4. **Sound should be major arpeggio** - Original implementation used single beeps
+
+### Game Logs Analysis
+
+Downloaded logs from:
+- `logs/game_log_20260203_181812.txt` - First playthrough session
+- `logs/game_log_20260203_181921.txt` - Second playthrough session
+
+Both logs confirmed level completion with scores:
+- First session: Final score 26904, Rank: C
+- Second session: Final score 26997, Rank: C
+
+### Root Cause Analysis
+
+**Issue 1 & 2: Statistics and Rank Position**
+
+The root cause was in `animated_score_screen.gd`:
+
+```gdscript
+func _ready() -> void:
+    set_anchors_preset(Control.PRESET_FULL_RECT)  # Problem here
+```
+
+When `AnimatedScoreScreen.new()` is called and added to the UI node:
+1. `_ready()` is called immediately upon `add_child()`
+2. `set_anchors_preset(PRESET_FULL_RECT)` sets anchors but the Control's size
+   hasn't been updated yet to match the parent's size
+3. Children created in `show_score()` use positions relative to a Control
+   with potentially size (0, 0)
+4. `PRESET_CENTER` children end up at wrong positions
+
+**Fix applied:**
+```gdscript
+func _ready() -> void:
+    set_anchors_preset(Control.PRESET_FULL_RECT)
+    size = get_parent_area_size() if get_parent() else get_viewport_rect().size
+```
+
+Additionally, the rank shrink animation had asymmetric offsets (`-50` to `200`)
+which placed it off-center. Fixed to use symmetric offsets (`-75` to `75`).
+
+**Issue 3: Rank Color**
+
+Already correctly implemented in `RANK_COLORS` dictionary at line 39-47.
+Colors are applied in `_start_rank_animation()` at line 506.
+
+**Issue 4: Major Arpeggio Sound**
+
+Changed from single beep to ascending major arpeggio:
+- Root note (base frequency)
+- Major third (+4 semitones, frequency * 2^(4/12))
+- Perfect fifth (+7 semitones, frequency * 2^(7/12))
+
+### Timeline of Events
+
+```
+2026-02-03 13:48:12 - Initial implementation committed
+2026-02-03 15:23:13 - Owner reports bugs in PR comment
+2026-02-03 17:53:33 - Fix session started
+```
+
 ## Related Resources
 
 - [Hotline Miami Scoring Wiki](https://hotlinemiami.fandom.com/wiki/Scoring)
