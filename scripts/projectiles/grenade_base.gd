@@ -94,6 +94,12 @@ var _activation_sound_played: bool = false
 ## Track previous velocity for landing detection.
 var _previous_velocity: Vector2 = Vector2.ZERO
 
+## Track the previous freeze state to detect when grenade is released by external code.
+## FIX for Issue #432: When C# code sets Freeze=false directly without calling GDScript
+## methods (due to possible C#/GDScript interop issues in exports), the timer was never
+## activated, causing grenades to fly infinitely without exploding.
+var _was_frozen_on_start: bool = true
+
 ## Signal emitted when the grenade explodes.
 signal exploded(position: Vector2, grenade: GrenadeBase)
 
@@ -146,6 +152,16 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	if _has_exploded:
 		return
+
+	# FIX for Issue #432: Detect when grenade is unfrozen by external code (C# Player.cs).
+	# When C# sets Freeze=false directly but activate_timer() wasn't called successfully
+	# (possible C#/GDScript interop issue in exports), the timer was never started.
+	# By detecting the freeze->unfreeze transition, we can auto-activate the timer.
+	if _was_frozen_on_start and not freeze:
+		_was_frozen_on_start = false
+		if not _timer_active:
+			FileLogger.info("[GrenadeBase] Detected unfreeze without timer activation - auto-activating timer (fallback)")
+			activate_timer()
 
 	# Apply ground friction to slow down
 	if linear_velocity.length() > 0:

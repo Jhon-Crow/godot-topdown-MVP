@@ -35,6 +35,11 @@ var _has_impacted: bool = false
 ## Track if we've started throwing (to avoid impact during initial spawn).
 var _is_thrown: bool = false
 
+## Track the previous freeze state to detect when grenade is released.
+## FIX for Issue #432: When C# code sets Freeze=false directly without calling
+## throw methods, _is_thrown was never set to true, preventing explosion.
+var _was_frozen: bool = true
+
 
 func _ready() -> void:
 	super._ready()
@@ -80,6 +85,16 @@ func activate_timer() -> void:
 func _physics_process(delta: float) -> void:
 	if _has_exploded:
 		return
+
+	# FIX for Issue #432: Detect when grenade is unfrozen by external code (C# Player.cs).
+	# When C# sets Freeze=false directly (e.g., via fallback path), our throw methods
+	# are not called and _is_thrown remains false, preventing explosion.
+	# By detecting the freeze->unfreeze transition, we can enable impact detection.
+	if _was_frozen and not freeze:
+		_was_frozen = false
+		if not _is_thrown:
+			_is_thrown = true
+			FileLogger.info("[FragGrenade] Detected unfreeze - enabling impact detection (fallback)")
 
 	# Apply ground friction to slow down (copied from base class)
 	if linear_velocity.length() > 0:

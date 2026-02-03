@@ -24,9 +24,11 @@ The issue describes three requirements for shell casing behavior:
 | 2026-02-03 | Issue created |
 | 2026-02-03 | Implementation started |
 | 2026-02-03 | Initial PR #434 opened |
-| 2026-02-03 | User feedback: "grenades fly infinitely and don't explode" |
-| 2026-02-03 | Investigation: Branch was missing fixes from main (Issue #428, #438) |
-| 2026-02-03 | Merged main branch to include latest fixes |
+| 2026-02-03 14:58 | User feedback #1: "grenades fly infinitely and don't explode" |
+| 2026-02-03 17:51 | Investigation #1: Merged main branch to include latest fixes |
+| 2026-02-03 18:06 | User feedback #2: Problem persists after rebuild |
+| 2026-02-03 | Deep investigation: Identified C#/GDScript interop issue in exports |
+| 2026-02-03 | Fix: Added freeze state detection to auto-activate grenade logic |
 
 ## User Feedback Investigation
 
@@ -56,8 +58,46 @@ The Issue #432 changes (adding casing scatter to explosions) cannot cause grenad
    - Issue #428 fix (grenade targeting physics compensation)
    - Issue #438 fix (enemies getting stuck in casings)
 
-**Resolution:**
-Merged main branch to include all recent fixes. The user should rebuild the export and test again.
+**Initial Resolution Attempt:**
+Merged main branch to include all recent fixes. User reported problem persisted.
+
+### Second Investigation (User Feedback #2)
+
+**Analysis of Game Log (`logs/game_log_20260203_210514.txt`):**
+
+After the user rebuilt with the merged branch, the same issue persisted. Deep analysis revealed:
+
+1. **C# logs present**: `[Player.Grenade.Simple] Grenade thrown!` appears at 21:05:52
+2. **GDScript logs missing**: No corresponding `[GrenadeBase] Simple mode throw!` or `[FragGrenade] Grenade thrown (simple mode)` logs
+
+**Root Cause Identified:**
+The C# code in `Player.cs` calls GDScript methods on the grenade object:
+```csharp
+_activeGrenade.Call("throw_grenade_simple", throwDirection, throwSpeed);
+_activeGrenade.Call("activate_timer");
+```
+
+However, in the exported build, these `Call()` invocations appear to fail silently. The C# code has a fallback path that sets velocity directly:
+```csharp
+_activeGrenade.LinearVelocity = throwDirection * throwSpeed;
+_activeGrenade.Freeze = false;
+```
+
+This makes the grenade visually fly correctly, but:
+1. `_timer_active` is never set to `true` (for FlashbangGrenade)
+2. `_is_thrown` is never set to `true` (for FragGrenade)
+3. Therefore, explosion logic never triggers!
+
+**Why this happens:**
+Possible C#/GDScript interop issues in Godot 4.3 export builds where `HasMethod()` returns `true` but `Call()` fails silently, or method signature matching fails.
+
+**Fix Applied:**
+Added freeze state detection in `_physics_process()` to detect when the grenade is released by external code:
+
+1. **grenade_base.gd**: Auto-activate timer when freeze changes from `true` to `false`
+2. **frag_grenade.gd**: Auto-enable impact detection when freeze changes
+
+This ensures grenades will explode even if GDScript methods are not called successfully from C#.
 
 ## Technical Analysis
 
