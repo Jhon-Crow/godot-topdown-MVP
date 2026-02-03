@@ -2068,21 +2068,40 @@ public partial class Player : BaseCharacter
         Vector2 targetPos = GetGlobalMousePosition();
         Vector2 toTarget = targetPos - GlobalPosition;
 
-        // Calculate throw direction and distance
+        // Calculate throw direction
         Vector2 throwDirection = toTarget.Length() > 10.0f ? toTarget.Normalized() : new Vector2(1, 0);
-        float throwDistance = toTarget.Length();
+
+        // FIX for issue #398: Account for spawn offset in distance calculation
+        // The grenade starts 60 pixels ahead of the player in the throw direction,
+        // so we need to calculate distance from spawn position to target, not from player to target
+        const float spawnOffset = 60.0f;
+        Vector2 spawnPosition = GlobalPosition + throwDirection * spawnOffset;
+        float throwDistance = (targetPos - spawnPosition).Length();
+
+        // Ensure minimum throw distance
+        if (throwDistance < 10.0f) throwDistance = 10.0f;
+
+        // Get grenade's actual physics properties for accurate calculation
+        // FIX for issue #398: Use actual grenade properties instead of hardcoded values
+        float groundFriction = 300.0f; // Default
+        float maxThrowSpeed = 850.0f;  // Default
+        if (_activeGrenade.Get("ground_friction").VariantType != Variant.Type.Nil)
+        {
+            groundFriction = (float)_activeGrenade.Get("ground_friction");
+        }
+        if (_activeGrenade.Get("max_throw_speed").VariantType != Variant.Type.Nil)
+        {
+            maxThrowSpeed = (float)_activeGrenade.Get("max_throw_speed");
+        }
 
         // Calculate throw speed needed to reach target (using physics)
-        // From grenade_base.gd: ground_friction = 300.0
         // Distance = v^2 / (2 * friction) → v = sqrt(2 * friction * distance)
-        const float groundFriction = 300.0f;
         float requiredSpeed = Mathf.Sqrt(2.0f * groundFriction * throwDistance);
 
         // Clamp to grenade's max throw speed
-        const float maxThrowSpeed = 850.0f;
         float throwSpeed = Mathf.Min(requiredSpeed, maxThrowSpeed);
 
-        // Calculate actual landing distance with clamped speed
+        // Calculate actual landing distance with clamped speed (for logging)
         float actualDistance = (throwSpeed * throwSpeed) / (2.0f * groundFriction);
 
         LogToFile($"[Player.Grenade.Simple] Throwing! Target: {targetPos}, Distance: {actualDistance:F1}, Speed: {throwSpeed:F1}");
@@ -2090,10 +2109,9 @@ public partial class Player : BaseCharacter
         // Rotate player to face throw direction
         RotatePlayerForThrow(throwDirection);
 
-        // Calculate spawn position with wall check
-        const float spawnOffset = 60.0f;
+        // Calculate safe spawn position with wall check
         Vector2 intendedSpawnPosition = GlobalPosition + throwDirection * spawnOffset;
-        Vector2 spawnPosition = GetSafeGrenadeSpawnPosition(GlobalPosition, intendedSpawnPosition, throwDirection);
+        Vector2 safeSpawnPosition = GetSafeGrenadeSpawnPosition(GlobalPosition, intendedSpawnPosition, throwDirection);
 
         // Unfreeze and throw the grenade
         _activeGrenade.Freeze = false;
@@ -3170,23 +3188,42 @@ public partial class Player : BaseCharacter
         Vector2 throwDirection;
         float throwSpeed;
         float landingDistance;
-        const float GroundFriction = 300.0f;
         const float SpawnOffset = 60.0f;
+
+        // Get grenade's actual physics properties for accurate visualization
+        // FIX for issue #398: Use actual grenade properties instead of hardcoded values
+        float groundFriction = 300.0f; // Default
+        float maxThrowSpeed = 850.0f;  // Default
+        if (_activeGrenade != null && IsInstanceValid(_activeGrenade))
+        {
+            if (_activeGrenade.Get("ground_friction").VariantType != Variant.Type.Nil)
+            {
+                groundFriction = (float)_activeGrenade.Get("ground_friction");
+            }
+            if (_activeGrenade.Get("max_throw_speed").VariantType != Variant.Type.Nil)
+            {
+                maxThrowSpeed = (float)_activeGrenade.Get("max_throw_speed");
+            }
+        }
 
         if (isSimpleAiming)
         {
             // Simple mode: direction and distance based on cursor position
             Vector2 toTarget = currentMousePos - GlobalPosition;
             throwDirection = toTarget.Length() > 10.0f ? toTarget.Normalized() : new Vector2(1, 0);
-            float throwDistance = toTarget.Length();
+
+            // FIX for issue #398: Account for spawn offset in distance calculation
+            // The grenade starts 60 pixels ahead of the player
+            Vector2 spawnPos = GlobalPosition + throwDirection * SpawnOffset;
+            float throwDistance = (currentMousePos - spawnPos).Length();
+            if (throwDistance < 10.0f) throwDistance = 10.0f;
 
             // Calculate throw speed needed to reach target
-            float requiredSpeed = Mathf.Sqrt(2.0f * GroundFriction * throwDistance);
-            const float maxThrowSpeed = 850.0f;
+            float requiredSpeed = Mathf.Sqrt(2.0f * groundFriction * throwDistance);
             throwSpeed = Mathf.Min(requiredSpeed, maxThrowSpeed);
 
             // Calculate actual landing distance with clamped speed
-            landingDistance = (throwSpeed * throwSpeed) / (2.0f * GroundFriction);
+            landingDistance = (throwSpeed * throwSpeed) / (2.0f * groundFriction);
         }
         else
         {
@@ -3228,7 +3265,7 @@ public partial class Player : BaseCharacter
                 throwSpeed = MinThrowSpeed * 0.5f;
             }
 
-            landingDistance = (throwSpeed * throwSpeed) / (2.0f * GroundFriction);
+            landingDistance = (throwSpeed * throwSpeed) / (2.0f * groundFriction);
         }
 
         // Calculate spawn and landing positions

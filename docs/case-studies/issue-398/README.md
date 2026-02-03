@@ -287,3 +287,141 @@ var hit_pos: Vector2 = wall_hit_pos - global_position
 - [ ] Verify complex mode still works when enabled in experimental settings
 - [ ] Verify CI passes (all checks)
 - [ ] Check game log for new debug messages: `[Player.Grenade.Simple]`
+
+## Fourth Round of Testing (2026-02-03 15:33-15:41)
+
+### User Feedback
+
+User reported two issues:
+1. "наступательная граната перестала взрываться" (offensive grenade stopped exploding)
+2. "граната всё ещё не долетает до прицела" (grenade still doesn't reach the cursor position)
+
+Game logs provided:
+- `game_log_20260203_153309.txt`
+- `game_log_20260203_154008.txt`
+- `game_log_20260203_154106.txt`
+
+### Analysis of Logs
+
+#### Issue 1: Frag Grenade Not Exploding
+
+**Evidence from log 2** (flashbang simple mode test):
+```
+[15:40:13] [Player.Grenade.Simple] Throwing! Target: (748.8932, 684.5972), Distance: 339,1, Speed: 451,0
+[15:40:13] [GrenadeBase] Simple mode throw! Dir: (0.991748, -0.128203), Speed: 451.0 (clamped from 451.0, max: 1352.8)
+[15:40:13] [GrenadeBase] Grenade landed at (563.2261, 724.7655)
+```
+
+The flashbang was thrown and landed but no explosion log at that position. Later, a different explosion appears at a different location (a second grenade).
+
+**Root Cause**: The `frag_grenade.gd` script was missing the `throw_grenade_simple()` override!
+
+When the simple mode throw is used, the Player.cs calls `throw_grenade_simple()` on the grenade. The base `GrenadeBase` class handles this, but `FragGrenade` needs to override it to set `_is_thrown = true`.
+
+Without `_is_thrown = true`, the impact detection checks fail:
+```gdscript
+# In _on_body_entered and _on_grenade_landed:
+if _is_thrown and not _has_impacted and not _has_exploded:
+    # Explosion triggered...
+```
+
+`_is_thrown` stayed `false`, so impact detection was disabled.
+
+**Existing overrides in FragGrenade**:
+- `throw_grenade()` ✓ sets _is_thrown = true
+- `throw_grenade_velocity_based()` ✓ sets _is_thrown = true
+- `throw_grenade_with_direction()` ✓ sets _is_thrown = true
+- `throw_grenade_simple()` ✗ MISSING!
+
+#### Issue 2: Grenade Not Reaching Cursor Position
+
+**Evidence from log 2**:
+- Target: (748.89, 684.60)
+- Landed: (563.23, 724.77)
+- Distance missed: ~186 pixels short
+
+**Root Causes Identified**:
+
+1. **Hardcoded physics constants**: The Player.cs used hardcoded values:
+   ```csharp
+   const float groundFriction = 300.0f;
+   const float maxThrowSpeed = 850.0f;
+   ```
+   But the actual grenade scenes have different values:
+   - FlashbangGrenade.tscn: `max_throw_speed = 1352.8`
+   - FragGrenade.tscn: `max_throw_speed = 1130.0`
+
+2. **Spawn offset not accounted for**: The grenade spawns 60 pixels ahead of the player, but the distance calculation was from player position to target, not spawn position to target. This caused the throw speed to be calculated for a longer distance than the grenade actually needs to travel.
+
+### Fixes Applied
+
+#### Fix 1: Add missing `throw_grenade_simple()` override to FragGrenade
+
+```gdscript
+## Override simple throw to mark grenade as thrown.
+## FIX for issue #398: Simple mode (trajectory aiming to cursor) uses this method.
+## Without this override, _is_thrown stays false and impact detection never triggers!
+func throw_grenade_simple(throw_direction: Vector2, throw_speed: float) -> void:
+    super.throw_grenade_simple(throw_direction, throw_speed)
+    _is_thrown = true
+    FileLogger.info("[FragGrenade] Grenade thrown (simple mode) - impact detection enabled")
+```
+
+#### Fix 2: Read actual grenade physics properties
+
+In Player.cs `ThrowSimpleGrenade()`:
+```csharp
+// Get grenade's actual physics properties for accurate calculation
+float groundFriction = 300.0f; // Default
+float maxThrowSpeed = 850.0f;  // Default
+if (_activeGrenade.Get("ground_friction").VariantType != Variant.Type.Nil)
+{
+    groundFriction = (float)_activeGrenade.Get("ground_friction");
+}
+if (_activeGrenade.Get("max_throw_speed").VariantType != Variant.Type.Nil)
+{
+    maxThrowSpeed = (float)_activeGrenade.Get("max_throw_speed");
+}
+```
+
+#### Fix 3: Account for spawn offset in distance calculation
+
+```csharp
+// The grenade starts 60 pixels ahead of the player in the throw direction,
+// so we need to calculate distance from spawn position to target
+const float spawnOffset = 60.0f;
+Vector2 spawnPosition = GlobalPosition + throwDirection * spawnOffset;
+float throwDistance = (targetPos - spawnPosition).Length();
+```
+
+#### Fix 4: Update trajectory visualization to match
+
+The `_Draw()` method was also updated to use actual grenade properties and account for spawn offset, ensuring the preview accurately represents where the grenade will land.
+
+### Files Modified
+
+1. `scripts/projectiles/frag_grenade.gd` - Added `throw_grenade_simple()` override
+2. `Scripts/Characters/Player.cs` - Fixed physics calculations to use actual grenade properties and account for spawn offset
+
+### Technical Details
+
+**Physics Formula** (unchanged, but now uses correct values):
+- Distance = v² / (2 × friction)
+- Speed needed = √(2 × friction × distance)
+
+**Grenade Properties**:
+| Property | Flashbang | Frag |
+|----------|-----------|------|
+| max_throw_speed | 1352.8 px/s | 1130.0 px/s |
+| ground_friction | 300.0 px/s² | 300.0 px/s² |
+| max_distance | 3048 px | 2128 px |
+
+### Lessons Learned
+
+1. **Override all throw methods**: When subclassing GrenadeBase, ensure ALL throw methods are overridden if they need to set flags (like `_is_thrown`).
+
+2. **Don't hardcode physics values**: Read properties from the actual game objects to ensure calculations match the runtime behavior.
+
+3. **Account for spawn positions**: When calculating throw physics, remember that projectiles often spawn offset from the player to avoid self-collision.
+
+4. **Wall collisions cause landing short**: Even with correct physics, walls in the path will stop the grenade early. This is expected behavior, not a bug.
