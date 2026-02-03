@@ -437,6 +437,34 @@ func is_thrown() -> bool:
 	return not freeze
 
 
+## Issue #450: Predict where the grenade will land based on current velocity and friction.
+## Uses physics formula: stopping_distance = v² / (2 * friction)
+## @returns: Predicted landing position, or current position if already stopped.
+func get_predicted_landing_position() -> Vector2:
+	var velocity := linear_velocity
+	var speed := velocity.length()
+
+	# If grenade is nearly stopped or frozen, return current position
+	if speed < landing_velocity_threshold or freeze:
+		return global_position
+
+	# Calculate stopping distance: d = v² / (2 * f)
+	# ground_friction is the deceleration rate in pixels/second²
+	var stopping_distance := (speed * speed) / (2.0 * ground_friction)
+
+	# Calculate predicted landing position
+	var direction := velocity.normalized()
+	var predicted_pos := global_position + direction * stopping_distance
+
+	return predicted_pos
+
+
+## Issue #450: Check if the grenade is still moving (in flight or rolling).
+## @returns: True if grenade is moving above landing threshold.
+func is_moving() -> bool:
+	return linear_velocity.length() >= landing_velocity_threshold
+
+
 ## Play activation sound (pin pull) when grenade timer is activated.
 func _play_activation_sound() -> void:
 	var audio_manager: Node = get_node_or_null("/root/AudioManager")

@@ -218,6 +218,19 @@ class MockGrenadeBase:
 	func is_thrown() -> bool:
 		return not freeze
 
+	## Issue #450: Predict where the grenade will land based on current velocity and friction.
+	func get_predicted_landing_position() -> Vector2:
+		var speed := linear_velocity.length()
+		if speed < landing_velocity_threshold or freeze:
+			return global_position
+		var stopping_distance := (speed * speed) / (2.0 * ground_friction)
+		var direction := linear_velocity.normalized()
+		return global_position + direction * stopping_distance
+
+	## Issue #450: Check if the grenade is still moving.
+	func is_moving() -> bool:
+		return linear_velocity.length() >= landing_velocity_threshold
+
 
 var grenade: MockGrenadeBase
 
@@ -870,3 +883,101 @@ func test_issue_426_velocity_based_throw_sets_thrown() -> void:
 
 	assert_true(grenade.is_thrown(),
 		"Velocity-based throw should also report grenade as thrown")
+
+
+# ============================================================================
+# Issue #450 Fix Tests: Predicted Landing Position
+# ============================================================================
+
+
+func test_issue_450_predicted_landing_when_frozen() -> void:
+	# Frozen grenade should return current position
+	grenade.freeze = true
+	grenade.global_position = Vector2(100, 100)
+	grenade.linear_velocity = Vector2(500, 0)
+
+	var predicted := grenade.get_predicted_landing_position()
+
+	assert_eq(predicted, Vector2(100, 100),
+		"Frozen grenade should return current position as predicted landing")
+
+
+func test_issue_450_predicted_landing_when_stationary() -> void:
+	# Grenade with zero/low velocity should return current position
+	grenade.freeze = false
+	grenade.global_position = Vector2(100, 100)
+	grenade.linear_velocity = Vector2(10, 0)  # Below threshold (50)
+
+	var predicted := grenade.get_predicted_landing_position()
+
+	assert_eq(predicted, Vector2(100, 100),
+		"Stationary grenade should return current position as predicted landing")
+
+
+func test_issue_450_predicted_landing_calculation() -> void:
+	# Test the physics formula: d = v² / (2 * f)
+	grenade.freeze = false
+	grenade.global_position = Vector2(0, 0)
+	grenade.linear_velocity = Vector2(300, 0)  # Moving right at 300 px/s
+	grenade.ground_friction = 150.0  # Friction
+
+	# Expected stopping distance: 300² / (2 * 150) = 90000 / 300 = 300
+	var predicted := grenade.get_predicted_landing_position()
+
+	assert_almost_eq(predicted.x, 300.0, 1.0,
+		"Predicted landing should be at stopping distance")
+	assert_almost_eq(predicted.y, 0.0, 1.0,
+		"Predicted landing should maintain direction")
+
+
+func test_issue_450_predicted_landing_diagonal() -> void:
+	grenade.freeze = false
+	grenade.global_position = Vector2(100, 100)
+	grenade.linear_velocity = Vector2(300, 300)  # Diagonal movement
+	grenade.ground_friction = 150.0
+
+	# Speed = sqrt(300² + 300²) = sqrt(180000) ≈ 424.26
+	# Stopping distance = 424.26² / (2 * 150) = 180000 / 300 = 600
+	var predicted := grenade.get_predicted_landing_position()
+
+	# Direction is normalized (0.707, 0.707)
+	# Final position = (100, 100) + (0.707, 0.707) * 600 ≈ (524, 524)
+	assert_gt(predicted.x, 100.0, "Should move in positive X direction")
+	assert_gt(predicted.y, 100.0, "Should move in positive Y direction")
+	assert_almost_eq(predicted.x, predicted.y, 10.0,
+		"Diagonal movement should land equidistant in both axes")
+
+
+func test_issue_450_is_moving_above_threshold() -> void:
+	grenade.linear_velocity = Vector2(100, 0)  # Above threshold (50)
+
+	assert_true(grenade.is_moving(),
+		"Grenade with velocity above threshold should report as moving")
+
+
+func test_issue_450_is_moving_below_threshold() -> void:
+	grenade.linear_velocity = Vector2(30, 0)  # Below threshold (50)
+
+	assert_false(grenade.is_moving(),
+		"Grenade with velocity below threshold should not report as moving")
+
+
+func test_issue_450_is_moving_at_threshold() -> void:
+	grenade.linear_velocity = Vector2(50, 0)  # Exactly at threshold
+
+	assert_true(grenade.is_moving(),
+		"Grenade with velocity at threshold should report as moving")
+
+
+func test_issue_450_predicted_landing_high_friction() -> void:
+	# With higher friction, grenade should stop sooner
+	grenade.freeze = false
+	grenade.global_position = Vector2(0, 0)
+	grenade.linear_velocity = Vector2(300, 0)
+	grenade.ground_friction = 300.0  # Double friction
+
+	# Expected: 300² / (2 * 300) = 90000 / 600 = 150
+	var predicted := grenade.get_predicted_landing_position()
+
+	assert_almost_eq(predicted.x, 150.0, 1.0,
+		"Higher friction should result in shorter predicted distance")
