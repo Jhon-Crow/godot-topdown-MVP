@@ -2421,6 +2421,11 @@ public partial class Player : BaseCharacter
             timer.GroundFriction = (float)grenade.Get("ground_friction");
         }
 
+        // FIX for Issue #432: Apply type-based defaults BEFORE adding to scene.
+        // GDScript Get() calls may fail silently in exported builds, leaving us with
+        // incorrect values (e.g., Frag grenade using Flashbang's 400 radius instead of 225).
+        timer.SetTypeBasedDefaults();
+
         // Add the timer component to the grenade
         grenade.AddChild(timer);
         LogToFile($"[Player.Grenade] Added GrenadeTimer component (type: {grenadeType})");

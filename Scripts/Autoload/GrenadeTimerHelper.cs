@@ -94,6 +94,11 @@ namespace GodotTopdown.Scripts.Autoload
                 timer.GroundFriction = (float)groundFriction;
             }
 
+            // FIX for Issue #432: Apply type-based defaults BEFORE adding to scene.
+            // GDScript Get() calls may fail silently in exported builds, leaving us with
+            // incorrect values (e.g., Frag grenade using Flashbang's 400 radius instead of 225).
+            timer.SetTypeBasedDefaults();
+
             // Add the timer component to the grenade
             grenade.AddChild(timer);
             LogToFile($"[GrenadeTimerHelper] Attached GrenadeTimer to {grenade.Name} (type: {type})");

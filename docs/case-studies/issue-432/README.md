@@ -655,8 +655,8 @@ if (body is StaticBody2D || body is TileMap || body is TileMapLayer || body is C
 ### Modified Files
 - `project.godot` - Added GrenadeTimerHelper autoload
 - `scripts/components/enemy_grenade_component.gd` - Use GrenadeTimerHelper for reliable explosion
-- `Scripts/Projectiles/GrenadeTimer.cs` - Fixed TileMap type check
-- `Scripts/Characters/Player.cs` - Fixed race condition: MarkAsThrown() before Freeze=false
+- `Scripts/Projectiles/GrenadeTimer.cs` - Fixed TileMap type check + Added type-based default effect radius
+- `Scripts/Characters/Player.cs` - Fixed race condition: MarkAsThrown() before Freeze=false + Added SetTypeBasedDefaults() call
 
 ## Final Resolution (Updated)
 
@@ -675,6 +675,99 @@ The complete solution now covers both player and enemy grenades:
 1. **C# for critical physics** in player code
 2. **C# autoload bridge** for GDScript code (enemy grenades) to access C# functionality
 3. **Proper timing** of state changes to avoid race conditions
+
+### Eighth Investigation (User Feedback #8 - 2026-02-03 21:06)
+
+**User Feedback:**
+User reported: "наступательные гранаты теперь взрываются слишком сильно и радиус поражения не соответствует радиусу поражения на прицеле"
+(Translation: "Offensive grenades now explode too strongly and the damage radius does not match the damage radius on the crosshair")
+
+**Log Files Analyzed:**
+- `logs/game_log_20260203_235906.txt` (32,418 lines) - Extended gameplay session
+- `logs/game_log_20260204_000345.txt` (3,381 lines) - Shorter session
+
+**Key Log Evidence:**
+
+```
+[00:03:58] [INFO] [GrenadeTimer] Initialized for Frag grenade, effect radius: 400
+[00:03:58] [INFO] [GrenadeTimer] Applying frag explosion damage (radius: 400, damage: 99)
+[00:03:58] [INFO] [GrenadeTimer] Damaged enemy at distance 31,3
+[00:03:58] [INFO] [GrenadeTimer] Damaged enemy at distance 240,2
+```
+
+**Root Cause Analysis:**
+
+The C# GrenadeTimer is using `effect_radius = 400` for Frag grenades, but the actual value in `FragGrenade.tscn` is `effect_radius = 225.0`:
+
+```ini
+# FragGrenade.tscn line 25
+effect_radius = 225.0
+
+# FlashbangGrenade.tscn line 27
+effect_radius = 400.0
+```
+
+When `GrenadeTimerHelper.AttachGrenadeTimer()` or `Player.AddGrenadeTimerComponent()` tries to read the property:
+```csharp
+var effectRadius = grenade.Get("effect_radius");
+if (effectRadius.VariantType != Variant.Type.Nil)
+{
+    timer.EffectRadius = (float)effectRadius;
+}
+```
+
+The `Get("effect_radius")` call returns `Nil` in exported builds due to the same C#/GDScript interop issue. The default value of `400.0f` is used for all grenade types instead of the correct type-specific values.
+
+**Result:**
+- Frag grenades damage enemies at 240+ pixels distance (should only affect 225 pixels)
+- The visual crosshair shows the correct 225-pixel radius
+- But the actual damage uses 400-pixel radius (Flashbang's default)
+
+**Fix Applied:**
+
+Added type-based default fallback in `GrenadeTimer.cs`:
+
+```csharp
+// Type-specific defaults from scene files
+private const float DefaultFragEffectRadius = 225.0f;    // From FragGrenade.tscn
+private const float DefaultFlashbangEffectRadius = 400.0f; // From FlashbangGrenade.tscn
+
+public void SetTypeBasedDefaults()
+{
+    if (Type == GrenadeType.Frag)
+    {
+        // Only override if still at default flashbang values (property read likely failed)
+        if (EffectRadius >= 400.0f - 0.01f)
+        {
+            EffectRadius = DefaultFragEffectRadius;
+            LogToFile($"[GrenadeTimer] Applied Frag default effect_radius: {EffectRadius}");
+        }
+    }
+}
+```
+
+Called from both:
+1. `GrenadeTimer._Ready()` - Applies defaults before initialization completes
+2. `GrenadeTimerHelper.AttachGrenadeTimer()` - Applies defaults before adding to scene
+3. `Player.AddGrenadeTimerComponent()` - Applies defaults before adding to scene
+
+This ensures the correct effect radius is used based on grenade type, regardless of whether GDScript property access succeeds.
+
+## Final Resolution (Updated)
+
+The complete solution now handles all identified export issues:
+
+| Component | Issue | Solution |
+|-----------|-------|----------|
+| Player Grenade Creation | GDScript `_ready()` doesn't run | C# explicitly freezes grenade on creation |
+| Player Grenade Velocity | GDScript `Call()` fails | C# sets velocity directly |
+| Player Grenade Impact | Race condition in impact detection | MarkAsThrown() called BEFORE unfreezing |
+| Enemy Grenade Timer | GDScript `Call()` fails | C# GrenadeTimerHelper autoload attaches timer |
+| Enemy Grenade Impact | No C# component attached | GrenadeTimerHelper attaches and configures |
+| TileMap Collision | Wrong type check | Added TileMap alongside TileMapLayer |
+| **Effect Radius** | **GDScript `Get()` returns Nil** | **Type-based defaults applied after type is set** |
+
+**Key Insight Update**: Even GDScript property access via `Get()` can fail silently in exports, not just method calls. Critical configuration values should have type-based C# fallbacks.
 
 ## References
 

@@ -35,6 +35,13 @@ namespace GodotTopdown.Scripts.Projectiles
         [Export]
         public float FuseTime { get; set; } = 4.0f;
 
+        /// <summary>
+        /// Effect radius for explosion damage and visual effects.
+        /// NOTE: Default is 400 for Flashbang. For Frag grenades, this should be set to 225.
+        /// The value should be copied from the grenade's GDScript export or set based on type.
+        /// IMPORTANT: In exported builds, GDScript property access via Get() may fail silently,
+        /// so SetTypeBasedDefaults() should be called to ensure correct values.
+        /// </summary>
         [Export]
         public float EffectRadius { get; set; } = 400.0f;
 
@@ -80,6 +87,57 @@ namespace GodotTopdown.Scripts.Projectiles
         // Landing detection threshold (same as GDScript)
         private const float LandingVelocityThreshold = 50.0f;
 
+        // Type-specific default values from scene files
+        // These are used as fallback when GDScript property access fails in exports
+        private const float DefaultFragEffectRadius = 225.0f;    // From FragGrenade.tscn
+        private const float DefaultFlashbangEffectRadius = 400.0f; // From FlashbangGrenade.tscn
+        private const float DefaultFragGroundFriction = 280.0f;  // From FragGrenade.tscn
+        private const float DefaultFlashbangGroundFriction = 300.0f; // From FlashbangGrenade.tscn
+
+        /// <summary>
+        /// Track whether type-based defaults have been applied.
+        /// </summary>
+        private bool _defaultsApplied = false;
+
+        /// <summary>
+        /// Set default values based on grenade type.
+        /// FIX for Issue #432: GDScript Get() calls may fail silently in exported builds,
+        /// returning Nil instead of the actual property value. This method ensures correct
+        /// values are used based on the grenade type.
+        /// </summary>
+        public void SetTypeBasedDefaults()
+        {
+            if (_defaultsApplied)
+                return;
+
+            _defaultsApplied = true;
+
+            if (Type == GrenadeType.Frag)
+            {
+                // Frag grenade defaults (from FragGrenade.tscn)
+                // Only override if still at default flashbang values (property read likely failed)
+                if (EffectRadius >= 400.0f - 0.01f)  // Using epsilon for float comparison
+                {
+                    EffectRadius = DefaultFragEffectRadius;
+                    LogToFile($"[GrenadeTimer] Applied Frag default effect_radius: {EffectRadius}");
+                }
+                if (GroundFriction >= 300.0f - 0.01f)
+                {
+                    GroundFriction = DefaultFragGroundFriction;
+                }
+            }
+            else
+            {
+                // Flashbang grenade defaults (from FlashbangGrenade.tscn)
+                // These are already the default values, but set explicitly for clarity
+                if (EffectRadius < 400.0f - 0.01f)
+                {
+                    EffectRadius = DefaultFlashbangEffectRadius;
+                    LogToFile($"[GrenadeTimer] Applied Flashbang default effect_radius: {EffectRadius}");
+                }
+            }
+        }
+
         public override void _Ready()
         {
             // Get the parent grenade body
@@ -89,6 +147,11 @@ namespace GodotTopdown.Scripts.Projectiles
                 GD.PrintErr("[GrenadeTimer] ERROR: Parent is not a RigidBody2D!");
                 return;
             }
+
+            // FIX for Issue #432: Apply type-based defaults BEFORE logging.
+            // GDScript Get() calls may fail silently in exports, leaving us with
+            // incorrect default values (e.g., Frag using Flashbang's 400 radius).
+            SetTypeBasedDefaults();
 
             // Connect to body_entered signal for impact detection
             _grenadeBody.BodyEntered += OnBodyEntered;
