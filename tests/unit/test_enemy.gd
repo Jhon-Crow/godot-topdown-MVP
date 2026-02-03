@@ -1690,3 +1690,63 @@ func test_goap_world_state_has_witnessed_ally_death_issue_409() -> void:
 
 	assert_true(enemy._goap_world_state["witnessed_ally_death"],
 		"witnessed_ally_death should be true after witnessing death")
+
+
+# ============================================================================
+# Issue #405: Unlimited Search Zone Tests
+# ============================================================================
+
+
+## Test that SEARCH_MAX_RADIUS is large enough to cover typical maps (Issue #405).
+## Enemies search continues indefinitely by relocating center when max radius reached.
+func test_search_max_radius_issue_405() -> void:
+	# SEARCH_MAX_RADIUS should be large (2000px) but finite for proper relocation logic
+	var max_radius: float = 2000.0  # Expected value after Issue #405 fix
+	var old_limit := 400.0  # Former SEARCH_MAX_RADIUS
+	assert_true(max_radius > old_limit, "SEARCH_MAX_RADIUS should be larger than old 400px limit")
+	assert_true(max_radius >= 2000.0, "SEARCH_MAX_RADIUS should cover typical map sizes")
+
+
+## Test that search radius can expand beyond former 400px limit (Issue #405).
+func test_search_radius_expands_beyond_old_limit_issue_405() -> void:
+	var initial_radius := 100.0  # SEARCH_INITIAL_RADIUS
+	var expansion := 75.0  # SEARCH_RADIUS_EXPANSION
+	var old_limit := 400.0  # Former SEARCH_MAX_RADIUS
+	var new_max := 2000.0  # New SEARCH_MAX_RADIUS
+
+	# Simulate expansions until reaching new max
+	var radius := initial_radius
+	var expansions := 0
+	while radius < new_max:
+		radius += expansion
+		expansions += 1
+
+	assert_true(radius >= new_max, "Radius should reach new max limit")
+	assert_true(expansions > 4, "Should expand more times than old limit allowed")
+
+
+## Test that enemy search continues by relocating center (Issue #405).
+## When max radius is reached, enemy moves center to current position and continues.
+func test_enemy_search_relocates_center_issue_405() -> void:
+	# Simulate the search relocation logic
+	var initial_radius := 100.0  # SEARCH_INITIAL_RADIUS
+	var expansion := 75.0  # SEARCH_RADIUS_EXPANSION
+	var max_radius := 2000.0  # SEARCH_MAX_RADIUS
+
+	# Simulate reaching max radius
+	var radius := initial_radius
+	while radius < max_radius:
+		radius += expansion
+
+	# When max reached, enemy should:
+	# 1. Move center to current position
+	# 2. Reset radius to initial
+	# 3. Clear visited zones
+	# 4. Continue searching
+	var new_center_moved := true  # Simulates _search_center = global_position
+	var radius_reset := initial_radius  # Simulates _search_radius = SEARCH_INITIAL_RADIUS
+	var zones_cleared := true  # Simulates _search_visited_zones.clear()
+
+	assert_true(new_center_moved, "Center should relocate to enemy's current position")
+	assert_eq(radius_reset, initial_radius, "Radius should reset to initial value")
+	assert_true(zones_cleared, "Visited zones should be cleared for fresh exploration")

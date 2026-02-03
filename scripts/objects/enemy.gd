@@ -28,30 +28,27 @@ enum BehaviorMode {
 	GUARD    ## Stands in one place
 }
 
-@export var behavior_mode: BehaviorMode = BehaviorMode.GUARD  ## Current behavior mode.
-@export var move_speed: float = 220.0  ## Maximum movement speed in pixels per second.
-@export var combat_move_speed: float = 320.0  ## Combat movement speed (faster when flanking/seeking cover).
-@export var rotation_speed: float = 25.0  ## Rotation speed in rad/sec (25 for aim-before-shoot per issue #254).
+## Current behavior mode.
+@export var behavior_mode: BehaviorMode = BehaviorMode.GUARD
+@export var move_speed: float = 220.0  ## Maximum movement speed (px/s).
+@export var combat_move_speed: float = 320.0  ## Combat movement speed (flanking/cover).
+@export var rotation_speed: float = 25.0  ## Rotation speed (rad/s, 25 for aim-before-shoot #254).
 @export var detection_range: float = 0.0  ## Detection range (0=unlimited, line-of-sight only).
-@export var fov_angle: float = 100.0  ## FOV angle in degrees (cone centered on facing dir). 0 or negative = 360° vision.
-@export var fov_enabled: bool = true  ## FOV enabled for this enemy.
+@export var fov_angle: float = 100.0  ## FOV angle (deg). 0/negative = 360°. Default 100° per #66.
+@export var fov_enabled: bool = true  ## FOV enabled (combined with ExperimentalSettings).
 @export var shoot_cooldown: float = 0.1  ## Time between shots (0.1s = 10 rounds/sec).
 @export var bullet_scene: PackedScene  ## Bullet scene to instantiate when shooting.
 @export var casing_scene: PackedScene  ## Casing scene for ejected bullet casings.
-@export var bullet_spawn_offset: float = 30.0  ## Offset from enemy center for bullet spawn position.
+@export var bullet_spawn_offset: float = 30.0  ## Offset from center for bullet spawn.
 @export var weapon_loudness: float = 1469.0  ## Weapon loudness for alerting enemies.
-@export var patrol_offsets: Array[Vector2] = [Vector2(100, 0), Vector2(-100, 0)]  ## Patrol point offsets.
-@export var patrol_wait_time: float = 1.5  ## Wait time at each patrol point in seconds.
-@export var full_health_color: Color = Color(0.9, 0.2, 0.2, 1.0)  ## Color when at full health.
-@export var low_health_color: Color = Color(0.3, 0.1, 0.1, 1.0)  ## Color when at low health.
+@export var patrol_offsets: Array[Vector2] = [Vector2(100, 0), Vector2(-100, 0)]  ## Patrol points.
+@export var patrol_wait_time: float = 1.5  ## Wait time at each patrol point (seconds).
+@export var full_health_color: Color = Color(0.9, 0.2, 0.2, 1.0)  ## Color at full health.
+@export var low_health_color: Color = Color(0.3, 0.1, 0.1, 1.0)  ## Color at low health.
 @export var hit_flash_color: Color = Color(1.0, 1.0, 1.0, 1.0)  ## Color to flash when hit.
-@export var hit_flash_duration: float = 0.1  ## Duration of hit flash effect in seconds.
-
-## Whether to destroy the enemy after death.
-@export var destroy_on_death: bool = false
-
-## Delay before respawning or destroying (in seconds).
-@export var respawn_delay: float = 2.0
+@export var hit_flash_duration: float = 0.1  ## Hit flash duration (seconds).
+@export var destroy_on_death: bool = false  ## Destroy enemy after death.
+@export var respawn_delay: float = 2.0  ## Delay before respawn/destroy (seconds).
 
 ## Minimum random health.
 @export var min_health: int = 2
@@ -203,6 +200,7 @@ var _is_waiting_at_patrol_point: bool = false
 var _patrol_wait_timer: float = 0.0
 var _corner_check_angle: float = 0.0  ## Angle to look toward when checking a corner
 var _corner_check_timer: float = 0.0  ## Timer for corner check duration
+var _last_rotation_reason: String = ""  ## Issue #397 debug: track rotation priority changes
 const CORNER_CHECK_DURATION: float = 0.3  ## How long to look at a corner (seconds)
 const CORNER_CHECK_DISTANCE: float = 150.0  ## Max distance to detect openings
 var _initial_position: Vector2
@@ -301,7 +299,7 @@ var _search_center: Vector2 = Vector2.ZERO  ## Search center (Search State - Iss
 var _search_radius: float = 100.0  ## Current radius
 const SEARCH_INITIAL_RADIUS: float = 100.0  ## Initial radius
 const SEARCH_RADIUS_EXPANSION: float = 75.0  ## Radius expansion
-const SEARCH_MAX_RADIUS: float = 400.0  ## Max radius
+const SEARCH_MAX_RADIUS: float = 2000.0  ## Max radius before relocating center (Issue #405: search continues indefinitely)
 var _search_waypoints: Array[Vector2] = []  ## Search waypoints
 var _search_current_waypoint_index: int = 0  ## Current waypoint index
 var _search_scan_timer: float = 0.0  ## Timer for scanning at waypoint
@@ -366,10 +364,6 @@ const INTEL_SHARE_INTERVAL: float = 0.5  ## Share intel every 0.5 seconds
 ## Memory reset confusion timer (Issue #318): blocks visibility after teleport.
 var _memory_reset_confusion_timer: float = 0.0
 const MEMORY_RESET_CONFUSION_DURATION: float = 2.0  ## Extended to 2s for better player escape window
-
-## Ally Death Observation (Issue #409): range, confidence, and directions for witnessing ally death
-const ALLY_DEATH_OBSERVE_RANGE: float = 500.0; const ALLY_DEATH_CONFIDENCE: float = 0.6
-var _suspected_directions: Array[Vector2] = []
 
 ## [Score Tracking] Whether the last hit that killed this enemy was from a ricocheted bullet.
 var _killed_by_ricochet: bool = false
@@ -448,6 +442,8 @@ func _ready() -> void:
 
 	# Initialize death animation component
 	_init_death_animation()
+	# Issue #405: Enemies start in their default state (IDLE/PATROL/GUARD)
+	# Unlimited search zone is activated AFTER enemy detects and loses player
 
 ## Initialize health with random value between min and max.
 func _initialize_health() -> void:
@@ -727,9 +723,7 @@ func _initialize_goap_state() -> void:
 		"position_confidence": 0.0,
 		"confidence_high": false,
 		"confidence_medium": false,
-		"confidence_low": false,
-		# Ally death awareness (Issue #409)
-		"witnessed_ally_death": false
+		"confidence_low": false
 	}
 
 ## Initialize the enemy memory system (Issue #297).
@@ -887,32 +881,44 @@ func _update_goap_state() -> void:
 		_goap_world_state["confidence_medium"] = _memory.is_medium_confidence()
 		_goap_world_state["confidence_low"] = _memory.is_low_confidence()
 
-## Updates model rotation smoothly (#347). Priority: player > flank target > corner check > velocity > idle scan.
-## Issue #386: FLANKING state now prioritizes facing the player over corner checks.
+## Updates model rotation smoothly (#347). Priority: player > combat/pursuit/flank > corner check > velocity > idle scan.
+## Issues #386, #397: COMBAT/PURSUING/FLANKING states prioritize facing the player to prevent turning away.
 func _update_enemy_model_rotation() -> void:
 	if not _enemy_model:
 		return
 	var target_angle: float
 	var has_target := false
+	var rotation_reason := ""  # Issue #397 debug: track which priority was used
+	# Priority 1: Face player if visible
 	if _player != null and _can_see_player:
 		target_angle = (_player.global_position - global_position).normalized().angle()
 		has_target = true
-	# Issue #386: During FLANKING, face the player (even if not visible) instead of corner check.
-	# This prevents the enemy from facing backwards/sideways while flanking.
-	elif _current_state == AIState.FLANKING and _player != null:
+		rotation_reason = "P1:visible"
+	# Priority 2: During active combat states, maintain focus on player even without visibility (#386, #397)
+	# Includes SEARCHING and ASSAULT - enemies should always face player during these states
+	elif _current_state in [AIState.COMBAT, AIState.PURSUING, AIState.FLANKING, AIState.SEARCHING, AIState.ASSAULT] and _player != null:
 		target_angle = (_player.global_position - global_position).normalized().angle()
 		has_target = true
+		rotation_reason = "P2:combat_state"
 	elif _corner_check_timer > 0:
 		target_angle = _corner_check_angle  # Corner check: smooth rotation (Issue #347)
 		has_target = true
+		rotation_reason = "P3:corner"
 	elif velocity.length_squared() > 1.0:
 		target_angle = velocity.normalized().angle()
 		has_target = true
+		rotation_reason = "P4:velocity"
 	elif _current_state == AIState.IDLE and _idle_scan_targets.size() > 0:
 		target_angle = _idle_scan_targets[_idle_scan_target_index]
 		has_target = true
+		rotation_reason = "P5:idle_scan"
 	if not has_target:
 		return
+	# Issue #397 debug: Log rotation priority changes
+	if rotation_reason != _last_rotation_reason:
+		var ppos := "(%d,%d)" % [int(_player.global_position.x), int(_player.global_position.y)] if _player else "null"
+		_log_to_file("ROT_CHANGE: %s -> %s, state=%s, target=%.1f°, current=%.1f°, player=%s, corner_timer=%.2f" % [_last_rotation_reason if _last_rotation_reason != "" else "none", rotation_reason, AIState.keys()[_current_state], rad_to_deg(target_angle), rad_to_deg(_enemy_model.global_rotation), ppos, _corner_check_timer])
+		_last_rotation_reason = rotation_reason
 	# Smooth rotation for visual polish (Issue #347)
 	var delta := get_physics_process_delta_time()
 	var current_rot := _enemy_model.global_rotation
@@ -2166,8 +2172,7 @@ func _mark_zone_visited(pos: Vector2) -> void:
 ## Issue #330: If enemy has ever left IDLE, they NEVER return to IDLE - search infinitely.
 func _process_searching_state(delta: float) -> void:
 	_search_state_timer += delta
-	# Issue #330: Only timeout if enemy has never engaged (still in patrol mode)
-	# Once an enemy has left IDLE, they search infinitely until finding player
+	# Issue #330: Only timeout for patrol enemies; engaged enemies search infinitely
 	if _search_state_timer >= SEARCH_MAX_DURATION and not _has_left_idle:
 		_log_to_file("SEARCHING timeout after %.1fs, returning to IDLE (patrol enemy)" % _search_state_timer)
 		_transition_to_idle()
@@ -2184,82 +2189,58 @@ func _process_searching_state(delta: float) -> void:
 			if _search_waypoints.is_empty() and _search_radius < SEARCH_MAX_RADIUS:
 				return
 		else:
-			# Issue #330: If enemy has left IDLE, reset search and keep searching
-			if _has_left_idle:
-				# Move search center to current position (so enemy explores new area)
-				var old_center := _search_center
-				_search_center = global_position
-				_search_radius = SEARCH_INITIAL_RADIUS
-				_search_state_timer = 0.0
-				# Keep visited zones to avoid re-visiting same spots
+			if _has_left_idle:  # Issue #330/#405: Engaged enemy - move center, clear old zones, continue searching
+				var old_center := _search_center; _search_center = global_position
+				_search_radius = SEARCH_INITIAL_RADIUS; _search_state_timer = 0.0
+				# Issue #405: Clear visited zones to allow exploring new areas
+				_search_visited_zones.clear()
 				_generate_search_waypoints()
-				_log_to_file("SEARCHING: Max radius reached, moved center from %s to %s (engaged enemy, wps=%d)" % [old_center, _search_center, _search_waypoints.size()])
+				_log_to_file("SEARCHING: Max radius reached, relocated center %s->%s, cleared zones (wps=%d)" % [old_center, _search_center, _search_waypoints.size()])
 				return
-			else:
-				_log_to_file("SEARCHING: Max radius, returning to IDLE (patrol enemy)")
-				_transition_to_idle()
-				return
+			_log_to_file("SEARCHING: Max radius, returning to IDLE (patrol enemy)")
+			_transition_to_idle(); return
 	if _search_waypoints.is_empty():
-		# Issue #330: If enemy has left IDLE, regenerate waypoints from new position
-		if _has_left_idle:
-			var old_center := _search_center
-			_search_center = global_position
-			_search_radius = SEARCH_INITIAL_RADIUS
+		if _has_left_idle:  # Issue #330/#405: Regenerate from current position, clear old zones
+			var old := _search_center; _search_center = global_position; _search_radius = SEARCH_INITIAL_RADIUS
+			# Issue #405: Clear visited zones to allow exploring new areas
+			_search_visited_zones.clear()
 			_generate_search_waypoints()
-			_log_to_file("SEARCHING: No waypoints, moved center from %s to %s (engaged enemy, wps=%d)" % [old_center, _search_center, _search_waypoints.size()])
+			_log_to_file("SEARCHING: No waypoints, relocated center %s->%s, cleared zones (wps=%d)" % [old, _search_center, _search_waypoints.size()])
 			return
-		_transition_to_idle()
-		return
+		_transition_to_idle(); return
 	var target_waypoint := _search_waypoints[_search_current_waypoint_index]
 	var dist := global_position.distance_to(target_waypoint)
 	if _search_moving_to_waypoint:
 		if dist <= SEARCH_WAYPOINT_REACHED_DISTANCE:
-			_search_moving_to_waypoint = false
-			_search_scan_timer = 0.0
-			_search_stuck_timer = 0.0  # Issue #354: Reset stuck timer on waypoint reached
+			_search_moving_to_waypoint = false; _search_scan_timer = 0.0; _search_stuck_timer = 0.0
 			_log_debug("SEARCHING: Reached waypoint %d, scanning..." % _search_current_waypoint_index)
 		else:
 			_nav_agent.target_position = target_waypoint
 			if _nav_agent.is_navigation_finished():
-				_mark_zone_visited(target_waypoint)
-				_search_current_waypoint_index += 1
-				_search_moving_to_waypoint = true
-				_search_stuck_timer = 0.0  # Issue #354: Reset stuck timer
+				_mark_zone_visited(target_waypoint); _search_current_waypoint_index += 1
+				_search_moving_to_waypoint = true; _search_stuck_timer = 0.0
 			else:
 				var next_pos := _nav_agent.get_next_path_position()
 				var dir := (next_pos - global_position).normalized()
-				velocity = dir * move_speed * 0.7
-				move_and_slide()
-				_push_casings()  # Issue #341: Push casings after movement
-
-				# Issue #354: Stuck detection - check if making progress toward waypoint
+				velocity = dir * move_speed * 0.7; move_and_slide(); _push_casings()  # Issue #341
+				# Issue #354: Stuck detection
 				var progress := global_position.distance_to(_search_last_progress_position)
 				if progress < SEARCH_PROGRESS_THRESHOLD:
 					_search_stuck_timer += delta
-					if _search_stuck_timer >= SEARCH_STUCK_MAX_TIME:
-						# Stuck for too long - skip to next waypoint
-						_log_to_file("SEARCHING: Stuck at waypoint %d (no progress for %.1fs), skipping" % [_search_current_waypoint_index, _search_stuck_timer])
-						_mark_zone_visited(target_waypoint)
-						_search_current_waypoint_index += 1
-						_search_moving_to_waypoint = true
-						_search_stuck_timer = 0.0
-						_search_last_progress_position = global_position
-						return
+					if _search_stuck_timer >= SEARCH_STUCK_MAX_TIME:  # Stuck - skip waypoint
+						_log_to_file("SEARCHING: Stuck at wp %d, skipping" % _search_current_waypoint_index)
+						_mark_zone_visited(target_waypoint); _search_current_waypoint_index += 1
+						_search_moving_to_waypoint = true; _search_stuck_timer = 0.0
+						_search_last_progress_position = global_position; return
 				else:
-					# Making progress - reset stuck timer and update position
-					_search_stuck_timer = 0.0
-					_search_last_progress_position = global_position
-
+					_search_stuck_timer = 0.0; _search_last_progress_position = global_position
 				if dir.length() > 0.1:
 					rotation = lerp_angle(rotation, dir.angle(), 5.0 * delta)
-					# Corner checking during SEARCHING movement (Issue #332)
-					_process_corner_check(delta, dir, "SEARCHING")
+					_process_corner_check(delta, dir, "SEARCHING")  # Issue #332
 	else:
-		_search_scan_timer += delta
-		rotation += delta * 1.5
+		_search_scan_timer += delta; rotation += delta * 1.5
 		if _search_scan_timer >= SEARCH_SCAN_DURATION:
-			_mark_zone_visited(target_waypoint)
-			_search_current_waypoint_index += 1
+			_mark_zone_visited(target_waypoint); _search_current_waypoint_index += 1
 			_search_moving_to_waypoint = true
 			_log_debug("SEARCHING: Scan done, next wp %d" % _search_current_waypoint_index)
 
@@ -4273,9 +4254,6 @@ func _on_death() -> void:
 	died.emit()
 	died_with_info.emit(_killed_by_ricochet, _killed_by_penetration)
 
-	# Notify nearby enemies of this death (Issue #409)
-	_notify_nearby_enemies_of_death()
-
 	# Disable hit area collision so bullets pass through dead enemies
 	_disable_hit_area_collision()
 
@@ -4366,8 +4344,6 @@ func _reset() -> void:
 	# Reset sound detection state
 	_last_known_player_position = Vector2.ZERO
 	_pursuing_vulnerability_sound = false
-	# Reset ally death observation state (Issue #409)
-	_suspected_directions.clear()
 	# Reset score tracking state
 	_killed_by_ricochet = false
 	_killed_by_penetration = false
@@ -4923,27 +4899,10 @@ func _on_vulnerable_sound_heard_for_grenade(position: Vector2) -> void:
 	if _grenade_component:
 		_grenade_component.on_vulnerable_sound(position, _can_see_player)
 
-## Called when an ally dies. Updates grenade component and triggers SEARCHING (Issue #409).
-## Called when ally dies. Triggers SEARCHING with priority directions (Issue #409).
-func on_ally_died(ally_pos: Vector2, killer_is_player: bool, hit_dir: Vector2 = Vector2.ZERO) -> void:
-	if _grenade_component: _grenade_component.on_ally_died(ally_pos, killer_is_player, _can_see_position(ally_pos))
-	if not _is_alive or not _can_see_position(ally_pos) or _current_state in [AIState.COMBAT, AIState.SUPPRESSED, AIState.RETREATING]: return
-	_suspected_directions.clear()
-	if hit_dir.length_squared() > 0.01: var p := -hit_dir.normalized(); _suspected_directions.append_array([p, Vector2(-p.y, p.x), Vector2(p.y, -p.x)])
-	elif _memory != null and _memory.has_target(): _suspected_directions.append((_memory.suspected_position - ally_pos).normalized())
-	else: _suspected_directions.append_array([Vector2(1, 0), Vector2(0, -1), Vector2(-1, 0)])
-	if _suspected_directions.size() > 0: _memory.update_position(ally_pos + _suspected_directions[0] * 200.0, ALLY_DEATH_CONFIDENCE)
-	_has_left_idle = true; _goap_world_state["witnessed_ally_death"] = true; _transition_to_searching(ally_pos)
-	for d in _suspected_directions:
-		for dist in [75.0, 150.0, 225.0]:
-			var wp := _search_center + d * dist
-			if _is_waypoint_navigable(wp) and not _is_zone_visited(wp): _search_waypoints.insert(0, wp)
-	_goap_world_state["witnessed_ally_death"] = false
-
-## Notify nearby enemies of death (Issue #409).
-func _notify_nearby_enemies_of_death() -> void:
-	for n in get_tree().get_nodes_in_group("enemies"):
-		if n != self and is_instance_valid(n) and n.global_position.distance_to(global_position) <= ALLY_DEATH_OBSERVE_RANGE and n.has_method("on_ally_died"): n.on_ally_died(global_position, true, _last_hit_direction)
+## Called when an ally dies. Updates witnessed kill count (Trigger 3).
+func on_ally_died(ally_position: Vector2, killer_is_player: bool) -> void:
+	if _grenade_component:
+		_grenade_component.on_ally_died(ally_position, killer_is_player, _can_see_position(ally_position))
 
 ## Check if a position is visible to this enemy (line of sight).
 func _can_see_position(pos: Vector2) -> bool:
