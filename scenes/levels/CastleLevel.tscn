@@ -110,7 +110,7 @@ color = Color(0.4, 0.35, 0.25, 1)
 polygon = PackedVector2Array(500, 1280, 520, 900, 700, 500, 1200, 250, 2000, 150, 3000, 100, 4000, 150, 4800, 250, 5300, 500, 5480, 900, 5500, 1280, 5480, 1660, 5300, 2060, 4800, 2310, 4000, 2410, 3000, 2460, 2000, 2410, 1200, 2310, 700, 2060, 520, 1660, 600, 1280, 620, 920, 780, 560, 1250, 330, 2000, 230, 3000, 180, 4000, 230, 4750, 330, 5220, 560, 5380, 920, 5400, 1280, 5380, 1640, 5220, 2000, 4750, 2230, 4000, 2330, 3000, 2380, 2000, 2330, 1250, 2230, 780, 2000, 620, 1640)
 
 [node name="CenterTower" type="StaticBody2D" parent="Environment"]
-position = Vector2(3000, 600)
+position = Vector2(3000, 450)
 collision_layer = 4
 collision_mask = 0
 
@@ -123,7 +123,7 @@ shape = SubResource("CircleShape2D_inner_tower")
 scale = Vector2(1.8, 1.8)
 
 [node name="InnerTower" type="StaticBody2D" parent="Environment"]
-position = Vector2(3000, 600)
+position = Vector2(3000, 450)
 collision_layer = 4
 collision_mask = 0
 
@@ -138,39 +138,39 @@ scale = Vector2(1.5, 1.5)
 [node name="CastleBuilding" type="Node2D" parent="Environment"]
 
 [node name="LeftWingTopWall" type="StaticBody2D" parent="Environment/CastleBuilding"]
-position = Vector2(1700, 450)
+position = Vector2(1400, 350)
 collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/CastleBuilding/LeftWingTopWall"]
-offset_left = -900.0
+offset_left = -600.0
 offset_top = -12.0
-offset_right = 500.0
+offset_right = 600.0
 offset_bottom = 12.0
 color = Color(0.35, 0.3, 0.25, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/CastleBuilding/LeftWingTopWall"]
 shape = SubResource("RectangleShape2D_castle_wall_h")
-scale = Vector2(3.5, 1.0)
+scale = Vector2(3.0, 1.0)
 
 [node name="LeftWingBottomWall" type="StaticBody2D" parent="Environment/CastleBuilding"]
-position = Vector2(1700, 750)
+position = Vector2(1400, 650)
 collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/CastleBuilding/LeftWingBottomWall"]
-offset_left = -900.0
+offset_left = -600.0
 offset_top = -12.0
-offset_right = 500.0
+offset_right = 600.0
 offset_bottom = 12.0
 color = Color(0.35, 0.3, 0.25, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/CastleBuilding/LeftWingBottomWall"]
 shape = SubResource("RectangleShape2D_castle_wall_h")
-scale = Vector2(3.5, 1.0)
+scale = Vector2(3.0, 1.0)
 
 [node name="LeftWingEndWall" type="StaticBody2D" parent="Environment/CastleBuilding"]
-position = Vector2(800, 600)
+position = Vector2(800, 500)
 collision_layer = 4
 collision_mask = 0
 
@@ -185,74 +185,40 @@ color = Color(0.35, 0.3, 0.25, 1)
 shape = SubResource("RectangleShape2D_castle_wall_v")
 scale = Vector2(1.0, 1.08)
 
-[node name="LeftWingRoom1" type="Node2D" parent="Environment/CastleBuilding"]
-position = Vector2(1100, 600)
-
-[node name="TopWall" type="ColorRect" parent="Environment/CastleBuilding/LeftWingRoom1"]
-offset_left = -70.0
-offset_top = -150.0
-offset_right = 70.0
-offset_bottom = -138.0
-color = Color(0.35, 0.3, 0.25, 1)
-
-[node name="BottomWall" type="ColorRect" parent="Environment/CastleBuilding/LeftWingRoom1"]
-offset_left = -70.0
-offset_top = 138.0
-offset_right = 70.0
-offset_bottom = 150.0
-color = Color(0.35, 0.3, 0.25, 1)
-
-[node name="LeftWingRoom2" type="Node2D" parent="Environment/CastleBuilding"]
-position = Vector2(1550, 600)
-
-[node name="TopWall" type="ColorRect" parent="Environment/CastleBuilding/LeftWingRoom2"]
-offset_left = -70.0
-offset_top = -150.0
-offset_right = 70.0
-offset_bottom = -138.0
-color = Color(0.35, 0.3, 0.25, 1)
-
-[node name="BottomWall" type="ColorRect" parent="Environment/CastleBuilding/LeftWingRoom2"]
-offset_left = -70.0
-offset_top = 138.0
-offset_right = 70.0
-offset_bottom = 150.0
-color = Color(0.35, 0.3, 0.25, 1)
-
 [node name="RightWingTopWall" type="StaticBody2D" parent="Environment/CastleBuilding"]
-position = Vector2(4300, 450)
+position = Vector2(4600, 350)
 collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/CastleBuilding/RightWingTopWall"]
-offset_left = -500.0
+offset_left = -600.0
 offset_top = -12.0
-offset_right = 900.0
+offset_right = 600.0
 offset_bottom = 12.0
 color = Color(0.35, 0.3, 0.25, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/CastleBuilding/RightWingTopWall"]
 shape = SubResource("RectangleShape2D_castle_wall_h")
-scale = Vector2(3.5, 1.0)
+scale = Vector2(3.0, 1.0)
 
 [node name="RightWingBottomWall" type="StaticBody2D" parent="Environment/CastleBuilding"]
-position = Vector2(4300, 750)
+position = Vector2(4600, 650)
 collision_layer = 4
 collision_mask = 0
 
 [node name="ColorRect" type="ColorRect" parent="Environment/CastleBuilding/RightWingBottomWall"]
-offset_left = -500.0
+offset_left = -600.0
 offset_top = -12.0
-offset_right = 900.0
+offset_right = 600.0
 offset_bottom = 12.0
 color = Color(0.35, 0.3, 0.25, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/CastleBuilding/RightWingBottomWall"]
 shape = SubResource("RectangleShape2D_castle_wall_h")
-scale = Vector2(3.5, 1.0)
+scale = Vector2(3.0, 1.0)
 
 [node name="RightWingEndWall" type="StaticBody2D" parent="Environment/CastleBuilding"]
-position = Vector2(5200, 600)
+position = Vector2(5200, 500)
 collision_layer = 4
 collision_mask = 0
 
@@ -267,97 +233,37 @@ color = Color(0.35, 0.3, 0.25, 1)
 shape = SubResource("RectangleShape2D_castle_wall_v")
 scale = Vector2(1.0, 1.08)
 
-[node name="RightWingRoom1" type="Node2D" parent="Environment/CastleBuilding"]
-position = Vector2(4450, 600)
-
-[node name="TopWall" type="ColorRect" parent="Environment/CastleBuilding/RightWingRoom1"]
-offset_left = -70.0
-offset_top = -150.0
-offset_right = 70.0
-offset_bottom = -138.0
-color = Color(0.35, 0.3, 0.25, 1)
-
-[node name="BottomWall" type="ColorRect" parent="Environment/CastleBuilding/RightWingRoom1"]
-offset_left = -70.0
-offset_top = 138.0
-offset_right = 70.0
-offset_bottom = 150.0
-color = Color(0.35, 0.3, 0.25, 1)
-
-[node name="RightWingRoom2" type="Node2D" parent="Environment/CastleBuilding"]
-position = Vector2(4900, 600)
-
-[node name="TopWall" type="ColorRect" parent="Environment/CastleBuilding/RightWingRoom2"]
-offset_left = -70.0
-offset_top = -150.0
-offset_right = 70.0
-offset_bottom = -138.0
-color = Color(0.35, 0.3, 0.25, 1)
-
-[node name="BottomWall" type="ColorRect" parent="Environment/CastleBuilding/RightWingRoom2"]
-offset_left = -70.0
-offset_top = 138.0
-offset_right = 70.0
-offset_bottom = 150.0
-color = Color(0.35, 0.3, 0.25, 1)
-
-[node name="LeftLowerLWall" type="StaticBody2D" parent="Environment/CastleBuilding"]
-position = Vector2(1200, 1000)
+[node name="CenterSouthWallLeft" type="StaticBody2D" parent="Environment/CastleBuilding"]
+position = Vector2(2450, 750)
 collision_layer = 4
 collision_mask = 0
 
-[node name="HorizontalWall" type="ColorRect" parent="Environment/CastleBuilding/LeftLowerLWall"]
-offset_left = -500.0
+[node name="ColorRect" type="ColorRect" parent="Environment/CastleBuilding/CenterSouthWallLeft"]
+offset_left = -450.0
 offset_top = -12.0
-offset_right = 100.0
+offset_right = 450.0
 offset_bottom = 12.0
 color = Color(0.35, 0.3, 0.25, 1)
 
-[node name="VerticalWall" type="ColorRect" parent="Environment/CastleBuilding/LeftLowerLWall"]
-offset_left = -12.0
-offset_top = -250.0
-offset_right = 12.0
-offset_bottom = 12.0
-color = Color(0.35, 0.3, 0.25, 1)
-
-[node name="CollisionShapeH" type="CollisionShape2D" parent="Environment/CastleBuilding/LeftLowerLWall"]
-position = Vector2(-200, 0)
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/CastleBuilding/CenterSouthWallLeft"]
 shape = SubResource("RectangleShape2D_castle_wall_h")
-scale = Vector2(1.5, 1.0)
+scale = Vector2(2.25, 1.0)
 
-[node name="CollisionShapeV" type="CollisionShape2D" parent="Environment/CastleBuilding/LeftLowerLWall"]
-position = Vector2(0, -125)
-shape = SubResource("RectangleShape2D_castle_wall_short_v")
-scale = Vector2(1.0, 1.67)
-
-[node name="RightLowerLWall" type="StaticBody2D" parent="Environment/CastleBuilding"]
-position = Vector2(4800, 1000)
+[node name="CenterSouthWallRight" type="StaticBody2D" parent="Environment/CastleBuilding"]
+position = Vector2(3550, 750)
 collision_layer = 4
 collision_mask = 0
 
-[node name="HorizontalWall" type="ColorRect" parent="Environment/CastleBuilding/RightLowerLWall"]
-offset_left = -100.0
+[node name="ColorRect" type="ColorRect" parent="Environment/CastleBuilding/CenterSouthWallRight"]
+offset_left = -450.0
 offset_top = -12.0
-offset_right = 500.0
+offset_right = 450.0
 offset_bottom = 12.0
 color = Color(0.35, 0.3, 0.25, 1)
 
-[node name="VerticalWall" type="ColorRect" parent="Environment/CastleBuilding/RightLowerLWall"]
-offset_left = -12.0
-offset_top = -250.0
-offset_right = 12.0
-offset_bottom = 12.0
-color = Color(0.35, 0.3, 0.25, 1)
-
-[node name="CollisionShapeH" type="CollisionShape2D" parent="Environment/CastleBuilding/RightLowerLWall"]
-position = Vector2(200, 0)
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/CastleBuilding/CenterSouthWallRight"]
 shape = SubResource("RectangleShape2D_castle_wall_h")
-scale = Vector2(1.5, 1.0)
-
-[node name="CollisionShapeV" type="CollisionShape2D" parent="Environment/CastleBuilding/RightLowerLWall"]
-position = Vector2(0, -125)
-shape = SubResource("RectangleShape2D_castle_wall_short_v")
-scale = Vector2(1.0, 1.67)
+scale = Vector2(2.25, 1.0)
 
 [node name="Cover" type="Node2D" parent="Environment"]
 
@@ -705,7 +611,7 @@ horizontal_alignment = 1
 [node name="Enemies" type="Node2D" parent="Environment"]
 
 [node name="ShotgunEnemy1" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
-position = Vector2(900, 600)
+position = Vector2(1000, 500)
 behavior_mode = 1
 weapon_type = 1
 destroy_on_death = true
@@ -713,7 +619,7 @@ enable_flanking = true
 enable_cover = true
 
 [node name="ShotgunEnemy2" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
-position = Vector2(1100, 600)
+position = Vector2(1400, 500)
 behavior_mode = 1
 weapon_type = 1
 destroy_on_death = true
@@ -721,7 +627,7 @@ enable_flanking = true
 enable_cover = true
 
 [node name="UziEnemy1" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
-position = Vector2(2850, 500)
+position = Vector2(2500, 550)
 behavior_mode = 1
 weapon_type = 2
 destroy_on_death = true
@@ -729,7 +635,7 @@ enable_flanking = true
 enable_cover = true
 
 [node name="UziEnemy2" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
-position = Vector2(3150, 500)
+position = Vector2(3500, 550)
 behavior_mode = 1
 weapon_type = 2
 destroy_on_death = true
@@ -737,7 +643,7 @@ enable_flanking = true
 enable_cover = true
 
 [node name="UziEnemy3" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
-position = Vector2(3000, 700)
+position = Vector2(3000, 300)
 behavior_mode = 1
 weapon_type = 2
 destroy_on_death = true
@@ -745,7 +651,7 @@ enable_flanking = true
 enable_cover = true
 
 [node name="UziEnemyRight1" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
-position = Vector2(5100, 600)
+position = Vector2(4800, 500)
 behavior_mode = 1
 weapon_type = 2
 destroy_on_death = true
@@ -753,7 +659,7 @@ enable_flanking = true
 enable_cover = true
 
 [node name="ShotgunEnemyRight1" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
-position = Vector2(4900, 600)
+position = Vector2(5000, 500)
 behavior_mode = 1
 weapon_type = 1
 destroy_on_death = true
@@ -813,50 +719,50 @@ enable_cover = true
 [node name="ZoneLabels" type="Node2D" parent="Environment"]
 
 [node name="ShotgunLabel" type="Label" parent="Environment/ZoneLabels"]
-offset_left = 850.0
-offset_top = 530.0
-offset_right = 1150.0
-offset_bottom = 560.0
+offset_left = 1000.0
+offset_top = 430.0
+offset_right = 1400.0
+offset_bottom = 460.0
 text = "дробовики"
 horizontal_alignment = 1
 
 [node name="EnemyLabel" type="Label" parent="Environment/ZoneLabels"]
-offset_left = 5000.0
-offset_top = 530.0
-offset_right = 5150.0
-offset_bottom = 560.0
+offset_left = 4700.0
+offset_top = 430.0
+offset_right = 5100.0
+offset_bottom = 460.0
 text = "враги"
 horizontal_alignment = 1
 
 [node name="UziLabel" type="Label" parent="Environment/ZoneLabels"]
-offset_left = 5000.0
-offset_top = 560.0
-offset_right = 5150.0
-offset_bottom = 590.0
+offset_left = 4700.0
+offset_top = 460.0
+offset_right = 4900.0
+offset_bottom = 490.0
 text = "uzi"
 horizontal_alignment = 1
 
 [node name="ShotgunLabel2" type="Label" parent="Environment/ZoneLabels"]
-offset_left = 4850.0
-offset_top = 560.0
-offset_right = 5000.0
-offset_bottom = 590.0
+offset_left = 4900.0
+offset_top = 460.0
+offset_right = 5100.0
+offset_bottom = 490.0
 text = "дробовик"
 horizontal_alignment = 1
 
 [node name="UziLabelCenter" type="Label" parent="Environment/ZoneLabels"]
-offset_left = 2700.0
-offset_top = 950.0
-offset_right = 2900.0
-offset_bottom = 980.0
+offset_left = 2400.0
+offset_top = 480.0
+offset_right = 2600.0
+offset_bottom = 510.0
 text = "uzi"
 horizontal_alignment = 1
 
 [node name="UziLabelCenter2" type="Label" parent="Environment/ZoneLabels"]
-offset_left = 3100.0
-offset_top = 950.0
-offset_right = 3300.0
-offset_bottom = 980.0
+offset_left = 3400.0
+offset_top = 480.0
+offset_right = 3600.0
+offset_bottom = 510.0
 text = "uzi"
 horizontal_alignment = 1
 
