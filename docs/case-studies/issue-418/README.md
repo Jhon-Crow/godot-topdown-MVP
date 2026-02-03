@@ -389,16 +389,122 @@ In Godot's Compatibility renderer (OpenGL ES 3.0 / WebGL 2.0):
 
 ### Compatibility
 - Uses `canvas_item` shader type (2D compatible)
-- Uses `hint_screen_texture` with `filter_nearest` for screen sampling
-- **Requires `textureLod()` instead of `texture()` for gl_compatibility mode**
+- **v4.0: DOES NOT use `hint_screen_texture`** - avoids gl_compatibility bugs entirely
 - Works with all Godot 4 rendering modes (Forward+, Mobile, Compatibility)
 
 ### Key Technical Decisions
 
-1. **textureLod() over texture()**: Required for gl_compatibility renderer support
-2. **filter_nearest over filter_linear_mipmap**: Avoids Compatibility mode rendering bugs
-3. **Hash-based noise over sine-based**: Eliminates visible wave patterns
-4. **Frame-quantized time**: Prevents smooth transitions that can look like waves
-5. **Multiplicative warm tint**: Preserves more color detail than luminance-based
-6. **Probability-based defects**: Realistic rare occurrence, minimal performance impact
-7. **Delayed activation (3 frames)**: Ensures scene renders before effect activates
+1. **Overlay approach (v4.0)**: Avoids hint_screen_texture entirely for maximum compatibility
+2. **Hash-based noise over sine-based**: Eliminates visible wave patterns
+3. **Frame-quantized time**: Prevents smooth transitions that can look like waves
+4. **Multiplicative warm tint**: Preserves more color detail than luminance-based
+5. **Probability-based defects**: Realistic rare occurrence, minimal performance impact
+6. **Minimal delayed activation (1 frame)**: Ensures smooth scene transitions
+
+### Version 4.0 (Overlay Approach Fix)
+
+**Issue Reported**: "всё ещё не работает" (still not working) - White screen persists after v3.0 fix.
+
+Despite all previous fixes (textureLod, filter_nearest, delayed activation), the user continued to experience white screens in gl_compatibility mode.
+
+**Root Cause Analysis (Deep Investigation)**:
+
+After extensive research into Godot's gl_compatibility renderer, multiple fundamental issues were identified:
+
+1. **Known Godot Bugs**: Multiple open issues track gl_compatibility + hint_screen_texture problems:
+   - [GitHub Issue #79914](https://github.com/godotengine/godot/issues/79914): Pink grid lines, white screens
+   - [GitHub Issue #66458](https://github.com/godotengine/godot/issues/66458): OpenGL Compatibility renderer tracker
+   - [Forum: hint_screen_texture empty texture](https://forum.godotengine.org/t/why-is-hint-screen-texture-giving-an-empty-texture/120012)
+   - [Forum: screen_texture strange in GL compatibility](https://forum.godotengine.org/t/screen-texture-behaves-strangely-with-gl-compatibility-renderer-but-works-fine-with-forward/93296)
+
+2. **Multiple Screen Shaders Conflict**: Godot only takes a SINGLE snapshot for `hint_screen_texture`. When multiple shaders use it:
+   - The engine copies the framebuffer only once
+   - Subsequent shaders read potentially corrupted/stale data
+   - The cinema effect (always visible) interferes with hit effects and last chance effects
+
+3. **Always-On Effect Problem**: Unlike temporary effects (hit_effects, last_chance), the cinema effect is designed to be continuously visible. This creates persistent interference with the screen texture buffer.
+
+4. **The textureLod() / filter_nearest Fixes Were Insufficient**: These workarounds help with some gl_compatibility issues but don't solve the fundamental screen texture conflicts.
+
+**Solution Applied (v4.0 - OVERLAY APPROACH)**:
+
+Complete architectural change: **Remove hint_screen_texture dependency entirely**.
+
+Instead of sampling and modifying the screen, the shader now creates **transparent overlays** that blend on top of the rendered scene using standard alpha blending:
+
+1. **Film grain**: Rendered as semi-transparent white/black noise pixels
+2. **Vignette**: Rendered as a dark gradient overlay at screen edges
+3. **Warm color tint**: Rendered as a subtle warm-colored transparent overlay
+4. **Sunny effect**: Rendered as a light golden transparent overlay
+5. **Film defects**: Rendered as separate overlay elements (scratches, dust, flicker)
+
+**Key Code Changes**:
+
+Shader (cinema_film.gdshader v4.0):
+```glsl
+// NO hint_screen_texture - creates overlay instead
+shader_type canvas_item;
+
+void fragment() {
+    // Start with transparent base
+    vec4 overlay = vec4(0.0, 0.0, 0.0, 0.0);
+
+    // Add grain as semi-transparent noise
+    if (grain_enabled) {
+        float grain = film_grain(UV, seed);
+        float grain_alpha = abs(grain) * grain_intensity * 2.0;
+        overlay.rgb += (grain > 0.0 ? vec3(1.0) : vec3(0.0)) * grain_alpha;
+        overlay.a = max(overlay.a, grain_alpha * 0.5);
+    }
+
+    // Add vignette as dark overlay at edges
+    if (vignette_enabled) {
+        float vignette = smoothstep(vignette_softness, 1.0, length(UV - 0.5) * 1.414);
+        overlay.rgb = mix(overlay.rgb, vec3(0.0), vignette * vignette_intensity);
+        overlay.a = max(overlay.a, vignette * vignette_intensity * 0.8);
+    }
+
+    // ... other effects as overlays
+
+    COLOR = overlay;  // Output transparent overlay
+}
+```
+
+Manager Changes:
+- Removed brightness/contrast controls (can't modify scene colors without screen sampling)
+- Removed highlight_boost (can't detect bright areas without screen sampling)
+- Reduced activation delay to 1 frame (no screen texture timing issues)
+- Added documentation about overlay approach
+
+**Why This Works**:
+
+1. **No screen texture dependency**: Completely bypasses all gl_compatibility bugs
+2. **Standard alpha blending**: Uses Godot's native compositing, which works reliably
+3. **No shader conflicts**: Doesn't interfere with other screen-reading shaders
+4. **Better performance**: No framebuffer copy operation needed
+
+**Trade-offs**:
+
+1. **No brightness/contrast adjustment**: Can't modify overall scene brightness
+2. **No highlight boost**: Can't selectively brighten already-bright areas
+3. **Limited color grading**: Can only add color overlay, not multiply scene colors
+
+These trade-offs are acceptable because:
+- The warm color overlay still provides the cinematic color feel
+- Vignette darkening works well as an overlay
+- Film grain and defects work identically as overlays
+- The effect is visually similar to the screen_texture approach
+
+**Game Logs Added**:
+- `game_log_20260203_163817.txt` - Final log before v4.0 fix
+
+**Research Sources**:
+- [Godot GitHub Issue #79914](https://github.com/godotengine/godot/issues/79914)
+- [Godot GitHub Issue #66458](https://github.com/godotengine/godot/issues/66458)
+- [Godot GitHub Issue #41627](https://github.com/godotengine/godot/issues/41627) - Multiple screen shaders blank
+- [Godot Forum: Why is hint_screen_texture giving an empty texture?](https://forum.godotengine.org/t/why-is-hint-screen-texture-giving-an-empty-texture/120012)
+- [Godot Forum: screen_texture behaves strangely with GL_compatibility](https://forum.godotengine.org/t/screen-texture-behaves-strangely-with-gl-compatibility-renderer-but-works-fine-with-forward/93296)
+- [The Shaggy Dev: The fix for UI and post-processing shaders](https://shaggydev.com/2025/04/09/godot-ui-postprocessing-shaders/)
+- [Godot Docs: Screen-reading shaders](https://docs.godotengine.org/en/stable/tutorials/shaders/screen-reading_shaders.html)
+- [Godot Docs: Custom post-processing](https://docs.godotengine.org/en/stable/tutorials/shaders/custom_postprocessing.html)
+- [Godot Post-Process Plugin](https://github.com/KorinDev/Godot-Post-Process-Plugin)

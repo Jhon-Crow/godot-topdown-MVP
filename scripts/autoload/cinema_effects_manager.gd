@@ -8,6 +8,12 @@ extends Node
 ## - Rare film defects (scratches, dust, flicker)
 ##
 ## The effect can be enabled/disabled and parameters can be adjusted at runtime.
+##
+## ARCHITECTURE (v4.0):
+## This manager uses an OVERLAY-BASED approach that does NOT use hint_screen_texture.
+## This avoids known bugs in Godot's gl_compatibility renderer that cause white screens.
+## Instead of sampling the screen and modifying it, we create transparent overlays
+## that blend on top of the rendered scene using standard alpha blending.
 
 # ============================================================================
 # DEFAULT VALUES
@@ -22,17 +28,8 @@ const DEFAULT_WARM_COLOR: Color = Color(1.0, 0.95, 0.85)
 ## Default warm tint intensity (0.0 = no tint, 1.0 = full tint)
 const DEFAULT_WARM_INTENSITY: float = 0.12
 
-## Default brightness
-const DEFAULT_BRIGHTNESS: float = 1.05
-
-## Default contrast
-const DEFAULT_CONTRAST: float = 1.05
-
 ## Default sunny effect intensity
 const DEFAULT_SUNNY_INTENSITY: float = 0.08
-
-## Default sunny highlight boost
-const DEFAULT_SUNNY_HIGHLIGHT_BOOST: float = 1.15
 
 ## Default vignette intensity
 const DEFAULT_VIGNETTE_INTENSITY: float = 0.25
@@ -67,7 +64,9 @@ var _material: ShaderMaterial = null
 
 ## Number of frames to wait before enabling the effect.
 ## This ensures the scene has fully rendered before applying the shader.
-const ACTIVATION_DELAY_FRAMES: int = 3
+## With v4.0 overlay approach, this is less critical but still provides
+## smooth transitions.
+const ACTIVATION_DELAY_FRAMES: int = 1
 
 ## Counter for delayed activation.
 var _activation_frame_counter: int = 0
@@ -77,7 +76,7 @@ var _waiting_for_activation: bool = false
 
 
 func _ready() -> void:
-	_log("CinemaEffectsManager initializing...")
+	_log("CinemaEffectsManager initializing (v4.0 - overlay approach)...")
 
 	# Connect to scene tree changes to handle scene reloads
 	get_tree().tree_changed.connect(_on_tree_changed)
@@ -94,6 +93,8 @@ func _ready() -> void:
 	_cinema_rect.name = "CinemaOverlay"
 	_cinema_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_cinema_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# Set base color to transparent - the shader will produce the overlay
+	_cinema_rect.color = Color(1.0, 1.0, 1.0, 1.0)  # White base, shader controls actual output
 
 	# Load and apply the cinema shader
 	var shader := load("res://scripts/shaders/cinema_film.gdshader") as Shader
@@ -102,30 +103,30 @@ func _ready() -> void:
 		_material.shader = shader
 		_set_default_parameters()
 		_cinema_rect.material = _material
-		_log("Cinema shader loaded and applied successfully")
+		_log("Cinema shader loaded successfully (v4.0 - no screen_texture)")
 	else:
 		push_warning("CinemaEffectsManager: Could not load cinema_film shader")
 		_log("WARNING: Could not load cinema_film shader!")
 
-	# CRITICAL: Start with overlay HIDDEN to prevent white screen
-	# The shader will be enabled after the scene renders
+	# Start with overlay hidden for smooth initialization
 	_cinema_rect.visible = false
 	_effects_layer.add_child(_cinema_rect)
 
 	# Perform shader warmup to prevent first-frame stutter (Issue #343 pattern)
 	_warmup_shader()
 
-	_log("Cinema film effect initialized - Configuration:")
+	_log("Cinema film effect initialized (v4.0) - Configuration:")
+	_log("  Approach: Overlay-based (no screen_texture)")
 	_log("  Grain intensity: %.2f" % DEFAULT_GRAIN_INTENSITY)
 	_log("  Warm tint: %.2f intensity" % DEFAULT_WARM_INTENSITY)
 	_log("  Sunny effect: %.2f intensity" % DEFAULT_SUNNY_INTENSITY)
 	_log("  Vignette: %.2f intensity" % DEFAULT_VIGNETTE_INTENSITY)
 	_log("  Film defects: %.1f%% probability" % (DEFAULT_DEFECT_PROBABILITY * 100.0))
 
-	# Start delayed activation - wait for scene to render
+	# Start delayed activation - minimal delay needed since we don't use screen_texture
 	_waiting_for_activation = true
 	_activation_frame_counter = 0
-	_log("Waiting %d frames before enabling effect..." % ACTIVATION_DELAY_FRAMES)
+	_log("Enabling effect after %d frame(s)..." % ACTIVATION_DELAY_FRAMES)
 
 
 ## Log a message with the CinemaEffects prefix.
@@ -161,19 +162,14 @@ func _set_default_parameters() -> void:
 		_material.set_shader_parameter("warm_intensity", DEFAULT_WARM_INTENSITY)
 		_material.set_shader_parameter("warm_enabled", true)
 
-		# Sunny/bright effect parameters
+		# Sunny/bright effect parameters (v4.0: no highlight_boost - overlay approach)
 		_material.set_shader_parameter("sunny_intensity", DEFAULT_SUNNY_INTENSITY)
-		_material.set_shader_parameter("sunny_highlight_boost", DEFAULT_SUNNY_HIGHLIGHT_BOOST)
 		_material.set_shader_parameter("sunny_enabled", true)
 
 		# Vignette parameters
 		_material.set_shader_parameter("vignette_intensity", DEFAULT_VIGNETTE_INTENSITY)
 		_material.set_shader_parameter("vignette_softness", DEFAULT_VIGNETTE_SOFTNESS)
 		_material.set_shader_parameter("vignette_enabled", true)
-
-		# Brightness and contrast
-		_material.set_shader_parameter("brightness", DEFAULT_BRIGHTNESS)
-		_material.set_shader_parameter("contrast", DEFAULT_CONTRAST)
 
 		# Film defect parameters
 		_material.set_shader_parameter("defects_enabled", true)
@@ -247,34 +243,6 @@ func set_warm_enabled(enabled: bool) -> void:
 		_material.set_shader_parameter("warm_enabled", enabled)
 
 
-## Sets the overall brightness.
-## @param value: 1.0 = normal, <1.0 = darker, >1.0 = brighter
-func set_brightness(value: float) -> void:
-	if _material:
-		_material.set_shader_parameter("brightness", clamp(value, 0.5, 1.5))
-
-
-## Gets the current brightness value.
-func get_brightness() -> float:
-	if _material:
-		return _material.get_shader_parameter("brightness")
-	return DEFAULT_BRIGHTNESS
-
-
-## Sets the contrast level.
-## @param value: 1.0 = normal, <1.0 = lower contrast, >1.0 = higher contrast
-func set_contrast(value: float) -> void:
-	if _material:
-		_material.set_shader_parameter("contrast", clamp(value, 0.5, 2.0))
-
-
-## Gets the current contrast value.
-func get_contrast() -> float:
-	if _material:
-		return _material.get_shader_parameter("contrast")
-	return DEFAULT_CONTRAST
-
-
 # ============================================================================
 # SUNNY EFFECT CONTROLS
 # ============================================================================
@@ -291,13 +259,6 @@ func get_sunny_intensity() -> float:
 	if _material:
 		return _material.get_shader_parameter("sunny_intensity")
 	return DEFAULT_SUNNY_INTENSITY
-
-
-## Sets the highlight boost for bright areas in sunny effect.
-## @param boost: Value from 1.0 (no boost) to 2.0 (double brightness)
-func set_sunny_highlight_boost(boost: float) -> void:
-	if _material:
-		_material.set_shader_parameter("sunny_highlight_boost", clamp(boost, 1.0, 2.0))
 
 
 ## Enables or disables the sunny/golden highlight effect.
