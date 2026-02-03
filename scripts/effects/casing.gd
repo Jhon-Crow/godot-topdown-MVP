@@ -55,6 +55,10 @@ func _ready() -> void:
 	# Collision will be re-enabled after SPAWN_COLLISION_DELAY seconds
 	_disable_collision()
 
+	# Add collision exception with player to prevent blocking (Issue #392)
+	# This ensures casings NEVER block player movement, even after collision re-enables
+	_add_player_collision_exception()
+
 
 func _physics_process(delta: float) -> void:
 	# If time is frozen, maintain frozen state (velocity should stay at zero)
@@ -230,3 +234,17 @@ func _enable_collision() -> void:
 	var collision_shape := get_node_or_null("CollisionShape2D") as CollisionShape2D
 	if collision_shape != null:
 		collision_shape.disabled = false
+
+
+## Adds collision exception for player to prevent casings from blocking player movement.
+## This is a defense-in-depth measure on top of collision layer separation.
+## Uses add_collision_exception_with() which makes two bodies completely ignore each other.
+func _add_player_collision_exception() -> void:
+	# Find player in scene tree (player is in "player" group)
+	var players := get_tree().get_nodes_in_group("player")
+	for player in players:
+		if player is PhysicsBody2D:
+			# Make this casing ignore the player in collision detection
+			add_collision_exception_with(player)
+			# Also make player ignore this casing (bidirectional exclusion)
+			player.add_collision_exception_with(self)

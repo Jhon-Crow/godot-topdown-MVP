@@ -51,6 +51,19 @@
 - Player was detecting casings (layer 7) in its collision mask
 - This caused player to be blocked by casings
 
+### User Feedback #3 (2026-02-03)
+- Feedback from log `game_log_20260203_105632.txt`:
+  1. "тряска при стрельбе исчезала (хорошо)" - Shake at shooting is gone (good)
+  2. "гильзы всё ещё блокируют движение игрока" - Casings still block player movement
+- The spawn collision delay fixed the spawn-time push issue
+- But casings still block player when walking into them after they land
+
+### Final Fix - Collision Exception (2026-02-03)
+- Research discovered that collision layers/masks may not be 100% reliable in some physics edge cases
+- Godot's physics system uses bidirectional checking: `collision_layer & p_other->collision_mask OR p_other->collision_layer & collision_mask`
+- Solution: Use `add_collision_exception_with()` for guaranteed collision exclusion
+- This makes the two physics bodies completely ignore each other at the physics engine level
+
 ## Root Cause Analysis
 
 ### Problem Identification
@@ -178,7 +191,7 @@ mass = 0.01
 - Casings now eject with realistic distance
 - Linear damping (3.0) still slows them naturally
 
-#### 5. Spawn Collision Delay (Final Fix)
+#### 5. Spawn Collision Delay
 **File**: `scripts/effects/casing.gd`
 
 Added spawn collision delay system:
@@ -216,6 +229,34 @@ func _enable_collision() -> void:
 - After 0.1 seconds, casing has moved away from spawn point
 - Enables collision only when casing is safely away from player
 - Prevents any spawn-time physics interaction with player
+
+#### 6. Collision Exception (Final Fix)
+**File**: `scripts/effects/casing.gd`
+
+Added explicit collision exception with player:
+```gdscript
+func _ready() -> void:
+    # ... existing code ...
+    _add_player_collision_exception()  # Add collision exception
+
+func _add_player_collision_exception() -> void:
+    # Find player in scene tree (player is in "player" group)
+    var players := get_tree().get_nodes_in_group("player")
+    for player in players:
+        if player is PhysicsBody2D:
+            # Make this casing ignore the player in collision detection
+            add_collision_exception_with(player)
+            # Also make player ignore this casing (bidirectional exclusion)
+            player.add_collision_exception_with(self)
+```
+
+**Rationale**:
+- `add_collision_exception_with()` is a Godot physics system function that makes two bodies completely ignore each other
+- This works at the physics engine level, bypassing any layer/mask configuration
+- Bidirectional exclusion ensures neither body affects the other
+- Defense-in-depth: Works even if layer/mask configuration has edge cases
+- Research showed Godot uses bidirectional checking for collision, which can cause unexpected interactions
+- This is the most reliable way to ensure casings NEVER block player movement
 
 ### Why This Solution Works
 
@@ -292,18 +333,19 @@ All logs saved to `docs/case-studies/issue-392/logs/` for reference.
 
 **Decision**: Not chosen - Area2D provides cleaner separation
 
-### Alternative 2: Collision Exception
+### Alternative 2: Collision Exception (NOW IMPLEMENTED)
 **Approach**: Use `add_collision_exception_with()` to ignore casings
 
 **Pros**:
 - Direct physics system integration
+- Guaranteed to work at physics engine level
+- No ambiguity about collision behavior
 
 **Cons**:
-- Requires tracking all casings
-- Performance overhead with many casings
-- Doesn't allow player to push casings
+- Requires finding player reference at runtime
+- Slightly more code
 
-**Decision**: Not chosen - Layer-based approach is more efficient
+**Decision**: CHOSEN as final defense-in-depth solution due to reliability
 
 ## Lessons Learned
 
@@ -327,7 +369,19 @@ All logs saved to `docs/case-studies/issue-392/logs/` for reference.
 5. **User Feedback is Critical**
    - First fix seemed reasonable but didn't meet actual requirements
    - Second fix improved behavior but revealed spawn-time edge case
+   - Third fix (spawn delay) fixed spawn-time but not walk-into blocking
    - Clarifying exact behavior expectations and iterating on feedback saves time
+
+6. **Collision Exception for Guaranteed Results**
+   - `add_collision_exception_with()` provides direct physics engine exclusion
+   - This bypasses all layer/mask complexity
+   - Useful when layer configuration alone doesn't fully work
+   - Bidirectional exceptions ensure both bodies ignore each other
+
+7. **Defense-in-Depth for Physics**
+   - Use multiple complementary techniques for reliability
+   - Layer separation + spawn delay + collision exception = robust solution
+   - Don't rely on a single mechanism for critical physics behavior
 
 ## References
 
@@ -342,16 +396,25 @@ All logs saved to `docs/case-studies/issue-392/logs/` for reference.
 
 ## Conclusion
 
-The shell casing physics issue was resolved by:
-1. Removing layer 7 from player's collision mask (player no longer blocked)
-2. Adding Area2D to detect and push casings (player can still interact)
-3. Removing mass reduction (casings eject at normal distance)
-4. **Disabling casing collision at spawn, enabling after 0.1s delay** (prevents spawn-time physics interaction)
+The shell casing physics issue was resolved through a multi-layer defense-in-depth approach:
+
+1. **Collision Layer Separation**: Removing layer 7 from player's collision mask (player no longer blocked)
+2. **Area2D Detection**: Adding Area2D to detect and push casings (player can still interact)
+3. **Mass Restoration**: Removing mass reduction (casings eject at normal distance)
+4. **Spawn Collision Delay**: Disabling casing collision at spawn, enabling after 0.1s delay (prevents spawn-time physics interaction)
+5. **Collision Exception (Final Fix)**: Using `add_collision_exception_with()` to guarantee mutual exclusion at the physics engine level
 
 This solution achieves the exact behavior requested:
-- Casings NEVER affect player movement (including at spawn time)
-- Player CAN push casings when walking over them
+- Casings NEVER affect player movement (including at spawn time AND when walking into casings)
+- Player CAN push casings when walking over them (via Area2D detection and impulses)
 - Casings behave realistically during ejection and landing
 - No spawn-time "bump" or "stuck" issues
+- No blocking when walking into casings after they land
 
-The fix is minimal, targeted, and follows Godot best practices for one-way physics interactions. The spawn collision delay pattern is a useful technique for any scenario where objects spawn close to the player.
+The fix uses multiple complementary techniques for maximum reliability:
+- Collision layers/masks for primary separation
+- Area2D for one-way push detection
+- Spawn delay for edge case protection
+- `add_collision_exception_with()` for guaranteed physics exclusion
+
+This defense-in-depth approach ensures the fix works regardless of any physics engine edge cases or timing issues.
