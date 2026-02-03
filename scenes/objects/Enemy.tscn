@@ -15,7 +15,7 @@ radius = 24.0
 
 [node name="Enemy" type="CharacterBody2D" groups=["enemies"]]
 collision_layer = 2
-collision_mask = 4
+collision_mask = 68
 script = ExtResource("1_enemy")
 
 [node name="EnemyModel" type="Node2D" parent="."]

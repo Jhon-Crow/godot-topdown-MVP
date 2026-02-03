@@ -151,3 +151,44 @@ func unfreeze_time() -> void:
 	_is_time_frozen = false
 	_frozen_linear_velocity = Vector2.ZERO
 	_frozen_angular_velocity = 0.0
+
+
+## Receives a kick impulse from a character (player or enemy) walking into this casing.
+## Called by BaseCharacter after MoveAndSlide() detects collision with the casing.
+## @param impulse The kick impulse vector (direction * force).
+func receive_kick(impulse: Vector2) -> void:
+	if _is_time_frozen:
+		return
+
+	# Re-enable physics if casing was landed
+	if _has_landed:
+		_has_landed = false
+		_auto_land_timer = 0.0
+		set_physics_process(true)
+
+	# Apply the kick impulse
+	apply_central_impulse(impulse)
+
+	# Add random spin for realism
+	angular_velocity = randf_range(-15.0, 15.0)
+
+	# Play kick sound if impulse is strong enough
+	_play_kick_sound(impulse.length())
+
+
+## Minimum impulse strength to play kick sound.
+const MIN_KICK_SOUND_IMPULSE: float = 5.0
+
+## Plays the casing kick sound if impulse is above threshold.
+## @param impulse_strength The magnitude of the kick impulse.
+func _play_kick_sound(impulse_strength: float) -> void:
+	if impulse_strength < MIN_KICK_SOUND_IMPULSE:
+		return
+
+	var audio_manager: Node = get_node_or_null("/root/AudioManager")
+	if audio_manager == null:
+		return
+
+	# Use the shell rifle sound for casing kicks (similar metallic clink)
+	if audio_manager.has_method("play_shell_rifle"):
+		audio_manager.play_shell_rifle(global_position)

@@ -80,23 +80,27 @@ Common approaches:
 
 ### Changes Made
 
+**Note**: During implementation, it was discovered that the main branch already contained a partial fix setting `collision_layer = 64` (layer 7). This PR builds upon that by adding mass reduction and layer documentation.
+
 #### 1. Collision Layer Assignment
 **File**: `scenes/effects/Casing.tscn`
 
 Changed from:
 ```gdscript
-collision_layer = 0
+collision_layer = 0  # (original)
 ```
 
-Changed to:
+Main branch had:
 ```gdscript
-collision_layer = 128  # Layer 8 (2^7 = 128)
+collision_layer = 64  # Layer 7 (2^6 = 64) - partial fix
 ```
+
+This PR keeps layer 7 for consistency with main branch.
 
 **Rationale**:
-- Layer 8 is designated as "decorative" layer for non-interactive visual elements
-- Player collision_mask (4 = layer 3) doesn't include layer 8
-- Enemy collision_mask doesn't include layer 8
+- Layer 7 is designated as "decorative" layer for non-interactive visual elements
+- Player collision_mask (4 = layer 3) doesn't include layer 7
+- Enemy collision_mask doesn't include layer 7
 - Casings remain on a defined layer but won't interact with characters
 
 #### 2. Mass Reduction
@@ -117,7 +121,7 @@ mass = 0.01  # Very light, near-zero mass
 
 Added:
 ```ini
-2d_physics/layer_8="decorative"
+2d_physics/layer_7="decorative"
 ```
 
 **Rationale**:
@@ -129,7 +133,7 @@ Added:
 
 1. **Complete Collision Separation**
    - Player is on layer 1, checks layer 3 (obstacles)
-   - Casings are on layer 8, check layer 3 (obstacles)
+   - Casings are on layer 7, check layer 3 (obstacles)
    - No overlap in collision detection between player and casings
 
 2. **Defense in Depth**

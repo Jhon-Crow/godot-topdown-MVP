@@ -1,0 +1,15 @@
+title:	сделай гильзы на полу интерактивными
+state:	OPEN
+author:	Jhon-Crow
+labels:	
+comments:	0
+assignees:	
+projects:	
+milestone:	
+number:	341
+--
+должны реалистично отталкиваться при ходьбе игрока/врагов со звуком гильзы
+
+
+Please collect data related about the issue to this repository, make sure we compile that data to `./docs/case-studies/issue-{id}` folder, and use it to do deep case study analysis (also make sure to search online for additional facts and data), and propose possible solutions  (including known existing components/libraries, that solve similar problem or can help in solutions).
+
