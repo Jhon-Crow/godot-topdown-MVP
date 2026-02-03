@@ -240,6 +240,36 @@ CinemaEffectsManager.reset_to_defaults()
 - `scripts/shaders/last_chance.gdshader` - Complex effect with sepia tint
 - `scripts/autoload/hit_effects_manager.gd` - Manager pattern reference
 
+### Version 2.1 (White Screen Fix)
+
+**Issue Reported**: Game screen completely white, menu works
+
+**Root Cause Analysis**:
+After investigating the v2.0 shader, several potential causes were identified:
+
+1. **Hash function returning 0 for zero inputs**: The hash function `hash(vec2(0,0))` returns 0, which at TIME=0 causes deterministic behavior that may lead to extreme values.
+
+2. **Floating-point precision issues**: Large values in the grain noise calculation could cause precision loss and unexpected results.
+
+3. **Missing zero-input protection**: Various calculations use TIME directly without offset, which can result in predictable patterns at game start.
+
+**Fixes Applied**:
+
+1. **Added offsets to hash function**: All hash function inputs now have a small offset (`+0.1`) to avoid zero-input issues.
+
+2. **Simplified film grain function**: Replaced complex modulo-based calculation with simpler hash-based approach that's more stable.
+
+3. **Added frame offset**: All frame calculations now use `+1.0` offset to avoid frame 0 issues.
+
+4. **Reduced effect intensities**: Scratches and other effects now have reduced multipliers to prevent over-brightening.
+
+5. **Added early exit for transparent pixels**: If screen_color.a is near zero, skip processing to avoid issues with empty regions.
+
+6. **Improved flicker range**: Changed flicker range from potentially brightening (0.85-1.15) to more conservative (0.92-1.08).
+
+**Game Logs Analyzed**:
+- `game_log_20260203_154430.txt` - Shows game loading normally but CinemaEffectsManager initialization logs are missing, indicating potential script loading issues or shader compilation problems.
+
 ## Implementation Notes
 
 ### Performance Considerations
