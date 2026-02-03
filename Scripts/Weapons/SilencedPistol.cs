@@ -650,6 +650,8 @@ public partial class SilencedPistol : BaseWeapon
             if (WeaponData != null)
             {
                 bullet.Speed = WeaponData.BulletSpeed;
+                // Set damage from weapon data - this is critical for one-shot kills
+                bullet.Damage = WeaponData.Damage;
             }
             var owner = GetParent();
             if (owner != null)
@@ -662,7 +664,7 @@ public partial class SilencedPistol : BaseWeapon
             // Enemies hit by silenced pistol bullets are briefly stunned,
             // allowing for follow-up shots while they can't retaliate
             bullet.StunDuration = StunDurationOnHit;
-            GD.Print($"[SilencedPistol] Spawned C# bullet with StunDuration={StunDurationOnHit}s");
+            GD.Print($"[SilencedPistol] Spawned C# bullet with Damage={bullet.Damage}, StunDuration={StunDurationOnHit}s");
         }
         else
         {
@@ -681,6 +683,9 @@ public partial class SilencedPistol : BaseWeapon
             {
                 bulletNode.Set("Speed", WeaponData.BulletSpeed);
                 bulletNode.Set("speed", WeaponData.BulletSpeed);
+                // Set damage from weapon data - critical for one-shot kills
+                bulletNode.Set("Damage", WeaponData.Damage);
+                bulletNode.Set("damage", WeaponData.Damage);
             }
 
             var owner = GetParent();
@@ -696,7 +701,7 @@ public partial class SilencedPistol : BaseWeapon
             // Try to set stun duration via Set() for GDScript bullets
             bulletNode.Set("StunDuration", StunDurationOnHit);
             bulletNode.Set("stun_duration", StunDurationOnHit);
-            GD.Print($"[SilencedPistol] Spawned GDScript bullet, attempted to set stun_duration={StunDurationOnHit}s");
+            GD.Print($"[SilencedPistol] Spawned GDScript bullet with Damage={WeaponData?.Damage ?? 1.0f}, stun_duration={StunDurationOnHit}s");
         }
 
         GetTree().CurrentScene.AddChild(bulletNode);
