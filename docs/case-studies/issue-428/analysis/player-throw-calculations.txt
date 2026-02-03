@@ -1,0 +1,3 @@
+2087:    #region Simple Grenade Throwing Mode
+2218:        // Distance = v^2 / (2 * friction) → v = sqrt(2 * friction * distance)
+2227:        LogToFile($"[Player.Grenade.Simple] Throwing! Target: {targetPos}, Distance: {actualDistance:F1}, Speed: {throwSpeed:F1}, Friction: {groundFriction:F1}");

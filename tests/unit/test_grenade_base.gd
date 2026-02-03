@@ -213,6 +213,11 @@ class MockGrenadeBase:
 	func has_exploded() -> bool:
 		return _has_exploded
 
+	## Check if the grenade has been thrown (unfrozen and moving/resting).
+	## Issue #426: Used to prevent enemies from reacting to grenades still held by player.
+	func is_thrown() -> bool:
+		return not freeze
+
 
 var grenade: MockGrenadeBase
 
@@ -816,3 +821,52 @@ func test_issue_281_high_velocity_short_swing_throws_far() -> void:
 	# With 2000 px/s velocity, minimum 35% transfer should give at least 700 speed
 	assert_gt(grenade.linear_velocity.length(), 200.0,
 		"High velocity quick flicks should throw grenades reasonably far")
+
+
+# ============================================================================
+# Issue #426 Fix Tests: is_thrown() for Grenade Avoidance
+# ============================================================================
+
+
+func test_issue_426_grenade_not_thrown_when_frozen() -> void:
+	# Grenade is created frozen - should report as not thrown
+	assert_true(grenade.freeze, "Grenade should start frozen")
+	assert_false(grenade.is_thrown(),
+		"Frozen grenade should report as not thrown")
+
+
+func test_issue_426_grenade_is_thrown_after_throw() -> void:
+	# After throw, grenade is unfrozen - should report as thrown
+	grenade.throw_grenade(Vector2.RIGHT, 100.0)
+
+	assert_false(grenade.freeze, "Grenade should be unfrozen after throw")
+	assert_true(grenade.is_thrown(),
+		"Unfrozen grenade should report as thrown")
+
+
+func test_issue_426_timer_active_but_not_thrown() -> void:
+	# Timer can be active while grenade is still held (not thrown)
+	# This is the bug scenario - enemies shouldn't react yet
+	grenade.activate_timer()
+
+	assert_true(grenade.is_timer_active(), "Timer should be active after activation")
+	assert_true(grenade.freeze, "Grenade should still be frozen")
+	assert_false(grenade.is_thrown(),
+		"Grenade with active timer but still frozen should not be 'thrown'")
+
+
+func test_issue_426_thrown_check_independent_of_timer() -> void:
+	# is_thrown() should be independent of timer state
+	# Scenario 1: Thrown without timer (edge case)
+	grenade.throw_grenade(Vector2.RIGHT, 100.0)
+	assert_false(grenade.is_timer_active())
+	assert_true(grenade.is_thrown(),
+		"Thrown state should be based on freeze, not timer")
+
+
+func test_issue_426_velocity_based_throw_sets_thrown() -> void:
+	# Velocity-based throw should also set thrown state
+	grenade.throw_grenade_velocity_based(Vector2(500, 0), 200.0)
+
+	assert_true(grenade.is_thrown(),
+		"Velocity-based throw should also report grenade as thrown")

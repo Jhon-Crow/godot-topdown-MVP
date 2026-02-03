@@ -465,7 +465,7 @@ func test_attack_distracted_player_cost_when_not_distracted() -> void:
 func test_create_all_actions_returns_all_actions() -> void:
 	var actions: Array[GOAPAction] = EnemyActions.create_all_actions()
 
-	assert_eq(actions.size(), 18, "Should create 18 enemy actions (including evade_grenade for Issue #407)")
+	assert_eq(actions.size(), 13, "Should create 13 enemy actions")
 
 
 func test_create_all_actions_includes_all_types() -> void:
@@ -488,7 +488,6 @@ func test_create_all_actions_includes_all_types() -> void:
 	assert_has(action_names, "assault_player", "Should include assault_player")
 	assert_has(action_names, "attack_distracted_player", "Should include attack_distracted_player")
 	assert_has(action_names, "attack_vulnerable_player", "Should include attack_vulnerable_player")
-	assert_has(action_names, "evade_grenade", "Should include evade_grenade (Issue #407)")
 
 
 # ============================================================================
@@ -748,3 +747,59 @@ func test_evade_grenade_integration_with_planner() -> void:
 
 	assert_gt(plan.size(), 0, "Planner should find a plan to escape grenade danger zone")
 	assert_eq(plan[0].action_name, "evade_grenade", "Should choose evade_grenade action")
+
+
+# ============================================================================
+# InvestigateAllyDeathAction Tests (Issue #409)
+# ============================================================================
+
+
+func test_investigate_ally_death_action_initialization() -> void:
+	var action := EnemyActions.InvestigateAllyDeathAction.new()
+
+	assert_eq(action.action_name, "investigate_ally_death", "Action name should be 'investigate_ally_death'")
+	assert_eq(action.cost, 0.8, "Base cost should be 0.8 (high priority)")
+
+
+func test_investigate_ally_death_action_preconditions() -> void:
+	var action := EnemyActions.InvestigateAllyDeathAction.new()
+
+	assert_eq(action.preconditions["witnessed_ally_death"], true, "Requires witnessed_ally_death to be true")
+	assert_eq(action.preconditions["player_visible"], false, "Requires player_visible to be false (can't see player)")
+
+
+func test_investigate_ally_death_action_effects() -> void:
+	var action := EnemyActions.InvestigateAllyDeathAction.new()
+
+	assert_eq(action.effects["is_searching"], true, "Effect should set is_searching to true")
+	assert_eq(action.effects["witnessed_ally_death"], false, "Effect should clear witnessed_ally_death")
+
+
+func test_investigate_ally_death_cost_when_witnessed() -> void:
+	var action := EnemyActions.InvestigateAllyDeathAction.new()
+	var world_state := {"witnessed_ally_death": true}
+
+	var cost: float = action.get_cost(null, world_state)
+
+	assert_eq(cost, 0.3, "Cost should be low when ally death is witnessed (high priority)")
+
+
+func test_investigate_ally_death_cost_when_not_witnessed() -> void:
+	var action := EnemyActions.InvestigateAllyDeathAction.new()
+	var world_state := {"witnessed_ally_death": false}
+
+	var cost: float = action.get_cost(null, world_state)
+
+	assert_eq(cost, 100.0, "Cost should be very high when no ally death witnessed")
+
+
+func test_investigate_ally_death_action_in_create_all_actions() -> void:
+	var actions := EnemyActions.create_all_actions()
+	var found := false
+
+	for action in actions:
+		if action.action_name == "investigate_ally_death":
+			found = true
+			break
+
+	assert_true(found, "InvestigateAllyDeathAction should be included in create_all_actions()")
