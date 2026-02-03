@@ -1152,11 +1152,23 @@ public partial class Player : BaseCharacter
     /// Updates the player model rotation to face the aim direction.
     /// The player model (body, head, arms) rotates to follow the rifle's aim direction.
     /// This creates the appearance of the player rotating their whole body toward the target.
+    /// TACTICAL RELOAD (Issue #437): During shotgun reload, player model rotation is locked
+    /// to allow the player to keep aiming at a specific spot while performing reload gestures.
     /// </summary>
     private void UpdatePlayerModelRotation()
     {
         if (_playerModel == null)
         {
+            return;
+        }
+
+        // TACTICAL RELOAD (Issue #437): Don't rotate player model during shotgun reload.
+        // This keeps the player facing the same direction while reloading, allowing
+        // them to maintain aim on a threat (e.g., doorway) during the reload sequence.
+        var shotgun = GetNodeOrNull<Shotgun>("Shotgun");
+        if (shotgun != null && shotgun.ReloadState != ShotgunReloadState.NotReloading)
+        {
+            // Keep current rotation locked - don't follow mouse
             return;
         }
 

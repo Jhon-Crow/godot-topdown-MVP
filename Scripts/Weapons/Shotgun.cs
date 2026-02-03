@@ -440,9 +440,23 @@ public partial class Shotgun : BaseWeapon
 
     /// <summary>
     /// Updates the aim direction based on mouse position.
+    /// TACTICAL RELOAD (Issue #437): During reload, aim direction is locked to allow
+    /// the player to keep the weapon pointed at a specific spot (e.g., doorway) while
+    /// performing RMB drag gestures to reload. This prevents the barrel from following
+    /// the mouse during reload operations.
     /// </summary>
     private void UpdateAimDirection()
     {
+        // TACTICAL RELOAD (Issue #437): Don't update aim direction during reload.
+        // This allows player to keep aiming at a specific spot while reloading.
+        // The aim direction is "locked" at the moment reload starts.
+        if (ReloadState != ShotgunReloadState.NotReloading)
+        {
+            // Keep current _aimDirection locked - don't follow mouse
+            // Sprite rotation is also not updated (stays pointing at locked direction)
+            return;
+        }
+
         Vector2 mousePos = GetGlobalMousePosition();
         Vector2 toMouse = mousePos - GlobalPosition;
 
