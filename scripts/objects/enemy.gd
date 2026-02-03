@@ -29,18 +29,11 @@ enum BehaviorMode {
 	GUARD    ## Stands in one place
 }
 
-## Weapon types for the enemy.
-enum WeaponType {
-	RIFLE,   ## Default M16 assault rifle
-	SHOTGUN, ## Shotgun - higher damage, slower fire rate, shorter range
-	UZI      ## UZI SMG - faster fire rate, lower damage, medium range
-}
+## Weapon types: RIFLE (M16), SHOTGUN (slow/powerful), UZI (fast SMG).
+enum WeaponType { RIFLE, SHOTGUN, UZI }
 
-## Current behavior mode.
-@export var behavior_mode: BehaviorMode = BehaviorMode.GUARD
-
-## Weapon type for this enemy.
-@export var weapon_type: WeaponType = WeaponType.RIFLE
+@export var behavior_mode: BehaviorMode = BehaviorMode.GUARD  ## Current behavior mode.
+@export var weapon_type: WeaponType = WeaponType.RIFLE  ## Weapon type for this enemy.
 @export var move_speed: float = 220.0  ## Maximum movement speed (px/s).
 @export var combat_move_speed: float = 320.0  ## Combat movement speed (flanking/cover).
 @export var rotation_speed: float = 25.0  ## Rotation speed (rad/s, 25 for aim-before-shoot #254).
@@ -61,53 +54,22 @@ enum WeaponType {
 @export var destroy_on_death: bool = false  ## Destroy enemy after death.
 @export var respawn_delay: float = 2.0  ## Delay before respawn/destroy (seconds).
 
-## Minimum random health.
-@export var min_health: int = 2
-
-## Maximum random health.
-@export var max_health: int = 4
-
-## Threat sphere radius - bullets within this radius trigger suppression.
-@export var threat_sphere_radius: float = 100.0
-
-## Time to stay suppressed after bullets leave threat sphere.
-@export var suppression_cooldown: float = 2.0
-
-## Delay before reacting to threats (gives player reaction time).
-@export var threat_reaction_delay: float = 0.2
-
-## Flank angle from player's facing direction (radians).
-@export var flank_angle: float = PI / 3.0  # 60 degrees
-
-## Distance to maintain while flanking.
-@export var flank_distance: float = 200.0
-
-## Enable/disable flanking behavior.
-@export var enable_flanking: bool = true
-
-## Enable/disable cover behavior.
-@export var enable_cover: bool = true
-
-## Enable/disable debug logging.
-@export var debug_logging: bool = false
-
-## Enable/disable debug label above enemy showing current AI state.
-@export var debug_label_enabled: bool = false
-
-## Enable/disable friendly fire avoidance (don't shoot if other enemies are in the way).
-@export var enable_friendly_fire_avoidance: bool = true
-
-## Enable/disable lead prediction (shooting ahead of moving targets).
-@export var enable_lead_prediction: bool = true
-
-## Bullet speed for lead prediction (2500 for AR).
-@export var bullet_speed: float = 2500.0
-
-## Ammunition system - magazine size (bullets per magazine).
-@export var magazine_size: int = 30
-
-## Ammunition system - number of magazines the enemy carries.
-@export var total_magazines: int = 5
+@export var min_health: int = 2  ## Minimum random health.
+@export var max_health: int = 4  ## Maximum random health.
+@export var threat_sphere_radius: float = 100.0  ## Bullets within radius trigger suppression.
+@export var suppression_cooldown: float = 2.0  ## Time suppressed after bullets leave.
+@export var threat_reaction_delay: float = 0.2  ## Delay before reacting to threats.
+@export var flank_angle: float = PI / 3.0  ## Flank angle from player facing (60 deg).
+@export var flank_distance: float = 200.0  ## Distance to maintain while flanking.
+@export var enable_flanking: bool = true  ## Enable flanking behavior.
+@export var enable_cover: bool = true  ## Enable cover behavior.
+@export var debug_logging: bool = false  ## Enable debug logging.
+@export var debug_label_enabled: bool = false  ## Enable debug label above enemy.
+@export var enable_friendly_fire_avoidance: bool = true  ## Don't shoot if allies in way.
+@export var enable_lead_prediction: bool = true  ## Shoot ahead of moving targets.
+@export var bullet_speed: float = 2500.0  ## Bullet speed for lead prediction.
+@export var magazine_size: int = 30  ## Bullets per magazine.
+@export var total_magazines: int = 5  ## Number of magazines carried.
 
 ## Ammunition system - time to reload in seconds.
 @export var reload_time: float = 3.0
@@ -495,55 +457,15 @@ func _initialize_ammo() -> void:
 	_is_reloading = false
 	_reload_timer = 0.0
 
-
-## Configure weapon parameters based on weapon type.
-## This sets fire rate, damage, range, magazine size, and updates the weapon sprite.
+## Configure weapon parameters based on weapon type using WeaponConfigComponent.
 func _configure_weapon_type() -> void:
-	match weapon_type:
-		WeaponType.RIFLE:
-			# Default M16 settings (already set as defaults)
-			shoot_cooldown = 0.1  # 10 rounds/sec
-			bullet_speed = 2500.0
-			magazine_size = 30
-			bullet_spawn_offset = 30.0
-			weapon_loudness = 1469.0
-			# Weapon sprite is already M16 in the scene
-		WeaponType.SHOTGUN:
-			# Shotgun: slower fire rate, shorter range, higher damage per hit
-			shoot_cooldown = 0.8  # 1.25 rounds/sec (pump action)
-			bullet_speed = 1800.0  # Slower projectiles
-			magazine_size = 8  # Tube magazine
-			bullet_spawn_offset = 35.0  # Longer barrel
-			weapon_loudness = 2000.0  # Louder
-			# Update weapon sprite to shotgun
-			_update_weapon_sprite("res://assets/sprites/weapons/shotgun_topdown.png")
-		WeaponType.UZI:
-			# UZI SMG: faster fire rate, medium range, lower damage per hit
-			shoot_cooldown = 0.06  # ~17 rounds/sec (fast SMG)
-			bullet_speed = 2200.0  # Slightly slower than rifle
-			magazine_size = 32
-			bullet_spawn_offset = 25.0  # Shorter barrel
-			weapon_loudness = 1200.0  # Quieter than rifle
-			# Update weapon sprite to UZI
-			_update_weapon_sprite("res://assets/sprites/weapons/mini_uzi_topdown.png")
-
-	# Log weapon configuration
-	print("[Enemy] Weapon configured: %s (cooldown=%.2f, mag=%d)" % [
-		WeaponType.keys()[weapon_type], shoot_cooldown, magazine_size
-	])
-
-
-## Update the weapon sprite to a different texture.
-func _update_weapon_sprite(sprite_path: String) -> void:
-	if _weapon_sprite == null:
-		return
-
-	var texture := load(sprite_path) as Texture2D
-	if texture:
-		_weapon_sprite.texture = texture
-	else:
-		push_warning("Failed to load weapon sprite: %s" % sprite_path)
-
+	var c := WeaponConfigComponent.get_config(weapon_type)
+	shoot_cooldown = c["shoot_cooldown"]; bullet_speed = c["bullet_speed"]; magazine_size = c["magazine_size"]
+	bullet_spawn_offset = c["bullet_spawn_offset"]; weapon_loudness = c["weapon_loudness"]
+	if c["sprite_path"] != "" and _weapon_sprite:
+		var tex := load(c["sprite_path"]) as Texture2D
+		if tex: _weapon_sprite.texture = tex
+	print("[Enemy] Weapon: %s" % WeaponConfigComponent.get_type_name(weapon_type))
 
 ## Setup patrol points based on patrol offsets from initial position.
 func _setup_patrol_points() -> void:
