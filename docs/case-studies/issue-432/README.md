@@ -232,7 +232,87 @@ Test scenarios:
 - Issue #424: Reduce casing push force (fixed with 2.5x reduction)
 - Issue #375: Enemy grenade safe distance
 
+### Fourth Investigation (User Feedback #4)
+
+**Analysis of Game Log (`logs/game_log_20260203_213537.txt`):**
+
+After implementing the C# GrenadeTimer component, grenades now explode successfully. However, user reported three remaining issues:
+
+1. **Grenade position issue**: Grenade launches from activation position instead of player's current position
+2. **Grenade distance issue**: Grenade always flies max distance regardless of where player aims
+3. **Casing scatter force**: Shell casings should scatter much more strongly
+
+**Root Cause Analysis:**
+
+The key issue was in the game log analysis:
+```
+[21:35:44] [Player.Grenade] Timer started, grenade created at (147.32436, 344.72653)
+[21:35:45] [Player.Grenade.Simple] Throwing! Target: (359.415, 392.72726), Distance: 183,2, Speed: 331,5, Friction: 300,0
+[21:35:48] [GrenadeTimer] EXPLODED at (975.07324, 531.67236)!
+```
+
+The grenade was supposed to travel ~183 pixels to reach the target, but it exploded at ~830 pixels from the start!
+
+**Why this happened:**
+
+The GDScript `_physics_process()` in `grenade_base.gd` applies ground friction to slow down the grenade:
+```gdscript
+if linear_velocity.length() > 0:
+    var friction_force := linear_velocity.normalized() * ground_friction * delta
+    if friction_force.length() > linear_velocity.length():
+        linear_velocity = Vector2.ZERO
+    else:
+        linear_velocity -= friction_force
+```
+
+Since GDScript is not running in exports, **no friction was being applied** to the grenade!
+The grenade flew at constant velocity until the 4-second timer expired.
+
+**Fix Applied:**
+
+1. **GrenadeTimer.cs**: Added `ApplyGroundFriction()` method that replicates the GDScript friction logic in C#:
+   - Reads `ground_friction` property from the grenade (default 300.0)
+   - Applies friction force every physics frame: `velocity -= velocity.normalized() * friction * delta`
+   - This ensures grenades slow down and stop at the correct position
+
+2. **Increased casing scatter force**: User requested stronger scatter effect
+   - Changed `lethalImpulse` from 45 to 150 (3.3x increase)
+   - Changed `proximityImpulse` from 10 to 25 (2.5x increase)
+   - Updated both C# (`GrenadeTimer.cs`) and GDScript (`grenade_base.gd`) for consistency
+
+## Files Modified
+
+### GDScript Changes (Issue #432 Feature - Casing Scatter)
+1. `scripts/effects/casing.gd` - Add to "casings" group
+2. `scripts/projectiles/grenade_base.gd` - Add shared method for casing scattering + freeze detection + increased scatter force
+3. `scripts/projectiles/frag_grenade.gd` - Call casing scatter on explosion + freeze detection
+4. `scripts/projectiles/flashbang_grenade.gd` - Call casing scatter on explosion
+
+### C# Changes (Grenade Explosion Fix)
+5. `Scripts/Projectiles/GrenadeTimer.cs` - **NEW** - Reliable C# grenade timer, explosion handler, **friction application**, and casing scatter
+6. `Scripts/Characters/Player.cs` - Add GrenadeTimer component to grenades, call its methods, copy ground_friction property
+
+## Test Coverage
+
+New tests to be added:
+- `test_casing_explosion_reaction.gd` - Unit tests for casing scatter behavior
+
+Test scenarios:
+1. Casing inside lethal zone receives strong impulse
+2. Casing at proximity zone receives weak impulse
+3. Casing far away receives no impulse
+4. Landed casings become mobile again after explosion
+5. Time-frozen casings don't react to explosions
+6. Works with both FragGrenade and FlashbangGrenade
+
+## Related Issues
+
+- Issue #392: Casings pushing player at spawn (fixed with collision delay)
+- Issue #424: Reduce casing push force (fixed with 2.5x reduction)
+- Issue #375: Enemy grenade safe distance
+
 ## References
 
 - [Godot RigidBody2D Documentation](https://docs.godotengine.org/en/stable/classes/class_rigidbody2d.html)
 - [Godot Physics - Impulse vs Force](https://docs.godotengine.org/en/stable/tutorials/physics/physics_introduction.html)
+- [Godot 4 C#/GDScript Interop Issues](https://github.com/godotengine/godot/issues) - Various reports of Call() failing in exports

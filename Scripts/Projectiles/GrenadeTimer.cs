@@ -48,6 +48,13 @@ namespace GodotTopdown.Scripts.Projectiles
         public float StunDuration { get; set; } = 6.0f;
 
         /// <summary>
+        /// Ground friction for slowing down the grenade (must match GDScript ground_friction).
+        /// This is critical because GDScript _physics_process() may not run in exports!
+        /// </summary>
+        [Export]
+        public float GroundFriction { get; set; } = 300.0f;
+
+        /// <summary>
         /// Whether the timer has been activated (pin pulled).
         /// </summary>
         public bool IsTimerActive { get; private set; } = false;
@@ -98,6 +105,11 @@ namespace GodotTopdown.Scripts.Projectiles
         {
             if (HasExploded || _grenadeBody == null)
                 return;
+
+            // CRITICAL FIX for Issue #432: Apply ground friction in C#
+            // GDScript _physics_process() may not run in exports, so grenades would fly forever
+            // without any friction. We must apply the same friction logic here.
+            ApplyGroundFriction((float)delta);
 
             // Timer countdown for Flashbang grenades
             if (IsTimerActive && Type == GrenadeType.Flashbang)
@@ -156,6 +168,35 @@ namespace GodotTopdown.Scripts.Projectiles
 
             IsThrown = true;
             LogToFile("[GrenadeTimer] Grenade marked as thrown - impact detection enabled");
+        }
+
+        /// <summary>
+        /// Apply ground friction to slow down the grenade.
+        /// CRITICAL: This replicates the GDScript _physics_process() friction logic
+        /// because GDScript may not run in exported builds!
+        /// Formula matches grenade_base.gd: friction_force = velocity.normalized() * ground_friction * delta
+        /// </summary>
+        private void ApplyGroundFriction(float delta)
+        {
+            if (_grenadeBody == null || _grenadeBody.Freeze)
+                return;
+
+            Vector2 velocity = _grenadeBody.LinearVelocity;
+            if (velocity.Length() <= 0.01f)
+                return;
+
+            // Calculate friction force (same as GDScript)
+            Vector2 frictionForce = velocity.Normalized() * GroundFriction * delta;
+
+            // If friction would overshoot, just stop
+            if (frictionForce.Length() >= velocity.Length())
+            {
+                _grenadeBody.LinearVelocity = Vector2.Zero;
+            }
+            else
+            {
+                _grenadeBody.LinearVelocity = velocity - frictionForce;
+            }
         }
 
         /// <summary>
@@ -483,8 +524,10 @@ namespace GodotTopdown.Scripts.Projectiles
         {
             var casings = GetTree().GetNodesInGroup("casings");
             float proximityRadius = EffectRadius * 1.5f;
-            float lethalImpulse = 45.0f;
-            float proximityImpulse = 10.0f;
+            // FIX for Issue #432: User requested "shell casings should scatter much stronger"
+            // Increased lethal impulse from 45 to 150 for much more dramatic effect
+            float lethalImpulse = 150.0f;
+            float proximityImpulse = 25.0f;
 
             int scatteredCount = 0;
 

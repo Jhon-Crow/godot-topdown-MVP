@@ -2407,6 +2407,12 @@ public partial class Player : BaseCharacter
         {
             timer.StunDuration = (float)grenade.Get("stun_duration");
         }
+        // FIX for Issue #432: Copy ground_friction for C# friction handling
+        // GDScript _physics_process() may not run in exports, so we need C# to apply friction
+        if (grenade.HasMeta("ground_friction") || grenade.Get("ground_friction").VariantType != Variant.Type.Nil)
+        {
+            timer.GroundFriction = (float)grenade.Get("ground_friction");
+        }
 
         // Add the timer component to the grenade
         grenade.AddChild(timer);

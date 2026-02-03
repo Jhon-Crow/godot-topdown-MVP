@@ -485,9 +485,10 @@ func _scatter_casings(effect_radius: float) -> void:
 
 	# Impulse strengths (calibrated based on player kick force ~6-9 units)
 	# Strong impulse for lethal zone (scatter effect)
-	var lethal_impulse_base: float = 45.0
+	# FIX for Issue #432: Increased from 45 to 150 for much more dramatic scatter
+	var lethal_impulse_base: float = 150.0
 	# Weak impulse for proximity zone (weaker than player/enemy push)
-	var proximity_impulse_base: float = 10.0
+	var proximity_impulse_base: float = 25.0
 
 	var scattered_count := 0
 	var proximity_count := 0
