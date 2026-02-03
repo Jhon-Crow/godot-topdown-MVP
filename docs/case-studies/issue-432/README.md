@@ -824,6 +824,73 @@ This allows the C# `GrenadeTimer` to properly apply flashbang effects with durat
 **Additional Merge:**
 - Merged main branch for enemy grenade avoidance (Issue #426, #450)
 
+### Tenth Investigation (User Feedback #10)
+
+**Date:** 2026-02-04
+**Log File:** `logs/game_log_20260204_005455.txt`
+
+**User Feedback:**
+1. **"прицел показывал настоящую область поражения светошумовой гранаты (сейчас показывает меньше)"** - Flashbang crosshair shows smaller area than actual effect radius
+2. **"враги не реагируют на гранаты так, как это сделано в main ветке"** - Enemies don't react to grenades like in main branch
+
+**Root Cause Analysis:**
+
+**Issue 1: Flashbang crosshair radius incorrect (shows ~200px instead of 400px)**
+
+The crosshair drawing code in both GDScript (`player.gd`) and C# (`Player.cs`) had hardcoded default values of 200px instead of using type-based defaults:
+
+```gdscript
+# player.gd lines 2437 and 2555
+var effect_radius := 200.0  # Wrong! Should be 400 for flashbang
+if _active_grenade.has_method("_get_effect_radius"):
+    effect_radius = _active_grenade._get_effect_radius()
+```
+
+```csharp
+// Player.cs line 3540
+return 200.0f;  // Default effect radius - wrong for flashbang!
+```
+
+When `_get_effect_radius()` Call fails (common in exports due to C#/GDScript interop issues), the default 200px is used instead of the correct type-based value.
+
+**Fix:**
+1. Changed C# `GetGrenadeEffectRadius()` to:
+   - Try calling GDScript method
+   - Try reading `effect_radius` property directly
+   - Fall back to type-based default (400px for Flashbang, 225px for Frag)
+2. Changed GDScript to use new `_get_grenade_effect_radius_with_default()` helper that uses type-based defaults
+
+**Issue 2: Enemies not fleeing from grenades**
+
+Log analysis showed:
+- Flashbang grenade was thrown at 00:59:09
+- Grenade exploded at 00:59:11
+- Enemy10 was affected by flashbang (`Flashbang: blind=0.3s, stun=0.1s`)
+- But NO `EVADING_GRENADE` state transitions logged
+
+The root cause: **Grenade landing sound was never emitted**.
+
+The GDScript `_on_grenade_landed()` in `grenade_base.gd` is responsible for:
+1. Detecting when grenade comes to rest
+2. Calling `emit_grenade_landing()` on SoundPropagation
+3. This triggers enemy grenade avoidance via `trigger_evasion_from_sound()`
+
+Since GDScript `_physics_process()` doesn't run in exports, `_on_grenade_landed()` is never called, so enemies never hear grenades land.
+
+**Fix:**
+Modified C# `GrenadeTimer.cs` to:
+1. Detect landing for ALL grenades (not just Frag grenades)
+2. For Flashbang grenades: call `EmitGrenadeLandingSound()` when grenade lands
+3. New method `EmitGrenadeLandingSound()` calls:
+   - `AudioManager.play_grenade_landing()` for audio
+   - `SoundPropagation.emit_grenade_landing()` for enemy awareness
+
+**Files Modified:**
+- `Scripts/Characters/Player.cs` - Type-based default effect radius
+- `Scripts/Projectiles/GrenadeTimer.cs` - Landing detection for Flashbang + emit landing sound
+- `scripts/characters/player.gd` - New helper function `_get_grenade_effect_radius_with_default()`
+- `scripts/projectiles/flashbang_grenade.gd` - Fixed outdated comment about effect radius
+
 ## References
 
 - [Godot RigidBody2D Documentation](https://docs.godotengine.org/en/stable/classes/class_rigidbody2d.html)

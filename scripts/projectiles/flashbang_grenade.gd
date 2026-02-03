@@ -7,7 +7,7 @@ class_name FlashbangGrenade
 ## - Stun: Enemies cannot move for 6 seconds
 ##
 ## Does not deal damage.
-## Effect radius is approximately a small room from the "building" map (~200 pixels).
+## Effect radius is 400 pixels (doubled from original 200 per user request).
 
 ## Duration of blindness effect in seconds.
 @export var blindness_duration: float = 12.0

@@ -3529,15 +3529,42 @@ public partial class Player : BaseCharacter
 
     /// <summary>
     /// Get the effect radius of the current grenade type.
+    /// FIX for Issue #432: Use type-based defaults when GDScript Call() fails in exports.
     /// </summary>
     private float GetGrenadeEffectRadius()
     {
-        if (_activeGrenade != null && IsInstanceValid(_activeGrenade) && _activeGrenade.HasMethod("_get_effect_radius"))
+        if (_activeGrenade != null && IsInstanceValid(_activeGrenade))
         {
-            return (float)_activeGrenade.Call("_get_effect_radius");
+            // Try to call GDScript method first
+            if (_activeGrenade.HasMethod("_get_effect_radius"))
+            {
+                var result = _activeGrenade.Call("_get_effect_radius");
+                if (result.VariantType != Variant.Type.Nil)
+                {
+                    return (float)result;
+                }
+            }
+
+            // Try to read effect_radius property directly
+            if (_activeGrenade.Get("effect_radius").VariantType != Variant.Type.Nil)
+            {
+                return (float)_activeGrenade.Get("effect_radius");
+            }
+
+            // FIX for Issue #432: Use type-based defaults matching scene files
+            // GDScript property access may fail silently in exported builds
+            var script = _activeGrenade.GetScript();
+            if (script.Obj != null)
+            {
+                string scriptPath = ((Script)script.Obj).ResourcePath;
+                if (scriptPath.Contains("frag_grenade"))
+                {
+                    return 225.0f;  // FragGrenade.tscn default
+                }
+            }
         }
-        // Default effect radius (flashbang)
-        return 200.0f;
+        // Default: Flashbang effect radius (FlashbangGrenade.tscn)
+        return 400.0f;
     }
 
     /// <summary>

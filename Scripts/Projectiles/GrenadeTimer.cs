@@ -194,8 +194,10 @@ namespace GodotTopdown.Scripts.Projectiles
                 }
             }
 
-            // Landing detection for Frag grenades
-            if (IsThrown && Type == GrenadeType.Frag && !_hasLanded)
+            // Landing detection for ALL grenades (FIX for Issue #432)
+            // Flashbang grenades need landing detection to emit sound for enemy awareness.
+            // GDScript _physics_process() doesn't run in exports, so C# handles this.
+            if (IsThrown && !_hasLanded)
             {
                 float currentSpeed = _grenadeBody.LinearVelocity.Length();
                 float previousSpeed = _previousVelocity.Length();
@@ -203,10 +205,21 @@ namespace GodotTopdown.Scripts.Projectiles
                 // Grenade has landed when it was moving fast and now nearly stopped
                 if (previousSpeed > LandingVelocityThreshold && currentSpeed < LandingVelocityThreshold)
                 {
-                    LogToFile("[GrenadeTimer] Frag grenade landed - EXPLODING!");
                     _hasLanded = true;
-                    Explode();
-                    return;
+
+                    if (Type == GrenadeType.Frag)
+                    {
+                        // Frag grenades explode on landing
+                        LogToFile("[GrenadeTimer] Frag grenade landed - EXPLODING!");
+                        Explode();
+                        return;
+                    }
+                    else
+                    {
+                        // Flashbang grenades emit landing sound for enemy awareness (Issue #432)
+                        LogToFile($"[GrenadeTimer] Flashbang grenade landed at {_grenadeBody.GlobalPosition}");
+                        EmitGrenadeLandingSound(_grenadeBody.GlobalPosition);
+                    }
                 }
 
                 _previousVelocity = _grenadeBody.LinearVelocity;
@@ -520,6 +533,30 @@ namespace GodotTopdown.Scripts.Projectiles
             {
                 float soundRange = 2938.0f; // 2x viewport diagonal
                 soundPropagation.Call("emit_sound", 1, position, 2, _grenadeBody, soundRange);
+            }
+        }
+
+        /// <summary>
+        /// Emit grenade landing sound for enemy awareness (Issue #432).
+        /// FIX: GDScript _on_grenade_landed() doesn't run in exports, so C# emits the landing sound
+        /// for SoundPropagation to notify enemies, allowing them to flee from grenades.
+        /// </summary>
+        private void EmitGrenadeLandingSound(Vector2 position)
+        {
+            // Play landing sound via AudioManager
+            var audioManager = GetNodeOrNull("/root/AudioManager");
+            if (audioManager != null && audioManager.HasMethod("play_grenade_landing"))
+            {
+                audioManager.Call("play_grenade_landing", position);
+            }
+
+            // Emit grenade landing sound for AI awareness via SoundPropagation
+            // This triggers enemy grenade avoidance behavior (Issue #426, #407)
+            var soundPropagation = GetNodeOrNull("/root/SoundPropagation");
+            if (soundPropagation != null && soundPropagation.HasMethod("emit_grenade_landing"))
+            {
+                soundPropagation.Call("emit_grenade_landing", position, _grenadeBody);
+                LogToFile($"[GrenadeTimer] Emitted grenade landing sound at {position}");
             }
         }
 
