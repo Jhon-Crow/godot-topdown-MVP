@@ -1104,36 +1104,38 @@ public partial class Shotgun : BaseWeapon
             case ShotgunReloadState.Loading:
                 if (isDragDown)
                 {
-                    // Issue #266 Fix: Check if a shell was already loaded during mid-drag.
-                    // If so, skip loading another shell on RMB release to prevent multiple
-                    // shells loading in one drag motion.
-                    if (_shellLoadedDuringMidDrag)
-                    {
-                        LogToFile($"[Shotgun.FIX#266] RMB release in Loading state: shell already loaded mid-drag, skipping duplicate load");
-                        // Stay in Loading state for more shells (user can do another drag)
-                        break;
-                    }
-
                     // Use _wasMiddleMouseHeldDuringDrag instead of just _isMiddleMouseHeld
                     // This fixes the timing issue where users release MMB and RMB simultaneously
                     bool shouldLoadShell = _wasMiddleMouseHeldDuringDrag || _isMiddleMouseHeld;
 
                     if (VerboseInputLogging)
                     {
-                        LogToFile($"[Shotgun.FIX#266] RMB release in Loading state: wasMMBDuringDrag={_wasMiddleMouseHeldDuringDrag}, isMMBHeld={_isMiddleMouseHeld} => shouldLoadShell={shouldLoadShell}");
+                        LogToFile($"[Shotgun.FIX#477] RMB release in Loading state: wasMMBDuringDrag={_wasMiddleMouseHeldDuringDrag}, isMMBHeld={_isMiddleMouseHeld}, shellLoadedMidDrag={_shellLoadedDuringMidDrag} => shouldLoadShell={shouldLoadShell}");
                     }
 
-                    if (shouldLoadShell)
+                    // Issue #477 Fix: Check MMB FIRST, then check for mid-drag duplicate.
+                    // Previously, the duplicate check was first, which caused bolt closing to be
+                    // blocked after loading a shell mid-drag during pump cycle.
+                    // The user wants to CLOSE bolt if MMB is not held, regardless of whether
+                    // a shell was loaded mid-drag.
+                    if (!shouldLoadShell)
                     {
-                        // Load a shell (MMB + RMB drag down)
-                        LogToFile("[Shotgun.FIX#266] Loading shell (MMB was held during drag)");
-                        LoadShell();
+                        // Close bolt without MMB - finish reload
+                        LogToFile("[Shotgun.FIX#477] Closing bolt (MMB was not held)");
+                        CompleteReload();
+                    }
+                    else if (_shellLoadedDuringMidDrag)
+                    {
+                        // Issue #266 Fix: Skip loading another shell if one was already loaded mid-drag.
+                        // This prevents multiple shells loading in one drag motion.
+                        // Stay in Loading state for more shells (user can do another drag).
+                        LogToFile($"[Shotgun.FIX#477] RMB release in Loading state: shell already loaded mid-drag, skipping duplicate load (user can drag again to load more)");
                     }
                     else
                     {
-                        // Close bolt without MMB - finish reload
-                        LogToFile("[Shotgun.FIX#266] Closing bolt (MMB was not held)");
-                        CompleteReload();
+                        // Load a shell (MMB + RMB drag down)
+                        LogToFile("[Shotgun.FIX#477] Loading shell (MMB was held during drag)");
+                        LoadShell();
                     }
                 }
                 break;
