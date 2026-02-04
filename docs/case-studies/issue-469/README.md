@@ -6,7 +6,9 @@
 
 **Translation**: "The visual and regular effect of the flashbang grenade should not pass through walls (as it works for flash [muzzle flash])"
 
-**Root Cause**: The flashbang grenade's visual flash effect was not using shadow-enabled lighting like the weapon muzzle flash does, causing the flash to visually pass through walls.
+**Root Cause**: Multiple issues in both GDScript and C# code paths caused flashbang effects to pass through walls:
+1. Visual flash used simple Sprite2D without shadow casting
+2. **CRITICAL**: C# `GrenadeTimer.cs` (used in exported builds) did NOT check line-of-sight for player effects
 
 ## Timeline of Events
 
@@ -16,12 +18,54 @@
 2. **Enemy Targeting**: Already had wall blocking via `_has_line_of_sight_to()` for enemy targeting
 3. **Visual Effect**: NOT modified - still used simple Sprite2D without wall blocking
 
-### User Feedback (2026-02-04)
+### User Feedback Round 1 (2026-02-04 06:42)
 
 User @Jhon-Crow reported:
 > "не вижу визуальных изменений" (I don't see visual changes)
 >
 > "посмотри как сделана вспышка оружия в main" (look at how the weapon muzzle flash is done in main)
+
+### Fix Attempt 1 (PR #475 - Second Draft)
+
+Added `FlashbangEffect.tscn` with shadow-enabled `PointLight2D`:
+- Created scene with shadow casting like muzzle flash
+- Added to `ImpactEffectsManager.spawn_flashbang_effect()`
+
+### User Feedback Round 2 (2026-02-04 13:43)
+
+User @Jhon-Crow reported:
+> "теперь вспышка опять проходит сквозь стены" (now the flash again passes through walls)
+
+This indicated the fix was incomplete!
+
+### Root Cause Discovery (2026-02-04)
+
+Deep investigation revealed the **actual root cause**: The C# `GrenadeTimer.cs` component (which handles grenade explosions in exported builds due to Issue #432) was **NOT checking line-of-sight for player effects**!
+
+The bug was in `ApplyFlashbangExplosion()`:
+```csharp
+// BEFORE (BUG): Player effect applied without wall check!
+foreach (var player in players)
+{
+    if (player is Node2D playerNode)
+    {
+        float distance = position.DistanceTo(playerNode.GlobalPosition);
+        if (distance <= EffectRadius)
+        {
+            ApplyFlashbangEffectToPlayer(playerNode, distance); // NO LINE OF SIGHT CHECK!
+        }
+    }
+}
+```
+
+Meanwhile, enemies had the check:
+```csharp
+// Enemies had line-of-sight check
+if (HasLineOfSightTo(position, enemyNode.GlobalPosition))
+{
+    ApplyFlashbangEffect(enemyNode, distance);
+}
+```
 
 ## Root Cause Analysis
 
@@ -110,6 +154,50 @@ The `_is_player_in_zone()` line-of-sight check remains for audio:
 2. `scripts/effects/flashbang_effect.gd` - NEW: Animation script for flashbang effect
 3. `scripts/autoload/impact_effects_manager.gd` - Added `spawn_flashbang_effect()` method
 4. `scripts/projectiles/flashbang_grenade.gd` - Uses new effect (no changes needed, fallback works)
+5. **`Scripts/Projectiles/GrenadeTimer.cs`** - CRITICAL FIX: Added line-of-sight check for player flashbang effects
+
+## C# GrenadeTimer.cs Fixes (Issue #469)
+
+Three key changes to `Scripts/Projectiles/GrenadeTimer.cs`:
+
+### 1. ApplyFlashbangExplosion() - Player Line-of-Sight Check
+```csharp
+// AFTER (FIXED): Player now requires line-of-sight check
+if (HasLineOfSightTo(position, playerNode.GlobalPosition))
+{
+    ApplyFlashbangEffectToPlayer(playerNode, distance);
+}
+else
+{
+    LogToFile($"[GrenadeTimer] Player behind wall - flashbang blocked");
+}
+```
+
+### 2. SpawnExplosionEffect() - Use Shadow-Enabled Light
+```csharp
+// Use ImpactEffectsManager for shadow-enabled flash (Issue #469)
+var impactManager = GetNodeOrNull("/root/ImpactEffectsManager");
+if (Type == GrenadeType.Flashbang && impactManager != null &&
+    impactManager.HasMethod("spawn_flashbang_effect"))
+{
+    impactManager.Call("spawn_flashbang_effect", position, EffectRadius);
+    return;
+}
+// Fallback for frag grenades or if manager unavailable
+CreateExplosionFlash(position);
+```
+
+### 3. IsPlayerInZone() - Audio Effect Wall Check
+```csharp
+// Check both distance AND line-of-sight for audio effects
+if (position.DistanceTo(playerNode.GlobalPosition) <= EffectRadius)
+{
+    if (HasLineOfSightTo(position, playerNode.GlobalPosition))
+    {
+        return true;
+    }
+}
+```
 
 ## Test Plan
 
@@ -119,13 +207,17 @@ The `_is_player_in_zone()` line-of-sight check remains for audio:
 - [ ] Player with clear line of sight sees full flash effect
 - [ ] Audio wall blocking still works (distant vs close sounds)
 - [ ] Enemy targeting wall blocking still works
+- [ ] **Game log shows "Player behind wall - flashbang blocked" when player is behind wall**
 
 ## Lessons Learned
 
 1. **Reference existing implementations**: The weapon muzzle flash already solved the wall-blocking problem using Godot's shadow system
 2. **Don't reinvent the wheel**: PointLight2D shadows are GPU-accelerated and more efficient than manual raycasting for visual effects
 3. **Verify all aspects**: Initial fix only addressed audio, missing the visual component
+4. **Check BOTH code paths**: In this project, GDScript may not run in exported builds (Issue #432), so C# `GrenadeTimer.cs` handles explosions. The fix MUST be applied to BOTH codebases!
+5. **Consistent behavior**: Player effects should have the same wall-blocking behavior as enemy effects
 
 ## Related Files
 
-- `docs/case-studies/issue-469/game_log_20260204_094159.txt` - Game log from user testing
+- `docs/case-studies/issue-469/logs/game_log_20260204_094159.txt` - Game log from user testing (Round 1)
+- `docs/case-studies/issue-469/logs/game_log_20260204_164120.txt` - Game log from user testing (Round 2)

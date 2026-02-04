@@ -397,6 +397,8 @@ namespace GodotTopdown.Scripts.Projectiles
 
         /// <summary>
         /// Apply Flashbang grenade effects.
+        /// FIX for Issue #469: Flashbang effects should not pass through walls.
+        /// Both enemies AND player now require line-of-sight check.
         /// </summary>
         private void ApplyFlashbangExplosion(Vector2 position)
         {
@@ -422,7 +424,8 @@ namespace GodotTopdown.Scripts.Projectiles
                 }
             }
 
-            // Affect player (if too close)
+            // Affect player (if too close AND has line of sight) - Issue #469 fix
+            // Walls now block flashbang effect on player, same as enemies
             foreach (var player in players)
             {
                 if (player is Node2D playerNode)
@@ -430,7 +433,15 @@ namespace GodotTopdown.Scripts.Projectiles
                     float distance = position.DistanceTo(playerNode.GlobalPosition);
                     if (distance <= EffectRadius)
                     {
-                        ApplyFlashbangEffectToPlayer(playerNode, distance);
+                        // FIX Issue #469: Check line of sight - walls block flashbang effect
+                        if (HasLineOfSightTo(position, playerNode.GlobalPosition))
+                        {
+                            ApplyFlashbangEffectToPlayer(playerNode, distance);
+                        }
+                        else
+                        {
+                            LogToFile($"[GrenadeTimer] Player behind wall - flashbang blocked (distance: {distance:F1})");
+                        }
                     }
                 }
             }
@@ -561,7 +572,8 @@ namespace GodotTopdown.Scripts.Projectiles
         }
 
         /// <summary>
-        /// Check if player is in effect zone.
+        /// Check if player is in effect zone (distance AND line of sight).
+        /// FIX for Issue #469: Walls block flashbang effects, so we check line of sight.
         /// </summary>
         private bool IsPlayerInZone(Vector2 position)
         {
@@ -571,7 +583,13 @@ namespace GodotTopdown.Scripts.Projectiles
                 if (player is Node2D playerNode)
                 {
                     if (position.DistanceTo(playerNode.GlobalPosition) <= EffectRadius)
-                        return true;
+                    {
+                        // FIX Issue #469: Also check line of sight - walls block the effect
+                        if (HasLineOfSightTo(position, playerNode.GlobalPosition))
+                        {
+                            return true;
+                        }
+                    }
                 }
             }
             return false;
@@ -581,11 +599,23 @@ namespace GodotTopdown.Scripts.Projectiles
         /// Spawn visual explosion effect.
         /// FIX for Issue #432: GDScript Call() silently fails in exports, so we implement
         /// the explosion effect directly in C# to ensure it always works.
+        /// FIX for Issue #469: Use ImpactEffectsManager.spawn_flashbang_effect() which uses
+        /// shadow-enabled PointLight2D so light doesn't pass through walls.
         /// </summary>
         private void SpawnExplosionEffect(Vector2 position)
         {
-            // Create explosion flash effect directly in C# (GDScript calls don't work in exports)
-            // This replicates the GDScript _create_simple_explosion() / _create_simple_flash() logic
+            // Try to use ImpactEffectsManager for shadow-enabled flash (Issue #469)
+            // This uses PointLight2D with shadow_enabled = true so walls block the light
+            var impactManager = GetNodeOrNull("/root/ImpactEffectsManager");
+            if (Type == GrenadeType.Flashbang && impactManager != null && impactManager.HasMethod("spawn_flashbang_effect"))
+            {
+                impactManager.Call("spawn_flashbang_effect", position, EffectRadius);
+                LogToFile($"[GrenadeTimer] Spawned shadow-enabled flashbang effect at {position}");
+                return;
+            }
+
+            // Fallback: Create simple explosion flash effect directly in C#
+            // (GDScript calls don't work in exports, and this is used for frag grenades)
             CreateExplosionFlash(position);
             LogToFile($"[GrenadeTimer] Spawned C# explosion effect at {position}");
         }
