@@ -2423,6 +2423,31 @@ func _is_active_grenade_contact_type() -> bool:
 	return false
 
 
+## Get the grenade effect radius with type-based default fallback.
+## FIX for Issue #432: If GDScript method call fails (common in exports), use appropriate default
+## based on grenade type instead of a generic 200px value.
+## Flashbang: 400px (from FlashbangGrenade.tscn)
+## Frag: 225px (from FragGrenade.tscn)
+func _get_grenade_effect_radius_with_default() -> float:
+	# Try to get effect radius from active grenade
+	if _active_grenade != null and is_instance_valid(_active_grenade):
+		if _active_grenade.has_method("_get_effect_radius"):
+			var result = _active_grenade._get_effect_radius()
+			if result > 0.0:
+				return result
+		# Try reading property directly
+		if "effect_radius" in _active_grenade:
+			var radius = _active_grenade.effect_radius
+			if radius > 0.0:
+				return radius
+
+	# Use type-based default
+	if _is_active_grenade_contact_type():
+		return 225.0  # Frag grenade radius (from FragGrenade.tscn)
+	else:
+		return 400.0  # Flashbang radius (from FlashbangGrenade.tscn)
+
+
 ## Draw a simple straight trajectory (for contact grenades or when no bounces needed).
 func _draw_simple_trajectory(spawn_pos: Vector2, landing_pos: Vector2, color_trajectory: Color, color_landing: Color, color_radius: Color, line_width: float) -> void:
 	# Draw trajectory arc (curved line)
@@ -2434,9 +2459,8 @@ func _draw_simple_trajectory(spawn_pos: Vector2, landing_pos: Vector2, color_tra
 	draw_line(landing_pos + Vector2(0, -cross_size), landing_pos + Vector2(0, cross_size), color_landing, 3.0)
 
 	# Draw effect radius at landing position
-	var effect_radius := 200.0
-	if _active_grenade != null and is_instance_valid(_active_grenade) and _active_grenade.has_method("_get_effect_radius"):
-		effect_radius = _active_grenade._get_effect_radius()
+	# FIX for Issue #432: Use type-based default (400 for flashbang, 225 for frag) instead of 200
+	var effect_radius := _get_grenade_effect_radius_with_default()
 	_draw_circle_outline(landing_pos, effect_radius, color_radius, 2.0)
 
 
@@ -2552,9 +2576,8 @@ func _draw_trajectory_with_bounces(spawn_pos: Vector2, direction: Vector2, speed
 		draw_line(landing_pos + Vector2(0, -cross_size), landing_pos + Vector2(0, cross_size), color_landing, 3.0)
 
 		# Draw effect radius at landing position
-		var effect_radius := 200.0
-		if _active_grenade != null and is_instance_valid(_active_grenade) and _active_grenade.has_method("_get_effect_radius"):
-			effect_radius = _active_grenade._get_effect_radius()
+		# FIX for Issue #432: Use type-based default (400 for flashbang, 225 for frag) instead of 200
+		var effect_radius := _get_grenade_effect_radius_with_default()
 		_draw_circle_outline(landing_pos, effect_radius, color_radius, 2.0)
 
 

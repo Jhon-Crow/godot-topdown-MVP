@@ -357,20 +357,15 @@ var _killed_by_ricochet: bool = false
 ## Whether the last hit that killed this enemy was from a bullet that penetrated a wall.
 var _killed_by_penetration: bool = false
 
-## [Status Effects] Whether the enemy is currently blinded (cannot see the player).
+## [Status Effects] Blinded (cannot see player), Stunned (cannot move/act)
 var _is_blinded: bool = false
-
-## Whether the enemy is currently stunned (cannot move or act).
 var _is_stunned: bool = false
+var _blindness_timer: float = 0.0  ## [Issue #432] Flashbang effect timer
+var _stun_timer: float = 0.0  ## [Issue #432] Flashbang effect timer
 
-## [Grenade System Issue #363] Grenade logic handled by EnemyGrenadeComponent (Issue #377 CI fix).
-
-## --- Grenade Avoidance System (Issue #407) ---
-## Grenade avoidance logic is handled by GrenadeAvoidanceComponent.
+## [Grenade Avoidance - Issue #407] Component handles avoidance logic
 var _grenade_avoidance: GrenadeAvoidanceComponent = null
-
-## Timer for how long we've been evading grenades (to prevent getting stuck).
-var _grenade_evasion_timer: float = 0.0
+var _grenade_evasion_timer: float = 0.0  ## Timer for evasion to prevent stuck
 
 ## Maximum time to spend evading before giving up (seconds).
 const GRENADE_EVASION_MAX_TIME: float = 4.0
@@ -814,6 +809,9 @@ func _find_player_recursive(node: Node) -> Node2D:
 func _physics_process(delta: float) -> void:
 	if not _is_alive:
 		return
+
+	# Update flashbang status effect timers (Issue #432)
+	_update_flashbang_timers(delta)
 
 	# Update shoot cooldown timer
 	_shoot_timer += delta
@@ -2707,10 +2705,7 @@ func _transition_to_retreating() -> void:
 	# Find cover position for retreating
 	_find_cover_position()
 
-## Check if the enemy is visible from the player's position.
-## Uses raycasting from player to enemy to determine if there are obstacles blocking line of sight.
-## This is the inverse of _can_see_player - it checks if the PLAYER can see the ENEMY.
-## Checks multiple points on the enemy body (center and corners) to account for enemy size.
+## Check if PLAYER can see ENEMY (inverse of _can_see_player). Checks center + corners.
 func _is_visible_from_player() -> bool:
 	if _player == null:
 		return false
@@ -2725,8 +2720,7 @@ func _is_visible_from_player() -> bool:
 
 	return false
 
-## Get multiple check points on the enemy body for visibility testing.
-## Returns center and 4 corner points offset by the enemy's radius.
+## Get center + 4 corner points on enemy body for visibility testing.
 func _get_enemy_check_points(center: Vector2) -> Array[Vector2]:
 	# Enemy collision radius is 24, sprite is 48x48
 	# Use a slightly smaller radius to avoid edge cases
@@ -2776,9 +2770,7 @@ func _is_point_visible_from_player(point: Vector2) -> bool:
 		else:
 			return true
 
-## Check if a specific position would make the enemy visible from the player's position.
-## Checks all enemy body points (center and corners) to account for enemy size.
-## Used to validate cover positions before moving to them.
+## Check if enemy at position would be visible to player. Used to validate cover positions.
 func _is_position_visible_from_player(pos: Vector2) -> bool:
 	if _player == null:
 		return true  # Assume visible if no player
@@ -2792,10 +2784,7 @@ func _is_position_visible_from_player(pos: Vector2) -> bool:
 
 	return false
 
-## Check if a target position is visible from the enemy's perspective.
-## Uses raycast to verify there are no obstacles between enemy and the target position.
-## This is used to validate lead prediction targets - enemies should only aim at
-## positions they can actually see.
+## Check if target is visible from enemy (raycast for LOS). For lead prediction validation.
 func _is_position_visible_to_enemy(target_pos: Vector2) -> bool:
 	var distance := global_position.distance_to(target_pos)
 
@@ -2824,9 +2813,7 @@ func _is_position_visible_to_enemy(target_pos: Vector2) -> bool:
 
 	return true
 
-## Get multiple check points on the player's body for visibility testing.
-## Returns center and 4 corner points offset by the player's radius.
-## The player has a collision radius of 16 pixels (from Player.tscn).
+## Get center + 4 corner points on player body (16px radius) for visibility testing.
 func _get_player_check_points(center: Vector2) -> Array[Vector2]:
 	# Player collision radius is 16, sprite is 32x32
 	# Use a slightly smaller radius to be conservative
@@ -2923,8 +2910,7 @@ func _is_firing_line_clear_of_friendlies(target_position: Vector2) -> bool:
 
 	return true
 
-## Check if a bullet fired at the target position would be blocked by cover/obstacles.
-## Returns true if the shot would likely hit the target, false if blocked by cover.
+## Check if shot to target is blocked by cover. Returns true if clear, false if blocked.
 func _is_shot_clear_of_cover(target_position: Vector2) -> bool:
 	# Get actual muzzle position for accurate raycast
 	var weapon_forward := _get_weapon_forward_direction()
@@ -2953,9 +2939,7 @@ func _is_shot_clear_of_cover(target_position: Vector2) -> bool:
 
 	return true
 
-## Check if there's an obstacle immediately in front of the enemy that would block bullets.
-## This prevents shooting into walls that the enemy is flush against or very close to.
-## Uses a single raycast from enemy center to the bullet spawn position.
+## Check if bullet spawn point is clear (not blocked by wall enemy is flush against).
 func _is_bullet_spawn_clear(direction: Vector2) -> bool:
 	# Fail-open: allow shooting if physics is not ready
 	var world_2d := get_world_2d()
@@ -4868,6 +4852,23 @@ func set_stunned(stunned: bool) -> void:
 
 func is_blinded() -> bool: return _is_blinded
 func is_stunned() -> bool: return _is_stunned
+
+
+## Apply flashbang effect (Issue #432). Called by C# GrenadeTimer.
+func apply_flashbang_effect(blindness_duration: float, stun_duration: float) -> void:
+	_log_to_file("Flashbang: blind=%.1fs, stun=%.1fs" % [blindness_duration, stun_duration])
+	if blindness_duration > 0.0: _blindness_timer = maxf(_blindness_timer, blindness_duration); set_blinded(true)
+	if stun_duration > 0.0: _stun_timer = maxf(_stun_timer, stun_duration); set_stunned(true)
+
+## Update flashbang timers (Issue #432). Called from _physics_process.
+func _update_flashbang_timers(delta: float) -> void:
+	if _blindness_timer > 0.0:
+		_blindness_timer -= delta
+		if _blindness_timer <= 0.0: _blindness_timer = 0.0; set_blinded(false)
+	if _stun_timer > 0.0:
+		_stun_timer -= delta
+		if _stun_timer <= 0.0: _stun_timer = 0.0; set_stunned(false)
+
 
 # Grenade System (Issue #363) - Component-based (extracted for Issue #377)
 
