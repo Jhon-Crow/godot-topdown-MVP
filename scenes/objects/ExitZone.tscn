@@ -1,0 +1,8 @@
+[gd_scene load_steps=2 format=3 uid="uid://cexitzone2024"]
+
+[ext_resource type="Script" path="res://scripts/components/exit_zone.gd" id="1_exit_zone"]
+
+[node name="ExitZone" type="Area2D"]
+script = ExtResource("1_exit_zone")
+zone_width = 80.0
+zone_height = 120.0
