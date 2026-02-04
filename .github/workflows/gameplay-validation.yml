@@ -15,9 +15,13 @@ name: Gameplay Critical Systems Validation
 on:
   push:
     branches: [ main, issue-* ]
-  pull_request:
+  pull_request_target:
     branches: [ main ]
   workflow_dispatch:
+
+# Note: Using pull_request_target instead of pull_request to allow CI to run
+# even when the PR branch has merge conflicts with main (Issue #459).
+# This is safe for this workflow as it only performs static analysis.
 
 jobs:
   gameplay-validation:
@@ -28,6 +32,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
+          # For pull_request_target, explicitly checkout the PR head commit
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0  # Full history for diff analysis
 
       - name: Check for critical file modifications
