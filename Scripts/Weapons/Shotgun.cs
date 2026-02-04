@@ -937,7 +937,25 @@ public partial class Shotgun : BaseWeapon
             {
                 if (VerboseInputLogging)
                 {
-                    LogToFile($"[Shotgun.FIX#445v7] Reload drag not vertical: absY={Mathf.Abs(dragVector.Y):F1} <= absX={Mathf.Abs(dragVector.X):F1}");
+                    LogToFile($"[Shotgun.FIX#477v2] Reload drag not vertical: absY={Mathf.Abs(dragVector.Y):F1} <= absX={Mathf.Abs(dragVector.X):F1}");
+                }
+
+                // Issue #477 Fix: When drag is not vertical enough while in Loading state,
+                // close the bolt anyway if the user is not holding MMB.
+                // This prevents the bolt from getting stuck in Loading state when the user
+                // tries to close it but drags slightly diagonally.
+                if (ReloadState == ShotgunReloadState.Loading)
+                {
+                    bool shouldLoadShell = _wasMiddleMouseHeldDuringDrag || _isMiddleMouseHeld;
+                    if (!shouldLoadShell)
+                    {
+                        LogToFile($"[Shotgun.FIX#477v2] Non-vertical drag in Loading state without MMB - closing bolt");
+                        CompleteReload();
+                    }
+                    else
+                    {
+                        LogToFile($"[Shotgun.FIX#477v2] Non-vertical drag in Loading state WITH MMB - staying in Loading state");
+                    }
                 }
                 return;
             }
