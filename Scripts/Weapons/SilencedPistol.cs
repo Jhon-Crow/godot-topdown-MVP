@@ -80,6 +80,14 @@ public partial class SilencedPistol : BaseWeapon
     /// </summary>
     private const float RecoilPerShot = 0.06f;
 
+    /// <summary>
+    /// Muzzle flash scale for silenced pistol.
+    /// Very small flash (around 100x100 pixels) to simulate suppressor effect.
+    /// Suppressors trap most of the expanding gases, significantly reducing muzzle flash.
+    /// Value of 0.2 reduces the flash to ~20% of normal size.
+    /// </summary>
+    private const float SilencedMuzzleFlashScale = 0.2f;
+
     // =========================================================================
     // Laser Sight Configuration
     // =========================================================================
@@ -706,7 +714,31 @@ public partial class SilencedPistol : BaseWeapon
 
         GetTree().CurrentScene.AddChild(bulletNode);
 
+        // Spawn muzzle flash effect with small scale for silenced weapon
+        // The overridden SpawnMuzzleFlash method ignores caliber and uses SilencedMuzzleFlashScale (0.2)
+        SpawnMuzzleFlash(spawnPosition, direction, WeaponData?.Caliber);
+
         // Spawn casing if casing scene is set
         SpawnCasing(direction, WeaponData?.Caliber);
+    }
+
+    /// <summary>
+    /// Spawns a very small muzzle flash effect for the silenced pistol.
+    /// Suppressors significantly reduce muzzle flash by trapping expanding gases,
+    /// so the flash should be barely visible (around 100x100 pixels).
+    /// </summary>
+    /// <param name="position">Position to spawn the muzzle flash.</param>
+    /// <param name="direction">Direction the weapon is firing.</param>
+    /// <param name="caliber">Caliber data (ignored for silenced pistol, uses SilencedMuzzleFlashScale instead).</param>
+    protected override void SpawnMuzzleFlash(Vector2 position, Vector2 direction, Resource? caliber)
+    {
+        var impactManager = GetNodeOrNull("/root/ImpactEffectsManager");
+        if (impactManager != null && impactManager.HasMethod("spawn_muzzle_flash"))
+        {
+            // Pass the silenced pistol's reduced muzzle flash scale as the 4th argument
+            // This creates a very small flash (~100x100 pixels) appropriate for a suppressed weapon
+            // Note: We ignore the caliber parameter and use our fixed SilencedMuzzleFlashScale instead
+            impactManager.Call("spawn_muzzle_flash", position, direction, Variant.CreateFrom((GodotObject?)null), SilencedMuzzleFlashScale);
+        }
     }
 }

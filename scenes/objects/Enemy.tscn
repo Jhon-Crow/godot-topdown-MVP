@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3 uid="uid://cx5m8np6u3bwd"]
+[gd_scene load_steps=14 format=3 uid="uid://cx5m8np6u3bwd"]
 
 [ext_resource type="Script" path="res://scripts/objects/enemy.gd" id="1_enemy"]
 [ext_resource type="Script" path="res://scripts/objects/hit_area.gd" id="2_hit_area"]
@@ -13,9 +13,15 @@
 [sub_resource type="CircleShape2D" id="CircleShape2D_enemy"]
 radius = 24.0
 
+[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_enemy"]
+polygon = PackedVector2Array(24, 0, 20.78, 12, 12, 20.78, 0, 24, -12, 20.78, -20.78, 12, -24, 0, -20.78, -12, -12, -20.78, 0, -24, 12, -20.78, 20.78, -12)
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_casing_pusher"]
+radius = 28.0
+
 [node name="Enemy" type="CharacterBody2D" groups=["enemies"]]
 collision_layer = 2
-collision_mask = 68
+collision_mask = 4
 script = ExtResource("1_enemy")
 
 [node name="EnemyModel" type="Node2D" parent="."]
@@ -92,3 +98,14 @@ initial_alpha = 0.8
 alpha_decay_rate = 0.06
 footprint_scale = 0.72
 debug_logging = false
+
+[node name="CasingPusher" type="Area2D" parent="."]
+collision_layer = 0
+collision_mask = 64
+monitorable = false
+
+[node name="CasingPusherShape" type="CollisionShape2D" parent="CasingPusher"]
+shape = SubResource("CircleShape2D_casing_pusher")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="."]
+occluder = SubResource("OccluderPolygon2D_enemy")

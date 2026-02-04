@@ -1,0 +1,78 @@
+[16:33:13] [INFO] [ExperimentalSettings] ExperimentalSettings initialized - FOV enabled: true, Complex grenade throwing: false
+[16:33:13] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[16:33:15] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=4.3°, current=58.7°, player=(450,1250), corner_timer=-0.02
+[16:33:15] [ENEMY] [Enemy10] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=50.4°, player=(450,1250), corner_timer=-0.02
+[16:33:15] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=94.3°, current=55.9°, player=(450,1250), corner_timer=0.30
+[16:33:15] [ENEMY] [Enemy10] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=14.3°, current=52.7°, player=(450,1250), corner_timer=0.30
+[16:33:16] [ENEMY] [Enemy10] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=14.0°, player=(450,1250), corner_timer=-0.02
+[16:33:16] [ENEMY] [Enemy10] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=7.0°, current=16.7°, player=(450,1250), corner_timer=0.30
+[16:33:16] [ENEMY] [Enemy10] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=6.9°, player=(450,1250), corner_timer=-0.02
+[16:33:16] [ENEMY] [Enemy10] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=3.5°, current=9.6°, player=(450,1250), corner_timer=0.30
+[16:33:16] [ENEMY] [Enemy10] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=3.5°, player=(450,1250), corner_timer=-0.02
+[16:33:16] [ENEMY] [Enemy10] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=1.8°, current=6.3°, player=(450,1250), corner_timer=0.30
+[16:33:17] [ENEMY] [Enemy10] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=1.8°, player=(450,1250), corner_timer=-0.02
+[16:33:17] [ENEMY] [Enemy10] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=0.9°, current=4.6°, player=(450,1250), corner_timer=0.30
+[16:33:17] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=-130.1°, player=(450,1250), corner_timer=-0.02
+[16:33:17] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=90.0°, current=-133.0°, player=(450,1250), corner_timer=0.30
+[16:33:17] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=179.1°, current=172.4°, player=(450,1250), corner_timer=-0.02
+[16:33:17] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.8°, current=175.3°, player=(450,1250), corner_timer=0.30
+[16:33:18] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=178.4°, current=120.7°, player=(450,1250), corner_timer=-0.02
+[16:33:18] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.7°, current=123.6°, player=(450,1250), corner_timer=0.30
+[16:33:18] [INFO] [Player.Grenade.Simple] Throwing! Target: (1239.9161, 1484.4341), Distance: 764,0, Speed: 677,0, Friction: 300,0
+[16:33:18] [INFO] [Player.Grenade] Player rotated for throw: 0 -> 0,28850326
+[16:33:18] [INFO] [GrenadeBase] Simple mode throw! Dir: (0.958671, 0.284518), Speed: 677.0 (clamped from 677.0, max: 1352.8)
+[16:33:18] [INFO] [Player.Grenade.Anim] Phase changed to: Throw (duration: 0,20s)
+[16:33:18] [INFO] [Player.Grenade.Simple] Grenade thrown!
+[16:33:18] [ENEMY] [Enemy4] ROT_CHANGE: P5:idle_scan -> P4:velocity, state=EVADING_GRENADE, target=-52.7°, current=-76.3°, player=(450,1250), corner_timer=0.00
+[16:33:18] [ENEMY] [Enemy4] ROT_CHANGE: P4:velocity -> P5:idle_scan, state=IDLE, target=258.8°, current=-75.0°, player=(450,1250), corner_timer=0.00
+[16:33:18] [ENEMY] [Enemy4] ROT_CHANGE: P5:idle_scan -> P4:velocity, state=EVADING_GRENADE, target=-60.1°, current=-88.1°, player=(450,1250), corner_timer=0.00
+[16:33:18] [ENEMY] [Enemy4] ROT_CHANGE: P4:velocity -> P5:idle_scan, state=IDLE, target=157.5°, current=-82.4°, player=(450,1250), corner_timer=0.00
+[16:33:18] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.9°, current=89.7°, player=(450,1250), corner_timer=-0.02
+[16:33:18] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.6°, current=92.5°, player=(450,1250), corner_timer=0.30
+[16:33:18] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.7°, current=89.6°, player=(450,1250), corner_timer=-0.02
+[16:33:18] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.5°, current=92.4°, player=(450,1250), corner_timer=0.30
+[16:33:19] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.5°, current=89.5°, player=(450,1250), corner_timer=-0.02
+[16:33:19] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.5°, current=92.4°, player=(450,1250), corner_timer=0.30
+[16:33:19] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.4°, current=89.5°, player=(450,1250), corner_timer=-0.02
+[16:33:19] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.5°, current=92.3°, player=(450,1250), corner_timer=0.30
+[16:33:19] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.3°, current=89.5°, player=(450,1250), corner_timer=-0.02
+[16:33:19] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.4°, current=92.3°, player=(450,1250), corner_timer=0.30
+[16:33:20] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.3°, current=89.4°, player=(450,1250), corner_timer=-0.02
+[16:33:20] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.4°, current=92.3°, player=(450,1250), corner_timer=0.30
+[16:33:20] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.3°, current=89.4°, player=(450,1250), corner_timer=-0.02
+[16:33:20] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.4°, current=92.3°, player=(450,1250), corner_timer=0.30
+[16:33:20] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.3°, current=89.4°, player=(450,1250), corner_timer=-0.02
+[16:33:20] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.4°, current=92.3°, player=(450,1250), corner_timer=0.30
+[16:33:21] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.3°, current=89.4°, player=(450,1250), corner_timer=-0.02
+[16:33:21] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.4°, current=92.3°, player=(450,1250), corner_timer=0.30
+[16:33:21] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.2°, current=89.4°, player=(450,1250), corner_timer=-0.02
+[16:33:21] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.4°, current=92.3°, player=(450,1250), corner_timer=0.30
+[16:33:23] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[16:33:26] [INFO] [Player.Grenade.Simple] Throwing! Target: (742.87885, 158.35004), Distance: 622,1, Speed: 610,9, Friction: 300,0
+[16:33:26] [INFO] [Player.Grenade] Player rotated for throw: 0 -> -0,5171318
+[16:33:26] [INFO] [GrenadeBase] Simple mode throw! Dir: (0.869241, -0.494389), Speed: 610.9 (clamped from 610.9, max: 1352.8)
+[16:33:26] [INFO] [Player.Grenade.Anim] Phase changed to: Throw (duration: 0,20s)
+[16:33:26] [INFO] [Player.Grenade.Simple] Grenade thrown!
+[16:33:29] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[16:33:32] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[16:33:33] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[16:33:35] [INFO] [Player.Grenade.Simple] Throwing! Target: (756.2409, 161.7425), Distance: 599,2, Speed: 579,3, Friction: 280,0
+[16:33:35] [INFO] [Player.Grenade] Player rotated for throw: 0 -> -0,3803048
+[16:33:35] [INFO] [GrenadeBase] Simple mode throw! Dir: (0.928551, -0.371204), Speed: 579.3 (clamped from 579.3, max: 1186.5)
+[16:33:35] [INFO] [FragGrenade] Grenade thrown (simple mode) - impact detection enabled
+[16:33:35] [INFO] [Player.Grenade.Anim] Phase changed to: Throw (duration: 0,20s)
+[16:33:35] [INFO] [Player.Grenade.Simple] Grenade thrown!
+[16:33:36] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[16:33:39] [INFO] [Player.Grenade.Simple] Throwing! Target: (754.2376, 168.03511), Distance: 614,0, Speed: 586,4, Friction: 280,0
+[16:33:39] [INFO] [Player.Grenade] Player rotated for throw: 0 -> -0,4588721
+[16:33:39] [INFO] [GrenadeBase] Simple mode throw! Dir: (0.896553, -0.442937), Speed: 586.4 (clamped from 586.4, max: 1186.5)
+[16:33:39] [INFO] [FragGrenade] Grenade thrown (simple mode) - impact detection enabled
+[16:33:39] [INFO] [Player.Grenade.Anim] Phase changed to: Throw (duration: 0,20s)
+[16:33:39] [INFO] [Player.Grenade.Simple] Grenade thrown!
+[16:33:42] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[16:33:47] [INFO] [Player.Grenade.Simple] Throwing! Target: (768.26685, 157.14014), Distance: 629,6, Speed: 593,8, Friction: 280,0
+[16:33:47] [INFO] [Player.Grenade] Player rotated for throw: 0 -> -0,4588252
+[16:33:47] [INFO] [GrenadeBase] Simple mode throw! Dir: (0.896573, -0.442895), Speed: 593.8 (clamped from 593.8, max: 1186.5)
+[16:33:47] [INFO] [FragGrenade] Grenade thrown (simple mode) - impact detection enabled
+[16:33:47] [INFO] [Player.Grenade.Anim] Phase changed to: Throw (duration: 0,20s)
+[16:33:47] [INFO] [Player.Grenade.Simple] Grenade thrown!
