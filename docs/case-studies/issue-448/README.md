@@ -7,6 +7,11 @@
 **Date Created:** 2026-02-03
 **Status:** Completed
 
+## Related Files
+
+- [solution-draft-log-pr-449.txt](solution-draft-log-pr-449.txt) - Complete AI solution draft execution log
+- [left-arm-behind-back-bug.png](left-arm-behind-back-bug.png) - Screenshot of the positioning bug
+
 ## Problem Statement
 
 The original issue (in Russian) described a naming inconsistency in the player and enemy arm models:
@@ -73,12 +78,15 @@ Updated both `Player.tscn` and `Enemy.tscn` with new node structure:
 **New arm nodes:**
 | Node Name | Position | Z-Index | Purpose |
 |-----------|----------|---------|---------|
-| LeftShoulder | (-24, -6) | 0 | Back arm shoulder (behind body) |
-| LeftForearm | (2, -6) | 0 | Back arm forearm (behind body) |
+| LeftShoulder | (24, -6) | 0 | Back arm shoulder (behind body) |
+| LeftForearm | (-2, -6) | 0 | Back arm forearm (behind body) |
 | RightShoulder | (24, 6) | 4 | Front arm shoulder (visible) |
 | RightForearm | (-2, 6) | 4 | Front arm forearm (visible) |
 
-The left arm (back side) has lower z-index (0) to appear behind the body, while the right arm (front side) has higher z-index (4) to appear in front.
+**Position rationale:**
+- X-coordinates: Both arms extend in the same direction (right, where the weapon is held), so both shoulders are at x=24 and both forearms at x=-2
+- Y-coordinates: Right arm (front) has positive y=6, left arm (back) has negative y=-6, creating depth separation
+- Z-index: Left arm (back side) has z-index=0 to appear behind body, right arm (front side) has z-index=4 to appear in front
 
 ### 3. Script Updates
 
@@ -159,9 +167,58 @@ The following should be verified:
 6. Death animation works correctly
 7. Last chance/penultimate hit effects apply saturation to all sprites
 
+## Bug Fix: Left Arm Positioning Error
+
+### Issue Discovery
+
+After the initial implementation, the repository owner reported that the left arm appeared to go behind the player's back:
+
+> "сейчас левая рука игрока уходит за спину (должна быть с противоположной стороны)."
+> (Translation: "Currently the player's left arm goes behind the back (should be on the opposite side).")
+
+![Left arm behind back bug](left-arm-behind-back-bug.png)
+
+### Root Cause
+
+The initial implementation incorrectly mirrored the arm positions on the wrong axis:
+
+**Incorrect positions (initial implementation):**
+- LeftShoulder: (-24, -6) - mirrored on X-axis, putting it on the LEFT side
+- LeftForearm: (2, -6) - slightly off, near center
+
+**Correct positions (fixed):**
+- LeftShoulder: (24, -6) - same X as right shoulder, different Y for depth
+- LeftForearm: (-2, -6) - same X as right forearm, different Y for depth
+
+### Understanding Top-Down Arm Positioning
+
+In a top-down view with the character facing right:
+- Both arms extend in the SAME direction (towards the weapon on the right)
+- The difference is in the Y-axis (depth): positive Y = "in front", negative Y = "behind"
+- The left arm should be directly BEHIND the right arm, not horizontally mirrored
+
+```
+Top-down view (character facing right):
+
+    Head  ← behind (negative Y)
+     |
+   Body   ← center
+     |
+    Arms  → in front (positive Y)
+
+         ↓ weapon direction (positive X)
+```
+
+### Files Fixed
+- `scenes/characters/Player.tscn`
+- `scenes/characters/csharp/Player.tscn`
+- `scenes/objects/Enemy.tscn`
+
 ## Lessons Learned
 
 1. **Clear naming conventions matter** - Using left/right naming for parts that were actually both on the right side caused confusion
 2. **Plan for bilateral symmetry** - Character models should anticipate having matching limbs on both sides
 3. **Legacy compatibility is important** - When refactoring, maintaining backward compatibility allows gradual migration
 4. **Document the model structure** - A clear diagram showing node positions and purposes helps future development
+5. **Understand the coordinate system** - In top-down games, "left/right" arms don't mean "left/right" screen positions; they refer to anatomical left/right from the character's perspective, which translates to depth (Y-axis) in a top-down view facing right
+6. **Visual testing is essential** - Position calculations should be verified visually, not just logically
