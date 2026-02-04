@@ -367,6 +367,123 @@ Additionally, the `_log_debug()` function uses `get_node_or_null("/root/FileLogg
        return
    ```
 
+## Bug Investigation Session 4 (2026-02-04)
+
+### Reported Issue
+
+From PR #430 comment by repository owner (in Russian):
+- **"счёт не отображается"** (Score is not displayed)
+- Attached log file: `game_log_20260204_083600.txt`
+
+### Game Log Analysis
+
+Downloaded log: `logs/game_log_20260204_083600.txt` (544KB, 5643 lines)
+
+Key findings (lines 5604-5643):
+- **Line 5608**: `[BuildingLevel] Level completed, setting _level_completed = true`
+- **Line 5610**: `[ScoreManager] Level completed! Final score: 28165, Rank: B`
+- **Line 5611**: `[BuildingLevel] _show_score_screen called with score_data: {...}`
+- **Line 5613**: `[BuildingLevel] Loaded AnimatedScoreScreen script successfully`
+- **Line 5614**: `[BuildingLevel] Created ScoreScreenCanvasLayer at layer 100`
+- **Line 5615**: `[BuildingLevel] Added AnimatedScoreScreen to ScoreScreenCanvasLayer`
+- **Line 5616**: `[BuildingLevel] Set score_screen size to viewport: (1280, 720)`
+- **Line 5617**: `[BuildingLevel] Called show_score() on AnimatedScoreScreen`
+- **NO AnimatedScoreScreen internal logs** (no `[AnimatedScoreScreen]` messages at all)
+- **Lines 5618-5643**: Game continues (blood decals, shotgun actions, player footsteps)
+- Player still interacting with game 8 seconds after score screen creation
+- Log ends at 08:37:34 with no score screen visible
+
+### Critical Observation
+
+Despite the previous fix (CanvasLayer at layer 100), the score screen is STILL not visible.
+The logs show `_show_score_screen()` executes successfully through line 5617, but:
+
+1. **No `_ready()` call logged** - The AnimatedScoreScreen's `_ready()` was never called
+2. **No `show_score()` internal logs** - The function's logging statements never executed
+3. **Game continued normally** - Player could interact, shotgun clicks logged
+
+This indicates the AnimatedScoreScreen node is NOT functioning as a proper Control node.
+
+### Root Cause Analysis
+
+**The Fundamental Issue: Incorrect Script Instantiation**
+
+The code was using:
+```gdscript
+var AnimatedScoreScreenScript = load("res://scripts/ui/animated_score_screen.gd")
+var score_screen = AnimatedScoreScreenScript.new()  # WRONG!
+```
+
+In Godot 4.x, when you call `.new()` on a GDScript that extends a Node-derived class (like Control):
+- It creates a Reference-like object, NOT a proper Control node
+- The object can be added as a child, but:
+  - `_ready()` is NOT called
+  - The node tree integration doesn't work properly
+  - Methods may execute but have undefined behavior
+
+**Correct Pattern:**
+```gdscript
+var animated_score_screen_script = load("res://scripts/ui/animated_score_screen.gd")
+var score_screen := Control.new()  # Create proper Control node first
+score_screen.set_script(animated_score_screen_script)  # Then attach script
+```
+
+This is the same pattern used elsewhere in Godot codebases when dynamically creating nodes with scripts.
+
+### Evidence Supporting Root Cause
+
+1. **BuildingLevel logs show script loaded successfully** - The script file exists and loads
+2. **BuildingLevel logs show child added** - The object was added to the tree
+3. **No AnimatedScoreScreen internal logs** - `_ready()` never triggered
+4. **No console prints either** - Even the fallback `print()` statements didn't execute
+5. **Game continued normally** - The "node" didn't block input or process frames
+
+### Fixes Applied
+
+1. **Changed instantiation pattern** in `building_level.gd`:
+   ```gdscript
+   # Before (broken):
+   var AnimatedScoreScreenScript = load("res://scripts/ui/animated_score_screen.gd")
+   var score_screen = AnimatedScoreScreenScript.new()
+
+   # After (correct):
+   var animated_score_screen_script = load("res://scripts/ui/animated_score_screen.gd")
+   var score_screen := Control.new()
+   score_screen.set_script(animated_score_screen_script)
+   ```
+
+2. **Added console print statements** for immediate debugging:
+   - `print("[AnimatedScoreScreen] _ready() STARTING...")`
+   - `print("[AnimatedScoreScreen] show_score() CALLED...")`
+   - These print directly to stdout, bypassing any FileLogger issues
+
+3. **Enhanced logging** to track parent node and tree status:
+   - Logs `is_inside_tree()` status
+   - Logs parent node name
+
+### Why This Bug Was Hard to Find
+
+1. **Silent failure** - No errors or warnings were logged
+2. **Partial functionality** - The object could be added to tree, named, sized
+3. **Logs appeared successful** - BuildingLevel logs showed all steps completed
+4. **Misleading pattern** - The docstring in `animated_score_screen.gd` suggested `.new()` usage
+5. **Godot behavior** - Godot silently accepts the broken object as a child
+
+### Prevention Recommendations
+
+1. **Always use proper instantiation patterns**:
+   - For scenes: `packed_scene.instantiate()`
+   - For scripts on built-in types: `NodeType.new()` + `set_script()`
+
+2. **Add defensive logging**:
+   - Log at the START of `_ready()` to confirm it's being called
+   - Use `print()` as backup, not just FileLogger
+
+3. **Test dynamic node creation**:
+   - Verify `is_inside_tree()` returns true
+   - Verify `_ready()` is called
+   - Verify `_process()` receives delta updates
+
 ## Related Resources
 
 - [Hotline Miami Scoring Wiki](https://hotlinemiami.fandom.com/wiki/Scoring)

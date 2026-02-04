@@ -85,13 +85,21 @@ var _last_beep_value: int = -1
 
 
 func _ready() -> void:
-	_log_debug("AnimatedScoreScreen _ready() called")
+	# Print to console immediately - this is the most reliable way to confirm _ready() is called
+	print("[AnimatedScoreScreen] _ready() STARTING - is_inside_tree: ", is_inside_tree())
+	_log_debug("AnimatedScoreScreen _ready() called - is_inside_tree: %s" % str(is_inside_tree()))
+
+	# Log parent info for debugging
+	var parent_name := get_parent().name if get_parent() else "null"
+	print("[AnimatedScoreScreen] Parent node: ", parent_name)
+	_log_debug("Parent node: %s" % parent_name)
 
 	# Set to cover full screen - must also set size to parent's size
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 
 	# Get the viewport size for proper sizing
 	var viewport_size := get_viewport_rect().size
+	print("[AnimatedScoreScreen] Viewport size: ", viewport_size)
 	_log_debug("Viewport size: %s" % str(viewport_size))
 
 	# Force size update to match viewport
@@ -103,6 +111,7 @@ func _ready() -> void:
 	# Create beep audio player with generator
 	_setup_beep_audio()
 
+	print("[AnimatedScoreScreen] _ready() COMPLETED successfully")
 	_log_debug("AnimatedScoreScreen _ready() completed")
 
 
@@ -211,6 +220,10 @@ func _apply_pulse_effect() -> void:
 ## Show the animated score screen with the given score data.
 ## @param score_data: Dictionary from ScoreManager.complete_level()
 func show_score(score_data: Dictionary) -> void:
+	# Print to console immediately for debugging
+	print("[AnimatedScoreScreen] show_score() CALLED - rank: ", score_data.get("rank", "?"))
+	print("[AnimatedScoreScreen] is_inside_tree: ", is_inside_tree(), ", visible: ", visible)
+
 	_log_debug("show_score() called with data: %s" % str(score_data))
 	_log_debug("Control properties - size: %s, position: %s, visible: %s, modulate: %s" % [
 		str(size), str(position), str(visible), str(modulate)])

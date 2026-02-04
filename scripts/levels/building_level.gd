@@ -740,9 +740,9 @@ func _show_score_screen(score_data: Dictionary) -> void:
 		game_over_label.queue_free()
 		_log_to_file("Removed GameOverLabel (out of ammo message)")
 
-	# Load and instantiate the animated score screen
-	var AnimatedScoreScreenScript = load("res://scripts/ui/animated_score_screen.gd")
-	if AnimatedScoreScreenScript == null:
+	# Load the animated score screen script
+	var animated_score_screen_script = load("res://scripts/ui/animated_score_screen.gd")
+	if animated_score_screen_script == null:
 		_log_to_file("ERROR: Failed to load animated_score_screen.gd")
 		_show_victory_message()  # Fallback
 		return
@@ -757,18 +757,23 @@ func _show_score_screen(score_data: Dictionary) -> void:
 	add_child(score_canvas_layer)
 	_log_to_file("Created ScoreScreenCanvasLayer at layer 100")
 
-	# Create the score screen Control
-	var score_screen = AnimatedScoreScreenScript.new()
+	# Create the score screen Control node and attach the script
+	# IMPORTANT: Using Control.new() + set_script() instead of Script.new()
+	# because Script.new() creates a Reference-like object that doesn't behave
+	# as a proper Node (no _ready() calls, no tree integration).
+	var score_screen := Control.new()
+	score_screen.set_script(animated_score_screen_script)
 	score_screen.name = "AnimatedScoreScreen"
+	_log_to_file("Created Control node and attached AnimatedScoreScreen script")
 
 	# Ensure the Control is visible and properly sized
 	score_screen.visible = true
 	score_screen.modulate = Color.WHITE
 	score_screen.set_anchors_preset(Control.PRESET_FULL_RECT)
 
-	# Add to the dedicated CanvasLayer
+	# Add to the dedicated CanvasLayer (this triggers _ready() on the score_screen)
 	score_canvas_layer.add_child(score_screen)
-	_log_to_file("Added AnimatedScoreScreen to ScoreScreenCanvasLayer")
+	_log_to_file("Added AnimatedScoreScreen to ScoreScreenCanvasLayer (should trigger _ready)")
 
 	# Force the size to match viewport after being added to tree
 	var viewport_size := get_viewport().get_visible_rect().size
