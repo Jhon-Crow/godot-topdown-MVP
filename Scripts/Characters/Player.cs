@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using GodotTopDownTemplate.AbstractClasses;
 using GodotTopDownTemplate.Weapons;
+using GodotTopdown.Scripts.Projectiles;
 
 namespace GodotTopDownTemplate.Characters;
 
@@ -95,9 +96,10 @@ public partial class Player : BaseCharacter
     private Area2D? _casingPusher;
 
     /// <summary>
-    /// Force to apply to casings when pushed by player walking over them (Issue #392).
+    /// Force to apply to casings when pushed by player walking over them (Issue #392, #424).
+    /// Reduced by 2.5x from 50.0 to 20.0 for Issue #424.
     /// </summary>
-    private const float CasingPushForce = 50.0f;
+    private const float CasingPushForce = 20.0f;
 
     /// <summary>
     /// List of casings currently overlapping with the CasingPusher Area2D (Issue #392 Iteration 8).
@@ -957,7 +959,9 @@ public partial class Player : BaseCharacter
         // Push all detected casings
         foreach (var casing in casingsToPush)
         {
-            var pushDir = Velocity.Normalized();
+            // Calculate push direction from player center to casing position (Issue #424)
+            // This makes casings fly away based on which side they're pushed from
+            var pushDir = (casing.GlobalPosition - GlobalPosition).Normalized();
             var pushStrength = Velocity.Length() * CasingPushForce / 100.0f;
             var impulse = pushDir * pushStrength;
             casing.Call("receive_kick", impulse);
@@ -1149,11 +1153,28 @@ public partial class Player : BaseCharacter
     /// Updates the player model rotation to face the aim direction.
     /// The player model (body, head, arms) rotates to follow the rifle's aim direction.
     /// This creates the appearance of the player rotating their whole body toward the target.
+    /// TACTICAL RELOAD (Issue #437): During shotgun reload OR when RMB is held (dragging),
+    /// player model rotation is locked to allow the player to keep aiming at a specific
+    /// spot while performing reload gestures.
+    ///
+    /// FIX (Issue #437 feedback): Lock rotation as soon as RMB is pressed, not just when
+    /// reload state changes. This prevents barrel/player shift during quick one-motion
+    /// reload gestures (drag up then down without releasing RMB).
     /// </summary>
     private void UpdatePlayerModelRotation()
     {
         if (_playerModel == null)
         {
+            return;
+        }
+
+        // TACTICAL RELOAD (Issue #437): Don't rotate player model during shotgun reload
+        // OR when dragging (RMB is held). This ensures the player freezes immediately
+        // when RMB is pressed, before any state change occurs.
+        var shotgun = GetNodeOrNull<Shotgun>("Shotgun");
+        if (shotgun != null && (shotgun.ReloadState != ShotgunReloadState.NotReloading || shotgun.IsDragging))
+        {
+            // Keep current rotation locked - don't follow mouse
             return;
         }
 
@@ -2216,7 +2237,13 @@ public partial class Player : BaseCharacter
 
         // Calculate throw speed needed to reach target (using physics)
         // Distance = v^2 / (2 * friction) → v = sqrt(2 * friction * distance)
-        float requiredSpeed = Mathf.Sqrt(2.0f * groundFriction * throwDistance);
+        // FIX for issue #428: Apply 16% compensation factor to account for:
+        // 1. Discrete time integration error from Godot's 60 FPS Euler integration (~0.8%)
+        // 2. Additional physics damping effects in Godot's RigidBody2D (~12.5%)
+        // Empirically tested: grenades travel ~86% of calculated distance without compensation.
+        // Factor of 1.16 (≈ 1/0.86) brings actual landing position to match target cursor position.
+        const float physicsCompensationFactor = 1.16f;
+        float requiredSpeed = Mathf.Sqrt(2.0f * groundFriction * throwDistance * physicsCompensationFactor);
 
         // Clamp to grenade's max throw speed
         float throwSpeed = Mathf.Min(requiredSpeed, maxThrowSpeed);
@@ -2239,27 +2266,32 @@ public partial class Player : BaseCharacter
         // Without this fix, the grenade lands ~60px short of the target.
         _activeGrenade.GlobalPosition = safeSpawnPosition;
 
+        // FIX for Issue #432: Mark grenade as thrown BEFORE unfreezing to avoid race condition.
+        // If MarkAsThrown() is called after unfreezing, the BodyEntered signal could fire
+        // before IsThrown is set, causing impact detection to fail.
+        var grenadeTimer = _activeGrenade.GetNodeOrNull<GrenadeTimer>("GrenadeTimer");
+        if (grenadeTimer != null)
+        {
+            grenadeTimer.MarkAsThrown();
+        }
+
         // Unfreeze and throw the grenade
         _activeGrenade.Freeze = false;
 
-        // Use the simple throw method for direct speed control
-        // This bypasses velocity-to-throw multipliers for accurate cursor-based aiming
+        // FIX for Issue #432: ALWAYS set velocity directly in C# as primary mechanism.
+        // GDScript methods called via Call() may silently fail in exported builds,
+        // causing grenades to fly infinitely (no velocity set) or not move at all.
+        // By setting velocity directly in C#, we guarantee the grenade moves correctly.
+        _activeGrenade.LinearVelocity = throwDirection * throwSpeed;
+        _activeGrenade.Rotation = throwDirection.Angle();
+
+        LogToFile($"[Player.Grenade.Simple] C# set velocity directly: dir={throwDirection}, speed={throwSpeed:F1}, spawn={safeSpawnPosition}");
+
+        // Also try to call GDScript method for any additional setup it might do
+        // (visual effects, sound, etc.), but the velocity is already set above
         if (_activeGrenade.HasMethod("throw_grenade_simple"))
         {
-            // Simple mode: pass throw speed directly without any multipliers
             _activeGrenade.Call("throw_grenade_simple", throwDirection, throwSpeed);
-        }
-        else if (_activeGrenade.HasMethod("throw_grenade"))
-        {
-            // Legacy method: use drag distance that produces desired speed
-            float dragDistance = throwSpeed / 2.0f; // drag_to_speed_multiplier = 2.0
-            _activeGrenade.Call("throw_grenade", throwDirection, dragDistance);
-        }
-        else
-        {
-            // Direct physics fallback
-            _activeGrenade.LinearVelocity = throwDirection * throwSpeed;
-            _activeGrenade.Rotation = throwDirection.Angle();
         }
 
         // Start throw animation
@@ -2310,13 +2342,34 @@ public partial class Player : BaseCharacter
         // Add grenade to scene first (must be in tree before setting GlobalPosition)
         GetTree().CurrentScene.AddChild(_activeGrenade);
 
-        // Set position AFTER AddChild (GlobalPosition only works when node is in the scene tree)
+        // FIX for Issue #432 (activation position bug): Freeze the grenade IMMEDIATELY after creation.
+        // This MUST happen before setting position to prevent physics engine interference.
+        // Root cause: GDScript _ready() sets freeze=true, but GDScript doesn't run in exports!
+        // Without this fix, the physics engine can move the unfrozen grenade while player moves,
+        // causing the grenade to be thrown from the activation position instead of player's current position.
+        // See commit 60f7cae for original fix and docs/case-studies/issue-183/ for detailed analysis.
+        _activeGrenade.FreezeMode = RigidBody2D.FreezeModeEnum.Kinematic;
+        _activeGrenade.Freeze = true;
+
+        // Set position AFTER AddChild and AFTER freezing (GlobalPosition only works when node is in the scene tree)
         _activeGrenade.GlobalPosition = GlobalPosition;
 
+        // FIX for Issue #432: Add C# GrenadeTimer component for reliable explosion handling.
+        // GDScript methods called via Call() may silently fail in exports, causing grenades
+        // to fly infinitely without exploding. This C# component provides a reliable fallback.
+        AddGrenadeTimerComponent(_activeGrenade);
+
         // Activate the grenade timer (starts 4s countdown)
+        // Try GDScript first, but C# GrenadeTimer will handle it if this fails
         if (_activeGrenade.HasMethod("activate_timer"))
         {
             _activeGrenade.Call("activate_timer");
+        }
+        // Also activate C# timer as reliable fallback
+        var grenadeTimer = _activeGrenade.GetNodeOrNull<GrenadeTimer>("GrenadeTimer");
+        if (grenadeTimer != null)
+        {
+            grenadeTimer.ActivateTimer();
         }
 
         _grenadeState = GrenadeState.TimerStarted;
@@ -2336,6 +2389,63 @@ public partial class Player : BaseCharacter
         }
 
         LogToFile($"[Player.Grenade] Timer started, grenade created at {GlobalPosition}");
+    }
+
+    /// <summary>
+    /// Add C# GrenadeTimer component to grenade for reliable explosion handling.
+    /// FIX for Issue #432: GDScript methods called via Call() may silently fail in exports.
+    /// </summary>
+    private void AddGrenadeTimerComponent(RigidBody2D grenade)
+    {
+        // Determine grenade type from scene name
+        var grenadeType = GrenadeTimer.GrenadeType.Flashbang;
+        var scenePath = grenade.SceneFilePath;
+        if (scenePath.Contains("Frag", StringComparison.OrdinalIgnoreCase))
+        {
+            grenadeType = GrenadeTimer.GrenadeType.Frag;
+        }
+
+        // Create and configure the GrenadeTimer component
+        var timer = new GrenadeTimer();
+        timer.Name = "GrenadeTimer";
+        timer.Type = grenadeType;
+
+        // Copy relevant properties from grenade (if they exist as exported properties)
+        if (grenade.HasMeta("fuse_time") || grenade.Get("fuse_time").VariantType != Variant.Type.Nil)
+        {
+            timer.FuseTime = (float)grenade.Get("fuse_time");
+        }
+        if (grenade.HasMeta("effect_radius") || grenade.Get("effect_radius").VariantType != Variant.Type.Nil)
+        {
+            timer.EffectRadius = (float)grenade.Get("effect_radius");
+        }
+        if (grenade.HasMeta("explosion_damage") || grenade.Get("explosion_damage").VariantType != Variant.Type.Nil)
+        {
+            timer.ExplosionDamage = (int)grenade.Get("explosion_damage");
+        }
+        if (grenade.HasMeta("blindness_duration") || grenade.Get("blindness_duration").VariantType != Variant.Type.Nil)
+        {
+            timer.BlindnessDuration = (float)grenade.Get("blindness_duration");
+        }
+        if (grenade.HasMeta("stun_duration") || grenade.Get("stun_duration").VariantType != Variant.Type.Nil)
+        {
+            timer.StunDuration = (float)grenade.Get("stun_duration");
+        }
+        // FIX for Issue #432: Copy ground_friction for C# friction handling
+        // GDScript _physics_process() may not run in exports, so we need C# to apply friction
+        if (grenade.HasMeta("ground_friction") || grenade.Get("ground_friction").VariantType != Variant.Type.Nil)
+        {
+            timer.GroundFriction = (float)grenade.Get("ground_friction");
+        }
+
+        // FIX for Issue #432: Apply type-based defaults BEFORE adding to scene.
+        // GDScript Get() calls may fail silently in exported builds, leaving us with
+        // incorrect values (e.g., Frag grenade using Flashbang's 400 radius instead of 225).
+        timer.SetTypeBasedDefaults();
+
+        // Add the timer component to the grenade
+        grenade.AddChild(timer);
+        LogToFile($"[Player.Grenade] Added GrenadeTimer component (type: {grenadeType})");
     }
 
     /// <summary>
@@ -2452,49 +2562,45 @@ public partial class Player : BaseCharacter
         Vector2 spawnPosition = GetSafeGrenadeSpawnPosition(GlobalPosition, intendedSpawnPosition, throwDirection);
         _activeGrenade.GlobalPosition = spawnPosition;
 
-        // Use direction-based throwing (FIX for issue #313)
-        // Priority: throw_grenade_with_direction > throw_grenade_velocity_based > throw_grenade
-        bool methodCalled = false;
+        // FIX for Issue #432: ALWAYS set velocity directly in C# as primary mechanism.
+        // GDScript methods called via Call() may silently fail in exported builds.
+        // Calculate throw speed using the same formula as GDScript
+        float multiplier = 0.5f;
+        float minSwing = 80.0f;
+        float maxSpeed = 850.0f;
+        float swingTransfer = Mathf.Clamp(_totalSwingDistance / minSwing, 0.0f, 0.65f);
+        float finalSpeed = Mathf.Min(velocityMagnitude * multiplier * (0.35f + swingTransfer), maxSpeed);
+
+        // FIX for Issue #432: Mark grenade as thrown BEFORE unfreezing to avoid race condition.
+        // If MarkAsThrown() is called after unfreezing, the BodyEntered signal could fire
+        // before IsThrown is set, causing impact detection to fail.
+        var grenadeTimer = _activeGrenade.GetNodeOrNull<GrenadeTimer>("GrenadeTimer");
+        if (grenadeTimer != null)
+        {
+            grenadeTimer.MarkAsThrown();
+        }
+
+        // Unfreeze and set velocity directly
+        _activeGrenade.Freeze = false;
+        _activeGrenade.LinearVelocity = throwDirection * finalSpeed;
+        _activeGrenade.Rotation = throwDirection.Angle();
+
+        LogToFile($"[Player.Grenade] C# set velocity directly: dir={throwDirection}, speed={finalSpeed:F1}, spawn={spawnPosition}");
+
+        // Also try to call GDScript method for any additional setup
         if (_activeGrenade.HasMethod("throw_grenade_with_direction"))
         {
-            // Best method: explicit direction + velocity magnitude + swing distance
             _activeGrenade.Call("throw_grenade_with_direction", throwDirection, velocityMagnitude, _totalSwingDistance);
-            methodCalled = true;
-            LogToFile("[Player.Grenade] Called throw_grenade_with_direction() - direction is mouse velocity direction");
         }
         else if (_activeGrenade.HasMethod("throw_grenade_velocity_based"))
         {
-            // Legacy velocity-based: construct a velocity vector in the correct direction
-            // This is a workaround - we pass (direction * speed) instead of actual mouse velocity
             Vector2 directionalVelocity = throwDirection * velocityMagnitude;
             _activeGrenade.Call("throw_grenade_velocity_based", directionalVelocity, _totalSwingDistance);
-            methodCalled = true;
-            LogToFile("[Player.Grenade] Called throw_grenade_velocity_based() - direction is mouse velocity direction");
         }
         else if (_activeGrenade.HasMethod("throw_grenade"))
         {
-            // Legacy drag-based: convert velocity to drag distance approximation
-            float legacyDistance = velocityMagnitude * 0.5f; // Rough conversion
+            float legacyDistance = velocityMagnitude * 0.5f;
             _activeGrenade.Call("throw_grenade", throwDirection, legacyDistance);
-            methodCalled = true;
-            LogToFile("[Player.Grenade] Called throw_grenade() on grenade (legacy)");
-        }
-
-        // Direct physics fallback when no throw method is available
-        if (!methodCalled)
-        {
-            LogToFile("[Player.Grenade] WARNING: No throw method found, using direct physics fallback");
-            if (_activeGrenade is RigidBody2D rigidBody)
-            {
-                rigidBody.Freeze = false;
-                // Calculate throw velocity
-                float multiplier = 0.5f;
-                float minSwing = 80.0f;
-                float maxSpeed = 850.0f;
-                float swingTransfer = Mathf.Clamp(_totalSwingDistance / minSwing, 0.0f, 0.65f);
-                float finalSpeed = Mathf.Min(velocityMagnitude * multiplier * (0.35f + swingTransfer), maxSpeed);
-                rigidBody.LinearVelocity = throwDirection * finalSpeed;
-            }
         }
 
         // Emit signal
@@ -3423,15 +3529,42 @@ public partial class Player : BaseCharacter
 
     /// <summary>
     /// Get the effect radius of the current grenade type.
+    /// FIX for Issue #432: Use type-based defaults when GDScript Call() fails in exports.
     /// </summary>
     private float GetGrenadeEffectRadius()
     {
-        if (_activeGrenade != null && IsInstanceValid(_activeGrenade) && _activeGrenade.HasMethod("_get_effect_radius"))
+        if (_activeGrenade != null && IsInstanceValid(_activeGrenade))
         {
-            return (float)_activeGrenade.Call("_get_effect_radius");
+            // Try to call GDScript method first
+            if (_activeGrenade.HasMethod("_get_effect_radius"))
+            {
+                var result = _activeGrenade.Call("_get_effect_radius");
+                if (result.VariantType != Variant.Type.Nil)
+                {
+                    return (float)result;
+                }
+            }
+
+            // Try to read effect_radius property directly
+            if (_activeGrenade.Get("effect_radius").VariantType != Variant.Type.Nil)
+            {
+                return (float)_activeGrenade.Get("effect_radius");
+            }
+
+            // FIX for Issue #432: Use type-based defaults matching scene files
+            // GDScript property access may fail silently in exported builds
+            var script = _activeGrenade.GetScript();
+            if (script.Obj != null)
+            {
+                string scriptPath = ((Script)script.Obj).ResourcePath;
+                if (scriptPath.Contains("frag_grenade"))
+                {
+                    return 225.0f;  // FragGrenade.tscn default
+                }
+            }
         }
-        // Default effect radius (flashbang)
-        return 200.0f;
+        // Default: Flashbang effect radius (FlashbangGrenade.tscn)
+        return 400.0f;
     }
 
     /// <summary>

@@ -9,7 +9,14 @@ extends RigidBody2D
 @export var lifetime: float = 0.0
 
 ## Caliber data for determining casing appearance.
-@export var caliber_data: Resource = null
+## Issue #477 Fix: Use setter to update appearance when caliber_data is set
+## (needed because property is set AFTER _ready() by SpawnCasing in C#)
+@export var caliber_data: Resource = null:
+	set(value):
+		caliber_data = value
+		# Update appearance when caliber data is set (even after _ready)
+		if is_node_ready():
+			_set_casing_appearance()
 
 ## Whether the casing has landed on the ground.
 var _has_landed: bool = false
@@ -46,6 +53,9 @@ const DEBUG_CASING_PHYSICS: bool = false
 
 
 func _ready() -> void:
+	# Add to casings group for explosion detection (Issue #432)
+	add_to_group("casings")
+
 	# Connect to collision signals to detect landing
 	body_entered.connect(_on_body_entered)
 
@@ -110,6 +120,17 @@ func _physics_process(delta: float) -> void:
 ## Makes the casing "land" by stopping all movement.
 func _land() -> void:
 	_has_landed = true
+	# Play landing sound based on caliber type
+	_play_landing_sound()
+
+
+## Plays the appropriate casing landing sound based on caliber type.
+func _play_landing_sound() -> void:
+	var audio_manager: Node = get_node_or_null("/root/AudioManager")
+	if audio_manager == null:
+		return
+
+	_play_casing_sound_for_caliber(audio_manager)
 
 
 ## Sets the visual appearance of the casing based on its caliber.
@@ -229,9 +250,49 @@ func _play_kick_sound(impulse_strength: float) -> void:
 	if audio_manager == null:
 		return
 
-	# Use the shell rifle sound for casing kicks (similar metallic clink)
-	if audio_manager.has_method("play_shell_rifle"):
-		audio_manager.play_shell_rifle(global_position)
+	# Play sound based on caliber type for authenticity
+	_play_casing_sound_for_caliber(audio_manager)
+
+
+## Plays the appropriate casing sound based on caliber type.
+## @param audio_manager The AudioManager node.
+func _play_casing_sound_for_caliber(audio_manager: Node) -> void:
+	var caliber_name: String = _get_caliber_name()
+
+	# Determine sound to play based on caliber
+	if "buckshot" in caliber_name.to_lower() or "Buckshot" in caliber_name:
+		# Shotgun shell casing
+		if audio_manager.has_method("play_shell_shotgun"):
+			audio_manager.play_shell_shotgun(global_position)
+	elif "9x19" in caliber_name or "9mm" in caliber_name.to_lower():
+		# Pistol casing
+		if audio_manager.has_method("play_shell_pistol"):
+			audio_manager.play_shell_pistol(global_position)
+	else:
+		# Default to rifle casing sound (5.45x39mm and others)
+		if audio_manager.has_method("play_shell_rifle"):
+			audio_manager.play_shell_rifle(global_position)
+
+
+## Gets the caliber name from caliber_data.
+## @return The caliber name string, or empty string if not available.
+func _get_caliber_name() -> String:
+	if caliber_data == null:
+		return ""
+
+	if caliber_data is CaliberData:
+		return (caliber_data as CaliberData).caliber_name
+
+	# Issue #477 Fix: For Resources loaded from C# (like WeaponData.Caliber),
+	# we need to access the property correctly. Resources have a get() method
+	# that returns the property value, and we should check if the property exists
+	# by checking if get() returns a non-null value.
+	if caliber_data is Resource:
+		var name_value = caliber_data.get("caliber_name")
+		if name_value != null and name_value is String:
+			return name_value
+
+	return ""
 
 
 ## Disables collision shape to prevent physics interactions.

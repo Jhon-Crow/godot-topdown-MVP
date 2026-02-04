@@ -30,6 +30,20 @@ class MockFlashbangGrenade:
 	var flash_effect_spawned: int = 0
 	var enemies_affected: Array = []
 
+	## Mock player for testing.
+	var _mock_player: MockPlayer = null
+
+	## Mock line of sight enabled (Issue #469 - walls block effects).
+	var _mock_line_of_sight: bool = true
+
+	## Set mock player for testing.
+	func set_mock_player(player: MockPlayer) -> void:
+		_mock_player = player
+
+	## Set mock line of sight for testing wall blocking.
+	func set_mock_line_of_sight(enabled: bool) -> void:
+		_mock_line_of_sight = enabled
+
 	## Check if position is in effect radius.
 	func is_in_effect_radius(pos: Vector2) -> bool:
 		return global_position.distance_to(pos) <= effect_radius
@@ -50,6 +64,23 @@ class MockFlashbangGrenade:
 	func spawn_flash() -> void:
 		flash_effect_spawned += 1
 
+	## Mock line of sight check.
+	func _has_line_of_sight_to(_target) -> bool:
+		return _mock_line_of_sight
+
+	## Check if the player is within the flashbang effect radius and has line of sight.
+	## Walls block both the visual and audio effects of the flashbang (Issue #469).
+	func _is_player_in_zone() -> bool:
+		if _mock_player == null:
+			return false
+
+		# Check if player is in effect radius first
+		if not is_in_effect_radius(_mock_player.global_position):
+			return false
+
+		# Check line of sight - walls block the flashbang effect (Issue #469)
+		return _has_line_of_sight_to(_mock_player)
+
 
 class MockEnemy:
 	extends Node2D
@@ -62,6 +93,12 @@ class MockEnemy:
 
 	func apply_stun(duration: float) -> void:
 		stun_applied = duration
+
+
+class MockPlayer:
+	extends Node2D
+
+	## Player position for zone detection.
 
 
 var grenade: MockFlashbangGrenade
@@ -414,3 +451,106 @@ func test_doubled_radius_coverage() -> void:
 		"Should reach 200 pixels up")
 	assert_true(grenade.is_in_effect_radius(Vector2(200, 400)),
 		"Should reach 200 pixels down")
+
+
+# ============================================================================
+# Wall Blocking Tests (Issue #469)
+# Tests for "визуальный и обычный эффект светошумовой гранаты не должен
+# проходить сквозь стены" - flashbang effects should not pass through walls
+# ============================================================================
+
+
+func test_player_in_zone_with_line_of_sight() -> void:
+	grenade.global_position = Vector2(100, 100)
+	var player := MockPlayer.new()
+	player.global_position = Vector2(200, 100)  # In radius, distance = 100
+
+	grenade.set_mock_player(player)
+	grenade.set_mock_line_of_sight(true)
+
+	assert_true(grenade._is_player_in_zone(),
+		"Player with clear line of sight should be in zone")
+
+
+func test_player_not_in_zone_when_wall_blocks() -> void:
+	grenade.global_position = Vector2(100, 100)
+	var player := MockPlayer.new()
+	player.global_position = Vector2(200, 100)  # In radius, distance = 100
+
+	grenade.set_mock_player(player)
+	grenade.set_mock_line_of_sight(false)  # Wall blocking
+
+	assert_false(grenade._is_player_in_zone(),
+		"Player behind wall should NOT be in zone (Issue #469)")
+
+
+func test_player_not_in_zone_when_outside_radius() -> void:
+	grenade.global_position = Vector2(100, 100)
+	grenade.effect_radius = 100.0
+	var player := MockPlayer.new()
+	player.global_position = Vector2(300, 100)  # Outside radius, distance = 200
+
+	grenade.set_mock_player(player)
+	grenade.set_mock_line_of_sight(true)
+
+	assert_false(grenade._is_player_in_zone(),
+		"Player outside radius should not be in zone even with clear LOS")
+
+
+func test_player_not_in_zone_when_both_blocked_and_outside() -> void:
+	grenade.global_position = Vector2(100, 100)
+	grenade.effect_radius = 100.0
+	var player := MockPlayer.new()
+	player.global_position = Vector2(300, 100)  # Outside radius
+
+	grenade.set_mock_player(player)
+	grenade.set_mock_line_of_sight(false)  # Also blocked
+
+	assert_false(grenade._is_player_in_zone(),
+		"Player outside radius AND behind wall should not be in zone")
+
+
+func test_no_player_returns_false() -> void:
+	grenade.global_position = Vector2(100, 100)
+	# No player set
+
+	assert_false(grenade._is_player_in_zone(),
+		"Should return false when no player is found")
+
+
+func test_player_at_boundary_with_wall() -> void:
+	grenade.global_position = Vector2(100, 100)
+	grenade.effect_radius = 200.0
+	var player := MockPlayer.new()
+	player.global_position = Vector2(300, 100)  # Exactly at boundary, distance = 200
+
+	grenade.set_mock_player(player)
+	grenade.set_mock_line_of_sight(false)  # Wall blocking
+
+	assert_false(grenade._is_player_in_zone(),
+		"Player at boundary behind wall should not be in zone (Issue #469)")
+
+
+func test_player_at_boundary_without_wall() -> void:
+	grenade.global_position = Vector2(100, 100)
+	grenade.effect_radius = 200.0
+	var player := MockPlayer.new()
+	player.global_position = Vector2(300, 100)  # Exactly at boundary, distance = 200
+
+	grenade.set_mock_player(player)
+	grenade.set_mock_line_of_sight(true)  # Clear LOS
+
+	assert_true(grenade._is_player_in_zone(),
+		"Player at boundary with clear LOS should be in zone")
+
+
+func test_player_very_close_behind_wall() -> void:
+	grenade.global_position = Vector2(100, 100)
+	var player := MockPlayer.new()
+	player.global_position = Vector2(110, 100)  # Very close, distance = 10
+
+	grenade.set_mock_player(player)
+	grenade.set_mock_line_of_sight(false)  # Wall between them (corner case)
+
+	assert_false(grenade._is_player_in_zone(),
+		"Even very close player behind wall should not be affected (Issue #469)")

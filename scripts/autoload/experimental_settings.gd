@@ -8,9 +8,9 @@ extends Node
 signal settings_changed
 
 ## Whether FOV (Field of View) limitation for enemies is enabled.
-## When enabled, enemies can only see within a 100-degree cone.
-## When disabled (default), enemies have 360-degree vision.
-var fov_enabled: bool = false
+## When enabled (default), enemies can only see within a 100-degree cone.
+## When disabled, enemies have 360-degree vision.
+var fov_enabled: bool = true
 
 ## Whether complex grenade throwing is enabled.
 ## When enabled, uses the complex 3-step throwing mechanic (G+RMB drag, G+RMB hold, RMB release).
@@ -70,11 +70,11 @@ func _load_settings() -> void:
 	var config := ConfigFile.new()
 	var error := config.load(SETTINGS_PATH)
 	if error == OK:
-		fov_enabled = config.get_value("experimental", "fov_enabled", false)
+		fov_enabled = config.get_value("experimental", "fov_enabled", true)
 		complex_grenade_throwing = config.get_value("experimental", "complex_grenade_throwing", false)
 	else:
 		# File doesn't exist or failed to load - use defaults
-		fov_enabled = false
+		fov_enabled = true
 		complex_grenade_throwing = false
 
 

@@ -1,0 +1,566 @@
+[21:16:43] [INFO] ============================================================
+[21:16:43] [INFO] GAME LOG STARTED
+[21:16:43] [INFO] ============================================================
+[21:16:43] [INFO] Timestamp: 2026-02-03T21:16:43
+[21:16:43] [INFO] Log file: I:/Загрузки/godot exe/гильзы на взрывы/game_log_20260203_211643.txt
+[21:16:43] [INFO] Executable: I:/Загрузки/godot exe/гильзы на взрывы/Godot-Top-Down-Template.exe
+[21:16:43] [INFO] OS: Windows
+[21:16:43] [INFO] Debug build: false
+[21:16:43] [INFO] Engine version: 4.3-stable (official)
+[21:16:43] [INFO] Project: Godot Top-Down Template
+[21:16:43] [INFO] ------------------------------------------------------------
+[21:16:43] [INFO] [GameManager] GameManager ready
+[21:16:43] [INFO] [ScoreManager] ScoreManager ready
+[21:16:43] [INFO] [SoundPropagation] SoundPropagation autoload initialized
+[21:16:43] [INFO] [ImpactEffects] Scenes loaded: DustEffect, BloodEffect, SparksEffect, BloodDecal
+[21:16:43] [INFO] [ImpactEffects] ImpactEffectsManager ready - FULL VERSION with blood effects enabled
+[21:16:43] [INFO] [ImpactEffects] Starting particle shader warmup (Issue #343 fix)...
+[21:16:43] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[21:16:43] [INFO] [PenultimateHit] Saturation shader loaded successfully
+[21:16:43] [INFO] [PenultimateHit] Starting shader warmup (Issue #343 fix)...
+[21:16:43] [INFO] [PenultimateHit] PenultimateHitEffectsManager ready - Configuration:
+[21:16:43] [INFO] [PenultimateHit]   Time scale: 0.10 (10x slowdown)
+[21:16:43] [INFO] [PenultimateHit]   Saturation boost: 2.0 (3.0x)
+[21:16:43] [INFO] [PenultimateHit]   Contrast boost: 1.0 (2.0x)
+[21:16:43] [INFO] [PenultimateHit]   Effect duration: 3.0 real seconds
+[21:16:43] [INFO] [LastChance] Resetting all effects (scene change detected)
+[21:16:43] [INFO] [LastChance] Last chance shader loaded successfully
+[21:16:43] [INFO] [LastChance] Starting shader warmup (Issue #343 fix)...
+[21:16:43] [INFO] [LastChance] LastChanceEffectsManager ready - Configuration:
+[21:16:43] [INFO] [LastChance]   Freeze duration: 6.0 real seconds
+[21:16:43] [INFO] [LastChance]   Sepia intensity: 0.70
+[21:16:43] [INFO] [LastChance]   Brightness: 0.60
+[21:16:43] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FlashbangGrenade.tscn
+[21:16:43] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FragGrenade.tscn
+[21:16:43] [INFO] [ExperimentalSettings] ExperimentalSettings initialized - FOV enabled: true, Complex grenade throwing: false
+[21:16:43] [INFO] [CinemaEffects] CinemaEffectsManager initializing (v5.2 - overlay approach with enhanced death effects)...
+[21:16:43] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+[21:16:43] [INFO] [CinemaEffects] Created effects layer at layer 99
+[21:16:43] [INFO] [CinemaEffects] Cinema shader loaded successfully (v5.0 - no screen_texture)
+[21:16:43] [INFO] [CinemaEffects] Starting cinema shader warmup (Issue #343 fix)...
+[21:16:43] [INFO] [CinemaEffects] Cinema film effect initialized (v5.2) - Configuration:
+[21:16:43] [INFO] [CinemaEffects]   Approach: Overlay-based (no screen_texture)
+[21:16:43] [INFO] [CinemaEffects]   Grain intensity: 0.15
+[21:16:43] [INFO] [CinemaEffects]   Warm tint: 0.12 intensity
+[21:16:43] [INFO] [CinemaEffects]   Sunny effect: 0.08 intensity
+[21:16:43] [INFO] [CinemaEffects]   Vignette: 0.25 intensity
+[21:16:43] [INFO] [CinemaEffects]   Film defects: 1.5% probability
+[21:16:43] [INFO] [CinemaEffects]   White specks: 0.70 intensity, 4.0% probability
+[21:16:43] [INFO] [CinemaEffects]   Death effects: cigarette burn + expanding spots + end of reel (top-right)
+[21:16:43] [INFO] [CinemaEffects] Enabling effect after 1 frame(s)...
+[21:16:43] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[21:16:43] [INFO] [BloodyFeet:Enemy1] Footprint scene loaded
+[21:16:43] [INFO] [BloodyFeet:Enemy1] Found EnemyModel for facing direction
+[21:16:43] [INFO] [BloodyFeet:Enemy1] BloodyFeetComponent ready on Enemy1
+[21:16:43] [ENEMY] [Enemy1] Death animation component initialized
+[21:16:43] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[21:16:43] [INFO] [BloodyFeet:Enemy2] Footprint scene loaded
+[21:16:43] [INFO] [BloodyFeet:Enemy2] Found EnemyModel for facing direction
+[21:16:43] [INFO] [BloodyFeet:Enemy2] BloodyFeetComponent ready on Enemy2
+[21:16:43] [INFO] [EnemyGrenade] Initialized: 1 grenades
+[21:16:43] [ENEMY] [Enemy2] Death animation component initialized
+[21:16:43] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[21:16:43] [INFO] [BloodyFeet:Enemy3] Footprint scene loaded
+[21:16:43] [INFO] [BloodyFeet:Enemy3] Found EnemyModel for facing direction
+[21:16:43] [INFO] [BloodyFeet:Enemy3] BloodyFeetComponent ready on Enemy3
+[21:16:43] [ENEMY] [Enemy3] Death animation component initialized
+[21:16:43] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[21:16:43] [INFO] [BloodyFeet:Enemy4] Footprint scene loaded
+[21:16:43] [INFO] [BloodyFeet:Enemy4] Found EnemyModel for facing direction
+[21:16:43] [INFO] [BloodyFeet:Enemy4] BloodyFeetComponent ready on Enemy4
+[21:16:43] [ENEMY] [Enemy4] Death animation component initialized
+[21:16:43] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[21:16:43] [INFO] [BloodyFeet:Enemy5] Footprint scene loaded
+[21:16:43] [INFO] [BloodyFeet:Enemy5] Found EnemyModel for facing direction
+[21:16:43] [INFO] [BloodyFeet:Enemy5] BloodyFeetComponent ready on Enemy5
+[21:16:43] [ENEMY] [Enemy5] Death animation component initialized
+[21:16:43] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[21:16:43] [INFO] [BloodyFeet:Enemy6] Footprint scene loaded
+[21:16:43] [INFO] [BloodyFeet:Enemy6] Found EnemyModel for facing direction
+[21:16:43] [INFO] [BloodyFeet:Enemy6] BloodyFeetComponent ready on Enemy6
+[21:16:43] [ENEMY] [Enemy6] Death animation component initialized
+[21:16:43] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[21:16:43] [INFO] [BloodyFeet:Enemy7] Footprint scene loaded
+[21:16:43] [INFO] [BloodyFeet:Enemy7] Found EnemyModel for facing direction
+[21:16:43] [INFO] [BloodyFeet:Enemy7] BloodyFeetComponent ready on Enemy7
+[21:16:43] [ENEMY] [Enemy7] Death animation component initialized
+[21:16:43] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[21:16:43] [INFO] [BloodyFeet:Enemy8] Footprint scene loaded
+[21:16:43] [INFO] [BloodyFeet:Enemy8] Found EnemyModel for facing direction
+[21:16:43] [INFO] [BloodyFeet:Enemy8] BloodyFeetComponent ready on Enemy8
+[21:16:43] [ENEMY] [Enemy8] Death animation component initialized
+[21:16:43] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[21:16:43] [INFO] [BloodyFeet:Enemy9] Footprint scene loaded
+[21:16:43] [INFO] [BloodyFeet:Enemy9] Found EnemyModel for facing direction
+[21:16:43] [INFO] [BloodyFeet:Enemy9] BloodyFeetComponent ready on Enemy9
+[21:16:43] [ENEMY] [Enemy9] Death animation component initialized
+[21:16:43] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[21:16:43] [INFO] [BloodyFeet:Enemy10] Footprint scene loaded
+[21:16:43] [INFO] [BloodyFeet:Enemy10] Found EnemyModel for facing direction
+[21:16:43] [INFO] [BloodyFeet:Enemy10] BloodyFeetComponent ready on Enemy10
+[21:16:43] [ENEMY] [Enemy10] Death animation component initialized
+[21:16:43] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[21:16:43] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[21:16:43] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[21:16:43] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[21:16:43] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[21:16:43] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[21:16:43] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[21:16:43] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[21:16:43] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[21:16:43] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[21:16:43] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[21:16:43] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[21:16:43] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 4/4
+[21:16:43] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[21:16:43] [INFO] [BloodDecal] Blood puddle created at (640, 360) (added to group)
+[21:16:43] [INFO] [BuildingLevel] Found Environment/Enemies node with 10 children
+[21:16:43] [INFO] [BuildingLevel] Child 'Enemy1': script=true, has_died_signal=true
+[21:16:43] [INFO] [BuildingLevel] Child 'Enemy2': script=true, has_died_signal=true
+[21:16:43] [INFO] [BuildingLevel] Child 'Enemy3': script=true, has_died_signal=true
+[21:16:43] [INFO] [BuildingLevel] Child 'Enemy4': script=true, has_died_signal=true
+[21:16:43] [INFO] [BuildingLevel] Child 'Enemy5': script=true, has_died_signal=true
+[21:16:43] [INFO] [BuildingLevel] Child 'Enemy6': script=true, has_died_signal=true
+[21:16:43] [INFO] [BuildingLevel] Child 'Enemy7': script=true, has_died_signal=true
+[21:16:43] [INFO] [BuildingLevel] Child 'Enemy8': script=true, has_died_signal=true
+[21:16:43] [INFO] [BuildingLevel] Child 'Enemy9': script=true, has_died_signal=true
+[21:16:43] [INFO] [BuildingLevel] Child 'Enemy10': script=true, has_died_signal=true
+[21:16:43] [INFO] [BuildingLevel] Enemy tracking complete: 10 enemies registered
+[21:16:43] [INFO] [ScoreManager] Level started with 10 enemies
+[21:16:43] [INFO] [CinemaEffects] Found player node: Player
+[21:16:43] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[21:16:43] [INFO] [BloodyFeet:Enemy1] Blood detector created and attached to Enemy1
+[21:16:43] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 1)
+[21:16:43] [ENEMY] [Enemy1] Registered as sound listener
+[21:16:43] [ENEMY] [Enemy1] Spawned at (300, 350), hp: 4, behavior: GUARD
+[21:16:43] [INFO] [BloodyFeet:Enemy2] Blood detector created and attached to Enemy2
+[21:16:43] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 2)
+[21:16:43] [ENEMY] [Enemy2] Registered as sound listener
+[21:16:43] [ENEMY] [Enemy2] Spawned at (400, 550), hp: 4, behavior: GUARD
+[21:16:43] [INFO] [BloodyFeet:Enemy3] Blood detector created and attached to Enemy3
+[21:16:43] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 3)
+[21:16:43] [ENEMY] [Enemy3] Registered as sound listener
+[21:16:43] [ENEMY] [Enemy3] Spawned at (700, 750), hp: 3, behavior: GUARD
+[21:16:43] [INFO] [BloodyFeet:Enemy4] Blood detector created and attached to Enemy4
+[21:16:43] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 4)
+[21:16:43] [ENEMY] [Enemy4] Registered as sound listener
+[21:16:43] [ENEMY] [Enemy4] Spawned at (800, 900), hp: 3, behavior: GUARD
+[21:16:43] [INFO] [BloodyFeet:Enemy5] Blood detector created and attached to Enemy5
+[21:16:43] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 5)
+[21:16:43] [ENEMY] [Enemy5] Registered as sound listener
+[21:16:43] [ENEMY] [Enemy5] Spawned at (1700, 350), hp: 4, behavior: GUARD
+[21:16:43] [INFO] [BloodyFeet:Enemy6] Blood detector created and attached to Enemy6
+[21:16:43] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 6)
+[21:16:43] [ENEMY] [Enemy6] Registered as sound listener
+[21:16:43] [ENEMY] [Enemy6] Spawned at (1950, 450), hp: 4, behavior: GUARD
+[21:16:43] [INFO] [BloodyFeet:Enemy7] Blood detector created and attached to Enemy7
+[21:16:43] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 7)
+[21:16:43] [ENEMY] [Enemy7] Registered as sound listener
+[21:16:43] [ENEMY] [Enemy7] Spawned at (1606.114, 893.8859), hp: 3, behavior: PATROL
+[21:16:43] [INFO] [BloodyFeet:Enemy8] Blood detector created and attached to Enemy8
+[21:16:43] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 8)
+[21:16:43] [ENEMY] [Enemy8] Registered as sound listener
+[21:16:43] [ENEMY] [Enemy8] Spawned at (1900, 1450), hp: 2, behavior: GUARD
+[21:16:43] [INFO] [BloodyFeet:Enemy9] Blood detector created and attached to Enemy9
+[21:16:43] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 9)
+[21:16:43] [ENEMY] [Enemy9] Registered as sound listener
+[21:16:43] [ENEMY] [Enemy9] Spawned at (2100, 1550), hp: 3, behavior: GUARD
+[21:16:43] [INFO] [BloodyFeet:Enemy10] Blood detector created and attached to Enemy10
+[21:16:43] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 10)
+[21:16:43] [ENEMY] [Enemy10] Registered as sound listener
+[21:16:43] [ENEMY] [Enemy10] Spawned at (1200, 1550), hp: 4, behavior: PATROL
+[21:16:43] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[21:16:43] [ENEMY] [Enemy1] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=202.5°, current=0.0°, player=(450,1250), corner_timer=0.00
+[21:16:43] [ENEMY] [Enemy2] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=168.8°, current=0.0°, player=(450,1250), corner_timer=0.00
+[21:16:43] [ENEMY] [Enemy3] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=11.3°, current=0.0°, player=(450,1250), corner_timer=0.00
+[21:16:43] [ENEMY] [Enemy4] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=292.5°, current=0.0°, player=(450,1250), corner_timer=0.00
+[21:16:43] [ENEMY] [Enemy5] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=258.8°, current=0.0°, player=(450,1250), corner_timer=0.00
+[21:16:43] [ENEMY] [Enemy6] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=101.3°, current=0.0°, player=(450,1250), corner_timer=0.00
+[21:16:43] [ENEMY] [Enemy8] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=213.8°, current=0.0°, player=(450,1250), corner_timer=0.00
+[21:16:43] [ENEMY] [Enemy9] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=337.5°, current=0.0°, player=(450,1250), corner_timer=0.00
+[21:16:43] [INFO] [Player] Detecting weapon pose (frame 3)...
+[21:16:43] [INFO] [Player] Detected weapon: Rifle (default pose)
+[21:16:43] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[21:16:43] [INFO] [PenultimateHit] Shader warmup complete in 170 ms
+[21:16:43] [INFO] [LastChance] Shader warmup complete in 168 ms
+[21:16:43] [INFO] [CinemaEffects] Cinema shader warmup complete in 143 ms
+[21:16:43] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[21:16:43] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[21:16:43] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[21:16:43] [INFO] [LastChance] Found player: Player
+[21:16:43] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[21:16:43] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[21:16:43] [INFO] [LastChance] Connected to player Died signal (C#)
+[21:16:43] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[21:16:43] [INFO] [ImpactEffects] Particle shader warmup complete: 5 effects warmed up in 424 ms
+[21:16:45] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[21:16:45] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[21:16:45] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[21:16:45] [INFO] [LastChance] Resetting all effects (scene change detected)
+[21:16:45] [INFO] [CinemaEffects] Scene changed to: TestTier
+[21:16:45] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[21:16:45] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[21:16:45] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[21:16:45] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[21:16:45] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[21:16:45] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+[21:16:45] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[21:16:45] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[21:16:45] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[21:16:45] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[21:16:45] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[21:16:45] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[21:16:45] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 3/3, Health: 3/4
+[21:16:45] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[21:16:45] [INFO] [CinemaEffects] Found player node: Player
+[21:16:45] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[21:16:45] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[21:16:45] [INFO] [Player] Detecting weapon pose (frame 3)...
+[21:16:45] [INFO] [Player] Detected weapon: Rifle (default pose)
+[21:16:45] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[21:16:45] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[21:16:45] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[21:16:45] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[21:16:45] [INFO] [LastChance] Found player: Player
+[21:16:45] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[21:16:45] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[21:16:45] [INFO] [LastChance] Connected to player Died signal (C#)
+[21:16:45] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[21:16:45] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(150, 354), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[21:16:45] [INFO] [SoundPropagation] Cleaned up 10 invalid listeners
+[21:16:45] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[21:16:45] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(150, 326.6111), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[21:16:45] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[21:16:45] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(150, 354), shooter_id=84271958560, bullet_pos=(508.33295, 354.5787)
+[21:16:45] [INFO] [Bullet] Using shooter_position, distance=358,3334
+[21:16:45] [INFO] [Bullet] Distance to wall: 358,3334 (24,399582% of viewport)
+[21:16:45] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[21:16:45] [INFO] [Bullet] Starting wall penetration at (508.33295, 354.5787)
+[21:16:45] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[21:16:45] [INFO] [Bullet] Exiting penetration at (554.9996, 354.65408) after traveling 41,666668 pixels through wall
+[21:16:45] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[21:16:45] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(155.4715, 304.6439), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[21:16:45] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[21:16:46] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(150, 326.6111), shooter_id=84271958560, bullet_pos=(507.69763, 347.94525)
+[21:16:46] [INFO] [Bullet] Using shooter_position, distance=358,33328
+[21:16:46] [INFO] [Bullet] Distance to wall: 358,33328 (24,399572% of viewport)
+[21:16:46] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[21:16:46] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(172.552, 289.1864), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[21:16:46] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[21:16:46] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(155.47147, 304.6439), shooter_id=84271958560, bullet_pos=(511.65546, 343.8331)
+[21:16:46] [INFO] [Bullet] Using shooter_position, distance=358,3334
+[21:16:46] [INFO] [Bullet] Distance to wall: 358,3334 (24,399582% of viewport)
+[21:16:46] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[21:16:46] [INFO] [Bullet] Starting wall penetration at (511.65546, 343.8331)
+[21:16:46] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[21:16:46] [INFO] [Bullet] Exiting penetration at (558.04224, 348.9368) after traveling 41,666668 pixels through wall
+[21:16:46] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[21:16:46] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(194.1021, 289.012), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[21:16:46] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[21:16:46] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(172.55196, 289.1864), shooter_id=84271958560, bullet_pos=(485.67276, 336.44266)
+[21:16:46] [INFO] [Bullet] Using shooter_position, distance=316,6667
+[21:16:46] [INFO] [Bullet] Distance to wall: 316,6667 (21,562418% of viewport)
+[21:16:46] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[21:16:46] [INFO] [Bullet] Starting wall penetration at (485.67276, 336.44266)
+[21:16:46] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[21:16:46] [INFO] [Bullet] Exiting penetration at (531.8169, 343.40674) after traveling 41,666668 pixels through wall
+[21:16:46] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[21:16:46] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(215.2098, 301.5923), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[21:16:46] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[21:16:46] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(194.10214, 289.01196), shooter_id=84271958560, bullet_pos=(506.67883, 339.74234)
+[21:16:46] [INFO] [Bullet] Using shooter_position, distance=316,66663
+[21:16:46] [INFO] [Bullet] Distance to wall: 316,66663 (21,562414% of viewport)
+[21:16:46] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[21:16:46] [INFO] [Bullet] Starting wall penetration at (506.67883, 339.74234)
+[21:16:46] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[21:16:46] [INFO] [Bullet] Exiting penetration at (552.7428, 347.21838) after traveling 41,666668 pixels through wall
+[21:16:46] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[21:16:46] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(215.20978, 301.59235), shooter_id=84271958560, bullet_pos=(488.13336, 335.32227)
+[21:16:46] [INFO] [Bullet] Using shooter_position, distance=275
+[21:16:46] [INFO] [Bullet] Distance to wall: 275 (18,725256% of viewport)
+[21:16:46] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[21:16:46] [INFO] [Bullet] Starting wall penetration at (488.13336, 335.32227)
+[21:16:46] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(242.2318, 327.8426), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[21:16:46] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[21:16:46] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[21:16:46] [INFO] [Bullet] Exiting penetration at (534.4477, 341.04614) after traveling 41,66667 pixels through wall
+[21:16:46] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[21:16:46] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(242.2318, 327.8426), shooter_id=84271958560, bullet_pos=(517.2299, 328.87927)
+[21:16:46] [INFO] [Bullet] Using shooter_position, distance=275,00006
+[21:16:46] [INFO] [Bullet] Distance to wall: 275,00006 (18,725262% of viewport)
+[21:16:46] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[21:16:46] [INFO] [Bullet] Starting wall penetration at (517.2299, 328.87927)
+[21:16:46] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(270.731, 351.9866), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[21:16:46] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[21:16:46] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[21:16:46] [INFO] [Bullet] Exiting penetration at (563.89624, 329.0552) after traveling 41,666668 pixels through wall
+[21:16:46] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[21:16:46] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(270.731, 351.98663), shooter_id=84271958560, bullet_pos=(502.99393, 329.66183)
+[21:16:46] [INFO] [Bullet] Using shooter_position, distance=233,33339
+[21:16:46] [INFO] [Bullet] Distance to wall: 233,33339 (15,8881% of viewport)
+[21:16:46] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[21:16:46] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(305.098, 361.9645), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[21:16:46] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[21:16:46] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(305.09802, 361.96448), shooter_id=84271958560, bullet_pos=(493.87195, 328.79037)
+[21:16:46] [INFO] [Bullet] Using shooter_position, distance=191,66667
+[21:16:46] [INFO] [Bullet] Distance to wall: 191,66667 (13,050936% of viewport)
+[21:16:46] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[21:16:46] [INFO] [Bullet] Starting wall penetration at (493.87195, 328.79037)
+[21:16:46] [INFO] [Bullet] Raycast backward hit penetrating body at distance 42,100216
+[21:16:46] [INFO] [Bullet] Body exited signal received for penetrating body
+[21:16:46] [INFO] [Bullet] Exiting penetration at (539.8343, 320.7132) after traveling 41,666668 pixels through wall
+[21:16:46] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[21:16:46] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(343.5179, 362.1581), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[21:16:46] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[21:16:46] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(343.51785, 362.15805), shooter_id=84271958560, bullet_pos=(490.41483, 331.80545)
+[21:16:46] [INFO] [Bullet] Using shooter_position, distance=150
+[21:16:46] [INFO] [Bullet] Distance to wall: 150 (10,213776% of viewport)
+[21:16:46] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[21:16:46] [INFO] [Bullet] Starting wall penetration at (490.41483, 331.80545)
+[21:16:46] [INFO] [Bullet] Raycast backward hit penetrating body at distance 27,860462
+[21:16:46] [INFO] [Bullet] Body exited signal received for penetrating body
+[21:16:46] [INFO] [Bullet] Exiting penetration at (536.1161, 322.36243) after traveling 41,666668 pixels through wall
+[21:16:46] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[21:16:46] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(379.339, 355.6909), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[21:16:46] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[21:16:46] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(379.33902, 355.69092), shooter_id=84271958560, bullet_pos=(485.2253, 332.79523)
+[21:16:46] [INFO] [Bullet] Using shooter_position, distance=108,333374
+[21:16:46] [INFO] [Bullet] Distance to wall: 108,333374 (7,376619% of viewport)
+[21:16:46] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[21:16:46] [INFO] [Player] Spawning blood effect at (397.00198, 339.22028), dir=(1, 0), lethal=False (C#)
+[21:16:46] [INFO] [ImpactEffects] spawn_blood_effect called at (397.002, 339.2203), dir=(1, 0), lethal=false
+[21:16:46] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[21:16:46] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[21:16:46] [INFO] [ImpactEffects] Wall found for blood splatter at (486, 339.2203) (dist=88 px)
+[21:16:46] [INFO] [BloodDecal] Blood puddle created at (485, 339.2203) (added to group)
+[21:16:46] [INFO] [ImpactEffects] Blood effect spawned at (397.002, 339.2203) (scale=1)
+[21:16:46] [INFO] [PenultimateHit] Player damaged: 1.0 damage, current health: 2.0
+[21:16:46] [INFO] [LastChance] Player health updated (C# Damaged): 2.0
+[21:16:47] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(410.5201, 332.7101), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[21:16:47] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[21:16:47] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(435.4102, 307.8199), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[21:16:47] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[21:16:47] [INFO] [BloodDecal] Blood puddle created at (461.5912, 381.3117) (added to group)
+[21:16:47] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(457.893, 277.5326), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[21:16:47] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[21:16:47] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(464.6505, 245.1316), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[21:16:47] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[21:16:47] [INFO] [BloodDecal] Blood puddle created at (483.7778, 358.2715) (added to group)
+[21:16:47] [INFO] [BloodDecal] Blood puddle created at (496.6468, 399.3541) (added to group)
+[21:16:47] [INFO] [BloodDecal] Blood puddle created at (532.0941, 440.2964) (added to group)
+[21:16:47] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(458.6982, 213.141), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[21:16:47] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[21:16:47] [INFO] [BloodDecal] Blood puddle created at (557.6749, 464.4968) (added to group)
+[21:16:47] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(439.9616, 185.9436), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[21:16:47] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[21:16:47] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(410.5201, 332.71005), shooter_id=84271958560, bullet_pos=(1818.3739, 112.323395)
+[21:16:47] [INFO] [Bullet] Using shooter_position, distance=1424,9991
+[21:16:47] [INFO] [Bullet] Distance to wall: 1424,9991 (97,030815% of viewport)
+[21:16:47] [INFO] [Bullet] Distance-based penetration chance: 33,46406%
+[21:16:47] [INFO] [Bullet] Starting wall penetration at (1818.3739, 112.323395)
+[21:16:47] [INFO] [Bullet] Raycast backward hit penetrating body at distance 24,541252
+[21:16:47] [INFO] [BloodDecal] Blood puddle created at (501.8795, 453.1121) (added to group)
+[21:16:47] [INFO] [Bullet] Body exited signal received for penetrating body
+[21:16:47] [INFO] [Bullet] Exiting penetration at (1856.246, 106.39486) after traveling 33,333336 pixels through wall
+[21:16:47] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[21:16:47] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(415.0715, 161.0535), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[21:16:47] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[21:16:47] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(435.41025, 307.81992), shooter_id=84271958560, bullet_pos=(1819.4238, 162.08055)
+[21:16:47] [INFO] [Bullet] Using shooter_position, distance=1391,6658
+[21:16:47] [INFO] [Bullet] Distance to wall: 1391,6658 (94,761086% of viewport)
+[21:16:47] [INFO] [Bullet] Distance-based penetration chance: 36,11207%
+[21:16:47] [INFO] [Bullet] Penetration failed (distance roll)
+[21:16:47] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(390.1813, 136.1634), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[21:16:47] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[21:16:47] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(457.89304, 277.5326), shooter_id=84271958560, bullet_pos=(1816.039, 300.1162)
+[21:16:47] [INFO] [Bullet] Using shooter_position, distance=1358,3336
+[21:16:47] [INFO] [Bullet] Distance to wall: 1358,3336 (92,49144% of viewport)
+[21:16:47] [INFO] [Bullet] Distance-based penetration chance: 38,759995%
+[21:16:47] [INFO] [Bullet] Starting wall penetration at (1816.039, 300.1162)
+[21:16:47] [INFO] [Bullet] Raycast backward hit penetrating body at distance 22,370035
+[21:16:47] [INFO] [Bullet] Body exited signal received for penetrating body
+[21:16:47] [INFO] [Bullet] Exiting penetration at (1854.367, 300.75354) after traveling 33,333336 pixels through wall
+[21:16:47] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[21:16:48] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(362.3522, 118.3686), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[21:16:48] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[21:16:48] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(464.6505, 245.13164), shooter_id=84271958560, bullet_pos=(1805.5354, 462.15323)
+[21:16:48] [INFO] [Bullet] Using shooter_position, distance=1358,3337
+[21:16:48] [INFO] [Bullet] Distance to wall: 1358,3337 (92,49144% of viewport)
+[21:16:48] [INFO] [Bullet] Distance-based penetration chance: 38,759995%
+[21:16:48] [INFO] [Bullet] Penetration failed (distance roll)
+[21:16:48] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(331.8574, 113.4485), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[21:16:48] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[21:16:48] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(458.6982, 213.141), shooter_id=84271958560, bullet_pos=(1822.8981, 624.9489)
+[21:16:48] [INFO] [Bullet] Using shooter_position, distance=1425,0006
+[21:16:48] [INFO] [Bullet] Distance to wall: 1425,0006 (97,030914% of viewport)
+[21:16:48] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(303.8153, 121.9244), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[21:16:48] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[21:16:48] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(439.9616, 185.94363), shooter_id=84271958560, bullet_pos=(1808.496, 689.7754)
+[21:16:48] [INFO] [Bullet] Using shooter_position, distance=1458,3323
+[21:16:48] [INFO] [Bullet] Distance to wall: 1458,3323 (99,30053% of viewport)
+[21:16:48] [INFO] [Bullet] Distance-based penetration chance: 30,816055%
+[21:16:48] [INFO] [Bullet] Penetration failed (distance roll)
+[21:16:48] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(278.2509, 143.3031), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[21:16:48] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[21:16:48] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(415.07147, 161.0535), shooter_id=84271958560, bullet_pos=(1798.1317, 719.8131)
+[21:16:48] [INFO] [Bullet] Using shooter_position, distance=1491,6661
+[21:16:48] [INFO] [Bullet] Distance to wall: 1491,6661 (101,5703% of viewport)
+[21:16:48] [INFO] [Bullet] Distance-based penetration chance: 29,685942%
+[21:16:48] [INFO] [Bullet] Penetration failed (distance roll)
+[21:16:48] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(390.18134, 136.16336), shooter_id=84271958560, bullet_pos=(1796.5137, 725.95325)
+[21:16:48] [INFO] [Bullet] Using shooter_position, distance=1524,9993
+[21:16:48] [INFO] [Bullet] Distance to wall: 1524,9993 (103,840004% of viewport)
+[21:16:48] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(362.35217, 118.36859), shooter_id=84271958560, bullet_pos=(1822.4587, 752.00037)
+[21:16:48] [INFO] [Bullet] Using shooter_position, distance=1591,6659
+[21:16:48] [INFO] [Bullet] Distance to wall: 1591,6659 (108,379456% of viewport)
+[21:16:49] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(331.85736, 113.44851), shooter_id=84271958560, bullet_pos=(1803.5795, 719.6176)
+[21:16:49] [INFO] [Bullet] Using shooter_position, distance=1591,6681
+[21:16:49] [INFO] [Bullet] Distance to wall: 1591,6681 (108,379616% of viewport)
+[21:16:49] [INFO] [Bullet] Distance-based penetration chance: 28,32408%
+[21:16:49] [INFO] [Bullet] Starting wall penetration at (1803.5795, 719.6176)
+[21:16:49] [INFO] [Bullet] Raycast backward hit penetrating body at distance 7,596518
+[21:16:49] [INFO] [Bullet] Body exited signal received for penetrating body
+[21:16:49] [INFO] [Bullet] Exiting penetration at (1839.024, 734.21643) after traveling 33,333336 pixels through wall
+[21:16:49] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[21:16:49] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(362.35217, 118.36859), shooter_id=84271958560, bullet_pos=(1494.6024, 930.57355)
+[21:16:49] [INFO] [Bullet] Using shooter_position, distance=1393,4373
+[21:16:49] [INFO] [Bullet] Distance to wall: 1393,4373 (94,88171% of viewport)
+[21:16:49] [INFO] [Bullet] Distance-based penetration chance: 35,971348%
+[21:16:49] [INFO] [Bullet] Starting wall penetration at (1494.6024, 930.57355)
+[21:16:49] [INFO] [Bullet] Body exited signal received for penetrating body
+[21:16:49] [INFO] [Bullet] Exiting penetration at (1465.3296, 946.5176) after traveling 0 pixels through wall
+[21:16:49] [INFO] [Bullet] Damage multiplier after penetration: 0,45
+[21:16:49] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(303.81534, 121.92439), shooter_id=84271958560, bullet_pos=(1807.4376, 643.96454)
+[21:16:49] [INFO] [Bullet] Using shooter_position, distance=1591,6677
+[21:16:49] [INFO] [Bullet] Distance to wall: 1591,6677 (108,37959% of viewport)
+[21:16:49] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(278.25092, 143.30307), shooter_id=84271958560, bullet_pos=(1799.1383, 482.8681)
+[21:16:49] [INFO] [Bullet] Using shooter_position, distance=1558,3335
+[21:16:49] [INFO] [Bullet] Distance to wall: 1558,3335 (106,109795% of viewport)
+[21:16:49] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[21:16:49] [INFO] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
+[21:16:49] [INFO] [Player.Grenade] G pressed - starting grab animation
+[21:16:49] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[21:16:49] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (463.63214, 318.59)
+[21:16:49] [INFO] [Player.Grenade] Timer started, grenade created at (82.951675, 309.09125)
+[21:16:49] [INFO] [Player.Grenade.Anim] Phase changed to: PullPin (duration: 0,15s)
+[21:16:49] [INFO] [Player.Grenade] Step 1 complete! Drag: (410.18787, 10.686432)
+[21:16:49] [INFO] [Player.Grenade.Anim] Phase changed to: HandsApproach (duration: 0,20s)
+[21:16:49] [INFO] [Player.Grenade.Simple] RMB pressed after pin pull - starting trajectory aiming
+[21:16:51] [INFO] [Player.Grenade.Simple] Throwing! Target: (460.2919, 337.9592), Distance: 371,1, Speed: 471,9, Friction: 300,0
+[21:16:51] [INFO] [Player.Grenade] Player rotated for throw: 0 -> 0,073859185
+[21:16:51] [INFO] [Player.Grenade.Anim] Phase changed to: Throw (duration: 0,20s)
+[21:16:51] [INFO] [Player.Grenade.Simple] Grenade thrown!
+[21:16:51] [INFO] [Player.Grenade] State reset to IDLE
+[21:16:51] [INFO] [Player.Grenade] State reset to IDLE
+[21:16:51] [INFO] [Player.Grenade.Anim] Phase changed to: ReturnIdle (duration: 0,30s)
+[21:16:51] [INFO] [Player.Grenade] Player rotation restored to 0
+[21:16:51] [INFO] [Player.Grenade.Anim] Animation complete, returning to normal
+[21:16:55] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[21:16:55] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[21:16:55] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[21:16:55] [INFO] [LastChance] Resetting all effects (scene change detected)
+[21:16:55] [INFO] [CinemaEffects] Scene changed to: TestTier
+[21:16:55] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[21:16:55] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[21:16:55] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[21:16:55] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[21:16:55] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[21:16:55] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+[21:16:55] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[21:16:55] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[21:16:55] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[21:16:55] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[21:16:55] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[21:16:55] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[21:16:55] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 3/3, Health: 4/4
+[21:16:55] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[21:16:55] [INFO] [CinemaEffects] Found player node: Player
+[21:16:55] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[21:16:55] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[21:16:55] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[21:16:55] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[21:16:55] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[21:16:55] [INFO] [LastChance] Found player: Player
+[21:16:55] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[21:16:55] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[21:16:55] [INFO] [LastChance] Connected to player Died signal (C#)
+[21:16:55] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[21:16:55] [INFO] [Player] Detecting weapon pose (frame 3)...
+[21:16:55] [INFO] [Player] Detected weapon: Rifle (default pose)
+[21:16:55] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[21:16:56] [INFO] [PauseMenu] Armory button pressed
+[21:16:56] [INFO] [PauseMenu] Creating new armory menu instance
+[21:16:56] [INFO] [PauseMenu] armory_menu_scene resource path: res://scenes/ui/ArmoryMenu.tscn
+[21:16:56] [INFO] [PauseMenu] Instance created, class: CanvasLayer, name: ArmoryMenu
+[21:16:56] [INFO] [PauseMenu] Script attached: res://scripts/ui/armory_menu.gd
+[21:16:56] [INFO] [PauseMenu] back_pressed signal exists on instance
+[21:16:56] [INFO] [PauseMenu] back_pressed signal connected
+[21:16:56] [INFO] [PauseMenu] Armory menu instance added as child, is_inside_tree: true
+[21:16:56] [INFO] [PauseMenu] _populate_weapon_grid method exists
+[21:16:58] [INFO] [GrenadeManager] Grenade type changed from Flashbang to Frag Grenade
+[21:16:58] [INFO] [GrenadeManager] Restarting level due to grenade type change
+[21:16:58] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[21:16:58] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[21:16:58] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[21:16:58] [INFO] [LastChance] Resetting all effects (scene change detected)
+[21:16:58] [INFO] [CinemaEffects] Scene changed to: TestTier
+[21:16:58] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[21:16:58] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[21:16:58] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[21:16:58] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[21:16:58] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Frag Grenade
+[21:16:58] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+[21:16:58] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[21:16:58] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[21:16:58] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[21:16:58] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[21:16:58] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[21:16:58] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[21:16:58] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 3/3, Health: 4/4
+[21:16:58] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[21:16:58] [INFO] [CinemaEffects] Found player node: Player
+[21:16:58] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[21:16:58] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[21:16:58] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(150, 366), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[21:16:58] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[21:16:58] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[21:16:58] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[21:16:58] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[21:16:58] [INFO] [LastChance] Found player: Player
+[21:16:58] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[21:16:58] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[21:16:58] [INFO] [LastChance] Connected to player Died signal (C#)
+[21:16:58] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[21:16:58] [INFO] [Player] Detecting weapon pose (frame 3)...
+[21:16:58] [INFO] [Player] Detected weapon: Rifle (default pose)
+[21:16:58] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[21:16:58] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(150, 366), shooter_id=140844731074, bullet_pos=(508.33328, 366)
+[21:16:58] [INFO] [Bullet] Using shooter_position, distance=358,33328
+[21:16:58] [INFO] [Bullet] Distance to wall: 358,33328 (24,399572% of viewport)
+[21:16:58] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[21:16:58] [INFO] [Bullet] Starting wall penetration at (508.33328, 366)
+[21:16:58] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[21:16:58] [INFO] [Bullet] Exiting penetration at (554.99994, 366) after traveling 41,666668 pixels through wall
+[21:16:58] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[21:16:58] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[21:16:58] [INFO] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
+[21:16:58] [INFO] [Player.Grenade] G pressed - starting grab animation
+[21:16:58] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[21:16:58] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (553.2738, 330.61224)
+[21:16:58] [INFO] [Player.Grenade] Timer started, grenade created at (150, 360)
+[21:16:58] [INFO] [Player.Grenade.Anim] Phase changed to: PullPin (duration: 0,15s)
+[21:16:58] [INFO] [Player.Grenade] Step 1 complete! Drag: (215.30768, 8.682739)
+[21:16:58] [INFO] [Player.Grenade.Anim] Phase changed to: HandsApproach (duration: 0,20s)
+[21:16:58] [INFO] [Player.Grenade.Simple] RMB pressed after pin pull - starting trajectory aiming
+[21:17:01] [INFO] [Player.Grenade.Simple] Throwing! Target: (245.84514, 375.3618), Distance: 46,8, Speed: 167,6, Friction: 300,0
+[21:17:01] [INFO] [Player.Grenade] Player rotated for throw: 0 -> 0,1536692
+[21:17:01] [INFO] [Player.Grenade.Anim] Phase changed to: Throw (duration: 0,20s)
+[21:17:01] [INFO] [Player.Grenade.Simple] Grenade thrown!
+[21:17:01] [INFO] [Player.Grenade] State reset to IDLE
+[21:17:01] [INFO] [Player.Grenade] State reset to IDLE
+[21:17:01] [INFO] [Player.Grenade.Anim] Phase changed to: ReturnIdle (duration: 0,30s)
+[21:17:01] [INFO] [Player.Grenade] Player rotation restored to 0
+[21:17:01] [INFO] [Player.Grenade.Anim] Animation complete, returning to normal
+[21:17:05] [INFO] ------------------------------------------------------------
+[21:17:05] [INFO] GAME LOG ENDED: 2026-02-03T21:17:05
+[21:17:05] [INFO] ============================================================

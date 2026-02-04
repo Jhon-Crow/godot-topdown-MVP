@@ -68,15 +68,15 @@ layout_mode = 2
 [node name="FOVLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer/FOVContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Enemy FOV Limitation"
+text = "Disable FOV Limitation"
 
 [node name="FOVCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer/FOVContainer"]
 layout_mode = 2
 
 [node name="FOVDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
-text = "When enabled, enemies can only see within
-a 100-degree cone. Press F7 to visualize."
+text = "When checked, enemies have 360-degree vision.
+FOV limited (100°) by default. Press F7 to visualize."
 horizontal_alignment = 1
 autowrap_mode = 2
 
@@ -104,7 +104,7 @@ autowrap_mode = 2
 
 [node name="StatusLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
-text = "FOV disabled: Enemies have 360 degree vision"
+text = "FOV enabled: Enemies see in 100 degree cone"
 horizontal_alignment = 1
 
 [node name="BackButton" type="Button" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]

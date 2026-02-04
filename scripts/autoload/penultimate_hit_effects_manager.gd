@@ -29,6 +29,10 @@ const PLAYER_SATURATION_MULTIPLIER: float = 4.0
 ## Duration of the effect in real seconds (independent of time_scale).
 const EFFECT_DURATION_REAL_SECONDS: float = 3.0
 
+## Duration of the fade-out animation in seconds (Issue #442).
+## Visual effects fade smoothly over this duration for a smooth transition to normal mode.
+const FADE_OUT_DURATION_SECONDS: float = 0.4
+
 ## The CanvasLayer for screen effects.
 var _effects_layer: CanvasLayer = null
 
@@ -57,6 +61,12 @@ var _effect_start_time: float = 0.0
 
 ## Tracks the previous scene root to detect scene changes.
 var _previous_scene_root: Node = null
+
+## Whether the visual effects are currently fading out (Issue #442).
+var _is_fading_out: bool = false
+
+## The time when the fade-out started (in real time seconds).
+var _fade_out_start_time: float = 0.0
 
 
 func _ready() -> void:
@@ -105,6 +115,11 @@ func _process(_delta: float) -> void:
 	# Check if we need to find the player
 	if _player == null:
 		_find_player()
+
+	# Handle fade-out animation (Issue #442)
+	if _is_fading_out:
+		_update_fade_out()
+		return
 
 	# Check if effect should end based on real time duration
 	if _is_effect_active:
@@ -253,6 +268,7 @@ func _start_penultimate_effect() -> void:
 
 
 ## End the penultimate hit effect.
+## Starts the fade-out animation for visual effects (Issue #442).
 func _end_penultimate_effect() -> void:
 	if not _is_effect_active:
 		return
@@ -260,9 +276,87 @@ func _end_penultimate_effect() -> void:
 	_is_effect_active = false
 	_log("Ending penultimate hit effect")
 
-	# Restore normal time
+	# Restore normal time immediately (gameplay should resume at normal speed)
 	Engine.time_scale = 1.0
 
+	# Start visual effects fade-out animation instead of removing instantly (Issue #442)
+	_start_fade_out()
+
+
+## Starts the visual effects fade-out animation (Issue #442).
+## Visual effects fade smoothly over FADE_OUT_DURATION_SECONDS for a smooth transition.
+func _start_fade_out() -> void:
+	_is_fading_out = true
+	_fade_out_start_time = Time.get_ticks_msec() / 1000.0
+	_log("Starting visual effects fade-out over %.0fms" % (FADE_OUT_DURATION_SECONDS * 1000.0))
+
+
+## Updates the fade-out animation each frame (Issue #442).
+## Uses real time to ensure the fade works correctly regardless of Engine.time_scale.
+func _update_fade_out() -> void:
+	var current_time := Time.get_ticks_msec() / 1000.0
+	var elapsed := current_time - _fade_out_start_time
+	var progress := clampf(elapsed / FADE_OUT_DURATION_SECONDS, 0.0, 1.0)
+
+	# Interpolate shader parameters from effect values to neutral values
+	var material := _saturation_rect.material as ShaderMaterial
+	if material:
+		# Fade saturation boost: SCREEN_SATURATION_BOOST -> 0.0
+		var current_saturation := lerpf(SCREEN_SATURATION_BOOST, 0.0, progress)
+		material.set_shader_parameter("saturation_boost", current_saturation)
+
+		# Fade contrast boost: SCREEN_CONTRAST_BOOST -> 0.0
+		var current_contrast := lerpf(SCREEN_CONTRAST_BOOST, 0.0, progress)
+		material.set_shader_parameter("contrast_boost", current_contrast)
+
+	# Fade enemy saturation back to original colors
+	_update_enemy_colors_fade(progress)
+
+	# Fade player sprite saturation back to original colors
+	_update_player_colors_fade(progress)
+
+	# Check if fade-out is complete
+	if progress >= 1.0:
+		_complete_fade_out()
+
+
+## Updates enemy sprite colors during fade-out animation (Issue #442).
+## Gradually interpolates from saturated colors back to original colors.
+func _update_enemy_colors_fade(progress: float) -> void:
+	for enemy in _enemy_original_colors.keys():
+		if not is_instance_valid(enemy):
+			continue
+
+		var sprite := enemy.get_node_or_null("Sprite2D") as Sprite2D
+		if sprite:
+			var original_color: Color = _enemy_original_colors[enemy]
+			var saturated_color: Color = _saturate_color(original_color, ENEMY_SATURATION_MULTIPLIER)
+			# Interpolate from saturated color back to original color
+			sprite.modulate = saturated_color.lerp(original_color, progress)
+
+
+## Updates player sprite colors during fade-out animation (Issue #442).
+## Gradually interpolates from saturated colors back to original colors.
+func _update_player_colors_fade(progress: float) -> void:
+	for sprite in _player_original_colors.keys():
+		if is_instance_valid(sprite):
+			var original_color: Color = _player_original_colors[sprite]
+			var saturated_color: Color = _saturate_color(original_color, PLAYER_SATURATION_MULTIPLIER)
+			# Interpolate from saturated color back to original color
+			sprite.modulate = saturated_color.lerp(original_color, progress)
+
+
+## Completes the fade-out animation and removes visual effects (Issue #442).
+func _complete_fade_out() -> void:
+	_is_fading_out = false
+	_log("Visual effects fade-out complete")
+
+	# Now fully remove the visual effects
+	_remove_visual_effects()
+
+
+## Removes the visual effects after fade-out is complete.
+func _remove_visual_effects() -> void:
 	# Remove screen saturation and contrast
 	_saturation_rect.visible = false
 	var material := _saturation_rect.material as ShaderMaterial
@@ -392,7 +486,23 @@ func _saturate_color(color: Color, multiplier: float) -> Color:
 ## Resets all effects (useful when restarting the scene).
 func reset_effects() -> void:
 	_log("Resetting all effects (scene change detected)")
-	_end_penultimate_effect()
+
+	if _is_effect_active:
+		_is_effect_active = false
+		# Restore normal time immediately
+		Engine.time_scale = 1.0
+
+	# Reset fade-out state (Issue #442)
+	_is_fading_out = false
+	_fade_out_start_time = 0.0
+
+	# CRITICAL FIX (Issue #452): Always remove visual effects immediately on scene change.
+	# This ensures the saturation/contrast overlay is hidden even if the effect
+	# was active or fading out when the scene changed. Previously, the overlay would
+	# persist after death/restart because _remove_visual_effects() was only called
+	# when the fade-out animation completed, not during scene resets.
+	_remove_visual_effects()
+
 	_player = null
 	_connected_to_player = false
 	_player_original_colors.clear()

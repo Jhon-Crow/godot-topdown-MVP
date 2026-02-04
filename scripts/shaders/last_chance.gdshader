@@ -16,7 +16,8 @@ uniform float ripple_speed : hint_range(0.1, 10.0) = 2.0;
 uniform float time_offset : hint_range(0.0, 1000.0) = 0.0;
 
 // Screen texture sampler for reading the rendered scene
-uniform sampler2D screen_texture : hint_screen_texture, filter_linear_mipmap;
+// Use filter_nearest and textureLod for gl_compatibility mode support
+uniform sampler2D screen_texture : hint_screen_texture, repeat_disable, filter_nearest;
 
 void fragment() {
 	// Calculate ripple distortion
@@ -30,8 +31,8 @@ void fragment() {
 	// Apply ripple distortion to UV coordinates
 	vec2 distorted_uv = SCREEN_UV + normalize(uv_from_center) * ripple;
 
-	// Sample the screen texture at the distorted UV position
-	vec4 screen_color = texture(screen_texture, distorted_uv);
+	// Sample the screen texture using textureLod for gl_compatibility mode support
+	vec4 screen_color = textureLod(screen_texture, distorted_uv, 0.0);
 
 	// Calculate luminance (grayscale value) using standard weights
 	float luminance = dot(screen_color.rgb, vec3(0.299, 0.587, 0.114));

@@ -102,8 +102,9 @@ const SPREAD_INCREMENT: float = 0.6
 const MAX_SPREAD: float = 4.0
 ## Time in seconds for spread to reset after stopping fire.
 const SPREAD_RESET_TIME: float = 0.25
-## Force to apply to casings when pushed by player (Issue #392).
-const CASING_PUSH_FORCE: float = 50.0
+## Force to apply to casings when pushed by player (Issue #392, #424).
+## Reduced by 2.5x from 50.0 to 20.0 for Issue #424.
+const CASING_PUSH_FORCE: float = 20.0
 
 ## Set of casings currently overlapping with the CasingPusher Area2D (Issue #392 Iteration 7).
 ## Using signal-based tracking instead of polling get_overlapping_bodies() for reliable detection.
@@ -622,6 +623,12 @@ func _shoot() -> void:
 
 	# Add bullet to the scene tree (parent's parent to avoid it being a child of player)
 	get_tree().current_scene.add_child(bullet)
+
+	# Spawn muzzle flash effect at bullet spawn position
+	var impact_effects: Node = get_node_or_null("/root/ImpactEffectsManager")
+	if impact_effects and impact_effects.has_method("spawn_muzzle_flash"):
+		var muzzle_pos := global_position + shoot_direction * bullet_spawn_offset
+		impact_effects.spawn_muzzle_flash(muzzle_pos, shoot_direction)
 
 	# Play shooting sound
 	var audio_manager: Node = get_node_or_null("/root/AudioManager")
@@ -2422,6 +2429,31 @@ func _is_active_grenade_contact_type() -> bool:
 	return false
 
 
+## Get the grenade effect radius with type-based default fallback.
+## FIX for Issue #432: If GDScript method call fails (common in exports), use appropriate default
+## based on grenade type instead of a generic 200px value.
+## Flashbang: 400px (from FlashbangGrenade.tscn)
+## Frag: 225px (from FragGrenade.tscn)
+func _get_grenade_effect_radius_with_default() -> float:
+	# Try to get effect radius from active grenade
+	if _active_grenade != null and is_instance_valid(_active_grenade):
+		if _active_grenade.has_method("_get_effect_radius"):
+			var result = _active_grenade._get_effect_radius()
+			if result > 0.0:
+				return result
+		# Try reading property directly
+		if "effect_radius" in _active_grenade:
+			var radius = _active_grenade.effect_radius
+			if radius > 0.0:
+				return radius
+
+	# Use type-based default
+	if _is_active_grenade_contact_type():
+		return 225.0  # Frag grenade radius (from FragGrenade.tscn)
+	else:
+		return 400.0  # Flashbang radius (from FlashbangGrenade.tscn)
+
+
 ## Draw a simple straight trajectory (for contact grenades or when no bounces needed).
 func _draw_simple_trajectory(spawn_pos: Vector2, landing_pos: Vector2, color_trajectory: Color, color_landing: Color, color_radius: Color, line_width: float) -> void:
 	# Draw trajectory arc (curved line)
@@ -2433,9 +2465,8 @@ func _draw_simple_trajectory(spawn_pos: Vector2, landing_pos: Vector2, color_tra
 	draw_line(landing_pos + Vector2(0, -cross_size), landing_pos + Vector2(0, cross_size), color_landing, 3.0)
 
 	# Draw effect radius at landing position
-	var effect_radius := 200.0
-	if _active_grenade != null and is_instance_valid(_active_grenade) and _active_grenade.has_method("_get_effect_radius"):
-		effect_radius = _active_grenade._get_effect_radius()
+	# FIX for Issue #432: Use type-based default (400 for flashbang, 225 for frag) instead of 200
+	var effect_radius := _get_grenade_effect_radius_with_default()
 	_draw_circle_outline(landing_pos, effect_radius, color_radius, 2.0)
 
 
@@ -2551,9 +2582,8 @@ func _draw_trajectory_with_bounces(spawn_pos: Vector2, direction: Vector2, speed
 		draw_line(landing_pos + Vector2(0, -cross_size), landing_pos + Vector2(0, cross_size), color_landing, 3.0)
 
 		# Draw effect radius at landing position
-		var effect_radius := 200.0
-		if _active_grenade != null and is_instance_valid(_active_grenade) and _active_grenade.has_method("_get_effect_radius"):
-			effect_radius = _active_grenade._get_effect_radius()
+		# FIX for Issue #432: Use type-based default (400 for flashbang, 225 for frag) instead of 200
+		var effect_radius := _get_grenade_effect_radius_with_default()
 		_draw_circle_outline(landing_pos, effect_radius, color_radius, 2.0)
 
 
@@ -2644,9 +2674,10 @@ func _push_casings() -> void:
 		])
 
 	# Push all detected casings
-	for casing in casings_to_push:
-		# Calculate push direction based on player movement
-		var push_dir := velocity.normalized()
+	for casing: RigidBody2D in casings_to_push:
+		# Calculate push direction from player center to casing position (Issue #424)
+		# This makes casings fly away based on which side they're pushed from
+		var push_dir := (casing.global_position - global_position).normalized()
 		var push_strength := velocity.length() * CASING_PUSH_FORCE / 100.0
 		var impulse := push_dir * push_strength
 		if DEBUG_CASING_PUSHING:

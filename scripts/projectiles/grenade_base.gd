@@ -58,6 +58,21 @@ class_name GrenadeBase
 ## Default 300 with 850 speed → max distance ~1200px (viewport width).
 @export var ground_friction: float = 300.0
 
+## Velocity threshold below which friction starts increasing rapidly.
+## Above this threshold, friction is minimal (grenade maintains speed).
+## Below this threshold, friction increases progressively (grenade slows down noticeably).
+## Per issue #435: "падение скорости должно быть еле заметным и только самом конце пути"
+## Translation: "speed drop should be barely noticeable and only at the very end of the path"
+@export var friction_ramp_velocity: float = 200.0
+
+## Friction multiplier at high velocities (above friction_ramp_velocity).
+## Lower values = grenade maintains speed longer during flight.
+## Default 0.5 means 50% of base friction at high speeds - grenade decelerates slower
+## but still reaches landing threshold in a reasonable time (~3 seconds from max speed).
+## FIX for issue #435: Changed from 0.15 to 0.5 to prevent grenades from flying forever.
+## With 0.15, deceleration was only 45 px/s² at high speed, taking 11+ seconds to stop.
+@export var min_friction_multiplier: float = 0.5
+
 ## Bounce coefficient when hitting walls (0.0 = no bounce, 1.0 = full bounce).
 @export var wall_bounce: float = 0.4
 
@@ -93,6 +108,12 @@ var _activation_sound_played: bool = false
 
 ## Track previous velocity for landing detection.
 var _previous_velocity: Vector2 = Vector2.ZERO
+
+## Track the previous freeze state to detect when grenade is released by external code.
+## FIX for Issue #432: When C# code sets Freeze=false directly without calling GDScript
+## methods (due to possible C#/GDScript interop issues in exports), the timer was never
+## activated, causing grenades to fly infinitely without exploding.
+var _was_frozen_on_start: bool = true
 
 ## Signal emitted when the grenade explodes.
 signal exploded(position: Vector2, grenade: GrenadeBase)
@@ -147,9 +168,40 @@ func _physics_process(delta: float) -> void:
 	if _has_exploded:
 		return
 
-	# Apply ground friction to slow down
+	# FIX for Issue #432: Detect when grenade is unfrozen by external code (C# Player.cs).
+	# When C# sets Freeze=false directly but activate_timer() wasn't called successfully
+	# (possible C#/GDScript interop issue in exports), the timer was never started.
+	# By detecting the freeze->unfreeze transition, we can auto-activate the timer.
+	if _was_frozen_on_start and not freeze:
+		_was_frozen_on_start = false
+		if not _timer_active:
+			FileLogger.info("[GrenadeBase] Detected unfreeze without timer activation - auto-activating timer (fallback)")
+			activate_timer()
+
+	# Apply velocity-dependent ground friction to slow down
+	# FIX for issue #435: Grenade should maintain speed for most of flight,
+	# only slowing down noticeably at the very end of its path.
+	# At high velocities: reduced friction (grenade maintains speed)
+	# At low velocities: full friction (grenade slows to stop)
 	if linear_velocity.length() > 0:
-		var friction_force := linear_velocity.normalized() * ground_friction * delta
+		var current_speed := linear_velocity.length()
+
+		# Calculate friction multiplier based on velocity
+		# Above friction_ramp_velocity: use min_friction_multiplier (minimal drag)
+		# Below friction_ramp_velocity: smoothly ramp up to full friction
+		var friction_multiplier: float
+		if current_speed >= friction_ramp_velocity:
+			# High speed: minimal friction to maintain velocity
+			friction_multiplier = min_friction_multiplier
+		else:
+			# Low speed: smoothly increase friction from min to full (1.0)
+			# Use quadratic curve for smooth transition: more aggressive braking at very low speeds
+			var t := current_speed / friction_ramp_velocity  # 0.0 at stopped, 1.0 at threshold
+			# Quadratic ease-out: starts slow, ends fast (more natural deceleration feel)
+			friction_multiplier = min_friction_multiplier + (1.0 - min_friction_multiplier) * (1.0 - t * t)
+
+		var effective_friction := ground_friction * friction_multiplier
+		var friction_force := linear_velocity.normalized() * effective_friction * delta
 		if friction_force.length() > linear_velocity.length():
 			linear_velocity = Vector2.ZERO
 		else:
@@ -431,6 +483,40 @@ func has_exploded() -> bool:
 	return _has_exploded
 
 
+## Check if the grenade has been thrown (unfrozen and moving/resting).
+## Issue #426: Used to prevent enemies from reacting to grenades still held by player.
+func is_thrown() -> bool:
+	return not freeze
+
+
+## Issue #450: Predict where the grenade will land based on current velocity and friction.
+## Uses physics formula: stopping_distance = v² / (2 * friction)
+## @returns: Predicted landing position, or current position if already stopped.
+func get_predicted_landing_position() -> Vector2:
+	var velocity := linear_velocity
+	var speed := velocity.length()
+
+	# If grenade is nearly stopped or frozen, return current position
+	if speed < landing_velocity_threshold or freeze:
+		return global_position
+
+	# Calculate stopping distance: d = v² / (2 * f)
+	# ground_friction is the deceleration rate in pixels/second²
+	var stopping_distance := (speed * speed) / (2.0 * ground_friction)
+
+	# Calculate predicted landing position
+	var direction := velocity.normalized()
+	var predicted_pos := global_position + direction * stopping_distance
+
+	return predicted_pos
+
+
+## Issue #450: Check if the grenade is still moving (in flight or rolling).
+## @returns: True if grenade is moving above landing threshold.
+func is_moving() -> bool:
+	return linear_velocity.length() >= landing_velocity_threshold
+
+
 ## Play activation sound (pin pull) when grenade timer is activated.
 func _play_activation_sound() -> void:
 	var audio_manager: Node = get_node_or_null("/root/AudioManager")
@@ -451,4 +537,77 @@ func _on_grenade_landed() -> void:
 	var audio_manager: Node = get_node_or_null("/root/AudioManager")
 	if audio_manager and audio_manager.has_method("play_grenade_landing"):
 		audio_manager.play_grenade_landing(global_position)
+
+	# Issue #426: Emit grenade landing sound through SoundPropagation system
+	# so enemies within hearing range (450px = half reload distance) can react.
+	# This allows enemies to flee from grenades they hear land nearby, even if
+	# they didn't see the throw (e.g., grenade lands behind them or around corner).
+	var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
+	if sound_propagation and sound_propagation.has_method("emit_grenade_landing"):
+		sound_propagation.emit_grenade_landing(global_position, self)
+
 	FileLogger.info("[GrenadeBase] Grenade landed at %s" % str(global_position))
+
+
+## Scatter shell casings within and near the explosion radius (Issue #432).
+## Casings inside the lethal zone receive strong impulse (scatter effect).
+## Casings in the proximity zone (1.0-1.5x radius) receive weak impulse.
+## @param effect_radius: The lethal blast radius of the explosion.
+func _scatter_casings(effect_radius: float) -> void:
+	# Get all casings in the scene
+	var casings := get_tree().get_nodes_in_group("casings")
+	if casings.is_empty():
+		return
+
+	# Proximity zone extends to 1.5x the effect radius
+	var proximity_radius := effect_radius * 1.5
+
+	# Impulse strengths (calibrated for dramatic scatter effect)
+	# FIX for Issue #432: User requested casings scatter "almost as fast as bullets"
+	# Bullet speed is 2500 px/s, so lethal zone casings should get ~2000 impulse
+	# Casings have mass and friction so actual velocity will be lower
+	var lethal_impulse_base: float = 2000.0  # Near bullet speed for dramatic scatter
+	# Strong impulse for proximity zone too
+	var proximity_impulse_base: float = 500.0
+
+	var scattered_count := 0
+	var proximity_count := 0
+
+	for casing in casings:
+		if not is_instance_valid(casing) or not casing is RigidBody2D:
+			continue
+
+		var distance := global_position.distance_to(casing.global_position)
+
+		# Skip casings too far away
+		if distance > proximity_radius:
+			continue
+
+		# Calculate direction from explosion to casing
+		var direction := (casing.global_position - global_position).normalized()
+		# Add small random offset to prevent identical trajectories
+		direction = direction.rotated(randf_range(-0.2, 0.2))
+
+		var impulse_strength: float = 0.0
+
+		if distance <= effect_radius:
+			# Inside lethal zone - strong scatter effect
+			# Closer casings get stronger impulse (inverse falloff)
+			var distance_factor := 1.0 - (distance / effect_radius)
+			# Use square root for more gradual falloff
+			impulse_strength = lethal_impulse_base * sqrt(distance_factor + 0.1)
+			scattered_count += 1
+		else:
+			# Proximity zone - weak push
+			# Linear falloff from effect_radius to proximity_radius
+			var proximity_factor := 1.0 - ((distance - effect_radius) / (proximity_radius - effect_radius))
+			impulse_strength = proximity_impulse_base * proximity_factor
+			proximity_count += 1
+
+		# Apply the kick impulse to the casing
+		if casing.has_method("receive_kick"):
+			var impulse := direction * impulse_strength
+			casing.receive_kick(impulse)
+
+	if scattered_count > 0 or proximity_count > 0:
+		FileLogger.info("[GrenadeBase] Scattered %d casings (lethal zone) + %d casings (proximity) from explosion" % [scattered_count, proximity_count])
