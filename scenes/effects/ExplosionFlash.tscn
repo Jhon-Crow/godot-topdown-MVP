@@ -1,0 +1,54 @@
+[gd_scene load_steps=5 format=3 uid="uid://explosion_flash_scene"]
+
+[ext_resource type="Script" path="res://scripts/effects/explosion_flash.gd" id="1_explosion_flash"]
+
+[sub_resource type="Gradient" id="Gradient_explosion"]
+offsets = PackedFloat32Array(0, 0.15, 0.4, 1)
+colors = PackedColorArray(1, 1, 0.9, 1, 1, 0.85, 0.4, 0.9, 1, 0.5, 0.15, 0.4, 0.8, 0.3, 0.1, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_explosion"]
+gradient = SubResource("Gradient_explosion")
+width = 512
+height = 512
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_explosion"]
+lifetime_randomness = 0.3
+particle_flag_disable_z = true
+emission_shape = 1
+emission_sphere_radius = 20.0
+direction = Vector3(0, 0, 0)
+spread = 180.0
+initial_velocity_min = 50.0
+initial_velocity_max = 150.0
+gravity = Vector3(0, 0, 0)
+damping_min = 100.0
+damping_max = 200.0
+scale_min = 0.2
+scale_max = 0.5
+color = Color(1, 0.9, 0.5, 1)
+
+[node name="ExplosionFlash" type="Node2D"]
+z_index = 10
+script = ExtResource("1_explosion_flash")
+
+[node name="GPUParticles2D" type="GPUParticles2D" parent="."]
+emitting = false
+amount = 12
+process_material = SubResource("ParticleProcessMaterial_explosion")
+texture = SubResource("GradientTexture2D_explosion")
+lifetime = 0.15
+one_shot = true
+explosiveness = 0.9
+randomness = 0.2
+
+[node name="PointLight2D" type="PointLight2D" parent="."]
+color = Color(1, 0.85, 0.5, 1)
+energy = 0.0
+shadow_enabled = true
+shadow_color = Color(0, 0, 0, 0.9)
+shadow_filter = 1
+shadow_filter_smooth = 6.0
+texture = SubResource("GradientTexture2D_explosion")
+texture_scale = 3.0

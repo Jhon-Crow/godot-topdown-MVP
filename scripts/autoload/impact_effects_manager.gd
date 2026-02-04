@@ -963,72 +963,86 @@ func spawn_explosion_effect(position: Vector2, radius: float) -> void:
 	_spawn_grenade_visual_effect(position, radius, Color(1.0, 0.6, 0.2, 0.9), "explosion")
 
 
-## Internal helper to spawn grenade visual effects with wall occlusion check.
+## Internal helper to spawn grenade visual effects with automatic wall occlusion.
+## FIX for Issue #470 (Final): Uses ONLY PointLight2D with shadow_enabled=true.
+## This ensures the light automatically respects wall geometry through Godot's native
+## 2D lighting/shadow system - same approach as MuzzleFlash.tscn.
+##
+## Previous implementation used Sprite2D + PointLight2D, but Sprite2D ignores shadows
+## and was visible through walls. Now we only use PointLight2D which natively respects
+## LightOccluder2D nodes on walls.
+##
 ## @param position: World position of the explosion.
 ## @param radius: Effect radius for visual size.
 ## @param flash_color: Color of the flash effect.
 ## @param effect_type: Type name for logging ("flashbang" or "explosion").
 func _spawn_grenade_visual_effect(position: Vector2, radius: float, flash_color: Color, effect_type: String) -> void:
-	# Check if player has line of sight to the explosion
-	var player_can_see := _player_has_line_of_sight_to(position)
+	_log_info("Spawning %s visual effect at %s (radius=%d) - using shadow-based wall occlusion" % [effect_type, position, int(radius)])
 
-	if not player_can_see:
-		_log_info("%s effect blocked by wall - player cannot see explosion at %s" % [effect_type.capitalize(), position])
-		return
-
-	_log_info("Spawning %s visual effect at %s (radius=%d)" % [effect_type, position, int(radius)])
-
-	# Create the visual flash effect
-	_create_grenade_flash(position, radius, flash_color)
-
-	# Also create a brief point light for dynamic wall illumination
-	_create_grenade_light(position, radius, flash_color)
+	# FIX for Issue #470: Use ONLY PointLight2D with shadows for proper wall occlusion
+	# Do NOT create Sprite2D as it ignores shadows and passes through walls
+	_create_grenade_light_with_occlusion(position, radius, flash_color, effect_type)
 
 
-## Creates a visual flash sprite for grenade explosions.
+## Creates a PointLight2D-based flash effect for grenade explosions with automatic wall occlusion.
+## FIX for Issue #470: Uses shadow_enabled=true to ensure the flash is blocked by walls.
+## This is the same approach used by MuzzleFlash.tscn for weapon muzzle flashes.
+##
+## The PointLight2D's shadow system automatically respects LightOccluder2D nodes on walls,
+## so no manual raycast check is needed - walls naturally block the light.
+##
 ## @param position: World position of the explosion.
-## @param radius: Radius of the flash effect.
-## @param flash_color: Color of the flash.
-func _create_grenade_flash(position: Vector2, radius: float, flash_color: Color) -> void:
-	var flash := Sprite2D.new()
-	flash.texture = _create_radial_gradient_texture(int(radius))
-	flash.global_position = position
-	flash.modulate = flash_color
-	flash.z_index = 100  # Draw on top of most game elements
-
-	_add_effect_to_scene(flash)
-
-	# Animate the flash: quick fade out
-	var tween := flash.create_tween()
-	tween.tween_property(flash, "modulate:a", 0.0, 0.25).set_ease(Tween.EASE_OUT)
-	tween.tween_callback(flash.queue_free)
-
-
-## Creates a brief point light for grenade explosions.
-## PointLight2D naturally respects LightOccluder2D nodes on walls.
-## @param position: World position of the explosion.
-## @param radius: Light radius.
-## @param light_color: Color of the light.
-func _create_grenade_light(position: Vector2, radius: float, light_color: Color) -> void:
+## @param radius: Effect radius for light size.
+## @param light_color: Color of the flash.
+## @param effect_type: Type name for logging ("flashbang" or "explosion").
+func _create_grenade_light_with_occlusion(position: Vector2, radius: float, light_color: Color, effect_type: String) -> void:
 	var light := PointLight2D.new()
 	light.global_position = position
+	light.z_index = 10  # Draw above floor but not too high
 	light.color = Color(light_color.r, light_color.g, light_color.b, 1.0)
-	light.energy = 3.0
-	light.texture_scale = radius / 128.0  # Scale based on default light texture size
 
-	# Use a simple radial gradient texture for the light
+	# Use high energy for visible flash - much brighter than muzzle flash
+	# Flashbang: 8.0 energy (blinding white flash)
+	# Frag: 6.0 energy (orange explosion)
+	if effect_type == "flashbang":
+		light.energy = 8.0
+		light.texture_scale = radius / 100.0
+	else:
+		light.energy = 6.0
+		light.texture_scale = radius / 80.0
+
+	# Use a gradient texture for the light
 	light.texture = _create_light_texture()
 
-	# Set shadow properties for wall occlusion
+	# CRITICAL for Issue #470: Enable shadows so light is blocked by walls
+	# This is the key difference from the old Sprite2D approach
 	light.shadow_enabled = true
+	light.shadow_color = Color(0, 0, 0, 0.9)
 	light.shadow_filter = PointLight2D.SHADOW_FILTER_PCF5
+	light.shadow_filter_smooth = 6.0
 
 	_add_effect_to_scene(light)
 
-	# Animate the light: quick fade out
+	# Animate the light: fade out over 0.4s with ease-out curve
+	var fade_duration := 0.4 if effect_type == "flashbang" else 0.3
 	var tween := light.create_tween()
-	tween.tween_property(light, "energy", 0.0, 0.3).set_ease(Tween.EASE_OUT)
+	tween.tween_property(light, "energy", 0.0, fade_duration).set_ease(Tween.EASE_OUT)
 	tween.tween_callback(light.queue_free)
+
+
+## DEPRECATED: Old method kept for backwards compatibility but no longer used.
+## Use _create_grenade_light_with_occlusion() instead.
+func _create_grenade_flash(_position: Vector2, _radius: float, _flash_color: Color) -> void:
+	# This method is no longer used - Sprite2D doesn't respect shadows
+	# All grenade flash effects now use PointLight2D with shadows
+	pass
+
+
+## DEPRECATED: Old method kept for backwards compatibility but no longer used.
+## Use _create_grenade_light_with_occlusion() instead.
+func _create_grenade_light(_position: Vector2, _radius: float, _light_color: Color) -> void:
+	# This method is no longer used - replaced by _create_grenade_light_with_occlusion
+	pass
 
 
 ## Creates a simple white radial gradient texture for the light.
@@ -1068,18 +1082,26 @@ func _create_radial_gradient_texture(radius: int) -> GradientTexture2D:
 	return texture
 
 
-## Checks if the player has line of sight to the given position.
-## Uses raycast to detect walls between player and target position.
+## DEPRECATED: This raycast-based method is no longer needed for grenade effects.
+## FIX for Issue #470: We now use PointLight2D with shadow_enabled=true, which
+## automatically respects wall geometry through Godot's native 2D shadow system.
 ##
-## This method distinguishes between WALLS (which block visual effects) and
-## COVER OBJECTS like desks/tables/cabinets (which don't block the flash).
-## The distinction is made by checking the node's path in the scene tree:
-## - Objects under "Environment/Cover/" are furniture → don't block
-## - Objects under "Environment/Walls/" or "InteriorWalls/" are walls → block
+## The old approach of raycast + Sprite2D had edge cases where the flash could
+## still appear to pass through walls. The new shadow-based approach is more
+## reliable as it uses the same occlusion system as the MuzzleFlash effect.
+##
+## Kept for backwards compatibility in case other code uses it.
 ##
 ## @param target_position: World position to check line of sight to.
 ## @return: True if player can see the position, false if blocked by wall.
-func _player_has_line_of_sight_to(target_position: Vector2) -> bool:
+func _player_has_line_of_sight_to(_target_position: Vector2) -> bool:
+	# Now always returns true - wall occlusion is handled by PointLight2D shadows
+	return true
+
+
+## DEPRECATED: Old implementation kept for reference but no longer active.
+## The raycast-based line of sight check is replaced by shadow-based occlusion.
+func _player_has_line_of_sight_to_legacy(target_position: Vector2) -> bool:
 	# Find the player
 	var player: Node2D = _get_player()
 	if player == null:

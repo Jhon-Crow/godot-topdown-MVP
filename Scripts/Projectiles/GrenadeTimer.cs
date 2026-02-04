@@ -578,171 +578,96 @@ namespace GodotTopdown.Scripts.Projectiles
         }
 
         /// <summary>
-        /// Spawn visual explosion effect with wall occlusion check.
+        /// Spawn visual explosion effect using PointLight2D with shadow_enabled for wall occlusion.
         /// FIX for Issue #432: GDScript Call() silently fails in exports, so we implement
         /// the explosion effect directly in C# to ensure it always works.
-        /// FIX for Issue #470: Visual effects must not pass through walls - check line of sight
-        /// to player before spawning the flash effect.
+        /// FIX for Issue #470 (Final): Uses PointLight2D with shadow_enabled=true to automatically
+        /// respect wall geometry through Godot's native 2D lighting/shadow system.
+        /// This is the same approach used by MuzzleFlash.tscn for weapon muzzle flashes.
         /// </summary>
         private void SpawnExplosionEffect(Vector2 position)
         {
-            // FIX for Issue #470: Check if player has line of sight to the explosion
-            // If a wall blocks the view, the player should NOT see the flash/explosion visual
-            if (!PlayerHasLineOfSightTo(position))
+            // Try to load and use the new PointLight2D-based explosion flash scene
+            // This uses shadow_enabled=true to automatically respect wall geometry
+            var explosionFlashScene = GD.Load<PackedScene>("res://scenes/effects/ExplosionFlash.tscn");
+
+            if (explosionFlashScene != null)
             {
-                LogToFile($"[GrenadeTimer] Visual effect blocked by wall - player cannot see explosion at {position}");
-                return;
+                var flash = explosionFlashScene.Instantiate();
+                if (flash is Node2D flashNode)
+                {
+                    flashNode.GlobalPosition = position;
+
+                    // Set explosion type (0 = Flashbang, 1 = Frag)
+                    flashNode.Set("explosion_type", Type == GrenadeType.Flashbang ? 0 : 1);
+                    flashNode.Set("effect_radius", EffectRadius);
+
+                    GetTree().CurrentScene.AddChild(flash);
+                    LogToFile($"[GrenadeTimer] Spawned PointLight2D explosion flash at {position} (shadow-based wall occlusion)");
+                    return;
+                }
             }
 
-            // Create explosion flash effect directly in C# (GDScript calls don't work in exports)
-            // This replicates the GDScript _create_simple_explosion() / _create_simple_flash() logic
-            CreateExplosionFlash(position);
-            LogToFile($"[GrenadeTimer] Spawned C# explosion effect at {position}");
+            // Fallback: create simple PointLight2D directly if scene loading fails
+            LogToFile("[GrenadeTimer] ExplosionFlash.tscn not found, using fallback PointLight2D");
+            CreateFallbackExplosionFlash(position);
         }
 
         /// <summary>
-        /// Check if the player has line of sight to the given position.
-        /// FIX for Issue #470: Used to prevent visual effects from passing through walls.
-        ///
-        /// This method distinguishes between WALLS (which block visual effects) and
-        /// COVER OBJECTS like desks/tables/cabinets (which don't block the flash).
-        /// The distinction is made by checking the node's path in the scene tree:
-        /// - Objects under "Environment/Cover/" are furniture → don't block
-        /// - Objects under "Environment/Walls/" or "InteriorWalls/" are walls → block
+        /// Fallback explosion flash using PointLight2D directly.
+        /// Used when ExplosionFlash.tscn cannot be loaded.
+        /// Uses shadow_enabled=true to respect wall geometry.
         /// </summary>
-        /// <param name="targetPosition">World position to check line of sight to.</param>
-        /// <returns>True if player can see the position, false if blocked by wall.</returns>
-        private bool PlayerHasLineOfSightTo(Vector2 targetPosition)
+        private void CreateFallbackExplosionFlash(Vector2 position)
         {
-            // Find the player
-            var players = GetTree().GetNodesInGroup("player");
-            Node2D? playerNode = null;
+            // Create PointLight2D with shadow enabled for wall occlusion
+            var light = new PointLight2D();
+            light.GlobalPosition = position;
+            light.ZIndex = 10;
 
-            foreach (var player in players)
-            {
-                if (player is Node2D node)
-                {
-                    playerNode = node;
-                    break;
-                }
-            }
+            // Enable shadows so light respects wall geometry
+            light.ShadowEnabled = true;
+            light.ShadowColor = new Color(0, 0, 0, 0.9f);
+            light.ShadowFilter = PointLight2D.ShadowFilterEnum.Pcf5;
+            light.ShadowFilterSmooth = 6.0f;
 
-            // Fallback: try to find Player node directly
-            if (playerNode == null)
-            {
-                var currentScene = GetTree().CurrentScene;
-                if (currentScene != null)
-                {
-                    playerNode = currentScene.GetNodeOrNull<Node2D>("Player");
-                }
-            }
+            // Create gradient texture for the light
+            light.Texture = CreateLightGradientTexture();
 
-            // No player found - assume visible (don't block effects in editor/testing)
-            if (playerNode == null)
-            {
-                return true;
-            }
-
-            // Use physics raycast to check for walls between explosion and player
-            var spaceState = playerNode.GetWorld2D()?.DirectSpaceState;
-            if (spaceState == null)
-            {
-                return true;
-            }
-
-            Vector2 playerPos = playerNode.GlobalPosition;
-
-            // Cast ray from explosion to player position
-            // Collision mask 4 = layer 3 (obstacles/walls)
-            var query = PhysicsRayQueryParameters2D.Create(targetPosition, playerPos);
-            query.CollisionMask = 4; // Obstacles/walls only
-            query.CollideWithBodies = true;
-            query.CollideWithAreas = false;
-
-            var result = spaceState.IntersectRay(query);
-
-            // If no hit, player can see the explosion
-            if (result.Count == 0)
-            {
-                return true;
-            }
-
-            // Hit detected - check if it's a wall or just cover furniture
-            // We distinguish by checking the node's path in the scene tree
-            var collider = result["collider"].AsGodotObject();
-            if (collider is Node hitNode)
-            {
-                string nodePath = hitNode.GetPath().ToString();
-                Vector2 hitPosition = (Vector2)result["position"];
-
-                // Cover objects (desks, tables, cabinets, crates) are under "Environment/Cover/"
-                // These don't block the visual effect - the flash would be visible over/around them
-                if (nodePath.Contains("/Cover/"))
-                {
-                    LogToFile($"[GrenadeTimer] Raycast hit cover object '{hitNode.Name}' at {hitPosition} - showing effect (furniture doesn't block flash)");
-                    return true;
-                }
-
-                // Walls and interior walls block the visual effect
-                // These are under "Environment/Walls/" or "Environment/InteriorWalls/"
-                if (nodePath.Contains("/Walls/") || nodePath.Contains("/InteriorWalls/"))
-                {
-                    LogToFile($"[GrenadeTimer] Wall '{hitNode.Name}' blocks view between explosion at {targetPosition} and player at {playerPos}");
-                    return false;
-                }
-
-                // Unknown obstacle type - log it and block by default (safer)
-                // This helps identify any obstacles we haven't categorized
-                LogToFile($"[GrenadeTimer] Unknown obstacle '{hitNode.Name}' (path: {nodePath}) at {hitPosition} - blocking effect by default");
-                return false;
-            }
-
-            // Collider is not a Node (shouldn't happen normally) - block by default
-            LogToFile($"[GrenadeTimer] Non-node collider detected - blocking effect by default");
-            return false;
-        }
-
-        /// <summary>
-        /// Create a visual explosion flash effect.
-        /// Replicates the GDScript _create_simple_explosion() and _create_simple_flash() methods.
-        /// </summary>
-        private void CreateExplosionFlash(Vector2 position)
-        {
-            // Create a colored flash sprite
-            var flash = new Sprite2D();
-            flash.Texture = CreateCircleTexture((int)EffectRadius);
-            flash.GlobalPosition = position;
-            flash.ZIndex = 100; // Draw on top
-
-            // Set color based on grenade type
-            // Flashbang: bright white flash
-            // Frag: orange/red explosion
+            // Set color and intensity based on grenade type
             if (Type == GrenadeType.Flashbang)
             {
-                flash.Modulate = new Color(1.0f, 1.0f, 1.0f, 0.8f);
+                light.Color = new Color(1.0f, 0.95f, 0.9f, 1.0f);
+                light.Energy = 8.0f;
+                light.TextureScale = EffectRadius / 100.0f;
             }
             else
             {
-                flash.Modulate = new Color(1.0f, 0.6f, 0.2f, 0.8f);
+                light.Color = new Color(1.0f, 0.6f, 0.2f, 1.0f);
+                light.Energy = 6.0f;
+                light.TextureScale = EffectRadius / 80.0f;
             }
 
             // Add to scene
-            GetTree().CurrentScene.AddChild(flash);
+            GetTree().CurrentScene.AddChild(light);
 
-            // Create tween to fade out the flash
+            // Create tween to fade out the light
             var tween = GetTree().CreateTween();
-            float fadeDuration = Type == GrenadeType.Flashbang ? 0.3f : 0.2f;
-            tween.TweenProperty(flash, "modulate:a", 0.0f, fadeDuration);
-            tween.TweenCallback(Callable.From(() => flash.QueueFree()));
+            float fadeDuration = Type == GrenadeType.Flashbang ? 0.4f : 0.3f;
+            tween.TweenProperty(light, "energy", 0.0f, fadeDuration).SetEase(Tween.EaseType.Out);
+            tween.TweenCallback(Callable.From(() => light.QueueFree()));
+
+            LogToFile($"[GrenadeTimer] Spawned fallback PointLight2D explosion at {position}");
         }
 
         /// <summary>
-        /// Create a circular gradient texture for explosion effects.
-        /// Replicates the GDScript _create_explosion_texture() / _create_white_circle_texture() methods.
+        /// Create a gradient texture for the PointLight2D.
+        /// Creates a radial gradient from white center to transparent edges.
         /// </summary>
-        private static ImageTexture CreateCircleTexture(int radius)
+        private static ImageTexture CreateLightGradientTexture()
         {
-            int size = radius * 2;
+            int size = 512;
+            int radius = size / 2;
             var image = Image.CreateEmpty(size, size, false, Image.Format.Rgba8);
             var center = new Vector2(radius, radius);
 
@@ -752,12 +677,14 @@ namespace GodotTopdown.Scripts.Projectiles
                 {
                     var pos = new Vector2(x, y);
                     float distance = pos.DistanceTo(center);
-                    if (distance <= radius)
-                    {
-                        // Fade from center (alpha decreases toward edges)
-                        float alpha = 1.0f - (distance / radius);
-                        image.SetPixel(x, y, new Color(1.0f, 1.0f, 1.0f, alpha));
-                    }
+                    float normalizedDist = Mathf.Clamp(distance / radius, 0.0f, 1.0f);
+
+                    // Create gradient: bright center fading to transparent edges
+                    // Use smooth gradient for natural light falloff
+                    float alpha = 1.0f - (normalizedDist * normalizedDist);
+                    alpha = Mathf.Max(0.0f, alpha);
+
+                    image.SetPixel(x, y, new Color(1.0f, 1.0f, 1.0f, alpha));
                 }
             }
 
