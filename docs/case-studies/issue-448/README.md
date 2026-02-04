@@ -638,3 +638,131 @@ if _right_arm_sprite:
 ### Additional Lesson Learned
 
 16. **Multi-part limbs must move as a unit** - When a limb consists of multiple sprites (shoulder + forearm), animation code must move all parts by the same offset from their respective base positions. The relative positions between parts should remain constant during movement, otherwise the limb will appear to disconnect or stretch.
+
+## Bug Fix #7: Improved Arm Connection Logic - Forearm Relative to Shoulder
+
+### Issue Discovery
+
+Despite the previous fix (#6), the arms were still separating during grenade throw animation:
+
+> "всё ещё разъединяется при броске гранаты"
+> (Translation: "Still separating during grenade throw")
+
+### Root Cause Analysis - Deeper Issue
+
+The previous fix (Bug Fix #6) calculated the forearm position as:
+```gdscript
+var shoulder_offset := left_arm_target - _base_left_arm_pos
+var forearm_connected_target := _base_right_arm_pos + shoulder_offset
+```
+
+This approach had a subtle flaw: it applied the same **offset** to both the shoulder and forearm base positions. However, this doesn't guarantee the forearm stays connected to the shoulder at the elbow during the lerp animation.
+
+**The problem with the previous approach:**
+
+When both sprites lerp from their current positions to their targets at the same rate, they only arrive at the correct relative position at the END of the animation. During the transition, they can be at different relative positions if their starting points were different.
+
+### The Correct Solution
+
+The forearm should be positioned **relative to the shoulder's current position**, not calculated from base positions. This ensures the arm stays connected at the elbow at ALL times during the animation, not just at the start and end.
+
+**New approach:**
+
+1. Store the offset from shoulder to forearm at initialization:
+```gdscript
+# In _ready():
+_forearm_shoulder_offset = _base_right_arm_pos - _base_left_arm_pos
+# Result: (-2, 6) - (24, 6) = (-26, 0)
+```
+
+2. Calculate forearm target as shoulder target + offset:
+```gdscript
+# In animation functions:
+var forearm_connected_target := left_arm_target + _forearm_shoulder_offset
+```
+
+**Why this works better:**
+
+With this approach, the forearm target is ALWAYS exactly 26 pixels to the left of the shoulder target (in X direction). Regardless of where the shoulder is moving to, the forearm will be at the correct relative position to maintain the elbow connection.
+
+### Code Changes
+
+**New variable added (line ~1236):**
+```gdscript
+## Offset from shoulder to forearm (forearm relative to shoulder, keeps arm connected).
+## This is calculated as: forearm_pos - shoulder_pos, so forearm = shoulder + offset.
+var _forearm_shoulder_offset: Vector2 = Vector2.ZERO
+```
+
+**Initialization in _ready() (line ~281):**
+```gdscript
+# Calculate the offset from shoulder to forearm (keeps arm connected at elbow).
+# _left_arm_sprite is RightShoulder, _right_arm_sprite is RightForearm.
+# This offset is applied to shoulder position to get forearm position.
+if _left_arm_sprite and _right_arm_sprite:
+    _forearm_shoulder_offset = _base_right_arm_pos - _base_left_arm_pos
+```
+
+**Recalculation in _apply_weapon_arm_offsets() (line ~535):**
+```gdscript
+# Recalculate forearm-shoulder offset when base positions change
+# This ensures the arm stays connected at the elbow regardless of weapon type
+_forearm_shoulder_offset = _base_right_arm_pos - _base_left_arm_pos
+```
+
+**Updated grenade animation (line ~2138):**
+```gdscript
+# The forearm is positioned RELATIVE to the shoulder using _forearm_shoulder_offset
+# Forearm target = shoulder target + forearm-shoulder offset (set at _ready)
+var forearm_connected_target := left_arm_target + _forearm_shoulder_offset
+```
+
+**Updated reload animation (line ~2311):**
+```gdscript
+# Same approach as grenade animation
+var forearm_connected_target := left_arm_target + _forearm_shoulder_offset
+```
+
+### Visual Explanation
+
+**Before (Bug Fix #6 - offset from base):**
+```
+Shoulder base: (24, 6)
+Forearm base: (-2, 6)
+Offset: (-20, 2)  ← animation offset
+
+During animation:
+- Shoulder target: (24, 6) + (-20, 2) = (4, 8)
+- Forearm target: (-2, 6) + (-20, 2) = (-22, 8)
+
+This WORKS mathematically, but...
+If shoulder current is at (15, 7) and forearm current is at (-10, 7),
+the lerp rates being equal doesn't guarantee they stay 26px apart DURING animation.
+```
+
+**After (Bug Fix #7 - relative to shoulder):**
+```
+Shoulder base: (24, 6)
+Forearm base: (-2, 6)
+Forearm-shoulder offset: (-26, 0)  ← stored once at init
+
+During animation:
+- Shoulder target: (4, 8)  ← from animation logic
+- Forearm target: (4, 8) + (-26, 0) = (-22, 8)  ← ALWAYS 26px left of shoulder target
+
+This ensures forearm target is ALWAYS correctly positioned relative to shoulder target,
+regardless of where the shoulder is moving to.
+```
+
+### Files Changed
+
+- `scripts/characters/player.gd`:
+  - Added `_forearm_shoulder_offset` variable
+  - Updated `_ready()` to calculate the offset
+  - Updated `_apply_weapon_arm_offsets()` to recalculate offset on weapon change
+  - Updated `_update_grenade_animation()` to use relative positioning
+  - Updated `_update_reload_animation()` to use relative positioning
+
+### Additional Lesson Learned
+
+17. **Use relative positioning for connected parts** - When two sprites must stay connected (like arm segments at an elbow joint), calculate the second sprite's position relative to the first sprite's TARGET position, not by applying the same offset to separate base positions. This ensures the connection is maintained throughout the entire animation, not just at the endpoints.
