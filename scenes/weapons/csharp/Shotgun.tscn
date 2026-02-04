@@ -14,8 +14,8 @@ WeaponData = ExtResource("4_weapon_data")
 BulletScene = ExtResource("2_bullet")
 CasingScene = ExtResource("3_casing")
 BulletSpawnOffset = 52.0
-MinPellets = 6
-MaxPellets = 12
+MinPellets = 10
+MaxPellets = 16
 PelletScene = ExtResource("6_pellet")
 
 [node name="ShotgunSprite" type="Sprite2D" parent="."]
