@@ -601,27 +601,17 @@ namespace GodotTopdown.Scripts.Projectiles
         }
 
         /// <summary>
-        /// Minimum distance from player for a wall to count as blocking.
-        /// If the raycast hits an obstacle closer to the player than this distance,
-        /// we assume it's just small furniture/cover near the player, not a major wall
-        /// blocking the entire view. The flash would realistically still be visible
-        /// over/around such small obstacles.
-        /// </summary>
-        private const float MinWallBlockingDistance = 100.0f;
-
-        /// <summary>
         /// Check if the player has line of sight to the given position.
-        /// FIX for Issue #470: Used to prevent visual effects from passing through MAJOR walls.
+        /// FIX for Issue #470: Used to prevent visual effects from passing through walls.
         ///
-        /// NOTE: This check has a tolerance built in. If the raycast hits an obstacle
-        /// that is close to the player (within MinWallBlockingDistance), we still consider
-        /// the effect visible. This is because small furniture (desks, tables, cover objects)
-        /// wouldn't realistically block an entire explosion flash - you'd still see the
-        /// light over/around it. Only substantial walls that are NOT near the player
-        /// should block the visual effect.
+        /// This method distinguishes between WALLS (which block visual effects) and
+        /// COVER OBJECTS like desks/tables/cabinets (which don't block the flash).
+        /// The distinction is made by checking the node's path in the scene tree:
+        /// - Objects under "Environment/Cover/" are furniture → don't block
+        /// - Objects under "Environment/Walls/" or "InteriorWalls/" are walls → block
         /// </summary>
         /// <param name="targetPosition">World position to check line of sight to.</param>
-        /// <returns>True if player can see the position, false if blocked by major wall.</returns>
+        /// <returns>True if player can see the position, false if blocked by wall.</returns>
         private bool PlayerHasLineOfSightTo(Vector2 targetPosition)
         {
             // Find the player
@@ -677,21 +667,38 @@ namespace GodotTopdown.Scripts.Projectiles
                 return true;
             }
 
-            // Hit detected - check if it's a major wall or just small furniture near the player
-            // If the hit point is close to the player, it's likely just cover/furniture
-            // and the player would still see the flash over/around it
-            Vector2 hitPosition = (Vector2)result["position"];
-            float distanceToPlayer = hitPosition.DistanceTo(playerPos);
-
-            if (distanceToPlayer < MinWallBlockingDistance)
+            // Hit detected - check if it's a wall or just cover furniture
+            // We distinguish by checking the node's path in the scene tree
+            var collider = result["collider"].AsGodotObject();
+            if (collider is Node hitNode)
             {
-                // Hit is close to player - likely small furniture, still show the effect
-                LogToFile($"[GrenadeTimer] Raycast hit obstacle at {hitPosition} but it's close to player ({distanceToPlayer:F0}px) - showing effect anyway");
-                return true;
+                string nodePath = hitNode.GetPath().ToString();
+                Vector2 hitPosition = (Vector2)result["position"];
+
+                // Cover objects (desks, tables, cabinets, crates) are under "Environment/Cover/"
+                // These don't block the visual effect - the flash would be visible over/around them
+                if (nodePath.Contains("/Cover/"))
+                {
+                    LogToFile($"[GrenadeTimer] Raycast hit cover object '{hitNode.Name}' at {hitPosition} - showing effect (furniture doesn't block flash)");
+                    return true;
+                }
+
+                // Walls and interior walls block the visual effect
+                // These are under "Environment/Walls/" or "Environment/InteriorWalls/"
+                if (nodePath.Contains("/Walls/") || nodePath.Contains("/InteriorWalls/"))
+                {
+                    LogToFile($"[GrenadeTimer] Wall '{hitNode.Name}' blocks view between explosion at {targetPosition} and player at {playerPos}");
+                    return false;
+                }
+
+                // Unknown obstacle type - log it and block by default (safer)
+                // This helps identify any obstacles we haven't categorized
+                LogToFile($"[GrenadeTimer] Unknown obstacle '{hitNode.Name}' (path: {nodePath}) at {hitPosition} - blocking effect by default");
+                return false;
             }
 
-            // Major wall detected - block the visual effect
-            LogToFile($"[GrenadeTimer] Wall detected between explosion and player at distance {hitPosition.DistanceTo(targetPosition):F0}px from explosion");
+            // Collider is not a Node (shouldn't happen normally) - block by default
+            LogToFile($"[GrenadeTimer] Non-node collider detected - blocking effect by default");
             return false;
         }
 

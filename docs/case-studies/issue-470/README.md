@@ -5,144 +5,150 @@
 - **Title**: визуальный и обычный эффект наступательной гранаты не должен проходить сквозь стены (как это работает для вспышки)
 - **Translation**: "Visual and normal effect of offensive grenade should not pass through walls (as it works for flashbang)"
 - **Status**: Fixed
-- **Root Cause**: Architecture mismatch between GDScript and C# code paths, plus overly strict wall occlusion check
+- **Root Cause**: Multiple issues - architecture mismatch, then overly simplistic wall detection logic
 
 ## Timeline of Events
 
-### Phase 1: Initial Implementation (First PR Attempt)
-1. **Problem Identified**: Frag grenade visual effects were visible through walls
-2. **Initial Solution**: Added wall occlusion methods to `impact_effects_manager.gd`:
-   - `spawn_flashbang_effect()` - with line-of-sight check
-   - `spawn_explosion_effect()` - with line-of-sight check
-   - `_player_has_line_of_sight_to()` - raycast helper
-3. **Modified Files**:
-   - `scripts/autoload/impact_effects_manager.gd` - Added wall occlusion methods
-   - `scripts/projectiles/frag_grenade.gd` - Called wall-aware methods
+### Phase 1: Initial Problem Report
+- **Problem**: Frag grenade visual effects were visible through walls
+- **Expected**: Effects should be blocked by walls
 
-### Phase 2: User Testing & Bug Report (Round 1)
-1. **User Feedback**: "визуал не изменился" (visual hasn't changed)
-2. **Evidence**: Game log `game_log_20260204_094613.txt` showed:
-   - `[GrenadeTimer] Spawned C# explosion effect at (217.2414, 1847.0286)`
-   - No mention of `spawn_explosion_effect` from GDScript
-   - No mention of wall occlusion checks
+### Phase 2: First Fix Attempt (GDScript)
+Added wall occlusion methods to `impact_effects_manager.gd`.
+- **Result**: FAILED - User reported "визуал не изменился" (visual hasn't changed)
+- **Cause**: Exported builds use C# `GrenadeTimer.cs`, not GDScript
 
-### Phase 3: Root Cause Analysis (C# vs GDScript)
-The critical insight from the log was that **C# code was spawning effects**, not GDScript.
+### Phase 3: Second Fix Attempt (C# Path)
+Added `PlayerHasLineOfSightTo()` to `GrenadeTimer.cs` with simple raycast.
+- **Result**: FAILED - User reported "теперь эффекты обеих гранат не видны" (now effects of both grenades are not visible)
+- **Cause**: Raycast was too strict - blocked ALL obstacles including small furniture
 
-**Key Log Entry**:
+### Phase 4: Third Fix Attempt (Distance Tolerance)
+Added tolerance: if obstacle is within 100px of player, assume it's small furniture and allow effect.
+- **Result**: PARTIAL FAILURE - User reported "то видна то не видна вспышка. вспышка всё ещё проходит сквозь стены"
+- **Translation**: "sometimes flash is visible, sometimes not. flash still passes through walls"
+- **Cause**: Distance-based tolerance is fundamentally flawed - if player stands WITH THEIR BACK to a wall, the wall hits close to player but SHOULD block the effect
+
+### Phase 5: Final Fix (Node Path Detection)
+**NEW APPROACH**: Instead of distance-based tolerance, distinguish between walls and cover by checking the node's **scene tree path**:
+- Objects under `Environment/Cover/` (desks, tables, cabinets) → **don't block** (furniture doesn't block flash)
+- Objects under `Environment/Walls/` or `Environment/InteriorWalls/` → **block** (actual walls)
+
+## Root Cause Analysis
+
+The fundamental problem with the distance-based approach:
+
 ```
-[09:46:23] [INFO] [GrenadeTimer] Spawned C# explosion effect at (217.2414, 1847.0286)
+SCENARIO 1: Player near furniture (should NOT block)
+   +-------+
+   | Player|  <-- Furniture 50px away
+   +-------+
+           ^
+        Explosion on other side - SHOULD see flash
+
+SCENARIO 2: Player backed against wall (SHOULD block)
+   +-------+
+   | Player|  <-- Wall 50px behind player
+   +-------+
+           ^
+        Explosion on other side - should NOT see flash
 ```
 
-This revealed that in **exported builds**, the C# `GrenadeTimer.cs` component handles all grenade explosion logic, NOT the GDScript files.
+Both scenarios have an obstacle close to the player (< 100px), but:
+- Scenario 1: Small furniture - flash visible over/around it
+- Scenario 2: Major wall - flash should be completely blocked
 
-### Phase 4: First Fix - Added Wall Occlusion to C#
-Added `PlayerHasLineOfSightTo()` to `GrenadeTimer.cs` with raycast check using collision mask 4 (obstacles layer).
+The distance-based tolerance **cannot distinguish** between these cases.
 
-### Phase 5: User Testing & Bug Report (Round 2)
-1. **User Feedback**: "теперь эффекты обеих гранат не видны" (now effects of both grenades are not visible)
-2. **Evidence**: Game log `game_log_20260204_163238.txt` showed:
-   - First explosion worked: `[GrenadeTimer] Spawned C# explosion effect at (1114.0901, 1451.9849)`
-   - All subsequent explosions blocked: `[GrenadeTimer] Visual effect blocked by wall`
-   - BUT damage was still applied: `[GrenadeTimer] Applied flashbang to player at distance 273,2`
+## Solution: Node Path Detection
 
-### Phase 6: Root Cause Analysis (Overly Strict Raycast)
-The second log revealed a critical insight: **damage was being applied to the player**, but the visual was blocked. This is contradictory!
-
-**Analysis of log entries:**
+The game level organizes obstacles into clear categories:
 ```
-[16:32:58] [GrenadeTimer] Applied flashbang to player at distance 273,2
-[16:32:58] [GrenadeTimer] Visual effect blocked by wall
+BuildingLevel
+├── Environment
+│   ├── Walls/           ← Major walls (block flash)
+│   │   ├── WallTop
+│   │   ├── WallBottom
+│   │   └── ...
+│   ├── InteriorWalls/   ← Interior walls (block flash)
+│   │   ├── Room1_WallBottom
+│   │   └── ...
+│   └── Cover/           ← Furniture (allow flash)
+│       ├── Desk1
+│       ├── Table1
+│       └── Cabinet1
 ```
 
-If the player is close enough to receive flashbang damage, they should be able to see the flash.
-
-**Root Cause**: The raycast was hitting **small furniture** (desks, tables, cabinets) that are also on collision layer 4 (obstacles), NOT major walls. The player was standing near cover objects, and the raycast from explosion to player was hitting that cover.
-
-## Final Fix
-
-Added a **tolerance distance** to the wall occlusion check. If the raycast hit is close to the player (within 100 pixels), it's likely just small furniture near the player, not a major wall blocking the entire view.
+By checking the **node path** of the hit collider, we can correctly classify:
+- Path contains `/Cover/` → furniture → show effect
+- Path contains `/Walls/` or `/InteriorWalls/` → wall → block effect
 
 ```csharp
-// In GrenadeTimer.cs
-private const float MinWallBlockingDistance = 100.0f;
-
-private bool PlayerHasLineOfSightTo(Vector2 targetPosition)
+// C# implementation
+var collider = result["collider"].AsGodotObject();
+if (collider is Node hitNode)
 {
-    // ... find player, setup raycast ...
+    string nodePath = hitNode.GetPath().ToString();
 
-    var result = spaceState.IntersectRay(query);
-
-    if (result.Count == 0)
-        return true; // No hit, player can see
-
-    // Check if hit is close to player (likely small furniture)
-    Vector2 hitPosition = (Vector2)result["position"];
-    float distanceToPlayer = hitPosition.DistanceTo(playerPos);
-
-    if (distanceToPlayer < MinWallBlockingDistance)
+    // Cover objects don't block the visual effect
+    if (nodePath.Contains("/Cover/"))
     {
-        // Hit is close to player - likely small furniture, still show effect
-        return true;
+        return true;  // Show effect
     }
 
-    // Major wall - block the visual effect
-    return false;
+    // Walls block the visual effect
+    if (nodePath.Contains("/Walls/") || nodePath.Contains("/InteriorWalls/"))
+    {
+        return false;  // Block effect
+    }
 }
 ```
 
-## Key Insight: Cover vs Walls
+## Key Insights
 
-The game level has multiple object types on collision layer 4:
-- **Major walls**: Should block visual effects (you can't see through them)
-- **Small furniture**: Desks, tables, cabinets used as cover
+### 1. Scene Organization Matters
+The level's scene tree organization (`Cover/` vs `Walls/`) provides semantic meaning that collision layers alone don't capture.
 
-The original fix treated ALL obstacles equally, but realistically:
-- An explosion flash would be visible OVER/AROUND small furniture
-- Only substantial walls completely block the light
+### 2. Distance-Based Heuristics Fail
+Simple distance checks can't distinguish between "small obstacle near player" and "major wall behind player".
 
-The tolerance distance (100px) distinguishes between:
-- Hit close to player = small furniture near them = show effect
-- Hit far from player (closer to explosion) = major wall between them = block effect
+### 3. Test Edge Cases
+The original fix worked for:
+- Player in open area → effect visible
+- Player behind distant wall → effect blocked
 
-## Lessons Learned
+But failed for:
+- Player backed against wall → effect wrongly visible (wall counted as "close furniture")
 
-### 1. Dual-Language Architecture Requires Dual Testing
-When a project has both GDScript and C# implementations:
-- Test in **both** editor AND exported builds
-- Features must be implemented in **both** code paths
-
-### 2. "Works in Editor" != "Works in Export"
-GDScript methods called via C# `Call()` silently fail in exports (Issue #432).
-
-### 3. Log Analysis is Critical
-Both bugs were identified through careful log analysis:
-- First bug: Log showed C# path executing, not GDScript
-- Second bug: Damage applied but visual blocked (contradiction!)
-
-### 4. Consider Real-World Physics
-A simple raycast treats all obstacles as perfect blockers. But:
-- Light bends around small objects
-- Explosions illuminate over furniture
-- Only major walls truly block view
-
-### 5. Test Multiple Scenarios
-The first explosion worked, subsequent ones failed. Testing only the first case would have missed the bug.
+### 4. Dual Codebase Requires Dual Fixes
+Both C# (`GrenadeTimer.cs`) and GDScript (`impact_effects_manager.gd`) need the same fix for consistent behavior in editor vs export.
 
 ## Files Modified
 
 | File | Change |
 |------|--------|
-| `Scripts/Projectiles/GrenadeTimer.cs` | Added `PlayerHasLineOfSightTo()` with tolerance for small furniture |
-| `scripts/autoload/impact_effects_manager.gd` | Added `MIN_WALL_BLOCKING_DISTANCE` tolerance to GDScript version |
+| `Scripts/Projectiles/GrenadeTimer.cs` | Replaced distance-based tolerance with node path detection |
+| `scripts/autoload/impact_effects_manager.gd` | Same node path detection logic in GDScript |
 
 ## Testing Checklist
 
-- [ ] Throw grenade with player behind MAJOR wall - visual should NOT appear
-- [ ] Throw grenade with player in line of sight - visual should appear
-- [ ] Throw grenade with player behind SMALL COVER (desk/table) - visual SHOULD appear
+- [ ] Throw grenade with player in line of sight → visual should appear
+- [ ] Throw grenade with player behind WALL → visual should NOT appear
+- [ ] Throw grenade with player behind desk/table/cabinet → visual SHOULD appear
 - [ ] Test in both editor and exported build
-- [ ] Verify log messages match expected behavior
+- [ ] Verify log messages correctly identify "Cover" vs "Walls"
+
+## Log Messages to Look For
+
+**Cover hit (effect visible):**
+```
+[GrenadeTimer] Raycast hit cover object 'Desk1' at (x, y) - showing effect (furniture doesn't block flash)
+```
+
+**Wall hit (effect blocked):**
+```
+[GrenadeTimer] Wall 'Room1_WallBottom' blocks view between explosion at (x, y) and player at (x, y)
+```
 
 ## Related Issues
 
@@ -151,5 +157,6 @@ The first explosion worked, subsequent ones failed. Testing only the first case 
 
 ## Attachments
 
-- `game_log_20260204_094613.txt` - Original user log showing C#/GDScript mismatch
-- `game_log_20260204_163238.txt` - Second log showing overly strict raycast blocking all effects
+- `game_log_20260204_094613.txt` - Original log showing C#/GDScript mismatch
+- `game_log_20260204_163238.txt` - Log showing overly strict raycast blocking all effects
+- `game_log_20260204_164608.txt` - Log showing distance-based tolerance failures
