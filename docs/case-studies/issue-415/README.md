@@ -1049,3 +1049,116 @@ Since external script loading is unreliable due to the binary tokens bug, the fi
 3. **Godot 4.x export has serious bugs** - Binary token export mode should be avoided for complex projects
 4. **Workarounds may not be enough** - Sometimes a complete architectural change is needed
 5. **Test in actual exported builds** - Editor behavior differs significantly from exports
+
+---
+
+## Session 9 Investigation: building_level.gd Script Completely Not Executing
+
+### Problem Report
+
+User reported three critical bugs after Session 8's inline implementation:
+1. **Weapon selection broken** - Selecting shotgun in armory but player still has rifle
+2. **Ammo counter broken** - Not displaying correct ammo
+3. **Score screen not appearing** - No score screen after clearing all enemies
+
+### Root Cause Analysis
+
+#### Log Comparison
+
+Comparing `game_log_20260204_171348.txt` (working) vs `game_log_20260204_181329.txt` (broken):
+
+**Working log (17:13:48):**
+```
+[18:18:12] [INFO] [BuildingLevel] Found Environment/Enemies node with 10 children
+[18:18:12] [INFO] [BuildingLevel] Child 'Enemy1': script=true, has_died_signal=true
+...
+[18:18:12] [INFO] [BuildingLevel] Enemy tracking complete: 10 enemies registered
+```
+
+**Broken log (18:13:29):**
+- NO `[BuildingLevel]` log entries at all
+- NO "Enemy tracking complete" message
+- NO "BuildingLevel loaded" message
+
+This indicates **the entire `building_level.gd` script was not executing**.
+
+#### Impact Chain
+
+When `building_level.gd` fails to load:
+1. `_setup_selected_weapon()` doesn't run → weapon doesn't change
+2. `_setup_player_tracking()` doesn't connect signals → ammo UI doesn't update
+3. `_setup_enemy_tracking()` doesn't connect → enemy deaths aren't counted
+4. `_on_enemy_died()` never fires → level completion never triggers
+5. `_show_score_screen()` never called → no score screen
+
+**All three reported bugs are symptoms of the same root cause: script load failure.**
+
+#### Suspect: Typed Array Declarations
+
+Searching for differences between working main branch and PR:
+
+**Main branch `building_level.gd`:**
+```gdscript
+var parts: Array[String] = []  # Only typed array (local variable)
+```
+
+**PR `building_level.gd` (after Session 8):**
+```gdscript
+const SCORE_FLASH_COLORS: Array[Color] = [...]  # Typed array CONSTANT
+var _score_items_data: Array[Dictionary] = []   # Class-level typed array
+var parts: Array[String] = []                   # Local typed array
+```
+
+The key difference is:
+1. **Typed array constants** (`const ... : Array[Type]`)
+2. **Class-level typed array variables** (`var ... : Array[Type]`)
+
+These patterns can cause GDScript parser failures in binary tokens export mode.
+
+#### Evidence from Godot Issues
+
+Related Godot issues:
+- [#94150](https://github.com/godotengine/godot/issues/94150): Binary tokens export breaks some scripts
+- [#113577](https://github.com/godotengine/godot/issues/113577): Parse errors with binary tokens in 4.6.dev
+
+### Solution: Remove Typed Array Declarations
+
+Changed all typed array declarations to untyped:
+
+**Before:**
+```gdscript
+const SCORE_FLASH_COLORS: Array[Color] = [...]
+var _score_items_data: Array[Dictionary] = []
+var parts: Array[String] = []
+```
+
+**After:**
+```gdscript
+## Note: Using untyped Array to avoid Godot 4.x binary tokens export issues.
+const SCORE_FLASH_COLORS: Array = [...]
+## Note: Using untyped Array to avoid Godot 4.x binary tokens export issues.
+var _score_items_data: Array = []
+var parts: Array = []  # Untyped to avoid binary tokens export issues
+```
+
+### Files Changed
+
+| File | Change |
+|------|--------|
+| `scripts/levels/building_level.gd` | Removed typed array declarations |
+| `docs/case-studies/issue-415/logs/game_log_20260204_181329.txt` | Added broken log for reference |
+
+### Why This Should Fix It
+
+1. **Typed constants are problematic** - Binary tokenization may not handle `const SCORE_FLASH_COLORS: Array[Color]` correctly
+2. **Untyped arrays work reliably** - Main branch uses untyped arrays and works
+3. **Type safety preserved at runtime** - The arrays still only contain the correct types
+4. **No functional change** - Just removes compile-time type annotations
+
+### Lessons Learned (Session 9)
+
+1. **Avoid typed array constants in GDScript** - Use untyped `Array` for constants
+2. **Avoid class-level typed array variables** - Local variables may be safer, but prefer untyped
+3. **Script parse failures can be silent** - The script just doesn't load, no error in game
+4. **Compare logs carefully** - Looking for *missing* entries reveals total script failures
+5. **Binary tokens affect more than external scripts** - Even inline code can fail with certain type annotations

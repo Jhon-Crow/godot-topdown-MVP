@@ -88,7 +88,8 @@ const SCORE_RANK_COLORS: Dictionary = {
 }
 
 ## Flash colors for rank reveal background in score screen.
-const SCORE_FLASH_COLORS: Array[Color] = [
+## Note: Using untyped Array to avoid Godot 4.x binary tokens export issues.
+const SCORE_FLASH_COLORS: Array = [
 	Color(1.0, 0.0, 0.0, 0.9),   # Red
 	Color(0.0, 1.0, 0.0, 0.9),   # Green
 	Color(0.0, 0.0, 1.0, 0.9),   # Blue
@@ -102,7 +103,8 @@ var _score_screen_root: Control = null
 var _score_background: ColorRect = null
 var _score_container: VBoxContainer = null
 var _score_title_label: Label = null
-var _score_items_data: Array[Dictionary] = []
+## Note: Using untyped Array to avoid Godot 4.x binary tokens export issues.
+var _score_items_data: Array = []
 var _score_rank_label: Label = null
 var _score_rank_background: ColorRect = null
 var _score_total_label: Label = null
@@ -771,7 +773,7 @@ func _update_magazines_label(magazine_ammo_counts: Array) -> void:
 		_magazines_label.text = "MAGS: -"
 		return
 
-	var parts: Array[String] = []
+	var parts: Array = []  # Untyped to avoid binary tokens export issues
 	for i in range(magazine_ammo_counts.size()):
 		var ammo: int = magazine_ammo_counts[i]
 		if i == 0:
