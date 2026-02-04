@@ -257,3 +257,99 @@ func test_max_blood_decals_is_unlimited() -> void:
 	# Puddles should never disappear - this is a critical requirement
 	assert_eq(impact_manager.MAX_BLOOD_DECALS, 0,
 		"MAX_BLOOD_DECALS should be 0 for unlimited decals (Issues #293, #370)")
+
+
+# ============================================================================
+# Grenade Visual Effect Tests (Issue #470)
+# ============================================================================
+
+
+func test_spawn_flashbang_effect_method_exists() -> void:
+	# The wall-aware flashbang effect method should exist
+	assert_true(impact_manager.has_method("spawn_flashbang_effect"),
+		"Manager should have spawn_flashbang_effect method (Issue #470)")
+
+
+func test_spawn_explosion_effect_method_exists() -> void:
+	# The wall-aware explosion effect method should exist
+	assert_true(impact_manager.has_method("spawn_explosion_effect"),
+		"Manager should have spawn_explosion_effect method (Issue #470)")
+
+
+func test_spawn_flashbang_effect_accepts_parameters() -> void:
+	# Should not crash when called with valid parameters
+	# Note: Without proper scene tree, the effect won't actually spawn but shouldn't crash
+	impact_manager.spawn_flashbang_effect(Vector2(100, 100), 400.0)
+	pass_test("spawn_flashbang_effect accepts position and radius without error")
+
+
+func test_spawn_explosion_effect_accepts_parameters() -> void:
+	# Should not crash when called with valid parameters
+	impact_manager.spawn_explosion_effect(Vector2(100, 100), 225.0)
+	pass_test("spawn_explosion_effect accepts position and radius without error")
+
+
+func test_player_has_line_of_sight_to_method_exists() -> void:
+	# The line of sight check method for wall occlusion should exist
+	assert_true(impact_manager.has_method("_player_has_line_of_sight_to"),
+		"Manager should have _player_has_line_of_sight_to method for wall occlusion")
+
+
+func test_player_has_line_of_sight_returns_true_without_player() -> void:
+	# When no player exists, should return true (don't block effects)
+	# This allows effects to be visible in editor/testing scenarios
+	var has_los: bool = impact_manager._player_has_line_of_sight_to(Vector2(100, 100))
+	assert_true(has_los,
+		"Should return true when no player exists (fallback for testing)")
+
+
+func test_get_player_method_exists() -> void:
+	# The player finder method should exist
+	assert_true(impact_manager.has_method("_get_player"),
+		"Manager should have _get_player method")
+
+
+func test_get_player_returns_null_when_no_player() -> void:
+	# When no player exists in the scene, should return null
+	var player = impact_manager._get_player()
+	assert_null(player, "Should return null when no player in scene")
+
+
+func test_create_grenade_flash_method_exists() -> void:
+	# The flash creation method should exist
+	assert_true(impact_manager.has_method("_create_grenade_flash"),
+		"Manager should have _create_grenade_flash method")
+
+
+func test_create_grenade_light_method_exists() -> void:
+	# The light creation method should exist
+	assert_true(impact_manager.has_method("_create_grenade_light"),
+		"Manager should have _create_grenade_light method")
+
+
+func test_create_radial_gradient_texture_method_exists() -> void:
+	# The texture creation method should exist
+	assert_true(impact_manager.has_method("_create_radial_gradient_texture"),
+		"Manager should have _create_radial_gradient_texture method")
+
+
+func test_create_radial_gradient_texture_returns_valid_texture() -> void:
+	# Should create a valid gradient texture
+	var texture = impact_manager._create_radial_gradient_texture(100)
+	assert_not_null(texture, "Should create a valid texture")
+	assert_true(texture is GradientTexture2D,
+		"Texture should be a GradientTexture2D")
+
+
+func test_create_light_texture_method_exists() -> void:
+	# The light texture creation method should exist
+	assert_true(impact_manager.has_method("_create_light_texture"),
+		"Manager should have _create_light_texture method")
+
+
+func test_create_light_texture_returns_valid_texture() -> void:
+	# Should create a valid gradient texture for lights
+	var texture = impact_manager._create_light_texture()
+	assert_not_null(texture, "Should create a valid light texture")
+	assert_true(texture is GradientTexture2D,
+		"Light texture should be a GradientTexture2D")

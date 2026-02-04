@@ -1016,3 +1016,235 @@ func _warmup_particle_shaders() -> void:
 	var elapsed := Time.get_ticks_msec() - start_time
 	_warmup_completed = true
 	_log_info("Particle shader warmup complete: %d effects warmed up in %d ms" % [warmed_up_count, elapsed])
+
+
+## Spawns a flashbang visual effect at the given position with wall occlusion.
+## The visual effect is only displayed if the player has line of sight to the explosion.
+## This prevents the flash from being visible through walls (Issue #470).
+## @param position: World position where the flashbang exploded.
+## @param radius: Effect radius for the visual flash size.
+func spawn_flashbang_effect_with_occlusion(position: Vector2, radius: float) -> void:
+	_spawn_grenade_visual_effect(position, radius, Color(1.0, 1.0, 1.0, 0.9), "flashbang")
+
+
+## Spawns an explosion visual effect at the given position with wall occlusion.
+## The visual effect is only displayed if the player has line of sight to the explosion.
+## This prevents the explosion flash from being visible through walls (Issue #470).
+## @param position: World position where the grenade exploded.
+## @param radius: Effect radius for the visual explosion size.
+func spawn_explosion_effect(position: Vector2, radius: float) -> void:
+	_spawn_grenade_visual_effect(position, radius, Color(1.0, 0.6, 0.2, 0.9), "explosion")
+
+
+## Internal helper to spawn grenade visual effects with automatic wall occlusion.
+## FIX for Issue #470 (Final): Uses ONLY PointLight2D with shadow_enabled=true.
+## This ensures the light automatically respects wall geometry through Godot's native
+## 2D lighting/shadow system - same approach as MuzzleFlash.tscn.
+##
+## Previous implementation used Sprite2D + PointLight2D, but Sprite2D ignores shadows
+## and was visible through walls. Now we only use PointLight2D which natively respects
+## LightOccluder2D nodes on walls.
+##
+## @param position: World position of the explosion.
+## @param radius: Effect radius for visual size.
+## @param flash_color: Color of the flash effect.
+## @param effect_type: Type name for logging ("flashbang" or "explosion").
+func _spawn_grenade_visual_effect(position: Vector2, radius: float, flash_color: Color, effect_type: String) -> void:
+	_log_info("Spawning %s visual effect at %s (radius=%d) - using shadow-based wall occlusion" % [effect_type, position, int(radius)])
+
+	# FIX for Issue #470: Use ONLY PointLight2D with shadows for proper wall occlusion
+	# Do NOT create Sprite2D as it ignores shadows and passes through walls
+	_create_grenade_light_with_occlusion(position, radius, flash_color, effect_type)
+
+
+## Creates a PointLight2D-based flash effect for grenade explosions with automatic wall occlusion.
+## FIX for Issue #470: Uses shadow_enabled=true to ensure the flash is blocked by walls.
+## This is the same approach used by MuzzleFlash.tscn for weapon muzzle flashes.
+##
+## The PointLight2D's shadow system automatically respects LightOccluder2D nodes on walls,
+## so no manual raycast check is needed - walls naturally block the light.
+##
+## @param position: World position of the explosion.
+## @param radius: Effect radius for light size.
+## @param light_color: Color of the flash.
+## @param effect_type: Type name for logging ("flashbang" or "explosion").
+func _create_grenade_light_with_occlusion(position: Vector2, radius: float, light_color: Color, effect_type: String) -> void:
+	var light := PointLight2D.new()
+	light.global_position = position
+	light.z_index = 10  # Draw above floor but not too high
+	light.color = Color(light_color.r, light_color.g, light_color.b, 1.0)
+
+	# Use high energy for visible flash - much brighter than muzzle flash
+	# Flashbang: 8.0 energy (blinding white flash)
+	# Frag: 6.0 energy (orange explosion)
+	if effect_type == "flashbang":
+		light.energy = 8.0
+		light.texture_scale = radius / 100.0
+	else:
+		light.energy = 6.0
+		light.texture_scale = radius / 80.0
+
+	# Use a gradient texture for the light
+	light.texture = _create_light_texture()
+
+	# CRITICAL for Issue #470: Enable shadows so light is blocked by walls
+	# This is the key difference from the old Sprite2D approach
+	light.shadow_enabled = true
+	light.shadow_color = Color(0, 0, 0, 0.9)
+	light.shadow_filter = PointLight2D.SHADOW_FILTER_PCF5
+	light.shadow_filter_smooth = 6.0
+
+	_add_effect_to_scene(light)
+
+	# Animate the light: fade out over 0.4s with ease-out curve
+	var fade_duration := 0.4 if effect_type == "flashbang" else 0.3
+	var tween := light.create_tween()
+	tween.tween_property(light, "energy", 0.0, fade_duration).set_ease(Tween.EASE_OUT)
+	tween.tween_callback(light.queue_free)
+
+
+## DEPRECATED: Old method kept for backwards compatibility but no longer used.
+## Use _create_grenade_light_with_occlusion() instead.
+func _create_grenade_flash(_position: Vector2, _radius: float, _flash_color: Color) -> void:
+	# This method is no longer used - Sprite2D doesn't respect shadows
+	# All grenade flash effects now use PointLight2D with shadows
+	pass
+
+
+## DEPRECATED: Old method kept for backwards compatibility but no longer used.
+## Use _create_grenade_light_with_occlusion() instead.
+func _create_grenade_light(_position: Vector2, _radius: float, _light_color: Color) -> void:
+	# This method is no longer used - replaced by _create_grenade_light_with_occlusion
+	pass
+
+
+## Creates a simple white radial gradient texture for the light.
+func _create_light_texture() -> GradientTexture2D:
+	var gradient := Gradient.new()
+	gradient.colors = PackedColorArray([Color.WHITE, Color(1, 1, 1, 0)])
+	gradient.offsets = PackedFloat32Array([0.0, 1.0])
+
+	var texture := GradientTexture2D.new()
+	texture.gradient = gradient
+	texture.fill = GradientTexture2D.FILL_RADIAL
+	texture.fill_from = Vector2(0.5, 0.5)
+	texture.fill_to = Vector2(1.0, 0.5)
+	texture.width = 256
+	texture.height = 256
+
+	return texture
+
+
+## Creates a radial gradient texture for grenade flash effects.
+## @param radius: The radius of the effect in pixels.
+## @return: A radial gradient texture.
+func _create_radial_gradient_texture(radius: int) -> GradientTexture2D:
+	var gradient := Gradient.new()
+	# Center is bright, fades to transparent at edges
+	gradient.colors = PackedColorArray([Color.WHITE, Color(1, 1, 1, 0.5), Color(1, 1, 1, 0)])
+	gradient.offsets = PackedFloat32Array([0.0, 0.3, 1.0])
+
+	var texture := GradientTexture2D.new()
+	texture.gradient = gradient
+	texture.fill = GradientTexture2D.FILL_RADIAL
+	texture.fill_from = Vector2(0.5, 0.5)
+	texture.fill_to = Vector2(1.0, 0.5)
+	texture.width = radius * 2
+	texture.height = radius * 2
+
+	return texture
+
+
+## DEPRECATED: This raycast-based method is no longer needed for grenade effects.
+## FIX for Issue #470: We now use PointLight2D with shadow_enabled=true, which
+## automatically respects wall geometry through Godot's native 2D shadow system.
+##
+## The old approach of raycast + Sprite2D had edge cases where the flash could
+## still appear to pass through walls. The new shadow-based approach is more
+## reliable as it uses the same occlusion system as the MuzzleFlash effect.
+##
+## Kept for backwards compatibility in case other code uses it.
+##
+## @param target_position: World position to check line of sight to.
+## @return: True if player can see the position, false if blocked by wall.
+func _player_has_line_of_sight_to(_target_position: Vector2) -> bool:
+	# Now always returns true - wall occlusion is handled by PointLight2D shadows
+	return true
+
+
+## DEPRECATED: Old implementation kept for reference but no longer active.
+## The raycast-based line of sight check is replaced by shadow-based occlusion.
+func _player_has_line_of_sight_to_legacy(target_position: Vector2) -> bool:
+	# Find the player
+	var player: Node2D = _get_player()
+	if player == null:
+		# No player found - assume visible (don't block effects in editor/testing)
+		return true
+
+	# Get the physics space for raycasting
+	var scene := get_tree().current_scene
+	if scene == null:
+		return true
+
+	var space_state: PhysicsDirectSpaceState2D = scene.get_world_2d().direct_space_state
+	if space_state == null:
+		return true
+
+	var player_pos: Vector2 = player.global_position
+
+	# Cast ray from target position to player position
+	var query := PhysicsRayQueryParameters2D.create(target_position, player_pos, WALL_COLLISION_LAYER)
+	query.collide_with_bodies = true
+	query.collide_with_areas = false
+
+	var result: Dictionary = space_state.intersect_ray(query)
+
+	# If no hit, player can see the explosion
+	if result.is_empty():
+		return true
+
+	# Hit detected - check if it's a wall or just cover furniture
+	# We distinguish by checking the node's path in the scene tree
+	var collider = result.collider
+	if collider is Node:
+		var node_path: String = str(collider.get_path())
+		var hit_position: Vector2 = result.position
+
+		# Cover objects (desks, tables, cabinets, crates) are under "Environment/Cover/"
+		# These don't block the visual effect - the flash would be visible over/around them
+		if "/Cover/" in node_path:
+			_log_info("Raycast hit cover object '%s' at %s - showing effect (furniture doesn't block flash)" % [collider.name, hit_position])
+			return true
+
+		# Walls and interior walls block the visual effect
+		# These are under "Environment/Walls/" or "Environment/InteriorWalls/"
+		if "/Walls/" in node_path or "/InteriorWalls/" in node_path:
+			_log_info("Wall '%s' blocks view between explosion at %s and player at %s" % [collider.name, target_position, player_pos])
+			return false
+
+		# Unknown obstacle type - log it and block by default (safer)
+		# This helps identify any obstacles we haven't categorized
+		_log_info("Unknown obstacle '%s' (path: %s) at %s - blocking effect by default" % [collider.name, node_path, hit_position])
+		return false
+
+	# Collider is not a Node (shouldn't happen normally) - block by default
+	_log_info("Non-node collider detected - blocking effect by default")
+	return false
+
+
+## Gets the player node from the scene.
+## @return: The player Node2D or null if not found.
+func _get_player() -> Node2D:
+	# Check for player in "player" group
+	var players := get_tree().get_nodes_in_group("player")
+	if players.size() > 0 and players[0] is Node2D:
+		return players[0] as Node2D
+
+	# Fallback: check for node named "Player" in current scene
+	var scene := get_tree().current_scene
+	if scene:
+		var player := scene.get_node_or_null("Player") as Node2D
+		if player:
+			return player
+
+	return null

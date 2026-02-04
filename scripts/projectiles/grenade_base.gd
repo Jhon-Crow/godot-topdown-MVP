@@ -584,7 +584,7 @@ func _scatter_casings(effect_radius: float) -> void:
 			continue
 
 		# Calculate direction from explosion to casing
-		var direction := (casing.global_position - global_position).normalized()
+		var direction: Vector2 = (casing.global_position - global_position).normalized()
 		# Add small random offset to prevent identical trajectories
 		direction = direction.rotated(randf_range(-0.2, 0.2))
 
@@ -606,7 +606,7 @@ func _scatter_casings(effect_radius: float) -> void:
 
 		# Apply the kick impulse to the casing
 		if casing.has_method("receive_kick"):
-			var impulse := direction * impulse_strength
+			var impulse: Vector2 = direction * impulse_strength
 			casing.receive_kick(impulse)
 
 	if scattered_count > 0 or proximity_count > 0:
