@@ -1361,6 +1361,10 @@ public partial class Shotgun : BaseWeapon
         // Fire all pellets simultaneously with spatial distribution (cloud effect)
         FirePelletsAsCloud(fireDirection, pelletCount, spreadRadians, halfSpread, projectileScene);
 
+        // Spawn muzzle flash at the barrel position (same as M16)
+        Vector2 muzzleFlashPosition = GlobalPosition + fireDirection * BulletSpawnOffset;
+        SpawnMuzzleFlash(muzzleFlashPosition, fireDirection);
+
         // NOTE: Casing is NOT spawned here for shotgun - it's ejected during pump up action
         // (see ProcessPumpActionGesture() case ShotgunActionState.NeedsPumpUp)
 
