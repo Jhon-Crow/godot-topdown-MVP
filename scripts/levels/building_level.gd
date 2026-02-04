@@ -77,42 +77,44 @@ const SCORE_BEEP_DURATION: float = 0.03  ## Seconds per beep
 const SCORE_BEEP_VOLUME: float = -12.0  ## dB
 
 ## Rank colors for different grades in score screen.
-## Note: Using static var instead of const to avoid Godot 4.x binary tokens export
-## parse failures with complex Dictionary initializers containing Color() constructors.
+## Note: Using hex strings instead of Color() constructor to avoid Godot 4.x binary
+## tokens export parse failures. Even Color() calls inside function bodies can cause
+## the entire script to fail to load silently.
 ## See: https://github.com/godotengine/godot/issues/94150
-static var SCORE_RANK_COLORS: Dictionary = {}
+var _score_rank_colors: Dictionary = {}
 
 ## Flash colors for rank reveal background in score screen.
-## Note: Using static var instead of const to avoid Godot 4.x binary tokens export
-## parse failures with Array initializers containing Color() constructors.
-static var SCORE_FLASH_COLORS: Array = []
+## Note: Using hex strings instead of Color() constructor calls.
+var _score_flash_colors: Array = []
 
-## Flag to track if static colors have been initialized.
-static var _colors_initialized: bool = false
+## Flag to track if colors have been initialized.
+var _colors_initialized: bool = false
 
-## Initialize the color dictionaries. Called once on first use.
-static func _init_colors() -> void:
+## Initialize the color dictionaries using hex strings. Called once on first use.
+## Using hex string parsing instead of Color() constructor to bypass binary tokens bug.
+func _init_colors() -> void:
 	if _colors_initialized:
 		return
 	_colors_initialized = true
 
-	SCORE_RANK_COLORS = {
-		"S": Color(1.0, 0.84, 0.0, 1.0),   # Gold
-		"A+": Color(0.0, 1.0, 0.5, 1.0),   # Bright green
-		"A": Color(0.2, 0.8, 0.2, 1.0),    # Green
-		"B": Color(0.3, 0.7, 1.0, 1.0),    # Blue
-		"C": Color(1.0, 1.0, 1.0, 1.0),    # White
-		"D": Color(1.0, 0.6, 0.2, 1.0),    # Orange
-		"F": Color(1.0, 0.2, 0.2, 1.0)     # Red
+	# Use Color.html() or hex values to avoid Color() constructor parse issues
+	_score_rank_colors = {
+		"S": Color.html("#ffd700"),     # Gold (FFD700)
+		"A+": Color.html("#00ff80"),    # Bright green
+		"A": Color.html("#33cc33"),     # Green
+		"B": Color.html("#4db3ff"),     # Blue
+		"C": Color.html("#ffffff"),     # White
+		"D": Color.html("#ff9933"),     # Orange
+		"F": Color.html("#ff3333")      # Red
 	}
 
-	SCORE_FLASH_COLORS = [
-		Color(1.0, 0.0, 0.0, 0.9),   # Red
-		Color(0.0, 1.0, 0.0, 0.9),   # Green
-		Color(0.0, 0.0, 1.0, 0.9),   # Blue
-		Color(1.0, 1.0, 0.0, 0.9),   # Yellow
-		Color(1.0, 0.0, 1.0, 0.9),   # Magenta
-		Color(0.0, 1.0, 1.0, 0.9)    # Cyan
+	_score_flash_colors = [
+		Color.html("#ff0000e6"),  # Red with alpha
+		Color.html("#00ff00e6"),  # Green with alpha
+		Color.html("#0000ffe6"),  # Blue with alpha
+		Color.html("#ffff00e6"),  # Yellow with alpha
+		Color.html("#ff00ffe6"),  # Magenta with alpha
+		Color.html("#00ffffe6")   # Cyan with alpha
 	]
 
 ## Score screen animation state variables.
@@ -989,24 +991,25 @@ func _show_score_screen(score_data: Dictionary) -> void:
 
 
 ## Get the color for a given rank.
+## Uses Color.html() to avoid Color() constructor which may cause binary tokens parse failure.
 func _get_rank_color(rank: String) -> Color:
 	match rank:
 		"S":
-			return Color(1.0, 0.84, 0.0, 1.0)  # Gold
+			return Color.html("#ffd700")     # Gold
 		"A+":
-			return Color(0.0, 1.0, 0.5, 1.0)  # Bright green
+			return Color.html("#00ff80")     # Bright green
 		"A":
-			return Color(0.2, 0.8, 0.2, 1.0)  # Green
+			return Color.html("#33cc33")     # Green
 		"B":
-			return Color(0.3, 0.7, 1.0, 1.0)  # Blue
+			return Color.html("#4db3ff")     # Blue
 		"C":
-			return Color(1.0, 1.0, 1.0, 1.0)  # White
+			return Color.html("#ffffff")     # White
 		"D":
-			return Color(1.0, 0.6, 0.2, 1.0)  # Orange
+			return Color.html("#ff9933")     # Orange
 		"F":
-			return Color(1.0, 0.2, 0.2, 1.0)  # Red
+			return Color.html("#ff3333")     # Red
 		_:
-			return Color(1.0, 1.0, 1.0, 1.0)  # Default white
+			return Color.html("#ffffff")     # Default white
 
 
 #region INLINE ANIMATED SCORE SCREEN FUNCTIONS
@@ -1362,12 +1365,12 @@ func _score_finish_total_counting() -> void:
 ## Start the dramatic rank reveal animation.
 func _score_start_rank_animation() -> void:
 	var rank: String = _score_data_cache.get("rank", "F")
-	var rank_color: Color = SCORE_RANK_COLORS.get(rank, Color.WHITE)
+	var rank_color: Color = _score_rank_colors.get(rank, Color.WHITE)
 
 	# Create fullscreen flash background
 	_score_rank_background = ColorRect.new()
 	_score_rank_background.name = "RankFlashBackground"
-	_score_rank_background.color = SCORE_FLASH_COLORS[0]
+	_score_rank_background.color = _score_flash_colors[0]
 	_score_rank_background.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_score_rank_background.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_score_rank_background.modulate.a = 0.0
@@ -1396,8 +1399,8 @@ func _score_start_rank_animation() -> void:
 	# Flash color cycling
 	var flash_count := 6
 	for i in range(flash_count):
-		var color_index := (i + 1) % SCORE_FLASH_COLORS.size()
-		tween.tween_property(_score_rank_background, "color", SCORE_FLASH_COLORS[color_index], SCORE_RANK_FLASH_DURATION / float(flash_count))
+		var color_index := (i + 1) % _score_flash_colors.size()
+		tween.tween_property(_score_rank_background, "color", _score_flash_colors[color_index], SCORE_RANK_FLASH_DURATION / float(flash_count))
 
 	tween.tween_callback(_score_shrink_rank)
 

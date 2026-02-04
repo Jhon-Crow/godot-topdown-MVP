@@ -1282,3 +1282,117 @@ Then call `_init_colors()` at the start of `_ready()`.
 3. **Use static var with lazy init** - Runtime initialization bypasses compile-time parsing issues
 4. **Test after EVERY change** - Even seemingly safe changes can trigger the binary tokens bug
 5. **Log analysis is critical** - The ABSENCE of logs is as important as their presence
+
+---
+
+## Session 11 Investigation: Static Functions with Color() Constructors
+
+### Problem Report
+
+User reported: **"всё ещё не работает счётчик врагов и патронов"** (Enemy and ammo counter still not working)
+- Attached log file: `game_log_20260205_023827.txt`
+
+### Game Log Analysis
+
+Downloaded log: `logs/game_log_20260205_023827.txt` (4513 lines)
+
+**Critical Evidence:**
+- `grep "BuildingLevel" game_log_20260205_023827.txt` returns **ZERO results**
+- No "BuildingLevel loaded" message
+- No "Enemy tracking complete" message
+- No "Exit zone created" message
+- All 10 enemies killed (tracked via BloodyFeet and Death animation logs)
+- Player completed the level but no score screen appeared
+
+**Pattern matches Sessions 9 and 10:**
+The entire `building_level.gd` script is NOT executing at all. This indicates a parse/load failure.
+
+### Root Cause Analysis
+
+**Session 10's fix still had a problem:**
+
+Session 10 changed from:
+```gdscript
+const SCORE_RANK_COLORS: Dictionary = { "S": Color(1.0, 0.84, 0.0, 1.0), ... }
+```
+
+To:
+```gdscript
+static var SCORE_RANK_COLORS: Dictionary = {}
+static func _init_colors() -> void:
+    SCORE_RANK_COLORS = { "S": Color(1.0, 0.84, 0.0, 1.0), ... }
+```
+
+**The Issue:**
+
+Even though Color() constructors were moved from `const` initializers to inside a `static func` body, the Godot 4.x binary tokens export mode **still fails to properly parse Color() constructor calls in static context**.
+
+The binary tokens tokenizer appears to have issues with:
+1. `const` initializers with Color() - Session 10 identified this
+2. `static var` with complex types
+3. **`static func` bodies with Color() constructor calls** - Session 11 finding
+
+The issue is specifically with the `static` keyword combined with Color() anywhere in that context.
+
+### Solution Applied
+
+**Remove all static declarations and use Color.html() instead of Color() constructor:**
+
+1. **Changed static vars to instance vars:**
+   ```gdscript
+   # Before:
+   static var SCORE_RANK_COLORS: Dictionary = {}
+   static var _colors_initialized: bool = false
+
+   # After:
+   var _score_rank_colors: Dictionary = {}
+   var _colors_initialized: bool = false
+   ```
+
+2. **Changed static func to regular func:**
+   ```gdscript
+   # Before:
+   static func _init_colors() -> void:
+       SCORE_RANK_COLORS = { "S": Color(1.0, 0.84, 0.0, 1.0), ... }
+
+   # After:
+   func _init_colors() -> void:
+       _score_rank_colors = { "S": Color.html("#ffd700"), ... }
+   ```
+
+3. **Use Color.html() instead of Color() constructor:**
+   ```gdscript
+   # Before:
+   Color(1.0, 0.84, 0.0, 1.0)   # Gold
+   Color(0.0, 1.0, 0.5, 1.0)   # Bright green
+
+   # After:
+   Color.html("#ffd700")       # Gold
+   Color.html("#00ff80")       # Bright green
+   ```
+
+4. **Updated _get_rank_color() function:**
+   Changed all Color() constructor returns to Color.html() for consistency.
+
+### Why This Fix Works
+
+1. **No `static` keyword anywhere** - Completely bypasses static context parsing issues
+2. **Color.html() is simpler to tokenize** - String literal parsing is more reliable than constructor calls
+3. **Instance variables are always safe** - Regular `var` declarations work in all export modes
+4. **Runtime initialization unchanged** - Colors are still initialized once at first use
+
+### Files Changed
+
+| File | Change |
+|------|--------|
+| `scripts/levels/building_level.gd` | Removed all static declarations, use Color.html() |
+| `docs/case-studies/issue-415/logs/game_log_20260205_023827.txt` | Added session log |
+| `docs/case-studies/issue-415/README.md` | This session documentation |
+
+### Lessons Learned (Session 11)
+
+1. **Avoid `static` keyword entirely with complex types** - Binary tokens has issues with static context
+2. **Use Color.html() instead of Color() constructor** - String parsing is more reliable
+3. **Static functions can trigger parse failures** - Even code inside static func body can cause issues
+4. **Incrementally simplify until it works** - Each session removes another potential trigger
+5. **Binary tokens bug affects entire scripts** - One bad construct can make the entire script fail to load
