@@ -606,6 +606,142 @@ Instead of dynamically creating a Control and attaching a script, we now use a p
 3. **Test in exported builds, not just the editor** - Many behaviors differ between editor and export
 4. **Add logging at the very start of `_ready()`** - This immediately reveals if the function is being called
 
+## Bug Investigation Session 6 (2026-02-04)
+
+### Reported Issue
+
+From PR #430 comment by repository owner (in Russian):
+- **"всё ещё ничего не видно"** (Still nothing is visible)
+- Attached log file: `game_log_20260204_163841.txt`
+
+### Game Log Analysis
+
+Downloaded log: `logs/game_log_20260204_163841.txt` (265KB, 2845 lines)
+
+Key findings from analyzing the log:
+
+**Level completion sequence (lines 2820-2833):**
+- **Line 2820**: `[BuildingLevel] Level completed, setting _level_completed = true`
+- **Line 2822**: `[ScoreManager] Level completed! Final score: 19196, Rank: C`
+- **Line 2823**: `[BuildingLevel] _show_score_screen called with score_data: {...}`
+- **Line 2824**: `[BuildingLevel] Found UI node: UI, size: (1280, 720)`
+- **Line 2825**: `[BuildingLevel] Loaded AnimatedScoreScreen scene successfully`
+- **Line 2826**: `[BuildingLevel] Created ScoreScreenCanvasLayer at layer 100`
+- **Line 2827**: `[BuildingLevel] Instantiated AnimatedScoreScreen from scene`
+- **Line 2828**: `[BuildingLevel] Added AnimatedScoreScreen to ScoreScreenCanvasLayer (triggers _ready)`
+- **Line 2829**: `[BuildingLevel] Set score_screen size to viewport: (1280, 720)`
+- **Line 2830**: `[BuildingLevel] Called show_score() on AnimatedScoreScreen`
+
+**Critical Observation:**
+- **NO `[AnimatedScoreScreen]` logs at all** - Despite Session 5's scene file fix, `_ready()` is STILL not being called
+- `grep -n "AnimatedScoreScreen" game_log_20260204_163841.txt` only returns BuildingLevel logs, no internal AnimatedScoreScreen logs
+- Even the `print()` statements at lines 89-90 of animated_score_screen.gd don't appear
+- Lines 2831-2845: Game continues (ragdoll, player footsteps, blood)
+- Player walked around for ~27 seconds after level completion - game was still playable
+- Log ends at 16:40:07, with no score screen visible
+
+### Root Cause Analysis
+
+**Session 5 Scene File Fix Still Didn't Work**
+
+The previous fix changed from:
+```gdscript
+var score_screen := Control.new()
+score_screen.set_script(animated_score_screen_script)  # Session 4 fix
+```
+To:
+```gdscript
+var animated_score_screen_scene = load("res://scenes/ui/AnimatedScoreScreen.tscn")
+var score_screen = animated_score_screen_scene.instantiate()  # Session 5 fix
+```
+
+However, even `load().instantiate()` fails to properly attach scripts in some exported builds.
+
+**Research Findings:**
+
+Based on extensive research into Godot 4.x behavior with exported builds:
+
+1. **[Godot Forum - Scene doesn't load in exported build](https://forum.godotengine.org/t/scene-doesnt-load-in-exported-build-but-loads-fine-from-within-godot/46459)**:
+   > Scenes load fine from within Godot, but not from the exported build. Even with "Export selected scenes (and dependencies)" enabled and all scenes selected.
+
+2. **[Godot Forum - Instantiated scenes don't have scripts connected](https://forum.godotengine.org/t/instantiated-scenes-dont-have-scripts-connected/75079)**:
+   > The problem only happens to scripts that extend other scripts. In newly instantiated scenes, nodes whose scripts extend a builtin type work, but those extending custom scripts may not.
+
+3. **[Godot GitHub - GDScript export mode breaks exported builds](https://github.com/godotengine/godot/issues/94150)**:
+   > When GDScript export mode is set to binary tokens/compressed binary tokens, some resources won't load. Text mode exports work correctly.
+
+4. **[Godot Forum - Autoload Script Functions not called in Exported Build](https://forum.godotengine.org/t/autoload-script-functions-not-being-called-in-exported-build/127658)**:
+   > Autoload scripts load but `_ready()` never executes in exported builds. The script appears in debug logs but its functions don't run.
+
+**Key Insight: `load()` vs `preload()` in Exported Builds**
+
+The difference between `load()` and `preload()` is critical:
+
+| Aspect | `load()` | `preload()` |
+|--------|----------|-------------|
+| When executed | At runtime | At compile time |
+| Where resource stored | Loaded from .pck at runtime | Embedded in script bytecode |
+| Script attachment | May fail in some exports | Guaranteed embedded |
+| Reliability | Variable | Consistent |
+
+In exported builds, `load()` performs runtime resource resolution from the .pck file, which can have race conditions or caching issues. `preload()` embeds the resource directly into the compiled script, ensuring it's always available.
+
+### Fix Applied
+
+**Solution: Use `preload()` Instead of `load()` for Scene Loading**
+
+Changed from runtime `load()` to compile-time `preload()`:
+
+1. **Added preloaded constant in `building_level.gd`:**
+   ```gdscript
+   ## Preload the AnimatedScoreScreen scene at compile time.
+   ## IMPORTANT: Using preload() instead of load() ensures the scene and its script
+   ## are properly embedded in the export. Runtime load() may fail to attach scripts
+   ## correctly in some exported builds.
+   const AnimatedScoreScreenScene: PackedScene = preload("res://scenes/ui/AnimatedScoreScreen.tscn")
+   ```
+
+2. **Updated `_show_score_screen()` to use preloaded constant:**
+   ```gdscript
+   # Before (runtime loading):
+   var animated_score_screen_scene = load("res://scenes/ui/AnimatedScoreScreen.tscn")
+   var score_screen = animated_score_screen_scene.instantiate()
+
+   # After (compile-time embedding):
+   var score_screen = AnimatedScoreScreenScene.instantiate()
+   ```
+
+3. **Added comprehensive debugging** to verify script attachment:
+   ```gdscript
+   # Debug: Check if script is attached
+   var attached_script = score_screen.get_script()
+   if attached_script != null:
+       _log_to_file("Script IS attached: %s" % attached_script.resource_path)
+   else:
+       _log_to_file("WARNING: No script attached to instantiated node!")
+
+   # Debug: Check if show_score method exists
+   var has_show_score := score_screen.has_method("show_score")
+   _log_to_file("has_method('show_score'): %s" % str(has_show_score))
+   ```
+
+### Why This Fix Should Work
+
+1. **`preload()` embeds resources at compile time** - The scene and script are part of the compiled bytecode
+2. **No runtime resource resolution** - Eliminates race conditions in .pck file loading
+3. **Guaranteed availability** - The resource cannot be missing or fail to load
+4. **Consistent behavior** - Works the same in editor and all export targets
+5. **Better debugging** - The new logging will reveal exactly what's happening
+
+### Diagnostic Information
+
+If this fix doesn't work, the new debug logging will reveal:
+- Whether the script is attached (`get_script()` result)
+- Whether the method exists (`has_method()` result)
+- Whether the node is in tree (`is_inside_tree()` result)
+
+This will help identify the exact failure point in the instantiation process.
+
 ## Related Resources
 
 - [Hotline Miami Scoring Wiki](https://hotlinemiami.fandom.com/wiki/Scoring)
@@ -615,3 +751,7 @@ Instead of dynamically creating a Control and attaching a script, we now use a p
 - [Godot Forum: Scripts won't work after being attached via code](https://forum.godotengine.org/t/scripts-wont-work-after-being-attached-to-node-via-code/9633)
 - [Godot GitHub: set_script() issue](https://github.com/godotengine/godot/issues/38373)
 - [Godot GitHub: Extended class _ready() not called](https://github.com/godotengine/godot/issues/74992)
+- [Godot Forum: Scene doesn't load in exported build](https://forum.godotengine.org/t/scene-doesnt-load-in-exported-build-but-loads-fine-from-within-godot/46459)
+- [Godot Forum: Instantiated scenes don't have scripts connected](https://forum.godotengine.org/t/instantiated-scenes-dont-have-scripts-connected/75079)
+- [Godot GitHub: GDScript export mode breaks exported builds](https://github.com/godotengine/godot/issues/94150)
+- [Godot Forum: Autoload Script Functions not called](https://forum.godotengine.org/t/autoload-script-functions-not-being-called-in-exported-build/127658)

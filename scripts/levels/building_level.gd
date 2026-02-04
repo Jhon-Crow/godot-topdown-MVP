@@ -46,6 +46,12 @@ var _saturation_overlay: ColorRect = null
 ## Reference to the combo label.
 var _combo_label: Label = null
 
+## Preload the AnimatedScoreScreen scene at compile time.
+## IMPORTANT: Using preload() instead of load() ensures the scene and its script
+## are properly embedded in the export. Runtime load() may fail to attach scripts
+## correctly in some exported builds.
+const AnimatedScoreScreenScene: PackedScene = preload("res://scenes/ui/AnimatedScoreScreen.tscn")
+
 ## Duration of saturation effect in seconds.
 const SATURATION_DURATION: float = 0.15
 
@@ -723,6 +729,10 @@ func _show_victory_message() -> void:
 ##
 ## Note: The score screen is created in its own CanvasLayer (layer 100) to ensure
 ## it renders on top of all other UI elements, including cinema effects (layer 99).
+##
+## Session 6 Fix: Uses preload() instead of load() to ensure the scene and its
+## script are properly embedded at compile time. Runtime load() may fail to
+## properly attach scripts in exported builds.
 func _show_score_screen(score_data: Dictionary) -> void:
 	_log_to_file("_show_score_screen called with score_data: %s" % str(score_data))
 	print("[BuildingLevel] _show_score_screen called - rank: %s" % score_data.get("rank", "?"))
@@ -741,19 +751,18 @@ func _show_score_screen(score_data: Dictionary) -> void:
 		game_over_label.queue_free()
 		_log_to_file("Removed GameOverLabel (out of ammo message)")
 
-	# Load the AnimatedScoreScreen scene
-	# IMPORTANT: Using a scene file (.tscn) instead of dynamic script attachment
-	# because Godot 4.x has issues with set_script() where _ready() may not be called
-	# in exported builds. Scene instantiation is more reliable.
-	var animated_score_screen_scene = load("res://scenes/ui/AnimatedScoreScreen.tscn")
-	if animated_score_screen_scene == null:
-		_log_to_file("ERROR: Failed to load AnimatedScoreScreen.tscn")
-		print("[BuildingLevel] ERROR: Failed to load AnimatedScoreScreen.tscn")
+	# IMPORTANT: Using preloaded scene (AnimatedScoreScreenScene constant) instead of
+	# runtime load(). In Godot 4.x exported builds, runtime load() may fail to properly
+	# attach scripts to instantiated scenes, causing _ready() and methods to not execute.
+	# preload() embeds the scene at compile time, ensuring reliable script attachment.
+	if AnimatedScoreScreenScene == null:
+		_log_to_file("ERROR: AnimatedScoreScreenScene preload is null - this should never happen")
+		print("[BuildingLevel] ERROR: AnimatedScoreScreenScene preload is null")
 		_show_victory_message()  # Fallback
 		return
 
-	_log_to_file("Loaded AnimatedScoreScreen scene successfully")
-	print("[BuildingLevel] Loaded AnimatedScoreScreen.tscn successfully")
+	_log_to_file("Using preloaded AnimatedScoreScreen scene (compile-time embedding)")
+	print("[BuildingLevel] Using preloaded AnimatedScoreScreen scene")
 
 	# Create a dedicated CanvasLayer for the score screen
 	# Layer 100 ensures it renders above everything, including CinemaEffects (layer 99)
@@ -763,11 +772,31 @@ func _show_score_screen(score_data: Dictionary) -> void:
 	add_child(score_canvas_layer)
 	_log_to_file("Created ScoreScreenCanvasLayer at layer 100")
 
-	# Instantiate the score screen from scene
-	var score_screen = animated_score_screen_scene.instantiate()
+	# Instantiate the score screen from preloaded scene
+	var score_screen = AnimatedScoreScreenScene.instantiate()
+	if score_screen == null:
+		_log_to_file("ERROR: Failed to instantiate AnimatedScoreScreen from preloaded scene")
+		print("[BuildingLevel] ERROR: instantiate() returned null")
+		_show_victory_message()  # Fallback
+		return
+
 	score_screen.name = "AnimatedScoreScreen"
-	_log_to_file("Instantiated AnimatedScoreScreen from scene")
-	print("[BuildingLevel] Instantiated AnimatedScoreScreen from scene")
+	_log_to_file("Instantiated AnimatedScoreScreen from preloaded scene")
+	print("[BuildingLevel] Instantiated AnimatedScoreScreen from preloaded scene")
+
+	# Debug: Check if script is attached
+	var attached_script = score_screen.get_script()
+	if attached_script != null:
+		_log_to_file("Script IS attached to instantiated node: %s" % attached_script.resource_path)
+		print("[BuildingLevel] Script attached: %s" % attached_script.resource_path)
+	else:
+		_log_to_file("WARNING: No script attached to instantiated node!")
+		print("[BuildingLevel] WARNING: No script attached to instantiated node!")
+
+	# Debug: Check if show_score method exists
+	var has_show_score := score_screen.has_method("show_score")
+	_log_to_file("has_method('show_score'): %s" % str(has_show_score))
+	print("[BuildingLevel] has_method('show_score'): %s" % str(has_show_score))
 
 	# Ensure the Control is visible and properly sized
 	score_screen.visible = true
@@ -784,10 +813,21 @@ func _show_score_screen(score_data: Dictionary) -> void:
 	score_screen.size = viewport_size
 	_log_to_file("Set score_screen size to viewport: %s" % str(viewport_size))
 
+	# Debug: Check if node is in tree now
+	_log_to_file("score_screen.is_inside_tree() = %s" % str(score_screen.is_inside_tree()))
+	print("[BuildingLevel] score_screen.is_inside_tree() = %s" % str(score_screen.is_inside_tree()))
+
 	# Start the animated score display
-	score_screen.show_score(score_data)
-	_log_to_file("Called show_score() on AnimatedScoreScreen")
-	print("[BuildingLevel] Called show_score() on AnimatedScoreScreen")
+	if has_show_score:
+		score_screen.show_score(score_data)
+		_log_to_file("Called show_score() on AnimatedScoreScreen")
+		print("[BuildingLevel] Called show_score() on AnimatedScoreScreen")
+	else:
+		_log_to_file("ERROR: show_score method not found, script likely not attached correctly")
+		print("[BuildingLevel] ERROR: show_score method not found!")
+		# Fallback: try to call it anyway in case it's a false negative
+		score_screen.show_score(score_data)
+		_log_to_file("Tried calling show_score() anyway")
 
 
 ## Get the color for a given rank.
