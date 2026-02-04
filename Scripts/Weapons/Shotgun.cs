@@ -340,11 +340,12 @@ public partial class Shotgun : BaseWeapon
         }
 
         // Issue #447: Get the pump sprite for reload animation
-        _pumpSprite = GetNodeOrNull<Sprite2D>("PumpSprite");
+        // The PumpSprite is a child of ShotgunSprite so it rotates with the weapon
+        _pumpSprite = GetNodeOrNull<Sprite2D>("ShotgunSprite/PumpSprite");
         if (_pumpSprite != null)
         {
             _pumpRestPosition = _pumpSprite.Position;
-            GD.Print($"[Shotgun] PumpSprite found at position {_pumpRestPosition}");
+            GD.Print($"[Shotgun] PumpSprite found at position {_pumpRestPosition} (child of ShotgunSprite for rotation)");
         }
         else
         {

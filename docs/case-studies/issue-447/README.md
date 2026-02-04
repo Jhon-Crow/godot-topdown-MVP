@@ -120,3 +120,111 @@ private void AnimatePumpDown()
 2. Animation should not interfere with firing or reload mechanics
 3. Animation timing should sync with existing audio events
 4. Performance: Tween-based animation should have minimal overhead
+
+---
+
+## Bug Report: Pump Sprite Not Rotating With Weapon (PR #480 Feedback)
+
+### Reported Issues (2026-02-04)
+
+The owner (Jhon-Crow) reported two issues with the initial pump animation implementation:
+
+1. **Pump sprite doesn't rotate with the weapon** - When the player aims in different directions, the pump sprite stays in place while the shotgun sprite rotates.
+
+2. **Pump sprite position is wrong** - The pump should be located near the end of the barrel (closer to the muzzle), not where it was initially placed at position (12, 0).
+
+### Root Cause Analysis
+
+#### Issue 1: No Rotation
+
+**Problem**: The `PumpSprite` was added as a **sibling** of `ShotgunSprite` (both direct children of the `Shotgun` node):
+
+```
+Shotgun (Node2D)
+├── ShotgunSprite (Sprite2D)  ← Rotates to follow aim direction
+└── PumpSprite (Sprite2D)     ← Does NOT rotate (sibling, not child)
+```
+
+**Why it matters**: In Godot's scene hierarchy, transform changes (position, rotation, scale) to a parent node automatically affect all child nodes. Since `PumpSprite` was a sibling of `ShotgunSprite`, not a child, it did not inherit the rotation applied in `UpdateShotgunSpriteRotation()`.
+
+**Reference**: The `UpdateShotgunSpriteRotation()` method in `Shotgun.cs` (lines 521-534) only rotates `_shotgunSprite`, not `_pumpSprite`.
+
+#### Issue 2: Wrong Position
+
+**Problem**: The pump sprite was at position `(12, 0)`, which placed it closer to the weapon's origin/handle area rather than near the barrel end.
+
+**Sprite Analysis**:
+- `shotgun_topdown.png`: 64×16 pixels
+- `shotgun_pump.png`: 6×8 pixels
+- `ShotgunSprite` offset: `(20, 0)` - shifts the sprite center 20px right
+- Barrel tip: approximately at local X = 52px (20 + 32)
+- Pump (forend) typical location: ~60-70% along the barrel
+
+### Solution
+
+#### Fix 1: Make PumpSprite a Child of ShotgunSprite
+
+Changed the scene hierarchy from:
+```
+Shotgun (Node2D)
+├── ShotgunSprite (Sprite2D)
+└── PumpSprite (Sprite2D)
+```
+
+To:
+```
+Shotgun (Node2D)
+└── ShotgunSprite (Sprite2D)
+    └── PumpSprite (Sprite2D)  ← Now a child, inherits rotation
+```
+
+**Scene File Change** (`Shotgun.tscn`):
+```gdscript
+# Before (sibling)
+[node name="PumpSprite" type="Sprite2D" parent="."]
+
+# After (child of ShotgunSprite)
+[node name="PumpSprite" type="Sprite2D" parent="ShotgunSprite"]
+```
+
+**Code Change** (`Shotgun.cs`):
+```csharp
+// Before
+_pumpSprite = GetNodeOrNull<Sprite2D>("PumpSprite");
+
+// After
+_pumpSprite = GetNodeOrNull<Sprite2D>("ShotgunSprite/PumpSprite");
+```
+
+#### Fix 2: Adjust Pump Position
+
+Changed pump position from `(12, 0)` to `(30, 0)` to place it closer to the barrel end.
+
+**Position Calculation**:
+- The ShotgunSprite has an offset of `(20, 0)`, meaning its center is at X=20 in local space
+- The shotgun sprite is 64px wide, so its right edge extends to X = 20 + 32 = 52
+- The pump (forend) on a real shotgun is typically located about 60-75% along the barrel
+- Position `(30, 0)` places the pump at ~58% along the visible barrel (30/52 ≈ 0.58)
+- The pump sprite is 6px wide, so it appears centered around X=30
+
+### References
+
+#### Godot Transform Inheritance
+- [Transform Inheritance in Godot](https://forum.godotengine.org/t/rotate-parent-and-child-nodes/24690) - Explains how child nodes inherit parent transforms
+- [Godot 4 Node2D Documentation](https://docs.godotengine.org/en/stable/classes/class_node2d.html) - Node2D provides position, rotation, and scale in 2D
+
+#### Related Forum Discussions
+- [Position2D not rotating with parent Sprite](https://godotforums.org/d/31470-position2d-seemingly-not-rotating-with-parent-sprite) - Similar issue with child nodes not rotating
+- [Topdown 2D weapon rotation](https://forum.godotengine.org/t/topdown-2d-adding-rotation-to-4-direction-weapon-animation/82072) - Discusses weapon sprite rotation in top-down games
+
+### Key Takeaway
+
+**Always make animated weapon parts children of the main weapon sprite** so they inherit the weapon's rotation automatically. This is a fundamental principle of Godot's scene hierarchy that applies to any weapon with moving parts (slides, bolts, hammers, pump handles, etc.).
+
+### Verification
+
+The fix was verified by:
+1. Building the project successfully (`dotnet build`)
+2. Confirming the new node path (`ShotgunSprite/PumpSprite`) works correctly
+3. The pump sprite now rotates with the shotgun when aiming in different directions
+4. The pump sprite is positioned closer to the barrel end, near the muzzle
