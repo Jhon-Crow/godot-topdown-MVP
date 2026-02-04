@@ -58,6 +58,21 @@ class_name GrenadeBase
 ## Default 300 with 850 speed → max distance ~1200px (viewport width).
 @export var ground_friction: float = 300.0
 
+## Velocity threshold below which friction starts increasing rapidly.
+## Above this threshold, friction is minimal (grenade maintains speed).
+## Below this threshold, friction increases progressively (grenade slows down noticeably).
+## Per issue #435: "падение скорости должно быть еле заметным и только самом конце пути"
+## Translation: "speed drop should be barely noticeable and only at the very end of the path"
+@export var friction_ramp_velocity: float = 200.0
+
+## Friction multiplier at high velocities (above friction_ramp_velocity).
+## Lower values = grenade maintains speed longer during flight.
+## Default 0.5 means 50% of base friction at high speeds - grenade decelerates slower
+## but still reaches landing threshold in a reasonable time (~3 seconds from max speed).
+## FIX for issue #435: Changed from 0.15 to 0.5 to prevent grenades from flying forever.
+## With 0.15, deceleration was only 45 px/s² at high speed, taking 11+ seconds to stop.
+@export var min_friction_multiplier: float = 0.5
+
 ## Bounce coefficient when hitting walls (0.0 = no bounce, 1.0 = full bounce).
 @export var wall_bounce: float = 0.4
 
@@ -163,9 +178,30 @@ func _physics_process(delta: float) -> void:
 			FileLogger.info("[GrenadeBase] Detected unfreeze without timer activation - auto-activating timer (fallback)")
 			activate_timer()
 
-	# Apply ground friction to slow down
+	# Apply velocity-dependent ground friction to slow down
+	# FIX for issue #435: Grenade should maintain speed for most of flight,
+	# only slowing down noticeably at the very end of its path.
+	# At high velocities: reduced friction (grenade maintains speed)
+	# At low velocities: full friction (grenade slows to stop)
 	if linear_velocity.length() > 0:
-		var friction_force := linear_velocity.normalized() * ground_friction * delta
+		var current_speed := linear_velocity.length()
+
+		# Calculate friction multiplier based on velocity
+		# Above friction_ramp_velocity: use min_friction_multiplier (minimal drag)
+		# Below friction_ramp_velocity: smoothly ramp up to full friction
+		var friction_multiplier: float
+		if current_speed >= friction_ramp_velocity:
+			# High speed: minimal friction to maintain velocity
+			friction_multiplier = min_friction_multiplier
+		else:
+			# Low speed: smoothly increase friction from min to full (1.0)
+			# Use quadratic curve for smooth transition: more aggressive braking at very low speeds
+			var t := current_speed / friction_ramp_velocity  # 0.0 at stopped, 1.0 at threshold
+			# Quadratic ease-out: starts slow, ends fast (more natural deceleration feel)
+			friction_multiplier = min_friction_multiplier + (1.0 - min_friction_multiplier) * (1.0 - t * t)
+
+		var effective_friction := ground_friction * friction_multiplier
+		var friction_force := linear_velocity.normalized() * effective_friction * delta
 		if friction_force.length() > linear_velocity.length():
 			linear_velocity = Vector2.ZERO
 		else:
