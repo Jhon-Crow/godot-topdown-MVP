@@ -21,7 +21,8 @@ var _muzzle_flash_scene: PackedScene = null
 const DEFAULT_EFFECT_SCALE: float = 1.0
 
 ## Minimum effect scale (prevents invisible effects).
-const MIN_EFFECT_SCALE: float = 0.3
+## Note: Silenced weapons may use scales as low as 0.2 for very subtle muzzle flash.
+const MIN_EFFECT_SCALE: float = 0.2
 
 ## Maximum effect scale (prevents overwhelming effects).
 const MAX_EFFECT_SCALE: float = 2.0
@@ -331,9 +332,11 @@ func spawn_sparks_effect(position: Vector2, hit_direction: Vector2, caliber_data
 ## @param position: World position of the gun muzzle (where bullet exits barrel).
 ## @param direction: Direction the gun is pointing (flash emits in this direction).
 ## @param caliber_data: Optional caliber data for effect scaling.
-func spawn_muzzle_flash(position: Vector2, direction: Vector2, caliber_data: Resource = null) -> void:
+## @param scale_override: Optional explicit scale override (ignores caliber_data if > 0).
+##                        Use this for silenced weapons that need very small flash (e.g., 0.2 for ~100x100 pixels).
+func spawn_muzzle_flash(position: Vector2, direction: Vector2, caliber_data: Resource = null, scale_override: float = 0.0) -> void:
 	if _debug_effects:
-		print("[ImpactEffectsManager] spawn_muzzle_flash at ", position, " dir=", direction)
+		print("[ImpactEffectsManager] spawn_muzzle_flash at ", position, " dir=", direction, " scale_override=", scale_override)
 
 	if _muzzle_flash_scene == null:
 		if _debug_effects:
@@ -351,15 +354,19 @@ func spawn_muzzle_flash(position: Vector2, direction: Vector2, caliber_data: Res
 	# Rotate effect to face the shooting direction
 	effect.rotation = direction.angle()
 
-	# Scale effect based on caliber (larger calibers = bigger flash)
-	var effect_scale := _get_effect_scale(caliber_data)
+	# Scale effect: use explicit override if provided, otherwise use caliber data
+	var effect_scale: float
+	if scale_override > 0.0:
+		effect_scale = clampf(scale_override, MIN_EFFECT_SCALE, MAX_EFFECT_SCALE)
+	else:
+		effect_scale = _get_effect_scale(caliber_data)
 	effect.scale = Vector2(effect_scale, effect_scale)
 
 	# Add to scene tree
 	_add_effect_to_scene(effect)
 
 	if _debug_effects:
-		print("[ImpactEffectsManager] Muzzle flash spawned at ", position)
+		print("[ImpactEffectsManager] Muzzle flash spawned at ", position, " with scale=", effect_scale)
 
 
 ## Gets the effect scale from caliber data, or returns default if not available.
