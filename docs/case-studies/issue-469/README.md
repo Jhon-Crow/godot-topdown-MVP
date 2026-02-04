@@ -36,9 +36,23 @@ Added `FlashbangEffect.tscn` with shadow-enabled `PointLight2D`:
 User @Jhon-Crow reported:
 > "теперь вспышка опять проходит сквозь стены" (now the flash again passes through walls)
 
-This indicated the fix was incomplete!
+Game log analysis showed:
+```
+[GrenadeTimer] Spawned C# explosion effect at (247.7, 1787.4321)
+```
 
-### Root Cause Discovery (2026-02-04)
+**Key finding**: The code was using the **C# fallback** (`CreateExplosionFlash()` which creates a simple `Sprite2D`) instead of the shadow-enabled `FlashbangEffect.tscn`!
+
+### Root Cause Discovery Round 3 (2026-02-04)
+
+Analysis of game log revealed the actual problem:
+1. `ImpactEffectsManager.spawn_flashbang_effect()` exists in GDScript
+2. `HasMethod("spawn_flashbang_effect")` may return false in exported builds (C#-GDScript interop issue)
+3. Even if `HasMethod()` returned true, C# `Call()` to GDScript methods fails silently in exports (Issue #432)
+
+**Solution**: Load `FlashbangEffect.tscn` directly from C# instead of calling GDScript autoload.
+
+### Root Cause Discovery (2026-02-04) - Original Analysis
 
 Deep investigation revealed the **actual root cause**: The C# `GrenadeTimer.cs` component (which handles grenade explosions in exported builds due to Issue #432) was **NOT checking line-of-sight for player effects**!
 
@@ -173,18 +187,39 @@ else
 }
 ```
 
-### 2. SpawnExplosionEffect() - Use Shadow-Enabled Light
+### 2. SpawnExplosionEffect() - Load FlashbangEffect.tscn Directly
+
+**Problem**: C# `Call()` to GDScript methods fails silently in exported builds (Issue #432).
+Even if `HasMethod()` returns true, the actual `Call()` may not execute.
+
+**Solution**: Load and instantiate `FlashbangEffect.tscn` directly from C# to bypass the GDScript autoload:
+
 ```csharp
-// Use ImpactEffectsManager for shadow-enabled flash (Issue #469)
-var impactManager = GetNodeOrNull("/root/ImpactEffectsManager");
-if (Type == GrenadeType.Flashbang && impactManager != null &&
-    impactManager.HasMethod("spawn_flashbang_effect"))
+private void SpawnExplosionEffect(Vector2 position)
 {
-    impactManager.Call("spawn_flashbang_effect", position, EffectRadius);
-    return;
+    // FIX for Issue #469 + #432: Load FlashbangEffect.tscn directly
+    // Bypasses GDScript Call() which fails silently in exports
+    if (Type == GrenadeType.Flashbang)
+    {
+        SpawnFlashbangEffectScene(position);
+        return;
+    }
+    CreateExplosionFlash(position);  // Frag grenades use simple effect
 }
-// Fallback for frag grenades or if manager unavailable
-CreateExplosionFlash(position);
+
+private void SpawnFlashbangEffectScene(Vector2 position)
+{
+    const string flashbangEffectPath = "res://scenes/effects/FlashbangEffect.tscn";
+    var flashbangScene = GD.Load<PackedScene>(flashbangEffectPath);
+    if (flashbangScene == null) { CreateExplosionFlash(position); return; }
+
+    var effect = flashbangScene.Instantiate<Node2D>();
+    effect.GlobalPosition = position;
+    if (effect.HasMethod("set_effect_radius"))
+        effect.Call("set_effect_radius", EffectRadius);
+
+    GetTree().CurrentScene?.AddChild(effect);
+}
 ```
 
 ### 3. IsPlayerInZone() - Audio Effect Wall Check

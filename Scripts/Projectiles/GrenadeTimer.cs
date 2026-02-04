@@ -604,20 +604,63 @@ namespace GodotTopdown.Scripts.Projectiles
         /// </summary>
         private void SpawnExplosionEffect(Vector2 position)
         {
-            // Try to use ImpactEffectsManager for shadow-enabled flash (Issue #469)
-            // This uses PointLight2D with shadow_enabled = true so walls block the light
-            var impactManager = GetNodeOrNull("/root/ImpactEffectsManager");
-            if (Type == GrenadeType.Flashbang && impactManager != null && impactManager.HasMethod("spawn_flashbang_effect"))
+            // FIX for Issue #469: Flashbang explosions must use shadow-enabled PointLight2D
+            // so the visual flash doesn't pass through walls.
+            //
+            // FIX for Issue #432: GDScript Call() silently fails in exported builds, so we
+            // load and instantiate the FlashbangEffect scene directly from C# instead of
+            // relying on ImpactEffectsManager.spawn_flashbang_effect() which uses GDScript.
+            if (Type == GrenadeType.Flashbang)
             {
-                impactManager.Call("spawn_flashbang_effect", position, EffectRadius);
-                LogToFile($"[GrenadeTimer] Spawned shadow-enabled flashbang effect at {position}");
+                SpawnFlashbangEffectScene(position);
                 return;
             }
 
-            // Fallback: Create simple explosion flash effect directly in C#
-            // (GDScript calls don't work in exports, and this is used for frag grenades)
+            // Frag grenades use simple C# explosion effect
             CreateExplosionFlash(position);
-            LogToFile($"[GrenadeTimer] Spawned C# explosion effect at {position}");
+            LogToFile($"[GrenadeTimer] Spawned C# frag explosion effect at {position}");
+        }
+
+        /// <summary>
+        /// Loads and instantiates the FlashbangEffect.tscn scene directly from C#.
+        /// FIX for Issue #469: Uses shadow-enabled PointLight2D so flash doesn't pass through walls.
+        /// FIX for Issue #432: Bypasses GDScript Call() which fails silently in exports.
+        /// </summary>
+        private void SpawnFlashbangEffectScene(Vector2 position)
+        {
+            const string flashbangEffectPath = "res://scenes/effects/FlashbangEffect.tscn";
+
+            // Try to load the flashbang effect scene
+            var flashbangScene = GD.Load<PackedScene>(flashbangEffectPath);
+            if (flashbangScene == null)
+            {
+                LogToFile($"[GrenadeTimer] WARNING: FlashbangEffect scene not found at {flashbangEffectPath}, using fallback");
+                CreateExplosionFlash(position);
+                return;
+            }
+
+            // Instantiate the effect
+            var effect = flashbangScene.Instantiate<Node2D>();
+            if (effect == null)
+            {
+                LogToFile($"[GrenadeTimer] WARNING: Failed to instantiate FlashbangEffect, using fallback");
+                CreateExplosionFlash(position);
+                return;
+            }
+
+            // Position the effect at explosion location
+            effect.GlobalPosition = position;
+
+            // Set the effect radius if the method exists
+            if (effect.HasMethod("set_effect_radius"))
+            {
+                effect.Call("set_effect_radius", EffectRadius);
+            }
+
+            // Add to the current scene
+            GetTree().CurrentScene?.AddChild(effect);
+
+            LogToFile($"[GrenadeTimer] Spawned shadow-enabled flashbang effect at {position} (radius: {EffectRadius})");
         }
 
         /// <summary>
