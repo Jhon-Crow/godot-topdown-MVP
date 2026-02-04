@@ -46,17 +46,76 @@ var _saturation_overlay: ColorRect = null
 ## Reference to the combo label.
 var _combo_label: Label = null
 
-## Preload the AnimatedScoreScreen scene at compile time.
-## IMPORTANT: Using preload() instead of load() ensures the scene and its script
-## are properly embedded in the export. Runtime load() may fail to attach scripts
-## correctly in some exported builds.
-const AnimatedScoreScreenScene: PackedScene = preload("res://scenes/ui/AnimatedScoreScreen.tscn")
-
-## Preload the AnimatedScoreScreen script separately for forced re-attachment.
-## This is a workaround for Godot 4.x export issues where binary token compiled
-## scripts may not initialize properly when attached via scene file.
+## ANIMATED SCORE SCREEN - INLINE IMPLEMENTATION
+## This bypasses Godot 4.x binary tokens export bug where external scripts
+## may fail to attach properly in exported builds.
 ## See: https://github.com/godotengine/godot/issues/94150
-const AnimatedScoreScreenScript: GDScript = preload("res://scripts/ui/animated_score_screen.gd")
+
+## Animation timing constants for score screen.
+const SCORE_TITLE_FADE_DURATION: float = 0.3
+const SCORE_ITEM_REVEAL_DURATION: float = 0.15
+const SCORE_ITEM_COUNT_DURATION: float = 0.8
+const SCORE_PULSE_FREQUENCY: float = 12.0  ## Pulses per second during counting
+const SCORE_RANK_FLASH_DURATION: float = 0.8
+const SCORE_RANK_SHRINK_DURATION: float = 0.6
+const SCORE_HINT_FADE_DURATION: float = 0.3
+
+## Pulse animation settings for score screen.
+const SCORE_PULSE_SCALE_MIN: float = 1.0
+const SCORE_PULSE_SCALE_MAX: float = 1.15
+const SCORE_PULSE_COLOR_INTENSITY: float = 0.4
+
+## Sound settings for score screen.
+const SCORE_BEEP_BASE_FREQUENCY: float = 440.0  ## Hz
+const SCORE_BEEP_DURATION: float = 0.03  ## Seconds per beep
+const SCORE_BEEP_VOLUME: float = -12.0  ## dB
+
+## Rank colors for different grades in score screen.
+const SCORE_RANK_COLORS: Dictionary = {
+	"S": Color(1.0, 0.84, 0.0, 1.0),   # Gold
+	"A+": Color(0.0, 1.0, 0.5, 1.0),   # Bright green
+	"A": Color(0.2, 0.8, 0.2, 1.0),    # Green
+	"B": Color(0.3, 0.7, 1.0, 1.0),    # Blue
+	"C": Color(1.0, 1.0, 1.0, 1.0),    # White
+	"D": Color(1.0, 0.6, 0.2, 1.0),    # Orange
+	"F": Color(1.0, 0.2, 0.2, 1.0)     # Red
+}
+
+## Flash colors for rank reveal background in score screen.
+const SCORE_FLASH_COLORS: Array[Color] = [
+	Color(1.0, 0.0, 0.0, 0.9),   # Red
+	Color(0.0, 1.0, 0.0, 0.9),   # Green
+	Color(0.0, 0.0, 1.0, 0.9),   # Blue
+	Color(1.0, 1.0, 0.0, 0.9),   # Yellow
+	Color(1.0, 0.0, 1.0, 0.9),   # Magenta
+	Color(0.0, 1.0, 1.0, 0.9)    # Cyan
+]
+
+## Score screen animation state variables.
+var _score_screen_root: Control = null
+var _score_background: ColorRect = null
+var _score_container: VBoxContainer = null
+var _score_title_label: Label = null
+var _score_items_data: Array[Dictionary] = []
+var _score_rank_label: Label = null
+var _score_rank_background: ColorRect = null
+var _score_total_label: Label = null
+var _score_hint_label: Label = null
+var _score_data_cache: Dictionary = {}
+var _score_current_item_index: int = -1
+var _score_is_animating: bool = false
+var _score_counting_value: float = 0.0
+var _score_counting_target: int = 0
+var _score_counting_label: Label = null
+var _score_counting_points_label: Label = null
+var _score_pulse_time: float = 0.0
+var _score_original_color: Color = Color.WHITE
+
+## Audio player for beep sounds in score screen.
+var _score_beep_player: AudioStreamPlayer = null
+var _score_beep_generator: AudioStreamGenerator = null
+var _score_beep_playback: AudioStreamGeneratorPlayback = null
+var _score_last_beep_value: int = -1
 
 ## Duration of saturation effect in seconds.
 const SATURATION_DURATION: float = 0.15
@@ -120,11 +179,32 @@ func _initialize_score_manager() -> void:
 		score_manager.combo_changed.connect(_on_combo_changed)
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	# Update enemy positions for aggressiveness tracking
 	var score_manager: Node = get_node_or_null("/root/ScoreManager")
 	if score_manager and score_manager.has_method("update_enemy_positions"):
 		score_manager.update_enemy_positions(_enemies)
+
+	# Handle score screen counting animation
+	if _score_is_animating and _score_counting_label != null and _score_counting_target > 0:
+		_score_pulse_time += delta
+
+		# Update counting value
+		var count_progress := _score_counting_value / float(_score_counting_target)
+		if count_progress < 1.0:
+			_score_counting_value += (float(_score_counting_target) / SCORE_ITEM_COUNT_DURATION) * delta
+			_score_counting_value = minf(_score_counting_value, float(_score_counting_target))
+
+			var current_int := int(_score_counting_value)
+			_score_counting_label.text = "%d" % current_int
+
+			# Play beep on value change (throttled)
+			if current_int != _score_last_beep_value:
+				_score_last_beep_value = current_int
+				_score_play_beep()
+
+			# Apply pulse effect
+			_score_apply_pulse_effect()
 
 
 ## Called when combo changes.
@@ -744,9 +824,14 @@ func _show_victory_message() -> void:
 ## binary tokens export bug where has_method() returns false despite script
 ## being attached. The preloaded script is re-applied if needed.
 ## See: https://github.com/godotengine/godot/issues/94150
+## Show the animated score screen with inline implementation.
+## This bypasses Godot 4.x binary tokens export bug (godotengine/godot#94150).
+## All animation logic is implemented directly in this file instead of relying
+## on external scripts that may fail to attach properly in exported builds.
 func _show_score_screen(score_data: Dictionary) -> void:
 	_log_to_file("_show_score_screen called with score_data: %s" % str(score_data))
 	print("[BuildingLevel] _show_score_screen called - rank: %s" % score_data.get("rank", "?"))
+	print("[BuildingLevel] Using INLINE animated score screen (bypasses binary tokens bug)")
 
 	var ui := get_node_or_null("CanvasLayer/UI")
 	if ui == null:
@@ -762,18 +847,9 @@ func _show_score_screen(score_data: Dictionary) -> void:
 		game_over_label.queue_free()
 		_log_to_file("Removed GameOverLabel (out of ammo message)")
 
-	# IMPORTANT: Using preloaded scene (AnimatedScoreScreenScene constant) instead of
-	# runtime load(). In Godot 4.x exported builds, runtime load() may fail to properly
-	# attach scripts to instantiated scenes, causing _ready() and methods to not execute.
-	# preload() embeds the scene at compile time, ensuring reliable script attachment.
-	if AnimatedScoreScreenScene == null:
-		_log_to_file("ERROR: AnimatedScoreScreenScene preload is null - this should never happen")
-		print("[BuildingLevel] ERROR: AnimatedScoreScreenScene preload is null")
-		_show_victory_message()  # Fallback
-		return
-
-	_log_to_file("Using preloaded AnimatedScoreScreen scene (compile-time embedding)")
-	print("[BuildingLevel] Using preloaded AnimatedScoreScreen scene")
+	# Store score data for animation callbacks
+	_score_data_cache = score_data
+	_score_is_animating = true
 
 	# Create a dedicated CanvasLayer for the score screen
 	# Layer 100 ensures it renders above everything, including CinemaEffects (layer 99)
@@ -783,75 +859,54 @@ func _show_score_screen(score_data: Dictionary) -> void:
 	add_child(score_canvas_layer)
 	_log_to_file("Created ScoreScreenCanvasLayer at layer 100")
 
-	# Instantiate the score screen from preloaded scene
-	var score_screen = AnimatedScoreScreenScene.instantiate()
-	if score_screen == null:
-		_log_to_file("ERROR: Failed to instantiate AnimatedScoreScreen from preloaded scene")
-		print("[BuildingLevel] ERROR: instantiate() returned null")
-		_show_victory_message()  # Fallback
-		return
+	# Create root control for the score screen
+	_score_screen_root = Control.new()
+	_score_screen_root.name = "InlineAnimatedScoreScreen"
+	_score_screen_root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_score_screen_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	score_canvas_layer.add_child(_score_screen_root)
+	_log_to_file("Created InlineAnimatedScoreScreen root control")
 
-	score_screen.name = "AnimatedScoreScreen"
-	_log_to_file("Instantiated AnimatedScoreScreen from preloaded scene")
-	print("[BuildingLevel] Instantiated AnimatedScoreScreen from preloaded scene")
-
-	# Debug: Check if script is attached
-	var attached_script = score_screen.get_script()
-	if attached_script != null:
-		_log_to_file("Script IS attached to instantiated node: %s" % attached_script.resource_path)
-		print("[BuildingLevel] Script attached: %s" % attached_script.resource_path)
-	else:
-		_log_to_file("WARNING: No script attached to instantiated node!")
-		print("[BuildingLevel] WARNING: No script attached to instantiated node!")
-
-	# Debug: Check if show_score method exists
-	var has_show_score := score_screen.has_method("show_score")
-	_log_to_file("has_method('show_score'): %s" % str(has_show_score))
-	print("[BuildingLevel] has_method('show_score'): %s" % str(has_show_score))
-
-	# Session 7 Fix: If has_method returns false despite script being attached,
-	# this is a Godot 4.x binary tokens export bug where the script is attached
-	# as a resource reference but not properly compiled/initialized.
-	# Workaround: Force re-attach the preloaded script directly.
-	# See: https://github.com/godotengine/godot/issues/94150
-	if not has_show_score and AnimatedScoreScreenScript != null:
-		_log_to_file("Applying Session 7 workaround: forcing script re-attachment")
-		print("[BuildingLevel] Forcing script re-attachment (binary tokens workaround)")
-		score_screen.set_script(AnimatedScoreScreenScript)
-		has_show_score = score_screen.has_method("show_score")
-		_log_to_file("After re-attachment, has_method('show_score'): %s" % str(has_show_score))
-		print("[BuildingLevel] After re-attachment, has_method('show_score'): %s" % str(has_show_score))
-
-	# Ensure the Control is visible and properly sized
-	score_screen.visible = true
-	score_screen.modulate = Color.WHITE
-	score_screen.set_anchors_preset(Control.PRESET_FULL_RECT)
-
-	# Add to the dedicated CanvasLayer (this triggers _ready() on the score_screen)
-	score_canvas_layer.add_child(score_screen)
-	_log_to_file("Added AnimatedScoreScreen to ScoreScreenCanvasLayer (triggers _ready)")
-	print("[BuildingLevel] Added AnimatedScoreScreen to tree - _ready() should be called")
-
-	# Force the size to match viewport after being added to tree
+	# Force the size to match viewport
 	var viewport_size := get_viewport().get_visible_rect().size
-	score_screen.size = viewport_size
+	_score_screen_root.size = viewport_size
 	_log_to_file("Set score_screen size to viewport: %s" % str(viewport_size))
 
-	# Debug: Check if node is in tree now
-	_log_to_file("score_screen.is_inside_tree() = %s" % str(score_screen.is_inside_tree()))
-	print("[BuildingLevel] score_screen.is_inside_tree() = %s" % str(score_screen.is_inside_tree()))
+	# Setup beep audio for counting sounds
+	_score_setup_beep_audio()
 
-	# Start the animated score display
-	if has_show_score:
-		score_screen.show_score(score_data)
-		_log_to_file("Called show_score() on AnimatedScoreScreen")
-		print("[BuildingLevel] Called show_score() on AnimatedScoreScreen")
-	else:
-		_log_to_file("ERROR: show_score method not found, script likely not attached correctly")
-		print("[BuildingLevel] ERROR: show_score method not found!")
-		# Fallback: try to call it anyway in case it's a false negative
-		score_screen.show_score(score_data)
-		_log_to_file("Tried calling show_score() anyway")
+	# Create background - starts transparent, will animate to semi-opaque
+	_score_background = ColorRect.new()
+	_score_background.name = "ScoreBackground"
+	_score_background.color = Color(0.0, 0.0, 0.0, 0.0)  # Starts fully transparent
+	_score_background.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_score_background.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_score_background.visible = true
+	_score_screen_root.add_child(_score_background)
+	_log_to_file("Background created")
+
+	# Create main container - starts invisible, will animate to visible
+	_score_container = VBoxContainer.new()
+	_score_container.name = "ScoreContainer"
+	_score_container.set_anchors_preset(Control.PRESET_CENTER)
+	_score_container.offset_left = -300
+	_score_container.offset_right = 300
+	_score_container.offset_top = -280
+	_score_container.offset_bottom = 350
+	_score_container.add_theme_constant_override("separation", 8)
+	_score_container.modulate.a = 0.0  # Starts invisible
+	_score_container.visible = true
+	_score_screen_root.add_child(_score_container)
+	_log_to_file("Container created")
+
+	# Build score items list
+	_score_build_items()
+	_log_to_file("Built %d score items" % _score_items_data.size())
+
+	# Start animation sequence
+	_score_animate_background_fade()
+	_log_to_file("Animation sequence started")
+	print("[BuildingLevel] Inline score screen animation started")
 
 
 ## Get the color for a given rank.
@@ -873,6 +928,449 @@ func _get_rank_color(rank: String) -> Color:
 			return Color(1.0, 0.2, 0.2, 1.0)  # Red
 		_:
 			return Color(1.0, 1.0, 1.0, 1.0)  # Default white
+
+
+#region INLINE ANIMATED SCORE SCREEN FUNCTIONS
+## These functions implement the animated score screen directly in building_level.gd
+## to bypass Godot 4.x binary tokens export bug (godotengine/godot#94150).
+
+## Setup the beep sound generator for retro-style counting sounds.
+func _score_setup_beep_audio() -> void:
+	_score_beep_player = AudioStreamPlayer.new()
+	_score_beep_player.bus = "Master"
+	_score_beep_player.volume_db = SCORE_BEEP_VOLUME
+	_score_screen_root.add_child(_score_beep_player)
+
+	# Create generator stream
+	_score_beep_generator = AudioStreamGenerator.new()
+	_score_beep_generator.mix_rate = 44100.0
+	_score_beep_generator.buffer_length = 0.1
+	_score_beep_player.stream = _score_beep_generator
+
+
+## Play a short major arpeggio sound for score counting.
+func _score_play_beep() -> void:
+	if _score_beep_player == null:
+		return
+
+	# Start playback if not already playing
+	if not _score_beep_player.playing:
+		_score_beep_player.play()
+		_score_beep_playback = _score_beep_player.get_stream_playback()
+
+	if _score_beep_playback == null:
+		return
+
+	# Generate a short major arpeggio (root, major third, perfect fifth)
+	var sample_rate := _score_beep_generator.mix_rate
+	var note_duration := SCORE_BEEP_DURATION / 3.0
+	var samples_per_note := int(note_duration * sample_rate)
+
+	# Calculate frequencies for major arpeggio
+	var root_freq := SCORE_BEEP_BASE_FREQUENCY + randf_range(-20.0, 20.0)
+	var third_freq := root_freq * pow(2.0, 4.0 / 12.0)  # Major third
+	var fifth_freq := root_freq * pow(2.0, 7.0 / 12.0)  # Perfect fifth
+
+	var arpeggio_freqs := [root_freq, third_freq, fifth_freq]
+
+	for note_idx in range(3):
+		var frequency := arpeggio_freqs[note_idx]
+		for i in range(samples_per_note):
+			if _score_beep_playback.can_push_buffer(1):
+				var t := float(i) / sample_rate
+				# Square wave for retro sound
+				var sample := 0.25 if fmod(t * frequency, 1.0) < 0.5 else -0.25
+				# Apply envelope for each note (attack and decay)
+				var note_progress := float(i) / float(samples_per_note)
+				var envelope := 1.0 - (note_progress * 0.5)
+				_score_beep_playback.push_frame(Vector2(sample * envelope, sample * envelope))
+
+
+## Apply pulsing effect to the current counting label.
+func _score_apply_pulse_effect() -> void:
+	if _score_counting_points_label == null:
+		return
+
+	# Calculate pulse factor (0 to 1, oscillating)
+	var pulse_factor := (sin(_score_pulse_time * SCORE_PULSE_FREQUENCY * TAU) + 1.0) / 2.0
+
+	# Apply scale pulse
+	var scale_value := lerpf(SCORE_PULSE_SCALE_MIN, SCORE_PULSE_SCALE_MAX, pulse_factor)
+	_score_counting_points_label.scale = Vector2(scale_value, scale_value)
+
+	# Apply color pulse (interpolate toward white/bright)
+	var pulse_color := _score_original_color.lerp(Color.WHITE, pulse_factor * SCORE_PULSE_COLOR_INTENSITY)
+	_score_counting_points_label.add_theme_color_override("font_color", pulse_color)
+
+
+## Build the list of score items to display.
+func _score_build_items() -> void:
+	_score_items_data.clear()
+
+	# Core score categories
+	_score_items_data.append({
+		"category": "KILLS",
+		"value": "%d/%d" % [_score_data_cache.get("kills", 0), _score_data_cache.get("total_enemies", 0)],
+		"points": _score_data_cache.get("kill_points", 0),
+		"is_positive": true
+	})
+
+	_score_items_data.append({
+		"category": "COMBOS",
+		"value": "Max x%d" % _score_data_cache.get("max_combo", 0),
+		"points": _score_data_cache.get("combo_points", 0),
+		"is_positive": true
+	})
+
+	_score_items_data.append({
+		"category": "TIME",
+		"value": "%.1fs" % _score_data_cache.get("completion_time", 0.0),
+		"points": _score_data_cache.get("time_bonus", 0),
+		"is_positive": true
+	})
+
+	_score_items_data.append({
+		"category": "ACCURACY",
+		"value": "%.1f%%" % _score_data_cache.get("accuracy", 0.0),
+		"points": _score_data_cache.get("accuracy_bonus", 0),
+		"is_positive": true
+	})
+
+	# Optional: Special kills
+	var ricochet_kills: int = _score_data_cache.get("ricochet_kills", 0)
+	var penetration_kills: int = _score_data_cache.get("penetration_kills", 0)
+	if ricochet_kills > 0 or penetration_kills > 0:
+		var special_text := ""
+		if ricochet_kills > 0:
+			special_text += "%d ricochet" % ricochet_kills
+		if penetration_kills > 0:
+			if special_text != "":
+				special_text += ", "
+			special_text += "%d penetration" % penetration_kills
+
+		var special_eligible: bool = _score_data_cache.get("special_kills_eligible", false)
+		_score_items_data.append({
+			"category": "SPECIAL KILLS",
+			"value": special_text,
+			"points": _score_data_cache.get("special_kill_bonus", 0) if special_eligible else 0,
+			"is_positive": special_eligible,
+			"note": "" if special_eligible else "(need aggression)"
+		})
+
+	# Optional: Damage penalty
+	var damage_taken: int = _score_data_cache.get("damage_taken", 0)
+	if damage_taken > 0:
+		_score_items_data.append({
+			"category": "DAMAGE TAKEN",
+			"value": "%d hits" % damage_taken,
+			"points": _score_data_cache.get("damage_penalty", 0),
+			"is_positive": false
+		})
+
+
+## Animate background fade in.
+func _score_animate_background_fade() -> void:
+	_log_to_file("_score_animate_background_fade() starting")
+
+	var tween := create_tween()
+	if tween == null:
+		_log_to_file("ERROR: create_tween() returned null!")
+		# Fallback: directly set values without animation
+		_score_background.color.a = 0.7
+		_score_container.modulate.a = 1.0
+		_score_create_title()
+		return
+
+	_log_to_file("Tween created successfully")
+	tween.tween_property(_score_background, "color:a", 0.7, SCORE_TITLE_FADE_DURATION)
+	tween.tween_property(_score_container, "modulate:a", 1.0, SCORE_TITLE_FADE_DURATION)
+	tween.tween_callback(_score_create_title)
+
+
+## Create and animate the title.
+func _score_create_title() -> void:
+	_score_title_label = Label.new()
+	_score_title_label.text = "LEVEL CLEARED!"
+	_score_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_score_title_label.add_theme_font_size_override("font_size", 42)
+	_score_title_label.add_theme_color_override("font_color", Color(0.2, 1.0, 0.3, 1.0))
+	_score_title_label.modulate.a = 0.0
+	_score_container.add_child(_score_title_label)
+
+	var tween := create_tween()
+	tween.tween_property(_score_title_label, "modulate:a", 1.0, SCORE_TITLE_FADE_DURATION)
+	tween.tween_callback(_score_start_item_sequence)
+
+
+## Start the sequential item reveal.
+func _score_start_item_sequence() -> void:
+	_score_current_item_index = -1
+	_score_animate_next_item()
+
+
+## Animate the next score item in sequence.
+func _score_animate_next_item() -> void:
+	_score_current_item_index += 1
+
+	if _score_current_item_index >= _score_items_data.size():
+		# All items done, show total score
+		_score_animate_total()
+		return
+
+	var item_data: Dictionary = _score_items_data[_score_current_item_index]
+	_score_create_item_row(item_data)
+
+
+## Create a score item row with animation.
+func _score_create_item_row(item_data: Dictionary) -> void:
+	var line_container := HBoxContainer.new()
+	line_container.add_theme_constant_override("separation", 20)
+	line_container.modulate.a = 0.0
+	_score_container.add_child(line_container)
+
+	# Category label
+	var category_label := Label.new()
+	category_label.text = item_data.category
+	category_label.add_theme_font_size_override("font_size", 18)
+	category_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7, 1.0))
+	category_label.custom_minimum_size.x = 150
+	line_container.add_child(category_label)
+
+	# Value label
+	var value_label := Label.new()
+	value_label.text = item_data.value
+	value_label.add_theme_font_size_override("font_size", 18)
+	value_label.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 1.0))
+	value_label.custom_minimum_size.x = 150
+	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	line_container.add_child(value_label)
+
+	# Points label (will be animated)
+	var points_label := Label.new()
+	var points_value: int = item_data.points
+	var is_positive: bool = item_data.is_positive
+	var note: String = item_data.get("note", "")
+
+	if note != "":
+		points_label.text = note
+		points_label.add_theme_color_override("font_color", Color(1.0, 0.4, 0.4, 1.0))
+	else:
+		points_label.text = "0"
+		if is_positive:
+			points_label.add_theme_color_override("font_color", Color(0.4, 1.0, 0.4, 1.0))
+		else:
+			points_label.add_theme_color_override("font_color", Color(1.0, 0.4, 0.4, 1.0))
+
+	points_label.add_theme_font_size_override("font_size", 18)
+	points_label.custom_minimum_size.x = 100
+	points_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	points_label.pivot_offset = Vector2(50, 9)
+	line_container.add_child(points_label)
+
+	# Fade in the row
+	var tween := create_tween()
+	tween.tween_property(line_container, "modulate:a", 1.0, SCORE_ITEM_REVEAL_DURATION)
+
+	# Start counting animation if has points
+	if points_value > 0 and note == "":
+		tween.tween_callback(func():
+			_score_start_counting(points_label, points_value, is_positive)
+		)
+	else:
+		# No counting needed, proceed to next item
+		tween.tween_interval(0.2)
+		tween.tween_callback(_score_animate_next_item)
+
+
+## Start the counting animation for a points label.
+func _score_start_counting(label: Label, target: int, is_positive: bool) -> void:
+	_score_counting_label = label
+	_score_counting_points_label = label
+	_score_counting_target = target
+	_score_counting_value = 0.0
+	_score_pulse_time = 0.0
+	_score_last_beep_value = -1
+
+	# Store original color
+	if is_positive:
+		_score_original_color = Color(0.4, 1.0, 0.4, 1.0)
+	else:
+		_score_original_color = Color(1.0, 0.4, 0.4, 1.0)
+
+	# Create timer to end counting
+	var timer := get_tree().create_timer(SCORE_ITEM_COUNT_DURATION)
+	timer.timeout.connect(func():
+		_score_finish_counting(is_positive)
+	)
+
+
+## Finish the counting animation.
+func _score_finish_counting(is_positive: bool) -> void:
+	if _score_counting_points_label != null:
+		# Set final value with proper formatting
+		var prefix := "+" if is_positive else "-"
+		_score_counting_points_label.text = "%s%d" % [prefix, _score_counting_target]
+
+		# Reset scale and color
+		_score_counting_points_label.scale = Vector2.ONE
+		_score_counting_points_label.add_theme_color_override("font_color", _score_original_color)
+
+	_score_counting_label = null
+	_score_counting_points_label = null
+	_score_counting_target = 0
+	_score_counting_value = 0.0
+
+	# Proceed to next item after brief pause
+	var tween := create_tween()
+	tween.tween_interval(0.15)
+	tween.tween_callback(_score_animate_next_item)
+
+
+## Animate the total score display.
+func _score_animate_total() -> void:
+	# Add separator
+	var separator := HSeparator.new()
+	separator.add_theme_constant_override("separation", 15)
+	separator.modulate.a = 0.0
+	_score_container.add_child(separator)
+
+	# Total score label
+	_score_total_label = Label.new()
+	_score_total_label.text = "TOTAL: 0"
+	_score_total_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_score_total_label.add_theme_font_size_override("font_size", 32)
+	_score_total_label.add_theme_color_override("font_color", Color(1.0, 0.9, 0.3, 1.0))
+	_score_total_label.modulate.a = 0.0
+	_score_total_label.pivot_offset = Vector2(150, 16)
+	_score_container.add_child(_score_total_label)
+
+	var tween := create_tween()
+	tween.tween_property(separator, "modulate:a", 1.0, SCORE_ITEM_REVEAL_DURATION)
+	tween.tween_property(_score_total_label, "modulate:a", 1.0, SCORE_ITEM_REVEAL_DURATION)
+	tween.tween_callback(_score_start_total_counting)
+
+
+## Start counting animation for total score.
+func _score_start_total_counting() -> void:
+	var total_score: int = _score_data_cache.get("total_score", 0)
+	_score_counting_label = _score_total_label
+	_score_counting_points_label = _score_total_label
+	_score_counting_target = total_score
+	_score_counting_value = 0.0
+	_score_pulse_time = 0.0
+	_score_last_beep_value = -1
+	_score_original_color = Color(1.0, 0.9, 0.3, 1.0)
+
+	var timer := get_tree().create_timer(SCORE_ITEM_COUNT_DURATION * 1.2)
+	timer.timeout.connect(_score_finish_total_counting)
+
+
+## Finish total score counting and show rank.
+func _score_finish_total_counting() -> void:
+	if _score_total_label != null:
+		_score_total_label.text = "TOTAL: %d" % _score_data_cache.get("total_score", 0)
+		_score_total_label.scale = Vector2.ONE
+		_score_total_label.add_theme_color_override("font_color", Color(1.0, 0.9, 0.3, 1.0))
+
+	_score_counting_label = null
+	_score_counting_points_label = null
+
+	var tween := create_tween()
+	tween.tween_interval(0.3)
+	tween.tween_callback(_score_start_rank_animation)
+
+
+## Start the dramatic rank reveal animation.
+func _score_start_rank_animation() -> void:
+	var rank: String = _score_data_cache.get("rank", "F")
+	var rank_color: Color = SCORE_RANK_COLORS.get(rank, Color.WHITE)
+
+	# Create fullscreen flash background
+	_score_rank_background = ColorRect.new()
+	_score_rank_background.name = "RankFlashBackground"
+	_score_rank_background.color = SCORE_FLASH_COLORS[0]
+	_score_rank_background.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_score_rank_background.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_score_rank_background.modulate.a = 0.0
+	_score_screen_root.add_child(_score_rank_background)
+
+	# Create large centered rank label
+	_score_rank_label = Label.new()
+	_score_rank_label.text = rank
+	_score_rank_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_score_rank_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_score_rank_label.add_theme_font_size_override("font_size", 200)
+	_score_rank_label.add_theme_color_override("font_color", rank_color)
+	_score_rank_label.set_anchors_preset(Control.PRESET_CENTER)
+	_score_rank_label.offset_left = -150
+	_score_rank_label.offset_right = 150
+	_score_rank_label.offset_top = -120
+	_score_rank_label.offset_bottom = 120
+	_score_rank_label.modulate.a = 0.0
+	_score_screen_root.add_child(_score_rank_label)
+
+	# Animate flash background and rank appear
+	var tween := create_tween()
+	tween.tween_property(_score_rank_background, "modulate:a", 1.0, 0.1)
+	tween.parallel().tween_property(_score_rank_label, "modulate:a", 1.0, 0.1)
+
+	# Flash color cycling
+	var flash_count := 6
+	for i in range(flash_count):
+		var color_index := (i + 1) % SCORE_FLASH_COLORS.size()
+		tween.tween_property(_score_rank_background, "color", SCORE_FLASH_COLORS[color_index], SCORE_RANK_FLASH_DURATION / float(flash_count))
+
+	tween.tween_callback(_score_shrink_rank)
+
+
+## Shrink the rank label to its final position.
+func _score_shrink_rank() -> void:
+	# Fade out flash background
+	var tween := create_tween()
+	tween.tween_property(_score_rank_background, "modulate:a", 0.0, SCORE_RANK_SHRINK_DURATION * 0.5)
+
+	# Calculate final position (below total, centered)
+	var final_font_size := 48
+	var final_offset_top := 250
+	var final_half_width := 75
+
+	# Animate rank shrinking
+	tween.parallel().tween_method(
+		func(font_size: int): _score_rank_label.add_theme_font_size_override("font_size", font_size),
+		200, final_font_size, SCORE_RANK_SHRINK_DURATION
+	)
+
+	# Move to final position (centered horizontally, below total score)
+	tween.parallel().tween_property(_score_rank_label, "offset_top", final_offset_top, SCORE_RANK_SHRINK_DURATION)
+	tween.parallel().tween_property(_score_rank_label, "offset_bottom", final_offset_top + 60, SCORE_RANK_SHRINK_DURATION)
+	tween.parallel().tween_property(_score_rank_label, "offset_left", -final_half_width, SCORE_RANK_SHRINK_DURATION)
+	tween.parallel().tween_property(_score_rank_label, "offset_right", final_half_width, SCORE_RANK_SHRINK_DURATION)
+
+	tween.tween_callback(_score_show_restart_hint)
+
+
+## Show the restart hint after all animations complete.
+func _score_show_restart_hint() -> void:
+	_score_hint_label = Label.new()
+	_score_hint_label.text = "\nPress Q to restart"
+	_score_hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_score_hint_label.add_theme_font_size_override("font_size", 16)
+	_score_hint_label.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5, 1.0))
+	_score_hint_label.modulate.a = 0.0
+	_score_container.add_child(_score_hint_label)
+
+	var tween := create_tween()
+	tween.tween_property(_score_hint_label, "modulate:a", 1.0, SCORE_HINT_FADE_DURATION)
+	tween.tween_callback(_score_on_animation_complete)
+
+
+## Called when all score screen animations are complete.
+func _score_on_animation_complete() -> void:
+	_score_is_animating = false
+	_log_to_file("Score screen animation completed")
+	print("[BuildingLevel] Score screen animation completed")
+
+#endregion
 
 
 ## Show game over message when player runs out of ammo with enemies remaining.
