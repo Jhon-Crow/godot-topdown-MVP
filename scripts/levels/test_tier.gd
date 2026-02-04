@@ -50,6 +50,9 @@ const SATURATION_DURATION: float = 0.15
 ## Saturation effect intensity (alpha).
 const SATURATION_INTENSITY: float = 0.25
 
+## List of enemy nodes for replay recording.
+var _enemies: Array = []
+
 
 func _ready() -> void:
 	print("TestTier loaded - Tactical Combat Arena")
@@ -80,6 +83,9 @@ func _ready() -> void:
 	if GameManager:
 		GameManager.enemy_killed.connect(_on_game_manager_enemy_killed)
 		GameManager.stats_updated.connect(_update_debug_ui)
+
+	# Start replay recording
+	_start_replay_recording()
 
 
 func _process(_delta: float) -> void:
@@ -207,16 +213,16 @@ func _setup_enemy_tracking() -> void:
 	if enemies_node == null:
 		return
 
-	var enemies := []
+	_enemies.clear()
 	for child in enemies_node.get_children():
 		if child.has_signal("died"):
-			enemies.append(child)
+			_enemies.append(child)
 			child.died.connect(_on_enemy_died)
 		# Track when enemy is hit for accuracy
 		if child.has_signal("hit"):
 			child.hit.connect(_on_enemy_hit)
 
-	_initial_enemy_count = enemies.size()
+	_initial_enemy_count = _enemies.size()
 	_current_enemy_count = _initial_enemy_count
 	print("Tracking %d enemies" % _initial_enemy_count)
 
@@ -322,6 +328,10 @@ func _on_enemy_died() -> void:
 
 	if _current_enemy_count <= 0:
 		print("All enemies eliminated! Arena cleared!")
+		# Stop replay recording
+		var replay_manager: Node = get_node_or_null("/root/ReplayManager")
+		if replay_manager and replay_manager.has_method("stop_recording"):
+			replay_manager.stop_recording()
 		_show_victory_message()
 
 
@@ -592,8 +602,8 @@ func _show_victory_message() -> void:
 	victory_label.set_anchors_preset(Control.PRESET_CENTER)
 	victory_label.offset_left = -200
 	victory_label.offset_right = 200
-	victory_label.offset_top = -50
-	victory_label.offset_bottom = 50
+	victory_label.offset_top = -80
+	victory_label.offset_bottom = -30
 
 	ui.add_child(victory_label)
 
@@ -613,10 +623,70 @@ func _show_victory_message() -> void:
 	stats_label.set_anchors_preset(Control.PRESET_CENTER)
 	stats_label.offset_left = -200
 	stats_label.offset_right = 200
-	stats_label.offset_top = 50
-	stats_label.offset_bottom = 100
+	stats_label.offset_top = -20
+	stats_label.offset_bottom = 20
 
 	ui.add_child(stats_label)
+
+	# Add buttons container
+	var buttons_container := HBoxContainer.new()
+	buttons_container.name = "ButtonsContainer"
+	buttons_container.alignment = BoxContainer.ALIGNMENT_CENTER
+	buttons_container.add_theme_constant_override("separation", 20)
+	buttons_container.set_anchors_preset(Control.PRESET_CENTER)
+	buttons_container.offset_left = -200
+	buttons_container.offset_right = 200
+	buttons_container.offset_top = 40
+	buttons_container.offset_bottom = 90
+	ui.add_child(buttons_container)
+
+	# Watch Replay button
+	var replay_manager: Node = get_node_or_null("/root/ReplayManager")
+	if replay_manager and replay_manager.has_method("has_replay") and replay_manager.has_replay():
+		var replay_button := Button.new()
+		replay_button.name = "ReplayButton"
+		replay_button.text = "▶ Watch Replay"
+		replay_button.custom_minimum_size = Vector2(150, 40)
+		replay_button.add_theme_font_size_override("font_size", 18)
+		replay_button.pressed.connect(_on_watch_replay_pressed)
+		buttons_container.add_child(replay_button)
+
+	# Restart button
+	var restart_button := Button.new()
+	restart_button.name = "RestartButton"
+	restart_button.text = "↻ Restart (Q)"
+	restart_button.custom_minimum_size = Vector2(150, 40)
+	restart_button.add_theme_font_size_override("font_size", 18)
+	restart_button.pressed.connect(_on_restart_pressed)
+	buttons_container.add_child(restart_button)
+
+	# Show cursor for button interaction
+	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
+
+	# Focus the first available button
+	if replay_manager and replay_manager.has_method("has_replay") and replay_manager.has_replay():
+		var replay_btn: Button = buttons_container.get_node_or_null("ReplayButton")
+		if replay_btn:
+			replay_btn.grab_focus()
+	else:
+		restart_button.grab_focus()
+
+
+## Called when the Watch Replay button is pressed.
+func _on_watch_replay_pressed() -> void:
+	print("[TestTier] Watch Replay button pressed")
+	var replay_manager: Node = get_node_or_null("/root/ReplayManager")
+	if replay_manager and replay_manager.has_method("start_playback"):
+		replay_manager.start_playback(self)
+
+
+## Called when the Restart button is pressed.
+func _on_restart_pressed() -> void:
+	print("[TestTier] Restart button pressed")
+	if GameManager:
+		GameManager.restart_scene()
+	else:
+		get_tree().reload_current_scene()
 
 
 ## Show game over message when player runs out of ammo with enemies remaining.
@@ -738,3 +808,20 @@ func _setup_selected_weapon() -> void:
 				_player.EquipWeapon(assault_rifle)
 			elif _player.get("CurrentWeapon") != null:
 				_player.CurrentWeapon = assault_rifle
+
+
+## Starts recording the replay for this level.
+func _start_replay_recording() -> void:
+	var replay_manager: Node = get_node_or_null("/root/ReplayManager")
+	if replay_manager == null:
+		print("[TestTier] ReplayManager not found, replay recording disabled")
+		return
+
+	# Clear any previous replay data
+	if replay_manager.has_method("clear_replay"):
+		replay_manager.clear_replay()
+
+	# Start recording with player and enemies
+	if replay_manager.has_method("start_recording"):
+		replay_manager.start_recording(self, _player, _enemies)
+		print("[TestTier] Replay recording started")

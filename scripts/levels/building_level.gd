@@ -86,6 +86,9 @@ func _ready() -> void:
 	# Initialize ScoreManager for this level
 	_initialize_score_manager()
 
+	# Start replay recording
+	_start_replay_recording()
+
 
 ## Initialize the ScoreManager for this level.
 func _initialize_score_manager() -> void:
@@ -103,6 +106,23 @@ func _initialize_score_manager() -> void:
 	# Connect to combo changes for UI feedback
 	if not score_manager.combo_changed.is_connected(_on_combo_changed):
 		score_manager.combo_changed.connect(_on_combo_changed)
+
+
+## Starts recording the replay for this level.
+func _start_replay_recording() -> void:
+	var replay_manager: Node = get_node_or_null("/root/ReplayManager")
+	if replay_manager == null:
+		_log_to_file("ReplayManager not found, replay recording disabled")
+		return
+
+	# Clear any previous replay data
+	if replay_manager.has_method("clear_replay"):
+		replay_manager.clear_replay()
+
+	# Start recording with player and enemies
+	if replay_manager.has_method("start_recording"):
+		replay_manager.start_recording(self, _player, _enemies)
+		_log_to_file("Replay recording started")
 
 
 func _process(_delta: float) -> void:
@@ -405,6 +425,12 @@ func _on_enemy_died_with_info(is_ricochet_kill: bool, is_penetration_kill: bool)
 
 ## Complete the level and show the score screen.
 func _complete_level_with_score() -> void:
+	# Stop replay recording
+	var replay_manager: Node = get_node_or_null("/root/ReplayManager")
+	if replay_manager and replay_manager.has_method("stop_recording"):
+		replay_manager.stop_recording()
+		_log_to_file("Replay recording stopped")
+
 	var score_manager: Node = get_node_or_null("/root/ScoreManager")
 	if score_manager and score_manager.has_method("complete_level"):
 		var score_data: Dictionary = score_manager.complete_level()
@@ -826,13 +852,48 @@ func _show_score_screen(score_data: Dictionary) -> void:
 		points_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		line_container.add_child(points_label)
 
-	# Add restart hint
-	var hint_label := Label.new()
-	hint_label.text = "\nPress Q to restart"
-	hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	hint_label.add_theme_font_size_override("font_size", 16)
-	hint_label.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5, 1.0))
-	container.add_child(hint_label)
+	# Add spacer
+	var spacer := Control.new()
+	spacer.custom_minimum_size.y = 10
+	container.add_child(spacer)
+
+	# Add buttons container
+	var buttons_container := HBoxContainer.new()
+	buttons_container.alignment = BoxContainer.ALIGNMENT_CENTER
+	buttons_container.add_theme_constant_override("separation", 20)
+	container.add_child(buttons_container)
+
+	# Watch Replay button
+	var replay_manager: Node = get_node_or_null("/root/ReplayManager")
+	if replay_manager and replay_manager.has_method("has_replay") and replay_manager.has_replay():
+		var replay_button := Button.new()
+		replay_button.name = "ReplayButton"
+		replay_button.text = "▶ Watch Replay"
+		replay_button.custom_minimum_size = Vector2(150, 40)
+		replay_button.add_theme_font_size_override("font_size", 18)
+		replay_button.pressed.connect(_on_watch_replay_pressed)
+		buttons_container.add_child(replay_button)
+
+	# Restart button
+	var restart_button := Button.new()
+	restart_button.name = "RestartButton"
+	restart_button.text = "↻ Restart (Q)"
+	restart_button.custom_minimum_size = Vector2(150, 40)
+	restart_button.add_theme_font_size_override("font_size", 18)
+	restart_button.pressed.connect(_on_restart_pressed)
+	buttons_container.add_child(restart_button)
+
+	# Pause the game to prevent input during score screen
+	# Show cursor for button interaction
+	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
+
+	# Focus the first button
+	if replay_manager and replay_manager.has_method("has_replay") and replay_manager.has_replay():
+		var replay_btn: Button = buttons_container.get_node_or_null("ReplayButton")
+		if replay_btn:
+			replay_btn.grab_focus()
+	else:
+		restart_button.grab_focus()
 
 
 ## Get the color for a given rank.
@@ -981,6 +1042,24 @@ func _setup_selected_weapon() -> void:
 				_player.EquipWeapon(assault_rifle)
 			elif _player.get("CurrentWeapon") != null:
 				_player.CurrentWeapon = assault_rifle
+
+
+## Called when the Watch Replay button is pressed.
+func _on_watch_replay_pressed() -> void:
+	_log_to_file("Watch Replay button pressed")
+	var replay_manager: Node = get_node_or_null("/root/ReplayManager")
+	if replay_manager and replay_manager.has_method("start_playback"):
+		# Start replay playback
+		replay_manager.start_playback(self)
+
+
+## Called when the Restart button is pressed.
+func _on_restart_pressed() -> void:
+	_log_to_file("Restart button pressed")
+	if GameManager:
+		GameManager.restart_scene()
+	else:
+		get_tree().reload_current_scene()
 
 
 ## Log a message to the file logger if available.
