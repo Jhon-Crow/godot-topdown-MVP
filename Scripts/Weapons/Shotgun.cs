@@ -1413,7 +1413,7 @@ public partial class Shotgun : BaseWeapon
 
         // Spawn muzzle flash at the barrel position (same as M16)
         Vector2 muzzleFlashPosition = GlobalPosition + fireDirection * BulletSpawnOffset;
-        SpawnMuzzleFlash(muzzleFlashPosition, fireDirection);
+        SpawnMuzzleFlash(muzzleFlashPosition, fireDirection, WeaponData?.Caliber);
 
         // NOTE: Casing is NOT spawned here for shotgun - it's ejected during pump up action
         // (see ProcessPumpActionGesture() case ShotgunActionState.NeedsPumpUp)
