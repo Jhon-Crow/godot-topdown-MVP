@@ -215,15 +215,15 @@ func _process(delta: float) -> void:
 		_material.set_shader_parameter("death_spots_time", _death_spots_timer)
 
 		# Animate cigarette burn intensity (fade in over 0.5 seconds)
-		var burn_intensity := clamp(_end_of_reel_timer / 0.5, 0.0, 1.0)
+		var burn_intensity: float = clampf(_end_of_reel_timer / 0.5, 0.0, 1.0)
 		_material.set_shader_parameter("cigarette_burn_intensity", burn_intensity)
 
 		# Animate end of reel intensity (fade in over 0.3 seconds)
-		var reel_intensity := clamp(_end_of_reel_timer / 0.3, 0.0, 1.0)
+		var reel_intensity: float = clampf(_end_of_reel_timer / 0.3, 0.0, 1.0)
 		_material.set_shader_parameter("end_of_reel_intensity", reel_intensity)
 
 		# Animate death spots intensity (fade in over 0.5 seconds, stays at full)
-		var spots_intensity := clamp(_death_spots_timer / 0.5, 0.0, 1.0)
+		var spots_intensity: float = clampf(_death_spots_timer / 0.5, 0.0, 1.0)
 		_material.set_shader_parameter("death_spots_intensity", spots_intensity)
 
 

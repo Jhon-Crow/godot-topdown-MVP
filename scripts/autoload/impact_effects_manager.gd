@@ -1023,7 +1023,7 @@ func _warmup_particle_shaders() -> void:
 ## This prevents the flash from being visible through walls (Issue #470).
 ## @param position: World position where the flashbang exploded.
 ## @param radius: Effect radius for the visual flash size.
-func spawn_flashbang_effect(position: Vector2, radius: float) -> void:
+func spawn_flashbang_effect_with_occlusion(position: Vector2, radius: float) -> void:
 	_spawn_grenade_visual_effect(position, radius, Color(1.0, 1.0, 1.0, 0.9), "flashbang")
 
 
