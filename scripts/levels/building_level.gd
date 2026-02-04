@@ -77,26 +77,43 @@ const SCORE_BEEP_DURATION: float = 0.03  ## Seconds per beep
 const SCORE_BEEP_VOLUME: float = -12.0  ## dB
 
 ## Rank colors for different grades in score screen.
-const SCORE_RANK_COLORS: Dictionary = {
-	"S": Color(1.0, 0.84, 0.0, 1.0),   # Gold
-	"A+": Color(0.0, 1.0, 0.5, 1.0),   # Bright green
-	"A": Color(0.2, 0.8, 0.2, 1.0),    # Green
-	"B": Color(0.3, 0.7, 1.0, 1.0),    # Blue
-	"C": Color(1.0, 1.0, 1.0, 1.0),    # White
-	"D": Color(1.0, 0.6, 0.2, 1.0),    # Orange
-	"F": Color(1.0, 0.2, 0.2, 1.0)     # Red
-}
+## Note: Using static var instead of const to avoid Godot 4.x binary tokens export
+## parse failures with complex Dictionary initializers containing Color() constructors.
+## See: https://github.com/godotengine/godot/issues/94150
+static var SCORE_RANK_COLORS: Dictionary = {}
 
 ## Flash colors for rank reveal background in score screen.
-## Note: Using untyped Array to avoid Godot 4.x binary tokens export issues.
-const SCORE_FLASH_COLORS: Array = [
-	Color(1.0, 0.0, 0.0, 0.9),   # Red
-	Color(0.0, 1.0, 0.0, 0.9),   # Green
-	Color(0.0, 0.0, 1.0, 0.9),   # Blue
-	Color(1.0, 1.0, 0.0, 0.9),   # Yellow
-	Color(1.0, 0.0, 1.0, 0.9),   # Magenta
-	Color(0.0, 1.0, 1.0, 0.9)    # Cyan
-]
+## Note: Using static var instead of const to avoid Godot 4.x binary tokens export
+## parse failures with Array initializers containing Color() constructors.
+static var SCORE_FLASH_COLORS: Array = []
+
+## Flag to track if static colors have been initialized.
+static var _colors_initialized: bool = false
+
+## Initialize the color dictionaries. Called once on first use.
+static func _init_colors() -> void:
+	if _colors_initialized:
+		return
+	_colors_initialized = true
+
+	SCORE_RANK_COLORS = {
+		"S": Color(1.0, 0.84, 0.0, 1.0),   # Gold
+		"A+": Color(0.0, 1.0, 0.5, 1.0),   # Bright green
+		"A": Color(0.2, 0.8, 0.2, 1.0),    # Green
+		"B": Color(0.3, 0.7, 1.0, 1.0),    # Blue
+		"C": Color(1.0, 1.0, 1.0, 1.0),    # White
+		"D": Color(1.0, 0.6, 0.2, 1.0),    # Orange
+		"F": Color(1.0, 0.2, 0.2, 1.0)     # Red
+	}
+
+	SCORE_FLASH_COLORS = [
+		Color(1.0, 0.0, 0.0, 0.9),   # Red
+		Color(0.0, 1.0, 0.0, 0.9),   # Green
+		Color(0.0, 0.0, 1.0, 0.9),   # Blue
+		Color(1.0, 1.0, 0.0, 0.9),   # Yellow
+		Color(1.0, 0.0, 1.0, 0.9),   # Magenta
+		Color(0.0, 1.0, 1.0, 0.9)    # Cyan
+	]
 
 ## Score screen animation state variables.
 var _score_screen_root: Control = null
@@ -136,6 +153,9 @@ var _enemies: Array = []
 
 
 func _ready() -> void:
+	# Initialize static color variables (bypass binary tokens const parse bug)
+	_init_colors()
+
 	print("BuildingLevel loaded - Hotline Miami Style")
 	print("Building size: ~2400x2000 pixels")
 	print("Clear all rooms to win!")

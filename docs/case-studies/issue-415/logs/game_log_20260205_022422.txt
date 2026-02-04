@@ -1,0 +1,1710 @@
+[02:24:22] [INFO] ============================================================
+[02:24:22] [INFO] GAME LOG STARTED
+[02:24:22] [INFO] ============================================================
+[02:24:22] [INFO] Timestamp: 2026-02-05T02:24:22
+[02:24:22] [INFO] Log file: I:/Загрузки/godot exe/аним счёт/game_log_20260205_022422.txt
+[02:24:22] [INFO] Executable: I:/Загрузки/godot exe/аним счёт/Godot-Top-Down-Template.exe
+[02:24:22] [INFO] OS: Windows
+[02:24:22] [INFO] Debug build: false
+[02:24:22] [INFO] Engine version: 4.3-stable (official)
+[02:24:22] [INFO] Project: Godot Top-Down Template
+[02:24:22] [INFO] ------------------------------------------------------------
+[02:24:22] [INFO] [GameManager] GameManager ready
+[02:24:22] [INFO] [ScoreManager] ScoreManager ready
+[02:24:22] [INFO] [SoundPropagation] SoundPropagation autoload initialized
+[02:24:22] [INFO] [ImpactEffects] Scenes loaded: DustEffect, BloodEffect, SparksEffect, BloodDecal
+[02:24:22] [INFO] [ImpactEffects] ImpactEffectsManager ready - FULL VERSION with blood effects enabled
+[02:24:22] [INFO] [ImpactEffects] Starting particle shader warmup (Issue #343 fix)...
+[02:24:22] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[02:24:22] [INFO] [PenultimateHit] Saturation shader loaded successfully
+[02:24:22] [INFO] [PenultimateHit] Starting shader warmup (Issue #343 fix)...
+[02:24:22] [INFO] [PenultimateHit] PenultimateHitEffectsManager ready - Configuration:
+[02:24:22] [INFO] [PenultimateHit]   Time scale: 0.10 (10x slowdown)
+[02:24:22] [INFO] [PenultimateHit]   Saturation boost: 2.0 (3.0x)
+[02:24:22] [INFO] [PenultimateHit]   Contrast boost: 1.0 (2.0x)
+[02:24:22] [INFO] [PenultimateHit]   Effect duration: 3.0 real seconds
+[02:24:22] [INFO] [LastChance] Resetting all effects (scene change detected)
+[02:24:22] [INFO] [LastChance] Last chance shader loaded successfully
+[02:24:22] [INFO] [LastChance] Starting shader warmup (Issue #343 fix)...
+[02:24:22] [INFO] [LastChance] LastChanceEffectsManager ready - Configuration:
+[02:24:22] [INFO] [LastChance]   Freeze duration: 6.0 real seconds
+[02:24:22] [INFO] [LastChance]   Sepia intensity: 0.70
+[02:24:22] [INFO] [LastChance]   Brightness: 0.60
+[02:24:22] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FlashbangGrenade.tscn
+[02:24:22] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FragGrenade.tscn
+[02:24:22] [INFO] [ExperimentalSettings] ExperimentalSettings initialized - FOV enabled: true, Complex grenade throwing: false
+[02:24:22] [INFO] [CinemaEffects] CinemaEffectsManager initializing (v5.3 - overlay approach with simplified death circle)...
+[02:24:22] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+[02:24:22] [INFO] [CinemaEffects] Created effects layer at layer 99
+[02:24:22] [INFO] [CinemaEffects] Cinema shader loaded successfully (v5.0 - no screen_texture)
+[02:24:22] [INFO] [CinemaEffects] Starting cinema shader warmup (Issue #343 fix)...
+[02:24:22] [INFO] [CinemaEffects] Cinema film effect initialized (v5.3) - Configuration:
+[02:24:22] [INFO] [CinemaEffects]   Approach: Overlay-based (no screen_texture)
+[02:24:22] [INFO] [CinemaEffects]   Grain intensity: 0.15
+[02:24:22] [INFO] [CinemaEffects]   Warm tint: 0.12 intensity
+[02:24:22] [INFO] [CinemaEffects]   Sunny effect: 0.08 intensity
+[02:24:22] [INFO] [CinemaEffects]   Vignette: 0.25 intensity
+[02:24:22] [INFO] [CinemaEffects]   Film defects: 1.5% probability
+[02:24:22] [INFO] [CinemaEffects]   White specks: 0.70 intensity, 4.0% probability
+[02:24:22] [INFO] [CinemaEffects]   Death effects: cigarette burn + expanding spots + end of reel circle (160px, blinks 2x)
+[02:24:22] [INFO] [CinemaEffects] Enabling effect after 1 frame(s)...
+[02:24:22] [INFO] [GrenadeTimerHelper] Autoload ready
+[02:24:22] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:24:22] [INFO] [BloodyFeet:Enemy1] Footprint scene loaded
+[02:24:22] [INFO] [BloodyFeet:Enemy1] Found EnemyModel for facing direction
+[02:24:22] [INFO] [BloodyFeet:Enemy1] BloodyFeetComponent ready on Enemy1
+[02:24:22] [ENEMY] [Enemy1] Death animation component initialized
+[02:24:22] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:24:22] [INFO] [BloodyFeet:Enemy2] Footprint scene loaded
+[02:24:22] [INFO] [BloodyFeet:Enemy2] Found EnemyModel for facing direction
+[02:24:22] [INFO] [BloodyFeet:Enemy2] BloodyFeetComponent ready on Enemy2
+[02:24:22] [ENEMY] [Enemy2] Death animation component initialized
+[02:24:22] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:24:22] [INFO] [BloodyFeet:Enemy3] Footprint scene loaded
+[02:24:22] [INFO] [BloodyFeet:Enemy3] Found EnemyModel for facing direction
+[02:24:22] [INFO] [BloodyFeet:Enemy3] BloodyFeetComponent ready on Enemy3
+[02:24:22] [ENEMY] [Enemy3] Death animation component initialized
+[02:24:22] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:24:22] [INFO] [BloodyFeet:Enemy4] Footprint scene loaded
+[02:24:22] [INFO] [BloodyFeet:Enemy4] Found EnemyModel for facing direction
+[02:24:22] [INFO] [BloodyFeet:Enemy4] BloodyFeetComponent ready on Enemy4
+[02:24:22] [ENEMY] [Enemy4] Death animation component initialized
+[02:24:22] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:24:22] [INFO] [BloodyFeet:Enemy5] Footprint scene loaded
+[02:24:22] [INFO] [BloodyFeet:Enemy5] Found EnemyModel for facing direction
+[02:24:22] [INFO] [BloodyFeet:Enemy5] BloodyFeetComponent ready on Enemy5
+[02:24:22] [ENEMY] [Enemy5] Death animation component initialized
+[02:24:22] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:24:22] [INFO] [BloodyFeet:Enemy6] Footprint scene loaded
+[02:24:22] [INFO] [BloodyFeet:Enemy6] Found EnemyModel for facing direction
+[02:24:22] [INFO] [BloodyFeet:Enemy6] BloodyFeetComponent ready on Enemy6
+[02:24:22] [ENEMY] [Enemy6] Death animation component initialized
+[02:24:22] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:24:22] [INFO] [BloodyFeet:Enemy7] Footprint scene loaded
+[02:24:22] [INFO] [BloodyFeet:Enemy7] Found EnemyModel for facing direction
+[02:24:22] [INFO] [BloodyFeet:Enemy7] BloodyFeetComponent ready on Enemy7
+[02:24:22] [ENEMY] [Enemy7] Death animation component initialized
+[02:24:22] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:24:22] [INFO] [BloodyFeet:Enemy8] Footprint scene loaded
+[02:24:22] [INFO] [BloodyFeet:Enemy8] Found EnemyModel for facing direction
+[02:24:22] [INFO] [BloodyFeet:Enemy8] BloodyFeetComponent ready on Enemy8
+[02:24:22] [ENEMY] [Enemy8] Death animation component initialized
+[02:24:22] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:24:22] [INFO] [BloodyFeet:Enemy9] Footprint scene loaded
+[02:24:22] [INFO] [BloodyFeet:Enemy9] Found EnemyModel for facing direction
+[02:24:22] [INFO] [BloodyFeet:Enemy9] BloodyFeetComponent ready on Enemy9
+[02:24:22] [ENEMY] [Enemy9] Death animation component initialized
+[02:24:22] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:24:22] [INFO] [BloodyFeet:Enemy10] Footprint scene loaded
+[02:24:22] [INFO] [BloodyFeet:Enemy10] Found EnemyModel for facing direction
+[02:24:22] [INFO] [BloodyFeet:Enemy10] BloodyFeetComponent ready on Enemy10
+[02:24:22] [ENEMY] [Enemy10] Death animation component initialized
+[02:24:22] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[02:24:22] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[02:24:22] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[02:24:22] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[02:24:22] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[02:24:22] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[02:24:22] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[02:24:22] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[02:24:22] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[02:24:22] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[02:24:22] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[02:24:22] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[02:24:22] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 2/4
+[02:24:22] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[02:24:22] [INFO] [BloodDecal] Blood puddle created at (640, 360) (added to group)
+[02:24:22] [INFO] [CinemaEffects] Found player node: Player
+[02:24:22] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[02:24:22] [INFO] [BloodyFeet:Enemy1] Blood detector created and attached to Enemy1
+[02:24:22] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 1)
+[02:24:22] [ENEMY] [Enemy1] Registered as sound listener
+[02:24:22] [ENEMY] [Enemy1] Spawned at (300, 350), hp: 2, behavior: GUARD
+[02:24:22] [INFO] [BloodyFeet:Enemy2] Blood detector created and attached to Enemy2
+[02:24:22] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 2)
+[02:24:22] [ENEMY] [Enemy2] Registered as sound listener
+[02:24:22] [ENEMY] [Enemy2] Spawned at (400, 550), hp: 2, behavior: GUARD
+[02:24:22] [INFO] [BloodyFeet:Enemy3] Blood detector created and attached to Enemy3
+[02:24:22] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 3)
+[02:24:22] [ENEMY] [Enemy3] Registered as sound listener
+[02:24:22] [ENEMY] [Enemy3] Spawned at (700, 750), hp: 4, behavior: GUARD
+[02:24:22] [INFO] [BloodyFeet:Enemy4] Blood detector created and attached to Enemy4
+[02:24:22] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 4)
+[02:24:22] [ENEMY] [Enemy4] Registered as sound listener
+[02:24:22] [ENEMY] [Enemy4] Spawned at (800, 900), hp: 2, behavior: GUARD
+[02:24:22] [INFO] [BloodyFeet:Enemy5] Blood detector created and attached to Enemy5
+[02:24:22] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 5)
+[02:24:22] [ENEMY] [Enemy5] Registered as sound listener
+[02:24:22] [ENEMY] [Enemy5] Spawned at (1700, 350), hp: 2, behavior: GUARD
+[02:24:22] [INFO] [BloodyFeet:Enemy6] Blood detector created and attached to Enemy6
+[02:24:22] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 6)
+[02:24:22] [ENEMY] [Enemy6] Registered as sound listener
+[02:24:22] [ENEMY] [Enemy6] Spawned at (1950, 450), hp: 2, behavior: GUARD
+[02:24:22] [INFO] [BloodyFeet:Enemy7] Blood detector created and attached to Enemy7
+[02:24:22] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 7)
+[02:24:22] [ENEMY] [Enemy7] Registered as sound listener
+[02:24:22] [ENEMY] [Enemy7] Spawned at (1606.114, 893.8859), hp: 2, behavior: PATROL
+[02:24:22] [INFO] [BloodyFeet:Enemy8] Blood detector created and attached to Enemy8
+[02:24:22] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 8)
+[02:24:22] [ENEMY] [Enemy8] Registered as sound listener
+[02:24:22] [ENEMY] [Enemy8] Spawned at (1900, 1450), hp: 3, behavior: GUARD
+[02:24:22] [INFO] [BloodyFeet:Enemy9] Blood detector created and attached to Enemy9
+[02:24:22] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 9)
+[02:24:22] [ENEMY] [Enemy9] Registered as sound listener
+[02:24:22] [ENEMY] [Enemy9] Spawned at (2100, 1550), hp: 4, behavior: GUARD
+[02:24:22] [INFO] [BloodyFeet:Enemy10] Blood detector created and attached to Enemy10
+[02:24:22] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 10)
+[02:24:22] [ENEMY] [Enemy10] Registered as sound listener
+[02:24:22] [ENEMY] [Enemy10] Spawned at (1200, 1550), hp: 2, behavior: PATROL
+[02:24:22] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[02:24:22] [ENEMY] [Enemy1] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=326.3°, current=0.0°, player=(450,1250), corner_timer=0.00
+[02:24:22] [ENEMY] [Enemy2] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=168.8°, current=0.0°, player=(450,1250), corner_timer=0.00
+[02:24:22] [ENEMY] [Enemy3] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=123.7°, current=0.0°, player=(450,1250), corner_timer=0.00
+[02:24:22] [ENEMY] [Enemy4] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=258.8°, current=0.0°, player=(450,1250), corner_timer=0.00
+[02:24:22] [ENEMY] [Enemy5] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=101.3°, current=0.0°, player=(450,1250), corner_timer=0.00
+[02:24:22] [ENEMY] [Enemy6] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=191.3°, current=0.0°, player=(450,1250), corner_timer=0.00
+[02:24:22] [ENEMY] [Enemy8] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=157.5°, current=0.0°, player=(450,1250), corner_timer=0.00
+[02:24:22] [ENEMY] [Enemy9] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=337.5°, current=0.0°, player=(450,1250), corner_timer=0.00
+[02:24:22] [INFO] [Player] Detecting weapon pose (frame 3)...
+[02:24:22] [INFO] [Player] Detected weapon: Rifle (default pose)
+[02:24:22] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[02:24:22] [INFO] [PenultimateHit] Shader warmup complete in 186 ms
+[02:24:22] [INFO] [LastChance] Shader warmup complete in 184 ms
+[02:24:22] [INFO] [CinemaEffects] Cinema shader warmup complete in 158 ms
+[02:24:22] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[02:24:22] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[02:24:22] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[02:24:22] [INFO] [LastChance] Found player: Player
+[02:24:22] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[02:24:22] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[02:24:22] [INFO] [LastChance] Connected to player Died signal (C#)
+[02:24:22] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[02:24:23] [INFO] [ImpactEffects] Particle shader warmup complete: 7 effects warmed up in 484 ms
+[02:24:24] [ENEMY] [Enemy7] PATROL corner check: angle 94.3°
+[02:24:24] [ENEMY] [Enemy10] PATROL corner check: angle -0.0°
+[02:24:24] [ENEMY] [Enemy7] ROT_CHANGE: none -> P3:corner, state=IDLE, target=94.3°, current=4.3°, player=(450,1219), corner_timer=0.30
+[02:24:24] [ENEMY] [Enemy10] ROT_CHANGE: none -> P3:corner, state=IDLE, target=-0.0°, current=90.0°, player=(450,1219), corner_timer=0.30
+[02:24:24] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=4.3°, current=58.7°, player=(450,1131), corner_timer=-0.02
+[02:24:24] [ENEMY] [Enemy7] PATROL corner check: angle 94.3°
+[02:24:24] [ENEMY] [Enemy10] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=50.4°, player=(450,1131), corner_timer=-0.02
+[02:24:24] [ENEMY] [Enemy10] PATROL corner check: angle 14.3°
+[02:24:24] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=94.3°, current=55.9°, player=(450,1129), corner_timer=0.30
+[02:24:24] [ENEMY] [Enemy10] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=14.3°, current=52.7°, player=(450,1129), corner_timer=0.30
+[02:24:25] [ENEMY] [Enemy10] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=14.0°, player=(450,1119), corner_timer=-0.02
+[02:24:25] [ENEMY] [Enemy10] PATROL corner check: angle 7.0°
+[02:24:25] [ENEMY] [Enemy10] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=7.0°, current=16.7°, player=(450,1119), corner_timer=0.30
+[02:24:25] [ENEMY] [Enemy10] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=6.9°, player=(450,1119), corner_timer=-0.02
+[02:24:25] [ENEMY] [Enemy10] PATROL corner check: angle 3.5°
+[02:24:25] [ENEMY] [Enemy10] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=3.5°, current=9.6°, player=(450,1119), corner_timer=0.30
+[02:24:25] [INFO] [Player] Invincibility mode: ON
+[02:24:25] [INFO] [GameManager] Invincibility mode toggled: ON
+[02:24:25] [ENEMY] [Enemy10] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=3.5°, player=(450,1110), corner_timer=-0.02
+[02:24:25] [ENEMY] [Enemy10] PATROL corner check: angle 1.8°
+[02:24:25] [ENEMY] [Enemy10] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=1.8°, current=6.3°, player=(450,1107), corner_timer=0.30
+[02:24:26] [ENEMY] [Enemy10] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=1.8°, player=(450,1014), corner_timer=-0.02
+[02:24:26] [ENEMY] [Enemy10] PATROL corner check: angle 0.9°
+[02:24:26] [ENEMY] [Enemy10] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=0.9°, current=4.6°, player=(450,1008), corner_timer=0.30
+[02:24:26] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[02:24:26] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=-130.1°, player=(450,838), corner_timer=-0.02
+[02:24:26] [ENEMY] [Enemy7] PATROL corner check: angle 90.0°
+[02:24:26] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=90.0°, current=-133.0°, player=(450,832), corner_timer=0.30
+[02:24:26] [ENEMY] [Enemy3] ROT_CHANGE: P5:idle_scan -> P1:visible, state=IDLE, target=164.0°, current=123.7°, player=(450,821), corner_timer=0.00
+[02:24:26] [ENEMY] [Enemy3] State: IDLE -> COMBAT
+[02:24:26] [ENEMY] [Enemy3] ROT_CHANGE: P1:visible -> P2:combat_state, state=COMBAT, target=166.4°, current=-65.3°, player=(450,810), corner_timer=0.00
+[02:24:26] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[02:24:26] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=179.1°, current=172.4°, player=(466,741), corner_timer=-0.02
+[02:24:26] [ENEMY] [Enemy7] PATROL corner check: angle 89.8°
+[02:24:26] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(469.577, 744.9619), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[02:24:26] [ENEMY] [Enemy1] Heard gunshot at (469.577, 744.9619), source_type=0, intensity=0.01, distance=430
+[02:24:26] [ENEMY] [Enemy2] Heard gunshot at (469.577, 744.9619), source_type=0, intensity=0.06, distance=207
+[02:24:26] [ENEMY] [Enemy4] Heard gunshot at (469.577, 744.9619), source_type=0, intensity=0.02, distance=365
+[02:24:26] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=3, self=0, below_threshold=3
+[02:24:26] [ENEMY] [Enemy1] ROT_CHANGE: P5:idle_scan -> P2:combat_state, state=COMBAT, target=66.4°, current=-33.8°, player=(469,738), corner_timer=0.00
+[02:24:26] [ENEMY] [Enemy2] ROT_CHANGE: P5:idle_scan -> P2:combat_state, state=COMBAT, target=69.8°, current=168.8°, player=(469,738), corner_timer=0.00
+[02:24:26] [ENEMY] [Enemy4] ROT_CHANGE: P5:idle_scan -> P2:combat_state, state=COMBAT, target=-154.0°, current=-101.3°, player=(469,738), corner_timer=0.00
+[02:24:26] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.8°, current=175.3°, player=(469,738), corner_timer=0.30
+[02:24:27] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(491.6726, 734.0663), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[02:24:27] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=3, self=0, below_threshold=3
+[02:24:27] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[02:24:27] [ENEMY] [Enemy3] Hit taken, damage: 1, health: 4/4 -> 3/4
+[02:24:27] [ENEMY] [Enemy3] ImpactEffectsManager found, calling spawn_blood_effect
+[02:24:27] [INFO] [ImpactEffects] spawn_blood_effect called at (684.4765, 753.8722), dir=(1, 0), lethal=false
+[02:24:27] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[02:24:27] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[02:24:27] [INFO] [ImpactEffects] Blood effect spawned at (684.4765, 753.8722) (scale=1)
+[02:24:27] [ENEMY] [Enemy3] ROT_CHANGE: P2:combat_state -> P1:visible, state=COMBAT, target=-171.8°, current=180.0°, player=(506,728), corner_timer=0.00
+[02:24:27] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(469.57697, 744.9619), shooter_id=52395247409, bullet_pos=(930.89325, 827.6406)
+[02:24:27] [INFO] [Bullet] Using shooter_position, distance=468,66672
+[02:24:27] [INFO] [Bullet] Distance to wall: 468,66672 (31,91238% of viewport)
+[02:24:27] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[02:24:27] [INFO] [Bullet] Starting wall penetration at (930.89325, 827.6406)
+[02:24:27] [INFO] [Bullet] Raycast backward hit penetrating body at distance 33,145218
+[02:24:27] [INFO] [Bullet] Body exited signal received for penetrating body
+[02:24:27] [INFO] [Bullet] Exiting penetration at (968.62537, 834.40314) after traveling 33,333336 pixels through wall
+[02:24:27] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[02:24:27] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(684.4765, 753.8722), source=ENEMY (Enemy3), range=1469, listeners=10
+[02:24:27] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[02:24:27] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(529.4426, 734.2634), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[02:24:27] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=2, self=0, below_threshold=4
+[02:24:27] [INFO] [LastChance] Threat detected: Bullet
+[02:24:27] [INFO] [LastChance] Not in hard mode - effect disabled
+[02:24:27] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:24:27] [ENEMY] [Enemy3] State: COMBAT -> RETREATING
+[02:24:27] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:24:27] [INFO] [Player] Spawning blood effect at (537.83435, 729.2489), dir=(1, 0), lethal=False (C#)
+[02:24:27] [INFO] [ImpactEffects] spawn_blood_effect called at (537.8344, 729.2489), dir=(1, 0), lethal=false
+[02:24:27] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[02:24:27] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[02:24:27] [INFO] [ImpactEffects] Blood effect spawned at (537.8344, 729.2489) (scale=1)
+[02:24:27] [ENEMY] [Enemy3] ROT_CHANGE: P1:visible -> P4:velocity, state=RETREATING, target=36.1°, current=136.1°, player=(537,729), corner_timer=0.00
+[02:24:27] [ENEMY] [Enemy3] Hit taken, damage: 1, health: 3/4 -> 2/4
+[02:24:27] [ENEMY] [Enemy3] ImpactEffectsManager found, calling spawn_blood_effect
+[02:24:27] [INFO] [ImpactEffects] spawn_blood_effect called at (687.9229, 756.3876), dir=(1, 0), lethal=false
+[02:24:27] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[02:24:27] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[02:24:27] [INFO] [ImpactEffects] Blood effect spawned at (687.9229, 756.3876) (scale=1)
+[02:24:27] [ENEMY] [Enemy3] ROT_CHANGE: P4:velocity -> P1:visible, state=RETREATING, target=-169.8°, current=180.0°, player=(541,730), corner_timer=0.00
+[02:24:27] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(691.3693, 758.903), source=ENEMY (Enemy3), range=1469, listeners=10
+[02:24:27] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[02:24:27] [ENEMY] [Enemy4] State: COMBAT -> RETREATING
+[02:24:27] [ENEMY] [Enemy4] ROT_CHANGE: P2:combat_state -> P4:velocity, state=RETREATING, target=-90.0°, current=145.7°, player=(553,733), corner_timer=0.00
+[02:24:27] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=178.2°, current=121.3°, player=(557,735), corner_timer=-0.01
+[02:24:27] [ENEMY] [Enemy7] PATROL corner check: angle 89.6°
+[02:24:27] [ENEMY] [Enemy3] Hit taken, damage: 1, health: 2/4 -> 1/4
+[02:24:27] [ENEMY] [Enemy3] ImpactEffectsManager found, calling spawn_blood_effect
+[02:24:27] [INFO] [ImpactEffects] spawn_blood_effect called at (694.655, 764.3951), dir=(1, 0), lethal=false
+[02:24:27] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[02:24:27] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[02:24:27] [INFO] [ImpactEffects] Blood effect spawned at (694.655, 764.3951) (scale=1)
+[02:24:27] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.6°, current=123.5°, player=(561,736), corner_timer=0.30
+[02:24:27] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(564.634, 744.9066), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[02:24:27] [INFO] [SoundPropagation] Sound result: notified=4, out_of_range=2, self=0, below_threshold=4
+[02:24:27] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(696.8795, 768.0359), source=ENEMY (Enemy3), range=1469, listeners=10
+[02:24:27] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=1, below_threshold=6
+[02:24:27] [ENEMY] [Enemy3] ROT_CHANGE: P1:visible -> P4:velocity, state=RETREATING, target=58.0°, current=137.5°, player=(574,746), corner_timer=0.00
+[02:24:27] [ENEMY] [Enemy3] Hit taken, damage: 1, health: 1/4 -> 0/4
+[02:24:27] [ENEMY] [Enemy3] ImpactEffectsManager found, calling spawn_blood_effect
+[02:24:27] [INFO] [ImpactEffects] spawn_blood_effect called at (701.4105, 777.5784), dir=(1, 0), lethal=true
+[02:24:27] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[02:24:27] [INFO] [ImpactEffects] Blood decals scheduled: 20 to spawn at particle landing times
+[02:24:27] [INFO] [ImpactEffects] Blood effect spawned at (701.4105, 777.5784) (scale=1.5)
+[02:24:27] [ENEMY] [Enemy3] Enemy died (ricochet: false, penetration: false)
+[02:24:27] [ENEMY] [Enemy3] [AllyDeath] Notified 2 enemies
+[02:24:27] [INFO] [SoundPropagation] Unregistered listener: Enemy3 (remaining: 9)
+[02:24:27] [INFO] [DeathAnim] Started - Angle: 0.0 deg, Index: 12
+[02:24:27] [ENEMY] [Enemy3] Death animation started with hit direction: (1, 0)
+[02:24:27] [ENEMY] [Enemy4] State: RETREATING -> IN_COVER
+[02:24:27] [INFO] [BloodDecal] Blood puddle created at (748.5519, 800.6941) (added to group)
+[02:24:27] [ENEMY] [Enemy4] State: IN_COVER -> SUPPRESSED
+[02:24:27] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[02:24:27] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(588.7851, 766.3561), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[02:24:27] [INFO] [SoundPropagation] Sound result: notified=3, out_of_range=2, self=0, below_threshold=4
+[02:24:27] [INFO] [BloodDecal] Blood puddle created at (752.8947, 785.7352) (added to group)
+[02:24:27] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(564.63403, 744.90656), shooter_id=52395247409, bullet_pos=(916.25616, 728.6057)
+[02:24:27] [INFO] [Bullet] Using shooter_position, distance=351,9998
+[02:24:27] [INFO] [Bullet] Distance to wall: 351,9998 (23,968313% of viewport)
+[02:24:27] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[02:24:27] [INFO] [Bullet] Starting wall penetration at (916.25616, 728.6057)
+[02:24:27] [INFO] [Bullet] Raycast backward hit penetrating body at distance 18,56826
+[02:24:27] [INFO] [BloodDecal] Blood puddle created at (750.2138, 793.6388) (added to group)
+[02:24:27] [INFO] [Bullet] Body exited signal received for penetrating body
+[02:24:27] [INFO] [Bullet] Exiting penetration at (954.54834, 726.8305) after traveling 33,333336 pixels through wall
+[02:24:27] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[02:24:27] [INFO] [BloodDecal] Blood puddle created at (582.7719, 730.0201) (added to group)
+[02:24:27] [ENEMY] [Enemy1] State: COMBAT -> PURSUING
+[02:24:27] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[02:24:27] [INFO] [BloodDecal] Blood puddle created at (579.7454, 766.2236) (added to group)
+[02:24:27] [INFO] [BloodyFeet:Player] Stepped in blood! 12 footprints to spawn, color: (1, 1, 1, 1)
+[02:24:27] [INFO] [BloodDecal] Blood puddle created at (730.7615, 768.2336) (added to group)
+[02:24:27] [INFO] [BloodDecal] Blood puddle created at (749.8539, 795.2379) (added to group)
+[02:24:27] [INFO] [BloodDecal] Blood puddle created at (729.6701, 754.0652) (added to group)
+[02:24:27] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(588.7851, 766.35614), shooter_id=52395247409, bullet_pos=(934.2899, 699.04645)
+[02:24:27] [INFO] [Bullet] Using shooter_position, distance=352,00024
+[02:24:27] [INFO] [Bullet] Distance to wall: 352,00024 (23,968346% of viewport)
+[02:24:27] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[02:24:27] [INFO] [Bullet] Starting wall penetration at (934.2899, 699.04645)
+[02:24:27] [INFO] [Bullet] Raycast backward hit penetrating body at distance 36,591103
+[02:24:27] [INFO] [BloodDecal] Blood puddle created at (761.4232, 756.9052) (added to group)
+[02:24:27] [INFO] [Bullet] Body exited signal received for penetrating body
+[02:24:27] [INFO] [Bullet] Exiting penetration at (971.9159, 691.7163) after traveling 33,333332 pixels through wall
+[02:24:27] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[02:24:27] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(588.7851, 766.35614), shooter_id=52395247409, bullet_pos=(971.9159, 691.7163)
+[02:24:27] [INFO] [Bullet] Using shooter_position, distance=390,3336
+[02:24:27] [INFO] [Bullet] Distance to wall: 390,3336 (26,578533% of viewport)
+[02:24:27] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[02:24:27] [INFO] [Bullet] Starting wall penetration at (971.9159, 691.7163)
+[02:24:27] [INFO] [Bullet] Raycast backward hit penetrating body at distance 18,898726
+[02:24:27] [INFO] [Bullet] Body exited signal received for penetrating body
+[02:24:27] [INFO] [Bullet] Exiting penetration at (1009.5419, 684.38617) after traveling 33,333332 pixels through wall
+[02:24:27] [INFO] [BloodDecal] Blood puddle created at (743.7531, 774.0131) (added to group)
+[02:24:27] [INFO] [BloodDecal] Blood puddle created at (753.0998, 789.3026) (added to group)
+[02:24:27] [INFO] [BloodDecal] Blood puddle created at (794.2711, 759.2543) (added to group)
+[02:24:27] [INFO] [BloodDecal] Blood puddle created at (600.8767, 753.8853) (added to group)
+[02:24:27] [INFO] [BloodDecal] Blood puddle created at (790.3571, 774.4441) (added to group)
+[02:24:27] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.6°, current=89.6°, player=(603,814), corner_timer=-0.01
+[02:24:27] [ENEMY] [Enemy7] PATROL corner check: angle 89.5°
+[02:24:27] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.5°, current=91.9°, player=(603,818), corner_timer=0.30
+[02:24:27] [INFO] [BloodDecal] Blood puddle created at (623.7716, 767.5897) (added to group)
+[02:24:27] [ENEMY] [Enemy2] ROT_CHANGE: P2:combat_state -> P1:visible, state=PURSUING, target=53.8°, current=101.5°, player=(603,827), corner_timer=0.00
+[02:24:27] [INFO] [BloodDecal] Blood puddle created at (655.0046, 818.9873) (added to group)
+[02:24:27] [INFO] [BloodDecal] Blood puddle created at (779.7498, 767.8849) (added to group)
+[02:24:27] [INFO] [BloodDecal] Blood puddle created at (786.2446, 791.3524) (added to group)
+[02:24:27] [INFO] [BloodDecal] Blood puddle created at (766.8727, 788.8889) (added to group)
+[02:24:27] [INFO] [BloodDecal] Blood puddle created at (771.2983, 770.077) (added to group)
+[02:24:27] [INFO] [BloodDecal] Blood puddle created at (786.9274, 775.8868) (added to group)
+[02:24:27] [INFO] [BloodDecal] Blood puddle created at (772.6292, 808.3961) (added to group)
+[02:24:27] [INFO] [BloodDecal] Blood puddle created at (848.3217, 755.3237) (added to group)
+[02:24:27] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[02:24:27] [ENEMY] [Enemy2] ROT_CHANGE: P1:visible -> P2:combat_state, state=PURSUING, target=56.6°, current=85.5°, player=(603,858), corner_timer=0.00
+[02:24:27] [INFO] [BloodDecal] Blood puddle created at (810.7853, 808.2333) (added to group)
+[02:24:27] [INFO] [BloodDecal] Blood puddle created at (654.7521, 802.4192) (added to group)
+[02:24:27] [INFO] [BloodDecal] Blood puddle created at (758.1291, 782.5367) (added to group)
+[02:24:27] [INFO] [BloodDecal] Blood puddle created at (792.918, 791.1407) (added to group)
+[02:24:27] [INFO] [BloodDecal] Blood puddle created at (792.6594, 806.7054) (added to group)
+[02:24:27] [INFO] [BloodDecal] Blood puddle created at (781.3138, 776.4206) (added to group)
+[02:24:27] [INFO] [BloodDecal] Blood puddle created at (807.0493, 815.7209) (added to group)
+[02:24:27] [INFO] [BloodDecal] Blood puddle created at (673.4167, 756.9014) (added to group)
+[02:24:27] [INFO] [BloodDecal] Blood puddle created at (808.7112, 837.9279) (added to group)
+[02:24:27] [INFO] [BloodDecal] Blood puddle created at (782.1219, 794.9514) (added to group)
+[02:24:27] [INFO] [BloodyFeet:Enemy4] Stepped in blood! 12 footprints to spawn, color: (1, 1, 1, 1)
+[02:24:27] [INFO] [BloodDecal] Blood puddle created at (879.5383, 822.1745) (added to group)
+[02:24:28] [ENEMY] [Enemy3] Ragdoll activated
+[02:24:28] [INFO] [DeathAnim] Ragdoll activated at 60% fall progress
+[02:24:28] [INFO] [BloodDecal] Blood puddle created at (704.2607, 807.5945) (added to group)
+[02:24:28] [INFO] [BloodDecal] Blood puddle created at (834.3795, 844.3113) (added to group)
+[02:24:28] [INFO] [BloodyFeet:Enemy3] Stepped in blood! 12 footprints to spawn, color: (1, 1, 1, 1)
+[02:24:28] [INFO] [BloodDecal] Blood puddle created at (904.3911, 785.734) (added to group)
+[02:24:28] [INFO] [BloodDecal] Blood puddle created at (850.1899, 779.9949) (added to group)
+[02:24:28] [INFO] [BloodDecal] Blood puddle created at (856.5791, 848.9014) (added to group)
+[02:24:28] [INFO] [BloodDecal] Blood puddle created at (855.0581, 870.7587) (added to group)
+[02:24:28] [INFO] [BloodDecal] Blood puddle created at (866.4851, 767.7766) (added to group)
+[02:24:28] [INFO] [BloodDecal] Blood puddle created at (850.9358, 839.7347) (added to group)
+[02:24:28] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.2°, current=89.5°, player=(623,911), corner_timer=-0.01
+[02:24:28] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[02:24:28] [INFO] [BloodDecal] Blood puddle created at (875.0334, 809.2543) (added to group)
+[02:24:28] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.4°, current=91.8°, player=(626,914), corner_timer=0.30
+[02:24:28] [INFO] [BloodDecal] Blood puddle created at (875.0925, 840.7708) (added to group)
+[02:24:28] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[02:24:28] [ENEMY] [Enemy2] ROT_CHANGE: P2:combat_state -> P1:visible, state=PURSUING, target=55.5°, current=55.9°, player=(664,935), corner_timer=0.00
+[02:24:28] [ENEMY] [Enemy4] State: SUPPRESSED -> SEEKING_COVER
+[02:24:28] [ENEMY] [Enemy4] State: SEEKING_COVER -> IN_COVER
+[02:24:28] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[02:24:28] [ENEMY] [Enemy4] State: IN_COVER -> SUPPRESSED
+[02:24:28] [ENEMY] [Enemy4] State: SUPPRESSED -> SEEKING_COVER
+[02:24:28] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.0°, current=89.4°, player=(716,937), corner_timer=-0.01
+[02:24:28] [ENEMY] [Enemy7] PATROL corner check: angle 89.3°
+[02:24:28] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.3°, current=91.7°, player=(720,937), corner_timer=0.30
+[02:24:28] [ENEMY] [Enemy2] ROT_CHANGE: P1:visible -> P2:combat_state, state=COMBAT, target=48.8°, current=48.8°, player=(738,937), corner_timer=0.00
+[02:24:28] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[02:24:28] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(764.4647, 943.1499), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[02:24:28] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0, below_threshold=7
+[02:24:28] [INFO] [LastChance] Threat detected: Bullet
+[02:24:28] [INFO] [LastChance] Not in hard mode - effect disabled
+[02:24:28] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:24:28] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(764.4647, 943.1499), shooter_id=52395247409, bullet_pos=(755.89307, 875.02026)
+[02:24:28] [INFO] [Bullet] Using shooter_position, distance=68,66673
+[02:24:28] [INFO] [Bullet] Distance to wall: 68,66673 (4,6756444% of viewport)
+[02:24:28] [INFO] [Bullet] Point-blank shot - 100% penetration, ignoring ricochet
+[02:24:28] [INFO] [Bullet] Starting wall penetration at (755.89307, 875.02026)
+[02:24:28] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[02:24:28] [INFO] [Bullet] Exiting penetration at (751.1079, 836.98676) after traveling 33,333336 pixels through wall
+[02:24:28] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[02:24:28] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(796.0726, 934.4777), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[02:24:28] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0, below_threshold=7
+[02:24:28] [ENEMY] [Enemy4] Hit taken, damage: 1, health: 2/2 -> 1/2
+[02:24:28] [ENEMY] [Enemy4] ImpactEffectsManager found, calling spawn_blood_effect
+[02:24:28] [INFO] [ImpactEffects] spawn_blood_effect called at (796.2867, 826.821), dir=(1, 0), lethal=false
+[02:24:28] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[02:24:28] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[02:24:28] [INFO] [ImpactEffects] Blood effect spawned at (796.2867, 826.821) (scale=1)
+[02:24:28] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=176.8°, current=89.3°, player=(811,917), corner_timer=-0.01
+[02:24:28] [ENEMY] [Enemy7] PATROL corner check: angle 89.3°
+[02:24:28] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.3°, current=91.6°, player=(814,915), corner_timer=0.30
+[02:24:28] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(819.1517, 915.8139), source=PLAYER (AssaultRifle), range=1469, listeners=9
+[02:24:28] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0, below_threshold=7
+[02:24:28] [ENEMY] [Enemy4] Hit taken, damage: 1, health: 1/2 -> 0/2
+[02:24:28] [ENEMY] [Enemy4] ImpactEffectsManager found, calling spawn_blood_effect
+[02:24:28] [INFO] [ImpactEffects] spawn_blood_effect called at (796.2867, 826.821), dir=(1, 0), lethal=true
+[02:24:28] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[02:24:28] [INFO] [ImpactEffects] Blood decals scheduled: 20 to spawn at particle landing times
+[02:24:28] [INFO] [ImpactEffects] Blood effect spawned at (796.2867, 826.821) (scale=1.5)
+[02:24:28] [ENEMY] [Enemy4] Enemy died (ricochet: false, penetration: false)
+[02:24:28] [ENEMY] [Enemy4] [AllyDeath] Notified 1 enemies
+[02:24:28] [INFO] [SoundPropagation] Unregistered listener: Enemy4 (remaining: 8)
+[02:24:28] [INFO] [DeathAnim] Started - Angle: 0.0 deg, Index: 12
+[02:24:28] [ENEMY] [Enemy4] Death animation started with hit direction: (1, 0)
+[02:24:29] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[02:24:29] [ENEMY] [Enemy2] State: COMBAT -> PURSUING
+[02:24:29] [INFO] [BloodDecal] Blood puddle created at (870.4875, 874.9926) (added to group)
+[02:24:29] [INFO] [BloodDecal] Blood puddle created at (851.3567, 864.7576) (added to group)
+[02:24:29] [ENEMY] [Enemy3] Death animation completed
+[02:24:29] [INFO] [BloodDecal] Blood puddle created at (886.7018, 820.9963) (added to group)
+[02:24:29] [ENEMY] [Enemy2] ROT_CHANGE: P2:combat_state -> P1:visible, state=PURSUING, target=36.1°, current=36.3°, player=(840,880), corner_timer=0.00
+[02:24:29] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=176.7°, current=89.3°, player=(841,879), corner_timer=-0.01
+[02:24:29] [ENEMY] [Enemy7] PATROL corner check: angle 89.3°
+[02:24:29] [INFO] [BloodDecal] Blood puddle created at (844.0887, 840.9247) (added to group)
+[02:24:29] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.3°, current=91.6°, player=(841,879), corner_timer=0.30
+[02:24:29] [INFO] [BloodDecal] Blood puddle created at (897.2374, 876.0898) (added to group)
+[02:24:29] [INFO] [BloodDecal] Blood puddle created at (870.5681, 841.9722) (added to group)
+[02:24:29] [INFO] [BloodDecal] Blood puddle created at (873.5288, 834.8542) (added to group)
+[02:24:29] [INFO] [BloodDecal] Blood puddle created at (869.0894, 878.8539) (added to group)
+[02:24:29] [ENEMY] [Enemy1] PURSUING corner check: angle -131.5°
+[02:24:29] [INFO] [BloodDecal] Blood puddle created at (899.1365, 811.0582) (added to group)
+[02:24:29] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[02:24:29] [INFO] [BloodDecal] Blood puddle created at (889.8766, 858.0417) (added to group)
+[02:24:29] [INFO] [BloodDecal] Blood puddle created at (863.8475, 832.8585) (added to group)
+[02:24:29] [INFO] [BloodDecal] Blood puddle created at (890.6139, 845.7803) (added to group)
+[02:24:29] [INFO] [BloodDecal] Blood puddle created at (861.84, 894.6689) (added to group)
+[02:24:29] [ENEMY] [Enemy4] Ragdoll activated
+[02:24:29] [INFO] [DeathAnim] Ragdoll activated at 60% fall progress
+[02:24:29] [INFO] [BloodDecal] Blood puddle created at (892.6215, 863.0595) (added to group)
+[02:24:29] [INFO] [BloodDecal] Blood puddle created at (868.424, 856.8016) (added to group)
+[02:24:29] [INFO] [BloodDecal] Blood puddle created at (896.4379, 882.75) (added to group)
+[02:24:29] [INFO] [BloodDecal] Blood puddle created at (899.0443, 914.2839) (added to group)
+[02:24:29] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=176.7°, current=89.3°, player=(841,879), corner_timer=-0.01
+[02:24:29] [ENEMY] [Enemy7] PATROL corner check: angle 89.3°
+[02:24:29] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.3°, current=91.6°, player=(841,879), corner_timer=0.30
+[02:24:29] [ENEMY] [Enemy1] PURSUING corner check: angle -75.6°
+[02:24:29] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[02:24:30] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=176.6°, current=89.3°, player=(841,879), corner_timer=-0.01
+[02:24:30] [ENEMY] [Enemy7] PATROL corner check: angle 89.2°
+[02:24:30] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.2°, current=91.5°, player=(841,879), corner_timer=0.30
+[02:24:30] [ENEMY] [Enemy1] PURSUING corner check: angle -74.8°
+[02:24:30] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[02:24:30] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=176.6°, current=89.2°, player=(841,879), corner_timer=-0.01
+[02:24:30] [ENEMY] [Enemy7] PATROL corner check: angle 89.2°
+[02:24:30] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.2°, current=91.5°, player=(841,879), corner_timer=0.30
+[02:24:30] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[02:24:30] [ENEMY] [Enemy4] Death animation completed
+[02:24:30] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=176.6°, current=89.2°, player=(841,879), corner_timer=-0.01
+[02:24:30] [ENEMY] [Enemy7] PATROL corner check: angle 89.2°
+[02:24:30] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.2°, current=91.5°, player=(841,879), corner_timer=0.30
+[02:24:30] [ENEMY] [Enemy2] PURSUING corner check: angle -81.9°
+[02:24:31] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[02:24:31] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=176.6°, current=89.2°, player=(841,879), corner_timer=-0.01
+[02:24:31] [ENEMY] [Enemy7] PATROL corner check: angle 89.2°
+[02:24:31] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.2°, current=91.5°, player=(841,879), corner_timer=0.30
+[02:24:31] [ENEMY] [Enemy2] PURSUING corner check: angle -57.5°
+[02:24:31] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[02:24:31] [INFO] [BloodyFeet:Enemy2] Stepped in blood! 12 footprints to spawn, color: (1, 1, 1, 1)
+[02:24:31] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=176.6°, current=89.2°, player=(841,879), corner_timer=-0.01
+[02:24:31] [ENEMY] [Enemy7] PATROL corner check: angle 89.2°
+[02:24:31] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.2°, current=91.5°, player=(841,879), corner_timer=0.30
+[02:24:31] [ENEMY] [Enemy2] PURSUING corner check: angle -78.4°
+[02:24:31] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[02:24:31] [ENEMY] [Enemy2] State: PURSUING -> COMBAT
+[02:24:32] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=176.6°, current=89.2°, player=(841,879), corner_timer=-0.01
+[02:24:32] [ENEMY] [Enemy7] PATROL corner check: angle 89.2°
+[02:24:32] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.2°, current=92.1°, player=(841,879), corner_timer=0.30
+[02:24:32] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[02:24:32] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(724.6276, 760.8964), source=ENEMY (Enemy2), range=1469, listeners=8
+[02:24:32] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=1, below_threshold=5
+[02:24:32] [INFO] [LastChance] Threat detected: Bullet
+[02:24:32] [INFO] [LastChance] Not in hard mode - effect disabled
+[02:24:32] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:24:32] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=176.8°, current=89.3°, player=(841,879), corner_timer=-0.02
+[02:24:32] [ENEMY] [Enemy7] PATROL corner check: angle 89.3°
+[02:24:32] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.3°, current=92.1°, player=(841,879), corner_timer=0.30
+[02:24:32] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:24:32] [INFO] [Player] Spawning blood effect at (841.3802, 879.2666), dir=(1, 0), lethal=False (C#)
+[02:24:32] [INFO] [ImpactEffects] spawn_blood_effect called at (841.3802, 879.2666), dir=(1, 0), lethal=false
+[02:24:32] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[02:24:32] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[02:24:32] [INFO] [ImpactEffects] Wall found for blood splatter at (912, 879.2666) (dist=70 px)
+[02:24:32] [INFO] [BloodDecal] Blood puddle created at (911, 879.2666) (added to group)
+[02:24:32] [INFO] [ImpactEffects] Blood effect spawned at (841.3802, 879.2666) (scale=1)
+[02:24:32] [ENEMY] [Enemy1] PURSUING corner check: angle -168.2°
+[02:24:32] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(724.6276, 760.8964), source=ENEMY (Enemy2), range=1469, listeners=8
+[02:24:32] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=1, below_threshold=5
+[02:24:32] [INFO] [LastChance] Threat detected: Bullet
+[02:24:32] [INFO] [LastChance] Not in hard mode - effect disabled
+[02:24:32] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:24:32] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[02:24:32] [INFO] [Player] Hit blocked by invincibility mode (C#)
+[02:24:32] [INFO] [Player] Spawning blood effect at (841.3802, 879.2666), dir=(1, 0), lethal=False (C#)
+[02:24:32] [INFO] [ImpactEffects] spawn_blood_effect called at (841.3802, 879.2666), dir=(1, 0), lethal=false
+[02:24:32] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[02:24:32] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[02:24:32] [INFO] [ImpactEffects] Wall found for blood splatter at (912, 879.2666) (dist=70 px)
+[02:24:32] [INFO] [BloodDecal] Blood puddle created at (911, 879.2666) (added to group)
+[02:24:32] [INFO] [ImpactEffects] Blood effect spawned at (841.3802, 879.2666) (scale=1)
+[02:24:32] [ENEMY] [Enemy1] ROT_CHANGE: P2:combat_state -> P1:visible, state=PURSUING, target=38.8°, current=47.8°, player=(841,879), corner_timer=0.20
+[02:24:32] [ENEMY] [Enemy2] State: COMBAT -> RETREATING
+[02:24:32] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(724.6276, 760.8964), source=ENEMY (Enemy2), range=1469, listeners=8
+[02:24:32] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=1, below_threshold=5
+[02:24:32] [INFO] [BloodDecal] Blood puddle created at (905.0294, 875.0464) (added to group)
+[02:24:32] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(0, 0), shooter_id=0, bullet_pos=(933.21155, 814.5019)
+[02:24:32] [INFO] [Bullet] WARNING: Unable to determine shooter position
+[02:24:32] [INFO] [Bullet] Using shooter_position, distance=1238,6675
+[02:24:32] [INFO] [Bullet] Distance to wall: 1238,6675 (84,34315% of viewport)
+[02:24:32] [INFO] [Bullet] Distance-based penetration chance: 48,266335%
+[02:24:32] [INFO] [Bullet] Penetration failed (distance roll)
+[02:24:32] [ENEMY] [Enemy1] ROT_CHANGE: P1:visible -> P2:combat_state, state=PURSUING, target=34.5°, current=35.1°, player=(841,879), corner_timer=0.07
+[02:24:32] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(700.5097, 769.7305), source=ENEMY (Enemy2), range=1469, listeners=8
+[02:24:32] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=1, below_threshold=5
+[02:24:32] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.0°, current=89.3°, player=(841,879), corner_timer=-0.02
+[02:24:32] [ENEMY] [Enemy7] PATROL corner check: angle 89.3°
+[02:24:32] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(0, 0), shooter_id=0, bullet_pos=(749.2061, 817.4739)
+[02:24:32] [INFO] [Bullet] WARNING: Unable to determine shooter position
+[02:24:32] [INFO] [Bullet] Using shooter_position, distance=1108,8613
+[02:24:32] [INFO] [Bullet] Distance to wall: 1108,8613 (75,50441% of viewport)
+[02:24:32] [INFO] [Bullet] Distance-based penetration chance: 58,578194%
+[02:24:32] [INFO] [Bullet] Penetration failed (distance roll)
+[02:24:32] [ENEMY] [Enemy2] ROT_CHANGE: P1:visible -> P3:corner, state=RETREATING, target=-78.4°, current=36.8°, player=(841,879), corner_timer=0.25
+[02:24:32] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.3°, current=92.2°, player=(841,879), corner_timer=0.30
+[02:24:32] [ENEMY] [Enemy1] PURSUING corner check: angle 11.8°
+[02:24:32] [ENEMY] [Enemy2] State: RETREATING -> IN_COVER
+[02:24:32] [ENEMY] [Enemy2] State: IN_COVER -> SUPPRESSED
+[02:24:32] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[02:24:33] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.1°, current=89.3°, player=(841,879), corner_timer=-0.02
+[02:24:33] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[02:24:33] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.4°, current=92.2°, player=(841,879), corner_timer=0.30
+[02:24:33] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[02:24:33] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.1°, current=89.4°, player=(841,874), corner_timer=-0.02
+[02:24:33] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[02:24:33] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.4°, current=92.2°, player=(841,872), corner_timer=0.30
+[02:24:33] [ENEMY] [Enemy2] State: SUPPRESSED -> SEEKING_COVER
+[02:24:33] [ENEMY] [Enemy2] State: SEEKING_COVER -> IN_COVER
+[02:24:33] [ENEMY] [Enemy1] ROT_CHANGE: P2:combat_state -> P1:visible, state=PURSUING, target=25.5°, current=25.9°, player=(841,853), corner_timer=0.23
+[02:24:33] [ENEMY] [Enemy2] State: IN_COVER -> SUPPRESSED
+[02:24:33] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[02:24:33] [ENEMY] [Enemy2] State: SUPPRESSED -> SEEKING_COVER
+[02:24:33] [ENEMY] [Enemy2] ROT_CHANGE: P3:corner -> P1:visible, state=SEEKING_COVER, target=8.8°, current=-21.3°, player=(841,828), corner_timer=0.25
+[02:24:33] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(657.7734, 800.0969), source=ENEMY (Enemy2), range=1469, listeners=8
+[02:24:33] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=1, below_threshold=5
+[02:24:33] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(727.7578, 817.53204), shooter_id=48687482452, bullet_pos=(727.7578, 817.53204)
+[02:24:33] [INFO] [Bullet] Using shooter_position, distance=0
+[02:24:33] [INFO] [Bullet] Distance to wall: 0 (0% of viewport)
+[02:24:33] [INFO] [Bullet] Point-blank shot - 100% penetration, ignoring ricochet
+[02:24:33] [INFO] [Bullet] Starting wall penetration at (727.7578, 817.53204)
+[02:24:33] [INFO] [LastChance] Threat detected: Bullet
+[02:24:33] [INFO] [LastChance] Not in hard mode - effect disabled
+[02:24:33] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:24:33] [INFO] [Bullet] Raycast backward hit penetrating body at distance 14,042729
+[02:24:33] [INFO] [Bullet] Body exited signal received for penetrating body
+[02:24:33] [INFO] [Bullet] Exiting penetration at (773.8784, 824.64996) after traveling 41,66667 pixels through wall
+[02:24:33] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[02:24:33] [ENEMY] [Enemy2] ROT_CHANGE: P1:visible -> P3:corner, state=SEEKING_COVER, target=-78.4°, current=-16.9°, player=(841,811), corner_timer=0.25
+[02:24:33] [ENEMY] [Enemy1] State: PURSUING -> COMBAT
+[02:24:33] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(841.3802, 801.4333), source=PLAYER (AssaultRifle), range=1469, listeners=8
+[02:24:33] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0, below_threshold=6
+[02:24:33] [ENEMY] [Enemy1] ROT_CHANGE: P1:visible -> P2:combat_state, state=COMBAT, target=18.6°, current=-62.6°, player=(841,795), corner_timer=0.23
+[02:24:33] [ENEMY] [Enemy2] State: SEEKING_COVER -> IN_COVER
+[02:24:33] [ENEMY] [Enemy2] State: IN_COVER -> SUPPRESSED
+[02:24:33] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.2°, current=89.4°, player=(841,784), corner_timer=-0.02
+[02:24:33] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[02:24:33] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.4°, current=92.3°, player=(841,778), corner_timer=0.30
+[02:24:33] [ENEMY] [Enemy2] State: SUPPRESSED -> SEEKING_COVER
+[02:24:33] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(841.3802, 762.9333), source=PLAYER (AssaultRifle), range=1469, listeners=8
+[02:24:33] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=0, below_threshold=5
+[02:24:33] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(841.3802, 801.4333), shooter_id=52395247409, bullet_pos=(497.7179, 803.1751)
+[02:24:33] [INFO] [Bullet] Using shooter_position, distance=343,66672
+[02:24:33] [INFO] [Bullet] Distance to wall: 343,66672 (23,4009% of viewport)
+[02:24:33] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[02:24:33] [INFO] [Bullet] Starting wall penetration at (497.7179, 803.1751)
+[02:24:33] [INFO] [Bullet] Raycast backward hit penetrating body at distance 48,948807
+[02:24:33] [INFO] [Bullet] Body exited signal received for penetrating body
+[02:24:33] [INFO] [Bullet] Exiting penetration at (451.05182, 803.4116) after traveling 41,66667 pixels through wall
+[02:24:33] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[02:24:33] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[02:24:33] [ENEMY] [Enemy1] ROT_CHANGE: P2:combat_state -> P1:visible, state=COMBAT, target=13.4°, current=-33.9°, player=(840,729), corner_timer=0.23
+[02:24:33] [ENEMY] [Enemy2] State: SEEKING_COVER -> IN_COVER
+[02:24:33] [ENEMY] [Enemy2] State: IN_COVER -> SUPPRESSED
+[02:24:33] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(838.3006, 725.7089), source=PLAYER (AssaultRifle), range=1469, listeners=8
+[02:24:33] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=0, below_threshold=5
+[02:24:33] [ENEMY] [Enemy2] State: SUPPRESSED -> SEEKING_COVER
+[02:24:34] [ENEMY] [Enemy2] State: SEEKING_COVER -> IN_COVER
+[02:24:34] [ENEMY] [Enemy2] State: IN_COVER -> SUPPRESSED
+[02:24:34] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(822.6204, 696.3979), source=PLAYER (AssaultRifle), range=1469, listeners=8
+[02:24:34] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=0, below_threshold=5
+[02:24:34] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(838.3006, 725.7089), shooter_id=52395247409, bullet_pos=(505.62643, 811.9339)
+[02:24:34] [INFO] [Bullet] Using shooter_position, distance=343,66678
+[02:24:34] [INFO] [Bullet] Distance to wall: 343,66678 (23,400904% of viewport)
+[02:24:34] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[02:24:34] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.2°, current=89.4°, player=(819,687), corner_timer=-0.02
+[02:24:34] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[02:24:34] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.4°, current=92.3°, player=(816,684), corner_timer=0.30
+[02:24:34] [ENEMY] [Enemy2] State: SUPPRESSED -> SEEKING_COVER
+[02:24:34] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(841.3802, 762.9333), shooter_id=52395247409, bullet_pos=(42.397976, 832.443)
+[02:24:34] [INFO] [Bullet] Using shooter_position, distance=802,0002
+[02:24:34] [INFO] [Bullet] Distance to wall: 802,0002 (54,60967% of viewport)
+[02:24:34] [INFO] [Bullet] Distance-based penetration chance: 82,95539%
+[02:24:34] [INFO] [Bullet] Penetration failed (distance roll)
+[02:24:34] [ENEMY] [Enemy2] Hit taken, damage: 1, health: 2/2 -> 1/2
+[02:24:34] [ENEMY] [Enemy2] ImpactEffectsManager found, calling spawn_blood_effect
+[02:24:34] [INFO] [ImpactEffects] spawn_blood_effect called at (644.9945, 872.2888), dir=(1, 0), lethal=false
+[02:24:34] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[02:24:34] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[02:24:34] [INFO] [ImpactEffects] Wall found for blood splatter at (680, 872.2888) (dist=35 px)
+[02:24:34] [INFO] [BloodDecal] Blood puddle created at (679, 872.2888) (added to group)
+[02:24:34] [INFO] [ImpactEffects] Blood effect spawned at (644.9945, 872.2888) (scale=1)
+[02:24:34] [ENEMY] [Enemy2] State: SEEKING_COVER -> IN_COVER
+[02:24:34] [ENEMY] [Enemy2] State: IN_COVER -> SUPPRESSED
+[02:24:34] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(558.978, 644.6675), source=ENEMY (Enemy1), range=1469, listeners=8
+[02:24:34] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=2, self=1, below_threshold=4
+[02:24:34] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[02:24:34] [ENEMY] [Enemy2] State: SUPPRESSED -> SEEKING_COVER
+[02:24:34] [INFO] [LastChance] Threat detected: Bullet
+[02:24:34] [INFO] [LastChance] Not in hard mode - effect disabled
+[02:24:34] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:24:34] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(558.978, 644.6675), source=ENEMY (Enemy1), range=1469, listeners=8
+[02:24:34] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=2, self=1, below_threshold=4
+[02:24:34] [INFO] [LastChance] Threat detected: @Area2D@476
+[02:24:34] [INFO] [LastChance] Not in hard mode - effect disabled
+[02:24:34] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:24:34] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(625.2025, 660.54425), shooter_id=48335160895, bullet_pos=(923.0265, 696.61127)
+[02:24:34] [INFO] [Bullet] Using shooter_position, distance=299,9999
+[02:24:34] [INFO] [Bullet] Distance to wall: 299,9999 (20,427546% of viewport)
+[02:24:34] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[02:24:34] [INFO] [Bullet] Starting wall penetration at (923.0265, 696.61127)
+[02:24:34] [INFO] [Bullet] Raycast backward hit penetrating body at distance 25,265041
+[02:24:34] [INFO] [Bullet] Body exited signal received for penetrating body
+[02:24:34] [INFO] [Bullet] Exiting penetration at (961.0818, 701.21985) after traveling 33,333336 pixels through wall
+[02:24:34] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[02:24:34] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(625.2025, 660.54425), shooter_id=48335160895, bullet_pos=(961.0818, 701.21985)
+[02:24:34] [INFO] [Bullet] Using shooter_position, distance=338,33325
+[02:24:34] [INFO] [Bullet] Distance to wall: 338,33325 (23,037735% of viewport)
+[02:24:34] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[02:24:34] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(753.0836, 646.881), source=PLAYER (AssaultRifle), range=1469, listeners=8
+[02:24:34] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=0, below_threshold=5
+[02:24:34] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(822.62036, 696.39795), shooter_id=52395247409, bullet_pos=(64.87987, 932.4823)
+[02:24:34] [INFO] [Bullet] Using shooter_position, distance=793,66644
+[02:24:34] [INFO] [Bullet] Distance to wall: 793,66644 (54,04221% of viewport)
+[02:24:34] [ENEMY] [Enemy1] State: COMBAT -> RETREATING
+[02:24:34] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(558.978, 644.6675), source=ENEMY (Enemy1), range=1469, listeners=8
+[02:24:34] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=2, self=1, below_threshold=4
+[02:24:34] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.0°, current=89.4°, player=(743,631), corner_timer=-0.00
+[02:24:34] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[02:24:34] [INFO] [BloodDecal] Blood puddle created at (692.2237, 905.324) (added to group)
+[02:24:34] [ENEMY] [Enemy1] Hit taken, damage: 1, health: 2/2 -> 1/2
+[02:24:34] [ENEMY] [Enemy1] ImpactEffectsManager found, calling spawn_blood_effect
+[02:24:34] [INFO] [ImpactEffects] spawn_blood_effect called at (556.0546, 645.2791), dir=(1, 0), lethal=false
+[02:24:34] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[02:24:34] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[02:24:34] [INFO] [ImpactEffects] Blood effect spawned at (556.0546, 645.2791) (scale=1)
+[02:24:34] [INFO] [LastChance] Threat detected: @Area2D@487
+[02:24:34] [INFO] [LastChance] Not in hard mode - effect disabled
+[02:24:34] [INFO] [LastChance] Cannot trigger effect - conditions not met
+[02:24:34] [ENEMY] [Enemy1] ROT_CHANGE: P1:visible -> P3:corner, state=RETREATING, target=11.8°, current=180.0°, player=(740,628), corner_timer=0.23
+[02:24:34] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.4°, current=91.7°, player=(740,628), corner_timer=0.30
+[02:24:34] [INFO] [BloodDecal] Blood puddle created at (738.93, 932.8799) (added to group)
+[02:24:34] [ENEMY] [Enemy2] ROT_CHANGE: P3:corner -> P1:visible, state=SEEKING_COVER, target=-74.7°, current=-109.8°, player=(734,622), corner_timer=0.25
+[02:24:34] [ENEMY] [Enemy2] ROT_CHANGE: P1:visible -> P3:corner, state=SEEKING_COVER, target=-78.4°, current=173.4°, player=(731,619), corner_timer=0.25
+[02:24:34] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(728.1935, 621.9908), source=PLAYER (AssaultRifle), range=1469, listeners=8
+[02:24:34] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=1, self=0, below_threshold=5
+[02:24:34] [INFO] [BloodDecal] Blood puddle created at (724.8233, 919.9706) (added to group)
+[02:24:34] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[02:24:34] [ENEMY] [Enemy1] Hit taken, damage: 1, health: 1/2 -> 0/2
+[02:24:34] [ENEMY] [Enemy1] ImpactEffectsManager found, calling spawn_blood_effect
+[02:24:34] [INFO] [ImpactEffects] spawn_blood_effect called at (532.2933, 646.9625), dir=(1, 0), lethal=true
+[02:24:34] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[02:24:34] [INFO] [ImpactEffects] Blood decals scheduled: 20 to spawn at particle landing times
+[02:24:34] [INFO] [ImpactEffects] Blood effect spawned at (532.2933, 646.9625) (scale=1.5)
+[02:24:34] [ENEMY] [Enemy1] Enemy died (ricochet: false, penetration: false)
+[02:24:34] [ENEMY] [Enemy1] [AllyDeath] Notified 1 enemies
+[02:24:34] [INFO] [SoundPropagation] Unregistered listener: Enemy1 (remaining: 7)
+[02:24:34] [INFO] [DeathAnim] Started - Angle: 0.0 deg, Index: 12
+[02:24:34] [ENEMY] [Enemy1] Death animation started with hit direction: (1, 0)
+[02:24:34] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(0, 0), shooter_id=0, bullet_pos=(927.2308, 647.6359)
+[02:24:34] [INFO] [Bullet] WARNING: Unable to determine shooter position
+[02:24:34] [INFO] [Bullet] Using shooter_position, distance=1131,0125
+[02:24:34] [INFO] [Bullet] Distance to wall: 1131,0125 (77,01272% of viewport)
+[02:24:34] [INFO] [Bullet] Distance-based penetration chance: 56,818497%
+[02:24:34] [INFO] [Bullet] Starting wall penetration at (927.2308, 647.6359)
+[02:24:34] [INFO] [Bullet] Raycast backward hit penetrating body at distance 29,564087
+[02:24:34] [INFO] [Bullet] Body exited signal received for penetrating body
+[02:24:34] [INFO] [Bullet] Exiting penetration at (965.5641, 647.6359) after traveling 33,333336 pixels through wall
+[02:24:34] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[02:24:34] [ENEMY] [Enemy2] State: SEEKING_COVER -> IN_COVER
+[02:24:34] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(702.4869, 599.0717), source=PLAYER (AssaultRifle), range=1469, listeners=7
+[02:24:34] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=2, self=0, below_threshold=4
+[02:24:34] [ENEMY] [Enemy2] State: IN_COVER -> SUPPRESSED
+[02:24:34] [ENEMY] [Enemy2] State: SUPPRESSED -> SEEKING_COVER
+[02:24:34] [ENEMY] [Enemy2] State: SEEKING_COVER -> IN_COVER
+[02:24:34] [ENEMY] [Enemy2] State: IN_COVER -> SUPPRESSED
+[02:24:34] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(680.4891, 587.1049), source=PLAYER (AssaultRifle), range=1469, listeners=7
+[02:24:34] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=2, self=0, below_threshold=4
+[02:24:34] [INFO] [BloodDecal] Blood puddle created at (613.9351, 638.4163) (added to group)
+[02:24:34] [ENEMY] [Enemy2] State: SUPPRESSED -> SEEKING_COVER
+[02:24:34] [ENEMY] [Enemy2] State: SEEKING_COVER -> IN_COVER
+[02:24:34] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=176.8°, current=89.4°, player=(670,578), corner_timer=-0.01
+[02:24:34] [ENEMY] [Enemy7] PATROL corner check: angle 89.3°
+[02:24:34] [INFO] [BloodDecal] Blood puddle created at (736.5452, 922.4562) (added to group)
+[02:24:34] [ENEMY] [Enemy2] State: IN_COVER -> SUPPRESSED
+[02:24:34] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.3°, current=91.6°, player=(667,578), corner_timer=0.30
+[02:24:34] [INFO] [BloodDecal] Blood puddle created at (607.1869, 648.3112) (added to group)
+[02:24:34] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(680.48914, 587.1049), shooter_id=52395247409, bullet_pos=(448.82245, 686.2741)
+[02:24:34] [INFO] [Bullet] Using shooter_position, distance=251,99995
+[02:24:34] [INFO] [Bullet] Distance to wall: 251,99995 (17,15914% of viewport)
+[02:24:34] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[02:24:34] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(702.48694, 599.07166), shooter_id=52395247409, bullet_pos=(225.36615, 687.9779)
+[02:24:34] [INFO] [Bullet] Using shooter_position, distance=485,33347
+[02:24:34] [INFO] [Bullet] Distance to wall: 485,33347 (33,04725% of viewport)
+[02:24:34] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[02:24:34] [INFO] [BloodDecal] Blood puddle created at (599.6241, 660.428) (added to group)
+[02:24:34] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(659.3666, 585.0397), source=PLAYER (AssaultRifle), range=1469, listeners=7
+[02:24:34] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=2, self=0, below_threshold=4
+[02:24:34] [INFO] [BloodDecal] Blood puddle created at (627.9562, 667.5694) (added to group)
+[02:24:34] [INFO] [BloodDecal] Blood puddle created at (590.3172, 680.5604) (added to group)
+[02:24:34] [INFO] [BloodDecal] Blood puddle created at (611.0079, 698.493) (added to group)
+[02:24:35] [INFO] [BloodDecal] Blood puddle created at (626.5712, 631.8893) (added to group)
+[02:24:35] [INFO] [BloodDecal] Blood puddle created at (628.4041, 649.7905) (added to group)
+[02:24:35] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(702.48694, 599.07166), shooter_id=52395247409, bullet_pos=(58.389748, 635.5959)
+[02:24:35] [INFO] [Bullet] Using shooter_position, distance=645,1319
+[02:24:35] [INFO] [Bullet] Distance to wall: 645,1319 (43,92822% of viewport)
+[02:24:35] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[02:24:35] [INFO] [BloodDecal] Blood puddle created at (602.8683, 639.7906) (added to group)
+[02:24:35] [INFO] [BloodDecal] Blood puddle created at (588.7662, 645.6173) (added to group)
+[02:24:35] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(659.36664, 585.03973), shooter_id=52395247409, bullet_pos=(431.13657, 691.881)
+[02:24:35] [INFO] [Bullet] Using shooter_position, distance=252,00003
+[02:24:35] [INFO] [Bullet] Distance to wall: 252,00003 (17,159145% of viewport)
+[02:24:35] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[02:24:35] [INFO] [BloodDecal] Blood puddle created at (628.2378, 667.1455) (added to group)
+[02:24:35] [INFO] [BloodDecal] Blood puddle created at (659.8115, 674.7927) (added to group)
+[02:24:35] [INFO] [BloodDecal] Blood puddle created at (624.9161, 705.9205) (added to group)
+[02:24:35] [INFO] [BloodDecal] Blood puddle created at (644.9175, 658.9888) (added to group)
+[02:24:35] [INFO] [BloodDecal] Blood puddle created at (625.7259, 696.0601) (added to group)
+[02:24:35] [ENEMY] [Enemy2] State: SUPPRESSED -> SEEKING_COVER
+[02:24:35] [INFO] [BloodDecal] Blood puddle created at (673.1163, 641.6475) (added to group)
+[02:24:35] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(680.48914, 587.1049), shooter_id=52395247409, bullet_pos=(59.0543, 445.13074)
+[02:24:35] [INFO] [Bullet] Using shooter_position, distance=637,44635
+[02:24:35] [INFO] [Bullet] Distance to wall: 637,44635 (43,404896% of viewport)
+[02:24:35] [INFO] [BloodDecal] Blood puddle created at (668.3767, 736.9776) (added to group)
+[02:24:35] [ENEMY] [Enemy1] Ragdoll activated
+[02:24:35] [INFO] [DeathAnim] Ragdoll activated at 60% fall progress
+[02:24:35] [INFO] [BloodDecal] Blood puddle created at (733.6663, 766.2952) (added to group)
+[02:24:35] [ENEMY] [Enemy2] State: SEEKING_COVER -> IN_COVER
+[02:24:35] [ENEMY] [Enemy2] State: IN_COVER -> SUPPRESSED
+[02:24:35] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=176.7°, current=89.3°, player=(640,625), corner_timer=-0.01
+[02:24:35] [ENEMY] [Enemy7] PATROL corner check: angle 89.3°
+[02:24:35] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(659.36664, 585.03973), shooter_id=52395247409, bullet_pos=(55.741608, 549.001)
+[02:24:35] [INFO] [Bullet] Using shooter_position, distance=604,6998
+[02:24:35] [INFO] [Bullet] Distance to wall: 604,6998 (41,175125% of viewport)
+[02:24:35] [INFO] [Bullet] Distance-based penetration chance: 98,62902%
+[02:24:35] [INFO] [Bullet] Starting wall penetration at (55.741608, 549.001)
+[02:24:35] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.3°, current=91.6°, player=(640,629), corner_timer=0.30
+[02:24:35] [INFO] [Bullet] Raycast backward hit penetrating body at distance 7,930196
+[02:24:35] [INFO] [BloodDecal] Blood puddle created at (661.3059, 778.2985) (added to group)
+[02:24:35] [INFO] [BloodDecal] Blood puddle created at (695.4146, 665.0385) (added to group)
+[02:24:35] [INFO] [Bullet] Body exited signal received for penetrating body
+[02:24:35] [INFO] [Bullet] Exiting penetration at (24.588495, 537.14374) after traveling 28,33333 pixels through wall
+[02:24:35] [INFO] [Bullet] Damage multiplier after penetration: 0,45
+[02:24:35] [INFO] [BloodDecal] Blood puddle created at (686.728, 738.6081) (added to group)
+[02:24:35] [INFO] [BloodDecal] Blood puddle created at (713.4443, 777.7167) (added to group)
+[02:24:35] [INFO] [BloodDecal] Blood puddle created at (669.8134, 740.8344) (added to group)
+[02:24:35] [INFO] [BloodDecal] Blood puddle created at (730.1923, 722.027) (added to group)
+[02:24:35] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(680.48914, 587.1049), shooter_id=52395247409, bullet_pos=(326.78055, 273.37616)
+[02:24:35] [INFO] [Bullet] Using shooter_position, distance=472,7954
+[02:24:35] [INFO] [Bullet] Distance to wall: 472,7954 (32,19351% of viewport)
+[02:24:35] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[02:24:35] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[02:24:35] [INFO] [BloodDecal] Blood puddle created at (733.4972, 767.3819) (added to group)
+[02:24:35] [INFO] [BloodDecal] Blood puddle created at (659.5766, 722.0984) (added to group)
+[02:24:35] [INFO] [BloodDecal] Blood puddle created at (668.9392, 785.9692) (added to group)
+[02:24:35] [INFO] [BloodDecal] Blood puddle created at (657.9279, 730.1532) (added to group)
+[02:24:35] [INFO] [BloodDecal] Blood puddle created at (655.0228, 752.0557) (added to group)
+[02:24:35] [INFO] [BloodDecal] Blood puddle created at (733.4241, 721.5962) (added to group)
+[02:24:35] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(680.48914, 587.1049), shooter_id=52395247409, bullet_pos=(501.68408, 423.0131)
+[02:24:35] [INFO] [Bullet] Using shooter_position, distance=242,68782
+[02:24:35] [INFO] [Bullet] Distance to wall: 242,68782 (16,52506% of viewport)
+[02:24:35] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[02:24:35] [ENEMY] [Enemy2] State: SUPPRESSED -> SEEKING_COVER
+[02:24:35] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=176.7°, current=89.3°, player=(640,730), corner_timer=-0.01
+[02:24:35] [ENEMY] [Enemy7] PATROL corner check: angle 89.3°
+[02:24:35] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.3°, current=91.6°, player=(640,735), corner_timer=0.30
+[02:24:35] [ENEMY] [Enemy2] State: SEEKING_COVER -> IN_COVER
+[02:24:35] [ENEMY] [Enemy2] State: IN_COVER -> SUPPRESSED
+[02:24:35] [ENEMY] [Enemy2] State: SUPPRESSED -> SEEKING_COVER
+[02:24:35] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[02:24:35] [ENEMY] [Enemy2] State: SEEKING_COVER -> IN_COVER
+[02:24:35] [ENEMY] [Enemy2] State: IN_COVER -> SUPPRESSED
+[02:24:35] [ENEMY] [Enemy2] State: SUPPRESSED -> SEEKING_COVER
+[02:24:35] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(680.48914, 587.1049), shooter_id=52395247409, bullet_pos=(270.73096, 689.98193)
+[02:24:35] [INFO] [Bullet] Using shooter_position, distance=422,47537
+[02:24:35] [INFO] [Bullet] Distance to wall: 422,47537 (28,767126% of viewport)
+[02:24:35] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[02:24:35] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(619.7072, 811.8598), source=PLAYER (AssaultRifle), range=1469, listeners=7
+[02:24:35] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=5
+[02:24:36] [ENEMY] [Enemy2] ROT_CHANGE: P3:corner -> P1:visible, state=SEEKING_COVER, target=-139.2°, current=-93.5°, player=(607,818), corner_timer=0.25
+[02:24:36] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=176.6°, current=89.3°, player=(604,821), corner_timer=-0.01
+[02:24:36] [ENEMY] [Enemy7] PATROL corner check: angle 89.2°
+[02:24:36] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(619.70715, 811.8598), shooter_id=52395247409, bullet_pos=(765.3119, 1017.5372)
+[02:24:36] [INFO] [Bullet] Using shooter_position, distance=251,99983
+[02:24:36] [INFO] [Bullet] Distance to wall: 251,99983 (17,159132% of viewport)
+[02:24:36] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[02:24:36] [ENEMY] [Enemy2] ROT_CHANGE: P1:visible -> P3:corner, state=SEEKING_COVER, target=-78.4°, current=-90.3°, player=(601,824), corner_timer=0.25
+[02:24:36] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.2°, current=91.6°, player=(601,824), corner_timer=0.30
+[02:24:36] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(594.9719, 836.8141), source=PLAYER (AssaultRifle), range=1469, listeners=7
+[02:24:36] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=1, self=0, below_threshold=5
+[02:24:36] [ENEMY] [Enemy2] Hit taken, damage: 1, health: 1/2 -> 0/2
+[02:24:36] [ENEMY] [Enemy2] ImpactEffectsManager found, calling spawn_blood_effect
+[02:24:36] [INFO] [ImpactEffects] spawn_blood_effect called at (785.5061, 957.5356), dir=(1, 0), lethal=true
+[02:24:36] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[02:24:36] [INFO] [ImpactEffects] Blood decals scheduled: 20 to spawn at particle landing times
+[02:24:36] [INFO] [ImpactEffects] Blood effect spawned at (785.5061, 957.5356) (scale=1.5)
+[02:24:36] [ENEMY] [Enemy2] Enemy died (ricochet: false, penetration: false)
+[02:24:36] [INFO] [SoundPropagation] Unregistered listener: Enemy2 (remaining: 6)
+[02:24:36] [INFO] [DeathAnim] Started - Angle: 0.0 deg, Index: 12
+[02:24:36] [ENEMY] [Enemy2] Death animation started with hit direction: (1, 0)
+[02:24:36] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(594.97186, 836.8141), shooter_id=52395247409, bullet_pos=(736.06793, 1003.86786)
+[02:24:36] [INFO] [Bullet] Using shooter_position, distance=218,66655
+[02:24:36] [INFO] [Bullet] Distance to wall: 218,66655 (14,889409% of viewport)
+[02:24:36] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[02:24:36] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[02:24:36] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(573.9781, 859.5182), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[02:24:36] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=0, below_threshold=5
+[02:24:36] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(680.48914, 587.1049), shooter_id=52395247409, bullet_pos=(61.990177, 396.72162)
+[02:24:36] [INFO] [Bullet] Using shooter_position, distance=647,1374
+[02:24:36] [INFO] [Bullet] Distance to wall: 647,1374 (44,064774% of viewport)
+[02:24:36] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(560.0955, 873.2867), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[02:24:36] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=0, below_threshold=5
+[02:24:36] [ENEMY] [Enemy1] Death animation completed
+[02:24:36] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(573.9781, 859.51825), shooter_id=52395247409, bullet_pos=(894.6943, 1004.58734)
+[02:24:36] [INFO] [Bullet] Using shooter_position, distance=351,99988
+[02:24:36] [INFO] [Bullet] Distance to wall: 351,99988 (23,968319% of viewport)
+[02:24:36] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[02:24:36] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(594.97186, 836.8141), shooter_id=52395247409, bullet_pos=(912.4766, 707.38)
+[02:24:36] [INFO] [Bullet] Using shooter_position, distance=342,8738
+[02:24:36] [INFO] [Bullet] Distance to wall: 342,8738 (23,346909% of viewport)
+[02:24:36] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[02:24:36] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(573.9781, 859.51825), shooter_id=52395247409, bullet_pos=(924.1279, 988.94214)
+[02:24:36] [INFO] [Bullet] Using shooter_position, distance=373,30344
+[02:24:36] [INFO] [Bullet] Distance to wall: 373,30344 (25,418919% of viewport)
+[02:24:36] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[02:24:36] [INFO] [Bullet] Starting wall penetration at (924.1279, 988.94214)
+[02:24:36] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(573.9781, 859.51825), shooter_id=52395247409, bullet_pos=(928.54297, 986.59534)
+[02:24:36] [INFO] [Bullet] Using shooter_position, distance=376,6495
+[02:24:36] [INFO] [Bullet] Distance to wall: 376,6495 (25,646759% of viewport)
+[02:24:36] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[02:24:36] [INFO] [Bullet] Already penetrating, cannot start new penetration
+[02:24:36] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[02:24:36] [INFO] [Bullet] Exiting penetration at (953.5616, 973.29694) after traveling 28,333334 pixels through wall
+[02:24:36] [INFO] [Bullet] Damage multiplier after penetration: 0,45
+[02:24:36] [INFO] [BloodDecal] Blood puddle created at (846.2052, 976.0418) (added to group)
+[02:24:36] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=176.6°, current=89.2°, player=(553,869), corner_timer=-0.01
+[02:24:36] [ENEMY] [Enemy7] PATROL corner check: angle 89.2°
+[02:24:36] [INFO] [BloodDecal] Blood puddle created at (862.2389, 992.1005) (added to group)
+[02:24:36] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.2°, current=91.5°, player=(552,869), corner_timer=0.30
+[02:24:36] [INFO] [BloodDecal] Blood puddle created at (855.8762, 948.1454) (added to group)
+[02:24:36] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(549.2083, 873.5361), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[02:24:36] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=1, self=0, below_threshold=5
+[02:24:36] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(560.0955, 873.28674), shooter_id=52395247409, bullet_pos=(887.5006, 1002.5539)
+[02:24:36] [INFO] [Bullet] Using shooter_position, distance=352,00012
+[02:24:36] [INFO] [Bullet] Distance to wall: 352,00012 (23,968336% of viewport)
+[02:24:36] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[02:24:36] [INFO] [BloodDecal] Blood puddle created at (869.1501, 988.7744) (added to group)
+[02:24:36] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(560.0955, 873.28674), shooter_id=52395247409, bullet_pos=(916.2509, 985.6858)
+[02:24:36] [INFO] [Bullet] Using shooter_position, distance=373,4705
+[02:24:36] [INFO] [Bullet] Distance to wall: 373,4705 (25,430292% of viewport)
+[02:24:36] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[02:24:36] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(560.0955, 873.28674), shooter_id=52395247409, bullet_pos=(911.73444, 983.5407)
+[02:24:36] [INFO] [Bullet] Using shooter_position, distance=368,5185
+[02:24:36] [INFO] [Bullet] Distance to wall: 368,5185 (25,093102% of viewport)
+[02:24:36] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[02:24:36] [INFO] [Bullet] Starting wall penetration at (911.73444, 983.5407)
+[02:24:36] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[02:24:36] [INFO] [Bullet] Exiting penetration at (885.4636, 971.06335) after traveling 24,08333 pixels through wall
+[02:24:36] [INFO] [Bullet] Damage multiplier after penetration: 0,225
+[02:24:36] [INFO] [BloodDecal] Blood puddle created at (869.7009, 965.0674) (added to group)
+[02:24:36] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[02:24:36] [INFO] [BloodDecal] Blood puddle created at (859.0328, 961.958) (added to group)
+[02:24:36] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(549.20825, 873.53613), shooter_id=52395247409, bullet_pos=(875.5712, 1005.41113)
+[02:24:36] [INFO] [Bullet] Using shooter_position, distance=351,99973
+[02:24:36] [INFO] [Bullet] Distance to wall: 351,99973 (23,96831% of viewport)
+[02:24:36] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[02:24:36] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(549.20825, 873.53613), shooter_id=52395247409, bullet_pos=(907.6443, 996.33203)
+[02:24:36] [INFO] [Bullet] Using shooter_position, distance=378,8868
+[02:24:36] [INFO] [Bullet] Distance to wall: 378,8868 (25,7991% of viewport)
+[02:24:36] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[02:24:36] [INFO] [Bullet] Starting wall penetration at (907.6443, 996.33203)
+[02:24:36] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[02:24:36] [INFO] [Bullet] Exiting penetration at (939.71735, 987.2529) after traveling 28,333332 pixels through wall
+[02:24:36] [INFO] [Bullet] Damage multiplier after penetration: 0,45
+[02:24:36] [INFO] [BloodDecal] Blood puddle created at (902.5472, 961.5428) (added to group)
+[02:24:36] [ENEMY] [Enemy2] Ragdoll activated
+[02:24:36] [INFO] [DeathAnim] Ragdoll activated at 60% fall progress
+[02:24:36] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(680.48914, 587.1049), shooter_id=52395247409, bullet_pos=(319.09494, 64.78287)
+[02:24:36] [INFO] [Bullet] Using shooter_position, distance=635,1583
+[02:24:36] [INFO] [Bullet] Distance to wall: 635,1583 (43,2491% of viewport)
+[02:24:36] [INFO] [Bullet] Distance-based penetration chance: 96,20938%
+[02:24:36] [INFO] [Bullet] Starting wall penetration at (319.09494, 64.78287)
+[02:24:36] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[02:24:36] [INFO] [Bullet] Exiting penetration at (329.85498, 50.890976) after traveling 12,5716505 pixels through wall
+[02:24:36] [INFO] [Bullet] Damage multiplier after penetration: 0,0140625
+[02:24:36] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=176.6°, current=89.2°, player=(555,822), corner_timer=-0.01
+[02:24:36] [ENEMY] [Enemy7] PATROL corner check: angle 89.2°
+[02:24:36] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.2°, current=91.5°, player=(557,819), corner_timer=0.30
+[02:24:36] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(594.97186, 836.8141), shooter_id=52395247409, bullet_pos=(539.06146, 55.122986)
+[02:24:36] [INFO] [Bullet] Using shooter_position, distance=783,68805
+[02:24:36] [INFO] [Bullet] Distance to wall: 783,68805 (53,362762% of viewport)
+[02:24:37] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[02:24:37] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=176.6°, current=89.2°, player=(622,746), corner_timer=-0.01
+[02:24:37] [ENEMY] [Enemy7] PATROL corner check: angle 89.2°
+[02:24:37] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.2°, current=91.5°, player=(623,742), corner_timer=0.30
+[02:24:37] [INFO] [Player.Reload.Anim] Phase changed to: GrabMagazine (duration: 0,25s)
+[02:24:37] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[02:24:37] [INFO] [Player.Reload.Anim] Phase changed to: InsertMagazine (duration: 0,30s)
+[02:24:37] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=176.6°, current=89.2°, player=(629,643), corner_timer=-0.01
+[02:24:37] [ENEMY] [Enemy7] PATROL corner check: angle 89.2°
+[02:24:37] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.2°, current=91.5°, player=(629,638), corner_timer=0.30
+[02:24:37] [INFO] [Player.Reload.Anim] Phase changed to: PullBolt (duration: 0,35s)
+[02:24:37] [INFO] [Player.Reload.Anim] Phase changed to: ReturnIdle (duration: 0,20s)
+[02:24:37] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[02:24:37] [INFO] [Player.Reload.Anim] LeftArm: pos=(21.895863, 5.9541206), target=(24, 6), base=(24, 6)
+[02:24:37] [INFO] [Player.Reload.Anim] RightArm: pos=(-2.0001774, 6.3124857), target=(-2, 6), base=(-2, 6)
+[02:24:37] [ENEMY] [Enemy2] Death animation completed
+[02:24:38] [INFO] [Player.Reload.Anim] Animation complete, returning to normal
+[02:24:38] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=176.5°, current=89.2°, player=(629,537), corner_timer=-0.01
+[02:24:38] [ENEMY] [Enemy7] PATROL corner check: angle 89.2°
+[02:24:38] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.2°, current=91.5°, player=(629,533), corner_timer=0.30
+[02:24:38] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[02:24:38] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=176.5°, current=89.2°, player=(671,449), corner_timer=-0.01
+[02:24:38] [ENEMY] [Enemy7] PATROL corner check: angle 89.2°
+[02:24:38] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.2°, current=91.5°, player=(674,446), corner_timer=0.30
+[02:24:38] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[02:24:38] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=176.5°, current=89.2°, player=(750,385), corner_timer=-0.01
+[02:24:38] [ENEMY] [Enemy7] PATROL corner check: angle 89.2°
+[02:24:38] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.2°, current=91.5°, player=(754,384), corner_timer=0.30
+[02:24:39] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[02:24:39] [INFO] [BloodyFeet:Player] Blood ran out - no more footprints
+[02:24:39] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=176.6°, current=89.2°, player=(858,383), corner_timer=-0.02
+[02:24:39] [ENEMY] [Enemy7] PATROL corner check: angle 89.3°
+[02:24:39] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.3°, current=92.1°, player=(863,383), corner_timer=0.30
+[02:24:39] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[02:24:39] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=176.8°, current=89.3°, player=(968,383), corner_timer=-0.02
+[02:24:39] [ENEMY] [Enemy7] PATROL corner check: angle 89.3°
+[02:24:39] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.3°, current=92.1°, player=(973,383), corner_timer=0.30
+[02:24:39] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[02:24:39] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.0°, current=89.3°, player=(1078,383), corner_timer=-0.02
+[02:24:39] [ENEMY] [Enemy7] PATROL corner check: angle 89.3°
+[02:24:39] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.3°, current=92.2°, player=(1083,382), corner_timer=0.30
+[02:24:40] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[02:24:40] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.1°, current=89.4°, player=(1165,327), corner_timer=-0.02
+[02:24:40] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[02:24:40] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.4°, current=92.2°, player=(1169,324), corner_timer=0.30
+[02:24:40] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[02:24:40] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.1°, current=89.4°, player=(1243,250), corner_timer=-0.02
+[02:24:40] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[02:24:40] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.4°, current=92.2°, player=(1247,246), corner_timer=0.30
+[02:24:40] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[02:24:40] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.2°, current=89.4°, player=(1321,172), corner_timer=-0.02
+[02:24:40] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[02:24:40] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.4°, current=92.3°, player=(1325,168), corner_timer=0.30
+[02:24:41] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[02:24:41] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.2°, current=89.4°, player=(1415,159), corner_timer=-0.02
+[02:24:41] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[02:24:41] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.4°, current=92.3°, player=(1419,162), corner_timer=0.30
+[02:24:41] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[02:24:41] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.2°, current=89.4°, player=(1450,246), corner_timer=-0.02
+[02:24:41] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[02:24:41] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.4°, current=92.3°, player=(1450,252), corner_timer=0.30
+[02:24:41] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[02:24:41] [ENEMY] [Enemy6] ROT_CHANGE: P5:idle_scan -> P1:visible, state=IDLE, target=-161.7°, current=-135.0°, player=(1450,285), corner_timer=0.00
+[02:24:41] [ENEMY] [Enemy6] State: IDLE -> COMBAT
+[02:24:41] [ENEMY] [Enemy5] Memory: high confidence (0.90) - transitioning to PURSUING
+[02:24:41] [ENEMY] [Enemy5] State: IDLE -> PURSUING
+[02:24:41] [ENEMY] [Enemy6] ROT_CHANGE: P1:visible -> P2:combat_state, state=COMBAT, target=-162.9°, current=57.0°, player=(1450,296), corner_timer=0.00
+[02:24:41] [ENEMY] [Enemy5] ROT_CHANGE: P5:idle_scan -> P1:visible, state=PURSUING, target=-169.0°, current=146.3°, player=(1450,301), corner_timer=0.00
+[02:24:41] [ENEMY] [Enemy5] PURSUING corner check: angle 58.6°
+[02:24:41] [ENEMY] [Enemy5] ROT_CHANGE: P1:visible -> P2:combat_state, state=PURSUING, target=-170.7°, current=-59.4°, player=(1450,312), corner_timer=0.30
+[02:24:41] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=177.2°, current=89.4°, player=(1450,356), corner_timer=-0.02
+[02:24:41] [ENEMY] [Enemy7] PATROL corner check: angle 89.4°
+[02:24:41] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=89.4°, current=92.3°, player=(1451,361), corner_timer=0.30
+[02:24:41] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1453.443, 377.8007), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[02:24:41] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0, below_threshold=4
+[02:24:42] [ENEMY] [Enemy5] Hit taken, damage: 1, health: 2/2 -> 1/2
+[02:24:42] [ENEMY] [Enemy5] ImpactEffectsManager found, calling spawn_blood_effect
+[02:24:42] [INFO] [ImpactEffects] spawn_blood_effect called at (1642.826, 354.1761), dir=(1, 0), lethal=false
+[02:24:42] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[02:24:42] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[02:24:42] [INFO] [ImpactEffects] Blood effect spawned at (1642.826, 354.1761) (scale=1)
+[02:24:42] [ENEMY] [Enemy5] ROT_CHANGE: P2:combat_state -> P1:visible, state=PURSUING, target=170.2°, current=180.0°, player=(1458,385), corner_timer=0.15
+[02:24:42] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[02:24:42] [ENEMY] [Enemy5] State: PURSUING -> COMBAT
+[02:24:42] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1467.331, 405.1577), source=PLAYER (AssaultRifle), range=1469, listeners=6
+[02:24:42] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0, below_threshold=4
+[02:24:42] [ENEMY] [Enemy5] Hit taken, damage: 1, health: 1/2 -> 0/2
+[02:24:42] [ENEMY] [Enemy5] ImpactEffectsManager found, calling spawn_blood_effect
+[02:24:42] [INFO] [ImpactEffects] spawn_blood_effect called at (1642.826, 354.1761), dir=(1, 0), lethal=true
+[02:24:42] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[02:24:42] [INFO] [ImpactEffects] Blood decals scheduled: 20 to spawn at particle landing times
+[02:24:42] [INFO] [ImpactEffects] Blood effect spawned at (1642.826, 354.1761) (scale=1.5)
+[02:24:42] [ENEMY] [Enemy5] Enemy died (ricochet: false, penetration: false)
+[02:24:42] [ENEMY] [Enemy5] [AllyDeath] Notified 1 enemies
+[02:24:42] [INFO] [SoundPropagation] Unregistered listener: Enemy5 (remaining: 5)
+[02:24:42] [INFO] [DeathAnim] Started - Angle: 0.0 deg, Index: 12
+[02:24:42] [ENEMY] [Enemy5] Death animation started with hit direction: (1, 0)
+[02:24:42] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1487.363, 421.0433), source=PLAYER (AssaultRifle), range=1469, listeners=5
+[02:24:42] [ENEMY] [Enemy7] Heard gunshot at (1487.363, 421.0433), source_type=0, intensity=0.01, distance=494
+[02:24:42] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0, below_threshold=3
+[02:24:42] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P2:combat_state, state=COMBAT, target=-104.4°, current=89.4°, player=(1487,415), corner_timer=0.05
+[02:24:42] [ENEMY] [Enemy6] State: COMBAT -> PURSUING
+[02:24:42] [ENEMY] [Enemy6] ROT_CHANGE: P2:combat_state -> P1:visible, state=PURSUING, target=-178.6°, current=131.6°, player=(1502,418), corner_timer=0.00
+[02:24:42] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1506.533, 423.8654), source=PLAYER (AssaultRifle), range=1469, listeners=5
+[02:24:42] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0, below_threshold=3
+[02:24:42] [INFO] [BloodDecal] Blood puddle created at (1683.497, 363.7745) (added to group)
+[02:24:42] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1487.3627, 421.04333), shooter_id=52395247409, bullet_pos=(1858.3989, 317.05414)
+[02:24:42] [INFO] [Bullet] Using shooter_position, distance=385,33316
+[02:24:42] [INFO] [Bullet] Distance to wall: 385,33316 (26,238045% of viewport)
+[02:24:42] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[02:24:42] [INFO] [Bullet] Starting wall penetration at (1858.3989, 317.05414)
+[02:24:42] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[02:24:42] [INFO] [Bullet] Exiting penetration at (1895.3099, 306.7092) after traveling 33,333332 pixels through wall
+[02:24:42] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[02:24:42] [INFO] [BloodDecal] Blood puddle created at (1721.045, 357.695) (added to group)
+[02:24:42] [INFO] [BloodDecal] Blood puddle created at (1691.461, 363.9022) (added to group)
+[02:24:42] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[02:24:42] [INFO] [BloodDecal] Blood puddle created at (1739.045, 381.655) (added to group)
+[02:24:42] [INFO] [BloodDecal] Blood puddle created at (1707.33, 391.7684) (added to group)
+[02:24:42] [INFO] [BloodDecal] Blood puddle created at (1689.885, 364.7658) (added to group)
+[02:24:42] [INFO] [BloodDecal] Blood puddle created at (1706.681, 387.5932) (added to group)
+[02:24:42] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1506.533, 423.86545), shooter_id=52395247409, bullet_pos=(1840.3859, 312.3019)
+[02:24:42] [INFO] [Bullet] Using shooter_position, distance=352,00027
+[02:24:42] [INFO] [Bullet] Distance to wall: 352,00027 (23,968346% of viewport)
+[02:24:42] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[02:24:42] [INFO] [BloodDecal] Blood puddle created at (1722.105, 427.5468) (added to group)
+[02:24:42] [INFO] [BloodDecal] Blood puddle created at (1697.26, 363.33) (added to group)
+[02:24:42] [INFO] [BloodDecal] Blood puddle created at (1732.118, 408.5767) (added to group)
+[02:24:42] [ENEMY] [Enemy6] State: PURSUING -> RETREATING
+[02:24:42] [INFO] [BloodDecal] Blood puddle created at (1758.099, 415.2333) (added to group)
+[02:24:42] [INFO] [BloodDecal] Blood puddle created at (1709.441, 409.2372) (added to group)
+[02:24:42] [INFO] [BloodDecal] Blood puddle created at (1689.628, 401.5527) (added to group)
+[02:24:42] [INFO] [BloodDecal] Blood puddle created at (1751.123, 358.7083) (added to group)
+[02:24:42] [INFO] [BloodDecal] Blood puddle created at (1697.573, 380.3945) (added to group)
+[02:24:42] [INFO] [BloodDecal] Blood puddle created at (1713.864, 381.5582) (added to group)
+[02:24:42] [INFO] [BloodDecal] Blood puddle created at (1786.023, 395.2422) (added to group)
+[02:24:42] [INFO] [BloodDecal] Blood puddle created at (1784.742, 475.7581) (added to group)
+[02:24:42] [INFO] [BloodyFeet:Enemy6] Stepped in blood! 12 footprints to spawn, color: (1, 1, 1, 1)
+[02:24:42] [INFO] [BloodDecal] Blood puddle created at (1749.967, 360.4323) (added to group)
+[02:24:42] [INFO] [BloodDecal] Blood puddle created at (1729.165, 399.4861) (added to group)
+[02:24:42] [INFO] [BloodDecal] Blood puddle created at (1800.821, 401.5309) (added to group)
+[02:24:42] [ENEMY] [Enemy5] Ragdoll activated
+[02:24:42] [INFO] [DeathAnim] Ragdoll activated at 60% fall progress
+[02:24:42] [INFO] [BloodDecal] Blood puddle created at (1790.243, 447.1986) (added to group)
+[02:24:42] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[02:24:42] [ENEMY] [Enemy7] State: COMBAT -> PURSUING
+[02:24:42] [INFO] [BloodDecal] Blood puddle created at (1843.218, 498.2504) (added to group)
+[02:24:42] [INFO] [BloodDecal] Blood puddle created at (1820.656, 408.7305) (added to group)
+[02:24:42] [INFO] [BloodDecal] Blood puddle created at (1807.145, 427.8896) (added to group)
+[02:24:42] [INFO] [BloodDecal] Blood puddle created at (1838.001, 346.3247) (added to group)
+[02:24:42] [INFO] [BloodDecal] Blood puddle created at (1833.756, 425.9913) (added to group)
+[02:24:43] [INFO] [BloodDecal] Blood puddle created at (1758.601, 405.8962) (added to group)
+[02:24:43] [INFO] [BloodDecal] Blood puddle created at (1780.714, 451.2341) (added to group)
+[02:24:43] [INFO] [BloodDecal] Blood puddle created at (1796.551, 536.5124) (added to group)
+[02:24:43] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1593.177, 450.5754), source=PLAYER (AssaultRifle), range=1469, listeners=5
+[02:24:43] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0, below_threshold=3
+[02:24:43] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[02:24:43] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1593.1765, 450.57538), shooter_id=52395247409, bullet_pos=(1844.8773, 316.1812)
+[02:24:43] [INFO] [Bullet] Using shooter_position, distance=285,33328
+[02:24:43] [INFO] [Bullet] Distance to wall: 285,33328 (19,42887% of viewport)
+[02:24:43] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[02:24:43] [INFO] [Bullet] Starting wall penetration at (1844.8773, 316.1812)
+[02:24:43] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1617.984, 428.3091), source=PLAYER (AssaultRifle), range=1469, listeners=5
+[02:24:43] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0, below_threshold=3
+[02:24:43] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[02:24:43] [INFO] [Bullet] Exiting penetration at (1878.6923, 298.12592) after traveling 33,333336 pixels through wall
+[02:24:43] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[02:24:43] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1617.9839, 428.3091), shooter_id=52395247409, bullet_pos=(1841.4543, 311.84085)
+[02:24:43] [INFO] [Bullet] Using shooter_position, distance=251,9998
+[02:24:43] [INFO] [Bullet] Distance to wall: 251,9998 (17,15913% of viewport)
+[02:24:43] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[02:24:43] [INFO] [Bullet] Starting wall penetration at (1841.4543, 311.84085)
+[02:24:43] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[02:24:43] [INFO] [Bullet] Exiting penetration at (1875.4479, 294.1241) after traveling 33,333332 pixels through wall
+[02:24:43] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[02:24:43] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1646.466, 412.0911), source=PLAYER (AssaultRifle), range=1469, listeners=5
+[02:24:43] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0, below_threshold=3
+[02:24:43] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1646.4662, 412.0911), shooter_id=52395247409, bullet_pos=(1857.7769, 274.7888)
+[02:24:43] [INFO] [Bullet] Using shooter_position, distance=252,00024
+[02:24:43] [INFO] [Bullet] Distance to wall: 252,00024 (17,15916% of viewport)
+[02:24:43] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[02:24:43] [INFO] [Bullet] Starting wall penetration at (1857.7769, 274.7888)
+[02:24:43] [INFO] [Bullet] Raycast backward hit penetrating body at distance 40,556316
+[02:24:43] [INFO] [BloodyFeet:Player] Stepped in blood! 12 footprints to spawn, color: (1, 1, 1, 1)
+[02:24:43] [INFO] [Bullet] Body exited signal received for penetrating body
+[02:24:43] [INFO] [Bullet] Exiting penetration at (1889.9207, 253.90286) after traveling 33,333336 pixels through wall
+[02:24:43] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[02:24:43] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1680.057, 408.2056), source=PLAYER (AssaultRifle), range=1469, listeners=5
+[02:24:43] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0, below_threshold=3
+[02:24:43] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[02:24:43] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1680.0568, 408.20557), shooter_id=52395247409, bullet_pos=(1856.1036, 278.5032)
+[02:24:43] [INFO] [Bullet] Using shooter_position, distance=218,66687
+[02:24:43] [INFO] [Bullet] Distance to wall: 218,66687 (14,889429% of viewport)
+[02:24:43] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[02:24:43] [INFO] [Bullet] Starting wall penetration at (1856.1036, 278.5032)
+[02:24:43] [INFO] [Bullet] Raycast backward hit penetrating body at distance 34,11309
+[02:24:43] [INFO] [Bullet] Body exited signal received for penetrating body
+[02:24:43] [INFO] [Bullet] Exiting penetration at (1886.9656, 255.76573) after traveling 33,333332 pixels through wall
+[02:24:43] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[02:24:43] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1715.257, 408.2056), source=PLAYER (AssaultRifle), range=1469, listeners=5
+[02:24:43] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0, below_threshold=3
+[02:24:43] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1750.457, 408.2056), source=PLAYER (AssaultRifle), range=1469, listeners=5
+[02:24:43] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0, below_threshold=3
+[02:24:43] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1715.257, 408.20557), shooter_id=52395247409, bullet_pos=(1943.3837, 57.1496)
+[02:24:43] [INFO] [Bullet] Using shooter_position, distance=418,66705
+[02:24:43] [INFO] [Bullet] Distance to wall: 418,66705 (28,50781% of viewport)
+[02:24:43] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[02:24:43] [INFO] [Bullet] Starting wall penetration at (1943.3837, 57.1496)
+[02:24:43] [INFO] [Bullet] Raycast backward hit penetrating body at distance 8,340117
+[02:24:43] [INFO] [Bullet] Body exited signal received for penetrating body
+[02:24:43] [INFO] [Bullet] Exiting penetration at (1964.2711, 25.00674) after traveling 33,333332 pixels through wall
+[02:24:43] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[02:24:43] [ENEMY] [Enemy5] Death animation completed
+[02:24:43] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1750.4572, 408.20557), shooter_id=52395247409, bullet_pos=(1927.2495, 65.82244)
+[02:24:43] [INFO] [Bullet] Using shooter_position, distance=385,33328
+[02:24:43] [INFO] [Bullet] Distance to wall: 385,33328 (26,238054% of viewport)
+[02:24:43] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[02:24:44] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[02:24:44] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[02:24:44] [ENEMY] [Enemy6] ROT_CHANGE: P1:visible -> P4:velocity, state=RETREATING, target=-127.1°, current=-127.2°, player=(1831,394), corner_timer=0.00
+[02:24:44] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1823.427, 389.4138), source=PLAYER (AssaultRifle), range=1469, listeners=5
+[02:24:44] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0, below_threshold=3
+[02:24:44] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1801.953, 367.7431), source=PLAYER (AssaultRifle), range=1469, listeners=5
+[02:24:44] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0, below_threshold=3
+[02:24:44] [ENEMY] [Enemy6] Hit taken, damage: 1, health: 2/2 -> 1/2
+[02:24:44] [ENEMY] [Enemy6] ImpactEffectsManager found, calling spawn_blood_effect
+[02:24:44] [INFO] [ImpactEffects] spawn_blood_effect called at (1640.557, 111.4127), dir=(1, 0), lethal=false
+[02:24:44] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[02:24:44] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[02:24:44] [INFO] [ImpactEffects] Blood effect spawned at (1640.557, 111.4127) (scale=1)
+[02:24:44] [ENEMY] [Enemy7] Warning: No valid flank position (both sides behind walls)
+[02:24:44] [ENEMY] [Enemy7] FLANKING started: target=(1929.728, 515.6054), side=left, pos=(1631.007, 824.067)
+[02:24:44] [ENEMY] [Enemy7] State: PURSUING -> FLANKING
+[02:24:44] [ENEMY] [Enemy7] FLANKING corner check: angle -178.6°
+[02:24:44] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[02:24:44] [ENEMY] [Enemy6] Hit taken, damage: 1, health: 1/2 -> 0/2
+[02:24:44] [ENEMY] [Enemy6] ImpactEffectsManager found, calling spawn_blood_effect
+[02:24:44] [INFO] [ImpactEffects] spawn_blood_effect called at (1620.629, 131.118), dir=(1, 0), lethal=true
+[02:24:44] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[02:24:44] [INFO] [ImpactEffects] Blood decals scheduled: 20 to spawn at particle landing times
+[02:24:44] [INFO] [ImpactEffects] Blood effect spawned at (1620.629, 131.118) (scale=1.5)
+[02:24:44] [ENEMY] [Enemy6] Enemy died (ricochet: false, penetration: false)
+[02:24:44] [INFO] [SoundPropagation] Unregistered listener: Enemy6 (remaining: 4)
+[02:24:44] [INFO] [DeathAnim] Started - Angle: 0.0 deg, Index: 12
+[02:24:44] [ENEMY] [Enemy6] Death animation started with hit direction: (1, 0)
+[02:24:44] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1773.253, 355.299), source=PLAYER (AssaultRifle), range=1469, listeners=4
+[02:24:44] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=0, below_threshold=3
+[02:24:44] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1746.368, 354.3142), source=PLAYER (AssaultRifle), range=1469, listeners=4
+[02:24:44] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=0, below_threshold=3
+[02:24:45] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1773.2529, 355.29904), shooter_id=52395247409, bullet_pos=(1589.1722, 55.268276)
+[02:24:45] [INFO] [Bullet] Using shooter_position, distance=352,0002
+[02:24:45] [INFO] [Bullet] Distance to wall: 352,0002 (23,968342% of viewport)
+[02:24:45] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[02:24:45] [INFO] [BloodDecal] Blood puddle created at (1708.189, 107.2198) (added to group)
+[02:24:45] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1746.3676, 354.3142), shooter_id=52395247409, bullet_pos=(1570.096, 49.63053)
+[02:24:45] [INFO] [Bullet] Using shooter_position, distance=351,99976
+[02:24:45] [INFO] [Bullet] Distance to wall: 351,99976 (23,968311% of viewport)
+[02:24:45] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[02:24:45] [INFO] [Bullet] Starting wall penetration at (1570.096, 49.63053)
+[02:24:45] [INFO] [Bullet] Raycast backward hit penetrating body at distance 17,964855
+[02:24:45] [INFO] [BloodDecal] Blood puddle created at (1658.542, 163.3702) (added to group)
+[02:24:45] [INFO] [Bullet] Body exited signal received for penetrating body
+[02:24:45] [INFO] [Bullet] Exiting penetration at (1550.8997, 16.450018) after traveling 33,333336 pixels through wall
+[02:24:45] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[02:24:45] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1773.2529, 355.29904), shooter_id=52395247409, bullet_pos=(1388.2727, 300.04758)
+[02:24:45] [INFO] [Bullet] Using shooter_position, distance=388,92477
+[02:24:45] [INFO] [Bullet] Distance to wall: 388,92477 (26,482603% of viewport)
+[02:24:45] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[02:24:45] [INFO] [BloodDecal] Blood puddle created at (1688.808, 124.6369) (added to group)
+[02:24:45] [INFO] [BloodDecal] Blood puddle created at (1715.376, 151.7263) (added to group)
+[02:24:45] [ENEMY] [Enemy7] FLANKING corner check: angle 179.7°
+[02:24:45] [INFO] [BloodDecal] Blood puddle created at (1758.686, 118.4954) (added to group)
+[02:24:45] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[02:24:45] [INFO] [BloodDecal] Blood puddle created at (1787.816, 204.026) (added to group)
+[02:24:45] [INFO] [BloodDecal] Blood puddle created at (1697.001, 153.0267) (added to group)
+[02:24:45] [INFO] [BloodDecal] Blood puddle created at (1718.218, 172.3197) (added to group)
+[02:24:45] [INFO] [BloodDecal] Blood puddle created at (1726.385, 154.8496) (added to group)
+[02:24:45] [INFO] [BloodDecal] Blood puddle created at (1687.942, 160.6739) (added to group)
+[02:24:45] [INFO] [BloodDecal] Blood puddle created at (1723.043, 191.0777) (added to group)
+[02:24:45] [INFO] [BloodDecal] Blood puddle created at (1707.667, 130.7464) (added to group)
+[02:24:45] [INFO] [BloodDecal] Blood puddle created at (1690.375, 179.6705) (added to group)
+[02:24:45] [INFO] [BloodDecal] Blood puddle created at (1773.68, 135.0616) (added to group)
+[02:24:45] [INFO] [BloodDecal] Blood puddle created at (1747.092, 137.3639) (added to group)
+[02:24:45] [INFO] [BloodDecal] Blood puddle created at (1721.271, 224.7668) (added to group)
+[02:24:45] [ENEMY] [Enemy6] Ragdoll activated
+[02:24:45] [INFO] [DeathAnim] Ragdoll activated at 60% fall progress
+[02:24:45] [INFO] [BloodDecal] Blood puddle created at (1776.33, 193.9877) (added to group)
+[02:24:45] [INFO] [BloodDecal] Blood puddle created at (1706.387, 210.7307) (added to group)
+[02:24:45] [INFO] [BloodDecal] Blood puddle created at (1751.171, 250.1553) (added to group)
+[02:24:45] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1773.2529, 355.29904), shooter_id=52395247409, bullet_pos=(1708.5173, 599.58966)
+[02:24:45] [INFO] [Bullet] Using shooter_position, distance=252,72238
+[02:24:45] [INFO] [Bullet] Distance to wall: 252,72238 (17,208332% of viewport)
+[02:24:45] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[02:24:45] [INFO] [BloodDecal] Blood puddle created at (1829.701, 222.2348) (added to group)
+[02:24:45] [INFO] [BloodDecal] Blood puddle created at (1763.338, 136.3142) (added to group)
+[02:24:45] [INFO] [BloodDecal] Blood puddle created at (1744.121, 197.3698) (added to group)
+[02:24:45] [INFO] [BloodDecal] Blood puddle created at (1711.94, 209.6786) (added to group)
+[02:24:45] [ENEMY] [Enemy7] FLANKING corner check: angle -176.8°
+[02:24:45] [INFO] [BloodDecal] Blood puddle created at (1734.941, 220.6464) (added to group)
+[02:24:45] [INFO] [BloodDecal] Blood puddle created at (1763.088, 179.9516) (added to group)
+[02:24:45] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[02:24:45] [INFO] [BloodDecal] Blood puddle created at (1743.523, 218.2524) (added to group)
+[02:24:45] [INFO] [BloodDecal] Blood puddle created at (1809.536, 151.9013) (added to group)
+[02:24:45] [INFO] [BloodDecal] Blood puddle created at (1770.916, 206.5376) (added to group)
+[02:24:45] [INFO] [BloodDecal] Blood puddle created at (1762.47, 235.5945) (added to group)
+[02:24:45] [INFO] [BloodDecal] Blood puddle created at (1802.105, 228.2933) (added to group)
+[02:24:46] [ENEMY] [Enemy7] FLANKING corner check: angle 14.5°
+[02:24:46] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[02:24:46] [ENEMY] [Enemy7] FLANKING corner check: angle 97.9°
+[02:24:46] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[02:24:46] [ENEMY] [Enemy7] ROT_CHANGE: P2:combat_state -> P1:visible, state=FLANKING, target=-56.3°, current=-29.8°, player=(1916,588), corner_timer=0.29
+[02:24:46] [ENEMY] [Enemy7] State: FLANKING -> COMBAT
+[02:24:46] [ENEMY] [Enemy6] Death animation completed
+[02:24:46] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1954.134, 631.444), source=PLAYER (AssaultRifle), range=1469, listeners=4
+[02:24:46] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=0, below_threshold=3
+[02:24:46] [ENEMY] [Enemy8] Memory: high confidence (0.90) - transitioning to PURSUING
+[02:24:46] [ENEMY] [Enemy8] State: IDLE -> PURSUING
+[02:24:46] [ENEMY] [Enemy9] Memory: high confidence (0.81) - transitioning to PURSUING
+[02:24:46] [ENEMY] [Enemy9] State: IDLE -> PURSUING
+[02:24:46] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1954.1342, 631.444), shooter_id=52395247409, bullet_pos=(1763.4978, 796.2519)
+[02:24:46] [INFO] [Bullet] Using shooter_position, distance=251,99974
+[02:24:46] [INFO] [Bullet] Distance to wall: 251,99974 (17,159126% of viewport)
+[02:24:46] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[02:24:46] [ENEMY] [Enemy8] ROT_CHANGE: P5:idle_scan -> P2:combat_state, state=PURSUING, target=-84.8°, current=-101.3°, player=(1972,644), corner_timer=0.00
+[02:24:46] [ENEMY] [Enemy9] ROT_CHANGE: P5:idle_scan -> P2:combat_state, state=PURSUING, target=-98.0°, current=56.2°, player=(1972,644), corner_timer=0.00
+[02:24:46] [ENEMY] [Enemy7] Hit taken, damage: 1, health: 2/2 -> 1/2
+[02:24:46] [ENEMY] [Enemy7] ImpactEffectsManager found, calling spawn_blood_effect
+[02:24:46] [INFO] [ImpactEffects] spawn_blood_effect called at (1801.874, 816.3388), dir=(1, 0), lethal=false
+[02:24:46] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[02:24:46] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[02:24:46] [INFO] [ImpactEffects] Blood effect spawned at (1801.874, 816.3388) (scale=1)
+[02:24:46] [ENEMY] [Enemy7] ROT_CHANGE: P1:visible -> P2:combat_state, state=COMBAT, target=-44.2°, current=180.0°, player=(1975,647), corner_timer=0.29
+[02:24:46] [ENEMY] [Enemy8] PURSUING corner check: angle 180.0°
+[02:24:46] [ENEMY] [Enemy9] PURSUING corner check: angle 38.7°
+[02:24:46] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1979.025, 656.3341), source=PLAYER (AssaultRifle), range=1469, listeners=4
+[02:24:46] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=0, below_threshold=3
+[02:24:46] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[02:24:46] [ENEMY] [Enemy7] Hit taken, damage: 1, health: 1/2 -> 0/2
+[02:24:46] [ENEMY] [Enemy7] ImpactEffectsManager found, calling spawn_blood_effect
+[02:24:46] [INFO] [ImpactEffects] spawn_blood_effect called at (1801.874, 816.3388), dir=(1, 0), lethal=true
+[02:24:46] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[02:24:46] [INFO] [ImpactEffects] Blood decals scheduled: 20 to spawn at particle landing times
+[02:24:46] [INFO] [ImpactEffects] Blood effect spawned at (1801.874, 816.3388) (scale=1.5)
+[02:24:46] [ENEMY] [Enemy7] Enemy died (ricochet: false, penetration: false)
+[02:24:46] [INFO] [SoundPropagation] Unregistered listener: Enemy7 (remaining: 3)
+[02:24:46] [INFO] [DeathAnim] Started - Angle: 0.0 deg, Index: 12
+[02:24:46] [ENEMY] [Enemy7] Death animation started with hit direction: (1, 0)
+[02:24:46] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1998.236, 682.6011), source=PLAYER (AssaultRifle), range=1469, listeners=3
+[02:24:46] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=3
+[02:24:47] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(2003.903, 708.8203), source=PLAYER (AssaultRifle), range=1469, listeners=3
+[02:24:47] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=3
+[02:24:47] [INFO] [BloodDecal] Blood puddle created at (1840.188, 821.3547) (added to group)
+[02:24:47] [INFO] [BloodDecal] Blood puddle created at (1844.336, 845.7603) (added to group)
+[02:24:47] [INFO] [BloodDecal] Blood puddle created at (1873.15, 869.1827) (added to group)
+[02:24:47] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1998.2361, 682.6011), shooter_id=52395247409, bullet_pos=(1590.9703, 946.5775)
+[02:24:47] [INFO] [Bullet] Using shooter_position, distance=485,33386
+[02:24:47] [INFO] [Bullet] Distance to wall: 485,33386 (33,047276% of viewport)
+[02:24:47] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[02:24:47] [INFO] [Bullet] Starting wall penetration at (1590.9703, 946.5775)
+[02:24:47] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[02:24:47] [INFO] [Bullet] Exiting penetration at (1558.8031, 967.4273) after traveling 33,333336 pixels through wall
+[02:24:47] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[02:24:47] [ENEMY] [Enemy8] PURSUING corner check: angle 180.0°
+[02:24:47] [ENEMY] [Enemy9] PURSUING corner check: angle -141.3°
+[02:24:47] [INFO] [BloodDecal] Blood puddle created at (1886.672, 828.0278) (added to group)
+[02:24:47] [ENEMY] [Enemy9] ROT_CHANGE: P2:combat_state -> P1:visible, state=PURSUING, target=-103.0°, current=-54.6°, player=(1995,728), corner_timer=0.30
+[02:24:47] [ENEMY] [Enemy9] State: PURSUING -> COMBAT
+[02:24:47] [INFO] [BloodDecal] Blood puddle created at (1852.782, 827.2094) (added to group)
+[02:24:47] [INFO] [BloodDecal] Blood puddle created at (1846.267, 821.6086) (added to group)
+[02:24:47] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[02:24:47] [INFO] [BloodDecal] Blood puddle created at (1858.77, 863.5549) (added to group)
+[02:24:47] [INFO] [BloodDecal] Blood puddle created at (1857.002, 833.7465) (added to group)
+[02:24:47] [INFO] [BloodDecal] Blood puddle created at (1889.366, 831.1974) (added to group)
+[02:24:47] [INFO] [BloodDecal] Blood puddle created at (1896.651, 818.3682) (added to group)
+[02:24:47] [INFO] [BloodDecal] Blood puddle created at (1916.011, 895.5352) (added to group)
+[02:24:47] [INFO] [BloodDecal] Blood puddle created at (1859.816, 861.2129) (added to group)
+[02:24:47] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(2003.9031, 708.82025), shooter_id=52395247409, bullet_pos=(1569.6382, 992.42084)
+[02:24:47] [INFO] [Bullet] Using shooter_position, distance=518,6668
+[02:24:47] [INFO] [Bullet] Distance to wall: 518,6668 (35,31698% of viewport)
+[02:24:47] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[02:24:47] [INFO] [BloodDecal] Blood puddle created at (1893.66, 849.5082) (added to group)
+[02:24:47] [INFO] [BloodDecal] Blood puddle created at (1903.881, 827.6356) (added to group)
+[02:24:47] [INFO] [BloodDecal] Blood puddle created at (1902.344, 864.1119) (added to group)
+[02:24:47] [ENEMY] [Enemy9] ROT_CHANGE: P1:visible -> P2:combat_state, state=COMBAT, target=-105.4°, current=-105.4°, player=(1974,753), corner_timer=0.30
+[02:24:47] [INFO] [BloodDecal] Blood puddle created at (1860.486, 875.821) (added to group)
+[02:24:47] [INFO] [BloodDecal] Blood puddle created at (1930.257, 868.7093) (added to group)
+[02:24:47] [INFO] [BloodDecal] Blood puddle created at (1861.654, 841.1295) (added to group)
+[02:24:47] [INFO] [BloodDecal] Blood puddle created at (1950.152, 821.5531) (added to group)
+[02:24:47] [INFO] [BloodDecal] Blood puddle created at (1868.404, 840.4136) (added to group)
+[02:24:47] [INFO] [BloodDecal] Blood puddle created at (1956.741, 812.2081) (added to group)
+[02:24:47] [ENEMY] [Enemy7] Ragdoll activated
+[02:24:47] [INFO] [DeathAnim] Ragdoll activated at 60% fall progress
+[02:24:47] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(2003.9031, 708.82025), shooter_id=52395247409, bullet_pos=(1889.8898, 1184.2968)
+[02:24:47] [INFO] [Bullet] Using shooter_position, distance=488,95496
+[02:24:47] [INFO] [Bullet] Distance to wall: 488,95496 (33,293842% of viewport)
+[02:24:47] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[02:24:47] [INFO] [BloodDecal] Blood puddle created at (1945.994, 887.0717) (added to group)
+[02:24:47] [INFO] [BloodDecal] Blood puddle created at (1965.296, 834.7838) (added to group)
+[02:24:47] [INFO] [BloodDecal] Blood puddle created at (1945.269, 850.0444) (added to group)
+[02:24:47] [INFO] [BloodDecal] Blood puddle created at (1913.469, 830.2704) (added to group)
+[02:24:47] [INFO] [BloodDecal] Blood puddle created at (1914.243, 926.537) (added to group)
+[02:24:47] [INFO] [BloodDecal] Blood puddle created at (1944.968, 833.2642) (added to group)
+[02:24:47] [INFO] [BloodDecal] Blood puddle created at (1963.407, 878.9786) (added to group)
+[02:24:47] [INFO] [BloodDecal] Blood puddle created at (1995.853, 919.1479) (added to group)
+[02:24:47] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[02:24:47] [ENEMY] [Enemy8] State: PURSUING -> RETREATING
+[02:24:47] [ENEMY] [Enemy8] ROT_CHANGE: P2:combat_state -> P3:corner, state=RETREATING, target=180.0°, current=-82.1°, player=(1954,855), corner_timer=0.03
+[02:24:47] [ENEMY] [Enemy8] State: RETREATING -> IN_COVER
+[02:24:47] [ENEMY] [Enemy8] State: IN_COVER -> SUPPRESSED
+[02:24:47] [INFO] [BloodDecal] Blood puddle created at (1949.173, 946.8832) (added to group)
+[02:24:47] [ENEMY] [Enemy9] State: COMBAT -> PURSUING
+[02:24:47] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(2003.9031, 708.82025), shooter_id=52395247409, bullet_pos=(2469.2349, 785.3518)
+[02:24:47] [INFO] [Bullet] Using shooter_position, distance=471,58325
+[02:24:47] [INFO] [Bullet] Distance to wall: 471,58325 (32,11097% of viewport)
+[02:24:47] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[02:24:47] [INFO] [Bullet] Starting wall penetration at (2469.2349, 785.3518)
+[02:24:47] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[02:24:47] [INFO] [Bullet] Exiting penetration at (2493.1885, 768.8571) after traveling 24,08333 pixels through wall
+[02:24:47] [INFO] [Bullet] Damage multiplier after penetration: 0,225
+[02:24:48] [ENEMY] [Enemy10] PATROL corner check: angle 0.6°
+[02:24:48] [ENEMY] [Enemy10] ROT_CHANGE: P3:corner -> P1:visible, state=IDLE, target=-39.3°, current=0.6°, player=(1970,936), corner_timer=0.29
+[02:24:48] [ENEMY] [Enemy10] State: IDLE -> COMBAT
+[02:24:48] [ENEMY] [Enemy10] ROT_CHANGE: P1:visible -> P2:combat_state, state=COMBAT, target=-38.7°, current=-133.7°, player=(1975,943), corner_timer=0.29
+[02:24:48] [ENEMY] [Enemy9] ROT_CHANGE: P2:combat_state -> P1:visible, state=PURSUING, target=-101.7°, current=-102.2°, player=(2062,1030), corner_timer=0.30
+[02:24:48] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[02:24:48] [ENEMY] [Enemy7] Death animation completed
+[02:24:48] [ENEMY] [Enemy9] State: PURSUING -> COMBAT
+[02:24:48] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(2100.059, 1073.916), source=PLAYER (AssaultRifle), range=1469, listeners=3
+[02:24:48] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0, below_threshold=1
+[02:24:48] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(2100.0586, 1073.9158), shooter_id=52395247409, bullet_pos=(2102.9841, 1192.5464)
+[02:24:48] [INFO] [Bullet] Using shooter_position, distance=118,66668
+[02:24:48] [INFO] [Bullet] Distance to wall: 118,66668 (8,080233% of viewport)
+[02:24:48] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[02:24:48] [INFO] [Bullet] Starting wall penetration at (2102.9841, 1192.5464)
+[02:24:48] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[02:24:48] [INFO] [Bullet] Exiting penetration at (2103.9292, 1230.8682) after traveling 33,333332 pixels through wall
+[02:24:48] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[02:24:48] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(2125.194, 1098.215), source=PLAYER (AssaultRifle), range=1469, listeners=3
+[02:24:48] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0, below_threshold=1
+[02:24:48] [ENEMY] [Enemy9] Hit taken, damage: 1, health: 4/4 -> 3/4
+[02:24:48] [ENEMY] [Enemy9] ImpactEffectsManager found, calling spawn_blood_effect
+[02:24:48] [INFO] [ImpactEffects] spawn_blood_effect called at (2120.292, 1309.015), dir=(1, 0), lethal=false
+[02:24:48] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[02:24:48] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[02:24:48] [INFO] [ImpactEffects] Blood effect spawned at (2120.292, 1309.015) (scale=1)
+[02:24:48] [ENEMY] [Enemy9] ROT_CHANGE: P1:visible -> P2:combat_state, state=COMBAT, target=-84.8°, current=180.0°, player=(2139,1101), corner_timer=0.30
+[02:24:49] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(2154.33, 1112.856), source=PLAYER (AssaultRifle), range=1469, listeners=3
+[02:24:49] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0, below_threshold=1
+[02:24:49] [ENEMY] [Enemy9] Hit taken, damage: 1, health: 3/4 -> 2/4
+[02:24:49] [ENEMY] [Enemy9] ImpactEffectsManager found, calling spawn_blood_effect
+[02:24:49] [INFO] [ImpactEffects] spawn_blood_effect called at (2120.292, 1309.015), dir=(1, 0), lethal=false
+[02:24:49] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[02:24:49] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[02:24:49] [INFO] [ImpactEffects] Blood effect spawned at (2120.292, 1309.015) (scale=1)
+[02:24:49] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(2188.392, 1115.602), source=PLAYER (AssaultRifle), range=1469, listeners=3
+[02:24:49] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0, below_threshold=1
+[02:24:49] [ENEMY] [Enemy9] State: COMBAT -> RETREATING
+[02:24:49] [ENEMY] [Enemy9] ROT_CHANGE: P2:combat_state -> P3:corner, state=RETREATING, target=-141.3°, current=-163.9°, player=(2192,1109), corner_timer=0.30
+[02:24:49] [INFO] [BloodDecal] Blood puddle created at (2218.72, 1323.677) (added to group)
+[02:24:49] [INFO] [BloodyFeet:Player] Blood ran out - no more footprints
+[02:24:49] [INFO] [BloodDecal] Blood puddle created at (2179.609, 1306.571) (added to group)
+[02:24:49] [INFO] [BloodDecal] Blood puddle created at (2198.765, 1307.183) (added to group)
+[02:24:49] [INFO] [BloodDecal] Blood puddle created at (2240.198, 1292.685) (added to group)
+[02:24:49] [INFO] [BloodDecal] Blood puddle created at (2178.785, 1376.007) (added to group)
+[02:24:49] [INFO] [BloodDecal] Blood puddle created at (2221.714, 1308.653) (added to group)
+[02:24:49] [INFO] [BloodDecal] Blood puddle created at (2192.987, 1302.224) (added to group)
+[02:24:49] [INFO] [BloodDecal] Blood puddle created at (2250.481, 1301.074) (added to group)
+[02:24:49] [INFO] [BloodDecal] Blood puddle created at (2202.932, 1351.006) (added to group)
+[02:24:49] [INFO] [BloodDecal] Blood puddle created at (2247.473, 1393.433) (added to group)
+[02:24:49] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(2188.392, 1115.6016), shooter_id=52395247409, bullet_pos=(1989.7631, 2080.7073)
+[02:24:49] [INFO] [Bullet] Using shooter_position, distance=985,33374
+[02:24:49] [INFO] [Bullet] Distance to wall: 985,33374 (67,093185% of viewport)
+[02:24:49] [INFO] [Bullet] Distance-based penetration chance: 68,39129%
+[02:24:49] [INFO] [Bullet] Starting wall penetration at (1989.7631, 2080.7073)
+[02:24:49] [INFO] [Bullet] Raycast backward hit penetrating body at distance 22,720093
+[02:24:49] [INFO] [BloodDecal] Blood puddle created at (2247.508, 1391.292) (added to group)
+[02:24:49] [INFO] [Bullet] Body exited signal received for penetrating body
+[02:24:49] [INFO] [Bullet] Exiting penetration at (1982.0355, 2118.2537) after traveling 33,333336 pixels through wall
+[02:24:49] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[02:24:49] [INFO] [BloodDecal] Blood puddle created at (2270.095, 1377.475) (added to group)
+[02:24:49] [ENEMY] [Enemy8] State: SUPPRESSED -> SEEKING_COVER
+[02:24:49] [INFO] [BloodDecal] Blood puddle created at (2195.957, 1343.908) (added to group)
+[02:24:49] [INFO] [BloodDecal] Blood puddle created at (2222.654, 1328.924) (added to group)
+[02:24:49] [INFO] [BloodDecal] Blood puddle created at (2266.936, 1348.57) (added to group)
+[02:24:49] [INFO] [BloodDecal] Blood puddle created at (2262.079, 1411.261) (added to group)
+[02:24:49] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(2245.197, 1189.153), source=PLAYER (AssaultRifle), range=1469, listeners=3
+[02:24:49] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0, below_threshold=1
+[02:24:49] [INFO] [BloodDecal] Blood puddle created at (2277.922, 1318.871) (added to group)
+[02:24:49] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(2222.437, 1211.889), source=PLAYER (AssaultRifle), range=1469, listeners=3
+[02:24:49] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0, below_threshold=1
+[02:24:50] [ENEMY] [Enemy9] Hit taken, damage: 1, health: 2/4 -> 1/4
+[02:24:50] [ENEMY] [Enemy9] ImpactEffectsManager found, calling spawn_blood_effect
+[02:24:50] [INFO] [ImpactEffects] spawn_blood_effect called at (1938.944, 1236.065), dir=(1, 0), lethal=false
+[02:24:50] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[02:24:50] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[02:24:50] [INFO] [ImpactEffects] Blood effect spawned at (1938.944, 1236.065) (scale=1)
+[02:24:50] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(2194.607, 1229.684), source=PLAYER (AssaultRifle), range=1469, listeners=3
+[02:24:50] [INFO] [SoundPropagation] Sound result: notified=2, out_of_range=0, self=0, below_threshold=1
+[02:24:50] [ENEMY] [Enemy9] Hit taken, damage: 1, health: 1/4 -> 0/4
+[02:24:50] [ENEMY] [Enemy9] ImpactEffectsManager found, calling spawn_blood_effect
+[02:24:50] [INFO] [ImpactEffects] spawn_blood_effect called at (1906.919, 1236.065), dir=(1, 0), lethal=true
+[02:24:50] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[02:24:50] [INFO] [ImpactEffects] Blood decals scheduled: 20 to spawn at particle landing times
+[02:24:50] [INFO] [ImpactEffects] Blood effect spawned at (1906.919, 1236.065) (scale=1.5)
+[02:24:50] [ENEMY] [Enemy9] Enemy died (ricochet: false, penetration: false)
+[02:24:50] [ENEMY] [Enemy9] [AllyDeath] Notified 1 enemies
+[02:24:50] [INFO] [SoundPropagation] Unregistered listener: Enemy9 (remaining: 2)
+[02:24:50] [INFO] [DeathAnim] Started - Angle: 0.0 deg, Index: 12
+[02:24:50] [ENEMY] [Enemy9] Death animation started with hit direction: (1, 0)
+[02:24:50] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(2161.571, 1234.907), source=PLAYER (AssaultRifle), range=1469, listeners=2
+[02:24:50] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=0, below_threshold=1
+[02:24:50] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(2126.372, 1234.907), source=PLAYER (AssaultRifle), range=1469, listeners=2
+[02:24:50] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=0, below_threshold=1
+[02:24:50] [ENEMY] [Enemy8] Hit taken, damage: 1, health: 3/3 -> 2/3
+[02:24:50] [ENEMY] [Enemy8] ImpactEffectsManager found, calling spawn_blood_effect
+[02:24:50] [INFO] [ImpactEffects] spawn_blood_effect called at (1838.155, 1239.43), dir=(1, 0), lethal=false
+[02:24:50] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[02:24:50] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[02:24:50] [INFO] [ImpactEffects] Blood effect spawned at (1838.155, 1239.43) (scale=1)
+[02:24:50] [INFO] [BloodDecal] Blood puddle created at (2032.961, 1264.507) (added to group)
+[02:24:50] [ENEMY] [Enemy8] Hit taken, damage: 1, health: 2/3 -> 1/3
+[02:24:50] [ENEMY] [Enemy8] ImpactEffectsManager found, calling spawn_blood_effect
+[02:24:50] [INFO] [ImpactEffects] spawn_blood_effect called at (1838.155, 1239.43), dir=(1, 0), lethal=false
+[02:24:50] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[02:24:50] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[02:24:50] [INFO] [ImpactEffects] Blood effect spawned at (1838.155, 1239.43) (scale=1)
+[02:24:50] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(2091.172, 1234.907), source=PLAYER (AssaultRifle), range=1469, listeners=2
+[02:24:50] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=0, below_threshold=1
+[02:24:50] [INFO] [BloodDecal] Blood puddle created at (1976.698, 1224.224) (added to group)
+[02:24:50] [INFO] [BloodDecal] Blood puddle created at (2043.291, 1235.966) (added to group)
+[02:24:50] [INFO] [BloodDecal] Blood puddle created at (2002.522, 1259.735) (added to group)
+[02:24:50] [INFO] [BloodDecal] Blood puddle created at (1998.183, 1213.071) (added to group)
+[02:24:50] [INFO] [BloodyFeet:Player] Stepped in blood! 12 footprints to spawn, color: (1, 1, 1, 1)
+[02:24:50] [ENEMY] [Enemy8] Hit taken, damage: 1, health: 1/3 -> 0/3
+[02:24:50] [ENEMY] [Enemy8] ImpactEffectsManager found, calling spawn_blood_effect
+[02:24:50] [INFO] [ImpactEffects] spawn_blood_effect called at (1838.155, 1239.43), dir=(1, 0), lethal=true
+[02:24:50] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[02:24:50] [INFO] [ImpactEffects] Blood decals scheduled: 20 to spawn at particle landing times
+[02:24:50] [INFO] [ImpactEffects] Blood effect spawned at (1838.155, 1239.43) (scale=1.5)
+[02:24:50] [ENEMY] [Enemy8] Enemy died (ricochet: false, penetration: false)
+[02:24:50] [INFO] [SoundPropagation] Unregistered listener: Enemy8 (remaining: 1)
+[02:24:50] [INFO] [DeathAnim] Started - Angle: 0.0 deg, Index: 12
+[02:24:50] [ENEMY] [Enemy8] Death animation started with hit direction: (1, 0)
+[02:24:50] [INFO] [BloodDecal] Blood puddle created at (1999.835, 1298.799) (added to group)
+[02:24:50] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(2055.973, 1234.907), source=PLAYER (AssaultRifle), range=1469, listeners=1
+[02:24:50] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=1
+[02:24:50] [INFO] [BloodDecal] Blood puddle created at (1999.608, 1241.638) (added to group)
+[02:24:50] [INFO] [BloodDecal] Blood puddle created at (1982.567, 1252.82) (added to group)
+[02:24:50] [INFO] [BloodDecal] Blood puddle created at (2090.25, 1268.867) (added to group)
+[02:24:50] [INFO] [BloodDecal] Blood puddle created at (2002.132, 1303.571) (added to group)
+[02:24:50] [INFO] [BloodDecal] Blood puddle created at (2081.33, 1215.484) (added to group)
+[02:24:50] [INFO] [BloodDecal] Blood puddle created at (1988.835, 1252.08) (added to group)
+[02:24:50] [INFO] [BloodDecal] Blood puddle created at (2033.547, 1228.557) (added to group)
+[02:24:50] [INFO] [BloodDecal] Blood puddle created at (2000.723, 1239.991) (added to group)
+[02:24:50] [INFO] [BloodDecal] Blood puddle created at (2028.466, 1266.877) (added to group)
+[02:24:50] [INFO] [BloodDecal] Blood puddle created at (2057.47, 1319.697) (added to group)
+[02:24:50] [INFO] [BloodDecal] Blood puddle created at (2037.582, 1335.115) (added to group)
+[02:24:50] [INFO] [BloodDecal] Blood puddle created at (2040.475, 1342.303) (added to group)
+[02:24:50] [INFO] [BloodDecal] Blood puddle created at (2001.555, 1245.245) (added to group)
+[02:24:50] [INFO] [BloodDecal] Blood puddle created at (1902.463, 1281.101) (added to group)
+[02:24:50] [INFO] [BloodDecal] Blood puddle created at (2055.72, 1342.533) (added to group)
+[02:24:50] [ENEMY] [Enemy9] Ragdoll activated
+[02:24:50] [INFO] [DeathAnim] Ragdoll activated at 60% fall progress
+[02:24:50] [INFO] [BloodDecal] Blood puddle created at (1920.237, 1256.462) (added to group)
+[02:24:50] [INFO] [BloodDecal] Blood puddle created at (1919.889, 1273.277) (added to group)
+[02:24:50] [INFO] [BloodyFeet:Enemy9] Stepped in blood! 12 footprints to spawn, color: (1, 1, 1, 1)
+[02:24:50] [INFO] [BloodDecal] Blood puddle created at (1900.546, 1266.723) (added to group)
+[02:24:50] [INFO] [BloodDecal] Blood puddle created at (1918.515, 1237.305) (added to group)
+[02:24:50] [INFO] [BloodDecal] Blood puddle created at (2051.898, 1328.419) (added to group)
+[02:24:50] [INFO] [BloodDecal] Blood puddle created at (2050.17, 1310.352) (added to group)
+[02:24:50] [INFO] [BloodDecal] Blood puddle created at (2145.396, 1386.608) (added to group)
+[02:24:50] [INFO] [BloodDecal] Blood puddle created at (2144.892, 1432.167) (added to group)
+[02:24:50] [INFO] [BloodDecal] Blood puddle created at (1913.791, 1248.806) (added to group)
+[02:24:50] [INFO] [BloodDecal] Blood puddle created at (1897.285, 1276.628) (added to group)
+[02:24:50] [INFO] [BloodDecal] Blood puddle created at (2064.8, 1336.58) (added to group)
+[02:24:50] [INFO] [BloodDecal] Blood puddle created at (2062.562, 1254.644) (added to group)
+[02:24:50] [INFO] [BloodDecal] Blood puddle created at (1921.38, 1266.949) (added to group)
+[02:24:50] [ENEMY] [Enemy10] PURSUING corner check: angle 60.7°
+[02:24:50] [INFO] [BloodDecal] Blood puddle created at (2004.266, 1318.592) (added to group)
+[02:24:50] [INFO] [BloodDecal] Blood puddle created at (1901.989, 1241.707) (added to group)
+[02:24:50] [INFO] [BloodDecal] Blood puddle created at (2072.064, 1322.162) (added to group)
+[02:24:51] [INFO] [BloodDecal] Blood puddle created at (1887.685, 1281.997) (added to group)
+[02:24:51] [INFO] [BloodDecal] Blood puddle created at (1944.92, 1319.502) (added to group)
+[02:24:51] [INFO] [BloodDecal] Blood puddle created at (1982.157, 1237.348) (added to group)
+[02:24:51] [INFO] [BloodDecal] Blood puddle created at (1908.909, 1259.786) (added to group)
+[02:24:51] [INFO] [BloodDecal] Blood puddle created at (1937.503, 1259.16) (added to group)
+[02:24:51] [INFO] [BloodDecal] Blood puddle created at (1934.874, 1252.057) (added to group)
+[02:24:51] [INFO] [BloodDecal] Blood puddle created at (2123.665, 1332.348) (added to group)
+[02:24:51] [INFO] [BloodDecal] Blood puddle created at (2116.072, 1412.944) (added to group)
+[02:24:51] [INFO] [BloodDecal] Blood puddle created at (1922.189, 1254.936) (added to group)
+[02:24:51] [INFO] [BloodDecal] Blood puddle created at (2030.333, 1331.071) (added to group)
+[02:24:51] [INFO] [BloodDecal] Blood puddle created at (1987.668, 1349.379) (added to group)
+[02:24:51] [INFO] [BloodDecal] Blood puddle created at (1950.514, 1283.886) (added to group)
+[02:24:51] [INFO] [BloodDecal] Blood puddle created at (1910.318, 1288.465) (added to group)
+[02:24:51] [INFO] [BloodDecal] Blood puddle created at (1964.508, 1304.516) (added to group)
+[02:24:51] [INFO] [BloodDecal] Blood puddle created at (1916.161, 1304.905) (added to group)
+[02:24:51] [INFO] [BloodDecal] Blood puddle created at (1978.606, 1316.03) (added to group)
+[02:24:51] [INFO] [BloodDecal] Blood puddle created at (1958.095, 1261.753) (added to group)
+[02:24:51] [ENEMY] [Enemy8] Ragdoll activated
+[02:24:51] [INFO] [DeathAnim] Ragdoll activated at 60% fall progress
+[02:24:51] [INFO] [BloodDecal] Blood puddle created at (1952.509, 1290.52) (added to group)
+[02:24:51] [INFO] [BloodDecal] Blood puddle created at (2021.658, 1389.996) (added to group)
+[02:24:51] [INFO] [BloodDecal] Blood puddle created at (1965.922, 1267.967) (added to group)
+[02:24:51] [INFO] [BloodDecal] Blood puddle created at (1944.873, 1294.164) (added to group)
+[02:24:51] [INFO] [BloodDecal] Blood puddle created at (1996.676, 1335.851) (added to group)
+[02:24:51] [INFO] [BloodDecal] Blood puddle created at (2052.344, 1328.532) (added to group)
+[02:24:51] [INFO] [BloodDecal] Blood puddle created at (2036.316, 1359.432) (added to group)
+[02:24:51] [INFO] [BloodDecal] Blood puddle created at (1961.351, 1337.783) (added to group)
+[02:24:51] [INFO] [BloodDecal] Blood puddle created at (2027.351, 1272.948) (added to group)
+[02:24:51] [INFO] [BloodDecal] Blood puddle created at (1992.612, 1238.214) (added to group)
+[02:24:51] [INFO] [BloodDecal] Blood puddle created at (2006.045, 1329.768) (added to group)
+[02:24:51] [INFO] [BloodDecal] Blood puddle created at (1988.941, 1365.14) (added to group)
+[02:24:51] [INFO] [BloodDecal] Blood puddle created at (2018.681, 1364.306) (added to group)
+[02:24:51] [ENEMY] [Enemy10] ROT_CHANGE: P2:combat_state -> P1:visible, state=PURSUING, target=-24.2°, current=-24.0°, player=(1853,1228), corner_timer=0.29
+[02:24:51] [INFO] [BloodDecal] Blood puddle created at (1952.994, 1369.197) (added to group)
+[02:24:51] [INFO] [BloodDecal] Blood puddle created at (2053.297, 1326.258) (added to group)
+[02:24:51] [INFO] [BloodDecal] Blood puddle created at (1956.853, 1315.598) (added to group)
+[02:24:51] [ENEMY] [Enemy10] State: PURSUING -> COMBAT
+[02:24:51] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(2055.9731, 1234.9067), shooter_id=52395247409, bullet_pos=(37.4519, 1210.6887)
+[02:24:51] [INFO] [Bullet] Using shooter_position, distance=2018,6665
+[02:24:51] [INFO] [Bullet] Distance to wall: 2018,6665 (137,45471% of viewport)
+[02:24:51] [INFO] [Bullet] Distance-based penetration chance: 22,50906%
+[02:24:51] [INFO] [Bullet] Starting wall penetration at (37.4519, 1210.6887)
+[02:24:51] [INFO] [Bullet] Raycast backward hit penetrating body at distance 32,881042
+[02:24:51] [INFO] [Bullet] Body exited signal received for penetrating body
+[02:24:51] [INFO] [Bullet] Exiting penetration at (-0.87867737, 1210.2289) after traveling 33,333336 pixels through wall
+[02:24:51] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[02:24:51] [ENEMY] [Enemy10] ROT_CHANGE: P1:visible -> P2:combat_state, state=COMBAT, target=-34.3°, current=-34.2°, player=(1743,1228), corner_timer=0.29
+[02:24:51] [ENEMY] [Enemy10] ROT_CHANGE: P2:combat_state -> P1:visible, state=COMBAT, target=-34.4°, current=-34.9°, player=(1739,1228), corner_timer=0.29
+[02:24:51] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1708.371, 1234.907), source=PLAYER (AssaultRifle), range=1469, listeners=1
+[02:24:51] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=0, below_threshold=0
+[02:24:52] [ENEMY] [Enemy10] Hit taken, damage: 1, health: 2/2 -> 1/2
+[02:24:52] [ENEMY] [Enemy10] ImpactEffectsManager found, calling spawn_blood_effect
+[02:24:52] [INFO] [ImpactEffects] spawn_blood_effect called at (1466.78, 1388.454), dir=(1, 0), lethal=false
+[02:24:52] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[02:24:52] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[02:24:52] [INFO] [ImpactEffects] Blood effect spawned at (1466.78, 1388.454) (scale=1)
+[02:24:52] [ENEMY] [Enemy10] ROT_CHANGE: P1:visible -> P2:combat_state, state=COMBAT, target=-35.9°, current=180.0°, player=(1679,1234), corner_timer=0.29
+[02:24:52] [ENEMY] [Enemy9] Death animation completed
+[02:24:52] [ENEMY] [Enemy10] State: COMBAT -> PURSUING
+[02:24:52] [ENEMY] [Enemy10] State: PURSUING -> RETREATING
+[02:24:52] [ENEMY] [Enemy10] ROT_CHANGE: P2:combat_state -> P3:corner, state=RETREATING, target=60.7°, current=-150.8°, player=(1628,1248), corner_timer=0.29
+[02:24:52] [ENEMY] [Enemy8] Death animation completed
+[02:24:52] [INFO] [BloodDecal] Blood puddle created at (1553.207, 1388.086) (added to group)
+[02:24:52] [ENEMY] [Enemy10] ROT_CHANGE: P3:corner -> P1:visible, state=RETREATING, target=-51.8°, current=-99.5°, player=(1575,1248), corner_timer=0.29
+[02:24:52] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1455.95, 1403.701), source=ENEMY (Enemy10), range=1469, listeners=1
+[02:24:52] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=1, below_threshold=0
+[02:24:52] [INFO] [BloodDecal] Blood puddle created at (1579.706, 1386.401) (added to group)
+[02:24:52] [INFO] [BloodDecal] Blood puddle created at (1565.686, 1396.399) (added to group)
+[02:24:52] [ENEMY] [Enemy10] ROT_CHANGE: P1:visible -> P3:corner, state=RETREATING, target=60.7°, current=-2.0°, player=(1546,1251), corner_timer=0.29
+[02:24:52] [INFO] [BloodyFeet:Player] Blood ran out - no more footprints
+[02:24:52] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(0, 0), shooter_id=0, bullet_pos=(1686.9758, 1348.6631)
+[02:24:52] [INFO] [Bullet] WARNING: Unable to determine shooter position
+[02:24:52] [INFO] [Bullet] Using shooter_position, distance=2159,81
+[02:24:52] [INFO] [Bullet] Distance to wall: 2159,81 (147,06544% of viewport)
+[02:24:52] [INFO] [Bullet] Distance-based penetration chance: 20,58691%
+[02:24:52] [INFO] [Bullet] Starting wall penetration at (1686.9758, 1348.6631)
+[02:24:52] [INFO] [Bullet] Raycast backward hit penetrating body at distance 25,309204
+[02:24:52] [INFO] [Bullet] Body exited signal received for penetrating body
+[02:24:52] [INFO] [Bullet] Exiting penetration at (1725.3092, 1348.6631) after traveling 33,333336 pixels through wall
+[02:24:52] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[02:24:52] [ENEMY] [Enemy10] ROT_CHANGE: P3:corner -> P1:visible, state=RETREATING, target=-68.5°, current=-39.2°, player=(1524,1251), corner_timer=0.29
+[02:24:52] [ENEMY] [Enemy10] ROT_CHANGE: P1:visible -> P3:corner, state=RETREATING, target=60.7°, current=-19.7°, player=(1515,1251), corner_timer=0.29
+[02:24:52] [INFO] [BloodDecal] Blood puddle created at (1650.042, 1407.827) (added to group)
+[02:24:52] [INFO] [Player.Reload.Anim] Phase changed to: GrabMagazine (duration: 0,25s)
+[02:24:52] [INFO] [BloodDecal] Blood puddle created at (1667.528, 1399.568) (added to group)
+[02:24:52] [INFO] [Player.Reload.Anim] LeftArm: pos=(4.7805653, 2.1560738), target=(4, 2), base=(24, 6)
+[02:24:52] [INFO] [Player.Reload.Anim] RightArm: pos=(-2.0001967, 6), target=(-2, 6), base=(-2, 6)
+[02:24:53] [INFO] [Player.Reload.Anim] Phase changed to: InsertMagazine (duration: 0,30s)
+[02:24:53] [INFO] [Player.Reload.Anim] Phase changed to: PullBolt (duration: 0,35s)
+[02:24:53] [INFO] [Player.Reload.Anim] Phase changed to: ReturnIdle (duration: 0,20s)
+[02:24:53] [ENEMY] [Enemy10] State: RETREATING -> IN_COVER
+[02:24:53] [ENEMY] [Enemy10] State: IN_COVER -> SUPPRESSED
+[02:24:53] [INFO] [Player.Reload.Anim] Animation complete, returning to normal
+[02:24:53] [ENEMY] [Enemy10] State: SUPPRESSED -> SEEKING_COVER
+[02:24:53] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1436.729, 1258.97), source=PLAYER (AssaultRifle), range=1469, listeners=1
+[02:24:53] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=0, below_threshold=0
+[02:24:53] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1465.483, 1270.302), source=PLAYER (AssaultRifle), range=1469, listeners=1
+[02:24:53] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=0, below_threshold=0
+[02:24:54] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1484.134, 1290.569), source=PLAYER (AssaultRifle), range=1469, listeners=1
+[02:24:54] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=0, below_threshold=0
+[02:24:54] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1436.7285, 1258.9697), shooter_id=52395247409, bullet_pos=(1476.8035, 2076.654)
+[02:24:54] [INFO] [Bullet] Using shooter_position, distance=818,6658
+[02:24:54] [INFO] [Bullet] Distance to wall: 818,6658 (55,744457% of viewport)
+[02:24:54] [INFO] [Bullet] Distance-based penetration chance: 81,63147%
+[02:24:54] [INFO] [Bullet] Starting wall penetration at (1476.8035, 2076.654)
+[02:24:54] [INFO] [Bullet] Raycast backward hit penetrating body at distance 18,964142
+[02:24:54] [INFO] [Bullet] Body exited signal received for penetrating body
+[02:24:54] [INFO] [Bullet] Exiting penetration at (1478.6799, 2114.9414) after traveling 33,333336 pixels through wall
+[02:24:54] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[02:24:54] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1465.4833, 1270.3025), shooter_id=52395247409, bullet_pos=(1459.3132, 2088.946)
+[02:24:54] [INFO] [Bullet] Using shooter_position, distance=818,6668
+[02:24:54] [INFO] [Bullet] Distance to wall: 818,6668 (55,74453% of viewport)
+[02:24:54] [INFO] [Bullet] Distance-based penetration chance: 81,631386%
+[02:24:54] [INFO] [Bullet] Starting wall penetration at (1459.3132, 2088.946)
+[02:24:54] [INFO] [Bullet] Raycast backward hit penetrating body at distance 31,278965
+[02:24:54] [INFO] [Bullet] Body exited signal received for penetrating body
+[02:24:54] [INFO] [Bullet] Exiting penetration at (1459.0243, 2127.278) after traveling 33,333332 pixels through wall
+[02:24:54] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[02:24:54] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1484.1338, 1290.569), shooter_id=52395247409, bullet_pos=(1458.181, 2075.4746)
+[02:24:54] [INFO] [Bullet] Using shooter_position, distance=785,3346
+[02:24:54] [INFO] [Bullet] Distance to wall: 785,3346 (53,47488% of viewport)
+[02:24:54] [INFO] [Bullet] Distance-based penetration chance: 84,27931%
+[02:24:54] [INFO] [Bullet] Starting wall penetration at (1458.181, 2075.4746)
+[02:24:54] [INFO] [Bullet] Raycast backward hit penetrating body at distance 17,796831
+[02:24:54] [INFO] [Bullet] Body exited signal received for penetrating body
+[02:24:54] [INFO] [Bullet] Exiting penetration at (1456.9142, 2113.787) after traveling 33,333336 pixels through wall
+[02:24:54] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[02:24:55] [ENEMY] [Enemy10] ROT_CHANGE: P3:corner -> P1:visible, state=SEEKING_COVER, target=7.8°, current=37.5°, player=(1392,1459), corner_timer=0.29
+[02:24:55] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1388.911, 1469.562), source=PLAYER (AssaultRifle), range=1469, listeners=1
+[02:24:55] [INFO] [SoundPropagation] Sound result: notified=1, out_of_range=0, self=0, below_threshold=0
+[02:24:55] [ENEMY] [Enemy10] Hit taken, damage: 1, health: 1/2 -> 0/2
+[02:24:55] [ENEMY] [Enemy10] ImpactEffectsManager found, calling spawn_blood_effect
+[02:24:55] [INFO] [ImpactEffects] spawn_blood_effect called at (1323.877, 1445.215), dir=(1, 0), lethal=true
+[02:24:55] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[02:24:55] [INFO] [ImpactEffects] Blood decals scheduled: 20 to spawn at particle landing times
+[02:24:55] [INFO] [ImpactEffects] Blood effect spawned at (1323.877, 1445.215) (scale=1.5)
+[02:24:55] [ENEMY] [Enemy10] Enemy died (ricochet: false, penetration: false)
+[02:24:55] [INFO] [SoundPropagation] Unregistered listener: Enemy10 (remaining: 0)
+[02:24:55] [INFO] [DeathAnim] Started - Angle: 0.0 deg, Index: 12
+[02:24:55] [ENEMY] [Enemy10] Death animation started with hit direction: (1, 0)
+[02:24:55] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1366.354, 1492.119), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[02:24:55] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[02:24:55] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(1341.463, 1517.01), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[02:24:55] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[02:24:55] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1341.463, 1517.0098), shooter_id=52395247409, bullet_pos=(1213.2178, 1383.2128)
+[02:24:55] [INFO] [Bullet] Using shooter_position, distance=185,33342
+[02:24:55] [INFO] [Bullet] Distance to wall: 185,33342 (12,619694% of viewport)
+[02:24:55] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[02:24:55] [INFO] [BloodDecal] Blood puddle created at (1369.239, 1440.782) (added to group)
+[02:24:55] [INFO] [BloodDecal] Blood puddle created at (1386.191, 1437.33) (added to group)
+[02:24:55] [INFO] [BloodDecal] Blood puddle created at (1414.779, 1454.151) (added to group)
+[02:24:55] [INFO] [BloodDecal] Blood puddle created at (1396.157, 1472.075) (added to group)
+[02:24:55] [INFO] [BloodDecal] Blood puddle created at (1432.413, 1535.443) (added to group)
+[02:24:55] [INFO] [BloodDecal] Blood puddle created at (1461.473, 1498.8) (added to group)
+[02:24:55] [INFO] [BloodDecal] Blood puddle created at (1465.718, 1477.566) (added to group)
+[02:24:55] [INFO] [BloodDecal] Blood puddle created at (1436.59, 1461.037) (added to group)
+[02:24:55] [INFO] [BloodDecal] Blood puddle created at (1412.925, 1517.565) (added to group)
+[02:24:55] [ENEMY] [Enemy10] Ragdoll activated
+[02:24:55] [INFO] [DeathAnim] Ragdoll activated at 60% fall progress
+[02:24:55] [INFO] [BloodDecal] Blood puddle created at (1418.063, 1474.622) (added to group)
+[02:24:55] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1341.463, 1517.0098), shooter_id=52395247409, bullet_pos=(906.28973, 1796.7585)
+[02:24:55] [INFO] [Bullet] Using shooter_position, distance=517,33466
+[02:24:55] [INFO] [Bullet] Distance to wall: 517,33466 (35,22627% of viewport)
+[02:24:55] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[02:24:55] [INFO] [BloodDecal] Blood puddle created at (1426.811, 1491.178) (added to group)
+[02:24:55] [INFO] [BloodDecal] Blood puddle created at (1452.926, 1471.728) (added to group)
+[02:24:55] [INFO] [BloodDecal] Blood puddle created at (1423.693, 1501.374) (added to group)
+[02:24:55] [INFO] [BloodDecal] Blood puddle created at (1451.073, 1528.669) (added to group)
+[02:24:55] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1366.3536, 1492.1191), shooter_id=52395247409, bullet_pos=(47.923992, 1192.7069)
+[02:24:55] [INFO] [Bullet] Using shooter_position, distance=1352,0002
+[02:24:55] [INFO] [Bullet] Distance to wall: 1352,0002 (92,06018% of viewport)
+[02:24:55] [INFO] [BloodDecal] Blood puddle created at (1430.425, 1492.3) (added to group)
+[02:24:55] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1341.463, 1517.0098), shooter_id=52395247409, bullet_pos=(1111.7439, 2070.3765)
+[02:24:55] [INFO] [Bullet] Using shooter_position, distance=599,15405
+[02:24:55] [INFO] [Bullet] Distance to wall: 599,15405 (40,7975% of viewport)
+[02:24:55] [INFO] [BloodDecal] Blood puddle created at (1430.961, 1544.195) (added to group)
+[02:24:55] [INFO] [BloodDecal] Blood puddle created at (1456.689, 1511.566) (added to group)
+[02:24:56] [INFO] [BloodDecal] Blood puddle created at (1436.47, 1587.05) (added to group)
+[02:24:56] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(1341.463, 1517.0098), shooter_id=52395247409, bullet_pos=(1487.6361, 1658.3706)
+[02:24:56] [INFO] [Bullet] Using shooter_position, distance=203,34567
+[02:24:56] [INFO] [Bullet] Distance to wall: 203,34567 (13,846181% of viewport)
+[02:24:56] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[02:24:56] [INFO] [Bullet] Starting wall penetration at (1487.6361, 1658.3706)
+[02:24:56] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[02:24:56] [INFO] [Bullet] Exiting penetration at (1504.8032, 1639.5542) after traveling 20,470835 pixels through wall
+[02:24:56] [INFO] [Bullet] Damage multiplier after penetration: 0,1125
+[02:24:56] [ENEMY] [Enemy10] Death animation completed
+[02:25:03] [INFO] ------------------------------------------------------------
+[02:25:03] [INFO] GAME LOG ENDED: 2026-02-05T02:25:03
+[02:25:03] [INFO] ============================================================

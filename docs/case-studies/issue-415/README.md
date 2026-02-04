@@ -1162,3 +1162,123 @@ var parts: Array = []  # Untyped to avoid binary tokens export issues
 3. **Script parse failures can be silent** - The script just doesn't load, no error in game
 4. **Compare logs carefully** - Looking for *missing* entries reveals total script failures
 5. **Binary tokens affect more than external scripts** - Even inline code can fail with certain type annotations
+
+---
+
+## Session 10 Investigation: Dictionary and Array const with Color() Constructors
+
+### Problem Report
+
+User reported: **"счёт не отображается"** (Score is not displayed)
+- Attached log file: `game_log_20260205_022422.txt`
+
+### Game Log Analysis
+
+Downloaded log: `logs/game_log_20260205_022422.txt` (1710 lines)
+
+**Critical Evidence:**
+- Line 1658: `[SoundPropagation] Unregistered listener: Enemy10 (remaining: 0)` - All 10 enemies killed
+- Line 1707: `[ENEMY] [Enemy10] Death animation completed` - Last enemy death animation finished
+- **NO BuildingLevel logs at all** - No "BuildingLevel loaded", no "Exit zone created", no "All enemies eliminated"
+
+**Search Results:**
+```bash
+grep "BuildingLevel" game_log_20260205_022422.txt
+# Returns ZERO results
+
+grep "exit|Exit" game_log_20260205_022422.txt
+# Only bullet exit events, no exit zone logs
+```
+
+### Root Cause Analysis
+
+**The `building_level.gd` script was NOT loading at all.**
+
+Evidence:
+1. No `print("BuildingLevel loaded - Hotline Miami Style")` (line 159 in script)
+2. No `print("[BuildingLevel] Exit zone created...")` (line 219)
+3. No `print("All enemies eliminated! Building cleared!")` (line 564)
+4. Enemy death signals were emitted but nobody was listening
+
+**Why Session 9's fix wasn't enough:**
+
+Session 9 fixed typed array declarations like:
+```gdscript
+const SCORE_FLASH_COLORS: Array[Color] = [...]  # FIXED: removed type annotation
+var _score_items_data: Array[Dictionary] = []   # FIXED: removed type annotation
+```
+
+But the script **still had const declarations with complex initializers**:
+```gdscript
+const SCORE_RANK_COLORS: Dictionary = {
+    "S": Color(1.0, 0.84, 0.0, 1.0),   # Color constructor in const
+    "A+": Color(0.0, 1.0, 0.5, 1.0),   # Color constructor in const
+    ...
+}
+
+const SCORE_FLASH_COLORS: Array = [
+    Color(1.0, 0.0, 0.0, 0.9),   # Color constructor in const
+    ...
+]
+```
+
+**The Issue:**
+
+In Godot 4.x binary tokens export mode, `const` declarations with:
+1. Dictionary literals containing `Color()` constructor calls
+2. Array literals containing `Color()` constructor calls
+
+Can cause **silent script parse failures**. The script is compiled to bytecode, but the bytecode tokenizer fails to properly handle complex constructor expressions in constant contexts.
+
+This is a more subtle variant of [godotengine/godot#94150](https://github.com/godotengine/godot/issues/94150).
+
+### Solution Applied
+
+**Convert const to static var with lazy initialization:**
+
+```gdscript
+# BEFORE (broken in binary tokens export):
+const SCORE_RANK_COLORS: Dictionary = {
+    "S": Color(1.0, 0.84, 0.0, 1.0),
+    ...
+}
+
+# AFTER (works in all export modes):
+static var SCORE_RANK_COLORS: Dictionary = {}
+static var _colors_initialized: bool = false
+
+static func _init_colors() -> void:
+    if _colors_initialized:
+        return
+    _colors_initialized = true
+
+    SCORE_RANK_COLORS = {
+        "S": Color(1.0, 0.84, 0.0, 1.0),
+        ...
+    }
+```
+
+Then call `_init_colors()` at the start of `_ready()`.
+
+### Why This Fix Works
+
+1. **Empty initializers parse correctly** - `static var SCORE_RANK_COLORS: Dictionary = {}` has no complex constructors
+2. **Runtime initialization** - Color constructors are called at runtime, not compile time
+3. **Lazy initialization pattern** - Colors are only created once, when first needed
+4. **Bypasses tokenizer bug** - The bytecode doesn't need to embed Color values
+
+### Files Changed
+
+| File | Change |
+|------|--------|
+| `scripts/levels/building_level.gd` | Converted const Color dictionaries to static vars with lazy init |
+| `docs/case-studies/issue-415/logs/game_log_20260205_022422.txt` | Added broken session log |
+| `docs/case-studies/issue-415/README.md` | This session documentation |
+
+### Lessons Learned (Session 10)
+
+1. **Avoid const with Color() in initializers** - Binary tokens can't handle complex constructors in const context
+2. **Avoid const Dictionary with nested constructors** - Even without type annotations, the constructor calls cause issues
+3. **Use static var with lazy init** - Runtime initialization bypasses compile-time parsing issues
+4. **Test after EVERY change** - Even seemingly safe changes can trigger the binary tokens bug
+5. **Log analysis is critical** - The ABSENCE of logs is as important as their presence
