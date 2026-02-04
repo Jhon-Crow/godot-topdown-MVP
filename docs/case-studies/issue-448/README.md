@@ -214,6 +214,77 @@ Top-down view (character facing right):
 - `scenes/characters/csharp/Player.tscn`
 - `scenes/objects/Enemy.tscn`
 
+## Bug Fix #2: Left Forearm Not Visible / Not Attached to Weapon
+
+### Issue Discovery
+
+After the first position fix, the repository owner reported two remaining issues:
+
+> "1. левого предплечья не видно"
+> "2. левая рука должна быть прикреплена к оружию (быть чуть под углом)"
+>
+> (Translation:
+> 1. "Left forearm is not visible"
+> 2. "Left arm should be attached to the weapon (at a slight angle)")
+
+![Expected arm positioning](expected-arm-positioning.png)
+
+### Root Cause Analysis
+
+Looking at the reference image, it became clear that:
+
+1. **The left forearm (supporting hand) should be visible** - It needs to be in front of the weapon sprite, not behind
+2. **The left forearm should grip the weapon's foregrip** - It should be positioned much further forward (higher X value), where a supporting hand would naturally grip a rifle
+3. **The left forearm needs rotation** - To appear natural, the forearm should be at a slight angle
+
+### Previous Incorrect Implementation
+
+```
+LeftForearm:
+  - position = (-2, -6)  ← Behind body, same X as right forearm
+  - z_index = 0          ← Behind everything (hidden by body and weapon)
+  - rotation = 0         ← No angle
+```
+
+### Corrected Implementation
+
+```
+LeftForearm:
+  - position = (32, 4)   ← Forward on weapon foregrip area, slightly below center
+  - z_index = 3          ← Above weapon (z=2) but below front arm (z=4)
+  - rotation = 0.3       ← ~17° angle for natural grip appearance
+```
+
+### Position Calculation Rationale
+
+1. **X = 32**: The weapon mount is at X=0 with weapon offset of 20, so the foregrip area is approximately X=25-35. Position 32 places the hand on the forward grip area of the rifle.
+
+2. **Y = 4**: Slightly positive (toward "front" in top-down view) but not as far as the right arm (Y=6), so it appears to reach across/under the weapon.
+
+3. **Z-index = 3**: The weapon sprite has z-index 2, and the right arm has z-index 4. Setting the left forearm to z-index 3 makes it appear on top of the weapon but still behind the primary (right) arm.
+
+4. **Rotation = 0.3 radians (~17°)**: A slight clockwise rotation gives the forearm a natural angled appearance as it grips the foregrip.
+
+### Visual Representation
+
+```
+Top-down view (character facing right, holding rifle):
+
+        [Head]
+          |
+      [Body]---[RightShoulder]---[RightForearm/hand at trigger]
+          |                              |
+    [LeftShoulder]                  [WEAPON]=====>
+          |                              |
+      [LeftForearm/supporting hand at foregrip, angled]
+```
+
+### Files Changed
+
+- `scenes/characters/Player.tscn` - Updated LeftForearm position, z_index, rotation
+- `scenes/characters/csharp/Player.tscn` - Updated LeftForearm position, z_index, rotation
+- `scenes/objects/Enemy.tscn` - Updated LeftForearm position, z_index, rotation
+
 ## Lessons Learned
 
 1. **Clear naming conventions matter** - Using left/right naming for parts that were actually both on the right side caused confusion
@@ -222,3 +293,6 @@ Top-down view (character facing right):
 4. **Document the model structure** - A clear diagram showing node positions and purposes helps future development
 5. **Understand the coordinate system** - In top-down games, "left/right" arms don't mean "left/right" screen positions; they refer to anatomical left/right from the character's perspective, which translates to depth (Y-axis) in a top-down view facing right
 6. **Visual testing is essential** - Position calculations should be verified visually, not just logically
+7. **Consider weapon attachment points** - In games with held weapons, supporting hands need to be positioned at logical grip points on the weapon, not just mirrored from the primary hand
+8. **Z-ordering affects visibility** - Sprites with lower z-index can be completely hidden by other sprites, making position changes alone insufficient
+9. **Rotation adds realism** - Small rotation values make posed limbs look more natural than perfectly horizontal positioning
