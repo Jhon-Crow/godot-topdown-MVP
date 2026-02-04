@@ -28,12 +28,11 @@ jobs:
         id: line_counts
         run: |
           echo "Checking GDScript file sizes..."
-          # Current limits - these will be reduced as refactoring progresses
-          # Target: MAX_LINES=800, WARN_LINES=500
-          # Current: Higher limits to allow existing large scripts while encouraging refactoring
-          MAX_LINES=5000  # Will be reduced to 800 as refactoring progresses
-          WARN_LINES=800  # Warns for scripts that should be considered for refactoring
-          CRITICAL_THRESHOLD=4500  # 90% of MAX_LINES - pre-emptive warning (Issue #328)
+          # Line limits for maintainability (Issue #336)
+          # See docs/case-studies/issue-336/README.md for rationale
+          MAX_LINES=2500  # Maximum allowed lines per file
+          WARN_LINES=1500  # Warns for scripts approaching the limit (60% of max)
+          CRITICAL_THRESHOLD=2250  # 90% of MAX_LINES - pre-emptive warning (Issue #328)
           errors=0
           warnings=0
           critical_warnings=0
@@ -193,7 +192,7 @@ jobs:
           echo "=== Architecture Check Complete ==="
           echo ""
           echo "Checks performed:"
-          echo "  ✓ Script line counts (max 5000, critical at 4500, warn at 800)"
+          echo "  ✓ Script line counts (max 2500, critical at 2250, warn at 1500)"
           echo "  ✓ class_name declarations for components"
           echo "  ✓ Required folder structure"
           echo "  ✓ snake_case naming convention"
