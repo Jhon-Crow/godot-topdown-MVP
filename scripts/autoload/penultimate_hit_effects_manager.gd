@@ -486,11 +486,22 @@ func _saturate_color(color: Color, multiplier: float) -> Color:
 ## Resets all effects (useful when restarting the scene).
 func reset_effects() -> void:
 	_log("Resetting all effects (scene change detected)")
-	_end_penultimate_effect()
+
+	if _is_effect_active:
+		_is_effect_active = false
+		# Restore normal time immediately
+		Engine.time_scale = 1.0
 
 	# Reset fade-out state (Issue #442)
 	_is_fading_out = false
 	_fade_out_start_time = 0.0
+
+	# CRITICAL FIX (Issue #452): Always remove visual effects immediately on scene change.
+	# This ensures the saturation/contrast overlay is hidden even if the effect
+	# was active or fading out when the scene changed. Previously, the overlay would
+	# persist after death/restart because _remove_visual_effects() was only called
+	# when the fade-out animation completed, not during scene resets.
+	_remove_visual_effects()
 
 	_player = null
 	_connected_to_player = false

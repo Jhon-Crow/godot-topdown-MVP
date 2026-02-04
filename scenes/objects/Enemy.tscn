@@ -15,6 +15,9 @@
 [sub_resource type="CircleShape2D" id="CircleShape2D_enemy"]
 radius = 24.0
 
+[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_enemy"]
+polygon = PackedVector2Array(24, 0, 20.78, 12, 12, 20.78, 0, 24, -12, 20.78, -20.78, 12, -24, 0, -20.78, -12, -12, -20.78, 0, -24, 12, -20.78, 20.78, -12)
+
 [sub_resource type="CircleShape2D" id="CircleShape2D_casing_pusher"]
 radius = 28.0
 
@@ -116,3 +119,6 @@ monitorable = false
 
 [node name="CasingPusherShape" type="CollisionShape2D" parent="CasingPusher"]
 shape = SubResource("CircleShape2D_casing_pusher")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="."]
+occluder = SubResource("OccluderPolygon2D_enemy")

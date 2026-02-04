@@ -563,12 +563,14 @@ func _update_walk_animation(delta: float, input_direction: Vector2) -> void:
 			_head_sprite.position = _base_head_pos + Vector2(0, head_bob)
 
 		if _left_arm_sprite:
-			# Left arm swings forward/back (y-axis in top-down)
+			# Left arm (shoulder) swings forward/back (y-axis in top-down)
 			_left_arm_sprite.position = _base_left_arm_pos + Vector2(arm_swing, 0)
 
 		if _right_arm_sprite:
-			# Right arm swings opposite to left arm
-			_right_arm_sprite.position = _base_right_arm_pos + Vector2(-arm_swing, 0)
+			# Right arm (forearm) must move with the same offset as shoulder to stay connected
+			# Both _left_arm_sprite (RightShoulder) and _right_arm_sprite (RightForearm) are
+			# parts of the same arm, so they need to move together
+			_right_arm_sprite.position = _base_right_arm_pos + Vector2(arm_swing, 0)
 	else:
 		# Return to idle pose smoothly
 		if _is_walking:
@@ -639,6 +641,12 @@ func _shoot() -> void:
 
 	# Add bullet to the scene tree (parent's parent to avoid it being a child of player)
 	get_tree().current_scene.add_child(bullet)
+
+	# Spawn muzzle flash effect at bullet spawn position
+	var impact_effects: Node = get_node_or_null("/root/ImpactEffectsManager")
+	if impact_effects and impact_effects.has_method("spawn_muzzle_flash"):
+		var muzzle_pos := global_position + shoot_direction * bullet_spawn_offset
+		impact_effects.spawn_muzzle_flash(muzzle_pos, shoot_direction)
 
 	# Play shooting sound
 	var audio_manager: Node = get_node_or_null("/root/AudioManager")
@@ -2116,13 +2124,21 @@ func _update_grenade_animation(delta: float) -> void:
 				FileLogger.info("[Player.Grenade.Anim] Animation complete, returning to normal")
 
 	# Apply arm positions with smooth interpolation
+	# Note: _left_arm_sprite points to RightShoulder and _right_arm_sprite points to RightForearm
+	# These are BOTH parts of the same arm (the front/throwing arm), so they need to move together.
+	# Calculate the offset being applied to the shoulder (left_arm_sprite) and apply the same
+	# offset to the forearm (right_arm_sprite) to keep the arm parts connected.
+	var shoulder_offset := left_arm_target - _base_left_arm_pos
+	var forearm_connected_target := _base_right_arm_pos + shoulder_offset
+
 	if _left_arm_sprite:
 		_left_arm_sprite.position = _left_arm_sprite.position.lerp(left_arm_target, lerp_speed)
 		_left_arm_sprite.rotation = lerpf(_left_arm_sprite.rotation, left_arm_rot, lerp_speed)
 
 	if _right_arm_sprite:
-		_right_arm_sprite.position = _right_arm_sprite.position.lerp(right_arm_target, lerp_speed)
-		_right_arm_sprite.rotation = lerpf(_right_arm_sprite.rotation, right_arm_rot, lerp_speed)
+		# Apply the same offset as the shoulder to keep the arm connected
+		_right_arm_sprite.position = _right_arm_sprite.position.lerp(forearm_connected_target, lerp_speed)
+		_right_arm_sprite.rotation = lerpf(_right_arm_sprite.rotation, left_arm_rot, lerp_speed)
 
 	# Update weapon sling animation
 	_update_weapon_sling(delta)
@@ -2281,13 +2297,20 @@ func _update_reload_animation(delta: float) -> void:
 				FileLogger.info("[Player.Reload.Anim] Reload animation complete, returning to normal")
 
 	# Apply arm positions with smooth interpolation
+	# Note: _left_arm_sprite points to RightShoulder and _right_arm_sprite points to RightForearm
+	# These are BOTH parts of the same arm (the front/throwing arm), so they need to move together.
+	# Calculate the offset being applied to the shoulder and apply the same offset to the forearm.
+	var shoulder_offset := left_arm_target - _base_left_arm_pos
+	var forearm_connected_target := _base_right_arm_pos + shoulder_offset
+
 	if _left_arm_sprite:
 		_left_arm_sprite.position = _left_arm_sprite.position.lerp(left_arm_target, lerp_speed)
 		_left_arm_sprite.rotation = lerpf(_left_arm_sprite.rotation, left_arm_rot, lerp_speed)
 
 	if _right_arm_sprite:
-		_right_arm_sprite.position = _right_arm_sprite.position.lerp(right_arm_target, lerp_speed)
-		_right_arm_sprite.rotation = lerpf(_right_arm_sprite.rotation, right_arm_rot, lerp_speed)
+		# Apply the same offset as the shoulder to keep the arm connected
+		_right_arm_sprite.position = _right_arm_sprite.position.lerp(forearm_connected_target, lerp_speed)
+		_right_arm_sprite.rotation = lerpf(_right_arm_sprite.rotation, left_arm_rot, lerp_speed)
 
 
 # ============================================================================
@@ -2443,6 +2466,31 @@ func _is_active_grenade_contact_type() -> bool:
 	return false
 
 
+## Get the grenade effect radius with type-based default fallback.
+## FIX for Issue #432: If GDScript method call fails (common in exports), use appropriate default
+## based on grenade type instead of a generic 200px value.
+## Flashbang: 400px (from FlashbangGrenade.tscn)
+## Frag: 225px (from FragGrenade.tscn)
+func _get_grenade_effect_radius_with_default() -> float:
+	# Try to get effect radius from active grenade
+	if _active_grenade != null and is_instance_valid(_active_grenade):
+		if _active_grenade.has_method("_get_effect_radius"):
+			var result = _active_grenade._get_effect_radius()
+			if result > 0.0:
+				return result
+		# Try reading property directly
+		if "effect_radius" in _active_grenade:
+			var radius = _active_grenade.effect_radius
+			if radius > 0.0:
+				return radius
+
+	# Use type-based default
+	if _is_active_grenade_contact_type():
+		return 225.0  # Frag grenade radius (from FragGrenade.tscn)
+	else:
+		return 400.0  # Flashbang radius (from FlashbangGrenade.tscn)
+
+
 ## Draw a simple straight trajectory (for contact grenades or when no bounces needed).
 func _draw_simple_trajectory(spawn_pos: Vector2, landing_pos: Vector2, color_trajectory: Color, color_landing: Color, color_radius: Color, line_width: float) -> void:
 	# Draw trajectory arc (curved line)
@@ -2454,9 +2502,8 @@ func _draw_simple_trajectory(spawn_pos: Vector2, landing_pos: Vector2, color_tra
 	draw_line(landing_pos + Vector2(0, -cross_size), landing_pos + Vector2(0, cross_size), color_landing, 3.0)
 
 	# Draw effect radius at landing position
-	var effect_radius := 200.0
-	if _active_grenade != null and is_instance_valid(_active_grenade) and _active_grenade.has_method("_get_effect_radius"):
-		effect_radius = _active_grenade._get_effect_radius()
+	# FIX for Issue #432: Use type-based default (400 for flashbang, 225 for frag) instead of 200
+	var effect_radius := _get_grenade_effect_radius_with_default()
 	_draw_circle_outline(landing_pos, effect_radius, color_radius, 2.0)
 
 
@@ -2572,9 +2619,8 @@ func _draw_trajectory_with_bounces(spawn_pos: Vector2, direction: Vector2, speed
 		draw_line(landing_pos + Vector2(0, -cross_size), landing_pos + Vector2(0, cross_size), color_landing, 3.0)
 
 		# Draw effect radius at landing position
-		var effect_radius := 200.0
-		if _active_grenade != null and is_instance_valid(_active_grenade) and _active_grenade.has_method("_get_effect_radius"):
-			effect_radius = _active_grenade._get_effect_radius()
+		# FIX for Issue #432: Use type-based default (400 for flashbang, 225 for frag) instead of 200
+		var effect_radius := _get_grenade_effect_radius_with_default()
 		_draw_circle_outline(landing_pos, effect_radius, color_radius, 2.0)
 
 

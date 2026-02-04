@@ -1102,11 +1102,20 @@ func reset_effects() -> void:
 		get_tree().node_added.disconnect(_on_node_added_during_freeze)
 
 	if _is_effect_active:
-		_end_last_chance_effect()
+		_is_effect_active = false
+		# Restore normal time
+		_unfreeze_time()
 
 	# Reset fade-out state (Issue #442)
 	_is_fading_out = false
 	_fade_out_start_time = 0.0
+
+	# CRITICAL FIX (Issue #452): Always remove visual effects immediately on scene change.
+	# This ensures the sepia/brightness/ripple overlay is hidden even if the effect
+	# was active or fading out when the scene changed. Previously, the overlay would
+	# persist after death/restart because _remove_visual_effects() was only called
+	# when the fade-out animation completed, not during scene resets.
+	_remove_visual_effects()
 
 	_player = null
 	_threat_sphere = null

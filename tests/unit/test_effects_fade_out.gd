@@ -381,3 +381,341 @@ func test_both_effects_fade_completes_at_same_time() -> void:
 		"Last chance should be complete at 410ms")
 	assert_false(penultimate._is_fading_out,
 		"Penultimate should be complete at 410ms")
+
+
+# ============================================================================
+# Scene Change Reset Tests (Issue #452)
+# ============================================================================
+
+
+## Mock extended for testing reset behavior
+class MockLastChanceEffectsManagerWithReset:
+	## Duration of the fade-out animation in seconds.
+	const FADE_OUT_DURATION_SECONDS: float = 0.4
+
+	## Sepia intensity for the shader (0.0-1.0).
+	const SEPIA_INTENSITY: float = 0.7
+
+	## Brightness reduction (0.0-1.0, where 1.0 is normal).
+	const BRIGHTNESS: float = 0.6
+
+	## Ripple effect strength.
+	const RIPPLE_STRENGTH: float = 0.008
+
+	## Player saturation multiplier.
+	const PLAYER_SATURATION_MULTIPLIER: float = 4.0
+
+	## Whether effect is currently active (time freeze).
+	var _is_effect_active: bool = false
+
+	## Whether the visual effects are currently fading out.
+	var _is_fading_out: bool = false
+
+	## The time when the fade-out started.
+	var _fade_out_start_time: float = 0.0
+
+	## Simulated shader parameters.
+	var _sepia_intensity: float = 0.0
+	var _brightness: float = 1.0
+	var _ripple_strength: float = 0.0
+
+	## Whether effect overlay is visible.
+	var _effect_rect_visible: bool = false
+
+	## Simulated current time (for testing).
+	var _current_time: float = 0.0
+
+	func start_effect() -> void:
+		_is_effect_active = true
+		_effect_rect_visible = true
+		_sepia_intensity = SEPIA_INTENSITY
+		_brightness = BRIGHTNESS
+		_ripple_strength = RIPPLE_STRENGTH
+
+	func start_fade_out() -> void:
+		_is_fading_out = true
+		_fade_out_start_time = _current_time
+
+	func _remove_visual_effects() -> void:
+		_effect_rect_visible = false
+		_sepia_intensity = 0.0
+		_brightness = 1.0
+		_ripple_strength = 0.0
+
+	## This simulates the FIXED reset_effects() function (Issue #452).
+	## It now calls _remove_visual_effects() directly during scene change.
+	func reset_effects() -> void:
+		if _is_effect_active:
+			_is_effect_active = false
+			# Would call _unfreeze_time() here in real code
+
+		# Reset fade-out state
+		_is_fading_out = false
+		_fade_out_start_time = 0.0
+
+		# CRITICAL FIX (Issue #452): Always remove visual effects immediately
+		_remove_visual_effects()
+
+	func advance_time(seconds: float) -> void:
+		_current_time += seconds
+
+
+var reset_mock: MockLastChanceEffectsManagerWithReset
+
+
+func test_reset_during_active_effect_clears_visuals() -> void:
+	reset_mock = MockLastChanceEffectsManagerWithReset.new()
+
+	# Start the effect
+	reset_mock.start_effect()
+
+	assert_true(reset_mock._effect_rect_visible,
+		"Effect overlay should be visible when effect is active")
+	assert_eq(reset_mock._sepia_intensity, 0.7,
+		"Sepia should be set when effect is active")
+
+	# Simulate scene change (reset)
+	reset_mock.reset_effects()
+
+	assert_false(reset_mock._effect_rect_visible,
+		"Effect overlay should be hidden after reset (Issue #452)")
+	assert_eq(reset_mock._sepia_intensity, 0.0,
+		"Sepia should be cleared after reset")
+	assert_eq(reset_mock._brightness, 1.0,
+		"Brightness should be reset to normal after reset")
+	assert_eq(reset_mock._ripple_strength, 0.0,
+		"Ripple should be cleared after reset")
+
+
+func test_reset_during_fadeout_clears_visuals_immediately() -> void:
+	reset_mock = MockLastChanceEffectsManagerWithReset.new()
+
+	# Start the effect and begin fade-out
+	reset_mock.start_effect()
+	reset_mock.start_fade_out()
+
+	# Advance time partially through fade-out
+	reset_mock.advance_time(0.1)
+
+	assert_true(reset_mock._is_fading_out,
+		"Fade-out should be active")
+	assert_true(reset_mock._effect_rect_visible,
+		"Effect should still be visible during fade-out")
+
+	# Simulate scene change (reset) during fade-out
+	reset_mock.reset_effects()
+
+	assert_false(reset_mock._is_fading_out,
+		"Fade-out should be cancelled after reset")
+	assert_false(reset_mock._effect_rect_visible,
+		"Effect overlay should be hidden immediately after reset during fade-out (Issue #452)")
+	assert_eq(reset_mock._sepia_intensity, 0.0,
+		"Sepia should be cleared after reset during fade-out")
+
+
+func test_reset_clears_effect_active_state() -> void:
+	reset_mock = MockLastChanceEffectsManagerWithReset.new()
+
+	reset_mock.start_effect()
+	assert_true(reset_mock._is_effect_active,
+		"Effect should be active")
+
+	reset_mock.reset_effects()
+	assert_false(reset_mock._is_effect_active,
+		"Effect should be deactivated after reset")
+
+
+func test_reset_when_no_effect_active_still_clears_visuals() -> void:
+	reset_mock = MockLastChanceEffectsManagerWithReset.new()
+
+	# Manually set some visual state without going through start_effect
+	reset_mock._effect_rect_visible = true
+	reset_mock._sepia_intensity = 0.5
+	reset_mock._brightness = 0.8
+	reset_mock._ripple_strength = 0.005
+
+	# Reset should still clear visuals even if effect wasn't "active"
+	reset_mock.reset_effects()
+
+	assert_false(reset_mock._effect_rect_visible,
+		"Effect overlay should be hidden after reset (Issue #452)")
+	assert_eq(reset_mock._sepia_intensity, 0.0,
+		"Sepia should be cleared after reset")
+	assert_eq(reset_mock._brightness, 1.0,
+		"Brightness should be reset")
+	assert_eq(reset_mock._ripple_strength, 0.0,
+		"Ripple should be cleared")
+
+
+# ============================================================================
+# PenultimateHitEffectsManager Scene Change Reset Tests (Issue #452)
+# ============================================================================
+
+
+## Mock extended for testing PenultimateHit reset behavior
+class MockPenultimateHitEffectsManagerWithReset:
+	## Duration of the fade-out animation in seconds.
+	const FADE_OUT_DURATION_SECONDS: float = 0.4
+
+	## Screen saturation boost.
+	const SCREEN_SATURATION_BOOST: float = 2.0
+
+	## Screen contrast boost.
+	const SCREEN_CONTRAST_BOOST: float = 1.0
+
+	## Whether effect is currently active (slow-mo).
+	var _is_effect_active: bool = false
+
+	## Whether the visual effects are currently fading out.
+	var _is_fading_out: bool = false
+
+	## The time when the fade-out started.
+	var _fade_out_start_time: float = 0.0
+
+	## Simulated shader parameters.
+	var _saturation_boost: float = 0.0
+	var _contrast_boost: float = 0.0
+
+	## Whether effect overlay is visible.
+	var _saturation_rect_visible: bool = false
+
+	## Simulated time scale (normal = 1.0).
+	var _time_scale: float = 1.0
+
+	## Simulated current time (for testing).
+	var _current_time: float = 0.0
+
+	func start_effect() -> void:
+		_is_effect_active = true
+		_saturation_rect_visible = true
+		_saturation_boost = SCREEN_SATURATION_BOOST
+		_contrast_boost = SCREEN_CONTRAST_BOOST
+		_time_scale = 0.1  # Slow-mo
+
+	func start_fade_out() -> void:
+		_is_fading_out = true
+		_fade_out_start_time = _current_time
+		_time_scale = 1.0  # Restore normal time
+
+	func _remove_visual_effects() -> void:
+		_saturation_rect_visible = false
+		_saturation_boost = 0.0
+		_contrast_boost = 0.0
+
+	## This simulates the FIXED reset_effects() function (Issue #452).
+	## It now calls _remove_visual_effects() directly during scene change.
+	func reset_effects() -> void:
+		if _is_effect_active:
+			_is_effect_active = false
+			_time_scale = 1.0
+
+		# Reset fade-out state
+		_is_fading_out = false
+		_fade_out_start_time = 0.0
+
+		# CRITICAL FIX (Issue #452): Always remove visual effects immediately
+		_remove_visual_effects()
+
+	func advance_time(seconds: float) -> void:
+		_current_time += seconds
+
+
+var penultimate_reset_mock: MockPenultimateHitEffectsManagerWithReset
+
+
+func test_penultimate_reset_during_active_effect_clears_visuals() -> void:
+	penultimate_reset_mock = MockPenultimateHitEffectsManagerWithReset.new()
+
+	# Start the effect
+	penultimate_reset_mock.start_effect()
+
+	assert_true(penultimate_reset_mock._saturation_rect_visible,
+		"Effect overlay should be visible when effect is active")
+	assert_eq(penultimate_reset_mock._saturation_boost, 2.0,
+		"Saturation should be set when effect is active")
+	assert_eq(penultimate_reset_mock._time_scale, 0.1,
+		"Time scale should be slowed during effect")
+
+	# Simulate scene change (reset)
+	penultimate_reset_mock.reset_effects()
+
+	assert_false(penultimate_reset_mock._saturation_rect_visible,
+		"Effect overlay should be hidden after reset (Issue #452)")
+	assert_eq(penultimate_reset_mock._saturation_boost, 0.0,
+		"Saturation should be cleared after reset")
+	assert_eq(penultimate_reset_mock._contrast_boost, 0.0,
+		"Contrast should be cleared after reset")
+	assert_eq(penultimate_reset_mock._time_scale, 1.0,
+		"Time scale should be restored to normal after reset")
+
+
+func test_penultimate_reset_during_fadeout_clears_visuals_immediately() -> void:
+	penultimate_reset_mock = MockPenultimateHitEffectsManagerWithReset.new()
+
+	# Start the effect and begin fade-out
+	penultimate_reset_mock.start_effect()
+	penultimate_reset_mock.start_fade_out()
+
+	# Advance time partially through fade-out
+	penultimate_reset_mock.advance_time(0.1)
+
+	assert_true(penultimate_reset_mock._is_fading_out,
+		"Fade-out should be active")
+	assert_true(penultimate_reset_mock._saturation_rect_visible,
+		"Effect should still be visible during fade-out")
+
+	# Simulate scene change (reset) during fade-out
+	penultimate_reset_mock.reset_effects()
+
+	assert_false(penultimate_reset_mock._is_fading_out,
+		"Fade-out should be cancelled after reset")
+	assert_false(penultimate_reset_mock._saturation_rect_visible,
+		"Effect overlay should be hidden immediately after reset during fade-out (Issue #452)")
+	assert_eq(penultimate_reset_mock._saturation_boost, 0.0,
+		"Saturation should be cleared after reset during fade-out")
+
+
+func test_penultimate_reset_clears_effect_active_state() -> void:
+	penultimate_reset_mock = MockPenultimateHitEffectsManagerWithReset.new()
+
+	penultimate_reset_mock.start_effect()
+	assert_true(penultimate_reset_mock._is_effect_active,
+		"Effect should be active")
+
+	penultimate_reset_mock.reset_effects()
+	assert_false(penultimate_reset_mock._is_effect_active,
+		"Effect should be deactivated after reset")
+
+
+func test_penultimate_reset_when_no_effect_active_still_clears_visuals() -> void:
+	penultimate_reset_mock = MockPenultimateHitEffectsManagerWithReset.new()
+
+	# Manually set some visual state without going through start_effect
+	penultimate_reset_mock._saturation_rect_visible = true
+	penultimate_reset_mock._saturation_boost = 1.5
+	penultimate_reset_mock._contrast_boost = 0.8
+
+	# Reset should still clear visuals even if effect wasn't "active"
+	penultimate_reset_mock.reset_effects()
+
+	assert_false(penultimate_reset_mock._saturation_rect_visible,
+		"Effect overlay should be hidden after reset (Issue #452)")
+	assert_eq(penultimate_reset_mock._saturation_boost, 0.0,
+		"Saturation should be cleared after reset")
+	assert_eq(penultimate_reset_mock._contrast_boost, 0.0,
+		"Contrast should be cleared after reset")
+
+
+func test_penultimate_reset_restores_time_scale() -> void:
+	penultimate_reset_mock = MockPenultimateHitEffectsManagerWithReset.new()
+
+	# Start effect (slows time)
+	penultimate_reset_mock.start_effect()
+	assert_eq(penultimate_reset_mock._time_scale, 0.1,
+		"Time should be slowed during effect")
+
+	# Reset without going through normal end_effect flow
+	penultimate_reset_mock.reset_effects()
+
+	assert_eq(penultimate_reset_mock._time_scale, 1.0,
+		"Time scale should be restored to normal after reset (Issue #452)")

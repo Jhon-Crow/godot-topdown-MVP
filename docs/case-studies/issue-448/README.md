@@ -546,3 +546,95 @@ The left arm needs to **transition from negative Y (back) to positive Y (front)*
 14. **Arms can cross depth planes** - Unlike simple bilateral symmetry, a support arm may need to cross from the "back" Y plane to near the "front" Y plane to reach the weapon. The arm's path should follow anatomical logic, not geometric mirroring.
 
 15. **Consider the weapon's grip points** - Foregrip position (for support hand) is typically at X=15-25 on the weapon, while trigger/pistol grip (for primary hand) is near X=0-5. Position arms based on these functional attachment points.
+
+## Bug Fix #6: Arms Separating at Elbow During Grenade Throw
+
+### Issue Discovery
+
+After the previous positioning fixes, the repository owner reported:
+
+> "руки разделяются в локте, особенно это заметно при броске гранаты"
+> (Translation: "Arms separate at the elbow, especially noticeable during grenade throw")
+
+![Arms separating during throw](arm-separation-during-throw-bug.png)
+
+### Root Cause Analysis
+
+The arm separation issue occurs during animations (grenade throw, reload) because:
+
+1. The legacy animation code uses two sprite references:
+   - `_left_arm_sprite` → points to `RightShoulder` (the front arm's shoulder)
+   - `_right_arm_sprite` → points to `RightForearm` (the front arm's forearm)
+
+2. These references were created when each arm was a SINGLE sprite. Now that each arm has TWO parts (shoulder + forearm), the animation code treats them as independent sprites.
+
+3. During grenade throw animation, the code applies DIFFERENT offsets to each sprite:
+   - `_left_arm_sprite` (RightShoulder) moves with offsets like `ARM_LEFT_RELAXED = Vector2(-20, 2)`
+   - `_right_arm_sprite` (RightForearm) moves with offsets like `ARM_RIGHT_THROW = Vector2(-4, -2)`
+
+4. Since the offsets are different, the shoulder and forearm move to different positions, causing the visual "separation at the elbow."
+
+### Example: How Separation Occurs
+
+During the THROW phase of grenade animation:
+
+**Positions before animation:**
+- RightShoulder (base): (24, 6)
+- RightForearm (base): (-2, 6)
+
+**Animation offsets applied:**
+- Shoulder offset: `ARM_LEFT_RELAXED = (-20, 2)` → target (4, 8)
+- Forearm offset: `ARM_RIGHT_THROW = (-4, -2)` → target (-6, 4)
+
+**Result:** The shoulder moves to (4, 8) while the forearm moves to (-6, 4) - a gap of 10 pixels in X and 4 pixels in Y!
+
+### The Solution
+
+Since `_left_arm_sprite` (RightShoulder) and `_right_arm_sprite` (RightForearm) are both parts of the SAME ARM, they must move TOGETHER during animations. The fix applies the same offset to both sprites:
+
+```gdscript
+# Calculate the offset being applied to the shoulder
+var shoulder_offset := left_arm_target - _base_left_arm_pos
+# Apply the same offset to the forearm to keep arm connected
+var forearm_connected_target := _base_right_arm_pos + shoulder_offset
+
+if _left_arm_sprite:
+    _left_arm_sprite.position = _left_arm_sprite.position.lerp(left_arm_target, lerp_speed)
+    _left_arm_sprite.rotation = lerpf(_left_arm_sprite.rotation, left_arm_rot, lerp_speed)
+
+if _right_arm_sprite:
+    # Apply the same offset as the shoulder to keep the arm connected
+    _right_arm_sprite.position = _right_arm_sprite.position.lerp(forearm_connected_target, lerp_speed)
+    _right_arm_sprite.rotation = lerpf(_right_arm_sprite.rotation, left_arm_rot, lerp_speed)
+```
+
+### Files Changed
+
+- `scripts/characters/player.gd`:
+  - `_update_grenade_animation()` - Fixed shoulder/forearm to move together
+  - `_update_reload_animation()` - Fixed shoulder/forearm to move together
+  - Walking animation code - Fixed both arm parts to use same offset
+
+### Key Code Changes
+
+**Grenade animation (line ~2126):**
+```gdscript
+# Before: Applied different offsets to shoulder and forearm
+# After: Calculate shoulder offset and apply same offset to forearm
+```
+
+**Reload animation (line ~2299):**
+```gdscript
+# Before: Applied different offsets to shoulder and forearm
+# After: Calculate shoulder offset and apply same offset to forearm
+```
+
+**Walking animation (line ~567):**
+```gdscript
+# Before: Shoulder moved with +arm_swing, forearm with -arm_swing (opposite)
+# After: Both parts move with +arm_swing (same direction)
+```
+
+### Additional Lesson Learned
+
+16. **Multi-part limbs must move as a unit** - When a limb consists of multiple sprites (shoulder + forearm), animation code must move all parts by the same offset from their respective base positions. The relative positions between parts should remain constant during movement, otherwise the limb will appear to disconnect or stretch.

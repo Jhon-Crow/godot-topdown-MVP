@@ -386,8 +386,25 @@ public abstract partial class BaseWeapon : Node2D
 
         GetTree().CurrentScene.AddChild(bullet);
 
+        // Spawn muzzle flash effect at the bullet spawn position
+        SpawnMuzzleFlash(spawnPosition, direction);
+
         // Spawn casing if casing scene is set
         SpawnCasing(direction, WeaponData?.Caliber);
+    }
+
+    /// <summary>
+    /// Spawns a muzzle flash effect at the specified position.
+    /// </summary>
+    /// <param name="position">Position to spawn the muzzle flash.</param>
+    /// <param name="direction">Direction the weapon is firing.</param>
+    protected virtual void SpawnMuzzleFlash(Vector2 position, Vector2 direction)
+    {
+        var impactManager = GetNodeOrNull("/root/ImpactEffectsManager");
+        if (impactManager != null && impactManager.HasMethod("spawn_muzzle_flash"))
+        {
+            impactManager.Call("spawn_muzzle_flash", position, direction);
+        }
     }
 
     /// <summary>
@@ -664,5 +681,26 @@ public abstract partial class BaseWeapon : Node2D
 
         EmitSignal(SignalName.AmmoChanged, CurrentAmmo, ReserveAmmo);
         EmitMagazinesChanged();
+    }
+
+    /// <summary>
+    /// Reinitializes the magazine inventory with a new starting magazine count.
+    /// This method allows level-specific ammunition configuration.
+    /// </summary>
+    /// <param name="magazineCount">Number of magazines to initialize with.</param>
+    /// <param name="fillAllMagazines">If true, all magazines start full. Otherwise, only current is full.</param>
+    public virtual void ReinitializeMagazines(int magazineCount, bool fillAllMagazines = true)
+    {
+        if (WeaponData == null)
+        {
+            GD.PrintErr("[BaseWeapon] Cannot reinitialize magazines: WeaponData is null");
+            return;
+        }
+
+        MagazineInventory.Initialize(magazineCount, WeaponData.MagazineSize, fillAllMagazines);
+        EmitSignal(SignalName.AmmoChanged, CurrentAmmo, ReserveAmmo);
+        EmitMagazinesChanged();
+
+        GD.Print($"[BaseWeapon] Magazines reinitialized: {magazineCount} magazines, fillAll={fillAllMagazines}");
     }
 }

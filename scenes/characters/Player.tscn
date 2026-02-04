@@ -15,6 +15,9 @@
 [sub_resource type="CircleShape2D" id="CircleShape2D_player"]
 radius = 16.0
 
+[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_player"]
+polygon = PackedVector2Array(16, 0, 13.86, 8, 8, 13.86, 0, 16, -8, 13.86, -13.86, 8, -16, 0, -13.86, -8, -8, -13.86, 0, -16, 8, -13.86, 13.86, -8)
+
 [sub_resource type="CircleShape2D" id="CircleShape2D_threat"]
 radius = 150.0
 
@@ -116,3 +119,6 @@ initial_alpha = 0.8
 alpha_decay_rate = 0.06
 footprint_scale = 0.72
 debug_logging = false
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="."]
+occluder = SubResource("OccluderPolygon2D_player")

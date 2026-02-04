@@ -7,7 +7,7 @@ class_name FlashbangGrenade
 ## - Stun: Enemies cannot move for 6 seconds
 ##
 ## Does not deal damage.
-## Effect radius is approximately a small room from the "building" map (~200 pixels).
+## Effect radius is 400 pixels (doubled from original 200 per user request).
 
 ## Duration of blindness effect in seconds.
 @export var blindness_duration: float = 12.0
@@ -32,6 +32,11 @@ func _on_explode() -> void:
 
 	for enemy in enemies:
 		_apply_flashbang_effects(enemy)
+
+	# Scatter shell casings on the floor (Issue #432)
+	# Flashbang has larger radius but weaker physical effect (non-lethal)
+	# Use 40% of effect radius as "lethal-equivalent" zone for casing scatter
+	_scatter_casings(effect_radius * 0.4)
 
 	# Spawn visual flash effect
 	_spawn_flash_effect()

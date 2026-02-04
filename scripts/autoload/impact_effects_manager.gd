@@ -15,6 +15,7 @@ var _blood_effect_scene: PackedScene = null
 var _sparks_effect_scene: PackedScene = null
 var _blood_decal_scene: PackedScene = null
 var _bullet_hole_scene: PackedScene = null
+var _muzzle_flash_scene: PackedScene = null
 
 ## Default effect scale for calibers without explicit setting.
 const DEFAULT_EFFECT_SCALE: float = 1.0
@@ -176,6 +177,17 @@ func _preload_effect_scenes() -> void:
 		if _debug_effects:
 			print("[ImpactEffectsManager] PenetrationHole scene not found (optional)")
 
+	var muzzle_flash_path := "res://scenes/effects/MuzzleFlash.tscn"
+	if ResourceLoader.exists(muzzle_flash_path):
+		_muzzle_flash_scene = load(muzzle_flash_path)
+		loaded_scenes.append("MuzzleFlash")
+		if _debug_effects:
+			print("[ImpactEffectsManager] Loaded MuzzleFlash scene")
+	else:
+		# Muzzle flash is optional - don't warn, just log in debug mode
+		if _debug_effects:
+			print("[ImpactEffectsManager] MuzzleFlash scene not found (optional)")
+
 
 ## Spawns a dust effect at the given position when a bullet hits a wall.
 ## @param position: World position where the bullet hit the wall.
@@ -312,6 +324,42 @@ func spawn_sparks_effect(position: Vector2, hit_direction: Vector2, caliber_data
 
 	if _debug_effects:
 		print("[ImpactEffectsManager] Sparks effect spawned successfully")
+
+
+## Spawns a muzzle flash effect at the given position when a weapon is fired.
+## Creates a brief flash of particles and dynamic light that illuminates nearby walls.
+## @param position: World position of the gun muzzle (where bullet exits barrel).
+## @param direction: Direction the gun is pointing (flash emits in this direction).
+## @param caliber_data: Optional caliber data for effect scaling.
+func spawn_muzzle_flash(position: Vector2, direction: Vector2, caliber_data: Resource = null) -> void:
+	if _debug_effects:
+		print("[ImpactEffectsManager] spawn_muzzle_flash at ", position, " dir=", direction)
+
+	if _muzzle_flash_scene == null:
+		if _debug_effects:
+			print("[ImpactEffectsManager] ERROR: _muzzle_flash_scene is null")
+		return
+
+	var effect: Node2D = _muzzle_flash_scene.instantiate() as Node2D
+	if effect == null:
+		if _debug_effects:
+			print("[ImpactEffectsManager] ERROR: Failed to instantiate muzzle flash")
+		return
+
+	effect.global_position = position
+
+	# Rotate effect to face the shooting direction
+	effect.rotation = direction.angle()
+
+	# Scale effect based on caliber (larger calibers = bigger flash)
+	var effect_scale := _get_effect_scale(caliber_data)
+	effect.scale = Vector2(effect_scale, effect_scale)
+
+	# Add to scene tree
+	_add_effect_to_scene(effect)
+
+	if _debug_effects:
+		print("[ImpactEffectsManager] Muzzle flash spawned at ", position)
 
 
 ## Gets the effect scale from caliber data, or returns default if not available.
@@ -858,6 +906,26 @@ func _warmup_particle_shaders() -> void:
 
 			warmed_up_count += 1
 			warmup_nodes.append(hole)
+
+	# --- PART 4: Warmup muzzle flash if available ---
+	# Muzzle flash uses both GPUParticles2D and PointLight2D
+	if _muzzle_flash_scene:
+		var flash: Node2D = _muzzle_flash_scene.instantiate() as Node2D
+		if flash:
+			flash.global_position = warmup_pos
+			flash.modulate = Color(1, 1, 1, 0.01)
+			flash.z_index = -100
+
+			if scene_root:
+				scene_root.add_child(flash)
+			else:
+				add_child(flash)
+
+			if _debug_effects:
+				print("[ImpactEffectsManager] Warmup: MuzzleFlash at %s (alpha=0.01)" % warmup_pos)
+
+			warmed_up_count += 1
+			warmup_nodes.append(flash)
 
 	# Wait multiple frames to ensure GPU fully processes and compiles all shaders
 	# One frame may not be enough for complex particle systems
