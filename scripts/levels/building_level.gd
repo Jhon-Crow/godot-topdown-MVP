@@ -52,6 +52,12 @@ var _combo_label: Label = null
 ## correctly in some exported builds.
 const AnimatedScoreScreenScene: PackedScene = preload("res://scenes/ui/AnimatedScoreScreen.tscn")
 
+## Preload the AnimatedScoreScreen script separately for forced re-attachment.
+## This is a workaround for Godot 4.x export issues where binary token compiled
+## scripts may not initialize properly when attached via scene file.
+## See: https://github.com/godotengine/godot/issues/94150
+const AnimatedScoreScreenScript: GDScript = preload("res://scripts/ui/animated_score_screen.gd")
+
 ## Duration of saturation effect in seconds.
 const SATURATION_DURATION: float = 0.15
 
@@ -733,6 +739,11 @@ func _show_victory_message() -> void:
 ## Session 6 Fix: Uses preload() instead of load() to ensure the scene and its
 ## script are properly embedded at compile time. Runtime load() may fail to
 ## properly attach scripts in exported builds.
+##
+## Session 7 Fix: Added forced script re-attachment workaround for Godot 4.x
+## binary tokens export bug where has_method() returns false despite script
+## being attached. The preloaded script is re-applied if needed.
+## See: https://github.com/godotengine/godot/issues/94150
 func _show_score_screen(score_data: Dictionary) -> void:
 	_log_to_file("_show_score_screen called with score_data: %s" % str(score_data))
 	print("[BuildingLevel] _show_score_screen called - rank: %s" % score_data.get("rank", "?"))
@@ -797,6 +808,19 @@ func _show_score_screen(score_data: Dictionary) -> void:
 	var has_show_score := score_screen.has_method("show_score")
 	_log_to_file("has_method('show_score'): %s" % str(has_show_score))
 	print("[BuildingLevel] has_method('show_score'): %s" % str(has_show_score))
+
+	# Session 7 Fix: If has_method returns false despite script being attached,
+	# this is a Godot 4.x binary tokens export bug where the script is attached
+	# as a resource reference but not properly compiled/initialized.
+	# Workaround: Force re-attach the preloaded script directly.
+	# See: https://github.com/godotengine/godot/issues/94150
+	if not has_show_score and AnimatedScoreScreenScript != null:
+		_log_to_file("Applying Session 7 workaround: forcing script re-attachment")
+		print("[BuildingLevel] Forcing script re-attachment (binary tokens workaround)")
+		score_screen.set_script(AnimatedScoreScreenScript)
+		has_show_score = score_screen.has_method("show_score")
+		_log_to_file("After re-attachment, has_method('show_score'): %s" % str(has_show_score))
+		print("[BuildingLevel] After re-attachment, has_method('show_score'): %s" % str(has_show_score))
 
 	# Ensure the Control is visible and properly sized
 	score_screen.visible = true

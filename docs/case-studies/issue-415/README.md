@@ -755,3 +755,132 @@ This will help identify the exact failure point in the instantiation process.
 - [Godot Forum: Instantiated scenes don't have scripts connected](https://forum.godotengine.org/t/instantiated-scenes-dont-have-scripts-connected/75079)
 - [Godot GitHub: GDScript export mode breaks exported builds](https://github.com/godotengine/godot/issues/94150)
 - [Godot Forum: Autoload Script Functions not called](https://forum.godotengine.org/t/autoload-script-functions-not-being-called-in-exported-build/127658)
+
+## Bug Investigation Session 7 (2026-02-04)
+
+### Reported Issue
+
+From PR #430 comment by repository owner (in Russian):
+- **"статистики не видно"** (Statistics not visible)
+- Attached log file: `game_log_20260204_165508.txt`
+
+### Game Log Analysis
+
+Downloaded log: `logs/game_log_20260204_165508.txt` (2456 lines)
+
+Key findings from analyzing the log:
+
+**Level completion sequence (lines 2400-2414):**
+- **Line 2400**: `[BuildingLevel] Level completed, setting _level_completed = true`
+- **Line 2402**: `[ScoreManager] Level completed! Final score: 23237, Rank: C`
+- **Line 2405**: `[BuildingLevel] Using preloaded AnimatedScoreScreen scene (compile-time embedding)`
+- **Line 2406**: `[BuildingLevel] Created ScoreScreenCanvasLayer at layer 100`
+- **Line 2407**: `[BuildingLevel] Instantiated AnimatedScoreScreen from preloaded scene`
+- **Line 2408**: `[BuildingLevel] Script IS attached to instantiated node: res://scripts/ui/animated_score_screen.gd`
+- **Line 2409**: `[BuildingLevel] has_method('show_score'): false` ← **CRITICAL**
+- **Line 2410**: `[BuildingLevel] Added AnimatedScoreScreen to ScoreScreenCanvasLayer (triggers _ready)`
+- **Line 2411**: `[BuildingLevel] Set score_screen size to viewport: (1280, 720)`
+- **Line 2412**: `[BuildingLevel] score_screen.is_inside_tree() = true`
+- **Line 2413**: `[BuildingLevel] ERROR: show_score method not found, script likely not attached correctly`
+- **Line 2414**: `[BuildingLevel] Tried calling show_score() anyway`
+
+**Critical Observation:**
+
+This is the first time we have concrete diagnostic data:
+1. **Script path IS detected**: `res://scripts/ui/animated_score_screen.gd`
+2. **`has_method('show_score')` returns `false`**: Despite the script being "attached"
+3. **NO `[AnimatedScoreScreen]` logs**: The script's `_ready()` and methods are not executing
+4. **The call to `show_score()` silently fails**: Even the forced call produces no output
+
+This indicates the script is attached as a **Resource reference** but not properly **compiled/initialized**.
+
+### Root Cause Analysis
+
+**GDScript Binary Tokens Export Mode Issue**
+
+Based on extensive research:
+
+1. **[Godot GitHub Issue #94150](https://github.com/godotengine/godot/issues/94150)**: GDScript export mode breaks exported builds with some addons.
+   > When GDScript export mode is set to binary tokens/compressed binary tokens, certain resources won't load properly. Setting export mode to "Text" fixes the issue.
+
+2. **[Godot GitHub Issue #113577](https://github.com/godotengine/godot/issues/113577)**: Error when exporting with binary tokens.
+   > When exporting with binary tokens (compressed or otherwise), errors like "Class 'Foo' hides a global script class" can occur. Exporting as text makes the error go away.
+
+3. **[Godot Web Export Issue #93102](https://github.com/godotengine/godot/issues/93102)**: Web export doesn't work correctly with binary GDScript.
+   > After exporting the game with binary GDScript, it does not work in the browser and the console is filled with errors.
+
+**The Problem:**
+
+When Godot exports with "binary tokens" or "compressed binary tokens" mode:
+- Scripts are compiled to bytecode format
+- The scene file references the script correctly (path is visible)
+- **BUT** the bytecode may not properly register all methods
+- `has_method()` returns `false` even though the script is "attached"
+- Direct method calls fail silently
+
+**Why Previous Fixes Didn't Work:**
+
+| Session | Fix | Why It Didn't Work |
+|---------|-----|-------------------|
+| Session 4 | `Control.new() + set_script()` | Script attached but not initialized |
+| Session 5 | Scene file (.tscn) + `load()` | Runtime loading failed in export |
+| Session 6 | `preload()` instead of `load()` | Binary tokens bytecode still broken |
+
+The issue is NOT in how we load/attach the script, but in how Godot's export process compiles the script.
+
+### Fix Applied
+
+**Solution: Force Script Re-attachment at Runtime**
+
+Since we cannot control the user's export settings (binary vs text mode), we implement a workaround:
+
+1. **Preload the script separately** in `building_level.gd`:
+   ```gdscript
+   ## Preload the AnimatedScoreScreen script separately for forced re-attachment.
+   ## This is a workaround for Godot 4.x export issues where binary token compiled
+   ## scripts may not initialize properly when attached via scene file.
+   ## See: https://github.com/godotengine/godot/issues/94150
+   const AnimatedScoreScreenScript: GDScript = preload("res://scripts/ui/animated_score_screen.gd")
+   ```
+
+2. **Detect method availability failure and force re-attach**:
+   ```gdscript
+   # Check if show_score method exists
+   var has_show_score := score_screen.has_method("show_score")
+
+   # Session 7 Fix: If has_method returns false despite script being attached,
+   # this is a Godot 4.x binary tokens export bug where the script is attached
+   # as a resource reference but not properly compiled/initialized.
+   # Workaround: Force re-attach the preloaded script directly.
+   if not has_show_score and AnimatedScoreScreenScript != null:
+       _log_to_file("Applying Session 7 workaround: forcing script re-attachment")
+       score_screen.set_script(AnimatedScoreScreenScript)
+       has_show_score = score_screen.has_method("show_score")
+       _log_to_file("After re-attachment, has_method('show_score'): %s" % str(has_show_score))
+   ```
+
+### Why This Fix Should Work
+
+1. **Detect the broken state**: Check `has_method()` to identify when the binary tokens bug occurs
+2. **Force re-initialization**: Using `set_script()` with a freshly preloaded GDScript forces the script to be re-parsed and methods to be registered
+3. **Preload ensures availability**: The script is embedded at compile time, so it's always available
+4. **Non-destructive**: Only applies the workaround when the bug is detected; normal exports still work
+
+### User-Side Permanent Fix
+
+If the workaround doesn't help, the user can permanently fix the issue by changing export settings:
+
+1. Open Project → Export in Godot Editor
+2. Select the export preset (e.g., Windows Desktop)
+3. Find "Script Export Mode" under "Script" section
+4. Change from "Binary tokens" or "Compressed binary tokens" to **"Text"**
+5. Re-export the game
+
+This ensures all scripts are exported as readable GDScript text files, which Godot can always parse correctly.
+
+### Lessons Learned
+
+1. **Binary token export mode has known bugs** - It's a recurring source of issues in Godot 4.x
+2. **`has_method()` is a good diagnostic** - It reveals when scripts are attached but not initialized
+3. **Multiple preload layers provide redundancy** - Preloading both scene and script allows for fallback
+4. **Document export settings requirements** - Users should know about the text mode workaround
