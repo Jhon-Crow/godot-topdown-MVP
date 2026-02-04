@@ -228,3 +228,120 @@ The fix was verified by:
 2. Confirming the new node path (`ShotgunSprite/PumpSprite`) works correctly
 3. The pump sprite now rotates with the shotgun when aiming in different directions
 4. The pump sprite is positioned closer to the barrel end, near the muzzle
+
+---
+
+## Bug Report #2: Animation Direction and Sprite Appearance (PR #480 Feedback)
+
+### Reported Issues (2026-02-04, Comment #3)
+
+The owner (Jhon-Crow) reported two additional issues:
+
+1. **Animation direction is reversed** - When opening the bolt, the animated element moves toward the player instead of away. When closing, it moves away instead of toward.
+
+2. **Pump sprite appearance** - The pump sprite doesn't look like a shotgun pump:
+   - Should be the same brown color as the shotgun's wooden element
+   - Should be 2x longer than the original 6x8 pixels
+
+### Screenshot of Current Appearance
+
+![Current pump appearance](current-appearance.png)
+
+The image shows the gray 6x8 pixel pump sprite, which doesn't match the brown wooden elements of the shotgun.
+
+### Root Cause Analysis
+
+#### Issue 1: Animation Direction Reversed
+
+**Original Implementation** (`Shotgun.cs`):
+```csharp
+// AnimatePumpUp() - bolt opening/shell ejection
+Vector2 targetPos = _pumpRestPosition + new Vector2(-PumpAnimationDistance, 0);
+// This moves the pump TOWARD the player (negative X)
+
+// AnimatePumpDown() - bolt closing/chambering
+_pumpTween.TweenProperty(_pumpSprite, "position", _pumpRestPosition, ...);
+// This returns pump to rest position (AWAY from player)
+```
+
+**Problem**: The animation was conceptually backwards:
+- Real shotgun mechanics: Pull foregrip BACK to open bolt, push FORWARD to close
+- But visually in a top-down game: The pump should move AWAY from player (toward barrel) when opening bolt, and TOWARD player (toward grip) when closing
+- The original code had this reversed
+
+**Why the Confusion Occurred**:
+- The developer interpreted "pump up" as the physical motion of pulling back, so they animated it moving toward the player
+- However, the user expected the visual representation to show the pump moving along the barrel: FORWARD (away) on open, BACKWARD (toward) on close
+
+#### Issue 2: Pump Sprite Color and Size
+
+**Original Sprite** (`assets/sprites/weapons/shotgun_pump.png`):
+- Size: 6×8 pixels
+- Color: Gray/metal colored
+- Appearance: Small, metallic rectangle
+
+**Problem**:
+- The pump sprite looked like a generic metal piece, not a wooden foregrip
+- The shotgun sprite (`shotgun_topdown.png`) has visible brown wooden elements (stock, foregrip)
+- The pump sprite was too small to be visually noticeable
+
+### Solution
+
+#### Fix 1: Reverse Animation Direction
+
+Changed `AnimatePumpUp()` to move pump FORWARD (positive X = away from player):
+```csharp
+// Before
+Vector2 targetPos = _pumpRestPosition + new Vector2(-PumpAnimationDistance, 0);
+
+// After
+Vector2 targetPos = _pumpRestPosition + new Vector2(PumpAnimationDistance, 0);
+```
+
+The `AnimatePumpDown()` method already returns to rest position, which is now BACKWARD relative to the extended position, so it doesn't need changes.
+
+#### Fix 2: New Brown Pump Sprite
+
+Created a new pump sprite with:
+- **Size**: 12×8 pixels (2x longer than original 6×8)
+- **Colors**: Brown palette matching the shotgun's wooden elements
+  - Main brown: RGB(139, 90, 43)
+  - Light highlight: RGB(165, 115, 55)
+  - Dark edge: RGB(89, 54, 24)
+- **Shading**: Simple gradient with lighter top edge and darker bottom/side edges
+
+The colors were sampled from the `shotgun_topdown.png` sprite to ensure visual consistency.
+
+### Timeline of Events
+
+| Time | Event | State |
+|------|-------|-------|
+| Initial | PR #480 created with pump animation | Animation worked but direction and appearance issues |
+| Feedback 1 | User reported rotation and position issues | Fixed by making PumpSprite child of ShotgunSprite |
+| Feedback 2 | User reported direction reversed and sprite appearance | Current fix addresses both issues |
+
+### Files Modified
+
+1. `Scripts/Weapons/Shotgun.cs`:
+   - `AnimatePumpUp()`: Changed direction from negative to positive X offset
+   - Added code comments explaining the visual semantics
+
+2. `assets/sprites/weapons/shotgun_pump.png`:
+   - Replaced with new 12×8 brown sprite
+   - Old sprite backed up as `shotgun_pump_old.png`
+
+3. `experiments/create_pump_sprite_v2.py`:
+   - Script to generate the new brown pump sprite
+
+### Key Takeaways
+
+1. **Animation semantics matter**: When implementing visual animations, consider the user's expectation of what the movement represents, not just the physical mechanics
+
+2. **Visual consistency**: Animated elements should match the visual style of the parent object (same colors, similar proportions)
+
+3. **Size for visibility**: In a top-down 2D game, small UI/visual elements may need to be larger than expected to be noticeable during gameplay
+
+### References
+
+- [Pump-Action Shotgun Operation (Wikipedia)](https://en.wikipedia.org/wiki/Pump_action) - How real pump-action shotguns work
+- [Godot Tween Documentation](https://docs.godotengine.org/en/stable/classes/class_tween.html) - Animation system used

@@ -1880,9 +1880,12 @@ public partial class Shotgun : BaseWeapon
     #region Pump Animation (Issue #447)
 
     /// <summary>
-    /// Animates the pump/foregrip moving backward (toward player) for shell ejection.
+    /// Animates the pump/foregrip moving forward (away from player) for bolt opening/shell ejection.
     /// Issue #447: Visual feedback for pump-action cycling.
-    /// The pump sprite moves along the local X axis (negative = backward).
+    ///
+    /// PR #480 feedback fix: Animation direction was reversed.
+    /// - Bolt OPEN (pump up gesture) = pump moves AWAY from player (positive X in local space)
+    /// - This mimics real shotgun mechanics where pulling the foregrip back opens the bolt
     /// </summary>
     private void AnimatePumpUp()
     {
@@ -1897,20 +1900,25 @@ public partial class Shotgun : BaseWeapon
         // Create new tween for pump-up animation
         _pumpTween = CreateTween();
 
-        // Move pump backward (negative X = toward player in local space)
-        Vector2 targetPos = _pumpRestPosition + new Vector2(-PumpAnimationDistance, 0);
+        // PR #480 fix: Move pump FORWARD (positive X = away from player in local space)
+        // Real shotgun: pulling foregrip back opens bolt, but visually the foregrip
+        // moves away from the shooter's body toward the barrel
+        Vector2 targetPos = _pumpRestPosition + new Vector2(PumpAnimationDistance, 0);
 
         _pumpTween.TweenProperty(_pumpSprite, "position", targetPos, PumpAnimationDuration)
             .SetTrans(Tween.TransitionType.Quad)
             .SetEase(Tween.EaseType.Out);
 
-        GD.Print($"[Shotgun.Anim#447] Pump UP animation: {_pumpRestPosition} -> {targetPos}");
+        GD.Print($"[Shotgun.Anim#447] Pump UP (bolt open) animation: {_pumpRestPosition} -> {targetPos}");
     }
 
     /// <summary>
-    /// Animates the pump/foregrip moving forward (away from player) to chamber round.
+    /// Animates the pump/foregrip moving backward (toward player) to close bolt/chamber round.
     /// Issue #447: Visual feedback for pump-action cycling.
-    /// The pump sprite returns to its rest position.
+    ///
+    /// PR #480 feedback fix: Animation direction was reversed.
+    /// - Bolt CLOSE (pump down gesture) = pump moves TOWARD player (back to rest position)
+    /// - This mimics real shotgun mechanics where pushing the foregrip forward closes the bolt
     /// </summary>
     private void AnimatePumpDown()
     {
@@ -1925,12 +1933,14 @@ public partial class Shotgun : BaseWeapon
         // Create new tween for pump-down animation
         _pumpTween = CreateTween();
 
-        // Move pump forward (return to rest position)
+        // PR #480 fix: Move pump BACKWARD (return to rest position = toward player)
+        // Real shotgun: pushing foregrip forward closes bolt, visually the foregrip
+        // moves back toward the shooter's body
         _pumpTween.TweenProperty(_pumpSprite, "position", _pumpRestPosition, PumpAnimationDuration)
             .SetTrans(Tween.TransitionType.Quad)
             .SetEase(Tween.EaseType.Out);
 
-        GD.Print($"[Shotgun.Anim#447] Pump DOWN animation: current -> {_pumpRestPosition}");
+        GD.Print($"[Shotgun.Anim#447] Pump DOWN (bolt close) animation: current -> {_pumpRestPosition}");
     }
 
     #endregion
