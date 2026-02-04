@@ -955,14 +955,38 @@ func _show_score_screen(score_data: Dictionary) -> void:
 
 	# Watch Replay button
 	var replay_manager: Node = get_node_or_null("/root/ReplayManager")
-	if replay_manager and replay_manager.has_method("has_replay") and replay_manager.has_replay():
-		var replay_button := Button.new()
-		replay_button.name = "ReplayButton"
-		replay_button.text = "▶ Watch Replay"
-		replay_button.custom_minimum_size = Vector2(150, 40)
-		replay_button.add_theme_font_size_override("font_size", 18)
-		replay_button.pressed.connect(_on_watch_replay_pressed)
-		buttons_container.add_child(replay_button)
+	_log_to_file("Creating score screen: replay_manager=%s" % (replay_manager != null))
+
+	if replay_manager:
+		var has_replay_method: bool = replay_manager.has_method("has_replay")
+		var has_replay_value: bool = false
+		var replay_duration: float = 0.0
+
+		if has_replay_method:
+			has_replay_value = replay_manager.has_replay()
+			if replay_manager.has_method("get_replay_duration"):
+				replay_duration = replay_manager.get_replay_duration()
+
+		_log_to_file("Replay check: has_method=%s, has_replay=%s, duration=%.2fs" % [
+			has_replay_method,
+			has_replay_value,
+			replay_duration
+		])
+		print("[BuildingLevel] Replay available: %s (duration: %.2fs)" % [has_replay_value, replay_duration])
+
+		if has_replay_method and has_replay_value:
+			var replay_button := Button.new()
+			replay_button.name = "ReplayButton"
+			replay_button.text = "▶ Watch Replay"
+			replay_button.custom_minimum_size = Vector2(150, 40)
+			replay_button.add_theme_font_size_override("font_size", 18)
+			replay_button.pressed.connect(_on_watch_replay_pressed)
+			buttons_container.add_child(replay_button)
+			_log_to_file("Watch Replay button created successfully")
+		else:
+			_log_to_file("Watch Replay button NOT created - no replay available")
+	else:
+		_log_to_file("ERROR: ReplayManager not found when creating score screen!")
 
 	# Restart button
 	var restart_button := Button.new()

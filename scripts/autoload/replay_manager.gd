@@ -266,6 +266,15 @@ func _record_frame(delta: float) -> void:
 	var frame := FrameData.new()
 	frame.time = _recording_time
 
+	# Debug log every 60 frames (once per second at 60 FPS)
+	if _frames.size() % 60 == 0:
+		_log_to_file("Recording frame %d (%.1fs): player_valid=%s, enemies=%d" % [
+			_frames.size(),
+			_recording_time,
+			(_player != null and is_instance_valid(_player)),
+			_enemies.size()
+		])
+
 	# Record player state
 	if _player and is_instance_valid(_player):
 		frame.player_position = _player.global_position
