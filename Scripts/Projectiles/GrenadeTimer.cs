@@ -596,29 +596,24 @@ namespace GodotTopdown.Scripts.Projectiles
         }
 
         /// <summary>
-        /// Spawn visual explosion effect.
+        /// Spawn visual explosion effect using PointLight2D with shadow_enabled for wall occlusion.
         /// FIX for Issue #432: GDScript Call() silently fails in exports, so we implement
         /// the explosion effect directly in C# to ensure it always works.
-        /// FIX for Issue #469: Use ImpactEffectsManager.spawn_flashbang_effect() which uses
-        /// shadow-enabled PointLight2D so light doesn't pass through walls.
+        /// FIX for Issue #469: Flashbang uses shadow-enabled PointLight2D so flash doesn't pass through walls.
+        /// FIX for Issue #470: Frag grenade uses PointLight2D with shadow_enabled=true to automatically
+        /// respect wall geometry through Godot's native 2D lighting/shadow system.
         /// </summary>
         private void SpawnExplosionEffect(Vector2 position)
         {
-            // FIX for Issue #469: Flashbang explosions must use shadow-enabled PointLight2D
-            // so the visual flash doesn't pass through walls.
-            //
-            // FIX for Issue #432: GDScript Call() silently fails in exported builds, so we
-            // load and instantiate the FlashbangEffect scene directly from C# instead of
-            // relying on ImpactEffectsManager.spawn_flashbang_effect() which uses GDScript.
             if (Type == GrenadeType.Flashbang)
             {
+                // Flashbang uses FlashbangEffect.tscn from main branch (Issue #469)
                 SpawnFlashbangEffectScene(position);
                 return;
             }
 
-            // Frag grenades use simple C# explosion effect
-            CreateExplosionFlash(position);
-            LogToFile($"[GrenadeTimer] Spawned C# frag explosion effect at {position}");
+            // Frag grenades use ExplosionFlash.tscn from issue-470 branch (Issue #470)
+            SpawnFragExplosionFlash(position);
         }
 
         /// <summary>
@@ -635,7 +630,7 @@ namespace GodotTopdown.Scripts.Projectiles
             if (flashbangScene == null)
             {
                 LogToFile($"[GrenadeTimer] WARNING: FlashbangEffect scene not found at {flashbangEffectPath}, using fallback");
-                CreateExplosionFlash(position);
+                CreateFallbackExplosionFlash(position);
                 return;
             }
 
@@ -644,7 +639,7 @@ namespace GodotTopdown.Scripts.Projectiles
             if (effect == null)
             {
                 LogToFile($"[GrenadeTimer] WARNING: Failed to instantiate FlashbangEffect, using fallback");
-                CreateExplosionFlash(position);
+                CreateFallbackExplosionFlash(position);
                 return;
             }
 
@@ -664,46 +659,92 @@ namespace GodotTopdown.Scripts.Projectiles
         }
 
         /// <summary>
-        /// Create a visual explosion flash effect.
-        /// Replicates the GDScript _create_simple_explosion() and _create_simple_flash() methods.
+        /// Spawn frag grenade explosion flash using ExplosionFlash.tscn.
+        /// FIX for Issue #470: Uses PointLight2D with shadow_enabled=true for wall occlusion.
         /// </summary>
-        private void CreateExplosionFlash(Vector2 position)
+        private void SpawnFragExplosionFlash(Vector2 position)
         {
-            // Create a colored flash sprite
-            var flash = new Sprite2D();
-            flash.Texture = CreateCircleTexture((int)EffectRadius);
-            flash.GlobalPosition = position;
-            flash.ZIndex = 100; // Draw on top
+            // Try to load and use the new PointLight2D-based explosion flash scene
+            // This uses shadow_enabled=true to automatically respect wall geometry
+            var explosionFlashScene = GD.Load<PackedScene>("res://scenes/effects/ExplosionFlash.tscn");
 
-            // Set color based on grenade type
-            // Flashbang: bright white flash
-            // Frag: orange/red explosion
-            if (Type == GrenadeType.Flashbang)
+            if (explosionFlashScene != null)
             {
-                flash.Modulate = new Color(1.0f, 1.0f, 1.0f, 0.8f);
-            }
-            else
-            {
-                flash.Modulate = new Color(1.0f, 0.6f, 0.2f, 0.8f);
+                var flash = explosionFlashScene.Instantiate();
+                if (flash is Node2D flashNode)
+                {
+                    flashNode.GlobalPosition = position;
+
+                    // Set explosion type (1 = Frag)
+                    flashNode.Set("explosion_type", 1);
+                    flashNode.Set("effect_radius", EffectRadius);
+
+                    GetTree().CurrentScene.AddChild(flash);
+                    LogToFile($"[GrenadeTimer] Spawned PointLight2D frag explosion flash at {position} (shadow-based wall occlusion)");
+                    return;
+                }
             }
 
-            // Add to scene
-            GetTree().CurrentScene.AddChild(flash);
-
-            // Create tween to fade out the flash
-            var tween = GetTree().CreateTween();
-            float fadeDuration = Type == GrenadeType.Flashbang ? 0.3f : 0.2f;
-            tween.TweenProperty(flash, "modulate:a", 0.0f, fadeDuration);
-            tween.TweenCallback(Callable.From(() => flash.QueueFree()));
+            // Fallback: create simple PointLight2D directly if scene loading fails
+            LogToFile("[GrenadeTimer] ExplosionFlash.tscn not found, using fallback PointLight2D");
+            CreateFallbackExplosionFlash(position);
         }
 
         /// <summary>
-        /// Create a circular gradient texture for explosion effects.
-        /// Replicates the GDScript _create_explosion_texture() / _create_white_circle_texture() methods.
+        /// Fallback explosion flash using PointLight2D directly.
+        /// Used when ExplosionFlash.tscn cannot be loaded.
+        /// Uses shadow_enabled=true to respect wall geometry.
         /// </summary>
-        private static ImageTexture CreateCircleTexture(int radius)
+        private void CreateFallbackExplosionFlash(Vector2 position)
         {
-            int size = radius * 2;
+            // Create PointLight2D with shadow enabled for wall occlusion
+            var light = new PointLight2D();
+            light.GlobalPosition = position;
+            light.ZIndex = 10;
+
+            // Enable shadows so light respects wall geometry
+            light.ShadowEnabled = true;
+            light.ShadowColor = new Color(0, 0, 0, 0.9f);
+            light.ShadowFilter = PointLight2D.ShadowFilterEnum.Pcf5;
+            light.ShadowFilterSmooth = 6.0f;
+
+            // Create gradient texture for the light
+            light.Texture = CreateLightGradientTexture();
+
+            // Set color and intensity based on grenade type
+            if (Type == GrenadeType.Flashbang)
+            {
+                light.Color = new Color(1.0f, 0.95f, 0.9f, 1.0f);
+                light.Energy = 8.0f;
+                light.TextureScale = EffectRadius / 100.0f;
+            }
+            else
+            {
+                light.Color = new Color(1.0f, 0.6f, 0.2f, 1.0f);
+                light.Energy = 6.0f;
+                light.TextureScale = EffectRadius / 80.0f;
+            }
+
+            // Add to scene
+            GetTree().CurrentScene.AddChild(light);
+
+            // Create tween to fade out the light
+            var tween = GetTree().CreateTween();
+            float fadeDuration = Type == GrenadeType.Flashbang ? 0.4f : 0.3f;
+            tween.TweenProperty(light, "energy", 0.0f, fadeDuration).SetEase(Tween.EaseType.Out);
+            tween.TweenCallback(Callable.From(() => light.QueueFree()));
+
+            LogToFile($"[GrenadeTimer] Spawned fallback PointLight2D explosion at {position}");
+        }
+
+        /// <summary>
+        /// Create a gradient texture for the PointLight2D.
+        /// Creates a radial gradient from white center to transparent edges.
+        /// </summary>
+        private static ImageTexture CreateLightGradientTexture()
+        {
+            int size = 512;
+            int radius = size / 2;
             var image = Image.CreateEmpty(size, size, false, Image.Format.Rgba8);
             var center = new Vector2(radius, radius);
 
@@ -713,12 +754,14 @@ namespace GodotTopdown.Scripts.Projectiles
                 {
                     var pos = new Vector2(x, y);
                     float distance = pos.DistanceTo(center);
-                    if (distance <= radius)
-                    {
-                        // Fade from center (alpha decreases toward edges)
-                        float alpha = 1.0f - (distance / radius);
-                        image.SetPixel(x, y, new Color(1.0f, 1.0f, 1.0f, alpha));
-                    }
+                    float normalizedDist = Mathf.Clamp(distance / radius, 0.0f, 1.0f);
+
+                    // Create gradient: bright center fading to transparent edges
+                    // Use smooth gradient for natural light falloff
+                    float alpha = 1.0f - (normalizedDist * normalizedDist);
+                    alpha = Mathf.Max(0.0f, alpha);
+
+                    image.SetPixel(x, y, new Color(1.0f, 1.0f, 1.0f, alpha));
                 }
             }
 

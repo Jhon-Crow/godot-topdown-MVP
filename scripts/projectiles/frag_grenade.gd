@@ -408,14 +408,18 @@ func _spawn_shrapnel() -> void:
 
 
 ## Spawn visual explosion effect at explosion position.
+## Uses wall-aware effect spawning to prevent visual effects from passing through walls (Issue #470).
 func _spawn_explosion_effect() -> void:
 	var impact_manager: Node = get_node_or_null("/root/ImpactEffectsManager")
 
-	if impact_manager and impact_manager.has_method("spawn_flashbang_effect"):
-		# Reuse flashbang effect with our smaller radius
+	if impact_manager and impact_manager.has_method("spawn_explosion_effect"):
+		# Use the wall-aware explosion effect (blocks visual through walls)
+		impact_manager.spawn_explosion_effect(global_position, effect_radius)
+	elif impact_manager and impact_manager.has_method("spawn_flashbang_effect"):
+		# Fallback to flashbang effect (also wall-aware)
 		impact_manager.spawn_flashbang_effect(global_position, effect_radius)
 	else:
-		# Fallback: create simple explosion effect
+		# Final fallback: create simple explosion effect without wall occlusion
 		_create_simple_explosion()
 
 
