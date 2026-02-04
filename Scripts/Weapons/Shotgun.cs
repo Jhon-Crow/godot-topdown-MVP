@@ -834,20 +834,29 @@ public partial class Shotgun : BaseWeapon
                         double timeSinceClose = currentTime - _lastBoltCloseTime;
                         bool inCooldown = timeSinceClose < BoltCloseCooldownSeconds;
 
+                        // Issue #477 v3 FIX: Skip cooldown check for mid-drag bolt cycling.
+                        // The cooldown was added to prevent ACCIDENTAL reopening from mouse
+                        // movement after RMB release. But during continuous mid-drag cycling,
+                        // the user is deliberately dragging UP to reopen - this is intentional.
+                        // We use a shorter cooldown (100ms) for mid-drag to allow rapid cycling
+                        // while still preventing physics glitches from too-rapid state changes.
+                        const float MidDragCooldownSeconds = 0.1f;
+                        bool inMidDragCooldown = timeSinceClose < MidDragCooldownSeconds;
+
                         if (VerboseInputLogging)
                         {
-                            GD.Print($"[Shotgun.FIX#445v7] Mid-drag UP (open bolt) in Ready state: elapsed={timeSinceClose:F3}s, cooldown={BoltCloseCooldownSeconds}s, inCooldown={inCooldown}");
+                            GD.Print($"[Shotgun.FIX#477v3] Mid-drag UP (open bolt) in Ready state: elapsed={timeSinceClose:F3}s, midDragCooldown={MidDragCooldownSeconds}s, inCooldown={inMidDragCooldown}");
                         }
 
-                        if (!inCooldown)
+                        if (!inMidDragCooldown)
                         {
-                            // Mid-drag start reload
+                            // Mid-drag start reload - uses shorter cooldown for responsive cycling
                             StartReload();
                             gestureProcessed = true;
                         }
                         else if (VerboseInputLogging)
                         {
-                            GD.Print($"[Shotgun.Input] Mid-drag bolt open BLOCKED by cooldown ({timeSinceClose:F3}s < {BoltCloseCooldownSeconds}s)");
+                            GD.Print($"[Shotgun.Input] Mid-drag bolt open BLOCKED by cooldown ({timeSinceClose:F3}s < {MidDragCooldownSeconds}s)");
                         }
                     }
                     break;
@@ -873,16 +882,37 @@ public partial class Shotgun : BaseWeapon
                 case ShotgunReloadState.Loading:
                     if (isDragDown)
                     {
-                        // FIX for issue #243: In Loading state with drag DOWN, NEVER process
-                        // mid-drag gesture. Always wait for RMB release to give user time to
-                        // press/hold MMB for shell loading.
+                        // Issue #477 v3 FIX: Allow mid-drag bolt closing when MMB is NOT held.
+                        // This enables continuous bolt cycling (open-close-open-close) during
+                        // a single RMB drag, which users expect for tactical reloading.
+                        //
+                        // Original #243 fix: Waited for RMB release to give user time to press MMB.
+                        // New approach: Check MMB NOW and close if not held, otherwise wait.
+                        bool shouldLoadShell = _wasMiddleMouseHeldDuringDrag || _isMiddleMouseHeld || _isMiddleMouseHeldEvent;
+
                         if (VerboseInputLogging)
                         {
-                            bool shouldLoadShell = _wasMiddleMouseHeldDuringDrag || _isMiddleMouseHeld;
-                            LogToFile($"[Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad={shouldLoadShell} - NOT processing mid-drag, waiting for RMB release");
+                            LogToFile($"[Shotgun.FIX#477v3] Mid-drag DOWN in Loading state: shouldLoad={shouldLoadShell}");
                         }
-                        return false;
+
+                        if (!shouldLoadShell)
+                        {
+                            // User NOT holding MMB - they want to close the bolt
+                            CompleteReload();
+                            gestureProcessed = true;
+                            LogToFile("[Shotgun.FIX#477v3] Mid-drag bolt closed (MMB not held)");
+                        }
+                        else
+                        {
+                            // User IS holding MMB - they want to load a shell
+                            // Wait for RMB release to confirm (original #243 behavior)
+                            LogToFile("[Shotgun.FIX#477v3] Mid-drag DOWN with MMB - waiting for RMB release to load shell");
+                            return false;
+                        }
                     }
+                    // Note: isDragUp in Loading state is handled after CompleteReload()
+                    // changes state to NotReloading/Ready, which is processed in the
+                    // ShotgunActionState.Ready case above.
                     break;
 
                 case ShotgunReloadState.WaitingToClose:

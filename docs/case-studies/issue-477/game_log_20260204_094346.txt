@@ -1,0 +1,1014 @@
+[09:43:46] [INFO] ============================================================
+[09:43:46] [INFO] GAME LOG STARTED
+[09:43:46] [INFO] ============================================================
+[09:43:46] [INFO] Timestamp: 2026-02-04T09:43:46
+[09:43:46] [INFO] Log file: I:/Загрузки/godot exe/взвод дроб вверх/game_log_20260204_094346.txt
+[09:43:46] [INFO] Executable: I:/Загрузки/godot exe/взвод дроб вверх/Godot-Top-Down-Template.exe
+[09:43:46] [INFO] OS: Windows
+[09:43:46] [INFO] Debug build: false
+[09:43:46] [INFO] Engine version: 4.3-stable (official)
+[09:43:46] [INFO] Project: Godot Top-Down Template
+[09:43:46] [INFO] ------------------------------------------------------------
+[09:43:46] [INFO] [GameManager] GameManager ready
+[09:43:46] [INFO] [ScoreManager] ScoreManager ready
+[09:43:46] [INFO] [SoundPropagation] SoundPropagation autoload initialized
+[09:43:46] [INFO] [ImpactEffects] Scenes loaded: DustEffect, BloodEffect, SparksEffect, BloodDecal
+[09:43:46] [INFO] [ImpactEffects] ImpactEffectsManager ready - FULL VERSION with blood effects enabled
+[09:43:46] [INFO] [ImpactEffects] Starting particle shader warmup (Issue #343 fix)...
+[09:43:46] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[09:43:46] [INFO] [PenultimateHit] Saturation shader loaded successfully
+[09:43:46] [INFO] [PenultimateHit] Starting shader warmup (Issue #343 fix)...
+[09:43:46] [INFO] [PenultimateHit] PenultimateHitEffectsManager ready - Configuration:
+[09:43:46] [INFO] [PenultimateHit]   Time scale: 0.10 (10x slowdown)
+[09:43:46] [INFO] [PenultimateHit]   Saturation boost: 2.0 (3.0x)
+[09:43:46] [INFO] [PenultimateHit]   Contrast boost: 1.0 (2.0x)
+[09:43:46] [INFO] [PenultimateHit]   Effect duration: 3.0 real seconds
+[09:43:46] [INFO] [LastChance] Resetting all effects (scene change detected)
+[09:43:46] [INFO] [LastChance] Last chance shader loaded successfully
+[09:43:46] [INFO] [LastChance] Starting shader warmup (Issue #343 fix)...
+[09:43:46] [INFO] [LastChance] LastChanceEffectsManager ready - Configuration:
+[09:43:46] [INFO] [LastChance]   Freeze duration: 6.0 real seconds
+[09:43:46] [INFO] [LastChance]   Sepia intensity: 0.70
+[09:43:46] [INFO] [LastChance]   Brightness: 0.60
+[09:43:46] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FlashbangGrenade.tscn
+[09:43:46] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FragGrenade.tscn
+[09:43:46] [INFO] [ExperimentalSettings] ExperimentalSettings initialized - FOV enabled: true, Complex grenade throwing: false
+[09:43:46] [INFO] [CinemaEffects] CinemaEffectsManager initializing (v5.3 - overlay approach with simplified death circle)...
+[09:43:46] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+[09:43:46] [INFO] [CinemaEffects] Created effects layer at layer 99
+[09:43:46] [INFO] [CinemaEffects] Cinema shader loaded successfully (v5.0 - no screen_texture)
+[09:43:46] [INFO] [CinemaEffects] Starting cinema shader warmup (Issue #343 fix)...
+[09:43:46] [INFO] [CinemaEffects] Cinema film effect initialized (v5.3) - Configuration:
+[09:43:46] [INFO] [CinemaEffects]   Approach: Overlay-based (no screen_texture)
+[09:43:46] [INFO] [CinemaEffects]   Grain intensity: 0.15
+[09:43:46] [INFO] [CinemaEffects]   Warm tint: 0.12 intensity
+[09:43:46] [INFO] [CinemaEffects]   Sunny effect: 0.08 intensity
+[09:43:46] [INFO] [CinemaEffects]   Vignette: 0.25 intensity
+[09:43:46] [INFO] [CinemaEffects]   Film defects: 1.5% probability
+[09:43:46] [INFO] [CinemaEffects]   White specks: 0.70 intensity, 4.0% probability
+[09:43:46] [INFO] [CinemaEffects]   Death effects: cigarette burn + expanding spots + end of reel circle (160px, blinks 2x)
+[09:43:46] [INFO] [CinemaEffects] Enabling effect after 1 frame(s)...
+[09:43:46] [INFO] [GrenadeTimerHelper] Autoload ready
+[09:43:46] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[09:43:46] [INFO] [BloodyFeet:Enemy1] Footprint scene loaded
+[09:43:46] [INFO] [BloodyFeet:Enemy1] Found EnemyModel for facing direction
+[09:43:46] [INFO] [BloodyFeet:Enemy1] BloodyFeetComponent ready on Enemy1
+[09:43:46] [ENEMY] [Enemy1] Death animation component initialized
+[09:43:46] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[09:43:46] [INFO] [BloodyFeet:Enemy2] Footprint scene loaded
+[09:43:46] [INFO] [BloodyFeet:Enemy2] Found EnemyModel for facing direction
+[09:43:46] [INFO] [BloodyFeet:Enemy2] BloodyFeetComponent ready on Enemy2
+[09:43:46] [ENEMY] [Enemy2] Death animation component initialized
+[09:43:46] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[09:43:46] [INFO] [BloodyFeet:Enemy3] Footprint scene loaded
+[09:43:46] [INFO] [BloodyFeet:Enemy3] Found EnemyModel for facing direction
+[09:43:46] [INFO] [BloodyFeet:Enemy3] BloodyFeetComponent ready on Enemy3
+[09:43:46] [ENEMY] [Enemy3] Death animation component initialized
+[09:43:46] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[09:43:46] [INFO] [BloodyFeet:Enemy4] Footprint scene loaded
+[09:43:46] [INFO] [BloodyFeet:Enemy4] Found EnemyModel for facing direction
+[09:43:46] [INFO] [BloodyFeet:Enemy4] BloodyFeetComponent ready on Enemy4
+[09:43:46] [ENEMY] [Enemy4] Death animation component initialized
+[09:43:46] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[09:43:46] [INFO] [BloodyFeet:Enemy5] Footprint scene loaded
+[09:43:46] [INFO] [BloodyFeet:Enemy5] Found EnemyModel for facing direction
+[09:43:46] [INFO] [BloodyFeet:Enemy5] BloodyFeetComponent ready on Enemy5
+[09:43:46] [ENEMY] [Enemy5] Death animation component initialized
+[09:43:46] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[09:43:46] [INFO] [BloodyFeet:Enemy6] Footprint scene loaded
+[09:43:46] [INFO] [BloodyFeet:Enemy6] Found EnemyModel for facing direction
+[09:43:46] [INFO] [BloodyFeet:Enemy6] BloodyFeetComponent ready on Enemy6
+[09:43:46] [ENEMY] [Enemy6] Death animation component initialized
+[09:43:46] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[09:43:46] [INFO] [BloodyFeet:Enemy7] Footprint scene loaded
+[09:43:46] [INFO] [BloodyFeet:Enemy7] Found EnemyModel for facing direction
+[09:43:46] [INFO] [BloodyFeet:Enemy7] BloodyFeetComponent ready on Enemy7
+[09:43:46] [ENEMY] [Enemy7] Death animation component initialized
+[09:43:46] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[09:43:46] [INFO] [BloodyFeet:Enemy8] Footprint scene loaded
+[09:43:46] [INFO] [BloodyFeet:Enemy8] Found EnemyModel for facing direction
+[09:43:46] [INFO] [BloodyFeet:Enemy8] BloodyFeetComponent ready on Enemy8
+[09:43:46] [ENEMY] [Enemy8] Death animation component initialized
+[09:43:46] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[09:43:46] [INFO] [BloodyFeet:Enemy9] Footprint scene loaded
+[09:43:46] [INFO] [BloodyFeet:Enemy9] Found EnemyModel for facing direction
+[09:43:46] [INFO] [BloodyFeet:Enemy9] BloodyFeetComponent ready on Enemy9
+[09:43:46] [ENEMY] [Enemy9] Death animation component initialized
+[09:43:46] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[09:43:46] [INFO] [BloodyFeet:Enemy10] Footprint scene loaded
+[09:43:46] [INFO] [BloodyFeet:Enemy10] Found EnemyModel for facing direction
+[09:43:46] [INFO] [BloodyFeet:Enemy10] BloodyFeetComponent ready on Enemy10
+[09:43:46] [ENEMY] [Enemy10] Death animation component initialized
+[09:43:46] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[09:43:46] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[09:43:46] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[09:43:46] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[09:43:46] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[09:43:46] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[09:43:46] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[09:43:46] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[09:43:46] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[09:43:46] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[09:43:46] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[09:43:46] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[09:43:46] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 2/4
+[09:43:46] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[09:43:46] [INFO] [BloodDecal] Blood puddle created at (640, 360) (added to group)
+[09:43:46] [INFO] [BuildingLevel] Found Environment/Enemies node with 10 children
+[09:43:46] [INFO] [BuildingLevel] Child 'Enemy1': script=true, has_died_signal=true
+[09:43:46] [INFO] [BuildingLevel] Child 'Enemy2': script=true, has_died_signal=true
+[09:43:46] [INFO] [BuildingLevel] Child 'Enemy3': script=true, has_died_signal=true
+[09:43:46] [INFO] [BuildingLevel] Child 'Enemy4': script=true, has_died_signal=true
+[09:43:46] [INFO] [BuildingLevel] Child 'Enemy5': script=true, has_died_signal=true
+[09:43:46] [INFO] [BuildingLevel] Child 'Enemy6': script=true, has_died_signal=true
+[09:43:46] [INFO] [BuildingLevel] Child 'Enemy7': script=true, has_died_signal=true
+[09:43:46] [INFO] [BuildingLevel] Child 'Enemy8': script=true, has_died_signal=true
+[09:43:46] [INFO] [BuildingLevel] Child 'Enemy9': script=true, has_died_signal=true
+[09:43:46] [INFO] [BuildingLevel] Child 'Enemy10': script=true, has_died_signal=true
+[09:43:46] [INFO] [BuildingLevel] Enemy tracking complete: 10 enemies registered
+[09:43:46] [INFO] [ScoreManager] Level started with 10 enemies
+[09:43:46] [INFO] [CinemaEffects] Found player node: Player
+[09:43:46] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[09:43:46] [INFO] [BloodyFeet:Enemy1] Blood detector created and attached to Enemy1
+[09:43:46] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 1)
+[09:43:46] [ENEMY] [Enemy1] Registered as sound listener
+[09:43:46] [ENEMY] [Enemy1] Spawned at (300, 350), hp: 2, behavior: GUARD
+[09:43:46] [INFO] [BloodyFeet:Enemy2] Blood detector created and attached to Enemy2
+[09:43:46] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 2)
+[09:43:46] [ENEMY] [Enemy2] Registered as sound listener
+[09:43:46] [ENEMY] [Enemy2] Spawned at (400, 550), hp: 3, behavior: GUARD
+[09:43:46] [INFO] [BloodyFeet:Enemy3] Blood detector created and attached to Enemy3
+[09:43:46] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 3)
+[09:43:46] [ENEMY] [Enemy3] Registered as sound listener
+[09:43:46] [ENEMY] [Enemy3] Spawned at (700, 750), hp: 2, behavior: GUARD
+[09:43:46] [INFO] [BloodyFeet:Enemy4] Blood detector created and attached to Enemy4
+[09:43:46] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 4)
+[09:43:46] [ENEMY] [Enemy4] Registered as sound listener
+[09:43:46] [ENEMY] [Enemy4] Spawned at (800, 900), hp: 3, behavior: GUARD
+[09:43:46] [INFO] [BloodyFeet:Enemy5] Blood detector created and attached to Enemy5
+[09:43:46] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 5)
+[09:43:46] [ENEMY] [Enemy5] Registered as sound listener
+[09:43:46] [ENEMY] [Enemy5] Spawned at (1700, 350), hp: 3, behavior: GUARD
+[09:43:46] [INFO] [BloodyFeet:Enemy6] Blood detector created and attached to Enemy6
+[09:43:46] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 6)
+[09:43:46] [ENEMY] [Enemy6] Registered as sound listener
+[09:43:46] [ENEMY] [Enemy6] Spawned at (1950, 450), hp: 4, behavior: GUARD
+[09:43:46] [INFO] [BloodyFeet:Enemy7] Blood detector created and attached to Enemy7
+[09:43:46] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 7)
+[09:43:46] [ENEMY] [Enemy7] Registered as sound listener
+[09:43:46] [ENEMY] [Enemy7] Spawned at (1606.114, 893.8859), hp: 3, behavior: PATROL
+[09:43:46] [INFO] [BloodyFeet:Enemy8] Blood detector created and attached to Enemy8
+[09:43:46] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 8)
+[09:43:46] [ENEMY] [Enemy8] Registered as sound listener
+[09:43:46] [ENEMY] [Enemy8] Spawned at (1900, 1450), hp: 4, behavior: GUARD
+[09:43:46] [INFO] [BloodyFeet:Enemy9] Blood detector created and attached to Enemy9
+[09:43:46] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 9)
+[09:43:46] [ENEMY] [Enemy9] Registered as sound listener
+[09:43:46] [ENEMY] [Enemy9] Spawned at (2100, 1550), hp: 4, behavior: GUARD
+[09:43:46] [INFO] [BloodyFeet:Enemy10] Blood detector created and attached to Enemy10
+[09:43:46] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 10)
+[09:43:46] [ENEMY] [Enemy10] Registered as sound listener
+[09:43:46] [ENEMY] [Enemy10] Spawned at (1200, 1550), hp: 4, behavior: PATROL
+[09:43:46] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[09:43:46] [ENEMY] [Enemy1] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=33.8°, current=0.0°, player=(450,1250), corner_timer=0.00
+[09:43:46] [ENEMY] [Enemy2] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=258.8°, current=0.0°, player=(450,1250), corner_timer=0.00
+[09:43:46] [ENEMY] [Enemy3] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=123.7°, current=0.0°, player=(450,1250), corner_timer=0.00
+[09:43:46] [ENEMY] [Enemy4] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=258.8°, current=0.0°, player=(450,1250), corner_timer=0.00
+[09:43:46] [ENEMY] [Enemy5] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=258.8°, current=0.0°, player=(450,1250), corner_timer=0.00
+[09:43:46] [ENEMY] [Enemy6] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=191.3°, current=0.0°, player=(450,1250), corner_timer=0.00
+[09:43:46] [ENEMY] [Enemy8] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=258.8°, current=0.0°, player=(450,1250), corner_timer=0.00
+[09:43:46] [ENEMY] [Enemy9] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=11.3°, current=0.0°, player=(450,1250), corner_timer=0.00
+[09:43:46] [INFO] [Player] Detecting weapon pose (frame 3)...
+[09:43:46] [INFO] [Player] Detected weapon: Rifle (default pose)
+[09:43:46] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[09:43:46] [INFO] [PenultimateHit] Shader warmup complete in 196 ms
+[09:43:46] [INFO] [LastChance] Shader warmup complete in 194 ms
+[09:43:46] [INFO] [CinemaEffects] Cinema shader warmup complete in 168 ms
+[09:43:46] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[09:43:46] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[09:43:46] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[09:43:46] [INFO] [LastChance] Found player: Player
+[09:43:46] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[09:43:46] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[09:43:46] [INFO] [LastChance] Connected to player Died signal (C#)
+[09:43:46] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[09:43:47] [INFO] [ImpactEffects] Particle shader warmup complete: 6 effects warmed up in 511 ms
+[09:43:49] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[09:43:49] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[09:43:49] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[09:43:49] [INFO] [LastChance] Resetting all effects (scene change detected)
+[09:43:49] [INFO] [CinemaEffects] Scene changed to: TestTier
+[09:43:49] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[09:43:49] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[09:43:49] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[09:43:49] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[09:43:49] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[09:43:49] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+[09:43:49] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[09:43:49] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[09:43:49] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[09:43:49] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[09:43:49] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[09:43:49] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[09:43:49] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 3/3, Health: 3/4
+[09:43:49] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[09:43:49] [INFO] [CinemaEffects] Found player node: Player
+[09:43:49] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[09:43:49] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[09:43:49] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[09:43:49] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[09:43:49] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[09:43:49] [INFO] [LastChance] Found player: Player
+[09:43:49] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[09:43:49] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[09:43:49] [INFO] [LastChance] Connected to player Died signal (C#)
+[09:43:49] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[09:43:49] [INFO] [Player] Detecting weapon pose (frame 3)...
+[09:43:49] [INFO] [Player] Detected weapon: Rifle (default pose)
+[09:43:49] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[09:43:50] [INFO] [PauseMenu] Armory button pressed
+[09:43:50] [INFO] [PauseMenu] Creating new armory menu instance
+[09:43:50] [INFO] [PauseMenu] armory_menu_scene resource path: res://scenes/ui/ArmoryMenu.tscn
+[09:43:50] [INFO] [PauseMenu] Instance created, class: CanvasLayer, name: ArmoryMenu
+[09:43:50] [INFO] [PauseMenu] Script attached: res://scripts/ui/armory_menu.gd
+[09:43:50] [INFO] [PauseMenu] back_pressed signal exists on instance
+[09:43:50] [INFO] [PauseMenu] back_pressed signal connected
+[09:43:50] [INFO] [PauseMenu] Armory menu instance added as child, is_inside_tree: true
+[09:43:50] [INFO] [PauseMenu] _populate_weapon_grid method exists
+[09:43:50] [INFO] [GameManager] Weapon selected: shotgun
+[09:43:50] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[09:43:50] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[09:43:50] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[09:43:50] [INFO] [LastChance] Resetting all effects (scene change detected)
+[09:43:50] [INFO] [CinemaEffects] Scene changed to: TestTier
+[09:43:50] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[09:43:50] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[09:43:50] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[09:43:50] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[09:43:50] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[09:43:50] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+[09:43:50] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[09:43:50] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[09:43:50] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[09:43:50] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[09:43:50] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[09:43:50] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[09:43:50] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 3/3, Health: 2/4
+[09:43:50] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[09:43:51] [INFO] [CinemaEffects] Found player node: Player
+[09:43:51] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[09:43:51] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[09:43:51] [INFO] [Player] Detecting weapon pose (frame 3)...
+[09:43:51] [INFO] [Player] Detected weapon: Shotgun (Shotgun pose)
+[09:43:51] [INFO] [Player] Applied Shotgun arm pose: Left=(21, 6), Right=(-1, 6)
+[09:43:51] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[09:43:51] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[09:43:51] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[09:43:51] [INFO] [LastChance] Found player: Player
+[09:43:51] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[09:43:51] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[09:43:51] [INFO] [LastChance] Connected to player Died signal (C#)
+[09:43:51] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[09:43:51] [INFO] [Shotgun.FIX#212] Firing 9 pellets with 15° spread at pos=(150, 360)
+[09:43:51] [INFO] [Shotgun.FIX#212] Normal pellet 1/9: extraOffset=-0,5, distance=51,5px, pos=(200.28592, 348.6661)
+[09:43:51] [INFO] [Shotgun.FIX#212] Normal pellet 2/9: extraOffset=10,0, distance=62,0px, pos=(211.13782, 349.55374)
+[09:43:51] [INFO] [Shotgun.FIX#212] Normal pellet 3/9: extraOffset=-6,6, distance=45,4px, pos=(195.019, 353.8238)
+[09:43:51] [INFO] [Shotgun.FIX#212] Normal pellet 4/9: extraOffset=-3,9, distance=48,1px, pos=(197.53484, 352.87427)
+[09:43:51] [INFO] [Shotgun.FIX#212] Normal pellet 5/9: extraOffset=2,3, distance=54,3px, pos=(203.93404, 353.8822)
+[09:43:51] [INFO] [Shotgun.FIX#212] Normal pellet 6/9: extraOffset=-7,4, distance=44,6px, pos=(194.5137, 357.2874)
+[09:43:51] [INFO] [Shotgun.FIX#212] Normal pellet 7/9: extraOffset=-7,2, distance=44,8px, pos=(194.76517, 359.51205)
+[09:43:51] [INFO] [Shotgun.FIX#212] Normal pellet 8/9: extraOffset=13,9, distance=65,9px, pos=(215.9155, 360.50644)
+[09:43:51] [INFO] [Shotgun.FIX#212] Normal pellet 9/9: extraOffset=-8,8, distance=43,2px, pos=(193.13513, 361.35428)
+[09:43:51] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(150, 360), source=PLAYER (Shotgun), range=1469, listeners=10
+[09:43:51] [INFO] [SoundPropagation] Cleaned up 10 invalid listeners
+[09:43:51] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:43:51] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[09:43:51] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+[09:43:51] [INFO] [Shotgun.FIX#445] dragStartPos=(772, 304), aimDir=(1,00, -0,09)
+[09:43:51] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:43:51] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:43:51] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:43:51] [INFO] [Shotgun.FIX#445v7] Mid-drag pump UP - shell ejected, continue dragging DOWN to chamber
+[09:43:51] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:43:51] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:43:51] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:43:52] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(69,8, 175,6), length=188,9, isDragUp=False, isDragDown=True, ActionState=NeedsPumpDown
+[09:43:52] [INFO] [Shotgun.FIX#445v7] Mid-drag pump DOWN - chambered, ready to fire
+[09:43:52] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:43:52] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:43:52] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:43:52] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-25,4, 172,3), length=174,2, isDragUp=False, isDragDown=True, ActionState=Ready
+[09:43:52] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-25,1, 171,7), length=173,5, isDragUp=False, isDragDown=True, ActionState=Ready
+[09:43:52] [INFO] [Shotgun.FIX#212] Firing 9 pellets with 15° spread at pos=(272.33334, 360)
+[09:43:52] [INFO] [Shotgun.FIX#212] Normal pellet 1/9: extraOffset=0,4, distance=52,4px, pos=(323.2686, 347.8533)
+[09:43:52] [INFO] [Shotgun.FIX#212] Normal pellet 2/9: extraOffset=-0,8, distance=51,2px, pos=(322.65125, 350.6903)
+[09:43:52] [INFO] [Shotgun.FIX#212] Normal pellet 3/9: extraOffset=-4,6, distance=47,4px, pos=(319.1743, 352.6325)
+[09:43:52] [INFO] [Shotgun.FIX#212] Normal pellet 4/9: extraOffset=0,4, distance=52,4px, pos=(324.4057, 353.8644)
+[09:43:52] [INFO] [Shotgun.FIX#212] Normal pellet 5/9: extraOffset=-0,8, distance=51,2px, pos=(323.46368, 356.69562)
+[09:43:52] [INFO] [Shotgun.FIX#212] Normal pellet 6/9: extraOffset=14,1, distance=66,1px, pos=(338.3438, 356.56866)
+[09:43:52] [INFO] [Shotgun.FIX#212] Normal pellet 7/9: extraOffset=0,6, distance=52,6px, pos=(324.93637, 357.7978)
+[09:43:52] [INFO] [Shotgun.FIX#212] Normal pellet 8/9: extraOffset=-14,2, distance=37,8px, pos=(310.1048, 360.74823)
+[09:43:52] [INFO] [Shotgun.FIX#212] Normal pellet 9/9: extraOffset=-8,9, distance=43,1px, pos=(315.36444, 362.1987)
+[09:43:52] [INFO] [Shotgun.FIX#445v7] Reset drag start position after firing (continuous pump mode)
+[09:43:52] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(272.3333, 360), source=PLAYER (Shotgun), range=1469, listeners=0
+[09:43:52] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:43:52] [INFO] [Shotgun.FIX#445v7] Mid-drag pump UP - shell ejected, continue dragging DOWN to chamber
+[09:43:52] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:43:52] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:43:52] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:43:52] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(37,1, -406,3), length=408,0, isDragUp=True, isDragDown=False, ActionState=NeedsPumpDown
+[09:43:52] [INFO] [Shotgun.FIX#445v7] Mid-drag pump DOWN - chambered, ready to fire
+[09:43:53] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:43:53] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:43:53] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:43:53] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(1,9, 87,3), length=87,3, isDragUp=False, isDragDown=True, ActionState=Ready
+[09:43:53] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(1,9, 87,3), length=87,3, isDragUp=False, isDragDown=True, ActionState=Ready
+[09:43:53] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(1,9, -107,0), length=107,0, isDragUp=True, isDragDown=False, ActionState=Ready
+[09:43:53] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(46,6, -549,2), length=551,2, isDragUp=True, isDragDown=False, ActionState=Ready
+[09:43:53] [INFO] [Shotgun.FIX#243] Bolt opened for loading - ReloadState=Loading, ShellsInTube=6/8
+[09:43:53] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:43:53] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:43:53] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:43:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:54] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-156,3, 719,3), length=736,1, isDragUp=False, isDragDown=True, ActionState=Ready
+[09:43:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:54] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-374,8, 719,3), length=811,1, isDragUp=False, isDragDown=True, ActionState=Ready
+[09:43:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:54] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-378,1, 719,3), length=812,7, isDragUp=False, isDragDown=True, ActionState=Ready
+[09:43:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:54] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-505,7, 719,3), length=879,3, isDragUp=False, isDragDown=True, ActionState=Ready
+[09:43:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:54] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-511,1, 719,3), length=882,4, isDragUp=False, isDragDown=True, ActionState=Ready
+[09:43:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:54] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:55] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:55] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:55] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:55] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:55] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:55] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-503,7, 623,2), length=801,3, isDragUp=False, isDragDown=True, ActionState=Ready
+[09:43:55] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:55] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:55] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:55] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:55] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:55] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:55] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:55] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:55] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:55] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:55] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-503,7, 623,2), length=801,3, isDragUp=False, isDragDown=True, ActionState=Ready
+[09:43:55] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:55] [INFO] [Shotgun.FIX#243] RMB released after 90 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[09:43:55] [INFO] [Shotgun.FIX#445v7] ProcessDragGesture - dragVector=(-503,7, 623,2), length=801,3, ActionState=Ready
+[09:43:55] [INFO] [Shotgun.FIX#477] RMB release in Loading state: wasMMBDuringDrag=False, isMMBHeld=False, shellLoadedMidDrag=False => shouldLoadShell=False
+[09:43:55] [INFO] [Shotgun.FIX#477] Closing bolt (MMB was not held)
+[09:43:55] [INFO] [Shotgun.FIX#243] Reload complete - bolt closed, ready to fire with 6 shells
+[09:43:55] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[09:43:55] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[09:43:55] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[09:43:55] [INFO] [LastChance] Resetting all effects (scene change detected)
+[09:43:55] [INFO] [CinemaEffects] Scene changed to: TestTier
+[09:43:55] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[09:43:55] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[09:43:55] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[09:43:55] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[09:43:55] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[09:43:55] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+[09:43:55] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[09:43:55] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[09:43:55] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[09:43:55] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[09:43:55] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[09:43:55] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[09:43:55] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 3/3, Health: 2/4
+[09:43:55] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[09:43:55] [INFO] [CinemaEffects] Found player node: Player
+[09:43:55] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[09:43:55] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[09:43:55] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[09:43:55] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[09:43:55] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[09:43:55] [INFO] [LastChance] Found player: Player
+[09:43:55] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[09:43:55] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[09:43:55] [INFO] [LastChance] Connected to player Died signal (C#)
+[09:43:55] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[09:43:55] [INFO] [Player] Detecting weapon pose (frame 3)...
+[09:43:55] [INFO] [Player] Detected weapon: Shotgun (Shotgun pose)
+[09:43:55] [INFO] [Player] Applied Shotgun arm pose: Left=(21, 6), Right=(-1, 6)
+[09:43:56] [INFO] [Shotgun.FIX#212] Firing 12 pellets with 15° spread at pos=(298.7116, 160.45726)
+[09:43:56] [INFO] [Shotgun.FIX#212] Normal pellet 1/12: extraOffset=-14,7, distance=37,3px, pos=(335.945, 157.7067)
+[09:43:56] [INFO] [Shotgun.FIX#212] Normal pellet 2/12: extraOffset=-14,9, distance=37,1px, pos=(335.76608, 159.39153)
+[09:43:56] [INFO] [Shotgun.FIX#212] Normal pellet 3/12: extraOffset=2,6, distance=54,6px, pos=(353.26544, 158.31947)
+[09:43:56] [INFO] [Shotgun.FIX#212] Normal pellet 4/12: extraOffset=-6,5, distance=45,5px, pos=(344.2537, 159.87497)
+[09:43:56] [INFO] [Shotgun.FIX#212] Normal pellet 5/12: extraOffset=4,0, distance=56,0px, pos=(354.6545, 162.6978)
+[09:43:56] [INFO] [Shotgun.FIX#212] Normal pellet 6/12: extraOffset=12,7, distance=64,7px, pos=(363.291, 164.26112)
+[09:43:56] [INFO] [Shotgun.FIX#212] Normal pellet 7/12: extraOffset=14,6, distance=66,6px, pos=(365.13107, 165.10568)
+[09:43:56] [INFO] [Shotgun.FIX#212] Normal pellet 8/12: extraOffset=-2,3, distance=49,7px, pos=(348.1543, 165.20209)
+[09:43:56] [INFO] [Shotgun.FIX#212] Normal pellet 9/12: extraOffset=10,6, distance=62,6px, pos=(360.7309, 168.8152)
+[09:43:56] [INFO] [Shotgun.FIX#212] Normal pellet 10/12: extraOffset=12,8, distance=64,8px, pos=(362.95053, 169.04126)
+[09:43:56] [INFO] [Shotgun.FIX#212] Normal pellet 11/12: extraOffset=6,1, distance=58,1px, pos=(355.9452, 170.17458)
+[09:43:56] [INFO] [Shotgun.FIX#212] Normal pellet 12/12: extraOffset=4,8, distance=56,8px, pos=(354.26254, 172.0828)
+[09:43:56] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(298.7116, 160.4573), source=PLAYER (Shotgun), range=1469, listeners=0
+[09:43:56] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:43:56] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[09:43:56] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+[09:43:56] [INFO] [Shotgun.FIX#445] dragStartPos=(751, 190), aimDir=(0,99, 0,10)
+[09:43:56] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:43:56] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:43:56] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:43:56] [INFO] [Shotgun.FIX#445v7] Mid-drag pump UP - shell ejected, continue dragging DOWN to chamber
+[09:43:57] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:43:57] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:43:57] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:43:57] [INFO] [Shotgun.FIX#445v7] Mid-drag pump DOWN - chambered, ready to fire
+[09:43:57] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:43:57] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:43:57] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:43:57] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-22,0, 223,7), length=224,8, isDragUp=False, isDragDown=True, ActionState=Ready
+[09:43:57] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-20,7, 223,7), length=224,7, isDragUp=False, isDragDown=True, ActionState=Ready
+[09:43:57] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-18,7, -495,6), length=495,9, isDragUp=True, isDragDown=False, ActionState=Ready
+[09:43:57] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(56,1, -495,6), length=498,8, isDragUp=True, isDragDown=False, ActionState=Ready
+[09:43:58] [INFO] [Shotgun.FIX#243] Bolt opened for loading - ReloadState=Loading, ShellsInTube=7/8
+[09:43:58] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:43:58] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:43:58] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:43:58] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:58] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:58] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:58] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:58] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:58] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:58] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:58] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:58] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-281,3, 719,3), length=772,4, isDragUp=False, isDragDown=True, ActionState=Ready
+[09:43:58] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:58] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:58] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:58] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:58] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:58] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:58] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:58] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:58] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:58] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:58] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-496,4, 719,3), length=874,0, isDragUp=False, isDragDown=True, ActionState=Ready
+[09:43:58] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:58] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:58] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:58] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:58] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:58] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:58] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:58] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:58] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:58] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:58] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-557,8, 719,3), length=910,3, isDragUp=False, isDragDown=True, ActionState=Ready
+[09:43:58] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:58] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:58] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:58] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:58] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:58] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:59] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:59] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:59] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:59] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:59] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-557,8, 719,3), length=910,3, isDragUp=False, isDragDown=True, ActionState=Ready
+[09:43:59] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:59] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:43:59] [INFO] [Shotgun.FIX#243] RMB released after 61 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[09:43:59] [INFO] [Shotgun.FIX#445v7] ProcessDragGesture - dragVector=(-557,8, 716,0), length=907,6, ActionState=Ready
+[09:43:59] [INFO] [Shotgun.FIX#477] RMB release in Loading state: wasMMBDuringDrag=False, isMMBHeld=False, shellLoadedMidDrag=False => shouldLoadShell=False
+[09:43:59] [INFO] [Shotgun.FIX#477] Closing bolt (MMB was not held)
+[09:43:59] [INFO] [Shotgun.FIX#243] Reload complete - bolt closed, ready to fire with 7 shells
+[09:43:59] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[09:43:59] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[09:43:59] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[09:43:59] [INFO] [LastChance] Resetting all effects (scene change detected)
+[09:43:59] [INFO] [CinemaEffects] Scene changed to: TestTier
+[09:43:59] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[09:43:59] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[09:43:59] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[09:43:59] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[09:43:59] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[09:43:59] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+[09:43:59] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[09:43:59] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[09:43:59] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[09:43:59] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[09:43:59] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[09:43:59] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[09:43:59] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 3/3, Health: 4/4
+[09:43:59] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[09:43:59] [INFO] [CinemaEffects] Found player node: Player
+[09:43:59] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[09:43:59] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[09:43:59] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[09:43:59] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[09:43:59] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[09:43:59] [INFO] [LastChance] Found player: Player
+[09:43:59] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[09:43:59] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[09:43:59] [INFO] [LastChance] Connected to player Died signal (C#)
+[09:43:59] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[09:43:59] [INFO] [Player] Detecting weapon pose (frame 3)...
+[09:43:59] [INFO] [Player] Detected weapon: Shotgun (Shotgun pose)
+[09:43:59] [INFO] [Player] Applied Shotgun arm pose: Left=(21, 6), Right=(-1, 6)
+[09:44:00] [INFO] [Shotgun.FIX#212] Firing 12 pellets with 0° spread at pos=(300.50137, 174.47176)
+[09:44:00] [INFO] [Shotgun.FIX#212] Normal pellet 1/12: extraOffset=-10,0, distance=42,0px, pos=(342.3309, 171.22153)
+[09:44:00] [INFO] [Shotgun.FIX#212] Normal pellet 2/12: extraOffset=10,5, distance=62,5px, pos=(362.82513, 169.62909)
+[09:44:00] [INFO] [Shotgun.FIX#212] Normal pellet 3/12: extraOffset=13,2, distance=65,2px, pos=(365.54156, 169.41801)
+[09:44:00] [INFO] [Shotgun.FIX#212] Normal pellet 4/12: extraOffset=14,0, distance=66,0px, pos=(366.30505, 169.35869)
+[09:44:00] [INFO] [Shotgun.FIX#212] Normal pellet 5/12: extraOffset=-13,7, distance=38,3px, pos=(338.65268, 171.50734)
+[09:44:00] [INFO] [Shotgun.FIX#212] Normal pellet 6/12: extraOffset=7,5, distance=59,5px, pos=(359.85107, 169.86018)
+[09:44:00] [INFO] [Shotgun.FIX#212] Normal pellet 7/12: extraOffset=-6,7, distance=45,3px, pos=(345.6741, 170.96176)
+[09:44:00] [INFO] [Shotgun.FIX#212] Normal pellet 8/12: extraOffset=-13,1, distance=38,9px, pos=(339.3184, 171.4556)
+[09:44:00] [INFO] [Shotgun.FIX#212] Normal pellet 9/12: extraOffset=7,6, distance=59,6px, pos=(359.94135, 169.85316)
+[09:44:00] [INFO] [Shotgun.FIX#212] Normal pellet 10/12: extraOffset=-0,1, distance=51,9px, pos=(352.25906, 170.45009)
+[09:44:00] [INFO] [Shotgun.FIX#212] Normal pellet 11/12: extraOffset=3,0, distance=55,0px, pos=(355.29358, 170.21431)
+[09:44:00] [INFO] [Shotgun.FIX#212] Normal pellet 12/12: extraOffset=10,1, distance=62,1px, pos=(362.4419, 169.65887)
+[09:44:00] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(300.5014, 174.4718), source=PLAYER (Shotgun), range=1469, listeners=0
+[09:44:00] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:44:00] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[09:44:00] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+[09:44:00] [INFO] [Shotgun.FIX#445] dragStartPos=(1059, 119), aimDir=(1,00, -0,06)
+[09:44:00] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:44:00] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:44:00] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:44:00] [INFO] [Shotgun.FIX#445v7] Mid-drag pump UP - shell ejected, continue dragging DOWN to chamber
+[09:44:00] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:44:00] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:44:00] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:44:00] [INFO] [Shotgun.FIX#445v7] Mid-drag pump DOWN - chambered, ready to fire
+[09:44:00] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:44:00] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:44:00] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:44:04] [INFO] [Shotgun.FIX#243] RMB released after 232 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[09:44:04] [INFO] [Shotgun.FIX#445v7] ProcessDragGesture - dragVector=(-734,1, 347,3), length=812,1, ActionState=Ready
+[09:44:04] [INFO] [Shotgun.FIX#445v7] Pump drag not vertical: absY=347,3 <= absX=734,1
+[09:44:06] [INFO] [Shotgun.FIX#212] Firing 8 pellets with 0° spread at pos=(559.0338, 222.61665)
+[09:44:06] [INFO] [Shotgun.FIX#212] Normal pellet 1/8: extraOffset=10,7, distance=62,7px, pos=(559.8706, 159.94617)
+[09:44:06] [INFO] [Shotgun.FIX#212] Normal pellet 2/8: extraOffset=-11,7, distance=40,3px, pos=(559.57135, 182.35968)
+[09:44:06] [INFO] [Shotgun.FIX#212] Normal pellet 3/8: extraOffset=10,7, distance=62,7px, pos=(559.8707, 159.93713)
+[09:44:06] [INFO] [Shotgun.FIX#212] Normal pellet 4/8: extraOffset=5,3, distance=57,3px, pos=(559.7986, 165.33896)
+[09:44:06] [INFO] [Shotgun.FIX#212] Normal pellet 5/8: extraOffset=1,5, distance=53,5px, pos=(559.74805, 169.1265)
+[09:44:06] [INFO] [Shotgun.FIX#212] Normal pellet 6/8: extraOffset=-14,3, distance=37,7px, pos=(559.5365, 184.96704)
+[09:44:06] [INFO] [Shotgun.FIX#212] Normal pellet 7/8: extraOffset=11,1, distance=63,1px, pos=(559.8767, 159.48737)
+[09:44:06] [INFO] [Shotgun.FIX#212] Normal pellet 8/8: extraOffset=8,5, distance=60,5px, pos=(559.8414, 162.13638)
+[09:44:06] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(559.0338, 222.6167), source=PLAYER (Shotgun), range=1469, listeners=0
+[09:44:06] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:44:06] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[09:44:06] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+[09:44:06] [INFO] [Shotgun.FIX#445] dragStartPos=(562, 13), aimDir=(0,01, -1,00)
+[09:44:06] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:44:06] [INFO] [Shotgun.FIX#445v7] Mouse at top edge (Y=13), need PumpUp - recentering cursor
+[09:44:06] [INFO] [Shotgun.FIX#445v7] Cursor recentered to (640, 360)
+[09:44:06] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:44:06] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:44:06] [INFO] [Shotgun.FIX#445v7] Mid-drag pump UP - shell ejected, continue dragging DOWN to chamber
+[09:44:06] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:44:06] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:44:06] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:44:06] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(53,4, -301,2), length=305,9, isDragUp=True, isDragDown=False, ActionState=NeedsPumpDown
+[09:44:07] [INFO] [Shotgun.FIX#445v7] Mid-drag pump DOWN - chambered, ready to fire
+[09:44:07] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:44:07] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:44:07] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:44:07] [INFO] [Shotgun.FIX#243] Bolt opened for loading - ReloadState=Loading, ShellsInTube=6/8
+[09:44:07] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:44:07] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:44:07] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:44:08] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:08] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:08] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:08] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:08] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:08] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:08] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-134,9, 719,3), length=731,9, isDragUp=False, isDragDown=True, ActionState=Ready
+[09:44:08] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:08] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:08] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:08] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:08] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:08] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:08] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:08] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:08] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:08] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:08] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-239,8, 719,3), length=758,3, isDragUp=False, isDragDown=True, ActionState=Ready
+[09:44:08] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:08] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:08] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:08] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:08] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:08] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:08] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:08] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:08] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:08] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:08] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-239,8, 719,3), length=758,3, isDragUp=False, isDragDown=True, ActionState=Ready
+[09:44:08] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:08] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:08] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:08] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:08] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:08] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:08] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:08] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:08] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:08] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:08] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-239,8, 387,4), length=455,6, isDragUp=False, isDragDown=True, ActionState=Ready
+[09:44:08] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:08] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:09] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:09] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:09] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:09] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:09] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:09] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:09] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:09] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:09] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:09] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-239,8, 719,3), length=758,3, isDragUp=False, isDragDown=True, ActionState=Ready
+[09:44:09] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:09] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:09] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:09] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:09] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:09] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:09] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:09] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:09] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:09] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:09] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-239,8, 719,3), length=758,3, isDragUp=False, isDragDown=True, ActionState=Ready
+[09:44:09] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:09] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:09] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:09] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:09] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:09] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:09] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:09] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:09] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:09] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:09] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-239,8, 508,3), length=562,0, isDragUp=False, isDragDown=True, ActionState=Ready
+[09:44:09] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:09] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:09] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:09] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:09] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:09] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:09] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:09] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:09] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:09] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:09] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-239,8, 507,6), length=561,4, isDragUp=False, isDragDown=True, ActionState=Ready
+[09:44:09] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:09] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:09] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:09] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:09] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:09] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:09] [INFO] [Shotgun.FIX#243] RMB released after 125 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[09:44:09] [INFO] [Shotgun.FIX#445v7] ProcessDragGesture - dragVector=(-239,8, 470,9), length=528,4, ActionState=Ready
+[09:44:09] [INFO] [Shotgun.FIX#477] RMB release in Loading state: wasMMBDuringDrag=False, isMMBHeld=False, shellLoadedMidDrag=False => shouldLoadShell=False
+[09:44:09] [INFO] [Shotgun.FIX#477] Closing bolt (MMB was not held)
+[09:44:09] [INFO] [Shotgun.FIX#243] Reload complete - bolt closed, ready to fire with 6 shells
+[09:44:10] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[09:44:10] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[09:44:10] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[09:44:10] [INFO] [LastChance] Resetting all effects (scene change detected)
+[09:44:10] [INFO] [CinemaEffects] Scene changed to: TestTier
+[09:44:10] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[09:44:10] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[09:44:10] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[09:44:10] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[09:44:10] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[09:44:10] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+[09:44:10] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[09:44:10] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[09:44:10] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[09:44:10] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[09:44:10] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[09:44:10] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[09:44:10] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 3/3, Health: 3/4
+[09:44:10] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[09:44:10] [INFO] [CinemaEffects] Found player node: Player
+[09:44:10] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[09:44:10] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[09:44:10] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[09:44:10] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[09:44:10] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[09:44:10] [INFO] [LastChance] Found player: Player
+[09:44:10] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[09:44:10] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[09:44:10] [INFO] [LastChance] Connected to player Died signal (C#)
+[09:44:10] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[09:44:10] [INFO] [Player] Detecting weapon pose (frame 3)...
+[09:44:10] [INFO] [Player] Detected weapon: Shotgun (Shotgun pose)
+[09:44:10] [INFO] [Player] Applied Shotgun arm pose: Left=(21, 6), Right=(-1, 6)
+[09:44:11] [INFO] [Shotgun.FIX#212] Firing 10 pellets with 0° spread at pos=(238.0042, 167.99663)
+[09:44:11] [INFO] [Shotgun.FIX#212] Normal pellet 1/10: extraOffset=12,1, distance=64,1px, pos=(301.98987, 171.4809)
+[09:44:11] [INFO] [Shotgun.FIX#212] Normal pellet 2/10: extraOffset=13,4, distance=65,4px, pos=(303.29028, 171.55171)
+[09:44:11] [INFO] [Shotgun.FIX#212] Normal pellet 3/10: extraOffset=-7,5, distance=44,5px, pos=(282.439, 170.41628)
+[09:44:11] [INFO] [Shotgun.FIX#212] Normal pellet 4/10: extraOffset=2,8, distance=54,8px, pos=(292.68393, 170.97415)
+[09:44:11] [INFO] [Shotgun.FIX#212] Normal pellet 5/10: extraOffset=4,8, distance=56,8px, pos=(294.7399, 171.08612)
+[09:44:11] [INFO] [Shotgun.FIX#212] Normal pellet 6/10: extraOffset=9,3, distance=61,3px, pos=(299.1679, 171.32724)
+[09:44:11] [INFO] [Shotgun.FIX#212] Normal pellet 7/10: extraOffset=-14,4, distance=37,6px, pos=(275.54916, 170.0411)
+[09:44:11] [INFO] [Shotgun.FIX#212] Normal pellet 8/10: extraOffset=-8,6, distance=43,4px, pos=(281.38483, 170.35887)
+[09:44:11] [INFO] [Shotgun.FIX#212] Normal pellet 9/10: extraOffset=-7,3, distance=44,7px, pos=(282.6054, 170.42534)
+[09:44:11] [INFO] [Shotgun.FIX#212] Normal pellet 10/10: extraOffset=-1,5, distance=50,5px, pos=(288.4563, 170.74394)
+[09:44:11] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(238.0042, 167.9966), source=PLAYER (Shotgun), range=1469, listeners=0
+[09:44:11] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:44:11] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[09:44:11] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+[09:44:11] [INFO] [Shotgun.FIX#445] dragStartPos=(828, 205), aimDir=(0,99, 0,14)
+[09:44:11] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:44:11] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:44:11] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:44:11] [INFO] [Shotgun.FIX#445v7] Mid-drag pump UP - shell ejected, continue dragging DOWN to chamber
+[09:44:11] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:44:11] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:44:11] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:44:11] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(102,4, -125,5), length=162,0, isDragUp=True, isDragDown=False, ActionState=NeedsPumpDown
+[09:44:11] [INFO] [Shotgun.FIX#445v7] Mid-drag pump DOWN - chambered, ready to fire
+[09:44:11] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:44:11] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:44:11] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:44:12] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-253,1, 345,3), length=428,2, isDragUp=False, isDragDown=True, ActionState=Ready
+[09:44:12] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-285,2, 345,3), length=447,9, isDragUp=False, isDragDown=True, ActionState=Ready
+[09:44:12] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-285,2, -324,6), length=432,1, isDragUp=True, isDragDown=False, ActionState=Ready
+[09:44:12] [INFO] [Shotgun.FIX#243] RMB released after 35 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[09:44:12] [INFO] [Shotgun.FIX#445v7] ProcessDragGesture - dragVector=(-285,2, -374,0), length=470,3, ActionState=Ready
+[09:44:12] [INFO] [Shotgun.FIX#445v7] Screen-based pump gesture: isDragUp=True, isDragDown=False
+[09:44:12] [INFO] [Shotgun.FIX#445v7] Bolt open BLOCKED by cooldown
+[09:44:12] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[09:44:12] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[09:44:12] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[09:44:12] [INFO] [LastChance] Resetting all effects (scene change detected)
+[09:44:12] [INFO] [CinemaEffects] Scene changed to: TestTier
+[09:44:12] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[09:44:12] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[09:44:12] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[09:44:12] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[09:44:12] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[09:44:12] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+[09:44:12] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[09:44:12] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[09:44:12] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[09:44:12] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[09:44:12] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[09:44:12] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[09:44:12] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 3/3, Health: 4/4
+[09:44:12] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[09:44:12] [INFO] [CinemaEffects] Found player node: Player
+[09:44:12] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[09:44:12] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[09:44:12] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[09:44:12] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[09:44:12] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[09:44:12] [INFO] [LastChance] Found player: Player
+[09:44:12] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[09:44:12] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[09:44:12] [INFO] [LastChance] Connected to player Died signal (C#)
+[09:44:12] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[09:44:12] [INFO] [Player] Detecting weapon pose (frame 3)...
+[09:44:12] [INFO] [Player] Detected weapon: Shotgun (Shotgun pose)
+[09:44:12] [INFO] [Player] Applied Shotgun arm pose: Left=(21, 6), Right=(-1, 6)
+[09:44:14] [INFO] [Shotgun.FIX#212] Firing 12 pellets with 0° spread at pos=(150, 194.49998)
+[09:44:14] [INFO] [Shotgun.FIX#212] Normal pellet 1/12: extraOffset=3,2, distance=55,2px, pos=(204.93903, 199.55937)
+[09:44:14] [INFO] [Shotgun.FIX#212] Normal pellet 2/12: extraOffset=3,7, distance=55,7px, pos=(205.50824, 199.61179)
+[09:44:14] [INFO] [Shotgun.FIX#212] Normal pellet 3/12: extraOffset=-11,2, distance=40,8px, pos=(190.64203, 198.24275)
+[09:44:14] [INFO] [Shotgun.FIX#212] Normal pellet 4/12: extraOffset=2,8, distance=54,8px, pos=(204.54189, 199.5228)
+[09:44:14] [INFO] [Shotgun.FIX#212] Normal pellet 5/12: extraOffset=1,0, distance=53,0px, pos=(202.79897, 199.36229)
+[09:44:14] [INFO] [Shotgun.FIX#212] Normal pellet 6/12: extraOffset=10,5, distance=62,5px, pos=(212.23264, 200.23105)
+[09:44:14] [INFO] [Shotgun.FIX#212] Normal pellet 7/12: extraOffset=3,0, distance=55,0px, pos=(204.8042, 199.54695)
+[09:44:14] [INFO] [Shotgun.FIX#212] Normal pellet 8/12: extraOffset=4,3, distance=56,3px, pos=(206.03448, 199.66025)
+[09:44:14] [INFO] [Shotgun.FIX#212] Normal pellet 9/12: extraOffset=11,8, distance=63,8px, pos=(213.57724, 200.35487)
+[09:44:14] [INFO] [Shotgun.FIX#212] Normal pellet 10/12: extraOffset=-12,6, distance=39,4px, pos=(189.1912, 198.10915)
+[09:44:14] [INFO] [Shotgun.FIX#212] Normal pellet 11/12: extraOffset=-1,0, distance=51,0px, pos=(200.77534, 199.17593)
+[09:44:14] [INFO] [Shotgun.FIX#212] Normal pellet 12/12: extraOffset=15,0, distance=67,0px, pos=(216.71562, 200.64389)
+[09:44:14] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(150, 194.5), source=PLAYER (Shotgun), range=1469, listeners=0
+[09:44:14] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:44:14] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[09:44:14] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+[09:44:14] [INFO] [Shotgun.FIX#445] dragStartPos=(726, 252), aimDir=(0,99, 0,17)
+[09:44:14] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:44:14] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:44:14] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:44:14] [INFO] [Shotgun.FIX#445v7] Mid-drag pump UP - shell ejected, continue dragging DOWN to chamber
+[09:44:14] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:44:14] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:44:14] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:44:14] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(74,4, -164,1), length=180,2, isDragUp=True, isDragDown=False, ActionState=NeedsPumpDown
+[09:44:14] [INFO] [Shotgun.FIX#445v7] Mid-drag pump DOWN - chambered, ready to fire
+[09:44:14] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:44:14] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:44:14] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:44:14] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-45,4, 446,2), length=448,5, isDragUp=False, isDragDown=True, ActionState=Ready
+[09:44:14] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-57,4, 467,5), length=471,0, isDragUp=False, isDragDown=True, ActionState=Ready
+[09:44:15] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-58,1, 467,5), length=471,1, isDragUp=False, isDragDown=True, ActionState=Ready
+[09:44:15] [INFO] [Shotgun.FIX#243] RMB released after 36 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[09:44:15] [INFO] [Shotgun.FIX#445v7] ProcessDragGesture - dragVector=(-61,4, 466,2), length=470,2, ActionState=Ready
+[09:44:15] [INFO] [Shotgun.FIX#445v7] Screen-based pump gesture: isDragUp=False, isDragDown=True
+[09:44:17] [INFO] [Shotgun.FIX#212] Firing 7 pellets with 0° spread at pos=(277.24002, 136.9814)
+[09:44:17] [INFO] [Shotgun.FIX#212] Normal pellet 1/7: extraOffset=-11,4, distance=40,6px, pos=(316.70572, 146.4972)
+[09:44:17] [INFO] [Shotgun.FIX#212] Normal pellet 2/7: extraOffset=10,4, distance=62,4px, pos=(337.8676, 151.59966)
+[09:44:17] [INFO] [Shotgun.FIX#212] Normal pellet 3/7: extraOffset=-2,9, distance=49,1px, pos=(324.9765, 148.49141)
+[09:44:17] [INFO] [Shotgun.FIX#212] Normal pellet 4/7: extraOffset=-1,1, distance=50,9px, pos=(326.69528, 148.90584)
+[09:44:17] [INFO] [Shotgun.FIX#212] Normal pellet 5/7: extraOffset=6,7, distance=58,7px, pos=(334.3248, 150.74542)
+[09:44:17] [INFO] [Shotgun.FIX#212] Normal pellet 6/7: extraOffset=2,3, distance=54,3px, pos=(329.9948, 149.7014)
+[09:44:17] [INFO] [Shotgun.FIX#212] Normal pellet 7/7: extraOffset=3,7, distance=55,7px, pos=(331.37857, 150.03505)
+[09:44:17] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(277.24, 136.9814), source=PLAYER (Shotgun), range=1469, listeners=0
+[09:44:17] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:44:17] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[09:44:17] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+[09:44:17] [INFO] [Shotgun.FIX#445] dragStartPos=(855, 302), aimDir=(0,95, 0,31)
+[09:44:17] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:44:17] [INFO] [Shotgun.FIX#445v7] Mid-drag pump UP - shell ejected, continue dragging DOWN to chamber
+[09:44:17] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:44:17] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:44:17] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:44:17] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(59,3, -270,4), length=276,8, isDragUp=True, isDragDown=False, ActionState=NeedsPumpDown
+[09:44:17] [INFO] [Shotgun.FIX#445v7] Mid-drag pump DOWN - chambered, ready to fire
+[09:44:17] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:44:17] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:44:17] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:44:17] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-88,9, 350,6), length=361,7, isDragUp=False, isDragDown=True, ActionState=Ready
+[09:44:18] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-96,2, 350,6), length=363,6, isDragUp=False, isDragDown=True, ActionState=Ready
+[09:44:18] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-96,2, 350,6), length=363,6, isDragUp=False, isDragDown=True, ActionState=Ready
+[09:44:18] [INFO] [Shotgun.FIX#212] Firing 11 pellets with 0° spread at pos=(338.5658, 131.64264)
+[09:44:18] [INFO] [Shotgun.FIX#212] Normal pellet 1/11: extraOffset=-9,0, distance=43,0px, pos=(379.45236, 145.10548)
+[09:44:18] [INFO] [Shotgun.FIX#212] Normal pellet 2/11: extraOffset=-8,9, distance=43,1px, pos=(379.4855, 145.1164)
+[09:44:18] [INFO] [Shotgun.FIX#212] Normal pellet 3/11: extraOffset=-9,9, distance=42,1px, pos=(378.54105, 144.8054)
+[09:44:18] [INFO] [Shotgun.FIX#212] Normal pellet 4/11: extraOffset=-6,8, distance=45,2px, pos=(381.50748, 145.78217)
+[09:44:18] [INFO] [Shotgun.FIX#212] Normal pellet 5/11: extraOffset=5,1, distance=57,1px, pos=(392.75473, 149.4856)
+[09:44:18] [INFO] [Shotgun.FIX#212] Normal pellet 6/11: extraOffset=-9,2, distance=42,8px, pos=(379.2367, 145.03447)
+[09:44:18] [INFO] [Shotgun.FIX#212] Normal pellet 7/11: extraOffset=0,2, distance=52,2px, pos=(388.1383, 147.96553)
+[09:44:18] [INFO] [Shotgun.FIX#212] Normal pellet 8/11: extraOffset=-11,8, distance=40,2px, pos=(376.73904, 144.21207)
+[09:44:18] [INFO] [Shotgun.FIX#212] Normal pellet 9/11: extraOffset=-5,0, distance=47,0px, pos=(383.16217, 146.32701)
+[09:44:18] [INFO] [Shotgun.FIX#212] Normal pellet 10/11: extraOffset=-6,7, distance=45,3px, pos=(381.56427, 145.80087)
+[09:44:18] [INFO] [Shotgun.FIX#212] Normal pellet 11/11: extraOffset=-4,3, distance=47,7px, pos=(383.86197, 146.55743)
+[09:44:18] [INFO] [Shotgun.FIX#445v7] Reset drag start position after firing (continuous pump mode)
+[09:44:18] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(338.5658, 131.6426), source=PLAYER (Shotgun), range=1469, listeners=0
+[09:44:18] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:44:18] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-0,9, -75,3), length=75,3, isDragUp=True, isDragDown=False, ActionState=NeedsPumpUp
+[09:44:18] [INFO] [Shotgun.FIX#445v7] Mid-drag pump UP - shell ejected, continue dragging DOWN to chamber
+[09:44:18] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:44:18] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:44:18] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:44:18] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(89,7, -644,0), length=650,2, isDragUp=True, isDragDown=False, ActionState=NeedsPumpDown
+[09:44:18] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(103,1, -644,0), length=652,2, isDragUp=True, isDragDown=False, ActionState=NeedsPumpDown
+[09:44:19] [INFO] [Shotgun.FIX#445v7] Mouse at bottom edge (Y=719), need PumpDown - recentering cursor
+[09:44:19] [INFO] [Shotgun.FIX#445v7] Cursor recentered to (640, 360)
+[09:44:19] [INFO] [Shotgun.FIX#445v7] Mid-drag pump DOWN - chambered, ready to fire
+[09:44:19] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:44:19] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:44:19] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:44:19] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-68,8, 198,4), length=210,0, isDragUp=False, isDragDown=True, ActionState=Ready
+[09:44:19] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-71,5, 198,4), length=210,9, isDragUp=False, isDragDown=True, ActionState=Ready
+[09:44:19] [INFO] [Shotgun.FIX#212] Firing 10 pellets with 0° spread at pos=(338.5658, 131.64264)
+[09:44:19] [INFO] [Shotgun.FIX#212] Normal pellet 1/10: extraOffset=0,7, distance=52,7px, pos=(388.6247, 148.12567)
+[09:44:19] [INFO] [Shotgun.FIX#212] Normal pellet 2/10: extraOffset=-3,1, distance=48,9px, pos=(385.0053, 146.93391)
+[09:44:19] [INFO] [Shotgun.FIX#212] Normal pellet 3/10: extraOffset=-6,6, distance=45,4px, pos=(381.68478, 145.84055)
+[09:44:19] [INFO] [Shotgun.FIX#212] Normal pellet 4/10: extraOffset=-3,5, distance=48,5px, pos=(384.63013, 146.81038)
+[09:44:19] [INFO] [Shotgun.FIX#212] Normal pellet 5/10: extraOffset=-7,1, distance=44,9px, pos=(381.20135, 145.68137)
+[09:44:19] [INFO] [Shotgun.FIX#212] Normal pellet 6/10: extraOffset=-11,2, distance=40,8px, pos=(377.27216, 144.3876)
+[09:44:19] [INFO] [Shotgun.FIX#212] Normal pellet 7/10: extraOffset=-7,7, distance=44,3px, pos=(380.6229, 145.4909)
+[09:44:19] [INFO] [Shotgun.FIX#212] Normal pellet 8/10: extraOffset=8,4, distance=60,4px, pos=(395.97562, 150.54614)
+[09:44:19] [INFO] [Shotgun.FIX#212] Normal pellet 9/10: extraOffset=-3,3, distance=48,7px, pos=(384.79877, 146.8659)
+[09:44:19] [INFO] [Shotgun.FIX#212] Normal pellet 10/10: extraOffset=-9,2, distance=42,8px, pos=(379.17163, 145.01303)
+[09:44:19] [INFO] [Shotgun.FIX#445v7] Reset drag start position after firing (continuous pump mode)
+[09:44:19] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(338.5658, 131.6426), source=PLAYER (Shotgun), range=1469, listeners=0
+[09:44:19] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[09:44:19] [INFO] [Shotgun.FIX#445v7] Mid-drag pump UP - shell ejected, continue dragging DOWN to chamber
+[09:44:19] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:44:19] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:44:19] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:44:19] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(122,2, -659,0), length=670,3, isDragUp=True, isDragDown=False, ActionState=NeedsPumpDown
+[09:44:20] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(152,2, -644,3), length=662,1, isDragUp=True, isDragDown=False, ActionState=NeedsPumpDown
+[09:44:20] [INFO] [Shotgun.FIX#445v7] Mouse at bottom edge (Y=687), need PumpDown - recentering cursor
+[09:44:20] [INFO] [Shotgun.FIX#445v7] Cursor recentered to (640, 360)
+[09:44:20] [INFO] [Shotgun.FIX#445v7] Mid-drag pump DOWN - chambered, ready to fire
+[09:44:20] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:44:20] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:44:20] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:44:20] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-68,8, 245,1), length=254,6, isDragUp=False, isDragDown=True, ActionState=Ready
+[09:44:20] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-75,5, 286,5), length=296,3, isDragUp=False, isDragDown=True, ActionState=Ready
+[09:44:20] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-76,2, 287,2), length=297,1, isDragUp=False, isDragDown=True, ActionState=Ready
+[09:44:20] [INFO] [Shotgun.FIX#243] Bolt opened for loading - ReloadState=Loading, ShellsInTube=4/8
+[09:44:20] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:44:20] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:44:21] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[09:44:21] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:21] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:21] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:21] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:21] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:21] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:21] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:21] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:21] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:21] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-316,0, 719,3), length=785,7, isDragUp=False, isDragDown=True, ActionState=Ready
+[09:44:21] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:21] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:21] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:21] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:21] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:21] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:21] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:21] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:21] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:21] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:21] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-581,2, 719,3), length=924,8, isDragUp=False, isDragDown=True, ActionState=Ready
+[09:44:21] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:21] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:21] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:21] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:21] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:21] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:21] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:21] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:21] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:21] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:21] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-581,2, 712,0), length=919,1, isDragUp=False, isDragDown=True, ActionState=Ready
+[09:44:21] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:21] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:21] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:22] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:22] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:22] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:22] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:22] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:22] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:22] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:22] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-350,7, 719,3), length=800,3, isDragUp=False, isDragDown=True, ActionState=Ready
+[09:44:22] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:22] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:22] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:22] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:22] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:22] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:22] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:22] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:22] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:22] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:22] [INFO] [Shotgun.FIX#445v7] TryProcessMidDragGesture - dragVector=(-581,2, 719,3), length=924,8, isDragUp=False, isDragDown=True, ActionState=Ready
+[09:44:22] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:22] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:22] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:22] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[09:44:22] [INFO] [Shotgun.FIX#243] RMB released after 93 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[09:44:22] [INFO] [Shotgun.FIX#445v7] ProcessDragGesture - dragVector=(-581,2, 631,2), length=858,0, ActionState=Ready
+[09:44:22] [INFO] [Shotgun.FIX#477] RMB release in Loading state: wasMMBDuringDrag=False, isMMBHeld=False, shellLoadedMidDrag=False => shouldLoadShell=False
+[09:44:22] [INFO] [Shotgun.FIX#477] Closing bolt (MMB was not held)
+[09:44:22] [INFO] [Shotgun.FIX#243] Reload complete - bolt closed, ready to fire with 4 shells
+[09:44:24] [INFO] ------------------------------------------------------------
+[09:44:24] [INFO] GAME LOG ENDED: 2026-02-04T09:44:24
+[09:44:24] [INFO] ============================================================

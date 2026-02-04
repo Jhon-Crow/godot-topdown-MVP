@@ -9,7 +9,14 @@ extends RigidBody2D
 @export var lifetime: float = 0.0
 
 ## Caliber data for determining casing appearance.
-@export var caliber_data: Resource = null
+## Issue #477 Fix: Use setter to update appearance when caliber_data is set
+## (needed because property is set AFTER _ready() by SpawnCasing in C#)
+@export var caliber_data: Resource = null:
+	set(value):
+		caliber_data = value
+		# Update appearance when caliber data is set (even after _ready)
+		if is_node_ready():
+			_set_casing_appearance()
 
 ## Whether the casing has landed on the ground.
 var _has_landed: bool = false

@@ -170,9 +170,86 @@ To verify the fixes:
    - Walk into a shotgun shell casing on the ground
    - Should hear shotgun shell sound, not rifle shell sound
 
+## Session 3: Additional Bug Reports (2026-02-04)
+
+**User feedback (Russian):** "теперь из дробовика вылетают автоматные гильзы, а не гильзы дробовика, исправь. так же не появилась возможность неограниченное количество раз за драгндроп открывать-закрывать затвор."
+
+**Translation:**
+1. "Now rifle casings are ejected from the shotgun instead of shotgun casings, fix it."
+2. "Also, the ability to open-close the bolt unlimited times during a drag didn't appear."
+
+### Bug 3: Rifle Casings Ejected from Shotgun (v3 fix)
+
+**Location:** `scripts/effects/casing.gd`, caliber_data setter
+
+**Root Cause:** The casing's `_ready()` function calls `_set_casing_appearance()` to set the visual based on caliber. However, in `SpawnCasing()` (BaseWeapon.cs), the `caliber_data` property is set AFTER `Instantiate<>()`:
+
+```csharp
+var casing = CasingScene.Instantiate<RigidBody2D>();  // _ready() called HERE
+casing.Set("caliber_data", caliber);  // Property set AFTER _ready()!
+```
+
+Since `_ready()` runs before the property is set, the casing uses the default appearance (rifle sprite).
+
+**Fix (v3):** Add a setter for `caliber_data` that updates appearance when the property is set:
+
+```gdscript
+@export var caliber_data: Resource = null:
+    set(value):
+        caliber_data = value
+        # Update appearance when caliber data is set (even after _ready)
+        if is_node_ready():
+            _set_casing_appearance()
+```
+
+### Bug 4: Cannot Repeatedly Open-Close Bolt During Single Drag (v3 fix)
+
+**Location:** `Scripts/Weapons/Shotgun.cs`, TryProcessMidDragGesture() method
+
+**Root Cause:** Two issues preventing continuous bolt cycling:
+
+1. **Mid-drag bolt close was disabled in Loading state** (original #243 fix):
+   ```csharp
+   // In Loading state with drag DOWN, NEVER process mid-drag gesture
+   return false;  // This blocked mid-drag bolt closing
+   ```
+
+2. **750ms cooldown blocked immediate bolt reopening** after closing:
+   ```csharp
+   bool inCooldown = timeSinceClose < BoltCloseCooldownSeconds;  // 0.75s
+   ```
+   The cooldown was meant to prevent accidental reopening from mouse movement after RMB release, but it also blocked deliberate mid-drag cycling.
+
+**Fix (v3):**
+1. Allow mid-drag bolt closing when MMB is NOT held
+2. Use shorter cooldown (100ms) for mid-drag operations
+
+```csharp
+// In Loading state case:
+if (!shouldLoadShell)
+{
+    // User NOT holding MMB - close bolt
+    CompleteReload();
+    gestureProcessed = true;
+}
+
+// In Ready state case for mid-drag:
+const float MidDragCooldownSeconds = 0.1f;  // 100ms instead of 750ms
+bool inMidDragCooldown = timeSinceClose < MidDragCooldownSeconds;
+```
+
+## Files Changed (v3)
+
+1. `Scripts/Weapons/Shotgun.cs`:
+   - Fixed mid-drag bolt closing in Loading state when MMB not held
+   - Reduced cooldown for mid-drag bolt cycling (100ms vs 750ms)
+2. `scripts/effects/casing.gd`:
+   - Added setter for caliber_data to update appearance after _ready()
+
 ## Log Files
 
 - `game_log_20260204_093009.txt` - User-provided log showing bolt getting stuck after diagonal drag
+- `game_log_20260204_094346.txt` - User-provided log showing rifle casings and bolt cycling issues
 
 ## Related Issues
 
