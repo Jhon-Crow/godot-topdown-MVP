@@ -151,15 +151,15 @@ func _update_arrow_indicator() -> void:
 	if distance > 500.0:
 		_arrow_indicator.visible = true
 
-		# Position arrow near the player in screen space
-		var canvas_transform: Transform2D = get_viewport().get_canvas_transform()
-		var screen_pos: Vector2 = canvas_transform * player_pos
-
 		# Calculate direction to exit
 		var direction: Vector2 = (exit_pos - player_pos).normalized()
 
-		# Position arrow in the direction of the exit, offset from player
-		_arrow_indicator.position = screen_pos + direction * 80 - Vector2(80, 20)
+		# Position arrow near the player in world space (converted to local coordinates)
+		# The arrow is a child of ExitZone, so we need to convert player's world position
+		# to ExitZone's local coordinate space
+		var arrow_offset: float = 80.0
+		var arrow_world_pos: Vector2 = player_pos + direction * arrow_offset
+		_arrow_indicator.position = arrow_world_pos - global_position - Vector2(80, 20)
 
 		# Update arrow text based on direction
 		if abs(direction.x) > abs(direction.y):
