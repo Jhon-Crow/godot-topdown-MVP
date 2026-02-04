@@ -362,27 +362,15 @@ var _is_blinded: bool = false
 var _is_stunned: bool = false
 var _blindness_timer: float = 0.0  ## [Issue #432] Flashbang effect timer
 var _stun_timer: float = 0.0  ## [Issue #432] Flashbang effect timer
-
-## --- Grenade System (Issue #363, #382) ---
-## Grenade throwing logic handled by EnemyGrenadeComponent (Issue #377).
-## Tactical grenade coordination handled by TacticalGrenadeCoordinator (Issue #382).
-
-## [Grenade Avoidance - Issue #407] Component handles avoidance logic
+## --- Grenade System (Issue #363, #382, #407, #377) ---
 var _grenade_avoidance: GrenadeAvoidanceComponent = null
-var _grenade_evasion_timer: float = 0.0  ## Timer for evasion to prevent stuck
-
-## Maximum time to spend evading before giving up (seconds).
-const GRENADE_EVASION_MAX_TIME: float = 4.0
-
-## State to return to after grenade evasion completes.
-var _pre_evasion_state: AIState = AIState.IDLE
-
-## Last hit direction (used for death animation).
-var _last_hit_direction: Vector2 = Vector2.RIGHT
+var _grenade_evasion_timer: float = 0.0  ## Timer for evasion
+const GRENADE_EVASION_MAX_TIME: float = 4.0  ## Max evade time
+var _pre_evasion_state: AIState = AIState.IDLE  ## Pre-evade state
+var _last_hit_direction: Vector2 = Vector2.RIGHT  ## Death animation
 var _death_animation: Node = null
 var _grenade_component: EnemyGrenadeComponent = null
-## Issue #382: Tactical grenade coordination
-var _tactical_coordinator: Node = null
+var _tactical_coordinator: Node = null  ## Issue #382
 var _evacuating_grenade: bool = false
 var _evacuation_target: Vector2 = Vector2.ZERO
 var _waiting_for_assault: bool = false
@@ -4877,16 +4865,9 @@ func apply_flashbang_effect(blindness_duration: float, stun_duration: float) -> 
 
 ## Update flashbang timers (Issue #432). Called from _physics_process.
 func _update_flashbang_timers(delta: float) -> void:
-	if _blindness_timer > 0.0:
-		_blindness_timer -= delta
-		if _blindness_timer <= 0.0: _blindness_timer = 0.0; set_blinded(false)
-	if _stun_timer > 0.0:
-		_stun_timer -= delta
-		if _stun_timer <= 0.0: _stun_timer = 0.0; set_stunned(false)
-
-
-# Grenade System (Issue #363, #382) - Component-based (extracted for Issue #377)
-
+	if _blindness_timer > 0.0: _blindness_timer -= delta; if _blindness_timer <= 0.0: _blindness_timer = 0.0; set_blinded(false)
+	if _stun_timer > 0.0: _stun_timer -= delta; if _stun_timer <= 0.0: _stun_timer = 0.0; set_stunned(false)
+# Grenade System (Issue #363, #382) - Component-based (Issue #377)
 ## Setup the grenade component. Called from _ready().
 func _setup_grenade_component() -> void:
 	_tactical_coordinator = get_node_or_null("/root/TacticalGrenadeCoordinator")
@@ -4911,12 +4892,9 @@ func _setup_grenade_component() -> void:
 
 func _update_grenade_triggers(delta: float) -> void:
 	if _grenade_component == null: return
-	_grenade_component.update(delta, _can_see_player, _under_fire, _player, _current_health, _memory)
-	_update_grenade_world_state()
-
+	_grenade_component.update(delta, _can_see_player, _under_fire, _player, _current_health, _memory); _update_grenade_world_state()
 func _on_gunshot_heard_for_grenade(position: Vector2) -> void:
 	if _grenade_component: _grenade_component.on_gunshot(position)
-
 func _on_vulnerable_sound_heard_for_grenade(position: Vector2) -> void:
 	if _grenade_component: _grenade_component.on_vulnerable_sound(position, _can_see_player)
 
@@ -4985,17 +4963,11 @@ func _setup_grenade_avoidance() -> void:
 
 func _update_grenade_danger_detection() -> void:
 	if _grenade_avoidance: _grenade_avoidance.update()
-
 func _calculate_grenade_evasion_target() -> void:
 	if _grenade_avoidance: _grenade_avoidance.calculate_evasion_target(_nav_agent)
-
-## Get the number of grenades remaining.
-func get_grenades_remaining() -> int:
-	return _grenade_component.grenades_remaining if _grenade_component else 0
-
+func get_grenades_remaining() -> int: return _grenade_component.grenades_remaining if _grenade_component else 0
 func add_grenades(count: int) -> void:
 	if _grenade_component: _grenade_component.add_grenades(count)
-
 # Issue #382: Tactical grenade coordination callbacks
 func _on_tactical_grenade_announced(thrower: Node, target: Vector2, blast_radius: float) -> void:
 	if thrower == self or not _is_alive or not _tactical_coordinator: return
@@ -5003,31 +4975,22 @@ func _on_tactical_grenade_announced(thrower: Node, target: Vector2, blast_radius
 		var evac_dir := _tactical_coordinator.calculate_evacuation_direction(self, global_position)
 		if evac_dir != Vector2.ZERO:
 			_evacuation_target = _tactical_coordinator.calculate_evacuation_position(global_position, evac_dir, blast_radius)
-			_evacuating_grenade = true
-			_waiting_for_assault = true
+			_evacuating_grenade = true; _waiting_for_assault = true
 			_tactical_coordinator.register_for_assault(self)
 			_log_to_file("Evacuating from grenade! Target: %s" % _evacuation_target)
-
 func _on_tactical_assault_begin(passage_direction: Vector2, _thrower: Node) -> void:
 	if not _is_alive or not _waiting_for_assault: return
-	_waiting_for_assault = false
-	_evacuating_grenade = false
+	_waiting_for_assault = false; _evacuating_grenade = false
 	_tactical_assault_direction = passage_direction
 	_log_to_file("Assault triggered! Direction: %s" % passage_direction)
 	if _current_state != AIState.COMBAT and _current_state != AIState.ASSAULT: _transition_to_combat()
-
-## Connect CasingPusher Area2D signals (Issue #438, same pattern as player Issue #392).
+## Connect CasingPusher Area2D signals (Issue #438).
 func _connect_casing_pusher_signals() -> void:
 	if _casing_pusher == null: return
-	if not _casing_pusher.body_entered.is_connected(_on_casing_pusher_body_entered):
-		_casing_pusher.body_entered.connect(_on_casing_pusher_body_entered)
-	if not _casing_pusher.body_exited.is_connected(_on_casing_pusher_body_exited):
-		_casing_pusher.body_exited.connect(_on_casing_pusher_body_exited)
-
+	if not _casing_pusher.body_entered.is_connected(_on_casing_pusher_body_entered): _casing_pusher.body_entered.connect(_on_casing_pusher_body_entered)
+	if not _casing_pusher.body_exited.is_connected(_on_casing_pusher_body_exited): _casing_pusher.body_exited.connect(_on_casing_pusher_body_exited)
 func _on_casing_pusher_body_entered(body: Node2D) -> void:
-	if body is RigidBody2D and body.has_method("receive_kick") and body not in _overlapping_casings:
-		_overlapping_casings.append(body)
-
+	if body is RigidBody2D and body.has_method("receive_kick") and body not in _overlapping_casings: _overlapping_casings.append(body)
 func _on_casing_pusher_body_exited(body: Node2D) -> void:
 	if body is RigidBody2D:
 		var idx := _overlapping_casings.find(body)
