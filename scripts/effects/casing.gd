@@ -9,7 +9,14 @@ extends RigidBody2D
 @export var lifetime: float = 0.0
 
 ## Caliber data for determining casing appearance.
-@export var caliber_data: Resource = null
+## Issue #477 Fix: Use setter to update appearance when caliber_data is set
+## (needed because property is set AFTER _ready() by SpawnCasing in C#)
+@export var caliber_data: Resource = null:
+	set(value):
+		caliber_data = value
+		# Update appearance when caliber data is set (even after _ready)
+		if is_node_ready():
+			_set_casing_appearance()
 
 ## Whether the casing has landed on the ground.
 var _has_landed: bool = false
@@ -275,8 +282,15 @@ func _get_caliber_name() -> String:
 
 	if caliber_data is CaliberData:
 		return (caliber_data as CaliberData).caliber_name
-	elif caliber_data.has_method("get"):
-		return caliber_data.get("caliber_name") if caliber_data.has("caliber_name") else ""
+
+	# Issue #477 Fix: For Resources loaded from C# (like WeaponData.Caliber),
+	# we need to access the property correctly. Resources have a get() method
+	# that returns the property value, and we should check if the property exists
+	# by checking if get() returns a non-null value.
+	if caliber_data is Resource:
+		var name_value = caliber_data.get("caliber_name")
+		if name_value != null and name_value is String:
+			return name_value
 
 	return ""
 

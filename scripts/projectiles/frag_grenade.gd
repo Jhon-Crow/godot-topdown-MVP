@@ -96,9 +96,30 @@ func _physics_process(delta: float) -> void:
 			_is_thrown = true
 			FileLogger.info("[FragGrenade] Detected unfreeze - enabling impact detection (fallback)")
 
-	# Apply ground friction to slow down (copied from base class)
+	# Apply velocity-dependent ground friction to slow down
+	# FIX for issue #435: Grenade should maintain speed for most of flight,
+	# only slowing down noticeably at the very end of its path.
+	# At high velocities: reduced friction (grenade maintains speed)
+	# At low velocities: full friction (grenade slows to stop)
 	if linear_velocity.length() > 0:
-		var friction_force := linear_velocity.normalized() * ground_friction * delta
+		var current_speed := linear_velocity.length()
+
+		# Calculate friction multiplier based on velocity
+		# Above friction_ramp_velocity: use min_friction_multiplier (minimal drag)
+		# Below friction_ramp_velocity: smoothly ramp up to full friction
+		var friction_multiplier: float
+		if current_speed >= friction_ramp_velocity:
+			# High speed: minimal friction to maintain velocity
+			friction_multiplier = min_friction_multiplier
+		else:
+			# Low speed: smoothly increase friction from min to full (1.0)
+			# Use quadratic curve for smooth transition: more aggressive braking at very low speeds
+			var t := current_speed / friction_ramp_velocity  # 0.0 at stopped, 1.0 at threshold
+			# Quadratic ease-out: starts slow, ends fast (more natural deceleration feel)
+			friction_multiplier = min_friction_multiplier + (1.0 - min_friction_multiplier) * (1.0 - t * t)
+
+		var effective_friction := ground_friction * friction_multiplier
+		var friction_force := linear_velocity.normalized() * effective_friction * delta
 		if friction_force.length() > linear_velocity.length():
 			linear_velocity = Vector2.ZERO
 		else:
@@ -233,7 +254,8 @@ func _play_explosion_sound() -> void:
 		sound_propagation.emit_sound(1, global_position, 2, self, sound_range)
 
 
-## Check if the player is within the explosion effect radius.
+## Check if the player is within the explosion effect radius and has line of sight.
+## Walls block the audio effect of the explosion (Issue #469).
 func _is_player_in_zone() -> bool:
 	var player: Node2D = null
 
@@ -251,7 +273,12 @@ func _is_player_in_zone() -> bool:
 	if player == null:
 		return false
 
-	return is_in_effect_radius(player.global_position)
+	# Check if player is in effect radius first
+	if not is_in_effect_radius(player.global_position):
+		return false
+
+	# Check line of sight - walls block the explosion effect (Issue #469)
+	return _has_line_of_sight_to(player)
 
 
 ## Get the effect radius for this grenade type.

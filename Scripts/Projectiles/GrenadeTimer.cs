@@ -397,6 +397,8 @@ namespace GodotTopdown.Scripts.Projectiles
 
         /// <summary>
         /// Apply Flashbang grenade effects.
+        /// FIX for Issue #469: Flashbang effects should not pass through walls.
+        /// Both enemies AND player now require line-of-sight check.
         /// </summary>
         private void ApplyFlashbangExplosion(Vector2 position)
         {
@@ -422,7 +424,8 @@ namespace GodotTopdown.Scripts.Projectiles
                 }
             }
 
-            // Affect player (if too close)
+            // Affect player (if too close AND has line of sight) - Issue #469 fix
+            // Walls now block flashbang effect on player, same as enemies
             foreach (var player in players)
             {
                 if (player is Node2D playerNode)
@@ -430,7 +433,15 @@ namespace GodotTopdown.Scripts.Projectiles
                     float distance = position.DistanceTo(playerNode.GlobalPosition);
                     if (distance <= EffectRadius)
                     {
-                        ApplyFlashbangEffectToPlayer(playerNode, distance);
+                        // FIX Issue #469: Check line of sight - walls block flashbang effect
+                        if (HasLineOfSightTo(position, playerNode.GlobalPosition))
+                        {
+                            ApplyFlashbangEffectToPlayer(playerNode, distance);
+                        }
+                        else
+                        {
+                            LogToFile($"[GrenadeTimer] Player behind wall - flashbang blocked (distance: {distance:F1})");
+                        }
                     }
                 }
             }
@@ -561,7 +572,8 @@ namespace GodotTopdown.Scripts.Projectiles
         }
 
         /// <summary>
-        /// Check if player is in effect zone.
+        /// Check if player is in effect zone (distance AND line of sight).
+        /// FIX for Issue #469: Walls block flashbang effects, so we check line of sight.
         /// </summary>
         private bool IsPlayerInZone(Vector2 position)
         {
@@ -571,7 +583,13 @@ namespace GodotTopdown.Scripts.Projectiles
                 if (player is Node2D playerNode)
                 {
                     if (position.DistanceTo(playerNode.GlobalPosition) <= EffectRadius)
-                        return true;
+                    {
+                        // FIX Issue #469: Also check line of sight - walls block the effect
+                        if (HasLineOfSightTo(position, playerNode.GlobalPosition))
+                        {
+                            return true;
+                        }
+                    }
                 }
             }
             return false;
@@ -581,11 +599,70 @@ namespace GodotTopdown.Scripts.Projectiles
         /// Spawn visual explosion effect using PointLight2D with shadow_enabled for wall occlusion.
         /// FIX for Issue #432: GDScript Call() silently fails in exports, so we implement
         /// the explosion effect directly in C# to ensure it always works.
-        /// FIX for Issue #470 (Final): Uses PointLight2D with shadow_enabled=true to automatically
+        /// FIX for Issue #469: Flashbang uses shadow-enabled PointLight2D so flash doesn't pass through walls.
+        /// FIX for Issue #470: Frag grenade uses PointLight2D with shadow_enabled=true to automatically
         /// respect wall geometry through Godot's native 2D lighting/shadow system.
-        /// This is the same approach used by MuzzleFlash.tscn for weapon muzzle flashes.
         /// </summary>
         private void SpawnExplosionEffect(Vector2 position)
+        {
+            if (Type == GrenadeType.Flashbang)
+            {
+                // Flashbang uses FlashbangEffect.tscn from main branch (Issue #469)
+                SpawnFlashbangEffectScene(position);
+                return;
+            }
+
+            // Frag grenades use ExplosionFlash.tscn from issue-470 branch (Issue #470)
+            SpawnFragExplosionFlash(position);
+        }
+
+        /// <summary>
+        /// Loads and instantiates the FlashbangEffect.tscn scene directly from C#.
+        /// FIX for Issue #469: Uses shadow-enabled PointLight2D so flash doesn't pass through walls.
+        /// FIX for Issue #432: Bypasses GDScript Call() which fails silently in exports.
+        /// </summary>
+        private void SpawnFlashbangEffectScene(Vector2 position)
+        {
+            const string flashbangEffectPath = "res://scenes/effects/FlashbangEffect.tscn";
+
+            // Try to load the flashbang effect scene
+            var flashbangScene = GD.Load<PackedScene>(flashbangEffectPath);
+            if (flashbangScene == null)
+            {
+                LogToFile($"[GrenadeTimer] WARNING: FlashbangEffect scene not found at {flashbangEffectPath}, using fallback");
+                CreateFallbackExplosionFlash(position);
+                return;
+            }
+
+            // Instantiate the effect
+            var effect = flashbangScene.Instantiate<Node2D>();
+            if (effect == null)
+            {
+                LogToFile($"[GrenadeTimer] WARNING: Failed to instantiate FlashbangEffect, using fallback");
+                CreateFallbackExplosionFlash(position);
+                return;
+            }
+
+            // Position the effect at explosion location
+            effect.GlobalPosition = position;
+
+            // Set the effect radius if the method exists
+            if (effect.HasMethod("set_effect_radius"))
+            {
+                effect.Call("set_effect_radius", EffectRadius);
+            }
+
+            // Add to the current scene
+            GetTree().CurrentScene?.AddChild(effect);
+
+            LogToFile($"[GrenadeTimer] Spawned shadow-enabled flashbang effect at {position} (radius: {EffectRadius})");
+        }
+
+        /// <summary>
+        /// Spawn frag grenade explosion flash using ExplosionFlash.tscn.
+        /// FIX for Issue #470: Uses PointLight2D with shadow_enabled=true for wall occlusion.
+        /// </summary>
+        private void SpawnFragExplosionFlash(Vector2 position)
         {
             // Try to load and use the new PointLight2D-based explosion flash scene
             // This uses shadow_enabled=true to automatically respect wall geometry
@@ -598,12 +675,12 @@ namespace GodotTopdown.Scripts.Projectiles
                 {
                     flashNode.GlobalPosition = position;
 
-                    // Set explosion type (0 = Flashbang, 1 = Frag)
-                    flashNode.Set("explosion_type", Type == GrenadeType.Flashbang ? 0 : 1);
+                    // Set explosion type (1 = Frag)
+                    flashNode.Set("explosion_type", 1);
                     flashNode.Set("effect_radius", EffectRadius);
 
                     GetTree().CurrentScene.AddChild(flash);
-                    LogToFile($"[GrenadeTimer] Spawned PointLight2D explosion flash at {position} (shadow-based wall occlusion)");
+                    LogToFile($"[GrenadeTimer] Spawned PointLight2D frag explosion flash at {position} (shadow-based wall occlusion)");
                     return;
                 }
             }
