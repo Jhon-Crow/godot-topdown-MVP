@@ -452,3 +452,97 @@ The forearm at X=-2 is closer to the body, and the shoulder at X=24 extends towa
 ### Additional Lesson Learned
 
 12. **Arm parts must share their Y coordinate** - In a top-down 2D game, arm segments that form a continuous limb must be on the same "depth plane" (same Y coordinate). Placing arm parts on different Y values causes visual disconnection, making the arm appear broken or detached
+
+## Bug Fix #5: Left Arm Not Gripping Weapon
+
+### Issue Discovery
+
+After the previous fix that connected the shoulder and forearm, the repository owner reported:
+
+> "левая рука должна держаться за оружие."
+> "сейчас не касается его"
+>
+> (Translation:
+> 1. "Left arm should hold/grip the weapon"
+> 2. "Currently it doesn't touch it")
+
+![Left arm not gripping weapon](left-arm-not-gripping-bug.png)
+
+### Root Cause Analysis
+
+The previous fix positioned the left arm to be visually connected (shoulder to forearm), but failed to position it where it would actually grip the weapon. The left forearm at (-2, -6) is near the body, not on the weapon's foregrip.
+
+**Previous (incorrect) positions:**
+- LeftShoulder: (24, -6) - Extended forward but on back plane
+- LeftForearm: (-2, -6) - Near body, NOT touching weapon
+
+The issue is a fundamental misunderstanding of the support hand position. In a proper two-handed rifle grip:
+- The **primary hand (right)** is at the trigger/grip area of the weapon (near body, X around -2 to 6)
+- The **support hand (left)** is at the foregrip area of the weapon (further forward, X around 15-25)
+
+### Understanding Support Hand Position
+
+Looking at the weapon structure:
+- WeaponMount is at (0, 6) in Player scene
+- Weapon sprite has offset of (20, 0), extending the weapon forward
+- The foregrip area is approximately at X=15-25 from player center
+
+The support hand (left forearm) needs to:
+1. **Reach forward** to the foregrip area (X around 18-20)
+2. **Be positioned near the weapon's Y** (Y closer to 0-2, not -6)
+3. **Have a slight angle** for natural grip appearance
+
+### The Correct Solution
+
+The left arm needs a completely different posture than simply mirroring the right arm's positions:
+
+**New positions:**
+| Part | Old Position | New Position | Rationale |
+|------|--------------|--------------|-----------|
+| LeftShoulder | (24, -6) | (8, -2) | Positioned to connect body to the reaching forearm |
+| LeftForearm | (-2, -6) | (18, 2) + rotation 0.3 | At foregrip, reaching toward weapon |
+
+### Visual Representation
+
+```
+Top-down view (character facing right, holding rifle):
+
+        [Head]
+          |
+    [LeftShoulder at (8,-2)]---[LeftForearm at (18,2) with angle]
+          |                              |
+      [Body]---[RightShoulder]---[RightForearm at trigger]
+          |                              |
+                                    [WEAPON]=====>
+                                         |
+                              [LeftForearm grips foregrip here]
+```
+
+The key insight is that the left arm **crosses toward the weapon** rather than staying parallel to the right arm. The support hand reaches across to grip the weapon's foregrip area.
+
+### Coordinate System Analysis
+
+In the top-down coordinate system with character facing right:
+- **X-axis**: Positive = toward weapon/muzzle direction
+- **Y-axis**: Positive = "front" (right arm side), Negative = "back" (left arm side)
+
+The left arm needs to **transition from negative Y (back) to positive Y (front)** as it reaches across to grip the weapon:
+- LeftShoulder: Y = -2 (slightly back, near body origin)
+- LeftForearm: Y = 2 (crossing toward the front where the weapon is)
+
+### Files Changed
+
+- `scenes/characters/Player.tscn`
+  - LeftShoulder: position changed from (24, -6) to (8, -2)
+  - LeftForearm: position changed from (-2, -6) to (18, 2), added rotation = 0.3
+- `scenes/characters/csharp/Player.tscn` - Same changes
+- `scenes/objects/Enemy.tscn` - Same changes
+- `docs/case-studies/issue-448/left-arm-not-gripping-bug.png` - Added screenshot
+
+### Additional Lessons Learned
+
+13. **Support hand position differs from primary hand** - In two-handed weapon grips, the support hand (left) grips a different part of the weapon than the primary hand (right). Simply mirroring positions doesn't work; each hand has a specific functional position on the weapon.
+
+14. **Arms can cross depth planes** - Unlike simple bilateral symmetry, a support arm may need to cross from the "back" Y plane to near the "front" Y plane to reach the weapon. The arm's path should follow anatomical logic, not geometric mirroring.
+
+15. **Consider the weapon's grip points** - Foregrip position (for support hand) is typically at X=15-25 on the weapon, while trigger/pistol grip (for primary hand) is near X=0-5. Position arms based on these functional attachment points.
