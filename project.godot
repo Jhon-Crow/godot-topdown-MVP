@@ -26,6 +26,7 @@ StatusEffectsManager="*res://scripts/autoload/status_effects_manager.gd"
 GrenadeManager="*res://scripts/autoload/grenade_manager.gd"
 ExperimentalSettings="*res://scripts/autoload/experimental_settings.gd"
 CinemaEffectsManager="*res://scripts/autoload/cinema_effects_manager.gd"
+GrenadeTimerHelper="*res://Scripts/Autoload/GrenadeTimerHelper.cs"
 
 [application]
 

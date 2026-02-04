@@ -11,7 +11,7 @@ script = ExtResource("1_mini_uzi")
 WeaponData = ExtResource("4_weapon_data")
 BulletScene = ExtResource("2_bullet")
 CasingScene = ExtResource("3_casing")
-BulletSpawnOffset = 20.0
+BulletSpawnOffset = 35.0
 
 [node name="MiniUziSprite" type="Sprite2D" parent="."]
 z_index = 1
