@@ -714,6 +714,10 @@ public partial class SilencedPistol : BaseWeapon
 
         GetTree().CurrentScene.AddChild(bulletNode);
 
+        // Spawn muzzle flash effect with small scale for silenced weapon
+        // The overridden SpawnMuzzleFlash method passes the reduced scale (0.2)
+        SpawnMuzzleFlash(spawnPosition, direction);
+
         // Spawn casing if casing scene is set
         SpawnCasing(direction, WeaponData?.Caliber);
     }
