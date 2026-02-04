@@ -133,6 +133,35 @@ public partial class Shotgun : BaseWeapon
     private Sprite2D? _shotgunSprite;
 
     /// <summary>
+    /// Reference to the pump/foregrip sprite for reload animation.
+    /// Issue #447: Added for visual pump-action feedback.
+    /// </summary>
+    private Sprite2D? _pumpSprite;
+
+    /// <summary>
+    /// Rest position of the pump sprite (for animation).
+    /// Issue #447: Stored on _Ready to return pump to default position.
+    /// </summary>
+    private Vector2 _pumpRestPosition = Vector2.Zero;
+
+    /// <summary>
+    /// Duration of pump animation in seconds.
+    /// Issue #447: Fast animation for responsive feel.
+    /// </summary>
+    private const float PumpAnimationDuration = 0.15f;
+
+    /// <summary>
+    /// Distance the pump moves during animation (in pixels, local X axis).
+    /// Issue #447: Negative = backward (toward player), Positive = forward.
+    /// </summary>
+    private const float PumpAnimationDistance = 8.0f;
+
+    /// <summary>
+    /// Current tween for pump animation (to prevent overlapping animations).
+    /// </summary>
+    private Tween? _pumpTween;
+
+    /// <summary>
     /// Current aim direction based on mouse position.
     /// </summary>
     private Vector2 _aimDirection = Vector2.Right;
@@ -308,6 +337,19 @@ public partial class Shotgun : BaseWeapon
         else
         {
             GD.Print("[Shotgun] No ShotgunSprite node (visual model not yet added as per requirements)");
+        }
+
+        // Issue #447: Get the pump sprite for reload animation
+        // The PumpSprite is a child of ShotgunSprite so it rotates with the weapon
+        _pumpSprite = GetNodeOrNull<Sprite2D>("ShotgunSprite/PumpSprite");
+        if (_pumpSprite != null)
+        {
+            _pumpRestPosition = _pumpSprite.Position;
+            GD.Print($"[Shotgun] PumpSprite found at position {_pumpRestPosition} (child of ShotgunSprite for rotation)");
+        }
+        else
+        {
+            GD.Print("[Shotgun] No PumpSprite node - pump animation will be disabled");
         }
 
         // Load pellet scene if not set
@@ -1654,9 +1696,13 @@ public partial class Shotgun : BaseWeapon
     /// <summary>
     /// Plays the pump up sound (ejecting shell).
     /// Opens the action to eject the spent shell casing.
+    /// Issue #447: Also triggers pump-up animation.
     /// </summary>
     private async void PlayPumpUpSound()
     {
+        // Issue #447: Play pump-up animation (pump moves backward)
+        AnimatePumpUp();
+
         var audioManager = GetNodeOrNull("/root/AudioManager");
         if (audioManager != null && audioManager.HasMethod("play_shotgun_action_open"))
         {
@@ -1674,9 +1720,13 @@ public partial class Shotgun : BaseWeapon
     /// <summary>
     /// Plays the pump down sound (chambering round).
     /// Closes the action to chamber the next shell.
+    /// Issue #447: Also triggers pump-down animation.
     /// </summary>
     private void PlayPumpDownSound()
     {
+        // Issue #447: Play pump-down animation (pump moves forward)
+        AnimatePumpDown();
+
         var audioManager = GetNodeOrNull("/root/AudioManager");
         if (audioManager != null && audioManager.HasMethod("play_shotgun_action_close"))
         {
@@ -1687,9 +1737,13 @@ public partial class Shotgun : BaseWeapon
     /// <summary>
     /// Plays the action open sound (for reload).
     /// Opens the bolt to begin shell loading sequence.
+    /// Issue #447: Also triggers pump-up animation (bolt opening).
     /// </summary>
     private void PlayActionOpenSound()
     {
+        // Issue #447: Play pump-up animation (bolt opens = pump backward)
+        AnimatePumpUp();
+
         var audioManager = GetNodeOrNull("/root/AudioManager");
         if (audioManager != null && audioManager.HasMethod("play_shotgun_action_open"))
         {
@@ -1700,9 +1754,13 @@ public partial class Shotgun : BaseWeapon
     /// <summary>
     /// Plays the action close sound (after reload).
     /// Closes the bolt to complete reload sequence and chamber a round.
+    /// Issue #447: Also triggers pump-down animation (bolt closing).
     /// </summary>
     private void PlayActionCloseSound()
     {
+        // Issue #447: Play pump-down animation (bolt closes = pump forward)
+        AnimatePumpDown();
+
         var audioManager = GetNodeOrNull("/root/AudioManager");
         if (audioManager != null && audioManager.HasMethod("play_shotgun_action_close"))
         {
@@ -1815,6 +1873,74 @@ public partial class Shotgun : BaseWeapon
                 _ => "Unknown"
             };
         }
+    }
+
+    #endregion
+
+    #region Pump Animation (Issue #447)
+
+    /// <summary>
+    /// Animates the pump/foregrip moving forward (away from player) for bolt opening/shell ejection.
+    /// Issue #447: Visual feedback for pump-action cycling.
+    ///
+    /// PR #480 feedback fix: Animation direction was reversed.
+    /// - Bolt OPEN (pump up gesture) = pump moves AWAY from player (positive X in local space)
+    /// - This mimics real shotgun mechanics where pulling the foregrip back opens the bolt
+    /// </summary>
+    private void AnimatePumpUp()
+    {
+        if (_pumpSprite == null)
+        {
+            return;
+        }
+
+        // Kill any existing animation to prevent overlapping
+        _pumpTween?.Kill();
+
+        // Create new tween for pump-up animation
+        _pumpTween = CreateTween();
+
+        // PR #480 fix: Move pump FORWARD (positive X = away from player in local space)
+        // Real shotgun: pulling foregrip back opens bolt, but visually the foregrip
+        // moves away from the shooter's body toward the barrel
+        Vector2 targetPos = _pumpRestPosition + new Vector2(PumpAnimationDistance, 0);
+
+        _pumpTween.TweenProperty(_pumpSprite, "position", targetPos, PumpAnimationDuration)
+            .SetTrans(Tween.TransitionType.Quad)
+            .SetEase(Tween.EaseType.Out);
+
+        GD.Print($"[Shotgun.Anim#447] Pump UP (bolt open) animation: {_pumpRestPosition} -> {targetPos}");
+    }
+
+    /// <summary>
+    /// Animates the pump/foregrip moving backward (toward player) to close bolt/chamber round.
+    /// Issue #447: Visual feedback for pump-action cycling.
+    ///
+    /// PR #480 feedback fix: Animation direction was reversed.
+    /// - Bolt CLOSE (pump down gesture) = pump moves TOWARD player (back to rest position)
+    /// - This mimics real shotgun mechanics where pushing the foregrip forward closes the bolt
+    /// </summary>
+    private void AnimatePumpDown()
+    {
+        if (_pumpSprite == null)
+        {
+            return;
+        }
+
+        // Kill any existing animation to prevent overlapping
+        _pumpTween?.Kill();
+
+        // Create new tween for pump-down animation
+        _pumpTween = CreateTween();
+
+        // PR #480 fix: Move pump BACKWARD (return to rest position = toward player)
+        // Real shotgun: pushing foregrip forward closes bolt, visually the foregrip
+        // moves back toward the shooter's body
+        _pumpTween.TweenProperty(_pumpSprite, "position", _pumpRestPosition, PumpAnimationDuration)
+            .SetTrans(Tween.TransitionType.Quad)
+            .SetEase(Tween.EaseType.Out);
+
+        GD.Print($"[Shotgun.Anim#447] Pump DOWN (bolt close) animation: current -> {_pumpRestPosition}");
     }
 
     #endregion
