@@ -725,6 +725,7 @@ func _show_victory_message() -> void:
 ## it renders on top of all other UI elements, including cinema effects (layer 99).
 func _show_score_screen(score_data: Dictionary) -> void:
 	_log_to_file("_show_score_screen called with score_data: %s" % str(score_data))
+	print("[BuildingLevel] _show_score_screen called - rank: %s" % score_data.get("rank", "?"))
 
 	var ui := get_node_or_null("CanvasLayer/UI")
 	if ui == null:
@@ -740,14 +741,19 @@ func _show_score_screen(score_data: Dictionary) -> void:
 		game_over_label.queue_free()
 		_log_to_file("Removed GameOverLabel (out of ammo message)")
 
-	# Load the animated score screen script
-	var animated_score_screen_script = load("res://scripts/ui/animated_score_screen.gd")
-	if animated_score_screen_script == null:
-		_log_to_file("ERROR: Failed to load animated_score_screen.gd")
+	# Load the AnimatedScoreScreen scene
+	# IMPORTANT: Using a scene file (.tscn) instead of dynamic script attachment
+	# because Godot 4.x has issues with set_script() where _ready() may not be called
+	# in exported builds. Scene instantiation is more reliable.
+	var animated_score_screen_scene = load("res://scenes/ui/AnimatedScoreScreen.tscn")
+	if animated_score_screen_scene == null:
+		_log_to_file("ERROR: Failed to load AnimatedScoreScreen.tscn")
+		print("[BuildingLevel] ERROR: Failed to load AnimatedScoreScreen.tscn")
 		_show_victory_message()  # Fallback
 		return
 
-	_log_to_file("Loaded AnimatedScoreScreen script successfully")
+	_log_to_file("Loaded AnimatedScoreScreen scene successfully")
+	print("[BuildingLevel] Loaded AnimatedScoreScreen.tscn successfully")
 
 	# Create a dedicated CanvasLayer for the score screen
 	# Layer 100 ensures it renders above everything, including CinemaEffects (layer 99)
@@ -757,14 +763,11 @@ func _show_score_screen(score_data: Dictionary) -> void:
 	add_child(score_canvas_layer)
 	_log_to_file("Created ScoreScreenCanvasLayer at layer 100")
 
-	# Create the score screen Control node and attach the script
-	# IMPORTANT: Using Control.new() + set_script() instead of Script.new()
-	# because Script.new() creates a Reference-like object that doesn't behave
-	# as a proper Node (no _ready() calls, no tree integration).
-	var score_screen := Control.new()
-	score_screen.set_script(animated_score_screen_script)
+	# Instantiate the score screen from scene
+	var score_screen = animated_score_screen_scene.instantiate()
 	score_screen.name = "AnimatedScoreScreen"
-	_log_to_file("Created Control node and attached AnimatedScoreScreen script")
+	_log_to_file("Instantiated AnimatedScoreScreen from scene")
+	print("[BuildingLevel] Instantiated AnimatedScoreScreen from scene")
 
 	# Ensure the Control is visible and properly sized
 	score_screen.visible = true
@@ -773,7 +776,8 @@ func _show_score_screen(score_data: Dictionary) -> void:
 
 	# Add to the dedicated CanvasLayer (this triggers _ready() on the score_screen)
 	score_canvas_layer.add_child(score_screen)
-	_log_to_file("Added AnimatedScoreScreen to ScoreScreenCanvasLayer (should trigger _ready)")
+	_log_to_file("Added AnimatedScoreScreen to ScoreScreenCanvasLayer (triggers _ready)")
+	print("[BuildingLevel] Added AnimatedScoreScreen to tree - _ready() should be called")
 
 	# Force the size to match viewport after being added to tree
 	var viewport_size := get_viewport().get_visible_rect().size
@@ -783,6 +787,7 @@ func _show_score_screen(score_data: Dictionary) -> void:
 	# Start the animated score display
 	score_screen.show_score(score_data)
 	_log_to_file("Called show_score() on AnimatedScoreScreen")
+	print("[BuildingLevel] Called show_score() on AnimatedScoreScreen")
 
 
 ## Get the color for a given rank.

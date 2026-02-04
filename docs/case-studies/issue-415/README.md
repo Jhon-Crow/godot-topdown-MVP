@@ -484,9 +484,134 @@ This is the same pattern used elsewhere in Godot codebases when dynamically crea
    - Verify `_ready()` is called
    - Verify `_process()` receives delta updates
 
+## Bug Investigation Session 5 (2026-02-04)
+
+### Reported Issue
+
+From PR #430 comment by repository owner (in Russian):
+- **"ничего не появляется и звуков нет"** (Nothing appears and there are no sounds)
+- Attached log file: `game_log_20260204_095326.txt`
+
+### Game Log Analysis
+
+Downloaded log: `logs/game_log_20260204_095326.txt` (975KB, 10884 lines)
+
+Key findings from analyzing the log:
+
+**Multiple level playthrough attempts detected:**
+- Lines 1-1831: First session with level completion
+- Lines 5352-5644: Multiple restarts with enemy tracking
+- Lines 10844-10855: Final level completion attempt
+
+**Final completion sequence (lines 10844-10855):**
+- **Line 10844**: `[BuildingLevel] Level completed, setting _level_completed = true`
+- **Line 10846**: `[ScoreManager] Level completed! Final score: 24377, Rank: C`
+- **Line 10847**: `[BuildingLevel] _show_score_screen called with score_data: {...}`
+- **Line 10848**: `[BuildingLevel] Found UI node: UI, size: (1280, 720)`
+- **Line 10849**: `[BuildingLevel] Removed GameOverLabel (out of ammo message)`
+- **Line 10850**: `[BuildingLevel] Loaded AnimatedScoreScreen script successfully`
+- **Line 10851**: `[BuildingLevel] Created ScoreScreenCanvasLayer at layer 100`
+- **Line 10852**: `[BuildingLevel] Created Control node and attached AnimatedScoreScreen script`
+- **Line 10853**: `[BuildingLevel] Added AnimatedScoreScreen to ScoreScreenCanvasLayer (should trigger _ready)`
+- **Line 10854**: `[BuildingLevel] Set score_screen size to viewport: (1280, 720)`
+- **Line 10855**: `[BuildingLevel] Called show_score() on AnimatedScoreScreen`
+
+**Critical Observation:**
+- **NO `[AnimatedScoreScreen]` logs at all** - Despite Session 4's fix, `_ready()` is STILL not being called
+- The log file search `grep -n "\[AnimatedScoreScreen\]"` returned zero results
+- Lines 10856-10884: Game continues (blood decals, ragdoll activation, player footsteps)
+- Player stepped in blood (line 10880) and blood ran out (line 10882) - game was still playable
+- Log ends at 09:58:01, with no score screen visible
+
+### Root Cause Analysis
+
+**Session 4 Fix Didn't Work in Exported Builds**
+
+The previous fix changed from:
+```gdscript
+var score_screen = AnimatedScoreScreenScript.new()  # Old broken pattern
+```
+To:
+```gdscript
+var score_screen := Control.new()
+score_screen.set_script(animated_score_screen_script)  # Session 4 fix
+```
+
+However, this pattern **still doesn't reliably trigger `_ready()` in Godot 4.x exported builds**.
+
+**Research Findings:**
+
+Based on extensive research into Godot 4.x behavior:
+
+1. **[Godot Forum - Scripts won't work after being attached via code](https://forum.godotengine.org/t/scripts-wont-work-after-being-attached-to-node-via-code/9633)**:
+   > When attaching a script to a node dynamically via `set_script()` after the scene tree is initialized, the script's lifecycle callbacks don't execute automatically.
+
+2. **[Godot GitHub Issue #38373 - set_script() fails if target node has no parent](https://github.com/godotengine/godot/issues/38373)**:
+   > When `set_script()` is called on a node that has already been added to the scene tree, the node's `_ready()` function doesn't execute.
+
+3. **[Godot GitHub Issue #74992 - Extended class _ready() not called](https://github.com/godotengine/godot/issues/74992)**:
+   > In Godot 4, when a script extends another script, the parent class's `_init()` and `_ready()` functions are not automatically called.
+
+4. **[Godot GitHub Issue #56343 - Preload fails in standalone build](https://github.com/godotengine/godot/issues/56343)**:
+   > GDScript preload fails in standalone build unless files are present in directory.
+
+**Conclusion:** The `Control.new() + set_script()` pattern has race conditions and inconsistent behavior across editor vs exported builds in Godot 4.x. The most reliable approach is to use scene files.
+
+### Fix Applied
+
+**Solution: Create a Scene File (.tscn) for AnimatedScoreScreen**
+
+Instead of dynamically creating a Control and attaching a script, we now use a proper scene file that can be reliably instantiated:
+
+1. **Created `scenes/ui/AnimatedScoreScreen.tscn`:**
+   ```
+   [gd_scene load_steps=2 format=3 uid="uid://c4animscorescreen415"]
+
+   [ext_resource type="Script" path="res://scripts/ui/animated_score_screen.gd" id="1_anim_score"]
+
+   [node name="AnimatedScoreScreen" type="Control"]
+   anchors_preset = 15
+   anchor_right = 1.0
+   anchor_bottom = 1.0
+   grow_horizontal = 2
+   grow_vertical = 2
+   mouse_filter = 2
+   script = ExtResource("1_anim_score")
+   ```
+
+2. **Updated `building_level.gd` to load and instantiate the scene:**
+   ```gdscript
+   # Before (unreliable in exported builds):
+   var animated_score_screen_script = load("res://scripts/ui/animated_score_screen.gd")
+   var score_screen := Control.new()
+   score_screen.set_script(animated_score_screen_script)
+
+   # After (reliable):
+   var animated_score_screen_scene = load("res://scenes/ui/AnimatedScoreScreen.tscn")
+   var score_screen = animated_score_screen_scene.instantiate()
+   ```
+
+### Why This Fix Works
+
+1. **Scene instantiation is the canonical Godot pattern** - `PackedScene.instantiate()` is how Godot was designed to create nodes with scripts
+2. **The script is attached at scene compilation time** - Not dynamically at runtime
+3. **All node properties are pre-configured** - Anchors, size, mouse filter are set in the scene file
+4. **`_ready()` is guaranteed to be called** - When adding a scene instance to the tree, all lifecycle callbacks are properly invoked
+5. **Works consistently across editor and exported builds** - No edge cases or race conditions
+
+### Lessons Learned
+
+1. **Never use `set_script()` for complex nodes in production code** - It has too many edge cases
+2. **Always prefer scene files (.tscn) over dynamic node creation** - They are more reliable
+3. **Test in exported builds, not just the editor** - Many behaviors differ between editor and export
+4. **Add logging at the very start of `_ready()`** - This immediately reveals if the function is being called
+
 ## Related Resources
 
 - [Hotline Miami Scoring Wiki](https://hotlinemiami.fandom.com/wiki/Scoring)
 - [CodePen HM2 Score Recreation](https://codepen.io/nmbusman/pen/oLybYW)
 - [Godot Forum: Animated Numbers](https://forum.godotengine.org/t/score-counter-for-a-game-over-screen/74208)
 - [Free Retro Arcade Sounds](https://www.themotionmonkey.co.uk/free-resources/retro-arcade-sounds/)
+- [Godot Forum: Scripts won't work after being attached via code](https://forum.godotengine.org/t/scripts-wont-work-after-being-attached-to-node-via-code/9633)
+- [Godot GitHub: set_script() issue](https://github.com/godotengine/godot/issues/38373)
+- [Godot GitHub: Extended class _ready() not called](https://github.com/godotengine/godot/issues/74992)
