@@ -715,8 +715,8 @@ public partial class SilencedPistol : BaseWeapon
         GetTree().CurrentScene.AddChild(bulletNode);
 
         // Spawn muzzle flash effect with small scale for silenced weapon
-        // The overridden SpawnMuzzleFlash method passes the reduced scale (0.2)
-        SpawnMuzzleFlash(spawnPosition, direction);
+        // The overridden SpawnMuzzleFlash method ignores caliber and uses SilencedMuzzleFlashScale (0.2)
+        SpawnMuzzleFlash(spawnPosition, direction, WeaponData?.Caliber);
 
         // Spawn casing if casing scene is set
         SpawnCasing(direction, WeaponData?.Caliber);
@@ -729,13 +729,15 @@ public partial class SilencedPistol : BaseWeapon
     /// </summary>
     /// <param name="position">Position to spawn the muzzle flash.</param>
     /// <param name="direction">Direction the weapon is firing.</param>
-    protected override void SpawnMuzzleFlash(Vector2 position, Vector2 direction)
+    /// <param name="caliber">Caliber data (ignored for silenced pistol, uses SilencedMuzzleFlashScale instead).</param>
+    protected override void SpawnMuzzleFlash(Vector2 position, Vector2 direction, Resource? caliber)
     {
         var impactManager = GetNodeOrNull("/root/ImpactEffectsManager");
         if (impactManager != null && impactManager.HasMethod("spawn_muzzle_flash"))
         {
             // Pass the silenced pistol's reduced muzzle flash scale as the 4th argument
             // This creates a very small flash (~100x100 pixels) appropriate for a suppressed weapon
+            // Note: We ignore the caliber parameter and use our fixed SilencedMuzzleFlashScale instead
             impactManager.Call("spawn_muzzle_flash", position, direction, Variant.CreateFrom((GodotObject?)null), SilencedMuzzleFlashScale);
         }
     }
