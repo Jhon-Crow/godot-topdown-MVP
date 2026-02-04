@@ -575,11 +575,9 @@ func _update_walk_animation(delta: float, input_direction: Vector2) -> void:
 			# Left arm (shoulder) swings forward/back (y-axis in top-down)
 			_left_arm_sprite.position = _base_left_arm_pos + Vector2(arm_swing, 0)
 
-		if _right_arm_sprite:
-			# Right arm (forearm) must move with the same offset as shoulder to stay connected
-			# Both _left_arm_sprite (RightShoulder) and _right_arm_sprite (RightForearm) are
-			# parts of the same arm, so they need to move together
-			_right_arm_sprite.position = _base_right_arm_pos + Vector2(arm_swing, 0)
+		# BUG FIX #8: Position forearm directly relative to shoulder's current position
+		if _right_arm_sprite and _left_arm_sprite:
+			_right_arm_sprite.position = _left_arm_sprite.position + _forearm_shoulder_offset
 	else:
 		# Return to idle pose smoothly
 		if _is_walking:
@@ -587,6 +585,7 @@ func _update_walk_animation(delta: float, input_direction: Vector2) -> void:
 			_walk_anim_time = 0.0
 
 		# Interpolate back to base positions
+		# BUG FIX #8: Lerp shoulder first, then position forearm directly relative to it
 		var lerp_speed := 10.0 * delta
 		if _body_sprite:
 			_body_sprite.position = _body_sprite.position.lerp(_base_body_pos, lerp_speed)
@@ -594,8 +593,9 @@ func _update_walk_animation(delta: float, input_direction: Vector2) -> void:
 			_head_sprite.position = _head_sprite.position.lerp(_base_head_pos, lerp_speed)
 		if _left_arm_sprite:
 			_left_arm_sprite.position = _left_arm_sprite.position.lerp(_base_left_arm_pos, lerp_speed)
-		if _right_arm_sprite:
-			_right_arm_sprite.position = _right_arm_sprite.position.lerp(_base_right_arm_pos, lerp_speed)
+		# Position forearm directly relative to shoulder (after shoulder lerp)
+		if _right_arm_sprite and _left_arm_sprite:
+			_right_arm_sprite.position = _left_arm_sprite.position + _forearm_shoulder_offset
 
 
 ## Calculate current spread based on consecutive shots.
@@ -2138,19 +2138,32 @@ func _update_grenade_animation(delta: float) -> void:
 	# Apply arm positions with smooth interpolation
 	# Note: _left_arm_sprite points to RightShoulder and _right_arm_sprite points to RightForearm
 	# These are BOTH parts of the same arm (the front/throwing arm), so they need to move together.
-	# The forearm is positioned RELATIVE to the shoulder using _forearm_shoulder_offset to keep
-	# the arm connected at the elbow. This ensures they move as a single unit.
-	# Forearm target = shoulder target + forearm-shoulder offset (set at _ready)
-	var forearm_connected_target := left_arm_target + _forearm_shoulder_offset
+	#
+	# BUG FIX #8: The forearm must be positioned DIRECTLY relative to the shoulder's CURRENT
+	# position AFTER the shoulder lerp is applied, NOT by lerping the forearm independently.
+	#
+	# The previous approach (Bug Fix #7) calculated a forearm target and lerped to it:
+	#   forearm_connected_target := left_arm_target + _forearm_shoulder_offset
+	#   _right_arm_sprite.position.lerp(forearm_connected_target, lerp_speed)
+	#
+	# This failed because independent lerps with the same lerp_speed can still cause
+	# separation if the sprites start from positions where their current offset doesn't
+	# match _forearm_shoulder_offset. Each sprite lerps a percentage of ITS remaining
+	# distance, and different remaining distances = different actual movements = separation.
+	#
+	# The correct approach: lerp the shoulder first, then DIRECTLY set the forearm position
+	# as shoulder_position + offset. This guarantees the arm stays connected every frame.
 
 	if _left_arm_sprite:
 		_left_arm_sprite.position = _left_arm_sprite.position.lerp(left_arm_target, lerp_speed)
 		_left_arm_sprite.rotation = lerpf(_left_arm_sprite.rotation, left_arm_rot, lerp_speed)
 
-	if _right_arm_sprite:
-		# Position forearm relative to shoulder to keep the arm connected at the elbow
-		_right_arm_sprite.position = _right_arm_sprite.position.lerp(forearm_connected_target, lerp_speed)
-		_right_arm_sprite.rotation = lerpf(_right_arm_sprite.rotation, left_arm_rot, lerp_speed)
+	if _right_arm_sprite and _left_arm_sprite:
+		# Position forearm DIRECTLY relative to shoulder's CURRENT position (after lerp above)
+		# This ensures the arm stays connected at the elbow every single frame
+		_right_arm_sprite.position = _left_arm_sprite.position + _forearm_shoulder_offset
+		# Match shoulder rotation exactly to keep arm parts aligned
+		_right_arm_sprite.rotation = _left_arm_sprite.rotation
 
 	# Update weapon sling animation
 	_update_weapon_sling(delta)
@@ -2311,18 +2324,20 @@ func _update_reload_animation(delta: float) -> void:
 	# Apply arm positions with smooth interpolation
 	# Note: _left_arm_sprite points to RightShoulder and _right_arm_sprite points to RightForearm
 	# These are BOTH parts of the same arm (the front/throwing arm), so they need to move together.
-	# The forearm is positioned RELATIVE to the shoulder using _forearm_shoulder_offset to keep
-	# the arm connected at the elbow. This ensures they move as a single unit.
-	var forearm_connected_target := left_arm_target + _forearm_shoulder_offset
+	#
+	# BUG FIX #8: The forearm must be positioned DIRECTLY relative to the shoulder's CURRENT
+	# position AFTER the shoulder lerp is applied. See _update_grenade_animation for details.
 
 	if _left_arm_sprite:
 		_left_arm_sprite.position = _left_arm_sprite.position.lerp(left_arm_target, lerp_speed)
 		_left_arm_sprite.rotation = lerpf(_left_arm_sprite.rotation, left_arm_rot, lerp_speed)
 
-	if _right_arm_sprite:
-		# Position forearm relative to shoulder to keep the arm connected at the elbow
-		_right_arm_sprite.position = _right_arm_sprite.position.lerp(forearm_connected_target, lerp_speed)
-		_right_arm_sprite.rotation = lerpf(_right_arm_sprite.rotation, left_arm_rot, lerp_speed)
+	if _right_arm_sprite and _left_arm_sprite:
+		# Position forearm DIRECTLY relative to shoulder's CURRENT position (after lerp above)
+		# This ensures the arm stays connected at the elbow every single frame
+		_right_arm_sprite.position = _left_arm_sprite.position + _forearm_shoulder_offset
+		# Match shoulder rotation exactly to keep arm parts aligned
+		_right_arm_sprite.rotation = _left_arm_sprite.rotation
 
 
 # ============================================================================

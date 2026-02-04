@@ -766,3 +766,141 @@ regardless of where the shoulder is moving to.
 ### Additional Lesson Learned
 
 17. **Use relative positioning for connected parts** - When two sprites must stay connected (like arm segments at an elbow joint), calculate the second sprite's position relative to the first sprite's TARGET position, not by applying the same offset to separate base positions. This ensures the connection is maintained throughout the entire animation, not just at the endpoints.
+
+## Bug Fix #8: Direct Forearm Positioning After Shoulder Lerp
+
+### Issue Discovery
+
+Despite Bug Fix #7's "relative positioning" approach, the arms were STILL separating during grenade throw animation:
+
+> "правая рука всё ещё расходится в суставе при броске гранаты"
+> (Translation: "Right arm still separates at the joint during grenade throw")
+
+![Arm separation during throw (Bug Fix #8)](arm-separation-bug-fix-8.png)
+
+### Root Cause Analysis - The Lerp Problem
+
+Bug Fix #7's approach calculated the forearm target position correctly, but then applied independent lerps to both the shoulder and forearm:
+
+```gdscript
+# Bug Fix #7 approach (STILL BROKEN):
+var forearm_connected_target := left_arm_target + _forearm_shoulder_offset
+
+if _left_arm_sprite:
+    _left_arm_sprite.position = _left_arm_sprite.position.lerp(left_arm_target, lerp_speed)
+
+if _right_arm_sprite:
+    _right_arm_sprite.position = _right_arm_sprite.position.lerp(forearm_connected_target, lerp_speed)
+```
+
+**Why this fails:**
+
+The `lerp(current, target, factor)` function moves a PERCENTAGE of the REMAINING distance each frame. If two sprites have different remaining distances to their targets, they will move different amounts even with the same lerp factor.
+
+**Example scenario:**
+- Shoulder at (20, 6), target (4, 8), remaining distance = 17.9 pixels
+- Forearm at (-8, 6), target (-22, 8), remaining distance = 14.1 pixels
+- With lerp_speed = 0.1:
+  - Shoulder moves: 17.9 × 0.1 = 1.79 pixels toward target
+  - Forearm moves: 14.1 × 0.1 = 1.41 pixels toward target
+  - **The arm SEPARATES during the animation!**
+
+This is a common pitfall when lerping multiple related objects. According to [Game Dev Beginner's article on lerping](https://gamedevbeginner.com/the-right-way-to-lerp-in-unity-with-examples/), the fundamental issue is that standard lerp moves a percentage of the remaining distance, causing objects covering different distances to appear to move at different speeds.
+
+### Online Research: Lerp Synchronization Issues
+
+Research into this problem revealed several relevant findings:
+
+1. **[Unity Forums - Lerping two different variables at roughly the same rate](https://discussions.unity.com/t/lerping-two-different-variables-at-roughly-the-same-rate/1651050)**: When prototyping mechanics where you need to keep two elements synchronized during animation, you're essentially "trying to lerp two different variables at roughly the same rate" - a known challenge.
+
+2. **[PixiJS Issue #4270 - Animated Sprites barely out of sync](https://github.com/pixijs/pixijs/issues/4270)**: Even in established frameworks, animated sprites can fall out of sync due to timing issues. One animation "trails off and falls out of sync" with another.
+
+3. **[Godot Documentation on Cutout Animation](https://trinovantes.github.io/godot-docs/tutorials/animation/cutout_animation.html)**: For connected sprite parts, the recommended approach is to use **hierarchical parenting** where child nodes automatically follow parent movement, or to use **relative positioning** where the child's position is calculated directly from the parent's current position.
+
+### The Correct Solution
+
+The fix changes from lerping the forearm to a separate target, to **directly positioning the forearm relative to the shoulder's CURRENT position** after the shoulder's lerp is applied:
+
+```gdscript
+# Bug Fix #8 approach (CORRECT):
+if _left_arm_sprite:
+    # First, lerp the shoulder to its target
+    _left_arm_sprite.position = _left_arm_sprite.position.lerp(left_arm_target, lerp_speed)
+    _left_arm_sprite.rotation = lerpf(_left_arm_sprite.rotation, left_arm_rot, lerp_speed)
+
+if _right_arm_sprite and _left_arm_sprite:
+    # Then, position forearm DIRECTLY relative to where the shoulder ACTUALLY IS (after lerp)
+    # NO LERP for forearm - it follows shoulder position directly every frame
+    _right_arm_sprite.position = _left_arm_sprite.position + _forearm_shoulder_offset
+    # Match shoulder rotation exactly
+    _right_arm_sprite.rotation = _left_arm_sprite.rotation
+```
+
+**Why this works:**
+
+1. The shoulder lerps smoothly toward its target (shoulder animation)
+2. EVERY FRAME, the forearm is positioned at `shoulder_position + offset`
+3. The forearm ALWAYS maintains the exact offset from the shoulder
+4. The arm stays connected at all times, not just at animation endpoints
+
+This is equivalent to making the forearm a logical "child" of the shoulder - when the shoulder moves, the forearm automatically follows with the exact same relative positioning.
+
+### Files Changed
+
+- `scripts/characters/player.gd`:
+  - `_update_grenade_animation()` - Changed from independent forearm lerp to direct positioning
+  - `_update_reload_animation()` - Changed from independent forearm lerp to direct positioning
+  - `_update_walk_animation()` - Fixed both walking and return-to-idle phases to use direct positioning
+- `docs/case-studies/issue-448/README.md` - Added Bug Fix #8 documentation
+- `docs/case-studies/issue-448/arm-separation-bug-fix-8.png` - Screenshot of the issue
+
+### Code Changes Summary
+
+**Before (independent lerps - BROKEN):**
+```gdscript
+# Calculate forearm target
+var forearm_connected_target := left_arm_target + _forearm_shoulder_offset
+
+# Lerp shoulder
+_left_arm_sprite.position = _left_arm_sprite.position.lerp(left_arm_target, lerp_speed)
+
+# Lerp forearm INDEPENDENTLY to its own target (can get out of sync!)
+_right_arm_sprite.position = _right_arm_sprite.position.lerp(forearm_connected_target, lerp_speed)
+```
+
+**After (direct relative positioning - FIXED):**
+```gdscript
+# Lerp shoulder first
+_left_arm_sprite.position = _left_arm_sprite.position.lerp(left_arm_target, lerp_speed)
+
+# Position forearm DIRECTLY relative to shoulder's CURRENT position (always in sync!)
+_right_arm_sprite.position = _left_arm_sprite.position + _forearm_shoulder_offset
+```
+
+### Additional Lesson Learned
+
+18. **Never lerp connected parts independently** - When two sprites must stay connected (like arm segments at an elbow joint), NEVER lerp them independently to separate targets. Instead:
+    - Option A: Use Godot's hierarchical node parenting (child automatically follows parent)
+    - Option B: Lerp the parent first, then directly position the child relative to the parent's CURRENT position (after lerp)
+
+    Independent lerps with the same lerp factor will cause separation because lerp moves a percentage of the REMAINING distance, and different remaining distances result in different actual movements each frame.
+
+### Comparison Table: Bug Fix #6 vs #7 vs #8
+
+| Aspect | Bug Fix #6 | Bug Fix #7 | Bug Fix #8 |
+|--------|-----------|-----------|-----------|
+| **Approach** | Same offset to both base positions | Forearm target = shoulder target + offset | Forearm position = shoulder position + offset |
+| **Lerp** | Both lerp independently | Both lerp independently | Only shoulder lerps; forearm follows directly |
+| **Problem** | Different starting points cause drift | Same lerp factor ≠ same movement distance | ✅ No lerp for forearm = no drift |
+| **Result** | Arms separate during animation | Arms STILL separate during animation | ✅ Arms stay connected at all times |
+
+### Why This Bug Was So Persistent
+
+This bug was particularly hard to fix because:
+
+1. **Mathematically correct endpoints** - Bug Fix #7's target calculations were correct; the arms would arrive at the right positions eventually
+2. **Subtle timing issue** - The separation only happened DURING the animation, not at the start or end
+3. **Variable visibility** - The separation might be more or less visible depending on animation speed and distance traveled
+4. **Intuitive but wrong** - "Apply the same offset to both targets" seems like it should work, but ignores the lerp mechanics
+
+The key insight is that lerp is NOT a linear movement - it's exponential decay toward the target. Two objects lerping at the same rate will only stay in sync if they have identical remaining distances to travel, which is rarely the case in practice.
