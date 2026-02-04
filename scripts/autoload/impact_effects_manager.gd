@@ -16,6 +16,7 @@ var _sparks_effect_scene: PackedScene = null
 var _blood_decal_scene: PackedScene = null
 var _bullet_hole_scene: PackedScene = null
 var _muzzle_flash_scene: PackedScene = null
+var _flashbang_effect_scene: PackedScene = null
 
 ## Default effect scale for calibers without explicit setting.
 const DEFAULT_EFFECT_SCALE: float = 1.0
@@ -188,6 +189,17 @@ func _preload_effect_scenes() -> void:
 		# Muzzle flash is optional - don't warn, just log in debug mode
 		if _debug_effects:
 			print("[ImpactEffectsManager] MuzzleFlash scene not found (optional)")
+
+	var flashbang_effect_path := "res://scenes/effects/FlashbangEffect.tscn"
+	if ResourceLoader.exists(flashbang_effect_path):
+		_flashbang_effect_scene = load(flashbang_effect_path)
+		loaded_scenes.append("FlashbangEffect")
+		if _debug_effects:
+			print("[ImpactEffectsManager] Loaded FlashbangEffect scene")
+	else:
+		# Flashbang effect is optional - don't warn, just log in debug mode
+		if _debug_effects:
+			print("[ImpactEffectsManager] FlashbangEffect scene not found (optional)")
 
 
 ## Spawns a dust effect at the given position when a bullet hits a wall.
@@ -367,6 +379,40 @@ func spawn_muzzle_flash(position: Vector2, direction: Vector2, caliber_data: Res
 
 	if _debug_effects:
 		print("[ImpactEffectsManager] Muzzle flash spawned at ", position, " with scale=", effect_scale)
+
+
+## Spawns a flashbang visual effect at the given position.
+## Creates a bright flash of light that illuminates the area but respects walls.
+## Uses shadow_enabled PointLight2D so light doesn't pass through walls (Issue #469).
+## @param position: World position where the flashbang exploded.
+## @param radius: Effect radius for scaling the light coverage.
+func spawn_flashbang_effect(position: Vector2, radius: float = 400.0) -> void:
+	if _debug_effects:
+		print("[ImpactEffectsManager] spawn_flashbang_effect at ", position, " radius=", radius)
+
+	if _flashbang_effect_scene == null:
+		if _debug_effects:
+			print("[ImpactEffectsManager] ERROR: _flashbang_effect_scene is null")
+		return
+
+	var effect: Node2D = _flashbang_effect_scene.instantiate() as Node2D
+	if effect == null:
+		if _debug_effects:
+			print("[ImpactEffectsManager] ERROR: Failed to instantiate flashbang effect")
+		return
+
+	effect.global_position = position
+
+	# Set effect radius to scale the light properly
+	if effect.has_method("set_effect_radius"):
+		effect.set_effect_radius(radius)
+
+	# Add to scene tree
+	_add_effect_to_scene(effect)
+
+	_log_info("Flashbang effect spawned at %s (radius=%d)" % [position, radius])
+	if _debug_effects:
+		print("[ImpactEffectsManager] Flashbang effect spawned at ", position)
 
 
 ## Gets the effect scale from caliber data, or returns default if not available.
@@ -933,6 +979,26 @@ func _warmup_particle_shaders() -> void:
 
 			warmed_up_count += 1
 			warmup_nodes.append(flash)
+
+	# --- PART 5: Warmup flashbang effect if available ---
+	# Flashbang effect uses PointLight2D with shadow_enabled (Issue #469)
+	if _flashbang_effect_scene:
+		var flashbang: Node2D = _flashbang_effect_scene.instantiate() as Node2D
+		if flashbang:
+			flashbang.global_position = warmup_pos
+			flashbang.modulate = Color(1, 1, 1, 0.01)
+			flashbang.z_index = -100
+
+			if scene_root:
+				scene_root.add_child(flashbang)
+			else:
+				add_child(flashbang)
+
+			if _debug_effects:
+				print("[ImpactEffectsManager] Warmup: FlashbangEffect at %s (alpha=0.01)" % warmup_pos)
+
+			warmed_up_count += 1
+			warmup_nodes.append(flashbang)
 
 	# Wait multiple frames to ensure GPU fully processes and compiles all shaders
 	# One frame may not be enough for complex particle systems

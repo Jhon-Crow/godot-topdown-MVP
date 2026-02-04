@@ -43,6 +43,12 @@ var _saturation_overlay: ColorRect = null
 ## Reference to the combo label.
 var _combo_label: Label = null
 
+## Reference to the exit zone.
+var _exit_zone: Area2D = null
+
+## Whether the level has been cleared (all enemies eliminated).
+var _level_cleared: bool = false
+
 ## Duration of saturation effect in seconds.
 const SATURATION_DURATION: float = 0.15
 
@@ -86,6 +92,9 @@ func _ready() -> void:
 	# Initialize ScoreManager for this level
 	_initialize_score_manager()
 
+	# Setup exit zone near player spawn (left wall)
+	_setup_exit_zone()
+
 
 ## Initialize the ScoreManager for this level.
 func _initialize_score_manager() -> void:
@@ -103,6 +112,55 @@ func _initialize_score_manager() -> void:
 	# Connect to combo changes for UI feedback
 	if not score_manager.combo_changed.is_connected(_on_combo_changed):
 		score_manager.combo_changed.connect(_on_combo_changed)
+
+
+## Setup the exit zone near the player spawn point (left wall).
+## The exit appears after all enemies are eliminated.
+func _setup_exit_zone() -> void:
+	# Load and instantiate the exit zone
+	var exit_zone_scene = load("res://scenes/objects/ExitZone.tscn")
+	if exit_zone_scene == null:
+		push_warning("ExitZone scene not found - score will show immediately on level clear")
+		return
+
+	_exit_zone = exit_zone_scene.instantiate()
+	# Position exit on the left wall near player spawn (player starts at 450, 1250)
+	# Place exit at left wall (x=80) at similar y position
+	_exit_zone.position = Vector2(120, 1250)
+	_exit_zone.zone_width = 60.0
+	_exit_zone.zone_height = 100.0
+
+	# Connect the player reached exit signal
+	_exit_zone.player_reached_exit.connect(_on_player_reached_exit)
+
+	# Add to the environment node
+	var environment := get_node_or_null("Environment")
+	if environment:
+		environment.add_child(_exit_zone)
+	else:
+		add_child(_exit_zone)
+
+	print("[BuildingLevel] Exit zone created at position (120, 1250)")
+
+
+## Called when the player reaches the exit zone after clearing the level.
+func _on_player_reached_exit() -> void:
+	if not _level_cleared:
+		return
+
+	print("[BuildingLevel] Player reached exit - showing score!")
+	call_deferred("_complete_level_with_score")
+
+
+## Activate the exit zone after all enemies are eliminated.
+func _activate_exit_zone() -> void:
+	if _exit_zone and _exit_zone.has_method("activate"):
+		_exit_zone.activate()
+		print("[BuildingLevel] Exit zone activated - go to exit to see score!")
+	else:
+		# Fallback: if exit zone not available, show score immediately
+		push_warning("Exit zone not available - showing score immediately")
+		_complete_level_with_score()
 
 
 func _process(_delta: float) -> void:
@@ -389,10 +447,9 @@ func _on_enemy_died() -> void:
 
 	if _current_enemy_count <= 0:
 		print("All enemies eliminated! Building cleared!")
-		# Use call_deferred to ensure all signal handlers complete first
-		# This fixes the issue where died_with_info signal handler
-		# (which registers the kill with ScoreManager) runs after this handler
-		call_deferred("_complete_level_with_score")
+		_level_cleared = true
+		# Activate exit zone - score will show when player reaches it
+		call_deferred("_activate_exit_zone")
 
 
 ## Called when an enemy dies with special kill information.

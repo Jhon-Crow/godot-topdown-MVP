@@ -254,7 +254,8 @@ func _play_explosion_sound() -> void:
 		sound_propagation.emit_sound(1, global_position, 2, self, sound_range)
 
 
-## Check if the player is within the explosion effect radius.
+## Check if the player is within the explosion effect radius and has line of sight.
+## Walls block the audio effect of the explosion (Issue #469).
 func _is_player_in_zone() -> bool:
 	var player: Node2D = null
 
@@ -272,7 +273,12 @@ func _is_player_in_zone() -> bool:
 	if player == null:
 		return false
 
-	return is_in_effect_radius(player.global_position)
+	# Check if player is in effect radius first
+	if not is_in_effect_radius(player.global_position):
+		return false
+
+	# Check line of sight - walls block the explosion effect (Issue #469)
+	return _has_line_of_sight_to(player)
 
 
 ## Get the effect radius for this grenade type.
