@@ -110,22 +110,40 @@ func start_recording(level: Node2D, player: Node2D, enemies: Array) -> void:
 	_player = player
 	_enemies = enemies.duplicate()
 
-	_log_to_file("Started recording replay. Player: %s, Enemies: %d" % [
-		player.name if player else "null",
-		enemies.size()
-	])
+	# Detailed logging for debugging
+	var player_name: String = player.name if player else "NULL"
+	var player_valid: bool = player != null and is_instance_valid(player)
+	var level_name: String = level.name if level else "NULL"
+
+	_log_to_file("=== REPLAY RECORDING STARTED ===")
+	_log_to_file("Level: %s" % level_name)
+	_log_to_file("Player: %s (valid: %s)" % [player_name, player_valid])
+	_log_to_file("Enemies count: %d" % enemies.size())
+
+	# Log each enemy for debugging
+	for i in range(enemies.size()):
+		var enemy: Node = enemies[i]
+		if enemy and is_instance_valid(enemy):
+			_log_to_file("  Enemy %d: %s" % [i, enemy.name])
+		else:
+			_log_to_file("  Enemy %d: INVALID" % i)
+
+	print("[ReplayManager] Recording started: Level=%s, Player=%s, Enemies=%d" % [level_name, player_name, enemies.size()])
 
 
 ## Stops recording and saves the replay data.
 func stop_recording() -> void:
 	if not _is_recording:
+		_log_to_file("stop_recording called but was not recording")
+		print("[ReplayManager] stop_recording called but was not recording")
 		return
 
 	_is_recording = false
-	_log_to_file("Stopped recording replay. Total frames: %d, Duration: %.2fs" % [
-		_frames.size(),
-		_recording_time
-	])
+	_log_to_file("=== REPLAY RECORDING STOPPED ===")
+	_log_to_file("Total frames recorded: %d" % _frames.size())
+	_log_to_file("Total duration: %.2fs" % _recording_time)
+	_log_to_file("has_replay() will return: %s" % (_frames.size() > 0))
+	print("[ReplayManager] Recording stopped: %d frames, %.2fs duration" % [_frames.size(), _recording_time])
 
 
 ## Returns true if there is a recorded replay available.

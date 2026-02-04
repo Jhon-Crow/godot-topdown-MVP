@@ -121,17 +121,37 @@ func _initialize_score_manager() -> void:
 func _start_replay_recording() -> void:
 	var replay_manager: Node = get_node_or_null("/root/ReplayManager")
 	if replay_manager == null:
-		_log_to_file("ReplayManager not found, replay recording disabled")
+		_log_to_file("ERROR: ReplayManager not found, replay recording disabled")
+		print("[BuildingLevel] ERROR: ReplayManager autoload not found!")
 		return
+
+	# Log player and enemies status for debugging
+	_log_to_file("Starting replay recording - Player: %s, Enemies count: %d" % [
+		_player.name if _player else "NULL",
+		_enemies.size()
+	])
+
+	if _player == null:
+		_log_to_file("WARNING: Player is null, replay may not record properly")
+		print("[BuildingLevel] WARNING: Player is null for replay recording!")
+
+	if _enemies.is_empty():
+		_log_to_file("WARNING: No enemies to track in replay")
+		print("[BuildingLevel] WARNING: No enemies registered for replay!")
 
 	# Clear any previous replay data
 	if replay_manager.has_method("clear_replay"):
 		replay_manager.clear_replay()
+		_log_to_file("Previous replay data cleared")
 
 	# Start recording with player and enemies
 	if replay_manager.has_method("start_recording"):
 		replay_manager.start_recording(self, _player, _enemies)
-		_log_to_file("Replay recording started")
+		_log_to_file("Replay recording started successfully")
+		print("[BuildingLevel] Replay recording started with %d enemies" % _enemies.size())
+	else:
+		_log_to_file("ERROR: ReplayManager.start_recording method not found")
+		print("[BuildingLevel] ERROR: start_recording method not found!")
 
 
 ## Setup the exit zone near the player spawn point (left wall).
@@ -484,9 +504,22 @@ func _on_enemy_died_with_info(is_ricochet_kill: bool, is_penetration_kill: bool)
 func _complete_level_with_score() -> void:
 	# Stop replay recording
 	var replay_manager: Node = get_node_or_null("/root/ReplayManager")
-	if replay_manager and replay_manager.has_method("stop_recording"):
-		replay_manager.stop_recording()
-		_log_to_file("Replay recording stopped")
+	if replay_manager:
+		if replay_manager.has_method("stop_recording"):
+			replay_manager.stop_recording()
+			_log_to_file("Replay recording stopped")
+
+		# Log replay status for debugging
+		if replay_manager.has_method("has_replay"):
+			var has_replay: bool = replay_manager.has_replay()
+			var duration: float = 0.0
+			if replay_manager.has_method("get_replay_duration"):
+				duration = replay_manager.get_replay_duration()
+			_log_to_file("Replay status: has_replay=%s, duration=%.2fs" % [has_replay, duration])
+			print("[BuildingLevel] Replay status: has_replay=%s, duration=%.2fs" % [has_replay, duration])
+	else:
+		_log_to_file("ERROR: ReplayManager not found when completing level")
+		print("[BuildingLevel] ERROR: ReplayManager not found!")
 
 	var score_manager: Node = get_node_or_null("/root/ScoreManager")
 	if score_manager and score_manager.has_method("complete_level"):

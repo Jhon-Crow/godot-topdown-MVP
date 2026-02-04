@@ -646,6 +646,19 @@ func _show_death_message() -> void:
 
 ## Show victory message when all enemies are eliminated.
 func _show_victory_message() -> void:
+	# Log replay status for debugging
+	var replay_manager: Node = get_node_or_null("/root/ReplayManager")
+	if replay_manager:
+		var has_replay: bool = false
+		var duration: float = 0.0
+		if replay_manager.has_method("has_replay"):
+			has_replay = replay_manager.has_replay()
+		if replay_manager.has_method("get_replay_duration"):
+			duration = replay_manager.get_replay_duration()
+		print("[TestTier] Showing victory message - Replay status: has_replay=%s, duration=%.2fs" % [has_replay, duration])
+	else:
+		print("[TestTier] ERROR: ReplayManager not found when showing victory message!")
+
 	var ui := get_node_or_null("CanvasLayer/UI")
 	if ui == null:
 		return
@@ -874,14 +887,29 @@ func _setup_selected_weapon() -> void:
 func _start_replay_recording() -> void:
 	var replay_manager: Node = get_node_or_null("/root/ReplayManager")
 	if replay_manager == null:
-		print("[TestTier] ReplayManager not found, replay recording disabled")
+		print("[TestTier] ERROR: ReplayManager autoload not found!")
 		return
+
+	# Log player and enemies status for debugging
+	print("[TestTier] Starting replay recording - Player: %s, Enemies count: %d" % [
+		_player.name if _player else "NULL",
+		_enemies.size()
+	])
+
+	if _player == null:
+		print("[TestTier] WARNING: Player is null for replay recording!")
+
+	if _enemies.is_empty():
+		print("[TestTier] WARNING: No enemies registered for replay!")
 
 	# Clear any previous replay data
 	if replay_manager.has_method("clear_replay"):
 		replay_manager.clear_replay()
+		print("[TestTier] Previous replay data cleared")
 
 	# Start recording with player and enemies
 	if replay_manager.has_method("start_recording"):
 		replay_manager.start_recording(self, _player, _enemies)
-		print("[TestTier] Replay recording started")
+		print("[TestTier] Replay recording started successfully with %d enemies" % _enemies.size())
+	else:
+		print("[TestTier] ERROR: start_recording method not found!")
