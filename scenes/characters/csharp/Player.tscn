@@ -45,8 +45,7 @@ texture = ExtResource("11_left_shoulder")
 
 [node name="LeftForearm" type="Sprite2D" parent="PlayerModel"]
 z_index = 1
-position = Vector2(32, 4)
-rotation = 0.3
+position = Vector2(-2, -6)
 texture = ExtResource("12_left_forearm")
 
 [node name="RightShoulder" type="Sprite2D" parent="PlayerModel"]

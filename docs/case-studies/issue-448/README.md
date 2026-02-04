@@ -371,3 +371,84 @@ The left arm is now:
 9. **Rotation adds realism** - Small rotation values make posed limbs look more natural than perfectly horizontal positioning
 10. **Tree order matters for same z_index** - When sprites have identical z_index values, Godot renders them in scene tree order (earlier nodes render behind later nodes). This can be used strategically to layer sprites without changing z_index
 11. **"Under" vs "behind" distinction** - In game rendering, "under the barrel" (partially visible but layered below) is different from "behind the body" (completely hidden). The z_index must be chosen carefully to achieve the desired visual effect
+
+## Bug Fix #4: Left Shoulder Disconnected from Forearm
+
+### Issue Discovery
+
+After the z_index layering fix, the repository owner reported:
+
+> "не вижу изменений"
+> "так же левое плечё отединено от предплечья"
+>
+> (Translation:
+> 1. "I don't see changes"
+> 2. "Also left shoulder is disconnected from forearm")
+
+![Left arm disconnected bug](left-arm-disconnected-bug.png)
+
+### Root Cause Analysis
+
+The previous fix incorrectly positioned the LeftForearm:
+
+**Previous (incorrect) positions:**
+- LeftShoulder: (24, -6) - Forward position (X=24), back side (Y=-6)
+- LeftForearm: (32, 4) - Even more forward (X=32), but FRONT side (Y=4)
+
+The problem: The LeftForearm was positioned at Y=4 (almost on the front side) while LeftShoulder was at Y=-6 (back side). This created a massive disconnect between the two arm parts - they were on opposite sides of the character!
+
+### The Correct Solution
+
+Looking at how the right arm works correctly:
+- RightShoulder: (24, 6) - Forward, front side
+- RightForearm: (-2, 6) - Back near body, SAME Y as shoulder
+
+Both right arm parts share the same Y coordinate (Y=6), which places them on the same "plane" of the character. This makes them visually connected.
+
+The left arm should follow the same pattern - both parts should share the same Y coordinate (Y=-6):
+- LeftShoulder: (24, -6) - Forward, back side
+- LeftForearm: (-2, -6) - Back near body, SAME Y as shoulder
+
+**Corrected positions:**
+| Part | X | Y | Rationale |
+|------|---|---|-----------|
+| LeftShoulder | 24 | -6 | Forward (like right shoulder), back plane |
+| LeftForearm | -2 | -6 | Near body (like right forearm), SAME back plane |
+
+### Visual Comparison
+
+**Before (disconnected):**
+```
+                    [LeftForearm at Y=4]
+                           |
+Body ---[LeftShoulder at Y=-6]
+         (gap!)
+```
+
+**After (connected):**
+```
+Body ---[LeftForearm at Y=-6]---[LeftShoulder at Y=-6]
+         (properly connected on same plane)
+```
+
+### Key Insight
+
+The left arm structure should MIRROR the right arm structure in terms of X positions, but use the opposite Y value for depth:
+
+| Right Arm | Position | Left Arm (Mirrored) | Position |
+|-----------|----------|---------------------|----------|
+| RightShoulder | (24, 6) | LeftShoulder | (24, -6) |
+| RightForearm | (-2, 6) | LeftForearm | (-2, -6) |
+
+The forearm at X=-2 is closer to the body, and the shoulder at X=24 extends toward the weapon. Both arms extend in the same direction (positive X toward the weapon), just at different depths (Y=6 for front/right arm, Y=-6 for back/left arm).
+
+### Files Changed
+
+- `scenes/characters/Player.tscn` - Fixed LeftForearm position from (32, 4) to (-2, -6), removed rotation
+- `scenes/characters/csharp/Player.tscn` - Same fix
+- `scenes/objects/Enemy.tscn` - Same fix
+- `docs/case-studies/issue-448/left-arm-disconnected-bug.png` - Added screenshot of the issue
+
+### Additional Lesson Learned
+
+12. **Arm parts must share their Y coordinate** - In a top-down 2D game, arm segments that form a continuous limb must be on the same "depth plane" (same Y coordinate). Placing arm parts on different Y values causes visual disconnection, making the arm appear broken or detached
