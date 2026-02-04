@@ -9,7 +9,7 @@ extends Node
 ##
 ## The effect can be enabled/disabled and parameters can be adjusted at runtime.
 ##
-## ARCHITECTURE (v5.2):
+## ARCHITECTURE (v5.3):
 ## This manager uses an OVERLAY-BASED approach that does NOT use hint_screen_texture.
 ## This avoids known bugs in Godot's gl_compatibility renderer that cause white screens.
 ## Instead of sampling the screen and modifying it, we create transparent overlays
@@ -31,6 +31,12 @@ extends Node
 ## - Added expanding death spots that grow and multiply over time
 ## - Made white specks/motes much more visible (larger size, higher intensity)
 ## - Increased grain intensity further to 0.15
+##
+## v5.3 FIXES (Issue #440):
+## - Simplified end of reel effect to a clean ~80x80 pixel white circle ring
+## - Changed from complex countdown markers to simple ring outline
+## - Circle now blinks exactly 2 times then stays visible
+## - Updated: Made circle 2x smaller per feedback (was ~160x160, now ~80x80)
 
 # ============================================================================
 # DEFAULT VALUES
@@ -123,7 +129,7 @@ var _player_ref: Node = null
 
 
 func _ready() -> void:
-	_log("CinemaEffectsManager initializing (v5.2 - overlay approach with enhanced death effects)...")
+	_log("CinemaEffectsManager initializing (v5.3 - overlay approach with simplified death circle)...")
 
 	# Connect to scene tree changes to handle scene reloads
 	get_tree().tree_changed.connect(_on_tree_changed)
@@ -162,7 +168,7 @@ func _ready() -> void:
 	# Perform shader warmup to prevent first-frame stutter (Issue #343 pattern)
 	_warmup_shader()
 
-	_log("Cinema film effect initialized (v5.2) - Configuration:")
+	_log("Cinema film effect initialized (v5.3) - Configuration:")
 	_log("  Approach: Overlay-based (no screen_texture)")
 	_log("  Grain intensity: %.2f" % DEFAULT_GRAIN_INTENSITY)
 	_log("  Warm tint: %.2f intensity" % DEFAULT_WARM_INTENSITY)
@@ -170,7 +176,7 @@ func _ready() -> void:
 	_log("  Vignette: %.2f intensity" % DEFAULT_VIGNETTE_INTENSITY)
 	_log("  Film defects: %.1f%% probability" % (DEFAULT_DEFECT_PROBABILITY * 100.0))
 	_log("  White specks: %.2f intensity, %.1f%% probability" % [DEFAULT_MICRO_SCRATCH_INTENSITY, DEFAULT_MICRO_SCRATCH_PROBABILITY * 100.0])
-	_log("  Death effects: cigarette burn + expanding spots + end of reel (top-right)")
+	_log("  Death effects: cigarette burn + expanding spots + end of reel circle (160px, blinks 2x)")
 
 	# Start delayed activation - minimal delay needed since we don't use screen_texture
 	_waiting_for_activation = true
