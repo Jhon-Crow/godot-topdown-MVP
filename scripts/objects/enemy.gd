@@ -119,8 +119,12 @@ const AIM_TOLERANCE_DOT: float = 0.866  ## cos(30°) - aim tolerance (issue #254
 @onready var _enemy_model: Node2D = $EnemyModel  ## Model node with all sprites
 @onready var _body_sprite: Sprite2D = $EnemyModel/Body  ## Body sprite
 @onready var _head_sprite: Sprite2D = $EnemyModel/Head  ## Head sprite
-@onready var _left_arm_sprite: Sprite2D = $EnemyModel/LeftArm  ## Left arm sprite
-@onready var _right_arm_sprite: Sprite2D = $EnemyModel/RightArm  ## Right arm sprite
+@onready var _left_shoulder_sprite: Sprite2D = $EnemyModel/LeftShoulder  ## Left shoulder (back)
+@onready var _left_forearm_sprite: Sprite2D = $EnemyModel/LeftForearm  ## Left forearm (back)
+@onready var _right_shoulder_sprite: Sprite2D = $EnemyModel/RightShoulder  ## Right shoulder (front)
+@onready var _right_forearm_sprite: Sprite2D = $EnemyModel/RightForearm  ## Right forearm (front)
+@onready var _left_arm_sprite: Sprite2D = $EnemyModel/RightShoulder  ## Legacy alias for anim
+@onready var _right_arm_sprite: Sprite2D = $EnemyModel/RightForearm  ## Legacy alias for anim
 @onready var _sprite: Sprite2D = $EnemyModel/Body  ## Legacy ref (body)
 @onready var _weapon_sprite: Sprite2D = $EnemyModel/WeaponMount/WeaponSprite  ## Weapon sprite
 @onready var _weapon_mount: Node2D = $EnemyModel/WeaponMount  ## Weapon mount
@@ -4211,14 +4215,10 @@ func _update_health_visual() -> void:
 
 ## Sets the modulate color on all enemy sprite parts.
 func _set_all_sprites_modulate(color: Color) -> void:
-	if _body_sprite:
-		_body_sprite.modulate = color
-	if _head_sprite:
-		_head_sprite.modulate = color
-	if _left_arm_sprite:
-		_left_arm_sprite.modulate = color
-	if _right_arm_sprite:
-		_right_arm_sprite.modulate = color
+	# Apply color to all sprite parts (body, head, all 4 arm parts).
+	for sprite in [_body_sprite, _head_sprite, _left_shoulder_sprite, _left_forearm_sprite, _right_shoulder_sprite, _right_forearm_sprite]:
+		if sprite:
+			sprite.modulate = color
 
 ## Returns the current health as a percentage (0.0 to 1.0).
 func _get_health_percent() -> float:

@@ -82,8 +82,17 @@ var _is_alive: bool = true
 ## References to individual sprite parts for color changes.
 @onready var _body_sprite: Sprite2D = $PlayerModel/Body
 @onready var _head_sprite: Sprite2D = $PlayerModel/Head
-@onready var _left_arm_sprite: Sprite2D = $PlayerModel/LeftArm
-@onready var _right_arm_sprite: Sprite2D = $PlayerModel/RightArm
+## Left arm sprites (shoulder and forearm on the left/back side of the character).
+@onready var _left_shoulder_sprite: Sprite2D = $PlayerModel/LeftShoulder
+@onready var _left_forearm_sprite: Sprite2D = $PlayerModel/LeftForearm
+## Right arm sprites (shoulder and forearm on the right/front side of the character).
+@onready var _right_shoulder_sprite: Sprite2D = $PlayerModel/RightShoulder
+@onready var _right_forearm_sprite: Sprite2D = $PlayerModel/RightForearm
+## Legacy aliases for backward compatibility with existing animation code.
+## _left_arm_sprite points to right shoulder (front arm, was originally named LeftArm).
+## _right_arm_sprite points to right forearm (front arm, was originally named RightArm).
+@onready var _left_arm_sprite: Sprite2D = $PlayerModel/RightShoulder
+@onready var _right_arm_sprite: Sprite2D = $PlayerModel/RightForearm
 
 ## Legacy reference for compatibility (points to body sprite).
 @onready var _sprite: Sprite2D = $PlayerModel/Body
@@ -268,6 +277,11 @@ func _ready() -> void:
 		_base_left_arm_pos = _left_arm_sprite.position
 	if _right_arm_sprite:
 		_base_right_arm_pos = _right_arm_sprite.position
+	# Calculate the offset from shoulder to forearm (keeps arm connected at elbow).
+	# _left_arm_sprite is RightShoulder, _right_arm_sprite is RightForearm.
+	# This offset is applied to shoulder position to get forearm position.
+	if _left_arm_sprite and _right_arm_sprite:
+		_forearm_shoulder_offset = _base_right_arm_pos - _base_left_arm_pos
 
 	# Apply scale to player model for larger appearance
 	if _player_model:
@@ -284,10 +298,17 @@ func _ready() -> void:
 		_head_sprite.z_index = 3  # Head on top (above weapon)
 	if _body_sprite:
 		_body_sprite.z_index = 1  # Body same level as weapon
-	if _left_arm_sprite:
-		_left_arm_sprite.z_index = 2  # Arms between body and head
-	if _right_arm_sprite:
-		_right_arm_sprite.z_index = 2  # Arms between body and head
+	# Right arm (front side) should be visible above weapon
+	if _right_shoulder_sprite:
+		_right_shoulder_sprite.z_index = 4  # Right shoulder above head
+	if _right_forearm_sprite:
+		_right_forearm_sprite.z_index = 4  # Right forearm above head
+	# Left arm (back side) should be under barrel but visible
+	# z_index = 1 (same as weapon) but renders before weapon due to tree order
+	if _left_shoulder_sprite:
+		_left_shoulder_sprite.z_index = 1  # Left shoulder visible, same as body
+	if _left_forearm_sprite:
+		_left_forearm_sprite.z_index = 1  # Left forearm under weapon but visible
 
 	# Note: Weapon pose detection is done in _process() after a few frames
 	# to ensure level scripts have finished adding weapons to the player.
@@ -509,6 +530,10 @@ func _apply_weapon_arm_offsets() -> void:
 				str(_base_left_arm_pos), str(_base_right_arm_pos)
 			])
 
+	# Recalculate forearm-shoulder offset when base positions change
+	# This ensures the arm stays connected at the elbow regardless of weapon type
+	_forearm_shoulder_offset = _base_right_arm_pos - _base_left_arm_pos
+
 	# Apply new base positions to sprites immediately
 	if _left_arm_sprite:
 		_left_arm_sprite.position = _base_left_arm_pos
@@ -547,12 +572,12 @@ func _update_walk_animation(delta: float, input_direction: Vector2) -> void:
 			_head_sprite.position = _base_head_pos + Vector2(0, head_bob)
 
 		if _left_arm_sprite:
-			# Left arm swings forward/back (y-axis in top-down)
+			# Left arm (shoulder) swings forward/back (y-axis in top-down)
 			_left_arm_sprite.position = _base_left_arm_pos + Vector2(arm_swing, 0)
 
-		if _right_arm_sprite:
-			# Right arm swings opposite to left arm
-			_right_arm_sprite.position = _base_right_arm_pos + Vector2(-arm_swing, 0)
+		# BUG FIX #8: Position forearm directly relative to shoulder's current position
+		if _right_arm_sprite and _left_arm_sprite:
+			_right_arm_sprite.position = _left_arm_sprite.position + _forearm_shoulder_offset
 	else:
 		# Return to idle pose smoothly
 		if _is_walking:
@@ -560,6 +585,7 @@ func _update_walk_animation(delta: float, input_direction: Vector2) -> void:
 			_walk_anim_time = 0.0
 
 		# Interpolate back to base positions
+		# BUG FIX #8: Lerp shoulder first, then position forearm directly relative to it
 		var lerp_speed := 10.0 * delta
 		if _body_sprite:
 			_body_sprite.position = _body_sprite.position.lerp(_base_body_pos, lerp_speed)
@@ -567,8 +593,9 @@ func _update_walk_animation(delta: float, input_direction: Vector2) -> void:
 			_head_sprite.position = _head_sprite.position.lerp(_base_head_pos, lerp_speed)
 		if _left_arm_sprite:
 			_left_arm_sprite.position = _left_arm_sprite.position.lerp(_base_left_arm_pos, lerp_speed)
-		if _right_arm_sprite:
-			_right_arm_sprite.position = _right_arm_sprite.position.lerp(_base_right_arm_pos, lerp_speed)
+		# Position forearm directly relative to shoulder (after shoulder lerp)
+		if _right_arm_sprite and _left_arm_sprite:
+			_right_arm_sprite.position = _left_arm_sprite.position + _forearm_shoulder_offset
 
 
 ## Calculate current spread based on consecutive shots.
@@ -948,20 +975,24 @@ func refresh_health_visual() -> void:
 
 ## Sets the modulate color on all player sprite parts.
 ## The armband is a separate child sprite that keeps its original color,
-## so all body parts including right arm use the same health-based color.
+## so all body parts including all arm parts use the same health-based color.
 ## @param color: The color to apply to all sprites.
 func _set_all_sprites_modulate(color: Color) -> void:
 	if _body_sprite:
 		_body_sprite.modulate = color
 	if _head_sprite:
 		_head_sprite.modulate = color
-	if _left_arm_sprite:
-		_left_arm_sprite.modulate = color
-	if _right_arm_sprite:
-		# Right arm uses the same color as other body parts.
+	# Apply color to all 4 arm parts (left shoulder, left forearm, right shoulder, right forearm).
+	if _left_shoulder_sprite:
+		_left_shoulder_sprite.modulate = color
+	if _left_forearm_sprite:
+		_left_forearm_sprite.modulate = color
+	if _right_shoulder_sprite:
+		_right_shoulder_sprite.modulate = color
+	if _right_forearm_sprite:
 		# The armband is now a separate child sprite (Armband node) that
 		# doesn't inherit this modulate, keeping its bright red color visible.
-		_right_arm_sprite.modulate = color
+		_right_forearm_sprite.modulate = color
 
 
 ## Returns the current health as a percentage (0.0 to 1.0).
@@ -1210,6 +1241,9 @@ var _base_body_pos: Vector2 = Vector2.ZERO
 var _base_head_pos: Vector2 = Vector2.ZERO
 var _base_left_arm_pos: Vector2 = Vector2.ZERO
 var _base_right_arm_pos: Vector2 = Vector2.ZERO
+## Offset from shoulder to forearm (forearm relative to shoulder, keeps arm connected).
+## This is calculated as: forearm_pos - shoulder_pos, so forearm = shoulder + offset.
+var _forearm_shoulder_offset: Vector2 = Vector2.ZERO
 
 # ============================================================================
 # Weapon-Specific Arm Positioning System
@@ -2102,13 +2136,34 @@ func _update_grenade_animation(delta: float) -> void:
 				FileLogger.info("[Player.Grenade.Anim] Animation complete, returning to normal")
 
 	# Apply arm positions with smooth interpolation
+	# Note: _left_arm_sprite points to RightShoulder and _right_arm_sprite points to RightForearm
+	# These are BOTH parts of the same arm (the front/throwing arm), so they need to move together.
+	#
+	# BUG FIX #8: The forearm must be positioned DIRECTLY relative to the shoulder's CURRENT
+	# position AFTER the shoulder lerp is applied, NOT by lerping the forearm independently.
+	#
+	# The previous approach (Bug Fix #7) calculated a forearm target and lerped to it:
+	#   forearm_connected_target := left_arm_target + _forearm_shoulder_offset
+	#   _right_arm_sprite.position.lerp(forearm_connected_target, lerp_speed)
+	#
+	# This failed because independent lerps with the same lerp_speed can still cause
+	# separation if the sprites start from positions where their current offset doesn't
+	# match _forearm_shoulder_offset. Each sprite lerps a percentage of ITS remaining
+	# distance, and different remaining distances = different actual movements = separation.
+	#
+	# The correct approach: lerp the shoulder first, then DIRECTLY set the forearm position
+	# as shoulder_position + offset. This guarantees the arm stays connected every frame.
+
 	if _left_arm_sprite:
 		_left_arm_sprite.position = _left_arm_sprite.position.lerp(left_arm_target, lerp_speed)
 		_left_arm_sprite.rotation = lerpf(_left_arm_sprite.rotation, left_arm_rot, lerp_speed)
 
-	if _right_arm_sprite:
-		_right_arm_sprite.position = _right_arm_sprite.position.lerp(right_arm_target, lerp_speed)
-		_right_arm_sprite.rotation = lerpf(_right_arm_sprite.rotation, right_arm_rot, lerp_speed)
+	if _right_arm_sprite and _left_arm_sprite:
+		# Position forearm DIRECTLY relative to shoulder's CURRENT position (after lerp above)
+		# This ensures the arm stays connected at the elbow every single frame
+		_right_arm_sprite.position = _left_arm_sprite.position + _forearm_shoulder_offset
+		# Match shoulder rotation exactly to keep arm parts aligned
+		_right_arm_sprite.rotation = _left_arm_sprite.rotation
 
 	# Update weapon sling animation
 	_update_weapon_sling(delta)
@@ -2267,13 +2322,22 @@ func _update_reload_animation(delta: float) -> void:
 				FileLogger.info("[Player.Reload.Anim] Reload animation complete, returning to normal")
 
 	# Apply arm positions with smooth interpolation
+	# Note: _left_arm_sprite points to RightShoulder and _right_arm_sprite points to RightForearm
+	# These are BOTH parts of the same arm (the front/throwing arm), so they need to move together.
+	#
+	# BUG FIX #8: The forearm must be positioned DIRECTLY relative to the shoulder's CURRENT
+	# position AFTER the shoulder lerp is applied. See _update_grenade_animation for details.
+
 	if _left_arm_sprite:
 		_left_arm_sprite.position = _left_arm_sprite.position.lerp(left_arm_target, lerp_speed)
 		_left_arm_sprite.rotation = lerpf(_left_arm_sprite.rotation, left_arm_rot, lerp_speed)
 
-	if _right_arm_sprite:
-		_right_arm_sprite.position = _right_arm_sprite.position.lerp(right_arm_target, lerp_speed)
-		_right_arm_sprite.rotation = lerpf(_right_arm_sprite.rotation, right_arm_rot, lerp_speed)
+	if _right_arm_sprite and _left_arm_sprite:
+		# Position forearm DIRECTLY relative to shoulder's CURRENT position (after lerp above)
+		# This ensures the arm stays connected at the elbow every single frame
+		_right_arm_sprite.position = _left_arm_sprite.position + _forearm_shoulder_offset
+		# Match shoulder rotation exactly to keep arm parts aligned
+		_right_arm_sprite.rotation = _left_arm_sprite.rotation
 
 
 # ============================================================================
