@@ -578,16 +578,83 @@ namespace GodotTopdown.Scripts.Projectiles
         }
 
         /// <summary>
-        /// Spawn visual explosion effect.
+        /// Spawn visual explosion effect with wall occlusion check.
         /// FIX for Issue #432: GDScript Call() silently fails in exports, so we implement
         /// the explosion effect directly in C# to ensure it always works.
+        /// FIX for Issue #470: Visual effects must not pass through walls - check line of sight
+        /// to player before spawning the flash effect.
         /// </summary>
         private void SpawnExplosionEffect(Vector2 position)
         {
+            // FIX for Issue #470: Check if player has line of sight to the explosion
+            // If a wall blocks the view, the player should NOT see the flash/explosion visual
+            if (!PlayerHasLineOfSightTo(position))
+            {
+                LogToFile($"[GrenadeTimer] Visual effect blocked by wall - player cannot see explosion at {position}");
+                return;
+            }
+
             // Create explosion flash effect directly in C# (GDScript calls don't work in exports)
             // This replicates the GDScript _create_simple_explosion() / _create_simple_flash() logic
             CreateExplosionFlash(position);
             LogToFile($"[GrenadeTimer] Spawned C# explosion effect at {position}");
+        }
+
+        /// <summary>
+        /// Check if the player has line of sight to the given position.
+        /// FIX for Issue #470: Used to prevent visual effects from passing through walls.
+        /// </summary>
+        /// <param name="targetPosition">World position to check line of sight to.</param>
+        /// <returns>True if player can see the position, false if blocked by wall.</returns>
+        private bool PlayerHasLineOfSightTo(Vector2 targetPosition)
+        {
+            // Find the player
+            var players = GetTree().GetNodesInGroup("player");
+            Node2D? playerNode = null;
+
+            foreach (var player in players)
+            {
+                if (player is Node2D node)
+                {
+                    playerNode = node;
+                    break;
+                }
+            }
+
+            // Fallback: try to find Player node directly
+            if (playerNode == null)
+            {
+                var currentScene = GetTree().CurrentScene;
+                if (currentScene != null)
+                {
+                    playerNode = currentScene.GetNodeOrNull<Node2D>("Player");
+                }
+            }
+
+            // No player found - assume visible (don't block effects in editor/testing)
+            if (playerNode == null)
+            {
+                return true;
+            }
+
+            // Use physics raycast to check for walls between explosion and player
+            var spaceState = playerNode.GetWorld2D()?.DirectSpaceState;
+            if (spaceState == null)
+            {
+                return true;
+            }
+
+            // Cast ray from explosion to player position
+            // Collision mask 4 = layer 3 (obstacles/walls)
+            var query = PhysicsRayQueryParameters2D.Create(targetPosition, playerNode.GlobalPosition);
+            query.CollisionMask = 4; // Obstacles/walls only
+            query.CollideWithBodies = true;
+            query.CollideWithAreas = false;
+
+            var result = spaceState.IntersectRay(query);
+
+            // If no hit, player can see the explosion
+            return result.Count == 0;
         }
 
         /// <summary>
