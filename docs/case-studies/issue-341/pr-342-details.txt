@@ -1,0 +1,75 @@
+title:	feat: interactive shell casings with kick physics and bounce sounds (Issue #341)
+state:	CLOSED
+author:	konard
+labels:	
+assignees:	
+reviewers:	
+projects:	
+milestone:	
+number:	342
+url:	https://github.com/Jhon-Crow/godot-topdown-MVP/pull/342
+additions:	3612
+deletions:	17
+auto-merge:	disabled
+--
+## Summary
+
+This PR implements interactive shell casings as requested in Issue #341. Characters (player and enemies) can now kick casings by walking through them, causing realistic physics-based movement with satisfying bounce sounds.
+
+### Key Changes
+
+- **Casing physics**: Updated collision layers so casings interact with player, enemies, and walls
+- **Kick detection**: Added Area2D-based detection with manual fallback for reliable character detection
+- **Bounce sounds**: Casings play caliber-specific sounds when kicked or bouncing (with velocity threshold and cooldown)
+- **Physics material**: Added bounce (0.35) and friction (0.55) for realistic metallic behavior
+- **Godot 4 workaround**: Implemented fallback detection to address [known Area2D signal regression](https://github.com/godotengine/godot/issues/84511)
+
+### Technical Implementation
+
+Uses Area2D "KickDetector" child with **dual detection approach**:
+1. Signal-based: `body_entered` for instant detection
+2. Fallback: Manual `get_overlapping_bodies()` check each physics frame
+
+This ensures reliable detection even with fast-moving characters, working around Godot 4's Area2D detection limitations.
+
+| Object | collision_layer | collision_mask |
+|--------|-----------------|----------------|
+| Casings | 64 (layer 7) | 7 (player+enemies+walls) |
+| KickDetector | 0 | 3 (player+enemies) |
+| Detection Shape | CircleShape2D radius=24 | - |
+
+### Test Criteria
+
+- [x] Player walking through casings pushes them realistically
+- [x] Enemies walking through casings pushes them realistically  
+- [x] Casings bounce off walls
+- [x] Sound plays on significant impacts (velocity > 75 px/s)
+- [x] No sound spam (0.1s cooldown + kick memory)
+- [x] Correct caliber-specific sounds (rifle/pistol/shotgun)
+- [x] Time freeze still works
+- [x] All CI checks pass
+
+### Files Modified
+
+| File | Description |
+|------|-------------|
+| scenes/effects/Casing.tscn | Collision layers, physics material, KickDetector with larger shape |
+| scripts/effects/casing.gd | Kick detection (signal + manual fallback), sound system, debug logging |
+| docs/case-studies/issue-341/README.md | Updated with implementation results and Godot 4 workaround docs |
+| docs/case-studies/issue-341/game_log_20260125_030511.txt | User test session log for debugging |
+
+### Root Cause Analysis (Post-Fix)
+
+The initial implementation wasn't working because:
+1. **Godot 4 regression** ([godotengine/godot#84511](https://github.com/godotengine/godot/issues/84511)): Area2D `body_entered` signals can miss fast-moving CharacterBody2D
+2. **Small collision shape**: Original 4x14 pixel rectangle was too small for reliable detection at game speeds
+3. **No fallback**: Single detection method meant missed signals = no interaction
+
+The fix adds a larger detection radius (24px circle) and manual overlap checking as a fallback mechanism.
+
+---
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+
+Fixes Jhon-Crow/godot-topdown-MVP#342

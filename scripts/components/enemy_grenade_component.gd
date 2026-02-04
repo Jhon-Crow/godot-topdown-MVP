@@ -416,8 +416,20 @@ func _execute_throw(target: Vector2, is_alive: bool, is_stunned: bool, is_blinde
 	var parent := get_tree().current_scene
 	(parent if parent else _enemy.get_parent()).add_child(grenade)
 
+	# FIX for Issue #432: Attach C# GrenadeTimer component for reliable explosion handling.
+	# GDScript methods may fail silently in exported builds due to C#/GDScript interop issues.
+	# The C# GrenadeTimer provides reliable timer and impact detection that works in exports.
+	var grenade_type := "Frag"  # Enemies throw frag grenades by default
+	if grenade_scene.resource_path.to_lower().contains("flashbang"):
+		grenade_type = "Flashbang"
+	_attach_grenade_timer(grenade as RigidBody2D, grenade_type)
+
+	# Try GDScript methods first (may work in editor, but fail in exports)
 	if grenade.has_method("activate_timer"):
 		grenade.activate_timer()
+
+	# Activate C# timer as well (this one will work reliably in exports)
+	_activate_grenade_timer(grenade as RigidBody2D)
 
 	var dist := _enemy.global_position.distance_to(target)
 	if grenade.has_method("throw_grenade"):
@@ -426,6 +438,9 @@ func _execute_throw(target: Vector2, is_alive: bool, is_stunned: bool, is_blinde
 		grenade.freeze = false
 		grenade.linear_velocity = dir * clampf(dist * 1.5, 200.0, 800.0)
 		grenade.rotation = dir.angle()
+
+	# Mark C# timer as thrown (enables impact detection for Frag grenades)
+	_mark_grenade_thrown(grenade as RigidBody2D)
 
 	# Issue #382: Connect grenade explosion to coordinator for assault coordination
 	var was_tactical := _is_tactical_throw
@@ -438,6 +453,7 @@ func _execute_throw(target: Vector2, is_alive: bool, is_stunned: bool, is_blinde
 	_is_throwing = false
 	_reset_triggers()
 	grenade_thrown.emit(grenade, target)
+	_log("Enemy grenade thrown! Target: %s, Distance: %.0f" % [str(target), dist])
 
 
 func add_grenades(count: int) -> void:
@@ -477,3 +493,35 @@ func _log(msg: String) -> void:
 		print("[EnemyGrenadeComponent] %s" % msg)
 	if _logger and _logger.has_method("log_info"):
 		_logger.log_info("[EnemyGrenade] %s" % msg)
+
+
+## FIX for Issue #432: Attach C# GrenadeTimer component via autoload helper.
+## This ensures reliable explosion handling in exported builds where GDScript
+## methods may fail silently due to C#/GDScript interop issues.
+func _attach_grenade_timer(grenade: RigidBody2D, grenade_type: String) -> void:
+	if grenade == null:
+		return
+	var helper := get_node_or_null("/root/GrenadeTimerHelper")
+	if helper and helper.has_method("AttachGrenadeTimer"):
+		helper.AttachGrenadeTimer(grenade, grenade_type)
+		_log("Attached C# GrenadeTimer to grenade (type: %s)" % grenade_type)
+	else:
+		_log("WARNING: GrenadeTimerHelper not found - grenade may not explode in exports!")
+
+
+## FIX for Issue #432: Activate C# GrenadeTimer via autoload helper.
+func _activate_grenade_timer(grenade: RigidBody2D) -> void:
+	if grenade == null:
+		return
+	var helper := get_node_or_null("/root/GrenadeTimerHelper")
+	if helper and helper.has_method("ActivateTimer"):
+		helper.ActivateTimer(grenade)
+
+
+## FIX for Issue #432: Mark C# GrenadeTimer as thrown via autoload helper.
+func _mark_grenade_thrown(grenade: RigidBody2D) -> void:
+	if grenade == null:
+		return
+	var helper := get_node_or_null("/root/GrenadeTimerHelper")
+	if helper and helper.has_method("MarkAsThrown"):
+		helper.MarkAsThrown(grenade)

@@ -1,0 +1,845 @@
+[21:15:15] [INFO] ============================================================
+[21:15:15] [INFO] GAME LOG STARTED
+[21:15:15] [INFO] ============================================================
+[21:15:15] [INFO] Timestamp: 2026-02-03T21:15:15
+[21:15:15] [INFO] Log file: I:/Загрузки/godot exe/гильзы на взрывы/game_log_20260203_211515.txt
+[21:15:15] [INFO] Executable: I:/Загрузки/godot exe/гильзы на взрывы/Godot-Top-Down-Template.exe
+[21:15:15] [INFO] OS: Windows
+[21:15:15] [INFO] Debug build: false
+[21:15:15] [INFO] Engine version: 4.3-stable (official)
+[21:15:15] [INFO] Project: Godot Top-Down Template
+[21:15:15] [INFO] ------------------------------------------------------------
+[21:15:15] [INFO] [GameManager] GameManager ready
+[21:15:15] [INFO] [ScoreManager] ScoreManager ready
+[21:15:15] [INFO] [SoundPropagation] SoundPropagation autoload initialized
+[21:15:15] [INFO] [ImpactEffects] Scenes loaded: DustEffect, BloodEffect, SparksEffect, BloodDecal
+[21:15:15] [INFO] [ImpactEffects] ImpactEffectsManager ready - FULL VERSION with blood effects enabled
+[21:15:15] [INFO] [ImpactEffects] Starting particle shader warmup (Issue #343 fix)...
+[21:15:15] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[21:15:15] [INFO] [PenultimateHit] Saturation shader loaded successfully
+[21:15:15] [INFO] [PenultimateHit] Starting shader warmup (Issue #343 fix)...
+[21:15:15] [INFO] [PenultimateHit] PenultimateHitEffectsManager ready - Configuration:
+[21:15:15] [INFO] [PenultimateHit]   Time scale: 0.10 (10x slowdown)
+[21:15:15] [INFO] [PenultimateHit]   Saturation boost: 2.0 (3.0x)
+[21:15:15] [INFO] [PenultimateHit]   Contrast boost: 1.0 (2.0x)
+[21:15:15] [INFO] [PenultimateHit]   Effect duration: 3.0 real seconds
+[21:15:15] [INFO] [LastChance] Resetting all effects (scene change detected)
+[21:15:15] [INFO] [LastChance] Last chance shader loaded successfully
+[21:15:15] [INFO] [LastChance] Starting shader warmup (Issue #343 fix)...
+[21:15:15] [INFO] [LastChance] LastChanceEffectsManager ready - Configuration:
+[21:15:15] [INFO] [LastChance]   Freeze duration: 6.0 real seconds
+[21:15:15] [INFO] [LastChance]   Sepia intensity: 0.70
+[21:15:15] [INFO] [LastChance]   Brightness: 0.60
+[21:15:15] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FlashbangGrenade.tscn
+[21:15:15] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FragGrenade.tscn
+[21:15:15] [INFO] [ExperimentalSettings] ExperimentalSettings initialized - FOV enabled: true, Complex grenade throwing: false
+[21:15:15] [INFO] [CinemaEffects] CinemaEffectsManager initializing (v5.2 - overlay approach with enhanced death effects)...
+[21:15:15] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+[21:15:15] [INFO] [CinemaEffects] Created effects layer at layer 99
+[21:15:15] [INFO] [CinemaEffects] Cinema shader loaded successfully (v5.0 - no screen_texture)
+[21:15:15] [INFO] [CinemaEffects] Starting cinema shader warmup (Issue #343 fix)...
+[21:15:15] [INFO] [CinemaEffects] Cinema film effect initialized (v5.2) - Configuration:
+[21:15:15] [INFO] [CinemaEffects]   Approach: Overlay-based (no screen_texture)
+[21:15:15] [INFO] [CinemaEffects]   Grain intensity: 0.15
+[21:15:15] [INFO] [CinemaEffects]   Warm tint: 0.12 intensity
+[21:15:15] [INFO] [CinemaEffects]   Sunny effect: 0.08 intensity
+[21:15:15] [INFO] [CinemaEffects]   Vignette: 0.25 intensity
+[21:15:15] [INFO] [CinemaEffects]   Film defects: 1.5% probability
+[21:15:15] [INFO] [CinemaEffects]   White specks: 0.70 intensity, 4.0% probability
+[21:15:15] [INFO] [CinemaEffects]   Death effects: cigarette burn + expanding spots + end of reel (top-right)
+[21:15:15] [INFO] [CinemaEffects] Enabling effect after 1 frame(s)...
+[21:15:15] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[21:15:15] [INFO] [BloodyFeet:Enemy1] Footprint scene loaded
+[21:15:15] [INFO] [BloodyFeet:Enemy1] Found EnemyModel for facing direction
+[21:15:15] [INFO] [BloodyFeet:Enemy1] BloodyFeetComponent ready on Enemy1
+[21:15:15] [ENEMY] [Enemy1] Death animation component initialized
+[21:15:15] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[21:15:15] [INFO] [BloodyFeet:Enemy2] Footprint scene loaded
+[21:15:15] [INFO] [BloodyFeet:Enemy2] Found EnemyModel for facing direction
+[21:15:15] [INFO] [BloodyFeet:Enemy2] BloodyFeetComponent ready on Enemy2
+[21:15:15] [ENEMY] [Enemy2] Death animation component initialized
+[21:15:15] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[21:15:15] [INFO] [BloodyFeet:Enemy3] Footprint scene loaded
+[21:15:15] [INFO] [BloodyFeet:Enemy3] Found EnemyModel for facing direction
+[21:15:15] [INFO] [BloodyFeet:Enemy3] BloodyFeetComponent ready on Enemy3
+[21:15:15] [INFO] [EnemyGrenade] Initialized: 1 grenades
+[21:15:15] [ENEMY] [Enemy3] Death animation component initialized
+[21:15:15] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[21:15:15] [INFO] [BloodyFeet:Enemy4] Footprint scene loaded
+[21:15:15] [INFO] [BloodyFeet:Enemy4] Found EnemyModel for facing direction
+[21:15:15] [INFO] [BloodyFeet:Enemy4] BloodyFeetComponent ready on Enemy4
+[21:15:15] [ENEMY] [Enemy4] Death animation component initialized
+[21:15:15] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[21:15:15] [INFO] [BloodyFeet:Enemy5] Footprint scene loaded
+[21:15:15] [INFO] [BloodyFeet:Enemy5] Found EnemyModel for facing direction
+[21:15:15] [INFO] [BloodyFeet:Enemy5] BloodyFeetComponent ready on Enemy5
+[21:15:15] [ENEMY] [Enemy5] Death animation component initialized
+[21:15:15] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[21:15:15] [INFO] [BloodyFeet:Enemy6] Footprint scene loaded
+[21:15:15] [INFO] [BloodyFeet:Enemy6] Found EnemyModel for facing direction
+[21:15:15] [INFO] [BloodyFeet:Enemy6] BloodyFeetComponent ready on Enemy6
+[21:15:15] [ENEMY] [Enemy6] Death animation component initialized
+[21:15:15] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[21:15:15] [INFO] [BloodyFeet:Enemy7] Footprint scene loaded
+[21:15:15] [INFO] [BloodyFeet:Enemy7] Found EnemyModel for facing direction
+[21:15:15] [INFO] [BloodyFeet:Enemy7] BloodyFeetComponent ready on Enemy7
+[21:15:15] [ENEMY] [Enemy7] Death animation component initialized
+[21:15:15] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[21:15:15] [INFO] [BloodyFeet:Enemy8] Footprint scene loaded
+[21:15:15] [INFO] [BloodyFeet:Enemy8] Found EnemyModel for facing direction
+[21:15:15] [INFO] [BloodyFeet:Enemy8] BloodyFeetComponent ready on Enemy8
+[21:15:15] [ENEMY] [Enemy8] Death animation component initialized
+[21:15:15] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[21:15:15] [INFO] [BloodyFeet:Enemy9] Footprint scene loaded
+[21:15:15] [INFO] [BloodyFeet:Enemy9] Found EnemyModel for facing direction
+[21:15:15] [INFO] [BloodyFeet:Enemy9] BloodyFeetComponent ready on Enemy9
+[21:15:15] [ENEMY] [Enemy9] Death animation component initialized
+[21:15:15] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[21:15:15] [INFO] [BloodyFeet:Enemy10] Footprint scene loaded
+[21:15:15] [INFO] [BloodyFeet:Enemy10] Found EnemyModel for facing direction
+[21:15:15] [INFO] [BloodyFeet:Enemy10] BloodyFeetComponent ready on Enemy10
+[21:15:15] [ENEMY] [Enemy10] Death animation component initialized
+[21:15:15] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[21:15:15] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[21:15:15] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[21:15:15] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[21:15:15] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[21:15:15] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[21:15:15] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[21:15:15] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[21:15:15] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[21:15:15] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[21:15:15] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[21:15:15] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[21:15:15] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 4/4
+[21:15:15] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[21:15:15] [INFO] [BloodDecal] Blood puddle created at (640, 360) (added to group)
+[21:15:15] [INFO] [BuildingLevel] Found Environment/Enemies node with 10 children
+[21:15:15] [INFO] [BuildingLevel] Child 'Enemy1': script=true, has_died_signal=true
+[21:15:15] [INFO] [BuildingLevel] Child 'Enemy2': script=true, has_died_signal=true
+[21:15:15] [INFO] [BuildingLevel] Child 'Enemy3': script=true, has_died_signal=true
+[21:15:15] [INFO] [BuildingLevel] Child 'Enemy4': script=true, has_died_signal=true
+[21:15:15] [INFO] [BuildingLevel] Child 'Enemy5': script=true, has_died_signal=true
+[21:15:15] [INFO] [BuildingLevel] Child 'Enemy6': script=true, has_died_signal=true
+[21:15:15] [INFO] [BuildingLevel] Child 'Enemy7': script=true, has_died_signal=true
+[21:15:15] [INFO] [BuildingLevel] Child 'Enemy8': script=true, has_died_signal=true
+[21:15:15] [INFO] [BuildingLevel] Child 'Enemy9': script=true, has_died_signal=true
+[21:15:15] [INFO] [BuildingLevel] Child 'Enemy10': script=true, has_died_signal=true
+[21:15:15] [INFO] [BuildingLevel] Enemy tracking complete: 10 enemies registered
+[21:15:15] [INFO] [ScoreManager] Level started with 10 enemies
+[21:15:15] [INFO] [CinemaEffects] Found player node: Player
+[21:15:15] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[21:15:15] [INFO] [BloodyFeet:Enemy1] Blood detector created and attached to Enemy1
+[21:15:15] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 1)
+[21:15:15] [ENEMY] [Enemy1] Registered as sound listener
+[21:15:15] [ENEMY] [Enemy1] Spawned at (300, 350), hp: 4, behavior: GUARD
+[21:15:15] [INFO] [BloodyFeet:Enemy2] Blood detector created and attached to Enemy2
+[21:15:15] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 2)
+[21:15:15] [ENEMY] [Enemy2] Registered as sound listener
+[21:15:15] [ENEMY] [Enemy2] Spawned at (400, 550), hp: 2, behavior: GUARD
+[21:15:15] [INFO] [BloodyFeet:Enemy3] Blood detector created and attached to Enemy3
+[21:15:15] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 3)
+[21:15:15] [ENEMY] [Enemy3] Registered as sound listener
+[21:15:15] [ENEMY] [Enemy3] Spawned at (700, 750), hp: 3, behavior: GUARD
+[21:15:15] [INFO] [BloodyFeet:Enemy4] Blood detector created and attached to Enemy4
+[21:15:15] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 4)
+[21:15:15] [ENEMY] [Enemy4] Registered as sound listener
+[21:15:15] [ENEMY] [Enemy4] Spawned at (800, 900), hp: 2, behavior: GUARD
+[21:15:15] [INFO] [BloodyFeet:Enemy5] Blood detector created and attached to Enemy5
+[21:15:15] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 5)
+[21:15:15] [ENEMY] [Enemy5] Registered as sound listener
+[21:15:15] [ENEMY] [Enemy5] Spawned at (1700, 350), hp: 3, behavior: GUARD
+[21:15:15] [INFO] [BloodyFeet:Enemy6] Blood detector created and attached to Enemy6
+[21:15:15] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 6)
+[21:15:15] [ENEMY] [Enemy6] Registered as sound listener
+[21:15:15] [ENEMY] [Enemy6] Spawned at (1950, 450), hp: 2, behavior: GUARD
+[21:15:15] [INFO] [BloodyFeet:Enemy7] Blood detector created and attached to Enemy7
+[21:15:15] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 7)
+[21:15:15] [ENEMY] [Enemy7] Registered as sound listener
+[21:15:15] [ENEMY] [Enemy7] Spawned at (1606.114, 893.8859), hp: 2, behavior: PATROL
+[21:15:15] [INFO] [BloodyFeet:Enemy8] Blood detector created and attached to Enemy8
+[21:15:15] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 8)
+[21:15:15] [ENEMY] [Enemy8] Registered as sound listener
+[21:15:15] [ENEMY] [Enemy8] Spawned at (1900, 1450), hp: 3, behavior: GUARD
+[21:15:15] [INFO] [BloodyFeet:Enemy9] Blood detector created and attached to Enemy9
+[21:15:15] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 9)
+[21:15:15] [ENEMY] [Enemy9] Registered as sound listener
+[21:15:15] [ENEMY] [Enemy9] Spawned at (2100, 1550), hp: 4, behavior: GUARD
+[21:15:15] [INFO] [BloodyFeet:Enemy10] Blood detector created and attached to Enemy10
+[21:15:15] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 10)
+[21:15:15] [ENEMY] [Enemy10] Registered as sound listener
+[21:15:15] [ENEMY] [Enemy10] Spawned at (1200, 1550), hp: 4, behavior: PATROL
+[21:15:15] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[21:15:15] [ENEMY] [Enemy1] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=202.5°, current=0.0°, player=(450,1250), corner_timer=0.00
+[21:15:15] [ENEMY] [Enemy2] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=202.5°, current=0.0°, player=(450,1250), corner_timer=0.00
+[21:15:15] [ENEMY] [Enemy3] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=281.3°, current=0.0°, player=(450,1250), corner_timer=0.00
+[21:15:15] [ENEMY] [Enemy4] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=258.8°, current=0.0°, player=(450,1250), corner_timer=0.00
+[21:15:15] [ENEMY] [Enemy5] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=258.8°, current=0.0°, player=(450,1250), corner_timer=0.00
+[21:15:15] [ENEMY] [Enemy6] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=225.0°, current=0.0°, player=(450,1250), corner_timer=0.00
+[21:15:15] [ENEMY] [Enemy8] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=303.8°, current=0.0°, player=(450,1250), corner_timer=0.00
+[21:15:15] [ENEMY] [Enemy9] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=303.8°, current=0.0°, player=(450,1250), corner_timer=0.00
+[21:15:15] [INFO] [Player] Detecting weapon pose (frame 3)...
+[21:15:15] [INFO] [Player] Detected weapon: Rifle (default pose)
+[21:15:15] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[21:15:15] [INFO] [PenultimateHit] Shader warmup complete in 176 ms
+[21:15:15] [INFO] [LastChance] Shader warmup complete in 175 ms
+[21:15:15] [INFO] [CinemaEffects] Cinema shader warmup complete in 149 ms
+[21:15:15] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[21:15:15] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[21:15:15] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[21:15:15] [INFO] [LastChance] Found player: Player
+[21:15:15] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[21:15:15] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[21:15:15] [INFO] [LastChance] Connected to player Died signal (C#)
+[21:15:15] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[21:15:16] [INFO] [ImpactEffects] Particle shader warmup complete: 5 effects warmed up in 428 ms
+[21:15:20] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[21:15:20] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[21:15:20] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[21:15:20] [INFO] [LastChance] Resetting all effects (scene change detected)
+[21:15:20] [INFO] [CinemaEffects] Scene changed to: TestTier
+[21:15:20] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[21:15:20] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[21:15:20] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[21:15:20] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[21:15:20] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[21:15:20] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+[21:15:20] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[21:15:20] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[21:15:20] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[21:15:20] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[21:15:20] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[21:15:20] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[21:15:20] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 3/3, Health: 4/4
+[21:15:20] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[21:15:20] [INFO] [CinemaEffects] Found player node: Player
+[21:15:20] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[21:15:20] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[21:15:20] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[21:15:20] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[21:15:20] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[21:15:20] [INFO] [LastChance] Found player: Player
+[21:15:20] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[21:15:20] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[21:15:20] [INFO] [LastChance] Connected to player Died signal (C#)
+[21:15:20] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[21:15:20] [INFO] [Player] Detecting weapon pose (frame 3)...
+[21:15:20] [INFO] [Player] Detected weapon: Rifle (default pose)
+[21:15:20] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[21:15:22] [INFO] [PauseMenu] Armory button pressed
+[21:15:22] [INFO] [PauseMenu] Creating new armory menu instance
+[21:15:22] [INFO] [PauseMenu] armory_menu_scene resource path: res://scenes/ui/ArmoryMenu.tscn
+[21:15:22] [INFO] [PauseMenu] Instance created, class: CanvasLayer, name: ArmoryMenu
+[21:15:22] [INFO] [PauseMenu] Script attached: res://scripts/ui/armory_menu.gd
+[21:15:22] [INFO] [PauseMenu] back_pressed signal exists on instance
+[21:15:22] [INFO] [PauseMenu] back_pressed signal connected
+[21:15:22] [INFO] [PauseMenu] Armory menu instance added as child, is_inside_tree: true
+[21:15:22] [INFO] [PauseMenu] _populate_weapon_grid method exists
+[21:15:22] [INFO] [GameManager] Weapon selected: shotgun
+[21:15:22] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[21:15:22] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[21:15:22] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[21:15:22] [INFO] [LastChance] Resetting all effects (scene change detected)
+[21:15:22] [INFO] [CinemaEffects] Scene changed to: TestTier
+[21:15:22] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[21:15:22] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[21:15:22] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[21:15:22] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[21:15:22] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[21:15:22] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+[21:15:22] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[21:15:22] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[21:15:22] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[21:15:22] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[21:15:22] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[21:15:22] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[21:15:22] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 3/3, Health: 3/4
+[21:15:22] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[21:15:22] [INFO] [CinemaEffects] Found player node: Player
+[21:15:22] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[21:15:22] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[21:15:22] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[21:15:22] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[21:15:22] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[21:15:22] [INFO] [LastChance] Found player: Player
+[21:15:22] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[21:15:22] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[21:15:22] [INFO] [LastChance] Connected to player Died signal (C#)
+[21:15:22] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[21:15:22] [INFO] [Player] Detecting weapon pose (frame 3)...
+[21:15:22] [INFO] [Player] Detected weapon: Shotgun (Shotgun pose)
+[21:15:22] [INFO] [Player] Applied Shotgun arm pose: Left=(21, 6), Right=(-1, 6)
+[21:15:24] [INFO] [Shotgun.FIX#212] Firing 11 pellets with 15° spread at pos=(398.25278, 142.07741)
+[21:15:24] [INFO] [Shotgun.FIX#212] Normal pellet 1/11: extraOffset=-2,7, distance=22,3px, pos=(420.38055, 139.72185)
+[21:15:24] [INFO] [Shotgun.FIX#212] Normal pellet 2/11: extraOffset=-0,6, distance=24,4px, pos=(422.491, 139.21959)
+[21:15:24] [INFO] [Shotgun.FIX#212] Normal pellet 3/11: extraOffset=0,2, distance=25,2px, pos=(423.3505, 139.65083)
+[21:15:24] [INFO] [Shotgun.FIX#212] Normal pellet 4/11: extraOffset=0,5, distance=25,5px, pos=(423.62247, 140.0522)
+[21:15:24] [INFO] [Shotgun.FIX#212] Normal pellet 5/11: extraOffset=-9,0, distance=16,0px, pos=(414.2182, 141.82231)
+[21:15:24] [INFO] [Shotgun.FIX#212] Normal pellet 6/11: extraOffset=8,5, distance=33,5px, pos=(431.70178, 142.77292)
+[21:15:24] [INFO] [Shotgun.FIX#212] Normal pellet 7/11: extraOffset=0,3, distance=25,3px, pos=(423.51294, 142.53488)
+[21:15:24] [INFO] [Shotgun.FIX#212] Normal pellet 8/11: extraOffset=6,5, distance=31,5px, pos=(429.71143, 144.44504)
+[21:15:24] [INFO] [Shotgun.FIX#212] Normal pellet 9/11: extraOffset=13,8, distance=38,8px, pos=(436.99957, 144.58444)
+[21:15:24] [INFO] [Shotgun.FIX#212] Normal pellet 10/11: extraOffset=-10,2, distance=14,8px, pos=(413.0283, 143.26656)
+[21:15:24] [INFO] [Shotgun.FIX#212] Normal pellet 11/11: extraOffset=14,0, distance=39,0px, pos=(436.93835, 146.82124)
+[21:15:24] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(398.2528, 142.0774), source=PLAYER (Shotgun), range=1469, listeners=10
+[21:15:24] [INFO] [SoundPropagation] Cleaned up 10 invalid listeners
+[21:15:24] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[21:15:24] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[21:15:24] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+[21:15:24] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:24] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:24] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:24] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:24] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:24] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:25] [INFO] [Shotgun.FIX#243] Mid-drag pump DOWN - chambered, ready to fire (MMB not held)
+[21:15:25] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:25] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:25] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:25] [INFO] [Shotgun.FIX#243] RMB released after 22 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[21:15:25] [INFO] [Shotgun.FIX#212] Firing 10 pellets with 15° spread at pos=(398.25278, 142.07741)
+[21:15:25] [INFO] [Shotgun.FIX#212] Normal pellet 1/10: extraOffset=-7,6, distance=17,4px, pos=(415.66394, 141.17531)
+[21:15:25] [INFO] [Shotgun.FIX#212] Normal pellet 2/10: extraOffset=-7,7, distance=17,3px, pos=(415.55704, 141.90974)
+[21:15:25] [INFO] [Shotgun.FIX#212] Normal pellet 3/10: extraOffset=-6,6, distance=18,4px, pos=(416.62244, 142.1618)
+[21:15:25] [INFO] [Shotgun.FIX#212] Normal pellet 4/10: extraOffset=-7,9, distance=17,1px, pos=(415.2598, 143.35133)
+[21:15:25] [INFO] [Shotgun.FIX#212] Normal pellet 5/10: extraOffset=-9,7, distance=15,3px, pos=(413.48218, 143.06915)
+[21:15:25] [INFO] [Shotgun.FIX#212] Normal pellet 6/10: extraOffset=-7,3, distance=17,7px, pos=(415.79208, 144.18723)
+[21:15:25] [INFO] [Shotgun.FIX#212] Normal pellet 7/10: extraOffset=-3,6, distance=21,4px, pos=(419.42596, 144.97581)
+[21:15:25] [INFO] [Shotgun.FIX#212] Normal pellet 8/10: extraOffset=7,9, distance=32,9px, pos=(430.78262, 147.26096)
+[21:15:25] [INFO] [Shotgun.FIX#212] Normal pellet 9/10: extraOffset=-5,9, distance=19,1px, pos=(417.06198, 145.50821)
+[21:15:25] [INFO] [Shotgun.FIX#212] Normal pellet 10/10: extraOffset=-2,5, distance=22,5px, pos=(420.1565, 147.2523)
+[21:15:25] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(398.2528, 142.0774), source=PLAYER (Shotgun), range=1469, listeners=0
+[21:15:25] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[21:15:26] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[21:15:26] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+[21:15:26] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:26] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:26] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:26] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:26] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:26] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:26] [INFO] [Shotgun.FIX#243] Mid-drag pump DOWN - chambered, ready to fire (MMB not held)
+[21:15:26] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:26] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:26] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:26] [INFO] [Shotgun.FIX#243] RMB released after 10 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[21:15:27] [INFO] [Shotgun.FIX#212] Firing 12 pellets with 15° spread at pos=(398.25278, 142.07741)
+[21:15:27] [INFO] [Shotgun.FIX#212] Normal pellet 1/12: extraOffset=4,5, distance=29,5px, pos=(427.76953, 142.81274)
+[21:15:27] [INFO] [Shotgun.FIX#212] Normal pellet 2/12: extraOffset=-10,4, distance=14,6px, pos=(412.7886, 142.86821)
+[21:15:27] [INFO] [Shotgun.FIX#212] Normal pellet 3/12: extraOffset=2,5, distance=27,5px, pos=(425.71823, 143.852)
+[21:15:27] [INFO] [Shotgun.FIX#212] Normal pellet 4/12: extraOffset=1,1, distance=26,1px, pos=(424.1777, 145.10887)
+[21:15:27] [INFO] [Shotgun.FIX#212] Normal pellet 5/12: extraOffset=13,6, distance=38,6px, pos=(436.573, 146.96664)
+[21:15:27] [INFO] [Shotgun.FIX#212] Normal pellet 6/12: extraOffset=-4,9, distance=20,1px, pos=(418.08588, 145.2442)
+[21:15:27] [INFO] [Shotgun.FIX#212] Normal pellet 7/12: extraOffset=-5,4, distance=19,6px, pos=(417.6685, 144.9962)
+[21:15:27] [INFO] [Shotgun.FIX#212] Normal pellet 8/12: extraOffset=-0,6, distance=24,4px, pos=(422.08932, 147.09328)
+[21:15:27] [INFO] [Shotgun.FIX#212] Normal pellet 9/12: extraOffset=-5,9, distance=19,1px, pos=(417.05096, 145.698)
+[21:15:27] [INFO] [Shotgun.FIX#212] Normal pellet 10/12: extraOffset=-3,6, distance=21,4px, pos=(419.11575, 146.82092)
+[21:15:27] [INFO] [Shotgun.FIX#212] Normal pellet 11/12: extraOffset=-7,7, distance=17,3px, pos=(414.8137, 146.93118)
+[21:15:27] [INFO] [Shotgun.FIX#212] Normal pellet 12/12: extraOffset=-10,5, distance=14,5px, pos=(412.15506, 146.1718)
+[21:15:27] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(398.2528, 142.0774), source=PLAYER (Shotgun), range=1469, listeners=0
+[21:15:27] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[21:15:27] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[21:15:27] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+[21:15:27] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:27] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:27] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:27] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:27] [INFO] [Shotgun.FIX#243] Mid-drag pump DOWN - chambered, ready to fire (MMB not held)
+[21:15:27] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:27] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:27] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:27] [INFO] [Shotgun.FIX#243] RMB released after 17 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[21:15:27] [INFO] [Shotgun.FIX#243] Bolt open BLOCKED by cooldown
+[21:15:28] [INFO] [Shotgun.FIX#212] Firing 6 pellets with 15° spread at pos=(398.25278, 142.07741)
+[21:15:28] [INFO] [Shotgun.FIX#212] Normal pellet 1/6: extraOffset=-11,5, distance=13,5px, pos=(411.65314, 140.54456)
+[21:15:28] [INFO] [Shotgun.FIX#212] Normal pellet 2/6: extraOffset=6,4, distance=31,4px, pos=(429.62646, 141.41182)
+[21:15:28] [INFO] [Shotgun.FIX#212] Normal pellet 3/6: extraOffset=7,6, distance=32,6px, pos=(430.8503, 142.2883)
+[21:15:28] [INFO] [Shotgun.FIX#212] Normal pellet 4/6: extraOffset=5,2, distance=30,2px, pos=(428.3596, 144.53955)
+[21:15:28] [INFO] [Shotgun.FIX#212] Normal pellet 5/6: extraOffset=-7,7, distance=17,3px, pos=(415.48703, 143.9433)
+[21:15:28] [INFO] [Shotgun.FIX#212] Normal pellet 6/6: extraOffset=2,2, distance=27,2px, pos=(425.16248, 146.2952)
+[21:15:28] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(398.2528, 142.0774), source=PLAYER (Shotgun), range=1469, listeners=0
+[21:15:28] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[21:15:28] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[21:15:28] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+[21:15:28] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:28] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:28] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:28] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:28] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:28] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:28] [INFO] [Shotgun.FIX#243] Mid-drag pump DOWN - chambered, ready to fire (MMB not held)
+[21:15:28] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:28] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:28] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:29] [INFO] [Shotgun.FIX#243] RMB released after 12 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[21:15:29] [INFO] [Shotgun.FIX#243] Bolt open BLOCKED by cooldown
+[21:15:29] [INFO] [Shotgun.FIX#212] Firing 12 pellets with 15° spread at pos=(398.25278, 142.07741)
+[21:15:29] [INFO] [Shotgun.FIX#212] Normal pellet 1/12: extraOffset=-11,1, distance=13,9px, pos=(412.15387, 140.9866)
+[21:15:29] [INFO] [Shotgun.FIX#212] Normal pellet 2/12: extraOffset=-7,4, distance=17,6px, pos=(415.83215, 140.59468)
+[21:15:29] [INFO] [Shotgun.FIX#212] Normal pellet 3/12: extraOffset=2,5, distance=27,5px, pos=(425.7487, 140.4053)
+[21:15:29] [INFO] [Shotgun.FIX#212] Normal pellet 4/12: extraOffset=-3,1, distance=21,9px, pos=(420.1433, 141.74472)
+[21:15:29] [INFO] [Shotgun.FIX#212] Normal pellet 5/12: extraOffset=7,6, distance=32,6px, pos=(430.88028, 141.42165)
+[21:15:29] [INFO] [Shotgun.FIX#212] Normal pellet 6/12: extraOffset=-13,6, distance=11,4px, pos=(409.68875, 142.52853)
+[21:15:29] [INFO] [Shotgun.FIX#212] Normal pellet 7/12: extraOffset=-14,7, distance=10,3px, pos=(408.5119, 142.32098)
+[21:15:29] [INFO] [Shotgun.FIX#212] Normal pellet 8/12: extraOffset=7,8, distance=32,8px, pos=(430.98425, 143.6563)
+[21:15:29] [INFO] [Shotgun.FIX#212] Normal pellet 9/12: extraOffset=6,4, distance=31,4px, pos=(429.5222, 144.70746)
+[21:15:29] [INFO] [Shotgun.FIX#212] Normal pellet 10/12: extraOffset=9,1, distance=34,1px, pos=(432.13617, 145.59521)
+[21:15:29] [INFO] [Shotgun.FIX#212] Normal pellet 11/12: extraOffset=-0,2, distance=24,8px, pos=(422.80527, 145.36409)
+[21:15:29] [INFO] [Shotgun.FIX#212] Normal pellet 12/12: extraOffset=7,6, distance=32,6px, pos=(430.29562, 147.94849)
+[21:15:29] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(398.2528, 142.0774), source=PLAYER (Shotgun), range=1469, listeners=0
+[21:15:29] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[21:15:30] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[21:15:30] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+[21:15:30] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:30] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:30] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:30] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:30] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:30] [INFO] [Shotgun.FIX#243] Mid-drag pump DOWN - chambered, ready to fire (MMB not held)
+[21:15:30] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:30] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:30] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:30] [INFO] [Shotgun.FIX#243] RMB released after 10 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[21:15:30] [INFO] [Shotgun.FIX#212] Firing 11 pellets with 15° spread at pos=(398.25278, 142.07741)
+[21:15:30] [INFO] [Shotgun.FIX#212] Normal pellet 1/11: extraOffset=4,8, distance=29,8px, pos=(427.84656, 139.02652)
+[21:15:30] [INFO] [Shotgun.FIX#212] Normal pellet 2/11: extraOffset=-7,8, distance=17,2px, pos=(415.3974, 140.70752)
+[21:15:30] [INFO] [Shotgun.FIX#212] Normal pellet 3/11: extraOffset=11,7, distance=36,7px, pos=(434.88077, 139.64204)
+[21:15:30] [INFO] [Shotgun.FIX#212] Normal pellet 4/11: extraOffset=13,8, distance=38,8px, pos=(437.0793, 140.84268)
+[21:15:30] [INFO] [Shotgun.FIX#212] Normal pellet 5/11: extraOffset=-11,8, distance=13,2px, pos=(411.49234, 141.77345)
+[21:15:30] [INFO] [Shotgun.FIX#212] Normal pellet 6/11: extraOffset=-4,0, distance=21,0px, pos=(419.26465, 142.27238)
+[21:15:30] [INFO] [Shotgun.FIX#212] Normal pellet 7/11: extraOffset=2,1, distance=27,1px, pos=(425.3382, 142.4062)
+[21:15:30] [INFO] [Shotgun.FIX#212] Normal pellet 8/11: extraOffset=5,5, distance=30,5px, pos=(428.73352, 144.04349)
+[21:15:30] [INFO] [Shotgun.FIX#212] Normal pellet 9/11: extraOffset=8,1, distance=33,1px, pos=(431.21838, 145.15358)
+[21:15:30] [INFO] [Shotgun.FIX#212] Normal pellet 10/11: extraOffset=8,7, distance=33,7px, pos=(431.7812, 145.84769)
+[21:15:30] [INFO] [Shotgun.FIX#212] Normal pellet 11/11: extraOffset=9,1, distance=34,1px, pos=(432.00128, 146.9714)
+[21:15:30] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(398.2528, 142.0774), source=PLAYER (Shotgun), range=1469, listeners=0
+[21:15:30] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[21:15:31] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[21:15:31] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+[21:15:31] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:31] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:31] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:31] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:31] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:31] [INFO] [Shotgun.FIX#243] Mid-drag pump DOWN - chambered, ready to fire (MMB not held)
+[21:15:31] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:31] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:31] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:31] [INFO] [Shotgun.FIX#243] RMB released after 8 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[21:15:31] [INFO] [Shotgun.FIX#243] Bolt open BLOCKED by cooldown
+[21:15:31] [INFO] [Shotgun.FIX#212] Firing 9 pellets with 15° spread at pos=(398.25278, 142.07741)
+[21:15:31] [INFO] [Shotgun.FIX#212] Normal pellet 1/9: extraOffset=-11,7, distance=13,3px, pos=(411.32166, 139.64594)
+[21:15:31] [INFO] [Shotgun.FIX#212] Normal pellet 2/9: extraOffset=-9,8, distance=15,2px, pos=(413.23584, 139.54608)
+[21:15:31] [INFO] [Shotgun.FIX#212] Normal pellet 3/9: extraOffset=-8,1, distance=16,9px, pos=(415.04062, 139.81238)
+[21:15:31] [INFO] [Shotgun.FIX#212] Normal pellet 4/9: extraOffset=-10,0, distance=15,0px, pos=(413.16406, 140.87729)
+[21:15:31] [INFO] [Shotgun.FIX#212] Normal pellet 5/9: extraOffset=-14,7, distance=10,3px, pos=(408.50452, 141.82843)
+[21:15:31] [INFO] [Shotgun.FIX#212] Normal pellet 6/9: extraOffset=8,3, distance=33,3px, pos=(431.56345, 141.49828)
+[21:15:31] [INFO] [Shotgun.FIX#212] Normal pellet 7/9: extraOffset=-4,2, distance=20,8px, pos=(419.01636, 142.13962)
+[21:15:31] [INFO] [Shotgun.FIX#212] Normal pellet 8/9: extraOffset=7,7, distance=32,7px, pos=(430.9429, 143.18298)
+[21:15:31] [INFO] [Shotgun.FIX#212] Normal pellet 9/9: extraOffset=-7,2, distance=17,8px, pos=(415.9973, 143.27373)
+[21:15:31] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(398.2528, 142.0774), source=PLAYER (Shotgun), range=1469, listeners=0
+[21:15:31] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[21:15:32] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[21:15:32] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+[21:15:32] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:32] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:32] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:32] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:32] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:32] [INFO] [Shotgun.FIX#243] RMB released after 5 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[21:15:35] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[21:15:35] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpDown, ReloadState=NotReloading
+[21:15:35] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:35] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:35] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:35] [INFO] [Shotgun.FIX#243] Mid-drag pump DOWN - chambered, ready to fire (MMB not held)
+[21:15:35] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:35] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:35] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:35] [INFO] [Shotgun.FIX#243] RMB released after 5 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[21:15:35] [INFO] [Shotgun.FIX#212] Firing 12 pellets with 15° spread at pos=(398.25278, 142.07741)
+[21:15:35] [INFO] [Shotgun.FIX#212] Normal pellet 1/12: extraOffset=8,5, distance=33,5px, pos=(431.431, 137.47147)
+[21:15:35] [INFO] [Shotgun.FIX#212] Normal pellet 2/12: extraOffset=10,8, distance=35,8px, pos=(433.86017, 138.2493)
+[21:15:35] [INFO] [Shotgun.FIX#212] Normal pellet 3/12: extraOffset=2,9, distance=27,9px, pos=(426.16623, 140.67003)
+[21:15:35] [INFO] [Shotgun.FIX#212] Normal pellet 4/12: extraOffset=7,6, distance=32,6px, pos=(430.83276, 141.27917)
+[21:15:35] [INFO] [Shotgun.FIX#212] Normal pellet 5/12: extraOffset=-4,2, distance=20,8px, pos=(419.02386, 141.47406)
+[21:15:35] [INFO] [Shotgun.FIX#212] Normal pellet 6/12: extraOffset=-7,3, distance=17,7px, pos=(415.90744, 142.40755)
+[21:15:35] [INFO] [Shotgun.FIX#212] Normal pellet 7/12: extraOffset=5,5, distance=30,5px, pos=(428.7534, 142.25885)
+[21:15:35] [INFO] [Shotgun.FIX#212] Normal pellet 8/12: extraOffset=-8,4, distance=16,6px, pos=(414.8365, 143.29025)
+[21:15:35] [INFO] [Shotgun.FIX#212] Normal pellet 9/12: extraOffset=-3,7, distance=21,3px, pos=(419.55038, 143.4499)
+[21:15:35] [INFO] [Shotgun.FIX#212] Normal pellet 10/12: extraOffset=4,0, distance=29,0px, pos=(427.028, 145.50598)
+[21:15:35] [INFO] [Shotgun.FIX#212] Normal pellet 11/12: extraOffset=-8,3, distance=16,7px, pos=(414.85074, 143.82965)
+[21:15:35] [INFO] [Shotgun.FIX#212] Normal pellet 12/12: extraOffset=-1,6, distance=23,4px, pos=(421.2767, 146.04161)
+[21:15:35] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(398.2528, 142.0774), source=PLAYER (Shotgun), range=1469, listeners=0
+[21:15:35] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[21:15:36] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[21:15:36] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+[21:15:36] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:36] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:36] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:36] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:36] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:36] [INFO] [Shotgun.FIX#243] RMB released after 6 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[21:15:37] [INFO] [Shotgun.EVENT] MMB event: pressed=True (was False), isDragging=False
+[21:15:37] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[21:15:37] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=True, raw=True, event=True, any=True, ActionState=NeedsPumpDown, ReloadState=NotReloading
+[21:15:37] [INFO] [Shotgun.DIAG] Frame 1: poll=True, raw=True, event=True, any=True, wasMMB=True
+[21:15:37] [INFO] [Shotgun.DIAG] Frame 2: poll=True, raw=True, event=True, any=True, wasMMB=True
+[21:15:37] [INFO] [Shotgun.DIAG] Frame 3: poll=True, raw=True, event=True, any=True, wasMMB=True
+[21:15:37] [INFO] [Shotgun.FIX#266] Mid-drag MMB+DOWN during pump cycle: transitioning to reload mode
+[21:15:37] [INFO] [Shotgun.FIX#266] Transitioned to Loading state (bolt already open from pump UP)
+[21:15:37] [INFO] [Shotgun.FIX#243] LoadShell called - ReloadState=Loading, ShellsInTube=0/8, Tutorial=True, ReserveAmmo=12
+[21:15:37] [INFO] [Shotgun.FIX#243] Shell LOADED - 1/8 shells in tube
+[21:15:37] [INFO] [Shotgun.FIX#266] Mid-drag shell loaded during pump cycle - staying in Loading state
+[21:15:37] [INFO] [Shotgun.DIAG] Frame 1: poll=True, raw=True, event=True, any=True, wasMMB=True
+[21:15:37] [INFO] [Shotgun.DIAG] Frame 2: poll=True, raw=True, event=True, any=True, wasMMB=True
+[21:15:37] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:37] [INFO] [Shotgun.DIAG] Frame 3: poll=True, raw=True, event=True, any=True, wasMMB=True
+[21:15:37] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:37] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:37] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:37] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:37] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:37] [INFO] [Shotgun.FIX#243] RMB released after 7 frames - wasMMBDuringDrag=True, current: poll=True, raw=True, event=True
+[21:15:37] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[21:15:37] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=True, raw=True, event=True, any=True, ActionState=Ready, ReloadState=Loading
+[21:15:37] [INFO] [Shotgun.DIAG] Frame 1: poll=True, raw=True, event=True, any=True, wasMMB=True
+[21:15:37] [INFO] [Shotgun.DIAG] Frame 2: poll=True, raw=True, event=True, any=True, wasMMB=True
+[21:15:37] [INFO] [Shotgun.DIAG] Frame 3: poll=True, raw=True, event=True, any=True, wasMMB=True
+[21:15:37] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:37] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:37] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:37] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:37] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:37] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:37] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:37] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:37] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:37] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:37] [INFO] [Shotgun.FIX#243] RMB released after 12 frames - wasMMBDuringDrag=True, current: poll=True, raw=True, event=True
+[21:15:37] [INFO] [Shotgun.FIX#266] RMB release in Loading state: wasMMBDuringDrag=True, isMMBHeld=True => shouldLoadShell=True
+[21:15:37] [INFO] [Shotgun.FIX#266] Loading shell (MMB was held during drag)
+[21:15:37] [INFO] [Shotgun.FIX#243] LoadShell called - ReloadState=Loading, ShellsInTube=1/8, Tutorial=True, ReserveAmmo=12
+[21:15:37] [INFO] [Shotgun.FIX#243] Shell LOADED - 2/8 shells in tube
+[21:15:38] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[21:15:38] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=True, raw=True, event=True, any=True, ActionState=Ready, ReloadState=Loading
+[21:15:38] [INFO] [Shotgun.DIAG] Frame 1: poll=True, raw=True, event=True, any=True, wasMMB=True
+[21:15:38] [INFO] [Shotgun.DIAG] Frame 2: poll=True, raw=True, event=True, any=True, wasMMB=True
+[21:15:38] [INFO] [Shotgun.DIAG] Frame 3: poll=True, raw=True, event=True, any=True, wasMMB=True
+[21:15:38] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:38] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:38] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:38] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:38] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:38] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:38] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:38] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:38] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:38] [INFO] [Shotgun.FIX#243] RMB released after 13 frames - wasMMBDuringDrag=True, current: poll=True, raw=True, event=True
+[21:15:38] [INFO] [Shotgun.FIX#266] RMB release in Loading state: wasMMBDuringDrag=True, isMMBHeld=True => shouldLoadShell=True
+[21:15:38] [INFO] [Shotgun.FIX#266] Loading shell (MMB was held during drag)
+[21:15:38] [INFO] [Shotgun.FIX#243] LoadShell called - ReloadState=Loading, ShellsInTube=2/8, Tutorial=True, ReserveAmmo=12
+[21:15:38] [INFO] [Shotgun.FIX#243] Shell LOADED - 3/8 shells in tube
+[21:15:38] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[21:15:38] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=True, raw=True, event=True, any=True, ActionState=Ready, ReloadState=Loading
+[21:15:38] [INFO] [Shotgun.DIAG] Frame 1: poll=True, raw=True, event=True, any=True, wasMMB=True
+[21:15:38] [INFO] [Shotgun.DIAG] Frame 2: poll=True, raw=True, event=True, any=True, wasMMB=True
+[21:15:38] [INFO] [Shotgun.DIAG] Frame 3: poll=True, raw=True, event=True, any=True, wasMMB=True
+[21:15:38] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:38] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:38] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:38] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:38] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:38] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:38] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:38] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:38] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:38] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:38] [INFO] [Shotgun.FIX#243] RMB released after 12 frames - wasMMBDuringDrag=True, current: poll=True, raw=True, event=True
+[21:15:38] [INFO] [Shotgun.FIX#266] RMB release in Loading state: wasMMBDuringDrag=True, isMMBHeld=True => shouldLoadShell=True
+[21:15:38] [INFO] [Shotgun.FIX#266] Loading shell (MMB was held during drag)
+[21:15:38] [INFO] [Shotgun.FIX#243] LoadShell called - ReloadState=Loading, ShellsInTube=3/8, Tutorial=True, ReserveAmmo=12
+[21:15:38] [INFO] [Shotgun.FIX#243] Shell LOADED - 4/8 shells in tube
+[21:15:38] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[21:15:38] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=True, raw=True, event=True, any=True, ActionState=Ready, ReloadState=Loading
+[21:15:38] [INFO] [Shotgun.DIAG] Frame 1: poll=True, raw=True, event=True, any=True, wasMMB=True
+[21:15:38] [INFO] [Shotgun.DIAG] Frame 2: poll=True, raw=True, event=True, any=True, wasMMB=True
+[21:15:38] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:38] [INFO] [Shotgun.DIAG] Frame 3: poll=True, raw=True, event=True, any=True, wasMMB=True
+[21:15:38] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:38] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:38] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:38] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:38] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:38] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:38] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:38] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:38] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:39] [INFO] [Shotgun.FIX#243] RMB released after 11 frames - wasMMBDuringDrag=True, current: poll=True, raw=True, event=True
+[21:15:39] [INFO] [Shotgun.FIX#266] RMB release in Loading state: wasMMBDuringDrag=True, isMMBHeld=True => shouldLoadShell=True
+[21:15:39] [INFO] [Shotgun.FIX#266] Loading shell (MMB was held during drag)
+[21:15:39] [INFO] [Shotgun.FIX#243] LoadShell called - ReloadState=Loading, ShellsInTube=4/8, Tutorial=True, ReserveAmmo=12
+[21:15:39] [INFO] [Shotgun.FIX#243] Shell LOADED - 5/8 shells in tube
+[21:15:39] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[21:15:39] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=True, raw=True, event=True, any=True, ActionState=Ready, ReloadState=Loading
+[21:15:39] [INFO] [Shotgun.DIAG] Frame 1: poll=True, raw=True, event=True, any=True, wasMMB=True
+[21:15:39] [INFO] [Shotgun.DIAG] Frame 2: poll=True, raw=True, event=True, any=True, wasMMB=True
+[21:15:39] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:39] [INFO] [Shotgun.DIAG] Frame 3: poll=True, raw=True, event=True, any=True, wasMMB=True
+[21:15:39] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:39] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:39] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:39] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:39] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:39] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:39] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:39] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:39] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:39] [INFO] [Shotgun.FIX#243] RMB released after 11 frames - wasMMBDuringDrag=True, current: poll=True, raw=True, event=True
+[21:15:39] [INFO] [Shotgun.FIX#266] RMB release in Loading state: wasMMBDuringDrag=True, isMMBHeld=True => shouldLoadShell=True
+[21:15:39] [INFO] [Shotgun.FIX#266] Loading shell (MMB was held during drag)
+[21:15:39] [INFO] [Shotgun.FIX#243] LoadShell called - ReloadState=Loading, ShellsInTube=5/8, Tutorial=True, ReserveAmmo=12
+[21:15:39] [INFO] [Shotgun.FIX#243] Shell LOADED - 6/8 shells in tube
+[21:15:39] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[21:15:39] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=True, raw=True, event=True, any=True, ActionState=Ready, ReloadState=Loading
+[21:15:39] [INFO] [Shotgun.DIAG] Frame 1: poll=True, raw=True, event=True, any=True, wasMMB=True
+[21:15:39] [INFO] [Shotgun.DIAG] Frame 2: poll=True, raw=True, event=True, any=True, wasMMB=True
+[21:15:39] [INFO] [Shotgun.DIAG] Frame 3: poll=True, raw=True, event=True, any=True, wasMMB=True
+[21:15:39] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:39] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:39] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:39] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:39] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:39] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:39] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:39] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:39] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:39] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:39] [INFO] [Shotgun.FIX#243] RMB released after 12 frames - wasMMBDuringDrag=True, current: poll=True, raw=True, event=True
+[21:15:39] [INFO] [Shotgun.FIX#266] RMB release in Loading state: wasMMBDuringDrag=True, isMMBHeld=True => shouldLoadShell=True
+[21:15:39] [INFO] [Shotgun.FIX#266] Loading shell (MMB was held during drag)
+[21:15:39] [INFO] [Shotgun.FIX#243] LoadShell called - ReloadState=Loading, ShellsInTube=6/8, Tutorial=True, ReserveAmmo=12
+[21:15:39] [INFO] [Shotgun.FIX#243] Shell LOADED - 7/8 shells in tube
+[21:15:39] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[21:15:39] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=True, raw=True, event=True, any=True, ActionState=Ready, ReloadState=Loading
+[21:15:39] [INFO] [Shotgun.DIAG] Frame 1: poll=True, raw=True, event=True, any=True, wasMMB=True
+[21:15:39] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:39] [INFO] [Shotgun.DIAG] Frame 2: poll=True, raw=True, event=True, any=True, wasMMB=True
+[21:15:39] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:39] [INFO] [Shotgun.DIAG] Frame 3: poll=True, raw=True, event=True, any=True, wasMMB=True
+[21:15:39] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:40] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:40] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:40] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:40] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:40] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:40] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:40] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:40] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=True - NOT processing mid-drag, waiting for RMB release
+[21:15:40] [INFO] [Shotgun.FIX#243] RMB released after 11 frames - wasMMBDuringDrag=True, current: poll=True, raw=True, event=True
+[21:15:40] [INFO] [Shotgun.FIX#266] RMB release in Loading state: wasMMBDuringDrag=True, isMMBHeld=True => shouldLoadShell=True
+[21:15:40] [INFO] [Shotgun.FIX#266] Loading shell (MMB was held during drag)
+[21:15:40] [INFO] [Shotgun.FIX#243] LoadShell called - ReloadState=Loading, ShellsInTube=7/8, Tutorial=True, ReserveAmmo=12
+[21:15:40] [INFO] [Shotgun.FIX#243] Shell LOADED - 8/8 shells in tube
+[21:15:40] [INFO] [Shotgun.EVENT] MMB event: pressed=False (was True), isDragging=False
+[21:15:40] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[21:15:40] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=Ready, ReloadState=Loading
+[21:15:40] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:40] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:40] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:40] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[21:15:40] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[21:15:40] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[21:15:40] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[21:15:40] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[21:15:40] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[21:15:40] [INFO] [Shotgun.FIX#243] Mid-drag DOWN in Loading state: shouldLoad=False - NOT processing mid-drag, waiting for RMB release
+[21:15:40] [INFO] [Shotgun.FIX#243] RMB released after 10 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[21:15:40] [INFO] [Shotgun.FIX#266] RMB release in Loading state: wasMMBDuringDrag=False, isMMBHeld=False => shouldLoadShell=False
+[21:15:40] [INFO] [Shotgun.FIX#266] Closing bolt (MMB was not held)
+[21:15:40] [INFO] [Shotgun.FIX#243] Reload complete - bolt closed, ready to fire with 8 shells
+[21:15:41] [INFO] [Shotgun.FIX#212] Firing 10 pellets with 15° spread at pos=(398.25278, 142.07741)
+[21:15:41] [INFO] [Shotgun.FIX#212] Normal pellet 1/10: extraOffset=1,4, distance=26,4px, pos=(424.58035, 140.85115)
+[21:15:41] [INFO] [Shotgun.FIX#212] Normal pellet 2/10: extraOffset=-10,9, distance=14,1px, pos=(412.38416, 141.66223)
+[21:15:41] [INFO] [Shotgun.FIX#212] Normal pellet 3/10: extraOffset=-7,1, distance=17,9px, pos=(416.18726, 142.27473)
+[21:15:41] [INFO] [Shotgun.FIX#212] Normal pellet 4/10: extraOffset=-11,7, distance=13,3px, pos=(411.5477, 142.15898)
+[21:15:41] [INFO] [Shotgun.FIX#212] Normal pellet 5/10: extraOffset=13,7, distance=38,7px, pos=(436.87775, 144.71165)
+[21:15:41] [INFO] [Shotgun.FIX#212] Normal pellet 6/10: extraOffset=-6,6, distance=18,4px, pos=(416.63873, 143.3321)
+[21:15:41] [INFO] [Shotgun.FIX#212] Normal pellet 7/10: extraOffset=-5,5, distance=19,5px, pos=(417.6783, 144.02814)
+[21:15:41] [INFO] [Shotgun.FIX#212] Normal pellet 8/10: extraOffset=-12,7, distance=12,3px, pos=(410.41653, 143.86107)
+[21:15:41] [INFO] [Shotgun.FIX#212] Normal pellet 9/10: extraOffset=5,4, distance=30,4px, pos=(428.28683, 146.90614)
+[21:15:41] [INFO] [Shotgun.FIX#212] Normal pellet 10/10: extraOffset=10,8, distance=35,8px, pos=(433.28146, 149.23538)
+[21:15:41] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(398.2528, 142.0774), source=PLAYER (Shotgun), range=1469, listeners=0
+[21:15:41] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[21:15:42] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[21:15:42] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+[21:15:42] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:42] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:42] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:42] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:42] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:42] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:42] [INFO] [Shotgun.FIX#243] RMB released after 4 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[21:15:42] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[21:15:42] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpDown, ReloadState=NotReloading
+[21:15:42] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:42] [INFO] [Shotgun.FIX#243] Mid-drag pump DOWN - chambered, ready to fire (MMB not held)
+[21:15:42] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:42] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:42] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:42] [INFO] [Shotgun.FIX#243] RMB released after 8 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[21:15:43] [INFO] [Shotgun.FIX#212] Firing 11 pellets with 15° spread at pos=(398.25278, 142.07741)
+[21:15:43] [INFO] [Shotgun.FIX#212] Normal pellet 1/11: extraOffset=-11,0, distance=14,0px, pos=(412.1701, 141.0298)
+[21:15:43] [INFO] [Shotgun.FIX#212] Normal pellet 2/11: extraOffset=-3,1, distance=21,9px, pos=(420.14966, 141.19682)
+[21:15:43] [INFO] [Shotgun.FIX#212] Normal pellet 3/11: extraOffset=5,9, distance=30,9px, pos=(429.12207, 141.051)
+[21:15:43] [INFO] [Shotgun.FIX#212] Normal pellet 4/11: extraOffset=1,3, distance=26,3px, pos=(424.51874, 142.10233)
+[21:15:43] [INFO] [Shotgun.FIX#212] Normal pellet 5/11: extraOffset=-6,4, distance=18,6px, pos=(416.79178, 142.89452)
+[21:15:43] [INFO] [Shotgun.FIX#212] Normal pellet 6/11: extraOffset=2,0, distance=27,0px, pos=(425.2374, 143.38023)
+[21:15:43] [INFO] [Shotgun.FIX#212] Normal pellet 7/11: extraOffset=4,7, distance=29,7px, pos=(427.94406, 143.76134)
+[21:15:43] [INFO] [Shotgun.FIX#212] Normal pellet 8/11: extraOffset=14,8, distance=39,8px, pos=(437.86224, 145.61476)
+[21:15:43] [INFO] [Shotgun.FIX#212] Normal pellet 9/11: extraOffset=12,1, distance=37,1px, pos=(435.09497, 146.71806)
+[21:15:43] [INFO] [Shotgun.FIX#212] Normal pellet 10/11: extraOffset=-14,1, distance=10,9px, pos=(408.9554, 144.02725)
+[21:15:43] [INFO] [Shotgun.FIX#212] Normal pellet 11/11: extraOffset=-12,9, distance=12,1px, pos=(410.244, 144.00987)
+[21:15:43] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(398.2528, 142.0774), source=PLAYER (Shotgun), range=1469, listeners=0
+[21:15:43] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[21:15:43] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[21:15:43] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+[21:15:43] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:43] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:43] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:43] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:43] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:43] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:43] [INFO] [Shotgun.FIX#243] RMB released after 5 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[21:15:46] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[21:15:46] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpDown, ReloadState=NotReloading
+[21:15:46] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:46] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:46] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:46] [INFO] [Shotgun.FIX#243] Mid-drag pump DOWN - chambered, ready to fire (MMB not held)
+[21:15:46] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:46] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:46] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:46] [INFO] [Shotgun.FIX#243] RMB released after 5 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[21:15:47] [INFO] [Shotgun.FIX#212] Firing 8 pellets with 15° spread at pos=(398.25278, 142.07741)
+[21:15:47] [INFO] [Shotgun.FIX#212] Normal pellet 1/8: extraOffset=-5,4, distance=19,6px, pos=(417.86603, 141.48471)
+[21:15:47] [INFO] [Shotgun.FIX#212] Normal pellet 2/8: extraOffset=-9,4, distance=15,6px, pos=(413.85403, 141.54347)
+[21:15:47] [INFO] [Shotgun.FIX#212] Normal pellet 3/8: extraOffset=-11,4, distance=13,6px, pos=(411.80927, 142.43709)
+[21:15:47] [INFO] [Shotgun.FIX#212] Normal pellet 4/8: extraOffset=-11,6, distance=13,4px, pos=(411.59995, 142.50877)
+[21:15:47] [INFO] [Shotgun.FIX#212] Normal pellet 5/8: extraOffset=12,8, distance=37,8px, pos=(435.90833, 145.88966)
+[21:15:47] [INFO] [Shotgun.FIX#212] Normal pellet 6/8: extraOffset=-5,8, distance=19,2px, pos=(417.24927, 144.6275)
+[21:15:47] [INFO] [Shotgun.FIX#212] Normal pellet 7/8: extraOffset=6,7, distance=31,7px, pos=(429.51523, 147.47833)
+[21:15:47] [INFO] [Shotgun.FIX#212] Normal pellet 8/8: extraOffset=-3,3, distance=21,7px, pos=(419.57227, 146.27129)
+[21:15:47] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(398.2528, 142.0774), source=PLAYER (Shotgun), range=1469, listeners=0
+[21:15:47] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[21:15:47] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[21:15:47] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+[21:15:47] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:47] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:47] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:47] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:47] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:47] [INFO] [Shotgun.FIX#243] Mid-drag pump DOWN - chambered, ready to fire (MMB not held)
+[21:15:47] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:47] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:47] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:48] [INFO] [Shotgun.FIX#243] RMB released after 13 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[21:15:48] [INFO] [Shotgun.FIX#243] Bolt open BLOCKED by cooldown
+[21:15:48] [INFO] [Shotgun.FIX#212] Firing 12 pellets with 15° spread at pos=(398.25278, 142.07741)
+[21:15:48] [INFO] [Shotgun.FIX#212] Normal pellet 1/12: extraOffset=10,1, distance=35,1px, pos=(432.83414, 136.24396)
+[21:15:48] [INFO] [Shotgun.FIX#212] Normal pellet 2/12: extraOffset=2,7, distance=27,7px, pos=(425.69806, 138.67126)
+[21:15:48] [INFO] [Shotgun.FIX#212] Normal pellet 3/12: extraOffset=-12,2, distance=12,8px, pos=(410.97314, 141.09332)
+[21:15:48] [INFO] [Shotgun.FIX#212] Normal pellet 4/12: extraOffset=9,7, distance=34,7px, pos=(432.79294, 139.07985)
+[21:15:48] [INFO] [Shotgun.FIX#212] Normal pellet 5/12: extraOffset=-4,7, distance=20,3px, pos=(418.56113, 141.25504)
+[21:15:48] [INFO] [Shotgun.FIX#212] Normal pellet 6/12: extraOffset=7,1, distance=32,1px, pos=(430.35217, 141.18373)
+[21:15:48] [INFO] [Shotgun.FIX#212] Normal pellet 7/12: extraOffset=-12,2, distance=12,8px, pos=(411.00928, 141.95929)
+[21:15:48] [INFO] [Shotgun.FIX#212] Normal pellet 8/12: extraOffset=14,9, distance=39,9px, pos=(438.11563, 143.88405)
+[21:15:48] [INFO] [Shotgun.FIX#212] Normal pellet 9/12: extraOffset=-5,3, distance=19,7px, pos=(417.96686, 142.99193)
+[21:15:48] [INFO] [Shotgun.FIX#212] Normal pellet 10/12: extraOffset=-10,5, distance=14,5px, pos=(412.6802, 143.07576)
+[21:15:48] [INFO] [Shotgun.FIX#212] Normal pellet 11/12: extraOffset=1,1, distance=26,1px, pos=(424.2515, 144.20628)
+[21:15:48] [INFO] [Shotgun.FIX#212] Normal pellet 12/12: extraOffset=-5,8, distance=19,2px, pos=(417.34924, 144.43903)
+[21:15:48] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(398.2528, 142.0774), source=PLAYER (Shotgun), range=1469, listeners=0
+[21:15:48] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[21:15:48] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[21:15:48] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+[21:15:48] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:48] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:48] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:48] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:48] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:48] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:48] [INFO] [Shotgun.FIX#243] Mid-drag pump DOWN - chambered, ready to fire (MMB not held)
+[21:15:48] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:48] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:48] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:48] [INFO] [Shotgun.FIX#243] RMB released after 5 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[21:15:49] [INFO] [Shotgun.FIX#212] Firing 10 pellets with 15° spread at pos=(398.25278, 142.07741)
+[21:15:49] [INFO] [Shotgun.FIX#212] Normal pellet 1/10: extraOffset=-3,2, distance=21,8px, pos=(419.9961, 140.92052)
+[21:15:49] [INFO] [Shotgun.FIX#212] Normal pellet 2/10: extraOffset=-13,9, distance=11,1px, pos=(409.3219, 141.97643)
+[21:15:49] [INFO] [Shotgun.FIX#212] Normal pellet 3/10: extraOffset=-2,9, distance=22,1px, pos=(420.33572, 143.13068)
+[21:15:49] [INFO] [Shotgun.FIX#212] Normal pellet 4/10: extraOffset=-3,7, distance=21,3px, pos=(419.511, 142.86826)
+[21:15:49] [INFO] [Shotgun.FIX#212] Normal pellet 5/10: extraOffset=-14,7, distance=10,3px, pos=(408.5417, 142.77284)
+[21:15:49] [INFO] [Shotgun.FIX#212] Normal pellet 6/10: extraOffset=-11,9, distance=13,1px, pos=(411.27448, 143.4355)
+[21:15:49] [INFO] [Shotgun.FIX#212] Normal pellet 7/10: extraOffset=-7,2, distance=17,8px, pos=(415.8927, 144.46957)
+[21:15:49] [INFO] [Shotgun.FIX#212] Normal pellet 8/10: extraOffset=14,3, distance=39,3px, pos=(436.7542, 149.88768)
+[21:15:49] [INFO] [Shotgun.FIX#212] Normal pellet 9/10: extraOffset=1,0, distance=26,0px, pos=(423.6091, 147.76218)
+[21:15:49] [INFO] [Shotgun.FIX#212] Normal pellet 10/10: extraOffset=5,8, distance=30,8px, pos=(428.28033, 149.14044)
+[21:15:49] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(398.2528, 142.0774), source=PLAYER (Shotgun), range=1469, listeners=0
+[21:15:49] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[21:15:49] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[21:15:49] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+[21:15:49] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:49] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:49] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:49] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:49] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:49] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:49] [INFO] [Shotgun.FIX#243] Mid-drag pump DOWN - chambered, ready to fire (MMB not held)
+[21:15:49] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:49] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:49] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:49] [INFO] [Shotgun.FIX#243] RMB released after 5 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[21:15:50] [INFO] [Shotgun.FIX#212] Firing 9 pellets with 15° spread at pos=(398.25278, 142.07741)
+[21:15:50] [INFO] [Shotgun.FIX#212] Normal pellet 1/9: extraOffset=-8,9, distance=16,1px, pos=(414.26782, 140.60938)
+[21:15:50] [INFO] [Shotgun.FIX#212] Normal pellet 2/9: extraOffset=11,1, distance=36,1px, pos=(434.31464, 139.6047)
+[21:15:50] [INFO] [Shotgun.FIX#212] Normal pellet 3/9: extraOffset=-2,7, distance=22,3px, pos=(420.52606, 141.87132)
+[21:15:50] [INFO] [Shotgun.FIX#212] Normal pellet 4/9: extraOffset=1,6, distance=26,6px, pos=(424.83777, 141.81729)
+[21:15:50] [INFO] [Shotgun.FIX#212] Normal pellet 5/9: extraOffset=-6,6, distance=18,4px, pos=(416.62195, 142.33423)
+[21:15:50] [INFO] [Shotgun.FIX#212] Normal pellet 6/9: extraOffset=1,9, distance=26,9px, pos=(425.11282, 143.83385)
+[21:15:50] [INFO] [Shotgun.FIX#212] Normal pellet 7/9: extraOffset=-14,3, distance=10,7px, pos=(408.91193, 143.08661)
+[21:15:50] [INFO] [Shotgun.FIX#212] Normal pellet 8/9: extraOffset=-4,3, distance=20,7px, pos=(418.65527, 145.33733)
+[21:15:50] [INFO] [Shotgun.FIX#212] Normal pellet 9/9: extraOffset=11,6, distance=36,6px, pos=(434.27905, 148.77078)
+[21:15:50] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(398.2528, 142.0774), source=PLAYER (Shotgun), range=1469, listeners=0
+[21:15:50] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[21:15:50] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[21:15:50] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+[21:15:50] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:50] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:50] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:50] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:50] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:50] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:50] [INFO] [Shotgun.FIX#243] Mid-drag pump DOWN - chambered, ready to fire (MMB not held)
+[21:15:50] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:50] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:50] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[21:15:50] [INFO] [Shotgun.FIX#243] RMB released after 4 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[21:15:50] [INFO] [Shotgun.FIX#243] Bolt open BLOCKED by cooldown
+[21:15:51] [INFO] [Shotgun.FIX#212] Firing 12 pellets with 15° spread at pos=(398.25278, 142.07741)
+[21:15:51] [INFO] [Shotgun.FIX#212] Normal pellet 1/12: extraOffset=-0,3, distance=24,7px, pos=(422.8454, 139.4324)
+[21:15:51] [INFO] [Shotgun.FIX#212] Normal pellet 2/12: extraOffset=7,4, distance=32,4px, pos=(430.56918, 139.86621)
+[21:15:51] [INFO] [Shotgun.FIX#212] Normal pellet 3/12: extraOffset=-7,5, distance=17,5px, pos=(415.75357, 141.3326)
+[21:15:51] [INFO] [Shotgun.FIX#212] Normal pellet 4/12: extraOffset=7,5, distance=32,5px, pos=(430.78998, 142.28236)
+[21:15:51] [INFO] [Shotgun.FIX#212] Normal pellet 5/12: extraOffset=1,2, distance=26,2px, pos=(424.4455, 141.95308)
+[21:15:51] [INFO] [Shotgun.FIX#212] Normal pellet 6/12: extraOffset=-13,1, distance=11,9px, pos=(410.09952, 142.6837)
+[21:15:51] [INFO] [Shotgun.FIX#212] Normal pellet 7/12: extraOffset=12,0, distance=37,0px, pos=(435.17822, 144.2439)
+[21:15:51] [INFO] [Shotgun.FIX#212] Normal pellet 8/12: extraOffset=12,2, distance=37,2px, pos=(435.28546, 145.76701)
+[21:15:51] [INFO] [Shotgun.FIX#212] Normal pellet 9/12: extraOffset=5,1, distance=30,1px, pos=(428.1915, 145.28267)
+[21:15:51] [INFO] [Shotgun.FIX#212] Normal pellet 10/12: extraOffset=-12,9, distance=12,1px, pos=(410.27826, 143.73697)
+[21:15:51] [INFO] [Shotgun.FIX#212] Normal pellet 11/12: extraOffset=-1,6, distance=23,4px, pos=(421.32703, 146.00125)
+[21:15:51] [INFO] [Shotgun.FIX#212] Normal pellet 12/12: extraOffset=-12,4, distance=12,6px, pos=(410.71158, 143.9695)
+[21:15:51] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(398.2528, 142.0774), source=PLAYER (Shotgun), range=1469, listeners=0
+[21:15:51] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[21:15:52] [INFO] ------------------------------------------------------------
+[21:15:52] [INFO] GAME LOG ENDED: 2026-02-03T21:15:52
+[21:15:52] [INFO] ============================================================

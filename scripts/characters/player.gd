@@ -88,6 +88,9 @@ var _is_alive: bool = true
 ## Legacy reference for compatibility (points to body sprite).
 @onready var _sprite: Sprite2D = $PlayerModel/Body
 
+## Reference to the casing pusher area (for pushing shell casings when walking over them).
+@onready var _casing_pusher: Area2D = $CasingPusher
+
 ## Progressive spread system parameters.
 ## Number of shots before spread starts increasing.
 const SPREAD_THRESHOLD: int = 3
@@ -99,6 +102,14 @@ const SPREAD_INCREMENT: float = 0.6
 const MAX_SPREAD: float = 4.0
 ## Time in seconds for spread to reset after stopping fire.
 const SPREAD_RESET_TIME: float = 0.25
+## Force to apply to casings when pushed by player (Issue #392, #424).
+## Reduced by 2.5x from 50.0 to 20.0 for Issue #424.
+const CASING_PUSH_FORCE: float = 20.0
+
+## Set of casings currently overlapping with the CasingPusher Area2D (Issue #392 Iteration 7).
+## Using signal-based tracking instead of polling get_overlapping_bodies() for reliable detection.
+## This ensures casings are detected even when approaching from narrow sides.
+var _overlapping_casings: Array[RigidBody2D] = []
 
 ## Current number of consecutive shots.
 var _shot_count: int = 0
@@ -288,6 +299,11 @@ func _ready() -> void:
 	# Initialize death animation component
 	_init_death_animation()
 
+	# Connect CasingPusher signals for reliable casing detection (Issue #392 Iteration 7)
+	# Using body_entered/body_exited signals instead of polling get_overlapping_bodies()
+	# This ensures casings are detected even when player approaches from narrow side
+	_connect_casing_pusher_signals()
+
 	FileLogger.info("[Player] Ready! Ammo: %d/%d, Grenades: %d/%d, Health: %d/%d" % [
 		_current_ammo, max_ammo,
 		_current_grenades, max_grenades,
@@ -317,6 +333,9 @@ func _physics_process(delta: float) -> void:
 		velocity = velocity.move_toward(Vector2.ZERO, friction * delta)
 
 	move_and_slide()
+
+	# Push any casings we're overlapping with (Issue #392)
+	_push_casings()
 
 	# Update player model rotation to face the aim direction (rifle direction)
 	_update_player_model_rotation()
@@ -366,7 +385,8 @@ func _physics_process(delta: float) -> void:
 
 	# Handle shooting input (only if not in grenade preparation state)
 	# Grenade steps 2 and 3 use LMB, so don't shoot during those
-	var can_shoot := _grenade_state == GrenadeState.IDLE or _grenade_state == GrenadeState.TIMER_STARTED
+	# In simple mode, we only use RMB so shooting with LMB is always allowed
+	var can_shoot := _grenade_state == GrenadeState.IDLE or _grenade_state == GrenadeState.TIMER_STARTED or _grenade_state == GrenadeState.SIMPLE_AIMING
 	if can_shoot and Input.is_action_just_pressed("shoot"):
 		_shoot()
 
@@ -603,6 +623,12 @@ func _shoot() -> void:
 
 	# Add bullet to the scene tree (parent's parent to avoid it being a child of player)
 	get_tree().current_scene.add_child(bullet)
+
+	# Spawn muzzle flash effect at bullet spawn position
+	var impact_effects: Node = get_node_or_null("/root/ImpactEffectsManager")
+	if impact_effects and impact_effects.has_method("spawn_muzzle_flash"):
+		var muzzle_pos := global_position + shoot_direction * bullet_spawn_offset
+		impact_effects.spawn_muzzle_flash(muzzle_pos, shoot_direction)
 
 	# Play shooting sound
 	var audio_manager: Node = get_node_or_null("/root/AudioManager")
@@ -1050,15 +1076,20 @@ func _on_difficulty_changed(_new_difficulty: int) -> void:
 # Grenade System
 # ============================================================================
 
-## Grenade throw state machine (2-step mechanic).
-## Step 1: G + RMB drag right = start timer (pin pulled)
-## Step 2: Hold G → press+hold RMB → release G = ready to throw (only RMB held)
-## Step 3: RMB drag and release = throw
+## Grenade throw state machine.
+## COMPLEX MODE (experimental, 3-step mechanic):
+##   Step 1: G + RMB drag right = start timer (pin pulled)
+##   Step 2: Hold G → press+hold RMB → release G = ready to throw (only RMB held)
+##   Step 3: RMB drag and release = throw
+## SIMPLE MODE (default):
+##   Hold RMB = show trajectory preview, cursor position = landing point
+##   Release RMB = throw grenade to landing point
 enum GrenadeState {
 	IDLE,                 # No grenade action
 	TIMER_STARTED,        # Step 1 complete: timer running, G held, waiting for RMB
 	WAITING_FOR_G_RELEASE,# Step 2 in progress: G+RMB held, waiting for G release
-	AIMING                # Step 2 complete: only RMB held, drag to aim and release to throw
+	AIMING,               # Step 2 complete: only RMB held, drag to aim and release to throw
+	SIMPLE_AIMING         # Simple mode: RMB held, showing trajectory preview
 }
 
 # ============================================================================
@@ -1319,10 +1350,14 @@ const WEAPON_SLING_OFFSET := Vector2(0, 15)     # Lower weapon
 const WEAPON_SLING_ROTATION := 1.2              # Rotate to hang down (radians, ~70 degrees)
 
 
-## Handle grenade input with 2-step mechanic.
-## Step 1: G + RMB drag right = start timer (pull pin)
-## Step 2: Hold G → press+hold RMB → release G = ready to throw
-## Step 3: RMB drag and release = throw
+## Handle grenade input.
+## COMPLEX MODE (experimental, 3-step mechanic):
+##   Step 1: G + RMB drag right = start timer (pull pin)
+##   Step 2: Hold G → press+hold RMB → release G = ready to throw
+##   Step 3: RMB drag and release = throw
+## SIMPLE MODE (default):
+##   Hold RMB = show trajectory preview, cursor position = landing point
+##   Release RMB = throw grenade to landing point
 func _handle_grenade_input() -> void:
 	# Handle throw rotation animation
 	_handle_throw_rotation_animation(get_physics_process_delta_time())
@@ -1333,15 +1368,50 @@ func _handle_grenade_input() -> void:
 		_reset_grenade_state()
 		return
 
-	match _grenade_state:
-		GrenadeState.IDLE:
-			_handle_grenade_idle_state()
-		GrenadeState.TIMER_STARTED:
-			_handle_grenade_timer_started_state()
-		GrenadeState.WAITING_FOR_G_RELEASE:
-			_handle_grenade_waiting_for_g_release_state()
-		GrenadeState.AIMING:
-			_handle_grenade_aiming_state()
+	# Check if complex grenade throwing is enabled (experimental setting)
+	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+	var use_complex_throwing := false
+	if experimental_settings and experimental_settings.has_method("is_complex_grenade_throwing"):
+		use_complex_throwing = experimental_settings.is_complex_grenade_throwing()
+
+	# Debug log once per state change to track mode (logged once when state changes)
+	if _grenade_state == GrenadeState.IDLE and (Input.is_action_just_pressed("grenade_throw") or Input.is_action_just_pressed("grenade_prepare")):
+		FileLogger.info("[Player.Grenade] Mode check: complex=%s, settings_node=%s" % [use_complex_throwing, experimental_settings != null])
+
+	if use_complex_throwing:
+		# Complex 3-step throwing mechanic
+		match _grenade_state:
+			GrenadeState.IDLE:
+				_handle_grenade_idle_state()
+			GrenadeState.TIMER_STARTED:
+				_handle_grenade_timer_started_state()
+			GrenadeState.WAITING_FOR_G_RELEASE:
+				_handle_grenade_waiting_for_g_release_state()
+			GrenadeState.AIMING:
+				_handle_grenade_aiming_state()
+	else:
+		# Simple trajectory aiming mode - uses same pin-pull mechanic (G+RMB drag)
+		# but replaces mouse-velocity throwing with trajectory-to-cursor aiming
+		match _grenade_state:
+			GrenadeState.IDLE:
+				# Use same G+RMB drag mechanic as complex mode for pin pull (Step 1)
+				_handle_grenade_idle_state()
+			GrenadeState.TIMER_STARTED:
+				# After pin is pulled, RMB starts trajectory aiming (instead of Step 2)
+				_handle_simple_grenade_timer_started_state()
+			GrenadeState.SIMPLE_AIMING:
+				# RMB held: show trajectory preview, release to throw to cursor
+				_handle_simple_grenade_aiming_state()
+			_:
+				# If we're in a complex-mode state but simple mode is now enabled,
+				# reset to allow starting fresh (handles mode switch mid-throw)
+				if _grenade_state in [GrenadeState.WAITING_FOR_G_RELEASE, GrenadeState.AIMING]:
+					FileLogger.info("[Player.Grenade] Mode mismatch: resetting from complex state %d to IDLE" % _grenade_state)
+					if _active_grenade != null and is_instance_valid(_active_grenade):
+						# Drop the grenade if we have one
+						_drop_grenade_at_feet()
+					else:
+						_reset_grenade_state()
 
 
 ## Handle IDLE state: waiting for G + RMB drag right to start timer.
@@ -1451,6 +1521,145 @@ func _handle_grenade_aiming_state() -> void:
 		_start_grenade_anim_phase(GrenadeAnimPhase.THROW, ANIM_THROW_DURATION)
 		_throw_grenade(drag_end)
 		FileLogger.info("[Player.Grenade] Step 3 complete: Grenade thrown!")
+
+
+# ============================================================================
+# Simple Grenade Throwing Mode (Default)
+# ============================================================================
+
+## Handle TIMER_STARTED state for simple grenade throwing mode.
+## After pin is pulled (G+RMB drag), wait for RMB to start trajectory aiming.
+## If G is released, drop grenade at feet.
+func _handle_simple_grenade_timer_started_state() -> void:
+	# Make grenade follow player while G is held
+	if _active_grenade != null and is_instance_valid(_active_grenade):
+		_active_grenade.global_position = global_position
+
+	# If G is released, drop grenade at feet
+	if not Input.is_action_pressed("grenade_prepare"):
+		FileLogger.info("[Player.Grenade.Simple] G released - dropping grenade at feet")
+		_drop_grenade_at_feet()
+		return
+
+	# Check if RMB is pressed to enter SimpleAiming state
+	if Input.is_action_just_pressed("grenade_throw"):
+		_grenade_state = GrenadeState.SIMPLE_AIMING
+		_is_preparing_grenade = true
+		# Store initial mouse position for aiming
+		_aim_drag_start = get_global_mouse_position()
+		# Start hands approach animation
+		_start_grenade_anim_phase(GrenadeAnimPhase.HANDS_APPROACH, ANIM_APPROACH_DURATION)
+		FileLogger.info("[Player.Grenade.Simple] RMB pressed after pin pull - starting trajectory aiming")
+
+
+## Handle SIMPLE_AIMING state: RMB held, showing trajectory preview.
+## Cursor position = landing point. Release RMB to throw.
+## G can be released while RMB is held - grenade stays ready.
+func _handle_simple_grenade_aiming_state() -> void:
+	# Request redraw for trajectory visualization (always show in simple mode)
+	queue_redraw()
+
+	# Make grenade follow player
+	if _active_grenade != null and is_instance_valid(_active_grenade):
+		_active_grenade.global_position = global_position
+
+	# Update arm animation based on wind-up
+	_update_simple_wind_up_animation()
+
+	# If animation phases need to transition
+	if _grenade_anim_phase == GrenadeAnimPhase.HANDS_APPROACH and _grenade_anim_timer <= 0:
+		_grenade_anim_phase = GrenadeAnimPhase.WIND_UP
+
+	# Check for RMB release - throw the grenade!
+	if Input.is_action_just_released("grenade_throw"):
+		_throw_simple_grenade()
+
+	# Check for cancellation (if grenade was somehow destroyed)
+	if _active_grenade == null or not is_instance_valid(_active_grenade):
+		_reset_grenade_state()
+		_start_grenade_anim_phase(GrenadeAnimPhase.RETURN_IDLE, ANIM_RETURN_DURATION)
+
+
+## Update wind-up animation based on distance from player to cursor.
+func _update_simple_wind_up_animation() -> void:
+	var current_mouse := get_global_mouse_position()
+	var distance := global_position.distance_to(current_mouse)
+
+	# Calculate wind-up intensity based on distance (0-500 pixels = 0-1 intensity)
+	var max_distance := 500.0
+	_wind_up_intensity = clampf(distance / max_distance, 0.0, 1.0)
+
+
+## Throw the grenade in simple mode.
+## Direction and distance based on cursor position relative to player.
+func _throw_simple_grenade() -> void:
+	if _active_grenade == null or not is_instance_valid(_active_grenade):
+		FileLogger.info("[Player.Grenade.Simple] Cannot throw: no active grenade")
+		_reset_grenade_state()
+		return
+
+	var target_pos := get_global_mouse_position()
+	var to_target := target_pos - global_position
+
+	# Calculate throw direction and distance
+	var throw_direction := to_target.normalized() if to_target.length() > 10.0 else Vector2(1, 0)
+	var throw_distance := to_target.length()
+
+	# Calculate throw speed needed to reach target (using physics)
+	# From grenade_base.gd: ground_friction = 300.0
+	# Distance = v^2 / (2 * friction) → v = sqrt(2 * friction * distance)
+	var ground_friction := 300.0
+	var required_speed := sqrt(2.0 * ground_friction * throw_distance)
+
+	# Clamp to grenade's max throw speed
+	var max_throw_speed := 850.0
+	var throw_speed := minf(required_speed, max_throw_speed)
+
+	# Calculate actual landing distance with clamped speed
+	var actual_distance := (throw_speed * throw_speed) / (2.0 * ground_friction)
+
+	FileLogger.info("[Player.Grenade.Simple] Throwing! Target: %s, Distance: %.1f, Speed: %.1f" % [
+		str(target_pos), actual_distance, throw_speed
+	])
+
+	# Rotate player to face throw direction
+	_rotate_player_for_throw(throw_direction)
+
+	# Calculate spawn position with wall check
+	var spawn_offset := 60.0
+	var intended_spawn_position := global_position + throw_direction * spawn_offset
+	var spawn_position := _get_safe_grenade_spawn_position(global_position, intended_spawn_position, throw_direction)
+
+	# Unfreeze and throw the grenade
+	_active_grenade.freeze = false
+
+	# Use the simple throw method for direct speed control
+	# This bypasses velocity-to-throw multipliers for accurate cursor-based aiming
+	if _active_grenade.has_method("throw_grenade_simple"):
+		# Simple mode: pass throw speed directly without any multipliers
+		_active_grenade.throw_grenade_simple(throw_direction, throw_speed)
+	elif _active_grenade.has_method("throw_grenade"):
+		# Legacy method: use drag distance that produces desired speed
+		var drag_distance := throw_speed / 2.0  # drag_to_speed_multiplier = 2.0
+		_active_grenade.throw_grenade(throw_direction, drag_distance)
+	else:
+		# Direct physics fallback
+		_active_grenade.linear_velocity = throw_direction * throw_speed
+		_active_grenade.rotation = throw_direction.angle()
+
+	# Start throw animation
+	_start_grenade_anim_phase(GrenadeAnimPhase.THROW, ANIM_THROW_DURATION)
+
+	# Emit signal and play sound
+	grenade_thrown.emit()
+	var audio_manager: Node = get_node_or_null("/root/AudioManager")
+	if audio_manager and audio_manager.has_method("play_grenade_throw"):
+		audio_manager.play_grenade_throw(global_position)
+
+	FileLogger.info("[Player.Grenade.Simple] Grenade thrown!")
+
+	# Reset state
+	_reset_grenade_state()
 
 
 ## Start the grenade timer (step 1 complete - pin pulled).
@@ -2102,80 +2311,153 @@ func _on_debug_mode_toggled(enabled: bool) -> void:
 	queue_redraw()
 
 
-## Draw debug visualization for grenade throw trajectory.
-## Shows the throw direction line and predicted landing position during aiming.
+## Draw grenade throw trajectory visualization.
+## In simple mode: Always shows trajectory preview (semi-transparent arc).
+## In complex mode: Only shows when debug mode is enabled (F7).
+## For non-contact grenades (flashbang), shows wall bounces.
 func _draw() -> void:
-	if not _debug_mode_enabled:
+	# Determine if we should draw trajectory
+	var is_simple_aiming := _grenade_state == GrenadeState.SIMPLE_AIMING
+	var is_complex_aiming := _grenade_state == GrenadeState.AIMING
+
+	# In simple mode: always show trajectory
+	# In complex mode: only show if debug mode is enabled
+	if not is_simple_aiming and not (is_complex_aiming and _debug_mode_enabled):
 		return
 
-	# Only draw during grenade aiming state
-	if _grenade_state != GrenadeState.AIMING:
-		return
+	# Use different colors for simple mode (more subtle) vs debug mode (bright)
+	var color_trajectory: Color
+	var color_landing: Color
+	var color_radius: Color
+	var color_bounce: Color
+	var line_width: float
 
-	# Colors for debug visualization
-	var color_trajectory := Color.YELLOW  # Trajectory line
-	var color_landing := Color.ORANGE  # Landing position
-	var color_radius := Color(1.0, 0.5, 0.0, 0.3)  # Effect radius (semi-transparent orange)
+	if is_simple_aiming:
+		# Semi-transparent colors for simple mode
+		color_trajectory = Color(1.0, 1.0, 1.0, 0.4)  # White semi-transparent
+		color_landing = Color(1.0, 0.8, 0.2, 0.6)  # Yellow-orange
+		color_radius = Color(1.0, 0.5, 0.0, 0.2)  # Effect radius
+		color_bounce = Color(0.5, 1.0, 0.5, 0.3)  # Green for bounces
+		line_width = 2.0
+	else:
+		# Bright colors for debug mode
+		color_trajectory = Color.YELLOW
+		color_landing = Color.ORANGE
+		color_radius = Color(1.0, 0.5, 0.0, 0.3)
+		color_bounce = Color(0.3, 1.0, 0.3, 0.5)
+		line_width = 2.0
 
-	# Calculate throw parameters based on current drag
+	# Calculate throw parameters
 	var current_mouse := get_global_mouse_position()
-	var drag_vector := current_mouse - _aim_drag_start
-	var drag_distance := drag_vector.length()
+	var throw_direction: Vector2
+	var throw_distance: float
+	var throw_speed: float
 
-	# Minimum drag distance for valid throw
-	var min_drag_distance := 10.0
-	if drag_distance < min_drag_distance:
-		drag_distance = min_drag_distance
-		drag_vector = Vector2(1, 0)
+	if is_simple_aiming:
+		# Simple mode: direction and distance based on cursor position
+		var to_target := current_mouse - global_position
+		throw_direction = to_target.normalized() if to_target.length() > 10.0 else Vector2(1, 0)
+		throw_distance = to_target.length()
 
-	var throw_direction := drag_vector.normalized()
+		# Calculate throw speed needed to reach target
+		var ground_friction := 300.0
+		var required_speed := sqrt(2.0 * ground_friction * throw_distance)
+		var max_throw_speed := 850.0
+		throw_speed = minf(required_speed, max_throw_speed)
 
-	# Apply same sensitivity multiplier as in _throw_grenade
-	var sensitivity_multiplier := 9.0
-	var adjusted_drag_distance := drag_distance * sensitivity_multiplier
+		# Calculate actual landing distance with clamped speed
+		throw_distance = (throw_speed * throw_speed) / (2.0 * ground_friction)
+	else:
+		# Complex mode: direction based on mouse velocity
+		var drag_vector := current_mouse - _aim_drag_start
+		var drag_distance := drag_vector.length()
 
-	# Clamp to max drag distance (3x viewport width)
-	var viewport := get_viewport()
-	var max_drag_distance := 3840.0
-	if viewport:
-		max_drag_distance = viewport.get_visible_rect().size.x * 3.0
-	adjusted_drag_distance = minf(adjusted_drag_distance, max_drag_distance)
+		if drag_distance < 10.0:
+			drag_distance = 10.0
+			drag_vector = Vector2(1, 0)
 
-	# Calculate throw speed using grenade parameters
-	# From grenade_base.gd: drag_to_speed_multiplier = 2.0, max_throw_speed = 2500, min_throw_speed = 100
-	var drag_to_speed_multiplier := 2.0
-	var max_throw_speed := 2500.0
-	var min_throw_speed := 100.0
-	var throw_speed := clampf(
-		adjusted_drag_distance * drag_to_speed_multiplier,
-		min_throw_speed,
-		max_throw_speed
-	)
+		throw_direction = drag_vector.normalized()
 
-	# Calculate landing distance using physics
-	# From grenade_base.gd: ground_friction = 150.0
-	# The grenade decelerates at ground_friction per second
-	# Distance = v^2 / (2 * friction) (kinematic formula for constant deceleration)
-	var ground_friction := 150.0
-	var landing_distance := (throw_speed * throw_speed) / (2.0 * ground_friction)
+		# Use velocity-based calculation
+		var velocity_magnitude := _current_mouse_velocity.length()
+		var ground_friction := 300.0
+		var max_throw_speed := 850.0
+		throw_speed = minf(velocity_magnitude * 0.5, max_throw_speed)
+		throw_distance = (throw_speed * throw_speed) / (2.0 * ground_friction)
 
-	# Spawn offset (same as in _throw_grenade)
+	# Calculate spawn offset
 	var spawn_offset := 60.0
 
-	# Calculate positions relative to player (for drawing in local coordinates)
-	# Note: _draw() uses local coordinates, so we draw relative to Vector2.ZERO (player position)
+	# Calculate positions in local coordinates (relative to player at 0,0)
 	var spawn_pos := throw_direction * spawn_offset
-	var landing_pos := spawn_pos + throw_direction * landing_distance
 
-	# Draw trajectory line from spawn point to landing
-	draw_line(spawn_pos, landing_pos, color_trajectory, 2.0)
+	# Check if current grenade is a contact-explosive (frag grenade) or timer-based (flashbang)
+	# Timer-based grenades bounce off walls, contact grenades don't
+	var is_contact_grenade := _is_active_grenade_contact_type()
 
-	# Draw intermediate points along trajectory for better visualization
-	var num_points := 8
-	for i in range(1, num_points):
-		var t := float(i) / float(num_points)
-		var point := spawn_pos + throw_direction * landing_distance * t
-		draw_circle(point, 3.0, color_trajectory)
+	if is_contact_grenade:
+		# Contact grenade: simple straight trajectory to landing
+		var landing_pos := spawn_pos + throw_direction * throw_distance
+		_draw_simple_trajectory(spawn_pos, landing_pos, color_trajectory, color_landing, color_radius, line_width)
+	else:
+		# Timer grenade (flashbang): show trajectory with wall bounces
+		_draw_trajectory_with_bounces(spawn_pos, throw_direction, throw_speed, color_trajectory, color_landing, color_radius, color_bounce, line_width)
+
+
+## Check if the active grenade is a contact-explosive type (explodes on impact).
+## Contact grenades: FragGrenade - explodes on landing/wall hit
+## Timer grenades: FlashbangGrenade - explodes after 4 seconds, bounces off walls
+func _is_active_grenade_contact_type() -> bool:
+	if _active_grenade == null or not is_instance_valid(_active_grenade):
+		# Default: check grenade scene name if no active grenade
+		if grenade_scene != null:
+			var scene_path: String = grenade_scene.resource_path
+			return scene_path.contains("Frag") or scene_path.contains("frag")
+		return false
+
+	# Check class name
+	var class_name_str := _active_grenade.get_class()
+	if class_name_str == "FragGrenade":
+		return true
+
+	# Check script for FragGrenade
+	var script = _active_grenade.get_script()
+	if script != null:
+		var script_path: String = script.resource_path
+		return script_path.contains("frag_grenade")
+
+	return false
+
+
+## Get the grenade effect radius with type-based default fallback.
+## FIX for Issue #432: If GDScript method call fails (common in exports), use appropriate default
+## based on grenade type instead of a generic 200px value.
+## Flashbang: 400px (from FlashbangGrenade.tscn)
+## Frag: 225px (from FragGrenade.tscn)
+func _get_grenade_effect_radius_with_default() -> float:
+	# Try to get effect radius from active grenade
+	if _active_grenade != null and is_instance_valid(_active_grenade):
+		if _active_grenade.has_method("_get_effect_radius"):
+			var result = _active_grenade._get_effect_radius()
+			if result > 0.0:
+				return result
+		# Try reading property directly
+		if "effect_radius" in _active_grenade:
+			var radius = _active_grenade.effect_radius
+			if radius > 0.0:
+				return radius
+
+	# Use type-based default
+	if _is_active_grenade_contact_type():
+		return 225.0  # Frag grenade radius (from FragGrenade.tscn)
+	else:
+		return 400.0  # Flashbang radius (from FlashbangGrenade.tscn)
+
+
+## Draw a simple straight trajectory (for contact grenades or when no bounces needed).
+func _draw_simple_trajectory(spawn_pos: Vector2, landing_pos: Vector2, color_trajectory: Color, color_landing: Color, color_radius: Color, line_width: float) -> void:
+	# Draw trajectory arc (curved line)
+	_draw_trajectory_arc(spawn_pos, landing_pos, color_trajectory, line_width)
 
 	# Draw landing position marker (cross)
 	var cross_size := 12.0
@@ -2183,12 +2465,156 @@ func _draw() -> void:
 	draw_line(landing_pos + Vector2(0, -cross_size), landing_pos + Vector2(0, cross_size), color_landing, 3.0)
 
 	# Draw effect radius at landing position
-	# Default grenade effect radius from grenade_base.gd is 200.0 pixels
-	var effect_radius := 200.0
+	# FIX for Issue #432: Use type-based default (400 for flashbang, 225 for frag) instead of 200
+	var effect_radius := _get_grenade_effect_radius_with_default()
 	_draw_circle_outline(landing_pos, effect_radius, color_radius, 2.0)
 
-	# Draw small circle at spawn point
-	draw_circle(spawn_pos, 5.0, color_trajectory)
+
+## Draw a curved arc trajectory between two points.
+func _draw_trajectory_arc(start_pos: Vector2, end_pos: Vector2, color: Color, width: float) -> void:
+	var num_segments := 12
+	var direction := (end_pos - start_pos).normalized()
+	var distance := start_pos.distance_to(end_pos)
+
+	# Calculate arc height based on distance (subtle curve)
+	var arc_height := distance * 0.08  # 8% of distance as arc height
+
+	# Perpendicular direction for arc offset
+	var perpendicular := Vector2(-direction.y, direction.x)
+
+	var prev_point := start_pos
+	for i in range(1, num_segments + 1):
+		var t := float(i) / float(num_segments)
+		# Linear position along trajectory
+		var linear_pos := start_pos.lerp(end_pos, t)
+		# Arc offset (parabolic curve: peaks at t=0.5)
+		var arc_offset := perpendicular * arc_height * 4.0 * t * (1.0 - t)
+		var point := linear_pos + arc_offset
+
+		draw_line(prev_point, point, color, width)
+		prev_point = point
+
+	# Draw small dots along the arc
+	for i in range(1, num_segments):
+		var t := float(i) / float(num_segments)
+		var linear_pos := start_pos.lerp(end_pos, t)
+		var arc_offset := perpendicular * arc_height * 4.0 * t * (1.0 - t)
+		var point := linear_pos + arc_offset
+		draw_circle(point, 2.0, color)
+
+
+## Draw trajectory with wall bounces (for timer grenades like flashbang).
+func _draw_trajectory_with_bounces(spawn_pos: Vector2, direction: Vector2, speed: float, color_trajectory: Color, color_landing: Color, color_radius: Color, color_bounce: Color, line_width: float) -> void:
+	var ground_friction := 300.0
+	var wall_bounce_coefficient := 0.4  # From grenade_base.gd
+
+	# Simulate grenade trajectory with bounces
+	var current_pos := spawn_pos
+	var current_velocity := direction * speed
+	var trajectory_points: Array[Vector2] = [current_pos]
+	var bounce_points: Array[Vector2] = []
+
+	var max_bounces := 3
+	var bounces := 0
+	var max_simulation_steps := 50
+	var step_time := 0.05  # 50ms per step
+
+	for step in range(max_simulation_steps):
+		if current_velocity.length() < 10.0:
+			break  # Grenade stopped
+
+		# Apply friction
+		var friction_decel := current_velocity.normalized() * ground_friction * step_time
+		if friction_decel.length() > current_velocity.length():
+			current_velocity = Vector2.ZERO
+		else:
+			current_velocity -= friction_decel
+
+		# Calculate next position
+		var next_pos := current_pos + current_velocity * step_time
+
+		# Check for wall collision using raycast
+		var wall_hit := _raycast_for_wall(global_position + current_pos, global_position + next_pos)
+		if wall_hit.hit and bounces < max_bounces:
+			# Wall hit! Calculate bounce
+			var wall_hit_pos: Vector2 = wall_hit.position
+			var hit_pos: Vector2 = wall_hit_pos - global_position  # Convert to local coords
+			trajectory_points.append(hit_pos)
+			bounce_points.append(hit_pos)
+
+			# Reflect velocity off wall normal
+			var wall_normal: Vector2 = wall_hit.normal
+			var reflected := current_velocity.bounce(wall_normal)
+			current_velocity = reflected * wall_bounce_coefficient
+
+			current_pos = hit_pos + wall_normal * 2.0  # Small offset from wall
+			bounces += 1
+		else:
+			current_pos = next_pos
+			trajectory_points.append(current_pos)
+
+	# Draw the trajectory segments
+	if trajectory_points.size() > 1:
+		var segment_start := 0
+		for i in range(trajectory_points.size()):
+			if bounce_points.has(trajectory_points[i]) or i == trajectory_points.size() - 1:
+				# Draw segment from segment_start to i
+				if i > segment_start:
+					var segment_color := color_trajectory if segment_start == 0 else color_bounce
+					_draw_trajectory_segment(trajectory_points, segment_start, i, segment_color, line_width)
+				segment_start = i
+
+	# Draw bounce markers
+	for bounce_pos in bounce_points:
+		draw_circle(bounce_pos, 5.0, color_bounce)
+		# Draw small X at bounce point
+		var x_size := 4.0
+		draw_line(bounce_pos + Vector2(-x_size, -x_size), bounce_pos + Vector2(x_size, x_size), color_bounce, 2.0)
+		draw_line(bounce_pos + Vector2(-x_size, x_size), bounce_pos + Vector2(x_size, -x_size), color_bounce, 2.0)
+
+	# Draw landing position
+	if trajectory_points.size() > 0:
+		var landing_pos := trajectory_points[trajectory_points.size() - 1]
+
+		# Draw landing marker (cross)
+		var cross_size := 12.0
+		draw_line(landing_pos + Vector2(-cross_size, 0), landing_pos + Vector2(cross_size, 0), color_landing, 3.0)
+		draw_line(landing_pos + Vector2(0, -cross_size), landing_pos + Vector2(0, cross_size), color_landing, 3.0)
+
+		# Draw effect radius at landing position
+		# FIX for Issue #432: Use type-based default (400 for flashbang, 225 for frag) instead of 200
+		var effect_radius := _get_grenade_effect_radius_with_default()
+		_draw_circle_outline(landing_pos, effect_radius, color_radius, 2.0)
+
+
+## Draw a segment of trajectory points.
+func _draw_trajectory_segment(points: Array[Vector2], start_idx: int, end_idx: int, color: Color, width: float) -> void:
+	for i in range(start_idx, end_idx):
+		draw_line(points[i], points[i + 1], color, width)
+		# Draw dots
+		if i > start_idx:
+			draw_circle(points[i], 2.0, color)
+
+
+## Raycast to check for wall collision.
+## Returns a dictionary with hit info.
+func _raycast_for_wall(from_global: Vector2, to_global: Vector2) -> Dictionary:
+	var space_state := get_world_2d().direct_space_state
+	if space_state == null:
+		return {"hit": false}
+
+	# Collision mask 4 = obstacles layer
+	var query := PhysicsRayQueryParameters2D.create(from_global, to_global, 4, [self])
+	var result := space_state.intersect_ray(query)
+
+	if result.is_empty():
+		return {"hit": false}
+
+	return {
+		"hit": true,
+		"position": result.position,
+		"normal": result.normal
+	}
 
 
 ## Draw a circle outline (not filled) at the specified position.
@@ -2206,3 +2632,92 @@ func _draw_circle_outline(center: Vector2, radius: float, color: Color, width: f
 		var next_point := center + Vector2(cos(angle), sin(angle)) * radius
 		draw_line(prev_point, next_point, color, width)
 		prev_point = next_point
+
+
+## Enable debug logging for casing pushing (Issue #392 debugging).
+const DEBUG_CASING_PUSHING: bool = false
+
+
+## Push casings that we're overlapping with (Issue #392).
+## Uses an Area2D to detect casings without blocking player movement.
+## Casings should be pushed by the player but should not affect player movement.
+## Iteration 7: Uses signal-tracked casings combined with polling for reliability.
+func _push_casings() -> void:
+	if _casing_pusher == null:
+		if DEBUG_CASING_PUSHING:
+			print("[Player.CasingPusher] _casing_pusher is null!")
+		return
+
+	# Only push if we're moving
+	if velocity.length_squared() < 1.0:
+		return
+
+	# Combine both signal-tracked casings and polled overlapping bodies for reliability
+	# This ensures detection works even with narrow-side approaches (Issue #392 Iteration 7)
+	var casings_to_push: Array[RigidBody2D] = []
+
+	# Add signal-tracked casings
+	for casing in _overlapping_casings:
+		if is_instance_valid(casing) and casing not in casings_to_push:
+			casings_to_push.append(casing)
+
+	# Also poll for any casings that might have been missed by signals
+	var polled_bodies := _casing_pusher.get_overlapping_bodies()
+	for body in polled_bodies:
+		if body is RigidBody2D and body.has_method("receive_kick"):
+			if body not in casings_to_push:
+				casings_to_push.append(body)
+
+	if DEBUG_CASING_PUSHING and casings_to_push.size() > 0:
+		print("[Player.CasingPusher] Found %d casings (signal-tracked: %d, polled: %d)" % [
+			casings_to_push.size(), _overlapping_casings.size(), polled_bodies.size()
+		])
+
+	# Push all detected casings
+	for casing: RigidBody2D in casings_to_push:
+		# Calculate push direction from player center to casing position (Issue #424)
+		# This makes casings fly away based on which side they're pushed from
+		var push_dir := (casing.global_position - global_position).normalized()
+		var push_strength := velocity.length() * CASING_PUSH_FORCE / 100.0
+		var impulse := push_dir * push_strength
+		if DEBUG_CASING_PUSHING:
+			print("[Player.CasingPusher] Kicking casing with impulse %s" % impulse)
+		casing.receive_kick(impulse)
+
+
+## Connect CasingPusher Area2D signals for reliable casing detection (Issue #392 Iteration 7).
+## Using body_entered/body_exited signals instead of only polling get_overlapping_bodies()
+## ensures casings are detected even when player approaches from narrow side.
+func _connect_casing_pusher_signals() -> void:
+	if _casing_pusher == null:
+		return
+
+	# Connect body_entered and body_exited signals
+	if not _casing_pusher.body_entered.is_connected(_on_casing_pusher_body_entered):
+		_casing_pusher.body_entered.connect(_on_casing_pusher_body_entered)
+	if not _casing_pusher.body_exited.is_connected(_on_casing_pusher_body_exited):
+		_casing_pusher.body_exited.connect(_on_casing_pusher_body_exited)
+
+	if DEBUG_CASING_PUSHING:
+		print("[Player.CasingPusher] Connected body_entered/body_exited signals")
+
+
+## Called when a body enters the CasingPusher Area2D.
+## Tracks casings for reliable pushing detection.
+func _on_casing_pusher_body_entered(body: Node2D) -> void:
+	if body is RigidBody2D and body.has_method("receive_kick"):
+		if body not in _overlapping_casings:
+			_overlapping_casings.append(body)
+			if DEBUG_CASING_PUSHING:
+				print("[Player.CasingPusher] Casing entered: %s (total: %d)" % [body.name, _overlapping_casings.size()])
+
+
+## Called when a body exits the CasingPusher Area2D.
+## Removes casings from tracking list.
+func _on_casing_pusher_body_exited(body: Node2D) -> void:
+	if body is RigidBody2D:
+		var idx := _overlapping_casings.find(body)
+		if idx >= 0:
+			_overlapping_casings.remove_at(idx)
+			if DEBUG_CASING_PUSHING:
+				print("[Player.CasingPusher] Casing exited: %s (total: %d)" % [body.name, _overlapping_casings.size()])

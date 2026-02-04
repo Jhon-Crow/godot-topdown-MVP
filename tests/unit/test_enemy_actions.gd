@@ -672,3 +672,134 @@ func test_vulnerable_player_attack_has_highest_priority() -> void:
 
 	assert_gt(plan.size(), 0, "Planner should find a plan to attack vulnerable player")
 	assert_eq(plan[0].action_name, "attack_vulnerable_player", "Should choose attack_vulnerable_player (highest priority)")
+
+
+# ============================================================================
+# EvadeGrenadeAction Tests (Issue #407)
+# ============================================================================
+
+
+func test_evade_grenade_action_initialization() -> void:
+	var action := EnemyActions.EvadeGrenadeAction.new()
+
+	assert_eq(action.action_name, "evade_grenade", "Action name should be 'evade_grenade'")
+	assert_eq(action.cost, 0.01, "Base cost should be 0.01 (extremely low = absolute highest priority)")
+
+
+func test_evade_grenade_action_preconditions() -> void:
+	var action := EnemyActions.EvadeGrenadeAction.new()
+
+	assert_eq(action.preconditions["in_grenade_danger_zone"], true, "Requires being in grenade danger zone")
+
+
+func test_evade_grenade_action_effects() -> void:
+	var action := EnemyActions.EvadeGrenadeAction.new()
+
+	assert_eq(action.effects["in_grenade_danger_zone"], false, "Effect should set in_grenade_danger_zone to false")
+
+
+func test_evade_grenade_cost_when_in_danger_zone() -> void:
+	var action := EnemyActions.EvadeGrenadeAction.new()
+	var world_state := {"in_grenade_danger_zone": true}
+
+	var cost: float = action.get_cost(null, world_state)
+
+	assert_eq(cost, 0.005, "Cost should be extremely low when in grenade danger zone (absolute highest priority)")
+
+
+func test_evade_grenade_cost_when_not_in_danger_zone() -> void:
+	var action := EnemyActions.EvadeGrenadeAction.new()
+	var world_state := {"in_grenade_danger_zone": false}
+
+	var cost: float = action.get_cost(null, world_state)
+
+	assert_eq(cost, 100.0, "Cost should be very high when not in danger zone")
+
+
+func test_evade_grenade_has_highest_priority_over_distracted_attack() -> void:
+	# Grenade evasion should take priority even over attacking distracted/vulnerable players
+	var evade_action := EnemyActions.EvadeGrenadeAction.new()
+	var attack_distracted := EnemyActions.AttackDistractedPlayerAction.new()
+	var attack_vulnerable := EnemyActions.AttackVulnerablePlayerAction.new()
+
+	var danger_state := {"in_grenade_danger_zone": true, "player_distracted": true, "player_close": true, "player_reloading": true}
+
+	var evade_cost: float = evade_action.get_cost(null, danger_state)
+	var distracted_cost: float = attack_distracted.get_cost(null, danger_state)
+	var vulnerable_cost: float = attack_vulnerable.get_cost(null, danger_state)
+
+	assert_lt(evade_cost, distracted_cost, "Evade grenade should have lower cost than attack distracted")
+	assert_lt(evade_cost, vulnerable_cost, "Evade grenade should have lower cost than attack vulnerable")
+
+
+func test_evade_grenade_integration_with_planner() -> void:
+	var planner := GOAPPlanner.new()
+	var actions := EnemyActions.create_all_actions()
+
+	for action in actions:
+		planner.add_action(action)
+
+	# Scenario: enemy is in grenade danger zone and needs to escape
+	var state := {"in_grenade_danger_zone": true}
+	var goal := {"in_grenade_danger_zone": false}
+
+	var plan: Array[GOAPAction] = planner.plan(state, goal)
+
+	assert_gt(plan.size(), 0, "Planner should find a plan to escape grenade danger zone")
+	assert_eq(plan[0].action_name, "evade_grenade", "Should choose evade_grenade action")
+
+
+# ============================================================================
+# InvestigateAllyDeathAction Tests (Issue #409)
+# ============================================================================
+
+
+func test_investigate_ally_death_action_initialization() -> void:
+	var action := EnemyActions.InvestigateAllyDeathAction.new()
+
+	assert_eq(action.action_name, "investigate_ally_death", "Action name should be 'investigate_ally_death'")
+	assert_eq(action.cost, 0.8, "Base cost should be 0.8 (high priority)")
+
+
+func test_investigate_ally_death_action_preconditions() -> void:
+	var action := EnemyActions.InvestigateAllyDeathAction.new()
+
+	assert_eq(action.preconditions["witnessed_ally_death"], true, "Requires witnessed_ally_death to be true")
+	assert_eq(action.preconditions["player_visible"], false, "Requires player_visible to be false (can't see player)")
+
+
+func test_investigate_ally_death_action_effects() -> void:
+	var action := EnemyActions.InvestigateAllyDeathAction.new()
+
+	assert_eq(action.effects["is_searching"], true, "Effect should set is_searching to true")
+	assert_eq(action.effects["witnessed_ally_death"], false, "Effect should clear witnessed_ally_death")
+
+
+func test_investigate_ally_death_cost_when_witnessed() -> void:
+	var action := EnemyActions.InvestigateAllyDeathAction.new()
+	var world_state := {"witnessed_ally_death": true}
+
+	var cost: float = action.get_cost(null, world_state)
+
+	assert_eq(cost, 0.3, "Cost should be low when ally death is witnessed (high priority)")
+
+
+func test_investigate_ally_death_cost_when_not_witnessed() -> void:
+	var action := EnemyActions.InvestigateAllyDeathAction.new()
+	var world_state := {"witnessed_ally_death": false}
+
+	var cost: float = action.get_cost(null, world_state)
+
+	assert_eq(cost, 100.0, "Cost should be very high when no ally death witnessed")
+
+
+func test_investigate_ally_death_action_in_create_all_actions() -> void:
+	var actions := EnemyActions.create_all_actions()
+	var found := false
+
+	for action in actions:
+		if action.action_name == "investigate_ally_death":
+			found = true
+			break
+
+	assert_true(found, "InvestigateAllyDeathAction should be included in create_all_actions()")

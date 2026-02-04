@@ -7,7 +7,7 @@ class_name FlashbangGrenade
 ## - Stun: Enemies cannot move for 6 seconds
 ##
 ## Does not deal damage.
-## Effect radius is approximately a small room from the "building" map (~200 pixels).
+## Effect radius is 400 pixels (doubled from original 200 per user request).
 
 ## Duration of blindness effect in seconds.
 @export var blindness_duration: float = 12.0
@@ -32,6 +32,11 @@ func _on_explode() -> void:
 
 	for enemy in enemies:
 		_apply_flashbang_effects(enemy)
+
+	# Scatter shell casings on the floor (Issue #432)
+	# Flashbang has larger radius but weaker physical effect (non-lethal)
+	# Use 40% of effect radius as "lethal-equivalent" zone for casing scatter
+	_scatter_casings(effect_radius * 0.4)
 
 	# Spawn visual flash effect
 	_spawn_flash_effect()
@@ -61,7 +66,8 @@ func _play_explosion_sound() -> void:
 		sound_propagation.emit_sound(1, global_position, 2, self, sound_range)
 
 
-## Check if the player is within the flashbang effect radius.
+## Check if the player is within the flashbang effect radius and has line of sight.
+## Walls block both the visual and audio effects of the flashbang (Issue #469).
 func _is_player_in_zone() -> bool:
 	# Try to find the player in common ways
 	var player: Node2D = null
@@ -81,7 +87,13 @@ func _is_player_in_zone() -> bool:
 		# No player found, assume outside zone (plays distant explosion sound)
 		return false
 
-	return is_in_effect_radius(player.global_position)
+	# Check if player is in effect radius first
+	if not is_in_effect_radius(player.global_position):
+		return false
+
+	# Check line of sight - walls block the flashbang effect (Issue #469)
+	# Similar to how enemy targeting already works
+	return _has_line_of_sight_to(player)
 
 
 ## Get the effect radius for this grenade type.
@@ -141,13 +153,15 @@ func _apply_flashbang_effects(enemy: Node2D) -> void:
 
 
 ## Spawn visual flash effect at explosion position.
+## Uses wall-aware effect spawning to prevent visual effects from passing through walls (Issue #470).
 func _spawn_flash_effect() -> void:
 	var impact_manager: Node = get_node_or_null("/root/ImpactEffectsManager")
 
 	if impact_manager and impact_manager.has_method("spawn_flashbang_effect"):
+		# Wall-aware flashbang effect (blocks visual through walls)
 		impact_manager.spawn_flashbang_effect(global_position, effect_radius)
 	else:
-		# Fallback: create simple flash effect
+		# Fallback: create simple flash effect without wall occlusion
 		_create_simple_flash()
 
 

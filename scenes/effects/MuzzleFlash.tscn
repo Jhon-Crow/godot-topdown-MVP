@@ -1,0 +1,65 @@
+[gd_scene load_steps=6 format=3 uid="uid://muzzle_flash_scene"]
+
+[ext_resource type="Script" path="res://scripts/effects/muzzle_flash.gd" id="1_muzzle_flash"]
+
+[sub_resource type="Gradient" id="Gradient_flash"]
+offsets = PackedFloat32Array(0, 0.2, 0.5, 1)
+colors = PackedColorArray(1, 1, 0.95, 1, 1, 0.9, 0.5, 0.85, 1, 0.7, 0.2, 0.5, 0.9, 0.4, 0.1, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_flash"]
+gradient = SubResource("Gradient_flash")
+width = 8
+height = 8
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_flash"]
+lifetime_randomness = 0.2
+particle_flag_disable_z = true
+emission_shape = 1
+emission_sphere_radius = 1.0
+direction = Vector3(1, 0, 0)
+spread = 12.0
+initial_velocity_min = 150.0
+initial_velocity_max = 280.0
+gravity = Vector3(0, 0, 0)
+damping_min = 200.0
+damping_max = 350.0
+scale_min = 0.1
+scale_max = 0.25
+color = Color(1, 0.9, 0.5, 1)
+
+[sub_resource type="Gradient" id="Gradient_light"]
+offsets = PackedFloat32Array(0, 0.1, 0.2, 0.5, 1)
+colors = PackedColorArray(1, 0.9, 0.6, 1, 1, 0.8, 0.5, 0.9, 1, 0.7, 0.3, 0.5, 1, 0.5, 0.15, 0.15, 1, 0.4, 0.1, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_light"]
+gradient = SubResource("Gradient_light")
+width = 512
+height = 512
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+
+[node name="MuzzleFlash" type="Node2D"]
+z_index = 10
+script = ExtResource("1_muzzle_flash")
+
+[node name="GPUParticles2D" type="GPUParticles2D" parent="."]
+emitting = false
+amount = 5
+process_material = SubResource("ParticleProcessMaterial_flash")
+texture = SubResource("GradientTexture2D_flash")
+lifetime = 0.04
+one_shot = true
+explosiveness = 1.0
+randomness = 0.1
+
+[node name="PointLight2D" type="PointLight2D" parent="."]
+color = Color(1, 0.8, 0.4, 1)
+energy = 0.0
+shadow_enabled = true
+shadow_color = Color(0, 0, 0, 0.8)
+shadow_filter = 1
+shadow_filter_smooth = 4.0
+texture = SubResource("GradientTexture2D_light")
+texture_scale = 4.5

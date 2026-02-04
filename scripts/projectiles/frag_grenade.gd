@@ -35,6 +35,11 @@ var _has_impacted: bool = false
 ## Track if we've started throwing (to avoid impact during initial spawn).
 var _is_thrown: bool = false
 
+## Track the previous freeze state to detect when grenade is released.
+## FIX for Issue #432: When C# code sets Freeze=false directly without calling
+## throw methods, _is_thrown was never set to true, preventing explosion.
+var _was_frozen: bool = true
+
 
 func _ready() -> void:
 	super._ready()
@@ -81,9 +86,40 @@ func _physics_process(delta: float) -> void:
 	if _has_exploded:
 		return
 
-	# Apply ground friction to slow down (copied from base class)
+	# FIX for Issue #432: Detect when grenade is unfrozen by external code (C# Player.cs).
+	# When C# sets Freeze=false directly (e.g., via fallback path), our throw methods
+	# are not called and _is_thrown remains false, preventing explosion.
+	# By detecting the freeze->unfreeze transition, we can enable impact detection.
+	if _was_frozen and not freeze:
+		_was_frozen = false
+		if not _is_thrown:
+			_is_thrown = true
+			FileLogger.info("[FragGrenade] Detected unfreeze - enabling impact detection (fallback)")
+
+	# Apply velocity-dependent ground friction to slow down
+	# FIX for issue #435: Grenade should maintain speed for most of flight,
+	# only slowing down noticeably at the very end of its path.
+	# At high velocities: reduced friction (grenade maintains speed)
+	# At low velocities: full friction (grenade slows to stop)
 	if linear_velocity.length() > 0:
-		var friction_force := linear_velocity.normalized() * ground_friction * delta
+		var current_speed := linear_velocity.length()
+
+		# Calculate friction multiplier based on velocity
+		# Above friction_ramp_velocity: use min_friction_multiplier (minimal drag)
+		# Below friction_ramp_velocity: smoothly ramp up to full friction
+		var friction_multiplier: float
+		if current_speed >= friction_ramp_velocity:
+			# High speed: minimal friction to maintain velocity
+			friction_multiplier = min_friction_multiplier
+		else:
+			# Low speed: smoothly increase friction from min to full (1.0)
+			# Use quadratic curve for smooth transition: more aggressive braking at very low speeds
+			var t := current_speed / friction_ramp_velocity  # 0.0 at stopped, 1.0 at threshold
+			# Quadratic ease-out: starts slow, ends fast (more natural deceleration feel)
+			friction_multiplier = min_friction_multiplier + (1.0 - min_friction_multiplier) * (1.0 - t * t)
+
+		var effective_friction := ground_friction * friction_multiplier
+		var friction_force := linear_velocity.normalized() * effective_friction * delta
 		if friction_force.length() > linear_velocity.length():
 			linear_velocity = Vector2.ZERO
 		else:
@@ -115,6 +151,24 @@ func throw_grenade_velocity_based(mouse_velocity: Vector2, swing_distance: float
 	super.throw_grenade_velocity_based(mouse_velocity, swing_distance)
 	_is_thrown = true
 	FileLogger.info("[FragGrenade] Grenade thrown (velocity-based) - impact detection enabled")
+
+
+## Override directional throw to mark grenade as thrown.
+## FIX for issue #393: This method has HIGHEST PRIORITY in Player.cs call hierarchy.
+## Without this override, _is_thrown stays false and impact detection never triggers!
+func throw_grenade_with_direction(throw_direction: Vector2, velocity_magnitude: float, swing_distance: float) -> void:
+	super.throw_grenade_with_direction(throw_direction, velocity_magnitude, swing_distance)
+	_is_thrown = true
+	FileLogger.info("[FragGrenade] Grenade thrown (direction-based) - impact detection enabled")
+
+
+## Override simple throw to mark grenade as thrown.
+## FIX for issue #398: Simple mode (trajectory aiming to cursor) uses this method.
+## Without this override, _is_thrown stays false and impact detection never triggers!
+func throw_grenade_simple(throw_direction: Vector2, throw_speed: float) -> void:
+	super.throw_grenade_simple(throw_direction, throw_speed)
+	_is_thrown = true
+	FileLogger.info("[FragGrenade] Grenade thrown (simple mode) - impact detection enabled")
 
 
 ## Override body_entered to detect wall impacts.
@@ -166,6 +220,9 @@ func _on_explode() -> void:
 	if player != null:
 		_apply_explosion_damage(player)
 
+	# Scatter shell casings on the floor (Issue #432)
+	_scatter_casings(effect_radius)
+
 	# Spawn shrapnel in all directions
 	_spawn_shrapnel()
 
@@ -197,7 +254,8 @@ func _play_explosion_sound() -> void:
 		sound_propagation.emit_sound(1, global_position, 2, self, sound_range)
 
 
-## Check if the player is within the explosion effect radius.
+## Check if the player is within the explosion effect radius and has line of sight.
+## Walls block the audio effect of the explosion (Issue #469).
 func _is_player_in_zone() -> bool:
 	var player: Node2D = null
 
@@ -215,7 +273,12 @@ func _is_player_in_zone() -> bool:
 	if player == null:
 		return false
 
-	return is_in_effect_radius(player.global_position)
+	# Check if player is in effect radius first
+	if not is_in_effect_radius(player.global_position):
+		return false
+
+	# Check line of sight - walls block the explosion effect (Issue #469)
+	return _has_line_of_sight_to(player)
 
 
 ## Get the effect radius for this grenade type.
@@ -345,14 +408,18 @@ func _spawn_shrapnel() -> void:
 
 
 ## Spawn visual explosion effect at explosion position.
+## Uses wall-aware effect spawning to prevent visual effects from passing through walls (Issue #470).
 func _spawn_explosion_effect() -> void:
 	var impact_manager: Node = get_node_or_null("/root/ImpactEffectsManager")
 
-	if impact_manager and impact_manager.has_method("spawn_flashbang_effect"):
-		# Reuse flashbang effect with our smaller radius
+	if impact_manager and impact_manager.has_method("spawn_explosion_effect"):
+		# Use the wall-aware explosion effect (blocks visual through walls)
+		impact_manager.spawn_explosion_effect(global_position, effect_radius)
+	elif impact_manager and impact_manager.has_method("spawn_flashbang_effect"):
+		# Fallback to flashbang effect (also wall-aware)
 		impact_manager.spawn_flashbang_effect(global_position, effect_radius)
 	else:
-		# Fallback: create simple explosion effect
+		# Final fallback: create simple explosion effect without wall occlusion
 		_create_simple_explosion()
 
 
