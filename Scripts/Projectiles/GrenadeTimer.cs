@@ -601,11 +601,27 @@ namespace GodotTopdown.Scripts.Projectiles
         }
 
         /// <summary>
+        /// Minimum distance from player for a wall to count as blocking.
+        /// If the raycast hits an obstacle closer to the player than this distance,
+        /// we assume it's just small furniture/cover near the player, not a major wall
+        /// blocking the entire view. The flash would realistically still be visible
+        /// over/around such small obstacles.
+        /// </summary>
+        private const float MinWallBlockingDistance = 100.0f;
+
+        /// <summary>
         /// Check if the player has line of sight to the given position.
-        /// FIX for Issue #470: Used to prevent visual effects from passing through walls.
+        /// FIX for Issue #470: Used to prevent visual effects from passing through MAJOR walls.
+        ///
+        /// NOTE: This check has a tolerance built in. If the raycast hits an obstacle
+        /// that is close to the player (within MinWallBlockingDistance), we still consider
+        /// the effect visible. This is because small furniture (desks, tables, cover objects)
+        /// wouldn't realistically block an entire explosion flash - you'd still see the
+        /// light over/around it. Only substantial walls that are NOT near the player
+        /// should block the visual effect.
         /// </summary>
         /// <param name="targetPosition">World position to check line of sight to.</param>
-        /// <returns>True if player can see the position, false if blocked by wall.</returns>
+        /// <returns>True if player can see the position, false if blocked by major wall.</returns>
         private bool PlayerHasLineOfSightTo(Vector2 targetPosition)
         {
             // Find the player
@@ -644,9 +660,11 @@ namespace GodotTopdown.Scripts.Projectiles
                 return true;
             }
 
+            Vector2 playerPos = playerNode.GlobalPosition;
+
             // Cast ray from explosion to player position
             // Collision mask 4 = layer 3 (obstacles/walls)
-            var query = PhysicsRayQueryParameters2D.Create(targetPosition, playerNode.GlobalPosition);
+            var query = PhysicsRayQueryParameters2D.Create(targetPosition, playerPos);
             query.CollisionMask = 4; // Obstacles/walls only
             query.CollideWithBodies = true;
             query.CollideWithAreas = false;
@@ -654,7 +672,27 @@ namespace GodotTopdown.Scripts.Projectiles
             var result = spaceState.IntersectRay(query);
 
             // If no hit, player can see the explosion
-            return result.Count == 0;
+            if (result.Count == 0)
+            {
+                return true;
+            }
+
+            // Hit detected - check if it's a major wall or just small furniture near the player
+            // If the hit point is close to the player, it's likely just cover/furniture
+            // and the player would still see the flash over/around it
+            Vector2 hitPosition = (Vector2)result["position"];
+            float distanceToPlayer = hitPosition.DistanceTo(playerPos);
+
+            if (distanceToPlayer < MinWallBlockingDistance)
+            {
+                // Hit is close to player - likely small furniture, still show the effect
+                LogToFile($"[GrenadeTimer] Raycast hit obstacle at {hitPosition} but it's close to player ({distanceToPlayer:F0}px) - showing effect anyway");
+                return true;
+            }
+
+            // Major wall detected - block the visual effect
+            LogToFile($"[GrenadeTimer] Wall detected between explosion and player at distance {hitPosition.DistanceTo(targetPosition):F0}px from explosion");
+            return false;
         }
 
         /// <summary>

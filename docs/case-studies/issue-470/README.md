@@ -5,7 +5,7 @@
 - **Title**: визуальный и обычный эффект наступательной гранаты не должен проходить сквозь стены (как это работает для вспышки)
 - **Translation**: "Visual and normal effect of offensive grenade should not pass through walls (as it works for flashbang)"
 - **Status**: Fixed
-- **Root Cause**: Architecture mismatch between GDScript and C# code paths
+- **Root Cause**: Architecture mismatch between GDScript and C# code paths, plus overly strict wall occlusion check
 
 ## Timeline of Events
 
@@ -19,14 +19,14 @@
    - `scripts/autoload/impact_effects_manager.gd` - Added wall occlusion methods
    - `scripts/projectiles/frag_grenade.gd` - Called wall-aware methods
 
-### Phase 2: User Testing & Bug Report
+### Phase 2: User Testing & Bug Report (Round 1)
 1. **User Feedback**: "визуал не изменился" (visual hasn't changed)
 2. **Evidence**: Game log `game_log_20260204_094613.txt` showed:
    - `[GrenadeTimer] Spawned C# explosion effect at (217.2414, 1847.0286)`
    - No mention of `spawn_explosion_effect` from GDScript
    - No mention of wall occlusion checks
 
-### Phase 3: Root Cause Analysis
+### Phase 3: Root Cause Analysis (C# vs GDScript)
 The critical insight from the log was that **C# code was spawning effects**, not GDScript.
 
 **Key Log Entry**:
@@ -34,142 +34,115 @@ The critical insight from the log was that **C# code was spawning effects**, not
 [09:46:23] [INFO] [GrenadeTimer] Spawned C# explosion effect at (217.2414, 1847.0286)
 ```
 
-This revealed that in **exported builds**, the C# `GrenadeTimer.cs` component handles all grenade explosion logic, NOT the GDScript files. This is documented in Issue #432:
+This revealed that in **exported builds**, the C# `GrenadeTimer.cs` component handles all grenade explosion logic, NOT the GDScript files.
 
-> "GDScript methods called via C# Call() silently fail in exported builds"
+### Phase 4: First Fix - Added Wall Occlusion to C#
+Added `PlayerHasLineOfSightTo()` to `GrenadeTimer.cs` with raycast check using collision mask 4 (obstacles layer).
 
-## Root Cause
+### Phase 5: User Testing & Bug Report (Round 2)
+1. **User Feedback**: "теперь эффекты обеих гранат не видны" (now effects of both grenades are not visible)
+2. **Evidence**: Game log `game_log_20260204_163238.txt` showed:
+   - First explosion worked: `[GrenadeTimer] Spawned C# explosion effect at (1114.0901, 1451.9849)`
+   - All subsequent explosions blocked: `[GrenadeTimer] Visual effect blocked by wall`
+   - BUT damage was still applied: `[GrenadeTimer] Applied flashbang to player at distance 273,2`
 
-### Architecture Overview
+### Phase 6: Root Cause Analysis (Overly Strict Raycast)
+The second log revealed a critical insight: **damage was being applied to the player**, but the visual was blocked. This is contradictory!
 
-The grenade system has two parallel implementations:
-1. **GDScript** (`frag_grenade.gd`, `flashbang_grenade.gd`): Works in editor, may fail in exports
-2. **C# Component** (`GrenadeTimer.cs`): Reliable fallback for exported builds
-
-### The Bug
-
-The initial fix added wall occlusion to **GDScript only**:
-- `impact_effects_manager.gd`: Added `spawn_explosion_effect()` with wall checks
-- `frag_grenade.gd`: Called `impact_manager.spawn_explosion_effect()`
-
-But in exported builds:
-- `GrenadeTimer.cs::SpawnExplosionEffect()` creates effects directly
-- This method had **NO wall occlusion checks**
-- It bypassed `ImpactEffectsManager.gd` entirely
-
-### Code Path Comparison
-
-**Editor (GDScript works):**
+**Analysis of log entries:**
 ```
-frag_grenade.gd::_on_explode()
-  -> _spawn_explosion_effect()
-    -> ImpactEffectsManager.spawn_explosion_effect()
-      -> _player_has_line_of_sight_to()  <-- Wall check!
-        -> Spawns flash only if visible
+[16:32:58] [GrenadeTimer] Applied flashbang to player at distance 273,2
+[16:32:58] [GrenadeTimer] Visual effect blocked by wall
 ```
 
-**Exported Build (C# takes over):**
-```
-GrenadeTimer.cs::Explode()
-  -> SpawnExplosionEffect()
-    -> CreateExplosionFlash()  <-- NO wall check!
-      -> Flash always spawns
-```
+If the player is close enough to receive flashbang damage, they should be able to see the flash.
 
-## The Fix
+**Root Cause**: The raycast was hitting **small furniture** (desks, tables, cabinets) that are also on collision layer 4 (obstacles), NOT major walls. The player was standing near cover objects, and the raycast from explosion to player was hitting that cover.
 
-Added wall occlusion check to `GrenadeTimer.cs::SpawnExplosionEffect()`:
+## Final Fix
+
+Added a **tolerance distance** to the wall occlusion check. If the raycast hit is close to the player (within 100 pixels), it's likely just small furniture near the player, not a major wall blocking the entire view.
 
 ```csharp
-private void SpawnExplosionEffect(Vector2 position)
-{
-    // FIX for Issue #470: Check if player has line of sight to the explosion
-    if (!PlayerHasLineOfSightTo(position))
-    {
-        LogToFile($"[GrenadeTimer] Visual effect blocked by wall - player cannot see explosion at {position}");
-        return;
-    }
-
-    CreateExplosionFlash(position);
-    LogToFile($"[GrenadeTimer] Spawned C# explosion effect at {position}");
-}
+// In GrenadeTimer.cs
+private const float MinWallBlockingDistance = 100.0f;
 
 private bool PlayerHasLineOfSightTo(Vector2 targetPosition)
 {
-    // Find player
-    var players = GetTree().GetNodesInGroup("player");
-    Node2D? playerNode = null;
-    foreach (var player in players)
-    {
-        if (player is Node2D node)
-        {
-            playerNode = node;
-            break;
-        }
-    }
-
-    // Fallback to direct node lookup
-    if (playerNode == null)
-    {
-        var currentScene = GetTree().CurrentScene;
-        playerNode = currentScene?.GetNodeOrNull<Node2D>("Player");
-    }
-
-    if (playerNode == null) return true; // No player, show effect
-
-    // Raycast to check for walls
-    var spaceState = playerNode.GetWorld2D()?.DirectSpaceState;
-    if (spaceState == null) return true;
-
-    var query = PhysicsRayQueryParameters2D.Create(targetPosition, playerNode.GlobalPosition);
-    query.CollisionMask = 4; // Layer 3 = obstacles/walls
-    query.CollideWithBodies = true;
-    query.CollideWithAreas = false;
+    // ... find player, setup raycast ...
 
     var result = spaceState.IntersectRay(query);
-    return result.Count == 0; // No hit = player can see
+
+    if (result.Count == 0)
+        return true; // No hit, player can see
+
+    // Check if hit is close to player (likely small furniture)
+    Vector2 hitPosition = (Vector2)result["position"];
+    float distanceToPlayer = hitPosition.DistanceTo(playerPos);
+
+    if (distanceToPlayer < MinWallBlockingDistance)
+    {
+        // Hit is close to player - likely small furniture, still show effect
+        return true;
+    }
+
+    // Major wall - block the visual effect
+    return false;
 }
 ```
+
+## Key Insight: Cover vs Walls
+
+The game level has multiple object types on collision layer 4:
+- **Major walls**: Should block visual effects (you can't see through them)
+- **Small furniture**: Desks, tables, cabinets used as cover
+
+The original fix treated ALL obstacles equally, but realistically:
+- An explosion flash would be visible OVER/AROUND small furniture
+- Only substantial walls completely block the light
+
+The tolerance distance (100px) distinguishes between:
+- Hit close to player = small furniture near them = show effect
+- Hit far from player (closer to explosion) = major wall between them = block effect
 
 ## Lessons Learned
 
 ### 1. Dual-Language Architecture Requires Dual Testing
-When a project has both GDScript and C# implementations for the same feature:
+When a project has both GDScript and C# implementations:
 - Test in **both** editor AND exported builds
 - Features must be implemented in **both** code paths
-- Log messages help identify which code path is executing
 
 ### 2. "Works in Editor" != "Works in Export"
-Issue #432 documented that GDScript methods called via C# `Call()` silently fail in exports. This means:
-- Any feature relying on GDScript calls may not work in production
-- C# components need to implement features directly, not delegate to GDScript
+GDScript methods called via C# `Call()` silently fail in exports (Issue #432).
 
 ### 3. Log Analysis is Critical
-The bug was identified because:
-- The log showed `[GrenadeTimer]` (C#) not `[FragGrenade]` (GDScript)
-- The message "Spawned C# explosion effect" confirmed the code path
-- Searching for expected log messages (like "wall blocked") revealed they weren't appearing
+Both bugs were identified through careful log analysis:
+- First bug: Log showed C# path executing, not GDScript
+- Second bug: Damage applied but visual blocked (contradiction!)
 
-### 4. Follow the Execution Path
-When a fix doesn't work:
-1. Add logging to trace execution
-2. Check which code is actually running
-3. Verify assumptions about architecture
-4. Look for parallel/fallback implementations
+### 4. Consider Real-World Physics
+A simple raycast treats all obstacles as perfect blockers. But:
+- Light bends around small objects
+- Explosions illuminate over furniture
+- Only major walls truly block view
+
+### 5. Test Multiple Scenarios
+The first explosion worked, subsequent ones failed. Testing only the first case would have missed the bug.
 
 ## Files Modified
 
 | File | Change |
 |------|--------|
-| `Scripts/Projectiles/GrenadeTimer.cs` | Added `PlayerHasLineOfSightTo()` and wall check in `SpawnExplosionEffect()` |
+| `Scripts/Projectiles/GrenadeTimer.cs` | Added `PlayerHasLineOfSightTo()` with tolerance for small furniture |
+| `scripts/autoload/impact_effects_manager.gd` | Added `MIN_WALL_BLOCKING_DISTANCE` tolerance to GDScript version |
 
 ## Testing Checklist
 
-- [ ] Throw frag grenade with player behind wall - visual should NOT appear
-- [ ] Throw frag grenade with player in line of sight - visual should appear
+- [ ] Throw grenade with player behind MAJOR wall - visual should NOT appear
+- [ ] Throw grenade with player in line of sight - visual should appear
+- [ ] Throw grenade with player behind SMALL COVER (desk/table) - visual SHOULD appear
 - [ ] Test in both editor and exported build
-- [ ] Verify log message "Visual effect blocked by wall" appears when appropriate
-- [ ] Verify log message "Spawned C# explosion effect" only appears when player can see
+- [ ] Verify log messages match expected behavior
 
 ## Related Issues
 
@@ -178,4 +151,5 @@ When a fix doesn't work:
 
 ## Attachments
 
-- `game_log_20260204_094613.txt` - Original user log showing the bug
+- `game_log_20260204_094613.txt` - Original user log showing C#/GDScript mismatch
+- `game_log_20260204_163238.txt` - Second log showing overly strict raycast blocking all effects

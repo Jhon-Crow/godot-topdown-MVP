@@ -1068,10 +1068,26 @@ func _create_radial_gradient_texture(radius: int) -> GradientTexture2D:
 	return texture
 
 
+## Minimum distance from player for a wall to count as blocking (in pixels).
+## If the raycast hits an obstacle closer to the player than this distance,
+## we assume it's just small furniture/cover near the player, not a major wall
+## blocking the entire view. The flash would realistically still be visible
+## over/around such small obstacles.
+const MIN_WALL_BLOCKING_DISTANCE: float = 100.0
+
+
 ## Checks if the player has line of sight to the given position.
-## Uses raycast to detect walls between player and target position.
+## Uses raycast to detect MAJOR walls between player and target position.
+##
+## NOTE: This check has a tolerance built in. If the raycast hits an obstacle
+## that is close to the player (within MIN_WALL_BLOCKING_DISTANCE), we still
+## consider the effect visible. This is because small furniture (desks, tables,
+## cover objects) wouldn't realistically block an entire explosion flash - you'd
+## still see the light over/around it. Only substantial walls that are NOT near
+## the player should block the visual effect.
+##
 ## @param target_position: World position to check line of sight to.
-## @return: True if player can see the position, false if blocked by wall.
+## @return: True if player can see the position, false if blocked by major wall.
 func _player_has_line_of_sight_to(target_position: Vector2) -> bool:
 	# Find the player
 	var player: Node2D = _get_player()
@@ -1088,8 +1104,10 @@ func _player_has_line_of_sight_to(target_position: Vector2) -> bool:
 	if space_state == null:
 		return true
 
+	var player_pos: Vector2 = player.global_position
+
 	# Cast ray from target position to player position
-	var query := PhysicsRayQueryParameters2D.create(target_position, player.global_position, WALL_COLLISION_LAYER)
+	var query := PhysicsRayQueryParameters2D.create(target_position, player_pos, WALL_COLLISION_LAYER)
 	query.collide_with_bodies = true
 	query.collide_with_areas = false
 
@@ -1099,9 +1117,20 @@ func _player_has_line_of_sight_to(target_position: Vector2) -> bool:
 	if result.is_empty():
 		return true
 
-	# Wall detected between explosion and player - effect is blocked
+	# Hit detected - check if it's a major wall or just small furniture near the player
+	# If the hit point is close to the player, it's likely just cover/furniture
+	# and the player would still see the flash over/around it
+	var hit_position: Vector2 = result.position
+	var distance_to_player: float = hit_position.distance_to(player_pos)
+
+	if distance_to_player < MIN_WALL_BLOCKING_DISTANCE:
+		# Hit is close to player - likely small furniture, still show the effect
+		_log_info("Raycast hit obstacle at %s but it's close to player (%d px) - showing effect anyway" % [hit_position, int(distance_to_player)])
+		return true
+
+	# Major wall detected - block the visual effect
 	if _debug_effects:
-		print("[ImpactEffectsManager] Wall detected between explosion and player at distance: ", result.position.distance_to(target_position))
+		print("[ImpactEffectsManager] Wall detected between explosion and player at distance: ", hit_position.distance_to(target_position))
 
 	return false
 
