@@ -31,12 +31,12 @@ position = Vector2(-4, 0)
 texture = ExtResource("4_body")
 
 [node name="LeftShoulder" type="Sprite2D" parent="EnemyModel"]
-z_index = 0
+z_index = 1
 position = Vector2(24, -6)
 texture = ExtResource("10_left_shoulder")
 
 [node name="LeftForearm" type="Sprite2D" parent="EnemyModel"]
-z_index = 3
+z_index = 1
 position = Vector2(32, 4)
 rotation = 0.3
 texture = ExtResource("11_left_forearm")

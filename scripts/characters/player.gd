@@ -298,11 +298,12 @@ func _ready() -> void:
 		_right_shoulder_sprite.z_index = 4  # Right shoulder above head
 	if _right_forearm_sprite:
 		_right_forearm_sprite.z_index = 4  # Right forearm above head
-	# Left arm (back side) should be behind body
+	# Left arm (back side) should be under barrel but visible
+	# z_index = 1 (same as weapon) but renders before weapon due to tree order
 	if _left_shoulder_sprite:
-		_left_shoulder_sprite.z_index = 0  # Left shoulder behind body
+		_left_shoulder_sprite.z_index = 1  # Left shoulder visible, same as body
 	if _left_forearm_sprite:
-		_left_forearm_sprite.z_index = 0  # Left forearm behind body
+		_left_forearm_sprite.z_index = 1  # Left forearm under weapon but visible
 
 	# Note: Weapon pose detection is done in _process() after a few frames
 	# to ensure level scripts have finished adding weapons to the player.

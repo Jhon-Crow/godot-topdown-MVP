@@ -11,6 +11,7 @@
 
 - [solution-draft-log-pr-449.txt](solution-draft-log-pr-449.txt) - Complete AI solution draft execution log
 - [left-arm-behind-back-bug.png](left-arm-behind-back-bug.png) - Screenshot of the positioning bug
+- [left-arm-on-top-of-barrel-bug.png](left-arm-on-top-of-barrel-bug.png) - Screenshot of z_index layering issue
 
 ## Problem Statement
 
@@ -285,6 +286,78 @@ Top-down view (character facing right, holding rifle):
 - `scenes/characters/csharp/Player.tscn` - Updated LeftForearm position, z_index, rotation
 - `scenes/objects/Enemy.tscn` - Updated LeftForearm position, z_index, rotation
 
+## Bug Fix #3: Left Arm Should Be Under Weapon Barrel with Visible Shoulder
+
+### Issue Discovery
+
+After the foregrip positioning fix, the repository owner reported:
+
+> "1. левая рука должна быть под стволом"
+> "2. у левой руки должно быть плечо как у правой"
+>
+> (Translation:
+> 1. "Left arm should be under the barrel"
+> 2. "Left arm should have a shoulder like the right arm")
+
+### Root Cause Analysis
+
+The previous fix set `z_index = 3` for the LeftForearm to make it visible above the weapon. However, this caused the supporting hand to appear ON TOP of the weapon barrel, which looks unnatural. The supporting hand should be UNDER the barrel while still being visible.
+
+Additionally, the LeftShoulder had `z_index = 0`, which placed it completely behind the body sprite, making it invisible.
+
+### Understanding Z-Index Layering
+
+The z_index values control the render order in Godot:
+
+**Previous (incorrect) z_index values:**
+| Element | Z-Index | Result |
+|---------|---------|--------|
+| LeftShoulder | 0 | Hidden behind body |
+| Body | 1 | Visible |
+| LeftForearm | 3 | Above weapon (incorrect) |
+| Weapon | 1-2 | Below left forearm |
+| RightArm | 4 | Front arm visible |
+
+**Corrected z_index values:**
+| Element | Z-Index | Result |
+|---------|---------|--------|
+| LeftShoulder | 1 | Same as body (visible alongside) |
+| Body | 1 | Visible |
+| LeftForearm | 1 | Same as weapon, but renders before weapon due to tree order |
+| Weapon | 1-2 | Above left forearm (correct) |
+| RightArm | 4 | Front arm visible |
+
+### The Tree Order Solution
+
+In Godot, when two sprites have the same z_index, the render order is determined by their position in the scene tree (earlier = renders behind). Since the arm sprites are siblings of the WeaponMount in PlayerModel, and they come BEFORE WeaponMount in the tree, they render behind the weapon when both have z_index = 1.
+
+**Tree structure:**
+```
+PlayerModel
+  ├── Body (z=1)
+  ├── LeftShoulder (z=1) ← renders before weapon
+  ├── LeftForearm (z=1)  ← renders before weapon
+  ├── RightShoulder (z=4)
+  ├── RightForearm (z=4)
+  ├── Head (z=3)
+  └── WeaponMount        ← weapon rendered last in z=1 group
+       └── Weapon (z=1-2)
+```
+
+### Files Changed
+
+- `scenes/characters/Player.tscn` - Set LeftShoulder and LeftForearm z_index to 1
+- `scenes/characters/csharp/Player.tscn` - Set LeftShoulder and LeftForearm z_index to 1
+- `scenes/objects/Enemy.tscn` - Set LeftShoulder and LeftForearm z_index to 1
+- `scripts/characters/player.gd` - Updated code that sets z_index values at runtime
+
+### Visual Result
+
+The left arm is now:
+1. **Visible** - Both shoulder and forearm can be seen
+2. **Under the barrel** - The supporting hand grips from below, not above
+3. **Properly connected** - The shoulder is visible and connects to the forearm
+
 ## Lessons Learned
 
 1. **Clear naming conventions matter** - Using left/right naming for parts that were actually both on the right side caused confusion
@@ -296,3 +369,5 @@ Top-down view (character facing right, holding rifle):
 7. **Consider weapon attachment points** - In games with held weapons, supporting hands need to be positioned at logical grip points on the weapon, not just mirrored from the primary hand
 8. **Z-ordering affects visibility** - Sprites with lower z-index can be completely hidden by other sprites, making position changes alone insufficient
 9. **Rotation adds realism** - Small rotation values make posed limbs look more natural than perfectly horizontal positioning
+10. **Tree order matters for same z_index** - When sprites have identical z_index values, Godot renders them in scene tree order (earlier nodes render behind later nodes). This can be used strategically to layer sprites without changing z_index
+11. **"Under" vs "behind" distinction** - In game rendering, "under the barrel" (partially visible but layered below) is different from "behind the body" (completely hidden). The z_index must be chosen carefully to achieve the desired visual effect
