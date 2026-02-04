@@ -943,3 +943,182 @@ func _warmup_particle_shaders() -> void:
 	var elapsed := Time.get_ticks_msec() - start_time
 	_warmup_completed = true
 	_log_info("Particle shader warmup complete: %d effects warmed up in %d ms" % [warmed_up_count, elapsed])
+
+
+## Spawns a flashbang visual effect at the given position with wall occlusion.
+## The visual effect is only displayed if the player has line of sight to the explosion.
+## This prevents the flash from being visible through walls (Issue #470).
+## @param position: World position where the flashbang exploded.
+## @param radius: Effect radius for the visual flash size.
+func spawn_flashbang_effect(position: Vector2, radius: float) -> void:
+	_spawn_grenade_visual_effect(position, radius, Color(1.0, 1.0, 1.0, 0.9), "flashbang")
+
+
+## Spawns an explosion visual effect at the given position with wall occlusion.
+## The visual effect is only displayed if the player has line of sight to the explosion.
+## This prevents the explosion flash from being visible through walls (Issue #470).
+## @param position: World position where the grenade exploded.
+## @param radius: Effect radius for the visual explosion size.
+func spawn_explosion_effect(position: Vector2, radius: float) -> void:
+	_spawn_grenade_visual_effect(position, radius, Color(1.0, 0.6, 0.2, 0.9), "explosion")
+
+
+## Internal helper to spawn grenade visual effects with wall occlusion check.
+## @param position: World position of the explosion.
+## @param radius: Effect radius for visual size.
+## @param flash_color: Color of the flash effect.
+## @param effect_type: Type name for logging ("flashbang" or "explosion").
+func _spawn_grenade_visual_effect(position: Vector2, radius: float, flash_color: Color, effect_type: String) -> void:
+	# Check if player has line of sight to the explosion
+	var player_can_see := _player_has_line_of_sight_to(position)
+
+	if not player_can_see:
+		_log_info("%s effect blocked by wall - player cannot see explosion at %s" % [effect_type.capitalize(), position])
+		return
+
+	_log_info("Spawning %s visual effect at %s (radius=%d)" % [effect_type, position, int(radius)])
+
+	# Create the visual flash effect
+	_create_grenade_flash(position, radius, flash_color)
+
+	# Also create a brief point light for dynamic wall illumination
+	_create_grenade_light(position, radius, flash_color)
+
+
+## Creates a visual flash sprite for grenade explosions.
+## @param position: World position of the explosion.
+## @param radius: Radius of the flash effect.
+## @param flash_color: Color of the flash.
+func _create_grenade_flash(position: Vector2, radius: float, flash_color: Color) -> void:
+	var flash := Sprite2D.new()
+	flash.texture = _create_radial_gradient_texture(int(radius))
+	flash.global_position = position
+	flash.modulate = flash_color
+	flash.z_index = 100  # Draw on top of most game elements
+
+	_add_effect_to_scene(flash)
+
+	# Animate the flash: quick fade out
+	var tween := flash.create_tween()
+	tween.tween_property(flash, "modulate:a", 0.0, 0.25).set_ease(Tween.EASE_OUT)
+	tween.tween_callback(flash.queue_free)
+
+
+## Creates a brief point light for grenade explosions.
+## PointLight2D naturally respects LightOccluder2D nodes on walls.
+## @param position: World position of the explosion.
+## @param radius: Light radius.
+## @param light_color: Color of the light.
+func _create_grenade_light(position: Vector2, radius: float, light_color: Color) -> void:
+	var light := PointLight2D.new()
+	light.global_position = position
+	light.color = Color(light_color.r, light_color.g, light_color.b, 1.0)
+	light.energy = 3.0
+	light.texture_scale = radius / 128.0  # Scale based on default light texture size
+
+	# Use a simple radial gradient texture for the light
+	light.texture = _create_light_texture()
+
+	# Set shadow properties for wall occlusion
+	light.shadow_enabled = true
+	light.shadow_filter = PointLight2D.SHADOW_FILTER_PCF5
+
+	_add_effect_to_scene(light)
+
+	# Animate the light: quick fade out
+	var tween := light.create_tween()
+	tween.tween_property(light, "energy", 0.0, 0.3).set_ease(Tween.EASE_OUT)
+	tween.tween_callback(light.queue_free)
+
+
+## Creates a simple white radial gradient texture for the light.
+func _create_light_texture() -> GradientTexture2D:
+	var gradient := Gradient.new()
+	gradient.colors = PackedColorArray([Color.WHITE, Color(1, 1, 1, 0)])
+	gradient.offsets = PackedFloat32Array([0.0, 1.0])
+
+	var texture := GradientTexture2D.new()
+	texture.gradient = gradient
+	texture.fill = GradientTexture2D.FILL_RADIAL
+	texture.fill_from = Vector2(0.5, 0.5)
+	texture.fill_to = Vector2(1.0, 0.5)
+	texture.width = 256
+	texture.height = 256
+
+	return texture
+
+
+## Creates a radial gradient texture for grenade flash effects.
+## @param radius: The radius of the effect in pixels.
+## @return: A radial gradient texture.
+func _create_radial_gradient_texture(radius: int) -> GradientTexture2D:
+	var gradient := Gradient.new()
+	# Center is bright, fades to transparent at edges
+	gradient.colors = PackedColorArray([Color.WHITE, Color(1, 1, 1, 0.5), Color(1, 1, 1, 0)])
+	gradient.offsets = PackedFloat32Array([0.0, 0.3, 1.0])
+
+	var texture := GradientTexture2D.new()
+	texture.gradient = gradient
+	texture.fill = GradientTexture2D.FILL_RADIAL
+	texture.fill_from = Vector2(0.5, 0.5)
+	texture.fill_to = Vector2(1.0, 0.5)
+	texture.width = radius * 2
+	texture.height = radius * 2
+
+	return texture
+
+
+## Checks if the player has line of sight to the given position.
+## Uses raycast to detect walls between player and target position.
+## @param target_position: World position to check line of sight to.
+## @return: True if player can see the position, false if blocked by wall.
+func _player_has_line_of_sight_to(target_position: Vector2) -> bool:
+	# Find the player
+	var player: Node2D = _get_player()
+	if player == null:
+		# No player found - assume visible (don't block effects in editor/testing)
+		return true
+
+	# Get the physics space for raycasting
+	var scene := get_tree().current_scene
+	if scene == null:
+		return true
+
+	var space_state: PhysicsDirectSpaceState2D = scene.get_world_2d().direct_space_state
+	if space_state == null:
+		return true
+
+	# Cast ray from target position to player position
+	var query := PhysicsRayQueryParameters2D.create(target_position, player.global_position, WALL_COLLISION_LAYER)
+	query.collide_with_bodies = true
+	query.collide_with_areas = false
+
+	var result: Dictionary = space_state.intersect_ray(query)
+
+	# If no hit, player can see the explosion
+	if result.is_empty():
+		return true
+
+	# Wall detected between explosion and player - effect is blocked
+	if _debug_effects:
+		print("[ImpactEffectsManager] Wall detected between explosion and player at distance: ", result.position.distance_to(target_position))
+
+	return false
+
+
+## Gets the player node from the scene.
+## @return: The player Node2D or null if not found.
+func _get_player() -> Node2D:
+	# Check for player in "player" group
+	var players := get_tree().get_nodes_in_group("player")
+	if players.size() > 0 and players[0] is Node2D:
+		return players[0] as Node2D
+
+	# Fallback: check for node named "Player" in current scene
+	var scene := get_tree().current_scene
+	if scene:
+		var player := scene.get_node_or_null("Player") as Node2D
+		if player:
+			return player
+
+	return null

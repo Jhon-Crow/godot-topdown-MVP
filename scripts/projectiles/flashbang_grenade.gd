@@ -146,13 +146,15 @@ func _apply_flashbang_effects(enemy: Node2D) -> void:
 
 
 ## Spawn visual flash effect at explosion position.
+## Uses wall-aware effect spawning to prevent visual effects from passing through walls (Issue #470).
 func _spawn_flash_effect() -> void:
 	var impact_manager: Node = get_node_or_null("/root/ImpactEffectsManager")
 
 	if impact_manager and impact_manager.has_method("spawn_flashbang_effect"):
+		# Wall-aware flashbang effect (blocks visual through walls)
 		impact_manager.spawn_flashbang_effect(global_position, effect_radius)
 	else:
-		# Fallback: create simple flash effect
+		# Fallback: create simple flash effect without wall occlusion
 		_create_simple_flash()
 
 
