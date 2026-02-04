@@ -485,7 +485,11 @@ func _configure_weapon_type() -> void:
 	_pellet_count_min = c.get("pellet_count_min", 1)
 	_pellet_count_max = c.get("pellet_count_max", 1)
 	_spread_angle = c.get("spread_angle", 0.0)
-	print("[Enemy] Weapon: %s" % WeaponConfigComponent.get_type_name(weapon_type))
+	# Issue #457: Enhanced logging to verify shotgun weapon configuration
+	if _is_shotgun_weapon:
+		print("[Enemy] Weapon: %s (SHOTGUN: pellets=%d-%d, spread=%.1f°)" % [WeaponConfigComponent.get_type_name(weapon_type), _pellet_count_min, _pellet_count_max, _spread_angle])
+	else:
+		print("[Enemy] Weapon: %s" % WeaponConfigComponent.get_type_name(weapon_type))
 
 ## Setup patrol points based on patrol offsets from initial position.
 func _setup_patrol_points() -> void:
@@ -3883,15 +3887,30 @@ func _shoot() -> void:
 
 
 ## Spawn a projectile (handles both GDScript snake_case and C# PascalCase properties).
+## Issue #457: Fixed to use SetDirection() method when available for C# projectiles.
+## This ensures UpdateRotation() is called to match visual rotation with travel direction.
 func _spawn_projectile(direction: Vector2, spawn_pos: Vector2) -> void:
 	var p := bullet_scene.instantiate()
 	p.global_position = spawn_pos
-	if p.get("direction") != null: p.direction = direction
-	elif p.get("Direction") != null: p.Direction = direction
+
+	# Issue #457 Fix: Prefer SetDirection() method for C# projectiles (Bullet.cs, ShotgunPellet.cs).
+	# This properly calls UpdateRotation() to sync visual rotation with travel direction.
+	# Without this, M16 bullets appear to fly in wrong direction despite hitting correctly.
+	if p.has_method("SetDirection"):
+		p.SetDirection(direction)
+	elif p.get("direction") != null:
+		p.direction = direction
+	elif p.get("Direction") != null:
+		p.Direction = direction
+
+	# Set shooter ID for friendly fire prevention
 	if p.get("shooter_id") != null: p.shooter_id = get_instance_id()
 	elif p.get("ShooterId") != null: p.ShooterId = get_instance_id()
+
+	# Set shooter position for distance calculations
 	if p.get("shooter_position") != null: p.shooter_position = spawn_pos
 	elif p.get("ShooterPosition") != null: p.ShooterPosition = spawn_pos
+
 	get_tree().current_scene.add_child(p)
 
 ## Shoot a single bullet (rifle/UZI).
@@ -3899,10 +3918,16 @@ func _shoot_single_bullet(direction: Vector2, spawn_pos: Vector2) -> void:
 	_spawn_projectile(direction, spawn_pos)
 
 ## Shoot multiple pellets with spread (shotgun - like player's Shotgun.cs).
+## Issue #457: Added logging to diagnose shotgun firing single pellet issue.
 func _shoot_shotgun_pellets(base_direction: Vector2, spawn_pos: Vector2) -> void:
 	var count: int = randi_range(_pellet_count_min, _pellet_count_max)
 	var spread_rad: float = deg_to_rad(_spread_angle)
 	var half: float = spread_rad / 2.0
+
+	# Issue #457: Log pellet count for debugging
+	if debug_logging:
+		_log_debug("SHOTGUN FIRE: pellets=%d (min=%d, max=%d), spread=%.1f°" % [count, _pellet_count_min, _pellet_count_max, _spread_angle])
+
 	for i in range(count):
 		var angle: float = 0.0
 		if count > 1:
