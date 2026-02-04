@@ -884,3 +884,168 @@ This ensures all scripts are exported as readable GDScript text files, which God
 2. **`has_method()` is a good diagnostic** - It reveals when scripts are attached but not initialized
 3. **Multiple preload layers provide redundancy** - Preloading both scene and script allows for fallback
 4. **Document export settings requirements** - Users should know about the text mode workaround
+
+## Bug Investigation Session 8 (2026-02-04)
+
+### Reported Issue
+
+From PR #430 comment by repository owner (in Russian):
+- **"статистика не появляется"** (Statistics not appearing)
+- Attached log file: `game_log_20260204_171348.txt`
+
+### Game Log Analysis
+
+Downloaded log: `logs/game_log_20260204_171348.txt` (273KB, 2842 lines)
+
+Key findings from analyzing the log:
+
+**Level completion sequence (lines 2757-2773):**
+- **Line 2757**: `[BuildingLevel] Level completed, setting _level_completed = true`
+- **Line 2759**: `[ScoreManager] Level completed! Final score: 22942, Rank: C`
+- **Line 2762**: `[BuildingLevel] Using preloaded AnimatedScoreScreen scene (compile-time embedding)`
+- **Line 2763**: `[BuildingLevel] Created ScoreScreenCanvasLayer at layer 100`
+- **Line 2764**: `[BuildingLevel] Instantiated AnimatedScoreScreen from preloaded scene`
+- **Line 2765**: `[BuildingLevel] Script IS attached to instantiated node: res://scripts/ui/animated_score_screen.gd`
+- **Line 2766**: `[BuildingLevel] has_method('show_score'): false` ← **STILL FALSE**
+- **Line 2767**: `[BuildingLevel] Applying Session 7 workaround: forcing script re-attachment`
+- **Line 2768**: `[BuildingLevel] After re-attachment, has_method('show_score'): false` ← **WORKAROUND FAILED**
+- **Line 2769**: `[BuildingLevel] Added AnimatedScoreScreen to ScoreScreenCanvasLayer (triggers _ready)`
+- **Line 2772**: `[BuildingLevel] ERROR: show_score method not found, script likely not attached correctly`
+- **Line 2773**: `[BuildingLevel] Tried calling show_score() anyway`
+
+**Critical Observation:**
+- The Session 7 workaround (force re-attachment via `set_script()`) **DID NOT FIX** the issue
+- Even after `set_script(AnimatedScoreScreenScript)`, `has_method('show_score')` still returns `false`
+- **NO `[AnimatedScoreScreen]` logs at all** - The script's `_ready()` is NEVER called
+- Lines 2774-2842: Game continues (gunshots, bullet penetration, player movement)
+- Score screen is completely invisible
+
+### Root Cause Analysis
+
+**The Binary Tokens Bug is More Severe Than Expected**
+
+Session 7's workaround assumed that `set_script()` with a preloaded GDScript would re-initialize the script. However, the log shows:
+
+```
+[BuildingLevel] Script IS attached: res://scripts/ui/animated_score_screen.gd
+[BuildingLevel] has_method('show_score'): false
+[BuildingLevel] After re-attachment, has_method('show_score'): false
+```
+
+This indicates that even `set_script()` with a preloaded GDScript fails when:
+1. The GDScript itself was compiled with binary tokens
+2. The preload() is embedding a binary-token-compiled version
+
+**The Core Problem:**
+
+In Godot 4.x with binary token export mode:
+- GDScript files are compiled to bytecode
+- `preload()` embeds the compiled bytecode, not the source
+- The bytecode may have broken method registration
+- `set_script()` with this broken bytecode still fails
+
+### Fix Applied
+
+**Solution: Inline Implementation (Bypass External Scripts Entirely)**
+
+Since external script loading is unreliable due to the binary tokens bug, the fix implements the animated score screen **directly inside `building_level.gd`**:
+
+1. **Remove external script dependencies:**
+   - Removed `AnimatedScoreScreenScene` preload
+   - Removed `AnimatedScoreScreenScript` preload
+   - No longer uses `scenes/ui/AnimatedScoreScreen.tscn` or `scripts/ui/animated_score_screen.gd`
+
+2. **Add inline constants and state variables:**
+   ```gdscript
+   ## Animation timing constants for score screen
+   const SCORE_TITLE_FADE_DURATION: float = 0.3
+   const SCORE_ITEM_REVEAL_DURATION: float = 0.15
+   const SCORE_ITEM_COUNT_DURATION: float = 0.8
+   # ... all animation constants
+
+   ## Score screen animation state variables
+   var _score_screen_root: Control = null
+   var _score_is_animating: bool = false
+   var _score_counting_value: float = 0.0
+   # ... all state variables
+   ```
+
+3. **Implement all animation functions inline:**
+   - `_score_setup_beep_audio()` - Setup retro sound generator
+   - `_score_play_beep()` - Play major arpeggio beep
+   - `_score_apply_pulse_effect()` - Apply pulsing to counting labels
+   - `_score_build_items()` - Build score data structure
+   - `_score_animate_background_fade()` - Background fade animation
+   - `_score_create_title()` - Title creation and animation
+   - `_score_start_item_sequence()` - Start sequential item reveal
+   - `_score_animate_next_item()` - Animate next item in sequence
+   - `_score_create_item_row()` - Create individual score row
+   - `_score_start_counting()` - Start counting animation
+   - `_score_finish_counting()` - Finish counting animation
+   - `_score_animate_total()` - Total score animation
+   - `_score_start_total_counting()` - Total counting animation
+   - `_score_finish_total_counting()` - Finish total counting
+   - `_score_start_rank_animation()` - Dramatic rank reveal
+   - `_score_shrink_rank()` - Shrink rank to final position
+   - `_score_show_restart_hint()` - Show restart hint
+   - `_score_on_animation_complete()` - Animation completion handler
+
+4. **Update `_process()` to handle counting animation:**
+   ```gdscript
+   func _process(delta: float) -> void:
+       # ... existing code ...
+
+       # Handle score screen counting animation
+       if _score_is_animating and _score_counting_label != null:
+           _score_pulse_time += delta
+           # ... counting logic
+           _score_apply_pulse_effect()
+   ```
+
+5. **Rewrite `_show_score_screen()` to use inline implementation:**
+   ```gdscript
+   func _show_score_screen(score_data: Dictionary) -> void:
+       print("[BuildingLevel] Using INLINE animated score screen")
+       _score_data_cache = score_data
+       _score_is_animating = true
+       # ... create UI nodes directly
+       _score_setup_beep_audio()
+       _score_build_items()
+       _score_animate_background_fade()
+   ```
+
+### Why This Fix Works
+
+1. **No external script loading** - All code is in the same file as `building_level.gd`
+2. **Same compilation context** - The animation code is compiled together with the level script
+3. **No binary tokens issue** - Internal functions are always properly registered
+4. **Guaranteed method availability** - `_score_*` functions are regular methods, not dynamically attached
+5. **Works regardless of export settings** - No dependency on GDScript export mode
+
+### Files Changed
+
+| File | Change |
+|------|--------|
+| `scripts/levels/building_level.gd` | Added ~500 lines of inline animation code |
+| `scripts/ui/animated_score_screen.gd` | Kept for reference but no longer used |
+| `scenes/ui/AnimatedScoreScreen.tscn` | Kept for reference but no longer used |
+
+### Trade-offs
+
+**Pros:**
+- Completely bypasses the binary tokens export bug
+- Works in all Godot 4.x export configurations
+- No external dependencies for score screen
+
+**Cons:**
+- `building_level.gd` is now ~500 lines longer
+- Animation code is duplicated (exists in both inline and external versions)
+- Less modular than a separate reusable component
+
+### Lessons Learned
+
+1. **Binary tokens bug is pervasive** - It affects preload(), load(), set_script(), and scene instantiation
+2. **Inline implementation is the most reliable** - When external scripts fail, embed the code
+3. **Godot 4.x export has serious bugs** - Binary token export mode should be avoided for complex projects
+4. **Workarounds may not be enough** - Sometimes a complete architectural change is needed
+5. **Test in actual exported builds** - Editor behavior differs significantly from exports
