@@ -480,7 +480,7 @@ func _configure_weapon_type() -> void:
 	_pellet_count_min = c.get("pellet_count_min", 1)
 	_pellet_count_max = c.get("pellet_count_max", 1)
 	_spread_angle = c.get("spread_angle", 0.0)
-	print("[Enemy] Weapon: %s" % WeaponConfigComponent.get_type_name(weapon_type))
+	print("[Enemy] Weapon: %s%s" % [WeaponConfigComponent.get_type_name(weapon_type), " (pellets=%d-%d)" % [_pellet_count_min, _pellet_count_max] if _is_shotgun_weapon else ""])
 
 ## Setup patrol points based on patrol offsets from initial position.
 func _setup_patrol_points() -> void:
@@ -3865,12 +3865,11 @@ func _shoot() -> void:
 	ammo_changed.emit(_current_ammo, _reserve_ammo)
 	if _current_ammo <= 0 and _reserve_ammo > 0: _start_reload()
 
-
-## Spawn a projectile (handles both GDScript snake_case and C# PascalCase properties).
+## Spawn a projectile. Issue #457: Use SetDirection() for C# to sync visual rotation.
 func _spawn_projectile(direction: Vector2, spawn_pos: Vector2) -> void:
-	var p := bullet_scene.instantiate()
-	p.global_position = spawn_pos
-	if p.get("direction") != null: p.direction = direction
+	var p := bullet_scene.instantiate(); p.global_position = spawn_pos
+	if p.has_method("SetDirection"): p.SetDirection(direction)  # Issue #457 fix
+	elif p.get("direction") != null: p.direction = direction
 	elif p.get("Direction") != null: p.Direction = direction
 	if p.get("shooter_id") != null: p.shooter_id = get_instance_id()
 	elif p.get("ShooterId") != null: p.ShooterId = get_instance_id()
@@ -3887,6 +3886,8 @@ func _shoot_shotgun_pellets(base_direction: Vector2, spawn_pos: Vector2) -> void
 	var count: int = randi_range(_pellet_count_min, _pellet_count_max)
 	var spread_rad: float = deg_to_rad(_spread_angle)
 	var half: float = spread_rad / 2.0
+	if debug_logging: _log_debug("SHOTGUN: %d pellets, %.1f° spread" % [count, _spread_angle])  # Issue #457
+
 	for i in range(count):
 		var angle: float = 0.0
 		if count > 1:
