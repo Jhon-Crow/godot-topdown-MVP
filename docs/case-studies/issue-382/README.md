@@ -370,3 +370,110 @@ Debug logging available via `TacticalGrenadeCoordinator.debug_logging = true`.
 - Issue #375: Safe throw distance calculation
 - Issue #377: EnemyGrenadeComponent extraction
 - Issue #379: Suspicion-based grenade trigger
+
+---
+
+## Bug Report: Enemies Completely Broken (2026-02-05)
+
+### Problem Summary
+
+User reported that "enemies are completely broken" ("враги полностью сломались") after testing the tactical grenade implementation. This has happened "many times before" according to the user.
+
+### Timeline of Events
+
+| Time | Event |
+|------|-------|
+| 2026-02-04 23:40 | PR #388 CI checks all passing |
+| 2026-02-05 00:06 | User tests the Windows build |
+| 2026-02-05 03:06:22 | Game log starts - all 10 enemies show `has_died_signal=false` |
+| 2026-02-05 03:06:22 | `Enemy tracking complete: 0 enemies registered` |
+| 2026-02-05 03:06:25 | Game log ends (only 3 seconds of gameplay) |
+
+### Root Cause Analysis
+
+**Evidence from Log Files:**
+
+Working Log (Issue #405 - 2026-02-03):
+```
+[11:28:42] [INFO] [BuildingLevel] Child 'Enemy1': script=true, has_died_signal=true
+[11:28:42] [INFO] [BuildingLevel] Child 'Enemy2': script=true, has_died_signal=true
+...
+[11:28:42] [INFO] [BuildingLevel] Enemy tracking complete: 10 enemies registered
+```
+
+Broken Log (Issue #382 - 2026-02-05):
+```
+[03:06:22] [INFO] [BuildingLevel] Child 'Enemy1': script=true, has_died_signal=false
+[03:06:22] [INFO] [BuildingLevel] Child 'Enemy2': script=true, has_died_signal=false
+...
+[03:06:22] [INFO] [BuildingLevel] Enemy tracking complete: 0 enemies registered
+```
+
+### Key Observation
+
+Both logs show `script=true`, meaning the enemy.gd script IS attached. However, `has_died_signal` differs:
+- Working: `true`
+- Broken: `false`
+
+The `signal died` is clearly defined at line 106 in `scripts/objects/enemy.gd`.
+
+### Potential Root Causes
+
+1. **Godot Export Bug (Issue #100097)**: In Godot 4.4-dev6, signals don't work in exported builds if the `.godot` directory was created by that version. Although this project uses Godot 4.3-stable, similar cache-related issues may exist.
+
+2. **Script Loading Race Condition**: The `building_level.gd` calls `_setup_enemy_tracking()` in its `_ready()` function. If the enemy nodes haven't fully initialized their scripts yet, `has_signal()` may return false.
+
+3. **Export Cache Corruption**: The `.godot` directory or exported files may have corrupted script metadata.
+
+### Evidence of Race Condition
+
+In Godot, the `_ready()` function is called bottom-up in the scene tree. This means:
+1. Child nodes' `_ready()` is called before parent nodes
+2. However, `has_signal()` relies on the script being fully loaded
+
+The issue is that `building_level.gd:_setup_enemy_tracking()` iterates over enemy children and checks `has_signal("died")`. If the script attachment or signal registration hasn't completed yet, this check fails.
+
+### Proposed Solutions
+
+#### Solution 1: Defer Enemy Tracking (Recommended)
+
+Change `_setup_enemy_tracking()` to be called on the next frame using `call_deferred`:
+
+```gdscript
+func _ready() -> void:
+    # ... other setup ...
+
+    # Defer enemy tracking to ensure all scripts are fully loaded
+    call_deferred("_setup_enemy_tracking")
+```
+
+#### Solution 2: Use Node Group Instead of Signal Check
+
+Instead of checking `has_signal("died")`, check if the node is in the "enemies" group (which is set in the scene file):
+
+```gdscript
+func _setup_enemy_tracking() -> void:
+    var enemies_node := get_node_or_null("Environment/Enemies")
+    for child in enemies_node.get_children():
+        if child.is_in_group("enemies"):
+            _enemies.append(child)
+            # Connect signal if available
+            if child.has_signal("died"):
+                child.died.connect(_on_enemy_died)
+```
+
+#### Solution 3: Rebuild Export with Clean .godot Directory
+
+1. Delete the `.godot` directory
+2. Re-open the project in Godot 4.3-stable
+3. Export again
+
+### References
+
+- [Godot Issue #100097: Signals don't work in exported builds](https://github.com/godotengine/godot/issues/100097)
+- [Godot Issue #95087: Node 'is_node_ready()' and 'ready' signal issues](https://github.com/godotengine/godot/issues/95087)
+- [Godot Forum: Frame changed signal called before scene is ready](https://forum.godotengine.org/t/frame-changed-signal-being-called-before-scene-is-ready/86321)
+
+### Attached Logs
+
+- `game_log_20260205_030622.txt` - User's broken game log

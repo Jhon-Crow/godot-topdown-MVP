@@ -70,7 +70,8 @@ func _ready() -> void:
 	_setup_navigation()
 
 	# Find and connect to all enemies
-	_setup_enemy_tracking()
+	# Use call_deferred to ensure all enemy scripts are fully loaded (Issue #382 fix)
+	call_deferred("_setup_enemy_tracking")
 
 	# Find the enemy count label
 	_enemy_count_label = get_node_or_null("CanvasLayer/UI/EnemyCountLabel")
@@ -333,6 +334,9 @@ func _setup_player_tracking() -> void:
 
 
 ## Setup tracking for all enemies in the scene.
+## Issue #382 fix: This is called via call_deferred to ensure all scripts are fully loaded.
+## Additionally, uses "enemies" group membership as primary detection method since
+## has_signal() can return false in exported builds due to Godot engine timing issues.
 func _setup_enemy_tracking() -> void:
 	var enemies_node := get_node_or_null("Environment/Enemies")
 	if enemies_node == null:
@@ -344,10 +348,15 @@ func _setup_enemy_tracking() -> void:
 	for child in enemies_node.get_children():
 		var has_died_signal := child.has_signal("died")
 		var script_attached := child.get_script() != null
-		_log_to_file("Child '%s': script=%s, has_died_signal=%s" % [child.name, script_attached, has_died_signal])
-		if has_died_signal:
+		var in_enemies_group := child.is_in_group("enemies")
+		_log_to_file("Child '%s': script=%s, has_died_signal=%s, in_group=%s" % [child.name, script_attached, has_died_signal, in_enemies_group])
+		# Issue #382 fix: Use group membership as primary detection, signal check as secondary
+		# This handles cases where has_signal() returns false in exported builds
+		if in_enemies_group or has_died_signal:
 			_enemies.append(child)
-			child.died.connect(_on_enemy_died)
+			# Connect to died signal if available (may not be detected in some export conditions)
+			if has_died_signal:
+				child.died.connect(_on_enemy_died)
 			# Connect to died_with_info for score tracking if available
 			if child.has_signal("died_with_info"):
 				child.died_with_info.connect(_on_enemy_died_with_info)
