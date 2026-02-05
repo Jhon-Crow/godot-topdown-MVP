@@ -4349,6 +4349,11 @@ func _on_death() -> void:
 	died.emit()
 	died_with_info.emit(_killed_by_ricochet, _killed_by_penetration)
 
+	# Trigger Power Fantasy kill effect (300ms last chance effect)
+	var power_fantasy_manager: Node = get_node_or_null("/root/PowerFantasyEffectsManager")
+	if power_fantasy_manager and power_fantasy_manager.has_method("on_enemy_killed"):
+		power_fantasy_manager.on_enemy_killed()
+
 	# Issue #409: Notify nearby enemies of this death so they can enter SEARCHING
 	_notify_nearby_enemies_of_death()
 

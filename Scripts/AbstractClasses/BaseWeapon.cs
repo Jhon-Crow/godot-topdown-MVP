@@ -142,8 +142,22 @@ public abstract partial class BaseWeapon : Node2D
     {
         if (WeaponData != null)
         {
+            // Check for Power Fantasy mode ammo multiplier
+            int magazineCount = StartingMagazineCount;
+            var difficultyManager = GetNodeOrNull("/root/DifficultyManager");
+            if (difficultyManager != null)
+            {
+                var multiplierResult = difficultyManager.Call("get_ammo_multiplier");
+                int ammoMultiplier = multiplierResult.AsInt32();
+                if (ammoMultiplier > 1)
+                {
+                    magazineCount *= ammoMultiplier;
+                    GD.Print($"[BaseWeapon] Power Fantasy mode: ammo multiplied by {ammoMultiplier}x ({StartingMagazineCount} -> {magazineCount} magazines)");
+                }
+            }
+
             // Initialize magazine inventory with the starting magazines
-            MagazineInventory.Initialize(StartingMagazineCount, WeaponData.MagazineSize, fillAllMagazines: true);
+            MagazineInventory.Initialize(magazineCount, WeaponData.MagazineSize, fillAllMagazines: true);
 
             // Emit initial magazine state
             EmitMagazinesChanged();
