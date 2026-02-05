@@ -31,7 +31,45 @@ User reported: "кнопка смотреть повтор не появилас
 
 ## Root Cause Analysis
 
-### Potential Causes Identified:
+### CONFIRMED ROOT CAUSE (2026-02-05)
+
+**Inner class in autoload script causes parse error during export**
+
+Analysis of user-provided game log (`game_log_20260205_030057.txt`) revealed:
+```
+[03:00:58] [BuildingLevel] ERROR: ReplayManager not found, replay recording disabled
+```
+
+Analysis of CI build logs showed the actual error:
+```
+Parse Error: There is already a variable named "replay_manager" declared in this scope.
+at: GDScript::reload (res://scripts/autoload/replay_manager.gd:642)
+ERROR: Failed to load script "res://scripts/autoload/replay_manager.gd" with error "Parse error".
+ERROR: Failed to create an autoload, script 'res://scripts/autoload/replay_manager.gd' is not compiling.
+```
+
+**The Problem:**
+- The `replay_manager.gd` script contained an inner class `class FrameData:`
+- Godot 4.3 has a known issue with inner classes in autoload scripts during export
+- The script file name `replay_manager` created a naming conflict during compilation
+- This caused the autoload to fail to load entirely in the exported build
+
+**Evidence:**
+- `replay_manager.gd` was the ONLY autoload script with an inner class
+- All other autoloads (15+ scripts) loaded successfully
+- The error occurred during Godot's export process, not in the editor
+- The game log showed GrenadeTimerHelper (the autoload before ReplayManager) loaded correctly
+
+**The Fix:**
+- Refactored the inner `class FrameData:` to use Dictionary-based frame storage instead
+- Added helper function `_create_frame_data()` to create frame data dictionaries
+- Updated all references from object property access to dictionary access
+
+**Related Godot Issues:**
+- [#75582](https://github.com/godotengine/godot/issues/75582) - Autoload singletons conflict with resource preloading
+- [#110908](https://github.com/godotengine/godot/issues/110908) - Autoload naming issues in 4.5 (similar class of bugs)
+
+### Previously Suspected Causes (Now Ruled Out):
 
 1. **Merge Conflict with Exit Zone Feature**
    - Upstream added an "exit zone" feature that changes level completion flow

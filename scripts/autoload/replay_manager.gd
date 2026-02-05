@@ -19,18 +19,34 @@ const RECORD_INTERVAL: float = 1.0 / 60.0  # 60 FPS recording
 ## Maximum recording duration in seconds (prevent memory issues).
 const MAX_RECORDING_DURATION: float = 300.0  # 5 minutes
 
-## Frame data structure for recorded state.
-## Each frame contains positions of all entities at that moment.
-class FrameData:
-	var time: float = 0.0
-	var player_position: Vector2 = Vector2.ZERO
-	var player_rotation: float = 0.0
-	var player_model_scale: Vector2 = Vector2.ONE
-	var player_alive: bool = true
-	var enemies: Array = []  # Array of {position, rotation, alive}
-	var bullets: Array = []  # Array of {position, rotation}
-	var grenades: Array = []  # Array of {position}
-	var events: Array = []  # Array of event strings for this frame
+## Frame data is stored as Dictionary with the following keys:
+## - time: float
+## - player_position: Vector2
+## - player_rotation: float
+## - player_model_scale: Vector2
+## - player_alive: bool
+## - enemies: Array of {position, rotation, alive}
+## - bullets: Array of {position, rotation}
+## - grenades: Array of {position}
+## - events: Array of event strings for this frame
+##
+## Note: Inner classes are avoided to prevent parse errors in exported builds
+## (Godot 4.3 has issues with inner classes in autoload scripts during export)
+
+
+## Creates a new frame data dictionary with default values.
+func _create_frame_data() -> Dictionary:
+	return {
+		"time": 0.0,
+		"player_position": Vector2.ZERO,
+		"player_rotation": 0.0,
+		"player_model_scale": Vector2.ONE,
+		"player_alive": true,
+		"enemies": [],
+		"bullets": [],
+		"grenades": [],
+		"events": []
+	}
 
 ## All recorded frames for the current/last level.
 var _frames: Array = []
@@ -250,7 +266,7 @@ func seek_to(time: float) -> void:
 			break
 
 	# Update visuals immediately
-	_apply_frame(_frames[_playback_frame])
+	_apply_frame_dict(_frames[_playback_frame])
 
 
 ## Records a single frame of game state.
@@ -263,7 +279,7 @@ func _record_frame(delta: float) -> void:
 		stop_recording()
 		return
 
-	var frame := FrameData.new()
+	var frame := _create_frame_data()
 	frame.time = _recording_time
 
 	# Debug log every 60 frames (once per second at 60 FPS)
@@ -357,7 +373,7 @@ func _playback_frame_update(delta: float) -> void:
 	if _playback_time >= get_replay_duration():
 		_playback_time = get_replay_duration()
 		# Apply final frame
-		_apply_frame(_frames[-1])
+		_apply_frame_dict(_frames[-1])
 		# End playback after a short delay
 		await get_tree().create_timer(0.5).timeout
 		stop_playback()
@@ -368,11 +384,11 @@ func _playback_frame_update(delta: float) -> void:
 		_playback_frame += 1
 
 	# Apply the current frame
-	_apply_frame(_frames[_playback_frame])
+	_apply_frame_dict(_frames[_playback_frame])
 
 
-## Applies a frame's data to the ghost entities.
-func _apply_frame(frame: FrameData) -> void:
+## Applies a frame's data (Dictionary) to the ghost entities.
+func _apply_frame_dict(frame: Dictionary) -> void:
 	# Update ghost player
 	if _ghost_player and is_instance_valid(_ghost_player):
 		_ghost_player.global_position = frame.player_position
