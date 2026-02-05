@@ -27,7 +27,7 @@ GrenadeManager="*res://scripts/autoload/grenade_manager.gd"
 ExperimentalSettings="*res://scripts/autoload/experimental_settings.gd"
 CinemaEffectsManager="*res://scripts/autoload/cinema_effects_manager.gd"
 GrenadeTimerHelper="*res://Scripts/Autoload/GrenadeTimerHelper.cs"
-ReplayManager="*res://scripts/autoload/replay_manager.gd"
+ReplayManager="*res://scripts/autoload/replay_system.gd"
 
 [application]
 
