@@ -43,7 +43,7 @@ const FIREARMS: Dictionary = {
 		"name": "ASVK",
 		"icon_path": "res://assets/sprites/weapons/asvk_topdown.png",
 		"unlocked": true,
-		"description": "Anti-materiel sniper — bolt-action, penetrates walls and enemies"
+		"description": "ASVK anti-materiel sniper rifle - 12.7x108mm, 50 damage, penetrates 2 walls and enemies, bolt-action (Down→Left→Down→Up). 5-round magazine. RMB to scope (mouse wheel to zoom)."
 	},
 	"ak47": {
 		"name": "???",
