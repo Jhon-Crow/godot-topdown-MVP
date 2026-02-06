@@ -199,6 +199,30 @@ func _setup_selected_weapon() -> void:
 			print("Tutorial: Silenced Pistol equipped successfully")
 		else:
 			push_error("Tutorial: Failed to load SilencedPistol scene!")
+	# If Sniper Rifle (ASVK) is selected, swap weapons
+	elif selected_weapon_id == "sniper":
+		# Remove the default AssaultRifle
+		var assault_rifle = _player.get_node_or_null("AssaultRifle")
+		if assault_rifle:
+			assault_rifle.queue_free()
+			print("Tutorial: Removed default AssaultRifle")
+
+		# Load and add the Sniper Rifle
+		var sniper_scene = load("res://scenes/weapons/csharp/SniperRifle.tscn")
+		if sniper_scene:
+			var sniper = sniper_scene.instantiate()
+			sniper.name = "SniperRifle"
+			_player.add_child(sniper)
+
+			# Set the CurrentWeapon reference in C# Player
+			if _player.has_method("EquipWeapon"):
+				_player.EquipWeapon(sniper)
+			elif _player.get("CurrentWeapon") != null:
+				_player.CurrentWeapon = sniper
+
+			print("Tutorial: ASVK Sniper Rifle equipped successfully")
+		else:
+			push_error("Tutorial: Failed to load SniperRifle scene!")
 	# For M16 (assault rifle), it's already in the scene - just ensure it's equipped
 	else:
 		var assault_rifle = _player.get_node_or_null("AssaultRifle")
@@ -241,6 +265,8 @@ func _connect_player_signals() -> void:
 
 	# Try to connect to weapon signals (C# Player)
 	var weapon = _player.get_node_or_null("AssaultRifle")
+	if weapon == null:
+		weapon = _player.get_node_or_null("SniperRifle")
 	var shotgun = _player.get_node_or_null("Shotgun")
 	var mini_uzi = _player.get_node_or_null("MiniUzi")
 
@@ -311,6 +337,7 @@ func _setup_ammo_tracking() -> void:
 	var shotgun = _player.get_node_or_null("Shotgun")
 	var mini_uzi = _player.get_node_or_null("MiniUzi")
 	var silenced_pistol = _player.get_node_or_null("SilencedPistol")
+	var sniper_rifle = _player.get_node_or_null("SniperRifle")
 	var weapon = _player.get_node_or_null("AssaultRifle")
 
 	if shotgun != null:
@@ -337,6 +364,13 @@ func _setup_ammo_tracking() -> void:
 		# Initial ammo display from Silenced Pistol
 		if silenced_pistol.get("CurrentAmmo") != null and silenced_pistol.get("ReserveAmmo") != null:
 			_update_ammo_label_magazine(silenced_pistol.CurrentAmmo, silenced_pistol.ReserveAmmo)
+	elif sniper_rifle != null:
+		# C# Player with Sniper Rifle - connect to weapon signals
+		if sniper_rifle.has_signal("AmmoChanged"):
+			sniper_rifle.AmmoChanged.connect(_on_weapon_ammo_changed)
+		# Initial ammo display from Sniper Rifle
+		if sniper_rifle.get("CurrentAmmo") != null and sniper_rifle.get("ReserveAmmo") != null:
+			_update_ammo_label_magazine(sniper_rifle.CurrentAmmo, sniper_rifle.ReserveAmmo)
 	elif weapon != null:
 		# C# Player with assault rifle - connect to weapon signals
 		if weapon.has_signal("AmmoChanged"):
