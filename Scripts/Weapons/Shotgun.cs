@@ -315,46 +315,47 @@ public partial class Shotgun : BaseWeapon
     [Signal]
     public delegate void PumpActionCycledEventHandler(string action);
 
+    /// <summary>
+    /// Override magazine initialization for shotgun's reserve shell system.
+    /// Uses MaxReserveAmmo from WeaponData instead of StartingMagazineCount.
+    /// </summary>
+    protected override void InitializeMagazinesWithDifficulty()
+    {
+        if (WeaponData == null) return;
+
+        int maxReserve = WeaponData.MaxReserveAmmo;
+
+        // Check for Power Fantasy mode ammo multiplier
+        var difficultyManager = GetNodeOrNull("/root/DifficultyManager");
+        if (difficultyManager != null)
+        {
+            var multiplierResult = difficultyManager.Call("get_ammo_multiplier");
+            int ammoMultiplier = multiplierResult.AsInt32();
+            if (ammoMultiplier > 1)
+            {
+                maxReserve *= ammoMultiplier;
+                GD.Print($"[Shotgun] Power Fantasy mode: reserve shells multiplied by {ammoMultiplier}x ({WeaponData.MaxReserveAmmo} -> {maxReserve})");
+            }
+        }
+
+        // Create 2 magazines:
+        // - CurrentMagazine: unused placeholder (capacity = maxReserve but set to 0)
+        // - 1 spare magazine: holds the actual reserve shells
+        MagazineInventory.Initialize(2, maxReserve, fillAllMagazines: true);
+        // Set CurrentMagazine to 0 since we don't use it (tube is separate)
+        if (MagazineInventory.CurrentMagazine != null)
+        {
+            MagazineInventory.CurrentMagazine.CurrentAmmo = 0;
+        }
+        GD.Print($"[Shotgun] Initialized reserve shells: {ReserveAmmo} (from WeaponData.MaxReserveAmmo={WeaponData.MaxReserveAmmo})");
+
+        // Initialize shell count
+        ShellsInTube = TubeMagazineCapacity;
+    }
+
     public override void _Ready()
     {
         base._Ready();
-
-        // Re-initialize reserve shells for shotgun using MaxReserveAmmo from WeaponData
-        // The base class initializes MagazineInventory based on StartingMagazineCount,
-        // but for the shotgun we want to use MaxReserveAmmo to control reserve shells.
-        //
-        // IMPORTANT: ReserveAmmo property uses TotalSpareAmmo (sum of spare magazines).
-        // So we need 2 magazines: one "current" (unused, just for BaseWeapon compatibility)
-        // and one "spare" that holds the actual reserve shells.
-        // The shotgun uses ShellsInTube for its tube magazine separately.
-        if (WeaponData != null)
-        {
-            int maxReserve = WeaponData.MaxReserveAmmo;
-
-            // Check for Power Fantasy mode ammo multiplier
-            var difficultyManager = GetNodeOrNull("/root/DifficultyManager");
-            if (difficultyManager != null)
-            {
-                var multiplierResult = difficultyManager.Call("get_ammo_multiplier");
-                int ammoMultiplier = multiplierResult.AsInt32();
-                if (ammoMultiplier > 1)
-                {
-                    maxReserve *= ammoMultiplier;
-                    GD.Print($"[Shotgun] Power Fantasy mode: reserve shells multiplied by {ammoMultiplier}x ({WeaponData.MaxReserveAmmo} -> {maxReserve})");
-                }
-            }
-
-            // Create 2 magazines:
-            // - CurrentMagazine: unused placeholder (capacity = maxReserve but set to 0)
-            // - 1 spare magazine: holds the actual reserve shells
-            MagazineInventory.Initialize(2, maxReserve, fillAllMagazines: true);
-            // Set CurrentMagazine to 0 since we don't use it (tube is separate)
-            if (MagazineInventory.CurrentMagazine != null)
-            {
-                MagazineInventory.CurrentMagazine.CurrentAmmo = 0;
-            }
-            GD.Print($"[Shotgun] Initialized reserve shells: {ReserveAmmo} (from WeaponData.MaxReserveAmmo={WeaponData.MaxReserveAmmo})");
-        }
 
         // Get the shotgun sprite for visual representation
         _shotgunSprite = GetNodeOrNull<Sprite2D>("ShotgunSprite");

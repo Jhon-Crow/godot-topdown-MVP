@@ -299,8 +299,14 @@ func get_player_max_health() -> int:
 
 
 ## Check if ricochets should damage enemies.
-## In Power Fantasy mode, ricochets do NOT damage enemies.
+## In Power Fantasy mode, ricochets DO damage enemies.
 func do_ricochets_damage_enemies() -> bool:
+	return true
+
+
+## Check if ricochets should damage the player.
+## In Power Fantasy mode, ricochets do NOT damage the player.
+func do_ricochets_damage_player() -> bool:
 	return current_difficulty != Difficulty.POWER_FANTASY
 
 
@@ -338,4 +344,4 @@ const POWER_FANTASY_KILL_EFFECT_DURATION_MS: float = 300.0
 
 ## Duration (ms) of the special last chance effect when grenade explodes.
 ## Only in Power Fantasy mode.
-const POWER_FANTASY_GRENADE_EFFECT_DURATION_MS: float = 50.0
+const POWER_FANTASY_GRENADE_EFFECT_DURATION_MS: float = 400.0
