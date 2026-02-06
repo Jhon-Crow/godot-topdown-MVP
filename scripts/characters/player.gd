@@ -457,9 +457,10 @@ func _detect_and_apply_weapon_pose() -> void:
 	var detected_type := WeaponType.RIFLE  # Default to rifle pose
 
 	# Check for weapon children - weapons are added directly to player by level scripts
-	# Check in order of specificity: MiniUzi (SMG), Shotgun, then default to Rifle
+	# Check in order of specificity: MiniUzi (SMG), Shotgun, SniperRifle, then default to Rifle
 	var mini_uzi := get_node_or_null("MiniUzi")
 	var shotgun := get_node_or_null("Shotgun")
+	var sniper_rifle := get_node_or_null("SniperRifle")
 
 	if mini_uzi != null:
 		detected_type = WeaponType.SMG
@@ -467,6 +468,10 @@ func _detect_and_apply_weapon_pose() -> void:
 	elif shotgun != null:
 		detected_type = WeaponType.SHOTGUN
 		FileLogger.info("[Player] Detected weapon: Shotgun (Shotgun pose)")
+	elif sniper_rifle != null:
+		# ASVK sniper rifle uses the same arm pose as rifle (long barrel weapon)
+		detected_type = WeaponType.RIFLE
+		FileLogger.info("[Player] Detected weapon: ASVK Sniper Rifle (Rifle pose)")
 	else:
 		# Default to rifle (AssaultRifle or no weapon)
 		detected_type = WeaponType.RIFLE

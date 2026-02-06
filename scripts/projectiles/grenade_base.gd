@@ -578,6 +578,10 @@ func _scatter_casings(effect_radius: float) -> void:
 	var scattered_count := 0
 	var proximity_count := 0
 
+	# Get physics space state for line-of-sight checks (Issue #506)
+	# Casings blocked by obstacles should not be pushed by the shockwave
+	var space_state := get_world_2d().direct_space_state
+
 	for casing in casings:
 		if not is_instance_valid(casing) or not casing is RigidBody2D:
 			continue
@@ -586,6 +590,19 @@ func _scatter_casings(effect_radius: float) -> void:
 
 		# Skip casings too far away
 		if distance > proximity_radius:
+			continue
+
+		# Issue #506: Check line of sight to casing - obstacles block the shockwave
+		# Uses the same collision_mask (4 = obstacles) as enemy damage LOS checks
+		var query := PhysicsRayQueryParameters2D.create(
+			global_position,
+			casing.global_position
+		)
+		query.collision_mask = 4  # Only check against obstacles
+		query.exclude = [self]
+		var ray_result := space_state.intersect_ray(query)
+		if not ray_result.is_empty():
+			# Obstacle blocks line of sight - shockwave can't reach this casing
 			continue
 
 		# Calculate direction from explosion to casing
