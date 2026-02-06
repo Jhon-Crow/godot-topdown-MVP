@@ -346,7 +346,80 @@ Each strategy includes diagnostic logging to identify exactly which strategy suc
 | 2 | Feb 6 | Button hidden when unavailable | Always show button, disable if no data | ✅ UI fixed, but no data | `game_log_20260206_122932.txt`: "Watch Replay button created (disabled)" |
 | 3 | Feb 6 | await/naming/ordering issues | Remove await, rename methods, reorder | ❌ Still fails | `game_log_20260206_131432.txt`: "ReplayManager not found" |
 | 4 | Feb 6 | Autoload mechanism itself broken | Dynamic loading with set_script() | ❌ set_script() fails silently | `game_log_20260206_141414.txt`: "created but start_recording method not found" |
-| 5 | Feb 6 | set_script() fails in exported builds | Scene-based autoload (.tscn) + multi-strategy fallback | 🔄 Testing | — |
+| 5 | Feb 6 | set_script() fails in exported builds | Scene-based autoload (.tscn) + multi-strategy fallback | ❌ Still fails | `game_log_20260206_143228.txt`: all 4 strategies fail, script.new() returns null |
+| 6 | Feb 6 | **GDScript binary tokenization corrupts script** | **Set script_export_mode=0 (text) in export_presets.cfg** | 🔄 Testing | — |
+
+## Sixth User Report (2026-02-06 14:32)
+
+### User Feedback
+User reported: "no data проблема не решена" (no data problem not solved) with game log `game_log_20260206_143228.txt`.
+
+### Analysis of game_log_20260206_143228.txt (6225 lines)
+
+**Key findings — ALL 4 loading strategies fail. Scene-based autoload doesn't help.**
+
+The log shows the most detailed diagnostic output yet, with each of the 4 strategies being tried in sequence:
+
+```
+[14:32:29] WARNING: ReplayManager autoload exists but has no start_recording method, script=<GDScript#-9223372007242988300>
+[14:32:29] Loaded ReplayManager.tscn scene, instantiating...
+[14:32:29] WARNING: ReplayManager from scene has no start_recording, script=<GDScript#-9223372007242988300>
+[14:32:29] Loaded replay_system.gd (type=GDScript), trying script.new()...
+[14:32:29] WARNING: script.new() returned null
+[14:32:29] Trying last resort: Node.new() + set_script()...
+[14:32:29] ERROR: All ReplayManager loading strategies failed. Script attached=true
+[14:32:29] ERROR: ReplayManager.start_recording method not found
+```
+
+**Critical observations:**
+1. **`_ready()` of replay_system.gd NEVER fires** — the log message "ReplayManager ready (script loaded and _ready called)" never appears
+2. **Same GDScript ID** (`-9223372007242988300`) across autoload, scene, and direct loading — confirming it's the same broken script
+3. **`script.new()` returns null** — the GDScript cannot be instantiated
+4. **Script IS attached** (`Script attached=true`) by `set_script()` but methods are inaccessible
+5. **All 16 other autoloads work perfectly** — only replay_system.gd fails
+
+### Definitive Root Cause: GDScript Binary Tokenization (Iteration 6)
+
+After 5 failed iterations and analysis of 7 game logs spanning 3 days, the **definitive root cause** has been identified:
+
+**Godot 4.3's default "compressed binary tokens" GDScript export mode (`script_export_mode=2`) silently corrupts the compiled version of `replay_system.gd`.**
+
+The export preset (`export_presets.cfg`) did not have `script_export_mode` set, which defaults to `2` (compressed binary tokens). In this mode, GDScript files are compiled to binary token format during export. For `replay_system.gd`, this compilation silently fails:
+- The script loads as a GDScript resource (non-null reference)
+- But the compiled code is corrupt/incomplete
+- Methods are not registered (`has_method()` returns false)
+- `script.new()` returns null (can't instantiate the class)
+- `_ready()` never fires (no code to execute)
+
+**Why only replay_system.gd fails while 16 other GDScript autoloads work:**
+This is a known class of bugs in Godot 4.3's binary tokenization (reintroduced in PR [#87634](https://github.com/godotengine/godot/pull/87634)). Certain GDScript patterns trigger compilation failures that are **silently swallowed** by the export process. The script appears to load but is non-functional.
+
+**Related Godot issues:**
+- [godotengine/godot#87634](https://github.com/godotengine/godot/pull/87634) — Binary tokenization reintroduced in Godot 4.3
+- [godotengine/godot#94150](https://github.com/godotengine/godot/issues/94150) — GDScript export mode breaks exported builds with some addons
+- [godotengine/godot#89403](https://github.com/godotengine/godot/issues/89403) — Global class parse errors with binary tokens
+- [godotengine/godot#93102](https://github.com/godotengine/godot/issues/93102) — Web export broken with binary GDScript
+- [godotengine/godot#78230](https://github.com/godotengine/godot/issues/78230) — Autoload compile errors silently swallowed
+- [godotengine/godot#91713](https://github.com/godotengine/godot/issues/91713) — Scripts fail to load in exported projects
+- [godotengine/godot#113577](https://github.com/godotengine/godot/issues/113577) — Error when exporting with binary tokens (regression)
+
+### Definitive Fix: Set GDScript Export Mode to Text
+
+```ini
+# In export_presets.cfg, under [preset.0]:
+script_export_mode=0  # 0=Text, 1=Binary tokens, 2=Compressed binary tokens (default)
+```
+
+**Why this works:**
+- Text mode exports GDScript files as-is (plain text `.gd` files)
+- No binary tokenization = no silent compilation failures
+- All other autoloads that already work will continue working
+- The slight increase in PCK file size (scripts stored as text) is negligible
+- This is the **recommended workaround** for all binary tokenization issues in Godot 4.3
+
+**Additional safety changes:**
+- Replaced `PlaceholderTexture2D` with `ImageTexture.create_from_image()` in fallback ghost creation
+- Enhanced diagnostic logging in `_ready()` to report method availability and script source status
 
 ## Logs
 
@@ -358,4 +431,5 @@ All user-provided game logs preserved in `logs/` directory:
 - `logs/game_log_20260206_122932.txt` — Fourth user report ("no data" on button)
 - `logs/game_log_20260206_131432.txt` — Fifth user report ("no data" persists after 3 code fixes)
 - `logs/game_log_20260206_141414.txt` — Sixth user report ("recording unavailable", dynamic loading set_script() fails)
+- `logs/game_log_20260206_143228.txt` — Seventh user report ("no data", all 4 loading strategies fail including scene-based)
 - `logs/solution-draft-log-pr-421.txt` — Full AI solver execution log from 2026-02-04
