@@ -59,6 +59,9 @@ var _level_cleared: bool = false
 ## List of enemy nodes for position tracking.
 var _enemies: Array = []
 
+## Reference to the combo label.
+var _combo_label: Label = null
+
 
 func _ready() -> void:
 	print("Полигон loaded - Tactical Combat Arena")
@@ -212,12 +215,14 @@ func _setup_player_tracking() -> void:
 		_player.Died.connect(_on_player_died)
 
 	# Try to get the player's weapon for C# Player
-	# First try shotgun (if selected), then Mini UZI, then Silenced Pistol, then assault rifle
+	# First try shotgun (if selected), then Mini UZI, then Silenced Pistol, then Sniper Rifle, then assault rifle
 	var weapon = _player.get_node_or_null("Shotgun")
 	if weapon == null:
 		weapon = _player.get_node_or_null("MiniUzi")
 	if weapon == null:
 		weapon = _player.get_node_or_null("SilencedPistol")
+	if weapon == null:
+		weapon = _player.get_node_or_null("SniperRifle")
 	if weapon == null:
 		weapon = _player.get_node_or_null("AssaultRifle")
 	if weapon != null:
@@ -430,19 +435,14 @@ func _update_debug_ui() -> void:
 		_accuracy_label.text = "Accuracy: %.1f%%" % GameManager.get_accuracy()
 
 
-## Called when an enemy dies with kill information (for score tracking).
-func _on_enemy_died_with_info(is_ricochet_kill: bool = false, is_penetration_kill: bool = false) -> void:
+## Called when an enemy dies.
+func _on_enemy_died() -> void:
 	_current_enemy_count -= 1
 	_update_enemy_count_label()
 
 	# Register kill with GameManager
 	if GameManager:
 		GameManager.register_kill()
-
-	# Register kill with ScoreManager
-	var score_manager: Node = get_node_or_null("/root/ScoreManager")
-	if score_manager and score_manager.has_method("register_kill"):
-		score_manager.register_kill(is_ricochet_kill, is_penetration_kill)
 
 	if _current_enemy_count <= 0:
 		print("All enemies eliminated! Arena cleared!")
@@ -451,10 +451,12 @@ func _on_enemy_died_with_info(is_ricochet_kill: bool = false, is_penetration_kil
 		call_deferred("_activate_exit_zone")
 
 
-## Called when an enemy dies (basic signal without kill info).
-func _on_enemy_died() -> void:
-	# Call the full version with no special kill flags
-	_on_enemy_died_with_info(false, false)
+## Called when an enemy dies with special kill information (for score tracking).
+func _on_enemy_died_with_info(is_ricochet_kill: bool, is_penetration_kill: bool) -> void:
+	# Register kill with ScoreManager including special kill info
+	var score_manager: Node = get_node_or_null("/root/ScoreManager")
+	if score_manager and score_manager.has_method("register_kill"):
+		score_manager.register_kill(is_ricochet_kill, is_penetration_kill)
 
 
 ## Called when an enemy is hit (for accuracy tracking).
@@ -977,6 +979,30 @@ func _setup_selected_weapon() -> void:
 			print("TestTier: Silenced Pistol equipped successfully")
 		else:
 			push_error("TestTier: Failed to load SilencedPistol scene!")
+	# If Sniper Rifle (ASVK) is selected, swap weapons
+	elif selected_weapon_id == "sniper":
+		# Remove the default AssaultRifle
+		var assault_rifle = _player.get_node_or_null("AssaultRifle")
+		if assault_rifle:
+			assault_rifle.queue_free()
+			print("TestTier: Removed default AssaultRifle")
+
+		# Load and add the Sniper Rifle
+		var sniper_scene = load("res://scenes/weapons/csharp/SniperRifle.tscn")
+		if sniper_scene:
+			var sniper = sniper_scene.instantiate()
+			sniper.name = "SniperRifle"
+			_player.add_child(sniper)
+
+			# Set the CurrentWeapon reference in C# Player
+			if _player.has_method("EquipWeapon"):
+				_player.EquipWeapon(sniper)
+			elif _player.get("CurrentWeapon") != null:
+				_player.CurrentWeapon = sniper
+
+			print("TestTier: ASVK Sniper Rifle equipped successfully")
+		else:
+			push_error("TestTier: Failed to load SniperRifle scene!")
 	# For M16 (assault rifle), it's already in the scene
 	else:
 		var assault_rifle = _player.get_node_or_null("AssaultRifle")
