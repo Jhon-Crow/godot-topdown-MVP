@@ -134,6 +134,12 @@ public abstract partial class BaseCharacter : CharacterBody2D, IDamageable
     }
 
     /// <summary>
+    /// Force to apply to casings when pushed by characters (Issue #341, #424).
+    /// Reduced by 2.5x from 50.0 to 20.0 for Issue #424.
+    /// </summary>
+    private const float CasingPushForce = 20.0f;
+
+    /// <summary>
     /// Applies movement based on the input direction.
     /// </summary>
     /// <param name="direction">Normalized direction vector.</param>
@@ -152,6 +158,33 @@ public abstract partial class BaseCharacter : CharacterBody2D, IDamageable
         }
 
         MoveAndSlide();
+
+        // Push any casings we collided with (Issue #341)
+        PushCasings();
+    }
+
+    /// <summary>
+    /// Pushes any shell casings that we collided with during movement (Issue #341).
+    /// Checks all slide collisions and applies impulses to RigidBody2D objects
+    /// that have a "receive_kick" method (i.e., casings).
+    /// </summary>
+    protected virtual void PushCasings()
+    {
+        for (int i = 0; i < GetSlideCollisionCount(); i++)
+        {
+            var collision = GetSlideCollision(i);
+            var collider = collision.GetCollider();
+
+            // Check if collider is a RigidBody2D with receive_kick method (casing)
+            if (collider is RigidBody2D rigidBody && rigidBody.HasMethod("receive_kick"))
+            {
+                // Calculate push direction from character center to casing position (Issue #424)
+                // This makes casings fly away based on which side they're pushed from
+                var pushDir = (rigidBody.GlobalPosition - GlobalPosition).Normalized();
+                var pushStrength = Velocity.Length() * CasingPushForce / 100.0f;
+                rigidBody.Call("receive_kick", pushDir * pushStrength);
+            }
+        }
     }
 
     /// <summary>

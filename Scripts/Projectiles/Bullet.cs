@@ -578,6 +578,23 @@ public partial class Bullet : Area2D
             return; // Don't hit the shooter with direct shots
         }
 
+        // Power Fantasy mode: Ricocheted bullets do NOT damage the player
+        // Check if this is a ricocheted bullet hitting the player
+        if (_hasRicocheted && parent != null && parent.IsInGroup("player"))
+        {
+            var difficultyManager = GetNodeOrNull("/root/DifficultyManager");
+            if (difficultyManager != null)
+            {
+                var result = difficultyManager.Call("do_ricochets_damage_player");
+                bool ricochetsDamagePlayer = result.AsBool();
+                if (!ricochetsDamagePlayer)
+                {
+                    GD.Print($"[Bullet]: Power Fantasy mode - ricocheted bullet passing through player {parent.Name}");
+                    return; // Pass through player without damage
+                }
+            }
+        }
+
         // Check if the parent is dead - bullets should pass through dead entities
         // This is a fallback check in case the collision shape/layer disabling
         // doesn't take effect immediately (see Godot issues #62506, #100687)
@@ -601,10 +618,19 @@ public partial class Bullet : Area2D
             damageable.TakeDamage(Damage);
             hitEnemy = true;
         }
-        // Fallback: Check for on_hit method (compatibility with GDScript targets)
+        // Check if the parent (enemy) has take_damage method (GDScript IDamageable support)
+        // This is the primary path for GDScript enemies hit through their HitArea
+        else if (parent != null && parent.HasMethod("take_damage"))
+        {
+            float effectiveDamage = GetEffectiveDamage();
+            GD.Print($"[Bullet]: Target {parent.Name} has take_damage method, applying {effectiveDamage} damage");
+            parent.Call("take_damage", effectiveDamage);
+            hitEnemy = true;
+        }
+        // Fallback: Check for on_hit method (legacy compatibility with GDScript targets)
         else if (area.HasMethod("on_hit"))
         {
-            GD.Print($"[Bullet]: Target {area.Name} has on_hit method, calling it");
+            GD.Print($"[Bullet]: Target {area.Name} has on_hit method, calling it (damage={Damage} NOT applied - legacy path)");
             area.Call("on_hit");
             hitEnemy = true;
         }

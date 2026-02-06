@@ -1,0 +1,714 @@
+[17:44:38] [INFO] ============================================================
+[17:44:38] [INFO] GAME LOG STARTED
+[17:44:38] [INFO] ============================================================
+[17:44:38] [INFO] Timestamp: 2026-02-03T17:44:38
+[17:44:38] [INFO] Log file: I:/Загрузки/godot exe/game_log_20260203_174438.txt
+[17:44:38] [INFO] Executable: I:/Загрузки/godot exe/Godot-Top-Down-Template.exe
+[17:44:38] [INFO] OS: Windows
+[17:44:38] [INFO] Debug build: false
+[17:44:38] [INFO] Engine version: 4.3-stable (official)
+[17:44:38] [INFO] Project: Godot Top-Down Template
+[17:44:38] [INFO] ------------------------------------------------------------
+[17:44:38] [INFO] [GameManager] GameManager ready
+[17:44:38] [INFO] [ScoreManager] ScoreManager ready
+[17:44:38] [INFO] [SoundPropagation] SoundPropagation autoload initialized
+[17:44:38] [INFO] [ImpactEffects] Scenes loaded: DustEffect, BloodEffect, SparksEffect, BloodDecal
+[17:44:38] [INFO] [ImpactEffects] ImpactEffectsManager ready - FULL VERSION with blood effects enabled
+[17:44:38] [INFO] [ImpactEffects] Starting particle shader warmup (Issue #343 fix)...
+[17:44:38] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[17:44:38] [INFO] [PenultimateHit] Saturation shader loaded successfully
+[17:44:38] [INFO] [PenultimateHit] Starting shader warmup (Issue #343 fix)...
+[17:44:38] [INFO] [PenultimateHit] PenultimateHitEffectsManager ready - Configuration:
+[17:44:38] [INFO] [PenultimateHit]   Time scale: 0.10 (10x slowdown)
+[17:44:38] [INFO] [PenultimateHit]   Saturation boost: 2.0 (3.0x)
+[17:44:38] [INFO] [PenultimateHit]   Contrast boost: 1.0 (2.0x)
+[17:44:38] [INFO] [PenultimateHit]   Effect duration: 3.0 real seconds
+[17:44:38] [INFO] [LastChance] Resetting all effects (scene change detected)
+[17:44:38] [INFO] [LastChance] Last chance shader loaded successfully
+[17:44:38] [INFO] [LastChance] Starting shader warmup (Issue #343 fix)...
+[17:44:38] [INFO] [LastChance] LastChanceEffectsManager ready - Configuration:
+[17:44:38] [INFO] [LastChance]   Freeze duration: 6.0 real seconds
+[17:44:38] [INFO] [LastChance]   Sepia intensity: 0.70
+[17:44:38] [INFO] [LastChance]   Brightness: 0.60
+[17:44:38] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FlashbangGrenade.tscn
+[17:44:38] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FragGrenade.tscn
+[17:44:38] [INFO] [ExperimentalSettings] ExperimentalSettings initialized - FOV enabled: true, Complex grenade throwing: false
+[17:44:38] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[17:44:38] [INFO] [BloodyFeet:Enemy1] Footprint scene loaded
+[17:44:38] [INFO] [BloodyFeet:Enemy1] Found EnemyModel for facing direction
+[17:44:38] [INFO] [BloodyFeet:Enemy1] BloodyFeetComponent ready on Enemy1
+[17:44:38] [ENEMY] [Enemy1] Death animation component initialized
+[17:44:38] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[17:44:38] [INFO] [BloodyFeet:Enemy2] Footprint scene loaded
+[17:44:38] [INFO] [BloodyFeet:Enemy2] Found EnemyModel for facing direction
+[17:44:38] [INFO] [BloodyFeet:Enemy2] BloodyFeetComponent ready on Enemy2
+[17:44:38] [INFO] [EnemyGrenade] Initialized: 1 grenades
+[17:44:38] [ENEMY] [Enemy2] Death animation component initialized
+[17:44:38] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[17:44:38] [INFO] [BloodyFeet:Enemy3] Footprint scene loaded
+[17:44:38] [INFO] [BloodyFeet:Enemy3] Found EnemyModel for facing direction
+[17:44:38] [INFO] [BloodyFeet:Enemy3] BloodyFeetComponent ready on Enemy3
+[17:44:38] [INFO] [EnemyGrenade] Initialized: 1 grenades
+[17:44:38] [ENEMY] [Enemy3] Death animation component initialized
+[17:44:38] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[17:44:38] [INFO] [BloodyFeet:Enemy4] Footprint scene loaded
+[17:44:38] [INFO] [BloodyFeet:Enemy4] Found EnemyModel for facing direction
+[17:44:38] [INFO] [BloodyFeet:Enemy4] BloodyFeetComponent ready on Enemy4
+[17:44:38] [ENEMY] [Enemy4] Death animation component initialized
+[17:44:38] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[17:44:38] [INFO] [BloodyFeet:Enemy5] Footprint scene loaded
+[17:44:38] [INFO] [BloodyFeet:Enemy5] Found EnemyModel for facing direction
+[17:44:38] [INFO] [BloodyFeet:Enemy5] BloodyFeetComponent ready on Enemy5
+[17:44:38] [ENEMY] [Enemy5] Death animation component initialized
+[17:44:38] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[17:44:38] [INFO] [BloodyFeet:Enemy6] Footprint scene loaded
+[17:44:38] [INFO] [BloodyFeet:Enemy6] Found EnemyModel for facing direction
+[17:44:38] [INFO] [BloodyFeet:Enemy6] BloodyFeetComponent ready on Enemy6
+[17:44:38] [INFO] [EnemyGrenade] Initialized: 1 grenades
+[17:44:38] [ENEMY] [Enemy6] Death animation component initialized
+[17:44:38] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[17:44:38] [INFO] [BloodyFeet:Enemy7] Footprint scene loaded
+[17:44:38] [INFO] [BloodyFeet:Enemy7] Found EnemyModel for facing direction
+[17:44:38] [INFO] [BloodyFeet:Enemy7] BloodyFeetComponent ready on Enemy7
+[17:44:38] [ENEMY] [Enemy7] Death animation component initialized
+[17:44:38] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[17:44:38] [INFO] [BloodyFeet:Enemy8] Footprint scene loaded
+[17:44:38] [INFO] [BloodyFeet:Enemy8] Found EnemyModel for facing direction
+[17:44:38] [INFO] [BloodyFeet:Enemy8] BloodyFeetComponent ready on Enemy8
+[17:44:38] [ENEMY] [Enemy8] Death animation component initialized
+[17:44:38] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[17:44:38] [INFO] [BloodyFeet:Enemy9] Footprint scene loaded
+[17:44:38] [INFO] [BloodyFeet:Enemy9] Found EnemyModel for facing direction
+[17:44:38] [INFO] [BloodyFeet:Enemy9] BloodyFeetComponent ready on Enemy9
+[17:44:38] [ENEMY] [Enemy9] Death animation component initialized
+[17:44:38] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[17:44:38] [INFO] [BloodyFeet:Enemy10] Footprint scene loaded
+[17:44:38] [INFO] [BloodyFeet:Enemy10] Found EnemyModel for facing direction
+[17:44:38] [INFO] [BloodyFeet:Enemy10] BloodyFeetComponent ready on Enemy10
+[17:44:38] [ENEMY] [Enemy10] Death animation component initialized
+[17:44:38] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[17:44:38] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[17:44:38] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[17:44:38] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[17:44:38] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[17:44:38] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[17:44:38] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[17:44:38] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[17:44:38] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[17:44:38] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[17:44:38] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[17:44:38] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[17:44:38] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 4/4
+[17:44:38] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[17:44:38] [INFO] [BloodDecal] Blood puddle created at (640, 360) (added to group)
+[17:44:38] [INFO] [BuildingLevel] Found Environment/Enemies node with 10 children
+[17:44:38] [INFO] [BuildingLevel] Child 'Enemy1': script=true, has_died_signal=true
+[17:44:38] [INFO] [BuildingLevel] Child 'Enemy2': script=true, has_died_signal=true
+[17:44:38] [INFO] [BuildingLevel] Child 'Enemy3': script=true, has_died_signal=true
+[17:44:38] [INFO] [BuildingLevel] Child 'Enemy4': script=true, has_died_signal=true
+[17:44:38] [INFO] [BuildingLevel] Child 'Enemy5': script=true, has_died_signal=true
+[17:44:38] [INFO] [BuildingLevel] Child 'Enemy6': script=true, has_died_signal=true
+[17:44:38] [INFO] [BuildingLevel] Child 'Enemy7': script=true, has_died_signal=true
+[17:44:38] [INFO] [BuildingLevel] Child 'Enemy8': script=true, has_died_signal=true
+[17:44:38] [INFO] [BuildingLevel] Child 'Enemy9': script=true, has_died_signal=true
+[17:44:38] [INFO] [BuildingLevel] Child 'Enemy10': script=true, has_died_signal=true
+[17:44:38] [INFO] [BuildingLevel] Enemy tracking complete: 10 enemies registered
+[17:44:39] [INFO] [ScoreManager] Level started with 10 enemies
+[17:44:39] [INFO] [BloodyFeet:Enemy1] Blood detector created and attached to Enemy1
+[17:44:39] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 1)
+[17:44:39] [ENEMY] [Enemy1] Registered as sound listener
+[17:44:39] [ENEMY] [Enemy1] Spawned at (300, 350), hp: 4, behavior: GUARD
+[17:44:39] [INFO] [BloodyFeet:Enemy2] Blood detector created and attached to Enemy2
+[17:44:39] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 2)
+[17:44:39] [ENEMY] [Enemy2] Registered as sound listener
+[17:44:39] [ENEMY] [Enemy2] Spawned at (400, 550), hp: 4, behavior: GUARD
+[17:44:39] [INFO] [BloodyFeet:Enemy3] Blood detector created and attached to Enemy3
+[17:44:39] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 3)
+[17:44:39] [ENEMY] [Enemy3] Registered as sound listener
+[17:44:39] [ENEMY] [Enemy3] Spawned at (700, 750), hp: 2, behavior: GUARD
+[17:44:39] [INFO] [BloodyFeet:Enemy4] Blood detector created and attached to Enemy4
+[17:44:39] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 4)
+[17:44:39] [ENEMY] [Enemy4] Registered as sound listener
+[17:44:39] [ENEMY] [Enemy4] Spawned at (800, 900), hp: 3, behavior: GUARD
+[17:44:39] [INFO] [BloodyFeet:Enemy5] Blood detector created and attached to Enemy5
+[17:44:39] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 5)
+[17:44:39] [ENEMY] [Enemy5] Registered as sound listener
+[17:44:39] [ENEMY] [Enemy5] Spawned at (1700, 350), hp: 3, behavior: GUARD
+[17:44:39] [INFO] [BloodyFeet:Enemy6] Blood detector created and attached to Enemy6
+[17:44:39] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 6)
+[17:44:39] [ENEMY] [Enemy6] Registered as sound listener
+[17:44:39] [ENEMY] [Enemy6] Spawned at (1950, 450), hp: 4, behavior: GUARD
+[17:44:39] [INFO] [BloodyFeet:Enemy7] Blood detector created and attached to Enemy7
+[17:44:39] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 7)
+[17:44:39] [ENEMY] [Enemy7] Registered as sound listener
+[17:44:39] [ENEMY] [Enemy7] Spawned at (1606.114, 893.8859), hp: 2, behavior: PATROL
+[17:44:39] [INFO] [BloodyFeet:Enemy8] Blood detector created and attached to Enemy8
+[17:44:39] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 8)
+[17:44:39] [ENEMY] [Enemy8] Registered as sound listener
+[17:44:39] [ENEMY] [Enemy8] Spawned at (1900, 1450), hp: 4, behavior: GUARD
+[17:44:39] [INFO] [BloodyFeet:Enemy9] Blood detector created and attached to Enemy9
+[17:44:39] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 9)
+[17:44:39] [ENEMY] [Enemy9] Registered as sound listener
+[17:44:39] [ENEMY] [Enemy9] Spawned at (2100, 1550), hp: 3, behavior: GUARD
+[17:44:39] [INFO] [BloodyFeet:Enemy10] Blood detector created and attached to Enemy10
+[17:44:39] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 10)
+[17:44:39] [ENEMY] [Enemy10] Registered as sound listener
+[17:44:39] [ENEMY] [Enemy10] Spawned at (1200, 1550), hp: 3, behavior: PATROL
+[17:44:39] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[17:44:39] [ENEMY] [Enemy1] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=33.8°, current=0.0°, player=(450,1250), corner_timer=0.00
+[17:44:39] [ENEMY] [Enemy2] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=45.0°, current=0.0°, player=(450,1250), corner_timer=0.00
+[17:44:39] [ENEMY] [Enemy3] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=236.3°, current=0.0°, player=(450,1250), corner_timer=0.00
+[17:44:39] [ENEMY] [Enemy4] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=168.8°, current=0.0°, player=(450,1250), corner_timer=0.00
+[17:44:39] [ENEMY] [Enemy5] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=11.3°, current=0.0°, player=(450,1250), corner_timer=0.00
+[17:44:39] [ENEMY] [Enemy6] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=191.3°, current=0.0°, player=(450,1250), corner_timer=0.00
+[17:44:39] [ENEMY] [Enemy8] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=303.8°, current=0.0°, player=(450,1250), corner_timer=0.00
+[17:44:39] [ENEMY] [Enemy9] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=56.3°, current=0.0°, player=(450,1250), corner_timer=0.00
+[17:44:39] [INFO] [Player] Detecting weapon pose (frame 3)...
+[17:44:39] [INFO] [Player] Detected weapon: Rifle (default pose)
+[17:44:39] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[17:44:39] [INFO] [PenultimateHit] Shader warmup complete in 163 ms
+[17:44:39] [INFO] [LastChance] Shader warmup complete in 162 ms
+[17:44:39] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[17:44:39] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[17:44:39] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[17:44:39] [INFO] [LastChance] Found player: Player
+[17:44:39] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[17:44:39] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[17:44:39] [INFO] [LastChance] Connected to player Died signal (C#)
+[17:44:39] [INFO] [ImpactEffects] Particle shader warmup complete: 5 effects warmed up in 381 ms
+[17:44:40] [ENEMY] [Enemy7] PATROL corner check: angle 94.3°
+[17:44:40] [ENEMY] [Enemy10] PATROL corner check: angle -0.0°
+[17:44:40] [ENEMY] [Enemy7] ROT_CHANGE: none -> P3:corner, state=IDLE, target=94.3°, current=4.3°, player=(450,1250), corner_timer=0.30
+[17:44:40] [ENEMY] [Enemy10] ROT_CHANGE: none -> P3:corner, state=IDLE, target=-0.0°, current=90.0°, player=(450,1250), corner_timer=0.30
+[17:44:40] [ENEMY] [Enemy7] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=4.3°, current=58.7°, player=(450,1250), corner_timer=-0.02
+[17:44:40] [ENEMY] [Enemy7] PATROL corner check: angle 94.3°
+[17:44:40] [ENEMY] [Enemy10] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=50.4°, player=(450,1250), corner_timer=-0.02
+[17:44:40] [ENEMY] [Enemy10] PATROL corner check: angle 14.3°
+[17:44:40] [ENEMY] [Enemy7] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=94.3°, current=55.9°, player=(450,1250), corner_timer=0.30
+[17:44:40] [ENEMY] [Enemy10] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=14.3°, current=52.7°, player=(450,1250), corner_timer=0.30
+[17:44:41] [ENEMY] [Enemy10] ROT_CHANGE: P3:corner -> P4:velocity, state=IDLE, target=180.0°, current=14.0°, player=(450,1250), corner_timer=-0.02
+[17:44:41] [ENEMY] [Enemy10] PATROL corner check: angle 7.0°
+[17:44:41] [ENEMY] [Enemy10] ROT_CHANGE: P4:velocity -> P3:corner, state=IDLE, target=7.0°, current=16.7°, player=(450,1250), corner_timer=0.30
+[17:44:42] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[17:44:42] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[17:44:42] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[17:44:42] [INFO] [LastChance] Resetting all effects (scene change detected)
+[17:44:42] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[17:44:42] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[17:44:42] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[17:44:42] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[17:44:42] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[17:44:42] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+[17:44:42] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[17:44:42] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[17:44:42] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[17:44:42] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[17:44:42] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[17:44:42] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[17:44:42] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 3/3, Health: 3/4
+[17:44:42] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[17:44:42] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[17:44:42] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[17:44:42] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[17:44:42] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[17:44:42] [INFO] [LastChance] Found player: Player
+[17:44:42] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[17:44:42] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[17:44:42] [INFO] [LastChance] Connected to player Died signal (C#)
+[17:44:42] [INFO] [Player] Detecting weapon pose (frame 3)...
+[17:44:42] [INFO] [Player] Detected weapon: Rifle (default pose)
+[17:44:42] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[17:44:43] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[17:44:43] [INFO] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
+[17:44:43] [INFO] [Player.Grenade] G pressed - starting grab animation
+[17:44:43] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[17:44:43] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (544.5368, 363.3395)
+[17:44:43] [INFO] [GrenadeBase] CCD enabled (mode: CAST_RAY) to prevent wall tunneling
+[17:44:43] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[17:44:43] [INFO] [GrenadeBase] Timer activated! 4.0 seconds until explosion
+[17:44:43] [INFO] [Player.Grenade] Timer started, grenade created at (150, 360)
+[17:44:43] [INFO] [Player.Grenade.Anim] Phase changed to: PullPin (duration: 0,15s)
+[17:44:43] [INFO] [Player.Grenade] Step 1 complete! Drag: (158.50171, -4.007416)
+[17:44:43] [INFO] [Player.Grenade.Anim] Phase changed to: HandsApproach (duration: 0,20s)
+[17:44:43] [INFO] [Player.Grenade.Simple] RMB pressed after pin pull - starting trajectory aiming
+[17:44:45] [INFO] [Player.Grenade.Simple] Throwing! Target: (752.23346, 159.81786), Distance: 536,8, Speed: 567,5, Friction: 300,0
+[17:44:45] [INFO] [Player.Grenade] Player rotated for throw: 0 -> -0,51500595
+[17:44:45] [INFO] [GrenadeBase] Simple mode throw! Dir: (0.87029, -0.49254), Speed: 567.5 (clamped from 567.5, max: 1352.8)
+[17:44:45] [INFO] [Player.Grenade.Anim] Phase changed to: Throw (duration: 0,20s)
+[17:44:45] [INFO] [Player.Grenade.Simple] Grenade thrown!
+[17:44:45] [INFO] [Player.Grenade] State reset to IDLE
+[17:44:45] [INFO] [Player.Grenade] State reset to IDLE
+[17:44:45] [INFO] [Player.Grenade.Anim] Phase changed to: ReturnIdle (duration: 0,30s)
+[17:44:45] [INFO] [GrenadeBase] Collision detected with Obstacle2 (type: StaticBody2D)
+[17:44:45] [INFO] [Player.Grenade] Player rotation restored to 0
+[17:44:45] [INFO] [Player.Grenade.Anim] Animation complete, returning to normal
+[17:44:47] [INFO] [GrenadeBase] Grenade landed at (693.3775, 192.5291)
+[17:44:47] [INFO] [GrenadeBase] EXPLODED at (696.6769, 190.6618)!
+[17:44:47] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(696.6769, 190.6618), source=NEUTRAL (FlashbangGrenade), range=2937, listeners=10
+[17:44:47] [INFO] [SoundPropagation] Cleaned up 10 invalid listeners
+[17:44:47] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[17:44:48] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[17:44:48] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[17:44:48] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[17:44:48] [INFO] [LastChance] Resetting all effects (scene change detected)
+[17:44:48] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[17:44:48] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[17:44:48] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[17:44:48] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[17:44:48] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[17:44:48] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+[17:44:48] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[17:44:48] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[17:44:48] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[17:44:48] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[17:44:48] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[17:44:48] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[17:44:48] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 3/3, Health: 4/4
+[17:44:48] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[17:44:48] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[17:44:48] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[17:44:48] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[17:44:48] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[17:44:48] [INFO] [LastChance] Found player: Player
+[17:44:48] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[17:44:48] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[17:44:48] [INFO] [LastChance] Connected to player Died signal (C#)
+[17:44:48] [INFO] [Player] Detecting weapon pose (frame 3)...
+[17:44:48] [INFO] [Player] Detected weapon: Rifle (default pose)
+[17:44:48] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[17:44:51] [INFO] [PauseMenu] Armory button pressed
+[17:44:51] [INFO] [PauseMenu] Creating new armory menu instance
+[17:44:51] [INFO] [PauseMenu] armory_menu_scene resource path: res://scenes/ui/ArmoryMenu.tscn
+[17:44:51] [INFO] [PauseMenu] Instance created, class: CanvasLayer, name: ArmoryMenu
+[17:44:51] [INFO] [PauseMenu] Script attached: res://scripts/ui/armory_menu.gd
+[17:44:51] [INFO] [PauseMenu] back_pressed signal exists on instance
+[17:44:51] [INFO] [PauseMenu] back_pressed signal connected
+[17:44:51] [INFO] [PauseMenu] Armory menu instance added as child, is_inside_tree: true
+[17:44:51] [INFO] [PauseMenu] _populate_weapon_grid method exists
+[17:44:52] [INFO] [GrenadeManager] Grenade type changed from Flashbang to Frag Grenade
+[17:44:52] [INFO] [GrenadeManager] Restarting level due to grenade type change
+[17:44:52] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[17:44:52] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[17:44:52] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[17:44:52] [INFO] [LastChance] Resetting all effects (scene change detected)
+[17:44:52] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[17:44:52] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[17:44:52] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[17:44:52] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[17:44:52] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Frag Grenade
+[17:44:52] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+[17:44:52] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[17:44:52] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[17:44:52] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[17:44:52] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[17:44:52] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[17:44:52] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[17:44:52] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 3/3, Health: 3/4
+[17:44:52] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[17:44:52] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[17:44:52] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(150, 366), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[17:44:52] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[17:44:52] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[17:44:52] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[17:44:52] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[17:44:52] [INFO] [LastChance] Found player: Player
+[17:44:52] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[17:44:52] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[17:44:52] [INFO] [LastChance] Connected to player Died signal (C#)
+[17:44:53] [INFO] [Player] Detecting weapon pose (frame 3)...
+[17:44:53] [INFO] [Player] Detected weapon: Rifle (default pose)
+[17:44:53] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[17:44:53] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(150, 366), shooter_id=158242703015, bullet_pos=(508.33328, 366)
+[17:44:53] [INFO] [Bullet] Using shooter_position, distance=358,33328
+[17:44:53] [INFO] [Bullet] Distance to wall: 358,33328 (24,399572% of viewport)
+[17:44:53] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[17:44:53] [INFO] [Bullet] Starting wall penetration at (508.33328, 366)
+[17:44:53] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[17:44:53] [INFO] [Bullet] Exiting penetration at (554.99994, 366) after traveling 41,666668 pixels through wall
+[17:44:53] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[17:44:53] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[17:44:53] [INFO] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
+[17:44:53] [INFO] [Player.Grenade] G pressed - starting grab animation
+[17:44:53] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[17:44:53] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (622.4569, 290.53802)
+[17:44:54] [INFO] [Player.Grenade.Anim] Phase changed to: ReturnIdle (duration: 0,30s)
+[17:44:54] [INFO] [Player.Grenade.Anim] Animation complete, returning to normal
+[17:44:54] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[17:44:54] [INFO] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
+[17:44:54] [INFO] [Player.Grenade] G pressed - starting grab animation
+[17:44:54] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[17:44:54] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (622.5557, 396.0668)
+[17:44:54] [INFO] [GrenadeBase] CCD enabled (mode: CAST_RAY) to prevent wall tunneling
+[17:44:54] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[17:44:54] [INFO] [FragGrenade] Shrapnel scene loaded from: res://scenes/projectiles/Shrapnel.tscn
+[17:44:54] [INFO] [FragGrenade] Pin pulled - waiting for impact (no timer, impact-triggered only)
+[17:44:54] [INFO] [Player.Grenade] Timer started, grenade created at (150, 360)
+[17:44:54] [INFO] [Player.Grenade.Anim] Phase changed to: PullPin (duration: 0,15s)
+[17:44:54] [INFO] [Player.Grenade] Step 1 complete! Drag: (400.19348, -23.376617)
+[17:44:54] [INFO] [Player.Grenade.Anim] Phase changed to: HandsApproach (duration: 0,20s)
+[17:44:54] [INFO] [Player.Grenade.Simple] RMB pressed after pin pull - starting trajectory aiming
+[17:44:55] [INFO] [GrenadeBase] Grenade landed at (151.5, 360)
+[17:44:58] [INFO] [Player.Grenade.Simple] Throwing! Target: (758.246, 165.03802), Distance: 509,1, Speed: 533,9, Friction: 280,0
+[17:44:58] [INFO] [Player.Grenade] Player rotated for throw: 0 -> -0,47756374
+[17:44:58] [INFO] [GrenadeBase] Simple mode throw! Dir: (0.888117, -0.459617), Speed: 533.9 (clamped from 533.9, max: 1186.5)
+[17:44:58] [INFO] [FragGrenade] Grenade thrown (simple mode) - impact detection enabled
+[17:44:58] [INFO] [Player.Grenade.Anim] Phase changed to: Throw (duration: 0,20s)
+[17:44:58] [INFO] [Player.Grenade.Simple] Grenade thrown!
+[17:44:58] [INFO] [Player.Grenade] State reset to IDLE
+[17:44:58] [INFO] [Player.Grenade] State reset to IDLE
+[17:44:58] [INFO] [Player.Grenade.Anim] Phase changed to: ReturnIdle (duration: 0,30s)
+[17:44:58] [INFO] [Player.Grenade] Player rotation restored to 0
+[17:44:58] [INFO] [Player.Grenade.Anim] Animation complete, returning to normal
+[17:45:02] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[17:45:02] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[17:45:02] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[17:45:02] [INFO] [LastChance] Resetting all effects (scene change detected)
+[17:45:02] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[17:45:02] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[17:45:02] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[17:45:02] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[17:45:02] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Frag Grenade
+[17:45:02] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+[17:45:02] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[17:45:02] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[17:45:02] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[17:45:02] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[17:45:02] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[17:45:02] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[17:45:02] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 3/3, Health: 2/4
+[17:45:02] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[17:45:02] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[17:45:02] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[17:45:02] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[17:45:02] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[17:45:02] [INFO] [LastChance] Found player: Player
+[17:45:02] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[17:45:02] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[17:45:02] [INFO] [LastChance] Connected to player Died signal (C#)
+[17:45:02] [INFO] [Player] Detecting weapon pose (frame 3)...
+[17:45:02] [INFO] [Player] Detected weapon: Rifle (default pose)
+[17:45:02] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[17:45:03] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[17:45:03] [INFO] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
+[17:45:03] [INFO] [Player.Grenade] G pressed - starting grab animation
+[17:45:03] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[17:45:03] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (660.0495, 187.01299)
+[17:45:03] [INFO] [GrenadeBase] CCD enabled (mode: CAST_RAY) to prevent wall tunneling
+[17:45:03] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[17:45:03] [INFO] [FragGrenade] Shrapnel scene loaded from: res://scenes/projectiles/Shrapnel.tscn
+[17:45:03] [INFO] [FragGrenade] Pin pulled - waiting for impact (no timer, impact-triggered only)
+[17:45:03] [INFO] [Player.Grenade] Timer started, grenade created at (150, 360)
+[17:45:03] [INFO] [Player.Grenade.Anim] Phase changed to: PullPin (duration: 0,15s)
+[17:45:03] [INFO] [Player.Grenade] Step 1 complete! Drag: (142.52972, 25.38034)
+[17:45:03] [INFO] [Player.Grenade.Anim] Phase changed to: HandsApproach (duration: 0,20s)
+[17:45:03] [INFO] [Player.Grenade.Simple] RMB pressed after pin pull - starting trajectory aiming
+[17:45:04] [INFO] [Player.Grenade.Simple] Throwing! Target: (326.44894, 0), Distance: 340,9, Speed: 436,9, Friction: 280,0
+[17:45:04] [INFO] [Player.Grenade] Player rotated for throw: 0 -> -1,115071
+[17:45:04] [INFO] [GrenadeBase] Simple mode throw! Dir: (0.440114, -0.897942), Speed: 436.9 (clamped from 436.9, max: 1186.5)
+[17:45:04] [INFO] [FragGrenade] Grenade thrown (simple mode) - impact detection enabled
+[17:45:04] [INFO] [Player.Grenade.Anim] Phase changed to: Throw (duration: 0,20s)
+[17:45:04] [INFO] [Player.Grenade.Simple] Grenade thrown!
+[17:45:04] [INFO] [Player.Grenade] State reset to IDLE
+[17:45:04] [INFO] [Player.Grenade] State reset to IDLE
+[17:45:04] [INFO] [Player.Grenade.Anim] Phase changed to: ReturnIdle (duration: 0,30s)
+[17:45:04] [INFO] [Player.Grenade] Player rotation restored to 0
+[17:45:04] [INFO] [Player.Grenade.Anim] Animation complete, returning to normal
+[17:45:05] [INFO] [GrenadeBase] Collision detected with WallTop (type: StaticBody2D)
+[17:45:05] [INFO] [FragGrenade] Impact detected! Body: WallTop (type: StaticBody2D), triggering explosion
+[17:45:05] [INFO] [FragGrenade] Impact detected - exploding immediately!
+[17:45:05] [INFO] [GrenadeBase] EXPLODED at (292.101, 72.64255)!
+[17:45:05] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(292.101, 72.64255), source=NEUTRAL (FragGrenade), range=2937, listeners=0
+[17:45:05] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[17:45:05] [INFO] [FragGrenade] Spawned shrapnel #1 at angle -4.8 degrees
+[17:45:05] [INFO] [FragGrenade] Spawned shrapnel #2 at angle 87.4 degrees
+[17:45:05] [INFO] [FragGrenade] Spawned shrapnel #3 at angle 171.0 degrees
+[17:45:05] [INFO] [FragGrenade] Spawned shrapnel #4 at angle 258.9 degrees
+[17:45:05] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[17:45:05] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[17:45:05] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[17:45:05] [INFO] [LastChance] Resetting all effects (scene change detected)
+[17:45:05] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[17:45:05] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[17:45:05] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[17:45:05] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[17:45:05] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Frag Grenade
+[17:45:05] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+[17:45:05] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[17:45:05] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[17:45:05] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[17:45:05] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[17:45:05] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[17:45:05] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[17:45:05] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 3/3, Health: 4/4
+[17:45:05] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[17:45:05] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[17:45:05] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[17:45:05] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[17:45:05] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[17:45:05] [INFO] [LastChance] Found player: Player
+[17:45:05] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[17:45:05] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[17:45:05] [INFO] [LastChance] Connected to player Died signal (C#)
+[17:45:05] [INFO] [Player] Detecting weapon pose (frame 3)...
+[17:45:05] [INFO] [Player] Detected weapon: Rifle (default pose)
+[17:45:05] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[17:45:06] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[17:45:06] [INFO] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
+[17:45:06] [INFO] [Player.Grenade] G pressed - starting grab animation
+[17:45:06] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[17:45:06] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (381.46228, 253.80334)
+[17:45:06] [INFO] [GrenadeBase] CCD enabled (mode: CAST_RAY) to prevent wall tunneling
+[17:45:06] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[17:45:06] [INFO] [FragGrenade] Shrapnel scene loaded from: res://scenes/projectiles/Shrapnel.tscn
+[17:45:06] [INFO] [FragGrenade] Pin pulled - waiting for impact (no timer, impact-triggered only)
+[17:45:06] [INFO] [Player.Grenade] Timer started, grenade created at (150, 360)
+[17:45:06] [INFO] [Player.Grenade.Anim] Phase changed to: PullPin (duration: 0,15s)
+[17:45:06] [INFO] [Player.Grenade] Step 1 complete! Drag: (230.94354, 50.76068)
+[17:45:06] [INFO] [Player.Grenade.Anim] Phase changed to: HandsApproach (duration: 0,20s)
+[17:45:06] [INFO] [Player.Grenade.Simple] RMB pressed after pin pull - starting trajectory aiming
+[17:45:08] [INFO] [Player.Grenade.Simple] Throwing! Target: (754.2376, 161.4473), Distance: 489,9, Speed: 523,8, Friction: 280,0
+[17:45:08] [INFO] [Player.Grenade] Player rotated for throw: 0 -> -0,48665908
+[17:45:08] [INFO] [GrenadeBase] Simple mode throw! Dir: (0.8839, -0.467675), Speed: 523.8 (clamped from 523.8, max: 1186.5)
+[17:45:08] [INFO] [FragGrenade] Grenade thrown (simple mode) - impact detection enabled
+[17:45:08] [INFO] [Player.Grenade.Anim] Phase changed to: Throw (duration: 0,20s)
+[17:45:08] [INFO] [Player.Grenade.Simple] Grenade thrown!
+[17:45:08] [INFO] [Player.Grenade] State reset to IDLE
+[17:45:08] [INFO] [Player.Grenade] State reset to IDLE
+[17:45:08] [INFO] [Player.Grenade.Anim] Phase changed to: ReturnIdle (duration: 0,30s)
+[17:45:08] [INFO] [Player.Grenade] Player rotation restored to 0
+[17:45:08] [INFO] [Player.Grenade.Anim] Animation complete, returning to normal
+[17:45:10] [INFO] [GrenadeBase] Grenade landed at (699.4482, 190.4363)
+[17:45:10] [INFO] [FragGrenade] Impact detected - exploding immediately!
+[17:45:10] [INFO] [GrenadeBase] EXPLODED at (699.4482, 190.4363)!
+[17:45:10] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(699.4482, 190.4363), source=NEUTRAL (FragGrenade), range=2937, listeners=0
+[17:45:10] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[17:45:10] [INFO] [FragGrenade] Spawned shrapnel #1 at angle -12.3 degrees
+[17:45:10] [INFO] [FragGrenade] Spawned shrapnel #2 at angle 71.3 degrees
+[17:45:10] [INFO] [FragGrenade] Spawned shrapnel #3 at angle 186.6 degrees
+[17:45:10] [INFO] [FragGrenade] Spawned shrapnel #4 at angle 283.6 degrees
+[17:45:10] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[17:45:10] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[17:45:10] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[17:45:10] [INFO] [LastChance] Resetting all effects (scene change detected)
+[17:45:10] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[17:45:10] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[17:45:10] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[17:45:10] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[17:45:10] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Frag Grenade
+[17:45:10] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+[17:45:10] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[17:45:10] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[17:45:10] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[17:45:10] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[17:45:10] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[17:45:10] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[17:45:10] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 3/3, Health: 3/4
+[17:45:10] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[17:45:10] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[17:45:10] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[17:45:10] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[17:45:10] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[17:45:10] [INFO] [LastChance] Found player: Player
+[17:45:10] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[17:45:10] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[17:45:10] [INFO] [LastChance] Connected to player Died signal (C#)
+[17:45:10] [INFO] [Player] Detecting weapon pose (frame 3)...
+[17:45:10] [INFO] [Player] Detected weapon: Rifle (default pose)
+[17:45:10] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[17:45:11] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[17:45:11] [INFO] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
+[17:45:11] [INFO] [Player.Grenade] G pressed - starting grab animation
+[17:45:11] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[17:45:11] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (563.1842, 227.0872)
+[17:45:11] [INFO] [GrenadeBase] CCD enabled (mode: CAST_RAY) to prevent wall tunneling
+[17:45:11] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[17:45:11] [INFO] [FragGrenade] Shrapnel scene loaded from: res://scenes/projectiles/Shrapnel.tscn
+[17:45:11] [INFO] [FragGrenade] Pin pulled - waiting for impact (no timer, impact-triggered only)
+[17:45:11] [INFO] [Player.Grenade] Timer started, grenade created at (150, 360)
+[17:45:11] [INFO] [Player.Grenade.Anim] Phase changed to: PullPin (duration: 0,15s)
+[17:45:11] [INFO] [Player.Grenade] Step 1 complete! Drag: (84.62927, 15.361771)
+[17:45:11] [INFO] [Player.Grenade.Anim] Phase changed to: HandsApproach (duration: 0,20s)
+[17:45:11] [INFO] [Player.Grenade.Simple] RMB pressed after pin pull - starting trajectory aiming
+[17:45:14] [INFO] [Player.Grenade.Simple] Throwing! Target: (776.9516, 136.60098), Distance: 638,2, Speed: 597,8, Friction: 280,0
+[17:45:14] [INFO] [Player.Grenade] Player rotated for throw: 0 -> -0,4556492
+[17:45:14] [INFO] [GrenadeBase] Simple mode throw! Dir: (0.897976, -0.440045), Speed: 597.8 (clamped from 597.8, max: 1186.5)
+[17:45:14] [INFO] [FragGrenade] Grenade thrown (simple mode) - impact detection enabled
+[17:45:14] [INFO] [Player.Grenade.Anim] Phase changed to: Throw (duration: 0,20s)
+[17:45:14] [INFO] [Player.Grenade.Simple] Grenade thrown!
+[17:45:14] [INFO] [Player.Grenade] State reset to IDLE
+[17:45:14] [INFO] [Player.Grenade] State reset to IDLE
+[17:45:14] [INFO] [Player.Grenade.Anim] Phase changed to: ReturnIdle (duration: 0,30s)
+[17:45:14] [INFO] [Player.Grenade] Player rotation restored to 0
+[17:45:14] [INFO] [Player.Grenade.Anim] Animation complete, returning to normal
+[17:45:16] [INFO] [GrenadeBase] Grenade landed at (698.394, 175.0975)
+[17:45:16] [INFO] [FragGrenade] Impact detected - exploding immediately!
+[17:45:16] [INFO] [GrenadeBase] EXPLODED at (698.394, 175.0975)!
+[17:45:16] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(698.394, 175.0975), source=NEUTRAL (FragGrenade), range=2937, listeners=0
+[17:45:16] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[17:45:16] [INFO] [FragGrenade] Spawned shrapnel #1 at angle -11.4 degrees
+[17:45:16] [INFO] [FragGrenade] Spawned shrapnel #2 at angle 84.8 degrees
+[17:45:16] [INFO] [FragGrenade] Spawned shrapnel #3 at angle 189.7 degrees
+[17:45:16] [INFO] [FragGrenade] Spawned shrapnel #4 at angle 283.0 degrees
+[17:45:16] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[17:45:17] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[17:45:17] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[17:45:17] [INFO] [LastChance] Resetting all effects (scene change detected)
+[17:45:17] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[17:45:17] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[17:45:17] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[17:45:17] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[17:45:17] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Frag Grenade
+[17:45:17] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+[17:45:17] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[17:45:17] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[17:45:17] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[17:45:17] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[17:45:17] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[17:45:17] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[17:45:17] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 3/3, Health: 4/4
+[17:45:17] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[17:45:17] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[17:45:17] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[17:45:17] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[17:45:17] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[17:45:17] [INFO] [LastChance] Found player: Player
+[17:45:17] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[17:45:17] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[17:45:17] [INFO] [LastChance] Connected to player Died signal (C#)
+[17:45:17] [INFO] [Player] Detecting weapon pose (frame 3)...
+[17:45:17] [INFO] [Player] Detected weapon: Rifle (default pose)
+[17:45:17] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[17:45:17] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[17:45:17] [INFO] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
+[17:45:17] [INFO] [Player.Grenade] G pressed - starting grab animation
+[17:45:17] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[17:45:17] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (654.7665, 152.282)
+[17:45:17] [INFO] [GrenadeBase] CCD enabled (mode: CAST_RAY) to prevent wall tunneling
+[17:45:17] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[17:45:17] [INFO] [FragGrenade] Shrapnel scene loaded from: res://scenes/projectiles/Shrapnel.tscn
+[17:45:17] [INFO] [FragGrenade] Pin pulled - waiting for impact (no timer, impact-triggered only)
+[17:45:17] [INFO] [Player.Grenade] Timer started, grenade created at (150, 360)
+[17:45:17] [INFO] [Player.Grenade.Anim] Phase changed to: PullPin (duration: 0,15s)
+[17:45:17] [INFO] [Player.Grenade] Step 1 complete! Drag: (144.50806, 20.03711)
+[17:45:17] [INFO] [Player.Grenade.Anim] Phase changed to: HandsApproach (duration: 0,20s)
+[17:45:17] [INFO] [Player.Grenade.Simple] RMB pressed after pin pull - starting trajectory aiming
+[17:45:19] [INFO] [Player.Grenade.Simple] Throwing! Target: (750.22925, 157.93713), Distance: 609,2, Speed: 584,1, Friction: 280,0
+[17:45:19] [INFO] [Player.Grenade] Player rotated for throw: 0 -> -0,45808387
+[17:45:19] [INFO] [GrenadeBase] Simple mode throw! Dir: (0.896902, -0.44223), Speed: 584.1 (clamped from 584.1, max: 1186.5)
+[17:45:19] [INFO] [FragGrenade] Grenade thrown (simple mode) - impact detection enabled
+[17:45:19] [INFO] [Player.Grenade.Anim] Phase changed to: Throw (duration: 0,20s)
+[17:45:19] [INFO] [Player.Grenade.Simple] Grenade thrown!
+[17:45:19] [INFO] [Player.Grenade] State reset to IDLE
+[17:45:19] [INFO] [Player.Grenade] State reset to IDLE
+[17:45:19] [INFO] [Player.Grenade.Anim] Phase changed to: ReturnIdle (duration: 0,30s)
+[17:45:19] [INFO] [Player.Grenade] Player rotation restored to 0
+[17:45:20] [INFO] [Player.Grenade.Anim] Animation complete, returning to normal
+[17:45:21] [INFO] [GrenadeBase] Grenade landed at (676.6985, 194.1924)
+[17:45:21] [INFO] [FragGrenade] Impact detected - exploding immediately!
+[17:45:21] [INFO] [GrenadeBase] EXPLODED at (676.6985, 194.1924)!
+[17:45:21] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(676.6985, 194.1924), source=NEUTRAL (FragGrenade), range=2937, listeners=0
+[17:45:21] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[17:45:21] [INFO] [FragGrenade] Spawned shrapnel #1 at angle -3.0 degrees
+[17:45:21] [INFO] [FragGrenade] Spawned shrapnel #2 at angle 102.6 degrees
+[17:45:21] [INFO] [FragGrenade] Spawned shrapnel #3 at angle 168.3 degrees
+[17:45:21] [INFO] [FragGrenade] Spawned shrapnel #4 at angle 251.0 degrees
+[17:45:24] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[17:45:24] [INFO] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
+[17:45:24] [INFO] [Player.Grenade] G pressed - starting grab animation
+[17:45:24] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[17:45:24] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (654.0289, 226.13364)
+[17:45:24] [INFO] [GrenadeBase] CCD enabled (mode: CAST_RAY) to prevent wall tunneling
+[17:45:24] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[17:45:24] [INFO] [FragGrenade] Shrapnel scene loaded from: res://scenes/projectiles/Shrapnel.tscn
+[17:45:24] [INFO] [FragGrenade] Pin pulled - waiting for impact (no timer, impact-triggered only)
+[17:45:24] [INFO] [Player.Grenade] Timer started, grenade created at (150, 453.8889)
+[17:45:24] [INFO] [Player.Grenade.Anim] Phase changed to: PullPin (duration: 0,15s)
+[17:45:24] [INFO] [Player.Grenade] Step 1 complete! Drag: (177.70355, 44.749542)
+[17:45:24] [INFO] [Player.Grenade.Anim] Phase changed to: HandsApproach (duration: 0,20s)
+[17:45:24] [INFO] [Player.Grenade.Simple] RMB pressed after pin pull - starting trajectory aiming
+[17:45:26] [INFO] [Player.Grenade.Simple] Throwing! Target: (416.20004, 345.68835), Distance: 227,3, Speed: 356,8, Friction: 280,0
+[17:45:26] [INFO] [Player.Grenade] Player rotated for throw: 0 -> -0,3860657
+[17:45:26] [INFO] [GrenadeBase] Simple mode throw! Dir: (0.926398, -0.376547), Speed: 356.8 (clamped from 356.8, max: 1186.5)
+[17:45:26] [INFO] [FragGrenade] Grenade thrown (simple mode) - impact detection enabled
+[17:45:26] [INFO] [Player.Grenade.Anim] Phase changed to: Throw (duration: 0,20s)
+[17:45:26] [INFO] [Player.Grenade.Simple] Grenade thrown!
+[17:45:26] [INFO] [Player.Grenade] State reset to IDLE
+[17:45:26] [INFO] [Player.Grenade] State reset to IDLE
+[17:45:26] [INFO] [Player.Grenade.Anim] Phase changed to: ReturnIdle (duration: 0,30s)
+[17:45:26] [INFO] [Player.Grenade] Player rotation restored to 0
+[17:45:27] [INFO] [Player.Grenade.Anim] Animation complete, returning to normal
+[17:45:27] [INFO] [GrenadeBase] Grenade landed at (393.2454, 355.0186)
+[17:45:27] [INFO] [FragGrenade] Impact detected - exploding immediately!
+[17:45:27] [INFO] [GrenadeBase] EXPLODED at (393.2454, 355.0186)!
+[17:45:27] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(393.2454, 355.0186), source=NEUTRAL (FragGrenade), range=2937, listeners=0
+[17:45:27] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[17:45:27] [INFO] [FragGrenade] Spawned shrapnel #1 at angle -12.2 degrees
+[17:45:27] [INFO] [FragGrenade] Spawned shrapnel #2 at angle 80.7 degrees
+[17:45:27] [INFO] [FragGrenade] Spawned shrapnel #3 at angle 176.5 degrees
+[17:45:27] [INFO] [FragGrenade] Spawned shrapnel #4 at angle 276.8 degrees
+[17:45:28] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[17:45:28] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[17:45:28] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[17:45:28] [INFO] [LastChance] Resetting all effects (scene change detected)
+[17:45:28] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[17:45:28] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[17:45:28] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[17:45:28] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[17:45:28] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Frag Grenade
+[17:45:28] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+[17:45:28] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[17:45:28] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[17:45:28] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[17:45:28] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[17:45:28] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[17:45:28] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[17:45:28] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 3/3, Health: 2/4
+[17:45:28] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[17:45:28] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[17:45:28] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[17:45:28] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[17:45:28] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[17:45:28] [INFO] [LastChance] Found player: Player
+[17:45:28] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[17:45:28] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[17:45:28] [INFO] [LastChance] Connected to player Died signal (C#)
+[17:45:28] [INFO] [Player] Detecting weapon pose (frame 3)...
+[17:45:28] [INFO] [Player] Detected weapon: Rifle (default pose)
+[17:45:28] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[17:45:28] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[17:45:28] [INFO] [Player.Grenade.Anim] Phase changed to: GrabGrenade (duration: 0,20s)
+[17:45:28] [INFO] [Player.Grenade] G pressed - starting grab animation
+[17:45:29] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[17:45:29] [INFO] [Player.Grenade] Step 1 started: G held, RMB pressed at (396.6111, 251.79964)
+[17:45:29] [INFO] [GrenadeBase] CCD enabled (mode: CAST_RAY) to prevent wall tunneling
+[17:45:29] [INFO] [GrenadeBase] Grenade created at (0, 0) (frozen)
+[17:45:29] [INFO] [FragGrenade] Shrapnel scene loaded from: res://scenes/projectiles/Shrapnel.tscn
+[17:45:29] [INFO] [FragGrenade] Pin pulled - waiting for impact (no timer, impact-triggered only)
+[17:45:29] [INFO] [Player.Grenade] Timer started, grenade created at (150, 360)
+[17:45:29] [INFO] [Player.Grenade.Anim] Phase changed to: PullPin (duration: 0,15s)
+[17:45:29] [INFO] [Player.Grenade] Step 1 complete! Drag: (92.81052, -0.6679077)
+[17:45:29] [INFO] [Player.Grenade.Anim] Phase changed to: HandsApproach (duration: 0,20s)
+[17:45:29] [INFO] [Player.Grenade.Simple] RMB pressed after pin pull - starting trajectory aiming
+[17:45:31] [INFO] [Player.Grenade.Simple] Throwing! Target: (1279.9996, 166.97588), Distance: 1119,2, Speed: 791,7, Friction: 280,0
+[17:45:31] [INFO] [Player.Grenade] Player rotated for throw: 0 -> 0,07376356
+[17:45:31] [INFO] [GrenadeBase] Simple mode throw! Dir: (0.997281, 0.073697), Speed: 791.7 (clamped from 791.7, max: 1186.5)
+[17:45:31] [INFO] [FragGrenade] Grenade thrown (simple mode) - impact detection enabled
+[17:45:31] [INFO] [Player.Grenade.Anim] Phase changed to: Throw (duration: 0,20s)
+[17:45:31] [INFO] [Player.Grenade.Simple] Grenade thrown!
+[17:45:31] [INFO] [Player.Grenade] State reset to IDLE
+[17:45:31] [INFO] [Player.Grenade] State reset to IDLE
+[17:45:31] [INFO] [Player.Grenade.Anim] Phase changed to: ReturnIdle (duration: 0,30s)
+[17:45:31] [INFO] [Player.Grenade] Player rotation restored to 0
+[17:45:31] [INFO] [Player.Grenade.Anim] Animation complete, returning to normal
+[17:45:33] [INFO] [GrenadeBase] Grenade landed at (1095.3, 153.3271)
+[17:45:33] [INFO] [FragGrenade] Impact detected - exploding immediately!
+[17:45:33] [INFO] [GrenadeBase] EXPLODED at (1095.3, 153.3271)!
+[17:45:33] [INFO] [SoundPropagation] Sound emitted: type=EXPLOSION, pos=(1095.3, 153.3271), source=NEUTRAL (FragGrenade), range=2937, listeners=0
+[17:45:33] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[17:45:33] [INFO] [FragGrenade] Spawned shrapnel #1 at angle 9.1 degrees
+[17:45:33] [INFO] [FragGrenade] Spawned shrapnel #2 at angle 100.8 degrees
+[17:45:33] [INFO] [FragGrenade] Spawned shrapnel #3 at angle 170.2 degrees
+[17:45:33] [INFO] [FragGrenade] Spawned shrapnel #4 at angle 258.8 degrees
+[17:45:35] [INFO] ------------------------------------------------------------
+[17:45:35] [INFO] GAME LOG ENDED: 2026-02-03T17:45:35
+[17:45:35] [INFO] ============================================================

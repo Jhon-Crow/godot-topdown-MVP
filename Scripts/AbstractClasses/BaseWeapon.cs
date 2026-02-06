@@ -142,11 +142,54 @@ public abstract partial class BaseWeapon : Node2D
     {
         if (WeaponData != null)
         {
-            // Initialize magazine inventory with the starting magazines
-            MagazineInventory.Initialize(StartingMagazineCount, WeaponData.MagazineSize, fillAllMagazines: true);
+            InitializeMagazinesWithDifficulty();
+        }
 
-            // Emit initial magazine state
-            EmitMagazinesChanged();
+        // Connect to difficulty_changed signal to re-initialize ammo when difficulty changes
+        var difficultyManager = GetNodeOrNull("/root/DifficultyManager");
+        if (difficultyManager != null)
+        {
+            difficultyManager.Connect("difficulty_changed", Callable.From<int>(OnDifficultyChanged));
+        }
+    }
+
+    /// <summary>
+    /// Initializes magazine inventory accounting for Power Fantasy ammo multiplier.
+    /// Can be called again when difficulty changes to re-apply the multiplier.
+    /// </summary>
+    protected virtual void InitializeMagazinesWithDifficulty()
+    {
+        if (WeaponData == null) return;
+
+        int magazineCount = StartingMagazineCount;
+        var difficultyManager = GetNodeOrNull("/root/DifficultyManager");
+        if (difficultyManager != null)
+        {
+            var multiplierResult = difficultyManager.Call("get_ammo_multiplier");
+            int ammoMultiplier = multiplierResult.AsInt32();
+            if (ammoMultiplier > 1)
+            {
+                magazineCount *= ammoMultiplier;
+                GD.Print($"[BaseWeapon] Power Fantasy mode: ammo multiplied by {ammoMultiplier}x ({StartingMagazineCount} -> {magazineCount} magazines)");
+            }
+        }
+
+        // Initialize magazine inventory with the starting magazines
+        MagazineInventory.Initialize(magazineCount, WeaponData.MagazineSize, fillAllMagazines: true);
+
+        // Emit initial magazine state
+        EmitMagazinesChanged();
+    }
+
+    /// <summary>
+    /// Called when difficulty changes. Re-initializes magazines with the new ammo multiplier.
+    /// </summary>
+    private void OnDifficultyChanged(int newDifficulty)
+    {
+        if (WeaponData != null)
+        {
+            GD.Print($"[BaseWeapon] Difficulty changed to {newDifficulty}, re-initializing magazines");
+            InitializeMagazinesWithDifficulty();
         }
     }
 
@@ -358,12 +401,15 @@ public abstract partial class BaseWeapon : Node2D
             bullet.Set("direction", direction);
         }
 
-        // Set bullet speed from weapon data
+        // Set bullet speed and damage from weapon data
         if (WeaponData != null)
         {
             // Try both cases for compatibility with C# and GDScript bullets
             bullet.Set("Speed", WeaponData.BulletSpeed);
             bullet.Set("speed", WeaponData.BulletSpeed);
+            // Set damage - critical for weapons with custom damage values
+            bullet.Set("Damage", WeaponData.Damage);
+            bullet.Set("damage", WeaponData.Damage);
         }
 
         // Set shooter ID to prevent self-damage
@@ -383,8 +429,27 @@ public abstract partial class BaseWeapon : Node2D
 
         GetTree().CurrentScene.AddChild(bullet);
 
+        // Spawn muzzle flash effect at the bullet spawn position
+        SpawnMuzzleFlash(spawnPosition, direction, WeaponData?.Caliber);
+
         // Spawn casing if casing scene is set
         SpawnCasing(direction, WeaponData?.Caliber);
+    }
+
+    /// <summary>
+    /// Spawns a muzzle flash effect at the specified position.
+    /// </summary>
+    /// <param name="position">Position to spawn the muzzle flash.</param>
+    /// <param name="direction">Direction the weapon is firing.</param>
+    /// <param name="caliber">Caliber data for effect scaling (smaller calibers = smaller flash).</param>
+    protected virtual void SpawnMuzzleFlash(Vector2 position, Vector2 direction, Resource? caliber)
+    {
+        var impactManager = GetNodeOrNull("/root/ImpactEffectsManager");
+        if (impactManager != null && impactManager.HasMethod("spawn_muzzle_flash"))
+        {
+            // Pass caliber data for effect scaling (9x19mm = 0.5x, 5.45x39mm = 1.0x)
+            impactManager.Call("spawn_muzzle_flash", position, direction, caliber);
+        }
     }
 
     /// <summary>
@@ -420,7 +485,7 @@ public abstract partial class BaseWeapon : Node2D
         ejectionDirection = ejectionDirection.Rotated((float)GD.RandRange(-0.1f, 0.1f));
 
         // Set initial velocity for the casing (increased for faster ejection animation)
-        float ejectionSpeed = (float)GD.RandRange(300.0f, 450.0f); // Random speed between 300-450 pixels/sec (2x faster)
+        float ejectionSpeed = (float)GD.RandRange(120.0f, 180.0f); // Random speed between 120-180 pixels/sec (reduced 2.5x for Issue #424)
         casing.LinearVelocity = ejectionDirection * ejectionSpeed;
 
         // Add some initial spin for realism
@@ -661,5 +726,26 @@ public abstract partial class BaseWeapon : Node2D
 
         EmitSignal(SignalName.AmmoChanged, CurrentAmmo, ReserveAmmo);
         EmitMagazinesChanged();
+    }
+
+    /// <summary>
+    /// Reinitializes the magazine inventory with a new starting magazine count.
+    /// This method allows level-specific ammunition configuration.
+    /// </summary>
+    /// <param name="magazineCount">Number of magazines to initialize with.</param>
+    /// <param name="fillAllMagazines">If true, all magazines start full. Otherwise, only current is full.</param>
+    public virtual void ReinitializeMagazines(int magazineCount, bool fillAllMagazines = true)
+    {
+        if (WeaponData == null)
+        {
+            GD.PrintErr("[BaseWeapon] Cannot reinitialize magazines: WeaponData is null");
+            return;
+        }
+
+        MagazineInventory.Initialize(magazineCount, WeaponData.MagazineSize, fillAllMagazines);
+        EmitSignal(SignalName.AmmoChanged, CurrentAmmo, ReserveAmmo);
+        EmitMagazinesChanged();
+
+        GD.Print($"[BaseWeapon] Magazines reinitialized: {magazineCount} magazines, fillAll={fillAllMagazines}");
     }
 }

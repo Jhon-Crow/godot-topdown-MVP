@@ -31,6 +31,10 @@ const RIPPLE_FREQUENCY: float = 25.0
 ## Ripple effect speed.
 const RIPPLE_SPEED: float = 2.0
 
+## Duration of the fade-out animation in seconds (Issue #442).
+## Visual effects fade smoothly over this duration for a smooth transition to normal mode.
+const FADE_OUT_DURATION_SECONDS: float = 0.4
+
 ## Player saturation multiplier during last chance (same as enemy saturation).
 ## Makes the player more vivid and visible during the effect.
 const PLAYER_SATURATION_MULTIPLIER: float = 4.0
@@ -82,6 +86,12 @@ var _original_process_modes: Dictionary = {}
 ## Distance to push threatening bullets away from player (in pixels).
 const BULLET_PUSH_DISTANCE: float = 200.0
 
+## Current effect duration in real seconds (varies between grenade and threat triggers).
+var _current_effect_duration: float = FREEZE_DURATION_REAL_SECONDS
+
+## Whether this is a grenade-triggered effect (shorter duration, no "used" flag).
+var _is_grenade_triggered: bool = false
+
 ## Whether to grant invulnerability during the time freeze.
 var _player_was_invulnerable: bool = false
 
@@ -93,6 +103,12 @@ var _player_current_health: float = 0.0
 ## Original player sprite modulate colors (to restore after effect ends).
 ## Key: sprite node, Value: original modulate Color
 var _player_original_colors: Dictionary = {}
+
+## Whether the visual effects are currently fading out (Issue #442).
+var _is_fading_out: bool = false
+
+## The time when the fade-out started (in real time seconds).
+var _fade_out_start_time: float = 0.0
 
 
 func _ready() -> void:
@@ -145,6 +161,11 @@ func _process(delta: float) -> void:
 	if _player == null or not is_instance_valid(_player):
 		_find_player()
 
+	# Handle fade-out animation (Issue #442)
+	if _is_fading_out:
+		_update_fade_out()
+		return
+
 	# Update shader time for ripple animation (using real time)
 	if _is_effect_active:
 		var current_time := Time.get_ticks_msec() / 1000.0
@@ -156,7 +177,7 @@ func _process(delta: float) -> void:
 			material.set_shader_parameter("time_offset", elapsed)
 
 		# Check if effect should end based on real time duration
-		if elapsed >= FREEZE_DURATION_REAL_SECONDS:
+		if elapsed >= _current_effect_duration:
 			_log("Effect duration expired after %.2f real seconds" % elapsed)
 			_end_last_chance_effect()
 
@@ -259,6 +280,25 @@ func _on_player_died() -> void:
 	_effect_used = false
 
 
+## Triggers the last chance effect from a grenade explosion in Power Fantasy mode.
+## Uses the full time-freeze visual effect but with a short duration (400ms).
+## Unlike the threat-triggered version, this can be used multiple times per life.
+func trigger_grenade_last_chance(duration_seconds: float) -> void:
+	if _is_effect_active:
+		return
+
+	# Ensure player is found
+	if _player == null or not is_instance_valid(_player):
+		_find_player()
+
+	if _player == null:
+		_log("Cannot trigger grenade last chance - player not found")
+		return
+
+	_log("Grenade explosion triggering last chance effect for %.2f seconds" % duration_seconds)
+	_start_last_chance_effect(duration_seconds, true)
+
+
 ## Called when a threat is detected by the player's threat sphere.
 func _on_threat_detected(bullet: Area2D) -> void:
 	_log("Threat detected: %s" % bullet.name)
@@ -336,27 +376,34 @@ func _get_player_health() -> float:
 	return 0.0
 
 
-## Starts the last chance effect.
-func _start_last_chance_effect() -> void:
+## Starts the last chance effect with configurable duration.
+## @param duration_seconds: Duration of the effect in real seconds.
+## @param is_grenade: Whether this is triggered by a grenade explosion.
+func _start_last_chance_effect(duration_seconds: float = FREEZE_DURATION_REAL_SECONDS, is_grenade: bool = false) -> void:
 	if _is_effect_active:
 		return
 
 	_is_effect_active = true
-	_effect_used = true  # Mark as used (only triggers once)
+	_is_grenade_triggered = is_grenade
+	_current_effect_duration = duration_seconds
+	if not is_grenade:
+		_effect_used = true  # Mark as used (only triggers once per life, not for grenade)
 	_effect_start_time = Time.get_ticks_msec() / 1000.0
 
 	_log("Starting last chance effect:")
 	_log("  - Time will be frozen (except player)")
-	_log("  - Duration: %.1f real seconds" % FREEZE_DURATION_REAL_SECONDS)
+	_log("  - Duration: %.2f real seconds" % duration_seconds)
+	_log("  - Trigger: %s" % ("grenade explosion" if is_grenade else "threat detected"))
 	_log("  - Sepia intensity: %.2f" % SEPIA_INTENSITY)
 	_log("  - Brightness: %.2f" % BRIGHTNESS)
 
-	# CRITICAL: Push all threatening bullets away from player BEFORE freezing time
-	# This gives the player a fighting chance to survive
-	_push_threatening_bullets_away()
+	if not is_grenade:
+		# CRITICAL: Push all threatening bullets away from player BEFORE freezing time
+		# This gives the player a fighting chance to survive
+		_push_threatening_bullets_away()
 
-	# Grant temporary invulnerability to player during time freeze
-	_grant_player_invulnerability()
+		# Grant temporary invulnerability to player during time freeze
+		_grant_player_invulnerability()
 
 	# Freeze time for everything except the player
 	_freeze_time()
@@ -564,6 +611,7 @@ func _apply_visual_effects() -> void:
 
 
 ## Ends the last chance effect.
+## Starts the fade-out animation for visual effects (Issue #442).
 func _end_last_chance_effect() -> void:
 	if not _is_effect_active:
 		return
@@ -579,7 +627,65 @@ func _end_last_chance_effect() -> void:
 	# Restore normal time
 	_unfreeze_time()
 
-	# Remove visual effects
+	# Start visual effects fade-out animation instead of removing instantly (Issue #442)
+	_start_fade_out()
+
+
+## Starts the visual effects fade-out animation (Issue #442).
+## Visual effects fade smoothly over FADE_OUT_DURATION_SECONDS for a smooth transition.
+func _start_fade_out() -> void:
+	_is_fading_out = true
+	_fade_out_start_time = Time.get_ticks_msec() / 1000.0
+	_log("Starting visual effects fade-out over %.0fms" % (FADE_OUT_DURATION_SECONDS * 1000.0))
+
+
+## Updates the fade-out animation each frame (Issue #442).
+## Uses real time to ensure the fade works correctly regardless of Engine.time_scale.
+func _update_fade_out() -> void:
+	var current_time := Time.get_ticks_msec() / 1000.0
+	var elapsed := current_time - _fade_out_start_time
+	var progress := clampf(elapsed / FADE_OUT_DURATION_SECONDS, 0.0, 1.0)
+
+	# Interpolate shader parameters from effect values to neutral values
+	var material := _effect_rect.material as ShaderMaterial
+	if material:
+		# Fade sepia intensity: SEPIA_INTENSITY -> 0.0
+		var current_sepia := lerpf(SEPIA_INTENSITY, 0.0, progress)
+		material.set_shader_parameter("sepia_intensity", current_sepia)
+
+		# Fade brightness: BRIGHTNESS -> 1.0
+		var current_brightness := lerpf(BRIGHTNESS, 1.0, progress)
+		material.set_shader_parameter("brightness", current_brightness)
+
+		# Fade ripple strength: RIPPLE_STRENGTH -> 0.0
+		var current_ripple := lerpf(RIPPLE_STRENGTH, 0.0, progress)
+		material.set_shader_parameter("ripple_strength", current_ripple)
+
+	# Fade player sprite saturation back to original colors
+	_update_player_colors_fade(progress)
+
+	# Check if fade-out is complete
+	if progress >= 1.0:
+		_complete_fade_out()
+
+
+## Updates player sprite colors during fade-out animation (Issue #442).
+## Gradually interpolates from saturated colors back to original colors.
+func _update_player_colors_fade(progress: float) -> void:
+	for sprite in _player_original_colors.keys():
+		if is_instance_valid(sprite):
+			var original_color: Color = _player_original_colors[sprite]
+			var saturated_color: Color = _saturate_color(original_color, PLAYER_SATURATION_MULTIPLIER)
+			# Interpolate from saturated color back to original color
+			sprite.modulate = saturated_color.lerp(original_color, progress)
+
+
+## Completes the fade-out animation and removes visual effects (Issue #442).
+func _complete_fade_out() -> void:
+	_is_fading_out = false
+	_log("Visual effects fade-out complete")
+
+	# Now fully remove the visual effects
 	_remove_visual_effects()
 
 
@@ -1028,11 +1134,27 @@ func reset_effects() -> void:
 		get_tree().node_added.disconnect(_on_node_added_during_freeze)
 
 	if _is_effect_active:
-		_end_last_chance_effect()
+		_is_effect_active = false
+		# Restore normal time
+		_unfreeze_time()
+
+	# Reset fade-out state (Issue #442)
+	_is_fading_out = false
+	_fade_out_start_time = 0.0
+
+	# CRITICAL FIX (Issue #452): Always remove visual effects immediately on scene change.
+	# This ensures the sepia/brightness/ripple overlay is hidden even if the effect
+	# was active or fading out when the scene changed. Previously, the overlay would
+	# persist after death/restart because _remove_visual_effects() was only called
+	# when the fade-out animation completed, not during scene resets.
+	_remove_visual_effects()
+
 	_player = null
 	_threat_sphere = null
 	_connected_to_player = false
 	_effect_used = false  # Reset on scene change
+	_is_grenade_triggered = false
+	_current_effect_duration = FREEZE_DURATION_REAL_SECONDS
 	_player_current_health = 0.0  # Reset cached health on scene change
 	_frozen_player_bullets.clear()
 	_frozen_grenades.clear()

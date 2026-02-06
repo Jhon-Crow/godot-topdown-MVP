@@ -308,6 +308,13 @@ public partial class Enemy : Area2D, IDamageable
     {
         EmitSignal(SignalName.Died);
 
+        // Trigger Power Fantasy kill effect (300ms last chance effect)
+        var powerFantasyManager = GetNodeOrNull("/root/PowerFantasyEffectsManager");
+        if (powerFantasyManager != null && powerFantasyManager.HasMethod("on_enemy_killed"))
+        {
+            powerFantasyManager.Call("on_enemy_killed");
+        }
+
         if (DestroyOnHit)
         {
             await ToSignal(GetTree().CreateTimer(RespawnDelay), "timeout");

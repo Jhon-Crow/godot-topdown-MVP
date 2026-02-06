@@ -1,0 +1,1001 @@
+[10:38:25] [INFO] ============================================================
+[10:38:25] [INFO] GAME LOG STARTED
+[10:38:25] [INFO] ============================================================
+[10:38:25] [INFO] Timestamp: 2026-02-03T10:38:25
+[10:38:25] [INFO] Log file: I:/Загрузки/godot exe/game_log_20260203_103825.txt
+[10:38:25] [INFO] Executable: I:/Загрузки/godot exe/Godot-Top-Down-Template.exe
+[10:38:25] [INFO] OS: Windows
+[10:38:25] [INFO] Debug build: false
+[10:38:25] [INFO] Engine version: 4.3-stable (official)
+[10:38:25] [INFO] Project: Godot Top-Down Template
+[10:38:25] [INFO] ------------------------------------------------------------
+[10:38:25] [INFO] [GameManager] GameManager ready
+[10:38:25] [INFO] [ScoreManager] ScoreManager ready
+[10:38:25] [INFO] [SoundPropagation] SoundPropagation autoload initialized
+[10:38:25] [INFO] [ImpactEffects] Scenes loaded: DustEffect, BloodEffect, SparksEffect, BloodDecal
+[10:38:25] [INFO] [ImpactEffects] ImpactEffectsManager ready - FULL VERSION with blood effects enabled
+[10:38:25] [INFO] [ImpactEffects] Starting particle shader warmup (Issue #343 fix)...
+[10:38:25] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[10:38:25] [INFO] [PenultimateHit] Saturation shader loaded successfully
+[10:38:25] [INFO] [PenultimateHit] Starting shader warmup (Issue #343 fix)...
+[10:38:25] [INFO] [PenultimateHit] PenultimateHitEffectsManager ready - Configuration:
+[10:38:25] [INFO] [PenultimateHit]   Time scale: 0.10 (10x slowdown)
+[10:38:25] [INFO] [PenultimateHit]   Saturation boost: 2.0 (3.0x)
+[10:38:25] [INFO] [PenultimateHit]   Contrast boost: 1.0 (2.0x)
+[10:38:25] [INFO] [PenultimateHit]   Effect duration: 3.0 real seconds
+[10:38:25] [INFO] [LastChance] Resetting all effects (scene change detected)
+[10:38:25] [INFO] [LastChance] Last chance shader loaded successfully
+[10:38:25] [INFO] [LastChance] Starting shader warmup (Issue #343 fix)...
+[10:38:25] [INFO] [LastChance] LastChanceEffectsManager ready - Configuration:
+[10:38:25] [INFO] [LastChance]   Freeze duration: 6.0 real seconds
+[10:38:25] [INFO] [LastChance]   Sepia intensity: 0.70
+[10:38:25] [INFO] [LastChance]   Brightness: 0.60
+[10:38:25] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FlashbangGrenade.tscn
+[10:38:25] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FragGrenade.tscn
+[10:38:25] [INFO] [ExperimentalSettings] ExperimentalSettings initialized - FOV enabled: true
+[10:38:25] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[10:38:25] [INFO] [BloodyFeet:Enemy1] Footprint scene loaded
+[10:38:25] [INFO] [BloodyFeet:Enemy1] Blood detector created and attached to Enemy1
+[10:38:25] [INFO] [BloodyFeet:Enemy1] Found EnemyModel for facing direction
+[10:38:25] [INFO] [BloodyFeet:Enemy1] BloodyFeetComponent ready on Enemy1
+[10:38:25] [ENEMY] [Enemy1] Death animation component initialized
+[10:38:25] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[10:38:25] [INFO] [BloodyFeet:Enemy2] Footprint scene loaded
+[10:38:25] [INFO] [BloodyFeet:Enemy2] Blood detector created and attached to Enemy2
+[10:38:25] [INFO] [BloodyFeet:Enemy2] Found EnemyModel for facing direction
+[10:38:25] [INFO] [BloodyFeet:Enemy2] BloodyFeetComponent ready on Enemy2
+[10:38:25] [ENEMY] [Enemy2] Death animation component initialized
+[10:38:25] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[10:38:25] [INFO] [BloodyFeet:Enemy3] Footprint scene loaded
+[10:38:25] [INFO] [BloodyFeet:Enemy3] Blood detector created and attached to Enemy3
+[10:38:25] [INFO] [BloodyFeet:Enemy3] Found EnemyModel for facing direction
+[10:38:25] [INFO] [BloodyFeet:Enemy3] BloodyFeetComponent ready on Enemy3
+[10:38:25] [ENEMY] [Enemy3] Death animation component initialized
+[10:38:25] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[10:38:25] [INFO] [BloodyFeet:Enemy4] Footprint scene loaded
+[10:38:25] [INFO] [BloodyFeet:Enemy4] Blood detector created and attached to Enemy4
+[10:38:25] [INFO] [BloodyFeet:Enemy4] Found EnemyModel for facing direction
+[10:38:25] [INFO] [BloodyFeet:Enemy4] BloodyFeetComponent ready on Enemy4
+[10:38:25] [ENEMY] [Enemy4] Death animation component initialized
+[10:38:25] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[10:38:25] [INFO] [BloodyFeet:Enemy5] Footprint scene loaded
+[10:38:25] [INFO] [BloodyFeet:Enemy5] Blood detector created and attached to Enemy5
+[10:38:25] [INFO] [BloodyFeet:Enemy5] Found EnemyModel for facing direction
+[10:38:25] [INFO] [BloodyFeet:Enemy5] BloodyFeetComponent ready on Enemy5
+[10:38:25] [ENEMY] [Enemy5] Death animation component initialized
+[10:38:25] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[10:38:25] [INFO] [BloodyFeet:Enemy6] Footprint scene loaded
+[10:38:25] [INFO] [BloodyFeet:Enemy6] Blood detector created and attached to Enemy6
+[10:38:25] [INFO] [BloodyFeet:Enemy6] Found EnemyModel for facing direction
+[10:38:25] [INFO] [BloodyFeet:Enemy6] BloodyFeetComponent ready on Enemy6
+[10:38:25] [ENEMY] [Enemy6] Death animation component initialized
+[10:38:25] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[10:38:25] [INFO] [BloodyFeet:Enemy7] Footprint scene loaded
+[10:38:25] [INFO] [BloodyFeet:Enemy7] Blood detector created and attached to Enemy7
+[10:38:25] [INFO] [BloodyFeet:Enemy7] Found EnemyModel for facing direction
+[10:38:25] [INFO] [BloodyFeet:Enemy7] BloodyFeetComponent ready on Enemy7
+[10:38:25] [ENEMY] [Enemy7] Death animation component initialized
+[10:38:25] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[10:38:25] [INFO] [BloodyFeet:Enemy8] Footprint scene loaded
+[10:38:25] [INFO] [BloodyFeet:Enemy8] Blood detector created and attached to Enemy8
+[10:38:25] [INFO] [BloodyFeet:Enemy8] Found EnemyModel for facing direction
+[10:38:25] [INFO] [BloodyFeet:Enemy8] BloodyFeetComponent ready on Enemy8
+[10:38:25] [ENEMY] [Enemy8] Death animation component initialized
+[10:38:25] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[10:38:25] [INFO] [BloodyFeet:Enemy9] Footprint scene loaded
+[10:38:25] [INFO] [BloodyFeet:Enemy9] Blood detector created and attached to Enemy9
+[10:38:25] [INFO] [BloodyFeet:Enemy9] Found EnemyModel for facing direction
+[10:38:25] [INFO] [BloodyFeet:Enemy9] BloodyFeetComponent ready on Enemy9
+[10:38:25] [ENEMY] [Enemy9] Death animation component initialized
+[10:38:25] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[10:38:25] [INFO] [BloodyFeet:Enemy10] Footprint scene loaded
+[10:38:25] [INFO] [BloodyFeet:Enemy10] Blood detector created and attached to Enemy10
+[10:38:25] [INFO] [BloodyFeet:Enemy10] Found EnemyModel for facing direction
+[10:38:25] [INFO] [BloodyFeet:Enemy10] BloodyFeetComponent ready on Enemy10
+[10:38:25] [ENEMY] [Enemy10] Death animation component initialized
+[10:38:25] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[10:38:25] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[10:38:25] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[10:38:25] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[10:38:25] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[10:38:25] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[10:38:25] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[10:38:25] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[10:38:25] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[10:38:25] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[10:38:25] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[10:38:25] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[10:38:25] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[10:38:25] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 4/4
+[10:38:25] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[10:38:25] [INFO] [BloodDecal] Blood puddle created at (640, 360) (added to group)
+[10:38:25] [INFO] [BuildingLevel] Found Environment/Enemies node with 10 children
+[10:38:25] [INFO] [BuildingLevel] Child 'Enemy1': script=true, has_died_signal=true
+[10:38:25] [INFO] [BuildingLevel] Child 'Enemy2': script=true, has_died_signal=true
+[10:38:25] [INFO] [BuildingLevel] Child 'Enemy3': script=true, has_died_signal=true
+[10:38:25] [INFO] [BuildingLevel] Child 'Enemy4': script=true, has_died_signal=true
+[10:38:25] [INFO] [BuildingLevel] Child 'Enemy5': script=true, has_died_signal=true
+[10:38:25] [INFO] [BuildingLevel] Child 'Enemy6': script=true, has_died_signal=true
+[10:38:25] [INFO] [BuildingLevel] Child 'Enemy7': script=true, has_died_signal=true
+[10:38:25] [INFO] [BuildingLevel] Child 'Enemy8': script=true, has_died_signal=true
+[10:38:25] [INFO] [BuildingLevel] Child 'Enemy9': script=true, has_died_signal=true
+[10:38:25] [INFO] [BuildingLevel] Child 'Enemy10': script=true, has_died_signal=true
+[10:38:25] [INFO] [BuildingLevel] Enemy tracking complete: 10 enemies registered
+[10:38:25] [INFO] [ScoreManager] Level started with 10 enemies
+[10:38:26] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 1)
+[10:38:26] [ENEMY] [Enemy1] Registered as sound listener
+[10:38:26] [ENEMY] [Enemy1] Enemy spawned at (300, 350), health: 2, behavior: GUARD, player_found: yes
+[10:38:26] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 2)
+[10:38:26] [ENEMY] [Enemy2] Registered as sound listener
+[10:38:26] [ENEMY] [Enemy2] Enemy spawned at (400, 550), health: 3, behavior: GUARD, player_found: yes
+[10:38:26] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 3)
+[10:38:26] [ENEMY] [Enemy3] Registered as sound listener
+[10:38:26] [ENEMY] [Enemy3] Enemy spawned at (700, 750), health: 3, behavior: GUARD, player_found: yes
+[10:38:26] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 4)
+[10:38:26] [ENEMY] [Enemy4] Registered as sound listener
+[10:38:26] [ENEMY] [Enemy4] Enemy spawned at (800, 900), health: 2, behavior: GUARD, player_found: yes
+[10:38:26] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 5)
+[10:38:26] [ENEMY] [Enemy5] Registered as sound listener
+[10:38:26] [ENEMY] [Enemy5] Enemy spawned at (1700, 350), health: 3, behavior: GUARD, player_found: yes
+[10:38:26] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 6)
+[10:38:26] [ENEMY] [Enemy6] Registered as sound listener
+[10:38:26] [ENEMY] [Enemy6] Enemy spawned at (1950, 450), health: 3, behavior: GUARD, player_found: yes
+[10:38:26] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 7)
+[10:38:26] [ENEMY] [Enemy7] Registered as sound listener
+[10:38:26] [ENEMY] [Enemy7] Enemy spawned at (1606.114, 893.8859), health: 2, behavior: PATROL, player_found: yes
+[10:38:26] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 8)
+[10:38:26] [ENEMY] [Enemy8] Registered as sound listener
+[10:38:26] [ENEMY] [Enemy8] Enemy spawned at (1900, 1450), health: 4, behavior: GUARD, player_found: yes
+[10:38:26] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 9)
+[10:38:26] [ENEMY] [Enemy9] Registered as sound listener
+[10:38:26] [ENEMY] [Enemy9] Enemy spawned at (2100, 1550), health: 4, behavior: GUARD, player_found: yes
+[10:38:26] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 10)
+[10:38:26] [ENEMY] [Enemy10] Registered as sound listener
+[10:38:26] [ENEMY] [Enemy10] Enemy spawned at (1200, 1550), health: 4, behavior: PATROL, player_found: yes
+[10:38:26] [INFO] [Player] Detecting weapon pose (frame 3)...
+[10:38:26] [INFO] [Player] Detected weapon: Rifle (default pose)
+[10:38:26] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[10:38:26] [INFO] [PenultimateHit] Shader warmup complete in 161 ms
+[10:38:26] [INFO] [LastChance] Shader warmup complete in 160 ms
+[10:38:26] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[10:38:26] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[10:38:26] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[10:38:26] [INFO] [LastChance] Found player: Player
+[10:38:26] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[10:38:26] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[10:38:26] [INFO] [LastChance] Connected to player Died signal (C#)
+[10:38:26] [INFO] [ImpactEffects] Particle shader warmup complete: 5 effects warmed up in 390 ms
+[10:38:27] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[10:38:27] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[10:38:27] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[10:38:27] [INFO] [LastChance] Resetting all effects (scene change detected)
+[10:38:27] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[10:38:27] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[10:38:27] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[10:38:27] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[10:38:27] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[10:38:27] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[10:38:27] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+[10:38:27] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[10:38:27] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[10:38:27] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[10:38:27] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[10:38:27] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[10:38:27] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[10:38:27] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 3/3, Health: 4/4
+[10:38:27] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[10:38:27] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[10:38:27] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[10:38:27] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[10:38:27] [INFO] [LastChance] Found player: Player
+[10:38:27] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[10:38:27] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[10:38:27] [INFO] [LastChance] Connected to player Died signal (C#)
+[10:38:27] [INFO] [Player] Detecting weapon pose (frame 3)...
+[10:38:27] [INFO] [Player] Detected weapon: Rifle (default pose)
+[10:38:27] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[10:38:28] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(150, 366), source=PLAYER (AssaultRifle), range=1469, listeners=10
+[10:38:28] [INFO] [SoundPropagation] Cleaned up 10 invalid listeners
+[10:38:28] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:38:28] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(146.7951, 364.4569), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[10:38:28] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:38:28] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(150, 366), shooter_id=83466652145, bullet_pos=(508.25055, 358.29678)
+[10:38:28] [INFO] [Bullet] Using shooter_position, distance=358,33334
+[10:38:28] [INFO] [Bullet] Distance to wall: 358,33334 (24,399576% of viewport)
+[10:38:28] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[10:38:28] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(146.3222, 364.1826), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[10:38:28] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:38:28] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(146.79507, 364.45688), shooter_id=83466652145, bullet_pos=(505.0779, 358.43994)
+[10:38:28] [INFO] [Bullet] Using shooter_position, distance=358,33337
+[10:38:28] [INFO] [Bullet] Distance to wall: 358,33337 (24,399578% of viewport)
+[10:38:28] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[10:38:28] [INFO] [Bullet] Starting wall penetration at (505.0779, 358.43994)
+[10:38:28] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[10:38:28] [INFO] [Bullet] Exiting penetration at (551.73804, 357.65634) after traveling 41,66667 pixels through wall
+[10:38:28] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[10:38:28] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(145.1013, 363.5429), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[10:38:28] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:38:28] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(146.32216, 364.18262), shooter_id=83466652145, bullet_pos=(504.61133, 358.55777)
+[10:38:28] [INFO] [Bullet] Using shooter_position, distance=358,33334
+[10:38:28] [INFO] [Bullet] Distance to wall: 358,33334 (24,399576% of viewport)
+[10:38:28] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[10:38:28] [INFO] [Bullet] Starting wall penetration at (504.61133, 358.55777)
+[10:38:28] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[10:38:28] [INFO] [Bullet] Exiting penetration at (551.2723, 357.82523) after traveling 41,666668 pixels through wall
+[10:38:28] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[10:38:28] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(146.4452, 396.2298), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[10:38:28] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:38:28] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(145.10126, 363.5429), shooter_id=83466652145, bullet_pos=(503.39908, 358.4965)
+[10:38:28] [INFO] [Bullet] Using shooter_position, distance=358,33337
+[10:38:28] [INFO] [Bullet] Distance to wall: 358,33337 (24,399578% of viewport)
+[10:38:28] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[10:38:28] [INFO] [Bullet] Starting wall penetration at (503.39908, 358.4965)
+[10:38:28] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[10:38:28] [INFO] [Bullet] Exiting penetration at (550.06116, 357.8393) after traveling 41,666676 pixels through wall
+[10:38:28] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[10:38:28] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(134.2697, 426.4928), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[10:38:28] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:38:28] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(146.44524, 396.22983), shooter_id=83466652145, bullet_pos=(504.1833, 375.58383)
+[10:38:28] [INFO] [Bullet] Using shooter_position, distance=358,3333
+[10:38:28] [INFO] [Bullet] Distance to wall: 358,3333 (24,399576% of viewport)
+[10:38:28] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[10:38:28] [INFO] [Bullet] Starting wall penetration at (504.1833, 375.58383)
+[10:38:28] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[10:38:28] [INFO] [Bullet] Exiting penetration at (550.77246, 372.89505) after traveling 41,66667 pixels through wall
+[10:38:28] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[10:38:28] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(122.3839, 450.4509), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[10:38:28] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:38:28] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(134.26974, 426.49283), shooter_id=83466652145, bullet_pos=(532.8218, 392.48795)
+[10:38:28] [INFO] [Bullet] Using shooter_position, distance=400,00006
+[10:38:28] [INFO] [Bullet] Distance to wall: 400,00006 (27,236742% of viewport)
+[10:38:28] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[10:38:28] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(122.38386, 450.45087), shooter_id=83466652145, bullet_pos=(313.2397, 432.83923)
+[10:38:28] [INFO] [Bullet] Using shooter_position, distance=191,66669
+[10:38:28] [INFO] [Bullet] Distance to wall: 191,66669 (13,050938% of viewport)
+[10:38:28] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[10:38:28] [INFO] [Bullet] Starting wall penetration at (313.2397, 432.83923)
+[10:38:28] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[10:38:28] [INFO] [Bullet] Exiting penetration at (359.70892, 428.55118) after traveling 41,666668 pixels through wall
+[10:38:28] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[10:38:28] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(133.463, 457.6147), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[10:38:28] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:38:29] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(133.46301, 457.61465), shooter_id=83466652145, bullet_pos=(324.61832, 443.62305)
+[10:38:29] [INFO] [Bullet] Using shooter_position, distance=191,66669
+[10:38:29] [INFO] [Bullet] Distance to wall: 191,66669 (13,050938% of viewport)
+[10:38:29] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[10:38:29] [INFO] [Bullet] Starting wall penetration at (324.61832, 443.62305)
+[10:38:29] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[10:38:29] [INFO] [Bullet] Exiting penetration at (371.1605, 440.2164) after traveling 41,666668 pixels through wall
+[10:38:29] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[10:38:29] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(134.26974, 426.49283), shooter_id=83466652145, bullet_pos=(1810.4299, 470.6953)
+[10:38:29] [INFO] [Bullet] Using shooter_position, distance=1676,7428
+[10:38:29] [INFO] [Bullet] Distance to wall: 1676,7428 (114,17251% of viewport)
+[10:38:29] [INFO] [BloodyFeet:Player] Overlap check: areas=0, puddles=0, parent_pos=(149.3358, 450.7742), detector_global=(0, 0), in_tree=false, layer=0, mask=64
+[10:38:31] [INFO] [BloodyFeet:Player] Overlap check: areas=0, puddles=0, parent_pos=(186.3673, 513.8091), detector_global=(0, 0), in_tree=false, layer=0, mask=64
+[10:38:33] [INFO] [BloodyFeet:Player] Overlap check: areas=0, puddles=0, parent_pos=(215.4706, 630.3306), detector_global=(0, 0), in_tree=false, layer=0, mask=64
+[10:38:35] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(229.1473, 444.0634), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[10:38:35] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:38:35] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(229.14732, 444.06345), shooter_id=83466652145, bullet_pos=(337.04767, 434.3874)
+[10:38:35] [INFO] [Bullet] Using shooter_position, distance=108,33333
+[10:38:35] [INFO] [Bullet] Distance to wall: 108,33333 (7,3766155% of viewport)
+[10:38:35] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[10:38:35] [INFO] [Bullet] Starting wall penetration at (337.04767, 434.3874)
+[10:38:35] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[10:38:35] [INFO] [Bullet] Exiting penetration at (383.52783, 430.21924) after traveling 41,666668 pixels through wall
+[10:38:35] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[10:38:35] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(230.3145, 460.354), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[10:38:35] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:38:35] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(230.3145, 460.35397), shooter_id=83466652145, bullet_pos=(337.84164, 447.16196)
+[10:38:35] [INFO] [Bullet] Using shooter_position, distance=108,33336
+[10:38:35] [INFO] [Bullet] Distance to wall: 108,33336 (7,376618% of viewport)
+[10:38:35] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[10:38:35] [INFO] [Player] Spawning blood effect at (224.49138, 450.01816), dir=(1, 0), lethal=False (C#)
+[10:38:35] [INFO] [ImpactEffects] spawn_blood_effect called at (224.4914, 450.0182), dir=(1, 0), lethal=false
+[10:38:35] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[10:38:35] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[10:38:35] [INFO] [ImpactEffects] Wall found for blood splatter at (302, 450.0182) (dist=77 px)
+[10:38:35] [INFO] [BloodDecal] Blood puddle created at (301, 450.0182) (added to group)
+[10:38:35] [INFO] [ImpactEffects] Blood effect spawned at (224.4914, 450.0182) (scale=1)
+[10:38:35] [INFO] [PenultimateHit] Player damaged: 1.0 damage, current health: 3.0
+[10:38:35] [INFO] [LastChance] Player health updated (C# Damaged): 3.0
+[10:38:35] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(224.4914, 456.0182), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[10:38:35] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:38:35] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(224.49138, 456.01816), shooter_id=83466652145, bullet_pos=(315.61432, 446.04855)
+[10:38:35] [INFO] [Bullet] Using shooter_position, distance=91,666695
+[10:38:35] [INFO] [Bullet] Distance to wall: 91,666695 (6,241754% of viewport)
+[10:38:35] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[10:38:35] [INFO] [Bullet] Starting wall penetration at (315.61432, 446.04855)
+[10:38:35] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[10:38:35] [INFO] [Bullet] Exiting penetration at (353.72028, 441.87946) after traveling 33,333332 pixels through wall
+[10:38:35] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[10:38:35] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(219.4517, 452.4204), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[10:38:35] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:38:35] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(219.45174, 452.4204), shooter_id=83466652145, bullet_pos=(310.66388, 443.30298)
+[10:38:35] [INFO] [Bullet] Using shooter_position, distance=91,666695
+[10:38:35] [INFO] [Bullet] Distance to wall: 91,666695 (6,241754% of viewport)
+[10:38:35] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[10:38:35] [INFO] [Bullet] Starting wall penetration at (310.66388, 443.30298)
+[10:38:35] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[10:38:35] [INFO] [Bullet] Exiting penetration at (348.80713, 439.49023) after traveling 33,333336 pixels through wall
+[10:38:35] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[10:38:35] [INFO] [BloodyFeet:Player] Overlap check: areas=0, puddles=2, parent_pos=(214.1012, 442.5303), detector_global=(0, 0), in_tree=false, layer=0, mask=64
+[10:38:35] [INFO] [BloodyFeet:Player] Closest puddle at (301, 450.0182), distance=87.2
+[10:38:35] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(214.1012, 448.5303), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[10:38:35] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:38:35] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(214.10123, 448.53027), shooter_id=83466652145, bullet_pos=(305.37006, 439.9993)
+[10:38:35] [INFO] [Bullet] Using shooter_position, distance=91,66666
+[10:38:35] [INFO] [Bullet] Distance to wall: 91,66666 (6,2417517% of viewport)
+[10:38:35] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[10:38:35] [INFO] [BloodDecal] Blood puddle created at (268.8609, 488.5812) (added to group)
+[10:38:35] [INFO] [Player] Spawning blood effect at (211.58932, 441.10992), dir=(1, 0), lethal=False (C#)
+[10:38:35] [INFO] [ImpactEffects] spawn_blood_effect called at (211.5893, 441.1099), dir=(1, 0), lethal=false
+[10:38:35] [INFO] [ImpactEffects] Blood particle effect instantiated successfully
+[10:38:35] [INFO] [ImpactEffects] Blood decals scheduled: 10 to spawn at particle landing times
+[10:38:35] [INFO] [ImpactEffects] Wall found for blood splatter at (302, 441.1099) (dist=90 px)
+[10:38:35] [INFO] [BloodDecal] Blood puddle created at (301, 441.1099) (added to group)
+[10:38:35] [INFO] [ImpactEffects] Blood effect spawned at (211.5893, 441.1099) (scale=1)
+[10:38:35] [INFO] [PenultimateHit] Player damaged: 1.0 damage, current health: 2.0
+[10:38:35] [INFO] [LastChance] Player health updated (C# Damaged): 2.0
+[10:38:35] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(211.5893, 447.1099), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[10:38:35] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:38:36] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(211.58932, 447.10992), shooter_id=83466652145, bullet_pos=(302.8583, 438.58063)
+[10:38:36] [INFO] [Bullet] Using shooter_position, distance=91,66666
+[10:38:36] [INFO] [Bullet] Distance to wall: 91,66666 (6,2417517% of viewport)
+[10:38:36] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[10:38:36] [INFO] [Bullet] Starting wall penetration at (302.8583, 438.58063)
+[10:38:36] [INFO] [Bullet] No longer inside obstacle - raycasts found no collision with penetrating body
+[10:38:36] [INFO] [Bullet] Exiting penetration at (341.02533, 435.01382) after traveling 33,333332 pixels through wall
+[10:38:36] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[10:38:36] [INFO] [BloodDecal] Blood puddle created at (320.2866, 537.2502) (added to group)
+[10:38:36] [INFO] [BloodDecal] Blood puddle created at (248.6464, 470.5257) (added to group)
+[10:38:36] [INFO] [BloodDecal] Blood puddle created at (252.7227, 445.4569) (added to group)
+[10:38:36] [INFO] [BloodDecal] Blood puddle created at (255.0927, 478.3005) (added to group)
+[10:38:36] [INFO] [BloodDecal] Blood puddle created at (283.3414, 455.9455) (added to group)
+[10:38:36] [INFO] [BloodDecal] Blood puddle created at (360.8468, 596.6089) (added to group)
+[10:38:37] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(206.8438, 443.8845), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[10:38:37] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:38:37] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(204.767, 442.7317), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[10:38:37] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:38:37] [INFO] [BloodyFeet:Player] Overlap check: areas=0, puddles=18, parent_pos=(202.0688, 435.2429), detector_global=(0, 0), in_tree=false, layer=0, mask=64
+[10:38:37] [INFO] [BloodyFeet:Player] Closest puddle at (252.7227, 445.4569), distance=51.7
+[10:38:37] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(206.84381, 443.88452), shooter_id=83466652145, bullet_pos=(1159.5182, 65.68335)
+[10:38:37] [INFO] [Bullet] Using shooter_position, distance=1024,9999
+[10:38:37] [INFO] [Bullet] Distance to wall: 1024,9999 (69,79413% of viewport)
+[10:38:38] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(204.76695, 442.7317), shooter_id=83466652145, bullet_pos=(1158.4658, 67.11987)
+[10:38:38] [INFO] [Bullet] Using shooter_position, distance=1025,0004
+[10:38:38] [INFO] [Bullet] Distance to wall: 1025,0004 (69,79416% of viewport)
+[10:38:38] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(206.84381, 443.88452), shooter_id=83466652145, bullet_pos=(1821.2334, 332.0967)
+[10:38:38] [INFO] [Bullet] Using shooter_position, distance=1618,2554
+[10:38:38] [INFO] [Bullet] Distance to wall: 1618,2554 (110,18999% of viewport)
+[10:38:38] [INFO] [Bullet] Distance-based penetration chance: 27,962006%
+[10:38:38] [INFO] [Bullet] Penetration failed (distance roll)
+[10:38:38] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(204.76695, 442.7317), shooter_id=83466652145, bullet_pos=(1801.0358, 202.44951)
+[10:38:38] [INFO] [Bullet] Using shooter_position, distance=1614,252
+[10:38:38] [INFO] [Bullet] Distance to wall: 1614,252 (109,91739% of viewport)
+[10:38:38] [INFO] [Bullet] Distance-based penetration chance: 28,016523%
+[10:38:38] [INFO] [Bullet] Penetration failed (distance roll)
+[10:38:39] [INFO] [BloodyFeet:Player] Overlap check: areas=0, puddles=18, parent_pos=(220.848, 609.6516), detector_global=(0, 0), in_tree=false, layer=0, mask=64
+[10:38:39] [INFO] [BloodyFeet:Player] Closest puddle at (320.2866, 537.2502), distance=123.0
+[10:38:41] [INFO] [BloodyFeet:Player] Overlap check: areas=0, puddles=18, parent_pos=(270.6708, 549.8667), detector_global=(0, 0), in_tree=false, layer=0, mask=64
+[10:38:41] [INFO] [BloodyFeet:Player] Closest puddle at (320.2866, 537.2502), distance=51.2
+[10:38:42] [INFO] [BloodyFeet:Player] FALLBACK: Blood detected at distance 19.6 (pos: (248.6464, 470.5257))
+[10:38:42] [INFO] [BloodyFeet:Player] Puddle color: (1, 1, 1, 0.9) (R=1.00, G=1.00, B=1.00)
+[10:38:42] [INFO] [BloodyFeet:Player] Stepped in blood! 12 footprints to spawn, color: (1, 1, 1, 0.9)
+[10:38:42] [INFO] [BloodyFeet:Player] Skipping footprint - currently on blood puddle
+[10:38:42] [INFO] [BloodyFeet:Player] Footprint spawned (steps remaining: 11, alpha: 0.80, facing: -0.39, color: (1, 1, 1, 0.9))
+[10:38:42] [INFO] [BloodyFeet:Player] Footprint spawned (steps remaining: 10, alpha: 0.74, facing: -0.42, color: (1, 1, 1, 0.9))
+[10:38:42] [INFO] [BloodyFeet:Player] Footprint spawned (steps remaining: 9, alpha: 0.68, facing: -0.46, color: (1, 1, 1, 0.9))
+[10:38:43] [INFO] [BloodyFeet:Player] Footprint spawned (steps remaining: 8, alpha: 0.62, facing: -0.55, color: (1, 1, 1, 0.9))
+[10:38:43] [INFO] [BloodyFeet:Player] Footprint spawned (steps remaining: 7, alpha: 0.56, facing: -0.57, color: (1, 1, 1, 0.9))
+[10:38:43] [INFO] [BloodyFeet:Player] FALLBACK: Blood detected at distance 15.3 (pos: (252.7227, 445.4569))
+[10:38:43] [INFO] [BloodyFeet:Player] Puddle color: (1, 1, 1, 0.9) (R=1.00, G=1.00, B=1.00)
+[10:38:43] [INFO] [BloodyFeet:Player] FALLBACK: Blood detected at distance 10.2 (pos: (252.7227, 445.4569))
+[10:38:43] [INFO] [BloodyFeet:Player] Puddle color: (1, 1, 1, 0.9) (R=1.00, G=1.00, B=1.00)
+[10:38:43] [INFO] [BloodyFeet:Player] FALLBACK: Blood detected at distance 4.8 (pos: (252.7227, 445.4569))
+[10:38:43] [INFO] [BloodyFeet:Player] Puddle color: (1, 1, 1, 0.9) (R=1.00, G=1.00, B=1.00)
+[10:38:43] [INFO] [BloodyFeet:Player] Skipping footprint - currently on blood puddle
+[10:38:43] [INFO] [BloodyFeet:Player] FALLBACK: Blood detected at distance 1.7 (pos: (252.7227, 445.4569))
+[10:38:43] [INFO] [BloodyFeet:Player] Puddle color: (1, 1, 1, 0.9) (R=1.00, G=1.00, B=1.00)
+[10:38:43] [INFO] [BloodyFeet:Player] FALLBACK: Blood detected at distance 6.6 (pos: (252.7227, 445.4569))
+[10:38:43] [INFO] [BloodyFeet:Player] Puddle color: (1, 1, 1, 0.9) (R=1.00, G=1.00, B=1.00)
+[10:38:43] [INFO] [BloodyFeet:Player] FALLBACK: Blood detected at distance 18.5 (pos: (248.6464, 470.5257))
+[10:38:43] [INFO] [BloodyFeet:Player] Puddle color: (1, 1, 1, 0.9) (R=1.00, G=1.00, B=1.00)
+[10:38:43] [INFO] [BloodyFeet:Player] FALLBACK: Blood detected at distance 16.6 (pos: (248.6464, 470.5257))
+[10:38:43] [INFO] [BloodyFeet:Player] Puddle color: (1, 1, 1, 0.9) (R=1.00, G=1.00, B=1.00)
+[10:38:43] [INFO] [BloodyFeet:Player] FALLBACK: Blood detected at distance 16.5 (pos: (248.6464, 470.5257))
+[10:38:43] [INFO] [BloodyFeet:Player] Puddle color: (1, 1, 1, 0.9) (R=1.00, G=1.00, B=1.00)
+[10:38:43] [INFO] [BloodyFeet:Player] FALLBACK: Blood detected at distance 18.1 (pos: (248.6464, 470.5257))
+[10:38:43] [INFO] [BloodyFeet:Player] Puddle color: (1, 1, 1, 0.9) (R=1.00, G=1.00, B=1.00)
+[10:38:43] [INFO] [BloodyFeet:Player] Skipping footprint - currently on blood puddle
+[10:38:43] [INFO] [BloodyFeet:Player] Footprint spawned (steps remaining: 11, alpha: 0.80, facing: -0.54, color: (1, 1, 1, 0.9))
+[10:38:43] [INFO] [BloodyFeet:Player] Overlap check: areas=0, puddles=18, parent_pos=(184.9287, 511.1852), detector_global=(0, 0), in_tree=false, layer=0, mask=64
+[10:38:43] [INFO] [BloodyFeet:Player] Closest puddle at (248.6464, 470.5257), distance=75.6
+[10:38:43] [INFO] [BloodyFeet:Player] Footprint spawned (steps remaining: 10, alpha: 0.74, facing: -0.52, color: (1, 1, 1, 0.9))
+[10:38:43] [INFO] [BloodyFeet:Player] Footprint spawned (steps remaining: 9, alpha: 0.68, facing: -0.51, color: (1, 1, 1, 0.9))
+[10:38:44] [INFO] [BloodyFeet:Player] Footprint spawned (steps remaining: 8, alpha: 0.62, facing: -0.50, color: (1, 1, 1, 0.9))
+[10:38:44] [INFO] [BloodyFeet:Player] Footprint spawned (steps remaining: 7, alpha: 0.56, facing: -0.49, color: (1, 1, 1, 0.9))
+[10:38:44] [INFO] [BloodyFeet:Player] Footprint spawned (steps remaining: 6, alpha: 0.50, facing: -0.48, color: (1, 1, 1, 0.9))
+[10:38:44] [INFO] [BloodyFeet:Player] Footprint spawned (steps remaining: 5, alpha: 0.44, facing: -0.46, color: (1, 1, 1, 0.9))
+[10:38:44] [INFO] [BloodyFeet:Player] Footprint spawned (steps remaining: 4, alpha: 0.38, facing: -0.43, color: (1, 1, 1, 0.9))
+[10:38:44] [INFO] [BloodyFeet:Player] Footprint spawned (steps remaining: 3, alpha: 0.32, facing: -0.37, color: (1, 1, 1, 0.9))
+[10:38:44] [INFO] [BloodyFeet:Player] Footprint spawned (steps remaining: 2, alpha: 0.26, facing: -0.35, color: (1, 1, 1, 0.9))
+[10:38:45] [INFO] [BloodyFeet:Player] Footprint spawned (steps remaining: 1, alpha: 0.20, facing: -0.34, color: (1, 1, 1, 0.9))
+[10:38:45] [INFO] [BloodyFeet:Player] Footprint spawned (steps remaining: 0, alpha: 0.14, facing: -0.33, color: (1, 1, 1, 0.9))
+[10:38:45] [INFO] [BloodyFeet:Player] Blood ran out - no more footprints
+[10:38:45] [INFO] [BloodyFeet:Player] Overlap check: areas=0, puddles=18, parent_pos=(126.886, 505.2264), detector_global=(0, 0), in_tree=false, layer=0, mask=64
+[10:38:45] [INFO] [BloodyFeet:Player] Closest puddle at (248.6464, 470.5257), distance=126.6
+[10:38:47] [INFO] [BloodyFeet:Player] Overlap check: areas=0, puddles=18, parent_pos=(134.476, 371.7648), detector_global=(0, 0), in_tree=false, layer=0, mask=64
+[10:38:47] [INFO] [BloodyFeet:Player] Closest puddle at (252.7227, 445.4569), distance=139.3
+[10:38:49] [INFO] [BloodyFeet:Player] Overlap check: areas=0, puddles=18, parent_pos=(168.6994, 475.009), detector_global=(0, 0), in_tree=false, layer=0, mask=64
+[10:38:49] [INFO] [BloodyFeet:Player] Closest puddle at (248.6464, 470.5257), distance=80.1
+[10:38:51] [INFO] [BloodyFeet:Player] Overlap check: areas=0, puddles=18, parent_pos=(238.7925, 608.2965), detector_global=(0, 0), in_tree=false, layer=0, mask=64
+[10:38:51] [INFO] [BloodyFeet:Player] Closest puddle at (320.2866, 537.2502), distance=108.1
+[10:38:53] [INFO] [BloodyFeet:Player] Overlap check: areas=0, puddles=18, parent_pos=(131.9321, 664.4976), detector_global=(0, 0), in_tree=false, layer=0, mask=64
+[10:38:53] [INFO] [BloodyFeet:Player] Closest puddle at (268.8609, 488.5812), distance=222.9
+[10:38:55] [INFO] [BloodyFeet:Player] Overlap check: areas=0, puddles=18, parent_pos=(193.2177, 461.3725), detector_global=(0, 0), in_tree=false, layer=0, mask=64
+[10:38:55] [INFO] [BloodyFeet:Player] Closest puddle at (248.6464, 470.5257), distance=56.2
+[10:38:57] [INFO] [BloodyFeet:Player] FALLBACK: Blood detected at distance 18.0 (pos: (252.7227, 445.4569))
+[10:38:57] [INFO] [BloodyFeet:Player] Puddle color: (1, 1, 1, 0.9) (R=1.00, G=1.00, B=1.00)
+[10:38:57] [INFO] [BloodyFeet:Player] Stepped in blood! 12 footprints to spawn, color: (1, 1, 1, 0.9)
+[10:38:57] [INFO] [BloodyFeet:Player] Skipping footprint - currently on blood puddle
+[10:38:57] [INFO] [BloodyFeet:Player] FALLBACK: Blood detected at distance 12.8 (pos: (252.7227, 445.4569))
+[10:38:57] [INFO] [BloodyFeet:Player] Puddle color: (1, 1, 1, 0.9) (R=1.00, G=1.00, B=1.00)
+[10:38:57] [INFO] [BloodyFeet:Player] FALLBACK: Blood detected at distance 7.9 (pos: (252.7227, 445.4569))
+[10:38:57] [INFO] [BloodyFeet:Player] Puddle color: (1, 1, 1, 0.9) (R=1.00, G=1.00, B=1.00)
+[10:38:57] [INFO] [BloodyFeet:Player] FALLBACK: Blood detected at distance 4.8 (pos: (252.7227, 445.4569))
+[10:38:57] [INFO] [BloodyFeet:Player] Puddle color: (1, 1, 1, 0.9) (R=1.00, G=1.00, B=1.00)
+[10:38:57] [INFO] [BloodyFeet:Player] FALLBACK: Blood detected at distance 6.6 (pos: (252.7227, 445.4569))
+[10:38:57] [INFO] [BloodyFeet:Player] Puddle color: (1, 1, 1, 0.9) (R=1.00, G=1.00, B=1.00)
+[10:38:57] [INFO] [BloodyFeet:Player] FALLBACK: Blood detected at distance 14.9 (pos: (248.6464, 470.5257))
+[10:38:57] [INFO] [BloodyFeet:Player] Puddle color: (1, 1, 1, 0.9) (R=1.00, G=1.00, B=1.00)
+[10:38:57] [INFO] [BloodyFeet:Player] FALLBACK: Blood detected at distance 9.4 (pos: (248.6464, 470.5257))
+[10:38:57] [INFO] [BloodyFeet:Player] Puddle color: (1, 1, 1, 0.9) (R=1.00, G=1.00, B=1.00)
+[10:38:57] [INFO] [BloodyFeet:Player] Skipping footprint - currently on blood puddle
+[10:38:57] [INFO] [BloodyFeet:Player] FALLBACK: Blood detected at distance 4.2 (pos: (248.6464, 470.5257))
+[10:38:57] [INFO] [BloodyFeet:Player] Puddle color: (1, 1, 1, 0.9) (R=1.00, G=1.00, B=1.00)
+[10:38:57] [INFO] [BloodyFeet:Player] FALLBACK: Blood detected at distance 2.0 (pos: (248.6464, 470.5257))
+[10:38:57] [INFO] [BloodyFeet:Player] Puddle color: (1, 1, 1, 0.9) (R=1.00, G=1.00, B=1.00)
+[10:38:57] [INFO] [BloodyFeet:Player] FALLBACK: Blood detected at distance 6.7 (pos: (248.6464, 470.5257))
+[10:38:57] [INFO] [BloodyFeet:Player] Puddle color: (1, 1, 1, 0.9) (R=1.00, G=1.00, B=1.00)
+[10:38:57] [INFO] [BloodyFeet:Player] FALLBACK: Blood detected at distance 11.5 (pos: (248.6464, 470.5257))
+[10:38:57] [INFO] [BloodyFeet:Player] Puddle color: (1, 1, 1, 0.9) (R=1.00, G=1.00, B=1.00)
+[10:38:57] [INFO] [BloodyFeet:Player] FALLBACK: Blood detected at distance 16.2 (pos: (248.6464, 470.5257))
+[10:38:57] [INFO] [BloodyFeet:Player] Puddle color: (1, 1, 1, 0.9) (R=1.00, G=1.00, B=1.00)
+[10:38:57] [INFO] [BloodyFeet:Player] FALLBACK: Blood detected at distance 17.5 (pos: (255.0927, 478.3005))
+[10:38:57] [INFO] [BloodyFeet:Player] Puddle color: (1, 1, 1, 0.9) (R=1.00, G=1.00, B=1.00)
+[10:38:57] [INFO] [BloodyFeet:Player] Footprint spawned (steps remaining: 11, alpha: 0.80, facing: -1.41, color: (1, 1, 1, 0.9))
+[10:38:57] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(227.3947, 525.4653), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[10:38:57] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:38:57] [INFO] [BloodyFeet:Player] Footprint spawned (steps remaining: 10, alpha: 0.74, facing: -1.37, color: (1, 1, 1, 0.9))
+[10:38:57] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(218.2271, 536.2709), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[10:38:57] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:38:57] [INFO] [BloodyFeet:Player] Overlap check: areas=0, puddles=18, parent_pos=(211.8714, 534.2427), detector_global=(0, 0), in_tree=false, layer=0, mask=64
+[10:38:57] [INFO] [BloodyFeet:Player] Closest puddle at (255.0927, 478.3005), distance=70.7
+[10:38:57] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(227.39473, 525.4653), shooter_id=83466652145, bullet_pos=(321.5753, 51.396576)
+[10:38:57] [INFO] [Bullet] Using shooter_position, distance=483,33334
+[10:38:57] [INFO] [Bullet] Distance to wall: 483,33334 (32,911057% of viewport)
+[10:38:57] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[10:38:57] [INFO] [Bullet] Starting wall penetration at (321.5753, 51.396576)
+[10:38:57] [INFO] [Bullet] Raycast backward hit penetrating body at distance 26,89103
+[10:38:57] [INFO] [Bullet] Body exited signal received for penetrating body
+[10:38:57] [INFO] [Bullet] Exiting penetration at (330.66858, 5.62442) after traveling 41,66667 pixels through wall
+[10:38:57] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[10:38:57] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(211.8714, 540.2427), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[10:38:57] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:38:57] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(218.22708, 536.2709), shooter_id=83466652145, bullet_pos=(327.15512, 65.37196)
+[10:38:57] [INFO] [Bullet] Using shooter_position, distance=483,33334
+[10:38:57] [INFO] [Bullet] Distance to wall: 483,33334 (32,911057% of viewport)
+[10:38:57] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[10:38:57] [INFO] [Bullet] Starting wall penetration at (327.15512, 65.37196)
+[10:38:57] [INFO] [Bullet] Raycast backward hit penetrating body at distance 12,413497
+[10:38:57] [INFO] [Bullet] Body exited signal received for penetrating body
+[10:38:57] [INFO] [Bullet] Exiting penetration at (337.6723, 19.905857) after traveling 41,666668 pixels through wall
+[10:38:57] [INFO] [Bullet] Damage multiplier after penetration: 0,9
+[10:38:58] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(211.87143, 540.2427), shooter_id=83466652145, bullet_pos=(341.52893, 31.505009)
+[10:38:58] [INFO] [Bullet] Using shooter_position, distance=525,00006
+[10:38:58] [INFO] [Bullet] Distance to wall: 525,00006 (35,74822% of viewport)
+[10:38:58] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[10:38:58] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(211.87143, 540.2427), shooter_id=83466652145, bullet_pos=(364.36612, 212.15051)
+[10:38:58] [INFO] [Bullet] Using shooter_position, distance=361,7998
+[10:38:58] [INFO] [Bullet] Distance to wall: 361,7998 (24,635614% of viewport)
+[10:38:58] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[10:38:58] [INFO] [BloodyFeet:Player] Footprint spawned (steps remaining: 9, alpha: 0.68, facing: -1.30, color: (1, 1, 1, 0.9))
+[10:38:58] [INFO] [BloodyFeet:Player] Footprint spawned (steps remaining: 8, alpha: 0.62, facing: -1.38, color: (1, 1, 1, 0.9))
+[10:38:58] [INFO] [BloodyFeet:Player] Footprint spawned (steps remaining: 7, alpha: 0.56, facing: -1.46, color: (1, 1, 1, 0.9))
+[10:38:58] [INFO] [BloodyFeet:Player] Footprint spawned (steps remaining: 6, alpha: 0.50, facing: -1.53, color: (1, 1, 1, 0.9))
+[10:38:58] [INFO] [BloodyFeet:Player] Footprint spawned (steps remaining: 5, alpha: 0.44, facing: -1.56, color: (1, 1, 1, 0.9))
+[10:38:59] [INFO] [BloodyFeet:Player] Footprint spawned (steps remaining: 4, alpha: 0.38, facing: -1.56, color: (1, 1, 1, 0.9))
+[10:38:59] [INFO] [BloodyFeet:Player] Footprint spawned (steps remaining: 3, alpha: 0.32, facing: -1.56, color: (1, 1, 1, 0.9))
+[10:38:59] [INFO] [BloodyFeet:Player] Footprint spawned (steps remaining: 2, alpha: 0.26, facing: -1.56, color: (1, 1, 1, 0.9))
+[10:38:59] [INFO] [BloodyFeet:Player] Footprint spawned (steps remaining: 1, alpha: 0.20, facing: 1.59, color: (1, 1, 1, 0.9))
+[10:38:59] [INFO] [BloodyFeet:Player] Footprint spawned (steps remaining: 0, alpha: 0.14, facing: 1.60, color: (1, 1, 1, 0.9))
+[10:38:59] [INFO] [BloodyFeet:Player] Blood ran out - no more footprints
+[10:38:59] [INFO] [BloodyFeet:Player] Overlap check: areas=0, puddles=18, parent_pos=(294.6759, 575.6405), detector_global=(0, 0), in_tree=false, layer=0, mask=64
+[10:38:59] [INFO] [BloodyFeet:Player] Closest puddle at (320.2866, 537.2502), distance=46.1
+[10:39:01] [INFO] [BloodyFeet:Player] FALLBACK: Blood detected at distance 18.9 (pos: (320.2866, 537.2502))
+[10:39:01] [INFO] [BloodyFeet:Player] Puddle color: (1, 1, 1, 0.9) (R=1.00, G=1.00, B=1.00)
+[10:39:01] [INFO] [BloodyFeet:Player] Stepped in blood! 12 footprints to spawn, color: (1, 1, 1, 0.9)
+[10:39:01] [INFO] [BloodyFeet:Player] Skipping footprint - currently on blood puddle
+[10:39:01] [INFO] [BloodyFeet:Player] FALLBACK: Blood detected at distance 17.5 (pos: (320.2866, 537.2502))
+[10:39:01] [INFO] [BloodyFeet:Player] Puddle color: (1, 1, 1, 0.9) (R=1.00, G=1.00, B=1.00)
+[10:39:01] [INFO] [BloodyFeet:Player] FALLBACK: Blood detected at distance 17.1 (pos: (320.2866, 537.2502))
+[10:39:01] [INFO] [BloodyFeet:Player] Puddle color: (1, 1, 1, 0.9) (R=1.00, G=1.00, B=1.00)
+[10:39:01] [INFO] [BloodyFeet:Player] FALLBACK: Blood detected at distance 17.1 (pos: (320.2866, 537.2502))
+[10:39:01] [INFO] [BloodyFeet:Player] Puddle color: (1, 1, 1, 0.9) (R=1.00, G=1.00, B=1.00)
+[10:39:01] [INFO] [BloodyFeet:Player] FALLBACK: Blood detected at distance 17.3 (pos: (320.2866, 537.2502))
+[10:39:01] [INFO] [BloodyFeet:Player] Puddle color: (1, 1, 1, 0.9) (R=1.00, G=1.00, B=1.00)
+[10:39:01] [INFO] [BloodyFeet:Player] FALLBACK: Blood detected at distance 17.3 (pos: (320.2866, 537.2502))
+[10:39:01] [INFO] [BloodyFeet:Player] Puddle color: (1, 1, 1, 0.9) (R=1.00, G=1.00, B=1.00)
+[10:39:01] [INFO] [BloodyFeet:Player] FALLBACK: Blood detected at distance 17.1 (pos: (320.2866, 537.2502))
+[10:39:01] [INFO] [BloodyFeet:Player] Puddle color: (1, 1, 1, 0.9) (R=1.00, G=1.00, B=1.00)
+[10:39:01] [INFO] [BloodyFeet:Player] FALLBACK: Blood detected at distance 16.8 (pos: (320.2866, 537.2502))
+[10:39:01] [INFO] [BloodyFeet:Player] Puddle color: (1, 1, 1, 0.9) (R=1.00, G=1.00, B=1.00)
+[10:39:01] [INFO] [BloodyFeet:Player] FALLBACK: Blood detected at distance 16.4 (pos: (320.2866, 537.2502))
+[10:39:01] [INFO] [BloodyFeet:Player] Puddle color: (1, 1, 1, 0.9) (R=1.00, G=1.00, B=1.00)
+[10:39:01] [INFO] [BloodyFeet:Player] FALLBACK: Blood detected at distance 16.4 (pos: (320.2866, 537.2502))
+[10:39:01] [INFO] [BloodyFeet:Player] Puddle color: (1, 1, 1, 0.9) (R=1.00, G=1.00, B=1.00)
+[10:39:01] [INFO] [BloodyFeet:Player] FALLBACK: Blood detected at distance 16.6 (pos: (320.2866, 537.2502))
+[10:39:01] [INFO] [BloodyFeet:Player] Puddle color: (1, 1, 1, 0.9) (R=1.00, G=1.00, B=1.00)
+[10:39:01] [INFO] [BloodyFeet:Player] FALLBACK: Blood detected at distance 16.8 (pos: (320.2866, 537.2502))
+[10:39:01] [INFO] [BloodyFeet:Player] Puddle color: (1, 1, 1, 0.9) (R=1.00, G=1.00, B=1.00)
+[10:39:01] [INFO] [BloodyFeet:Player] FALLBACK: Blood detected at distance 16.8 (pos: (320.2866, 537.2502))
+[10:39:01] [INFO] [BloodyFeet:Player] Puddle color: (1, 1, 1, 0.9) (R=1.00, G=1.00, B=1.00)
+[10:39:01] [INFO] [BloodyFeet:Player] Overlap check: areas=0, puddles=18, parent_pos=(304.3257, 542.6057), detector_global=(0, 0), in_tree=false, layer=0, mask=64
+[10:39:01] [INFO] [BloodyFeet:Player] Closest puddle at (320.2866, 537.2502), distance=16.8
+[10:39:01] [INFO] [BloodyFeet:Player] FALLBACK: Blood detected at distance 16.8 (pos: (320.2866, 537.2502))
+[10:39:01] [INFO] [BloodyFeet:Player] Puddle color: (1, 1, 1, 0.9) (R=1.00, G=1.00, B=1.00)
+[10:39:01] [INFO] [BloodyFeet:Player] FALLBACK: Blood detected at distance 16.8 (pos: (320.2866, 537.2502))
+[10:39:01] [INFO] [BloodyFeet:Player] Puddle color: (1, 1, 1, 0.9) (R=1.00, G=1.00, B=1.00)
+[10:39:01] [INFO] [BloodyFeet:Player] FALLBACK: Blood detected at distance 16.8 (pos: (320.2866, 537.2502))
+[10:39:01] [INFO] [BloodyFeet:Player] Puddle color: (1, 1, 1, 0.9) (R=1.00, G=1.00, B=1.00)
+[10:39:01] [INFO] [BloodyFeet:Player] FALLBACK: Blood detected at distance 16.8 (pos: (320.2866, 537.2502))
+[10:39:01] [INFO] [BloodyFeet:Player] Puddle color: (1, 1, 1, 0.9) (R=1.00, G=1.00, B=1.00)
+[10:39:01] [INFO] [BloodyFeet:Player] FALLBACK: Blood detected at distance 16.9 (pos: (320.2866, 537.2502))
+[10:39:01] [INFO] [BloodyFeet:Player] Puddle color: (1, 1, 1, 0.9) (R=1.00, G=1.00, B=1.00)
+[10:39:01] [INFO] [BloodyFeet:Player] FALLBACK: Blood detected at distance 17.2 (pos: (320.2866, 537.2502))
+[10:39:01] [INFO] [BloodyFeet:Player] Puddle color: (1, 1, 1, 0.9) (R=1.00, G=1.00, B=1.00)
+[10:39:01] [INFO] [BloodyFeet:Player] FALLBACK: Blood detected at distance 17.6 (pos: (320.2866, 537.2502))
+[10:39:01] [INFO] [BloodyFeet:Player] Puddle color: (1, 1, 1, 0.9) (R=1.00, G=1.00, B=1.00)
+[10:39:01] [INFO] [BloodyFeet:Player] FALLBACK: Blood detected at distance 18.2 (pos: (320.2866, 537.2502))
+[10:39:01] [INFO] [BloodyFeet:Player] Puddle color: (1, 1, 1, 0.9) (R=1.00, G=1.00, B=1.00)
+[10:39:01] [INFO] [BloodyFeet:Player] FALLBACK: Blood detected at distance 19.0 (pos: (320.2866, 537.2502))
+[10:39:01] [INFO] [BloodyFeet:Player] Puddle color: (1, 1, 1, 0.9) (R=1.00, G=1.00, B=1.00)
+[10:39:02] [INFO] [BloodyFeet:Player] Footprint spawned (steps remaining: 11, alpha: 0.80, facing: -0.88, color: (1, 1, 1, 0.9))
+[10:39:02] [INFO] [BloodyFeet:Player] Footprint spawned (steps remaining: 10, alpha: 0.74, facing: -0.82, color: (1, 1, 1, 0.9))
+[10:39:02] [INFO] [BloodyFeet:Player] Footprint spawned (steps remaining: 9, alpha: 0.68, facing: -0.87, color: (1, 1, 1, 0.9))
+[10:39:02] [INFO] [BloodyFeet:Player] Footprint spawned (steps remaining: 8, alpha: 0.62, facing: -0.93, color: (1, 1, 1, 0.9))
+[10:39:02] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(366.3501, 659.9202), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[10:39:02] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:39:02] [INFO] [BloodyFeet:Player] Footprint spawned (steps remaining: 7, alpha: 0.56, facing: -0.93, color: (1, 1, 1, 0.9))
+[10:39:02] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(364.4771, 667.5547), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[10:39:02] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:39:02] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(366.35013, 659.92017), shooter_id=83466652145, bullet_pos=(571.95575, 366.44257)
+[10:39:02] [INFO] [Bullet] Using shooter_position, distance=358,3333
+[10:39:02] [INFO] [Bullet] Distance to wall: 358,3333 (24,399576% of viewport)
+[10:39:02] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[10:39:02] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(363.9538, 671.4833), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[10:39:02] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:39:02] [INFO] [BloodyFeet:Player] Footprint spawned (steps remaining: 6, alpha: 0.50, facing: -0.89, color: (1, 1, 1, 0.9))
+[10:39:02] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(364.47705, 667.55475), shooter_id=83466652145, bullet_pos=(576.3343, 378.55768)
+[10:39:02] [INFO] [Bullet] Using shooter_position, distance=358,33337
+[10:39:02] [INFO] [Bullet] Distance to wall: 358,33337 (24,399578% of viewport)
+[10:39:02] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[10:39:02] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(360.2369, 674.4681), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[10:39:02] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:39:02] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(363.9538, 671.4833), shooter_id=83466652145, bullet_pos=(588.7826, 392.45844)
+[10:39:02] [INFO] [Bullet] Using shooter_position, distance=358,33344
+[10:39:02] [INFO] [Bullet] Distance to wall: 358,33344 (24,399584% of viewport)
+[10:39:02] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[10:39:02] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(362.4868, 674.255), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[10:39:02] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:39:02] [INFO] [BloodyFeet:Player] Footprint spawned (steps remaining: 5, alpha: 0.44, facing: -0.86, color: (1, 1, 1, 0.9))
+[10:39:02] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(360.2369, 674.4681), shooter_id=83466652145, bullet_pos=(616.0629, 377.8947)
+[10:39:02] [INFO] [Bullet] Using shooter_position, distance=391,6666
+[10:39:02] [INFO] [Bullet] Distance to wall: 391,6666 (26,6693% of viewport)
+[10:39:02] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[10:39:03] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(364.4561, 680.8124), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[10:39:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:39:03] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(366.2839, 683.1523), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[10:39:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:39:03] [INFO] [BloodyFeet:Player] Footprint spawned (steps remaining: 4, alpha: 0.38, facing: -0.87, color: (1, 1, 1, 0.9))
+[10:39:03] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(362.1928, 683.3975), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[10:39:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:39:03] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(362.48676, 674.255), shooter_id=83466652145, bullet_pos=(910.31537, 46.29918)
+[10:39:03] [INFO] [Bullet] Using shooter_position, distance=833,3335
+[10:39:03] [INFO] [Bullet] Distance to wall: 833,3335 (56,74321% of viewport)
+[10:39:03] [INFO] [Bullet] Distance-based penetration chance: 80,466255%
+[10:39:03] [INFO] [Bullet] Penetration failed (distance roll)
+[10:39:03] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(361.4273, 685.092), source=PLAYER (AssaultRifle), range=1469, listeners=0
+[10:39:03] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:39:03] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(364.45615, 680.81244), shooter_id=83466652145, bullet_pos=(901.7898, 54.795418)
+[10:39:03] [INFO] [Bullet] Using shooter_position, distance=824,9999
+[10:39:03] [INFO] [Bullet] Distance to wall: 824,9999 (56,175762% of viewport)
+[10:39:03] [INFO] [BloodyFeet:Player] Footprint spawned (steps remaining: 3, alpha: 0.32, facing: -0.85, color: (1, 1, 1, 0.9))
+[10:39:03] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(366.28387, 683.15234), shooter_id=83466652145, bullet_pos=(902.27136, 55.981995)
+[10:39:03] [INFO] [Bullet] Using shooter_position, distance=825,0001
+[10:39:03] [INFO] [Bullet] Distance to wall: 825,0001 (56,175774% of viewport)
+[10:39:03] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(362.19278, 683.39746), shooter_id=83466652145, bullet_pos=(907.7502, 64.53406)
+[10:39:03] [INFO] [Bullet] Using shooter_position, distance=824,9999
+[10:39:03] [INFO] [Bullet] Distance to wall: 824,9999 (56,175762% of viewport)
+[10:39:03] [INFO] [BloodyFeet:Player] Footprint spawned (steps remaining: 2, alpha: 0.26, facing: -0.89, color: (1, 1, 1, 0.9))
+[10:39:03] [INFO] [BloodyFeet:Player] Overlap check: areas=0, puddles=18, parent_pos=(404.3575, 678.2518), detector_global=(0, 0), in_tree=false, layer=0, mask=64
+[10:39:03] [INFO] [BloodyFeet:Player] Closest puddle at (360.8468, 596.6089), distance=92.5
+[10:39:03] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(361.42728, 685.092), shooter_id=83466652145, bullet_pos=(908.8339, 67.86367)
+[10:39:03] [INFO] [Bullet] Using shooter_position, distance=824,9999
+[10:39:03] [INFO] [Bullet] Distance to wall: 824,9999 (56,175762% of viewport)
+[10:39:03] [INFO] [BloodyFeet:Player] Footprint spawned (steps remaining: 1, alpha: 0.20, facing: -0.99, color: (1, 1, 1, 0.9))
+[10:39:03] [INFO] [BloodyFeet:Player] Footprint spawned (steps remaining: 0, alpha: 0.14, facing: -1.09, color: (1, 1, 1, 0.9))
+[10:39:03] [INFO] [BloodyFeet:Player] Blood ran out - no more footprints
+[10:39:05] [INFO] [BloodyFeet:Player] Overlap check: areas=0, puddles=18, parent_pos=(492.0175, 743.41), detector_global=(0, 0), in_tree=false, layer=0, mask=64
+[10:39:05] [INFO] [BloodyFeet:Player] Closest puddle at (360.8468, 596.6089), distance=196.9
+[10:39:07] [INFO] [BloodyFeet:Player] Overlap check: areas=0, puddles=18, parent_pos=(418.4948, 783.3904), detector_global=(0, 0), in_tree=false, layer=0, mask=64
+[10:39:07] [INFO] [BloodyFeet:Player] Closest puddle at (360.8468, 596.6089), distance=195.5
+[10:39:09] [INFO] [BloodyFeet:Player] Overlap check: areas=0, puddles=18, parent_pos=(524.1917, 643.927), detector_global=(0, 0), in_tree=false, layer=0, mask=64
+[10:39:09] [INFO] [BloodyFeet:Player] Closest puddle at (360.8468, 596.6089), distance=170.1
+[10:39:11] [INFO] [PauseMenu] Armory button pressed
+[10:39:11] [INFO] [PauseMenu] Creating new armory menu instance
+[10:39:11] [INFO] [PauseMenu] armory_menu_scene resource path: res://scenes/ui/ArmoryMenu.tscn
+[10:39:11] [INFO] [PauseMenu] Instance created, class: CanvasLayer, name: ArmoryMenu
+[10:39:11] [INFO] [PauseMenu] Script attached: res://scripts/ui/armory_menu.gd
+[10:39:11] [INFO] [PauseMenu] back_pressed signal exists on instance
+[10:39:11] [INFO] [PauseMenu] back_pressed signal connected
+[10:39:11] [INFO] [PauseMenu] Armory menu instance added as child, is_inside_tree: true
+[10:39:11] [INFO] [PauseMenu] _populate_weapon_grid method exists
+[10:39:13] [INFO] [GameManager] Weapon selected: mini_uzi
+[10:39:13] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[10:39:13] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[10:39:13] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[10:39:13] [INFO] [LastChance] Resetting all effects (scene change detected)
+[10:39:13] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[10:39:13] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[10:39:13] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[10:39:13] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[10:39:13] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[10:39:13] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[10:39:13] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+[10:39:13] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[10:39:13] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[10:39:13] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[10:39:13] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[10:39:13] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[10:39:13] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[10:39:13] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 3/3, Health: 3/4
+[10:39:13] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[10:39:13] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(150, 360), source=PLAYER (MiniUzi), range=1469, listeners=0
+[10:39:13] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:39:13] [INFO] [Player] Detecting weapon pose (frame 3)...
+[10:39:13] [INFO] [Player] Detected weapon: Mini UZI (SMG pose)
+[10:39:13] [INFO] [Player] Applied SMG arm pose: Left=(14, 6), Right=(1, 6)
+[10:39:13] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[10:39:13] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[10:39:13] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[10:39:13] [INFO] [LastChance] Found player: Player
+[10:39:13] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[10:39:13] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[10:39:13] [INFO] [LastChance] Connected to player Died signal (C#)
+[10:39:13] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(141.3388, 354.4391), source=PLAYER (MiniUzi), range=1469, listeners=0
+[10:39:13] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:39:13] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(150, 360), shooter_id=197669161551, bullet_pos=(490, 360)
+[10:39:13] [INFO] [Bullet] Using shooter_position, distance=340
+[10:39:13] [INFO] [Bullet] Distance to wall: 340 (23.1512252048708% of viewport)
+[10:39:13] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[10:39:13] [INFO] [Bullet] Caliber cannot penetrate walls
+[10:39:13] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(141.3388, 354.4391), shooter_id=197669161551, bullet_pos=(501.0926, 367.7556)
+[10:39:13] [INFO] [Bullet] Using shooter_position, distance=360.000152587891
+[10:39:13] [INFO] [Bullet] Distance to wall: 360.000152587891 (24.513072371618% of viewport)
+[10:39:13] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[10:39:13] [INFO] [Bullet] Caliber cannot penetrate walls
+[10:39:14] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(137.1993, 353.0215), source=PLAYER (MiniUzi), range=1469, listeners=0
+[10:39:14] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:39:14] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(132.7207, 349.6046), source=PLAYER (MiniUzi), range=1469, listeners=0
+[10:39:14] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:39:14] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(129.176, 354.6422), source=PLAYER (MiniUzi), range=1469, listeners=0
+[10:39:14] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:39:14] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(117.7578, 350.421), source=PLAYER (MiniUzi), range=1469, listeners=0
+[10:39:14] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:39:14] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(110.3505, 343.5813), source=PLAYER (MiniUzi), range=1469, listeners=0
+[10:39:14] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:39:14] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(105.4365, 349.3361), source=PLAYER (MiniUzi), range=1469, listeners=0
+[10:39:14] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:39:14] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(100.7879, 345.6262), source=PLAYER (MiniUzi), range=1469, listeners=0
+[10:39:14] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:39:14] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(132.7207, 349.6046), shooter_id=197669161551, bullet_pos=(492.218, 330.59)
+[10:39:14] [INFO] [Bullet] Using shooter_position, distance=359.999877929688
+[10:39:14] [INFO] [Bullet] Distance to wall: 359.999877929688 (24.5130536696359% of viewport)
+[10:39:14] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[10:39:14] [INFO] [Bullet] Caliber cannot penetrate walls
+[10:39:14] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(99.96454, 344.2099), source=PLAYER (MiniUzi), range=1469, listeners=0
+[10:39:14] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:39:14] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(129.176, 354.6422), shooter_id=197669161551, bullet_pos=(488.6667, 335.4986)
+[10:39:14] [INFO] [Bullet] Using shooter_position, distance=360.000030517578
+[10:39:14] [INFO] [Bullet] Distance to wall: 360.000030517578 (24.513064059626% of viewport)
+[10:39:14] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[10:39:14] [INFO] [Bullet] Caliber cannot penetrate walls
+[10:39:14] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(89.77106, 348.0682), source=PLAYER (MiniUzi), range=1469, listeners=0
+[10:39:14] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:39:14] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(80.00414, 344.5499), source=PLAYER (MiniUzi), range=1469, listeners=0
+[10:39:14] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:39:14] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(117.7578, 350.421), shooter_id=197669161551, bullet_pos=(496.9645, 374.9642)
+[10:39:14] [INFO] [Bullet] Using shooter_position, distance=380.000122070313
+[10:39:14] [INFO] [Bullet] Distance to wall: 380.000122070313 (25.8749070703771% of viewport)
+[10:39:14] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[10:39:14] [INFO] [Bullet] Caliber cannot penetrate walls
+[10:39:14] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(79.36697, 339.7949), source=PLAYER (MiniUzi), range=1469, listeners=0
+[10:39:14] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:39:14] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(110.3505, 343.5813), shooter_id=197669161551, bullet_pos=(488.4132, 381.9043)
+[10:39:14] [INFO] [Bullet] Using shooter_position, distance=380.000122070313
+[10:39:14] [INFO] [Bullet] Distance to wall: 380.000122070313 (25.8749070703771% of viewport)
+[10:39:14] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[10:39:14] [INFO] [Bullet] Caliber cannot penetrate walls
+[10:39:14] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(82.37302, 337.0053), source=PLAYER (MiniUzi), range=1469, listeners=0
+[10:39:14] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:39:14] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(105.4365, 349.3361), shooter_id=197669161551, bullet_pos=(483.8738, 383.7626)
+[10:39:14] [INFO] [Bullet] Using shooter_position, distance=380.000030517578
+[10:39:14] [INFO] [Bullet] Distance to wall: 380.000030517578 (25.8749008363831% of viewport)
+[10:39:14] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[10:39:14] [INFO] [Bullet] Caliber cannot penetrate walls
+[10:39:14] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(80.05903, 325.9007), source=PLAYER (MiniUzi), range=1469, listeners=0
+[10:39:14] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:39:14] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(80.00414, 344.5499), shooter_id=197669161551, bullet_pos=(314.3703, 292.8537)
+[10:39:14] [INFO] [Bullet] Using shooter_position, distance=240
+[10:39:14] [INFO] [Bullet] Distance to wall: 240 (16.3420413210853% of viewport)
+[10:39:14] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[10:39:14] [INFO] [Bullet] Caliber cannot penetrate walls
+[10:39:14] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(80.00009, 317.7715), source=PLAYER (MiniUzi), range=1469, listeners=0
+[10:39:14] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:39:14] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(80.0522, 308.3947), source=PLAYER (MiniUzi), range=1469, listeners=0
+[10:39:14] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:39:14] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(89.77106, 348.0682), shooter_id=197669161551, bullet_pos=(489.7581, 344.8394)
+[10:39:14] [INFO] [Bullet] Using shooter_position, distance=400.000091552734
+[10:39:14] [INFO] [Bullet] Distance to wall: 400.000091552734 (27.2367417691362% of viewport)
+[10:39:14] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[10:39:14] [INFO] [Bullet] Caliber cannot penetrate walls
+[10:39:14] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(80.00009, 317.7715), shooter_id=197669161551, bullet_pos=(318.299, 421.76)
+[10:39:14] [INFO] [Bullet] Using shooter_position, distance=260
+[10:39:14] [INFO] [Bullet] Distance to wall: 260 (17.7038780978424% of viewport)
+[10:39:14] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[10:39:14] [INFO] [Bullet] Caliber cannot penetrate walls
+[10:39:14] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(80.0522, 308.3947), shooter_id=197669161551, bullet_pos=(310.457, 428.8673)
+[10:39:14] [INFO] [Bullet] Using shooter_position, distance=260.000030517578
+[10:39:14] [INFO] [Bullet] Distance to wall: 260.000030517578 (17.7038801758404% of viewport)
+[10:39:14] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[10:39:14] [INFO] [Bullet] Caliber cannot penetrate walls
+[10:39:15] [INFO] [BloodyFeet:Player] Overlap check: areas=0, puddles=0, parent_pos=(175.5325, 309.1537), detector_global=(0, 0), in_tree=false, layer=0, mask=64
+[10:39:15] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(198.7094, 281.5987), source=PLAYER (MiniUzi), range=1469, listeners=0
+[10:39:15] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:39:15] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(194.3121, 282.5371), source=PLAYER (MiniUzi), range=1469, listeners=0
+[10:39:15] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:39:15] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(198.7094, 281.5987), shooter_id=197669161551, bullet_pos=(318.7009, 283.0235)
+[10:39:15] [INFO] [Bullet] Using shooter_position, distance=120.000038146973
+[10:39:15] [INFO] [Bullet] Distance to wall: 120.000038146973 (8.17102325804016% of viewport)
+[10:39:15] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[10:39:15] [INFO] [Bullet] Caliber cannot penetrate walls
+[10:39:15] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(137.1993, 353.0215), shooter_id=197669161551, bullet_pos=(1810.532, 203.4734)
+[10:39:15] [INFO] [Bullet] Using shooter_position, distance=1680.00170898438
+[10:39:15] [INFO] [Bullet] Distance to wall: 1680.00170898438 (114.394405615486% of viewport)
+[10:39:15] [INFO] [Bullet] Distance-based penetration chance: 27.1211188769029%
+[10:39:15] [INFO] [Bullet] Penetration failed (distance roll)
+[10:39:15] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(194.3121, 282.5371), shooter_id=197669161551, bullet_pos=(314.2964, 284.4818)
+[10:39:15] [INFO] [Bullet] Using shooter_position, distance=120.000015258789
+[10:39:15] [INFO] [Bullet] Distance to wall: 120.000015258789 (8.17102169954165% of viewport)
+[10:39:15] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[10:39:15] [INFO] [Bullet] Caliber cannot penetrate walls
+[10:39:15] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(194.5234, 335.0708), source=PLAYER (MiniUzi), range=1469, listeners=0
+[10:39:15] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:39:15] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(183.5923, 328.366), source=PLAYER (MiniUzi), range=1469, listeners=0
+[10:39:15] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:39:15] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(100.7879, 345.6262), shooter_id=197669161551, bullet_pos=(1803.636, 703.2786)
+[10:39:15] [INFO] [Bullet] Using shooter_position, distance=1740.00183105469
+[10:39:15] [INFO] [Bullet] Distance to wall: 1740.00183105469 (118.479924257749% of viewport)
+[10:39:15] [INFO] [Bullet] Distance-based penetration chance: 26.3040151484502%
+[10:39:15] [INFO] [Bullet] Penetration failed (distance roll)
+[10:39:15] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(174.142, 320.3026), source=PLAYER (MiniUzi), range=1469, listeners=0
+[10:39:15] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:39:15] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(99.96454, 344.2099), shooter_id=197669161551, bullet_pos=(1809.928, 666.1282)
+[10:39:15] [INFO] [Bullet] Using shooter_position, distance=1740.00183105469
+[10:39:15] [INFO] [Bullet] Distance to wall: 1740.00183105469 (118.479924257749% of viewport)
+[10:39:15] [INFO] [Bullet] Distance-based penetration chance: 26.3040151484502%
+[10:39:15] [INFO] [Bullet] Penetration failed (distance roll)
+[10:39:15] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(164.3587, 315.5168), source=PLAYER (MiniUzi), range=1469, listeners=0
+[10:39:15] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:39:16] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(79.36697, 339.7949), shooter_id=197669161551, bullet_pos=(1816.723, 243.9138)
+[10:39:16] [INFO] [Bullet] Using shooter_position, distance=1739.99938964844
+[10:39:16] [INFO] [Bullet] Distance to wall: 1739.99938964844 (118.479758017908% of viewport)
+[10:39:16] [INFO] [Bullet] Distance-based penetration chance: 26.3040483964184%
+[10:39:16] [INFO] [Bullet] Caliber cannot penetrate walls
+[10:39:16] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(82.37302, 337.0053), shooter_id=197669161551, bullet_pos=(1797.393, 732.3662)
+[10:39:16] [INFO] [Bullet] Using shooter_position, distance=1760.00109863281
+[10:39:16] [INFO] [Bullet] Distance to wall: 1760.00109863281 (119.841711162554% of viewport)
+[10:39:16] [INFO] [Bullet] Distance-based penetration chance: 26.0316577674892%
+[10:39:16] [INFO] [Bullet] Penetration failed (distance roll)
+[10:39:16] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(174.142, 320.3026), shooter_id=197669161551, bullet_pos=(493.8548, 333.8607)
+[10:39:16] [INFO] [Bullet] Using shooter_position, distance=320.000183105469
+[10:39:16] [INFO] [Bullet] Distance to wall: 320.000183105469 (21.7894008961018% of viewport)
+[10:39:16] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[10:39:16] [INFO] [Bullet] Caliber cannot penetrate walls
+[10:39:16] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(164.3587, 315.5168), shooter_id=197669161551, bullet_pos=(483.7014, 336.0177)
+[10:39:16] [INFO] [Bullet] Using shooter_position, distance=320.000091552734
+[10:39:16] [INFO] [Bullet] Distance to wall: 320.000091552734 (21.7893946621078% of viewport)
+[10:39:16] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[10:39:16] [INFO] [Bullet] Caliber cannot penetrate walls
+[10:39:16] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(80.05903, 325.9007), shooter_id=197669161551, bullet_pos=(1807.194, 756.4893)
+[10:39:16] [INFO] [Bullet] Using shooter_position, distance=1780.00012207031
+[10:39:16] [INFO] [Bullet] Distance to wall: 1780.00012207031 (121.203481443375% of viewport)
+[10:39:16] [INFO] [Bullet] Distance-based penetration chance: 25.7593037113251%
+[10:39:16] [INFO] [Bullet] Penetration failed (distance roll)
+[10:39:16] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(168.9605, 344.9419), source=PLAYER (MiniUzi), range=1469, listeners=0
+[10:39:16] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:39:16] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(163.556, 334.3596), source=PLAYER (MiniUzi), range=1469, listeners=0
+[10:39:16] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:39:16] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(155.5219, 321.0355), source=PLAYER (MiniUzi), range=1469, listeners=0
+[10:39:16] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:39:16] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(155.5219, 321.0355), shooter_id=197669161551, bullet_pos=(334.2014, 299.2719)
+[10:39:16] [INFO] [Bullet] Using shooter_position, distance=180.000015258789
+[10:39:16] [INFO] [Bullet] Distance to wall: 180.000015258789 (12.256532029813% of viewport)
+[10:39:16] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[10:39:16] [INFO] [Bullet] Caliber cannot penetrate walls
+[10:39:16] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(235.5308, 374.2586), source=PLAYER (MiniUzi), range=1469, listeners=0
+[10:39:16] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:39:16] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(228.0509, 375.265), source=PLAYER (MiniUzi), range=1469, listeners=0
+[10:39:16] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:39:16] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(219.1638, 373.5677), source=PLAYER (MiniUzi), range=1469, listeners=0
+[10:39:16] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:39:17] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(212.1878, 372.8523), source=PLAYER (MiniUzi), range=1469, listeners=0
+[10:39:17] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:39:17] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(194.5234, 335.0708), shooter_id=197669161551, bullet_pos=(1808.831, 199.4042)
+[10:39:17] [INFO] [Bullet] Using shooter_position, distance=1619.998046875
+[10:39:17] [INFO] [Bullet] Distance to wall: 1619.998046875 (110.308645925453% of viewport)
+[10:39:17] [INFO] [Bullet] Distance-based penetration chance: 27.9382708149094%
+[10:39:17] [INFO] [Bullet] Caliber cannot penetrate walls
+[10:39:17] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(206.5656, 373.7264), source=PLAYER (MiniUzi), range=1469, listeners=0
+[10:39:17] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:39:17] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(235.5308, 374.2586), shooter_id=197669161551, bullet_pos=(492.1368, 332.3859)
+[10:39:17] [INFO] [Bullet] Using shooter_position, distance=259.999908447266
+[10:39:17] [INFO] [Bullet] Distance to wall: 259.999908447266 (17.7038718638484% of viewport)
+[10:39:17] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[10:39:17] [INFO] [Bullet] Caliber cannot penetrate walls
+[10:39:17] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(183.5923, 328.366), shooter_id=197669161551, bullet_pos=(1803.306, 297.9168)
+[10:39:17] [INFO] [Bullet] Using shooter_position, distance=1619.99963378906
+[10:39:17] [INFO] [Bullet] Distance to wall: 1619.99963378906 (110.30875398135% of viewport)
+[10:39:17] [INFO] [Bullet] Distance-based penetration chance: 27.9382492037301%
+[10:39:17] [INFO] [Bullet] Caliber cannot penetrate walls
+[10:39:17] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(228.0509, 375.265), shooter_id=197669161551, bullet_pos=(483.9019, 329.0029)
+[10:39:17] [INFO] [Bullet] Using shooter_position, distance=259.999877929688
+[10:39:17] [INFO] [Bullet] Distance to wall: 259.999877929688 (17.7038697858504% of viewport)
+[10:39:17] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[10:39:17] [INFO] [Bullet] Caliber cannot penetrate walls
+[10:39:17] [INFO] [BloodyFeet:Player] Overlap check: areas=0, puddles=0, parent_pos=(200.5399, 370.8996), detector_global=(0, 0), in_tree=false, layer=0, mask=64
+[10:39:17] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(219.1638, 373.5677), shooter_id=197669161551, bullet_pos=(495.6924, 329.6131)
+[10:39:17] [INFO] [Bullet] Using shooter_position, distance=280.000152587891
+[10:39:17] [INFO] [Bullet] Distance to wall: 280.000152587891 (19.0657252645896% of viewport)
+[10:39:17] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[10:39:17] [INFO] [Bullet] Caliber cannot penetrate walls
+[10:39:17] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(212.1878, 372.8523), shooter_id=197669161551, bullet_pos=(491.3974, 351.828)
+[10:39:17] [INFO] [Bullet] Using shooter_position, distance=280.000030517578
+[10:39:17] [INFO] [Bullet] Distance to wall: 280.000030517578 (19.0657169525975% of viewport)
+[10:39:17] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[10:39:17] [INFO] [Bullet] Caliber cannot penetrate walls
+[10:39:17] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(200.5399, 370.8996), source=PLAYER (MiniUzi), range=1469, listeners=0
+[10:39:17] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:39:17] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(200.5399, 370.8996), shooter_id=197669161551, bullet_pos=(499.1862, 342.4322)
+[10:39:17] [INFO] [Bullet] Using shooter_position, distance=300.000091552734
+[10:39:17] [INFO] [Bullet] Distance to wall: 300.000091552734 (20.4275578853507% of viewport)
+[10:39:17] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[10:39:17] [INFO] [Bullet] Caliber cannot penetrate walls
+[10:39:17] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(168.9605, 344.9419), shooter_id=197669161551, bullet_pos=(1800.35, 177.1032)
+[10:39:17] [INFO] [Bullet] Using shooter_position, distance=1640.00048828125
+[10:39:17] [INFO] [Bullet] Distance to wall: 1640.00048828125 (111.670648942051% of viewport)
+[10:39:17] [INFO] [Bullet] Distance-based penetration chance: 27.6658702115898%
+[10:39:17] [INFO] [Bullet] Penetration failed (distance roll)
+[10:39:17] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(163.556, 334.3596), shooter_id=197669161551, bullet_pos=(1798.43, 204.7837)
+[10:39:17] [INFO] [Bullet] Using shooter_position, distance=1640.00134277344
+[10:39:17] [INFO] [Bullet] Distance to wall: 1640.00134277344 (111.670707125995% of viewport)
+[10:39:17] [INFO] [Bullet] Distance-based penetration chance: 27.6658585748009%
+[10:39:17] [INFO] [Bullet] Penetration failed (distance roll)
+[10:39:17] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(206.5656, 373.7264), shooter_id=197669161551, bullet_pos=(1240.994, 63.3121)
+[10:39:17] [INFO] [Bullet] Using shooter_position, distance=1079.99987792969
+[10:39:17] [INFO] [Bullet] Distance to wall: 1079.99987792969 (73.5391776328918% of viewport)
+[10:39:18] [INFO] [Player.Reload.Anim] Phase changed to: GrabMagazine (duration: 0,25s)
+[10:39:18] [INFO] [Player.Reload.Anim] LeftArm: pos=(-5.5403285, 2.0919342), target=(-6, 2), base=(14, 6)
+[10:39:18] [INFO] [Player.Reload.Anim] RightArm: pos=(1.0000001, 6), target=(1, 6), base=(1, 6)
+[10:39:18] [INFO] [Player.Reload.Anim] Phase changed to: InsertMagazine (duration: 0,30s)
+[10:39:18] [INFO] [Player.Reload.Anim] Phase changed to: PullBolt (duration: 0,35s)
+[10:39:18] [INFO] [Player.Reload.Anim] Phase changed to: ReturnIdle (duration: 0,20s)
+[10:39:18] [INFO] [Player.Reload.Anim] Animation complete, returning to normal
+[10:39:19] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(206.5656, 373.7264), shooter_id=197669161551, bullet_pos=(1802.118, 213.9742)
+[10:39:19] [INFO] [Bullet] Using shooter_position, distance=1603.53015136719
+[10:39:19] [INFO] [Bullet] Distance to wall: 1603.53015136719 (109.187316638536% of viewport)
+[10:39:19] [INFO] [Bullet] Distance-based penetration chance: 28.1625366722927%
+[10:39:19] [INFO] [Bullet] Penetration failed (distance roll)
+[10:39:19] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(193.3447, 369.783), source=PLAYER (MiniUzi), range=1469, listeners=0
+[10:39:19] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:39:19] [INFO] [BloodyFeet:Player] Overlap check: areas=0, puddles=0, parent_pos=(193.3447, 369.783), detector_global=(0, 0), in_tree=false, layer=0, mask=64
+[10:39:19] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(183.876, 363.4901), source=PLAYER (MiniUzi), range=1469, listeners=0
+[10:39:19] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:39:19] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(172.937, 360.5237), source=PLAYER (MiniUzi), range=1469, listeners=0
+[10:39:19] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:39:19] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(164.8198, 361.6831), source=PLAYER (MiniUzi), range=1469, listeners=0
+[10:39:19] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:39:19] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(164.5442, 365.9814), source=PLAYER (MiniUzi), range=1469, listeners=0
+[10:39:19] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:39:19] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(193.3447, 369.783), shooter_id=197669161551, bullet_pos=(493.3205, 373.6053)
+[10:39:19] [INFO] [Bullet] Using shooter_position, distance=300.000061035156
+[10:39:19] [INFO] [Bullet] Distance to wall: 300.000061035156 (20.4275558073526% of viewport)
+[10:39:19] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[10:39:19] [INFO] [Bullet] Caliber cannot penetrate walls
+[10:39:19] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(183.876, 363.4901), shooter_id=197669161551, bullet_pos=(483.3593, 381.0893)
+[10:39:19] [INFO] [Bullet] Using shooter_position, distance=299.999908447266
+[10:39:19] [INFO] [Bullet] Distance to wall: 299.999908447266 (20.4275454173626% of viewport)
+[10:39:19] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[10:39:19] [INFO] [Bullet] Caliber cannot penetrate walls
+[10:39:19] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(172.937, 360.5237), shooter_id=197669161551, bullet_pos=(492.9369, 360.8543)
+[10:39:19] [INFO] [Bullet] Using shooter_position, distance=320.000122070313
+[10:39:19] [INFO] [Bullet] Distance to wall: 320.000122070313 (21.7893967401058% of viewport)
+[10:39:19] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[10:39:19] [INFO] [Bullet] Caliber cannot penetrate walls
+[10:39:19] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(164.8198, 361.6831), shooter_id=197669161551, bullet_pos=(484.81, 359.1533)
+[10:39:19] [INFO] [Bullet] Using shooter_position, distance=320.000183105469
+[10:39:19] [INFO] [Bullet] Distance to wall: 320.000183105469 (21.7894008961018% of viewport)
+[10:39:19] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[10:39:19] [INFO] [Bullet] Caliber cannot penetrate walls
+[10:39:19] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(156.8672, 359.2298), source=PLAYER (MiniUzi), range=1469, listeners=0
+[10:39:19] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:39:19] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(146.9518, 357.3614), source=PLAYER (MiniUzi), range=1469, listeners=0
+[10:39:19] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:39:19] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(140.5442, 357.0342), source=PLAYER (MiniUzi), range=1469, listeners=0
+[10:39:19] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:39:20] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(156.8672, 359.2298), shooter_id=197669161551, bullet_pos=(496.834, 363.9794)
+[10:39:20] [INFO] [Bullet] Using shooter_position, distance=339.999969482422
+[10:39:20] [INFO] [Bullet] Distance to wall: 339.999969482422 (23.1512231268728% of viewport)
+[10:39:20] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[10:39:20] [INFO] [Bullet] Caliber cannot penetrate walls
+[10:39:20] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(146.9518, 357.3614), shooter_id=197669161551, bullet_pos=(486.8999, 363.2959)
+[10:39:20] [INFO] [Bullet] Using shooter_position, distance=339.999908447266
+[10:39:20] [INFO] [Bullet] Distance to wall: 339.999908447266 (23.1512189708768% of viewport)
+[10:39:20] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[10:39:20] [INFO] [Bullet] Caliber cannot penetrate walls
+[10:39:20] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(140.5442, 357.0342), shooter_id=197669161551, bullet_pos=(500.2075, 372.5985)
+[10:39:20] [INFO] [Bullet] Using shooter_position, distance=359.999877929688
+[10:39:20] [INFO] [Bullet] Distance to wall: 359.999877929688 (24.5130536696359% of viewport)
+[10:39:20] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[10:39:20] [INFO] [Bullet] Caliber cannot penetrate walls
+[10:39:20] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(192.9452, 428.0652), source=PLAYER (MiniUzi), range=1469, listeners=0
+[10:39:20] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:39:20] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(182.0819, 425.9041), source=PLAYER (MiniUzi), range=1469, listeners=0
+[10:39:20] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:39:20] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(192.9452, 428.0652), shooter_id=197669161551, bullet_pos=(312.8907, 424.4459)
+[10:39:20] [INFO] [Bullet] Using shooter_position, distance=120.000007629395
+[10:39:20] [INFO] [Bullet] Distance to wall: 120.000007629395 (8.17102118004215% of viewport)
+[10:39:20] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[10:39:20] [INFO] [Bullet] Caliber cannot penetrate walls
+[10:39:20] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(175.7883, 426.0045), source=PLAYER (MiniUzi), range=1469, listeners=0
+[10:39:20] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:39:20] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(182.0819, 425.9041), shooter_id=197669161551, bullet_pos=(302.0789, 425.0567)
+[10:39:20] [INFO] [Bullet] Using shooter_position, distance=120.000015258789
+[10:39:20] [INFO] [Bullet] Distance to wall: 120.000015258789 (8.17102169954165% of viewport)
+[10:39:20] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[10:39:20] [INFO] [Bullet] Caliber cannot penetrate walls
+[10:39:20] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(166.0653, 423.2798), source=PLAYER (MiniUzi), range=1469, listeners=0
+[10:39:20] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[10:39:20] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(175.7883, 426.0045), shooter_id=197669161551, bullet_pos=(315.3629, 436.9098)
+[10:39:20] [INFO] [Bullet] Using shooter_position, distance=140.000030517578
+[10:39:20] [INFO] [Bullet] Distance to wall: 140.000030517578 (9.53285951529777% of viewport)
+[10:39:20] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[10:39:20] [INFO] [Bullet] Caliber cannot penetrate walls
+[10:39:20] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(166.0653, 423.2798), shooter_id=197669161551, bullet_pos=(305.9167, 429.7271)
+[10:39:20] [INFO] [Bullet] Using shooter_position, distance=140
+[10:39:20] [INFO] [Bullet] Distance to wall: 140 (9.53285743729976% of viewport)
+[10:39:20] [INFO] [Bullet] Within ricochet range - trying ricochet first
+[10:39:20] [INFO] [Bullet] Caliber cannot penetrate walls
+[10:39:20] [INFO] [Bullet] _get_distance_to_shooter: shooter_position=(164.5442, 365.9814), shooter_id=197669161551, bullet_pos=(1798.436, 507.4144)
+[10:39:20] [INFO] [Bullet] Using shooter_position, distance=1640.00134277344
+[10:39:20] [INFO] [Bullet] Distance to wall: 1640.00134277344 (111.670707125995% of viewport)
+[10:39:20] [INFO] [Bullet] Distance-based penetration chance: 27.6658585748009%
+[10:39:20] [INFO] [Bullet] Penetration failed (distance roll)
+[10:39:21] [INFO] [BloodyFeet:Player] Overlap check: areas=0, puddles=0, parent_pos=(184.4042, 438.9091), detector_global=(0, 0), in_tree=false, layer=0, mask=64
+[10:39:23] [INFO] [BloodyFeet:Player] Overlap check: areas=0, puddles=0, parent_pos=(166.3, 609.7207), detector_global=(0, 0), in_tree=false, layer=0, mask=64
+[10:39:25] [INFO] [BloodyFeet:Player] Overlap check: areas=0, puddles=0, parent_pos=(180.7356, 530.391), detector_global=(0, 0), in_tree=false, layer=0, mask=64
+[10:39:27] [INFO] [BloodyFeet:Player] Overlap check: areas=0, puddles=0, parent_pos=(883.9306, 824.7787), detector_global=(0, 0), in_tree=false, layer=0, mask=64
+[10:39:27] [INFO] ------------------------------------------------------------
+[10:39:27] [INFO] GAME LOG ENDED: 2026-02-03T10:39:27
+[10:39:27] [INFO] ============================================================

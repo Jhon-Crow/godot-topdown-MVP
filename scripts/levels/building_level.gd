@@ -43,6 +43,12 @@ var _saturation_overlay: ColorRect = null
 ## Reference to the combo label.
 var _combo_label: Label = null
 
+## Reference to the exit zone.
+var _exit_zone: Area2D = null
+
+## Whether the level has been cleared (all enemies eliminated).
+var _level_cleared: bool = false
+
 ## Duration of saturation effect in seconds.
 const SATURATION_DURATION: float = 0.15
 
@@ -86,6 +92,9 @@ func _ready() -> void:
 	# Initialize ScoreManager for this level
 	_initialize_score_manager()
 
+	# Setup exit zone near player spawn (left wall)
+	_setup_exit_zone()
+
 
 ## Initialize the ScoreManager for this level.
 func _initialize_score_manager() -> void:
@@ -103,6 +112,55 @@ func _initialize_score_manager() -> void:
 	# Connect to combo changes for UI feedback
 	if not score_manager.combo_changed.is_connected(_on_combo_changed):
 		score_manager.combo_changed.connect(_on_combo_changed)
+
+
+## Setup the exit zone near the player spawn point (left wall).
+## The exit appears after all enemies are eliminated.
+func _setup_exit_zone() -> void:
+	# Load and instantiate the exit zone
+	var exit_zone_scene = load("res://scenes/objects/ExitZone.tscn")
+	if exit_zone_scene == null:
+		push_warning("ExitZone scene not found - score will show immediately on level clear")
+		return
+
+	_exit_zone = exit_zone_scene.instantiate()
+	# Position exit on the left wall near player spawn (player starts at 450, 1250)
+	# Place exit at left wall (x=80) at similar y position
+	_exit_zone.position = Vector2(120, 1250)
+	_exit_zone.zone_width = 60.0
+	_exit_zone.zone_height = 100.0
+
+	# Connect the player reached exit signal
+	_exit_zone.player_reached_exit.connect(_on_player_reached_exit)
+
+	# Add to the environment node
+	var environment := get_node_or_null("Environment")
+	if environment:
+		environment.add_child(_exit_zone)
+	else:
+		add_child(_exit_zone)
+
+	print("[BuildingLevel] Exit zone created at position (120, 1250)")
+
+
+## Called when the player reaches the exit zone after clearing the level.
+func _on_player_reached_exit() -> void:
+	if not _level_cleared:
+		return
+
+	print("[BuildingLevel] Player reached exit - showing score!")
+	call_deferred("_complete_level_with_score")
+
+
+## Activate the exit zone after all enemies are eliminated.
+func _activate_exit_zone() -> void:
+	if _exit_zone and _exit_zone.has_method("activate"):
+		_exit_zone.activate()
+		print("[BuildingLevel] Exit zone activated - go to exit to see score!")
+	else:
+		# Fallback: if exit zone not available, show score immediately
+		push_warning("Exit zone not available - showing score immediately")
+		_complete_level_with_score()
 
 
 func _process(_delta: float) -> void:
@@ -213,6 +271,8 @@ func _setup_player_tracking() -> void:
 		if weapon.has_method("GetMagazineAmmoCounts"):
 			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
 			_update_magazines_label(mag_counts)
+		# Configure silenced pistol ammo based on enemy count
+		_configure_silenced_pistol_ammo(weapon)
 	else:
 		# GDScript Player - connect to player signals
 		if _player.has_signal("ammo_changed"):
@@ -268,6 +328,26 @@ func _setup_enemy_tracking() -> void:
 	_current_enemy_count = _initial_enemy_count
 	_log_to_file("Enemy tracking complete: %d enemies registered" % _initial_enemy_count)
 	print("Tracking %d enemies" % _initial_enemy_count)
+
+
+## Configure silenced pistol ammo based on enemy count.
+## This ensures the pistol has exactly enough bullets for all enemies in the level.
+func _configure_silenced_pistol_ammo(weapon: Node) -> void:
+	# Check if this is a silenced pistol
+	if weapon.name != "SilencedPistol":
+		return
+
+	# Call the ConfigureAmmoForEnemyCount method if it exists
+	if weapon.has_method("ConfigureAmmoForEnemyCount"):
+		weapon.ConfigureAmmoForEnemyCount(_initial_enemy_count)
+		print("[BuildingLevel] Configured silenced pistol ammo for %d enemies" % _initial_enemy_count)
+
+		# Update the ammo display after configuration
+		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
+			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
+		if weapon.has_method("GetMagazineAmmoCounts"):
+			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
+			_update_magazines_label(mag_counts)
 
 
 ## Setup debug UI elements for kills and accuracy.
@@ -367,10 +447,9 @@ func _on_enemy_died() -> void:
 
 	if _current_enemy_count <= 0:
 		print("All enemies eliminated! Building cleared!")
-		# Use call_deferred to ensure all signal handlers complete first
-		# This fixes the issue where died_with_info signal handler
-		# (which registers the kill with ScoreManager) runs after this handler
-		call_deferred("_complete_level_with_score")
+		_level_cleared = true
+		# Activate exit zone - score will show when player reaches it
+		call_deferred("_activate_exit_zone")
 
 
 ## Called when an enemy dies with special kill information.
@@ -686,7 +765,13 @@ func _show_victory_message() -> void:
 	ui.add_child(stats_label)
 
 
-## Show the score screen with full breakdown (Hotline Miami style).
+## Show the animated score screen with Hotline Miami 2 style effects (Issue #415).
+## Uses the AnimatedScoreScreen component for sequential reveal and counting animations.
+## Features:
+## - Sequential reveal: Items appear one after another
+## - Counting animation: Numbers animate from 0 to final value with pulsing
+## - Sound effects: Retro beeps during counting (major arpeggio)
+## - Dramatic rank reveal: Fullscreen with flashing background, then shrinks
 ## @param score_data: Dictionary containing all score components from ScoreManager.
 func _show_score_screen(score_data: Dictionary) -> void:
 	var ui := get_node_or_null("CanvasLayer/UI")
@@ -694,7 +779,19 @@ func _show_score_screen(score_data: Dictionary) -> void:
 		_show_victory_message()  # Fallback
 		return
 
-	# Create a semi-transparent background
+	# Load and use the animated score screen component
+	var animated_score_screen_script = load("res://scripts/ui/animated_score_screen.gd")
+	if animated_score_screen_script:
+		var score_screen = animated_score_screen_script.new()
+		add_child(score_screen)
+		score_screen.show_animated_score(ui, score_data)
+	else:
+		# Fallback to simple display if animated script not found
+		_show_fallback_score_screen(ui, score_data)
+
+
+## Fallback score screen if animated component is not available.
+func _show_fallback_score_screen(ui: Control, score_data: Dictionary) -> void:
 	var background := ColorRect.new()
 	background.name = "ScoreBackground"
 	background.color = Color(0.0, 0.0, 0.0, 0.7)
@@ -702,21 +799,16 @@ func _show_score_screen(score_data: Dictionary) -> void:
 	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	ui.add_child(background)
 
-	# Create a container for all score elements
 	var container := VBoxContainer.new()
 	container.name = "ScoreContainer"
 	container.set_anchors_preset(Control.PRESET_CENTER)
 	container.offset_left = -300
 	container.offset_right = 300
-	container.offset_top = -280
-	container.offset_bottom = 280
+	container.offset_top = -200
+	container.offset_bottom = 200
 	container.add_theme_constant_override("separation", 8)
 	ui.add_child(container)
 
-	# Get rank color based on rank
-	var rank_color := _get_rank_color(score_data.rank)
-
-	# Title with rank
 	var title_label := Label.new()
 	title_label.text = "LEVEL CLEARED!"
 	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -724,15 +816,13 @@ func _show_score_screen(score_data: Dictionary) -> void:
 	title_label.add_theme_color_override("font_color", Color(0.2, 1.0, 0.3, 1.0))
 	container.add_child(title_label)
 
-	# Large rank display
 	var rank_label := Label.new()
 	rank_label.text = "RANK: %s" % score_data.rank
 	rank_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	rank_label.add_theme_font_size_override("font_size", 64)
-	rank_label.add_theme_color_override("font_color", rank_color)
+	rank_label.add_theme_color_override("font_color", _get_rank_color(score_data.rank))
 	container.add_child(rank_label)
 
-	# Total score
 	var total_label := Label.new()
 	total_label.text = "TOTAL SCORE: %d" % score_data.total_score
 	total_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -740,71 +830,6 @@ func _show_score_screen(score_data: Dictionary) -> void:
 	total_label.add_theme_color_override("font_color", Color(1.0, 0.9, 0.3, 1.0))
 	container.add_child(total_label)
 
-	# Add separator
-	var separator := HSeparator.new()
-	separator.add_theme_constant_override("separation", 20)
-	container.add_child(separator)
-
-	# Score breakdown
-	var breakdown_lines := [
-		["KILLS", "%d/%d" % [score_data.kills, score_data.total_enemies], "+%d" % score_data.kill_points],
-		["COMBOS", "Max x%d" % score_data.max_combo, "+%d" % score_data.combo_points],
-		["TIME", "%.1fs" % score_data.completion_time, "+%d" % score_data.time_bonus],
-		["ACCURACY", "%.1f%%" % score_data.accuracy, "+%d" % score_data.accuracy_bonus],
-	]
-
-	# Add special kills if any
-	if score_data.ricochet_kills > 0 or score_data.penetration_kills > 0:
-		var special_text := ""
-		if score_data.ricochet_kills > 0:
-			special_text += "%d ricochet" % score_data.ricochet_kills
-		if score_data.penetration_kills > 0:
-			if special_text != "":
-				special_text += ", "
-			special_text += "%d penetration" % score_data.penetration_kills
-		if score_data.special_kills_eligible:
-			breakdown_lines.append(["SPECIAL KILLS", special_text, "+%d" % score_data.special_kill_bonus])
-		else:
-			breakdown_lines.append(["SPECIAL KILLS", special_text, "(need aggression)"])
-
-	# Add damage penalty if any
-	if score_data.damage_taken > 0:
-		breakdown_lines.append(["DAMAGE TAKEN", "%d hits" % score_data.damage_taken, "-%d" % score_data.damage_penalty])
-
-	# Create breakdown labels
-	for line in breakdown_lines:
-		var line_container := HBoxContainer.new()
-		line_container.add_theme_constant_override("separation", 20)
-		container.add_child(line_container)
-
-		var category_label := Label.new()
-		category_label.text = line[0]
-		category_label.add_theme_font_size_override("font_size", 18)
-		category_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7, 1.0))
-		category_label.custom_minimum_size.x = 150
-		line_container.add_child(category_label)
-
-		var value_label := Label.new()
-		value_label.text = line[1]
-		value_label.add_theme_font_size_override("font_size", 18)
-		value_label.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 1.0))
-		value_label.custom_minimum_size.x = 150
-		value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		line_container.add_child(value_label)
-
-		var points_label := Label.new()
-		points_label.text = line[2]
-		points_label.add_theme_font_size_override("font_size", 18)
-		# Color code: green for positive, red for negative/penalty
-		if line[2].begins_with("-") or line[2].contains("need"):
-			points_label.add_theme_color_override("font_color", Color(1.0, 0.4, 0.4, 1.0))
-		else:
-			points_label.add_theme_color_override("font_color", Color(0.4, 1.0, 0.4, 1.0))
-		points_label.custom_minimum_size.x = 100
-		points_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		line_container.add_child(points_label)
-
-	# Add restart hint
 	var hint_label := Label.new()
 	hint_label.text = "\nPress Q to restart"
 	hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -910,6 +935,14 @@ func _setup_selected_weapon() -> void:
 		if mini_uzi_scene:
 			var mini_uzi = mini_uzi_scene.instantiate()
 			mini_uzi.name = "MiniUzi"
+
+			# Reduce Mini UZI ammunition by half for Building level (issue #413)
+			# Set StartingMagazineCount to 2 BEFORE adding to scene tree
+			# This ensures magazines are initialized with correct count when _Ready() is called
+			if mini_uzi.get("StartingMagazineCount") != null:
+				mini_uzi.StartingMagazineCount = 2
+				print("BuildingLevel: Mini UZI StartingMagazineCount set to 2 (before initialization)")
+
 			_player.add_child(mini_uzi)
 
 			# Set the CurrentWeapon reference in C# Player
@@ -917,12 +950,6 @@ func _setup_selected_weapon() -> void:
 				_player.EquipWeapon(mini_uzi)
 			elif _player.get("CurrentWeapon") != null:
 				_player.CurrentWeapon = mini_uzi
-
-			# Add an extra magazine for the Mini UZI in the building level
-			# This gives the player more ammo to handle the indoor combat
-			if mini_uzi.has_method("AddMagazine"):
-				mini_uzi.AddMagazine()
-				print("BuildingLevel: Added extra Mini UZI magazine")
 
 			print("BuildingLevel: Mini UZI equipped successfully")
 		else:
@@ -954,11 +981,29 @@ func _setup_selected_weapon() -> void:
 	# For M16 (assault rifle), it's already in the scene
 	else:
 		var assault_rifle = _player.get_node_or_null("AssaultRifle")
-		if assault_rifle and _player.get("CurrentWeapon") == null:
-			if _player.has_method("EquipWeapon"):
-				_player.EquipWeapon(assault_rifle)
-			elif _player.get("CurrentWeapon") != null:
-				_player.CurrentWeapon = assault_rifle
+		if assault_rifle:
+			# Reduce M16 ammunition by half for Building level (issue #413)
+			# The weapon is already initialized, so we need to reinitialize magazines
+			# M16 has magazine size of 30, so 2 magazines = 60 rounds total (30+30)
+			# In Power Fantasy mode, apply 3x ammo multiplier (issue #501)
+			var base_magazines: int = 2
+			var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
+			if difficulty_manager:
+				var ammo_multiplier: int = difficulty_manager.get_ammo_multiplier()
+				if ammo_multiplier > 1:
+					base_magazines *= ammo_multiplier
+					print("BuildingLevel: Power Fantasy mode - M16 magazines multiplied by %dx (%d -> %d)" % [ammo_multiplier, 2, base_magazines])
+			if assault_rifle.has_method("ReinitializeMagazines"):
+				assault_rifle.ReinitializeMagazines(base_magazines, true)
+				print("BuildingLevel: M16 magazines reinitialized to %d" % base_magazines)
+			else:
+				print("BuildingLevel: WARNING - M16 doesn't have ReinitializeMagazines method")
+
+			if _player.get("CurrentWeapon") == null:
+				if _player.has_method("EquipWeapon"):
+					_player.EquipWeapon(assault_rifle)
+				elif _player.get("CurrentWeapon") != null:
+					_player.CurrentWeapon = assault_rifle
 
 
 ## Log a message to the file logger if available.

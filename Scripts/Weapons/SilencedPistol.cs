@@ -80,6 +80,14 @@ public partial class SilencedPistol : BaseWeapon
     /// </summary>
     private const float RecoilPerShot = 0.06f;
 
+    /// <summary>
+    /// Muzzle flash scale for silenced pistol.
+    /// Very small flash (around 100x100 pixels) to simulate suppressor effect.
+    /// Suppressors trap most of the expanding gases, significantly reducing muzzle flash.
+    /// Value of 0.2 reduces the flash to ~20% of normal size.
+    /// </summary>
+    private const float SilencedMuzzleFlashScale = 0.2f;
+
     // =========================================================================
     // Laser Sight Configuration
     // =========================================================================
@@ -545,6 +553,70 @@ public partial class SilencedPistol : BaseWeapon
     private const float StunDurationOnHit = 0.6f;
 
     /// <summary>
+    /// Configures the weapon's ammunition based on the number of enemies in the level.
+    /// For example: 10 enemies = 10 bullets loaded + 0 spare magazines.
+    /// For 26 enemies = 13 bullets loaded + 1 spare magazine (13 bullets).
+    /// The ammunition is distributed to match exactly the number of enemies.
+    /// </summary>
+    /// <param name="enemyCount">Number of enemies in the level.</param>
+    public void ConfigureAmmoForEnemyCount(int enemyCount)
+    {
+        if (WeaponData == null)
+        {
+            GD.PrintErr("[SilencedPistol] Cannot configure ammo: WeaponData is null");
+            return;
+        }
+
+        int magazineCapacity = WeaponData.MagazineSize; // 13 for silenced pistol
+
+        // Calculate how many full magazines we need
+        int fullMagazines = enemyCount / magazineCapacity;
+        int remainingBullets = enemyCount % magazineCapacity;
+
+        // Clear existing magazine inventory
+        MagazineInventory.Initialize(0, magazineCapacity, fillAllMagazines: false);
+
+        // If we have remaining bullets, that's our current magazine
+        // Otherwise, take one full magazine as current
+        if (remainingBullets > 0)
+        {
+            // Current magazine has the remaining bullets
+            MagazineInventory.AddSpareMagazine(remainingBullets, magazineCapacity);
+            MagazineInventory.SwapToFullestMagazine();
+
+            // Add full magazines as spares
+            for (int i = 0; i < fullMagazines; i++)
+            {
+                MagazineInventory.AddSpareMagazine(magazineCapacity, magazineCapacity);
+            }
+        }
+        else if (fullMagazines > 0)
+        {
+            // No remaining bullets, so current magazine is a full one
+            MagazineInventory.AddSpareMagazine(magazineCapacity, magazineCapacity);
+            MagazineInventory.SwapToFullestMagazine();
+
+            // Add remaining full magazines as spares
+            for (int i = 1; i < fullMagazines; i++)
+            {
+                MagazineInventory.AddSpareMagazine(magazineCapacity, magazineCapacity);
+            }
+        }
+        else
+        {
+            // No enemies or edge case - give at least empty magazine
+            MagazineInventory.AddSpareMagazine(0, magazineCapacity);
+            MagazineInventory.SwapToFullestMagazine();
+        }
+
+        // Emit magazine state changes
+        EmitMagazinesChanged();
+        EmitSignal(SignalName.AmmoChanged, CurrentAmmo, ReserveAmmo);
+
+        GD.Print($"[SilencedPistol] Configured for {enemyCount} enemies: {CurrentAmmo} loaded + {ReserveAmmo} reserve ({GetMagazineDisplayString()})");
+    }
+
+    /// <summary>
     /// Override SpawnBullet to set the stun effect on bullets.
     /// The silenced pistol has a special effect: enemies hit are briefly stunned,
     /// preventing them from shooting or moving for just long enough for the next shot.
@@ -586,6 +658,8 @@ public partial class SilencedPistol : BaseWeapon
             if (WeaponData != null)
             {
                 bullet.Speed = WeaponData.BulletSpeed;
+                // Set damage from weapon data - this is critical for one-shot kills
+                bullet.Damage = WeaponData.Damage;
             }
             var owner = GetParent();
             if (owner != null)
@@ -598,7 +672,7 @@ public partial class SilencedPistol : BaseWeapon
             // Enemies hit by silenced pistol bullets are briefly stunned,
             // allowing for follow-up shots while they can't retaliate
             bullet.StunDuration = StunDurationOnHit;
-            GD.Print($"[SilencedPistol] Spawned C# bullet with StunDuration={StunDurationOnHit}s");
+            GD.Print($"[SilencedPistol] Spawned C# bullet with Damage={bullet.Damage}, StunDuration={StunDurationOnHit}s");
         }
         else
         {
@@ -617,6 +691,9 @@ public partial class SilencedPistol : BaseWeapon
             {
                 bulletNode.Set("Speed", WeaponData.BulletSpeed);
                 bulletNode.Set("speed", WeaponData.BulletSpeed);
+                // Set damage from weapon data - critical for one-shot kills
+                bulletNode.Set("Damage", WeaponData.Damage);
+                bulletNode.Set("damage", WeaponData.Damage);
             }
 
             var owner = GetParent();
@@ -632,12 +709,36 @@ public partial class SilencedPistol : BaseWeapon
             // Try to set stun duration via Set() for GDScript bullets
             bulletNode.Set("StunDuration", StunDurationOnHit);
             bulletNode.Set("stun_duration", StunDurationOnHit);
-            GD.Print($"[SilencedPistol] Spawned GDScript bullet, attempted to set stun_duration={StunDurationOnHit}s");
+            GD.Print($"[SilencedPistol] Spawned GDScript bullet with Damage={WeaponData?.Damage ?? 1.0f}, stun_duration={StunDurationOnHit}s");
         }
 
         GetTree().CurrentScene.AddChild(bulletNode);
 
+        // Spawn muzzle flash effect with small scale for silenced weapon
+        // The overridden SpawnMuzzleFlash method ignores caliber and uses SilencedMuzzleFlashScale (0.2)
+        SpawnMuzzleFlash(spawnPosition, direction, WeaponData?.Caliber);
+
         // Spawn casing if casing scene is set
         SpawnCasing(direction, WeaponData?.Caliber);
+    }
+
+    /// <summary>
+    /// Spawns a very small muzzle flash effect for the silenced pistol.
+    /// Suppressors significantly reduce muzzle flash by trapping expanding gases,
+    /// so the flash should be barely visible (around 100x100 pixels).
+    /// </summary>
+    /// <param name="position">Position to spawn the muzzle flash.</param>
+    /// <param name="direction">Direction the weapon is firing.</param>
+    /// <param name="caliber">Caliber data (ignored for silenced pistol, uses SilencedMuzzleFlashScale instead).</param>
+    protected override void SpawnMuzzleFlash(Vector2 position, Vector2 direction, Resource? caliber)
+    {
+        var impactManager = GetNodeOrNull("/root/ImpactEffectsManager");
+        if (impactManager != null && impactManager.HasMethod("spawn_muzzle_flash"))
+        {
+            // Pass the silenced pistol's reduced muzzle flash scale as the 4th argument
+            // This creates a very small flash (~100x100 pixels) appropriate for a suppressed weapon
+            // Note: We ignore the caliber parameter and use our fixed SilencedMuzzleFlashScale instead
+            impactManager.Call("spawn_muzzle_flash", position, direction, Variant.CreateFrom((GodotObject?)null), SilencedMuzzleFlashScale);
+        }
     }
 }

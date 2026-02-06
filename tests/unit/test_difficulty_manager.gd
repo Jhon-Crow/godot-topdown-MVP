@@ -12,7 +12,8 @@ class MockDifficultyManager:
 	enum Difficulty {
 		EASY,
 		NORMAL,
-		HARD
+		HARD,
+		POWER_FANTASY
 	}
 
 	## Current difficulty level
@@ -38,6 +39,9 @@ class MockDifficultyManager:
 	func is_easy_mode() -> bool:
 		return current_difficulty == Difficulty.EASY
 
+	func is_power_fantasy_mode() -> bool:
+		return current_difficulty == Difficulty.POWER_FANTASY
+
 	func get_difficulty_name() -> String:
 		match current_difficulty:
 			Difficulty.EASY:
@@ -46,6 +50,8 @@ class MockDifficultyManager:
 				return "Normal"
 			Difficulty.HARD:
 				return "Hard"
+			Difficulty.POWER_FANTASY:
+				return "Power Fantasy"
 			_:
 				return "Unknown"
 
@@ -57,6 +63,8 @@ class MockDifficultyManager:
 				return "Normal"
 			Difficulty.HARD:
 				return "Hard"
+			Difficulty.POWER_FANTASY:
+				return "Power Fantasy"
 			_:
 				return "Unknown"
 
@@ -68,6 +76,8 @@ class MockDifficultyManager:
 				return 90
 			Difficulty.HARD:
 				return 60
+			Difficulty.POWER_FANTASY:
+				return 270
 			_:
 				return 90
 
@@ -82,6 +92,8 @@ class MockDifficultyManager:
 				return 0.6
 			Difficulty.HARD:
 				return 0.2
+			Difficulty.POWER_FANTASY:
+				return 0.8
 			_:
 				return 0.6
 
@@ -202,6 +214,7 @@ func test_get_difficulty_name_for_specific_difficulty() -> void:
 	assert_eq(manager.get_difficulty_name_for(MockDifficultyManager.Difficulty.EASY), "Easy")
 	assert_eq(manager.get_difficulty_name_for(MockDifficultyManager.Difficulty.NORMAL), "Normal")
 	assert_eq(manager.get_difficulty_name_for(MockDifficultyManager.Difficulty.HARD), "Hard")
+	assert_eq(manager.get_difficulty_name_for(MockDifficultyManager.Difficulty.POWER_FANTASY), "Power Fantasy")
 
 
 # ============================================================================
@@ -302,3 +315,47 @@ func test_cycle_through_all_difficulties() -> void:
 	assert_true(manager.is_normal_mode())
 	assert_eq(manager.get_max_ammo(), 90)
 	assert_false(manager.is_distraction_attack_enabled())
+
+
+# ============================================================================
+# Power Fantasy Mode Tests (Issue #492)
+# ============================================================================
+
+
+func test_set_difficulty_to_power_fantasy() -> void:
+	manager.set_difficulty(MockDifficultyManager.Difficulty.POWER_FANTASY)
+
+	assert_eq(manager.current_difficulty, MockDifficultyManager.Difficulty.POWER_FANTASY,
+		"Difficulty should be POWER_FANTASY after setting")
+	assert_true(manager.is_power_fantasy_mode(), "is_power_fantasy_mode() should return true")
+	assert_false(manager.is_normal_mode(), "is_normal_mode() should return false")
+	assert_false(manager.is_easy_mode(), "is_easy_mode() should return false")
+	assert_false(manager.is_hard_mode(), "is_hard_mode() should return false")
+
+
+func test_get_difficulty_name_power_fantasy() -> void:
+	manager.set_difficulty(MockDifficultyManager.Difficulty.POWER_FANTASY)
+
+	assert_eq(manager.get_difficulty_name(), "Power Fantasy",
+		"Power Fantasy difficulty name should be 'Power Fantasy'")
+
+
+func test_max_ammo_power_fantasy_mode() -> void:
+	manager.set_difficulty(MockDifficultyManager.Difficulty.POWER_FANTASY)
+
+	assert_eq(manager.get_max_ammo(), 270,
+		"Power Fantasy mode should have 270 max ammo (3x normal)")
+
+
+func test_distraction_attack_disabled_in_power_fantasy_mode() -> void:
+	manager.set_difficulty(MockDifficultyManager.Difficulty.POWER_FANTASY)
+
+	assert_false(manager.is_distraction_attack_enabled(),
+		"Distraction attack should be disabled in Power Fantasy mode")
+
+
+func test_detection_delay_power_fantasy_mode() -> void:
+	manager.set_difficulty(MockDifficultyManager.Difficulty.POWER_FANTASY)
+
+	assert_eq(manager.get_detection_delay(), 0.8,
+		"Power Fantasy mode should have 0.8s detection delay (slowest reaction)")

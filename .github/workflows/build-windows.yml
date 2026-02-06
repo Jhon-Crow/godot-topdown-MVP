@@ -3,9 +3,12 @@ name: Build Windows Portable EXE
 on:
   push:
     branches: [ main, issue-* ]
-  pull_request:
+  pull_request_target:
     branches: [ main ]
   workflow_dispatch:
+
+# Note: Using pull_request_target instead of pull_request to allow CI to run
+# even when the PR branch has merge conflicts with main (Issue #459).
 
 jobs:
   export-windows:
@@ -16,11 +19,23 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # For pull_request_target, explicitly checkout the PR head commit
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
+
+      # Required for C# projects: Godot's headless export doesn't compile C# sources
+      # automatically, so we must build .NET assemblies first. Without this step,
+      # the data_* folder with .NET assemblies will be missing in the export.
+      # See: https://forum.godotengine.org/t/no-data-folder-created-on-export/110235
+      - name: Build .NET project
+        run: |
+          dotnet restore GodotTopDownTemplate.sln
+          dotnet build GodotTopDownTemplate.sln --configuration Release
 
       - name: Export game
         id: export

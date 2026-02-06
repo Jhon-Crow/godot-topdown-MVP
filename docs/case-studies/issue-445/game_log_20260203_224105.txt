@@ -1,0 +1,402 @@
+[22:41:05] [INFO] ============================================================
+[22:41:05] [INFO] GAME LOG STARTED
+[22:41:05] [INFO] ============================================================
+[22:41:05] [INFO] Timestamp: 2026-02-03T22:41:05
+[22:41:05] [INFO] Log file: I:/Загрузки/godot exe/взвод дроб вверх/game_log_20260203_224105.txt
+[22:41:05] [INFO] Executable: I:/Загрузки/godot exe/взвод дроб вверх/Godot-Top-Down-Template.exe
+[22:41:05] [INFO] OS: Windows
+[22:41:05] [INFO] Debug build: false
+[22:41:05] [INFO] Engine version: 4.3-stable (official)
+[22:41:05] [INFO] Project: Godot Top-Down Template
+[22:41:05] [INFO] ------------------------------------------------------------
+[22:41:05] [INFO] [GameManager] GameManager ready
+[22:41:05] [INFO] [ScoreManager] ScoreManager ready
+[22:41:05] [INFO] [SoundPropagation] SoundPropagation autoload initialized
+[22:41:05] [INFO] [ImpactEffects] Scenes loaded: DustEffect, BloodEffect, SparksEffect, BloodDecal
+[22:41:05] [INFO] [ImpactEffects] ImpactEffectsManager ready - FULL VERSION with blood effects enabled
+[22:41:05] [INFO] [ImpactEffects] Starting particle shader warmup (Issue #343 fix)...
+[22:41:05] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[22:41:05] [INFO] [PenultimateHit] Saturation shader loaded successfully
+[22:41:05] [INFO] [PenultimateHit] Starting shader warmup (Issue #343 fix)...
+[22:41:05] [INFO] [PenultimateHit] PenultimateHitEffectsManager ready - Configuration:
+[22:41:05] [INFO] [PenultimateHit]   Time scale: 0.10 (10x slowdown)
+[22:41:05] [INFO] [PenultimateHit]   Saturation boost: 2.0 (3.0x)
+[22:41:05] [INFO] [PenultimateHit]   Contrast boost: 1.0 (2.0x)
+[22:41:05] [INFO] [PenultimateHit]   Effect duration: 3.0 real seconds
+[22:41:05] [INFO] [LastChance] Resetting all effects (scene change detected)
+[22:41:05] [INFO] [LastChance] Last chance shader loaded successfully
+[22:41:05] [INFO] [LastChance] Starting shader warmup (Issue #343 fix)...
+[22:41:05] [INFO] [LastChance] LastChanceEffectsManager ready - Configuration:
+[22:41:05] [INFO] [LastChance]   Freeze duration: 6.0 real seconds
+[22:41:05] [INFO] [LastChance]   Sepia intensity: 0.70
+[22:41:05] [INFO] [LastChance]   Brightness: 0.60
+[22:41:05] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FlashbangGrenade.tscn
+[22:41:05] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FragGrenade.tscn
+[22:41:05] [INFO] [ExperimentalSettings] ExperimentalSettings initialized - FOV enabled: true, Complex grenade throwing: false
+[22:41:05] [INFO] [CinemaEffects] CinemaEffectsManager initializing (v5.2 - overlay approach with enhanced death effects)...
+[22:41:05] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+[22:41:05] [INFO] [CinemaEffects] Created effects layer at layer 99
+[22:41:05] [INFO] [CinemaEffects] Cinema shader loaded successfully (v5.0 - no screen_texture)
+[22:41:05] [INFO] [CinemaEffects] Starting cinema shader warmup (Issue #343 fix)...
+[22:41:05] [INFO] [CinemaEffects] Cinema film effect initialized (v5.2) - Configuration:
+[22:41:05] [INFO] [CinemaEffects]   Approach: Overlay-based (no screen_texture)
+[22:41:05] [INFO] [CinemaEffects]   Grain intensity: 0.15
+[22:41:05] [INFO] [CinemaEffects]   Warm tint: 0.12 intensity
+[22:41:05] [INFO] [CinemaEffects]   Sunny effect: 0.08 intensity
+[22:41:05] [INFO] [CinemaEffects]   Vignette: 0.25 intensity
+[22:41:05] [INFO] [CinemaEffects]   Film defects: 1.5% probability
+[22:41:05] [INFO] [CinemaEffects]   White specks: 0.70 intensity, 4.0% probability
+[22:41:05] [INFO] [CinemaEffects]   Death effects: cigarette burn + expanding spots + end of reel (top-right)
+[22:41:05] [INFO] [CinemaEffects] Enabling effect after 1 frame(s)...
+[22:41:05] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[22:41:05] [INFO] [BloodyFeet:Enemy1] Footprint scene loaded
+[22:41:05] [INFO] [BloodyFeet:Enemy1] Found EnemyModel for facing direction
+[22:41:05] [INFO] [BloodyFeet:Enemy1] BloodyFeetComponent ready on Enemy1
+[22:41:05] [ENEMY] [Enemy1] Death animation component initialized
+[22:41:05] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[22:41:05] [INFO] [BloodyFeet:Enemy2] Footprint scene loaded
+[22:41:05] [INFO] [BloodyFeet:Enemy2] Found EnemyModel for facing direction
+[22:41:05] [INFO] [BloodyFeet:Enemy2] BloodyFeetComponent ready on Enemy2
+[22:41:05] [ENEMY] [Enemy2] Death animation component initialized
+[22:41:05] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[22:41:05] [INFO] [BloodyFeet:Enemy3] Footprint scene loaded
+[22:41:05] [INFO] [BloodyFeet:Enemy3] Found EnemyModel for facing direction
+[22:41:05] [INFO] [BloodyFeet:Enemy3] BloodyFeetComponent ready on Enemy3
+[22:41:05] [INFO] [EnemyGrenade] Initialized: 1 grenades
+[22:41:05] [ENEMY] [Enemy3] Death animation component initialized
+[22:41:05] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[22:41:05] [INFO] [BloodyFeet:Enemy4] Footprint scene loaded
+[22:41:05] [INFO] [BloodyFeet:Enemy4] Found EnemyModel for facing direction
+[22:41:05] [INFO] [BloodyFeet:Enemy4] BloodyFeetComponent ready on Enemy4
+[22:41:05] [ENEMY] [Enemy4] Death animation component initialized
+[22:41:05] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[22:41:05] [INFO] [BloodyFeet:Enemy5] Footprint scene loaded
+[22:41:05] [INFO] [BloodyFeet:Enemy5] Found EnemyModel for facing direction
+[22:41:05] [INFO] [BloodyFeet:Enemy5] BloodyFeetComponent ready on Enemy5
+[22:41:05] [ENEMY] [Enemy5] Death animation component initialized
+[22:41:05] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[22:41:05] [INFO] [BloodyFeet:Enemy6] Footprint scene loaded
+[22:41:05] [INFO] [BloodyFeet:Enemy6] Found EnemyModel for facing direction
+[22:41:05] [INFO] [BloodyFeet:Enemy6] BloodyFeetComponent ready on Enemy6
+[22:41:05] [ENEMY] [Enemy6] Death animation component initialized
+[22:41:05] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[22:41:05] [INFO] [BloodyFeet:Enemy7] Footprint scene loaded
+[22:41:05] [INFO] [BloodyFeet:Enemy7] Found EnemyModel for facing direction
+[22:41:05] [INFO] [BloodyFeet:Enemy7] BloodyFeetComponent ready on Enemy7
+[22:41:05] [ENEMY] [Enemy7] Death animation component initialized
+[22:41:05] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[22:41:05] [INFO] [BloodyFeet:Enemy8] Footprint scene loaded
+[22:41:05] [INFO] [BloodyFeet:Enemy8] Found EnemyModel for facing direction
+[22:41:05] [INFO] [BloodyFeet:Enemy8] BloodyFeetComponent ready on Enemy8
+[22:41:05] [ENEMY] [Enemy8] Death animation component initialized
+[22:41:05] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[22:41:05] [INFO] [BloodyFeet:Enemy9] Footprint scene loaded
+[22:41:05] [INFO] [BloodyFeet:Enemy9] Found EnemyModel for facing direction
+[22:41:05] [INFO] [BloodyFeet:Enemy9] BloodyFeetComponent ready on Enemy9
+[22:41:05] [ENEMY] [Enemy9] Death animation component initialized
+[22:41:05] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[22:41:05] [INFO] [BloodyFeet:Enemy10] Footprint scene loaded
+[22:41:05] [INFO] [BloodyFeet:Enemy10] Found EnemyModel for facing direction
+[22:41:05] [INFO] [BloodyFeet:Enemy10] BloodyFeetComponent ready on Enemy10
+[22:41:05] [ENEMY] [Enemy10] Death animation component initialized
+[22:41:05] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[22:41:05] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[22:41:05] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[22:41:05] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[22:41:05] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[22:41:05] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[22:41:05] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[22:41:05] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[22:41:05] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[22:41:05] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[22:41:05] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[22:41:05] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[22:41:05] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 4/4
+[22:41:05] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[22:41:05] [INFO] [BloodDecal] Blood puddle created at (640, 360) (added to group)
+[22:41:05] [INFO] [BuildingLevel] Found Environment/Enemies node with 10 children
+[22:41:05] [INFO] [BuildingLevel] Child 'Enemy1': script=true, has_died_signal=true
+[22:41:05] [INFO] [BuildingLevel] Child 'Enemy2': script=true, has_died_signal=true
+[22:41:05] [INFO] [BuildingLevel] Child 'Enemy3': script=true, has_died_signal=true
+[22:41:05] [INFO] [BuildingLevel] Child 'Enemy4': script=true, has_died_signal=true
+[22:41:05] [INFO] [BuildingLevel] Child 'Enemy5': script=true, has_died_signal=true
+[22:41:05] [INFO] [BuildingLevel] Child 'Enemy6': script=true, has_died_signal=true
+[22:41:05] [INFO] [BuildingLevel] Child 'Enemy7': script=true, has_died_signal=true
+[22:41:05] [INFO] [BuildingLevel] Child 'Enemy8': script=true, has_died_signal=true
+[22:41:05] [INFO] [BuildingLevel] Child 'Enemy9': script=true, has_died_signal=true
+[22:41:05] [INFO] [BuildingLevel] Child 'Enemy10': script=true, has_died_signal=true
+[22:41:05] [INFO] [BuildingLevel] Enemy tracking complete: 10 enemies registered
+[22:41:05] [INFO] [ScoreManager] Level started with 10 enemies
+[22:41:05] [INFO] [CinemaEffects] Found player node: Player
+[22:41:05] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[22:41:05] [INFO] [BloodyFeet:Enemy1] Blood detector created and attached to Enemy1
+[22:41:05] [INFO] [SoundPropagation] Registered listener: Enemy1 (total: 1)
+[22:41:05] [ENEMY] [Enemy1] Registered as sound listener
+[22:41:05] [ENEMY] [Enemy1] Spawned at (300, 350), hp: 4, behavior: GUARD
+[22:41:05] [INFO] [BloodyFeet:Enemy2] Blood detector created and attached to Enemy2
+[22:41:05] [INFO] [SoundPropagation] Registered listener: Enemy2 (total: 2)
+[22:41:05] [ENEMY] [Enemy2] Registered as sound listener
+[22:41:05] [ENEMY] [Enemy2] Spawned at (400, 550), hp: 3, behavior: GUARD
+[22:41:05] [INFO] [BloodyFeet:Enemy3] Blood detector created and attached to Enemy3
+[22:41:05] [INFO] [SoundPropagation] Registered listener: Enemy3 (total: 3)
+[22:41:05] [ENEMY] [Enemy3] Registered as sound listener
+[22:41:05] [ENEMY] [Enemy3] Spawned at (700, 750), hp: 3, behavior: GUARD
+[22:41:05] [INFO] [BloodyFeet:Enemy4] Blood detector created and attached to Enemy4
+[22:41:05] [INFO] [SoundPropagation] Registered listener: Enemy4 (total: 4)
+[22:41:05] [ENEMY] [Enemy4] Registered as sound listener
+[22:41:05] [ENEMY] [Enemy4] Spawned at (800, 900), hp: 4, behavior: GUARD
+[22:41:05] [INFO] [BloodyFeet:Enemy5] Blood detector created and attached to Enemy5
+[22:41:05] [INFO] [SoundPropagation] Registered listener: Enemy5 (total: 5)
+[22:41:05] [ENEMY] [Enemy5] Registered as sound listener
+[22:41:05] [ENEMY] [Enemy5] Spawned at (1700, 350), hp: 4, behavior: GUARD
+[22:41:05] [INFO] [BloodyFeet:Enemy6] Blood detector created and attached to Enemy6
+[22:41:05] [INFO] [SoundPropagation] Registered listener: Enemy6 (total: 6)
+[22:41:05] [ENEMY] [Enemy6] Registered as sound listener
+[22:41:05] [ENEMY] [Enemy6] Spawned at (1950, 450), hp: 3, behavior: GUARD
+[22:41:05] [INFO] [BloodyFeet:Enemy7] Blood detector created and attached to Enemy7
+[22:41:05] [INFO] [SoundPropagation] Registered listener: Enemy7 (total: 7)
+[22:41:05] [ENEMY] [Enemy7] Registered as sound listener
+[22:41:05] [ENEMY] [Enemy7] Spawned at (1606.114, 893.8859), hp: 2, behavior: PATROL
+[22:41:05] [INFO] [BloodyFeet:Enemy8] Blood detector created and attached to Enemy8
+[22:41:05] [INFO] [SoundPropagation] Registered listener: Enemy8 (total: 8)
+[22:41:05] [ENEMY] [Enemy8] Registered as sound listener
+[22:41:05] [ENEMY] [Enemy8] Spawned at (1900, 1450), hp: 3, behavior: GUARD
+[22:41:05] [INFO] [BloodyFeet:Enemy9] Blood detector created and attached to Enemy9
+[22:41:05] [INFO] [SoundPropagation] Registered listener: Enemy9 (total: 9)
+[22:41:05] [ENEMY] [Enemy9] Registered as sound listener
+[22:41:05] [ENEMY] [Enemy9] Spawned at (2100, 1550), hp: 4, behavior: GUARD
+[22:41:05] [INFO] [BloodyFeet:Enemy10] Blood detector created and attached to Enemy10
+[22:41:05] [INFO] [SoundPropagation] Registered listener: Enemy10 (total: 10)
+[22:41:05] [ENEMY] [Enemy10] Registered as sound listener
+[22:41:05] [ENEMY] [Enemy10] Spawned at (1200, 1550), hp: 4, behavior: PATROL
+[22:41:05] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[22:41:05] [ENEMY] [Enemy1] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=33.8°, current=0.0°, player=(450,1250), corner_timer=0.00
+[22:41:05] [ENEMY] [Enemy2] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=258.8°, current=0.0°, player=(450,1250), corner_timer=0.00
+[22:41:05] [ENEMY] [Enemy3] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=236.3°, current=0.0°, player=(450,1250), corner_timer=0.00
+[22:41:05] [ENEMY] [Enemy4] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=258.8°, current=0.0°, player=(450,1250), corner_timer=0.00
+[22:41:05] [ENEMY] [Enemy5] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=258.8°, current=0.0°, player=(450,1250), corner_timer=0.00
+[22:41:05] [ENEMY] [Enemy6] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=146.3°, current=0.0°, player=(450,1250), corner_timer=0.00
+[22:41:05] [ENEMY] [Enemy8] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=213.8°, current=0.0°, player=(450,1250), corner_timer=0.00
+[22:41:05] [ENEMY] [Enemy9] ROT_CHANGE: none -> P5:idle_scan, state=IDLE, target=11.3°, current=0.0°, player=(450,1250), corner_timer=0.00
+[22:41:05] [INFO] [Player] Detecting weapon pose (frame 3)...
+[22:41:05] [INFO] [Player] Detected weapon: Rifle (default pose)
+[22:41:05] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[22:41:05] [INFO] [PenultimateHit] Shader warmup complete in 164 ms
+[22:41:05] [INFO] [LastChance] Shader warmup complete in 162 ms
+[22:41:05] [INFO] [CinemaEffects] Cinema shader warmup complete in 138 ms
+[22:41:05] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[22:41:05] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[22:41:05] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[22:41:05] [INFO] [LastChance] Found player: Player
+[22:41:05] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[22:41:05] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[22:41:05] [INFO] [LastChance] Connected to player Died signal (C#)
+[22:41:05] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[22:41:05] [INFO] [ImpactEffects] Particle shader warmup complete: 5 effects warmed up in 411 ms
+[22:41:07] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[22:41:07] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[22:41:07] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[22:41:07] [INFO] [LastChance] Resetting all effects (scene change detected)
+[22:41:07] [INFO] [CinemaEffects] Scene changed to: TestTier
+[22:41:07] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[22:41:07] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[22:41:07] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[22:41:07] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[22:41:07] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[22:41:07] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+[22:41:07] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[22:41:07] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[22:41:07] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[22:41:07] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[22:41:07] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[22:41:07] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[22:41:07] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 3/3, Health: 3/4
+[22:41:07] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[22:41:07] [INFO] [CinemaEffects] Found player node: Player
+[22:41:07] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[22:41:07] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[22:41:07] [INFO] [Player] Detecting weapon pose (frame 3)...
+[22:41:07] [INFO] [Player] Detected weapon: Rifle (default pose)
+[22:41:07] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[22:41:07] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[22:41:07] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[22:41:07] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[22:41:07] [INFO] [LastChance] Found player: Player
+[22:41:07] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[22:41:07] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[22:41:07] [INFO] [LastChance] Connected to player Died signal (C#)
+[22:41:07] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[22:41:08] [INFO] [PauseMenu] Armory button pressed
+[22:41:08] [INFO] [PauseMenu] Creating new armory menu instance
+[22:41:08] [INFO] [PauseMenu] armory_menu_scene resource path: res://scenes/ui/ArmoryMenu.tscn
+[22:41:08] [INFO] [PauseMenu] Instance created, class: CanvasLayer, name: ArmoryMenu
+[22:41:08] [INFO] [PauseMenu] Script attached: res://scripts/ui/armory_menu.gd
+[22:41:08] [INFO] [PauseMenu] back_pressed signal exists on instance
+[22:41:08] [INFO] [PauseMenu] back_pressed signal connected
+[22:41:08] [INFO] [PauseMenu] Armory menu instance added as child, is_inside_tree: true
+[22:41:08] [INFO] [PauseMenu] _populate_weapon_grid method exists
+[22:41:08] [INFO] [GameManager] Weapon selected: shotgun
+[22:41:08] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[22:41:08] [INFO] [ImpactEffects] Scene changed - clearing all stale effect references
+[22:41:08] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[22:41:08] [INFO] [LastChance] Resetting all effects (scene change detected)
+[22:41:08] [INFO] [CinemaEffects] Scene changed to: TestTier
+[22:41:08] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[22:41:08] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[22:41:08] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[22:41:08] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[22:41:08] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[22:41:08] [INFO] [Player.Grenade] Tutorial level detected - infinite grenades enabled
+[22:41:08] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[22:41:08] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[22:41:08] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[22:41:08] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[22:41:08] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[22:41:08] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[22:41:08] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 3/3, Health: 2/4
+[22:41:08] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[22:41:08] [INFO] [CinemaEffects] Found player node: Player
+[22:41:08] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[22:41:08] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[22:41:08] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[22:41:08] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[22:41:08] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[22:41:08] [INFO] [LastChance] Found player: Player
+[22:41:08] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[22:41:08] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[22:41:08] [INFO] [LastChance] Connected to player Died signal (C#)
+[22:41:08] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[22:41:09] [INFO] [Player] Detecting weapon pose (frame 3)...
+[22:41:09] [INFO] [Player] Detected weapon: Shotgun (Shotgun pose)
+[22:41:09] [INFO] [Player] Applied Shotgun arm pose: Left=(21, 6), Right=(-1, 6)
+[22:41:09] [INFO] [Shotgun.FIX#212] Firing 12 pellets with 15° spread at pos=(150, 360)
+[22:41:09] [INFO] [Shotgun.FIX#212] Normal pellet 1/12: extraOffset=-9,4, distance=15,6px, pos=(165.35822, 357.02368)
+[22:41:09] [INFO] [Shotgun.FIX#212] Normal pellet 2/12: extraOffset=-13,4, distance=11,6px, pos=(161.43501, 358.10437)
+[22:41:09] [INFO] [Shotgun.FIX#212] Normal pellet 3/12: extraOffset=-13,1, distance=11,9px, pos=(161.7913, 358.10553)
+[22:41:09] [INFO] [Shotgun.FIX#212] Normal pellet 4/12: extraOffset=14,6, distance=39,6px, pos=(189.21158, 354.33926)
+[22:41:09] [INFO] [Shotgun.FIX#212] Normal pellet 5/12: extraOffset=-12,2, distance=12,8px, pos=(162.74911, 358.7704)
+[22:41:09] [INFO] [Shotgun.FIX#212] Normal pellet 6/12: extraOffset=0,5, distance=25,5px, pos=(175.46312, 358.39316)
+[22:41:09] [INFO] [Shotgun.FIX#212] Normal pellet 7/12: extraOffset=12,9, distance=37,9px, pos=(187.84435, 358.35236)
+[22:41:09] [INFO] [Shotgun.FIX#212] Normal pellet 8/12: extraOffset=5,0, distance=30,0px, pos=(180.02582, 358.98947)
+[22:41:09] [INFO] [Shotgun.FIX#212] Normal pellet 9/12: extraOffset=-6,8, distance=18,2px, pos=(168.20822, 359.85306)
+[22:41:09] [INFO] [Shotgun.FIX#212] Normal pellet 10/12: extraOffset=5,1, distance=30,1px, pos=(180.1222, 359.66724)
+[22:41:09] [INFO] [Shotgun.FIX#212] Normal pellet 11/12: extraOffset=-8,2, distance=16,8px, pos=(166.78714, 360.25974)
+[22:41:09] [INFO] [Shotgun.FIX#212] Normal pellet 12/12: extraOffset=-4,4, distance=20,6px, pos=(170.51198, 361.4981)
+[22:41:09] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(150, 360), source=PLAYER (Shotgun), range=1469, listeners=10
+[22:41:09] [INFO] [SoundPropagation] Cleaned up 10 invalid listeners
+[22:41:09] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[22:41:09] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[22:41:09] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+[22:41:09] [INFO] [Shotgun.FIX#445] dragStartPos=(744, 321), aimDir=(1,00, -0,07)
+[22:41:09] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:41:09] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:41:09] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:41:10] [INFO] [Shotgun.FIX#445v2] TryProcessMidDragGesture - dragVector=(7,6, -79,2), length=79,5, dotWithAim=12,8, aimDir=(1,00, -0,07), isPump=True
+[22:41:10] [INFO] [Shotgun.FIX#445v2] Direction-aware: isValid=False, isPumpUp=False, isPumpDown=False
+[22:41:10] [INFO] [Shotgun.FIX#445v2] In NeedsPumpUp - waiting for drag TOWARD player (negative dot). Current dot=12,8
+[22:41:10] [INFO] [Shotgun.FIX#445v2] TryProcessMidDragGesture - dragVector=(100,1, -320,9), length=336,2, dotWithAim=121,0, aimDir=(1,00, -0,07), isPump=True
+[22:41:10] [INFO] [Shotgun.FIX#445v2] Direction-aware: isValid=True, isPumpUp=False, isPumpDown=True
+[22:41:10] [INFO] [Shotgun.FIX#445v2] In NeedsPumpUp - waiting for drag TOWARD player (negative dot). Current dot=121,0
+[22:41:10] [INFO] [Shotgun.FIX#445v2] TryProcessMidDragGesture - dragVector=(104,5, -320,9), length=337,5, dotWithAim=125,4, aimDir=(1,00, -0,07), isPump=True
+[22:41:10] [INFO] [Shotgun.FIX#445v2] Direction-aware: isValid=True, isPumpUp=False, isPumpDown=True
+[22:41:10] [INFO] [Shotgun.FIX#445v2] In NeedsPumpUp - waiting for drag TOWARD player (negative dot). Current dot=125,4
+[22:41:10] [INFO] [Shotgun.FIX#445v2] TryProcessMidDragGesture - dragVector=(110,7, -320,9), length=339,5, dotWithAim=131,6, aimDir=(1,00, -0,07), isPump=True
+[22:41:10] [INFO] [Shotgun.FIX#445v2] Direction-aware: isValid=True, isPumpUp=False, isPumpDown=True
+[22:41:10] [INFO] [Shotgun.FIX#445v2] In NeedsPumpUp - waiting for drag TOWARD player (negative dot). Current dot=131,6
+[22:41:10] [INFO] [Shotgun.FIX#445v2] TryProcessMidDragGesture - dragVector=(116,8, -320,9), length=341,5, dotWithAim=137,6, aimDir=(1,00, -0,07), isPump=True
+[22:41:10] [INFO] [Shotgun.FIX#445v2] Direction-aware: isValid=True, isPumpUp=False, isPumpDown=True
+[22:41:10] [INFO] [Shotgun.FIX#445v2] In NeedsPumpUp - waiting for drag TOWARD player (negative dot). Current dot=137,6
+[22:41:10] [INFO] [Shotgun.FIX#445v2] TryProcessMidDragGesture - dragVector=(122,9, 398,4), length=416,9, dotWithAim=96,4, aimDir=(1,00, -0,07), isPump=True
+[22:41:10] [INFO] [Shotgun.FIX#445v2] Direction-aware: isValid=True, isPumpUp=False, isPumpDown=True
+[22:41:10] [INFO] [Shotgun.FIX#445v2] In NeedsPumpUp - waiting for drag TOWARD player (negative dot). Current dot=96,4
+[22:41:11] [INFO] [Shotgun.FIX#445v2] TryProcessMidDragGesture - dragVector=(122,9, 398,4), length=416,9, dotWithAim=96,4, aimDir=(1,00, -0,07), isPump=True
+[22:41:11] [INFO] [Shotgun.FIX#445v2] Direction-aware: isValid=True, isPumpUp=False, isPumpDown=True
+[22:41:11] [INFO] [Shotgun.FIX#445v2] In NeedsPumpUp - waiting for drag TOWARD player (negative dot). Current dot=96,4
+[22:41:11] [INFO] [Shotgun.FIX#445v2] TryProcessMidDragGesture - dragVector=(122,9, 398,4), length=416,9, dotWithAim=96,4, aimDir=(1,00, -0,07), isPump=True
+[22:41:11] [INFO] [Shotgun.FIX#445v2] Direction-aware: isValid=True, isPumpUp=False, isPumpDown=True
+[22:41:11] [INFO] [Shotgun.FIX#445v2] In NeedsPumpUp - waiting for drag TOWARD player (negative dot). Current dot=96,4
+[22:41:11] [INFO] [Shotgun.FIX#445v2] TryProcessMidDragGesture - dragVector=(122,9, 398,4), length=416,9, dotWithAim=96,5, aimDir=(1,00, -0,07), isPump=True
+[22:41:11] [INFO] [Shotgun.FIX#445v2] Direction-aware: isValid=True, isPumpUp=False, isPumpDown=True
+[22:41:11] [INFO] [Shotgun.FIX#445v2] In NeedsPumpUp - waiting for drag TOWARD player (negative dot). Current dot=96,5
+[22:41:11] [INFO] [Shotgun.FIX#445v2] TryProcessMidDragGesture - dragVector=(122,9, 48,4), length=132,1, dotWithAim=119,4, aimDir=(1,00, -0,07), isPump=True
+[22:41:11] [INFO] [Shotgun.FIX#445v2] Direction-aware: isValid=True, isPumpUp=False, isPumpDown=True
+[22:41:11] [INFO] [Shotgun.FIX#445v2] In NeedsPumpUp - waiting for drag TOWARD player (negative dot). Current dot=119,4
+[22:41:11] [INFO] [Shotgun.FIX#445v2] TryProcessMidDragGesture - dragVector=(357,4, -320,9), length=480,3, dotWithAim=377,7, aimDir=(1,00, -0,07), isPump=True
+[22:41:11] [INFO] [Shotgun.FIX#445v2] Direction-aware: isValid=True, isPumpUp=False, isPumpDown=True
+[22:41:11] [INFO] [Shotgun.FIX#445v2] In NeedsPumpUp - waiting for drag TOWARD player (negative dot). Current dot=377,7
+[22:41:11] [INFO] [Shotgun.FIX#445v2] TryProcessMidDragGesture - dragVector=(536,4, -320,9), length=625,1, dotWithAim=556,3, aimDir=(1,00, -0,07), isPump=True
+[22:41:11] [INFO] [Shotgun.FIX#445v2] Direction-aware: isValid=True, isPumpUp=False, isPumpDown=True
+[22:41:11] [INFO] [Shotgun.FIX#445v2] In NeedsPumpUp - waiting for drag TOWARD player (negative dot). Current dot=556,3
+[22:41:12] [INFO] [Shotgun.FIX#445v2] TryProcessMidDragGesture - dragVector=(327,3, 398,4), length=515,6, dotWithAim=300,4, aimDir=(1,00, -0,07), isPump=True
+[22:41:12] [INFO] [Shotgun.FIX#445v2] Direction-aware: isValid=True, isPumpUp=False, isPumpDown=True
+[22:41:12] [INFO] [Shotgun.FIX#445v2] In NeedsPumpUp - waiting for drag TOWARD player (negative dot). Current dot=300,4
+[22:41:12] [INFO] [Shotgun.FIX#445v2] Mid-drag pump UP (toward player) - shell ejected, continue dragging AWAY to chamber
+[22:41:12] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:41:12] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:41:12] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:41:12] [INFO] [Shotgun.FIX#445v2] TryProcessMidDragGesture - dragVector=(-252,5, -24,7), length=253,7, dotWithAim=-250,4, aimDir=(1,00, -0,07), isPump=True
+[22:41:12] [INFO] [Shotgun.FIX#445v2] Direction-aware: isValid=True, isPumpUp=True, isPumpDown=False
+[22:41:12] [INFO] [Shotgun.FIX#445v2] TryProcessMidDragGesture - dragVector=(-251,2, -34,1), length=253,5, dotWithAim=-248,4, aimDir=(1,00, -0,07), isPump=True
+[22:41:12] [INFO] [Shotgun.FIX#445v2] Direction-aware: isValid=True, isPumpUp=True, isPumpDown=False
+[22:41:12] [INFO] [Shotgun.FIX#445v2] TryProcessMidDragGesture - dragVector=(-251,2, -48,8), length=255,9, dotWithAim=-247,4, aimDir=(1,00, -0,07), isPump=True
+[22:41:12] [INFO] [Shotgun.FIX#445v2] Direction-aware: isValid=True, isPumpUp=True, isPumpDown=False
+[22:41:12] [INFO] [Shotgun.FIX#243] Mid-drag pump DOWN - chambered, ready to fire (MMB not held)
+[22:41:12] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:41:12] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:41:12] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:41:12] [INFO] [Shotgun.FIX#445v2] TryProcessMidDragGesture - dragVector=(315,3, 0,0), length=315,3, dotWithAim=314,6, aimDir=(1,00, -0,07), isPump=False
+[22:41:12] [INFO] [Shotgun.FIX#445v2] Direction-aware: isValid=True, isPumpUp=False, isPumpDown=True
+[22:41:13] [INFO] [Shotgun.FIX#445v2] TryProcessMidDragGesture - dragVector=(315,3, 0,0), length=315,3, dotWithAim=314,6, aimDir=(1,00, -0,07), isPump=False
+[22:41:13] [INFO] [Shotgun.FIX#445v2] Direction-aware: isValid=True, isPumpUp=False, isPumpDown=True
+[22:41:13] [INFO] [Shotgun.FIX#243] RMB released after 27 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[22:41:13] [INFO] [Shotgun.FIX#445v2] ProcessDragGesture - dragVector=(316,0, 0,0), length=316,0, dotWithAim=315,3, ActionState=Ready, minDist=20
+[22:41:13] [INFO] [Shotgun.FIX#445v2] Direction-aware pump gesture: isValid=True, isPumpUp=False (toward player), isPumpDown=True (away from player)
+[22:41:13] [INFO] [Shotgun.FIX#212] Firing 8 pellets with 15° spread at pos=(150, 360)
+[22:41:13] [INFO] [Shotgun.FIX#212] Normal pellet 1/8: extraOffset=1,4, distance=26,4px, pos=(174.70818, 350.67056)
+[22:41:13] [INFO] [Shotgun.FIX#212] Normal pellet 2/8: extraOffset=-8,5, distance=16,5px, pos=(165.72745, 355.10864)
+[22:41:13] [INFO] [Shotgun.FIX#212] Normal pellet 3/8: extraOffset=12,8, distance=37,8px, pos=(186.34564, 349.54553)
+[22:41:13] [INFO] [Shotgun.FIX#212] Normal pellet 4/8: extraOffset=14,8, distance=39,8px, pos=(188.59386, 350.27084)
+[22:41:13] [INFO] [Shotgun.FIX#212] Normal pellet 5/8: extraOffset=4,2, distance=29,2px, pos=(178.6153, 354.0456)
+[22:41:13] [INFO] [Shotgun.FIX#212] Normal pellet 6/8: extraOffset=9,4, distance=34,4px, pos=(183.84976, 353.81818)
+[22:41:13] [INFO] [Shotgun.FIX#212] Normal pellet 7/8: extraOffset=-0,1, distance=24,9px, pos=(174.82913, 357.6159)
+[22:41:13] [INFO] [Shotgun.FIX#212] Normal pellet 8/8: extraOffset=-9,4, distance=15,6px, pos=(165.54385, 358.64807)
+[22:41:13] [INFO] [SoundPropagation] Sound emitted: type=GUNSHOT, pos=(150, 360), source=PLAYER (Shotgun), range=1469, listeners=0
+[22:41:13] [INFO] [SoundPropagation] Sound result: notified=0, out_of_range=0, self=0, below_threshold=0
+[22:41:15] [INFO] [Player.Grenade] Mode check: complex=False, settings_node=True
+[22:41:15] [INFO] [Shotgun.FIX#243] RMB drag started - MMB: poll=False, raw=False, event=False, any=False, ActionState=NeedsPumpUp, ReloadState=NotReloading
+[22:41:15] [INFO] [Shotgun.FIX#445] dragStartPos=(160, 0), aimDir=(0,03, -1,00)
+[22:41:15] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:41:15] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:41:15] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:41:15] [INFO] [Shotgun.FIX#445v2] TryProcessMidDragGesture - dragVector=(-2,0, 0,0), length=2,0, dotWithAim=-0,1, aimDir=(0,03, -1,00), isPump=True
+[22:41:15] [INFO] [Shotgun.FIX#445v2] TryProcessMidDragGesture - dragVector=(243,2, 0,0), length=243,2, dotWithAim=7,0, aimDir=(0,03, -1,00), isPump=True
+[22:41:15] [INFO] [Shotgun.FIX#445v2] Direction-aware: isValid=False, isPumpUp=False, isPumpDown=False
+[22:41:15] [INFO] [Shotgun.FIX#445v2] In NeedsPumpUp - waiting for drag TOWARD player (negative dot). Current dot=7,0
+[22:41:15] [INFO] [Shotgun.FIX#445v2] TryProcessMidDragGesture - dragVector=(398,2, 48,8), length=401,1, dotWithAim=-37,3, aimDir=(0,03, -1,00), isPump=True
+[22:41:15] [INFO] [Shotgun.FIX#445v2] Direction-aware: isValid=True, isPumpUp=True, isPumpDown=False
+[22:41:15] [INFO] [Shotgun.FIX#445v2] Mid-drag pump UP (toward player) - shell ejected, continue dragging AWAY to chamber
+[22:41:15] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:41:15] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:41:15] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:41:16] [INFO] [Shotgun.FIX#445v2] TryProcessMidDragGesture - dragVector=(-559,2, 670,6), length=873,1, dotWithAim=-686,3, aimDir=(0,03, -1,00), isPump=True
+[22:41:16] [INFO] [Shotgun.FIX#445v2] Direction-aware: isValid=True, isPumpUp=True, isPumpDown=False
+[22:41:16] [INFO] [Shotgun.FIX#445v2] TryProcessMidDragGesture - dragVector=(-557,2, 655,9), length=860,6, dotWithAim=-671,6, aimDir=(0,03, -1,00), isPump=True
+[22:41:16] [INFO] [Shotgun.FIX#445v2] Direction-aware: isValid=True, isPumpUp=True, isPumpDown=False
+[22:41:16] [INFO] [Shotgun.FIX#445v2] TryProcessMidDragGesture - dragVector=(-558,5, 658,6), length=863,5, dotWithAim=-674,3, aimDir=(0,03, -1,00), isPump=True
+[22:41:16] [INFO] [Shotgun.FIX#445v2] Direction-aware: isValid=True, isPumpUp=True, isPumpDown=False
+[22:41:16] [INFO] [Shotgun.FIX#243] Mid-drag pump DOWN - chambered, ready to fire (MMB not held)
+[22:41:16] [INFO] [Shotgun.DIAG] Frame 1: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:41:16] [INFO] [Shotgun.DIAG] Frame 2: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:41:16] [INFO] [Shotgun.DIAG] Frame 3: poll=False, raw=False, event=False, any=False, wasMMB=False
+[22:41:16] [INFO] [Shotgun.FIX#445v2] TryProcessMidDragGesture - dragVector=(558,5, -12,7), length=558,6, dotWithAim=28,7, aimDir=(0,03, -1,00), isPump=False
+[22:41:16] [INFO] [Shotgun.FIX#445v2] Direction-aware: isValid=True, isPumpUp=False, isPumpDown=True
+[22:41:16] [INFO] [Shotgun.FIX#445v2] TryProcessMidDragGesture - dragVector=(601,3, -12,7), length=601,4, dotWithAim=29,9, aimDir=(0,03, -1,00), isPump=False
+[22:41:16] [INFO] [Shotgun.FIX#445v2] Direction-aware: isValid=True, isPumpUp=False, isPumpDown=True
+[22:41:17] [INFO] [Shotgun.FIX#445v2] TryProcessMidDragGesture - dragVector=(601,3, -12,7), length=601,4, dotWithAim=29,9, aimDir=(0,03, -1,00), isPump=False
+[22:41:17] [INFO] [Shotgun.FIX#445v2] Direction-aware: isValid=True, isPumpUp=False, isPumpDown=True
+[22:41:17] [INFO] [Shotgun.FIX#243] RMB released after 32 frames - wasMMBDuringDrag=False, current: poll=False, raw=False, event=False
+[22:41:17] [INFO] [Shotgun.FIX#445v2] ProcessDragGesture - dragVector=(601,3, -12,7), length=601,4, dotWithAim=29,9, ActionState=Ready, minDist=20
+[22:41:17] [INFO] [Shotgun.FIX#445v2] Direction-aware pump gesture: isValid=True, isPumpUp=False (toward player), isPumpDown=True (away from player)
+[22:41:27] [INFO] ------------------------------------------------------------
+[22:41:27] [INFO] GAME LOG ENDED: 2026-02-03T22:41:27
+[22:41:27] [INFO] ============================================================

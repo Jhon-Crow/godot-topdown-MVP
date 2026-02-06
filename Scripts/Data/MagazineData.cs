@@ -116,6 +116,13 @@ public class MagazineInventory
     {
         _spareMagazines.Clear();
 
+        // If magazineCount is 0, clear everything (used by ConfigureAmmoForEnemyCount)
+        if (magazineCount <= 0)
+        {
+            CurrentMagazine = null;
+            return;
+        }
+
         // Create the current magazine (always full at start)
         CurrentMagazine = new MagazineData(magazineSize, magazineSize);
 

@@ -50,6 +50,12 @@ const SATURATION_DURATION: float = 0.15
 ## Saturation effect intensity (alpha).
 const SATURATION_INTENSITY: float = 0.25
 
+## Reference to the exit zone.
+var _exit_zone: Area2D = null
+
+## Whether the level has been cleared (all enemies eliminated).
+var _level_cleared: bool = false
+
 
 func _ready() -> void:
 	print("TestTier loaded - Tactical Combat Arena")
@@ -80,6 +86,9 @@ func _ready() -> void:
 	if GameManager:
 		GameManager.enemy_killed.connect(_on_game_manager_enemy_killed)
 		GameManager.stats_updated.connect(_update_debug_ui)
+
+	# Setup exit zone near player spawn (left wall)
+	_setup_exit_zone()
 
 
 func _process(_delta: float) -> void:
@@ -171,6 +180,8 @@ func _setup_player_tracking() -> void:
 		if weapon.has_method("GetMagazineAmmoCounts"):
 			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
 			_update_magazines_label(mag_counts)
+		# Configure silenced pistol ammo based on enemy count
+		_configure_silenced_pistol_ammo(weapon)
 	else:
 		# GDScript Player - connect to player signals
 		if _player.has_signal("ammo_changed"):
@@ -217,6 +228,75 @@ func _setup_enemy_tracking() -> void:
 	_initial_enemy_count = enemies.size()
 	_current_enemy_count = _initial_enemy_count
 	print("Tracking %d enemies" % _initial_enemy_count)
+
+
+## Setup the exit zone near the player spawn point (left wall).
+## The exit appears after all enemies are eliminated.
+func _setup_exit_zone() -> void:
+	# Load and instantiate the exit zone
+	var exit_zone_scene = load("res://scenes/objects/ExitZone.tscn")
+	if exit_zone_scene == null:
+		push_warning("ExitZone scene not found - score will show immediately on level clear")
+		return
+
+	_exit_zone = exit_zone_scene.instantiate()
+	# Position exit on the left wall near player spawn (player starts at 264, 1544)
+	# Place exit at left wall (x=80) at similar y position
+	_exit_zone.position = Vector2(120, 1544)
+	_exit_zone.zone_width = 60.0
+	_exit_zone.zone_height = 100.0
+
+	# Connect the player reached exit signal
+	_exit_zone.player_reached_exit.connect(_on_player_reached_exit)
+
+	# Add to the environment node
+	var environment := get_node_or_null("Environment")
+	if environment:
+		environment.add_child(_exit_zone)
+	else:
+		add_child(_exit_zone)
+
+	print("[TestTier] Exit zone created at position (120, 1544)")
+
+
+## Called when the player reaches the exit zone after clearing the level.
+func _on_player_reached_exit() -> void:
+	if not _level_cleared:
+		return
+
+	print("[TestTier] Player reached exit - showing score!")
+	_show_victory_message()
+
+
+## Activate the exit zone after all enemies are eliminated.
+func _activate_exit_zone() -> void:
+	if _exit_zone and _exit_zone.has_method("activate"):
+		_exit_zone.activate()
+		print("[TestTier] Exit zone activated - go to exit to see score!")
+	else:
+		# Fallback: if exit zone not available, show score immediately
+		push_warning("Exit zone not available - showing score immediately")
+		_show_victory_message()
+
+
+## Configure silenced pistol ammo based on enemy count.
+## This ensures the pistol has exactly enough bullets for all enemies in the level.
+func _configure_silenced_pistol_ammo(weapon: Node) -> void:
+	# Check if this is a silenced pistol
+	if weapon.name != "SilencedPistol":
+		return
+
+	# Call the ConfigureAmmoForEnemyCount method if it exists
+	if weapon.has_method("ConfigureAmmoForEnemyCount"):
+		weapon.ConfigureAmmoForEnemyCount(_initial_enemy_count)
+		print("[TestTier] Configured silenced pistol ammo for %d enemies" % _initial_enemy_count)
+
+		# Update the ammo display after configuration
+		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
+			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
+		if weapon.has_method("GetMagazineAmmoCounts"):
+			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
+			_update_magazines_label(mag_counts)
 
 
 ## Setup debug UI elements for kills and accuracy.
@@ -300,7 +380,9 @@ func _on_enemy_died() -> void:
 
 	if _current_enemy_count <= 0:
 		print("All enemies eliminated! Arena cleared!")
-		_show_victory_message()
+		_level_cleared = true
+		# Activate exit zone - score will show when player reaches it
+		call_deferred("_activate_exit_zone")
 
 
 ## Called when an enemy is hit (for accuracy tracking).

@@ -25,6 +25,9 @@ LastChanceEffectsManager="*res://scripts/autoload/last_chance_effects_manager.gd
 StatusEffectsManager="*res://scripts/autoload/status_effects_manager.gd"
 GrenadeManager="*res://scripts/autoload/grenade_manager.gd"
 ExperimentalSettings="*res://scripts/autoload/experimental_settings.gd"
+CinemaEffectsManager="*res://scripts/autoload/cinema_effects_manager.gd"
+GrenadeTimerHelper="*res://Scripts/Autoload/GrenadeTimerHelper.cs"
+PowerFantasyEffectsManager="*res://scripts/autoload/power_fantasy_effects_manager.gd"
 
 [application]
 
@@ -114,6 +117,7 @@ grenade_throw={
 2d_physics/layer_4="pickups"
 2d_physics/layer_5="projectiles"
 2d_physics/layer_6="targets"
+2d_physics/layer_7="decorative"
 
 [dotnet]
 

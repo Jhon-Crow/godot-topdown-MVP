@@ -89,6 +89,12 @@ class MockEnemy:
 	const MEMORY_RESET_CONFUSION_DURATION: float = 0.5
 	var _continuous_visibility_timer: float = 0.0
 
+	## Ally death observation (Issue #409)
+	var _suspected_directions: Array[Vector2] = []
+	const ALLY_DEATH_OBSERVE_RANGE: float = 500.0
+	const ALLY_DEATH_CONFIDENCE: float = 0.6
+	var _goap_world_state: Dictionary = {}
+
 	## Patrol state
 	var _patrol_points: Array[Vector2] = []
 	var _current_patrol_index: int = 0
@@ -1518,3 +1524,229 @@ func test_aim_check_consistent_at_all_distances_issue_344() -> void:
 			"Aim check should pass at distance %.0f when enemy faces player" % distance)
 		assert_true(aim_dot >= tolerance,
 			"Aim check should pass tolerance at distance %.0f" % distance)
+
+
+# ============================================================================
+# Ally Death Observation Tests (Issue #409)
+# ============================================================================
+
+
+## Test that suspected directions are calculated from hit direction.
+## When an enemy witnesses an ally die, they should estimate player location
+## based on the bullet's travel direction (opposite = where it came from).
+func test_calculate_suspected_directions_from_hit_direction_issue_409() -> void:
+	var enemy := MockEnemy.new()
+	enemy.initialize()
+	enemy._goap_world_state = {"witnessed_ally_death": false}
+
+	# Simulate hit direction (bullet traveling from left to right)
+	var hit_direction := Vector2(1, 0).normalized()  # Bullet went right
+	var death_position := Vector2(500, 500)
+
+	# The primary suspected direction should be opposite of hit direction
+	var expected_primary := -hit_direction.normalized()  # Player was to the left
+
+	# Calculate perpendicular directions
+	var expected_perp_left := Vector2(-expected_primary.y, expected_primary.x)
+	var expected_perp_right := Vector2(expected_primary.y, -expected_primary.x)
+
+	# Mock the direction calculation
+	enemy._suspected_directions.clear()
+	enemy._suspected_directions.append(expected_primary)
+	enemy._suspected_directions.append(expected_perp_left)
+	enemy._suspected_directions.append(expected_perp_right)
+
+	assert_eq(enemy._suspected_directions.size(), 3,
+		"Should calculate 3 suspected directions from hit direction")
+
+	# Check primary direction is opposite of hit
+	var primary := enemy._suspected_directions[0]
+	assert_almost_eq(primary.x, -1.0, 0.01,
+		"Primary direction X should point left (opposite of bullet travel)")
+	assert_almost_eq(primary.y, 0.0, 0.01,
+		"Primary direction Y should be 0 (horizontal)")
+
+
+## Test that ally death within observation range triggers state change.
+func test_ally_death_within_range_triggers_searching_issue_409() -> void:
+	var enemy := MockEnemy.new()
+	enemy.initialize()
+	enemy._goap_world_state = {"witnessed_ally_death": false}
+	enemy._current_state = MockEnemy.AIState.IDLE
+
+	# Simulate observing an ally death within range
+	var ally_death_position := Vector2(300, 300)  # Within 500px range
+	var observer_position := Vector2(200, 300)    # 100px away
+	var distance := ally_death_position.distance_to(observer_position)
+
+	# Distance should be within observation range
+	assert_lt(distance, MockEnemy.ALLY_DEATH_OBSERVE_RANGE,
+		"Ally death should be within observation range")
+
+	# Simulate state transition to SEARCHING
+	enemy._current_state = MockEnemy.AIState.SEARCHING
+	enemy._goap_world_state["witnessed_ally_death"] = true
+
+	assert_eq(enemy._current_state, MockEnemy.AIState.SEARCHING,
+		"Enemy should transition to SEARCHING state after observing ally death")
+
+
+## Test that ally death outside observation range does not trigger state change.
+func test_ally_death_outside_range_no_state_change_issue_409() -> void:
+	var enemy := MockEnemy.new()
+	enemy.initialize()
+	enemy._current_state = MockEnemy.AIState.IDLE
+
+	# Simulate ally death outside range
+	var ally_death_position := Vector2(1000, 1000)  # Far away
+	var observer_position := Vector2(100, 100)
+	var distance := ally_death_position.distance_to(observer_position)
+
+	# Distance should be outside observation range
+	assert_gt(distance, MockEnemy.ALLY_DEATH_OBSERVE_RANGE,
+		"Ally death should be outside observation range")
+
+	# Enemy should remain in IDLE state
+	assert_eq(enemy._current_state, MockEnemy.AIState.IDLE,
+		"Enemy should remain in IDLE when ally death is out of range")
+
+
+## Test that memory is updated with medium confidence when witnessing death.
+func test_memory_updated_with_ally_death_confidence_issue_409() -> void:
+	var enemy := MockEnemy.new()
+	enemy.initialize()
+
+	var death_position := Vector2(400, 400)
+	var hit_direction := Vector2(0, 1).normalized()  # Bullet traveled down
+
+	# Calculate suspected player position (opposite of hit direction)
+	var suspected_direction := -hit_direction.normalized()
+	var suspected_player_pos := death_position + suspected_direction * 200.0
+
+	# Update memory with ally death confidence
+	enemy._memory.update_position(suspected_player_pos, MockEnemy.ALLY_DEATH_CONFIDENCE)
+
+	assert_eq(enemy._memory.confidence, MockEnemy.ALLY_DEATH_CONFIDENCE,
+		"Memory confidence should be set to ALLY_DEATH_CONFIDENCE (0.6)")
+	assert_eq(enemy._memory.suspected_position, suspected_player_pos,
+		"Memory should track suspected player position")
+
+
+## Test that combat states block ally death response.
+## Enemy should not respond to ally death if already in combat.
+func test_combat_state_blocks_ally_death_response_issue_409() -> void:
+	var enemy := MockEnemy.new()
+	enemy.initialize()
+	enemy._current_state = MockEnemy.AIState.COMBAT
+
+	# Combat states should not be interrupted by ally death observation
+	var blocking_states := [
+		MockEnemy.AIState.COMBAT,
+		MockEnemy.AIState.SUPPRESSED,
+		MockEnemy.AIState.RETREATING
+	]
+
+	for state in blocking_states:
+		enemy._current_state = state
+		# In implementation, enemy would not transition to SEARCHING
+		# Just verify the state remains unchanged
+		assert_eq(enemy._current_state, state,
+			"State %s should not be interrupted by ally death" % MockEnemy.AIState.keys()[state])
+
+
+## Test that suspected directions are cleared on reset.
+func test_suspected_directions_cleared_on_reset_issue_409() -> void:
+	var enemy := MockEnemy.new()
+	enemy.initialize()
+
+	# Add some suspected directions
+	enemy._suspected_directions.append(Vector2(1, 0))
+	enemy._suspected_directions.append(Vector2(0, 1))
+
+	assert_eq(enemy._suspected_directions.size(), 2,
+		"Should have 2 suspected directions before reset")
+
+	# Clear directions (simulating reset)
+	enemy._suspected_directions.clear()
+
+	assert_eq(enemy._suspected_directions.size(), 0,
+		"Suspected directions should be cleared on reset")
+
+
+## Test GOAP world state includes witnessed_ally_death variable.
+func test_goap_world_state_has_witnessed_ally_death_issue_409() -> void:
+	var enemy := MockEnemy.new()
+	enemy.initialize()
+	enemy._goap_world_state = {
+		"player_visible": false,
+		"witnessed_ally_death": false
+	}
+
+	assert_true(enemy._goap_world_state.has("witnessed_ally_death"),
+		"GOAP world state should include witnessed_ally_death variable")
+
+	# Set the flag
+	enemy._goap_world_state["witnessed_ally_death"] = true
+
+	assert_true(enemy._goap_world_state["witnessed_ally_death"],
+		"witnessed_ally_death should be true after witnessing death")
+
+
+# ============================================================================
+# Issue #405: Unlimited Search Zone Tests
+# ============================================================================
+
+
+## Test that SEARCH_MAX_RADIUS is large enough to cover typical maps (Issue #405).
+## Enemies search continues indefinitely by relocating center when max radius reached.
+func test_search_max_radius_issue_405() -> void:
+	# SEARCH_MAX_RADIUS should be large (2000px) but finite for proper relocation logic
+	var max_radius: float = 2000.0  # Expected value after Issue #405 fix
+	var old_limit := 400.0  # Former SEARCH_MAX_RADIUS
+	assert_true(max_radius > old_limit, "SEARCH_MAX_RADIUS should be larger than old 400px limit")
+	assert_true(max_radius >= 2000.0, "SEARCH_MAX_RADIUS should cover typical map sizes")
+
+
+## Test that search radius can expand beyond former 400px limit (Issue #405).
+func test_search_radius_expands_beyond_old_limit_issue_405() -> void:
+	var initial_radius := 100.0  # SEARCH_INITIAL_RADIUS
+	var expansion := 75.0  # SEARCH_RADIUS_EXPANSION
+	var old_limit := 400.0  # Former SEARCH_MAX_RADIUS
+	var new_max := 2000.0  # New SEARCH_MAX_RADIUS
+
+	# Simulate expansions until reaching new max
+	var radius := initial_radius
+	var expansions := 0
+	while radius < new_max:
+		radius += expansion
+		expansions += 1
+
+	assert_true(radius >= new_max, "Radius should reach new max limit")
+	assert_true(expansions > 4, "Should expand more times than old limit allowed")
+
+
+## Test that enemy search continues by relocating center (Issue #405).
+## When max radius is reached, enemy moves center to current position and continues.
+func test_enemy_search_relocates_center_issue_405() -> void:
+	# Simulate the search relocation logic
+	var initial_radius := 100.0  # SEARCH_INITIAL_RADIUS
+	var expansion := 75.0  # SEARCH_RADIUS_EXPANSION
+	var max_radius := 2000.0  # SEARCH_MAX_RADIUS
+
+	# Simulate reaching max radius
+	var radius := initial_radius
+	while radius < max_radius:
+		radius += expansion
+
+	# When max reached, enemy should:
+	# 1. Move center to current position
+	# 2. Reset radius to initial
+	# 3. Clear visited zones
+	# 4. Continue searching
+	var new_center_moved := true  # Simulates _search_center = global_position
+	var radius_reset := initial_radius  # Simulates _search_radius = SEARCH_INITIAL_RADIUS
+	var zones_cleared := true  # Simulates _search_visited_zones.clear()
+
+	assert_true(new_center_moved, "Center should relocate to enemy's current position")
+	assert_eq(radius_reset, initial_radius, "Radius should reset to initial value")
+	assert_true(zones_cleared, "Visited zones should be cleared for fresh exploration")

@@ -1,0 +1,315 @@
+---
+Date: 2026-01-24T23:41:43Z
+Author: konard
+## 🤖 Solution Draft Log
+This log file contains the complete execution trace of the AI solution draft process.
+
+💰 **Cost estimation:**
+- Public pricing estimate: $0.890012 USD
+- Calculated by Anthropic: $1.269304 USD
+- Difference: $0.379292 (+42.62%)
+📎 **Log file uploaded as Gist** (554KB)
+🔗 [View complete solution draft log](https://gist.githubusercontent.com/konard/4e2063ad74113791456a07d663393019/raw/9802b78c921b7aed692429440dbcef22b5000f92/solution-draft-log-pr-1769298099121.txt)
+---
+*Now working session is ended, feel free to review and add any feedback on the solution draft.*
+
+---
+Date: 2026-01-25T00:06:53Z
+Author: Jhon-Crow
+ни враги ни игрок не влияют на гильзы
+возможно дело в C#
+так же исправь ошибку в https://github.com/Jhon-Crow/godot-topdown-MVP/actions/runs/21323508884/job/61376759444?pr=342
+[game_log_20260125_030511.txt](https://github.com/user-attachments/files/24840886/game_log_20260125_030511.txt)
+
+Please download all logs and data related about the issue to this repository, make sure we compile that data to `./docs/case-studies/issue-{id}` folder, and use it to do deep case study analysis (also make sure to search online for additional facts and data), in which we will reconstruct timeline/sequence of events, find root causes of the problem, and propose possible solutions.
+
+
+---
+Date: 2026-01-25T00:08:09Z
+Author: konard
+🤖 **AI Work Session Started**
+
+Starting automated work session at 2026-01-25T00:08:07.148Z
+
+The PR has been converted to draft mode while work is in progress.
+
+_This comment marks the beginning of an AI work session. Please wait working session to finish, and provide your feedback._
+
+---
+Date: 2026-01-25T00:18:54Z
+Author: konard
+Thank you for the feedback @Jhon-Crow!
+
+I've implemented the interactive shell casings feature. Here's what was done:
+
+## Root Cause Analysis
+
+The casings weren't interacting with player/enemies because:
+1. **Wrong collision layers**: Casings had `collision_layer = 0` (invisible to collision system)
+2. **Wrong collision mask**: Casings only detected walls (mask = 4), not characters
+
+## Solution Implemented
+
+1. **Updated Casing.tscn**:
+   - Changed `collision_layer = 64` (layer 7) for item detection
+   - Changed `collision_mask = 7` (player + enemies + walls)
+   - Added `PhysicsMaterial2D` with bounce = 0.35, friction = 0.55
+   - Added `KickDetector` Area2D to detect when characters walk through
+
+2. **Enhanced casing.gd**:
+   - Characters kick casings based on their movement velocity
+   - Casings play bounce sounds when kicked (velocity > 75 px/s)
+   - Sound cooldown (0.1s) prevents audio spam
+   - Casings wake from "landed" state when kicked
+   - Caliber-specific sounds (rifle/pistol/shotgun)
+
+3. **CI Fix**:
+   - Merged main branch - enemy.gd now at 4999 lines (within 5000 limit)
+
+All 6 CI checks pass. The implementation uses Area2D detection which works reliably with top-down physics (gravity disabled).
+
+Note: The game log you shared didn't show interaction events because the old casing code didn't have any logging for kicks. The new implementation should work - please test and let me know if any adjustments are needed!
+
+---
+Date: 2026-01-25T00:19:13Z
+Author: konard
+## 🤖 Solution Draft Log
+This log file contains the complete execution trace of the AI solution draft process.
+
+💰 **Cost estimation:**
+- Public pricing estimate: $6.710110 USD
+- Calculated by Anthropic: $3.516459 USD
+- Difference: $-3.193651 (-47.59%)
+📎 **Log file uploaded as Gist** (746KB)
+🔗 [View complete solution draft log](https://gist.githubusercontent.com/konard/9b92b726d788ef130febbe35c651bb96/raw/3096768642e27869ea846a94f3c62af09006d6a3/solution-draft-log-pr-1769300348724.txt)
+---
+*Now working session is ended, feel free to review and add any feedback on the solution draft.*
+
+---
+Date: 2026-01-25T00:19:20Z
+Author: konard
+## 🔄 Auto-restart 1/3
+
+Detected uncommitted changes from previous run. Starting new session to review and commit them.
+
+**Uncommitted files:**
+```
+?? docs/case-studies/issue-341/game_log_20260125_030511.txt
+```
+
+---
+*Auto-restart will stop after changes are committed or after 2 more iterations. Please wait until working session will end and give your feedback.*
+
+---
+Date: 2026-01-25T00:28:40Z
+Author: konard
+## 🔧 Fix Applied: Improved Casing Detection
+
+Thank you for the detailed feedback @Jhon-Crow! I've investigated the issue and implemented a fix.
+
+### Root Cause
+
+The casings weren't being kicked because of a **known Godot 4 regression** ([godotengine/godot#84511](https://github.com/godotengine/godot/issues/84511)):
+- In Godot 4, `Area2D.body_entered` signals can miss fast-moving `CharacterBody2D` objects
+- The original detection shape (4x14 pixels) was too small for reliable overlap detection at game speeds (player moves at 330 px/s)
+
+### Fix Implemented
+
+1. **Larger detection area**: Changed from Rectangle 4x14 to Circle radius 24
+2. **Manual fallback detection**: Added `get_overlapping_bodies()` check every physics frame
+3. **Kick memory system**: Prevents double-kicks from same character (0.3s memory)
+4. **Debug logging option**: Added `debug_logging` export for troubleshooting
+
+### How to Test
+
+1. Run the game and shoot some bullets to create casings
+2. Walk through the casings with the player
+3. Let enemies walk through casings
+4. Casings should now be kicked/pushed when characters walk through them
+5. Bounce sound should play when casings move fast enough (>75 px/s)
+
+### Debug Mode
+
+If there are still issues, you can enable debug logging on a casing:
+1. Select a casing in the game
+2. In Inspector, set `debug_logging = true`
+3. Check the game log for `[Casing]` messages showing detection events
+
+Please test and let me know if the fix works! 🎯
+
+---
+Date: 2026-01-25T00:29:12Z
+Author: konard
+## 🔄 Auto-restart 1/3 Log
+This log file contains the complete execution trace of the AI solution draft process.
+
+💰 **Cost estimation:**
+- Public pricing estimate: $5.725241 USD
+- Calculated by Anthropic: $3.709288 USD
+- Difference: $-2.015953 (-35.21%)
+📎 **Log file uploaded as Gist** (1483KB)
+🔗 [View complete solution draft log](https://gist.githubusercontent.com/konard/77c2e94a3879beb7f5ff82c4aa43f86d/raw/71c9f5103018b292d4d26de3a5cdc75007e2194e/solution-draft-log-pr-1769300947832.txt)
+---
+*Now working session is ended, feel free to review and add any feedback on the solution draft.*
+
+---
+Date: 2026-01-25T00:29:19Z
+Author: konard
+## 🤖 Solution Draft Log
+This log file contains the complete execution trace of the AI solution draft process.
+
+💰 **Cost estimation:**
+- Public pricing estimate: $5.725241 USD
+- Calculated by Anthropic: $3.709288 USD
+- Difference: $-2.015953 (-35.21%)
+📎 **Log file uploaded as Gist** (1486KB)
+🔗 [View complete solution draft log](https://gist.githubusercontent.com/konard/bbe38a231b27cc7750d22a46e130b344/raw/631b2a21bacb20810a4aeba3a4d2fb0dee2441a0/solution-draft-log-pr-1769300955296.txt)
+---
+*Now working session is ended, feel free to review and add any feedback on the solution draft.*
+
+---
+Date: 2026-01-25T00:37:03Z
+Author: Jhon-Crow
+игра не запускается - появляется заставка godot и сразу исчезает, без ошибок.
+
+Please download all logs and data related about the issue to this repository, make sure we compile that data to `./docs/case-studies/issue-{id}` folder, and use it to do deep case study analysis (also make sure to search online for additional facts and data), in which we will reconstruct timeline/sequence of events, find root causes of the problem, and propose possible solutions.
+
+
+---
+Date: 2026-01-25T00:38:07Z
+Author: konard
+🤖 **AI Work Session Started**
+
+Starting automated work session at 2026-01-25T00:38:05.351Z
+
+The PR has been converted to draft mode while work is in progress.
+
+_This comment marks the beginning of an AI work session. Please wait working session to finish, and provide your feedback._
+
+---
+Date: 2026-01-25T00:42:37Z
+Author: konard
+## 🔧 Crash Fix Applied
+
+@Jhon-Crow Thank you for reporting the crash! I've identified and fixed the issue.
+
+### Root Cause
+
+The game crashed on startup because of an invalid method call in `casing.gd`:
+
+```gdscript
+# INCORRECT - Resources don't have a has() method!
+caliber_data.has("caliber_name")
+```
+
+In GDScript, only `Dictionary` objects have the `has()` method. When called on a `Resource` object, it crashes.
+
+### Fix Applied
+
+Changed to the correct GDScript syntax for checking if a property exists:
+
+```gdscript
+# CORRECT - use 'in' operator for Resources
+"caliber_name" in caliber_data
+```
+
+### Test
+
+Please pull the latest changes and test:
+1. Game should start normally
+2. Shoot some bullets to create casings
+3. Walk through casings - they should be kicked and make sounds
+4. Enemies should also kick casings when walking through them
+
+All 6 CI checks pass ✅
+
+Let me know if there are any other issues!
+
+---
+Date: 2026-01-25T00:43:05Z
+Author: konard
+## 🤖 Solution Draft Log
+This log file contains the complete execution trace of the AI solution draft process.
+
+💰 **Cost estimation:**
+- Public pricing estimate: $2.925799 USD
+- Calculated by Anthropic: $1.535077 USD
+- Difference: $-1.390722 (-47.53%)
+📎 **Log file uploaded as Gist** (457KB)
+🔗 [View complete solution draft log](https://gist.githubusercontent.com/konard/1ecbbce47f36c8f5acccf844c8654208/raw/f243560ec299d987b0db72ebd714d1ec60fd5fe2/solution-draft-log-pr-1769301781027.txt)
+---
+*Now working session is ended, feel free to review and add any feedback on the solution draft.*
+
+---
+Date: 2026-01-25T00:47:35Z
+Author: Jhon-Crow
+не исправлено
+
+Please download all logs and data related about the issue to this repository, make sure we compile that data to `./docs/case-studies/issue-{id}` folder, and use it to do deep case study analysis (also make sure to search online for additional facts and data), in which we will reconstruct timeline/sequence of events, find root causes of the problem, and propose possible solutions.
+
+
+---
+Date: 2026-01-25T00:48:26Z
+Author: konard
+🤖 **AI Work Session Started**
+
+Starting automated work session at 2026-01-25T00:48:23.877Z
+
+The PR has been converted to draft mode while work is in progress.
+
+_This comment marks the beginning of an AI work session. Please wait working session to finish, and provide your feedback._
+
+---
+Date: 2026-01-25T00:57:35Z
+Author: konard
+@Jhon-Crow Спасибо за тестирование и обратную связь!
+
+Я упростил код проверки типа калибра в `casing.gd`. Проблема могла быть в сложной логике ветвления, которая проверяла разные типы Resources. Теперь код проверяет только `CaliberData` явно:
+
+**Было:**
+```gdscript
+if caliber_data != null:
+    var caliber_name: String = ""
+    if caliber_data is CaliberData:
+        caliber_name = (caliber_data as CaliberData).caliber_name
+    elif "caliber_name" in caliber_data:
+        caliber_name = caliber_data.caliber_name
+```
+
+**Стало:**
+```gdscript
+if caliber_data != null and caliber_data is CaliberData:
+    var caliber: CaliberData = caliber_data as CaliberData
+    var caliber_name: String = caliber.caliber_name
+```
+
+Это изменение убирает потенциально проблемную ветку `elif`, которая использовала оператор `in` на Resource объектах.
+
+Пожалуйста, протестируйте снова. Если игра все еще не запускается, было бы полезно увидеть лог ошибок из консоли Godot (Output panel) или файла логов.
+
+---
+
+I simplified the caliber type checking in `casing.gd`. The issue may have been in the complex branching logic that checked different Resource types. Now the code only checks for `CaliberData` explicitly, removing the potentially problematic `elif` branch that used the `in` operator on Resource objects.
+
+Please test again. If the game still doesn't start, it would be helpful to see error logs from Godot's Output panel or log files.
+
+---
+Date: 2026-01-25T00:59:01Z
+Author: konard
+## 🤖 Solution Draft Log
+This log file contains the complete execution trace of the AI solution draft process.
+
+💰 **Cost estimation:**
+- Public pricing estimate: $6.842501 USD
+- Calculated by Anthropic: $5.223213 USD
+- Difference: $-1.619288 (-23.67%)
+📎 **Log file uploaded as Gist** (884KB)
+🔗 [View complete solution draft log](https://gist.githubusercontent.com/konard/0f0d756345070ffbdeadfa6091b081e2/raw/0caf6d7eb8daedf62c4177cb22d8fb5cd4683250/solution-draft-log-pr-1769302736598.txt)
+---
+*Now working session is ended, feel free to review and add any feedback on the solution draft.*
+
+---
+Date: 2026-01-25T01:09:46Z
+Author: Jhon-Crow
+всё ещё не запускается
+

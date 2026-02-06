@@ -4,10 +4,15 @@ extends Node
 ## Attach this component to any CharacterBody2D (Player or Enemy) to enable
 ## bloody footprint tracking. The component monitors for blood puddle contact
 ## and spawns footprint decals at regular intervals while moving.
+##
+## Performance Note (Issue #407 FPS fix):
+## - Uses signal-based detection (area_entered/area_exited) instead of polling
+## - Fallback distance check is throttled to run every 30 frames (~0.5s at 60fps)
+## - Uses distance_squared_to() for faster distance comparisons
 class_name BloodyFeetComponent
 
 ## Number of bloody footprints before the blood runs out.
-@export var blood_steps_count: int = 6
+@export var blood_steps_count: int = 12
 
 ## Distance in pixels between footprint spawns.
 @export var step_distance: float = 30.0
@@ -16,7 +21,7 @@ class_name BloodyFeetComponent
 @export var initial_alpha: float = 0.8
 
 ## Alpha reduction per step. Last footprint will be at (initial_alpha - (blood_steps_count - 1) * alpha_decay_rate).
-@export var alpha_decay_rate: float = 0.12
+@export var alpha_decay_rate: float = 0.06
 
 ## Footprint scale multiplier.
 @export var footprint_scale: float = 1.0
@@ -62,6 +67,18 @@ var _character_model: Node2D = null
 ## Used to tint footprints to match/be darker than the puddle.
 var _blood_color: Color = Color(0.545, 0.0, 0.0, 1.0)  # Default dark red
 
+## Whether currently overlapping a blood puddle (signal-based detection).
+## Performance fix: Use signals instead of polling get_overlapping_areas() every frame.
+var _is_overlapping_blood: bool = false
+
+## Counter for throttled fallback distance check.
+## Performance fix: Only check distance every N frames instead of every frame.
+var _fallback_check_counter: int = 0
+
+## Interval for fallback distance check (in physics frames).
+## At 60fps, 30 frames = ~0.5 seconds between checks.
+const FALLBACK_CHECK_INTERVAL: int = 30
+
 
 func _ready() -> void:
 	_file_logger = get_node_or_null("/root/FileLogger")
@@ -83,8 +100,9 @@ func _ready() -> void:
 	else:
 		push_warning("BloodyFeetComponent: Footprint scene not found at " + footprint_path)
 
-	# Create Area2D for blood puddle detection
-	_setup_blood_detector()
+	# Create Area2D for blood puddle detection (deferred to ensure parent is in tree)
+	# Performance fix: Defer setup to ensure Area2D is properly in scene tree
+	call_deferred("_setup_blood_detector")
 
 	# Find the character's model node for facing direction
 	_find_character_model()
@@ -115,7 +133,11 @@ func _find_character_model() -> void:
 
 
 ## Sets up the Area2D for detecting blood puddles.
+## Performance fix: This is called deferred to ensure parent is in scene tree.
 func _setup_blood_detector() -> void:
+	if _parent_body == null:
+		return
+
 	_blood_detector = Area2D.new()
 	_blood_detector.name = "BloodDetector"
 
@@ -141,7 +163,11 @@ func _setup_blood_detector() -> void:
 	_parent_body.add_child(_blood_detector)
 
 	# Connect signals for blood detection
+	# Performance fix: Use signals (area_entered/area_exited) instead of polling
+	# get_overlapping_areas() every frame. Signals are more efficient as they're
+	# triggered by the physics engine only when overlaps change.
 	_blood_detector.area_entered.connect(_on_area_entered)
+	_blood_detector.area_exited.connect(_on_area_exited)
 
 	_log_info("Blood detector created and attached to %s" % _parent_body.name)
 
@@ -150,8 +176,12 @@ func _physics_process(delta: float) -> void:
 	if not _initialized or _parent_body == null:
 		return
 
-	# Check for blood puddles via overlapping areas (using group detection)
-	_check_blood_puddle_overlap()
+	# Performance fix: Signal-based detection handles most cases efficiently.
+	# Only run throttled fallback check periodically for edge cases.
+	_fallback_check_counter += 1
+	if _fallback_check_counter >= FALLBACK_CHECK_INTERVAL:
+		_fallback_check_counter = 0
+		_check_blood_puddle_throttled()
 
 	# Track movement for footprint spawning
 	if _blood_level > 0:
@@ -161,61 +191,50 @@ func _physics_process(delta: float) -> void:
 ## Debug: Frame counter for periodic overlap logging
 var _debug_frame_counter: int = 0
 
-## Checks if we're overlapping with any blood puddle via group detection.
-func _check_blood_puddle_overlap() -> void:
-	if _blood_detector == null:
+## Throttled blood puddle check - runs periodically as a fallback.
+## Performance fix: This replaces the previous every-frame check with a throttled version.
+func _check_blood_puddle_throttled() -> void:
+	if _blood_detector == null or _parent_body == null:
 		return
 
-	# Get all overlapping areas
-	var overlapping_areas := _blood_detector.get_overlapping_areas()
+	# Debug logging (only when debug_logging is enabled)
+	if debug_logging:
+		_debug_frame_counter += 1
+		if _debug_frame_counter >= 4:  # Every 4 throttled checks = ~2 seconds
+			_debug_frame_counter = 0
+			var overlapping_areas := _blood_detector.get_overlapping_areas()
+			var blood_puddles_in_scene := get_tree().get_nodes_in_group("blood_puddle")
+			var parent_pos := _parent_body.global_position
+			var detector_global := _blood_detector.global_position if _blood_detector.is_inside_tree() else Vector2.ZERO
+			var detector_in_tree := _blood_detector.is_inside_tree()
+			_log_info("Overlap check: areas=%d, puddles=%d, parent_pos=%s, detector_global=%s, in_tree=%s, layer=%d, mask=%d" % [
+				overlapping_areas.size(),
+				blood_puddles_in_scene.size(),
+				parent_pos,
+				detector_global,
+				detector_in_tree,
+				_blood_detector.collision_layer,
+				_blood_detector.collision_mask
+			])
 
-	# Periodic debug logging (every 120 frames = ~2 seconds at 60fps)
-	_debug_frame_counter += 1
-	if debug_logging and _debug_frame_counter >= 120:
-		_debug_frame_counter = 0
-		var blood_puddles_in_scene := get_tree().get_nodes_in_group("blood_puddle")
-		var parent_pos := _parent_body.global_position if _parent_body else Vector2.ZERO
-		var detector_global := _blood_detector.global_position
-		var detector_in_tree := _blood_detector.is_inside_tree()
-		_log_info("Overlap check: areas=%d, puddles=%d, parent_pos=%s, detector_global=%s, in_tree=%s, layer=%d, mask=%d" % [
-			overlapping_areas.size(),
-			blood_puddles_in_scene.size(),
-			parent_pos,
-			detector_global,
-			detector_in_tree,
-			_blood_detector.collision_layer,
-			_blood_detector.collision_mask
-		])
-		# Log closest blood puddle distance for debugging
-		if blood_puddles_in_scene.size() > 0:
-			var closest_dist := INF
-			var closest_puddle_pos := Vector2.ZERO
-			for puddle in blood_puddles_in_scene:
-				if puddle is Node2D:
-					var dist := parent_pos.distance_to(puddle.global_position)
-					if dist < closest_dist:
-						closest_dist = dist
-						closest_puddle_pos = puddle.global_position
-			_log_info("Closest puddle at %s, distance=%.1f" % [closest_puddle_pos, closest_dist])
-
-	for area in overlapping_areas:
-		# Check if the area or its parent is a blood puddle
-		if area.is_in_group("blood_puddle"):
-			_on_blood_puddle_contact(_get_puddle_color(area))
-			return  # Early return if found via physics
-		elif area.get_parent() and area.get_parent().is_in_group("blood_puddle"):
-			_on_blood_puddle_contact(_get_puddle_color(area.get_parent()))
-			return  # Early return if found via physics
-
-	# FALLBACK: If physics detection fails, use distance-based detection
-	# This handles cases where Area2D physics isn't working correctly
-	_check_blood_puddle_by_distance()
+	# Signal-based detection should handle most cases.
+	# Only run distance fallback if we're not already overlapping via signals.
+	if not _is_overlapping_blood:
+		_check_blood_puddle_by_distance()
 
 
 ## Radius in pixels for distance-based blood detection fallback.
 const BLOOD_DETECTION_RADIUS := 20.0
 
+## Squared radius for faster distance comparisons (avoids sqrt).
+const BLOOD_DETECTION_RADIUS_SQUARED := BLOOD_DETECTION_RADIUS * BLOOD_DETECTION_RADIUS
+
+## Maximum number of puddles to check in fallback (performance limit).
+## This prevents massive slowdowns when there are hundreds of puddles.
+const MAX_PUDDLES_TO_CHECK := 50
+
 ## Fallback distance-based detection when Area2D physics fails.
+## Performance fix: Uses distance_squared_to() and limits puddle count.
 func _check_blood_puddle_by_distance() -> void:
 	if _parent_body == null:
 		return
@@ -223,12 +242,21 @@ func _check_blood_puddle_by_distance() -> void:
 	var parent_pos := _parent_body.global_position
 	var blood_puddles := get_tree().get_nodes_in_group("blood_puddle")
 
+	# Performance fix: Limit the number of puddles we check to prevent
+	# O(n) explosion when there are hundreds of puddles.
+	var check_count := 0
 	for puddle in blood_puddles:
+		if check_count >= MAX_PUDDLES_TO_CHECK:
+			break
+		check_count += 1
+
 		if puddle is Node2D:
-			var dist := parent_pos.distance_to(puddle.global_position)
-			if dist <= BLOOD_DETECTION_RADIUS:
+			# Performance fix: Use distance_squared_to() instead of distance_to()
+			# to avoid expensive square root operation.
+			var dist_sq := parent_pos.distance_squared_to(puddle.global_position)
+			if dist_sq <= BLOOD_DETECTION_RADIUS_SQUARED:
 				if debug_logging:
-					_log_info("FALLBACK: Blood detected at distance %.1f (pos: %s)" % [dist, puddle.global_position])
+					_log_info("FALLBACK: Blood detected at distance %.1f (pos: %s)" % [sqrt(dist_sq), puddle.global_position])
 				_on_blood_puddle_contact(_get_puddle_color(puddle))
 				return
 
@@ -266,11 +294,28 @@ func _on_blood_puddle_contact(puddle_color: Color = Color(0.545, 0.0, 0.0, 1.0))
 
 
 ## Called when an area enters the blood detector.
+## Performance fix: Signal-based detection is more efficient than polling.
 func _on_area_entered(area: Area2D) -> void:
 	if area.is_in_group("blood_puddle"):
+		_is_overlapping_blood = true
 		_on_blood_puddle_contact(_get_puddle_color(area))
 	elif area.get_parent() and area.get_parent().is_in_group("blood_puddle"):
+		_is_overlapping_blood = true
 		_on_blood_puddle_contact(_get_puddle_color(area.get_parent()))
+
+
+## Called when an area exits the blood detector.
+## Performance fix: Track overlap state via signals instead of polling every frame.
+func _on_area_exited(area: Area2D) -> void:
+	if area.is_in_group("blood_puddle") or (area.get_parent() and area.get_parent().is_in_group("blood_puddle")):
+		# Check if we're still overlapping any other blood puddles
+		if _blood_detector:
+			var still_overlapping := false
+			for other_area in _blood_detector.get_overlapping_areas():
+				if other_area.is_in_group("blood_puddle") or (other_area.get_parent() and other_area.get_parent().is_in_group("blood_puddle")):
+					still_overlapping = true
+					break
+			_is_overlapping_blood = still_overlapping
 
 
 ## Tracks movement and spawns footprints at regular intervals.
@@ -312,23 +357,33 @@ func _get_facing_direction() -> Vector2:
 
 
 ## Checks if the character is currently standing on a blood puddle.
-## Uses both Area2D overlap detection and distance-based fallback.
+## Performance fix: Uses cached overlap state and limited distance check.
 func _is_on_blood_puddle() -> bool:
-	# Check via Area2D overlap
-	if _blood_detector:
+	# Fast path: Use cached signal-based overlap state
+	if _is_overlapping_blood:
+		return true
+
+	# Check via Area2D overlap (only if detector is valid)
+	if _blood_detector and _blood_detector.is_inside_tree():
 		var overlapping_areas := _blood_detector.get_overlapping_areas()
 		for area in overlapping_areas:
 			if area.is_in_group("blood_puddle") or (area.get_parent() and area.get_parent().is_in_group("blood_puddle")):
 				return true
 
-	# Fallback: distance-based detection
+	# Fallback: Limited distance-based detection
+	# Performance fix: Only check a limited number of nearby puddles
 	if _parent_body:
 		var parent_pos := _parent_body.global_position
 		var blood_puddles := get_tree().get_nodes_in_group("blood_puddle")
+		var check_count := 0
 		for puddle in blood_puddles:
+			if check_count >= MAX_PUDDLES_TO_CHECK:
+				break
+			check_count += 1
 			if puddle is Node2D:
-				var dist := parent_pos.distance_to(puddle.global_position)
-				if dist <= BLOOD_DETECTION_RADIUS:
+				# Performance fix: Use distance_squared_to() to avoid sqrt
+				var dist_sq := parent_pos.distance_squared_to(puddle.global_position)
+				if dist_sq <= BLOOD_DETECTION_RADIUS_SQUARED:
 					return true
 
 	return false
