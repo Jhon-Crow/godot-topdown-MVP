@@ -142,25 +142,54 @@ public abstract partial class BaseWeapon : Node2D
     {
         if (WeaponData != null)
         {
-            // Check for Power Fantasy mode ammo multiplier
-            int magazineCount = StartingMagazineCount;
-            var difficultyManager = GetNodeOrNull("/root/DifficultyManager");
-            if (difficultyManager != null)
+            InitializeMagazinesWithDifficulty();
+        }
+
+        // Connect to difficulty_changed signal to re-initialize ammo when difficulty changes
+        var difficultyManager = GetNodeOrNull("/root/DifficultyManager");
+        if (difficultyManager != null)
+        {
+            difficultyManager.Connect("difficulty_changed", Callable.From<int>(OnDifficultyChanged));
+        }
+    }
+
+    /// <summary>
+    /// Initializes magazine inventory accounting for Power Fantasy ammo multiplier.
+    /// Can be called again when difficulty changes to re-apply the multiplier.
+    /// </summary>
+    protected virtual void InitializeMagazinesWithDifficulty()
+    {
+        if (WeaponData == null) return;
+
+        int magazineCount = StartingMagazineCount;
+        var difficultyManager = GetNodeOrNull("/root/DifficultyManager");
+        if (difficultyManager != null)
+        {
+            var multiplierResult = difficultyManager.Call("get_ammo_multiplier");
+            int ammoMultiplier = multiplierResult.AsInt32();
+            if (ammoMultiplier > 1)
             {
-                var multiplierResult = difficultyManager.Call("get_ammo_multiplier");
-                int ammoMultiplier = multiplierResult.AsInt32();
-                if (ammoMultiplier > 1)
-                {
-                    magazineCount *= ammoMultiplier;
-                    GD.Print($"[BaseWeapon] Power Fantasy mode: ammo multiplied by {ammoMultiplier}x ({StartingMagazineCount} -> {magazineCount} magazines)");
-                }
+                magazineCount *= ammoMultiplier;
+                GD.Print($"[BaseWeapon] Power Fantasy mode: ammo multiplied by {ammoMultiplier}x ({StartingMagazineCount} -> {magazineCount} magazines)");
             }
+        }
 
-            // Initialize magazine inventory with the starting magazines
-            MagazineInventory.Initialize(magazineCount, WeaponData.MagazineSize, fillAllMagazines: true);
+        // Initialize magazine inventory with the starting magazines
+        MagazineInventory.Initialize(magazineCount, WeaponData.MagazineSize, fillAllMagazines: true);
 
-            // Emit initial magazine state
-            EmitMagazinesChanged();
+        // Emit initial magazine state
+        EmitMagazinesChanged();
+    }
+
+    /// <summary>
+    /// Called when difficulty changes. Re-initializes magazines with the new ammo multiplier.
+    /// </summary>
+    private void OnDifficultyChanged(int newDifficulty)
+    {
+        if (WeaponData != null)
+        {
+            GD.Print($"[BaseWeapon] Difficulty changed to {newDifficulty}, re-initializing magazines");
+            InitializeMagazinesWithDifficulty();
         }
     }
 
