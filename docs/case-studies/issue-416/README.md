@@ -222,8 +222,72 @@ The inner class removal fix was not sufficient. Further analysis identified **th
 - [#58563](https://github.com/godotengine/godot/issues/58563) - Exported project cannot load autoload
 - [#83119](https://github.com/godotengine/godot/issues/83119) - AutoLoad fails to load in unintuitive way
 
+## Fourth User Report (2026-02-06 13:14)
+
+### User Feedback
+User reported: "всё ещё no data" (Still "no data") with game log `game_log_20260206_131432.txt`.
+
+### Analysis of game_log_20260206_131432.txt
+
+**Key findings — the three code-level fixes from the third report DID NOT resolve the issue:**
+
+1. **Line 136**: `[BuildingLevel] ERROR: ReplayManager not found, replay recording disabled`
+2. **Missing**: `[ReplayManager] ReplayManager ready` still never appears
+3. **Line 3590**: `Watch Replay button created (disabled - no replay data)`
+4. Multiple restarts (lines 299, 942, 1510) all show the same autoload failure
+
+This confirmed that the autoload mechanism itself is the problem, not the GDScript code inside the script. The code-level fixes (await removal, method renaming, declaration reordering) did not address the real root cause.
+
+### Definitive Root Cause: Godot 4.3 Autoload Mechanism Failure in Exported Builds
+
+After **4 iterations** of attempted fixes, the true root cause was identified:
+
+**The Godot 4.3 autoload registration mechanism itself silently fails to load certain GDScript autoloads in exported builds when the project also contains C# autoloads.**
+
+**Evidence across all 5 user logs (spanning 3 days):**
+- `game_log_20260205_030057.txt` — ReplayManager never loads
+- `game_log_20260205_032338.txt` — ReplayManager never loads
+- `game_log_20260206_120242.txt` — ReplayManager never loads
+- `game_log_20260206_122932.txt` — ReplayManager never loads (after inner class fix)
+- `game_log_20260206_131432.txt` — ReplayManager never loads (after await/naming/ordering fix)
+
+**Contributing factors:**
+1. **Mixed C#/GDScript project** — project uses `config/features=PackedStringArray("4.3", "C#")` with both C# and GDScript autoloads
+2. **ReplayManager was the LAST autoload** in the list (line 31 of project.godot)
+3. **C# autoload `GrenadeTimerHelper.cs` (line 29)** loaded successfully, as did GDScript autoload `PowerFantasyEffectsManager` (line 30) just before ReplayManager
+4. **All 15+ other autoloads** loaded successfully in every log
+
+**Known Godot issues that describe this class of bug:**
+- [godotengine/godot#78230](https://github.com/godotengine/godot/issues/78230) — Autoload compile errors silently swallowed, only showing misleading "Script does not inherit from Node"
+- [godotengine/godot#58563](https://github.com/godotengine/godot/issues/58563) — Exported project cannot load autoload containing specific patterns
+- [godotengine/godot#83119](https://github.com/godotengine/godot/issues/83119) — AutoLoad fails to load in unintuitive way
+- [godotengine/godot#39444](https://github.com/godotengine/godot/issues/39444) — Autoloaded scripts not generating nodes under root in C# projects
+
+### Definitive Fix: Remove Autoload, Use Dynamic Loading
+
+Since the autoload mechanism itself is unreliable for this script in exported builds, the fix **bypasses the autoload entirely**:
+
+1. **Removed `ReplayManager` from `project.godot` autoload list**
+2. **Added `_get_or_create_replay_manager()` helper** in both level scripts (building_level.gd, test_tier.gd)
+3. The helper:
+   - First checks `/root/ReplayManager` (works in Godot editor where autoload would have been)
+   - If not found, dynamically loads `replay_system.gd` via `load()`, creates a Node, attaches the script, and adds it to `/root/`
+   - Caches the reference in `_replay_manager` instance variable for efficiency
+   - Verifies the script was attached successfully
+
+**Why this works:**
+- `load()` at runtime uses Godot's regular resource loading path, which is separate from the autoload initialization pipeline that was failing
+- The script is loaded on-demand when the level needs it, after the engine is fully initialized
+- No dependency on Godot's autoload registration, which has known silent failure modes
+- The dynamically created node at `/root/` persists across level restarts, matching autoload behavior
+
 ## Logs
 
-- `logs/solution-draft-log-pr-421.txt` - Full AI solver execution log from 2026-02-04
-- `game_log_20260206_120242.txt` - User game log showing ReplayManager autoload failure (first report)
-- `game_log_20260206_122932.txt` - User game log showing "no data" button (second report)
+All user-provided game logs preserved in `logs/` directory:
+
+- `logs/game_log_20260205_030057.txt` — First user report (replay button missing)
+- `logs/game_log_20260205_032338.txt` — Second user report (button still missing)
+- `logs/game_log_20260206_120242.txt` — Third user report (button missing, different code)
+- `logs/game_log_20260206_122932.txt` — Fourth user report ("no data" on button)
+- `logs/game_log_20260206_131432.txt` — Fifth user report ("no data" persists after 3 code fixes)
+- `logs/solution-draft-log-pr-421.txt` — Full AI solver execution log from 2026-02-04

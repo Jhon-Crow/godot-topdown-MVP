@@ -62,6 +62,41 @@ var _level_cleared: bool = false
 ## Whether the score screen is currently shown (for W key shortcut).
 var _score_shown: bool = false
 
+## Cached reference to the dynamically loaded ReplayManager.
+var _replay_manager: Node = null
+
+
+## Gets or creates the ReplayManager node.
+## Unlike autoload, this dynamically loads the script and creates the node,
+## which bypasses Godot 4.3's silent autoload failure in exported builds
+## (see: godotengine/godot#78230, godotengine/godot#58563).
+func _get_or_create_replay_manager() -> Node:
+	if _replay_manager != null and is_instance_valid(_replay_manager):
+		return _replay_manager
+
+	# First check if it exists as autoload (works in editor)
+	_replay_manager = get_node_or_null("/root/ReplayManager")
+	if _replay_manager != null:
+		return _replay_manager
+
+	# Dynamically load and create (works in exported builds)
+	var script: Resource = load("res://scripts/autoload/replay_system.gd")
+	if script == null:
+		print("[TestTier] ERROR: Failed to load replay_system.gd script")
+		return null
+
+	_replay_manager = Node.new()
+	_replay_manager.set_script(script)
+	_replay_manager.name = "ReplayManager"
+	get_tree().root.add_child(_replay_manager)
+
+	# Verify the script was attached and _ready() ran
+	if _replay_manager.has_method("start_recording"):
+		print("[TestTier] ReplayManager created dynamically (autoload workaround) - verified OK")
+	else:
+		print("[TestTier] WARNING: ReplayManager created but start_recording method not found")
+	return _replay_manager
+
 
 func _ready() -> void:
 	print("TestTier loaded - Tactical Combat Arena")
@@ -390,7 +425,7 @@ func _on_enemy_died() -> void:
 	if _current_enemy_count <= 0:
 		print("All enemies eliminated! Arena cleared!")
 		# Stop replay recording
-		var replay_manager: Node = get_node_or_null("/root/ReplayManager")
+		var replay_manager: Node = _get_or_create_replay_manager()
 		if replay_manager and replay_manager.has_method("stop_recording"):
 			replay_manager.stop_recording()
 		_level_cleared = true
@@ -650,7 +685,7 @@ func _show_death_message() -> void:
 ## Show victory message when all enemies are eliminated.
 func _show_victory_message() -> void:
 	# Log replay status for debugging
-	var replay_manager: Node = get_node_or_null("/root/ReplayManager")
+	var replay_manager: Node = _get_or_create_replay_manager()
 	if replay_manager:
 		var has_replay: bool = false
 		var duration: float = 0.0
@@ -735,7 +770,7 @@ func _show_victory_message() -> void:
 	replay_button.add_theme_font_size_override("font_size", 18)
 
 	# Check if replay data is available
-	var replay_manager: Node = get_node_or_null("/root/ReplayManager")
+	var replay_manager: Node = _get_or_create_replay_manager()
 	var has_replay_data: bool = replay_manager != null and replay_manager.has_method("has_replay") and replay_manager.has_replay()
 
 	if has_replay_data:
@@ -767,7 +802,7 @@ func _unhandled_input(event: InputEvent) -> void:
 ## Called when the Watch Replay button is pressed (or W key).
 func _on_watch_replay_pressed() -> void:
 	print("[TestTier] Watch Replay triggered")
-	var replay_manager: Node = get_node_or_null("/root/ReplayManager")
+	var replay_manager: Node = _get_or_create_replay_manager()
 	if replay_manager and replay_manager.has_method("has_replay") and replay_manager.has_replay():
 		if replay_manager.has_method("start_playback"):
 			replay_manager.start_playback(self)
@@ -907,9 +942,9 @@ func _setup_selected_weapon() -> void:
 
 ## Starts recording the replay for this level.
 func _start_replay_recording() -> void:
-	var replay_manager: Node = get_node_or_null("/root/ReplayManager")
+	var replay_manager: Node = _get_or_create_replay_manager()
 	if replay_manager == null:
-		print("[TestTier] ERROR: ReplayManager autoload not found!")
+		print("[TestTier] ERROR: ReplayManager could not be loaded!")
 		return
 
 	# Log player and enemies status for debugging
