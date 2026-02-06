@@ -102,12 +102,11 @@ enum WeaponType { RIFLE, SHOTGUN, UZI }
 @export var grenade_throw_delay: float = 0.4  ## Delay before throw (sec)
 @export var grenade_debug_logging: bool = false  ## Grenade debug logging
 
-# Advanced Targeting (Issue #349): ricochet/wallbang snap-shooting
-@export var enable_ricochet_shots: bool = true  ## Bounce bullets off walls
-@export var enable_wallbang_shots: bool = true  ## Shoot through thin walls
+@export var enable_ricochet_shots: bool = true  ## Issue #349: bounce bullets off walls
+@export var enable_wallbang_shots: bool = true  ## Issue #349: shoot through thin walls
 @export var enable_double_ricochet: bool = true  ## 2-bounce ricochets
-@export var ricochet_min_probability: float = 0.5  ## Min probability threshold
-@export var advanced_targeting_debug: bool = false  ## Debug logging
+@export var ricochet_min_probability: float = 0.5  ## Min ricochet probability threshold
+@export var advanced_targeting_debug: bool = false  ## Advanced targeting debug logging
 
 signal hit  ## Enemy hit
 signal died  ## Enemy died
@@ -197,9 +196,8 @@ var _has_valid_cover: bool = false  ## Has valid cover
 var _suppression_timer: float = 0.0  ## Suppression cooldown
 var _under_fire: bool = false  ## Under fire (bullets in threat sphere)
 
-var _advanced_targeting: AdvancedTargetingComponent = null  ## Ricochet/wallbang targeting (Issue #349)
-var _current_targeting_type: String = "direct"  ## Current targeting type
-var _advanced_aim_target: Vector2 = Vector2.ZERO  ## Advanced targeting aim position
+var _advanced_targeting: AdvancedTargetingComponent = null  ## Issue #349: ricochet/wallbang targeting
+var _current_targeting_type: String = "direct"; var _advanced_aim_target: Vector2 = Vector2.ZERO
 
 ## Flank target position.
 var _flank_target: Vector2 = Vector2.ZERO
@@ -1704,7 +1702,7 @@ func _process_in_cover_state(delta: float) -> void:
 	# Stay in cover with indirect targeting; only pursue if no targeting available
 	if not _can_see_player and not _under_fire and not _has_valid_targeting():
 		_log_debug("Lost sight of player from cover, transitioning to PURSUING")
-			_transition_to_pursuing()
+		_transition_to_pursuing()
 
 ## Process FLANKING state - flank player using cover-to-cover movement.
 func _process_flanking_state(delta: float) -> void:
@@ -3783,41 +3781,19 @@ func _has_line_of_sight_to_position(target_pos: Vector2) -> bool:
 
 ## Aim the enemy sprite/direction at the player using gradual rotation.
 func _aim_at_player() -> void:
-	if _player == null:
-		return
-	var direction := (_player.global_position - global_position).normalized()
-	var target_angle := direction.angle()
-
-	# Calculate the shortest rotation direction
-	var angle_diff := wrapf(target_angle - rotation, -PI, PI)
-
-	# Get the delta time from the current physics process
-	var delta := get_physics_process_delta_time()
-
-	# Apply gradual rotation based on rotation_speed
-	if abs(angle_diff) <= rotation_speed * delta:
-		# Close enough to snap to target
-		rotation = target_angle
-	elif angle_diff > 0:
-		rotation += rotation_speed * delta
-	else:
-		rotation -= rotation_speed * delta
+	if _player == null: return
+	_aim_at_position(_player.global_position)
 
 ## Shoot with advanced targeting: direct/ricochet/wallbang (Issue #349, #417).
 func _shoot() -> void:
-	if bullet_scene == null or _player == null: return
-	if not _can_shoot(): return
-	var targeting := _get_best_targeting()
-	_current_targeting_type = targeting.type
+	if bullet_scene == null or _player == null or not _can_shoot(): return
+	var targeting := _get_best_targeting(); _current_targeting_type = targeting.type
 	if targeting.type == "none": return
-	var target_position: Vector2 = targeting.aim_point
-	_advanced_aim_target = target_position
-	if targeting.type != "direct" and advanced_targeting_debug:
-		var snap := " (SNAP-SHOT)" if targeting.get("suspected", false) else ""
-		_log_debug("ADVANCED SHOT: %s target=%v prob=%.0f%% bounces=%d%s" % [targeting.type, target_position, targeting.probability * 100, targeting.bounce_count, snap])
-	if targeting.type == "direct" and enable_lead_prediction:
-		target_position = _calculate_lead_prediction(); _advanced_aim_target = target_position
-	if targeting.type == "direct" and not _should_shoot_at_target(target_position): return
+	var target_position: Vector2 = targeting.aim_point; _advanced_aim_target = target_position
+	if targeting.type != "direct" and advanced_targeting_debug: _log_debug("ADVANCED SHOT: %s target=%v prob=%.0f%% bounces=%d%s" % [targeting.type, target_position, targeting.probability * 100, targeting.bounce_count, " (SNAP)" if targeting.get("suspected", false) else ""])
+	if targeting.type == "direct":
+		if enable_lead_prediction: target_position = _calculate_lead_prediction(); _advanced_aim_target = target_position
+		if not _should_shoot_at_target(target_position): return
 
 	# Calculate bullet spawn position at weapon muzzle first
 	# We need this to calculate the correct bullet direction
@@ -4845,7 +4821,6 @@ func set_stunned(stunned: bool) -> void:
 func is_blinded() -> bool: return _is_blinded
 func is_stunned() -> bool: return _is_stunned
 
-
 ## Apply flashbang effect (Issue #432). Called by C# GrenadeTimer.
 func apply_flashbang_effect(blindness_duration: float, stun_duration: float) -> void:
 	_log_to_file("Flashbang: blind=%.1fs, stun=%.1fs" % [blindness_duration, stun_duration])
@@ -4861,53 +4836,40 @@ func _update_flashbang_timers(delta: float) -> void:
 		_stun_timer -= delta
 		if _stun_timer <= 0.0: _stun_timer = 0.0; set_stunned(false)
 
-
-# Advanced Targeting System (Issue #349) - Ricochet/wallbang snap-shooting
-func _initialize_advanced_targeting() -> void:
+func _initialize_advanced_targeting() -> void:  # Issue #349: ricochet/wallbang snap-shooting
 	if not enable_ricochet_shots and not enable_wallbang_shots: return
-	_advanced_targeting = AdvancedTargetingComponent.new()
-	_advanced_targeting.enable_ricochet_shots = enable_ricochet_shots
-	_advanced_targeting.enable_wallbang_shots = enable_wallbang_shots
-	_advanced_targeting.enable_double_ricochet = enable_double_ricochet
-	_advanced_targeting.ricochet_min_probability_threshold = ricochet_min_probability
-	_advanced_targeting.debug_logging = advanced_targeting_debug
-	add_child(_advanced_targeting); call_deferred("_setup_advanced_targeting_callbacks")
+	var c := AdvancedTargetingComponent.new(); _advanced_targeting = c
+	c.enable_ricochet_shots = enable_ricochet_shots; c.enable_wallbang_shots = enable_wallbang_shots
+	c.enable_double_ricochet = enable_double_ricochet; c.ricochet_min_probability_threshold = ricochet_min_probability
+	c.debug_logging = advanced_targeting_debug; add_child(c); call_deferred("_setup_advanced_targeting_callbacks")
 func _setup_advanced_targeting_callbacks() -> void:
 	if _advanced_targeting and _player: _advanced_targeting.initialize(_player, Callable(self, "_calculate_lead_prediction"), Callable(self, "_get_can_see_player"))
 func _get_can_see_player() -> bool: return _can_see_player
 func _update_advanced_targeting() -> void:
 	if not _advanced_targeting: return
-	if _memory and _memory.has_target() and not _can_see_player: _advanced_targeting.set_suspected_target(_memory.suspected_position, _memory.confidence)
-	elif _can_see_player: _advanced_targeting.clear_suspected_target()
-	if not _can_see_player: _advanced_targeting.update_targeting()
+	if _can_see_player: _advanced_targeting.clear_suspected_target(); return
+	if _memory and _memory.has_target(): _advanced_targeting.set_suspected_target(_memory.suspected_position, _memory.confidence)
+	_advanced_targeting.update_targeting()
 func _get_best_targeting() -> Dictionary:
 	if _advanced_targeting: return _advanced_targeting.get_best_targeting()
-	if _can_see_player and _player:
-		var tp := _player.global_position if not enable_lead_prediction else _calculate_lead_prediction()
-		return {"type": "direct", "aim_point": tp, "probability": 1.0, "bounce_count": 0, "suspected": false}
+	if _can_see_player and _player: return {"type": "direct", "aim_point": _player.global_position if not enable_lead_prediction else _calculate_lead_prediction(), "probability": 1.0, "bounce_count": 0, "suspected": false}
 	return {"type": "none", "aim_point": Vector2.ZERO, "probability": 0.0, "bounce_count": 0, "suspected": false}
-func _has_valid_targeting() -> bool:
-	if _can_see_player: return true
-	return _advanced_targeting.has_indirect_targeting() if _advanced_targeting else false
+func _has_valid_targeting() -> bool: return _can_see_player or (_advanced_targeting != null and _advanced_targeting.has_indirect_targeting())
 func _aim_at_position(target_pos: Vector2) -> void:
-	var target_angle := (target_pos - global_position).normalized().angle()
-	var angle_diff := wrapf(target_angle - rotation, -PI, PI)
-	var delta := get_physics_process_delta_time()
-	if abs(angle_diff) <= rotation_speed * delta: rotation = target_angle
-	elif angle_diff > 0: rotation += rotation_speed * delta
-	else: rotation -= rotation_speed * delta
+	var a := (target_pos - global_position).normalized().angle(); var d := wrapf(a - rotation, -PI, PI); var dt := get_physics_process_delta_time()
+	if abs(d) <= rotation_speed * dt: rotation = a
+	elif d > 0: rotation += rotation_speed * dt
+	else: rotation -= rotation_speed * dt
 func _try_snap_shot(require_dd: bool = true) -> bool:
 	if _can_see_player: return false
 	_update_advanced_targeting(); return _aim_and_shoot_best_targeting("SNAP", require_dd)
-func _aim_and_shoot_best_targeting(ctx: String, require_dd: bool = true) -> bool:
+func _aim_and_shoot_best_targeting(_ctx: String, require_dd: bool = true) -> bool:
 	if not _player: return false
-	var t := _get_best_targeting()
-	if t.type == "none": return false
+	var t := _get_best_targeting(); if t.type == "none": return false
 	if t.type == "direct": _aim_at_player()
 	else: _aim_at_position(t.aim_point)
 	if (not require_dd or _detection_delay_elapsed) and _shoot_timer >= shoot_cooldown: _shoot(); _shoot_timer = 0.0; return true
 	return false
-
 
 # Grenade Component System (Issue #363, #377)
 

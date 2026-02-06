@@ -301,6 +301,71 @@ Assuming 60 FPS and 10 enemies:
 4. Performance remains acceptable (no frame drops with 10+ enemies)
 5. Behavior feels intelligent, not omniscient (add delay/accuracy reduction)
 
+## Bug Report Analysis (2026-02-06)
+
+### Symptom
+
+After implementing the advanced targeting system, the game owner reported "enemies are completely broken" (враги полностью сломались). The game log (`game_log_20260206_141705.txt`) showed:
+
+```
+[BuildingLevel] Child 'Enemy1': script=true, has_died_signal=false
+...
+[BuildingLevel] Child 'Enemy10': script=true, has_died_signal=false
+[BuildingLevel] Enemy tracking complete: 0 enemies registered
+[ScoreManager] Level started with 0 enemies
+```
+
+All 10 enemies had their scripts attached (`script=true`) but the `died` signal was not detected (`has_died_signal=false`), meaning no enemies were tracked by the level system. This caused enemies to be non-functional - they couldn't register deaths, scores wouldn't track, and the game couldn't determine when all enemies were cleared.
+
+### Root Cause
+
+**GDScript indentation parse error** at line 1707 in `enemy.gd`:
+
+```gdscript
+# BUGGY CODE (commit 6616e6f):
+if not _can_see_player and not _under_fire and not _has_valid_targeting():
+    _log_debug("Lost sight of player from cover, transitioning to PURSUING")
+        _transition_to_pursuing()  # <-- THREE tabs (invalid!)
+```
+
+The `_transition_to_pursuing()` call had 3 tabs of indentation, but `_log_debug(...)` above it only had 2 tabs. In GDScript, you cannot increase indentation after a simple statement (only after `if`, `for`, `func`, etc.). This is a **parse error** that causes the entire `enemy.gd` script to fail to compile.
+
+When a GDScript fails to parse:
+1. The node keeps its script reference (`get_script() != null` → `script=true`)
+2. But the script class definition is invalid, so signals defined in it are not registered
+3. `has_signal("died")` returns `false` because the class couldn't be parsed
+4. `building_level.gd._setup_enemy_tracking()` skips all enemies since none have the `died` signal
+
+### Timeline
+
+1. **Commit 569c316** (`feat: implement snap-shooting at suspected positions`): Introduced the `_process_in_cover_state` changes with the indentation bug
+2. **Commit 6616e6f** (`refactor: compact advanced targeting code`): Compacted code but didn't fix the indentation error
+3. **2026-02-06 14:17:05**: Owner tested the exported build, found enemies completely broken
+4. **2026-02-06 11:17:33**: Owner posted game log and bug report on PR #381
+
+### Fix
+
+Changed line 1707 from 3 tabs to 2 tabs:
+
+```gdscript
+# FIXED:
+if not _can_see_player and not _under_fire and not _has_valid_targeting():
+    _log_debug("Lost sight of player from cover, transitioning to PURSUING")
+    _transition_to_pursuing()  # <-- TWO tabs (correct)
+```
+
+### Additional Changes
+
+- Refactored `_aim_at_player()` to delegate to `_aim_at_position()` (DRY principle, saves 17 lines)
+- Compacted advanced targeting functions to bring `enemy.gd` to exactly 5000 lines (CI limit)
+- Simplified `_update_advanced_targeting()` logic for cleaner early-return pattern
+
+### Lessons Learned
+
+1. **GDScript indentation errors are silent in exports** - the game doesn't crash, it just makes all nodes using the broken script lose their class behavior
+2. **Always verify parse correctness** - a single extra tab/space can break an entire 5000-line script
+3. **The `script=true, has_signal=false` pattern** is a clear indicator of a script parse/compile failure in Godot
+
 ## Risk Assessment
 
 | Risk | Impact | Mitigation |
@@ -309,3 +374,4 @@ Assuming 60 FPS and 10 enemies:
 | Feels unfair/cheating to player | Medium | Add reaction delay, reduce accuracy |
 | Complex geometry edge cases | Medium | Extensive testing, fallback to direct shot |
 | Interactions with existing AI states | Medium | Clear state machine integration |
+| GDScript parse errors in large files | Critical | Automated syntax validation, CI checks |
