@@ -281,7 +281,7 @@ func _on_player_died() -> void:
 
 
 ## Triggers the last chance effect from a grenade explosion in Power Fantasy mode.
-## Uses the full time-freeze visual effect but with a short duration (400ms).
+## Uses the full time-freeze visual effect with configurable duration (default: 2000ms).
 ## Unlike the threat-triggered version, this can be used multiple times per life.
 func trigger_grenade_last_chance(duration_seconds: float) -> void:
 	if _is_effect_active:
