@@ -1,5 +1,5 @@
 extends Node2D
-## Test tier/level scene for the Godot Top-Down Template.
+## Полигон (Training Grounds) level scene for the Godot Top-Down Template.
 ##
 ## This scene serves as a tactical combat arena for testing game mechanics.
 ## Features:
@@ -56,9 +56,15 @@ var _exit_zone: Area2D = null
 ## Whether the level has been cleared (all enemies eliminated).
 var _level_cleared: bool = false
 
+## List of enemy nodes for position tracking.
+var _enemies: Array = []
+
+## Reference to the combo label.
+var _combo_label: Label = null
+
 
 func _ready() -> void:
-	print("TestTier loaded - Tactical Combat Arena")
+	print("Полигон loaded - Tactical Combat Arena")
 	print("Map size: 4000x2960 pixels")
 	print("Clear all zones to win!")
 	print("Press Q for quick restart")
@@ -87,12 +93,68 @@ func _ready() -> void:
 		GameManager.enemy_killed.connect(_on_game_manager_enemy_killed)
 		GameManager.stats_updated.connect(_update_debug_ui)
 
+	# Initialize ScoreManager for this level
+	_initialize_score_manager()
+
 	# Setup exit zone near player spawn (left wall)
 	_setup_exit_zone()
 
 
 func _process(_delta: float) -> void:
-	pass
+	# Update enemy positions for aggressiveness tracking
+	var score_manager: Node = get_node_or_null("/root/ScoreManager")
+	if score_manager and score_manager.has_method("update_enemy_positions"):
+		score_manager.update_enemy_positions(_enemies)
+
+
+## Initialize the ScoreManager for this level.
+func _initialize_score_manager() -> void:
+	var score_manager: Node = get_node_or_null("/root/ScoreManager")
+	if score_manager == null:
+		return
+
+	# Start tracking for this level
+	score_manager.start_level(_initial_enemy_count)
+
+	# Set player reference
+	if _player:
+		score_manager.set_player(_player)
+
+	# Connect to combo changes for UI feedback
+	if not score_manager.combo_changed.is_connected(_on_combo_changed):
+		score_manager.combo_changed.connect(_on_combo_changed)
+
+
+## Called when combo changes.
+func _on_combo_changed(combo: int, points: int) -> void:
+	if _combo_label == null:
+		# Create combo label if it doesn't exist yet
+		var ui := get_node_or_null("CanvasLayer/UI")
+		if ui == null:
+			return
+		_combo_label = Label.new()
+		_combo_label.name = "ComboLabel"
+		_combo_label.text = ""
+		_combo_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		_combo_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+		_combo_label.offset_left = -200
+		_combo_label.offset_right = -10
+		_combo_label.offset_top = 80
+		_combo_label.offset_bottom = 120
+		_combo_label.add_theme_font_size_override("font_size", 28)
+		_combo_label.add_theme_color_override("font_color", Color(1.0, 0.8, 0.2, 1.0))
+		_combo_label.visible = false
+		ui.add_child(_combo_label)
+
+	if combo > 0:
+		_combo_label.text = "x%d COMBO (+%d)" % [combo, points]
+		_combo_label.visible = true
+		# Flash effect for combo
+		_combo_label.modulate = Color.WHITE
+		var tween := create_tween()
+		tween.tween_property(_combo_label, "modulate", Color(1.0, 0.8, 0.2, 1.0), 0.1)
+	else:
+		_combo_label.visible = false
 
 
 ## Setup the navigation mesh for enemy pathfinding.
@@ -218,16 +280,19 @@ func _setup_enemy_tracking() -> void:
 	if enemies_node == null:
 		return
 
-	var enemies := []
+	_enemies.clear()
 	for child in enemies_node.get_children():
 		if child.has_signal("died"):
-			enemies.append(child)
+			_enemies.append(child)
 			child.died.connect(_on_enemy_died)
+			# Connect to died_with_info for score tracking if available
+			if child.has_signal("died_with_info"):
+				child.died_with_info.connect(_on_enemy_died_with_info)
 		# Track when enemy is hit for accuracy
 		if child.has_signal("hit"):
 			child.hit.connect(_on_enemy_hit)
 
-	_initial_enemy_count = enemies.size()
+	_initial_enemy_count = _enemies.size()
 	_current_enemy_count = _initial_enemy_count
 	print("Tracking %d enemies" % _initial_enemy_count)
 
@@ -267,7 +332,7 @@ func _on_player_reached_exit() -> void:
 		return
 
 	print("[TestTier] Player reached exit - showing score!")
-	_show_victory_message()
+	call_deferred("_complete_level_with_score")
 
 
 ## Activate the exit zone after all enemies are eliminated.
@@ -278,7 +343,7 @@ func _activate_exit_zone() -> void:
 	else:
 		# Fallback: if exit zone not available, show score immediately
 		push_warning("Exit zone not available - showing score immediately")
-		_show_victory_message()
+		_complete_level_with_score()
 
 
 ## Configure silenced pistol ammo based on enemy count.
@@ -385,6 +450,14 @@ func _on_enemy_died() -> void:
 		_level_cleared = true
 		# Activate exit zone - score will show when player reaches it
 		call_deferred("_activate_exit_zone")
+
+
+## Called when an enemy dies with special kill information (for score tracking).
+func _on_enemy_died_with_info(is_ricochet_kill: bool, is_penetration_kill: bool) -> void:
+	# Register kill with ScoreManager including special kill info
+	var score_manager: Node = get_node_or_null("/root/ScoreManager")
+	if score_manager and score_manager.has_method("register_kill"):
+		score_manager.register_kill(is_ricochet_kill, is_penetration_kill)
 
 
 ## Called when an enemy is hit (for accuracy tracking).
@@ -605,6 +678,121 @@ func _update_magazines_label(magazine_ammo_counts: Array) -> void:
 func _update_enemy_count_label() -> void:
 	if _enemy_count_label:
 		_enemy_count_label.text = "Enemies: %d" % _current_enemy_count
+
+
+## Complete the level and show the score screen.
+func _complete_level_with_score() -> void:
+	var score_manager: Node = get_node_or_null("/root/ScoreManager")
+	if score_manager and score_manager.has_method("complete_level"):
+		var score_data: Dictionary = score_manager.complete_level()
+		_show_score_screen(score_data)
+	else:
+		# Fallback to simple victory message if ScoreManager not available
+		_show_victory_message()
+
+
+## Show the animated score screen.
+## Features:
+## - Sequential reveal: Items appear one after another
+## - Counting animation: Numbers animate from 0 to final value with pulsing
+## - Sound effects: Retro beeps during counting (major arpeggio)
+## - Dramatic rank reveal: Fullscreen with flashing background, then shrinks
+## @param score_data: Dictionary containing all score components from ScoreManager.
+func _show_score_screen(score_data: Dictionary) -> void:
+	var ui := get_node_or_null("CanvasLayer/UI")
+	if ui == null:
+		_show_victory_message()  # Fallback
+		return
+
+	# Load and use the animated score screen component
+	var animated_score_screen_script = load("res://scripts/ui/animated_score_screen.gd")
+	if animated_score_screen_script:
+		var score_screen = animated_score_screen_script.new()
+		add_child(score_screen)
+		score_screen.show_animated_score(ui, score_data)
+	else:
+		# Fallback to simple display if animated script not found
+		_show_fallback_score_screen(ui, score_data)
+
+
+## Fallback score screen if animated component is not available.
+func _show_fallback_score_screen(ui: Control, score_data: Dictionary) -> void:
+	var background := ColorRect.new()
+	background.name = "ScoreBackground"
+	background.color = Color(0.0, 0.0, 0.0, 0.85)
+	background.set_anchors_preset(Control.PRESET_FULL_RECT)
+	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ui.add_child(background)
+
+	# Create a container for score display
+	var container := VBoxContainer.new()
+	container.name = "ScoreContainer"
+	container.set_anchors_preset(Control.PRESET_CENTER)
+	container.offset_left = -250
+	container.offset_right = 250
+	container.offset_top = -200
+	container.offset_bottom = 200
+	container.add_theme_constant_override("separation", 10)
+	ui.add_child(container)
+
+	# Title
+	var title := Label.new()
+	title.text = "LEVEL CLEARED!"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 36)
+	title.add_theme_color_override("font_color", Color(0.2, 1.0, 0.3, 1.0))
+	container.add_child(title)
+
+	# Score breakdown
+	var breakdown := [
+		["KILLS", "%d/%d" % [score_data.kills, score_data.total_enemies], "+%d" % score_data.kill_points],
+		["COMBO", "Max x%d" % score_data.max_combo, "+%d" % score_data.combo_points],
+		["TIME", "%.1fs" % score_data.completion_time, "+%d" % score_data.time_bonus],
+		["ACCURACY", "%.1f%%" % score_data.accuracy, "+%d" % score_data.accuracy_bonus],
+	]
+
+	if score_data.damage_taken > 0:
+		breakdown.append(["DAMAGE", "%d hits" % score_data.damage_taken, "-%d" % score_data.damage_penalty])
+
+	for item in breakdown:
+		var hbox := HBoxContainer.new()
+		hbox.add_theme_constant_override("separation", 20)
+
+		var cat_label := Label.new()
+		cat_label.text = item[0]
+		cat_label.custom_minimum_size.x = 100
+		hbox.add_child(cat_label)
+
+		var val_label := Label.new()
+		val_label.text = item[1]
+		val_label.custom_minimum_size.x = 100
+		val_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		hbox.add_child(val_label)
+
+		var pts_label := Label.new()
+		pts_label.text = item[2]
+		pts_label.custom_minimum_size.x = 80
+		pts_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		hbox.add_child(pts_label)
+
+		container.add_child(hbox)
+
+	# Total score
+	var total_label := Label.new()
+	total_label.text = "\nTOTAL: %d" % score_data.total_score
+	total_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	total_label.add_theme_font_size_override("font_size", 28)
+	total_label.add_theme_color_override("font_color", Color(1.0, 0.9, 0.3, 1.0))
+	container.add_child(total_label)
+
+	# Rank
+	var rank_label := Label.new()
+	rank_label.text = "RANK: %s" % score_data.rank
+	rank_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	rank_label.add_theme_font_size_override("font_size", 32)
+	var rank_color := Color(1.0, 0.84, 0.0, 1.0) if score_data.rank == "S" else Color(0.2, 1.0, 0.3, 1.0)
+	rank_label.add_theme_color_override("font_color", rank_color)
+	container.add_child(rank_label)
 
 
 ## Show death message when player dies.
