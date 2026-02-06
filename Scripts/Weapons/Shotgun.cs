@@ -69,13 +69,13 @@ public partial class Shotgun : BaseWeapon
     /// Minimum number of pellets per shot (inclusive).
     /// </summary>
     [Export]
-    public int MinPellets { get; set; } = 6;
+    public int MinPellets { get; set; } = 10;
 
     /// <summary>
     /// Maximum number of pellets per shot (inclusive).
     /// </summary>
     [Export]
-    public int MaxPellets { get; set; } = 12;
+    public int MaxPellets { get; set; } = 16;
 
     /// <summary>
     /// Pellet scene to instantiate when firing.

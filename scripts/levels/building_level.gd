@@ -824,7 +824,9 @@ func _show_victory_message() -> void:
 	ui.add_child(stats_label)
 
 
-## Show the score screen with full breakdown (Hotline Miami style).
+## Show the animated score screen with Hotline Miami 2 style effects (Issue #415).
+## Uses the AnimatedScoreScreen component for sequential reveal and counting animations.
+## After animations complete, adds replay and restart buttons (Issue #416).
 ## @param score_data: Dictionary containing all score components from ScoreManager.
 func _show_score_screen(score_data: Dictionary) -> void:
 	var ui := get_node_or_null("CanvasLayer/UI")
@@ -832,7 +834,27 @@ func _show_score_screen(score_data: Dictionary) -> void:
 		_show_victory_message()  # Fallback
 		return
 
-	# Create a semi-transparent background
+	# Load and use the animated score screen component
+	var animated_score_screen_script = load("res://scripts/ui/animated_score_screen.gd")
+	if animated_score_screen_script:
+		var score_screen = animated_score_screen_script.new()
+		add_child(score_screen)
+		# Connect to animation_completed to add replay/restart buttons after animation
+		score_screen.animation_completed.connect(_on_score_animation_completed)
+		score_screen.show_animated_score(ui, score_data)
+	else:
+		# Fallback to simple display if animated script not found
+		_show_fallback_score_screen(ui, score_data)
+
+
+## Called when the animated score screen finishes all animations.
+## Adds replay and restart buttons to the score screen container.
+func _on_score_animation_completed(container: VBoxContainer) -> void:
+	_add_score_screen_buttons(container)
+
+
+## Fallback score screen if animated component is not available.
+func _show_fallback_score_screen(ui: Control, score_data: Dictionary) -> void:
 	var background := ColorRect.new()
 	background.name = "ScoreBackground"
 	background.color = Color(0.0, 0.0, 0.0, 0.7)
@@ -840,21 +862,16 @@ func _show_score_screen(score_data: Dictionary) -> void:
 	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	ui.add_child(background)
 
-	# Create a container for all score elements
 	var container := VBoxContainer.new()
 	container.name = "ScoreContainer"
 	container.set_anchors_preset(Control.PRESET_CENTER)
 	container.offset_left = -300
 	container.offset_right = 300
-	container.offset_top = -280
-	container.offset_bottom = 280
+	container.offset_top = -200
+	container.offset_bottom = 200
 	container.add_theme_constant_override("separation", 8)
 	ui.add_child(container)
 
-	# Get rank color based on rank
-	var rank_color := _get_rank_color(score_data.rank)
-
-	# Title with rank
 	var title_label := Label.new()
 	title_label.text = "LEVEL CLEARED!"
 	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -862,15 +879,13 @@ func _show_score_screen(score_data: Dictionary) -> void:
 	title_label.add_theme_color_override("font_color", Color(0.2, 1.0, 0.3, 1.0))
 	container.add_child(title_label)
 
-	# Large rank display
 	var rank_label := Label.new()
 	rank_label.text = "RANK: %s" % score_data.rank
 	rank_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	rank_label.add_theme_font_size_override("font_size", 64)
-	rank_label.add_theme_color_override("font_color", rank_color)
+	rank_label.add_theme_color_override("font_color", _get_rank_color(score_data.rank))
 	container.add_child(rank_label)
 
-	# Total score
 	var total_label := Label.new()
 	total_label.text = "TOTAL SCORE: %d" % score_data.total_score
 	total_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -878,70 +893,12 @@ func _show_score_screen(score_data: Dictionary) -> void:
 	total_label.add_theme_color_override("font_color", Color(1.0, 0.9, 0.3, 1.0))
 	container.add_child(total_label)
 
-	# Add separator
-	var separator := HSeparator.new()
-	separator.add_theme_constant_override("separation", 20)
-	container.add_child(separator)
+	# Add replay and restart buttons to fallback screen
+	_add_score_screen_buttons(container)
 
-	# Score breakdown
-	var breakdown_lines := [
-		["KILLS", "%d/%d" % [score_data.kills, score_data.total_enemies], "+%d" % score_data.kill_points],
-		["COMBOS", "Max x%d" % score_data.max_combo, "+%d" % score_data.combo_points],
-		["TIME", "%.1fs" % score_data.completion_time, "+%d" % score_data.time_bonus],
-		["ACCURACY", "%.1f%%" % score_data.accuracy, "+%d" % score_data.accuracy_bonus],
-	]
 
-	# Add special kills if any
-	if score_data.ricochet_kills > 0 or score_data.penetration_kills > 0:
-		var special_text := ""
-		if score_data.ricochet_kills > 0:
-			special_text += "%d ricochet" % score_data.ricochet_kills
-		if score_data.penetration_kills > 0:
-			if special_text != "":
-				special_text += ", "
-			special_text += "%d penetration" % score_data.penetration_kills
-		if score_data.special_kills_eligible:
-			breakdown_lines.append(["SPECIAL KILLS", special_text, "+%d" % score_data.special_kill_bonus])
-		else:
-			breakdown_lines.append(["SPECIAL KILLS", special_text, "(need aggression)"])
-
-	# Add damage penalty if any
-	if score_data.damage_taken > 0:
-		breakdown_lines.append(["DAMAGE TAKEN", "%d hits" % score_data.damage_taken, "-%d" % score_data.damage_penalty])
-
-	# Create breakdown labels
-	for line in breakdown_lines:
-		var line_container := HBoxContainer.new()
-		line_container.add_theme_constant_override("separation", 20)
-		container.add_child(line_container)
-
-		var category_label := Label.new()
-		category_label.text = line[0]
-		category_label.add_theme_font_size_override("font_size", 18)
-		category_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7, 1.0))
-		category_label.custom_minimum_size.x = 150
-		line_container.add_child(category_label)
-
-		var value_label := Label.new()
-		value_label.text = line[1]
-		value_label.add_theme_font_size_override("font_size", 18)
-		value_label.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 1.0))
-		value_label.custom_minimum_size.x = 150
-		value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		line_container.add_child(value_label)
-
-		var points_label := Label.new()
-		points_label.text = line[2]
-		points_label.add_theme_font_size_override("font_size", 18)
-		# Color code: green for positive, red for negative/penalty
-		if line[2].begins_with("-") or line[2].contains("need"):
-			points_label.add_theme_color_override("font_color", Color(1.0, 0.4, 0.4, 1.0))
-		else:
-			points_label.add_theme_color_override("font_color", Color(0.4, 1.0, 0.4, 1.0))
-		points_label.custom_minimum_size.x = 100
-		points_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		line_container.add_child(points_label)
-
+## Adds Watch Replay and Restart buttons to a score screen container.
+func _add_score_screen_buttons(container: VBoxContainer) -> void:
 	# Add spacer
 	var spacer := Control.new()
 	spacer.custom_minimum_size.y = 10
@@ -949,44 +906,22 @@ func _show_score_screen(score_data: Dictionary) -> void:
 
 	# Add buttons container
 	var buttons_container := HBoxContainer.new()
+	buttons_container.name = "ButtonsContainer"
 	buttons_container.alignment = BoxContainer.ALIGNMENT_CENTER
 	buttons_container.add_theme_constant_override("separation", 20)
 	container.add_child(buttons_container)
 
-	# Watch Replay button
+	# Watch Replay button (only if replay data exists)
 	var replay_manager: Node = get_node_or_null("/root/ReplayManager")
-	_log_to_file("Creating score screen: replay_manager=%s" % (replay_manager != null))
-
-	if replay_manager:
-		var has_replay_method: bool = replay_manager.has_method("has_replay")
-		var has_replay_value: bool = false
-		var replay_duration: float = 0.0
-
-		if has_replay_method:
-			has_replay_value = replay_manager.has_replay()
-			if replay_manager.has_method("get_replay_duration"):
-				replay_duration = replay_manager.get_replay_duration()
-
-		_log_to_file("Replay check: has_method=%s, has_replay=%s, duration=%.2fs" % [
-			has_replay_method,
-			has_replay_value,
-			replay_duration
-		])
-		print("[BuildingLevel] Replay available: %s (duration: %.2fs)" % [has_replay_value, replay_duration])
-
-		if has_replay_method and has_replay_value:
-			var replay_button := Button.new()
-			replay_button.name = "ReplayButton"
-			replay_button.text = "▶ Watch Replay"
-			replay_button.custom_minimum_size = Vector2(150, 40)
-			replay_button.add_theme_font_size_override("font_size", 18)
-			replay_button.pressed.connect(_on_watch_replay_pressed)
-			buttons_container.add_child(replay_button)
-			_log_to_file("Watch Replay button created successfully")
-		else:
-			_log_to_file("Watch Replay button NOT created - no replay available")
-	else:
-		_log_to_file("ERROR: ReplayManager not found when creating score screen!")
+	if replay_manager and replay_manager.has_method("has_replay") and replay_manager.has_replay():
+		var replay_button := Button.new()
+		replay_button.name = "ReplayButton"
+		replay_button.text = "▶ Watch Replay"
+		replay_button.custom_minimum_size = Vector2(150, 40)
+		replay_button.add_theme_font_size_override("font_size", 18)
+		replay_button.pressed.connect(_on_watch_replay_pressed)
+		buttons_container.add_child(replay_button)
+		_log_to_file("Watch Replay button created")
 
 	# Restart button
 	var restart_button := Button.new()
@@ -997,15 +932,13 @@ func _show_score_screen(score_data: Dictionary) -> void:
 	restart_button.pressed.connect(_on_restart_pressed)
 	buttons_container.add_child(restart_button)
 
-	# Pause the game to prevent input during score screen
 	# Show cursor for button interaction
 	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
 
 	# Focus the first button
-	if replay_manager and replay_manager.has_method("has_replay") and replay_manager.has_replay():
-		var replay_btn: Button = buttons_container.get_node_or_null("ReplayButton")
-		if replay_btn:
-			replay_btn.grab_focus()
+	var replay_btn: Button = buttons_container.get_node_or_null("ReplayButton")
+	if replay_btn:
+		replay_btn.grab_focus()
 	else:
 		restart_button.grab_focus()
 
