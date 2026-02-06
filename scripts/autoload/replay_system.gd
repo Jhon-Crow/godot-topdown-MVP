@@ -111,9 +111,16 @@ func _ready() -> void:
 	# Run in PROCESS_MODE_ALWAYS to work during pause
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_log_to_file("ReplayManager ready (script loaded and _ready called)")
-	_log_to_file("ReplayManager has start_recording: %s" % has_method("start_recording"))
-	var script_path: String = get_script().resource_path if get_script() else "NO SCRIPT"
+	_log_to_file("ReplayManager methods: start_recording=%s, stop_recording=%s, has_replay=%s, start_playback=%s" % [
+		has_method("start_recording"),
+		has_method("stop_recording"),
+		has_method("has_replay"),
+		has_method("start_playback")
+	])
+	var scr = get_script()
+	var script_path: String = scr.resource_path if scr else "NO SCRIPT"
 	_log_to_file("ReplayManager script path: %s" % script_path)
+	_log_to_file("ReplayManager script has source: %s" % (scr.has_source_code() if scr else false))
 
 
 func _physics_process(delta: float) -> void:
@@ -508,12 +515,13 @@ func _create_player_ghost() -> Node2D:
 
 		return ghost
 
-	# Fallback: create a simple colored rectangle
+	# Fallback: create a simple colored sprite
 	var ghost := Node2D.new()
 	ghost.name = "GhostPlayer"
 	var sprite := Sprite2D.new()
-	sprite.texture = PlaceholderTexture2D.new()
-	sprite.modulate = Color(0.2, 0.6, 1.0, 0.8)
+	var img := Image.create(16, 16, false, Image.FORMAT_RGBA8)
+	img.fill(Color(0.2, 0.6, 1.0, 0.8))
+	sprite.texture = ImageTexture.create_from_image(img)
 	ghost.add_child(sprite)
 	return ghost
 
@@ -535,12 +543,13 @@ func _create_enemy_ghost() -> Node2D:
 
 		return ghost
 
-	# Fallback
+	# Fallback: create a simple colored sprite
 	var ghost := Node2D.new()
 	ghost.name = "GhostEnemy"
 	var sprite := Sprite2D.new()
-	sprite.texture = PlaceholderTexture2D.new()
-	sprite.modulate = Color(1.0, 0.2, 0.2, 0.8)
+	var img := Image.create(16, 16, false, Image.FORMAT_RGBA8)
+	img.fill(Color(1.0, 0.2, 0.2, 0.8))
+	sprite.texture = ImageTexture.create_from_image(img)
 	ghost.add_child(sprite)
 	return ghost
 
