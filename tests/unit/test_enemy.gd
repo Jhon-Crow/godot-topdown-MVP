@@ -174,8 +174,27 @@ class MockEnemy:
 			on_died.call()
 
 
+	## Progressive spread system (Issue #516)
+	var _spread_threshold: int = 3
+	var _initial_spread: float = 0.5
+	var _spread_increment: float = 0.6
+	var _max_spread: float = 4.0
+	var _spread_reset_time: float = 0.25
+	var _shot_count: int = 0
+	var _spread_timer: float = 0.0
+
+
 	func can_shoot() -> bool:
 		return _is_alive and _current_ammo > 0 and not _is_reloading and _shoot_timer >= shoot_cooldown
+
+
+	## Calculate current progressive spread based on consecutive shots (Issue #516).
+	func get_current_spread() -> float:
+		if _shot_count <= _spread_threshold:
+			return _initial_spread
+		var extra_shots := _shot_count - _spread_threshold
+		var spread := _initial_spread + extra_shots * _spread_increment
+		return minf(spread, _max_spread)
 
 
 	func shoot() -> bool:
@@ -183,6 +202,8 @@ class MockEnemy:
 			return false
 
 		_current_ammo -= 1
+		_shot_count += 1
+		_spread_timer = 0.0
 		_shoot_timer = 0.0
 
 		if on_ammo_changed:
@@ -193,6 +214,12 @@ class MockEnemy:
 
 	func update_shoot_timer(delta: float) -> void:
 		_shoot_timer += delta
+
+
+	func update_spread_timer(delta: float) -> void:
+		_spread_timer += delta
+		if _spread_timer >= _spread_reset_time and _spread_reset_time > 0.0:
+			_shot_count = 0
 
 
 	func needs_reload() -> bool:
@@ -1750,3 +1777,135 @@ func test_enemy_search_relocates_center_issue_405() -> void:
 	assert_true(new_center_moved, "Center should relocate to enemy's current position")
 	assert_eq(radius_reset, initial_radius, "Radius should reset to initial value")
 	assert_true(zones_cleared, "Visited zones should be cleared for fresh exploration")
+
+
+# ============================================================================
+# Issue #516: Enemy Progressive Weapon Spread Tests
+# ============================================================================
+
+
+## Test that rifle has progressive spread with threshold of 3 shots.
+func test_enemy_rifle_spread_below_threshold_issue_516() -> void:
+	# Default MockEnemy has rifle-like spread: threshold=3, initial=0.5
+	enemy._spread_threshold = 3
+	enemy._initial_spread = 0.5
+	enemy._spread_increment = 0.6
+	enemy._max_spread = 4.0
+	enemy._shot_count = 0
+
+	# Below threshold, spread should be initial value
+	assert_almost_eq(enemy.get_current_spread(), 0.5, 0.001,
+		"Spread should be initial (0.5°) when shot_count <= threshold")
+
+	enemy._shot_count = 3  # At threshold
+	assert_almost_eq(enemy.get_current_spread(), 0.5, 0.001,
+		"Spread should be initial (0.5°) at exactly threshold")
+
+
+## Test that rifle spread increases after threshold.
+func test_enemy_rifle_spread_above_threshold_issue_516() -> void:
+	enemy._spread_threshold = 3
+	enemy._initial_spread = 0.5
+	enemy._spread_increment = 0.6
+	enemy._max_spread = 4.0
+
+	enemy._shot_count = 4  # 1 above threshold
+	assert_almost_eq(enemy.get_current_spread(), 1.1, 0.001,
+		"Spread should be 0.5 + 1*0.6 = 1.1° at shot 4")
+
+	enemy._shot_count = 6  # 3 above threshold
+	assert_almost_eq(enemy.get_current_spread(), 2.3, 0.001,
+		"Spread should be 0.5 + 3*0.6 = 2.3° at shot 6")
+
+
+## Test that rifle spread is clamped to max.
+func test_enemy_rifle_spread_clamped_to_max_issue_516() -> void:
+	enemy._spread_threshold = 3
+	enemy._initial_spread = 0.5
+	enemy._spread_increment = 0.6
+	enemy._max_spread = 4.0
+	enemy._shot_count = 100  # Way above max
+
+	assert_almost_eq(enemy.get_current_spread(), 4.0, 0.001,
+		"Spread should be clamped to max (4.0°)")
+
+
+## Test that UZI spread starts immediately (threshold=0) and reaches 60° after 10 shots.
+func test_enemy_uzi_spread_progressive_issue_516() -> void:
+	# Configure UZI spread parameters
+	enemy._spread_threshold = 0
+	enemy._initial_spread = 6.0
+	enemy._spread_increment = 5.4
+	enemy._max_spread = 60.0
+
+	enemy._shot_count = 0
+	assert_almost_eq(enemy.get_current_spread(), 6.0, 0.001,
+		"UZI spread should start at 6.0° (initial)")
+
+	enemy._shot_count = 1
+	assert_almost_eq(enemy.get_current_spread(), 11.4, 0.001,
+		"UZI spread at shot 1: 6.0 + 1*5.4 = 11.4°")
+
+	enemy._shot_count = 5
+	assert_almost_eq(enemy.get_current_spread(), 33.0, 0.001,
+		"UZI spread at shot 5: 6.0 + 5*5.4 = 33.0°")
+
+	enemy._shot_count = 10
+	assert_almost_eq(enemy.get_current_spread(), 60.0, 0.001,
+		"UZI spread at shot 10: 6.0 + 10*5.4 = 60.0° (max)")
+
+	enemy._shot_count = 20
+	assert_almost_eq(enemy.get_current_spread(), 60.0, 0.001,
+		"UZI spread beyond 10 shots should be clamped to 60.0°")
+
+
+## Test that shooting increments shot count and resets spread timer.
+func test_enemy_shooting_updates_spread_state_issue_516() -> void:
+	enemy._shot_count = 0
+	enemy._spread_timer = 1.0
+	enemy._shoot_timer = enemy.shoot_cooldown  # Ensure cooldown ready
+
+	enemy.shoot()
+
+	assert_eq(enemy._shot_count, 1, "Shot count should increment on each shot")
+	assert_eq(enemy._spread_timer, 0.0, "Spread timer should reset on each shot")
+
+
+## Test that spread resets after spread_reset_time elapses without shooting.
+func test_enemy_spread_resets_after_timeout_issue_516() -> void:
+	enemy._spread_reset_time = 0.25
+	enemy._shot_count = 10
+
+	# Simulate time passing without shooting
+	enemy.update_spread_timer(0.1)
+	assert_eq(enemy._shot_count, 10, "Shot count should NOT reset before reset time")
+
+	enemy.update_spread_timer(0.2)  # Total: 0.3s > 0.25s reset time
+	assert_eq(enemy._shot_count, 0, "Shot count should reset after spread_reset_time")
+
+
+## Test that weapon config provides correct spread parameters for each weapon type.
+func test_weapon_config_spread_parameters_issue_516() -> void:
+	var rifle_config := WeaponConfigComponent.get_config(0)
+	assert_eq(rifle_config.get("spread_threshold", -1), 3,
+		"Rifle should have spread_threshold=3")
+	assert_almost_eq(rifle_config.get("initial_spread", -1.0) as float, 0.5, 0.001,
+		"Rifle should have initial_spread=0.5")
+	assert_almost_eq(rifle_config.get("max_spread", -1.0) as float, 4.0, 0.001,
+		"Rifle should have max_spread=4.0")
+
+	var uzi_config := WeaponConfigComponent.get_config(2)
+	assert_eq(uzi_config.get("spread_threshold", -1), 0,
+		"UZI should have spread_threshold=0 (spread starts immediately)")
+	assert_almost_eq(uzi_config.get("initial_spread", -1.0) as float, 6.0, 0.001,
+		"UZI should have initial_spread=6.0")
+	assert_almost_eq(uzi_config.get("max_spread", -1.0) as float, 60.0, 0.001,
+		"UZI should have max_spread=60.0")
+	assert_almost_eq(uzi_config.get("spread_reset_time", -1.0) as float, 0.3, 0.001,
+		"UZI should have spread_reset_time=0.3")
+
+	var shotgun_config := WeaponConfigComponent.get_config(1)
+	assert_almost_eq(shotgun_config.get("initial_spread", -1.0) as float, 0.0, 0.001,
+		"Shotgun should have initial_spread=0.0 (uses pellet spread instead)")
+	assert_almost_eq(shotgun_config.get("max_spread", -1.0) as float, 0.0, 0.001,
+		"Shotgun should have max_spread=0.0 (uses pellet spread instead)")
