@@ -9,9 +9,10 @@ extends Node
 
 ## Difficulty levels enumeration.
 enum Difficulty {
-	EASY,    ## Easy difficulty - longer enemy reaction delay
-	NORMAL,  ## Default difficulty - classic behavior
-	HARD     ## Hard difficulty - enables distraction attack and reduced ammo
+	EASY,          ## Easy difficulty - longer enemy reaction delay
+	NORMAL,        ## Default difficulty - classic behavior
+	HARD,          ## Hard difficulty - enables distraction attack and reduced ammo
+	POWER_FANTASY  ## Power Fantasy mode - player has 10 HP, special abilities
 }
 
 ## Signal emitted when difficulty changes.
@@ -57,6 +58,11 @@ func is_easy_mode() -> bool:
 	return current_difficulty == Difficulty.EASY
 
 
+## Check if the game is in power fantasy mode.
+func is_power_fantasy_mode() -> bool:
+	return current_difficulty == Difficulty.POWER_FANTASY
+
+
 ## Get the display name of the current difficulty.
 func get_difficulty_name() -> String:
 	match current_difficulty:
@@ -66,6 +72,8 @@ func get_difficulty_name() -> String:
 			return "Normal"
 		Difficulty.HARD:
 			return "Hard"
+		Difficulty.POWER_FANTASY:
+			return "Power Fantasy"
 		_:
 			return "Unknown"
 
@@ -79,6 +87,8 @@ func get_difficulty_name_for(difficulty: Difficulty) -> String:
 			return "Normal"
 		Difficulty.HARD:
 			return "Hard"
+		Difficulty.POWER_FANTASY:
+			return "Power Fantasy"
 		_:
 			return "Unknown"
 
@@ -86,6 +96,7 @@ func get_difficulty_name_for(difficulty: Difficulty) -> String:
 ## Get max ammo based on difficulty.
 ## Easy/Normal: 90 bullets (3 magazines)
 ## Hard: 60 bullets (2 magazines)
+## Power Fantasy: 270 bullets (9 magazines - 3x normal)
 func get_max_ammo() -> int:
 	match current_difficulty:
 		Difficulty.EASY:
@@ -94,6 +105,8 @@ func get_max_ammo() -> int:
 			return 90
 		Difficulty.HARD:
 			return 60
+		Difficulty.POWER_FANTASY:
+			return 270  # 3x normal ammo
 		_:
 			return 90
 
@@ -109,6 +122,7 @@ func is_distraction_attack_enabled() -> bool:
 ## Easy: 0.5s - gives player more time to react after peeking from cover
 ## Normal: 0.6s - slower reaction than easy, gives player even more time
 ## Hard: 0.2s - quick reaction (hard mode uses other mechanics too)
+## Power Fantasy: 0.8s - enemies react slower
 func get_detection_delay() -> float:
 	match current_difficulty:
 		Difficulty.EASY:
@@ -117,6 +131,8 @@ func get_detection_delay() -> float:
 			return 0.6
 		Difficulty.HARD:
 			return 0.2
+		Difficulty.POWER_FANTASY:
+			return 0.8  # Enemies react slower in power fantasy
 		_:
 			return 0.6
 
@@ -159,6 +175,8 @@ func _get_grenade_difficulty_modifier() -> float:
 			return 1.0  # Normal probability
 		Difficulty.HARD:
 			return 1.5  # 150% of normal probability
+		Difficulty.POWER_FANTASY:
+			return 0.3  # 30% of normal probability - fewer grenades
 		_:
 			return 1.0
 
@@ -258,10 +276,66 @@ func _load_settings() -> void:
 	if error == OK:
 		var saved_difficulty = config.get_value("difficulty", "level", Difficulty.NORMAL)
 		# Validate the saved value
-		if saved_difficulty is int and saved_difficulty >= 0 and saved_difficulty <= Difficulty.HARD:
+		if saved_difficulty is int and saved_difficulty >= 0 and saved_difficulty <= Difficulty.POWER_FANTASY:
 			current_difficulty = saved_difficulty as Difficulty
 		else:
 			current_difficulty = Difficulty.NORMAL
 	else:
 		# File doesn't exist or failed to load - use default
 		current_difficulty = Difficulty.NORMAL
+
+
+# ============================================================================
+# Power Fantasy Mode Configuration (Issue #492)
+# ============================================================================
+
+## Get the player's max health for current difficulty.
+## Power Fantasy mode: 10 HP (instead of the usual 4 HP).
+func get_player_max_health() -> int:
+	if current_difficulty == Difficulty.POWER_FANTASY:
+		return 10
+	# Default player health for other difficulties
+	return 4
+
+
+## Check if ricochets should damage enemies.
+## In Power Fantasy mode, ricochets do NOT damage enemies.
+func do_ricochets_damage_enemies() -> bool:
+	return current_difficulty != Difficulty.POWER_FANTASY
+
+
+## Get weapon recoil multiplier.
+## Power Fantasy mode has reduced recoil (0.3x).
+func get_recoil_multiplier() -> float:
+	if current_difficulty == Difficulty.POWER_FANTASY:
+		return 0.3  # 70% reduction in recoil
+	return 1.0
+
+
+## Get ammo multiplier for weapons.
+## Power Fantasy mode has 3x more ammo.
+func get_ammo_multiplier() -> int:
+	if current_difficulty == Difficulty.POWER_FANTASY:
+		return 3
+	return 1
+
+
+## Check if blue laser sight should be enabled for all weapons.
+## Only enabled in Power Fantasy mode.
+func should_force_blue_laser_sight() -> bool:
+	return current_difficulty == Difficulty.POWER_FANTASY
+
+
+## Get blue laser sight color for Power Fantasy mode.
+func get_power_fantasy_laser_color() -> Color:
+	return Color(0.0, 0.5, 1.0, 0.6)  # Blue with some transparency
+
+
+## Duration (ms) of the last chance effect when player kills an enemy.
+## Only in Power Fantasy mode.
+const POWER_FANTASY_KILL_EFFECT_DURATION_MS: float = 300.0
+
+
+## Duration (ms) of the special last chance effect when grenade explodes.
+## Only in Power Fantasy mode.
+const POWER_FANTASY_GRENADE_EFFECT_DURATION_MS: float = 50.0

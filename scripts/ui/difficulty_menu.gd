@@ -1,10 +1,11 @@
 extends CanvasLayer
 ## Difficulty selection menu.
 ##
-## Allows the player to select between Easy, Normal, and Hard difficulty modes.
+## Allows the player to select between Easy, Normal, Hard, and Power Fantasy difficulty modes.
 ## Easy mode: Longer enemy reaction delay - enemies take more time to shoot after spotting player
 ## Normal mode: Classic game behavior
 ## Hard mode: Enemies react when player looks away, reduced ammo
+## Power Fantasy mode: 10 HP, 3x ammo, reduced recoil, blue laser sights, special effects
 
 ## Signal emitted when the back button is pressed.
 signal back_pressed
@@ -13,6 +14,7 @@ signal back_pressed
 @onready var easy_button: Button = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/EasyButton
 @onready var normal_button: Button = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/NormalButton
 @onready var hard_button: Button = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/HardButton
+@onready var power_fantasy_button: Button = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/PowerFantasyButton
 @onready var back_button: Button = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/BackButton
 @onready var status_label: Label = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/StatusLabel
 
@@ -22,6 +24,7 @@ func _ready() -> void:
 	easy_button.pressed.connect(_on_easy_pressed)
 	normal_button.pressed.connect(_on_normal_pressed)
 	hard_button.pressed.connect(_on_hard_pressed)
+	power_fantasy_button.pressed.connect(_on_power_fantasy_pressed)
 	back_button.pressed.connect(_on_back_pressed)
 
 	# Update button states based on current difficulty
@@ -44,22 +47,27 @@ func _update_button_states() -> void:
 	var is_easy: bool = difficulty_manager.is_easy_mode()
 	var is_normal: bool = difficulty_manager.is_normal_mode()
 	var is_hard: bool = difficulty_manager.is_hard_mode()
+	var is_power_fantasy: bool = difficulty_manager.is_power_fantasy_mode()
 
 	# Highlight current difficulty - disable the selected button
 	easy_button.disabled = is_easy
 	normal_button.disabled = is_normal
 	hard_button.disabled = is_hard
+	power_fantasy_button.disabled = is_power_fantasy
 
 	# Update button text to show selection
 	easy_button.text = "Easy (Selected)" if is_easy else "Easy"
 	normal_button.text = "Normal (Selected)" if is_normal else "Normal"
 	hard_button.text = "Hard (Selected)" if is_hard else "Hard"
+	power_fantasy_button.text = "Power Fantasy (Selected)" if is_power_fantasy else "Power Fantasy"
 
 	# Update status label based on current difficulty
 	if is_easy:
 		status_label.text = "Easy mode: Enemies react slower"
 	elif is_hard:
 		status_label.text = "Hard mode: Enemies react when you look away"
+	elif is_power_fantasy:
+		status_label.text = "Power Fantasy: 10 HP, 3x ammo, blue lasers"
 	else:
 		status_label.text = "Normal mode: Classic gameplay"
 
@@ -82,6 +90,13 @@ func _on_hard_pressed() -> void:
 	var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
 	if difficulty_manager:
 		difficulty_manager.set_difficulty(difficulty_manager.Difficulty.HARD)
+	_update_button_states()
+
+
+func _on_power_fantasy_pressed() -> void:
+	var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
+	if difficulty_manager:
+		difficulty_manager.set_difficulty(difficulty_manager.Difficulty.POWER_FANTASY)
 	_update_button_states()
 
 

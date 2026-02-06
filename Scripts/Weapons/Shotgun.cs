@@ -133,6 +133,21 @@ public partial class Shotgun : BaseWeapon
     private Sprite2D? _shotgunSprite;
 
     /// <summary>
+    /// Reference to the Line2D node for the laser sight (Power Fantasy mode only).
+    /// </summary>
+    private Line2D? _laserSight;
+
+    /// <summary>
+    /// Whether the laser sight is enabled (true only in Power Fantasy mode).
+    /// </summary>
+    private bool _laserSightEnabled = false;
+
+    /// <summary>
+    /// Color of the laser sight (blue in Power Fantasy mode).
+    /// </summary>
+    private Color _laserSightColor = new Color(0.0f, 0.5f, 1.0f, 0.6f);
+
+    /// <summary>
     /// Reference to the pump/foregrip sprite for reload animation.
     /// Issue #447: Added for visual pump-action feedback.
     /// </summary>
@@ -315,6 +330,20 @@ public partial class Shotgun : BaseWeapon
         if (WeaponData != null)
         {
             int maxReserve = WeaponData.MaxReserveAmmo;
+
+            // Check for Power Fantasy mode ammo multiplier
+            var difficultyManager = GetNodeOrNull("/root/DifficultyManager");
+            if (difficultyManager != null)
+            {
+                var multiplierResult = difficultyManager.Call("get_ammo_multiplier");
+                int ammoMultiplier = multiplierResult.AsInt32();
+                if (ammoMultiplier > 1)
+                {
+                    maxReserve *= ammoMultiplier;
+                    GD.Print($"[Shotgun] Power Fantasy mode: reserve shells multiplied by {ammoMultiplier}x ({WeaponData.MaxReserveAmmo} -> {maxReserve})");
+                }
+            }
+
             // Create 2 magazines:
             // - CurrentMagazine: unused placeholder (capacity = maxReserve but set to 0)
             // - 1 spare magazine: holds the actual reserve shells
@@ -324,7 +353,7 @@ public partial class Shotgun : BaseWeapon
             {
                 MagazineInventory.CurrentMagazine.CurrentAmmo = 0;
             }
-            GD.Print($"[Shotgun] Initialized reserve shells: {ReserveAmmo} (from WeaponData.MaxReserveAmmo={maxReserve})");
+            GD.Print($"[Shotgun] Initialized reserve shells: {ReserveAmmo} (from WeaponData.MaxReserveAmmo={WeaponData.MaxReserveAmmo})");
         }
 
         // Get the shotgun sprite for visual representation
@@ -381,6 +410,21 @@ public partial class Shotgun : BaseWeapon
         // causing reserve ammo to display as 0.
         CallDeferred(MethodName.EmitInitialShellCount);
 
+        // Check for Power Fantasy mode - enable blue laser sight
+        var difficultyManagerForLaser = GetNodeOrNull("/root/DifficultyManager");
+        if (difficultyManagerForLaser != null)
+        {
+            var shouldForceBlueLaser = difficultyManagerForLaser.Call("should_force_blue_laser_sight");
+            if (shouldForceBlueLaser.AsBool())
+            {
+                _laserSightEnabled = true;
+                var blueColorVariant = difficultyManagerForLaser.Call("get_power_fantasy_laser_color");
+                _laserSightColor = blueColorVariant.AsColor();
+                CreateLaserSight();
+                GD.Print($"[Shotgun] Power Fantasy mode: blue laser sight enabled with color {_laserSightColor}");
+            }
+        }
+
         GD.Print($"[Shotgun] Ready - Pellets={MinPellets}-{MaxPellets}, Shells={ShellsInTube}/{TubeMagazineCapacity}, Reserve={ReserveAmmo}, Total={ShellsInTube + ReserveAmmo}, CloudOffset={MaxSpawnOffset}px, Tutorial={_isTutorialLevel}");
     }
 
@@ -433,6 +477,12 @@ public partial class Shotgun : BaseWeapon
 
         // Handle RMB drag gestures for pump-action and reload
         HandleDragGestures();
+
+        // Update laser sight (Power Fantasy mode)
+        if (_laserSightEnabled && _laserSight != null)
+        {
+            UpdateLaserSight();
+        }
     }
 
     /// <summary>
@@ -1963,6 +2013,74 @@ public partial class Shotgun : BaseWeapon
         {
             fileLogger.Call("log_info", message);
         }
+    }
+
+    #endregion
+
+    #region Power Fantasy Laser Sight
+
+    /// <summary>
+    /// Creates the laser sight Line2D programmatically (Power Fantasy mode only).
+    /// </summary>
+    private void CreateLaserSight()
+    {
+        _laserSight = new Line2D
+        {
+            Name = "LaserSight",
+            Width = 2.0f,
+            DefaultColor = _laserSightColor,
+            BeginCapMode = Line2D.LineCapMode.Round,
+            EndCapMode = Line2D.LineCapMode.Round
+        };
+
+        _laserSight.AddPoint(Vector2.Zero);
+        _laserSight.AddPoint(Vector2.Right * 500.0f);
+
+        AddChild(_laserSight);
+    }
+
+    /// <summary>
+    /// Updates the laser sight visualization (Power Fantasy mode only).
+    /// The laser shows where the shotgun is aimed.
+    /// </summary>
+    private void UpdateLaserSight()
+    {
+        if (_laserSight == null)
+        {
+            return;
+        }
+
+        // Use the current aim direction
+        Vector2 laserDirection = _aimDirection;
+
+        // Calculate maximum laser length based on viewport size
+        Vector2 viewportSize = GetViewport().GetVisibleRect().Size;
+        float maxLaserLength = viewportSize.Length();
+
+        // Calculate the end point of the laser
+        Vector2 endPoint = laserDirection * maxLaserLength;
+
+        // Raycast to find obstacles
+        var spaceState = GetWorld2D()?.DirectSpaceState;
+        if (spaceState != null)
+        {
+            var query = PhysicsRayQueryParameters2D.Create(
+                GlobalPosition,
+                GlobalPosition + endPoint,
+                4 // Collision mask for obstacles
+            );
+
+            var result = spaceState.IntersectRay(query);
+            if (result.Count > 0)
+            {
+                Vector2 hitPosition = (Vector2)result["position"];
+                endPoint = hitPosition - GlobalPosition;
+            }
+        }
+
+        // Update the laser sight line points (in local coordinates)
+        _laserSight.SetPointPosition(0, Vector2.Zero);
+        _laserSight.SetPointPosition(1, endPoint);
     }
 
     #endregion
