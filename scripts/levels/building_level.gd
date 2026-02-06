@@ -52,6 +52,9 @@ var _level_cleared: bool = false
 ## Whether the score screen is currently shown (for W key shortcut).
 var _score_shown: bool = false
 
+## Whether the level completion sequence has been triggered (prevents duplicate calls).
+var _level_completed: bool = false
+
 ## Duration of saturation effect in seconds.
 const SATURATION_DURATION: float = 0.15
 
@@ -133,6 +136,8 @@ func _get_or_create_replay_manager() -> Node:
 			return _replay_manager
 		else:
 			_log_to_file("ERROR: All ReplayManager loading strategies failed. Script attached=%s" % str(_replay_manager.get_script() != null))
+			_log_to_file("ERROR: This is likely caused by Godot 4.3 binary tokenization bug (godotengine/godot#94150).")
+			_log_to_file("ERROR: Fix: In export_presets.cfg, set script_export_mode=0 (text mode) and re-export the game.")
 			# Keep the node but it won't have replay methods
 	else:
 		_log_to_file("ERROR: Cannot create ReplayManager - no script available")
@@ -267,6 +272,10 @@ func _setup_exit_zone() -> void:
 ## Called when the player reaches the exit zone after clearing the level.
 func _on_player_reached_exit() -> void:
 	if not _level_cleared:
+		return
+
+	# Prevent duplicate calls (exit zone can fire multiple times)
+	if _level_completed:
 		return
 
 	print("[BuildingLevel] Player reached exit - showing score!")
@@ -583,6 +592,18 @@ func _on_enemy_died_with_info(is_ricochet_kill: bool, is_penetration_kill: bool)
 
 ## Complete the level and show the score screen.
 func _complete_level_with_score() -> void:
+	# Prevent duplicate calls
+	if _level_completed:
+		return
+	_level_completed = true
+
+	# Disable player controls immediately
+	_disable_player_controls()
+
+	# Deactivate exit zone to prevent further triggers
+	if _exit_zone and _exit_zone.has_method("deactivate"):
+		_exit_zone.deactivate()
+
 	# Stop replay recording
 	var replay_manager: Node = _get_or_create_replay_manager()
 	if replay_manager:
@@ -1230,6 +1251,25 @@ func _on_restart_pressed() -> void:
 		GameManager.restart_scene()
 	else:
 		get_tree().reload_current_scene()
+
+
+## Disable player controls after level completion (score screen shown).
+## Stops physics processing and input on the player node so the player
+## cannot move, shoot, or interact during the score screen.
+func _disable_player_controls() -> void:
+	if _player == null or not is_instance_valid(_player):
+		return
+
+	_player.set_physics_process(false)
+	_player.set_process(false)
+	_player.set_process_input(false)
+	_player.set_process_unhandled_input(false)
+
+	# Stop any current velocity so player doesn't slide
+	if _player is CharacterBody2D:
+		_player.velocity = Vector2.ZERO
+
+	_log_to_file("Player controls disabled (level completed)")
 
 
 ## Log a message to the file logger if available.
