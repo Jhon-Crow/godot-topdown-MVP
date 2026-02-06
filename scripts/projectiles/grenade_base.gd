@@ -438,7 +438,7 @@ func _update_blink_effect(delta: float) -> void:
 		_blink_timer = 0.0
 		# Toggle visibility or color
 		if _sprite.modulate.r > 0.9:
-			_sprite.modulate = Color(1.0, 0.3, 0.3, 1.0)  # Red tint
+			_sprite.modulate = Color(0.3, 1.0, 0.3, 1.0)  # Green tint
 		else:
 			_sprite.modulate = Color(1.0, 1.0, 1.0, 1.0)  # Normal
 
