@@ -232,14 +232,11 @@ func _on_explode() -> void:
 
 ## Override explosion sound to play frag grenade specific sound.
 func _play_explosion_sound() -> void:
-	# Check if player is in the effect radius for audio variation
-	var player_in_zone := _is_player_in_zone()
-
-	# Use existing explosion sound system
+	# Use offensive grenade explosion sound
 	var audio_manager: Node = get_node_or_null("/root/AudioManager")
-	if audio_manager and audio_manager.has_method("play_flashbang_explosion"):
-		# Reuse flashbang explosion sound for now (can be replaced with frag-specific sound later)
-		audio_manager.play_flashbang_explosion(global_position, player_in_zone)
+	if audio_manager and audio_manager.has_method("play_offensive_grenade_explosion"):
+		# Play offensive grenade explosion sound (Issue #496)
+		audio_manager.play_offensive_grenade_explosion(global_position)
 
 	# Also emit sound for AI awareness via SoundPropagation
 	var sound_propagation: Node = get_node_or_null("/root/SoundPropagation")
