@@ -171,7 +171,59 @@ User reported: "кнопка повтора не появилась" (The replay
 **The ReplayManager autoload issue:**
 The replay_system.gd script may fail to load as autoload in exported builds. Previous fix (removing inner classes) was applied but the issue persists. The buttons now gracefully handle this by showing a disabled state rather than hiding entirely.
 
+## Third User Report (2026-02-06 12:29)
+
+### User Feedback
+User reported: "кнопка появилась но на ней написано no data" (The button appeared but says "no data")
+with game log `game_log_20260206_122932.txt`.
+
+### Analysis of game_log_20260206_122932.txt
+
+**Key findings (same root cause persists):**
+
+1. **Line 134**: `[BuildingLevel] ERROR: ReplayManager not found, replay recording disabled`
+2. **Missing**: `[ReplayManager] ReplayManager ready` never appears in the log
+3. **Line 3012**: `Watch Replay button created (disabled - no replay data)` - Button shows but is disabled
+4. **Lines 3019-3030**: User clicked "Watch Replay" 6 times, each time getting "no replay data available"
+
+The UI fix from the previous report works (buttons are visible), but the underlying autoload loading issue persists.
+
+### Deep Root Cause Investigation (2026-02-06)
+
+The inner class removal fix was not sufficient. Further analysis identified **three additional issues** in `replay_system.gd` that can cause Godot 4.3 export parsing/compilation failures:
+
+**Issue 1: `await` in function called from `_physics_process` (CRITICAL)**
+- Line 378 (old): `await get_tree().create_timer(0.5).timeout` inside `_playback_frame_update()`
+- `_playback_frame_update()` is called from `_physics_process()` on line 113 without `await`
+- This makes `_playback_frame_update` a coroutine (returns Signal), but the call site ignores the return
+- Godot 4.3's binary tokenizer may handle coroutine transformation differently during export
+- Related: [#61037](https://github.com/godotengine/godot/issues/61037) - AutoLoad functions returning null in release mode
+
+**Issue 2: Method name `is_playing()` conflicts with Godot built-in names (MODERATE)**
+- `is_playing()` is a well-known method on AnimationPlayer, AudioStreamPlayer, etc.
+- While `replay_system.gd` extends Node, the export pipeline's global name resolution may conflict
+- Related: [#78230](https://github.com/godotengine/godot/issues/78230) - Autoload compile errors silently hidden
+
+**Issue 3: Function defined before member variables (MODERATE)**
+- `_create_frame_data()` was defined at line 38, before `var _frames` at line 52
+- While valid in GDScript, this is an unusual pattern not used by any working autoload
+- May interact poorly with the export binary tokenizer's parsing order
+
+**Fixes Applied:**
+1. Replaced `await` with timer-based state machine (`_playback_ending` + `_playback_end_timer`)
+2. Renamed `is_playing()` → `is_replaying()` to avoid built-in name conflicts
+3. Moved `_create_frame_data()` after all variable/signal declarations (standard GDScript ordering)
+4. Renamed internal `_is_playing` → `_is_playing_back` for clarity
+
+**Related Godot Issues:**
+- [#61037](https://github.com/godotengine/godot/issues/61037) - AutoLoad script functions returning null in Release mode
+- [#78230](https://github.com/godotengine/godot/issues/78230) - Autoload compile errors are silently swallowed
+- [#94150](https://github.com/godotengine/godot/issues/94150) - GDScript export mode breaks exported builds
+- [#58563](https://github.com/godotengine/godot/issues/58563) - Exported project cannot load autoload
+- [#83119](https://github.com/godotengine/godot/issues/83119) - AutoLoad fails to load in unintuitive way
+
 ## Logs
 
 - `logs/solution-draft-log-pr-421.txt` - Full AI solver execution log from 2026-02-04
-- `game_log_20260206_120242.txt` - User game log showing ReplayManager autoload failure
+- `game_log_20260206_120242.txt` - User game log showing ReplayManager autoload failure (first report)
+- `game_log_20260206_122932.txt` - User game log showing "no data" button (second report)

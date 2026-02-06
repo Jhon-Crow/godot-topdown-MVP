@@ -34,20 +34,6 @@ const MAX_RECORDING_DURATION: float = 300.0  # 5 minutes
 ## (Godot 4.3 has issues with inner classes in autoload scripts during export)
 
 
-## Creates a new frame data dictionary with default values.
-func _create_frame_data() -> Dictionary:
-	return {
-		"time": 0.0,
-		"player_position": Vector2.ZERO,
-		"player_rotation": 0.0,
-		"player_model_scale": Vector2.ONE,
-		"player_alive": true,
-		"enemies": [],
-		"bullets": [],
-		"grenades": [],
-		"events": []
-	}
-
 ## All recorded frames for the current/last level.
 var _frames: Array = []
 
@@ -58,7 +44,13 @@ var _recording_time: float = 0.0
 var _is_recording: bool = false
 
 ## Whether we are currently playing back.
-var _is_playing: bool = false
+var _is_playing_back: bool = false
+
+## Whether playback ending is scheduled (replaces await in _physics_process).
+var _playback_ending: bool = false
+
+## Timer for playback end delay.
+var _playback_end_timer: float = 0.0
 
 ## Current playback frame index.
 var _playback_frame: int = 0
@@ -100,6 +92,21 @@ signal replay_started
 signal playback_progress(current_time: float, total_time: float)
 
 
+## Creates a new frame data dictionary with default values.
+func _create_frame_data() -> Dictionary:
+	return {
+		"time": 0.0,
+		"player_position": Vector2.ZERO,
+		"player_rotation": 0.0,
+		"player_model_scale": Vector2.ONE,
+		"player_alive": true,
+		"enemies": [],
+		"bullets": [],
+		"grenades": [],
+		"events": []
+	}
+
+
 func _ready() -> void:
 	# Run in PROCESS_MODE_ALWAYS to work during pause
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -109,7 +116,13 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	if _is_recording:
 		_record_frame(delta)
-	elif _is_playing:
+	elif _playback_ending:
+		# Handle delayed playback end (replaces await to avoid coroutine in _physics_process)
+		_playback_end_timer -= delta
+		if _playback_end_timer <= 0.0:
+			_playback_ending = false
+			stop_playback()
+	elif _is_playing_back:
 		_playback_frame_update(delta)
 
 
@@ -121,7 +134,7 @@ func start_recording(level: Node2D, player: Node2D, enemies: Array) -> void:
 	_frames.clear()
 	_recording_time = 0.0
 	_is_recording = true
-	_is_playing = false
+	_is_playing_back = false
 	_level_node = level
 	_player = player
 	_enemies = enemies.duplicate()
@@ -181,8 +194,10 @@ func start_playback(level: Node2D) -> void:
 		_log_to_file("Cannot start playback: no frames recorded")
 		return
 
-	_is_playing = true
+	_is_playing_back = true
 	_is_recording = false
+	_playback_ending = false
+	_playback_end_timer = 0.0
 	_playback_frame = 0
 	_playback_time = 0.0
 	_playback_speed = 1.0
@@ -207,10 +222,12 @@ func start_playback(level: Node2D) -> void:
 
 ## Stops playback and cleans up.
 func stop_playback() -> void:
-	if not _is_playing:
+	if not _is_playing_back and not _playback_ending:
 		return
 
-	_is_playing = false
+	_is_playing_back = false
+	_playback_ending = false
+	_playback_end_timer = 0.0
 
 	# Clean up ghost entities
 	_cleanup_ghost_entities()
@@ -241,8 +258,8 @@ func get_playback_speed() -> float:
 
 
 ## Returns whether replay is currently playing.
-func is_playing() -> bool:
-	return _is_playing
+func is_replaying() -> bool:
+	return _is_playing_back
 
 
 ## Returns whether replay is currently recording.
@@ -374,9 +391,10 @@ func _playback_frame_update(delta: float) -> void:
 		_playback_time = get_replay_duration()
 		# Apply final frame
 		_apply_frame_dict(_frames[-1])
-		# End playback after a short delay
-		await get_tree().create_timer(0.5).timeout
-		stop_playback()
+		# Schedule playback end after a short delay (no await to avoid coroutine issues)
+		_playback_ending = true
+		_playback_end_timer = 0.5
+		_is_playing_back = false
 		return
 
 	# Find the frame to display (interpolate between frames)
@@ -753,7 +771,7 @@ func _on_exit_replay_pressed() -> void:
 
 
 func _input(event: InputEvent) -> void:
-	if not _is_playing:
+	if not _is_playing_back and not _playback_ending:
 		return
 
 	# Handle ESC to exit replay
