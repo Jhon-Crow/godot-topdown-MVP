@@ -1023,8 +1023,16 @@ public partial class Player : BaseCharacter
         // Handle throw rotation animation (restore player rotation after throw)
         HandleThrowRotationAnimation((float)delta);
 
+        // Handle sniper scope input (RMB) when SniperRifle is equipped
+        // This takes priority over grenade input since the sniper uses RMB for scoping
+        bool sniperScopeConsumedInput = HandleSniperScopeInput();
+
         // Handle grenade input first (so it can consume shoot input)
-        HandleGrenadeInput();
+        // Skip if sniper scope already consumed the RMB input
+        if (!sniperScopeConsumedInput)
+        {
+            HandleGrenadeInput();
+        }
 
         // Make active grenade follow player if held
         if (_activeGrenade != null && IsInstanceValid(_activeGrenade))
@@ -1199,6 +1207,10 @@ public partial class Player : BaseCharacter
         if (CurrentWeapon is AssaultRifle assaultRifle)
         {
             aimDirection = assaultRifle.AimDirection;
+        }
+        else if (CurrentWeapon is SniperRifle sniperRifle)
+        {
+            aimDirection = sniperRifle.AimDirection;
         }
         else
         {
@@ -1657,6 +1669,15 @@ public partial class Player : BaseCharacter
         // If we have a weapon equipped, use it
         if (CurrentWeapon != null)
         {
+            // When SniperRifle scope is active, fire towards the scope crosshair center
+            // instead of the mouse cursor (the camera is offset, so mouse != crosshair)
+            var sniperRifle = CurrentWeapon as SniperRifle;
+            if (sniperRifle != null && sniperRifle.IsScopeActive)
+            {
+                Vector2 scopeTarget = sniperRifle.GetScopeAimTarget();
+                shootDirection = (scopeTarget - GlobalPosition).Normalized();
+            }
+
             CurrentWeapon.Fire(shootDirection);
             return;
         }
@@ -1886,6 +1907,89 @@ public partial class Player : BaseCharacter
         }
         CurrentWeapon = null;
     }
+
+    #region Sniper Scope System
+
+    /// <summary>
+    /// Handles sniper scope input when the SniperRifle is equipped.
+    /// RMB activates the scope for aiming beyond the viewport.
+    /// Mouse wheel adjusts zoom distance while scoped.
+    /// Returns true if the sniper scope consumed the RMB input.
+    /// </summary>
+    private bool HandleSniperScopeInput()
+    {
+        // Only handle scope when a SniperRifle is the current weapon
+        var sniperRifle = CurrentWeapon as SniperRifle;
+        if (sniperRifle == null)
+        {
+            return false;
+        }
+
+        // Handle RMB press to activate scope
+        if (Input.IsActionJustPressed("grenade_throw"))
+        {
+            // Only activate scope if not already in a grenade action
+            if (_grenadeState == GrenadeState.Idle && !Input.IsActionPressed("grenade_prepare"))
+            {
+                sniperRifle.ActivateScope();
+                return true;
+            }
+        }
+
+        // Handle RMB release to deactivate scope
+        if (Input.IsActionJustReleased("grenade_throw") && sniperRifle.IsScopeActive)
+        {
+            sniperRifle.DeactivateScope();
+            return true;
+        }
+
+        // While scope is active, consume RMB input to prevent grenade handling
+        if (sniperRifle.IsScopeActive)
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Handles mouse wheel input for scope zoom when sniper scope is active.
+    /// This is called from _UnhandledInput to capture wheel events.
+    /// </summary>
+    public override void _UnhandledInput(InputEvent @event)
+    {
+        base._UnhandledInput(@event);
+
+        var sniperRifle = CurrentWeapon as SniperRifle;
+        if (sniperRifle == null || !sniperRifle.IsScopeActive)
+        {
+            return;
+        }
+
+        if (@event is InputEventMouseButton mouseButton)
+        {
+            if (mouseButton.Pressed)
+            {
+                if (mouseButton.ButtonIndex == MouseButton.WheelUp)
+                {
+                    sniperRifle.AdjustScopeZoom(1.0f);
+                    GetViewport().SetInputAsHandled();
+                }
+                else if (mouseButton.ButtonIndex == MouseButton.WheelDown)
+                {
+                    sniperRifle.AdjustScopeZoom(-1.0f);
+                    GetViewport().SetInputAsHandled();
+                }
+            }
+        }
+        // Handle mouse movement for scope fine-tuning (closer/further by ~1/3 viewport)
+        else if (@event is InputEventMouseMotion mouseMotion)
+        {
+            sniperRifle.AdjustScopeFineTune(mouseMotion.Relative);
+        }
+    }
+
+    #endregion
 
     #region Grenade System
 

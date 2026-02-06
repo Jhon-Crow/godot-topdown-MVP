@@ -84,7 +84,7 @@ const WEAPONS: Dictionary = {
 		"name": "ASVK",
 		"icon_path": "res://assets/sprites/weapons/asvk_topdown.png",
 		"unlocked": true,
-		"description": "ASVK anti-materiel sniper rifle - 12.7x108mm, 50 damage, penetrates 2 walls and enemies, bolt-action (Down→Left→Down→Up). 5-round magazine.",
+		"description": "ASVK anti-materiel sniper rifle - 12.7x108mm, 50 damage, penetrates 2 walls and enemies, bolt-action (Down→Left→Down→Up). 5-round magazine. RMB to scope (mouse wheel to zoom).",
 		"is_grenade": false
 	},
 	"pistol": {
