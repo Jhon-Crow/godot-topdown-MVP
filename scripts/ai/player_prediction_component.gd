@@ -317,6 +317,22 @@ func receive_prediction_intel(other_hypothesis: Hypothesis, confidence_factor: f
 		has_predictions = true
 
 
+## Process prediction during pursuing state. Returns the next target position
+## to move toward, or Vector2.ZERO if no prediction targets remain.
+## Automatically marks reached positions as checked and advances to next hypothesis.
+func get_pursuit_target(current_pos: Vector2, reach_tolerance: float = 100.0) -> Vector2:
+	if not has_predictions:
+		return Vector2.ZERO
+	var best := get_best_hypothesis()
+	if best == null:
+		return Vector2.ZERO
+	if current_pos.distance_to(best.position) < reach_tolerance:
+		mark_position_checked(best.position)
+		var next := get_best_hypothesis()
+		return next.position if next else Vector2.ZERO
+	return best.position
+
+
 ## Get a string describing the current player style.
 func get_style_name() -> String:
 	match player_style:
@@ -324,6 +340,33 @@ func get_style_name() -> String:
 		PlayerStyle.CAUTIOUS: return "cautious"
 		PlayerStyle.CUNNING: return "cunning"
 		_: return "unknown"
+
+
+## Get a short debug label string for the prediction state. Returns "" if no predictions.
+func get_debug_text() -> String:
+	var best := get_best_hypothesis()
+	if best == null: return ""
+	return "\n{P:%s %.0f%%}" % [HypothesisType.keys()[best.type].substr(0, 5), best.probability * 100]
+
+
+## Process the frame update for memory integration. Call every frame.
+## Handles observation tracking, sight-loss prediction generation, and decay.
+## Parameters:
+##   can_see: whether enemy can see player this frame
+##   was_visible: whether enemy could see player last frame
+##   player_pos: player position (only used when can_see)
+##   enemy_pos: enemy position
+##   enemy_facing: enemy model facing direction
+##   delta: frame time
+##   memory: EnemyMemory to update velocity on
+func process_frame(can_see: bool, was_visible: bool, player_pos: Vector2, enemy_pos: Vector2, enemy_facing: Vector2, delta: float, memory: EnemyMemory = null) -> void:
+	if can_see:
+		update_observation(player_pos, enemy_pos, delta)
+		if memory: memory.update_velocity(last_known_velocity)
+	if was_visible and not can_see:
+		generate_predictions(player_pos, enemy_pos, enemy_facing)
+	if has_predictions:
+		update_predictions(delta)
 
 
 ## Reset all prediction state.

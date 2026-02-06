@@ -762,6 +762,111 @@ func test_multiple_generation_cycles() -> void:
 		"Should not exceed max hypotheses after multiple cycles")
 
 
+# ============================================================================
+# Pursuit Target Tests
+# ============================================================================
+
+
+func test_get_pursuit_target_returns_best_position() -> void:
+	predictor.generate_predictions(
+		Vector2(200, 200), Vector2(0, 0), Vector2.RIGHT
+	)
+
+	var target := predictor.get_pursuit_target(Vector2(0, 0))
+	assert_ne(target, Vector2.ZERO, "Should return a non-zero pursuit target")
+
+
+func test_get_pursuit_target_returns_zero_when_no_predictions() -> void:
+	var target := predictor.get_pursuit_target(Vector2(0, 0))
+	assert_eq(target, Vector2.ZERO, "Should return zero when no predictions")
+
+
+func test_get_pursuit_target_marks_reached_and_advances() -> void:
+	predictor.generate_predictions(
+		Vector2(200, 200), Vector2(0, 0), Vector2.RIGHT
+	)
+
+	# Get first target
+	var first_target := predictor.get_pursuit_target(Vector2(0, 0))
+	assert_ne(first_target, Vector2.ZERO, "Should have first target")
+
+	# Move to that target position (within reach_tolerance)
+	var next_target := predictor.get_pursuit_target(first_target)
+	# After reaching, it should either advance or return zero (if all checked)
+	# The key assertion: it should NOT return the same position again
+	if next_target != Vector2.ZERO:
+		assert_ne(next_target, first_target, "Should advance to next hypothesis")
+
+
+# ============================================================================
+# Debug Text Tests
+# ============================================================================
+
+
+func test_get_debug_text_empty_when_no_predictions() -> void:
+	assert_eq(predictor.get_debug_text(), "",
+		"Debug text should be empty when no predictions")
+
+
+func test_get_debug_text_shows_type_and_probability() -> void:
+	predictor.generate_predictions(
+		Vector2(200, 200), Vector2(0, 0), Vector2.RIGHT
+	)
+
+	var text := predictor.get_debug_text()
+	assert_ne(text, "", "Debug text should not be empty with predictions")
+	assert_true("{P:" in text, "Debug text should contain prediction prefix")
+
+
+# ============================================================================
+# Process Frame Tests
+# ============================================================================
+
+
+func test_process_frame_updates_observation_when_visible() -> void:
+	predictor.process_frame(true, false, Vector2(100, 100), Vector2(0, 0), Vector2.RIGHT, 0.016)
+
+	assert_eq(predictor.last_known_position, Vector2(100, 100),
+		"Should track position during visible frame")
+
+
+func test_process_frame_generates_predictions_on_sight_loss() -> void:
+	# First frame: visible
+	predictor.process_frame(true, false, Vector2(100, 100), Vector2(0, 0), Vector2.RIGHT, 0.016)
+	assert_false(predictor.has_predictions, "Should not have predictions while visible")
+
+	# Second frame: sight loss (was_visible=true, can_see=false)
+	predictor.process_frame(false, true, Vector2(100, 100), Vector2(0, 0), Vector2.RIGHT, 0.016)
+	assert_true(predictor.has_predictions, "Should generate predictions on sight loss")
+
+
+func test_process_frame_decays_predictions() -> void:
+	predictor.generate_predictions(
+		Vector2(200, 200), Vector2(0, 0), Vector2.RIGHT
+	)
+	var initial_conf := predictor.get_prediction_confidence()
+
+	# Process frames without visibility (predictions should decay)
+	predictor.process_frame(false, false, Vector2.ZERO, Vector2(0, 0), Vector2.RIGHT, 1.0)
+
+	assert_lt(predictor.get_prediction_confidence(), initial_conf,
+		"Predictions should decay during process_frame")
+
+
+func test_process_frame_updates_memory_velocity() -> void:
+	var memory := EnemyMemory.new()
+	predictor.process_frame(true, false, Vector2(100, 100), Vector2(0, 0), Vector2.RIGHT, 0.016, memory)
+	predictor.process_frame(true, true, Vector2(110, 100), Vector2(0, 0), Vector2.RIGHT, 0.016, memory)
+
+	assert_true(memory.last_known_velocity.x > 0.0,
+		"Memory velocity should be updated via process_frame")
+
+
+# ============================================================================
+# Inner Class Tests
+# ============================================================================
+
+
 func test_hypothesis_inner_class() -> void:
 	var h := PlayerPredictionComponent.Hypothesis.new(
 		Vector2(100, 200),
