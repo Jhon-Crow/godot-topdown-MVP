@@ -559,10 +559,10 @@ public partial class SniperRifle : BaseWeapon
     }
 
     /// <summary>
-    /// Override SpawnBullet to configure the bullet for sniper behavior:
+    /// Override SpawnBullet to configure the SniperBullet for sniper behavior:
     /// - Very high damage (50)
     /// - Passes through enemies (doesn't destroy on hit)
-    /// - Penetrates through 2 walls
+    /// - Penetrates through 2 walls (wall-count based, not distance-based)
     /// </summary>
     protected override void SpawnBullet(Vector2 direction)
     {
@@ -588,29 +588,30 @@ public partial class SniperRifle : BaseWeapon
         var bulletNode = BulletScene.Instantiate<Node2D>();
         bulletNode.GlobalPosition = spawnPosition;
 
-        // Try to cast to C# Bullet for direct property access
-        var bullet = bulletNode as Bullet;
+        // Try to cast to C# SniperBullet for direct property access
+        var sniperBullet = bulletNode as SniperBullet;
 
-        if (bullet != null)
+        if (sniperBullet != null)
         {
-            // C# Bullet - set properties directly
-            bullet.Direction = direction;
+            // SniperBullet - set properties directly
+            sniperBullet.Direction = direction;
             if (WeaponData != null)
             {
-                bullet.Speed = WeaponData.BulletSpeed;
-                bullet.Damage = WeaponData.Damage;
+                sniperBullet.Speed = WeaponData.BulletSpeed;
+                sniperBullet.Damage = WeaponData.Damage;
             }
             var owner = GetParent();
             if (owner != null)
             {
-                bullet.ShooterId = owner.GetInstanceId();
+                sniperBullet.ShooterId = owner.GetInstanceId();
             }
-            bullet.ShooterPosition = GlobalPosition;
-            GD.Print($"[SniperRifle] Spawned C# bullet: Damage={bullet.Damage}, Speed={bullet.Speed}");
+            sniperBullet.ShooterPosition = GlobalPosition;
+            sniperBullet.MaxWallPenetrations = MaxWallPenetrations;
+            GD.Print($"[SniperRifle] Spawned SniperBullet: Damage={sniperBullet.Damage}, Speed={sniperBullet.Speed}, MaxWallPen={MaxWallPenetrations}");
         }
         else
         {
-            // GDScript bullet fallback
+            // Fallback for any bullet type
             if (bulletNode.HasMethod("SetDirection"))
             {
                 bulletNode.Call("SetDirection", direction);

@@ -1,7 +1,7 @@
 [gd_scene load_steps=5 format=3 uid="uid://dk7m4n9r3p5q3"]
 
 [ext_resource type="Script" path="res://Scripts/Weapons/SniperRifle.cs" id="1_sniper_rifle"]
-[ext_resource type="PackedScene" uid="uid://dv2q8m5n7xk1q" path="res://scenes/projectiles/csharp/Bullet.tscn" id="2_bullet"]
+[ext_resource type="PackedScene" uid="uid://dk9m4n7r3p5q8" path="res://scenes/projectiles/csharp/SniperBullet.tscn" id="2_bullet"]
 [ext_resource type="PackedScene" uid="uid://casing_scene" path="res://scenes/effects/Casing.tscn" id="3_casing"]
 [ext_resource type="Resource" uid="uid://bk7m4n9r3p5q2" path="res://resources/weapons/SniperRifleData.tres" id="4_weapon_data"]
 [ext_resource type="Texture2D" path="res://assets/sprites/weapons/asvk_topdown.png" id="5_rifle_sprite"]
