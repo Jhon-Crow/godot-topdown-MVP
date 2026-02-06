@@ -146,7 +146,7 @@ namespace GodotTopDownTemplate.Autoload
 
         // ============================================================
         // Public API — PascalCase (C# convention)
-        // GDScript callers use snake_case via Godot's automatic conversion.
+        // GDScript callers must also use PascalCase for user-defined methods.
         // ============================================================
 
         /// <summary>

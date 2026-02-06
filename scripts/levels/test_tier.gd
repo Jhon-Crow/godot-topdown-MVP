@@ -76,11 +76,11 @@ func _get_or_create_replay_manager() -> Node:
 
 	_replay_manager = get_node_or_null("/root/ReplayManager")
 	if _replay_manager != null:
-		# Godot auto-converts C# PascalCase to snake_case for GDScript callers
-		if _replay_manager.has_method("start_recording"):
+		# C# methods must be called with PascalCase from GDScript (no auto-conversion for user methods)
+		if _replay_manager.has_method("StartRecording"):
 			_log_to_file("ReplayManager found as C# autoload - verified OK")
 		else:
-			_log_to_file("WARNING: ReplayManager autoload exists but has no start_recording method")
+			_log_to_file("WARNING: ReplayManager autoload exists but has no StartRecording method")
 	else:
 		_log_to_file("ERROR: ReplayManager autoload not found at /root/ReplayManager")
 
@@ -415,8 +415,8 @@ func _on_enemy_died() -> void:
 		print("All enemies eliminated! Arena cleared!")
 		# Stop replay recording
 		var replay_manager: Node = _get_or_create_replay_manager()
-		if replay_manager and replay_manager.has_method("stop_recording"):
-			replay_manager.stop_recording()
+		if replay_manager and replay_manager.has_method("StopRecording"):
+			replay_manager.StopRecording()
 		_level_cleared = true
 		# Activate exit zone - score will show when player reaches it
 		call_deferred("_activate_exit_zone")
@@ -678,10 +678,10 @@ func _show_victory_message() -> void:
 	if replay_manager:
 		var has_replay: bool = false
 		var duration: float = 0.0
-		if replay_manager.has_method("has_replay"):
-			has_replay = replay_manager.has_replay()
-		if replay_manager.has_method("get_replay_duration"):
-			duration = replay_manager.get_replay_duration()
+		if replay_manager.has_method("HasReplay"):
+			has_replay = replay_manager.HasReplay()
+		if replay_manager.has_method("GetReplayDuration"):
+			duration = replay_manager.GetReplayDuration()
 		print("[TestTier] Showing victory message - Replay status: has_replay=%s, duration=%.2fs" % [has_replay, duration])
 	else:
 		print("[TestTier] ERROR: ReplayManager not found when showing victory message!")
@@ -760,7 +760,7 @@ func _show_victory_message() -> void:
 
 	# Check if replay data is available
 	var replay_manager: Node = _get_or_create_replay_manager()
-	var has_replay_data: bool = replay_manager != null and replay_manager.has_method("has_replay") and replay_manager.has_replay()
+	var has_replay_data: bool = replay_manager != null and replay_manager.has_method("HasReplay") and replay_manager.HasReplay()
 
 	if has_replay_data:
 		replay_button.pressed.connect(_on_watch_replay_pressed)
@@ -792,9 +792,9 @@ func _unhandled_input(event: InputEvent) -> void:
 func _on_watch_replay_pressed() -> void:
 	print("[TestTier] Watch Replay triggered")
 	var replay_manager: Node = _get_or_create_replay_manager()
-	if replay_manager and replay_manager.has_method("has_replay") and replay_manager.has_replay():
-		if replay_manager.has_method("start_playback"):
-			replay_manager.start_playback(self)
+	if replay_manager and replay_manager.has_method("HasReplay") and replay_manager.HasReplay():
+		if replay_manager.has_method("StartPlayback"):
+			replay_manager.StartPlayback(self)
 	else:
 		print("[TestTier] Watch Replay: no replay data available")
 
@@ -949,16 +949,16 @@ func _start_replay_recording() -> void:
 		print("[TestTier] WARNING: No enemies registered for replay!")
 
 	# Clear any previous replay data
-	if replay_manager.has_method("clear_replay"):
-		replay_manager.clear_replay()
+	if replay_manager.has_method("ClearReplay"):
+		replay_manager.ClearReplay()
 		print("[TestTier] Previous replay data cleared")
 
 	# Start recording with player and enemies
-	if replay_manager.has_method("start_recording"):
-		replay_manager.start_recording(self, _player, _enemies)
+	if replay_manager.has_method("StartRecording"):
+		replay_manager.StartRecording(self, _player, _enemies)
 		print("[TestTier] Replay recording started successfully with %d enemies" % _enemies.size())
 	else:
-		print("[TestTier] ERROR: start_recording method not found!")
+		print("[TestTier] ERROR: StartRecording method not found!")
 
 
 ## Log a message to the file logger if available.

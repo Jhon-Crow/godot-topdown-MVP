@@ -17,6 +17,7 @@ The ReplayManager system, implemented as a GDScript autoload (`replay_system.gd`
 | Feb 6, 14:32 | game_log_20260206_143228.txt | Detailed: autoload exists, scene loaded, `script.new()` returned null, all 4 strategies fail |
 | Feb 6, 18:51 | game_log_20260206_185149.txt | Same: all 4 loading strategies fail, same GDScript ID `<GDScript#-9223372007242988300>` |
 | Feb 6, 20:15 | game_log_20260206_201555.txt | Same: all loading strategies fail, Watch Replay shows "no data" |
+| Feb 6, 21:30 | game_log_20260206_213011.txt | C# ReplayManager loads, `_Ready` fires, but `has_method("start_recording")` returns false — PascalCase naming issue |
 
 ### Key Observations from Timeline
 
@@ -83,7 +84,7 @@ C# scripts are compiled by the .NET SDK into a DLL, completely bypassing the GDS
 
 1. **New file: `Scripts/Autoload/ReplayManager.cs`**
    - Faithful port of all functionality from `replay_system.gd`
-   - Uses C# PascalCase conventions (Godot auto-converts to snake_case for GDScript callers)
+   - Uses C# PascalCase conventions (GDScript callers must use PascalCase for user-defined methods)
    - Same recording, playback, ghost entity, and UI features
    - `[GlobalClass]` attribute for Godot integration
 
@@ -102,8 +103,45 @@ C# scripts are compiled by the .NET SDK into a DLL, completely bypassing the GDS
 
 - C# scripts are compiled by the .NET SDK, not the GDScript tokenizer
 - The GrenadeTimerHelper.cs autoload already works reliably in exports (same pattern)
-- GDScript callers use `has_method("start_recording")` which maps to C# `StartRecording` via Godot's automatic snake_case conversion
-- No changes needed in GDScript calling code — method names remain the same
+- GDScript callers use `has_method("StartRecording")` to access C# methods with PascalCase names
+- GDScript calling code updated to use PascalCase method names (Godot does NOT auto-convert user-defined C# method names)
+
+## Bug #2: GDScript-to-C# Method Naming (PascalCase Required)
+
+After the C# rewrite was deployed, the ReplayManager C# class loaded successfully (`_Ready` fired, line 58 in log 20260206_213011), but GDScript's `has_method("start_recording")` still returned `false`.
+
+### Root Cause
+
+In Godot 4.x, user-defined C# methods exposed to GDScript retain their original PascalCase names. The automatic snake_case-to-PascalCase conversion **only applies to built-in Godot engine methods**, NOT to user-defined methods. This is documented in the [Godot cross-language scripting docs](https://docs.godotengine.org/en/4.3/tutorials/scripting/cross_language_scripting.html).
+
+The GDScript code was using:
+```gdscript
+replay_manager.has_method("start_recording")  # WRONG — returns false
+replay_manager.start_recording(...)            # WRONG — method not found
+```
+
+When it should use:
+```gdscript
+replay_manager.has_method("StartRecording")    # CORRECT — returns true
+replay_manager.StartRecording(...)             # CORRECT — calls C# method
+```
+
+### Evidence from Codebase
+
+Other C# methods in the same project are already called with PascalCase from GDScript:
+- `weapon.has_method("GetMagazineAmmoCounts")` → works
+- `_player.has_method("EquipWeapon")` → works
+- `weapon.has_method("ConfigureAmmoForEnemyCount")` → works
+
+### Fix
+
+Updated all ReplayManager method calls in `building_level.gd` and `test_tier.gd` from snake_case to PascalCase:
+- `start_recording` → `StartRecording`
+- `stop_recording` → `StopRecording`
+- `has_replay` → `HasReplay`
+- `get_replay_duration` → `GetReplayDuration`
+- `start_playback` → `StartPlayback`
+- `clear_replay` → `ClearReplay`
 
 ## Supporting Evidence
 
@@ -115,7 +153,7 @@ C# scripts are compiled by the .NET SDK into a DLL, completely bypassing the GDS
 
 ### From Game Logs
 
-All 9 game logs collected in `docs/case-studies/issue-1/logs/` show the same pattern:
+All 10 game logs collected in `docs/case-studies/issue-1/logs/` show the progression:
 - ReplayManager GDScript fails to provide methods
 - Recording never starts
 - No replay data is ever available
@@ -133,4 +171,5 @@ All game logs from user testing sessions are preserved in `docs/case-studies/iss
 - `game_log_20260206_141414.txt` — Method not found despite script attached
 - `game_log_20260206_143228.txt` — All 4 loading strategies documented failing
 - `game_log_20260206_185149.txt` — Same failure, player controls issue also reported
-- `game_log_20260206_201555.txt` — Latest: all strategies still fail
+- `game_log_20260206_201555.txt` — All strategies still fail
+- `game_log_20260206_213011.txt` — C# ReplayManager loads, but snake_case `has_method()` fails (PascalCase naming fix needed)

@@ -78,11 +78,11 @@ func _get_or_create_replay_manager() -> Node:
 
 	_replay_manager = get_node_or_null("/root/ReplayManager")
 	if _replay_manager != null:
-		# Godot auto-converts C# PascalCase to snake_case for GDScript callers
-		if _replay_manager.has_method("start_recording"):
+		# C# methods must be called with PascalCase from GDScript (no auto-conversion for user methods)
+		if _replay_manager.has_method("StartRecording"):
 			_log_to_file("ReplayManager found as C# autoload - verified OK")
 		else:
-			_log_to_file("WARNING: ReplayManager autoload exists but has no start_recording method")
+			_log_to_file("WARNING: ReplayManager autoload exists but has no StartRecording method")
 	else:
 		_log_to_file("ERROR: ReplayManager autoload not found at /root/ReplayManager")
 
@@ -170,18 +170,18 @@ func _start_replay_recording() -> void:
 		print("[BuildingLevel] WARNING: No enemies registered for replay!")
 
 	# Clear any previous replay data
-	if replay_manager.has_method("clear_replay"):
-		replay_manager.clear_replay()
+	if replay_manager.has_method("ClearReplay"):
+		replay_manager.ClearReplay()
 		_log_to_file("Previous replay data cleared")
 
 	# Start recording with player and enemies
-	if replay_manager.has_method("start_recording"):
-		replay_manager.start_recording(self, _player, _enemies)
+	if replay_manager.has_method("StartRecording"):
+		replay_manager.StartRecording(self, _player, _enemies)
 		_log_to_file("Replay recording started successfully")
 		print("[BuildingLevel] Replay recording started with %d enemies" % _enemies.size())
 	else:
-		_log_to_file("ERROR: ReplayManager.start_recording method not found")
-		print("[BuildingLevel] ERROR: start_recording method not found!")
+		_log_to_file("ERROR: ReplayManager.StartRecording method not found")
+		print("[BuildingLevel] ERROR: StartRecording method not found!")
 
 
 ## Setup the exit zone near the player spawn point (left wall).
@@ -551,16 +551,16 @@ func _complete_level_with_score() -> void:
 	# Stop replay recording
 	var replay_manager: Node = _get_or_create_replay_manager()
 	if replay_manager:
-		if replay_manager.has_method("stop_recording"):
-			replay_manager.stop_recording()
+		if replay_manager.has_method("StopRecording"):
+			replay_manager.StopRecording()
 			_log_to_file("Replay recording stopped")
 
 		# Log replay status for debugging
-		if replay_manager.has_method("has_replay"):
-			var has_replay: bool = replay_manager.has_replay()
+		if replay_manager.has_method("HasReplay"):
+			var has_replay: bool = replay_manager.HasReplay()
 			var duration: float = 0.0
-			if replay_manager.has_method("get_replay_duration"):
-				duration = replay_manager.get_replay_duration()
+			if replay_manager.has_method("GetReplayDuration"):
+				duration = replay_manager.GetReplayDuration()
 			_log_to_file("Replay status: has_replay=%s, duration=%.2fs" % [has_replay, duration])
 			print("[BuildingLevel] Replay status: has_replay=%s, duration=%.2fs" % [has_replay, duration])
 	else:
@@ -979,7 +979,7 @@ func _add_score_screen_buttons(container: VBoxContainer) -> void:
 
 	# Check if replay data is available
 	var replay_manager: Node = _get_or_create_replay_manager()
-	var has_replay_data: bool = replay_manager != null and replay_manager.has_method("has_replay") and replay_manager.has_replay()
+	var has_replay_data: bool = replay_manager != null and replay_manager.has_method("HasReplay") and replay_manager.HasReplay()
 
 	if has_replay_data:
 		replay_button.pressed.connect(_on_watch_replay_pressed)
@@ -1181,9 +1181,9 @@ func _unhandled_input(event: InputEvent) -> void:
 func _on_watch_replay_pressed() -> void:
 	_log_to_file("Watch Replay triggered")
 	var replay_manager: Node = _get_or_create_replay_manager()
-	if replay_manager and replay_manager.has_method("has_replay") and replay_manager.has_replay():
-		if replay_manager.has_method("start_playback"):
-			replay_manager.start_playback(self)
+	if replay_manager and replay_manager.has_method("HasReplay") and replay_manager.HasReplay():
+		if replay_manager.has_method("StartPlayback"):
+			replay_manager.StartPlayback(self)
 	else:
 		_log_to_file("Watch Replay: no replay data available")
 
