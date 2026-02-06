@@ -236,6 +236,16 @@ public partial class SniperRifle : BaseWeapon
         GD.Print("[SniperRifle] ASVK initialized - bolt ready, laser sight enabled");
     }
 
+    public override void _ExitTree()
+    {
+        // Clean up scope overlay when weapon is removed from scene tree
+        if (_isScopeActive)
+        {
+            DeactivateScope();
+        }
+        base._ExitTree();
+    }
+
     public override void _Process(double delta)
     {
         base._Process(delta);
@@ -261,6 +271,9 @@ public partial class SniperRifle : BaseWeapon
 
         // Handle bolt-action input
         HandleBoltActionInput();
+
+        // Update scope system (sway, camera offset, overlay)
+        UpdateScope((float)delta);
     }
 
     // =========================================================================
@@ -880,5 +893,474 @@ public partial class SniperRifle : BaseWeapon
         _boltStep = BoltActionStep.Ready;
         EmitSignal(SignalName.BoltStepChanged, 4, 4);
         GD.Print("[SniperRifle] Bolt reset to ready state");
+    }
+
+    // =========================================================================
+    // Scope / Aiming System (RMB)
+    // =========================================================================
+
+    /// <summary>
+    /// Whether the scope is currently active (RMB held).
+    /// </summary>
+    private bool _isScopeActive = false;
+
+    /// <summary>
+    /// Whether the scope is active (read-only property for external access).
+    /// </summary>
+    public bool IsScopeActive => _isScopeActive;
+
+    /// <summary>
+    /// Signal emitted when scope state changes.
+    /// </summary>
+    [Signal]
+    public delegate void ScopeStateChangedEventHandler(bool isActive);
+
+    /// <summary>
+    /// Current scope zoom distance multiplier (how far beyond viewport the player can see).
+    /// 1.0 = one viewport distance, 2.0 = two viewport distances.
+    /// Controlled by mouse wheel while scoping.
+    /// </summary>
+    private float _scopeZoomDistance = 1.0f;
+
+    /// <summary>
+    /// Minimum scope zoom distance (viewport multiplier).
+    /// </summary>
+    private const float MinScopeZoomDistance = 0.5f;
+
+    /// <summary>
+    /// Maximum scope zoom distance (viewport multiplier).
+    /// </summary>
+    private const float MaxScopeZoomDistance = 3.0f;
+
+    /// <summary>
+    /// Step size for mouse wheel zoom adjustment.
+    /// </summary>
+    private const float ScopeZoomStep = 0.25f;
+
+    /// <summary>
+    /// Base sway amplitude in pixels at 1 viewport distance.
+    /// </summary>
+    private const float BaseScopeSwayAmplitude = 8.0f;
+
+    /// <summary>
+    /// Speed of the sway oscillation.
+    /// </summary>
+    private const float ScopeSwaySpeed = 2.5f;
+
+    /// <summary>
+    /// Current scope sway time accumulator.
+    /// </summary>
+    private float _scopeSwayTime = 0.0f;
+
+    /// <summary>
+    /// Current scope sway offset in pixels (applied to camera).
+    /// </summary>
+    private Vector2 _scopeSwayOffset = Vector2.Zero;
+
+    /// <summary>
+    /// Reference to the scope overlay CanvasLayer (created when scope activates).
+    /// </summary>
+    private CanvasLayer? _scopeOverlay = null;
+
+    /// <summary>
+    /// Reference to the scope crosshair control node.
+    /// </summary>
+    private Control? _scopeCrosshair = null;
+
+    /// <summary>
+    /// Reference to the scope darkening background.
+    /// </summary>
+    private ColorRect? _scopeBackground = null;
+
+    /// <summary>
+    /// Cached reference to the player's Camera2D node.
+    /// </summary>
+    private Camera2D? _playerCamera = null;
+
+    /// <summary>
+    /// Original camera offset before scoping (to restore on exit).
+    /// </summary>
+    private Vector2 _originalCameraOffset = Vector2.Zero;
+
+    /// <summary>
+    /// Gets the current camera offset for scope aiming.
+    /// Called by the player or level scripts to position the camera.
+    /// </summary>
+    public Vector2 GetScopeCameraOffset()
+    {
+        if (!_isScopeActive)
+        {
+            return Vector2.Zero;
+        }
+
+        Viewport? viewport = GetViewport();
+        if (viewport == null)
+        {
+            return Vector2.Zero;
+        }
+
+        Vector2 viewportSize = viewport.GetVisibleRect().Size;
+        float baseDistance = viewportSize.Length() * 0.5f;
+
+        // Camera offset = aim direction * zoom distance * viewport size + sway
+        Vector2 offset = _aimDirection * baseDistance * _scopeZoomDistance + _scopeSwayOffset;
+
+        return offset;
+    }
+
+    /// <summary>
+    /// Activates the scope (called when RMB is pressed).
+    /// </summary>
+    public void ActivateScope()
+    {
+        if (_isScopeActive)
+        {
+            return;
+        }
+
+        _isScopeActive = true;
+        _scopeSwayTime = 0.0f;
+
+        // Find and cache the player's Camera2D
+        FindPlayerCamera();
+
+        // Store original camera offset
+        if (_playerCamera != null)
+        {
+            _originalCameraOffset = _playerCamera.Offset;
+        }
+
+        // Create the scope overlay
+        CreateScopeOverlay();
+
+        EmitSignal(SignalName.ScopeStateChanged, true);
+        GD.Print($"[SniperRifle] Scope activated. Zoom distance: {_scopeZoomDistance:F1}x");
+    }
+
+    /// <summary>
+    /// Deactivates the scope (called when RMB is released).
+    /// </summary>
+    public void DeactivateScope()
+    {
+        if (!_isScopeActive)
+        {
+            return;
+        }
+
+        _isScopeActive = false;
+
+        // Restore original camera offset
+        if (_playerCamera != null)
+        {
+            _playerCamera.Offset = _originalCameraOffset;
+        }
+
+        // Remove scope overlay
+        RemoveScopeOverlay();
+
+        EmitSignal(SignalName.ScopeStateChanged, false);
+        GD.Print("[SniperRifle] Scope deactivated.");
+    }
+
+    /// <summary>
+    /// Adjusts the scope zoom distance (called on mouse wheel while scoping).
+    /// </summary>
+    public void AdjustScopeZoom(float direction)
+    {
+        if (!_isScopeActive)
+        {
+            return;
+        }
+
+        _scopeZoomDistance += direction * ScopeZoomStep;
+        _scopeZoomDistance = Mathf.Clamp(_scopeZoomDistance, MinScopeZoomDistance, MaxScopeZoomDistance);
+
+        GD.Print($"[SniperRifle] Scope zoom adjusted: {_scopeZoomDistance:F2}x");
+    }
+
+    /// <summary>
+    /// Finds the player's Camera2D node by traversing up to the parent (player).
+    /// </summary>
+    private void FindPlayerCamera()
+    {
+        if (_playerCamera != null)
+        {
+            return;
+        }
+
+        var parent = GetParent();
+        if (parent != null)
+        {
+            _playerCamera = parent.GetNodeOrNull<Camera2D>("Camera2D");
+        }
+    }
+
+    /// <summary>
+    /// Updates the scope system each frame (called from _Process).
+    /// </summary>
+    private void UpdateScope(float delta)
+    {
+        if (!_isScopeActive)
+        {
+            return;
+        }
+
+        // Update sway
+        _scopeSwayTime += delta;
+        float swayAmplitude = BaseScopeSwayAmplitude * _scopeZoomDistance;
+
+        // Use two sine waves at different frequencies for natural-looking sway
+        float swayX = Mathf.Sin(_scopeSwayTime * ScopeSwaySpeed * 1.0f) * swayAmplitude
+                    + Mathf.Sin(_scopeSwayTime * ScopeSwaySpeed * 2.3f) * swayAmplitude * 0.3f;
+        float swayY = Mathf.Sin(_scopeSwayTime * ScopeSwaySpeed * 1.4f) * swayAmplitude
+                    + Mathf.Sin(_scopeSwayTime * ScopeSwaySpeed * 0.7f) * swayAmplitude * 0.4f;
+
+        _scopeSwayOffset = new Vector2(swayX, swayY);
+
+        // Update camera offset for scope view
+        if (_playerCamera != null)
+        {
+            _playerCamera.Offset = _originalCameraOffset + GetScopeCameraOffset();
+        }
+
+        // Update scope overlay crosshair position with sway
+        UpdateScopeOverlayPosition();
+    }
+
+    /// <summary>
+    /// Creates the scope overlay UI with crosshair and darkened edges.
+    /// </summary>
+    private void CreateScopeOverlay()
+    {
+        RemoveScopeOverlay();
+
+        _scopeOverlay = new CanvasLayer
+        {
+            Name = "ScopeOverlay",
+            Layer = 10
+        };
+
+        Viewport? viewport = GetViewport();
+        Vector2 viewportSize = viewport?.GetVisibleRect().Size ?? new Vector2(1280, 720);
+
+        // Dark background with circular cutout effect (vignette)
+        _scopeBackground = new ColorRect
+        {
+            Name = "ScopeBackground",
+            Color = new Color(0.0f, 0.0f, 0.0f, 0.5f),
+            Size = viewportSize,
+            Position = Vector2.Zero,
+            MouseFilter = Control.MouseFilterEnum.Ignore
+        };
+        _scopeOverlay.AddChild(_scopeBackground);
+
+        // Create the crosshair as a Control node
+        _scopeCrosshair = new Control
+        {
+            Name = "ScopeCrosshair",
+            Position = viewportSize / 2,
+            Size = Vector2.Zero,
+            MouseFilter = Control.MouseFilterEnum.Ignore
+        };
+        _scopeOverlay.AddChild(_scopeCrosshair);
+
+        // Add crosshair lines - based on the reference image from the issue
+        // The scope has a classic crosshair with circle and mil-dots
+
+        // Outer circle
+        float circleRadius = Mathf.Min(viewportSize.X, viewportSize.Y) * 0.35f;
+        int segments = 64;
+        var outerCircle = new Line2D
+        {
+            Name = "OuterCircle",
+            Width = 2.0f,
+            DefaultColor = new Color(0.0f, 0.0f, 0.0f, 0.9f),
+            Antialiased = true
+        };
+        for (int i = 0; i <= segments; i++)
+        {
+            float angle = (float)i / segments * Mathf.Tau;
+            outerCircle.AddPoint(new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * circleRadius);
+        }
+        _scopeCrosshair.AddChild(outerCircle);
+
+        // Inner thin circle
+        float innerRadius = circleRadius * 0.05f;
+        var innerCircle = new Line2D
+        {
+            Name = "InnerCircle",
+            Width = 1.5f,
+            DefaultColor = new Color(0.0f, 0.0f, 0.0f, 0.8f),
+            Antialiased = true
+        };
+        for (int i = 0; i <= segments; i++)
+        {
+            float angle = (float)i / segments * Mathf.Tau;
+            innerCircle.AddPoint(new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * innerRadius);
+        }
+        _scopeCrosshair.AddChild(innerCircle);
+
+        // Horizontal crosshair line (left)
+        var hLineLeft = new Line2D
+        {
+            Name = "HLineLeft",
+            Width = 2.0f,
+            DefaultColor = new Color(0.0f, 0.0f, 0.0f, 0.9f)
+        };
+        hLineLeft.AddPoint(new Vector2(-circleRadius, 0));
+        hLineLeft.AddPoint(new Vector2(-innerRadius, 0));
+        _scopeCrosshair.AddChild(hLineLeft);
+
+        // Horizontal crosshair line (right)
+        var hLineRight = new Line2D
+        {
+            Name = "HLineRight",
+            Width = 2.0f,
+            DefaultColor = new Color(0.0f, 0.0f, 0.0f, 0.9f)
+        };
+        hLineRight.AddPoint(new Vector2(innerRadius, 0));
+        hLineRight.AddPoint(new Vector2(circleRadius, 0));
+        _scopeCrosshair.AddChild(hLineRight);
+
+        // Vertical crosshair line (top)
+        var vLineTop = new Line2D
+        {
+            Name = "VLineTop",
+            Width = 2.0f,
+            DefaultColor = new Color(0.0f, 0.0f, 0.0f, 0.9f)
+        };
+        vLineTop.AddPoint(new Vector2(0, -circleRadius));
+        vLineTop.AddPoint(new Vector2(0, -innerRadius));
+        _scopeCrosshair.AddChild(vLineTop);
+
+        // Vertical crosshair line (bottom) with mil-dots
+        var vLineBottom = new Line2D
+        {
+            Name = "VLineBottom",
+            Width = 2.0f,
+            DefaultColor = new Color(0.0f, 0.0f, 0.0f, 0.9f)
+        };
+        vLineBottom.AddPoint(new Vector2(0, innerRadius));
+        vLineBottom.AddPoint(new Vector2(0, circleRadius));
+        _scopeCrosshair.AddChild(vLineBottom);
+
+        // Add mil-dot markers on the bottom crosshair (range estimation)
+        float dotSpacing = circleRadius * 0.15f;
+        for (int i = 1; i <= 4; i++)
+        {
+            float dotY = dotSpacing * i;
+            var dot = new Line2D
+            {
+                Name = $"MilDot_{i}",
+                Width = 3.0f,
+                DefaultColor = new Color(0.0f, 0.0f, 0.0f, 0.8f)
+            };
+            float dotWidth = 4.0f - i * 0.5f; // Dots get smaller further from center
+            dot.AddPoint(new Vector2(-dotWidth, dotY));
+            dot.AddPoint(new Vector2(dotWidth, dotY));
+            _scopeCrosshair.AddChild(dot);
+        }
+
+        // Add mil-dot markers on horizontal lines
+        for (int i = 1; i <= 3; i++)
+        {
+            float dotX = dotSpacing * i;
+            // Right side dots
+            var dotRight = new Line2D
+            {
+                Name = $"HMilDotRight_{i}",
+                Width = 3.0f,
+                DefaultColor = new Color(0.0f, 0.0f, 0.0f, 0.8f)
+            };
+            float dotHeight = 4.0f - i * 0.5f;
+            dotRight.AddPoint(new Vector2(dotX, -dotHeight));
+            dotRight.AddPoint(new Vector2(dotX, dotHeight));
+            _scopeCrosshair.AddChild(dotRight);
+
+            // Left side dots
+            var dotLeft = new Line2D
+            {
+                Name = $"HMilDotLeft_{i}",
+                Width = 3.0f,
+                DefaultColor = new Color(0.0f, 0.0f, 0.0f, 0.8f)
+            };
+            dotLeft.AddPoint(new Vector2(-dotX, -dotHeight));
+            dotLeft.AddPoint(new Vector2(-dotX, dotHeight));
+            _scopeCrosshair.AddChild(dotLeft);
+        }
+
+        // Add thick outer ring to mask edges (simulate scope tube)
+        var scopeRing = new Line2D
+        {
+            Name = "ScopeRing",
+            Width = 6.0f,
+            DefaultColor = new Color(0.1f, 0.1f, 0.1f, 0.95f),
+            Antialiased = true
+        };
+        float ringRadius = circleRadius + 3.0f;
+        for (int i = 0; i <= segments; i++)
+        {
+            float angle = (float)i / segments * Mathf.Tau;
+            scopeRing.AddPoint(new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * ringRadius);
+        }
+        _scopeCrosshair.AddChild(scopeRing);
+
+        // Zoom distance indicator text
+        var zoomLabel = new Label
+        {
+            Name = "ZoomLabel",
+            Position = new Vector2(circleRadius * 0.5f, circleRadius * 0.7f),
+            Text = $"{_scopeZoomDistance:F1}x",
+            HorizontalAlignment = HorizontalAlignment.Center,
+            MouseFilter = Control.MouseFilterEnum.Ignore
+        };
+        zoomLabel.AddThemeColorOverride("font_color", new Color(0.0f, 0.0f, 0.0f, 0.6f));
+        zoomLabel.AddThemeFontSizeOverride("font_size", 12);
+        _scopeCrosshair.AddChild(zoomLabel);
+
+        GetTree().CurrentScene.AddChild(_scopeOverlay);
+    }
+
+    /// <summary>
+    /// Updates the scope overlay crosshair position with sway applied.
+    /// </summary>
+    private void UpdateScopeOverlayPosition()
+    {
+        if (_scopeCrosshair == null || _scopeOverlay == null)
+        {
+            return;
+        }
+
+        Viewport? viewport = GetViewport();
+        if (viewport == null)
+        {
+            return;
+        }
+
+        Vector2 viewportSize = viewport.GetVisibleRect().Size;
+
+        // Crosshair stays centered but sways
+        _scopeCrosshair.Position = viewportSize / 2 + _scopeSwayOffset;
+
+        // Update zoom label
+        var zoomLabel = _scopeCrosshair.GetNodeOrNull<Label>("ZoomLabel");
+        if (zoomLabel != null)
+        {
+            zoomLabel.Text = $"{_scopeZoomDistance:F1}x";
+        }
+    }
+
+    /// <summary>
+    /// Removes the scope overlay from the scene.
+    /// </summary>
+    private void RemoveScopeOverlay()
+    {
+        if (_scopeOverlay != null && IsInstanceValid(_scopeOverlay))
+        {
+            _scopeOverlay.QueueFree();
+            _scopeOverlay = null;
+            _scopeCrosshair = null;
+            _scopeBackground = null;
+        }
     }
 }
