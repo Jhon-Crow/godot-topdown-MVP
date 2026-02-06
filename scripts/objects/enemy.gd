@@ -98,7 +98,7 @@ enum WeaponType { RIFLE, SHOTGUN, UZI }
 @export var grenade_max_throw_distance: float = 600.0  ## Max throw distance (px)
 @export var grenade_min_throw_distance: float = 275.0  ## Min safe distance (blast_radius:225 + margin:50, Issue #375)
 @export var grenade_safety_margin: float = 50.0  ## Safety margin added to blast radius (Issue #375)
-@export var grenade_inaccuracy: float = 0.15  ## Throw inaccuracy (radians)
+@export var grenade_inaccuracy: float = 0.087  ## Throw inaccuracy (radians) - max ±5° per Issue #382
 @export var grenade_throw_delay: float = 0.4  ## Delay before throw (sec)
 @export var grenade_debug_logging: bool = false  ## Grenade debug logging
 
