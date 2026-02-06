@@ -1,0 +1,162 @@
+[12:35:27] [INFO] ============================================================
+[12:35:27] [INFO] GAME LOG STARTED
+[12:35:27] [INFO] ============================================================
+[12:35:27] [INFO] Timestamp: 2026-02-06T12:35:27
+[12:35:27] [INFO] Log file: I:/Загрузки/godot exe/такт граната врагов/game_log_20260206_123527.txt
+[12:35:27] [INFO] Executable: I:/Загрузки/godot exe/такт граната врагов/Godot-Top-Down-Template.exe
+[12:35:27] [INFO] OS: Windows
+[12:35:27] [INFO] Debug build: false
+[12:35:27] [INFO] Engine version: 4.3-stable (official)
+[12:35:27] [INFO] Project: Godot Top-Down Template
+[12:35:27] [INFO] ------------------------------------------------------------
+[12:35:27] [INFO] [GameManager] GameManager ready
+[12:35:27] [INFO] [ScoreManager] ScoreManager ready
+[12:35:28] [INFO] [SoundPropagation] SoundPropagation autoload initialized
+[12:35:28] [INFO] [ImpactEffects] Scenes loaded: DustEffect, BloodEffect, SparksEffect, BloodDecal
+[12:35:28] [INFO] [ImpactEffects] ImpactEffectsManager ready - FULL VERSION with blood effects enabled
+[12:35:28] [INFO] [ImpactEffects] Starting particle shader warmup (Issue #343 fix)...
+[12:35:28] [INFO] [PenultimateHit] Resetting all effects (scene change detected)
+[12:35:28] [INFO] [PenultimateHit] Saturation shader loaded successfully
+[12:35:28] [INFO] [PenultimateHit] Starting shader warmup (Issue #343 fix)...
+[12:35:28] [INFO] [PenultimateHit] PenultimateHitEffectsManager ready - Configuration:
+[12:35:28] [INFO] [PenultimateHit]   Time scale: 0.10 (10x slowdown)
+[12:35:28] [INFO] [PenultimateHit]   Saturation boost: 2.0 (3.0x)
+[12:35:28] [INFO] [PenultimateHit]   Contrast boost: 1.0 (2.0x)
+[12:35:28] [INFO] [PenultimateHit]   Effect duration: 3.0 real seconds
+[12:35:28] [INFO] [LastChance] Resetting all effects (scene change detected)
+[12:35:28] [INFO] [LastChance] Last chance shader loaded successfully
+[12:35:28] [INFO] [LastChance] Starting shader warmup (Issue #343 fix)...
+[12:35:28] [INFO] [LastChance] LastChanceEffectsManager ready - Configuration:
+[12:35:28] [INFO] [LastChance]   Freeze duration: 6.0 real seconds
+[12:35:28] [INFO] [LastChance]   Sepia intensity: 0.70
+[12:35:28] [INFO] [LastChance]   Brightness: 0.60
+[12:35:28] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FlashbangGrenade.tscn
+[12:35:28] [INFO] [GrenadeManager] Loaded grenade scene: res://scenes/projectiles/FragGrenade.tscn
+[12:35:28] [INFO] [ExperimentalSettings] ExperimentalSettings initialized - FOV enabled: true, Complex grenade throwing: false
+[12:35:28] [INFO] [CinemaEffects] CinemaEffectsManager initializing (v5.3 - overlay approach with simplified death circle)...
+[12:35:28] [INFO] [CinemaEffects] Scene changed to: BuildingLevel
+[12:35:28] [INFO] [CinemaEffects] Created effects layer at layer 99
+[12:35:28] [INFO] [CinemaEffects] Cinema shader loaded successfully (v5.0 - no screen_texture)
+[12:35:28] [INFO] [CinemaEffects] Starting cinema shader warmup (Issue #343 fix)...
+[12:35:28] [INFO] [CinemaEffects] Cinema film effect initialized (v5.3) - Configuration:
+[12:35:28] [INFO] [CinemaEffects]   Approach: Overlay-based (no screen_texture)
+[12:35:28] [INFO] [CinemaEffects]   Grain intensity: 0.15
+[12:35:28] [INFO] [CinemaEffects]   Warm tint: 0.12 intensity
+[12:35:28] [INFO] [CinemaEffects]   Sunny effect: 0.08 intensity
+[12:35:28] [INFO] [CinemaEffects]   Vignette: 0.25 intensity
+[12:35:28] [INFO] [CinemaEffects]   Film defects: 1.5% probability
+[12:35:28] [INFO] [CinemaEffects]   White specks: 0.70 intensity, 4.0% probability
+[12:35:28] [INFO] [CinemaEffects]   Death effects: cigarette burn + expanding spots + end of reel circle (160px, blinks 2x)
+[12:35:28] [INFO] [CinemaEffects] Enabling effect after 1 frame(s)...
+[12:35:28] [INFO] [GrenadeTimerHelper] Autoload ready
+[12:35:28] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[12:35:28] [INFO] [BloodyFeet:Enemy1] Footprint scene loaded
+[12:35:28] [INFO] [BloodyFeet:Enemy1] Found EnemyModel for facing direction
+[12:35:28] [INFO] [BloodyFeet:Enemy1] BloodyFeetComponent ready on Enemy1
+[12:35:28] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[12:35:28] [INFO] [BloodyFeet:Enemy2] Footprint scene loaded
+[12:35:28] [INFO] [BloodyFeet:Enemy2] Found EnemyModel for facing direction
+[12:35:28] [INFO] [BloodyFeet:Enemy2] BloodyFeetComponent ready on Enemy2
+[12:35:28] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[12:35:28] [INFO] [BloodyFeet:Enemy3] Footprint scene loaded
+[12:35:28] [INFO] [BloodyFeet:Enemy3] Found EnemyModel for facing direction
+[12:35:28] [INFO] [BloodyFeet:Enemy3] BloodyFeetComponent ready on Enemy3
+[12:35:28] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[12:35:28] [INFO] [BloodyFeet:Enemy4] Footprint scene loaded
+[12:35:28] [INFO] [BloodyFeet:Enemy4] Found EnemyModel for facing direction
+[12:35:28] [INFO] [BloodyFeet:Enemy4] BloodyFeetComponent ready on Enemy4
+[12:35:28] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[12:35:28] [INFO] [BloodyFeet:Enemy5] Footprint scene loaded
+[12:35:28] [INFO] [BloodyFeet:Enemy5] Found EnemyModel for facing direction
+[12:35:28] [INFO] [BloodyFeet:Enemy5] BloodyFeetComponent ready on Enemy5
+[12:35:28] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[12:35:28] [INFO] [BloodyFeet:Enemy6] Footprint scene loaded
+[12:35:28] [INFO] [BloodyFeet:Enemy6] Found EnemyModel for facing direction
+[12:35:28] [INFO] [BloodyFeet:Enemy6] BloodyFeetComponent ready on Enemy6
+[12:35:28] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[12:35:28] [INFO] [BloodyFeet:Enemy7] Footprint scene loaded
+[12:35:28] [INFO] [BloodyFeet:Enemy7] Found EnemyModel for facing direction
+[12:35:28] [INFO] [BloodyFeet:Enemy7] BloodyFeetComponent ready on Enemy7
+[12:35:28] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[12:35:28] [INFO] [BloodyFeet:Enemy8] Footprint scene loaded
+[12:35:28] [INFO] [BloodyFeet:Enemy8] Found EnemyModel for facing direction
+[12:35:28] [INFO] [BloodyFeet:Enemy8] BloodyFeetComponent ready on Enemy8
+[12:35:28] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[12:35:28] [INFO] [BloodyFeet:Enemy9] Footprint scene loaded
+[12:35:28] [INFO] [BloodyFeet:Enemy9] Found EnemyModel for facing direction
+[12:35:28] [INFO] [BloodyFeet:Enemy9] BloodyFeetComponent ready on Enemy9
+[12:35:28] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[12:35:28] [INFO] [BloodyFeet:Enemy10] Footprint scene loaded
+[12:35:28] [INFO] [BloodyFeet:Enemy10] Found EnemyModel for facing direction
+[12:35:28] [INFO] [BloodyFeet:Enemy10] BloodyFeetComponent ready on Enemy10
+[12:35:28] [INFO] [BloodyFeet:?] BloodyFeetComponent initializing...
+[12:35:28] [INFO] [BloodyFeet:Player] Footprint scene loaded
+[12:35:28] [INFO] [BloodyFeet:Player] Found PlayerModel for facing direction
+[12:35:28] [INFO] [BloodyFeet:Player] BloodyFeetComponent ready on Player
+[12:35:28] [INFO] [Player.Grenade] Grenade scene loaded from GrenadeManager: Flashbang
+[12:35:28] [INFO] [Player.Grenade] Normal level - starting with 1 grenade
+[12:35:28] [INFO] [Player.Init] Body sprite found at position: (-4, 0)
+[12:35:28] [INFO] [Player.Init] Head sprite found at position: (-6, -2)
+[12:35:28] [INFO] [Player.Init] Left arm sprite found at position: (24, 6)
+[12:35:28] [INFO] [Player.Init] Right arm sprite found at position: (-2, 6)
+[12:35:28] [INFO] [Player.Debug] Connected to GameManager, debug mode: False
+[12:35:28] [INFO] [Player.Debug] Connected to GameManager, invincibility mode: False
+[12:35:28] [INFO] [Player] Ready! Ammo: 30/30, Grenades: 1/3, Health: 3/4
+[12:35:28] [INFO] [Player.Grenade] Throwing system: VELOCITY-BASED (v2.0 - mouse velocity at release)
+[12:35:28] [INFO] [BloodDecal] Blood puddle created at (640, 360) (added to group)
+[12:35:28] [INFO] [ScoreManager] Level started with 0 enemies
+[12:35:28] [INFO] [CinemaEffects] Found player node: Player
+[12:35:28] [INFO] [CinemaEffects] Connected to player 'Died' signal (C# naming)
+[12:35:28] [INFO] [BloodyFeet:Enemy1] Blood detector created and attached to Enemy1
+[12:35:28] [INFO] [BloodyFeet:Enemy2] Blood detector created and attached to Enemy2
+[12:35:28] [INFO] [BloodyFeet:Enemy3] Blood detector created and attached to Enemy3
+[12:35:28] [INFO] [BloodyFeet:Enemy4] Blood detector created and attached to Enemy4
+[12:35:28] [INFO] [BloodyFeet:Enemy5] Blood detector created and attached to Enemy5
+[12:35:28] [INFO] [BloodyFeet:Enemy6] Blood detector created and attached to Enemy6
+[12:35:28] [INFO] [BloodyFeet:Enemy7] Blood detector created and attached to Enemy7
+[12:35:28] [INFO] [BloodyFeet:Enemy8] Blood detector created and attached to Enemy8
+[12:35:28] [INFO] [BloodyFeet:Enemy9] Blood detector created and attached to Enemy9
+[12:35:28] [INFO] [BloodyFeet:Enemy10] Blood detector created and attached to Enemy10
+[12:35:28] [INFO] [BloodyFeet:Player] Blood detector created and attached to Player
+[12:35:28] [INFO] [BuildingLevel] Found Environment/Enemies node with 10 children
+[12:35:28] [INFO] [BuildingLevel] Child 'Enemy1': script=true, in_group=true
+[12:35:28] [INFO] [BuildingLevel] NOTE: 'hit' signal not available on 'Enemy1'
+[12:35:28] [INFO] [BuildingLevel] Child 'Enemy2': script=true, in_group=true
+[12:35:28] [INFO] [BuildingLevel] NOTE: 'hit' signal not available on 'Enemy2'
+[12:35:28] [INFO] [BuildingLevel] Child 'Enemy3': script=true, in_group=true
+[12:35:28] [INFO] [BuildingLevel] NOTE: 'hit' signal not available on 'Enemy3'
+[12:35:28] [INFO] [BuildingLevel] Child 'Enemy4': script=true, in_group=true
+[12:35:28] [INFO] [BuildingLevel] NOTE: 'hit' signal not available on 'Enemy4'
+[12:35:28] [INFO] [BuildingLevel] Child 'Enemy5': script=true, in_group=true
+[12:35:28] [INFO] [BuildingLevel] NOTE: 'hit' signal not available on 'Enemy5'
+[12:35:28] [INFO] [BuildingLevel] Child 'Enemy6': script=true, in_group=true
+[12:35:28] [INFO] [BuildingLevel] NOTE: 'hit' signal not available on 'Enemy6'
+[12:35:28] [INFO] [BuildingLevel] Child 'Enemy7': script=true, in_group=true
+[12:35:28] [INFO] [BuildingLevel] NOTE: 'hit' signal not available on 'Enemy7'
+[12:35:28] [INFO] [BuildingLevel] Child 'Enemy8': script=true, in_group=true
+[12:35:28] [INFO] [BuildingLevel] NOTE: 'hit' signal not available on 'Enemy8'
+[12:35:28] [INFO] [BuildingLevel] Child 'Enemy9': script=true, in_group=true
+[12:35:28] [INFO] [BuildingLevel] NOTE: 'hit' signal not available on 'Enemy9'
+[12:35:28] [INFO] [BuildingLevel] Child 'Enemy10': script=true, in_group=true
+[12:35:28] [INFO] [BuildingLevel] NOTE: 'hit' signal not available on 'Enemy10'
+[12:35:28] [INFO] [BuildingLevel] Enemy tracking complete: 10 enemies registered
+[12:35:28] [INFO] [Player] Detecting weapon pose (frame 3)...
+[12:35:28] [INFO] [Player] Detected weapon: Rifle (default pose)
+[12:35:28] [INFO] [Player] Applied Rifle arm pose: Left=(24, 6), Right=(-2, 6)
+[12:35:28] [INFO] [PenultimateHit] Shader warmup complete in 233 ms
+[12:35:28] [INFO] [LastChance] Shader warmup complete in 231 ms
+[12:35:28] [INFO] [CinemaEffects] Cinema shader warmup complete in 167 ms
+[12:35:28] [INFO] [PenultimateHit] Found player: Player (class: CharacterBody2D)
+[12:35:28] [INFO] [PenultimateHit] Connected to player Damaged signal (C#)
+[12:35:28] [INFO] [PenultimateHit] Connected to player Died signal (C#)
+[12:35:28] [INFO] [LastChance] Found player: Player
+[12:35:28] [INFO] [LastChance] Connected to ThreatSphere threat_detected signal
+[12:35:28] [INFO] [LastChance] Connected to player Damaged signal (C#)
+[12:35:28] [INFO] [LastChance] Connected to player Died signal (C#)
+[12:35:28] [INFO] [CinemaEffects] Cinema effect now enabled (after 1 frames delay)
+[12:35:28] [INFO] [ImpactEffects] Particle shader warmup complete: 7 effects warmed up in 541 ms
+[12:35:28] [INFO] [Player] Invincibility mode: ON
+[12:35:28] [INFO] [GameManager] Invincibility mode toggled: ON
+[12:35:30] [INFO] ------------------------------------------------------------
+[12:35:30] [INFO] GAME LOG ENDED: 2026-02-06T12:35:30
+[12:35:30] [INFO] ============================================================

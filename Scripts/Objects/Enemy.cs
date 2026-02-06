@@ -308,6 +308,13 @@ public partial class Enemy : Area2D, IDamageable
     {
         EmitSignal(SignalName.Died);
 
+        // Issue #382: Notify GameManager directly (bypasses has_signal bug in exported builds)
+        var gameManager = GetNodeOrNull("/root/GameManager");
+        if (gameManager != null && gameManager.HasMethod("notify_enemy_died"))
+        {
+            gameManager.Call("notify_enemy_died", this, false, false);
+        }
+
         // Trigger Power Fantasy kill effect (300ms last chance effect)
         var powerFantasyManager = GetNodeOrNull("/root/PowerFantasyEffectsManager");
         if (powerFantasyManager != null && powerFantasyManager.HasMethod("on_enemy_killed"))

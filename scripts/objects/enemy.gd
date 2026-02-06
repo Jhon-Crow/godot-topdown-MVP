@@ -4348,6 +4348,10 @@ func _on_death() -> void:
 	_log_to_file("Enemy died (ricochet: %s, penetration: %s)" % [_killed_by_ricochet, _killed_by_penetration])
 	died.emit()
 	died_with_info.emit(_killed_by_ricochet, _killed_by_penetration)
+	# Issue #382: Notify GameManager directly (bypasses has_signal bug in exported builds)
+	var gm = get_node_or_null("/root/GameManager")
+	if gm and gm.has_method("notify_enemy_died"):
+		gm.notify_enemy_died(self, _killed_by_ricochet, _killed_by_penetration)
 	var pfm = get_node_or_null("/root/PowerFantasyEffectsManager")  # Issue #492: Power Fantasy effect
 	if pfm and pfm.has_method("on_enemy_killed"): pfm.on_enemy_killed()
 	_notify_nearby_enemies_of_death()  # Issue #409

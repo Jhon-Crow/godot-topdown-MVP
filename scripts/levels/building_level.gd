@@ -97,7 +97,8 @@ func _ready() -> void:
 		GameManager.enemy_died.connect(_on_enemy_died_via_manager)
 
 	# Initialize ScoreManager for this level
-	_initialize_score_manager()
+	# NOTE: _initialize_score_manager() is called inside _setup_enemy_tracking() (deferred)
+	# because _initial_enemy_count is only available after enemies are counted.
 
 	# Setup exit zone near player spawn (left wall)
 	_setup_exit_zone()
@@ -335,6 +336,12 @@ func _setup_enemy_tracking() -> void:
 	_current_enemy_count = _initial_enemy_count
 	_log_to_file("Enemy tracking complete: %d enemies registered" % _initial_enemy_count)
 	print("Tracking %d enemies" % _initial_enemy_count)
+
+	# Update the enemy count label now that we know the count
+	_update_enemy_count_label()
+
+	# Initialize ScoreManager now that we know the enemy count (Issue #382 fix)
+	_initialize_score_manager()
 
 
 ## Configure silenced pistol ammo based on enemy count.

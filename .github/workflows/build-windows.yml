@@ -32,11 +32,10 @@ jobs:
       # automatically, so we must build .NET assemblies first. Without this step,
       # the data_* folder with .NET assemblies will be missing in the export.
       # See: https://forum.godotengine.org/t/no-data-folder-created-on-export/110235
-      # Note: Using ExportRelease configuration (Godot's standard for exports)
       - name: Build .NET project
         run: |
           dotnet restore GodotTopDownTemplate.sln
-          dotnet build GodotTopDownTemplate.sln --configuration ExportRelease
+          dotnet build GodotTopDownTemplate.sln --configuration Release
 
       - name: Export game
         id: export
