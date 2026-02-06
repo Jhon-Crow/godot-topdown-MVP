@@ -920,12 +920,13 @@ public partial class SniperRifle : BaseWeapon
     /// 1.0 = one viewport distance, 2.0 = two viewport distances.
     /// Controlled by mouse wheel while scoping.
     /// </summary>
-    private float _scopeZoomDistance = 1.0f;
+    private float _scopeZoomDistance = 1.5f;
 
     /// <summary>
     /// Minimum scope zoom distance (viewport multiplier).
+    /// Set to 1.0 so the scope always looks beyond the normal viewport.
     /// </summary>
-    private const float MinScopeZoomDistance = 0.5f;
+    private const float MinScopeZoomDistance = 1.0f;
 
     /// <summary>
     /// Maximum scope zoom distance (viewport multiplier).
@@ -946,6 +947,19 @@ public partial class SniperRifle : BaseWeapon
     /// Speed of the sway oscillation.
     /// </summary>
     private const float ScopeSwaySpeed = 2.5f;
+
+    /// <summary>
+    /// Maximum range (in viewport fraction) that the player can fine-tune the scope
+    /// distance via mouse movement while scoped. About 1/3 of the viewport.
+    /// </summary>
+    private const float ScopeMouseFineTuneRange = 0.33f;
+
+    /// <summary>
+    /// Current mouse fine-tune offset applied to scope distance.
+    /// Ranges from -ScopeMouseFineTuneRange to +ScopeMouseFineTuneRange (viewport fraction).
+    /// Positive = further, negative = closer.
+    /// </summary>
+    private float _scopeMouseFineTuneOffset = 0.0f;
 
     /// <summary>
     /// Current scope sway time accumulator.
@@ -983,6 +997,11 @@ public partial class SniperRifle : BaseWeapon
     private Vector2 _originalCameraOffset = Vector2.Zero;
 
     /// <summary>
+    /// Gets the effective scope zoom distance including mouse fine-tune offset.
+    /// </summary>
+    private float EffectiveScopeZoomDistance => _scopeZoomDistance + _scopeMouseFineTuneOffset;
+
+    /// <summary>
     /// Gets the current camera offset for scope aiming.
     /// Called by the player or level scripts to position the camera.
     /// </summary>
@@ -1002,10 +1021,32 @@ public partial class SniperRifle : BaseWeapon
         Vector2 viewportSize = viewport.GetVisibleRect().Size;
         float baseDistance = viewportSize.Length() * 0.5f;
 
-        // Camera offset = aim direction * zoom distance * viewport size + sway
-        Vector2 offset = _aimDirection * baseDistance * _scopeZoomDistance + _scopeSwayOffset;
+        // Camera offset = aim direction * (zoom distance + mouse fine-tune) * viewport size + sway
+        Vector2 offset = _aimDirection * baseDistance * EffectiveScopeZoomDistance + _scopeSwayOffset;
 
         return offset;
+    }
+
+    /// <summary>
+    /// Gets the world-space position that the scope crosshair center is aiming at.
+    /// Used to direct bullets to the crosshair center.
+    /// </summary>
+    public Vector2 GetScopeAimTarget()
+    {
+        Viewport? viewport = GetViewport();
+        if (viewport == null)
+        {
+            return GlobalPosition + _aimDirection * 1000.0f;
+        }
+
+        Vector2 viewportSize = viewport.GetVisibleRect().Size;
+        float baseDistance = viewportSize.Length() * 0.5f;
+
+        // The scope aim target is the player's position offset by the scope camera offset
+        // (without sway, so bullets go to the true center, not the swaying crosshair)
+        Vector2 aimTarget = GlobalPosition + _aimDirection * baseDistance * EffectiveScopeZoomDistance;
+
+        return aimTarget;
     }
 
     /// <summary>
@@ -1020,6 +1061,7 @@ public partial class SniperRifle : BaseWeapon
 
         _isScopeActive = true;
         _scopeSwayTime = 0.0f;
+        _scopeMouseFineTuneOffset = 0.0f;
 
         // Find and cache the player's Camera2D
         FindPlayerCamera();
@@ -1075,7 +1117,35 @@ public partial class SniperRifle : BaseWeapon
         _scopeZoomDistance += direction * ScopeZoomStep;
         _scopeZoomDistance = Mathf.Clamp(_scopeZoomDistance, MinScopeZoomDistance, MaxScopeZoomDistance);
 
-        GD.Print($"[SniperRifle] Scope zoom adjusted: {_scopeZoomDistance:F2}x");
+        // Reset fine-tune offset when zoom changes to avoid going out of range
+        _scopeMouseFineTuneOffset = Mathf.Clamp(_scopeMouseFineTuneOffset,
+            -ScopeMouseFineTuneRange, ScopeMouseFineTuneRange);
+
+        GD.Print($"[SniperRifle] Scope zoom adjusted: {_scopeZoomDistance:F2}x (fine-tune: {_scopeMouseFineTuneOffset:F2})");
+    }
+
+    /// <summary>
+    /// Adjusts the scope fine-tune offset based on mouse movement along the aim direction.
+    /// Allows the player to look slightly closer or further (about 1/3 viewport range).
+    /// Called from Player.cs when mouse moves while scoped.
+    /// </summary>
+    public void AdjustScopeFineTune(Vector2 mouseMotion)
+    {
+        if (!_isScopeActive)
+        {
+            return;
+        }
+
+        // Project mouse motion onto the aim direction to get forward/backward movement
+        // Moving mouse in the aim direction = further, opposite = closer
+        float projection = mouseMotion.Dot(_aimDirection);
+
+        // Scale the projection: mouse sensitivity for scope fine-tuning
+        // A moderate movement across the screen should give the full range
+        float sensitivity = 0.002f;
+        _scopeMouseFineTuneOffset += projection * sensitivity;
+        _scopeMouseFineTuneOffset = Mathf.Clamp(_scopeMouseFineTuneOffset,
+            -ScopeMouseFineTuneRange, ScopeMouseFineTuneRange);
     }
 
     /// <summary>
@@ -1105,9 +1175,9 @@ public partial class SniperRifle : BaseWeapon
             return;
         }
 
-        // Update sway
+        // Update sway (scales with effective distance including fine-tune offset)
         _scopeSwayTime += delta;
-        float swayAmplitude = BaseScopeSwayAmplitude * _scopeZoomDistance;
+        float swayAmplitude = BaseScopeSwayAmplitude * EffectiveScopeZoomDistance;
 
         // Use two sine waves at different frequencies for natural-looking sway
         float swayX = Mathf.Sin(_scopeSwayTime * ScopeSwaySpeed * 1.0f) * swayAmplitude
@@ -1342,11 +1412,11 @@ public partial class SniperRifle : BaseWeapon
         // Crosshair stays centered but sways
         _scopeCrosshair.Position = viewportSize / 2 + _scopeSwayOffset;
 
-        // Update zoom label
+        // Update zoom label showing effective zoom distance
         var zoomLabel = _scopeCrosshair.GetNodeOrNull<Label>("ZoomLabel");
         if (zoomLabel != null)
         {
-            zoomLabel.Text = $"{_scopeZoomDistance:F1}x";
+            zoomLabel.Text = $"{EffectiveScopeZoomDistance:F1}x";
         }
     }
 

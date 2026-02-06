@@ -1661,6 +1661,15 @@ public partial class Player : BaseCharacter
         // If we have a weapon equipped, use it
         if (CurrentWeapon != null)
         {
+            // When SniperRifle scope is active, fire towards the scope crosshair center
+            // instead of the mouse cursor (the camera is offset, so mouse != crosshair)
+            var sniperRifle = CurrentWeapon as SniperRifle;
+            if (sniperRifle != null && sniperRifle.IsScopeActive)
+            {
+                Vector2 scopeTarget = sniperRifle.GetScopeAimTarget();
+                shootDirection = (scopeTarget - GlobalPosition).Normalized();
+            }
+
             CurrentWeapon.Fire(shootDirection);
             return;
         }
@@ -1964,6 +1973,11 @@ public partial class Player : BaseCharacter
                     GetViewport().SetInputAsHandled();
                 }
             }
+        }
+        // Handle mouse movement for scope fine-tuning (closer/further by ~1/3 viewport)
+        else if (@event is InputEventMouseMotion mouseMotion)
+        {
+            sniperRifle.AdjustScopeFineTune(mouseMotion.Relative);
         }
     }
 
