@@ -21,7 +21,10 @@ class MockGameManager:
 
 	const WEAPON_SCENES: Dictionary = {
 		"m16": "res://scenes/weapons/csharp/AssaultRifle.tscn",
-		"shotgun": "res://scenes/weapons/csharp/Shotgun.tscn"
+		"shotgun": "res://scenes/weapons/csharp/Shotgun.tscn",
+		"mini_uzi": "res://scenes/weapons/csharp/MiniUzi.tscn",
+		"silenced_pistol": "res://scenes/weapons/csharp/SilencedPistol.tscn",
+		"sniper": "res://scenes/weapons/csharp/SniperRifle.tscn"
 	}
 
 	signal weapon_selected(weapon_id: String)
@@ -317,6 +320,19 @@ func test_invalid_weapon_selection_ignored() -> void:
 	manager.set_selected_weapon("invalid_weapon")  # Invalid
 
 	assert_eq(manager.get_selected_weapon(), "shotgun", "Invalid selection should be ignored")
+
+
+func test_set_selected_weapon_to_sniper() -> void:
+	manager.set_selected_weapon("sniper")
+
+	assert_eq(manager.get_selected_weapon(), "sniper", "Weapon should be sniper")
+
+
+func test_get_weapon_scene_path_for_sniper() -> void:
+	manager.set_selected_weapon("sniper")
+	var path := manager.get_selected_weapon_scene_path()
+
+	assert_eq(path, "res://scenes/weapons/csharp/SniperRifle.tscn", "Sniper scene path should be correct")
 
 
 func test_unknown_weapon_returns_default_scene_path() -> void:

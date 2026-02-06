@@ -1,11 +1,12 @@
 extends GutTest
-## Unit tests for shell casing reaction to explosions (Issue #432).
+## Unit tests for shell casing reaction to explosions (Issue #432, #506).
 ##
 ## Tests that shell casings on the floor react appropriately to explosions:
 ## 1. Casings inside lethal blast zone scatter with strong impulse
 ## 2. Casings in proximity zone receive weak impulse
 ## 3. Casings far away are not affected
 ## 4. Works with both FragGrenade and FlashbangGrenade
+## 5. Casings behind obstacles are NOT pushed (Issue #506)
 
 
 # ============================================================================
@@ -35,17 +36,57 @@ class MockCasing:
 		return total
 
 
+## Represents an obstacle segment (wall) that blocks line of sight (Issue #506).
+class MockObstacle:
+	var start: Vector2
+	var end: Vector2
+
+	func _init(s: Vector2, e: Vector2) -> void:
+		start = s
+		end = e
+
+
 class MockGrenade:
 	## Simulates a grenade for testing casing scatter.
 	var global_position: Vector2 = Vector2.ZERO
 	var _mock_casings: Array = []
+	## Obstacles that block shockwave line of sight (Issue #506).
+	var _mock_obstacles: Array = []
 
 	## Set mock casings for testing.
 	func set_mock_casings(casings: Array) -> void:
 		_mock_casings = casings
 
-	## Scatter shell casings within and near the explosion radius (Issue #432).
+	## Set mock obstacles (wall segments) for testing (Issue #506).
+	func set_mock_obstacles(obstacles: Array) -> void:
+		_mock_obstacles = obstacles
+
+	## Check if a line segment from A to B intersects with any obstacle (Issue #506).
+	## Uses simple 2D line segment intersection test.
+	func _is_blocked_by_obstacle(from: Vector2, to: Vector2) -> bool:
+		for obstacle in _mock_obstacles:
+			if _segments_intersect(from, to, obstacle.start, obstacle.end):
+				return true
+		return false
+
+	## 2D line segment intersection test using cross product method.
+	static func _segments_intersect(a1: Vector2, a2: Vector2, b1: Vector2, b2: Vector2) -> bool:
+		var d1 := _cross_2d(b2 - b1, a1 - b1)
+		var d2 := _cross_2d(b2 - b1, a2 - b1)
+		var d3 := _cross_2d(a2 - a1, b1 - a1)
+		var d4 := _cross_2d(a2 - a1, b2 - a1)
+		if ((d1 > 0 and d2 < 0) or (d1 < 0 and d2 > 0)) and \
+		   ((d3 > 0 and d4 < 0) or (d3 < 0 and d4 > 0)):
+			return true
+		return false
+
+	## 2D cross product of two vectors.
+	static func _cross_2d(a: Vector2, b: Vector2) -> float:
+		return a.x * b.y - a.y * b.x
+
+	## Scatter shell casings within and near the explosion radius (Issue #432, #506).
 	## This is a copy of the actual implementation for testing logic.
+	## Issue #506: Now checks obstacle line of sight before applying impulse.
 	func scatter_casings(effect_radius: float) -> void:
 		if _mock_casings.is_empty():
 			return
@@ -65,6 +106,10 @@ class MockGrenade:
 
 			# Skip casings too far away
 			if distance > proximity_radius:
+				continue
+
+			# Issue #506: Check if obstacle blocks line of sight to casing
+			if _is_blocked_by_obstacle(global_position, casing.global_position):
 				continue
 
 			# Calculate direction from explosion to casing
@@ -339,3 +384,77 @@ func test_casing_at_exact_proximity_radius_edge() -> void:
 	# Should receive minimal impulse
 	assert_gt(casing.received_kicks.size(), 0,
 		"Casing at proximity radius edge should receive (minimal) kick")
+
+
+# ============================================================================
+# Issue #506 Tests: Obstacle Blocking (Line of Sight)
+# ============================================================================
+
+
+func test_casing_behind_wall_not_pushed() -> void:
+	# Issue #506: Casing behind a wall should NOT be pushed by explosion
+	var casing := MockCasing.new()
+	casing.global_position = Vector2(200, 100)  # 100 units away, inside lethal zone
+
+	# Place a wall between grenade and casing
+	var wall := MockObstacle.new(Vector2(150, 0), Vector2(150, 200))  # Vertical wall at x=150
+
+	grenade.set_mock_casings([casing])
+	grenade.set_mock_obstacles([wall])
+	grenade.scatter_casings(225.0)
+
+	assert_eq(casing.received_kicks.size(), 0,
+		"Casing behind a wall should NOT receive kick from explosion")
+
+
+func test_casing_not_behind_wall_still_pushed() -> void:
+	# Issue #506: Casing with clear line of sight should still be pushed
+	var casing := MockCasing.new()
+	casing.global_position = Vector2(200, 100)  # 100 units away, inside lethal zone
+
+	# Place a wall that does NOT block the path (wall is above the line of fire)
+	var wall := MockObstacle.new(Vector2(150, 0), Vector2(150, 50))  # Wall ends at y=50, casing at y=100
+
+	grenade.set_mock_casings([casing])
+	grenade.set_mock_obstacles([wall])
+	grenade.scatter_casings(225.0)
+
+	assert_gt(casing.received_kicks.size(), 0,
+		"Casing with clear line of sight should still receive kick")
+
+
+func test_some_casings_blocked_some_not() -> void:
+	# Issue #506: Mix of blocked and unblocked casings
+	var casing_exposed := MockCasing.new()
+	casing_exposed.global_position = Vector2(200, 100)  # Same Y, no wall in the way
+
+	var casing_blocked := MockCasing.new()
+	casing_blocked.global_position = Vector2(100, 300)  # Below the wall
+
+	# Horizontal wall at y=200, blocking path from grenade (100,100) to casing (100,300)
+	var wall := MockObstacle.new(Vector2(50, 200), Vector2(150, 200))
+
+	grenade.set_mock_casings([casing_exposed, casing_blocked])
+	grenade.set_mock_obstacles([wall])
+	grenade.scatter_casings(225.0)
+
+	assert_gt(casing_exposed.received_kicks.size(), 0,
+		"Exposed casing should receive kick")
+	assert_eq(casing_blocked.received_kicks.size(), 0,
+		"Blocked casing should NOT receive kick")
+
+
+func test_casing_in_proximity_zone_behind_wall_not_pushed() -> void:
+	# Issue #506: Casing in proximity zone behind wall should not be pushed
+	var casing := MockCasing.new()
+	casing.global_position = Vector2(350, 100)  # 250 units away, in proximity zone
+
+	# Wall between grenade and casing
+	var wall := MockObstacle.new(Vector2(250, 0), Vector2(250, 200))
+
+	grenade.set_mock_casings([casing])
+	grenade.set_mock_obstacles([wall])
+	grenade.scatter_casings(225.0)
+
+	assert_eq(casing.received_kicks.size(), 0,
+		"Casing in proximity zone behind wall should NOT receive kick")

@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=3 format=3 uid="uid://bk7m4n9r3p5q2"]
+
+[ext_resource type="Script" path="res://Scripts/Data/WeaponData.cs" id="1_script"]
+[ext_resource type="Resource" uid="uid://cn7m4k9r3p5q1" path="res://resources/calibers/caliber_127x108.tres" id="2_caliber"]
+
+[resource]
+script = ExtResource("1_script")
+Name = "ASVK"
+Damage = 50.0
+FireRate = 1.0
+MagazineSize = 5
+MaxReserveAmmo = 5
+ReloadTime = 2.5
+BulletSpeed = 10000.0
+Range = 5000.0
+SpreadAngle = 0.0
+BulletsPerShot = 1
+IsAutomatic = false
+Loudness = 3000.0
+Sensitivity = 8.0
+ScreenShakeIntensity = 25.0
+ScreenShakeMinRecoveryTime = 0.5
+ScreenShakeMaxRecoveryTime = 0.1
+Caliber = ExtResource("2_caliber")
