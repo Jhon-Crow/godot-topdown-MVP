@@ -1,5 +1,5 @@
 extends GutTest
-## Unit tests for shell casing reaction to explosions (Issue #432, #506).
+## Unit tests for shell casing reaction to explosions (Issue #432, #506, #522).
 ##
 ## Tests that shell casings on the floor react appropriately to explosions:
 ## 1. Casings inside lethal blast zone scatter with strong impulse
@@ -7,6 +7,7 @@ extends GutTest
 ## 3. Casings far away are not affected
 ## 4. Works with both FragGrenade and FlashbangGrenade
 ## 5. Casings behind obstacles are NOT pushed (Issue #506)
+## 6. Time-frozen casings queue impulse and apply on unfreeze (Issue #522)
 
 
 # ============================================================================
@@ -16,18 +17,29 @@ extends GutTest
 
 class MockCasing:
 	## Simulates a shell casing on the floor.
+	## Updated for Issue #522: supports pending impulse during time freeze.
 	var global_position: Vector2 = Vector2.ZERO
 	var received_kicks: Array = []
 	var _has_landed: bool = true
 	var _is_time_frozen: bool = false
+	var _pending_kick_impulse: Vector2 = Vector2.ZERO
 
 	func receive_kick(impulse: Vector2) -> void:
+		# Issue #522: Queue impulse during freeze instead of discarding
 		if _is_time_frozen:
+			_pending_kick_impulse += impulse
 			return
 		received_kicks.append(impulse)
 
+	func unfreeze_time() -> void:
+		_is_time_frozen = false
+		# Issue #522: Apply pending impulse on unfreeze
+		if _pending_kick_impulse != Vector2.ZERO:
+			receive_kick(_pending_kick_impulse)
+			_pending_kick_impulse = Vector2.ZERO
+
 	func has_method(method_name: String) -> bool:
-		return method_name == "receive_kick"
+		return method_name == "receive_kick" or method_name == "unfreeze_time"
 
 	func get_total_impulse_strength() -> float:
 		var total: float = 0.0
@@ -298,10 +310,12 @@ func test_impulse_direction_different_angles() -> void:
 
 # ============================================================================
 # Issue #432 Tests: Time-Frozen Casings
+# Issue #522: Frozen casings now queue impulse instead of discarding
 # ============================================================================
 
 
-func test_time_frozen_casing_not_affected() -> void:
+func test_time_frozen_casing_queues_impulse() -> void:
+	# Issue #522: Frozen casings should queue the impulse, not discard it
 	var casing := MockCasing.new()
 	casing.global_position = Vector2(150, 100)  # Inside lethal zone
 	casing._is_time_frozen = true
@@ -309,8 +323,58 @@ func test_time_frozen_casing_not_affected() -> void:
 	grenade.set_mock_casings([casing])
 	grenade.scatter_casings(225.0)
 
+	# During freeze, no kicks are applied immediately
 	assert_eq(casing.received_kicks.size(), 0,
-		"Time-frozen casing should not receive kick")
+		"Time-frozen casing should not receive kick immediately")
+	# But the impulse should be queued
+	assert_ne(casing._pending_kick_impulse, Vector2.ZERO,
+		"Time-frozen casing should have pending impulse queued")
+
+
+func test_time_frozen_casing_applies_impulse_on_unfreeze() -> void:
+	# Issue #522: When time unfreezes, pending impulse should be applied
+	var casing := MockCasing.new()
+	casing.global_position = Vector2(150, 100)  # Inside lethal zone
+	casing._is_time_frozen = true
+
+	grenade.set_mock_casings([casing])
+	grenade.scatter_casings(225.0)
+
+	# Verify impulse was queued
+	assert_eq(casing.received_kicks.size(), 0,
+		"No kicks during freeze")
+	var pending := casing._pending_kick_impulse
+	assert_ne(pending, Vector2.ZERO,
+		"Impulse should be pending")
+
+	# Unfreeze time - pending impulse should be applied
+	casing.unfreeze_time()
+
+	assert_gt(casing.received_kicks.size(), 0,
+		"Casing should receive kick after unfreeze")
+	assert_gt(casing.get_total_impulse_strength(), 0.0,
+		"Applied impulse should have non-zero strength")
+	assert_eq(casing._pending_kick_impulse, Vector2.ZERO,
+		"Pending impulse should be cleared after unfreeze")
+
+
+func test_time_frozen_casing_impulse_direction_preserved() -> void:
+	# Issue #522: Direction of queued impulse should be correct after unfreeze
+	var casing := MockCasing.new()
+	casing.global_position = Vector2(200, 100)  # 100 units to the right
+	casing._is_time_frozen = true
+
+	grenade.set_mock_casings([casing])
+	grenade.scatter_casings(225.0)
+
+	# Unfreeze and check direction
+	casing.unfreeze_time()
+
+	assert_gt(casing.received_kicks.size(), 0)
+	var impulse: Vector2 = casing.received_kicks[0]
+	# Impulse should point away from explosion (positive X direction)
+	assert_gt(impulse.x, 0,
+		"Queued impulse should preserve direction away from explosion")
 
 
 # ============================================================================
@@ -458,3 +522,74 @@ func test_casing_in_proximity_zone_behind_wall_not_pushed() -> void:
 
 	assert_eq(casing.received_kicks.size(), 0,
 		"Casing in proximity zone behind wall should NOT receive kick")
+
+
+# ============================================================================
+# Issue #522 Tests: Power Fantasy Explosion Sequence Simulation
+# ============================================================================
+
+
+func test_power_fantasy_explosion_sequence() -> void:
+	# Issue #522: Simulates the exact sequence that occurs in Power Fantasy mode:
+	# 1. Grenade explodes
+	# 2. PowerFantasyEffectsManager triggers time freeze (casings get frozen)
+	# 3. scatter_casings() runs (casings are already frozen)
+	# 4. Time unfreezes later (casings should scatter at this point)
+	var casing1 := MockCasing.new()
+	casing1.global_position = Vector2(150, 100)  # Inside lethal zone
+	var casing2 := MockCasing.new()
+	casing2.global_position = Vector2(250, 100)  # Also inside lethal zone
+
+	# Step 1: Time freeze happens (before scatter_casings)
+	casing1._is_time_frozen = true
+	casing2._is_time_frozen = true
+
+	# Step 2: scatter_casings runs while casings are frozen
+	grenade.set_mock_casings([casing1, casing2])
+	grenade.scatter_casings(225.0)
+
+	# Verify: no immediate kicks, but impulses are queued
+	assert_eq(casing1.received_kicks.size(), 0, "No immediate kick during freeze")
+	assert_eq(casing2.received_kicks.size(), 0, "No immediate kick during freeze")
+	assert_ne(casing1._pending_kick_impulse, Vector2.ZERO, "Impulse queued for casing1")
+	assert_ne(casing2._pending_kick_impulse, Vector2.ZERO, "Impulse queued for casing2")
+
+	# Step 3: Time unfreezes
+	casing1.unfreeze_time()
+	casing2.unfreeze_time()
+
+	# Verify: both casings scatter after unfreeze
+	assert_gt(casing1.received_kicks.size(), 0,
+		"Casing1 should scatter after unfreeze")
+	assert_gt(casing2.received_kicks.size(), 0,
+		"Casing2 should scatter after unfreeze")
+	assert_gt(casing1.get_total_impulse_strength(), 0.0,
+		"Casing1 should have non-zero impulse")
+	assert_gt(casing2.get_total_impulse_strength(), 0.0,
+		"Casing2 should have non-zero impulse")
+
+
+func test_multiple_explosions_during_freeze_accumulate() -> void:
+	# Issue #522: If multiple explosions happen during freeze, impulses should add up
+	var casing := MockCasing.new()
+	casing.global_position = Vector2(150, 100)  # Inside lethal zone
+	casing._is_time_frozen = true
+
+	# First explosion
+	grenade.set_mock_casings([casing])
+	grenade.scatter_casings(225.0)
+
+	var first_pending := casing._pending_kick_impulse
+
+	# Second explosion from different position
+	grenade.global_position = Vector2(100, 50)  # Move grenade
+	grenade.scatter_casings(225.0)
+
+	# Impulses should accumulate
+	assert_ne(casing._pending_kick_impulse, first_pending,
+		"Multiple explosions should accumulate pending impulse")
+
+	# Unfreeze and verify combined impulse is applied
+	casing.unfreeze_time()
+	assert_gt(casing.received_kicks.size(), 0,
+		"Accumulated impulse should be applied on unfreeze")

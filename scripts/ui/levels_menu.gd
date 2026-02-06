@@ -10,7 +10,7 @@ signal back_pressed
 ## Dictionary mapping level names to their scene paths.
 const LEVELS: Dictionary = {
 	"Building Level": "res://scenes/levels/BuildingLevel.tscn",
-	"Test Tier": "res://scenes/levels/TestTier.tscn",
+	"Полигон": "res://scenes/levels/TestTier.tscn",
 	"Замок": "res://scenes/levels/CastleLevel.tscn",
 	"Обучение": "res://scenes/levels/csharp/TestTier.tscn"
 }
