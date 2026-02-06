@@ -37,6 +37,14 @@ const WEAPONS: Dictionary = {
 		"is_grenade": true,
 		"grenade_type": 1
 	},
+	"defensive_grenade": {
+		"name": "F-1 Grenade",
+		"icon_path": "res://assets/sprites/weapons/defensive_grenade.png",
+		"unlocked": true,
+		"description": "Defensive grenade (F-1) - 4 second fuse, 40 shrapnel pieces, 700px damage radius. Press G + RMB drag to throw.",
+		"is_grenade": true,
+		"grenade_type": 2
+	},
 	"ak47": {
 		"name": "???",
 		"icon_path": "",
