@@ -1,7 +1,8 @@
 extends GutTest
-## Unit tests for AnimatedScoreScreen Gothic font integration.
+## Unit tests for Gothic font integration and combo color system.
 ##
-## Tests that the Gothic font is properly loaded and applied to score screen labels.
+## Tests that the Gothic font is properly loaded and applied to rank labels
+## and combo counter. Also tests the combo color progression.
 ## Issue #525: Add a font for ratings/grades.
 
 

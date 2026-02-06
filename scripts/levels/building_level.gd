@@ -178,12 +178,34 @@ func _on_combo_changed(combo: int, points: int) -> void:
 	if combo > 0:
 		_combo_label.text = "x%d COMBO (+%d)" % [combo, points]
 		_combo_label.visible = true
+		# Color changes based on combo count
+		var combo_color := _get_combo_color(combo)
+		_combo_label.add_theme_color_override("font_color", combo_color)
 		# Flash effect for combo
 		_combo_label.modulate = Color.WHITE
 		var tween := create_tween()
-		tween.tween_property(_combo_label, "modulate", Color(1.0, 0.8, 0.2, 1.0), 0.1)
+		tween.tween_property(_combo_label, "modulate", Color.WHITE, 0.1)
 	else:
 		_combo_label.visible = false
+
+
+## Returns a color based on the current combo count.
+## Higher combos produce more intense/hotter colors.
+func _get_combo_color(combo: int) -> Color:
+	if combo >= 10:
+		return Color(1.0, 0.0, 1.0, 1.0)   # Magenta - extreme combo
+	elif combo >= 7:
+		return Color(1.0, 0.0, 0.3, 1.0)   # Hot pink
+	elif combo >= 5:
+		return Color(1.0, 0.1, 0.1, 1.0)   # Bright red
+	elif combo >= 4:
+		return Color(1.0, 0.2, 0.0, 1.0)   # Red-orange
+	elif combo >= 3:
+		return Color(1.0, 0.4, 0.0, 1.0)   # Hot orange
+	elif combo >= 2:
+		return Color(1.0, 0.6, 0.1, 1.0)   # Orange
+	else:
+		return Color(1.0, 0.8, 0.2, 1.0)   # Gold (combo 1)
 
 
 ## Setup the navigation mesh for enemy pathfinding.
@@ -404,6 +426,10 @@ func _setup_debug_ui() -> void:
 	_combo_label.offset_bottom = 120
 	_combo_label.add_theme_font_size_override("font_size", 28)
 	_combo_label.add_theme_color_override("font_color", Color(1.0, 0.8, 0.2, 1.0))
+	# Apply Gothic font to combo counter
+	var gothic_font: FontFile = load("res://assets/fonts/UnifrakturMaguntia-Book.ttf") as FontFile
+	if gothic_font:
+		_combo_label.add_theme_font_override("font", gothic_font)
 	_combo_label.visible = false
 	ui.add_child(_combo_label)
 
@@ -819,8 +845,6 @@ func _show_fallback_score_screen(ui: Control, score_data: Dictionary) -> void:
 	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title_label.add_theme_font_size_override("font_size", 42)
 	title_label.add_theme_color_override("font_color", Color(0.2, 1.0, 0.3, 1.0))
-	if gothic_font:
-		title_label.add_theme_font_override("font", gothic_font)
 	container.add_child(title_label)
 
 	var rank_label := Label.new()
@@ -837,8 +861,6 @@ func _show_fallback_score_screen(ui: Control, score_data: Dictionary) -> void:
 	total_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	total_label.add_theme_font_size_override("font_size", 32)
 	total_label.add_theme_color_override("font_color", Color(1.0, 0.9, 0.3, 1.0))
-	if gothic_font:
-		total_label.add_theme_font_override("font", gothic_font)
 	container.add_child(total_label)
 
 	var hint_label := Label.new()
@@ -846,8 +868,6 @@ func _show_fallback_score_screen(ui: Control, score_data: Dictionary) -> void:
 	hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	hint_label.add_theme_font_size_override("font_size", 16)
 	hint_label.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5, 1.0))
-	if gothic_font:
-		hint_label.add_theme_font_override("font", gothic_font)
 	container.add_child(hint_label)
 
 

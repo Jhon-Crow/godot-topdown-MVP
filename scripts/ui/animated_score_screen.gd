@@ -208,7 +208,6 @@ func _animate_title(container: VBoxContainer, start_delay: float) -> float:
 	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title_label.add_theme_font_size_override("font_size", 42)
 	title_label.add_theme_color_override("font_color", Color(0.2, 1.0, 0.3, 1.0))
-	_apply_gothic_font(title_label)
 	title_label.modulate.a = 0.0  # Start invisible
 	container.add_child(title_label)
 
@@ -253,7 +252,6 @@ func _animate_stat_row(container: VBoxContainer, data: Array, start_delay: float
 	category_label.text = data[0]
 	category_label.add_theme_font_size_override("font_size", 18)
 	category_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7, 1.0))
-	_apply_gothic_font(category_label)
 	category_label.custom_minimum_size.x = 150
 	line_container.add_child(category_label)
 
@@ -262,7 +260,6 @@ func _animate_stat_row(container: VBoxContainer, data: Array, start_delay: float
 	value_label.text = data[1]
 	value_label.add_theme_font_size_override("font_size", 18)
 	value_label.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 1.0))
-	_apply_gothic_font(value_label)
 	value_label.custom_minimum_size.x = 150
 	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	line_container.add_child(value_label)
@@ -274,7 +271,6 @@ func _animate_stat_row(container: VBoxContainer, data: Array, start_delay: float
 	var is_penalty: bool = data[3]
 	var base_color: Color = Color(1.0, 0.4, 0.4, 1.0) if is_penalty else Color(0.4, 1.0, 0.4, 1.0)
 	points_label.add_theme_color_override("font_color", base_color)
-	_apply_gothic_font(points_label)
 	points_label.custom_minimum_size.x = 100
 	points_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	line_container.add_child(points_label)
@@ -369,7 +365,6 @@ func _animate_total_score(container: VBoxContainer, score_data: Dictionary, star
 	total_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	total_label.add_theme_font_size_override("font_size", 32)
 	total_label.add_theme_color_override("font_color", Color(1.0, 0.9, 0.3, 1.0))
-	_apply_gothic_font(total_label)
 	total_label.modulate.a = 0.0
 	container.add_child(total_label)
 
@@ -552,7 +547,6 @@ func _show_restart_hint(container: VBoxContainer) -> void:
 	hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	hint_label.add_theme_font_size_override("font_size", 16)
 	hint_label.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5, 1.0))
-	_apply_gothic_font(hint_label)
 	hint_label.modulate.a = 0.0
 	container.add_child(hint_label)
 
