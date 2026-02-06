@@ -2,6 +2,8 @@ extends GutTest
 ## Unit tests for ArmoryMenu.
 ##
 ## Tests the weapon/grenade selection menu logic.
+## The armory menu separates firearms and grenades into distinct categories
+## and shows a loadout panel with detailed weapon stats.
 
 
 # ============================================================================
@@ -10,45 +12,63 @@ extends GutTest
 
 
 class MockArmoryMenu:
-	## Dictionary of all weapons with their data.
-	const WEAPONS: Dictionary = {
+	## Dictionary of firearms (non-grenade weapons).
+	const FIREARMS: Dictionary = {
 		"m16": {
 			"name": "M16",
 			"icon_path": "res://assets/sprites/weapons/m16_rifle.png",
 			"unlocked": true,
-			"description": "Standard assault rifle",
-			"is_grenade": false
-		},
-		"flashbang": {
-			"name": "Flashbang",
-			"icon_path": "res://assets/sprites/weapons/flashbang.png",
-			"unlocked": true,
-			"description": "Stun grenade",
-			"is_grenade": true,
-			"grenade_type": 0
-		},
-		"frag_grenade": {
-			"name": "Frag Grenade",
-			"icon_path": "res://assets/sprites/weapons/frag_grenade.png",
-			"unlocked": true,
-			"description": "Offensive grenade",
-			"is_grenade": true,
-			"grenade_type": 1
-		},
-		"ak47": {
-			"name": "???",
-			"icon_path": "",
-			"unlocked": false,
-			"description": "Coming soon",
-			"is_grenade": false
+			"description": "Standard assault rifle with auto/burst modes, red laser sight"
 		},
 		"shotgun": {
 			"name": "Shotgun",
 			"icon_path": "res://assets/sprites/weapons/shotgun_icon.png",
 			"unlocked": true,
-			"description": "Pump-action shotgun",
-			"is_grenade": false
+			"description": "Pump-action shotgun"
+		},
+		"mini_uzi": {
+			"name": "Mini UZI",
+			"icon_path": "res://assets/sprites/weapons/mini_uzi_icon.png",
+			"unlocked": true,
+			"description": "High fire rate SMG"
+		},
+		"silenced_pistol": {
+			"name": "Silenced Pistol",
+			"icon_path": "res://assets/sprites/weapons/silenced_pistol_topdown.png",
+			"unlocked": true,
+			"description": "Beretta M9 with suppressor"
+		},
+		"sniper": {
+			"name": "ASVK",
+			"icon_path": "res://assets/sprites/weapons/asvk_topdown.png",
+			"unlocked": true,
+			"description": "Anti-materiel sniper"
+		},
+		"ak47": {
+			"name": "???",
+			"icon_path": "",
+			"unlocked": false,
+			"description": "Coming soon"
+		},
+		"smg": {
+			"name": "???",
+			"icon_path": "",
+			"unlocked": false,
+			"description": "Coming soon"
+		},
+		"pistol": {
+			"name": "???",
+			"icon_path": "",
+			"unlocked": false,
+			"description": "Coming soon"
 		}
+	}
+
+	## Grenade data (separate from firearms).
+	const GRENADES: Dictionary = {
+		0: {"name": "Flashbang", "description": "Stun grenade"},
+		1: {"name": "Frag Grenade", "description": "Offensive grenade"},
+		2: {"name": "F-1 Grenade", "description": "Defensive grenade"}
 	}
 
 	## Currently selected weapon ID.
@@ -62,43 +82,32 @@ class MockArmoryMenu:
 	var weapon_selected_emitted: Array = []
 	var grenade_selected_emitted: Array = []
 
-	## Count unlocked weapons.
-	func count_unlocked_weapons() -> int:
+	## Count unlocked firearms.
+	func count_unlocked_firearms() -> int:
 		var count := 0
-		for weapon_id in WEAPONS:
-			if WEAPONS[weapon_id]["unlocked"]:
+		for weapon_id in FIREARMS:
+			if FIREARMS[weapon_id]["unlocked"]:
 				count += 1
 		return count
 
-	## Get total weapon count.
-	func count_total_weapons() -> int:
-		return WEAPONS.size()
+	## Get total firearm count.
+	func count_total_firearms() -> int:
+		return FIREARMS.size()
+
+	## Get total grenade count.
+	func count_total_grenades() -> int:
+		return GRENADES.size()
 
 	## Check if weapon is unlocked.
 	func is_weapon_unlocked(weapon_id: String) -> bool:
-		if not weapon_id in WEAPONS:
+		if not weapon_id in FIREARMS:
 			return false
-		return WEAPONS[weapon_id]["unlocked"]
+		return FIREARMS[weapon_id]["unlocked"]
 
-	## Check if weapon is a grenade.
-	func is_grenade(weapon_id: String) -> bool:
-		if not weapon_id in WEAPONS:
-			return false
-		return WEAPONS[weapon_id].get("is_grenade", false)
-
-	## Get grenade type for a weapon ID.
-	func get_grenade_type(weapon_id: String) -> int:
-		if not weapon_id in WEAPONS:
-			return -1
-		return WEAPONS[weapon_id].get("grenade_type", -1)
-
-	## Select a weapon.
+	## Select a weapon (firearm only).
 	func select_weapon(weapon_id: String) -> bool:
 		if not is_weapon_unlocked(weapon_id):
 			return false
-
-		if is_grenade(weapon_id):
-			return false  # Use select_grenade for grenades
 
 		if weapon_id == selected_weapon:
 			return false  # Already selected
@@ -107,29 +116,21 @@ class MockArmoryMenu:
 		weapon_selected_emitted.append(weapon_id)
 		return true
 
-	## Select a grenade.
-	func select_grenade(weapon_id: String) -> bool:
-		if not is_weapon_unlocked(weapon_id):
+	## Select a grenade by type.
+	func select_grenade(grenade_type: int) -> bool:
+		if grenade_type not in GRENADES:
 			return false
 
-		if not is_grenade(weapon_id):
-			return false  # Not a grenade
-
-		var grenade_type := get_grenade_type(weapon_id)
 		if grenade_type == selected_grenade_type:
 			return false  # Already selected
 
 		selected_grenade_type = grenade_type
-		grenade_selected_emitted.append(weapon_id)
+		grenade_selected_emitted.append(grenade_type)
 		return true
 
 	## Handle back button press.
 	func press_back() -> void:
 		back_pressed_emitted += 1
-
-	## Get status text.
-	func get_status_text() -> String:
-		return "Unlocked: %d / %d" % [count_unlocked_weapons(), count_total_weapons()]
 
 
 var menu: MockArmoryMenu
@@ -148,9 +149,14 @@ func after_each() -> void:
 # ============================================================================
 
 
-func test_weapons_dictionary_exists() -> void:
-	assert_true(menu.WEAPONS.size() > 0,
-		"WEAPONS dictionary should have entries")
+func test_firearms_dictionary_exists() -> void:
+	assert_true(menu.FIREARMS.size() > 0,
+		"FIREARMS dictionary should have entries")
+
+
+func test_grenades_dictionary_exists() -> void:
+	assert_true(menu.GRENADES.size() > 0,
+		"GRENADES dictionary should have entries")
 
 
 func test_m16_is_unlocked() -> void:
@@ -163,39 +169,24 @@ func test_ak47_is_locked() -> void:
 		"AK47 should be locked")
 
 
-func test_flashbang_is_grenade() -> void:
-	assert_true(menu.is_grenade("flashbang"),
-		"Flashbang should be a grenade")
-
-
-func test_m16_is_not_grenade() -> void:
-	assert_false(menu.is_grenade("m16"),
-		"M16 should not be a grenade")
-
-
 func test_unknown_weapon_not_unlocked() -> void:
 	assert_false(menu.is_weapon_unlocked("unknown_weapon"),
 		"Unknown weapon should not be unlocked")
 
 
-func test_unknown_weapon_not_grenade() -> void:
-	assert_false(menu.is_grenade("unknown_weapon"),
-		"Unknown weapon should not be a grenade")
+func test_sniper_is_unlocked() -> void:
+	assert_true(menu.is_weapon_unlocked("sniper"),
+		"ASVK sniper should be unlocked")
 
 
-func test_flashbang_grenade_type() -> void:
-	assert_eq(menu.get_grenade_type("flashbang"), 0,
-		"Flashbang should have grenade_type 0")
+func test_silenced_pistol_is_unlocked() -> void:
+	assert_true(menu.is_weapon_unlocked("silenced_pistol"),
+		"Silenced Pistol should be unlocked")
 
 
-func test_frag_grenade_grenade_type() -> void:
-	assert_eq(menu.get_grenade_type("frag_grenade"), 1,
-		"Frag grenade should have grenade_type 1")
-
-
-func test_m16_no_grenade_type() -> void:
-	assert_eq(menu.get_grenade_type("m16"), -1,
-		"Non-grenade should have grenade_type -1")
+func test_mini_uzi_is_unlocked() -> void:
+	assert_true(menu.is_weapon_unlocked("mini_uzi"),
+		"Mini UZI should be unlocked")
 
 
 # ============================================================================
@@ -203,26 +194,26 @@ func test_m16_no_grenade_type() -> void:
 # ============================================================================
 
 
-func test_count_unlocked_weapons() -> void:
-	var count := menu.count_unlocked_weapons()
+func test_count_unlocked_firearms() -> void:
+	var count := menu.count_unlocked_firearms()
 
-	# M16, Flashbang, Frag Grenade, Shotgun are unlocked (4)
-	assert_eq(count, 4,
-		"Should count correct number of unlocked weapons")
-
-
-func test_count_total_weapons() -> void:
-	var count := menu.count_total_weapons()
-
+	# M16, Shotgun, Mini UZI, Silenced Pistol, ASVK (5 unlocked)
 	assert_eq(count, 5,
-		"Should count total weapons correctly")
+		"Should count correct number of unlocked firearms")
 
 
-func test_status_text() -> void:
-	var status := menu.get_status_text()
+func test_count_total_firearms() -> void:
+	var count := menu.count_total_firearms()
 
-	assert_eq(status, "Unlocked: 4 / 5",
-		"Status text should show unlocked/total")
+	assert_eq(count, 8,
+		"Should count total firearms correctly (5 unlocked + 3 locked)")
+
+
+func test_count_total_grenades() -> void:
+	var count := menu.count_total_grenades()
+
+	assert_eq(count, 3,
+		"Should count total grenades correctly (flashbang, frag, defensive)")
 
 
 # ============================================================================
@@ -267,13 +258,6 @@ func test_select_locked_weapon() -> void:
 		"Selected weapon should remain unchanged")
 
 
-func test_select_grenade_as_weapon() -> void:
-	var result := menu.select_weapon("flashbang")
-
-	assert_false(result,
-		"Should not select grenade via select_weapon")
-
-
 # ============================================================================
 # Grenade Selection Tests
 # ============================================================================
@@ -281,7 +265,7 @@ func test_select_grenade_as_weapon() -> void:
 
 func test_select_grenade_success() -> void:
 	menu.selected_grenade_type = 0  # Flashbang
-	var result := menu.select_grenade("frag_grenade")
+	var result := menu.select_grenade(1)  # Frag
 
 	assert_true(result,
 		"Should successfully select different grenade")
@@ -291,17 +275,17 @@ func test_select_grenade_success() -> void:
 
 func test_select_grenade_emits_signal() -> void:
 	menu.selected_grenade_type = 0
-	menu.select_grenade("frag_grenade")
+	menu.select_grenade(1)
 
 	assert_eq(menu.grenade_selected_emitted.size(), 1,
 		"Should emit grenade selection signal")
-	assert_eq(menu.grenade_selected_emitted[0], "frag_grenade",
-		"Signal should contain grenade ID")
+	assert_eq(menu.grenade_selected_emitted[0], 1,
+		"Signal should contain grenade type")
 
 
 func test_select_same_grenade_no_signal() -> void:
 	menu.selected_grenade_type = 0
-	var result := menu.select_grenade("flashbang")
+	var result := menu.select_grenade(0)
 
 	assert_false(result,
 		"Should return false for same grenade")
@@ -309,11 +293,23 @@ func test_select_same_grenade_no_signal() -> void:
 		"Should not emit signal for same grenade")
 
 
-func test_select_weapon_as_grenade() -> void:
-	var result := menu.select_grenade("m16")
+func test_select_defensive_grenade() -> void:
+	menu.selected_grenade_type = 0
+	var result := menu.select_grenade(2)  # Defensive
+
+	assert_true(result,
+		"Should successfully select defensive grenade")
+	assert_eq(menu.selected_grenade_type, 2,
+		"Should select defensive grenade type")
+
+
+func test_select_invalid_grenade_type() -> void:
+	var result := menu.select_grenade(99)
 
 	assert_false(result,
-		"Should not select weapon via select_grenade")
+		"Should not select invalid grenade type")
+	assert_eq(menu.selected_grenade_type, 0,
+		"Grenade type should remain unchanged")
 
 
 # ============================================================================
@@ -354,8 +350,8 @@ func test_switch_weapons() -> void:
 
 func test_switch_grenades() -> void:
 	menu.selected_grenade_type = 0
-	menu.select_grenade("frag_grenade")
-	menu.select_grenade("flashbang")
+	menu.select_grenade(1)
+	menu.select_grenade(0)
 
 	assert_eq(menu.selected_grenade_type, 0,
 		"Should switch back to flashbang")
@@ -365,7 +361,7 @@ func test_switch_grenades() -> void:
 
 func test_select_weapon_and_grenade() -> void:
 	menu.select_weapon("shotgun")
-	menu.select_grenade("frag_grenade")
+	menu.select_grenade(1)
 
 	assert_eq(menu.selected_weapon, "shotgun",
 		"Weapon should be updated")
@@ -403,9 +399,9 @@ func test_case_sensitivity() -> void:
 
 
 func test_all_unlocked_weapons_selectable() -> void:
-	var unlocked_non_grenades := ["m16", "shotgun"]
+	var unlocked_weapons := ["m16", "shotgun", "mini_uzi", "silenced_pistol", "sniper"]
 
-	for weapon_id in unlocked_non_grenades:
+	for weapon_id in unlocked_weapons:
 		menu.selected_weapon = ""  # Reset
 		var result := menu.select_weapon(weapon_id)
 		assert_true(result,
@@ -413,11 +409,19 @@ func test_all_unlocked_weapons_selectable() -> void:
 
 
 func test_all_grenades_selectable() -> void:
-	var grenades := ["flashbang", "frag_grenade"]
-
-	for i in range(grenades.size()):
-		# Start with opposite grenade selected
-		menu.selected_grenade_type = 1 if i == 0 else 0
-		var result := menu.select_grenade(grenades[i])
+	for grenade_type in [0, 1, 2]:
+		# Start with a different grenade selected
+		menu.selected_grenade_type = (grenade_type + 1) % 3
+		var result := menu.select_grenade(grenade_type)
 		assert_true(result,
-			"Should be able to select %s" % grenades[i])
+			"Should be able to select grenade type %d" % grenade_type)
+
+
+func test_cycle_all_weapons() -> void:
+	var weapons := ["shotgun", "mini_uzi", "silenced_pistol", "sniper", "m16"]
+	for weapon_id in weapons:
+		menu.select_weapon(weapon_id)
+	assert_eq(menu.selected_weapon, "m16",
+		"Should end on M16 after cycling all weapons")
+	assert_eq(menu.weapon_selected_emitted.size(), 5,
+		"Should emit signal for each selection")

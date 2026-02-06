@@ -207,12 +207,13 @@ class MockLevelsMenu:
 
 
 class MockArmoryMenu:
-	const WEAPONS: Dictionary = {
+	## Firearms data — separate from grenades.
+	const FIREARMS: Dictionary = {
 		"m16": {
 			"name": "M16",
 			"icon_path": "res://assets/sprites/weapons/m16_rifle.png",
 			"unlocked": true,
-			"description": "Standard assault rifle"
+			"description": "Standard assault rifle with auto/burst modes, red laser sight"
 		},
 		"ak47": {
 			"name": "???",
@@ -222,9 +223,27 @@ class MockArmoryMenu:
 		},
 		"shotgun": {
 			"name": "Shotgun",
-			"icon_path": "res://assets/sprites/weapons/shotgun.png",
+			"icon_path": "res://assets/sprites/weapons/shotgun_icon.png",
 			"unlocked": true,
-			"description": "Pump-action shotgun with 6-12 pellet spread"
+			"description": "Pump-action shotgun — shell-by-shell loading, multi-pellet spread"
+		},
+		"mini_uzi": {
+			"name": "Mini UZI",
+			"icon_path": "res://assets/sprites/weapons/mini_uzi_icon.png",
+			"unlocked": true,
+			"description": "High fire rate SMG"
+		},
+		"silenced_pistol": {
+			"name": "Silenced Pistol",
+			"icon_path": "res://assets/sprites/weapons/silenced_pistol_topdown.png",
+			"unlocked": true,
+			"description": "Beretta M9 with suppressor"
+		},
+		"sniper": {
+			"name": "ASVK",
+			"icon_path": "res://assets/sprites/weapons/asvk_topdown.png",
+			"unlocked": true,
+			"description": "Anti-materiel sniper"
 		}
 	}
 
@@ -234,33 +253,30 @@ class MockArmoryMenu:
 	var _selected_weapon: String = "m16"
 
 	func get_weapon_count() -> int:
-		return WEAPONS.size()
+		return FIREARMS.size()
 
 	func get_weapon_ids() -> Array:
-		return WEAPONS.keys()
+		return FIREARMS.keys()
 
 	func get_weapon_data(weapon_id: String) -> Dictionary:
-		if weapon_id in WEAPONS:
-			return WEAPONS[weapon_id]
+		if weapon_id in FIREARMS:
+			return FIREARMS[weapon_id]
 		return {}
 
 	func is_weapon_unlocked(weapon_id: String) -> bool:
-		if weapon_id in WEAPONS:
-			return WEAPONS[weapon_id]["unlocked"]
+		if weapon_id in FIREARMS:
+			return FIREARMS[weapon_id]["unlocked"]
 		return false
 
 	func get_unlocked_count() -> int:
 		var count: int = 0
-		for weapon_id in WEAPONS:
-			if WEAPONS[weapon_id]["unlocked"]:
+		for weapon_id in FIREARMS:
+			if FIREARMS[weapon_id]["unlocked"]:
 				count += 1
 		return count
 
-	func get_status_text() -> String:
-		return "Unlocked: %d / %d" % [get_unlocked_count(), get_weapon_count()]
-
 	func select_weapon(weapon_id: String) -> void:
-		if weapon_id in WEAPONS and WEAPONS[weapon_id]["unlocked"]:
+		if weapon_id in FIREARMS and FIREARMS[weapon_id]["unlocked"]:
 			_selected_weapon = weapon_id
 			weapon_selected.emit(weapon_id)
 
@@ -542,13 +558,7 @@ func test_armory_menu_other_weapons_locked() -> void:
 
 func test_armory_menu_unlocked_count() -> void:
 	armory_menu = MockArmoryMenu.new()
-	assert_eq(armory_menu.get_unlocked_count(), 2, "Should have 2 unlocked weapons (M16 and Shotgun)")
-
-
-func test_armory_menu_status_text() -> void:
-	armory_menu = MockArmoryMenu.new()
-	var status := armory_menu.get_status_text()
-	assert_eq(status, "Unlocked: 2 / 3", "Status should show 2 of 3 unlocked")
+	assert_eq(armory_menu.get_unlocked_count(), 5, "Should have 5 unlocked weapons (M16, Shotgun, Mini UZI, Silenced Pistol, ASVK)")
 
 
 func test_armory_menu_get_weapon_data() -> void:
@@ -556,7 +566,7 @@ func test_armory_menu_get_weapon_data() -> void:
 	var data := armory_menu.get_weapon_data("m16")
 
 	assert_eq(data["name"], "M16", "Should return correct weapon name")
-	assert_eq(data["description"], "Standard assault rifle", "Should return correct description")
+	assert_true(data["description"].begins_with("Standard assault rifle"), "Should return correct description")
 	assert_true(data["unlocked"], "Should show as unlocked")
 
 
@@ -595,3 +605,13 @@ func test_armory_menu_get_shotgun_data() -> void:
 
 	assert_eq(data["name"], "Shotgun", "Should return correct weapon name")
 	assert_true(data["unlocked"], "Shotgun should be unlocked")
+
+
+func test_armory_menu_sniper_unlocked() -> void:
+	armory_menu = MockArmoryMenu.new()
+	assert_true(armory_menu.is_weapon_unlocked("sniper"), "ASVK sniper should be unlocked")
+
+
+func test_armory_menu_has_six_weapons() -> void:
+	armory_menu = MockArmoryMenu.new()
+	assert_eq(armory_menu.get_weapon_count(), 6, "Should have 6 weapons (5 unlocked + 1 locked)")
