@@ -15,13 +15,14 @@ namespace GodotTopDownTemplate.Autoload
     /// godotengine/godot#96065).
     ///
     /// Recording captures:
-    /// - Player position, rotation, and model scale
-    /// - Enemy positions, rotations, and alive state
+    /// - Player position, rotation, velocity, and model state (aim rotation, scale)
+    /// - Enemy positions, rotations, velocities, model rotations, and alive state
     /// - Bullet positions and rotations
     /// - Grenade positions
-    /// - Key events (shots, deaths, explosions)
+    /// - Shooting events for muzzle flash replay
     ///
-    /// Playback recreates the visual representation without running game logic.
+    /// Playback recreates the visual representation including procedural
+    /// walking animation, aiming rotation, death effects, and muzzle flashes.
     /// </summary>
     [GlobalClass]
     public partial class ReplayManager : Node
@@ -31,6 +32,21 @@ namespace GodotTopDownTemplate.Autoload
 
         /// <summary>Maximum recording duration in seconds (prevent memory issues).</summary>
         private const float MaxRecordingDuration = 300.0f;
+
+        /// <summary>Walking animation speed multiplier (matches player.gd walk_anim_speed).</summary>
+        private const float WalkAnimSpeed = 12.0f;
+
+        /// <summary>Walking animation intensity (matches player.gd walk_anim_intensity).</summary>
+        private const float WalkAnimIntensity = 1.0f;
+
+        /// <summary>Minimum velocity magnitude to trigger walking animation.</summary>
+        private const float WalkThreshold = 10.0f;
+
+        /// <summary>Duration of the death fade effect in seconds.</summary>
+        private const float DeathFadeDuration = 0.4f;
+
+        /// <summary>Duration of the muzzle flash effect in seconds.</summary>
+        private const float MuzzleFlashDuration = 0.05f;
 
         /// <summary>All recorded frames for the current/last level.</summary>
         private readonly List<FrameData> _frames = new();
@@ -59,6 +75,16 @@ namespace GodotTopDownTemplate.Autoload
         /// <summary>Accumulated time for playback interpolation.</summary>
         private float _playbackTime;
 
+        /// <summary>Accumulated walk animation time for ghosts during playback.</summary>
+        private float _ghostPlayerWalkAnimTime;
+        private readonly List<float> _ghostEnemyWalkAnimTimes = new();
+
+        /// <summary>Tracks whether each ghost enemy was alive in previous frame (for death effect).</summary>
+        private readonly List<bool> _ghostEnemyPrevAlive = new();
+
+        /// <summary>Death fade timers for ghost enemies (0 = no fade active).</summary>
+        private readonly List<float> _ghostEnemyDeathTimers = new();
+
         /// <summary>Reference to the level node being recorded.</summary>
         private Node2D? _levelNode;
 
@@ -76,6 +102,9 @@ namespace GodotTopDownTemplate.Autoload
         private readonly List<Node2D> _ghostEnemies = new();
         private readonly List<Node2D> _ghostBullets = new();
         private readonly List<Node2D> _ghostGrenades = new();
+
+        /// <summary>Active muzzle flash nodes during playback.</summary>
+        private readonly List<(Node2D Node, float Timer)> _activeMuzzleFlashes = new();
 
         /// <summary>Replay UI overlay.</summary>
         private CanvasLayer? _replayUi;
@@ -97,8 +126,11 @@ namespace GodotTopDownTemplate.Autoload
             public float Time;
             public Vector2 PlayerPosition;
             public float PlayerRotation;
+            public Vector2 PlayerVelocity;
+            public float PlayerModelRotation;
             public Vector2 PlayerModelScale = Vector2.One;
             public bool PlayerAlive = true;
+            public bool PlayerShooting;
             public List<EnemyFrameData> Enemies = new();
             public List<ProjectileFrameData> Bullets = new();
             public List<Vector2> Grenades = new();
@@ -108,7 +140,11 @@ namespace GodotTopDownTemplate.Autoload
         {
             public Vector2 Position;
             public float Rotation;
+            public Vector2 Velocity;
+            public float ModelRotation;
+            public Vector2 ModelScale = Vector2.One;
             public bool Alive = true;
+            public bool Shooting;
         }
 
         private class ProjectileFrameData
@@ -242,6 +278,7 @@ namespace GodotTopDownTemplate.Autoload
             _playbackFrame = 0;
             _playbackTime = 0.0f;
             _playbackSpeed = 1.0f;
+            _ghostPlayerWalkAnimTime = 0.0f;
             _levelNode = level;
 
             CreateGhostEntities(level);
@@ -265,6 +302,7 @@ namespace GodotTopDownTemplate.Autoload
             _playbackEndTimer = 0.0f;
 
             CleanupGhostEntities();
+            CleanupMuzzleFlashes();
 
             if (_replayUi != null && IsInstanceValid(_replayUi))
             {
@@ -333,7 +371,7 @@ namespace GodotTopDownTemplate.Autoload
                 }
             }
 
-            ApplyFrame(_frames[_playbackFrame]);
+            ApplyFrame(_frames[_playbackFrame], 0.0f);
         }
 
         // ============================================================
@@ -367,9 +405,17 @@ namespace GodotTopDownTemplate.Autoload
                 frame.PlayerRotation = _player.GlobalRotation;
                 frame.PlayerAlive = true;
 
+                // Record velocity for walking animation derivation
+                if (_player is CharacterBody2D playerBody)
+                    frame.PlayerVelocity = playerBody.Velocity;
+
+                // Record PlayerModel rotation and scale (for aim direction and flip)
                 var playerModel = _player.GetNodeOrNull<Node2D>("PlayerModel");
                 if (playerModel != null)
+                {
+                    frame.PlayerModelRotation = playerModel.GlobalRotation;
                     frame.PlayerModelScale = playerModel.Scale;
+                }
 
                 // Check alive state (GDScript or C#)
                 var isAliveGd = _player.Get("_is_alive");
@@ -380,6 +426,15 @@ namespace GodotTopDownTemplate.Autoload
                     var isAliveCSharp = _player.Get("IsAlive");
                     if (isAliveCSharp.VariantType != Variant.Type.Nil)
                         frame.PlayerAlive = (bool)isAliveCSharp;
+                }
+
+                // Detect shooting by checking if new bullets appeared this frame
+                // compared to the previous frame
+                if (_frames.Count > 0)
+                {
+                    var prevBullets = _frames[^1].Bullets.Count;
+                    int currentBullets = CountCurrentProjectiles();
+                    frame.PlayerShooting = currentBullets > prevBullets;
                 }
             }
             else
@@ -399,6 +454,18 @@ namespace GodotTopDownTemplate.Autoload
                         Alive = true
                     };
 
+                    // Record velocity for walking animation
+                    if (enemy is CharacterBody2D enemyBody)
+                        enemyData.Velocity = enemyBody.Velocity;
+
+                    // Record EnemyModel rotation and scale (for aim direction and flip)
+                    var enemyModel = enemy2D.GetNodeOrNull<Node2D>("EnemyModel");
+                    if (enemyModel != null)
+                    {
+                        enemyData.ModelRotation = enemyModel.GlobalRotation;
+                        enemyData.ModelScale = enemyModel.Scale;
+                    }
+
                     if (enemy.HasMethod("is_alive"))
                         enemyData.Alive = (bool)enemy.Call("is_alive");
                     else
@@ -407,6 +474,12 @@ namespace GodotTopDownTemplate.Autoload
                         if (aliveVar.VariantType != Variant.Type.Nil)
                             enemyData.Alive = (bool)aliveVar;
                     }
+
+                    // Check if enemy is shooting by looking for its weapon mount
+                    // firing indicator (we detect this via bullet spawn proximity)
+                    var isShootingVar = enemy.Get("_is_shooting");
+                    if (isShootingVar.VariantType != Variant.Type.Nil)
+                        enemyData.Shooting = (bool)isShootingVar;
 
                     frame.Enemies.Add(enemyData);
                 }
@@ -451,6 +524,15 @@ namespace GodotTopDownTemplate.Autoload
             _frames.Add(frame);
         }
 
+        /// <summary>Counts current projectiles in the level for shooting detection.</summary>
+        private int CountCurrentProjectiles()
+        {
+            if (_levelNode == null || !IsInstanceValid(_levelNode)) return 0;
+            var projectilesNode = _levelNode.GetNodeOrNull(ProjectilesPath);
+            projectilesNode ??= _levelNode.GetNodeOrNull("Projectiles");
+            return projectilesNode?.GetChildCount() ?? 0;
+        }
+
         // ============================================================
         // Private playback logic
         // ============================================================
@@ -467,10 +549,13 @@ namespace GodotTopDownTemplate.Autoload
 
             EmitSignal(SignalName.PlaybackProgress, _playbackTime, GetReplayDuration());
 
+            // Update muzzle flash timers
+            UpdateMuzzleFlashes(delta);
+
             if (_playbackTime >= GetReplayDuration())
             {
                 _playbackTime = GetReplayDuration();
-                ApplyFrame(_frames[^1]);
+                ApplyFrame(_frames[^1], delta);
                 _playbackEnding = true;
                 _playbackEndTimer = 0.5f;
                 _isPlayingBack = false;
@@ -480,10 +565,10 @@ namespace GodotTopDownTemplate.Autoload
             while (_playbackFrame < _frames.Count - 1 && _frames[_playbackFrame + 1].Time <= _playbackTime)
                 _playbackFrame++;
 
-            ApplyFrame(_frames[_playbackFrame]);
+            ApplyFrame(_frames[_playbackFrame], delta);
         }
 
-        private void ApplyFrame(FrameData frame)
+        private void ApplyFrame(FrameData frame, float delta)
         {
             // Update ghost player
             if (_ghostPlayer != null && IsInstanceValid(_ghostPlayer))
@@ -492,9 +577,22 @@ namespace GodotTopDownTemplate.Autoload
                 _ghostPlayer.GlobalRotation = frame.PlayerRotation;
                 _ghostPlayer.Visible = frame.PlayerAlive;
 
+                // Apply PlayerModel rotation and scale for aiming direction
                 var ghostModel = _ghostPlayer.GetNodeOrNull<Node2D>("PlayerModel");
                 if (ghostModel != null)
+                {
+                    ghostModel.GlobalRotation = frame.PlayerModelRotation;
                     ghostModel.Scale = frame.PlayerModelScale;
+
+                    // Apply procedural walking animation based on velocity
+                    ApplyWalkAnimation(ghostModel, frame.PlayerVelocity, delta, ref _ghostPlayerWalkAnimTime);
+                }
+
+                // Spawn muzzle flash if player was shooting this frame
+                if (frame.PlayerShooting)
+                {
+                    SpawnMuzzleFlash(frame.PlayerPosition, frame.PlayerModelRotation);
+                }
             }
 
             // Update ghost enemies
@@ -503,11 +601,71 @@ namespace GodotTopDownTemplate.Autoload
             {
                 var ghost = _ghostEnemies[i];
                 var data = frame.Enemies[i];
-                if (ghost != null && IsInstanceValid(ghost))
+                if (ghost == null || !IsInstanceValid(ghost)) continue;
+
+                ghost.GlobalPosition = data.Position;
+                ghost.GlobalRotation = data.Rotation;
+
+                // Apply EnemyModel rotation and scale for aiming direction
+                var enemyModel = ghost.GetNodeOrNull<Node2D>("EnemyModel");
+                if (enemyModel != null)
                 {
-                    ghost.GlobalPosition = data.Position;
-                    ghost.GlobalRotation = data.Rotation;
-                    ghost.Visible = data.Alive;
+                    enemyModel.GlobalRotation = data.ModelRotation;
+                    enemyModel.Scale = data.ModelScale;
+
+                    // Apply procedural walking animation
+                    float walkTime = i < _ghostEnemyWalkAnimTimes.Count ? _ghostEnemyWalkAnimTimes[i] : 0.0f;
+                    ApplyWalkAnimation(enemyModel, data.Velocity, delta, ref walkTime);
+                    if (i < _ghostEnemyWalkAnimTimes.Count)
+                        _ghostEnemyWalkAnimTimes[i] = walkTime;
+                }
+
+                // Death effect: when alive transitions from true to false, fade out
+                bool prevAlive = i < _ghostEnemyPrevAlive.Count && _ghostEnemyPrevAlive[i];
+                if (prevAlive && !data.Alive)
+                {
+                    // Start death fade
+                    if (i < _ghostEnemyDeathTimers.Count)
+                        _ghostEnemyDeathTimers[i] = DeathFadeDuration;
+                    // Flash red on death
+                    ghost.Modulate = new Color(1.5f, 0.3f, 0.3f, 1.0f);
+                }
+
+                // Update death fade timer
+                if (i < _ghostEnemyDeathTimers.Count && _ghostEnemyDeathTimers[i] > 0.0f)
+                {
+                    _ghostEnemyDeathTimers[i] -= delta * _playbackSpeed;
+                    float t = Mathf.Clamp(_ghostEnemyDeathTimers[i] / DeathFadeDuration, 0.0f, 1.0f);
+                    ghost.Visible = true;
+                    ghost.Modulate = new Color(
+                        Mathf.Lerp(0.9f, 1.5f, t),
+                        Mathf.Lerp(0.9f, 0.3f, t),
+                        Mathf.Lerp(0.9f, 0.3f, t),
+                        Mathf.Lerp(0.0f, 1.0f, t)
+                    );
+
+                    if (_ghostEnemyDeathTimers[i] <= 0.0f)
+                    {
+                        ghost.Visible = false;
+                        ghost.Modulate = new Color(1.0f, 1.0f, 1.0f, 0.9f);
+                    }
+                }
+                else if (!data.Alive && (i >= _ghostEnemyDeathTimers.Count || _ghostEnemyDeathTimers[i] <= 0.0f))
+                {
+                    ghost.Visible = false;
+                }
+                else if (data.Alive)
+                {
+                    ghost.Visible = true;
+                }
+
+                if (i < _ghostEnemyPrevAlive.Count)
+                    _ghostEnemyPrevAlive[i] = data.Alive;
+
+                // Enemy muzzle flash
+                if (data.Shooting && data.Alive)
+                {
+                    SpawnMuzzleFlash(data.Position, data.ModelRotation);
                 }
             }
 
@@ -519,6 +677,112 @@ namespace GodotTopDownTemplate.Autoload
             foreach (var pos in frame.Grenades)
                 grenadeData.Add(new ProjectileFrameData { Position = pos, Rotation = 0 });
             UpdateGhostProjectiles(grenadeData, _ghostGrenades, "grenade");
+        }
+
+        /// <summary>
+        /// Applies procedural walking animation to a model based on velocity.
+        /// Uses the same sine wave formulas as player.gd and enemy.gd.
+        /// </summary>
+        private void ApplyWalkAnimation(Node2D model, Vector2 velocity, float delta, ref float walkAnimTime)
+        {
+            float speed = velocity.Length();
+
+            var body = model.GetNodeOrNull<Node2D>("Body");
+            var head = model.GetNodeOrNull<Node2D>("Head");
+            var leftArm = model.GetNodeOrNull<Node2D>("LeftArm");
+            var rightArm = model.GetNodeOrNull<Node2D>("RightArm");
+
+            if (speed > WalkThreshold && delta > 0.0f)
+            {
+                float speedFactor = Mathf.Clamp(speed / 200.0f, 0.5f, 1.5f);
+                walkAnimTime += delta * _playbackSpeed * WalkAnimSpeed * speedFactor;
+
+                float bodyBob = Mathf.Sin(walkAnimTime * 2.0f) * 1.5f * WalkAnimIntensity;
+                float headBob = Mathf.Sin(walkAnimTime * 2.0f) * 0.8f * WalkAnimIntensity;
+                float armSwing = Mathf.Sin(walkAnimTime) * 3.0f * WalkAnimIntensity;
+
+                if (body != null) body.Position = new Vector2(body.Position.X, bodyBob);
+                if (head != null) head.Position = new Vector2(head.Position.X, headBob);
+                if (leftArm != null) leftArm.Position = new Vector2(leftArm.Position.X + armSwing * delta * 10.0f, leftArm.Position.Y);
+                if (rightArm != null) rightArm.Position = new Vector2(rightArm.Position.X - armSwing * delta * 10.0f, rightArm.Position.Y);
+            }
+            else
+            {
+                walkAnimTime = 0.0f;
+                // Smoothly return to idle positions
+                float lerpSpeed = 10.0f * delta;
+                if (body != null) body.Position = body.Position.Lerp(new Vector2(body.Position.X, 0), lerpSpeed);
+                if (head != null) head.Position = head.Position.Lerp(new Vector2(head.Position.X, 0), lerpSpeed);
+            }
+        }
+
+        /// <summary>
+        /// Spawns a brief muzzle flash visual at the given position and direction.
+        /// </summary>
+        private void SpawnMuzzleFlash(Vector2 position, float rotation)
+        {
+            if (_levelNode == null || !IsInstanceValid(_levelNode)) return;
+            var ghostContainer = _levelNode.GetNodeOrNull<Node2D>("ReplayGhosts");
+            if (ghostContainer == null) return;
+
+            var flash = new Node2D();
+            flash.Name = "MuzzleFlash";
+            flash.ProcessMode = ProcessModeEnum.Always;
+            flash.GlobalPosition = position + new Vector2(Mathf.Cos(rotation), Mathf.Sin(rotation)) * 40.0f;
+            flash.GlobalRotation = rotation;
+
+            // Create flash sprite
+            var sprite = new Sprite2D();
+            var texture = new GradientTexture2D();
+            texture.Width = 16;
+            texture.Height = 8;
+            texture.Fill = GradientTexture2D.FillEnum.Radial;
+            texture.FillFrom = new Vector2(0.5f, 0.5f);
+            texture.FillTo = new Vector2(1.0f, 0.5f);
+            var gradient = new Gradient();
+            gradient.SetColor(0, new Color(1.0f, 1.0f, 0.8f, 1.0f));
+            gradient.SetColor(1, new Color(1.0f, 0.6f, 0.1f, 0.0f));
+            texture.Gradient = gradient;
+            sprite.Texture = texture;
+            sprite.Scale = new Vector2(2.0f, 2.0f);
+            flash.AddChild(sprite);
+
+            ghostContainer.AddChild(flash);
+            _activeMuzzleFlashes.Add((flash, MuzzleFlashDuration));
+        }
+
+        /// <summary>Updates and removes expired muzzle flashes.</summary>
+        private void UpdateMuzzleFlashes(float delta)
+        {
+            for (int i = _activeMuzzleFlashes.Count - 1; i >= 0; i--)
+            {
+                var (node, timer) = _activeMuzzleFlashes[i];
+                float newTimer = timer - delta * _playbackSpeed;
+                if (newTimer <= 0.0f || node == null || !IsInstanceValid(node))
+                {
+                    if (node != null && IsInstanceValid(node))
+                        node.QueueFree();
+                    _activeMuzzleFlashes.RemoveAt(i);
+                }
+                else
+                {
+                    // Fade out
+                    float t = newTimer / MuzzleFlashDuration;
+                    node.Modulate = new Color(1.0f, 1.0f, 1.0f, t);
+                    _activeMuzzleFlashes[i] = (node, newTimer);
+                }
+            }
+        }
+
+        /// <summary>Cleans up all active muzzle flashes.</summary>
+        private void CleanupMuzzleFlashes()
+        {
+            foreach (var (node, _) in _activeMuzzleFlashes)
+            {
+                if (node != null && IsInstanceValid(node))
+                    node.QueueFree();
+            }
+            _activeMuzzleFlashes.Clear();
         }
 
         private void UpdateGhostProjectiles(List<ProjectileFrameData> data, List<Node2D> ghosts, string type)
@@ -562,6 +826,9 @@ namespace GodotTopDownTemplate.Autoload
         private void CreateGhostEntities(Node2D level)
         {
             CleanupGhostEntities();
+            _ghostEnemyWalkAnimTimes.Clear();
+            _ghostEnemyPrevAlive.Clear();
+            _ghostEnemyDeathTimers.Clear();
 
             var ghostContainer = new Node2D();
             ghostContainer.Name = "ReplayGhosts";
@@ -595,6 +862,9 @@ namespace GodotTopDownTemplate.Autoload
                     {
                         ghostContainer.AddChild(ghostEnemy);
                         _ghostEnemies.Add(ghostEnemy);
+                        _ghostEnemyWalkAnimTimes.Add(0.0f);
+                        _ghostEnemyPrevAlive.Add(true);
+                        _ghostEnemyDeathTimers.Add(0.0f);
                     }
                 }
             }
@@ -780,6 +1050,10 @@ namespace GodotTopDownTemplate.Autoload
             }
             _ghostGrenades.Clear();
 
+            _ghostEnemyWalkAnimTimes.Clear();
+            _ghostEnemyPrevAlive.Clear();
+            _ghostEnemyDeathTimers.Clear();
+
             if (_levelNode != null && IsInstanceValid(_levelNode))
             {
                 var ghostContainer = _levelNode.GetNodeOrNull("ReplayGhosts");
@@ -799,6 +1073,21 @@ namespace GodotTopDownTemplate.Autoload
             _replayUi.ProcessMode = ProcessModeEnum.Always;
             level.AddChild(_replayUi);
 
+            // Close button (X) in top-right corner
+            var closeBtn = new Button();
+            closeBtn.Name = "CloseButton";
+            closeBtn.Text = "\u2715";
+            closeBtn.SetAnchorsPreset(Control.LayoutPreset.TopRight);
+            closeBtn.OffsetLeft = -50;
+            closeBtn.OffsetRight = -10;
+            closeBtn.OffsetTop = 10;
+            closeBtn.OffsetBottom = 50;
+            closeBtn.AddThemeFontSizeOverride("font_size", 24);
+            closeBtn.ProcessMode = ProcessModeEnum.Always;
+            closeBtn.Pressed += OnExitReplayPressed;
+            closeBtn.TooltipText = "Close replay (ESC)";
+            _replayUi.AddChild(closeBtn);
+
             var container = new VBoxContainer();
             container.SetAnchorsPreset(Control.LayoutPreset.CenterBottom);
             container.OffsetLeft = -200;
@@ -810,7 +1099,7 @@ namespace GodotTopDownTemplate.Autoload
 
             // Replay label
             var replayLabel = new Label();
-            replayLabel.Text = "▶ REPLAY";
+            replayLabel.Text = "\u25b6 REPLAY";
             replayLabel.HorizontalAlignment = HorizontalAlignment.Center;
             replayLabel.AddThemeFontSizeOverride("font_size", 24);
             replayLabel.AddThemeColorOverride("font_color", new Color(1.0f, 0.8f, 0.2f, 1.0f));

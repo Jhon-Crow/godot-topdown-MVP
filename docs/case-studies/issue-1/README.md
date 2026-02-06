@@ -224,3 +224,79 @@ Two changes in `ReplayManager.cs`:
 ```
 
 The log shows playback started and speed was changed, confirming the replay system is functioning internally — only the visual presentation was broken.
+
+## Bug #4: Replay Missing Animations (Rotation, Shooting, Deaths)
+
+After Bugs #1–#3 were fixed (replay recording works, PascalCase naming resolved, score screen hidden), a fourth issue was reported: the replay shows only position movement and enemy disappearances — no rotation animations, shooting effects, death effects, or other visual interactions.
+
+### Symptoms (from `game_log_20260207_002734.txt`)
+
+- Recording works (1905 frames / 29.75s)
+- Ghost camera follows player
+- Score screen is hidden during replay
+- **But ghosts show no animations**: no aiming rotation, no walking bob, no shooting flashes, enemies just vanish instantly when killed
+
+### Root Cause
+
+The `DisableNodeProcessing()` method strips ALL scripts from ghost entities and disables all processing. Since all animations in this game are **procedural/script-driven** (not AnimatedSprite2D or AnimationPlayer), the ghosts are completely static:
+
+1. **Walking animation**: Uses sine wave calculations in `_update_walk_animation()` — requires `_physics_process()` running
+2. **Aiming rotation**: PlayerModel/EnemyModel `global_rotation` set by `_update_player_model_rotation()` / `_update_enemy_model_rotation()` — requires script running
+3. **Death animation**: DeathAnimationComponent runs keyframe + ragdoll physics — requires script running
+4. **Muzzle flash**: Spawned by ImpactEffectsManager on each shot — never triggered during replay
+
+Additionally, the original FrameData only recorded:
+- Player: position, rotation (root node), model scale, alive state
+- Enemy: position, rotation (root node), alive state
+
+It did NOT record:
+- PlayerModel/EnemyModel `global_rotation` (the actual aim direction)
+- PlayerModel/EnemyModel `scale` (the left/right flip state)
+- Velocity (needed to derive walking animation)
+- Shooting events
+
+### Fix
+
+Extended the replay recording and playback system:
+
+1. **Extended FrameData to record animation state:**
+   - `PlayerVelocity` — for walking animation derivation
+   - `PlayerModelRotation` — the PlayerModel's global rotation (aim direction)
+   - `PlayerModelScale` — replaces old field, now explicitly for model scale
+   - `PlayerShooting` — detected by comparing bullet counts between frames
+   - `EnemyFrameData.Velocity` — for enemy walking animation
+   - `EnemyFrameData.ModelRotation` — the EnemyModel's global rotation
+   - `EnemyFrameData.ModelScale` — the EnemyModel's scale (left/right flip)
+   - `EnemyFrameData.Shooting` — from enemy `_is_shooting` variable
+
+2. **Procedural walking animation during playback:**
+   - `ApplyWalkAnimation()` — replicates the sine wave formulas from `player.gd`/`enemy.gd`
+   - Body bob: `sin(time * 2.0) * 1.5 * intensity`
+   - Head bob: `sin(time * 2.0) * 0.8 * intensity`
+   - Arm swing: `sin(time) * 3.0 * intensity`
+   - Speed-dependent animation with smooth idle return
+
+3. **Aim rotation during playback:**
+   - Applies recorded `PlayerModelRotation` and `PlayerModelScale` to ghost's PlayerModel
+   - Same for EnemyModel on ghost enemies
+   - This restores the visual aiming direction and left/right sprite flip
+
+4. **Death fade effect:**
+   - When enemy alive state transitions from `true` to `false`, instead of instant hide:
+     - Flash red (`Color(1.5, 0.3, 0.3, 1.0)`)
+     - Fade out over 0.4 seconds
+     - Then hide the ghost
+
+5. **Muzzle flash effects:**
+   - Spawns a radial gradient flash sprite at the entity's aim direction
+   - Fades out over 0.05 seconds
+   - Player shooting detected via bullet count changes
+   - Enemy shooting detected via `_is_shooting` variable
+
+6. **Close button (X) for exiting replay:**
+   - Added `✕` button in top-right corner of replay UI
+   - Supplements the existing "Exit Replay (ESC)" button and keyboard shortcut
+
+### Log Files
+
+- `game_log_20260207_002734.txt` — Shows successful recording with shotgun, invincibility mode, grenade kills, and replay playback (1905 frames, 29.75s)
