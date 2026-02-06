@@ -398,3 +398,58 @@ func test_penetration_settings() -> void:
 		"Max penetration distance should be 48")
 	assert_eq(_component.post_penetration_damage_multiplier, 0.9,
 		"Post-penetration damage multiplier should be 0.9")
+
+
+# ============================================================================
+# Snap-Shooting / Suspected Target Tests (Issue #349)
+# ============================================================================
+
+
+## Mock for testing suspected target probability scaling
+class MockSuspectedTargeting:
+	var suspected_confidence: float = 0.0
+	var base_ricochet_probability: float = 0.8
+	var base_wallbang_probability: float = 1.0
+
+	## Scale ricochet probability by confidence (as in AdvancedTargetingComponent)
+	func get_suspected_ricochet_probability() -> float:
+		return base_ricochet_probability * suspected_confidence
+
+	## Scale wallbang probability by confidence (as in AdvancedTargetingComponent)
+	func get_suspected_wallbang_probability() -> float:
+		return base_wallbang_probability * suspected_confidence
+
+
+func test_suspected_probability_high_confidence() -> void:
+	var mock := MockSuspectedTargeting.new()
+	mock.suspected_confidence = 0.9  # High confidence (e.g., just saw player)
+	var prob := mock.get_suspected_ricochet_probability()
+	assert_almost_eq(prob, 0.72, 0.01, "High confidence (0.9) * 0.8 prob = 0.72")
+
+
+func test_suspected_probability_medium_confidence() -> void:
+	var mock := MockSuspectedTargeting.new()
+	mock.suspected_confidence = 0.5  # Medium confidence (e.g., heard gunshot)
+	var prob := mock.get_suspected_ricochet_probability()
+	assert_almost_eq(prob, 0.40, 0.01, "Medium confidence (0.5) * 0.8 prob = 0.40")
+
+
+func test_suspected_probability_low_confidence() -> void:
+	var mock := MockSuspectedTargeting.new()
+	mock.suspected_confidence = 0.3  # Low confidence (e.g., old memory)
+	var prob := mock.get_suspected_ricochet_probability()
+	assert_almost_eq(prob, 0.24, 0.01, "Low confidence (0.3) * 0.8 prob = 0.24")
+
+
+func test_suspected_probability_zero_confidence() -> void:
+	var mock := MockSuspectedTargeting.new()
+	mock.suspected_confidence = 0.0  # No confidence
+	var prob := mock.get_suspected_ricochet_probability()
+	assert_eq(prob, 0.0, "Zero confidence should give zero probability")
+
+
+func test_suspected_wallbang_probability_medium_confidence() -> void:
+	var mock := MockSuspectedTargeting.new()
+	mock.suspected_confidence = 0.6  # Medium confidence from sound
+	var prob := mock.get_suspected_wallbang_probability()
+	assert_almost_eq(prob, 0.6, 0.01, "Medium confidence wallbang prob should be 0.6")

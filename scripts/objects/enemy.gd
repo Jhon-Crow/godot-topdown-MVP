@@ -1768,9 +1768,11 @@ func _process_in_cover_state(delta: float) -> void:
 				_shoot_timer = 0.0
 
 	# If player is no longer visible and not under fire, try pursuing
+	# But stay in cover if we have indirect targeting (snap-shooting at suspected position)
 	if not _can_see_player and not _under_fire:
-		_log_debug("Lost sight of player from cover, transitioning to PURSUING")
-		_transition_to_pursuing()
+		if not _has_valid_targeting():
+			_log_debug("Lost sight of player from cover, no indirect targeting, transitioning to PURSUING")
+			_transition_to_pursuing()
 
 ## Process FLANKING state - flank player using cover-to-cover movement.
 func _process_flanking_state(delta: float) -> void:
@@ -1814,6 +1816,16 @@ func _process_flanking_state(delta: float) -> void:
 		_flank_side_initialized = false
 		_transition_to_combat()
 		return
+
+	# Snap-shooting while flanking: attempt ricochet/wallbang at suspected position (Issue #349)
+	if not _can_see_player:
+		_update_advanced_targeting()
+		if _has_valid_targeting():
+			var targeting := _get_best_targeting()
+			if targeting.type != "none":
+				_aim_at_position(targeting.aim_point)
+				if _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
+					_shoot()
 
 	if _player == null:
 		_flank_side_initialized = false
@@ -2051,6 +2063,17 @@ func _process_pursuing_state(delta: float) -> void:
 			_pursuing_vulnerability_sound = false
 			_transition_to_combat()
 			return
+
+	# Snap-shooting: attempt ricochet/wallbang while pursuing (Issue #349)
+	# Enemy tries to fire at suspected position even with minimal info
+	if not _can_see_player:
+		_update_advanced_targeting()
+		if _has_valid_targeting():
+			var targeting := _get_best_targeting()
+			if targeting.type != "none":
+				_aim_at_position(targeting.aim_point)
+				if _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
+					_shoot()
 
 	# VULNERABILITY SOUND PURSUIT: When we heard a reload/empty click sound,
 	# move directly toward the sound position using navigation (goes around walls).
@@ -2290,6 +2313,17 @@ func _process_searching_state(delta: float) -> void:
 		_log_to_file("SEARCHING: Player spotted! Transitioning to COMBAT")
 		_transition_to_combat()
 		return
+
+	# Snap-shooting while searching: attempt ricochet/wallbang at suspected position (Issue #349)
+	if not _can_see_player:
+		_update_advanced_targeting()
+		if _has_valid_targeting():
+			var targeting := _get_best_targeting()
+			if targeting.type != "none":
+				_aim_at_position(targeting.aim_point)
+				if _shoot_timer >= shoot_cooldown:
+					_shoot()
+
 	if _search_current_waypoint_index >= _search_waypoints.size() or _search_waypoints.is_empty():
 		if _search_radius < SEARCH_MAX_RADIUS:
 			_search_radius += SEARCH_RADIUS_EXPANSION
@@ -3904,8 +3938,9 @@ func _shoot() -> void:
 
 	# Log advanced targeting shots
 	if targeting.type != "direct" and advanced_targeting_debug:
-		_log_debug("ADVANCED SHOT: type=%s, target=%v, probability=%.1f%%, bounces=%d" % [
-			targeting.type, target_position, targeting.probability * 100, targeting.bounce_count
+		var suspected_str := " (SNAP-SHOT at suspected pos)" if targeting.get("suspected", false) else ""
+		_log_debug("ADVANCED SHOT: type=%s, target=%v, probability=%.1f%%, bounces=%d%s" % [
+			targeting.type, target_position, targeting.probability * 100, targeting.bounce_count, suspected_str
 		])
 
 	# For direct shots, apply lead prediction if enabled
@@ -5005,9 +5040,16 @@ func _get_can_see_player() -> bool:
 
 ## Update advanced targeting calculations.
 ## Called from physics process when player is not directly visible.
+## Feeds memory-based suspected position for snap-shooting (Issue #349).
 func _update_advanced_targeting() -> void:
 	if not _advanced_targeting:
 		return
+
+	# Feed memory-based suspected position to advanced targeting (snap-shooting)
+	if _memory and _memory.has_target() and not _can_see_player:
+		_advanced_targeting.set_suspected_target(_memory.suspected_position, _memory.confidence)
+	elif _can_see_player:
+		_advanced_targeting.clear_suspected_target()
 
 	# Only update when player is not directly visible
 	if not _can_see_player:
@@ -5015,7 +5057,7 @@ func _update_advanced_targeting() -> void:
 
 
 ## Get the best targeting opportunity (direct, ricochet, or wallbang).
-## Returns a dictionary with type, aim_point, probability, and bounce_count.
+## Returns a dictionary with type, aim_point, probability, bounce_count, and suspected.
 func _get_best_targeting() -> Dictionary:
 	# Direct shot is always preferred when player is visible
 	if _can_see_player and _player:
@@ -5026,10 +5068,11 @@ func _get_best_targeting() -> Dictionary:
 			"type": "direct",
 			"aim_point": target_pos,
 			"probability": 1.0,
-			"bounce_count": 0
+			"bounce_count": 0,
+			"suspected": false
 		}
 
-	# Check advanced targeting opportunities
+	# Check advanced targeting opportunities (including suspected/snap-shooting)
 	if _advanced_targeting:
 		return _advanced_targeting.get_best_targeting()
 
@@ -5037,7 +5080,8 @@ func _get_best_targeting() -> Dictionary:
 		"type": "none",
 		"aim_point": Vector2.ZERO,
 		"probability": 0.0,
-		"bounce_count": 0
+		"bounce_count": 0,
+		"suspected": false
 	}
 
 

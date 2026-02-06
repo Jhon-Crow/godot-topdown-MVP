@@ -92,6 +92,15 @@ var _get_predicted_position_callback: Callable = Callable()
 ## Callback for checking if player is visible (set by parent)
 var _can_see_player_callback: Callable = Callable()
 
+## Suspected target position from enemy memory (snap-shooting, Issue #349)
+var _suspected_target_pos: Vector2 = Vector2.ZERO
+
+## Confidence level for suspected target (0.0-1.0)
+var _suspected_confidence: float = 0.0
+
+## Whether we're targeting a suspected position vs confirmed player position
+var _using_suspected_target: bool = false
+
 ## Wall collision mask (layer 3 = bit 4)
 const WALL_LAYER_MASK: int = 4
 
@@ -113,9 +122,28 @@ func initialize(player: Node2D, get_predicted_pos: Callable, can_see_player: Cal
 	_can_see_player_callback = can_see_player
 
 
+## Set a suspected target position for snap-shooting (Issue #349).
+## Enemies will attempt ricochet/wallbang toward this position with minimal suspicion.
+## @param position: Suspected player position (from memory/sound).
+## @param confidence: Confidence level 0.0-1.0 (affects shot probability).
+func set_suspected_target(position: Vector2, confidence: float) -> void:
+	_suspected_target_pos = position
+	_suspected_confidence = clampf(confidence, 0.0, 1.0)
+
+## Clear suspected target (e.g., when player is found or memory decays).
+func clear_suspected_target() -> void:
+	_suspected_target_pos = Vector2.ZERO
+	_suspected_confidence = 0.0
+	_using_suspected_target = false
+
 ## Update targeting calculations. Call this from the parent's _physics_process.
+## Supports both confirmed player positions and suspected positions (snap-shooting).
 func update_targeting() -> void:
-	if _player == null or not _parent:
+	if not _parent:
+		return
+
+	# Can target if we have a player OR a suspected position
+	if _player == null and _suspected_confidence <= 0.0:
 		return
 
 	_check_wallbang_opportunity()
@@ -128,6 +156,7 @@ func update_targeting() -> void:
 ## - aim_point: Vector2 - where to aim
 ## - probability: float - success probability (1.0 for direct/wallbang)
 ## - bounce_count: int - number of bounces (0 for direct/wallbang)
+## - suspected: bool - true if targeting a suspected (not confirmed) position
 func get_best_targeting() -> Dictionary:
 	# Check if we can see the player directly
 	if _can_see_player_callback.is_valid() and _can_see_player_callback.call():
@@ -136,32 +165,43 @@ func get_best_targeting() -> Dictionary:
 			"type": "direct",
 			"aim_point": target_pos,
 			"probability": 1.0,
-			"bounce_count": 0
+			"bounce_count": 0,
+			"suspected": false
 		}
 
 	# Check ricochet path (prefer ricochet over wallbang for tactical variety)
 	if enable_ricochet_shots and _ricochet_path.valid:
+		# Scale probability by confidence when using suspected position
+		var prob: float = _ricochet_path.probability
+		if _using_suspected_target:
+			prob *= _suspected_confidence
 		return {
 			"type": "ricochet",
 			"aim_point": _ricochet_path.aim_point,
-			"probability": _ricochet_path.probability,
-			"bounce_count": _ricochet_path.bounce_count
+			"probability": prob,
+			"bounce_count": _ricochet_path.bounce_count,
+			"suspected": _using_suspected_target
 		}
 
 	# Check wallbang opportunity
 	if enable_wallbang_shots and _wallbang_info.valid:
+		var prob: float = 1.0
+		if _using_suspected_target:
+			prob = _suspected_confidence
 		return {
 			"type": "wallbang",
 			"aim_point": _wallbang_info.aim_point,
-			"probability": 1.0,
-			"bounce_count": 0
+			"probability": prob,
+			"bounce_count": 0,
+			"suspected": _using_suspected_target
 		}
 
 	return {
 		"type": "none",
 		"aim_point": Vector2.ZERO,
 		"probability": 0.0,
-		"bounce_count": 0
+		"bounce_count": 0,
+		"suspected": false
 	}
 
 
@@ -203,7 +243,7 @@ func _check_wallbang_opportunity() -> void:
 	_wallbang_info.last_check_time = current_time
 	_wallbang_info.valid = false
 
-	if _player == null or not _parent:
+	if not _parent:
 		return
 
 	# Check if we can see the player directly (no wallbang needed)
@@ -211,6 +251,8 @@ func _check_wallbang_opportunity() -> void:
 		return
 
 	var target_pos := _get_predicted_player_position()
+	if target_pos == Vector2.ZERO:
+		return
 	var enemy_pos := _parent.global_position
 
 	# Cast ray to find walls between enemy and player
@@ -293,7 +335,7 @@ func _find_ricochet_path() -> void:
 	_ricochet_path.last_check_time = current_time
 	_ricochet_path.valid = false
 
-	if _player == null or not _parent:
+	if not _parent:
 		return
 
 	# Skip if we have direct line of sight (prefer direct shots)
@@ -301,6 +343,8 @@ func _find_ricochet_path() -> void:
 		return
 
 	var player_pos := _get_predicted_player_position()
+	if player_pos == Vector2.ZERO:
+		return
 	var enemy_pos := _parent.global_position
 
 	# Get nearby wall segments by raycasting
@@ -650,8 +694,25 @@ func _reflected_path_reaches_target(start: Vector2, direction: Vector2, target: 
 	return perp_dist < 50.0
 
 
-## Get predicted player position using callback.
+## Get target position for targeting calculations.
+## Uses predicted player position when visible, suspected position otherwise.
 func _get_predicted_player_position() -> Vector2:
+	# If player is visible, use predicted position (most accurate)
+	var player_visible := _can_see_player_callback.is_valid() and _can_see_player_callback.call()
+	if player_visible:
+		_using_suspected_target = false
+		if _get_predicted_position_callback.is_valid():
+			return _get_predicted_position_callback.call()
+		elif _player:
+			return _player.global_position
+
+	# If player is not visible but we have a suspected position, use it (snap-shooting)
+	if _suspected_confidence > 0.0 and _suspected_target_pos != Vector2.ZERO:
+		_using_suspected_target = true
+		return _suspected_target_pos
+
+	# Fallback to player's actual position (if we have reference)
+	_using_suspected_target = false
 	if _get_predicted_position_callback.is_valid():
 		return _get_predicted_position_callback.call()
 	elif _player:
