@@ -4351,12 +4351,9 @@ func _on_death() -> void:
 	died.emit()
 	died_with_info.emit(_killed_by_ricochet, _killed_by_penetration)
 
-	# Issue #382 fix: Notify GameManager directly so level scripts can track deaths
-	# even when has_signal("died") returns false in exported builds.
-	var game_manager: Node = get_node_or_null("/root/GameManager")
-	if game_manager and game_manager.has_method("notify_enemy_died"):
-		game_manager.notify_enemy_died(self, _killed_by_ricochet, _killed_by_penetration)
-
+	# Issue #382: Notify GameManager directly (bypasses has_signal bug in exports)
+	if GameManager and GameManager.has_method("notify_enemy_died"):
+		GameManager.notify_enemy_died(self, _killed_by_ricochet, _killed_by_penetration)
 	# Issue #409: Notify nearby enemies of this death so they can enter SEARCHING
 	_notify_nearby_enemies_of_death()
 
