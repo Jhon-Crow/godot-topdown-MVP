@@ -3,7 +3,7 @@ extends Node
 ##
 ## This autoload singleton provides:
 ## 1. "Last chance" effect (300ms) after killing an enemy - penultimate hit effect
-## 2. "Special last chance" effect (50ms) when a grenade explodes - penultimate hit effect
+## 2. "Special last chance" effect (400ms) when a grenade explodes - penultimate hit effect
 ##
 ## These effects use the penultimate hit system (time slowdown + saturation boost)
 ## but with shorter durations specific to Power Fantasy mode.
@@ -11,8 +11,8 @@ extends Node
 ## Duration of the last chance effect when killing an enemy (300ms).
 const KILL_EFFECT_DURATION_MS: float = 300.0
 
-## Duration of the special last chance effect when grenade explodes (50ms).
-const GRENADE_EFFECT_DURATION_MS: float = 50.0
+## Duration of the special last chance effect when grenade explodes (400ms).
+const GRENADE_EFFECT_DURATION_MS: float = 400.0
 
 ## The slowed down time scale during effects.
 const EFFECT_TIME_SCALE: float = 0.1
@@ -112,14 +112,22 @@ func on_enemy_killed() -> void:
 
 
 ## Called when a grenade explodes in Power Fantasy mode.
-## Triggers the 50ms special last chance effect.
+## Triggers the full last chance time-freeze effect (like Hard mode) for 400ms.
 func on_grenade_exploded() -> void:
 	var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
 	if difficulty_manager == null or not difficulty_manager.is_power_fantasy_mode():
 		return
 
-	_log("Grenade exploded - triggering 50ms special last chance effect")
-	_start_effect(GRENADE_EFFECT_DURATION_MS)
+	_log("Grenade exploded - triggering last chance time-freeze effect for %.0fms" % GRENADE_EFFECT_DURATION_MS)
+
+	# Use LastChanceEffectsManager for the full time-freeze effect (like Hard mode)
+	var last_chance_manager: Node = get_node_or_null("/root/LastChanceEffectsManager")
+	if last_chance_manager and last_chance_manager.has_method("trigger_grenade_last_chance"):
+		last_chance_manager.trigger_grenade_last_chance(GRENADE_EFFECT_DURATION_MS / 1000.0)
+	else:
+		# Fallback: use simple time-scale effect if LastChanceEffectsManager not available
+		_log("WARNING: LastChanceEffectsManager not available, using simple slowdown fallback")
+		_start_effect(GRENADE_EFFECT_DURATION_MS)
 
 
 ## Starts the power fantasy effect with the specified duration.

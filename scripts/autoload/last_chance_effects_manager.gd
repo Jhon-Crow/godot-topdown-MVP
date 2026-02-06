@@ -86,6 +86,12 @@ var _original_process_modes: Dictionary = {}
 ## Distance to push threatening bullets away from player (in pixels).
 const BULLET_PUSH_DISTANCE: float = 200.0
 
+## Current effect duration in real seconds (varies between grenade and threat triggers).
+var _current_effect_duration: float = FREEZE_DURATION_REAL_SECONDS
+
+## Whether this is a grenade-triggered effect (shorter duration, no "used" flag).
+var _is_grenade_triggered: bool = false
+
 ## Whether to grant invulnerability during the time freeze.
 var _player_was_invulnerable: bool = false
 
@@ -171,7 +177,7 @@ func _process(delta: float) -> void:
 			material.set_shader_parameter("time_offset", elapsed)
 
 		# Check if effect should end based on real time duration
-		if elapsed >= FREEZE_DURATION_REAL_SECONDS:
+		if elapsed >= _current_effect_duration:
 			_log("Effect duration expired after %.2f real seconds" % elapsed)
 			_end_last_chance_effect()
 
@@ -274,6 +280,25 @@ func _on_player_died() -> void:
 	_effect_used = false
 
 
+## Triggers the last chance effect from a grenade explosion in Power Fantasy mode.
+## Uses the full time-freeze visual effect but with a short duration (400ms).
+## Unlike the threat-triggered version, this can be used multiple times per life.
+func trigger_grenade_last_chance(duration_seconds: float) -> void:
+	if _is_effect_active:
+		return
+
+	# Ensure player is found
+	if _player == null or not is_instance_valid(_player):
+		_find_player()
+
+	if _player == null:
+		_log("Cannot trigger grenade last chance - player not found")
+		return
+
+	_log("Grenade explosion triggering last chance effect for %.2f seconds" % duration_seconds)
+	_start_last_chance_effect(duration_seconds, true)
+
+
 ## Called when a threat is detected by the player's threat sphere.
 func _on_threat_detected(bullet: Area2D) -> void:
 	_log("Threat detected: %s" % bullet.name)
@@ -351,27 +376,34 @@ func _get_player_health() -> float:
 	return 0.0
 
 
-## Starts the last chance effect.
-func _start_last_chance_effect() -> void:
+## Starts the last chance effect with configurable duration.
+## @param duration_seconds: Duration of the effect in real seconds.
+## @param is_grenade: Whether this is triggered by a grenade explosion.
+func _start_last_chance_effect(duration_seconds: float = FREEZE_DURATION_REAL_SECONDS, is_grenade: bool = false) -> void:
 	if _is_effect_active:
 		return
 
 	_is_effect_active = true
-	_effect_used = true  # Mark as used (only triggers once)
+	_is_grenade_triggered = is_grenade
+	_current_effect_duration = duration_seconds
+	if not is_grenade:
+		_effect_used = true  # Mark as used (only triggers once per life, not for grenade)
 	_effect_start_time = Time.get_ticks_msec() / 1000.0
 
 	_log("Starting last chance effect:")
 	_log("  - Time will be frozen (except player)")
-	_log("  - Duration: %.1f real seconds" % FREEZE_DURATION_REAL_SECONDS)
+	_log("  - Duration: %.2f real seconds" % duration_seconds)
+	_log("  - Trigger: %s" % ("grenade explosion" if is_grenade else "threat detected"))
 	_log("  - Sepia intensity: %.2f" % SEPIA_INTENSITY)
 	_log("  - Brightness: %.2f" % BRIGHTNESS)
 
-	# CRITICAL: Push all threatening bullets away from player BEFORE freezing time
-	# This gives the player a fighting chance to survive
-	_push_threatening_bullets_away()
+	if not is_grenade:
+		# CRITICAL: Push all threatening bullets away from player BEFORE freezing time
+		# This gives the player a fighting chance to survive
+		_push_threatening_bullets_away()
 
-	# Grant temporary invulnerability to player during time freeze
-	_grant_player_invulnerability()
+		# Grant temporary invulnerability to player during time freeze
+		_grant_player_invulnerability()
 
 	# Freeze time for everything except the player
 	_freeze_time()
@@ -1121,6 +1153,8 @@ func reset_effects() -> void:
 	_threat_sphere = null
 	_connected_to_player = false
 	_effect_used = false  # Reset on scene change
+	_is_grenade_triggered = false
+	_current_effect_duration = FREEZE_DURATION_REAL_SECONDS
 	_player_current_health = 0.0  # Reset cached health on scene change
 	_frozen_player_bullets.clear()
 	_frozen_grenades.clear()
