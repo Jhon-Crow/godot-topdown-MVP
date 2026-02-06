@@ -200,6 +200,8 @@ func get_enemy_grenade_scene_path(map_name: String) -> String:
 	match grenade_type:
 		"flashbang":
 			return "res://scenes/projectiles/FlashbangGrenade.tscn"
+		"defensive":
+			return "res://scenes/projectiles/DefensiveGrenade.tscn"
 		"frag", _:
 			return "res://scenes/projectiles/FragGrenade.tscn"
 
