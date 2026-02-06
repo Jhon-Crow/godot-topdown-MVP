@@ -129,20 +129,49 @@ print("[ReplayManager] Recording stopped: %d frames, %.2fs duration")
 - `scripts/levels/building_level.gd` - Replay recording/playback integration
 - `scripts/levels/test_tier.gd` - Replay recording/playback integration
 
-## Next Steps for Debugging
+## Second User Report (2026-02-06)
 
-1. **Run the game and check console output** for the debug messages
-2. **Verify recording starts** - Should see "Replay recording started"
-3. **Verify recording stops** - Should see "Recording stopped: X frames"
-4. **Check frame count** - If 0 frames, recording failed
+### User Feedback
+User reported: "кнопка повтора не появилась" (The replay button did not appear) with a new game log file.
 
-## Possible Fixes to Try
+### Analysis of game_log_20260206_120242.txt (3630 lines)
 
-1. Ensure `_player` and `_enemies` are not null when starting recording
-2. Verify ReplayManager autoload is properly initialized before levels load
-3. Check if `_physics_process` is being called during gameplay
-4. Verify exit zone flow properly triggers `_complete_level_with_score()`
+**Key findings from the log:**
+
+1. **Line 133**: `[BuildingLevel] ERROR: ReplayManager not found, replay recording disabled`
+   - ReplayManager autoload was NOT found at `/root/ReplayManager`
+   - This is the root cause - the autoload failed to load in the exported build
+
+2. **Missing log entry**: `[ReplayManager] ReplayManager ready` never appears in the log
+   - The `_ready()` function of replay_system.gd was never called
+   - Confirms the autoload script failed to load entirely
+
+3. **Line 3303**: `[BuildingLevel] ERROR: ReplayManager not found when completing level`
+   - At level completion time, ReplayManager still wasn't available
+   - This prevented `stop_recording()` and `has_replay()` from working
+
+4. **All other autoloads loaded successfully** (FileLogger, GameManager, ScoreManager, etc.)
+   - GrenadeTimerHelper (C# autoload, right before ReplayManager) loaded correctly
+   - Only ReplayManager (the last autoload) failed
+
+### User Requirements (from PR comment)
+1. Add Watch Replay button UNDER the Restart button (not beside it)
+2. Add W key shortcut to watch replay when score is shown
+3. Always show both buttons regardless of ReplayManager availability
+
+### Fix Applied (2026-02-06)
+
+**Changes to building_level.gd and test_tier.gd:**
+
+1. **Always show both buttons**: Watch Replay button is always created, but disabled with "no data" text when ReplayManager is unavailable
+2. **Vertical layout**: Changed from HBoxContainer to VBoxContainer - Restart button on top, Watch Replay below
+3. **W key shortcut**: Added `_unhandled_input()` handler that checks for KEY_W when `_score_shown` is true
+4. **Score shown flag**: Added `_score_shown: bool = false` variable to track when score screen is displayed
+
+**The ReplayManager autoload issue:**
+The replay_system.gd script may fail to load as autoload in exported builds. Previous fix (removing inner classes) was applied but the issue persists. The buttons now gracefully handle this by showing a disabled state rather than hiding entirely.
 
 ## Logs
 
 - `logs/solution-draft-log-pr-421.txt` - Full AI solver execution log from 2026-02-04
+- `game_log_20260206_120242.txt` - User game log showing ReplayManager autoload failure

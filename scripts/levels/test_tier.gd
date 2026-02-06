@@ -59,6 +59,9 @@ var _exit_zone: Area2D = null
 ## Whether the level has been cleared (all enemies eliminated).
 var _level_cleared: bool = false
 
+## Whether the score screen is currently shown (for W key shortcut).
+var _score_shown: bool = false
+
 
 func _ready() -> void:
 	print("TestTier loaded - Tactical Combat Arena")
@@ -701,56 +704,75 @@ func _show_victory_message() -> void:
 
 	ui.add_child(stats_label)
 
-	# Add buttons container
-	var buttons_container := HBoxContainer.new()
+	_score_shown = true
+
+	# Add buttons container (vertical layout: Restart on top, Watch Replay below)
+	var buttons_container := VBoxContainer.new()
 	buttons_container.name = "ButtonsContainer"
 	buttons_container.alignment = BoxContainer.ALIGNMENT_CENTER
-	buttons_container.add_theme_constant_override("separation", 20)
+	buttons_container.add_theme_constant_override("separation", 10)
 	buttons_container.set_anchors_preset(Control.PRESET_CENTER)
 	buttons_container.offset_left = -200
 	buttons_container.offset_right = 200
 	buttons_container.offset_top = 40
-	buttons_container.offset_bottom = 90
+	buttons_container.offset_bottom = 130
 	ui.add_child(buttons_container)
 
-	# Watch Replay button
-	var replay_manager: Node = get_node_or_null("/root/ReplayManager")
-	if replay_manager and replay_manager.has_method("has_replay") and replay_manager.has_replay():
-		var replay_button := Button.new()
-		replay_button.name = "ReplayButton"
-		replay_button.text = "▶ Watch Replay"
-		replay_button.custom_minimum_size = Vector2(150, 40)
-		replay_button.add_theme_font_size_override("font_size", 18)
-		replay_button.pressed.connect(_on_watch_replay_pressed)
-		buttons_container.add_child(replay_button)
-
-	# Restart button
+	# Restart button (on top)
 	var restart_button := Button.new()
 	restart_button.name = "RestartButton"
 	restart_button.text = "↻ Restart (Q)"
-	restart_button.custom_minimum_size = Vector2(150, 40)
+	restart_button.custom_minimum_size = Vector2(200, 40)
 	restart_button.add_theme_font_size_override("font_size", 18)
 	restart_button.pressed.connect(_on_restart_pressed)
 	buttons_container.add_child(restart_button)
 
+	# Watch Replay button (below Restart)
+	var replay_button := Button.new()
+	replay_button.name = "ReplayButton"
+	replay_button.text = "▶ Watch Replay (W)"
+	replay_button.custom_minimum_size = Vector2(200, 40)
+	replay_button.add_theme_font_size_override("font_size", 18)
+
+	# Check if replay data is available
+	var replay_manager: Node = get_node_or_null("/root/ReplayManager")
+	var has_replay_data: bool = replay_manager != null and replay_manager.has_method("has_replay") and replay_manager.has_replay()
+
+	if has_replay_data:
+		replay_button.pressed.connect(_on_watch_replay_pressed)
+	else:
+		replay_button.disabled = true
+		replay_button.text = "▶ Watch Replay (W) - no data"
+		replay_button.tooltip_text = "Replay recording was not available for this session"
+
+	buttons_container.add_child(replay_button)
+
 	# Show cursor for button interaction
 	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
 
-	# Focus the first available button
-	if replay_manager and replay_manager.has_method("has_replay") and replay_manager.has_replay():
-		var replay_btn: Button = buttons_container.get_node_or_null("ReplayButton")
-		if replay_btn:
-			replay_btn.grab_focus()
-	else:
-		restart_button.grab_focus()
+	# Focus the restart button
+	restart_button.grab_focus()
 
 
-## Called when the Watch Replay button is pressed.
+## Handle W key shortcut for Watch Replay when score is shown.
+func _unhandled_input(event: InputEvent) -> void:
+	if not _score_shown:
+		return
+
+	if event is InputEventKey and event.pressed and not event.echo:
+		if event.keycode == KEY_W:
+			_on_watch_replay_pressed()
+
+
+## Called when the Watch Replay button is pressed (or W key).
 func _on_watch_replay_pressed() -> void:
-	print("[TestTier] Watch Replay button pressed")
+	print("[TestTier] Watch Replay triggered")
 	var replay_manager: Node = get_node_or_null("/root/ReplayManager")
-	if replay_manager and replay_manager.has_method("start_playback"):
-		replay_manager.start_playback(self)
+	if replay_manager and replay_manager.has_method("has_replay") and replay_manager.has_replay():
+		if replay_manager.has_method("start_playback"):
+			replay_manager.start_playback(self)
+	else:
+		print("[TestTier] Watch Replay: no replay data available")
 
 
 ## Called when the Restart button is pressed.

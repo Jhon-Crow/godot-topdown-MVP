@@ -49,6 +49,9 @@ var _exit_zone: Area2D = null
 ## Whether the level has been cleared (all enemies eliminated).
 var _level_cleared: bool = false
 
+## Whether the score screen is currently shown (for W key shortcut).
+var _score_shown: bool = false
+
 ## Duration of saturation effect in seconds.
 const SATURATION_DURATION: float = 0.15
 
@@ -897,50 +900,60 @@ func _show_fallback_score_screen(ui: Control, score_data: Dictionary) -> void:
 	_add_score_screen_buttons(container)
 
 
-## Adds Watch Replay and Restart buttons to a score screen container.
+## Adds Restart and Watch Replay buttons to a score screen container.
+## Restart button appears first, Watch Replay button appears below it.
+## W key shortcut is also enabled for Watch Replay.
 func _add_score_screen_buttons(container: VBoxContainer) -> void:
+	_score_shown = true
+
 	# Add spacer
 	var spacer := Control.new()
 	spacer.custom_minimum_size.y = 10
 	container.add_child(spacer)
 
-	# Add buttons container
-	var buttons_container := HBoxContainer.new()
+	# Add buttons container (vertical layout: Restart on top, Watch Replay below)
+	var buttons_container := VBoxContainer.new()
 	buttons_container.name = "ButtonsContainer"
 	buttons_container.alignment = BoxContainer.ALIGNMENT_CENTER
-	buttons_container.add_theme_constant_override("separation", 20)
+	buttons_container.add_theme_constant_override("separation", 10)
 	container.add_child(buttons_container)
 
-	# Watch Replay button (only if replay data exists)
-	var replay_manager: Node = get_node_or_null("/root/ReplayManager")
-	if replay_manager and replay_manager.has_method("has_replay") and replay_manager.has_replay():
-		var replay_button := Button.new()
-		replay_button.name = "ReplayButton"
-		replay_button.text = "▶ Watch Replay"
-		replay_button.custom_minimum_size = Vector2(150, 40)
-		replay_button.add_theme_font_size_override("font_size", 18)
-		replay_button.pressed.connect(_on_watch_replay_pressed)
-		buttons_container.add_child(replay_button)
-		_log_to_file("Watch Replay button created")
-
-	# Restart button
+	# Restart button (on top)
 	var restart_button := Button.new()
 	restart_button.name = "RestartButton"
 	restart_button.text = "↻ Restart (Q)"
-	restart_button.custom_minimum_size = Vector2(150, 40)
+	restart_button.custom_minimum_size = Vector2(200, 40)
 	restart_button.add_theme_font_size_override("font_size", 18)
 	restart_button.pressed.connect(_on_restart_pressed)
 	buttons_container.add_child(restart_button)
 
+	# Watch Replay button (below Restart)
+	var replay_button := Button.new()
+	replay_button.name = "ReplayButton"
+	replay_button.text = "▶ Watch Replay (W)"
+	replay_button.custom_minimum_size = Vector2(200, 40)
+	replay_button.add_theme_font_size_override("font_size", 18)
+
+	# Check if replay data is available
+	var replay_manager: Node = get_node_or_null("/root/ReplayManager")
+	var has_replay_data: bool = replay_manager != null and replay_manager.has_method("has_replay") and replay_manager.has_replay()
+
+	if has_replay_data:
+		replay_button.pressed.connect(_on_watch_replay_pressed)
+		_log_to_file("Watch Replay button created (replay data available)")
+	else:
+		replay_button.disabled = true
+		replay_button.text = "▶ Watch Replay (W) - no data"
+		replay_button.tooltip_text = "Replay recording was not available for this session"
+		_log_to_file("Watch Replay button created (disabled - no replay data)")
+
+	buttons_container.add_child(replay_button)
+
 	# Show cursor for button interaction
 	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
 
-	# Focus the first button
-	var replay_btn: Button = buttons_container.get_node_or_null("ReplayButton")
-	if replay_btn:
-		replay_btn.grab_focus()
-	else:
-		restart_button.grab_focus()
+	# Focus the restart button
+	restart_button.grab_focus()
 
 
 ## Get the color for a given rank.
@@ -1103,13 +1116,25 @@ func _setup_selected_weapon() -> void:
 					_player.CurrentWeapon = assault_rifle
 
 
-## Called when the Watch Replay button is pressed.
+## Handle W key shortcut for Watch Replay when score is shown.
+func _unhandled_input(event: InputEvent) -> void:
+	if not _score_shown:
+		return
+
+	if event is InputEventKey and event.pressed and not event.echo:
+		if event.keycode == KEY_W:
+			_on_watch_replay_pressed()
+
+
+## Called when the Watch Replay button is pressed (or W key).
 func _on_watch_replay_pressed() -> void:
-	_log_to_file("Watch Replay button pressed")
+	_log_to_file("Watch Replay triggered")
 	var replay_manager: Node = get_node_or_null("/root/ReplayManager")
-	if replay_manager and replay_manager.has_method("start_playback"):
-		# Start replay playback
-		replay_manager.start_playback(self)
+	if replay_manager and replay_manager.has_method("has_replay") and replay_manager.has_replay():
+		if replay_manager.has_method("start_playback"):
+			replay_manager.start_playback(self)
+	else:
+		_log_to_file("Watch Replay: no replay data available")
 
 
 ## Called when the Restart button is pressed.
