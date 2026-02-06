@@ -154,12 +154,14 @@ func _setup_player_tracking() -> void:
 		_player.Died.connect(_on_player_died)
 
 	# Try to get the player's weapon for C# Player
-	# First try shotgun (if selected), then Mini UZI, then Silenced Pistol, then assault rifle
+	# First try shotgun (if selected), then Mini UZI, then Silenced Pistol, then Sniper Rifle, then assault rifle
 	var weapon = _player.get_node_or_null("Shotgun")
 	if weapon == null:
 		weapon = _player.get_node_or_null("MiniUzi")
 	if weapon == null:
 		weapon = _player.get_node_or_null("SilencedPistol")
+	if weapon == null:
+		weapon = _player.get_node_or_null("SniperRifle")
 	if weapon == null:
 		weapon = _player.get_node_or_null("AssaultRifle")
 	if weapon != null:
