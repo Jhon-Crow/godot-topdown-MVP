@@ -1338,10 +1338,18 @@ public partial class Player : BaseCharacter
 
     /// <summary>
     /// Gets the normalized input direction from player input.
+    /// When the sniper rifle is bolt cycling, arrow key movement is suppressed
+    /// because the arrow keys are used for the bolt-action sequence.
     /// </summary>
     /// <returns>Normalized direction vector.</returns>
     private Vector2 GetInputDirection()
     {
+        // Check if sniper rifle bolt cycling is in progress - suppress arrow key movement
+        if (CurrentWeapon is SniperRifle sniperRifle && sniperRifle.IsBoltCycling)
+        {
+            return Vector2.Zero;
+        }
+
         Vector2 direction = Vector2.Zero;
         direction.X = Input.GetAxis("move_left", "move_right");
         direction.Y = Input.GetAxis("move_up", "move_down");

@@ -7,7 +7,7 @@ namespace GodotTopDownTemplate.Weapons;
 /// <summary>
 /// Bolt-action charging state for the ASVK sniper rifle.
 /// Before each shot, the player must complete a 4-step bolt-action sequence:
-/// Down (pull bolt back) → Left (open bolt) → Down (close bolt) → Up (chamber round)
+/// Left (unlock bolt) → Down (extract and eject casing) → Up (chamber round) → Right (close bolt)
 /// </summary>
 public enum BoltActionStep
 {
@@ -18,24 +18,24 @@ public enum BoltActionStep
 
     /// <summary>
     /// Just fired - needs bolt cycling before next shot.
-    /// Waiting for Down arrow (pull bolt back).
+    /// Waiting for Left arrow (unlock bolt).
     /// </summary>
     NeedsBoltCycle,
 
     /// <summary>
-    /// Step 1 complete (bolt pulled back). Waiting for Left arrow (open bolt).
+    /// Step 1 complete (bolt unlocked). Waiting for Down arrow (extract and eject casing).
     /// </summary>
-    WaitOpenBolt,
+    WaitExtractCasing,
 
     /// <summary>
-    /// Step 2 complete (bolt opened). Waiting for Down arrow (close bolt).
+    /// Step 2 complete (casing ejected). Waiting for Up arrow (chamber round).
     /// </summary>
-    WaitCloseBolt,
+    WaitChamberRound,
 
     /// <summary>
-    /// Step 3 complete (bolt closed). Waiting for Up arrow (chamber round).
+    /// Step 3 complete (round chambered). Waiting for Right arrow (close bolt).
     /// </summary>
-    WaitChamberRound
+    WaitCloseBolt
 }
 
 /// <summary>
@@ -44,10 +44,11 @@ public enum BoltActionStep
 /// - 12.7x108mm ammunition dealing 50 damage per shot
 /// - Penetrates through 2 walls and through enemies
 /// - Instant bullet speed with smoky dissipating tracer trail
-/// - Very high turn sensitivity
+/// - Slow turn sensitivity outside aiming (~4x less than normal)
 /// - 5-round magazine with M16-style swap reload
-/// - Single-shot bolt-action with manual charging sequence (Down→Left→Down→Up)
-/// - Red laser sight for aiming
+/// - Single-shot bolt-action with manual charging sequence (Left→Down→Up→Right)
+/// - Arrow keys are consumed during bolt cycling (no walking)
+/// - Shell casing ejected on step 2 (Down - extract and eject casing)
 /// Reference: ASVK (АСВК) anti-materiel sniper rifle
 /// </summary>
 public partial class SniperRifle : BaseWeapon
@@ -89,37 +90,19 @@ public partial class SniperRifle : BaseWeapon
     private Line2D? _lastTracerTrail;
 
     // =========================================================================
-    // Laser Sight Configuration
+    // Bolt Cycling and Movement
     // =========================================================================
 
     /// <summary>
-    /// Whether the laser sight is enabled.
+    /// Whether bolt cycling is in progress (arrow keys should be consumed, not move).
+    /// When true, the SniperRifle notifies the player to suppress arrow key movement.
     /// </summary>
-    [Export]
-    public bool LaserSightEnabled { get; set; } = true;
+    public bool IsBoltCycling => _boltStep != BoltActionStep.Ready;
 
     /// <summary>
-    /// Maximum length of the laser sight in pixels.
+    /// Last fire direction, stored for casing ejection during bolt cycling step 2.
     /// </summary>
-    [Export]
-    public float LaserSightLength { get; set; } = 500.0f;
-
-    /// <summary>
-    /// Color of the laser sight (red for sniper).
-    /// </summary>
-    [Export]
-    public Color LaserSightColor { get; set; } = new Color(1.0f, 0.0f, 0.0f, 0.5f);
-
-    /// <summary>
-    /// Width of the laser sight line.
-    /// </summary>
-    [Export]
-    public float LaserSightWidth { get; set; } = 2.0f;
-
-    /// <summary>
-    /// Reference to the Line2D node for the laser sight.
-    /// </summary>
-    private Line2D? _laserSight;
+    private Vector2 _lastFireDirection = Vector2.Right;
 
     /// <summary>
     /// Reference to the Sprite2D node for the rifle visual.
@@ -127,7 +110,7 @@ public partial class SniperRifle : BaseWeapon
     private Sprite2D? _rifleSprite;
 
     /// <summary>
-    /// Current aim direction based on laser sight.
+    /// Current aim direction.
     /// </summary>
     private Vector2 _aimDirection = Vector2.Right;
 
@@ -197,43 +180,15 @@ public partial class SniperRifle : BaseWeapon
             GD.PrintErr("[SniperRifle] WARNING: RifleSprite node not found!");
         }
 
-        // Check for Power Fantasy mode blue laser
-        var difficultyManager = GetNodeOrNull("/root/DifficultyManager");
-        if (difficultyManager != null)
+        // Remove LaserSight node if present in scene (laser sight removed per Issue #523)
+        var laserSight = GetNodeOrNull<Line2D>("LaserSight");
+        if (laserSight != null)
         {
-            var shouldForceBlueLaser = difficultyManager.Call("should_force_blue_laser_sight");
-            if (shouldForceBlueLaser.AsBool())
-            {
-                var blueColorVariant = difficultyManager.Call("get_power_fantasy_laser_color");
-                LaserSightColor = blueColorVariant.AsColor();
-                GD.Print($"[SniperRifle] Power Fantasy mode: laser color set to blue {LaserSightColor}");
-            }
+            laserSight.QueueFree();
+            GD.Print("[SniperRifle] Laser sight removed");
         }
 
-        // Get or create the laser sight Line2D
-        _laserSight = GetNodeOrNull<Line2D>("LaserSight");
-
-        if (_laserSight == null && LaserSightEnabled)
-        {
-            CreateLaserSight();
-        }
-        else if (_laserSight != null)
-        {
-            _laserSight.Width = LaserSightWidth;
-            _laserSight.DefaultColor = LaserSightColor;
-            _laserSight.BeginCapMode = Line2D.LineCapMode.Round;
-            _laserSight.EndCapMode = Line2D.LineCapMode.Round;
-
-            if (_laserSight.GetPointCount() < 2)
-            {
-                _laserSight.ClearPoints();
-                _laserSight.AddPoint(Vector2.Zero);
-                _laserSight.AddPoint(Vector2.Right * LaserSightLength);
-            }
-        }
-
-        UpdateLaserSightVisibility();
-        GD.Print("[SniperRifle] ASVK initialized - bolt ready, laser sight enabled");
+        GD.Print("[SniperRifle] ASVK initialized - bolt ready, no laser sight");
     }
 
     public override void _Process(double delta)
@@ -253,12 +208,6 @@ public partial class SniperRifle : BaseWeapon
         // Always update aim direction and rifle sprite rotation
         UpdateAimDirection();
 
-        // Update laser sight to point towards mouse (with recoil offset)
-        if (LaserSightEnabled && _laserSight != null)
-        {
-            UpdateLaserSight();
-        }
-
         // Handle bolt-action input
         HandleBoltActionInput();
     }
@@ -269,54 +218,57 @@ public partial class SniperRifle : BaseWeapon
 
     /// <summary>
     /// Handles the bolt-action charging input sequence.
-    /// Sequence: Down (pull bolt) → Left (open bolt) → Down (close bolt) → Up (chamber round)
+    /// Sequence: Left (unlock bolt) → Down (extract and eject casing) → Up (chamber round) → Right (close bolt)
     /// Uses the arrow keys / WASD movement input actions.
+    /// Arrow keys are consumed during bolt cycling (no walking).
     /// </summary>
     private void HandleBoltActionInput()
     {
         switch (_boltStep)
         {
             case BoltActionStep.NeedsBoltCycle:
-                // Step 1: Down arrow - pull bolt back
-                if (Input.IsActionJustPressed("move_down"))
-                {
-                    _boltStep = BoltActionStep.WaitOpenBolt;
-                    EmitSignal(SignalName.BoltStepChanged, 1, 4);
-                    PlayBoltSound();
-                    GD.Print("[SniperRifle] Bolt step 1/4: Bolt pulled back");
-                }
-                break;
-
-            case BoltActionStep.WaitOpenBolt:
-                // Step 2: Left arrow - open bolt
+                // Step 1: Left arrow - unlock bolt
                 if (Input.IsActionJustPressed("move_left"))
                 {
-                    _boltStep = BoltActionStep.WaitCloseBolt;
-                    EmitSignal(SignalName.BoltStepChanged, 2, 4);
-                    PlayBoltSound();
-                    GD.Print("[SniperRifle] Bolt step 2/4: Bolt opened");
+                    _boltStep = BoltActionStep.WaitExtractCasing;
+                    EmitSignal(SignalName.BoltStepChanged, 1, 4);
+                    PlayBoltStepSound(1);
+                    GD.Print("[SniperRifle] Bolt step 1/4: Bolt unlocked");
                 }
                 break;
 
-            case BoltActionStep.WaitCloseBolt:
-                // Step 3: Down arrow - close bolt
+            case BoltActionStep.WaitExtractCasing:
+                // Step 2: Down arrow - extract and eject casing
                 if (Input.IsActionJustPressed("move_down"))
                 {
                     _boltStep = BoltActionStep.WaitChamberRound;
-                    EmitSignal(SignalName.BoltStepChanged, 3, 4);
-                    PlayBoltSound();
-                    GD.Print("[SniperRifle] Bolt step 3/4: Bolt closed");
+                    EmitSignal(SignalName.BoltStepChanged, 2, 4);
+                    PlayBoltStepSound(2);
+                    // Eject shell casing on this step (like shotgun pump-up)
+                    SpawnCasing(_lastFireDirection, WeaponData?.Caliber);
+                    GD.Print("[SniperRifle] Bolt step 2/4: Casing extracted and ejected");
                 }
                 break;
 
             case BoltActionStep.WaitChamberRound:
-                // Step 4: Up arrow - chamber round
+                // Step 3: Up arrow - chamber round
                 if (Input.IsActionJustPressed("move_up"))
+                {
+                    _boltStep = BoltActionStep.WaitCloseBolt;
+                    EmitSignal(SignalName.BoltStepChanged, 3, 4);
+                    PlayBoltStepSound(3);
+                    GD.Print("[SniperRifle] Bolt step 3/4: Round chambered");
+                }
+                break;
+
+            case BoltActionStep.WaitCloseBolt:
+                // Step 4: Right arrow - close bolt
+                if (Input.IsActionJustPressed("move_right"))
                 {
                     _boltStep = BoltActionStep.Ready;
                     EmitSignal(SignalName.BoltStepChanged, 4, 4);
-                    PlayBoltChamberSound();
-                    GD.Print("[SniperRifle] Bolt step 4/4: Round chambered - READY TO FIRE");
+                    PlayBoltStepSound(4);
+                    GD.Print("[SniperRifle] Bolt step 4/4: Bolt closed - READY TO FIRE");
                 }
                 break;
 
@@ -327,35 +279,54 @@ public partial class SniperRifle : BaseWeapon
     }
 
     /// <summary>
-    /// Plays the bolt manipulation sound.
+    /// Plays the appropriate ASVK bolt-action sound for the given step.
+    /// Uses dedicated ASVK sounds from assets.
     /// </summary>
-    private void PlayBoltSound()
+    /// <param name="step">The bolt-action step number (1-4).</param>
+    private void PlayBoltStepSound(int step)
     {
         var audioManager = GetNodeOrNull("/root/AudioManager");
-        if (audioManager != null && audioManager.HasMethod("play_m16_bolt"))
+        if (audioManager == null)
         {
-            audioManager.Call("play_m16_bolt", GlobalPosition);
+            return;
+        }
+
+        // Use ASVK-specific bolt action sounds
+        if (audioManager.HasMethod("play_asvk_bolt_step"))
+        {
+            audioManager.Call("play_asvk_bolt_step", step, GlobalPosition);
+        }
+        else if (audioManager.HasMethod("play_sound_2d"))
+        {
+            // Direct sound playback fallback
+            string soundPath = step switch
+            {
+                1 => "res://assets/audio/отпирание затвора ASVK (1 шаг зарядки).wav",
+                2 => "res://assets/audio/извлечение и выброс гильзы ASVK (2 шаг зарядки).wav",
+                3 => "res://assets/audio/досылание патрона ASVK (3 шаг зарядки).wav",
+                4 => "res://assets/audio/запирание затвора ASVK (4 шаг зарядки).wav",
+                _ => ""
+            };
+            if (!string.IsNullOrEmpty(soundPath))
+            {
+                audioManager.Call("play_sound_2d", soundPath, GlobalPosition, -3.0f);
+            }
         }
     }
+
+    // =========================================================================
+    // Aiming
+    // =========================================================================
 
     /// <summary>
-    /// Plays the bolt chamber/ready sound.
+    /// Sensitivity reduction factor when not aiming (outside scope/aim mode).
+    /// The rifle rotates approximately 4x slower when just moving without aiming.
     /// </summary>
-    private void PlayBoltChamberSound()
-    {
-        var audioManager = GetNodeOrNull("/root/AudioManager");
-        if (audioManager != null && audioManager.HasMethod("play_m16_bolt"))
-        {
-            audioManager.Call("play_m16_bolt", GlobalPosition);
-        }
-    }
-
-    // =========================================================================
-    // Aiming and Laser Sight
-    // =========================================================================
+    private const float NonAimingSensitivityFactor = 0.25f;
 
     /// <summary>
     /// Updates the aim direction and rifle sprite rotation.
+    /// The rifle rotates slowly outside aiming (~4x less sensitivity).
     /// </summary>
     private void UpdateAimDirection()
     {
@@ -372,10 +343,13 @@ public partial class SniperRifle : BaseWeapon
         Vector2 direction;
 
         // Apply sensitivity for the sniper rifle
+        // Outside aiming, sensitivity is reduced by 4x (NonAimingSensitivityFactor)
         if (WeaponData != null && WeaponData.Sensitivity > 0)
         {
             float angleDiff = Mathf.Wrap(targetAngle - _currentAimAngle, -Mathf.Pi, Mathf.Pi);
-            float rotationSpeed = WeaponData.Sensitivity * 10.0f;
+            // Apply reduced sensitivity: rifle rotates very slowly outside aiming
+            float effectiveSensitivity = WeaponData.Sensitivity * NonAimingSensitivityFactor;
+            float rotationSpeed = effectiveSensitivity * 10.0f;
             float delta = (float)GetProcessDeltaTime();
             float maxRotation = rotationSpeed * delta;
             float actualRotation = Mathf.Clamp(angleDiff, -maxRotation, maxRotation);
@@ -400,80 +374,6 @@ public partial class SniperRifle : BaseWeapon
     }
 
     /// <summary>
-    /// Creates the laser sight Line2D programmatically.
-    /// </summary>
-    private void CreateLaserSight()
-    {
-        _laserSight = new Line2D
-        {
-            Name = "LaserSight",
-            Width = LaserSightWidth,
-            DefaultColor = LaserSightColor,
-            BeginCapMode = Line2D.LineCapMode.Round,
-            EndCapMode = Line2D.LineCapMode.Round
-        };
-
-        _laserSight.AddPoint(Vector2.Zero);
-        _laserSight.AddPoint(Vector2.Right * LaserSightLength);
-
-        AddChild(_laserSight);
-    }
-
-    /// <summary>
-    /// Updates the laser sight visualization with recoil offset.
-    /// Uses raycasting to stop at obstacles.
-    /// </summary>
-    private void UpdateLaserSight()
-    {
-        if (_laserSight == null)
-        {
-            return;
-        }
-
-        Vector2 laserDirection = _aimDirection.Rotated(_recoilOffset);
-
-        Viewport? viewport = GetViewport();
-        if (viewport == null)
-        {
-            return;
-        }
-
-        Vector2 viewportSize = viewport.GetVisibleRect().Size;
-        float maxLaserLength = viewportSize.Length();
-
-        Vector2 endPoint = laserDirection * maxLaserLength;
-
-        var spaceState = GetWorld2D().DirectSpaceState;
-        var query = PhysicsRayQueryParameters2D.Create(
-            GlobalPosition,
-            GlobalPosition + endPoint,
-            4 // Collision mask for obstacles (layer 3 = value 4)
-        );
-
-        var result = spaceState.IntersectRay(query);
-
-        if (result.Count > 0)
-        {
-            Vector2 hitPosition = (Vector2)result["position"];
-            endPoint = hitPosition - GlobalPosition;
-        }
-
-        _laserSight.SetPointPosition(0, Vector2.Zero);
-        _laserSight.SetPointPosition(1, endPoint);
-    }
-
-    /// <summary>
-    /// Updates the visibility of the laser sight.
-    /// </summary>
-    private void UpdateLaserSightVisibility()
-    {
-        if (_laserSight != null)
-        {
-            _laserSight.Visible = LaserSightEnabled;
-        }
-    }
-
-    /// <summary>
     /// Updates the rifle sprite rotation to match aim direction.
     /// </summary>
     private void UpdateRifleSpriteRotation(Vector2 direction)
@@ -488,15 +388,6 @@ public partial class SniperRifle : BaseWeapon
 
         bool aimingLeft = Mathf.Abs(angle) > Mathf.Pi / 2;
         _rifleSprite.FlipV = aimingLeft;
-    }
-
-    /// <summary>
-    /// Enables or disables the laser sight.
-    /// </summary>
-    public void SetLaserSightEnabled(bool enabled)
-    {
-        LaserSightEnabled = enabled;
-        UpdateLaserSightVisibility();
     }
 
     // =========================================================================
@@ -536,16 +427,17 @@ public partial class SniperRifle : BaseWeapon
 
         if (result)
         {
+            // Store fire direction for casing ejection during bolt step 2
+            _lastFireDirection = spreadDirection;
+
             // Transition to needs bolt cycle
             _boltStep = BoltActionStep.NeedsBoltCycle;
             EmitSignal(SignalName.BoltStepChanged, 0, 4);
 
-            // Play sniper shot sound
+            // Play sniper shot sound (ASVK specific)
             PlaySniperShotSound();
             // Emit gunshot sound for enemy detection
             EmitGunshotSound();
-            // Play shell casing with delay
-            PlayShellCasingDelayed();
             // Trigger heavy screen shake
             TriggerScreenShake(spreadDirection);
 
@@ -646,8 +538,8 @@ public partial class SniperRifle : BaseWeapon
         // Spawn muzzle flash effect - large flash for 12.7mm
         SpawnMuzzleFlash(spawnPosition, direction, WeaponData?.Caliber);
 
-        // Spawn casing
-        SpawnCasing(direction, WeaponData?.Caliber);
+        // NOTE: Casing is NOT spawned on fire - it's ejected during bolt step 2
+        // (Down arrow - extract and eject casing), similar to shotgun pump-action.
     }
 
     // =========================================================================
@@ -749,15 +641,26 @@ public partial class SniperRifle : BaseWeapon
     // =========================================================================
 
     /// <summary>
-    /// Plays the sniper shot sound via AudioManager.
+    /// Plays the ASVK sniper shot sound via AudioManager.
+    /// Uses dedicated ASVK shot sound from assets.
     /// </summary>
     private void PlaySniperShotSound()
     {
         var audioManager = GetNodeOrNull("/root/AudioManager");
-        // Use M16 shot as a placeholder sound for the sniper
-        if (audioManager != null && audioManager.HasMethod("play_m16_shot"))
+        if (audioManager == null)
         {
-            audioManager.Call("play_m16_shot", GlobalPosition);
+            return;
+        }
+
+        // Use ASVK-specific shot sound
+        if (audioManager.HasMethod("play_asvk_shot"))
+        {
+            audioManager.Call("play_asvk_shot", GlobalPosition);
+        }
+        else if (audioManager.HasMethod("play_sound_2d"))
+        {
+            // Direct sound playback fallback
+            audioManager.Call("play_sound_2d", "res://assets/audio/выстрел из ASVK.wav", GlobalPosition, -3.0f);
         }
     }
 
@@ -784,19 +687,6 @@ public partial class SniperRifle : BaseWeapon
         {
             float loudness = WeaponData?.Loudness ?? 3000.0f;
             soundPropagation.Call("emit_sound", 0, GlobalPosition, 0, this, loudness);
-        }
-    }
-
-    /// <summary>
-    /// Plays shell casing sound with a delay.
-    /// </summary>
-    private async void PlayShellCasingDelayed()
-    {
-        await ToSignal(GetTree().CreateTimer(0.2), "timeout");
-        var audioManager = GetNodeOrNull("/root/AudioManager");
-        if (audioManager != null && audioManager.HasMethod("play_shell_rifle"))
-        {
-            audioManager.Call("play_shell_rifle", GlobalPosition);
         }
     }
 

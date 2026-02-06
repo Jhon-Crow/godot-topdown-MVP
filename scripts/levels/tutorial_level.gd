@@ -57,11 +57,20 @@ var _has_assault_rifle: bool = false
 ## Whether the player has a shotgun (for shotgun-specific tutorial).
 var _has_shotgun: bool = false
 
+## Whether the player has a sniper rifle (for sniper-specific tutorial).
+var _has_sniper_rifle: bool = false
+
 ## Reference to the player's assault rifle weapon (for fire mode tracking).
 var _assault_rifle: Node = null
 
 ## Reference to the player's shotgun weapon (for shotgun-specific tracking).
 var _shotgun: Node = null
+
+## Reference to the player's sniper rifle weapon (for sniper-specific tracking).
+var _sniper_rifle: Node = null
+
+## Whether the sniper bolt has been cycled (for tutorial reload step tracking).
+var _sniper_bolt_cycled: bool = false
 
 ## Floating prompt label that follows the player.
 var _prompt_label: Label = null
@@ -265,12 +274,25 @@ func _connect_player_signals() -> void:
 
 	# Try to connect to weapon signals (C# Player)
 	var weapon = _player.get_node_or_null("AssaultRifle")
-	if weapon == null:
-		weapon = _player.get_node_or_null("SniperRifle")
+	var sniper_rifle = _player.get_node_or_null("SniperRifle")
 	var shotgun = _player.get_node_or_null("Shotgun")
 	var mini_uzi = _player.get_node_or_null("MiniUzi")
 
-	if shotgun != null:
+	if sniper_rifle != null:
+		_sniper_rifle = sniper_rifle
+		_has_sniper_rifle = true
+		print("Tutorial: Player has ASVK Sniper Rifle - sniper-specific tutorial enabled")
+
+		# Connect to bolt step changed signal for tracking reload
+		if sniper_rifle.has_signal("BoltStepChanged"):
+			sniper_rifle.BoltStepChanged.connect(_on_sniper_bolt_step_changed)
+			print("Tutorial: Connected to BoltStepChanged signal")
+
+		# Connect to sniper ammo signal
+		if sniper_rifle.has_signal("AmmoChanged"):
+			sniper_rifle.AmmoChanged.connect(_on_weapon_ammo_changed)
+
+	elif shotgun != null:
 		_shotgun = shotgun
 		_has_shotgun = true
 		print("Tutorial: Player has Shotgun - shotgun-specific tutorial enabled")
@@ -314,7 +336,8 @@ func _connect_player_signals() -> void:
 		if weapon.has_signal("FireModeChanged"):
 			weapon.FireModeChanged.connect(_on_fire_mode_changed)
 			print("Tutorial: Connected to FireModeChanged signal")
-	else:
+	elif not _has_sniper_rifle:
+		# GDScript player (only if no sniper rifle was detected earlier)
 		# GDScript player
 		if _player.has_signal("reload_completed"):
 			_player.reload_completed.connect(_on_player_reload_completed)
@@ -494,7 +517,7 @@ func _on_target_hit() -> void:
 
 	if _targets_hit >= _total_targets:
 		# If player has assault rifle, go to fire mode switch step
-		# Otherwise, skip directly to reload
+		# Sniper and other weapons skip directly to reload
 		if _has_assault_rifle:
 			_advance_to_step(TutorialStep.SWITCH_FIRE_MODE)
 		else:
@@ -510,6 +533,22 @@ func _on_fire_mode_changed(_new_mode: int) -> void:
 		_has_switched_fire_mode = true
 		print("Tutorial: Player switched fire mode")
 		_advance_to_step(TutorialStep.RELOAD)
+
+
+## Called when sniper rifle bolt step changes.
+## The sniper bolt-action reload is complete when step 4 (close bolt) is reached.
+func _on_sniper_bolt_step_changed(step: int, total_steps: int) -> void:
+	if _current_step != TutorialStep.RELOAD:
+		return
+
+	print("Tutorial: Sniper bolt step %d/%d" % [step, total_steps])
+
+	# Bolt cycling is complete when step reaches total (4/4 = bolt closed, ready to fire)
+	if step >= total_steps and not _sniper_bolt_cycled:
+		_sniper_bolt_cycled = true
+		_has_reloaded = true
+		print("Tutorial: Sniper bolt cycling completed")
+		_advance_to_step(TutorialStep.THROW_GRENADE)
 
 
 ## Called when player completes reload.
@@ -604,6 +643,9 @@ func _update_prompt_text() -> void:
 				# Shotgun-specific shooting instructions with pump-action gestures
 				# LMB shoot → RMB drag UP (eject shell) → RMB drag DOWN (chamber)
 				_prompt_label.text = "[ЛКМ стрельба] [ПКМ↑ извлечь] [ПКМ↓ дослать]"
+			elif _has_sniper_rifle:
+				# Sniper rifle shooting - just LMB to fire
+				_prompt_label.text = "[ЛКМ] Стреляй по мишеням"
 			else:
 				_prompt_label.text = "[ЛКМ] Стреляй по мишеням"
 		TutorialStep.SWITCH_FIRE_MODE:
@@ -613,6 +655,9 @@ func _update_prompt_text() -> void:
 				# Shotgun-specific reload instructions with shell loading gestures
 				# RMB drag UP (open bolt) → [MMB hold + RMB DOWN]×N (load shells) → RMB DOWN (close bolt)
 				_prompt_label.text = "[ПКМ↑ открыть] [СКМ+ПКМ↓ x8] [ПКМ↓ закрыть]"
+			elif _has_sniper_rifle:
+				# Sniper rifle bolt-action reload: Left→Down→Up→Right
+				_prompt_label.text = "[←отпирание] [↓извлечение] [↑досылание] [→запирание]"
 			else:
 				_prompt_label.text = "[R] [F] [R] Перезарядись"
 		TutorialStep.THROW_GRENADE:
