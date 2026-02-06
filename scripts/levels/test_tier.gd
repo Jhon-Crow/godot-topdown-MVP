@@ -67,34 +67,74 @@ var _replay_manager: Node = null
 
 
 ## Gets or creates the ReplayManager node.
-## Unlike autoload, this dynamically loads the script and creates the node,
-## which bypasses Godot 4.3's silent autoload failure in exported builds
-## (see: godotengine/godot#78230, godotengine/godot#58563).
+## Uses multiple loading strategies to work around Godot 4.3 bugs in exported builds
+## (see: godotengine/godot#78230, godotengine/godot#58563, godotengine/godot#94150).
 func _get_or_create_replay_manager() -> Node:
 	if _replay_manager != null and is_instance_valid(_replay_manager):
 		return _replay_manager
 
-	# First check if it exists as autoload (works in editor)
+	# Strategy 1: Check if it exists as autoload (scene-based autoload in project.godot)
 	_replay_manager = get_node_or_null("/root/ReplayManager")
 	if _replay_manager != null:
-		return _replay_manager
+		if _replay_manager.has_method("start_recording"):
+			_log_to_file("ReplayManager found as autoload (scene-based) - verified OK")
+			return _replay_manager
+		else:
+			_log_to_file("WARNING: ReplayManager autoload exists but has no start_recording method, script=%s" % str(_replay_manager.get_script()))
 
-	# Dynamically load and create (works in exported builds)
-	var script: Resource = load("res://scripts/autoload/replay_system.gd")
-	if script == null:
-		print("[TestTier] ERROR: Failed to load replay_system.gd script")
-		return null
-
-	_replay_manager = Node.new()
-	_replay_manager.set_script(script)
-	_replay_manager.name = "ReplayManager"
-	get_tree().root.add_child(_replay_manager)
-
-	# Verify the script was attached and _ready() ran
-	if _replay_manager.has_method("start_recording"):
-		print("[TestTier] ReplayManager created dynamically (autoload workaround) - verified OK")
+	# Strategy 2: Load the .tscn scene and instantiate it (scenes use different
+	# loading pipeline than raw scripts, avoiding set_script() issues)
+	var scene: PackedScene = load("res://scenes/autoload/ReplayManager.tscn")
+	if scene != null:
+		_log_to_file("Loaded ReplayManager.tscn scene, instantiating...")
+		_replay_manager = scene.instantiate()
+		_replay_manager.name = "ReplayManager"
+		get_tree().root.add_child(_replay_manager)
+		if _replay_manager.has_method("start_recording"):
+			_log_to_file("ReplayManager created via scene instantiation - verified OK")
+			return _replay_manager
+		else:
+			_log_to_file("WARNING: ReplayManager from scene has no start_recording, script=%s" % str(_replay_manager.get_script()))
+			_replay_manager.queue_free()
+			_replay_manager = null
 	else:
-		print("[TestTier] WARNING: ReplayManager created but start_recording method not found")
+		_log_to_file("WARNING: Failed to load ReplayManager.tscn scene")
+
+	# Strategy 3: Load the .gd script and call .new() on it directly
+	var script: Resource = load("res://scripts/autoload/replay_system.gd")
+	if script != null:
+		_log_to_file("Loaded replay_system.gd (type=%s), trying script.new()..." % script.get_class())
+		_replay_manager = script.new()
+		if _replay_manager != null:
+			_replay_manager.name = "ReplayManager"
+			get_tree().root.add_child(_replay_manager)
+			if _replay_manager.has_method("start_recording"):
+				_log_to_file("ReplayManager created via script.new() - verified OK")
+				return _replay_manager
+			else:
+				_log_to_file("WARNING: ReplayManager from script.new() has no start_recording")
+				_replay_manager.queue_free()
+				_replay_manager = null
+		else:
+			_log_to_file("WARNING: script.new() returned null")
+	else:
+		_log_to_file("WARNING: Failed to load replay_system.gd script")
+
+	# Strategy 4: Last resort - Node.new() + set_script()
+	if script != null:
+		_log_to_file("Trying last resort: Node.new() + set_script()...")
+		_replay_manager = Node.new()
+		_replay_manager.set_script(script)
+		_replay_manager.name = "ReplayManager"
+		get_tree().root.add_child(_replay_manager)
+		if _replay_manager.has_method("start_recording"):
+			_log_to_file("ReplayManager created via set_script() - verified OK")
+			return _replay_manager
+		else:
+			_log_to_file("ERROR: All ReplayManager loading strategies failed. Script attached=%s" % str(_replay_manager.get_script() != null))
+	else:
+		_log_to_file("ERROR: Cannot create ReplayManager - no script available")
+
 	return _replay_manager
 
 
@@ -970,3 +1010,12 @@ func _start_replay_recording() -> void:
 		print("[TestTier] Replay recording started successfully with %d enemies" % _enemies.size())
 	else:
 		print("[TestTier] ERROR: start_recording method not found!")
+
+
+## Log a message to the file logger if available.
+func _log_to_file(message: String) -> void:
+	var file_logger: Node = get_node_or_null("/root/FileLogger")
+	if file_logger and file_logger.has_method("log_info"):
+		file_logger.log_info("[TestTier] " + message)
+	else:
+		print("[TestTier] " + message)

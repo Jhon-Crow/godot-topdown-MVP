@@ -281,6 +281,73 @@ Since the autoload mechanism itself is unreliable for this script in exported bu
 - No dependency on Godot's autoload registration, which has known silent failure modes
 - The dynamically created node at `/root/` persists across level restarts, matching autoload behavior
 
+## Fifth User Report (2026-02-06 14:14)
+
+### User Feedback
+User reported: "запись недоступна в этой сессии, то есть всё ещё не работает" (Recording unavailable in this session, still doesn't work) with game log `game_log_20260206_141414.txt`.
+
+### Analysis of game_log_20260206_141414.txt
+
+**Key findings — the dynamic loading fix (Iteration 4) partially works but set_script() fails silently:**
+
+1. **Line 136**: `[BuildingLevel] WARNING: ReplayManager created but start_recording method not found`
+   - The Node IS created (unlike previous iterations where it wasn't found at all)
+   - But `has_method("start_recording")` returns false — the script wasn't properly attached
+2. **Line 138**: `[BuildingLevel] ERROR: ReplayManager.start_recording method not found`
+3. **Line 1908**: `Watch Replay button created (disabled - no replay data)` — UI correctly shows disabled button
+4. **Lines 1965-1984**: User clicked Watch Replay 4 times, each time getting "no replay data available"
+5. **Line 2068**: On restart, same `WARNING: ReplayManager created but start_recording method not found`
+
+**Critical observation:**
+The dynamic loading code creates the Node and calls `set_script()`, but the script's methods are NOT accessible. This means:
+- `load("res://scripts/autoload/replay_system.gd")` returns a non-null resource (no "Failed to load" error)
+- `Node.new()` creates a valid Node
+- `set_script(script)` is called but **silently fails** — the script doesn't actually attach
+- `has_method("start_recording")` correctly returns `false` because the script isn't there
+
+### Root Cause: set_script() Silently Fails in Godot 4.3 Exported Builds
+
+In Godot 4.3 exported builds with binary tokenized GDScript (the default), the `set_script()` method on dynamically created nodes silently fails. The script resource loads via `load()` but cannot be applied to nodes via `set_script()`.
+
+This is consistent with known Godot 4.3 issues:
+- [godotengine/godot#94150](https://github.com/godotengine/godot/issues/94150) — GDScript export mode breaks exported builds
+- [godotengine/godot#91713](https://github.com/godotengine/godot/issues/91713) — Scripts fail to load with parse error on exported projects
+- [godotengine/godot#87634](https://github.com/godotengine/godot/pull/87634) — Binary tokenization reintroduced in 4.3
+
+### Fix (Iteration 5): Scene-Based Autoload + Multi-Strategy Dynamic Loading
+
+**Primary fix: Scene-based autoload (.tscn instead of .gd)**
+
+Created `scenes/autoload/ReplayManager.tscn` — a PackedScene with the replay_system.gd script already attached in the scene file. Added this scene to `project.godot` autoloads instead of the raw .gd script.
+
+**Why scenes work when scripts don't:**
+- Scene files (.tscn) bundle the script reference as an external resource
+- When Godot instantiates a scene, the script is applied through the scene instantiation pipeline (which handles binary tokenization correctly)
+- This is fundamentally different from `Node.new()` + `set_script()` which goes through a different code path that has the silent failure bug
+
+**Secondary fix: Multi-strategy fallback in level scripts**
+
+Updated `_get_or_create_replay_manager()` in both building_level.gd and test_tier.gd with 4 strategies:
+
+| Strategy | Method | Pipeline |
+|----------|--------|----------|
+| 1 | Check `/root/ReplayManager` (scene-based autoload) | Godot autoload + scene instantiation |
+| 2 | `load("ReplayManager.tscn").instantiate()` | Scene instantiation (different from set_script) |
+| 3 | `load("replay_system.gd").new()` | GDScript class instantiation |
+| 4 | `Node.new()` + `set_script()` | Direct script attachment (known to fail) |
+
+Each strategy includes diagnostic logging to identify exactly which strategy succeeds/fails in the exported build.
+
+## Complete Fix Iteration History
+
+| # | Date | Hypothesis | Fix | Result | Log Evidence |
+|---|------|-----------|-----|--------|-------------|
+| 1 | Feb 4 | Inner class in autoload script | Remove inner class, use Dictionaries | ❌ Still fails | `game_log_20260205_030057.txt`: "ReplayManager not found" |
+| 2 | Feb 6 | Button hidden when unavailable | Always show button, disable if no data | ✅ UI fixed, but no data | `game_log_20260206_122932.txt`: "Watch Replay button created (disabled)" |
+| 3 | Feb 6 | await/naming/ordering issues | Remove await, rename methods, reorder | ❌ Still fails | `game_log_20260206_131432.txt`: "ReplayManager not found" |
+| 4 | Feb 6 | Autoload mechanism itself broken | Dynamic loading with set_script() | ❌ set_script() fails silently | `game_log_20260206_141414.txt`: "created but start_recording method not found" |
+| 5 | Feb 6 | set_script() fails in exported builds | Scene-based autoload (.tscn) + multi-strategy fallback | 🔄 Testing | — |
+
 ## Logs
 
 All user-provided game logs preserved in `logs/` directory:
@@ -290,4 +357,5 @@ All user-provided game logs preserved in `logs/` directory:
 - `logs/game_log_20260206_120242.txt` — Third user report (button missing, different code)
 - `logs/game_log_20260206_122932.txt` — Fourth user report ("no data" on button)
 - `logs/game_log_20260206_131432.txt` — Fifth user report ("no data" persists after 3 code fixes)
+- `logs/game_log_20260206_141414.txt` — Sixth user report ("recording unavailable", dynamic loading set_script() fails)
 - `logs/solution-draft-log-pr-421.txt` — Full AI solver execution log from 2026-02-04

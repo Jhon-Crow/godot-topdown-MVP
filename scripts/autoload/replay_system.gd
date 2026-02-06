@@ -110,7 +110,10 @@ func _create_frame_data() -> Dictionary:
 func _ready() -> void:
 	# Run in PROCESS_MODE_ALWAYS to work during pause
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	_log_to_file("ReplayManager ready")
+	_log_to_file("ReplayManager ready (script loaded and _ready called)")
+	_log_to_file("ReplayManager has start_recording: %s" % has_method("start_recording"))
+	var script_path: String = get_script().resource_path if get_script() else "NO SCRIPT"
+	_log_to_file("ReplayManager script path: %s" % script_path)
 
 
 func _physics_process(delta: float) -> void:
