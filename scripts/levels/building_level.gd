@@ -326,6 +326,8 @@ func _setup_player_tracking() -> void:
 	if weapon == null:
 		weapon = _player.get_node_or_null("SilencedPistol")
 	if weapon == null:
+		weapon = _player.get_node_or_null("SniperRifle")
+	if weapon == null:
 		weapon = _player.get_node_or_null("AssaultRifle")
 	if weapon != null:
 		# C# Player with weapon - connect to weapon signals
@@ -1139,6 +1141,30 @@ func _setup_selected_weapon() -> void:
 			print("BuildingLevel: Silenced Pistol equipped successfully")
 		else:
 			push_error("BuildingLevel: Failed to load SilencedPistol scene!")
+	# If Sniper Rifle (ASVK) is selected, swap weapons
+	elif selected_weapon_id == "sniper":
+		# Remove the default AssaultRifle
+		var assault_rifle = _player.get_node_or_null("AssaultRifle")
+		if assault_rifle:
+			assault_rifle.queue_free()
+			print("BuildingLevel: Removed default AssaultRifle")
+
+		# Load and add the Sniper Rifle
+		var sniper_scene = load("res://scenes/weapons/csharp/SniperRifle.tscn")
+		if sniper_scene:
+			var sniper = sniper_scene.instantiate()
+			sniper.name = "SniperRifle"
+			_player.add_child(sniper)
+
+			# Set the CurrentWeapon reference in C# Player
+			if _player.has_method("EquipWeapon"):
+				_player.EquipWeapon(sniper)
+			elif _player.get("CurrentWeapon") != null:
+				_player.CurrentWeapon = sniper
+
+			print("BuildingLevel: ASVK Sniper Rifle equipped successfully")
+		else:
+			push_error("BuildingLevel: Failed to load SniperRifle scene!")
 	# For M16 (assault rifle), it's already in the scene
 	else:
 		var assault_rifle = _player.get_node_or_null("AssaultRifle")
