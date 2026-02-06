@@ -173,3 +173,54 @@ All game logs from user testing sessions are preserved in `docs/case-studies/iss
 - `game_log_20260206_185149.txt` — Same failure, player controls issue also reported
 - `game_log_20260206_201555.txt` — All strategies still fail
 - `game_log_20260206_213011.txt` — C# ReplayManager loads, but snake_case `has_method()` fails (PascalCase naming fix needed)
+- `game_log_20260206_235558.txt` — PascalCase fix applied: recording and playback start successfully, but replay is not visible (score screen UI overlay obscures ghosts)
+
+## Bug #3: Score Screen UI Obscures Replay Playback
+
+After Bugs #1 and #2 were fixed, a third bug was identified from `game_log_20260206_235558.txt`:
+
+### Symptoms
+
+- Recording works perfectly (3866 frames / 60.94s in first session, 2200 frames / 34.32s in second)
+- `HasReplay()` returns `true`
+- "Watch Replay" button is enabled and clickable
+- `StartPlayback()` executes successfully ("Started replay playback. Frames: 3866, Duration: 60,94s")
+- Speed controls work (user changes between 1.0x and 2.0x)
+- **But the replay is NOT visible** — user reports "на экране всё ещё результаты и не видно самого реплея" (the results are still on screen and the replay is not visible)
+
+### Root Cause
+
+The score screen UI is displayed inside `CanvasLayer/UI` (CanvasLayer at default layer 1), which renders **on top of** the game world. The replay ghost entities are added as children of the level's Node2D tree, which renders in the game world coordinate system — **below** any CanvasLayer.
+
+When `StartPlayback()` is called:
+1. Ghost entities are created as children of level → render in game world (below CanvasLayer)
+2. Original entities are hidden (player, enemies, projectiles) — but they were already behind the score screen
+3. Replay UI is created at CanvasLayer layer 100 — visible on top
+4. **The score screen at CanvasLayer layer 1 is NEVER hidden** — it completely obscures the ghost entities
+
+Additionally, the camera stays stationary because the original player's `Camera2D` doesn't track the ghost player. The ghost player has its own `Camera2D` (from Player.tscn instantiation), but `DisableNodeProcessing()` disabled its processing, preventing it from following the ghost.
+
+### Fix
+
+Two changes in `ReplayManager.cs`:
+
+1. **`HideOriginalEntities()`**: Also hide the level's `CanvasLayer` node to remove the score screen overlay
+2. **`CreateGhostEntities()`**: After creating the ghost player, re-enable its `Camera2D` (set ProcessMode to Always, re-enable process/physics_process, make current) so the camera follows the ghost player during replay
+
+### Evidence from Log
+
+```
+[23:57:15] [ReplayManager] has_replay() will return: True
+[23:57:15] [BuildingLevel] Replay status: has_replay=true, duration=60.94s
+[23:57:15] [ScoreManager] Level completed! Final score: 28080, Rank: B
+[23:57:23] [BuildingLevel] Watch Replay button created (replay data available)
+[23:57:24] [BuildingLevel] Watch Replay triggered
+[23:57:24] [ReplayManager] Started replay playback. Frames: 3866, Duration: 60,94s
+[23:57:30] [ReplayManager] Playback speed set to 1,00x
+[23:57:35] [ReplayManager] Playback speed set to 1,00x
+[23:57:43] [ReplayManager] Playback speed set to 2,00x
+[23:57:44] [ReplayManager] Playback speed set to 1,00x
+[23:57:48] [ReplayManager] Stopped replay playback
+```
+
+The log shows playback started and speed was changed, confirming the replay system is functioning internally — only the visual presentation was broken.

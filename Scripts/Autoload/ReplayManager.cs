@@ -570,7 +570,21 @@ namespace GodotTopDownTemplate.Autoload
 
             _ghostPlayer = CreatePlayerGhost();
             if (_ghostPlayer != null)
+            {
                 ghostContainer.AddChild(_ghostPlayer);
+
+                // Enable the ghost's Camera2D so it follows the ghost player during
+                // replay. The original player's camera is disabled by HideOriginalEntities.
+                var ghostCamera = _ghostPlayer.GetNodeOrNull<Camera2D>("Camera2D");
+                if (ghostCamera != null)
+                {
+                    ghostCamera.ProcessMode = ProcessModeEnum.Always;
+                    ghostCamera.SetProcess(true);
+                    ghostCamera.SetPhysicsProcess(true);
+                    ghostCamera.MakeCurrent();
+                    LogToFile("Ghost player Camera2D activated for replay");
+                }
+            }
 
             if (_frames.Count > 0 && _frames[0].Enemies.Count > 0)
             {
@@ -727,6 +741,16 @@ namespace GodotTopDownTemplate.Autoload
 
             var projectiles = level.GetNodeOrNull<Node2D>("Entities/Projectiles");
             if (projectiles != null) projectiles.Visible = false;
+
+            // Hide the score screen / UI overlay (CanvasLayer/UI) so the replay
+            // ghosts in the game world are visible. The CanvasLayer renders on top
+            // of the game world and would completely obscure the replay otherwise.
+            var canvasLayer = level.GetNodeOrNull<CanvasLayer>("CanvasLayer");
+            if (canvasLayer != null)
+            {
+                canvasLayer.Visible = false;
+                LogToFile("Hidden CanvasLayer (score screen) for replay visibility");
+            }
         }
 
         private void CleanupGhostEntities()
