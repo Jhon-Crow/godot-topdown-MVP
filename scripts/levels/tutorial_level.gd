@@ -338,7 +338,6 @@ func _connect_player_signals() -> void:
 			print("Tutorial: Connected to FireModeChanged signal")
 	elif not _has_sniper_rifle:
 		# GDScript player (only if no sniper rifle was detected earlier)
-		# GDScript player
 		if _player.has_signal("reload_completed"):
 			_player.reload_completed.connect(_on_player_reload_completed)
 
