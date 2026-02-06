@@ -3,7 +3,7 @@ extends Node
 ##
 ## This autoload singleton provides:
 ## 1. "Last chance" effect (300ms) after killing an enemy - penultimate hit effect
-## 2. "Special last chance" effect (50ms) when a grenade explodes - penultimate hit effect
+## 2. "Special last chance" effect (400ms) when a grenade explodes - penultimate hit effect
 ##
 ## These effects use the penultimate hit system (time slowdown + saturation boost)
 ## but with shorter durations specific to Power Fantasy mode.
@@ -11,8 +11,8 @@ extends Node
 ## Duration of the last chance effect when killing an enemy (300ms).
 const KILL_EFFECT_DURATION_MS: float = 300.0
 
-## Duration of the special last chance effect when grenade explodes (50ms).
-const GRENADE_EFFECT_DURATION_MS: float = 50.0
+## Duration of the special last chance effect when grenade explodes (400ms).
+const GRENADE_EFFECT_DURATION_MS: float = 400.0
 
 ## The slowed down time scale during effects.
 const EFFECT_TIME_SCALE: float = 0.1
@@ -112,13 +112,13 @@ func on_enemy_killed() -> void:
 
 
 ## Called when a grenade explodes in Power Fantasy mode.
-## Triggers the 50ms special last chance effect.
+## Triggers the 400ms special last chance effect.
 func on_grenade_exploded() -> void:
 	var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
 	if difficulty_manager == null or not difficulty_manager.is_power_fantasy_mode():
 		return
 
-	_log("Grenade exploded - triggering 50ms special last chance effect")
+	_log("Grenade exploded - triggering 400ms special last chance effect")
 	_start_effect(GRENADE_EFFECT_DURATION_MS)
 
 

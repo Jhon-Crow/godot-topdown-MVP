@@ -388,7 +388,7 @@ func _explode() -> void:
 
 	FileLogger.info("[GrenadeBase] EXPLODED at %s!" % str(global_position))
 
-	# Trigger Power Fantasy grenade explosion effect (50ms special effect)
+	# Trigger Power Fantasy grenade explosion effect (400ms special effect)
 	var power_fantasy_manager: Node = get_node_or_null("/root/PowerFantasyEffectsManager")
 	if power_fantasy_manager and power_fantasy_manager.has_method("on_grenade_exploded"):
 		power_fantasy_manager.on_grenade_exploded()
