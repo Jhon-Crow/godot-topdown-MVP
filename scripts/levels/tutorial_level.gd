@@ -29,6 +29,7 @@ enum TutorialStep {
 	SHOOT_TARGETS,
 	SWITCH_FIRE_MODE,
 	RELOAD,
+	SCOPE_TRAINING,
 	THROW_GRENADE,
 	COMPLETED
 }
@@ -71,6 +72,9 @@ var _sniper_rifle: Node = null
 
 ## Whether the sniper bolt has been cycled (for tutorial reload step tracking).
 var _sniper_bolt_cycled: bool = false
+
+## Whether the scope has been used (for sniper scope training step).
+var _scope_used: bool = false
 
 ## Floating prompt label that follows the player.
 var _prompt_label: Label = null
@@ -291,6 +295,11 @@ func _connect_player_signals() -> void:
 		# Connect to sniper ammo signal
 		if sniper_rifle.has_signal("AmmoChanged"):
 			sniper_rifle.AmmoChanged.connect(_on_weapon_ammo_changed)
+
+		# Connect to scope state changed signal for scope training
+		if sniper_rifle.has_signal("ScopeStateChanged"):
+			sniper_rifle.ScopeStateChanged.connect(_on_scope_state_changed)
+			print("Tutorial: Connected to ScopeStateChanged signal")
 
 	elif shotgun != null:
 		_shotgun = shotgun
@@ -514,9 +523,12 @@ func _on_target_hit() -> void:
 	_targets_hit += 1
 	print("Tutorial: Target hit (%d/%d)" % [_targets_hit, _total_targets])
 
-	if _targets_hit >= _total_targets:
+	# Sniper rifle: advance after first hit (one shot, then bolt-action training)
+	if _has_sniper_rifle and _targets_hit >= 1:
+		_advance_to_step(TutorialStep.RELOAD)
+	elif _targets_hit >= _total_targets:
 		# If player has assault rifle, go to fire mode switch step
-		# Sniper and other weapons skip directly to reload
+		# Other weapons skip directly to reload
 		if _has_assault_rifle:
 			_advance_to_step(TutorialStep.SWITCH_FIRE_MODE)
 		else:
@@ -547,6 +559,20 @@ func _on_sniper_bolt_step_changed(step: int, total_steps: int) -> void:
 		_sniper_bolt_cycled = true
 		_has_reloaded = true
 		print("Tutorial: Sniper bolt cycling completed")
+		# After bolt-action reload, teach scope usage
+		_advance_to_step(TutorialStep.SCOPE_TRAINING)
+
+
+## Called when scope state changes (activated/deactivated).
+## Completes the scope training step when scope is used.
+func _on_scope_state_changed(is_active: bool) -> void:
+	if _current_step != TutorialStep.SCOPE_TRAINING:
+		return
+
+	# Scope training completes when the player activates the scope
+	if is_active and not _scope_used:
+		_scope_used = true
+		print("Tutorial: Scope used - scope training complete")
 		_advance_to_step(TutorialStep.THROW_GRENADE)
 
 
@@ -659,6 +685,9 @@ func _update_prompt_text() -> void:
 				_prompt_label.text = "[←отпирание] [↓извлечение] [↑досылание] [→запирание]"
 			else:
 				_prompt_label.text = "[R] [F] [R] Перезарядись"
+		TutorialStep.SCOPE_TRAINING:
+			# Sniper scope training: hold RMB to activate scope
+			_prompt_label.text = "[ПКМ] Прицелься через оптику"
 		TutorialStep.THROW_GRENADE:
 			# 2-step grenade throwing:
 			# Step 1: G + RMB drag right = start timer (pin pulled)
