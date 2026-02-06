@@ -985,9 +985,17 @@ func _setup_selected_weapon() -> void:
 			# Reduce M16 ammunition by half for Building level (issue #413)
 			# The weapon is already initialized, so we need to reinitialize magazines
 			# M16 has magazine size of 30, so 2 magazines = 60 rounds total (30+30)
+			# In Power Fantasy mode, apply 3x ammo multiplier (issue #501)
+			var base_magazines: int = 2
+			var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
+			if difficulty_manager:
+				var ammo_multiplier: int = difficulty_manager.get_ammo_multiplier()
+				if ammo_multiplier > 1:
+					base_magazines *= ammo_multiplier
+					print("BuildingLevel: Power Fantasy mode - M16 magazines multiplied by %dx (%d -> %d)" % [ammo_multiplier, 2, base_magazines])
 			if assault_rifle.has_method("ReinitializeMagazines"):
-				assault_rifle.ReinitializeMagazines(2, true)
-				print("BuildingLevel: M16 magazines reinitialized to 2 (reduced by half)")
+				assault_rifle.ReinitializeMagazines(base_magazines, true)
+				print("BuildingLevel: M16 magazines reinitialized to %d" % base_magazines)
 			else:
 				print("BuildingLevel: WARNING - M16 doesn't have ReinitializeMagazines method")
 
