@@ -308,12 +308,11 @@ public partial class Enemy : Area2D, IDamageable
     {
         EmitSignal(SignalName.Died);
 
-        // Issue #382 fix: Notify GameManager directly so level scripts can track deaths
-        // even when has_signal("died") returns false in exported builds.
-        var gameManager = GetNodeOrNull("/root/GameManager");
-        if (gameManager != null && gameManager.HasMethod("notify_enemy_died"))
+        // Trigger Power Fantasy kill effect (300ms last chance effect)
+        var powerFantasyManager = GetNodeOrNull("/root/PowerFantasyEffectsManager");
+        if (powerFantasyManager != null && powerFantasyManager.HasMethod("on_enemy_killed"))
         {
-            gameManager.Call("notify_enemy_died", this, false, false);
+            powerFantasyManager.Call("on_enemy_killed");
         }
 
         if (DestroyOnHit)

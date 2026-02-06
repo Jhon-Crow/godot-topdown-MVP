@@ -344,6 +344,13 @@ func _on_area_entered(area: Area2D) -> void:
 		if parent and shooter_id == parent.get_instance_id() and not _has_ricocheted:
 			return  # Don't hit the shooter with direct shots
 
+		# Power Fantasy mode: Ricocheted bullets do NOT damage enemies
+		if _has_ricocheted and parent and parent.is_in_group("enemies"):
+			var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
+			if difficulty_manager and difficulty_manager.has_method("do_ricochets_damage_enemies"):
+				if not difficulty_manager.do_ricochets_damage_enemies():
+					return  # Pass through enemy without damage in Power Fantasy mode
+
 		# Check if the parent is dead - bullets should pass through dead entities
 		# This is a fallback check in case the collision shape/layer disabling
 		# doesn't take effect immediately (see Godot issues #62506, #100687)

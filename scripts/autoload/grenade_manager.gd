@@ -8,7 +8,8 @@ extends Node
 ## Grenade types available in the game.
 enum GrenadeType {
 	FLASHBANG,  # Default: Stun grenade (blinds and stuns enemies)
-	FRAG        # Offensive: Fragmentation grenade (explodes on impact, releases shrapnel)
+	FRAG,       # Offensive: Fragmentation grenade (explodes on impact, releases shrapnel)
+	DEFENSIVE   # Defensive: F-1 grenade (timer-based, 40 shrapnel pieces, 700px radius)
 }
 
 ## Currently selected grenade type.
@@ -28,6 +29,12 @@ const GRENADE_DATA: Dictionary = {
 		"icon_path": "res://assets/sprites/weapons/frag_grenade.png",
 		"scene_path": "res://scenes/projectiles/FragGrenade.tscn",
 		"description": "Offensive grenade - explodes on impact, releases 4 shrapnel pieces. Smaller radius."
+	},
+	GrenadeType.DEFENSIVE: {
+		"name": "F-1 Grenade",
+		"icon_path": "res://assets/sprites/weapons/defensive_grenade.png",
+		"scene_path": "res://scenes/projectiles/DefensiveGrenade.tscn",
+		"description": "Defensive grenade - 4 second fuse, releases 40 shrapnel pieces. 700px damage radius."
 	}
 }
 

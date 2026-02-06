@@ -24,6 +24,21 @@ public partial class MiniUzi : BaseWeapon
     private Sprite2D? _weaponSprite;
 
     /// <summary>
+    /// Reference to the Line2D node for the laser sight (Power Fantasy mode only).
+    /// </summary>
+    private Line2D? _laserSight;
+
+    /// <summary>
+    /// Whether the laser sight is enabled (true only in Power Fantasy mode).
+    /// </summary>
+    private bool _laserSightEnabled = false;
+
+    /// <summary>
+    /// Color of the laser sight (blue in Power Fantasy mode).
+    /// </summary>
+    private Color _laserSightColor = new Color(0.0f, 0.5f, 1.0f, 0.6f);
+
+    /// <summary>
     /// Current aim direction based on mouse position.
     /// </summary>
     private Vector2 _aimDirection = Vector2.Right;
@@ -112,6 +127,21 @@ public partial class MiniUzi : BaseWeapon
         {
             GD.Print("[MiniUzi] No MiniUziSprite node (visual model not yet added)");
         }
+
+        // Check for Power Fantasy mode - enable blue laser sight
+        var difficultyManager = GetNodeOrNull("/root/DifficultyManager");
+        if (difficultyManager != null)
+        {
+            var shouldForceBlueLaser = difficultyManager.Call("should_force_blue_laser_sight");
+            if (shouldForceBlueLaser.AsBool())
+            {
+                _laserSightEnabled = true;
+                var blueColorVariant = difficultyManager.Call("get_power_fantasy_laser_color");
+                _laserSightColor = blueColorVariant.AsColor();
+                CreateLaserSight();
+                GD.Print($"[MiniUzi] Power Fantasy mode: blue laser sight enabled with color {_laserSightColor}");
+            }
+        }
     }
 
     public override void _Process(double delta)
@@ -137,6 +167,12 @@ public partial class MiniUzi : BaseWeapon
 
         // Update aim direction and weapon sprite rotation
         UpdateAimDirection();
+
+        // Update laser sight (Power Fantasy mode)
+        if (_laserSightEnabled && _laserSight != null)
+        {
+            UpdateLaserSight();
+        }
     }
 
     /// <summary>
@@ -277,6 +313,15 @@ public partial class MiniUzi : BaseWeapon
 
             // Convert spread angle from degrees to radians
             float spreadRadians = Mathf.DegToRad(currentSpread);
+
+            // Apply Power Fantasy recoil multiplier (reduced recoil)
+            var difficultyManager = GetNodeOrNull("/root/DifficultyManager");
+            if (difficultyManager != null)
+            {
+                var multiplierResult = difficultyManager.Call("get_recoil_multiplier");
+                float recoilMultiplier = multiplierResult.AsSingle();
+                spreadRadians *= recoilMultiplier;
+            }
 
             // Generate random recoil direction with higher variation
             float recoilDirection = (float)GD.RandRange(-1.0, 1.0);
@@ -420,4 +465,72 @@ public partial class MiniUzi : BaseWeapon
     /// Gets the current aim direction.
     /// </summary>
     public Vector2 AimDirection => _aimDirection;
+
+    #region Power Fantasy Laser Sight
+
+    /// <summary>
+    /// Creates the laser sight Line2D programmatically (Power Fantasy mode only).
+    /// </summary>
+    private void CreateLaserSight()
+    {
+        _laserSight = new Line2D
+        {
+            Name = "LaserSight",
+            Width = 2.0f,
+            DefaultColor = _laserSightColor,
+            BeginCapMode = Line2D.LineCapMode.Round,
+            EndCapMode = Line2D.LineCapMode.Round
+        };
+
+        _laserSight.AddPoint(Vector2.Zero);
+        _laserSight.AddPoint(Vector2.Right * 500.0f);
+
+        AddChild(_laserSight);
+    }
+
+    /// <summary>
+    /// Updates the laser sight visualization (Power Fantasy mode only).
+    /// The laser shows where bullets will go, accounting for current spread/recoil.
+    /// </summary>
+    private void UpdateLaserSight()
+    {
+        if (_laserSight == null)
+        {
+            return;
+        }
+
+        // Apply recoil offset to aim direction for laser visualization
+        Vector2 laserDirection = _aimDirection.Rotated(_recoilOffset);
+
+        // Calculate maximum laser length based on viewport size
+        Vector2 viewportSize = GetViewport().GetVisibleRect().Size;
+        float maxLaserLength = viewportSize.Length();
+
+        // Calculate the end point of the laser
+        Vector2 endPoint = laserDirection * maxLaserLength;
+
+        // Raycast to find obstacles
+        var spaceState = GetWorld2D()?.DirectSpaceState;
+        if (spaceState != null)
+        {
+            var query = PhysicsRayQueryParameters2D.Create(
+                GlobalPosition,
+                GlobalPosition + endPoint,
+                4 // Collision mask for obstacles
+            );
+
+            var result = spaceState.IntersectRay(query);
+            if (result.Count > 0)
+            {
+                Vector2 hitPosition = (Vector2)result["position"];
+                endPoint = hitPosition - GlobalPosition;
+            }
+        }
+
+        // Update the laser sight line points (in local coordinates)
+        _laserSight.SetPointPosition(0, Vector2.Zero);
+        _laserSight.SetPointPosition(1, endPoint);
+    }
+
+    #endregion
 }

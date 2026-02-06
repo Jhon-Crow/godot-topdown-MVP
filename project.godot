@@ -28,6 +28,7 @@ TacticalGrenadeCoordinator="*res://scripts/autoload/tactical_grenade_coordinator
 ExperimentalSettings="*res://scripts/autoload/experimental_settings.gd"
 CinemaEffectsManager="*res://scripts/autoload/cinema_effects_manager.gd"
 GrenadeTimerHelper="*res://Scripts/Autoload/GrenadeTimerHelper.cs"
+PowerFantasyEffectsManager="*res://scripts/autoload/power_fantasy_effects_manager.gd"
 
 [application]
 
