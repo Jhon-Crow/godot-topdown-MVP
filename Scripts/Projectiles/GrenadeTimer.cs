@@ -807,6 +807,7 @@ namespace GodotTopdown.Scripts.Projectiles
 
         /// <summary>
         /// Scatter shell casings near explosion.
+        /// Issue #506: Checks line of sight so casings behind obstacles are not pushed.
         /// </summary>
         private void ScatterCasings(Vector2 position)
         {
@@ -826,6 +827,10 @@ namespace GodotTopdown.Scripts.Projectiles
                 {
                     float distance = position.DistanceTo(casingBody.GlobalPosition);
                     if (distance > proximityRadius)
+                        continue;
+
+                    // Issue #506: Check line of sight - obstacles block the shockwave
+                    if (!HasLineOfSightTo(position, casingBody.GlobalPosition))
                         continue;
 
                     Vector2 direction = (casingBody.GlobalPosition - position).Normalized();
