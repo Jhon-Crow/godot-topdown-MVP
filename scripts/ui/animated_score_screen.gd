@@ -17,11 +17,11 @@ extends Node
 ## Audio player for score counting beeps (created on demand).
 var _score_audio_player: AudioStreamPlayer = null
 
-## Gothic font for score screen labels (loaded on demand).
+## Gothic bitmap font for score screen labels (loaded on demand).
 var _gothic_font: FontFile = null
 
-## Path to the Gothic font file.
-const GOTHIC_FONT_PATH: String = "res://assets/fonts/UnifrakturMaguntia-Book.ttf"
+## Path to the Gothic bitmap font file (.fnt).
+const GOTHIC_FONT_PATH: String = "res://assets/fonts/gothic_bitmap.fnt"
 
 ## Duration for counting animation per stat item (seconds).
 const SCORE_COUNT_DURATION: float = 0.6
@@ -52,10 +52,13 @@ const BEEP_BASE_FREQUENCY: float = 440.0
 const MAJOR_ARPEGGIO: Array[int] = [0, 4, 7, 12, 16, 19, 24]
 
 
-## Loads and returns the Gothic font, caching it for reuse.
+## Loads and returns the Gothic bitmap font, caching it for reuse.
 func _get_gothic_font() -> FontFile:
 	if _gothic_font == null:
-		_gothic_font = load(GOTHIC_FONT_PATH) as FontFile
+		var font := FontFile.new()
+		var err := font.load_bitmap_font(GOTHIC_FONT_PATH)
+		if err == OK:
+			_gothic_font = font
 	return _gothic_font
 
 

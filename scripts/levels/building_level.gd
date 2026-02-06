@@ -426,9 +426,9 @@ func _setup_debug_ui() -> void:
 	_combo_label.offset_bottom = 120
 	_combo_label.add_theme_font_size_override("font_size", 28)
 	_combo_label.add_theme_color_override("font_color", Color(1.0, 0.8, 0.2, 1.0))
-	# Apply Gothic font to combo counter
-	var gothic_font: FontFile = load("res://assets/fonts/UnifrakturMaguntia-Book.ttf") as FontFile
-	if gothic_font:
+	# Apply Gothic bitmap font to combo counter
+	var gothic_font := FontFile.new()
+	if gothic_font.load_bitmap_font("res://assets/fonts/gothic_bitmap.fnt") == OK:
 		_combo_label.add_theme_font_override("font", gothic_font)
 	_combo_label.visible = false
 	ui.add_child(_combo_label)
@@ -820,8 +820,9 @@ func _show_score_screen(score_data: Dictionary) -> void:
 
 ## Fallback score screen if animated component is not available.
 func _show_fallback_score_screen(ui: Control, score_data: Dictionary) -> void:
-	# Load Gothic font for score screen labels
-	var gothic_font: FontFile = load("res://assets/fonts/UnifrakturMaguntia-Book.ttf") as FontFile
+	# Load Gothic bitmap font for score screen labels
+	var gothic_font := FontFile.new()
+	var _font_loaded := gothic_font.load_bitmap_font("res://assets/fonts/gothic_bitmap.fnt") == OK
 
 	var background := ColorRect.new()
 	background.name = "ScoreBackground"
@@ -852,7 +853,7 @@ func _show_fallback_score_screen(ui: Control, score_data: Dictionary) -> void:
 	rank_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	rank_label.add_theme_font_size_override("font_size", 64)
 	rank_label.add_theme_color_override("font_color", _get_rank_color(score_data.rank))
-	if gothic_font:
+	if _font_loaded:
 		rank_label.add_theme_font_override("font", gothic_font)
 	container.add_child(rank_label)
 

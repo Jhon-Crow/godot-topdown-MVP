@@ -1,23 +1,32 @@
 extends GutTest
-## Unit tests for Gothic font integration and combo color system.
+## Unit tests for Gothic bitmap font integration and combo color system.
 ##
-## Tests that the Gothic font is properly loaded and applied to rank labels
+## Tests that the Gothic bitmap font is properly loaded and applied to rank labels
 ## and combo counter. Also tests the combo color progression.
 ## Issue #525: Add a font for ratings/grades.
 
 
-## Path to the Gothic font resource.
-const GOTHIC_FONT_PATH: String = "res://assets/fonts/UnifrakturMaguntia-Book.ttf"
+## Path to the Gothic bitmap font resource (.fnt file).
+const GOTHIC_FONT_PATH: String = "res://assets/fonts/gothic_bitmap.fnt"
+
+## Path to the Gothic bitmap font texture.
+const GOTHIC_FONT_TEXTURE: String = "res://assets/fonts/gothic_bitmap.png"
 
 
-func test_gothic_font_file_exists() -> void:
-	var font = load(GOTHIC_FONT_PATH)
-	assert_not_null(font, "Gothic font file should exist at %s" % GOTHIC_FONT_PATH)
+func test_gothic_font_fnt_file_exists() -> void:
+	assert_true(FileAccess.file_exists(GOTHIC_FONT_PATH),
+		"Gothic bitmap font .fnt file should exist at %s" % GOTHIC_FONT_PATH)
 
 
-func test_gothic_font_is_font_file() -> void:
-	var font = load(GOTHIC_FONT_PATH)
-	assert_true(font is FontFile, "Loaded resource should be a FontFile")
+func test_gothic_font_texture_exists() -> void:
+	assert_true(FileAccess.file_exists(GOTHIC_FONT_TEXTURE),
+		"Gothic bitmap font texture should exist at %s" % GOTHIC_FONT_TEXTURE)
+
+
+func test_gothic_bitmap_font_loads() -> void:
+	var font := FontFile.new()
+	var err := font.load_bitmap_font(GOTHIC_FONT_PATH)
+	assert_eq(err, OK, "Gothic bitmap font should load without error")
 
 
 func test_animated_score_screen_loads() -> void:
