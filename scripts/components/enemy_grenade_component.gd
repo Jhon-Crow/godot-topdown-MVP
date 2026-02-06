@@ -14,7 +14,7 @@ var throw_cooldown: float = 15.0
 var max_throw_distance: float = 600.0
 var min_throw_distance: float = 275.0  # Updated to 275.0 per Issue #375
 var safety_margin: float = 50.0  # Safety margin for blast radius (Issue #375)
-var inaccuracy: float = 0.15
+var inaccuracy: float = 0.087  # max ±5° per Issue #382
 var throw_delay: float = 0.4
 var debug_logging: bool = false
 
@@ -271,11 +271,25 @@ func try_throw(target: Vector2, is_alive: bool, is_stunned: bool, is_blinded: bo
 	if dist > max_throw_distance:
 		target = _enemy.global_position + (target - _enemy.global_position).normalized() * max_throw_distance
 
-	if not _path_clear(target):
-		_log("Throw path blocked to %s" % target)
+	# Issue #382: Apply inaccuracy BEFORE path check so we validate the actual throw direction.
+	# Previously inaccuracy was applied in _execute_throw after path check, so grenades
+	# could deviate into walls despite the path check passing.
+	var throw_dir := (target - _enemy.global_position).normalized().rotated(randf_range(-inaccuracy, inaccuracy))
+	var throw_dist := _enemy.global_position.distance_to(target)
+	var effective_target := _enemy.global_position + throw_dir * throw_dist
+
+	if not _path_clear(effective_target):
+		_log("Throw path blocked to %s (after inaccuracy)" % effective_target)
 		return false
 
-	_execute_throw(target, is_alive, is_stunned, is_blinded)
+	# Issue #382: Check that the explosion at the target position can actually reach
+	# the player through walls. Explosions don't pass through walls, so throwing a
+	# grenade behind a wall from the player's perspective is wasteful.
+	if not _explosion_can_reach_player(effective_target, blast_radius):
+		_log("Explosion at %s won't reach player through walls - skipping throw" % effective_target)
+		return false
+
+	_execute_throw_at(effective_target, throw_dir, is_alive, is_stunned, is_blinded)
 	return true
 
 
@@ -316,7 +330,40 @@ func _path_clear(target: Vector2) -> bool:
 	return _enemy.global_position.distance_to(result.position) > _enemy.global_position.distance_to(target) * 0.6
 
 
-func _execute_throw(target: Vector2, is_alive: bool, is_stunned: bool, is_blinded: bool) -> void:
+## Issue #382: Check if an explosion at the given position can reach the player.
+## Uses raycast from target position to player to verify no walls block the blast.
+## Returns true if no player found (can't verify, allow throw) or if line-of-sight exists.
+func _explosion_can_reach_player(target_pos: Vector2, blast_radius: float) -> bool:
+	if _enemy == null:
+		return true
+	var space := _enemy.get_world_2d().direct_space_state
+	if space == null:
+		return true
+
+	# Find the player position
+	var player_pos := Vector2.ZERO
+	var players := _enemy.get_tree().get_nodes_in_group("player")
+	if players.size() > 0 and players[0] is Node2D:
+		player_pos = (players[0] as Node2D).global_position
+	else:
+		return true  # Can't find player, allow throw
+
+	# If target is not within blast radius of player, skip the wall check
+	# (the throw might still be tactical - suppression, area denial, etc.)
+	if target_pos.distance_to(player_pos) > blast_radius:
+		return true
+
+	# Raycast from explosion target to player to check for walls
+	var query := PhysicsRayQueryParameters2D.create(target_pos, player_pos)
+	query.collision_mask = 4  # Only obstacles
+	var result := space.intersect_ray(query)
+
+	# If ray hits a wall before reaching player, explosion won't reach them
+	return result.is_empty()
+
+
+## Execute the throw with a pre-computed direction (inaccuracy already applied in try_throw).
+func _execute_throw_at(target: Vector2, dir: Vector2, is_alive: bool, is_stunned: bool, is_blinded: bool) -> void:
 	if grenade_scene == null:
 		return
 	_is_throwing = true
@@ -328,9 +375,13 @@ func _execute_throw(target: Vector2, is_alive: bool, is_stunned: bool, is_blinde
 		_is_throwing = false
 		return
 
-	var dir := (target - _enemy.global_position).normalized().rotated(randf_range(-inaccuracy, inaccuracy))
 	var grenade: Node2D = grenade_scene.instantiate()
 	grenade.global_position = _enemy.global_position + dir * 40.0
+
+	# Issue #382: Mark grenade as thrown by enemy BEFORE adding to scene tree.
+	# This prevents friendly fire: grenade won't collide with or damage other enemies.
+	if grenade.get("thrown_by_enemy") != null:
+		grenade.thrown_by_enemy = true
 
 	var parent := get_tree().current_scene
 	(parent if parent else _enemy.get_parent()).add_child(grenade)

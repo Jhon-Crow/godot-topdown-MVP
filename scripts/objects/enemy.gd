@@ -98,7 +98,7 @@ enum WeaponType { RIFLE, SHOTGUN, UZI }
 @export var grenade_max_throw_distance: float = 600.0  ## Max throw distance (px)
 @export var grenade_min_throw_distance: float = 275.0  ## Min safe distance (blast_radius:225 + margin:50, Issue #375)
 @export var grenade_safety_margin: float = 50.0  ## Safety margin added to blast radius (Issue #375)
-@export var grenade_inaccuracy: float = 0.15  ## Throw inaccuracy (radians)
+@export var grenade_inaccuracy: float = 0.087  ## Throw inaccuracy (radians) - max ±5° per Issue #382
 @export var grenade_throw_delay: float = 0.4  ## Delay before throw (sec)
 @export var grenade_debug_logging: bool = false  ## Grenade debug logging
 
@@ -4348,6 +4348,8 @@ func _on_death() -> void:
 	_log_to_file("Enemy died (ricochet: %s, penetration: %s)" % [_killed_by_ricochet, _killed_by_penetration])
 	died.emit()
 	died_with_info.emit(_killed_by_ricochet, _killed_by_penetration)
+	var gm = get_node_or_null("/root/GameManager")  # Issue #382: bypass has_signal bug
+	if gm and gm.has_method("notify_enemy_died"): gm.notify_enemy_died(self, _killed_by_ricochet, _killed_by_penetration)
 	var pfm = get_node_or_null("/root/PowerFantasyEffectsManager")  # Issue #492: Power Fantasy effect
 	if pfm and pfm.has_method("on_enemy_killed"): pfm.on_enemy_killed()
 	_notify_nearby_enemies_of_death()  # Issue #409

@@ -53,6 +53,9 @@ const SATURATION_INTENSITY: float = 0.25
 ## List of enemy nodes for position tracking.
 var _enemies: Array = []
 
+## Set of enemies already counted as dead (prevents double-counting from multiple signals).
+var _dead_enemies: Dictionary = {}
+
 ## Reference to the exit zone.
 var _exit_zone: Area2D = null
 
@@ -70,7 +73,8 @@ func _ready() -> void:
 	_setup_navigation()
 
 	# Find and connect to all enemies
-	_setup_enemy_tracking()
+	# Use call_deferred to ensure all enemy scripts are fully loaded (Issue #382 fix)
+	call_deferred("_setup_enemy_tracking")
 
 	# Find the enemy count label
 	_enemy_count_label = get_node_or_null("CanvasLayer/UI/EnemyCountLabel")
@@ -92,9 +96,13 @@ func _ready() -> void:
 	if GameManager:
 		GameManager.enemy_killed.connect(_on_game_manager_enemy_killed)
 		GameManager.stats_updated.connect(_update_debug_ui)
+		# Issue #382 fix: Listen to GameManager.enemy_died for reliable death tracking
+		# in exported builds where has_signal("died") returns false.
+		GameManager.enemy_died.connect(_on_enemy_died_via_manager)
 
 	# Initialize ScoreManager for this level
-	_initialize_score_manager()
+	# NOTE: _initialize_score_manager() is called inside _setup_enemy_tracking() (deferred)
+	# because _initial_enemy_count is only available after enemies are counted.
 
 	# Setup exit zone at the exit point (bottom of castle)
 	_setup_exit_zone()
@@ -333,6 +341,9 @@ func _setup_player_tracking() -> void:
 
 
 ## Setup tracking for all enemies in the scene.
+## Issue #382 fix: Uses "enemies" group membership for detection.
+## Death tracking is handled via GameManager.enemy_died signal (not direct signal
+## connections) to bypass has_signal() returning false in exported builds.
 func _setup_enemy_tracking() -> void:
 	var enemies_node := get_node_or_null("Environment/Enemies")
 	if enemies_node == null:
@@ -342,23 +353,26 @@ func _setup_enemy_tracking() -> void:
 	_log_to_file("Found Environment/Enemies node with %d children" % enemies_node.get_child_count())
 	_enemies.clear()
 	for child in enemies_node.get_children():
-		var has_died_signal := child.has_signal("died")
 		var script_attached := child.get_script() != null
-		_log_to_file("Child '%s': script=%s, has_died_signal=%s" % [child.name, script_attached, has_died_signal])
-		if has_died_signal:
+		var in_enemies_group := child.is_in_group("enemies")
+		_log_to_file("Child '%s': script=%s, in_group=%s" % [child.name, script_attached, in_enemies_group])
+		if in_enemies_group or script_attached:
 			_enemies.append(child)
-			child.died.connect(_on_enemy_died)
-			# Connect to died_with_info for score tracking if available
-			if child.has_signal("died_with_info"):
-				child.died_with_info.connect(_on_enemy_died_with_info)
-		# Track when enemy is hit for accuracy
-		if child.has_signal("hit"):
-			child.hit.connect(_on_enemy_hit)
+			# Try to connect hit signal for accuracy tracking (non-critical)
+			var err_hit := child.connect("hit", _on_enemy_hit)
+			if err_hit != OK:
+				_log_to_file("NOTE: 'hit' signal not available on '%s'" % child.name)
 
 	_initial_enemy_count = _enemies.size()
 	_current_enemy_count = _initial_enemy_count
 	_log_to_file("Enemy tracking complete: %d enemies registered" % _initial_enemy_count)
 	print("Tracking %d enemies" % _initial_enemy_count)
+
+	# Update the enemy count label now that we know the count
+	_update_enemy_count_label()
+
+	# Initialize ScoreManager now that we know the enemy count (Issue #382 fix)
+	_initialize_score_manager()
 
 
 ## Configure silenced pistol ammo based on enemy count.
@@ -459,8 +473,15 @@ func _update_debug_ui() -> void:
 		_accuracy_label.text = "Accuracy: %.1f%%" % GameManager.get_accuracy()
 
 
-## Called when an enemy dies.
-func _on_enemy_died() -> void:
+## Called when an enemy dies via GameManager.enemy_died signal (Issue #382 fix).
+## This is the primary death tracking mechanism that works in exported builds.
+func _on_enemy_died_via_manager(enemy: Node, is_ricochet: bool, is_penetration: bool) -> void:
+	# Prevent double-counting if the same enemy is reported multiple times
+	var enemy_id := enemy.get_instance_id()
+	if enemy_id in _dead_enemies:
+		return
+	_dead_enemies[enemy_id] = true
+
 	_current_enemy_count -= 1
 	_update_enemy_count_label()
 
@@ -468,18 +489,16 @@ func _on_enemy_died() -> void:
 	if GameManager:
 		GameManager.register_kill()
 
+	# Register kill with ScoreManager including special kill info
+	var score_manager: Node = get_node_or_null("/root/ScoreManager")
+	if score_manager and score_manager.has_method("register_kill"):
+		score_manager.register_kill(is_ricochet, is_penetration)
+
 	if _current_enemy_count <= 0:
 		print("All enemies eliminated! Castle cleared!")
 		_level_cleared = true
 		# Activate exit zone - score will show when player reaches it
 		call_deferred("_activate_exit_zone")
-
-
-## Called when an enemy dies with special kill information.
-func _on_enemy_died_with_info(is_ricochet_kill: bool, is_penetration_kill: bool) -> void:
-	var score_manager: Node = get_node_or_null("/root/ScoreManager")
-	if score_manager and score_manager.has_method("register_kill"):
-		score_manager.register_kill(is_ricochet_kill, is_penetration_kill)
 
 
 ## Complete the level and show the score screen.

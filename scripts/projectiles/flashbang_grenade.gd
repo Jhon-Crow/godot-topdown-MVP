@@ -102,7 +102,12 @@ func _get_effect_radius() -> float:
 
 
 ## Find all enemies within the effect radius.
+## Issue #382: Enemy grenades do not affect other enemies (no friendly fire).
 func _get_enemies_in_radius() -> Array:
+	# Skip enemy effects entirely when grenade was thrown by an enemy
+	if thrown_by_enemy:
+		return []
+
 	var enemies_in_range: Array = []
 
 	# Get all enemies in the scene

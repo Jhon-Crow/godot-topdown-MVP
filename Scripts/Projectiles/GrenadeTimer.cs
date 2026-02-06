@@ -79,6 +79,12 @@ namespace GodotTopdown.Scripts.Projectiles
         /// </summary>
         public bool HasExploded { get; private set; } = false;
 
+        /// <summary>
+        /// Whether this grenade was thrown by an enemy (Issue #382 friendly fire fix).
+        /// When true, explosion damage is not applied to other enemies.
+        /// </summary>
+        public bool ThrownByEnemy { get; set; } = false;
+
         private float _timeRemaining = 0.0f;
         private RigidBody2D? _grenadeBody = null;
         private Vector2 _previousVelocity = Vector2.Zero;
@@ -301,7 +307,9 @@ namespace GodotTopdown.Scripts.Projectiles
 
             // Trigger explosion on solid body contact
             // Note: Check TileMap for legacy Godot 4 and TileMapLayer for newer versions
-            if (body is StaticBody2D || body is TileMap || body is TileMapLayer || body is CharacterBody2D)
+            // Issue #382: Enemy grenades skip CharacterBody2D (enemies) to prevent friendly fire
+            if (body is StaticBody2D || body is TileMap || body is TileMapLayer ||
+                (body is CharacterBody2D && !ThrownByEnemy))
             {
                 LogToFile($"[GrenadeTimer] Impact detected with {body.Name} - EXPLODING!");
                 Explode();
@@ -352,22 +360,26 @@ namespace GodotTopdown.Scripts.Projectiles
         /// </summary>
         private void ApplyFragExplosion(Vector2 position)
         {
-            LogToFile($"[GrenadeTimer] Applying frag explosion damage (radius: {EffectRadius}, damage: {ExplosionDamage})");
+            LogToFile($"[GrenadeTimer] Applying frag explosion damage (radius: {EffectRadius}, damage: {ExplosionDamage}, thrownByEnemy: {ThrownByEnemy})");
 
-            // Damage enemies in radius
-            var enemies = GetTree().GetNodesInGroup("enemies");
-            foreach (var enemy in enemies)
+            // Issue #382: Enemy grenades do not damage other enemies (no friendly fire)
+            if (!ThrownByEnemy)
             {
-                if (enemy is Node2D enemyNode)
+                // Damage enemies in radius (only for player grenades)
+                var enemies = GetTree().GetNodesInGroup("enemies");
+                foreach (var enemy in enemies)
                 {
-                    float distance = position.DistanceTo(enemyNode.GlobalPosition);
-                    if (distance <= EffectRadius)
+                    if (enemy is Node2D enemyNode)
                     {
-                        // Check line of sight
-                        if (HasLineOfSightTo(position, enemyNode.GlobalPosition))
+                        float distance = position.DistanceTo(enemyNode.GlobalPosition);
+                        if (distance <= EffectRadius)
                         {
-                            ApplyDamage(enemyNode, position);
-                            LogToFile($"[GrenadeTimer] Damaged enemy at distance {distance:F1}");
+                            // Check line of sight
+                            if (HasLineOfSightTo(position, enemyNode.GlobalPosition))
+                            {
+                                ApplyDamage(enemyNode, position);
+                                LogToFile($"[GrenadeTimer] Damaged enemy at distance {distance:F1}");
+                            }
                         }
                     }
                 }
@@ -402,23 +414,26 @@ namespace GodotTopdown.Scripts.Projectiles
         /// </summary>
         private void ApplyFlashbangExplosion(Vector2 position)
         {
-            LogToFile($"[GrenadeTimer] Applying flashbang effects (radius: {EffectRadius}, blindness: {BlindnessDuration}s, stun: {StunDuration}s)");
+            LogToFile($"[GrenadeTimer] Applying flashbang effects (radius: {EffectRadius}, blindness: {BlindnessDuration}s, stun: {StunDuration}s, thrownByEnemy: {ThrownByEnemy})");
 
             // Get all entities in effect radius
-            var enemies = GetTree().GetNodesInGroup("enemies");
             var players = GetTree().GetNodesInGroup("player");
 
-            // Affect enemies
-            foreach (var enemy in enemies)
+            // Issue #382: Enemy flashbangs do not stun/blind other enemies (no friendly fire)
+            if (!ThrownByEnemy)
             {
-                if (enemy is Node2D enemyNode)
+                var enemies = GetTree().GetNodesInGroup("enemies");
+                foreach (var enemy in enemies)
                 {
-                    float distance = position.DistanceTo(enemyNode.GlobalPosition);
-                    if (distance <= EffectRadius)
+                    if (enemy is Node2D enemyNode)
                     {
-                        if (HasLineOfSightTo(position, enemyNode.GlobalPosition))
+                        float distance = position.DistanceTo(enemyNode.GlobalPosition);
+                        if (distance <= EffectRadius)
                         {
-                            ApplyFlashbangEffect(enemyNode, distance);
+                            if (HasLineOfSightTo(position, enemyNode.GlobalPosition))
+                            {
+                                ApplyFlashbangEffect(enemyNode, distance);
+                            }
                         }
                     }
                 }

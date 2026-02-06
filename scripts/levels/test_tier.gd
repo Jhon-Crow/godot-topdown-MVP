@@ -56,6 +56,9 @@ var _exit_zone: Area2D = null
 ## Whether the level has been cleared (all enemies eliminated).
 var _level_cleared: bool = false
 
+## Set of enemies already counted as dead (prevents double-counting from multiple signals).
+var _dead_enemies: Dictionary = {}
+
 
 func _ready() -> void:
 	print("TestTier loaded - Tactical Combat Arena")
@@ -86,6 +89,8 @@ func _ready() -> void:
 	if GameManager:
 		GameManager.enemy_killed.connect(_on_game_manager_enemy_killed)
 		GameManager.stats_updated.connect(_update_debug_ui)
+		# Issue #382 fix: Listen to GameManager.enemy_died for reliable death tracking
+		GameManager.enemy_died.connect(_on_enemy_died_via_manager)
 
 	# Setup exit zone near player spawn (left wall)
 	_setup_exit_zone()
@@ -211,6 +216,8 @@ func _setup_player_tracking() -> void:
 
 
 ## Setup tracking for all enemies in the scene.
+## Issue #382 fix: Uses group membership for detection.
+## Death tracking is handled via GameManager.enemy_died signal.
 func _setup_enemy_tracking() -> void:
 	var enemies_node := get_node_or_null("Environment/Enemies")
 	if enemies_node == null:
@@ -218,12 +225,10 @@ func _setup_enemy_tracking() -> void:
 
 	var enemies := []
 	for child in enemies_node.get_children():
-		if child.has_signal("died"):
+		if child.is_in_group("enemies") or child.get_script() != null:
 			enemies.append(child)
-			child.died.connect(_on_enemy_died)
-		# Track when enemy is hit for accuracy
-		if child.has_signal("hit"):
-			child.hit.connect(_on_enemy_hit)
+			# Try to connect hit signal for accuracy tracking (non-critical)
+			child.connect("hit", _on_enemy_hit)
 
 	_initial_enemy_count = enemies.size()
 	_current_enemy_count = _initial_enemy_count
@@ -370,7 +375,13 @@ func _update_debug_ui() -> void:
 
 
 ## Called when an enemy dies.
-func _on_enemy_died() -> void:
+## Called when an enemy dies via GameManager.enemy_died signal (Issue #382 fix).
+func _on_enemy_died_via_manager(enemy: Node, _is_ricochet: bool, _is_penetration: bool) -> void:
+	var enemy_id := enemy.get_instance_id()
+	if enemy_id in _dead_enemies:
+		return
+	_dead_enemies[enemy_id] = true
+
 	_current_enemy_count -= 1
 	_update_enemy_count_label()
 
