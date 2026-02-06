@@ -294,16 +294,6 @@ public partial class SniperRifle : BaseWeapon
     }
 
     /// <summary>
-    /// Updates all arrow key states for edge detection.
-    /// Must be called once per frame before checking just-pressed state.
-    /// </summary>
-    private void UpdateArrowKeyStates()
-    {
-        // Only update states that weren't already checked via IsArrowKeyJustPressed
-        // (those are updated during the check itself)
-    }
-
-    /// <summary>
     /// Handles the bolt-action charging input sequence.
     /// Sequence: Left (unlock bolt) → Down (extract and eject casing) → Up (chamber round) → Right (close bolt)
     /// Uses ONLY arrow keys (not WASD) so player can still move with WASD during bolt cycling.
@@ -418,7 +408,7 @@ public partial class SniperRifle : BaseWeapon
 
     /// <summary>
     /// Updates the aim direction and rifle sprite rotation.
-    /// The rifle rotates slowly outside aiming (~4x less sensitivity).
+    /// The rifle rotates slowly outside aiming (~5x less sensitivity).
     /// </summary>
     private void UpdateAimDirection()
     {
