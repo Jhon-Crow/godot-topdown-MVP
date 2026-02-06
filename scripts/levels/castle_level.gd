@@ -798,6 +798,9 @@ func _show_score_screen(score_data: Dictionary) -> void:
 
 ## Fallback score screen if animated component is not available.
 func _show_fallback_score_screen(ui: Control, score_data: Dictionary) -> void:
+	# Load Gothic font for score screen labels
+	var gothic_font: FontFile = load("res://assets/fonts/UnifrakturMaguntia-Book.ttf") as FontFile
+
 	var background := ColorRect.new()
 	background.name = "ScoreBackground"
 	background.color = Color(0.0, 0.0, 0.0, 0.7)
@@ -820,6 +823,8 @@ func _show_fallback_score_screen(ui: Control, score_data: Dictionary) -> void:
 	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title_label.add_theme_font_size_override("font_size", 42)
 	title_label.add_theme_color_override("font_color", Color(0.2, 1.0, 0.3, 1.0))
+	if gothic_font:
+		title_label.add_theme_font_override("font", gothic_font)
 	container.add_child(title_label)
 
 	var rank_label := Label.new()
@@ -827,6 +832,8 @@ func _show_fallback_score_screen(ui: Control, score_data: Dictionary) -> void:
 	rank_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	rank_label.add_theme_font_size_override("font_size", 64)
 	rank_label.add_theme_color_override("font_color", _get_rank_color(score_data.rank))
+	if gothic_font:
+		rank_label.add_theme_font_override("font", gothic_font)
 	container.add_child(rank_label)
 
 	var total_label := Label.new()
@@ -834,6 +841,8 @@ func _show_fallback_score_screen(ui: Control, score_data: Dictionary) -> void:
 	total_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	total_label.add_theme_font_size_override("font_size", 32)
 	total_label.add_theme_color_override("font_color", Color(1.0, 0.9, 0.3, 1.0))
+	if gothic_font:
+		total_label.add_theme_font_override("font", gothic_font)
 	container.add_child(total_label)
 
 	var hint_label := Label.new()
@@ -841,6 +850,8 @@ func _show_fallback_score_screen(ui: Control, score_data: Dictionary) -> void:
 	hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	hint_label.add_theme_font_size_override("font_size", 16)
 	hint_label.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5, 1.0))
+	if gothic_font:
+		hint_label.add_theme_font_override("font", gothic_font)
 	container.add_child(hint_label)
 
 

@@ -17,6 +17,12 @@ extends Node
 ## Audio player for score counting beeps (created on demand).
 var _score_audio_player: AudioStreamPlayer = null
 
+## Gothic font for score screen labels (loaded on demand).
+var _gothic_font: FontFile = null
+
+## Path to the Gothic font file.
+const GOTHIC_FONT_PATH: String = "res://assets/fonts/UnifrakturMaguntia-Book.ttf"
+
 ## Duration for counting animation per stat item (seconds).
 const SCORE_COUNT_DURATION: float = 0.6
 
@@ -44,6 +50,20 @@ const BEEP_BASE_FREQUENCY: float = 440.0
 
 ## Major scale intervals for arpeggio (in semitones).
 const MAJOR_ARPEGGIO: Array[int] = [0, 4, 7, 12, 16, 19, 24]
+
+
+## Loads and returns the Gothic font, caching it for reuse.
+func _get_gothic_font() -> FontFile:
+	if _gothic_font == null:
+		_gothic_font = load(GOTHIC_FONT_PATH) as FontFile
+	return _gothic_font
+
+
+## Applies the Gothic font to a Label node if the font is available.
+func _apply_gothic_font(label: Label) -> void:
+	var font := _get_gothic_font()
+	if font != null:
+		label.add_theme_font_override("font", font)
 
 
 ## Creates a simple sine wave beep sound and plays it.
@@ -188,6 +208,7 @@ func _animate_title(container: VBoxContainer, start_delay: float) -> float:
 	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title_label.add_theme_font_size_override("font_size", 42)
 	title_label.add_theme_color_override("font_color", Color(0.2, 1.0, 0.3, 1.0))
+	_apply_gothic_font(title_label)
 	title_label.modulate.a = 0.0  # Start invisible
 	container.add_child(title_label)
 
@@ -232,6 +253,7 @@ func _animate_stat_row(container: VBoxContainer, data: Array, start_delay: float
 	category_label.text = data[0]
 	category_label.add_theme_font_size_override("font_size", 18)
 	category_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7, 1.0))
+	_apply_gothic_font(category_label)
 	category_label.custom_minimum_size.x = 150
 	line_container.add_child(category_label)
 
@@ -240,6 +262,7 @@ func _animate_stat_row(container: VBoxContainer, data: Array, start_delay: float
 	value_label.text = data[1]
 	value_label.add_theme_font_size_override("font_size", 18)
 	value_label.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 1.0))
+	_apply_gothic_font(value_label)
 	value_label.custom_minimum_size.x = 150
 	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	line_container.add_child(value_label)
@@ -251,6 +274,7 @@ func _animate_stat_row(container: VBoxContainer, data: Array, start_delay: float
 	var is_penalty: bool = data[3]
 	var base_color: Color = Color(1.0, 0.4, 0.4, 1.0) if is_penalty else Color(0.4, 1.0, 0.4, 1.0)
 	points_label.add_theme_color_override("font_color", base_color)
+	_apply_gothic_font(points_label)
 	points_label.custom_minimum_size.x = 100
 	points_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	line_container.add_child(points_label)
@@ -345,6 +369,7 @@ func _animate_total_score(container: VBoxContainer, score_data: Dictionary, star
 	total_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	total_label.add_theme_font_size_override("font_size", 32)
 	total_label.add_theme_color_override("font_color", Color(1.0, 0.9, 0.3, 1.0))
+	_apply_gothic_font(total_label)
 	total_label.modulate.a = 0.0
 	container.add_child(total_label)
 
@@ -435,6 +460,7 @@ func _animate_rank_reveal(ui: Control, container: VBoxContainer, score_data: Dic
 	big_rank_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	big_rank_label.add_theme_font_size_override("font_size", 200)
 	big_rank_label.add_theme_color_override("font_color", rank_color)
+	_apply_gothic_font(big_rank_label)
 	big_rank_label.set_anchors_preset(Control.PRESET_CENTER)
 	big_rank_label.offset_left = -200
 	big_rank_label.offset_right = 200
@@ -450,6 +476,7 @@ func _animate_rank_reveal(ui: Control, container: VBoxContainer, score_data: Dic
 	final_rank_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	final_rank_label.add_theme_font_size_override("font_size", 48)
 	final_rank_label.add_theme_color_override("font_color", rank_color)
+	_apply_gothic_font(final_rank_label)
 	final_rank_label.modulate.a = 0.0
 	container.add_child(final_rank_label)
 
@@ -525,6 +552,7 @@ func _show_restart_hint(container: VBoxContainer) -> void:
 	hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	hint_label.add_theme_font_size_override("font_size", 16)
 	hint_label.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5, 1.0))
+	_apply_gothic_font(hint_label)
 	hint_label.modulate.a = 0.0
 	container.add_child(hint_label)
 
