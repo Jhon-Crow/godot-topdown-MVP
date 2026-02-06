@@ -373,6 +373,12 @@ const GRENADE_EVASION_MAX_TIME: float = 4.0
 ## State to return to after grenade evasion completes.
 var _pre_evasion_state: AIState = AIState.IDLE
 
+## [Player Prediction - Issue #298] Predicts player position when out of sight.
+var _prediction: PlayerPredictionComponent = null
+
+## [Issue #298] Whether player was visible in the previous frame (for detecting sight loss).
+var _was_player_visible: bool = false
+
 ## Last hit direction (used for death animation).
 var _last_hit_direction: Vector2 = Vector2.RIGHT
 
@@ -727,6 +733,12 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 	if _memory:
 		_memory.update_position(position, SOUND_GUNSHOT_CONFIDENCE)
 
+	# [Issue #298] Record shot direction for player prediction
+	if source_type == 0 and _prediction and source_node and is_instance_valid(source_node):
+		var shot_dir := (position - source_node.global_position).normalized()
+		_prediction.record_player_shot(shot_dir)
+		_memory.update_shot_direction(shot_dir)
+
 	# Transition to combat mode to investigate the sound
 	_transition_to_combat()
 
@@ -759,12 +771,17 @@ func _initialize_goap_state() -> void:
 		# Grenade avoidance state (Issue #407)
 		"in_grenade_danger_zone": false,
 		# Ally death observation state (Issue #409)
-		"witnessed_ally_death": false
+		"witnessed_ally_death": false,
+		# Player prediction state (Issue #298)
+		"has_prediction": false,
+		"prediction_confidence": 0.0
 	}
 
-## Initialize the enemy memory system (Issue #297).
+## Initialize the enemy memory system (Issue #297) and prediction system (Issue #298).
 func _initialize_memory() -> void:
 	_memory = EnemyMemory.new()
+	_prediction = PlayerPredictionComponent.new()
+	_prediction.debug_logging = debug_logging
 
 ## Connect to GameManager's debug mode signal for F7 toggle.
 func _connect_debug_mode_signal() -> void:
@@ -926,6 +943,11 @@ func _update_goap_state() -> void:
 
 	# Ally death observation state (Issue #409)
 	_goap_world_state["witnessed_ally_death"] = _witnessed_ally_death
+
+	# Player prediction state (Issue #298)
+	if _prediction:
+		_goap_world_state["has_prediction"] = _prediction.has_predictions
+		_goap_world_state["prediction_confidence"] = _prediction.get_prediction_confidence()
 
 ## Updates model rotation smoothly (#347). Priority: player > combat/pursuit/flank > corner check > velocity > idle scan.
 ## Issues #386, #397: COMBAT/PURSUING/FLANKING states prioritize facing the player to prevent turning away.
@@ -2114,6 +2136,34 @@ func _process_pursuing_state(delta: float) -> void:
 	# No cover and no pursuit target - find initial pursuit cover
 	_find_pursuit_cover_toward_player()
 	if not _has_pursuit_cover:
+		# [Issue #298] Check prediction-based targets first (higher priority than raw memory)
+		if _prediction and _prediction.has_predictions and not _can_see_player:
+			var best_hypothesis := _prediction.get_best_hypothesis()
+			if best_hypothesis:
+				var predicted_pos: Vector2 = best_hypothesis.position
+				var distance_to_predicted := global_position.distance_to(predicted_pos)
+
+				# If we reached the predicted position, mark it as checked
+				if distance_to_predicted < 100.0:
+					_prediction.mark_position_checked(predicted_pos)
+					_log_to_file("Prediction: reached hypothesis %s, checking next" % [
+						PlayerPredictionComponent.HypothesisType.keys()[best_hypothesis.type]
+					])
+					# Get next hypothesis or fall through to memory/search
+					var next_hypothesis := _prediction.get_best_hypothesis()
+					if next_hypothesis:
+						_move_to_target_nav(next_hypothesis.position, combat_move_speed)
+						if velocity.length_squared() > 1.0:
+							_process_corner_check(delta, velocity.normalized(), "PURSUING_PREDICTION")
+						return
+					# No more hypotheses — fall through to memory-based check
+				else:
+					# Move toward predicted position
+					_move_to_target_nav(predicted_pos, combat_move_speed)
+					if velocity.length_squared() > 1.0:
+						_process_corner_check(delta, velocity.normalized(), "PURSUING_PREDICTION")
+					return
+
 		# Check if we should investigate memory-based target (Issue #297)
 		if _memory and _memory.has_target() and not _can_see_player:
 			var target_pos := _memory.suspected_position
@@ -3344,6 +3394,23 @@ func _find_cover_position() -> void:
 	else:
 		_has_valid_cover = false
 
+## [Issue #298] Get nearby cover positions around a given point (for prediction).
+## Returns an array of Vector2 positions where cover is available.
+func _get_nearby_cover_positions(center: Vector2) -> Array:
+	var positions: Array = []
+	for i in range(COVER_CHECK_COUNT):
+		var angle := (float(i) / COVER_CHECK_COUNT) * TAU
+		var direction := Vector2.from_angle(angle)
+		var raycast := _cover_raycasts[i]
+		raycast.target_position = direction * COVER_CHECK_DISTANCE
+		raycast.force_raycast_update()
+		if raycast.is_colliding():
+			var collision_normal := raycast.get_collision_normal()
+			var cover_pos := raycast.get_collision_point() + collision_normal * 35.0
+			if cover_pos.distance_to(center) <= 400.0:
+				positions.append(cover_pos)
+	return positions
+
 ## Calculate flank position based on player location and stored _flank_side.
 func _calculate_flank_position() -> void:
 	if _player == null:
@@ -3657,7 +3724,7 @@ func _check_player_visibility() -> void:
 		_continuous_visibility_timer = 0.0
 		_player_visibility_ratio = 0.0
 
-## Update enemy memory: visual detection, decay, and periodic intel sharing (Issue #297).
+## Update enemy memory: visual detection, decay, prediction, and intel sharing (Issue #297, #298).
 func _update_memory(delta: float) -> void:
 	if _memory == null:
 		return
@@ -3667,6 +3734,32 @@ func _update_memory(delta: float) -> void:
 		_memory.update_position(_player.global_position, VISUAL_DETECTION_CONFIDENCE)
 		# Also update the legacy _last_known_player_position for compatibility
 		_last_known_player_position = _player.global_position
+		# [Issue #298] Update prediction observations while player is visible
+		if _prediction:
+			_prediction.update_observation(_player.global_position, global_position, delta)
+			# Track player velocity in memory
+			_memory.update_velocity(_prediction.last_known_velocity)
+
+	# [Issue #298] Detect transition from visible to not-visible and generate predictions
+	if _was_player_visible and not _can_see_player and _player and _prediction:
+		var enemy_facing := Vector2.RIGHT.rotated(_enemy_model.global_rotation) if _enemy_model else Vector2.RIGHT
+		# Gather nearby cover positions for prediction
+		var cover_positions: Array = _get_nearby_cover_positions(_last_known_player_position)
+		_prediction.generate_predictions(
+			_last_known_player_position,
+			global_position,
+			enemy_facing,
+			cover_positions
+		)
+		_log_to_file("Prediction: generated %d hypotheses (style=%s)" % [
+			_prediction.hypotheses.size(),
+			_prediction.get_style_name()
+		])
+	_was_player_visible = _can_see_player
+
+	# [Issue #298] Update active predictions (decay, expansion)
+	if _prediction and _prediction.has_predictions:
+		_prediction.update_predictions(delta)
 
 	# Apply confidence decay over time
 	_memory.decay(delta)
@@ -3702,8 +3795,14 @@ func _share_intel_with_nearby_enemies() -> void:
 			# Need to check LOS for longer range
 			can_share = _has_line_of_sight_to_position(other_enemy.global_position)
 
-		if can_share and other_enemy.has_method("receive_intel_from_ally"):
-			other_enemy.receive_intel_from_ally(_memory)
+		if can_share:
+			if other_enemy.has_method("receive_intel_from_ally"):
+				other_enemy.receive_intel_from_ally(_memory)
+			# [Issue #298] Share prediction hypotheses with allies
+			if _prediction and _prediction.has_predictions and other_enemy.has_method("receive_prediction_from_ally"):
+				var best := _prediction.get_best_hypothesis()
+				if best:
+					other_enemy.receive_prediction_from_ally(best)
 
 ## Receive intelligence from an allied enemy (Issue #297).
 ## Called by other enemies when they share intel.
@@ -3718,6 +3817,12 @@ func receive_intel_from_ally(ally_memory: EnemyMemory) -> void:
 		])
 		_last_known_player_position = _memory.suspected_position
 
+## [Issue #298] Receive prediction hypothesis from an allied enemy.
+func receive_prediction_from_ally(hypothesis: PlayerPredictionComponent.Hypothesis) -> void:
+	if _prediction == null or hypothesis == null:
+		return
+	_prediction.receive_prediction_intel(hypothesis, INTEL_SHARE_FACTOR)
+
 ## Reset enemy memory for last chance teleport effect (Issue #318). Preserves old position.
 func reset_memory() -> void:
 	# Save old position before resetting - enemies will search here
@@ -3729,6 +3834,9 @@ func reset_memory() -> void:
 	_intel_share_timer = 0.0
 	_pursuing_vulnerability_sound = false
 	_memory_reset_confusion_timer = MEMORY_RESET_CONFUSION_DURATION
+	# [Issue #298] Clear predictions on memory reset (teleport invalidates predictions)
+	if _prediction:
+		_prediction.reset()
 	_log_to_file("Memory reset: confusion=%.1fs, had_target=%s" % [MEMORY_RESET_CONFUSION_DURATION, had_target])
 	if had_target:
 		# Set LOW confidence (0.35) - puts enemy in search mode at old position
@@ -4564,6 +4672,9 @@ func _update_debug_label() -> void:
 			elif _has_flank_cover: t += "\n(%s MOVING)" % s
 			else: t += "\n(%s DIRECT)" % s
 	if _memory and _memory.has_target(): t += "\n[%.0f%% %s]" % [_memory.confidence * 100, _memory.get_behavior_mode().substr(0, 6)]
+	if _prediction and _prediction.has_predictions:
+		var best := _prediction.get_best_hypothesis()
+		if best: t += "\n{P:%s %.0f%%}" % [PlayerPredictionComponent.HypothesisType.keys()[best.type].substr(0, 5), best.probability * 100]
 	_debug_label.text = t
 
 func get_current_state() -> AIState: return _current_state
