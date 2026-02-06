@@ -44,10 +44,10 @@ public enum BoltActionStep
 /// - 12.7x108mm ammunition dealing 50 damage per shot
 /// - Penetrates through 2 walls and through enemies
 /// - Instant bullet speed with smoky dissipating tracer trail
-/// - Slow turn sensitivity outside aiming (~4x less than normal)
+/// - Slow turn sensitivity outside aiming (~5x less than normal)
 /// - 5-round magazine with M16-style swap reload
 /// - Single-shot bolt-action with manual charging sequence (Left→Down→Up→Right)
-/// - Arrow keys are consumed during bolt cycling (no walking)
+/// - Arrow keys are consumed during bolt cycling (WASD still works for movement)
 /// - Shell casing ejected on step 2 (Down - extract and eject casing)
 /// Reference: ASVK (АСВК) anti-materiel sniper rifle
 /// </summary>
@@ -103,6 +103,27 @@ public partial class SniperRifle : BaseWeapon
     /// Last fire direction, stored for casing ejection during bolt cycling step 2.
     /// </summary>
     private Vector2 _lastFireDirection = Vector2.Right;
+
+    /// <summary>
+    /// Tracks previous frame arrow key states for edge detection (just-pressed).
+    /// Order: [Left, Down, Up, Right] matching bolt action steps 1-4.
+    /// </summary>
+    private bool[] _prevArrowKeyStates = new bool[4];
+
+    /// <summary>
+    /// Reference to the Line2D node for the laser sight (Power Fantasy mode only).
+    /// </summary>
+    private Line2D? _laserSight;
+
+    /// <summary>
+    /// Whether the laser sight is enabled (true only in Power Fantasy mode).
+    /// </summary>
+    private bool _laserSightEnabled = false;
+
+    /// <summary>
+    /// Color of the laser sight (blue in Power Fantasy mode).
+    /// </summary>
+    private Color _laserSightColor = new Color(0.0f, 0.5f, 1.0f, 0.6f);
 
     /// <summary>
     /// Reference to the Sprite2D node for the rifle visual.
@@ -180,15 +201,29 @@ public partial class SniperRifle : BaseWeapon
             GD.PrintErr("[SniperRifle] WARNING: RifleSprite node not found!");
         }
 
-        // Remove LaserSight node if present in scene (laser sight removed per Issue #523)
-        var laserSight = GetNodeOrNull<Line2D>("LaserSight");
-        if (laserSight != null)
+        // Remove default LaserSight node if present in scene (laser sight removed per Issue #523)
+        var laserSightNode = GetNodeOrNull<Line2D>("LaserSight");
+        if (laserSightNode != null)
         {
-            laserSight.QueueFree();
-            GD.Print("[SniperRifle] Laser sight removed");
+            laserSightNode.QueueFree();
         }
 
-        GD.Print("[SniperRifle] ASVK initialized - bolt ready, no laser sight");
+        // Check for Power Fantasy mode - enable blue laser sight
+        var difficultyManager = GetNodeOrNull("/root/DifficultyManager");
+        if (difficultyManager != null)
+        {
+            var shouldForceBlueLaser = difficultyManager.Call("should_force_blue_laser_sight");
+            if (shouldForceBlueLaser.AsBool())
+            {
+                _laserSightEnabled = true;
+                var blueColorVariant = difficultyManager.Call("get_power_fantasy_laser_color");
+                _laserSightColor = blueColorVariant.AsColor();
+                CreateLaserSight();
+                GD.Print($"[SniperRifle] Power Fantasy mode: blue laser sight enabled with color {_laserSightColor}");
+            }
+        }
+
+        GD.Print($"[SniperRifle] ASVK initialized - bolt ready, laser={_laserSightEnabled}");
     }
 
     public override void _ExitTree()
@@ -221,6 +256,12 @@ public partial class SniperRifle : BaseWeapon
         // Handle bolt-action input
         HandleBoltActionInput();
 
+        // Update laser sight (Power Fantasy mode)
+        if (_laserSightEnabled && _laserSight != null)
+        {
+            UpdateLaserSight();
+        }
+
         // Update scope system (sway, camera offset, overlay)
         UpdateScope((float)delta);
     }
@@ -230,18 +271,56 @@ public partial class SniperRifle : BaseWeapon
     // =========================================================================
 
     /// <summary>
+    /// Checks if an arrow key was just pressed this frame (edge detection).
+    /// Uses physical key codes to detect ONLY arrow keys, not WASD.
+    /// </summary>
+    /// <param name="index">Arrow key index: 0=Left, 1=Down, 2=Up, 3=Right</param>
+    /// <returns>True if the key was just pressed this frame.</returns>
+    private bool IsArrowKeyJustPressed(int index)
+    {
+        Key key = index switch
+        {
+            0 => Key.Left,
+            1 => Key.Down,
+            2 => Key.Up,
+            3 => Key.Right,
+            _ => Key.None
+        };
+
+        bool currentlyPressed = Input.IsKeyPressed(key);
+        bool wasPressed = _prevArrowKeyStates[index];
+        _prevArrowKeyStates[index] = currentlyPressed;
+        return currentlyPressed && !wasPressed;
+    }
+
+    /// <summary>
+    /// Updates all arrow key states for edge detection.
+    /// Must be called once per frame before checking just-pressed state.
+    /// </summary>
+    private void UpdateArrowKeyStates()
+    {
+        // Only update states that weren't already checked via IsArrowKeyJustPressed
+        // (those are updated during the check itself)
+    }
+
+    /// <summary>
     /// Handles the bolt-action charging input sequence.
     /// Sequence: Left (unlock bolt) → Down (extract and eject casing) → Up (chamber round) → Right (close bolt)
-    /// Uses the arrow keys / WASD movement input actions.
-    /// Arrow keys are consumed during bolt cycling (no walking).
+    /// Uses ONLY arrow keys (not WASD) so player can still move with WASD during bolt cycling.
     /// </summary>
     private void HandleBoltActionInput()
     {
+        // Read all arrow key just-pressed states for this frame
+        bool leftJustPressed = IsArrowKeyJustPressed(0);
+        bool downJustPressed = IsArrowKeyJustPressed(1);
+        bool upJustPressed = IsArrowKeyJustPressed(2);
+        bool rightJustPressed = IsArrowKeyJustPressed(3);
+
         switch (_boltStep)
         {
             case BoltActionStep.NeedsBoltCycle:
                 // Step 1: Left arrow - unlock bolt
-                if (Input.IsActionJustPressed("move_left"))
+                if (leftJustPressed)
                 {
                     _boltStep = BoltActionStep.WaitExtractCasing;
                     EmitSignal(SignalName.BoltStepChanged, 1, 4);
@@ -252,7 +331,7 @@ public partial class SniperRifle : BaseWeapon
 
             case BoltActionStep.WaitExtractCasing:
                 // Step 2: Down arrow - extract and eject casing
-                if (Input.IsActionJustPressed("move_down"))
+                if (downJustPressed)
                 {
                     _boltStep = BoltActionStep.WaitChamberRound;
                     EmitSignal(SignalName.BoltStepChanged, 2, 4);
@@ -265,7 +344,7 @@ public partial class SniperRifle : BaseWeapon
 
             case BoltActionStep.WaitChamberRound:
                 // Step 3: Up arrow - chamber round
-                if (Input.IsActionJustPressed("move_up"))
+                if (upJustPressed)
                 {
                     _boltStep = BoltActionStep.WaitCloseBolt;
                     EmitSignal(SignalName.BoltStepChanged, 3, 4);
@@ -276,7 +355,7 @@ public partial class SniperRifle : BaseWeapon
 
             case BoltActionStep.WaitCloseBolt:
                 // Step 4: Right arrow - close bolt
-                if (Input.IsActionJustPressed("move_right"))
+                if (rightJustPressed)
                 {
                     _boltStep = BoltActionStep.Ready;
                     EmitSignal(SignalName.BoltStepChanged, 4, 4);
@@ -333,9 +412,9 @@ public partial class SniperRifle : BaseWeapon
 
     /// <summary>
     /// Sensitivity reduction factor when not aiming (outside scope/aim mode).
-    /// The rifle rotates approximately 4x slower when just moving without aiming.
+    /// The rifle rotates approximately 5x slower when just moving without aiming.
     /// </summary>
-    private const float NonAimingSensitivityFactor = 0.25f;
+    private const float NonAimingSensitivityFactor = 0.2f;
 
     /// <summary>
     /// Updates the aim direction and rifle sprite rotation.
@@ -356,7 +435,7 @@ public partial class SniperRifle : BaseWeapon
         Vector2 direction;
 
         // Apply sensitivity for the sniper rifle
-        // Outside aiming, sensitivity is reduced by 4x (NonAimingSensitivityFactor)
+        // Outside aiming, sensitivity is reduced by 5x (NonAimingSensitivityFactor)
         if (WeaponData != null && WeaponData.Sensitivity > 0)
         {
             float angleDiff = Mathf.Wrap(targetAngle - _currentAimAngle, -Mathf.Pi, Mathf.Pi);
@@ -401,6 +480,74 @@ public partial class SniperRifle : BaseWeapon
 
         bool aimingLeft = Mathf.Abs(angle) > Mathf.Pi / 2;
         _rifleSprite.FlipV = aimingLeft;
+    }
+
+    // =========================================================================
+    // Laser Sight (Power Fantasy mode only)
+    // =========================================================================
+
+    /// <summary>
+    /// Creates the laser sight Line2D programmatically (Power Fantasy mode only).
+    /// </summary>
+    private void CreateLaserSight()
+    {
+        _laserSight = new Line2D
+        {
+            Name = "PowerFantasyLaser",
+            Width = 2.0f,
+            DefaultColor = _laserSightColor,
+            BeginCapMode = Line2D.LineCapMode.Round,
+            EndCapMode = Line2D.LineCapMode.Round
+        };
+
+        _laserSight.AddPoint(Vector2.Zero);
+        _laserSight.AddPoint(Vector2.Right * 500.0f);
+
+        AddChild(_laserSight);
+    }
+
+    /// <summary>
+    /// Updates the laser sight visualization (Power Fantasy mode only).
+    /// The laser shows where bullets will go, accounting for current recoil.
+    /// </summary>
+    private void UpdateLaserSight()
+    {
+        if (_laserSight == null)
+        {
+            return;
+        }
+
+        // Apply recoil offset to aim direction for laser visualization
+        Vector2 laserDirection = _aimDirection.Rotated(_recoilOffset);
+
+        // Calculate maximum laser length based on viewport size
+        Vector2 viewportSize = GetViewport().GetVisibleRect().Size;
+        float maxLaserLength = viewportSize.Length();
+
+        // Calculate the end point of the laser
+        Vector2 endPoint = laserDirection * maxLaserLength;
+
+        // Raycast to find obstacles
+        var spaceState = GetWorld2D()?.DirectSpaceState;
+        if (spaceState != null)
+        {
+            var query = PhysicsRayQueryParameters2D.Create(
+                GlobalPosition,
+                GlobalPosition + endPoint,
+                4 // Collision mask for obstacles
+            );
+
+            var result = spaceState.IntersectRay(query);
+            if (result.Count > 0)
+            {
+                Vector2 hitPosition = (Vector2)result["position"];
+                endPoint = hitPosition - GlobalPosition;
+            }
+        }
+
+        // Update the laser sight line points (in local coordinates)
+        _laserSight.SetPointPosition(0, Vector2.Zero);
+        _laserSight.SetPointPosition(1, endPoint);
     }
 
     // =========================================================================
@@ -577,13 +724,13 @@ public partial class SniperRifle : BaseWeapon
         var tracer = new Line2D
         {
             Name = "SniperTracer",
-            Width = 6.0f,
+            Width = 8.0f,
             DefaultColor = new Color(0.8f, 0.8f, 0.8f, 0.7f),
             BeginCapMode = Line2D.LineCapMode.Round,
             EndCapMode = Line2D.LineCapMode.Round,
             TopLevel = true,
             Position = Vector2.Zero,
-            ZIndex = -1 // Behind other elements
+            ZIndex = 10 // Above game elements to be visible
         };
 
         // Set up width curve - wider at start, tapers to narrower at end
@@ -606,6 +753,7 @@ public partial class SniperRifle : BaseWeapon
 
         // Add to scene
         GetTree().CurrentScene.AddChild(tracer);
+        GD.Print($"[SniperRifle] Smoke tracer spawned: from={fromPosition + direction * BulletSpawnOffset} to={endPosition}, width={tracer.Width}");
 
         // Start the fade-out animation
         FadeOutTracer(tracer);
