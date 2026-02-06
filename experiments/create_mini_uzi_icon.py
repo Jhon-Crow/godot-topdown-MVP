@@ -3,9 +3,12 @@
 Create Mini UZI icon sprite for the Godot top-down game.
 Creates armory icon (60x18) - side view matching the real UZI reference.
 
-Reference: Classic full-size UZI with folding wire stock, boxy receiver,
-ribbed barrel shroud, magazine in pistol grip, trigger guard.
-The barrel is SHORT relative to the receiver - the boxy receiver dominates.
+Reference: Mini UZI - compact submachine gun, slightly larger than a pistol.
+Key features: boxy receiver dominates, very short barrel, folding stock (folded),
+magazine in pistol grip. Overall shape is COMPACT and STUBBY, NOT like a rifle.
+
+Issue #530: The icon should look like a submachine gun (pistol-sized),
+not like a full-sized assault rifle. Short barrel, narrow body.
 
 Style matches existing weapon sprites (shotgun, M16).
 """
@@ -29,64 +32,61 @@ COLORS = {
 
 def create_mini_uzi_icon():
     """
-    Create 60x18 side-view UZI icon matching the real UZI reference photo.
+    Create 60x18 side-view Mini UZI icon matching reference photos.
 
-    Key proportional changes (issue #530):
-    - Shorter barrel: barrel shroud and muzzle are much shorter
-    - Less wide overall: weapon ends at x~47 instead of x~59
-    - Receiver body remains the dominant visual element
+    Issue #530 feedback: UZI is a submachine gun (slightly larger than a pistol),
+    current icon looks like a full-sized assault rifle. Must be compact and stubby.
 
-    Key silhouette features from reference:
-    - Folding wire stock (extended) on left
-    - Tall boxy receiver body (dominant)
-    - Short ribbed/grooved barrel shroud
-    - Pistol grip with magazine inserted
-    - Trigger guard
-    - Very short barrel tip
+    Key design decisions:
+    - Stock is FOLDED (shown as small bump on the left) - makes it compact
+    - Receiver body is the dominant feature (~40% of visible weapon)
+    - Barrel shroud is VERY short (~15% of visible weapon)
+    - Muzzle barely extends beyond shroud
+    - Overall weapon occupies only about 35px of the 60px canvas (compact)
+    - Prominent pistol grip with magazine (defining UZI feature)
+
+    Proportions (within 60x18 canvas, weapon centered):
+    - Folded stock bump: ~4px
+    - Receiver body: ~16px (dominant)
+    - Barrel shroud: ~6px (very short)
+    - Muzzle: ~2px
+    - Total weapon width: ~28px (compact, leaves padding on both sides)
     """
     width, height = 60, 18
     img = Image.new('RGBA', (width, height), COLORS['transparent'])
 
-    # Build UZI silhouette pixel by pixel
-    # Layout (pointing right): [wire stock] [receiver] [barrel shroud] [short muzzle]
-    # Grip+magazine hangs below receiver
-    #
-    # Proportions based on reference photos:
-    # Stock:    x 0-10  (11px)
-    # Receiver: x 11-32 (22px) - dominant section
-    # Shroud:   x 33-43 (11px) - shorter than before
-    # Muzzle:   x 44-47 (4px)  - very short barrel tip
+    # Center the weapon horizontally in the 60px canvas
+    # Weapon is about 28px wide, offset from left by ~16px to center it
+    ox = 16  # horizontal offset for centering
 
-    # === FOLDING WIRE STOCK (extended) - x: 0-10 ===
-    # Top arm of stock
-    for x in range(0, 10):
-        img.putpixel((x, 5), COLORS['metal_dark'])
-    # Bottom arm of stock
-    for x in range(0, 10):
-        img.putpixel((x, 8), COLORS['metal_dark'])
-    # Stock end plate (left side)
-    for y in range(4, 10):
-        img.putpixel((0, y), COLORS['metal_medium'])
-        img.putpixel((1, y), COLORS['metal_dark'])
-    # Stock hinge connection (where it meets receiver)
-    for y in range(5, 9):
-        img.putpixel((9, y), COLORS['metal_dark'])
-        img.putpixel((10, y), COLORS['metal_dark'])
+    # === FOLDED STOCK (small bump on left) - compact, not extended ===
+    # When folded, the stock sits on top/alongside the receiver as a small element
+    # Just a small plate visible at the back
+    for y in range(4, 8):
+        img.putpixel((ox + 0, y), COLORS['metal_dark'])
+        img.putpixel((ox + 1, y), COLORS['metal_dark'])
+    # Stock hinge pin
+    img.putpixel((ox + 2, 5), COLORS['lighter_gray'])
+    img.putpixel((ox + 2, 6), COLORS['lighter_gray'])
 
-    # === RECEIVER BODY (tall, boxy) - x: 11-32 ===
+    # === RECEIVER BODY (tall, boxy - DOMINANT section) ===
+    # x: ox+3 to ox+18 (16px wide) - this is the main body
+    rx_start = ox + 3
+    rx_end = ox + 19  # exclusive
+
     # Top edge of receiver
-    for x in range(11, 33):
+    for x in range(rx_start, rx_end):
         img.putpixel((x, 3), COLORS['black'])
     # Bottom edge of receiver
-    for x in range(11, 33):
+    for x in range(rx_start, rx_end):
         img.putpixel((x, 9), COLORS['black'])
     # Left/right edges
     for y in range(3, 10):
-        img.putpixel((11, y), COLORS['black'])
-        img.putpixel((32, y), COLORS['black'])
+        img.putpixel((rx_start, y), COLORS['black'])
+        img.putpixel((rx_end - 1, y), COLORS['black'])
     # Fill receiver body
     for y in range(4, 9):
-        for x in range(12, 32):
+        for x in range(rx_start + 1, rx_end - 1):
             if y <= 4:
                 img.putpixel((x, y), COLORS['metal_dark'])
             elif y >= 8:
@@ -95,78 +95,82 @@ def create_mini_uzi_icon():
                 img.putpixel((x, y), COLORS['metal_medium'])
 
     # Receiver details: ejection port / cocking slot
-    for x in range(16, 26):
+    for x in range(rx_start + 3, rx_start + 10):
         img.putpixel((x, 5), COLORS['lighter_gray'])
     # Cocking handle knob
-    img.putpixel((20, 4), COLORS['lighter_gray'])
+    img.putpixel((rx_start + 6, 4), COLORS['lighter_gray'])
 
     # Rear sight nub on top
-    img.putpixel((14, 2), COLORS['black'])
-    img.putpixel((15, 2), COLORS['black'])
+    img.putpixel((rx_start + 2, 2), COLORS['black'])
+    img.putpixel((rx_start + 3, 2), COLORS['black'])
 
-    # Front sight on top of receiver
-    img.putpixel((30, 2), COLORS['black'])
-    img.putpixel((31, 2), COLORS['black'])
+    # Front sight on top of receiver (near front)
+    img.putpixel((rx_end - 3, 2), COLORS['black'])
+    img.putpixel((rx_end - 2, 2), COLORS['black'])
 
-    # === PISTOL GRIP + MAGAZINE (below receiver) - x: 17-23 ===
-    # The UZI has the magazine inside the pistol grip (key feature)
-    # Grip shape: slightly angled back, narrower than before
+    # === PISTOL GRIP + MAGAZINE (below receiver) ===
+    # UZI's defining feature: magazine inside the pistol grip
+    # Grip at the center of the receiver
+    grip_cx = rx_start + 6  # center of grip
     for y in range(10, 16):
         offset = (y - 10) // 3  # slight backward angle
-        gx_start = 18 - offset
-        gx_end = 23 - offset
+        gx_start = grip_cx - 2 - offset
+        gx_end = grip_cx + 2 - offset
         for x in range(gx_start, gx_end + 1):
             if x == gx_start or x == gx_end or y == 15:
                 img.putpixel((x, y), COLORS['black'])
             else:
                 img.putpixel((x, y), COLORS['dark_gray'])
     # Magazine base plate (slightly wider at bottom)
-    for x in range(16, 23):
+    for x in range(grip_cx - 3 - 1, grip_cx + 2 - 1):
         img.putpixel((x, 16), COLORS['black'])
 
     # Grip texture lines (horizontal)
     for y in [11, 13]:
         offset = (y - 10) // 3
-        for x in range(19 - offset, 23 - offset):
+        for x in range(grip_cx - 1 - offset, grip_cx + 2 - offset):
             img.putpixel((x, y), COLORS['metal_dark'])
 
-    # === TRIGGER GUARD - x: 24-29, below receiver ===
-    for x in range(24, 30):
+    # === TRIGGER GUARD ===
+    tg_start = grip_cx + 3
+    tg_end = tg_start + 4
+    for x in range(tg_start, tg_end):
         img.putpixel((x, 12), COLORS['black'])
-    img.putpixel((24, 10), COLORS['black'])
-    img.putpixel((24, 11), COLORS['black'])
-    img.putpixel((29, 10), COLORS['black'])
-    img.putpixel((29, 11), COLORS['black'])
+    img.putpixel((tg_start, 10), COLORS['black'])
+    img.putpixel((tg_start, 11), COLORS['black'])
+    img.putpixel((tg_end - 1, 10), COLORS['black'])
+    img.putpixel((tg_end - 1, 11), COLORS['black'])
     # Trigger
-    img.putpixel((26, 10), COLORS['metal_dark'])
-    img.putpixel((26, 11), COLORS['metal_dark'])
+    img.putpixel((tg_start + 1, 10), COLORS['metal_dark'])
+    img.putpixel((tg_start + 1, 11), COLORS['metal_dark'])
 
-    # === BARREL SHROUD (ribbed, shorter) - x: 33-43 ===
-    # Barrel shroud is narrower than receiver (sits in the middle vertically)
-    # Top and bottom edges
-    for x in range(33, 44):
+    # === BARREL SHROUD (very short, thicker) ===
+    # x: rx_end to rx_end+5 (6px) - much shorter than receiver
+    # The shroud is cylindrical and thick (almost as tall as receiver mid-section)
+    bx_start = rx_end
+    bx_end = rx_end + 6
+
+    # Top and bottom edges of shroud
+    for x in range(bx_start, bx_end):
         img.putpixel((x, 4), COLORS['black'])
-        img.putpixel((x, 8), COLORS['black'])
-    # Fill barrel shroud body
-    for y in range(5, 8):
-        for x in range(33, 44):
+        img.putpixel((x, 9), COLORS['black'])
+    # Fill barrel shroud body (4px tall - substantial cylinder)
+    for y in range(5, 9):
+        for x in range(bx_start, bx_end):
             img.putpixel((x, y), COLORS['metal_medium'])
 
-    # Ribbing/grooves on barrel shroud (vertical lines every 2 pixels)
-    for x in range(34, 43, 2):
-        for y in range(5, 8):
+    # Ribbing/grooves on barrel shroud (vertical lines for texture)
+    for x in range(bx_start + 1, bx_end - 1, 2):
+        for y in range(5, 9):
             img.putpixel((x, y), COLORS['metal_dark'])
 
-    # === MUZZLE / BARREL TIP (very short) - x: 44-47 ===
-    # Barrel barely extends from shroud - key fix for issue #530
-    for x in range(44, 47):
-        img.putpixel((x, 5), COLORS['black'])
-        img.putpixel((x, 7), COLORS['black'])
-        img.putpixel((x, 6), COLORS['metal_light'])
-
-    # Muzzle end cap
-    for y in range(4, 9):
-        img.putpixel((47, y), COLORS['black'])
+    # === MUZZLE / BARREL TIP (barely extends) ===
+    # Just 2 pixels past the shroud
+    mx = bx_end
+    for y in range(5, 9):
+        img.putpixel((mx, y), COLORS['black'])
+    img.putpixel((mx + 1, 6), COLORS['metal_light'])
+    img.putpixel((mx + 1, 7), COLORS['metal_light'])
 
     return img
 
