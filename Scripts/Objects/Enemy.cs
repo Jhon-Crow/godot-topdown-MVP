@@ -308,6 +308,14 @@ public partial class Enemy : Area2D, IDamageable
     {
         EmitSignal(SignalName.Died);
 
+        // Issue #382 fix: Notify GameManager directly so level scripts can track deaths
+        // even when has_signal("died") returns false in exported builds.
+        var gameManager = GetNodeOrNull("/root/GameManager");
+        if (gameManager != null && gameManager.HasMethod("notify_enemy_died"))
+        {
+            gameManager.Call("notify_enemy_died", this, false, false);
+        }
+
         if (DestroyOnHit)
         {
             await ToSignal(GetTree().CreateTimer(RespawnDelay), "timeout");

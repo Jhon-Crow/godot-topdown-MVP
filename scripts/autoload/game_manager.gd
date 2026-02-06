@@ -44,6 +44,11 @@ const WEAPON_SCENES: Dictionary = {
 ## Signal emitted when an enemy is killed (for screen effects).
 signal enemy_killed
 
+## Signal emitted when an enemy notifies its own death (Issue #382 fix).
+## This is emitted from the enemy itself via notify_enemy_died(), bypassing
+## any has_signal() issues in exported builds.
+signal enemy_died(enemy: Node, is_ricochet: bool, is_penetration: bool)
+
 ## Signal emitted when player dies.
 signal player_died
 
@@ -111,6 +116,14 @@ func register_kill() -> void:
 	kills += 1
 	enemy_killed.emit()
 	stats_updated.emit()
+
+
+## Called by enemy scripts directly when they die (Issue #382 fix).
+## This bypasses the has_signal() bug in exported builds by having the enemy
+## notify GameManager directly rather than relying on signal connections
+## from the level script.
+func notify_enemy_died(enemy: Node, is_ricochet: bool = false, is_penetration: bool = false) -> void:
+	enemy_died.emit(enemy, is_ricochet, is_penetration)
 
 
 ## Returns the current accuracy as a percentage (0-100).
