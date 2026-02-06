@@ -144,9 +144,9 @@ The scope position is now driven entirely by player mouse input.
 
 ### 2. Added Distance-Based Mouse Sensitivity
 
-New constant in `SniperRifle.cs`:
+Constant in `SniperRifle.cs` (updated in session 4 from 2.0 to 5.0):
 ```csharp
-private const float BaseScopeSensitivityMultiplier = 2.0f;
+private const float BaseScopeSensitivityMultiplier = 5.0f;
 ```
 
 The effective sensitivity multiplier is:
@@ -157,10 +157,10 @@ effectiveSensitivity = BaseScopeSensitivityMultiplier * EffectiveScopeZoomDistan
 This produces the following scaling:
 | Zoom Distance | Effective Sensitivity | Feel |
 |---|---|---|
-| 1.0x (minimum) | 2.0x normal | Moderate amplification |
-| 1.5x (default) | 3.0x normal | Comfortable for mid-range |
-| 2.0x | 4.0x normal | Faster crosshair movement |
-| 3.0x (maximum) | 6.0x normal | Very responsive for long range |
+| 1.0x (minimum) | 5.0x normal | Noticeable amplification |
+| 1.5x (default) | 7.5x normal | Comfortable for mid-range |
+| 2.0x | 10.0x normal | Fast crosshair movement |
+| 3.0x (maximum) | 15.0x normal | Very responsive for long range |
 
 ### 3. Crosshair Follows Mouse
 
@@ -307,3 +307,81 @@ Player.Fire()
 3. **Mouse offset clamping**: The maximum crosshair drift is 15% of viewport diagonal times zoom distance. This prevents the crosshair from going completely off-screen while still allowing meaningful positional adjustment.
 
 4. **Scope cleanup on `_ExitTree()`**: The scope overlay is removed if the weapon is removed from the scene tree (e.g., weapon swap), preventing orphaned UI elements.
+
+## Feedback Round 3 (Session 4)
+
+### User Feedback
+
+The user tested the updated build (with scope code present) and reported 4 issues:
+
+1. > "повысь минимальную чувствительность"
+   > ("Increase minimum sensitivity")
+
+2. > "повысь множитель чувствительности от дальности"
+   > ("Increase the distance sensitivity multiplier")
+
+3. > "пуля всё ещё летит по лазеру а не в центр прицела"
+   > ("Bullet still flies along the laser, not to the crosshair center")
+
+4. > "всё ещё нет возможности немного (примерно на 200px дальше и ближе) 'подруливать' дальностью с помощью движения мыши"
+   > ("Still no ability to slightly (~200px further and closer) 'fine-tune' distance with mouse movement (not scroll)")
+
+Two new game logs were attached:
+- `logs/game_log_20260207_002158.txt`
+- `logs/game_log_20260207_002335.txt`
+
+### Root Cause Analysis
+
+#### Bug 1: Bullet fires along laser instead of crosshair
+
+**Root cause found in `SniperRifle.Fire()` (line 547)**:
+```csharp
+// OLD CODE (buggy):
+Vector2 spreadDirection = ApplyRecoil(_aimDirection);  // IGNORES the 'direction' parameter!
+```
+
+The `Fire(Vector2 direction)` method receives the scope crosshair direction from `Player.Shoot()`, but the implementation ignores this parameter and instead uses the laser sight's `_aimDirection`. This means bullets always fly along the laser sight direction regardless of where the scope crosshair is pointing.
+
+**Fix**: When scope is active, use the `direction` parameter (which comes from `GetScopeAimTarget()`):
+```csharp
+Vector2 fireDirection = _isScopeActive ? direction : _aimDirection;
+Vector2 spreadDirection = ApplyRecoil(fireDirection);
+```
+
+#### Bug 2: Fine-tune distance not working
+
+**Root cause**: The fine-tune used a viewport-fraction-based offset (`ScopeMouseFineTuneRange = 0.33f`) with an extremely low sensitivity (`0.002f`), and the offset was added to `EffectiveScopeZoomDistance` which is a multiplier, not pixels. Moving the mouse 100px along the aim direction would only change the viewport-fraction offset by `100 * 0.002 = 0.2`, which when multiplied by the viewport diagonal was not perceptible.
+
+**Fix**: Changed to pixel-based fine-tuning (`ScopeMouseFineTuneMaxPixels = 200.0f`). Mouse movement along the aim direction directly adjusts a pixel offset clamped to ±200px. This offset is added to the camera position separately from the zoom distance multiplier.
+
+#### Issue 3: Sensitivity too low
+
+**Root cause**: `BaseScopeSensitivityMultiplier = 2.0f` was too conservative. At minimum zoom (1x), the sensitivity was only 2x normal — barely noticeable when the camera is offset far from the player.
+
+**Fix**: Increased to `BaseScopeSensitivityMultiplier = 5.0f`. New sensitivity scaling:
+
+| Zoom Distance | Sensitivity Multiplier |
+|---|---|
+| 1.0x (minimum) | 5.0x |
+| 1.5x (default) | 7.5x |
+| 2.0x | 10.0x |
+| 3.0x (maximum) | 15.0x |
+
+Also increased mouse offset clamp from 15% to 25% of viewport diagonal × zoom distance, allowing larger crosshair movement range.
+
+### Changes Made
+
+| Change | File | Detail |
+|--------|------|--------|
+| Fix bullet direction | `SniperRifle.cs:Fire()` | Use passed `direction` when scope active, `_aimDirection` when not |
+| Increase sensitivity | `SniperRifle.cs` | `BaseScopeSensitivityMultiplier`: 2.0 → 5.0 |
+| Pixel-based fine-tune | `SniperRifle.cs` | Replaced viewport-fraction offset with ±200px pixel offset along aim direction |
+| Increase offset clamp | `SniperRifle.cs` | Mouse offset max: 15% → 25% of viewport diagonal × zoom |
+
+### Log Analysis
+
+The new game logs (`game_log_20260207_002158.txt` and `game_log_20260207_002335.txt`) confirm:
+- Build is release mode (`Debug build: false`)
+- Sniper rifle was selected and fired (`source=PLAYER (SniperRifle)`)
+- No scope activation GD.Print messages appear (expected — `GD.Print` output may not be captured in the game's file logger in release builds)
+- User was on the correct build this time (they tested and could report specific behavioral issues rather than "nothing changed")

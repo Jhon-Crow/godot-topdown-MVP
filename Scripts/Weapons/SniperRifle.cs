@@ -543,8 +543,10 @@ public partial class SniperRifle : BaseWeapon
             return false;
         }
 
-        // Apply recoil to aim direction
-        Vector2 spreadDirection = ApplyRecoil(_aimDirection);
+        // When scope is active, use the direction passed from Player.Shoot() (scope crosshair target)
+        // When scope is not active, use _aimDirection (laser sight direction)
+        Vector2 fireDirection = _isScopeActive ? direction : _aimDirection;
+        Vector2 spreadDirection = ApplyRecoil(fireDirection);
         bool result = base.Fire(spreadDirection);
 
         if (result)
@@ -939,25 +941,24 @@ public partial class SniperRifle : BaseWeapon
     private const float ScopeZoomStep = 0.25f;
 
     /// <summary>
-    /// Maximum range (in viewport fraction) that the player can fine-tune the scope
-    /// distance via mouse movement while scoped. About 1/3 of the viewport.
+    /// Maximum range in pixels that the player can fine-tune the scope
+    /// distance via mouse movement along the aim direction while scoped.
+    /// Approximately 200px closer or further.
     /// </summary>
-    private const float ScopeMouseFineTuneRange = 0.33f;
+    private const float ScopeMouseFineTuneMaxPixels = 200.0f;
 
     /// <summary>
     /// Base mouse sensitivity multiplier when scoped.
     /// The actual multiplier = BaseScopeSensitivityMultiplier * effectiveZoomDistance.
-    /// At 1x zoom, sensitivity is BaseScopeSensitivityMultiplier times normal.
-    /// At 2x zoom, it's 2 * BaseScopeSensitivityMultiplier times normal, etc.
+    /// At 1x zoom, sensitivity is 5x normal. At 2x zoom, 10x. At 3x zoom, 15x.
     /// </summary>
-    private const float BaseScopeSensitivityMultiplier = 2.0f;
+    private const float BaseScopeSensitivityMultiplier = 5.0f;
 
     /// <summary>
-    /// Current mouse fine-tune offset applied to scope distance.
-    /// Ranges from -ScopeMouseFineTuneRange to +ScopeMouseFineTuneRange (viewport fraction).
-    /// Positive = further, negative = closer.
+    /// Current mouse fine-tune offset applied to scope distance in pixels.
+    /// Positive = further along aim direction, negative = closer.
     /// </summary>
-    private float _scopeMouseFineTuneOffset = 0.0f;
+    private float _scopeMouseFineTunePixels = 0.0f;
 
     /// <summary>
     /// Current scope mouse offset in pixels (applied to crosshair and camera).
@@ -997,9 +998,10 @@ public partial class SniperRifle : BaseWeapon
     private Vector2 _originalCameraOffset = Vector2.Zero;
 
     /// <summary>
-    /// Gets the effective scope zoom distance including mouse fine-tune offset.
+    /// Gets the effective scope zoom distance (without fine-tune pixel offset).
+    /// Fine-tune offset is applied separately as a pixel-based displacement.
     /// </summary>
-    private float EffectiveScopeZoomDistance => _scopeZoomDistance + _scopeMouseFineTuneOffset;
+    private float EffectiveScopeZoomDistance => _scopeZoomDistance;
 
     /// <summary>
     /// Gets the current camera offset for scope aiming.
@@ -1021,8 +1023,10 @@ public partial class SniperRifle : BaseWeapon
         Vector2 viewportSize = viewport.GetVisibleRect().Size;
         float baseDistance = viewportSize.Length() * 0.5f;
 
-        // Camera offset = aim direction * (zoom distance + mouse fine-tune) * viewport size + mouse offset
-        Vector2 offset = _aimDirection * baseDistance * EffectiveScopeZoomDistance + _scopeMouseOffset;
+        // Camera offset = aim direction * zoom distance * viewport size + fine-tune pixels + mouse offset
+        Vector2 offset = _aimDirection * baseDistance * EffectiveScopeZoomDistance
+            + _aimDirection * _scopeMouseFineTunePixels
+            + _scopeMouseOffset;
 
         return offset;
     }
@@ -1043,8 +1047,10 @@ public partial class SniperRifle : BaseWeapon
         float baseDistance = viewportSize.Length() * 0.5f;
 
         // The scope aim target is the player's position offset by the scope camera offset
-        // including the mouse offset so bullets go where the crosshair actually is
-        Vector2 aimTarget = GlobalPosition + _aimDirection * baseDistance * EffectiveScopeZoomDistance + _scopeMouseOffset;
+        // including the fine-tune pixel offset and mouse offset so bullets go where the crosshair actually is
+        Vector2 aimTarget = GlobalPosition + _aimDirection * baseDistance * EffectiveScopeZoomDistance
+            + _aimDirection * _scopeMouseFineTunePixels
+            + _scopeMouseOffset;
 
         return aimTarget;
     }
@@ -1060,7 +1066,7 @@ public partial class SniperRifle : BaseWeapon
         }
 
         _isScopeActive = true;
-        _scopeMouseFineTuneOffset = 0.0f;
+        _scopeMouseFineTunePixels = 0.0f;
         _scopeMouseOffset = Vector2.Zero;
 
         // Find and cache the player's Camera2D
@@ -1118,10 +1124,10 @@ public partial class SniperRifle : BaseWeapon
         _scopeZoomDistance = Mathf.Clamp(_scopeZoomDistance, MinScopeZoomDistance, MaxScopeZoomDistance);
 
         // Reset fine-tune offset when zoom changes to avoid going out of range
-        _scopeMouseFineTuneOffset = Mathf.Clamp(_scopeMouseFineTuneOffset,
-            -ScopeMouseFineTuneRange, ScopeMouseFineTuneRange);
+        _scopeMouseFineTunePixels = Mathf.Clamp(_scopeMouseFineTunePixels,
+            -ScopeMouseFineTuneMaxPixels, ScopeMouseFineTuneMaxPixels);
 
-        GD.Print($"[SniperRifle] Scope zoom adjusted: {_scopeZoomDistance:F2}x (fine-tune: {_scopeMouseFineTuneOffset:F2})");
+        GD.Print($"[SniperRifle] Scope zoom adjusted: {_scopeZoomDistance:F2}x (fine-tune: {_scopeMouseFineTunePixels:F0}px)");
     }
 
     /// <summary>
@@ -1139,12 +1145,12 @@ public partial class SniperRifle : BaseWeapon
         }
 
         // --- 1. Fine-tune scope distance along aim direction ---
-        // Project mouse motion onto the aim direction to get forward/backward movement
+        // Project mouse motion onto the aim direction to get forward/backward pixel movement
         float projection = mouseMotion.Dot(_aimDirection);
-        float fineTuneSensitivity = 0.002f;
-        _scopeMouseFineTuneOffset += projection * fineTuneSensitivity;
-        _scopeMouseFineTuneOffset = Mathf.Clamp(_scopeMouseFineTuneOffset,
-            -ScopeMouseFineTuneRange, ScopeMouseFineTuneRange);
+        // Direct pixel mapping: mouse movement along aim direction adjusts scope distance in pixels
+        _scopeMouseFineTunePixels += projection * 0.5f;
+        _scopeMouseFineTunePixels = Mathf.Clamp(_scopeMouseFineTunePixels,
+            -ScopeMouseFineTuneMaxPixels, ScopeMouseFineTuneMaxPixels);
 
         // --- 2. Move crosshair with distance-based sensitivity ---
         // Sensitivity multiplier scales linearly with effective zoom distance
@@ -1156,7 +1162,7 @@ public partial class SniperRifle : BaseWeapon
         if (viewport != null)
         {
             Vector2 viewportSize = viewport.GetVisibleRect().Size;
-            _maxScopeMouseOffset = viewportSize.Length() * 0.15f * EffectiveScopeZoomDistance;
+            _maxScopeMouseOffset = viewportSize.Length() * 0.25f * EffectiveScopeZoomDistance;
         }
         _scopeMouseOffset = _scopeMouseOffset.LimitLength(_maxScopeMouseOffset);
     }
