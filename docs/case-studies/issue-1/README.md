@@ -300,3 +300,88 @@ Extended the replay recording and playback system:
 ### Log Files
 
 - `game_log_20260207_002734.txt` — Shows successful recording with shotgun, invincibility mode, grenade kills, and replay playback (1905 frames, 29.75s)
+- `game_log_20260207_005613.txt` — User testing session showing 3 remaining visual issues in replay (2154 frames, 32.68s)
+
+## Bug #5: Player Weapon Not Visible in Replay
+
+### Symptoms (from user feedback on PR #421)
+
+- Player weapon (rifle/shotgun/etc.) is not visible on the ghost player during replay
+- Player model looks wrong — arms appear to be in wrong positions ("руки вперёд и назад" — arms forward and back)
+
+### Root Cause
+
+**Weapon sprite not baked into Player.tscn.** The `Player.tscn` scene has an empty `PlayerModel/WeaponMount` node with no weapon sprite child. Weapons are dynamically added by level scripts (`building_level.gd`) at runtime via `_setup_selected_weapon()`. When the ghost player is instantiated from `Player.tscn` and has all scripts stripped by `DisableNodeProcessing()`, the weapon detection code never runs and the `WeaponMount` remains empty.
+
+**Arm drift bug.** The `ApplyWalkAnimation()` method used additive positioning for arms:
+```csharp
+// BUG: adds to current X position every frame, causing infinite drift
+leftArm.Position = new Vector2(leftArm.Position.X + armSwing * delta * 10.0f, ...)
+```
+This accumulated the arm swing offset every frame, causing arms to drift further and further from their base positions.
+
+### Fix
+
+1. **Weapon detection at recording start:** `DetectPlayerWeapon()` checks for weapon children (MiniUzi, Shotgun, SniperRifle, SilencedPistol, or default AssaultRifle) and stores the correct texture path and offset.
+2. **Weapon sprite added to ghost:** `AddWeaponSpriteToGhost()` creates a `Sprite2D` with the detected weapon texture and adds it to `PlayerModel/WeaponMount`.
+3. **Fixed arm positioning:** Changed to absolute positioning using base positions from the scene file:
+```csharp
+// FIX: use absolute position (base + offset) to prevent drift
+leftArm.Position = new Vector2(baseLeftArmX + armSwing, leftArm.Position.Y);
+```
+
+## Bug #6: Bullets/Projectiles Not Visible in Replay
+
+### Symptoms
+
+- No bullet tracers visible during replay playback
+- Both player and enemy projectiles are missing
+
+### Root Cause
+
+**Wrong bullet detection path.** The ReplayManager searched for bullets at `Entities/Projectiles` and `Projectiles` paths, but bullets are actually spawned as **direct children of the level root** via `GetTree().CurrentScene.AddChild(bullet)` in all weapon scripts (`BaseWeapon.cs`, `SilencedPistol.cs`, `SniperRifle.cs`, `Shotgun.cs`). The `Entities/Projectiles` path does not exist in `BuildingLevel.tscn`.
+
+Since no bullets were found at the expected path, 0 bullets were ever recorded, resulting in empty `frame.Bullets` arrays.
+
+### Fix
+
+Changed bullet recording to scan level root children for `Area2D` nodes with `collision_layer & 16 != 0` (bullet collision layer). This matches how `last_chance_effects_manager.gd` identifies bullets:
+```csharp
+foreach (var child in _levelNode.GetChildren())
+{
+    if (child is Area2D area2D && (area2D.CollisionLayer & BulletCollisionLayer) != 0)
+        frame.Bullets.Add(...);
+}
+```
+
+Also enlarged the ghost bullet sprite from 8x3 to 16x4 pixels with a gradient trail effect for better visibility.
+
+## Bug #7: Enemy Death Animations Missing in Replay
+
+### Symptoms
+
+- Enemies simply vanish when killed during replay (instant disappear or minimal fade)
+- No body displacement, rotation, or ragdoll-like fall animation
+
+### Root Cause
+
+The previous implementation only did a 0.4s red flash + fade-out when enemies died. The real `DeathAnimationComponent` uses a complex two-phase system (0.8s fall animation + ragdoll physics) with 24-directional body displacement, but this requires active scripts which are stripped by `DisableNodeProcessing()`.
+
+Additionally, the hit direction (`_last_hit_direction`) was not being recorded, so even a simplified death animation couldn't know which direction the enemy was hit from.
+
+### Fix
+
+1. **Record hit direction:** Added `LastHitDirection` field to `EnemyFrameData`, read from `_last_hit_direction` GDScript variable during recording.
+2. **Extended death animation (0.8s):** Increased `DeathFadeDuration` from 0.4s to 0.8s (matching `death_animation_component.gd`'s `fall_animation_duration`).
+3. **Body displacement:** Ghost enemy moves 25px away from hit (matching `fall_distance = 25` from the component).
+4. **Body rotation:** Model rotates partially toward fall direction with ease-out curve.
+5. **Arm swing:** Arms rotate outward (±30 degrees) during fall animation.
+6. **Color transition:** Red flash → dark fade-out → hide.
+
+### Log Evidence
+
+From `game_log_20260207_005613.txt`:
+```
+[00:56:59] [ReplayManager] Started replay playback. Frames: 2154, Duration: 32,68s
+```
+Replay ran for ~36 seconds (00:56:59 to 00:57:35) with no errors, confirming the system works but lacked visual fidelity.

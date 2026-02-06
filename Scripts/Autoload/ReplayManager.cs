@@ -17,12 +17,17 @@ namespace GodotTopDownTemplate.Autoload
     /// Recording captures:
     /// - Player position, rotation, velocity, and model state (aim rotation, scale)
     /// - Enemy positions, rotations, velocities, model rotations, and alive state
-    /// - Bullet positions and rotations
+    /// - Bullet positions and rotations (scanned from level root Area2D children)
     /// - Grenade positions
     /// - Shooting events for muzzle flash replay
+    /// - Enemy hit directions for death animation replay
     ///
-    /// Playback recreates the visual representation including procedural
-    /// walking animation, aiming rotation, death effects, and muzzle flashes.
+    /// Playback recreates the visual representation including:
+    /// - Player weapon sprite on ghost (detected from live player)
+    /// - Procedural walking animation with correct base positions
+    /// - Aiming rotation and sprite flipping
+    /// - Death fall animation (body displacement + rotation + fade)
+    /// - Muzzle flashes and bullet tracers
     /// </summary>
     [GlobalClass]
     public partial class ReplayManager : Node
@@ -42,11 +47,17 @@ namespace GodotTopDownTemplate.Autoload
         /// <summary>Minimum velocity magnitude to trigger walking animation.</summary>
         private const float WalkThreshold = 10.0f;
 
-        /// <summary>Duration of the death fade effect in seconds.</summary>
-        private const float DeathFadeDuration = 0.4f;
+        /// <summary>Duration of the death fall+fade effect in seconds.</summary>
+        private const float DeathFadeDuration = 0.8f;
+
+        /// <summary>Death fall displacement in pixels (matches death_animation_component.gd).</summary>
+        private const float DeathFallDistance = 25.0f;
 
         /// <summary>Duration of the muzzle flash effect in seconds.</summary>
         private const float MuzzleFlashDuration = 0.05f;
+
+        /// <summary>Collision layer for bullets (layer 16 = bit 4, value 16).</summary>
+        private const uint BulletCollisionLayer = 16;
 
         /// <summary>All recorded frames for the current/last level.</summary>
         private readonly List<FrameData> _frames = new();
@@ -85,6 +96,12 @@ namespace GodotTopDownTemplate.Autoload
         /// <summary>Death fade timers for ghost enemies (0 = no fade active).</summary>
         private readonly List<float> _ghostEnemyDeathTimers = new();
 
+        /// <summary>Death fall start positions for ghost enemies (recorded at moment of death).</summary>
+        private readonly List<Vector2> _ghostEnemyDeathStartPos = new();
+
+        /// <summary>Death fall direction for ghost enemies (from recorded hit direction).</summary>
+        private readonly List<Vector2> _ghostEnemyDeathDir = new();
+
         /// <summary>Reference to the level node being recorded.</summary>
         private Node2D? _levelNode;
 
@@ -94,8 +111,11 @@ namespace GodotTopDownTemplate.Autoload
         /// <summary>References to enemy nodes.</summary>
         private readonly List<Node> _enemies = new();
 
-        /// <summary>Path to the Entities/Projectiles node.</summary>
-        private const string ProjectilesPath = "Entities/Projectiles";
+        /// <summary>Detected player weapon texture path for ghost creation.</summary>
+        private string _playerWeaponTexturePath = "res://assets/sprites/weapons/m16_rifle_topdown.png";
+
+        /// <summary>Detected weapon sprite offset for ghost creation.</summary>
+        private Vector2 _playerWeaponSpriteOffset = new(20, 0);
 
         /// <summary>Replay ghost nodes.</summary>
         private Node2D? _ghostPlayer;
@@ -145,6 +165,7 @@ namespace GodotTopDownTemplate.Autoload
             public Vector2 ModelScale = Vector2.One;
             public bool Alive = true;
             public bool Shooting;
+            public Vector2 LastHitDirection = Vector2.Right;
         }
 
         private class ProjectileFrameData
@@ -202,6 +223,9 @@ namespace GodotTopDownTemplate.Autoload
                 _enemies.Add(enemy.As<Node>());
             }
 
+            // Detect player weapon for ghost creation later
+            DetectPlayerWeapon(player);
+
             var playerName = player?.Name ?? "NULL";
             var playerValid = player != null && IsInstanceValid(player);
             var levelName = level?.Name ?? "NULL";
@@ -210,6 +234,7 @@ namespace GodotTopDownTemplate.Autoload
             LogToFile($"Level: {levelName}");
             LogToFile($"Player: {playerName} (valid: {playerValid})");
             LogToFile($"Enemies count: {_enemies.Count}");
+            LogToFile($"Detected weapon texture: {_playerWeaponTexturePath}");
 
             for (int i = 0; i < _enemies.Count; i++)
             {
@@ -375,6 +400,59 @@ namespace GodotTopDownTemplate.Autoload
         }
 
         // ============================================================
+        // Weapon detection for ghost player
+        // ============================================================
+
+        /// <summary>
+        /// Detects the weapon type equipped by the player and stores the
+        /// texture path so the ghost player can display the correct weapon.
+        /// Weapon children are added by level scripts (not baked in Player.tscn),
+        /// so we must detect them at recording start.
+        /// </summary>
+        private void DetectPlayerWeapon(Node2D? player)
+        {
+            if (player == null || !IsInstanceValid(player))
+            {
+                _playerWeaponTexturePath = "res://assets/sprites/weapons/m16_rifle_topdown.png";
+                _playerWeaponSpriteOffset = new Vector2(20, 0);
+                return;
+            }
+
+            // Check for weapon children in order of specificity (matches player.gd logic)
+            if (player.GetNodeOrNull("MiniUzi") != null)
+            {
+                _playerWeaponTexturePath = "res://assets/sprites/weapons/mini_uzi_topdown.png";
+                _playerWeaponSpriteOffset = new Vector2(15, 0);
+                LogToFile("Detected player weapon: Mini UZI");
+            }
+            else if (player.GetNodeOrNull("Shotgun") != null)
+            {
+                _playerWeaponTexturePath = "res://assets/sprites/weapons/shotgun_topdown.png";
+                _playerWeaponSpriteOffset = new Vector2(20, 0);
+                LogToFile("Detected player weapon: Shotgun");
+            }
+            else if (player.GetNodeOrNull("SniperRifle") != null)
+            {
+                _playerWeaponTexturePath = "res://assets/sprites/weapons/asvk_topdown.png";
+                _playerWeaponSpriteOffset = new Vector2(25, 0);
+                LogToFile("Detected player weapon: Sniper Rifle (ASVK)");
+            }
+            else if (player.GetNodeOrNull("SilencedPistol") != null)
+            {
+                _playerWeaponTexturePath = "res://assets/sprites/weapons/silenced_pistol_topdown.png";
+                _playerWeaponSpriteOffset = new Vector2(15, 0);
+                LogToFile("Detected player weapon: Silenced Pistol");
+            }
+            else
+            {
+                // Default: Assault Rifle (M16)
+                _playerWeaponTexturePath = "res://assets/sprites/weapons/m16_rifle_topdown.png";
+                _playerWeaponSpriteOffset = new Vector2(20, 0);
+                LogToFile("Detected player weapon: Assault Rifle (default)");
+            }
+        }
+
+        // ============================================================
         // Private recording logic
         // ============================================================
 
@@ -429,7 +507,6 @@ namespace GodotTopDownTemplate.Autoload
                 }
 
                 // Detect shooting by checking if new bullets appeared this frame
-                // compared to the previous frame
                 if (_frames.Count > 0)
                 {
                     var prevBullets = _frames[^1].Bullets.Count;
@@ -475,8 +552,12 @@ namespace GodotTopDownTemplate.Autoload
                             enemyData.Alive = (bool)aliveVar;
                     }
 
-                    // Check if enemy is shooting by looking for its weapon mount
-                    // firing indicator (we detect this via bullet spawn proximity)
+                    // Record hit direction for death animation
+                    var hitDirVar = enemy.Get("_last_hit_direction");
+                    if (hitDirVar.VariantType != Variant.Type.Nil)
+                        enemyData.LastHitDirection = (Vector2)hitDirVar;
+
+                    // Check if enemy is shooting
                     var isShootingVar = enemy.Get("_is_shooting");
                     if (isShootingVar.VariantType != Variant.Type.Nil)
                         enemyData.Shooting = (bool)isShootingVar;
@@ -489,24 +570,20 @@ namespace GodotTopDownTemplate.Autoload
                 }
             }
 
-            // Record projectiles (bullets)
+            // Record projectiles (bullets) — scan level root children for Area2D
+            // with collision_layer 16 (bullets are added directly to current_scene
+            // by weapon scripts, NOT to an Entities/Projectiles container)
             if (_levelNode != null && IsInstanceValid(_levelNode))
             {
-                var projectilesNode = _levelNode.GetNodeOrNull(ProjectilesPath);
-                projectilesNode ??= _levelNode.GetNodeOrNull("Projectiles");
-
-                if (projectilesNode != null)
+                foreach (var child in _levelNode.GetChildren())
                 {
-                    foreach (var projectile in projectilesNode.GetChildren())
+                    if (child is Area2D area2D && (area2D.CollisionLayer & BulletCollisionLayer) != 0)
                     {
-                        if (projectile is Node2D proj2D)
+                        frame.Bullets.Add(new ProjectileFrameData
                         {
-                            frame.Bullets.Add(new ProjectileFrameData
-                            {
-                                Position = proj2D.GlobalPosition,
-                                Rotation = proj2D.GlobalRotation
-                            });
-                        }
+                            Position = area2D.GlobalPosition,
+                            Rotation = area2D.GlobalRotation
+                        });
                     }
                 }
 
@@ -524,13 +601,17 @@ namespace GodotTopDownTemplate.Autoload
             _frames.Add(frame);
         }
 
-        /// <summary>Counts current projectiles in the level for shooting detection.</summary>
+        /// <summary>Counts current bullet projectiles in the level for shooting detection.</summary>
         private int CountCurrentProjectiles()
         {
             if (_levelNode == null || !IsInstanceValid(_levelNode)) return 0;
-            var projectilesNode = _levelNode.GetNodeOrNull(ProjectilesPath);
-            projectilesNode ??= _levelNode.GetNodeOrNull("Projectiles");
-            return projectilesNode?.GetChildCount() ?? 0;
+            int count = 0;
+            foreach (var child in _levelNode.GetChildren())
+            {
+                if (child is Area2D area2D && (area2D.CollisionLayer & BulletCollisionLayer) != 0)
+                    count++;
+            }
+            return count;
         }
 
         // ============================================================
@@ -585,7 +666,7 @@ namespace GodotTopDownTemplate.Autoload
                     ghostModel.Scale = frame.PlayerModelScale;
 
                     // Apply procedural walking animation based on velocity
-                    ApplyWalkAnimation(ghostModel, frame.PlayerVelocity, delta, ref _ghostPlayerWalkAnimTime);
+                    ApplyWalkAnimation(ghostModel, frame.PlayerVelocity, delta, ref _ghostPlayerWalkAnimTime, true);
                 }
 
                 // Spawn muzzle flash if player was shooting this frame
@@ -603,44 +684,59 @@ namespace GodotTopDownTemplate.Autoload
                 var data = frame.Enemies[i];
                 if (ghost == null || !IsInstanceValid(ghost)) continue;
 
-                ghost.GlobalPosition = data.Position;
-                ghost.GlobalRotation = data.Rotation;
-
-                // Apply EnemyModel rotation and scale for aiming direction
-                var enemyModel = ghost.GetNodeOrNull<Node2D>("EnemyModel");
-                if (enemyModel != null)
-                {
-                    enemyModel.GlobalRotation = data.ModelRotation;
-                    enemyModel.Scale = data.ModelScale;
-
-                    // Apply procedural walking animation
-                    float walkTime = i < _ghostEnemyWalkAnimTimes.Count ? _ghostEnemyWalkAnimTimes[i] : 0.0f;
-                    ApplyWalkAnimation(enemyModel, data.Velocity, delta, ref walkTime);
-                    if (i < _ghostEnemyWalkAnimTimes.Count)
-                        _ghostEnemyWalkAnimTimes[i] = walkTime;
-                }
-
-                // Death effect: when alive transitions from true to false, fade out
+                // Death effect: when alive transitions from true to false, start fall animation
                 bool prevAlive = i < _ghostEnemyPrevAlive.Count && _ghostEnemyPrevAlive[i];
                 if (prevAlive && !data.Alive)
                 {
-                    // Start death fade
+                    // Start death fall animation
                     if (i < _ghostEnemyDeathTimers.Count)
                         _ghostEnemyDeathTimers[i] = DeathFadeDuration;
+                    if (i < _ghostEnemyDeathStartPos.Count)
+                        _ghostEnemyDeathStartPos[i] = data.Position;
+                    if (i < _ghostEnemyDeathDir.Count)
+                        _ghostEnemyDeathDir[i] = data.LastHitDirection.Normalized();
                     // Flash red on death
                     ghost.Modulate = new Color(1.5f, 0.3f, 0.3f, 1.0f);
                 }
 
-                // Update death fade timer
+                // Update death fall animation
                 if (i < _ghostEnemyDeathTimers.Count && _ghostEnemyDeathTimers[i] > 0.0f)
                 {
                     _ghostEnemyDeathTimers[i] -= delta * _playbackSpeed;
                     float t = Mathf.Clamp(_ghostEnemyDeathTimers[i] / DeathFadeDuration, 0.0f, 1.0f);
+                    // t goes from 1.0 (start) to 0.0 (end)
+                    float progress = 1.0f - t;
+                    // Ease-out curve for natural deceleration
+                    float easedProgress = 1.0f - Mathf.Pow(1.0f - progress, 2.0f);
+
                     ghost.Visible = true;
+
+                    // Displacement: body falls away from hit direction
+                    Vector2 startPos = i < _ghostEnemyDeathStartPos.Count ? _ghostEnemyDeathStartPos[i] : data.Position;
+                    Vector2 fallDir = i < _ghostEnemyDeathDir.Count ? _ghostEnemyDeathDir[i] : Vector2.Right;
+                    ghost.GlobalPosition = startPos + fallDir * DeathFallDistance * easedProgress;
+
+                    // Body rotation during fall (rotate toward fall direction)
+                    var enemyModel = ghost.GetNodeOrNull<Node2D>("EnemyModel");
+                    if (enemyModel != null)
+                    {
+                        float fallAngle = fallDir.Angle();
+                        float bodyRot = fallAngle * 0.5f * easedProgress;
+                        enemyModel.Rotation = bodyRot;
+
+                        // Arm swing during fall
+                        var leftArm = enemyModel.GetNodeOrNull<Node2D>("LeftArm");
+                        var rightArm = enemyModel.GetNodeOrNull<Node2D>("RightArm");
+                        float armAngle = Mathf.DegToRad(30.0f) * easedProgress;
+                        if (leftArm != null) leftArm.Rotation = armAngle;
+                        if (rightArm != null) rightArm.Rotation = -armAngle;
+                    }
+
+                    // Color: red flash fades to dark semi-transparent
                     ghost.Modulate = new Color(
-                        Mathf.Lerp(0.9f, 1.5f, t),
-                        Mathf.Lerp(0.9f, 0.3f, t),
-                        Mathf.Lerp(0.9f, 0.3f, t),
+                        Mathf.Lerp(0.3f, 1.5f, t),
+                        Mathf.Lerp(0.3f, 0.3f, t),
+                        Mathf.Lerp(0.3f, 0.3f, t),
                         Mathf.Lerp(0.0f, 1.0f, t)
                     );
 
@@ -657,6 +753,29 @@ namespace GodotTopDownTemplate.Autoload
                 else if (data.Alive)
                 {
                     ghost.Visible = true;
+                    ghost.GlobalPosition = data.Position;
+                    ghost.GlobalRotation = data.Rotation;
+
+                    // Apply EnemyModel rotation and scale for aiming direction
+                    var enemyModel = ghost.GetNodeOrNull<Node2D>("EnemyModel");
+                    if (enemyModel != null)
+                    {
+                        enemyModel.GlobalRotation = data.ModelRotation;
+                        enemyModel.Scale = data.ModelScale;
+                        enemyModel.Rotation = 0; // Reset any death rotation
+
+                        // Reset arm rotations from any prior death animation
+                        var leftArm = enemyModel.GetNodeOrNull<Node2D>("LeftArm");
+                        var rightArm = enemyModel.GetNodeOrNull<Node2D>("RightArm");
+                        if (leftArm != null) leftArm.Rotation = 0;
+                        if (rightArm != null) rightArm.Rotation = 0;
+
+                        // Apply procedural walking animation
+                        float walkTime = i < _ghostEnemyWalkAnimTimes.Count ? _ghostEnemyWalkAnimTimes[i] : 0.0f;
+                        ApplyWalkAnimation(enemyModel, data.Velocity, delta, ref walkTime, false);
+                        if (i < _ghostEnemyWalkAnimTimes.Count)
+                            _ghostEnemyWalkAnimTimes[i] = walkTime;
+                    }
                 }
 
                 if (i < _ghostEnemyPrevAlive.Count)
@@ -682,8 +801,9 @@ namespace GodotTopDownTemplate.Autoload
         /// <summary>
         /// Applies procedural walking animation to a model based on velocity.
         /// Uses the same sine wave formulas as player.gd and enemy.gd.
+        /// Uses absolute positioning from base positions to prevent arm drift.
         /// </summary>
-        private void ApplyWalkAnimation(Node2D model, Vector2 velocity, float delta, ref float walkAnimTime)
+        private void ApplyWalkAnimation(Node2D model, Vector2 velocity, float delta, ref float walkAnimTime, bool isPlayer)
         {
             float speed = velocity.Length();
 
@@ -691,6 +811,14 @@ namespace GodotTopDownTemplate.Autoload
             var head = model.GetNodeOrNull<Node2D>("Head");
             var leftArm = model.GetNodeOrNull<Node2D>("LeftArm");
             var rightArm = model.GetNodeOrNull<Node2D>("RightArm");
+
+            // Base positions from Player.tscn/Enemy.tscn scene files
+            // Player: Body(-4,0), Head(-6,-2), LeftArm(24,6), RightArm(-2,6)
+            // Enemy:  Body(-4,0), Head(-6,-2), LeftArm(24,6), RightArm(-2,6)
+            float baseBodyY = 0.0f;
+            float baseHeadY = -2.0f;
+            float baseLeftArmX = 24.0f;
+            float baseRightArmX = -2.0f;
 
             if (speed > WalkThreshold && delta > 0.0f)
             {
@@ -701,18 +829,20 @@ namespace GodotTopDownTemplate.Autoload
                 float headBob = Mathf.Sin(walkAnimTime * 2.0f) * 0.8f * WalkAnimIntensity;
                 float armSwing = Mathf.Sin(walkAnimTime) * 3.0f * WalkAnimIntensity;
 
-                if (body != null) body.Position = new Vector2(body.Position.X, bodyBob);
-                if (head != null) head.Position = new Vector2(head.Position.X, headBob);
-                if (leftArm != null) leftArm.Position = new Vector2(leftArm.Position.X + armSwing * delta * 10.0f, leftArm.Position.Y);
-                if (rightArm != null) rightArm.Position = new Vector2(rightArm.Position.X - armSwing * delta * 10.0f, rightArm.Position.Y);
+                if (body != null) body.Position = new Vector2(body.Position.X, baseBodyY + bodyBob);
+                if (head != null) head.Position = new Vector2(head.Position.X, baseHeadY + headBob);
+                // Use absolute position: base + offset (prevents drift)
+                if (leftArm != null) leftArm.Position = new Vector2(baseLeftArmX + armSwing, leftArm.Position.Y);
+                if (rightArm != null) rightArm.Position = new Vector2(baseRightArmX - armSwing, rightArm.Position.Y);
             }
             else
             {
                 walkAnimTime = 0.0f;
-                // Smoothly return to idle positions
-                float lerpSpeed = 10.0f * delta;
-                if (body != null) body.Position = body.Position.Lerp(new Vector2(body.Position.X, 0), lerpSpeed);
-                if (head != null) head.Position = head.Position.Lerp(new Vector2(head.Position.X, 0), lerpSpeed);
+                // Reset to base positions
+                if (body != null) body.Position = new Vector2(body.Position.X, baseBodyY);
+                if (head != null) head.Position = new Vector2(head.Position.X, baseHeadY);
+                if (leftArm != null) leftArm.Position = new Vector2(baseLeftArmX, leftArm.Position.Y);
+                if (rightArm != null) rightArm.Position = new Vector2(baseRightArmX, rightArm.Position.Y);
             }
         }
 
@@ -829,6 +959,8 @@ namespace GodotTopDownTemplate.Autoload
             _ghostEnemyWalkAnimTimes.Clear();
             _ghostEnemyPrevAlive.Clear();
             _ghostEnemyDeathTimers.Clear();
+            _ghostEnemyDeathStartPos.Clear();
+            _ghostEnemyDeathDir.Clear();
 
             var ghostContainer = new Node2D();
             ghostContainer.Name = "ReplayGhosts";
@@ -865,6 +997,8 @@ namespace GodotTopDownTemplate.Autoload
                         _ghostEnemyWalkAnimTimes.Add(0.0f);
                         _ghostEnemyPrevAlive.Add(true);
                         _ghostEnemyDeathTimers.Add(0.0f);
+                        _ghostEnemyDeathStartPos.Add(Vector2.Zero);
+                        _ghostEnemyDeathDir.Add(Vector2.Right);
                     }
                 }
             }
@@ -882,6 +1016,11 @@ namespace GodotTopDownTemplate.Autoload
                 ghost.ProcessMode = ProcessModeEnum.Always;
                 DisableNodeProcessing(ghost);
                 SetGhostModulate(ghost, new Color(1.0f, 1.0f, 1.0f, 0.9f));
+
+                // Add weapon sprite to ghost player's WeaponMount
+                // (weapons are NOT baked into Player.tscn — they are added dynamically by level scripts)
+                AddWeaponSpriteToGhost(ghost);
+
                 return ghost;
             }
 
@@ -894,6 +1033,37 @@ namespace GodotTopDownTemplate.Autoload
             sprite.Texture = ImageTexture.CreateFromImage(img);
             fallback.AddChild(sprite);
             return fallback;
+        }
+
+        /// <summary>
+        /// Adds a weapon sprite to the ghost player's WeaponMount node.
+        /// This is necessary because Player.tscn has an empty WeaponMount —
+        /// actual weapon sprites are added by level scripts at runtime.
+        /// </summary>
+        private void AddWeaponSpriteToGhost(Node2D ghost)
+        {
+            var weaponMount = ghost.GetNodeOrNull<Node2D>("PlayerModel/WeaponMount");
+            if (weaponMount == null)
+            {
+                LogToFile("WARNING: Ghost player has no PlayerModel/WeaponMount node");
+                return;
+            }
+
+            var weaponTexture = GD.Load<Texture2D>(_playerWeaponTexturePath);
+            if (weaponTexture == null)
+            {
+                LogToFile($"WARNING: Could not load weapon texture: {_playerWeaponTexturePath}");
+                return;
+            }
+
+            var weaponSprite = new Sprite2D();
+            weaponSprite.Name = "GhostWeaponSprite";
+            weaponSprite.Texture = weaponTexture;
+            weaponSprite.Offset = _playerWeaponSpriteOffset;
+            weaponSprite.ZIndex = 1;
+            weaponMount.AddChild(weaponSprite);
+
+            LogToFile($"Added weapon sprite to ghost player: {_playerWeaponTexturePath}");
         }
 
         private Node2D? CreateEnemyGhost()
@@ -931,13 +1101,13 @@ namespace GodotTopDownTemplate.Autoload
             if (type == "bullet")
             {
                 var texture = new GradientTexture2D();
-                texture.Width = 8;
-                texture.Height = 3;
-                texture.FillFrom = new Vector2(0, 0);
-                texture.FillTo = new Vector2(1, 0);
+                texture.Width = 16;
+                texture.Height = 4;
+                texture.FillFrom = new Vector2(0, 0.5f);
+                texture.FillTo = new Vector2(1, 0.5f);
                 var gradient = new Gradient();
                 gradient.SetColor(0, new Color(1.0f, 0.9f, 0.2f, 1.0f));
-                gradient.SetColor(1, new Color(1.0f, 0.7f, 0.1f, 1.0f));
+                gradient.SetColor(1, new Color(1.0f, 0.7f, 0.1f, 0.3f));
                 texture.Gradient = gradient;
                 sprite.Texture = texture;
             }
@@ -1009,8 +1179,12 @@ namespace GodotTopDownTemplate.Autoload
                 }
             }
 
-            var projectiles = level.GetNodeOrNull<Node2D>("Entities/Projectiles");
-            if (projectiles != null) projectiles.Visible = false;
+            // Hide any remaining bullet projectiles (direct children of level root)
+            foreach (var child in level.GetChildren())
+            {
+                if (child is Area2D area2D && (area2D.CollisionLayer & BulletCollisionLayer) != 0)
+                    area2D.Visible = false;
+            }
 
             // Hide the score screen / UI overlay (CanvasLayer/UI) so the replay
             // ghosts in the game world are visible. The CanvasLayer renders on top
@@ -1053,6 +1227,8 @@ namespace GodotTopDownTemplate.Autoload
             _ghostEnemyWalkAnimTimes.Clear();
             _ghostEnemyPrevAlive.Clear();
             _ghostEnemyDeathTimers.Clear();
+            _ghostEnemyDeathStartPos.Clear();
+            _ghostEnemyDeathDir.Clear();
 
             if (_levelNode != null && IsInstanceValid(_levelNode))
             {
