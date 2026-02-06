@@ -121,6 +121,8 @@ const FLASHBANG_EXPLOSION_IN_ZONE: String = "res://assets/audio/взрыв св�
 const FLASHBANG_EXPLOSION_OUT_ZONE: String = "res://assets/audio/взрыв светошумовой гранаты игрок вне зоны поражения.wav"
 ## Defensive grenade (F-1) explosion sound.
 const DEFENSIVE_GRENADE_EXPLOSION: String = "res://assets/audio/взрыв оборонительной гранаты.wav"
+## Offensive grenade (frag) explosion sound.
+const OFFENSIVE_GRENADE_EXPLOSION: String = "res://assets/audio/взрыв наступательной гранаты.wav"
 
 ## Volume settings (in dB).
 const VOLUME_SHOT: float = -5.0
@@ -276,6 +278,7 @@ func _preload_all_sounds() -> void:
 	all_sounds.append(FLASHBANG_EXPLOSION_IN_ZONE)
 	all_sounds.append(FLASHBANG_EXPLOSION_OUT_ZONE)
 	all_sounds.append(DEFENSIVE_GRENADE_EXPLOSION)
+	all_sounds.append(OFFENSIVE_GRENADE_EXPLOSION)
 	# Shotgun sounds
 	all_sounds.append_array(SHOTGUN_SHOTS)
 	all_sounds.append(SHOTGUN_ACTION_OPEN)
@@ -649,6 +652,12 @@ func play_flashbang_explosion(position: Vector2, player_in_zone: bool) -> void:
 ## Uses HIGH priority for explosion sounds.
 func play_defensive_grenade_explosion(position: Vector2) -> void:
 	play_sound_2d_with_priority(DEFENSIVE_GRENADE_EXPLOSION, position, VOLUME_GRENADE_EXPLOSION, SoundPriority.HIGH)
+
+
+## Plays offensive grenade (frag) explosion sound at the given position.
+## Uses HIGH priority for explosion sounds.
+func play_offensive_grenade_explosion(position: Vector2) -> void:
+	play_sound_2d_with_priority(OFFENSIVE_GRENADE_EXPLOSION, position, VOLUME_GRENADE_EXPLOSION, SoundPriority.HIGH)
 
 
 # ============================================================================
