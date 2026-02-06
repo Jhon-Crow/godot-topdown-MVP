@@ -68,7 +68,7 @@ const WEAPONS: Dictionary = {
 	},
 	"silenced_pistol": {
 		"name": "Silenced Pistol",
-		"icon_path": "res://assets/sprites/weapons/silenced_pistol_topdown.png",
+		"icon_path": "res://assets/sprites/weapons/silenced_pistol_icon.png",
 		"unlocked": true,
 		"description": "Beretta M9 with suppressor - semi-auto, 9mm, 13 rounds, silent shots, enemies stunned on hit (can't move/shoot until next shot). Press LMB to fire.",
 		"is_grenade": false
