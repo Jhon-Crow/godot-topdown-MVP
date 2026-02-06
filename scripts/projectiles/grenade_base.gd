@@ -388,6 +388,11 @@ func _explode() -> void:
 
 	FileLogger.info("[GrenadeBase] EXPLODED at %s!" % str(global_position))
 
+	# Trigger Power Fantasy grenade explosion effect (50ms special effect)
+	var power_fantasy_manager: Node = get_node_or_null("/root/PowerFantasyEffectsManager")
+	if power_fantasy_manager and power_fantasy_manager.has_method("on_grenade_exploded"):
+		power_fantasy_manager.on_grenade_exploded()
+
 	# Play explosion sound
 	_play_explosion_sound()
 
@@ -438,7 +443,7 @@ func _update_blink_effect(delta: float) -> void:
 		_blink_timer = 0.0
 		# Toggle visibility or color
 		if _sprite.modulate.r > 0.9:
-			_sprite.modulate = Color(1.0, 0.3, 0.3, 1.0)  # Red tint
+			_sprite.modulate = Color(0.3, 1.0, 0.3, 1.0)  # Green tint
 		else:
 			_sprite.modulate = Color(1.0, 1.0, 1.0, 1.0)  # Normal
 

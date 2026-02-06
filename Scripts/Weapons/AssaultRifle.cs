@@ -184,6 +184,19 @@ public partial class AssaultRifle : BaseWeapon
             GD.PrintErr("[AssaultRifle] WARNING: RifleSprite node not found!");
         }
 
+        // Check for Power Fantasy mode blue laser
+        var difficultyManager = GetNodeOrNull("/root/DifficultyManager");
+        if (difficultyManager != null)
+        {
+            var shouldForceBlueLaser = difficultyManager.Call("should_force_blue_laser_sight");
+            if (shouldForceBlueLaser.AsBool())
+            {
+                var blueColorVariant = difficultyManager.Call("get_power_fantasy_laser_color");
+                LaserSightColor = blueColorVariant.AsColor();
+                GD.Print($"[AssaultRifle] Power Fantasy mode: laser color set to blue {LaserSightColor}");
+            }
+        }
+
         // Get or create the laser sight Line2D
         _laserSight = GetNodeOrNull<Line2D>("LaserSight");
 
@@ -749,6 +762,15 @@ public partial class AssaultRifle : BaseWeapon
         {
             // Convert spread angle from degrees to radians
             float spreadRadians = Mathf.DegToRad(WeaponData.SpreadAngle);
+
+            // Apply Power Fantasy recoil multiplier (reduced recoil)
+            var difficultyManager = GetNodeOrNull("/root/DifficultyManager");
+            if (difficultyManager != null)
+            {
+                var multiplierResult = difficultyManager.Call("get_recoil_multiplier");
+                float recoilMultiplier = multiplierResult.AsSingle();
+                spreadRadians *= recoilMultiplier;
+            }
 
             // Generate random recoil direction (-1 or 1) with small variation
             float recoilDirection = (float)GD.RandRange(-1.0, 1.0);

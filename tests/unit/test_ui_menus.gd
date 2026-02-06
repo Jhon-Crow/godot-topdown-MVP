@@ -112,7 +112,7 @@ class MockControlsMenu:
 
 
 class MockDifficultyMenu:
-	enum Difficulty { EASY, NORMAL, HARD }
+	enum Difficulty { EASY, NORMAL, HARD, POWER_FANTASY }
 
 	var current_difficulty: Difficulty = Difficulty.NORMAL
 
@@ -133,6 +133,9 @@ class MockDifficultyMenu:
 	func is_hard_selected() -> bool:
 		return current_difficulty == Difficulty.HARD
 
+	func is_power_fantasy_selected() -> bool:
+		return current_difficulty == Difficulty.POWER_FANTASY
+
 	func get_easy_button_text() -> String:
 		return "Easy (Selected)" if is_easy_selected() else "Easy"
 
@@ -142,12 +145,17 @@ class MockDifficultyMenu:
 	func get_hard_button_text() -> String:
 		return "Hard (Selected)" if is_hard_selected() else "Hard"
 
+	func get_power_fantasy_button_text() -> String:
+		return "Power Fantasy (Selected)" if is_power_fantasy_selected() else "Power Fantasy"
+
 	func get_status_text() -> String:
 		match current_difficulty:
 			Difficulty.EASY:
 				return "Easy mode: Enemies react slower"
 			Difficulty.HARD:
 				return "Hard mode: Enemies react when you look away"
+			Difficulty.POWER_FANTASY:
+				return "Power Fantasy: 10 HP, 3x ammo, blue lasers"
 			_:
 				return "Normal mode: Classic gameplay"
 
@@ -415,6 +423,33 @@ func test_status_text_for_hard() -> void:
 	difficulty_menu.set_difficulty(MockDifficultyMenu.Difficulty.HARD)
 
 	assert_eq(difficulty_menu.get_status_text(), "Hard mode: Enemies react when you look away")
+
+
+func test_set_difficulty_power_fantasy() -> void:
+	difficulty_menu = MockDifficultyMenu.new()
+	difficulty_menu.set_difficulty(MockDifficultyMenu.Difficulty.POWER_FANTASY)
+
+	assert_true(difficulty_menu.is_power_fantasy_selected(), "Power Fantasy should be selected")
+	assert_false(difficulty_menu.is_normal_selected(), "Normal should not be selected")
+	assert_false(difficulty_menu.is_easy_selected(), "Easy should not be selected")
+	assert_false(difficulty_menu.is_hard_selected(), "Hard should not be selected")
+
+
+func test_button_text_shows_power_fantasy_selected() -> void:
+	difficulty_menu = MockDifficultyMenu.new()
+	difficulty_menu.set_difficulty(MockDifficultyMenu.Difficulty.POWER_FANTASY)
+
+	assert_eq(difficulty_menu.get_power_fantasy_button_text(), "Power Fantasy (Selected)")
+	assert_eq(difficulty_menu.get_easy_button_text(), "Easy")
+	assert_eq(difficulty_menu.get_normal_button_text(), "Normal")
+	assert_eq(difficulty_menu.get_hard_button_text(), "Hard")
+
+
+func test_status_text_for_power_fantasy() -> void:
+	difficulty_menu = MockDifficultyMenu.new()
+	difficulty_menu.set_difficulty(MockDifficultyMenu.Difficulty.POWER_FANTASY)
+
+	assert_eq(difficulty_menu.get_status_text(), "Power Fantasy: 10 HP, 3x ammo, blue lasers")
 
 
 # ============================================================================

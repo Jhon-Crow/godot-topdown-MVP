@@ -599,15 +599,31 @@ public partial class Player : BaseCharacter
             _sprite = GetNodeOrNull<Sprite2D>("Sprite2D");
         }
 
-        // Configure random health (2-4 HP)
+        // Configure health based on difficulty
         if (HealthComponent != null)
         {
-            HealthComponent.UseRandomHealth = true;
-            HealthComponent.MinRandomHealth = 2;
-            HealthComponent.MaxRandomHealth = 4;
-            HealthComponent.InitializeHealth();
+            // Check if Power Fantasy mode is active for special health configuration
+            var difficultyManager = GetNodeOrNull("/root/DifficultyManager");
+            bool isPowerFantasy = difficultyManager != null && (bool)difficultyManager.Call("is_power_fantasy_mode");
 
-            GD.Print($"[Player] {Name}: Spawned with health {HealthComponent.CurrentHealth}/{HealthComponent.MaxHealth}");
+            if (isPowerFantasy)
+            {
+                // Power Fantasy mode: 10 HP (fixed, not random)
+                HealthComponent.UseRandomHealth = false;
+                HealthComponent.MaxHealth = 10;
+                HealthComponent.InitialHealth = 10;
+                HealthComponent.InitializeHealth();
+                GD.Print($"[Player] {Name}: Power Fantasy mode - spawned with {HealthComponent.CurrentHealth}/{HealthComponent.MaxHealth} HP");
+            }
+            else
+            {
+                // Normal difficulties: random health (2-4 HP)
+                HealthComponent.UseRandomHealth = true;
+                HealthComponent.MinRandomHealth = 2;
+                HealthComponent.MaxRandomHealth = 4;
+                HealthComponent.InitializeHealth();
+                GD.Print($"[Player] {Name}: Spawned with health {HealthComponent.CurrentHealth}/{HealthComponent.MaxHealth}");
+            }
 
             // Connect to health changed signal for visual feedback
             HealthComponent.HealthChanged += OnPlayerHealthChanged;

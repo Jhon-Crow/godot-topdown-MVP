@@ -578,6 +578,23 @@ public partial class Bullet : Area2D
             return; // Don't hit the shooter with direct shots
         }
 
+        // Power Fantasy mode: Ricocheted bullets do NOT damage enemies
+        // Check if this is a ricocheted bullet hitting an enemy (not the shooter)
+        if (_hasRicocheted && parent != null && parent.IsInGroup("enemies"))
+        {
+            var difficultyManager = GetNodeOrNull("/root/DifficultyManager");
+            if (difficultyManager != null)
+            {
+                var result = difficultyManager.Call("do_ricochets_damage_enemies");
+                bool ricochetsDamageEnemies = result.AsBool();
+                if (!ricochetsDamageEnemies)
+                {
+                    GD.Print($"[Bullet]: Power Fantasy mode - ricocheted bullet passing through enemy {parent.Name}");
+                    return; // Pass through enemy without damage
+                }
+            }
+        }
+
         // Check if the parent is dead - bullets should pass through dead entities
         // This is a fallback check in case the collision shape/layer disabling
         // doesn't take effect immediately (see Godot issues #62506, #100687)
