@@ -964,9 +964,9 @@ public partial class SniperRifle : BaseWeapon
 
     /// <summary>
     /// Minimum scope zoom distance (viewport multiplier).
-    /// Set to 1.0 so the scope always looks beyond the normal viewport.
+    /// Set to 1.5 so the scope starts half a viewport beyond the normal view.
     /// </summary>
-    private const float MinScopeZoomDistance = 1.0f;
+    private const float MinScopeZoomDistance = 1.5f;
 
     /// <summary>
     /// Maximum scope zoom distance (viewport multiplier).
@@ -979,11 +979,11 @@ public partial class SniperRifle : BaseWeapon
     private const float ScopeZoomStep = 0.25f;
 
     /// <summary>
-    /// Maximum range in pixels that the player can fine-tune the scope
-    /// distance via mouse movement along the aim direction while scoped.
-    /// Approximately 200px closer or further.
+    /// Fine-tune range as a fraction of viewport diagonal.
+    /// Approximately 1/3 of the viewport, allowing the player to move
+    /// the scope view further or closer by about a third of the screen.
     /// </summary>
-    private const float ScopeMouseFineTuneMaxPixels = 200.0f;
+    private const float ScopeFineTuneFraction = 0.33f;
 
     /// <summary>
     /// Base mouse sensitivity multiplier when scoped.
@@ -1040,6 +1040,16 @@ public partial class SniperRifle : BaseWeapon
     /// Fine-tune offset is applied separately as a pixel-based displacement.
     /// </summary>
     private float EffectiveScopeZoomDistance => _scopeZoomDistance;
+
+    /// <summary>
+    /// Gets the maximum fine-tune range in pixels (1/3 of viewport diagonal).
+    /// </summary>
+    private float GetFineTuneMaxPixels()
+    {
+        Viewport? viewport = GetViewport();
+        if (viewport == null) return 400.0f; // fallback
+        return viewport.GetVisibleRect().Size.Length() * ScopeFineTuneFraction;
+    }
 
     /// <summary>
     /// Gets the current camera offset for scope aiming.
@@ -1162,8 +1172,9 @@ public partial class SniperRifle : BaseWeapon
         _scopeZoomDistance = Mathf.Clamp(_scopeZoomDistance, MinScopeZoomDistance, MaxScopeZoomDistance);
 
         // Reset fine-tune offset when zoom changes to avoid going out of range
+        float fineTuneMax = GetFineTuneMaxPixels();
         _scopeMouseFineTunePixels = Mathf.Clamp(_scopeMouseFineTunePixels,
-            -ScopeMouseFineTuneMaxPixels, ScopeMouseFineTuneMaxPixels);
+            -fineTuneMax, fineTuneMax);
 
         GD.Print($"[SniperRifle] Scope zoom adjusted: {_scopeZoomDistance:F2}x (fine-tune: {_scopeMouseFineTunePixels:F0}px)");
     }
@@ -1186,9 +1197,10 @@ public partial class SniperRifle : BaseWeapon
         // Project mouse motion onto the aim direction to get forward/backward pixel movement
         float projection = mouseMotion.Dot(_aimDirection);
         // Direct pixel mapping: mouse movement along aim direction adjusts scope distance in pixels
+        float fineTuneMax = GetFineTuneMaxPixels();
         _scopeMouseFineTunePixels += projection * 0.5f;
         _scopeMouseFineTunePixels = Mathf.Clamp(_scopeMouseFineTunePixels,
-            -ScopeMouseFineTuneMaxPixels, ScopeMouseFineTuneMaxPixels);
+            -fineTuneMax, fineTuneMax);
 
         // --- 2. Move crosshair with distance-based sensitivity ---
         // Sensitivity multiplier scales linearly with effective zoom distance
@@ -1469,8 +1481,9 @@ public partial class SniperRifle : BaseWeapon
 
         Vector2 viewportSize = viewport.GetVisibleRect().Size;
 
-        // Crosshair follows mouse offset (no auto-sway, driven by player input)
-        _scopeCrosshair.Position = viewportSize / 2 + _scopeMouseOffset;
+        // Crosshair stays at viewport center (camera offset moves the world view)
+        // This ensures bullets fired at GetScopeAimTarget() match the crosshair position
+        _scopeCrosshair.Position = viewportSize / 2;
 
         // Update zoom label showing effective zoom distance
         var zoomLabel = _scopeCrosshair.GetNodeOrNull<Label>("ZoomLabel");
