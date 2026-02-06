@@ -172,8 +172,7 @@ var _is_shotgun_weapon: bool = false  ## Whether weapon fires multiple pellets
 var _pellet_count_min: int = 1  ## Minimum pellets per shot (for shotgun)
 var _pellet_count_max: int = 1  ## Maximum pellets per shot (for shotgun)
 var _spread_angle: float = 0.0  ## Spread angle in degrees (for shotgun)
-var _spread_threshold: int = 3; var _initial_spread: float = 0.5; var _spread_increment: float = 0.6  ## Issue #516
-var _max_spread: float = 4.0; var _spread_reset_time: float = 0.25; var _shot_count: int = 0; var _spread_timer: float = 0.0
+var _spread_threshold: int = 3; var _initial_spread: float = 0.5; var _spread_increment: float = 0.6; var _max_spread: float = 4.0; var _spread_reset_time: float = 0.25; var _shot_count: int = 0; var _spread_timer: float = 0.0  ## Issue #516: progressive spread
 var _caliber_data: Resource = null  ## Caliber data for casings
 var _patrol_points: Array[Vector2] = []  ## Patrol state
 var _current_patrol_index: int = 0
@@ -481,9 +480,8 @@ func _configure_weapon_type() -> void:
 	_is_shotgun_weapon = c.get("is_shotgun", false)
 	_pellet_count_min = c.get("pellet_count_min", 1)
 	_pellet_count_max = c.get("pellet_count_max", 1)
-	_spread_angle = c.get("spread_angle", 0.0)  # Issue #516: progressive spread config below
-	_spread_threshold = c.get("spread_threshold", 3); _initial_spread = c.get("initial_spread", 0.5)
-	_spread_increment = c.get("spread_increment", 0.6); _max_spread = c.get("max_spread", 4.0); _spread_reset_time = c.get("spread_reset_time", 0.25)
+	_spread_angle = c.get("spread_angle", 0.0)
+	_spread_threshold = c.get("spread_threshold", 3); _initial_spread = c.get("initial_spread", 0.5); _spread_increment = c.get("spread_increment", 0.6); _max_spread = c.get("max_spread", 4.0); _spread_reset_time = c.get("spread_reset_time", 0.25)
 	print("[Enemy] Weapon: %s%s" % [WeaponConfigComponent.get_type_name(weapon_type), " (pellets=%d-%d)" % [_pellet_count_min, _pellet_count_max] if _is_shotgun_weapon else ""])
 
 ## Setup patrol points based on patrol offsets from initial position.
@@ -820,8 +818,7 @@ func _physics_process(delta: float) -> void:
 	# Update shoot cooldown timer
 	_shoot_timer += delta
 
-	_spread_timer += delta  # Issue #516: progressive spread reset
-	if _spread_timer >= _spread_reset_time and _spread_reset_time > 0.0: _shot_count = 0
+	_spread_timer += delta; if _spread_timer >= _spread_reset_time and _spread_reset_time > 0.0: _shot_count = 0  # Issue #516
 	# Update reload timer
 	_update_reload(delta)
 
@@ -3861,17 +3858,20 @@ func _shoot() -> void:
 	ammo_changed.emit(_current_ammo, _reserve_ammo)
 	if _current_ammo <= 0 and _reserve_ammo > 0: _start_reload()
 
-## Spawn a projectile. Issue #457: Use SetDirection() for C# to sync visual rotation.
+## Spawn a projectile. add_child first then set via setter methods for C# interop (Issue #457/#516).
 func _spawn_projectile(direction: Vector2, spawn_pos: Vector2) -> void:
 	var p := bullet_scene.instantiate(); p.global_position = spawn_pos
-	if p.has_method("SetDirection"): p.SetDirection(direction)  # Issue #457 fix
+	get_tree().current_scene.add_child(p)  # C# _Ready() runs; _PhysicsProcess hasn't yet
+	if p.has_method("SetDirection"): p.SetDirection(direction)
 	elif p.get("direction") != null: p.direction = direction
 	elif p.get("Direction") != null: p.Direction = direction
-	if p.get("shooter_id") != null: p.shooter_id = get_instance_id()
-	elif p.get("ShooterId") != null: p.ShooterId = get_instance_id()
-	if p.get("shooter_position") != null: p.shooter_position = spawn_pos
+	var sid := get_instance_id()
+	if p.has_method("SetShooterId"): p.SetShooterId(sid)
+	elif p.get("shooter_id") != null: p.shooter_id = sid
+	elif p.get("ShooterId") != null: p.ShooterId = sid
+	if p.has_method("SetShooterPosition"): p.SetShooterPosition(spawn_pos)
+	elif p.get("shooter_position") != null: p.shooter_position = spawn_pos
 	elif p.get("ShooterPosition") != null: p.ShooterPosition = spawn_pos
-	get_tree().current_scene.add_child(p)
 
 ## Shoot a single bullet (rifle/UZI) with progressive spread (Issue #516).
 func _shoot_single_bullet(direction: Vector2, spawn_pos: Vector2) -> void:
