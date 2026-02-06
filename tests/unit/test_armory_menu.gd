@@ -1,9 +1,9 @@
 extends GutTest
 ## Unit tests for ArmoryMenu.
 ##
-## Tests the weapon/grenade selection menu logic.
-## The armory menu separates firearms and grenades into distinct categories
-## and shows a loadout panel with detailed weapon stats.
+## Tests the weapon/grenade selection menu logic with Apply-based workflow.
+## The armory menu separates firearms and grenades into distinct categories,
+## shows a left sidebar with stats, and requires clicking "Apply" to confirm.
 
 
 # ============================================================================
@@ -71,16 +71,23 @@ class MockArmoryMenu:
 		2: {"name": "F-1 Grenade", "description": "Defensive grenade"}
 	}
 
-	## Currently selected weapon ID.
-	var selected_weapon: String = "m16"
+	## Applied (active) weapon ID.
+	var applied_weapon: String = "m16"
 
-	## Currently selected grenade type.
-	var selected_grenade_type: int = 0
+	## Applied (active) grenade type.
+	var applied_grenade_type: int = 0
+
+	## Pending weapon selection (not yet applied).
+	var pending_weapon: String = "m16"
+
+	## Pending grenade type (not yet applied).
+	var pending_grenade_type: int = 0
 
 	## Signal tracking.
 	var back_pressed_emitted: int = 0
 	var weapon_selected_emitted: Array = []
 	var grenade_selected_emitted: Array = []
+	var apply_count: int = 0
 
 	## Count unlocked firearms.
 	func count_unlocked_firearms() -> int:
@@ -104,28 +111,39 @@ class MockArmoryMenu:
 			return false
 		return FIREARMS[weapon_id]["unlocked"]
 
-	## Select a weapon (firearm only).
+	## Select a weapon (sets pending, does NOT apply immediately).
 	func select_weapon(weapon_id: String) -> bool:
 		if not is_weapon_unlocked(weapon_id):
 			return false
 
-		if weapon_id == selected_weapon:
-			return false  # Already selected
-
-		selected_weapon = weapon_id
-		weapon_selected_emitted.append(weapon_id)
+		pending_weapon = weapon_id
 		return true
 
-	## Select a grenade by type.
+	## Select a grenade by type (sets pending, does NOT apply immediately).
 	func select_grenade(grenade_type: int) -> bool:
 		if grenade_type not in GRENADES:
 			return false
 
-		if grenade_type == selected_grenade_type:
-			return false  # Already selected
+		pending_grenade_type = grenade_type
+		return true
 
-		selected_grenade_type = grenade_type
-		grenade_selected_emitted.append(grenade_type)
+	## Check if there are unapplied changes.
+	func has_pending_changes() -> bool:
+		return pending_weapon != applied_weapon or pending_grenade_type != applied_grenade_type
+
+	## Apply pending selections.
+	func apply() -> bool:
+		if not has_pending_changes():
+			return false
+
+		if pending_weapon != applied_weapon:
+			weapon_selected_emitted.append(pending_weapon)
+		if pending_grenade_type != applied_grenade_type:
+			grenade_selected_emitted.append(pending_grenade_type)
+
+		applied_weapon = pending_weapon
+		applied_grenade_type = pending_grenade_type
+		apply_count += 1
 		return true
 
 	## Handle back button press.
@@ -217,36 +235,34 @@ func test_count_total_grenades() -> void:
 
 
 # ============================================================================
-# Weapon Selection Tests
+# Pending Selection Tests (no immediate apply)
 # ============================================================================
 
 
-func test_select_weapon_success() -> void:
+func test_select_weapon_sets_pending() -> void:
 	var result := menu.select_weapon("shotgun")
 
 	assert_true(result,
-		"Should successfully select unlocked weapon")
-	assert_eq(menu.selected_weapon, "shotgun",
-		"Selected weapon should be updated")
+		"Should successfully set pending weapon")
+	assert_eq(menu.pending_weapon, "shotgun",
+		"Pending weapon should be updated")
+	assert_eq(menu.applied_weapon, "m16",
+		"Applied weapon should NOT change until Apply")
 
 
-func test_select_weapon_emits_signal() -> void:
+func test_select_weapon_does_not_emit_signal() -> void:
 	menu.select_weapon("shotgun")
 
-	assert_eq(menu.weapon_selected_emitted.size(), 1,
-		"Should emit weapon_selected signal")
-	assert_eq(menu.weapon_selected_emitted[0], "shotgun",
-		"Signal should contain weapon ID")
+	assert_eq(menu.weapon_selected_emitted.size(), 0,
+		"Should NOT emit weapon_selected until Apply")
 
 
-func test_select_same_weapon_no_signal() -> void:
-	menu.selected_weapon = "m16"
+func test_select_same_weapon_still_succeeds_as_pending() -> void:
+	menu.pending_weapon = "m16"
 	var result := menu.select_weapon("m16")
 
-	assert_false(result,
-		"Should return false for same weapon")
-	assert_eq(menu.weapon_selected_emitted.size(), 0,
-		"Should not emit signal for same weapon")
+	assert_true(result,
+		"Should allow selecting same weapon (sets pending)")
 
 
 func test_select_locked_weapon() -> void:
@@ -254,53 +270,26 @@ func test_select_locked_weapon() -> void:
 
 	assert_false(result,
 		"Should not select locked weapon")
-	assert_eq(menu.selected_weapon, "m16",
-		"Selected weapon should remain unchanged")
+	assert_eq(menu.pending_weapon, "m16",
+		"Pending weapon should remain unchanged")
 
 
-# ============================================================================
-# Grenade Selection Tests
-# ============================================================================
-
-
-func test_select_grenade_success() -> void:
-	menu.selected_grenade_type = 0  # Flashbang
+func test_select_grenade_sets_pending() -> void:
 	var result := menu.select_grenade(1)  # Frag
 
 	assert_true(result,
-		"Should successfully select different grenade")
-	assert_eq(menu.selected_grenade_type, 1,
-		"Selected grenade type should be updated")
+		"Should successfully set pending grenade")
+	assert_eq(menu.pending_grenade_type, 1,
+		"Pending grenade type should be updated")
+	assert_eq(menu.applied_grenade_type, 0,
+		"Applied grenade type should NOT change until Apply")
 
 
-func test_select_grenade_emits_signal() -> void:
-	menu.selected_grenade_type = 0
+func test_select_grenade_does_not_emit_signal() -> void:
 	menu.select_grenade(1)
 
-	assert_eq(menu.grenade_selected_emitted.size(), 1,
-		"Should emit grenade selection signal")
-	assert_eq(menu.grenade_selected_emitted[0], 1,
-		"Signal should contain grenade type")
-
-
-func test_select_same_grenade_no_signal() -> void:
-	menu.selected_grenade_type = 0
-	var result := menu.select_grenade(0)
-
-	assert_false(result,
-		"Should return false for same grenade")
 	assert_eq(menu.grenade_selected_emitted.size(), 0,
-		"Should not emit signal for same grenade")
-
-
-func test_select_defensive_grenade() -> void:
-	menu.selected_grenade_type = 0
-	var result := menu.select_grenade(2)  # Defensive
-
-	assert_true(result,
-		"Should successfully select defensive grenade")
-	assert_eq(menu.selected_grenade_type, 2,
-		"Should select defensive grenade type")
+		"Should NOT emit grenade signal until Apply")
 
 
 func test_select_invalid_grenade_type() -> void:
@@ -308,8 +297,116 @@ func test_select_invalid_grenade_type() -> void:
 
 	assert_false(result,
 		"Should not select invalid grenade type")
-	assert_eq(menu.selected_grenade_type, 0,
+	assert_eq(menu.pending_grenade_type, 0,
 		"Grenade type should remain unchanged")
+
+
+# ============================================================================
+# has_pending_changes Tests
+# ============================================================================
+
+
+func test_no_pending_changes_initially() -> void:
+	assert_false(menu.has_pending_changes(),
+		"Should have no pending changes initially")
+
+
+func test_has_pending_changes_after_weapon_select() -> void:
+	menu.select_weapon("shotgun")
+
+	assert_true(menu.has_pending_changes(),
+		"Should have pending changes after selecting a different weapon")
+
+
+func test_has_pending_changes_after_grenade_select() -> void:
+	menu.select_grenade(2)
+
+	assert_true(menu.has_pending_changes(),
+		"Should have pending changes after selecting a different grenade")
+
+
+func test_no_pending_changes_when_same_selection() -> void:
+	menu.select_weapon("m16")
+	menu.select_grenade(0)
+
+	assert_false(menu.has_pending_changes(),
+		"Should have no pending changes when same as applied")
+
+
+# ============================================================================
+# Apply Tests
+# ============================================================================
+
+
+func test_apply_weapon_change() -> void:
+	menu.select_weapon("shotgun")
+	var result := menu.apply()
+
+	assert_true(result,
+		"Apply should succeed with pending changes")
+	assert_eq(menu.applied_weapon, "shotgun",
+		"Applied weapon should be updated after Apply")
+	assert_eq(menu.weapon_selected_emitted.size(), 1,
+		"Should emit weapon_selected on Apply")
+	assert_eq(menu.weapon_selected_emitted[0], "shotgun",
+		"Signal should contain new weapon ID")
+
+
+func test_apply_grenade_change() -> void:
+	menu.select_grenade(1)
+	var result := menu.apply()
+
+	assert_true(result,
+		"Apply should succeed with pending grenade change")
+	assert_eq(menu.applied_grenade_type, 1,
+		"Applied grenade type should be updated after Apply")
+	assert_eq(menu.grenade_selected_emitted.size(), 1,
+		"Should emit grenade signal on Apply")
+
+
+func test_apply_both_changes() -> void:
+	menu.select_weapon("sniper")
+	menu.select_grenade(2)
+	var result := menu.apply()
+
+	assert_true(result,
+		"Apply should succeed")
+	assert_eq(menu.applied_weapon, "sniper",
+		"Weapon should be applied")
+	assert_eq(menu.applied_grenade_type, 2,
+		"Grenade should be applied")
+	assert_eq(menu.weapon_selected_emitted.size(), 1,
+		"Should emit one weapon signal")
+	assert_eq(menu.grenade_selected_emitted.size(), 1,
+		"Should emit one grenade signal")
+
+
+func test_apply_without_changes_returns_false() -> void:
+	var result := menu.apply()
+
+	assert_false(result,
+		"Apply should return false with no pending changes")
+	assert_eq(menu.apply_count, 0,
+		"Apply count should remain zero")
+
+
+func test_apply_clears_pending_state() -> void:
+	menu.select_weapon("mini_uzi")
+	menu.apply()
+
+	assert_false(menu.has_pending_changes(),
+		"Should have no pending changes after Apply")
+
+
+func test_double_apply_does_nothing() -> void:
+	menu.select_weapon("shotgun")
+	menu.apply()
+	var second_result := menu.apply()
+
+	assert_false(second_result,
+		"Second apply should return false (no changes)")
+	assert_eq(menu.apply_count, 1,
+		"Apply count should be 1")
 
 
 # ============================================================================
@@ -338,35 +435,35 @@ func test_multiple_back_presses() -> void:
 # ============================================================================
 
 
-func test_switch_weapons() -> void:
+func test_switch_weapons_pending() -> void:
 	menu.select_weapon("shotgun")
-	menu.select_weapon("m16")
+	menu.select_weapon("mini_uzi")
 
-	assert_eq(menu.selected_weapon, "m16",
-		"Should switch back to m16")
-	assert_eq(menu.weapon_selected_emitted.size(), 2,
-		"Should emit signal for each switch")
+	assert_eq(menu.pending_weapon, "mini_uzi",
+		"Latest pending weapon should be mini_uzi")
+	assert_eq(menu.applied_weapon, "m16",
+		"Applied weapon should still be m16")
 
 
-func test_switch_grenades() -> void:
-	menu.selected_grenade_type = 0
+func test_switch_grenades_pending() -> void:
 	menu.select_grenade(1)
-	menu.select_grenade(0)
+	menu.select_grenade(2)
 
-	assert_eq(menu.selected_grenade_type, 0,
-		"Should switch back to flashbang")
-	assert_eq(menu.grenade_selected_emitted.size(), 2,
-		"Should emit signal for each switch")
+	assert_eq(menu.pending_grenade_type, 2,
+		"Latest pending grenade should be defensive")
+	assert_eq(menu.applied_grenade_type, 0,
+		"Applied grenade should still be flashbang")
 
 
-func test_select_weapon_and_grenade() -> void:
+func test_select_weapon_and_grenade_then_apply() -> void:
 	menu.select_weapon("shotgun")
 	menu.select_grenade(1)
+	menu.apply()
 
-	assert_eq(menu.selected_weapon, "shotgun",
-		"Weapon should be updated")
-	assert_eq(menu.selected_grenade_type, 1,
-		"Grenade should be updated")
+	assert_eq(menu.applied_weapon, "shotgun",
+		"Weapon should be applied")
+	assert_eq(menu.applied_grenade_type, 1,
+		"Grenade should be applied")
 
 
 # ============================================================================
@@ -402,7 +499,6 @@ func test_all_unlocked_weapons_selectable() -> void:
 	var unlocked_weapons := ["m16", "shotgun", "mini_uzi", "silenced_pistol", "sniper"]
 
 	for weapon_id in unlocked_weapons:
-		menu.selected_weapon = ""  # Reset
 		var result := menu.select_weapon(weapon_id)
 		assert_true(result,
 			"Should be able to select %s" % weapon_id)
@@ -410,18 +506,17 @@ func test_all_unlocked_weapons_selectable() -> void:
 
 func test_all_grenades_selectable() -> void:
 	for grenade_type in [0, 1, 2]:
-		# Start with a different grenade selected
-		menu.selected_grenade_type = (grenade_type + 1) % 3
 		var result := menu.select_grenade(grenade_type)
 		assert_true(result,
 			"Should be able to select grenade type %d" % grenade_type)
 
 
-func test_cycle_all_weapons() -> void:
+func test_cycle_all_weapons_and_apply() -> void:
 	var weapons := ["shotgun", "mini_uzi", "silenced_pistol", "sniper", "m16"]
 	for weapon_id in weapons:
 		menu.select_weapon(weapon_id)
-	assert_eq(menu.selected_weapon, "m16",
-		"Should end on M16 after cycling all weapons")
+		menu.apply()
+	assert_eq(menu.applied_weapon, "m16",
+		"Should end on M16 after cycling all weapons and applying")
 	assert_eq(menu.weapon_selected_emitted.size(), 5,
-		"Should emit signal for each selection")
+		"Should emit signal for each Apply")

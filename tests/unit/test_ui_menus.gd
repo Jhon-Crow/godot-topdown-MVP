@@ -250,7 +250,8 @@ class MockArmoryMenu:
 	signal back_pressed
 	signal weapon_selected(weapon_id: String)
 
-	var _selected_weapon: String = "m16"
+	var _applied_weapon: String = "m16"
+	var _pending_weapon: String = "m16"
 
 	func get_weapon_count() -> int:
 		return FIREARMS.size()
@@ -277,11 +278,21 @@ class MockArmoryMenu:
 
 	func select_weapon(weapon_id: String) -> void:
 		if weapon_id in FIREARMS and FIREARMS[weapon_id]["unlocked"]:
-			_selected_weapon = weapon_id
-			weapon_selected.emit(weapon_id)
+			_pending_weapon = weapon_id
+
+	func has_pending_changes() -> bool:
+		return _pending_weapon != _applied_weapon
+
+	func apply() -> void:
+		if has_pending_changes():
+			_applied_weapon = _pending_weapon
+			weapon_selected.emit(_applied_weapon)
 
 	func get_selected_weapon() -> String:
-		return _selected_weapon
+		return _applied_weapon
+
+	func get_pending_weapon() -> String:
+		return _pending_weapon
 
 
 # ============================================================================
@@ -583,20 +594,29 @@ func test_armory_menu_shotgun_unlocked() -> void:
 	assert_true(armory_menu.is_weapon_unlocked("shotgun"), "Shotgun should be unlocked")
 
 
-func test_armory_menu_select_weapon_changes_selection() -> void:
+func test_armory_menu_select_weapon_sets_pending() -> void:
 	armory_menu = MockArmoryMenu.new()
 	assert_eq(armory_menu.get_selected_weapon(), "m16", "Default weapon should be M16")
 
 	armory_menu.select_weapon("shotgun")
 
-	assert_eq(armory_menu.get_selected_weapon(), "shotgun", "Should select shotgun")
+	assert_eq(armory_menu.get_pending_weapon(), "shotgun", "Pending should be shotgun")
+	assert_eq(armory_menu.get_selected_weapon(), "m16", "Applied should still be M16 until Apply")
+
+
+func test_armory_menu_apply_changes_selection() -> void:
+	armory_menu = MockArmoryMenu.new()
+	armory_menu.select_weapon("shotgun")
+	armory_menu.apply()
+
+	assert_eq(armory_menu.get_selected_weapon(), "shotgun", "Should select shotgun after Apply")
 
 
 func test_armory_menu_cannot_select_locked_weapon() -> void:
 	armory_menu = MockArmoryMenu.new()
 	armory_menu.select_weapon("ak47")  # Locked weapon
 
-	assert_eq(armory_menu.get_selected_weapon(), "m16", "Should remain M16 when trying to select locked weapon")
+	assert_eq(armory_menu.get_pending_weapon(), "m16", "Pending should remain M16 when trying to select locked weapon")
 
 
 func test_armory_menu_get_shotgun_data() -> void:

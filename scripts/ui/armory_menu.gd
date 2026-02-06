@@ -1,10 +1,10 @@
 extends CanvasLayer
 ## Armory menu for selecting weapons and grenades by category.
 ##
-## Displays weapons and grenades in separate sections with category headers.
-## Shows a "Current Loadout" panel with detailed stats for the selected
-## weapon and grenade. Selecting a different item will restart the level.
-## Designed for extensibility — new categories can be added as sections.
+## Layout: left sidebar with stats/description, right area with weapon/grenade grids.
+## Items fit on screen without scrolling. An accordion toggle expands the grid
+## if there are too many items. An "Apply" button confirms the selection
+## and restarts the level (no immediate restart on click).
 
 ## Signal emitted when the back button is pressed.
 signal back_pressed
@@ -74,18 +74,36 @@ const WEAPON_RESOURCE_PATHS: Dictionary = {
 	"sniper": "res://resources/weapons/SniperRifleData.tres"
 }
 
-## Reference to UI elements — these are created in code, not from scene nodes.
-var _scroll_container: ScrollContainer
-var _main_vbox: VBoxContainer
+## Maximum number of visible weapon rows before accordion hides the rest.
+const MAX_WEAPON_ROWS_COLLAPSED: int = 2
+
+## Maximum number of visible grenade rows before accordion hides the rest.
+const MAX_GRENADE_ROWS_COLLAPSED: int = 1
+
+## Number of columns in the weapon/grenade grids.
+const GRID_COLUMNS: int = 4
+
+## Reference to UI elements — created in code.
 var _weapon_grid: GridContainer
 var _grenade_grid: GridContainer
-var _loadout_panel: PanelContainer
 var _weapon_stats_label: RichTextLabel
 var _grenade_stats_label: RichTextLabel
 var _back_button: Button
+var _apply_button: Button
+var _weapon_accordion_button: Button
+var _grenade_accordion_button: Button
 
-## Currently selected weapon slot (for visual highlighting).
-var _selected_slot: PanelContainer = null
+## Currently pending weapon selection (not yet applied).
+var _pending_weapon_id: String = ""
+
+## Currently pending grenade selection (not yet applied).
+var _pending_grenade_type: int = -1
+
+## Whether the weapon grid is expanded (accordion open).
+var _weapons_expanded: bool = false
+
+## Whether the grenade grid is expanded (accordion open).
+var _grenades_expanded: bool = false
 
 ## Map of weapon slots by weapon ID.
 var _weapon_slots: Dictionary = {}
@@ -99,6 +117,12 @@ var _grenade_manager: Node = null
 ## Cached weapon resource data.
 var _weapon_resources: Dictionary = {}
 
+## Overflow weapon slots (hidden when collapsed).
+var _weapon_overflow_slots: Array = []
+
+## Overflow grenade slots (hidden when collapsed).
+var _grenade_overflow_slots: Array = []
+
 
 func _ready() -> void:
 	# Get GrenadeManager reference
@@ -106,6 +130,17 @@ func _ready() -> void:
 
 	# Load weapon resource data
 	_load_weapon_resources()
+
+	# Initialize pending selections from current state
+	if GameManager:
+		_pending_weapon_id = GameManager.get_selected_weapon()
+	else:
+		_pending_weapon_id = "m16"
+
+	if _grenade_manager:
+		_pending_grenade_type = _grenade_manager.current_grenade_type
+	else:
+		_pending_grenade_type = 0
 
 	# Build the entire UI programmatically
 	_build_ui()
@@ -137,7 +172,7 @@ func _build_ui() -> void:
 	bg.color = Color(0.0, 0.0, 0.0, 0.6)
 	root_control.add_child(bg)
 
-	# Centered panel
+	# Main panel — wider to accommodate sidebar layout
 	var panel := PanelContainer.new()
 	panel.name = "MainPanel"
 	panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
@@ -145,9 +180,9 @@ func _build_ui() -> void:
 	panel.anchor_top = 0.5
 	panel.anchor_right = 0.5
 	panel.anchor_bottom = 0.5
-	panel.offset_left = -380
+	panel.offset_left = -500
 	panel.offset_top = -310
-	panel.offset_right = 380
+	panel.offset_right = 500
 	panel.offset_bottom = 310
 	panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	panel.grow_vertical = Control.GROW_DIRECTION_BOTH
@@ -169,17 +204,17 @@ func _build_ui() -> void:
 	# Margin inside panel
 	var margin := MarginContainer.new()
 	margin.layout_mode = 2
-	margin.add_theme_constant_override("margin_left", 20)
-	margin.add_theme_constant_override("margin_top", 15)
-	margin.add_theme_constant_override("margin_right", 20)
-	margin.add_theme_constant_override("margin_bottom", 15)
+	margin.add_theme_constant_override("margin_left", 16)
+	margin.add_theme_constant_override("margin_top", 12)
+	margin.add_theme_constant_override("margin_right", 16)
+	margin.add_theme_constant_override("margin_bottom", 12)
 	panel.add_child(margin)
 
-	# Main vertical layout
-	_main_vbox = VBoxContainer.new()
-	_main_vbox.layout_mode = 2
-	_main_vbox.add_theme_constant_override("separation", 10)
-	margin.add_child(_main_vbox)
+	# Main vertical layout (title + content + buttons)
+	var main_vbox := VBoxContainer.new()
+	main_vbox.layout_mode = 2
+	main_vbox.add_theme_constant_override("separation", 8)
+	margin.add_child(main_vbox)
 
 	# Title
 	var title := Label.new()
@@ -187,57 +222,221 @@ func _build_ui() -> void:
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 22)
 	title.add_theme_color_override("font_color", Color(0.9, 0.85, 0.7, 1.0))
-	_main_vbox.add_child(title)
+	main_vbox.add_child(title)
 
-	# Separator
+	# Separator below title
 	var sep := HSeparator.new()
-	_main_vbox.add_child(sep)
+	main_vbox.add_child(sep)
 
-	# Scrollable area for weapons + grenades + loadout
-	_scroll_container = ScrollContainer.new()
-	_scroll_container.layout_mode = 2
-	_scroll_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_scroll_container.custom_minimum_size = Vector2(0, 420)
-	_main_vbox.add_child(_scroll_container)
+	# --- HORIZONTAL LAYOUT: LEFT SIDEBAR + RIGHT GRIDS ---
+	var content_hbox := HBoxContainer.new()
+	content_hbox.layout_mode = 2
+	content_hbox.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	content_hbox.add_theme_constant_override("separation", 12)
+	main_vbox.add_child(content_hbox)
 
-	var scroll_vbox := VBoxContainer.new()
-	scroll_vbox.layout_mode = 2
-	scroll_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll_vbox.add_theme_constant_override("separation", 10)
-	_scroll_container.add_child(scroll_vbox)
+	# --- LEFT SIDEBAR: Loadout stats ---
+	var sidebar := _build_sidebar()
+	content_hbox.add_child(sidebar)
+
+	# Vertical separator
+	var vsep := VSeparator.new()
+	content_hbox.add_child(vsep)
+
+	# --- RIGHT AREA: Weapon and grenade grids ---
+	var right_area := _build_right_area()
+	content_hbox.add_child(right_area)
+
+	# --- BOTTOM BUTTONS ---
+	var bottom_sep := HSeparator.new()
+	main_vbox.add_child(bottom_sep)
+
+	var button_hbox := HBoxContainer.new()
+	button_hbox.layout_mode = 2
+	button_hbox.alignment = BoxContainer.ALIGNMENT_CENTER
+	button_hbox.add_theme_constant_override("separation", 16)
+	main_vbox.add_child(button_hbox)
+
+	_back_button = Button.new()
+	_back_button.text = "Back"
+	_back_button.custom_minimum_size = Vector2(140, 36)
+	_back_button.pressed.connect(_on_back_pressed)
+	button_hbox.add_child(_back_button)
+
+	_apply_button = Button.new()
+	_apply_button.text = "Apply"
+	_apply_button.custom_minimum_size = Vector2(140, 36)
+	_apply_button.pressed.connect(_on_apply_pressed)
+	_apply_button.disabled = true
+	button_hbox.add_child(_apply_button)
+
+	# Style Apply button to stand out
+	var apply_style_normal := StyleBoxFlat.new()
+	apply_style_normal.bg_color = Color(0.2, 0.45, 0.2, 0.9)
+	apply_style_normal.corner_radius_top_left = 4
+	apply_style_normal.corner_radius_top_right = 4
+	apply_style_normal.corner_radius_bottom_left = 4
+	apply_style_normal.corner_radius_bottom_right = 4
+	_apply_button.add_theme_stylebox_override("normal", apply_style_normal)
+
+	var apply_style_hover := StyleBoxFlat.new()
+	apply_style_hover.bg_color = Color(0.25, 0.55, 0.25, 0.95)
+	apply_style_hover.corner_radius_top_left = 4
+	apply_style_hover.corner_radius_top_right = 4
+	apply_style_hover.corner_radius_bottom_left = 4
+	apply_style_hover.corner_radius_bottom_right = 4
+	_apply_button.add_theme_stylebox_override("hover", apply_style_hover)
+
+	var apply_style_disabled := StyleBoxFlat.new()
+	apply_style_disabled.bg_color = Color(0.2, 0.2, 0.22, 0.6)
+	apply_style_disabled.corner_radius_top_left = 4
+	apply_style_disabled.corner_radius_top_right = 4
+	apply_style_disabled.corner_radius_bottom_left = 4
+	apply_style_disabled.corner_radius_bottom_right = 4
+	_apply_button.add_theme_stylebox_override("disabled", apply_style_disabled)
+
+	# Initial highlight and stats
+	_highlight_selected_items()
+	_update_loadout_panel()
+	_update_apply_button_state()
+
+
+## Build the left sidebar with weapon and grenade stats.
+func _build_sidebar() -> VBoxContainer:
+	var sidebar := VBoxContainer.new()
+	sidebar.layout_mode = 2
+	sidebar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	sidebar.size_flags_stretch_ratio = 0.45
+	sidebar.add_theme_constant_override("separation", 8)
+
+	# Sidebar styled panel
+	var sidebar_panel := PanelContainer.new()
+	sidebar_panel.layout_mode = 2
+	sidebar_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+
+	var sidebar_style := StyleBoxFlat.new()
+	sidebar_style.bg_color = Color(0.15, 0.18, 0.2, 0.9)
+	sidebar_style.corner_radius_top_left = 6
+	sidebar_style.corner_radius_top_right = 6
+	sidebar_style.corner_radius_bottom_left = 6
+	sidebar_style.corner_radius_bottom_right = 6
+	sidebar_style.border_color = Color(0.3, 0.4, 0.35, 0.8)
+	sidebar_style.border_width_left = 1
+	sidebar_style.border_width_right = 1
+	sidebar_style.border_width_top = 1
+	sidebar_style.border_width_bottom = 1
+	sidebar_panel.add_theme_stylebox_override("panel", sidebar_style)
+	sidebar.add_child(sidebar_panel)
+
+	var sidebar_margin := MarginContainer.new()
+	sidebar_margin.layout_mode = 2
+	sidebar_margin.add_theme_constant_override("margin_left", 10)
+	sidebar_margin.add_theme_constant_override("margin_top", 8)
+	sidebar_margin.add_theme_constant_override("margin_right", 10)
+	sidebar_margin.add_theme_constant_override("margin_bottom", 8)
+	sidebar_panel.add_child(sidebar_margin)
+
+	var stats_vbox := VBoxContainer.new()
+	stats_vbox.layout_mode = 2
+	stats_vbox.add_theme_constant_override("separation", 6)
+	sidebar_margin.add_child(stats_vbox)
+
+	# Header
+	var loadout_header := Label.new()
+	loadout_header.text = "CURRENT LOADOUT"
+	loadout_header.add_theme_font_size_override("font_size", 14)
+	loadout_header.add_theme_color_override("font_color", Color(0.7, 0.75, 0.8, 1.0))
+	stats_vbox.add_child(loadout_header)
+
+	var stats_sep := HSeparator.new()
+	stats_vbox.add_child(stats_sep)
+
+	# Weapon stats
+	_weapon_stats_label = RichTextLabel.new()
+	_weapon_stats_label.layout_mode = 2
+	_weapon_stats_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_weapon_stats_label.bbcode_enabled = true
+	_weapon_stats_label.fit_content = true
+	_weapon_stats_label.scroll_active = false
+	_weapon_stats_label.add_theme_font_size_override("normal_font_size", 12)
+	stats_vbox.add_child(_weapon_stats_label)
+
+	var mid_sep := HSeparator.new()
+	stats_vbox.add_child(mid_sep)
+
+	# Grenade stats
+	_grenade_stats_label = RichTextLabel.new()
+	_grenade_stats_label.layout_mode = 2
+	_grenade_stats_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_grenade_stats_label.bbcode_enabled = true
+	_grenade_stats_label.fit_content = true
+	_grenade_stats_label.scroll_active = false
+	_grenade_stats_label.add_theme_font_size_override("normal_font_size", 12)
+	stats_vbox.add_child(_grenade_stats_label)
+
+	return sidebar
+
+
+## Build the right area with weapon and grenade grids.
+func _build_right_area() -> VBoxContainer:
+	var right_vbox := VBoxContainer.new()
+	right_vbox.layout_mode = 2
+	right_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	right_vbox.size_flags_stretch_ratio = 0.55
+	right_vbox.add_theme_constant_override("separation", 6)
 
 	# --- WEAPONS SECTION ---
-	_add_category_header(scroll_vbox, "WEAPONS")
+	_add_category_header(right_vbox, "WEAPONS")
 	_weapon_grid = GridContainer.new()
-	_weapon_grid.columns = 4
+	_weapon_grid.columns = GRID_COLUMNS
 	_weapon_grid.layout_mode = 2
 	_weapon_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_weapon_grid.add_theme_constant_override("h_separation", 10)
-	_weapon_grid.add_theme_constant_override("v_separation", 10)
-	scroll_vbox.add_child(_weapon_grid)
+	_weapon_grid.add_theme_constant_override("h_separation", 6)
+	_weapon_grid.add_theme_constant_override("v_separation", 6)
+	right_vbox.add_child(_weapon_grid)
 
 	# Populate weapon grid
+	var weapon_index: int = 0
+	var max_visible_weapons: int = MAX_WEAPON_ROWS_COLLAPSED * GRID_COLUMNS
 	for weapon_id in FIREARMS:
 		var weapon_data: Dictionary = FIREARMS[weapon_id]
 		var slot := _create_item_slot(weapon_id, weapon_data, false)
 		_weapon_grid.add_child(slot)
 		_weapon_slots[weapon_id] = slot
+		if weapon_index >= max_visible_weapons:
+			_weapon_overflow_slots.append(slot)
+		weapon_index += 1
+
+	# Weapon accordion button (only shown if items overflow)
+	_weapon_accordion_button = Button.new()
+	_weapon_accordion_button.text = "Show all ▼"
+	_weapon_accordion_button.add_theme_font_size_override("font_size", 11)
+	_weapon_accordion_button.pressed.connect(_toggle_weapon_accordion)
+	right_vbox.add_child(_weapon_accordion_button)
+
+	if _weapon_overflow_slots.size() == 0:
+		_weapon_accordion_button.visible = false
+	else:
+		_apply_accordion_collapsed_weapons()
+
+	# Separator
+	var grenade_sep := HSeparator.new()
+	grenade_sep.add_theme_constant_override("separation", 4)
+	right_vbox.add_child(grenade_sep)
 
 	# --- GRENADES SECTION ---
-	var grenade_sep := HSeparator.new()
-	grenade_sep.add_theme_constant_override("separation", 5)
-	scroll_vbox.add_child(grenade_sep)
-
-	_add_category_header(scroll_vbox, "GRENADES")
+	_add_category_header(right_vbox, "GRENADES")
 	_grenade_grid = GridContainer.new()
-	_grenade_grid.columns = 4
+	_grenade_grid.columns = GRID_COLUMNS
 	_grenade_grid.layout_mode = 2
 	_grenade_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_grenade_grid.add_theme_constant_override("h_separation", 10)
-	_grenade_grid.add_theme_constant_override("v_separation", 10)
-	scroll_vbox.add_child(_grenade_grid)
+	_grenade_grid.add_theme_constant_override("h_separation", 6)
+	_grenade_grid.add_theme_constant_override("v_separation", 6)
+	right_vbox.add_child(_grenade_grid)
 
 	# Populate grenade grid from GrenadeManager
+	var grenade_index: int = 0
+	var max_visible_grenades: int = MAX_GRENADE_ROWS_COLLAPSED * GRID_COLUMNS
 	if _grenade_manager:
 		for grenade_type in _grenade_manager.get_all_grenade_types():
 			var gdata: Dictionary = _grenade_manager.get_grenade_data(grenade_type)
@@ -251,85 +450,66 @@ func _build_ui() -> void:
 			var slot := _create_item_slot(str(grenade_type), grenade_info, true)
 			_grenade_grid.add_child(slot)
 			_grenade_slots[grenade_type] = slot
+			if grenade_index >= max_visible_grenades:
+				_grenade_overflow_slots.append(slot)
+			grenade_index += 1
 
-	# --- CURRENT LOADOUT SECTION ---
-	var loadout_sep := HSeparator.new()
-	loadout_sep.add_theme_constant_override("separation", 5)
-	scroll_vbox.add_child(loadout_sep)
+	# Grenade accordion button (only shown if items overflow)
+	_grenade_accordion_button = Button.new()
+	_grenade_accordion_button.text = "Show all ▼"
+	_grenade_accordion_button.add_theme_font_size_override("font_size", 11)
+	_grenade_accordion_button.pressed.connect(_toggle_grenade_accordion)
+	right_vbox.add_child(_grenade_accordion_button)
 
-	_add_category_header(scroll_vbox, "CURRENT LOADOUT")
-	_loadout_panel = PanelContainer.new()
-	_loadout_panel.layout_mode = 2
-	var loadout_style := StyleBoxFlat.new()
-	loadout_style.bg_color = Color(0.15, 0.18, 0.2, 0.9)
-	loadout_style.corner_radius_top_left = 6
-	loadout_style.corner_radius_top_right = 6
-	loadout_style.corner_radius_bottom_left = 6
-	loadout_style.corner_radius_bottom_right = 6
-	loadout_style.border_color = Color(0.3, 0.4, 0.35, 0.8)
-	loadout_style.border_width_left = 1
-	loadout_style.border_width_right = 1
-	loadout_style.border_width_top = 1
-	loadout_style.border_width_bottom = 1
-	_loadout_panel.add_theme_stylebox_override("panel", loadout_style)
-	scroll_vbox.add_child(_loadout_panel)
+	if _grenade_overflow_slots.size() == 0:
+		_grenade_accordion_button.visible = false
+	else:
+		_apply_accordion_collapsed_grenades()
 
-	var loadout_margin := MarginContainer.new()
-	loadout_margin.layout_mode = 2
-	loadout_margin.add_theme_constant_override("margin_left", 12)
-	loadout_margin.add_theme_constant_override("margin_top", 8)
-	loadout_margin.add_theme_constant_override("margin_right", 12)
-	loadout_margin.add_theme_constant_override("margin_bottom", 8)
-	_loadout_panel.add_child(loadout_margin)
+	return right_vbox
 
-	var loadout_hbox := HBoxContainer.new()
-	loadout_hbox.layout_mode = 2
-	loadout_hbox.add_theme_constant_override("separation", 20)
-	loadout_margin.add_child(loadout_hbox)
 
-	# Weapon stats (left side)
-	_weapon_stats_label = RichTextLabel.new()
-	_weapon_stats_label.layout_mode = 2
-	_weapon_stats_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_weapon_stats_label.bbcode_enabled = true
-	_weapon_stats_label.fit_content = true
-	_weapon_stats_label.scroll_active = false
-	_weapon_stats_label.add_theme_font_size_override("normal_font_size", 13)
-	loadout_hbox.add_child(_weapon_stats_label)
+## Toggle weapon accordion (expand/collapse overflow items).
+func _toggle_weapon_accordion() -> void:
+	_weapons_expanded = not _weapons_expanded
+	if _weapons_expanded:
+		_weapon_accordion_button.text = "Collapse ▲"
+		for slot in _weapon_overflow_slots:
+			slot.visible = true
+	else:
+		_apply_accordion_collapsed_weapons()
 
-	# Vertical separator between weapon and grenade stats
-	var vsep := VSeparator.new()
-	loadout_hbox.add_child(vsep)
 
-	# Grenade stats (right side)
-	_grenade_stats_label = RichTextLabel.new()
-	_grenade_stats_label.layout_mode = 2
-	_grenade_stats_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_grenade_stats_label.bbcode_enabled = true
-	_grenade_stats_label.fit_content = true
-	_grenade_stats_label.scroll_active = false
-	_grenade_stats_label.add_theme_font_size_override("normal_font_size", 13)
-	loadout_hbox.add_child(_grenade_stats_label)
+## Collapse weapon overflow slots.
+func _apply_accordion_collapsed_weapons() -> void:
+	_weapon_accordion_button.text = "Show all ▼"
+	for slot in _weapon_overflow_slots:
+		slot.visible = false
 
-	# --- BACK BUTTON ---
-	_back_button = Button.new()
-	_back_button.text = "Back"
-	_back_button.custom_minimum_size = Vector2(200, 36)
-	_back_button.layout_mode = 2
-	_back_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	_back_button.pressed.connect(_on_back_pressed)
-	_main_vbox.add_child(_back_button)
 
-	# Highlight current selections and update loadout panel
-	_highlight_selected_items()
-	_update_loadout_panel()
+## Toggle grenade accordion (expand/collapse overflow items).
+func _toggle_grenade_accordion() -> void:
+	_grenades_expanded = not _grenades_expanded
+	if _grenades_expanded:
+		_grenade_accordion_button.text = "Collapse ▲"
+		for slot in _grenade_overflow_slots:
+			slot.visible = true
+	else:
+		_apply_accordion_collapsed_grenades()
+
+
+## Collapse grenade overflow slots.
+func _apply_accordion_collapsed_grenades() -> void:
+	_grenade_accordion_button.text = "Show all ▼"
+	for slot in _grenade_overflow_slots:
+		slot.visible = false
 
 
 ## Add a styled category header label.
 func _add_category_header(parent: VBoxContainer, text: String) -> void:
 	var header := Label.new()
 	header.text = text
-	header.add_theme_font_size_override("font_size", 15)
+	header.add_theme_font_size_override("font_size", 14)
 	header.add_theme_color_override("font_color", Color(0.7, 0.75, 0.8, 1.0))
 	parent.add_child(header)
 
@@ -338,7 +518,7 @@ func _add_category_header(parent: VBoxContainer, text: String) -> void:
 func _create_item_slot(item_id: String, item_data: Dictionary, is_grenade: bool) -> PanelContainer:
 	var slot := PanelContainer.new()
 	slot.name = item_id + "_slot"
-	slot.custom_minimum_size = Vector2(100, 90)
+	slot.custom_minimum_size = Vector2(90, 80)
 
 	# Store metadata for click handling
 	slot.set_meta("item_id", item_id)
@@ -346,19 +526,19 @@ func _create_item_slot(item_id: String, item_data: Dictionary, is_grenade: bool)
 
 	var vbox := VBoxContainer.new()
 	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
-	vbox.add_theme_constant_override("separation", 4)
+	vbox.add_theme_constant_override("separation", 3)
 	slot.add_child(vbox)
 
 	# Item icon or lock placeholder
 	var icon_container := CenterContainer.new()
-	icon_container.custom_minimum_size = Vector2(56, 56)
+	icon_container.custom_minimum_size = Vector2(48, 48)
 	vbox.add_child(icon_container)
 
 	var is_unlocked: bool = item_data.get("unlocked", false)
 
 	if is_unlocked and item_data.get("icon_path", "") != "":
 		var texture_rect := TextureRect.new()
-		texture_rect.custom_minimum_size = Vector2(56, 56)
+		texture_rect.custom_minimum_size = Vector2(48, 48)
 		texture_rect.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
 		texture_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 
@@ -370,7 +550,7 @@ func _create_item_slot(item_id: String, item_data: Dictionary, is_grenade: bool)
 		var lock_label := Label.new()
 		lock_label.text = "?"
 		lock_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		lock_label.add_theme_font_size_override("font_size", 28)
+		lock_label.add_theme_font_size_override("font_size", 24)
 		lock_label.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5, 0.8))
 		icon_container.add_child(lock_label)
 
@@ -378,7 +558,7 @@ func _create_item_slot(item_id: String, item_data: Dictionary, is_grenade: bool)
 	var name_label := Label.new()
 	name_label.text = item_data.get("name", "???")
 	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	name_label.add_theme_font_size_override("font_size", 12)
+	name_label.add_theme_font_size_override("font_size", 11)
 	if not is_unlocked:
 		name_label.modulate = Color(0.5, 0.5, 0.5)
 	vbox.add_child(name_label)
@@ -428,63 +608,28 @@ func _apply_selected_style(slot: PanelContainer) -> void:
 
 
 ## Handle click on an item slot.
+## Sets the pending selection (does NOT restart — user must press Apply).
 func _on_slot_gui_input(event: InputEvent, slot: PanelContainer, item_id: String, is_grenade: bool, item_data: Dictionary) -> void:
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		if is_grenade:
 			var grenade_type: int = item_data.get("grenade_type", 0)
-			_select_grenade(grenade_type)
+			_pending_grenade_type = grenade_type
 		else:
-			_select_weapon(item_id)
+			_pending_weapon_id = item_id
 
 		# Play click sound via AudioManager
 		var audio_manager = get_node_or_null("/root/AudioManager")
 		if audio_manager and audio_manager.has_method("play_ui_click"):
 			audio_manager.play_ui_click()
 
-
-## Select a weapon and update GameManager.
-## This will restart the level if a different weapon is selected.
-func _select_weapon(weapon_id: String) -> void:
-	# Check if already selected
-	var current_weapon_id: String = "m16"
-	if GameManager:
-		current_weapon_id = GameManager.get_selected_weapon()
-
-	if weapon_id == current_weapon_id:
-		return
-
-	# Update selection in GameManager
-	if GameManager:
-		GameManager.set_selected_weapon(weapon_id)
-
-	# Emit signal for external listeners
-	weapon_selected.emit(weapon_id)
-
-	# Update visual highlighting and loadout panel
-	_highlight_selected_items()
-	_update_loadout_panel()
-
-	# Restart the level to apply the new weapon
-	if GameManager:
-		get_tree().paused = false
-		Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED_HIDDEN)
-		GameManager.restart_scene()
+		# Update visuals to show pending selection
+		_highlight_selected_items()
+		_update_loadout_panel()
+		_update_apply_button_state()
 
 
-## Select a grenade and update GrenadeManager.
-## This will restart the level.
-func _select_grenade(grenade_type: int) -> void:
-	if _grenade_manager == null:
-		return
-
-	if _grenade_manager.is_selected(grenade_type):
-		return
-
-	_grenade_manager.set_grenade_type(grenade_type, true)
-
-
-## Highlight the currently selected weapon and grenade slots.
-func _highlight_selected_items() -> void:
+## Check if the pending selection differs from the current applied selection.
+func _has_pending_changes() -> bool:
 	var current_weapon_id: String = "m16"
 	if GameManager:
 		current_weapon_id = GameManager.get_selected_weapon()
@@ -493,6 +638,55 @@ func _highlight_selected_items() -> void:
 	if _grenade_manager:
 		current_grenade_type = _grenade_manager.current_grenade_type
 
+	return _pending_weapon_id != current_weapon_id or _pending_grenade_type != current_grenade_type
+
+
+## Update the Apply button enabled state.
+func _update_apply_button_state() -> void:
+	if _apply_button:
+		_apply_button.disabled = not _has_pending_changes()
+
+
+## Apply the pending selection: update GameManager/GrenadeManager and restart.
+func _on_apply_pressed() -> void:
+	if not _has_pending_changes():
+		return
+
+	var weapon_changed: bool = false
+	var grenade_changed: bool = false
+
+	# Apply weapon change
+	var current_weapon_id: String = "m16"
+	if GameManager:
+		current_weapon_id = GameManager.get_selected_weapon()
+
+	if _pending_weapon_id != current_weapon_id:
+		if GameManager:
+			GameManager.set_selected_weapon(_pending_weapon_id)
+		weapon_selected.emit(_pending_weapon_id)
+		weapon_changed = true
+
+	# Apply grenade change
+	var current_grenade_type: int = 0
+	if _grenade_manager:
+		current_grenade_type = _grenade_manager.current_grenade_type
+
+	if _pending_grenade_type != current_grenade_type:
+		if _grenade_manager:
+			# Pass false for restart_level — we handle restart ourselves
+			_grenade_manager.set_grenade_type(_pending_grenade_type, false)
+		grenade_changed = true
+
+	# Restart the level to apply changes
+	if weapon_changed or grenade_changed:
+		if GameManager:
+			get_tree().paused = false
+			Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED_HIDDEN)
+			GameManager.restart_scene()
+
+
+## Highlight the currently selected (pending) weapon and grenade slots.
+func _highlight_selected_items() -> void:
 	# Reset all weapon slots to default
 	for wid in _weapon_slots:
 		_apply_default_style(_weapon_slots[wid])
@@ -501,35 +695,31 @@ func _highlight_selected_items() -> void:
 	for gtype in _grenade_slots:
 		_apply_default_style(_grenade_slots[gtype])
 
-	# Highlight selected weapon
-	if current_weapon_id in _weapon_slots:
-		_apply_selected_style(_weapon_slots[current_weapon_id])
+	# Highlight pending weapon
+	if _pending_weapon_id in _weapon_slots:
+		_apply_selected_style(_weapon_slots[_pending_weapon_id])
 
-	# Highlight selected grenade
-	if current_grenade_type in _grenade_slots:
-		_apply_selected_style(_grenade_slots[current_grenade_type])
+	# Highlight pending grenade
+	if _pending_grenade_type in _grenade_slots:
+		_apply_selected_style(_grenade_slots[_pending_grenade_type])
 
 
-## Update the Current Loadout panel with stats for selected weapon and grenade.
+## Update the Current Loadout panel with stats for pending weapon and grenade.
 func _update_loadout_panel() -> void:
 	_update_weapon_stats()
 	_update_grenade_stats()
 
 
-## Update weapon stats in the loadout panel.
+## Update weapon stats in the sidebar.
 func _update_weapon_stats() -> void:
 	if _weapon_stats_label == null:
 		return
 
-	var current_weapon_id: String = "m16"
-	if GameManager:
-		current_weapon_id = GameManager.get_selected_weapon()
-
-	var weapon_info: Dictionary = FIREARMS.get(current_weapon_id, {})
+	var weapon_info: Dictionary = FIREARMS.get(_pending_weapon_id, {})
 	var weapon_name: String = weapon_info.get("name", "Unknown")
 
 	# Try to load weapon resource for detailed stats
-	var resource = _weapon_resources.get(current_weapon_id)
+	var resource = _weapon_resources.get(_pending_weapon_id)
 
 	var bbcode: String = ""
 	bbcode += "[b][color=#d4c896]WEAPON: %s[/color][/b]\n" % weapon_name
@@ -551,12 +741,13 @@ func _update_weapon_stats() -> void:
 		var damage_text: String = str(damage)
 		if pellets > 1:
 			damage_text += " x%d pellets" % pellets
-		bbcode += "[color=#aab0b8]Damage:[/color] %s  [color=#aab0b8]Rate:[/color] %.0f/s\n" % [damage_text, fire_rate]
+		bbcode += "[color=#aab0b8]Damage:[/color] %s\n" % damage_text
+		bbcode += "[color=#aab0b8]Rate:[/color] %.0f/s\n" % fire_rate
 
 		# Magazine
 		var mag_size: int = resource.get("MagazineSize")
 		var reserve: int = resource.get("MaxReserveAmmo")
-		bbcode += "[color=#aab0b8]Magazine:[/color] %d rnd  [color=#aab0b8]Reserve:[/color] %d\n" % [mag_size, reserve]
+		bbcode += "[color=#aab0b8]Mag:[/color] %d rnd  [color=#aab0b8]Reserve:[/color] %d\n" % [mag_size, reserve]
 
 		# Reload time
 		var reload: float = resource.get("ReloadTime")
@@ -565,7 +756,8 @@ func _update_weapon_stats() -> void:
 		# Range & Spread
 		var weapon_range: float = resource.get("Range")
 		var spread: float = resource.get("SpreadAngle")
-		bbcode += "[color=#aab0b8]Range:[/color] %.0fpx  [color=#aab0b8]Spread:[/color] %.1f°\n" % [weapon_range, spread]
+		bbcode += "[color=#aab0b8]Range:[/color] %.0fpx\n" % weapon_range
+		bbcode += "[color=#aab0b8]Spread:[/color] %.1f°\n" % spread
 
 		# Loudness
 		var loudness: float = resource.get("Loudness")
@@ -595,18 +787,14 @@ func _update_weapon_stats() -> void:
 	_weapon_stats_label.text = bbcode
 
 
-## Update grenade stats in the loadout panel.
+## Update grenade stats in the sidebar.
 func _update_grenade_stats() -> void:
 	if _grenade_stats_label == null:
 		return
 
-	var current_grenade_type: int = 0
-	if _grenade_manager:
-		current_grenade_type = _grenade_manager.current_grenade_type
-
 	var grenade_data: Dictionary = {}
 	if _grenade_manager:
-		grenade_data = _grenade_manager.get_grenade_data(current_grenade_type)
+		grenade_data = _grenade_manager.get_grenade_data(_pending_grenade_type)
 
 	var grenade_name: String = grenade_data.get("name", "Unknown")
 	var grenade_desc: String = grenade_data.get("description", "No data available")
@@ -621,8 +809,15 @@ func _update_grenade_stats() -> void:
 
 ## Refresh the weapon grid (called when menu is reshown).
 func _populate_weapon_grid() -> void:
+	# Sync pending selections with current state
+	if GameManager:
+		_pending_weapon_id = GameManager.get_selected_weapon()
+	if _grenade_manager:
+		_pending_grenade_type = _grenade_manager.current_grenade_type
+
 	_highlight_selected_items()
 	_update_loadout_panel()
+	_update_apply_button_state()
 
 
 func _on_back_pressed() -> void:
