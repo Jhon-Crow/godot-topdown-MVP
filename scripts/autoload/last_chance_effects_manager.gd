@@ -76,6 +76,12 @@ var _frozen_grenades: Array = []
 ## List of bullet casings frozen during time freeze.
 var _frozen_casings: Array = []
 
+## List of shrapnel pieces frozen during time freeze.
+var _frozen_shrapnel: Array = []
+
+## List of explosion visual effects (PointLight2D) frozen during time freeze.
+var _frozen_explosion_effects: Array = []
+
 ## Original process mode of the player (to restore after effect).
 var _player_original_process_mode: Node.ProcessMode = Node.PROCESS_MODE_INHERIT
 
@@ -281,7 +287,7 @@ func _on_player_died() -> void:
 
 
 ## Triggers the last chance effect from a grenade explosion in Power Fantasy mode.
-## Uses the full time-freeze visual effect but with a short duration (400ms).
+## Uses the full time-freeze visual effect with configurable duration (default: 2000ms).
 ## Unlike the threat-triggered version, this can be used multiple times per life.
 func trigger_grenade_last_chance(duration_seconds: float) -> void:
 	if _is_effect_active:
@@ -564,10 +570,20 @@ func _freeze_node_except_player(node: Node) -> void:
 			_freeze_node_except_player(child)
 		return
 
-	# Freeze Area2D nodes (triggers, hit areas, bullets, etc.)
+	# Freeze Area2D nodes (triggers, hit areas, bullets, shrapnel, etc.)
 	if node is Area2D:
 		_original_process_modes[node] = node.process_mode
 		node.process_mode = Node.PROCESS_MODE_DISABLED
+
+		# Track shrapnel separately for proper logging
+		var script: Script = node.get_script()
+		if script != null:
+			var script_path: String = script.resource_path
+			if "shrapnel" in script_path.to_lower():
+				if node not in _frozen_shrapnel:
+					_frozen_shrapnel.append(node)
+					_log("Froze existing shrapnel: %s" % node.name)
+
 		for child in node.get_children():
 			_freeze_node_except_player(child)
 		return
@@ -712,6 +728,12 @@ func _unfreeze_time() -> void:
 
 	# Unfreeze any bullet casings that were frozen during the time freeze
 	_unfreeze_casings()
+
+	# Unfreeze any shrapnel pieces that were frozen during the time freeze
+	_unfreeze_shrapnel()
+
+	# Unfreeze any explosion visual effects that were frozen during the time freeze
+	_unfreeze_explosion_effects()
 
 
 ## Restores all stored original process modes.
@@ -1047,6 +1069,70 @@ func _unfreeze_casings() -> void:
 	_frozen_casings.clear()
 
 
+## Freezes a shrapnel piece that was created during the time freeze.
+## This stops the shrapnel's movement and lifetime countdown.
+func _freeze_shrapnel_piece(shrapnel: Area2D) -> void:
+	if shrapnel in _frozen_shrapnel:
+		return
+
+	_frozen_shrapnel.append(shrapnel)
+
+	# Store original process mode for restoration
+	_original_process_modes[shrapnel] = shrapnel.process_mode
+
+	# Disable processing to stop movement and lifetime timer
+	shrapnel.process_mode = Node.PROCESS_MODE_DISABLED
+
+	_log("Registered frozen shrapnel: %s" % shrapnel.name)
+
+
+## Unfreezes all shrapnel pieces that were frozen during time freeze.
+func _unfreeze_shrapnel() -> void:
+	for shrapnel in _frozen_shrapnel:
+		if is_instance_valid(shrapnel):
+			# Restore process mode to allow shrapnel to continue moving
+			if shrapnel in _original_process_modes:
+				shrapnel.process_mode = _original_process_modes[shrapnel]
+			else:
+				shrapnel.process_mode = Node.PROCESS_MODE_INHERIT
+
+			_log("Unfroze shrapnel: %s" % shrapnel.name)
+
+	_frozen_shrapnel.clear()
+
+
+## Freezes an explosion visual effect (PointLight2D) that was created during the time freeze.
+## This pauses the light's fade-out tween so the explosion flash remains visible while frozen.
+func _freeze_explosion_effect(light: PointLight2D) -> void:
+	if light in _frozen_explosion_effects:
+		return
+
+	_frozen_explosion_effects.append(light)
+
+	# Store original process mode for restoration
+	_original_process_modes[light] = light.process_mode
+
+	# Disable processing to pause the tween fade-out animation
+	light.process_mode = Node.PROCESS_MODE_DISABLED
+
+	_log("Registered frozen explosion effect: %s" % light.name)
+
+
+## Unfreezes all explosion visual effects that were frozen during time freeze.
+func _unfreeze_explosion_effects() -> void:
+	for light in _frozen_explosion_effects:
+		if is_instance_valid(light):
+			# Restore process mode to allow fade-out tween to continue
+			if light in _original_process_modes:
+				light.process_mode = _original_process_modes[light]
+			else:
+				light.process_mode = Node.PROCESS_MODE_INHERIT
+
+			_log("Unfroze explosion effect: %s" % light.name)
+
+	_frozen_explosion_effects.clear()
+
+
 ## Resets memory for all enemies when the last chance effect ends (Issue #318).
 ## This ensures enemies don't know where the player moved during the time freeze,
 ## treating the player's movement as a "teleport" they couldn't observe.
@@ -1069,7 +1155,8 @@ func _reset_all_enemy_memory() -> void:
 
 
 ## Called when a node is added to the scene tree during time freeze.
-## Automatically freezes player-fired bullets and grenades to maintain the time freeze effect.
+## Automatically freezes player-fired bullets, grenades, shrapnel, and explosion effects
+## to maintain the time freeze effect.
 func _on_node_added_during_freeze(node: Node) -> void:
 	if not _is_effect_active:
 		return
@@ -1090,13 +1177,33 @@ func _on_node_added_during_freeze(node: Node) -> void:
 				_freeze_casing(node as RigidBody2D)
 				return
 
-	# Check if this is a bullet (Area2D with bullet script or name)
+	# Check if this is an explosion visual effect (PointLight2D)
+	# Grenade explosions create PointLight2D nodes that should also freeze
+	if node is PointLight2D:
+		_log("Freezing newly created explosion effect: %s" % node.name)
+		_freeze_explosion_effect(node as PointLight2D)
+		return
+
+	# Check if this is a bullet or shrapnel (Area2D with relevant script or name)
 	if not node is Area2D:
+		return
+
+	# Check if it's shrapnel by script path or name
+	var script: Script = node.get_script()
+	if script != null:
+		var script_path: String = script.resource_path
+		if "shrapnel" in script_path.to_lower():
+			# This is shrapnel from a grenade - freeze it immediately
+			_log("Freezing newly created shrapnel: %s" % node.name)
+			_freeze_shrapnel_piece(node as Area2D)
+			return
+	elif "Shrapnel" in node.name or "shrapnel" in node.name:
+		_log("Freezing newly created shrapnel (by name): %s" % node.name)
+		_freeze_shrapnel_piece(node as Area2D)
 		return
 
 	# Check if it's a bullet or pellet by script path or name
 	var is_bullet: bool = false
-	var script: Script = node.get_script()
 	if script != null:
 		var script_path: String = script.resource_path
 		if "bullet" in script_path.to_lower() or "pellet" in script_path.to_lower():
@@ -1159,6 +1266,8 @@ func reset_effects() -> void:
 	_frozen_player_bullets.clear()
 	_frozen_grenades.clear()
 	_frozen_casings.clear()
+	_frozen_shrapnel.clear()
+	_frozen_explosion_effects.clear()
 	_original_process_modes.clear()
 	_player_original_colors.clear()
 	_player_was_invulnerable = false
