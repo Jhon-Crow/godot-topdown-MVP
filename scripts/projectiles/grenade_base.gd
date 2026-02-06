@@ -91,6 +91,10 @@ var _time_remaining: float = 0.0
 ## Whether the grenade has exploded.
 var _has_exploded: bool = false
 
+## Whether this grenade was thrown by an enemy (prevents friendly fire).
+## When true, the grenade passes through enemies in flight and does not damage them on explosion.
+var thrown_by_enemy: bool = false
+
 ## Reference to the sprite for visual feedback.
 @onready var _sprite: Sprite2D = $Sprite2D if has_node("Sprite2D") else null
 
@@ -125,7 +129,12 @@ func _ready() -> void:
 
 	# Set up collision
 	collision_layer = 32  # Layer 6 (custom for grenades)
-	collision_mask = 4 | 2  # obstacles + enemies (NOT player, to avoid collision when throwing)
+	# Issue #382: Enemy grenades only collide with obstacles (layer 4), not other enemies (layer 2).
+	# This prevents grenades from hitting allies in flight and triggering impact explosions.
+	if thrown_by_enemy:
+		collision_mask = 4  # obstacles only
+	else:
+		collision_mask = 4 | 2  # obstacles + enemies
 
 	# Enable contact monitoring for body_entered signal (required for collision detection)
 	# Without this, body_entered signal will never fire!

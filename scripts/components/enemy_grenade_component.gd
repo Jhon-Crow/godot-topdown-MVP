@@ -332,6 +332,11 @@ func _execute_throw(target: Vector2, is_alive: bool, is_stunned: bool, is_blinde
 	var grenade: Node2D = grenade_scene.instantiate()
 	grenade.global_position = _enemy.global_position + dir * 40.0
 
+	# Issue #382: Mark grenade as thrown by enemy BEFORE adding to scene tree.
+	# This prevents friendly fire: grenade won't collide with or damage other enemies.
+	if grenade.get("thrown_by_enemy") != null:
+		grenade.thrown_by_enemy = true
+
 	var parent := get_tree().current_scene
 	(parent if parent else _enemy.get_parent()).add_child(grenade)
 

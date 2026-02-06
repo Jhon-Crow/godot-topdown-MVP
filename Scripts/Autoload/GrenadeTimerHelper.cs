@@ -94,6 +94,13 @@ namespace GodotTopdown.Scripts.Autoload
                 timer.GroundFriction = (float)groundFriction;
             }
 
+            // Issue #382: Propagate thrown_by_enemy flag to prevent friendly fire in C# explosion path
+            var thrownByEnemy = grenade.Get("thrown_by_enemy");
+            if (thrownByEnemy.VariantType != Variant.Type.Nil)
+            {
+                timer.ThrownByEnemy = (bool)thrownByEnemy;
+            }
+
             // FIX for Issue #432: Apply type-based defaults BEFORE adding to scene.
             // GDScript Get() calls may fail silently in exported builds, leaving us with
             // incorrect values (e.g., Frag grenade using Flashbang's 400 radius instead of 225).
