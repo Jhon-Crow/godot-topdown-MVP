@@ -853,7 +853,8 @@ func _create_player_trail() -> Line2D:
 	var trail := Line2D.new()
 	trail.name = "GhostPlayerTrail"
 	trail.process_mode = Node.PROCESS_MODE_ALWAYS
-	trail.width = 3.0
+	# Issue #590 fix 3: Trail 3x wider for better visibility
+	trail.width = 9.0
 	trail.default_color = Color(0.3, 0.7, 1.0, 0.5)
 	trail.z_index = -1  # Render behind the player ghost
 
