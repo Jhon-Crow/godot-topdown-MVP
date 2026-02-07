@@ -180,6 +180,14 @@ class MockLevelsMenu:
 	## Level data with card metadata (matches card-based levels_menu.gd).
 	const LEVELS: Array[Dictionary] = [
 		{
+			"name": "Technical Facility",
+			"name_ru": "Техзона",
+			"path": "res://scenes/levels/TechnicalLevel.tscn",
+			"description": "Labyrinth of enclosed technical rooms. Tight corridors and compact spaces.",
+			"enemy_count": 4,
+			"map_size": "1600x1600"
+		},
+		{
 			"name": "Building Level",
 			"path": "res://scenes/levels/BuildingLevel.tscn",
 			"description": "Hotline Miami style building with interconnected rooms and corridors.",
@@ -624,9 +632,9 @@ func test_levels_menu_has_levels() -> void:
 	assert_true(levels_menu.get_level_count() > 0, "Should have at least one level")
 
 
-func test_levels_menu_has_five_levels() -> void:
+func test_levels_menu_has_six_levels() -> void:
 	levels_menu = MockLevelsMenu.new()
-	assert_eq(levels_menu.get_level_count(), 5, "Should have 5 levels")
+	assert_eq(levels_menu.get_level_count(), 6, "Should have 6 levels")
 
 
 func test_get_level_path() -> void:
@@ -665,6 +673,8 @@ func test_should_disable_current_level_card() -> void:
 
 func test_level_display_name_russian() -> void:
 	levels_menu = MockLevelsMenu.new()
+	assert_eq(levels_menu.get_display_name("Technical Facility"), "Техзона",
+		"Technical Facility should display as Техзона")
 	assert_eq(levels_menu.get_display_name("Polygon"), "Полигон",
 		"Polygon should display as Полигон")
 	assert_eq(levels_menu.get_display_name("Castle"), "Замок",
@@ -681,6 +691,7 @@ func test_level_display_name_fallback() -> void:
 
 func test_level_enemy_count() -> void:
 	levels_menu = MockLevelsMenu.new()
+	assert_eq(levels_menu.get_enemy_count("Technical Facility"), 4)
 	assert_eq(levels_menu.get_enemy_count("Building Level"), 10)
 	assert_eq(levels_menu.get_enemy_count("Polygon"), 5)
 	assert_eq(levels_menu.get_enemy_count("Castle"), 15)
