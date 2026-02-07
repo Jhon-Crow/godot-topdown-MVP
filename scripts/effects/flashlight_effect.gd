@@ -12,11 +12,13 @@ extends Node2D
 ## Bright white light — same level as flashbang (8.0) for clear visibility.
 const LIGHT_ENERGY: float = 8.0
 
-## Texture scale for the light cone size.
-const LIGHT_TEXTURE_SCALE: float = 4.0
+## Texture scale for the 6-degree cone beam range.
+## Higher values make the narrow beam reach further.
+const LIGHT_TEXTURE_SCALE: float = 6.0
 
 ## Flashlight beam half-angle in degrees.
 ## 6 degrees total beam = 3 degrees each side from center.
+## The actual cone shape is pre-baked in the texture (flashlight_cone_6deg.png).
 const BEAM_HALF_ANGLE_DEG: float = 3.0
 
 ## Path to the flashlight toggle sound file.
@@ -38,68 +40,10 @@ func _ready() -> void:
 		FileLogger.info("[FlashlightEffect] WARNING: PointLight2D child not found")
 	else:
 		FileLogger.info("[FlashlightEffect] PointLight2D found, energy=%.1f, shadow=%s" % [_point_light.energy, str(_point_light.shadow_enabled)])
-		# Replace default texture with a narrow cone for the 6-degree beam
-		_apply_cone_texture()
 	# Start with light off
 	_set_light_visible(false)
 	# Load toggle sound
 	_setup_audio()
-
-
-## Generate and apply a cone-shaped texture to the PointLight2D.
-##
-## The cone points to the right (+X direction, angle 0) and the
-## PointLight2D.offset is shifted rightward so most of the visible
-## beam extends in front of the player model instead of behind it.
-## This keeps the narrow 6-degree beam long enough to be clearly visible.
-func _apply_cone_texture() -> void:
-	if not _point_light:
-		return
-
-	var size := 512
-	var image := Image.create(size, size, false, Image.FORMAT_RGBA8)
-	var center := Vector2(size / 2.0, size / 2.0)
-	var max_radius := size / 2.0
-	var half_angle_rad := deg_to_rad(BEAM_HALF_ANGLE_DEG)
-
-	for y in range(size):
-		for x in range(size):
-			var pixel := Vector2(x, y) - center
-			var dist := pixel.length()
-			if dist == 0.0:
-				# Center pixel — fully bright
-				image.set_pixel(x, y, Color(1.0, 1.0, 1.0, 1.0))
-				continue
-
-			# Only illuminate the right-pointing cone (+X direction)
-			var angle := abs(pixel.angle())  # 0 = right
-			if angle > half_angle_rad or dist > max_radius:
-				image.set_pixel(x, y, Color(0, 0, 0, 0))
-				continue
-
-			# Distance falloff — brighter near center, fades toward edge
-			var dist_factor := 1.0 - (dist / max_radius)
-			dist_factor = clamp(dist_factor, 0.0, 1.0)
-
-			# Angular falloff — softer edges at the cone boundary
-			var ang_factor := 1.0 - (angle / half_angle_rad)
-			ang_factor = pow(ang_factor, 0.5)  # gentle edge roll-off
-
-			var intensity := dist_factor * ang_factor
-			image.set_pixel(x, y, Color(1.0, 1.0, 1.0, intensity))
-
-	var tex := ImageTexture.create_from_image(image)
-	_point_light.texture = tex
-
-	# Shift the light forward so the cone extends ahead of the weapon barrel
-	# Half the texture diameter (in world units) puts the origin at the back edge.
-	_point_light.offset = Vector2(max_radius, 0)
-
-	# Increase scale so the narrow beam reaches further
-	_point_light.texture_scale = 6.0
-
-	FileLogger.info("[FlashlightEffect] Applied %d° cone texture (offset=%.0f, scale=%.1f)" % [
-		BEAM_HALF_ANGLE_DEG * 2, _point_light.offset.x, _point_light.texture_scale])
 
 
 ## Set up the audio player for flashlight toggle sound.
