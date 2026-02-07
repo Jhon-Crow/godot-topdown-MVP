@@ -105,6 +105,13 @@ public partial class SniperRifle : BaseWeapon
     private Vector2 _lastFireDirection = Vector2.Right;
 
     /// <summary>
+    /// Whether there is a spent casing in the chamber that needs to be ejected during bolt step 2.
+    /// Set to true after firing (spent case remains), cleared after ejection during bolt cycling.
+    /// When cycling bolt on empty magazine (no prior fire), this is false so no casing is spawned.
+    /// </summary>
+    private bool _hasCasingToEject = false;
+
+    /// <summary>
     /// Tracks previous frame arrow key states for edge detection (just-pressed).
     /// Order: [Left, Down, Up, Right] matching bolt action steps 1-4.
     /// </summary>
@@ -326,9 +333,18 @@ public partial class SniperRifle : BaseWeapon
                     _boltStep = BoltActionStep.WaitChamberRound;
                     EmitSignal(SignalName.BoltStepChanged, 2, 4);
                     PlayBoltStepSound(2);
-                    // Eject shell casing on this step (like shotgun pump-up)
-                    SpawnCasing(_lastFireDirection, WeaponData?.Caliber);
-                    GD.Print("[SniperRifle] Bolt step 2/4: Casing extracted and ejected");
+                    // Only eject casing if there's a spent case in the chamber (after firing)
+                    // When cycling bolt on empty magazine after reload, no casing to eject
+                    if (_hasCasingToEject)
+                    {
+                        SpawnCasing(_lastFireDirection, WeaponData?.Caliber);
+                        _hasCasingToEject = false;
+                        GD.Print("[SniperRifle] Bolt step 2/4: Casing extracted and ejected");
+                    }
+                    else
+                    {
+                        GD.Print("[SniperRifle] Bolt step 2/4: No casing to eject (chamber was empty)");
+                    }
                 }
                 break;
 
@@ -347,10 +363,23 @@ public partial class SniperRifle : BaseWeapon
                 // Step 4: Right arrow - close bolt
                 if (rightJustPressed)
                 {
-                    _boltStep = BoltActionStep.Ready;
-                    EmitSignal(SignalName.BoltStepChanged, 4, 4);
                     PlayBoltStepSound(4);
-                    GD.Print("[SniperRifle] Bolt step 4/4: Bolt closed - READY TO FIRE");
+                    // Only transition to Ready if there's ammo to chamber
+                    // If magazine is empty, bolt cycling doesn't count (no round chambered)
+                    if (CurrentAmmo > 0)
+                    {
+                        _boltStep = BoltActionStep.Ready;
+                        EmitSignal(SignalName.BoltStepChanged, 4, 4);
+                        GD.Print("[SniperRifle] Bolt step 4/4: Bolt closed - READY TO FIRE");
+                    }
+                    else
+                    {
+                        // Bolt closes but no round was chambered (empty magazine)
+                        // Must cycle bolt again after inserting a new magazine
+                        _boltStep = BoltActionStep.NeedsBoltCycle;
+                        EmitSignal(SignalName.BoltStepChanged, 0, 4);
+                        GD.Print("[SniperRifle] Bolt step 4/4: Bolt closed but NO round chambered (empty magazine) - needs cycling after reload");
+                    }
                 }
                 break;
 
@@ -582,6 +611,7 @@ public partial class SniperRifle : BaseWeapon
         {
             // Store fire direction for casing ejection during bolt step 2
             _lastFireDirection = spreadDirection;
+            _hasCasingToEject = true;
 
             // Transition to needs bolt cycle
             _boltStep = BoltActionStep.NeedsBoltCycle;
@@ -911,38 +941,6 @@ public partial class SniperRifle : BaseWeapon
     }
 
     /// <summary>
-    /// Performs an instant reload for the sniper rifle.
-    /// After reloading a new magazine, automatically chambers a round
-    /// by resetting the bolt to ready state (fixes Issue #566).
-    /// </summary>
-    public override void InstantReload()
-    {
-        // Perform the base reload operation (magazine swap)
-        base.InstantReload();
-
-        // After loading a new magazine, automatically chamber a round
-        // This resets the bolt to ready state so the player doesn't need
-        // to manually cycle the bolt after every reload
-        ResetBolt();
-    }
-
-    /// <summary>
-    /// Finishes the timed reload process for the sniper rifle.
-    /// After reloading a new magazine, automatically chambers a round
-    /// by resetting the bolt to ready state (fixes Issue #566).
-    /// </summary>
-    protected override void FinishReload()
-    {
-        // Perform the base reload operation (magazine swap)
-        base.FinishReload();
-
-        // After loading a new magazine, automatically chamber a round
-        // This resets the bolt to ready state so the player doesn't need
-        // to manually cycle the bolt after every reload
-        ResetBolt();
-    }
-
-    /// <summary>
     /// Gets the current aim direction.
     /// </summary>
     public Vector2 AimDirection => _aimDirection;
@@ -951,16 +949,6 @@ public partial class SniperRifle : BaseWeapon
     /// Gets the current bolt-action step.
     /// </summary>
     public BoltActionStep CurrentBoltStep => _boltStep;
-
-    /// <summary>
-    /// Resets the bolt to ready state (e.g., after reload with a new magazine).
-    /// </summary>
-    public void ResetBolt()
-    {
-        _boltStep = BoltActionStep.Ready;
-        EmitSignal(SignalName.BoltStepChanged, 4, 4);
-        GD.Print("[SniperRifle] Bolt reset to ready state");
-    }
 
     // =========================================================================
     // Scope / Aiming System (RMB)
