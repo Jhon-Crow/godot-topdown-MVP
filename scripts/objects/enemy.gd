@@ -767,8 +767,10 @@ func _initialize_goap_state() -> void:
 ## Initialize the enemy memory and prediction systems (Issue #297, #298).
 func _initialize_memory() -> void:
 	_memory = EnemyMemory.new()
-	_prediction = PlayerPredictionComponent.new()
-	_prediction.debug_logging = debug_logging
+	var es: Node = get_node_or_null("/root/ExperimentalSettings")
+	if es and es.has_method("is_ai_prediction_enabled") and es.is_ai_prediction_enabled():
+		_prediction = PlayerPredictionComponent.new()
+		_prediction.debug_logging = debug_logging
 
 ## Connect to GameManager's debug mode signal for F7 toggle.
 func _connect_debug_mode_signal() -> void:
@@ -929,8 +931,7 @@ func _update_goap_state() -> void:
 	# Ally death observation state (Issue #409)
 	_goap_world_state["witnessed_ally_death"] = _witnessed_ally_death
 	if _prediction:  # [#298]
-		_goap_world_state["has_prediction"] = _prediction.has_predictions
-		_goap_world_state["prediction_confidence"] = _prediction.get_prediction_confidence()
+		_goap_world_state["has_prediction"] = _prediction.has_predictions; _goap_world_state["prediction_confidence"] = _prediction.get_prediction_confidence()
 ## Updates model rotation smoothly (#347). Priority: player > combat/pursuit/flank > corner check > velocity > idle scan.
 ## Issues #386, #397: COMBAT/PURSUING/FLANKING states prioritize facing the player to prevent turning away.
 func _update_enemy_model_rotation() -> void:
@@ -3699,8 +3700,7 @@ func _share_intel_with_nearby_enemies() -> void:
 			if other_enemy.has_method("receive_intel_from_ally"):
 				other_enemy.receive_intel_from_ally(_memory)
 			if _prediction and _prediction.has_predictions and other_enemy.has_method("receive_prediction_from_ally"):  # [#298]
-				var bh := _prediction.get_best_hypothesis()
-				if bh: other_enemy.receive_prediction_from_ally(bh)
+				var bh := _prediction.get_best_hypothesis(); if bh: other_enemy.receive_prediction_from_ally(bh)
 
 ## Receive intelligence from an allied enemy (Issue #297).
 ## Called by other enemies when they share intel.
