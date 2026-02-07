@@ -44,7 +44,7 @@ public enum BoltActionStep
 /// - 12.7x108mm ammunition dealing 50 damage per shot
 /// - Penetrates through 2 walls and through enemies
 /// - Instant bullet speed with smoky dissipating tracer trail
-/// - Slow turn sensitivity outside aiming (~5x less than normal)
+/// - Very slow turn sensitivity outside aiming (~25x less than normal, heavy weapon)
 /// - 5-round magazine with M16-style swap reload
 /// - Single-shot bolt-action with manual charging sequence (Left→Down→Up→Right)
 /// - Arrow keys are consumed during bolt cycling (WASD still works for movement)
@@ -432,13 +432,13 @@ public partial class SniperRifle : BaseWeapon
 
     /// <summary>
     /// Sensitivity reduction factor when not aiming (outside scope/aim mode).
-    /// The rifle rotates approximately 5x slower when just moving without aiming.
+    /// The heavy ASVK rotates very slowly - 25x slower than normal weapons.
     /// </summary>
-    private const float NonAimingSensitivityFactor = 0.2f;
+    private const float NonAimingSensitivityFactor = 0.04f;
 
     /// <summary>
     /// Updates the aim direction and rifle sprite rotation.
-    /// The rifle rotates slowly outside aiming (~5x less sensitivity).
+    /// The heavy rifle rotates very slowly outside aiming (~25x less sensitivity).
     /// </summary>
     private void UpdateAimDirection()
     {
@@ -455,11 +455,11 @@ public partial class SniperRifle : BaseWeapon
         Vector2 direction;
 
         // Apply sensitivity for the sniper rifle
-        // Outside aiming, sensitivity is reduced by 5x (NonAimingSensitivityFactor)
+        // Outside aiming, sensitivity is reduced by 25x (NonAimingSensitivityFactor)
         if (WeaponData != null && WeaponData.Sensitivity > 0)
         {
             float angleDiff = Mathf.Wrap(targetAngle - _currentAimAngle, -Mathf.Pi, Mathf.Pi);
-            // Apply reduced sensitivity: rifle rotates very slowly outside aiming
+            // Apply reduced sensitivity: heavy rifle rotates very slowly outside aiming
             float effectiveSensitivity = WeaponData.Sensitivity * NonAimingSensitivityFactor;
             float rotationSpeed = effectiveSensitivity * 10.0f;
             float delta = (float)GetProcessDeltaTime();
@@ -745,7 +745,7 @@ public partial class SniperRifle : BaseWeapon
         var tracer = new Line2D
         {
             Name = "SniperTracer",
-            Width = 8.0f,
+            Width = 5.0f,
             DefaultColor = new Color(0.8f, 0.8f, 0.8f, 0.7f),
             BeginCapMode = Line2D.LineCapMode.Round,
             EndCapMode = Line2D.LineCapMode.Round,
@@ -801,7 +801,7 @@ public partial class SniperRifle : BaseWeapon
             tracer.DefaultColor = new Color(0.8f, 0.8f, 0.8f, alpha);
 
             // Widen slightly to simulate smoke dissipation
-            tracer.Width = initialWidth + progress * 4.0f;
+            tracer.Width = initialWidth + progress * 3.0f;
 
             // Update gradient alpha
             var gradient = new Gradient();
@@ -985,8 +985,9 @@ public partial class SniperRifle : BaseWeapon
 
     /// <summary>
     /// Maximum scope zoom distance (viewport multiplier).
+    /// Allows zooming up to 4x viewport distance for long-range aiming.
     /// </summary>
-    private const float MaxScopeZoomDistance = 3.0f;
+    private const float MaxScopeZoomDistance = 4.0f;
 
     /// <summary>
     /// Step size for mouse wheel zoom adjustment.
@@ -1003,9 +1004,10 @@ public partial class SniperRifle : BaseWeapon
     /// <summary>
     /// Base mouse sensitivity multiplier when scoped.
     /// The actual multiplier = BaseScopeSensitivityMultiplier * effectiveZoomDistance.
-    /// At 1x zoom, sensitivity is 5x normal. At 2x zoom, 10x. At 3x zoom, 15x.
+    /// High value makes precise aiming more challenging (crosshair moves fast).
+    /// At 1x zoom, sensitivity is 8x normal. At 2x zoom, 16x. At 4x zoom, 32x.
     /// </summary>
-    private const float BaseScopeSensitivityMultiplier = 5.0f;
+    private const float BaseScopeSensitivityMultiplier = 8.0f;
 
     /// <summary>
     /// Current mouse fine-tune offset applied to scope distance in pixels.
