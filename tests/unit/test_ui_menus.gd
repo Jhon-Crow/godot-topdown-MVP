@@ -115,6 +115,7 @@ class MockDifficultyMenu:
 	enum Difficulty { EASY, NORMAL, HARD, POWER_FANTASY }
 
 	var current_difficulty: Difficulty = Difficulty.NORMAL
+	var night_mode_enabled: bool = false
 
 	signal back_pressed
 
@@ -123,6 +124,12 @@ class MockDifficultyMenu:
 
 	func get_difficulty() -> Difficulty:
 		return current_difficulty
+
+	func set_night_mode(enabled: bool) -> void:
+		night_mode_enabled = enabled
+
+	func is_night_mode_enabled() -> bool:
+		return night_mode_enabled
 
 	func is_easy_selected() -> bool:
 		return current_difficulty == Difficulty.EASY
@@ -149,28 +156,69 @@ class MockDifficultyMenu:
 		return "Power Fantasy (Selected)" if is_power_fantasy_selected() else "Power Fantasy"
 
 	func get_status_text() -> String:
+		var base_text: String = ""
 		match current_difficulty:
 			Difficulty.EASY:
-				return "Easy mode: Enemies react slower"
+				base_text = "Easy mode: Enemies react slower"
 			Difficulty.HARD:
-				return "Hard mode: Enemies react when you look away"
+				base_text = "Hard mode: Enemies react when you look away"
 			Difficulty.POWER_FANTASY:
-				return "Power Fantasy: 10 HP, 3x ammo, blue lasers"
+				base_text = "Power Fantasy: 10 HP, 3x ammo, blue lasers"
 			_:
-				return "Normal mode: Classic gameplay"
+				base_text = "Normal mode: Classic gameplay"
+		if night_mode_enabled:
+			base_text += " | Night Mode ON"
+		return base_text
 
 
 # ============================================================================
-# Mock Levels Menu
+# Mock Levels Menu (Card-based)
 # ============================================================================
 
 
 class MockLevelsMenu:
-	const LEVELS: Dictionary = {
-		"Building Level": "res://scenes/levels/BuildingLevel.tscn",
-		"Test Tier": "res://scenes/levels/TestTier.tscn",
-		"Tutorial": "res://scenes/levels/csharp/TestTier.tscn"
-	}
+	## Level data with card metadata (matches new card-based levels_menu.gd).
+	const LEVELS: Array[Dictionary] = [
+		{
+			"name": "Building Level",
+			"path": "res://scenes/levels/BuildingLevel.tscn",
+			"description": "Hotline Miami style building with interconnected rooms and corridors.",
+			"enemy_count": 10,
+			"map_size": "2400x2000",
+			"ratings": {"Easy": 2, "Normal": 3, "Hard": 4, "Power Fantasy": 1}
+		},
+		{
+			"name": "Polygon",
+			"name_ru": "Полигон",
+			"path": "res://scenes/levels/TestTier.tscn",
+			"description": "Open training ground for testing weapons and practicing combat skills.",
+			"enemy_count": 5,
+			"map_size": "1280x720",
+			"ratings": {"Easy": 1, "Normal": 2, "Hard": 3, "Power Fantasy": 1}
+		},
+		{
+			"name": "Castle",
+			"name_ru": "Замок",
+			"path": "res://scenes/levels/CastleLevel.tscn",
+			"description": "Medieval fortress assault across a massive oval-shaped courtyard.",
+			"enemy_count": 15,
+			"map_size": "6000x2560",
+			"ratings": {"Easy": 3, "Normal": 4, "Hard": 5, "Power Fantasy": 2}
+		},
+		{
+			"name": "Tutorial",
+			"name_ru": "Обучение",
+			"path": "res://scenes/levels/csharp/TestTier.tscn",
+			"description": "Step-by-step training: movement, shooting, bolt-action, scope, grenades.",
+			"enemy_count": 4,
+			"map_size": "1280x720",
+			"ratings": {"Easy": 1, "Normal": 1, "Hard": 2, "Power Fantasy": 1}
+		}
+	]
+
+	const MAX_STARS: int = 5
+	const STAR_FILLED: String = "★"
+	const STAR_EMPTY: String = "☆"
 
 	var current_scene_path: String = ""
 
@@ -180,25 +228,51 @@ class MockLevelsMenu:
 		return LEVELS.size()
 
 	func get_level_names() -> Array:
-		return LEVELS.keys()
+		var names: Array = []
+		for level in LEVELS:
+			names.append(level["name"])
+		return names
 
 	func get_level_path(name: String) -> String:
-		if name in LEVELS:
-			return LEVELS[name]
+		for level in LEVELS:
+			if level["name"] == name:
+				return level["path"]
 		return ""
+
+	func get_level_data(name: String) -> Dictionary:
+		for level in LEVELS:
+			if level["name"] == name:
+				return level
+		return {}
 
 	func is_current_level(level_path: String) -> bool:
 		return level_path == current_scene_path
 
-	func get_button_text(level_name: String) -> String:
-		var path := get_level_path(level_name)
-		if is_current_level(path):
-			return level_name + " (Current)"
-		return level_name
+	func get_display_name(level_name: String) -> String:
+		var data := get_level_data(level_name)
+		return data.get("name_ru", data.get("name", level_name))
 
-	func should_disable_button(level_name: String) -> bool:
+	func should_disable_card(level_name: String) -> bool:
 		var path := get_level_path(level_name)
 		return is_current_level(path)
+
+	func get_rating(level_name: String, difficulty: String) -> int:
+		var data := get_level_data(level_name)
+		var ratings: Dictionary = data.get("ratings", {})
+		return ratings.get(difficulty, 0)
+
+	func get_star_string(rating: int) -> String:
+		var stars: String = ""
+		for i in range(MAX_STARS):
+			if i < rating:
+				stars += STAR_FILLED
+			else:
+				stars += STAR_EMPTY
+		return stars
+
+	func get_enemy_count(level_name: String) -> int:
+		var data := get_level_data(level_name)
+		return data.get("enemy_count", 0)
 
 
 # ============================================================================
@@ -479,8 +553,52 @@ func test_status_text_for_power_fantasy() -> void:
 	assert_eq(difficulty_menu.get_status_text(), "Power Fantasy: 10 HP, 3x ammo, blue lasers")
 
 
+func test_night_mode_default_disabled() -> void:
+	difficulty_menu = MockDifficultyMenu.new()
+	assert_false(difficulty_menu.is_night_mode_enabled(), "Night mode should be disabled by default")
+
+
+func test_night_mode_enable() -> void:
+	difficulty_menu = MockDifficultyMenu.new()
+	difficulty_menu.set_night_mode(true)
+
+	assert_true(difficulty_menu.is_night_mode_enabled(), "Night mode should be enabled")
+
+
+func test_night_mode_disable() -> void:
+	difficulty_menu = MockDifficultyMenu.new()
+	difficulty_menu.set_night_mode(true)
+	difficulty_menu.set_night_mode(false)
+
+	assert_false(difficulty_menu.is_night_mode_enabled(), "Night mode should be disabled")
+
+
+func test_status_text_with_night_mode() -> void:
+	difficulty_menu = MockDifficultyMenu.new()
+	difficulty_menu.set_night_mode(true)
+
+	assert_eq(difficulty_menu.get_status_text(), "Normal mode: Classic gameplay | Night Mode ON")
+
+
+func test_status_text_power_fantasy_with_night_mode() -> void:
+	difficulty_menu = MockDifficultyMenu.new()
+	difficulty_menu.set_difficulty(MockDifficultyMenu.Difficulty.POWER_FANTASY)
+	difficulty_menu.set_night_mode(true)
+
+	assert_eq(difficulty_menu.get_status_text(), "Power Fantasy: 10 HP, 3x ammo, blue lasers | Night Mode ON")
+
+
+func test_night_mode_independent_of_difficulty() -> void:
+	difficulty_menu = MockDifficultyMenu.new()
+	difficulty_menu.set_night_mode(true)
+	difficulty_menu.set_difficulty(MockDifficultyMenu.Difficulty.HARD)
+
+	assert_true(difficulty_menu.is_night_mode_enabled(), "Night mode should stay enabled after difficulty change")
+	assert_true(difficulty_menu.is_hard_selected(), "Hard should be selected")
+
+
 # ============================================================================
-# Levels Menu Tests
+# Levels Menu Tests (Card-based)
 # ============================================================================
 
 
@@ -490,6 +608,11 @@ var levels_menu: MockLevelsMenu
 func test_levels_menu_has_levels() -> void:
 	levels_menu = MockLevelsMenu.new()
 	assert_true(levels_menu.get_level_count() > 0, "Should have at least one level")
+
+
+func test_levels_menu_has_four_levels() -> void:
+	levels_menu = MockLevelsMenu.new()
+	assert_eq(levels_menu.get_level_count(), 4, "Should have 4 levels")
 
 
 func test_get_level_path() -> void:
@@ -516,32 +639,87 @@ func test_is_current_level() -> void:
 		"Should not match different level")
 
 
-func test_button_text_shows_current() -> void:
+func test_should_disable_current_level_card() -> void:
 	levels_menu = MockLevelsMenu.new()
 	levels_menu.current_scene_path = "res://scenes/levels/BuildingLevel.tscn"
 
-	var text := levels_menu.get_button_text("Building Level")
+	assert_true(levels_menu.should_disable_card("Building Level"),
+		"Current level card should be disabled")
+	assert_false(levels_menu.should_disable_card("Polygon"),
+		"Other level cards should not be disabled")
 
-	assert_eq(text, "Building Level (Current)", "Current level should show (Current)")
 
-
-func test_button_text_normal_for_other() -> void:
+func test_level_display_name_russian() -> void:
 	levels_menu = MockLevelsMenu.new()
-	levels_menu.current_scene_path = "res://scenes/levels/BuildingLevel.tscn"
+	assert_eq(levels_menu.get_display_name("Polygon"), "Полигон",
+		"Polygon should display as Полигон")
+	assert_eq(levels_menu.get_display_name("Castle"), "Замок",
+		"Castle should display as Замок")
+	assert_eq(levels_menu.get_display_name("Tutorial"), "Обучение",
+		"Tutorial should display as Обучение")
 
-	var text := levels_menu.get_button_text("Test Tier")
 
-	assert_eq(text, "Test Tier", "Other levels should have normal text")
-
-
-func test_should_disable_current_level_button() -> void:
+func test_level_display_name_fallback() -> void:
 	levels_menu = MockLevelsMenu.new()
-	levels_menu.current_scene_path = "res://scenes/levels/BuildingLevel.tscn"
+	assert_eq(levels_menu.get_display_name("Building Level"), "Building Level",
+		"Building Level has no Russian name, should use English")
 
-	assert_true(levels_menu.should_disable_button("Building Level"),
-		"Current level button should be disabled")
-	assert_false(levels_menu.should_disable_button("Test Tier"),
-		"Other level buttons should not be disabled")
+
+func test_level_ratings_building() -> void:
+	levels_menu = MockLevelsMenu.new()
+	assert_eq(levels_menu.get_rating("Building Level", "Easy"), 2)
+	assert_eq(levels_menu.get_rating("Building Level", "Normal"), 3)
+	assert_eq(levels_menu.get_rating("Building Level", "Hard"), 4)
+	assert_eq(levels_menu.get_rating("Building Level", "Power Fantasy"), 1)
+
+
+func test_level_ratings_castle() -> void:
+	levels_menu = MockLevelsMenu.new()
+	assert_eq(levels_menu.get_rating("Castle", "Hard"), 5,
+		"Castle on Hard should be rated 5 (maximum)")
+	assert_eq(levels_menu.get_rating("Castle", "Power Fantasy"), 2,
+		"Castle on Power Fantasy should be rated 2")
+
+
+func test_level_ratings_tutorial() -> void:
+	levels_menu = MockLevelsMenu.new()
+	assert_eq(levels_menu.get_rating("Tutorial", "Easy"), 1,
+		"Tutorial on Easy should be rated 1 (easiest)")
+	assert_eq(levels_menu.get_rating("Tutorial", "Normal"), 1,
+		"Tutorial on Normal should be rated 1 (easiest)")
+
+
+func test_star_string_full() -> void:
+	levels_menu = MockLevelsMenu.new()
+	assert_eq(levels_menu.get_star_string(5), "★★★★★",
+		"5 stars should be all filled")
+
+
+func test_star_string_empty() -> void:
+	levels_menu = MockLevelsMenu.new()
+	assert_eq(levels_menu.get_star_string(0), "☆☆☆☆☆",
+		"0 stars should be all empty")
+
+
+func test_star_string_partial() -> void:
+	levels_menu = MockLevelsMenu.new()
+	assert_eq(levels_menu.get_star_string(3), "★★★☆☆",
+		"3 stars should have 3 filled and 2 empty")
+
+
+func test_level_enemy_count() -> void:
+	levels_menu = MockLevelsMenu.new()
+	assert_eq(levels_menu.get_enemy_count("Building Level"), 10)
+	assert_eq(levels_menu.get_enemy_count("Polygon"), 5)
+	assert_eq(levels_menu.get_enemy_count("Castle"), 15)
+	assert_eq(levels_menu.get_enemy_count("Tutorial"), 4)
+
+
+func test_level_has_description() -> void:
+	levels_menu = MockLevelsMenu.new()
+	var data := levels_menu.get_level_data("Building Level")
+	assert_true(data.has("description"), "Level should have a description")
+	assert_true(data["description"].length() > 0, "Description should not be empty")
 
 
 # ============================================================================

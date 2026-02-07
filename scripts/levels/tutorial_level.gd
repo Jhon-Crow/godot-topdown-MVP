@@ -101,6 +101,9 @@ func _ready() -> void:
 	# Swap weapon based on GameManager selection
 	_setup_selected_weapon()
 
+	# Setup realistic visibility component (Issue #540)
+	_setup_realistic_visibility()
+
 	# Find UI container
 	_ui = get_node_or_null("CanvasLayer/UI")
 
@@ -125,6 +128,24 @@ func _ready() -> void:
 	# Register player with GameManager
 	if GameManager:
 		GameManager.set_player(_player)
+
+
+## Setup realistic visibility for the player (Issue #540).
+## Adds the RealisticVisibilityComponent to the player node.
+func _setup_realistic_visibility() -> void:
+	if _player == null:
+		return
+
+	var visibility_script = load("res://scripts/components/realistic_visibility_component.gd")
+	if visibility_script == null:
+		push_warning("[TutorialLevel] RealisticVisibilityComponent script not found")
+		return
+
+	var visibility_component = Node.new()
+	visibility_component.name = "RealisticVisibilityComponent"
+	visibility_component.set_script(visibility_script)
+	_player.add_child(visibility_component)
+	print("[TutorialLevel] Realistic visibility component added to player")
 
 
 ## Setup the weapon based on GameManager's selected weapon.
