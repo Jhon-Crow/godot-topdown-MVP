@@ -176,6 +176,8 @@ func _blind_enemy(enemy: Node2D) -> void:
 	var enemy_id := enemy.get_instance_id()
 	_blinded_enemies[enemy_id] = true
 
+	FileLogger.info("[FlashlightEffect] Beam hit %s at distance %.0f, applying blindness for %.1fs" % [enemy.name, global_position.distance_to(enemy.global_position), BLINDNESS_DURATION])
+
 	var status_manager: Node = get_node_or_null("/root/StatusEffectsManager")
 	if status_manager and status_manager.has_method("apply_blindness"):
 		status_manager.apply_blindness(enemy, BLINDNESS_DURATION)
