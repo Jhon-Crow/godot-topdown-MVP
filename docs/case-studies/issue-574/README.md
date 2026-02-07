@@ -109,6 +109,40 @@ When the flashlight illuminates a passage/doorway:
 2. If alternative navigation path exists (different door to the same room), increase the cost of traversing the lit passage
 3. The GOAP planner naturally selects the alternative route due to lower cost
 
+## Bug Report: Flashlight Detection Not Working (2026-02-07)
+
+### Symptom
+User reported: "не работает. обнаружение света фонарика должно выводить из IDLE." (Detection of flashlight should wake enemies from IDLE.)
+
+Game log analysis (`game_log_20260207_181131.txt`) confirmed:
+- Zero `[#574]` log messages in the entire log (flashlight detection never fired)
+- Enemies remained in IDLE state even when the flashlight was equipped and active
+- Flashlight was repeatedly initialized ("Flashlight is selected, initializing...") on scene loads
+
+### Root Cause
+The game uses the **C# Player class** (`Scripts/Characters/Player.cs`) at runtime, not the GDScript version (`scripts/characters/player.gd`). The main level scene (`scenes/levels/BuildingLevel.tscn`) references `scenes/characters/csharp/Player.tscn`, which uses the C# script.
+
+The three flashlight API methods required by the enemy's `FlashlightDetectionComponent` were only added to the **GDScript** Player:
+- `is_flashlight_on()` — check if flashlight is currently active
+- `get_flashlight_direction()` — get beam direction vector
+- `get_flashlight_origin()` — get beam origin position
+
+The C# Player was missing all three methods. The detection component checks `player.has_method("is_flashlight_on")` at line 80 of `flashlight_detection_component.gd`, which returns `false` for the C# Player, causing detection to silently fail and return `false` on every frame.
+
+### Fix
+Added the three public API methods to `Scripts/Characters/Player.cs` using snake_case naming convention (matching the GDScript cross-language compatibility pattern already used for `on_hit()` and `on_hit_with_info()`).
+
+### Timeline
+| Time | Event |
+|------|-------|
+| 18:11:31 | Game starts, flashlight not selected initially |
+| 18:11:34 | Flashlight selected and initialized |
+| 18:11:34–18:13:58 | Multiple scene loads, flashlight re-initialized each time |
+| Throughout | Enemies remain in IDLE despite flashlight — zero `[#574]` detection events |
+
+### Lesson Learned
+When adding GDScript methods that are called cross-language on a node that has both GDScript and C# implementations, **both implementations must be updated**. The `has_method()` check makes the failure silent, which is by design (graceful degradation) but makes debugging harder.
+
 ## Sources
 
 - [Bringing Balance to Stealth AI in Splinter Cell: Blacklist — Game Developer](https://www.gamedeveloper.com/design/bringing-balance-to-stealth-ai-in-splinter-cell-blacklist)
