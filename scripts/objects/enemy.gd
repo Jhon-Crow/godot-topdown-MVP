@@ -4556,12 +4556,7 @@ func _update_debug_label() -> void:
 			else: t += "\n(%s DIRECT)" % s
 	if _memory and _memory.has_target(): t += "\n[%.0f%% %s]" % [_memory.confidence * 100, _memory.get_behavior_mode().substr(0, 6)]
 	if _prediction: t += _prediction.get_debug_text()
-	# Issue #584: Show active status effects in debug label
-	if _is_blinded or _is_stunned:
-		var effects: Array = []
-		if _is_blinded: effects.append("BLINDED")
-		if _is_stunned: effects.append("STUNNED")
-		t += "\n{%s}" % " + ".join(effects)
+	if _is_blinded or _is_stunned: t += "\n{%s}" % ("BLINDED + STUNNED" if _is_blinded and _is_stunned else "BLINDED" if _is_blinded else "STUNNED")
 	_debug_label.text = t
 
 func get_current_state() -> AIState: return _current_state
