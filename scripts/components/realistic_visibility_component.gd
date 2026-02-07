@@ -8,6 +8,9 @@ extends Node
 ##
 ## Requires LightOccluder2D nodes on walls/obstacles for shadow casting.
 ## Controlled via ExperimentalSettings.realistic_visibility_enabled toggle.
+##
+## The player, weapon lasers, and grenade trajectory are always visible
+## (unshaded) so the player can see their own equipment in the dark.
 
 ## Radius of the player's visibility light in pixels.
 const VISIBILITY_RADIUS: float = 600.0
@@ -33,10 +36,20 @@ var _point_light: PointLight2D = null
 ## Whether the visibility system is currently active.
 var _is_active: bool = false
 
+## Unshaded material for items that should be visible in the dark.
+var _unshaded_material: CanvasItemMaterial = null
+
+## Original materials saved before applying unshaded (for restore on disable).
+var _original_materials: Dictionary = {}
+
 
 func _ready() -> void:
 	_player = get_parent() as Node2D
 	_setup_visibility_system()
+
+	# Create unshaded material for player elements visible in dark
+	_unshaded_material = CanvasItemMaterial.new()
+	_unshaded_material.light_mode = CanvasItemMaterial.LIGHT_MODE_UNSHADED
 
 	# Listen for experimental settings changes
 	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
@@ -124,6 +137,64 @@ func _apply_visibility_state(enabled: bool) -> void:
 	if _point_light:
 		_point_light.visible = enabled
 
+	# Make player and its equipment (laser, grenade trajectory) visible in the dark
+	_apply_unshaded_to_player(enabled)
+
+
+## Apply or remove unshaded material on the player so laser sights,
+## grenade trajectory, and the player model are always visible in night mode.
+func _apply_unshaded_to_player(enabled: bool) -> void:
+	if _player == null:
+		return
+
+	if enabled:
+		# Save original material and apply unshaded
+		if not _original_materials.has("player"):
+			_original_materials["player"] = _player.material
+		_player.material = _unshaded_material
+
+		# Also apply to all CanvasItem children recursively
+		# This covers weapon sprites, laser sights, arm sprites, etc.
+		_apply_unshaded_recursive(_player, true)
+	else:
+		# Restore original material
+		if _original_materials.has("player"):
+			_player.material = _original_materials["player"]
+			_original_materials.erase("player")
+		else:
+			_player.material = null
+
+		# Restore all children
+		_apply_unshaded_recursive(_player, false)
+
+
+## Recursively apply or remove unshaded material on CanvasItem children.
+func _apply_unshaded_recursive(node: Node, apply: bool) -> void:
+	for child in node.get_children():
+		if child is CanvasItem:
+			# Skip our own nodes (PointLight2D, etc.)
+			if child == _point_light:
+				continue
+
+			var child_item: CanvasItem = child as CanvasItem
+			if apply:
+				# Save original material
+				var key: String = str(child_item.get_instance_id())
+				if not _original_materials.has(key):
+					_original_materials[key] = child_item.material
+				child_item.material = _unshaded_material
+			else:
+				# Restore original material
+				var key: String = str(child_item.get_instance_id())
+				if _original_materials.has(key):
+					child_item.material = _original_materials[key]
+					_original_materials.erase(key)
+				else:
+					child_item.material = null
+
+		# Recurse into children
+		_apply_unshaded_recursive(child, apply)
+
 
 ## Called when experimental settings change.
 func _on_settings_changed() -> void:
@@ -144,5 +215,8 @@ func get_visibility_radius() -> float:
 
 ## Clean up when removed from scene.
 func _exit_tree() -> void:
+	# Restore materials before cleanup
+	if _is_active:
+		_apply_unshaded_to_player(false)
 	if _canvas_modulate and is_instance_valid(_canvas_modulate):
 		_canvas_modulate.queue_free()
