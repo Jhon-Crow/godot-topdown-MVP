@@ -754,17 +754,20 @@ func play_silenced_shot(position: Vector2) -> void:
 # ASVK sniper rifle sounds
 # ============================================================================
 
-## Plays the ASVK sniper rifle shot sound at the given position.
+## Plays the ASVK sniper rifle shot sound.
+## Uses non-positional audio so the sound is not attenuated by camera offset
+## when aiming through the scope (fixes issue #565).
 ## Uses CRITICAL priority for player shooting sounds.
-func play_asvk_shot(position: Vector2) -> void:
-	play_sound_2d_with_priority(ASVK_SHOT, position, VOLUME_ASVK_SHOT, SoundPriority.CRITICAL)
+func play_asvk_shot() -> void:
+	play_sound_with_priority(ASVK_SHOT, VOLUME_ASVK_SHOT, SoundPriority.CRITICAL)
 
 
-## Plays the ASVK bolt-action step sound at the given position.
+## Plays the ASVK bolt-action step sound.
 ## @param step: The bolt-action step number (1-4).
-## @param position: World position for positional audio.
+## Uses non-positional audio so the sound is not attenuated by camera offset
+## when aiming through the scope (fixes issue #565).
 ## Uses CRITICAL priority for reload sounds.
-func play_asvk_bolt_step(step: int, position: Vector2) -> void:
+func play_asvk_bolt_step(step: int) -> void:
 	var sound_path: String = ""
 	match step:
 		1:
@@ -776,7 +779,7 @@ func play_asvk_bolt_step(step: int, position: Vector2) -> void:
 		4:
 			sound_path = ASVK_BOLT_STEP_4
 	if sound_path != "":
-		play_sound_2d_with_priority(sound_path, position, VOLUME_ASVK_BOLT, SoundPriority.CRITICAL)
+		play_sound_with_priority(sound_path, VOLUME_ASVK_BOLT, SoundPriority.CRITICAL)
 
 
 # ============================================================================

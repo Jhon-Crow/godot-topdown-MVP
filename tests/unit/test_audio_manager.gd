@@ -345,3 +345,32 @@ func test_reload_sound_uses_correct_volume() -> void:
 	audio.play_sound_2d("res://reload.wav", position, volume_reload)
 
 	assert_eq(audio.played_sounds_2d[0]["volume"], -3.0)
+
+
+# ============================================================================
+# ASVK Sound Tests (Issue #565 - sounds must be non-positional)
+# ============================================================================
+
+
+func test_asvk_shot_uses_non_positional_audio() -> void:
+	# ASVK shot must use non-positional audio so scope camera offset
+	# does not attenuate the sound volume (issue #565).
+	var volume_asvk_shot := -2.0
+	audio.play_sound("res://assets/audio/выстрел из ASVK.wav", volume_asvk_shot)
+
+	assert_eq(audio.played_sounds.size(), 1,
+		"ASVK shot should use non-positional play_sound")
+	assert_eq(audio.played_sounds_2d.size(), 0,
+		"ASVK shot should NOT use positional play_sound_2d")
+
+
+func test_asvk_bolt_step_uses_non_positional_audio() -> void:
+	# ASVK bolt-action step sounds must use non-positional audio so scope
+	# camera offset does not attenuate the sound volume (issue #565).
+	var volume_asvk_bolt := -3.0
+	audio.play_sound("res://assets/audio/отпирание затвора ASVK (1 шаг зарядки).wav", volume_asvk_bolt)
+
+	assert_eq(audio.played_sounds.size(), 1,
+		"ASVK bolt step should use non-positional play_sound")
+	assert_eq(audio.played_sounds_2d.size(), 0,
+		"ASVK bolt step should NOT use positional play_sound_2d")
