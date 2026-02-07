@@ -89,6 +89,52 @@
 - Place 2 sniper enemies in strategic positions
 - Setup navigation mesh for pathfinding
 
+## Bug Fixes (Post-Implementation)
+
+### Bug 1: Camera Limited to 4128x3088 (Map is 6000x5000)
+
+**Root Cause**: `Player.tscn` has hardcoded Camera2D limits:
+```
+limit_right = 4128
+limit_bottom = 3088
+```
+CityLevel is 6000x5000 pixels but never overrides these defaults. CastleLevel (also a large map) solves this by calling `_configure_camera()` which sets limits to +/-10M.
+
+**Fix**: Added `_configure_camera()` to `city_level.gd`, matching CastleLevel's pattern.
+
+### Bug 2: Snipers Never Shoot (Critical)
+
+**Root Cause**: In `enemy.gd:3832`, the `_shoot()` function starts with:
+```gdscript
+if bullet_scene == null or _player == null:
+    return
+```
+Snipers use hitscan (no projectile scene), so their weapon_config has `bullet_scene_path = ""`. This means `bullet_scene` is never loaded and stays `null`. The function always returns early before reaching the sniper hitscan code at line 3868.
+
+**Evidence from game logs**: SniperEnemy1 and SniperEnemy2 spawn correctly (`Spawned at (5600, 400)`) but only ever do `idle_scan` - never transitioning to firing states. Regular enemies (GuardEnemy, PatrolEnemy) fire normally because they have valid bullet scenes.
+
+**Fix**: Changed the guard to skip the null check for snipers:
+```gdscript
+if _player == null:
+    return
+if not _is_sniper and bullet_scene == null:
+    return
+```
+
+### Bug 3: Buildings Are Solid Blocks (Not Enterable)
+
+**Root Cause**: All 28 buildings in CityLevel were `StaticBody2D` nodes with a single solid `CollisionShape2D` covering the entire footprint (300x300 or 200x200 pixels). Players and enemies cannot enter them.
+
+**Fix**: Replaced each solid building with 4 wall segments (16px thick):
+- Doorway side: 60px gap (large) / 50px gap (small) for entry
+- Opposite side: 2 shooting slits (20px gaps, too small to walk through)
+- Other 2 sides: Solid walls
+- Interior: Dark floor for visual contrast
+
+## Game Logs
+
+See `logs/` directory for the original game log files from the issue author's testing.
+
 ## References
 
 - ASVK rifle: Russian anti-materiel rifle, 12.7x108mm caliber
