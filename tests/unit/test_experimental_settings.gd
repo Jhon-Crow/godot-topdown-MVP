@@ -20,6 +20,9 @@ class MockExperimentalSettings:
 	## Whether AI player prediction is enabled (Issue #298).
 	var ai_prediction_enabled: bool = false
 
+	## Whether realistic visibility mode is enabled (Issue #540).
+	var realistic_visibility_enabled: bool = false
+
 	## Signal tracking
 	var settings_changed_emitted: int = 0
 
@@ -59,11 +62,23 @@ class MockExperimentalSettings:
 	func is_ai_prediction_enabled() -> bool:
 		return ai_prediction_enabled
 
+	## Set realistic visibility enabled/disabled (Issue #540).
+	func set_realistic_visibility_enabled(enabled: bool) -> void:
+		if realistic_visibility_enabled != enabled:
+			realistic_visibility_enabled = enabled
+			settings_changed_emitted += 1
+			_save_settings()
+
+	## Check if realistic visibility is enabled (Issue #540).
+	func is_realistic_visibility_enabled() -> bool:
+		return realistic_visibility_enabled
+
 	## Save settings (simulated).
 	func _save_settings() -> void:
 		_saved_settings["fov_enabled"] = fov_enabled
 		_saved_settings["complex_grenade_throwing"] = complex_grenade_throwing
 		_saved_settings["ai_prediction_enabled"] = ai_prediction_enabled
+		_saved_settings["realistic_visibility_enabled"] = realistic_visibility_enabled
 
 	## Load settings (simulated).
 	func _load_settings() -> void:
@@ -79,12 +94,17 @@ class MockExperimentalSettings:
 			ai_prediction_enabled = _saved_settings["ai_prediction_enabled"]
 		else:
 			ai_prediction_enabled = false
+		if _saved_settings.has("realistic_visibility_enabled"):
+			realistic_visibility_enabled = _saved_settings["realistic_visibility_enabled"]
+		else:
+			realistic_visibility_enabled = false
 
 	## Reset to defaults.
 	func reset_to_defaults() -> void:
 		fov_enabled = false
 		complex_grenade_throwing = false
 		ai_prediction_enabled = false
+		realistic_visibility_enabled = false
 		settings_changed_emitted += 1
 		_saved_settings.clear()
 
@@ -612,3 +632,104 @@ func test_reset_clears_ai_prediction() -> void:
 	settings.reset_to_defaults()
 	assert_false(settings.ai_prediction_enabled,
 		"Reset should disable AI prediction")
+
+
+# ============================================================================
+# Realistic Visibility Setting Tests (Issue #540)
+# ============================================================================
+
+
+func test_default_realistic_visibility_disabled() -> void:
+	assert_false(settings.realistic_visibility_enabled,
+		"Realistic visibility should be disabled by default")
+
+
+func test_is_realistic_visibility_enabled_returns_false_by_default() -> void:
+	assert_false(settings.is_realistic_visibility_enabled(),
+		"is_realistic_visibility_enabled should return false by default")
+
+
+func test_set_realistic_visibility_enabled_true() -> void:
+	settings.set_realistic_visibility_enabled(true)
+	assert_true(settings.realistic_visibility_enabled,
+		"Realistic visibility should be enabled after set_realistic_visibility_enabled(true)")
+
+
+func test_set_realistic_visibility_enabled_false() -> void:
+	settings.realistic_visibility_enabled = true
+	settings.set_realistic_visibility_enabled(false)
+	assert_false(settings.realistic_visibility_enabled,
+		"Realistic visibility should be disabled after set_realistic_visibility_enabled(false)")
+
+
+func test_set_realistic_visibility_emits_signal() -> void:
+	settings.set_realistic_visibility_enabled(true)
+	assert_eq(settings.settings_changed_emitted, 1,
+		"Should emit settings_changed signal when toggling realistic visibility")
+
+
+func test_set_realistic_visibility_no_signal_if_same() -> void:
+	settings.realistic_visibility_enabled = true
+	settings.settings_changed_emitted = 0
+	settings.set_realistic_visibility_enabled(true)  # Same value
+	assert_eq(settings.settings_changed_emitted, 0,
+		"Should not emit signal if realistic visibility value unchanged")
+
+
+func test_set_realistic_visibility_saves_settings() -> void:
+	settings.set_realistic_visibility_enabled(true)
+	assert_true(settings._saved_settings.has("realistic_visibility_enabled"),
+		"Realistic visibility setting should be saved")
+	assert_true(settings._saved_settings["realistic_visibility_enabled"],
+		"Saved realistic visibility value should match")
+
+
+func test_load_realistic_visibility_setting() -> void:
+	settings._saved_settings["realistic_visibility_enabled"] = true
+	settings._load_settings()
+	assert_true(settings.realistic_visibility_enabled,
+		"Load should restore saved realistic visibility setting")
+
+
+func test_load_realistic_visibility_defaults_when_empty() -> void:
+	settings.realistic_visibility_enabled = true
+	settings._saved_settings.clear()
+	settings._load_settings()
+	assert_false(settings.realistic_visibility_enabled,
+		"Load should default realistic visibility to false when no saved settings")
+
+
+func test_realistic_visibility_independent_of_other_settings() -> void:
+	settings.set_realistic_visibility_enabled(true)
+	assert_true(settings.is_realistic_visibility_enabled(), "Realistic visibility should be enabled")
+	assert_false(settings.is_fov_enabled(), "FOV should still be disabled")
+	assert_false(settings.is_complex_grenade_throwing(), "Grenades should still be disabled")
+	assert_false(settings.is_ai_prediction_enabled(), "AI prediction should still be disabled")
+
+
+func test_save_and_load_all_four_settings() -> void:
+	settings.set_fov_enabled(true)
+	settings.set_complex_grenade_throwing(true)
+	settings.set_ai_prediction_enabled(true)
+	settings.set_realistic_visibility_enabled(true)
+
+	# Reset in-memory state
+	settings.fov_enabled = false
+	settings.complex_grenade_throwing = false
+	settings.ai_prediction_enabled = false
+	settings.realistic_visibility_enabled = false
+
+	# Load from saved
+	settings._load_settings()
+
+	assert_true(settings.is_fov_enabled(), "FOV should be restored")
+	assert_true(settings.is_complex_grenade_throwing(), "Complex grenade should be restored")
+	assert_true(settings.is_ai_prediction_enabled(), "AI prediction should be restored")
+	assert_true(settings.is_realistic_visibility_enabled(), "Realistic visibility should be restored")
+
+
+func test_reset_clears_realistic_visibility() -> void:
+	settings.set_realistic_visibility_enabled(true)
+	settings.reset_to_defaults()
+	assert_false(settings.realistic_visibility_enabled,
+		"Reset should disable realistic visibility")
