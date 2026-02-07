@@ -5,11 +5,12 @@ extends Node
 ## Provides playback functionality to watch completed levels.
 ##
 ## Recording captures:
-## - Player position, rotation, and model scale
-## - Enemy positions, rotations, and alive state
+## - Player position, rotation, model scale, and health color
+## - Enemy positions, rotations, alive state, and health color
 ## - Bullet positions and rotations
 ## - Grenade positions
-## - Key events (shots, deaths, explosions)
+## - Sound events (shots, hits, deaths) with positions
+## - Blood decal and casing positions (for progressive floor effects)
 ##
 ## Playback recreates the visual representation without running game logic.
 
@@ -25,10 +26,13 @@ const MAX_RECORDING_DURATION: float = 300.0  # 5 minutes
 ## - player_rotation: float
 ## - player_model_scale: Vector2
 ## - player_alive: bool
-## - enemies: Array of {position, rotation, alive}
+## - player_color: Color (health-based sprite color)
+## - enemies: Array of {position, rotation, alive, color}
 ## - bullets: Array of {position, rotation}
 ## - grenades: Array of {position}
-## - events: Array of event strings for this frame
+## - events: Array of {type, position, ...} event dictionaries
+## - blood_decals: Array of {position, rotation, scale} (cumulative floor state)
+## - casings: Array of {position, rotation} (cumulative floor state)
 ##
 ## Note: Inner classes are avoided to prevent parse errors in exported builds
 ## (Godot 4.3 has issues with inner classes in autoload scripts during export)
@@ -79,6 +83,23 @@ var _ghost_enemies: Array = []
 var _ghost_bullets: Array = []
 var _ghost_grenades: Array = []
 
+## Ghost trail line for the player (Issue #544: trail should follow contour).
+var _ghost_player_trail: Line2D = null
+
+## Maximum number of trail points for the ghost player trail.
+const GHOST_TRAIL_MAX_POINTS: int = 20
+
+## Blood decal and casing ghost nodes spawned during playback.
+var _replay_blood_decals: Array = []
+var _replay_casings: Array = []
+
+## Tracks how many blood decals / casings have been spawned so far in playback.
+var _spawned_blood_count: int = 0
+var _spawned_casing_count: int = 0
+
+## Tracks the last frame index that was applied (for event playback).
+var _last_applied_frame: int = -1
+
 ## Replay UI overlay.
 var _replay_ui: CanvasLayer = null
 
@@ -100,10 +121,13 @@ func _create_frame_data() -> Dictionary:
 		"player_rotation": 0.0,
 		"player_model_scale": Vector2.ONE,
 		"player_alive": true,
+		"player_color": Color(0.2, 0.6, 1.0, 1.0),
 		"enemies": [],
 		"bullets": [],
 		"grenades": [],
-		"events": []
+		"events": [],
+		"blood_decals": [],
+		"casings": []
 	}
 
 
@@ -212,6 +236,12 @@ func start_playback(level: Node2D) -> void:
 	_playback_time = 0.0
 	_playback_speed = 1.0
 	_level_node = level
+	_last_applied_frame = -1
+	_spawned_blood_count = 0
+	_spawned_casing_count = 0
+
+	# Clean the floor of existing blood and casings (Issue #544 fix 5)
+	_clean_floor(level)
 
 	# Create ghost entities for visualization
 	_create_ghost_entities(level)
@@ -238,6 +268,7 @@ func stop_playback() -> void:
 	_is_playing_back = false
 	_playback_ending = false
 	_playback_end_timer = 0.0
+	_last_applied_frame = -1
 
 	# Clean up ghost entities
 	_cleanup_ghost_entities()
@@ -329,6 +360,11 @@ func _record_frame(delta: float) -> void:
 		if player_model:
 			frame.player_model_scale = player_model.scale
 
+		# Record player health color (Issue #544 fix 3, 6)
+		var body_sprite: Sprite2D = _player.get_node_or_null("PlayerModel/Body")
+		if body_sprite:
+			frame.player_color = body_sprite.modulate
+
 		# Check if player is alive (GDScript or C#)
 		if _player.get("_is_alive") != null:
 			frame.player_alive = _player._is_alive
@@ -343,19 +379,29 @@ func _record_frame(delta: float) -> void:
 			var enemy_data := {
 				"position": enemy.global_position,
 				"rotation": enemy.global_rotation,
-				"alive": true
+				"alive": true,
+				"color": Color(0.9, 0.2, 0.2, 1.0)
 			}
 			# Check if enemy is alive
 			if enemy.has_method("is_alive"):
 				enemy_data.alive = enemy.is_alive()
 			elif enemy.get("_is_alive") != null:
 				enemy_data.alive = enemy._is_alive
+
+			# Record enemy health color (Issue #544 fix 3)
+			var enemy_body: Sprite2D = enemy.get_node_or_null("EnemyModel/Body")
+			if enemy_body:
+				enemy_data.color = enemy_body.modulate
+			elif not enemy_data.alive:
+				enemy_data.color = Color(0.3, 0.3, 0.3, 0.5)
+
 			frame.enemies.append(enemy_data)
 		else:
 			frame.enemies.append({
 				"position": Vector2.ZERO,
 				"rotation": 0.0,
-				"alive": false
+				"alive": false,
+				"color": Color(0.3, 0.3, 0.3, 0.5)
 			})
 
 	# Record projectiles (bullets)
@@ -381,7 +427,84 @@ func _record_frame(delta: float) -> void:
 					"position": grenade.global_position
 				})
 
+		# Record blood decals on the floor (Issue #544 fix 5)
+		var blood_puddles := _level_node.get_tree().get_nodes_in_group("blood_puddle")
+		for puddle in blood_puddles:
+			if puddle is Sprite2D and is_instance_valid(puddle):
+				frame.blood_decals.append({
+					"position": puddle.global_position,
+					"rotation": puddle.rotation,
+					"scale": puddle.scale
+				})
+
+		# Record casings on the floor (Issue #544 fix 5)
+		var casings := _level_node.get_tree().get_nodes_in_group("casings")
+		for casing in casings:
+			if casing is Node2D and is_instance_valid(casing):
+				frame.casings.append({
+					"position": casing.global_position,
+					"rotation": casing.rotation
+				})
+
+	# Record sound events by detecting new bullets and enemy state changes (Issue #544 fix 2)
+	_record_sound_events(frame)
+
 	_frames.append(frame)
+
+
+## Detects and records sound events by comparing current frame to previous.
+## This captures shot sounds, hit sounds, and death sounds.
+func _record_sound_events(frame: Dictionary) -> void:
+	if _frames.is_empty():
+		return
+
+	var prev_frame: Dictionary = _frames[-1]
+
+	# Detect new bullets (shot event) - if bullet count increased, a shot occurred
+	if frame.bullets.size() > prev_frame.bullets.size():
+		# Determine shot position from new bullets
+		for i in range(prev_frame.bullets.size(), frame.bullets.size()):
+			if i < frame.bullets.size():
+				frame.events.append({
+					"type": "shot",
+					"position": frame.bullets[i].position
+				})
+
+	# Detect enemy deaths (death event)
+	for i in range(mini(frame.enemies.size(), prev_frame.enemies.size())):
+		if prev_frame.enemies[i].alive and not frame.enemies[i].alive:
+			frame.events.append({
+				"type": "death",
+				"position": frame.enemies[i].position
+			})
+
+	# Detect enemy hits (health color change indicating damage)
+	for i in range(mini(frame.enemies.size(), prev_frame.enemies.size())):
+		if frame.enemies[i].alive and prev_frame.enemies[i].alive:
+			var prev_color: Color = prev_frame.enemies[i].color
+			var curr_color: Color = frame.enemies[i].color
+			# White flash = hit (hit_flash_color is white)
+			if curr_color.r > 0.95 and curr_color.g > 0.95 and curr_color.b > 0.95:
+				frame.events.append({
+					"type": "hit",
+					"position": frame.enemies[i].position
+				})
+
+	# Detect player death
+	if prev_frame.player_alive and not frame.player_alive:
+		frame.events.append({
+			"type": "player_death",
+			"position": frame.player_position
+		})
+
+	# Detect player hit (white flash on player)
+	if frame.player_alive and prev_frame.player_alive:
+		var curr_p_color: Color = frame.player_color
+		if curr_p_color.r > 0.95 and curr_p_color.g > 0.95 and curr_p_color.b > 0.95:
+			frame.events.append({
+				"type": "player_hit",
+				"position": frame.player_position
+			})
 
 
 ## Updates playback by advancing time and applying the appropriate frame.
@@ -408,11 +531,59 @@ func _playback_frame_update(delta: float) -> void:
 		return
 
 	# Find the frame to display (interpolate between frames)
+	var prev_frame_idx := _playback_frame
 	while _playback_frame < _frames.size() - 1 and _frames[_playback_frame + 1].time <= _playback_time:
 		_playback_frame += 1
 
+	# Play events for all frames we skipped over (Issue #544 fix 2)
+	if _playback_frame > _last_applied_frame:
+		for fi in range(maxi(_last_applied_frame + 1, 0), _playback_frame + 1):
+			if fi < _frames.size():
+				_play_frame_events(_frames[fi])
+		_last_applied_frame = _playback_frame
+
 	# Apply the current frame
 	_apply_frame_dict(_frames[_playback_frame])
+
+
+## Plays sound events and visual effects for a frame during playback.
+func _play_frame_events(frame: Dictionary) -> void:
+	if not frame.has("events"):
+		return
+
+	var audio_manager: Node = get_node_or_null("/root/AudioManager")
+
+	for event in frame.events:
+		var event_type: String = event.type
+		var event_pos: Vector2 = event.position
+
+		match event_type:
+			"shot":
+				# Play shot sound (Issue #544 fix 2)
+				if audio_manager and audio_manager.has_method("play_m16_shot"):
+					audio_manager.play_m16_shot(event_pos)
+			"death":
+				# Play lethal hit sound (Issue #544 fix 2)
+				if audio_manager and audio_manager.has_method("play_hit_lethal"):
+					audio_manager.play_hit_lethal(event_pos)
+				# Trigger brightness effect (Issue #544 fix 4)
+				var hit_effects: Node = get_node_or_null("/root/HitEffectsManager")
+				if hit_effects and hit_effects.has_method("on_player_hit_enemy"):
+					hit_effects.on_player_hit_enemy()
+			"hit":
+				# Play non-lethal hit sound (Issue #544 fix 2)
+				if audio_manager and audio_manager.has_method("play_hit_non_lethal"):
+					audio_manager.play_hit_non_lethal(event_pos)
+				# Trigger brightness effect (Issue #544 fix 4)
+				var hit_effects: Node = get_node_or_null("/root/HitEffectsManager")
+				if hit_effects and hit_effects.has_method("on_player_hit_enemy"):
+					hit_effects.on_player_hit_enemy()
+			"player_death":
+				if audio_manager and audio_manager.has_method("play_hit_lethal"):
+					audio_manager.play_hit_lethal(event_pos)
+			"player_hit":
+				if audio_manager and audio_manager.has_method("play_hit_non_lethal"):
+					audio_manager.play_hit_non_lethal(event_pos)
 
 
 ## Applies a frame's data (Dictionary) to the ghost entities.
@@ -428,6 +599,13 @@ func _apply_frame_dict(frame: Dictionary) -> void:
 		if ghost_model:
 			ghost_model.scale = frame.player_model_scale
 
+		# Apply player health color to all sprite parts (Issue #544 fix 3, 6)
+		if frame.has("player_color"):
+			_apply_color_to_ghost_sprites(_ghost_player, "PlayerModel", frame.player_color, frame.player_alive)
+
+		# Update ghost player trail (Issue #544 fix 7)
+		_update_ghost_player_trail(frame.player_position)
+
 	# Update ghost enemies
 	for i in range(mini(_ghost_enemies.size(), frame.enemies.size())):
 		var ghost_enemy: Node2D = _ghost_enemies[i]
@@ -438,11 +616,53 @@ func _apply_frame_dict(frame: Dictionary) -> void:
 			ghost_enemy.global_rotation = enemy_data.rotation
 			ghost_enemy.visible = enemy_data.alive
 
+			# Apply enemy health color (Issue #544 fix 3)
+			if enemy_data.has("color"):
+				_apply_color_to_ghost_sprites(ghost_enemy, "EnemyModel", enemy_data.color, enemy_data.alive)
+
 	# Update ghost bullets (create/remove as needed)
 	_update_ghost_projectiles(frame.bullets, _ghost_bullets, "bullet")
 
 	# Update ghost grenades
 	_update_ghost_projectiles(frame.grenades, _ghost_grenades, "grenade")
+
+	# Update floor blood decals progressively (Issue #544 fix 5)
+	if frame.has("blood_decals"):
+		_update_replay_blood_decals(frame.blood_decals)
+
+	# Update floor casings progressively (Issue #544 fix 5)
+	if frame.has("casings"):
+		_update_replay_casings(frame.casings)
+
+
+## Applies a health-based color to the sprite parts of a ghost entity.
+## Handles both alive (health color) and dead (gray) states.
+func _apply_color_to_ghost_sprites(ghost: Node2D, model_name: String, color: Color, is_alive: bool) -> void:
+	var model: Node2D = ghost.get_node_or_null(model_name)
+	if not model:
+		return
+
+	var target_color := color
+	if not is_alive:
+		target_color = Color(0.3, 0.3, 0.3, 0.5)
+
+	# Apply to all sprite children of the model
+	for child in model.get_children():
+		if child is Sprite2D:
+			child.modulate = target_color
+
+
+## Updates the ghost player trailing line (Issue #544 fix 7).
+func _update_ghost_player_trail(player_pos: Vector2) -> void:
+	if not _ghost_player_trail or not is_instance_valid(_ghost_player_trail):
+		return
+
+	# Add current position as a new point
+	_ghost_player_trail.add_point(player_pos)
+
+	# Remove oldest points if over limit
+	while _ghost_player_trail.get_point_count() > GHOST_TRAIL_MAX_POINTS:
+		_ghost_player_trail.remove_point(0)
 
 
 ## Updates ghost projectile entities to match frame data.
@@ -470,6 +690,21 @@ func _update_ghost_projectiles(projectile_data: Array, ghost_array: Array, proje
 				ghost.global_rotation = data.rotation
 			ghost.visible = true
 
+			# Update bullet trail (Issue #544 fix 1)
+			if projectile_type == "bullet":
+				_update_bullet_trail(ghost, data.position)
+
+
+## Updates the trailing line on a ghost bullet for visual feedback.
+func _update_bullet_trail(ghost: Node2D, current_pos: Vector2) -> void:
+	var trail: Line2D = ghost.get_node_or_null("Trail")
+	if not trail:
+		return
+
+	trail.add_point(current_pos)
+	while trail.get_point_count() > 6:
+		trail.remove_point(0)
+
 
 ## Creates ghost entities for replay visualization.
 func _create_ghost_entities(level: Node2D) -> void:
@@ -486,6 +721,10 @@ func _create_ghost_entities(level: Node2D) -> void:
 	if _ghost_player:
 		ghost_container.add_child(_ghost_player)
 
+	# Create ghost player trail (Issue #544 fix 7)
+	_ghost_player_trail = _create_player_trail()
+	ghost_container.add_child(_ghost_player_trail)
+
 	# Create ghost enemies (one for each recorded enemy)
 	if not _frames.is_empty() and not _frames[0].enemies.is_empty():
 		for i in range(_frames[0].enemies.size()):
@@ -499,6 +738,7 @@ func _create_ghost_entities(level: Node2D) -> void:
 
 
 ## Creates a ghost representation of the player.
+## Issue #544 fix 6: Player model looks the same as during gameplay.
 func _create_player_ghost() -> Node2D:
 	# Try to load the player scene and create a visual-only copy
 	var player_scene: PackedScene = load("res://scenes/characters/Player.tscn")
@@ -510,8 +750,9 @@ func _create_player_ghost() -> Node2D:
 		# Disable all scripts/processing - we only want visuals
 		_disable_node_processing(ghost)
 
-		# Add a slight transparency to indicate it's a replay
-		_set_ghost_modulate(ghost, Color(1.0, 1.0, 1.0, 0.9))
+		# Issue #544 fix 6: Do NOT apply a global modulate override.
+		# The health color will be set per-frame via _apply_color_to_ghost_sprites()
+		# so the player model looks the same as during gameplay.
 
 		return ghost
 
@@ -526,6 +767,28 @@ func _create_player_ghost() -> Node2D:
 	return ghost
 
 
+## Creates a trailing line that follows the player ghost contour (Issue #544 fix 7).
+func _create_player_trail() -> Line2D:
+	var trail := Line2D.new()
+	trail.name = "GhostPlayerTrail"
+	trail.process_mode = Node.PROCESS_MODE_ALWAYS
+	trail.width = 3.0
+	trail.default_color = Color(0.3, 0.7, 1.0, 0.5)
+	trail.z_index = -1  # Render behind the player ghost
+
+	# Create a gradient for the trail (fade out at the tail)
+	var gradient := Gradient.new()
+	gradient.set_color(0, Color(0.3, 0.7, 1.0, 0.0))  # Tail: transparent
+	gradient.set_color(1, Color(0.3, 0.7, 1.0, 0.6))  # Head: visible
+	trail.gradient = gradient
+
+	trail.joint_mode = Line2D.LINE_JOINT_ROUND
+	trail.begin_cap_mode = Line2D.LINE_CAP_ROUND
+	trail.end_cap_mode = Line2D.LINE_CAP_ROUND
+
+	return trail
+
+
 ## Creates a ghost representation of an enemy.
 func _create_enemy_ghost() -> Node2D:
 	# Try to load the enemy scene
@@ -538,8 +801,8 @@ func _create_enemy_ghost() -> Node2D:
 		# Disable all scripts/processing
 		_disable_node_processing(ghost)
 
-		# Add transparency
-		_set_ghost_modulate(ghost, Color(1.0, 1.0, 1.0, 0.9))
+		# Issue #544 fix 3: Do NOT apply a global modulate override.
+		# The health color will be set per-frame via _apply_color_to_ghost_sprites().
 
 		return ghost
 
@@ -555,39 +818,43 @@ func _create_enemy_ghost() -> Node2D:
 
 
 ## Creates a ghost representation of a projectile.
+## Issue #544 fix 1: Bullets are now properly visible with trail effect.
 func _create_projectile_ghost(projectile_type: String) -> Node2D:
 	var ghost := Node2D.new()
 	ghost.name = "Ghost" + projectile_type.capitalize()
 	ghost.process_mode = Node.PROCESS_MODE_ALWAYS
 
-	# Create a simple visual representation
-	var sprite := Sprite2D.new()
-
 	if projectile_type == "bullet":
-		# Small yellow rectangle for bullet
-		var texture := GradientTexture2D.new()
-		texture.width = 8
-		texture.height = 3
-		texture.fill_from = Vector2(0, 0)
-		texture.fill_to = Vector2(1, 0)
+		# Create a visible bullet sprite (Issue #544 fix 1)
+		var sprite := Sprite2D.new()
+		var img := Image.create(12, 4, false, Image.FORMAT_RGBA8)
+		img.fill(Color(1.0, 0.9, 0.3, 1.0))
+		sprite.texture = ImageTexture.create_from_image(img)
+		ghost.add_child(sprite)
+
+		# Add a trailing line behind the bullet for visibility (Issue #544 fix 1)
+		var trail := Line2D.new()
+		trail.name = "Trail"
+		trail.process_mode = Node.PROCESS_MODE_ALWAYS
+		trail.width = 2.0
+		trail.default_color = Color(1.0, 0.9, 0.3, 0.8)
+		trail.z_index = -1
+		# Trail gradient: fades to transparent at the tail
 		var gradient := Gradient.new()
-		gradient.set_color(0, Color(1.0, 0.9, 0.2, 1.0))
-		gradient.set_color(1, Color(1.0, 0.7, 0.1, 1.0))
-		texture.gradient = gradient
-		sprite.texture = texture
+		gradient.set_color(0, Color(1.0, 0.8, 0.2, 0.0))
+		gradient.set_color(1, Color(1.0, 0.9, 0.3, 0.8))
+		trail.gradient = gradient
+		trail.joint_mode = Line2D.LINE_JOINT_ROUND
+		trail.begin_cap_mode = Line2D.LINE_CAP_ROUND
+		trail.end_cap_mode = Line2D.LINE_CAP_ROUND
+		ghost.add_child(trail)
 	else:
 		# Circle for grenade
-		var texture := GradientTexture2D.new()
-		texture.width = 12
-		texture.height = 12
-		texture.fill = GradientTexture2D.FILL_RADIAL
-		var gradient := Gradient.new()
-		gradient.set_color(0, Color(0.2, 0.5, 0.2, 1.0))
-		gradient.set_color(1, Color(0.1, 0.3, 0.1, 0.5))
-		texture.gradient = gradient
-		sprite.texture = texture
-
-	ghost.add_child(sprite)
+		var sprite := Sprite2D.new()
+		var img := Image.create(12, 12, false, Image.FORMAT_RGBA8)
+		img.fill(Color(0.2, 0.5, 0.2, 1.0))
+		sprite.texture = ImageTexture.create_from_image(img)
+		ghost.add_child(sprite)
 
 	# Add to level
 	if _level_node and is_instance_valid(_level_node):
@@ -628,6 +895,91 @@ func _set_ghost_modulate(node: Node, color: Color) -> void:
 		_set_ghost_modulate(child, color)
 
 
+## Cleans the floor of blood decals and casings at the start of replay (Issue #544 fix 5).
+## They will be progressively re-added during playback.
+func _clean_floor(level: Node2D) -> void:
+	# Remove existing blood decals
+	var blood_puddles := level.get_tree().get_nodes_in_group("blood_puddle")
+	for puddle in blood_puddles:
+		if puddle and is_instance_valid(puddle):
+			puddle.visible = false
+
+	# Remove existing casings
+	var casings := level.get_tree().get_nodes_in_group("casings")
+	for casing in casings:
+		if casing and is_instance_valid(casing):
+			casing.visible = false
+
+	# Also clear via ImpactEffectsManager if available
+	var impact_manager: Node = get_node_or_null("/root/ImpactEffectsManager")
+	if impact_manager and impact_manager.has_method("clear_blood_decals"):
+		impact_manager.clear_blood_decals()
+
+	_log_to_file("Floor cleaned for replay playback")
+
+
+## Updates blood decals during replay to show progressive accumulation (Issue #544 fix 5).
+func _update_replay_blood_decals(decals_data: Array) -> void:
+	# Only spawn new decals that weren't spawned yet
+	if decals_data.size() <= _spawned_blood_count:
+		return
+
+	var blood_decal_scene: PackedScene = null
+	if ResourceLoader.exists("res://scenes/effects/BloodDecal.tscn"):
+		blood_decal_scene = load("res://scenes/effects/BloodDecal.tscn")
+
+	if blood_decal_scene == null:
+		# Fallback: use simple colored sprites
+		for i in range(_spawned_blood_count, decals_data.size()):
+			var data: Dictionary = decals_data[i]
+			var decal := Sprite2D.new()
+			var img := Image.create(8, 8, false, Image.FORMAT_RGBA8)
+			img.fill(Color(0.5, 0.0, 0.0, 0.7))
+			decal.texture = ImageTexture.create_from_image(img)
+			decal.global_position = data.position
+			decal.rotation = data.rotation
+			decal.scale = data.scale if data.has("scale") else Vector2.ONE
+			decal.z_index = -1
+			if _level_node and is_instance_valid(_level_node):
+				_level_node.add_child(decal)
+				_replay_blood_decals.append(decal)
+	else:
+		for i in range(_spawned_blood_count, decals_data.size()):
+			var data: Dictionary = decals_data[i]
+			var decal: Node2D = blood_decal_scene.instantiate()
+			decal.global_position = data.position
+			decal.rotation = data.rotation
+			if data.has("scale"):
+				decal.scale = data.scale
+			if _level_node and is_instance_valid(_level_node):
+				_level_node.add_child(decal)
+				_replay_blood_decals.append(decal)
+
+	_spawned_blood_count = decals_data.size()
+
+
+## Updates casings during replay to show progressive accumulation (Issue #544 fix 5).
+func _update_replay_casings(casings_data: Array) -> void:
+	if casings_data.size() <= _spawned_casing_count:
+		return
+
+	# Create simple casing sprites (no physics during replay)
+	for i in range(_spawned_casing_count, casings_data.size()):
+		var data: Dictionary = casings_data[i]
+		var casing := Sprite2D.new()
+		var img := Image.create(6, 3, false, Image.FORMAT_RGBA8)
+		img.fill(Color(0.9, 0.8, 0.4, 0.9))  # Brass color
+		casing.texture = ImageTexture.create_from_image(img)
+		casing.global_position = data.position
+		casing.rotation = data.rotation
+		casing.z_index = -1
+		if _level_node and is_instance_valid(_level_node):
+			_level_node.add_child(casing)
+			_replay_casings.append(casing)
+
+	_spawned_casing_count = casings_data.size()
+
+
 ## Hides the original game entities during replay.
 func _hide_original_entities(level: Node2D) -> void:
 	# Hide player
@@ -653,6 +1005,10 @@ func _cleanup_ghost_entities() -> void:
 		_ghost_player.queue_free()
 	_ghost_player = null
 
+	if _ghost_player_trail and is_instance_valid(_ghost_player_trail):
+		_ghost_player_trail.queue_free()
+	_ghost_player_trail = null
+
 	for ghost in _ghost_enemies:
 		if ghost and is_instance_valid(ghost):
 			ghost.queue_free()
@@ -667,6 +1023,17 @@ func _cleanup_ghost_entities() -> void:
 		if ghost and is_instance_valid(ghost):
 			ghost.queue_free()
 	_ghost_grenades.clear()
+
+	# Clean up replay blood decals and casings
+	for decal in _replay_blood_decals:
+		if decal and is_instance_valid(decal):
+			decal.queue_free()
+	_replay_blood_decals.clear()
+
+	for casing in _replay_casings:
+		if casing and is_instance_valid(casing):
+			casing.queue_free()
+	_replay_casings.clear()
 
 	# Remove ghost container
 	if _level_node and is_instance_valid(_level_node):
