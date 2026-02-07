@@ -376,6 +376,18 @@ func _create_level_card(level_data: Dictionary, is_current: bool, current_diffic
 	stars_label.add_theme_color_override("font_color", _get_rating_color(current_rating))
 	rating_hbox.add_child(stars_label)
 
+	# Best rank display for current difficulty
+	var progress_manager: Node = get_node_or_null("/root/ProgressManager")
+	if progress_manager and progress_manager.has_method("get_best_rank"):
+		var best_rank: String = progress_manager.get_best_rank(level_data["path"], current_difficulty)
+		if not best_rank.is_empty():
+			var rank_label := Label.new()
+			rank_label.text = "Best: %s" % best_rank
+			rank_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			rank_label.add_theme_font_size_override("font_size", 12)
+			rank_label.add_theme_color_override("font_color", _get_rank_color(best_rank))
+			vbox.add_child(rank_label)
+
 	# Make card clickable (unless it's the current level)
 	if not is_current:
 		card.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -414,6 +426,27 @@ func _get_rating_color(rating: int) -> Color:
 			return Color(1.0, 0.2, 0.2, 1.0)  # Red - very hard
 		_:
 			return Color(0.7, 0.7, 0.7, 1.0)  # Gray
+
+
+## Get color for a rank display.
+func _get_rank_color(rank: String) -> Color:
+	match rank:
+		"S":
+			return Color(1.0, 0.85, 0.0, 1.0)   # Gold
+		"A+":
+			return Color(0.3, 1.0, 0.3, 1.0)     # Bright green
+		"A":
+			return Color(0.4, 0.9, 0.4, 1.0)     # Green
+		"B":
+			return Color(0.5, 0.8, 1.0, 1.0)     # Light blue
+		"C":
+			return Color(0.8, 0.8, 0.8, 1.0)     # Light gray
+		"D":
+			return Color(0.8, 0.5, 0.3, 1.0)     # Orange
+		"F":
+			return Color(0.8, 0.3, 0.3, 1.0)     # Red
+		_:
+			return Color(0.7, 0.7, 0.7, 1.0)     # Gray
 
 
 ## Handle click on a level card.
