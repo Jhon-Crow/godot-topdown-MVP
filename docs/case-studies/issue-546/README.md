@@ -36,6 +36,8 @@ The owner requested a new category of items — **active items** — with a flas
 | 2026-02-07 12:31 | Fourth AI session starts | Investigation begins |
 | 2026-02-07 ~12:35 | **Critical root cause found** | All flashlight code was in GDScript `player.gd`, but game uses C# `Player.cs` |
 | 2026-02-07 ~12:40 | Fix implemented | Flashlight system ported to C# `Player.cs`, icon updated to 64×48 |
+| 2026-02-07 ~13:05 | Owner reports broken beam | "теперь фонарик сломался" — 6-degree beam commit (`842dc84`) broke visible light. Attached `game_log_20260207_160512.txt` |
+| 2026-02-07 ~14:10 | Fifth AI session | Reverted broken commit, re-implemented 6-degree beam with offset and fallback texture |
 
 ## Owner Feedback (4 Issues Reported)
 
@@ -175,6 +177,31 @@ The flashlight uses `PointLight2D` with `shadow_enabled = true` rather than a `S
 | `tests/unit/test_active_item_manager.gd` | Comprehensive unit tests |
 | `tests/unit/test_armory_menu.gd` | Armory integration tests |
 
+### Round 3 (~13:05 UTC) — 6-Degree Beam Broke the Flashlight
+
+### 5. Broken 6-Degree Narrow Beam
+The owner tested commit `842dc84` ("feat: implement 6-degree narrow beam for tactical flashlight") and reported: "теперь фонарик сломался" (the flashlight is now broken). Attached `game_log_20260207_160512.txt`.
+
+**What the log showed:**
+- `[Player.Flashlight] Flashlight is selected, initializing...` — C# init worked
+- `[Player.Flashlight] Flashlight equipped and attached to PlayerModel at offset (20, 0)` — node attached
+- **Zero `[FlashlightEffect]` log messages** — the GDScript `_ready()` never logged (or logs were silently dropped in production build)
+
+**Root cause of commit `842dc84` breaking the flashlight:**
+
+1. **Removed `GradientTexture2D` from `.tscn`** — the previous commit stripped the scene's sub-resources and the `texture = SubResource(...)` property from the PointLight2D. Without a texture, the PointLight2D has no visible light shape.
+
+2. **Procedural 6-degree cone was effectively invisible** — a 6-degree total beam angle (±3° from center) in a 512×512 texture means only ~1.7% of pixels have any brightness. At `texture_scale = 6.0` this creates a razor-thin line that is virtually invisible in a bright scene.
+
+3. **No fallback** — because the `.tscn` was stripped of its texture, if the procedural generation failed or produced a nearly-invisible result, there was zero light output.
+
+**Fix (commit `4e5f303`):**
+- Reverted `842dc84` to restore the GradientTexture2D in the `.tscn` (safe fallback)
+- Re-implemented `_apply_cone_texture()` that generates the cone at runtime and overrides the default texture
+- Added `PointLight2D.offset = Vector2(256, 0)` to shift the light forward, making the narrow beam extend further ahead of the weapon
+- Used gentler angular falloff (`pow(0.5)` instead of `pow(2.0)`) for more visible beam edges
+- Set `texture_scale = 6.0` at runtime for greater range
+
 ## Lessons Learned
 
 1. **CRITICAL: Verify which script a scene actually uses** — In mixed GDScript/C# projects, level scenes may reference C# scripts while GDScript versions exist in parallel. Always check the `.tscn` scene files to confirm which script is loaded. The `ext_resource` path in the scene file is the definitive reference.
@@ -185,3 +212,6 @@ The flashlight uses `PointLight2D` with `shadow_enabled = true` rather than a `S
 6. **Consider visibility context** — PointLight2D in Godot 4 is additive; in bright scenes without CanvasModulate, the effect may be subtle at low energy values.
 7. **Include sound from the start** — Audio feedback is essential for player input actions; toggling equipment without sound feels broken.
 8. **When game logs show missing expected output, check if the right file is running** — The complete absence of flashlight log messages (not even "not found" or "not selected") was the key clue that the GDScript player.gd was simply not the script being executed.
+9. **Never remove working fallbacks from scene files** — When generating textures procedurally at runtime, keep the existing texture in the `.tscn` as a fallback. Override it in code if the procedural generation succeeds. This prevents "blank screen" failures.
+10. **Extremely narrow beam angles need special handling** — A 6-degree beam in a 512×512 centered texture only covers ~1.7% of pixels. Use `PointLight2D.offset` to shift the texture origin so the narrow cone extends further in the forward direction, and increase `texture_scale` to compensate.
+11. **Test visual changes visually** — Unit tests for on/off state don't catch visibility issues. A procedurally generated texture that is technically "correct" can still be invisible to the player if the covered area is too small.
