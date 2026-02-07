@@ -71,11 +71,20 @@ class MockArmoryMenu:
 		2: {"name": "F-1 Grenade", "description": "Defensive grenade"}
 	}
 
+	## Active item data (separate from firearms and grenades).
+	const ACTIVE_ITEMS: Dictionary = {
+		0: {"name": "None", "description": "No active item equipped."},
+		1: {"name": "Flashlight", "description": "Tactical flashlight"}
+	}
+
 	## Applied (active) weapon ID.
 	var applied_weapon: String = "m16"
 
 	## Applied (active) grenade type.
 	var applied_grenade_type: int = 0
+
+	## Applied active item type.
+	var applied_active_item: int = 0
 
 	## Pending weapon selection (not yet applied).
 	var pending_weapon: String = "m16"
@@ -83,10 +92,14 @@ class MockArmoryMenu:
 	## Pending grenade type (not yet applied).
 	var pending_grenade_type: int = 0
 
+	## Pending active item type (not yet applied).
+	var pending_active_item: int = 0
+
 	## Signal tracking.
 	var back_pressed_emitted: int = 0
 	var weapon_selected_emitted: Array = []
 	var grenade_selected_emitted: Array = []
+	var active_item_selected_emitted: Array = []
 	var apply_count: int = 0
 
 	## Count unlocked firearms.
@@ -104,6 +117,10 @@ class MockArmoryMenu:
 	## Get total grenade count.
 	func count_total_grenades() -> int:
 		return GRENADES.size()
+
+	## Get total active item count.
+	func count_total_active_items() -> int:
+		return ACTIVE_ITEMS.size()
 
 	## Check if weapon is unlocked.
 	func is_weapon_unlocked(weapon_id: String) -> bool:
@@ -127,9 +144,17 @@ class MockArmoryMenu:
 		pending_grenade_type = grenade_type
 		return true
 
+	## Select an active item by type (sets pending, does NOT apply immediately).
+	func select_active_item(item_type: int) -> bool:
+		if item_type not in ACTIVE_ITEMS:
+			return false
+
+		pending_active_item = item_type
+		return true
+
 	## Check if there are unapplied changes.
 	func has_pending_changes() -> bool:
-		return pending_weapon != applied_weapon or pending_grenade_type != applied_grenade_type
+		return pending_weapon != applied_weapon or pending_grenade_type != applied_grenade_type or pending_active_item != applied_active_item
 
 	## Apply pending selections.
 	func apply() -> bool:
@@ -140,9 +165,12 @@ class MockArmoryMenu:
 			weapon_selected_emitted.append(pending_weapon)
 		if pending_grenade_type != applied_grenade_type:
 			grenade_selected_emitted.append(pending_grenade_type)
+		if pending_active_item != applied_active_item:
+			active_item_selected_emitted.append(pending_active_item)
 
 		applied_weapon = pending_weapon
 		applied_grenade_type = pending_grenade_type
+		applied_active_item = pending_active_item
 		apply_count += 1
 		return true
 
@@ -520,3 +548,71 @@ func test_cycle_all_weapons_and_apply() -> void:
 		"Should end on M16 after cycling all weapons and applying")
 	assert_eq(menu.weapon_selected_emitted.size(), 5,
 		"Should emit signal for each Apply")
+
+
+# ============================================================================
+# Active Item Tests
+# ============================================================================
+
+
+func test_active_items_dictionary_exists() -> void:
+	assert_true(menu.ACTIVE_ITEMS.size() > 0,
+		"ACTIVE_ITEMS dictionary should have entries")
+
+
+func test_count_total_active_items() -> void:
+	var count := menu.count_total_active_items()
+	assert_eq(count, 2,
+		"Should count total active items correctly (none, flashlight)")
+
+
+func test_select_active_item_sets_pending() -> void:
+	var result := menu.select_active_item(1)  # Flashlight
+	assert_true(result,
+		"Should successfully set pending active item")
+	assert_eq(menu.pending_active_item, 1,
+		"Pending active item should be updated")
+	assert_eq(menu.applied_active_item, 0,
+		"Applied active item should NOT change until Apply")
+
+
+func test_select_active_item_does_not_emit_signal() -> void:
+	menu.select_active_item(1)
+	assert_eq(menu.active_item_selected_emitted.size(), 0,
+		"Should NOT emit active_item signal until Apply")
+
+
+func test_select_invalid_active_item_type() -> void:
+	var result := menu.select_active_item(99)
+	assert_false(result,
+		"Should not select invalid active item type")
+	assert_eq(menu.pending_active_item, 0,
+		"Active item type should remain unchanged")
+
+
+func test_has_pending_changes_after_active_item_select() -> void:
+	menu.select_active_item(1)
+	assert_true(menu.has_pending_changes(),
+		"Should have pending changes after selecting a different active item")
+
+
+func test_apply_active_item_change() -> void:
+	menu.select_active_item(1)
+	var result := menu.apply()
+	assert_true(result,
+		"Apply should succeed with pending active item change")
+	assert_eq(menu.applied_active_item, 1,
+		"Applied active item should be updated after Apply")
+	assert_eq(menu.active_item_selected_emitted.size(), 1,
+		"Should emit active item signal on Apply")
+
+
+func test_apply_weapon_grenade_and_active_item() -> void:
+	menu.select_weapon("sniper")
+	menu.select_grenade(2)
+	menu.select_active_item(1)
+	var result := menu.apply()
+	assert_true(result, "Apply should succeed")
+	assert_eq(menu.applied_weapon, "sniper", "Weapon should be applied")
+	assert_eq(menu.applied_grenade_type, 2, "Grenade should be applied")
+	assert_eq(menu.applied_active_item, 1, "Active item should be applied")

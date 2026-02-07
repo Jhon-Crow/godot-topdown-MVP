@@ -579,6 +579,25 @@ public partial class Player : BaseCharacter
     [Signal]
     public delegate void GrenadeThrownEventHandler();
 
+    #region Flashlight System (Issue #546)
+
+    /// <summary>
+    /// Path to the flashlight effect scene.
+    /// </summary>
+    private const string FlashlightScenePath = "res://scenes/effects/FlashlightEffect.tscn";
+
+    /// <summary>
+    /// Whether the flashlight is equipped (active item selected in armory).
+    /// </summary>
+    private bool _flashlightEquipped = false;
+
+    /// <summary>
+    /// Reference to the flashlight effect node (child of PlayerModel).
+    /// </summary>
+    private Node2D? _flashlightNode = null;
+
+    #endregion
+
     public override void _Ready()
     {
         base._Ready();
@@ -812,6 +831,9 @@ public partial class Player : BaseCharacter
 
         // Initialize CasingPusher Area2D for pushing shell casings (Issue #392 Iteration 8)
         ConnectCasingPusherSignals();
+
+        // Initialize flashlight if active item manager has flashlight selected (Issue #546)
+        InitFlashlight();
 
         // Log ready status with full info
         int currentAmmo = CurrentWeapon?.CurrentAmmo ?? 0;
@@ -1063,6 +1085,9 @@ public partial class Player : BaseCharacter
         {
             ToggleFireMode();
         }
+
+        // Handle flashlight input (hold Space to turn on, release to turn off) (Issue #546)
+        HandleFlashlightInput();
     }
 
     /// <summary>
@@ -3479,6 +3504,103 @@ public partial class Player : BaseCharacter
         else if (Engine.GetFramesDrawn() % 60 == 0)
         {
             LogToFile("[Player.Reload.Anim] WARNING: Right arm sprite is null during animation!");
+        }
+    }
+
+    #endregion
+
+    #region Flashlight Methods (Issue #546)
+
+    /// <summary>
+    /// Initialize the flashlight if the ActiveItemManager has it selected.
+    /// Loads and attaches the FlashlightEffect scene to PlayerModel.
+    /// </summary>
+    private void InitFlashlight()
+    {
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager == null)
+        {
+            LogToFile("[Player.Flashlight] ActiveItemManager not found");
+            return;
+        }
+
+        if (!activeItemManager.HasMethod("has_flashlight"))
+        {
+            LogToFile("[Player.Flashlight] ActiveItemManager missing has_flashlight method");
+            return;
+        }
+
+        bool hasFlashlight = (bool)activeItemManager.Call("has_flashlight");
+        if (!hasFlashlight)
+        {
+            LogToFile("[Player.Flashlight] No flashlight selected in ActiveItemManager");
+            return;
+        }
+
+        LogToFile("[Player.Flashlight] Flashlight is selected, initializing...");
+
+        // Load and instantiate the flashlight effect scene
+        if (!ResourceLoader.Exists(FlashlightScenePath))
+        {
+            LogToFile($"[Player.Flashlight] WARNING: Flashlight scene not found: {FlashlightScenePath}");
+            return;
+        }
+
+        var flashlightScene = GD.Load<PackedScene>(FlashlightScenePath);
+        if (flashlightScene == null)
+        {
+            LogToFile("[Player.Flashlight] WARNING: Failed to load flashlight scene");
+            return;
+        }
+
+        _flashlightNode = flashlightScene.Instantiate<Node2D>();
+        _flashlightNode.Name = "FlashlightEffect";
+
+        // Add as child of PlayerModel so it rotates with aiming direction
+        if (_playerModel != null)
+        {
+            _playerModel.AddChild(_flashlightNode);
+            // Position at the weapon barrel (forward from center, matching BulletSpawnOffset)
+            _flashlightNode.Position = new Vector2(BulletSpawnOffset, 0);
+            _flashlightEquipped = true;
+            LogToFile($"[Player.Flashlight] Flashlight equipped and attached to PlayerModel at offset ({(int)BulletSpawnOffset}, 0)");
+        }
+        else
+        {
+            LogToFile("[Player.Flashlight] WARNING: _playerModel is null, flashlight not attached");
+            _flashlightNode.QueueFree();
+            _flashlightNode = null;
+        }
+    }
+
+    /// <summary>
+    /// Handle flashlight input: hold Space to turn on, release to turn off.
+    /// </summary>
+    private void HandleFlashlightInput()
+    {
+        if (!_flashlightEquipped || _flashlightNode == null)
+        {
+            return;
+        }
+
+        if (!IsInstanceValid(_flashlightNode))
+        {
+            return;
+        }
+
+        if (Input.IsActionPressed("flashlight_toggle"))
+        {
+            if (_flashlightNode.HasMethod("turn_on"))
+            {
+                _flashlightNode.Call("turn_on");
+            }
+        }
+        else
+        {
+            if (_flashlightNode.HasMethod("turn_off"))
+            {
+                _flashlightNode.Call("turn_off");
+            }
         }
     }
 
