@@ -6,7 +6,7 @@
 - **PR**: [#551](https://github.com/Jhon-Crow/godot-topdown-MVP/pull/551)
 - **Date**: 2026-02-07
 - **Severity**: Feature request + bug fix
-- **Status**: Resolved
+- **Status**: In progress (second bug report from owner)
 
 ## Issue Description
 
@@ -31,8 +31,15 @@ The owner requested a new category of items — **active items** — with a flas
 | 2026-02-07 ~11:58 | Owner feedback | Three issues reported (see below) |
 | 2026-02-07 12:03 | Third AI session starts | Fix session begins |
 | 2026-02-07 12:06+ | Fixes implemented | Icon replaced, flashlight bug fixed, sound added |
+| 2026-02-07 12:18 | PR updated | Third session completed |
+| 2026-02-07 12:30 | Owner reports bug again | "при нажатии пробела ничего не происходит" (nothing happens on Space press) — attached `game_log_20260207_152902.txt` |
+| 2026-02-07 12:31 | Fourth AI session starts | Investigation begins |
+| 2026-02-07 ~12:35 | **Critical root cause found** | All flashlight code was in GDScript `player.gd`, but game uses C# `Player.cs` |
+| 2026-02-07 ~12:40 | Fix implemented | Flashlight system ported to C# `Player.cs`, icon updated to 64×48 |
 
-## Owner Feedback (3 Issues Reported)
+## Owner Feedback (4 Issues Reported)
+
+### Round 1 (11:58 UTC)
 
 ### 1. Replace Armory Icon
 The original implementation used a placeholder 32×32 pixel-art icon. The owner provided two reference images of tactical weapon-mounted flashlights (Nextorch WL14 and a generic tactical flashlight) and requested the icon be replaced.
@@ -43,11 +50,46 @@ The owner reported that the flashlight does not work at runtime and attached a g
 ### 3. Missing Sound Effect
 The owner requested adding `assets/audio/звук включения и выключения фанарика.mp3` as the toggle sound for flashlight on/off.
 
+### Round 2 (12:30 UTC)
+
+### 4. Flashlight Still Not Working After Fixes
+The owner reported that pressing Space still does nothing. Attached `game_log_20260207_152902.txt` showing:
+- `[ActiveItemManager] Active item changed from None to Flashlight` — the manager correctly sets the item
+- Level reloads successfully
+- `[Player] Ready!` message appears after restart
+- **Zero flashlight-related log messages** from `_init_flashlight()` in `player.gd`
+
 ## Root Cause Analysis
 
-### Bug: Flashlight Not Working
+### Critical Bug: Flashlight Code in Wrong Script File (ROUND 2)
 
-After thorough code analysis, multiple potential root causes were identified:
+**This is the primary root cause that made the flashlight completely non-functional.**
+
+The project has a dual GDScript/C# architecture:
+- `scripts/characters/player.gd` — GDScript player (NOT used by any level)
+- `Scripts/Characters/Player.cs` — C# player (used by ALL levels)
+
+All level scenes reference the C# player:
+```
+scenes/levels/BuildingLevel.tscn → scenes/characters/csharp/Player.tscn → Scripts/Characters/Player.cs
+scenes/levels/CastleLevel.tscn → scenes/characters/csharp/Player.tscn → Scripts/Characters/Player.cs
+scenes/levels/TestTier.tscn → scenes/characters/csharp/Player.tscn → Scripts/Characters/Player.cs
+scenes/levels/csharp/TestTier.tscn → scenes/characters/csharp/Player.tscn → Scripts/Characters/Player.cs
+```
+
+The initial AI implementation added `_init_flashlight()` and `_handle_flashlight_input()` to `scripts/characters/player.gd` (the GDScript version), which is **never loaded by any scene in the game**. The C# `Player.cs` (3791 lines) had zero flashlight code.
+
+**Evidence from game log** (`game_log_20260207_152902.txt`):
+- Line 245: `[ActiveItemManager] Active item changed from None to Flashlight` — autoload correctly stores the selection
+- Lines 309-315: Player init log messages (`[Player.Init]`, `[Player] Ready!`) all originate from C# `Player.cs`
+- **Zero `[Player.Flashlight]` messages** — because `Player.cs` had no flashlight code at all
+- The `_init_flashlight()` function in `player.gd` has log messages on every code path, so the complete absence of any flashlight log confirms the GDScript player is not the one running
+
+**Fix**: Ported the flashlight initialization (`InitFlashlight()`) and input handling (`HandleFlashlightInput()`) to `Scripts/Characters/Player.cs`, following the same C#-to-GDScript autoload call pattern used for `GrenadeManager` (using `GetNodeOrNull`, `HasMethod`, `Call`).
+
+### Previous Bugs Fixed (ROUND 1)
+
+The following bugs were also fixed in round 1, but were secondary to the critical root cause above:
 
 #### Root Cause 1: `_flashlight_equipped` Set Outside Guard (CONFIRMED)
 
@@ -125,7 +167,8 @@ The flashlight uses `PointLight2D` with `shadow_enabled = true` rather than a `S
 | `scripts/autoload/active_item_manager.gd` | New autoload for active item management |
 | `scripts/effects/flashlight_effect.gd` | Flashlight effect with PointLight2D, sound, logging |
 | `scenes/effects/FlashlightEffect.tscn` | Scene with PointLight2D, shadow, gradient texture |
-| `scripts/characters/player.gd` | Flashlight init + input handling in physics_process |
+| `Scripts/Characters/Player.cs` | **Flashlight init + input handling (C# — the actual player script used by all levels)** |
+| `scripts/characters/player.gd` | Flashlight init + input handling (GDScript — unused by levels, kept for reference) |
 | `scripts/ui/armory_menu.gd` | Active items section in armory UI |
 | `assets/sprites/weapons/flashlight_icon.png` | Tactical flashlight icon (48×36, transparent) |
 | `project.godot` | ActiveItemManager autoload + flashlight_toggle input |
@@ -134,8 +177,11 @@ The flashlight uses `PointLight2D` with `shadow_enabled = true` rather than a `S
 
 ## Lessons Learned
 
-1. **Guard all dependent state changes** — `_flashlight_equipped = true` must only be set when the node is actually attached to the scene tree.
-2. **Avoid double position offsets** — When a parent node is positioned, child nodes should use relative `(0, 0)` to avoid unexpected additive offsets.
-3. **Log every decision point** — Silent early returns make debugging impossible. Every guard should log why it's returning.
-4. **Consider visibility context** — PointLight2D in Godot 4 is additive; in bright scenes without CanvasModulate, the effect may be subtle at low energy values.
-5. **Include sound from the start** — Audio feedback is essential for player input actions; toggling equipment without sound feels broken.
+1. **CRITICAL: Verify which script a scene actually uses** — In mixed GDScript/C# projects, level scenes may reference C# scripts while GDScript versions exist in parallel. Always check the `.tscn` scene files to confirm which script is loaded. The `ext_resource` path in the scene file is the definitive reference.
+2. **Trace from scene → script, not from script → scene** — When adding features, start from the scene file that Godot actually loads (e.g., `BuildingLevel.tscn → csharp/Player.tscn → Player.cs`) to identify the correct script to modify.
+3. **Guard all dependent state changes** — `_flashlight_equipped = true` must only be set when the node is actually attached to the scene tree.
+4. **Avoid double position offsets** — When a parent node is positioned, child nodes should use relative `(0, 0)` to avoid unexpected additive offsets.
+5. **Log every decision point** — Silent early returns make debugging impossible. Every guard should log why it's returning.
+6. **Consider visibility context** — PointLight2D in Godot 4 is additive; in bright scenes without CanvasModulate, the effect may be subtle at low energy values.
+7. **Include sound from the start** — Audio feedback is essential for player input actions; toggling equipment without sound feels broken.
+8. **When game logs show missing expected output, check if the right file is running** — The complete absence of flashlight log messages (not even "not found" or "not selected") was the key clue that the GDScript player.gd was simply not the script being executed.
