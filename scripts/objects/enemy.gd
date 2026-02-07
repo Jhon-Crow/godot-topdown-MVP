@@ -362,6 +362,7 @@ var _is_blinded: bool = false
 var _is_stunned: bool = false
 var _blindness_timer: float = 0.0  ## [Issue #432] Flashbang effect timer
 var _stun_timer: float = 0.0  ## [Issue #432] Flashbang effect timer
+var _status_effect_anim: StatusEffectAnimationComponent = null  ## [Issue #602] Status effect visual animations
 
 ## [Grenade Avoidance - Issue #407] Component handles avoidance logic
 var _grenade_avoidance: GrenadeAvoidanceComponent = null
@@ -447,6 +448,8 @@ func _ready() -> void:
 
 	# Initialize death animation component
 	_init_death_animation()
+	_status_effect_anim = StatusEffectAnimationComponent.new(); _status_effect_anim.name = "StatusEffectAnim"; _enemy_model.add_child(_status_effect_anim)  # Issue #602
+	if _head_sprite: _status_effect_anim.head_offset = _head_sprite.position
 	# Issue #405: Enemies start in their default state (IDLE/PATROL/GUARD)
 	# Unlimited search zone is activated AFTER enemy detects and loses player
 
@@ -4822,19 +4825,16 @@ func _get_nav_path_distance(target_pos: Vector2) -> float:
 	return _nav_agent.distance_to_target()
 
 # Status Effects (Blindness, Stun)
-
 func set_blinded(blinded: bool) -> void:
-	var was := _is_blinded
-	_is_blinded = blinded
-	if blinded and not was:
-		_log_to_file("Status: BLINDED applied")
-		_can_see_player = false; _continuous_visibility_timer = 0.0
-	elif not blinded and was:
-		_log_to_file("Status: BLINDED removed")
+	var was := _is_blinded; _is_blinded = blinded
+	if _status_effect_anim: _status_effect_anim.set_blinded(blinded)
+	if blinded and not was: _log_to_file("Status: BLINDED applied"); _can_see_player = false; _continuous_visibility_timer = 0.0
+	elif not blinded and was: _log_to_file("Status: BLINDED removed")
 
 func set_stunned(stunned: bool) -> void:
 	var was := _is_stunned
 	_is_stunned = stunned
+	if _status_effect_anim: _status_effect_anim.set_stunned(stunned)
 	if stunned and not was:
 		_log_to_file("Status: STUNNED applied")
 		velocity = Vector2.ZERO

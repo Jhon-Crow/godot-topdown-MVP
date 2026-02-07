@@ -139,15 +139,44 @@ func _on_stun_expired(entity: Object) -> void:
 	print("[StatusEffectsManager] Stun expired on %s" % [entity.name if entity is Node else str(entity)])
 
 
-## Apply visual effect for blindness.
-func _apply_blindness_visual(entity: Node2D) -> void:
-	# Add a yellow/white overlay to indicate blindness
-	if not entity.has_meta("_blindness_tint"):
+## Apply tint color to entity, supporting both single-sprite and modular-sprite entities.
+## Entities with _set_all_sprites_modulate() (e.g. enemies with Body/Head/Arms) use that method.
+## Fallback: looks for a single Sprite2D child node.
+func _apply_tint(entity: Node2D, color: Color) -> void:
+	if entity.has_method("_set_all_sprites_modulate"):
+		entity._set_all_sprites_modulate(color)
+	else:
 		var sprite: Sprite2D = entity.get_node_or_null("Sprite2D")
 		if sprite:
-			entity.set_meta("_original_modulate", sprite.modulate)
-			sprite.modulate = Color(1.0, 1.0, 0.5, 1.0)  # Yellow tint
-			entity.set_meta("_blindness_tint", true)
+			sprite.modulate = color
+
+
+## Save the current modulate color before applying status tints.
+func _save_original_modulate(entity: Node2D) -> void:
+	if not entity.has_meta("_original_modulate"):
+		if entity.has_method("_set_all_sprites_modulate"):
+			# For modular sprites, read from body sprite
+			var body: Sprite2D = entity.get_node_or_null("EnemyModel/Body")
+			if body:
+				entity.set_meta("_original_modulate", body.modulate)
+		else:
+			var sprite: Sprite2D = entity.get_node_or_null("Sprite2D")
+			if sprite:
+				entity.set_meta("_original_modulate", sprite.modulate)
+
+
+## Restore original modulate color on entity.
+func _restore_original_modulate(entity: Node2D) -> void:
+	if entity.has_meta("_original_modulate"):
+		_apply_tint(entity, entity.get_meta("_original_modulate"))
+
+
+## Apply visual effect for blindness.
+func _apply_blindness_visual(entity: Node2D) -> void:
+	if not entity.has_meta("_blindness_tint"):
+		_save_original_modulate(entity)
+		_apply_tint(entity, Color(1.0, 1.0, 0.5, 1.0))  # Yellow tint
+		entity.set_meta("_blindness_tint", true)
 
 
 ## Remove visual effect for blindness.
@@ -156,24 +185,17 @@ func _remove_blindness_visual(entity: Object) -> void:
 		return
 
 	if entity.has_meta("_blindness_tint"):
-		var sprite: Sprite2D = entity.get_node_or_null("Sprite2D")
-		if sprite and entity.has_meta("_original_modulate"):
-			# Only restore if not still stunned
-			if not is_stunned(entity):
-				sprite.modulate = entity.get_meta("_original_modulate")
+		if not is_stunned(entity):
+			_restore_original_modulate(entity)
 		entity.remove_meta("_blindness_tint")
 
 
 ## Apply visual effect for stun.
 func _apply_stun_visual(entity: Node2D) -> void:
-	# Add a blue overlay to indicate stun
 	if not entity.has_meta("_stun_tint"):
-		var sprite: Sprite2D = entity.get_node_or_null("Sprite2D")
-		if sprite:
-			if not entity.has_meta("_original_modulate"):
-				entity.set_meta("_original_modulate", sprite.modulate)
-			sprite.modulate = Color(0.5, 0.5, 1.0, 1.0)  # Blue tint
-			entity.set_meta("_stun_tint", true)
+		_save_original_modulate(entity)
+		_apply_tint(entity, Color(0.5, 0.5, 1.0, 1.0))  # Blue tint
+		entity.set_meta("_stun_tint", true)
 
 
 ## Remove visual effect for stun.
@@ -182,11 +204,8 @@ func _remove_stun_visual(entity: Object) -> void:
 		return
 
 	if entity.has_meta("_stun_tint"):
-		var sprite: Sprite2D = entity.get_node_or_null("Sprite2D")
-		if sprite and entity.has_meta("_original_modulate"):
-			# Only restore if not still blinded
-			if not is_blinded(entity):
-				sprite.modulate = entity.get_meta("_original_modulate")
+		if not is_blinded(entity):
+			_restore_original_modulate(entity)
 		entity.remove_meta("_stun_tint")
 
 
