@@ -2602,7 +2602,8 @@ public partial class Player : BaseCharacter
         float throwSpeed = Mathf.Min(requiredSpeed, maxThrowSpeed);
 
         // Calculate actual landing distance with clamped speed (for logging)
-        float actualDistance = (throwSpeed * throwSpeed) / (2.0f * groundFriction);
+        // FIX for issue #615: Include compensation factor for accurate landing distance estimate
+        float actualDistance = (throwSpeed * throwSpeed) / (2.0f * groundFriction * physicsCompensationFactor);
 
         LogToFile($"[Player.Grenade.Simple] Throwing! Target: {targetPos}, Distance: {actualDistance:F1}, Speed: {throwSpeed:F1}, Friction: {groundFriction:F1}");
 
@@ -3987,11 +3988,19 @@ public partial class Player : BaseCharacter
             if (throwDistance < 10.0f) throwDistance = 10.0f;
 
             // Calculate throw speed needed to reach target
-            float requiredSpeed = Mathf.Sqrt(2.0f * groundFriction * throwDistance);
+            // FIX for issue #615: Include the same 1.16x physics compensation factor
+            // used in ThrowSimpleGrenade() so the trajectory preview matches the actual throw.
+            // Previously, the preview used v=sqrt(2*F*d) while the throw used v=sqrt(2*F*d*1.16),
+            // causing the landing indicator to show a shorter distance than where the grenade
+            // actually lands.
+            const float PhysicsCompensationFactor = 1.16f;
+            float requiredSpeed = Mathf.Sqrt(2.0f * groundFriction * throwDistance * PhysicsCompensationFactor);
             throwSpeed = Mathf.Min(requiredSpeed, maxThrowSpeed);
 
             // Calculate actual landing distance with clamped speed
-            landingDistance = (throwSpeed * throwSpeed) / (2.0f * groundFriction);
+            // Divide by compensation factor to get the actual expected landing distance,
+            // since the compensation accounts for Godot's hidden physics damping effects.
+            landingDistance = (throwSpeed * throwSpeed) / (2.0f * groundFriction * PhysicsCompensationFactor);
         }
         else
         {
@@ -4033,7 +4042,11 @@ public partial class Player : BaseCharacter
                 throwSpeed = MinThrowSpeed * 0.5f;
             }
 
-            landingDistance = (throwSpeed * throwSpeed) / (2.0f * groundFriction);
+            // FIX for issue #615: Apply physics compensation factor to landing distance
+            // prediction, accounting for Godot's hidden RigidBody2D damping effects.
+            // Without this, the landing indicator overshoots the actual grenade position.
+            const float ComplexPhysicsCompensation = 1.16f;
+            landingDistance = (throwSpeed * throwSpeed) / (2.0f * groundFriction * ComplexPhysicsCompensation);
         }
 
         // Calculate spawn and landing positions
