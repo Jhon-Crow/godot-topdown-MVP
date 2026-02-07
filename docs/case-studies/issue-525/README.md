@@ -23,10 +23,18 @@ study documents the root causes found across all iterations and the final fix.
    "font markup is incorrect" - glyph bounding boxes were wrong, producing
    garbled characters.
 
-5. **Fourth attempt (final)**: Owner provided transparent-background version
-   of the source image. Complete rewrite of extraction script with careful
-   per-pixel alpha analysis and manually verified bounding boxes. All 44
-   glyphs correctly extracted.
+5. **Fourth attempt**: Owner provided transparent-background version
+   of the source image. Rewrite of extraction script with per-pixel alpha
+   analysis and manually specified bounding boxes. However, the manual
+   boundary estimates were still inaccurate for some characters.
+
+6. **Fifth attempt (final)**: Systematic pixel-level analysis using:
+   - Horizontal density valleys (density < 40) to find row boundaries
+   - Per-column alpha density analysis at multiple thresholds (8-10% of
+     row height) to find character column boundaries
+   - 4x zoomed grid overlay images for visual verification of every split
+   - Iterative refinement comparing zoomed debug images with split lines
+   All 44 glyphs correctly extracted with consistent character widths.
 
 ## Root Causes
 
@@ -129,9 +137,9 @@ All font loading uses `load("res://assets/fonts/gothic_bitmap.fnt")`:
 - `game_log_20260207_014459.txt` - Game log from owner's test showing
   silent font loading failure
 - `../../experiments/extract_gothic_font.py` - Final extraction script
-- `../../experiments/gothic_debug_v4.png` - Debug overlay showing final
+- `../../experiments/gothic_debug_v5.png` - Debug overlay showing final
   bounding boxes on source image
-- `../../experiments/gothic_sheet_debug_v4.png` - Final sprite sheet on
+- `../../experiments/gothic_sheet_debug_v5.png` - Final sprite sheet on
   dark background for visual verification
 - `../../assets/fonts/gothic_source_nobg.png` - Transparent-background
   source image (provided by owner)
