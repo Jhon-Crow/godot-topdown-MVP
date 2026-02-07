@@ -12,7 +12,11 @@ extends Node
 ##   var score_screen = load("res://scripts/ui/animated_score_screen.gd").new()
 ##   parent_node.add_child(score_screen)
 ##   score_screen.show_animated_score(ui_node, score_data)
+##   score_screen.animation_completed.connect(func(c): add_buttons(c))
 
+
+## Emitted when all score animations are complete and the container is ready for buttons.
+signal animation_completed(container: VBoxContainer)
 
 ## Audio player for score counting beeps (created on demand).
 var _score_audio_player: AudioStreamPlayer = null
@@ -564,8 +568,11 @@ func _flash_rank_background(bg: ColorRect, duration: float) -> void:
 	timer.start()
 
 
-## Shows the restart hint at the end of the animation.
+## Shows the restart hint at the end of the animation and emits animation_completed.
 func _show_restart_hint(container: VBoxContainer) -> void:
+	# Emit signal so callers can add buttons (e.g., Watch Replay)
+	animation_completed.emit(container)
+
 	var hint_label := Label.new()
 	hint_label.text = "\nPress Q to restart"
 	hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER

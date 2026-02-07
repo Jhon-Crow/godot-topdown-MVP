@@ -50,17 +50,44 @@ const SATURATION_DURATION: float = 0.15
 ## Saturation effect intensity (alpha).
 const SATURATION_INTENSITY: float = 0.25
 
+## List of enemy nodes for replay recording.
+var _enemies: Array = []
+
 ## Reference to the exit zone.
 var _exit_zone: Area2D = null
 
 ## Whether the level has been cleared (all enemies eliminated).
 var _level_cleared: bool = false
 
-## List of enemy nodes for position tracking.
-var _enemies: Array = []
+## Whether the score screen is currently shown (for W key shortcut).
+var _score_shown: bool = false
+
+## Cached reference to the ReplayManager autoload (C# singleton).
+var _replay_manager: Node = null
 
 ## Reference to the combo label.
 var _combo_label: Label = null
+
+
+## Gets the ReplayManager autoload node.
+## The ReplayManager is now a C# autoload that works reliably in exported builds,
+## replacing the GDScript version that had Godot 4.3 binary tokenization issues
+## (godotengine/godot#94150, godotengine/godot#96065).
+func _get_or_create_replay_manager() -> Node:
+	if _replay_manager != null and is_instance_valid(_replay_manager):
+		return _replay_manager
+
+	_replay_manager = get_node_or_null("/root/ReplayManager")
+	if _replay_manager != null:
+		# C# methods must be called with PascalCase from GDScript (no auto-conversion for user methods)
+		if _replay_manager.has_method("StartRecording"):
+			_log_to_file("ReplayManager found as C# autoload - verified OK")
+		else:
+			_log_to_file("WARNING: ReplayManager autoload exists but has no StartRecording method")
+	else:
+		_log_to_file("ERROR: ReplayManager autoload not found at /root/ReplayManager")
+
+	return _replay_manager
 
 
 func _ready() -> void:
@@ -98,6 +125,9 @@ func _ready() -> void:
 
 	# Setup exit zone near player spawn (left wall)
 	_setup_exit_zone()
+
+	# Start replay recording
+	_start_replay_recording()
 
 
 func _process(_delta: float) -> void:
@@ -470,6 +500,10 @@ func _on_enemy_died() -> void:
 
 	if _current_enemy_count <= 0:
 		print("All enemies eliminated! Arena cleared!")
+		# Stop replay recording
+		var replay_manager: Node = _get_or_create_replay_manager()
+		if replay_manager and replay_manager.has_method("StopRecording"):
+			replay_manager.StopRecording()
 		_level_cleared = true
 		# Activate exit zone - score will show when player reaches it
 		call_deferred("_activate_exit_zone")
@@ -849,6 +883,19 @@ func _show_death_message() -> void:
 
 ## Show victory message when all enemies are eliminated.
 func _show_victory_message() -> void:
+	# Log replay status for debugging
+	var replay_manager: Node = _get_or_create_replay_manager()
+	if replay_manager:
+		var has_replay: bool = false
+		var duration: float = 0.0
+		if replay_manager.has_method("HasReplay"):
+			has_replay = replay_manager.HasReplay()
+		if replay_manager.has_method("GetReplayDuration"):
+			duration = replay_manager.GetReplayDuration()
+		print("[TestTier] Showing victory message - Replay status: has_replay=%s, duration=%.2fs" % [has_replay, duration])
+	else:
+		print("[TestTier] ERROR: ReplayManager not found when showing victory message!")
+
 	var ui := get_node_or_null("CanvasLayer/UI")
 	if ui == null:
 		return
@@ -865,8 +912,8 @@ func _show_victory_message() -> void:
 	victory_label.set_anchors_preset(Control.PRESET_CENTER)
 	victory_label.offset_left = -200
 	victory_label.offset_right = 200
-	victory_label.offset_top = -50
-	victory_label.offset_bottom = 50
+	victory_label.offset_top = -80
+	victory_label.offset_bottom = -30
 
 	ui.add_child(victory_label)
 
@@ -886,10 +933,89 @@ func _show_victory_message() -> void:
 	stats_label.set_anchors_preset(Control.PRESET_CENTER)
 	stats_label.offset_left = -200
 	stats_label.offset_right = 200
-	stats_label.offset_top = 50
-	stats_label.offset_bottom = 100
+	stats_label.offset_top = -20
+	stats_label.offset_bottom = 20
 
 	ui.add_child(stats_label)
+
+	_score_shown = true
+
+	# Add buttons container (vertical layout: Restart on top, Watch Replay below)
+	var buttons_container := VBoxContainer.new()
+	buttons_container.name = "ButtonsContainer"
+	buttons_container.alignment = BoxContainer.ALIGNMENT_CENTER
+	buttons_container.add_theme_constant_override("separation", 10)
+	buttons_container.set_anchors_preset(Control.PRESET_CENTER)
+	buttons_container.offset_left = -200
+	buttons_container.offset_right = 200
+	buttons_container.offset_top = 40
+	buttons_container.offset_bottom = 130
+	ui.add_child(buttons_container)
+
+	# Restart button (on top)
+	var restart_button := Button.new()
+	restart_button.name = "RestartButton"
+	restart_button.text = "↻ Restart (Q)"
+	restart_button.custom_minimum_size = Vector2(200, 40)
+	restart_button.add_theme_font_size_override("font_size", 18)
+	restart_button.pressed.connect(_on_restart_pressed)
+	buttons_container.add_child(restart_button)
+
+	# Watch Replay button (below Restart)
+	var replay_button := Button.new()
+	replay_button.name = "ReplayButton"
+	replay_button.text = "▶ Watch Replay (W)"
+	replay_button.custom_minimum_size = Vector2(200, 40)
+	replay_button.add_theme_font_size_override("font_size", 18)
+
+	# Check if replay data is available
+	var replay_manager: Node = _get_or_create_replay_manager()
+	var has_replay_data: bool = replay_manager != null and replay_manager.has_method("HasReplay") and replay_manager.HasReplay()
+
+	if has_replay_data:
+		replay_button.pressed.connect(_on_watch_replay_pressed)
+	else:
+		replay_button.disabled = true
+		replay_button.text = "▶ Watch Replay (W) - no data"
+		replay_button.tooltip_text = "Replay recording was not available for this session"
+
+	buttons_container.add_child(replay_button)
+
+	# Show cursor for button interaction
+	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
+
+	# Focus the restart button
+	restart_button.grab_focus()
+
+
+## Handle W key shortcut for Watch Replay when score is shown.
+func _unhandled_input(event: InputEvent) -> void:
+	if not _score_shown:
+		return
+
+	if event is InputEventKey and event.pressed and not event.echo:
+		if event.keycode == KEY_W:
+			_on_watch_replay_pressed()
+
+
+## Called when the Watch Replay button is pressed (or W key).
+func _on_watch_replay_pressed() -> void:
+	print("[TestTier] Watch Replay triggered")
+	var replay_manager: Node = _get_or_create_replay_manager()
+	if replay_manager and replay_manager.has_method("HasReplay") and replay_manager.HasReplay():
+		if replay_manager.has_method("StartPlayback"):
+			replay_manager.StartPlayback(self)
+	else:
+		print("[TestTier] Watch Replay: no replay data available")
+
+
+## Called when the Restart button is pressed.
+func _on_restart_pressed() -> void:
+	print("[TestTier] Restart button pressed")
+	if GameManager:
+		GameManager.restart_scene()
+	else:
+		get_tree().reload_current_scene()
 
 
 ## Show game over message when player runs out of ammo with enemies remaining.
@@ -1035,3 +1161,44 @@ func _setup_selected_weapon() -> void:
 				_player.EquipWeapon(assault_rifle)
 			elif _player.get("CurrentWeapon") != null:
 				_player.CurrentWeapon = assault_rifle
+
+
+## Starts recording the replay for this level.
+func _start_replay_recording() -> void:
+	var replay_manager: Node = _get_or_create_replay_manager()
+	if replay_manager == null:
+		print("[TestTier] ERROR: ReplayManager could not be loaded!")
+		return
+
+	# Log player and enemies status for debugging
+	print("[TestTier] Starting replay recording - Player: %s, Enemies count: %d" % [
+		_player.name if _player else "NULL",
+		_enemies.size()
+	])
+
+	if _player == null:
+		print("[TestTier] WARNING: Player is null for replay recording!")
+
+	if _enemies.is_empty():
+		print("[TestTier] WARNING: No enemies registered for replay!")
+
+	# Clear any previous replay data
+	if replay_manager.has_method("ClearReplay"):
+		replay_manager.ClearReplay()
+		print("[TestTier] Previous replay data cleared")
+
+	# Start recording with player and enemies
+	if replay_manager.has_method("StartRecording"):
+		replay_manager.StartRecording(self, _player, _enemies)
+		print("[TestTier] Replay recording started successfully with %d enemies" % _enemies.size())
+	else:
+		print("[TestTier] ERROR: StartRecording method not found!")
+
+
+## Log a message to the file logger if available.
+func _log_to_file(message: String) -> void:
+	var file_logger: Node = get_node_or_null("/root/FileLogger")
+	if file_logger and file_logger.has_method("log_info"):
+		file_logger.log_info("[TestTier] " + message)
+	else:
+		print("[TestTier] " + message)
