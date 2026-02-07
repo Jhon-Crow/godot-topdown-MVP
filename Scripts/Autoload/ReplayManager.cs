@@ -541,6 +541,9 @@ namespace GodotTopDownTemplate.Autoload
             filterRect.SetAnchorsPreset(Control.LayoutPreset.FullRect);
             filterRect.MouseFilter = Control.MouseFilterEnum.Ignore;
 
+            // The ghost_replay shader uses hint_screen_texture to sample the
+            // rendered scene and applies a red/black/white color grading filter.
+            // Uses textureLod for gl_compatibility renderer support.
             var shader = GD.Load<Shader>("res://scripts/shaders/ghost_replay.gdshader");
             if (shader != null)
             {
@@ -550,74 +553,19 @@ namespace GodotTopDownTemplate.Autoload
                 material.SetShaderParameter("red_threshold", 0.15f);
                 material.SetShaderParameter("red_boost", 2.0f);
                 filterRect.Material = material;
-                // The shader reads from TEXTURE, but for a ColorRect overlay we need
-                // screen_texture. Since the ghost_replay shader uses TEXTURE (which is
-                // the rect's own texture), we use a SubViewport approach instead.
-                // Actually, for a simpler approach: use BackBufferCopy + shader on ColorRect.
             }
-
-            // Simpler approach: use a semi-transparent overlay that desaturates.
-            // The shader approach requires screen_texture which is complex with CanvasLayer.
-            // Instead, apply modulation to the game world directly.
-            filterRect.Color = new Color(0.0f, 0.0f, 0.0f, 0.0f); // Transparent base
 
             _ghostFilterLayer.AddChild(filterRect);
             _levelNode.AddChild(_ghostFilterLayer);
 
-            // Apply desaturation + red tint to game world via modulate
-            // The ghost container and level environment get the filter
-            ApplyGhostColorToWorld();
-
-            LogToFile("Ghost filter overlay created");
-        }
-
-        /// <summary>Applies red/black/white color grading to the game world for Ghost mode.</summary>
-        private void ApplyGhostColorToWorld()
-        {
-            if (_levelNode == null || !IsInstanceValid(_levelNode)) return;
-
-            // Apply a dark desaturated tint to the level environment
-            var environment = _levelNode.GetNodeOrNull<Node2D>("Environment");
-            if (environment != null)
-            {
-                environment.Modulate = new Color(0.3f, 0.25f, 0.25f, 1.0f);
-            }
-
-            // Tint the tilemap/background darker
-            var tileMap = _levelNode.GetNodeOrNull<Node2D>("TileMap");
-            if (tileMap == null) tileMap = _levelNode.GetNodeOrNull<Node2D>("TileMapLayer");
-            if (tileMap != null)
-            {
-                tileMap.Modulate = new Color(0.35f, 0.3f, 0.3f, 1.0f);
-            }
-
-            // Give ghost player a slight red tint
-            if (_ghostPlayer != null && IsInstanceValid(_ghostPlayer))
-            {
-                SetGhostModulate(_ghostPlayer, new Color(0.9f, 0.8f, 0.8f, 0.9f));
-            }
-
-            // Enemies get a red tint
-            foreach (var ghost in _ghostEnemies)
-            {
-                if (ghost != null && IsInstanceValid(ghost))
-                    SetGhostModulate(ghost, new Color(1.0f, 0.5f, 0.5f, 0.9f));
-            }
+            LogToFile("Ghost filter overlay created (screen-texture shader)");
         }
 
         /// <summary>Restores normal colors when leaving Ghost mode.</summary>
         private void RestoreWorldColors()
         {
-            if (_levelNode == null || !IsInstanceValid(_levelNode)) return;
-
-            var environment = _levelNode.GetNodeOrNull<Node2D>("Environment");
-            if (environment != null)
-                environment.Modulate = Colors.White;
-
-            var tileMap = _levelNode.GetNodeOrNull<Node2D>("TileMap");
-            if (tileMap == null) tileMap = _levelNode.GetNodeOrNull<Node2D>("TileMapLayer");
-            if (tileMap != null)
-                tileMap.Modulate = Colors.White;
+            // No world modulation is applied anymore — the ghost_replay shader
+            // handles all color grading via screen-texture post-processing.
         }
 
         /// <summary>Cleans up the ghost filter overlay.</summary>
