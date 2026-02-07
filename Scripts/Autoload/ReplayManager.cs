@@ -481,6 +481,9 @@ namespace GodotTopDownTemplate.Autoload
             CreateReplayUi(level);
             ApplyReplayMode();
 
+            // Issue #597: Set replay_mode on effect managers to prevent time manipulation
+            SetEffectManagersReplayMode(true);
+
             level.GetTree().Paused = true;
 
             EmitSignal(SignalName.ReplayStarted);
@@ -503,6 +506,10 @@ namespace GodotTopDownTemplate.Autoload
             CleanupGhostFilter();
             CleanupMemoryEffects();
             CleanupTrails();
+
+            // Issue #597: Clear replay_mode flag before disabling effects
+            // so that reset_effects() can restore Engine.TimeScale if needed
+            SetEffectManagersReplayMode(false);
 
             // Disable all gameplay effects (cinema, hit, penultimate, power fantasy)
             DisableAllReplayEffects();
@@ -601,6 +608,13 @@ namespace GodotTopDownTemplate.Autoload
                     break;
                 }
             }
+
+            // Issue #597: Reset _lastAppliedFrame so PlayFrameEvents runs for
+            // all frames from the seek position onward. Without this, switching
+            // replay modes (Ghost→Memory) would leave _lastAppliedFrame pointing
+            // to the old playback position, causing PlayFrameEvents to be skipped
+            // for all frames up to that old position — meaning no visual effects.
+            _lastAppliedFrame = _playbackFrame - 1;
 
             ApplyFrame(_frames[_playbackFrame], 0.0f);
         }
@@ -856,6 +870,49 @@ namespace GodotTopDownTemplate.Autoload
 
             // Ensure time scale is restored
             Engine.TimeScale = 1.0;
+        }
+
+        /// <summary>
+        /// Sets the replay_mode flag on all effect managers.
+        /// Issue #597: When replay_mode is true, effect managers skip Engine.TimeScale
+        /// and process_mode changes while still applying all visual effects (shaders,
+        /// saturation, contrast, enemy coloring).
+        /// </summary>
+        private void SetEffectManagersReplayMode(bool enabled)
+        {
+            // Issue #597: Set replay_mode flag AND process_mode on each effect manager.
+            // process_mode must be Always during replay so effect timers run when tree is paused.
+            var processMode = enabled ? (int)ProcessModeEnum.Always : (int)ProcessModeEnum.Inherit;
+
+            var hitEffects = GetNodeOrNull("/root/HitEffectsManager");
+            if (hitEffects != null)
+            {
+                hitEffects.Set("replay_mode", enabled);
+                hitEffects.Set("process_mode", processMode);
+            }
+
+            var penultimateEffects = GetNodeOrNull("/root/PenultimateHitEffectsManager");
+            if (penultimateEffects != null)
+            {
+                penultimateEffects.Set("replay_mode", enabled);
+                penultimateEffects.Set("process_mode", processMode);
+            }
+
+            var powerFantasyManager = GetNodeOrNull("/root/PowerFantasyEffectsManager");
+            if (powerFantasyManager != null)
+            {
+                powerFantasyManager.Set("replay_mode", enabled);
+                powerFantasyManager.Set("process_mode", processMode);
+            }
+
+            var lastChanceEffects = GetNodeOrNull("/root/LastChanceEffectsManager");
+            if (lastChanceEffects != null)
+            {
+                lastChanceEffects.Set("replay_mode", enabled);
+                lastChanceEffects.Set("process_mode", processMode);
+            }
+
+            LogToFile($"Effect managers replay_mode set to: {enabled}");
         }
 
         /// <summary>Cleans up Memory mode effects and blood decals.</summary>
@@ -2750,6 +2807,8 @@ namespace GodotTopDownTemplate.Autoload
         {
             if (frame.Events.Count == 0) return;
 
+            LogToFile($"PlayFrameEvents: processing {frame.Events.Count} events at time {frame.Time:F2}s (mode={_currentMode})");
+
             var audioManager = GetNodeOrNull("/root/AudioManager");
 
             foreach (var evt in frame.Events)
@@ -2861,90 +2920,84 @@ namespace GodotTopDownTemplate.Autoload
         }
 
         // ============================================================
-        // Replay visual effects (hit/penultimate — saturation only, no time slowdown)
+        // Replay visual effects (visual-only via replay_mode flag, no time manipulation)
+        // Issue #597: Effect managers have a replay_mode flag that prevents
+        // Engine.TimeScale and process_mode changes while keeping all visual effects.
         // ============================================================
 
         /// <summary>
-        /// Triggers the full hit effect during replay playback, including
-        /// time slowdown and saturation boost (matching original gameplay).
-        /// Calls HitEffectsManager.on_player_hit_enemy() for the full effect.
+        /// Triggers the hit effect during replay playback.
+        /// The HitEffectsManager.replay_mode flag prevents Engine.TimeScale changes
+        /// while still applying the saturation shader overlay.
         /// </summary>
         private void TriggerReplayHitEffect()
         {
-            // Issue #590 fix 2: Only trigger gameplay effects in Memory mode.
-            // Ghost mode uses a stylized red/black/white filter and should not
-            // activate saturation boosts, time slowdowns, or other gameplay effects.
+            // Only trigger gameplay effects in Memory mode.
+            // Ghost mode uses a stylized red/black/white filter.
             if (_currentMode != ReplayMode.Memory) return;
 
             var hitEffects = GetNodeOrNull("/root/HitEffectsManager");
-            if (hitEffects != null)
+            if (hitEffects != null && hitEffects.HasMethod("on_player_hit_enemy"))
             {
-                // Call the full on_player_hit_enemy() to get both time slowdown
-                // and saturation boost, matching the original gameplay experience
-                if (hitEffects.HasMethod("on_player_hit_enemy"))
-                {
-                    hitEffects.Call("on_player_hit_enemy");
-                }
-                else if (hitEffects.HasMethod("_start_saturation_effect"))
-                {
-                    // Fallback: at least trigger the saturation effect
-                    hitEffects.Call("_start_saturation_effect");
-                }
+                hitEffects.Call("on_player_hit_enemy");
+                LogToFile("Replay effect triggered: HitEffects.on_player_hit_enemy");
             }
         }
 
         /// <summary>
-        /// Triggers the full penultimate hit effect during replay playback,
-        /// including time slowdown, saturation, and contrast boost.
-        /// Matches the original gameplay "last chance" moment.
+        /// Triggers the penultimate hit effect during replay playback.
+        /// The PenultimateHitEffectsManager.replay_mode flag prevents Engine.TimeScale
+        /// changes while still applying saturation/contrast shader and enemy coloring.
         /// </summary>
         private void TriggerReplayPenultimateEffect()
         {
-            // Issue #590 fix 2: Only trigger gameplay effects in Memory mode.
+            // Only trigger gameplay effects in Memory mode.
             if (_currentMode != ReplayMode.Memory) return;
 
             var penultimateEffects = GetNodeOrNull("/root/PenultimateHitEffectsManager");
             if (penultimateEffects != null)
             {
-                // Trigger the full penultimate effect including time slowdown
-                // to match the original gameplay experience
-                if (penultimateEffects.HasMethod("_start_penultimate_effect"))
-                {
-                    penultimateEffects.Call("_start_penultimate_effect");
-                }
+                // Call directly — HasMethod may not find underscore-prefixed methods reliably.
+                penultimateEffects.Call("_start_penultimate_effect");
+                LogToFile("Replay effect triggered: PenultimateHit._start_penultimate_effect");
             }
         }
 
         /// <summary>
-        /// Triggers the Power Fantasy kill effect during replay (300ms time slowdown + saturation).
-        /// Only activates if Power Fantasy difficulty mode is active.
+        /// Triggers the Power Fantasy kill effect during replay playback.
+        /// Calls _start_effect() directly (bypassing difficulty check) because
+        /// the replay_mode flag prevents Engine.TimeScale changes.
         /// </summary>
         private void TriggerReplayPowerFantasyKill()
         {
-            // Issue #590 fix 2: Only trigger gameplay effects in Memory mode.
+            // Only trigger gameplay effects in Memory mode.
             if (_currentMode != ReplayMode.Memory) return;
 
             var powerFantasyManager = GetNodeOrNull("/root/PowerFantasyEffectsManager");
-            if (powerFantasyManager != null && powerFantasyManager.HasMethod("on_enemy_killed"))
+            if (powerFantasyManager != null)
             {
-                powerFantasyManager.Call("on_enemy_killed");
+                // Call _start_effect directly — HasMethod may not find underscore-prefixed
+                // GDScript methods reliably in all Godot versions.
+                powerFantasyManager.Call("_start_effect", 300.0);
+                LogToFile("Replay effect triggered: PowerFantasy._start_effect(300ms)");
             }
         }
 
         /// <summary>
-        /// Triggers the Power Fantasy grenade explosion effect during replay
-        /// (2000ms time-freeze via LastChanceEffectsManager).
-        /// Only activates if Power Fantasy difficulty mode is active.
+        /// Triggers the Power Fantasy grenade explosion effect during replay playback.
+        /// Calls LastChanceEffectsManager.trigger_grenade_last_chance() directly because
+        /// the replay_mode flag prevents process_mode freezing.
         /// </summary>
         private void TriggerReplayPowerFantasyGrenade()
         {
-            // Issue #590 fix 2: Only trigger gameplay effects in Memory mode.
+            // Only trigger gameplay effects in Memory mode.
             if (_currentMode != ReplayMode.Memory) return;
 
-            var powerFantasyManager = GetNodeOrNull("/root/PowerFantasyEffectsManager");
-            if (powerFantasyManager != null && powerFantasyManager.HasMethod("on_grenade_exploded"))
+            var lastChanceManager = GetNodeOrNull("/root/LastChanceEffectsManager");
+            if (lastChanceManager != null && lastChanceManager.HasMethod("trigger_grenade_last_chance"))
             {
-                powerFantasyManager.Call("on_grenade_exploded");
+                lastChanceManager.Call("trigger_grenade_last_chance", 2.0);
+                LogToFile("Replay effect triggered: LastChance.trigger_grenade_last_chance(2.0s)");
             }
         }
 

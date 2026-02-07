@@ -65,6 +65,9 @@ var _previous_scene_root: Node = null
 ## Whether the visual effects are currently fading out (Issue #442).
 var _is_fading_out: bool = false
 
+## Issue #597: When true, skip Engine.time_scale changes (used during replay playback).
+var replay_mode: bool = false
+
 ## The time when the fade-out started (in real time seconds).
 var _fade_out_start_time: float = 0.0
 
@@ -247,8 +250,9 @@ func _start_penultimate_effect() -> void:
 	_log("  - Contrast boost: %.2f (%.1fx)" % [SCREEN_CONTRAST_BOOST, 1.0 + SCREEN_CONTRAST_BOOST])
 	_log("  - Duration: %.1f real seconds" % EFFECT_DURATION_REAL_SECONDS)
 
-	# Slow down time to 0.25
-	Engine.time_scale = PENULTIMATE_TIME_SCALE
+	# Slow down time to 0.25 (skip during replay - Issue #597)
+	if not replay_mode:
+		Engine.time_scale = PENULTIMATE_TIME_SCALE
 
 	# Apply screen saturation (3x) and contrast (2x)
 	_saturation_rect.visible = true
@@ -276,8 +280,9 @@ func _end_penultimate_effect() -> void:
 	_is_effect_active = false
 	_log("Ending penultimate hit effect")
 
-	# Restore normal time immediately (gameplay should resume at normal speed)
-	Engine.time_scale = 1.0
+	# Restore normal time immediately (skip during replay - Issue #597)
+	if not replay_mode:
+		Engine.time_scale = 1.0
 
 	# Start visual effects fade-out animation instead of removing instantly (Issue #442)
 	_start_fade_out()
@@ -489,8 +494,9 @@ func reset_effects() -> void:
 
 	if _is_effect_active:
 		_is_effect_active = false
-		# Restore normal time immediately
-		Engine.time_scale = 1.0
+		# Restore normal time immediately (skip during replay - Issue #597)
+		if not replay_mode:
+			Engine.time_scale = 1.0
 
 	# Reset fade-out state (Issue #442)
 	_is_fading_out = false
