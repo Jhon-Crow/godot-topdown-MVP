@@ -73,6 +73,33 @@ const WEAPON_CONFIGS := {
 		"spread_increment": 5.4,
 		"max_spread": 60.0,
 		"spread_reset_time": 0.3
+	},
+	3: {  # MACHETE - melee weapon (Issue #579)
+		"shoot_cooldown": 1.5,  # Melee attack cooldown
+		"bullet_speed": 0.0,  # No projectiles
+		"magazine_size": 0,  # No ammo needed
+		"bullet_spawn_offset": 0.0,
+		"weapon_loudness": 200.0,  # Quiet melee swing sound
+		"sprite_path": "res://assets/sprites/weapons/machete_topdown.png",
+		"bullet_scene_path": "",  # No bullets
+		"casing_scene_path": "",  # No casings
+		"caliber_path": "",
+		"is_shotgun": false,
+		"pellet_count_min": 0,
+		"pellet_count_max": 0,
+		"spread_angle": 0.0,
+		"spread_threshold": 0,
+		"initial_spread": 0.0,
+		"spread_increment": 0.0,
+		"max_spread": 0.0,
+		"spread_reset_time": 0.0,
+		# Machete-specific config
+		"is_melee": true,
+		"melee_range": 80.0,
+		"melee_damage": 2,
+		"dodge_speed": 400.0,
+		"dodge_distance": 120.0,
+		"sneak_speed_multiplier": 0.6
 	}
 }
 
@@ -90,4 +117,5 @@ static func get_type_name(weapon_type: int) -> String:
 		0: return "RIFLE"
 		1: return "SHOTGUN"
 		2: return "UZI"
+		3: return "MACHETE"
 		_: return "UNKNOWN"

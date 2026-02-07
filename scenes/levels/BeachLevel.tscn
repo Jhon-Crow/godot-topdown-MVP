@@ -1,0 +1,491 @@
+[gd_scene load_steps=14 format=3 uid="uid://beach_level_579"]
+
+[ext_resource type="Script" path="res://scripts/levels/beach_level.gd" id="1_beach_level"]
+[ext_resource type="PackedScene" uid="uid://dv8nq2vj5r7p2" path="res://scenes/characters/csharp/Player.tscn" id="2_player"]
+[ext_resource type="PackedScene" uid="uid://dxqmk8f3nw5pe" path="res://scenes/ui/PauseMenu.tscn" id="3_pause_menu"]
+[ext_resource type="PackedScene" uid="uid://cx5m8np6u3bwd" path="res://scenes/objects/Enemy.tscn" id="4_enemy"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_wall_horizontal"]
+size = Vector2(2464, 32)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_wall_vertical"]
+size = Vector2(32, 2064)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_rock_large"]
+size = Vector2(100, 80)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_rock_small"]
+size = Vector2(60, 50)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_hut"]
+size = Vector2(140, 100)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_barrel"]
+size = Vector2(40, 40)
+
+[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_rock_large"]
+polygon = PackedVector2Array(-50, -40, 50, -40, 50, 40, -50, 40)
+
+[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_hut"]
+polygon = PackedVector2Array(-70, -50, 70, -50, 70, 50, -70, 50)
+
+[sub_resource type="NavigationPolygon" id="NavigationPolygon_beach"]
+vertices = PackedVector2Array(64, 64, 2464, 64, 2464, 2064, 64, 2064)
+polygons = [PackedInt32Array(0, 1, 2, 3)]
+outlines = [PackedVector2Array(64, 64, 2464, 64, 2464, 2064, 64, 2064)]
+parsed_geometry_type = 1
+parsed_collision_mask = 4
+source_geometry_mode = 0
+source_geometry_group_name = &"navigation_source"
+agent_radius = 24.0
+
+[node name="BeachLevel" type="Node2D"]
+script = ExtResource("1_beach_level")
+
+[node name="Environment" type="Node2D" parent="."]
+
+[node name="Background" type="ColorRect" parent="Environment"]
+offset_right = 2528.0
+offset_bottom = 2128.0
+color = Color(0.15, 0.55, 0.85, 1)
+
+[node name="Sand" type="ColorRect" parent="Environment"]
+offset_left = 64.0
+offset_top = 400.0
+offset_right = 2464.0
+offset_bottom = 2064.0
+color = Color(0.85, 0.75, 0.55, 1)
+
+[node name="WaterEdge" type="ColorRect" parent="Environment"]
+offset_left = 64.0
+offset_top = 64.0
+offset_right = 2464.0
+offset_bottom = 420.0
+color = Color(0.2, 0.6, 0.9, 1)
+
+[node name="Shoreline" type="ColorRect" parent="Environment"]
+offset_left = 64.0
+offset_top = 380.0
+offset_right = 2464.0
+offset_bottom = 440.0
+color = Color(0.75, 0.68, 0.5, 1)
+
+[node name="Walls" type="Node2D" parent="Environment"]
+
+[node name="WallTop" type="StaticBody2D" parent="Environment/Walls"]
+position = Vector2(1264, 48)
+collision_layer = 4
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallTop"]
+shape = SubResource("RectangleShape2D_wall_horizontal")
+
+[node name="WallBottom" type="StaticBody2D" parent="Environment/Walls"]
+position = Vector2(1264, 2080)
+collision_layer = 4
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallBottom"]
+shape = SubResource("RectangleShape2D_wall_horizontal")
+
+[node name="WallLeft" type="StaticBody2D" parent="Environment/Walls"]
+position = Vector2(48, 1064)
+collision_layer = 4
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallLeft"]
+shape = SubResource("RectangleShape2D_wall_vertical")
+
+[node name="WallRight" type="StaticBody2D" parent="Environment/Walls"]
+position = Vector2(2480, 1064)
+collision_layer = 4
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Walls/WallRight"]
+shape = SubResource("RectangleShape2D_wall_vertical")
+
+[node name="Cover" type="Node2D" parent="Environment"]
+
+[node name="Rock1" type="StaticBody2D" parent="Environment/Cover"]
+position = Vector2(400, 700)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Cover/Rock1"]
+offset_left = -50.0
+offset_top = -40.0
+offset_right = 50.0
+offset_bottom = 40.0
+color = Color(0.5, 0.45, 0.4, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/Rock1"]
+shape = SubResource("RectangleShape2D_rock_large")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/Rock1"]
+occluder = SubResource("OccluderPolygon2D_rock_large")
+
+[node name="Rock2" type="StaticBody2D" parent="Environment/Cover"]
+position = Vector2(900, 550)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Cover/Rock2"]
+offset_left = -30.0
+offset_top = -25.0
+offset_right = 30.0
+offset_bottom = 25.0
+color = Color(0.55, 0.5, 0.42, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/Rock2"]
+shape = SubResource("RectangleShape2D_rock_small")
+
+[node name="Rock3" type="StaticBody2D" parent="Environment/Cover"]
+position = Vector2(1600, 650)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Cover/Rock3"]
+offset_left = -50.0
+offset_top = -40.0
+offset_right = 50.0
+offset_bottom = 40.0
+color = Color(0.48, 0.43, 0.38, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/Rock3"]
+shape = SubResource("RectangleShape2D_rock_large")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/Rock3"]
+occluder = SubResource("OccluderPolygon2D_rock_large")
+
+[node name="Hut1" type="StaticBody2D" parent="Environment/Cover"]
+position = Vector2(600, 1100)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Cover/Hut1"]
+offset_left = -70.0
+offset_top = -50.0
+offset_right = 70.0
+offset_bottom = 50.0
+color = Color(0.55, 0.35, 0.2, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/Hut1"]
+shape = SubResource("RectangleShape2D_hut")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/Hut1"]
+occluder = SubResource("OccluderPolygon2D_hut")
+
+[node name="Hut2" type="StaticBody2D" parent="Environment/Cover"]
+position = Vector2(1800, 1200)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Cover/Hut2"]
+offset_left = -70.0
+offset_top = -50.0
+offset_right = 70.0
+offset_bottom = 50.0
+color = Color(0.6, 0.38, 0.22, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/Hut2"]
+shape = SubResource("RectangleShape2D_hut")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/Hut2"]
+occluder = SubResource("OccluderPolygon2D_hut")
+
+[node name="Rock4" type="StaticBody2D" parent="Environment/Cover"]
+position = Vector2(1200, 900)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Cover/Rock4"]
+offset_left = -30.0
+offset_top = -25.0
+offset_right = 30.0
+offset_bottom = 25.0
+color = Color(0.52, 0.47, 0.4, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/Rock4"]
+shape = SubResource("RectangleShape2D_rock_small")
+
+[node name="Barrel1" type="StaticBody2D" parent="Environment/Cover"]
+position = Vector2(350, 1500)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Cover/Barrel1"]
+offset_left = -20.0
+offset_top = -20.0
+offset_right = 20.0
+offset_bottom = 20.0
+color = Color(0.4, 0.25, 0.15, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/Barrel1"]
+shape = SubResource("RectangleShape2D_barrel")
+
+[node name="Barrel2" type="StaticBody2D" parent="Environment/Cover"]
+position = Vector2(420, 1480)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Cover/Barrel2"]
+offset_left = -20.0
+offset_top = -20.0
+offset_right = 20.0
+offset_bottom = 20.0
+color = Color(0.4, 0.25, 0.15, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/Barrel2"]
+shape = SubResource("RectangleShape2D_barrel")
+
+[node name="Rock5" type="StaticBody2D" parent="Environment/Cover"]
+position = Vector2(2100, 800)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Cover/Rock5"]
+offset_left = -50.0
+offset_top = -40.0
+offset_right = 50.0
+offset_bottom = 40.0
+color = Color(0.5, 0.45, 0.38, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/Rock5"]
+shape = SubResource("RectangleShape2D_rock_large")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/Rock5"]
+occluder = SubResource("OccluderPolygon2D_rock_large")
+
+[node name="Rock6" type="StaticBody2D" parent="Environment/Cover"]
+position = Vector2(1000, 1600)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Cover/Rock6"]
+offset_left = -30.0
+offset_top = -25.0
+offset_right = 30.0
+offset_bottom = 25.0
+color = Color(0.53, 0.48, 0.42, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/Rock6"]
+shape = SubResource("RectangleShape2D_rock_small")
+
+[node name="Barrel3" type="StaticBody2D" parent="Environment/Cover"]
+position = Vector2(1500, 1700)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Cover/Barrel3"]
+offset_left = -20.0
+offset_top = -20.0
+offset_right = 20.0
+offset_bottom = 20.0
+color = Color(0.4, 0.25, 0.15, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/Barrel3"]
+shape = SubResource("RectangleShape2D_barrel")
+
+[node name="Hut3" type="StaticBody2D" parent="Environment/Cover"]
+position = Vector2(2200, 1500)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Cover/Hut3"]
+offset_left = -70.0
+offset_top = -50.0
+offset_right = 70.0
+offset_bottom = 50.0
+color = Color(0.58, 0.36, 0.2, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Cover/Hut3"]
+shape = SubResource("RectangleShape2D_hut")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Cover/Hut3"]
+occluder = SubResource("OccluderPolygon2D_hut")
+
+[node name="AreaLabels" type="Node2D" parent="Environment"]
+
+[node name="BeachLabel" type="ColorRect" parent="Environment/AreaLabels"]
+offset_left = 80.0
+offset_top = 80.0
+offset_right = 2448.0
+offset_bottom = 380.0
+color = Color(0.1, 0.3, 0.5, 0.2)
+
+[node name="Label" type="Label" parent="Environment/AreaLabels/BeachLabel"]
+offset_left = 10.0
+offset_top = 10.0
+offset_right = 200.0
+offset_bottom = 30.0
+text = "SHORELINE"
+
+[node name="JungleLabel" type="ColorRect" parent="Environment/AreaLabels"]
+offset_left = 80.0
+offset_top = 1400.0
+offset_right = 800.0
+offset_bottom = 2048.0
+color = Color(0.1, 0.25, 0.1, 0.2)
+
+[node name="Label" type="Label" parent="Environment/AreaLabels/JungleLabel"]
+offset_left = 10.0
+offset_top = 10.0
+offset_right = 150.0
+offset_bottom = 30.0
+text = "JUNGLE EDGE"
+
+[node name="CampLabel" type="ColorRect" parent="Environment/AreaLabels"]
+offset_left = 1600.0
+offset_top = 1000.0
+offset_right = 2448.0
+offset_bottom = 2048.0
+color = Color(0.25, 0.15, 0.1, 0.2)
+
+[node name="Label" type="Label" parent="Environment/AreaLabels/CampLabel"]
+offset_left = 10.0
+offset_top = 10.0
+offset_right = 150.0
+offset_bottom = 30.0
+text = "ENEMY CAMP"
+
+[node name="Enemies" type="Node2D" parent="Environment"]
+
+[node name="MacheteEnemy1" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
+position = Vector2(500, 800)
+behavior_mode = 0
+weapon_type = 3
+move_speed = 250.0
+combat_move_speed = 380.0
+patrol_offsets = Array[Vector2]([Vector2(80, 0), Vector2(-80, 0)])
+destroy_on_death = true
+enable_flanking = true
+enable_cover = true
+min_health = 3
+max_health = 5
+
+[node name="MacheteEnemy2" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
+position = Vector2(1400, 700)
+behavior_mode = 1
+weapon_type = 3
+move_speed = 250.0
+combat_move_speed = 380.0
+destroy_on_death = true
+enable_flanking = true
+enable_cover = true
+min_health = 3
+max_health = 5
+
+[node name="MacheteEnemy3" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
+position = Vector2(700, 1300)
+behavior_mode = 0
+weapon_type = 3
+move_speed = 250.0
+combat_move_speed = 380.0
+patrol_offsets = Array[Vector2]([Vector2(0, 100), Vector2(0, -100)])
+destroy_on_death = true
+enable_flanking = true
+enable_cover = true
+min_health = 3
+max_health = 5
+
+[node name="MacheteEnemy4" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
+position = Vector2(2000, 1400)
+behavior_mode = 1
+weapon_type = 3
+move_speed = 250.0
+combat_move_speed = 380.0
+destroy_on_death = true
+enable_flanking = true
+enable_cover = true
+min_health = 3
+max_health = 5
+
+[node name="MacheteEnemy5" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
+position = Vector2(1200, 1700)
+behavior_mode = 0
+weapon_type = 3
+move_speed = 250.0
+combat_move_speed = 380.0
+patrol_offsets = Array[Vector2]([Vector2(100, 0), Vector2(-100, 0)])
+destroy_on_death = true
+enable_flanking = true
+enable_cover = true
+min_health = 3
+max_health = 5
+
+[node name="RifleEnemy1" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
+position = Vector2(2100, 900)
+behavior_mode = 1
+destroy_on_death = true
+enable_flanking = true
+enable_cover = true
+
+[node name="RifleEnemy2" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
+position = Vector2(1900, 1600)
+behavior_mode = 1
+destroy_on_death = true
+enable_flanking = true
+enable_cover = true
+
+[node name="ShotgunEnemy1" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
+position = Vector2(2300, 1300)
+behavior_mode = 1
+weapon_type = 1
+destroy_on_death = true
+enable_flanking = true
+enable_cover = true
+
+[node name="NavigationRegion2D" type="NavigationRegion2D" parent="."]
+navigation_polygon = SubResource("NavigationPolygon_beach")
+
+[node name="Entities" type="Node2D" parent="."]
+
+[node name="Player" parent="Entities" instance=ExtResource("2_player")]
+position = Vector2(200, 1900)
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+
+[node name="UI" type="Control" parent="CanvasLayer"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="LevelLabel" type="Label" parent="CanvasLayer/UI"]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -250.0
+offset_top = 10.0
+offset_right = -10.0
+offset_bottom = 40.0
+grow_horizontal = 0
+text = "BEACH"
+horizontal_alignment = 2
+
+[node name="EnemyCountLabel" type="Label" parent="CanvasLayer/UI"]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -200.0
+offset_top = 45.0
+offset_right = -10.0
+offset_bottom = 75.0
+grow_horizontal = 0
+text = "Enemies: 8"
+horizontal_alignment = 2
+
+[node name="AmmoLabel" type="Label" parent="CanvasLayer/UI"]
+layout_mode = 1
+anchors_preset = 0
+offset_left = 10.0
+offset_top = 10.0
+offset_right = 200.0
+offset_bottom = 45.0
+text = "AMMO: 30/30"
+
+[node name="PauseMenu" parent="." instance=ExtResource("3_pause_menu")]

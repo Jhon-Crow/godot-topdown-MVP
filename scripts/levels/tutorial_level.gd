@@ -61,6 +61,9 @@ var _has_shotgun: bool = false
 ## Whether the player has a sniper rifle (for sniper-specific tutorial).
 var _has_sniper_rifle: bool = false
 
+## Whether the player has a Makarov PM (for pistol R->R reload tutorial).
+var _has_makarov_pm: bool = false
+
 ## Reference to the player's assault rifle weapon (for fire mode tracking).
 var _assault_rifle: Node = null
 
@@ -149,13 +152,13 @@ func _setup_realistic_visibility() -> void:
 
 
 ## Setup the weapon based on GameManager's selected weapon.
-## Removes the default AssaultRifle and loads the selected weapon.
+## Removes the default MakarovPM and loads the selected weapon.
 func _setup_selected_weapon() -> void:
 	if _player == null:
 		return
 
 	# Get selected weapon from GameManager
-	var selected_weapon_id: String = "m16"  # Default
+	var selected_weapon_id: String = "makarov_pm"  # Default
 	if GameManager:
 		selected_weapon_id = GameManager.get_selected_weapon()
 
@@ -163,12 +166,13 @@ func _setup_selected_weapon() -> void:
 
 	# Check if C# Player already equipped the correct weapon (via ApplySelectedWeaponFromGameManager)
 	# This prevents double-equipping when both C# and GDScript weapon setup run
-	if selected_weapon_id != "m16":
+	if selected_weapon_id != "makarov_pm":
 		var weapon_names: Dictionary = {
 			"shotgun": "Shotgun",
 			"mini_uzi": "MiniUzi",
 			"silenced_pistol": "SilencedPistol",
-			"sniper": "SniperRifle"
+			"sniper": "SniperRifle",
+			"m16": "AssaultRifle"
 		}
 		if selected_weapon_id in weapon_names:
 			var expected_name: String = weapon_names[selected_weapon_id]
@@ -179,11 +183,11 @@ func _setup_selected_weapon() -> void:
 
 	# If shotgun is selected, we need to swap weapons
 	if selected_weapon_id == "shotgun":
-		# Remove the default AssaultRifle
-		var assault_rifle = _player.get_node_or_null("AssaultRifle")
-		if assault_rifle:
-			assault_rifle.queue_free()
-			print("Tutorial: Removed default AssaultRifle")
+		# Remove the default MakarovPM
+		var makarov = _player.get_node_or_null("MakarovPM")
+		if makarov:
+			makarov.queue_free()
+			print("Tutorial: Removed default MakarovPM")
 
 		# Load and add the shotgun
 		var shotgun_scene = load("res://scenes/weapons/csharp/Shotgun.tscn")
@@ -203,11 +207,11 @@ func _setup_selected_weapon() -> void:
 			push_error("Tutorial: Failed to load Shotgun scene!")
 	# If Mini UZI is selected, swap weapons
 	elif selected_weapon_id == "mini_uzi":
-		# Remove the default AssaultRifle
-		var assault_rifle = _player.get_node_or_null("AssaultRifle")
-		if assault_rifle:
-			assault_rifle.queue_free()
-			print("Tutorial: Removed default AssaultRifle")
+		# Remove the default MakarovPM
+		var makarov = _player.get_node_or_null("MakarovPM")
+		if makarov:
+			makarov.queue_free()
+			print("Tutorial: Removed default MakarovPM")
 
 		# Load and add the Mini UZI
 		var mini_uzi_scene = load("res://scenes/weapons/csharp/MiniUzi.tscn")
@@ -227,11 +231,11 @@ func _setup_selected_weapon() -> void:
 			push_error("Tutorial: Failed to load MiniUzi scene!")
 	# If Silenced Pistol is selected, swap weapons
 	elif selected_weapon_id == "silenced_pistol":
-		# Remove the default AssaultRifle
-		var assault_rifle = _player.get_node_or_null("AssaultRifle")
-		if assault_rifle:
-			assault_rifle.queue_free()
-			print("Tutorial: Removed default AssaultRifle")
+		# Remove the default MakarovPM
+		var makarov = _player.get_node_or_null("MakarovPM")
+		if makarov:
+			makarov.queue_free()
+			print("Tutorial: Removed default MakarovPM")
 
 		# Load and add the Silenced Pistol
 		var pistol_scene = load("res://scenes/weapons/csharp/SilencedPistol.tscn")
@@ -251,11 +255,11 @@ func _setup_selected_weapon() -> void:
 			push_error("Tutorial: Failed to load SilencedPistol scene!")
 	# If Sniper Rifle (ASVK) is selected, swap weapons
 	elif selected_weapon_id == "sniper":
-		# Remove the default AssaultRifle
-		var assault_rifle = _player.get_node_or_null("AssaultRifle")
-		if assault_rifle:
-			assault_rifle.queue_free()
-			print("Tutorial: Removed default AssaultRifle")
+		# Remove the default MakarovPM
+		var makarov = _player.get_node_or_null("MakarovPM")
+		if makarov:
+			makarov.queue_free()
+			print("Tutorial: Removed default MakarovPM")
 
 		# Load and add the Sniper Rifle
 		var sniper_scene = load("res://scenes/weapons/csharp/SniperRifle.tscn")
@@ -273,14 +277,35 @@ func _setup_selected_weapon() -> void:
 			print("Tutorial: ASVK Sniper Rifle equipped successfully")
 		else:
 			push_error("Tutorial: Failed to load SniperRifle scene!")
-	# For M16 (assault rifle), it's already in the scene - just ensure it's equipped
-	else:
-		var assault_rifle = _player.get_node_or_null("AssaultRifle")
-		if assault_rifle and _player.get("CurrentWeapon") == null:
+	# If M16 (assault rifle) is selected, swap weapons
+	elif selected_weapon_id == "m16":
+		var makarov = _player.get_node_or_null("MakarovPM")
+		if makarov:
+			makarov.queue_free()
+			print("Tutorial: Removed default MakarovPM")
+
+		var m16_scene = load("res://scenes/weapons/csharp/AssaultRifle.tscn")
+		if m16_scene:
+			var m16 = m16_scene.instantiate()
+			m16.name = "AssaultRifle"
+			_player.add_child(m16)
+
 			if _player.has_method("EquipWeapon"):
-				_player.EquipWeapon(assault_rifle)
+				_player.EquipWeapon(m16)
 			elif _player.get("CurrentWeapon") != null:
-				_player.CurrentWeapon = assault_rifle
+				_player.CurrentWeapon = m16
+
+			print("Tutorial: M16 Assault Rifle equipped successfully")
+		else:
+			push_error("Tutorial: Failed to load AssaultRifle scene!")
+	# For Makarov PM, it's already in the scene - just ensure it's equipped
+	else:
+		var makarov = _player.get_node_or_null("MakarovPM")
+		if makarov and _player.get("CurrentWeapon") == null:
+			if _player.has_method("EquipWeapon"):
+				_player.EquipWeapon(makarov)
+			elif _player.get("CurrentWeapon") != null:
+				_player.CurrentWeapon = makarov
 
 
 func _process(_delta: float) -> void:
@@ -318,6 +343,7 @@ func _connect_player_signals() -> void:
 	var sniper_rifle = _player.get_node_or_null("SniperRifle")
 	var shotgun = _player.get_node_or_null("Shotgun")
 	var mini_uzi = _player.get_node_or_null("MiniUzi")
+	var makarov_pm = _player.get_node_or_null("MakarovPM")
 
 	if sniper_rifle != null:
 		_sniper_rifle = sniper_rifle
@@ -382,6 +408,21 @@ func _connect_player_signals() -> void:
 		if weapon.has_signal("FireModeChanged"):
 			weapon.FireModeChanged.connect(_on_fire_mode_changed)
 			print("Tutorial: Connected to FireModeChanged signal")
+
+	elif makarov_pm != null:
+		_has_makarov_pm = true
+		print("Tutorial: Player has MakarovPM - pistol tutorial (R->R reload)")
+
+		# Connect to reload signals from player (C# Player)
+		if _player.has_signal("ReloadCompleted"):
+			_player.ReloadCompleted.connect(_on_player_reload_completed)
+		elif _player.has_signal("reload_completed"):
+			_player.reload_completed.connect(_on_player_reload_completed)
+
+		# Connect to MakarovPM ammo signal
+		if makarov_pm.has_signal("AmmoChanged"):
+			makarov_pm.AmmoChanged.connect(_on_weapon_ammo_changed)
+
 	elif not _has_sniper_rifle:
 		# GDScript player (only if no sniper rifle was detected earlier)
 		if _player.has_signal("reload_completed"):
@@ -407,6 +448,7 @@ func _setup_ammo_tracking() -> void:
 	var silenced_pistol = _player.get_node_or_null("SilencedPistol")
 	var sniper_rifle = _player.get_node_or_null("SniperRifle")
 	var weapon = _player.get_node_or_null("AssaultRifle")
+	var makarov_pm = _player.get_node_or_null("MakarovPM")
 
 	if shotgun != null:
 		# C# Player with shotgun - connect to weapon signals
@@ -446,6 +488,13 @@ func _setup_ammo_tracking() -> void:
 		# Initial ammo display from weapon
 		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
 			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
+	elif makarov_pm != null:
+		# C# Player with MakarovPM - connect to weapon signals
+		if makarov_pm.has_signal("AmmoChanged"):
+			makarov_pm.AmmoChanged.connect(_on_weapon_ammo_changed)
+		# Initial ammo display from MakarovPM
+		if makarov_pm.get("CurrentAmmo") != null and makarov_pm.get("ReserveAmmo") != null:
+			_update_ammo_label_magazine(makarov_pm.CurrentAmmo, makarov_pm.ReserveAmmo)
 	else:
 		# GDScript Player - connect to player signals
 		if _player.has_signal("ammo_changed"):
@@ -720,6 +769,9 @@ func _update_prompt_text() -> void:
 			elif _has_sniper_rifle:
 				# Sniper rifle bolt-action reload: Left→Down→Up→Right
 				_prompt_label.text = "[←отпирание] [↓извлечение] [↑досылание] [→запирание]"
+			elif _has_makarov_pm:
+				# Makarov PM uses simplified R->R reload (2-step pistol reload)
+				_prompt_label.text = "[R] [R] Перезарядись"
 			else:
 				_prompt_label.text = "[R] [F] [R] Перезарядись"
 		TutorialStep.SCOPE_TRAINING:

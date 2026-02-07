@@ -209,6 +209,14 @@ class MockLevelsMenu:
 			"description": "Step-by-step training: movement, shooting, bolt-action, scope, grenades.",
 			"enemy_count": 4,
 			"map_size": "1280x720"
+		},
+		{
+			"name": "Beach",
+			"name_ru": "Пляж",
+			"path": "res://scenes/levels/BeachLevel.tscn",
+			"description": "Outdoor beach environment with machete-wielding enemies and scattered cover.",
+			"enemy_count": 8,
+			"map_size": "2400x2000"
 		}
 	]
 
@@ -616,9 +624,9 @@ func test_levels_menu_has_levels() -> void:
 	assert_true(levels_menu.get_level_count() > 0, "Should have at least one level")
 
 
-func test_levels_menu_has_four_levels() -> void:
+func test_levels_menu_has_five_levels() -> void:
 	levels_menu = MockLevelsMenu.new()
-	assert_eq(levels_menu.get_level_count(), 4, "Should have 4 levels")
+	assert_eq(levels_menu.get_level_count(), 5, "Should have 5 levels")
 
 
 func test_get_level_path() -> void:
