@@ -3676,6 +3676,53 @@ public partial class Player : BaseCharacter
         }
     }
 
+    /// <summary>
+    /// Check if the player's flashlight is currently on (Issue #574).
+    /// Used by enemy AI to detect the flashlight beam and estimate player position.
+    /// Method name follows GDScript naming convention for cross-language compatibility
+    /// with the flashlight detection system that uses has_method("is_flashlight_on") checks.
+    /// </summary>
+    public bool is_flashlight_on()
+    {
+        if (!_flashlightEquipped || _flashlightNode == null)
+            return false;
+        if (!IsInstanceValid(_flashlightNode))
+            return false;
+        if (_flashlightNode.HasMethod("is_on"))
+            return (bool)_flashlightNode.Call("is_on");
+        return false;
+    }
+
+    /// <summary>
+    /// Get the flashlight beam direction as a normalized Vector2 (Issue #574).
+    /// The beam direction matches the player model's facing direction.
+    /// Returns Vector2.Zero if flashlight is off or not equipped.
+    /// Method name follows GDScript naming convention for cross-language compatibility.
+    /// </summary>
+    public Vector2 get_flashlight_direction()
+    {
+        if (!is_flashlight_on())
+            return Vector2.Zero;
+        if (_playerModel == null)
+            return Vector2.Zero;
+        return Vector2.Right.Rotated(_playerModel.GlobalRotation);
+    }
+
+    /// <summary>
+    /// Get the flashlight beam origin position in global coordinates (Issue #574).
+    /// This is the weapon barrel position where the flashlight is attached.
+    /// Returns GlobalPosition if flashlight is off or not equipped.
+    /// Method name follows GDScript naming convention for cross-language compatibility.
+    /// </summary>
+    public Vector2 get_flashlight_origin()
+    {
+        if (!is_flashlight_on() || _flashlightNode == null)
+            return GlobalPosition;
+        if (!IsInstanceValid(_flashlightNode))
+            return GlobalPosition;
+        return _flashlightNode.GlobalPosition;
+    }
+
     #endregion
 
     #region Logging
