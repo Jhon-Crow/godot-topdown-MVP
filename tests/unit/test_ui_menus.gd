@@ -263,6 +263,32 @@ class MockLevelsMenu:
 		var data := get_level_data(level_name)
 		return data.get("enemy_count", 0)
 
+	## Progress data per level per difficulty: "path:difficulty" → {"rank": String, "score": int}
+	var _progress: Dictionary = {}
+
+	func set_level_progress(level_name: String, difficulty: String, rank: String, score: int) -> void:
+		var path := get_level_path(level_name)
+		if not path.is_empty():
+			_progress[path + ":" + difficulty] = {"rank": rank, "score": score}
+
+	func get_best_rank(level_name: String, difficulty: String) -> String:
+		var path := get_level_path(level_name)
+		var key: String = path + ":" + difficulty
+		if key in _progress:
+			return _progress[key].get("rank", "")
+		return ""
+
+	func get_best_score(level_name: String, difficulty: String) -> int:
+		var path := get_level_path(level_name)
+		var key: String = path + ":" + difficulty
+		if key in _progress:
+			return _progress[key].get("score", 0)
+		return 0
+
+	func is_level_completed_on(level_name: String, difficulty: String) -> bool:
+		var path := get_level_path(level_name)
+		return (path + ":" + difficulty) in _progress
+
 
 # ============================================================================
 # Mock Armory Menu
@@ -665,6 +691,52 @@ func test_level_has_description() -> void:
 	var data := levels_menu.get_level_data("Building Level")
 	assert_true(data.has("description"), "Level should have a description")
 	assert_true(data["description"].length() > 0, "Description should not be empty")
+
+
+func test_level_progress_not_completed_initially() -> void:
+	levels_menu = MockLevelsMenu.new()
+	assert_false(levels_menu.is_level_completed_on("Building Level", "Normal"),
+		"Level should not be completed initially")
+
+
+func test_level_progress_no_rank_initially() -> void:
+	levels_menu = MockLevelsMenu.new()
+	assert_eq(levels_menu.get_best_rank("Building Level", "Normal"), "",
+		"Best rank should be empty initially")
+
+
+func test_level_progress_save_and_retrieve() -> void:
+	levels_menu = MockLevelsMenu.new()
+	levels_menu.set_level_progress("Building Level", "Normal", "A", 7000)
+
+	assert_true(levels_menu.is_level_completed_on("Building Level", "Normal"),
+		"Level should be completed after saving progress")
+	assert_eq(levels_menu.get_best_rank("Building Level", "Normal"), "A",
+		"Best rank should be A")
+	assert_eq(levels_menu.get_best_score("Building Level", "Normal"), 7000,
+		"Best score should be 7000")
+
+
+func test_level_progress_per_difficulty() -> void:
+	levels_menu = MockLevelsMenu.new()
+	levels_menu.set_level_progress("Castle", "Easy", "S", 15000)
+	levels_menu.set_level_progress("Castle", "Hard", "D", 2000)
+
+	assert_eq(levels_menu.get_best_rank("Castle", "Easy"), "S",
+		"Easy rank should be S")
+	assert_eq(levels_menu.get_best_rank("Castle", "Hard"), "D",
+		"Hard rank should be D")
+	assert_false(levels_menu.is_level_completed_on("Castle", "Normal"),
+		"Normal should not be completed")
+
+
+func test_level_progress_per_level() -> void:
+	levels_menu = MockLevelsMenu.new()
+	levels_menu.set_level_progress("Building Level", "Normal", "A+", 9000)
+	levels_menu.set_level_progress("Polygon", "Normal", "C", 3000)
+
+	assert_eq(levels_menu.get_best_rank("Building Level", "Normal"), "A+")
+	assert_eq(levels_menu.get_best_rank("Polygon", "Normal"), "C")
 
 
 # ============================================================================
