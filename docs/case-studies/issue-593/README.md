@@ -70,28 +70,40 @@ against walls.
 ### Approach: Dual-Layer Window Light Sources
 
 Each window creates **two overlapping PointLight2D layers** to simulate how
-real moonlight scatters and fills a room:
+real moonlight enters a room and scatters:
 
 1. **Primary "MoonLight"** — the visible moonlight patch near the window:
    - Blue-tinted (`Color(0.4, 0.5, 0.9)`) to simulate cool moonlight
-   - Moderate energy (`0.6`), large spread (`texture_scale = 5.0`)
-   - **Shadows disabled** so light gradually dissipates through interior walls
-     instead of cutting off abruptly
+   - Low energy (`0.3`), moderate spread (`texture_scale = 3.0`)
+   - **Shadows enabled** with PCF5 filter (`shadow_filter_smooth = 3.0`)
+   - Shadow color `Color(0, 0, 0, 0.7)` for slightly soft shadow edges
+   - Interior walls cast natural shadows, giving the light realistic shape
 
-2. **Ambient "AmbientGlow"** — faint residual glow filling the corridor:
+2. **Ambient "AmbientGlow"** — extremely faint residual glow filling the corridor:
    - Slightly deeper blue (`Color(0.35, 0.45, 0.85)`)
-   - Very low energy (`0.25`), very large spread (`texture_scale = 10.0`)
-   - Shadows disabled for smooth corridor-wide dissipation
+   - Very low energy (`0.08`), larger spread (`texture_scale = 6.0`)
+   - Shadows disabled so it passes through interior walls for corridor-wide effect
 
 Both layers use very gradual radial gradient textures so the light fades
 smoothly into darkness without a visible hard edge.
 
-**Key design decision:** Shadows are intentionally disabled on window lights.
-With `shadow_enabled = true`, interior `LightOccluder2D` walls cause the
-moonlight to cut off abruptly at wall edges, making it look like "the light
-crashed into a wall". Disabling shadows allows the glow to pass through
-interior geometry, simulating how real scattered moonlight fills an entire
-corridor with faint ambient light.
+### Design decisions and iteration history
+
+**Iteration 1 (commit 5a5002b):** Initial implementation with `shadow_enabled = true`,
+`energy = 0.5`. Owner feedback: "light cuts off abruptly, looks like it crashed
+into a wall."
+
+**Iteration 2 (commit d6b63af):** Disabled shadows on both layers, increased energy
+to `0.6` primary + `0.25` ambient, increased texture_scale to `5.0` + `10.0`.
+Owner feedback: "too bright, shadows from windows should exist, weapon flash
+lights stopped working."
+
+**Iteration 3 (current):** Balanced approach — re-enabled shadows on primary layer
+with reduced energy (`0.3`) and smaller spread (`3.0`), kept ambient layer
+shadow-free but with very low energy (`0.08`). This ensures:
+- Interior walls cast proper shadows from moonlight
+- Total light energy is low enough that weapon muzzle flashes (energy `4.5`) remain visible
+- Faint ambient glow still makes corridor outlines barely visible beyond shadow edges
 
 ### Window Light Placement
 

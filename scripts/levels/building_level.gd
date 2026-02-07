@@ -9,7 +9,7 @@ extends Node2D
 ## - Clear room boundaries with walls and doorways
 ## - Similar mechanics to TestTier (ammo tracking, enemy tracking, etc.)
 ## - Score tracking with Hotline Miami style ranking system
-## - Window lights in corridors without enemies for night mode visibility (Issue #593)
+## - Dim window moonlight in corridors without enemies for night mode visibility (Issue #593)
 
 ## Reference to the enemy count label.
 var _enemy_count_label: Label = null
@@ -305,11 +305,13 @@ func _setup_window_lights() -> void:
 
 ## Create a single window light source at the given position on a wall.
 ## Produces two overlapping PointLight2D layers:
-## 1. Primary light (medium range, moderate energy) — the visible moonlight patch.
-## 2. Ambient light (very large range, very low energy, no shadows) — faint residual
-##    glow that fills the entire corridor so walls remain faintly visible even far
-##    from the window.  Shadows are disabled so the glow passes through interior
-##    walls and furniture, simulating light scattering.
+## 1. Primary light (medium range, low energy, shadows enabled) — the visible
+##    moonlight patch near the window. Shadows from interior walls give the light
+##    a natural shape that respects the building's geometry.
+## 2. Ambient light (large range, very low energy, no shadows) — extremely faint
+##    residual glow that fills the corridor so walls remain barely visible even
+##    far from the window. Shadows disabled so it passes through interior walls,
+##    simulating scattered/reflected light.
 ## @param parent: Parent node to add the window to.
 ## @param pos: Position of the window on the wall.
 ## @param wall_side: Which wall the window is on ("top", "bottom", "left", "right").
@@ -350,32 +352,34 @@ func _create_window_light(parent: Node2D, pos: Vector2, wall_side: String) -> vo
 	var light := PointLight2D.new()
 	light.name = "MoonLight"
 	light.color = Color(0.4, 0.5, 0.9, 1.0)  # Cool blue moonlight
-	light.energy = 0.6
-	# Shadows disabled so light gradually dissipates through interior walls
-	# instead of cutting off abruptly at wall edges
-	light.shadow_enabled = false
+	light.energy = 0.3
+	# Shadows enabled so interior walls cast natural shadows from the moonlight
+	light.shadow_enabled = true
+	light.shadow_filter = PointLight2D.SHADOW_FILTER_PCF5
+	light.shadow_filter_smooth = 3.0
+	light.shadow_color = Color(0, 0, 0, 0.7)
 	light.texture = _create_window_light_texture()
-	light.texture_scale = 5.0
+	light.texture_scale = 3.0
 	# Offset the light inward from the wall so it illuminates the interior
 	match wall_side:
 		"left":
-			light.position = Vector2(80, 0)
+			light.position = Vector2(60, 0)
 		"right":
-			light.position = Vector2(-80, 0)
+			light.position = Vector2(-60, 0)
 		"top":
-			light.position = Vector2(0, 80)
+			light.position = Vector2(0, 60)
 		"bottom":
-			light.position = Vector2(0, -80)
+			light.position = Vector2(0, -60)
 	window_node.add_child(light)
 
-	# --- Ambient glow (faint residual light filling the corridor) ---
+	# --- Ambient glow (very faint residual light filling the corridor) ---
 	var ambient := PointLight2D.new()
 	ambient.name = "AmbientGlow"
 	ambient.color = Color(0.35, 0.45, 0.85, 1.0)  # Slightly deeper blue
-	ambient.energy = 0.25
+	ambient.energy = 0.08
 	ambient.shadow_enabled = false
 	ambient.texture = _create_ambient_light_texture()
-	ambient.texture_scale = 10.0
+	ambient.texture_scale = 6.0
 	# Same offset as primary light
 	ambient.position = light.position
 	window_node.add_child(ambient)
