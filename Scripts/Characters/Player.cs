@@ -239,7 +239,8 @@ public partial class Player : BaseCharacter
         Rifle,      // Default - extended grip (e.g., AssaultRifle)
         SMG,        // Compact grip (e.g., MiniUzi)
         Shotgun,    // Similar to rifle but slightly tighter
-        Pistol      // Compact one-handed/two-handed pistol grip (e.g., SilencedPistol)
+        Pistol,     // Compact one-handed/two-handed pistol grip (e.g., SilencedPistol)
+        Sniper      // Extended heavy grip (e.g., ASVK SniperRifle)
     }
 
     /// <summary>
@@ -729,6 +730,11 @@ public partial class Player : BaseCharacter
                 GD.Print($"[Player] {Name}: Auto-equipped weapon {CurrentWeapon.Name}");
             }
         }
+
+        // Apply weapon selection from GameManager (C# fallback for GDScript level scripts)
+        // This ensures weapon selection works even when GDScript level scripts fail to execute
+        // due to Godot 4.3 binary tokenization issues (godotengine/godot#94150, #96065)
+        ApplySelectedWeaponFromGameManager();
 
         // Store base positions for walking animation
         if (_bodySprite != null)
@@ -1259,12 +1265,18 @@ public partial class Player : BaseCharacter
         var detectedType = WeaponType.Rifle;  // Default to rifle pose
 
         // Check for weapon children - weapons are added directly to player by level scripts
-        // Check in order of specificity: MiniUzi (SMG), Shotgun, SilencedPistol, then default to Rifle
+        // Check in order of specificity: SniperRifle, MiniUzi (SMG), Shotgun, SilencedPistol, then default to Rifle
+        var sniperRifle = GetNodeOrNull<BaseWeapon>("SniperRifle");
         var miniUzi = GetNodeOrNull<BaseWeapon>("MiniUzi");
         var shotgun = GetNodeOrNull<BaseWeapon>("Shotgun");
         var silencedPistol = GetNodeOrNull<BaseWeapon>("SilencedPistol");
 
-        if (miniUzi != null)
+        if (sniperRifle != null)
+        {
+            detectedType = WeaponType.Sniper;
+            LogToFile("[Player] Detected weapon: ASVK Sniper Rifle (Sniper pose)");
+        }
+        else if (miniUzi != null)
         {
             detectedType = WeaponType.SMG;
             LogToFile("[Player] Detected weapon: Mini UZI (SMG pose)");
@@ -1326,6 +1338,15 @@ public partial class Player : BaseCharacter
                 _baseLeftArmPos = originalLeftArmPos + new Vector2(-14, 0);  // More compact than SMG (-10)
                 _baseRightArmPos = originalRightArmPos + new Vector2(4, 0);  // Slightly more forward than SMG (3)
                 LogToFile($"[Player] Applied Pistol arm pose: Left={_baseLeftArmPos}, Right={_baseRightArmPos}");
+                break;
+
+            case WeaponType.Sniper:
+                // Sniper pose: Extended forward grip for long heavy weapon (ASVK)
+                // Left arm reaches further forward to support the heavy barrel
+                // Right arm stays close to body for stable trigger control
+                _baseLeftArmPos = originalLeftArmPos + new Vector2(4, 0);
+                _baseRightArmPos = originalRightArmPos + new Vector2(-1, 0);
+                LogToFile($"[Player] Applied Sniper arm pose: Left={_baseLeftArmPos}, Right={_baseRightArmPos}");
                 break;
 
             case WeaponType.Rifle:
@@ -1915,6 +1936,83 @@ public partial class Player : BaseCharacter
             RemoveChild(CurrentWeapon);
         }
         CurrentWeapon = null;
+    }
+
+    /// <summary>
+    /// Applies weapon selection from GameManager autoload.
+    /// This is a C# fallback that ensures weapon selection works even when
+    /// GDScript level scripts (test_tier.gd, building_level.gd) fail to execute
+    /// due to Godot 4.3 GDScript binary tokenization issues.
+    /// Called from _Ready() after auto-equipping the default AssaultRifle.
+    /// </summary>
+    private void ApplySelectedWeaponFromGameManager()
+    {
+        var gameManager = GetNodeOrNull("/root/GameManager");
+        if (gameManager == null)
+        {
+            return;
+        }
+
+        // Get selected weapon ID from GameManager (GDScript autoload)
+        var selectedWeaponId = gameManager.Call("get_selected_weapon").AsString();
+        if (string.IsNullOrEmpty(selectedWeaponId) || selectedWeaponId == "m16")
+        {
+            // Default weapon (AssaultRifle) - already equipped, nothing to do
+            return;
+        }
+
+        // Map weapon ID to scene path and node name
+        string scenePath;
+        string weaponNodeName;
+        switch (selectedWeaponId)
+        {
+            case "shotgun":
+                scenePath = "res://scenes/weapons/csharp/Shotgun.tscn";
+                weaponNodeName = "Shotgun";
+                break;
+            case "mini_uzi":
+                scenePath = "res://scenes/weapons/csharp/MiniUzi.tscn";
+                weaponNodeName = "MiniUzi";
+                break;
+            case "silenced_pistol":
+                scenePath = "res://scenes/weapons/csharp/SilencedPistol.tscn";
+                weaponNodeName = "SilencedPistol";
+                break;
+            case "sniper":
+                scenePath = "res://scenes/weapons/csharp/SniperRifle.tscn";
+                weaponNodeName = "SniperRifle";
+                break;
+            default:
+                LogToFile($"[Player.Weapon] Unknown weapon ID '{selectedWeaponId}', keeping default");
+                return;
+        }
+
+        LogToFile($"[Player.Weapon] GameManager weapon selection: {selectedWeaponId} ({weaponNodeName})");
+
+        // Remove the default AssaultRifle immediately
+        var assaultRifle = GetNodeOrNull<BaseWeapon>("AssaultRifle");
+        if (assaultRifle != null)
+        {
+            RemoveChild(assaultRifle);
+            assaultRifle.QueueFree();
+            LogToFile("[Player.Weapon] Removed default AssaultRifle");
+        }
+        CurrentWeapon = null;
+
+        // Load and instantiate the selected weapon
+        var weaponScene = GD.Load<PackedScene>(scenePath);
+        if (weaponScene != null)
+        {
+            var weapon = weaponScene.Instantiate<BaseWeapon>();
+            weapon.Name = weaponNodeName;
+            AddChild(weapon);
+            CurrentWeapon = weapon;
+            LogToFile($"[Player.Weapon] Equipped {weaponNodeName} (ammo: {weapon.CurrentAmmo}/{weapon.WeaponData?.MagazineSize ?? 0})");
+        }
+        else
+        {
+            LogToFile($"[Player.Weapon] ERROR: Failed to load weapon scene: {scenePath}");
+        }
     }
 
     #region Sniper Scope System

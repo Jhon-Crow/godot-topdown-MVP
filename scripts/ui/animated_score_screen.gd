@@ -2,11 +2,14 @@ extends Node
 ## Animated Score Screen for Hotline Miami 2 Style Statistics Display.
 ##
 ## Issue #415: Statistics items should appear gradually like in Hotline Miami 2.
+## Issue #568: Allow skipping score animations with LMB click.
 ## Features:
 ## - Sequential reveal: Items appear one after another
 ## - Counting animation: Numbers animate from 0 to final value with pulsing
 ## - Sound effects: Retro beeps during counting
 ## - Dramatic rank reveal: Fullscreen with flashing background, then shrinks
+## - LMB skip: During counting → jump to final grade; during grade → skip animation
+## - Navigation buttons: Next Level and Level Select after final grade
 ##
 ## Usage:
 ##   var score_screen = load("res://scripts/ui/animated_score_screen.gd").new()
@@ -20,6 +23,13 @@ signal animation_completed(container: VBoxContainer)
 
 ## Audio player for score counting beeps (created on demand).
 var _score_audio_player: AudioStreamPlayer = null
+
+## Gothic bitmap font for score screen labels (loaded on demand).
+var _gothic_font: Font = null
+
+## Path to the Gothic bitmap font file (.fnt).
+## Loaded via Godot's resource system (editor imports .fnt as FontFile).
+const GOTHIC_FONT_PATH: String = "res://assets/fonts/gothic_bitmap.fnt"
 
 ## Duration for counting animation per stat item (seconds).
 const SCORE_COUNT_DURATION: float = 1.5
@@ -66,6 +76,64 @@ const BEEP_BASE_FREQUENCY: float = 440.0
 ## Major scale intervals for arpeggio (in semitones).
 const MAJOR_ARPEGGIO: Array[int] = [0, 4, 7, 12, 16, 19, 24]
 
+## Animation phases for skip logic (Issue #568).
+enum Phase { COUNTING, RANK_REVEAL, COMPLETED }
+
+## Current animation phase.
+var _phase: int = Phase.COUNTING
+
+## Whether a skip has been requested via LMB (Issue #568).
+var _skip_requested: bool = false
+
+## All active counting timers (for cleanup on skip).
+var _active_timers: Array[Timer] = []
+
+## References to rank reveal UI nodes (for cleanup on skip).
+var _rank_flash_bg: ColorRect = null
+var _rank_gradient_bg: ColorRect = null
+var _big_rank_label: Label = null
+var _final_rank_label: Label = null
+
+## Reference to the UI and container (for skip logic).
+var _ui: Control = null
+var _container: VBoxContainer = null
+
+## Stored score data and breakdown for skip finalization.
+var _score_data: Dictionary = {}
+var _breakdown_data: Array = []
+
+## All stat point labels and their target values (for skip finalization).
+var _stat_labels: Array = []  # Array of [Label, target_value, prefix, base_color]
+
+## Reference to total score label (for skip finalization).
+var _total_label: Label = null
+var _total_separator: HSeparator = null
+
+
+## Loads and returns the Gothic bitmap font, caching it for reuse.
+## Uses Godot's resource system (load) which works in both editor and exports.
+func _get_gothic_font() -> Font:
+	if _gothic_font == null:
+		if ResourceLoader.exists(GOTHIC_FONT_PATH):
+			var font = load(GOTHIC_FONT_PATH)
+			if font != null:
+				_gothic_font = font
+				print("[AnimatedScoreScreen] Gothic bitmap font loaded successfully")
+			else:
+				push_warning("[AnimatedScoreScreen] Failed to load Gothic font from: " + GOTHIC_FONT_PATH)
+		else:
+			push_warning("[AnimatedScoreScreen] Gothic font file not found: " + GOTHIC_FONT_PATH)
+	return _gothic_font
+
+
+## Applies the Gothic font to a Label node if the font is available.
+func _apply_gothic_font(label: Label) -> void:
+	var font = _get_gothic_font()
+	if font != null:
+		label.add_theme_font_override("font", font)
+	else:
+		push_warning("[AnimatedScoreScreen] Gothic font not available for label: " + label.name)
+
 
 ## Creates a simple sine wave beep sound and plays it.
 ## @param frequency: The frequency of the beep in Hz.
@@ -106,16 +174,39 @@ func _play_rank_arpeggio() -> void:
 	for i in range(MAJOR_ARPEGGIO.size()):
 		var semitones: int = MAJOR_ARPEGGIO[i]
 		var frequency: float = BEEP_BASE_FREQUENCY * pow(2.0, float(semitones) / 12.0)
-		# Delay each note slightly
-		get_tree().create_timer(i * 0.08).timeout.connect(
-			func(): _play_beep(frequency, 0.15, -8.0)
+		# Delay each note slightly (longer delay for longer sound as per issue #539)
+		get_tree().create_timer(i * 0.12).timeout.connect(
+			func(): _play_beep(frequency, 0.22, -8.0)
 		)
+
+
+## Handle LMB input for skipping animations (Issue #568).
+## Uses _input() instead of _unhandled_input() because the UI Control nodes
+## (VBoxContainer, Labels) have default mouse_filter=MOUSE_FILTER_STOP which
+## consumes mouse events before they reach _unhandled_input().
+func _input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		if _phase == Phase.COUNTING:
+			# During counting: skip to final grade display
+			_skip_requested = true
+			_skip_counting_phase()
+			get_viewport().set_input_as_handled()
+		elif _phase == Phase.RANK_REVEAL:
+			# During rank reveal: skip rank animation
+			_skip_requested = true
+			_skip_rank_reveal_phase()
+			get_viewport().set_input_as_handled()
 
 
 ## Show the animated score screen.
 ## @param ui: The Control node to add UI elements to.
 ## @param score_data: Dictionary containing all score components from ScoreManager.
 func show_animated_score(ui: Control, score_data: Dictionary) -> void:
+	_ui = ui
+	_score_data = score_data
+	_phase = Phase.COUNTING
+	_skip_requested = false
+
 	# Create a semi-transparent background
 	var background := ColorRect.new()
 	background.name = "ScoreBackground"
@@ -134,12 +225,13 @@ func show_animated_score(ui: Control, score_data: Dictionary) -> void:
 	container.offset_bottom = 280
 	container.add_theme_constant_override("separation", 8)
 	ui.add_child(container)
+	_container = container
 
 	# Prepare the breakdown data
-	var breakdown_data := _prepare_breakdown_data(score_data)
+	_breakdown_data = _prepare_breakdown_data(score_data)
 
 	# Start the animated sequence
-	_animate_score_sequence(ui, container, score_data, breakdown_data)
+	_animate_score_sequence(ui, container, score_data, _breakdown_data)
 
 
 ## Prepares the breakdown data array for display.
@@ -196,9 +288,11 @@ func _animate_score_sequence(ui: Control, container: VBoxContainer, score_data: 
 	delay += 0.3  # Small pause before rank
 	_animate_rank_reveal(ui, container, score_data, delay)
 
-	# 6. Restart hint (appears after rank animation)
-	get_tree().create_timer(delay + RANK_REVEAL_DURATION + RANK_SHRINK_DURATION + 0.5).timeout.connect(
-		func(): _show_restart_hint(container)
+	# 6. Restart hint (appears after rank animation, including 1.4s display + 0.15s enlarge + fade-out)
+	get_tree().create_timer(delay + RANK_REVEAL_DURATION + 1.4 + 0.15 + RANK_SHRINK_DURATION + 0.5).timeout.connect(
+		func():
+			if _phase != Phase.COMPLETED:
+				_finalize_animation(container)
 	)
 
 
@@ -279,9 +373,14 @@ func _animate_stat_row(container: VBoxContainer, data: Array, start_delay: float
 	var target_points: int = data[2]
 	var prefix: String = "-" if is_penalty else "+"
 
+	# Store label reference for skip finalization
+	_stat_labels.append([points_label, target_points, prefix, base_color, line_container])
+
 	# Animate the row appearing and points counting
 	get_tree().create_timer(start_delay).timeout.connect(
 		func():
+			if _skip_requested:
+				return
 			# Fade in the row
 			var tween := create_tween()
 			tween.tween_property(line_container, "modulate:a", 1.0, 0.15)
@@ -309,9 +408,16 @@ func _animate_points_counting(label: Label, target: int, prefix: String, base_co
 	timer.wait_time = 0.016  # ~60 FPS
 	timer.one_shot = false
 	add_child(timer)
+	_active_timers.append(timer)
 
 	timer.timeout.connect(
 		func():
+			if _skip_requested:
+				timer.stop()
+				timer.queue_free()
+				_active_timers.erase(timer)
+				return
+
 			var elapsed: float = (Time.get_ticks_msec() / 1000.0) - start_time
 			var progress: float = minf(elapsed / duration, 1.0)
 			# Ease out for satisfying feel
@@ -345,8 +451,13 @@ func _animate_points_counting(label: Label, target: int, prefix: String, base_co
 				var final_pitch: float = BEEP_BASE_FREQUENCY * (1.5 + float(pitch_offset) * 0.1)
 				_play_beep(final_pitch, 0.08, -10.0)
 
+				# Slightly enlarge font after animation completes (issue #539 feedback)
+				var enlarge_tween := create_tween()
+				enlarge_tween.tween_property(label, "scale", Vector2(1.15, 1.15), 0.2).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+
 				timer.stop()
 				timer.queue_free()
+				_active_timers.erase(timer)
 	)
 
 	timer.start()
@@ -360,6 +471,7 @@ func _animate_total_score(container: VBoxContainer, score_data: Dictionary, star
 	separator.add_theme_constant_override("separation", 15)
 	separator.modulate.a = 0.0
 	container.add_child(separator)
+	_total_separator = separator
 
 	# Total score label - starts with F rank color (red)
 	var total_label := Label.new()
@@ -369,12 +481,15 @@ func _animate_total_score(container: VBoxContainer, score_data: Dictionary, star
 	total_label.add_theme_color_override("font_color", _get_rank_color("F"))
 	total_label.modulate.a = 0.0
 	container.add_child(total_label)
+	_total_label = total_label
 
 	var target_score: int = score_data.total_score
 	var max_possible: int = score_data.max_possible_score
 
 	get_tree().create_timer(start_delay).timeout.connect(
 		func():
+			if _skip_requested:
+				return
 			# Fade in separator and label
 			var tween := create_tween()
 			tween.set_parallel(true)
@@ -401,9 +516,16 @@ func _animate_total_counting(label: Label, target: int, max_possible: int) -> vo
 	timer.wait_time = 0.016
 	timer.one_shot = false
 	add_child(timer)
+	_active_timers.append(timer)
 
 	timer.timeout.connect(
 		func():
+			if _skip_requested:
+				timer.stop()
+				timer.queue_free()
+				_active_timers.erase(timer)
+				return
+
 			var elapsed: float = (Time.get_ticks_msec() / 1000.0) - start_time
 			var progress: float = minf(elapsed / duration, 1.0)
 			var eased_progress: float = 1.0 - pow(1.0 - progress, 4.0)
@@ -418,13 +540,13 @@ func _animate_total_counting(label: Label, target: int, max_possible: int) -> vo
 			var current_rank: String = _get_rank_for_score_ratio(score_ratio)
 			var base_color: Color = _get_rank_color(current_rank)
 
-			# Pulse effect during counting
-			var pulse: float = sin(elapsed * 25.0) * 0.5 + 0.5
+			# Pulse effect during counting (4x slower as per issue #539)
+			var pulse: float = sin(elapsed * 6.25) * 0.5 + 0.5
 			var pulse_color: Color = base_color.lerp(Color.WHITE, pulse * 0.5)
 			label.add_theme_color_override("font_color", pulse_color)
 
-			# Scale pulse
-			var scale_pulse: float = 1.0 + sin(elapsed * 20.0) * 0.08
+			# Scale pulse (4x slower as per issue #539)
+			var scale_pulse: float = 1.0 + sin(elapsed * 5.0) * 0.08
 			label.scale = Vector2(scale_pulse, scale_pulse)
 
 			# Play beep at intervals
@@ -445,6 +567,7 @@ func _animate_total_counting(label: Label, target: int, max_possible: int) -> vo
 				_play_beep(BEEP_BASE_FREQUENCY * 2.5, 0.15, -8.0)
 				timer.stop()
 				timer.queue_free()
+				_active_timers.erase(timer)
 	)
 
 	timer.start()
@@ -462,6 +585,7 @@ func _animate_rank_reveal(ui: Control, container: VBoxContainer, score_data: Dic
 	flash_bg.color = Color(0.0, 0.0, 0.0, 0.0)  # Start invisible
 	flash_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	ui.add_child(flash_bg)
+	_rank_flash_bg = flash_bg
 
 	# Create animated gradient background covering the entire screen
 	var rank_bg := ColorRect.new()
@@ -470,6 +594,7 @@ func _animate_rank_reveal(ui: Control, container: VBoxContainer, score_data: Dic
 	rank_bg.color = Color(0.0, 0.0, 0.0, 0.0)  # Start invisible
 	rank_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	ui.add_child(rank_bg)
+	_rank_gradient_bg = rank_bg
 
 	# Create large centered rank label
 	var big_rank_label := Label.new()
@@ -479,6 +604,7 @@ func _animate_rank_reveal(ui: Control, container: VBoxContainer, score_data: Dic
 	big_rank_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	big_rank_label.add_theme_font_size_override("font_size", 200)
 	big_rank_label.add_theme_color_override("font_color", rank_color)
+	_apply_gothic_font(big_rank_label)
 	big_rank_label.set_anchors_preset(Control.PRESET_CENTER)
 	big_rank_label.offset_left = -200
 	big_rank_label.offset_right = 200
@@ -486,6 +612,7 @@ func _animate_rank_reveal(ui: Control, container: VBoxContainer, score_data: Dic
 	big_rank_label.offset_bottom = 150
 	big_rank_label.modulate.a = 0.0  # Start invisible
 	ui.add_child(big_rank_label)
+	_big_rank_label = big_rank_label
 
 	# Create final rank label in container (starts invisible)
 	var final_rank_label := Label.new()
@@ -494,11 +621,19 @@ func _animate_rank_reveal(ui: Control, container: VBoxContainer, score_data: Dic
 	final_rank_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	final_rank_label.add_theme_font_size_override("font_size", 48)
 	final_rank_label.add_theme_color_override("font_color", rank_color)
+	_apply_gothic_font(final_rank_label)
 	final_rank_label.modulate.a = 0.0
 	container.add_child(final_rank_label)
+	_final_rank_label = final_rank_label
 
 	get_tree().create_timer(start_delay).timeout.connect(
 		func():
+			if _skip_requested:
+				return
+
+			# Transition to rank reveal phase
+			_phase = Phase.RANK_REVEAL
+
 			# Play arpeggio
 			_play_rank_arpeggio()
 
@@ -515,32 +650,143 @@ func _animate_rank_reveal(ui: Control, container: VBoxContainer, score_data: Dic
 			tween.tween_property(big_rank_label, "scale", Vector2(1.0, 1.0), 0.3).from(Vector2(3.0, 3.0))
 			tween.tween_property(rank_bg, "modulate:a", 1.0, 0.2)
 
-			# After flash duration, shrink rank to position
-			get_tree().create_timer(RANK_REVEAL_DURATION).timeout.connect(
+			# After flash duration, keep rank on screen for 1.4 seconds (issue #539 feedback), then enlarge sharply with ringing sound
+			get_tree().create_timer(RANK_REVEAL_DURATION + 1.4).timeout.connect(
 				func():
-					# Fade out flash background
-					var fade_tween := create_tween()
-					fade_tween.tween_property(flash_bg, "color:a", 0.0, 0.3)
+					if _skip_requested:
+						return
 
-					# Shrink big rank letter and fade out gradient background
-					var shrink_tween := create_tween()
-					shrink_tween.set_parallel(true)
-					shrink_tween.tween_property(big_rank_label, "scale", Vector2(0.3, 0.3), RANK_SHRINK_DURATION)
-					shrink_tween.tween_property(big_rank_label, "modulate:a", 0.0, RANK_SHRINK_DURATION)
-					shrink_tween.tween_property(rank_bg, "modulate:a", 0.0, RANK_SHRINK_DURATION)
+					# Play ringing sound before disappearing (issue #539 feedback)
+					_play_beep(BEEP_BASE_FREQUENCY * 3.0, 0.3, -5.0)
 
-					# Show final rank in container (no gradient background)
-					shrink_tween.tween_property(final_rank_label, "modulate:a", 1.0, RANK_SHRINK_DURATION)
+					# Sharply enlarge the rank letter before fading out (issue #539 feedback)
+					var enlarge_tween := create_tween()
+					enlarge_tween.set_parallel(true)
+					enlarge_tween.tween_property(big_rank_label, "scale", Vector2(1.5, 1.5), 0.15).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
 
-					# Clean up after animation
-					shrink_tween.chain().tween_callback(
+					# After the sharp enlarge, fade out
+					enlarge_tween.chain().tween_callback(
 						func():
-							flash_bg.queue_free()
-							big_rank_label.queue_free()
-							rank_bg.queue_free()
+							# Fade out flash background
+							var fade_tween := create_tween()
+							fade_tween.tween_property(flash_bg, "color:a", 0.0, 0.3)
+
+							# Fade out big rank letter and gradient background
+							var fade_out_tween := create_tween()
+							fade_out_tween.set_parallel(true)
+							fade_out_tween.tween_property(big_rank_label, "modulate:a", 0.0, RANK_SHRINK_DURATION)
+							fade_out_tween.tween_property(rank_bg, "modulate:a", 0.0, RANK_SHRINK_DURATION)
+
+							# Show final rank in container - it "sticks" in place (issue #539)
+							fade_out_tween.tween_property(final_rank_label, "modulate:a", 1.0, RANK_SHRINK_DURATION)
+
+							# Clean up after animation
+							fade_out_tween.chain().tween_callback(
+								func():
+									flash_bg.queue_free()
+									big_rank_label.queue_free()
+									rank_bg.queue_free()
+									_rank_flash_bg = null
+									_rank_gradient_bg = null
+									_big_rank_label = null
+							)
 					)
 			)
 	)
+
+
+## Skip the counting phase: instantly show all final values and jump to rank reveal (Issue #568).
+func _skip_counting_phase() -> void:
+	# Stop all active counting timers
+	for timer in _active_timers:
+		if is_instance_valid(timer):
+			timer.stop()
+			timer.queue_free()
+	_active_timers.clear()
+
+	# Finalize all stat labels with their target values
+	for stat_info in _stat_labels:
+		var label: Label = stat_info[0]
+		var target: int = stat_info[1]
+		var prefix: String = stat_info[2]
+		var base_color: Color = stat_info[3]
+		var line_container: HBoxContainer = stat_info[4]
+
+		if is_instance_valid(label):
+			label.text = prefix + str(target)
+			label.add_theme_color_override("font_color", base_color)
+			label.scale = Vector2(1.15, 1.15)
+		if is_instance_valid(line_container):
+			line_container.modulate.a = 1.0
+
+	# Finalize total score
+	if is_instance_valid(_total_label):
+		_total_label.text = "TOTAL: %d" % _score_data.total_score
+		var max_possible: int = _score_data.max_possible_score
+		var final_ratio: float = 0.0
+		if max_possible > 0:
+			final_ratio = float(_score_data.total_score) / float(max_possible)
+		var final_rank: String = _get_rank_for_score_ratio(final_ratio)
+		_total_label.add_theme_color_override("font_color", _get_rank_color(final_rank))
+		_total_label.scale = Vector2(1.0, 1.0)
+		_total_label.modulate.a = 1.0
+	if is_instance_valid(_total_separator):
+		_total_separator.modulate.a = 1.0
+
+	# Show the final rank label directly (skip the big fullscreen reveal)
+	if is_instance_valid(_final_rank_label):
+		_final_rank_label.modulate.a = 1.0
+
+	# Clean up rank reveal UI elements (they were created but not yet animated)
+	if is_instance_valid(_rank_flash_bg):
+		_rank_flash_bg.queue_free()
+		_rank_flash_bg = null
+	if is_instance_valid(_rank_gradient_bg):
+		_rank_gradient_bg.queue_free()
+		_rank_gradient_bg = null
+	if is_instance_valid(_big_rank_label):
+		_big_rank_label.queue_free()
+		_big_rank_label = null
+
+	# Go directly to completed state
+	_finalize_animation(_container)
+
+
+## Skip the rank reveal phase: immediately show the final rank and proceed (Issue #568).
+func _skip_rank_reveal_phase() -> void:
+	# Stop all active timers
+	for timer in _active_timers:
+		if is_instance_valid(timer):
+			timer.stop()
+			timer.queue_free()
+	_active_timers.clear()
+
+	# Show the final rank label in the container
+	if is_instance_valid(_final_rank_label):
+		_final_rank_label.modulate.a = 1.0
+
+	# Clean up rank reveal UI elements
+	if is_instance_valid(_rank_flash_bg):
+		_rank_flash_bg.queue_free()
+		_rank_flash_bg = null
+	if is_instance_valid(_rank_gradient_bg):
+		_rank_gradient_bg.queue_free()
+		_rank_gradient_bg = null
+	if is_instance_valid(_big_rank_label):
+		_big_rank_label.queue_free()
+		_big_rank_label = null
+
+	# Go to completed state
+	_finalize_animation(_container)
+
+
+## Finalize the animation: emit signal and show restart hint.
+func _finalize_animation(container: VBoxContainer) -> void:
+	if _phase == Phase.COMPLETED:
+		return
+	_phase = Phase.COMPLETED
+
+	_show_restart_hint(container)
 
 
 ## Flashes the background with contrasting colors.
@@ -552,13 +798,21 @@ func _flash_rank_background(bg: ColorRect, duration: float) -> void:
 	timer.wait_time = 0.08  # Flash rate
 	timer.one_shot = false
 	add_child(timer)
+	_active_timers.append(timer)
 
 	timer.timeout.connect(
 		func():
+			if _skip_requested or not is_instance_valid(bg) or not bg.is_inside_tree():
+				timer.stop()
+				timer.queue_free()
+				_active_timers.erase(timer)
+				return
+
 			var elapsed: float = (Time.get_ticks_msec() / 1000.0) - start_time
 			if elapsed >= duration:
 				timer.stop()
 				timer.queue_free()
+				_active_timers.erase(timer)
 				return
 
 			color_index = (color_index + 1) % RANK_FLASH_COLORS.size()
@@ -642,12 +896,14 @@ func _animate_rank_gradient_background(bg: ColorRect, rank_color: Color) -> void
 	timer.wait_time = 0.016  # ~60 FPS for smooth gradient
 	timer.one_shot = false
 	add_child(timer)
+	_active_timers.append(timer)
 
 	timer.timeout.connect(
 		func():
-			if not is_instance_valid(bg) or not bg.is_inside_tree():
+			if _skip_requested or not is_instance_valid(bg) or not bg.is_inside_tree():
 				timer.stop()
 				timer.queue_free()
+				_active_timers.erase(timer)
 				return
 
 			var elapsed: float = (Time.get_ticks_msec() / 1000.0) - start_time

@@ -7,6 +7,8 @@ extends RefCounted
 ## Weapon type configurations as static data.
 ## Keys: "shoot_cooldown", "bullet_speed", "magazine_size", "bullet_spawn_offset", "weapon_loudness", "sprite_path"
 ## Added: "bullet_scene_path", "casing_scene_path", "caliber_path", "is_shotgun", "pellet_count_min", "pellet_count_max", "spread_angle"
+## Added (Issue #516): "spread_threshold", "initial_spread", "spread_increment", "max_spread", "spread_reset_time"
+## for progressive spread on single-bullet weapons (same as player weapons).
 const WEAPON_CONFIGS := {
 	0: {  # RIFLE (M16) - uses same bullets as player's AssaultRifle
 		"shoot_cooldown": 0.1,
@@ -21,7 +23,13 @@ const WEAPON_CONFIGS := {
 		"is_shotgun": false,
 		"pellet_count_min": 1,
 		"pellet_count_max": 1,
-		"spread_angle": 0.0
+		"spread_angle": 0.0,
+		# Progressive spread matching player AssaultRifle (player.gd constants)
+		"spread_threshold": 3,
+		"initial_spread": 0.5,
+		"spread_increment": 0.6,
+		"max_spread": 4.0,
+		"spread_reset_time": 0.25
 	},
 	1: {  # SHOTGUN - uses same pellets as player's Shotgun (multiple projectiles)
 		"shoot_cooldown": 0.8,
@@ -36,7 +44,13 @@ const WEAPON_CONFIGS := {
 		"is_shotgun": true,
 		"pellet_count_min": 6,
 		"pellet_count_max": 10,
-		"spread_angle": 15.0  # degrees
+		"spread_angle": 15.0,  # degrees
+		# Shotgun uses pellet spread, not progressive spread
+		"spread_threshold": 0,
+		"initial_spread": 0.0,
+		"spread_increment": 0.0,
+		"max_spread": 0.0,
+		"spread_reset_time": 0.0
 	},
 	2: {  # UZI - uses same 9mm bullets as player's MiniUzi
 		"shoot_cooldown": 0.06,
@@ -51,7 +65,14 @@ const WEAPON_CONFIGS := {
 		"is_shotgun": false,
 		"pellet_count_min": 1,
 		"pellet_count_max": 1,
-		"spread_angle": 0.0
+		"spread_angle": 0.0,
+		# Progressive spread matching player MiniUzi (MiniUzi.cs constants)
+		# UZI spread starts immediately (threshold=0) and reaches 60° after 10 shots
+		"spread_threshold": 0,
+		"initial_spread": 6.0,
+		"spread_increment": 5.4,
+		"max_spread": 60.0,
+		"spread_reset_time": 0.3
 	}
 }
 

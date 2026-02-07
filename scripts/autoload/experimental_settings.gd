@@ -35,6 +35,12 @@ var debug_mode_enabled: bool = false
 ## When disabled (default), normal damage rules apply.
 var invincibility_enabled: bool = false
 
+## Whether realistic visibility mode is enabled (Issue #540).
+## When enabled, the player cannot see through walls (Door Kickers 2 style).
+## Uses PointLight2D + CanvasModulate + LightOccluder2D for fog of war.
+## When disabled (default), the player has full visibility of the entire level.
+var realistic_visibility_enabled: bool = false
+
 ## Settings file path for persistence.
 const SETTINGS_PATH := "user://experimental_settings.cfg"
 
@@ -42,7 +48,7 @@ const SETTINGS_PATH := "user://experimental_settings.cfg"
 func _ready() -> void:
 	# Load saved settings on startup
 	_load_settings()
-	_log_to_file("ExperimentalSettings initialized - FOV: %s, Complex grenades: %s, AI prediction: %s, Debug: %s, Invincibility: %s" % [fov_enabled, complex_grenade_throwing, ai_prediction_enabled, debug_mode_enabled, invincibility_enabled])
+	_log_to_file("ExperimentalSettings initialized - FOV: %s, Complex grenades: %s, AI prediction: %s, Debug: %s, Invincibility: %s, Realistic visibility: %s" % [fov_enabled, complex_grenade_throwing, ai_prediction_enabled, debug_mode_enabled, invincibility_enabled, realistic_visibility_enabled])
 
 
 ## Set FOV enabled/disabled.
@@ -115,6 +121,20 @@ func is_invincibility_enabled() -> bool:
 	return invincibility_enabled
 
 
+## Set realistic visibility enabled/disabled (Issue #540).
+func set_realistic_visibility_enabled(enabled: bool) -> void:
+	if realistic_visibility_enabled != enabled:
+		realistic_visibility_enabled = enabled
+		settings_changed.emit()
+		_save_settings()
+		_log_to_file("Realistic visibility %s" % ("enabled" if enabled else "disabled"))
+
+
+## Check if realistic visibility is enabled (Issue #540).
+func is_realistic_visibility_enabled() -> bool:
+	return realistic_visibility_enabled
+
+
 ## Save settings to file.
 func _save_settings() -> void:
 	var config := ConfigFile.new()
@@ -123,6 +143,7 @@ func _save_settings() -> void:
 	config.set_value("experimental", "ai_prediction_enabled", ai_prediction_enabled)
 	config.set_value("experimental", "debug_mode_enabled", debug_mode_enabled)
 	config.set_value("experimental", "invincibility_enabled", invincibility_enabled)
+	config.set_value("experimental", "realistic_visibility_enabled", realistic_visibility_enabled)
 	var error := config.save(SETTINGS_PATH)
 	if error != OK:
 		push_warning("ExperimentalSettings: Failed to save settings: " + str(error))
@@ -138,6 +159,7 @@ func _load_settings() -> void:
 		ai_prediction_enabled = config.get_value("experimental", "ai_prediction_enabled", false)
 		debug_mode_enabled = config.get_value("experimental", "debug_mode_enabled", false)
 		invincibility_enabled = config.get_value("experimental", "invincibility_enabled", false)
+		realistic_visibility_enabled = config.get_value("experimental", "realistic_visibility_enabled", false)
 	else:
 		# File doesn't exist or failed to load - use defaults
 		fov_enabled = true
@@ -145,6 +167,7 @@ func _load_settings() -> void:
 		ai_prediction_enabled = false
 		debug_mode_enabled = false
 		invincibility_enabled = false
+		realistic_visibility_enabled = false
 
 
 ## Log a message to the file logger if available.

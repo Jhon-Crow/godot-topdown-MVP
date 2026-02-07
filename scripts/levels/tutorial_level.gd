@@ -101,6 +101,9 @@ func _ready() -> void:
 	# Swap weapon based on GameManager selection
 	_setup_selected_weapon()
 
+	# Setup realistic visibility component (Issue #540)
+	_setup_realistic_visibility()
+
 	# Find UI container
 	_ui = get_node_or_null("CanvasLayer/UI")
 
@@ -127,6 +130,24 @@ func _ready() -> void:
 		GameManager.set_player(_player)
 
 
+## Setup realistic visibility for the player (Issue #540).
+## Adds the RealisticVisibilityComponent to the player node.
+func _setup_realistic_visibility() -> void:
+	if _player == null:
+		return
+
+	var visibility_script = load("res://scripts/components/realistic_visibility_component.gd")
+	if visibility_script == null:
+		push_warning("[TutorialLevel] RealisticVisibilityComponent script not found")
+		return
+
+	var visibility_component = Node.new()
+	visibility_component.name = "RealisticVisibilityComponent"
+	visibility_component.set_script(visibility_script)
+	_player.add_child(visibility_component)
+	print("[TutorialLevel] Realistic visibility component added to player")
+
+
 ## Setup the weapon based on GameManager's selected weapon.
 ## Removes the default AssaultRifle and loads the selected weapon.
 func _setup_selected_weapon() -> void:
@@ -139,6 +160,22 @@ func _setup_selected_weapon() -> void:
 		selected_weapon_id = GameManager.get_selected_weapon()
 
 	print("Tutorial: Setting up weapon: %s" % selected_weapon_id)
+
+	# Check if C# Player already equipped the correct weapon (via ApplySelectedWeaponFromGameManager)
+	# This prevents double-equipping when both C# and GDScript weapon setup run
+	if selected_weapon_id != "m16":
+		var weapon_names: Dictionary = {
+			"shotgun": "Shotgun",
+			"mini_uzi": "MiniUzi",
+			"silenced_pistol": "SilencedPistol",
+			"sniper": "SniperRifle"
+		}
+		if selected_weapon_id in weapon_names:
+			var expected_name: String = weapon_names[selected_weapon_id]
+			var existing_weapon = _player.get_node_or_null(expected_name)
+			if existing_weapon != null and _player.get("CurrentWeapon") == existing_weapon:
+				print("Tutorial: %s already equipped by C# Player - skipping" % expected_name)
+				return
 
 	# If shotgun is selected, we need to swap weapons
 	if selected_weapon_id == "shotgun":
@@ -480,7 +517,7 @@ func _setup_targets() -> void:
 		push_error("Tutorial: Targets node not found!")
 		return
 
-	var target_positions: Array[Vector2] = []
+	var target_positions: Array = []
 
 	for target in targets_node.get_children():
 		_total_targets += 1

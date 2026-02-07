@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Godot;
 using GodotTopDownTemplate.AbstractClasses;
 using GodotTopDownTemplate.Projectiles;
@@ -44,7 +45,7 @@ public enum BoltActionStep
 /// - 12.7x108mm ammunition dealing 50 damage per shot
 /// - Penetrates through 2 walls and through enemies
 /// - Instant bullet speed with smoky dissipating tracer trail
-/// - Slow turn sensitivity outside aiming (~5x less than normal)
+/// - Very slow turn sensitivity outside aiming (~25x less than normal, heavy weapon)
 /// - 5-round magazine with M16-style swap reload
 /// - Single-shot bolt-action with manual charging sequence (Left→Down→Up→Right)
 /// - Arrow keys are consumed during bolt cycling (WASD still works for movement)
@@ -103,6 +104,13 @@ public partial class SniperRifle : BaseWeapon
     /// Last fire direction, stored for casing ejection during bolt cycling step 2.
     /// </summary>
     private Vector2 _lastFireDirection = Vector2.Right;
+
+    /// <summary>
+    /// Whether there is a spent casing in the chamber that needs to be ejected during bolt step 2.
+    /// Set to true after firing (spent case remains), cleared after ejection during bolt cycling.
+    /// When cycling bolt on empty magazine (no prior fire), this is false so no casing is spawned.
+    /// </summary>
+    private bool _hasCasingToEject = false;
 
     /// <summary>
     /// Tracks previous frame arrow key states for edge detection (just-pressed).
@@ -326,9 +334,18 @@ public partial class SniperRifle : BaseWeapon
                     _boltStep = BoltActionStep.WaitChamberRound;
                     EmitSignal(SignalName.BoltStepChanged, 2, 4);
                     PlayBoltStepSound(2);
-                    // Eject shell casing on this step (like shotgun pump-up)
-                    SpawnCasing(_lastFireDirection, WeaponData?.Caliber);
-                    GD.Print("[SniperRifle] Bolt step 2/4: Casing extracted and ejected");
+                    // Only eject casing if there's a spent case in the chamber (after firing)
+                    // When cycling bolt on empty magazine after reload, no casing to eject
+                    if (_hasCasingToEject)
+                    {
+                        SpawnCasing(_lastFireDirection, WeaponData?.Caliber);
+                        _hasCasingToEject = false;
+                        GD.Print("[SniperRifle] Bolt step 2/4: Casing extracted and ejected");
+                    }
+                    else
+                    {
+                        GD.Print("[SniperRifle] Bolt step 2/4: No casing to eject (chamber was empty)");
+                    }
                 }
                 break;
 
@@ -347,10 +364,23 @@ public partial class SniperRifle : BaseWeapon
                 // Step 4: Right arrow - close bolt
                 if (rightJustPressed)
                 {
-                    _boltStep = BoltActionStep.Ready;
-                    EmitSignal(SignalName.BoltStepChanged, 4, 4);
                     PlayBoltStepSound(4);
-                    GD.Print("[SniperRifle] Bolt step 4/4: Bolt closed - READY TO FIRE");
+                    // Only transition to Ready if there's ammo to chamber
+                    // If magazine is empty, bolt cycling doesn't count (no round chambered)
+                    if (CurrentAmmo > 0)
+                    {
+                        _boltStep = BoltActionStep.Ready;
+                        EmitSignal(SignalName.BoltStepChanged, 4, 4);
+                        GD.Print("[SniperRifle] Bolt step 4/4: Bolt closed - READY TO FIRE");
+                    }
+                    else
+                    {
+                        // Bolt closes but no round was chambered (empty magazine)
+                        // Must cycle bolt again after inserting a new magazine
+                        _boltStep = BoltActionStep.NeedsBoltCycle;
+                        EmitSignal(SignalName.BoltStepChanged, 0, 4);
+                        GD.Print("[SniperRifle] Bolt step 4/4: Bolt closed but NO round chambered (empty magazine) - needs cycling after reload");
+                    }
                 }
                 break;
 
@@ -362,7 +392,8 @@ public partial class SniperRifle : BaseWeapon
 
     /// <summary>
     /// Plays the appropriate ASVK bolt-action sound for the given step.
-    /// Uses dedicated ASVK sounds from assets.
+    /// Uses non-positional audio so the sound volume is constant regardless
+    /// of scope camera offset (fixes issue #565).
     /// </summary>
     /// <param name="step">The bolt-action step number (1-4).</param>
     private void PlayBoltStepSound(int step)
@@ -373,14 +404,14 @@ public partial class SniperRifle : BaseWeapon
             return;
         }
 
-        // Use ASVK-specific bolt action sounds
+        // Use ASVK-specific bolt action sounds (non-positional to avoid scope attenuation)
         if (audioManager.HasMethod("play_asvk_bolt_step"))
         {
-            audioManager.Call("play_asvk_bolt_step", step, GlobalPosition);
+            audioManager.Call("play_asvk_bolt_step", step);
         }
-        else if (audioManager.HasMethod("play_sound_2d"))
+        else if (audioManager.HasMethod("play_sound"))
         {
-            // Direct sound playback fallback
+            // Fallback to non-positional sound playback
             string soundPath = step switch
             {
                 1 => "res://assets/audio/отпирание затвора ASVK (1 шаг зарядки).wav",
@@ -391,7 +422,7 @@ public partial class SniperRifle : BaseWeapon
             };
             if (!string.IsNullOrEmpty(soundPath))
             {
-                audioManager.Call("play_sound_2d", soundPath, GlobalPosition, -3.0f);
+                audioManager.Call("play_sound", soundPath, -3.0f);
             }
         }
     }
@@ -402,13 +433,13 @@ public partial class SniperRifle : BaseWeapon
 
     /// <summary>
     /// Sensitivity reduction factor when not aiming (outside scope/aim mode).
-    /// The rifle rotates approximately 5x slower when just moving without aiming.
+    /// The heavy ASVK rotates very slowly - 25x slower than normal weapons.
     /// </summary>
-    private const float NonAimingSensitivityFactor = 0.2f;
+    private const float NonAimingSensitivityFactor = 0.04f;
 
     /// <summary>
     /// Updates the aim direction and rifle sprite rotation.
-    /// The rifle rotates slowly outside aiming (~5x less sensitivity).
+    /// The heavy rifle rotates very slowly outside aiming (~25x less sensitivity).
     /// </summary>
     private void UpdateAimDirection()
     {
@@ -425,11 +456,11 @@ public partial class SniperRifle : BaseWeapon
         Vector2 direction;
 
         // Apply sensitivity for the sniper rifle
-        // Outside aiming, sensitivity is reduced by 5x (NonAimingSensitivityFactor)
+        // Outside aiming, sensitivity is reduced by 25x (NonAimingSensitivityFactor)
         if (WeaponData != null && WeaponData.Sensitivity > 0)
         {
             float angleDiff = Mathf.Wrap(targetAngle - _currentAimAngle, -Mathf.Pi, Mathf.Pi);
-            // Apply reduced sensitivity: rifle rotates very slowly outside aiming
+            // Apply reduced sensitivity: heavy rifle rotates very slowly outside aiming
             float effectiveSensitivity = WeaponData.Sensitivity * NonAimingSensitivityFactor;
             float rotationSpeed = effectiveSensitivity * 10.0f;
             float delta = (float)GetProcessDeltaTime();
@@ -545,7 +576,16 @@ public partial class SniperRifle : BaseWeapon
     // =========================================================================
 
     /// <summary>
-    /// Fires the sniper rifle. Only fires if bolt is ready.
+    /// Whether to skip bullet spawning (used during hitscan fire).
+    /// When true, SpawnBullet() does nothing because hitscan handles damage directly.
+    /// </summary>
+    private bool _skipBulletSpawn = false;
+
+    /// <summary>
+    /// Fires the sniper rifle using hitscan (instant raycast damage).
+    /// All enemies along the bullet path take damage instantly.
+    /// The smoke tracer only extends to the point where the bullet stops
+    /// (after exceeding wall penetration limit or reaching max range).
     /// After firing, transitions to NeedsBoltCycle state.
     /// </summary>
     public override bool Fire(Vector2 direction)
@@ -575,12 +615,20 @@ public partial class SniperRifle : BaseWeapon
         // When scope is not active, use _aimDirection (laser sight direction)
         Vector2 fireDirection = _isScopeActive ? direction : _aimDirection;
         Vector2 spreadDirection = ApplyRecoil(fireDirection);
+
+        // Skip bullet spawning - we use hitscan instead
+        _skipBulletSpawn = true;
         bool result = base.Fire(spreadDirection);
+        _skipBulletSpawn = false;
 
         if (result)
         {
+            // Perform hitscan - instant raycast damage along bullet path
+            Vector2 bulletEndPoint = PerformHitscan(GlobalPosition, spreadDirection);
+
             // Store fire direction for casing ejection during bolt step 2
             _lastFireDirection = spreadDirection;
+            _hasCasingToEject = true;
 
             // Transition to needs bolt cycle
             _boltStep = BoltActionStep.NeedsBoltCycle;
@@ -593,13 +641,249 @@ public partial class SniperRifle : BaseWeapon
             // Trigger heavy screen shake
             TriggerScreenShake(spreadDirection);
 
-            // Spawn smoky tracer trail
-            SpawnSmokyTracer(GlobalPosition, spreadDirection);
+            // Spawn smoky tracer trail limited to the bullet's actual path
+            SpawnSmokyTracer(GlobalPosition, spreadDirection, bulletEndPoint);
 
-            GD.Print("[SniperRifle] FIRED! Bolt needs cycling. Ammo remaining: " + CurrentAmmo);
+            // Spawn muzzle flash
+            Vector2 muzzlePos = GlobalPosition + spreadDirection * BulletSpawnOffset;
+            SpawnMuzzleFlash(muzzlePos, spreadDirection, WeaponData?.Caliber);
+
+            GD.Print("[SniperRifle] FIRED (hitscan)! Bolt needs cycling. Ammo remaining: " + CurrentAmmo);
         }
 
         return result;
+    }
+
+    // =========================================================================
+    // Hitscan Logic
+    // =========================================================================
+
+    /// <summary>
+    /// Performs instant hitscan along the bullet path.
+    /// Raycasts sequentially to find all walls and enemies along the path.
+    /// Enemies take damage instantly. The bullet stops after exceeding
+    /// MaxWallPenetrations walls or reaching max range.
+    /// </summary>
+    /// <param name="origin">Starting position of the shot.</param>
+    /// <param name="direction">Normalized direction of the shot.</param>
+    /// <returns>The endpoint where the bullet stops (for smoke tracer).</returns>
+    private Vector2 PerformHitscan(Vector2 origin, Vector2 direction)
+    {
+        float maxRange = 5000.0f;
+        Vector2 startPos = origin + direction * BulletSpawnOffset;
+        Vector2 endPos = origin + direction * maxRange;
+        int wallsPenetrated = 0;
+        float damage = WeaponData?.Damage ?? 50.0f;
+        Vector2 bulletEndPoint = endPos;
+
+        var spaceState = GetWorld2D()?.DirectSpaceState;
+        if (spaceState == null)
+        {
+            return bulletEndPoint;
+        }
+
+        // Get shooter ID to prevent self-damage
+        var owner = GetParent();
+        ulong shooterId = owner?.GetInstanceId() ?? 0;
+
+        // Collision mask: walls (layer 3 = 4) + enemy bodies (layer 2 = 2) + enemy hit areas need area detection
+        // For physics raycast we detect bodies: walls (layer 3 = 4) and enemy CharacterBody2D (layer 2 = 2)
+        uint wallMask = 4;  // Layer 3 = obstacles/walls
+        uint enemyBodyMask = 2;  // Layer 2 = enemy bodies
+        uint combinedMask = wallMask | enemyBodyMask;
+
+        Vector2 currentPos = startPos;
+        var excludeRids = new Godot.Collections.Array<Rid>();
+        var damagedEnemies = new HashSet<ulong>(); // Track already-damaged enemies by instance ID
+
+        // Sequential raycasts to find all hits along the path
+        for (int iteration = 0; iteration < 50; iteration++) // Safety limit
+        {
+            if (currentPos.DistanceTo(endPos) < 1.0f)
+            {
+                break;
+            }
+
+            var query = PhysicsRayQueryParameters2D.Create(
+                currentPos, endPos, combinedMask
+            );
+            query.Exclude = excludeRids;
+            query.HitFromInside = true;
+            query.CollideWithAreas = false;
+            query.CollideWithBodies = true;
+
+            var result = spaceState.IntersectRay(query);
+            if (result.Count == 0)
+            {
+                // No more hits - bullet travels to max range
+                break;
+            }
+
+            var hitCollider = (Node2D)result["collider"];
+            var hitPosition = (Vector2)result["position"];
+            var hitRid = (Rid)result["rid"];
+
+            // Skip self
+            if (hitCollider.GetInstanceId() == shooterId)
+            {
+                excludeRids.Add(hitRid);
+                continue;
+            }
+
+            // Check if this is a wall/obstacle
+            if (hitCollider is StaticBody2D || hitCollider is TileMap)
+            {
+                // Spawn dust effect at wall hit point
+                SpawnWallHitEffectAt(hitPosition, direction);
+
+                if (wallsPenetrated < MaxWallPenetrations)
+                {
+                    // Penetrate through this wall
+                    wallsPenetrated++;
+                    GD.Print($"[SniperRifle] Hitscan: penetrated wall {wallsPenetrated}/{MaxWallPenetrations} at {hitPosition}");
+                    excludeRids.Add(hitRid);
+                    // Continue from just past the hit point
+                    currentPos = hitPosition + direction * 5.0f;
+                    continue;
+                }
+                else
+                {
+                    // Exceeded max penetrations - bullet stops here
+                    bulletEndPoint = hitPosition;
+                    GD.Print($"[SniperRifle] Hitscan: max wall penetrations ({MaxWallPenetrations}) reached at {hitPosition}");
+                    break;
+                }
+            }
+
+            // Check if this is an enemy (CharacterBody2D on layer 2)
+            if (hitCollider is CharacterBody2D)
+            {
+                var enemyId = hitCollider.GetInstanceId();
+
+                // Skip already-damaged enemies and self
+                if (enemyId == shooterId || damagedEnemies.Contains(enemyId))
+                {
+                    excludeRids.Add(hitRid);
+                    currentPos = hitPosition + direction * 5.0f;
+                    continue;
+                }
+
+                // Check if enemy is alive
+                bool isAlive = true;
+                if (hitCollider.HasMethod("is_alive"))
+                {
+                    isAlive = hitCollider.Call("is_alive").AsBool();
+                }
+
+                if (isAlive)
+                {
+                    // Apply instant damage
+                    if (hitCollider.HasMethod("take_damage"))
+                    {
+                        GD.Print($"[SniperRifle] Hitscan: hit enemy {hitCollider.Name} at {hitPosition}, applying {damage} damage");
+                        hitCollider.Call("take_damage", damage);
+                        damagedEnemies.Add(enemyId);
+
+                        // Trigger player hit effects
+                        TriggerPlayerHitEffectsHitscan();
+                    }
+                }
+
+                // Bullet passes through enemies - continue
+                excludeRids.Add(hitRid);
+                currentPos = hitPosition + direction * 5.0f;
+                continue;
+            }
+
+            // Unknown collider - skip and continue
+            excludeRids.Add(hitRid);
+            currentPos = hitPosition + direction * 5.0f;
+        }
+
+        GD.Print($"[SniperRifle] Hitscan complete: walls={wallsPenetrated}, enemies_hit={damagedEnemies.Count}, endpoint={bulletEndPoint}");
+        return bulletEndPoint;
+    }
+
+    /// <summary>
+    /// Spawns a dust/impact effect at a wall hit position (for hitscan).
+    /// </summary>
+    private void SpawnWallHitEffectAt(Vector2 position, Vector2 direction)
+    {
+        var impactManager = GetNodeOrNull("/root/ImpactEffectsManager");
+        if (impactManager == null || !impactManager.HasMethod("spawn_dust_effect"))
+        {
+            return;
+        }
+
+        Vector2 surfaceNormal = -direction.Normalized();
+        impactManager.Call("spawn_dust_effect", position, surfaceNormal, Variant.CreateFrom((Resource?)null));
+    }
+
+    /// <summary>
+    /// Triggers hit effects when player hitscan hits an enemy.
+    /// </summary>
+    private void TriggerPlayerHitEffectsHitscan()
+    {
+        var hitEffectsManager = GetNodeOrNull("/root/HitEffectsManager");
+        if (hitEffectsManager != null && hitEffectsManager.HasMethod("on_player_hit_enemy"))
+        {
+            hitEffectsManager.Call("on_player_hit_enemy");
+        }
+    }
+
+    /// <summary>
+    /// Override SpawnCasing for ASVK-specific casing ejection behavior (Issue #575).
+    /// ASVK casings are ejected:
+    /// - Faster (300-400 px/sec vs normal 120-180 px/sec)
+    /// - More to the right and slightly forward (45-degree angle from perpendicular)
+    /// This creates a distinctive, powerful ejection for the heavy 12.7x108mm casings.
+    /// </summary>
+    protected override void SpawnCasing(Vector2 direction, Resource? caliber)
+    {
+        if (CasingScene == null)
+        {
+            return;
+        }
+
+        // Calculate casing spawn position (near the weapon, slightly offset)
+        Vector2 casingSpawnPosition = GlobalPosition + direction * (BulletSpawnOffset * 0.5f);
+
+        var casing = CasingScene.Instantiate<RigidBody2D>();
+        casing.GlobalPosition = casingSpawnPosition;
+
+        // Calculate ejection direction to the right of the weapon
+        // In a top-down view with Y increasing downward:
+        // - If weapon points right (1, 0), right side of weapon is DOWN (0, 1)
+        // - If weapon points up (0, -1), right side of weapon is RIGHT (1, 0)
+        // This is a 90 degree counter-clockwise rotation (perpendicular to shooting direction)
+        Vector2 weaponRight = new Vector2(-direction.Y, direction.X); // Rotate 90 degrees counter-clockwise
+
+        // ASVK-specific: Eject to the right AND slightly forward
+        // Mix the perpendicular direction with the forward direction to get ~45 degree angle
+        // This makes ASVK casings eject more forward than other weapons
+        Vector2 ejectionBase = (weaponRight + direction * 0.3f).Normalized();
+
+        // Add some randomness for variety
+        float randomAngle = (float)GD.RandRange(-0.2f, 0.2f); // ±0.2 radians (~±11 degrees)
+        Vector2 ejectionDirection = ejectionBase.Rotated(randomAngle);
+
+        // ASVK-specific: Much faster ejection speed (2-3x normal weapons)
+        // Heavy 12.7x108mm casings are ejected with more force
+        float ejectionSpeed = (float)GD.RandRange(300.0f, 400.0f); // Fast ejection
+        casing.LinearVelocity = ejectionDirection * ejectionSpeed;
+
+        // Add strong initial spin for realism (heavy casing tumbling through the air)
+        casing.AngularVelocity = (float)GD.RandRange(-20.0f, 20.0f);
+
+        // Set caliber data on the casing for appearance (12.7x108mm)
+        if (caliber != null)
+        {
+            casing.Set("caliber_data", caliber);
+        }
+
+        GetTree().CurrentScene.AddChild(casing);
+
+        GD.Print($"[SniperRifle] ASVK casing ejected: speed={ejectionSpeed:F0} px/sec, direction={ejectionDirection}");
     }
 
     /// <summary>
@@ -607,9 +891,17 @@ public partial class SniperRifle : BaseWeapon
     /// - Very high damage (50)
     /// - Passes through enemies (doesn't destroy on hit)
     /// - Penetrates through 2 walls (wall-count based, not distance-based)
+    /// NOTE: This method is kept for compatibility but is no longer called
+    /// during normal firing (hitscan is used instead).
     /// </summary>
     protected override void SpawnBullet(Vector2 direction)
     {
+        // Skip bullet spawning when using hitscan (damage is applied via raycast)
+        if (_skipBulletSpawn)
+        {
+            return;
+        }
+
         if (BulletScene == null)
         {
             return;
@@ -700,21 +992,19 @@ public partial class SniperRifle : BaseWeapon
 
     /// <summary>
     /// Spawns a smoky dissipating tracer trail from the fire position
-    /// in the shooting direction across the entire map.
-    /// The tracer is an instant visual effect (like a contrail from a plane)
-    /// that fades out over time.
+    /// to the bullet's endpoint (where it stopped after wall penetration limit
+    /// or at max range). The tracer is an instant visual effect that fades out.
     /// </summary>
-    private void SpawnSmokyTracer(Vector2 fromPosition, Vector2 direction)
+    private void SpawnSmokyTracer(Vector2 fromPosition, Vector2 direction, Vector2 bulletEndPoint)
     {
-        // Calculate tracer end point - extend to edge of map (very far)
-        float tracerLength = 5000.0f; // Far enough to reach any map edge
-        Vector2 endPosition = fromPosition + direction * tracerLength;
+        // Use the bullet's actual endpoint (limited by wall penetrations)
+        Vector2 endPosition = bulletEndPoint;
 
         // Create the tracer as a Line2D with smoke-like appearance
         var tracer = new Line2D
         {
             Name = "SniperTracer",
-            Width = 8.0f,
+            Width = 5.0f,
             DefaultColor = new Color(0.8f, 0.8f, 0.8f, 0.7f),
             BeginCapMode = Line2D.LineCapMode.Round,
             EndCapMode = Line2D.LineCapMode.Round,
@@ -770,7 +1060,7 @@ public partial class SniperRifle : BaseWeapon
             tracer.DefaultColor = new Color(0.8f, 0.8f, 0.8f, alpha);
 
             // Widen slightly to simulate smoke dissipation
-            tracer.Width = initialWidth + progress * 4.0f;
+            tracer.Width = initialWidth + progress * 3.0f;
 
             // Update gradient alpha
             var gradient = new Gradient();
@@ -795,7 +1085,8 @@ public partial class SniperRifle : BaseWeapon
 
     /// <summary>
     /// Plays the ASVK sniper shot sound via AudioManager.
-    /// Uses dedicated ASVK shot sound from assets.
+    /// Uses non-positional audio so the sound volume is constant regardless
+    /// of scope camera offset (fixes issue #565).
     /// </summary>
     private void PlaySniperShotSound()
     {
@@ -805,27 +1096,30 @@ public partial class SniperRifle : BaseWeapon
             return;
         }
 
-        // Use ASVK-specific shot sound
+        // Use ASVK-specific shot sound (non-positional to avoid scope attenuation)
         if (audioManager.HasMethod("play_asvk_shot"))
         {
-            audioManager.Call("play_asvk_shot", GlobalPosition);
+            audioManager.Call("play_asvk_shot");
         }
-        else if (audioManager.HasMethod("play_sound_2d"))
+        else if (audioManager.HasMethod("play_sound"))
         {
-            // Direct sound playback fallback
-            audioManager.Call("play_sound_2d", "res://assets/audio/выстрел из ASVK.wav", GlobalPosition, -3.0f);
+            // Fallback to non-positional sound playback
+            audioManager.Call("play_sound", "res://assets/audio/выстрел из ASVK.wav", -3.0f);
         }
     }
 
     /// <summary>
     /// Plays the empty gun click sound.
+    /// Uses non-positional audio so the sound volume is constant regardless
+    /// of scope camera offset (fixes issue #565).
     /// </summary>
     private void PlayEmptyClickSound()
     {
         var audioManager = GetNodeOrNull("/root/AudioManager");
-        if (audioManager != null && audioManager.HasMethod("play_empty_click"))
+        if (audioManager != null && audioManager.HasMethod("play_sound"))
         {
-            audioManager.Call("play_empty_click", GlobalPosition);
+            audioManager.Call("play_sound",
+                "res://assets/audio/кончились патроны в пистолете.wav", -3.0f);
         }
     }
 
@@ -915,16 +1209,6 @@ public partial class SniperRifle : BaseWeapon
     /// </summary>
     public BoltActionStep CurrentBoltStep => _boltStep;
 
-    /// <summary>
-    /// Resets the bolt to ready state (e.g., after reload with a new magazine).
-    /// </summary>
-    public void ResetBolt()
-    {
-        _boltStep = BoltActionStep.Ready;
-        EmitSignal(SignalName.BoltStepChanged, 4, 4);
-        GD.Print("[SniperRifle] Bolt reset to ready state");
-    }
-
     // =========================================================================
     // Scope / Aiming System (RMB)
     // =========================================================================
@@ -960,8 +1244,9 @@ public partial class SniperRifle : BaseWeapon
 
     /// <summary>
     /// Maximum scope zoom distance (viewport multiplier).
+    /// Allows zooming up to 4x viewport distance for long-range aiming.
     /// </summary>
-    private const float MaxScopeZoomDistance = 3.0f;
+    private const float MaxScopeZoomDistance = 4.0f;
 
     /// <summary>
     /// Step size for mouse wheel zoom adjustment.
@@ -978,9 +1263,10 @@ public partial class SniperRifle : BaseWeapon
     /// <summary>
     /// Base mouse sensitivity multiplier when scoped.
     /// The actual multiplier = BaseScopeSensitivityMultiplier * effectiveZoomDistance.
-    /// At 1x zoom, sensitivity is 5x normal. At 2x zoom, 10x. At 3x zoom, 15x.
+    /// High value makes precise aiming more challenging (crosshair moves fast).
+    /// At 1x zoom, sensitivity is 8x normal. At 2x zoom, 16x. At 4x zoom, 32x.
     /// </summary>
-    private const float BaseScopeSensitivityMultiplier = 5.0f;
+    private const float BaseScopeSensitivityMultiplier = 8.0f;
 
     /// <summary>
     /// Current mouse fine-tune offset applied to scope distance in pixels.
@@ -1072,9 +1358,22 @@ public partial class SniperRifle : BaseWeapon
     /// <summary>
     /// Gets the world-space position that the scope crosshair center is aiming at.
     /// Used to direct bullets to the crosshair center.
+    /// Computes the exact world position at viewport center using the camera,
+    /// ensuring bullets go precisely where the crosshair is displayed.
     /// </summary>
     public Vector2 GetScopeAimTarget()
     {
+        // Use the camera's actual position to determine where the crosshair center
+        // is in world space. This ensures perfect alignment: the bullet goes exactly
+        // to the world position shown at viewport center (where the crosshair is).
+        if (_playerCamera != null)
+        {
+            // The world position at viewport center = camera's global position + camera offset
+            // Camera2D.GetScreenCenterPosition() returns exactly this in Godot 4
+            return _playerCamera.GetScreenCenterPosition();
+        }
+
+        // Fallback: compute from aim direction if camera is not available
         Viewport? viewport = GetViewport();
         if (viewport == null)
         {
@@ -1084,8 +1383,6 @@ public partial class SniperRifle : BaseWeapon
         Vector2 viewportSize = viewport.GetVisibleRect().Size;
         float baseDistance = viewportSize.Length() * 0.5f;
 
-        // The scope aim target is the player's position offset by the scope camera offset
-        // including the fine-tune pixel offset and mouse offset so bullets go where the crosshair actually is
         Vector2 aimTarget = GlobalPosition + _aimDirection * baseDistance * EffectiveScopeZoomDistance
             + _aimDirection * _scopeMouseFineTunePixels
             + _scopeMouseOffset;

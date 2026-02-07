@@ -237,6 +237,26 @@ func _activate_exit_zone() -> void:
 		_complete_level_with_score()
 
 
+## Setup realistic visibility for the player (Issue #540).
+## Adds the RealisticVisibilityComponent to the player node.
+## The component handles CanvasModulate (darkness) + PointLight2D (player vision)
+## and reacts to ExperimentalSettings.realistic_visibility_enabled toggle.
+func _setup_realistic_visibility() -> void:
+	if _player == null:
+		return
+
+	var visibility_script = load("res://scripts/components/realistic_visibility_component.gd")
+	if visibility_script == null:
+		push_warning("[BuildingLevel] RealisticVisibilityComponent script not found")
+		return
+
+	var visibility_component = Node.new()
+	visibility_component.name = "RealisticVisibilityComponent"
+	visibility_component.set_script(visibility_script)
+	_player.add_child(visibility_component)
+	print("[BuildingLevel] Realistic visibility component added to player")
+
+
 func _process(_delta: float) -> void:
 	# Update enemy positions for aggressiveness tracking
 	var score_manager: Node = get_node_or_null("/root/ScoreManager")
@@ -252,12 +272,34 @@ func _on_combo_changed(combo: int, points: int) -> void:
 	if combo > 0:
 		_combo_label.text = "x%d COMBO (+%d)" % [combo, points]
 		_combo_label.visible = true
+		# Color changes based on combo count
+		var combo_color := _get_combo_color(combo)
+		_combo_label.add_theme_color_override("font_color", combo_color)
 		# Flash effect for combo
 		_combo_label.modulate = Color.WHITE
 		var tween := create_tween()
-		tween.tween_property(_combo_label, "modulate", Color(1.0, 0.8, 0.2, 1.0), 0.1)
+		tween.tween_property(_combo_label, "modulate", Color.WHITE, 0.1)
 	else:
 		_combo_label.visible = false
+
+
+## Returns a color based on the current combo count.
+## Higher combos produce more intense/hotter colors.
+func _get_combo_color(combo: int) -> Color:
+	if combo >= 10:
+		return Color(1.0, 0.0, 1.0, 1.0)   # Magenta - extreme combo
+	elif combo >= 7:
+		return Color(1.0, 0.0, 0.3, 1.0)   # Hot pink
+	elif combo >= 5:
+		return Color(1.0, 0.1, 0.1, 1.0)   # Bright red
+	elif combo >= 4:
+		return Color(1.0, 0.2, 0.0, 1.0)   # Red-orange
+	elif combo >= 3:
+		return Color(1.0, 0.4, 0.0, 1.0)   # Hot orange
+	elif combo >= 2:
+		return Color(1.0, 0.6, 0.1, 1.0)   # Orange
+	else:
+		return Color(1.0, 0.8, 0.2, 1.0)   # Gold (combo 1)
 
 
 ## Setup the navigation mesh for enemy pathfinding.
@@ -301,6 +343,9 @@ func _setup_player_tracking() -> void:
 	_player = get_node_or_null("Entities/Player")
 	if _player == null:
 		return
+
+	# Setup realistic visibility component (Issue #540)
+	_setup_realistic_visibility()
 
 	# Setup selected weapon based on GameManager selection
 	_setup_selected_weapon()
@@ -779,7 +824,7 @@ func _update_magazines_label(magazine_ammo_counts: Array) -> void:
 		_magazines_label.text = "MAGS: -"
 		return
 
-	var parts: Array[String] = []
+	var parts: Array = []
 	for i in range(magazine_ammo_counts.size()):
 		var ammo: int = magazine_ammo_counts[i]
 		if i == 0:
@@ -903,6 +948,10 @@ func _on_score_animation_completed(container: VBoxContainer) -> void:
 
 ## Fallback score screen if animated component is not available.
 func _show_fallback_score_screen(ui: Control, score_data: Dictionary) -> void:
+	# Load Gothic bitmap font for score screen labels
+	var gothic_font = load("res://assets/fonts/gothic_bitmap.fnt")
+	var _font_loaded := gothic_font != null
+
 	var background := ColorRect.new()
 	background.name = "ScoreBackground"
 	background.color = Color(0.0, 0.0, 0.0, 0.7)
@@ -932,6 +981,8 @@ func _show_fallback_score_screen(ui: Control, score_data: Dictionary) -> void:
 	rank_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	rank_label.add_theme_font_size_override("font_size", 64)
 	rank_label.add_theme_color_override("font_color", _get_rank_color(score_data.rank))
+	if _font_loaded:
+		rank_label.add_theme_font_override("font", gothic_font)
 	container.add_child(rank_label)
 
 	var total_label := Label.new()
@@ -945,9 +996,8 @@ func _show_fallback_score_screen(ui: Control, score_data: Dictionary) -> void:
 	_add_score_screen_buttons(container)
 
 
-## Adds Restart and Watch Replay buttons to a score screen container.
-## Restart button appears first, Watch Replay button appears below it.
-## W key shortcut is also enabled for Watch Replay.
+## Adds Restart, Next Level, Level Select, and Watch Replay buttons to a score screen container.
+## Issue #568: Added Next Level and Level Select buttons after final grade.
 func _add_score_screen_buttons(container: VBoxContainer) -> void:
 	_score_shown = true
 
@@ -956,14 +1006,25 @@ func _add_score_screen_buttons(container: VBoxContainer) -> void:
 	spacer.custom_minimum_size.y = 10
 	container.add_child(spacer)
 
-	# Add buttons container (vertical layout: Restart on top, Watch Replay below)
+	# Add buttons container (vertical layout)
 	var buttons_container := VBoxContainer.new()
 	buttons_container.name = "ButtonsContainer"
 	buttons_container.alignment = BoxContainer.ALIGNMENT_CENTER
 	buttons_container.add_theme_constant_override("separation", 10)
 	container.add_child(buttons_container)
 
-	# Restart button (on top)
+	# Next Level button (Issue #568)
+	var next_level_path: String = _get_next_level_path()
+	if next_level_path != "":
+		var next_button := Button.new()
+		next_button.name = "NextLevelButton"
+		next_button.text = "→ Next Level"
+		next_button.custom_minimum_size = Vector2(200, 40)
+		next_button.add_theme_font_size_override("font_size", 18)
+		next_button.pressed.connect(_on_next_level_pressed.bind(next_level_path))
+		buttons_container.add_child(next_button)
+
+	# Restart button
 	var restart_button := Button.new()
 	restart_button.name = "RestartButton"
 	restart_button.text = "↻ Restart (Q)"
@@ -972,7 +1033,16 @@ func _add_score_screen_buttons(container: VBoxContainer) -> void:
 	restart_button.pressed.connect(_on_restart_pressed)
 	buttons_container.add_child(restart_button)
 
-	# Watch Replay button (below Restart)
+	# Level Select button (Issue #568)
+	var level_select_button := Button.new()
+	level_select_button.name = "LevelSelectButton"
+	level_select_button.text = "☰ Level Select"
+	level_select_button.custom_minimum_size = Vector2(200, 40)
+	level_select_button.add_theme_font_size_override("font_size", 18)
+	level_select_button.pressed.connect(_on_level_select_pressed)
+	buttons_container.add_child(level_select_button)
+
+	# Watch Replay button
 	var replay_button := Button.new()
 	replay_button.name = "ReplayButton"
 	replay_button.text = "▶ Watch Replay (W)"
@@ -997,8 +1067,11 @@ func _add_score_screen_buttons(container: VBoxContainer) -> void:
 	# Show cursor for button interaction
 	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
 
-	# Focus the restart button
-	restart_button.grab_focus()
+	# Focus the next level button if available, otherwise restart
+	if next_level_path != "":
+		buttons_container.get_node("NextLevelButton").grab_focus()
+	else:
+		restart_button.grab_focus()
 
 
 ## Get the color for a given rank.
@@ -1059,7 +1132,23 @@ func _setup_selected_weapon() -> void:
 	if GameManager:
 		selected_weapon_id = GameManager.get_selected_weapon()
 
-	print("BuildingLevel: Setting up weapon: %s" % selected_weapon_id)
+	_log_to_file("Setting up weapon: %s" % selected_weapon_id)
+
+	# Check if C# Player already equipped the correct weapon (via ApplySelectedWeaponFromGameManager)
+	# This prevents double-equipping when both C# and GDScript weapon setup run
+	if selected_weapon_id != "m16":
+		var weapon_names: Dictionary = {
+			"shotgun": "Shotgun",
+			"mini_uzi": "MiniUzi",
+			"silenced_pistol": "SilencedPistol",
+			"sniper": "SniperRifle"
+		}
+		if selected_weapon_id in weapon_names:
+			var expected_name: String = weapon_names[selected_weapon_id]
+			var existing_weapon = _player.get_node_or_null(expected_name)
+			if existing_weapon != null and _player.get("CurrentWeapon") == existing_weapon:
+				_log_to_file("%s already equipped by C# Player - skipping GDScript weapon swap" % expected_name)
+				return
 
 	# If shotgun is selected, we need to swap weapons
 	if selected_weapon_id == "shotgun":
@@ -1221,6 +1310,56 @@ func _on_restart_pressed() -> void:
 		GameManager.restart_scene()
 	else:
 		get_tree().reload_current_scene()
+
+
+## Called when the Next Level button is pressed (Issue #568).
+func _on_next_level_pressed(level_path: String) -> void:
+	_log_to_file("Next Level button pressed: %s" % level_path)
+	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED_HIDDEN)
+	var error := get_tree().change_scene_to_file(level_path)
+	if error != OK:
+		_log_to_file("ERROR: Failed to load next level: %s" % level_path)
+		Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
+
+
+## Called when the Level Select button is pressed (Issue #568).
+func _on_level_select_pressed() -> void:
+	_log_to_file("Level Select button pressed")
+	# Load the levels menu as a CanvasLayer overlay
+	var levels_menu_script = load("res://scripts/ui/levels_menu.gd")
+	if levels_menu_script:
+		var levels_menu = CanvasLayer.new()
+		levels_menu.set_script(levels_menu_script)
+		levels_menu.layer = 100  # On top of everything
+		get_tree().root.add_child(levels_menu)
+		# Connect back button to close the overlay
+		levels_menu.back_pressed.connect(func(): levels_menu.queue_free())
+	else:
+		_log_to_file("ERROR: Could not load levels menu script")
+
+
+## Get the next level path based on the level ordering from LevelsMenu (Issue #568).
+## Returns empty string if this is the last level or level not found.
+func _get_next_level_path() -> String:
+	var current_scene_path: String = ""
+	var current_scene: Node = get_tree().current_scene
+	if current_scene and current_scene.scene_file_path:
+		current_scene_path = current_scene.scene_file_path
+
+	# Level ordering (matching LevelsMenu.LEVELS)
+	var level_paths: Array[String] = [
+		"res://scenes/levels/BuildingLevel.tscn",
+		"res://scenes/levels/TestTier.tscn",
+		"res://scenes/levels/CastleLevel.tscn",
+	]
+
+	for i in range(level_paths.size()):
+		if level_paths[i] == current_scene_path:
+			if i + 1 < level_paths.size():
+				return level_paths[i + 1]
+			return ""  # Last level
+
+	return ""  # Current level not found
 
 
 ## Disable player controls after level completion (score screen shown).
