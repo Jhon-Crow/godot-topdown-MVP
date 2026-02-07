@@ -74,7 +74,7 @@ position_smoothing_enabled = true
 position_smoothing_speed = 5.0
 
 [node name="MakarovPM" parent="." instance=ExtResource("2_makarov_pm")]
-position = Vector2(0, 6)
+position = Vector2(10, 6)
 
 [node name="HitArea" type="Area2D" parent="."]
 collision_layer = 1

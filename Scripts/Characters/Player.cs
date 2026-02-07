@@ -210,6 +210,21 @@ public partial class Player : BaseCharacter
     private bool _invincibilityEnabled = false;
 
     /// <summary>
+    /// Whether the player is stunned (cannot move or shoot). Set on bullet hit (Issue #592).
+    /// </summary>
+    private bool _isStunned = false;
+
+    /// <summary>
+    /// Remaining stun duration in seconds (Issue #592).
+    /// </summary>
+    private float _stunTimer = 0.0f;
+
+    /// <summary>
+    /// Stun duration in seconds when hit by a bullet (Issue #592).
+    /// </summary>
+    private const float StunDuration = 0.1f;
+
+    /// <summary>
     /// Label for displaying invincibility mode indicator.
     /// </summary>
     private Label? _invincibilityLabel = null;
@@ -1021,6 +1036,17 @@ public partial class Player : BaseCharacter
 
     public override void _PhysicsProcess(double delta)
     {
+        // Update stun timer (Issue #592)
+        if (_isStunned)
+        {
+            _stunTimer -= (float)delta;
+            if (_stunTimer <= 0.0f)
+            {
+                _isStunned = false;
+                _stunTimer = 0.0f;
+            }
+        }
+
         // Detect weapon pose after waiting a few frames for level scripts to add weapons
         if (!_weaponPoseApplied)
         {
@@ -1032,7 +1058,8 @@ public partial class Player : BaseCharacter
             }
         }
 
-        Vector2 inputDirection = GetInputDirection();
+        // While stunned, force zero input and apply friction only (Issue #592)
+        Vector2 inputDirection = _isStunned ? Vector2.Zero : GetInputDirection();
         ApplyMovement(inputDirection, (float)delta);
 
         // Push any casings we're overlapping with using Area2D detection (Issue #392 Iteration 8)
@@ -1074,9 +1101,9 @@ public partial class Player : BaseCharacter
         }
 
         // Handle shooting input - support both automatic and semi-automatic weapons
-        // Allow shooting when not in grenade preparation
+        // Allow shooting when not in grenade preparation and not stunned (Issue #592)
         // In simple mode, RMB is for grenades so only LMB (shoot) should work
-        bool canShoot = _grenadeState == GrenadeState.Idle || _grenadeState == GrenadeState.TimerStarted || _grenadeState == GrenadeState.SimpleAiming;
+        bool canShoot = !_isStunned && (_grenadeState == GrenadeState.Idle || _grenadeState == GrenadeState.TimerStarted || _grenadeState == GrenadeState.SimpleAiming);
         if (canShoot)
         {
             HandleShootingInput();
@@ -1878,6 +1905,11 @@ public partial class Player : BaseCharacter
     {
         _lastHitDirection = hitDirection;
         _lastCaliberData = caliberData;
+
+        // Apply stun effect - block movement and shooting for 100ms (Issue #592)
+        _isStunned = true;
+        _stunTimer = StunDuration;
+
         TakeDamage(1);
     }
 

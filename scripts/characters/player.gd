@@ -186,6 +186,15 @@ var _debug_mode_enabled: bool = false
 ## Whether invincibility mode is enabled (F6 toggle, player takes no damage).
 var _invincibility_enabled: bool = false
 
+## Whether the player is stunned (cannot move or shoot). Set on bullet hit.
+var _is_stunned: bool = false
+
+## Remaining stun duration in seconds.
+var _stun_timer: float = 0.0
+
+## Stun duration in seconds when hit by a bullet (Issue #592).
+const STUN_DURATION: float = 0.1
+
 
 func _ready() -> void:
 	FileLogger.info("[Player] Initializing player...")
@@ -316,6 +325,13 @@ func _physics_process(delta: float) -> void:
 	if not _is_alive:
 		return
 
+	# Update stun timer (Issue #592)
+	if _is_stunned:
+		_stun_timer -= delta
+		if _stun_timer <= 0.0:
+			_is_stunned = false
+			_stun_timer = 0.0
+
 	# Detect weapon pose after waiting a few frames for level scripts to add weapons
 	if not _weapon_pose_applied:
 		_weapon_detect_frame_count += 1
@@ -323,7 +339,8 @@ func _physics_process(delta: float) -> void:
 			_detect_and_apply_weapon_pose()
 			_weapon_pose_applied = true
 
-	var input_direction := _get_input_direction()
+	# While stunned, force zero input and apply friction only (Issue #592)
+	var input_direction := Vector2.ZERO if _is_stunned else _get_input_direction()
 
 	if input_direction != Vector2.ZERO:
 		# Apply acceleration towards the input direction
@@ -383,10 +400,11 @@ func _physics_process(delta: float) -> void:
 	if _active_grenade != null and is_instance_valid(_active_grenade):
 		_active_grenade.global_position = global_position
 
-	# Handle shooting input (only if not in grenade preparation state)
+	# Handle shooting input (only if not in grenade preparation state and not stunned)
 	# Grenade steps 2 and 3 use LMB, so don't shoot during those
 	# In simple mode, we only use RMB so shooting with LMB is always allowed
-	var can_shoot := _grenade_state == GrenadeState.IDLE or _grenade_state == GrenadeState.TIMER_STARTED or _grenade_state == GrenadeState.SIMPLE_AIMING
+	# Stun blocks shooting (Issue #592)
+	var can_shoot := not _is_stunned and (_grenade_state == GrenadeState.IDLE or _grenade_state == GrenadeState.TIMER_STARTED or _grenade_state == GrenadeState.SIMPLE_AIMING)
 	if can_shoot and Input.is_action_just_pressed("shoot"):
 		_shoot()
 
@@ -886,6 +904,10 @@ func on_hit_with_info(hit_direction: Vector2, caliber_data: Resource) -> void:
 
 	# Store hit direction for death animation
 	_last_hit_direction = hit_direction
+
+	# Apply stun effect - block movement and shooting for 100ms (Issue #592)
+	_is_stunned = true
+	_stun_timer = STUN_DURATION
 
 	# Show hit flash effect
 	_show_hit_flash()
