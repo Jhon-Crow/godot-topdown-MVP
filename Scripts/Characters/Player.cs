@@ -222,7 +222,7 @@ public partial class Player : BaseCharacter
     /// <summary>
     /// Stun duration in seconds when hit by a bullet (Issue #592).
     /// </summary>
-    private const float StunDuration = 0.1f;
+    private const float StunDuration = 0.13f;
 
     /// <summary>
     /// Label for displaying invincibility mode indicator.
@@ -1044,6 +1044,7 @@ public partial class Player : BaseCharacter
             {
                 _isStunned = false;
                 _stunTimer = 0.0f;
+                LogToFile("[Player] Stun ended (Issue #592)");
             }
         }
 
@@ -1906,9 +1907,10 @@ public partial class Player : BaseCharacter
         _lastHitDirection = hitDirection;
         _lastCaliberData = caliberData;
 
-        // Apply stun effect - block movement and shooting for 100ms (Issue #592)
+        // Apply stun effect (Issue #592)
         _isStunned = true;
         _stunTimer = StunDuration;
+        LogToFile($"[Player] Stun applied for {StunDuration * 1000}ms (Issue #592)");
 
         TakeDamage(1);
     }

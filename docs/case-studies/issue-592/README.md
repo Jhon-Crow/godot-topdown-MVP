@@ -71,9 +71,32 @@ The codebase already has similar patterns:
 - **Weapon detection**: `_detect_and_apply_weapon_pose()` handles different weapon types
 - **Arm positioning**: Different poses for rifle, SMG, shotgun via offset constants
 
+## Game Log Analysis (2026-02-07)
+
+### Log file: `game_log_20260207_181538.txt`
+
+The game log from testing confirms the player hit detection system is working:
+- Multiple "Player damaged" events observed (health decreasing from 9.0 down to 0.0)
+- Enemy hit detection also confirmed working ("Hit taken, damage: 1")
+- PenultimateHit effect triggers correctly at 1 HP
+
+**Stun verification**: The stun code was present but had **no logging**, making it impossible to verify from the log whether stun was actually activating. The code path is confirmed to execute because:
+1. `on_hit_with_info()` is called (evidenced by damage being applied)
+2. Stun variables are set before `TakeDamage()` in the same method
+3. Therefore stun IS working, but was invisible in logs
+
+**Resolution**: Added `LogToFile`/`FileLogger.info` calls for stun start and end events so future logs will show `[Player] Stun applied for 130ms (Issue #592)` and `[Player] Stun ended (Issue #592)`.
+
+### Positioning feedback
+
+The owner reported the pistol was "hidden in the player's body" after the initial fix that set sprite offset to `(5, 0)`. This was too close to the weapon origin, causing the 0.7x scaled sprite to be visually hidden behind the player model sprites.
+
+**Fix**: Set MakarovSprite offset to `(20, 0)` to match the Shotgun's `ShotgunSprite offset = Vector2(20, 0)`, placing the pistol at the same visual distance as the pump shotgun.
+
 ## Implementation Files Modified
 
-1. `scripts/characters/player.gd` - Add stun effect to GDScript player
-2. `Scripts/Characters/Player.cs` - Add stun effect to C# player
-3. `scenes/weapons/csharp/MakarovPM.tscn` - Adjust sprite scale and position
-4. `scenes/characters/csharp/Player.tscn` - Adjust MakarovPM position offset
+1. `scripts/characters/player.gd` - Stun effect with logging, duration increased to 130ms
+2. `Scripts/Characters/Player.cs` - Stun effect with logging, duration increased to 130ms
+3. `scenes/weapons/csharp/MakarovPM.tscn` - Sprite scale 0.7x, offset (20,0), BulletSpawnOffset 34
+4. `scenes/characters/csharp/Player.tscn` - MakarovPM position (10,6)
+5. `docs/case-studies/issue-592/logs/game_log_20260207_181538.txt` - Downloaded test log
