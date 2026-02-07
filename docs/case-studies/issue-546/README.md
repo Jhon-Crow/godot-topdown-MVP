@@ -6,7 +6,7 @@
 - **PR**: [#551](https://github.com/Jhon-Crow/godot-topdown-MVP/pull/551)
 - **Date**: 2026-02-07
 - **Severity**: Feature request + bug fix
-- **Status**: In progress (round 4 — pre-baked cone texture approach)
+- **Status**: In progress (round 5 — widened beam to 18 degrees)
 
 ## Issue Description
 
@@ -40,6 +40,9 @@ The owner requested a new category of items — **active items** — with a flas
 | 2026-02-07 ~14:10 | Fifth AI session | Reverted broken commit, re-implemented 6-degree beam with offset and fallback texture |
 | 2026-02-07 ~13:07 | Owner reports beam still broken | "откатись к этому коммиту 9ec3808 и сделай 6 градусный сектор" — runtime texture approach also fails. Attached `game_log_20260207_162542.txt` |
 | 2026-02-07 ~14:27 | Sixth AI session | Rollback to 9ec3808, pre-bake 6° cone texture as PNG file instead of runtime GDScript generation |
+| 2026-02-07 ~13:45 | Owner confirms fix works | "работает, запомни этот коммит." (it works, remember this commit) |
+| 2026-02-07 ~13:45 | Owner requests wider beam | "сделай сектор фонаря в 3 раза шире." (make the flashlight sector 3 times wider) |
+| 2026-02-07 ~13:45 | Seventh AI session | Widen beam from 6° to 18° (3x wider) |
 
 ## Owner Feedback (4 Issues Reported)
 
@@ -235,6 +238,22 @@ The owner explicitly requested: "откатись к этому коммиту 9
 - The cone texture is loaded by Godot's resource system the same way as any sprite
 - Eliminates the risk of silent GDScript errors during texture creation
 - The texture can be visually inspected in the repository
+
+### Round 5 (~13:45 UTC) — Beam Works, Widen to 18 Degrees
+
+### 7. Widen the Beam 3x
+After confirming the 6-degree pre-baked cone texture works ("работает, запомни этот коммит"), the owner requested the flashlight beam be made 3 times wider: "сделай сектор фонаря в 3 раза шире."
+
+**Implementation:**
+- Updated `experiments/generate_cone_texture.py` to set `HALF_ANGLE_DEG = 9.0` (18 degrees total = 9 degrees each side)
+- Changed output filename to `flashlight_cone_18deg.png`
+- Regenerated the cone texture with the new angle (3.9% non-transparent pixels vs 1.7% for 6-degree)
+- Updated `FlashlightEffect.tscn` to reference `flashlight_cone_18deg.png` instead of `flashlight_cone_6deg.png`
+
+**Result:**
+- Beam is now 3x wider (6° → 18°), covering more area while maintaining the same focused cone shape
+- Same pre-baked texture approach — reliable and performant
+- No runtime code changes needed
 
 ## Lessons Learned
 
