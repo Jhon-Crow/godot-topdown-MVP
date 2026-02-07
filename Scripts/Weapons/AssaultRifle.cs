@@ -436,6 +436,7 @@ public partial class AssaultRifle : BaseWeapon
     {
         CurrentFireMode = CurrentFireMode == FireMode.Automatic ? FireMode.Burst : FireMode.Automatic;
         EmitSignal(SignalName.FireModeChanged, (int)CurrentFireMode);
+        PlayFireModeToggleSound();
         GD.Print($"[AssaultRifle] Fire mode changed to: {CurrentFireMode}");
     }
 
@@ -491,6 +492,18 @@ public partial class AssaultRifle : BaseWeapon
         if (audioManager != null && audioManager.HasMethod("play_empty_click"))
         {
             audioManager.Call("play_empty_click", GlobalPosition);
+        }
+    }
+
+    /// <summary>
+    /// Plays the fire mode toggle sound when switching between burst and automatic modes.
+    /// </summary>
+    private void PlayFireModeToggleSound()
+    {
+        var audioManager = GetNodeOrNull("/root/AudioManager");
+        if (audioManager != null && audioManager.HasMethod("play_fire_mode_toggle"))
+        {
+            audioManager.Call("play_fire_mode_toggle", GlobalPosition);
         }
     }
 
