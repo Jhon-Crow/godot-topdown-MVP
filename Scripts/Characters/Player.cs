@@ -2526,6 +2526,81 @@ public partial class Player : BaseCharacter
     }
 
     /// <summary>
+    /// Calculate the required throw speed for a grenade to travel a given distance.
+    /// Uses the two-phase friction model from grenade_base.gd (Issue #435):
+    /// - Phase 1 (high speed): friction = groundFriction * minFrictionMultiplier
+    /// - Phase 2 (below ramp velocity): friction ramps from reduced to full
+    /// FIX for issue #615: Previous formula assumed constant friction and used a
+    /// compensation factor of 1.16x. This was incorrect after issue #435 introduced
+    /// velocity-dependent friction, causing grenades to not reach the cursor.
+    /// </summary>
+    private float CalculateGrenadeThrowSpeed(float throwDistance, float groundFriction,
+        float frictionRampVelocity, float minFrictionMultiplier)
+    {
+        // Phase 1: constant reduced friction (above ramp velocity)
+        float phase1Friction = groundFriction * minFrictionMultiplier;
+
+        // Phase 2: variable friction from ramp velocity down to zero
+        // The friction multiplier in Phase 2 follows a quadratic curve:
+        //   mult(v) = minMult + (1 - minMult) * (1 - (v/rampVel)^2)
+        // Effective average friction in Phase 2 (computed via numerical integration)
+        // is approximately: groundFriction * (minMult + 2*(1-minMult)/3)
+        float avgPhase2Multiplier = minFrictionMultiplier
+            + 2.0f * (1.0f - minFrictionMultiplier) / 3.0f;
+        float avgPhase2Friction = groundFriction * avgPhase2Multiplier;
+
+        // Phase 2 distance: distance traveled while decelerating from rampVel to 0
+        float phase2Distance = frictionRampVelocity * frictionRampVelocity
+            / (2.0f * avgPhase2Friction);
+
+        float requiredSpeed;
+        if (throwDistance <= phase2Distance)
+        {
+            // Short throw: grenade never exceeds ramp velocity
+            requiredSpeed = Mathf.Sqrt(2.0f * avgPhase2Friction * throwDistance);
+        }
+        else
+        {
+            // Normal throw: Phase 1 (high speed) + Phase 2 (low speed)
+            float phase1Distance = throwDistance - phase2Distance;
+            requiredSpeed = Mathf.Sqrt(frictionRampVelocity * frictionRampVelocity
+                + 2.0f * phase1Friction * phase1Distance);
+        }
+
+        return requiredSpeed;
+    }
+
+    /// <summary>
+    /// Calculate the landing distance for a given throw speed using the two-phase friction model.
+    /// Inverse of CalculateGrenadeThrowSpeed.
+    /// </summary>
+    private float CalculateGrenadeLandingDistance(float throwSpeed, float groundFriction,
+        float frictionRampVelocity, float minFrictionMultiplier)
+    {
+        float phase1Friction = groundFriction * minFrictionMultiplier;
+
+        float avgPhase2Multiplier = minFrictionMultiplier
+            + 2.0f * (1.0f - minFrictionMultiplier) / 3.0f;
+        float avgPhase2Friction = groundFriction * avgPhase2Multiplier;
+
+        float phase2Distance = frictionRampVelocity * frictionRampVelocity
+            / (2.0f * avgPhase2Friction);
+
+        if (throwSpeed <= frictionRampVelocity)
+        {
+            // Short throw: stays in Phase 2
+            return throwSpeed * throwSpeed / (2.0f * avgPhase2Friction);
+        }
+        else
+        {
+            // Normal throw: Phase 1 + Phase 2
+            float phase1Distance = (throwSpeed * throwSpeed
+                - frictionRampVelocity * frictionRampVelocity) / (2.0f * phase1Friction);
+            return phase1Distance + phase2Distance;
+        }
+    }
+
+    /// <summary>
     /// Throw the grenade in simple mode.
     /// Direction and distance based on cursor position relative to player.
     /// </summary>
@@ -2558,6 +2633,8 @@ public partial class Player : BaseCharacter
         // FIX for issue #398: Use actual grenade properties instead of hardcoded values
         float groundFriction = 300.0f; // Default
         float maxThrowSpeed = 850.0f;  // Default
+        float frictionRampVelocity = 200.0f; // Default
+        float minFrictionMultiplier = 0.5f;  // Default
         if (_activeGrenade.Get("ground_friction").VariantType != Variant.Type.Nil)
         {
             groundFriction = (float)_activeGrenade.Get("ground_friction");
@@ -2566,22 +2643,31 @@ public partial class Player : BaseCharacter
         {
             maxThrowSpeed = (float)_activeGrenade.Get("max_throw_speed");
         }
+        if (_activeGrenade.Get("friction_ramp_velocity").VariantType != Variant.Type.Nil)
+        {
+            frictionRampVelocity = (float)_activeGrenade.Get("friction_ramp_velocity");
+        }
+        if (_activeGrenade.Get("min_friction_multiplier").VariantType != Variant.Type.Nil)
+        {
+            minFrictionMultiplier = (float)_activeGrenade.Get("min_friction_multiplier");
+        }
 
-        // Calculate throw speed needed to reach target (using physics)
-        // Distance = v^2 / (2 * friction) → v = sqrt(2 * friction * distance)
-        // FIX for issue #428: Apply 16% compensation factor to account for:
-        // 1. Discrete time integration error from Godot's 60 FPS Euler integration (~0.8%)
-        // 2. Additional physics damping effects in Godot's RigidBody2D (~12.5%)
-        // Empirically tested: grenades travel ~86% of calculated distance without compensation.
-        // Factor of 1.16 (≈ 1/0.86) brings actual landing position to match target cursor position.
-        const float physicsCompensationFactor = 1.16f;
-        float requiredSpeed = Mathf.Sqrt(2.0f * groundFriction * throwDistance * physicsCompensationFactor);
+        // FIX for issue #615: Use two-phase friction model for accurate speed calculation.
+        // The old formula v=sqrt(2*F*d*1.16) assumed constant friction and used an empirical
+        // compensation factor. After issue #435 introduced velocity-dependent friction
+        // (reduced friction at high speeds), the old formula became incorrect.
+        // The new formula accounts for both friction phases:
+        // Phase 1 (above ramp velocity): friction = groundFriction * minFrictionMultiplier
+        // Phase 2 (below ramp velocity): friction ramps from reduced to full
+        float requiredSpeed = CalculateGrenadeThrowSpeed(
+            throwDistance, groundFriction, frictionRampVelocity, minFrictionMultiplier);
 
         // Clamp to grenade's max throw speed
         float throwSpeed = Mathf.Min(requiredSpeed, maxThrowSpeed);
 
         // Calculate actual landing distance with clamped speed (for logging)
-        float actualDistance = (throwSpeed * throwSpeed) / (2.0f * groundFriction);
+        float actualDistance = CalculateGrenadeLandingDistance(
+            throwSpeed, groundFriction, frictionRampVelocity, minFrictionMultiplier);
 
         LogToFile($"[Player.Grenade.Simple] Throwing! Target: {targetPos}, Distance: {actualDistance:F1}, Speed: {throwSpeed:F1}, Friction: {groundFriction:F1}");
 
@@ -3855,6 +3941,8 @@ public partial class Player : BaseCharacter
         // FIX for issue #398: Use actual grenade properties instead of hardcoded values
         float groundFriction = 300.0f; // Default
         float maxThrowSpeed = 850.0f;  // Default
+        float frictionRampVelocity = 200.0f; // Default
+        float minFrictionMultiplier = 0.5f;  // Default
         if (_activeGrenade != null && IsInstanceValid(_activeGrenade))
         {
             if (_activeGrenade.Get("ground_friction").VariantType != Variant.Type.Nil)
@@ -3864,6 +3952,14 @@ public partial class Player : BaseCharacter
             if (_activeGrenade.Get("max_throw_speed").VariantType != Variant.Type.Nil)
             {
                 maxThrowSpeed = (float)_activeGrenade.Get("max_throw_speed");
+            }
+            if (_activeGrenade.Get("friction_ramp_velocity").VariantType != Variant.Type.Nil)
+            {
+                frictionRampVelocity = (float)_activeGrenade.Get("friction_ramp_velocity");
+            }
+            if (_activeGrenade.Get("min_friction_multiplier").VariantType != Variant.Type.Nil)
+            {
+                minFrictionMultiplier = (float)_activeGrenade.Get("min_friction_multiplier");
             }
         }
 
@@ -3879,12 +3975,14 @@ public partial class Player : BaseCharacter
             float throwDistance = (currentMousePos - spawnPos).Length();
             if (throwDistance < 10.0f) throwDistance = 10.0f;
 
-            // Calculate throw speed needed to reach target
-            float requiredSpeed = Mathf.Sqrt(2.0f * groundFriction * throwDistance);
+            // FIX for issue #615: Use two-phase friction model matching actual grenade physics
+            float requiredSpeed = CalculateGrenadeThrowSpeed(
+                throwDistance, groundFriction, frictionRampVelocity, minFrictionMultiplier);
             throwSpeed = Mathf.Min(requiredSpeed, maxThrowSpeed);
 
             // Calculate actual landing distance with clamped speed
-            landingDistance = (throwSpeed * throwSpeed) / (2.0f * groundFriction);
+            landingDistance = CalculateGrenadeLandingDistance(
+                throwSpeed, groundFriction, frictionRampVelocity, minFrictionMultiplier);
         }
         else
         {
@@ -3926,7 +4024,9 @@ public partial class Player : BaseCharacter
                 throwSpeed = MinThrowSpeed * 0.5f;
             }
 
-            landingDistance = (throwSpeed * throwSpeed) / (2.0f * groundFriction);
+            // FIX for issue #615: Use two-phase friction model for landing distance
+            landingDistance = CalculateGrenadeLandingDistance(
+                throwSpeed, groundFriction, frictionRampVelocity, minFrictionMultiplier);
         }
 
         // Calculate spawn and landing positions
