@@ -1248,6 +1248,10 @@ public partial class Player : BaseCharacter
         {
             aimDirection = sniperRifle.AimDirection;
         }
+        else if (CurrentWeapon is Revolver revolver)
+        {
+            aimDirection = revolver.AimDirection;
+        }
         else
         {
             // Fallback: calculate direction to mouse cursor
@@ -1301,6 +1305,7 @@ public partial class Player : BaseCharacter
         var shotgun = GetNodeOrNull<BaseWeapon>("Shotgun");
         var silencedPistol = GetNodeOrNull<BaseWeapon>("SilencedPistol");
         var makarovPM = GetNodeOrNull<BaseWeapon>("MakarovPM");
+        var revolver = GetNodeOrNull<BaseWeapon>("Revolver");
 
         if (sniperRifle != null)
         {
@@ -1316,6 +1321,11 @@ public partial class Player : BaseCharacter
         {
             detectedType = WeaponType.Shotgun;
             LogToFile("[Player] Detected weapon: Shotgun (Shotgun pose)");
+        }
+        else if (revolver != null)
+        {
+            detectedType = WeaponType.Pistol;
+            LogToFile("[Player] Detected weapon: RSh-12 Revolver (Pistol pose)");
         }
         else if (silencedPistol != null)
         {
@@ -1563,7 +1573,7 @@ public partial class Player : BaseCharacter
         }
 
         // Check if this is a pistol-type weapon that uses R->R reload (2-step) instead of R->F->R (3-step)
-        bool isPistolReload = CurrentWeapon is MakarovPM;
+        bool isPistolReload = CurrentWeapon is MakarovPM || CurrentWeapon is Revolver;
 
         // Handle R key (first and third step, or both steps for pistol)
         if (Input.IsActionJustPressed("reload"))
@@ -2074,6 +2084,10 @@ public partial class Player : BaseCharacter
             case "sniper":
                 scenePath = "res://scenes/weapons/csharp/SniperRifle.tscn";
                 weaponNodeName = "SniperRifle";
+                break;
+            case "revolver":
+                scenePath = "res://scenes/weapons/csharp/Revolver.tscn";
+                weaponNodeName = "Revolver";
                 break;
             case "makarov_pm":
                 scenePath = "res://scenes/weapons/csharp/MakarovPM.tscn";
