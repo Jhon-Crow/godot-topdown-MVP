@@ -11,9 +11,15 @@
 1. Last chance and explosion effects do not turn off during replay
 2. Effects do not turn on stably
 
+### Follow-up Feedback
+
+After initial fix attempt (visual effects completely disabled):
+- **"визуальные эффекты не появились"** = "Visual effects did not appear"
+- The initial fix was too aggressive - it removed ALL visual effects during replay
+
 ## Timeline of Events (from game log)
 
-The game log (`game_log_20260207_180552.txt`) captures a complete session:
+### Session 1 (game_log_20260207_180552.txt) - Original Bug
 
 | Time | Event |
 |------|-------|
@@ -35,6 +41,12 @@ The game log (`game_log_20260207_180552.txt`) captures a complete session:
 | 18:07:29 | **BUG**: PowerFantasy triggers another 300ms time slowdown |
 | 18:07:32 | **BUG**: PowerFantasy triggers yet another 300ms time slowdown |
 | 18:07:38 | Log ends with only 42/55 footprints spawned (replay incomplete) |
+
+### Session 2 (game_log_20260207_202720.txt) - After First Fix Attempt
+
+The first fix attempt completely disabled penultimate, power fantasy kill, and
+grenade effects during replay. While this prevented the time freeze bugs, it
+removed all visual effects, making the replay feel flat and lifeless.
 
 ## Root Cause Analysis
 
@@ -71,36 +83,54 @@ nor `PenultimateHitEffectsManager` had any concept of replay mode. They performe
 full gameplay effects (time freeze, time scale, process mode changes) regardless
 of whether the game was in actual gameplay or replay playback.
 
-## Fix Applied
+## Fix Applied (v2 - replay_mode flag approach)
 
-**File changed**: `Scripts/Autoload/ReplayManager.cs`
+### Strategy: replay_mode Flag on Effect Managers
 
-### Strategy: Visual-Only Effects During Replay
+Instead of disabling effects entirely in ReplayManager.cs, we added a `replay_mode`
+flag to each GDScript effect manager. When `replay_mode = true`:
 
-Instead of calling the full effect manager methods that modify `Engine.TimeScale`
-and freeze the scene tree, the replay trigger methods now:
+- `Engine.time_scale` changes are **skipped** (prevents replay slowdown/freeze)
+- `process_mode` changes are **skipped** (prevents scene tree freezing)
+- **All visual effects still apply**: shader overlays, saturation boosts, enemy coloring,
+  player saturation, fade-out animations
 
-1. **`TriggerReplayHitEffect()`**: Only calls `_start_saturation_effect()` (visual-only)
-   instead of `on_player_hit_enemy()` (which also sets `Engine.time_scale = 0.8`)
+### Files Changed
 
-2. **`TriggerReplayPenultimateEffect()`**: Skipped entirely during replay.
-   The penultimate effect sets `Engine.time_scale = 0.1` and modifies process modes.
+1. **`scripts/autoload/hit_effects_manager.gd`**: Added `replay_mode` flag, guarded
+   `Engine.time_scale` in `_start_slow_effect()` and `_end_slow_effect()`
 
-3. **`TriggerReplayPowerFantasyKill()`**: Skipped entirely during replay.
-   The hit saturation effect already provides visual feedback for kills.
+2. **`scripts/autoload/penultimate_hit_effects_manager.gd`**: Added `replay_mode` flag,
+   guarded `Engine.time_scale` in `_start_penultimate_effect()`, `_end_penultimate_effect()`,
+   and `reset_effects()`
 
-4. **`TriggerReplayPowerFantasyGrenade()`**: Skipped entirely during replay.
-   `SpawnExplosionFlash()` already provides the visual explosion effect.
+3. **`scripts/autoload/power_fantasy_effects_manager.gd`**: Added `replay_mode` flag,
+   guarded `Engine.time_scale` in `_start_effect()`, `_end_effect()`, and `reset_effects()`
 
-### Why This Approach
+4. **`scripts/autoload/last_chance_effects_manager.gd`**: Added `replay_mode` flag,
+   guarded `_freeze_time()`, `_push_threatening_bullets_away()`,
+   `_grant_player_invulnerability()`, `_unfreeze_time()`, and `_reset_all_enemy_memory()`
+   in `_start_last_chance_effect()`, `_end_last_chance_effect()`, and `reset_effects()`
 
-- **Minimal change**: Only modified the replay trigger methods in ReplayManager.cs
-- **No changes to effects managers**: Avoids introducing replay awareness into
-  multiple GDScript singletons, which could cause regression
-- **Preserves visual feedback**: Hit saturation and explosion flash still work
-- **Prevents time manipulation**: No `Engine.TimeScale` changes during replay
-- **Prevents scene freeze**: No `PROCESS_MODE_DISABLED` on replay ghost nodes
+5. **`Scripts/Autoload/ReplayManager.cs`**:
+   - Added `SetEffectManagersReplayMode(bool)` to set the flag on all managers
+   - Called in `StartPlayback()` (sets `true`) and `StopPlayback()` (sets `false`)
+   - Restored full effect trigger calls in replay methods (no longer skipping effects)
+   - `TriggerReplayPenultimateEffect()` calls `_start_penultimate_effect()` directly
+   - `TriggerReplayPowerFantasyKill()` calls `_start_effect(300.0)` directly (bypasses difficulty check)
+   - `TriggerReplayPowerFantasyGrenade()` calls `trigger_grenade_last_chance(2.0)` directly
+
+### Why This Approach (v2) is Better Than v1
+
+- **Full visual experience**: All shader effects, saturation, contrast, enemy/player
+  coloring, and fade-out animations work during replay
+- **Precise control**: Only time manipulation and process_mode changes are disabled
+- **Proper cleanup**: Effect managers' internal timers still manage effect duration
+  and cleanup, preventing orphaned visual effects
+- **Minimal flag**: Single boolean per manager, checked only at the point of
+  Engine.time_scale or process_mode modification
 
 ## Data Files
 
-- `game_log_20260207_180552.txt` - Full game log from the issue reporter
+- `game_log_20260207_180552.txt` - Full game log from the issue reporter (original bug)
+- `game_log_20260207_202720.txt` - Game log after first fix attempt (effects missing)

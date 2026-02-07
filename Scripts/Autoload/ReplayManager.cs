@@ -481,6 +481,9 @@ namespace GodotTopDownTemplate.Autoload
             CreateReplayUi(level);
             ApplyReplayMode();
 
+            // Issue #597: Set replay_mode on effect managers to prevent time manipulation
+            SetEffectManagersReplayMode(true);
+
             level.GetTree().Paused = true;
 
             EmitSignal(SignalName.ReplayStarted);
@@ -503,6 +506,10 @@ namespace GodotTopDownTemplate.Autoload
             CleanupGhostFilter();
             CleanupMemoryEffects();
             CleanupTrails();
+
+            // Issue #597: Clear replay_mode flag before disabling effects
+            // so that reset_effects() can restore Engine.TimeScale if needed
+            SetEffectManagersReplayMode(false);
 
             // Disable all gameplay effects (cinema, hit, penultimate, power fantasy)
             DisableAllReplayEffects();
@@ -856,6 +863,33 @@ namespace GodotTopDownTemplate.Autoload
 
             // Ensure time scale is restored
             Engine.TimeScale = 1.0;
+        }
+
+        /// <summary>
+        /// Sets the replay_mode flag on all effect managers.
+        /// Issue #597: When replay_mode is true, effect managers skip Engine.TimeScale
+        /// and process_mode changes while still applying all visual effects (shaders,
+        /// saturation, contrast, enemy coloring).
+        /// </summary>
+        private void SetEffectManagersReplayMode(bool enabled)
+        {
+            var hitEffects = GetNodeOrNull("/root/HitEffectsManager");
+            if (hitEffects != null)
+                hitEffects.Set("replay_mode", enabled);
+
+            var penultimateEffects = GetNodeOrNull("/root/PenultimateHitEffectsManager");
+            if (penultimateEffects != null)
+                penultimateEffects.Set("replay_mode", enabled);
+
+            var powerFantasyManager = GetNodeOrNull("/root/PowerFantasyEffectsManager");
+            if (powerFantasyManager != null)
+                powerFantasyManager.Set("replay_mode", enabled);
+
+            var lastChanceEffects = GetNodeOrNull("/root/LastChanceEffectsManager");
+            if (lastChanceEffects != null)
+                lastChanceEffects.Set("replay_mode", enabled);
+
+            LogToFile($"Effect managers replay_mode set to: {enabled}");
         }
 
         /// <summary>Cleans up Memory mode effects and blood decals.</summary>
@@ -2861,15 +2895,15 @@ namespace GodotTopDownTemplate.Autoload
         }
 
         // ============================================================
-        // Replay visual effects (visual-only, no time manipulation)
+        // Replay visual effects (visual-only via replay_mode flag, no time manipulation)
+        // Issue #597: Effect managers have a replay_mode flag that prevents
+        // Engine.TimeScale and process_mode changes while keeping all visual effects.
         // ============================================================
 
         /// <summary>
-        /// Triggers visual-only hit effect during replay playback.
-        /// Issue #597 fix: Only applies saturation shader overlay without modifying
-        /// Engine.TimeScale, which would disrupt replay playback timing.
-        /// Previously called on_player_hit_enemy() which set Engine.time_scale = 0.8,
-        /// causing replay to slow down unexpectedly.
+        /// Triggers the hit effect during replay playback.
+        /// The HitEffectsManager.replay_mode flag prevents Engine.TimeScale changes
+        /// while still applying the saturation shader overlay.
         /// </summary>
         private void TriggerReplayHitEffect()
         {
@@ -2880,68 +2914,65 @@ namespace GodotTopDownTemplate.Autoload
             var hitEffects = GetNodeOrNull("/root/HitEffectsManager");
             if (hitEffects != null)
             {
-                // Issue #597: Only trigger the visual saturation effect, NOT the
-                // time slowdown. During replay, time manipulation disrupts playback.
-                if (hitEffects.HasMethod("_start_saturation_effect"))
+                if (hitEffects.HasMethod("on_player_hit_enemy"))
                 {
-                    hitEffects.Call("_start_saturation_effect");
+                    hitEffects.Call("on_player_hit_enemy");
                 }
             }
         }
 
         /// <summary>
-        /// Triggers visual-only penultimate hit effect during replay playback.
-        /// Issue #597 fix: Only applies saturation/contrast shader overlay without
-        /// modifying Engine.TimeScale. Previously called _start_penultimate_effect()
-        /// which set Engine.time_scale = 0.1, causing replay to nearly freeze.
+        /// Triggers the penultimate hit effect during replay playback.
+        /// The PenultimateHitEffectsManager.replay_mode flag prevents Engine.TimeScale
+        /// changes while still applying saturation/contrast shader and enemy coloring.
         /// </summary>
         private void TriggerReplayPenultimateEffect()
         {
             // Only trigger gameplay effects in Memory mode.
             if (_currentMode != ReplayMode.Memory) return;
 
-            // Issue #597: During replay, skip the penultimate effect entirely.
-            // The penultimate effect freezes time to 0.1x and modifies process modes,
-            // which severely disrupts replay playback. The visual saturation/contrast
-            // overlay alone is not worth the risk of scene tree manipulation during replay.
-            // The explosion flash and cinema effects already provide visual feedback.
+            var penultimateEffects = GetNodeOrNull("/root/PenultimateHitEffectsManager");
+            if (penultimateEffects != null)
+            {
+                if (penultimateEffects.HasMethod("_start_penultimate_effect"))
+                {
+                    penultimateEffects.Call("_start_penultimate_effect");
+                }
+            }
         }
 
         /// <summary>
-        /// Triggers visual-only Power Fantasy kill effect during replay.
-        /// Issue #597 fix: Skipped during replay because on_enemy_killed() sets
-        /// Engine.time_scale = 0.1 for 300ms which disrupts replay playback timing.
-        /// The hit saturation effect (TriggerReplayHitEffect) already provides
-        /// visual feedback for kills during replay.
+        /// Triggers the Power Fantasy kill effect during replay playback.
+        /// Calls _start_effect() directly (bypassing difficulty check) because
+        /// the replay_mode flag prevents Engine.TimeScale changes.
         /// </summary>
         private void TriggerReplayPowerFantasyKill()
         {
             // Only trigger gameplay effects in Memory mode.
             if (_currentMode != ReplayMode.Memory) return;
 
-            // Issue #597: Skip PowerFantasy kill effect during replay.
-            // on_enemy_killed() calls _start_effect() which sets Engine.time_scale = 0.1,
-            // disrupting replay playback. The hit saturation effect already covers kills.
+            var powerFantasyManager = GetNodeOrNull("/root/PowerFantasyEffectsManager");
+            if (powerFantasyManager != null && powerFantasyManager.HasMethod("_start_effect"))
+            {
+                powerFantasyManager.Call("_start_effect", 300.0);
+            }
         }
 
         /// <summary>
-        /// Triggers visual-only Power Fantasy grenade explosion effect during replay.
-        /// Issue #597 fix: Skipped during replay because on_grenade_exploded() calls
-        /// LastChanceEffectsManager.trigger_grenade_last_chance() which freezes the
-        /// entire scene tree (including replay ghost entities) by setting all nodes
-        /// to PROCESS_MODE_DISABLED and applying a blue sepia shader overlay.
-        /// This caused replay playback to completely freeze for 2 seconds.
-        /// The explosion flash visual (SpawnExplosionFlash) already provides feedback.
+        /// Triggers the Power Fantasy grenade explosion effect during replay playback.
+        /// Calls LastChanceEffectsManager.trigger_grenade_last_chance() directly because
+        /// the replay_mode flag prevents process_mode freezing.
         /// </summary>
         private void TriggerReplayPowerFantasyGrenade()
         {
             // Only trigger gameplay effects in Memory mode.
             if (_currentMode != ReplayMode.Memory) return;
 
-            // Issue #597: Skip PowerFantasy grenade effect during replay.
-            // on_grenade_exploded() triggers LastChanceEffectsManager.trigger_grenade_last_chance()
-            // which freezes the entire scene tree and applies sepia overlay, completely
-            // disrupting replay playback. SpawnExplosionFlash() already handles the visual.
+            var lastChanceManager = GetNodeOrNull("/root/LastChanceEffectsManager");
+            if (lastChanceManager != null && lastChanceManager.HasMethod("trigger_grenade_last_chance"))
+            {
+                lastChanceManager.Call("trigger_grenade_last_chance", 2.0);
+            }
         }
 
         // ============================================================
