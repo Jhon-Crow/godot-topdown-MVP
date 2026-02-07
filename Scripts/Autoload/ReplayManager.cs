@@ -500,6 +500,9 @@ namespace GodotTopDownTemplate.Autoload
             CleanupMemoryEffects();
             CleanupTrails();
 
+            // Disable all gameplay effects (cinema, hit, penultimate, power fantasy)
+            DisableAllReplayEffects();
+
             // Restore visibility of original floor items that were hidden for Memory mode
             if (_levelNode != null && IsInstanceValid(_levelNode))
             {
@@ -602,7 +605,8 @@ namespace GodotTopDownTemplate.Autoload
         // Replay mode management
         // ============================================================
 
-        /// <summary>Sets the replay viewing mode and applies visual changes.</summary>
+        /// <summary>Sets the replay viewing mode and applies visual changes.
+        /// Restarts the replay from the beginning when switching modes.</summary>
         public void SetReplayMode(ReplayMode mode)
         {
             if (_currentMode == mode) return;
@@ -611,7 +615,12 @@ namespace GodotTopDownTemplate.Autoload
 
             if (_isPlayingBack || _playbackEnding)
             {
+                // Disable all active effects before switching modes
+                DisableAllReplayEffects();
                 ApplyReplayMode();
+                // Restart replay from beginning when switching modes
+                SeekTo(0.0f);
+                LogToFile($"Replay restarted from beginning after mode switch to {mode}");
             }
         }
 
@@ -626,6 +635,8 @@ namespace GodotTopDownTemplate.Autoload
                 CreateGhostFilter();
                 CleanupMemoryEffects();
                 CleanupTrails();
+                // Disable all gameplay effects when leaving Memory mode
+                DisableAllReplayEffects();
                 // Set ghost entities to slightly transparent
                 SetAllGhostModulate(new Color(1.0f, 1.0f, 1.0f, 0.9f));
 
@@ -790,6 +801,57 @@ namespace GodotTopDownTemplate.Autoload
                 cinemaEffects.Call("set_enabled", true);
                 LogToFile("Memory mode: CinemaEffects enabled");
             }
+        }
+
+        /// <summary>
+        /// Disables all replay-related effects (cinema, hit, penultimate, power fantasy, last chance).
+        /// Called when switching to Ghost mode, stopping playback, or restarting replay.
+        /// Restores Engine.TimeScale to 1.0 to undo any time slowdown effects.
+        /// </summary>
+        private void DisableAllReplayEffects()
+        {
+            // Disable cinema effects
+            var cinemaEffects = GetNodeOrNull("/root/CinemaEffectsManager");
+            if (cinemaEffects != null && cinemaEffects.HasMethod("set_enabled"))
+            {
+                cinemaEffects.Call("set_enabled", false);
+                LogToFile("DisableAllReplayEffects: CinemaEffects disabled");
+            }
+
+            // Reset hit effects (saturation + time slowdown)
+            var hitEffects = GetNodeOrNull("/root/HitEffectsManager");
+            if (hitEffects != null && hitEffects.HasMethod("reset_effects"))
+            {
+                hitEffects.Call("reset_effects");
+                LogToFile("DisableAllReplayEffects: HitEffects reset");
+            }
+
+            // Reset penultimate hit effects (saturation/contrast + time slowdown)
+            var penultimateEffects = GetNodeOrNull("/root/PenultimateHitEffectsManager");
+            if (penultimateEffects != null && penultimateEffects.HasMethod("reset_effects"))
+            {
+                penultimateEffects.Call("reset_effects");
+                LogToFile("DisableAllReplayEffects: PenultimateHitEffects reset");
+            }
+
+            // Reset power fantasy effects (kill/grenade time slowdown)
+            var powerFantasyManager = GetNodeOrNull("/root/PowerFantasyEffectsManager");
+            if (powerFantasyManager != null && powerFantasyManager.HasMethod("reset_effects"))
+            {
+                powerFantasyManager.Call("reset_effects");
+                LogToFile("DisableAllReplayEffects: PowerFantasyEffects reset");
+            }
+
+            // Reset last chance effects
+            var lastChanceEffects = GetNodeOrNull("/root/LastChanceEffectsManager");
+            if (lastChanceEffects != null && lastChanceEffects.HasMethod("reset_effects"))
+            {
+                lastChanceEffects.Call("reset_effects");
+                LogToFile("DisableAllReplayEffects: LastChanceEffects reset");
+            }
+
+            // Ensure time scale is restored
+            Engine.TimeScale = 1.0;
         }
 
         /// <summary>Cleans up Memory mode effects and blood decals.</summary>
@@ -971,7 +1033,10 @@ namespace GodotTopDownTemplate.Autoload
                 {
                     var footprint = footprintScene.Instantiate<Node2D>();
                     footprint.ProcessMode = ProcessModeEnum.Always;
-                    DisableNodeProcessing(footprint);
+                    // Do NOT call DisableNodeProcessing here — the BloodFootprint script
+                    // loads boot print textures in _ready(), so removing the script would
+                    // leave the sprite with no texture (invisible footprint).
+                    // The script is lightweight (no physics, no collision) so it's safe to keep.
                     footprint.GlobalPosition = data.Position;
                     footprint.Rotation = data.Rotation;
                     footprint.Scale = data.Scale;
