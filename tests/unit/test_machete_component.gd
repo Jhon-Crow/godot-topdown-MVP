@@ -1,8 +1,8 @@
 extends GutTest
-## Unit tests for MacheteComponent (Issue #579).
+## Unit tests for MacheteComponent (Issue #579, #595).
 ##
 ## Tests machete melee attack, bullet dodging, backstab detection,
-## and sneaking behavior for machete-wielding enemies.
+## sneaking behavior, and attack animation for machete-wielding enemies.
 
 
 # ============================================================================
@@ -11,6 +11,9 @@ extends GutTest
 
 
 class MockMacheteComponent:
+	## Animation phases for the machete swing attack (Issue #595).
+	enum AttackPhase { IDLE, WINDUP, PAUSE, STRIKE, RECOVERY }
+
 	## Melee attack range in pixels.
 	var melee_range: float = 80.0
 	## Melee attack damage.
@@ -39,6 +42,24 @@ class MockMacheteComponent:
 	var _dodge_progress: float = 0.0
 	## Parent position (simulated).
 	var _parent_position: Vector2 = Vector2.ZERO
+	## Current attack animation phase (Issue #595).
+	var _attack_phase: int = AttackPhase.IDLE
+	## Timer for current attack animation phase (Issue #595).
+	var _attack_anim_timer: float = 0.0
+	## Whether damage was already applied during this attack (Issue #595).
+	var _damage_applied: bool = false
+	## Current weapon rotation angle from animation (Issue #595).
+	var _weapon_rotation: float = 0.0
+	## Current arm offset from animation (Issue #595).
+	var _arm_offset: float = 0.0
+
+	# Animation duration constants (must match MacheteComponent).
+	const WINDUP_DURATION: float = 0.25
+	const PAUSE_DURATION: float = 0.1
+	const STRIKE_DURATION: float = 0.15
+	const RECOVERY_DURATION: float = 0.2
+	const WINDUP_ANGLE: float = -PI / 2.0
+	const STRIKE_END_ANGLE: float = PI / 2.0
 
 	func set_parent_position(pos: Vector2) -> void:
 		_parent_position = pos
@@ -52,14 +73,18 @@ class MockMacheteComponent:
 			if _dodge_progress >= 1.0:
 				_is_dodging = false
 				_dodge_progress = 0.0
+		if _attack_phase != AttackPhase.IDLE:
+			_process_attack_animation(delta)
 
 	func is_attack_ready() -> bool:
-		return _melee_timer >= melee_cooldown and not _is_dodging
+		return _melee_timer >= melee_cooldown and not _is_dodging and _attack_phase == AttackPhase.IDLE
 
 	func can_melee_attack(target_position: Vector2) -> bool:
 		if _melee_timer < melee_cooldown:
 			return false
 		if _is_dodging:
+			return false
+		if _attack_phase != AttackPhase.IDLE:
 			return false
 		var distance := _parent_position.distance_to(target_position)
 		return distance <= melee_range
@@ -107,6 +132,72 @@ class MockMacheteComponent:
 		dodge_speed = config.get("dodge_speed", 400.0)
 		dodge_distance = config.get("dodge_distance", 120.0)
 		sneak_speed_multiplier = config.get("sneak_speed_multiplier", 0.6)
+
+	## Start melee attack animation (Issue #595).
+	func perform_melee_attack(target_position: Vector2) -> bool:
+		if not can_melee_attack(target_position):
+			return false
+		_melee_timer = 0.0
+		_damage_applied = false
+		_set_attack_phase(AttackPhase.WINDUP)
+		return true
+
+	## Check if currently in an attack animation (Issue #595).
+	func is_attacking() -> bool:
+		return _attack_phase != AttackPhase.IDLE
+
+	## Get the current attack phase (Issue #595).
+	func get_attack_phase() -> int:
+		return _attack_phase
+
+	## Get the current weapon rotation offset (Issue #595).
+	func get_weapon_rotation() -> float:
+		return _weapon_rotation
+
+	## Get the current arm position offset (Issue #595).
+	func get_arm_offset() -> float:
+		return _arm_offset
+
+	## Process attack animation phases (Issue #595).
+	func _process_attack_animation(delta: float) -> void:
+		_attack_anim_timer += delta
+		match _attack_phase:
+			AttackPhase.WINDUP:
+				var progress := clampf(_attack_anim_timer / WINDUP_DURATION, 0.0, 1.0)
+				var eased := 1.0 - (1.0 - progress) * (1.0 - progress)
+				_weapon_rotation = lerpf(0.0, WINDUP_ANGLE, eased)
+				_arm_offset = lerpf(0.0, -4.0, eased)
+				if _attack_anim_timer >= WINDUP_DURATION:
+					_set_attack_phase(AttackPhase.PAUSE)
+			AttackPhase.PAUSE:
+				_weapon_rotation = WINDUP_ANGLE
+				_arm_offset = -4.0
+				if _attack_anim_timer >= PAUSE_DURATION:
+					_set_attack_phase(AttackPhase.STRIKE)
+			AttackPhase.STRIKE:
+				var progress := clampf(_attack_anim_timer / STRIKE_DURATION, 0.0, 1.0)
+				var eased := progress * progress
+				_weapon_rotation = lerpf(WINDUP_ANGLE, STRIKE_END_ANGLE, eased)
+				_arm_offset = lerpf(-4.0, 6.0, eased)
+				if progress >= 0.5 and not _damage_applied:
+					_damage_applied = true
+				if _attack_anim_timer >= STRIKE_DURATION:
+					_set_attack_phase(AttackPhase.RECOVERY)
+			AttackPhase.RECOVERY:
+				var progress := clampf(_attack_anim_timer / RECOVERY_DURATION, 0.0, 1.0)
+				var eased := progress * progress * (3.0 - 2.0 * progress)
+				_weapon_rotation = lerpf(STRIKE_END_ANGLE, 0.0, eased)
+				_arm_offset = lerpf(6.0, 0.0, eased)
+				if _attack_anim_timer >= RECOVERY_DURATION:
+					_set_attack_phase(AttackPhase.IDLE)
+
+	## Set the attack animation phase and reset the phase timer (Issue #595).
+	func _set_attack_phase(phase: int) -> void:
+		_attack_phase = phase
+		_attack_anim_timer = 0.0
+		if phase == AttackPhase.IDLE:
+			_weapon_rotation = 0.0
+			_arm_offset = 0.0
 
 
 # ============================================================================
@@ -165,6 +256,12 @@ func test_is_not_attack_ready_while_dodging() -> void:
 		"Should NOT be attack-ready while dodging")
 
 
+func test_is_not_attack_ready_while_attacking() -> void:
+	_component._attack_phase = MockMacheteComponent.AttackPhase.WINDUP
+	assert_false(_component.is_attack_ready(),
+		"Should NOT be attack-ready while in attack animation")
+
+
 # --- Melee Attack Tests ---
 
 func test_can_melee_attack_when_ready_and_in_range() -> void:
@@ -193,6 +290,13 @@ func test_cannot_melee_attack_while_dodging() -> void:
 		"Should NOT attack while dodging")
 
 
+func test_cannot_melee_attack_while_attacking() -> void:
+	_component.set_parent_position(Vector2(100, 100))
+	_component._attack_phase = MockMacheteComponent.AttackPhase.STRIKE
+	assert_false(_component.can_melee_attack(Vector2(150, 100)),
+		"Should NOT start new attack while attack animation is playing")
+
+
 func test_melee_cooldown_resets_after_time() -> void:
 	_component.set_parent_position(Vector2(100, 100))
 	_component._melee_timer = 0.0
@@ -202,6 +306,197 @@ func test_melee_cooldown_resets_after_time() -> void:
 	_component.update(1.5)
 	assert_true(_component.can_melee_attack(Vector2(150, 100)),
 		"Should be able to attack after cooldown elapsed")
+
+
+# --- Attack Animation Tests (Issue #595) ---
+
+func test_perform_melee_attack_starts_animation() -> void:
+	_component.set_parent_position(Vector2(100, 100))
+	var result := _component.perform_melee_attack(Vector2(150, 100))
+	assert_true(result, "Attack should start successfully")
+	assert_true(_component.is_attacking(), "Should be in attack animation")
+	assert_eq(_component.get_attack_phase(), MockMacheteComponent.AttackPhase.WINDUP,
+		"Should start in WINDUP phase")
+
+
+func test_attack_animation_starts_with_windup() -> void:
+	_component.set_parent_position(Vector2(100, 100))
+	_component.perform_melee_attack(Vector2(150, 100))
+	assert_eq(_component.get_attack_phase(), MockMacheteComponent.AttackPhase.WINDUP,
+		"First phase should be WINDUP")
+
+
+func test_attack_animation_windup_to_pause() -> void:
+	_component.set_parent_position(Vector2(100, 100))
+	_component.perform_melee_attack(Vector2(150, 100))
+	# Simulate windup duration
+	_component.update(MockMacheteComponent.WINDUP_DURATION + 0.01)
+	assert_eq(_component.get_attack_phase(), MockMacheteComponent.AttackPhase.PAUSE,
+		"Should transition from WINDUP to PAUSE")
+
+
+func test_attack_animation_pause_to_strike() -> void:
+	_component.set_parent_position(Vector2(100, 100))
+	_component.perform_melee_attack(Vector2(150, 100))
+	# Advance through windup
+	_component.update(MockMacheteComponent.WINDUP_DURATION + 0.01)
+	# Advance through pause
+	_component.update(MockMacheteComponent.PAUSE_DURATION + 0.01)
+	assert_eq(_component.get_attack_phase(), MockMacheteComponent.AttackPhase.STRIKE,
+		"Should transition from PAUSE to STRIKE")
+
+
+func test_attack_animation_strike_to_recovery() -> void:
+	_component.set_parent_position(Vector2(100, 100))
+	_component.perform_melee_attack(Vector2(150, 100))
+	_component.update(MockMacheteComponent.WINDUP_DURATION + 0.01)
+	_component.update(MockMacheteComponent.PAUSE_DURATION + 0.01)
+	_component.update(MockMacheteComponent.STRIKE_DURATION + 0.01)
+	assert_eq(_component.get_attack_phase(), MockMacheteComponent.AttackPhase.RECOVERY,
+		"Should transition from STRIKE to RECOVERY")
+
+
+func test_attack_animation_recovery_to_idle() -> void:
+	_component.set_parent_position(Vector2(100, 100))
+	_component.perform_melee_attack(Vector2(150, 100))
+	_component.update(MockMacheteComponent.WINDUP_DURATION + 0.01)
+	_component.update(MockMacheteComponent.PAUSE_DURATION + 0.01)
+	_component.update(MockMacheteComponent.STRIKE_DURATION + 0.01)
+	_component.update(MockMacheteComponent.RECOVERY_DURATION + 0.01)
+	assert_eq(_component.get_attack_phase(), MockMacheteComponent.AttackPhase.IDLE,
+		"Should return to IDLE after RECOVERY")
+	assert_false(_component.is_attacking(), "Should NOT be attacking after full animation")
+
+
+func test_attack_animation_full_duration() -> void:
+	_component.set_parent_position(Vector2(100, 100))
+	_component.perform_melee_attack(Vector2(150, 100))
+	var total_duration := (MockMacheteComponent.WINDUP_DURATION +
+		MockMacheteComponent.PAUSE_DURATION + MockMacheteComponent.STRIKE_DURATION +
+		MockMacheteComponent.RECOVERY_DURATION)
+	# Advance in small steps through entire animation
+	var time_passed := 0.0
+	var step := 0.05
+	while time_passed < total_duration + step:
+		_component.update(step)
+		time_passed += step
+	assert_false(_component.is_attacking(),
+		"Should NOT be attacking after full animation duration (%.2fs)" % total_duration)
+
+
+func test_weapon_rotation_during_windup() -> void:
+	_component.set_parent_position(Vector2(100, 100))
+	_component.perform_melee_attack(Vector2(150, 100))
+	# Advance partway through windup
+	_component.update(MockMacheteComponent.WINDUP_DURATION * 0.5)
+	assert_lt(_component.get_weapon_rotation(), 0.0,
+		"Weapon should rotate backward (negative) during windup")
+
+
+func test_weapon_rotation_at_pause() -> void:
+	_component.set_parent_position(Vector2(100, 100))
+	_component.perform_melee_attack(Vector2(150, 100))
+	_component.update(MockMacheteComponent.WINDUP_DURATION + 0.01)
+	# Now in PAUSE phase, weapon should be at WINDUP_ANGLE
+	assert_almost_eq(_component.get_weapon_rotation(), MockMacheteComponent.WINDUP_ANGLE, 0.01,
+		"Weapon should be at windup angle during pause")
+
+
+func test_weapon_rotation_during_strike() -> void:
+	_component.set_parent_position(Vector2(100, 100))
+	_component.perform_melee_attack(Vector2(150, 100))
+	_component.update(MockMacheteComponent.WINDUP_DURATION + 0.01)
+	_component.update(MockMacheteComponent.PAUSE_DURATION + 0.01)
+	# Advance partway through strike
+	_component.update(MockMacheteComponent.STRIKE_DURATION * 0.8)
+	assert_gt(_component.get_weapon_rotation(), MockMacheteComponent.WINDUP_ANGLE,
+		"Weapon should rotate forward during strike (greater than windup angle)")
+
+
+func test_weapon_rotation_returns_to_zero_after_animation() -> void:
+	_component.set_parent_position(Vector2(100, 100))
+	_component.perform_melee_attack(Vector2(150, 100))
+	_component.update(MockMacheteComponent.WINDUP_DURATION + 0.01)
+	_component.update(MockMacheteComponent.PAUSE_DURATION + 0.01)
+	_component.update(MockMacheteComponent.STRIKE_DURATION + 0.01)
+	_component.update(MockMacheteComponent.RECOVERY_DURATION + 0.01)
+	assert_almost_eq(_component.get_weapon_rotation(), 0.0, 0.01,
+		"Weapon rotation should return to 0 after animation completes")
+
+
+func test_arm_offset_during_windup() -> void:
+	_component.set_parent_position(Vector2(100, 100))
+	_component.perform_melee_attack(Vector2(150, 100))
+	_component.update(MockMacheteComponent.WINDUP_DURATION + 0.01)
+	# At pause, arm should be pulled back (negative offset)
+	assert_lt(_component.get_arm_offset(), 0.0,
+		"Arm should be pulled back (negative offset) during windup/pause")
+
+
+func test_arm_offset_during_strike() -> void:
+	_component.set_parent_position(Vector2(100, 100))
+	_component.perform_melee_attack(Vector2(150, 100))
+	_component.update(MockMacheteComponent.WINDUP_DURATION + 0.01)
+	_component.update(MockMacheteComponent.PAUSE_DURATION + 0.01)
+	_component.update(MockMacheteComponent.STRIKE_DURATION + 0.001)
+	# At end of strike, arm should be pushed forward (positive offset)
+	assert_gt(_component.get_arm_offset(), 0.0,
+		"Arm should be pushed forward (positive offset) at end of strike")
+
+
+func test_arm_offset_returns_to_zero_after_animation() -> void:
+	_component.set_parent_position(Vector2(100, 100))
+	_component.perform_melee_attack(Vector2(150, 100))
+	_component.update(MockMacheteComponent.WINDUP_DURATION + 0.01)
+	_component.update(MockMacheteComponent.PAUSE_DURATION + 0.01)
+	_component.update(MockMacheteComponent.STRIKE_DURATION + 0.01)
+	_component.update(MockMacheteComponent.RECOVERY_DURATION + 0.01)
+	assert_almost_eq(_component.get_arm_offset(), 0.0, 0.01,
+		"Arm offset should return to 0 after animation completes")
+
+
+func test_damage_applied_during_strike_phase() -> void:
+	_component.set_parent_position(Vector2(100, 100))
+	_component.perform_melee_attack(Vector2(150, 100))
+	assert_false(_component._damage_applied, "Damage should NOT be applied in WINDUP")
+	_component.update(MockMacheteComponent.WINDUP_DURATION + 0.01)
+	assert_false(_component._damage_applied, "Damage should NOT be applied in PAUSE")
+	_component.update(MockMacheteComponent.PAUSE_DURATION + 0.01)
+	# Advance past strike midpoint
+	_component.update(MockMacheteComponent.STRIKE_DURATION * 0.6)
+	assert_true(_component._damage_applied,
+		"Damage should be applied at midpoint of STRIKE phase")
+
+
+func test_cannot_start_second_attack_during_animation() -> void:
+	_component.set_parent_position(Vector2(100, 100))
+	_component.perform_melee_attack(Vector2(150, 100))
+	# Try to start another attack during animation
+	_component._melee_timer = _component.melee_cooldown  # Force cooldown ready
+	var result := _component.perform_melee_attack(Vector2(150, 100))
+	assert_false(result, "Should NOT start a second attack while animation is playing")
+
+
+func test_weapon_rotation_zero_when_idle() -> void:
+	assert_almost_eq(_component.get_weapon_rotation(), 0.0, 0.01,
+		"Weapon rotation should be 0 when idle (no attack)")
+
+
+func test_arm_offset_zero_when_idle() -> void:
+	assert_almost_eq(_component.get_arm_offset(), 0.0, 0.01,
+		"Arm offset should be 0 when idle (no attack)")
+
+
+func test_attack_animation_durations_positive() -> void:
+	assert_gt(MockMacheteComponent.WINDUP_DURATION, 0.0, "WINDUP_DURATION should be positive")
+	assert_gt(MockMacheteComponent.PAUSE_DURATION, 0.0, "PAUSE_DURATION should be positive")
+	assert_gt(MockMacheteComponent.STRIKE_DURATION, 0.0, "STRIKE_DURATION should be positive")
+	assert_gt(MockMacheteComponent.RECOVERY_DURATION, 0.0, "RECOVERY_DURATION should be positive")
+
+
+func test_strike_faster_than_windup() -> void:
+	assert_lt(MockMacheteComponent.STRIKE_DURATION, MockMacheteComponent.WINDUP_DURATION,
+		"STRIKE should be faster than WINDUP for aggressive feel")
 
 
 # --- Backstab Detection Tests ---
@@ -407,3 +702,30 @@ func test_melee_damage_value() -> void:
 func test_melee_range_value() -> void:
 	assert_eq(_component.melee_range, 80.0,
 		"Default melee range should be 80px")
+
+
+# --- Machete Attack Animation Constants Tests (Issue #595) ---
+
+func test_machete_shoot_cooldown() -> void:
+	var config := WeaponConfigComponent.get_config(3)
+	assert_eq(config["shoot_cooldown"], 1.5, "MACHETE shoot cooldown should be 1.5s")
+
+
+func test_machete_bullet_speed_is_zero() -> void:
+	var config := WeaponConfigComponent.get_config(3)
+	assert_eq(config["bullet_speed"], 0.0, "MACHETE bullet speed should be 0")
+
+
+func test_machete_magazine_size_is_zero() -> void:
+	var config := WeaponConfigComponent.get_config(3)
+	assert_eq(config["magazine_size"], 0, "MACHETE magazine size should be 0")
+
+
+func test_machete_weapon_loudness() -> void:
+	var config := WeaponConfigComponent.get_config(3)
+	assert_eq(config["weapon_loudness"], 200.0, "MACHETE weapon loudness should be 200.0")
+
+
+func test_machete_is_melee() -> void:
+	var config := WeaponConfigComponent.get_config(3)
+	assert_true(config["is_melee"], "MACHETE should be a melee weapon")
