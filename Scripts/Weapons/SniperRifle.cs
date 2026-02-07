@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Godot;
 using GodotTopDownTemplate.AbstractClasses;
 using GodotTopDownTemplate.Projectiles;
@@ -545,7 +546,16 @@ public partial class SniperRifle : BaseWeapon
     // =========================================================================
 
     /// <summary>
-    /// Fires the sniper rifle. Only fires if bolt is ready.
+    /// Whether to skip bullet spawning (used during hitscan fire).
+    /// When true, SpawnBullet() does nothing because hitscan handles damage directly.
+    /// </summary>
+    private bool _skipBulletSpawn = false;
+
+    /// <summary>
+    /// Fires the sniper rifle using hitscan (instant raycast damage).
+    /// All enemies along the bullet path take damage instantly.
+    /// The smoke tracer only extends to the point where the bullet stops
+    /// (after exceeding wall penetration limit or reaching max range).
     /// After firing, transitions to NeedsBoltCycle state.
     /// </summary>
     public override bool Fire(Vector2 direction)
@@ -575,10 +585,17 @@ public partial class SniperRifle : BaseWeapon
         // When scope is not active, use _aimDirection (laser sight direction)
         Vector2 fireDirection = _isScopeActive ? direction : _aimDirection;
         Vector2 spreadDirection = ApplyRecoil(fireDirection);
+
+        // Skip bullet spawning - we use hitscan instead
+        _skipBulletSpawn = true;
         bool result = base.Fire(spreadDirection);
+        _skipBulletSpawn = false;
 
         if (result)
         {
+            // Perform hitscan - instant raycast damage along bullet path
+            Vector2 bulletEndPoint = PerformHitscan(GlobalPosition, spreadDirection);
+
             // Store fire direction for casing ejection during bolt step 2
             _lastFireDirection = spreadDirection;
 
@@ -593,13 +610,194 @@ public partial class SniperRifle : BaseWeapon
             // Trigger heavy screen shake
             TriggerScreenShake(spreadDirection);
 
-            // Spawn smoky tracer trail
-            SpawnSmokyTracer(GlobalPosition, spreadDirection);
+            // Spawn smoky tracer trail limited to the bullet's actual path
+            SpawnSmokyTracer(GlobalPosition, spreadDirection, bulletEndPoint);
 
-            GD.Print("[SniperRifle] FIRED! Bolt needs cycling. Ammo remaining: " + CurrentAmmo);
+            // Spawn muzzle flash
+            Vector2 muzzlePos = GlobalPosition + spreadDirection * BulletSpawnOffset;
+            SpawnMuzzleFlash(muzzlePos, spreadDirection, WeaponData?.Caliber);
+
+            GD.Print("[SniperRifle] FIRED (hitscan)! Bolt needs cycling. Ammo remaining: " + CurrentAmmo);
         }
 
         return result;
+    }
+
+    // =========================================================================
+    // Hitscan Logic
+    // =========================================================================
+
+    /// <summary>
+    /// Performs instant hitscan along the bullet path.
+    /// Raycasts sequentially to find all walls and enemies along the path.
+    /// Enemies take damage instantly. The bullet stops after exceeding
+    /// MaxWallPenetrations walls or reaching max range.
+    /// </summary>
+    /// <param name="origin">Starting position of the shot.</param>
+    /// <param name="direction">Normalized direction of the shot.</param>
+    /// <returns>The endpoint where the bullet stops (for smoke tracer).</returns>
+    private Vector2 PerformHitscan(Vector2 origin, Vector2 direction)
+    {
+        float maxRange = 5000.0f;
+        Vector2 startPos = origin + direction * BulletSpawnOffset;
+        Vector2 endPos = origin + direction * maxRange;
+        int wallsPenetrated = 0;
+        float damage = WeaponData?.Damage ?? 50.0f;
+        Vector2 bulletEndPoint = endPos;
+
+        var spaceState = GetWorld2D()?.DirectSpaceState;
+        if (spaceState == null)
+        {
+            return bulletEndPoint;
+        }
+
+        // Get shooter ID to prevent self-damage
+        var owner = GetParent();
+        ulong shooterId = owner?.GetInstanceId() ?? 0;
+
+        // Collision mask: walls (layer 3 = 4) + enemy bodies (layer 2 = 2) + enemy hit areas need area detection
+        // For physics raycast we detect bodies: walls (layer 3 = 4) and enemy CharacterBody2D (layer 2 = 2)
+        uint wallMask = 4;  // Layer 3 = obstacles/walls
+        uint enemyBodyMask = 2;  // Layer 2 = enemy bodies
+        uint combinedMask = wallMask | enemyBodyMask;
+
+        Vector2 currentPos = startPos;
+        var excludeRids = new Godot.Collections.Array<Rid>();
+        var damagedEnemies = new HashSet<ulong>(); // Track already-damaged enemies by instance ID
+
+        // Sequential raycasts to find all hits along the path
+        for (int iteration = 0; iteration < 50; iteration++) // Safety limit
+        {
+            if (currentPos.DistanceTo(endPos) < 1.0f)
+            {
+                break;
+            }
+
+            var query = PhysicsRayQueryParameters2D.Create(
+                currentPos, endPos, combinedMask
+            );
+            query.Exclude = excludeRids;
+            query.HitFromInside = true;
+            query.CollideWithAreas = false;
+            query.CollideWithBodies = true;
+
+            var result = spaceState.IntersectRay(query);
+            if (result.Count == 0)
+            {
+                // No more hits - bullet travels to max range
+                break;
+            }
+
+            var hitCollider = (Node2D)result["collider"];
+            var hitPosition = (Vector2)result["position"];
+            var hitRid = (Rid)result["rid"];
+
+            // Skip self
+            if (hitCollider.GetInstanceId() == shooterId)
+            {
+                excludeRids.Add(hitRid);
+                continue;
+            }
+
+            // Check if this is a wall/obstacle
+            if (hitCollider is StaticBody2D || hitCollider is TileMap)
+            {
+                // Spawn dust effect at wall hit point
+                SpawnWallHitEffectAt(hitPosition, direction);
+
+                if (wallsPenetrated < MaxWallPenetrations)
+                {
+                    // Penetrate through this wall
+                    wallsPenetrated++;
+                    GD.Print($"[SniperRifle] Hitscan: penetrated wall {wallsPenetrated}/{MaxWallPenetrations} at {hitPosition}");
+                    excludeRids.Add(hitRid);
+                    // Continue from just past the hit point
+                    currentPos = hitPosition + direction * 5.0f;
+                    continue;
+                }
+                else
+                {
+                    // Exceeded max penetrations - bullet stops here
+                    bulletEndPoint = hitPosition;
+                    GD.Print($"[SniperRifle] Hitscan: max wall penetrations ({MaxWallPenetrations}) reached at {hitPosition}");
+                    break;
+                }
+            }
+
+            // Check if this is an enemy (CharacterBody2D on layer 2)
+            if (hitCollider is CharacterBody2D)
+            {
+                var enemyId = hitCollider.GetInstanceId();
+
+                // Skip already-damaged enemies and self
+                if (enemyId == shooterId || damagedEnemies.Contains(enemyId))
+                {
+                    excludeRids.Add(hitRid);
+                    currentPos = hitPosition + direction * 5.0f;
+                    continue;
+                }
+
+                // Check if enemy is alive
+                bool isAlive = true;
+                if (hitCollider.HasMethod("is_alive"))
+                {
+                    isAlive = hitCollider.Call("is_alive").AsBool();
+                }
+
+                if (isAlive)
+                {
+                    // Apply instant damage
+                    if (hitCollider.HasMethod("take_damage"))
+                    {
+                        GD.Print($"[SniperRifle] Hitscan: hit enemy {hitCollider.Name} at {hitPosition}, applying {damage} damage");
+                        hitCollider.Call("take_damage", damage);
+                        damagedEnemies.Add(enemyId);
+
+                        // Trigger player hit effects
+                        TriggerPlayerHitEffectsHitscan();
+                    }
+                }
+
+                // Bullet passes through enemies - continue
+                excludeRids.Add(hitRid);
+                currentPos = hitPosition + direction * 5.0f;
+                continue;
+            }
+
+            // Unknown collider - skip and continue
+            excludeRids.Add(hitRid);
+            currentPos = hitPosition + direction * 5.0f;
+        }
+
+        GD.Print($"[SniperRifle] Hitscan complete: walls={wallsPenetrated}, enemies_hit={damagedEnemies.Count}, endpoint={bulletEndPoint}");
+        return bulletEndPoint;
+    }
+
+    /// <summary>
+    /// Spawns a dust/impact effect at a wall hit position (for hitscan).
+    /// </summary>
+    private void SpawnWallHitEffectAt(Vector2 position, Vector2 direction)
+    {
+        var impactManager = GetNodeOrNull("/root/ImpactEffectsManager");
+        if (impactManager == null || !impactManager.HasMethod("spawn_dust_effect"))
+        {
+            return;
+        }
+
+        Vector2 surfaceNormal = -direction.Normalized();
+        impactManager.Call("spawn_dust_effect", position, surfaceNormal, Variant.CreateFrom((Resource?)null));
+    }
+
+    /// <summary>
+    /// Triggers hit effects when player hitscan hits an enemy.
+    /// </summary>
+    private void TriggerPlayerHitEffectsHitscan()
+    {
+        var hitEffectsManager = GetNodeOrNull("/root/HitEffectsManager");
+        if (hitEffectsManager != null && hitEffectsManager.HasMethod("on_player_hit_enemy"))
+        {
+            hitEffectsManager.Call("on_player_hit_enemy");
+        }
     }
 
     /// <summary>
@@ -607,9 +805,17 @@ public partial class SniperRifle : BaseWeapon
     /// - Very high damage (50)
     /// - Passes through enemies (doesn't destroy on hit)
     /// - Penetrates through 2 walls (wall-count based, not distance-based)
+    /// NOTE: This method is kept for compatibility but is no longer called
+    /// during normal firing (hitscan is used instead).
     /// </summary>
     protected override void SpawnBullet(Vector2 direction)
     {
+        // Skip bullet spawning when using hitscan (damage is applied via raycast)
+        if (_skipBulletSpawn)
+        {
+            return;
+        }
+
         if (BulletScene == null)
         {
             return;
@@ -700,15 +906,13 @@ public partial class SniperRifle : BaseWeapon
 
     /// <summary>
     /// Spawns a smoky dissipating tracer trail from the fire position
-    /// in the shooting direction across the entire map.
-    /// The tracer is an instant visual effect (like a contrail from a plane)
-    /// that fades out over time.
+    /// to the bullet's endpoint (where it stopped after wall penetration limit
+    /// or at max range). The tracer is an instant visual effect that fades out.
     /// </summary>
-    private void SpawnSmokyTracer(Vector2 fromPosition, Vector2 direction)
+    private void SpawnSmokyTracer(Vector2 fromPosition, Vector2 direction, Vector2 bulletEndPoint)
     {
-        // Calculate tracer end point - extend to edge of map (very far)
-        float tracerLength = 5000.0f; // Far enough to reach any map edge
-        Vector2 endPosition = fromPosition + direction * tracerLength;
+        // Use the bullet's actual endpoint (limited by wall penetrations)
+        Vector2 endPosition = bulletEndPoint;
 
         // Create the tracer as a Line2D with smoke-like appearance
         var tracer = new Line2D
