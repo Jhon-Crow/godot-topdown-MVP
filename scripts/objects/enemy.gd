@@ -1160,7 +1160,7 @@ func _finish_reload() -> void:
 
 ## Check if the enemy can shoot (has ammo and not reloading). Machete: melee cooldown (Issue #579).
 func _can_shoot() -> bool:
-	if _is_melee_weapon: return _machete != null and _machete._melee_timer >= _machete.melee_cooldown
+	if _is_melee_weapon: return _machete != null and _machete.is_attack_ready()
 	# Can't shoot if reloading
 	if _is_reloading:
 		return false

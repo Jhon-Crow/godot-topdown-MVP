@@ -53,6 +53,9 @@ class MockMacheteComponent:
 				_is_dodging = false
 				_dodge_progress = 0.0
 
+	func is_attack_ready() -> bool:
+		return _melee_timer >= melee_cooldown and not _is_dodging
+
 	func can_melee_attack(target_position: Vector2) -> bool:
 		if _melee_timer < melee_cooldown:
 			return false
@@ -141,6 +144,25 @@ func test_melee_range_boundary() -> void:
 	# Just beyond range
 	assert_false(_component.is_in_melee_range(Vector2(81, 0)),
 		"Should NOT be in range at 81px")
+
+
+# --- Attack Ready Tests ---
+
+func test_is_attack_ready_when_cooldown_elapsed() -> void:
+	assert_true(_component.is_attack_ready(),
+		"Should be attack-ready when cooldown elapsed and not dodging")
+
+
+func test_is_not_attack_ready_on_cooldown() -> void:
+	_component._melee_timer = 0.0
+	assert_false(_component.is_attack_ready(),
+		"Should NOT be attack-ready when on cooldown")
+
+
+func test_is_not_attack_ready_while_dodging() -> void:
+	_component._is_dodging = true
+	assert_false(_component.is_attack_ready(),
+		"Should NOT be attack-ready while dodging")
 
 
 # --- Melee Attack Tests ---

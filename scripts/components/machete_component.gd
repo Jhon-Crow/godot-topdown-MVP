@@ -74,6 +74,11 @@ func update(delta: float) -> void:
 		_process_dodge(delta)
 
 
+## Check if melee attack cooldown is ready (ignores range/dodge).
+func is_attack_ready() -> bool:
+	return _melee_timer >= melee_cooldown and not _is_dodging
+
+
 ## Check if melee attack can be performed (in range and off cooldown).
 func can_melee_attack(target: Node2D) -> bool:
 	if target == null or _parent == null:
@@ -143,13 +148,14 @@ func is_player_under_fire(player: Node2D) -> bool:
 			continue
 		if not is_instance_valid(enemy):
 			continue
-		# Check if this other enemy is actively shooting at the player
-		if enemy.get("_current_state") != null and enemy.get("_can_see_player") != null:
-			var state: int = enemy._current_state
-			var can_see: bool = enemy._can_see_player
-			# States 1 (COMBAT) and 6 (RETREATING) involve shooting
-			if can_see and (state == 1 or state == 6):
-				return true
+		# Check if this other enemy is actively engaging the player
+		var state = enemy.get("_current_state")
+		var can_see = enemy.get("_can_see_player")
+		if state == null or can_see == null:
+			continue
+		# COMBAT=1 and RETREATING=6 in enemy AIState enum (shooting states)
+		if can_see and (state == 1 or state == 6):
+			return true
 	return false
 
 
@@ -187,22 +193,20 @@ func try_dodge(bullet_direction: Vector2) -> bool:
 	var perp_right := Vector2(-bullet_direction.y, bullet_direction.x)
 	var perp_left := Vector2(bullet_direction.y, -bullet_direction.x)
 
-	# Choose the dodge direction that moves further from bullet path
-	# Use a simple heuristic: dodge to whichever side has more space
-	var right_test := _parent.global_position + perp_right * dodge_distance
-	var left_test := _parent.global_position + perp_left * dodge_distance
+	# Choose dodge side: prefer the one closer to valid navigation mesh
+	var right_pos := _parent.global_position + perp_right * dodge_distance
+	var left_pos := _parent.global_position + perp_left * dodge_distance
 
-	# Prefer the side that doesn't collide with walls (use navigation check)
 	var nav_agent: NavigationAgent2D = _parent.get_node_or_null("NavigationAgent2D")
 	if nav_agent:
-		# Check both sides, prefer the closer-to-navigation-mesh one
-		_dodge_target = _parent.global_position + perp_right * dodge_distance
+		var right_nearest := NavigationServer2D.map_get_closest_point(nav_agent.get_navigation_map(), right_pos)
+		var left_nearest := NavigationServer2D.map_get_closest_point(nav_agent.get_navigation_map(), left_pos)
+		var right_dist := right_pos.distance_squared_to(right_nearest)
+		var left_dist := left_pos.distance_squared_to(left_nearest)
+		_dodge_target = left_pos if left_dist < right_dist else right_pos
 	else:
-		_dodge_target = _parent.global_position + perp_right * dodge_distance
-
-	# Randomly pick side with slight preference for distance from bullet
-	if randf() > 0.5:
-		_dodge_target = _parent.global_position + perp_left * dodge_distance
+		# No navigation: pick a random side
+		_dodge_target = left_pos if randf() > 0.5 else right_pos
 
 	dodge_performed.emit((_dodge_target - _parent.global_position).normalized())
 	_log("Dodge initiated: direction=%s, target=%s" % [(_dodge_target - _parent.global_position).normalized(), _dodge_target])
