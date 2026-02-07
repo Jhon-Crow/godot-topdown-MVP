@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=3 format=3 uid="uid://dk8m5n4r7p6q2"]
+
+[ext_resource type="Script" path="res://Scripts/Data/WeaponData.cs" id="1_script"]
+[ext_resource type="Resource" uid="uid://cr8m5n4k7p6q3" path="res://resources/calibers/caliber_12p7x55.tres" id="2_caliber"]
+
+[resource]
+script = ExtResource("1_script")
+Name = "RSh-12"
+Damage = 20.0
+FireRate = 2.0
+MagazineSize = 5
+MaxReserveAmmo = 10
+ReloadTime = 2.5
+BulletSpeed = 2500.0
+Range = 2000.0
+SpreadAngle = 1.5
+BulletsPerShot = 1
+IsAutomatic = false
+Sensitivity = 2.0
+ScreenShakeIntensity = 22.0
+ScreenShakeMinRecoveryTime = 0.45
+ScreenShakeMaxRecoveryTime = 0.1
+Loudness = 2500.0
+Caliber = ExtResource("2_caliber")
