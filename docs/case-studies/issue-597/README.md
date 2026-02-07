@@ -130,7 +130,74 @@ flag to each GDScript effect manager. When `replay_mode = true`:
 - **Minimal flag**: Single boolean per manager, checked only at the point of
   Engine.time_scale or process_mode modification
 
+## Fix v3: Fixing Effects Not Appearing (2026-02-07)
+
+### Additional Root Causes Found
+
+After the v2 fix, the user still reported "визуальные эффекты не появились" (visual
+effects did not appear). Deep analysis of both game logs revealed three additional bugs:
+
+#### Bug 1: SeekTo() Does Not Reset _lastAppliedFrame
+
+`SeekTo(float time)` in `ReplayManager.cs` updates `_playbackFrame` but does NOT
+reset `_lastAppliedFrame`. When switching replay modes (Ghost→Memory) via
+`SetReplayMode()`, `SeekTo(0.0f)` is called to restart from the beginning. But
+`_lastAppliedFrame` retains the old value (e.g., 1875 for a fully-played Ghost replay).
+
+In `PlaybackFrameUpdate()`, the condition `_playbackFrame > _lastAppliedFrame` is
+checked before calling `PlayFrameEvents()`. Since `_playbackFrame` (reset to 0 by
+SeekTo) is NOT greater than `_lastAppliedFrame` (still at 1875), `PlayFrameEvents()`
+is NEVER called — meaning no Death/Hit events trigger effects during the entire
+Memory replay after a mode switch.
+
+**Fix**: Reset `_lastAppliedFrame = _playbackFrame - 1` in `SeekTo()`.
+
+#### Bug 2: Effect Managers' process_mode Blocks Timers During Replay
+
+During replay, the game tree is paused (`level.GetTree().Paused = true`). Effect
+managers are autoload singletons with default `process_mode = Inherit`. When the tree
+is paused, their `_process()` callbacks don't run. This means:
+
+- Effect starts (shader becomes visible) ✓
+- Timer in `_process()` never decrements → effect never ends → `_end_effect()` never called
+- Fade-out animations don't play (they also run in `_process()`)
+
+While effects technically start, their inability to properly end/fade leads to
+visual artifacts and prevents subsequent effects from triggering (many effects check
+`if _is_effect_active: return` at the start).
+
+**Fix**: Set effect managers' `process_mode = Always` when entering replay mode,
+restore to `Inherit` when exiting.
+
+#### Bug 3: HasMethod May Not Find Underscore-Prefixed Methods
+
+`TriggerReplayPowerFantasyKill()` and `TriggerReplayPenultimateEffect()` used
+`HasMethod("_start_effect")` and `HasMethod("_start_penultimate_effect")` to check
+before calling. GDScript methods prefixed with `_` are conventionally private, and
+`HasMethod()` behavior for these may vary across Godot versions. If `HasMethod`
+returns false, the effect call is silently skipped with no logging.
+
+**Fix**: Remove `HasMethod` guard for these calls; call directly and add logging.
+
+### Evidence from Game Logs
+
+In **both** game logs (original bug and after v2 fix), during Memory replay playback
+there are ZERO logs from any effect manager. Only `ReplayManager` logs for blood
+decals, casings, and footprints appear. This pattern holds for:
+
+- Ghost→Memory switch replays (SeekTo bug)
+- Direct Memory mode replays (process_mode + HasMethod bugs)
+
+### v3 Changes
+
+1. **`Scripts/Autoload/ReplayManager.cs`**:
+   - `SeekTo()`: Reset `_lastAppliedFrame = _playbackFrame - 1` after seeking
+   - `SetEffectManagersReplayMode()`: Also set `process_mode` to `Always`/`Inherit`
+   - `TriggerReplayPowerFantasyKill()`: Remove `HasMethod` guard, call directly
+   - `TriggerReplayPenultimateEffect()`: Remove `HasMethod` guard, call directly
+   - Added diagnostic logging to `PlayFrameEvents` and all trigger methods
+
 ## Data Files
 
 - `game_log_20260207_180552.txt` - Full game log from the issue reporter (original bug)
-- `game_log_20260207_202720.txt` - Game log after first fix attempt (effects missing)
+- `game_log_20260207_202720.txt` - Game log after v2 fix (effects still missing)
