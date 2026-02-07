@@ -357,11 +357,10 @@ var _killed_by_ricochet: bool = false
 ## Whether the last hit that killed this enemy was from a bullet that penetrated a wall.
 var _killed_by_penetration: bool = false
 
-## [Status Effects] Blinded (cannot see player), Stunned (cannot move/act)
+## [Status Effects] Component handles blindness and stun (Issue #432, #328)
+var _flashbang_status: FlashbangStatusComponent = null
 var _is_blinded: bool = false
 var _is_stunned: bool = false
-var _blindness_timer: float = 0.0  ## [Issue #432] Flashbang effect timer
-var _stun_timer: float = 0.0  ## [Issue #432] Flashbang effect timer
 
 ## [Grenade Avoidance - Issue #407] Component handles avoidance logic
 var _grenade_avoidance: GrenadeAvoidanceComponent = null
@@ -413,6 +412,7 @@ func _ready() -> void:
 	_connect_debug_mode_signal()
 	_update_debug_label()
 	_register_sound_listener()
+	_setup_flashbang_status()
 	_setup_grenade_component()
 	_setup_grenade_avoidance()
 	_setup_machete_component()  # Issue #579
@@ -832,7 +832,8 @@ func _physics_process(delta: float) -> void:
 		return
 
 	# Update flashbang status effect timers (Issue #432)
-	_update_flashbang_timers(delta)
+	if _flashbang_status:
+		_flashbang_status.update(delta)
 
 	# Update shoot cooldown timer
 	_shoot_timer += delta
@@ -4823,44 +4824,37 @@ func _get_nav_path_distance(target_pos: Vector2) -> float:
 	_nav_agent.target_position = target_pos
 	return _nav_agent.distance_to_target()
 
-# Status Effects (Blindness, Stun)
+# Status Effects (Blindness, Stun) - delegated to FlashbangStatusComponent (Issue #328)
+
+func _setup_flashbang_status() -> void:
+	_flashbang_status = FlashbangStatusComponent.new()
+	_flashbang_status.name = "FlashbangStatusComponent"
+	_flashbang_status.blinded_changed.connect(_on_blinded_changed)
+	_flashbang_status.stunned_changed.connect(_on_stunned_changed)
+	add_child(_flashbang_status)
+
+func _on_blinded_changed(blinded: bool) -> void:
+	_is_blinded = blinded
+	if blinded:
+		_can_see_player = false; _continuous_visibility_timer = 0.0
+
+func _on_stunned_changed(stunned: bool) -> void:
+	_is_stunned = stunned
+	if stunned:
+		velocity = Vector2.ZERO
 
 func set_blinded(blinded: bool) -> void:
-	var was := _is_blinded
-	_is_blinded = blinded
-	if blinded and not was:
-		_log_to_file("Status: BLINDED applied")
-		_can_see_player = false; _continuous_visibility_timer = 0.0
-	elif not blinded and was:
-		_log_to_file("Status: BLINDED removed")
+	if _flashbang_status: _flashbang_status.set_blinded(blinded)
 
 func set_stunned(stunned: bool) -> void:
-	var was := _is_stunned
-	_is_stunned = stunned
-	if stunned and not was:
-		_log_to_file("Status: STUNNED applied")
-		velocity = Vector2.ZERO
-	elif not stunned and was:
-		_log_to_file("Status: STUNNED removed")
+	if _flashbang_status: _flashbang_status.set_stunned(stunned)
 
 func is_blinded() -> bool: return _is_blinded
 func is_stunned() -> bool: return _is_stunned
 
-
 ## Apply flashbang effect (Issue #432). Called by C# GrenadeTimer.
 func apply_flashbang_effect(blindness_duration: float, stun_duration: float) -> void:
-	_log_to_file("Flashbang: blind=%.1fs, stun=%.1fs" % [blindness_duration, stun_duration])
-	if blindness_duration > 0.0: _blindness_timer = maxf(_blindness_timer, blindness_duration); set_blinded(true)
-	if stun_duration > 0.0: _stun_timer = maxf(_stun_timer, stun_duration); set_stunned(true)
-
-## Update flashbang timers (Issue #432). Called from _physics_process.
-func _update_flashbang_timers(delta: float) -> void:
-	if _blindness_timer > 0.0:
-		_blindness_timer -= delta
-		if _blindness_timer <= 0.0: _blindness_timer = 0.0; set_blinded(false)
-	if _stun_timer > 0.0:
-		_stun_timer -= delta
-		if _stun_timer <= 0.0: _stun_timer = 0.0; set_stunned(false)
+	if _flashbang_status: _flashbang_status.apply_flashbang_effect(blindness_duration, stun_duration)
 
 
 # Grenade System (Issue #363) - Component-based (extracted for Issue #377)

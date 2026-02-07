@@ -37,21 +37,25 @@ uniform float edge_softness : hint_range(0.01, 1.0) = 0.35;
 // Use filter_nearest and textureLod for gl_compatibility mode support.
 uniform sampler2D screen_texture : hint_screen_texture, repeat_disable, filter_nearest;
 
-// Number of blur samples (higher = smoother but more expensive).
-// 8 samples gives a good quality/performance balance for radial blur.
-const int BLUR_SAMPLES = 8;
+// Number of blur samples per pass (higher = smoother blur).
+const int BLUR_SAMPLES = 16;
 
-// Maximum blur radius in UV space. Scaled by blur_intensity.
-const float MAX_BLUR_RADIUS = 0.025;
+// Number of multi-pass blur iterations for extreme defocus.
+// Each pass re-blurs the already-blurred result, stacking the effect.
+const int BLUR_PASSES = 4;
+
+// Maximum blur radius in UV space per pass. Scaled by blur_intensity.
+// Large radius combined with multiple passes creates a heavily defocused image.
+const float MAX_BLUR_RADIUS = 0.06;
 
 // Swimming distortion strength. Scaled by blur_intensity.
-const float SWIM_STRENGTH = 0.008;
+const float SWIM_STRENGTH = 0.025;
 
 // Swimming distortion wave frequency.
-const float SWIM_FREQUENCY = 3.0;
+const float SWIM_FREQUENCY = 4.0;
 
 // Swimming distortion animation speed.
-const float SWIM_SPEED = 1.5;
+const float SWIM_SPEED = 2.0;
 
 void fragment() {
 	// Calculate swimming distortion (wavy UV offset that makes things look like
@@ -61,24 +65,45 @@ void fragment() {
 		float swim = blur_intensity * SWIM_STRENGTH;
 		swim_offset.x = sin(SCREEN_UV.y * SWIM_FREQUENCY * 6.28 + time_offset * SWIM_SPEED) * swim;
 		swim_offset.y = cos(SCREEN_UV.x * SWIM_FREQUENCY * 6.28 + time_offset * SWIM_SPEED * 0.7) * swim;
+		// Second harmonic adds more chaotic distortion
+		swim_offset.x += sin(SCREEN_UV.y * SWIM_FREQUENCY * 3.14 + time_offset * SWIM_SPEED * 1.3) * swim * 0.5;
+		swim_offset.y += cos(SCREEN_UV.x * SWIM_FREQUENCY * 3.14 + time_offset * SWIM_SPEED * 0.9) * swim * 0.5;
 	}
 
 	vec2 base_uv = SCREEN_UV + swim_offset;
 
-	// Radial blur: sample the screen at multiple offsets from the center and average.
-	// This creates a "long exposure / motion blur" effect centered on the screen.
+	// Multi-pass radial blur: sample the screen at many offsets across multiple
+	// radii and directions, creating a heavily defocused / motion blur effect.
+	// Simulates "many times overlaid motion blur" as if the image was re-blurred
+	// multiple times, making everything completely unrecognizable at full intensity.
 	vec4 screen_col = vec4(0.0);
 	if (blur_intensity > 0.001) {
 		float blur_radius = MAX_BLUR_RADIUS * blur_intensity;
 		vec2 center = vec2(0.5, 0.5);
-		vec2 dir = base_uv - center;
+		vec2 radial_dir = base_uv - center;
+		float total_weight = 0.0;
 
-		for (int i = 0; i < BLUR_SAMPLES; i++) {
-			float t = float(i) / float(BLUR_SAMPLES - 1) - 0.5; // -0.5 to 0.5
-			vec2 offset_uv = base_uv + dir * t * blur_radius;
-			screen_col += textureLod(screen_texture, offset_uv, 0.0);
+		for (int pass = 0; pass < BLUR_PASSES; pass++) {
+			// Each pass uses a slightly different angle and increasing radius
+			float pass_scale = 1.0 + float(pass) * 0.5;
+			float angle_offset = float(pass) * 0.785; // ~45 degrees per pass
+
+			for (int i = 0; i < BLUR_SAMPLES; i++) {
+				float t = float(i) / float(BLUR_SAMPLES - 1) - 0.5;
+				// Radial component (outward from center)
+				vec2 radial_offset = radial_dir * t * blur_radius * pass_scale;
+				// Tangential component (perpendicular to radial, rotated per pass)
+				float angle = angle_offset + t * 3.14159;
+				vec2 tangent = vec2(-radial_dir.y, radial_dir.x);
+				vec2 tang_offset = tangent * sin(angle) * blur_radius * 0.5 * blur_intensity;
+
+				vec2 sample_uv = base_uv + radial_offset + tang_offset;
+				float weight = 1.0 - abs(t) * 0.3; // Slightly favor center samples
+				screen_col += textureLod(screen_texture, sample_uv, 0.0) * weight;
+				total_weight += weight;
+			}
 		}
-		screen_col /= float(BLUR_SAMPLES);
+		screen_col /= total_weight;
 	} else {
 		screen_col = textureLod(screen_texture, base_uv, 0.0);
 	}
