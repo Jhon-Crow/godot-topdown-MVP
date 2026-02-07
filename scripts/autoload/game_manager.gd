@@ -28,12 +28,13 @@ var debug_mode_enabled: bool = false
 var invincibility_enabled: bool = false
 
 ## Currently selected weapon ID for player equipment.
-## Valid values: "m16", "shotgun", "mini_uzi", "silenced_pistol", "sniper" (corresponds to armory_menu WEAPONS keys)
-## Default: "m16" (assault rifle)
-var selected_weapon: String = "m16"
+## Valid values: "makarov_pm", "m16", "shotgun", "mini_uzi", "silenced_pistol", "sniper" (corresponds to armory_menu WEAPONS keys)
+## Default: "makarov_pm" (Makarov PM starting pistol)
+var selected_weapon: String = "makarov_pm"
 
 ## Weapon scene paths mapped to weapon IDs.
 const WEAPON_SCENES: Dictionary = {
+	"makarov_pm": "res://scenes/weapons/csharp/MakarovPM.tscn",
 	"m16": "res://scenes/weapons/csharp/AssaultRifle.tscn",
 	"shotgun": "res://scenes/weapons/csharp/Shotgun.tscn",
 	"mini_uzi": "res://scenes/weapons/csharp/MiniUzi.tscn",
@@ -214,7 +215,7 @@ func get_selected_weapon() -> String:
 func get_selected_weapon_scene_path() -> String:
 	if selected_weapon in WEAPON_SCENES:
 		return WEAPON_SCENES[selected_weapon]
-	return WEAPON_SCENES["m16"]  # Default to assault rifle
+	return WEAPON_SCENES["makarov_pm"]  # Default to Makarov PM starting pistol
 
 
 ## Log a message to the file logger if available.

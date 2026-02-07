@@ -14,6 +14,12 @@ extends GutTest
 class MockArmoryMenu:
 	## Dictionary of firearms (non-grenade weapons).
 	const FIREARMS: Dictionary = {
+		"makarov_pm": {
+			"name": "PM",
+			"icon_path": "res://assets/sprites/weapons/makarov_pm_icon.png",
+			"unlocked": true,
+			"description": "Makarov PM starting pistol"
+		},
 		"m16": {
 			"name": "M16",
 			"icon_path": "res://assets/sprites/weapons/m16_rifle.png",
@@ -55,12 +61,6 @@ class MockArmoryMenu:
 			"icon_path": "",
 			"unlocked": false,
 			"description": "Coming soon"
-		},
-		"pistol": {
-			"name": "???",
-			"icon_path": "",
-			"unlocked": false,
-			"description": "Coming soon"
 		}
 	}
 
@@ -78,7 +78,7 @@ class MockArmoryMenu:
 	}
 
 	## Applied (active) weapon ID.
-	var applied_weapon: String = "m16"
+	var applied_weapon: String = "makarov_pm"
 
 	## Applied (active) grenade type.
 	var applied_grenade_type: int = 0
@@ -87,7 +87,7 @@ class MockArmoryMenu:
 	var applied_active_item: int = 0
 
 	## Pending weapon selection (not yet applied).
-	var pending_weapon: String = "m16"
+	var pending_weapon: String = "makarov_pm"
 
 	## Pending grenade type (not yet applied).
 	var pending_grenade_type: int = 0
@@ -205,6 +205,11 @@ func test_grenades_dictionary_exists() -> void:
 		"GRENADES dictionary should have entries")
 
 
+func test_makarov_pm_is_unlocked() -> void:
+	assert_true(menu.is_weapon_unlocked("makarov_pm"),
+		"Makarov PM should be unlocked")
+
+
 func test_m16_is_unlocked() -> void:
 	assert_true(menu.is_weapon_unlocked("m16"),
 		"M16 should be unlocked")
@@ -243,8 +248,8 @@ func test_mini_uzi_is_unlocked() -> void:
 func test_count_unlocked_firearms() -> void:
 	var count := menu.count_unlocked_firearms()
 
-	# M16, Shotgun, Mini UZI, Silenced Pistol, ASVK (5 unlocked)
-	assert_eq(count, 5,
+	# PM, M16, Shotgun, Mini UZI, Silenced Pistol, ASVK (6 unlocked)
+	assert_eq(count, 6,
 		"Should count correct number of unlocked firearms")
 
 
@@ -252,7 +257,7 @@ func test_count_total_firearms() -> void:
 	var count := menu.count_total_firearms()
 
 	assert_eq(count, 8,
-		"Should count total firearms correctly (5 unlocked + 3 locked)")
+		"Should count total firearms correctly (6 unlocked + 2 locked)")
 
 
 func test_count_total_grenades() -> void:
@@ -274,7 +279,7 @@ func test_select_weapon_sets_pending() -> void:
 		"Should successfully set pending weapon")
 	assert_eq(menu.pending_weapon, "shotgun",
 		"Pending weapon should be updated")
-	assert_eq(menu.applied_weapon, "m16",
+	assert_eq(menu.applied_weapon, "makarov_pm",
 		"Applied weapon should NOT change until Apply")
 
 
@@ -286,8 +291,8 @@ func test_select_weapon_does_not_emit_signal() -> void:
 
 
 func test_select_same_weapon_still_succeeds_as_pending() -> void:
-	menu.pending_weapon = "m16"
-	var result := menu.select_weapon("m16")
+	menu.pending_weapon = "makarov_pm"
+	var result := menu.select_weapon("makarov_pm")
 
 	assert_true(result,
 		"Should allow selecting same weapon (sets pending)")
@@ -298,7 +303,7 @@ func test_select_locked_weapon() -> void:
 
 	assert_false(result,
 		"Should not select locked weapon")
-	assert_eq(menu.pending_weapon, "m16",
+	assert_eq(menu.pending_weapon, "makarov_pm",
 		"Pending weapon should remain unchanged")
 
 
@@ -354,7 +359,7 @@ func test_has_pending_changes_after_grenade_select() -> void:
 
 
 func test_no_pending_changes_when_same_selection() -> void:
-	menu.select_weapon("m16")
+	menu.select_weapon("makarov_pm")
 	menu.select_grenade(0)
 
 	assert_false(menu.has_pending_changes(),
@@ -469,8 +474,8 @@ func test_switch_weapons_pending() -> void:
 
 	assert_eq(menu.pending_weapon, "mini_uzi",
 		"Latest pending weapon should be mini_uzi")
-	assert_eq(menu.applied_weapon, "m16",
-		"Applied weapon should still be m16")
+	assert_eq(menu.applied_weapon, "makarov_pm",
+		"Applied weapon should still be makarov_pm")
 
 
 func test_switch_grenades_pending() -> void:
@@ -514,8 +519,8 @@ func test_null_like_weapon_id() -> void:
 
 
 func test_case_sensitivity() -> void:
-	var lower := menu.is_weapon_unlocked("m16")
-	var upper := menu.is_weapon_unlocked("M16")
+	var lower := menu.is_weapon_unlocked("makarov_pm")
+	var upper := menu.is_weapon_unlocked("Makarov_PM")
 
 	assert_true(lower,
 		"Lowercase should work")
@@ -524,7 +529,7 @@ func test_case_sensitivity() -> void:
 
 
 func test_all_unlocked_weapons_selectable() -> void:
-	var unlocked_weapons := ["m16", "shotgun", "mini_uzi", "silenced_pistol", "sniper"]
+	var unlocked_weapons := ["makarov_pm", "m16", "shotgun", "mini_uzi", "silenced_pistol", "sniper"]
 
 	for weapon_id in unlocked_weapons:
 		var result := menu.select_weapon(weapon_id)
@@ -540,13 +545,13 @@ func test_all_grenades_selectable() -> void:
 
 
 func test_cycle_all_weapons_and_apply() -> void:
-	var weapons := ["shotgun", "mini_uzi", "silenced_pistol", "sniper", "m16"]
+	var weapons := ["m16", "shotgun", "mini_uzi", "silenced_pistol", "sniper", "makarov_pm"]
 	for weapon_id in weapons:
 		menu.select_weapon(weapon_id)
 		menu.apply()
-	assert_eq(menu.applied_weapon, "m16",
-		"Should end on M16 after cycling all weapons and applying")
-	assert_eq(menu.weapon_selected_emitted.size(), 5,
+	assert_eq(menu.applied_weapon, "makarov_pm",
+		"Should end on PM after cycling all weapons and applying")
+	assert_eq(menu.weapon_selected_emitted.size(), 6,
 		"Should emit signal for each Apply")
 
 
