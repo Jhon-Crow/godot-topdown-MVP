@@ -2752,13 +2752,18 @@ var _flashlight_node: Node2D = null
 func _init_flashlight() -> void:
 	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
 	if active_item_manager == null:
+		FileLogger.info("[Player.Flashlight] ActiveItemManager not found")
 		return
 
 	if not active_item_manager.has_method("has_flashlight"):
+		FileLogger.info("[Player.Flashlight] ActiveItemManager missing has_flashlight method")
 		return
 
 	if not active_item_manager.has_flashlight():
+		FileLogger.info("[Player.Flashlight] No flashlight selected in ActiveItemManager")
 		return
+
+	FileLogger.info("[Player.Flashlight] Flashlight is selected, initializing...")
 
 	# Load and instantiate the flashlight effect scene
 	if not ResourceLoader.exists(FLASHLIGHT_SCENE_PATH):
@@ -2767,6 +2772,7 @@ func _init_flashlight() -> void:
 
 	var flashlight_scene: PackedScene = load(FLASHLIGHT_SCENE_PATH)
 	if flashlight_scene == null:
+		FileLogger.info("[Player.Flashlight] WARNING: Failed to load flashlight scene")
 		return
 
 	_flashlight_node = flashlight_scene.instantiate()
@@ -2777,9 +2783,12 @@ func _init_flashlight() -> void:
 		_player_model.add_child(_flashlight_node)
 		# Position at the weapon barrel (forward from center, matching bullet_spawn_offset)
 		_flashlight_node.position = Vector2(bullet_spawn_offset, 0)
-
-	_flashlight_equipped = true
-	FileLogger.info("[Player.Flashlight] Flashlight equipped and attached to player model")
+		_flashlight_equipped = true
+		FileLogger.info("[Player.Flashlight] Flashlight equipped and attached to PlayerModel at offset (%d, 0)" % int(bullet_spawn_offset))
+	else:
+		FileLogger.info("[Player.Flashlight] WARNING: _player_model is null, flashlight not attached")
+		_flashlight_node.queue_free()
+		_flashlight_node = null
 
 
 ## Handle flashlight input: hold Space to turn on, release to turn off.

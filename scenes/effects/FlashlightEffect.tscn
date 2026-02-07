@@ -18,7 +18,6 @@ z_index = 50
 script = ExtResource("1_flashlight_effect")
 
 [node name="PointLight2D" type="PointLight2D" parent="."]
-position = Vector2(80, 0)
 color = Color(1, 1, 0.95, 1)
 energy = 0.0
 shadow_enabled = true
