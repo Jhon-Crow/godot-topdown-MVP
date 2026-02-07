@@ -177,12 +177,12 @@ static func spawn_tracer(scene_tree: SceneTree, start_pos: Vector2, end_pos: Vec
 static func create_laser() -> Line2D:
 	var laser := Line2D.new()
 	laser.name = "SniperLaser"
-	laser.width = 2.0
-	laser.default_color = Color(1.0, 0.0, 0.0, 0.5)  # Semi-transparent red
+	laser.width = 3.0
+	laser.default_color = Color(1.0, 0.0, 0.0, 0.7)  # Bright red laser
 	laser.begin_cap_mode = Line2D.LINE_CAP_ROUND
 	laser.end_cap_mode = Line2D.LINE_CAP_ROUND
 	laser.points = PackedVector2Array([Vector2.ZERO, Vector2(500, 0)])
-	laser.z_index = 5
+	laser.z_index = 100  # Above all game elements for visibility
 	laser.top_level = true  # Use global coordinates to avoid parent rotation double-transform
 	# Make unshaded for visibility in dark mode
 	var mat := CanvasItemMaterial.new()
@@ -219,6 +219,12 @@ static func update_laser(laser: Line2D, enemy: Node2D, weapon_forward: Vector2,
 static func process_combat_state(enemy: Node2D, delta: float) -> void:
 	enemy._combat_state_timer += delta
 	enemy.velocity = Vector2.ZERO  # Snipers don't move during combat
+
+	# Update detection delay timer (mirrors logic from _process_combat_state for non-snipers)
+	if not enemy._detection_delay_elapsed:
+		enemy._detection_timer += delta
+		if enemy._detection_timer >= enemy._get_effective_detection_delay():
+			enemy._detection_delay_elapsed = true
 
 	# If under fire, retreat to cover
 	if enemy._under_fire and enemy.enable_cover:
@@ -258,8 +264,14 @@ static func process_combat_state(enemy: Node2D, delta: float) -> void:
 
 ## Process sniper-specific IN_COVER state.
 ## Snipers stay in cover and shoot at suspected/known positions through walls.
-static func process_in_cover_state(enemy: Node2D) -> void:
+static func process_in_cover_state(enemy: Node2D, delta: float) -> void:
 	enemy.velocity = Vector2.ZERO
+
+	# Update detection delay timer (same as in process_combat_state)
+	if not enemy._detection_delay_elapsed:
+		enemy._detection_timer += delta
+		if enemy._detection_timer >= enemy._get_effective_detection_delay():
+			enemy._detection_delay_elapsed = true
 
 	# If flanked and under fire, find new cover farther away
 	if enemy._is_visible_from_player() and enemy._under_fire:

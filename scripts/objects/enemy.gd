@@ -3986,8 +3986,8 @@ func _shoot_sniper_hitscan(direction: Vector2, spawn_pos: Vector2) -> void:
 func _process_sniper_combat_state(delta: float) -> void:
 	SniperComponent.process_combat_state(self, delta)
 
-func _process_sniper_in_cover_state(_delta: float) -> void:
-	SniperComponent.process_in_cover_state(self)
+func _process_sniper_in_cover_state(delta: float) -> void:
+	SniperComponent.process_in_cover_state(self, delta)
 
 ## Calculate lead prediction - aims where the player will be based on velocity.
 func _calculate_lead_prediction() -> Vector2:
