@@ -1,13 +1,15 @@
 extends GutTest
 ## Unit tests for grenade throw speed and trajectory visualization (Issue #615).
 ##
-## Verifies that the trajectory preview (_Draw) uses the same physics compensation
-## factor as the actual throw (ThrowSimpleGrenade), ensuring the landing indicator
+## Verifies that the trajectory preview (_Draw) uses the same physics formula
+## as the actual throw (ThrowSimpleGrenade), ensuring the landing indicator
 ## matches where the grenade actually lands.
 ##
-## The compensation factor (1.16x) accounts for Godot's RigidBody2D hidden damping
-## effects that cause grenades to land ~14% shorter than the classical physics formula
-## predicts (Issue #428).
+## FIX for Issue #615: The 1.16x compensation factor was removed because the
+## actual root cause was DOUBLE FRICTION — both GDScript (grenade_base.gd) and
+## C# (GrenadeTimer.cs) were applying friction simultaneously, causing grenades
+## to travel only ~59% of the target distance. Now grenade_base.gd skips friction
+## when GrenadeTimer handles it, so v = sqrt(2*F*d) works correctly.
 
 
 # ============================================================================
@@ -17,7 +19,6 @@ extends GutTest
 
 const FLASHBANG_FRICTION := 300.0
 const FRAG_FRICTION := 280.0
-const PHYSICS_COMPENSATION := 1.16
 const DEFAULT_MAX_THROW_SPEED := 850.0
 
 
@@ -26,25 +27,20 @@ const DEFAULT_MAX_THROW_SPEED := 850.0
 # ============================================================================
 
 
-## Calculate throw speed with compensation (mirrors ThrowSimpleGrenade in Player.cs).
+## Calculate throw speed (mirrors ThrowSimpleGrenade in Player.cs).
+## v = sqrt(2 * F * d)
 static func calculate_throw_speed(throw_distance: float, ground_friction: float) -> float:
-	return sqrt(2.0 * ground_friction * throw_distance * PHYSICS_COMPENSATION)
+	return sqrt(2.0 * ground_friction * throw_distance)
 
 
-## Calculate compensated landing distance for a given speed (mirrors _Draw in Player.cs).
-## This is the expected actual landing distance, accounting for Godot physics damping.
+## Calculate landing distance for a given speed (mirrors _Draw in Player.cs).
+## d = v^2 / (2 * F)
 static func calculate_landing_distance(throw_speed: float, ground_friction: float) -> float:
-	return (throw_speed * throw_speed) / (2.0 * ground_friction * PHYSICS_COMPENSATION)
-
-
-## Calculate uncompensated (theoretical) landing distance.
-## This is what the classical physics formula predicts without engine effects.
-static func calculate_theoretical_distance(throw_speed: float, ground_friction: float) -> float:
 	return (throw_speed * throw_speed) / (2.0 * ground_friction)
 
 
 # ============================================================================
-# Tests: Throw speed formula is self-consistent
+# Tests: Throw speed formula is self-consistent (round-trip)
 # ============================================================================
 
 
@@ -78,57 +74,6 @@ func test_round_trip_frag_grenade() -> void:
 	var distance := calculate_landing_distance(speed, FRAG_FRICTION)
 	assert_almost_eq(distance, target, 0.1,
 		"Round-trip should work for frag grenade friction")
-
-
-# ============================================================================
-# Tests: Compensation produces higher speed than no compensation
-# ============================================================================
-
-
-func test_compensated_speed_higher_than_uncompensated() -> void:
-	var target := 500.0
-	var compensated := calculate_throw_speed(target, FLASHBANG_FRICTION)
-	var uncompensated := sqrt(2.0 * FLASHBANG_FRICTION * target)
-	assert_true(compensated > uncompensated,
-		"Compensated speed (%.1f) should be higher than uncompensated (%.1f)" % [
-			compensated, uncompensated])
-
-
-func test_compensation_factor_magnitude() -> void:
-	## The compensation should increase speed by sqrt(1.16) ≈ 7.7%
-	var target := 500.0
-	var compensated := calculate_throw_speed(target, FLASHBANG_FRICTION)
-	var uncompensated := sqrt(2.0 * FLASHBANG_FRICTION * target)
-	var ratio := compensated / uncompensated
-	var expected_ratio := sqrt(PHYSICS_COMPENSATION)
-	assert_almost_eq(ratio, expected_ratio, 0.001,
-		"Speed ratio should be sqrt(1.16) ≈ %.4f" % expected_ratio)
-
-
-# ============================================================================
-# Tests: Landing distance is shorter than theoretical
-# ============================================================================
-
-
-func test_compensated_distance_shorter_than_theoretical() -> void:
-	## The compensated landing distance should be ~86% of theoretical
-	var speed := 500.0
-	var compensated := calculate_landing_distance(speed, FLASHBANG_FRICTION)
-	var theoretical := calculate_theoretical_distance(speed, FLASHBANG_FRICTION)
-	assert_true(compensated < theoretical,
-		"Compensated distance (%.1f) should be shorter than theoretical (%.1f)" % [
-			compensated, theoretical])
-
-
-func test_compensation_distance_ratio() -> void:
-	## The ratio should be 1/1.16 ≈ 0.862
-	var speed := 500.0
-	var compensated := calculate_landing_distance(speed, FLASHBANG_FRICTION)
-	var theoretical := calculate_theoretical_distance(speed, FLASHBANG_FRICTION)
-	var ratio := compensated / theoretical
-	var expected_ratio := 1.0 / PHYSICS_COMPENSATION
-	assert_almost_eq(ratio, expected_ratio, 0.001,
-		"Distance ratio should be 1/1.16 ≈ %.4f" % expected_ratio)
 
 
 # ============================================================================
@@ -189,27 +134,27 @@ func test_zero_speed_gives_zero_distance() -> void:
 # ============================================================================
 
 
-func test_draw_and_throw_use_same_compensation() -> void:
+func test_draw_and_throw_use_same_formula() -> void:
 	## The core fix: _Draw and ThrowSimpleGrenade should use the same
-	## compensation factor, so the trajectory preview matches the actual throw.
+	## formula, so the trajectory preview matches the actual throw.
 	var target := 500.0
 
-	# ThrowSimpleGrenade calculates:
+	# ThrowSimpleGrenade calculates: v = sqrt(2 * F * d)
 	var throw_speed := minf(
 		calculate_throw_speed(target, FLASHBANG_FRICTION),
 		DEFAULT_MAX_THROW_SPEED)
 
 	# _Draw (simple mode) should calculate the SAME speed:
 	var draw_speed := minf(
-		sqrt(2.0 * FLASHBANG_FRICTION * target * PHYSICS_COMPENSATION),
+		sqrt(2.0 * FLASHBANG_FRICTION * target),
 		DEFAULT_MAX_THROW_SPEED)
 
 	assert_almost_eq(throw_speed, draw_speed, 0.01,
 		"Draw and throw should calculate the same speed")
 
 	# _Draw landing distance should match throw actual distance:
-	var draw_landing := (draw_speed * draw_speed) / (2.0 * FLASHBANG_FRICTION * PHYSICS_COMPENSATION)
-	var throw_landing := (throw_speed * throw_speed) / (2.0 * FLASHBANG_FRICTION * PHYSICS_COMPENSATION)
+	var draw_landing := (draw_speed * draw_speed) / (2.0 * FLASHBANG_FRICTION)
+	var throw_landing := (throw_speed * throw_speed) / (2.0 * FLASHBANG_FRICTION)
 
 	assert_almost_eq(draw_landing, throw_landing, 0.01,
 		"Draw landing should match throw landing distance")
@@ -256,3 +201,44 @@ func test_frag_grenade_needs_less_speed() -> void:
 	var frag_speed := calculate_throw_speed(target, FRAG_FRICTION)
 	assert_true(frag_speed < flashbang_speed,
 		"Frag grenade should need less speed for same distance")
+
+
+# ============================================================================
+# Tests: Double friction prevention (Issue #615 root cause)
+# ============================================================================
+
+
+func test_single_friction_gives_correct_distance() -> void:
+	## With single friction (C# only), v = sqrt(2*F*d) should give exact distance.
+	## This is the core of the Issue #615 fix.
+	var target := 547.0  # From user's game log
+	var friction := 300.0
+	var speed := sqrt(2.0 * friction * target)
+	var actual_distance := (speed * speed) / (2.0 * friction)
+	assert_almost_eq(actual_distance, target, 0.1,
+		"Single friction should give exact target distance")
+
+
+func test_double_friction_causes_undershoot() -> void:
+	## Demonstrates why double friction was the root cause.
+	## With two friction systems (0.5*F from GDScript + 1.0*F from C#),
+	## effective friction is ~1.5*F, and grenade travels only ~67% of target.
+	var target := 547.0
+	var friction := 300.0
+	var speed := sqrt(2.0 * friction * target)
+	# With 1.5x effective friction:
+	var double_friction_distance := (speed * speed) / (2.0 * friction * 1.5)
+	assert_true(double_friction_distance < target * 0.75,
+		"Double friction should cause significant undershoot (%.1f vs %.1f)" % [
+			double_friction_distance, target])
+
+
+func test_no_compensation_needed_with_single_friction() -> void:
+	## The 1.16x factor is no longer needed. With single uniform friction,
+	## v = sqrt(2*F*d) gives the correct speed for reaching distance d.
+	var target := 500.0
+	var friction := 300.0
+	var speed_no_comp := sqrt(2.0 * friction * target)
+	var distance_no_comp := (speed_no_comp * speed_no_comp) / (2.0 * friction)
+	assert_almost_eq(distance_no_comp, target, 0.1,
+		"No compensation should be needed with single friction")

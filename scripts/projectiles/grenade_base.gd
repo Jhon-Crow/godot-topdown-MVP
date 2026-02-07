@@ -115,6 +115,13 @@ var _previous_velocity: Vector2 = Vector2.ZERO
 ## activated, causing grenades to fly infinitely without exploding.
 var _was_frozen_on_start: bool = true
 
+## FIX for Issue #615: Skip GDScript friction when C# GrenadeTimer handles it.
+## When both GDScript _physics_process() and C# GrenadeTimer._PhysicsProcess() apply
+## friction simultaneously, the grenade experiences ~1.7x effective friction and travels
+## only ~59% of the target distance. This flag disables GDScript friction when the
+## C# GrenadeTimer component is attached (detected in _ready()).
+var _csharp_handles_friction: bool = false
+
 ## Signal emitted when the grenade explodes.
 signal exploded(position: Vector2, grenade: GrenadeBase)
 
@@ -161,10 +168,28 @@ func _ready() -> void:
 	# Connect to body entered for bounce effects
 	body_entered.connect(_on_body_entered)
 
+	# FIX for Issue #615: Detect C# GrenadeTimer to avoid double friction.
+	# GrenadeTimer is added as a child node by C# Player.cs or GrenadeTimerHelper.
+	# When present, C# handles friction in GrenadeTimer._PhysicsProcess(),
+	# so GDScript must skip its own friction to prevent double deceleration.
+	# Use call_deferred to check after all children are added in the same frame.
+	call_deferred("_check_csharp_friction_handler")
+
 	FileLogger.info("[GrenadeBase] Grenade created at %s (frozen)" % str(global_position))
 
 
+## FIX for Issue #615: Check if C# GrenadeTimer is handling friction.
+## Called deferred from _ready() to allow C# components to be added first.
+func _check_csharp_friction_handler() -> void:
+	if has_node("GrenadeTimer"):
+		_csharp_handles_friction = true
+
+
 func _physics_process(delta: float) -> void:
+	# FIX for Issue #615: Re-check for C# GrenadeTimer on first physics frame.
+	# GrenadeTimer may be added after _ready() (e.g., by C# Player.cs AddGrenadeTimerComponent).
+	if not _csharp_handles_friction and has_node("GrenadeTimer"):
+		_csharp_handles_friction = true
 	if _has_exploded:
 		return
 
@@ -183,7 +208,8 @@ func _physics_process(delta: float) -> void:
 	# only slowing down noticeably at the very end of its path.
 	# At high velocities: reduced friction (grenade maintains speed)
 	# At low velocities: full friction (grenade slows to stop)
-	if linear_velocity.length() > 0:
+	# FIX for Issue #615: Skip friction if C# GrenadeTimer handles it (prevents double friction)
+	if linear_velocity.length() > 0 and not _csharp_handles_friction:
 		var current_speed := linear_velocity.length()
 
 		# Calculate friction multiplier based on velocity
