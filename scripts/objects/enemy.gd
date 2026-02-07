@@ -121,7 +121,6 @@ const AIM_TOLERANCE_DOT: float = 0.866  ## cos(30°) - aim tolerance (issue #254
 @onready var _head_sprite: Sprite2D = $EnemyModel/Head  ## Head sprite
 @onready var _left_arm_sprite: Sprite2D = $EnemyModel/LeftArm  ## Left arm sprite
 @onready var _right_arm_sprite: Sprite2D = $EnemyModel/RightArm  ## Right arm sprite
-@onready var _sprite: Sprite2D = $EnemyModel/Body  ## Legacy ref (body)
 @onready var _weapon_sprite: Sprite2D = $EnemyModel/WeaponMount/WeaponSprite  ## Weapon sprite
 @onready var _weapon_mount: Node2D = $EnemyModel/WeaponMount  ## Weapon mount
 @onready var _raycast: RayCast2D = $RayCast2D  ## Line of sight raycast
