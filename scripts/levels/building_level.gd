@@ -163,6 +163,26 @@ func _activate_exit_zone() -> void:
 		_complete_level_with_score()
 
 
+## Setup realistic visibility for the player (Issue #540).
+## Adds the RealisticVisibilityComponent to the player node.
+## The component handles CanvasModulate (darkness) + PointLight2D (player vision)
+## and reacts to ExperimentalSettings.realistic_visibility_enabled toggle.
+func _setup_realistic_visibility() -> void:
+	if _player == null:
+		return
+
+	var visibility_script = load("res://scripts/components/realistic_visibility_component.gd")
+	if visibility_script == null:
+		push_warning("[BuildingLevel] RealisticVisibilityComponent script not found")
+		return
+
+	var visibility_component = Node.new()
+	visibility_component.name = "RealisticVisibilityComponent"
+	visibility_component.set_script(visibility_script)
+	_player.add_child(visibility_component)
+	print("[BuildingLevel] Realistic visibility component added to player")
+
+
 func _process(_delta: float) -> void:
 	# Update enemy positions for aggressiveness tracking
 	var score_manager: Node = get_node_or_null("/root/ScoreManager")
@@ -227,6 +247,9 @@ func _setup_player_tracking() -> void:
 	_player = get_node_or_null("Entities/Player")
 	if _player == null:
 		return
+
+	# Setup realistic visibility component (Issue #540)
+	_setup_realistic_visibility()
 
 	# Setup selected weapon based on GameManager selection
 	_setup_selected_weapon()

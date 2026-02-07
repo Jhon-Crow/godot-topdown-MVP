@@ -23,6 +23,12 @@ var complex_grenade_throwing: bool = false
 ## When disabled (default), enemies use standard pursuit/search behavior.
 var ai_prediction_enabled: bool = false
 
+## Whether realistic visibility mode is enabled (Issue #540).
+## When enabled, the player cannot see through walls (Door Kickers 2 style).
+## Uses PointLight2D + CanvasModulate + LightOccluder2D for fog of war.
+## When disabled (default), the player has full visibility of the entire level.
+var realistic_visibility_enabled: bool = false
+
 ## Settings file path for persistence.
 const SETTINGS_PATH := "user://experimental_settings.cfg"
 
@@ -30,7 +36,7 @@ const SETTINGS_PATH := "user://experimental_settings.cfg"
 func _ready() -> void:
 	# Load saved settings on startup
 	_load_settings()
-	_log_to_file("ExperimentalSettings initialized - FOV enabled: %s, Complex grenade throwing: %s, AI prediction: %s" % [fov_enabled, complex_grenade_throwing, ai_prediction_enabled])
+	_log_to_file("ExperimentalSettings initialized - FOV enabled: %s, Complex grenade throwing: %s, AI prediction: %s, Realistic visibility: %s" % [fov_enabled, complex_grenade_throwing, ai_prediction_enabled, realistic_visibility_enabled])
 
 
 ## Set FOV enabled/disabled.
@@ -75,12 +81,27 @@ func is_ai_prediction_enabled() -> bool:
 	return ai_prediction_enabled
 
 
+## Set realistic visibility enabled/disabled (Issue #540).
+func set_realistic_visibility_enabled(enabled: bool) -> void:
+	if realistic_visibility_enabled != enabled:
+		realistic_visibility_enabled = enabled
+		settings_changed.emit()
+		_save_settings()
+		_log_to_file("Realistic visibility %s" % ("enabled" if enabled else "disabled"))
+
+
+## Check if realistic visibility is enabled (Issue #540).
+func is_realistic_visibility_enabled() -> bool:
+	return realistic_visibility_enabled
+
+
 ## Save settings to file.
 func _save_settings() -> void:
 	var config := ConfigFile.new()
 	config.set_value("experimental", "fov_enabled", fov_enabled)
 	config.set_value("experimental", "complex_grenade_throwing", complex_grenade_throwing)
 	config.set_value("experimental", "ai_prediction_enabled", ai_prediction_enabled)
+	config.set_value("experimental", "realistic_visibility_enabled", realistic_visibility_enabled)
 	var error := config.save(SETTINGS_PATH)
 	if error != OK:
 		push_warning("ExperimentalSettings: Failed to save settings: " + str(error))
@@ -94,11 +115,13 @@ func _load_settings() -> void:
 		fov_enabled = config.get_value("experimental", "fov_enabled", true)
 		complex_grenade_throwing = config.get_value("experimental", "complex_grenade_throwing", false)
 		ai_prediction_enabled = config.get_value("experimental", "ai_prediction_enabled", false)
+		realistic_visibility_enabled = config.get_value("experimental", "realistic_visibility_enabled", false)
 	else:
 		# File doesn't exist or failed to load - use defaults
 		fov_enabled = true
 		complex_grenade_throwing = false
 		ai_prediction_enabled = false
+		realistic_visibility_enabled = false
 
 
 ## Log a message to the file logger if available.
