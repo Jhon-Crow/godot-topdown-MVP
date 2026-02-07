@@ -48,6 +48,16 @@ const LEVELS: Array[Dictionary] = [
 		"preview_accent": Color(0.3, 0.45, 0.55, 1.0),
 		"enemy_count": 4,
 		"map_size": "1280x720"
+	},
+	{
+		"name": "Beach",
+		"name_ru": "Пляж",
+		"path": "res://scenes/levels/BeachLevel.tscn",
+		"description": "Outdoor beach environment with machete-wielding enemies and scattered cover.",
+		"preview_color": Color(0.2, 0.6, 0.9, 1.0),
+		"preview_accent": Color(0.85, 0.75, 0.55, 1.0),
+		"enemy_count": 8,
+		"map_size": "2400x2000"
 	}
 ]
 

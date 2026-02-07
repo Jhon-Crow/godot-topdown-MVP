@@ -121,7 +121,6 @@ const AIM_TOLERANCE_DOT: float = 0.866  ## cos(30°) - aim tolerance (issue #254
 @onready var _head_sprite: Sprite2D = $EnemyModel/Head  ## Head sprite
 @onready var _left_arm_sprite: Sprite2D = $EnemyModel/LeftArm  ## Left arm sprite
 @onready var _right_arm_sprite: Sprite2D = $EnemyModel/RightArm  ## Right arm sprite
-@onready var _sprite: Sprite2D = $EnemyModel/Body  ## Legacy ref (body)
 @onready var _weapon_sprite: Sprite2D = $EnemyModel/WeaponMount/WeaponSprite  ## Weapon sprite
 @onready var _weapon_mount: Node2D = $EnemyModel/WeaponMount  ## Weapon mount
 @onready var _raycast: RayCast2D = $RayCast2D  ## Line of sight raycast
@@ -1361,7 +1360,7 @@ func _process_combat_state(delta: float) -> void:
 		if _under_fire and _bullets_in_threat_sphere.size() > 0 and not _machete.is_dodging():
 			var b = _bullets_in_threat_sphere[0]
 			if is_instance_valid(b):
-				var bd := b.direction if b.get("direction") != null else Vector2.RIGHT.rotated(b.rotation)
+				var bd: Vector2 = b.get("direction") if b.get("direction") != null else Vector2.RIGHT.rotated(b.rotation)
 				_machete.try_dodge(bd)
 		if _machete.is_dodging(): velocity = _machete.get_dodge_velocity(); return
 		if _machete.is_in_melee_range(_player) and _shoot_timer >= shoot_cooldown:
@@ -1963,7 +1962,7 @@ func _process_pursuing_state(delta: float) -> void:
 		if _under_fire and _bullets_in_threat_sphere.size() > 0 and not _machete.is_dodging():
 			var b = _bullets_in_threat_sphere[0]
 			if is_instance_valid(b):
-				var bd := b.direction if b.get("direction") != null else Vector2.RIGHT.rotated(b.rotation)
+				var bd: Vector2 = b.get("direction") if b.get("direction") != null else Vector2.RIGHT.rotated(b.rotation)
 				_machete.try_dodge(bd)
 		if _machete.is_dodging(): velocity = _machete.get_dodge_velocity(); return
 		if _can_see_player and _player and global_position.distance_to(_player.global_position) <= CLOSE_COMBAT_DISTANCE:
