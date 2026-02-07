@@ -20,12 +20,11 @@ var player_alive: bool = true
 var player: Node2D = null
 
 ## Whether debug mode is enabled (shows debug labels on enemies).
-## Toggle with F7 key - works in both editor and exported builds.
+## Toggle with F7 key - delegated to ExperimentalSettings for persistence.
 var debug_mode_enabled: bool = false
 
 ## Whether invincibility mode is enabled (player takes no damage).
-## Toggle with F6 key - works in both editor and exported builds.
-## For debugging purposes only.
+## Toggle with F6 key - delegated to ExperimentalSettings for persistence.
 var invincibility_enabled: bool = false
 
 ## Currently selected weapon ID for player equipment.
@@ -69,6 +68,8 @@ func _ready() -> void:
 	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED_HIDDEN)
 	# Set PROCESS_MODE_ALWAYS to ensure quick restart (Q key) works during time freeze effects
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	# Sync debug/invincibility state from ExperimentalSettings (persisted)
+	_sync_from_experimental_settings()
 	# Log that GameManager is ready
 	_log_to_file("GameManager ready")
 
@@ -142,10 +143,14 @@ func set_player(p: Node2D) -> void:
 
 ## Toggles debug mode on/off.
 ## When enabled, shows debug labels on enemies (AI state).
-## Works in both editor and exported builds.
+## Delegates to ExperimentalSettings for persistence.
 func toggle_debug_mode() -> void:
 	debug_mode_enabled = not debug_mode_enabled
 	debug_mode_toggled.emit(debug_mode_enabled)
+	# Sync to ExperimentalSettings for persistence
+	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+	if experimental_settings and experimental_settings.has_method("set_debug_mode_enabled"):
+		experimental_settings.set_debug_mode_enabled(debug_mode_enabled)
 	_log_to_file("Debug mode toggled: %s" % ("ON" if debug_mode_enabled else "OFF"))
 
 
@@ -156,16 +161,37 @@ func is_debug_mode_enabled() -> bool:
 
 ## Toggles invincibility mode on/off.
 ## When enabled, player takes no damage from any source.
-## Works in both editor and exported builds.
+## Delegates to ExperimentalSettings for persistence.
 func toggle_invincibility() -> void:
 	invincibility_enabled = not invincibility_enabled
 	invincibility_toggled.emit(invincibility_enabled)
+	# Sync to ExperimentalSettings for persistence
+	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+	if experimental_settings and experimental_settings.has_method("set_invincibility_enabled"):
+		experimental_settings.set_invincibility_enabled(invincibility_enabled)
 	_log_to_file("Invincibility mode toggled: %s" % ("ON" if invincibility_enabled else "OFF"))
 
 
 ## Returns whether invincibility mode is currently enabled.
 func is_invincibility_enabled() -> bool:
 	return invincibility_enabled
+
+
+## Syncs debug mode and invincibility state from ExperimentalSettings.
+## Called on _ready() to restore persisted state.
+func _sync_from_experimental_settings() -> void:
+	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+	if experimental_settings:
+		if experimental_settings.has_method("is_debug_mode_enabled"):
+			var saved_debug: bool = experimental_settings.is_debug_mode_enabled()
+			if saved_debug != debug_mode_enabled:
+				debug_mode_enabled = saved_debug
+				debug_mode_toggled.emit(debug_mode_enabled)
+		if experimental_settings.has_method("is_invincibility_enabled"):
+			var saved_invincibility: bool = experimental_settings.is_invincibility_enabled()
+			if saved_invincibility != invincibility_enabled:
+				invincibility_enabled = saved_invincibility
+				invincibility_toggled.emit(invincibility_enabled)
 
 
 ## Sets the currently selected weapon.
