@@ -28,8 +28,7 @@ static func calculate_spread(enemy: Node2D, target_pos: Vector2, can_see_player:
 	# Use memory position if player not visible
 	var actual_target := target_pos
 	if not can_see_player and memory and memory.has_method("has_target") and memory.has_target():
-		if memory.has_method("get_position"):
-			actual_target = memory.get_position()
+		actual_target = memory.suspected_position
 
 	var distance := enemy.global_position.distance_to(actual_target)
 	var viewport_size := enemy.get_viewport_rect().size.length()
@@ -225,6 +224,7 @@ static func process_combat_state(enemy: Node2D, delta: float) -> void:
 		enemy._detection_timer += delta
 		if enemy._detection_timer >= enemy._get_effective_detection_delay():
 			enemy._detection_delay_elapsed = true
+			enemy._log_to_file("SNIPER: detection delay elapsed (%.2fs)" % enemy._detection_timer)
 
 	# If under fire, retreat to cover
 	if enemy._under_fire and enemy.enable_cover:
@@ -236,17 +236,19 @@ static func process_combat_state(enemy: Node2D, delta: float) -> void:
 		var dist := enemy.global_position.distance_to(enemy._player.global_position)
 		var vp_size := enemy.get_viewport_rect().size.length()
 		if dist < vp_size:
+			enemy._log_to_file("SNIPER: retreating, player too close (%.0f < %.0f)" % [dist, vp_size])
 			enemy._transition_to_seeking_cover()
 			return
 
 	# Can't see player - shoot at last known/suspected position through walls
 	if not enemy._can_see_player:
 		if enemy._memory and enemy._memory.has_target():
-			var suspected_pos := enemy._memory.get_position()
+			var suspected_pos: Vector2 = enemy._memory.suspected_position
 			var walls := count_walls(enemy, suspected_pos)
 			if walls <= enemy._sniper_max_wall_penetrations:
 				enemy._aim_at_player()
 				if enemy._detection_delay_elapsed and enemy._shoot_timer >= enemy.shoot_cooldown:
+					enemy._log_to_file("SNIPER: shooting through %d walls at %s" % [walls, suspected_pos])
 					enemy._shoot()
 					enemy._shoot_timer = 0.0
 			else:
@@ -258,6 +260,7 @@ static func process_combat_state(enemy: Node2D, delta: float) -> void:
 	# Can see player - aim and shoot
 	enemy._aim_at_player()
 	if enemy._detection_delay_elapsed and enemy._shoot_timer >= enemy.shoot_cooldown:
+		enemy._log_to_file("SNIPER: shooting at visible player (timer=%.1f, cooldown=%.1f)" % [enemy._shoot_timer, enemy.shoot_cooldown])
 		enemy._shoot()
 		enemy._shoot_timer = 0.0
 
@@ -298,7 +301,7 @@ static func process_in_cover_state(enemy: Node2D, delta: float) -> void:
 
 	# Can't see player but have memory - shoot through walls
 	if enemy._memory and enemy._memory.has_target():
-		var suspected_pos := enemy._memory.get_position()
+		var suspected_pos: Vector2 = enemy._memory.suspected_position
 		var walls := count_walls(enemy, suspected_pos)
 		if walls <= enemy._sniper_max_wall_penetrations and walls > 0:
 			var dir_to_target := (suspected_pos - enemy.global_position).normalized()

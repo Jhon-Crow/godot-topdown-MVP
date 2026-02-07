@@ -3845,6 +3845,7 @@ func _aim_at_player() -> void:
 func _shoot() -> void:
 	if _is_melee_weapon and _machete and _player: _machete.perform_melee_attack(_player); return
 	if _player == null:
+		if _is_sniper: _log_to_file("SNIPER _shoot: blocked - player null")
 		return
 	# Snipers use hitscan (no bullet_scene needed); other weapons need a bullet scene
 	if not _is_sniper and bullet_scene == null:
@@ -3852,6 +3853,7 @@ func _shoot() -> void:
 
 	# Check if we can shoot (have ammo and not reloading)
 	if not _can_shoot():
+		if _is_sniper: _log_to_file("SNIPER _shoot: blocked - _can_shoot()=false (bolt=%s, reloading=%s, ammo=%d)" % [_sniper_bolt_ready, _is_reloading, _current_ammo])
 		return
 
 	var target_position := _player.global_position
@@ -3862,6 +3864,7 @@ func _shoot() -> void:
 
 	# Check if the shot should be taken (friendly fire and cover checks)
 	if not _should_shoot_at_target(target_position):
+		if _is_sniper: _log_to_file("SNIPER _shoot: blocked - _should_shoot_at_target()=false")
 		return
 
 	# Calculate bullet spawn position at weapon muzzle first
@@ -3873,7 +3876,10 @@ func _shoot() -> void:
 	# Check if weapon is aimed at target within tolerance (Issue #254, #344)
 	var aim_dot := weapon_forward.dot(to_target)
 	if aim_dot < AIM_TOLERANCE_DOT:
-		if debug_logging:
+		if _is_sniper:
+			var aim_angle_deg := rad_to_deg(acos(clampf(aim_dot, -1.0, 1.0)))
+			_log_to_file("SNIPER _shoot: blocked - aim_dot=%.3f (%.1f° off), can_see=%s" % [aim_dot, aim_angle_deg, _can_see_player])
+		elif debug_logging:
 			var aim_angle_deg := rad_to_deg(acos(clampf(aim_dot, -1.0, 1.0)))
 			_log_debug("SHOOT BLOCKED: Not aimed at target. aim_dot=%.3f (%.1f deg off)" % [aim_dot, aim_angle_deg])
 		return
@@ -3885,6 +3891,7 @@ func _shoot() -> void:
 		var spread_deg := _calculate_sniper_spread(direction)
 		if spread_deg > 0.0:
 			direction = direction.rotated(randf_range(-deg_to_rad(spread_deg), deg_to_rad(spread_deg)))
+		_log_to_file("SNIPER FIRED: spread=%.1f°, pos=%s, dir=%s, can_see=%s" % [spread_deg, bullet_spawn_pos, direction, _can_see_player])
 		_shoot_sniper_hitscan(direction, bullet_spawn_pos)
 		_sniper_bolt_ready = false
 		_sniper_bolt_timer = 0.0
