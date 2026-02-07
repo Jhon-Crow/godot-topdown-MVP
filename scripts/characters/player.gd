@@ -2802,3 +2802,37 @@ func _handle_flashlight_input() -> void:
 	else:
 		if _flashlight_node.has_method("turn_off"):
 			_flashlight_node.turn_off()
+
+
+## Check if the player's flashlight is currently on (Issue #574).
+## Used by enemy AI to detect the flashlight beam and estimate player position.
+func is_flashlight_on() -> bool:
+	if not _flashlight_equipped or _flashlight_node == null:
+		return false
+	if not is_instance_valid(_flashlight_node):
+		return false
+	if _flashlight_node.has_method("is_on"):
+		return _flashlight_node.is_on()
+	return false
+
+
+## Get the flashlight beam direction as a normalized Vector2 (Issue #574).
+## The beam direction matches the player model's facing direction.
+## Returns Vector2.ZERO if flashlight is off or not equipped.
+func get_flashlight_direction() -> Vector2:
+	if not is_flashlight_on():
+		return Vector2.ZERO
+	if not _player_model:
+		return Vector2.ZERO
+	return Vector2.RIGHT.rotated(_player_model.global_rotation)
+
+
+## Get the flashlight beam origin position in global coordinates (Issue #574).
+## This is the weapon barrel position where the flashlight is attached.
+## Returns global_position if flashlight is off or not equipped.
+func get_flashlight_origin() -> Vector2:
+	if not is_flashlight_on() or _flashlight_node == null:
+		return global_position
+	if not is_instance_valid(_flashlight_node):
+		return global_position
+	return _flashlight_node.global_position
