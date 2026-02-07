@@ -46,17 +46,31 @@ def generate_cone_texture():
             # Angle from +X axis (0 = right)
             angle = abs(math.atan2(dy, dx))
 
-            if angle > HALF_ANGLE_RAD:
+            # Anti-aliasing: smooth transition at cone edge instead of hard cutoff
+            # Creates a soft boundary zone to eliminate jagged "stair-step" edges
+            EDGE_SMOOTHNESS = 0.15  # Width of anti-aliasing zone (15% of cone angle)
+            edge_start = HALF_ANGLE_RAD * (1.0 - EDGE_SMOOTHNESS)
+            edge_end = HALF_ANGLE_RAD * (1.0 + EDGE_SMOOTHNESS)
+
+            # Angular falloff with smooth anti-aliased edges
+            if angle > edge_end:
+                # Outside cone boundary - fully transparent
                 pixels[x, y] = (0, 0, 0, 0)
                 continue
+            elif angle > edge_start:
+                # In anti-aliasing zone - smooth fade to transparent
+                edge_progress = (angle - edge_start) / (edge_end - edge_start)
+                ang_factor = 1.0 - edge_progress
+                # Smooth S-curve for natural-looking fade
+                ang_factor = ang_factor * ang_factor * (3.0 - 2.0 * ang_factor)
+            else:
+                # Inside cone - full brightness with gentle rolloff
+                ang_factor = 1.0 - (angle / HALF_ANGLE_RAD)
+                ang_factor = math.pow(ang_factor, 0.5)  # gentle roll-off
 
             # Distance falloff: brighter near center, fading toward edge
             dist_factor = 1.0 - (dist / max_radius)
             dist_factor = max(0.0, min(1.0, dist_factor))
-
-            # Angular falloff: soft edges at cone boundary
-            ang_factor = 1.0 - (angle / HALF_ANGLE_RAD)
-            ang_factor = math.pow(ang_factor, 0.5)  # gentle roll-off
 
             intensity = dist_factor * ang_factor
             alpha = int(intensity * 255)
