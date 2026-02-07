@@ -143,6 +143,64 @@ Added the three public API methods to `Scripts/Characters/Player.cs` using snake
 ### Lesson Learned
 When adding GDScript methods that are called cross-language on a node that has both GDScript and C# implementations, **both implementations must be updated**. The `has_method()` check makes the failure silent, which is by design (graceful degradation) but makes debugging harder.
 
+## Bug Report #2: Enemies Only Detect Beam When Directly Hit (2026-02-07)
+
+### Symptom
+User reported: "сейчас враги замечают игрока только когда он попадает лучом фонаря во врага, а должны замечать луч когда он попадает в поле зрения (то есть если сектор фонаря пересёкся с полем зрения врага)" — enemies should detect the flashlight beam when it enters their field of vision (FOV sector intersection), not only when the beam directly hits the enemy.
+
+Game logs (`game_log_20260207_202328.txt`, `game_log_20260207_202429.txt`) confirmed:
+- `[#574]` detection messages only appeared for Enemy3 when the beam was pointed directly at it
+- Other nearby enemies (Enemy1, Enemy2, etc.) only detected the flashlight when the beam hit them directly
+- Enemies looking at the beam from the side (beam in their FOV but not hitting them) did not detect it
+
+### Root Cause
+The v1 detection algorithm in `FlashlightDetectionComponent.check_flashlight()` used a **beam-on-enemy** test:
+```
+# v1: Is the ENEMY inside the FLASHLIGHT beam cone?
+direction_to_enemy = (enemy_pos - flashlight_origin).normalized()
+dot = flashlight_dir.dot(direction_to_enemy)
+is_detected = dot >= cos(beam_half_angle)
+```
+
+This only detected the flashlight when the beam was pointing directly at the enemy. In reality, an enemy should detect the flashlight beam whenever they can **see the light** — i.e., when the beam cone intersects with the enemy's vision cone (FOV).
+
+### Fix: v2 Beam-in-FOV Detection Algorithm
+Replaced the v1 algorithm with a **beam-in-FOV** approach:
+
+1. **Sample points along the flashlight beam** — 8 points each along center line, left edge, and right edge of the beam cone (24 total sample points)
+2. **For each beam sample point, test:**
+   a. Is the point within `BEAM_VISIBILITY_RANGE` (600px) of the enemy?
+   b. Is the point within the enemy's FOV cone? (uses same dot-product test as `_is_position_in_fov()`)
+   c. Does the enemy have line-of-sight to the point? (no wall between enemy and beam point)
+   d. Is the point actually within the flashlight beam cone? (not blocked by flashlight shadows)
+3. If any beam sample point passes all checks, the enemy detects the flashlight
+
+The method signature changed from:
+```
+check_flashlight(enemy_pos, player, raycast, delta)
+```
+To:
+```
+check_flashlight(enemy_pos, enemy_facing_angle, enemy_fov_deg, enemy_fov_enabled, player, raycast, delta)
+```
+
+The call site in `enemy.gd` now passes the enemy's facing angle and FOV parameters.
+
+### Timeline
+| Time | Event |
+|------|-------|
+| 20:23:28 | Game starts, no flashlight initially |
+| 20:23:33 | Flashlight selected and equipped |
+| 20:24:08 | Enemy3 detects beam (only when directly hit) |
+| 20:24:08 | Enemy3 transitions from IDLE → PURSUING |
+| 20:24:14 | Enemy3 continues detecting (beam pointed at it) |
+| 20:24:29 | Second session starts |
+| 20:24:38 | Enemy3 detects beam again (directly hit) |
+| 20:24:40-44 | Only Enemy1/2/3 detect flashlight when beam directly hits them |
+
+### Lesson Learned
+The original issue description said "как только враг **видит** фонарик" (when an enemy **sees** the flashlight), which implies the detection should be from the enemy's perspective — can the enemy see the beam? — not whether the beam hits the enemy. The v1 algorithm inverted the perspective. The v2 algorithm correctly tests visibility from the enemy's point of view.
+
 ## Sources
 
 - [Bringing Balance to Stealth AI in Splinter Cell: Blacklist — Game Developer](https://www.gamedeveloper.com/design/bringing-balance-to-stealth-ai-in-splinter-cell-blacklist)

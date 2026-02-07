@@ -2,10 +2,13 @@ extends GutTest
 ## Unit tests for FlashlightDetectionComponent (Issue #574).
 ##
 ## Tests the flashlight beam detection system that allows enemies to:
-## - Detect the player's flashlight beam via cone intersection test
+## - Detect the player's flashlight beam when it enters their field of vision
 ## - Estimate player position from the beam origin
 ## - Check if positions are illuminated by the flashlight
 ## - Determine if navigation waypoints are lit
+##
+## v2: Detection is based on "can the enemy SEE the beam?" (beam-in-FOV),
+## not "does the beam HIT the enemy?" (beam-on-enemy).
 
 
 var detection: FlashlightDetectionComponent
@@ -42,6 +45,16 @@ func test_beam_half_angle_constant() -> void:
 func test_check_interval_constant() -> void:
 	assert_eq(FlashlightDetectionComponent.CHECK_INTERVAL, 0.15,
 		"Check interval should be 0.15 seconds")
+
+
+func test_beam_visibility_range_constant() -> void:
+	assert_eq(FlashlightDetectionComponent.BEAM_VISIBILITY_RANGE, 600.0,
+		"Beam visibility range should be 600.0 pixels")
+
+
+func test_beam_sample_count_constant() -> void:
+	assert_eq(FlashlightDetectionComponent.BEAM_SAMPLE_COUNT, 8,
+		"Beam sample count should be 8")
 
 
 # ============================================================================
@@ -185,37 +198,87 @@ func test_is_position_lit_just_outside_beam_edge() -> void:
 
 
 # ============================================================================
-# check_flashlight Tests (with interval timing)
+# check_flashlight Tests (v2 — beam-in-FOV detection)
 # ============================================================================
 
 
 func test_check_flashlight_respects_interval() -> void:
+	# Beam points right from origin, enemy is to the side looking at the beam
 	var mock_player := _create_mock_player(Vector2.ZERO, Vector2.RIGHT, true)
-	var enemy_pos := Vector2(300, 0)
+	var enemy_pos := Vector2(0, -200)  # Above the beam, looking down (toward beam)
+	var enemy_facing := Vector2.DOWN.angle()  # Facing down, beam is in FOV
 
 	# First call with small delta — should NOT check yet (below interval)
-	var result := detection.check_flashlight(enemy_pos, mock_player, null, 0.05)
+	var result := detection.check_flashlight(enemy_pos, enemy_facing, 100.0, true, mock_player, null, 0.05)
 	# Default detected is false, and interval hasn't elapsed
 	assert_false(result, "Should not detect before interval elapses (first call)")
 
 	# Call again with enough delta to exceed interval (0.15s)
-	result = detection.check_flashlight(enemy_pos, mock_player, null, 0.11)
-	assert_true(result, "Should detect after interval elapses")
+	result = detection.check_flashlight(enemy_pos, enemy_facing, 100.0, true, mock_player, null, 0.11)
+	assert_true(result, "Should detect after interval elapses — beam is in enemy's FOV")
 	assert_true(detection.detected, "Detection state should be true")
 
 	mock_player.queue_free()
 
 
 func test_check_flashlight_null_player() -> void:
-	var result := detection.check_flashlight(Vector2(300, 0), null, null, 0.2)
+	var result := detection.check_flashlight(Vector2(300, 0), 0.0, 100.0, true, null, null, 0.2)
 	assert_false(result, "Should return false when player is null")
+
+
+func test_check_flashlight_enemy_sees_beam_from_side() -> void:
+	# The key v2 test: enemy is NOT in the beam, but can SEE the beam from the side
+	# Player at origin, beam points right
+	var mock_player := _create_mock_player(Vector2.ZERO, Vector2.RIGHT, true)
+
+	# Enemy is above and to the right, looking down-left toward where the beam passes
+	var enemy_pos := Vector2(300, -200)
+	var enemy_facing := Vector2(0, 1).angle()  # Facing down (toward beam center)
+
+	var result := detection.check_flashlight(enemy_pos, enemy_facing, 100.0, true, mock_player, null, 0.2)
+	assert_true(result, "Enemy should detect beam visible in their FOV even when not hit by it")
+
+	mock_player.queue_free()
+
+
+func test_check_flashlight_enemy_looking_away_from_beam() -> void:
+	# Enemy can't see the beam because they're looking away
+	var mock_player := _create_mock_player(Vector2.ZERO, Vector2.RIGHT, true)
+
+	# Enemy is above the beam, looking UP (away from the beam)
+	var enemy_pos := Vector2(300, -200)
+	var enemy_facing := Vector2(0, -1).angle()  # Facing up (away from beam)
+
+	var result := detection.check_flashlight(enemy_pos, enemy_facing, 100.0, true, mock_player, null, 0.2)
+	assert_false(result, "Enemy looking away from beam should NOT detect it")
+
+	mock_player.queue_free()
+
+
+func test_check_flashlight_360_vision_detects_beam() -> void:
+	# When FOV is disabled (360° vision), enemy should always detect nearby beam
+	var mock_player := _create_mock_player(Vector2.ZERO, Vector2.RIGHT, true)
+
+	# Enemy is above the beam, facing up (normally wouldn't see it)
+	var enemy_pos := Vector2(300, -200)
+	var enemy_facing := Vector2(0, -1).angle()  # Facing up
+
+	# FOV disabled = 360° vision
+	var result := detection.check_flashlight(enemy_pos, enemy_facing, 100.0, false, mock_player, null, 0.2)
+	assert_true(result, "Enemy with 360° vision should detect beam regardless of facing direction")
+
+	mock_player.queue_free()
 
 
 func test_check_flashlight_sets_estimated_position() -> void:
 	var origin := Vector2(50, 50)
 	var mock_player := _create_mock_player(origin, Vector2.RIGHT, true)
 
-	detection.check_flashlight(Vector2(350, 50), mock_player, null, 0.2)
+	# Enemy near the beam, facing toward it
+	var enemy_pos := Vector2(200, -100)
+	var enemy_facing := Vector2(0.5, 1).normalized().angle()  # Facing toward beam
+
+	detection.check_flashlight(enemy_pos, enemy_facing, 100.0, true, mock_player, null, 0.2)
 
 	assert_eq(detection.estimated_player_position, origin,
 		"Estimated position should be the flashlight origin")
@@ -226,7 +289,10 @@ func test_check_flashlight_sets_estimated_position() -> void:
 func test_check_flashlight_sets_beam_direction() -> void:
 	var mock_player := _create_mock_player(Vector2.ZERO, Vector2.RIGHT, true)
 
-	detection.check_flashlight(Vector2(300, 0), mock_player, null, 0.2)
+	var enemy_pos := Vector2(200, -100)
+	var enemy_facing := Vector2(0, 1).angle()  # Facing down toward beam
+
+	detection.check_flashlight(enemy_pos, enemy_facing, 100.0, true, mock_player, null, 0.2)
 
 	assert_eq(detection.beam_direction, Vector2.RIGHT,
 		"Beam direction should match flashlight direction")
@@ -236,19 +302,114 @@ func test_check_flashlight_sets_beam_direction() -> void:
 
 func test_check_flashlight_resets_when_off() -> void:
 	var mock_player := _create_mock_player(Vector2.ZERO, Vector2.RIGHT, true)
+	var enemy_pos := Vector2(200, -100)
+	var enemy_facing := Vector2(0, 1).angle()
 
 	# First: detect
-	detection.check_flashlight(Vector2(300, 0), mock_player, null, 0.2)
+	detection.check_flashlight(enemy_pos, enemy_facing, 100.0, true, mock_player, null, 0.2)
 	assert_true(detection.detected, "Should detect flashlight")
 
 	# Turn flashlight off
 	mock_player._flashlight_on = false
 
 	# Check again
-	detection.check_flashlight(Vector2(300, 0), mock_player, null, 0.2)
+	detection.check_flashlight(enemy_pos, enemy_facing, 100.0, true, mock_player, null, 0.2)
 	assert_false(detection.detected, "Should not detect when flashlight is off")
 
 	mock_player.queue_free()
+
+
+func test_check_flashlight_enemy_too_far_from_beam() -> void:
+	# Enemy is far away from the beam, even though facing toward it
+	var mock_player := _create_mock_player(Vector2.ZERO, Vector2.RIGHT, true)
+
+	# Enemy is very far above (>1200px away from any beam point)
+	var enemy_pos := Vector2(300, -1500)
+	var enemy_facing := Vector2(0, 1).angle()  # Facing down
+
+	var result := detection.check_flashlight(enemy_pos, enemy_facing, 100.0, true, mock_player, null, 0.2)
+	assert_false(result, "Enemy too far from any beam point should NOT detect it")
+
+	mock_player.queue_free()
+
+
+func test_check_flashlight_narrow_fov_misses_beam() -> void:
+	# Enemy has very narrow FOV and the beam is just outside it
+	var mock_player := _create_mock_player(Vector2.ZERO, Vector2.RIGHT, true)
+
+	# Enemy is perpendicular to the beam, with a very narrow FOV facing straight right
+	# Beam goes right from origin, enemy is at (300, -200) facing right
+	# The beam sample points are along x-axis, enemy looking right → beam is below-left
+	var enemy_pos := Vector2(300, -300)
+	var enemy_facing := Vector2(1, 0).angle()  # Facing right (beam is below)
+
+	var result := detection.check_flashlight(enemy_pos, enemy_facing, 20.0, true, mock_player, null, 0.2)
+	assert_false(result, "Enemy with narrow 20° FOV facing away from beam should NOT detect it")
+
+	mock_player.queue_free()
+
+
+# ============================================================================
+# Beam Sample Point Generation Tests
+# ============================================================================
+
+
+func test_generate_beam_sample_points_count() -> void:
+	var points := detection._generate_beam_sample_points(Vector2.ZERO, Vector2.RIGHT)
+	# 3 rays (center + left edge + right edge) × BEAM_SAMPLE_COUNT each
+	var expected_count := FlashlightDetectionComponent.BEAM_SAMPLE_COUNT * 3
+	assert_eq(points.size(), expected_count,
+		"Should generate %d sample points (3 rays × %d samples)" % [expected_count, FlashlightDetectionComponent.BEAM_SAMPLE_COUNT])
+
+
+func test_generate_beam_sample_points_center_ray() -> void:
+	var origin := Vector2(100, 100)
+	var direction := Vector2.RIGHT
+	var points := detection._generate_beam_sample_points(origin, direction)
+
+	# First BEAM_SAMPLE_COUNT points should be along center line
+	var last_point: Vector2 = points[FlashlightDetectionComponent.BEAM_SAMPLE_COUNT - 1]
+	# Last center point should be at max range
+	var expected_end := origin + direction * FlashlightDetectionComponent.FLASHLIGHT_MAX_RANGE
+	assert_almost_eq(last_point.x, expected_end.x, 0.1,
+		"Last center sample point should be at max range X")
+	assert_almost_eq(last_point.y, expected_end.y, 0.1,
+		"Last center sample point should be at max range Y")
+
+
+func test_generate_beam_sample_points_edge_rays_spread() -> void:
+	var points := detection._generate_beam_sample_points(Vector2.ZERO, Vector2.RIGHT)
+	var n := FlashlightDetectionComponent.BEAM_SAMPLE_COUNT
+
+	# Last point on center ray
+	var center_end := points[n - 1]
+	# Last point on left edge ray
+	var left_end := points[2 * n - 1]
+	# Last point on right edge ray
+	var right_end := points[3 * n - 1]
+
+	# Left and right edges should be above/below center at the far end
+	assert_true(left_end.y < center_end.y,
+		"Left edge should be above center (negative Y in screen coords)")
+	assert_true(right_end.y > center_end.y,
+		"Right edge should be below center (positive Y in screen coords)")
+
+
+# ============================================================================
+# is_point_in_beam_cone Tests
+# ============================================================================
+
+
+func test_point_in_beam_cone_center() -> void:
+	assert_true(detection._is_point_in_beam_cone(
+		Vector2(300, 0), Vector2.ZERO, Vector2.RIGHT),
+		"Point on center line should be in beam cone")
+
+
+func test_point_in_beam_cone_outside() -> void:
+	assert_false(detection._is_point_in_beam_cone(
+		Vector2(0, 300), Vector2.ZERO, Vector2.RIGHT),
+		"Point perpendicular to beam should NOT be in cone")
 
 
 # ============================================================================

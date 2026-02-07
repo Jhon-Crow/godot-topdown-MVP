@@ -3678,9 +3678,11 @@ func _update_memory(delta: float) -> void:
 		_prediction.process_frame(_can_see_player, _was_player_visible, _player.global_position if _player else Vector2.ZERO, global_position, f, delta, _memory)
 	_was_player_visible = _can_see_player
 
-	# [Issue #574] Flashlight beam detection: check if enemy can see the player's flashlight
+	# [Issue #574] Flashlight beam detection: enemy detects beam when any part of it falls within their FOV
 	if _flashlight_detection and _player and not _can_see_player and not _is_blinded and _memory_reset_confusion_timer <= 0.0:
-		var flashlight_detected := _flashlight_detection.check_flashlight(global_position, _player, _raycast, delta)
+		var _es: Node = get_node_or_null("/root/ExperimentalSettings")
+		var _fov_on: bool = fov_enabled and _es != null and _es.has_method("is_fov_enabled") and _es.is_fov_enabled()
+		var flashlight_detected := _flashlight_detection.check_flashlight(global_position, _enemy_model.global_rotation if _enemy_model else rotation, fov_angle, _fov_on, _player, _raycast, delta)
 		if flashlight_detected:
 			# Update memory with flashlight-based detection
 			_memory.update_position(_flashlight_detection.estimated_player_position, FlashlightDetectionComponent.FLASHLIGHT_DETECTION_CONFIDENCE)
