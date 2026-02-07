@@ -90,6 +90,9 @@ enum WeaponType { RIFLE, SHOTGUN, UZI, MACHETE }
 ## Scale multiplier for enemy model (1.3 matches player size).
 @export var enemy_model_scale: float = 1.3
 
+# Grenadier Configuration (Issue #604)
+@export var is_grenadier: bool = false  ## Whether this enemy is a grenadier type.
+
 # Grenade System Configuration (Issue #363, #375)
 @export var grenade_count: int = 0  ## Grenades carried (0 = use DifficultyManager)
 @export var grenade_scene: PackedScene  ## Grenade scene to throw
@@ -374,7 +377,10 @@ var _grenade_component: EnemyGrenadeComponent = null
 var _machete: MacheteComponent = null  ## Machete melee component (Issue #579).
 var _is_melee_weapon: bool = false  ## Whether this enemy uses melee weapon.
 
-## Note: DeathAnimationComponent, EnemyGrenadeComponent, MacheteComponent are available via class_name declarations.
+var _waiting_for_grenadier: bool = false  ## Issue #604: Waiting for grenadier's grenade.
+var _grenadier_wait_timer: float = 0.0  ## Issue #604: Safety timeout for grenadier wait.
+
+## Note: DeathAnimationComponent, EnemyGrenadeComponent, MacheteComponent, GrenadierGrenadeComponent are available via class_name declarations.
 
 func _ready() -> void:
 	# Add to enemies group for grenade targeting
@@ -439,7 +445,11 @@ func _ready() -> void:
 
 ## Initialize health with random value between min and max.
 func _initialize_health() -> void:
-	_max_health = randi_range(min_health, max_health)
+	if is_grenadier:
+		# Grenadiers always have exactly 2 HP (unarmored, Issue #604)
+		_max_health = 2
+	else:
+		_max_health = randi_range(min_health, max_health)
 	_current_health = _max_health
 	_is_alive = true
 
@@ -876,11 +886,18 @@ func _physics_process(delta: float) -> void:
 	_update_grenade_danger_detection()  # Issue #407: Check for nearby grenades
 	if _machete: _machete.update(delta)  # Issue #579: Update machete component
 
-	# Update enemy model rotation BEFORE AI state (weapon must be positioned before shooting).
-	# EnemyModel rotation handles weapon aiming (not _update_weapon_sprite_rotation).
+	# Issue #604: Grenadier wait timer and early return when waiting
+	if _waiting_for_grenadier:
+		_grenadier_wait_timer -= delta
+		if _grenadier_wait_timer <= 0.0: _stop_waiting_for_grenadier()
+
 	_update_enemy_model_rotation()
 
-	# Process AI state machine (may trigger shooting)
+	if _waiting_for_grenadier:  # Issue #604: Skip AI while waiting for grenade
+		velocity = Vector2.ZERO; _update_debug_label(); _update_walk_animation(delta)
+		_apply_machete_attack_animation(); move_and_slide(); _push_casings()
+		if debug_label_enabled: queue_redraw()
+		return
 	_process_ai_state(delta)
 
 	_update_debug_label()
@@ -4837,24 +4854,25 @@ func apply_flashbang_effect(blindness_duration: float, stun_duration: float) -> 
 # Grenade System (Issue #363) - Component-based (extracted for Issue #377)
 
 ## Setup the grenade component. Called from _ready().
+## For grenadiers, uses GrenadierGrenadeComponent with grenade bag system (Issue #604).
 func _setup_grenade_component() -> void:
-	if not enable_grenade_throwing:
-		return
-
-	_grenade_component = EnemyGrenadeComponent.new()
+	if not enable_grenade_throwing: return
+	if is_grenadier:
+		var gc := GrenadierGrenadeComponent.new(); gc.enabled = true
+		_grenade_component = gc
+	else:
+		_grenade_component = EnemyGrenadeComponent.new()
+		_grenade_component.grenade_count = grenade_count; _grenade_component.grenade_scene = grenade_scene
+		_grenade_component.enabled = enable_grenade_throwing
 	_grenade_component.name = "GrenadeComponent"
-	_grenade_component.grenade_count = grenade_count
-	_grenade_component.grenade_scene = grenade_scene
-	_grenade_component.enabled = enable_grenade_throwing
-	_grenade_component.throw_cooldown = grenade_throw_cooldown
-	_grenade_component.max_throw_distance = grenade_max_throw_distance
-	_grenade_component.min_throw_distance = grenade_min_throw_distance
+	_grenade_component.throw_cooldown = grenade_throw_cooldown; _grenade_component.inaccuracy = grenade_inaccuracy
+	_grenade_component.max_throw_distance = grenade_max_throw_distance; _grenade_component.throw_delay = grenade_throw_delay
+	_grenade_component.min_throw_distance = grenade_min_throw_distance; _grenade_component.debug_logging = grenade_debug_logging
 	_grenade_component.safety_margin = grenade_safety_margin
-	_grenade_component.inaccuracy = grenade_inaccuracy
-	_grenade_component.throw_delay = grenade_throw_delay
-	_grenade_component.debug_logging = grenade_debug_logging
-	add_child(_grenade_component)
-	_grenade_component.initialize()
+	add_child(_grenade_component); _grenade_component.initialize()
+	if is_grenadier:  # Connect grenadier signals for ally coordination
+		(_grenade_component as GrenadierGrenadeComponent).grenade_incoming.connect(_on_grenadier_grenade_incoming)
+		(_grenade_component as GrenadierGrenadeComponent).grenade_exploded_safe.connect(_on_grenadier_grenade_exploded)
 
 func _update_grenade_triggers(delta: float) -> void:
 	if _grenade_component == null: return
@@ -4944,6 +4962,29 @@ func get_grenades_remaining() -> int:
 
 func add_grenades(count: int) -> void:
 	if _grenade_component: _grenade_component.add_grenades(count)
+
+# Grenadier Coordination (Issue #604)
+func _on_grenadier_grenade_incoming(grenade_pos: Vector2, effect_radius: float, fuse_time: float) -> void:
+	var parent := get_parent()
+	if parent == null: return
+	for ally in parent.get_children():
+		if ally == self or not is_instance_valid(ally): continue
+		if ally.has_method("_start_waiting_for_grenadier") and ally.global_position.distance_to(grenade_pos) < effect_radius * 1.5 + 200.0:
+			ally._start_waiting_for_grenadier(fuse_time + 1.0)
+func _on_grenadier_grenade_exploded() -> void:
+	var parent := get_parent()
+	if parent == null: return
+	for ally in parent.get_children():
+		if ally == self or not is_instance_valid(ally): continue
+		if ally.has_method("_stop_waiting_for_grenadier"): ally._stop_waiting_for_grenadier()
+func _start_waiting_for_grenadier(wait_time: float) -> void:
+	_waiting_for_grenadier = true; _grenadier_wait_timer = min(wait_time, 8.0)
+	_log_to_file("[Grenadier] %s waiting for grenade (%.1fs)" % [name, _grenadier_wait_timer])
+func _stop_waiting_for_grenadier() -> void:
+	_waiting_for_grenadier = false; _grenadier_wait_timer = 0.0
+	_log_to_file("[Grenadier] %s proceeding after grenade explosion" % name)
+func get_is_grenadier() -> bool: return is_grenadier
+func is_waiting_for_grenade() -> bool: return _waiting_for_grenadier
 
 ## Setup machete melee component (Issue #579).
 func _setup_machete_component() -> void:
