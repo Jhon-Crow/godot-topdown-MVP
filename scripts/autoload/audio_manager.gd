@@ -106,6 +106,19 @@ const SILENCED_SHOTS: Array[String] = [
 ## Volume for silenced shots (very quiet).
 const VOLUME_SILENCED_SHOT: float = -18.0
 
+## Makarov PM pistol sounds.
+## PM shot sound.
+const PM_SHOT: String = "res://assets/audio/звук выстрела пм.mp3"
+## PM reload first action (eject magazine).
+const PM_RELOAD_ACTION_1: String = "res://assets/audio/первое действие перезарядки.mp3"
+## PM reload second action (insert magazine).
+const PM_RELOAD_ACTION_2: String = "res://assets/audio/второе действие перезарядки.mp3"
+
+## Volume for PM shots.
+const VOLUME_PM_SHOT: float = -5.0
+## Volume for PM reload actions.
+const VOLUME_PM_RELOAD: float = -3.0
+
 ## Grenade sounds.
 ## Activation sound (pin pull) - played when grenade timer starts.
 const GRENADE_ACTIVATION: String = "res://assets/audio/выдернут чека (активирована) короткая версия.wav"
@@ -311,6 +324,10 @@ func _preload_all_sounds() -> void:
 	all_sounds.append(SHELL_SHOTGUN)
 	# Silenced weapon sounds
 	all_sounds.append_array(SILENCED_SHOTS)
+	# Makarov PM sounds
+	all_sounds.append(PM_SHOT)
+	all_sounds.append(PM_RELOAD_ACTION_1)
+	all_sounds.append(PM_RELOAD_ACTION_2)
 	# ASVK sniper rifle sounds
 	all_sounds.append(ASVK_SHOT)
 	all_sounds.append(ASVK_BOLT_STEP_1)
@@ -748,6 +765,28 @@ func play_shotgun_load_shell(position: Vector2) -> void:
 ## Uses CRITICAL priority for player shooting sounds.
 func play_silenced_shot(position: Vector2) -> void:
 	play_random_sound_2d_with_priority(SILENCED_SHOTS, position, VOLUME_SILENCED_SHOT, SoundPriority.CRITICAL)
+
+
+# ============================================================================
+# Makarov PM pistol sounds
+# ============================================================================
+
+## Plays the Makarov PM shot sound at the given position.
+## Uses CRITICAL priority for player shooting sounds.
+func play_pm_shot(position: Vector2) -> void:
+	play_sound_2d_with_priority(PM_SHOT, position, VOLUME_PM_SHOT, SoundPriority.CRITICAL)
+
+
+## Plays the first PM reload action sound (eject magazine) at the given position.
+## Uses CRITICAL priority for reload sounds.
+func play_pm_reload_action_1(position: Vector2) -> void:
+	play_sound_2d_with_priority(PM_RELOAD_ACTION_1, position, VOLUME_PM_RELOAD, SoundPriority.CRITICAL)
+
+
+## Plays the second PM reload action sound (insert magazine) at the given position.
+## Uses CRITICAL priority for reload sounds.
+func play_pm_reload_action_2(position: Vector2) -> void:
+	play_sound_2d_with_priority(PM_RELOAD_ACTION_2, position, VOLUME_PM_RELOAD, SoundPriority.CRITICAL)
 
 
 # ============================================================================

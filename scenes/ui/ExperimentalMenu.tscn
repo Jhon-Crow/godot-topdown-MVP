@@ -31,9 +31,9 @@ anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
 offset_left = -220.0
-offset_top = -280.0
+offset_top = -370.0
 offset_right = 220.0
-offset_bottom = 280.0
+offset_bottom = 370.0
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -123,6 +123,34 @@ after losing sight. Uses cover analysis, flanking,
 velocity tracking, and behavioral adaptation."
 horizontal_alignment = 1
 autowrap_mode = 2
+
+[node name="HSeparator4" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="DebugModeContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="DebugModeLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer/DebugModeContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Debug Mode (F7)"
+
+[node name="DebugModeCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer/DebugModeContainer"]
+layout_mode = 2
+
+[node name="HSeparator5" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="InvincibilityContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="InvincibilityLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer/InvincibilityContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Invincibility (F6)"
+
+[node name="InvincibilityCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer/InvincibilityContainer"]
+layout_mode = 2
 
 [node name="StatusLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2

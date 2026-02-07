@@ -1,7 +1,7 @@
 extends CanvasLayer
-## Armory menu for selecting weapons and grenades by category.
+## Armory menu for selecting weapons, grenades, and active items by category.
 ##
-## Layout: left sidebar with stats/description, right area with weapon/grenade grids.
+## Layout: left sidebar with stats/description, right area with weapon/grenade/active item grids.
 ## Items fit on screen without scrolling. An accordion toggle expands the grid
 ## if there are too many items. An "Apply" button confirms the selection
 ## and restarts the level (no immediate restart on click).
@@ -15,6 +15,12 @@ signal weapon_selected(weapon_id: String)
 ## Firearms data — weapons the player can equip.
 ## Keys: weapon_id, Values: dictionary with name, icon_path, unlocked, description
 const FIREARMS: Dictionary = {
+	"makarov_pm": {
+		"name": "PM",
+		"icon_path": "res://assets/sprites/weapons/makarov_pm_icon.png",
+		"unlocked": true,
+		"description": "Makarov PM — 9x18mm starting pistol, 9-round magazine, medium ricochets"
+	},
 	"m16": {
 		"name": "M16",
 		"icon_path": "res://assets/sprites/weapons/m16_rifle.png",
@@ -56,17 +62,12 @@ const FIREARMS: Dictionary = {
 		"icon_path": "",
 		"unlocked": false,
 		"description": "Coming soon"
-	},
-	"pistol": {
-		"name": "???",
-		"icon_path": "",
-		"unlocked": false,
-		"description": "Coming soon"
 	}
 }
 
 ## Mapping from weapon_id to .tres resource path for loading stats.
 const WEAPON_RESOURCE_PATHS: Dictionary = {
+	"makarov_pm": "res://resources/weapons/MakarovPMData.tres",
 	"m16": "res://resources/weapons/AssaultRifleData.tres",
 	"shotgun": "res://resources/weapons/ShotgunData.tres",
 	"mini_uzi": "res://resources/weapons/MiniUziData.tres",
@@ -83,15 +84,21 @@ const MAX_GRENADE_ROWS_COLLAPSED: int = 1
 ## Number of columns in the weapon/grenade grids.
 const GRID_COLUMNS: int = 4
 
+## Maximum number of visible active item rows before accordion hides the rest.
+const MAX_ACTIVE_ITEM_ROWS_COLLAPSED: int = 1
+
 ## Reference to UI elements — created in code.
 var _weapon_grid: GridContainer
 var _grenade_grid: GridContainer
+var _active_item_grid: GridContainer
 var _weapon_stats_label: RichTextLabel
 var _grenade_stats_label: RichTextLabel
+var _active_item_stats_label: RichTextLabel
 var _back_button: Button
 var _apply_button: Button
 var _weapon_accordion_button: Button
 var _grenade_accordion_button: Button
+var _active_item_accordion_button: Button
 
 ## Currently pending weapon selection (not yet applied).
 var _pending_weapon_id: String = ""
@@ -99,11 +106,17 @@ var _pending_weapon_id: String = ""
 ## Currently pending grenade selection (not yet applied).
 var _pending_grenade_type: int = -1
 
+## Currently pending active item selection (not yet applied).
+var _pending_active_item_type: int = -1
+
 ## Whether the weapon grid is expanded (accordion open).
 var _weapons_expanded: bool = false
 
 ## Whether the grenade grid is expanded (accordion open).
 var _grenades_expanded: bool = false
+
+## Whether the active item grid is expanded (accordion open).
+var _active_items_expanded: bool = false
 
 ## Map of weapon slots by weapon ID.
 var _weapon_slots: Dictionary = {}
@@ -111,8 +124,14 @@ var _weapon_slots: Dictionary = {}
 ## Map of grenade slots by grenade type.
 var _grenade_slots: Dictionary = {}
 
+## Map of active item slots by active item type.
+var _active_item_slots: Dictionary = {}
+
 ## Reference to GrenadeManager autoload.
 var _grenade_manager: Node = null
+
+## Reference to ActiveItemManager autoload.
+var _active_item_manager: Node = null
 
 ## Cached weapon resource data.
 var _weapon_resources: Dictionary = {}
@@ -123,10 +142,16 @@ var _weapon_overflow_slots: Array = []
 ## Overflow grenade slots (hidden when collapsed).
 var _grenade_overflow_slots: Array = []
 
+## Overflow active item slots (hidden when collapsed).
+var _active_item_overflow_slots: Array = []
+
 
 func _ready() -> void:
 	# Get GrenadeManager reference
 	_grenade_manager = get_node_or_null("/root/GrenadeManager")
+
+	# Get ActiveItemManager reference
+	_active_item_manager = get_node_or_null("/root/ActiveItemManager")
 
 	# Load weapon resource data
 	_load_weapon_resources()
@@ -135,12 +160,17 @@ func _ready() -> void:
 	if GameManager:
 		_pending_weapon_id = GameManager.get_selected_weapon()
 	else:
-		_pending_weapon_id = "m16"
+		_pending_weapon_id = "makarov_pm"
 
 	if _grenade_manager:
 		_pending_grenade_type = _grenade_manager.current_grenade_type
 	else:
 		_pending_grenade_type = 0
+
+	if _active_item_manager:
+		_pending_active_item_type = _active_item_manager.current_active_item
+	else:
+		_pending_active_item_type = 0
 
 	# Build the entire UI programmatically
 	_build_ui()
@@ -181,9 +211,9 @@ func _build_ui() -> void:
 	panel.anchor_right = 0.5
 	panel.anchor_bottom = 0.5
 	panel.offset_left = -500
-	panel.offset_top = -310
+	panel.offset_top = -380
 	panel.offset_right = 500
-	panel.offset_bottom = 310
+	panel.offset_bottom = 380
 	panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	panel.grow_vertical = Control.GROW_DIRECTION_BOTH
 
@@ -374,6 +404,19 @@ func _build_sidebar() -> VBoxContainer:
 	_grenade_stats_label.add_theme_font_size_override("normal_font_size", 12)
 	stats_vbox.add_child(_grenade_stats_label)
 
+	var active_sep := HSeparator.new()
+	stats_vbox.add_child(active_sep)
+
+	# Active item stats
+	_active_item_stats_label = RichTextLabel.new()
+	_active_item_stats_label.layout_mode = 2
+	_active_item_stats_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_active_item_stats_label.bbcode_enabled = true
+	_active_item_stats_label.fit_content = true
+	_active_item_stats_label.scroll_active = false
+	_active_item_stats_label.add_theme_font_size_override("normal_font_size", 12)
+	stats_vbox.add_child(_active_item_stats_label)
+
 	return sidebar
 
 
@@ -466,6 +509,53 @@ func _build_right_area() -> VBoxContainer:
 	else:
 		_apply_accordion_collapsed_grenades()
 
+	# Separator
+	var active_sep := HSeparator.new()
+	active_sep.add_theme_constant_override("separation", 4)
+	right_vbox.add_child(active_sep)
+
+	# --- ACTIVE ITEMS SECTION ---
+	_add_category_header(right_vbox, "ACTIVE ITEMS")
+	_active_item_grid = GridContainer.new()
+	_active_item_grid.columns = GRID_COLUMNS
+	_active_item_grid.layout_mode = 2
+	_active_item_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_active_item_grid.add_theme_constant_override("h_separation", 6)
+	_active_item_grid.add_theme_constant_override("v_separation", 6)
+	right_vbox.add_child(_active_item_grid)
+
+	# Populate active item grid from ActiveItemManager
+	var active_item_index: int = 0
+	var max_visible_active_items: int = MAX_ACTIVE_ITEM_ROWS_COLLAPSED * GRID_COLUMNS
+	if _active_item_manager:
+		for item_type in _active_item_manager.get_all_active_item_types():
+			var adata: Dictionary = _active_item_manager.get_active_item_data(item_type)
+			var item_info := {
+				"name": adata.get("name", "Unknown"),
+				"icon_path": adata.get("icon_path", ""),
+				"unlocked": true,
+				"description": adata.get("description", ""),
+				"active_item_type": item_type
+			}
+			var slot := _create_active_item_slot(str(item_type), item_info, item_type)
+			_active_item_grid.add_child(slot)
+			_active_item_slots[item_type] = slot
+			if active_item_index >= max_visible_active_items:
+				_active_item_overflow_slots.append(slot)
+			active_item_index += 1
+
+	# Active item accordion button (only shown if items overflow)
+	_active_item_accordion_button = Button.new()
+	_active_item_accordion_button.text = "Show all ▼"
+	_active_item_accordion_button.add_theme_font_size_override("font_size", 11)
+	_active_item_accordion_button.pressed.connect(_toggle_active_item_accordion)
+	right_vbox.add_child(_active_item_accordion_button)
+
+	if _active_item_overflow_slots.size() == 0:
+		_active_item_accordion_button.visible = false
+	else:
+		_apply_accordion_collapsed_active_items()
+
 	return right_vbox
 
 
@@ -502,6 +592,24 @@ func _toggle_grenade_accordion() -> void:
 func _apply_accordion_collapsed_grenades() -> void:
 	_grenade_accordion_button.text = "Show all ▼"
 	for slot in _grenade_overflow_slots:
+		slot.visible = false
+
+
+## Toggle active item accordion (expand/collapse overflow items).
+func _toggle_active_item_accordion() -> void:
+	_active_items_expanded = not _active_items_expanded
+	if _active_items_expanded:
+		_active_item_accordion_button.text = "Collapse ▲"
+		for slot in _active_item_overflow_slots:
+			slot.visible = true
+	else:
+		_apply_accordion_collapsed_active_items()
+
+
+## Collapse active item overflow slots.
+func _apply_accordion_collapsed_active_items() -> void:
+	_active_item_accordion_button.text = "Show all ▼"
+	for slot in _active_item_overflow_slots:
 		slot.visible = false
 
 
@@ -580,6 +688,83 @@ func _create_item_slot(item_id: String, item_data: Dictionary, is_grenade: bool)
 	return slot
 
 
+## Create an active item slot (separate handler for active item clicks).
+func _create_active_item_slot(item_id: String, item_data: Dictionary, item_type: int) -> PanelContainer:
+	var slot := PanelContainer.new()
+	slot.name = "active_" + item_id + "_slot"
+	slot.custom_minimum_size = Vector2(90, 80)
+
+	# Store metadata
+	slot.set_meta("item_id", item_id)
+	slot.set_meta("is_active_item", true)
+
+	var vbox := VBoxContainer.new()
+	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
+	vbox.add_theme_constant_override("separation", 3)
+	slot.add_child(vbox)
+
+	# Item icon or placeholder
+	var icon_container := CenterContainer.new()
+	icon_container.custom_minimum_size = Vector2(48, 48)
+	vbox.add_child(icon_container)
+
+	var icon_path: String = item_data.get("icon_path", "")
+	if icon_path != "" and ResourceLoader.exists(icon_path):
+		var texture_rect := TextureRect.new()
+		texture_rect.custom_minimum_size = Vector2(48, 48)
+		texture_rect.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+		texture_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+
+		var texture: Texture2D = load(icon_path)
+		if texture:
+			texture_rect.texture = texture
+		icon_container.add_child(texture_rect)
+	else:
+		# "None" item or missing icon — show dash
+		var none_label := Label.new()
+		none_label.text = "-" if item_data.get("name", "") == "None" else "?"
+		none_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		none_label.add_theme_font_size_override("font_size", 24)
+		none_label.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5, 0.8))
+		icon_container.add_child(none_label)
+
+	# Item name
+	var name_label := Label.new()
+	name_label.text = item_data.get("name", "???")
+	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	name_label.add_theme_font_size_override("font_size", 11)
+	vbox.add_child(name_label)
+
+	# Tooltip
+	slot.tooltip_text = item_data.get("description", "")
+
+	# Make clickable
+	slot.mouse_filter = Control.MOUSE_FILTER_STOP
+	slot.gui_input.connect(_on_active_item_slot_gui_input.bind(slot, item_type))
+	slot.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+
+	# Default style
+	_apply_default_style(slot)
+
+	return slot
+
+
+## Handle click on an active item slot.
+func _on_active_item_slot_gui_input(event: InputEvent, slot: PanelContainer, item_type: int) -> void:
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		_pending_active_item_type = item_type
+
+		# Play click sound via AudioManager
+		var audio_manager = get_node_or_null("/root/AudioManager")
+		if audio_manager and audio_manager.has_method("play_ui_click"):
+			audio_manager.play_ui_click()
+
+		# Update visuals to show pending selection
+		_highlight_selected_items()
+		_update_loadout_panel()
+		_update_apply_button_state()
+
+
 ## Apply default (unselected) style to a slot.
 func _apply_default_style(slot: PanelContainer) -> void:
 	var style := StyleBoxFlat.new()
@@ -630,7 +815,7 @@ func _on_slot_gui_input(event: InputEvent, slot: PanelContainer, item_id: String
 
 ## Check if the pending selection differs from the current applied selection.
 func _has_pending_changes() -> bool:
-	var current_weapon_id: String = "m16"
+	var current_weapon_id: String = "makarov_pm"
 	if GameManager:
 		current_weapon_id = GameManager.get_selected_weapon()
 
@@ -638,7 +823,11 @@ func _has_pending_changes() -> bool:
 	if _grenade_manager:
 		current_grenade_type = _grenade_manager.current_grenade_type
 
-	return _pending_weapon_id != current_weapon_id or _pending_grenade_type != current_grenade_type
+	var current_active_item_type: int = 0
+	if _active_item_manager:
+		current_active_item_type = _active_item_manager.current_active_item
+
+	return _pending_weapon_id != current_weapon_id or _pending_grenade_type != current_grenade_type or _pending_active_item_type != current_active_item_type
 
 
 ## Update the Apply button enabled state.
@@ -647,16 +836,17 @@ func _update_apply_button_state() -> void:
 		_apply_button.disabled = not _has_pending_changes()
 
 
-## Apply the pending selection: update GameManager/GrenadeManager and restart.
+## Apply the pending selection: update GameManager/GrenadeManager/ActiveItemManager and restart.
 func _on_apply_pressed() -> void:
 	if not _has_pending_changes():
 		return
 
 	var weapon_changed: bool = false
 	var grenade_changed: bool = false
+	var active_item_changed: bool = false
 
 	# Apply weapon change
-	var current_weapon_id: String = "m16"
+	var current_weapon_id: String = "makarov_pm"
 	if GameManager:
 		current_weapon_id = GameManager.get_selected_weapon()
 
@@ -677,15 +867,26 @@ func _on_apply_pressed() -> void:
 			_grenade_manager.set_grenade_type(_pending_grenade_type, false)
 		grenade_changed = true
 
+	# Apply active item change
+	var current_active_item_type: int = 0
+	if _active_item_manager:
+		current_active_item_type = _active_item_manager.current_active_item
+
+	if _pending_active_item_type != current_active_item_type:
+		if _active_item_manager:
+			# Pass false for restart_level — we handle restart ourselves
+			_active_item_manager.set_active_item(_pending_active_item_type, false)
+		active_item_changed = true
+
 	# Restart the level to apply changes
-	if weapon_changed or grenade_changed:
+	if weapon_changed or grenade_changed or active_item_changed:
 		if GameManager:
 			get_tree().paused = false
 			Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED_HIDDEN)
 			GameManager.restart_scene()
 
 
-## Highlight the currently selected (pending) weapon and grenade slots.
+## Highlight the currently selected (pending) weapon, grenade, and active item slots.
 func _highlight_selected_items() -> void:
 	# Reset all weapon slots to default
 	for wid in _weapon_slots:
@@ -695,6 +896,10 @@ func _highlight_selected_items() -> void:
 	for gtype in _grenade_slots:
 		_apply_default_style(_grenade_slots[gtype])
 
+	# Reset all active item slots to default
+	for atype in _active_item_slots:
+		_apply_default_style(_active_item_slots[atype])
+
 	# Highlight pending weapon
 	if _pending_weapon_id in _weapon_slots:
 		_apply_selected_style(_weapon_slots[_pending_weapon_id])
@@ -703,11 +908,16 @@ func _highlight_selected_items() -> void:
 	if _pending_grenade_type in _grenade_slots:
 		_apply_selected_style(_grenade_slots[_pending_grenade_type])
 
+	# Highlight pending active item
+	if _pending_active_item_type in _active_item_slots:
+		_apply_selected_style(_active_item_slots[_pending_active_item_type])
 
-## Update the Current Loadout panel with stats for pending weapon and grenade.
+
+## Update the Current Loadout panel with stats for pending weapon, grenade, and active item.
 func _update_loadout_panel() -> void:
 	_update_weapon_stats()
 	_update_grenade_stats()
+	_update_active_item_stats()
 
 
 ## Update weapon stats in the sidebar.
@@ -807,6 +1017,27 @@ func _update_grenade_stats() -> void:
 	_grenade_stats_label.text = bbcode
 
 
+## Update active item stats in the sidebar.
+func _update_active_item_stats() -> void:
+	if _active_item_stats_label == null:
+		return
+
+	var item_data: Dictionary = {}
+	if _active_item_manager:
+		item_data = _active_item_manager.get_active_item_data(_pending_active_item_type)
+
+	var item_name: String = item_data.get("name", "None")
+	var item_desc: String = item_data.get("description", "No active item equipped.")
+
+	var bbcode: String = ""
+	bbcode += "[b][color=#d4c896]ACTIVE: %s[/color][/b]\n" % item_name
+	bbcode += "[color=#aab0b8]%s[/color]\n" % item_desc
+	if _pending_active_item_type != 0:  # Not "None"
+		bbcode += "\n[color=#888888]Hold Space to activate[/color]"
+
+	_active_item_stats_label.text = bbcode
+
+
 ## Refresh the weapon grid (called when menu is reshown).
 func _populate_weapon_grid() -> void:
 	# Sync pending selections with current state
@@ -814,6 +1045,8 @@ func _populate_weapon_grid() -> void:
 		_pending_weapon_id = GameManager.get_selected_weapon()
 	if _grenade_manager:
 		_pending_grenade_type = _grenade_manager.current_grenade_type
+	if _active_item_manager:
+		_pending_active_item_type = _active_item_manager.current_active_item
 
 	_highlight_selected_items()
 	_update_loadout_panel()

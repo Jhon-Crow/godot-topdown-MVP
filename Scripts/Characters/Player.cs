@@ -579,6 +579,25 @@ public partial class Player : BaseCharacter
     [Signal]
     public delegate void GrenadeThrownEventHandler();
 
+    #region Flashlight System (Issue #546)
+
+    /// <summary>
+    /// Path to the flashlight effect scene.
+    /// </summary>
+    private const string FlashlightScenePath = "res://scenes/effects/FlashlightEffect.tscn";
+
+    /// <summary>
+    /// Whether the flashlight is equipped (active item selected in armory).
+    /// </summary>
+    private bool _flashlightEquipped = false;
+
+    /// <summary>
+    /// Reference to the flashlight effect node (child of PlayerModel).
+    /// </summary>
+    private Node2D? _flashlightNode = null;
+
+    #endregion
+
     public override void _Ready()
     {
         base._Ready();
@@ -724,7 +743,12 @@ public partial class Player : BaseCharacter
         // Auto-equip weapon if not set but a weapon child exists
         if (CurrentWeapon == null)
         {
-            CurrentWeapon = GetNodeOrNull<BaseWeapon>("AssaultRifle");
+            // Try MakarovPM first (default starting weapon), then AssaultRifle for backward compatibility
+            CurrentWeapon = GetNodeOrNull<BaseWeapon>("MakarovPM");
+            if (CurrentWeapon == null)
+            {
+                CurrentWeapon = GetNodeOrNull<BaseWeapon>("AssaultRifle");
+            }
             if (CurrentWeapon != null)
             {
                 GD.Print($"[Player] {Name}: Auto-equipped weapon {CurrentWeapon.Name}");
@@ -812,6 +836,9 @@ public partial class Player : BaseCharacter
 
         // Initialize CasingPusher Area2D for pushing shell casings (Issue #392 Iteration 8)
         ConnectCasingPusherSignals();
+
+        // Initialize flashlight if active item manager has flashlight selected (Issue #546)
+        InitFlashlight();
 
         // Log ready status with full info
         int currentAmmo = CurrentWeapon?.CurrentAmmo ?? 0;
@@ -1063,6 +1090,9 @@ public partial class Player : BaseCharacter
         {
             ToggleFireMode();
         }
+
+        // Handle flashlight input (hold Space to turn on, release to turn off) (Issue #546)
+        HandleFlashlightInput();
     }
 
     /// <summary>
@@ -1265,11 +1295,12 @@ public partial class Player : BaseCharacter
         var detectedType = WeaponType.Rifle;  // Default to rifle pose
 
         // Check for weapon children - weapons are added directly to player by level scripts
-        // Check in order of specificity: SniperRifle, MiniUzi (SMG), Shotgun, SilencedPistol, then default to Rifle
+        // Check in order of specificity: SniperRifle, MiniUzi (SMG), Shotgun, SilencedPistol, MakarovPM, then default to Rifle
         var sniperRifle = GetNodeOrNull<BaseWeapon>("SniperRifle");
         var miniUzi = GetNodeOrNull<BaseWeapon>("MiniUzi");
         var shotgun = GetNodeOrNull<BaseWeapon>("Shotgun");
         var silencedPistol = GetNodeOrNull<BaseWeapon>("SilencedPistol");
+        var makarovPM = GetNodeOrNull<BaseWeapon>("MakarovPM");
 
         if (sniperRifle != null)
         {
@@ -1290,6 +1321,11 @@ public partial class Player : BaseCharacter
         {
             detectedType = WeaponType.Pistol;
             LogToFile("[Player] Detected weapon: Silenced Pistol (Pistol pose)");
+        }
+        else if (makarovPM != null)
+        {
+            detectedType = WeaponType.Pistol;
+            LogToFile("[Player] Detected weapon: Makarov PM (Pistol pose)");
         }
         else
         {
@@ -1331,12 +1367,12 @@ public partial class Player : BaseCharacter
                 break;
 
             case WeaponType.Pistol:
-                // Pistol pose: Compact two-handed pistol grip (Weaver/Isoceles stance)
-                // Similar to SMG but even more compact - suppressed pistol is shorter than SMG
-                // Left arm supports under the right hand (close to body)
-                // Right arm extends forward slightly for aiming
-                _baseLeftArmPos = originalLeftArmPos + new Vector2(-14, 0);  // More compact than SMG (-10)
-                _baseRightArmPos = originalRightArmPos + new Vector2(4, 0);  // Slightly more forward than SMG (3)
+                // Pistol pose: Two-handed pistol grip (Weaver/Isoceles stance)
+                // Extended forward so the pistol is held away from body
+                // Left arm supports under the right hand
+                // Right arm extends forward for aiming
+                _baseLeftArmPos = originalLeftArmPos + new Vector2(-8, 0);  // Extended forward (was -14)
+                _baseRightArmPos = originalRightArmPos + new Vector2(6, 0);  // Further forward for aiming (was 4)
                 LogToFile($"[Player] Applied Pistol arm pose: Left={_baseLeftArmPos}, Right={_baseRightArmPos}");
                 break;
 
@@ -1526,42 +1562,71 @@ public partial class Player : BaseCharacter
             return;
         }
 
-        // Handle R key (first and third step)
+        // Check if this is a pistol-type weapon that uses R->R reload (2-step) instead of R->F->R (3-step)
+        bool isPistolReload = CurrentWeapon is MakarovPM;
+
+        // Handle R key (first and third step, or both steps for pistol)
         if (Input.IsActionJustPressed("reload"))
         {
-            if (_reloadSequenceStep == 0 || _reloadSequenceStep == 1)
+            if (_reloadSequenceStep == 0)
             {
-                // Check if we can start a new reload (need ammo or already in sequence)
-                if (_reloadSequenceStep == 0)
+                // Starting fresh - check conditions
+                if (CurrentWeapon.CurrentAmmo >= (CurrentWeapon.WeaponData?.MagazineSize ?? 0))
                 {
-                    // Starting fresh - check conditions
-                    if (CurrentWeapon.CurrentAmmo >= (CurrentWeapon.WeaponData?.MagazineSize ?? 0))
-                    {
-                        return; // Magazine is full
-                    }
-                    if (CurrentWeapon.ReserveAmmo <= 0)
-                    {
-                        return; // No reserve ammo
-                    }
+                    return; // Magazine is full
+                }
+                if (CurrentWeapon.ReserveAmmo <= 0)
+                {
+                    return; // No reserve ammo
                 }
 
-                // Start or restart reload sequence
-                // This handles both initial R press and R->R sequence (restart)
+                // Start reload sequence - eject magazine
                 _isReloadingSequence = true;
                 _reloadSequenceStep = 1;
                 _ammoAtReloadStart = CurrentWeapon.CurrentAmmo;
-                GD.Print($"[Player] Reload sequence started (R pressed) - ammo at start: {_ammoAtReloadStart} - press F next");
+                GD.Print($"[Player] Reload sequence started (R pressed) - ammo at start: {_ammoAtReloadStart}" +
+                    (isPistolReload ? " - press R to complete (pistol)" : " - press F next"));
                 // Start animation: Step 1 - Grab magazine from chest
                 StartReloadAnimPhase(ReloadAnimPhase.GrabMagazine, ReloadAnimGrabDuration);
-                // Play magazine out sound
+                // Play first reload sound (PM-specific or generic mag out)
+                if (isPistolReload)
+                    PlayPmReloadAction1Sound();
+                else
+                    PlayReloadMagOutSound();
+                EmitSignal(SignalName.ReloadSequenceProgress, 1, isPistolReload ? 2 : 3);
+                // Notify enemies that player has started reloading (vulnerable state)
+                EmitSignal(SignalName.ReloadStarted);
+            }
+            else if (_reloadSequenceStep == 1 && isPistolReload)
+            {
+                // Pistol R->R reload: second R completes reload (combines F and final R steps)
+                // Set up chamber bullet based on ammo at reload start
+                bool hadAmmoInMagazine = _ammoAtReloadStart > 0;
+                CurrentWeapon.StartReloadSequence(hadAmmoInMagazine);
+
+                GD.Print("[Player] Pistol reload: R->R complete (magazine inserted)");
+                // Start animation: Insert magazine
+                StartReloadAnimPhase(ReloadAnimPhase.InsertMagazine, ReloadAnimInsertDuration);
+                // Play second PM reload sound
+                PlayPmReloadAction2Sound();
+                EmitSignal(SignalName.ReloadSequenceProgress, 2, 2);
+                CompleteReloadSequence();
+            }
+            else if (_reloadSequenceStep == 1 && !isPistolReload)
+            {
+                // Non-pistol: pressing R again at step 1 restarts the sequence
+                _isReloadingSequence = true;
+                _reloadSequenceStep = 1;
+                _ammoAtReloadStart = CurrentWeapon.CurrentAmmo;
+                GD.Print($"[Player] Reload sequence restarted (R pressed again) - ammo at start: {_ammoAtReloadStart} - press F next");
+                StartReloadAnimPhase(ReloadAnimPhase.GrabMagazine, ReloadAnimGrabDuration);
                 PlayReloadMagOutSound();
                 EmitSignal(SignalName.ReloadSequenceProgress, 1, 3);
-                // Notify enemies that player has started reloading (vulnerable state)
                 EmitSignal(SignalName.ReloadStarted);
             }
             else if (_reloadSequenceStep == 2)
             {
-                // Complete reload sequence - instant reload!
+                // Complete reload sequence - instant reload! (non-pistol: 3rd step)
                 // Start animation: Step 3 - Pull bolt/charging handle (back and forth motion)
                 StartReloadAnimPhase(ReloadAnimPhase.PullBolt, ReloadAnimBoltPullDuration);
                 // Play bolt cycling sound
@@ -1570,8 +1635,8 @@ public partial class Player : BaseCharacter
             }
         }
 
-        // Handle F key (reload_step action - second step)
-        if (Input.IsActionJustPressed("reload_step"))
+        // Handle F key (reload_step action - second step, only for non-pistol weapons)
+        if (Input.IsActionJustPressed("reload_step") && !isPistolReload)
         {
             if (_reloadSequenceStep == 1)
             {
@@ -1621,6 +1686,30 @@ public partial class Player : BaseCharacter
         if (audioManager != null && audioManager.HasMethod("play_reload_mag_in"))
         {
             audioManager.Call("play_reload_mag_in", GlobalPosition);
+        }
+    }
+
+    /// <summary>
+    /// Plays the first Makarov PM reload action sound (eject magazine).
+    /// </summary>
+    private void PlayPmReloadAction1Sound()
+    {
+        var audioManager = GetNodeOrNull("/root/AudioManager");
+        if (audioManager != null && audioManager.HasMethod("play_pm_reload_action_1"))
+        {
+            audioManager.Call("play_pm_reload_action_1", GlobalPosition);
+        }
+    }
+
+    /// <summary>
+    /// Plays the second Makarov PM reload action sound (insert magazine).
+    /// </summary>
+    private void PlayPmReloadAction2Sound()
+    {
+        var audioManager = GetNodeOrNull("/root/AudioManager");
+        if (audioManager != null && audioManager.HasMethod("play_pm_reload_action_2"))
+        {
+            audioManager.Call("play_pm_reload_action_2", GlobalPosition);
         }
     }
 
@@ -1955,9 +2044,9 @@ public partial class Player : BaseCharacter
 
         // Get selected weapon ID from GameManager (GDScript autoload)
         var selectedWeaponId = gameManager.Call("get_selected_weapon").AsString();
-        if (string.IsNullOrEmpty(selectedWeaponId) || selectedWeaponId == "m16")
+        if (string.IsNullOrEmpty(selectedWeaponId) || selectedWeaponId == "makarov_pm")
         {
-            // Default weapon (AssaultRifle) - already equipped, nothing to do
+            // Default weapon (MakarovPM) - already equipped, nothing to do
             return;
         }
 
@@ -1966,6 +2055,10 @@ public partial class Player : BaseCharacter
         string weaponNodeName;
         switch (selectedWeaponId)
         {
+            case "m16":
+                scenePath = "res://scenes/weapons/csharp/AssaultRifle.tscn";
+                weaponNodeName = "AssaultRifle";
+                break;
             case "shotgun":
                 scenePath = "res://scenes/weapons/csharp/Shotgun.tscn";
                 weaponNodeName = "Shotgun";
@@ -1982,6 +2075,10 @@ public partial class Player : BaseCharacter
                 scenePath = "res://scenes/weapons/csharp/SniperRifle.tscn";
                 weaponNodeName = "SniperRifle";
                 break;
+            case "makarov_pm":
+                scenePath = "res://scenes/weapons/csharp/MakarovPM.tscn";
+                weaponNodeName = "MakarovPM";
+                break;
             default:
                 LogToFile($"[Player.Weapon] Unknown weapon ID '{selectedWeaponId}', keeping default");
                 return;
@@ -1989,13 +2086,13 @@ public partial class Player : BaseCharacter
 
         LogToFile($"[Player.Weapon] GameManager weapon selection: {selectedWeaponId} ({weaponNodeName})");
 
-        // Remove the default AssaultRifle immediately
-        var assaultRifle = GetNodeOrNull<BaseWeapon>("AssaultRifle");
-        if (assaultRifle != null)
+        // Remove the default MakarovPM immediately
+        var defaultWeapon = GetNodeOrNull<BaseWeapon>("MakarovPM");
+        if (defaultWeapon != null)
         {
-            RemoveChild(assaultRifle);
-            assaultRifle.QueueFree();
-            LogToFile("[Player.Weapon] Removed default AssaultRifle");
+            RemoveChild(defaultWeapon);
+            defaultWeapon.QueueFree();
+            LogToFile("[Player.Weapon] Removed default MakarovPM");
         }
         CurrentWeapon = null;
 
@@ -3479,6 +3576,103 @@ public partial class Player : BaseCharacter
         else if (Engine.GetFramesDrawn() % 60 == 0)
         {
             LogToFile("[Player.Reload.Anim] WARNING: Right arm sprite is null during animation!");
+        }
+    }
+
+    #endregion
+
+    #region Flashlight Methods (Issue #546)
+
+    /// <summary>
+    /// Initialize the flashlight if the ActiveItemManager has it selected.
+    /// Loads and attaches the FlashlightEffect scene to PlayerModel.
+    /// </summary>
+    private void InitFlashlight()
+    {
+        var activeItemManager = GetNodeOrNull("/root/ActiveItemManager");
+        if (activeItemManager == null)
+        {
+            LogToFile("[Player.Flashlight] ActiveItemManager not found");
+            return;
+        }
+
+        if (!activeItemManager.HasMethod("has_flashlight"))
+        {
+            LogToFile("[Player.Flashlight] ActiveItemManager missing has_flashlight method");
+            return;
+        }
+
+        bool hasFlashlight = (bool)activeItemManager.Call("has_flashlight");
+        if (!hasFlashlight)
+        {
+            LogToFile("[Player.Flashlight] No flashlight selected in ActiveItemManager");
+            return;
+        }
+
+        LogToFile("[Player.Flashlight] Flashlight is selected, initializing...");
+
+        // Load and instantiate the flashlight effect scene
+        if (!ResourceLoader.Exists(FlashlightScenePath))
+        {
+            LogToFile($"[Player.Flashlight] WARNING: Flashlight scene not found: {FlashlightScenePath}");
+            return;
+        }
+
+        var flashlightScene = GD.Load<PackedScene>(FlashlightScenePath);
+        if (flashlightScene == null)
+        {
+            LogToFile("[Player.Flashlight] WARNING: Failed to load flashlight scene");
+            return;
+        }
+
+        _flashlightNode = flashlightScene.Instantiate<Node2D>();
+        _flashlightNode.Name = "FlashlightEffect";
+
+        // Add as child of PlayerModel so it rotates with aiming direction
+        if (_playerModel != null)
+        {
+            _playerModel.AddChild(_flashlightNode);
+            // Position at the weapon barrel (forward from center, matching BulletSpawnOffset)
+            _flashlightNode.Position = new Vector2(BulletSpawnOffset, 0);
+            _flashlightEquipped = true;
+            LogToFile($"[Player.Flashlight] Flashlight equipped and attached to PlayerModel at offset ({(int)BulletSpawnOffset}, 0)");
+        }
+        else
+        {
+            LogToFile("[Player.Flashlight] WARNING: _playerModel is null, flashlight not attached");
+            _flashlightNode.QueueFree();
+            _flashlightNode = null;
+        }
+    }
+
+    /// <summary>
+    /// Handle flashlight input: hold Space to turn on, release to turn off.
+    /// </summary>
+    private void HandleFlashlightInput()
+    {
+        if (!_flashlightEquipped || _flashlightNode == null)
+        {
+            return;
+        }
+
+        if (!IsInstanceValid(_flashlightNode))
+        {
+            return;
+        }
+
+        if (Input.IsActionPressed("flashlight_toggle"))
+        {
+            if (_flashlightNode.HasMethod("turn_on"))
+            {
+                _flashlightNode.Call("turn_on");
+            }
+        }
+        else
+        {
+            if (_flashlightNode.HasMethod("turn_off"))
+            {
+                _flashlightNode.Call("turn_off");
+            }
         }
     }
 

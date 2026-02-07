@@ -12,6 +12,8 @@ signal back_pressed
 @onready var fov_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/FOVContainer/FOVCheckbox
 @onready var complex_grenade_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/ComplexGrenadeContainer/ComplexGrenadeCheckbox
 @onready var ai_prediction_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/AIPredictionContainer/AIPredictionCheckbox
+@onready var debug_mode_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/DebugModeContainer/DebugModeCheckbox
+@onready var invincibility_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/InvincibilityContainer/InvincibilityCheckbox
 @onready var back_button: Button = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/BackButton
 @onready var status_label: Label = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/StatusLabel
 
@@ -21,6 +23,8 @@ func _ready() -> void:
 	fov_checkbox.toggled.connect(_on_fov_toggled)
 	complex_grenade_checkbox.toggled.connect(_on_complex_grenade_toggled)
 	ai_prediction_checkbox.toggled.connect(_on_ai_prediction_toggled)
+	debug_mode_checkbox.toggled.connect(_on_debug_mode_toggled)
+	invincibility_checkbox.toggled.connect(_on_invincibility_toggled)
 	back_button.pressed.connect(_on_back_pressed)
 
 	# Update UI based on current settings
@@ -45,6 +49,8 @@ func _update_ui() -> void:
 	fov_checkbox.button_pressed = not experimental_settings.is_fov_enabled()
 	complex_grenade_checkbox.button_pressed = experimental_settings.is_complex_grenade_throwing()
 	ai_prediction_checkbox.button_pressed = experimental_settings.is_ai_prediction_enabled()
+	debug_mode_checkbox.button_pressed = experimental_settings.is_debug_mode_enabled()
+	invincibility_checkbox.button_pressed = experimental_settings.is_invincibility_enabled()
 
 	# Update status label - show status of all settings
 	var status_parts: Array[String] = []
@@ -54,6 +60,10 @@ func _update_ui() -> void:
 		status_parts.append("Grenades: complex throwing")
 	if experimental_settings.is_ai_prediction_enabled():
 		status_parts.append("AI: player prediction")
+	if experimental_settings.is_debug_mode_enabled():
+		status_parts.append("Debug mode")
+	if experimental_settings.is_invincibility_enabled():
+		status_parts.append("Invincibility")
 
 	if status_parts.is_empty():
 		status_label.text = "All experimental features disabled"
@@ -80,6 +90,32 @@ func _on_ai_prediction_toggled(enabled: bool) -> void:
 	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
 	if experimental_settings:
 		experimental_settings.set_ai_prediction_enabled(enabled)
+	_update_ui()
+
+
+func _on_debug_mode_toggled(enabled: bool) -> void:
+	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+	if experimental_settings:
+		experimental_settings.set_debug_mode_enabled(enabled)
+	# Also sync to GameManager for runtime signal emission
+	var game_manager: Node = get_node_or_null("/root/GameManager")
+	if game_manager and game_manager.has_method("is_debug_mode_enabled"):
+		if game_manager.debug_mode_enabled != enabled:
+			game_manager.debug_mode_enabled = enabled
+			game_manager.debug_mode_toggled.emit(enabled)
+	_update_ui()
+
+
+func _on_invincibility_toggled(enabled: bool) -> void:
+	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
+	if experimental_settings:
+		experimental_settings.set_invincibility_enabled(enabled)
+	# Also sync to GameManager for runtime signal emission
+	var game_manager: Node = get_node_or_null("/root/GameManager")
+	if game_manager and game_manager.has_method("is_invincibility_enabled"):
+		if game_manager.invincibility_enabled != enabled:
+			game_manager.invincibility_enabled = enabled
+			game_manager.invincibility_toggled.emit(enabled)
 	_update_ui()
 
 
