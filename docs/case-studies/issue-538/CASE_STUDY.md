@@ -12,29 +12,24 @@ After the sniper rifle (ASVK) was added in PR #532, bullets fired in scope/aimin
 | 2026-02-06 20:50 | PR #532 merged: Redesign ASVK sniper rifle mechanics (bolt-action, sounds, visuals, scope) |
 | 2026-02-07 00:35 | Issue #538 filed: scope crosshair aiming still broken after PR #532 |
 | 2026-02-07 03:23–03:33 | User testing sessions producing 3 game log files |
+| 2026-02-07 03:17 | PR #547 opened: initial fix (freeze `_aimDirection` + use `GetScreenCenterPosition()`) |
+| 2026-02-07 03:53 | User feedback on PR #547: bullets hit correctly but scope view doesn't move at all |
+| 2026-02-07 06:51 | User game log `game_log_20260207_065116.txt` — confirms scope control regression |
+| 2026-02-07 ~10:50 | Revised fix: remove `_aimDirection` freeze, keep only `GetScreenCenterPosition()` targeting |
 
 ## Root Cause Analysis
 
-### Bug 1: Aim Direction Feedback Loop
+### The Aim Direction Feedback Loop (Context)
 
 **File:** `Scripts/Weapons/SniperRifle.cs`, method `UpdateAimDirection()` (line ~413)
 
-**Root Cause:** `UpdateAimDirection()` called `GetGlobalMousePosition()` every frame, even during scope mode. In scope mode, the camera offset depends on `_aimDirection`, and `GetGlobalMousePosition()` depends on the camera position. This created a feedback loop:
+**Observation:** `UpdateAimDirection()` calls `GetGlobalMousePosition()` every frame. In scope mode, the camera offset depends on `_aimDirection`, and `GetGlobalMousePosition()` depends on the camera position. This creates a feedback loop where `_aimDirection` lags behind the camera's actual pointing direction due to rate-limited rotation (~7.6°/frame at 60fps).
 
-1. Mouse moves → `_scopeMouseOffset` changes (via `AdjustScopeFineTune`)
-2. Camera offset changes (uses `_aimDirection` + `_scopeMouseOffset`)
-3. `GetGlobalMousePosition()` returns a different world position (camera moved)
-4. `UpdateAimDirection()` tries to rotate `_aimDirection` toward the new mouse world position
-5. But rotation is rate-limited (sensitivity factor 0.2, ~7.6°/frame at 60fps)
-6. `_aimDirection` lags behind the camera's actual pointing direction
-7. Camera offset (which uses `_aimDirection`) jumps on next frame
-8. Result: `_aimDirection` and camera are out of sync, bullets go to wrong position
+**Important:** This feedback loop causes `_aimDirection` to lag, but it does NOT need to be fixed by freezing `_aimDirection`. Freezing it would break scope view movement entirely (the scope camera offset depends on `_aimDirection` to follow the mouse). Instead, the fix is to decouple bullet targeting from `_aimDirection`.
 
-**Fix:** Skip `UpdateAimDirection()` when scope is active. The scope has its own mouse offset system (`_scopeMouseOffset`) for controlling the view.
+### Root Cause: Aim Target Calculation Mismatch
 
-### Bug 2: Aim Target Calculation Mismatch
-
-**File:** `Scripts/Weapons/SniperRifle.cs`, method `GetScopeAimTarget()` (line ~1088)
+**File:** `Scripts/Weapons/SniperRifle.cs`, method `GetScopeAimTarget()` (line ~1078)
 
 **Root Cause:** `GetScopeAimTarget()` independently calculated the world-space position of the crosshair using:
 ```
@@ -42,11 +37,16 @@ aimTarget = WeaponGlobalPosition + _aimDirection * baseDistance * zoom + _aimDir
 ```
 
 Meanwhile, the actual crosshair is at viewport center, and the viewport center shows whatever world position the camera is focused on. These calculations could differ due to:
+- **Aim direction lag**: `_aimDirection` lags behind the camera view due to the feedback loop (rate-limited rotation)
 - **Weapon offset**: The weapon is a child of the player at local position (0, 6), so `WeaponGlobalPosition ≠ PlayerGlobalPosition`. At scope distances of 1000+ pixels, even 6 pixels of base offset creates ~10-15 pixels of angular error at the target.
 - **Camera smoothing**: The Camera2D has `position_smoothing_enabled = true`, meaning the camera lags behind the player. The aim target calculation used the weapon's current position, not the camera's smoothed position.
 - **Frame timing**: `UpdateAimDirection()` ran before `UpdateScope()`, so the `_aimDirection` used stale camera state from the previous frame.
 
-**Fix:** Use `Camera2D.GetScreenCenterPosition()` to get the exact world position at viewport center. This Godot API returns the actual camera center position, automatically accounting for smoothing, offset, and all transforms.
+**Fix:** Use `Camera2D.GetScreenCenterPosition()` to get the exact world position at viewport center. This Godot API returns the actual camera center position, automatically accounting for smoothing, offset, and all transforms. This decouples bullet targeting from `_aimDirection`, so even though `_aimDirection` lags slightly, bullets always go exactly where the crosshair is displayed.
+
+### Rejected Approach: Freezing _aimDirection
+
+An earlier fix attempted to freeze `_aimDirection` during scope mode to prevent the feedback loop. While this made bullets hit the crosshair correctly (via `GetScreenCenterPosition()`), it completely broke scope view control — the scope view would not move at all when the mouse moved, because `_aimDirection` drives the scope camera offset via `GetScopeCameraOffset()`. User feedback confirmed: "пули летят куда надо, но пропало управление прицелом (вообще не двигается)" — "bullets fly where they should, but scope control is gone (doesn't move at all)".
 
 ## Evidence from Game Logs
 
@@ -82,14 +82,16 @@ With `Camera2D.GetScreenCenterPosition()`, the aim target is exactly (1602.2, 60
 
 | File | Change |
 |---|---|
-| `Scripts/Weapons/SniperRifle.cs` | Freeze `_aimDirection` during scope mode; use `Camera2D.GetScreenCenterPosition()` for aim target |
+| `Scripts/Weapons/SniperRifle.cs` | Use `Camera2D.GetScreenCenterPosition()` for aim target in `GetScopeAimTarget()` |
 
 ## Lessons Learned
 
-1. **Avoid feedback loops between camera and aim direction**: When a camera offset depends on a direction value, and that direction is computed from mouse position (which depends on the camera), the two systems fight each other. The solution is to freeze one system while the other is in control.
+1. **Decouple bullet targeting from view control**: When the aim direction both controls the camera view AND determines where bullets go, any lag in the aim direction causes bullets to miss. The fix is to use the camera's actual position for bullet targeting (`GetScreenCenterPosition()`), while leaving the aim direction to control the camera view. This way the view follows the mouse smoothly, and bullets go exactly where the crosshair is displayed.
 
-2. **Use the camera's actual position for aim target**: Instead of independently calculating where the viewport center should be, query the camera directly with `GetScreenCenterPosition()`. This automatically handles smoothing, offsets, and frame timing.
+2. **Don't freeze variables that drive the UI**: Freezing `_aimDirection` during scope mode broke scope movement because `GetScopeCameraOffset()` depends on it to compute where the camera looks. The correct approach is to let the variable update naturally and fix the downstream calculation that produces incorrect results.
 
-3. **Position smoothing + offset interaction**: Camera2D smoothing applies to position tracking, not to the offset. But the smoothed position means the camera center differs from the anchor node's position. Any aim calculation must use the camera's actual center, not the anchor's position.
+3. **Use the camera's actual position for aim target**: Instead of independently calculating where the viewport center should be, query the camera directly with `GetScreenCenterPosition()`. This automatically handles smoothing, offsets, and frame timing.
 
-4. **GD.Print vs FileLogger**: C# `GD.Print()` output does not appear in the GDScript-based FileLogger. For debugging exported builds, C# code should call the FileLogger autoload directly.
+4. **Position smoothing + offset interaction**: Camera2D smoothing applies to position tracking, not to the offset. But the smoothed position means the camera center differs from the anchor node's position. Any aim calculation must use the camera's actual center, not the anchor's position.
+
+5. **GD.Print vs FileLogger**: C# `GD.Print()` output does not appear in the GDScript-based FileLogger. For debugging exported builds, C# code should call the FileLogger autoload directly.

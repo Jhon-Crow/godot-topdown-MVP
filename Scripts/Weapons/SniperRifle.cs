@@ -412,16 +412,6 @@ public partial class SniperRifle : BaseWeapon
     /// </summary>
     private void UpdateAimDirection()
     {
-        // When scope is active, freeze aim direction to prevent feedback loop:
-        // Camera offset depends on _aimDirection, and GetGlobalMousePosition() depends
-        // on camera position. Updating _aimDirection from mouse while scoped causes
-        // the aim direction and camera offset to fight each other, making bullets
-        // miss the crosshair center. The scope's own mouse offset system handles view control.
-        if (_isScopeActive)
-        {
-            return;
-        }
-
         Vector2 mousePos = GetGlobalMousePosition();
         Vector2 toMouse = mousePos - GlobalPosition;
         float targetAngle = toMouse.Angle();
