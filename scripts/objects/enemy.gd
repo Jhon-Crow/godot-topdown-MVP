@@ -597,9 +597,7 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 		if _memory:
 			_memory.update_position(position, SOUND_RELOAD_CONFIDENCE)
 
-		# React to vulnerable player sound - transition to combat/pursuing
-		# All enemies in hearing range should pursue the vulnerable player!
-		# This makes reload sounds a high-risk action when enemies are nearby.
+		# React to vulnerable player sound - pursue (high-risk for reload actions)
 		if _current_state in [AIState.IDLE, AIState.IN_COVER, AIState.SUPPRESSED, AIState.RETREATING, AIState.SEEKING_COVER]:
 			# Leave cover/defensive state to attack vulnerable player
 			_log_to_file("Vulnerability sound triggered pursuit - transitioning from %s to PURSUING" % AIState.keys()[_current_state])
@@ -1256,10 +1254,7 @@ func _process_ai_state(delta: float) -> void:
 
 			# Aim at player immediately - both body rotation and model rotation
 			rotation = direction_to_player.angle()
-			# CRITICAL: Force the model to face the player immediately so that
-			# _get_weapon_forward_direction() returns the correct aim direction.
-			# Without this, the weapon transform would still reflect the old direction
-			# and _shoot() would fail the aim tolerance check. (Fix for issue #264)
+			# CRITICAL: Force model to face player for correct aim direction (issue #264)
 			_force_model_to_face_direction(direction_to_player)
 
 			# Shoot with priority - still respects weapon fire rate cooldown
@@ -1370,9 +1365,7 @@ func _process_combat_state(delta: float) -> void:
 		if _machete.is_backstab_opportunity(_player) or _machete.is_player_under_fire(_player):
 			tp = _machete.get_backstab_approach_position(_player, 60.0)
 		_move_to_target_nav(tp, combat_move_speed); return
-	# Check for suppression - transition to retreating behavior
-	# BUT: When pursuing a vulnerability sound (player reloading/out of ammo),
-	# ignore suppression and continue the attack - this is the best time to strike!
+	# Check suppression (ignore during vulnerability pursuit)
 	if _under_fire and enable_cover and not _pursuing_vulnerability_sound:
 		_combat_exposed = false
 		_combat_approaching = false
@@ -1678,7 +1671,6 @@ func _process_in_cover_state(delta: float) -> void:
 		return
 
 	# NOTE: ASSAULT state transition removed per issue #169
-	# Enemies now stay in IN_COVER instead of transitioning to coordinated assault
 
 	# Decision making based on player distance and visibility
 	if _player:
@@ -4559,6 +4551,7 @@ func _update_debug_label() -> void:
 			else: t += "\n(%s DIRECT)" % s
 	if _memory and _memory.has_target(): t += "\n[%.0f%% %s]" % [_memory.confidence * 100, _memory.get_behavior_mode().substr(0, 6)]
 	if _prediction: t += _prediction.get_debug_text()
+	if _is_blinded or _is_stunned: t += "\n{%s}" % ("BLINDED + STUNNED" if _is_blinded and _is_stunned else "BLINDED" if _is_blinded else "STUNNED")
 	_debug_label.text = t
 
 func get_current_state() -> AIState: return _current_state
