@@ -101,6 +101,39 @@ Line 136: [07:18:59] [INFO] [ScoreManager] Level started with 10 enemies
 3. **Bullet WARNING** — "Unable to determine shooter position" (~60+ occurrences across all logs)
 4. **ReplayManager stale data** — Records `player_valid=False` frames with stale BuildingLevel enemy count
 
+## Second Report (game_log_20260207_141848.txt)
+
+After the first round of fixes (scene routing, logging, sniper pose), the user reported "still not working" with a new game log.
+
+### New Log Analysis
+
+| Item | Evidence |
+|------|----------|
+| Scene routing fix WORKED | Line 442: `Normal level - starting with 1 grenade` (not "Tutorial level detected") |
+| Weapon selection still fails | Line 372: `[GameManager] Weapon selected: sniper`, Line 442: `Ready! Ammo: 30/30` (AssaultRifle ammo, not 5/5) |
+| Sniper detection fails | Line 502: `Detected weapon: Rifle (default pose)` — still shows AssaultRifle |
+| ScoreManager not started | No `[ScoreManager] Level started` for TestTier scene |
+| ReplayManager stale | `player_valid=False` after scene transition |
+
+### Root Cause: Weapon Swap Timing
+
+The weapon swap in `_setup_selected_weapon()` used `queue_free()` to remove the default AssaultRifle. In Godot, `queue_free()` is **deferred** — it schedules removal for the end of the frame, not immediately. This means:
+
+1. GDScript calls `assault_rifle.queue_free()` — schedules deferred removal
+2. GDScript loads and adds SniperRifle as child
+3. GDScript calls `EquipWeapon(sniper)` on Player
+4. **But** Player._Ready() already ran and set CurrentWeapon to AssaultRifle
+5. **At end of frame**, AssaultRifle is freed — but Player.CurrentWeapon still references it (or was already overwritten)
+6. On physics frame 3, `DetectAndApplyWeaponPose()` finds AssaultRifle (still present when detection runs)
+
+### Additional Issues Found
+
+1. **All `print()` in test_tier.gd** — went to stdout only, not captured in FileLogger game logs
+2. **No `_level_completed` guard** — `_complete_level_with_score()` could be called multiple times
+3. **No `_disable_player_controls()`** — player could still move/shoot during score screen
+4. **Replay stopped too early** — was stopped in `_on_enemy_died()` instead of `_complete_level_with_score()`
+5. **Exit zone not deactivated** — could trigger score screen multiple times
+
 ## Fixes Applied
 
 ### Fix 1: Rename Tutorial Scene Root Node
@@ -114,6 +147,7 @@ Line 136: [07:18:59] [INFO] [ScoreManager] Level started with 10 enemies
   - Enemy tracking: `"Found Environment/Enemies node with N children"`, child enumeration, `"Enemy tracking complete: N enemies registered"`
   - Player setup: `"Player found: PlayerName"`
   - ScoreManager: `"ScoreManager initialized with N enemies"`
+- Converted ALL remaining `print()` calls to `_log_to_file()` for complete log capture
 - These entries will appear in game log files for future debugging
 
 ### Fix 3: Add Sniper Rifle Pose Detection
@@ -123,6 +157,22 @@ Line 136: [07:18:59] [INFO] [ScoreManager] Level started with 10 enemies
   - Left arm extended forward (+4, 0) to support heavy barrel
   - Right arm slightly back (-1, 0) for stable trigger control
 
+### Fix 4: Fix Weapon Swap Timing (Root Cause Fix)
+- Changed weapon removal from `queue_free()` to `remove_child()` + `queue_free()`
+  - `remove_child()` is immediate — removes from scene tree right away
+  - `queue_free()` still runs for cleanup, but the node is already detached
+- Explicitly clear `CurrentWeapon` to null before setting new weapon
+- Consolidated all weapon swap branches into a single `match` statement (DRY)
+- Added verification logging after equip to confirm success/failure
+
+### Fix 5: Add Level Completion Safeguards
+- Added `_level_completed` flag to prevent duplicate completion calls
+- Added `_disable_player_controls()` method (matching `building_level.gd`):
+  - Stops physics processing, regular processing, and input processing
+  - Sets player velocity to zero to prevent sliding
+- Moved replay `StopRecording()` from `_on_enemy_died()` to `_complete_level_with_score()`
+- Added exit zone deactivation (`monitoring = false`) after level completion
+
 ## Lessons Learned
 
 1. **Same root node names across different scenes causes diagnostic confusion.** All scenes should have unique root node names matching their purpose.
@@ -131,7 +181,11 @@ Line 136: [07:18:59] [INFO] [ScoreManager] Level started with 10 enemies
 
 3. **Weapon pose detection must be updated when new weapons are added.** The sniper rifle was added but its pose detection case was missed.
 
-4. **This is a recurring pattern.** The same class of bug has appeared 3 times. Future changes to level scripts should be tested with a checklist that includes:
+4. **`queue_free()` is deferred — use `remove_child()` for immediate scene tree removal.** When swapping weapons, the old weapon must be detached from the scene tree immediately so it doesn't interfere with the new weapon's initialization. `queue_free()` alone only schedules removal for the end of the frame.
+
+5. **Level scripts should have completion safeguards.** Always include: `_level_completed` guard, `_disable_player_controls()`, exit zone deactivation, and proper replay stop timing.
+
+6. **This is a recurring pattern.** The same class of bug has appeared 3 times. Future changes to level scripts should be tested with a checklist that includes:
    - Enemy counter works (decrements on kills)
    - Ammo counter works (updates on fire/reload)
    - Weapon selection works (all 5 weapons equip correctly)

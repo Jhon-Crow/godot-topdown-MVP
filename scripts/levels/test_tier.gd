@@ -62,6 +62,9 @@ var _level_cleared: bool = false
 ## Whether the score screen is currently shown (for W key shortcut).
 var _score_shown: bool = false
 
+## Whether the level has been completed (prevents duplicate completion calls).
+var _level_completed: bool = false
+
 ## Cached reference to the ReplayManager autoload (C# singleton).
 var _replay_manager: Node = null
 
@@ -93,10 +96,6 @@ func _get_or_create_replay_manager() -> Node:
 func _ready() -> void:
 	_log_to_file("Полигон loaded - Tactical Combat Arena")
 	_log_to_file("Map size: 4000x2960 pixels")
-	print("Полигон loaded - Tactical Combat Arena")
-	print("Map size: 4000x2960 pixels")
-	print("Clear all zones to win!")
-	print("Press Q for quick restart")
 
 	# Setup navigation mesh for enemy pathfinding
 	_setup_navigation()
@@ -207,7 +206,7 @@ func _setup_navigation() -> void:
 	# Bake the navigation mesh to include physics obstacles from collision layer 4
 	# This is needed because we set parsed_geometry_type = 1 (static colliders)
 	# and parsed_collision_mask = 4 (walls layer) in the NavigationPolygon resource
-	print("Baking navigation mesh...")
+	_log_to_file("Baking navigation mesh...")
 	nav_poly.clear()
 
 	# Re-add the outline for the walkable floor area
@@ -224,7 +223,7 @@ func _setup_navigation() -> void:
 	NavigationServer2D.parse_source_geometry_data(nav_poly, source_geometry, self)
 	NavigationServer2D.bake_from_source_geometry_data(nav_poly, source_geometry)
 
-	print("Navigation mesh baked successfully")
+	_log_to_file("Navigation mesh baked successfully")
 
 
 ## Setup tracking for the player.
@@ -337,7 +336,6 @@ func _setup_enemy_tracking() -> void:
 	_initial_enemy_count = _enemies.size()
 	_current_enemy_count = _initial_enemy_count
 	_log_to_file("Enemy tracking complete: %d enemies registered" % _initial_enemy_count)
-	print("Tracking %d enemies" % _initial_enemy_count)
 
 
 ## Setup the exit zone near the player spawn point (left wall).
@@ -366,7 +364,7 @@ func _setup_exit_zone() -> void:
 	else:
 		add_child(_exit_zone)
 
-	print("[TestTier] Exit zone created at position (120, 1544)")
+	_log_to_file("Exit zone created at position (120, 1544)")
 
 
 ## Called when the player reaches the exit zone after clearing the level.
@@ -374,7 +372,7 @@ func _on_player_reached_exit() -> void:
 	if not _level_cleared:
 		return
 
-	print("[TestTier] Player reached exit - showing score!")
+	_log_to_file("Player reached exit - showing score!")
 	call_deferred("_complete_level_with_score")
 
 
@@ -382,10 +380,10 @@ func _on_player_reached_exit() -> void:
 func _activate_exit_zone() -> void:
 	if _exit_zone and _exit_zone.has_method("activate"):
 		_exit_zone.activate()
-		print("[TestTier] Exit zone activated - go to exit to see score!")
+		_log_to_file("Exit zone activated - go to exit to see score!")
 	else:
 		# Fallback: if exit zone not available, show score immediately
-		push_warning("Exit zone not available - showing score immediately")
+		_log_to_file("WARNING: Exit zone not available - showing score immediately")
 		_complete_level_with_score()
 
 
@@ -399,7 +397,7 @@ func _configure_silenced_pistol_ammo(weapon: Node) -> void:
 	# Call the ConfigureAmmoForEnemyCount method if it exists
 	if weapon.has_method("ConfigureAmmoForEnemyCount"):
 		weapon.ConfigureAmmoForEnemyCount(_initial_enemy_count)
-		print("[TestTier] Configured silenced pistol ammo for %d enemies" % _initial_enemy_count)
+		_log_to_file("Configured silenced pistol ammo for %d enemies" % _initial_enemy_count)
 
 		# Update the ammo display after configuration
 		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
@@ -482,6 +480,7 @@ func _update_debug_ui() -> void:
 ## Called when an enemy dies.
 func _on_enemy_died() -> void:
 	_current_enemy_count -= 1
+	_log_to_file("Enemy died. Remaining: %d/%d" % [_current_enemy_count, _initial_enemy_count])
 	_update_enemy_count_label()
 
 	# Register kill with GameManager
@@ -489,11 +488,7 @@ func _on_enemy_died() -> void:
 		GameManager.register_kill()
 
 	if _current_enemy_count <= 0:
-		print("All enemies eliminated! Arena cleared!")
-		# Stop replay recording
-		var replay_manager: Node = _get_or_create_replay_manager()
-		if replay_manager and replay_manager.has_method("StopRecording"):
-			replay_manager.StopRecording()
+		_log_to_file("All enemies eliminated! Arena cleared!")
 		_level_cleared = true
 		# Activate exit zone - score will show when player reaches it
 		call_deferred("_activate_exit_zone")
@@ -729,12 +724,31 @@ func _update_enemy_count_label() -> void:
 
 ## Complete the level and show the score screen.
 func _complete_level_with_score() -> void:
+	# Prevent duplicate calls
+	if _level_completed:
+		return
+	_level_completed = true
+
+	# Disable player controls immediately
+	_disable_player_controls()
+
+	# Deactivate exit zone to prevent further triggers
+	if _exit_zone:
+		_exit_zone.set_deferred("monitoring", false)
+
+	# Stop replay recording
+	var replay_manager: Node = _get_or_create_replay_manager()
+	if replay_manager and replay_manager.has_method("StopRecording"):
+		replay_manager.StopRecording()
+		_log_to_file("Replay recording stopped")
+
 	var score_manager: Node = get_node_or_null("/root/ScoreManager")
 	if score_manager and score_manager.has_method("complete_level"):
 		var score_data: Dictionary = score_manager.complete_level()
+		_log_to_file("Level completed with score: %s" % str(score_data))
 		_show_score_screen(score_data)
 	else:
-		# Fallback to simple victory message if ScoreManager not available
+		_log_to_file("ScoreManager not available - showing simple victory message")
 		_show_victory_message()
 
 
@@ -882,9 +896,9 @@ func _show_victory_message() -> void:
 			has_replay = replay_manager.HasReplay()
 		if replay_manager.has_method("GetReplayDuration"):
 			duration = replay_manager.GetReplayDuration()
-		print("[TestTier] Showing victory message - Replay status: has_replay=%s, duration=%.2fs" % [has_replay, duration])
+		_log_to_file("Showing victory message - Replay status: has_replay=%s, duration=%.2fs" % [has_replay, duration])
 	else:
-		print("[TestTier] ERROR: ReplayManager not found when showing victory message!")
+		_log_to_file("ERROR: ReplayManager not found when showing victory message!")
 
 	var ui := get_node_or_null("CanvasLayer/UI")
 	if ui == null:
@@ -990,18 +1004,18 @@ func _unhandled_input(event: InputEvent) -> void:
 
 ## Called when the Watch Replay button is pressed (or W key).
 func _on_watch_replay_pressed() -> void:
-	print("[TestTier] Watch Replay triggered")
+	_log_to_file("Watch Replay triggered")
 	var replay_manager: Node = _get_or_create_replay_manager()
 	if replay_manager and replay_manager.has_method("HasReplay") and replay_manager.HasReplay():
 		if replay_manager.has_method("StartPlayback"):
 			replay_manager.StartPlayback(self)
 	else:
-		print("[TestTier] Watch Replay: no replay data available")
+		_log_to_file("Watch Replay: no replay data available")
 
 
 ## Called when the Restart button is pressed.
 func _on_restart_pressed() -> void:
-	print("[TestTier] Restart button pressed")
+	_log_to_file("Restart button pressed")
 	if GameManager:
 		GameManager.restart_scene()
 	else:
@@ -1038,6 +1052,7 @@ func _show_game_over_message() -> void:
 ## Removes the default AssaultRifle and loads the selected weapon if different.
 func _setup_selected_weapon() -> void:
 	if _player == null:
+		_log_to_file("WARNING: _setup_selected_weapon called but _player is null")
 		return
 
 	# Get selected weapon from GameManager
@@ -1045,144 +1060,127 @@ func _setup_selected_weapon() -> void:
 	if GameManager:
 		selected_weapon_id = GameManager.get_selected_weapon()
 
-	print("TestTier: Setting up weapon: %s" % selected_weapon_id)
+	_log_to_file("Setting up weapon: %s" % selected_weapon_id)
 
-	# If shotgun is selected, we need to swap weapons
-	if selected_weapon_id == "shotgun":
-		# Remove the default AssaultRifle
+	# For non-default weapons, remove the default AssaultRifle and load the selected weapon
+	if selected_weapon_id != "m16":
+		var scene_path: String = ""
+		var weapon_name: String = ""
+		match selected_weapon_id:
+			"shotgun":
+				scene_path = "res://scenes/weapons/csharp/Shotgun.tscn"
+				weapon_name = "Shotgun"
+			"mini_uzi":
+				scene_path = "res://scenes/weapons/csharp/MiniUzi.tscn"
+				weapon_name = "MiniUzi"
+			"silenced_pistol":
+				scene_path = "res://scenes/weapons/csharp/SilencedPistol.tscn"
+				weapon_name = "SilencedPistol"
+			"sniper":
+				scene_path = "res://scenes/weapons/csharp/SniperRifle.tscn"
+				weapon_name = "SniperRifle"
+			_:
+				_log_to_file("WARNING: Unknown weapon ID '%s', keeping default" % selected_weapon_id)
+				return
+
+		# Remove the default AssaultRifle immediately (not deferred)
 		var assault_rifle = _player.get_node_or_null("AssaultRifle")
 		if assault_rifle:
+			_player.remove_child(assault_rifle)
 			assault_rifle.queue_free()
-			print("TestTier: Removed default AssaultRifle")
+			_log_to_file("Removed default AssaultRifle from player")
 
-		# Load and add the shotgun
-		var shotgun_scene = load("res://scenes/weapons/csharp/Shotgun.tscn")
-		if shotgun_scene:
-			var shotgun = shotgun_scene.instantiate()
-			shotgun.name = "Shotgun"
-			_player.add_child(shotgun)
+		# Clear CurrentWeapon before loading new weapon
+		if _player.get("CurrentWeapon") != null:
+			_player.set("CurrentWeapon", null)
+
+		# Load and add the selected weapon
+		var weapon_scene = load(scene_path)
+		if weapon_scene:
+			var weapon = weapon_scene.instantiate()
+			weapon.name = weapon_name
+			_player.add_child(weapon)
+			_log_to_file("Added %s as child of player" % weapon_name)
 
 			# Set the CurrentWeapon reference in C# Player
 			if _player.has_method("EquipWeapon"):
-				_player.EquipWeapon(shotgun)
-			elif _player.get("CurrentWeapon") != null:
-				_player.CurrentWeapon = shotgun
+				_player.EquipWeapon(weapon)
+				_log_to_file("%s equipped via EquipWeapon()" % weapon_name)
+			else:
+				_player.set("CurrentWeapon", weapon)
+				_log_to_file("%s equipped via CurrentWeapon property" % weapon_name)
 
-			print("TestTier: Shotgun equipped successfully")
+			# Verify weapon was set
+			var current_weapon = _player.get("CurrentWeapon")
+			if current_weapon != null:
+				_log_to_file("CurrentWeapon verified: %s" % current_weapon.name)
+			else:
+				_log_to_file("ERROR: CurrentWeapon is null after equip!")
 		else:
-			push_error("TestTier: Failed to load Shotgun scene!")
-	# If Mini UZI is selected, swap weapons
-	elif selected_weapon_id == "mini_uzi":
-		# Remove the default AssaultRifle
-		var assault_rifle = _player.get_node_or_null("AssaultRifle")
-		if assault_rifle:
-			assault_rifle.queue_free()
-			print("TestTier: Removed default AssaultRifle")
-
-		# Load and add the Mini UZI
-		var mini_uzi_scene = load("res://scenes/weapons/csharp/MiniUzi.tscn")
-		if mini_uzi_scene:
-			var mini_uzi = mini_uzi_scene.instantiate()
-			mini_uzi.name = "MiniUzi"
-			_player.add_child(mini_uzi)
-
-			# Set the CurrentWeapon reference in C# Player
-			if _player.has_method("EquipWeapon"):
-				_player.EquipWeapon(mini_uzi)
-			elif _player.get("CurrentWeapon") != null:
-				_player.CurrentWeapon = mini_uzi
-
-			print("TestTier: Mini UZI equipped successfully")
-		else:
-			push_error("TestTier: Failed to load MiniUzi scene!")
-	# If Silenced Pistol is selected, swap weapons
-	elif selected_weapon_id == "silenced_pistol":
-		# Remove the default AssaultRifle
-		var assault_rifle = _player.get_node_or_null("AssaultRifle")
-		if assault_rifle:
-			assault_rifle.queue_free()
-			print("TestTier: Removed default AssaultRifle")
-
-		# Load and add the Silenced Pistol
-		var pistol_scene = load("res://scenes/weapons/csharp/SilencedPistol.tscn")
-		if pistol_scene:
-			var pistol = pistol_scene.instantiate()
-			pistol.name = "SilencedPistol"
-			_player.add_child(pistol)
-
-			# Set the CurrentWeapon reference in C# Player
-			if _player.has_method("EquipWeapon"):
-				_player.EquipWeapon(pistol)
-			elif _player.get("CurrentWeapon") != null:
-				_player.CurrentWeapon = pistol
-
-			print("TestTier: Silenced Pistol equipped successfully")
-		else:
-			push_error("TestTier: Failed to load SilencedPistol scene!")
-	# If Sniper Rifle (ASVK) is selected, swap weapons
-	elif selected_weapon_id == "sniper":
-		# Remove the default AssaultRifle
-		var assault_rifle = _player.get_node_or_null("AssaultRifle")
-		if assault_rifle:
-			assault_rifle.queue_free()
-			print("TestTier: Removed default AssaultRifle")
-
-		# Load and add the Sniper Rifle
-		var sniper_scene = load("res://scenes/weapons/csharp/SniperRifle.tscn")
-		if sniper_scene:
-			var sniper = sniper_scene.instantiate()
-			sniper.name = "SniperRifle"
-			_player.add_child(sniper)
-
-			# Set the CurrentWeapon reference in C# Player
-			if _player.has_method("EquipWeapon"):
-				_player.EquipWeapon(sniper)
-			elif _player.get("CurrentWeapon") != null:
-				_player.CurrentWeapon = sniper
-
-			print("TestTier: ASVK Sniper Rifle equipped successfully")
-		else:
-			push_error("TestTier: Failed to load SniperRifle scene!")
+			_log_to_file("ERROR: Failed to load weapon scene: %s" % scene_path)
+			push_error("TestTier: Failed to load weapon scene: %s" % scene_path)
 	# For M16 (assault rifle), it's already in the scene
 	else:
 		var assault_rifle = _player.get_node_or_null("AssaultRifle")
-		if assault_rifle and _player.get("CurrentWeapon") == null:
-			if _player.has_method("EquipWeapon"):
-				_player.EquipWeapon(assault_rifle)
-			elif _player.get("CurrentWeapon") != null:
-				_player.CurrentWeapon = assault_rifle
+		if assault_rifle:
+			if _player.get("CurrentWeapon") == null:
+				if _player.has_method("EquipWeapon"):
+					_player.EquipWeapon(assault_rifle)
+				else:
+					_player.set("CurrentWeapon", assault_rifle)
+				_log_to_file("M16 AssaultRifle equipped (default)")
+			else:
+				_log_to_file("M16 AssaultRifle already equipped as CurrentWeapon")
 
 
 ## Starts recording the replay for this level.
 func _start_replay_recording() -> void:
 	var replay_manager: Node = _get_or_create_replay_manager()
 	if replay_manager == null:
-		print("[TestTier] ERROR: ReplayManager could not be loaded!")
+		_log_to_file("ERROR: ReplayManager could not be loaded!")
 		return
 
-	# Log player and enemies status for debugging
-	print("[TestTier] Starting replay recording - Player: %s, Enemies count: %d" % [
+	_log_to_file("Starting replay recording - Player: %s, Enemies count: %d" % [
 		_player.name if _player else "NULL",
 		_enemies.size()
 	])
 
 	if _player == null:
-		print("[TestTier] WARNING: Player is null for replay recording!")
+		_log_to_file("WARNING: Player is null for replay recording!")
 
 	if _enemies.is_empty():
-		print("[TestTier] WARNING: No enemies registered for replay!")
+		_log_to_file("WARNING: No enemies registered for replay!")
 
 	# Clear any previous replay data
 	if replay_manager.has_method("ClearReplay"):
 		replay_manager.ClearReplay()
-		print("[TestTier] Previous replay data cleared")
+		_log_to_file("Previous replay data cleared")
 
 	# Start recording with player and enemies
 	if replay_manager.has_method("StartRecording"):
 		replay_manager.StartRecording(self, _player, _enemies)
-		print("[TestTier] Replay recording started successfully with %d enemies" % _enemies.size())
+		_log_to_file("Replay recording started successfully with %d enemies" % _enemies.size())
 	else:
-		print("[TestTier] ERROR: StartRecording method not found!")
+		_log_to_file("ERROR: StartRecording method not found!")
+
+
+## Disable player controls after level completion (score screen shown).
+## Stops physics processing and input on the player node so the player
+## cannot move, shoot, or interact during the score screen.
+func _disable_player_controls() -> void:
+	if _player == null or not is_instance_valid(_player):
+		return
+
+	_player.set_physics_process(false)
+	_player.set_process(false)
+	_player.set_process_input(false)
+	_player.set_process_unhandled_input(false)
+
+	# Stop any current velocity so player doesn't slide
+	if _player is CharacterBody2D:
+		_player.velocity = Vector2.ZERO
+
+	_log_to_file("Player controls disabled (level completed)")
 
 
 ## Log a message to the file logger if available.
