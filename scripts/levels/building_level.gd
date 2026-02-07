@@ -1122,13 +1122,13 @@ func _show_game_over_message() -> void:
 
 
 ## Setup the weapon based on GameManager's selected weapon.
-## Removes the default AssaultRifle and loads the selected weapon if different.
+## Removes the default MakarovPM and loads the selected weapon if different.
 func _setup_selected_weapon() -> void:
 	if _player == null:
 		return
 
 	# Get selected weapon from GameManager
-	var selected_weapon_id: String = "m16"  # Default
+	var selected_weapon_id: String = "makarov_pm"  # Default
 	if GameManager:
 		selected_weapon_id = GameManager.get_selected_weapon()
 
@@ -1136,12 +1136,13 @@ func _setup_selected_weapon() -> void:
 
 	# Check if C# Player already equipped the correct weapon (via ApplySelectedWeaponFromGameManager)
 	# This prevents double-equipping when both C# and GDScript weapon setup run
-	if selected_weapon_id != "m16":
+	if selected_weapon_id != "makarov_pm":
 		var weapon_names: Dictionary = {
 			"shotgun": "Shotgun",
 			"mini_uzi": "MiniUzi",
 			"silenced_pistol": "SilencedPistol",
-			"sniper": "SniperRifle"
+			"sniper": "SniperRifle",
+			"m16": "AssaultRifle"
 		}
 		if selected_weapon_id in weapon_names:
 			var expected_name: String = weapon_names[selected_weapon_id]
@@ -1152,11 +1153,11 @@ func _setup_selected_weapon() -> void:
 
 	# If shotgun is selected, we need to swap weapons
 	if selected_weapon_id == "shotgun":
-		# Remove the default AssaultRifle
-		var assault_rifle = _player.get_node_or_null("AssaultRifle")
-		if assault_rifle:
-			assault_rifle.queue_free()
-			print("BuildingLevel: Removed default AssaultRifle")
+		# Remove the default MakarovPM
+		var makarov = _player.get_node_or_null("MakarovPM")
+		if makarov:
+			makarov.queue_free()
+			print("BuildingLevel: Removed default MakarovPM")
 
 		# Load and add the shotgun
 		var shotgun_scene = load("res://scenes/weapons/csharp/Shotgun.tscn")
@@ -1176,11 +1177,11 @@ func _setup_selected_weapon() -> void:
 			push_error("BuildingLevel: Failed to load Shotgun scene!")
 	# If Mini UZI is selected, swap weapons
 	elif selected_weapon_id == "mini_uzi":
-		# Remove the default AssaultRifle
-		var assault_rifle = _player.get_node_or_null("AssaultRifle")
-		if assault_rifle:
-			assault_rifle.queue_free()
-			print("BuildingLevel: Removed default AssaultRifle")
+		# Remove the default MakarovPM
+		var makarov = _player.get_node_or_null("MakarovPM")
+		if makarov:
+			makarov.queue_free()
+			print("BuildingLevel: Removed default MakarovPM")
 
 		# Load and add the Mini UZI
 		var mini_uzi_scene = load("res://scenes/weapons/csharp/MiniUzi.tscn")
@@ -1208,11 +1209,11 @@ func _setup_selected_weapon() -> void:
 			push_error("BuildingLevel: Failed to load MiniUzi scene!")
 	# If Silenced Pistol is selected, swap weapons
 	elif selected_weapon_id == "silenced_pistol":
-		# Remove the default AssaultRifle
-		var assault_rifle = _player.get_node_or_null("AssaultRifle")
-		if assault_rifle:
-			assault_rifle.queue_free()
-			print("BuildingLevel: Removed default AssaultRifle")
+		# Remove the default MakarovPM
+		var makarov = _player.get_node_or_null("MakarovPM")
+		if makarov:
+			makarov.queue_free()
+			print("BuildingLevel: Removed default MakarovPM")
 
 		# Load and add the Silenced Pistol
 		var pistol_scene = load("res://scenes/weapons/csharp/SilencedPistol.tscn")
@@ -1232,11 +1233,11 @@ func _setup_selected_weapon() -> void:
 			push_error("BuildingLevel: Failed to load SilencedPistol scene!")
 	# If Sniper Rifle (ASVK) is selected, swap weapons
 	elif selected_weapon_id == "sniper":
-		# Remove the default AssaultRifle
-		var assault_rifle = _player.get_node_or_null("AssaultRifle")
-		if assault_rifle:
-			assault_rifle.queue_free()
-			print("BuildingLevel: Removed default AssaultRifle")
+		# Remove the default MakarovPM
+		var makarov = _player.get_node_or_null("MakarovPM")
+		if makarov:
+			makarov.queue_free()
+			print("BuildingLevel: Removed default MakarovPM")
 
 		# Load and add the Sniper Rifle
 		var sniper_scene = load("res://scenes/weapons/csharp/SniperRifle.tscn")
@@ -1254,32 +1255,14 @@ func _setup_selected_weapon() -> void:
 			print("BuildingLevel: ASVK Sniper Rifle equipped successfully")
 		else:
 			push_error("BuildingLevel: Failed to load SniperRifle scene!")
-	# For M16 (assault rifle), it's already in the scene
+	# For Makarov PM, it's already in the scene
 	else:
-		var assault_rifle = _player.get_node_or_null("AssaultRifle")
-		if assault_rifle:
-			# Reduce M16 ammunition by half for Building level (issue #413)
-			# The weapon is already initialized, so we need to reinitialize magazines
-			# M16 has magazine size of 30, so 2 magazines = 60 rounds total (30+30)
-			# In Power Fantasy mode, apply 3x ammo multiplier (issue #501)
-			var base_magazines: int = 2
-			var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
-			if difficulty_manager:
-				var ammo_multiplier: int = difficulty_manager.get_ammo_multiplier()
-				if ammo_multiplier > 1:
-					base_magazines *= ammo_multiplier
-					print("BuildingLevel: Power Fantasy mode - M16 magazines multiplied by %dx (%d -> %d)" % [ammo_multiplier, 2, base_magazines])
-			if assault_rifle.has_method("ReinitializeMagazines"):
-				assault_rifle.ReinitializeMagazines(base_magazines, true)
-				print("BuildingLevel: M16 magazines reinitialized to %d" % base_magazines)
-			else:
-				print("BuildingLevel: WARNING - M16 doesn't have ReinitializeMagazines method")
-
-			if _player.get("CurrentWeapon") == null:
-				if _player.has_method("EquipWeapon"):
-					_player.EquipWeapon(assault_rifle)
-				elif _player.get("CurrentWeapon") != null:
-					_player.CurrentWeapon = assault_rifle
+		var makarov = _player.get_node_or_null("MakarovPM")
+		if makarov and _player.get("CurrentWeapon") == null:
+			if _player.has_method("EquipWeapon"):
+				_player.EquipWeapon(makarov)
+			elif _player.get("CurrentWeapon") != null:
+				_player.CurrentWeapon = makarov
 
 
 ## Handle W key shortcut for Watch Replay when score is shown.

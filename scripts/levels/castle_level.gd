@@ -1078,11 +1078,12 @@ func _show_game_over_message() -> void:
 
 
 ## Setup the weapon based on GameManager's selected weapon.
+## Removes the default MakarovPM and loads the selected weapon if different.
 func _setup_selected_weapon() -> void:
 	if _player == null:
 		return
 
-	var selected_weapon_id: String = "m16"
+	var selected_weapon_id: String = "makarov_pm"
 	if GameManager:
 		selected_weapon_id = GameManager.get_selected_weapon()
 
@@ -1090,12 +1091,13 @@ func _setup_selected_weapon() -> void:
 
 	# Check if C# Player already equipped the correct weapon (via ApplySelectedWeaponFromGameManager)
 	# This prevents double-equipping when both C# and GDScript weapon setup run
-	if selected_weapon_id != "m16":
+	if selected_weapon_id != "makarov_pm":
 		var weapon_names: Dictionary = {
 			"shotgun": "Shotgun",
 			"mini_uzi": "MiniUzi",
 			"silenced_pistol": "SilencedPistol",
-			"sniper": "SniperRifle"
+			"sniper": "SniperRifle",
+			"m16": "AssaultRifle"
 		}
 		if selected_weapon_id in weapon_names:
 			var expected_name: String = weapon_names[selected_weapon_id]
@@ -1107,10 +1109,10 @@ func _setup_selected_weapon() -> void:
 				return
 
 	if selected_weapon_id == "shotgun":
-		var assault_rifle = _player.get_node_or_null("AssaultRifle")
-		if assault_rifle:
-			assault_rifle.queue_free()
-			print("CastleLevel: Removed default AssaultRifle")
+		var makarov = _player.get_node_or_null("MakarovPM")
+		if makarov:
+			makarov.queue_free()
+			print("CastleLevel: Removed default MakarovPM")
 
 		var shotgun_scene = load("res://scenes/weapons/csharp/Shotgun.tscn")
 		if shotgun_scene:
@@ -1130,10 +1132,10 @@ func _setup_selected_weapon() -> void:
 		else:
 			push_error("CastleLevel: Failed to load Shotgun scene!")
 	elif selected_weapon_id == "mini_uzi":
-		var assault_rifle = _player.get_node_or_null("AssaultRifle")
-		if assault_rifle:
-			assault_rifle.queue_free()
-			print("CastleLevel: Removed default AssaultRifle")
+		var makarov = _player.get_node_or_null("MakarovPM")
+		if makarov:
+			makarov.queue_free()
+			print("CastleLevel: Removed default MakarovPM")
 
 		var mini_uzi_scene = load("res://scenes/weapons/csharp/MiniUzi.tscn")
 		if mini_uzi_scene:
@@ -1153,10 +1155,10 @@ func _setup_selected_weapon() -> void:
 		else:
 			push_error("CastleLevel: Failed to load MiniUzi scene!")
 	elif selected_weapon_id == "silenced_pistol":
-		var assault_rifle = _player.get_node_or_null("AssaultRifle")
-		if assault_rifle:
-			assault_rifle.queue_free()
-			print("CastleLevel: Removed default AssaultRifle")
+		var makarov = _player.get_node_or_null("MakarovPM")
+		if makarov:
+			makarov.queue_free()
+			print("CastleLevel: Removed default MakarovPM")
 
 		var pistol_scene = load("res://scenes/weapons/csharp/SilencedPistol.tscn")
 		if pistol_scene:
@@ -1177,10 +1179,10 @@ func _setup_selected_weapon() -> void:
 			push_error("CastleLevel: Failed to load SilencedPistol scene!")
 	# If Sniper Rifle (ASVK) is selected, swap weapons
 	elif selected_weapon_id == "sniper":
-		var assault_rifle = _player.get_node_or_null("AssaultRifle")
-		if assault_rifle:
-			assault_rifle.queue_free()
-			print("CastleLevel: Removed default AssaultRifle")
+		var makarov = _player.get_node_or_null("MakarovPM")
+		if makarov:
+			makarov.queue_free()
+			print("CastleLevel: Removed default MakarovPM")
 
 		var sniper_scene = load("res://scenes/weapons/csharp/SniperRifle.tscn")
 		if sniper_scene:
@@ -1197,15 +1199,16 @@ func _setup_selected_weapon() -> void:
 		else:
 			push_error("CastleLevel: Failed to load SniperRifle scene!")
 	else:
-		var assault_rifle = _player.get_node_or_null("AssaultRifle")
-		if assault_rifle and _player.get("CurrentWeapon") == null:
+		# For Makarov PM, it's already in the scene - just ensure it's equipped
+		var makarov = _player.get_node_or_null("MakarovPM")
+		if makarov and _player.get("CurrentWeapon") == null:
 			if _player.has_method("EquipWeapon"):
-				_player.EquipWeapon(assault_rifle)
+				_player.EquipWeapon(makarov)
 			elif _player.get("CurrentWeapon") != null:
-				_player.CurrentWeapon = assault_rifle
+				_player.CurrentWeapon = makarov
 
-			# Configure 2x ammo for Castle level (M16/AssaultRifle)
-			_configure_castle_weapon_ammo(assault_rifle)
+			# Configure 2x ammo for Castle level (MakarovPM)
+			_configure_castle_weapon_ammo(makarov)
 
 
 ## Disable player controls after level completion (score screen shown).
