@@ -143,7 +143,7 @@ func _on_stun_expired(entity: Object) -> void:
 func _apply_blindness_visual(entity: Node2D) -> void:
 	# Add a yellow/white overlay to indicate blindness
 	if not entity.has_meta("_blindness_tint"):
-		var sprite: Sprite2D = entity.get_node_or_null("Sprite2D")
+		var sprite: Sprite2D = _find_sprite(entity)
 		if sprite:
 			entity.set_meta("_original_modulate", sprite.modulate)
 			sprite.modulate = Color(1.0, 1.0, 0.5, 1.0)  # Yellow tint
@@ -156,7 +156,7 @@ func _remove_blindness_visual(entity: Object) -> void:
 		return
 
 	if entity.has_meta("_blindness_tint"):
-		var sprite: Sprite2D = entity.get_node_or_null("Sprite2D")
+		var sprite: Sprite2D = _find_sprite(entity)
 		if sprite and entity.has_meta("_original_modulate"):
 			# Only restore if not still stunned
 			if not is_stunned(entity):
@@ -168,7 +168,7 @@ func _remove_blindness_visual(entity: Object) -> void:
 func _apply_stun_visual(entity: Node2D) -> void:
 	# Add a blue overlay to indicate stun
 	if not entity.has_meta("_stun_tint"):
-		var sprite: Sprite2D = entity.get_node_or_null("Sprite2D")
+		var sprite: Sprite2D = _find_sprite(entity)
 		if sprite:
 			if not entity.has_meta("_original_modulate"):
 				entity.set_meta("_original_modulate", sprite.modulate)
@@ -182,7 +182,7 @@ func _remove_stun_visual(entity: Object) -> void:
 		return
 
 	if entity.has_meta("_stun_tint"):
-		var sprite: Sprite2D = entity.get_node_or_null("Sprite2D")
+		var sprite: Sprite2D = _find_sprite(entity)
 		if sprite and entity.has_meta("_original_modulate"):
 			# Only restore if not still blinded
 			if not is_blinded(entity):
@@ -236,6 +236,22 @@ func get_stun_remaining(entity: Object) -> float:
 		return _active_effects[entity_id].get("stun", 0)
 
 	return 0.0
+
+
+## Find the main body sprite on an entity.
+## Enemies use EnemyModel/Body structure instead of a direct Sprite2D child.
+func _find_sprite(entity: Node) -> Sprite2D:
+	if not is_instance_valid(entity):
+		return null
+	# Try direct Sprite2D child first (generic entities)
+	var sprite: Sprite2D = entity.get_node_or_null("Sprite2D")
+	if sprite:
+		return sprite
+	# Try EnemyModel/Body (enemy structure)
+	sprite = entity.get_node_or_null("EnemyModel/Body")
+	if sprite:
+		return sprite
+	return null
 
 
 ## Remove all effects from an entity (used when entity dies or is removed).

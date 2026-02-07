@@ -1322,3 +1322,207 @@ func test_beach_level_combo_colors_match_other_levels() -> void:
 	for combo in [1, 3, 5, 7, 10]:
 		assert_eq(beach_level.get_combo_color(combo), building_level.get_combo_color(combo),
 			"Beach and Building combo color should match at combo %d" % combo)
+
+
+# ============================================================================
+# BeachLevel Full Flow Tests (Issue #596 - Ammo Counter Fix)
+# ============================================================================
+
+
+func test_beach_level_full_flow() -> void:
+	beach_level.initialize()
+
+	# Kill all enemies
+	for i in range(8):
+		beach_level.on_enemy_died()
+
+	assert_true(beach_level._level_cleared, "Level should be cleared")
+	assert_true(beach_level.exit_zone_activated, "Exit zone should be activated")
+
+	# Player reaches exit
+	beach_level.on_player_reached_exit()
+
+	assert_true(beach_level._level_completed, "Level should be completed")
+	assert_true(beach_level.score_screen_shown, "Score screen should be shown")
+
+
+func test_beach_level_exit_without_clearing_does_nothing() -> void:
+	beach_level.initialize()
+
+	# Kill only some enemies
+	for i in range(4):
+		beach_level.on_enemy_died()
+
+	# Player reaches exit (but level not cleared)
+	beach_level.on_player_reached_exit()
+
+	assert_false(beach_level._level_completed,
+		"Level should NOT be completed when enemies remain")
+	assert_false(beach_level.score_screen_shown,
+		"Score screen should NOT be shown")
+
+
+func test_beach_level_prevents_duplicate_completion() -> void:
+	beach_level.initialize()
+
+	for i in range(8):
+		beach_level.on_enemy_died()
+
+	beach_level.on_player_reached_exit()
+	var first_completed := beach_level._level_completed
+
+	# Second call should be a no-op
+	beach_level.score_screen_shown = false
+	beach_level.on_player_reached_exit()
+
+	assert_true(first_completed,
+		"First completion should succeed")
+	assert_false(beach_level.score_screen_shown,
+		"Second completion call should not re-show score screen")
+
+
+# ============================================================================
+# BeachLevel Ammo / Game Over Tests (Issue #596)
+# ============================================================================
+
+
+func test_beach_level_game_over_no_ammo_with_enemies() -> void:
+	beach_level.initialize()
+
+	assert_true(beach_level.should_show_game_over(0, 0),
+		"Beach level should show game over with no ammo and enemies remaining")
+
+
+func test_beach_level_game_over_not_with_current_ammo() -> void:
+	beach_level.initialize()
+
+	assert_false(beach_level.should_show_game_over(8, 0),
+		"Beach level should NOT show game over with current ammo")
+
+
+func test_beach_level_game_over_not_with_reserve_ammo() -> void:
+	beach_level.initialize()
+
+	assert_false(beach_level.should_show_game_over(0, 16),
+		"Beach level should NOT show game over with reserve ammo")
+
+
+func test_beach_level_game_over_not_when_cleared() -> void:
+	beach_level.initialize()
+	for i in range(8):
+		beach_level.on_enemy_died()
+
+	assert_false(beach_level.should_show_game_over(0, 0),
+		"Beach level should NOT show game over when all enemies are dead")
+
+
+func test_beach_level_game_over_not_shown_twice() -> void:
+	beach_level.initialize()
+
+	beach_level.show_game_over_message()
+	assert_true(beach_level._game_over_shown,
+		"Game over should be shown")
+
+	assert_false(beach_level.should_show_game_over(0, 0),
+		"Beach level should NOT show game over again")
+
+
+func test_beach_level_death_message_not_shown_after_game_over() -> void:
+	beach_level.initialize()
+
+	beach_level.show_game_over_message()
+	beach_level.show_death_message()
+
+	assert_true(beach_level.game_over_message_shown,
+		"Game over message should be shown")
+	assert_false(beach_level.death_message_shown,
+		"Death message should NOT be shown after game over already shown")
+
+
+# ============================================================================
+# BeachLevel Accuracy Tracking Tests (Issue #596)
+# ============================================================================
+
+
+func test_beach_level_accuracy_zero_shots() -> void:
+	assert_eq(beach_level.get_accuracy(), 0.0,
+		"Beach level accuracy with no shots should be 0.0%")
+
+
+func test_beach_level_accuracy_all_hits() -> void:
+	beach_level.register_shot()
+	beach_level.register_shot()
+	beach_level.register_hit()
+	beach_level.register_hit()
+
+	assert_almost_eq(beach_level.get_accuracy(), 100.0, 0.01,
+		"Beach level accuracy should be 100% when all shots hit")
+
+
+func test_beach_level_accuracy_consistent_with_other_levels() -> void:
+	building_level.initialize()
+	beach_level.initialize()
+
+	for level in [building_level, beach_level]:
+		level.register_shot()
+		level.register_shot()
+		level.register_hit()
+
+	assert_almost_eq(building_level.get_accuracy(), beach_level.get_accuracy(), 0.01,
+		"Beach and Building accuracy should be consistent for same inputs")
+
+
+# ============================================================================
+# BeachLevel Rank Color Tests (Issue #596)
+# ============================================================================
+
+
+func test_beach_level_rank_colors_match_other_levels() -> void:
+	for rank in ["S", "A+", "A", "B", "C", "D", "F"]:
+		var beach_color := beach_level.get_rank_color(rank)
+		var building_color := building_level.get_rank_color(rank)
+
+		assert_eq(beach_color, building_color,
+			"Beach and Building rank color should match for rank %s" % rank)
+
+
+# ============================================================================
+# BeachLevel Next Level Path Tests (Issue #596)
+# ============================================================================
+
+
+func test_beach_level_is_last_in_ordering() -> void:
+	var next := beach_level.get_next_level_path("res://scenes/levels/BeachLevel.tscn")
+
+	assert_eq(next, "",
+		"BeachLevel should be the last level (no next)")
+
+
+func test_beach_level_after_castle() -> void:
+	var next := beach_level.get_next_level_path("res://scenes/levels/CastleLevel.tscn")
+
+	assert_eq(next, "res://scenes/levels/BeachLevel.tscn",
+		"Next level after CastleLevel should be BeachLevel")
+
+
+# ============================================================================
+# BeachLevel Level Complete with Accuracy (Issue #596)
+# ============================================================================
+
+
+func test_beach_level_complete_with_accuracy_tracking() -> void:
+	beach_level.initialize()
+
+	# Simulate combat: 12 shots, 8 hits, 8 kills
+	for i in range(12):
+		beach_level.register_shot()
+	for i in range(8):
+		beach_level.register_hit()
+		beach_level.on_enemy_died()
+
+	assert_true(beach_level.is_level_complete(),
+		"Beach level should be complete")
+	assert_almost_eq(beach_level.get_accuracy(), 66.67, 0.1,
+		"Beach level accuracy should be ~66.67%")
+	assert_eq(beach_level._kills, 8,
+		"Beach level kill count should be 8")
