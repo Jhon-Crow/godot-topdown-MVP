@@ -182,6 +182,50 @@ class MockLevelBase:
 
 
 # ============================================================================
+# Mock TechnicalLevel for Testing
+# ============================================================================
+
+
+class MockTechnicalLevel extends MockLevelBase:
+	## Technical level-specific constants.
+	var level_name: String = "TechnicalLevel"
+
+	## Technical facility dimensions (~1600x1600 pixels).
+	var map_width: int = 1600
+	var map_height: int = 1600
+
+	## Default enemy count for technical level (3 rifle + 1 shotgun).
+	var default_enemy_count: int = 4
+
+	## Whether the score screen is currently shown (for W key shortcut).
+	var _score_shown: bool = false
+
+	## Level ordering (matching LevelsMenu.LEVELS).
+	var _level_paths: Array[String] = [
+		"res://scenes/levels/TechnicalLevel.tscn",
+		"res://scenes/levels/BuildingLevel.tscn",
+		"res://scenes/levels/TestTier.tscn",
+		"res://scenes/levels/CastleLevel.tscn",
+	]
+
+	## Initialize with default enemy configuration.
+	func initialize() -> void:
+		var enemies: Array = []
+		for i in range(default_enemy_count):
+			enemies.append("TechEnemy%d" % (i + 1))
+		setup_enemy_tracking(enemies)
+
+	## Get the next level path.
+	func get_next_level_path(current_scene_path: String) -> String:
+		for i in range(_level_paths.size()):
+			if _level_paths[i] == current_scene_path:
+				if i + 1 < _level_paths.size():
+					return _level_paths[i + 1]
+				return ""  # Last level
+		return ""  # Not found
+
+
+# ============================================================================
 # Mock BuildingLevel for Testing
 # ============================================================================
 
@@ -205,6 +249,7 @@ class MockBuildingLevel extends MockLevelBase:
 
 	## Level ordering (matching LevelsMenu.LEVELS).
 	var _level_paths: Array[String] = [
+		"res://scenes/levels/TechnicalLevel.tscn",
 		"res://scenes/levels/BuildingLevel.tscn",
 		"res://scenes/levels/TestTier.tscn",
 		"res://scenes/levels/CastleLevel.tscn",
@@ -248,6 +293,7 @@ class MockCastleLevel extends MockLevelBase:
 
 	## Level ordering.
 	var _level_paths: Array[String] = [
+		"res://scenes/levels/TechnicalLevel.tscn",
 		"res://scenes/levels/BuildingLevel.tscn",
 		"res://scenes/levels/TestTier.tscn",
 		"res://scenes/levels/CastleLevel.tscn",
@@ -295,6 +341,7 @@ class MockTestTier extends MockLevelBase:
 
 	## Level ordering.
 	var _level_paths: Array[String] = [
+		"res://scenes/levels/TechnicalLevel.tscn",
 		"res://scenes/levels/BuildingLevel.tscn",
 		"res://scenes/levels/TestTier.tscn",
 		"res://scenes/levels/CastleLevel.tscn",
@@ -337,6 +384,7 @@ class MockBeachLevel extends MockLevelBase:
 
 	## Level ordering.
 	var _level_paths: Array[String] = [
+		"res://scenes/levels/TechnicalLevel.tscn",
 		"res://scenes/levels/BuildingLevel.tscn",
 		"res://scenes/levels/TestTier.tscn",
 		"res://scenes/levels/CastleLevel.tscn",
@@ -360,6 +408,7 @@ class MockBeachLevel extends MockLevelBase:
 		return ""  # Not found
 
 
+var technical_level: MockTechnicalLevel
 var building_level: MockBuildingLevel
 var castle_level: MockCastleLevel
 var test_tier: MockTestTier
@@ -367,6 +416,7 @@ var beach_level: MockBeachLevel
 
 
 func before_each() -> void:
+	technical_level = MockTechnicalLevel.new()
 	building_level = MockBuildingLevel.new()
 	castle_level = MockCastleLevel.new()
 	test_tier = MockTestTier.new()
@@ -374,10 +424,125 @@ func before_each() -> void:
 
 
 func after_each() -> void:
+	technical_level = null
 	building_level = null
 	castle_level = null
 	test_tier = null
 	beach_level = null
+
+
+# ============================================================================
+# Technical Level Default Configuration Tests
+# ============================================================================
+
+
+func test_technical_level_name() -> void:
+	assert_eq(technical_level.level_name, "TechnicalLevel",
+		"Technical level name should be TechnicalLevel")
+
+
+func test_technical_level_map_dimensions() -> void:
+	assert_eq(technical_level.map_width, 1600,
+		"Technical map width should be 1600")
+	assert_eq(technical_level.map_height, 1600,
+		"Technical map height should be 1600")
+
+
+func test_technical_level_default_enemy_count() -> void:
+	assert_eq(technical_level.default_enemy_count, 4,
+		"Technical level should have 4 enemies by default")
+
+
+func test_technical_level_smaller_than_building() -> void:
+	assert_lt(technical_level.map_width, building_level.map_width,
+		"Technical level should be smaller than building level")
+	assert_lt(technical_level.map_height, building_level.map_height,
+		"Technical level should be smaller than building level")
+
+
+func test_technical_level_fewer_enemies_than_building() -> void:
+	assert_lt(technical_level.default_enemy_count, building_level.default_enemy_count,
+		"Technical level should have fewer enemies than building level")
+
+
+# ============================================================================
+# Technical Level Enemy Tracking Tests
+# ============================================================================
+
+
+func test_technical_level_initialize_sets_enemy_count() -> void:
+	technical_level.initialize()
+
+	assert_eq(technical_level._initial_enemy_count, 4,
+		"Should track 4 enemies after initialization")
+	assert_eq(technical_level._current_enemy_count, 4,
+		"Current enemy count should match initial count")
+
+
+func test_technical_level_all_enemies_killed() -> void:
+	technical_level.initialize()
+
+	for i in range(4):
+		technical_level.on_enemy_died()
+
+	assert_eq(technical_level._current_enemy_count, 0,
+		"Current enemy count should be 0 after all killed")
+	assert_eq(technical_level._kills, 4,
+		"Kill count should match initial count")
+	assert_true(technical_level._level_cleared,
+		"Level should be marked as cleared")
+	assert_true(technical_level.exit_zone_activated,
+		"Exit zone should be activated")
+
+
+func test_technical_level_partial_kills() -> void:
+	technical_level.initialize()
+
+	for i in range(2):
+		technical_level.on_enemy_died()
+
+	assert_eq(technical_level._current_enemy_count, 2,
+		"2 enemies should remain after killing 2 of 4")
+	assert_false(technical_level._level_cleared,
+		"Level should NOT be cleared with enemies remaining")
+
+
+# ============================================================================
+# Technical Level Completion Tests
+# ============================================================================
+
+
+func test_technical_level_full_flow() -> void:
+	technical_level.initialize()
+
+	for i in range(4):
+		technical_level.on_enemy_died()
+
+	assert_true(technical_level._level_cleared, "Level should be cleared")
+	assert_true(technical_level.exit_zone_activated, "Exit zone should be activated")
+
+	technical_level.on_player_reached_exit()
+
+	assert_true(technical_level._level_completed, "Level should be completed")
+	assert_true(technical_level.score_screen_shown, "Score screen should be shown")
+
+
+# ============================================================================
+# Technical Level Next Level Path Tests
+# ============================================================================
+
+
+func test_technical_level_next_is_building() -> void:
+	var next := technical_level.get_next_level_path("res://scenes/levels/TechnicalLevel.tscn")
+
+	assert_eq(next, "res://scenes/levels/BuildingLevel.tscn",
+		"Next level after TechnicalLevel should be BuildingLevel")
+
+
+func test_technical_level_combo_colors_match_other_levels() -> void:
+	for combo in [1, 3, 5, 7, 10]:
+		assert_eq(technical_level.get_combo_color(combo), building_level.get_combo_color(combo),
+			"Technical and Building combo color should match at combo %d" % combo)
 
 
 # ============================================================================
@@ -854,12 +1019,15 @@ func test_combo_color_magenta_at_combo_15() -> void:
 
 
 func test_combo_colors_consistent_across_levels() -> void:
-	# All three levels should produce the same combo colors
+	# All levels should produce the same combo colors
 	for combo in [1, 2, 3, 4, 5, 7, 10]:
+		var technical_color := technical_level.get_combo_color(combo)
 		var building_color := building_level.get_combo_color(combo)
 		var castle_color := castle_level.get_combo_color(combo)
 		var tier_color := test_tier.get_combo_color(combo)
 
+		assert_eq(technical_color, building_color,
+			"Technical and Building combo color should match at combo %d" % combo)
 		assert_eq(building_color, castle_color,
 			"Building and Castle combo color should match at combo %d" % combo)
 		assert_eq(castle_color, tier_color,
@@ -1155,16 +1323,18 @@ func test_level_complete_with_accuracy_tracking() -> void:
 
 func test_all_levels_track_accuracy_consistently() -> void:
 	# Setup all levels
+	technical_level.initialize()
 	building_level.initialize()
 	castle_level.initialize()
 	test_tier.initialize()
 
 	# Same actions on all levels
-	for level in [building_level, castle_level, test_tier]:
+	for level in [technical_level, building_level, castle_level, test_tier]:
 		level.register_shot()
 		level.register_shot()
 		level.register_hit()
 
+	assert_almost_eq(technical_level.get_accuracy(), 50.0, 0.01)
 	assert_almost_eq(building_level.get_accuracy(), 50.0, 0.01)
 	assert_almost_eq(castle_level.get_accuracy(), 50.0, 0.01)
 	assert_almost_eq(test_tier.get_accuracy(), 50.0, 0.01)
@@ -1175,17 +1345,21 @@ func test_all_levels_track_accuracy_consistently() -> void:
 # ============================================================================
 
 
-func test_level_order_building_to_testtier_to_castle() -> void:
-	var first := building_level.get_next_level_path("res://scenes/levels/BuildingLevel.tscn")
-	assert_eq(first, "res://scenes/levels/TestTier.tscn",
+func test_level_order_technical_to_building_to_testtier_to_castle() -> void:
+	var first := technical_level.get_next_level_path("res://scenes/levels/TechnicalLevel.tscn")
+	assert_eq(first, "res://scenes/levels/BuildingLevel.tscn",
+		"TechnicalLevel -> BuildingLevel")
+
+	var second := building_level.get_next_level_path("res://scenes/levels/BuildingLevel.tscn")
+	assert_eq(second, "res://scenes/levels/TestTier.tscn",
 		"BuildingLevel -> TestTier")
 
-	var second := test_tier.get_next_level_path("res://scenes/levels/TestTier.tscn")
-	assert_eq(second, "res://scenes/levels/CastleLevel.tscn",
+	var third := test_tier.get_next_level_path("res://scenes/levels/TestTier.tscn")
+	assert_eq(third, "res://scenes/levels/CastleLevel.tscn",
 		"TestTier -> CastleLevel")
 
-	var third := castle_level.get_next_level_path("res://scenes/levels/CastleLevel.tscn")
-	assert_eq(third, "",
+	var fourth := castle_level.get_next_level_path("res://scenes/levels/CastleLevel.tscn")
+	assert_eq(fourth, "",
 		"CastleLevel is the last level (no next)")
 
 

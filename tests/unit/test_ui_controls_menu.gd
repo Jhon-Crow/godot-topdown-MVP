@@ -121,6 +121,16 @@ class MockLevelsMenu:
 	## Level metadata matching the actual levels_menu.gd LEVELS constant.
 	const LEVELS: Array[Dictionary] = [
 		{
+			"name": "Technical Facility",
+			"name_ru": "Техзона",
+			"path": "res://scenes/levels/TechnicalLevel.tscn",
+			"description": "Labyrinth of enclosed technical rooms. Tight corridors and compact spaces.",
+			"preview_color": Color(0.15, 0.15, 0.2, 1.0),
+			"preview_accent": Color(0.3, 0.35, 0.5, 1.0),
+			"enemy_count": 4,
+			"map_size": "1600x1600"
+		},
+		{
 			"name": "Building Level",
 			"path": "res://scenes/levels/BuildingLevel.tscn",
 			"description": "Hotline Miami style building with interconnected rooms and corridors.",
@@ -944,14 +954,15 @@ func test_cancel_workflow() -> void:
 # ============================================================================
 
 
-func test_levels_menu_has_five_levels() -> void:
-	assert_eq(levels_menu.get_level_count(), 5,
-		"Should have exactly 5 levels")
+func test_levels_menu_has_six_levels() -> void:
+	assert_eq(levels_menu.get_level_count(), 6,
+		"Should have exactly 6 levels")
 
 
 func test_levels_menu_level_names() -> void:
 	var names := levels_menu.get_level_names()
 
+	assert_has(names, "Technical Facility", "Should contain Technical Facility")
 	assert_has(names, "Building Level", "Should contain Building Level")
 	assert_has(names, "Polygon", "Should contain Polygon")
 	assert_has(names, "Castle", "Should contain Castle")
@@ -1135,6 +1146,11 @@ func test_should_disable_current_level_card() -> void:
 # ============================================================================
 
 
+func test_display_name_technical_facility_russian() -> void:
+	assert_eq(levels_menu.get_display_name("Technical Facility"), "Техзона",
+		"Technical Facility should display as Техзона")
+
+
 func test_display_name_with_russian_name() -> void:
 	assert_eq(levels_menu.get_display_name("Polygon"), "Полигон",
 		"Polygon should display as Полигон")
@@ -1195,6 +1211,11 @@ func test_enemy_count_beach() -> void:
 		"Beach should have 8 enemies")
 
 
+func test_enemy_count_technical_facility() -> void:
+	assert_eq(levels_menu.get_enemy_count("Technical Facility"), 4,
+		"Technical Facility should have 4 enemies")
+
+
 func test_enemy_count_invalid_level() -> void:
 	assert_eq(levels_menu.get_enemy_count("NonExistent"), 0,
 		"Invalid level should return 0 enemies")
@@ -1218,6 +1239,11 @@ func test_map_size_polygon() -> void:
 func test_map_size_beach() -> void:
 	assert_eq(levels_menu.get_map_size("Beach"), "2400x2000",
 		"Beach map size should be 2400x2000")
+
+
+func test_map_size_technical_facility() -> void:
+	assert_eq(levels_menu.get_map_size("Technical Facility"), "1600x1600",
+		"Technical Facility map size should be 1600x1600")
 
 
 # ============================================================================
