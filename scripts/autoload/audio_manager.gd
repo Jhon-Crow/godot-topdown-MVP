@@ -142,7 +142,11 @@ const VOLUME_ASVK_SHOT: float = -2.0
 ## Volume for ASVK bolt-action sounds.
 const VOLUME_ASVK_BOLT: float = -3.0
 
+## Fire mode toggle sound (B key - switch between burst/automatic on assault rifle).
+const FIRE_MODE_TOGGLE: String = "res://assets/audio/игрок изменил режим стрельбы (нажал b).mp3"
+
 ## Volume settings (in dB).
+const VOLUME_FIRE_MODE_TOGGLE: float = -3.0
 const VOLUME_SHOT: float = -5.0
 const VOLUME_RELOAD: float = -3.0
 const VOLUME_IMPACT: float = -8.0
@@ -280,6 +284,7 @@ func _preload_all_sounds() -> void:
 	all_sounds.append(RELOAD_FULL)
 	all_sounds.append(PISTOL_BOLT)
 	all_sounds.append(EMPTY_GUN_CLICK)
+	all_sounds.append(FIRE_MODE_TOGGLE)
 	all_sounds.append(HIT_LETHAL)
 	all_sounds.append(HIT_NON_LETHAL)
 	all_sounds.append(BULLET_WALL_HIT)
@@ -582,6 +587,13 @@ func play_reload_full(position: Vector2) -> void:
 ## Uses CRITICAL priority for player feedback sounds.
 func play_empty_click(position: Vector2) -> void:
 	play_sound_2d_with_priority(EMPTY_GUN_CLICK, position, VOLUME_EMPTY_CLICK, SoundPriority.CRITICAL)
+
+
+## Plays fire mode toggle sound (B key) at the given position.
+## Used when player switches between burst and automatic fire modes on the assault rifle.
+## Uses CRITICAL priority for player action feedback.
+func play_fire_mode_toggle(position: Vector2) -> void:
+	play_sound_2d_with_priority(FIRE_MODE_TOGGLE, position, VOLUME_FIRE_MODE_TOGGLE, SoundPriority.CRITICAL)
 
 
 ## Plays lethal hit sound at the given position.

@@ -1072,9 +1072,22 @@ public partial class SniperRifle : BaseWeapon
     /// <summary>
     /// Gets the world-space position that the scope crosshair center is aiming at.
     /// Used to direct bullets to the crosshair center.
+    /// Computes the exact world position at viewport center using the camera,
+    /// ensuring bullets go precisely where the crosshair is displayed.
     /// </summary>
     public Vector2 GetScopeAimTarget()
     {
+        // Use the camera's actual position to determine where the crosshair center
+        // is in world space. This ensures perfect alignment: the bullet goes exactly
+        // to the world position shown at viewport center (where the crosshair is).
+        if (_playerCamera != null)
+        {
+            // The world position at viewport center = camera's global position + camera offset
+            // Camera2D.GetScreenCenterPosition() returns exactly this in Godot 4
+            return _playerCamera.GetScreenCenterPosition();
+        }
+
+        // Fallback: compute from aim direction if camera is not available
         Viewport? viewport = GetViewport();
         if (viewport == null)
         {
@@ -1084,8 +1097,6 @@ public partial class SniperRifle : BaseWeapon
         Vector2 viewportSize = viewport.GetVisibleRect().Size;
         float baseDistance = viewportSize.Length() * 0.5f;
 
-        // The scope aim target is the player's position offset by the scope camera offset
-        // including the fine-tune pixel offset and mouse offset so bullets go where the crosshair actually is
         Vector2 aimTarget = GlobalPosition + _aimDirection * baseDistance * EffectiveScopeZoomDistance
             + _aimDirection * _scopeMouseFineTunePixels
             + _scopeMouseOffset;
