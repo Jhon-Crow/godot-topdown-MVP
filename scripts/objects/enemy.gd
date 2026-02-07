@@ -190,31 +190,15 @@ var _has_valid_cover: bool = false  ## Has valid cover
 var _suppression_timer: float = 0.0  ## Suppression cooldown
 var _under_fire: bool = false  ## Under fire (bullets in threat sphere)
 
-## Flank target position.
-var _flank_target: Vector2 = Vector2.ZERO
-
-## Threat sphere Area2D for detecting nearby bullets.
-var _threat_sphere: Area2D = null
-
-## Bullets currently in threat sphere.
-var _bullets_in_threat_sphere: Array = []
-
-## Timer for threat reaction delay - time since first bullet entered threat sphere.
-var _threat_reaction_timer: float = 0.0
-
-## Whether the threat reaction delay has elapsed (enemy can react to bullets).
-var _threat_reaction_delay_elapsed: bool = false
-
-## Memory timer for bullets that passed through threat sphere (allows reaction after fast bullets exit).
-var _threat_memory_timer: float = 0.0
-## Duration to remember bullet passage (longer than reaction delay for complete reaction).
-const THREAT_MEMORY_DURATION: float = 0.5
-
-## Current retreat mode determined by damage taken.
-var _retreat_mode: RetreatMode = RetreatMode.FULL_HP
-
-## Hits taken this retreat/combat encounter. Resets on IDLE or retreat completion.
-var _hits_taken_in_encounter: int = 0
+var _flank_target: Vector2 = Vector2.ZERO  ## Flank target position
+var _threat_sphere: Area2D = null  ## Threat sphere Area2D for detecting nearby bullets
+var _bullets_in_threat_sphere: Array = []  ## Bullets currently in threat sphere
+var _threat_reaction_timer: float = 0.0  ## Time since first bullet entered threat sphere
+var _threat_reaction_delay_elapsed: bool = false  ## Whether enemy can react to bullets
+var _threat_memory_timer: float = 0.0  ## Memory timer for bullets that passed through threat sphere
+const THREAT_MEMORY_DURATION: float = 0.5  ## Duration to remember bullet passage
+var _retreat_mode: RetreatMode = RetreatMode.FULL_HP  ## Current retreat mode determined by damage taken
+var _hits_taken_in_encounter: int = 0  ## Hits taken this encounter, resets on IDLE or retreat completion
 
 var _retreat_turn_timer: float = 0.0  ## Periodic cover turn timer
 const RETREAT_TURN_DURATION: float = 0.8  ## Duration to face cover (sec)
