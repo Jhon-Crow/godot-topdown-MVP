@@ -414,7 +414,7 @@ func _ready() -> void:
 	_setup_grenade_avoidance()
 	_setup_machete_component()  # Issue #579
 	_connect_casing_pusher_signals()  # Issue #438
-	if _is_melee_weapon and _weapon_sprite: _weapon_sprite.visible = false  # Issue #579: hide gun
+	if _is_melee_weapon and _weapon_sprite: _weapon_sprite.visible = true  # Issue #595: show machete
 	# Store original collision layers for HitArea (to restore on respawn)
 	if _hit_area:
 		_original_hit_area_layer = _hit_area.collision_layer
@@ -884,26 +884,19 @@ func _physics_process(delta: float) -> void:
 	_update_grenade_danger_detection()  # Issue #407: Check for nearby grenades
 	if _machete: _machete.update(delta)  # Issue #579: Update machete component
 
-	# Update enemy model rotation BEFORE processing AI state (which may shoot).
-	# This ensures the weapon is correctly positioned when bullets are created.
-	# Note: We don't call _update_weapon_sprite_rotation() anymore because:
-	# 1. The EnemyModel rotation already rotates the weapon correctly
-	# 2. The previous _update_weapon_sprite_rotation() was using the Enemy's rotation
-	#    instead of EnemyModel's rotation, causing the weapon to be offset by 90 degrees
+	# Update enemy model rotation BEFORE AI state (weapon must be positioned before shooting).
+	# EnemyModel rotation handles weapon aiming (not _update_weapon_sprite_rotation).
 	_update_enemy_model_rotation()
 
 	# Process AI state machine (may trigger shooting)
 	_process_ai_state(delta)
 
-	# Update debug label if enabled
 	_update_debug_label()
-
-	# Request redraw for debug visualization
-	if debug_label_enabled:
+	if debug_label_enabled:  # Request redraw for debug visualization
 		queue_redraw()
 
-	# Update walking animation based on movement
-	_update_walk_animation(delta)
+	_update_walk_animation(delta)  # Update walking animation based on movement
+	_apply_machete_attack_animation()  # Issue #595: machete swing animation
 	move_and_slide()
 
 	# Push any casings we collided with (Issue #341)
@@ -1355,8 +1348,9 @@ func _process_idle_state(delta: float) -> void:
 ## Process COMBAT state - cycle: approach->exposed shooting (2-3s)->return to cover via SEEKING_COVER.
 func _process_combat_state(delta: float) -> void:
 	_combat_state_timer += delta
-	# Issue #579: Machete melee combat - rush to player, dodge bullets, attack
+	# Issue #579/#595: Machete melee combat with attack animation
 	if _is_melee_weapon and _machete and _player:
+		if _machete.is_attacking(): return  # Issue #595: Hold position during attack animation
 		if _under_fire and _bullets_in_threat_sphere.size() > 0 and not _machete.is_dodging():
 			var b = _bullets_in_threat_sphere[0]
 			if is_instance_valid(b):
@@ -4979,6 +4973,12 @@ func _setup_machete_component() -> void:
 	_machete.configure_from_weapon_config(WeaponConfigComponent.get_config(weapon_type)); add_child(_machete)
 	_current_ammo = 0; _reserve_ammo = 0; _is_reloading = false
 	full_health_color = Color(0.7, 0.15, 0.15, 1.0); _update_health_visual()
+
+## Apply machete attack animation to weapon mount and arms (Issue #595).
+func _apply_machete_attack_animation() -> void:
+	if not _is_melee_weapon or _machete == null: return
+	if _weapon_mount: _weapon_mount.rotation = _machete.get_weapon_rotation() if _machete.is_attacking() else 0.0
+	if _machete.is_attacking() and _right_arm_sprite: _right_arm_sprite.position.x += _machete.get_arm_offset()
 
 ## Connect CasingPusher Area2D signals (Issue #438, same pattern as player Issue #392).
 func _connect_casing_pusher_signals() -> void:
