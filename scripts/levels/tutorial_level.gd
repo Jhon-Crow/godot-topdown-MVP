@@ -161,6 +161,22 @@ func _setup_selected_weapon() -> void:
 
 	print("Tutorial: Setting up weapon: %s" % selected_weapon_id)
 
+	# Check if C# Player already equipped the correct weapon (via ApplySelectedWeaponFromGameManager)
+	# This prevents double-equipping when both C# and GDScript weapon setup run
+	if selected_weapon_id != "m16":
+		var weapon_names: Dictionary = {
+			"shotgun": "Shotgun",
+			"mini_uzi": "MiniUzi",
+			"silenced_pistol": "SilencedPistol",
+			"sniper": "SniperRifle"
+		}
+		if selected_weapon_id in weapon_names:
+			var expected_name: String = weapon_names[selected_weapon_id]
+			var existing_weapon = _player.get_node_or_null(expected_name)
+			if existing_weapon != null and _player.get("CurrentWeapon") == existing_weapon:
+				print("Tutorial: %s already equipped by C# Player - skipping" % expected_name)
+				return
+
 	# If shotgun is selected, we need to swap weapons
 	if selected_weapon_id == "shotgun":
 		# Remove the default AssaultRifle
@@ -501,7 +517,7 @@ func _setup_targets() -> void:
 		push_error("Tutorial: Targets node not found!")
 		return
 
-	var target_positions: Array[Vector2] = []
+	var target_positions: Array = []
 
 	for target in targets_node.get_children():
 		_total_targets += 1

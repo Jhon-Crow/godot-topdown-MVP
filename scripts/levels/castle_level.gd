@@ -753,7 +753,7 @@ func _update_magazines_label(magazine_ammo_counts: Array) -> void:
 		_magazines_label.text = "MAGS: -"
 		return
 
-	var parts: Array[String] = []
+	var parts: Array = []
 	for i in range(magazine_ammo_counts.size()):
 		var ammo: int = magazine_ammo_counts[i]
 		if i == 0:
@@ -970,6 +970,24 @@ func _setup_selected_weapon() -> void:
 		selected_weapon_id = GameManager.get_selected_weapon()
 
 	print("CastleLevel: Setting up weapon: %s" % selected_weapon_id)
+
+	# Check if C# Player already equipped the correct weapon (via ApplySelectedWeaponFromGameManager)
+	# This prevents double-equipping when both C# and GDScript weapon setup run
+	if selected_weapon_id != "m16":
+		var weapon_names: Dictionary = {
+			"shotgun": "Shotgun",
+			"mini_uzi": "MiniUzi",
+			"silenced_pistol": "SilencedPistol",
+			"sniper": "SniperRifle"
+		}
+		if selected_weapon_id in weapon_names:
+			var expected_name: String = weapon_names[selected_weapon_id]
+			var existing_weapon = _player.get_node_or_null(expected_name)
+			if existing_weapon != null and _player.get("CurrentWeapon") == existing_weapon:
+				print("CastleLevel: %s already equipped by C# Player - skipping" % expected_name)
+				# Still apply castle-specific ammo configuration
+				_configure_castle_weapon_ammo(existing_weapon)
+				return
 
 	if selected_weapon_id == "shotgun":
 		var assault_rifle = _player.get_node_or_null("AssaultRifle")

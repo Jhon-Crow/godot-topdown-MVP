@@ -14,6 +14,12 @@ extends Node2D
 ## - Death/victory messages
 ## - Quick restart with Q key
 
+## Duration of saturation effect in seconds.
+const SATURATION_DURATION: float = 0.15
+
+## Saturation effect intensity (alpha).
+const SATURATION_INTENSITY: float = 0.25
+
 ## Reference to the enemy count label.
 var _enemy_count_label: Label = null
 
@@ -43,12 +49,6 @@ var _magazines_label: Label = null
 
 ## Reference to the ColorRect for saturation effect.
 var _saturation_overlay: ColorRect = null
-
-## Duration of saturation effect in seconds.
-const SATURATION_DURATION: float = 0.15
-
-## Saturation effect intensity (alpha).
-const SATURATION_INTENSITY: float = 0.25
 
 ## List of enemy nodes for replay recording.
 var _enemies: Array = []
@@ -718,7 +718,7 @@ func _update_magazines_label(magazine_ammo_counts: Array) -> void:
 		_magazines_label.text = "MAGS: -"
 		return
 
-	var parts: Array[String] = []
+	var parts: Array = []
 	for i in range(magazine_ammo_counts.size()):
 		var ammo: int = magazine_ammo_counts[i]
 		if i == 0:
@@ -1056,6 +1056,16 @@ func _setup_selected_weapon() -> void:
 		selected_weapon_id = GameManager.get_selected_weapon()
 
 	print("TestTier: Setting up weapon: %s" % selected_weapon_id)
+
+	# Check if C# Player already equipped the correct weapon (via ApplySelectedWeaponFromGameManager).
+	# This prevents double-equipping when both C# and GDScript weapon setup succeed.
+	var weapon_names: Dictionary = {"shotgun": "Shotgun", "mini_uzi": "MiniUzi", "silenced_pistol": "SilencedPistol", "sniper": "SniperRifle"}
+	if selected_weapon_id in weapon_names:
+		var expected_name: String = weapon_names[selected_weapon_id]
+		var existing = _player.get_node_or_null(expected_name)
+		if existing != null and _player.get("CurrentWeapon") == existing:
+			print("TestTier: %s already equipped by C# Player - skipping" % expected_name)
+			return
 
 	# If shotgun is selected, we need to swap weapons
 	if selected_weapon_id == "shotgun":
