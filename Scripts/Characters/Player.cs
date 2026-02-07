@@ -1259,10 +1259,11 @@ public partial class Player : BaseCharacter
         var detectedType = WeaponType.Rifle;  // Default to rifle pose
 
         // Check for weapon children - weapons are added directly to player by level scripts
-        // Check in order of specificity: MiniUzi (SMG), Shotgun, SilencedPistol, then default to Rifle
+        // Check in order of specificity: MiniUzi (SMG), Shotgun, SilencedPistol, SniperRifle, then default to Rifle
         var miniUzi = GetNodeOrNull<BaseWeapon>("MiniUzi");
         var shotgun = GetNodeOrNull<BaseWeapon>("Shotgun");
         var silencedPistol = GetNodeOrNull<BaseWeapon>("SilencedPistol");
+        var sniperRifle = GetNodeOrNull<BaseWeapon>("SniperRifle");
 
         if (miniUzi != null)
         {
@@ -1279,11 +1280,16 @@ public partial class Player : BaseCharacter
             detectedType = WeaponType.Pistol;
             LogToFile("[Player] Detected weapon: Silenced Pistol (Pistol pose)");
         }
+        else if (sniperRifle != null)
+        {
+            detectedType = WeaponType.Rifle;
+            LogToFile("[Player] Detected weapon: Sniper Rifle ASVK (Rifle pose)");
+        }
         else
         {
             // Default to rifle (AssaultRifle or no weapon)
             detectedType = WeaponType.Rifle;
-            LogToFile("[Player] Detected weapon: Rifle (default pose)");
+            LogToFile("[Player] Detected weapon: Assault Rifle (default Rifle pose)");
         }
 
         _currentWeaponType = detectedType;
