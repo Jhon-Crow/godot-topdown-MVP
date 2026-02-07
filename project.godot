@@ -28,6 +28,7 @@ ExperimentalSettings="*res://scripts/autoload/experimental_settings.gd"
 CinemaEffectsManager="*res://scripts/autoload/cinema_effects_manager.gd"
 GrenadeTimerHelper="*res://Scripts/Autoload/GrenadeTimerHelper.cs"
 PowerFantasyEffectsManager="*res://scripts/autoload/power_fantasy_effects_manager.gd"
+ProgressManager="*res://scripts/autoload/progress_manager.gd"
 ReplayManager="*res://Scripts/Autoload/ReplayManager.cs"
 ActiveItemManager="*res://scripts/autoload/active_item_manager.gd"
 
