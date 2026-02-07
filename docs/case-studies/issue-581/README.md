@@ -173,14 +173,53 @@ The `SniperComponent` was extracted from `enemy.gd` to reduce file size. During 
 | Round 2 | `_should_shoot_at_target()` blocking snipers with wall checks | Snipers blocked by wall-penetration logic (fixed). Also: laser double-rotation (fixed), cover retreat only under fire (fixed) |
 | Round 3 | `_detection_delay_elapsed` never updated in sniper states | Snipers never passed detection delay gate (fixed). Also: laser too faint (fixed) |
 | Round 4 | `enemy._memory.get_position()` — nonexistent method on `RefCounted` | Runtime error crashed shoot function every frame when player not visible (fixed) |
+| Round 5 | Static function typed parameter dispatch + aim tolerance mismatch | Two compounding bugs prevented shooting (fixed) |
+
+## Round 5 Analysis
+
+### Evidence from game_log_20260207_221506.txt
+
+Despite all previous fixes (rounds 1-4), the sniper still did not shoot:
+- SniperEnemy1 enters COMBAT at 22:15:27 and stays there until session end
+- Rotation converges perfectly (target and current within 0.1-0.2 degrees)
+- **ZERO** diagnostic log entries ("SNIPER:" prefix) appear — the round 4 diagnostic logging never fires
+- **ZERO** shooting events from either sniper enemy
+- Other enemies function normally
+
+### Root Causes Found
+
+**Bug 1: GDScript static function typed parameter dispatch**
+
+`SniperComponent.process_combat_state(enemy: Node2D, delta: float)` is a `static func` with `enemy` typed as `Node2D`. It accesses custom script properties like `enemy._combat_state_timer`, `enemy._detection_delay_elapsed`, `enemy._log_to_file()`, etc. These properties do not exist on `Node2D` — they are defined in the enemy GDScript.
+
+In Godot 4.3, when a static function parameter is typed as `Node2D`, the engine may use static dispatch for property access, which fails silently for properties not defined on `Node2D`. This would explain why the diagnostic logging added in round 4 never appeared in the game log — the entire `process_combat_state()` function body was failing to execute.
+
+**Fix:** Inlined `process_combat_state` and `process_in_cover_state` logic directly into `_process_sniper_combat_state()` and `_process_sniper_in_cover_state()` in `enemy.gd`, eliminating the static function + typed parameter dispatch entirely. Helper functions `_sniper_update_detection_delay()` and `_sniper_rotate_toward()` were extracted to keep the code manageable.
+
+**Bug 2: Aim tolerance using weapon sprite transform instead of body rotation**
+
+When `_can_see_player = false` (the through-walls shooting path), `_get_weapon_forward_direction()` returns `_weapon_sprite.global_transform.x.normalized()`, which depends on `_enemy_model.global_rotation` (rotating at `MODEL_ROTATION_SPEED = 3.0 rad/s`). Meanwhile, `_aim_at_player()` rotates `enemy.rotation` (body rotation) at `rotation_speed = 1.0 rad/s`. The aim tolerance check compared the weapon sprite direction against the target direction — two independently-rotating values that may not have converged.
+
+**Fix:** Snipers now use `Vector2.from_angle(rotation)` (body rotation) for both the aim tolerance check and the shot direction, bypassing the weapon sprite transform entirely. The laser also uses body rotation when the player is not visible, for visual consistency.
+
+### Utility functions retained in SniperComponent
+
+Pure utility functions that only access `Node2D`-level properties (like `global_position`, `get_world_2d()`) remain in `SniperComponent`:
+- `count_walls()` — raycast wall counting between enemy and target
+- `calculate_spread()` — spread angle based on distance and wall count
+- `perform_hitscan()` — sequential raycast with wall penetration
+- `update_laser()` — laser Line2D point updates
+- `create_laser()` — laser Line2D creation
+- `spawn_tracer()` — smoke tracer line effect
+- `spawn_casing()` — bullet casing ejection
 
 ## Game Logs
 
-See `logs/` directory for the original game log files from the issue author's testing.
+See `round5-logs/` and root directory for game log files from the issue author's testing.
 
 ## References
 
 - ASVK rifle: Russian anti-materiel rifle, 12.7x108mm caliber
 - Existing player ASVK implementation: `Scripts/Weapons/SniperRifle.cs` (1796 lines)
-- Enemy AI base: `scripts/objects/enemy.gd` (3878 lines)
+- Enemy AI base: `scripts/objects/enemy.gd` (4954 lines)
 - Weapon configs: `scripts/components/weapon_config_component.gd`
