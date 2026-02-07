@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Generate a 6-degree cone-shaped light texture for the flashlight.
+"""Generate an 18-degree cone-shaped light texture for the flashlight.
 
 This creates a 512x512 PNG image with a narrow cone pointing to the right (+X).
 The cone has:
-- 6 degrees total beam angle (3 degrees each side)
+- 18 degrees total beam angle (9 degrees each side)
 - Smooth distance falloff (brighter near center, fades at edges)
 - Gentle angular falloff for soft beam edges
 - Transparent background outside the cone
@@ -15,10 +15,10 @@ import math
 from PIL import Image
 
 SIZE = 512
-HALF_ANGLE_DEG = 3.0  # 6 degrees total = 3 each side
+HALF_ANGLE_DEG = 9.0  # 18 degrees total = 9 each side
 HALF_ANGLE_RAD = math.radians(HALF_ANGLE_DEG)
 
-OUTPUT_PATH = "../assets/sprites/effects/flashlight_cone_6deg.png"
+OUTPUT_PATH = "../assets/sprites/effects/flashlight_cone_18deg.png"
 
 
 def generate_cone_texture():

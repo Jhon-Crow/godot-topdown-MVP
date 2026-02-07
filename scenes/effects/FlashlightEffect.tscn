@@ -1,7 +1,7 @@
 [gd_scene load_steps=3 format=3 uid="uid://flashlight_effect_scene"]
 
 [ext_resource type="Script" path="res://scripts/effects/flashlight_effect.gd" id="1_flashlight_effect"]
-[ext_resource type="Texture2D" path="res://assets/sprites/effects/flashlight_cone_6deg.png" id="2_cone_texture"]
+[ext_resource type="Texture2D" path="res://assets/sprites/effects/flashlight_cone_18deg.png" id="2_cone_texture"]
 
 [node name="FlashlightEffect" type="Node2D"]
 z_index = 50
