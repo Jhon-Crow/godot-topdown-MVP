@@ -106,9 +106,9 @@ func _play_rank_arpeggio() -> void:
 	for i in range(MAJOR_ARPEGGIO.size()):
 		var semitones: int = MAJOR_ARPEGGIO[i]
 		var frequency: float = BEEP_BASE_FREQUENCY * pow(2.0, float(semitones) / 12.0)
-		# Delay each note slightly
-		get_tree().create_timer(i * 0.08).timeout.connect(
-			func(): _play_beep(frequency, 0.15, -8.0)
+		# Delay each note slightly (longer delay for longer sound as per issue #539)
+		get_tree().create_timer(i * 0.12).timeout.connect(
+			func(): _play_beep(frequency, 0.22, -8.0)
 		)
 
 
@@ -196,8 +196,8 @@ func _animate_score_sequence(ui: Control, container: VBoxContainer, score_data: 
 	delay += 0.3  # Small pause before rank
 	_animate_rank_reveal(ui, container, score_data, delay)
 
-	# 6. Restart hint (appears after rank animation)
-	get_tree().create_timer(delay + RANK_REVEAL_DURATION + RANK_SHRINK_DURATION + 0.5).timeout.connect(
+	# 6. Restart hint (appears after rank animation, including 1.4s display + 0.15s enlarge + fade-out)
+	get_tree().create_timer(delay + RANK_REVEAL_DURATION + 1.4 + 0.15 + RANK_SHRINK_DURATION + 0.5).timeout.connect(
 		func(): _show_restart_hint(container)
 	)
 
@@ -345,6 +345,10 @@ func _animate_points_counting(label: Label, target: int, prefix: String, base_co
 				var final_pitch: float = BEEP_BASE_FREQUENCY * (1.5 + float(pitch_offset) * 0.1)
 				_play_beep(final_pitch, 0.08, -10.0)
 
+				# Slightly enlarge font after animation completes (issue #539 feedback)
+				var enlarge_tween := create_tween()
+				enlarge_tween.tween_property(label, "scale", Vector2(1.15, 1.15), 0.2).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+
 				timer.stop()
 				timer.queue_free()
 	)
@@ -418,13 +422,13 @@ func _animate_total_counting(label: Label, target: int, max_possible: int) -> vo
 			var current_rank: String = _get_rank_for_score_ratio(score_ratio)
 			var base_color: Color = _get_rank_color(current_rank)
 
-			# Pulse effect during counting
-			var pulse: float = sin(elapsed * 25.0) * 0.5 + 0.5
+			# Pulse effect during counting (4x slower as per issue #539)
+			var pulse: float = sin(elapsed * 6.25) * 0.5 + 0.5
 			var pulse_color: Color = base_color.lerp(Color.WHITE, pulse * 0.5)
 			label.add_theme_color_override("font_color", pulse_color)
 
-			# Scale pulse
-			var scale_pulse: float = 1.0 + sin(elapsed * 20.0) * 0.08
+			# Scale pulse (4x slower as per issue #539)
+			var scale_pulse: float = 1.0 + sin(elapsed * 5.0) * 0.08
 			label.scale = Vector2(scale_pulse, scale_pulse)
 
 			# Play beep at intervals
@@ -515,29 +519,40 @@ func _animate_rank_reveal(ui: Control, container: VBoxContainer, score_data: Dic
 			tween.tween_property(big_rank_label, "scale", Vector2(1.0, 1.0), 0.3).from(Vector2(3.0, 3.0))
 			tween.tween_property(rank_bg, "modulate:a", 1.0, 0.2)
 
-			# After flash duration, shrink rank to position
-			get_tree().create_timer(RANK_REVEAL_DURATION).timeout.connect(
+			# After flash duration, keep rank on screen for 1.4 seconds (issue #539 feedback), then enlarge sharply with ringing sound
+			get_tree().create_timer(RANK_REVEAL_DURATION + 1.4).timeout.connect(
 				func():
-					# Fade out flash background
-					var fade_tween := create_tween()
-					fade_tween.tween_property(flash_bg, "color:a", 0.0, 0.3)
+					# Play ringing sound before disappearing (issue #539 feedback)
+					_play_beep(BEEP_BASE_FREQUENCY * 3.0, 0.3, -5.0)
 
-					# Shrink big rank letter and fade out gradient background
-					var shrink_tween := create_tween()
-					shrink_tween.set_parallel(true)
-					shrink_tween.tween_property(big_rank_label, "scale", Vector2(0.3, 0.3), RANK_SHRINK_DURATION)
-					shrink_tween.tween_property(big_rank_label, "modulate:a", 0.0, RANK_SHRINK_DURATION)
-					shrink_tween.tween_property(rank_bg, "modulate:a", 0.0, RANK_SHRINK_DURATION)
+					# Sharply enlarge the rank letter before fading out (issue #539 feedback)
+					var enlarge_tween := create_tween()
+					enlarge_tween.set_parallel(true)
+					enlarge_tween.tween_property(big_rank_label, "scale", Vector2(1.5, 1.5), 0.15).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
 
-					# Show final rank in container (no gradient background)
-					shrink_tween.tween_property(final_rank_label, "modulate:a", 1.0, RANK_SHRINK_DURATION)
-
-					# Clean up after animation
-					shrink_tween.chain().tween_callback(
+					# After the sharp enlarge, fade out
+					enlarge_tween.chain().tween_callback(
 						func():
-							flash_bg.queue_free()
-							big_rank_label.queue_free()
-							rank_bg.queue_free()
+							# Fade out flash background
+							var fade_tween := create_tween()
+							fade_tween.tween_property(flash_bg, "color:a", 0.0, 0.3)
+
+							# Fade out big rank letter and gradient background
+							var fade_out_tween := create_tween()
+							fade_out_tween.set_parallel(true)
+							fade_out_tween.tween_property(big_rank_label, "modulate:a", 0.0, RANK_SHRINK_DURATION)
+							fade_out_tween.tween_property(rank_bg, "modulate:a", 0.0, RANK_SHRINK_DURATION)
+
+							# Show final rank in container - it "sticks" in place (issue #539)
+							fade_out_tween.tween_property(final_rank_label, "modulate:a", 1.0, RANK_SHRINK_DURATION)
+
+							# Clean up after animation
+							fade_out_tween.chain().tween_callback(
+								func():
+									flash_bg.queue_free()
+									big_rank_label.queue_free()
+									rank_bg.queue_free()
+							)
 					)
 			)
 	)
