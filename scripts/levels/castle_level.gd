@@ -53,6 +53,9 @@ const SATURATION_INTENSITY: float = 0.25
 ## List of enemy nodes for position tracking.
 var _enemies: Array = []
 
+## Cached reference to the ReplayManager autoload (C# singleton).
+var _replay_manager: Node = null
+
 ## Reference to the exit zone.
 var _exit_zone: Area2D = null
 
@@ -61,6 +64,23 @@ var _level_cleared: bool = false
 
 ## Whether the level completion sequence has been triggered (prevents duplicate calls).
 var _level_completed: bool = false
+
+
+## Gets the ReplayManager autoload node.
+func _get_or_create_replay_manager() -> Node:
+	if _replay_manager != null and is_instance_valid(_replay_manager):
+		return _replay_manager
+
+	_replay_manager = get_node_or_null("/root/ReplayManager")
+	if _replay_manager != null:
+		if _replay_manager.has_method("StartRecording"):
+			_log_to_file("ReplayManager found as C# autoload - verified OK")
+		else:
+			_log_to_file("WARNING: ReplayManager autoload exists but has no StartRecording method")
+	else:
+		_log_to_file("ERROR: ReplayManager autoload not found at /root/ReplayManager")
+
+	return _replay_manager
 
 
 func _ready() -> void:
@@ -101,6 +121,9 @@ func _ready() -> void:
 
 	# Setup exit zone at the exit point (bottom of castle)
 	_setup_exit_zone()
+
+	# Start replay recording
+	_start_replay_recording()
 
 
 ## Initialize the ScoreManager for this level.
@@ -148,6 +171,32 @@ func _setup_exit_zone() -> void:
 		add_child(_exit_zone)
 
 	print("[CastleLevel] Exit zone created at exit point (3000, 2385)")
+
+
+## Starts recording the replay for this level.
+func _start_replay_recording() -> void:
+	var replay_manager: Node = _get_or_create_replay_manager()
+	if replay_manager == null:
+		_log_to_file("ERROR: ReplayManager could not be loaded, replay recording disabled")
+		return
+
+	_log_to_file("Starting replay recording - Player: %s, Enemies count: %d" % [
+		_player.name if _player else "NULL",
+		_enemies.size()
+	])
+
+	# Clear any previous replay data
+	if replay_manager.has_method("ClearReplay"):
+		replay_manager.ClearReplay()
+		_log_to_file("Previous replay data cleared")
+
+	# Start recording with player and enemies
+	if replay_manager.has_method("StartRecording"):
+		replay_manager.StartRecording(self, _player, _enemies)
+		_log_to_file("Replay recording started successfully")
+		print("[CastleLevel] Replay recording started with %d enemies" % _enemies.size())
+	else:
+		_log_to_file("ERROR: ReplayManager.StartRecording method not found")
 
 
 ## Called when the player reaches the exit zone after clearing the level.
@@ -528,6 +577,13 @@ func _complete_level_with_score() -> void:
 
 	# Disable player controls immediately
 	_disable_player_controls()
+
+	# Stop replay recording
+	var replay_manager: Node = _get_or_create_replay_manager()
+	if replay_manager:
+		if replay_manager.has_method("StopRecording"):
+			replay_manager.StopRecording()
+			_log_to_file("Replay recording stopped")
 
 	# Deactivate exit zone to prevent further triggers
 	if _exit_zone and _exit_zone.has_method("deactivate"):
