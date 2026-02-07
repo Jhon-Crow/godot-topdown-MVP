@@ -7,6 +7,9 @@ extends Node2D
 ##
 ## The flashlight is positioned at the weapon barrel offset and rotates
 ## with the player model to always point in the aiming direction.
+##
+## When the flashlight beam hits an enemy directly, the enemy is blinded
+## for a short duration (once per enemy per flashlight activation).
 
 ## Light energy (brightness) when the flashlight is on.
 ## Bright white light — same level as flashbang (8.0) for clear visibility.
@@ -17,12 +20,23 @@ const LIGHT_ENERGY: float = 8.0
 const LIGHT_TEXTURE_SCALE: float = 6.0
 
 ## Flashlight beam half-angle in degrees.
-## 6 degrees total beam = 3 degrees each side from center.
-## The actual cone shape is pre-baked in the texture (flashlight_cone_6deg.png).
-const BEAM_HALF_ANGLE_DEG: float = 3.0
+## 18 degrees total beam = 9 degrees each side from center.
+## The actual cone shape is pre-baked in the texture (flashlight_cone_18deg.png).
+const BEAM_HALF_ANGLE_DEG: float = 9.0
+
+## Maximum range (in pixels) for the flashlight beam to blind enemies.
+## Based on texture size (2048) scaled by texture_scale (6.0) / 2.
+## Capped at a practical gameplay distance.
+const BEAM_RANGE: float = 600.0
+
+## Duration of the blindness effect in seconds (200ms).
+const BLINDNESS_DURATION: float = 0.2
 
 ## Path to the flashlight toggle sound file.
 const FLASHLIGHT_SOUND_PATH: String = "res://assets/audio/звук включения и выключения фанарика.mp3"
+
+## Collision mask for obstacles (layer 3) used in line-of-sight checks.
+const OBSTACLE_COLLISION_MASK: int = 4
 
 ## Reference to the PointLight2D child node.
 var _point_light: PointLight2D = null
@@ -32,6 +46,10 @@ var _is_on: bool = false
 
 ## AudioStreamPlayer for flashlight toggle sound.
 var _audio_player: AudioStreamPlayer = null
+
+## Set of enemy instance IDs already blinded during the current flashlight activation.
+## Reset when the flashlight is turned off.
+var _blinded_enemies: Dictionary = {}
 
 
 func _ready() -> void:
@@ -71,6 +89,7 @@ func turn_on() -> void:
 	if _is_on:
 		return
 	_is_on = true
+	_blinded_enemies.clear()
 	_set_light_visible(true)
 	_play_toggle_sound()
 
@@ -80,6 +99,7 @@ func turn_off() -> void:
 	if not _is_on:
 		return
 	_is_on = false
+	_blinded_enemies.clear()
 	_set_light_visible(false)
 	_play_toggle_sound()
 
@@ -94,3 +114,70 @@ func _set_light_visible(visible_state: bool) -> void:
 	if _point_light:
 		_point_light.visible = visible_state
 		_point_light.energy = LIGHT_ENERGY if visible_state else 0.0
+
+
+func _physics_process(_delta: float) -> void:
+	if not _is_on:
+		return
+	_check_enemies_in_beam()
+
+
+## Check all enemies and blind those caught in the flashlight beam.
+## Each enemy is only blinded once per flashlight activation.
+func _check_enemies_in_beam() -> void:
+	var enemies := get_tree().get_nodes_in_group("enemies")
+	for enemy in enemies:
+		if not is_instance_valid(enemy) or not enemy is Node2D:
+			continue
+
+		var enemy_id := enemy.get_instance_id()
+		if _blinded_enemies.has(enemy_id):
+			continue
+
+		if _is_enemy_in_beam(enemy):
+			_blind_enemy(enemy)
+
+
+## Check if an enemy is within the flashlight beam cone and has line of sight.
+func _is_enemy_in_beam(enemy: Node2D) -> bool:
+	var beam_origin := global_position
+	var beam_direction := Vector2.RIGHT.rotated(global_rotation)
+	var to_enemy := enemy.global_position - beam_origin
+	var distance := to_enemy.length()
+
+	# Check range
+	if distance > BEAM_RANGE or distance < 1.0:
+		return false
+
+	# Check angle: enemy must be within the beam half-angle
+	var angle_to_enemy := abs(beam_direction.angle_to(to_enemy))
+	if angle_to_enemy > deg_to_rad(BEAM_HALF_ANGLE_DEG):
+		return false
+
+	# Check line of sight (walls block the beam)
+	return _has_line_of_sight_to(enemy)
+
+
+## Check line of sight from flashlight to target (walls block).
+func _has_line_of_sight_to(target: Node2D) -> bool:
+	var space_state := get_world_2d().direct_space_state
+	var query := PhysicsRayQueryParameters2D.create(
+		global_position,
+		target.global_position
+	)
+	query.collision_mask = OBSTACLE_COLLISION_MASK
+	query.exclude = [self]
+	var result := space_state.intersect_ray(query)
+	return result.is_empty()
+
+
+## Apply blindness effect to an enemy via StatusEffectsManager.
+func _blind_enemy(enemy: Node2D) -> void:
+	var enemy_id := enemy.get_instance_id()
+	_blinded_enemies[enemy_id] = true
+
+	var status_manager: Node = get_node_or_null("/root/StatusEffectsManager")
+	if status_manager and status_manager.has_method("apply_blindness"):
+		status_manager.apply_blindness(enemy, BLINDNESS_DURATION)
+	elif enemy.has_method("set_blinded"):
+		enemy.set_blinded(true)
