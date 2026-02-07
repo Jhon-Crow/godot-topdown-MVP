@@ -9,6 +9,7 @@ extends Node2D
 ## - Clear room boundaries with walls and doorways
 ## - Similar mechanics to TestTier (ammo tracking, enemy tracking, etc.)
 ## - Score tracking with Hotline Miami style ranking system
+## - Window lights in corridors without enemies for night mode visibility (Issue #593)
 
 ## Reference to the enemy count label.
 var _enemy_count_label: Label = null
@@ -124,6 +125,9 @@ func _ready() -> void:
 
 	# Setup exit zone near player spawn (left wall)
 	_setup_exit_zone()
+
+	# Setup window lights in corridors without enemies (Issue #593)
+	_setup_window_lights()
 
 	# Start replay recording
 	_start_replay_recording()
@@ -255,6 +259,127 @@ func _setup_realistic_visibility() -> void:
 	visibility_component.set_script(visibility_script)
 	_player.add_child(visibility_component)
 	print("[BuildingLevel] Realistic visibility component added to player")
+
+
+## Setup window lights in corridors and rooms without enemies (Issue #593).
+## Places dim blue PointLight2D nodes along exterior walls to simulate moonlight
+## coming through windows. Only in areas without enemies so dark rooms with enemies
+## remain tense and challenging.
+## Window visuals (small blue ColorRect) are placed on the wall surface.
+func _setup_window_lights() -> void:
+	var environment := get_node_or_null("Environment")
+	if environment == null:
+		return
+
+	# Create a container node for all window lights
+	var windows_node := Node2D.new()
+	windows_node.name = "WindowLights"
+	environment.add_child(windows_node)
+
+	# Window light positions: [position, wall_side]
+	# wall_side: "top", "bottom", "left", "right" determines window visual orientation
+	# Placed ONLY in corridors/rooms WITHOUT enemies:
+	# - Central corridor (x=512-1376, y=700-1012)
+	# - Left lobby area (x=64-900, y=1000-1400)
+	# - Storage room (x=80-500, y=1612-2048)
+
+	# Left wall windows (x=64) - lobby and storage areas (no enemies)
+	_create_window_light(windows_node, Vector2(64, 1100), "left")
+	_create_window_light(windows_node, Vector2(64, 1250), "left")
+	_create_window_light(windows_node, Vector2(64, 1750), "left")
+	_create_window_light(windows_node, Vector2(64, 1900), "left")
+
+	# Top wall windows (y=64) - above corridor area (no enemies in corridor)
+	_create_window_light(windows_node, Vector2(700, 64), "top")
+	_create_window_light(windows_node, Vector2(900, 64), "top")
+	_create_window_light(windows_node, Vector2(1100, 64), "top")
+
+	# Bottom wall windows (y=2064) - below storage and lobby (no enemies)
+	_create_window_light(windows_node, Vector2(200, 2064), "bottom")
+	_create_window_light(windows_node, Vector2(400, 2064), "bottom")
+	_create_window_light(windows_node, Vector2(700, 2064), "bottom")
+	_create_window_light(windows_node, Vector2(1100, 2064), "bottom")
+
+	print("[BuildingLevel] Window lights placed in corridors without enemies (Issue #593)")
+
+
+## Create a single window light source at the given position on a wall.
+## @param parent: Parent node to add the window to.
+## @param pos: Position of the window on the wall.
+## @param wall_side: Which wall the window is on ("top", "bottom", "left", "right").
+func _create_window_light(parent: Node2D, pos: Vector2, wall_side: String) -> void:
+	var window_node := Node2D.new()
+	window_node.name = "Window_%s_%d_%d" % [wall_side, int(pos.x), int(pos.y)]
+	window_node.position = pos
+	parent.add_child(window_node)
+
+	# Create window visual (small blue rectangle on the wall)
+	var window_rect := ColorRect.new()
+	window_rect.color = Color(0.3, 0.4, 0.7, 0.6)  # Semi-transparent blue
+	# Size and offset depend on wall orientation
+	match wall_side:
+		"left":
+			window_rect.offset_left = -4.0
+			window_rect.offset_top = -20.0
+			window_rect.offset_right = 4.0
+			window_rect.offset_bottom = 20.0
+		"right":
+			window_rect.offset_left = -4.0
+			window_rect.offset_top = -20.0
+			window_rect.offset_right = 4.0
+			window_rect.offset_bottom = 20.0
+		"top":
+			window_rect.offset_left = -20.0
+			window_rect.offset_top = -4.0
+			window_rect.offset_right = 20.0
+			window_rect.offset_bottom = 4.0
+		"bottom":
+			window_rect.offset_left = -20.0
+			window_rect.offset_top = -4.0
+			window_rect.offset_right = 20.0
+			window_rect.offset_bottom = 4.0
+	window_node.add_child(window_rect)
+
+	# Create the PointLight2D for moonlight effect
+	var light := PointLight2D.new()
+	light.name = "MoonLight"
+	light.color = Color(0.4, 0.5, 0.9, 1.0)  # Cool blue moonlight
+	light.energy = 0.5
+	light.shadow_enabled = true
+	light.shadow_filter = PointLight2D.SHADOW_FILTER_PCF5
+	light.shadow_filter_smooth = 4.0
+	light.texture = _create_window_light_texture()
+	light.texture_scale = 2.5
+	# Offset the light slightly inward from the wall so it illuminates the interior
+	match wall_side:
+		"left":
+			light.position = Vector2(40, 0)
+		"right":
+			light.position = Vector2(-40, 0)
+		"top":
+			light.position = Vector2(0, 40)
+		"bottom":
+			light.position = Vector2(0, -40)
+	window_node.add_child(light)
+
+
+## Create a radial gradient texture for window moonlight.
+## Returns a soft radial gradient suitable for dim ambient lighting.
+func _create_window_light_texture() -> GradientTexture2D:
+	var gradient := Gradient.new()
+	gradient.set_color(0, Color(1.0, 1.0, 1.0, 1.0))
+	gradient.add_point(0.4, Color(0.7, 0.7, 0.7, 1.0))
+	gradient.add_point(0.7, Color(0.3, 0.3, 0.3, 1.0))
+	gradient.set_color(1, Color(0.0, 0.0, 0.0, 1.0))
+
+	var texture := GradientTexture2D.new()
+	texture.gradient = gradient
+	texture.width = 512
+	texture.height = 512
+	texture.fill = GradientTexture2D.FILL_RADIAL
+	texture.fill_from = Vector2(0.5, 0.5)
+	texture.fill_to = Vector2(0.5, 0.0)
+	return texture
 
 
 func _process(_delta: float) -> void:
