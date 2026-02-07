@@ -15,9 +15,6 @@ const LIGHT_ENERGY: float = 8.0
 ## Texture scale for the light cone size.
 const LIGHT_TEXTURE_SCALE: float = 4.0
 
-## Flashlight beam angle in degrees (narrow tactical flashlight beam).
-const BEAM_ANGLE_DEGREES: float = 6.0
-
 ## Path to the flashlight toggle sound file.
 const FLASHLIGHT_SOUND_PATH: String = "res://assets/audio/звук включения и выключения фанарика.mp3"
 
@@ -37,64 +34,10 @@ func _ready() -> void:
 		FileLogger.info("[FlashlightEffect] WARNING: PointLight2D child not found")
 	else:
 		FileLogger.info("[FlashlightEffect] PointLight2D found, energy=%.1f, shadow=%s" % [_point_light.energy, str(_point_light.shadow_enabled)])
-		# Create a narrow cone-shaped texture for 6-degree beam
-		_setup_cone_texture()
 	# Start with light off
 	_set_light_visible(false)
 	# Load toggle sound
 	_setup_audio()
-
-
-## Create a cone-shaped texture for the narrow flashlight beam.
-## The texture is a radial gradient masked to a narrow cone angle.
-func _setup_cone_texture() -> void:
-	if not _point_light:
-		return
-
-	# Create a 512x512 image for the cone texture
-	var size := 512
-	var image := Image.create(size, size, false, Image.FORMAT_RGBA8)
-	var center := Vector2(size / 2.0, size / 2.0)
-	var max_radius := size / 2.0
-	var half_angle_rad := deg_to_rad(BEAM_ANGLE_DEGREES / 2.0)
-
-	# Fill the image with the cone gradient
-	for y in range(size):
-		for x in range(size):
-			var pos := Vector2(x, y) - center
-			var distance := pos.length()
-			var angle := pos.angle()  # Angle from center, pointing right is 0
-
-			# Normalize angle to [-PI, PI] range
-			# We want the beam to point to the right (0 degrees)
-			var angle_from_beam := abs(angle)
-
-			# Check if pixel is within the cone angle
-			if angle_from_beam <= half_angle_rad:
-				# Inside the cone - apply gradient based on distance
-				var distance_factor := 1.0 - (distance / max_radius)
-				distance_factor = clamp(distance_factor, 0.0, 1.0)
-
-				# Apply smooth falloff from center
-				var intensity := pow(distance_factor, 0.8)
-
-				# Also fade based on angle (softer edges)
-				var angle_factor := 1.0 - (angle_from_beam / half_angle_rad)
-				angle_factor = pow(angle_factor, 2.0)  # Sharper falloff at edges
-
-				intensity *= angle_factor
-
-				# Set pixel color (white with varying alpha/intensity)
-				var color := Color(1.0, 1.0, 1.0, intensity)
-				image.set_pixel(x, y, color)
-			else:
-				# Outside the cone - fully transparent
-				image.set_pixel(x, y, Color(0, 0, 0, 0))
-
-	# Convert image to texture and apply to light
-	var texture := ImageTexture.create_from_image(image)
-	_point_light.texture = texture
-	FileLogger.info("[FlashlightEffect] Created cone texture with %d° beam angle" % BEAM_ANGLE_DEGREES)
 
 
 ## Set up the audio player for flashlight toggle sound.

@@ -1,6 +1,17 @@
-[gd_scene load_steps=2 format=3 uid="uid://flashlight_effect_scene"]
+[gd_scene load_steps=4 format=3 uid="uid://flashlight_effect_scene"]
 
 [ext_resource type="Script" path="res://scripts/effects/flashlight_effect.gd" id="1_flashlight_effect"]
+
+[sub_resource type="Gradient" id="Gradient_flashlight"]
+offsets = PackedFloat32Array(0, 0.15, 0.4, 0.7, 1)
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 0.98, 0.9, 1, 0.98, 0.92, 0.6, 1, 0.95, 0.85, 0.25, 1, 0.9, 0.75, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_flashlight"]
+gradient = SubResource("Gradient_flashlight")
+width = 512
+height = 512
+fill = 1
+fill_from = Vector2(0.5, 0.5)
 
 [node name="FlashlightEffect" type="Node2D"]
 z_index = 50
@@ -13,4 +24,5 @@ shadow_enabled = true
 shadow_color = Color(0, 0, 0, 0.9)
 shadow_filter = 1
 shadow_filter_smooth = 6.0
-texture_scale = 6.0
+texture = SubResource("GradientTexture2D_flashlight")
+texture_scale = 4.0
