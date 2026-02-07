@@ -102,9 +102,43 @@ Unit tests cover:
 - Ghost bullet trail creation
 - Player trail creation and management
 
+## Round 2: User Feedback (2026-02-07)
+
+After the initial fix, the repository owner tested and reported 4 remaining issues:
+
+1. **Projectiles still not visible** - Ghost bullets used programmatic 12x4 Image sprites, which were too small
+2. **Blood and casings present from start** - `_clean_floor()` hid originals but `_update_replay_blood_decals()` immediately spawned all baseline decals from frame 0
+3. **No visual effects for hits and last chance** - `HitEffectsManager.on_player_hit_enemy()` modified `Engine.time_scale` during replay, and penultimate hit effects were not recorded/replayed at all
+4. **Grenade appears as square** - Grenade ghosts used 12x12 programmatic green squares instead of actual grenade textures
+
+### Root Causes (Round 2)
+
+| Issue | Root Cause |
+|-------|-----------|
+| Invisible bullets | Programmatic `Image.create(12, 4)` sprite is visually different from `Bullet.tscn` which uses `PlaceholderTexture2D(16, 4)` with modulate and Line2D trail |
+| Blood/casings from start | Recording captures ALL existing blood/casings each frame; frame 0 already has baseline state. `_spawned_blood_count` started at 0, so all frame-0 decals were spawned immediately |
+| No hit effects | `on_player_hit_enemy()` sets `Engine.time_scale = 0.8` which interferes with replay timing. Penultimate hit effect requires player health monitoring, not available during replay |
+| Square grenade | `Image.create(12, 12)` filled with green creates a square, not a grenade sprite |
+
+### Fixes Applied (Round 2)
+
+| Fix | Description |
+|-----|-------------|
+| Bullet visibility | Load actual `Bullet.tscn` scene for ghost bullets, preserving original sprite and trail visuals |
+| Floor baseline | Track `_baseline_blood_count` / `_baseline_casing_count` from frame 0; only spawn decals/casings that appeared AFTER recording started |
+| Hit effects | `_trigger_replay_hit_effect()` calls `_start_saturation_effect()` directly without time slowdown; added penultimate hit event recording and replay |
+| Grenade sprite | Load actual grenade texture from recorded `texture_path`; record grenade sprite texture path and rotation during recording |
+
+### Data Files
+
+- `game_log_20260207_064448.txt` - Game log from owner's testing session showing replay issues
+
 ## Lessons Learned
 
 1. **Record visual state, not just spatial state** - Replay fidelity requires capturing the full visual representation (colors, effects) not just positions
 2. **Event detection via state diff** - When direct event hooking is impractical, state comparison between frames can reliably detect events
 3. **Don't override visual properties globally** - Ghost entity modulate should be per-sprite, not recursive on the entire tree
 4. **Progressive state matters** - Floor effects (blood, casings) need temporal tracking for realistic replay
+5. **Use actual scene assets for ghosts** - Loading the real scene (Bullet.tscn) instead of creating programmatic sprites ensures visual fidelity
+6. **Track baseline state** - Cumulative data (blood, casings) needs a baseline offset so only NEW items are spawned during replay
+7. **Separate visual from timing effects** - During replay, screen effects (saturation) should work but time manipulation (Engine.time_scale) must not interfere with playback

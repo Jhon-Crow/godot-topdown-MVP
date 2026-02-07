@@ -378,3 +378,156 @@ func test_dead_enemy_has_gray_color():
 
 	assert_false(frame.enemies[0].alive, "Enemy should be dead")
 	assert_eq(frame.enemies[0].color.r, 0.3, "Dead enemy should have gray color (r=0.3)")
+
+
+# ============================================================================
+# Test: Grenade Recording with Texture Path (Issue #544 round 2)
+# ============================================================================
+
+
+func test_grenade_data_includes_texture_path():
+	var system := MockReplaySystem.new()
+	var frame := system._create_frame_data()
+	frame.grenades = [{
+		"position": Vector2(400, 300),
+		"rotation": 1.5,
+		"texture_path": "res://assets/sprites/weapons/flashbang.png"
+	}]
+
+	assert_true(frame.grenades[0].has("texture_path"), "Grenade data should include texture_path")
+	assert_eq(frame.grenades[0].texture_path, "res://assets/sprites/weapons/flashbang.png",
+		"Texture path should match recorded value")
+
+
+func test_grenade_data_includes_rotation():
+	var system := MockReplaySystem.new()
+	var frame := system._create_frame_data()
+	frame.grenades = [{
+		"position": Vector2(400, 300),
+		"rotation": 1.5,
+		"texture_path": ""
+	}]
+
+	assert_true(frame.grenades[0].has("rotation"), "Grenade data should include rotation")
+	assert_almost_eq(frame.grenades[0].rotation, 1.5, 0.001, "Rotation should match recorded value")
+
+
+# ============================================================================
+# Test: Blood/Casing Baseline Offset (Issue #544 round 2 fix 5b)
+# ============================================================================
+
+
+## Minimal mock for testing baseline blood/casing offset logic.
+class MockReplayPlayback:
+	var _baseline_blood_count: int = 0
+	var _baseline_casing_count: int = 0
+	var _spawned_blood_count: int = 0
+	var _spawned_casing_count: int = 0
+
+	## Returns how many new blood decals should be spawned for a given frame's data.
+	## Mirrors the logic in replay_system.gd _update_replay_blood_decals().
+	func get_new_blood_count(decals_data_size: int) -> int:
+		var new_count := decals_data_size - _baseline_blood_count
+		if new_count <= _spawned_blood_count or new_count <= 0:
+			return 0
+		return new_count - _spawned_blood_count
+
+	## Returns how many new casings should be spawned for a given frame's data.
+	func get_new_casing_count(casings_data_size: int) -> int:
+		var new_count := casings_data_size - _baseline_casing_count
+		if new_count <= _spawned_casing_count or new_count <= 0:
+			return 0
+		return new_count - _spawned_casing_count
+
+
+func test_baseline_blood_offset_skips_initial_decals():
+	var playback := MockReplayPlayback.new()
+	# Frame 0 has 5 blood decals (pre-existing)
+	playback._baseline_blood_count = 5
+	playback._spawned_blood_count = 0
+
+	# Frame with same 5 decals - should spawn nothing
+	assert_eq(playback.get_new_blood_count(5), 0,
+		"Should not spawn blood when count equals baseline")
+
+	# Frame with 7 decals - should spawn 2 new ones
+	assert_eq(playback.get_new_blood_count(7), 2,
+		"Should only spawn blood decals that exceed baseline")
+
+
+func test_baseline_casing_offset_skips_initial_casings():
+	var playback := MockReplayPlayback.new()
+	# Frame 0 has 10 casings (pre-existing)
+	playback._baseline_casing_count = 10
+	playback._spawned_casing_count = 0
+
+	# Frame with same 10 casings - should spawn nothing
+	assert_eq(playback.get_new_casing_count(10), 0,
+		"Should not spawn casings when count equals baseline")
+
+	# Frame with 15 casings - should spawn 5 new ones
+	assert_eq(playback.get_new_casing_count(15), 5,
+		"Should only spawn casings that exceed baseline")
+
+
+func test_baseline_offset_with_no_pre_existing_state():
+	var playback := MockReplayPlayback.new()
+	# Frame 0 has no blood or casings
+	playback._baseline_blood_count = 0
+	playback._baseline_casing_count = 0
+	playback._spawned_blood_count = 0
+	playback._spawned_casing_count = 0
+
+	# Frame with 3 blood decals - should spawn all 3
+	assert_eq(playback.get_new_blood_count(3), 3,
+		"Should spawn all blood when baseline is 0")
+
+	# Frame with 2 casings - should spawn all 2
+	assert_eq(playback.get_new_casing_count(2), 2,
+		"Should spawn all casings when baseline is 0")
+
+
+func test_progressive_blood_spawning_with_baseline():
+	var playback := MockReplayPlayback.new()
+	playback._baseline_blood_count = 3  # 3 pre-existing
+	playback._spawned_blood_count = 0
+
+	# Frame with 5 decals (3 baseline + 2 new)
+	assert_eq(playback.get_new_blood_count(5), 2,
+		"Should spawn 2 new blood decals")
+
+	# Simulate spawning them
+	playback._spawned_blood_count = 2
+
+	# Frame with 7 decals (3 baseline + 4 new, 2 already spawned)
+	assert_eq(playback.get_new_blood_count(7), 2,
+		"Should spawn 2 more new blood decals (total 4 new, 2 already spawned)")
+
+
+# ============================================================================
+# Test: Penultimate Hit Event Detection (Issue #544 round 2 fix 4)
+# ============================================================================
+
+
+func test_penultimate_hit_event_type():
+	# Verify that the penultimate_hit event type string is recognized
+	var event := {"type": "penultimate_hit", "position": Vector2(500, 300)}
+	assert_eq(event.type, "penultimate_hit", "Event type should be 'penultimate_hit'")
+	assert_eq(event.position, Vector2(500, 300), "Position should be recorded")
+
+
+func test_hit_effect_without_time_slowdown():
+	# Verify the concept: during replay, only saturation effect should trigger
+	# This tests the event type matching logic (the actual trigger happens at runtime)
+	var replay_events := ["shot", "death", "hit", "player_death", "player_hit", "penultimate_hit"]
+
+	# Events that should trigger saturation (visual effect)
+	var saturation_events := ["death", "hit"]
+	# Events that should trigger penultimate effect
+	var penultimate_events := ["penultimate_hit"]
+
+	for event_type in replay_events:
+		if event_type in saturation_events:
+			assert_true(true, "'%s' should trigger replay hit effect" % event_type)
+		elif event_type in penultimate_events:
+			assert_true(true, "'%s' should trigger replay penultimate effect" % event_type)

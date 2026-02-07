@@ -97,6 +97,11 @@ var _replay_casings: Array = []
 var _spawned_blood_count: int = 0
 var _spawned_casing_count: int = 0
 
+## Baseline count of blood decals and casings from frame 0 (Issue #544 fix 5b).
+## These exist before the replay starts and should NOT be spawned during playback.
+var _baseline_blood_count: int = 0
+var _baseline_casing_count: int = 0
+
 ## Tracks the last frame index that was applied (for event playback).
 var _last_applied_frame: int = -1
 
@@ -239,6 +244,16 @@ func start_playback(level: Node2D) -> void:
 	_last_applied_frame = -1
 	_spawned_blood_count = 0
 	_spawned_casing_count = 0
+
+	# Determine baseline floor state from first frame (Issue #544 fix 5b)
+	# Blood and casings already present at recording start should NOT be re-spawned.
+	_baseline_blood_count = 0
+	_baseline_casing_count = 0
+	if not _frames.is_empty():
+		if _frames[0].has("blood_decals"):
+			_baseline_blood_count = _frames[0].blood_decals.size()
+		if _frames[0].has("casings"):
+			_baseline_casing_count = _frames[0].casings.size()
 
 	# Clean the floor of existing blood and casings (Issue #544 fix 5)
 	_clean_floor(level)
@@ -419,13 +434,20 @@ func _record_frame(delta: float) -> void:
 						"rotation": projectile.global_rotation
 					})
 
-		# Record grenades
+		# Record grenades (with texture path for proper visual during replay)
 		var grenades_in_scene := _level_node.get_tree().get_nodes_in_group("grenades")
 		for grenade in grenades_in_scene:
 			if grenade is Node2D:
-				frame.grenades.append({
-					"position": grenade.global_position
-				})
+				var grenade_data := {
+					"position": grenade.global_position,
+					"rotation": grenade.global_rotation,
+					"texture_path": ""
+				}
+				# Try to capture the grenade's sprite texture path for replay visuals
+				var grenade_sprite: Sprite2D = grenade.get_node_or_null("Sprite2D")
+				if grenade_sprite and grenade_sprite.texture:
+					grenade_data.texture_path = grenade_sprite.texture.resource_path
+				frame.grenades.append(grenade_data)
 
 		# Record blood decals on the floor (Issue #544 fix 5)
 		var blood_puddles := _level_node.get_tree().get_nodes_in_group("blood_puddle")
@@ -506,6 +528,24 @@ func _record_sound_events(frame: Dictionary) -> void:
 				"position": frame.player_position
 			})
 
+	# Detect penultimate hit state (player at 1 HP, dramatic slowdown active)
+	# Check if PenultimateHitEffectsManager effect is currently active
+	var penultimate_mgr: Node = get_node_or_null("/root/PenultimateHitEffectsManager")
+	if penultimate_mgr and penultimate_mgr.get("_is_effect_active") != null:
+		var is_active: bool = penultimate_mgr._is_effect_active
+		var was_active: bool = false
+		# Check previous frame for effect state (stored in events)
+		for ev in prev_frame.events:
+			if ev.type == "penultimate_hit":
+				was_active = true
+				break
+		# Record penultimate hit event when effect becomes active
+		if is_active and not was_active:
+			frame.events.append({
+				"type": "penultimate_hit",
+				"position": frame.player_position
+			})
+
 
 ## Updates playback by advancing time and applying the appropriate frame.
 func _playback_frame_update(delta: float) -> void:
@@ -547,6 +587,8 @@ func _playback_frame_update(delta: float) -> void:
 
 
 ## Plays sound events and visual effects for a frame during playback.
+## During replay, triggers visual effects but avoids modifying Engine.time_scale
+## since the replay has its own timing system (Issue #544 fix 4).
 func _play_frame_events(frame: Dictionary) -> void:
 	if not frame.has("events"):
 		return
@@ -566,24 +608,57 @@ func _play_frame_events(frame: Dictionary) -> void:
 				# Play lethal hit sound (Issue #544 fix 2)
 				if audio_manager and audio_manager.has_method("play_hit_lethal"):
 					audio_manager.play_hit_lethal(event_pos)
-				# Trigger brightness effect (Issue #544 fix 4)
-				var hit_effects: Node = get_node_or_null("/root/HitEffectsManager")
-				if hit_effects and hit_effects.has_method("on_player_hit_enemy"):
-					hit_effects.on_player_hit_enemy()
+				# Trigger saturation effect only (no time slowdown during replay)
+				_trigger_replay_hit_effect()
 			"hit":
 				# Play non-lethal hit sound (Issue #544 fix 2)
 				if audio_manager and audio_manager.has_method("play_hit_non_lethal"):
 					audio_manager.play_hit_non_lethal(event_pos)
-				# Trigger brightness effect (Issue #544 fix 4)
-				var hit_effects: Node = get_node_or_null("/root/HitEffectsManager")
-				if hit_effects and hit_effects.has_method("on_player_hit_enemy"):
-					hit_effects.on_player_hit_enemy()
+				# Trigger saturation effect only (no time slowdown during replay)
+				_trigger_replay_hit_effect()
 			"player_death":
 				if audio_manager and audio_manager.has_method("play_hit_lethal"):
 					audio_manager.play_hit_lethal(event_pos)
 			"player_hit":
 				if audio_manager and audio_manager.has_method("play_hit_non_lethal"):
 					audio_manager.play_hit_non_lethal(event_pos)
+			"penultimate_hit":
+				# Trigger penultimate hit saturation/contrast effect (Issue #544 fix 4)
+				_trigger_replay_penultimate_effect()
+
+
+## Triggers hit saturation effect during replay without modifying Engine.time_scale.
+## In normal gameplay, HitEffectsManager.on_player_hit_enemy() slows time to 0.8x,
+## but during replay we only want the saturation boost visual (Issue #544 fix 4).
+func _trigger_replay_hit_effect() -> void:
+	var hit_effects: Node = get_node_or_null("/root/HitEffectsManager")
+	if hit_effects == null:
+		return
+
+	# Directly trigger saturation effect without time slowdown.
+	# We access the saturation overlay to apply the boost manually.
+	if hit_effects.has_method("_start_saturation_effect"):
+		hit_effects._start_saturation_effect()
+	elif hit_effects.has_method("on_player_hit_enemy"):
+		# Fallback: call the full method but save/restore time_scale
+		var saved_time_scale := Engine.time_scale
+		hit_effects.on_player_hit_enemy()
+		Engine.time_scale = saved_time_scale
+
+
+## Triggers penultimate hit visual effects during replay (Issue #544 fix 4).
+## Applies saturation/contrast boost without time slowdown.
+func _trigger_replay_penultimate_effect() -> void:
+	var penultimate_effects: Node = get_node_or_null("/root/PenultimateHitEffectsManager")
+	if penultimate_effects == null:
+		return
+
+	# Access the saturation overlay directly to apply visual effect without time change
+	if penultimate_effects.has_method("_start_penultimate_effect"):
+		# Save time_scale, trigger effect, restore time_scale
+		var saved_time_scale := Engine.time_scale
+		penultimate_effects._start_penultimate_effect()
+		Engine.time_scale = saved_time_scale
 
 
 ## Applies a frame's data (Dictionary) to the ghost entities.
@@ -675,7 +750,13 @@ func _update_ghost_projectiles(projectile_data: Array, ghost_array: Array, proje
 
 	# Add new ghosts if needed
 	while ghost_array.size() < projectile_data.size():
-		var ghost := _create_projectile_ghost(projectile_type)
+		var texture_path := ""
+		# For grenades, get texture path from the data for proper visual
+		var idx := ghost_array.size()
+		if projectile_type == "grenade" and idx < projectile_data.size():
+			if projectile_data[idx].has("texture_path"):
+				texture_path = projectile_data[idx].texture_path
+		var ghost := _create_projectile_ghost(projectile_type, texture_path)
 		if ghost:
 			ghost_array.append(ghost)
 
@@ -818,43 +899,111 @@ func _create_enemy_ghost() -> Node2D:
 
 
 ## Creates a ghost representation of a projectile.
-## Issue #544 fix 1: Bullets are now properly visible with trail effect.
-func _create_projectile_ghost(projectile_type: String) -> Node2D:
-	var ghost := Node2D.new()
-	ghost.name = "Ghost" + projectile_type.capitalize()
-	ghost.process_mode = Node.PROCESS_MODE_ALWAYS
-
+## Issue #544 fix 1: Bullets use actual Bullet.tscn scene for proper visuals.
+## Issue #544 fix grenade: Grenades use actual grenade textures.
+func _create_projectile_ghost(projectile_type: String, texture_path: String = "") -> Node2D:
 	if projectile_type == "bullet":
-		# Create a visible bullet sprite (Issue #544 fix 1)
+		return _create_bullet_ghost()
+	else:
+		return _create_grenade_ghost(texture_path)
+
+
+## Creates a ghost bullet using the actual Bullet.tscn scene (Issue #544 fix 1).
+## This ensures the bullet looks identical to gameplay (proper sprite, trail, color).
+func _create_bullet_ghost() -> Node2D:
+	var ghost: Node2D = null
+
+	# Try to load the actual bullet scene for visual fidelity
+	if ResourceLoader.exists("res://scenes/projectiles/Bullet.tscn"):
+		var bullet_scene: PackedScene = load("res://scenes/projectiles/Bullet.tscn")
+		if bullet_scene:
+			ghost = bullet_scene.instantiate()
+			ghost.name = "GhostBullet"
+			ghost.process_mode = Node.PROCESS_MODE_ALWAYS
+			# Disable scripts and collision — visual only
+			_disable_node_processing(ghost)
+			# Re-add a fresh trail since the original Line2D may have been reset
+			var original_trail: Line2D = ghost.get_node_or_null("Trail")
+			if original_trail:
+				original_trail.name = "Trail"
+				original_trail.process_mode = Node.PROCESS_MODE_ALWAYS
+				original_trail.clear_points()
+
+	# Fallback: create a simple visible bullet sprite
+	if ghost == null:
+		ghost = Node2D.new()
+		ghost.name = "GhostBullet"
+		ghost.process_mode = Node.PROCESS_MODE_ALWAYS
+
 		var sprite := Sprite2D.new()
-		var img := Image.create(12, 4, false, Image.FORMAT_RGBA8)
-		img.fill(Color(1.0, 0.9, 0.3, 1.0))
+		var img := Image.create(16, 4, false, Image.FORMAT_RGBA8)
+		img.fill(Color(1.0, 0.9, 0.2, 1.0))
 		sprite.texture = ImageTexture.create_from_image(img)
 		ghost.add_child(sprite)
 
-		# Add a trailing line behind the bullet for visibility (Issue #544 fix 1)
+		# Add trailing line for visibility
 		var trail := Line2D.new()
 		trail.name = "Trail"
 		trail.process_mode = Node.PROCESS_MODE_ALWAYS
-		trail.width = 2.0
-		trail.default_color = Color(1.0, 0.9, 0.3, 0.8)
-		trail.z_index = -1
-		# Trail gradient: fades to transparent at the tail
+		trail.width = 3.0
+		trail.default_color = Color(1.0, 0.9, 0.2, 1.0)
 		var gradient := Gradient.new()
-		gradient.set_color(0, Color(1.0, 0.8, 0.2, 0.0))
-		gradient.set_color(1, Color(1.0, 0.9, 0.3, 0.8))
+		gradient.set_color(0, Color(1.0, 0.9, 0.2, 0.0))
+		gradient.set_color(1, Color(1.0, 0.9, 0.2, 1.0))
 		trail.gradient = gradient
-		trail.joint_mode = Line2D.LINE_JOINT_ROUND
 		trail.begin_cap_mode = Line2D.LINE_CAP_ROUND
 		trail.end_cap_mode = Line2D.LINE_CAP_ROUND
 		ghost.add_child(trail)
+
+	# Add to level
+	if _level_node and is_instance_valid(_level_node):
+		var ghost_container := _level_node.get_node_or_null("ReplayGhosts")
+		if ghost_container:
+			ghost_container.add_child(ghost)
+
+	return ghost
+
+
+## Creates a ghost grenade using the actual grenade texture (Issue #544 fix grenade).
+## Loads the appropriate grenade sprite based on recorded texture_path.
+func _create_grenade_ghost(texture_path: String = "") -> Node2D:
+	var ghost := Node2D.new()
+	ghost.name = "GhostGrenade"
+	ghost.process_mode = Node.PROCESS_MODE_ALWAYS
+
+	var sprite := Sprite2D.new()
+	var loaded_texture: Texture2D = null
+
+	# Try to load the specific grenade texture that was recorded
+	if texture_path != "" and ResourceLoader.exists(texture_path):
+		loaded_texture = load(texture_path)
+
+	# Fallback: try common grenade textures in order
+	if loaded_texture == null:
+		for path in [
+			"res://assets/sprites/weapons/flashbang.png",
+			"res://assets/sprites/weapons/frag_grenade.png",
+			"res://assets/sprites/weapons/defensive_grenade.png"
+		]:
+			if ResourceLoader.exists(path):
+				loaded_texture = load(path)
+				break
+
+	if loaded_texture:
+		sprite.texture = loaded_texture
 	else:
-		# Circle for grenade
-		var sprite := Sprite2D.new()
-		var img := Image.create(12, 12, false, Image.FORMAT_RGBA8)
-		img.fill(Color(0.2, 0.5, 0.2, 1.0))
+		# Final fallback: create a round-ish sprite (not a square)
+		var img := Image.create(16, 16, false, Image.FORMAT_RGBA8)
+		img.fill(Color(0.0, 0.0, 0.0, 0.0))
+		# Draw a filled circle manually
+		var center := Vector2(8, 8)
+		for x in range(16):
+			for y in range(16):
+				if Vector2(x, y).distance_to(center) <= 7.0:
+					img.set_pixel(x, y, Color(0.4, 0.45, 0.3, 1.0))
 		sprite.texture = ImageTexture.create_from_image(img)
-		ghost.add_child(sprite)
+
+	ghost.add_child(sprite)
 
 	# Add to level
 	if _level_node and is_instance_valid(_level_node):
@@ -919,18 +1068,22 @@ func _clean_floor(level: Node2D) -> void:
 
 
 ## Updates blood decals during replay to show progressive accumulation (Issue #544 fix 5).
+## Only spawns decals that appeared AFTER the recording started (skips baseline).
 func _update_replay_blood_decals(decals_data: Array) -> void:
-	# Only spawn new decals that weren't spawned yet
-	if decals_data.size() <= _spawned_blood_count:
+	# Skip decals that existed before recording started (baseline from frame 0)
+	var new_count := decals_data.size() - _baseline_blood_count
+	if new_count <= _spawned_blood_count or new_count <= 0:
 		return
 
 	var blood_decal_scene: PackedScene = null
 	if ResourceLoader.exists("res://scenes/effects/BloodDecal.tscn"):
 		blood_decal_scene = load("res://scenes/effects/BloodDecal.tscn")
 
+	var start_idx := _baseline_blood_count + _spawned_blood_count
+
 	if blood_decal_scene == null:
 		# Fallback: use simple colored sprites
-		for i in range(_spawned_blood_count, decals_data.size()):
+		for i in range(start_idx, decals_data.size()):
 			var data: Dictionary = decals_data[i]
 			var decal := Sprite2D.new()
 			var img := Image.create(8, 8, false, Image.FORMAT_RGBA8)
@@ -944,7 +1097,7 @@ func _update_replay_blood_decals(decals_data: Array) -> void:
 				_level_node.add_child(decal)
 				_replay_blood_decals.append(decal)
 	else:
-		for i in range(_spawned_blood_count, decals_data.size()):
+		for i in range(start_idx, decals_data.size()):
 			var data: Dictionary = decals_data[i]
 			var decal: Node2D = blood_decal_scene.instantiate()
 			decal.global_position = data.position
@@ -955,21 +1108,32 @@ func _update_replay_blood_decals(decals_data: Array) -> void:
 				_level_node.add_child(decal)
 				_replay_blood_decals.append(decal)
 
-	_spawned_blood_count = decals_data.size()
+	_spawned_blood_count = new_count
 
 
 ## Updates casings during replay to show progressive accumulation (Issue #544 fix 5).
+## Only spawns casings that appeared AFTER the recording started (skips baseline).
 func _update_replay_casings(casings_data: Array) -> void:
-	if casings_data.size() <= _spawned_casing_count:
+	# Skip casings that existed before recording started (baseline from frame 0)
+	var new_count := casings_data.size() - _baseline_casing_count
+	if new_count <= _spawned_casing_count or new_count <= 0:
 		return
 
+	var start_idx := _baseline_casing_count + _spawned_casing_count
+	var casing_texture: Texture2D = null
+	if ResourceLoader.exists("res://assets/sprites/effects/casing_rifle.png"):
+		casing_texture = load("res://assets/sprites/effects/casing_rifle.png")
+
 	# Create simple casing sprites (no physics during replay)
-	for i in range(_spawned_casing_count, casings_data.size()):
+	for i in range(start_idx, casings_data.size()):
 		var data: Dictionary = casings_data[i]
 		var casing := Sprite2D.new()
-		var img := Image.create(6, 3, false, Image.FORMAT_RGBA8)
-		img.fill(Color(0.9, 0.8, 0.4, 0.9))  # Brass color
-		casing.texture = ImageTexture.create_from_image(img)
+		if casing_texture:
+			casing.texture = casing_texture
+		else:
+			var img := Image.create(6, 3, false, Image.FORMAT_RGBA8)
+			img.fill(Color(0.9, 0.8, 0.4, 0.9))  # Brass color
+			casing.texture = ImageTexture.create_from_image(img)
 		casing.global_position = data.position
 		casing.rotation = data.rotation
 		casing.z_index = -1
@@ -977,7 +1141,7 @@ func _update_replay_casings(casings_data: Array) -> void:
 			_level_node.add_child(casing)
 			_replay_casings.append(casing)
 
-	_spawned_casing_count = casings_data.size()
+	_spawned_casing_count = new_count
 
 
 ## Hides the original game entities during replay.
