@@ -252,3 +252,44 @@ After the Round 4 CI fix, the repository owner tested again and reported these r
 11. **Clear state when conditions change** — Trail positions must be cleared when the entity stops, not just stop being added to. Old state lingers otherwise.
 12. **Record events as they happen, play them back at the right time** — Sound events should be recorded frame-by-frame during gameplay and replayed during playback, including handling of skipped frames during fast playback.
 13. **Detect explosions via count decrease** — Grenade explosions can be detected by comparing grenade counts between consecutive frames. When the count decreases, the disappearing grenades have exploded at their last known positions.
+
+## Round 6: User Feedback - Floor Items Not Progressive, Visual Effects Missing (2026-02-07)
+
+After Round 5 fixes, the owner tested and reported:
+
+1. **Blood appears correctly** (fixed!)
+2. **Bloody footsteps and casings present from start** — They should be added progressively during replay, not all at once
+3. **Visual effects not triggering** — "Last chance" (penultimate hit) and brightness+slowdown on hit should fire during replay
+
+### Root Cause Analysis (Round 6)
+
+| Issue | Root Cause |
+|-------|-----------|
+| Footsteps from start | The C# ReplayManager did not record or track blood footprints (BloodFootprint scenes). These are spawned as direct children of the level scene by `BloodyFeetComponent`, not as part of any group. They were never hidden or progressively re-created during replay. |
+| Casings from start | Similarly, casings (group `"casings"`) were not recorded by the C# ReplayManager. The GDScript `replay_system.gd` already handled progressive casing replay via `_update_replay_casings()`, but this was never ported to C#. |
+| No hit slowdown | `TriggerReplayHitEffect()` only called `_start_saturation_effect()` (visual only), deliberately avoiding `on_player_hit_enemy()` which includes the time slowdown. The user explicitly wants the full effect with slowdown during replay. |
+| No penultimate effect | `TriggerReplayPenultimateEffect()` called `_start_penultimate_effect()` but immediately restored `Engine.TimeScale`, defeating the slowdown. The user wants the full dramatic slowdown effect during replay. |
+
+### Fixes Applied (Round 6)
+
+| Fix | Description |
+|-----|-------------|
+| Record casings | Added `CasingSnapshot` class and `RecordFloorState()` method that scans the `"casings"` group each frame and records new casing positions/rotations with timestamps |
+| Record footprints | Added `FootprintSnapshot` class and `RecordNewFootprints()` method that scans level children for `BloodFootprint.tscn` instances and records their positions/rotations/scales |
+| Hide casings at start | Updated `HideOriginalEntities()` to hide all nodes in `"casings"` group during Memory mode replay |
+| Hide footprints at start | Updated `HideOriginalEntities()` to hide `BloodFootprint.tscn` instances during Memory mode replay |
+| Progressive casing spawn | Added `SpawnCasingsUpToTime()` that creates casing sprites progressively based on recorded timestamps, skipping baseline casings |
+| Progressive footprint spawn | Added `SpawnFootprintsUpToTime()` that instantiates `BloodFootprint.tscn` scenes progressively, skipping baseline footprints |
+| Full hit effect with slowdown | Changed `TriggerReplayHitEffect()` to call `on_player_hit_enemy()` instead of `_start_saturation_effect()`, enabling both saturation boost AND time slowdown during replay |
+| Full penultimate effect | Changed `TriggerReplayPenultimateEffect()` to call `_start_penultimate_effect()` without immediately restoring `Engine.TimeScale`, allowing the full dramatic slowdown |
+| Cleanup on exit | Updated `CleanupMemoryEffects()` and `OnExitReplayPressed()` to handle new casing/footprint sprites |
+
+### Data Files
+
+- `logs/game_log_20260207_154215.txt` - Game log from owner's testing session showing round 6 issues
+
+## Lessons Learned (Round 6)
+
+14. **Port all recording mechanisms from GDScript to C#** — When a GDScript version records casings via `_update_replay_casings()`, the C# version must do the same. Always compare GDScript and C# implementations when porting.
+15. **Users want faithful reproduction** — When users say "full replay of gameplay", they mean ALL effects including time slowdown, not just the visual parts. Don't assume effects should be stripped down for replay.
+16. **Track items by metadata flags** — Using `SetMeta("replay_recorded", true)` to mark already-recorded items prevents duplicates across frames without needing separate count tracking.
