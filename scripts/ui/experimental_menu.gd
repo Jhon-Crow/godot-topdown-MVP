@@ -3,6 +3,7 @@ extends CanvasLayer
 ##
 ## Allows the player to enable/disable experimental game features.
 ## All experimental features are disabled by default.
+## Note: Night Mode (realistic visibility) has been moved to the Difficulty menu.
 
 ## Signal emitted when the back button is pressed.
 signal back_pressed
@@ -11,7 +12,6 @@ signal back_pressed
 @onready var fov_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/FOVContainer/FOVCheckbox
 @onready var complex_grenade_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/ComplexGrenadeContainer/ComplexGrenadeCheckbox
 @onready var ai_prediction_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/AIPredictionContainer/AIPredictionCheckbox
-@onready var realistic_visibility_checkbox: CheckButton = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/RealisticVisibilityContainer/RealisticVisibilityCheckbox
 @onready var back_button: Button = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/BackButton
 @onready var status_label: Label = $MenuContainer/PanelContainer/MarginContainer/VBoxContainer/StatusLabel
 
@@ -21,7 +21,6 @@ func _ready() -> void:
 	fov_checkbox.toggled.connect(_on_fov_toggled)
 	complex_grenade_checkbox.toggled.connect(_on_complex_grenade_toggled)
 	ai_prediction_checkbox.toggled.connect(_on_ai_prediction_toggled)
-	realistic_visibility_checkbox.toggled.connect(_on_realistic_visibility_toggled)
 	back_button.pressed.connect(_on_back_pressed)
 
 	# Update UI based on current settings
@@ -46,7 +45,6 @@ func _update_ui() -> void:
 	fov_checkbox.button_pressed = not experimental_settings.is_fov_enabled()
 	complex_grenade_checkbox.button_pressed = experimental_settings.is_complex_grenade_throwing()
 	ai_prediction_checkbox.button_pressed = experimental_settings.is_ai_prediction_enabled()
-	realistic_visibility_checkbox.button_pressed = experimental_settings.is_realistic_visibility_enabled()
 
 	# Update status label - show status of all settings
 	var status_parts: Array[String] = []
@@ -56,8 +54,6 @@ func _update_ui() -> void:
 		status_parts.append("Grenades: complex throwing")
 	if experimental_settings.is_ai_prediction_enabled():
 		status_parts.append("AI: player prediction")
-	if experimental_settings.is_realistic_visibility_enabled():
-		status_parts.append("Realistic visibility")
 
 	if status_parts.is_empty():
 		status_label.text = "All experimental features disabled"
@@ -84,13 +80,6 @@ func _on_ai_prediction_toggled(enabled: bool) -> void:
 	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
 	if experimental_settings:
 		experimental_settings.set_ai_prediction_enabled(enabled)
-	_update_ui()
-
-
-func _on_realistic_visibility_toggled(enabled: bool) -> void:
-	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
-	if experimental_settings:
-		experimental_settings.set_realistic_visibility_enabled(enabled)
 	_update_ui()
 
 

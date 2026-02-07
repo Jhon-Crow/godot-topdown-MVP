@@ -31,9 +31,9 @@ anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
 offset_left = -220.0
-offset_top = -350.0
+offset_top = -280.0
 offset_right = 220.0
-offset_bottom = 350.0
+offset_bottom = 280.0
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -121,28 +121,6 @@ layout_mode = 2
 text = "When enabled, enemies predict player movement
 after losing sight. Uses cover analysis, flanking,
 velocity tracking, and behavioral adaptation."
-horizontal_alignment = 1
-autowrap_mode = 2
-
-[node name="HSeparator4" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
-layout_mode = 2
-
-[node name="RealisticVisibilityContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
-layout_mode = 2
-
-[node name="RealisticVisibilityLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer/RealisticVisibilityContainer"]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Realistic Visibility"
-
-[node name="RealisticVisibilityCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer/RealisticVisibilityContainer"]
-layout_mode = 2
-
-[node name="RealisticVisibilityDescription" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
-layout_mode = 2
-text = "When enabled, player cannot see through walls
-(Door Kickers 2 style fog of war). Uses dynamic
-lighting with shadow casting."
 horizontal_alignment = 1
 autowrap_mode = 2
 
