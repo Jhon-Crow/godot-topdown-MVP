@@ -8,7 +8,7 @@ namespace GodotTopDownTemplate.Weapons;
 /// Features:
 /// - Semi-automatic fire (one shot per click)
 /// - 9x18mm Makarov bullets with 0.45 damage
-/// - 8 rounds magazine (standard PM capacity)
+/// - 9 rounds magazine
 /// - Medium ricochets (same as all pistols/SMGs, max 20 degrees)
 /// - Does not penetrate walls
 /// - Standard loudness (not silenced)

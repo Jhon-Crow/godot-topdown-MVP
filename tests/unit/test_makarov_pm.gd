@@ -3,7 +3,7 @@ extends GutTest
 ##
 ## Tests the weapon data resource and 9x18mm caliber resource
 ## to ensure correct values as specified in issue #577:
-## - 9 rounds in magazine (8 + 1 in chamber)
+## - 9 rounds in magazine
 ## - 9x18mm caliber with 0.45 damage
 ## - Medium ricochets (like all pistols/SMGs)
 ## - Does not penetrate walls
@@ -19,8 +19,8 @@ class MockWeaponData:
 	var Name: String = "PM"
 	var Damage: float = 0.45
 	var FireRate: float = 7.0
-	var MagazineSize: int = 8
-	var MaxReserveAmmo: int = 16
+	var MagazineSize: int = 9
+	var MaxReserveAmmo: int = 18
 	var ReloadTime: float = 2.0
 	var BulletSpeed: float = 1000.0
 	var Range: float = 600.0
@@ -98,13 +98,13 @@ func test_damage_is_less_than_mini_uzi() -> void:
 
 
 func test_magazine_size() -> void:
-	assert_eq(weapon.MagazineSize, 8,
-		"Magazine size should be 8 (standard PM magazine)")
+	assert_eq(weapon.MagazineSize, 9,
+		"Magazine size should be 9 as specified in issue #577")
 
 
 func test_max_reserve_ammo() -> void:
-	assert_eq(weapon.MaxReserveAmmo, 16,
-		"Reserve ammo should be 16 (2 spare magazines)")
+	assert_eq(weapon.MaxReserveAmmo, 18,
+		"Reserve ammo should be 18 (2 spare magazines of 9)")
 
 
 func test_bullets_per_shot() -> void:

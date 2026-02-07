@@ -342,6 +342,8 @@ func _setup_player_tracking() -> void:
 		weapon = _player.get_node_or_null("SniperRifle")
 	if weapon == null:
 		weapon = _player.get_node_or_null("AssaultRifle")
+	if weapon == null:
+		weapon = _player.get_node_or_null("MakarovPM")
 	if weapon != null:
 		# C# Player with weapon - connect to weapon signals
 		if weapon.has_signal("AmmoChanged"):
@@ -742,6 +744,8 @@ func _update_magazines_label(magazine_ammo_counts: Array) -> void:
 		weapon = _player.get_node_or_null("Shotgun")
 		if weapon == null:
 			weapon = _player.get_node_or_null("AssaultRifle")
+		if weapon == null:
+			weapon = _player.get_node_or_null("MakarovPM")
 
 	if weapon != null and weapon.get("UsesTubeMagazine") == true:
 		_magazines_label.visible = false
@@ -1198,6 +1202,28 @@ func _setup_selected_weapon() -> void:
 			print("CastleLevel: ASVK Sniper Rifle equipped successfully")
 		else:
 			push_error("CastleLevel: Failed to load SniperRifle scene!")
+	# If M16 (assault rifle) is selected, swap weapons
+	elif selected_weapon_id == "m16":
+		var makarov = _player.get_node_or_null("MakarovPM")
+		if makarov:
+			makarov.queue_free()
+			print("CastleLevel: Removed default MakarovPM")
+
+		var m16_scene = load("res://scenes/weapons/csharp/AssaultRifle.tscn")
+		if m16_scene:
+			var m16 = m16_scene.instantiate()
+			m16.name = "AssaultRifle"
+			_player.add_child(m16)
+
+			if _player.has_method("EquipWeapon"):
+				_player.EquipWeapon(m16)
+			elif _player.get("CurrentWeapon") != null:
+				_player.CurrentWeapon = m16
+
+			_configure_castle_weapon_ammo(m16)
+			print("CastleLevel: M16 Assault Rifle equipped successfully")
+		else:
+			push_error("CastleLevel: Failed to load AssaultRifle scene!")
 	else:
 		# For Makarov PM, it's already in the scene - just ensure it's equipped
 		var makarov = _player.get_node_or_null("MakarovPM")

@@ -19,7 +19,7 @@ const FIREARMS: Dictionary = {
 		"name": "PM",
 		"icon_path": "res://assets/sprites/weapons/makarov_pm_icon.png",
 		"unlocked": true,
-		"description": "Makarov PM — 9x18mm starting pistol, 8-round magazine, medium ricochets"
+		"description": "Makarov PM — 9x18mm starting pistol, 9-round magazine, medium ricochets"
 	},
 	"m16": {
 		"name": "M16",

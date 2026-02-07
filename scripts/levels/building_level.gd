@@ -364,7 +364,7 @@ func _setup_player_tracking() -> void:
 		_player.Died.connect(_on_player_died)
 
 	# Try to get the player's weapon for C# Player
-	# First try shotgun (if selected), then Mini UZI, then Silenced Pistol, then assault rifle
+	# First try shotgun (if selected), then Mini UZI, then Silenced Pistol, then assault rifle, then MakarovPM
 	var weapon = _player.get_node_or_null("Shotgun")
 	if weapon == null:
 		weapon = _player.get_node_or_null("MiniUzi")
@@ -374,6 +374,8 @@ func _setup_player_tracking() -> void:
 		weapon = _player.get_node_or_null("SniperRifle")
 	if weapon == null:
 		weapon = _player.get_node_or_null("AssaultRifle")
+	if weapon == null:
+		weapon = _player.get_node_or_null("MakarovPM")
 	if weapon != null:
 		# C# Player with weapon - connect to weapon signals
 		if weapon.has_signal("AmmoChanged"):
@@ -812,6 +814,8 @@ func _update_magazines_label(magazine_ammo_counts: Array) -> void:
 		weapon = _player.get_node_or_null("Shotgun")
 		if weapon == null:
 			weapon = _player.get_node_or_null("AssaultRifle")
+		if weapon == null:
+			weapon = _player.get_node_or_null("MakarovPM")
 
 	if weapon != null and weapon.get("UsesTubeMagazine") == true:
 		# Shotgun equipped - hide magazine display
@@ -1255,6 +1259,43 @@ func _setup_selected_weapon() -> void:
 			print("BuildingLevel: ASVK Sniper Rifle equipped successfully")
 		else:
 			push_error("BuildingLevel: Failed to load SniperRifle scene!")
+	# If M16 (assault rifle) is selected, swap weapons
+	elif selected_weapon_id == "m16":
+		# Remove the default MakarovPM
+		var makarov = _player.get_node_or_null("MakarovPM")
+		if makarov:
+			makarov.queue_free()
+			print("BuildingLevel: Removed default MakarovPM")
+
+		# Load and add the Assault Rifle
+		var m16_scene = load("res://scenes/weapons/csharp/AssaultRifle.tscn")
+		if m16_scene:
+			var m16 = m16_scene.instantiate()
+			m16.name = "AssaultRifle"
+			_player.add_child(m16)
+
+			# Set the CurrentWeapon reference in C# Player
+			if _player.has_method("EquipWeapon"):
+				_player.EquipWeapon(m16)
+			elif _player.get("CurrentWeapon") != null:
+				_player.CurrentWeapon = m16
+
+			# Reduce M16 ammunition by half for Building level (issue #413)
+			# In Power Fantasy mode, apply ammo multiplier (issue #501)
+			var base_magazines: int = 2
+			var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
+			if difficulty_manager:
+				var ammo_multiplier: int = difficulty_manager.get_ammo_multiplier()
+				if ammo_multiplier > 1:
+					base_magazines *= ammo_multiplier
+					print("BuildingLevel: Power Fantasy mode - M16 magazines multiplied by %dx" % ammo_multiplier)
+			if m16.has_method("ReinitializeMagazines"):
+				m16.ReinitializeMagazines(base_magazines, true)
+				print("BuildingLevel: M16 magazines reinitialized to %d" % base_magazines)
+
+			print("BuildingLevel: M16 Assault Rifle equipped successfully")
+		else:
+			push_error("BuildingLevel: Failed to load AssaultRifle scene!")
 	# For Makarov PM, it's already in the scene
 	else:
 		var makarov = _player.get_node_or_null("MakarovPM")
