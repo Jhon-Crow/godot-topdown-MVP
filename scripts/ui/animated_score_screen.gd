@@ -181,16 +181,21 @@ func _play_rank_arpeggio() -> void:
 
 
 ## Handle LMB input for skipping animations (Issue #568).
-func _unhandled_input(event: InputEvent) -> void:
+## Uses _input() instead of _unhandled_input() because the UI Control nodes
+## (VBoxContainer, Labels) have default mouse_filter=MOUSE_FILTER_STOP which
+## consumes mouse events before they reach _unhandled_input().
+func _input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		if _phase == Phase.COUNTING:
 			# During counting: skip to final grade display
 			_skip_requested = true
 			_skip_counting_phase()
+			get_viewport().set_input_as_handled()
 		elif _phase == Phase.RANK_REVEAL:
 			# During rank reveal: skip rank animation
 			_skip_requested = true
 			_skip_rank_reveal_phase()
+			get_viewport().set_input_as_handled()
 
 
 ## Show the animated score screen.

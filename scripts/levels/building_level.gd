@@ -1316,6 +1316,8 @@ func _on_level_select_pressed() -> void:
 		levels_menu.set_script(levels_menu_script)
 		levels_menu.layer = 100  # On top of everything
 		get_tree().root.add_child(levels_menu)
+		# Connect back button to close the overlay
+		levels_menu.back_pressed.connect(func(): levels_menu.queue_free())
 	else:
 		_log_to_file("ERROR: Could not load levels menu script")
 
