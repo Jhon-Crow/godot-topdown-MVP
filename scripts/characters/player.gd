@@ -193,7 +193,7 @@ var _is_stunned: bool = false
 var _stun_timer: float = 0.0
 
 ## Stun duration in seconds when hit by a bullet (Issue #592).
-const STUN_DURATION: float = 0.13
+const STUN_DURATION: float = 0.5
 
 
 func _ready() -> void:
@@ -906,9 +906,10 @@ func on_hit_with_info(hit_direction: Vector2, caliber_data: Resource) -> void:
 	# Store hit direction for death animation
 	_last_hit_direction = hit_direction
 
-	# Apply stun effect (Issue #592)
+	# Apply stun effect — immediately stop movement (Issue #592)
 	_is_stunned = true
 	_stun_timer = STUN_DURATION
+	velocity = Vector2.ZERO
 	FileLogger.info("[Player] Stun applied for %dms (Issue #592)" % int(STUN_DURATION * 1000))
 
 	# Show hit flash effect
