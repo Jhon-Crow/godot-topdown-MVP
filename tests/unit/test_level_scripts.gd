@@ -1,5 +1,5 @@
 extends GutTest
-## Unit tests for building_level.gd, castle_level.gd, and test_tier.gd level scripts.
+## Unit tests for building_level.gd, castle_level.gd, test_tier.gd, and beach_level.gd level scripts.
 ##
 ## Tests enemy counting, kill tracking, level completion detection,
 ## game-over conditions, combo color logic, rank colors, and score integration.
@@ -317,21 +317,67 @@ class MockTestTier extends MockLevelBase:
 		return ""  # Not found
 
 
+# ============================================================================
+# Mock BeachLevel for Testing
+# ============================================================================
+
+
+class MockBeachLevel extends MockLevelBase:
+	var level_name: String = "BeachLevel"
+
+	## Map dimensions (~2400x2000 playable area).
+	var map_width: int = 2400
+	var map_height: int = 2000
+
+	## Default enemy count for beach level (8 enemies).
+	var default_enemy_count: int = 8
+
+	## Whether the score screen is currently shown.
+	var _score_shown: bool = false
+
+	## Level ordering.
+	var _level_paths: Array[String] = [
+		"res://scenes/levels/BuildingLevel.tscn",
+		"res://scenes/levels/TestTier.tscn",
+		"res://scenes/levels/CastleLevel.tscn",
+		"res://scenes/levels/BeachLevel.tscn",
+	]
+
+	## Initialize with default enemy configuration.
+	func initialize() -> void:
+		var enemies: Array = []
+		for i in range(default_enemy_count):
+			enemies.append("BeachEnemy%d" % (i + 1))
+		setup_enemy_tracking(enemies)
+
+	## Get the next level path.
+	func get_next_level_path(current_scene_path: String) -> String:
+		for i in range(_level_paths.size()):
+			if _level_paths[i] == current_scene_path:
+				if i + 1 < _level_paths.size():
+					return _level_paths[i + 1]
+				return ""  # Last level
+		return ""  # Not found
+
+
 var building_level: MockBuildingLevel
 var castle_level: MockCastleLevel
 var test_tier: MockTestTier
+var beach_level: MockBeachLevel
 
 
 func before_each() -> void:
 	building_level = MockBuildingLevel.new()
 	castle_level = MockCastleLevel.new()
 	test_tier = MockTestTier.new()
+	beach_level = MockBeachLevel.new()
 
 
 func after_each() -> void:
 	building_level = null
 	castle_level = null
 	test_tier = null
+	beach_level = null
 
 
 # ============================================================================
@@ -1193,3 +1239,86 @@ func test_exit_zone_not_activated_before_clear() -> void:
 		"Exit zone should be activated after last enemy killed")
 	assert_true(building_level._level_cleared,
 		"Level should be cleared after last enemy killed")
+
+
+# ============================================================================
+# BeachLevel Default Configuration Tests
+# ============================================================================
+
+
+func test_beach_level_name() -> void:
+	assert_eq(beach_level.level_name, "BeachLevel",
+		"Beach level name should be BeachLevel")
+
+
+func test_beach_level_map_dimensions() -> void:
+	assert_eq(beach_level.map_width, 2400,
+		"BeachLevel map width should be 2400")
+	assert_eq(beach_level.map_height, 2000,
+		"BeachLevel map height should be 2000")
+
+
+func test_beach_level_default_enemy_count() -> void:
+	assert_eq(beach_level.default_enemy_count, 8,
+		"BeachLevel should have 8 enemies by default")
+
+
+# ============================================================================
+# BeachLevel Enemy Tracking Tests
+# ============================================================================
+
+
+func test_beach_level_initialize_sets_enemy_count() -> void:
+	beach_level.initialize()
+	assert_eq(beach_level._initial_enemy_count, 8,
+		"After initialization, beach level should track 8 enemies")
+	assert_eq(beach_level._current_enemy_count, 8,
+		"Current enemy count should match initial count")
+
+
+func test_beach_level_enemy_kill_decrements_count() -> void:
+	beach_level.initialize()
+	beach_level.on_enemy_died()
+	assert_eq(beach_level._current_enemy_count, 7,
+		"After one kill, beach level should have 7 enemies remaining")
+
+
+func test_beach_level_cleared_when_all_enemies_killed() -> void:
+	beach_level.initialize()
+	for i in range(8):
+		beach_level.on_enemy_died()
+	assert_true(beach_level._level_cleared,
+		"Beach level should be cleared after all 8 enemies killed")
+	assert_true(beach_level.exit_zone_activated,
+		"Exit zone should activate after clearing beach level")
+
+
+func test_beach_level_not_cleared_with_enemies_remaining() -> void:
+	beach_level.initialize()
+	for i in range(7):
+		beach_level.on_enemy_died()
+	assert_false(beach_level._level_cleared,
+		"Beach level should NOT be cleared with 1 enemy remaining")
+
+
+# ============================================================================
+# BeachLevel Saturation Effect Tests
+# ============================================================================
+
+
+func test_beach_level_saturation_constants() -> void:
+	assert_eq(beach_level.SATURATION_DURATION, 0.15,
+		"Beach level saturation duration should be 0.15 seconds")
+	assert_eq(beach_level.SATURATION_INTENSITY, 0.25,
+		"Beach level saturation intensity should be 0.25")
+
+
+# ============================================================================
+# BeachLevel Combo Color Tests
+# ============================================================================
+
+
+func test_beach_level_combo_colors_match_other_levels() -> void:
+	for combo in [1, 3, 5, 7, 10]:
+		assert_eq(beach_level.get_combo_color(combo), building_level.get_combo_color(combo),
+			"Beach and Building combo color should match at combo %d" % combo)

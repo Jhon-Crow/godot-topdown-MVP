@@ -11,9 +11,9 @@ extends GutTest
 # ============================================================================
 
 
-func test_weapon_configs_has_three_entries() -> void:
-	assert_eq(WeaponConfigComponent.WEAPON_CONFIGS.size(), 3,
-		"WEAPON_CONFIGS should contain exactly 3 weapon types")
+func test_weapon_configs_has_four_entries() -> void:
+	assert_eq(WeaponConfigComponent.WEAPON_CONFIGS.size(), 4,
+		"WEAPON_CONFIGS should contain exactly 4 weapon types")
 
 
 func test_weapon_configs_has_rifle_key() -> void:
@@ -29,6 +29,11 @@ func test_weapon_configs_has_shotgun_key() -> void:
 func test_weapon_configs_has_uzi_key() -> void:
 	assert_true(WeaponConfigComponent.WEAPON_CONFIGS.has(2),
 		"WEAPON_CONFIGS should have key 2 for UZI")
+
+
+func test_weapon_configs_has_machete_key() -> void:
+	assert_true(WeaponConfigComponent.WEAPON_CONFIGS.has(3),
+		"WEAPON_CONFIGS should have key 3 for MACHETE")
 
 
 func test_weapon_configs_values_are_dictionaries() -> void:
@@ -718,14 +723,14 @@ func test_get_type_name_uzi() -> void:
 		"get_type_name(2) should return UZI")
 
 
+func test_get_type_name_machete() -> void:
+	assert_eq(WeaponConfigComponent.get_type_name(3), "MACHETE",
+		"get_type_name(3) should return MACHETE")
+
+
 # ============================================================================
 # get_type_name() - Invalid/Unknown Weapon Types
 # ============================================================================
-
-
-func test_get_type_name_unknown_for_type_3() -> void:
-	assert_eq(WeaponConfigComponent.get_type_name(3), "UNKNOWN",
-		"get_type_name(3) should return UNKNOWN")
 
 
 func test_get_type_name_unknown_for_type_negative_1() -> void:
@@ -749,7 +754,7 @@ func test_get_type_name_unknown_for_type_negative_100() -> void:
 
 
 func test_get_type_name_returns_string() -> void:
-	for weapon_type in [0, 1, 2, -1, 99]:
+	for weapon_type in [0, 1, 2, 3, -1, 99]:
 		var name := WeaponConfigComponent.get_type_name(weapon_type)
 		assert_typeof(name, TYPE_STRING,
 			"get_type_name(%d) should return a String" % weapon_type)
@@ -791,7 +796,7 @@ func test_iterate_all_config_fields() -> void:
 
 
 func test_config_is_not_empty() -> void:
-	for weapon_type in [0, 1, 2]:
+	for weapon_type in [0, 1, 2, 3]:
 		var config := WeaponConfigComponent.get_config(weapon_type)
 		assert_true(config.size() > 0,
 			"Config for weapon type %d should not be empty" % weapon_type)
@@ -805,7 +810,7 @@ func test_config_is_not_empty() -> void:
 func test_get_config_and_get_type_name_consistency() -> void:
 	# For all valid types, get_config should return a valid config and
 	# get_type_name should return a non-UNKNOWN name
-	for weapon_type in [0, 1, 2]:
+	for weapon_type in [0, 1, 2, 3]:
 		var config := WeaponConfigComponent.get_config(weapon_type)
 		var name := WeaponConfigComponent.get_type_name(weapon_type)
 		assert_true(config.size() > 0,
@@ -853,3 +858,86 @@ func test_shotgun_has_no_progressive_spread() -> void:
 		"SHOTGUN should have zero spread_increment (uses pellet spread)")
 	assert_eq(config["max_spread"], 0.0,
 		"SHOTGUN should have zero max_spread (uses pellet spread)")
+
+
+# ============================================================================
+# MACHETE (Type 3) Config Values
+# ============================================================================
+
+
+func test_machete_shoot_cooldown() -> void:
+	var config := WeaponConfigComponent.WEAPON_CONFIGS[3]
+	assert_eq(config["shoot_cooldown"], 1.5,
+		"MACHETE shoot_cooldown (attack cooldown) should be 1.5")
+
+
+func test_machete_bullet_speed_is_zero() -> void:
+	var config := WeaponConfigComponent.WEAPON_CONFIGS[3]
+	assert_eq(config["bullet_speed"], 0.0,
+		"MACHETE bullet_speed should be 0.0 (no projectiles)")
+
+
+func test_machete_magazine_size_is_zero() -> void:
+	var config := WeaponConfigComponent.WEAPON_CONFIGS[3]
+	assert_eq(config["magazine_size"], 0,
+		"MACHETE magazine_size should be 0 (no ammo needed)")
+
+
+func test_machete_weapon_loudness() -> void:
+	var config := WeaponConfigComponent.WEAPON_CONFIGS[3]
+	assert_eq(config["weapon_loudness"], 200.0,
+		"MACHETE weapon_loudness should be 200.0 (quiet melee)")
+
+
+func test_machete_is_not_shotgun() -> void:
+	var config := WeaponConfigComponent.WEAPON_CONFIGS[3]
+	assert_false(config["is_shotgun"],
+		"MACHETE is_shotgun should be false")
+
+
+func test_machete_is_melee() -> void:
+	var config := WeaponConfigComponent.WEAPON_CONFIGS[3]
+	assert_true(config["is_melee"],
+		"MACHETE is_melee should be true")
+
+
+func test_machete_melee_range() -> void:
+	var config := WeaponConfigComponent.WEAPON_CONFIGS[3]
+	assert_eq(config["melee_range"], 80.0,
+		"MACHETE melee_range should be 80.0")
+
+
+func test_machete_melee_damage() -> void:
+	var config := WeaponConfigComponent.WEAPON_CONFIGS[3]
+	assert_eq(config["melee_damage"], 2,
+		"MACHETE melee_damage should be 2")
+
+
+func test_machete_dodge_speed() -> void:
+	var config := WeaponConfigComponent.WEAPON_CONFIGS[3]
+	assert_eq(config["dodge_speed"], 400.0,
+		"MACHETE dodge_speed should be 400.0")
+
+
+func test_machete_dodge_distance() -> void:
+	var config := WeaponConfigComponent.WEAPON_CONFIGS[3]
+	assert_eq(config["dodge_distance"], 120.0,
+		"MACHETE dodge_distance should be 120.0")
+
+
+func test_machete_sneak_speed_multiplier() -> void:
+	var config := WeaponConfigComponent.WEAPON_CONFIGS[3]
+	assert_eq(config["sneak_speed_multiplier"], 0.6,
+		"MACHETE sneak_speed_multiplier should be 0.6")
+
+
+func test_machete_no_bullet_scene() -> void:
+	var config := WeaponConfigComponent.WEAPON_CONFIGS[3]
+	assert_eq(config["bullet_scene_path"], "",
+		"MACHETE should have empty bullet_scene_path")
+
+
+func test_machete_no_casing_scene() -> void:
+	var config := WeaponConfigComponent.WEAPON_CONFIGS[3]
+	assert_eq(config["casing_scene_path"], "",
+		"MACHETE should have empty casing_scene_path")

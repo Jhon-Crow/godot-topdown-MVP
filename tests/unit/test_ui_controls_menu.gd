@@ -158,6 +158,16 @@ class MockLevelsMenu:
 			"preview_accent": Color(0.3, 0.45, 0.55, 1.0),
 			"enemy_count": 4,
 			"map_size": "1280x720"
+		},
+		{
+			"name": "Beach",
+			"name_ru": "Пляж",
+			"path": "res://scenes/levels/BeachLevel.tscn",
+			"description": "Outdoor beach environment with machete-wielding enemies and scattered cover.",
+			"preview_color": Color(0.2, 0.6, 0.9, 1.0),
+			"preview_accent": Color(0.85, 0.75, 0.55, 1.0),
+			"enemy_count": 8,
+			"map_size": "2400x2000"
 		}
 	]
 
@@ -934,9 +944,9 @@ func test_cancel_workflow() -> void:
 # ============================================================================
 
 
-func test_levels_menu_has_four_levels() -> void:
-	assert_eq(levels_menu.get_level_count(), 4,
-		"Should have exactly 4 levels")
+func test_levels_menu_has_five_levels() -> void:
+	assert_eq(levels_menu.get_level_count(), 5,
+		"Should have exactly 5 levels")
 
 
 func test_levels_menu_level_names() -> void:
@@ -946,6 +956,7 @@ func test_levels_menu_level_names() -> void:
 	assert_has(names, "Polygon", "Should contain Polygon")
 	assert_has(names, "Castle", "Should contain Castle")
 	assert_has(names, "Tutorial", "Should contain Tutorial")
+	assert_has(names, "Beach", "Should contain Beach")
 
 
 func test_levels_all_have_required_fields() -> void:
@@ -1179,6 +1190,11 @@ func test_enemy_count_tutorial() -> void:
 		"Tutorial should have 4 enemies")
 
 
+func test_enemy_count_beach() -> void:
+	assert_eq(levels_menu.get_enemy_count("Beach"), 8,
+		"Beach should have 8 enemies")
+
+
 func test_enemy_count_invalid_level() -> void:
 	assert_eq(levels_menu.get_enemy_count("NonExistent"), 0,
 		"Invalid level should return 0 enemies")
@@ -1197,6 +1213,11 @@ func test_map_size_castle() -> void:
 func test_map_size_polygon() -> void:
 	assert_eq(levels_menu.get_map_size("Polygon"), "1280x720",
 		"Polygon map size should be 1280x720")
+
+
+func test_map_size_beach() -> void:
+	assert_eq(levels_menu.get_map_size("Beach"), "2400x2000",
+		"Beach map size should be 2400x2000")
 
 
 # ============================================================================
