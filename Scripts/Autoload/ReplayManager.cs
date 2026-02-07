@@ -609,6 +609,13 @@ namespace GodotTopDownTemplate.Autoload
                 }
             }
 
+            // Issue #597: Reset _lastAppliedFrame so PlayFrameEvents runs for
+            // all frames from the seek position onward. Without this, switching
+            // replay modes (Ghost→Memory) would leave _lastAppliedFrame pointing
+            // to the old playback position, causing PlayFrameEvents to be skipped
+            // for all frames up to that old position — meaning no visual effects.
+            _lastAppliedFrame = _playbackFrame - 1;
+
             ApplyFrame(_frames[_playbackFrame], 0.0f);
         }
 
@@ -873,21 +880,37 @@ namespace GodotTopDownTemplate.Autoload
         /// </summary>
         private void SetEffectManagersReplayMode(bool enabled)
         {
+            // Issue #597: Set replay_mode flag AND process_mode on each effect manager.
+            // process_mode must be Always during replay so effect timers run when tree is paused.
+            var processMode = enabled ? (int)ProcessModeEnum.Always : (int)ProcessModeEnum.Inherit;
+
             var hitEffects = GetNodeOrNull("/root/HitEffectsManager");
             if (hitEffects != null)
+            {
                 hitEffects.Set("replay_mode", enabled);
+                hitEffects.Set("process_mode", processMode);
+            }
 
             var penultimateEffects = GetNodeOrNull("/root/PenultimateHitEffectsManager");
             if (penultimateEffects != null)
+            {
                 penultimateEffects.Set("replay_mode", enabled);
+                penultimateEffects.Set("process_mode", processMode);
+            }
 
             var powerFantasyManager = GetNodeOrNull("/root/PowerFantasyEffectsManager");
             if (powerFantasyManager != null)
+            {
                 powerFantasyManager.Set("replay_mode", enabled);
+                powerFantasyManager.Set("process_mode", processMode);
+            }
 
             var lastChanceEffects = GetNodeOrNull("/root/LastChanceEffectsManager");
             if (lastChanceEffects != null)
+            {
                 lastChanceEffects.Set("replay_mode", enabled);
+                lastChanceEffects.Set("process_mode", processMode);
+            }
 
             LogToFile($"Effect managers replay_mode set to: {enabled}");
         }
@@ -2784,6 +2807,8 @@ namespace GodotTopDownTemplate.Autoload
         {
             if (frame.Events.Count == 0) return;
 
+            LogToFile($"PlayFrameEvents: processing {frame.Events.Count} events at time {frame.Time:F2}s (mode={_currentMode})");
+
             var audioManager = GetNodeOrNull("/root/AudioManager");
 
             foreach (var evt in frame.Events)
@@ -2912,12 +2937,10 @@ namespace GodotTopDownTemplate.Autoload
             if (_currentMode != ReplayMode.Memory) return;
 
             var hitEffects = GetNodeOrNull("/root/HitEffectsManager");
-            if (hitEffects != null)
+            if (hitEffects != null && hitEffects.HasMethod("on_player_hit_enemy"))
             {
-                if (hitEffects.HasMethod("on_player_hit_enemy"))
-                {
-                    hitEffects.Call("on_player_hit_enemy");
-                }
+                hitEffects.Call("on_player_hit_enemy");
+                LogToFile("Replay effect triggered: HitEffects.on_player_hit_enemy");
             }
         }
 
@@ -2934,10 +2957,9 @@ namespace GodotTopDownTemplate.Autoload
             var penultimateEffects = GetNodeOrNull("/root/PenultimateHitEffectsManager");
             if (penultimateEffects != null)
             {
-                if (penultimateEffects.HasMethod("_start_penultimate_effect"))
-                {
-                    penultimateEffects.Call("_start_penultimate_effect");
-                }
+                // Call directly — HasMethod may not find underscore-prefixed methods reliably.
+                penultimateEffects.Call("_start_penultimate_effect");
+                LogToFile("Replay effect triggered: PenultimateHit._start_penultimate_effect");
             }
         }
 
@@ -2952,9 +2974,12 @@ namespace GodotTopDownTemplate.Autoload
             if (_currentMode != ReplayMode.Memory) return;
 
             var powerFantasyManager = GetNodeOrNull("/root/PowerFantasyEffectsManager");
-            if (powerFantasyManager != null && powerFantasyManager.HasMethod("_start_effect"))
+            if (powerFantasyManager != null)
             {
+                // Call _start_effect directly — HasMethod may not find underscore-prefixed
+                // GDScript methods reliably in all Godot versions.
                 powerFantasyManager.Call("_start_effect", 300.0);
+                LogToFile("Replay effect triggered: PowerFantasy._start_effect(300ms)");
             }
         }
 
@@ -2972,6 +2997,7 @@ namespace GodotTopDownTemplate.Autoload
             if (lastChanceManager != null && lastChanceManager.HasMethod("trigger_grenade_last_chance"))
             {
                 lastChanceManager.Call("trigger_grenade_last_chance", 2.0);
+                LogToFile("Replay effect triggered: LastChance.trigger_grenade_last_chance(2.0s)");
             }
         }
 
