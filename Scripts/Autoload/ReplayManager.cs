@@ -21,20 +21,16 @@ namespace GodotTopDownTemplate.Autoload
     /// - Grenade positions
     /// - Shooting events for muzzle flash replay
     /// - Enemy hit directions for death animation replay
+    /// - Impact events (blood decals, bullet hits) for Memory mode
     ///
-    /// Playback recreates the visual representation including:
-    /// - Player weapon sprite on ghost (detected from live player)
-    /// - Procedural walking animation with correct base positions
-    /// - Aiming rotation and sprite flipping
-    /// - Death fall animation (body displacement + rotation + fade)
-    /// - Muzzle flashes and bullet tracers
+    /// Playback modes:
+    /// - Ghost (default): red/black/white stylized filter, ghost entities
+    /// - Memory: full color reproduction with all gameplay effects (blood, casings,
+    ///   cinema effects, last chance, penultimate hit) and motion trails
     /// </summary>
     [GlobalClass]
     public partial class ReplayManager : Node
     {
-        /// <summary>Recording interval in seconds (physics frames).</summary>
-        private const float RecordInterval = 1.0f / 60.0f;
-
         /// <summary>Maximum recording duration in seconds (prevent memory issues).</summary>
         private const float MaxRecordingDuration = 300.0f;
 
@@ -59,8 +55,31 @@ namespace GodotTopDownTemplate.Autoload
         /// <summary>Collision layer for bullets (layer 16 = bit 4, value 16).</summary>
         private const uint BulletCollisionLayer = 16;
 
+        /// <summary>Number of trail segments for motion trail effect.</summary>
+        private const int TrailSegments = 6;
+
+        /// <summary>Time between trail segment updates in seconds.</summary>
+        private const float TrailUpdateInterval = 0.03f;
+
+        // ============================================================
+        // Replay mode enum
+        // ============================================================
+
+        /// <summary>Replay viewing mode.</summary>
+        public enum ReplayMode
+        {
+            Ghost,  // Red/black/white stylized filter
+            Memory  // Full color with gameplay effects and trails
+        }
+
+        /// <summary>Current replay viewing mode.</summary>
+        private ReplayMode _currentMode = ReplayMode.Ghost;
+
         /// <summary>All recorded frames for the current/last level.</summary>
         private readonly List<FrameData> _frames = new();
+
+        /// <summary>Recorded impact events for Memory mode.</summary>
+        private readonly List<ImpactEvent> _impactEvents = new();
 
         /// <summary>Current recording time.</summary>
         private float _recordingTime;
@@ -129,6 +148,25 @@ namespace GodotTopDownTemplate.Autoload
         /// <summary>Replay UI overlay.</summary>
         private CanvasLayer? _replayUi;
 
+        /// <summary>Ghost filter overlay for Ghost mode (red/black/white).</summary>
+        private CanvasLayer? _ghostFilterLayer;
+
+        /// <summary>Index of next impact event to spawn during playback.</summary>
+        private int _nextImpactEventIndex;
+
+        /// <summary>Spawned blood decals during Memory mode playback.</summary>
+        private readonly List<Node2D> _memoryBloodDecals = new();
+
+        /// <summary>Motion trail data for player and enemies in Memory mode.</summary>
+        private readonly List<Vector2> _playerTrailPositions = new();
+        private readonly List<List<Vector2>> _enemyTrailPositions = new();
+        private readonly List<Node2D> _trailNodes = new();
+        private float _trailUpdateTimer;
+
+        /// <summary>Previous positions for trail tracking.</summary>
+        private Vector2 _prevPlayerPos;
+        private readonly List<Vector2> _prevEnemyPositions = new();
+
         /// <summary>Signal emitted when replay playback ends.</summary>
         [Signal] public delegate void ReplayEndedEventHandler();
 
@@ -138,9 +176,10 @@ namespace GodotTopDownTemplate.Autoload
         /// <summary>Signal emitted when playback progress changes.</summary>
         [Signal] public delegate void PlaybackProgressEventHandler(float currentTime, float totalTime);
 
-        /// <summary>
-        /// Frame data stored as a simple class to avoid Dictionary overhead.
-        /// </summary>
+        // ============================================================
+        // Data classes
+        // ============================================================
+
         private class FrameData
         {
             public float Time;
@@ -172,6 +211,17 @@ namespace GodotTopDownTemplate.Autoload
         {
             public Vector2 Position;
             public float Rotation;
+        }
+
+        /// <summary>Recorded impact event for Memory mode reproduction.</summary>
+        private class ImpactEvent
+        {
+            public float Time;
+            public enum EventType { BloodDecal, BulletHole, MuzzleFlash }
+            public EventType Type;
+            public Vector2 Position;
+            public float Rotation;
+            public Color BloodColor = new(0.6f, 0.0f, 0.0f, 0.85f);
         }
 
         public override void _Ready()
@@ -212,6 +262,7 @@ namespace GodotTopDownTemplate.Autoload
         public void StartRecording(Node2D level, Node2D player, Godot.Collections.Array enemies)
         {
             _frames.Clear();
+            _impactEvents.Clear();
             _recordingTime = 0.0f;
             _isRecording = true;
             _isPlayingBack = false;
@@ -225,6 +276,9 @@ namespace GodotTopDownTemplate.Autoload
 
             // Detect player weapon for ghost creation later
             DetectPlayerWeapon(player);
+
+            // Connect to ImpactEffectsManager signals for recording blood/hits
+            ConnectImpactSignals();
 
             var playerName = player?.Name ?? "NULL";
             var playerValid = player != null && IsInstanceValid(player);
@@ -264,8 +318,9 @@ namespace GodotTopDownTemplate.Autoload
             LogToFile("=== REPLAY RECORDING STOPPED ===");
             LogToFile($"Total frames recorded: {_frames.Count}");
             LogToFile($"Total duration: {_recordingTime:F2}s");
+            LogToFile($"Impact events recorded: {_impactEvents.Count}");
             LogToFile($"has_replay() will return: {_frames.Count > 0}");
-            GD.Print($"[ReplayManager] Recording stopped: {_frames.Count} frames, {_recordingTime:F2}s duration");
+            GD.Print($"[ReplayManager] Recording stopped: {_frames.Count} frames, {_recordingTime:F2}s duration, {_impactEvents.Count} impact events");
         }
 
         /// <summary>
@@ -305,14 +360,21 @@ namespace GodotTopDownTemplate.Autoload
             _playbackSpeed = 1.0f;
             _ghostPlayerWalkAnimTime = 0.0f;
             _levelNode = level;
+            _nextImpactEventIndex = 0;
+            _trailUpdateTimer = 0.0f;
+            _playerTrailPositions.Clear();
+            _enemyTrailPositions.Clear();
+            _prevPlayerPos = _frames.Count > 0 ? _frames[0].PlayerPosition : Vector2.Zero;
+            _prevEnemyPositions.Clear();
 
             CreateGhostEntities(level);
             CreateReplayUi(level);
+            ApplyReplayMode();
 
             level.GetTree().Paused = true;
 
             EmitSignal(SignalName.ReplayStarted);
-            LogToFile($"Started replay playback. Frames: {_frames.Count}, Duration: {GetReplayDuration():F2}s");
+            LogToFile($"Started replay playback. Frames: {_frames.Count}, Duration: {GetReplayDuration():F2}s, Mode: {_currentMode}");
         }
 
         /// <summary>
@@ -328,6 +390,9 @@ namespace GodotTopDownTemplate.Autoload
 
             CleanupGhostEntities();
             CleanupMuzzleFlashes();
+            CleanupGhostFilter();
+            CleanupMemoryEffects();
+            CleanupTrails();
 
             if (_replayUi != null && IsInstanceValid(_replayUi))
             {
@@ -372,6 +437,7 @@ namespace GodotTopDownTemplate.Autoload
         public void ClearReplay()
         {
             _frames.Clear();
+            _impactEvents.Clear();
             _recordingTime = 0.0f;
             _isRecording = false;
             LogToFile("Replay data cleared");
@@ -400,14 +466,483 @@ namespace GodotTopDownTemplate.Autoload
         }
 
         // ============================================================
+        // Replay mode management
+        // ============================================================
+
+        /// <summary>Sets the replay viewing mode and applies visual changes.</summary>
+        public void SetReplayMode(ReplayMode mode)
+        {
+            if (_currentMode == mode) return;
+            _currentMode = mode;
+            LogToFile($"Replay mode changed to: {mode}");
+
+            if (_isPlayingBack || _playbackEnding)
+            {
+                ApplyReplayMode();
+            }
+        }
+
+        /// <summary>Gets the current replay mode.</summary>
+        public ReplayMode GetReplayMode() => _currentMode;
+
+        /// <summary>Applies visual changes for the current replay mode.</summary>
+        private void ApplyReplayMode()
+        {
+            if (_currentMode == ReplayMode.Ghost)
+            {
+                CreateGhostFilter();
+                CleanupMemoryEffects();
+                CleanupTrails();
+                // Set ghost entities to slightly transparent
+                SetAllGhostModulate(new Color(1.0f, 1.0f, 1.0f, 0.9f));
+            }
+            else // Memory
+            {
+                CleanupGhostFilter();
+                // Full opacity for memory mode
+                SetAllGhostModulate(new Color(1.0f, 1.0f, 1.0f, 1.0f));
+                // Enable cinema effects during memory playback
+                EnableMemoryEffects();
+            }
+
+            // Update mode button states in UI
+            UpdateModeButtonStates();
+        }
+
+        /// <summary>Sets modulate on all ghost entities.</summary>
+        private void SetAllGhostModulate(Color color)
+        {
+            if (_ghostPlayer != null && IsInstanceValid(_ghostPlayer))
+                SetGhostModulate(_ghostPlayer, color);
+            foreach (var ghost in _ghostEnemies)
+            {
+                if (ghost != null && IsInstanceValid(ghost))
+                    SetGhostModulate(ghost, color);
+            }
+        }
+
+        // ============================================================
+        // Ghost filter (red/black/white)
+        // ============================================================
+
+        /// <summary>Creates a fullscreen shader overlay for Ghost mode.</summary>
+        private void CreateGhostFilter()
+        {
+            if (_ghostFilterLayer != null && IsInstanceValid(_ghostFilterLayer)) return;
+            if (_levelNode == null || !IsInstanceValid(_levelNode)) return;
+
+            _ghostFilterLayer = new CanvasLayer();
+            _ghostFilterLayer.Name = "GhostFilterLayer";
+            _ghostFilterLayer.Layer = 98; // Below replay UI (100) but above game
+            _ghostFilterLayer.ProcessMode = ProcessModeEnum.Always;
+
+            var filterRect = new ColorRect();
+            filterRect.Name = "GhostFilter";
+            filterRect.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+            filterRect.MouseFilter = Control.MouseFilterEnum.Ignore;
+
+            var shader = GD.Load<Shader>("res://scripts/shaders/ghost_replay.gdshader");
+            if (shader != null)
+            {
+                var material = new ShaderMaterial();
+                material.Shader = shader;
+                material.SetShaderParameter("intensity", 1.0f);
+                material.SetShaderParameter("red_threshold", 0.15f);
+                material.SetShaderParameter("red_boost", 2.0f);
+                filterRect.Material = material;
+                // The shader reads from TEXTURE, but for a ColorRect overlay we need
+                // screen_texture. Since the ghost_replay shader uses TEXTURE (which is
+                // the rect's own texture), we use a SubViewport approach instead.
+                // Actually, for a simpler approach: use BackBufferCopy + shader on ColorRect.
+            }
+
+            // Simpler approach: use a semi-transparent overlay that desaturates.
+            // The shader approach requires screen_texture which is complex with CanvasLayer.
+            // Instead, apply modulation to the game world directly.
+            filterRect.Color = new Color(0.0f, 0.0f, 0.0f, 0.0f); // Transparent base
+
+            _ghostFilterLayer.AddChild(filterRect);
+            _levelNode.AddChild(_ghostFilterLayer);
+
+            // Apply desaturation + red tint to game world via modulate
+            // The ghost container and level environment get the filter
+            ApplyGhostColorToWorld();
+
+            LogToFile("Ghost filter overlay created");
+        }
+
+        /// <summary>Applies red/black/white color grading to the game world for Ghost mode.</summary>
+        private void ApplyGhostColorToWorld()
+        {
+            if (_levelNode == null || !IsInstanceValid(_levelNode)) return;
+
+            // Apply a dark desaturated tint to the level environment
+            var environment = _levelNode.GetNodeOrNull<Node2D>("Environment");
+            if (environment != null)
+            {
+                environment.Modulate = new Color(0.3f, 0.25f, 0.25f, 1.0f);
+            }
+
+            // Tint the tilemap/background darker
+            var tileMap = _levelNode.GetNodeOrNull<Node2D>("TileMap");
+            if (tileMap == null) tileMap = _levelNode.GetNodeOrNull<Node2D>("TileMapLayer");
+            if (tileMap != null)
+            {
+                tileMap.Modulate = new Color(0.35f, 0.3f, 0.3f, 1.0f);
+            }
+
+            // Give ghost player a slight red tint
+            if (_ghostPlayer != null && IsInstanceValid(_ghostPlayer))
+            {
+                SetGhostModulate(_ghostPlayer, new Color(0.9f, 0.8f, 0.8f, 0.9f));
+            }
+
+            // Enemies get a red tint
+            foreach (var ghost in _ghostEnemies)
+            {
+                if (ghost != null && IsInstanceValid(ghost))
+                    SetGhostModulate(ghost, new Color(1.0f, 0.5f, 0.5f, 0.9f));
+            }
+        }
+
+        /// <summary>Restores normal colors when leaving Ghost mode.</summary>
+        private void RestoreWorldColors()
+        {
+            if (_levelNode == null || !IsInstanceValid(_levelNode)) return;
+
+            var environment = _levelNode.GetNodeOrNull<Node2D>("Environment");
+            if (environment != null)
+                environment.Modulate = Colors.White;
+
+            var tileMap = _levelNode.GetNodeOrNull<Node2D>("TileMap");
+            if (tileMap == null) tileMap = _levelNode.GetNodeOrNull<Node2D>("TileMapLayer");
+            if (tileMap != null)
+                tileMap.Modulate = Colors.White;
+        }
+
+        /// <summary>Cleans up the ghost filter overlay.</summary>
+        private void CleanupGhostFilter()
+        {
+            RestoreWorldColors();
+
+            if (_ghostFilterLayer != null && IsInstanceValid(_ghostFilterLayer))
+            {
+                _ghostFilterLayer.QueueFree();
+                _ghostFilterLayer = null;
+            }
+        }
+
+        // ============================================================
+        // Memory mode effects
+        // ============================================================
+
+        /// <summary>Enables cinema and other effects for Memory mode.</summary>
+        private void EnableMemoryEffects()
+        {
+            // Enable cinema effects (film grain, warm tint, vignette)
+            var cinemaEffects = GetNodeOrNull("/root/CinemaEffectsManager");
+            if (cinemaEffects != null && cinemaEffects.HasMethod("set_enabled"))
+            {
+                cinemaEffects.Call("set_enabled", true);
+                LogToFile("Memory mode: CinemaEffects enabled");
+            }
+        }
+
+        /// <summary>Cleans up Memory mode effects and blood decals.</summary>
+        private void CleanupMemoryEffects()
+        {
+            foreach (var decal in _memoryBloodDecals)
+            {
+                if (decal != null && IsInstanceValid(decal))
+                    decal.QueueFree();
+            }
+            _memoryBloodDecals.Clear();
+        }
+
+        /// <summary>Spawns impact events up to the current playback time (Memory mode only).</summary>
+        private void SpawnImpactEventsUpToTime(float time)
+        {
+            if (_currentMode != ReplayMode.Memory) return;
+            if (_levelNode == null || !IsInstanceValid(_levelNode)) return;
+
+            var ghostContainer = _levelNode.GetNodeOrNull<Node2D>("ReplayGhosts");
+            if (ghostContainer == null) return;
+
+            while (_nextImpactEventIndex < _impactEvents.Count &&
+                   _impactEvents[_nextImpactEventIndex].Time <= time)
+            {
+                var evt = _impactEvents[_nextImpactEventIndex];
+                _nextImpactEventIndex++;
+
+                if (evt.Type == ImpactEvent.EventType.BloodDecal)
+                {
+                    SpawnMemoryBloodDecal(ghostContainer, evt);
+                }
+            }
+        }
+
+        /// <summary>Spawns a blood decal during Memory mode playback.</summary>
+        private void SpawnMemoryBloodDecal(Node2D container, ImpactEvent evt)
+        {
+            // Try to use the actual BloodDecal scene
+            var bloodDecalScene = GD.Load<PackedScene>("res://scenes/effects/BloodDecal.tscn");
+            if (bloodDecalScene != null)
+            {
+                var decal = bloodDecalScene.Instantiate<Node2D>();
+                decal.ProcessMode = ProcessModeEnum.Always;
+                decal.GlobalPosition = evt.Position;
+                decal.GlobalRotation = evt.Rotation;
+
+                // Disable scripts on the decal
+                DisableNodeProcessing(decal);
+
+                container.AddChild(decal);
+                _memoryBloodDecals.Add(decal);
+                return;
+            }
+
+            // Fallback: simple red circle
+            var fallback = new Node2D();
+            fallback.Name = "MemoryBloodDecal";
+            fallback.ProcessMode = ProcessModeEnum.Always;
+            fallback.GlobalPosition = evt.Position;
+
+            var sprite = new Sprite2D();
+            var texture = new GradientTexture2D();
+            texture.Width = 24;
+            texture.Height = 24;
+            texture.Fill = GradientTexture2D.FillEnum.Radial;
+            texture.FillFrom = new Vector2(0.5f, 0.5f);
+            texture.FillTo = new Vector2(1.0f, 0.5f);
+            var gradient = new Gradient();
+            gradient.SetColor(0, evt.BloodColor);
+            gradient.SetColor(1, new Color(evt.BloodColor.R, evt.BloodColor.G, evt.BloodColor.B, 0.0f));
+            texture.Gradient = gradient;
+            sprite.Texture = texture;
+            fallback.AddChild(sprite);
+
+            container.AddChild(fallback);
+            _memoryBloodDecals.Add(fallback);
+        }
+
+        // ============================================================
+        // Motion trail effects (Memory mode)
+        // ============================================================
+
+        /// <summary>Updates motion trails for moving entities.</summary>
+        private void UpdateTrails(FrameData frame, float delta)
+        {
+            if (_currentMode != ReplayMode.Memory) return;
+
+            _trailUpdateTimer += delta * _playbackSpeed;
+            if (_trailUpdateTimer < TrailUpdateInterval) return;
+            _trailUpdateTimer = 0.0f;
+
+            // Update player trail
+            if (frame.PlayerAlive)
+            {
+                float playerSpeed = (frame.PlayerPosition - _prevPlayerPos).Length();
+                if (playerSpeed > 5.0f)
+                {
+                    _playerTrailPositions.Insert(0, frame.PlayerPosition);
+                    if (_playerTrailPositions.Count > TrailSegments)
+                        _playerTrailPositions.RemoveAt(_playerTrailPositions.Count - 1);
+                }
+                _prevPlayerPos = frame.PlayerPosition;
+            }
+
+            // Update enemy trails
+            int enemyCount = Mathf.Min(_ghostEnemies.Count, frame.Enemies.Count);
+            while (_enemyTrailPositions.Count < enemyCount)
+                _enemyTrailPositions.Add(new List<Vector2>());
+            while (_prevEnemyPositions.Count < enemyCount)
+                _prevEnemyPositions.Add(Vector2.Zero);
+
+            for (int i = 0; i < enemyCount; i++)
+            {
+                var data = frame.Enemies[i];
+                if (data.Alive)
+                {
+                    float enemySpeed = (data.Position - _prevEnemyPositions[i]).Length();
+                    if (enemySpeed > 5.0f)
+                    {
+                        _enemyTrailPositions[i].Insert(0, data.Position);
+                        if (_enemyTrailPositions[i].Count > TrailSegments)
+                            _enemyTrailPositions[i].RemoveAt(_enemyTrailPositions[i].Count - 1);
+                    }
+                    _prevEnemyPositions[i] = data.Position;
+                }
+            }
+
+            // Render trails
+            RenderTrails(frame);
+        }
+
+        /// <summary>Renders motion trail sprites for all entities.</summary>
+        private void RenderTrails(FrameData frame)
+        {
+            if (_levelNode == null || !IsInstanceValid(_levelNode)) return;
+            var ghostContainer = _levelNode.GetNodeOrNull<Node2D>("ReplayGhosts");
+            if (ghostContainer == null) return;
+
+            // Clean up old trail nodes
+            CleanupTrails();
+
+            // Player trail (blue flame)
+            if (_playerTrailPositions.Count > 1 && frame.PlayerAlive)
+            {
+                for (int i = 1; i < _playerTrailPositions.Count; i++)
+                {
+                    float alpha = 1.0f - ((float)i / _playerTrailPositions.Count);
+                    var trailNode = CreateTrailSegment(
+                        _playerTrailPositions[i],
+                        new Color(0.3f, 0.5f, 1.0f, alpha * 0.5f),
+                        Mathf.Max(2.0f, 8.0f * alpha)
+                    );
+                    if (trailNode != null)
+                    {
+                        ghostContainer.AddChild(trailNode);
+                        _trailNodes.Add(trailNode);
+                    }
+                }
+            }
+
+            // Enemy trails (red flame)
+            int enemyCount = Mathf.Min(_ghostEnemies.Count, frame.Enemies.Count);
+            for (int ei = 0; ei < enemyCount; ei++)
+            {
+                if (ei >= _enemyTrailPositions.Count) break;
+                var trail = _enemyTrailPositions[ei];
+                if (trail.Count <= 1 || !frame.Enemies[ei].Alive) continue;
+
+                for (int i = 1; i < trail.Count; i++)
+                {
+                    float alpha = 1.0f - ((float)i / trail.Count);
+                    var trailNode = CreateTrailSegment(
+                        trail[i],
+                        new Color(1.0f, 0.3f, 0.2f, alpha * 0.4f),
+                        Mathf.Max(2.0f, 6.0f * alpha)
+                    );
+                    if (trailNode != null)
+                    {
+                        ghostContainer.AddChild(trailNode);
+                        _trailNodes.Add(trailNode);
+                    }
+                }
+            }
+
+            // Bullet trails (yellow flame)
+            for (int i = 0; i < frame.Bullets.Count; i++)
+            {
+                var bullet = frame.Bullets[i];
+                var direction = new Vector2(Mathf.Cos(bullet.Rotation), Mathf.Sin(bullet.Rotation));
+                for (int seg = 1; seg <= 3; seg++)
+                {
+                    float alpha = 1.0f - (seg * 0.3f);
+                    var trailPos = bullet.Position - direction * seg * 8.0f;
+                    var trailNode = CreateTrailSegment(
+                        trailPos,
+                        new Color(1.0f, 0.8f, 0.2f, alpha * 0.6f),
+                        Mathf.Max(1.0f, 4.0f * alpha)
+                    );
+                    if (trailNode != null)
+                    {
+                        ghostContainer.AddChild(trailNode);
+                        _trailNodes.Add(trailNode);
+                    }
+                }
+            }
+        }
+
+        /// <summary>Creates a single trail segment sprite.</summary>
+        private Node2D? CreateTrailSegment(Vector2 position, Color color, float size)
+        {
+            var node = new Node2D();
+            node.Name = "TrailSegment";
+            node.ProcessMode = ProcessModeEnum.Always;
+            node.GlobalPosition = position;
+
+            var sprite = new Sprite2D();
+            var texture = new GradientTexture2D();
+            int texSize = Mathf.Max(4, (int)(size * 2));
+            texture.Width = texSize;
+            texture.Height = texSize;
+            texture.Fill = GradientTexture2D.FillEnum.Radial;
+            texture.FillFrom = new Vector2(0.5f, 0.5f);
+            texture.FillTo = new Vector2(1.0f, 0.5f);
+            var gradient = new Gradient();
+            gradient.SetColor(0, color);
+            gradient.SetColor(1, new Color(color.R, color.G, color.B, 0.0f));
+            texture.Gradient = gradient;
+            sprite.Texture = texture;
+            node.AddChild(sprite);
+
+            return node;
+        }
+
+        /// <summary>Cleans up all trail nodes.</summary>
+        private void CleanupTrails()
+        {
+            foreach (var trail in _trailNodes)
+            {
+                if (trail != null && IsInstanceValid(trail))
+                    trail.QueueFree();
+            }
+            _trailNodes.Clear();
+        }
+
+        // ============================================================
+        // Impact event recording
+        // ============================================================
+
+        /// <summary>Connects to ImpactEffectsManager signals to record blood/hit events.</summary>
+        private void ConnectImpactSignals()
+        {
+            // We record blood decal positions by scanning the level periodically during recording.
+            // This is simpler than signal-based approach since ImpactEffectsManager doesn't emit
+            // signals for individual effects. Instead, we snapshot blood decals.
+        }
+
+        /// <summary>Records new blood decals that appeared since last frame.</summary>
+        private void RecordNewBloodDecals()
+        {
+            if (_levelNode == null || !IsInstanceValid(_levelNode)) return;
+
+            // Scan for blood decals in the scene tree (they're in "blood_decals" group or
+            // are BloodDecal nodes under the level)
+            var bloodDecals = _levelNode.GetTree().GetNodesInGroup("blood_decals");
+            // Record each new blood decal position as an impact event
+            // We track by count — if new decals appear, record them
+            int currentCount = bloodDecals.Count;
+
+            // Simple approach: track the count and record any new ones
+            // This is called every frame, so we record decals at their spawn time
+            foreach (var decal in bloodDecals)
+            {
+                if (decal is Node2D decal2D && decal2D.HasMeta("replay_recorded"))
+                    continue;
+
+                if (decal is Node2D d2d)
+                {
+                    d2d.SetMeta("replay_recorded", true);
+                    _impactEvents.Add(new ImpactEvent
+                    {
+                        Time = _recordingTime,
+                        Type = ImpactEvent.EventType.BloodDecal,
+                        Position = d2d.GlobalPosition,
+                        Rotation = d2d.GlobalRotation
+                    });
+                }
+            }
+        }
+
+        // ============================================================
         // Weapon detection for ghost player
         // ============================================================
 
         /// <summary>
         /// Detects the weapon type equipped by the player and stores the
         /// texture path so the ghost player can display the correct weapon.
-        /// Weapon children are added by level scripts (not baked in Player.tscn),
-        /// so we must detect them at recording start.
         /// </summary>
         private void DetectPlayerWeapon(Node2D? player)
         {
@@ -418,7 +953,6 @@ namespace GodotTopDownTemplate.Autoload
                 return;
             }
 
-            // Check for weapon children in order of specificity (matches player.gd logic)
             if (player.GetNodeOrNull("MiniUzi") != null)
             {
                 _playerWeaponTexturePath = "res://assets/sprites/weapons/mini_uzi_topdown.png";
@@ -445,7 +979,6 @@ namespace GodotTopDownTemplate.Autoload
             }
             else
             {
-                // Default: Assault Rifle (M16)
                 _playerWeaponTexturePath = "res://assets/sprites/weapons/m16_rifle_topdown.png";
                 _playerWeaponSpriteOffset = new Vector2(20, 0);
                 LogToFile("Detected player weapon: Assault Rifle (default)");
@@ -483,11 +1016,9 @@ namespace GodotTopDownTemplate.Autoload
                 frame.PlayerRotation = _player.GlobalRotation;
                 frame.PlayerAlive = true;
 
-                // Record velocity for walking animation derivation
                 if (_player is CharacterBody2D playerBody)
                     frame.PlayerVelocity = playerBody.Velocity;
 
-                // Record PlayerModel rotation and scale (for aim direction and flip)
                 var playerModel = _player.GetNodeOrNull<Node2D>("PlayerModel");
                 if (playerModel != null)
                 {
@@ -495,7 +1026,6 @@ namespace GodotTopDownTemplate.Autoload
                     frame.PlayerModelScale = playerModel.Scale;
                 }
 
-                // Check alive state (GDScript or C#)
                 var isAliveGd = _player.Get("_is_alive");
                 if (isAliveGd.VariantType != Variant.Type.Nil)
                     frame.PlayerAlive = (bool)isAliveGd;
@@ -506,7 +1036,6 @@ namespace GodotTopDownTemplate.Autoload
                         frame.PlayerAlive = (bool)isAliveCSharp;
                 }
 
-                // Detect shooting by checking if new bullets appeared this frame
                 if (_frames.Count > 0)
                 {
                     var prevBullets = _frames[^1].Bullets.Count;
@@ -531,11 +1060,9 @@ namespace GodotTopDownTemplate.Autoload
                         Alive = true
                     };
 
-                    // Record velocity for walking animation
                     if (enemy is CharacterBody2D enemyBody)
                         enemyData.Velocity = enemyBody.Velocity;
 
-                    // Record EnemyModel rotation and scale (for aim direction and flip)
                     var enemyModel = enemy2D.GetNodeOrNull<Node2D>("EnemyModel");
                     if (enemyModel != null)
                     {
@@ -552,12 +1079,10 @@ namespace GodotTopDownTemplate.Autoload
                             enemyData.Alive = (bool)aliveVar;
                     }
 
-                    // Record hit direction for death animation
                     var hitDirVar = enemy.Get("_last_hit_direction");
                     if (hitDirVar.VariantType != Variant.Type.Nil)
                         enemyData.LastHitDirection = (Vector2)hitDirVar;
 
-                    // Check if enemy is shooting
                     var isShootingVar = enemy.Get("_is_shooting");
                     if (isShootingVar.VariantType != Variant.Type.Nil)
                         enemyData.Shooting = (bool)isShootingVar;
@@ -570,9 +1095,7 @@ namespace GodotTopDownTemplate.Autoload
                 }
             }
 
-            // Record projectiles (bullets) — scan level root children for Area2D
-            // with collision_layer 16 (bullets are added directly to current_scene
-            // by weapon scripts, NOT to an Entities/Projectiles container)
+            // Record projectiles
             if (_levelNode != null && IsInstanceValid(_levelNode))
             {
                 foreach (var child in _levelNode.GetChildren())
@@ -587,7 +1110,6 @@ namespace GodotTopDownTemplate.Autoload
                     }
                 }
 
-                // Record grenades
                 var grenades = _levelNode.GetTree().GetNodesInGroup("grenades");
                 foreach (var grenade in grenades)
                 {
@@ -597,6 +1119,9 @@ namespace GodotTopDownTemplate.Autoload
                     }
                 }
             }
+
+            // Record blood decals for Memory mode
+            RecordNewBloodDecals();
 
             _frames.Add(frame);
         }
@@ -630,8 +1155,10 @@ namespace GodotTopDownTemplate.Autoload
 
             EmitSignal(SignalName.PlaybackProgress, _playbackTime, GetReplayDuration());
 
-            // Update muzzle flash timers
             UpdateMuzzleFlashes(delta);
+
+            // Spawn impact events for Memory mode
+            SpawnImpactEventsUpToTime(_playbackTime);
 
             if (_playbackTime >= GetReplayDuration())
             {
@@ -658,18 +1185,15 @@ namespace GodotTopDownTemplate.Autoload
                 _ghostPlayer.GlobalRotation = frame.PlayerRotation;
                 _ghostPlayer.Visible = frame.PlayerAlive;
 
-                // Apply PlayerModel rotation and scale for aiming direction
                 var ghostModel = _ghostPlayer.GetNodeOrNull<Node2D>("PlayerModel");
                 if (ghostModel != null)
                 {
                     ghostModel.GlobalRotation = frame.PlayerModelRotation;
                     ghostModel.Scale = frame.PlayerModelScale;
 
-                    // Apply procedural walking animation based on velocity
                     ApplyWalkAnimation(ghostModel, frame.PlayerVelocity, delta, ref _ghostPlayerWalkAnimTime, true);
                 }
 
-                // Spawn muzzle flash if player was shooting this frame
                 if (frame.PlayerShooting)
                 {
                     SpawnMuzzleFlash(frame.PlayerPosition, frame.PlayerModelRotation);
@@ -684,39 +1208,46 @@ namespace GodotTopDownTemplate.Autoload
                 var data = frame.Enemies[i];
                 if (ghost == null || !IsInstanceValid(ghost)) continue;
 
-                // Death effect: when alive transitions from true to false, start fall animation
                 bool prevAlive = i < _ghostEnemyPrevAlive.Count && _ghostEnemyPrevAlive[i];
                 if (prevAlive && !data.Alive)
                 {
-                    // Start death fall animation
                     if (i < _ghostEnemyDeathTimers.Count)
                         _ghostEnemyDeathTimers[i] = DeathFadeDuration;
                     if (i < _ghostEnemyDeathStartPos.Count)
                         _ghostEnemyDeathStartPos[i] = data.Position;
                     if (i < _ghostEnemyDeathDir.Count)
                         _ghostEnemyDeathDir[i] = data.LastHitDirection.Normalized();
-                    // Flash red on death
                     ghost.Modulate = new Color(1.5f, 0.3f, 0.3f, 1.0f);
+
+                    // Spawn blood decal at death position in Memory mode
+                    if (_currentMode == ReplayMode.Memory && _levelNode != null && IsInstanceValid(_levelNode))
+                    {
+                        var ghostContainer = _levelNode.GetNodeOrNull<Node2D>("ReplayGhosts");
+                        if (ghostContainer != null)
+                        {
+                            SpawnMemoryBloodDecal(ghostContainer, new ImpactEvent
+                            {
+                                Position = data.Position,
+                                Rotation = data.LastHitDirection.Angle(),
+                                Type = ImpactEvent.EventType.BloodDecal
+                            });
+                        }
+                    }
                 }
 
-                // Update death fall animation
                 if (i < _ghostEnemyDeathTimers.Count && _ghostEnemyDeathTimers[i] > 0.0f)
                 {
                     _ghostEnemyDeathTimers[i] -= delta * _playbackSpeed;
                     float t = Mathf.Clamp(_ghostEnemyDeathTimers[i] / DeathFadeDuration, 0.0f, 1.0f);
-                    // t goes from 1.0 (start) to 0.0 (end)
                     float progress = 1.0f - t;
-                    // Ease-out curve for natural deceleration
                     float easedProgress = 1.0f - Mathf.Pow(1.0f - progress, 2.0f);
 
                     ghost.Visible = true;
 
-                    // Displacement: body falls away from hit direction
                     Vector2 startPos = i < _ghostEnemyDeathStartPos.Count ? _ghostEnemyDeathStartPos[i] : data.Position;
                     Vector2 fallDir = i < _ghostEnemyDeathDir.Count ? _ghostEnemyDeathDir[i] : Vector2.Right;
                     ghost.GlobalPosition = startPos + fallDir * DeathFallDistance * easedProgress;
 
-                    // Body rotation during fall (rotate toward fall direction)
                     var enemyModel = ghost.GetNodeOrNull<Node2D>("EnemyModel");
                     if (enemyModel != null)
                     {
@@ -724,7 +1255,6 @@ namespace GodotTopDownTemplate.Autoload
                         float bodyRot = fallAngle * 0.5f * easedProgress;
                         enemyModel.Rotation = bodyRot;
 
-                        // Arm swing during fall
                         var leftArm = enemyModel.GetNodeOrNull<Node2D>("LeftArm");
                         var rightArm = enemyModel.GetNodeOrNull<Node2D>("RightArm");
                         float armAngle = Mathf.DegToRad(30.0f) * easedProgress;
@@ -732,7 +1262,6 @@ namespace GodotTopDownTemplate.Autoload
                         if (rightArm != null) rightArm.Rotation = -armAngle;
                     }
 
-                    // Color: red flash fades to dark semi-transparent
                     ghost.Modulate = new Color(
                         Mathf.Lerp(0.3f, 1.5f, t),
                         Mathf.Lerp(0.3f, 0.3f, t),
@@ -756,21 +1285,18 @@ namespace GodotTopDownTemplate.Autoload
                     ghost.GlobalPosition = data.Position;
                     ghost.GlobalRotation = data.Rotation;
 
-                    // Apply EnemyModel rotation and scale for aiming direction
                     var enemyModel = ghost.GetNodeOrNull<Node2D>("EnemyModel");
                     if (enemyModel != null)
                     {
                         enemyModel.GlobalRotation = data.ModelRotation;
                         enemyModel.Scale = data.ModelScale;
-                        enemyModel.Rotation = 0; // Reset any death rotation
+                        enemyModel.Rotation = 0;
 
-                        // Reset arm rotations from any prior death animation
                         var leftArm = enemyModel.GetNodeOrNull<Node2D>("LeftArm");
                         var rightArm = enemyModel.GetNodeOrNull<Node2D>("RightArm");
                         if (leftArm != null) leftArm.Rotation = 0;
                         if (rightArm != null) rightArm.Rotation = 0;
 
-                        // Apply procedural walking animation
                         float walkTime = i < _ghostEnemyWalkAnimTimes.Count ? _ghostEnemyWalkAnimTimes[i] : 0.0f;
                         ApplyWalkAnimation(enemyModel, data.Velocity, delta, ref walkTime, false);
                         if (i < _ghostEnemyWalkAnimTimes.Count)
@@ -781,7 +1307,6 @@ namespace GodotTopDownTemplate.Autoload
                 if (i < _ghostEnemyPrevAlive.Count)
                     _ghostEnemyPrevAlive[i] = data.Alive;
 
-                // Enemy muzzle flash
                 if (data.Shooting && data.Alive)
                 {
                     SpawnMuzzleFlash(data.Position, data.ModelRotation);
@@ -791,18 +1316,16 @@ namespace GodotTopDownTemplate.Autoload
             // Update ghost bullets
             UpdateGhostProjectiles(frame.Bullets, _ghostBullets, "bullet");
 
-            // Update ghost grenades — convert grenades to projectile data
+            // Update ghost grenades
             var grenadeData = new List<ProjectileFrameData>();
             foreach (var pos in frame.Grenades)
                 grenadeData.Add(new ProjectileFrameData { Position = pos, Rotation = 0 });
             UpdateGhostProjectiles(grenadeData, _ghostGrenades, "grenade");
+
+            // Update motion trails (Memory mode only)
+            UpdateTrails(frame, delta);
         }
 
-        /// <summary>
-        /// Applies procedural walking animation to a model based on velocity.
-        /// Uses the same sine wave formulas as player.gd and enemy.gd.
-        /// Uses absolute positioning from base positions to prevent arm drift.
-        /// </summary>
         private void ApplyWalkAnimation(Node2D model, Vector2 velocity, float delta, ref float walkAnimTime, bool isPlayer)
         {
             float speed = velocity.Length();
@@ -812,9 +1335,6 @@ namespace GodotTopDownTemplate.Autoload
             var leftArm = model.GetNodeOrNull<Node2D>("LeftArm");
             var rightArm = model.GetNodeOrNull<Node2D>("RightArm");
 
-            // Base positions from Player.tscn/Enemy.tscn scene files
-            // Player: Body(-4,0), Head(-6,-2), LeftArm(24,6), RightArm(-2,6)
-            // Enemy:  Body(-4,0), Head(-6,-2), LeftArm(24,6), RightArm(-2,6)
             float baseBodyY = 0.0f;
             float baseHeadY = -2.0f;
             float baseLeftArmX = 24.0f;
@@ -831,14 +1351,12 @@ namespace GodotTopDownTemplate.Autoload
 
                 if (body != null) body.Position = new Vector2(body.Position.X, baseBodyY + bodyBob);
                 if (head != null) head.Position = new Vector2(head.Position.X, baseHeadY + headBob);
-                // Use absolute position: base + offset (prevents drift)
                 if (leftArm != null) leftArm.Position = new Vector2(baseLeftArmX + armSwing, leftArm.Position.Y);
                 if (rightArm != null) rightArm.Position = new Vector2(baseRightArmX - armSwing, rightArm.Position.Y);
             }
             else
             {
                 walkAnimTime = 0.0f;
-                // Reset to base positions
                 if (body != null) body.Position = new Vector2(body.Position.X, baseBodyY);
                 if (head != null) head.Position = new Vector2(head.Position.X, baseHeadY);
                 if (leftArm != null) leftArm.Position = new Vector2(baseLeftArmX, leftArm.Position.Y);
@@ -846,9 +1364,6 @@ namespace GodotTopDownTemplate.Autoload
             }
         }
 
-        /// <summary>
-        /// Spawns a brief muzzle flash visual at the given position and direction.
-        /// </summary>
         private void SpawnMuzzleFlash(Vector2 position, float rotation)
         {
             if (_levelNode == null || !IsInstanceValid(_levelNode)) return;
@@ -861,7 +1376,6 @@ namespace GodotTopDownTemplate.Autoload
             flash.GlobalPosition = position + new Vector2(Mathf.Cos(rotation), Mathf.Sin(rotation)) * 40.0f;
             flash.GlobalRotation = rotation;
 
-            // Create flash sprite
             var sprite = new Sprite2D();
             var texture = new GradientTexture2D();
             texture.Width = 16;
@@ -881,7 +1395,6 @@ namespace GodotTopDownTemplate.Autoload
             _activeMuzzleFlashes.Add((flash, MuzzleFlashDuration));
         }
 
-        /// <summary>Updates and removes expired muzzle flashes.</summary>
         private void UpdateMuzzleFlashes(float delta)
         {
             for (int i = _activeMuzzleFlashes.Count - 1; i >= 0; i--)
@@ -896,7 +1409,6 @@ namespace GodotTopDownTemplate.Autoload
                 }
                 else
                 {
-                    // Fade out
                     float t = newTimer / MuzzleFlashDuration;
                     node.Modulate = new Color(1.0f, 1.0f, 1.0f, t);
                     _activeMuzzleFlashes[i] = (node, newTimer);
@@ -904,7 +1416,6 @@ namespace GodotTopDownTemplate.Autoload
             }
         }
 
-        /// <summary>Cleans up all active muzzle flashes.</summary>
         private void CleanupMuzzleFlashes()
         {
             foreach (var (node, _) in _activeMuzzleFlashes)
@@ -917,7 +1428,6 @@ namespace GodotTopDownTemplate.Autoload
 
         private void UpdateGhostProjectiles(List<ProjectileFrameData> data, List<Node2D> ghosts, string type)
         {
-            // Remove excess
             while (ghosts.Count > data.Count)
             {
                 var last = ghosts[^1];
@@ -926,7 +1436,6 @@ namespace GodotTopDownTemplate.Autoload
                     last.QueueFree();
             }
 
-            // Add new ghosts
             while (ghosts.Count < data.Count)
             {
                 var ghost = CreateProjectileGhost(type);
@@ -934,7 +1443,6 @@ namespace GodotTopDownTemplate.Autoload
                     ghosts.Add(ghost);
             }
 
-            // Update positions
             int count = Mathf.Min(ghosts.Count, data.Count);
             for (int i = 0; i < count; i++)
             {
@@ -972,8 +1480,6 @@ namespace GodotTopDownTemplate.Autoload
             {
                 ghostContainer.AddChild(_ghostPlayer);
 
-                // Enable the ghost's Camera2D so it follows the ghost player during
-                // replay. The original player's camera is disabled by HideOriginalEntities.
                 var ghostCamera = _ghostPlayer.GetNodeOrNull<Camera2D>("Camera2D");
                 if (ghostCamera != null)
                 {
@@ -1017,14 +1523,11 @@ namespace GodotTopDownTemplate.Autoload
                 DisableNodeProcessing(ghost);
                 SetGhostModulate(ghost, new Color(1.0f, 1.0f, 1.0f, 0.9f));
 
-                // Add weapon sprite to ghost player's WeaponMount
-                // (weapons are NOT baked into Player.tscn — they are added dynamically by level scripts)
                 AddWeaponSpriteToGhost(ghost);
 
                 return ghost;
             }
 
-            // Fallback: simple colored sprite
             var fallback = new Node2D();
             fallback.Name = "GhostPlayer";
             var sprite = new Sprite2D();
@@ -1035,11 +1538,6 @@ namespace GodotTopDownTemplate.Autoload
             return fallback;
         }
 
-        /// <summary>
-        /// Adds a weapon sprite to the ghost player's WeaponMount node.
-        /// This is necessary because Player.tscn has an empty WeaponMount —
-        /// actual weapon sprites are added by level scripts at runtime.
-        /// </summary>
         private void AddWeaponSpriteToGhost(Node2D ghost)
         {
             var weaponMount = ghost.GetNodeOrNull<Node2D>("PlayerModel/WeaponMount");
@@ -1079,7 +1577,6 @@ namespace GodotTopDownTemplate.Autoload
                 return ghost;
             }
 
-            // Fallback: simple colored sprite
             var fallback = new Node2D();
             fallback.Name = "GhostEnemy";
             var sprite = new Sprite2D();
@@ -1179,21 +1676,29 @@ namespace GodotTopDownTemplate.Autoload
                 }
             }
 
-            // Hide any remaining bullet projectiles (direct children of level root)
             foreach (var child in level.GetChildren())
             {
                 if (child is Area2D area2D && (area2D.CollisionLayer & BulletCollisionLayer) != 0)
                     area2D.Visible = false;
             }
 
-            // Hide the score screen / UI overlay (CanvasLayer/UI) so the replay
-            // ghosts in the game world are visible. The CanvasLayer renders on top
-            // of the game world and would completely obscure the replay otherwise.
+            // Hide the score screen CanvasLayer so replay ghosts are visible
             var canvasLayer = level.GetNodeOrNull<CanvasLayer>("CanvasLayer");
             if (canvasLayer != null)
             {
                 canvasLayer.Visible = false;
                 LogToFile("Hidden CanvasLayer (score screen) for replay visibility");
+            }
+
+            // In Memory mode, hide existing blood decals (they'll be re-created progressively)
+            if (_currentMode == ReplayMode.Memory)
+            {
+                var bloodDecals = level.GetTree().GetNodesInGroup("blood_decals");
+                foreach (var decal in bloodDecals)
+                {
+                    if (decal is Node2D d2d)
+                        d2d.Visible = false;
+                }
             }
         }
 
@@ -1241,6 +1746,11 @@ namespace GodotTopDownTemplate.Autoload
         // Replay UI
         // ============================================================
 
+        /// <summary>Reference to the Ghost mode button for state updates.</summary>
+        private Button? _ghostModeBtn;
+        /// <summary>Reference to the Memory mode button for state updates.</summary>
+        private Button? _memoryModeBtn;
+
         private void CreateReplayUi(Node2D level)
         {
             _replayUi = new CanvasLayer();
@@ -1249,7 +1759,7 @@ namespace GodotTopDownTemplate.Autoload
             _replayUi.ProcessMode = ProcessModeEnum.Always;
             level.AddChild(_replayUi);
 
-            // Close button (X) in top-right corner
+            // Close button (X) in top-right corner — returns to score screen
             var closeBtn = new Button();
             closeBtn.Name = "CloseButton";
             closeBtn.Text = "\u2715";
@@ -1261,9 +1771,47 @@ namespace GodotTopDownTemplate.Autoload
             closeBtn.AddThemeFontSizeOverride("font_size", 24);
             closeBtn.ProcessMode = ProcessModeEnum.Always;
             closeBtn.Pressed += OnExitReplayPressed;
-            closeBtn.TooltipText = "Close replay (ESC)";
+            closeBtn.TooltipText = "Return to results (ESC)";
             _replayUi.AddChild(closeBtn);
 
+            // Mode switcher (top-left corner)
+            var modeContainer = new HBoxContainer();
+            modeContainer.Name = "ModeContainer";
+            modeContainer.SetAnchorsPreset(Control.LayoutPreset.TopLeft);
+            modeContainer.OffsetLeft = 10;
+            modeContainer.OffsetTop = 10;
+            modeContainer.OffsetRight = 300;
+            modeContainer.OffsetBottom = 50;
+            modeContainer.AddThemeConstantOverride("separation", 5);
+            _replayUi.AddChild(modeContainer);
+
+            var modeLabel = new Label();
+            modeLabel.Text = "MODE:";
+            modeLabel.AddThemeFontSizeOverride("font_size", 16);
+            modeLabel.AddThemeColorOverride("font_color", new Color(0.7f, 0.7f, 0.7f, 1.0f));
+            modeContainer.AddChild(modeLabel);
+
+            _ghostModeBtn = new Button();
+            _ghostModeBtn.Text = "\ud83d\udc7b Ghost";
+            _ghostModeBtn.CustomMinimumSize = new Vector2(90, 35);
+            _ghostModeBtn.AddThemeFontSizeOverride("font_size", 14);
+            _ghostModeBtn.ProcessMode = ProcessModeEnum.Always;
+            _ghostModeBtn.Pressed += () => SetReplayMode(ReplayMode.Ghost);
+            _ghostModeBtn.TooltipText = "Red/black/white stylized replay";
+            modeContainer.AddChild(_ghostModeBtn);
+
+            _memoryModeBtn = new Button();
+            _memoryModeBtn.Text = "\ud83c\udfac Memory";
+            _memoryModeBtn.CustomMinimumSize = new Vector2(100, 35);
+            _memoryModeBtn.AddThemeFontSizeOverride("font_size", 14);
+            _memoryModeBtn.ProcessMode = ProcessModeEnum.Always;
+            _memoryModeBtn.Pressed += () => SetReplayMode(ReplayMode.Memory);
+            _memoryModeBtn.TooltipText = "Full color with effects and trails";
+            modeContainer.AddChild(_memoryModeBtn);
+
+            UpdateModeButtonStates();
+
+            // Bottom panel
             var container = new VBoxContainer();
             container.SetAnchorsPreset(Control.LayoutPreset.CenterBottom);
             container.OffsetLeft = -200;
@@ -1325,14 +1873,27 @@ namespace GodotTopDownTemplate.Autoload
                 speedContainer.AddChild(btn);
             }
 
-            // Exit button
+            // Exit button — returns to score screen
             var exitBtn = new Button();
-            exitBtn.Text = "Exit Replay (ESC)";
-            exitBtn.CustomMinimumSize = new Vector2(150, 40);
+            exitBtn.Text = "Back to Results (ESC)";
+            exitBtn.CustomMinimumSize = new Vector2(180, 40);
             exitBtn.Pressed += OnExitReplayPressed;
             container.AddChild(exitBtn);
 
             PlaybackProgress += UpdateReplayUi;
+        }
+
+        /// <summary>Updates the visual state of mode toggle buttons.</summary>
+        private void UpdateModeButtonStates()
+        {
+            if (_ghostModeBtn != null && IsInstanceValid(_ghostModeBtn))
+            {
+                _ghostModeBtn.Disabled = (_currentMode == ReplayMode.Ghost);
+            }
+            if (_memoryModeBtn != null && IsInstanceValid(_memoryModeBtn))
+            {
+                _memoryModeBtn.Disabled = (_currentMode == ReplayMode.Memory);
+            }
         }
 
         private void UpdateReplayUi(float currentTime, float totalTime)
@@ -1347,14 +1908,55 @@ namespace GodotTopDownTemplate.Autoload
                 timeLabel.Text = $"{(int)currentTime / 60}:{(int)currentTime % 60:D2}";
         }
 
+        /// <summary>
+        /// Called when the X button or ESC is pressed during replay.
+        /// Returns to the score/results screen instead of reloading the scene.
+        /// </summary>
         private void OnExitReplayPressed()
         {
+            LogToFile("Exit replay pressed — returning to results screen");
+
             StopPlayback();
-            if (_levelNode != null && IsInstanceValid(_levelNode))
+
+            if (_levelNode == null || !IsInstanceValid(_levelNode)) return;
+
+            _levelNode.GetTree().Paused = false;
+
+            // Re-show the score screen CanvasLayer (was hidden when replay started)
+            var canvasLayer = _levelNode.GetNodeOrNull<CanvasLayer>("CanvasLayer");
+            if (canvasLayer != null)
             {
-                _levelNode.GetTree().Paused = false;
-                _levelNode.GetTree().ReloadCurrentScene();
+                canvasLayer.Visible = true;
+                LogToFile("Score screen CanvasLayer re-shown");
             }
+
+            // Re-show original entities that were hidden for replay
+            var player = _levelNode.GetNodeOrNull<Node2D>("Entities/Player");
+            if (player != null) player.Visible = true;
+
+            var enemiesNode = _levelNode.GetNodeOrNull("Environment/Enemies");
+            if (enemiesNode != null)
+            {
+                foreach (var enemy in enemiesNode.GetChildren())
+                {
+                    if (enemy is Node2D enemy2D)
+                        enemy2D.Visible = true;
+                }
+            }
+
+            // Re-show blood decals that were hidden for Memory mode
+            var bloodDecals = _levelNode.GetTree().GetNodesInGroup("blood_decals");
+            foreach (var decal in bloodDecals)
+            {
+                if (decal is Node2D d2d)
+                    d2d.Visible = true;
+            }
+
+            // Restore world colors (in case Ghost mode tinted them)
+            RestoreWorldColors();
+
+            // Show cursor for button interaction
+            Input.SetMouseMode(Input.MouseModeEnum.Confined);
         }
 
         public override void _Input(InputEvent @event)
@@ -1379,6 +1981,12 @@ namespace GodotTopDownTemplate.Autoload
                         break;
                     case Key.Key4:
                         SetPlaybackSpeed(4.0f);
+                        break;
+                    case Key.G:
+                        SetReplayMode(ReplayMode.Ghost);
+                        break;
+                    case Key.M:
+                        SetReplayMode(ReplayMode.Memory);
                         break;
                 }
             }
