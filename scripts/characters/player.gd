@@ -193,7 +193,10 @@ var _is_stunned: bool = false
 var _stun_timer: float = 0.0
 
 ## Stun duration in seconds when hit by a bullet (Issue #592).
-const STUN_DURATION: float = 0.5
+const STUN_DURATION: float = 1.0
+
+## Label for displaying stun status indicator (Issue #592).
+var _stun_label: Label = null
 
 
 func _ready() -> void:
@@ -332,6 +335,9 @@ func _physics_process(delta: float) -> void:
 			_is_stunned = false
 			_stun_timer = 0.0
 			FileLogger.info("[Player] Stun ended (Issue #592)")
+
+	# Update stun debug indicator (Issue #592)
+	_update_stun_indicator()
 
 	# Detect weapon pose after waiting a few frames for level scripts to add weapons
 	if not _weapon_pose_applied:
@@ -2342,6 +2348,30 @@ func _on_invincibility_toggled(enabled: bool) -> void:
 func _on_debug_mode_toggled(enabled: bool) -> void:
 	_debug_mode_enabled = enabled
 	queue_redraw()
+
+
+## Updates the visual indicator for stun status (Issue #592).
+## Shows "СТАН (Xms)" label above the player when stunned and debug mode is on.
+func _update_stun_indicator() -> void:
+	# Create label if it doesn't exist
+	if _stun_label == null:
+		_stun_label = Label.new()
+		_stun_label.name = "StunLabel"
+		_stun_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_stun_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		_stun_label.position = Vector2(-60, -60)
+		_stun_label.size = Vector2(120, 30)
+		_stun_label.add_theme_color_override("font_color", Color(1.0, 0.2, 0.2, 1.0))
+		_stun_label.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.0, 1.0))
+		_stun_label.add_theme_font_size_override("font_size", 14)
+		_stun_label.add_theme_constant_override("outline_size", 3)
+		add_child(_stun_label)
+
+	var show_stun := _is_stunned and _debug_mode_enabled
+	_stun_label.visible = show_stun
+	if show_stun:
+		var remaining_ms := int(_stun_timer * 1000)
+		_stun_label.text = "СТАН (%dms)" % remaining_ms
 
 
 ## Draw grenade throw trajectory visualization.

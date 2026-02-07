@@ -222,7 +222,12 @@ public partial class Player : BaseCharacter
     /// <summary>
     /// Stun duration in seconds when hit by a bullet (Issue #592).
     /// </summary>
-    private const float StunDuration = 0.5f;
+    private const float StunDuration = 1.0f;
+
+    /// <summary>
+    /// Label for displaying stun status indicator (Issue #592).
+    /// </summary>
+    private Label? _stunLabel = null;
 
     /// <summary>
     /// Label for displaying invincibility mode indicator.
@@ -1047,6 +1052,9 @@ public partial class Player : BaseCharacter
                 LogToFile("[Player] Stun ended (Issue #592)");
             }
         }
+
+        // Update stun debug indicator (Issue #592)
+        UpdateStunIndicator();
 
         // Detect weapon pose after waiting a few frames for level scripts to add weapons
         if (!_weaponPoseApplied)
@@ -3836,6 +3844,43 @@ public partial class Player : BaseCharacter
 
         // Show/hide based on invincibility state
         _invincibilityLabel.Visible = _invincibilityEnabled;
+    }
+
+    /// <summary>
+    /// Updates the visual indicator for stun status (Issue #592).
+    /// Shows "СТАН (Xms)" label above the player when stunned and debug mode is on.
+    /// </summary>
+    private void UpdateStunIndicator()
+    {
+        // Create label if it doesn't exist
+        if (_stunLabel == null)
+        {
+            _stunLabel = new Label();
+            _stunLabel.Name = "StunLabel";
+            _stunLabel.HorizontalAlignment = HorizontalAlignment.Center;
+            _stunLabel.VerticalAlignment = VerticalAlignment.Center;
+
+            // Position above the player (below invincibility label)
+            _stunLabel.Position = new Vector2(-60, -60);
+            _stunLabel.Size = new Vector2(120, 30);
+
+            // Style: red color with black outline for visibility
+            _stunLabel.AddThemeColorOverride("font_color", new Color(1.0f, 0.2f, 0.2f, 1.0f));
+            _stunLabel.AddThemeColorOverride("font_outline_color", new Color(0.0f, 0.0f, 0.0f, 1.0f));
+            _stunLabel.AddThemeFontSizeOverride("font_size", 14);
+            _stunLabel.AddThemeConstantOverride("outline_size", 3);
+
+            AddChild(_stunLabel);
+        }
+
+        // Show when stunned AND debug mode is on
+        bool showStun = _isStunned && _debugModeEnabled;
+        _stunLabel.Visible = showStun;
+        if (showStun)
+        {
+            int remainingMs = (int)(_stunTimer * 1000);
+            _stunLabel.Text = $"СТАН ({remainingMs}ms)";
+        }
     }
 
     /// <summary>
