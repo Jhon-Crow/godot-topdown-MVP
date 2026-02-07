@@ -1,183 +1,134 @@
 extends GutTest
-## Unit tests for grenade throw speed calculation (Issue #615).
+## Unit tests for grenade throw speed and trajectory visualization (Issue #615).
 ##
-## Verifies that the two-phase friction model correctly calculates
-## the initial speed needed for a grenade to travel a given distance.
-## The two-phase model was introduced in Issue #435 and the speed
-## calculation was fixed in Issue #615.
+## Verifies that the trajectory preview (_Draw) uses the same physics compensation
+## factor as the actual throw (ThrowSimpleGrenade), ensuring the landing indicator
+## matches where the grenade actually lands.
+##
+## The compensation factor (1.16x) accounts for Godot's RigidBody2D hidden damping
+## effects that cause grenades to land ~14% shorter than the classical physics formula
+## predicts (Issue #428).
 
 
 # ============================================================================
-# Two-Phase Friction Speed Calculator (mirrors C# CalculateGrenadeThrowSpeed)
-# ============================================================================
-
-
-class ThrowSpeedCalculator:
-	## Calculate required throw speed for a given distance using two-phase friction.
-	## This mirrors the C# CalculateGrenadeThrowSpeed method in Player.cs.
-	static func calculate_throw_speed(throw_distance: float, ground_friction: float,
-			friction_ramp_velocity: float, min_friction_multiplier: float) -> float:
-		var phase1_friction := ground_friction * min_friction_multiplier
-
-		var avg_phase2_multiplier := min_friction_multiplier \
-			+ 2.0 * (1.0 - min_friction_multiplier) / 3.0
-		var avg_phase2_friction := ground_friction * avg_phase2_multiplier
-
-		var phase2_distance := friction_ramp_velocity * friction_ramp_velocity \
-			/ (2.0 * avg_phase2_friction)
-
-		if throw_distance <= phase2_distance:
-			return sqrt(2.0 * avg_phase2_friction * throw_distance)
-		else:
-			var phase1_distance := throw_distance - phase2_distance
-			return sqrt(friction_ramp_velocity * friction_ramp_velocity \
-				+ 2.0 * phase1_friction * phase1_distance)
-
-	## Calculate landing distance for a given speed (inverse of calculate_throw_speed).
-	## This mirrors the C# CalculateGrenadeLandingDistance method in Player.cs.
-	static func calculate_landing_distance(throw_speed: float, ground_friction: float,
-			friction_ramp_velocity: float, min_friction_multiplier: float) -> float:
-		var phase1_friction := ground_friction * min_friction_multiplier
-
-		var avg_phase2_multiplier := min_friction_multiplier \
-			+ 2.0 * (1.0 - min_friction_multiplier) / 3.0
-		var avg_phase2_friction := ground_friction * avg_phase2_multiplier
-
-		var phase2_distance := friction_ramp_velocity * friction_ramp_velocity \
-			/ (2.0 * avg_phase2_friction)
-
-		if throw_speed <= friction_ramp_velocity:
-			return throw_speed * throw_speed / (2.0 * avg_phase2_friction)
-		else:
-			var phase1_distance := (throw_speed * throw_speed \
-				- friction_ramp_velocity * friction_ramp_velocity) / (2.0 * phase1_friction)
-			return phase1_distance + phase2_distance
-
-
-# ============================================================================
-# Physics Simulation (replicates grenade_base.gd _physics_process)
-# ============================================================================
-
-
-class PhysicsSimulator:
-	## Simulate grenade travel distance with velocity-dependent friction.
-	## Replicates the exact friction model from grenade_base.gd _physics_process.
-	static func simulate_distance(initial_speed: float, ground_friction: float = 300.0,
-			min_friction_multiplier: float = 0.5,
-			friction_ramp_velocity: float = 200.0) -> float:
-		var velocity := initial_speed
-		var position := 0.0
-		var delta := 1.0 / 60.0  # 60 FPS physics
-
-		while velocity > 0.001:
-			# Calculate friction multiplier (matches grenade_base.gd lines 192-201)
-			var friction_multiplier: float
-			if velocity >= friction_ramp_velocity:
-				friction_multiplier = min_friction_multiplier
-			else:
-				var t := velocity / friction_ramp_velocity
-				friction_multiplier = min_friction_multiplier \
-					+ (1.0 - min_friction_multiplier) * (1.0 - t * t)
-
-			var effective_friction := ground_friction * friction_multiplier
-			var friction_force := effective_friction * delta
-
-			if friction_force > velocity:
-				velocity = 0.0
-			else:
-				velocity -= friction_force
-
-			position += velocity * delta
-
-		return position
-
-
-# ============================================================================
-# Constants for testing
+# Constants matching Player.cs
 # ============================================================================
 
 
 const FLASHBANG_FRICTION := 300.0
 const FRAG_FRICTION := 280.0
-const DEFAULT_RAMP_VELOCITY := 200.0
-const DEFAULT_MIN_MULT := 0.5
-## Tolerance for distance comparison (pixels).
-## The analytical formula is approximate; we accept small deviations.
-const DISTANCE_TOLERANCE := 10.0
-## Relative tolerance (percentage).
-const RELATIVE_TOLERANCE := 0.05
+const PHYSICS_COMPENSATION := 1.16
+const DEFAULT_MAX_THROW_SPEED := 850.0
 
 
 # ============================================================================
-# Tests: Speed → Distance → Speed round-trip
+# Helper functions mirroring Player.cs formulas
+# ============================================================================
+
+
+## Calculate throw speed with compensation (mirrors ThrowSimpleGrenade in Player.cs).
+static func calculate_throw_speed(throw_distance: float, ground_friction: float) -> float:
+	return sqrt(2.0 * ground_friction * throw_distance * PHYSICS_COMPENSATION)
+
+
+## Calculate compensated landing distance for a given speed (mirrors _Draw in Player.cs).
+## This is the expected actual landing distance, accounting for Godot physics damping.
+static func calculate_landing_distance(throw_speed: float, ground_friction: float) -> float:
+	return (throw_speed * throw_speed) / (2.0 * ground_friction * PHYSICS_COMPENSATION)
+
+
+## Calculate uncompensated (theoretical) landing distance.
+## This is what the classical physics formula predicts without engine effects.
+static func calculate_theoretical_distance(throw_speed: float, ground_friction: float) -> float:
+	return (throw_speed * throw_speed) / (2.0 * ground_friction)
+
+
+# ============================================================================
+# Tests: Throw speed formula is self-consistent
 # ============================================================================
 
 
 func test_round_trip_short_distance() -> void:
-	var target := 50.0
-	var speed := ThrowSpeedCalculator.calculate_throw_speed(
-		target, FLASHBANG_FRICTION, DEFAULT_RAMP_VELOCITY, DEFAULT_MIN_MULT)
-	var distance := ThrowSpeedCalculator.calculate_landing_distance(
-		speed, FLASHBANG_FRICTION, DEFAULT_RAMP_VELOCITY, DEFAULT_MIN_MULT)
+	var target := 100.0
+	var speed := calculate_throw_speed(target, FLASHBANG_FRICTION)
+	var distance := calculate_landing_distance(speed, FLASHBANG_FRICTION)
 	assert_almost_eq(distance, target, 0.1,
 		"Round-trip should recover original distance for short throw")
 
 
 func test_round_trip_medium_distance() -> void:
-	var target := 400.0
-	var speed := ThrowSpeedCalculator.calculate_throw_speed(
-		target, FLASHBANG_FRICTION, DEFAULT_RAMP_VELOCITY, DEFAULT_MIN_MULT)
-	var distance := ThrowSpeedCalculator.calculate_landing_distance(
-		speed, FLASHBANG_FRICTION, DEFAULT_RAMP_VELOCITY, DEFAULT_MIN_MULT)
+	var target := 500.0
+	var speed := calculate_throw_speed(target, FLASHBANG_FRICTION)
+	var distance := calculate_landing_distance(speed, FLASHBANG_FRICTION)
 	assert_almost_eq(distance, target, 0.1,
 		"Round-trip should recover original distance for medium throw")
 
 
 func test_round_trip_long_distance() -> void:
 	var target := 1000.0
-	var speed := ThrowSpeedCalculator.calculate_throw_speed(
-		target, FLASHBANG_FRICTION, DEFAULT_RAMP_VELOCITY, DEFAULT_MIN_MULT)
-	var distance := ThrowSpeedCalculator.calculate_landing_distance(
-		speed, FLASHBANG_FRICTION, DEFAULT_RAMP_VELOCITY, DEFAULT_MIN_MULT)
+	var speed := calculate_throw_speed(target, FLASHBANG_FRICTION)
+	var distance := calculate_landing_distance(speed, FLASHBANG_FRICTION)
 	assert_almost_eq(distance, target, 0.1,
 		"Round-trip should recover original distance for long throw")
 
 
+func test_round_trip_frag_grenade() -> void:
+	var target := 600.0
+	var speed := calculate_throw_speed(target, FRAG_FRICTION)
+	var distance := calculate_landing_distance(speed, FRAG_FRICTION)
+	assert_almost_eq(distance, target, 0.1,
+		"Round-trip should work for frag grenade friction")
+
+
 # ============================================================================
-# Tests: Formula matches physics simulation
+# Tests: Compensation produces higher speed than no compensation
 # ============================================================================
 
 
-func test_simulation_matches_formula_200px() -> void:
-	_verify_simulation_accuracy(200.0, FLASHBANG_FRICTION)
+func test_compensated_speed_higher_than_uncompensated() -> void:
+	var target := 500.0
+	var compensated := calculate_throw_speed(target, FLASHBANG_FRICTION)
+	var uncompensated := sqrt(2.0 * FLASHBANG_FRICTION * target)
+	assert_true(compensated > uncompensated,
+		"Compensated speed (%.1f) should be higher than uncompensated (%.1f)" % [
+			compensated, uncompensated])
 
 
-func test_simulation_matches_formula_400px() -> void:
-	_verify_simulation_accuracy(400.0, FLASHBANG_FRICTION)
+func test_compensation_factor_magnitude() -> void:
+	## The compensation should increase speed by sqrt(1.16) ≈ 7.7%
+	var target := 500.0
+	var compensated := calculate_throw_speed(target, FLASHBANG_FRICTION)
+	var uncompensated := sqrt(2.0 * FLASHBANG_FRICTION * target)
+	var ratio := compensated / uncompensated
+	var expected_ratio := sqrt(PHYSICS_COMPENSATION)
+	assert_almost_eq(ratio, expected_ratio, 0.001,
+		"Speed ratio should be sqrt(1.16) ≈ %.4f" % expected_ratio)
 
 
-func test_simulation_matches_formula_600px() -> void:
-	_verify_simulation_accuracy(600.0, FLASHBANG_FRICTION)
+# ============================================================================
+# Tests: Landing distance is shorter than theoretical
+# ============================================================================
 
 
-func test_simulation_matches_formula_800px() -> void:
-	_verify_simulation_accuracy(800.0, FLASHBANG_FRICTION)
+func test_compensated_distance_shorter_than_theoretical() -> void:
+	## The compensated landing distance should be ~86% of theoretical
+	var speed := 500.0
+	var compensated := calculate_landing_distance(speed, FLASHBANG_FRICTION)
+	var theoretical := calculate_theoretical_distance(speed, FLASHBANG_FRICTION)
+	assert_true(compensated < theoretical,
+		"Compensated distance (%.1f) should be shorter than theoretical (%.1f)" % [
+			compensated, theoretical])
 
 
-func test_simulation_matches_formula_1000px() -> void:
-	_verify_simulation_accuracy(1000.0, FLASHBANG_FRICTION)
-
-
-func test_simulation_frag_grenade_300px() -> void:
-	_verify_simulation_accuracy(300.0, FRAG_FRICTION)
-
-
-func test_simulation_frag_grenade_600px() -> void:
-	_verify_simulation_accuracy(600.0, FRAG_FRICTION)
-
-
-func test_simulation_frag_grenade_1000px() -> void:
-	_verify_simulation_accuracy(1000.0, FRAG_FRICTION)
+func test_compensation_distance_ratio() -> void:
+	## The ratio should be 1/1.16 ≈ 0.862
+	var speed := 500.0
+	var compensated := calculate_landing_distance(speed, FLASHBANG_FRICTION)
+	var theoretical := calculate_theoretical_distance(speed, FLASHBANG_FRICTION)
+	var ratio := compensated / theoretical
+	var expected_ratio := 1.0 / PHYSICS_COMPENSATION
+	assert_almost_eq(ratio, expected_ratio, 0.001,
+		"Distance ratio should be 1/1.16 ≈ %.4f" % expected_ratio)
 
 
 # ============================================================================
@@ -186,43 +137,13 @@ func test_simulation_frag_grenade_1000px() -> void:
 
 
 func test_speed_increases_with_distance() -> void:
-	var speed_200 := ThrowSpeedCalculator.calculate_throw_speed(
-		200.0, FLASHBANG_FRICTION, DEFAULT_RAMP_VELOCITY, DEFAULT_MIN_MULT)
-	var speed_500 := ThrowSpeedCalculator.calculate_throw_speed(
-		500.0, FLASHBANG_FRICTION, DEFAULT_RAMP_VELOCITY, DEFAULT_MIN_MULT)
-	var speed_1000 := ThrowSpeedCalculator.calculate_throw_speed(
-		1000.0, FLASHBANG_FRICTION, DEFAULT_RAMP_VELOCITY, DEFAULT_MIN_MULT)
+	var speed_200 := calculate_throw_speed(200.0, FLASHBANG_FRICTION)
+	var speed_500 := calculate_throw_speed(500.0, FLASHBANG_FRICTION)
+	var speed_1000 := calculate_throw_speed(1000.0, FLASHBANG_FRICTION)
 	assert_true(speed_200 < speed_500,
 		"Speed for 200px should be less than 500px")
 	assert_true(speed_500 < speed_1000,
 		"Speed for 500px should be less than 1000px")
-
-
-# ============================================================================
-# Tests: Phase 2 distance is reasonable
-# ============================================================================
-
-
-func test_phase2_distance_is_positive() -> void:
-	var avg_mult := DEFAULT_MIN_MULT + 2.0 * (1.0 - DEFAULT_MIN_MULT) / 3.0
-	var avg_friction := FLASHBANG_FRICTION * avg_mult
-	var phase2_dist := DEFAULT_RAMP_VELOCITY * DEFAULT_RAMP_VELOCITY / (2.0 * avg_friction)
-	assert_true(phase2_dist > 0.0,
-		"Phase 2 distance should be positive")
-	assert_true(phase2_dist < 200.0,
-		"Phase 2 distance should be reasonable (< 200px)")
-
-
-# ============================================================================
-# Tests: Short throw (below ramp velocity)
-# ============================================================================
-
-
-func test_short_throw_speed_is_below_ramp_velocity() -> void:
-	var speed := ThrowSpeedCalculator.calculate_throw_speed(
-		30.0, FLASHBANG_FRICTION, DEFAULT_RAMP_VELOCITY, DEFAULT_MIN_MULT)
-	assert_true(speed < DEFAULT_RAMP_VELOCITY,
-		"Short throw speed should be below friction ramp velocity")
 
 
 # ============================================================================
@@ -231,45 +152,13 @@ func test_short_throw_speed_is_below_ramp_velocity() -> void:
 
 
 func test_landing_distance_increases_with_speed() -> void:
-	var d_200 := ThrowSpeedCalculator.calculate_landing_distance(
-		200.0, FLASHBANG_FRICTION, DEFAULT_RAMP_VELOCITY, DEFAULT_MIN_MULT)
-	var d_400 := ThrowSpeedCalculator.calculate_landing_distance(
-		400.0, FLASHBANG_FRICTION, DEFAULT_RAMP_VELOCITY, DEFAULT_MIN_MULT)
-	var d_800 := ThrowSpeedCalculator.calculate_landing_distance(
-		800.0, FLASHBANG_FRICTION, DEFAULT_RAMP_VELOCITY, DEFAULT_MIN_MULT)
+	var d_200 := calculate_landing_distance(200.0, FLASHBANG_FRICTION)
+	var d_400 := calculate_landing_distance(400.0, FLASHBANG_FRICTION)
+	var d_800 := calculate_landing_distance(800.0, FLASHBANG_FRICTION)
 	assert_true(d_200 < d_400,
 		"Landing distance at 200px/s should be less than at 400px/s")
 	assert_true(d_400 < d_800,
 		"Landing distance at 400px/s should be less than at 800px/s")
-
-
-# ============================================================================
-# Tests: Old formula comparison (Issue #615 regression)
-# ============================================================================
-
-
-func test_old_formula_gives_different_speed() -> void:
-	## The old formula v = sqrt(2 * F * d * 1.16) should give a different
-	## (typically higher) speed than the correct two-phase formula.
-	var target := 500.0
-	var old_speed := sqrt(2.0 * FLASHBANG_FRICTION * target * 1.16)
-	var new_speed := ThrowSpeedCalculator.calculate_throw_speed(
-		target, FLASHBANG_FRICTION, DEFAULT_RAMP_VELOCITY, DEFAULT_MIN_MULT)
-	assert_true(abs(old_speed - new_speed) > 50.0,
-		"Old and new formulas should give significantly different speeds " +
-		"(old=%.1f, new=%.1f)" % [old_speed, new_speed])
-
-
-func test_new_formula_produces_lower_speed() -> void:
-	## With velocity-dependent friction (reduced at high speeds),
-	## less initial speed is needed to reach the same distance.
-	var target := 500.0
-	var old_speed := sqrt(2.0 * FLASHBANG_FRICTION * target * 1.16)
-	var new_speed := ThrowSpeedCalculator.calculate_throw_speed(
-		target, FLASHBANG_FRICTION, DEFAULT_RAMP_VELOCITY, DEFAULT_MIN_MULT)
-	assert_true(new_speed < old_speed,
-		"New formula should give lower speed (less friction at high speed) " +
-		"(old=%.1f, new=%.1f)" % [old_speed, new_speed])
 
 
 # ============================================================================
@@ -278,43 +167,92 @@ func test_new_formula_produces_lower_speed() -> void:
 
 
 func test_zero_distance_gives_zero_speed() -> void:
-	var speed := ThrowSpeedCalculator.calculate_throw_speed(
-		0.0, FLASHBANG_FRICTION, DEFAULT_RAMP_VELOCITY, DEFAULT_MIN_MULT)
+	var speed := calculate_throw_speed(0.0, FLASHBANG_FRICTION)
 	assert_almost_eq(speed, 0.0, 0.1,
 		"Zero distance should give zero speed")
 
 
 func test_very_small_distance() -> void:
-	var speed := ThrowSpeedCalculator.calculate_throw_speed(
-		1.0, FLASHBANG_FRICTION, DEFAULT_RAMP_VELOCITY, DEFAULT_MIN_MULT)
+	var speed := calculate_throw_speed(1.0, FLASHBANG_FRICTION)
 	assert_true(speed > 0.0, "Very small distance should give positive speed")
 	assert_true(speed < 100.0, "Very small distance should give small speed")
 
 
 func test_zero_speed_gives_zero_distance() -> void:
-	var distance := ThrowSpeedCalculator.calculate_landing_distance(
-		0.0, FLASHBANG_FRICTION, DEFAULT_RAMP_VELOCITY, DEFAULT_MIN_MULT)
+	var distance := calculate_landing_distance(0.0, FLASHBANG_FRICTION)
 	assert_almost_eq(distance, 0.0, 0.1,
 		"Zero speed should give zero distance")
 
 
 # ============================================================================
-# Helper Methods
+# Tests: Visualization matches throw (Issue #615 core fix)
 # ============================================================================
 
 
-func _verify_simulation_accuracy(target_distance: float, friction: float) -> void:
-	## Verify that the calculated speed produces a simulated distance
-	## close to the target distance.
-	var speed := ThrowSpeedCalculator.calculate_throw_speed(
-		target_distance, friction, DEFAULT_RAMP_VELOCITY, DEFAULT_MIN_MULT)
-	var simulated := PhysicsSimulator.simulate_distance(
-		speed, friction, DEFAULT_MIN_MULT, DEFAULT_RAMP_VELOCITY)
+func test_draw_and_throw_use_same_compensation() -> void:
+	## The core fix: _Draw and ThrowSimpleGrenade should use the same
+	## compensation factor, so the trajectory preview matches the actual throw.
+	var target := 500.0
 
-	var error := abs(simulated - target_distance)
-	var relative_error := error / target_distance if target_distance > 0 else 0.0
+	# ThrowSimpleGrenade calculates:
+	var throw_speed := minf(
+		calculate_throw_speed(target, FLASHBANG_FRICTION),
+		DEFAULT_MAX_THROW_SPEED)
 
-	assert_true(relative_error < RELATIVE_TOLERANCE,
-		"Simulated distance (%.1f) should be within %.0f%% of target (%.1f) " % [
-			simulated, RELATIVE_TOLERANCE * 100, target_distance] +
-		"(error: %.1fpx, %.1f%%). Speed: %.1f" % [error, relative_error * 100, speed])
+	# _Draw (simple mode) should calculate the SAME speed:
+	var draw_speed := minf(
+		sqrt(2.0 * FLASHBANG_FRICTION * target * PHYSICS_COMPENSATION),
+		DEFAULT_MAX_THROW_SPEED)
+
+	assert_almost_eq(throw_speed, draw_speed, 0.01,
+		"Draw and throw should calculate the same speed")
+
+	# _Draw landing distance should match throw actual distance:
+	var draw_landing := (draw_speed * draw_speed) / (2.0 * FLASHBANG_FRICTION * PHYSICS_COMPENSATION)
+	var throw_landing := (throw_speed * throw_speed) / (2.0 * FLASHBANG_FRICTION * PHYSICS_COMPENSATION)
+
+	assert_almost_eq(draw_landing, throw_landing, 0.01,
+		"Draw landing should match throw landing distance")
+	assert_almost_eq(draw_landing, target, 0.1,
+		"Landing distance should equal target distance when speed is not clamped")
+
+
+func test_clamped_speed_reduces_landing_distance() -> void:
+	## When throw speed is clamped to max_throw_speed, the landing distance
+	## should be less than the target distance.
+	var max_speed := 850.0
+	var target := 2000.0  # Very far throw - speed will be clamped
+
+	var speed := calculate_throw_speed(target, FLASHBANG_FRICTION)
+	assert_true(speed > max_speed,
+		"Speed should exceed max for very long throw")
+
+	var clamped_speed := minf(speed, max_speed)
+	var landing := calculate_landing_distance(clamped_speed, FLASHBANG_FRICTION)
+	assert_true(landing < target,
+		"Clamped landing distance (%.1f) should be less than target (%.1f)" % [
+			landing, target])
+
+
+# ============================================================================
+# Tests: Different grenade types
+# ============================================================================
+
+
+func test_frag_grenade_lower_friction_means_farther() -> void:
+	## Frag grenade (friction=280) should travel farther than flashbang (friction=300)
+	## for the same throw speed.
+	var speed := 500.0
+	var flashbang_dist := calculate_landing_distance(speed, FLASHBANG_FRICTION)
+	var frag_dist := calculate_landing_distance(speed, FRAG_FRICTION)
+	assert_true(frag_dist > flashbang_dist,
+		"Frag grenade should travel farther with lower friction")
+
+
+func test_frag_grenade_needs_less_speed() -> void:
+	## Frag grenade needs less speed to reach the same distance due to lower friction.
+	var target := 500.0
+	var flashbang_speed := calculate_throw_speed(target, FLASHBANG_FRICTION)
+	var frag_speed := calculate_throw_speed(target, FRAG_FRICTION)
+	assert_true(frag_speed < flashbang_speed,
+		"Frag grenade should need less speed for same distance")

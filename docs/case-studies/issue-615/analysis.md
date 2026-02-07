@@ -1,120 +1,83 @@
-# Issue #615: Grenades Not Reaching Crosshair (Redux)
+# Issue #615: Grenades Not Reaching Crosshair
 
 ## Summary
 
 **Issue:** Grenades in simple throwing mode don't reach the crosshair target position.
 
-**Root Cause:** The throw speed calculation formula in `Player.cs` assumed constant friction, but the actual grenade physics (introduced in Issue #435) uses velocity-dependent friction with reduced friction at high speeds. The old compensation factor of 1.16x was calibrated for the pre-#435 constant friction model and became incorrect after the friction model changed.
+**Root Cause:** The trajectory visualization (`_Draw`) did not include the 1.16x physics compensation factor that `ThrowSimpleGrenade()` uses. This caused the landing indicator to show a different position than where the grenade actually lands. Additionally, the logging of actual distance was inaccurate.
 
-**Solution:** Replaced the old formula `v = sqrt(2 * F * d * 1.16)` with a proper two-phase friction model that calculates speed based on:
-- Phase 1 (high speed): friction = groundFriction * minFrictionMultiplier (150 px/s²)
-- Phase 2 (low speed): friction ramps from 150 to 300 px/s² via quadratic curve
+**Solution:** Added the same 1.16x physics compensation factor to the `_Draw()` trajectory preview and landing distance logging, ensuring the landing indicator matches the actual throw behavior.
 
 ## Timeline
 
 1. **Issue #398** (2026-02-03): Fixed double-damping, spawn offset, property reading
-2. **Issue #428** (2026-02-03): Added `physicsCompensationFactor = 1.16f` to compensate for Godot physics damping (calibrated with **constant friction** model)
-3. **Issue #435** (2026-02-04): Introduced **velocity-dependent friction** in grenade_base.gd - reduced friction at high speeds (`min_friction_multiplier = 0.5`). This changed the physics model but **did not update** the speed calculation formula in Player.cs.
-4. **Issue #615** (2026-02-07): User reports grenades not reaching crosshair again
+2. **Issue #428** (2026-02-03): Added `physicsCompensationFactor = 1.16f` to compensate for Godot's RigidBody2D hidden damping effects (~14% undershoot). This was calibrated empirically.
+3. **Issue #435** (2026-02-04): Introduced **velocity-dependent friction** in grenade_base.gd — reduced friction at high speeds (`min_friction_multiplier = 0.5`). The speed calculation formula in Player.cs was NOT updated.
+4. **Issue #615** (2026-02-07): User reports grenades not reaching crosshair
 
 ## Root Cause Analysis
 
-### The Formula Mismatch
+### The Mismatch Between Throw and Visualization
 
-**Player.cs speed calculation (pre-fix):**
+**ThrowSimpleGrenade** (line 2577-2578):
 ```csharp
-// Assumes constant friction = groundFriction (300 px/s²)
-float requiredSpeed = Mathf.Sqrt(2.0f * groundFriction * throwDistance * 1.16f);
+const float physicsCompensationFactor = 1.16f;
+float requiredSpeed = Mathf.Sqrt(2.0f * groundFriction * throwDistance * physicsCompensationFactor);
 ```
 
-**Actual grenade physics (grenade_base.gd):**
-```gdscript
-# At high speeds (>= 200 px/s): friction = 300 * 0.5 = 150 px/s²
-# At low speeds (< 200 px/s): friction ramps from 150 to 300 via quadratic curve
-if current_speed >= friction_ramp_velocity:
-    friction_multiplier = min_friction_multiplier  # 0.5
-else:
-    var t := current_speed / friction_ramp_velocity
-    friction_multiplier = min_friction_multiplier + (1.0 - min_friction_multiplier) * (1.0 - t * t)
+**_Draw simple aiming** (line 3930, BEFORE fix):
+```csharp
+// Missing compensation factor!
+float requiredSpeed = Mathf.Sqrt(2.0f * groundFriction * throwDistance);
 ```
 
-### The Physics
+The throw used 1.16x compensation to account for Godot's hidden physics damping, giving the grenade ~7.7% more speed. But the trajectory preview did NOT include this compensation, so the landing indicator showed a shorter distance than where the grenade actually landed.
 
-The grenade's flight has two distinct phases:
+### The Logging Issue
 
-**Phase 1 (High Speed → Ramp Velocity):**
-- Constant friction: `F * M = 300 * 0.5 = 150 px/s²`
-- Distance: `d₁ = (v₀² - V_ramp²) / (2 * F * M)`
+The `actualDistance` logged in ThrowSimpleGrenade used:
+```csharp
+float actualDistance = (throwSpeed * throwSpeed) / (2.0f * groundFriction);
+```
+This gave the theoretical distance without compensation, which was ~16% higher than the actual landing distance. After the fix, it correctly reports the compensated distance.
 
-**Phase 2 (Ramp Velocity → Stop):**
-- Variable friction (quadratic ramp from 150 to 300 px/s²)
-- Average effective friction ≈ `F * (M + 2(1-M)/3)` ≈ 216 px/s²
-- Distance: `d₂ ≈ V_ramp² / (2 * avg_friction)` ≈ 92 px (fixed constant)
+### Why the Two-Phase Formula Approach Failed (Previous Attempt)
 
-**Total: `d = d₁ + d₂`**
+The first fix attempt tried to replace the 1.16x compensation with an analytical two-phase friction model. This approach:
+1. Correctly modeled the explicit friction code in `grenade_base.gd`
+2. But **did not account for Godot's hidden RigidBody2D damping effects** (~14% reduction)
+3. Produced **lower speeds** than the original formula (since it assumed lower effective friction)
+4. Combined with the hidden damping, caused **severe undershoot** (~32% of target distance)
 
-### Why the Old Formula Was Wrong
-
-The old formula treated the grenade as having constant friction of 300 px/s² throughout its entire flight. In reality, for most of the flight (at high speeds), friction is only 150 px/s² (50% of nominal). This means:
-
-- The old formula **overestimated** the friction, requiring **too much speed**
-- With the 1.16x compensation factor on top, the calculated speed was even higher
-- The grenade received excessive velocity, overshooting the target
-
-### The Trajectory Visualization Mismatch
-
-An additional bug was found: the trajectory preview (`_Draw()` method) did NOT include the 1.16x compensation factor, while the actual throw did. This meant the landing indicator showed one position, but the grenade actually flew differently.
+The 1.16x compensation factor was empirically calibrated to account for ALL physics effects in the Godot engine, including hidden damping that cannot be analytically predicted. Removing it broke the calibration.
 
 ## Solution
-
-### New Formula
-
-```csharp
-// Phase 1: constant reduced friction (above ramp velocity)
-float phase1Friction = groundFriction * minFrictionMultiplier;
-
-// Phase 2: average friction for the variable zone
-float avgPhase2Multiplier = minFrictionMultiplier
-    + 2.0f * (1.0f - minFrictionMultiplier) / 3.0f;
-float avgPhase2Friction = groundFriction * avgPhase2Multiplier;
-
-// Phase 2 distance (constant)
-float phase2Distance = frictionRampVelocity² / (2 * avgPhase2Friction);
-
-if (throwDistance <= phase2Distance)
-    requiredSpeed = sqrt(2 * avgPhase2Friction * throwDistance);
-else
-    requiredSpeed = sqrt(V_ramp² + 2 * phase1Friction * (throwDistance - phase2Distance));
-```
 
 ### Files Modified
 
 1. **`Scripts/Characters/Player.cs`**:
-   - Added `CalculateGrenadeThrowSpeed()` helper method
-   - Added `CalculateGrenadeLandingDistance()` helper method (inverse)
-   - Updated `ThrowSimpleGrenade()` to use new formula
-   - Updated `_Draw()` trajectory visualization to use new formula
-   - Both throw and visualization now read `friction_ramp_velocity` and `min_friction_multiplier` from the grenade
-
-2. **`tests/unit/test_grenade_throw_speed.gd`**: 20 unit tests verifying formula accuracy
+   - **`_Draw()` simple aiming**: Added 1.16x compensation to speed calculation and landing distance, matching `ThrowSimpleGrenade()`
+   - **`_Draw()` complex aiming**: Added 1.16x compensation to landing distance calculation
+   - **`ThrowSimpleGrenade()` logging**: Updated `actualDistance` to use compensated formula for accurate logging
 
 ### Verification
 
-The formula was verified against a physics simulation (experiments/simulate_grenade_physics.py) that replicates the exact friction model from grenade_base.gd:
+The fix ensures:
+- `ThrowSimpleGrenade()` speed: `v = sqrt(2 * F * d * 1.16)` (unchanged)
+- `_Draw()` speed: `v = sqrt(2 * F * d * 1.16)` (was: `v = sqrt(2 * F * d)`, now matches)
+- Landing distance: `d = v² / (2 * F * 1.16)` (was: `d = v² / (2 * F)`, now accounts for damping)
 
-| Target (px) | Formula Speed | Simulated Distance | Error |
-|-------------|--------------|-------------------|-------|
-| 200 | 269.3 | 199.4 | 0.3% |
-| 400 | 364.0 | 398.6 | 0.4% |
-| 600 | 438.8 | 598.0 | 0.3% |
-| 800 | 502.5 | 797.5 | 0.3% |
-| 1000 | 559.0 | 997.0 | 0.3% |
+## Game Log Analysis
 
-The small error (<1%) is from the Phase 2 average friction approximation and discrete time integration effects.
+From the user's game log (`game_log_20260207_212300.txt`):
+- Grenade thrown with speed 424.4 (from the two-phase formula, which was the previous fix attempt)
+- Target distance: 546.9 px
+- Actual landing: ~177 px from spawn
+- The low speed from the two-phase formula combined with Godot's hidden damping caused severe undershoot
 
 ## Lessons Learned
 
-1. **Formula must match physics model**: When the physics model changes (constant → velocity-dependent friction), the speed calculation must be updated simultaneously
-2. **Empirical compensation factors are fragile**: The 1.16x factor was correct for one physics model but became incorrect when the model changed
-3. **Trajectory preview should use the same formula as the throw**: Having two different formulas (with/without compensation) causes visual mismatch
-4. **Two-phase analysis simplifies variable friction**: By splitting into a high-speed constant-friction phase and a low-speed variable-friction phase, we can derive a closed-form formula
+1. **Empirical compensation factors should NOT be removed without in-game testing**: The 1.16x factor accounts for real Godot engine behavior that cannot be analytically modeled
+2. **All code paths must use the same formula**: Throw and visualization formulas must match
+3. **Analytical models need validation against actual engine behavior**: A theoretically correct model can be wrong in practice due to engine-specific effects
+4. **Game log analysis is essential**: The game log from the user clearly showed the distance discrepancy
