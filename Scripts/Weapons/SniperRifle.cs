@@ -45,7 +45,7 @@ public enum BoltActionStep
 /// - 12.7x108mm ammunition dealing 50 damage per shot
 /// - Penetrates through 2 walls and through enemies
 /// - Instant bullet speed with smoky dissipating tracer trail
-/// - Slow turn sensitivity outside aiming (~5x less than normal)
+/// - Very slow turn sensitivity outside aiming (~25x less than normal, heavy weapon)
 /// - 5-round magazine with M16-style swap reload
 /// - Single-shot bolt-action with manual charging sequence (Left→Down→Up→Right)
 /// - Arrow keys are consumed during bolt cycling (WASD still works for movement)
@@ -363,7 +363,8 @@ public partial class SniperRifle : BaseWeapon
 
     /// <summary>
     /// Plays the appropriate ASVK bolt-action sound for the given step.
-    /// Uses dedicated ASVK sounds from assets.
+    /// Uses non-positional audio so the sound volume is constant regardless
+    /// of scope camera offset (fixes issue #565).
     /// </summary>
     /// <param name="step">The bolt-action step number (1-4).</param>
     private void PlayBoltStepSound(int step)
@@ -374,14 +375,14 @@ public partial class SniperRifle : BaseWeapon
             return;
         }
 
-        // Use ASVK-specific bolt action sounds
+        // Use ASVK-specific bolt action sounds (non-positional to avoid scope attenuation)
         if (audioManager.HasMethod("play_asvk_bolt_step"))
         {
-            audioManager.Call("play_asvk_bolt_step", step, GlobalPosition);
+            audioManager.Call("play_asvk_bolt_step", step);
         }
-        else if (audioManager.HasMethod("play_sound_2d"))
+        else if (audioManager.HasMethod("play_sound"))
         {
-            // Direct sound playback fallback
+            // Fallback to non-positional sound playback
             string soundPath = step switch
             {
                 1 => "res://assets/audio/отпирание затвора ASVK (1 шаг зарядки).wav",
@@ -392,7 +393,7 @@ public partial class SniperRifle : BaseWeapon
             };
             if (!string.IsNullOrEmpty(soundPath))
             {
-                audioManager.Call("play_sound_2d", soundPath, GlobalPosition, -3.0f);
+                audioManager.Call("play_sound", soundPath, -3.0f);
             }
         }
     }
@@ -403,13 +404,13 @@ public partial class SniperRifle : BaseWeapon
 
     /// <summary>
     /// Sensitivity reduction factor when not aiming (outside scope/aim mode).
-    /// The rifle rotates approximately 5x slower when just moving without aiming.
+    /// The heavy ASVK rotates very slowly - 25x slower than normal weapons.
     /// </summary>
-    private const float NonAimingSensitivityFactor = 0.2f;
+    private const float NonAimingSensitivityFactor = 0.04f;
 
     /// <summary>
     /// Updates the aim direction and rifle sprite rotation.
-    /// The rifle rotates slowly outside aiming (~5x less sensitivity).
+    /// The heavy rifle rotates very slowly outside aiming (~25x less sensitivity).
     /// </summary>
     private void UpdateAimDirection()
     {
@@ -426,11 +427,11 @@ public partial class SniperRifle : BaseWeapon
         Vector2 direction;
 
         // Apply sensitivity for the sniper rifle
-        // Outside aiming, sensitivity is reduced by 5x (NonAimingSensitivityFactor)
+        // Outside aiming, sensitivity is reduced by 25x (NonAimingSensitivityFactor)
         if (WeaponData != null && WeaponData.Sensitivity > 0)
         {
             float angleDiff = Mathf.Wrap(targetAngle - _currentAimAngle, -Mathf.Pi, Mathf.Pi);
-            // Apply reduced sensitivity: rifle rotates very slowly outside aiming
+            // Apply reduced sensitivity: heavy rifle rotates very slowly outside aiming
             float effectiveSensitivity = WeaponData.Sensitivity * NonAimingSensitivityFactor;
             float rotationSpeed = effectiveSensitivity * 10.0f;
             float delta = (float)GetProcessDeltaTime();
@@ -918,7 +919,7 @@ public partial class SniperRifle : BaseWeapon
         var tracer = new Line2D
         {
             Name = "SniperTracer",
-            Width = 8.0f,
+            Width = 5.0f,
             DefaultColor = new Color(0.8f, 0.8f, 0.8f, 0.7f),
             BeginCapMode = Line2D.LineCapMode.Round,
             EndCapMode = Line2D.LineCapMode.Round,
@@ -974,7 +975,7 @@ public partial class SniperRifle : BaseWeapon
             tracer.DefaultColor = new Color(0.8f, 0.8f, 0.8f, alpha);
 
             // Widen slightly to simulate smoke dissipation
-            tracer.Width = initialWidth + progress * 4.0f;
+            tracer.Width = initialWidth + progress * 3.0f;
 
             // Update gradient alpha
             var gradient = new Gradient();
@@ -999,7 +1000,8 @@ public partial class SniperRifle : BaseWeapon
 
     /// <summary>
     /// Plays the ASVK sniper shot sound via AudioManager.
-    /// Uses dedicated ASVK shot sound from assets.
+    /// Uses non-positional audio so the sound volume is constant regardless
+    /// of scope camera offset (fixes issue #565).
     /// </summary>
     private void PlaySniperShotSound()
     {
@@ -1009,27 +1011,30 @@ public partial class SniperRifle : BaseWeapon
             return;
         }
 
-        // Use ASVK-specific shot sound
+        // Use ASVK-specific shot sound (non-positional to avoid scope attenuation)
         if (audioManager.HasMethod("play_asvk_shot"))
         {
-            audioManager.Call("play_asvk_shot", GlobalPosition);
+            audioManager.Call("play_asvk_shot");
         }
-        else if (audioManager.HasMethod("play_sound_2d"))
+        else if (audioManager.HasMethod("play_sound"))
         {
-            // Direct sound playback fallback
-            audioManager.Call("play_sound_2d", "res://assets/audio/выстрел из ASVK.wav", GlobalPosition, -3.0f);
+            // Fallback to non-positional sound playback
+            audioManager.Call("play_sound", "res://assets/audio/выстрел из ASVK.wav", -3.0f);
         }
     }
 
     /// <summary>
     /// Plays the empty gun click sound.
+    /// Uses non-positional audio so the sound volume is constant regardless
+    /// of scope camera offset (fixes issue #565).
     /// </summary>
     private void PlayEmptyClickSound()
     {
         var audioManager = GetNodeOrNull("/root/AudioManager");
-        if (audioManager != null && audioManager.HasMethod("play_empty_click"))
+        if (audioManager != null && audioManager.HasMethod("play_sound"))
         {
-            audioManager.Call("play_empty_click", GlobalPosition);
+            audioManager.Call("play_sound",
+                "res://assets/audio/кончились патроны в пистолете.wav", -3.0f);
         }
     }
 
@@ -1164,8 +1169,9 @@ public partial class SniperRifle : BaseWeapon
 
     /// <summary>
     /// Maximum scope zoom distance (viewport multiplier).
+    /// Allows zooming up to 4x viewport distance for long-range aiming.
     /// </summary>
-    private const float MaxScopeZoomDistance = 3.0f;
+    private const float MaxScopeZoomDistance = 4.0f;
 
     /// <summary>
     /// Step size for mouse wheel zoom adjustment.
@@ -1182,9 +1188,10 @@ public partial class SniperRifle : BaseWeapon
     /// <summary>
     /// Base mouse sensitivity multiplier when scoped.
     /// The actual multiplier = BaseScopeSensitivityMultiplier * effectiveZoomDistance.
-    /// At 1x zoom, sensitivity is 5x normal. At 2x zoom, 10x. At 3x zoom, 15x.
+    /// High value makes precise aiming more challenging (crosshair moves fast).
+    /// At 1x zoom, sensitivity is 8x normal. At 2x zoom, 16x. At 4x zoom, 32x.
     /// </summary>
-    private const float BaseScopeSensitivityMultiplier = 5.0f;
+    private const float BaseScopeSensitivityMultiplier = 8.0f;
 
     /// <summary>
     /// Current mouse fine-tune offset applied to scope distance in pixels.
