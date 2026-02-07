@@ -32,12 +32,20 @@ class MockRealisticVisibilityComponent:
 	## Whether setup was called.
 	var _setup_called: bool = false
 
+	## Whether unshaded material is applied to player (for laser/grenade visibility).
+	var _unshaded_applied: bool = false
+
+	## Count of children with unshaded material applied.
+	var _unshaded_children_count: int = 0
+
 
 	## Apply the visibility state (enable/disable fog of war).
 	func _apply_visibility_state(enabled: bool) -> void:
 		_is_active = enabled
 		_canvas_modulate_visible = enabled
 		_point_light_visible = enabled
+		_unshaded_applied = enabled
+		_unshaded_children_count = 3 if enabled else 0  # Simulated: weapon, laser, arms
 
 
 	## Setup the visibility system (simulated).
@@ -46,11 +54,18 @@ class MockRealisticVisibilityComponent:
 		_is_active = false
 		_canvas_modulate_visible = false
 		_point_light_visible = false
+		_unshaded_applied = false
+		_unshaded_children_count = 0
 
 
 	## Check if the visibility system is currently active.
 	func is_active() -> bool:
 		return _is_active
+
+
+	## Check if unshaded material is applied.
+	func is_unshaded_applied() -> bool:
+		return _unshaded_applied
 
 
 	## Get the current visibility radius.
@@ -255,3 +270,55 @@ func test_all_visual_elements_consistent() -> void:
 	component._apply_visibility_state(false)
 	assert_eq(component._canvas_modulate_visible, component._point_light_visible,
 		"CanvasModulate and PointLight2D should have same visibility")
+
+
+# ============================================================================
+# Unshaded Material Tests (Laser/Grenade Visibility)
+# ============================================================================
+
+
+func test_unshaded_applied_when_enabled() -> void:
+	component._apply_visibility_state(true)
+
+	assert_true(component.is_unshaded_applied(),
+		"Unshaded material should be applied when night mode is enabled")
+
+
+func test_unshaded_removed_when_disabled() -> void:
+	component._apply_visibility_state(true)
+	component._apply_visibility_state(false)
+
+	assert_false(component.is_unshaded_applied(),
+		"Unshaded material should be removed when night mode is disabled")
+
+
+func test_unshaded_children_count_when_enabled() -> void:
+	component._apply_visibility_state(true)
+
+	assert_true(component._unshaded_children_count > 0,
+		"Should have children with unshaded material when enabled")
+
+
+func test_unshaded_children_count_when_disabled() -> void:
+	component._apply_visibility_state(true)
+	component._apply_visibility_state(false)
+
+	assert_eq(component._unshaded_children_count, 0,
+		"Should have no children with unshaded material when disabled")
+
+
+func test_unshaded_default_not_applied() -> void:
+	assert_false(component.is_unshaded_applied(),
+		"Unshaded material should not be applied by default")
+
+
+func test_unshaded_toggle_consistency() -> void:
+	# Enable - unshaded should be applied
+	component._apply_visibility_state(true)
+	assert_true(component.is_unshaded_applied(), "Should be applied after enable")
+	assert_true(component._canvas_modulate_visible, "Canvas modulate should be visible")
+
+	# Disable - unshaded should be removed
+	component._apply_visibility_state(false)
+	assert_false(component.is_unshaded_applied(), "Should be removed after disable")
+	assert_false(component._canvas_modulate_visible, "Canvas modulate should be hidden")
