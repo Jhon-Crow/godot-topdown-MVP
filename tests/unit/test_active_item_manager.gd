@@ -350,12 +350,20 @@ func test_multiple_type_changes() -> void:
 class MockFlashlightEffect:
 	## Whether the flashlight is on.
 	var _is_on: bool = false
+	## Count of sound plays for testing.
+	var sound_play_count: int = 0
 
 	func turn_on() -> void:
+		if _is_on:
+			return
 		_is_on = true
+		sound_play_count += 1
 
 	func turn_off() -> void:
+		if not _is_on:
+			return
 		_is_on = false
+		sound_play_count += 1
 
 	func is_on() -> bool:
 		return _is_on
@@ -410,6 +418,30 @@ func test_flashlight_double_turn_off() -> void:
 	effect.turn_off()  # Idempotent
 	assert_false(effect.is_on(),
 		"Double turn_off should keep flashlight off")
+
+
+func test_flashlight_sound_plays_on_toggle() -> void:
+	var effect := MockFlashlightEffect.new()
+	assert_eq(effect.sound_play_count, 0, "No sounds initially")
+
+	effect.turn_on()
+	assert_eq(effect.sound_play_count, 1, "Sound should play on turn_on")
+
+	effect.turn_off()
+	assert_eq(effect.sound_play_count, 2, "Sound should play on turn_off")
+
+
+func test_flashlight_no_sound_on_idempotent_calls() -> void:
+	var effect := MockFlashlightEffect.new()
+	effect.turn_on()
+	effect.turn_on()  # Already on, should not play sound
+	assert_eq(effect.sound_play_count, 1,
+		"Idempotent turn_on should not play extra sound")
+
+	effect.turn_off()
+	effect.turn_off()  # Already off, should not play sound
+	assert_eq(effect.sound_play_count, 2,
+		"Idempotent turn_off should not play extra sound")
 
 
 # ============================================================================
