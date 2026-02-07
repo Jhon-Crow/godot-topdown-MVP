@@ -23,9 +23,9 @@ anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
 offset_left = -150.0
-offset_top = -190.0
+offset_top = -230.0
 offset_right = 150.0
-offset_bottom = 190.0
+offset_bottom = 230.0
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -45,8 +45,24 @@ layout_mode = 2
 text = "Difficulty"
 horizontal_alignment = 1
 
+[node name="NightModeContainer" type="HBoxContainer" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="NightModeLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer/NightModeContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Night Mode"
+
+[node name="NightModeCheckbox" type="CheckButton" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer/NightModeContainer"]
+layout_mode = 2
+
 [node name="Separator" type="HSeparator" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
+
+[node name="PowerFantasyButton" type="Button" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(200, 40)
+layout_mode = 2
+text = "Power Fantasy"
 
 [node name="EasyButton" type="Button" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
 custom_minimum_size = Vector2(200, 40)
@@ -62,11 +78,6 @@ text = "Normal (Selected)"
 custom_minimum_size = Vector2(200, 40)
 layout_mode = 2
 text = "Hard"
-
-[node name="PowerFantasyButton" type="Button" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
-custom_minimum_size = Vector2(200, 40)
-layout_mode = 2
-text = "Power Fantasy"
 
 [node name="StatusLabel" type="Label" parent="MenuContainer/PanelContainer/MarginContainer/VBoxContainer"]
 custom_minimum_size = Vector2(0, 40)

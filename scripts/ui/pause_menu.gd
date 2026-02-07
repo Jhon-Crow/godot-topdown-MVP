@@ -246,8 +246,9 @@ func _on_levels_pressed() -> void:
 		_levels_menu.back_pressed.connect(_on_levels_back)
 		add_child(_levels_menu)
 	else:
-		# Refresh level list in case current scene changed
-		_levels_menu._populate_level_list()
+		# Refresh level cards in case current scene or difficulty changed
+		if _levels_menu.has_method("_populate_level_cards"):
+			_levels_menu._populate_level_cards()
 		_levels_menu.show()
 
 

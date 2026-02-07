@@ -2375,7 +2375,7 @@ func _shoot_with_inaccuracy() -> void:
 		_log_debug("Inaccurate shot blocked: wall in path after rotation")
 		return
 
-	# Fire bullet via _spawn_projectile for correct C# interop (Issue #516)
+	# Fire bullet using _spawn_projectile (handles C# add_child-before-props, Issue #516, #550)
 	_spawn_projectile(direction, bullet_spawn_pos)
 	_spawn_muzzle_flash(bullet_spawn_pos, direction)
 	# Play sounds
@@ -2432,7 +2432,7 @@ func _shoot_burst_shot() -> void:
 		_log_debug("Burst shot blocked: wall in path after rotation")
 		return
 
-	# Fire bullet via _spawn_projectile for correct C# interop (Issue #516)
+	# Fire bullet using _spawn_projectile (handles C# add_child-before-props, Issue #516, #550)
 	_spawn_projectile(direction, bullet_spawn_pos)
 	_spawn_muzzle_flash(bullet_spawn_pos, direction)
 
@@ -3847,7 +3847,7 @@ func _shoot() -> void:
 	ammo_changed.emit(_current_ammo, _reserve_ammo)
 	if _current_ammo <= 0 and _reserve_ammo > 0: _start_reload()
 
-## Spawn a projectile. add_child first then set via setter methods for C# interop (Issue #457/#516).
+## Spawn a projectile. add_child first so C# _Ready() runs before setting props (Issue #516, #550).
 func _spawn_projectile(direction: Vector2, spawn_pos: Vector2) -> void:
 	var p := bullet_scene.instantiate(); p.global_position = spawn_pos
 	get_tree().current_scene.add_child(p)  # C# _Ready() runs; _PhysicsProcess hasn't yet
@@ -3867,6 +3867,7 @@ func _shoot_single_bullet(direction: Vector2, spawn_pos: Vector2) -> void:
 	var spread := _initial_spread if _shot_count <= _spread_threshold else minf(_initial_spread + (_shot_count - _spread_threshold) * _spread_increment, _max_spread)
 	if spread > 0.0: direction = direction.rotated(randf_range(-deg_to_rad(spread), deg_to_rad(spread)))
 	_spawn_projectile(direction, spawn_pos)
+
 
 ## Shoot multiple pellets with spread (shotgun - like player's Shotgun.cs).
 func _shoot_shotgun_pellets(base_direction: Vector2, spawn_pos: Vector2) -> void:

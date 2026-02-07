@@ -142,7 +142,11 @@ const VOLUME_ASVK_SHOT: float = -2.0
 ## Volume for ASVK bolt-action sounds.
 const VOLUME_ASVK_BOLT: float = -3.0
 
+## Fire mode toggle sound (B key - switch between burst/automatic on assault rifle).
+const FIRE_MODE_TOGGLE: String = "res://assets/audio/игрок изменил режим стрельбы (нажал b).mp3"
+
 ## Volume settings (in dB).
+const VOLUME_FIRE_MODE_TOGGLE: float = -3.0
 const VOLUME_SHOT: float = -5.0
 const VOLUME_RELOAD: float = -3.0
 const VOLUME_IMPACT: float = -8.0
@@ -280,6 +284,7 @@ func _preload_all_sounds() -> void:
 	all_sounds.append(RELOAD_FULL)
 	all_sounds.append(PISTOL_BOLT)
 	all_sounds.append(EMPTY_GUN_CLICK)
+	all_sounds.append(FIRE_MODE_TOGGLE)
 	all_sounds.append(HIT_LETHAL)
 	all_sounds.append(HIT_NON_LETHAL)
 	all_sounds.append(BULLET_WALL_HIT)
@@ -584,6 +589,13 @@ func play_empty_click(position: Vector2) -> void:
 	play_sound_2d_with_priority(EMPTY_GUN_CLICK, position, VOLUME_EMPTY_CLICK, SoundPriority.CRITICAL)
 
 
+## Plays fire mode toggle sound (B key) at the given position.
+## Used when player switches between burst and automatic fire modes on the assault rifle.
+## Uses CRITICAL priority for player action feedback.
+func play_fire_mode_toggle(position: Vector2) -> void:
+	play_sound_2d_with_priority(FIRE_MODE_TOGGLE, position, VOLUME_FIRE_MODE_TOGGLE, SoundPriority.CRITICAL)
+
+
 ## Plays lethal hit sound at the given position.
 ## Uses HIGH priority for hit feedback.
 func play_hit_lethal(position: Vector2) -> void:
@@ -742,17 +754,20 @@ func play_silenced_shot(position: Vector2) -> void:
 # ASVK sniper rifle sounds
 # ============================================================================
 
-## Plays the ASVK sniper rifle shot sound at the given position.
+## Plays the ASVK sniper rifle shot sound.
+## Uses non-positional audio so the sound is not attenuated by camera offset
+## when aiming through the scope (fixes issue #565).
 ## Uses CRITICAL priority for player shooting sounds.
-func play_asvk_shot(position: Vector2) -> void:
-	play_sound_2d_with_priority(ASVK_SHOT, position, VOLUME_ASVK_SHOT, SoundPriority.CRITICAL)
+func play_asvk_shot() -> void:
+	play_sound_with_priority(ASVK_SHOT, VOLUME_ASVK_SHOT, SoundPriority.CRITICAL)
 
 
-## Plays the ASVK bolt-action step sound at the given position.
+## Plays the ASVK bolt-action step sound.
 ## @param step: The bolt-action step number (1-4).
-## @param position: World position for positional audio.
+## Uses non-positional audio so the sound is not attenuated by camera offset
+## when aiming through the scope (fixes issue #565).
 ## Uses CRITICAL priority for reload sounds.
-func play_asvk_bolt_step(step: int, position: Vector2) -> void:
+func play_asvk_bolt_step(step: int) -> void:
 	var sound_path: String = ""
 	match step:
 		1:
@@ -764,7 +779,7 @@ func play_asvk_bolt_step(step: int, position: Vector2) -> void:
 		4:
 			sound_path = ASVK_BOLT_STEP_4
 	if sound_path != "":
-		play_sound_2d_with_priority(sound_path, position, VOLUME_ASVK_BOLT, SoundPriority.CRITICAL)
+		play_sound_with_priority(sound_path, VOLUME_ASVK_BOLT, SoundPriority.CRITICAL)
 
 
 # ============================================================================

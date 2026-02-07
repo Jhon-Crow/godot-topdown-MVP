@@ -1909,3 +1909,29 @@ func test_weapon_config_spread_parameters_issue_516() -> void:
 		"Shotgun should have initial_spread=0.0 (uses pellet spread instead)")
 	assert_almost_eq(shotgun_config.get("max_spread", -1.0) as float, 0.0, 0.001,
 		"Shotgun should have max_spread=0.0 (uses pellet spread instead)")
+
+
+## Regression test for Issue #550: Enemy bullets flying to the right.
+## Verifies that _spawn_projectile calls add_child BEFORE setting properties,
+## which is required for C# bullet interop (has_method/get fail before _Ready).
+func test_spawn_projectile_add_child_before_set_direction_issue_550() -> void:
+	# Read the enemy.gd source to verify add_child comes before SetDirection
+	var file := FileAccess.open("res://scripts/objects/enemy.gd", FileAccess.READ)
+	if file == null:
+		gut.p("Cannot open enemy.gd for source analysis — skipping (export build)")
+		pass_test("Skipped in export build")
+		return
+	var source := file.get_as_text()
+	file.close()
+	# Find the _spawn_projectile function body
+	var func_idx := source.find("func _spawn_projectile(")
+	assert_gt(func_idx, 0, "_spawn_projectile function should exist in enemy.gd")
+	# Extract from function start to next function
+	var func_body := source.substr(func_idx, 600)
+	# Verify add_child appears BEFORE SetDirection in the function body
+	var add_child_pos := func_body.find("add_child(")
+	var set_dir_pos := func_body.find("SetDirection")
+	assert_gt(add_child_pos, 0, "add_child should exist in _spawn_projectile")
+	assert_gt(set_dir_pos, 0, "SetDirection should exist in _spawn_projectile")
+	assert_lt(add_child_pos, set_dir_pos,
+		"Issue #550: add_child must come BEFORE SetDirection for C# interop")
