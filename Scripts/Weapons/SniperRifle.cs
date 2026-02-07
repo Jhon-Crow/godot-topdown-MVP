@@ -832,6 +832,61 @@ public partial class SniperRifle : BaseWeapon
     }
 
     /// <summary>
+    /// Override SpawnCasing for ASVK-specific casing ejection behavior (Issue #575).
+    /// ASVK casings are ejected:
+    /// - Faster (300-400 px/sec vs normal 120-180 px/sec)
+    /// - More to the right and slightly forward (45-degree angle from perpendicular)
+    /// This creates a distinctive, powerful ejection for the heavy 12.7x108mm casings.
+    /// </summary>
+    protected override void SpawnCasing(Vector2 direction, Resource? caliber)
+    {
+        if (CasingScene == null)
+        {
+            return;
+        }
+
+        // Calculate casing spawn position (near the weapon, slightly offset)
+        Vector2 casingSpawnPosition = GlobalPosition + direction * (BulletSpawnOffset * 0.5f);
+
+        var casing = CasingScene.Instantiate<RigidBody2D>();
+        casing.GlobalPosition = casingSpawnPosition;
+
+        // Calculate ejection direction to the right of the weapon
+        // In a top-down view with Y increasing downward:
+        // - If weapon points right (1, 0), right side of weapon is DOWN (0, 1)
+        // - If weapon points up (0, -1), right side of weapon is RIGHT (1, 0)
+        // This is a 90 degree counter-clockwise rotation (perpendicular to shooting direction)
+        Vector2 weaponRight = new Vector2(-direction.Y, direction.X); // Rotate 90 degrees counter-clockwise
+
+        // ASVK-specific: Eject to the right AND slightly forward
+        // Mix the perpendicular direction with the forward direction to get ~45 degree angle
+        // This makes ASVK casings eject more forward than other weapons
+        Vector2 ejectionBase = (weaponRight + direction * 0.3f).Normalized();
+
+        // Add some randomness for variety
+        float randomAngle = (float)GD.RandRange(-0.2f, 0.2f); // ±0.2 radians (~±11 degrees)
+        Vector2 ejectionDirection = ejectionBase.Rotated(randomAngle);
+
+        // ASVK-specific: Much faster ejection speed (2-3x normal weapons)
+        // Heavy 12.7x108mm casings are ejected with more force
+        float ejectionSpeed = (float)GD.RandRange(300.0f, 400.0f); // Fast ejection
+        casing.LinearVelocity = ejectionDirection * ejectionSpeed;
+
+        // Add strong initial spin for realism (heavy casing tumbling through the air)
+        casing.AngularVelocity = (float)GD.RandRange(-20.0f, 20.0f);
+
+        // Set caliber data on the casing for appearance (12.7x108mm)
+        if (caliber != null)
+        {
+            casing.Set("caliber_data", caliber);
+        }
+
+        GetTree().CurrentScene.AddChild(casing);
+
+        GD.Print($"[SniperRifle] ASVK casing ejected: speed={ejectionSpeed:F0} px/sec, direction={ejectionDirection}");
+    }
+
+    /// <summary>
     /// Override SpawnBullet to configure the SniperBullet for sniper behavior:
     /// - Very high damage (50)
     /// - Passes through enemies (doesn't destroy on hit)
