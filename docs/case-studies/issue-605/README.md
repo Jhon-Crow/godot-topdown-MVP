@@ -68,7 +68,9 @@ The shader (`flashbang_player.gdshader`) uses:
 - `hint_screen_texture` with `filter_nearest` for `gl_compatibility` mode
 - `textureLod` for screen sampling (same as existing shaders)
 - Distance-based vignette for the bordeaux border effect
-- Uniform parameters for runtime control: `intensity`, `flash_color`, `border_color`
+- Radial blur (8-sample multi-tap) for the "long exposure / motion blur" look
+- Sinusoidal UV distortion for the "swimming in eyes" waviness effect
+- Uniform parameters for runtime control: `intensity`, `blur_intensity`, `time_offset`, `flash_color`, `border_color`
 
 ### Integration Points
 

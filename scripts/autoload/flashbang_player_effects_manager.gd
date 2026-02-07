@@ -7,6 +7,7 @@ extends Node
 ## Effect details:
 ## - Dark purple tint covers the screen center
 ## - Bordeaux/burgundy vignette border (like retinal afterimage)
+## - Blur + swimming distortion (objects look out of focus and wavy)
 ## - Duration: 1-5 seconds based on distance (closer = longer)
 ## - Intensity: scales with distance (closer = stronger)
 ## - Walls block the effect (line of sight required, Issue #469)
@@ -109,10 +110,14 @@ func _process(_delta: float) -> void:
 		# Use ease-out quadratic for natural-looking fade
 		current_intensity = _peak_intensity * (1.0 - fade_progress * fade_progress)
 
-	# Update shader intensity
+	# Update shader parameters
 	var material := _effect_rect.material as ShaderMaterial
 	if material:
 		material.set_shader_parameter("intensity", current_intensity)
+		# Blur follows the same fade curve as the color overlay
+		material.set_shader_parameter("blur_intensity", current_intensity)
+		# Advance time for swimming distortion animation
+		material.set_shader_parameter("time_offset", current_time)
 
 
 ## Applies the flashbang screen effect to the player.
@@ -165,6 +170,8 @@ func _start_effect(duration: float, peak_intensity: float) -> void:
 	var material := _effect_rect.material as ShaderMaterial
 	if material:
 		material.set_shader_parameter("intensity", peak_intensity)
+		material.set_shader_parameter("blur_intensity", peak_intensity)
+		material.set_shader_parameter("time_offset", Time.get_ticks_msec() / 1000.0)
 
 	_log("Flashbang player effect started: duration=%.1fs, intensity=%.2f" % [duration, peak_intensity])
 
@@ -177,6 +184,7 @@ func _end_effect() -> void:
 	var material := _effect_rect.material as ShaderMaterial
 	if material:
 		material.set_shader_parameter("intensity", 0.0)
+		material.set_shader_parameter("blur_intensity", 0.0)
 
 	_log("Flashbang player effect ended")
 
@@ -215,6 +223,7 @@ func reset_effects() -> void:
 		var material := _effect_rect.material as ShaderMaterial
 		if material:
 			material.set_shader_parameter("intensity", 0.0)
+			material.set_shader_parameter("blur_intensity", 0.0)
 
 
 ## Called when the scene tree structure changes.

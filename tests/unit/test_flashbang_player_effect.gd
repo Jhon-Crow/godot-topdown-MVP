@@ -29,6 +29,9 @@ class MockFlashbangPlayerEffectsManager:
 	## Peak intensity of the current effect.
 	var _peak_intensity: float = 0.0
 
+	## Peak blur intensity of the current effect (matches peak_intensity).
+	var _peak_blur_intensity: float = 0.0
+
 	## Tracking for test verification.
 	var effects_applied: Array = []
 
@@ -46,6 +49,8 @@ class MockFlashbangPlayerEffectsManager:
 		_is_effect_active = true
 		_effect_duration = duration
 		_peak_intensity = peak_intensity
+		# Blur intensity matches peak intensity (both fade together)
+		_peak_blur_intensity = peak_intensity
 
 		effects_applied.append({
 			"grenade_position": grenade_position,
@@ -54,7 +59,8 @@ class MockFlashbangPlayerEffectsManager:
 			"distance": distance,
 			"distance_factor": distance_factor,
 			"duration": duration,
-			"peak_intensity": peak_intensity
+			"peak_intensity": peak_intensity,
+			"peak_blur_intensity": peak_intensity
 		})
 
 	## Whether the effect is active.
@@ -69,11 +75,16 @@ class MockFlashbangPlayerEffectsManager:
 	func get_effect_duration() -> float:
 		return _effect_duration
 
+	## Get the current peak blur intensity.
+	func get_peak_blur_intensity() -> float:
+		return _peak_blur_intensity if _is_effect_active else 0.0
+
 	## Reset effects.
 	func reset_effects() -> void:
 		_is_effect_active = false
 		_effect_duration = 0.0
 		_peak_intensity = 0.0
+		_peak_blur_intensity = 0.0
 		effects_applied.clear()
 
 
@@ -412,3 +423,63 @@ func test_intensity_never_above_one() -> void:
 
 	assert_true(manager.effects_applied[0]["peak_intensity"] <= 1.0,
 		"Peak intensity should never exceed 1.0")
+
+
+# ============================================================================
+# Blur Effect Tests
+# ============================================================================
+
+
+func test_blur_intensity_matches_peak_intensity_at_center() -> void:
+	manager.apply_flashbang_effect(Vector2(0, 0), Vector2(0, 0), 400.0)
+
+	assert_eq(manager.effects_applied[0]["peak_blur_intensity"], 1.0,
+		"Blur intensity at point-blank should be 1.0 (maximum)")
+
+
+func test_blur_intensity_matches_peak_intensity_at_half_radius() -> void:
+	manager.apply_flashbang_effect(Vector2(0, 0), Vector2(200, 0), 400.0)
+
+	assert_eq(manager.effects_applied[0]["peak_blur_intensity"], 0.5,
+		"Blur intensity at half radius should be 0.5")
+
+
+func test_blur_intensity_equals_peak_intensity() -> void:
+	# Blur and color overlay should always have the same intensity
+	manager.apply_flashbang_effect(Vector2(0, 0), Vector2(150, 0), 400.0)
+
+	var peak: float = manager.effects_applied[0]["peak_intensity"]
+	var blur: float = manager.effects_applied[0]["peak_blur_intensity"]
+	assert_eq(blur, peak,
+		"Blur intensity should always equal peak intensity")
+
+
+func test_blur_intensity_scales_with_distance() -> void:
+	# Close player - strong blur
+	manager.apply_flashbang_effect(Vector2(0, 0), Vector2(50, 0), 400.0)
+	var close_blur: float = manager.effects_applied[0]["peak_blur_intensity"]
+
+	manager.reset_effects()
+
+	# Far player - weak blur
+	manager.apply_flashbang_effect(Vector2(0, 0), Vector2(350, 0), 400.0)
+	var far_blur: float = manager.effects_applied[0]["peak_blur_intensity"]
+
+	assert_true(close_blur > far_blur,
+		"Closer player should have stronger blur than farther player")
+
+
+func test_blur_clears_on_reset() -> void:
+	manager.apply_flashbang_effect(Vector2(0, 0), Vector2(100, 0), 400.0)
+	assert_true(manager.get_peak_blur_intensity() > 0.0,
+		"Blur should be active before reset")
+
+	manager.reset_effects()
+
+	assert_eq(manager.get_peak_blur_intensity(), 0.0,
+		"Blur intensity should be 0 after reset")
+
+
+func test_blur_inactive_when_no_effect() -> void:
+	assert_eq(manager.get_peak_blur_intensity(), 0.0,
+		"Blur intensity should be 0 when no effect is active")
