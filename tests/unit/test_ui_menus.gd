@@ -202,16 +202,6 @@ class MockLevelsMenu:
 	]
 
 	const DIFFICULTY_NAMES: Array[String] = ["Easy", "Normal", "Hard", "Power Fantasy"]
-	const DIFFICULTY_SHORT: Dictionary = {
-		"Easy": "E",
-		"Normal": "N",
-		"Hard": "H",
-		"Power Fantasy": "PF"
-	}
-
-	const MAX_STARS: int = 5
-	const STAR_FILLED: String = "★"
-	const STAR_EMPTY: String = "☆"
 
 	var current_scene_path: String = ""
 
@@ -248,34 +238,6 @@ class MockLevelsMenu:
 	func should_disable_card(level_name: String) -> bool:
 		var path := get_level_path(level_name)
 		return is_current_level(path)
-
-	func get_star_string(rating: int) -> String:
-		var stars: String = ""
-		for i in range(MAX_STARS):
-			if i < rating:
-				stars += STAR_FILLED
-			else:
-				stars += STAR_EMPTY
-		return stars
-
-	func rank_to_stars(rank: String) -> int:
-		match rank:
-			"S":
-				return 5
-			"A+":
-				return 5
-			"A":
-				return 4
-			"B":
-				return 3
-			"C":
-				return 2
-			"D":
-				return 1
-			"F":
-				return 1
-			_:
-				return 0
 
 	func get_enemy_count(level_name: String) -> int:
 		var data := get_level_data(level_name)
@@ -652,86 +614,6 @@ func test_level_display_name_fallback() -> void:
 	levels_menu = MockLevelsMenu.new()
 	assert_eq(levels_menu.get_display_name("Building Level"), "Building Level",
 		"Building Level has no Russian name, should use English")
-
-
-func test_rank_to_stars_s() -> void:
-	levels_menu = MockLevelsMenu.new()
-	assert_eq(levels_menu.rank_to_stars("S"), 5, "S rank should be 5 stars")
-
-
-func test_rank_to_stars_a_plus() -> void:
-	levels_menu = MockLevelsMenu.new()
-	assert_eq(levels_menu.rank_to_stars("A+"), 5, "A+ rank should be 5 stars")
-
-
-func test_rank_to_stars_a() -> void:
-	levels_menu = MockLevelsMenu.new()
-	assert_eq(levels_menu.rank_to_stars("A"), 4, "A rank should be 4 stars")
-
-
-func test_rank_to_stars_b() -> void:
-	levels_menu = MockLevelsMenu.new()
-	assert_eq(levels_menu.rank_to_stars("B"), 3, "B rank should be 3 stars")
-
-
-func test_rank_to_stars_c() -> void:
-	levels_menu = MockLevelsMenu.new()
-	assert_eq(levels_menu.rank_to_stars("C"), 2, "C rank should be 2 stars")
-
-
-func test_rank_to_stars_d() -> void:
-	levels_menu = MockLevelsMenu.new()
-	assert_eq(levels_menu.rank_to_stars("D"), 1, "D rank should be 1 star")
-
-
-func test_rank_to_stars_f() -> void:
-	levels_menu = MockLevelsMenu.new()
-	assert_eq(levels_menu.rank_to_stars("F"), 1, "F rank should be 1 star")
-
-
-func test_rank_to_stars_empty() -> void:
-	levels_menu = MockLevelsMenu.new()
-	assert_eq(levels_menu.rank_to_stars(""), 0, "No rank should be 0 stars")
-
-
-func test_difficulty_short_names() -> void:
-	levels_menu = MockLevelsMenu.new()
-	assert_eq(levels_menu.DIFFICULTY_SHORT["Easy"], "E")
-	assert_eq(levels_menu.DIFFICULTY_SHORT["Normal"], "N")
-	assert_eq(levels_menu.DIFFICULTY_SHORT["Hard"], "H")
-	assert_eq(levels_menu.DIFFICULTY_SHORT["Power Fantasy"], "PF")
-
-
-func test_star_string_full() -> void:
-	levels_menu = MockLevelsMenu.new()
-	assert_eq(levels_menu.get_star_string(5), "★★★★★",
-		"5 stars should be all filled")
-
-
-func test_star_string_empty() -> void:
-	levels_menu = MockLevelsMenu.new()
-	assert_eq(levels_menu.get_star_string(0), "☆☆☆☆☆",
-		"0 stars should be all empty")
-
-
-func test_star_string_partial() -> void:
-	levels_menu = MockLevelsMenu.new()
-	assert_eq(levels_menu.get_star_string(3), "★★★☆☆",
-		"3 stars should have 3 filled and 2 empty")
-
-
-func test_star_string_for_rank_a() -> void:
-	levels_menu = MockLevelsMenu.new()
-	var stars: int = levels_menu.rank_to_stars("A")
-	assert_eq(levels_menu.get_star_string(stars), "★★★★☆",
-		"A rank (4 stars) should show 4 filled and 1 empty")
-
-
-func test_star_string_for_no_completion() -> void:
-	levels_menu = MockLevelsMenu.new()
-	var stars: int = levels_menu.rank_to_stars("")
-	assert_eq(levels_menu.get_star_string(stars), "☆☆☆☆☆",
-		"No completion (0 stars) should show all empty")
 
 
 func test_level_enemy_count() -> void:

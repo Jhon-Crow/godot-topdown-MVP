@@ -54,21 +54,6 @@ const LEVELS: Array[Dictionary] = [
 ## Difficulty names in display order.
 const DIFFICULTY_NAMES: Array[String] = ["Easy", "Normal", "Hard", "Power Fantasy"]
 
-## Short labels for difficulty names on cards.
-const DIFFICULTY_SHORT: Dictionary = {
-	"Easy": "E",
-	"Normal": "N",
-	"Hard": "H",
-	"Power Fantasy": "PF"
-}
-
-## Maximum star rating value.
-const MAX_STARS: int = 5
-
-## Star characters for display.
-const STAR_FILLED: String = "★"
-const STAR_EMPTY: String = "☆"
-
 ## Card dimensions.
 const CARD_WIDTH: float = 220.0
 const CARD_HEIGHT: float = 290.0
@@ -185,14 +170,6 @@ func _build_ui() -> void:
 	var bottom_sep := HSeparator.new()
 	main_vbox.add_child(bottom_sep)
 
-	# Legend label (E/N/H/PF = Easy/Normal/Hard/Power Fantasy)
-	var legend_label := Label.new()
-	legend_label.name = "LegendLabel"
-	legend_label.text = "E = Easy, N = Normal, H = Hard, PF = Power Fantasy"
-	legend_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	legend_label.add_theme_font_size_override("font_size", 10)
-	legend_label.add_theme_color_override("font_color", Color(0.45, 0.5, 0.55, 1.0))
-	main_vbox.add_child(legend_label)
 
 	# Back button
 	var button_hbox := HBoxContainer.new()
@@ -329,40 +306,45 @@ func _create_level_card(level_data: Dictionary, is_current: bool) -> PanelContai
 	desc_label.custom_minimum_size.x = CARD_WIDTH - 20
 	vbox.add_child(desc_label)
 
-	# Progress results for all difficulties (shown as stars)
+	# Progress results for all difficulties (shown as letter grades)
 	var progress_manager: Node = get_node_or_null("/root/ProgressManager")
 	var progress_vbox := VBoxContainer.new()
 	progress_vbox.layout_mode = 2
 	progress_vbox.add_theme_constant_override("separation", 1)
 	vbox.add_child(progress_vbox)
 
+	# Load custom font for grade display
+	var grade_font := _load_grade_font()
+
 	for difficulty_name in DIFFICULTY_NAMES:
 		var row := HBoxContainer.new()
 		row.layout_mode = 2
 		row.alignment = BoxContainer.ALIGNMENT_CENTER
-		row.add_theme_constant_override("separation", 2)
+		row.add_theme_constant_override("separation", 4)
 		progress_vbox.add_child(row)
 
-		var short_label := Label.new()
-		short_label.text = DIFFICULTY_SHORT[difficulty_name] + ":"
-		short_label.add_theme_font_size_override("font_size", 9)
-		short_label.add_theme_color_override("font_color", Color(0.5, 0.55, 0.6, 1.0))
-		short_label.custom_minimum_size.x = 20
-		row.add_child(short_label)
+		var difficulty_label := Label.new()
+		difficulty_label.text = difficulty_name + ":"
+		difficulty_label.add_theme_font_size_override("font_size", 9)
+		difficulty_label.add_theme_color_override("font_color", Color(0.5, 0.55, 0.6, 1.0))
+		difficulty_label.custom_minimum_size.x = 80
+		row.add_child(difficulty_label)
 
 		var best_rank: String = ""
 		if progress_manager and progress_manager.has_method("get_best_rank"):
 			best_rank = progress_manager.get_best_rank(level_data["path"], difficulty_name)
 
-		var rank_stars: int = _rank_to_stars(best_rank)
-		var stars_label := Label.new()
-		stars_label.text = _get_star_string(rank_stars)
-		stars_label.add_theme_font_size_override("font_size", 10)
+		var grade_label := Label.new()
+		grade_label.text = best_rank if not best_rank.is_empty() else "—"
+		grade_label.add_theme_font_size_override("font_size", 14)
+		if grade_font:
+			grade_label.add_theme_font_override("font", grade_font)
 		if best_rank.is_empty():
-			stars_label.add_theme_color_override("font_color", Color(0.35, 0.35, 0.4, 1.0))
+			grade_label.add_theme_color_override("font_color", Color(0.35, 0.35, 0.4, 1.0))
 		else:
-			stars_label.add_theme_color_override("font_color", _get_rank_color(best_rank))
-		row.add_child(stars_label)
+			grade_label.add_theme_color_override("font_color", _get_rank_color(best_rank))
+		grade_label.custom_minimum_size.x = 25
+		row.add_child(grade_label)
 
 	# Make card clickable (unless it's the current level)
 	if not is_current:
@@ -376,36 +358,14 @@ func _create_level_card(level_data: Dictionary, is_current: bool) -> PanelContai
 	return card
 
 
-## Generate star rating string.
-func _get_star_string(rating: int) -> String:
-	var stars: String = ""
-	for i in range(MAX_STARS):
-		if i < rating:
-			stars += STAR_FILLED
-		else:
-			stars += STAR_EMPTY
-	return stars
-
-
-## Convert a rank string to a star count (0-5).
-func _rank_to_stars(rank: String) -> int:
-	match rank:
-		"S":
-			return 5
-		"A+":
-			return 5
-		"A":
-			return 4
-		"B":
-			return 3
-		"C":
-			return 2
-		"D":
-			return 1
-		"F":
-			return 1
-		_:
-			return 0  # Not completed
+## Load custom font for grade display.
+func _load_grade_font() -> Font:
+	var font_path := "res://addons/gut/fonts/LobsterTwo-Bold.ttf"
+	if ResourceLoader.exists(font_path):
+		var font_file := FontFile.new()
+		font_file.data = FileAccess.get_file_as_bytes(font_path)
+		return font_file
+	return null
 
 
 ## Get color for a rank display.
