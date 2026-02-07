@@ -85,9 +85,6 @@ var _is_alive: bool = true
 @onready var _left_arm_sprite: Sprite2D = $PlayerModel/LeftArm
 @onready var _right_arm_sprite: Sprite2D = $PlayerModel/RightArm
 
-## Legacy reference for compatibility (points to body sprite).
-@onready var _sprite: Sprite2D = $PlayerModel/Body
-
 ## Reference to the casing pusher area (for pushing shell casings when walking over them).
 @onready var _casing_pusher: Area2D = $CasingPusher
 
