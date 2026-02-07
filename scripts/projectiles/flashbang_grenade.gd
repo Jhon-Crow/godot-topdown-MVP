@@ -33,6 +33,9 @@ func _on_explode() -> void:
 	for enemy in enemies:
 		_apply_flashbang_effects(enemy)
 
+	# Apply screen effect to player if they are in the blast zone (Issue #605)
+	_apply_player_screen_effect()
+
 	# Scatter shell casings on the floor (Issue #432)
 	# Flashbang has larger radius but weaker physical effect (non-lethal)
 	# Use 40% of effect radius as "lethal-equivalent" zone for casing scatter
@@ -94,6 +97,38 @@ func _is_player_in_zone() -> bool:
 	# Check line of sight - walls block the flashbang effect (Issue #469)
 	# Similar to how enemy targeting already works
 	return _has_line_of_sight_to(player)
+
+
+## Apply the flashbang screen effect to the player if they are in the blast zone (Issue #605).
+## Checks distance and line of sight, then delegates to FlashbangPlayerEffectsManager.
+func _apply_player_screen_effect() -> void:
+	# Find the player
+	var player: Node2D = null
+
+	var players := get_tree().get_nodes_in_group("player")
+	if players.size() > 0 and players[0] is Node2D:
+		player = players[0] as Node2D
+
+	if player == null:
+		var scene := get_tree().current_scene
+		if scene:
+			player = scene.get_node_or_null("Player") as Node2D
+
+	if player == null:
+		return
+
+	# Check if player is in effect radius
+	if not is_in_effect_radius(player.global_position):
+		return
+
+	# Check line of sight - walls block the flashbang effect (Issue #469)
+	if not _has_line_of_sight_to(player):
+		return
+
+	# Apply screen effect via the FlashbangPlayerEffectsManager
+	var effects_manager: Node = get_node_or_null("/root/FlashbangPlayerEffectsManager")
+	if effects_manager and effects_manager.has_method("apply_flashbang_effect"):
+		effects_manager.apply_flashbang_effect(global_position, player.global_position, effect_radius)
 
 
 ## Get the effect radius for this grenade type.

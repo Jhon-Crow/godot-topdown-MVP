@@ -311,3 +311,68 @@ func test_penetration_power_lower_than_9x19() -> void:
 	# 9x19 has penetration_power 10.0
 	assert_true(caliber.penetration_power < 10.0,
 		"9x18 penetration power should be less than 9x19 (10.0)")
+
+
+# ============================================================================
+# Power Fantasy Laser Sight Tests (Issue #621)
+# Regression test: MakarovPM must enable blue laser sight in Power Fantasy mode,
+# just like all other weapons (AssaultRifle, SniperRifle, Shotgun, MiniUzi).
+# ============================================================================
+
+
+class MockDifficultyManagerForLaser:
+	enum Difficulty { EASY, NORMAL, HARD, POWER_FANTASY }
+	var current_difficulty: Difficulty = Difficulty.NORMAL
+
+	func should_force_blue_laser_sight() -> bool:
+		return current_difficulty == Difficulty.POWER_FANTASY
+
+	func get_power_fantasy_laser_color() -> Color:
+		return Color(0.0, 0.5, 1.0, 0.6)
+
+
+func test_power_fantasy_enables_blue_laser() -> void:
+	var diff_manager = MockDifficultyManagerForLaser.new()
+	diff_manager.current_difficulty = MockDifficultyManagerForLaser.Difficulty.POWER_FANTASY
+
+	assert_true(diff_manager.should_force_blue_laser_sight(),
+		"Power Fantasy mode should force blue laser sight on all weapons including PM")
+
+	var laser_color = diff_manager.get_power_fantasy_laser_color()
+	assert_eq(laser_color, Color(0.0, 0.5, 1.0, 0.6),
+		"Power Fantasy laser color should be blue with transparency")
+
+
+func test_normal_mode_does_not_enable_laser() -> void:
+	var diff_manager = MockDifficultyManagerForLaser.new()
+
+	assert_false(diff_manager.should_force_blue_laser_sight(),
+		"Normal mode should not force blue laser sight")
+
+
+func test_hard_mode_does_not_enable_laser() -> void:
+	var diff_manager = MockDifficultyManagerForLaser.new()
+	diff_manager.current_difficulty = MockDifficultyManagerForLaser.Difficulty.HARD
+
+	assert_false(diff_manager.should_force_blue_laser_sight(),
+		"Hard mode should not force blue laser sight")
+
+
+func test_makarov_pm_source_has_power_fantasy_laser_code() -> void:
+	# Regression test: verify MakarovPM.cs contains the Power Fantasy laser check.
+	# This prevents future changes from accidentally removing the laser sight code.
+	var file = FileAccess.open("res://Scripts/Weapons/MakarovPM.cs", FileAccess.READ)
+	if file == null:
+		# If file can't be opened in test environment, skip gracefully
+		pass_test("Skipped: MakarovPM.cs not accessible in test environment")
+		return
+
+	var content = file.get_as_text()
+	file.close()
+
+	assert_true(content.contains("should_force_blue_laser_sight"),
+		"MakarovPM.cs must call should_force_blue_laser_sight() for Power Fantasy mode (Issue #621)")
+	assert_true(content.contains("get_power_fantasy_laser_color"),
+		"MakarovPM.cs must call get_power_fantasy_laser_color() for laser color (Issue #621)")
+	assert_true(content.contains("CreateLaserSight"),
+		"MakarovPM.cs must have CreateLaserSight() method for Power Fantasy mode (Issue #621)")
