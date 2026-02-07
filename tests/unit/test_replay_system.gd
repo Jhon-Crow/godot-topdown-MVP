@@ -652,3 +652,142 @@ func test_penultimate_does_not_retrigger_at_same_health():
 	# Subsequent frames at 1 HP should not re-trigger
 	assert_false(detector.should_trigger_penultimate(1.0),
 		"Should not re-trigger when health stays at 1")
+
+
+# ============================================================================
+# Test: Casing Position Tracking (C# ReplayManager round 7 improvement)
+# ============================================================================
+
+
+## Mock for testing casing position update tracking.
+## Simulates the improved recording that updates casing positions
+## until they settle, rather than recording only the first position.
+class MockCasingTracker:
+	var _snapshots: Array = []  # [{time, position, rotation}]
+	var _casing_indices: Dictionary = {}  # casing_id -> snapshot_index
+
+	func record_casing(casing_id: int, time: float, position: Vector2, rotation: float) -> void:
+		if not _casing_indices.has(casing_id):
+			var idx := _snapshots.size()
+			_casing_indices[casing_id] = idx
+			_snapshots.append({
+				"time": time,
+				"position": position,
+				"rotation": rotation
+			})
+		else:
+			var idx: int = _casing_indices[casing_id]
+			var snapshot: Dictionary = _snapshots[idx]
+			if snapshot.position.distance_to(position) > 0.5:
+				snapshot.position = position
+				snapshot.rotation = rotation
+			else:
+				_casing_indices.erase(casing_id)
+
+
+func test_casing_position_updates_while_moving():
+	var tracker := MockCasingTracker.new()
+
+	# First detection: casing at weapon position
+	tracker.record_casing(1, 0.5, Vector2(100, 200), 0.0)
+	assert_eq(tracker._snapshots.size(), 1, "Should have 1 snapshot")
+	assert_eq(tracker._snapshots[0].position, Vector2(100, 200), "Initial position")
+
+	# Second frame: casing has moved (still bouncing)
+	tracker.record_casing(1, 0.6, Vector2(110, 210), 0.5)
+	assert_eq(tracker._snapshots.size(), 1, "Still 1 snapshot (updated in place)")
+	assert_eq(tracker._snapshots[0].position, Vector2(110, 210), "Position should update")
+
+	# Third frame: casing settled (barely moved)
+	tracker.record_casing(1, 0.7, Vector2(110.2, 210.1), 0.5)
+	assert_eq(tracker._snapshots.size(), 1, "Still 1 snapshot")
+	assert_true(not tracker._casing_indices.has(1), "Casing should be removed from tracking (settled)")
+
+
+func test_multiple_casings_tracked_independently():
+	var tracker := MockCasingTracker.new()
+
+	tracker.record_casing(1, 0.5, Vector2(100, 100), 0.0)
+	tracker.record_casing(2, 0.7, Vector2(200, 200), 1.0)
+	assert_eq(tracker._snapshots.size(), 2, "Should have 2 snapshots")
+
+	# Update first casing
+	tracker.record_casing(1, 0.8, Vector2(120, 120), 0.3)
+	assert_eq(tracker._snapshots[0].position, Vector2(120, 120), "Casing 1 updated")
+	assert_eq(tracker._snapshots[1].position, Vector2(200, 200), "Casing 2 unchanged")
+
+
+# ============================================================================
+# Test: Power Fantasy Effect Integration (C# ReplayManager round 7)
+# ============================================================================
+
+
+## Mock for testing that Power Fantasy effects are triggered during replay
+## alongside existing hit effects.
+class MockPowerFantasyEventPlayer:
+	var hit_effects_triggered: int = 0
+	var power_fantasy_kills_triggered: int = 0
+	var power_fantasy_grenades_triggered: int = 0
+	var penultimate_effects_triggered: int = 0
+	var explosion_flashes_spawned: int = 0
+
+	## Simulates the PlayFrameEvents logic from C# ReplayManager
+	func play_event(event_type: String) -> void:
+		match event_type:
+			"death":
+				hit_effects_triggered += 1
+				power_fantasy_kills_triggered += 1  # NEW: also trigger PF kill
+			"hit":
+				hit_effects_triggered += 1
+			"penultimate":
+				penultimate_effects_triggered += 1
+			"grenade_explosion":
+				explosion_flashes_spawned += 1
+				power_fantasy_grenades_triggered += 1  # NEW: also trigger PF grenade
+
+
+func test_death_event_triggers_both_hit_and_power_fantasy():
+	var player := MockPowerFantasyEventPlayer.new()
+	player.play_event("death")
+
+	assert_eq(player.hit_effects_triggered, 1,
+		"Death should trigger hit effect")
+	assert_eq(player.power_fantasy_kills_triggered, 1,
+		"Death should also trigger Power Fantasy kill effect")
+
+
+func test_grenade_explosion_triggers_power_fantasy():
+	var player := MockPowerFantasyEventPlayer.new()
+	player.play_event("grenade_explosion")
+
+	assert_eq(player.explosion_flashes_spawned, 1,
+		"Grenade should spawn explosion flash")
+	assert_eq(player.power_fantasy_grenades_triggered, 1,
+		"Grenade should also trigger Power Fantasy grenade effect")
+
+
+func test_hit_does_not_trigger_power_fantasy():
+	var player := MockPowerFantasyEventPlayer.new()
+	player.play_event("hit")
+
+	assert_eq(player.hit_effects_triggered, 1,
+		"Hit should trigger hit effect")
+	assert_eq(player.power_fantasy_kills_triggered, 0,
+		"Hit should NOT trigger Power Fantasy kill (only deaths do)")
+
+
+func test_combined_replay_events():
+	var player := MockPowerFantasyEventPlayer.new()
+
+	# Simulate a replay with multiple event types
+	player.play_event("hit")
+	player.play_event("death")
+	player.play_event("grenade_explosion")
+	player.play_event("penultimate")
+	player.play_event("death")
+
+	assert_eq(player.hit_effects_triggered, 3, "3 hit effects (1 hit + 2 deaths)")
+	assert_eq(player.power_fantasy_kills_triggered, 2, "2 PF kills (2 deaths)")
+	assert_eq(player.power_fantasy_grenades_triggered, 1, "1 PF grenade")
+	assert_eq(player.penultimate_effects_triggered, 1, "1 penultimate effect")
+	assert_eq(player.explosion_flashes_spawned, 1, "1 explosion flash")

@@ -483,6 +483,8 @@ namespace GodotTopDownTemplate.Autoload
             _spawnedCasingCount = 0;
             _spawnedFootprintCount = 0;
 
+            LogToFile($"Progressive floor state: casings={_casingSnapshots.Count} (baseline={_baselineCasingCount}, to spawn={_casingSnapshots.Count - _baselineCasingCount}), footprints={_footprintSnapshots.Count} (baseline={_baselineFootprintCount}, to spawn={_footprintSnapshots.Count - _baselineFootprintCount})");
+
             _trailUpdateTimer = 0.0f;
             _playerTrailPositions.Clear();
             _enemyTrailPositions.Clear();
@@ -518,6 +520,33 @@ namespace GodotTopDownTemplate.Autoload
             CleanupGhostFilter();
             CleanupMemoryEffects();
             CleanupTrails();
+
+            // Restore visibility of original floor items that were hidden for Memory mode
+            if (_levelNode != null && IsInstanceValid(_levelNode))
+            {
+                var casings = _levelNode.GetTree().GetNodesInGroup("casings");
+                foreach (var casing in casings)
+                {
+                    if (casing is Node2D c2d)
+                        c2d.Visible = true;
+                }
+
+                var bloodDecals = _levelNode.GetTree().GetNodesInGroup("blood_puddle");
+                foreach (var decal in bloodDecals)
+                {
+                    if (decal is Node2D d2d)
+                        d2d.Visible = true;
+                }
+
+                foreach (var child in _levelNode.GetChildren())
+                {
+                    if (child is Sprite2D sprite2D &&
+                        sprite2D.SceneFilePath.Contains("BloodFootprint"))
+                    {
+                        sprite2D.Visible = true;
+                    }
+                }
+            }
 
             if (_replayUi != null && IsInstanceValid(_replayUi))
             {
@@ -622,6 +651,33 @@ namespace GodotTopDownTemplate.Autoload
                 CleanupTrails();
                 // Set ghost entities to slightly transparent
                 SetAllGhostModulate(new Color(1.0f, 1.0f, 1.0f, 0.9f));
+
+                // Restore original casings/footprints/blood visibility for Ghost mode
+                if (_levelNode != null && IsInstanceValid(_levelNode))
+                {
+                    var casings = _levelNode.GetTree().GetNodesInGroup("casings");
+                    foreach (var casing in casings)
+                    {
+                        if (casing is Node2D c2d)
+                            c2d.Visible = true;
+                    }
+
+                    var bloodDecals = _levelNode.GetTree().GetNodesInGroup("blood_puddle");
+                    foreach (var decal in bloodDecals)
+                    {
+                        if (decal is Node2D d2d)
+                            d2d.Visible = true;
+                    }
+
+                    foreach (var child in _levelNode.GetChildren())
+                    {
+                        if (child is Sprite2D sprite2D &&
+                            sprite2D.SceneFilePath.Contains("BloodFootprint"))
+                        {
+                            sprite2D.Visible = true;
+                        }
+                    }
+                }
             }
             else // Memory
             {
@@ -630,6 +686,42 @@ namespace GodotTopDownTemplate.Autoload
                 SetAllGhostModulate(new Color(1.0f, 1.0f, 1.0f, 1.0f));
                 // Enable cinema effects during memory playback
                 EnableMemoryEffects();
+
+                // Hide existing casings and footprints for progressive replay,
+                // and reset spawn counts so they'll be re-created from the beginning
+                if (_levelNode != null && IsInstanceValid(_levelNode))
+                {
+                    var casings = _levelNode.GetTree().GetNodesInGroup("casings");
+                    foreach (var casing in casings)
+                    {
+                        if (casing is Node2D c2d)
+                            c2d.Visible = false;
+                    }
+
+                    var bloodDecals = _levelNode.GetTree().GetNodesInGroup("blood_puddle");
+                    foreach (var decal in bloodDecals)
+                    {
+                        if (decal is Node2D d2d)
+                            d2d.Visible = false;
+                    }
+
+                    foreach (var child in _levelNode.GetChildren())
+                    {
+                        if (child is Sprite2D sprite2D &&
+                            sprite2D.SceneFilePath.Contains("BloodFootprint"))
+                        {
+                            sprite2D.Visible = false;
+                        }
+                    }
+                }
+
+                // Reset progressive spawn state so casings/footprints/blood
+                // get re-spawned up to current playback time
+                CleanupMemoryEffects();
+                _spawnedCasingCount = 0;
+                _spawnedFootprintCount = 0;
+                _nextImpactEventIndex = _baselineImpactEventCount;
+                LogToFile($"Memory mode activated: reset progressive floor state, will spawn up to time {_playbackTime:F2}s");
             }
 
             // Update mode button states in UI
@@ -819,28 +911,27 @@ namespace GodotTopDownTemplate.Autoload
         {
             if (_currentMode != ReplayMode.Memory) return;
             if (_levelNode == null || !IsInstanceValid(_levelNode)) return;
-
-            // Calculate how many non-baseline casings should be visible by now
-            int targetCount = 0;
-            for (int i = _baselineCasingCount; i < _casingSnapshots.Count; i++)
-            {
-                if (_casingSnapshots[i].Time <= time)
-                    targetCount++;
-                else
-                    break;
-            }
-
-            if (targetCount <= _spawnedCasingCount) return;
+            if (_casingSnapshots.Count <= _baselineCasingCount) return;
 
             var ghostContainer = _levelNode.GetNodeOrNull<Node2D>("ReplayGhosts");
-            if (ghostContainer == null) return;
-
-            // Load casing texture
-            Texture2D? casingTexture = GD.Load<Texture2D>("res://assets/sprites/effects/casing_rifle.png");
-
-            for (int i = _baselineCasingCount + _spawnedCasingCount; i < _baselineCasingCount + targetCount; i++)
+            if (ghostContainer == null)
             {
-                if (i >= _casingSnapshots.Count) break;
+                LogToFile("WARNING: ReplayGhosts container not found for casing spawn");
+                return;
+            }
+
+            // Load casing texture once
+            Texture2D? casingTexture = null;
+            if (ResourceLoader.Exists("res://assets/sprites/effects/casing_rifle.png"))
+                casingTexture = GD.Load<Texture2D>("res://assets/sprites/effects/casing_rifle.png");
+
+            int spawned = 0;
+            // Start from where we left off (_baselineCasingCount + _spawnedCasingCount)
+            int startIdx = _baselineCasingCount + _spawnedCasingCount;
+            for (int i = startIdx; i < _casingSnapshots.Count; i++)
+            {
+                if (_casingSnapshots[i].Time > time) break;
+
                 var data = _casingSnapshots[i];
 
                 var casing = new Sprite2D();
@@ -859,12 +950,16 @@ namespace GodotTopDownTemplate.Autoload
                 }
                 casing.GlobalPosition = data.Position;
                 casing.Rotation = data.Rotation;
-                casing.ZIndex = -1;
+                casing.ZIndex = 0; // Same z-index as original casings (not -1)
                 ghostContainer.AddChild(casing);
                 _memoryCasings.Add(casing);
+                spawned++;
             }
 
-            _spawnedCasingCount = targetCount;
+            _spawnedCasingCount += spawned;
+
+            if (spawned > 0)
+                LogToFile($"Spawned {spawned} replay casings (total: {_spawnedCasingCount}/{_casingSnapshots.Count - _baselineCasingCount}) at time {time:F2}s");
         }
 
         /// <summary>Spawns footprints up to the current playback time (Memory mode only).</summary>
@@ -872,28 +967,26 @@ namespace GodotTopDownTemplate.Autoload
         {
             if (_currentMode != ReplayMode.Memory) return;
             if (_levelNode == null || !IsInstanceValid(_levelNode)) return;
-
-            // Calculate how many non-baseline footprints should be visible by now
-            int targetCount = 0;
-            for (int i = _baselineFootprintCount; i < _footprintSnapshots.Count; i++)
-            {
-                if (_footprintSnapshots[i].Time <= time)
-                    targetCount++;
-                else
-                    break;
-            }
-
-            if (targetCount <= _spawnedFootprintCount) return;
+            if (_footprintSnapshots.Count <= _baselineFootprintCount) return;
 
             var ghostContainer = _levelNode.GetNodeOrNull<Node2D>("ReplayGhosts");
-            if (ghostContainer == null) return;
+            if (ghostContainer == null)
+            {
+                LogToFile("WARNING: ReplayGhosts container not found for footprint spawn");
+                return;
+            }
 
             // Try to load the actual BloodFootprint scene
-            var footprintScene = GD.Load<PackedScene>("res://scenes/effects/BloodFootprint.tscn");
+            PackedScene? footprintScene = null;
+            if (ResourceLoader.Exists("res://scenes/effects/BloodFootprint.tscn"))
+                footprintScene = GD.Load<PackedScene>("res://scenes/effects/BloodFootprint.tscn");
 
-            for (int i = _baselineFootprintCount + _spawnedFootprintCount; i < _baselineFootprintCount + targetCount; i++)
+            int spawned = 0;
+            int startIdx = _baselineFootprintCount + _spawnedFootprintCount;
+            for (int i = startIdx; i < _footprintSnapshots.Count; i++)
             {
-                if (i >= _footprintSnapshots.Count) break;
+                if (_footprintSnapshots[i].Time > time) break;
+
                 var data = _footprintSnapshots[i];
 
                 if (footprintScene != null)
@@ -923,9 +1016,13 @@ namespace GodotTopDownTemplate.Autoload
                     ghostContainer.AddChild(footprint);
                     _memoryFootprints.Add(footprint);
                 }
+                spawned++;
             }
 
-            _spawnedFootprintCount = targetCount;
+            _spawnedFootprintCount += spawned;
+
+            if (spawned > 0)
+                LogToFile($"Spawned {spawned} replay footprints (total: {_spawnedFootprintCount}/{_footprintSnapshots.Count - _baselineFootprintCount}) at time {time:F2}s");
         }
 
         // ============================================================
@@ -1153,27 +1250,56 @@ namespace GodotTopDownTemplate.Autoload
             if (_levelNode == null || !IsInstanceValid(_levelNode)) return;
 
             // Record casings (from "casings" group)
+            // Each casing is a RigidBody2D that moves after being spawned.
+            // We track each casing by instance ID: first detection records Time,
+            // and subsequent frames update Position/Rotation until the casing is at rest.
             var casings = _levelNode.GetTree().GetNodesInGroup("casings");
             foreach (var casing in casings)
             {
-                if (casing is Node2D casing2D && !casing2D.HasMeta("replay_casing_recorded"))
+                if (casing is Node2D casing2D)
                 {
-                    casing2D.SetMeta("replay_casing_recorded", true);
-                    _casingSnapshots.Add(new CasingSnapshot
+                    if (!casing2D.HasMeta("replay_casing_recorded"))
                     {
-                        Time = _recordingTime,
-                        Position = casing2D.GlobalPosition,
-                        Rotation = casing2D.Rotation
-                    });
+                        // First detection: record new casing
+                        casing2D.SetMeta("replay_casing_recorded", true);
+                        int snapshotIndex = _casingSnapshots.Count;
+                        casing2D.SetMeta("replay_casing_index", snapshotIndex);
+                        _casingSnapshots.Add(new CasingSnapshot
+                        {
+                            Time = _recordingTime,
+                            Position = casing2D.GlobalPosition,
+                            Rotation = casing2D.Rotation
+                        });
+                    }
+                    else if (casing2D.HasMeta("replay_casing_index"))
+                    {
+                        // Update position until casing is at rest (improves accuracy)
+                        var idxVar = casing2D.GetMeta("replay_casing_index");
+                        if (idxVar.VariantType != Variant.Type.Nil)
+                        {
+                            int idx = (int)idxVar;
+                            if (idx >= 0 && idx < _casingSnapshots.Count)
+                            {
+                                var snapshot = _casingSnapshots[idx];
+                                // Only update if the casing has moved significantly
+                                var newPos = casing2D.GlobalPosition;
+                                if (snapshot.Position.DistanceTo(newPos) > 0.5f)
+                                {
+                                    snapshot.Position = newPos;
+                                    snapshot.Rotation = casing2D.Rotation;
+                                }
+                                else
+                                {
+                                    // Casing has settled — stop tracking
+                                    casing2D.RemoveMeta("replay_casing_index");
+                                }
+                            }
+                        }
+                    }
                 }
             }
 
-            // Record blood footprints (BloodFootprint instances are Sprite2D without a group,
-            // so we scan for nodes whose scene file is BloodFootprint.tscn or have class BloodFootprint)
-            var allNodes = _levelNode.GetTree().GetNodesInGroup("blood_puddle");
-            // Footprints are not in a group, so scan the level's children for Sprite2D named footprint-like
-            // Actually, footprints are added to current_scene directly (see bloody_feet_component.gd line 453-457)
-            // We can search through all Sprite2D children of the scene
+            // Record blood footprints
             RecordNewFootprints();
         }
 
@@ -2575,6 +2701,7 @@ namespace GodotTopDownTemplate.Autoload
                         if (audioManager != null && audioManager.HasMethod("play_hit_lethal"))
                             audioManager.Call("play_hit_lethal", evt.Position);
                         TriggerReplayHitEffect();
+                        TriggerReplayPowerFantasyKill();
                         break;
 
                     case SoundEvent.SoundType.Hit:
@@ -2601,6 +2728,7 @@ namespace GodotTopDownTemplate.Autoload
                         if (audioManager != null && audioManager.HasMethod("play_flashbang_explosion"))
                             audioManager.Call("play_flashbang_explosion", evt.Position, false);
                         SpawnExplosionFlash(evt.Position);
+                        TriggerReplayPowerFantasyGrenade();
                         break;
                 }
             }
@@ -2712,6 +2840,33 @@ namespace GodotTopDownTemplate.Autoload
                 {
                     penultimateEffects.Call("_start_penultimate_effect");
                 }
+            }
+        }
+
+        /// <summary>
+        /// Triggers the Power Fantasy kill effect during replay (300ms time slowdown + saturation).
+        /// Only activates if Power Fantasy difficulty mode is active.
+        /// </summary>
+        private void TriggerReplayPowerFantasyKill()
+        {
+            var powerFantasyManager = GetNodeOrNull("/root/PowerFantasyEffectsManager");
+            if (powerFantasyManager != null && powerFantasyManager.HasMethod("on_enemy_killed"))
+            {
+                powerFantasyManager.Call("on_enemy_killed");
+            }
+        }
+
+        /// <summary>
+        /// Triggers the Power Fantasy grenade explosion effect during replay
+        /// (2000ms time-freeze via LastChanceEffectsManager).
+        /// Only activates if Power Fantasy difficulty mode is active.
+        /// </summary>
+        private void TriggerReplayPowerFantasyGrenade()
+        {
+            var powerFantasyManager = GetNodeOrNull("/root/PowerFantasyEffectsManager");
+            if (powerFantasyManager != null && powerFantasyManager.HasMethod("on_grenade_exploded"))
+            {
+                powerFantasyManager.Call("on_grenade_exploded");
             }
         }
 

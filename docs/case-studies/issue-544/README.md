@@ -293,3 +293,44 @@ After Round 5 fixes, the owner tested and reported:
 14. **Port all recording mechanisms from GDScript to C#** — When a GDScript version records casings via `_update_replay_casings()`, the C# version must do the same. Always compare GDScript and C# implementations when porting.
 15. **Users want faithful reproduction** — When users say "full replay of gameplay", they mean ALL effects including time slowdown, not just the visual parts. Don't assume effects should be stripped down for replay.
 16. **Track items by metadata flags** — Using `SetMeta("replay_recorded", true)` to mark already-recorded items prevents duplicates across frames without needing separate count tracking.
+
+## Round 7: Casings/Footprints Still Not Progressive, No Power Fantasy Effects
+
+### User Feedback (Round 7)
+
+From game log `game_log_20260207_160931.txt`:
+1. **Footprints and casings disappeared but not added during replay** — The hide logic works (casings/footprints are hidden), but the progressive spawn during playback doesn't produce visible results
+2. **No visual effects for grenade explosions and kills on Power Fantasy difficulty** — The game uses `PowerFantasyEffectsManager` (separate from `HitEffectsManager`) for kill effects on "Power Fantasy" difficulty mode
+
+### Root Cause Analysis (Round 7)
+
+| Issue | Root Cause |
+|-------|-----------|
+| Casings not progressive | Multiple issues: (1) Casing z_index was set to -1, rendering them behind the floor; original casings are at z_index 0. (2) Casings were recorded at their first-detection position (mid-flight from weapon), not at final resting position. (3) Mode switching from Ghost to Memory didn't reset spawn counts or re-hide original floor items. (4) `SpawnCasingsUpToTime()` used `break` in time comparison loop, which could skip non-sequential entries. |
+| Footprints not progressive | Similar mode-switching issue — switching to Memory mode mid-playback didn't reset footprint spawn state. Additionally, `ResourceLoader.Exists()` check was missing before `GD.Load()`, which could return null in exported builds. |
+| No Power Fantasy effects | `PlayFrameEvents()` only triggered `HitEffectsManager.on_player_hit_enemy()` for kill effects. The game ALSO uses `PowerFantasyEffectsManager` (autoload at `/root/PowerFantasyEffectsManager`) which provides 300ms time slowdown + saturation on enemy kills and 2000ms time-freeze on grenade explosions in Power Fantasy difficulty mode. This manager was never called during replay. |
+
+### Fixes Applied (Round 7)
+
+| Fix | Description |
+|-----|-------------|
+| Casing z_index | Changed from -1 to 0 to match original casing rendering layer |
+| Casing position tracking | Improved `RecordFloorState()` to update casing positions on each frame until they settle (distance moved < 0.5px), using `SetMeta("replay_casing_index")` to track which snapshot to update |
+| Resource existence checks | Added `ResourceLoader.Exists()` before `GD.Load()` calls for casing texture and footprint scene |
+| Mode-switch state reset | `ApplyReplayMode()` now resets `_spawnedCasingCount`, `_spawnedFootprintCount`, `_nextImpactEventIndex` when switching to Memory mode, and hides/shows original floor items |
+| Visibility restoration | `StopPlayback()` and Ghost mode switch now restore visibility of original casings, footprints, and blood decals |
+| Power Fantasy kill effect | Added `TriggerReplayPowerFantasyKill()` that calls `PowerFantasyEffectsManager.on_enemy_killed()` on enemy Death events |
+| Power Fantasy grenade effect | Added `TriggerReplayPowerFantasyGrenade()` that calls `PowerFantasyEffectsManager.on_grenade_exploded()` on GrenadeExplosion events |
+| Debug logging | Added comprehensive logging for casing/footprint spawn counts during playback and mode switching |
+
+### Data Files
+
+- `game_log_20260207_160931.txt` - Game log showing round 7 issues (casings hidden but not re-added, no PF effects)
+
+## Lessons Learned (Round 7)
+
+17. **Match z_index with originals** — Replay-spawned sprites must use the same z_index as the originals. Using z_index -1 for casings rendered them behind the floor, making them invisible.
+18. **Track moving objects to their final position** — RigidBody2D casings are spawned at the weapon and fly/bounce. Recording only the first-detection position produces inaccurate replay. Track position updates until the object settles.
+19. **Mode switching requires full state reset** — When users switch between replay modes (Ghost/Memory), all progressive spawn state must be reset and floor item visibility must be toggled correctly.
+20. **Check all effect managers** — The game has multiple visual effect systems (HitEffectsManager, PenultimateHitEffectsManager, PowerFantasyEffectsManager, LastChanceEffectsManager). Replay must trigger ALL relevant managers for faithful reproduction.
+21. **Use ResourceLoader.Exists() before GD.Load()** — In exported builds, `GD.Load()` may behave differently. Always check resource existence first.
