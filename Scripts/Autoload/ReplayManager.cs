@@ -2138,7 +2138,7 @@ namespace GodotTopDownTemplate.Autoload
                 if (penultimateEffects.HasMethod("_start_penultimate_effect"))
                 {
                     // Save current time_scale, trigger effect, restore time_scale
-                    float savedTimeScale = Engine.TimeScale;
+                    double savedTimeScale = Engine.TimeScale;
                     penultimateEffects.Call("_start_penultimate_effect");
                     // Restore time_scale immediately since we don't want slowdown during replay
                     Engine.TimeScale = savedTimeScale;

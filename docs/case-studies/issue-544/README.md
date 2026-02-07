@@ -173,3 +173,41 @@ It had the exact same 4 issues as the GDScript version:
 6. **Track baseline state** - Cumulative data (blood, casings) needs a baseline offset so only NEW items are spawned during replay
 7. **Separate visual from timing effects** - During replay, screen effects (saturation) should work but time manipulation (Engine.time_scale) must not interfere with playback
 8. **Verify which file is actually loaded** - Check `project.godot` autoload registrations and game logs to confirm the correct file is being modified
+9. **C# type strictness** - Godot C# API uses `double` for `Engine.TimeScale`, not `float`. Always verify the return types when working across GDScript (which uses float/Variant) and C# (which enforces strict numeric types)
+
+## Round 4: CI Build Failure - Windows Export (2026-02-07)
+
+### Problem
+
+The "Build Windows Portable EXE" workflow failed on the "Build .NET project" step with:
+
+```
+error CS0266: Cannot implicitly convert type 'double' to 'float'.
+An explicit conversion exists (are you missing a cast?)
+```
+
+Location: `Scripts/Autoload/ReplayManager.cs` line 2141, column 44.
+
+### Root Cause
+
+In `TriggerReplayPenultimateEffect()`, the code saved `Engine.TimeScale` to a `float` variable:
+
+```csharp
+float savedTimeScale = Engine.TimeScale;  // ERROR: Engine.TimeScale returns double
+```
+
+In Godot's C# API, `Engine.TimeScale` is of type `double`, not `float`. C# does not allow implicit narrowing conversions from `double` to `float` (unlike GDScript where numeric types are loosely typed).
+
+This error was introduced in the Round 3 fixes when the penultimate effect handling was added to the C# ReplayManager.
+
+### Fix
+
+Changed the variable type from `float` to `double`:
+
+```csharp
+double savedTimeScale = Engine.TimeScale;  // Correct: matches Engine.TimeScale's return type
+```
+
+### CI Logs
+
+- `ci-build-failure-21778354821.log` - Full build log from the failed Windows Export workflow run
