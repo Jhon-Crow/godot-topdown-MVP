@@ -510,3 +510,157 @@ func test_to_string_with_target() -> void:
 		"String should contain confidence")
 	assert_true("direct_pursuit" in str_repr,
 		"String should contain behavior mode")
+
+
+# ============================================================================
+# Velocity Tracking Tests (Issue #298)
+# ============================================================================
+
+
+func test_initial_velocity_is_zero() -> void:
+	assert_eq(memory.last_known_velocity, Vector2.ZERO,
+		"Initial velocity should be Vector2.ZERO")
+
+
+func test_update_velocity_sets_velocity() -> void:
+	memory.update_velocity(Vector2(100, 50))
+
+	assert_eq(memory.last_known_velocity, Vector2(100, 50),
+		"Velocity should be updated")
+
+
+func test_update_velocity_with_zero() -> void:
+	memory.update_velocity(Vector2(100, 50))
+	memory.update_velocity(Vector2.ZERO)
+
+	assert_eq(memory.last_known_velocity, Vector2.ZERO,
+		"Velocity should be updatable to zero")
+
+
+func test_update_velocity_negative() -> void:
+	memory.update_velocity(Vector2(-200, -150))
+
+	assert_eq(memory.last_known_velocity, Vector2(-200, -150),
+		"Should handle negative velocity")
+
+
+func test_reset_clears_velocity() -> void:
+	memory.update_velocity(Vector2(100, 50))
+	memory.reset()
+
+	assert_eq(memory.last_known_velocity, Vector2.ZERO,
+		"Reset should clear velocity")
+
+
+func test_duplicate_memory_copies_velocity() -> void:
+	memory.update_velocity(Vector2(100, 50))
+	var copy := memory.duplicate_memory()
+
+	assert_eq(copy.last_known_velocity, Vector2(100, 50),
+		"Duplicated memory should copy velocity")
+
+
+func test_duplicate_memory_velocity_is_independent() -> void:
+	memory.update_velocity(Vector2(100, 50))
+	var copy := memory.duplicate_memory()
+
+	memory.update_velocity(Vector2(999, 999))
+
+	assert_eq(copy.last_known_velocity, Vector2(100, 50),
+		"Copy velocity should be independent of original")
+
+
+# ============================================================================
+# Shot Direction Tracking Tests (Issue #298)
+# ============================================================================
+
+
+func test_initial_shot_direction_is_zero() -> void:
+	assert_eq(memory.last_shot_direction, Vector2.ZERO,
+		"Initial shot direction should be Vector2.ZERO")
+
+
+func test_initial_has_shot_direction_is_false() -> void:
+	assert_false(memory.has_shot_direction,
+		"Initial has_shot_direction should be false")
+
+
+func test_update_shot_direction_sets_direction() -> void:
+	memory.update_shot_direction(Vector2(1, 0))
+
+	assert_eq(memory.last_shot_direction, Vector2(1, 0),
+		"Shot direction should be set")
+	assert_true(memory.has_shot_direction,
+		"has_shot_direction should be true")
+
+
+func test_update_shot_direction_normalizes() -> void:
+	memory.update_shot_direction(Vector2(10, 0))
+
+	assert_almost_eq(memory.last_shot_direction.length(), 1.0, 0.001,
+		"Shot direction should be normalized")
+
+
+func test_update_shot_direction_diagonal() -> void:
+	memory.update_shot_direction(Vector2(5, 5))
+
+	assert_almost_eq(memory.last_shot_direction.length(), 1.0, 0.001,
+		"Diagonal shot direction should be normalized")
+	assert_true(memory.has_shot_direction,
+		"has_shot_direction should be true for diagonal")
+
+
+func test_update_shot_direction_rejects_zero() -> void:
+	memory.update_shot_direction(Vector2.ZERO)
+
+	assert_false(memory.has_shot_direction,
+		"Zero direction should not set has_shot_direction")
+
+
+func test_update_shot_direction_rejects_near_zero() -> void:
+	memory.update_shot_direction(Vector2(0.01, 0.01))
+
+	# length_squared of (0.01, 0.01) = 0.0002 which is < 0.01
+	assert_false(memory.has_shot_direction,
+		"Near-zero direction should not set has_shot_direction")
+
+
+func test_reset_clears_shot_direction() -> void:
+	memory.update_shot_direction(Vector2(1, 0))
+	memory.reset()
+
+	assert_eq(memory.last_shot_direction, Vector2.ZERO,
+		"Reset should clear shot direction")
+	assert_false(memory.has_shot_direction,
+		"Reset should clear has_shot_direction")
+
+
+func test_duplicate_memory_copies_shot_direction() -> void:
+	memory.update_shot_direction(Vector2(0, 1))
+	var copy := memory.duplicate_memory()
+
+	assert_eq(copy.last_shot_direction, memory.last_shot_direction,
+		"Duplicated memory should copy shot direction")
+	assert_eq(copy.has_shot_direction, true,
+		"Duplicated memory should copy has_shot_direction")
+
+
+func test_duplicate_memory_shot_direction_is_independent() -> void:
+	memory.update_shot_direction(Vector2(1, 0))
+	var copy := memory.duplicate_memory()
+
+	memory.update_shot_direction(Vector2(0, 1))
+
+	assert_eq(copy.last_shot_direction.x, 1.0,
+		"Copy shot direction should be independent of original")
+
+
+func test_to_string_includes_velocity() -> void:
+	memory.suspected_position = Vector2(100, 200)
+	memory.confidence = 0.9
+	memory.update_velocity(Vector2(350, 0))
+
+	var str_repr := memory._to_string()
+
+	assert_true("vel=" in str_repr,
+		"String should contain velocity info")

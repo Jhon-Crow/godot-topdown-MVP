@@ -465,7 +465,7 @@ func test_attack_distracted_player_cost_when_not_distracted() -> void:
 func test_create_all_actions_returns_all_actions() -> void:
 	var actions: Array[GOAPAction] = EnemyActions.create_all_actions()
 
-	assert_eq(actions.size(), 13, "Should create 13 enemy actions")
+	assert_eq(actions.size(), 20, "Should create 20 enemy actions")
 
 
 func test_create_all_actions_includes_all_types() -> void:
@@ -488,6 +488,7 @@ func test_create_all_actions_includes_all_types() -> void:
 	assert_has(action_names, "assault_player", "Should include assault_player")
 	assert_has(action_names, "attack_distracted_player", "Should include attack_distracted_player")
 	assert_has(action_names, "attack_vulnerable_player", "Should include attack_vulnerable_player")
+	assert_has(action_names, "intercept_predicted_position", "Should include intercept_predicted_position")
 
 
 # ============================================================================
@@ -803,3 +804,115 @@ func test_investigate_ally_death_action_in_create_all_actions() -> void:
 			break
 
 	assert_true(found, "InvestigateAllyDeathAction should be included in create_all_actions()")
+
+
+# ============================================================================
+# InterceptPredictedPositionAction Tests (Issue #298)
+# ============================================================================
+
+
+func test_intercept_predicted_position_action_initialization() -> void:
+	var action := EnemyActions.InterceptPredictedPositionAction.new()
+
+	assert_eq(action.action_name, "intercept_predicted_position", "Action name should be 'intercept_predicted_position'")
+	assert_eq(action.cost, 1.2, "Base cost should be 1.2")
+
+
+func test_intercept_predicted_position_action_preconditions() -> void:
+	var action := EnemyActions.InterceptPredictedPositionAction.new()
+
+	assert_eq(action.preconditions["player_visible"], false, "Requires player not visible")
+	assert_eq(action.preconditions["has_prediction"], true, "Requires has_prediction to be true")
+
+
+func test_intercept_predicted_position_action_effects() -> void:
+	var action := EnemyActions.InterceptPredictedPositionAction.new()
+
+	assert_eq(action.effects["is_pursuing"], true, "Effect should set is_pursuing")
+	assert_eq(action.effects["player_visible"], true, "Effect should set player_visible (goal: find player)")
+
+
+func test_intercept_predicted_position_cost_high_confidence() -> void:
+	var action := EnemyActions.InterceptPredictedPositionAction.new()
+	var world_state := {"prediction_confidence": 0.7}
+
+	var cost: float = action.get_cost(null, world_state)
+
+	assert_eq(cost, 0.8, "Cost should be low (0.8) when prediction confidence >= 0.5")
+
+
+func test_intercept_predicted_position_cost_medium_confidence() -> void:
+	var action := EnemyActions.InterceptPredictedPositionAction.new()
+	var world_state := {"prediction_confidence": 0.4}
+
+	var cost: float = action.get_cost(null, world_state)
+
+	assert_eq(cost, 1.2, "Cost should be medium (1.2) when prediction confidence >= 0.3")
+
+
+func test_intercept_predicted_position_cost_low_confidence() -> void:
+	var action := EnemyActions.InterceptPredictedPositionAction.new()
+	var world_state := {"prediction_confidence": 0.1}
+
+	var cost: float = action.get_cost(null, world_state)
+
+	assert_eq(cost, 2.0, "Cost should be high (2.0) when prediction confidence < 0.3")
+
+
+func test_intercept_predicted_position_cost_no_confidence() -> void:
+	var action := EnemyActions.InterceptPredictedPositionAction.new()
+	var world_state := {}
+
+	var cost: float = action.get_cost(null, world_state)
+
+	assert_eq(cost, 2.0, "Cost should be high (2.0) when prediction_confidence is missing")
+
+
+func test_intercept_predicted_position_cost_at_boundary_05() -> void:
+	var action := EnemyActions.InterceptPredictedPositionAction.new()
+	var world_state := {"prediction_confidence": 0.5}
+
+	var cost: float = action.get_cost(null, world_state)
+
+	assert_eq(cost, 0.8, "Cost should be 0.8 at the boundary of 0.5 confidence")
+
+
+func test_intercept_predicted_position_cost_at_boundary_03() -> void:
+	var action := EnemyActions.InterceptPredictedPositionAction.new()
+	var world_state := {"prediction_confidence": 0.3}
+
+	var cost: float = action.get_cost(null, world_state)
+
+	assert_eq(cost, 1.2, "Cost should be 1.2 at the boundary of 0.3 confidence")
+
+
+func test_intercept_predicted_position_in_create_all_actions() -> void:
+	var actions := EnemyActions.create_all_actions()
+	var found := false
+
+	for action in actions:
+		if action.action_name == "intercept_predicted_position":
+			found = true
+			break
+
+	assert_true(found, "InterceptPredictedPositionAction should be included in create_all_actions()")
+
+
+func test_intercept_predicted_position_integration_with_planner() -> void:
+	var planner := GOAPPlanner.new()
+	var actions := EnemyActions.create_all_actions()
+
+	for action in actions:
+		planner.add_action(action)
+
+	# Scenario: enemy lost sight of player but has prediction
+	var state := {
+		"player_visible": false,
+		"has_prediction": true,
+		"prediction_confidence": 0.7
+	}
+	var goal := {"is_pursuing": true}
+
+	var plan: Array[GOAPAction] = planner.plan(state, goal)
+
+	assert_gt(plan.size(), 0, "Planner should find a plan to intercept predicted position")

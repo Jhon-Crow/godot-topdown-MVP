@@ -391,6 +391,32 @@ class InvestigateAllyDeathAction extends GOAPAction:
 		return 100.0  # Very high cost if condition not met
 
 
+## Action to intercept the player at a predicted position (Issue #298).
+## When enemy has predictions about where the player went after losing sight,
+## this action moves the enemy to the most probable predicted position.
+## Uses PlayerPredictionComponent hypotheses to guide investigation.
+class InterceptPredictedPositionAction extends GOAPAction:
+	func _init() -> void:
+		super._init("intercept_predicted_position", 1.2)
+		preconditions = {
+			"player_visible": false,
+			"has_prediction": true
+		}
+		effects = {
+			"is_pursuing": true,
+			"player_visible": true  # Goal: reach predicted position and potentially find player
+		}
+
+	func get_cost(_agent: Node, world_state: Dictionary) -> float:
+		# Cost decreases with higher prediction confidence
+		var prediction_conf: float = world_state.get("prediction_confidence", 0.0)
+		if prediction_conf >= 0.5:
+			return 0.8  # High confidence prediction — very likely to find player
+		elif prediction_conf >= 0.3:
+			return 1.2  # Medium confidence — worth investigating
+		return 2.0  # Low confidence — less worthwhile
+
+
 ## Create and return all enemy actions.
 static func create_all_actions() -> Array[GOAPAction]:
 	var actions: Array[GOAPAction] = []
@@ -416,4 +442,6 @@ static func create_all_actions() -> Array[GOAPAction]:
 	actions.append(EvadeGrenadeAction.new())
 	# Ally death awareness action (Issue #409)
 	actions.append(InvestigateAllyDeathAction.new())
+	# Player prediction action (Issue #298)
+	actions.append(InterceptPredictedPositionAction.new())
 	return actions

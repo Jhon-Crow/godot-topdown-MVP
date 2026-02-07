@@ -19,6 +19,8 @@ extends RefCounted
 ## - Medium confidence (0.5-0.8): Move cautiously, check cover along the way
 ## - Low confidence (<0.5): Return to patrol/guard behavior
 ##
+## Additionally tracks player velocity and shot direction for prediction (Issue #298).
+##
 ## Usage:
 ##   var memory = EnemyMemory.new()
 ##   memory.update_position(player_pos, 1.0)  # Visual contact
@@ -51,6 +53,15 @@ const LOST_TARGET_THRESHOLD: float = 0.05
 const HIGH_CONFIDENCE_THRESHOLD: float = 0.8
 const MEDIUM_CONFIDENCE_THRESHOLD: float = 0.5
 const LOW_CONFIDENCE_THRESHOLD: float = 0.3
+
+## [Issue #298] Last known player velocity for prediction.
+var last_known_velocity: Vector2 = Vector2.ZERO
+
+## [Issue #298] Direction the player last fired a shot (normalized).
+var last_shot_direction: Vector2 = Vector2.ZERO
+
+## [Issue #298] Whether shot direction data is available.
+var has_shot_direction: bool = false
 
 
 ## Update the suspected position with new information.
@@ -124,6 +135,9 @@ func reset() -> void:
 	suspected_position = Vector2.ZERO
 	confidence = 0.0
 	last_updated = 0.0
+	last_known_velocity = Vector2.ZERO
+	last_shot_direction = Vector2.ZERO
+	has_shot_direction = false
 
 
 ## Create a copy of this memory (for sharing information between enemies).
@@ -132,6 +146,9 @@ func duplicate_memory() -> EnemyMemory:
 	copy.suspected_position = suspected_position
 	copy.confidence = confidence
 	copy.last_updated = last_updated
+	copy.last_known_velocity = last_known_velocity
+	copy.last_shot_direction = last_shot_direction
+	copy.has_shot_direction = has_shot_direction
 	return copy
 
 
@@ -166,12 +183,25 @@ func get_behavior_mode() -> String:
 		return "patrol"
 
 
+## [Issue #298] Record the player's velocity for prediction purposes.
+func update_velocity(vel: Vector2) -> void:
+	last_known_velocity = vel
+
+
+## [Issue #298] Record the direction the player last fired a shot.
+func update_shot_direction(direction: Vector2) -> void:
+	if direction.length_squared() > 0.01:
+		last_shot_direction = direction.normalized()
+		has_shot_direction = true
+
+
 ## Create string representation for debugging.
 func _to_string() -> String:
 	if not has_target():
 		return "EnemyMemory(no target)"
-	return "EnemyMemory(pos=%s, conf=%.2f, mode=%s)" % [
+	return "EnemyMemory(pos=%s, conf=%.2f, mode=%s, vel=%s)" % [
 		suspected_position,
 		confidence,
-		get_behavior_mode()
+		get_behavior_mode(),
+		last_known_velocity
 	]
