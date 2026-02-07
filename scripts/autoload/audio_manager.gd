@@ -124,6 +124,24 @@ const DEFENSIVE_GRENADE_EXPLOSION: String = "res://assets/audio/взрыв об�
 ## Offensive grenade (frag) explosion sound.
 const OFFENSIVE_GRENADE_EXPLOSION: String = "res://assets/audio/взрыв наступательной гранаты.wav"
 
+## ASVK sniper rifle shot sound.
+const ASVK_SHOT: String = "res://assets/audio/выстрел из ASVK.wav"
+
+## ASVK bolt-action step sounds (4-step charging sequence).
+## Step 1: Unlock bolt (Left arrow).
+const ASVK_BOLT_STEP_1: String = "res://assets/audio/отпирание затвора ASVK (1 шаг зарядки).wav"
+## Step 2: Extract and eject casing (Down arrow).
+const ASVK_BOLT_STEP_2: String = "res://assets/audio/извлечение и выброс гильзы ASVK (2 шаг зарядки).wav"
+## Step 3: Chamber round (Up arrow).
+const ASVK_BOLT_STEP_3: String = "res://assets/audio/досылание патрона ASVK (3 шаг зарядки).wav"
+## Step 4: Close bolt (Right arrow).
+const ASVK_BOLT_STEP_4: String = "res://assets/audio/запирание затвора ASVK (4 шаг зарядки).wav"
+
+## Volume for ASVK shots (louder than M16).
+const VOLUME_ASVK_SHOT: float = -2.0
+## Volume for ASVK bolt-action sounds.
+const VOLUME_ASVK_BOLT: float = -3.0
+
 ## Volume settings (in dB).
 const VOLUME_SHOT: float = -5.0
 const VOLUME_RELOAD: float = -3.0
@@ -288,6 +306,12 @@ func _preload_all_sounds() -> void:
 	all_sounds.append(SHELL_SHOTGUN)
 	# Silenced weapon sounds
 	all_sounds.append_array(SILENCED_SHOTS)
+	# ASVK sniper rifle sounds
+	all_sounds.append(ASVK_SHOT)
+	all_sounds.append(ASVK_BOLT_STEP_1)
+	all_sounds.append(ASVK_BOLT_STEP_2)
+	all_sounds.append(ASVK_BOLT_STEP_3)
+	all_sounds.append(ASVK_BOLT_STEP_4)
 
 	for path in all_sounds:
 		if not _audio_cache.has(path):
@@ -712,6 +736,35 @@ func play_shotgun_load_shell(position: Vector2) -> void:
 ## Uses CRITICAL priority for player shooting sounds.
 func play_silenced_shot(position: Vector2) -> void:
 	play_random_sound_2d_with_priority(SILENCED_SHOTS, position, VOLUME_SILENCED_SHOT, SoundPriority.CRITICAL)
+
+
+# ============================================================================
+# ASVK sniper rifle sounds
+# ============================================================================
+
+## Plays the ASVK sniper rifle shot sound at the given position.
+## Uses CRITICAL priority for player shooting sounds.
+func play_asvk_shot(position: Vector2) -> void:
+	play_sound_2d_with_priority(ASVK_SHOT, position, VOLUME_ASVK_SHOT, SoundPriority.CRITICAL)
+
+
+## Plays the ASVK bolt-action step sound at the given position.
+## @param step: The bolt-action step number (1-4).
+## @param position: World position for positional audio.
+## Uses CRITICAL priority for reload sounds.
+func play_asvk_bolt_step(step: int, position: Vector2) -> void:
+	var sound_path: String = ""
+	match step:
+		1:
+			sound_path = ASVK_BOLT_STEP_1
+		2:
+			sound_path = ASVK_BOLT_STEP_2
+		3:
+			sound_path = ASVK_BOLT_STEP_3
+		4:
+			sound_path = ASVK_BOLT_STEP_4
+	if sound_path != "":
+		play_sound_2d_with_priority(sound_path, position, VOLUME_ASVK_BOLT, SoundPriority.CRITICAL)
 
 
 # ============================================================================

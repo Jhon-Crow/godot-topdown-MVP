@@ -25,10 +25,10 @@ var _gothic_font: Font = null
 const GOTHIC_FONT_PATH: String = "res://assets/fonts/gothic_bitmap.fnt"
 
 ## Duration for counting animation per stat item (seconds).
-const SCORE_COUNT_DURATION: float = 0.6
+const SCORE_COUNT_DURATION: float = 1.5
 
 ## Delay between stat items appearing (seconds).
-const SCORE_ITEM_DELAY: float = 0.15
+const SCORE_ITEM_DELAY: float = 0.25
 
 ## Duration for rank reveal fullscreen animation (seconds).
 const RANK_REVEAL_DURATION: float = 1.5
@@ -45,6 +45,23 @@ const RANK_FLASH_COLORS: Array[Color] = [
 	Color(1.0, 0.0, 1.0, 0.9),   # Magenta
 	Color(0.0, 1.0, 1.0, 0.9),   # Cyan
 ]
+
+## Rank order from lowest to highest (for total score color progression).
+const RANK_ORDER: Array[String] = ["F", "D", "C", "B", "A", "A+", "S"]
+
+## Rank score thresholds as ratio of max possible score (matching ScoreManager).
+const RANK_THRESHOLDS: Dictionary = {
+	"S": 1.0,
+	"A+": 0.85,
+	"A": 0.70,
+	"B": 0.55,
+	"C": 0.38,
+	"D": 0.22,
+	"F": 0.0
+}
+
+## Speed of gradient animation on rank background (radians per second).
+const RANK_BG_GRADIENT_SPEED: float = 2.5
 
 ## Base frequency for score beeps (Hz).
 const BEEP_BASE_FREQUENCY: float = 440.0
@@ -364,6 +381,7 @@ func _animate_points_counting(label: Label, target: int, prefix: String, base_co
 
 
 ## Animates the total score with counting.
+## The total score color changes through rank colors (F→S) as the value counts up.
 func _animate_total_score(container: VBoxContainer, score_data: Dictionary, start_delay: float) -> float:
 	# Add separator before total
 	var separator := HSeparator.new()
@@ -371,16 +389,17 @@ func _animate_total_score(container: VBoxContainer, score_data: Dictionary, star
 	separator.modulate.a = 0.0
 	container.add_child(separator)
 
-	# Total score label
+	# Total score label - starts with F rank color (red)
 	var total_label := Label.new()
 	total_label.text = "TOTAL: 0"
 	total_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	total_label.add_theme_font_size_override("font_size", 32)
-	total_label.add_theme_color_override("font_color", Color(1.0, 0.9, 0.3, 1.0))
+	total_label.add_theme_color_override("font_color", _get_rank_color("F"))
 	total_label.modulate.a = 0.0
 	container.add_child(total_label)
 
 	var target_score: int = score_data.total_score
+	var max_possible: int = score_data.max_possible_score
 
 	get_tree().create_timer(start_delay).timeout.connect(
 		func():
@@ -390,15 +409,17 @@ func _animate_total_score(container: VBoxContainer, score_data: Dictionary, star
 			tween.tween_property(separator, "modulate:a", 1.0, 0.2)
 			tween.tween_property(total_label, "modulate:a", 1.0, 0.2)
 
-			# Animate the total counting
-			_animate_total_counting(total_label, target_score)
+			# Animate the total counting with rank color progression
+			_animate_total_counting(total_label, target_score, max_possible)
 	)
 
 	return start_delay + SCORE_COUNT_DURATION + 0.3
 
 
-## Animates the total score counting with more dramatic effect.
-func _animate_total_counting(label: Label, target: int) -> void:
+## Animates the total score counting with rank color progression.
+## As the score counts up, the color transitions through rank colors (F→D→C→B→A→A+→S)
+## based on the current counting value relative to max possible score.
+func _animate_total_counting(label: Label, target: int, max_possible: int) -> void:
 	var start_time := Time.get_ticks_msec() / 1000.0
 	var duration: float = SCORE_COUNT_DURATION * 1.5  # Longer for total
 	var last_beep_value: int = -1
@@ -418,9 +439,15 @@ func _animate_total_counting(label: Label, target: int) -> void:
 			var current_value: int = int(float(target) * eased_progress)
 			label.text = "TOTAL: %d" % current_value
 
-			# Stronger pulse effect
+			# Determine rank color based on current counting value
+			var score_ratio: float = 0.0
+			if max_possible > 0:
+				score_ratio = float(current_value) / float(max_possible)
+			var current_rank: String = _get_rank_for_score_ratio(score_ratio)
+			var base_color: Color = _get_rank_color(current_rank)
+
+			# Pulse effect during counting
 			var pulse: float = sin(elapsed * 25.0) * 0.5 + 0.5
-			var base_color := Color(1.0, 0.9, 0.3, 1.0)
 			var pulse_color: Color = base_color.lerp(Color.WHITE, pulse * 0.5)
 			label.add_theme_color_override("font_color", pulse_color)
 
@@ -436,7 +463,12 @@ func _animate_total_counting(label: Label, target: int) -> void:
 
 			if progress >= 1.0:
 				label.text = "TOTAL: %d" % target
-				label.add_theme_color_override("font_color", base_color)
+				# Final color matches the actual rank
+				var final_ratio: float = 0.0
+				if max_possible > 0:
+					final_ratio = float(target) / float(max_possible)
+				var final_rank: String = _get_rank_for_score_ratio(final_ratio)
+				label.add_theme_color_override("font_color", _get_rank_color(final_rank))
 				label.scale = Vector2(1.0, 1.0)
 				_play_beep(BEEP_BASE_FREQUENCY * 2.5, 0.15, -8.0)
 				timer.stop()
@@ -458,6 +490,14 @@ func _animate_rank_reveal(ui: Control, container: VBoxContainer, score_data: Dic
 	flash_bg.color = Color(0.0, 0.0, 0.0, 0.0)  # Start invisible
 	flash_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	ui.add_child(flash_bg)
+
+	# Create animated gradient background covering the entire screen
+	var rank_bg := ColorRect.new()
+	rank_bg.name = "RankGradientBackground"
+	rank_bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	rank_bg.color = Color(0.0, 0.0, 0.0, 0.0)  # Start invisible
+	rank_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ui.add_child(rank_bg)
 
 	# Create large centered rank label
 	var big_rank_label := Label.new()
@@ -495,11 +535,15 @@ func _animate_rank_reveal(ui: Control, container: VBoxContainer, score_data: Dic
 			# Start flashing background
 			_flash_rank_background(flash_bg, RANK_REVEAL_DURATION)
 
-			# Fade in big rank with scale
+			# Start animated gradient behind big rank letter
+			_animate_rank_gradient_background(rank_bg, rank_color)
+
+			# Fade in big rank label with scale and fullscreen gradient background
 			var tween := create_tween()
 			tween.set_parallel(true)
 			tween.tween_property(big_rank_label, "modulate:a", 1.0, 0.2)
 			tween.tween_property(big_rank_label, "scale", Vector2(1.0, 1.0), 0.3).from(Vector2(3.0, 3.0))
+			tween.tween_property(rank_bg, "modulate:a", 1.0, 0.2)
 
 			# After flash duration, shrink rank to position
 			get_tree().create_timer(RANK_REVEAL_DURATION).timeout.connect(
@@ -508,13 +552,14 @@ func _animate_rank_reveal(ui: Control, container: VBoxContainer, score_data: Dic
 					var fade_tween := create_tween()
 					fade_tween.tween_property(flash_bg, "color:a", 0.0, 0.3)
 
-					# Shrink and move big rank to container position
+					# Shrink big rank letter and fade out gradient background
 					var shrink_tween := create_tween()
 					shrink_tween.set_parallel(true)
 					shrink_tween.tween_property(big_rank_label, "scale", Vector2(0.3, 0.3), RANK_SHRINK_DURATION)
 					shrink_tween.tween_property(big_rank_label, "modulate:a", 0.0, RANK_SHRINK_DURATION)
+					shrink_tween.tween_property(rank_bg, "modulate:a", 0.0, RANK_SHRINK_DURATION)
 
-					# Show final rank in container
+					# Show final rank in container (no gradient background)
 					shrink_tween.tween_property(final_rank_label, "modulate:a", 1.0, RANK_SHRINK_DURATION)
 
 					# Clean up after animation
@@ -522,6 +567,7 @@ func _animate_rank_reveal(ui: Control, container: VBoxContainer, score_data: Dic
 						func():
 							flash_bg.queue_free()
 							big_rank_label.queue_free()
+							rank_bg.queue_free()
 					)
 			)
 	)
@@ -585,3 +631,87 @@ func _get_rank_color(rank: String) -> Color:
 			return Color(1.0, 0.2, 0.2, 1.0)  # Red
 		_:
 			return Color(1.0, 1.0, 1.0, 1.0)  # Default white
+
+
+## Get contrasting colors for animated gradient background behind a rank letter.
+## Generates colors by shifting the hue away from the rank color to ensure contrast.
+## @param rank_color: The color of the rank letter text.
+## @returns: Array of 3 contrasting colors for the gradient animation.
+func _get_contrasting_colors(rank_color: Color) -> Array[Color]:
+	var h: float = rank_color.h
+	var s: float = rank_color.s
+	# Use high saturation and moderate value for vibrant contrasting backgrounds
+	var bg_s: float = maxf(s, 0.7)
+	var bg_v: float = 0.5
+
+	# For white/low-saturation rank colors (like C rank), use darker vivid colors
+	if s < 0.2:
+		bg_s = 0.9
+		bg_v = 0.4
+
+	# Shift hue by 120 and 240 degrees for maximum contrast (triadic colors)
+	var c1 := Color.from_hsv(fmod(h + 0.33, 1.0), bg_s, bg_v, 0.85)
+	var c2 := Color.from_hsv(fmod(h + 0.55, 1.0), bg_s, bg_v, 0.85)
+	var c3 := Color.from_hsv(fmod(h + 0.78, 1.0), bg_s, bg_v, 0.85)
+
+	return [c1, c2, c3]
+
+
+## Animate gradient background behind the rank label using contrasting colors.
+## Creates a smoothly cycling color animation on the background ColorRect.
+## @param bg: The ColorRect to animate.
+## @param rank_color: The rank letter color (used to calculate contrasting colors).
+func _animate_rank_gradient_background(bg: ColorRect, rank_color: Color) -> void:
+	var colors := _get_contrasting_colors(rank_color)
+	var start_time := Time.get_ticks_msec() / 1000.0
+
+	var timer := Timer.new()
+	timer.wait_time = 0.016  # ~60 FPS for smooth gradient
+	timer.one_shot = false
+	add_child(timer)
+
+	timer.timeout.connect(
+		func():
+			if not is_instance_valid(bg) or not bg.is_inside_tree():
+				timer.stop()
+				timer.queue_free()
+				return
+
+			var elapsed: float = (Time.get_ticks_msec() / 1000.0) - start_time
+			var t: float = elapsed * RANK_BG_GRADIENT_SPEED
+
+			# Smoothly cycle between the 3 contrasting colors
+			var cycle: float = fmod(t, 3.0)
+			var color: Color
+			if cycle < 1.0:
+				color = colors[0].lerp(colors[1], cycle)
+			elif cycle < 2.0:
+				color = colors[1].lerp(colors[2], cycle - 1.0)
+			else:
+				color = colors[2].lerp(colors[0], cycle - 2.0)
+
+			bg.color = color
+	)
+
+	timer.start()
+
+
+## Get the rank corresponding to a given score ratio (score / max_possible_score).
+## Used for animating total score color through grade progression.
+## @param score_ratio: The ratio of current score to max possible score (0.0 to 1.0+).
+## @returns: The rank string for the given ratio.
+func _get_rank_for_score_ratio(score_ratio: float) -> String:
+	if score_ratio >= RANK_THRESHOLDS["S"]:
+		return "S"
+	elif score_ratio >= RANK_THRESHOLDS["A+"]:
+		return "A+"
+	elif score_ratio >= RANK_THRESHOLDS["A"]:
+		return "A"
+	elif score_ratio >= RANK_THRESHOLDS["B"]:
+		return "B"
+	elif score_ratio >= RANK_THRESHOLDS["C"]:
+		return "C"
+	elif score_ratio >= RANK_THRESHOLDS["D"]:
+		return "D"
+	else:
+		return "F"
