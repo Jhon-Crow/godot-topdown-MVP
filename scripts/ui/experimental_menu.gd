@@ -3,6 +3,7 @@ extends CanvasLayer
 ##
 ## Allows the player to enable/disable experimental game features.
 ## All experimental features are disabled by default.
+## Note: Night Mode (realistic visibility) has been moved to the Difficulty menu.
 
 ## Signal emitted when the back button is pressed.
 signal back_pressed

@@ -2,14 +2,13 @@ extends CanvasLayer
 ## Card-based level selection menu.
 ##
 ## Displays available levels as visual cards with preview colors, descriptions,
-## enemy counts, and difficulty ratings across all difficulty modes.
+## enemy counts, and progress results (stars) for each difficulty mode.
 ## Replaces the simple button list with a more informative card layout.
 
 ## Signal emitted when the back button is pressed.
 signal back_pressed
 
-## Level metadata: name, scene path, description, preview color, enemy count,
-## and difficulty ratings per mode (1-5 stars).
+## Level metadata: name, scene path, description, preview color, enemy count.
 const LEVELS: Array[Dictionary] = [
 	{
 		"name": "Building Level",
@@ -18,13 +17,7 @@ const LEVELS: Array[Dictionary] = [
 		"preview_color": Color(0.35, 0.25, 0.2, 1.0),
 		"preview_accent": Color(0.6, 0.4, 0.3, 1.0),
 		"enemy_count": 10,
-		"map_size": "2400x2000",
-		"ratings": {
-			"Easy": 2,
-			"Normal": 3,
-			"Hard": 4,
-			"Power Fantasy": 1
-		}
+		"map_size": "2400x2000"
 	},
 	{
 		"name": "Polygon",
@@ -34,13 +27,7 @@ const LEVELS: Array[Dictionary] = [
 		"preview_color": Color(0.2, 0.3, 0.2, 1.0),
 		"preview_accent": Color(0.35, 0.5, 0.35, 1.0),
 		"enemy_count": 5,
-		"map_size": "1280x720",
-		"ratings": {
-			"Easy": 1,
-			"Normal": 2,
-			"Hard": 3,
-			"Power Fantasy": 1
-		}
+		"map_size": "1280x720"
 	},
 	{
 		"name": "Castle",
@@ -50,13 +37,7 @@ const LEVELS: Array[Dictionary] = [
 		"preview_color": Color(0.25, 0.25, 0.35, 1.0),
 		"preview_accent": Color(0.4, 0.4, 0.55, 1.0),
 		"enemy_count": 15,
-		"map_size": "6000x2560",
-		"ratings": {
-			"Easy": 3,
-			"Normal": 4,
-			"Hard": 5,
-			"Power Fantasy": 2
-		}
+		"map_size": "6000x2560"
 	},
 	{
 		"name": "Tutorial",
@@ -66,26 +47,16 @@ const LEVELS: Array[Dictionary] = [
 		"preview_color": Color(0.2, 0.25, 0.3, 1.0),
 		"preview_accent": Color(0.3, 0.45, 0.55, 1.0),
 		"enemy_count": 4,
-		"map_size": "1280x720",
-		"ratings": {
-			"Easy": 1,
-			"Normal": 1,
-			"Hard": 2,
-			"Power Fantasy": 1
-		}
+		"map_size": "1280x720"
 	}
 ]
 
-## Maximum star rating value.
-const MAX_STARS: int = 5
-
-## Star characters for display.
-const STAR_FILLED: String = "★"
-const STAR_EMPTY: String = "☆"
+## Difficulty names in display order.
+const DIFFICULTY_NAMES: Array[String] = ["Easy", "Normal", "Hard", "Power Fantasy"]
 
 ## Card dimensions.
 const CARD_WIDTH: float = 220.0
-const CARD_HEIGHT: float = 260.0
+const CARD_HEIGHT: float = 290.0
 
 ## Reference to the back button.
 var _back_button: Button
@@ -129,9 +100,9 @@ func _build_ui() -> void:
 	panel.anchor_right = 0.5
 	panel.anchor_bottom = 0.5
 	panel.offset_left = -500
-	panel.offset_top = -230
+	panel.offset_top = -260
 	panel.offset_right = 500
-	panel.offset_bottom = 230
+	panel.offset_bottom = 260
 	panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	panel.grow_vertical = Control.GROW_DIRECTION_BOTH
 
@@ -199,19 +170,6 @@ func _build_ui() -> void:
 	var bottom_sep := HSeparator.new()
 	main_vbox.add_child(bottom_sep)
 
-	# Status label (shows current difficulty mode)
-	var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
-	var difficulty_name: String = "Normal"
-	if difficulty_manager and difficulty_manager.has_method("get_difficulty_name"):
-		difficulty_name = difficulty_manager.get_difficulty_name()
-
-	var status_label := Label.new()
-	status_label.name = "StatusLabel"
-	status_label.text = "Difficulty ratings shown for: %s" % difficulty_name
-	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	status_label.add_theme_font_size_override("font_size", 12)
-	status_label.add_theme_color_override("font_color", Color(0.5, 0.55, 0.6, 1.0))
-	main_vbox.add_child(status_label)
 
 	# Back button
 	var button_hbox := HBoxContainer.new()
@@ -239,23 +197,17 @@ func _populate_level_cards() -> void:
 	if current_scene and current_scene.scene_file_path:
 		current_scene_path = current_scene.scene_file_path
 
-	# Get current difficulty for rating highlight
-	var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
-	var current_difficulty_name: String = "Normal"
-	if difficulty_manager and difficulty_manager.has_method("get_difficulty_name"):
-		current_difficulty_name = difficulty_manager.get_difficulty_name()
-
 	# Create a card for each level
 	for level_data in LEVELS:
 		var level_path: String = level_data["path"]
 		var is_current: bool = (level_path == current_scene_path)
-		var card := _create_level_card(level_data, is_current, current_difficulty_name)
+		var card := _create_level_card(level_data, is_current)
 		_card_container.add_child(card)
 		_level_cards[level_path] = card
 
 
 ## Create a single level card.
-func _create_level_card(level_data: Dictionary, is_current: bool, current_difficulty: String) -> PanelContainer:
+func _create_level_card(level_data: Dictionary, is_current: bool) -> PanelContainer:
 	var card := PanelContainer.new()
 	card.name = level_data["name"].replace(" ", "") + "Card"
 	card.custom_minimum_size = Vector2(CARD_WIDTH, CARD_HEIGHT)
@@ -354,27 +306,45 @@ func _create_level_card(level_data: Dictionary, is_current: bool, current_diffic
 	desc_label.custom_minimum_size.x = CARD_WIDTH - 20
 	vbox.add_child(desc_label)
 
-	# Difficulty rating for current mode
-	var ratings: Dictionary = level_data.get("ratings", {})
-	var current_rating: int = ratings.get(current_difficulty, 3)
+	# Progress results for all difficulties (shown as letter grades)
+	var progress_manager: Node = get_node_or_null("/root/ProgressManager")
+	var progress_vbox := VBoxContainer.new()
+	progress_vbox.layout_mode = 2
+	progress_vbox.add_theme_constant_override("separation", 1)
+	vbox.add_child(progress_vbox)
 
-	var rating_hbox := HBoxContainer.new()
-	rating_hbox.layout_mode = 2
-	rating_hbox.alignment = BoxContainer.ALIGNMENT_CENTER
-	rating_hbox.add_theme_constant_override("separation", 2)
-	vbox.add_child(rating_hbox)
+	# Load custom font for grade display
+	var grade_font := _load_grade_font()
 
-	var diff_label := Label.new()
-	diff_label.text = current_difficulty + ": "
-	diff_label.add_theme_font_size_override("font_size", 11)
-	diff_label.add_theme_color_override("font_color", Color(0.6, 0.65, 0.7, 1.0))
-	rating_hbox.add_child(diff_label)
+	for difficulty_name in DIFFICULTY_NAMES:
+		var row := HBoxContainer.new()
+		row.layout_mode = 2
+		row.alignment = BoxContainer.ALIGNMENT_CENTER
+		row.add_theme_constant_override("separation", 4)
+		progress_vbox.add_child(row)
 
-	var stars_label := Label.new()
-	stars_label.text = _get_star_string(current_rating)
-	stars_label.add_theme_font_size_override("font_size", 13)
-	stars_label.add_theme_color_override("font_color", _get_rating_color(current_rating))
-	rating_hbox.add_child(stars_label)
+		var difficulty_label := Label.new()
+		difficulty_label.text = difficulty_name + ":"
+		difficulty_label.add_theme_font_size_override("font_size", 9)
+		difficulty_label.add_theme_color_override("font_color", Color(0.5, 0.55, 0.6, 1.0))
+		difficulty_label.custom_minimum_size.x = 80
+		row.add_child(difficulty_label)
+
+		var best_rank: String = ""
+		if progress_manager and progress_manager.has_method("get_best_rank"):
+			best_rank = progress_manager.get_best_rank(level_data["path"], difficulty_name)
+
+		var grade_label := Label.new()
+		grade_label.text = best_rank if not best_rank.is_empty() else "—"
+		grade_label.add_theme_font_size_override("font_size", 14)
+		if grade_font:
+			grade_label.add_theme_font_override("font", grade_font)
+		if best_rank.is_empty():
+			grade_label.add_theme_color_override("font_color", Color(0.35, 0.35, 0.4, 1.0))
+		else:
+			grade_label.add_theme_color_override("font_color", _get_rank_color(best_rank))
+		grade_label.custom_minimum_size.x = 25
+		row.add_child(grade_label)
 
 	# Make card clickable (unless it's the current level)
 	if not is_current:
@@ -388,32 +358,35 @@ func _create_level_card(level_data: Dictionary, is_current: bool, current_diffic
 	return card
 
 
-## Generate star rating string.
-func _get_star_string(rating: int) -> String:
-	var stars: String = ""
-	for i in range(MAX_STARS):
-		if i < rating:
-			stars += STAR_FILLED
-		else:
-			stars += STAR_EMPTY
-	return stars
+## Load custom font for grade display.
+func _load_grade_font() -> Font:
+	var font_path := "res://addons/gut/fonts/LobsterTwo-Bold.ttf"
+	if ResourceLoader.exists(font_path):
+		var font_file := FontFile.new()
+		font_file.data = FileAccess.get_file_as_bytes(font_path)
+		return font_file
+	return null
 
 
-## Get color based on difficulty rating.
-func _get_rating_color(rating: int) -> Color:
-	match rating:
-		1:
-			return Color(0.3, 0.8, 0.3, 1.0)  # Green - easy
-		2:
-			return Color(0.5, 0.8, 0.3, 1.0)  # Yellow-green
-		3:
-			return Color(1.0, 0.8, 0.2, 1.0)  # Gold - medium
-		4:
-			return Color(1.0, 0.5, 0.2, 1.0)  # Orange - hard
-		5:
-			return Color(1.0, 0.2, 0.2, 1.0)  # Red - very hard
+## Get color for a rank display.
+func _get_rank_color(rank: String) -> Color:
+	match rank:
+		"S":
+			return Color(1.0, 0.85, 0.0, 1.0)   # Gold
+		"A+":
+			return Color(0.3, 1.0, 0.3, 1.0)     # Bright green
+		"A":
+			return Color(0.4, 0.9, 0.4, 1.0)     # Green
+		"B":
+			return Color(0.5, 0.8, 1.0, 1.0)     # Light blue
+		"C":
+			return Color(0.8, 0.8, 0.8, 1.0)     # Light gray
+		"D":
+			return Color(0.8, 0.5, 0.3, 1.0)     # Orange
+		"F":
+			return Color(0.8, 0.3, 0.3, 1.0)     # Red
 		_:
-			return Color(0.7, 0.7, 0.7, 1.0)  # Gray
+			return Color(0.7, 0.7, 0.7, 1.0)     # Gray
 
 
 ## Handle click on a level card.
