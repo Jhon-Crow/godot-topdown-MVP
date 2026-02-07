@@ -1,4 +1,4 @@
-[gd_scene load_steps=18 format=3 uid="uid://city_level_581"]
+[gd_scene load_steps=37 format=3 uid="uid://city_level_581"]
 
 [ext_resource type="Script" path="res://scripts/levels/city_level.gd" id="1_city"]
 [ext_resource type="PackedScene" uid="uid://dv8nq2vj5r7p2" path="res://scenes/characters/csharp/Player.tscn" id="2_player"]
@@ -12,23 +12,11 @@ size = Vector2(6064, 32)
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_wall_v"]
 size = Vector2(32, 5064)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_building"]
-size = Vector2(300, 300)
-
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_building_small"]
-size = Vector2(200, 200)
-
 [sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_wall_h"]
 polygon = PackedVector2Array(-3032, -16, 3032, -16, 3032, 16, -3032, 16)
 
 [sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_wall_v"]
 polygon = PackedVector2Array(-16, -2532, 16, -2532, 16, 2532, -16, 2532)
-
-[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_building"]
-polygon = PackedVector2Array(-150, -150, 150, -150, 150, 150, -150, 150)
-
-[sub_resource type="OccluderPolygon2D" id="OccluderPolygon2D_building_small"]
-polygon = PackedVector2Array(-100, -100, 100, -100, 100, 100, -100, 100)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_cover"]
 size = Vector2(80, 32)
@@ -45,6 +33,78 @@ parsed_collision_mask = 4
 source_geometry_mode = 0
 source_geometry_group_name = &"navigation_source"
 agent_radius = 24.0
+
+[sub_resource type="RectangleShape2D" id="Rect_16x53"]
+size = Vector2(16.0, 53.3)
+
+[sub_resource type="OccluderPolygon2D" id="Occ_16x53"]
+polygon = PackedVector2Array(-8.0, -26.7, 8.0, -26.7, 8.0, 26.7, -8.0, 26.7)
+
+[sub_resource type="RectangleShape2D" id="Rect_16x75"]
+size = Vector2(16.0, 75.0)
+
+[sub_resource type="OccluderPolygon2D" id="Occ_16x75"]
+polygon = PackedVector2Array(-8.0, -37.5, 8.0, -37.5, 8.0, 37.5, -8.0, 37.5)
+
+[sub_resource type="RectangleShape2D" id="Rect_16x87"]
+size = Vector2(16.0, 86.7)
+
+[sub_resource type="OccluderPolygon2D" id="Occ_16x87"]
+polygon = PackedVector2Array(-8.0, -43.3, 8.0, -43.3, 8.0, 43.3, -8.0, 43.3)
+
+[sub_resource type="RectangleShape2D" id="Rect_16x120"]
+size = Vector2(16.0, 120.0)
+
+[sub_resource type="OccluderPolygon2D" id="Occ_16x120"]
+polygon = PackedVector2Array(-8.0, -60.0, 8.0, -60.0, 8.0, 60.0, -8.0, 60.0)
+
+[sub_resource type="RectangleShape2D" id="Rect_16x200"]
+size = Vector2(16.0, 200.0)
+
+[sub_resource type="OccluderPolygon2D" id="Occ_16x200"]
+polygon = PackedVector2Array(-8.0, -100.0, 8.0, -100.0, 8.0, 100.0, -8.0, 100.0)
+
+[sub_resource type="RectangleShape2D" id="Rect_16x300"]
+size = Vector2(16.0, 300.0)
+
+[sub_resource type="OccluderPolygon2D" id="Occ_16x300"]
+polygon = PackedVector2Array(-8.0, -150.0, 8.0, -150.0, 8.0, 150.0, -8.0, 150.0)
+
+[sub_resource type="RectangleShape2D" id="Rect_53x16"]
+size = Vector2(53.3, 16.0)
+
+[sub_resource type="OccluderPolygon2D" id="Occ_53x16"]
+polygon = PackedVector2Array(-26.7, -8.0, 26.7, -8.0, 26.7, 8.0, -26.7, 8.0)
+
+[sub_resource type="RectangleShape2D" id="Rect_75x16"]
+size = Vector2(75.0, 16.0)
+
+[sub_resource type="OccluderPolygon2D" id="Occ_75x16"]
+polygon = PackedVector2Array(-37.5, -8.0, 37.5, -8.0, 37.5, 8.0, -37.5, 8.0)
+
+[sub_resource type="RectangleShape2D" id="Rect_87x16"]
+size = Vector2(86.7, 16.0)
+
+[sub_resource type="OccluderPolygon2D" id="Occ_87x16"]
+polygon = PackedVector2Array(-43.3, -8.0, 43.3, -8.0, 43.3, 8.0, -43.3, 8.0)
+
+[sub_resource type="RectangleShape2D" id="Rect_120x16"]
+size = Vector2(120.0, 16.0)
+
+[sub_resource type="OccluderPolygon2D" id="Occ_120x16"]
+polygon = PackedVector2Array(-60.0, -8.0, 60.0, -8.0, 60.0, 8.0, -60.0, 8.0)
+
+[sub_resource type="RectangleShape2D" id="Rect_200x16"]
+size = Vector2(200.0, 16.0)
+
+[sub_resource type="OccluderPolygon2D" id="Occ_200x16"]
+polygon = PackedVector2Array(-100.0, -8.0, 100.0, -8.0, 100.0, 8.0, -100.0, 8.0)
+
+[sub_resource type="RectangleShape2D" id="Rect_300x16"]
+size = Vector2(300.0, 16.0)
+
+[sub_resource type="OccluderPolygon2D" id="Occ_300x16"]
+polygon = PackedVector2Array(-150.0, -8.0, 150.0, -8.0, 150.0, 8.0, -150.0, 8.0)
 
 [node name="CityLevel" type="Node2D"]
 script = ExtResource("1_city")
@@ -142,509 +202,3813 @@ occluder = SubResource("OccluderPolygon2D_wall_v")
 
 [node name="Buildings" type="Node2D" parent="Environment"]
 
-[node name="BuildingA1" type="StaticBody2D" parent="Environment/Buildings"]
+[node name="BuildingA1" type="Node2D" parent="Environment/Buildings"]
 position = Vector2(800, 800)
+
+[node name="Floor" type="ColorRect" parent="Environment/Buildings/BuildingA1"]
+offset_left = -134.0
+offset_top = -134.0
+offset_right = 134.0
+offset_bottom = 134.0
+color = Color(0.22, 0.2, 0.18, 1)
+
+[node name="WallTop1" type="StaticBody2D" parent="Environment/Buildings/BuildingA1"]
+position = Vector2(-106.7, -142.0)
 collision_layer = 4
 collision_mask = 0
 
-[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingA1"]
-offset_left = -150.0
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingA1/WallTop1"]
+offset_left = -43.3
+offset_top = -8.0
+offset_right = 43.3
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingA1/WallTop1"]
+shape = SubResource("Rect_87x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingA1/WallTop1"]
+occluder = SubResource("Occ_87x16")
+
+[node name="WallTop2" type="StaticBody2D" parent="Environment/Buildings/BuildingA1"]
+position = Vector2(0.0, -142.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingA1/WallTop2"]
+offset_left = -43.3
+offset_top = -8.0
+offset_right = 43.3
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingA1/WallTop2"]
+shape = SubResource("Rect_87x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingA1/WallTop2"]
+occluder = SubResource("Occ_87x16")
+
+[node name="WallTop3" type="StaticBody2D" parent="Environment/Buildings/BuildingA1"]
+position = Vector2(106.7, -142.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingA1/WallTop3"]
+offset_left = -43.3
+offset_top = -8.0
+offset_right = 43.3
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingA1/WallTop3"]
+shape = SubResource("Rect_87x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingA1/WallTop3"]
+occluder = SubResource("Occ_87x16")
+
+[node name="WallBottomL" type="StaticBody2D" parent="Environment/Buildings/BuildingA1"]
+position = Vector2(-90.0, 142.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingA1/WallBottomL"]
+offset_left = -60.0
+offset_top = -8.0
+offset_right = 60.0
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingA1/WallBottomL"]
+shape = SubResource("Rect_120x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingA1/WallBottomL"]
+occluder = SubResource("Occ_120x16")
+
+[node name="WallBottomR" type="StaticBody2D" parent="Environment/Buildings/BuildingA1"]
+position = Vector2(90.0, 142.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingA1/WallBottomR"]
+offset_left = -60.0
+offset_top = -8.0
+offset_right = 60.0
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingA1/WallBottomR"]
+shape = SubResource("Rect_120x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingA1/WallBottomR"]
+occluder = SubResource("Occ_120x16")
+
+[node name="WallLeft" type="StaticBody2D" parent="Environment/Buildings/BuildingA1"]
+position = Vector2(-142.0, 0.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingA1/WallLeft"]
+offset_left = -8.0
 offset_top = -150.0
-offset_right = 150.0
+offset_right = 8.0
 offset_bottom = 150.0
-color = Color(0.3, 0.28, 0.25, 1)
+color = Color(0.35, 0.3, 0.26, 1)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingA1"]
-shape = SubResource("RectangleShape2D_building")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingA1/WallLeft"]
+shape = SubResource("Rect_16x300")
 
-[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingA1"]
-occluder = SubResource("OccluderPolygon2D_building")
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingA1/WallLeft"]
+occluder = SubResource("Occ_16x300")
 
-[node name="BuildingA2" type="StaticBody2D" parent="Environment/Buildings"]
+[node name="WallRight" type="StaticBody2D" parent="Environment/Buildings/BuildingA1"]
+position = Vector2(142.0, 0.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingA1/WallRight"]
+offset_left = -8.0
+offset_top = -150.0
+offset_right = 8.0
+offset_bottom = 150.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingA1/WallRight"]
+shape = SubResource("Rect_16x300")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingA1/WallRight"]
+occluder = SubResource("Occ_16x300")
+
+[node name="BuildingA2" type="Node2D" parent="Environment/Buildings"]
 position = Vector2(1600, 800)
+
+[node name="Floor" type="ColorRect" parent="Environment/Buildings/BuildingA2"]
+offset_left = -134.0
+offset_top = -134.0
+offset_right = 134.0
+offset_bottom = 134.0
+color = Color(0.22, 0.2, 0.18, 1)
+
+[node name="WallTop" type="StaticBody2D" parent="Environment/Buildings/BuildingA2"]
+position = Vector2(0.0, -142.0)
 collision_layer = 4
 collision_mask = 0
 
-[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingA2"]
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingA2/WallTop"]
 offset_left = -150.0
-offset_top = -150.0
+offset_top = -8.0
 offset_right = 150.0
-offset_bottom = 150.0
-color = Color(0.3, 0.28, 0.25, 1)
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingA2"]
-shape = SubResource("RectangleShape2D_building")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingA2/WallTop"]
+shape = SubResource("Rect_300x16")
 
-[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingA2"]
-occluder = SubResource("OccluderPolygon2D_building")
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingA2/WallTop"]
+occluder = SubResource("Occ_300x16")
 
-[node name="BuildingA3" type="StaticBody2D" parent="Environment/Buildings"]
+[node name="WallBottom" type="StaticBody2D" parent="Environment/Buildings/BuildingA2"]
+position = Vector2(0.0, 142.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingA2/WallBottom"]
+offset_left = -150.0
+offset_top = -8.0
+offset_right = 150.0
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingA2/WallBottom"]
+shape = SubResource("Rect_300x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingA2/WallBottom"]
+occluder = SubResource("Occ_300x16")
+
+[node name="WallLeftT" type="StaticBody2D" parent="Environment/Buildings/BuildingA2"]
+position = Vector2(-142.0, -90.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingA2/WallLeftT"]
+offset_left = -8.0
+offset_top = -60.0
+offset_right = 8.0
+offset_bottom = 60.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingA2/WallLeftT"]
+shape = SubResource("Rect_16x120")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingA2/WallLeftT"]
+occluder = SubResource("Occ_16x120")
+
+[node name="WallLeftB" type="StaticBody2D" parent="Environment/Buildings/BuildingA2"]
+position = Vector2(-142.0, 90.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingA2/WallLeftB"]
+offset_left = -8.0
+offset_top = -60.0
+offset_right = 8.0
+offset_bottom = 60.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingA2/WallLeftB"]
+shape = SubResource("Rect_16x120")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingA2/WallLeftB"]
+occluder = SubResource("Occ_16x120")
+
+[node name="WallRight1" type="StaticBody2D" parent="Environment/Buildings/BuildingA2"]
+position = Vector2(142.0, -106.7)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingA2/WallRight1"]
+offset_left = -8.0
+offset_top = -43.3
+offset_right = 8.0
+offset_bottom = 43.3
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingA2/WallRight1"]
+shape = SubResource("Rect_16x87")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingA2/WallRight1"]
+occluder = SubResource("Occ_16x87")
+
+[node name="WallRight2" type="StaticBody2D" parent="Environment/Buildings/BuildingA2"]
+position = Vector2(142.0, 0.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingA2/WallRight2"]
+offset_left = -8.0
+offset_top = -43.3
+offset_right = 8.0
+offset_bottom = 43.3
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingA2/WallRight2"]
+shape = SubResource("Rect_16x87")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingA2/WallRight2"]
+occluder = SubResource("Occ_16x87")
+
+[node name="WallRight3" type="StaticBody2D" parent="Environment/Buildings/BuildingA2"]
+position = Vector2(142.0, 106.7)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingA2/WallRight3"]
+offset_left = -8.0
+offset_top = -43.3
+offset_right = 8.0
+offset_bottom = 43.3
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingA2/WallRight3"]
+shape = SubResource("Rect_16x87")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingA2/WallRight3"]
+occluder = SubResource("Occ_16x87")
+
+[node name="BuildingA3" type="Node2D" parent="Environment/Buildings"]
 position = Vector2(2400, 800)
+
+[node name="Floor" type="ColorRect" parent="Environment/Buildings/BuildingA3"]
+offset_left = -134.0
+offset_top = -134.0
+offset_right = 134.0
+offset_bottom = 134.0
+color = Color(0.22, 0.2, 0.18, 1)
+
+[node name="WallTop1" type="StaticBody2D" parent="Environment/Buildings/BuildingA3"]
+position = Vector2(-106.7, -142.0)
 collision_layer = 4
 collision_mask = 0
 
-[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingA3"]
-offset_left = -150.0
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingA3/WallTop1"]
+offset_left = -43.3
+offset_top = -8.0
+offset_right = 43.3
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingA3/WallTop1"]
+shape = SubResource("Rect_87x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingA3/WallTop1"]
+occluder = SubResource("Occ_87x16")
+
+[node name="WallTop2" type="StaticBody2D" parent="Environment/Buildings/BuildingA3"]
+position = Vector2(0.0, -142.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingA3/WallTop2"]
+offset_left = -43.3
+offset_top = -8.0
+offset_right = 43.3
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingA3/WallTop2"]
+shape = SubResource("Rect_87x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingA3/WallTop2"]
+occluder = SubResource("Occ_87x16")
+
+[node name="WallTop3" type="StaticBody2D" parent="Environment/Buildings/BuildingA3"]
+position = Vector2(106.7, -142.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingA3/WallTop3"]
+offset_left = -43.3
+offset_top = -8.0
+offset_right = 43.3
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingA3/WallTop3"]
+shape = SubResource("Rect_87x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingA3/WallTop3"]
+occluder = SubResource("Occ_87x16")
+
+[node name="WallBottomL" type="StaticBody2D" parent="Environment/Buildings/BuildingA3"]
+position = Vector2(-90.0, 142.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingA3/WallBottomL"]
+offset_left = -60.0
+offset_top = -8.0
+offset_right = 60.0
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingA3/WallBottomL"]
+shape = SubResource("Rect_120x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingA3/WallBottomL"]
+occluder = SubResource("Occ_120x16")
+
+[node name="WallBottomR" type="StaticBody2D" parent="Environment/Buildings/BuildingA3"]
+position = Vector2(90.0, 142.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingA3/WallBottomR"]
+offset_left = -60.0
+offset_top = -8.0
+offset_right = 60.0
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingA3/WallBottomR"]
+shape = SubResource("Rect_120x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingA3/WallBottomR"]
+occluder = SubResource("Occ_120x16")
+
+[node name="WallLeft" type="StaticBody2D" parent="Environment/Buildings/BuildingA3"]
+position = Vector2(-142.0, 0.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingA3/WallLeft"]
+offset_left = -8.0
 offset_top = -150.0
-offset_right = 150.0
+offset_right = 8.0
 offset_bottom = 150.0
-color = Color(0.3, 0.28, 0.25, 1)
+color = Color(0.35, 0.3, 0.26, 1)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingA3"]
-shape = SubResource("RectangleShape2D_building")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingA3/WallLeft"]
+shape = SubResource("Rect_16x300")
 
-[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingA3"]
-occluder = SubResource("OccluderPolygon2D_building")
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingA3/WallLeft"]
+occluder = SubResource("Occ_16x300")
 
-[node name="BuildingA4" type="StaticBody2D" parent="Environment/Buildings"]
+[node name="WallRight" type="StaticBody2D" parent="Environment/Buildings/BuildingA3"]
+position = Vector2(142.0, 0.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingA3/WallRight"]
+offset_left = -8.0
+offset_top = -150.0
+offset_right = 8.0
+offset_bottom = 150.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingA3/WallRight"]
+shape = SubResource("Rect_16x300")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingA3/WallRight"]
+occluder = SubResource("Occ_16x300")
+
+[node name="BuildingA4" type="Node2D" parent="Environment/Buildings"]
 position = Vector2(3200, 800)
+
+[node name="Floor" type="ColorRect" parent="Environment/Buildings/BuildingA4"]
+offset_left = -134.0
+offset_top = -134.0
+offset_right = 134.0
+offset_bottom = 134.0
+color = Color(0.22, 0.2, 0.18, 1)
+
+[node name="WallTop" type="StaticBody2D" parent="Environment/Buildings/BuildingA4"]
+position = Vector2(0.0, -142.0)
 collision_layer = 4
 collision_mask = 0
 
-[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingA4"]
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingA4/WallTop"]
 offset_left = -150.0
-offset_top = -150.0
+offset_top = -8.0
 offset_right = 150.0
-offset_bottom = 150.0
-color = Color(0.3, 0.28, 0.25, 1)
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingA4"]
-shape = SubResource("RectangleShape2D_building")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingA4/WallTop"]
+shape = SubResource("Rect_300x16")
 
-[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingA4"]
-occluder = SubResource("OccluderPolygon2D_building")
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingA4/WallTop"]
+occluder = SubResource("Occ_300x16")
 
-[node name="BuildingA5" type="StaticBody2D" parent="Environment/Buildings"]
+[node name="WallBottom" type="StaticBody2D" parent="Environment/Buildings/BuildingA4"]
+position = Vector2(0.0, 142.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingA4/WallBottom"]
+offset_left = -150.0
+offset_top = -8.0
+offset_right = 150.0
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingA4/WallBottom"]
+shape = SubResource("Rect_300x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingA4/WallBottom"]
+occluder = SubResource("Occ_300x16")
+
+[node name="WallLeft1" type="StaticBody2D" parent="Environment/Buildings/BuildingA4"]
+position = Vector2(-142.0, -106.7)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingA4/WallLeft1"]
+offset_left = -8.0
+offset_top = -43.3
+offset_right = 8.0
+offset_bottom = 43.3
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingA4/WallLeft1"]
+shape = SubResource("Rect_16x87")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingA4/WallLeft1"]
+occluder = SubResource("Occ_16x87")
+
+[node name="WallLeft2" type="StaticBody2D" parent="Environment/Buildings/BuildingA4"]
+position = Vector2(-142.0, 0.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingA4/WallLeft2"]
+offset_left = -8.0
+offset_top = -43.3
+offset_right = 8.0
+offset_bottom = 43.3
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingA4/WallLeft2"]
+shape = SubResource("Rect_16x87")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingA4/WallLeft2"]
+occluder = SubResource("Occ_16x87")
+
+[node name="WallLeft3" type="StaticBody2D" parent="Environment/Buildings/BuildingA4"]
+position = Vector2(-142.0, 106.7)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingA4/WallLeft3"]
+offset_left = -8.0
+offset_top = -43.3
+offset_right = 8.0
+offset_bottom = 43.3
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingA4/WallLeft3"]
+shape = SubResource("Rect_16x87")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingA4/WallLeft3"]
+occluder = SubResource("Occ_16x87")
+
+[node name="WallRightT" type="StaticBody2D" parent="Environment/Buildings/BuildingA4"]
+position = Vector2(142.0, -90.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingA4/WallRightT"]
+offset_left = -8.0
+offset_top = -60.0
+offset_right = 8.0
+offset_bottom = 60.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingA4/WallRightT"]
+shape = SubResource("Rect_16x120")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingA4/WallRightT"]
+occluder = SubResource("Occ_16x120")
+
+[node name="WallRightB" type="StaticBody2D" parent="Environment/Buildings/BuildingA4"]
+position = Vector2(142.0, 90.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingA4/WallRightB"]
+offset_left = -8.0
+offset_top = -60.0
+offset_right = 8.0
+offset_bottom = 60.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingA4/WallRightB"]
+shape = SubResource("Rect_16x120")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingA4/WallRightB"]
+occluder = SubResource("Occ_16x120")
+
+[node name="BuildingA5" type="Node2D" parent="Environment/Buildings"]
 position = Vector2(4000, 800)
+
+[node name="Floor" type="ColorRect" parent="Environment/Buildings/BuildingA5"]
+offset_left = -134.0
+offset_top = -134.0
+offset_right = 134.0
+offset_bottom = 134.0
+color = Color(0.22, 0.2, 0.18, 1)
+
+[node name="WallTop1" type="StaticBody2D" parent="Environment/Buildings/BuildingA5"]
+position = Vector2(-106.7, -142.0)
 collision_layer = 4
 collision_mask = 0
 
-[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingA5"]
-offset_left = -150.0
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingA5/WallTop1"]
+offset_left = -43.3
+offset_top = -8.0
+offset_right = 43.3
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingA5/WallTop1"]
+shape = SubResource("Rect_87x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingA5/WallTop1"]
+occluder = SubResource("Occ_87x16")
+
+[node name="WallTop2" type="StaticBody2D" parent="Environment/Buildings/BuildingA5"]
+position = Vector2(0.0, -142.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingA5/WallTop2"]
+offset_left = -43.3
+offset_top = -8.0
+offset_right = 43.3
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingA5/WallTop2"]
+shape = SubResource("Rect_87x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingA5/WallTop2"]
+occluder = SubResource("Occ_87x16")
+
+[node name="WallTop3" type="StaticBody2D" parent="Environment/Buildings/BuildingA5"]
+position = Vector2(106.7, -142.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingA5/WallTop3"]
+offset_left = -43.3
+offset_top = -8.0
+offset_right = 43.3
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingA5/WallTop3"]
+shape = SubResource("Rect_87x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingA5/WallTop3"]
+occluder = SubResource("Occ_87x16")
+
+[node name="WallBottomL" type="StaticBody2D" parent="Environment/Buildings/BuildingA5"]
+position = Vector2(-90.0, 142.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingA5/WallBottomL"]
+offset_left = -60.0
+offset_top = -8.0
+offset_right = 60.0
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingA5/WallBottomL"]
+shape = SubResource("Rect_120x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingA5/WallBottomL"]
+occluder = SubResource("Occ_120x16")
+
+[node name="WallBottomR" type="StaticBody2D" parent="Environment/Buildings/BuildingA5"]
+position = Vector2(90.0, 142.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingA5/WallBottomR"]
+offset_left = -60.0
+offset_top = -8.0
+offset_right = 60.0
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingA5/WallBottomR"]
+shape = SubResource("Rect_120x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingA5/WallBottomR"]
+occluder = SubResource("Occ_120x16")
+
+[node name="WallLeft" type="StaticBody2D" parent="Environment/Buildings/BuildingA5"]
+position = Vector2(-142.0, 0.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingA5/WallLeft"]
+offset_left = -8.0
 offset_top = -150.0
-offset_right = 150.0
+offset_right = 8.0
 offset_bottom = 150.0
-color = Color(0.3, 0.28, 0.25, 1)
+color = Color(0.35, 0.3, 0.26, 1)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingA5"]
-shape = SubResource("RectangleShape2D_building")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingA5/WallLeft"]
+shape = SubResource("Rect_16x300")
 
-[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingA5"]
-occluder = SubResource("OccluderPolygon2D_building")
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingA5/WallLeft"]
+occluder = SubResource("Occ_16x300")
 
-[node name="BuildingA6" type="StaticBody2D" parent="Environment/Buildings"]
+[node name="WallRight" type="StaticBody2D" parent="Environment/Buildings/BuildingA5"]
+position = Vector2(142.0, 0.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingA5/WallRight"]
+offset_left = -8.0
+offset_top = -150.0
+offset_right = 8.0
+offset_bottom = 150.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingA5/WallRight"]
+shape = SubResource("Rect_16x300")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingA5/WallRight"]
+occluder = SubResource("Occ_16x300")
+
+[node name="BuildingA6" type="Node2D" parent="Environment/Buildings"]
 position = Vector2(4800, 800)
+
+[node name="Floor" type="ColorRect" parent="Environment/Buildings/BuildingA6"]
+offset_left = -134.0
+offset_top = -134.0
+offset_right = 134.0
+offset_bottom = 134.0
+color = Color(0.22, 0.2, 0.18, 1)
+
+[node name="WallTop" type="StaticBody2D" parent="Environment/Buildings/BuildingA6"]
+position = Vector2(0.0, -142.0)
 collision_layer = 4
 collision_mask = 0
 
-[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingA6"]
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingA6/WallTop"]
 offset_left = -150.0
-offset_top = -150.0
+offset_top = -8.0
 offset_right = 150.0
-offset_bottom = 150.0
-color = Color(0.3, 0.28, 0.25, 1)
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingA6"]
-shape = SubResource("RectangleShape2D_building")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingA6/WallTop"]
+shape = SubResource("Rect_300x16")
 
-[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingA6"]
-occluder = SubResource("OccluderPolygon2D_building")
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingA6/WallTop"]
+occluder = SubResource("Occ_300x16")
 
-[node name="BuildingB1" type="StaticBody2D" parent="Environment/Buildings"]
+[node name="WallBottom" type="StaticBody2D" parent="Environment/Buildings/BuildingA6"]
+position = Vector2(0.0, 142.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingA6/WallBottom"]
+offset_left = -150.0
+offset_top = -8.0
+offset_right = 150.0
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingA6/WallBottom"]
+shape = SubResource("Rect_300x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingA6/WallBottom"]
+occluder = SubResource("Occ_300x16")
+
+[node name="WallLeftT" type="StaticBody2D" parent="Environment/Buildings/BuildingA6"]
+position = Vector2(-142.0, -90.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingA6/WallLeftT"]
+offset_left = -8.0
+offset_top = -60.0
+offset_right = 8.0
+offset_bottom = 60.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingA6/WallLeftT"]
+shape = SubResource("Rect_16x120")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingA6/WallLeftT"]
+occluder = SubResource("Occ_16x120")
+
+[node name="WallLeftB" type="StaticBody2D" parent="Environment/Buildings/BuildingA6"]
+position = Vector2(-142.0, 90.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingA6/WallLeftB"]
+offset_left = -8.0
+offset_top = -60.0
+offset_right = 8.0
+offset_bottom = 60.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingA6/WallLeftB"]
+shape = SubResource("Rect_16x120")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingA6/WallLeftB"]
+occluder = SubResource("Occ_16x120")
+
+[node name="WallRight1" type="StaticBody2D" parent="Environment/Buildings/BuildingA6"]
+position = Vector2(142.0, -106.7)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingA6/WallRight1"]
+offset_left = -8.0
+offset_top = -43.3
+offset_right = 8.0
+offset_bottom = 43.3
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingA6/WallRight1"]
+shape = SubResource("Rect_16x87")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingA6/WallRight1"]
+occluder = SubResource("Occ_16x87")
+
+[node name="WallRight2" type="StaticBody2D" parent="Environment/Buildings/BuildingA6"]
+position = Vector2(142.0, 0.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingA6/WallRight2"]
+offset_left = -8.0
+offset_top = -43.3
+offset_right = 8.0
+offset_bottom = 43.3
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingA6/WallRight2"]
+shape = SubResource("Rect_16x87")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingA6/WallRight2"]
+occluder = SubResource("Occ_16x87")
+
+[node name="WallRight3" type="StaticBody2D" parent="Environment/Buildings/BuildingA6"]
+position = Vector2(142.0, 106.7)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingA6/WallRight3"]
+offset_left = -8.0
+offset_top = -43.3
+offset_right = 8.0
+offset_bottom = 43.3
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingA6/WallRight3"]
+shape = SubResource("Rect_16x87")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingA6/WallRight3"]
+occluder = SubResource("Occ_16x87")
+
+[node name="BuildingB1" type="Node2D" parent="Environment/Buildings"]
 position = Vector2(1200, 1800)
+
+[node name="Floor" type="ColorRect" parent="Environment/Buildings/BuildingB1"]
+offset_left = -134.0
+offset_top = -134.0
+offset_right = 134.0
+offset_bottom = 134.0
+color = Color(0.22, 0.2, 0.18, 1)
+
+[node name="WallTopL" type="StaticBody2D" parent="Environment/Buildings/BuildingB1"]
+position = Vector2(-90.0, -142.0)
 collision_layer = 4
 collision_mask = 0
 
-[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingB1"]
-offset_left = -150.0
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingB1/WallTopL"]
+offset_left = -60.0
+offset_top = -8.0
+offset_right = 60.0
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingB1/WallTopL"]
+shape = SubResource("Rect_120x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingB1/WallTopL"]
+occluder = SubResource("Occ_120x16")
+
+[node name="WallTopR" type="StaticBody2D" parent="Environment/Buildings/BuildingB1"]
+position = Vector2(90.0, -142.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingB1/WallTopR"]
+offset_left = -60.0
+offset_top = -8.0
+offset_right = 60.0
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingB1/WallTopR"]
+shape = SubResource("Rect_120x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingB1/WallTopR"]
+occluder = SubResource("Occ_120x16")
+
+[node name="WallBottom1" type="StaticBody2D" parent="Environment/Buildings/BuildingB1"]
+position = Vector2(-106.7, 142.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingB1/WallBottom1"]
+offset_left = -43.3
+offset_top = -8.0
+offset_right = 43.3
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingB1/WallBottom1"]
+shape = SubResource("Rect_87x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingB1/WallBottom1"]
+occluder = SubResource("Occ_87x16")
+
+[node name="WallBottom2" type="StaticBody2D" parent="Environment/Buildings/BuildingB1"]
+position = Vector2(0.0, 142.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingB1/WallBottom2"]
+offset_left = -43.3
+offset_top = -8.0
+offset_right = 43.3
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingB1/WallBottom2"]
+shape = SubResource("Rect_87x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingB1/WallBottom2"]
+occluder = SubResource("Occ_87x16")
+
+[node name="WallBottom3" type="StaticBody2D" parent="Environment/Buildings/BuildingB1"]
+position = Vector2(106.7, 142.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingB1/WallBottom3"]
+offset_left = -43.3
+offset_top = -8.0
+offset_right = 43.3
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingB1/WallBottom3"]
+shape = SubResource("Rect_87x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingB1/WallBottom3"]
+occluder = SubResource("Occ_87x16")
+
+[node name="WallLeft" type="StaticBody2D" parent="Environment/Buildings/BuildingB1"]
+position = Vector2(-142.0, 0.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingB1/WallLeft"]
+offset_left = -8.0
 offset_top = -150.0
-offset_right = 150.0
+offset_right = 8.0
 offset_bottom = 150.0
-color = Color(0.3, 0.28, 0.25, 1)
+color = Color(0.35, 0.3, 0.26, 1)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingB1"]
-shape = SubResource("RectangleShape2D_building")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingB1/WallLeft"]
+shape = SubResource("Rect_16x300")
 
-[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingB1"]
-occluder = SubResource("OccluderPolygon2D_building")
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingB1/WallLeft"]
+occluder = SubResource("Occ_16x300")
 
-[node name="BuildingB2" type="StaticBody2D" parent="Environment/Buildings"]
+[node name="WallRight" type="StaticBody2D" parent="Environment/Buildings/BuildingB1"]
+position = Vector2(142.0, 0.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingB1/WallRight"]
+offset_left = -8.0
+offset_top = -150.0
+offset_right = 8.0
+offset_bottom = 150.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingB1/WallRight"]
+shape = SubResource("Rect_16x300")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingB1/WallRight"]
+occluder = SubResource("Occ_16x300")
+
+[node name="BuildingB2" type="Node2D" parent="Environment/Buildings"]
 position = Vector2(2000, 1800)
+
+[node name="Floor" type="ColorRect" parent="Environment/Buildings/BuildingB2"]
+offset_left = -134.0
+offset_top = -134.0
+offset_right = 134.0
+offset_bottom = 134.0
+color = Color(0.22, 0.2, 0.18, 1)
+
+[node name="WallTop" type="StaticBody2D" parent="Environment/Buildings/BuildingB2"]
+position = Vector2(0.0, -142.0)
 collision_layer = 4
 collision_mask = 0
 
-[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingB2"]
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingB2/WallTop"]
 offset_left = -150.0
-offset_top = -150.0
+offset_top = -8.0
 offset_right = 150.0
-offset_bottom = 150.0
-color = Color(0.3, 0.28, 0.25, 1)
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingB2"]
-shape = SubResource("RectangleShape2D_building")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingB2/WallTop"]
+shape = SubResource("Rect_300x16")
 
-[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingB2"]
-occluder = SubResource("OccluderPolygon2D_building")
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingB2/WallTop"]
+occluder = SubResource("Occ_300x16")
 
-[node name="BuildingB3" type="StaticBody2D" parent="Environment/Buildings"]
+[node name="WallBottom" type="StaticBody2D" parent="Environment/Buildings/BuildingB2"]
+position = Vector2(0.0, 142.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingB2/WallBottom"]
+offset_left = -150.0
+offset_top = -8.0
+offset_right = 150.0
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingB2/WallBottom"]
+shape = SubResource("Rect_300x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingB2/WallBottom"]
+occluder = SubResource("Occ_300x16")
+
+[node name="WallLeft1" type="StaticBody2D" parent="Environment/Buildings/BuildingB2"]
+position = Vector2(-142.0, -106.7)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingB2/WallLeft1"]
+offset_left = -8.0
+offset_top = -43.3
+offset_right = 8.0
+offset_bottom = 43.3
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingB2/WallLeft1"]
+shape = SubResource("Rect_16x87")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingB2/WallLeft1"]
+occluder = SubResource("Occ_16x87")
+
+[node name="WallLeft2" type="StaticBody2D" parent="Environment/Buildings/BuildingB2"]
+position = Vector2(-142.0, 0.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingB2/WallLeft2"]
+offset_left = -8.0
+offset_top = -43.3
+offset_right = 8.0
+offset_bottom = 43.3
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingB2/WallLeft2"]
+shape = SubResource("Rect_16x87")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingB2/WallLeft2"]
+occluder = SubResource("Occ_16x87")
+
+[node name="WallLeft3" type="StaticBody2D" parent="Environment/Buildings/BuildingB2"]
+position = Vector2(-142.0, 106.7)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingB2/WallLeft3"]
+offset_left = -8.0
+offset_top = -43.3
+offset_right = 8.0
+offset_bottom = 43.3
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingB2/WallLeft3"]
+shape = SubResource("Rect_16x87")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingB2/WallLeft3"]
+occluder = SubResource("Occ_16x87")
+
+[node name="WallRightT" type="StaticBody2D" parent="Environment/Buildings/BuildingB2"]
+position = Vector2(142.0, -90.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingB2/WallRightT"]
+offset_left = -8.0
+offset_top = -60.0
+offset_right = 8.0
+offset_bottom = 60.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingB2/WallRightT"]
+shape = SubResource("Rect_16x120")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingB2/WallRightT"]
+occluder = SubResource("Occ_16x120")
+
+[node name="WallRightB" type="StaticBody2D" parent="Environment/Buildings/BuildingB2"]
+position = Vector2(142.0, 90.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingB2/WallRightB"]
+offset_left = -8.0
+offset_top = -60.0
+offset_right = 8.0
+offset_bottom = 60.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingB2/WallRightB"]
+shape = SubResource("Rect_16x120")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingB2/WallRightB"]
+occluder = SubResource("Occ_16x120")
+
+[node name="BuildingB3" type="Node2D" parent="Environment/Buildings"]
 position = Vector2(2800, 1800)
+
+[node name="Floor" type="ColorRect" parent="Environment/Buildings/BuildingB3"]
+offset_left = -84.0
+offset_top = -84.0
+offset_right = 84.0
+offset_bottom = 84.0
+color = Color(0.22, 0.2, 0.18, 1)
+
+[node name="WallTop1" type="StaticBody2D" parent="Environment/Buildings/BuildingB3"]
+position = Vector2(-73.3, -92.0)
 collision_layer = 4
 collision_mask = 0
 
-[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingB3"]
-offset_left = -100.0
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingB3/WallTop1"]
+offset_left = -26.7
+offset_top = -8.0
+offset_right = 26.7
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingB3/WallTop1"]
+shape = SubResource("Rect_53x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingB3/WallTop1"]
+occluder = SubResource("Occ_53x16")
+
+[node name="WallTop2" type="StaticBody2D" parent="Environment/Buildings/BuildingB3"]
+position = Vector2(0.0, -92.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingB3/WallTop2"]
+offset_left = -26.7
+offset_top = -8.0
+offset_right = 26.7
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingB3/WallTop2"]
+shape = SubResource("Rect_53x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingB3/WallTop2"]
+occluder = SubResource("Occ_53x16")
+
+[node name="WallTop3" type="StaticBody2D" parent="Environment/Buildings/BuildingB3"]
+position = Vector2(73.3, -92.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingB3/WallTop3"]
+offset_left = -26.7
+offset_top = -8.0
+offset_right = 26.7
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingB3/WallTop3"]
+shape = SubResource("Rect_53x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingB3/WallTop3"]
+occluder = SubResource("Occ_53x16")
+
+[node name="WallBottomL" type="StaticBody2D" parent="Environment/Buildings/BuildingB3"]
+position = Vector2(-62.5, 92.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingB3/WallBottomL"]
+offset_left = -37.5
+offset_top = -8.0
+offset_right = 37.5
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingB3/WallBottomL"]
+shape = SubResource("Rect_75x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingB3/WallBottomL"]
+occluder = SubResource("Occ_75x16")
+
+[node name="WallBottomR" type="StaticBody2D" parent="Environment/Buildings/BuildingB3"]
+position = Vector2(62.5, 92.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingB3/WallBottomR"]
+offset_left = -37.5
+offset_top = -8.0
+offset_right = 37.5
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingB3/WallBottomR"]
+shape = SubResource("Rect_75x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingB3/WallBottomR"]
+occluder = SubResource("Occ_75x16")
+
+[node name="WallLeft" type="StaticBody2D" parent="Environment/Buildings/BuildingB3"]
+position = Vector2(-92.0, 0.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingB3/WallLeft"]
+offset_left = -8.0
 offset_top = -100.0
-offset_right = 100.0
+offset_right = 8.0
 offset_bottom = 100.0
-color = Color(0.32, 0.3, 0.27, 1)
+color = Color(0.35, 0.3, 0.26, 1)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingB3"]
-shape = SubResource("RectangleShape2D_building_small")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingB3/WallLeft"]
+shape = SubResource("Rect_16x200")
 
-[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingB3"]
-occluder = SubResource("OccluderPolygon2D_building_small")
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingB3/WallLeft"]
+occluder = SubResource("Occ_16x200")
 
-[node name="BuildingB4" type="StaticBody2D" parent="Environment/Buildings"]
+[node name="WallRight" type="StaticBody2D" parent="Environment/Buildings/BuildingB3"]
+position = Vector2(92.0, 0.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingB3/WallRight"]
+offset_left = -8.0
+offset_top = -100.0
+offset_right = 8.0
+offset_bottom = 100.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingB3/WallRight"]
+shape = SubResource("Rect_16x200")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingB3/WallRight"]
+occluder = SubResource("Occ_16x200")
+
+[node name="BuildingB4" type="Node2D" parent="Environment/Buildings"]
 position = Vector2(3600, 1800)
+
+[node name="Floor" type="ColorRect" parent="Environment/Buildings/BuildingB4"]
+offset_left = -134.0
+offset_top = -134.0
+offset_right = 134.0
+offset_bottom = 134.0
+color = Color(0.22, 0.2, 0.18, 1)
+
+[node name="WallTop" type="StaticBody2D" parent="Environment/Buildings/BuildingB4"]
+position = Vector2(0.0, -142.0)
 collision_layer = 4
 collision_mask = 0
 
-[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingB4"]
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingB4/WallTop"]
 offset_left = -150.0
-offset_top = -150.0
+offset_top = -8.0
 offset_right = 150.0
-offset_bottom = 150.0
-color = Color(0.3, 0.28, 0.25, 1)
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingB4"]
-shape = SubResource("RectangleShape2D_building")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingB4/WallTop"]
+shape = SubResource("Rect_300x16")
 
-[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingB4"]
-occluder = SubResource("OccluderPolygon2D_building")
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingB4/WallTop"]
+occluder = SubResource("Occ_300x16")
 
-[node name="BuildingB5" type="StaticBody2D" parent="Environment/Buildings"]
+[node name="WallBottom" type="StaticBody2D" parent="Environment/Buildings/BuildingB4"]
+position = Vector2(0.0, 142.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingB4/WallBottom"]
+offset_left = -150.0
+offset_top = -8.0
+offset_right = 150.0
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingB4/WallBottom"]
+shape = SubResource("Rect_300x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingB4/WallBottom"]
+occluder = SubResource("Occ_300x16")
+
+[node name="WallLeftT" type="StaticBody2D" parent="Environment/Buildings/BuildingB4"]
+position = Vector2(-142.0, -90.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingB4/WallLeftT"]
+offset_left = -8.0
+offset_top = -60.0
+offset_right = 8.0
+offset_bottom = 60.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingB4/WallLeftT"]
+shape = SubResource("Rect_16x120")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingB4/WallLeftT"]
+occluder = SubResource("Occ_16x120")
+
+[node name="WallLeftB" type="StaticBody2D" parent="Environment/Buildings/BuildingB4"]
+position = Vector2(-142.0, 90.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingB4/WallLeftB"]
+offset_left = -8.0
+offset_top = -60.0
+offset_right = 8.0
+offset_bottom = 60.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingB4/WallLeftB"]
+shape = SubResource("Rect_16x120")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingB4/WallLeftB"]
+occluder = SubResource("Occ_16x120")
+
+[node name="WallRight1" type="StaticBody2D" parent="Environment/Buildings/BuildingB4"]
+position = Vector2(142.0, -106.7)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingB4/WallRight1"]
+offset_left = -8.0
+offset_top = -43.3
+offset_right = 8.0
+offset_bottom = 43.3
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingB4/WallRight1"]
+shape = SubResource("Rect_16x87")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingB4/WallRight1"]
+occluder = SubResource("Occ_16x87")
+
+[node name="WallRight2" type="StaticBody2D" parent="Environment/Buildings/BuildingB4"]
+position = Vector2(142.0, 0.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingB4/WallRight2"]
+offset_left = -8.0
+offset_top = -43.3
+offset_right = 8.0
+offset_bottom = 43.3
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingB4/WallRight2"]
+shape = SubResource("Rect_16x87")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingB4/WallRight2"]
+occluder = SubResource("Occ_16x87")
+
+[node name="WallRight3" type="StaticBody2D" parent="Environment/Buildings/BuildingB4"]
+position = Vector2(142.0, 106.7)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingB4/WallRight3"]
+offset_left = -8.0
+offset_top = -43.3
+offset_right = 8.0
+offset_bottom = 43.3
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingB4/WallRight3"]
+shape = SubResource("Rect_16x87")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingB4/WallRight3"]
+occluder = SubResource("Occ_16x87")
+
+[node name="BuildingB5" type="Node2D" parent="Environment/Buildings"]
 position = Vector2(4400, 1800)
+
+[node name="Floor" type="ColorRect" parent="Environment/Buildings/BuildingB5"]
+offset_left = -134.0
+offset_top = -134.0
+offset_right = 134.0
+offset_bottom = 134.0
+color = Color(0.22, 0.2, 0.18, 1)
+
+[node name="WallTopL" type="StaticBody2D" parent="Environment/Buildings/BuildingB5"]
+position = Vector2(-90.0, -142.0)
 collision_layer = 4
 collision_mask = 0
 
-[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingB5"]
-offset_left = -150.0
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingB5/WallTopL"]
+offset_left = -60.0
+offset_top = -8.0
+offset_right = 60.0
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingB5/WallTopL"]
+shape = SubResource("Rect_120x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingB5/WallTopL"]
+occluder = SubResource("Occ_120x16")
+
+[node name="WallTopR" type="StaticBody2D" parent="Environment/Buildings/BuildingB5"]
+position = Vector2(90.0, -142.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingB5/WallTopR"]
+offset_left = -60.0
+offset_top = -8.0
+offset_right = 60.0
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingB5/WallTopR"]
+shape = SubResource("Rect_120x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingB5/WallTopR"]
+occluder = SubResource("Occ_120x16")
+
+[node name="WallBottom1" type="StaticBody2D" parent="Environment/Buildings/BuildingB5"]
+position = Vector2(-106.7, 142.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingB5/WallBottom1"]
+offset_left = -43.3
+offset_top = -8.0
+offset_right = 43.3
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingB5/WallBottom1"]
+shape = SubResource("Rect_87x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingB5/WallBottom1"]
+occluder = SubResource("Occ_87x16")
+
+[node name="WallBottom2" type="StaticBody2D" parent="Environment/Buildings/BuildingB5"]
+position = Vector2(0.0, 142.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingB5/WallBottom2"]
+offset_left = -43.3
+offset_top = -8.0
+offset_right = 43.3
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingB5/WallBottom2"]
+shape = SubResource("Rect_87x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingB5/WallBottom2"]
+occluder = SubResource("Occ_87x16")
+
+[node name="WallBottom3" type="StaticBody2D" parent="Environment/Buildings/BuildingB5"]
+position = Vector2(106.7, 142.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingB5/WallBottom3"]
+offset_left = -43.3
+offset_top = -8.0
+offset_right = 43.3
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingB5/WallBottom3"]
+shape = SubResource("Rect_87x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingB5/WallBottom3"]
+occluder = SubResource("Occ_87x16")
+
+[node name="WallLeft" type="StaticBody2D" parent="Environment/Buildings/BuildingB5"]
+position = Vector2(-142.0, 0.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingB5/WallLeft"]
+offset_left = -8.0
 offset_top = -150.0
-offset_right = 150.0
+offset_right = 8.0
 offset_bottom = 150.0
-color = Color(0.3, 0.28, 0.25, 1)
+color = Color(0.35, 0.3, 0.26, 1)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingB5"]
-shape = SubResource("RectangleShape2D_building")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingB5/WallLeft"]
+shape = SubResource("Rect_16x300")
 
-[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingB5"]
-occluder = SubResource("OccluderPolygon2D_building")
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingB5/WallLeft"]
+occluder = SubResource("Occ_16x300")
 
-[node name="BuildingB6" type="StaticBody2D" parent="Environment/Buildings"]
+[node name="WallRight" type="StaticBody2D" parent="Environment/Buildings/BuildingB5"]
+position = Vector2(142.0, 0.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingB5/WallRight"]
+offset_left = -8.0
+offset_top = -150.0
+offset_right = 8.0
+offset_bottom = 150.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingB5/WallRight"]
+shape = SubResource("Rect_16x300")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingB5/WallRight"]
+occluder = SubResource("Occ_16x300")
+
+[node name="BuildingB6" type="Node2D" parent="Environment/Buildings"]
 position = Vector2(5200, 1800)
+
+[node name="Floor" type="ColorRect" parent="Environment/Buildings/BuildingB6"]
+offset_left = -134.0
+offset_top = -134.0
+offset_right = 134.0
+offset_bottom = 134.0
+color = Color(0.22, 0.2, 0.18, 1)
+
+[node name="WallTop" type="StaticBody2D" parent="Environment/Buildings/BuildingB6"]
+position = Vector2(0.0, -142.0)
 collision_layer = 4
 collision_mask = 0
 
-[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingB6"]
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingB6/WallTop"]
 offset_left = -150.0
-offset_top = -150.0
+offset_top = -8.0
 offset_right = 150.0
-offset_bottom = 150.0
-color = Color(0.3, 0.28, 0.25, 1)
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingB6"]
-shape = SubResource("RectangleShape2D_building")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingB6/WallTop"]
+shape = SubResource("Rect_300x16")
 
-[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingB6"]
-occluder = SubResource("OccluderPolygon2D_building")
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingB6/WallTop"]
+occluder = SubResource("Occ_300x16")
 
-[node name="BuildingC1" type="StaticBody2D" parent="Environment/Buildings"]
+[node name="WallBottom" type="StaticBody2D" parent="Environment/Buildings/BuildingB6"]
+position = Vector2(0.0, 142.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingB6/WallBottom"]
+offset_left = -150.0
+offset_top = -8.0
+offset_right = 150.0
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingB6/WallBottom"]
+shape = SubResource("Rect_300x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingB6/WallBottom"]
+occluder = SubResource("Occ_300x16")
+
+[node name="WallLeft1" type="StaticBody2D" parent="Environment/Buildings/BuildingB6"]
+position = Vector2(-142.0, -106.7)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingB6/WallLeft1"]
+offset_left = -8.0
+offset_top = -43.3
+offset_right = 8.0
+offset_bottom = 43.3
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingB6/WallLeft1"]
+shape = SubResource("Rect_16x87")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingB6/WallLeft1"]
+occluder = SubResource("Occ_16x87")
+
+[node name="WallLeft2" type="StaticBody2D" parent="Environment/Buildings/BuildingB6"]
+position = Vector2(-142.0, 0.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingB6/WallLeft2"]
+offset_left = -8.0
+offset_top = -43.3
+offset_right = 8.0
+offset_bottom = 43.3
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingB6/WallLeft2"]
+shape = SubResource("Rect_16x87")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingB6/WallLeft2"]
+occluder = SubResource("Occ_16x87")
+
+[node name="WallLeft3" type="StaticBody2D" parent="Environment/Buildings/BuildingB6"]
+position = Vector2(-142.0, 106.7)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingB6/WallLeft3"]
+offset_left = -8.0
+offset_top = -43.3
+offset_right = 8.0
+offset_bottom = 43.3
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingB6/WallLeft3"]
+shape = SubResource("Rect_16x87")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingB6/WallLeft3"]
+occluder = SubResource("Occ_16x87")
+
+[node name="WallRightT" type="StaticBody2D" parent="Environment/Buildings/BuildingB6"]
+position = Vector2(142.0, -90.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingB6/WallRightT"]
+offset_left = -8.0
+offset_top = -60.0
+offset_right = 8.0
+offset_bottom = 60.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingB6/WallRightT"]
+shape = SubResource("Rect_16x120")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingB6/WallRightT"]
+occluder = SubResource("Occ_16x120")
+
+[node name="WallRightB" type="StaticBody2D" parent="Environment/Buildings/BuildingB6"]
+position = Vector2(142.0, 90.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingB6/WallRightB"]
+offset_left = -8.0
+offset_top = -60.0
+offset_right = 8.0
+offset_bottom = 60.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingB6/WallRightB"]
+shape = SubResource("Rect_16x120")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingB6/WallRightB"]
+occluder = SubResource("Occ_16x120")
+
+[node name="BuildingC1" type="Node2D" parent="Environment/Buildings"]
 position = Vector2(800, 2800)
+
+[node name="Floor" type="ColorRect" parent="Environment/Buildings/BuildingC1"]
+offset_left = -134.0
+offset_top = -134.0
+offset_right = 134.0
+offset_bottom = 134.0
+color = Color(0.22, 0.2, 0.18, 1)
+
+[node name="WallTop" type="StaticBody2D" parent="Environment/Buildings/BuildingC1"]
+position = Vector2(0.0, -142.0)
 collision_layer = 4
 collision_mask = 0
 
-[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingC1"]
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingC1/WallTop"]
 offset_left = -150.0
-offset_top = -150.0
+offset_top = -8.0
 offset_right = 150.0
-offset_bottom = 150.0
-color = Color(0.3, 0.28, 0.25, 1)
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingC1"]
-shape = SubResource("RectangleShape2D_building")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingC1/WallTop"]
+shape = SubResource("Rect_300x16")
 
-[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingC1"]
-occluder = SubResource("OccluderPolygon2D_building")
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingC1/WallTop"]
+occluder = SubResource("Occ_300x16")
 
-[node name="BuildingC2" type="StaticBody2D" parent="Environment/Buildings"]
+[node name="WallBottom" type="StaticBody2D" parent="Environment/Buildings/BuildingC1"]
+position = Vector2(0.0, 142.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingC1/WallBottom"]
+offset_left = -150.0
+offset_top = -8.0
+offset_right = 150.0
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingC1/WallBottom"]
+shape = SubResource("Rect_300x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingC1/WallBottom"]
+occluder = SubResource("Occ_300x16")
+
+[node name="WallLeft1" type="StaticBody2D" parent="Environment/Buildings/BuildingC1"]
+position = Vector2(-142.0, -106.7)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingC1/WallLeft1"]
+offset_left = -8.0
+offset_top = -43.3
+offset_right = 8.0
+offset_bottom = 43.3
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingC1/WallLeft1"]
+shape = SubResource("Rect_16x87")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingC1/WallLeft1"]
+occluder = SubResource("Occ_16x87")
+
+[node name="WallLeft2" type="StaticBody2D" parent="Environment/Buildings/BuildingC1"]
+position = Vector2(-142.0, 0.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingC1/WallLeft2"]
+offset_left = -8.0
+offset_top = -43.3
+offset_right = 8.0
+offset_bottom = 43.3
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingC1/WallLeft2"]
+shape = SubResource("Rect_16x87")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingC1/WallLeft2"]
+occluder = SubResource("Occ_16x87")
+
+[node name="WallLeft3" type="StaticBody2D" parent="Environment/Buildings/BuildingC1"]
+position = Vector2(-142.0, 106.7)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingC1/WallLeft3"]
+offset_left = -8.0
+offset_top = -43.3
+offset_right = 8.0
+offset_bottom = 43.3
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingC1/WallLeft3"]
+shape = SubResource("Rect_16x87")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingC1/WallLeft3"]
+occluder = SubResource("Occ_16x87")
+
+[node name="WallRightT" type="StaticBody2D" parent="Environment/Buildings/BuildingC1"]
+position = Vector2(142.0, -90.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingC1/WallRightT"]
+offset_left = -8.0
+offset_top = -60.0
+offset_right = 8.0
+offset_bottom = 60.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingC1/WallRightT"]
+shape = SubResource("Rect_16x120")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingC1/WallRightT"]
+occluder = SubResource("Occ_16x120")
+
+[node name="WallRightB" type="StaticBody2D" parent="Environment/Buildings/BuildingC1"]
+position = Vector2(142.0, 90.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingC1/WallRightB"]
+offset_left = -8.0
+offset_top = -60.0
+offset_right = 8.0
+offset_bottom = 60.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingC1/WallRightB"]
+shape = SubResource("Rect_16x120")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingC1/WallRightB"]
+occluder = SubResource("Occ_16x120")
+
+[node name="BuildingC2" type="Node2D" parent="Environment/Buildings"]
 position = Vector2(1600, 2800)
+
+[node name="Floor" type="ColorRect" parent="Environment/Buildings/BuildingC2"]
+offset_left = -84.0
+offset_top = -84.0
+offset_right = 84.0
+offset_bottom = 84.0
+color = Color(0.22, 0.2, 0.18, 1)
+
+[node name="WallTopL" type="StaticBody2D" parent="Environment/Buildings/BuildingC2"]
+position = Vector2(-62.5, -92.0)
 collision_layer = 4
 collision_mask = 0
 
-[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingC2"]
-offset_left = -100.0
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingC2/WallTopL"]
+offset_left = -37.5
+offset_top = -8.0
+offset_right = 37.5
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingC2/WallTopL"]
+shape = SubResource("Rect_75x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingC2/WallTopL"]
+occluder = SubResource("Occ_75x16")
+
+[node name="WallTopR" type="StaticBody2D" parent="Environment/Buildings/BuildingC2"]
+position = Vector2(62.5, -92.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingC2/WallTopR"]
+offset_left = -37.5
+offset_top = -8.0
+offset_right = 37.5
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingC2/WallTopR"]
+shape = SubResource("Rect_75x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingC2/WallTopR"]
+occluder = SubResource("Occ_75x16")
+
+[node name="WallBottom1" type="StaticBody2D" parent="Environment/Buildings/BuildingC2"]
+position = Vector2(-73.3, 92.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingC2/WallBottom1"]
+offset_left = -26.7
+offset_top = -8.0
+offset_right = 26.7
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingC2/WallBottom1"]
+shape = SubResource("Rect_53x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingC2/WallBottom1"]
+occluder = SubResource("Occ_53x16")
+
+[node name="WallBottom2" type="StaticBody2D" parent="Environment/Buildings/BuildingC2"]
+position = Vector2(0.0, 92.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingC2/WallBottom2"]
+offset_left = -26.7
+offset_top = -8.0
+offset_right = 26.7
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingC2/WallBottom2"]
+shape = SubResource("Rect_53x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingC2/WallBottom2"]
+occluder = SubResource("Occ_53x16")
+
+[node name="WallBottom3" type="StaticBody2D" parent="Environment/Buildings/BuildingC2"]
+position = Vector2(73.3, 92.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingC2/WallBottom3"]
+offset_left = -26.7
+offset_top = -8.0
+offset_right = 26.7
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingC2/WallBottom3"]
+shape = SubResource("Rect_53x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingC2/WallBottom3"]
+occluder = SubResource("Occ_53x16")
+
+[node name="WallLeft" type="StaticBody2D" parent="Environment/Buildings/BuildingC2"]
+position = Vector2(-92.0, 0.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingC2/WallLeft"]
+offset_left = -8.0
 offset_top = -100.0
-offset_right = 100.0
+offset_right = 8.0
 offset_bottom = 100.0
-color = Color(0.32, 0.3, 0.27, 1)
+color = Color(0.35, 0.3, 0.26, 1)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingC2"]
-shape = SubResource("RectangleShape2D_building_small")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingC2/WallLeft"]
+shape = SubResource("Rect_16x200")
 
-[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingC2"]
-occluder = SubResource("OccluderPolygon2D_building_small")
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingC2/WallLeft"]
+occluder = SubResource("Occ_16x200")
 
-[node name="BuildingC3" type="StaticBody2D" parent="Environment/Buildings"]
+[node name="WallRight" type="StaticBody2D" parent="Environment/Buildings/BuildingC2"]
+position = Vector2(92.0, 0.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingC2/WallRight"]
+offset_left = -8.0
+offset_top = -100.0
+offset_right = 8.0
+offset_bottom = 100.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingC2/WallRight"]
+shape = SubResource("Rect_16x200")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingC2/WallRight"]
+occluder = SubResource("Occ_16x200")
+
+[node name="BuildingC3" type="Node2D" parent="Environment/Buildings"]
 position = Vector2(2400, 2800)
+
+[node name="Floor" type="ColorRect" parent="Environment/Buildings/BuildingC3"]
+offset_left = -134.0
+offset_top = -134.0
+offset_right = 134.0
+offset_bottom = 134.0
+color = Color(0.22, 0.2, 0.18, 1)
+
+[node name="WallTop" type="StaticBody2D" parent="Environment/Buildings/BuildingC3"]
+position = Vector2(0.0, -142.0)
 collision_layer = 4
 collision_mask = 0
 
-[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingC3"]
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingC3/WallTop"]
 offset_left = -150.0
-offset_top = -150.0
+offset_top = -8.0
 offset_right = 150.0
-offset_bottom = 150.0
-color = Color(0.3, 0.28, 0.25, 1)
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingC3"]
-shape = SubResource("RectangleShape2D_building")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingC3/WallTop"]
+shape = SubResource("Rect_300x16")
 
-[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingC3"]
-occluder = SubResource("OccluderPolygon2D_building")
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingC3/WallTop"]
+occluder = SubResource("Occ_300x16")
 
-[node name="BuildingC4" type="StaticBody2D" parent="Environment/Buildings"]
+[node name="WallBottom" type="StaticBody2D" parent="Environment/Buildings/BuildingC3"]
+position = Vector2(0.0, 142.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingC3/WallBottom"]
+offset_left = -150.0
+offset_top = -8.0
+offset_right = 150.0
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingC3/WallBottom"]
+shape = SubResource("Rect_300x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingC3/WallBottom"]
+occluder = SubResource("Occ_300x16")
+
+[node name="WallLeftT" type="StaticBody2D" parent="Environment/Buildings/BuildingC3"]
+position = Vector2(-142.0, -90.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingC3/WallLeftT"]
+offset_left = -8.0
+offset_top = -60.0
+offset_right = 8.0
+offset_bottom = 60.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingC3/WallLeftT"]
+shape = SubResource("Rect_16x120")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingC3/WallLeftT"]
+occluder = SubResource("Occ_16x120")
+
+[node name="WallLeftB" type="StaticBody2D" parent="Environment/Buildings/BuildingC3"]
+position = Vector2(-142.0, 90.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingC3/WallLeftB"]
+offset_left = -8.0
+offset_top = -60.0
+offset_right = 8.0
+offset_bottom = 60.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingC3/WallLeftB"]
+shape = SubResource("Rect_16x120")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingC3/WallLeftB"]
+occluder = SubResource("Occ_16x120")
+
+[node name="WallRight1" type="StaticBody2D" parent="Environment/Buildings/BuildingC3"]
+position = Vector2(142.0, -106.7)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingC3/WallRight1"]
+offset_left = -8.0
+offset_top = -43.3
+offset_right = 8.0
+offset_bottom = 43.3
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingC3/WallRight1"]
+shape = SubResource("Rect_16x87")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingC3/WallRight1"]
+occluder = SubResource("Occ_16x87")
+
+[node name="WallRight2" type="StaticBody2D" parent="Environment/Buildings/BuildingC3"]
+position = Vector2(142.0, 0.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingC3/WallRight2"]
+offset_left = -8.0
+offset_top = -43.3
+offset_right = 8.0
+offset_bottom = 43.3
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingC3/WallRight2"]
+shape = SubResource("Rect_16x87")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingC3/WallRight2"]
+occluder = SubResource("Occ_16x87")
+
+[node name="WallRight3" type="StaticBody2D" parent="Environment/Buildings/BuildingC3"]
+position = Vector2(142.0, 106.7)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingC3/WallRight3"]
+offset_left = -8.0
+offset_top = -43.3
+offset_right = 8.0
+offset_bottom = 43.3
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingC3/WallRight3"]
+shape = SubResource("Rect_16x87")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingC3/WallRight3"]
+occluder = SubResource("Occ_16x87")
+
+[node name="BuildingC4" type="Node2D" parent="Environment/Buildings"]
 position = Vector2(3200, 2800)
+
+[node name="Floor" type="ColorRect" parent="Environment/Buildings/BuildingC4"]
+offset_left = -134.0
+offset_top = -134.0
+offset_right = 134.0
+offset_bottom = 134.0
+color = Color(0.22, 0.2, 0.18, 1)
+
+[node name="WallTop1" type="StaticBody2D" parent="Environment/Buildings/BuildingC4"]
+position = Vector2(-106.7, -142.0)
 collision_layer = 4
 collision_mask = 0
 
-[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingC4"]
-offset_left = -150.0
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingC4/WallTop1"]
+offset_left = -43.3
+offset_top = -8.0
+offset_right = 43.3
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingC4/WallTop1"]
+shape = SubResource("Rect_87x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingC4/WallTop1"]
+occluder = SubResource("Occ_87x16")
+
+[node name="WallTop2" type="StaticBody2D" parent="Environment/Buildings/BuildingC4"]
+position = Vector2(0.0, -142.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingC4/WallTop2"]
+offset_left = -43.3
+offset_top = -8.0
+offset_right = 43.3
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingC4/WallTop2"]
+shape = SubResource("Rect_87x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingC4/WallTop2"]
+occluder = SubResource("Occ_87x16")
+
+[node name="WallTop3" type="StaticBody2D" parent="Environment/Buildings/BuildingC4"]
+position = Vector2(106.7, -142.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingC4/WallTop3"]
+offset_left = -43.3
+offset_top = -8.0
+offset_right = 43.3
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingC4/WallTop3"]
+shape = SubResource("Rect_87x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingC4/WallTop3"]
+occluder = SubResource("Occ_87x16")
+
+[node name="WallBottomL" type="StaticBody2D" parent="Environment/Buildings/BuildingC4"]
+position = Vector2(-90.0, 142.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingC4/WallBottomL"]
+offset_left = -60.0
+offset_top = -8.0
+offset_right = 60.0
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingC4/WallBottomL"]
+shape = SubResource("Rect_120x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingC4/WallBottomL"]
+occluder = SubResource("Occ_120x16")
+
+[node name="WallBottomR" type="StaticBody2D" parent="Environment/Buildings/BuildingC4"]
+position = Vector2(90.0, 142.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingC4/WallBottomR"]
+offset_left = -60.0
+offset_top = -8.0
+offset_right = 60.0
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingC4/WallBottomR"]
+shape = SubResource("Rect_120x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingC4/WallBottomR"]
+occluder = SubResource("Occ_120x16")
+
+[node name="WallLeft" type="StaticBody2D" parent="Environment/Buildings/BuildingC4"]
+position = Vector2(-142.0, 0.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingC4/WallLeft"]
+offset_left = -8.0
 offset_top = -150.0
-offset_right = 150.0
+offset_right = 8.0
 offset_bottom = 150.0
-color = Color(0.3, 0.28, 0.25, 1)
+color = Color(0.35, 0.3, 0.26, 1)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingC4"]
-shape = SubResource("RectangleShape2D_building")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingC4/WallLeft"]
+shape = SubResource("Rect_16x300")
 
-[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingC4"]
-occluder = SubResource("OccluderPolygon2D_building")
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingC4/WallLeft"]
+occluder = SubResource("Occ_16x300")
 
-[node name="BuildingC5" type="StaticBody2D" parent="Environment/Buildings"]
+[node name="WallRight" type="StaticBody2D" parent="Environment/Buildings/BuildingC4"]
+position = Vector2(142.0, 0.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingC4/WallRight"]
+offset_left = -8.0
+offset_top = -150.0
+offset_right = 8.0
+offset_bottom = 150.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingC4/WallRight"]
+shape = SubResource("Rect_16x300")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingC4/WallRight"]
+occluder = SubResource("Occ_16x300")
+
+[node name="BuildingC5" type="Node2D" parent="Environment/Buildings"]
 position = Vector2(4000, 2800)
+
+[node name="Floor" type="ColorRect" parent="Environment/Buildings/BuildingC5"]
+offset_left = -84.0
+offset_top = -84.0
+offset_right = 84.0
+offset_bottom = 84.0
+color = Color(0.22, 0.2, 0.18, 1)
+
+[node name="WallTop" type="StaticBody2D" parent="Environment/Buildings/BuildingC5"]
+position = Vector2(0.0, -92.0)
 collision_layer = 4
 collision_mask = 0
 
-[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingC5"]
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingC5/WallTop"]
 offset_left = -100.0
-offset_top = -100.0
+offset_top = -8.0
 offset_right = 100.0
-offset_bottom = 100.0
-color = Color(0.32, 0.3, 0.27, 1)
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingC5"]
-shape = SubResource("RectangleShape2D_building_small")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingC5/WallTop"]
+shape = SubResource("Rect_200x16")
 
-[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingC5"]
-occluder = SubResource("OccluderPolygon2D_building_small")
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingC5/WallTop"]
+occluder = SubResource("Occ_200x16")
 
-[node name="BuildingC6" type="StaticBody2D" parent="Environment/Buildings"]
+[node name="WallBottom" type="StaticBody2D" parent="Environment/Buildings/BuildingC5"]
+position = Vector2(0.0, 92.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingC5/WallBottom"]
+offset_left = -100.0
+offset_top = -8.0
+offset_right = 100.0
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingC5/WallBottom"]
+shape = SubResource("Rect_200x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingC5/WallBottom"]
+occluder = SubResource("Occ_200x16")
+
+[node name="WallLeft1" type="StaticBody2D" parent="Environment/Buildings/BuildingC5"]
+position = Vector2(-92.0, -73.3)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingC5/WallLeft1"]
+offset_left = -8.0
+offset_top = -26.7
+offset_right = 8.0
+offset_bottom = 26.7
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingC5/WallLeft1"]
+shape = SubResource("Rect_16x53")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingC5/WallLeft1"]
+occluder = SubResource("Occ_16x53")
+
+[node name="WallLeft2" type="StaticBody2D" parent="Environment/Buildings/BuildingC5"]
+position = Vector2(-92.0, 0.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingC5/WallLeft2"]
+offset_left = -8.0
+offset_top = -26.7
+offset_right = 8.0
+offset_bottom = 26.7
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingC5/WallLeft2"]
+shape = SubResource("Rect_16x53")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingC5/WallLeft2"]
+occluder = SubResource("Occ_16x53")
+
+[node name="WallLeft3" type="StaticBody2D" parent="Environment/Buildings/BuildingC5"]
+position = Vector2(-92.0, 73.3)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingC5/WallLeft3"]
+offset_left = -8.0
+offset_top = -26.7
+offset_right = 8.0
+offset_bottom = 26.7
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingC5/WallLeft3"]
+shape = SubResource("Rect_16x53")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingC5/WallLeft3"]
+occluder = SubResource("Occ_16x53")
+
+[node name="WallRightT" type="StaticBody2D" parent="Environment/Buildings/BuildingC5"]
+position = Vector2(92.0, -62.5)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingC5/WallRightT"]
+offset_left = -8.0
+offset_top = -37.5
+offset_right = 8.0
+offset_bottom = 37.5
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingC5/WallRightT"]
+shape = SubResource("Rect_16x75")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingC5/WallRightT"]
+occluder = SubResource("Occ_16x75")
+
+[node name="WallRightB" type="StaticBody2D" parent="Environment/Buildings/BuildingC5"]
+position = Vector2(92.0, 62.5)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingC5/WallRightB"]
+offset_left = -8.0
+offset_top = -37.5
+offset_right = 8.0
+offset_bottom = 37.5
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingC5/WallRightB"]
+shape = SubResource("Rect_16x75")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingC5/WallRightB"]
+occluder = SubResource("Occ_16x75")
+
+[node name="BuildingC6" type="Node2D" parent="Environment/Buildings"]
 position = Vector2(4800, 2800)
+
+[node name="Floor" type="ColorRect" parent="Environment/Buildings/BuildingC6"]
+offset_left = -134.0
+offset_top = -134.0
+offset_right = 134.0
+offset_bottom = 134.0
+color = Color(0.22, 0.2, 0.18, 1)
+
+[node name="WallTopL" type="StaticBody2D" parent="Environment/Buildings/BuildingC6"]
+position = Vector2(-90.0, -142.0)
 collision_layer = 4
 collision_mask = 0
 
-[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingC6"]
-offset_left = -150.0
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingC6/WallTopL"]
+offset_left = -60.0
+offset_top = -8.0
+offset_right = 60.0
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingC6/WallTopL"]
+shape = SubResource("Rect_120x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingC6/WallTopL"]
+occluder = SubResource("Occ_120x16")
+
+[node name="WallTopR" type="StaticBody2D" parent="Environment/Buildings/BuildingC6"]
+position = Vector2(90.0, -142.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingC6/WallTopR"]
+offset_left = -60.0
+offset_top = -8.0
+offset_right = 60.0
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingC6/WallTopR"]
+shape = SubResource("Rect_120x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingC6/WallTopR"]
+occluder = SubResource("Occ_120x16")
+
+[node name="WallBottom1" type="StaticBody2D" parent="Environment/Buildings/BuildingC6"]
+position = Vector2(-106.7, 142.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingC6/WallBottom1"]
+offset_left = -43.3
+offset_top = -8.0
+offset_right = 43.3
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingC6/WallBottom1"]
+shape = SubResource("Rect_87x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingC6/WallBottom1"]
+occluder = SubResource("Occ_87x16")
+
+[node name="WallBottom2" type="StaticBody2D" parent="Environment/Buildings/BuildingC6"]
+position = Vector2(0.0, 142.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingC6/WallBottom2"]
+offset_left = -43.3
+offset_top = -8.0
+offset_right = 43.3
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingC6/WallBottom2"]
+shape = SubResource("Rect_87x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingC6/WallBottom2"]
+occluder = SubResource("Occ_87x16")
+
+[node name="WallBottom3" type="StaticBody2D" parent="Environment/Buildings/BuildingC6"]
+position = Vector2(106.7, 142.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingC6/WallBottom3"]
+offset_left = -43.3
+offset_top = -8.0
+offset_right = 43.3
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingC6/WallBottom3"]
+shape = SubResource("Rect_87x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingC6/WallBottom3"]
+occluder = SubResource("Occ_87x16")
+
+[node name="WallLeft" type="StaticBody2D" parent="Environment/Buildings/BuildingC6"]
+position = Vector2(-142.0, 0.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingC6/WallLeft"]
+offset_left = -8.0
 offset_top = -150.0
-offset_right = 150.0
+offset_right = 8.0
 offset_bottom = 150.0
-color = Color(0.3, 0.28, 0.25, 1)
+color = Color(0.35, 0.3, 0.26, 1)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingC6"]
-shape = SubResource("RectangleShape2D_building")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingC6/WallLeft"]
+shape = SubResource("Rect_16x300")
 
-[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingC6"]
-occluder = SubResource("OccluderPolygon2D_building")
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingC6/WallLeft"]
+occluder = SubResource("Occ_16x300")
 
-[node name="BuildingD1" type="StaticBody2D" parent="Environment/Buildings"]
+[node name="WallRight" type="StaticBody2D" parent="Environment/Buildings/BuildingC6"]
+position = Vector2(142.0, 0.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingC6/WallRight"]
+offset_left = -8.0
+offset_top = -150.0
+offset_right = 8.0
+offset_bottom = 150.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingC6/WallRight"]
+shape = SubResource("Rect_16x300")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingC6/WallRight"]
+occluder = SubResource("Occ_16x300")
+
+[node name="BuildingD1" type="Node2D" parent="Environment/Buildings"]
 position = Vector2(1200, 3800)
+
+[node name="Floor" type="ColorRect" parent="Environment/Buildings/BuildingD1"]
+offset_left = -134.0
+offset_top = -134.0
+offset_right = 134.0
+offset_bottom = 134.0
+color = Color(0.22, 0.2, 0.18, 1)
+
+[node name="WallTop1" type="StaticBody2D" parent="Environment/Buildings/BuildingD1"]
+position = Vector2(-106.7, -142.0)
 collision_layer = 4
 collision_mask = 0
 
-[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingD1"]
-offset_left = -150.0
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingD1/WallTop1"]
+offset_left = -43.3
+offset_top = -8.0
+offset_right = 43.3
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingD1/WallTop1"]
+shape = SubResource("Rect_87x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingD1/WallTop1"]
+occluder = SubResource("Occ_87x16")
+
+[node name="WallTop2" type="StaticBody2D" parent="Environment/Buildings/BuildingD1"]
+position = Vector2(0.0, -142.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingD1/WallTop2"]
+offset_left = -43.3
+offset_top = -8.0
+offset_right = 43.3
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingD1/WallTop2"]
+shape = SubResource("Rect_87x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingD1/WallTop2"]
+occluder = SubResource("Occ_87x16")
+
+[node name="WallTop3" type="StaticBody2D" parent="Environment/Buildings/BuildingD1"]
+position = Vector2(106.7, -142.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingD1/WallTop3"]
+offset_left = -43.3
+offset_top = -8.0
+offset_right = 43.3
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingD1/WallTop3"]
+shape = SubResource("Rect_87x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingD1/WallTop3"]
+occluder = SubResource("Occ_87x16")
+
+[node name="WallBottomL" type="StaticBody2D" parent="Environment/Buildings/BuildingD1"]
+position = Vector2(-90.0, 142.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingD1/WallBottomL"]
+offset_left = -60.0
+offset_top = -8.0
+offset_right = 60.0
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingD1/WallBottomL"]
+shape = SubResource("Rect_120x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingD1/WallBottomL"]
+occluder = SubResource("Occ_120x16")
+
+[node name="WallBottomR" type="StaticBody2D" parent="Environment/Buildings/BuildingD1"]
+position = Vector2(90.0, 142.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingD1/WallBottomR"]
+offset_left = -60.0
+offset_top = -8.0
+offset_right = 60.0
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingD1/WallBottomR"]
+shape = SubResource("Rect_120x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingD1/WallBottomR"]
+occluder = SubResource("Occ_120x16")
+
+[node name="WallLeft" type="StaticBody2D" parent="Environment/Buildings/BuildingD1"]
+position = Vector2(-142.0, 0.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingD1/WallLeft"]
+offset_left = -8.0
 offset_top = -150.0
-offset_right = 150.0
+offset_right = 8.0
 offset_bottom = 150.0
-color = Color(0.3, 0.28, 0.25, 1)
+color = Color(0.35, 0.3, 0.26, 1)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingD1"]
-shape = SubResource("RectangleShape2D_building")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingD1/WallLeft"]
+shape = SubResource("Rect_16x300")
 
-[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingD1"]
-occluder = SubResource("OccluderPolygon2D_building")
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingD1/WallLeft"]
+occluder = SubResource("Occ_16x300")
 
-[node name="BuildingD2" type="StaticBody2D" parent="Environment/Buildings"]
+[node name="WallRight" type="StaticBody2D" parent="Environment/Buildings/BuildingD1"]
+position = Vector2(142.0, 0.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingD1/WallRight"]
+offset_left = -8.0
+offset_top = -150.0
+offset_right = 8.0
+offset_bottom = 150.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingD1/WallRight"]
+shape = SubResource("Rect_16x300")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingD1/WallRight"]
+occluder = SubResource("Occ_16x300")
+
+[node name="BuildingD2" type="Node2D" parent="Environment/Buildings"]
 position = Vector2(2000, 3800)
+
+[node name="Floor" type="ColorRect" parent="Environment/Buildings/BuildingD2"]
+offset_left = -134.0
+offset_top = -134.0
+offset_right = 134.0
+offset_bottom = 134.0
+color = Color(0.22, 0.2, 0.18, 1)
+
+[node name="WallTop" type="StaticBody2D" parent="Environment/Buildings/BuildingD2"]
+position = Vector2(0.0, -142.0)
 collision_layer = 4
 collision_mask = 0
 
-[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingD2"]
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingD2/WallTop"]
 offset_left = -150.0
-offset_top = -150.0
+offset_top = -8.0
 offset_right = 150.0
-offset_bottom = 150.0
-color = Color(0.3, 0.28, 0.25, 1)
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingD2"]
-shape = SubResource("RectangleShape2D_building")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingD2/WallTop"]
+shape = SubResource("Rect_300x16")
 
-[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingD2"]
-occluder = SubResource("OccluderPolygon2D_building")
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingD2/WallTop"]
+occluder = SubResource("Occ_300x16")
 
-[node name="BuildingD3" type="StaticBody2D" parent="Environment/Buildings"]
+[node name="WallBottom" type="StaticBody2D" parent="Environment/Buildings/BuildingD2"]
+position = Vector2(0.0, 142.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingD2/WallBottom"]
+offset_left = -150.0
+offset_top = -8.0
+offset_right = 150.0
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingD2/WallBottom"]
+shape = SubResource("Rect_300x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingD2/WallBottom"]
+occluder = SubResource("Occ_300x16")
+
+[node name="WallLeftT" type="StaticBody2D" parent="Environment/Buildings/BuildingD2"]
+position = Vector2(-142.0, -90.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingD2/WallLeftT"]
+offset_left = -8.0
+offset_top = -60.0
+offset_right = 8.0
+offset_bottom = 60.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingD2/WallLeftT"]
+shape = SubResource("Rect_16x120")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingD2/WallLeftT"]
+occluder = SubResource("Occ_16x120")
+
+[node name="WallLeftB" type="StaticBody2D" parent="Environment/Buildings/BuildingD2"]
+position = Vector2(-142.0, 90.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingD2/WallLeftB"]
+offset_left = -8.0
+offset_top = -60.0
+offset_right = 8.0
+offset_bottom = 60.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingD2/WallLeftB"]
+shape = SubResource("Rect_16x120")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingD2/WallLeftB"]
+occluder = SubResource("Occ_16x120")
+
+[node name="WallRight1" type="StaticBody2D" parent="Environment/Buildings/BuildingD2"]
+position = Vector2(142.0, -106.7)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingD2/WallRight1"]
+offset_left = -8.0
+offset_top = -43.3
+offset_right = 8.0
+offset_bottom = 43.3
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingD2/WallRight1"]
+shape = SubResource("Rect_16x87")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingD2/WallRight1"]
+occluder = SubResource("Occ_16x87")
+
+[node name="WallRight2" type="StaticBody2D" parent="Environment/Buildings/BuildingD2"]
+position = Vector2(142.0, 0.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingD2/WallRight2"]
+offset_left = -8.0
+offset_top = -43.3
+offset_right = 8.0
+offset_bottom = 43.3
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingD2/WallRight2"]
+shape = SubResource("Rect_16x87")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingD2/WallRight2"]
+occluder = SubResource("Occ_16x87")
+
+[node name="WallRight3" type="StaticBody2D" parent="Environment/Buildings/BuildingD2"]
+position = Vector2(142.0, 106.7)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingD2/WallRight3"]
+offset_left = -8.0
+offset_top = -43.3
+offset_right = 8.0
+offset_bottom = 43.3
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingD2/WallRight3"]
+shape = SubResource("Rect_16x87")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingD2/WallRight3"]
+occluder = SubResource("Occ_16x87")
+
+[node name="BuildingD3" type="Node2D" parent="Environment/Buildings"]
 position = Vector2(2800, 3800)
+
+[node name="Floor" type="ColorRect" parent="Environment/Buildings/BuildingD3"]
+offset_left = -134.0
+offset_top = -134.0
+offset_right = 134.0
+offset_bottom = 134.0
+color = Color(0.22, 0.2, 0.18, 1)
+
+[node name="WallTopL" type="StaticBody2D" parent="Environment/Buildings/BuildingD3"]
+position = Vector2(-90.0, -142.0)
 collision_layer = 4
 collision_mask = 0
 
-[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingD3"]
-offset_left = -150.0
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingD3/WallTopL"]
+offset_left = -60.0
+offset_top = -8.0
+offset_right = 60.0
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingD3/WallTopL"]
+shape = SubResource("Rect_120x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingD3/WallTopL"]
+occluder = SubResource("Occ_120x16")
+
+[node name="WallTopR" type="StaticBody2D" parent="Environment/Buildings/BuildingD3"]
+position = Vector2(90.0, -142.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingD3/WallTopR"]
+offset_left = -60.0
+offset_top = -8.0
+offset_right = 60.0
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingD3/WallTopR"]
+shape = SubResource("Rect_120x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingD3/WallTopR"]
+occluder = SubResource("Occ_120x16")
+
+[node name="WallBottom1" type="StaticBody2D" parent="Environment/Buildings/BuildingD3"]
+position = Vector2(-106.7, 142.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingD3/WallBottom1"]
+offset_left = -43.3
+offset_top = -8.0
+offset_right = 43.3
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingD3/WallBottom1"]
+shape = SubResource("Rect_87x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingD3/WallBottom1"]
+occluder = SubResource("Occ_87x16")
+
+[node name="WallBottom2" type="StaticBody2D" parent="Environment/Buildings/BuildingD3"]
+position = Vector2(0.0, 142.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingD3/WallBottom2"]
+offset_left = -43.3
+offset_top = -8.0
+offset_right = 43.3
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingD3/WallBottom2"]
+shape = SubResource("Rect_87x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingD3/WallBottom2"]
+occluder = SubResource("Occ_87x16")
+
+[node name="WallBottom3" type="StaticBody2D" parent="Environment/Buildings/BuildingD3"]
+position = Vector2(106.7, 142.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingD3/WallBottom3"]
+offset_left = -43.3
+offset_top = -8.0
+offset_right = 43.3
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingD3/WallBottom3"]
+shape = SubResource("Rect_87x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingD3/WallBottom3"]
+occluder = SubResource("Occ_87x16")
+
+[node name="WallLeft" type="StaticBody2D" parent="Environment/Buildings/BuildingD3"]
+position = Vector2(-142.0, 0.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingD3/WallLeft"]
+offset_left = -8.0
 offset_top = -150.0
-offset_right = 150.0
+offset_right = 8.0
 offset_bottom = 150.0
-color = Color(0.3, 0.28, 0.25, 1)
+color = Color(0.35, 0.3, 0.26, 1)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingD3"]
-shape = SubResource("RectangleShape2D_building")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingD3/WallLeft"]
+shape = SubResource("Rect_16x300")
 
-[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingD3"]
-occluder = SubResource("OccluderPolygon2D_building")
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingD3/WallLeft"]
+occluder = SubResource("Occ_16x300")
 
-[node name="BuildingD4" type="StaticBody2D" parent="Environment/Buildings"]
+[node name="WallRight" type="StaticBody2D" parent="Environment/Buildings/BuildingD3"]
+position = Vector2(142.0, 0.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingD3/WallRight"]
+offset_left = -8.0
+offset_top = -150.0
+offset_right = 8.0
+offset_bottom = 150.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingD3/WallRight"]
+shape = SubResource("Rect_16x300")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingD3/WallRight"]
+occluder = SubResource("Occ_16x300")
+
+[node name="BuildingD4" type="Node2D" parent="Environment/Buildings"]
 position = Vector2(3600, 3800)
+
+[node name="Floor" type="ColorRect" parent="Environment/Buildings/BuildingD4"]
+offset_left = -84.0
+offset_top = -84.0
+offset_right = 84.0
+offset_bottom = 84.0
+color = Color(0.22, 0.2, 0.18, 1)
+
+[node name="WallTop" type="StaticBody2D" parent="Environment/Buildings/BuildingD4"]
+position = Vector2(0.0, -92.0)
 collision_layer = 4
 collision_mask = 0
 
-[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingD4"]
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingD4/WallTop"]
 offset_left = -100.0
-offset_top = -100.0
+offset_top = -8.0
 offset_right = 100.0
-offset_bottom = 100.0
-color = Color(0.32, 0.3, 0.27, 1)
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingD4"]
-shape = SubResource("RectangleShape2D_building_small")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingD4/WallTop"]
+shape = SubResource("Rect_200x16")
 
-[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingD4"]
-occluder = SubResource("OccluderPolygon2D_building_small")
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingD4/WallTop"]
+occluder = SubResource("Occ_200x16")
 
-[node name="BuildingD5" type="StaticBody2D" parent="Environment/Buildings"]
+[node name="WallBottom" type="StaticBody2D" parent="Environment/Buildings/BuildingD4"]
+position = Vector2(0.0, 92.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingD4/WallBottom"]
+offset_left = -100.0
+offset_top = -8.0
+offset_right = 100.0
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingD4/WallBottom"]
+shape = SubResource("Rect_200x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingD4/WallBottom"]
+occluder = SubResource("Occ_200x16")
+
+[node name="WallLeft1" type="StaticBody2D" parent="Environment/Buildings/BuildingD4"]
+position = Vector2(-92.0, -73.3)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingD4/WallLeft1"]
+offset_left = -8.0
+offset_top = -26.7
+offset_right = 8.0
+offset_bottom = 26.7
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingD4/WallLeft1"]
+shape = SubResource("Rect_16x53")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingD4/WallLeft1"]
+occluder = SubResource("Occ_16x53")
+
+[node name="WallLeft2" type="StaticBody2D" parent="Environment/Buildings/BuildingD4"]
+position = Vector2(-92.0, 0.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingD4/WallLeft2"]
+offset_left = -8.0
+offset_top = -26.7
+offset_right = 8.0
+offset_bottom = 26.7
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingD4/WallLeft2"]
+shape = SubResource("Rect_16x53")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingD4/WallLeft2"]
+occluder = SubResource("Occ_16x53")
+
+[node name="WallLeft3" type="StaticBody2D" parent="Environment/Buildings/BuildingD4"]
+position = Vector2(-92.0, 73.3)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingD4/WallLeft3"]
+offset_left = -8.0
+offset_top = -26.7
+offset_right = 8.0
+offset_bottom = 26.7
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingD4/WallLeft3"]
+shape = SubResource("Rect_16x53")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingD4/WallLeft3"]
+occluder = SubResource("Occ_16x53")
+
+[node name="WallRightT" type="StaticBody2D" parent="Environment/Buildings/BuildingD4"]
+position = Vector2(92.0, -62.5)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingD4/WallRightT"]
+offset_left = -8.0
+offset_top = -37.5
+offset_right = 8.0
+offset_bottom = 37.5
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingD4/WallRightT"]
+shape = SubResource("Rect_16x75")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingD4/WallRightT"]
+occluder = SubResource("Occ_16x75")
+
+[node name="WallRightB" type="StaticBody2D" parent="Environment/Buildings/BuildingD4"]
+position = Vector2(92.0, 62.5)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingD4/WallRightB"]
+offset_left = -8.0
+offset_top = -37.5
+offset_right = 8.0
+offset_bottom = 37.5
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingD4/WallRightB"]
+shape = SubResource("Rect_16x75")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingD4/WallRightB"]
+occluder = SubResource("Occ_16x75")
+
+[node name="BuildingD5" type="Node2D" parent="Environment/Buildings"]
 position = Vector2(4400, 3800)
+
+[node name="Floor" type="ColorRect" parent="Environment/Buildings/BuildingD5"]
+offset_left = -134.0
+offset_top = -134.0
+offset_right = 134.0
+offset_bottom = 134.0
+color = Color(0.22, 0.2, 0.18, 1)
+
+[node name="WallTop1" type="StaticBody2D" parent="Environment/Buildings/BuildingD5"]
+position = Vector2(-106.7, -142.0)
 collision_layer = 4
 collision_mask = 0
 
-[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingD5"]
-offset_left = -150.0
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingD5/WallTop1"]
+offset_left = -43.3
+offset_top = -8.0
+offset_right = 43.3
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingD5/WallTop1"]
+shape = SubResource("Rect_87x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingD5/WallTop1"]
+occluder = SubResource("Occ_87x16")
+
+[node name="WallTop2" type="StaticBody2D" parent="Environment/Buildings/BuildingD5"]
+position = Vector2(0.0, -142.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingD5/WallTop2"]
+offset_left = -43.3
+offset_top = -8.0
+offset_right = 43.3
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingD5/WallTop2"]
+shape = SubResource("Rect_87x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingD5/WallTop2"]
+occluder = SubResource("Occ_87x16")
+
+[node name="WallTop3" type="StaticBody2D" parent="Environment/Buildings/BuildingD5"]
+position = Vector2(106.7, -142.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingD5/WallTop3"]
+offset_left = -43.3
+offset_top = -8.0
+offset_right = 43.3
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingD5/WallTop3"]
+shape = SubResource("Rect_87x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingD5/WallTop3"]
+occluder = SubResource("Occ_87x16")
+
+[node name="WallBottomL" type="StaticBody2D" parent="Environment/Buildings/BuildingD5"]
+position = Vector2(-90.0, 142.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingD5/WallBottomL"]
+offset_left = -60.0
+offset_top = -8.0
+offset_right = 60.0
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingD5/WallBottomL"]
+shape = SubResource("Rect_120x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingD5/WallBottomL"]
+occluder = SubResource("Occ_120x16")
+
+[node name="WallBottomR" type="StaticBody2D" parent="Environment/Buildings/BuildingD5"]
+position = Vector2(90.0, 142.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingD5/WallBottomR"]
+offset_left = -60.0
+offset_top = -8.0
+offset_right = 60.0
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingD5/WallBottomR"]
+shape = SubResource("Rect_120x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingD5/WallBottomR"]
+occluder = SubResource("Occ_120x16")
+
+[node name="WallLeft" type="StaticBody2D" parent="Environment/Buildings/BuildingD5"]
+position = Vector2(-142.0, 0.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingD5/WallLeft"]
+offset_left = -8.0
 offset_top = -150.0
-offset_right = 150.0
+offset_right = 8.0
 offset_bottom = 150.0
-color = Color(0.3, 0.28, 0.25, 1)
+color = Color(0.35, 0.3, 0.26, 1)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingD5"]
-shape = SubResource("RectangleShape2D_building")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingD5/WallLeft"]
+shape = SubResource("Rect_16x300")
 
-[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingD5"]
-occluder = SubResource("OccluderPolygon2D_building")
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingD5/WallLeft"]
+occluder = SubResource("Occ_16x300")
 
-[node name="BuildingD6" type="StaticBody2D" parent="Environment/Buildings"]
+[node name="WallRight" type="StaticBody2D" parent="Environment/Buildings/BuildingD5"]
+position = Vector2(142.0, 0.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingD5/WallRight"]
+offset_left = -8.0
+offset_top = -150.0
+offset_right = 8.0
+offset_bottom = 150.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingD5/WallRight"]
+shape = SubResource("Rect_16x300")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingD5/WallRight"]
+occluder = SubResource("Occ_16x300")
+
+[node name="BuildingD6" type="Node2D" parent="Environment/Buildings"]
 position = Vector2(5200, 3800)
+
+[node name="Floor" type="ColorRect" parent="Environment/Buildings/BuildingD6"]
+offset_left = -134.0
+offset_top = -134.0
+offset_right = 134.0
+offset_bottom = 134.0
+color = Color(0.22, 0.2, 0.18, 1)
+
+[node name="WallTop" type="StaticBody2D" parent="Environment/Buildings/BuildingD6"]
+position = Vector2(0.0, -142.0)
 collision_layer = 4
 collision_mask = 0
 
-[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingD6"]
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingD6/WallTop"]
 offset_left = -150.0
-offset_top = -150.0
+offset_top = -8.0
 offset_right = 150.0
-offset_bottom = 150.0
-color = Color(0.3, 0.28, 0.25, 1)
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingD6"]
-shape = SubResource("RectangleShape2D_building")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingD6/WallTop"]
+shape = SubResource("Rect_300x16")
 
-[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingD6"]
-occluder = SubResource("OccluderPolygon2D_building")
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingD6/WallTop"]
+occluder = SubResource("Occ_300x16")
 
-[node name="BuildingE1" type="StaticBody2D" parent="Environment/Buildings"]
+[node name="WallBottom" type="StaticBody2D" parent="Environment/Buildings/BuildingD6"]
+position = Vector2(0.0, 142.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingD6/WallBottom"]
+offset_left = -150.0
+offset_top = -8.0
+offset_right = 150.0
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingD6/WallBottom"]
+shape = SubResource("Rect_300x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingD6/WallBottom"]
+occluder = SubResource("Occ_300x16")
+
+[node name="WallLeftT" type="StaticBody2D" parent="Environment/Buildings/BuildingD6"]
+position = Vector2(-142.0, -90.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingD6/WallLeftT"]
+offset_left = -8.0
+offset_top = -60.0
+offset_right = 8.0
+offset_bottom = 60.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingD6/WallLeftT"]
+shape = SubResource("Rect_16x120")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingD6/WallLeftT"]
+occluder = SubResource("Occ_16x120")
+
+[node name="WallLeftB" type="StaticBody2D" parent="Environment/Buildings/BuildingD6"]
+position = Vector2(-142.0, 90.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingD6/WallLeftB"]
+offset_left = -8.0
+offset_top = -60.0
+offset_right = 8.0
+offset_bottom = 60.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingD6/WallLeftB"]
+shape = SubResource("Rect_16x120")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingD6/WallLeftB"]
+occluder = SubResource("Occ_16x120")
+
+[node name="WallRight1" type="StaticBody2D" parent="Environment/Buildings/BuildingD6"]
+position = Vector2(142.0, -106.7)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingD6/WallRight1"]
+offset_left = -8.0
+offset_top = -43.3
+offset_right = 8.0
+offset_bottom = 43.3
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingD6/WallRight1"]
+shape = SubResource("Rect_16x87")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingD6/WallRight1"]
+occluder = SubResource("Occ_16x87")
+
+[node name="WallRight2" type="StaticBody2D" parent="Environment/Buildings/BuildingD6"]
+position = Vector2(142.0, 0.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingD6/WallRight2"]
+offset_left = -8.0
+offset_top = -43.3
+offset_right = 8.0
+offset_bottom = 43.3
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingD6/WallRight2"]
+shape = SubResource("Rect_16x87")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingD6/WallRight2"]
+occluder = SubResource("Occ_16x87")
+
+[node name="WallRight3" type="StaticBody2D" parent="Environment/Buildings/BuildingD6"]
+position = Vector2(142.0, 106.7)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingD6/WallRight3"]
+offset_left = -8.0
+offset_top = -43.3
+offset_right = 8.0
+offset_bottom = 43.3
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingD6/WallRight3"]
+shape = SubResource("Rect_16x87")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingD6/WallRight3"]
+occluder = SubResource("Occ_16x87")
+
+[node name="BuildingE1" type="Node2D" parent="Environment/Buildings"]
 position = Vector2(800, 4600)
+
+[node name="Floor" type="ColorRect" parent="Environment/Buildings/BuildingE1"]
+offset_left = -84.0
+offset_top = -84.0
+offset_right = 84.0
+offset_bottom = 84.0
+color = Color(0.22, 0.2, 0.18, 1)
+
+[node name="WallTopL" type="StaticBody2D" parent="Environment/Buildings/BuildingE1"]
+position = Vector2(-62.5, -92.0)
 collision_layer = 4
 collision_mask = 0
 
-[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingE1"]
-offset_left = -100.0
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingE1/WallTopL"]
+offset_left = -37.5
+offset_top = -8.0
+offset_right = 37.5
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingE1/WallTopL"]
+shape = SubResource("Rect_75x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingE1/WallTopL"]
+occluder = SubResource("Occ_75x16")
+
+[node name="WallTopR" type="StaticBody2D" parent="Environment/Buildings/BuildingE1"]
+position = Vector2(62.5, -92.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingE1/WallTopR"]
+offset_left = -37.5
+offset_top = -8.0
+offset_right = 37.5
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingE1/WallTopR"]
+shape = SubResource("Rect_75x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingE1/WallTopR"]
+occluder = SubResource("Occ_75x16")
+
+[node name="WallBottom1" type="StaticBody2D" parent="Environment/Buildings/BuildingE1"]
+position = Vector2(-73.3, 92.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingE1/WallBottom1"]
+offset_left = -26.7
+offset_top = -8.0
+offset_right = 26.7
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingE1/WallBottom1"]
+shape = SubResource("Rect_53x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingE1/WallBottom1"]
+occluder = SubResource("Occ_53x16")
+
+[node name="WallBottom2" type="StaticBody2D" parent="Environment/Buildings/BuildingE1"]
+position = Vector2(0.0, 92.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingE1/WallBottom2"]
+offset_left = -26.7
+offset_top = -8.0
+offset_right = 26.7
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingE1/WallBottom2"]
+shape = SubResource("Rect_53x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingE1/WallBottom2"]
+occluder = SubResource("Occ_53x16")
+
+[node name="WallBottom3" type="StaticBody2D" parent="Environment/Buildings/BuildingE1"]
+position = Vector2(73.3, 92.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingE1/WallBottom3"]
+offset_left = -26.7
+offset_top = -8.0
+offset_right = 26.7
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingE1/WallBottom3"]
+shape = SubResource("Rect_53x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingE1/WallBottom3"]
+occluder = SubResource("Occ_53x16")
+
+[node name="WallLeft" type="StaticBody2D" parent="Environment/Buildings/BuildingE1"]
+position = Vector2(-92.0, 0.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingE1/WallLeft"]
+offset_left = -8.0
 offset_top = -100.0
-offset_right = 100.0
+offset_right = 8.0
 offset_bottom = 100.0
-color = Color(0.32, 0.3, 0.27, 1)
+color = Color(0.35, 0.3, 0.26, 1)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingE1"]
-shape = SubResource("RectangleShape2D_building_small")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingE1/WallLeft"]
+shape = SubResource("Rect_16x200")
 
-[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingE1"]
-occluder = SubResource("OccluderPolygon2D_building_small")
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingE1/WallLeft"]
+occluder = SubResource("Occ_16x200")
 
-[node name="BuildingE2" type="StaticBody2D" parent="Environment/Buildings"]
+[node name="WallRight" type="StaticBody2D" parent="Environment/Buildings/BuildingE1"]
+position = Vector2(92.0, 0.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingE1/WallRight"]
+offset_left = -8.0
+offset_top = -100.0
+offset_right = 8.0
+offset_bottom = 100.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingE1/WallRight"]
+shape = SubResource("Rect_16x200")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingE1/WallRight"]
+occluder = SubResource("Occ_16x200")
+
+[node name="BuildingE2" type="Node2D" parent="Environment/Buildings"]
 position = Vector2(1600, 4600)
+
+[node name="Floor" type="ColorRect" parent="Environment/Buildings/BuildingE2"]
+offset_left = -134.0
+offset_top = -134.0
+offset_right = 134.0
+offset_bottom = 134.0
+color = Color(0.22, 0.2, 0.18, 1)
+
+[node name="WallTop" type="StaticBody2D" parent="Environment/Buildings/BuildingE2"]
+position = Vector2(0.0, -142.0)
 collision_layer = 4
 collision_mask = 0
 
-[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingE2"]
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingE2/WallTop"]
 offset_left = -150.0
-offset_top = -150.0
+offset_top = -8.0
 offset_right = 150.0
-offset_bottom = 150.0
-color = Color(0.3, 0.28, 0.25, 1)
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingE2"]
-shape = SubResource("RectangleShape2D_building")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingE2/WallTop"]
+shape = SubResource("Rect_300x16")
 
-[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingE2"]
-occluder = SubResource("OccluderPolygon2D_building")
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingE2/WallTop"]
+occluder = SubResource("Occ_300x16")
 
-[node name="BuildingE3" type="StaticBody2D" parent="Environment/Buildings"]
+[node name="WallBottom" type="StaticBody2D" parent="Environment/Buildings/BuildingE2"]
+position = Vector2(0.0, 142.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingE2/WallBottom"]
+offset_left = -150.0
+offset_top = -8.0
+offset_right = 150.0
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingE2/WallBottom"]
+shape = SubResource("Rect_300x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingE2/WallBottom"]
+occluder = SubResource("Occ_300x16")
+
+[node name="WallLeft1" type="StaticBody2D" parent="Environment/Buildings/BuildingE2"]
+position = Vector2(-142.0, -106.7)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingE2/WallLeft1"]
+offset_left = -8.0
+offset_top = -43.3
+offset_right = 8.0
+offset_bottom = 43.3
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingE2/WallLeft1"]
+shape = SubResource("Rect_16x87")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingE2/WallLeft1"]
+occluder = SubResource("Occ_16x87")
+
+[node name="WallLeft2" type="StaticBody2D" parent="Environment/Buildings/BuildingE2"]
+position = Vector2(-142.0, 0.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingE2/WallLeft2"]
+offset_left = -8.0
+offset_top = -43.3
+offset_right = 8.0
+offset_bottom = 43.3
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingE2/WallLeft2"]
+shape = SubResource("Rect_16x87")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingE2/WallLeft2"]
+occluder = SubResource("Occ_16x87")
+
+[node name="WallLeft3" type="StaticBody2D" parent="Environment/Buildings/BuildingE2"]
+position = Vector2(-142.0, 106.7)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingE2/WallLeft3"]
+offset_left = -8.0
+offset_top = -43.3
+offset_right = 8.0
+offset_bottom = 43.3
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingE2/WallLeft3"]
+shape = SubResource("Rect_16x87")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingE2/WallLeft3"]
+occluder = SubResource("Occ_16x87")
+
+[node name="WallRightT" type="StaticBody2D" parent="Environment/Buildings/BuildingE2"]
+position = Vector2(142.0, -90.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingE2/WallRightT"]
+offset_left = -8.0
+offset_top = -60.0
+offset_right = 8.0
+offset_bottom = 60.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingE2/WallRightT"]
+shape = SubResource("Rect_16x120")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingE2/WallRightT"]
+occluder = SubResource("Occ_16x120")
+
+[node name="WallRightB" type="StaticBody2D" parent="Environment/Buildings/BuildingE2"]
+position = Vector2(142.0, 90.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingE2/WallRightB"]
+offset_left = -8.0
+offset_top = -60.0
+offset_right = 8.0
+offset_bottom = 60.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingE2/WallRightB"]
+shape = SubResource("Rect_16x120")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingE2/WallRightB"]
+occluder = SubResource("Occ_16x120")
+
+[node name="BuildingE3" type="Node2D" parent="Environment/Buildings"]
 position = Vector2(3200, 4600)
+
+[node name="Floor" type="ColorRect" parent="Environment/Buildings/BuildingE3"]
+offset_left = -134.0
+offset_top = -134.0
+offset_right = 134.0
+offset_bottom = 134.0
+color = Color(0.22, 0.2, 0.18, 1)
+
+[node name="WallTop" type="StaticBody2D" parent="Environment/Buildings/BuildingE3"]
+position = Vector2(0.0, -142.0)
 collision_layer = 4
 collision_mask = 0
 
-[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingE3"]
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingE3/WallTop"]
 offset_left = -150.0
-offset_top = -150.0
+offset_top = -8.0
 offset_right = 150.0
-offset_bottom = 150.0
-color = Color(0.3, 0.28, 0.25, 1)
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingE3"]
-shape = SubResource("RectangleShape2D_building")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingE3/WallTop"]
+shape = SubResource("Rect_300x16")
 
-[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingE3"]
-occluder = SubResource("OccluderPolygon2D_building")
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingE3/WallTop"]
+occluder = SubResource("Occ_300x16")
 
-[node name="BuildingE4" type="StaticBody2D" parent="Environment/Buildings"]
+[node name="WallBottom" type="StaticBody2D" parent="Environment/Buildings/BuildingE3"]
+position = Vector2(0.0, 142.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingE3/WallBottom"]
+offset_left = -150.0
+offset_top = -8.0
+offset_right = 150.0
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingE3/WallBottom"]
+shape = SubResource("Rect_300x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingE3/WallBottom"]
+occluder = SubResource("Occ_300x16")
+
+[node name="WallLeftT" type="StaticBody2D" parent="Environment/Buildings/BuildingE3"]
+position = Vector2(-142.0, -90.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingE3/WallLeftT"]
+offset_left = -8.0
+offset_top = -60.0
+offset_right = 8.0
+offset_bottom = 60.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingE3/WallLeftT"]
+shape = SubResource("Rect_16x120")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingE3/WallLeftT"]
+occluder = SubResource("Occ_16x120")
+
+[node name="WallLeftB" type="StaticBody2D" parent="Environment/Buildings/BuildingE3"]
+position = Vector2(-142.0, 90.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingE3/WallLeftB"]
+offset_left = -8.0
+offset_top = -60.0
+offset_right = 8.0
+offset_bottom = 60.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingE3/WallLeftB"]
+shape = SubResource("Rect_16x120")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingE3/WallLeftB"]
+occluder = SubResource("Occ_16x120")
+
+[node name="WallRight1" type="StaticBody2D" parent="Environment/Buildings/BuildingE3"]
+position = Vector2(142.0, -106.7)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingE3/WallRight1"]
+offset_left = -8.0
+offset_top = -43.3
+offset_right = 8.0
+offset_bottom = 43.3
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingE3/WallRight1"]
+shape = SubResource("Rect_16x87")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingE3/WallRight1"]
+occluder = SubResource("Occ_16x87")
+
+[node name="WallRight2" type="StaticBody2D" parent="Environment/Buildings/BuildingE3"]
+position = Vector2(142.0, 0.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingE3/WallRight2"]
+offset_left = -8.0
+offset_top = -43.3
+offset_right = 8.0
+offset_bottom = 43.3
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingE3/WallRight2"]
+shape = SubResource("Rect_16x87")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingE3/WallRight2"]
+occluder = SubResource("Occ_16x87")
+
+[node name="WallRight3" type="StaticBody2D" parent="Environment/Buildings/BuildingE3"]
+position = Vector2(142.0, 106.7)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingE3/WallRight3"]
+offset_left = -8.0
+offset_top = -43.3
+offset_right = 8.0
+offset_bottom = 43.3
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingE3/WallRight3"]
+shape = SubResource("Rect_16x87")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingE3/WallRight3"]
+occluder = SubResource("Occ_16x87")
+
+[node name="BuildingE4" type="Node2D" parent="Environment/Buildings"]
 position = Vector2(4800, 4600)
+
+[node name="Floor" type="ColorRect" parent="Environment/Buildings/BuildingE4"]
+offset_left = -134.0
+offset_top = -134.0
+offset_right = 134.0
+offset_bottom = 134.0
+color = Color(0.22, 0.2, 0.18, 1)
+
+[node name="WallTop1" type="StaticBody2D" parent="Environment/Buildings/BuildingE4"]
+position = Vector2(-106.7, -142.0)
 collision_layer = 4
 collision_mask = 0
 
-[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingE4"]
-offset_left = -150.0
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingE4/WallTop1"]
+offset_left = -43.3
+offset_top = -8.0
+offset_right = 43.3
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingE4/WallTop1"]
+shape = SubResource("Rect_87x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingE4/WallTop1"]
+occluder = SubResource("Occ_87x16")
+
+[node name="WallTop2" type="StaticBody2D" parent="Environment/Buildings/BuildingE4"]
+position = Vector2(0.0, -142.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingE4/WallTop2"]
+offset_left = -43.3
+offset_top = -8.0
+offset_right = 43.3
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingE4/WallTop2"]
+shape = SubResource("Rect_87x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingE4/WallTop2"]
+occluder = SubResource("Occ_87x16")
+
+[node name="WallTop3" type="StaticBody2D" parent="Environment/Buildings/BuildingE4"]
+position = Vector2(106.7, -142.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingE4/WallTop3"]
+offset_left = -43.3
+offset_top = -8.0
+offset_right = 43.3
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingE4/WallTop3"]
+shape = SubResource("Rect_87x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingE4/WallTop3"]
+occluder = SubResource("Occ_87x16")
+
+[node name="WallBottomL" type="StaticBody2D" parent="Environment/Buildings/BuildingE4"]
+position = Vector2(-90.0, 142.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingE4/WallBottomL"]
+offset_left = -60.0
+offset_top = -8.0
+offset_right = 60.0
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingE4/WallBottomL"]
+shape = SubResource("Rect_120x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingE4/WallBottomL"]
+occluder = SubResource("Occ_120x16")
+
+[node name="WallBottomR" type="StaticBody2D" parent="Environment/Buildings/BuildingE4"]
+position = Vector2(90.0, 142.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingE4/WallBottomR"]
+offset_left = -60.0
+offset_top = -8.0
+offset_right = 60.0
+offset_bottom = 8.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingE4/WallBottomR"]
+shape = SubResource("Rect_120x16")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingE4/WallBottomR"]
+occluder = SubResource("Occ_120x16")
+
+[node name="WallLeft" type="StaticBody2D" parent="Environment/Buildings/BuildingE4"]
+position = Vector2(-142.0, 0.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingE4/WallLeft"]
+offset_left = -8.0
 offset_top = -150.0
-offset_right = 150.0
+offset_right = 8.0
 offset_bottom = 150.0
-color = Color(0.3, 0.28, 0.25, 1)
+color = Color(0.35, 0.3, 0.26, 1)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingE4"]
-shape = SubResource("RectangleShape2D_building")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingE4/WallLeft"]
+shape = SubResource("Rect_16x300")
 
-[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingE4"]
-occluder = SubResource("OccluderPolygon2D_building")
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingE4/WallLeft"]
+occluder = SubResource("Occ_16x300")
+
+[node name="WallRight" type="StaticBody2D" parent="Environment/Buildings/BuildingE4"]
+position = Vector2(142.0, 0.0)
+collision_layer = 4
+collision_mask = 0
+
+[node name="ColorRect" type="ColorRect" parent="Environment/Buildings/BuildingE4/WallRight"]
+offset_left = -8.0
+offset_top = -150.0
+offset_right = 8.0
+offset_bottom = 150.0
+color = Color(0.35, 0.3, 0.26, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Environment/Buildings/BuildingE4/WallRight"]
+shape = SubResource("Rect_16x300")
+
+[node name="LightOccluder2D" type="LightOccluder2D" parent="Environment/Buildings/BuildingE4/WallRight"]
+occluder = SubResource("Occ_16x300")
 
 [node name="Cover" type="Node2D" parent="Environment"]
 
