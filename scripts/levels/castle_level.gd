@@ -65,6 +65,9 @@ var _level_cleared: bool = false
 ## Whether the level completion sequence has been triggered (prevents duplicate calls).
 var _level_completed: bool = false
 
+## Whether the score screen is currently shown (for W key shortcut).
+var _score_shown: bool = false
+
 
 ## Gets the ReplayManager autoload node.
 func _get_or_create_replay_manager() -> Node:
@@ -584,6 +587,12 @@ func _complete_level_with_score() -> void:
 		if replay_manager.has_method("StopRecording"):
 			replay_manager.StopRecording()
 			_log_to_file("Replay recording stopped")
+		if replay_manager.has_method("HasReplay"):
+			var has_replay: bool = replay_manager.HasReplay()
+			var duration: float = 0.0
+			if replay_manager.has_method("GetReplayDuration"):
+				duration = replay_manager.GetReplayDuration()
+			_log_to_file("Replay status: has_replay=%s, duration=%.2fs" % [has_replay, duration])
 
 	# Deactivate exit zone to prevent further triggers
 	if _exit_zone and _exit_zone.has_method("deactivate"):
@@ -865,6 +874,7 @@ func _show_score_screen(score_data: Dictionary) -> void:
 	if animated_score_screen_script:
 		var score_screen = animated_score_screen_script.new()
 		add_child(score_screen)
+		score_screen.animation_completed.connect(_on_score_animation_completed)
 		score_screen.show_animated_score(ui, score_data)
 	else:
 		# Fallback to simple display if animated script not found
@@ -911,12 +921,7 @@ func _show_fallback_score_screen(ui: Control, score_data: Dictionary) -> void:
 	total_label.add_theme_color_override("font_color", Color(1.0, 0.9, 0.3, 1.0))
 	container.add_child(total_label)
 
-	var hint_label := Label.new()
-	hint_label.text = "\nPress Q to restart"
-	hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	hint_label.add_theme_font_size_override("font_size", 16)
-	hint_label.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5, 1.0))
-	container.add_child(hint_label)
+	_add_score_screen_buttons(container)
 
 
 ## Get the color for a given rank.
@@ -1079,6 +1084,96 @@ func _setup_selected_weapon() -> void:
 
 			# Configure 2x ammo for Castle level (M16/AssaultRifle)
 			_configure_castle_weapon_ammo(assault_rifle)
+
+
+## Called when the animated score screen finishes all animations.
+## Adds replay and restart buttons to the score screen container.
+func _on_score_animation_completed(container: VBoxContainer) -> void:
+	_add_score_screen_buttons(container)
+
+
+## Adds Restart and Watch Replay buttons to a score screen container.
+func _add_score_screen_buttons(container: VBoxContainer) -> void:
+	_score_shown = true
+
+	# Add spacer
+	var spacer := Control.new()
+	spacer.custom_minimum_size.y = 10
+	container.add_child(spacer)
+
+	# Add buttons container (vertical layout: Restart on top, Watch Replay below)
+	var buttons_container := VBoxContainer.new()
+	buttons_container.name = "ButtonsContainer"
+	buttons_container.alignment = BoxContainer.ALIGNMENT_CENTER
+	buttons_container.add_theme_constant_override("separation", 10)
+	container.add_child(buttons_container)
+
+	# Restart button (on top)
+	var restart_button := Button.new()
+	restart_button.name = "RestartButton"
+	restart_button.text = "↻ Restart (Q)"
+	restart_button.custom_minimum_size = Vector2(200, 40)
+	restart_button.add_theme_font_size_override("font_size", 18)
+	restart_button.pressed.connect(_on_restart_pressed)
+	buttons_container.add_child(restart_button)
+
+	# Watch Replay button (below Restart)
+	var replay_button := Button.new()
+	replay_button.name = "ReplayButton"
+	replay_button.text = "▶ Watch Replay (W)"
+	replay_button.custom_minimum_size = Vector2(200, 40)
+	replay_button.add_theme_font_size_override("font_size", 18)
+
+	# Check if replay data is available
+	var replay_manager: Node = _get_or_create_replay_manager()
+	var has_replay_data: bool = replay_manager != null and replay_manager.has_method("HasReplay") and replay_manager.HasReplay()
+
+	if has_replay_data:
+		replay_button.pressed.connect(_on_watch_replay_pressed)
+		_log_to_file("Watch Replay button created (replay data available)")
+	else:
+		replay_button.disabled = true
+		replay_button.text = "▶ Watch Replay (W) - no data"
+		replay_button.tooltip_text = "Replay recording was not available for this session"
+		_log_to_file("Watch Replay button created (disabled - no replay data)")
+
+	buttons_container.add_child(replay_button)
+
+	# Show cursor for button interaction
+	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
+
+	# Focus the restart button
+	restart_button.grab_focus()
+
+
+## Called when the Watch Replay button is pressed (or W key).
+func _on_watch_replay_pressed() -> void:
+	_log_to_file("Watch Replay triggered")
+	var replay_manager: Node = _get_or_create_replay_manager()
+	if replay_manager and replay_manager.has_method("HasReplay") and replay_manager.HasReplay():
+		if replay_manager.has_method("StartPlayback"):
+			replay_manager.StartPlayback(self)
+	else:
+		_log_to_file("Watch Replay: no replay data available")
+
+
+## Called when the Restart button is pressed.
+func _on_restart_pressed() -> void:
+	_log_to_file("Restart button pressed")
+	if GameManager:
+		GameManager.restart_scene()
+	else:
+		get_tree().reload_current_scene()
+
+
+## Handle W key shortcut for Watch Replay when score is shown.
+func _unhandled_input(event: InputEvent) -> void:
+	if not _score_shown:
+		return
+
+	if event is InputEventKey and event.pressed and not event.echo:
+		if event.keycode == KEY_W:
+			_on_watch_replay_pressed()
 
 
 ## Disable player controls after level completion (score screen shown).
