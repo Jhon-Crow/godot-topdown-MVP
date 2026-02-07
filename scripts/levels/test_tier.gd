@@ -754,6 +754,7 @@ func _complete_level_with_score() -> void:
 ## - Counting animation: Numbers animate from 0 to final value with pulsing
 ## - Sound effects: Retro beeps during counting (major arpeggio)
 ## - Dramatic rank reveal: Fullscreen with flashing background, then shrinks
+## - LMB skip: Skip counting/rank animations (Issue #568)
 ## @param score_data: Dictionary containing all score components from ScoreManager.
 func _show_score_screen(score_data: Dictionary) -> void:
 	var ui := get_node_or_null("CanvasLayer/UI")
@@ -766,10 +767,18 @@ func _show_score_screen(score_data: Dictionary) -> void:
 	if animated_score_screen_script:
 		var score_screen = animated_score_screen_script.new()
 		add_child(score_screen)
+		# Connect to animation_completed to add buttons after animation (Issue #568)
+		score_screen.animation_completed.connect(_on_score_animation_completed)
 		score_screen.show_animated_score(ui, score_data)
 	else:
 		# Fallback to simple display if animated script not found
 		_show_fallback_score_screen(ui, score_data)
+
+
+## Called when the animated score screen finishes all animations.
+## Adds navigation and replay buttons to the score screen container (Issue #568).
+func _on_score_animation_completed(container: VBoxContainer) -> void:
+	_add_score_screen_buttons(container)
 
 
 ## Fallback score screen if animated component is not available.
@@ -940,7 +949,7 @@ func _show_victory_message() -> void:
 
 	_score_shown = true
 
-	# Add buttons container (vertical layout: Restart on top, Watch Replay below)
+	# Add buttons container (vertical layout)
 	var buttons_container := VBoxContainer.new()
 	buttons_container.name = "ButtonsContainer"
 	buttons_container.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -949,10 +958,21 @@ func _show_victory_message() -> void:
 	buttons_container.offset_left = -200
 	buttons_container.offset_right = 200
 	buttons_container.offset_top = 40
-	buttons_container.offset_bottom = 130
+	buttons_container.offset_bottom = 200
 	ui.add_child(buttons_container)
 
-	# Restart button (on top)
+	# Next Level button (Issue #568)
+	var next_level_path: String = _get_next_level_path()
+	if next_level_path != "":
+		var next_button := Button.new()
+		next_button.name = "NextLevelButton"
+		next_button.text = "→ Next Level"
+		next_button.custom_minimum_size = Vector2(200, 40)
+		next_button.add_theme_font_size_override("font_size", 18)
+		next_button.pressed.connect(_on_next_level_pressed.bind(next_level_path))
+		buttons_container.add_child(next_button)
+
+	# Restart button
 	var restart_button := Button.new()
 	restart_button.name = "RestartButton"
 	restart_button.text = "↻ Restart (Q)"
@@ -961,7 +981,92 @@ func _show_victory_message() -> void:
 	restart_button.pressed.connect(_on_restart_pressed)
 	buttons_container.add_child(restart_button)
 
-	# Watch Replay button (below Restart)
+	# Level Select button (Issue #568)
+	var level_select_button := Button.new()
+	level_select_button.name = "LevelSelectButton"
+	level_select_button.text = "☰ Level Select"
+	level_select_button.custom_minimum_size = Vector2(200, 40)
+	level_select_button.add_theme_font_size_override("font_size", 18)
+	level_select_button.pressed.connect(_on_level_select_pressed)
+	buttons_container.add_child(level_select_button)
+
+	# Watch Replay button
+	var replay_button := Button.new()
+	replay_button.name = "ReplayButton"
+	replay_button.text = "▶ Watch Replay (W)"
+	replay_button.custom_minimum_size = Vector2(200, 40)
+	replay_button.add_theme_font_size_override("font_size", 18)
+
+	# Check if replay data is available
+	replay_manager = _get_or_create_replay_manager()
+	var has_replay_data: bool = replay_manager != null and replay_manager.has_method("HasReplay") and replay_manager.HasReplay()
+
+	if has_replay_data:
+		replay_button.pressed.connect(_on_watch_replay_pressed)
+	else:
+		replay_button.disabled = true
+		replay_button.text = "▶ Watch Replay (W) - no data"
+		replay_button.tooltip_text = "Replay recording was not available for this session"
+
+	buttons_container.add_child(replay_button)
+
+	# Show cursor for button interaction
+	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
+
+	# Focus the next level button if available, otherwise restart
+	if next_level_path != "":
+		buttons_container.get_node("NextLevelButton").grab_focus()
+	else:
+		restart_button.grab_focus()
+
+
+## Adds Restart, Next Level, Level Select, and Watch Replay buttons to a score screen container.
+## Issue #568: Added Next Level and Level Select buttons after final grade.
+func _add_score_screen_buttons(container: VBoxContainer) -> void:
+	_score_shown = true
+
+	# Add spacer
+	var spacer := Control.new()
+	spacer.custom_minimum_size.y = 10
+	container.add_child(spacer)
+
+	# Add buttons container (vertical layout)
+	var buttons_container := VBoxContainer.new()
+	buttons_container.name = "ButtonsContainer"
+	buttons_container.alignment = BoxContainer.ALIGNMENT_CENTER
+	buttons_container.add_theme_constant_override("separation", 10)
+	container.add_child(buttons_container)
+
+	# Next Level button (Issue #568)
+	var next_level_path: String = _get_next_level_path()
+	if next_level_path != "":
+		var next_button := Button.new()
+		next_button.name = "NextLevelButton"
+		next_button.text = "→ Next Level"
+		next_button.custom_minimum_size = Vector2(200, 40)
+		next_button.add_theme_font_size_override("font_size", 18)
+		next_button.pressed.connect(_on_next_level_pressed.bind(next_level_path))
+		buttons_container.add_child(next_button)
+
+	# Restart button
+	var restart_button := Button.new()
+	restart_button.name = "RestartButton"
+	restart_button.text = "↻ Restart (Q)"
+	restart_button.custom_minimum_size = Vector2(200, 40)
+	restart_button.add_theme_font_size_override("font_size", 18)
+	restart_button.pressed.connect(_on_restart_pressed)
+	buttons_container.add_child(restart_button)
+
+	# Level Select button (Issue #568)
+	var level_select_button := Button.new()
+	level_select_button.name = "LevelSelectButton"
+	level_select_button.text = "☰ Level Select"
+	level_select_button.custom_minimum_size = Vector2(200, 40)
+	level_select_button.add_theme_font_size_override("font_size", 18)
+	level_select_button.pressed.connect(_on_level_select_pressed)
+	buttons_container.add_child(level_select_button)
+
+	# Watch Replay button
 	var replay_button := Button.new()
 	replay_button.name = "ReplayButton"
 	replay_button.text = "▶ Watch Replay (W)"
@@ -984,8 +1089,11 @@ func _show_victory_message() -> void:
 	# Show cursor for button interaction
 	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
 
-	# Focus the restart button
-	restart_button.grab_focus()
+	# Focus the next level button if available, otherwise restart
+	if next_level_path != "":
+		buttons_container.get_node("NextLevelButton").grab_focus()
+	else:
+		restart_button.grab_focus()
 
 
 ## Handle W key shortcut for Watch Replay when score is shown.
@@ -1016,6 +1124,54 @@ func _on_restart_pressed() -> void:
 		GameManager.restart_scene()
 	else:
 		get_tree().reload_current_scene()
+
+
+## Called when the Next Level button is pressed (Issue #568).
+func _on_next_level_pressed(level_path: String) -> void:
+	print("[TestTier] Next Level button pressed: %s" % level_path)
+	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED_HIDDEN)
+	var error := get_tree().change_scene_to_file(level_path)
+	if error != OK:
+		print("[TestTier] ERROR: Failed to load next level: %s" % level_path)
+		Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
+
+
+## Called when the Level Select button is pressed (Issue #568).
+func _on_level_select_pressed() -> void:
+	print("[TestTier] Level Select button pressed")
+	# Load the levels menu as a CanvasLayer overlay
+	var levels_menu_script = load("res://scripts/ui/levels_menu.gd")
+	if levels_menu_script:
+		var levels_menu = CanvasLayer.new()
+		levels_menu.set_script(levels_menu_script)
+		levels_menu.layer = 100  # On top of everything
+		get_tree().root.add_child(levels_menu)
+	else:
+		print("[TestTier] ERROR: Could not load levels menu script")
+
+
+## Get the next level path based on the level ordering from LevelsMenu (Issue #568).
+## Returns empty string if this is the last level or level not found.
+func _get_next_level_path() -> String:
+	var current_scene_path: String = ""
+	var current_scene: Node = get_tree().current_scene
+	if current_scene and current_scene.scene_file_path:
+		current_scene_path = current_scene.scene_file_path
+
+	# Level ordering (matching LevelsMenu.LEVELS)
+	var level_paths: Array[String] = [
+		"res://scenes/levels/BuildingLevel.tscn",
+		"res://scenes/levels/TestTier.tscn",
+		"res://scenes/levels/CastleLevel.tscn",
+	]
+
+	for i in range(level_paths.size()):
+		if level_paths[i] == current_scene_path:
+			if i + 1 < level_paths.size():
+				return level_paths[i + 1]
+			return ""  # Last level
+
+	return ""  # Current level not found
 
 
 ## Show game over message when player runs out of ammo with enemies remaining.

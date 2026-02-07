@@ -2,9 +2,9 @@ extends GutTest
 ## Unit tests for AnimatedScoreScreen visual enhancements.
 ##
 ## Tests the rank color system, contrasting color generation, score-to-rank
-## mapping, and Gothic bitmap font integration used for the animated gradient
-## background, total score color progression, and rank display.
+## mapping, Gothic bitmap font integration, and skip animation logic.
 ## Issue #525: Add a font for ratings/grades.
+## Issue #568: Skip score animations with LMB click.
 
 
 # We test the AnimatedScoreScreen logic by creating a mock instance
@@ -378,3 +378,50 @@ func test_score_progression_goes_through_all_ranks() -> void:
 	# All ranks should appear in the progression
 	for rank in screen.RANK_ORDER:
 		assert_true(seen_ranks.has(rank), "Rank %s should appear during 0-100%% progression" % rank)
+
+
+# ============================================================================
+# Skip Animation Tests (Issue #568)
+# ============================================================================
+
+
+func test_animated_score_screen_has_phase_enum() -> void:
+	var script = load("res://scripts/ui/animated_score_screen.gd")
+	var instance = script.new()
+	add_child_autofree(instance)
+	# Verify Phase enum values exist
+	assert_eq(instance.Phase.COUNTING, 0, "Phase.COUNTING should be 0")
+	assert_eq(instance.Phase.RANK_REVEAL, 1, "Phase.RANK_REVEAL should be 1")
+	assert_eq(instance.Phase.COMPLETED, 2, "Phase.COMPLETED should be 2")
+
+
+func test_animated_score_screen_initial_phase_is_counting() -> void:
+	var script = load("res://scripts/ui/animated_score_screen.gd")
+	var instance = script.new()
+	add_child_autofree(instance)
+	assert_eq(instance._phase, instance.Phase.COUNTING,
+		"Initial phase should be COUNTING")
+
+
+func test_animated_score_screen_skip_not_requested_initially() -> void:
+	var script = load("res://scripts/ui/animated_score_screen.gd")
+	var instance = script.new()
+	add_child_autofree(instance)
+	assert_false(instance._skip_requested,
+		"Skip should not be requested initially")
+
+
+func test_animated_score_screen_has_animation_completed_signal() -> void:
+	var script = load("res://scripts/ui/animated_score_screen.gd")
+	var instance = script.new()
+	add_child_autofree(instance)
+	assert_true(instance.has_signal("animation_completed"),
+		"AnimatedScoreScreen should have animation_completed signal")
+
+
+func test_animated_score_screen_active_timers_empty_initially() -> void:
+	var script = load("res://scripts/ui/animated_score_screen.gd")
+	var instance = script.new()
+	add_child_autofree(instance)
+	assert_eq(instance._active_timers.size(), 0,
+		"Active timers should be empty initially")
