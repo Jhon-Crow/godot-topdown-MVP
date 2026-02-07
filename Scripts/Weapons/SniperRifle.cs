@@ -106,6 +106,13 @@ public partial class SniperRifle : BaseWeapon
     private Vector2 _lastFireDirection = Vector2.Right;
 
     /// <summary>
+    /// Whether there is a spent casing in the chamber that needs to be ejected during bolt step 2.
+    /// Set to true after firing (spent case remains), cleared after ejection during bolt cycling.
+    /// When cycling bolt on empty magazine (no prior fire), this is false so no casing is spawned.
+    /// </summary>
+    private bool _hasCasingToEject = false;
+
+    /// <summary>
     /// Tracks previous frame arrow key states for edge detection (just-pressed).
     /// Order: [Left, Down, Up, Right] matching bolt action steps 1-4.
     /// </summary>
@@ -327,9 +334,18 @@ public partial class SniperRifle : BaseWeapon
                     _boltStep = BoltActionStep.WaitChamberRound;
                     EmitSignal(SignalName.BoltStepChanged, 2, 4);
                     PlayBoltStepSound(2);
-                    // Eject shell casing on this step (like shotgun pump-up)
-                    SpawnCasing(_lastFireDirection, WeaponData?.Caliber);
-                    GD.Print("[SniperRifle] Bolt step 2/4: Casing extracted and ejected");
+                    // Only eject casing if there's a spent case in the chamber (after firing)
+                    // When cycling bolt on empty magazine after reload, no casing to eject
+                    if (_hasCasingToEject)
+                    {
+                        SpawnCasing(_lastFireDirection, WeaponData?.Caliber);
+                        _hasCasingToEject = false;
+                        GD.Print("[SniperRifle] Bolt step 2/4: Casing extracted and ejected");
+                    }
+                    else
+                    {
+                        GD.Print("[SniperRifle] Bolt step 2/4: No casing to eject (chamber was empty)");
+                    }
                 }
                 break;
 
@@ -348,10 +364,23 @@ public partial class SniperRifle : BaseWeapon
                 // Step 4: Right arrow - close bolt
                 if (rightJustPressed)
                 {
-                    _boltStep = BoltActionStep.Ready;
-                    EmitSignal(SignalName.BoltStepChanged, 4, 4);
                     PlayBoltStepSound(4);
-                    GD.Print("[SniperRifle] Bolt step 4/4: Bolt closed - READY TO FIRE");
+                    // Only transition to Ready if there's ammo to chamber
+                    // If magazine is empty, bolt cycling doesn't count (no round chambered)
+                    if (CurrentAmmo > 0)
+                    {
+                        _boltStep = BoltActionStep.Ready;
+                        EmitSignal(SignalName.BoltStepChanged, 4, 4);
+                        GD.Print("[SniperRifle] Bolt step 4/4: Bolt closed - READY TO FIRE");
+                    }
+                    else
+                    {
+                        // Bolt closes but no round was chambered (empty magazine)
+                        // Must cycle bolt again after inserting a new magazine
+                        _boltStep = BoltActionStep.NeedsBoltCycle;
+                        EmitSignal(SignalName.BoltStepChanged, 0, 4);
+                        GD.Print("[SniperRifle] Bolt step 4/4: Bolt closed but NO round chambered (empty magazine) - needs cycling after reload");
+                    }
                 }
                 break;
 
@@ -599,6 +628,7 @@ public partial class SniperRifle : BaseWeapon
 
             // Store fire direction for casing ejection during bolt step 2
             _lastFireDirection = spreadDirection;
+            _hasCasingToEject = true;
 
             // Transition to needs bolt cycle
             _boltStep = BoltActionStep.NeedsBoltCycle;
@@ -799,6 +829,61 @@ public partial class SniperRifle : BaseWeapon
         {
             hitEffectsManager.Call("on_player_hit_enemy");
         }
+    }
+
+    /// <summary>
+    /// Override SpawnCasing for ASVK-specific casing ejection behavior (Issue #575).
+    /// ASVK casings are ejected:
+    /// - Faster (300-400 px/sec vs normal 120-180 px/sec)
+    /// - More to the right and slightly forward (45-degree angle from perpendicular)
+    /// This creates a distinctive, powerful ejection for the heavy 12.7x108mm casings.
+    /// </summary>
+    protected override void SpawnCasing(Vector2 direction, Resource? caliber)
+    {
+        if (CasingScene == null)
+        {
+            return;
+        }
+
+        // Calculate casing spawn position (near the weapon, slightly offset)
+        Vector2 casingSpawnPosition = GlobalPosition + direction * (BulletSpawnOffset * 0.5f);
+
+        var casing = CasingScene.Instantiate<RigidBody2D>();
+        casing.GlobalPosition = casingSpawnPosition;
+
+        // Calculate ejection direction to the right of the weapon
+        // In a top-down view with Y increasing downward:
+        // - If weapon points right (1, 0), right side of weapon is DOWN (0, 1)
+        // - If weapon points up (0, -1), right side of weapon is RIGHT (1, 0)
+        // This is a 90 degree counter-clockwise rotation (perpendicular to shooting direction)
+        Vector2 weaponRight = new Vector2(-direction.Y, direction.X); // Rotate 90 degrees counter-clockwise
+
+        // ASVK-specific: Eject to the right AND slightly forward
+        // Mix the perpendicular direction with the forward direction to get ~45 degree angle
+        // This makes ASVK casings eject more forward than other weapons
+        Vector2 ejectionBase = (weaponRight + direction * 0.3f).Normalized();
+
+        // Add some randomness for variety
+        float randomAngle = (float)GD.RandRange(-0.2f, 0.2f); // ±0.2 radians (~±11 degrees)
+        Vector2 ejectionDirection = ejectionBase.Rotated(randomAngle);
+
+        // ASVK-specific: Much faster ejection speed (2-3x normal weapons)
+        // Heavy 12.7x108mm casings are ejected with more force
+        float ejectionSpeed = (float)GD.RandRange(300.0f, 400.0f); // Fast ejection
+        casing.LinearVelocity = ejectionDirection * ejectionSpeed;
+
+        // Add strong initial spin for realism (heavy casing tumbling through the air)
+        casing.AngularVelocity = (float)GD.RandRange(-20.0f, 20.0f);
+
+        // Set caliber data on the casing for appearance (12.7x108mm)
+        if (caliber != null)
+        {
+            casing.Set("caliber_data", caliber);
+        }
+
+        GetTree().CurrentScene.AddChild(casing);
+
+        GD.Print($"[SniperRifle] ASVK casing ejected: speed={ejectionSpeed:F0} px/sec, direction={ejectionDirection}");
     }
 
     /// <summary>
@@ -1123,16 +1208,6 @@ public partial class SniperRifle : BaseWeapon
     /// Gets the current bolt-action step.
     /// </summary>
     public BoltActionStep CurrentBoltStep => _boltStep;
-
-    /// <summary>
-    /// Resets the bolt to ready state (e.g., after reload with a new magazine).
-    /// </summary>
-    public void ResetBolt()
-    {
-        _boltStep = BoltActionStep.Ready;
-        EmitSignal(SignalName.BoltStepChanged, 4, 4);
-        GD.Print("[SniperRifle] Bolt reset to ready state");
-    }
 
     // =========================================================================
     // Scope / Aiming System (RMB)

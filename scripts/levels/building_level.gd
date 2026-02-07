@@ -824,7 +824,7 @@ func _update_magazines_label(magazine_ammo_counts: Array) -> void:
 		_magazines_label.text = "MAGS: -"
 		return
 
-	var parts: Array[String] = []
+	var parts: Array = []
 	for i in range(magazine_ammo_counts.size()):
 		var ammo: int = magazine_ammo_counts[i]
 		if i == 0:
@@ -996,9 +996,8 @@ func _show_fallback_score_screen(ui: Control, score_data: Dictionary) -> void:
 	_add_score_screen_buttons(container)
 
 
-## Adds Restart and Watch Replay buttons to a score screen container.
-## Restart button appears first, Watch Replay button appears below it.
-## W key shortcut is also enabled for Watch Replay.
+## Adds Restart, Next Level, Level Select, and Watch Replay buttons to a score screen container.
+## Issue #568: Added Next Level and Level Select buttons after final grade.
 func _add_score_screen_buttons(container: VBoxContainer) -> void:
 	_score_shown = true
 
@@ -1007,14 +1006,25 @@ func _add_score_screen_buttons(container: VBoxContainer) -> void:
 	spacer.custom_minimum_size.y = 10
 	container.add_child(spacer)
 
-	# Add buttons container (vertical layout: Restart on top, Watch Replay below)
+	# Add buttons container (vertical layout)
 	var buttons_container := VBoxContainer.new()
 	buttons_container.name = "ButtonsContainer"
 	buttons_container.alignment = BoxContainer.ALIGNMENT_CENTER
 	buttons_container.add_theme_constant_override("separation", 10)
 	container.add_child(buttons_container)
 
-	# Restart button (on top)
+	# Next Level button (Issue #568)
+	var next_level_path: String = _get_next_level_path()
+	if next_level_path != "":
+		var next_button := Button.new()
+		next_button.name = "NextLevelButton"
+		next_button.text = "→ Next Level"
+		next_button.custom_minimum_size = Vector2(200, 40)
+		next_button.add_theme_font_size_override("font_size", 18)
+		next_button.pressed.connect(_on_next_level_pressed.bind(next_level_path))
+		buttons_container.add_child(next_button)
+
+	# Restart button
 	var restart_button := Button.new()
 	restart_button.name = "RestartButton"
 	restart_button.text = "↻ Restart (Q)"
@@ -1023,7 +1033,16 @@ func _add_score_screen_buttons(container: VBoxContainer) -> void:
 	restart_button.pressed.connect(_on_restart_pressed)
 	buttons_container.add_child(restart_button)
 
-	# Watch Replay button (below Restart)
+	# Level Select button (Issue #568)
+	var level_select_button := Button.new()
+	level_select_button.name = "LevelSelectButton"
+	level_select_button.text = "☰ Level Select"
+	level_select_button.custom_minimum_size = Vector2(200, 40)
+	level_select_button.add_theme_font_size_override("font_size", 18)
+	level_select_button.pressed.connect(_on_level_select_pressed)
+	buttons_container.add_child(level_select_button)
+
+	# Watch Replay button
 	var replay_button := Button.new()
 	replay_button.name = "ReplayButton"
 	replay_button.text = "▶ Watch Replay (W)"
@@ -1048,8 +1067,11 @@ func _add_score_screen_buttons(container: VBoxContainer) -> void:
 	# Show cursor for button interaction
 	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
 
-	# Focus the restart button
-	restart_button.grab_focus()
+	# Focus the next level button if available, otherwise restart
+	if next_level_path != "":
+		buttons_container.get_node("NextLevelButton").grab_focus()
+	else:
+		restart_button.grab_focus()
 
 
 ## Get the color for a given rank.
@@ -1110,7 +1132,23 @@ func _setup_selected_weapon() -> void:
 	if GameManager:
 		selected_weapon_id = GameManager.get_selected_weapon()
 
-	print("BuildingLevel: Setting up weapon: %s" % selected_weapon_id)
+	_log_to_file("Setting up weapon: %s" % selected_weapon_id)
+
+	# Check if C# Player already equipped the correct weapon (via ApplySelectedWeaponFromGameManager)
+	# This prevents double-equipping when both C# and GDScript weapon setup run
+	if selected_weapon_id != "m16":
+		var weapon_names: Dictionary = {
+			"shotgun": "Shotgun",
+			"mini_uzi": "MiniUzi",
+			"silenced_pistol": "SilencedPistol",
+			"sniper": "SniperRifle"
+		}
+		if selected_weapon_id in weapon_names:
+			var expected_name: String = weapon_names[selected_weapon_id]
+			var existing_weapon = _player.get_node_or_null(expected_name)
+			if existing_weapon != null and _player.get("CurrentWeapon") == existing_weapon:
+				_log_to_file("%s already equipped by C# Player - skipping GDScript weapon swap" % expected_name)
+				return
 
 	# If shotgun is selected, we need to swap weapons
 	if selected_weapon_id == "shotgun":
@@ -1272,6 +1310,56 @@ func _on_restart_pressed() -> void:
 		GameManager.restart_scene()
 	else:
 		get_tree().reload_current_scene()
+
+
+## Called when the Next Level button is pressed (Issue #568).
+func _on_next_level_pressed(level_path: String) -> void:
+	_log_to_file("Next Level button pressed: %s" % level_path)
+	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED_HIDDEN)
+	var error := get_tree().change_scene_to_file(level_path)
+	if error != OK:
+		_log_to_file("ERROR: Failed to load next level: %s" % level_path)
+		Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
+
+
+## Called when the Level Select button is pressed (Issue #568).
+func _on_level_select_pressed() -> void:
+	_log_to_file("Level Select button pressed")
+	# Load the levels menu as a CanvasLayer overlay
+	var levels_menu_script = load("res://scripts/ui/levels_menu.gd")
+	if levels_menu_script:
+		var levels_menu = CanvasLayer.new()
+		levels_menu.set_script(levels_menu_script)
+		levels_menu.layer = 100  # On top of everything
+		get_tree().root.add_child(levels_menu)
+		# Connect back button to close the overlay
+		levels_menu.back_pressed.connect(func(): levels_menu.queue_free())
+	else:
+		_log_to_file("ERROR: Could not load levels menu script")
+
+
+## Get the next level path based on the level ordering from LevelsMenu (Issue #568).
+## Returns empty string if this is the last level or level not found.
+func _get_next_level_path() -> String:
+	var current_scene_path: String = ""
+	var current_scene: Node = get_tree().current_scene
+	if current_scene and current_scene.scene_file_path:
+		current_scene_path = current_scene.scene_file_path
+
+	# Level ordering (matching LevelsMenu.LEVELS)
+	var level_paths: Array[String] = [
+		"res://scenes/levels/BuildingLevel.tscn",
+		"res://scenes/levels/TestTier.tscn",
+		"res://scenes/levels/CastleLevel.tscn",
+	]
+
+	for i in range(level_paths.size()):
+		if level_paths[i] == current_scene_path:
+			if i + 1 < level_paths.size():
+				return level_paths[i + 1]
+			return ""  # Last level
+
+	return ""  # Current level not found
 
 
 ## Disable player controls after level completion (score screen shown).
