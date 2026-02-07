@@ -2372,14 +2372,8 @@ func _shoot_with_inaccuracy() -> void:
 		_log_debug("Inaccurate shot blocked: wall in path after rotation")
 		return
 
-	# Create and fire bullet
-	var bullet := bullet_scene.instantiate()
-	bullet.global_position = bullet_spawn_pos
-	bullet.direction = direction
-	bullet.shooter_id = get_instance_id()
-	# Set shooter position for distance-based penetration calculation
-	bullet.shooter_position = bullet_spawn_pos
-	get_tree().current_scene.add_child(bullet)
+	# Fire bullet using _spawn_projectile (handles C# add_child-before-props, Issue #550)
+	_spawn_projectile(direction, bullet_spawn_pos)
 	_spawn_muzzle_flash(bullet_spawn_pos, direction)
 	# Play sounds
 	var audio_manager: Node = get_node_or_null("/root/AudioManager")
@@ -2438,14 +2432,8 @@ func _shoot_burst_shot() -> void:
 		_log_debug("Burst shot blocked: wall in path after rotation")
 		return
 
-	# Create and fire bullet
-	var bullet := bullet_scene.instantiate()
-	bullet.global_position = bullet_spawn_pos
-	bullet.direction = direction
-	bullet.shooter_id = get_instance_id()
-	# Set shooter position for distance-based penetration calculation
-	bullet.shooter_position = bullet_spawn_pos
-	get_tree().current_scene.add_child(bullet)
+	# Fire bullet using _spawn_projectile (handles C# add_child-before-props, Issue #550)
+	_spawn_projectile(direction, bullet_spawn_pos)
 	_spawn_muzzle_flash(bullet_spawn_pos, direction)
 
 	# Play sounds
