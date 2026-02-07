@@ -133,6 +133,36 @@ After the initial fix, the repository owner tested and reported 4 remaining issu
 
 - `game_log_20260207_064448.txt` - Game log from owner's testing session showing replay issues
 
+## Round 3: C# ReplayManager Discovery (2026-02-07)
+
+During self-review, the game log revealed `[ReplayManager] ReplayManager ready (C# version loaded and _Ready called)`,
+proving the game uses `Scripts/Autoload/ReplayManager.cs` (registered in `project.godot`), **not** the GDScript
+`scripts/autoload/replay_system.gd`. All Round 2 fixes were applied to the wrong file.
+
+### Root Cause
+
+`project.godot` line 31 registers: `ReplayManager="*res://Scripts/Autoload/ReplayManager.cs"`.
+The C# version is a full rewrite of the GDScript for Godot 4.3 binary tokenization bug workarounds.
+It had the exact same 4 issues as the GDScript version:
+
+| Issue | C# Root Cause |
+|-------|---------------|
+| Invisible bullets | `CreateProjectileGhost("bullet")` used `GradientTexture2D(16, 4)` — no Line2D trail |
+| Blood from start | `SpawnImpactEventsUpToTime()` started at index 0, spawning pre-existing blood decals |
+| No hit effects | No call to HitEffectsManager/PenultimateHitEffectsManager during playback |
+| Square grenade | `CreateProjectileGhost("grenade")` used `GradientTexture2D(12, 12)` radial green circle |
+| No penultimate | Player health not recorded; no penultimate detection during replay |
+
+### Fixes Applied (Round 3 — C# ReplayManager.cs)
+
+| Fix | Description |
+|-----|-------------|
+| Bullet ghost | `CreateBulletGhost()` loads actual `Bullet.tscn` scene with `DisableNodeProcessing()` — preserves sprite, Line2D trail |
+| Grenade ghost | `CreateGrenadeGhost(texturePath)` loads actual grenade texture; `GrenadeFrameData` records texture path and rotation during recording |
+| Blood baseline | `_baselineImpactEventCount` computed from events at frame 0 time; `_nextImpactEventIndex` starts after baseline |
+| Hit effects | `TriggerReplayHitEffect()` calls `_start_saturation_effect()` directly (no time slowdown) on enemy death |
+| Penultimate effects | `PlayerHealth` recorded per frame; `TriggerReplayPenultimateEffect()` triggers visual effect (saturation+contrast) when health drops to ≤1 HP, immediately restoring `Engine.TimeScale` |
+
 ## Lessons Learned
 
 1. **Record visual state, not just spatial state** - Replay fidelity requires capturing the full visual representation (colors, effects) not just positions
@@ -142,3 +172,4 @@ After the initial fix, the repository owner tested and reported 4 remaining issu
 5. **Use actual scene assets for ghosts** - Loading the real scene (Bullet.tscn) instead of creating programmatic sprites ensures visual fidelity
 6. **Track baseline state** - Cumulative data (blood, casings) needs a baseline offset so only NEW items are spawned during replay
 7. **Separate visual from timing effects** - During replay, screen effects (saturation) should work but time manipulation (Engine.time_scale) must not interfere with playback
+8. **Verify which file is actually loaded** - Check `project.godot` autoload registrations and game logs to confirm the correct file is being modified

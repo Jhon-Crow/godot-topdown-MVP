@@ -154,6 +154,9 @@ namespace GodotTopDownTemplate.Autoload
         /// <summary>Index of next impact event to spawn during playback.</summary>
         private int _nextImpactEventIndex;
 
+        /// <summary>Baseline impact event count (events that existed before recording started).</summary>
+        private int _baselineImpactEventCount;
+
         /// <summary>Spawned blood decals during Memory mode playback.</summary>
         private readonly List<Node2D> _memoryBloodDecals = new();
 
@@ -162,6 +165,9 @@ namespace GodotTopDownTemplate.Autoload
         private readonly List<List<Vector2>> _enemyTrailPositions = new();
         private readonly List<Node2D> _trailNodes = new();
         private float _trailUpdateTimer;
+
+        /// <summary>Previous player health for penultimate hit detection during replay.</summary>
+        private float _prevPlayerHealth = 100.0f;
 
         /// <summary>Previous positions for trail tracking.</summary>
         private Vector2 _prevPlayerPos;
@@ -190,9 +196,10 @@ namespace GodotTopDownTemplate.Autoload
             public Vector2 PlayerModelScale = Vector2.One;
             public bool PlayerAlive = true;
             public bool PlayerShooting;
+            public float PlayerHealth = 100.0f;
             public List<EnemyFrameData> Enemies = new();
             public List<ProjectileFrameData> Bullets = new();
-            public List<Vector2> Grenades = new();
+            public List<GrenadeFrameData> Grenades = new();
         }
 
         private class EnemyFrameData
@@ -211,6 +218,13 @@ namespace GodotTopDownTemplate.Autoload
         {
             public Vector2 Position;
             public float Rotation;
+        }
+
+        private class GrenadeFrameData
+        {
+            public Vector2 Position;
+            public float Rotation;
+            public string TexturePath = "";
         }
 
         /// <summary>Recorded impact event for Memory mode reproduction.</summary>
@@ -360,11 +374,28 @@ namespace GodotTopDownTemplate.Autoload
             _playbackSpeed = 1.0f;
             _ghostPlayerWalkAnimTime = 0.0f;
             _levelNode = level;
-            _nextImpactEventIndex = 0;
+
+            // Calculate baseline impact event count: events recorded at time 0
+            // (blood decals that existed before gameplay started)
+            _baselineImpactEventCount = 0;
+            if (_impactEvents.Count > 0)
+            {
+                float firstFrameTime = _frames.Count > 0 ? _frames[0].Time : 0.0f;
+                for (int i = 0; i < _impactEvents.Count; i++)
+                {
+                    if (_impactEvents[i].Time <= firstFrameTime)
+                        _baselineImpactEventCount++;
+                    else
+                        break;
+                }
+                LogToFile($"Baseline impact events (pre-existing): {_baselineImpactEventCount} of {_impactEvents.Count}");
+            }
+            _nextImpactEventIndex = _baselineImpactEventCount; // Skip baseline events
             _trailUpdateTimer = 0.0f;
             _playerTrailPositions.Clear();
             _enemyTrailPositions.Clear();
             _prevPlayerPos = _frames.Count > 0 ? _frames[0].PlayerPosition : Vector2.Zero;
+            _prevPlayerHealth = _frames.Count > 0 ? _frames[0].PlayerHealth : 100.0f;
             _prevEnemyPositions.Clear();
 
             CreateGhostEntities(level);
@@ -984,6 +1015,17 @@ namespace GodotTopDownTemplate.Autoload
                         frame.PlayerAlive = (bool)isAliveCSharp;
                 }
 
+                // Record player health for penultimate hit effect during replay
+                var healthGd = _player.Get("_current_health");
+                if (healthGd.VariantType != Variant.Type.Nil)
+                    frame.PlayerHealth = (float)(int)healthGd;
+                else
+                {
+                    var healthCs = _player.Get("CurrentHealth");
+                    if (healthCs.VariantType != Variant.Type.Nil)
+                        frame.PlayerHealth = (float)healthCs;
+                }
+
                 if (_frames.Count > 0)
                 {
                     var prevBullets = _frames[^1].Bullets.Count;
@@ -1063,7 +1105,19 @@ namespace GodotTopDownTemplate.Autoload
                 {
                     if (grenade is Node2D gren2D)
                     {
-                        frame.Grenades.Add(gren2D.GlobalPosition);
+                        var grenData = new GrenadeFrameData
+                        {
+                            Position = gren2D.GlobalPosition,
+                            Rotation = gren2D.GlobalRotation,
+                            TexturePath = ""
+                        };
+
+                        // Capture the grenade's sprite texture path
+                        var grenSprite = gren2D.GetNodeOrNull<Sprite2D>("Sprite2D");
+                        if (grenSprite?.Texture != null)
+                            grenData.TexturePath = grenSprite.Texture.ResourcePath;
+
+                        frame.Grenades.Add(grenData);
                     }
                 }
             }
@@ -1146,6 +1200,13 @@ namespace GodotTopDownTemplate.Autoload
                 {
                     SpawnMuzzleFlash(frame.PlayerPosition, frame.PlayerModelRotation);
                 }
+
+                // Detect penultimate hit moment: player health dropped to <= 1 HP
+                if (frame.PlayerHealth <= 1.0f && frame.PlayerHealth > 0.0f && _prevPlayerHealth > 1.0f)
+                {
+                    TriggerReplayPenultimateEffect();
+                }
+                _prevPlayerHealth = frame.PlayerHealth;
             }
 
             // Update ghost enemies
@@ -1181,6 +1242,9 @@ namespace GodotTopDownTemplate.Autoload
                             });
                         }
                     }
+
+                    // Trigger hit visual effect (saturation boost without time slowdown)
+                    TriggerReplayHitEffect();
                 }
 
                 if (i < _ghostEnemyDeathTimers.Count && _ghostEnemyDeathTimers[i] > 0.0f)
@@ -1265,10 +1329,7 @@ namespace GodotTopDownTemplate.Autoload
             UpdateGhostProjectiles(frame.Bullets, _ghostBullets, "bullet");
 
             // Update ghost grenades
-            var grenadeData = new List<ProjectileFrameData>();
-            foreach (var pos in frame.Grenades)
-                grenadeData.Add(new ProjectileFrameData { Position = pos, Rotation = 0 });
-            UpdateGhostProjectiles(grenadeData, _ghostGrenades, "grenade");
+            UpdateGhostGrenades(frame.Grenades, _ghostGrenades);
 
             // Update motion trails (Memory mode only)
             UpdateTrails(frame, delta);
@@ -1387,6 +1448,39 @@ namespace GodotTopDownTemplate.Autoload
             while (ghosts.Count < data.Count)
             {
                 var ghost = CreateProjectileGhost(type);
+                if (ghost != null)
+                    ghosts.Add(ghost);
+            }
+
+            int count = Mathf.Min(ghosts.Count, data.Count);
+            for (int i = 0; i < count; i++)
+            {
+                var ghost = ghosts[i];
+                var d = data[i];
+                if (ghost != null && IsInstanceValid(ghost))
+                {
+                    ghost.GlobalPosition = d.Position;
+                    ghost.GlobalRotation = d.Rotation;
+                    ghost.Visible = true;
+                }
+            }
+        }
+
+        private void UpdateGhostGrenades(List<GrenadeFrameData> data, List<Node2D> ghosts)
+        {
+            while (ghosts.Count > data.Count)
+            {
+                var last = ghosts[^1];
+                ghosts.RemoveAt(ghosts.Count - 1);
+                if (last != null && IsInstanceValid(last))
+                    last.QueueFree();
+            }
+
+            while (ghosts.Count < data.Count)
+            {
+                // Get the texture path from the grenade data for proper sprite loading
+                string texPath = ghosts.Count < data.Count ? data[ghosts.Count].TexturePath : "";
+                var ghost = CreateGrenadeGhost(texPath);
                 if (ghost != null)
                     ghosts.Add(ghost);
             }
@@ -1535,29 +1629,98 @@ namespace GodotTopDownTemplate.Autoload
             return fallback;
         }
 
-        private Node2D? CreateProjectileGhost(string type)
+        private Node2D? CreateProjectileGhost(string type, string texturePath = "")
+        {
+            if (type == "bullet")
+            {
+                return CreateBulletGhost();
+            }
+            else
+            {
+                return CreateGrenadeGhost(texturePath);
+            }
+        }
+
+        /// <summary>Creates a bullet ghost by loading the actual Bullet.tscn scene.</summary>
+        private Node2D? CreateBulletGhost()
+        {
+            var bulletScene = GD.Load<PackedScene>("res://scenes/projectiles/Bullet.tscn");
+            if (bulletScene != null)
+            {
+                var ghost = bulletScene.Instantiate<Node2D>();
+                ghost.Name = "GhostBullet";
+                ghost.ProcessMode = ProcessModeEnum.Always;
+                DisableNodeProcessing(ghost);
+
+                if (_levelNode != null && IsInstanceValid(_levelNode))
+                {
+                    var ghostContainer = _levelNode.GetNodeOrNull<Node2D>("ReplayGhosts");
+                    ghostContainer?.AddChild(ghost);
+                }
+                return ghost;
+            }
+
+            // Fallback: programmatic sprite
+            var fallback = new Node2D();
+            fallback.Name = "GhostBullet";
+            fallback.ProcessMode = ProcessModeEnum.Always;
+            var sprite = new Sprite2D();
+            var texture = new GradientTexture2D();
+            texture.Width = 16;
+            texture.Height = 4;
+            texture.FillFrom = new Vector2(0, 0.5f);
+            texture.FillTo = new Vector2(1, 0.5f);
+            var gradient = new Gradient();
+            gradient.SetColor(0, new Color(1.0f, 0.9f, 0.2f, 1.0f));
+            gradient.SetColor(1, new Color(1.0f, 0.7f, 0.1f, 0.3f));
+            texture.Gradient = gradient;
+            sprite.Texture = texture;
+            fallback.AddChild(sprite);
+
+            if (_levelNode != null && IsInstanceValid(_levelNode))
+            {
+                var ghostContainer = _levelNode.GetNodeOrNull<Node2D>("ReplayGhosts");
+                ghostContainer?.AddChild(fallback);
+            }
+            return fallback;
+        }
+
+        /// <summary>Creates a grenade ghost by loading the actual grenade texture.</summary>
+        private Node2D? CreateGrenadeGhost(string texturePath)
         {
             var ghost = new Node2D();
-            ghost.Name = "Ghost" + type.Capitalize();
+            ghost.Name = "GhostGrenade";
             ghost.ProcessMode = ProcessModeEnum.Always;
 
             var sprite = new Sprite2D();
 
-            if (type == "bullet")
+            // Try to load the actual grenade texture
+            if (!string.IsNullOrEmpty(texturePath))
             {
-                var texture = new GradientTexture2D();
-                texture.Width = 16;
-                texture.Height = 4;
-                texture.FillFrom = new Vector2(0, 0.5f);
-                texture.FillTo = new Vector2(1, 0.5f);
-                var gradient = new Gradient();
-                gradient.SetColor(0, new Color(1.0f, 0.9f, 0.2f, 1.0f));
-                gradient.SetColor(1, new Color(1.0f, 0.7f, 0.1f, 0.3f));
-                texture.Gradient = gradient;
-                sprite.Texture = texture;
+                var tex = GD.Load<Texture2D>(texturePath);
+                if (tex != null)
+                {
+                    sprite.Texture = tex;
+                    ghost.AddChild(sprite);
+
+                    if (_levelNode != null && IsInstanceValid(_levelNode))
+                    {
+                        var ghostContainer = _levelNode.GetNodeOrNull<Node2D>("ReplayGhosts");
+                        ghostContainer?.AddChild(ghost);
+                    }
+                    return ghost;
+                }
+            }
+
+            // Try loading frag grenade texture as default
+            var defaultTex = GD.Load<Texture2D>("res://assets/sprites/weapons/frag_grenade.png");
+            if (defaultTex != null)
+            {
+                sprite.Texture = defaultTex;
             }
             else
             {
+                // Last resort: programmatic fallback
                 var texture = new GradientTexture2D();
                 texture.Width = 12;
                 texture.Height = 12;
@@ -1576,7 +1739,6 @@ namespace GodotTopDownTemplate.Autoload
                 var ghostContainer = _levelNode.GetNodeOrNull<Node2D>("ReplayGhosts");
                 ghostContainer?.AddChild(ghost);
             }
-
             return ghost;
         }
 
@@ -1936,6 +2098,50 @@ namespace GodotTopDownTemplate.Autoload
                     case Key.M:
                         SetReplayMode(ReplayMode.Memory);
                         break;
+                }
+            }
+        }
+
+        // ============================================================
+        // Replay visual effects (hit/penultimate — saturation only, no time slowdown)
+        // ============================================================
+
+        /// <summary>
+        /// Triggers the hit saturation effect during replay playback.
+        /// Calls HitEffectsManager._start_saturation_effect() directly
+        /// to avoid Engine.time_scale modification during replay.
+        /// </summary>
+        private void TriggerReplayHitEffect()
+        {
+            var hitEffects = GetNodeOrNull("/root/HitEffectsManager");
+            if (hitEffects != null)
+            {
+                // Call _start_saturation_effect directly to get the visual boost
+                // without the time slowdown that on_player_hit_enemy() would cause
+                if (hitEffects.HasMethod("_start_saturation_effect"))
+                {
+                    hitEffects.Call("_start_saturation_effect");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Triggers the penultimate hit visual effect during replay playback.
+        /// Only triggers the saturation/contrast overlay, NOT the time slowdown.
+        /// </summary>
+        private void TriggerReplayPenultimateEffect()
+        {
+            var penultimateEffects = GetNodeOrNull("/root/PenultimateHitEffectsManager");
+            if (penultimateEffects != null)
+            {
+                // Only trigger visual effects (saturation + contrast) without time slowdown
+                if (penultimateEffects.HasMethod("_start_penultimate_effect"))
+                {
+                    // Save current time_scale, trigger effect, restore time_scale
+                    float savedTimeScale = Engine.TimeScale;
+                    penultimateEffects.Call("_start_penultimate_effect");
+                    // Restore time_scale immediately since we don't want slowdown during replay
+                    Engine.TimeScale = savedTimeScale;
                 }
             }
         }

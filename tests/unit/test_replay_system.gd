@@ -531,3 +531,124 @@ func test_hit_effect_without_time_slowdown():
 			assert_true(true, "'%s' should trigger replay hit effect" % event_type)
 		elif event_type in penultimate_events:
 			assert_true(true, "'%s' should trigger replay penultimate effect" % event_type)
+
+
+# ============================================================================
+# Test: Baseline Impact Event Offset (C# ReplayManager fix)
+# ============================================================================
+
+
+## Minimal mock for testing C# ReplayManager baseline impact event logic.
+## In the C# version, impact events are tracked globally (not per-frame).
+class MockImpactEventPlayback:
+	var _impact_events: Array = []
+	var _baseline_impact_event_count: int = 0
+	var _next_impact_event_index: int = 0
+
+	## Calculate baseline from events at frame 0 time (same logic as C# StartPlayback).
+	func compute_baseline(first_frame_time: float) -> void:
+		_baseline_impact_event_count = 0
+		for event in _impact_events:
+			if event.time <= first_frame_time:
+				_baseline_impact_event_count += 1
+			else:
+				break
+		_next_impact_event_index = _baseline_impact_event_count
+
+	## Returns how many events should be spawned up to given time.
+	func count_events_to_spawn(time: float) -> int:
+		var count := 0
+		var idx := _next_impact_event_index
+		while idx < _impact_events.size() and _impact_events[idx].time <= time:
+			count += 1
+			idx += 1
+		return count
+
+
+func test_baseline_impact_events_skips_preexisting():
+	var playback := MockImpactEventPlayback.new()
+	# 3 blood decals at time 0.016 (first frame), 2 new ones at time 1.0
+	playback._impact_events = [
+		{"time": 0.016, "type": "blood", "position": Vector2(100, 100)},
+		{"time": 0.016, "type": "blood", "position": Vector2(200, 200)},
+		{"time": 0.016, "type": "blood", "position": Vector2(300, 300)},
+		{"time": 1.0, "type": "blood", "position": Vector2(400, 400)},
+		{"time": 2.0, "type": "blood", "position": Vector2(500, 500)},
+	]
+	playback.compute_baseline(0.016)
+
+	assert_eq(playback._baseline_impact_event_count, 3,
+		"Baseline should be 3 (events at first frame time)")
+	assert_eq(playback._next_impact_event_index, 3,
+		"Next index should skip baseline events")
+	assert_eq(playback.count_events_to_spawn(1.5), 1,
+		"Should only spawn 1 event (at time 1.0), skipping baseline")
+	assert_eq(playback.count_events_to_spawn(3.0), 2,
+		"Should spawn 2 events total (at time 1.0 and 2.0)")
+
+
+func test_baseline_with_no_preexisting_events():
+	var playback := MockImpactEventPlayback.new()
+	playback._impact_events = [
+		{"time": 1.0, "type": "blood", "position": Vector2(400, 400)},
+		{"time": 2.0, "type": "blood", "position": Vector2(500, 500)},
+	]
+	playback.compute_baseline(0.016)
+
+	assert_eq(playback._baseline_impact_event_count, 0,
+		"Baseline should be 0 when no events at first frame time")
+	assert_eq(playback.count_events_to_spawn(3.0), 2,
+		"Should spawn all events when no baseline")
+
+
+# ============================================================================
+# Test: Player Health Recording and Penultimate Detection (C# ReplayManager)
+# ============================================================================
+
+
+## Mock for testing penultimate hit detection during replay playback.
+class MockPenultimateDetection:
+	var _prev_player_health: float = 100.0
+
+	## Returns true if penultimate effect should trigger for given health transition.
+	func should_trigger_penultimate(current_health: float) -> bool:
+		var should_trigger := current_health <= 1.0 and current_health > 0.0 and _prev_player_health > 1.0
+		_prev_player_health = current_health
+		return should_trigger
+
+
+func test_penultimate_triggers_when_health_drops_to_one():
+	var detector := MockPenultimateDetection.new()
+	detector._prev_player_health = 2.0
+
+	assert_true(detector.should_trigger_penultimate(1.0),
+		"Should trigger penultimate when health drops from 2 to 1")
+
+
+func test_penultimate_does_not_trigger_when_health_stays_high():
+	var detector := MockPenultimateDetection.new()
+	detector._prev_player_health = 5.0
+
+	assert_false(detector.should_trigger_penultimate(4.0),
+		"Should not trigger penultimate when health stays above 1")
+
+
+func test_penultimate_does_not_trigger_on_death():
+	var detector := MockPenultimateDetection.new()
+	detector._prev_player_health = 1.0
+
+	assert_false(detector.should_trigger_penultimate(0.0),
+		"Should not trigger penultimate on death (health = 0)")
+
+
+func test_penultimate_does_not_retrigger_at_same_health():
+	var detector := MockPenultimateDetection.new()
+	detector._prev_player_health = 2.0
+
+	# First transition triggers
+	assert_true(detector.should_trigger_penultimate(1.0),
+		"First transition to 1 HP should trigger")
+
+	# Subsequent frames at 1 HP should not re-trigger
+	assert_false(detector.should_trigger_penultimate(1.0),
+		"Should not re-trigger when health stays at 1")
