@@ -49,6 +49,12 @@ var _exit_zone: Area2D = null
 ## Whether the level has been cleared (all enemies eliminated).
 var _level_cleared: bool = false
 
+## Whether the score screen is currently shown (for W key shortcut).
+var _score_shown: bool = false
+
+## Whether the level completion sequence has been triggered (prevents duplicate calls).
+var _level_completed: bool = false
+
 ## Duration of saturation effect in seconds.
 const SATURATION_DURATION: float = 0.15
 
@@ -57,6 +63,30 @@ const SATURATION_INTENSITY: float = 0.25
 
 ## List of enemy nodes for position tracking.
 var _enemies: Array = []
+
+## Cached reference to the ReplayManager autoload (C# singleton).
+var _replay_manager: Node = null
+
+
+## Gets the ReplayManager autoload node.
+## The ReplayManager is now a C# autoload that works reliably in exported builds,
+## replacing the GDScript version that had Godot 4.3 binary tokenization issues
+## (godotengine/godot#94150, godotengine/godot#96065).
+func _get_or_create_replay_manager() -> Node:
+	if _replay_manager != null and is_instance_valid(_replay_manager):
+		return _replay_manager
+
+	_replay_manager = get_node_or_null("/root/ReplayManager")
+	if _replay_manager != null:
+		# C# methods must be called with PascalCase from GDScript (no auto-conversion for user methods)
+		if _replay_manager.has_method("StartRecording"):
+			_log_to_file("ReplayManager found as C# autoload - verified OK")
+		else:
+			_log_to_file("WARNING: ReplayManager autoload exists but has no StartRecording method")
+	else:
+		_log_to_file("ERROR: ReplayManager autoload not found at /root/ReplayManager")
+
+	return _replay_manager
 
 
 func _ready() -> void:
@@ -95,6 +125,9 @@ func _ready() -> void:
 	# Setup exit zone near player spawn (left wall)
 	_setup_exit_zone()
 
+	# Start replay recording
+	_start_replay_recording()
+
 
 ## Initialize the ScoreManager for this level.
 func _initialize_score_manager() -> void:
@@ -112,6 +145,43 @@ func _initialize_score_manager() -> void:
 	# Connect to combo changes for UI feedback
 	if not score_manager.combo_changed.is_connected(_on_combo_changed):
 		score_manager.combo_changed.connect(_on_combo_changed)
+
+
+## Starts recording the replay for this level.
+func _start_replay_recording() -> void:
+	var replay_manager: Node = _get_or_create_replay_manager()
+	if replay_manager == null:
+		_log_to_file("ERROR: ReplayManager could not be loaded, replay recording disabled")
+		print("[BuildingLevel] ERROR: ReplayManager could not be loaded!")
+		return
+
+	# Log player and enemies status for debugging
+	_log_to_file("Starting replay recording - Player: %s, Enemies count: %d" % [
+		_player.name if _player else "NULL",
+		_enemies.size()
+	])
+
+	if _player == null:
+		_log_to_file("WARNING: Player is null, replay may not record properly")
+		print("[BuildingLevel] WARNING: Player is null for replay recording!")
+
+	if _enemies.is_empty():
+		_log_to_file("WARNING: No enemies to track in replay")
+		print("[BuildingLevel] WARNING: No enemies registered for replay!")
+
+	# Clear any previous replay data
+	if replay_manager.has_method("ClearReplay"):
+		replay_manager.ClearReplay()
+		_log_to_file("Previous replay data cleared")
+
+	# Start recording with player and enemies
+	if replay_manager.has_method("StartRecording"):
+		replay_manager.StartRecording(self, _player, _enemies)
+		_log_to_file("Replay recording started successfully")
+		print("[BuildingLevel] Replay recording started with %d enemies" % _enemies.size())
+	else:
+		_log_to_file("ERROR: ReplayManager.StartRecording method not found")
+		print("[BuildingLevel] ERROR: StartRecording method not found!")
 
 
 ## Setup the exit zone near the player spawn point (left wall).
@@ -146,6 +216,10 @@ func _setup_exit_zone() -> void:
 ## Called when the player reaches the exit zone after clearing the level.
 func _on_player_reached_exit() -> void:
 	if not _level_cleared:
+		return
+
+	# Prevent duplicate calls (exit zone can fire multiple times)
+	if _level_completed:
 		return
 
 	print("[BuildingLevel] Player reached exit - showing score!")
@@ -492,6 +566,37 @@ func _on_enemy_died_with_info(is_ricochet_kill: bool, is_penetration_kill: bool)
 
 ## Complete the level and show the score screen.
 func _complete_level_with_score() -> void:
+	# Prevent duplicate calls
+	if _level_completed:
+		return
+	_level_completed = true
+
+	# Disable player controls immediately
+	_disable_player_controls()
+
+	# Deactivate exit zone to prevent further triggers
+	if _exit_zone and _exit_zone.has_method("deactivate"):
+		_exit_zone.deactivate()
+
+	# Stop replay recording
+	var replay_manager: Node = _get_or_create_replay_manager()
+	if replay_manager:
+		if replay_manager.has_method("StopRecording"):
+			replay_manager.StopRecording()
+			_log_to_file("Replay recording stopped")
+
+		# Log replay status for debugging
+		if replay_manager.has_method("HasReplay"):
+			var has_replay: bool = replay_manager.HasReplay()
+			var duration: float = 0.0
+			if replay_manager.has_method("GetReplayDuration"):
+				duration = replay_manager.GetReplayDuration()
+			_log_to_file("Replay status: has_replay=%s, duration=%.2fs" % [has_replay, duration])
+			print("[BuildingLevel] Replay status: has_replay=%s, duration=%.2fs" % [has_replay, duration])
+	else:
+		_log_to_file("ERROR: ReplayManager not found when completing level")
+		print("[BuildingLevel] ERROR: ReplayManager not found!")
+
 	var score_manager: Node = get_node_or_null("/root/ScoreManager")
 	if score_manager and score_manager.has_method("complete_level"):
 		var score_data: Dictionary = score_manager.complete_level()
@@ -797,11 +902,7 @@ func _show_victory_message() -> void:
 
 ## Show the animated score screen with Hotline Miami 2 style effects (Issue #415).
 ## Uses the AnimatedScoreScreen component for sequential reveal and counting animations.
-## Features:
-## - Sequential reveal: Items appear one after another
-## - Counting animation: Numbers animate from 0 to final value with pulsing
-## - Sound effects: Retro beeps during counting (major arpeggio)
-## - Dramatic rank reveal: Fullscreen with flashing background, then shrinks
+## After animations complete, adds replay and restart buttons (Issue #416).
 ## @param score_data: Dictionary containing all score components from ScoreManager.
 func _show_score_screen(score_data: Dictionary) -> void:
 	var ui := get_node_or_null("CanvasLayer/UI")
@@ -814,10 +915,18 @@ func _show_score_screen(score_data: Dictionary) -> void:
 	if animated_score_screen_script:
 		var score_screen = animated_score_screen_script.new()
 		add_child(score_screen)
+		# Connect to animation_completed to add replay/restart buttons after animation
+		score_screen.animation_completed.connect(_on_score_animation_completed)
 		score_screen.show_animated_score(ui, score_data)
 	else:
 		# Fallback to simple display if animated script not found
 		_show_fallback_score_screen(ui, score_data)
+
+
+## Called when the animated score screen finishes all animations.
+## Adds replay and restart buttons to the score screen container.
+func _on_score_animation_completed(container: VBoxContainer) -> void:
+	_add_score_screen_buttons(container)
 
 
 ## Fallback score screen if animated component is not available.
@@ -866,12 +975,64 @@ func _show_fallback_score_screen(ui: Control, score_data: Dictionary) -> void:
 	total_label.add_theme_color_override("font_color", Color(1.0, 0.9, 0.3, 1.0))
 	container.add_child(total_label)
 
-	var hint_label := Label.new()
-	hint_label.text = "\nPress Q to restart"
-	hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	hint_label.add_theme_font_size_override("font_size", 16)
-	hint_label.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5, 1.0))
-	container.add_child(hint_label)
+	# Add replay and restart buttons to fallback screen
+	_add_score_screen_buttons(container)
+
+
+## Adds Restart and Watch Replay buttons to a score screen container.
+## Restart button appears first, Watch Replay button appears below it.
+## W key shortcut is also enabled for Watch Replay.
+func _add_score_screen_buttons(container: VBoxContainer) -> void:
+	_score_shown = true
+
+	# Add spacer
+	var spacer := Control.new()
+	spacer.custom_minimum_size.y = 10
+	container.add_child(spacer)
+
+	# Add buttons container (vertical layout: Restart on top, Watch Replay below)
+	var buttons_container := VBoxContainer.new()
+	buttons_container.name = "ButtonsContainer"
+	buttons_container.alignment = BoxContainer.ALIGNMENT_CENTER
+	buttons_container.add_theme_constant_override("separation", 10)
+	container.add_child(buttons_container)
+
+	# Restart button (on top)
+	var restart_button := Button.new()
+	restart_button.name = "RestartButton"
+	restart_button.text = "↻ Restart (Q)"
+	restart_button.custom_minimum_size = Vector2(200, 40)
+	restart_button.add_theme_font_size_override("font_size", 18)
+	restart_button.pressed.connect(_on_restart_pressed)
+	buttons_container.add_child(restart_button)
+
+	# Watch Replay button (below Restart)
+	var replay_button := Button.new()
+	replay_button.name = "ReplayButton"
+	replay_button.text = "▶ Watch Replay (W)"
+	replay_button.custom_minimum_size = Vector2(200, 40)
+	replay_button.add_theme_font_size_override("font_size", 18)
+
+	# Check if replay data is available
+	var replay_manager: Node = _get_or_create_replay_manager()
+	var has_replay_data: bool = replay_manager != null and replay_manager.has_method("HasReplay") and replay_manager.HasReplay()
+
+	if has_replay_data:
+		replay_button.pressed.connect(_on_watch_replay_pressed)
+		_log_to_file("Watch Replay button created (replay data available)")
+	else:
+		replay_button.disabled = true
+		replay_button.text = "▶ Watch Replay (W) - no data"
+		replay_button.tooltip_text = "Replay recording was not available for this session"
+		_log_to_file("Watch Replay button created (disabled - no replay data)")
+
+	buttons_container.add_child(replay_button)
+
+	# Show cursor for button interaction
+	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
+
+	# Focus the restart button
+	restart_button.grab_focus()
 
 
 ## Get the color for a given rank.
@@ -1064,6 +1225,55 @@ func _setup_selected_weapon() -> void:
 					_player.EquipWeapon(assault_rifle)
 				elif _player.get("CurrentWeapon") != null:
 					_player.CurrentWeapon = assault_rifle
+
+
+## Handle W key shortcut for Watch Replay when score is shown.
+func _unhandled_input(event: InputEvent) -> void:
+	if not _score_shown:
+		return
+
+	if event is InputEventKey and event.pressed and not event.echo:
+		if event.keycode == KEY_W:
+			_on_watch_replay_pressed()
+
+
+## Called when the Watch Replay button is pressed (or W key).
+func _on_watch_replay_pressed() -> void:
+	_log_to_file("Watch Replay triggered")
+	var replay_manager: Node = _get_or_create_replay_manager()
+	if replay_manager and replay_manager.has_method("HasReplay") and replay_manager.HasReplay():
+		if replay_manager.has_method("StartPlayback"):
+			replay_manager.StartPlayback(self)
+	else:
+		_log_to_file("Watch Replay: no replay data available")
+
+
+## Called when the Restart button is pressed.
+func _on_restart_pressed() -> void:
+	_log_to_file("Restart button pressed")
+	if GameManager:
+		GameManager.restart_scene()
+	else:
+		get_tree().reload_current_scene()
+
+
+## Disable player controls after level completion (score screen shown).
+## Stops physics processing and input on the player node so the player
+## cannot move, shoot, or interact during the score screen.
+func _disable_player_controls() -> void:
+	if _player == null or not is_instance_valid(_player):
+		return
+
+	_player.set_physics_process(false)
+	_player.set_process(false)
+	_player.set_process_input(false)
+	_player.set_process_unhandled_input(false)
+
+	# Stop any current velocity so player doesn't slide
+	if _player is CharacterBody2D:
+		_player.velocity = Vector2.ZERO
+
+	_log_to_file("Player controls disabled (level completed)")
 
 
 ## Log a message to the file logger if available.

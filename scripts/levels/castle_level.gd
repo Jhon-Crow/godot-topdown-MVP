@@ -59,6 +59,9 @@ var _exit_zone: Area2D = null
 ## Whether the level has been cleared (all enemies eliminated).
 var _level_cleared: bool = false
 
+## Whether the level completion sequence has been triggered (prevents duplicate calls).
+var _level_completed: bool = false
+
 
 func _ready() -> void:
 	print("CastleLevel loaded - Medieval Fortress Assault")
@@ -150,6 +153,10 @@ func _setup_exit_zone() -> void:
 ## Called when the player reaches the exit zone after clearing the level.
 func _on_player_reached_exit() -> void:
 	if not _level_cleared:
+		return
+
+	# Prevent duplicate calls (exit zone can fire multiple times)
+	if _level_completed:
 		return
 
 	print("[CastleLevel] Player reached exit - showing score!")
@@ -542,6 +549,18 @@ func _on_enemy_died_with_info(is_ricochet_kill: bool, is_penetration_kill: bool)
 
 ## Complete the level and show the score screen.
 func _complete_level_with_score() -> void:
+	# Prevent duplicate calls
+	if _level_completed:
+		return
+	_level_completed = true
+
+	# Disable player controls immediately
+	_disable_player_controls()
+
+	# Deactivate exit zone to prevent further triggers
+	if _exit_zone and _exit_zone.has_method("deactivate"):
+		_exit_zone.deactivate()
+
 	var score_manager: Node = get_node_or_null("/root/ScoreManager")
 	if score_manager and score_manager.has_method("complete_level"):
 		var score_data: Dictionary = score_manager.complete_level()
@@ -1035,6 +1054,25 @@ func _setup_selected_weapon() -> void:
 
 			# Configure 2x ammo for Castle level (M16/AssaultRifle)
 			_configure_castle_weapon_ammo(assault_rifle)
+
+
+## Disable player controls after level completion (score screen shown).
+## Stops physics processing and input on the player node so the player
+## cannot move, shoot, or interact during the score screen.
+func _disable_player_controls() -> void:
+	if _player == null or not is_instance_valid(_player):
+		return
+
+	_player.set_physics_process(false)
+	_player.set_process(false)
+	_player.set_process_input(false)
+	_player.set_process_unhandled_input(false)
+
+	# Stop any current velocity so player doesn't slide
+	if _player is CharacterBody2D:
+		_player.velocity = Vector2.ZERO
+
+	_log_to_file("Player controls disabled (level completed)")
 
 
 ## Log a message to the file logger if available.

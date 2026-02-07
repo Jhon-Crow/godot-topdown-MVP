@@ -373,6 +373,9 @@ const GRENADE_EVASION_MAX_TIME: float = 4.0
 ## State to return to after grenade evasion completes.
 var _pre_evasion_state: AIState = AIState.IDLE
 
+var _prediction: PlayerPredictionComponent = null  ## [Issue #298] Player position prediction.
+var _was_player_visible: bool = false  ## [Issue #298] Tracks sight-loss transitions.
+
 ## Last hit direction (used for death animation).
 var _last_hit_direction: Vector2 = Vector2.RIGHT
 
@@ -390,7 +393,6 @@ func _ready() -> void:
 
 	# Configure weapon parameters based on weapon type (before ammo init)
 	_configure_weapon_type()
-
 	_initial_position = global_position
 	_initialize_health()
 	_initialize_ammo()
@@ -516,13 +518,11 @@ func _setup_threat_sphere() -> void:
 	_threat_sphere.name = "ThreatSphere"
 	_threat_sphere.collision_layer = 0
 	_threat_sphere.collision_mask = 16  # Detect projectiles (layer 5)
-
 	var collision_shape := CollisionShape2D.new()
 	var circle_shape := CircleShape2D.new()
 	circle_shape.radius = threat_sphere_radius
 	collision_shape.shape = circle_shape
 	_threat_sphere.add_child(collision_shape)
-
 	add_child(_threat_sphere)
 
 	# Connect signals
@@ -690,7 +690,6 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 	# - IDLE: Always react to loud sounds
 	# - Other states: Only react to very loud, close sounds (intensity > 0.5)
 	var should_react := false
-
 	if _current_state == AIState.IDLE:
 		# In IDLE state, always investigate sounds above minimal threshold
 		should_react = intensity >= 0.01
@@ -701,7 +700,6 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 		# In combat-related states, only react to very loud sounds
 		# This prevents enemies from being distracted during active combat
 		should_react = false
-
 	if not should_react:
 		return
 
@@ -726,7 +724,10 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 	# Update memory system with sound-based detection (Issue #297)
 	if _memory:
 		_memory.update_position(position, SOUND_GUNSHOT_CONFIDENCE)
-
+	if source_type == 0 and _prediction and source_node and is_instance_valid(source_node):  # [#298] shot dir
+		var sd := (position - source_node.global_position).normalized()
+		_prediction.record_player_shot(sd)
+		_memory.update_shot_direction(sd)
 	# Transition to combat mode to investigate the sound
 	_transition_to_combat()
 
@@ -759,12 +760,17 @@ func _initialize_goap_state() -> void:
 		# Grenade avoidance state (Issue #407)
 		"in_grenade_danger_zone": false,
 		# Ally death observation state (Issue #409)
-		"witnessed_ally_death": false
+		"witnessed_ally_death": false,
+		"has_prediction": false, "prediction_confidence": 0.0  # [#298]
 	}
 
-## Initialize the enemy memory system (Issue #297).
+## Initialize the enemy memory and prediction systems (Issue #297, #298).
 func _initialize_memory() -> void:
 	_memory = EnemyMemory.new()
+	var es: Node = get_node_or_null("/root/ExperimentalSettings")
+	if es and es.has_method("is_ai_prediction_enabled") and es.is_ai_prediction_enabled():
+		_prediction = PlayerPredictionComponent.new()
+		_prediction.debug_logging = debug_logging
 
 ## Connect to GameManager's debug mode signal for F7 toggle.
 func _connect_debug_mode_signal() -> void:
@@ -863,7 +869,6 @@ func _physics_process(delta: float) -> void:
 	# Check for player visibility and try to find player if not found
 	if _player == null:
 		_find_player()
-
 	_check_player_visibility()
 	_update_memory(delta)
 	_update_goap_state()
@@ -891,7 +896,6 @@ func _physics_process(delta: float) -> void:
 
 	# Update walking animation based on movement
 	_update_walk_animation(delta)
-
 	move_and_slide()
 
 	# Push any casings we collided with (Issue #341)
@@ -926,7 +930,8 @@ func _update_goap_state() -> void:
 
 	# Ally death observation state (Issue #409)
 	_goap_world_state["witnessed_ally_death"] = _witnessed_ally_death
-
+	if _prediction:  # [#298]
+		_goap_world_state["has_prediction"] = _prediction.has_predictions; _goap_world_state["prediction_confidence"] = _prediction.get_prediction_confidence()
 ## Updates model rotation smoothly (#347). Priority: player > combat/pursuit/flank > corner check > velocity > idle scan.
 ## Issues #386, #397: COMBAT/PURSUING/FLANKING states prioritize facing the player to prevent turning away.
 func _update_enemy_model_rotation() -> void:
@@ -996,7 +1001,6 @@ func _update_enemy_model_rotation() -> void:
 func _force_model_to_face_direction(direction: Vector2) -> void:
 	if not _enemy_model:
 		return
-
 	var target_angle := direction.angle()
 	var aiming_left := absf(target_angle) > PI / 2
 
@@ -1013,7 +1017,6 @@ func _force_model_to_face_direction(direction: Vector2) -> void:
 ## @param delta: Time since last frame.
 func _update_walk_animation(delta: float) -> void:
 	var is_moving := velocity.length() > 10.0
-
 	if is_moving:
 		# Accumulate animation time based on movement speed
 		# Use combat_move_speed as max for faster walk animation during combat
@@ -1035,14 +1038,11 @@ func _update_walk_animation(delta: float) -> void:
 		# Apply offsets to sprites
 		if _body_sprite:
 			_body_sprite.position = _base_body_pos + Vector2(0, body_bob)
-
 		if _head_sprite:
 			_head_sprite.position = _base_head_pos + Vector2(0, head_bob)
-
 		if _left_arm_sprite:
 			# Left arm swings forward/back (y-axis in top-down)
 			_left_arm_sprite.position = _base_left_arm_pos + Vector2(arm_swing, 0)
-
 		if _right_arm_sprite:
 			# Right arm swings opposite to left arm
 			_right_arm_sprite.position = _base_right_arm_pos + Vector2(-arm_swing, 0)
@@ -1087,7 +1087,6 @@ func _update_suppression(delta: float) -> void:
 
 	# Determine if there's an active threat (bullets in sphere OR recent threat memory)
 	var has_active_threat := not _bullets_in_threat_sphere.is_empty() or _threat_memory_timer > 0.0
-
 	if not has_active_threat:
 		if _under_fire:
 			_suppression_timer += delta
@@ -1119,7 +1118,6 @@ func _update_suppression(delta: float) -> void:
 func _update_reload(delta: float) -> void:
 	if not _is_reloading:
 		return
-
 	_reload_timer += delta
 	if _reload_timer >= reload_time:
 		_finish_reload()
@@ -1129,7 +1127,6 @@ func _start_reload() -> void:
 	# Can't reload if already reloading or no reserve ammo
 	if _is_reloading or _reserve_ammo <= 0:
 		return
-
 	_is_reloading = true
 	_reload_timer = 0.0
 	reload_started.emit()
@@ -1143,13 +1140,11 @@ func _finish_reload() -> void:
 	# Calculate how many rounds to load
 	var ammo_needed := magazine_size - _current_ammo
 	var ammo_to_load := mini(ammo_needed, _reserve_ammo)
-
 	_reserve_ammo -= ammo_to_load
 	_current_ammo += ammo_to_load
 
 	# Play reload complete sound
 	AudioManager.play_reload_full(global_position)
-
 	reload_finished.emit()
 	ammo_changed.emit(_current_ammo, _reserve_ammo)
 	_log_debug("Reload complete. Magazine: %d/%d, Reserve: %d" % [_current_ammo, magazine_size, _reserve_ammo])
@@ -1172,7 +1167,6 @@ func _can_shoot() -> bool:
 				ammo_depleted.emit()
 				_log_debug("All ammunition depleted!")
 		return false
-
 	return true
 
 ## Process the AI state machine.
@@ -1181,7 +1175,6 @@ func _process_ai_state(delta: float) -> void:
 	if _is_stunned:
 		velocity = Vector2.ZERO
 		return
-
 	var previous_state := _current_state
 
 	# ABSOLUTE HIGHEST PRIORITY: Grenade danger zone evasion (Issue #407)
@@ -1201,7 +1194,6 @@ func _process_ai_state(delta: float) -> void:
 		# Check if we have a clear shot (no wall blocking bullet spawn)
 		var direction_to_player := (_player.global_position - global_position).normalized()
 		var has_clear_shot := _is_bullet_spawn_clear(direction_to_player)
-
 		if has_clear_shot and _can_shoot() and _shoot_timer >= shoot_cooldown:
 			_log_to_file("Player distracted - priority attack triggered")
 			rotation = direction_to_player.angle()
@@ -1248,7 +1240,6 @@ func _process_ai_state(delta: float) -> void:
 		# Check if we have a clear shot (no wall blocking bullet spawn)
 		var direction_to_player := (_player.global_position - global_position).normalized()
 		var has_clear_shot := _is_bullet_spawn_clear(direction_to_player)
-
 		if has_clear_shot and _can_shoot() and _shoot_timer >= shoot_cooldown:
 			# Log the vulnerability attack
 			var reason: String = "reloading" if player_reloading else "empty ammo"
@@ -1317,7 +1308,6 @@ func _process_ai_state(delta: float) -> void:
 		AIState.ASSAULT: _process_assault_state(delta)
 		AIState.SEARCHING: _process_searching_state(delta)
 		AIState.EVADING_GRENADE: _process_evading_grenade_state(delta)
-
 	if previous_state != _current_state:
 		state_changed.emit(_current_state)
 		_log_debug("State changed: %s -> %s" % [AIState.keys()[previous_state], AIState.keys()[_current_state]])
@@ -1456,7 +1446,6 @@ func _process_combat_state(delta: float) -> void:
 			# Calculate target position: move perpendicular to player direction (around cover edge)
 			_clear_shot_target = _calculate_clear_shot_exit_position(direction_to_player)
 			_log_debug("COMBAT: bullet spawn blocked, seeking clear shot at %s" % _clear_shot_target)
-
 		_clear_shot_timer += delta
 
 		# Check if we've exceeded the max time trying to find a clear shot
@@ -1478,7 +1467,6 @@ func _process_combat_state(delta: float) -> void:
 
 			# Apply enhanced wall avoidance with dynamic weighting
 			move_direction = _apply_wall_avoidance(move_direction)
-
 			velocity = move_direction * combat_move_speed
 			rotation = direction_to_player.angle()  # Keep facing player
 
@@ -1522,7 +1510,6 @@ func _process_combat_state(delta: float) -> void:
 		_combat_approaching = true
 		_combat_approach_timer = 0.0
 		_log_debug("COMBAT approach phase started, moving toward player")
-
 	_combat_approach_timer += delta
 
 	# Move toward player while approaching
@@ -1531,7 +1518,6 @@ func _process_combat_state(delta: float) -> void:
 
 		# Apply enhanced wall avoidance with dynamic weighting
 		move_direction = _apply_wall_avoidance(move_direction)
-
 		velocity = move_direction * combat_move_speed
 		rotation = direction_to_player.angle()  # Always face player
 
@@ -1550,7 +1536,6 @@ func _calculate_clear_shot_exit_position(direction_to_player: Vector2) -> Vector
 	# Also blend with forward movement toward player to help navigate around cover
 	var best_position := global_position
 	var best_score := -1.0
-
 	for side_multiplier: float in [1.0, -1.0]:
 		var sidestep_dir: Vector2 = perpendicular * side_multiplier
 		# Blend sidestep with forward movement for better cover navigation
@@ -1589,7 +1574,6 @@ func _calculate_clear_shot_exit_position(direction_to_player: Vector2) -> Vector
 	# If no good position found, just move forward toward player
 	if best_score < 0.5:
 		best_position = global_position + direction_to_player * CLEAR_SHOT_EXIT_DISTANCE
-
 	return best_position
 
 ## Process SEEKING_COVER state - moving to cover position.
@@ -2114,6 +2098,12 @@ func _process_pursuing_state(delta: float) -> void:
 	# No cover and no pursuit target - find initial pursuit cover
 	_find_pursuit_cover_toward_player()
 	if not _has_pursuit_cover:
+		if _prediction and not _can_see_player:  # [#298] Prediction-based pursuit
+			var pt := _prediction.get_pursuit_target(global_position)
+			if pt != Vector2.ZERO:
+				_move_to_target_nav(pt, combat_move_speed)
+				if velocity.length_squared() > 1.0: _process_corner_check(delta, velocity.normalized(), "PURSUING_PREDICTION")
+				return
 		# Check if we should investigate memory-based target (Issue #297)
 		if _memory and _memory.has_target() and not _can_see_player:
 			var target_pos := _memory.suspected_position
@@ -3657,7 +3647,7 @@ func _check_player_visibility() -> void:
 		_continuous_visibility_timer = 0.0
 		_player_visibility_ratio = 0.0
 
-## Update enemy memory: visual detection, decay, and periodic intel sharing (Issue #297).
+## Update enemy memory: visual detection, decay, prediction, and intel sharing (Issue #297, #298).
 func _update_memory(delta: float) -> void:
 	if _memory == null:
 		return
@@ -3667,6 +3657,10 @@ func _update_memory(delta: float) -> void:
 		_memory.update_position(_player.global_position, VISUAL_DETECTION_CONFIDENCE)
 		# Also update the legacy _last_known_player_position for compatibility
 		_last_known_player_position = _player.global_position
+	if _prediction:  # [#298]
+		var f := Vector2.RIGHT.rotated(_enemy_model.global_rotation) if _enemy_model else Vector2.RIGHT
+		_prediction.process_frame(_can_see_player, _was_player_visible, _player.global_position if _player else Vector2.ZERO, global_position, f, delta, _memory)
+	_was_player_visible = _can_see_player
 
 	# Apply confidence decay over time
 	_memory.decay(delta)
@@ -3702,8 +3696,11 @@ func _share_intel_with_nearby_enemies() -> void:
 			# Need to check LOS for longer range
 			can_share = _has_line_of_sight_to_position(other_enemy.global_position)
 
-		if can_share and other_enemy.has_method("receive_intel_from_ally"):
-			other_enemy.receive_intel_from_ally(_memory)
+		if can_share:
+			if other_enemy.has_method("receive_intel_from_ally"):
+				other_enemy.receive_intel_from_ally(_memory)
+			if _prediction and _prediction.has_predictions and other_enemy.has_method("receive_prediction_from_ally"):  # [#298]
+				var bh := _prediction.get_best_hypothesis(); if bh: other_enemy.receive_prediction_from_ally(bh)
 
 ## Receive intelligence from an allied enemy (Issue #297).
 ## Called by other enemies when they share intel.
@@ -3718,6 +3715,9 @@ func receive_intel_from_ally(ally_memory: EnemyMemory) -> void:
 		])
 		_last_known_player_position = _memory.suspected_position
 
+func receive_prediction_from_ally(hypothesis: PlayerPredictionComponent.Hypothesis) -> void:  ## [#298]
+	if _prediction and hypothesis: _prediction.receive_prediction_intel(hypothesis, INTEL_SHARE_FACTOR)
+
 ## Reset enemy memory for last chance teleport effect (Issue #318). Preserves old position.
 func reset_memory() -> void:
 	# Save old position before resetting - enemies will search here
@@ -3729,6 +3729,7 @@ func reset_memory() -> void:
 	_intel_share_timer = 0.0
 	_pursuing_vulnerability_sound = false
 	_memory_reset_confusion_timer = MEMORY_RESET_CONFUSION_DURATION
+	if _prediction: _prediction.reset()  # [#298]
 	_log_to_file("Memory reset: confusion=%.1fs, had_target=%s" % [MEMORY_RESET_CONFUSION_DURATION, had_target])
 	if had_target:
 		# Set LOW confidence (0.35) - puts enemy in search mode at old position
@@ -4564,6 +4565,7 @@ func _update_debug_label() -> void:
 			elif _has_flank_cover: t += "\n(%s MOVING)" % s
 			else: t += "\n(%s DIRECT)" % s
 	if _memory and _memory.has_target(): t += "\n[%.0f%% %s]" % [_memory.confidence * 100, _memory.get_behavior_mode().substr(0, 6)]
+	if _prediction: t += _prediction.get_debug_text()
 	_debug_label.text = t
 
 func get_current_state() -> AIState: return _current_state
