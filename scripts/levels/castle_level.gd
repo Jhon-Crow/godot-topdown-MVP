@@ -843,6 +843,7 @@ func _show_victory_message() -> void:
 
 ## Show the animated score screen with Hotline Miami 2 style effects.
 ## Uses the AnimatedScoreScreen component for sequential reveal and counting animations.
+## LMB skip support added in Issue #568.
 func _show_score_screen(score_data: Dictionary) -> void:
 	var ui := get_node_or_null("CanvasLayer/UI")
 	if ui == null:
@@ -854,10 +855,18 @@ func _show_score_screen(score_data: Dictionary) -> void:
 	if animated_score_screen_script:
 		var score_screen = animated_score_screen_script.new()
 		add_child(score_screen)
+		# Connect to animation_completed to add buttons after animation (Issue #568)
+		score_screen.animation_completed.connect(_on_score_animation_completed)
 		score_screen.show_animated_score(ui, score_data)
 	else:
 		# Fallback to simple display if animated script not found
 		_show_fallback_score_screen(ui, score_data)
+
+
+## Called when the animated score screen finishes all animations.
+## Adds navigation and replay buttons to the score screen container (Issue #568).
+func _on_score_animation_completed(container: VBoxContainer) -> void:
+	_add_score_screen_buttons(container)
 
 
 ## Fallback score screen if animated component is not available.
@@ -906,12 +915,120 @@ func _show_fallback_score_screen(ui: Control, score_data: Dictionary) -> void:
 	total_label.add_theme_color_override("font_color", Color(1.0, 0.9, 0.3, 1.0))
 	container.add_child(total_label)
 
-	var hint_label := Label.new()
-	hint_label.text = "\nPress Q to restart"
-	hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	hint_label.add_theme_font_size_override("font_size", 16)
-	hint_label.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5, 1.0))
-	container.add_child(hint_label)
+	# Add buttons to fallback screen (Issue #568)
+	_add_score_screen_buttons(container)
+
+
+## Adds Restart, Next Level, Level Select buttons to a score screen container (Issue #568).
+func _add_score_screen_buttons(container: VBoxContainer) -> void:
+	# Add spacer
+	var spacer := Control.new()
+	spacer.custom_minimum_size.y = 10
+	container.add_child(spacer)
+
+	# Add buttons container (vertical layout)
+	var buttons_container := VBoxContainer.new()
+	buttons_container.name = "ButtonsContainer"
+	buttons_container.alignment = BoxContainer.ALIGNMENT_CENTER
+	buttons_container.add_theme_constant_override("separation", 10)
+	container.add_child(buttons_container)
+
+	# Next Level button (Issue #568) - Castle is the last level, so no next level
+	var next_level_path: String = _get_next_level_path()
+	if next_level_path != "":
+		var next_button := Button.new()
+		next_button.name = "NextLevelButton"
+		next_button.text = "→ Next Level"
+		next_button.custom_minimum_size = Vector2(200, 40)
+		next_button.add_theme_font_size_override("font_size", 18)
+		next_button.pressed.connect(_on_next_level_pressed.bind(next_level_path))
+		buttons_container.add_child(next_button)
+
+	# Restart button
+	var restart_button := Button.new()
+	restart_button.name = "RestartButton"
+	restart_button.text = "↻ Restart (Q)"
+	restart_button.custom_minimum_size = Vector2(200, 40)
+	restart_button.add_theme_font_size_override("font_size", 18)
+	restart_button.pressed.connect(_on_restart_pressed)
+	buttons_container.add_child(restart_button)
+
+	# Level Select button (Issue #568)
+	var level_select_button := Button.new()
+	level_select_button.name = "LevelSelectButton"
+	level_select_button.text = "☰ Level Select"
+	level_select_button.custom_minimum_size = Vector2(200, 40)
+	level_select_button.add_theme_font_size_override("font_size", 18)
+	level_select_button.pressed.connect(_on_level_select_pressed)
+	buttons_container.add_child(level_select_button)
+
+	# Show cursor for button interaction
+	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
+
+	# Focus the next level button if available, otherwise restart
+	if next_level_path != "":
+		buttons_container.get_node("NextLevelButton").grab_focus()
+	else:
+		restart_button.grab_focus()
+
+
+## Called when the Restart button is pressed.
+func _on_restart_pressed() -> void:
+	_log_to_file("Restart button pressed")
+	if GameManager:
+		GameManager.restart_scene()
+	else:
+		get_tree().reload_current_scene()
+
+
+## Called when the Next Level button is pressed (Issue #568).
+func _on_next_level_pressed(level_path: String) -> void:
+	_log_to_file("Next Level button pressed: %s" % level_path)
+	Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED_HIDDEN)
+	var error := get_tree().change_scene_to_file(level_path)
+	if error != OK:
+		_log_to_file("ERROR: Failed to load next level: %s" % level_path)
+		Input.set_mouse_mode(Input.MOUSE_MODE_CONFINED)
+
+
+## Called when the Level Select button is pressed (Issue #568).
+func _on_level_select_pressed() -> void:
+	_log_to_file("Level Select button pressed")
+	# Load the levels menu as a CanvasLayer overlay
+	var levels_menu_script = load("res://scripts/ui/levels_menu.gd")
+	if levels_menu_script:
+		var levels_menu = CanvasLayer.new()
+		levels_menu.set_script(levels_menu_script)
+		levels_menu.layer = 100  # On top of everything
+		get_tree().root.add_child(levels_menu)
+		# Connect back button to close the overlay
+		levels_menu.back_pressed.connect(func(): levels_menu.queue_free())
+	else:
+		_log_to_file("ERROR: Could not load levels menu script")
+
+
+## Get the next level path based on the level ordering from LevelsMenu (Issue #568).
+## Returns empty string if this is the last level or level not found.
+func _get_next_level_path() -> String:
+	var current_scene_path: String = ""
+	var current_scene: Node = get_tree().current_scene
+	if current_scene and current_scene.scene_file_path:
+		current_scene_path = current_scene.scene_file_path
+
+	# Level ordering (matching LevelsMenu.LEVELS)
+	var level_paths: Array[String] = [
+		"res://scenes/levels/BuildingLevel.tscn",
+		"res://scenes/levels/TestTier.tscn",
+		"res://scenes/levels/CastleLevel.tscn",
+	]
+
+	for i in range(level_paths.size()):
+		if level_paths[i] == current_scene_path:
+			if i + 1 < level_paths.size():
+				return level_paths[i + 1]
+			return ""  # Last level
+
+	return ""  # Current level not found
 
 
 ## Get the color for a given rank.
