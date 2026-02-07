@@ -189,12 +189,34 @@ func _on_combo_changed(combo: int, points: int) -> void:
 	if combo > 0:
 		_combo_label.text = "x%d COMBO (+%d)" % [combo, points]
 		_combo_label.visible = true
+		# Color changes based on combo count
+		var combo_color := _get_combo_color(combo)
+		_combo_label.add_theme_color_override("font_color", combo_color)
 		# Flash effect for combo
 		_combo_label.modulate = Color.WHITE
 		var tween := create_tween()
-		tween.tween_property(_combo_label, "modulate", Color(1.0, 0.8, 0.2, 1.0), 0.1)
+		tween.tween_property(_combo_label, "modulate", Color.WHITE, 0.1)
 	else:
 		_combo_label.visible = false
+
+
+## Returns a color based on the current combo count.
+## Higher combos produce more intense/hotter colors.
+func _get_combo_color(combo: int) -> Color:
+	if combo >= 10:
+		return Color(1.0, 0.0, 1.0, 1.0)   # Magenta - extreme combo
+	elif combo >= 7:
+		return Color(1.0, 0.0, 0.3, 1.0)   # Hot pink
+	elif combo >= 5:
+		return Color(1.0, 0.1, 0.1, 1.0)   # Bright red
+	elif combo >= 4:
+		return Color(1.0, 0.2, 0.0, 1.0)   # Red-orange
+	elif combo >= 3:
+		return Color(1.0, 0.4, 0.0, 1.0)   # Hot orange
+	elif combo >= 2:
+		return Color(1.0, 0.6, 0.1, 1.0)   # Orange
+	else:
+		return Color(1.0, 0.8, 0.2, 1.0)   # Gold (combo 1)
 
 
 ## Setup the navigation mesh for enemy pathfinding.
@@ -817,6 +839,10 @@ func _show_score_screen(score_data: Dictionary) -> void:
 
 ## Fallback score screen if animated component is not available.
 func _show_fallback_score_screen(ui: Control, score_data: Dictionary) -> void:
+	# Load Gothic bitmap font for score screen labels
+	var gothic_font = load("res://assets/fonts/gothic_bitmap.fnt")
+	var _font_loaded := gothic_font != null
+
 	var background := ColorRect.new()
 	background.name = "ScoreBackground"
 	background.color = Color(0.0, 0.0, 0.0, 0.7)
@@ -846,6 +872,8 @@ func _show_fallback_score_screen(ui: Control, score_data: Dictionary) -> void:
 	rank_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	rank_label.add_theme_font_size_override("font_size", 64)
 	rank_label.add_theme_color_override("font_color", _get_rank_color(score_data.rank))
+	if _font_loaded:
+		rank_label.add_theme_font_override("font", gothic_font)
 	container.add_child(rank_label)
 
 	var total_label := Label.new()
