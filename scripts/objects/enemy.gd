@@ -102,24 +102,14 @@ enum WeaponType { RIFLE, SHOTGUN, UZI, SNIPER }
 @export var grenade_throw_delay: float = 0.4  ## Delay before throw (sec)
 @export var grenade_debug_logging: bool = false  ## Grenade debug logging
 
-## --- Sniper-specific configuration (Issue #581) ---
-## Whether this enemy is a sniper (set automatically from weapon_type == SNIPER).
+## Sniper-specific state (Issue #581). Set via _configure_weapon_type when weapon_type == SNIPER.
 var _is_sniper: bool = false
-## Hitscan range for sniper shots (pixels).
 var _sniper_hitscan_range: float = 5000.0
-## Hitscan damage per shot.
 var _sniper_hitscan_damage: float = 50.0
-## Max wall penetrations for sniper hitscan.
 var _sniper_max_wall_penetrations: int = 2
-## Red laser sight Line2D node for sniper.
 var _sniper_laser: Line2D = null
-## Reload time for sniper (bolt-action, longer than normal).
-var _sniper_reload_time: float = 4.0
-## Timer tracking time since last sniper shot for bolt-action cycling.
 var _sniper_bolt_timer: float = 0.0
-## Whether the sniper bolt has been cycled and is ready to fire again.
 var _sniper_bolt_ready: bool = true
-## Bolt cycle duration in seconds.
 const SNIPER_BOLT_CYCLE_TIME: float = 2.0
 
 signal hit  ## Enemy hit
@@ -464,11 +454,7 @@ func _ready() -> void:
 
 	# Initialize death animation component
 	_init_death_animation()
-
-	# Sniper laser sight setup (Issue #581)
-	if _is_sniper:
-		_setup_sniper_laser()
-
+	if _is_sniper: _setup_sniper_laser()  # Sniper laser sight (Issue #581)
 	# Issue #405: Enemies start in their default state (IDLE/PATROL/GUARD)
 	# Unlimited search zone is activated AFTER enemy detects and loses player
 
@@ -509,17 +495,10 @@ func _configure_weapon_type() -> void:
 	_pellet_count_max = c.get("pellet_count_max", 1)
 	_spread_angle = c.get("spread_angle", 0.0)
 	_spread_threshold = c.get("spread_threshold", 3); _initial_spread = c.get("initial_spread", 0.5); _spread_increment = c.get("spread_increment", 0.6); _max_spread = c.get("max_spread", 4.0); _spread_reset_time = c.get("spread_reset_time", 0.25)
-	# Sniper-specific configuration (Issue #581)
 	_is_sniper = c.get("is_sniper", false)
 	if _is_sniper:
-		_sniper_hitscan_range = c.get("hitscan_range", 5000.0)
-		_sniper_hitscan_damage = c.get("hitscan_damage", 50.0)
-		_sniper_max_wall_penetrations = c.get("max_wall_penetrations", 2)
-		rotation_speed = c.get("rotation_speed", 1.0)  # Very slow rotation
-		reload_time = _sniper_reload_time  # Longer reload for bolt-action
-		enable_flanking = false  # Snipers don't flank
-		enable_cover = true  # Snipers stay in cover
-		behavior_mode = BehaviorMode.GUARD  # Snipers don't patrol
+		_sniper_hitscan_range = c.get("hitscan_range", 5000.0); _sniper_hitscan_damage = c.get("hitscan_damage", 50.0); _sniper_max_wall_penetrations = c.get("max_wall_penetrations", 2)
+		rotation_speed = c.get("rotation_speed", 1.0); reload_time = 4.0; enable_flanking = false; enable_cover = true; behavior_mode = BehaviorMode.GUARD
 	print("[Enemy] Weapon: %s%s" % [WeaponConfigComponent.get_type_name(weapon_type), " (pellets=%d-%d)" % [_pellet_count_min, _pellet_count_max] if _is_shotgun_weapon else (" (hitscan)" if _is_sniper else "")])
 
 ## Setup patrol points based on patrol offsets from initial position.
@@ -862,11 +841,9 @@ func _physics_process(delta: float) -> void:
 
 	_spread_timer += delta; if _spread_timer >= _spread_reset_time and _spread_reset_time > 0.0: _shot_count = 0  # Issue #516
 
-	# Sniper bolt-action cycling (Issue #581)
-	if _is_sniper and not _sniper_bolt_ready:
+	if _is_sniper and not _sniper_bolt_ready:  # Bolt-action cycling (Issue #581)
 		_sniper_bolt_timer += delta
-		if _sniper_bolt_timer >= SNIPER_BOLT_CYCLE_TIME:
-			_sniper_bolt_ready = true
+		if _sniper_bolt_timer >= SNIPER_BOLT_CYCLE_TIME: _sniper_bolt_ready = true
 
 	# Update reload timer
 	_update_reload(delta)
@@ -930,10 +907,7 @@ func _physics_process(delta: float) -> void:
 	#    instead of EnemyModel's rotation, causing the weapon to be offset by 90 degrees
 	_update_enemy_model_rotation()
 
-	# Update sniper laser sight (Issue #581)
-	if _is_sniper:
-		_update_sniper_laser()
-
+	if _is_sniper: _update_sniper_laser()  # Update sniper laser sight (Issue #581)
 	# Process AI state machine (may trigger shooting)
 	_process_ai_state(delta)
 
@@ -1201,10 +1175,7 @@ func _finish_reload() -> void:
 
 ## Check if the enemy can shoot (has ammo and not reloading).
 func _can_shoot() -> bool:
-	# Sniper bolt-action check (Issue #581)
-	if _is_sniper and not _sniper_bolt_ready:
-		return false
-
+	if _is_sniper and not _sniper_bolt_ready: return false  # Bolt-action check
 	# Can't shoot if reloading
 	if _is_reloading:
 		return false
@@ -3312,10 +3283,8 @@ func _find_cover_closest_to_player() -> void:
 		# Fall back to normal cover finding
 		_find_cover_position()
 
-## Find a valid cover position relative to the player.
-## The cover position must be hidden from the player's line of sight.
-## Enhanced: Now validates that the cover position is reachable (no walls blocking path).
-## Snipers prefer the farthest cover that still allows line-of-fire (Issue #581).
+## Find a valid cover position relative to the player (hidden from player's LOS).
+## Snipers prefer the farthest cover; others prefer the closest (Issue #581).
 func _find_cover_position() -> void:
 	if _player == null:
 		_has_valid_cover = false
@@ -3357,18 +3326,9 @@ func _find_cover_position() -> void:
 
 			# Only consider hidden positions unless we have no choice
 			if is_hidden or not found_hidden_cover:
-				# Score based on:
-				# 1. Whether position is hidden (highest priority)
-				# 2. Distance from enemy (closer is better) -- reversed for snipers
-				# 3. Position relative to player (behind cover from player's view)
-				var hidden_score: float = 10.0 if is_hidden else 0.0  # Heavy weight for hidden positions
-
-				var distance_score: float
-				if _is_sniper:
-					# Sniper: prefer FARTHEST cover from player (Issue #581)
-					distance_score = cover_pos.distance_to(player_pos) / _sniper_hitscan_range
-				else:
-					distance_score = 1.0 - (global_position.distance_to(cover_pos) / COVER_CHECK_DISTANCE)
+				# Score: hidden (highest priority) + distance + blocking position
+				var hidden_score: float = 10.0 if is_hidden else 0.0
+				var distance_score: float = cover_pos.distance_to(player_pos) / _sniper_hitscan_range if _is_sniper else 1.0 - (global_position.distance_to(cover_pos) / COVER_CHECK_DISTANCE)
 
 				# Check if this position is on the far side of obstacle from player
 				var cover_direction := (cover_pos - player_pos).normalized()
@@ -3976,424 +3936,73 @@ func _play_delayed_shell_sound() -> void:
 	if audio_manager and audio_manager.has_method("play_shell_rifle"):
 		audio_manager.play_shell_rifle(global_position)
 
-## Spawn bullet casing (based on BaseWeapon.cs for visual consistency with player).
-func _spawn_casing(shoot_direction: Vector2, weapon_forward: Vector2) -> void:
-	if casing_scene == null:
-		return
+## Spawn bullet casing - delegates to SniperComponent.spawn_casing.
+func _spawn_casing(_shoot_direction: Vector2, weapon_forward: Vector2) -> void:
+	var casing_pos := global_position + weapon_forward * (bullet_spawn_offset * 0.5)
+	SniperComponent.spawn_casing(get_tree(), casing_scene, casing_pos, weapon_forward, _caliber_data)
 
-	# Calculate casing spawn position (near the weapon, slightly offset)
-	# Use 50% of bullet spawn offset to position casing near weapon muzzle
-	var casing_spawn_position: Vector2 = global_position + weapon_forward * (bullet_spawn_offset * 0.5)
+## --- Sniper functions (Issue #581) - delegates to SniperComponent ---
 
-	var casing: RigidBody2D = casing_scene.instantiate()
-	casing.global_position = casing_spawn_position
-
-	# Calculate ejection direction to the right of the weapon
-	# In a top-down view with Y increasing downward:
-	# - If weapon points right (1, 0), right side of weapon is DOWN (0, 1)
-	# - If weapon points up (0, -1), right side of weapon is RIGHT (1, 0)
-	# This is a 90 degree counter-clockwise rotation (perpendicular to shooting direction)
-	var weapon_right: Vector2 = Vector2(-weapon_forward.y, weapon_forward.x)
-
-	# Eject to the right with some randomness
-	var random_angle: float = randf_range(-0.3, 0.3)  # ±0.3 radians (~±17 degrees)
-	var ejection_direction: Vector2 = weapon_right.rotated(random_angle)
-
-	# Add some upward component for realistic ejection
-	ejection_direction = ejection_direction.rotated(randf_range(-0.1, 0.1))
-
-	# Set initial velocity for the casing (increased for faster ejection animation)
-	var ejection_speed: float = randf_range(120.0, 180.0)  # Random speed between 120-180 pixels/sec (reduced 2.5x for Issue #424)
-	casing.linear_velocity = ejection_direction * ejection_speed
-
-	# Add some initial spin for realism
-	casing.angular_velocity = randf_range(-15.0, 15.0)
-
-	# Set caliber data on the casing for appearance (Issue #417 PR feedback)
-	# Use the loaded caliber data for this weapon type (same as player weapons)
-	if _caliber_data:
-		casing.set("caliber_data", _caliber_data)
-	else:
-		# Fallback to 5.45x39mm for M16 rifle if no caliber data loaded
-		var fallback_caliber: Resource = load("res://resources/calibers/caliber_545x39.tres")
-		if fallback_caliber:
-			casing.set("caliber_data", fallback_caliber)
-
-	get_tree().current_scene.add_child(casing)
-
-## --- Sniper-Specific Functions (Issue #581) ---
-
-## Setup red laser sight for sniper enemy.
 func _setup_sniper_laser() -> void:
-	_sniper_laser = Line2D.new()
-	_sniper_laser.name = "SniperLaser"
-	_sniper_laser.width = 2.0
-	_sniper_laser.default_color = Color(1.0, 0.0, 0.0, 0.5)  # Semi-transparent red
-	_sniper_laser.begin_cap_mode = Line2D.LINE_CAP_ROUND
-	_sniper_laser.end_cap_mode = Line2D.LINE_CAP_ROUND
-	_sniper_laser.points = PackedVector2Array([Vector2.ZERO, Vector2(500, 0)])
-	_sniper_laser.z_index = 5
-	# Make unshaded for visibility in dark mode (Issue #540)
-	var mat := CanvasItemMaterial.new()
-	mat.light_mode = CanvasItemMaterial.LIGHT_MODE_UNSHADED
-	_sniper_laser.material = mat
+	_sniper_laser = SniperComponent.create_laser()
 	add_child(_sniper_laser)
 
-
-## Update sniper laser sight position and direction.
 func _update_sniper_laser() -> void:
 	if _sniper_laser == null or not _is_alive:
-		if _sniper_laser:
-			_sniper_laser.visible = false
+		if _sniper_laser: _sniper_laser.visible = false
 		return
-
 	_sniper_laser.visible = true
-	var weapon_forward := _get_weapon_forward_direction()
-	var muzzle_pos := _get_bullet_spawn_position(weapon_forward) - global_position  # Local space
+	var wf := _get_weapon_forward_direction()
+	SniperComponent.update_laser(_sniper_laser, self, wf, _get_bullet_spawn_position(wf) - global_position, _sniper_hitscan_range)
 
-	# Raycast to find laser endpoint (wall or max range)
-	var space := get_world_2d().direct_space_state
-	var start := global_position + muzzle_pos
-	var end_pos := start + weapon_forward * _sniper_hitscan_range
-	var query := PhysicsRayQueryParameters2D.create(start, end_pos, 4)  # Layer 4 = walls
-	query.collide_with_areas = false
-	query.collide_with_bodies = true
-	var result := space.intersect_ray(query)
+func _calculate_sniper_spread(_direction: Vector2) -> float:
+	if _player == null: return 15.0
+	return SniperComponent.calculate_spread(self, _player.global_position, _can_see_player, _memory)
 
-	var laser_end: Vector2
-	if result:
-		laser_end = result["position"] - global_position  # Local space
-	else:
-		laser_end = muzzle_pos + weapon_forward * _sniper_hitscan_range
-
-	_sniper_laser.points = PackedVector2Array([muzzle_pos, laser_end])
-
-
-## Calculate sniper spread based on distance and wall penetrations (Issue #581).
-## Rules from issue:
-## - Through 1 wall: 10 degrees (5 each side)
-## - Through 2 walls: 15 degrees
-## - Direct LOS at 2+ viewports: 0 degrees (perfect)
-## - Direct LOS at 1 viewport: 3 degrees
-## - Direct LOS under 1 viewport: 5 degrees
-func _calculate_sniper_spread(direction: Vector2) -> float:
-	if _player == null:
-		return 15.0  # Max spread when no player
-
-	var target_pos: Vector2 = _player.global_position
-	# Use memory position if player not visible
-	if not _can_see_player and _memory and _memory.has_target():
-		target_pos = _memory.get_position()
-
-	var distance := global_position.distance_to(target_pos)
-	var viewport_size := get_viewport_rect().size.length()  # Viewport diagonal
-
-	# Count walls between sniper and target
-	var walls_count := _count_walls_to_target(target_pos)
-
-	if walls_count >= 2:
-		return 15.0  # Through 2+ walls: 15 degrees spread
-	elif walls_count == 1:
-		return 10.0  # Through 1 wall: 10 degrees spread
-	else:
-		# Direct line of sight - spread based on distance
-		if distance >= viewport_size * 2.0:
-			return 0.0  # 2+ viewports away: perfect accuracy
-		elif distance >= viewport_size:
-			return 3.0  # 1 viewport: 3 degrees
-		else:
-			return 5.0  # Under 1 viewport: 5 degrees (close range panic)
-
-
-## Count the number of walls between the sniper and a target position.
 func _count_walls_to_target(target_pos: Vector2) -> int:
-	var space := get_world_2d().direct_space_state
-	var current_pos := global_position
-	var direction := (target_pos - current_pos).normalized()
-	var max_distance := current_pos.distance_to(target_pos)
-	var walls := 0
-	var exclude_rids: Array[RID] = []
+	return SniperComponent.count_walls(self, target_pos)
 
-	for _i in range(10):  # Safety limit
-		var query := PhysicsRayQueryParameters2D.create(current_pos, target_pos, 4)  # Layer 4 = walls
-		query.collide_with_areas = false
-		query.collide_with_bodies = true
-		query.exclude = exclude_rids
-		var result := space.intersect_ray(query)
-
-		if not result:
-			break
-
-		# Check if this collision is a wall (StaticBody2D)
-		var collider := result["collider"]
-		if collider is StaticBody2D:
-			walls += 1
-			exclude_rids.append(result["rid"])
-			current_pos = result["position"] + direction * 5.0
-		else:
-			break
-
-		if walls >= _sniper_max_wall_penetrations:
-			break
-
-	return walls
-
-
-## Perform sniper hitscan shot - sequential raycasts with wall penetration (Issue #581).
-## Similar to player's SniperRifle.cs PerformHitscan() but in GDScript.
 func _shoot_sniper_hitscan(direction: Vector2, spawn_pos: Vector2) -> void:
-	var space := get_world_2d().direct_space_state
-	var current_pos := spawn_pos
-	var end_pos := spawn_pos + direction * _sniper_hitscan_range
-	var walls_penetrated := 0
-	var bullet_end := end_pos
-	var exclude_rids: Array[RID] = []
-	var damaged_ids: Dictionary = {}  # Track damaged enemies to avoid double-damage
-
-	# Combined mask: Layer 2 (enemies) + Layer 4 (walls) = 2 + 4 = 6
-	# But we also need player layer 1 for hitting the player
-	var combined_mask := 4 + 2  # walls + enemies
-
-	for _i in range(50):  # Safety limit
-		var query := PhysicsRayQueryParameters2D.create(current_pos, end_pos, combined_mask)
-		query.collide_with_areas = true  # Hit areas are Area2D
-		query.collide_with_bodies = true
-		query.hit_from_inside = true
-		query.exclude = exclude_rids
-
-		var result := space.intersect_ray(query)
-		if not result:
-			bullet_end = end_pos
-			break
-
-		var hit_pos: Vector2 = result["position"]
-		var collider: Object = result["collider"]
-
-		# Wall hit
-		if collider is StaticBody2D:
-			# Spawn dust effect at wall
-			var impact_mgr: Node = get_node_or_null("/root/ImpactEffectsManager")
-			if impact_mgr and impact_mgr.has_method("spawn_dust_effect"):
-				impact_mgr.spawn_dust_effect(hit_pos, -direction.normalized())
-
-			if walls_penetrated < _sniper_max_wall_penetrations:
-				walls_penetrated += 1
-				exclude_rids.append(result["rid"])
-				current_pos = hit_pos + direction * 5.0
-				continue
-			else:
-				bullet_end = hit_pos
-				break
-
-		# Enemy/player hit (via HitArea or direct body)
-		var instance_id := collider.get_instance_id()
-		if instance_id not in damaged_ids:
-			damaged_ids[instance_id] = true
-			# Try to apply damage
-			if collider.has_method("take_damage"):
-				collider.take_damage(_sniper_hitscan_damage)
-			elif collider.get_parent() and collider.get_parent().has_method("take_damage"):
-				collider.get_parent().take_damage(_sniper_hitscan_damage)
-
-		# Continue through enemies (penetration)
-		exclude_rids.append(result["rid"])
-		current_pos = hit_pos + direction * 5.0
-
-	# Spawn smoke tracer from muzzle to endpoint
-	_spawn_sniper_tracer(spawn_pos, bullet_end)
-
-	# Screen shake for nearby player
+	var bullet_end := SniperComponent.perform_hitscan(self, direction, spawn_pos, _sniper_hitscan_range, _sniper_hitscan_damage, _sniper_max_wall_penetrations)
+	SniperComponent.spawn_tracer(get_tree(), spawn_pos, bullet_end)
 	var shake_mgr: Node = get_node_or_null("/root/ScreenShakeManager")
-	if shake_mgr and shake_mgr.has_method("shake") and _player:
-		var dist_to_player := global_position.distance_to(_player.global_position)
-		if dist_to_player < 1000.0:
-			shake_mgr.shake(5.0)  # Less than player ASVK but still noticeable
+	if shake_mgr and shake_mgr.has_method("shake") and _player and global_position.distance_to(_player.global_position) < 1000.0:
+		shake_mgr.shake(5.0)
 
-
-## Spawn a smoke tracer line from start to end position (Issue #581).
-func _spawn_sniper_tracer(start_pos: Vector2, end_pos: Vector2) -> void:
-	var tracer := Line2D.new()
-	tracer.name = "SniperTracer"
-	tracer.width = 5.0
-	tracer.z_index = 10
-	tracer.top_level = true
-
-	# Width curve: tapers from start to end
-	var width_curve := Curve.new()
-	width_curve.add_point(Vector2(0.0, 1.0))
-	width_curve.add_point(Vector2(0.3, 0.8))
-	width_curve.add_point(Vector2(1.0, 0.3))
-	tracer.width_curve = width_curve
-
-	# Smoky white/gray gradient
-	var gradient := Gradient.new()
-	gradient.set_color(0, Color(0.9, 0.9, 0.85, 0.8))
-	gradient.add_point(0.5, Color(0.7, 0.7, 0.65, 0.5))
-	gradient.set_color(gradient.get_point_count() - 1, Color(0.5, 0.5, 0.5, 0.2))
-	tracer.gradient = gradient
-
-	tracer.add_point(start_pos)
-	tracer.add_point(end_pos)
-
-	get_tree().current_scene.add_child(tracer)
-
-	# Fade out and remove
-	_fade_sniper_tracer(tracer)
-
-
-## Fade out and remove a sniper tracer over 2 seconds.
-func _fade_sniper_tracer(tracer: Line2D) -> void:
-	var tween := get_tree().create_tween()
-	tween.tween_property(tracer, "modulate:a", 0.0, 2.0)
-	tween.tween_callback(tracer.queue_free)
-
-
-## Process sniper-specific COMBAT state (Issue #581).
-## Snipers don't approach: they stay in place, aim slowly, and shoot.
-## If suppressed, they retreat to cover. Otherwise they shoot from current position.
 func _process_sniper_combat_state(delta: float) -> void:
-	_combat_state_timer += delta
-	velocity = Vector2.ZERO  # Snipers don't move during combat
+	SniperComponent.process_combat_state(self, delta)
 
-	# If under fire, retreat to cover
-	if _under_fire and enable_cover:
-		_transition_to_seeking_cover()
-		return
-
-	# Can't see player - shoot at last known/suspected position through walls
-	if not _can_see_player:
-		if _memory and _memory.has_target():
-			var suspected_pos := _memory.get_position()
-			var walls := _count_walls_to_target(suspected_pos)
-			if walls <= _sniper_max_wall_penetrations:
-				# Aim at suspected position
-				var dir_to_target := (suspected_pos - global_position).normalized()
-				_aim_at_player()
-				# Shoot with spread (through walls)
-				if _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
-					_shoot()
-					_shoot_timer = 0.0
-			else:
-				# Too many walls, stay in combat and wait
-				_aim_at_player()
-		elif _combat_state_timer > 5.0:
-			# Lost player for too long, go to searching
-			_transition_to_searching(global_position)
-		return
-
-	# Can see player - aim and shoot
-	_aim_at_player()
-	if _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
-		_shoot()
-		_shoot_timer = 0.0
-
-
-## Process sniper-specific IN_COVER state (Issue #581).
-## Snipers stay in cover and shoot at suspected/known player positions through walls.
-## They don't leave cover to pursue - they wait and shoot.
-func _process_sniper_in_cover_state(delta: float) -> void:
-	velocity = Vector2.ZERO
-
-	# If flanked (visible from player position), find new cover
-	if _is_visible_from_player() and _under_fire:
-		_has_valid_cover = false
-		_transition_to_seeking_cover()
-		return
-
-	# Can see player directly - shoot
-	if _can_see_player and _player:
-		_aim_at_player()
-		if _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
-			_shoot()
-			_shoot_timer = 0.0
-		return
-
-	# Can't see player but have memory - shoot through walls
-	if _memory and _memory.has_target():
-		var suspected_pos := _memory.get_position()
-		var walls := _count_walls_to_target(suspected_pos)
-		if walls <= _sniper_max_wall_penetrations and walls > 0:
-			# Aim at suspected position
-			var dir_to_target := (suspected_pos - global_position).normalized()
-			var target_angle := dir_to_target.angle()
-			var angle_diff := wrapf(target_angle - rotation, -PI, PI)
-			var dt := get_physics_process_delta_time()
-			if abs(angle_diff) <= rotation_speed * dt:
-				rotation = target_angle
-			elif angle_diff > 0:
-				rotation += rotation_speed * dt
-			else:
-				rotation -= rotation_speed * dt
-			# Force model to face target
-			if _enemy_model:
-				_target_model_rotation = target_angle
-			# Shoot through walls
-			if _detection_delay_elapsed and _shoot_timer >= shoot_cooldown:
-				_shoot()
-				_shoot_timer = 0.0
-		return
-
-	# No information - stay in cover and wait
+func _process_sniper_in_cover_state(_delta: float) -> void:
+	SniperComponent.process_in_cover_state(self)
 
 
 ## Calculate lead prediction - aims where the player will be based on velocity.
 func _calculate_lead_prediction() -> Vector2:
-	if _player == null:
-		return global_position
-
+	if _player == null: return global_position
 	var player_pos := _player.global_position
-
-	# Only use lead prediction if the player has been continuously visible
-	# for long enough. This prevents enemies from predicting player position
-	# immediately when they emerge from cover.
+	# Require continuous visibility before predicting
 	if _continuous_visibility_timer < lead_prediction_delay:
 		_log_debug("Lead prediction disabled: visibility time %.2fs < %.2fs required" % [_continuous_visibility_timer, lead_prediction_delay])
 		return player_pos
-
-	# Only use lead prediction if enough of the player's body is visible.
-	# This prevents pre-firing when the player is at the edge of cover with only
-	# a small part of their body visible. The player must be significantly exposed
-	# before the enemy can predict their movement.
+	# Require sufficient player body visibility (prevents pre-fire at cover edges)
 	if _player_visibility_ratio < lead_prediction_visibility_threshold:
 		_log_debug("Lead prediction disabled: visibility ratio %.2f < %.2f required (player at cover edge)" % [_player_visibility_ratio, lead_prediction_visibility_threshold])
 		return player_pos
-
 	var player_velocity := Vector2.ZERO
-
-	# Get player velocity if they are a CharacterBody2D
-	if _player is CharacterBody2D:
-		player_velocity = _player.velocity
-
-	# If player is stationary, no need for prediction
-	if player_velocity.length_squared() < 1.0:
-		return player_pos
-
-	# Iterative lead prediction for better accuracy
-	# Start with player's current position
+	if _player is CharacterBody2D: player_velocity = _player.velocity
+	if player_velocity.length_squared() < 1.0: return player_pos
+	# Iterative lead prediction for convergence
 	var predicted_pos := player_pos
 	var distance := global_position.distance_to(predicted_pos)
-
-	# Iterate 2-3 times for convergence
 	for i in range(3):
-		# Time for bullet to reach the predicted position
 		var time_to_target := distance / bullet_speed
-
-		# Predict where player will be at that time
 		predicted_pos = player_pos + player_velocity * time_to_target
-
-		# Update distance for next iteration
 		distance = global_position.distance_to(predicted_pos)
-
-	# CRITICAL: Validate that the predicted position is actually visible to the enemy.
-	# If the predicted position is behind cover (e.g., player is running toward cover exit),
-	# we should NOT aim there - it would feel like the enemy is "cheating" by knowing
-	# where the player will emerge. Fall back to player's current visible position.
+	# Validate predicted position is visible (prevents "cheating" aim behind cover)
 	if not _is_position_visible_to_enemy(predicted_pos):
 		_log_debug("Lead prediction blocked: predicted position %s is not visible, using current position %s" % [predicted_pos, player_pos])
 		return player_pos
-
 	_log_debug("Lead prediction: player at %s moving %s, aiming at %s" % [player_pos, player_velocity, predicted_pos])
-
 	return predicted_pos
 
 ## Process patrol behavior - move between patrol points with corner checking.
