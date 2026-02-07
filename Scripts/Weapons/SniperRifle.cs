@@ -911,6 +911,38 @@ public partial class SniperRifle : BaseWeapon
     }
 
     /// <summary>
+    /// Performs an instant reload for the sniper rifle.
+    /// After reloading a new magazine, automatically chambers a round
+    /// by resetting the bolt to ready state (fixes Issue #566).
+    /// </summary>
+    public override void InstantReload()
+    {
+        // Perform the base reload operation (magazine swap)
+        base.InstantReload();
+
+        // After loading a new magazine, automatically chamber a round
+        // This resets the bolt to ready state so the player doesn't need
+        // to manually cycle the bolt after every reload
+        ResetBolt();
+    }
+
+    /// <summary>
+    /// Finishes the timed reload process for the sniper rifle.
+    /// After reloading a new magazine, automatically chambers a round
+    /// by resetting the bolt to ready state (fixes Issue #566).
+    /// </summary>
+    protected override void FinishReload()
+    {
+        // Perform the base reload operation (magazine swap)
+        base.FinishReload();
+
+        // After loading a new magazine, automatically chamber a round
+        // This resets the bolt to ready state so the player doesn't need
+        // to manually cycle the bolt after every reload
+        ResetBolt();
+    }
+
+    /// <summary>
     /// Gets the current aim direction.
     /// </summary>
     public Vector2 AimDirection => _aimDirection;
