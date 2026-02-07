@@ -109,6 +109,20 @@ func is_level_completed(level_path: String, difficulty_name: String) -> bool:
 	return key in _progress
 
 
+## Get the best rank for a level across all difficulties.
+## @param level_path: The scene file path of the level.
+## @return: Dictionary with difficulty names as keys and rank strings as values.
+##          Only includes difficulties where the level has been completed.
+func get_progress_for_all_difficulties(level_path: String) -> Dictionary:
+	var result: Dictionary = {}
+	var difficulties: Array[String] = ["Easy", "Normal", "Hard", "Power Fantasy"]
+	for difficulty_name in difficulties:
+		var rank: String = get_best_rank(level_path, difficulty_name)
+		if not rank.is_empty():
+			result[difficulty_name] = rank
+	return result
+
+
 ## Get all progress data (for display purposes).
 ## @return: Dictionary with all progress entries.
 func get_all_progress() -> Dictionary:

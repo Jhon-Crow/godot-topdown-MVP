@@ -46,6 +46,15 @@ class MockProgressManager:
 		var key: String = _make_key(level_path, difficulty_name)
 		return key in _progress
 
+	func get_progress_for_all_difficulties(level_path: String) -> Dictionary:
+		var result: Dictionary = {}
+		var difficulties: Array[String] = ["Easy", "Normal", "Hard", "Power Fantasy"]
+		for difficulty_name in difficulties:
+			var rank: String = get_best_rank(level_path, difficulty_name)
+			if not rank.is_empty():
+				result[difficulty_name] = rank
+		return result
+
 	func get_all_progress() -> Dictionary:
 		return _progress.duplicate()
 
@@ -327,3 +336,41 @@ func test_multiple_updates_keep_best() -> void:
 		"Should keep best rank A across all runs")
 	assert_eq(progress.get_best_score(level, "Normal"), 7000,
 		"Should keep best score 7000 across all runs")
+
+
+# ============================================================================
+# All-Difficulties Progress Query Tests
+# ============================================================================
+
+
+func test_get_progress_for_all_difficulties_empty() -> void:
+	var result: Dictionary = progress.get_progress_for_all_difficulties("res://scenes/levels/BuildingLevel.tscn")
+	assert_true(result.is_empty(), "Should return empty dict when no progress")
+
+
+func test_get_progress_for_all_difficulties_partial() -> void:
+	var level: String = "res://scenes/levels/BuildingLevel.tscn"
+	progress.save_level_progress(level, "Easy", "A", 8000)
+	progress.save_level_progress(level, "Hard", "C", 3000)
+
+	var result: Dictionary = progress.get_progress_for_all_difficulties(level)
+	assert_eq(result.size(), 2, "Should have 2 completed difficulties")
+	assert_eq(result["Easy"], "A", "Easy rank should be A")
+	assert_eq(result["Hard"], "C", "Hard rank should be C")
+	assert_false(result.has("Normal"), "Normal should not be present")
+	assert_false(result.has("Power Fantasy"), "Power Fantasy should not be present")
+
+
+func test_get_progress_for_all_difficulties_complete() -> void:
+	var level: String = "res://scenes/levels/CastleLevel.tscn"
+	progress.save_level_progress(level, "Easy", "A+", 9000)
+	progress.save_level_progress(level, "Normal", "B", 6000)
+	progress.save_level_progress(level, "Hard", "D", 2000)
+	progress.save_level_progress(level, "Power Fantasy", "S", 15000)
+
+	var result: Dictionary = progress.get_progress_for_all_difficulties(level)
+	assert_eq(result.size(), 4, "Should have all 4 difficulties")
+	assert_eq(result["Easy"], "A+")
+	assert_eq(result["Normal"], "B")
+	assert_eq(result["Hard"], "D")
+	assert_eq(result["Power Fantasy"], "S")

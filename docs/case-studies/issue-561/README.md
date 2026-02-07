@@ -49,8 +49,11 @@ Create a new autoload singleton `ProgressManager` that:
 2. **LevelsMenu** → reads from **ProgressManager** → displays rank on cards
 
 ### UI Display
-- Show the best rank achieved on each level card for the current difficulty
-- Use rank-appropriate colors (S=gold, A+=green, etc.)
+- Each level card shows progress results (as stars) for **all four** difficulties simultaneously
+- Difficulty labels use short names: E (Easy), N (Normal), H (Hard), PF (Power Fantasy)
+- Ranks are converted to stars: S/A+=5, A=4, B=3, C=2, D/F=1, not completed=0
+- Star colors match rank colors (S=gold, A+=green, etc.)
+- A legend at the bottom explains the abbreviations
 
 ## References
 - Godot ConfigFile docs: https://docs.godotengine.org/en/stable/classes/class_configfile.html

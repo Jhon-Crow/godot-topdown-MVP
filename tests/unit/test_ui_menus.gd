@@ -166,15 +166,14 @@ class MockDifficultyMenu:
 
 
 class MockLevelsMenu:
-	## Level data with card metadata (matches new card-based levels_menu.gd).
+	## Level data with card metadata (matches card-based levels_menu.gd).
 	const LEVELS: Array[Dictionary] = [
 		{
 			"name": "Building Level",
 			"path": "res://scenes/levels/BuildingLevel.tscn",
 			"description": "Hotline Miami style building with interconnected rooms and corridors.",
 			"enemy_count": 10,
-			"map_size": "2400x2000",
-			"ratings": {"Easy": 2, "Normal": 3, "Hard": 4, "Power Fantasy": 1}
+			"map_size": "2400x2000"
 		},
 		{
 			"name": "Polygon",
@@ -182,8 +181,7 @@ class MockLevelsMenu:
 			"path": "res://scenes/levels/TestTier.tscn",
 			"description": "Open training ground for testing weapons and practicing combat skills.",
 			"enemy_count": 5,
-			"map_size": "1280x720",
-			"ratings": {"Easy": 1, "Normal": 2, "Hard": 3, "Power Fantasy": 1}
+			"map_size": "1280x720"
 		},
 		{
 			"name": "Castle",
@@ -191,8 +189,7 @@ class MockLevelsMenu:
 			"path": "res://scenes/levels/CastleLevel.tscn",
 			"description": "Medieval fortress assault across a massive oval-shaped courtyard.",
 			"enemy_count": 15,
-			"map_size": "6000x2560",
-			"ratings": {"Easy": 3, "Normal": 4, "Hard": 5, "Power Fantasy": 2}
+			"map_size": "6000x2560"
 		},
 		{
 			"name": "Tutorial",
@@ -200,10 +197,17 @@ class MockLevelsMenu:
 			"path": "res://scenes/levels/csharp/TestTier.tscn",
 			"description": "Step-by-step training: movement, shooting, bolt-action, scope, grenades.",
 			"enemy_count": 4,
-			"map_size": "1280x720",
-			"ratings": {"Easy": 1, "Normal": 1, "Hard": 2, "Power Fantasy": 1}
+			"map_size": "1280x720"
 		}
 	]
+
+	const DIFFICULTY_NAMES: Array[String] = ["Easy", "Normal", "Hard", "Power Fantasy"]
+	const DIFFICULTY_SHORT: Dictionary = {
+		"Easy": "E",
+		"Normal": "N",
+		"Hard": "H",
+		"Power Fantasy": "PF"
+	}
 
 	const MAX_STARS: int = 5
 	const STAR_FILLED: String = "★"
@@ -245,11 +249,6 @@ class MockLevelsMenu:
 		var path := get_level_path(level_name)
 		return is_current_level(path)
 
-	func get_rating(level_name: String, difficulty: String) -> int:
-		var data := get_level_data(level_name)
-		var ratings: Dictionary = data.get("ratings", {})
-		return ratings.get(difficulty, 0)
-
 	func get_star_string(rating: int) -> String:
 		var stars: String = ""
 		for i in range(MAX_STARS):
@@ -258,6 +257,25 @@ class MockLevelsMenu:
 			else:
 				stars += STAR_EMPTY
 		return stars
+
+	func rank_to_stars(rank: String) -> int:
+		match rank:
+			"S":
+				return 5
+			"A+":
+				return 5
+			"A":
+				return 4
+			"B":
+				return 3
+			"C":
+				return 2
+			"D":
+				return 1
+			"F":
+				return 1
+			_:
+				return 0
 
 	func get_enemy_count(level_name: String) -> int:
 		var data := get_level_data(level_name)
@@ -636,28 +654,52 @@ func test_level_display_name_fallback() -> void:
 		"Building Level has no Russian name, should use English")
 
 
-func test_level_ratings_building() -> void:
+func test_rank_to_stars_s() -> void:
 	levels_menu = MockLevelsMenu.new()
-	assert_eq(levels_menu.get_rating("Building Level", "Easy"), 2)
-	assert_eq(levels_menu.get_rating("Building Level", "Normal"), 3)
-	assert_eq(levels_menu.get_rating("Building Level", "Hard"), 4)
-	assert_eq(levels_menu.get_rating("Building Level", "Power Fantasy"), 1)
+	assert_eq(levels_menu.rank_to_stars("S"), 5, "S rank should be 5 stars")
 
 
-func test_level_ratings_castle() -> void:
+func test_rank_to_stars_a_plus() -> void:
 	levels_menu = MockLevelsMenu.new()
-	assert_eq(levels_menu.get_rating("Castle", "Hard"), 5,
-		"Castle on Hard should be rated 5 (maximum)")
-	assert_eq(levels_menu.get_rating("Castle", "Power Fantasy"), 2,
-		"Castle on Power Fantasy should be rated 2")
+	assert_eq(levels_menu.rank_to_stars("A+"), 5, "A+ rank should be 5 stars")
 
 
-func test_level_ratings_tutorial() -> void:
+func test_rank_to_stars_a() -> void:
 	levels_menu = MockLevelsMenu.new()
-	assert_eq(levels_menu.get_rating("Tutorial", "Easy"), 1,
-		"Tutorial on Easy should be rated 1 (easiest)")
-	assert_eq(levels_menu.get_rating("Tutorial", "Normal"), 1,
-		"Tutorial on Normal should be rated 1 (easiest)")
+	assert_eq(levels_menu.rank_to_stars("A"), 4, "A rank should be 4 stars")
+
+
+func test_rank_to_stars_b() -> void:
+	levels_menu = MockLevelsMenu.new()
+	assert_eq(levels_menu.rank_to_stars("B"), 3, "B rank should be 3 stars")
+
+
+func test_rank_to_stars_c() -> void:
+	levels_menu = MockLevelsMenu.new()
+	assert_eq(levels_menu.rank_to_stars("C"), 2, "C rank should be 2 stars")
+
+
+func test_rank_to_stars_d() -> void:
+	levels_menu = MockLevelsMenu.new()
+	assert_eq(levels_menu.rank_to_stars("D"), 1, "D rank should be 1 star")
+
+
+func test_rank_to_stars_f() -> void:
+	levels_menu = MockLevelsMenu.new()
+	assert_eq(levels_menu.rank_to_stars("F"), 1, "F rank should be 1 star")
+
+
+func test_rank_to_stars_empty() -> void:
+	levels_menu = MockLevelsMenu.new()
+	assert_eq(levels_menu.rank_to_stars(""), 0, "No rank should be 0 stars")
+
+
+func test_difficulty_short_names() -> void:
+	levels_menu = MockLevelsMenu.new()
+	assert_eq(levels_menu.DIFFICULTY_SHORT["Easy"], "E")
+	assert_eq(levels_menu.DIFFICULTY_SHORT["Normal"], "N")
+	assert_eq(levels_menu.DIFFICULTY_SHORT["Hard"], "H")
+	assert_eq(levels_menu.DIFFICULTY_SHORT["Power Fantasy"], "PF")
 
 
 func test_star_string_full() -> void:
@@ -676,6 +718,20 @@ func test_star_string_partial() -> void:
 	levels_menu = MockLevelsMenu.new()
 	assert_eq(levels_menu.get_star_string(3), "★★★☆☆",
 		"3 stars should have 3 filled and 2 empty")
+
+
+func test_star_string_for_rank_a() -> void:
+	levels_menu = MockLevelsMenu.new()
+	var stars: int = levels_menu.rank_to_stars("A")
+	assert_eq(levels_menu.get_star_string(stars), "★★★★☆",
+		"A rank (4 stars) should show 4 filled and 1 empty")
+
+
+func test_star_string_for_no_completion() -> void:
+	levels_menu = MockLevelsMenu.new()
+	var stars: int = levels_menu.rank_to_stars("")
+	assert_eq(levels_menu.get_star_string(stars), "☆☆☆☆☆",
+		"No completion (0 stars) should show all empty")
 
 
 func test_level_enemy_count() -> void:
