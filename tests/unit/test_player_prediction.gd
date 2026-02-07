@@ -425,7 +425,7 @@ func test_update_predictions_removes_low_probability() -> void:
 
 	var initial_count := predictor.hypotheses.size()
 
-	# Decay significantly (10 seconds at 0.08/s = 0.8 total decay)
+	# Decay significantly (10 seconds at 0.05/s = 0.5 total decay)
 	predictor.update_predictions(10.0)
 
 	assert_true(predictor.hypotheses.size() <= initial_count,
@@ -449,8 +449,8 @@ func test_style_starts_unknown() -> void:
 
 
 func test_style_classification_requires_observations() -> void:
-	# Only a few observations — should not classify yet
-	for i in range(3):
+	# Only 2 observations — should not classify yet (threshold is 3)
+	for i in range(2):
 		predictor.update_observation(
 			Vector2(100 + i * 10, 100),  # Moving right
 			Vector2(200, 100),  # Enemy ahead
@@ -686,18 +686,196 @@ func test_player_speed_constant() -> void:
 
 
 func test_max_hypotheses_constant() -> void:
-	assert_eq(PlayerPredictionComponent.MAX_HYPOTHESES, 6,
-		"Max hypotheses should be 6")
+	assert_eq(PlayerPredictionComponent.MAX_HYPOTHESES, 10,
+		"Max hypotheses should be 10")
 
 
 func test_max_hypothesis_age_constant() -> void:
-	assert_eq(PlayerPredictionComponent.MAX_HYPOTHESIS_AGE, 15.0,
-		"Max hypothesis age should be 15.0 seconds")
+	assert_eq(PlayerPredictionComponent.MAX_HYPOTHESIS_AGE, 20.0,
+		"Max hypothesis age should be 20.0 seconds")
 
 
 func test_cover_search_radius_constant() -> void:
-	assert_eq(PlayerPredictionComponent.COVER_SEARCH_RADIUS, 400.0,
-		"Cover search radius should be 400.0 pixels")
+	assert_eq(PlayerPredictionComponent.COVER_SEARCH_RADIUS, 600.0,
+		"Cover search radius should be 600.0 pixels")
+
+
+# ============================================================================
+# Enhanced Prediction Tests (v2 — more powerful predictions)
+# ============================================================================
+
+
+func test_momentum_velocity_tracking() -> void:
+	var enemy_pos := Vector2(0, 0)
+	# Feed several observations moving right
+	for i in range(6):
+		predictor.update_observation(Vector2(100 + i * 20, 100), enemy_pos, 0.016)
+
+	assert_true(predictor.momentum_velocity.length() > 0.0,
+		"Momentum velocity should be computed from multiple samples")
+	assert_true(predictor.momentum_velocity.x > 0.0,
+		"Momentum velocity should point rightward")
+
+
+func test_velocity_sample_buffer_limited() -> void:
+	var enemy_pos := Vector2(0, 0)
+	# Feed more samples than buffer size
+	for i in range(10):
+		predictor.update_observation(Vector2(100 + i * 10, 100), enemy_pos, 0.016)
+
+	assert_true(predictor._velocity_samples.size() <= PlayerPredictionComponent.VELOCITY_SAMPLE_COUNT,
+		"Velocity buffer should not exceed VELOCITY_SAMPLE_COUNT")
+
+
+func test_shot_reposition_hypothesis_generated() -> void:
+	# Set up: player fires a shot then disappears
+	predictor.record_player_shot(Vector2.RIGHT)
+
+	# Small delay
+	predictor.update_observation(Vector2(200, 200), Vector2(0, 0), 0.1)
+	predictor.update_observation(Vector2(210, 200), Vector2(0, 0), 0.1)
+
+	# Generate predictions
+	predictor.generate_predictions(
+		Vector2(220, 200), Vector2(0, 0), Vector2.RIGHT
+	)
+
+	# Should have a SHOT_REPOSITION hypothesis
+	var found := false
+	for h in predictor.hypotheses:
+		if h.type == PlayerPredictionComponent.HypothesisType.SHOT_REPOSITION:
+			found = true
+			break
+
+	assert_true(found,
+		"Should generate SHOT_REPOSITION hypothesis when player fired recently")
+
+
+func test_shot_reposition_not_generated_without_shot() -> void:
+	predictor.update_observation(Vector2(200, 200), Vector2(0, 0), 0.016)
+	predictor.update_observation(Vector2(210, 200), Vector2(0, 0), 0.016)
+	predictor.generate_predictions(
+		Vector2(210, 200), Vector2(0, 0), Vector2.RIGHT
+	)
+
+	var found := false
+	for h in predictor.hypotheses:
+		if h.type == PlayerPredictionComponent.HypothesisType.SHOT_REPOSITION:
+			found = true
+			break
+
+	assert_false(found,
+		"Should NOT generate SHOT_REPOSITION hypothesis when player hasn't fired")
+
+
+func test_shot_reposition_decays_with_time() -> void:
+	predictor.record_player_shot(Vector2.RIGHT)
+	# Simulate time passing beyond the reposition window
+	predictor.time_since_last_shot = PlayerPredictionComponent.SHOT_REPOSITION_WINDOW + 1.0
+
+	predictor.generate_predictions(
+		Vector2(200, 200), Vector2(0, 0), Vector2.RIGHT
+	)
+
+	var found := false
+	for h in predictor.hypotheses:
+		if h.type == PlayerPredictionComponent.HypothesisType.SHOT_REPOSITION:
+			found = true
+			break
+
+	assert_false(found,
+		"Should NOT generate SHOT_REPOSITION after time window expires")
+
+
+func test_cover_generates_lateral_when_no_covers() -> void:
+	# Generate predictions without cover positions
+	predictor.update_observation(Vector2(200, 200), Vector2(0, 0), 0.016)
+	predictor.update_observation(Vector2(210, 200), Vector2(0, 0), 0.016)
+	predictor.generate_predictions(
+		Vector2(210, 200), Vector2(0, 0), Vector2.RIGHT, []
+	)
+
+	# Count cover hypotheses (should be 2: retreat + lateral)
+	var cover_count := 0
+	for h in predictor.hypotheses:
+		if h.type == PlayerPredictionComponent.HypothesisType.COVER:
+			cover_count += 1
+
+	assert_eq(cover_count, 2,
+		"Should generate both retreat and lateral cover hypotheses when no covers provided")
+
+
+func test_enhanced_style_bias_aggressive() -> void:
+	predictor.player_style = PlayerPredictionComponent.PlayerStyle.AGGRESSIVE
+	predictor.generate_predictions(
+		Vector2(200, 200), Vector2(0, 0), Vector2.RIGHT
+	)
+
+	var aggressive_h: PlayerPredictionComponent.Hypothesis = null
+	var cover_h: PlayerPredictionComponent.Hypothesis = null
+	for h in predictor.hypotheses:
+		if h.type == PlayerPredictionComponent.HypothesisType.AGGRESSIVE and aggressive_h == null:
+			aggressive_h = h
+		if h.type == PlayerPredictionComponent.HypothesisType.COVER and cover_h == null:
+			cover_h = h
+
+	# With 2x aggressive bias, aggressive should be more prominent
+	assert_not_null(aggressive_h, "Should have aggressive hypothesis")
+	assert_not_null(cover_h, "Should have cover hypothesis")
+	assert_true(aggressive_h.probability > 0.0,
+		"Aggressive hypothesis should have positive probability")
+
+
+func test_style_observation_threshold_constant() -> void:
+	assert_eq(PlayerPredictionComponent.STYLE_OBSERVATION_THRESHOLD, 3,
+		"Style observation threshold should be 3")
+
+
+func test_shot_reposition_weight_constant() -> void:
+	assert_eq(PlayerPredictionComponent.SHOT_REPOSITION_WEIGHT, 1.3,
+		"Shot reposition weight should be 1.3")
+
+
+func test_reset_clears_momentum() -> void:
+	var enemy_pos := Vector2(0, 0)
+	for i in range(5):
+		predictor.update_observation(Vector2(100 + i * 10, 100), enemy_pos, 0.016)
+
+	assert_true(predictor.momentum_velocity.length() > 0.0,
+		"Should have momentum before reset")
+
+	predictor.reset()
+
+	assert_eq(predictor.momentum_velocity, Vector2.ZERO,
+		"Momentum should be cleared after reset")
+	assert_true(predictor._velocity_samples.is_empty(),
+		"Velocity samples should be cleared after reset")
+
+
+# ============================================================================
+# ExperimentalSettings Integration Tests
+# ============================================================================
+
+
+func test_hypothesis_type_includes_shot_reposition() -> void:
+	# Verify the new enum value exists
+	var val := PlayerPredictionComponent.HypothesisType.SHOT_REPOSITION
+	assert_eq(val, 6, "SHOT_REPOSITION should be the 7th enum value (index 6)")
+
+
+func test_slower_decay_rate() -> void:
+	assert_eq(PlayerPredictionComponent.HYPOTHESIS_DECAY_RATE, 0.05,
+		"Decay rate should be 0.05 (slower for longer-lasting predictions)")
+
+
+func test_higher_cover_weight() -> void:
+	assert_eq(PlayerPredictionComponent.COVER_WEIGHT, 1.6,
+		"Cover weight should be 1.6 (enhanced)")
+
+
+func test_higher_flank_weight() -> void:
+	assert_eq(PlayerPredictionComponent.FLANK_WEIGHT, 1.1,
+		"Flank weight should be 1.1 (enhanced)")
 
 
 # ============================================================================
