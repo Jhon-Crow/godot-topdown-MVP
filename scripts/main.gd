@@ -7,7 +7,3 @@ extends Node2D
 
 func _ready() -> void:
 	print("Godot Top-Down Template loaded successfully!")
-
-
-func _process(_delta: float) -> void:
-	pass
