@@ -29,6 +29,7 @@ enum TutorialStep {
 	SHOOT_TARGETS,
 	SWITCH_FIRE_MODE,
 	RELOAD,
+	SCOPE_TRAINING,
 	THROW_GRENADE,
 	COMPLETED
 }
@@ -57,11 +58,23 @@ var _has_assault_rifle: bool = false
 ## Whether the player has a shotgun (for shotgun-specific tutorial).
 var _has_shotgun: bool = false
 
+## Whether the player has a sniper rifle (for sniper-specific tutorial).
+var _has_sniper_rifle: bool = false
+
 ## Reference to the player's assault rifle weapon (for fire mode tracking).
 var _assault_rifle: Node = null
 
 ## Reference to the player's shotgun weapon (for shotgun-specific tracking).
 var _shotgun: Node = null
+
+## Reference to the player's sniper rifle weapon (for sniper-specific tracking).
+var _sniper_rifle: Node = null
+
+## Whether the sniper bolt has been cycled (for tutorial reload step tracking).
+var _sniper_bolt_cycled: bool = false
+
+## Whether the scope has been used (for sniper scope training step).
+var _scope_used: bool = false
 
 ## Floating prompt label that follows the player.
 var _prompt_label: Label = null
@@ -265,12 +278,30 @@ func _connect_player_signals() -> void:
 
 	# Try to connect to weapon signals (C# Player)
 	var weapon = _player.get_node_or_null("AssaultRifle")
-	if weapon == null:
-		weapon = _player.get_node_or_null("SniperRifle")
+	var sniper_rifle = _player.get_node_or_null("SniperRifle")
 	var shotgun = _player.get_node_or_null("Shotgun")
 	var mini_uzi = _player.get_node_or_null("MiniUzi")
 
-	if shotgun != null:
+	if sniper_rifle != null:
+		_sniper_rifle = sniper_rifle
+		_has_sniper_rifle = true
+		print("Tutorial: Player has ASVK Sniper Rifle - sniper-specific tutorial enabled")
+
+		# Connect to bolt step changed signal for tracking reload
+		if sniper_rifle.has_signal("BoltStepChanged"):
+			sniper_rifle.BoltStepChanged.connect(_on_sniper_bolt_step_changed)
+			print("Tutorial: Connected to BoltStepChanged signal")
+
+		# Connect to sniper ammo signal
+		if sniper_rifle.has_signal("AmmoChanged"):
+			sniper_rifle.AmmoChanged.connect(_on_weapon_ammo_changed)
+
+		# Connect to scope state changed signal for scope training
+		if sniper_rifle.has_signal("ScopeStateChanged"):
+			sniper_rifle.ScopeStateChanged.connect(_on_scope_state_changed)
+			print("Tutorial: Connected to ScopeStateChanged signal")
+
+	elif shotgun != null:
 		_shotgun = shotgun
 		_has_shotgun = true
 		print("Tutorial: Player has Shotgun - shotgun-specific tutorial enabled")
@@ -314,8 +345,8 @@ func _connect_player_signals() -> void:
 		if weapon.has_signal("FireModeChanged"):
 			weapon.FireModeChanged.connect(_on_fire_mode_changed)
 			print("Tutorial: Connected to FireModeChanged signal")
-	else:
-		# GDScript player
+	elif not _has_sniper_rifle:
+		# GDScript player (only if no sniper rifle was detected earlier)
 		if _player.has_signal("reload_completed"):
 			_player.reload_completed.connect(_on_player_reload_completed)
 
@@ -492,9 +523,12 @@ func _on_target_hit() -> void:
 	_targets_hit += 1
 	print("Tutorial: Target hit (%d/%d)" % [_targets_hit, _total_targets])
 
-	if _targets_hit >= _total_targets:
+	# Sniper rifle: advance after first hit (one shot, then bolt-action training)
+	if _has_sniper_rifle and _targets_hit >= 1:
+		_advance_to_step(TutorialStep.RELOAD)
+	elif _targets_hit >= _total_targets:
 		# If player has assault rifle, go to fire mode switch step
-		# Otherwise, skip directly to reload
+		# Other weapons skip directly to reload
 		if _has_assault_rifle:
 			_advance_to_step(TutorialStep.SWITCH_FIRE_MODE)
 		else:
@@ -510,6 +544,36 @@ func _on_fire_mode_changed(_new_mode: int) -> void:
 		_has_switched_fire_mode = true
 		print("Tutorial: Player switched fire mode")
 		_advance_to_step(TutorialStep.RELOAD)
+
+
+## Called when sniper rifle bolt step changes.
+## The sniper bolt-action reload is complete when step 4 (close bolt) is reached.
+func _on_sniper_bolt_step_changed(step: int, total_steps: int) -> void:
+	if _current_step != TutorialStep.RELOAD:
+		return
+
+	print("Tutorial: Sniper bolt step %d/%d" % [step, total_steps])
+
+	# Bolt cycling is complete when step reaches total (4/4 = bolt closed, ready to fire)
+	if step >= total_steps and not _sniper_bolt_cycled:
+		_sniper_bolt_cycled = true
+		_has_reloaded = true
+		print("Tutorial: Sniper bolt cycling completed")
+		# After bolt-action reload, teach scope usage
+		_advance_to_step(TutorialStep.SCOPE_TRAINING)
+
+
+## Called when scope state changes (activated/deactivated).
+## Completes the scope training step when scope is used.
+func _on_scope_state_changed(is_active: bool) -> void:
+	if _current_step != TutorialStep.SCOPE_TRAINING:
+		return
+
+	# Scope training completes when the player activates the scope
+	if is_active and not _scope_used:
+		_scope_used = true
+		print("Tutorial: Scope used - scope training complete")
+		_advance_to_step(TutorialStep.THROW_GRENADE)
 
 
 ## Called when player completes reload.
@@ -604,6 +668,9 @@ func _update_prompt_text() -> void:
 				# Shotgun-specific shooting instructions with pump-action gestures
 				# LMB shoot → RMB drag UP (eject shell) → RMB drag DOWN (chamber)
 				_prompt_label.text = "[ЛКМ стрельба] [ПКМ↑ извлечь] [ПКМ↓ дослать]"
+			elif _has_sniper_rifle:
+				# Sniper rifle shooting - just LMB to fire
+				_prompt_label.text = "[ЛКМ] Стреляй по мишеням"
 			else:
 				_prompt_label.text = "[ЛКМ] Стреляй по мишеням"
 		TutorialStep.SWITCH_FIRE_MODE:
@@ -613,8 +680,14 @@ func _update_prompt_text() -> void:
 				# Shotgun-specific reload instructions with shell loading gestures
 				# RMB drag UP (open bolt) → [MMB hold + RMB DOWN]×N (load shells) → RMB DOWN (close bolt)
 				_prompt_label.text = "[ПКМ↑ открыть] [СКМ+ПКМ↓ x8] [ПКМ↓ закрыть]"
+			elif _has_sniper_rifle:
+				# Sniper rifle bolt-action reload: Left→Down→Up→Right
+				_prompt_label.text = "[←отпирание] [↓извлечение] [↑досылание] [→запирание]"
 			else:
 				_prompt_label.text = "[R] [F] [R] Перезарядись"
+		TutorialStep.SCOPE_TRAINING:
+			# Sniper scope training: hold RMB to activate scope
+			_prompt_label.text = "[ПКМ] Прицелься через оптику"
 		TutorialStep.THROW_GRENADE:
 			# 2-step grenade throwing:
 			# Step 1: G + RMB drag right = start timer (pin pulled)

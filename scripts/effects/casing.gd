@@ -37,6 +37,11 @@ var _frozen_angular_velocity: float = 0.0
 ## Whether the casing is currently frozen in time.
 var _is_time_frozen: bool = false
 
+## Pending explosion impulse to apply after time unfreeze (Issue #522).
+## When a casing is frozen and an explosion tries to kick it,
+## the impulse is stored here and applied when time unfreezes.
+var _pending_kick_impulse: Vector2 = Vector2.ZERO
+
 ## Time before enabling collision after spawn (to prevent colliding with player at spawn).
 ## This fixes Issue #392 where casings would push the player at spawn time.
 const SPAWN_COLLISION_DELAY: float = 0.1
@@ -146,6 +151,10 @@ func _set_casing_appearance() -> void:
 			sprite.texture = caliber.casing_sprite
 			# Reset modulate to show actual sprite colors
 			sprite.modulate = Color.WHITE
+			# Apply effect_scale to make larger caliber casings bigger
+			# (e.g., 12.7x108mm casings are bigger than 5.45x39mm)
+			if caliber.effect_scale != 1.0:
+				sprite.scale = Vector2(caliber.effect_scale, caliber.effect_scale)
 			return
 
 	# Fallback: If no sprite in caliber data, use color-based appearance
@@ -210,6 +219,15 @@ func unfreeze_time() -> void:
 	_frozen_linear_velocity = Vector2.ZERO
 	_frozen_angular_velocity = 0.0
 
+	# Issue #522: Apply any pending explosion impulse that was queued during freeze.
+	# This makes casings scatter immediately after time unfreezes.
+	if _pending_kick_impulse != Vector2.ZERO:
+		if DEBUG_CASING_PHYSICS:
+			print("[Casing] Applying pending kick impulse after unfreeze: %s" % _pending_kick_impulse)
+		# Use receive_kick to properly re-enable physics and apply the impulse
+		receive_kick(_pending_kick_impulse)
+		_pending_kick_impulse = Vector2.ZERO
+
 
 ## Receives a kick impulse from a character (player or enemy) walking into this casing.
 ## Called by BaseCharacter after MoveAndSlide() detects collision with the casing.
@@ -218,7 +236,14 @@ func receive_kick(impulse: Vector2) -> void:
 	if DEBUG_CASING_PHYSICS:
 		print("[Casing] receive_kick called with impulse %s (frozen: %s, landed: %s)" % [impulse, _is_time_frozen, _has_landed])
 
+	# Issue #522: If time is frozen, store the impulse to apply after unfreeze.
+	# This happens when a grenade explodes during Power Fantasy time-freeze:
+	# the explosion triggers time-freeze BEFORE scatter_casings() runs,
+	# so casings need to queue the impulse for when time resumes.
 	if _is_time_frozen:
+		_pending_kick_impulse += impulse
+		if DEBUG_CASING_PHYSICS:
+			print("[Casing] Time frozen - queued kick impulse %s (total pending: %s)" % [impulse, _pending_kick_impulse])
 		return
 
 	# Re-enable physics if casing was landed

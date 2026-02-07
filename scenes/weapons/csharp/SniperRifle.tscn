@@ -13,19 +13,8 @@ BulletScene = ExtResource("2_bullet")
 CasingScene = ExtResource("3_casing")
 BulletSpawnOffset = 60.0
 StartingMagazineCount = 4
-LaserSightEnabled = true
-LaserSightLength = 500.0
-LaserSightColor = Color(1, 0, 0, 0.5)
-LaserSightWidth = 2.0
 
 [node name="RifleSprite" type="Sprite2D" parent="."]
 z_index = 1
 texture = ExtResource("5_rifle_sprite")
 offset = Vector2(25, 0)
-
-[node name="LaserSight" type="Line2D" parent="."]
-points = PackedVector2Array(0, 0, 500, 0)
-width = 2.0
-default_color = Color(1, 0, 0, 0.5)
-begin_cap_mode = 1
-end_cap_mode = 1
