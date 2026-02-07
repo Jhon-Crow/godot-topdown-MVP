@@ -61,6 +61,9 @@ var _has_shotgun: bool = false
 ## Whether the player has a sniper rifle (for sniper-specific tutorial).
 var _has_sniper_rifle: bool = false
 
+## Whether the player has a Makarov PM (for pistol R->R reload tutorial).
+var _has_makarov_pm: bool = false
+
 ## Reference to the player's assault rifle weapon (for fire mode tracking).
 var _assault_rifle: Node = null
 
@@ -407,7 +410,8 @@ func _connect_player_signals() -> void:
 			print("Tutorial: Connected to FireModeChanged signal")
 
 	elif makarov_pm != null:
-		print("Tutorial: Player has MakarovPM - pistol tutorial")
+		_has_makarov_pm = true
+		print("Tutorial: Player has MakarovPM - pistol tutorial (R->R reload)")
 
 		# Connect to reload signals from player (C# Player)
 		if _player.has_signal("ReloadCompleted"):
@@ -765,6 +769,9 @@ func _update_prompt_text() -> void:
 			elif _has_sniper_rifle:
 				# Sniper rifle bolt-action reload: Left→Down→Up→Right
 				_prompt_label.text = "[←отпирание] [↓извлечение] [↑досылание] [→запирание]"
+			elif _has_makarov_pm:
+				# Makarov PM uses simplified R->R reload (2-step pistol reload)
+				_prompt_label.text = "[R] [R] Перезарядись"
 			else:
 				_prompt_label.text = "[R] [F] [R] Перезарядись"
 		TutorialStep.SCOPE_TRAINING:

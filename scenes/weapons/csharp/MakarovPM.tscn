@@ -11,9 +11,9 @@ script = ExtResource("1_makarov_pm")
 WeaponData = ExtResource("4_weapon_data")
 BulletScene = ExtResource("2_bullet")
 CasingScene = ExtResource("3_casing")
-BulletSpawnOffset = 28.0
+BulletSpawnOffset = 34.0
 
 [node name="MakarovSprite" type="Sprite2D" parent="."]
 z_index = 1
 texture = ExtResource("5_sprite")
-offset = Vector2(9, 0)
+offset = Vector2(15, 0)

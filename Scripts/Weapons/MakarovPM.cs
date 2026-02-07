@@ -262,16 +262,14 @@ public partial class MakarovPM : BaseWeapon
     }
 
     /// <summary>
-    /// Plays the pistol shot sound via AudioManager.
-    /// Uses pistol bolt sound as placeholder.
+    /// Plays the Makarov PM shot sound via AudioManager.
     /// </summary>
     private void PlayPistolShotSound()
     {
         var audioManager = GetNodeOrNull("/root/AudioManager");
-        if (audioManager != null && audioManager.HasMethod("play_m16_shot"))
+        if (audioManager != null && audioManager.HasMethod("play_pm_shot"))
         {
-            // Use M16 shot sound as placeholder until dedicated PM sound is added
-            audioManager.Call("play_m16_shot", GlobalPosition);
+            audioManager.Call("play_pm_shot", GlobalPosition);
         }
     }
 

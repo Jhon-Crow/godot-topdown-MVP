@@ -1367,12 +1367,12 @@ public partial class Player : BaseCharacter
                 break;
 
             case WeaponType.Pistol:
-                // Pistol pose: Compact two-handed pistol grip (Weaver/Isoceles stance)
-                // Similar to SMG but even more compact - suppressed pistol is shorter than SMG
-                // Left arm supports under the right hand (close to body)
-                // Right arm extends forward slightly for aiming
-                _baseLeftArmPos = originalLeftArmPos + new Vector2(-14, 0);  // More compact than SMG (-10)
-                _baseRightArmPos = originalRightArmPos + new Vector2(4, 0);  // Slightly more forward than SMG (3)
+                // Pistol pose: Two-handed pistol grip (Weaver/Isoceles stance)
+                // Extended forward so the pistol is held away from body
+                // Left arm supports under the right hand
+                // Right arm extends forward for aiming
+                _baseLeftArmPos = originalLeftArmPos + new Vector2(-8, 0);  // Extended forward (was -14)
+                _baseRightArmPos = originalRightArmPos + new Vector2(6, 0);  // Further forward for aiming (was 4)
                 LogToFile($"[Player] Applied Pistol arm pose: Left={_baseLeftArmPos}, Right={_baseRightArmPos}");
                 break;
 
@@ -1562,42 +1562,71 @@ public partial class Player : BaseCharacter
             return;
         }
 
-        // Handle R key (first and third step)
+        // Check if this is a pistol-type weapon that uses R->R reload (2-step) instead of R->F->R (3-step)
+        bool isPistolReload = CurrentWeapon is MakarovPM;
+
+        // Handle R key (first and third step, or both steps for pistol)
         if (Input.IsActionJustPressed("reload"))
         {
-            if (_reloadSequenceStep == 0 || _reloadSequenceStep == 1)
+            if (_reloadSequenceStep == 0)
             {
-                // Check if we can start a new reload (need ammo or already in sequence)
-                if (_reloadSequenceStep == 0)
+                // Starting fresh - check conditions
+                if (CurrentWeapon.CurrentAmmo >= (CurrentWeapon.WeaponData?.MagazineSize ?? 0))
                 {
-                    // Starting fresh - check conditions
-                    if (CurrentWeapon.CurrentAmmo >= (CurrentWeapon.WeaponData?.MagazineSize ?? 0))
-                    {
-                        return; // Magazine is full
-                    }
-                    if (CurrentWeapon.ReserveAmmo <= 0)
-                    {
-                        return; // No reserve ammo
-                    }
+                    return; // Magazine is full
+                }
+                if (CurrentWeapon.ReserveAmmo <= 0)
+                {
+                    return; // No reserve ammo
                 }
 
-                // Start or restart reload sequence
-                // This handles both initial R press and R->R sequence (restart)
+                // Start reload sequence - eject magazine
                 _isReloadingSequence = true;
                 _reloadSequenceStep = 1;
                 _ammoAtReloadStart = CurrentWeapon.CurrentAmmo;
-                GD.Print($"[Player] Reload sequence started (R pressed) - ammo at start: {_ammoAtReloadStart} - press F next");
+                GD.Print($"[Player] Reload sequence started (R pressed) - ammo at start: {_ammoAtReloadStart}" +
+                    (isPistolReload ? " - press R to complete (pistol)" : " - press F next"));
                 // Start animation: Step 1 - Grab magazine from chest
                 StartReloadAnimPhase(ReloadAnimPhase.GrabMagazine, ReloadAnimGrabDuration);
-                // Play magazine out sound
+                // Play first reload sound (PM-specific or generic mag out)
+                if (isPistolReload)
+                    PlayPmReloadAction1Sound();
+                else
+                    PlayReloadMagOutSound();
+                EmitSignal(SignalName.ReloadSequenceProgress, 1, isPistolReload ? 2 : 3);
+                // Notify enemies that player has started reloading (vulnerable state)
+                EmitSignal(SignalName.ReloadStarted);
+            }
+            else if (_reloadSequenceStep == 1 && isPistolReload)
+            {
+                // Pistol R->R reload: second R completes reload (combines F and final R steps)
+                // Set up chamber bullet based on ammo at reload start
+                bool hadAmmoInMagazine = _ammoAtReloadStart > 0;
+                CurrentWeapon.StartReloadSequence(hadAmmoInMagazine);
+
+                GD.Print("[Player] Pistol reload: R->R complete (magazine inserted)");
+                // Start animation: Insert magazine
+                StartReloadAnimPhase(ReloadAnimPhase.InsertMagazine, ReloadAnimInsertDuration);
+                // Play second PM reload sound
+                PlayPmReloadAction2Sound();
+                EmitSignal(SignalName.ReloadSequenceProgress, 2, 2);
+                CompleteReloadSequence();
+            }
+            else if (_reloadSequenceStep == 1 && !isPistolReload)
+            {
+                // Non-pistol: pressing R again at step 1 restarts the sequence
+                _isReloadingSequence = true;
+                _reloadSequenceStep = 1;
+                _ammoAtReloadStart = CurrentWeapon.CurrentAmmo;
+                GD.Print($"[Player] Reload sequence restarted (R pressed again) - ammo at start: {_ammoAtReloadStart} - press F next");
+                StartReloadAnimPhase(ReloadAnimPhase.GrabMagazine, ReloadAnimGrabDuration);
                 PlayReloadMagOutSound();
                 EmitSignal(SignalName.ReloadSequenceProgress, 1, 3);
-                // Notify enemies that player has started reloading (vulnerable state)
                 EmitSignal(SignalName.ReloadStarted);
             }
             else if (_reloadSequenceStep == 2)
             {
-                // Complete reload sequence - instant reload!
+                // Complete reload sequence - instant reload! (non-pistol: 3rd step)
                 // Start animation: Step 3 - Pull bolt/charging handle (back and forth motion)
                 StartReloadAnimPhase(ReloadAnimPhase.PullBolt, ReloadAnimBoltPullDuration);
                 // Play bolt cycling sound
@@ -1606,8 +1635,8 @@ public partial class Player : BaseCharacter
             }
         }
 
-        // Handle F key (reload_step action - second step)
-        if (Input.IsActionJustPressed("reload_step"))
+        // Handle F key (reload_step action - second step, only for non-pistol weapons)
+        if (Input.IsActionJustPressed("reload_step") && !isPistolReload)
         {
             if (_reloadSequenceStep == 1)
             {
@@ -1657,6 +1686,30 @@ public partial class Player : BaseCharacter
         if (audioManager != null && audioManager.HasMethod("play_reload_mag_in"))
         {
             audioManager.Call("play_reload_mag_in", GlobalPosition);
+        }
+    }
+
+    /// <summary>
+    /// Plays the first Makarov PM reload action sound (eject magazine).
+    /// </summary>
+    private void PlayPmReloadAction1Sound()
+    {
+        var audioManager = GetNodeOrNull("/root/AudioManager");
+        if (audioManager != null && audioManager.HasMethod("play_pm_reload_action_1"))
+        {
+            audioManager.Call("play_pm_reload_action_1", GlobalPosition);
+        }
+    }
+
+    /// <summary>
+    /// Plays the second Makarov PM reload action sound (insert magazine).
+    /// </summary>
+    private void PlayPmReloadAction2Sound()
+    {
+        var audioManager = GetNodeOrNull("/root/AudioManager");
+        if (audioManager != null && audioManager.HasMethod("play_pm_reload_action_2"))
+        {
+            audioManager.Call("play_pm_reload_action_2", GlobalPosition);
         }
     }
 
