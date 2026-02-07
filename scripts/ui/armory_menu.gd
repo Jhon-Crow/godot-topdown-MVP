@@ -15,6 +15,12 @@ signal weapon_selected(weapon_id: String)
 ## Firearms data — weapons the player can equip.
 ## Keys: weapon_id, Values: dictionary with name, icon_path, unlocked, description
 const FIREARMS: Dictionary = {
+	"makarov_pm": {
+		"name": "PM",
+		"icon_path": "res://assets/sprites/weapons/makarov_pm_icon.png",
+		"unlocked": true,
+		"description": "Makarov PM — 9x18mm starting pistol, 9-round magazine, medium ricochets"
+	},
 	"m16": {
 		"name": "M16",
 		"icon_path": "res://assets/sprites/weapons/m16_rifle.png",
@@ -56,17 +62,12 @@ const FIREARMS: Dictionary = {
 		"icon_path": "",
 		"unlocked": false,
 		"description": "Coming soon"
-	},
-	"pistol": {
-		"name": "???",
-		"icon_path": "",
-		"unlocked": false,
-		"description": "Coming soon"
 	}
 }
 
 ## Mapping from weapon_id to .tres resource path for loading stats.
 const WEAPON_RESOURCE_PATHS: Dictionary = {
+	"makarov_pm": "res://resources/weapons/MakarovPMData.tres",
 	"m16": "res://resources/weapons/AssaultRifleData.tres",
 	"shotgun": "res://resources/weapons/ShotgunData.tres",
 	"mini_uzi": "res://resources/weapons/MiniUziData.tres",
@@ -159,7 +160,7 @@ func _ready() -> void:
 	if GameManager:
 		_pending_weapon_id = GameManager.get_selected_weapon()
 	else:
-		_pending_weapon_id = "m16"
+		_pending_weapon_id = "makarov_pm"
 
 	if _grenade_manager:
 		_pending_grenade_type = _grenade_manager.current_grenade_type
@@ -814,7 +815,7 @@ func _on_slot_gui_input(event: InputEvent, slot: PanelContainer, item_id: String
 
 ## Check if the pending selection differs from the current applied selection.
 func _has_pending_changes() -> bool:
-	var current_weapon_id: String = "m16"
+	var current_weapon_id: String = "makarov_pm"
 	if GameManager:
 		current_weapon_id = GameManager.get_selected_weapon()
 
@@ -845,7 +846,7 @@ func _on_apply_pressed() -> void:
 	var active_item_changed: bool = false
 
 	# Apply weapon change
-	var current_weapon_id: String = "m16"
+	var current_weapon_id: String = "makarov_pm"
 	if GameManager:
 		current_weapon_id = GameManager.get_selected_weapon()
 
