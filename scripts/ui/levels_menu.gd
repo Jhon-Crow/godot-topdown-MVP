@@ -68,11 +68,14 @@ const DIFFICULTY_NAMES: Array[String] = ["Easy", "Normal", "Hard", "Power Fantas
 const CARD_WIDTH: float = 220.0
 const CARD_HEIGHT: float = 290.0
 
+## Number of columns in the level grid (4 cards wide).
+const GRID_COLUMNS: int = 4
+
 ## Reference to the back button.
 var _back_button: Button
 
 ## Reference to the card container.
-var _card_container: HBoxContainer
+var _card_container: GridContainer
 
 ## Map of level cards by path for styling.
 var _level_cards: Dictionary = {}
@@ -109,10 +112,10 @@ func _build_ui() -> void:
 	panel.anchor_top = 0.5
 	panel.anchor_right = 0.5
 	panel.anchor_bottom = 0.5
-	panel.offset_left = -500
-	panel.offset_top = -260
-	panel.offset_right = 500
-	panel.offset_bottom = 260
+	panel.offset_left = -520
+	panel.offset_top = -340
+	panel.offset_right = 520
+	panel.offset_bottom = 340
 	panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	panel.grow_vertical = Control.GROW_DIRECTION_BOTH
 
@@ -157,20 +160,21 @@ func _build_ui() -> void:
 	var sep := HSeparator.new()
 	main_vbox.add_child(sep)
 
-	# Scroll container for cards (horizontal scrolling if needed)
+	# Scroll container for cards (vertical scrolling for grid layout)
 	var scroll := ScrollContainer.new()
 	scroll.layout_mode = 2
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	main_vbox.add_child(scroll)
 
-	# Card container (horizontal layout)
-	_card_container = HBoxContainer.new()
+	# Card container (grid layout, 4 columns)
+	_card_container = GridContainer.new()
+	_card_container.columns = GRID_COLUMNS
 	_card_container.layout_mode = 2
 	_card_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_card_container.add_theme_constant_override("separation", 12)
-	_card_container.alignment = BoxContainer.ALIGNMENT_CENTER
+	_card_container.add_theme_constant_override("h_separation", 12)
+	_card_container.add_theme_constant_override("v_separation", 12)
 	scroll.add_child(_card_container)
 
 	# Populate cards

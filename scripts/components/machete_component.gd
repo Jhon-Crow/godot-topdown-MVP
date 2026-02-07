@@ -1,12 +1,22 @@
 class_name MacheteComponent
 extends Node
-## Machete melee combat component (Issue #579).
+## Machete melee combat component (Issue #579, #595).
 ##
 ## Handles melee-specific behaviors for machete-wielding enemies:
 ## - Sneaking approach via cover-to-cover movement
 ## - Backstab/flank attack preference (attack from behind)
 ## - Bullet dodging in attack state (lateral dodge instead of hiding)
 ## - Melee attack with area damage (no projectiles)
+## - Attack animation: windup → pause → strike → recovery (Issue #595)
+
+## Animation phases for the machete swing attack (Issue #595).
+enum AttackPhase {
+	IDLE,       ## No attack animation playing
+	WINDUP,     ## Arm pulls back (weapon rotates backward)
+	PAUSE,      ## Brief hold at windup peak (anticipation)
+	STRIKE,     ## Fast forward swing (damage applied mid-strike)
+	RECOVERY    ## Return to idle position
+}
 
 ## Melee attack range in pixels.
 @export var melee_range: float = 80.0
@@ -38,6 +48,24 @@ signal melee_hit(target: Node2D, damage: int)
 ## Emitted when a dodge is performed.
 signal dodge_performed(direction: Vector2)
 
+## Emitted when attack animation phase changes (Issue #595).
+signal attack_phase_changed(phase: AttackPhase)
+
+# --- Attack animation durations (Issue #595) ---
+## Duration of windup phase in seconds.
+const WINDUP_DURATION: float = 0.25
+## Duration of pause phase in seconds.
+const PAUSE_DURATION: float = 0.1
+## Duration of strike phase in seconds.
+const STRIKE_DURATION: float = 0.15
+## Duration of recovery phase in seconds.
+const RECOVERY_DURATION: float = 0.2
+
+## Windup rotation angle in radians (90 degrees backward).
+const WINDUP_ANGLE: float = -PI / 2.0
+## Strike end rotation angle in radians (90 degrees forward from idle).
+const STRIKE_END_ANGLE: float = PI / 2.0
+
 ## Timer since last melee attack.
 var _melee_timer: float = 0.0
 
@@ -59,6 +87,24 @@ var _dodge_progress: float = 0.0
 ## Parent enemy reference.
 var _parent: CharacterBody2D = null
 
+## Current attack animation phase (Issue #595).
+var _attack_phase: AttackPhase = AttackPhase.IDLE
+
+## Timer for current attack animation phase (Issue #595).
+var _attack_anim_timer: float = 0.0
+
+## Target of current attack animation (Issue #595).
+var _attack_target: Node2D = null
+
+## Whether damage was already applied during this attack (Issue #595).
+var _damage_applied: bool = false
+
+## Current weapon rotation angle from animation (Issue #595, radians).
+var _weapon_rotation: float = 0.0
+
+## Current arm offset from animation (Issue #595, pixels).
+var _arm_offset: float = 0.0
+
 
 func _ready() -> void:
 	_parent = get_parent() as CharacterBody2D
@@ -73,10 +119,13 @@ func update(delta: float) -> void:
 	if _is_dodging:
 		_process_dodge(delta)
 
+	if _attack_phase != AttackPhase.IDLE:
+		_process_attack_animation(delta)
+
 
 ## Check if melee attack cooldown is ready (ignores range/dodge).
 func is_attack_ready() -> bool:
-	return _melee_timer >= melee_cooldown and not _is_dodging
+	return _melee_timer >= melee_cooldown and not _is_dodging and _attack_phase == AttackPhase.IDLE
 
 
 ## Check if melee attack can be performed (in range and off cooldown).
@@ -87,36 +136,48 @@ func can_melee_attack(target: Node2D) -> bool:
 		return false
 	if _is_dodging:
 		return false
+	if _attack_phase != AttackPhase.IDLE:
+		return false
 	var distance := _parent.global_position.distance_to(target.global_position)
 	return distance <= melee_range
 
 
-## Perform a melee attack on the target. Returns true if attack was executed.
+## Perform a melee attack on the target. Returns true if attack was started.
+## Issue #595: Now starts the attack animation instead of applying damage instantly.
+## Damage is applied during the STRIKE phase midpoint.
 func perform_melee_attack(target: Node2D) -> bool:
 	if not can_melee_attack(target):
 		return false
 
 	_melee_timer = 0.0
+	_attack_target = target
+	_damage_applied = false
+	_set_attack_phase(AttackPhase.WINDUP)
 
-	# Deal damage to player
-	if target.has_method("take_damage"):
-		target.take_damage(melee_damage)
-	elif target.has_method("TakeDamage"):
-		target.TakeDamage(melee_damage)
-
-	# Play melee sound
-	var audio: Node = _parent.get_node_or_null("/root/AudioManager")
-	if audio and audio.has_method("play_hit_non_lethal"):
-		audio.play_hit_non_lethal(_parent.global_position)
-
-	# Emit sound propagation (melee swing is quieter)
-	var sp: Node = _parent.get_node_or_null("/root/SoundPropagation")
-	if sp and sp.has_method("emit_sound"):
-		sp.emit_sound(0, _parent.global_position, 1, _parent, 200.0)
-
-	melee_hit.emit(target, melee_damage)
-	_log("Melee attack hit %s for %d damage" % [target.name, melee_damage])
+	_log("Melee attack started (animation) against %s" % [target.name if target else "null"])
 	return true
+
+
+## Check if currently in an attack animation (Issue #595).
+func is_attacking() -> bool:
+	return _attack_phase != AttackPhase.IDLE
+
+
+## Get the current attack phase (Issue #595).
+func get_attack_phase() -> AttackPhase:
+	return _attack_phase
+
+
+## Get the current weapon rotation offset from the attack animation (Issue #595).
+## Returns 0.0 when idle (no rotation offset).
+func get_weapon_rotation() -> float:
+	return _weapon_rotation
+
+
+## Get the current arm position offset from the attack animation (Issue #595).
+## Returns 0.0 when idle (no offset).
+func get_arm_offset() -> float:
+	return _arm_offset
 
 
 ## Check if player is being attacked from behind (backstab opportunity).
@@ -261,6 +322,96 @@ func configure_from_weapon_config(config: Dictionary) -> void:
 	dodge_speed = config.get("dodge_speed", 400.0)
 	dodge_distance = config.get("dodge_distance", 120.0)
 	sneak_speed_multiplier = config.get("sneak_speed_multiplier", 0.6)
+
+
+## Process attack animation phases (Issue #595).
+func _process_attack_animation(delta: float) -> void:
+	_attack_anim_timer += delta
+
+	match _attack_phase:
+		AttackPhase.WINDUP:
+			var progress := clampf(_attack_anim_timer / WINDUP_DURATION, 0.0, 1.0)
+			# Ease-out for decelerating windup feel
+			var eased := 1.0 - (1.0 - progress) * (1.0 - progress)
+			_weapon_rotation = lerpf(0.0, WINDUP_ANGLE, eased)
+			_arm_offset = lerpf(0.0, -4.0, eased)
+			if _attack_anim_timer >= WINDUP_DURATION:
+				_set_attack_phase(AttackPhase.PAUSE)
+
+		AttackPhase.PAUSE:
+			# Hold at windup position
+			_weapon_rotation = WINDUP_ANGLE
+			_arm_offset = -4.0
+			if _attack_anim_timer >= PAUSE_DURATION:
+				_set_attack_phase(AttackPhase.STRIKE)
+
+		AttackPhase.STRIKE:
+			var progress := clampf(_attack_anim_timer / STRIKE_DURATION, 0.0, 1.0)
+			# Ease-in for accelerating strike feel
+			var eased := progress * progress
+			_weapon_rotation = lerpf(WINDUP_ANGLE, STRIKE_END_ANGLE, eased)
+			_arm_offset = lerpf(-4.0, 6.0, eased)
+			# Apply damage at midpoint of strike (Issue #595)
+			if progress >= 0.5 and not _damage_applied:
+				_apply_strike_damage()
+			if _attack_anim_timer >= STRIKE_DURATION:
+				_set_attack_phase(AttackPhase.RECOVERY)
+
+		AttackPhase.RECOVERY:
+			var progress := clampf(_attack_anim_timer / RECOVERY_DURATION, 0.0, 1.0)
+			# Smooth ease-in-out for natural return
+			var eased := progress * progress * (3.0 - 2.0 * progress)
+			_weapon_rotation = lerpf(STRIKE_END_ANGLE, 0.0, eased)
+			_arm_offset = lerpf(6.0, 0.0, eased)
+			if _attack_anim_timer >= RECOVERY_DURATION:
+				_set_attack_phase(AttackPhase.IDLE)
+
+
+## Set the attack animation phase and reset the phase timer (Issue #595).
+func _set_attack_phase(phase: AttackPhase) -> void:
+	_attack_phase = phase
+	_attack_anim_timer = 0.0
+	if phase == AttackPhase.IDLE:
+		_weapon_rotation = 0.0
+		_arm_offset = 0.0
+		_attack_target = null
+	attack_phase_changed.emit(phase)
+	_log("Attack phase: %s" % AttackPhase.keys()[phase])
+
+
+## Apply damage during the strike phase (Issue #595).
+func _apply_strike_damage() -> void:
+	_damage_applied = true
+	if _attack_target == null or not is_instance_valid(_attack_target):
+		_log("Strike damage skipped: target invalid")
+		return
+	if _parent == null:
+		return
+
+	# Check target is still in range (may have moved during windup)
+	var distance := _parent.global_position.distance_to(_attack_target.global_position)
+	if distance > melee_range * 1.5:  # Generous range during strike animation
+		_log("Strike damage skipped: target moved out of range (%.1f > %.1f)" % [distance, melee_range * 1.5])
+		return
+
+	# Deal damage to player
+	if _attack_target.has_method("take_damage"):
+		_attack_target.take_damage(melee_damage)
+	elif _attack_target.has_method("TakeDamage"):
+		_attack_target.TakeDamage(melee_damage)
+
+	# Play melee sound
+	var audio: Node = _parent.get_node_or_null("/root/AudioManager")
+	if audio and audio.has_method("play_hit_non_lethal"):
+		audio.play_hit_non_lethal(_parent.global_position)
+
+	# Emit sound propagation (melee swing is quieter)
+	var sp: Node = _parent.get_node_or_null("/root/SoundPropagation")
+	if sp and sp.has_method("emit_sound"):
+		sp.emit_sound(0, _parent.global_position, 1, _parent, 200.0)
+
+	melee_hit.emit(_attack_target, melee_damage)
+	_log("Strike hit %s for %d damage" % [_attack_target.name, melee_damage])
 
 
 ## Log a debug message.

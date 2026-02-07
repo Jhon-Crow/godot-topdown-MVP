@@ -41,6 +41,9 @@ var _current_effect_duration_ms: float = 0.0
 ## Tracks the previous scene root to detect scene changes.
 var _previous_scene_root: Node = null
 
+## Issue #597: When true, skip Engine.time_scale changes (used during replay playback).
+var replay_mode: bool = false
+
 
 func _ready() -> void:
 	# Connect to scene tree changes to reset effects on scene reload
@@ -157,8 +160,9 @@ func _start_effect(duration_ms: float) -> void:
 	_log("  - Time scale: %.2f" % EFFECT_TIME_SCALE)
 	_log("  - Duration: %.0fms" % duration_ms)
 
-	# Slow down time
-	Engine.time_scale = EFFECT_TIME_SCALE
+	# Slow down time (skip during replay - Issue #597)
+	if not replay_mode:
+		Engine.time_scale = EFFECT_TIME_SCALE
 
 	# Apply screen saturation and contrast
 	_saturation_rect.visible = true
@@ -176,8 +180,9 @@ func _end_effect() -> void:
 	_is_effect_active = false
 	_log("Ending power fantasy effect")
 
-	# Restore normal time
-	Engine.time_scale = 1.0
+	# Restore normal time (skip during replay - Issue #597)
+	if not replay_mode:
+		Engine.time_scale = 1.0
 
 	# Remove screen saturation and contrast
 	_saturation_rect.visible = false
@@ -193,8 +198,9 @@ func reset_effects() -> void:
 
 	if _is_effect_active:
 		_is_effect_active = false
-		# Restore normal time immediately
-		Engine.time_scale = 1.0
+		# Restore normal time immediately (skip during replay - Issue #597)
+		if not replay_mode:
+			Engine.time_scale = 1.0
 
 	# Remove screen saturation and contrast
 	_saturation_rect.visible = false
