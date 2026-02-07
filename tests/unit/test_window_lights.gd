@@ -5,11 +5,10 @@ extends GutTest
 ## along exterior walls in corridors and rooms without enemies, so players can
 ## see wall outlines in night mode (realistic visibility).
 ##
-## Each window creates two light layers:
-## 1. Primary "MoonLight" — medium range, low energy, shadows enabled.
-##    Shadows from interior walls give the light a natural shape.
-## 2. Ambient "AmbientGlow" — large range, very low energy, no shadows.
-##    Extremely faint residual glow that passes through interior walls.
+## Lighting architecture:
+## - Each window has ONE primary "MoonLight" PointLight2D (low energy, shadows on).
+## - ONE single map-wide "MapAmbientGlow" PointLight2D covers the entire building
+##   with extremely faint blue glow (no visible edges, no shadows).
 
 
 # ============================================================================
@@ -21,20 +20,20 @@ class MockWindowLightManager:
 	## Primary light color (cool blue moonlight).
 	const LIGHT_COLOR: Color = Color(0.4, 0.5, 0.9, 1.0)
 
-	## Primary light energy.
-	const LIGHT_ENERGY: float = 0.3
+	## Primary light energy (very low — v4 reduced from 0.3 to 0.15).
+	const LIGHT_ENERGY: float = 0.15
 
 	## Primary light texture scale.
 	const LIGHT_TEXTURE_SCALE: float = 3.0
 
-	## Ambient glow color (slightly deeper blue).
+	## Map-wide ambient glow color (subtle blue moonlight tint).
 	const AMBIENT_COLOR: Color = Color(0.35, 0.45, 0.85, 1.0)
 
-	## Ambient glow energy.
-	const AMBIENT_ENERGY: float = 0.08
+	## Map-wide ambient glow energy (extremely faint — 0.04).
+	const AMBIENT_ENERGY: float = 0.04
 
-	## Ambient glow texture scale.
-	const AMBIENT_TEXTURE_SCALE: float = 6.0
+	## Map-wide ambient glow texture scale (covers entire ~2400x2000 building).
+	const AMBIENT_TEXTURE_SCALE: float = 7.0
 
 	## Window visual color (semi-transparent blue).
 	const WINDOW_COLOR: Color = Color(0.3, 0.4, 0.7, 0.6)
@@ -63,8 +62,14 @@ class MockWindowLightManager:
 	const WALL_TOP_Y: float = 64.0
 	const WALL_BOTTOM_Y: float = 2064.0
 
+	## Building center (for map-wide ambient).
+	const BUILDING_CENTER: Vector2 = Vector2(1264, 1064)
+
 	## Minimum distance from enemy positions for window light placement.
 	const MIN_ENEMY_DISTANCE: float = 200.0
+
+	## Muzzle flash energy (from muzzle_flash.gd LIGHT_START_ENERGY).
+	const MUZZLE_FLASH_ENERGY: float = 4.5
 
 	## List of created window lights: Array of {position, wall_side, ...}.
 	var _window_lights: Array = []
@@ -72,14 +77,18 @@ class MockWindowLightManager:
 	## Whether setup was called.
 	var _setup_called: bool = false
 
+	## Whether map ambient was created.
+	var _map_ambient_created: bool = false
+
 
 	## Setup the window light system.
 	func setup() -> void:
 		_setup_called = true
 		_window_lights.clear()
+		_map_ambient_created = false
 
 
-	## Create a window light at the given position (both primary + ambient).
+	## Create a window light at the given position (primary only, no per-window ambient).
 	func create_window_light(pos: Vector2, wall_side: String) -> Dictionary:
 		var light_data := {
 			"position": pos,
@@ -88,13 +97,21 @@ class MockWindowLightManager:
 			"color": LIGHT_COLOR,
 			"shadow_enabled": true,
 			"texture_scale": LIGHT_TEXTURE_SCALE,
-			"ambient_energy": AMBIENT_ENERGY,
-			"ambient_color": AMBIENT_COLOR,
-			"ambient_texture_scale": AMBIENT_TEXTURE_SCALE,
-			"ambient_shadow_enabled": false,
 		}
 		_window_lights.append(light_data)
 		return light_data
+
+
+	## Create the single map-wide ambient glow.
+	func create_map_ambient() -> Dictionary:
+		_map_ambient_created = true
+		return {
+			"position": BUILDING_CENTER,
+			"energy": AMBIENT_ENERGY,
+			"color": AMBIENT_COLOR,
+			"texture_scale": AMBIENT_TEXTURE_SCALE,
+			"shadow_enabled": false,
+		}
 
 
 	## Get all created window lights.
@@ -257,44 +274,116 @@ func test_light_texture_scale() -> void:
 
 
 # ============================================================================
-# Ambient Glow Layer Tests
+# Map-Wide Ambient Glow Tests
 # ============================================================================
 
 
-func test_ambient_color_is_blue() -> void:
-	var light := manager.create_window_light(Vector2(64, 1100), "left")
+func test_map_ambient_created() -> void:
+	var ambient := manager.create_map_ambient()
 
-	assert_true(light.ambient_color.b > light.ambient_color.r,
+	assert_true(manager._map_ambient_created,
+		"Map ambient should be flagged as created")
+	assert_not_null(ambient, "Map ambient data should not be null")
+
+
+func test_map_ambient_color_is_blue() -> void:
+	var ambient := manager.create_map_ambient()
+
+	assert_true(ambient.color.b > ambient.color.r,
 		"Ambient color should be blue-dominant (blue > red)")
-	assert_true(light.ambient_color.b > light.ambient_color.g,
+	assert_true(ambient.color.b > ambient.color.g,
 		"Ambient color should be blue-dominant (blue > green)")
 
 
-func test_ambient_energy_is_very_dim() -> void:
+func test_map_ambient_energy_is_extremely_faint() -> void:
+	var ambient := manager.create_map_ambient()
+
+	assert_true(ambient.energy <= 0.1,
+		"Map ambient energy should be <= 0.1 (extremely faint)")
+	assert_true(ambient.energy > 0.0,
+		"Map ambient energy should be positive")
+
+
+func test_map_ambient_energy_much_less_than_primary() -> void:
+	var light := manager.create_window_light(Vector2(64, 1100), "left")
+	var ambient := manager.create_map_ambient()
+
+	assert_true(ambient.energy < light.energy,
+		"Map ambient energy should be less than primary light energy")
+
+
+func test_map_ambient_shadows_disabled() -> void:
+	var ambient := manager.create_map_ambient()
+
+	assert_false(ambient.shadow_enabled,
+		"Map ambient should have shadows disabled for uniform glow through walls")
+
+
+func test_map_ambient_covers_entire_building() -> void:
+	var ambient := manager.create_map_ambient()
+
+	# texture_scale * 256 (half of 512px texture) = radius of the light
+	var light_radius: float = ambient.texture_scale * 256.0
+	# Building half-diagonal from center (1264,1064) to corner (64,64)
+	var half_diag: float = manager.BUILDING_CENTER.distance_to(Vector2(64, 64))
+
+	assert_true(light_radius >= half_diag,
+		"Map ambient radius (%.0f) should cover building half-diagonal (%.0f)" % [light_radius, half_diag])
+
+
+func test_map_ambient_positioned_at_building_center() -> void:
+	var ambient := manager.create_map_ambient()
+
+	assert_eq(ambient.position, manager.BUILDING_CENTER,
+		"Map ambient should be positioned at building center")
+
+
+# ============================================================================
+# Weapon Flash Visibility Tests
+# ============================================================================
+
+
+func test_muzzle_flash_energy_dominates_window_lights() -> void:
+	# Muzzle flash energy should be far greater than any single window light
 	var light := manager.create_window_light(Vector2(64, 1100), "left")
 
-	assert_true(light.ambient_energy < light.energy,
-		"Ambient energy should be dimmer than primary light")
-	assert_true(light.ambient_energy > 0.0,
-		"Ambient energy should be positive")
-	assert_true(light.ambient_energy <= 0.4,
-		"Ambient energy should be subtle (<=0.4)")
+	assert_true(manager.MUZZLE_FLASH_ENERGY > light.energy * 10,
+		"Muzzle flash (%.1f) should be >10x stronger than window light (%.2f)" % [
+			manager.MUZZLE_FLASH_ENERGY, light.energy])
 
 
-func test_ambient_texture_scale_is_large() -> void:
-	var light := manager.create_window_light(Vector2(64, 1100), "left")
+func test_muzzle_flash_energy_dominates_ambient() -> void:
+	var ambient := manager.create_map_ambient()
 
-	assert_true(light.ambient_texture_scale > light.texture_scale,
-		"Ambient glow should cover a larger area than primary light")
-	assert_true(light.ambient_texture_scale >= 5.0,
-		"Ambient glow texture scale should be >= 5.0 for corridor-wide effect")
+	assert_true(manager.MUZZLE_FLASH_ENERGY > ambient.energy * 50,
+		"Muzzle flash (%.1f) should be >50x stronger than ambient (%.2f)" % [
+			manager.MUZZLE_FLASH_ENERGY, ambient.energy])
 
 
-func test_ambient_shadows_disabled() -> void:
-	var light := manager.create_window_light(Vector2(64, 1100), "left")
+func test_total_window_light_energy_much_less_than_flash() -> void:
+	# Create all 11 window lights + 1 map ambient
+	var positions_and_sides: Array = [
+		[Vector2(64, 1100), "left"],
+		[Vector2(64, 1250), "left"],
+		[Vector2(64, 1750), "left"],
+		[Vector2(64, 1900), "left"],
+		[Vector2(700, 64), "top"],
+		[Vector2(900, 64), "top"],
+		[Vector2(1100, 64), "top"],
+		[Vector2(200, 2064), "bottom"],
+		[Vector2(400, 2064), "bottom"],
+		[Vector2(700, 2064), "bottom"],
+		[Vector2(1100, 2064), "bottom"],
+	]
+	for pair in positions_and_sides:
+		manager.create_window_light(pair[0], pair[1])
+	var ambient := manager.create_map_ambient()
 
-	assert_false(light.ambient_shadow_enabled,
-		"Ambient glow should have shadows disabled for gradual dissipation")
+	# Total energy: 11 primary lights (0.15 each) + 1 ambient (0.04) = 1.69
+	var total_energy: float = manager.get_light_count() * manager.LIGHT_ENERGY + ambient.energy
+	assert_true(total_energy < manager.MUZZLE_FLASH_ENERGY,
+		"Total window energy (%.2f) should be less than muzzle flash (%.1f)" % [
+			total_energy, manager.MUZZLE_FLASH_ENERGY])
 
 
 # ============================================================================
@@ -420,22 +509,22 @@ func test_all_window_positions_on_exterior_walls() -> void:
 
 
 # ============================================================================
-# Gradient Texture Tests
+# Constant Value Tests
 # ============================================================================
 
 
 func test_window_light_constant_values() -> void:
-	assert_eq(manager.LIGHT_ENERGY, 0.3,
-		"Light energy constant should be 0.3")
+	assert_eq(manager.LIGHT_ENERGY, 0.15,
+		"Light energy constant should be 0.15")
 	assert_eq(manager.LIGHT_TEXTURE_SCALE, 3.0,
 		"Light texture scale constant should be 3.0")
 
 
 func test_ambient_light_constant_values() -> void:
-	assert_eq(manager.AMBIENT_ENERGY, 0.08,
-		"Ambient energy constant should be 0.08")
-	assert_eq(manager.AMBIENT_TEXTURE_SCALE, 6.0,
-		"Ambient texture scale constant should be 6.0")
+	assert_eq(manager.AMBIENT_ENERGY, 0.04,
+		"Ambient energy constant should be 0.04")
+	assert_eq(manager.AMBIENT_TEXTURE_SCALE, 7.0,
+		"Ambient texture scale constant should be 7.0")
 
 
 func test_window_visual_color_is_blue() -> void:
@@ -531,17 +620,18 @@ func test_window_count_is_reasonable() -> void:
 		"Should have exactly %d window lights" % expected_count)
 
 
-func test_lights_per_sprite_within_limit() -> void:
+func test_total_light_nodes_within_limit() -> void:
+	# Total PointLight2D nodes: 11 primary + 1 map ambient = 12 total.
 	# Godot 2D renderer has a 15-light-per-sprite limit.
-	# Primary lights have shadow_enabled=true and texture_scale=3.0, so they
-	# only reach nearby sprites. Ambient lights have shadow_enabled=false and
-	# texture_scale=6.0 but very low energy. Worst case overlap near a corner
-	# is about 3-4 window lights, plus player lights and muzzle flash.
-	var max_overlapping_windows := 4  # Worst-case corner overlap estimate
-	var lights_per_window := 2  # primary + ambient
+	# Primary lights have shadows and texture_scale=3.0, so only a few overlap
+	# any given sprite. The single map ambient is just 1 additional light.
+	# Worst case near a corner: ~3 primary lights + 1 ambient + 2 player lights
+	# + 1 muzzle flash = 7, well under 15.
+	var max_overlapping_primaries := 3  # Worst-case corner overlap for primary
+	var map_ambient_count := 1  # Single map-wide ambient
 	var player_lights := 2  # visibility + flashlight
 	var muzzle_flash := 1  # weapon muzzle flash
-	var worst_case := max_overlapping_windows * lights_per_window + player_lights + muzzle_flash
+	var worst_case := max_overlapping_primaries + map_ambient_count + player_lights + muzzle_flash
 
 	assert_true(worst_case <= 15,
 		"Worst-case overlapping lights (%d) should be under Godot's 15-light-per-sprite limit" % worst_case)

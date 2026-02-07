@@ -67,25 +67,27 @@ against walls.
 
 ## Solution Design
 
-### Approach: Dual-Layer Window Light Sources
+### Approach: Primary Window Lights + Single Map-Wide Ambient
 
-Each window creates **two overlapping PointLight2D layers** to simulate how
-real moonlight enters a room and scatters:
+Each window creates ONE `PointLight2D` for the visible moonlight patch near
+the window, and a SINGLE map-wide ambient light covers the entire building
+for corridor outline visibility:
 
-1. **Primary "MoonLight"** — the visible moonlight patch near the window:
+1. **Per-window "MoonLight"** — the visible moonlight patch near the window:
    - Blue-tinted (`Color(0.4, 0.5, 0.9)`) to simulate cool moonlight
-   - Low energy (`0.3`), moderate spread (`texture_scale = 3.0`)
+   - Very low energy (`0.15`), moderate spread (`texture_scale = 3.0`)
    - **Shadows enabled** with PCF5 filter (`shadow_filter_smooth = 3.0`)
    - Shadow color `Color(0, 0, 0, 0.7)` for slightly soft shadow edges
    - Interior walls cast natural shadows, giving the light realistic shape
 
-2. **Ambient "AmbientGlow"** — extremely faint residual glow filling the corridor:
-   - Slightly deeper blue (`Color(0.35, 0.45, 0.85)`)
-   - Very low energy (`0.08`), larger spread (`texture_scale = 6.0`)
-   - Shadows disabled so it passes through interior walls for corridor-wide effect
+2. **Single "MapAmbientGlow"** — one PointLight2D covering the entire building:
+   - Subtle blue (`Color(0.35, 0.45, 0.85)`)
+   - Extremely faint energy (`0.04`), map-wide spread (`texture_scale = 7.0`)
+   - Shadows disabled so it provides uniform glow through all walls
+   - Centered at building center `(1264, 1064)`, radius covers full building
 
-Both layers use very gradual radial gradient textures so the light fades
-smoothly into darkness without a visible hard edge.
+This architecture eliminates visible square/circular light edges because the
+single ambient light is so large it extends well beyond the building boundaries.
 
 ### Design decisions and iteration history
 
@@ -98,12 +100,23 @@ to `0.6` primary + `0.25` ambient, increased texture_scale to `5.0` + `10.0`.
 Owner feedback: "too bright, shadows from windows should exist, weapon flash
 lights stopped working."
 
-**Iteration 3 (current):** Balanced approach — re-enabled shadows on primary layer
-with reduced energy (`0.3`) and smaller spread (`3.0`), kept ambient layer
-shadow-free but with very low energy (`0.08`). This ensures:
-- Interior walls cast proper shadows from moonlight
-- Total light energy is low enough that weapon muzzle flashes (energy `4.5`) remain visible
-- Faint ambient glow still makes corridor outlines barely visible beyond shadow edges
+**Iteration 3 (commit 9ce2ca2):** Re-enabled shadows on primary (`0.3` energy),
+very faint per-window ambient (`0.08` energy, `texture_scale = 6.0`).
+Owner feedback: "square edges of light still clearly visible, weapon flashes
+still not working."
+
+**Root cause of v3 failures:**
+- Per-window ambient lights had `texture_scale = 6.0` (coverage ~3072px diameter),
+  creating visible circular boundaries on a 2400x2000 map
+- 11 windows × 2 lights = 22 PointLight2D nodes, total energy = `11 × (0.3 + 0.08) = 4.18`
+  — nearly equal to muzzle flash energy (`4.5`), drowning out weapon effects
+
+**Iteration 4 (current):** Replaced per-window ambient with single map-wide ambient.
+- Primary energy halved from `0.3` to `0.15` (with shadows, realistic wall shapes)
+- Single map-wide ambient at `0.04` energy, `texture_scale = 7.0` (no visible edges)
+- Total energy: `11 × 0.15 + 0.04 = 1.69` — only 37% of muzzle flash energy (`4.5`)
+- Total PointLight2D count reduced from 22 to 12 (better performance)
+- Muzzle flash (energy `4.5`) is now ~2.7x the total ambient energy, clearly visible
 
 ### Window Light Placement
 
