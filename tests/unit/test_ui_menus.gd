@@ -696,6 +696,7 @@ func test_level_enemy_count() -> void:
 	assert_eq(levels_menu.get_enemy_count("Polygon"), 5)
 	assert_eq(levels_menu.get_enemy_count("Castle"), 15)
 	assert_eq(levels_menu.get_enemy_count("Tutorial"), 4)
+	assert_eq(levels_menu.get_enemy_count("Beach"), 8)
 
 
 func test_level_has_description() -> void:
