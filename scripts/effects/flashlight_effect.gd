@@ -9,7 +9,7 @@ extends Node2D
 ## with the player model to always point in the aiming direction.
 ##
 ## When the flashlight beam hits an enemy directly, the enemy is blinded
-## for a short duration (once per enemy per flashlight activation).
+## for 2 seconds. Each enemy has a 20-second cooldown before it can be blinded again.
 
 ## Light energy (brightness) when the flashlight is on.
 ## Bright white light — same level as flashbang (8.0) for clear visibility.
@@ -29,8 +29,11 @@ const BEAM_HALF_ANGLE_DEG: float = 9.0
 ## Capped at a practical gameplay distance.
 const BEAM_RANGE: float = 600.0
 
-## Duration of the blindness effect in seconds (200ms).
-const BLINDNESS_DURATION: float = 0.2
+## Duration of the blindness effect in seconds.
+const BLINDNESS_DURATION: float = 2.0
+
+## Cooldown in seconds before the same enemy can be blinded again.
+const BLINDNESS_COOLDOWN: float = 20.0
 
 ## Path to the flashlight toggle sound file.
 const FLASHLIGHT_SOUND_PATH: String = "res://assets/audio/звук включения и выключения фанарика.mp3"
@@ -47,8 +50,8 @@ var _is_on: bool = false
 ## AudioStreamPlayer for flashlight toggle sound.
 var _audio_player: AudioStreamPlayer = null
 
-## Set of enemy instance IDs already blinded during the current flashlight activation.
-## Reset when the flashlight is turned off.
+## Tracks when each enemy was last blinded (instance_id -> timestamp in msec).
+## Used to enforce the per-enemy cooldown period.
 var _blinded_enemies: Dictionary = {}
 
 
@@ -89,7 +92,6 @@ func turn_on() -> void:
 	if _is_on:
 		return
 	_is_on = true
-	_blinded_enemies.clear()
 	_set_light_visible(true)
 	_play_toggle_sound()
 
@@ -99,7 +101,6 @@ func turn_off() -> void:
 	if not _is_on:
 		return
 	_is_on = false
-	_blinded_enemies.clear()
 	_set_light_visible(false)
 	_play_toggle_sound()
 
@@ -123,16 +124,19 @@ func _physics_process(_delta: float) -> void:
 
 
 ## Check all enemies and blind those caught in the flashlight beam.
-## Each enemy is only blinded once per flashlight activation.
+## Each enemy can only be blinded once per cooldown period (20 seconds).
 func _check_enemies_in_beam() -> void:
 	var enemies := get_tree().get_nodes_in_group("enemies")
+	var current_time := Time.get_ticks_msec()
 	for enemy in enemies:
 		if not is_instance_valid(enemy) or not enemy is Node2D:
 			continue
 
 		var enemy_id := enemy.get_instance_id()
 		if _blinded_enemies.has(enemy_id):
-			continue
+			var elapsed := (current_time - _blinded_enemies[enemy_id]) / 1000.0
+			if elapsed < BLINDNESS_COOLDOWN:
+				continue
 
 		if _is_enemy_in_beam(enemy):
 			_blind_enemy(enemy)
@@ -174,7 +178,7 @@ func _has_line_of_sight_to(target: Node2D) -> bool:
 ## Apply blindness effect to an enemy via StatusEffectsManager.
 func _blind_enemy(enemy: Node2D) -> void:
 	var enemy_id := enemy.get_instance_id()
-	_blinded_enemies[enemy_id] = true
+	_blinded_enemies[enemy_id] = Time.get_ticks_msec()
 
 	FileLogger.info("[FlashlightEffect] Beam hit %s at distance %.0f, applying blindness for %.1fs" % [enemy.name, global_position.distance_to(enemy.global_position), BLINDNESS_DURATION])
 

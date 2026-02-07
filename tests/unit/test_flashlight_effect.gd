@@ -23,8 +23,11 @@ class MockFlashlightEffect:
 	## Maximum beam range for blinding.
 	const BEAM_RANGE: float = 600.0
 
-	## Blindness duration in seconds (200ms).
-	const BLINDNESS_DURATION: float = 0.2
+	## Blindness duration in seconds.
+	const BLINDNESS_DURATION: float = 2.0
+
+	## Cooldown in seconds before the same enemy can be blinded again.
+	const BLINDNESS_COOLDOWN: float = 20.0
 
 	## Collision mask for obstacles.
 	const OBSTACLE_COLLISION_MASK: int = 4
@@ -32,7 +35,7 @@ class MockFlashlightEffect:
 	## Whether the flashlight is on.
 	var _is_on: bool = false
 
-	## Tracks which enemies have been blinded this activation.
+	## Tracks when each enemy was last blinded (enemy_id -> timestamp in msec).
 	var _blinded_enemies: Dictionary = {}
 
 	## Global position of the flashlight.
@@ -47,23 +50,28 @@ class MockFlashlightEffect:
 	## Mock: tracks blindness applications for testing.
 	var blindness_applied: Array = []
 
+	## Mock: simulated current time in msec (for testing cooldowns).
+	var _mock_time_msec: int = 0
+
 	## Set mock line of sight.
 	func set_mock_line_of_sight(enabled: bool) -> void:
 		_mock_line_of_sight = enabled
+
+	## Set mock time (milliseconds).
+	func set_mock_time_msec(time_msec: int) -> void:
+		_mock_time_msec = time_msec
 
 	## Turn on the flashlight.
 	func turn_on() -> void:
 		if _is_on:
 			return
 		_is_on = true
-		_blinded_enemies.clear()
 
 	## Turn off the flashlight.
 	func turn_off() -> void:
 		if not _is_on:
 			return
 		_is_on = false
-		_blinded_enemies.clear()
 
 	## Check if the flashlight is on.
 	func is_on() -> bool:
@@ -98,14 +106,16 @@ class MockFlashlightEffect:
 			var enemy_position: Vector2 = enemy_data["position"]
 
 			if _blinded_enemies.has(enemy_id):
-				continue
+				var elapsed := (_mock_time_msec - _blinded_enemies[enemy_id]) / 1000.0
+				if elapsed < BLINDNESS_COOLDOWN:
+					continue
 
 			if _is_enemy_in_beam(enemy_position):
 				_blind_enemy(enemy_id)
 
 	## Apply blindness to an enemy.
 	func _blind_enemy(enemy_id: int) -> void:
-		_blinded_enemies[enemy_id] = true
+		_blinded_enemies[enemy_id] = _mock_time_msec
 		blindness_applied.append({
 			"enemy_id": enemy_id,
 			"duration": BLINDNESS_DURATION
@@ -142,9 +152,14 @@ func test_beam_range_is_600() -> void:
 		"Beam range should be 600 pixels")
 
 
-func test_blindness_duration_is_200ms() -> void:
-	assert_eq(flashlight.BLINDNESS_DURATION, 0.2,
-		"Blindness duration should be 0.2 seconds (200ms)")
+func test_blindness_duration_is_2_seconds() -> void:
+	assert_eq(flashlight.BLINDNESS_DURATION, 2.0,
+		"Blindness duration should be 2.0 seconds")
+
+
+func test_blindness_cooldown_is_20_seconds() -> void:
+	assert_eq(flashlight.BLINDNESS_COOLDOWN, 20.0,
+		"Blindness cooldown should be 20.0 seconds")
 
 
 func test_light_energy() -> void:
@@ -202,27 +217,27 @@ func test_turn_off_when_already_off() -> void:
 # ============================================================================
 
 
-func test_blinded_enemies_cleared_on_turn_on() -> void:
+func test_blinded_enemies_persist_across_toggle() -> void:
 	flashlight.turn_on()
-	# Simulate blinding an enemy
-	flashlight._blinded_enemies[123] = true
+	# Simulate blinding an enemy (stores timestamp)
+	flashlight._blinded_enemies[123] = 1000
 
 	# Turn off and on again
 	flashlight.turn_off()
 	flashlight.turn_on()
 
-	assert_true(flashlight.get_blinded_enemies().is_empty(),
-		"Blinded enemies should be cleared on new activation")
+	assert_true(flashlight.get_blinded_enemies().has(123),
+		"Blinded enemies should persist across toggle (time-based cooldown)")
 
 
-func test_blinded_enemies_cleared_on_turn_off() -> void:
+func test_blinded_enemies_not_cleared_on_turn_off() -> void:
 	flashlight.turn_on()
-	flashlight._blinded_enemies[123] = true
+	flashlight._blinded_enemies[123] = 1000
 
 	flashlight.turn_off()
 
-	assert_true(flashlight.get_blinded_enemies().is_empty(),
-		"Blinded enemies should be cleared when flashlight turns off")
+	assert_true(flashlight.get_blinded_enemies().has(123),
+		"Blinded enemies should not be cleared when flashlight turns off")
 
 
 # ============================================================================
@@ -406,27 +421,33 @@ func test_blind_enemy_records_blindness_application() -> void:
 		"Should record one blindness application")
 	assert_eq(flashlight.blindness_applied[0]["enemy_id"], 42,
 		"Should record correct enemy ID")
-	assert_eq(flashlight.blindness_applied[0]["duration"], 0.2,
-		"Should apply 200ms blindness duration")
+	assert_eq(flashlight.blindness_applied[0]["duration"], 2.0,
+		"Should apply 2 second blindness duration")
 
 
-func test_enemy_blinded_only_once_per_activation() -> void:
+func test_enemy_blinded_only_once_within_cooldown() -> void:
 	flashlight.turn_on()
+	flashlight.set_mock_time_msec(0)
 
 	var enemies := [
 		{"id": 1, "position": Vector2(300, 0)},
 	]
 
-	# Check twice
+	# First check blinds the enemy
 	flashlight.check_enemies(enemies)
-	flashlight.check_enemies(enemies)
-
 	assert_eq(flashlight.blindness_applied.size(), 1,
-		"Enemy should only be blinded once per activation")
+		"Enemy should be blinded on first check")
+
+	# Second check within cooldown should not blind again
+	flashlight.set_mock_time_msec(10000)  # 10 seconds later
+	flashlight.check_enemies(enemies)
+	assert_eq(flashlight.blindness_applied.size(), 1,
+		"Enemy should not be blinded again within 20s cooldown")
 
 
-func test_enemy_can_be_blinded_again_after_toggle() -> void:
+func test_enemy_can_be_blinded_again_after_cooldown() -> void:
 	flashlight.turn_on()
+	flashlight.set_mock_time_msec(0)
 
 	var enemies := [
 		{"id": 1, "position": Vector2(300, 0)},
@@ -435,17 +456,37 @@ func test_enemy_can_be_blinded_again_after_toggle() -> void:
 	flashlight.check_enemies(enemies)
 	assert_eq(flashlight.blindness_applied.size(), 1)
 
-	# Toggle off and on
+	# 20 seconds later — cooldown expired
+	flashlight.set_mock_time_msec(20000)
+	flashlight.check_enemies(enemies)
+	assert_eq(flashlight.blindness_applied.size(), 2,
+		"Enemy should be blinded again after 20s cooldown expires")
+
+
+func test_enemy_cannot_be_blinded_again_by_toggle_within_cooldown() -> void:
+	flashlight.turn_on()
+	flashlight.set_mock_time_msec(0)
+
+	var enemies := [
+		{"id": 1, "position": Vector2(300, 0)},
+	]
+
+	flashlight.check_enemies(enemies)
+	assert_eq(flashlight.blindness_applied.size(), 1)
+
+	# Toggle off and on within cooldown
 	flashlight.turn_off()
 	flashlight.turn_on()
 
+	flashlight.set_mock_time_msec(5000)  # Only 5 seconds later
 	flashlight.check_enemies(enemies)
-	assert_eq(flashlight.blindness_applied.size(), 2,
-		"Enemy should be blinded again after flashlight re-activation")
+	assert_eq(flashlight.blindness_applied.size(), 1,
+		"Enemy should NOT be blinded again by toggle within cooldown")
 
 
 func test_multiple_enemies_blinded_independently() -> void:
 	flashlight.turn_on()
+	flashlight.set_mock_time_msec(0)
 
 	var enemies := [
 		{"id": 1, "position": Vector2(300, 0)},
@@ -462,6 +503,7 @@ func test_multiple_enemies_blinded_independently() -> void:
 func test_enemies_outside_beam_not_blinded() -> void:
 	flashlight.turn_on()
 	flashlight.global_rotation = 0.0
+	flashlight.set_mock_time_msec(0)
 
 	var enemies := [
 		{"id": 1, "position": Vector2(300, 0)},     # In beam
@@ -479,6 +521,7 @@ func test_enemies_outside_beam_not_blinded() -> void:
 
 func test_no_blinding_when_flashlight_off() -> void:
 	# Flashlight stays off
+	flashlight.set_mock_time_msec(0)
 
 	var enemies := [
 		{"id": 1, "position": Vector2(300, 0)},
@@ -497,6 +540,7 @@ func test_no_blinding_when_flashlight_off() -> void:
 
 func test_no_enemies_in_scene() -> void:
 	flashlight.turn_on()
+	flashlight.set_mock_time_msec(0)
 
 	flashlight.check_enemies([])
 
@@ -507,6 +551,7 @@ func test_no_enemies_in_scene() -> void:
 func test_enemy_at_different_positions_over_time() -> void:
 	flashlight.turn_on()
 	flashlight.global_rotation = 0.0
+	flashlight.set_mock_time_msec(0)
 
 	# Enemy starts outside beam
 	var enemies := [{"id": 1, "position": Vector2(-300, 0)}]
@@ -520,16 +565,18 @@ func test_enemy_at_different_positions_over_time() -> void:
 	assert_eq(flashlight.blindness_applied.size(), 1,
 		"Enemy that moved into beam should be blinded")
 
-	# Enemy stays in beam (should not be blinded again)
+	# Enemy stays in beam (should not be blinded again within cooldown)
+	flashlight.set_mock_time_msec(5000)
 	flashlight.check_enemies(enemies)
 	assert_eq(flashlight.blindness_applied.size(), 1,
-		"Enemy should not be blinded again during same activation")
+		"Enemy should not be blinded again within cooldown")
 
 
 func test_flashlight_at_offset_position() -> void:
 	flashlight.global_position = Vector2(500, 300)
 	flashlight.global_rotation = 0.0
 	flashlight.turn_on()
+	flashlight.set_mock_time_msec(0)
 
 	var enemies := [
 		{"id": 1, "position": Vector2(800, 300)},  # 300 pixels to the right
@@ -545,6 +592,7 @@ func test_wall_blocks_blinding() -> void:
 	flashlight.turn_on()
 	flashlight.global_rotation = 0.0
 	flashlight.set_mock_line_of_sight(false)
+	flashlight.set_mock_time_msec(0)
 
 	var enemies := [
 		{"id": 1, "position": Vector2(300, 0)},
