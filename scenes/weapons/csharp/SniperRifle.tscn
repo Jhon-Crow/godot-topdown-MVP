@@ -1,0 +1,20 @@
+[gd_scene load_steps=5 format=3 uid="uid://dk7m4n9r3p5q3"]
+
+[ext_resource type="Script" path="res://Scripts/Weapons/SniperRifle.cs" id="1_sniper_rifle"]
+[ext_resource type="PackedScene" uid="uid://dk9m4n7r3p5q8" path="res://scenes/projectiles/csharp/SniperBullet.tscn" id="2_bullet"]
+[ext_resource type="PackedScene" uid="uid://casing_scene" path="res://scenes/effects/Casing.tscn" id="3_casing"]
+[ext_resource type="Resource" uid="uid://bk7m4n9r3p5q2" path="res://resources/weapons/SniperRifleData.tres" id="4_weapon_data"]
+[ext_resource type="Texture2D" path="res://assets/sprites/weapons/asvk_topdown.png" id="5_rifle_sprite"]
+
+[node name="SniperRifle" type="Node2D"]
+script = ExtResource("1_sniper_rifle")
+WeaponData = ExtResource("4_weapon_data")
+BulletScene = ExtResource("2_bullet")
+CasingScene = ExtResource("3_casing")
+BulletSpawnOffset = 60.0
+StartingMagazineCount = 4
+
+[node name="RifleSprite" type="Sprite2D" parent="."]
+z_index = 1
+texture = ExtResource("5_rifle_sprite")
+offset = Vector2(25, 0)

@@ -82,6 +82,9 @@ var _frozen_shrapnel: Array = []
 ## List of explosion visual effects (PointLight2D) frozen during time freeze.
 var _frozen_explosion_effects: Array = []
 
+## List of explosion visual effect containers (Node2D with flashbang/explosion scripts) frozen during time freeze (Issue #505).
+var _frozen_explosion_visuals: Array = []
+
 ## Original process mode of the player (to restore after effect).
 var _player_original_process_mode: Node.ProcessMode = Node.PROCESS_MODE_INHERIT
 
@@ -588,6 +591,16 @@ func _freeze_node_except_player(node: Node) -> void:
 			_freeze_node_except_player(child)
 		return
 
+	# Issue #505: Check if this Node2D is an explosion visual effect (flashbang_effect.gd, explosion_flash.gd)
+	# These need to be frozen to pause their fade-out animation and keep the flash visible
+	if node is Node2D:
+		var node2d_script: Script = node.get_script()
+		if node2d_script != null:
+			var node2d_script_path: String = node2d_script.resource_path
+			if "flashbang_effect" in node2d_script_path.to_lower() or "explosion_flash" in node2d_script_path.to_lower():
+				_freeze_explosion_visual(node as Node2D)
+				return
+
 	# For container nodes (Node2D, Node, Control, etc.), DON'T set to DISABLED
 	# Just recurse into children to find actual freezable nodes
 	# This preserves the physics tree structure and allows collision detection to work
@@ -734,6 +747,9 @@ func _unfreeze_time() -> void:
 
 	# Unfreeze any explosion visual effects that were frozen during the time freeze
 	_unfreeze_explosion_effects()
+
+	# Unfreeze any explosion visual effect containers that were frozen during the time freeze (Issue #505)
+	_unfreeze_explosion_visuals()
 
 
 ## Restores all stored original process modes.
@@ -1133,6 +1149,39 @@ func _unfreeze_explosion_effects() -> void:
 	_frozen_explosion_effects.clear()
 
 
+## Freezes an explosion visual effect container (Node2D with flashbang/explosion script) (Issue #505).
+## This pauses the container's _process() which controls the light fade-out animation,
+## keeping the flash visible while time is frozen.
+func _freeze_explosion_visual(visual: Node2D) -> void:
+	if visual in _frozen_explosion_visuals:
+		return
+
+	_frozen_explosion_visuals.append(visual)
+
+	# Store original process mode for restoration
+	_original_process_modes[visual] = visual.process_mode
+
+	# Disable processing to pause the fade-out animation
+	visual.process_mode = Node.PROCESS_MODE_DISABLED
+
+	_log("Registered frozen explosion visual: %s" % visual.name)
+
+
+## Unfreezes all explosion visual effect containers that were frozen during time freeze (Issue #505).
+func _unfreeze_explosion_visuals() -> void:
+	for visual in _frozen_explosion_visuals:
+		if is_instance_valid(visual):
+			# Restore process mode to allow fade-out animation to continue
+			if visual in _original_process_modes:
+				visual.process_mode = _original_process_modes[visual]
+			else:
+				visual.process_mode = Node.PROCESS_MODE_INHERIT
+
+			_log("Unfroze explosion visual: %s" % visual.name)
+
+	_frozen_explosion_visuals.clear()
+
+
 ## Resets memory for all enemies when the last chance effect ends (Issue #318).
 ## This ensures enemies don't know where the player moved during the time freeze,
 ## treating the player's movement as a "teleport" they couldn't observe.
@@ -1177,12 +1226,24 @@ func _on_node_added_during_freeze(node: Node) -> void:
 				_freeze_casing(node as RigidBody2D)
 				return
 
-	# Check if this is an explosion visual effect (PointLight2D)
+	# Check if this is an explosion visual effect (PointLight2D or Node2D with effect script)
 	# Grenade explosions create PointLight2D nodes that should also freeze
 	if node is PointLight2D:
 		_log("Freezing newly created explosion effect: %s" % node.name)
 		_freeze_explosion_effect(node as PointLight2D)
 		return
+
+	# Issue #505: Also freeze Node2D explosion effect containers (flashbang_effect.gd, explosion_flash.gd)
+	# These are Node2D parents with PointLight2D children - their _process() fades the light,
+	# so we need to freeze them to keep the flash visible while time is frozen
+	if node is Node2D:
+		var node_script: Script = node.get_script()
+		if node_script != null:
+			var node_script_path: String = node_script.resource_path
+			if "flashbang_effect" in node_script_path.to_lower() or "explosion_flash" in node_script_path.to_lower():
+				_log("Freezing newly created explosion visual effect (Node2D): %s" % node.name)
+				_freeze_explosion_visual(node as Node2D)
+				return
 
 	# Check if this is a bullet or shrapnel (Area2D with relevant script or name)
 	if not node is Area2D:
@@ -1268,6 +1329,7 @@ func reset_effects() -> void:
 	_frozen_casings.clear()
 	_frozen_shrapnel.clear()
 	_frozen_explosion_effects.clear()
+	_frozen_explosion_visuals.clear()
 	_original_process_modes.clear()
 	_player_original_colors.clear()
 	_player_was_invulnerable = false

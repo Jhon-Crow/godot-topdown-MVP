@@ -287,6 +287,8 @@ func _setup_player_tracking() -> void:
 	if weapon == null:
 		weapon = _player.get_node_or_null("SilencedPistol")
 	if weapon == null:
+		weapon = _player.get_node_or_null("SniperRifle")
+	if weapon == null:
 		weapon = _player.get_node_or_null("AssaultRifle")
 	if weapon != null:
 		# C# Player with weapon - connect to weapon signals
@@ -375,6 +377,34 @@ func _configure_silenced_pistol_ammo(weapon: Node) -> void:
 		if weapon.has_method("GetMagazineAmmoCounts"):
 			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
 			_update_magazines_label(mag_counts)
+
+
+## Configure weapon ammo for Castle level - 2x ammo for all weapons.
+func _configure_castle_weapon_ammo(weapon: Node) -> void:
+	if weapon == null:
+		return
+
+	# Get the default starting magazine count (usually 4)
+	var starting_magazines: int = 4
+	if weapon.get("StartingMagazineCount") != null:
+		starting_magazines = weapon.StartingMagazineCount
+
+	# Double the magazine count for Castle level
+	var castle_magazines: int = starting_magazines * 2
+
+	# Use ReinitializeMagazines to set the new magazine count
+	if weapon.has_method("ReinitializeMagazines"):
+		weapon.ReinitializeMagazines(castle_magazines, true)
+		print("[CastleLevel] Doubled ammo for %s: %d magazines (was %d)" % [weapon.name, castle_magazines, starting_magazines])
+
+		# Update UI to reflect new ammo counts
+		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
+			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
+		if weapon.has_method("GetMagazineAmmoCounts"):
+			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
+			_update_magazines_label(mag_counts)
+	else:
+		push_warning("[CastleLevel] Weapon %s doesn't have ReinitializeMagazines method" % weapon.name)
 
 
 ## Setup debug UI elements for kills and accuracy.
@@ -888,6 +918,9 @@ func _setup_selected_weapon() -> void:
 			elif _player.get("CurrentWeapon") != null:
 				_player.CurrentWeapon = shotgun
 
+			# Configure 2x ammo for Castle level
+			_configure_castle_weapon_ammo(shotgun)
+
 			print("CastleLevel: Shotgun equipped successfully")
 		else:
 			push_error("CastleLevel: Failed to load Shotgun scene!")
@@ -908,9 +941,8 @@ func _setup_selected_weapon() -> void:
 			elif _player.get("CurrentWeapon") != null:
 				_player.CurrentWeapon = mini_uzi
 
-			if mini_uzi.has_method("AddMagazine"):
-				mini_uzi.AddMagazine()
-				print("CastleLevel: Added extra Mini UZI magazine")
+			# Configure 2x ammo for Castle level (replaces the single AddMagazine call)
+			_configure_castle_weapon_ammo(mini_uzi)
 
 			print("CastleLevel: Mini UZI equipped successfully")
 		else:
@@ -932,9 +964,33 @@ func _setup_selected_weapon() -> void:
 			elif _player.get("CurrentWeapon") != null:
 				_player.CurrentWeapon = pistol
 
+			# Configure 2x ammo for Castle level
+			_configure_castle_weapon_ammo(pistol)
+
 			print("CastleLevel: Silenced Pistol equipped successfully")
 		else:
 			push_error("CastleLevel: Failed to load SilencedPistol scene!")
+	# If Sniper Rifle (ASVK) is selected, swap weapons
+	elif selected_weapon_id == "sniper":
+		var assault_rifle = _player.get_node_or_null("AssaultRifle")
+		if assault_rifle:
+			assault_rifle.queue_free()
+			print("CastleLevel: Removed default AssaultRifle")
+
+		var sniper_scene = load("res://scenes/weapons/csharp/SniperRifle.tscn")
+		if sniper_scene:
+			var sniper = sniper_scene.instantiate()
+			sniper.name = "SniperRifle"
+			_player.add_child(sniper)
+
+			if _player.has_method("EquipWeapon"):
+				_player.EquipWeapon(sniper)
+			elif _player.get("CurrentWeapon") != null:
+				_player.CurrentWeapon = sniper
+
+			print("CastleLevel: ASVK Sniper Rifle equipped successfully")
+		else:
+			push_error("CastleLevel: Failed to load SniperRifle scene!")
 	else:
 		var assault_rifle = _player.get_node_or_null("AssaultRifle")
 		if assault_rifle and _player.get("CurrentWeapon") == null:
@@ -942,6 +998,9 @@ func _setup_selected_weapon() -> void:
 				_player.EquipWeapon(assault_rifle)
 			elif _player.get("CurrentWeapon") != null:
 				_player.CurrentWeapon = assault_rifle
+
+			# Configure 2x ammo for Castle level (M16/AssaultRifle)
+			_configure_castle_weapon_ammo(assault_rifle)
 
 
 ## Log a message to the file logger if available.
