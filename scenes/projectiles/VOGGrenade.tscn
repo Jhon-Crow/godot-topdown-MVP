@@ -1,0 +1,35 @@
+[gd_scene load_steps=4 format=3 uid="uid://cvoggrenade3n2k1"]
+
+[ext_resource type="Script" path="res://scripts/projectiles/vog_grenade.gd" id="1_vog"]
+[ext_resource type="Texture2D" uid="uid://cfrag7qx4h3k5m2" path="res://assets/sprites/weapons/frag_grenade.png" id="2_texture"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_grenade"]
+radius = 6.0
+
+[node name="VOGGrenade" type="RigidBody2D"]
+collision_layer = 32
+collision_mask = 6
+continuous_cd = 1
+gravity_scale = 0.0
+linear_damp = 0.0
+script = ExtResource("1_vog")
+fuse_time = 4.0
+max_throw_speed = 1500.0
+min_throw_speed = 100.0
+drag_to_speed_multiplier = 2.0
+grenade_mass = 0.28
+mouse_velocity_to_throw_multiplier = 0.5
+min_swing_distance = 220.0
+ground_friction = 280.0
+sound_range_multiplier = 2.0
+effect_radius = 337.0
+shrapnel_count = 8
+shrapnel_spread_deviation = 25.0
+explosion_damage = 99
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_grenade")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+scale = Vector2(0.8, 0.8)
+texture = ExtResource("2_texture")
