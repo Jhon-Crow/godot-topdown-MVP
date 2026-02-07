@@ -106,8 +106,9 @@ class MockFlashlightEffect:
 			var enemy_position: Vector2 = enemy_data["position"]
 
 			if _blinded_enemies.has(enemy_id):
-				var elapsed := (_mock_time_msec - _blinded_enemies[enemy_id]) / 1000.0
-				if elapsed < BLINDNESS_COOLDOWN:
+				var last_blinded: int = int(_blinded_enemies[enemy_id])
+				var elapsed_sec: float = float(_mock_time_msec - last_blinded) / 1000.0
+				if elapsed_sec < BLINDNESS_COOLDOWN:
 					continue
 
 			if _is_enemy_in_beam(enemy_position):

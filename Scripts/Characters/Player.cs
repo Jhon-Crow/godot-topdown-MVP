@@ -596,6 +596,27 @@ public partial class Player : BaseCharacter
     /// </summary>
     private Node2D? _flashlightNode = null;
 
+    /// <summary>
+    /// Whether the GDScript methods (turn_on/turn_off) are available on the flashlight node.
+    /// If false, C# directly controls the PointLight2D as a fallback.
+    /// </summary>
+    private bool _flashlightHasScript = false;
+
+    /// <summary>
+    /// Direct reference to the PointLight2D child (used as fallback when GDScript not loaded).
+    /// </summary>
+    private PointLight2D? _flashlightPointLight = null;
+
+    /// <summary>
+    /// Whether the flashlight is currently on (tracked in C# for fallback mode).
+    /// </summary>
+    private bool _flashlightIsOn = false;
+
+    /// <summary>
+    /// Light energy when the flashlight is on (matches flashlight_effect.gd LIGHT_ENERGY).
+    /// </summary>
+    private const float FlashlightEnergy = 8.0f;
+
     #endregion
 
     public override void _Ready()
@@ -3636,6 +3657,24 @@ public partial class Player : BaseCharacter
             _flashlightNode.Position = new Vector2(BulletSpawnOffset, 0);
             _flashlightEquipped = true;
             LogToFile($"[Player.Flashlight] Flashlight equipped and attached to PlayerModel at offset ({(int)BulletSpawnOffset}, 0)");
+
+            // Check if GDScript methods are available
+            _flashlightHasScript = _flashlightNode.HasMethod("turn_on");
+            LogToFile($"[Player.Flashlight] GDScript methods available: {_flashlightHasScript}");
+
+            // Get direct reference to PointLight2D for fallback control
+            _flashlightPointLight = _flashlightNode.GetNodeOrNull<PointLight2D>("PointLight2D");
+            if (_flashlightPointLight != null)
+            {
+                // Start with light off
+                _flashlightPointLight.Visible = false;
+                _flashlightPointLight.Energy = 0.0f;
+                LogToFile($"[Player.Flashlight] PointLight2D found, shadow={_flashlightPointLight.ShadowEnabled}");
+            }
+            else
+            {
+                LogToFile("[Player.Flashlight] WARNING: PointLight2D child not found in flashlight scene");
+            }
         }
         else
         {
@@ -3647,6 +3686,7 @@ public partial class Player : BaseCharacter
 
     /// <summary>
     /// Handle flashlight input: hold Space to turn on, release to turn off.
+    /// Uses GDScript methods when available, falls back to direct PointLight2D control.
     /// </summary>
     private void HandleFlashlightInput()
     {
@@ -3662,16 +3702,36 @@ public partial class Player : BaseCharacter
 
         if (Input.IsActionPressed("flashlight_toggle"))
         {
-            if (_flashlightNode.HasMethod("turn_on"))
+            if (_flashlightHasScript)
             {
                 _flashlightNode.Call("turn_on");
+            }
+            else if (!_flashlightIsOn)
+            {
+                // C# fallback: directly control PointLight2D
+                _flashlightIsOn = true;
+                if (_flashlightPointLight != null)
+                {
+                    _flashlightPointLight.Visible = true;
+                    _flashlightPointLight.Energy = FlashlightEnergy;
+                }
             }
         }
         else
         {
-            if (_flashlightNode.HasMethod("turn_off"))
+            if (_flashlightHasScript)
             {
                 _flashlightNode.Call("turn_off");
+            }
+            else if (_flashlightIsOn)
+            {
+                // C# fallback: directly control PointLight2D
+                _flashlightIsOn = false;
+                if (_flashlightPointLight != null)
+                {
+                    _flashlightPointLight.Visible = false;
+                    _flashlightPointLight.Energy = 0.0f;
+                }
             }
         }
     }
@@ -3688,9 +3748,9 @@ public partial class Player : BaseCharacter
             return false;
         if (!IsInstanceValid(_flashlightNode))
             return false;
-        if (_flashlightNode.HasMethod("is_on"))
+        if (_flashlightHasScript && _flashlightNode.HasMethod("is_on"))
             return (bool)_flashlightNode.Call("is_on");
-        return false;
+        return _flashlightIsOn;
     }
 
     /// <summary>

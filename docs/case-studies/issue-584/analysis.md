@@ -72,11 +72,35 @@ The flashlight beam detection ran every physics frame but produced no log output
 | Debug label status | `enemy.gd` | Show `{BLINDED}` / `{STUNNED}` in F7 debug label |
 | Beam hit logging | `flashlight_effect.gd` | Log enemy name, distance, duration when beam blinds an enemy |
 
+## Iteration 2: Flashlight Stopped Working (2s Duration / 20s Cooldown Update)
+
+### User Report
+After the 2s duration / 20s cooldown update (commit `b2cfb72`), user reported "фонарик перестал работать" (flashlight stopped working) — the flashlight light itself was no longer turning on when pressing Space.
+
+### Analysis of game_log_20260207_212501.txt
+
+Key finding: **Zero `[FlashlightEffect]` log messages** in the entire 1436-line game log. In previous logs (185021, 185352), `[FlashlightEffect] PointLight2D found, energy=0.0, shadow=true` appeared every time the scene loaded. This means the GDScript `flashlight_effect.gd`'s `_ready()` function never executed.
+
+The C# Player.cs `InitFlashlight()` successfully loaded and attached the FlashlightEffect scene (log shows `[Player.Flashlight] Flashlight equipped and attached to PlayerModel`), but the GDScript on the scene node did not run. Since `HandleFlashlightInput()` checked `HasMethod("turn_on")` before calling it, and this returned `false` when the GDScript wasn't loaded, pressing Space silently did nothing.
+
+### Root Cause
+
+The game uses a C# Player (`Player.cs`) that loads the GDScript-based `FlashlightEffect.tscn` scene. The flashlight control depended entirely on GDScript methods (`turn_on`, `turn_off`, `is_on`) being available via `HasMethod` + `Call`. When the GDScript failed to load in the exported build (possibly due to type inference issues with Variant dictionary access introduced in the cooldown logic), the C# code had no fallback and silently failed.
+
+### Fix
+
+1. **C# fallback**: Added direct PointLight2D control in `Player.cs` when GDScript methods are unavailable. The C# code now gets a direct reference to the `PointLight2D` child node and toggles it directly.
+2. **Diagnostic logging**: Added `_flashlightHasScript` tracking and log messages so future issues are immediately visible in game logs.
+3. **GDScript type safety**: Added explicit type annotations in `_check_enemies_in_beam()` to prevent potential type inference issues with Dictionary Variant access.
+
 ## Data Files
 
 - `logs/game_log_20260207_185021.txt` - First test session (4 min, ~6000 lines)
 - `logs/game_log_20260207_185352.txt` - Second test session (3 min, ~17000 lines)
+- `logs/game_log_20260207_212501.txt` - Third test session, flashlight broken (32s, 1436 lines)
 
-## Key Takeaway
+## Key Takeaways
 
-The core blinding logic (cone geometry, range check, line-of-sight, per-activation tracking) was correct from the start. The problem was purely in the feedback layer: the user couldn't see the effect because (a) the visual tint failed silently due to wrong sprite path, and (b) there was no debug indicator. This highlights the importance of always verifying visual feedback works in the actual game scene structure, not just in unit tests with mock nodes.
+1. The core blinding logic was correct from the start. The initial problem was purely in the feedback layer.
+2. Cross-language dependencies (C# calling GDScript methods) should always have fallback mechanisms. Silent failures from `HasMethod` returning `false` are very hard to diagnose without explicit logging.
+3. When a C# node loads a GDScript scene, always verify the script loaded by checking `HasMethod` and logging the result immediately.

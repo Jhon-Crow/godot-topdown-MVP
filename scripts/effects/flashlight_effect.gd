@@ -127,15 +127,16 @@ func _physics_process(_delta: float) -> void:
 ## Each enemy can only be blinded once per cooldown period (20 seconds).
 func _check_enemies_in_beam() -> void:
 	var enemies := get_tree().get_nodes_in_group("enemies")
-	var current_time := Time.get_ticks_msec()
+	var current_time: int = Time.get_ticks_msec()
 	for enemy in enemies:
 		if not is_instance_valid(enemy) or not enemy is Node2D:
 			continue
 
-		var enemy_id := enemy.get_instance_id()
+		var enemy_id: int = enemy.get_instance_id()
 		if _blinded_enemies.has(enemy_id):
-			var elapsed := (current_time - _blinded_enemies[enemy_id]) / 1000.0
-			if elapsed < BLINDNESS_COOLDOWN:
+			var last_blinded: int = int(_blinded_enemies[enemy_id])
+			var elapsed_sec: float = float(current_time - last_blinded) / 1000.0
+			if elapsed_sec < BLINDNESS_COOLDOWN:
 				continue
 
 		if _is_enemy_in_beam(enemy):
