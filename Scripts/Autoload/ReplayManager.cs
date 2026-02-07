@@ -169,6 +169,12 @@ namespace GodotTopDownTemplate.Autoload
         /// <summary>Previous player health for penultimate hit detection during replay.</summary>
         private float _prevPlayerHealth = 100.0f;
 
+        /// <summary>Last applied frame index for ensuring skipped frame events are played.</summary>
+        private int _lastAppliedFrame = -1;
+
+        /// <summary>Previous grenade count for detecting grenade explosions.</summary>
+        private int _prevGrenadeCount;
+
         /// <summary>Previous positions for trail tracking.</summary>
         private Vector2 _prevPlayerPos;
         private readonly List<Vector2> _prevEnemyPositions = new();
@@ -200,6 +206,7 @@ namespace GodotTopDownTemplate.Autoload
             public List<EnemyFrameData> Enemies = new();
             public List<ProjectileFrameData> Bullets = new();
             public List<GrenadeFrameData> Grenades = new();
+            public List<SoundEvent> Events = new();
         }
 
         private class EnemyFrameData
@@ -212,6 +219,7 @@ namespace GodotTopDownTemplate.Autoload
             public bool Alive = true;
             public bool Shooting;
             public Vector2 LastHitDirection = Vector2.Right;
+            public float Health = 10.0f;
         }
 
         private class ProjectileFrameData
@@ -225,6 +233,14 @@ namespace GodotTopDownTemplate.Autoload
             public Vector2 Position;
             public float Rotation;
             public string TexturePath = "";
+        }
+
+        /// <summary>Sound/gameplay event recorded per frame for replay playback.</summary>
+        private class SoundEvent
+        {
+            public enum SoundType { Shot, Death, Hit, PlayerDeath, PlayerHit, PenultimateHit, GrenadeExplosion }
+            public SoundType Type;
+            public Vector2 Position;
         }
 
         /// <summary>Recorded impact event for Memory mode reproduction.</summary>
@@ -396,6 +412,8 @@ namespace GodotTopDownTemplate.Autoload
             _enemyTrailPositions.Clear();
             _prevPlayerPos = _frames.Count > 0 ? _frames[0].PlayerPosition : Vector2.Zero;
             _prevPlayerHealth = _frames.Count > 0 ? _frames[0].PlayerHealth : 100.0f;
+            _lastAppliedFrame = -1;
+            _prevGrenadeCount = 0;
             _prevEnemyPositions.Clear();
 
             CreateGhostEntities(level);
@@ -717,7 +735,7 @@ namespace GodotTopDownTemplate.Autoload
             if (_trailUpdateTimer < TrailUpdateInterval) return;
             _trailUpdateTimer = 0.0f;
 
-            // Update player trail
+            // Update player trail — clear trail when standing still
             if (frame.PlayerAlive)
             {
                 float playerSpeed = (frame.PlayerPosition - _prevPlayerPos).Length();
@@ -726,6 +744,10 @@ namespace GodotTopDownTemplate.Autoload
                     _playerTrailPositions.Insert(0, frame.PlayerPosition);
                     if (_playerTrailPositions.Count > TrailSegments)
                         _playerTrailPositions.RemoveAt(_playerTrailPositions.Count - 1);
+                }
+                else
+                {
+                    _playerTrailPositions.Clear();
                 }
                 _prevPlayerPos = frame.PlayerPosition;
             }
@@ -748,6 +770,10 @@ namespace GodotTopDownTemplate.Autoload
                         _enemyTrailPositions[i].Insert(0, data.Position);
                         if (_enemyTrailPositions[i].Count > TrailSegments)
                             _enemyTrailPositions[i].RemoveAt(_enemyTrailPositions[i].Count - 1);
+                    }
+                    else
+                    {
+                        _enemyTrailPositions[i].Clear();
                     }
                     _prevEnemyPositions[i] = data.Position;
                 }
@@ -887,9 +913,9 @@ namespace GodotTopDownTemplate.Autoload
         {
             if (_levelNode == null || !IsInstanceValid(_levelNode)) return;
 
-            // Scan for blood decals in the scene tree (they're in "blood_decals" group or
-            // are BloodDecal nodes under the level)
-            var bloodDecals = _levelNode.GetTree().GetNodesInGroup("blood_decals");
+            // Scan for blood decals in the scene tree (they're in "blood_puddle" group,
+            // matching the group used in blood_decal.gd)
+            var bloodDecals = _levelNode.GetTree().GetNodesInGroup("blood_puddle");
             // Record each new blood decal position as an impact event
             // We track by count — if new decals appear, record them
             int currentCount = bloodDecals.Count;
@@ -1077,6 +1103,17 @@ namespace GodotTopDownTemplate.Autoload
                     if (isShootingVar.VariantType != Variant.Type.Nil)
                         enemyData.Shooting = (bool)isShootingVar;
 
+                    // Record enemy health for hit detection
+                    var enemyHealthVar = enemy.Get("_current_health");
+                    if (enemyHealthVar.VariantType != Variant.Type.Nil)
+                        enemyData.Health = (float)(double)enemyHealthVar;
+                    else
+                    {
+                        var enemyHealthCs = enemy.Get("CurrentHealth");
+                        if (enemyHealthCs.VariantType != Variant.Type.Nil)
+                            enemyData.Health = (float)enemyHealthCs;
+                    }
+
                     frame.Enemies.Add(enemyData);
                 }
                 else
@@ -1125,6 +1162,9 @@ namespace GodotTopDownTemplate.Autoload
             // Record blood decals for Memory mode
             RecordNewBloodDecals();
 
+            // Record sound events by detecting state changes
+            RecordSoundEvents(frame);
+
             _frames.Add(frame);
         }
 
@@ -1139,6 +1179,99 @@ namespace GodotTopDownTemplate.Autoload
                     count++;
             }
             return count;
+        }
+
+        /// <summary>
+        /// Records sound events by comparing the current frame to the previous frame.
+        /// Detects shots, hits, deaths, and grenade explosions.
+        /// </summary>
+        private void RecordSoundEvents(FrameData frame)
+        {
+            if (_frames.Count == 0) return;
+            var prevFrame = _frames[^1];
+
+            // Detect new bullets (shot event)
+            if (frame.Bullets.Count > prevFrame.Bullets.Count)
+            {
+                for (int i = prevFrame.Bullets.Count; i < frame.Bullets.Count; i++)
+                {
+                    frame.Events.Add(new SoundEvent
+                    {
+                        Type = SoundEvent.SoundType.Shot,
+                        Position = frame.Bullets[i].Position
+                    });
+                }
+            }
+
+            // Detect enemy deaths and hits
+            int enemyCount = Mathf.Min(frame.Enemies.Count, prevFrame.Enemies.Count);
+            for (int i = 0; i < enemyCount; i++)
+            {
+                if (prevFrame.Enemies[i].Alive && !frame.Enemies[i].Alive)
+                {
+                    frame.Events.Add(new SoundEvent
+                    {
+                        Type = SoundEvent.SoundType.Death,
+                        Position = frame.Enemies[i].Position
+                    });
+                }
+                else if (frame.Enemies[i].Alive && prevFrame.Enemies[i].Alive &&
+                         frame.Enemies[i].Health < prevFrame.Enemies[i].Health)
+                {
+                    frame.Events.Add(new SoundEvent
+                    {
+                        Type = SoundEvent.SoundType.Hit,
+                        Position = frame.Enemies[i].Position
+                    });
+                }
+            }
+
+            // Detect player death
+            if (prevFrame.PlayerAlive && !frame.PlayerAlive)
+            {
+                frame.Events.Add(new SoundEvent
+                {
+                    Type = SoundEvent.SoundType.PlayerDeath,
+                    Position = frame.PlayerPosition
+                });
+            }
+
+            // Detect player hit (health decreased but alive)
+            if (frame.PlayerAlive && prevFrame.PlayerAlive &&
+                frame.PlayerHealth < prevFrame.PlayerHealth)
+            {
+                frame.Events.Add(new SoundEvent
+                {
+                    Type = SoundEvent.SoundType.PlayerHit,
+                    Position = frame.PlayerPosition
+                });
+            }
+
+            // Detect penultimate hit (health drops to <= 1 HP)
+            if (frame.PlayerAlive && frame.PlayerHealth <= 1.0f &&
+                frame.PlayerHealth > 0.0f && prevFrame.PlayerHealth > 1.0f)
+            {
+                frame.Events.Add(new SoundEvent
+                {
+                    Type = SoundEvent.SoundType.PenultimateHit,
+                    Position = frame.PlayerPosition
+                });
+            }
+
+            // Detect grenade explosions (grenade count decreased)
+            if (frame.Grenades.Count < prevFrame.Grenades.Count)
+            {
+                // Grenades that were present in previous frame but gone now have exploded
+                // Use the previous positions of grenades that disappeared
+                for (int i = frame.Grenades.Count; i < prevFrame.Grenades.Count; i++)
+                {
+                    frame.Events.Add(new SoundEvent
+                    {
+                        Type = SoundEvent.SoundType.GrenadeExplosion,
+                        Position = prevFrame.Grenades[i].Position
+                    });
+                }
+            }
         }
 
         // ============================================================
@@ -1175,6 +1308,16 @@ namespace GodotTopDownTemplate.Autoload
             while (_playbackFrame < _frames.Count - 1 && _frames[_playbackFrame + 1].Time <= _playbackTime)
                 _playbackFrame++;
 
+            // Play events for all frames we may have skipped over
+            if (_playbackFrame > _lastAppliedFrame)
+            {
+                for (int fi = Mathf.Max(_lastAppliedFrame + 1, 0); fi <= _playbackFrame && fi < _frames.Count; fi++)
+                {
+                    PlayFrameEvents(_frames[fi]);
+                }
+                _lastAppliedFrame = _playbackFrame;
+            }
+
             ApplyFrame(_frames[_playbackFrame], delta);
         }
 
@@ -1201,11 +1344,7 @@ namespace GodotTopDownTemplate.Autoload
                     SpawnMuzzleFlash(frame.PlayerPosition, frame.PlayerModelRotation);
                 }
 
-                // Detect penultimate hit moment: player health dropped to <= 1 HP
-                if (frame.PlayerHealth <= 1.0f && frame.PlayerHealth > 0.0f && _prevPlayerHealth > 1.0f)
-                {
-                    TriggerReplayPenultimateEffect();
-                }
+                // Penultimate hit effect is triggered via PlayFrameEvents sound events
                 _prevPlayerHealth = frame.PlayerHealth;
             }
 
@@ -1243,8 +1382,7 @@ namespace GodotTopDownTemplate.Autoload
                         }
                     }
 
-                    // Trigger hit visual effect (saturation boost without time slowdown)
-                    TriggerReplayHitEffect();
+                    // Hit visual effect is triggered via PlayFrameEvents sound events
                 }
 
                 if (i < _ghostEnemyDeathTimers.Count && _ghostEnemyDeathTimers[i] > 0.0f)
@@ -1803,7 +1941,7 @@ namespace GodotTopDownTemplate.Autoload
             // In Memory mode, hide existing blood decals (they'll be re-created progressively)
             if (_currentMode == ReplayMode.Memory)
             {
-                var bloodDecals = level.GetTree().GetNodesInGroup("blood_decals");
+                var bloodDecals = level.GetTree().GetNodesInGroup("blood_puddle");
                 foreach (var decal in bloodDecals)
                 {
                     if (decal is Node2D d2d)
@@ -2055,7 +2193,7 @@ namespace GodotTopDownTemplate.Autoload
             }
 
             // Re-show blood decals that were hidden for Memory mode
-            var bloodDecals = _levelNode.GetTree().GetNodesInGroup("blood_decals");
+            var bloodDecals = _levelNode.GetTree().GetNodesInGroup("blood_puddle");
             foreach (var decal in bloodDecals)
             {
                 if (decal is Node2D d2d)
@@ -2100,6 +2238,126 @@ namespace GodotTopDownTemplate.Autoload
                         break;
                 }
             }
+        }
+
+        // ============================================================
+        // Sound event playback and grenade explosion effects
+        // ============================================================
+
+        /// <summary>
+        /// Plays sound events and visual effects for a frame during replay playback.
+        /// Triggers AudioManager sounds and visual effects without modifying Engine.TimeScale.
+        /// </summary>
+        private void PlayFrameEvents(FrameData frame)
+        {
+            if (frame.Events.Count == 0) return;
+
+            var audioManager = GetNodeOrNull("/root/AudioManager");
+
+            foreach (var evt in frame.Events)
+            {
+                switch (evt.Type)
+                {
+                    case SoundEvent.SoundType.Shot:
+                        if (audioManager != null && audioManager.HasMethod("play_m16_shot"))
+                            audioManager.Call("play_m16_shot", evt.Position);
+                        break;
+
+                    case SoundEvent.SoundType.Death:
+                        if (audioManager != null && audioManager.HasMethod("play_hit_lethal"))
+                            audioManager.Call("play_hit_lethal", evt.Position);
+                        TriggerReplayHitEffect();
+                        break;
+
+                    case SoundEvent.SoundType.Hit:
+                        if (audioManager != null && audioManager.HasMethod("play_hit_non_lethal"))
+                            audioManager.Call("play_hit_non_lethal", evt.Position);
+                        TriggerReplayHitEffect();
+                        break;
+
+                    case SoundEvent.SoundType.PlayerDeath:
+                        if (audioManager != null && audioManager.HasMethod("play_hit_lethal"))
+                            audioManager.Call("play_hit_lethal", evt.Position);
+                        break;
+
+                    case SoundEvent.SoundType.PlayerHit:
+                        if (audioManager != null && audioManager.HasMethod("play_hit_non_lethal"))
+                            audioManager.Call("play_hit_non_lethal", evt.Position);
+                        break;
+
+                    case SoundEvent.SoundType.PenultimateHit:
+                        TriggerReplayPenultimateEffect();
+                        break;
+
+                    case SoundEvent.SoundType.GrenadeExplosion:
+                        if (audioManager != null && audioManager.HasMethod("play_flashbang_explosion"))
+                            audioManager.Call("play_flashbang_explosion", evt.Position, false);
+                        SpawnExplosionFlash(evt.Position);
+                        break;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Spawns a brief explosion flash at the given position during replay.
+        /// Uses PointLight2D with shadow support for wall occlusion.
+        /// </summary>
+        private void SpawnExplosionFlash(Vector2 position)
+        {
+            if (_levelNode == null || !IsInstanceValid(_levelNode)) return;
+            var ghostContainer = _levelNode.GetNodeOrNull<Node2D>("ReplayGhosts");
+            if (ghostContainer == null) return;
+
+            // Try to use the actual explosion flash scene
+            var explosionScene = GD.Load<PackedScene>("res://scenes/effects/ExplosionFlash.tscn");
+            if (explosionScene != null)
+            {
+                var flash = explosionScene.Instantiate<Node2D>();
+                flash.ProcessMode = ProcessModeEnum.Always;
+                flash.GlobalPosition = position;
+                ghostContainer.AddChild(flash);
+                return;
+            }
+
+            // Fallback: create a PointLight2D flash manually
+            var flashNode = new PointLight2D();
+            flashNode.Name = "ExplosionFlash";
+            flashNode.ProcessMode = ProcessModeEnum.Always;
+            flashNode.GlobalPosition = position;
+            flashNode.Color = new Color(1.0f, 0.9f, 0.5f, 1.0f);
+            flashNode.Energy = 3.0f;
+            flashNode.TextureScale = 4.0f;
+            flashNode.ShadowEnabled = true;
+
+            // Create a radial gradient texture for the light
+            var texture = new GradientTexture2D();
+            texture.Width = 128;
+            texture.Height = 128;
+            texture.Fill = GradientTexture2D.FillEnum.Radial;
+            texture.FillFrom = new Vector2(0.5f, 0.5f);
+            texture.FillTo = new Vector2(1.0f, 0.5f);
+            var gradient = new Gradient();
+            gradient.SetColor(0, Colors.White);
+            gradient.SetColor(1, new Color(1.0f, 1.0f, 1.0f, 0.0f));
+            texture.Gradient = gradient;
+            flashNode.Texture = texture;
+
+            ghostContainer.AddChild(flashNode);
+
+            // Schedule cleanup after 0.3 seconds using a timer
+            var cleanupTimer = new Godot.Timer();
+            cleanupTimer.WaitTime = 0.3;
+            cleanupTimer.OneShot = true;
+            cleanupTimer.ProcessMode = ProcessModeEnum.Always;
+            cleanupTimer.Timeout += () =>
+            {
+                if (IsInstanceValid(flashNode))
+                    flashNode.QueueFree();
+                if (IsInstanceValid(cleanupTimer))
+                    cleanupTimer.QueueFree();
+            };
+            ghostContainer.AddChild(cleanupTimer);
+            cleanupTimer.Start();
         }
 
         // ============================================================

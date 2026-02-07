@@ -211,3 +211,44 @@ double savedTimeScale = Engine.TimeScale;  // Correct: matches Engine.TimeScale'
 ### CI Logs
 
 - `ci-build-failure-21778354821.log` - Full build log from the failed Windows Export workflow run
+
+## Round 5: User Feedback - Missing Sounds, Effects, and Blood (2026-02-07)
+
+After the Round 4 CI fix, the repository owner tested again and reported these remaining issues:
+
+1. **Trail shows when player is standing still** — Trail should only appear when the player is moving
+2. **No grenade effects** — Grenades just disappear without any explosion visual
+3. **No sounds during replay** — Shot, hit, death, and grenade explosion sounds are completely absent
+4. **Blood and casings not being added progressively** — Blood decals not appearing during replay
+
+### Root Cause Analysis (Round 5)
+
+| Issue | Root Cause |
+|-------|-----------|
+| Trail when standing | `UpdateTrails()` only checked `playerSpeed > 5.0f` for adding new trail positions, but never **cleared** existing trail positions when the player stopped moving. Old trail segments lingered visually. |
+| No grenade effects | The C# ReplayManager had no grenade explosion detection. When a grenade disappeared between frames (count decreased), no visual or audio effect was triggered. |
+| No sounds | The C# ReplayManager was completely missing the sound event recording and playback system. Unlike the GDScript version which has `_record_sound_events()` and `_play_frame_events()`, the C# version never recorded `SoundEvent` objects and had no code to call AudioManager during playback. |
+| Blood not progressive | **Critical bug:** `RecordNewBloodDecals()` scanned for nodes in group `"blood_decals"`, but blood decals in `blood_decal.gd` are actually added to the `"blood_puddle"` group (line 38: `add_to_group("blood_puddle")`). The wrong group name meant zero blood decals were ever recorded, so none could be replayed. |
+
+### Fixes Applied (Round 5)
+
+| Fix | Description |
+|-----|-------------|
+| Trail when standing | Clear `_playerTrailPositions` and `_enemyTrailPositions[i]` when entity speed is ≤ 5.0px (standing still), so trail disappears immediately when movement stops |
+| Grenade explosion visual | Added `SpawnExplosionFlash()` method that loads `ExplosionFlash.tscn` (or creates a PointLight2D fallback) at the last known grenade position when a grenade disappears between frames |
+| Sound event recording | Added `SoundEvent` class with types: Shot, Death, Hit, PlayerDeath, PlayerHit, PenultimateHit, GrenadeExplosion. Added `RecordSoundEvents()` method that detects events by comparing consecutive frames: bullet count increase → Shot, enemy alive→dead → Death, enemy health decrease → Hit, grenade count decrease → GrenadeExplosion |
+| Sound event playback | Added `PlayFrameEvents()` method that calls appropriate AudioManager methods (`play_m16_shot`, `play_hit_lethal`, `play_hit_non_lethal`, `play_flashbang_explosion`) for each recorded event. Also triggers visual effects (TriggerReplayHitEffect, TriggerReplayPenultimateEffect, SpawnExplosionFlash) |
+| Enemy health recording | Added `EnemyFrameData.Health` field recorded from `_current_health` GDScript property, enabling hit detection via health decrease comparison instead of color flash detection |
+| Skipped frame events | Added `_lastAppliedFrame` tracking to ensure events from skipped frames (during fast playback) are still played |
+| Blood group name | Changed `GetNodesInGroup("blood_decals")` to `GetNodesInGroup("blood_puddle")` to match the actual group name used in `blood_decal.gd` |
+
+### Data Files
+
+- `game_log_20260207_144632.txt` - Game log from owner's second testing session showing round 5 replay issues
+
+## Lessons Learned (Round 5)
+
+10. **Verify group names against source code** — The blood decal group name mismatch (`"blood_decals"` vs `"blood_puddle"`) caused zero blood decals to be recorded. Always verify group names by reading the actual script that adds nodes to groups.
+11. **Clear state when conditions change** — Trail positions must be cleared when the entity stops, not just stop being added to. Old state lingers otherwise.
+12. **Record events as they happen, play them back at the right time** — Sound events should be recorded frame-by-frame during gameplay and replayed during playback, including handling of skipped frames during fast playback.
+13. **Detect explosions via count decrease** — Grenade explosions can be detected by comparing grenade counts between consecutive frames. When the count decreases, the disappearing grenades have exploded at their last known positions.
