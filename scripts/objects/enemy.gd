@@ -3862,22 +3862,22 @@ func _shoot() -> void:
 	ammo_changed.emit(_current_ammo, _reserve_ammo)
 	if _current_ammo <= 0 and _reserve_ammo > 0: _start_reload()
 
-## Spawn a projectile. Issue #457: Use SetDirection() for C# to sync visual rotation.
-func _spawn_projectile(direction: Vector2, spawn_pos: Vector2) -> void:
-	var p := bullet_scene.instantiate(); p.global_position = spawn_pos
-	if p.has_method("SetDirection"): p.SetDirection(direction)  # Issue #457 fix
-	elif p.get("direction") != null: p.direction = direction
-	elif p.get("Direction") != null: p.Direction = direction
-	if p.get("shooter_id") != null: p.shooter_id = get_instance_id()
-	elif p.get("ShooterId") != null: p.ShooterId = get_instance_id()
-	if p.get("shooter_position") != null: p.shooter_position = spawn_pos
-	elif p.get("ShooterPosition") != null: p.ShooterPosition = spawn_pos
-	get_tree().current_scene.add_child(p)
+## Spawn a projectile. add_child first so C# _Ready() runs before setting props (Issue #550).
+func _spawn_projectile(dir: Vector2, pos: Vector2) -> void:
+	var p := bullet_scene.instantiate(); p.global_position = pos; get_tree().current_scene.add_child(p)
+	if p.has_method("SetDirection"): p.SetDirection(dir)
+	elif p.get("direction") != null: p.direction = dir
+	elif p.get("Direction") != null: p.Direction = dir
+	var sid := get_instance_id()
+	if p.has_method("SetShooterId"): p.SetShooterId(sid)
+	elif p.get("shooter_id") != null: p.shooter_id = sid
+	elif p.get("ShooterId") != null: p.ShooterId = sid
+	if p.has_method("SetShooterPosition"): p.SetShooterPosition(pos)
+	elif p.get("shooter_position") != null: p.shooter_position = pos
+	elif p.get("ShooterPosition") != null: p.ShooterPosition = pos
 
 ## Shoot a single bullet (rifle/UZI).
-func _shoot_single_bullet(direction: Vector2, spawn_pos: Vector2) -> void:
-	_spawn_projectile(direction, spawn_pos)
-
+func _shoot_single_bullet(direction: Vector2, spawn_pos: Vector2) -> void: _spawn_projectile(direction, spawn_pos)
 ## Shoot multiple pellets with spread (shotgun - like player's Shotgun.cs).
 func _shoot_shotgun_pellets(base_direction: Vector2, spawn_pos: Vector2) -> void:
 	var count: int = randi_range(_pellet_count_min, _pellet_count_max)
