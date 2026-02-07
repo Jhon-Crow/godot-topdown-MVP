@@ -1,0 +1,19 @@
+[gd_scene load_steps=5 format=3 uid="uid://dp7m4k9r3p5q9"]
+
+[ext_resource type="Script" path="res://Scripts/Weapons/MakarovPM.cs" id="1_makarov_pm"]
+[ext_resource type="PackedScene" uid="uid://dm5n8k7r3p9q2" path="res://scenes/projectiles/Bullet9mm.tscn" id="2_bullet"]
+[ext_resource type="PackedScene" uid="uid://casing_scene" path="res://scenes/effects/Casing.tscn" id="3_casing"]
+[ext_resource type="Resource" uid="uid://cm8n5k7r3p2q5" path="res://resources/weapons/MakarovPMData.tres" id="4_weapon_data"]
+[ext_resource type="Texture2D" uid="uid://makarov_pm_topdown" path="res://assets/sprites/weapons/makarov_pm_topdown.png" id="5_sprite"]
+
+[node name="MakarovPM" type="Node2D"]
+script = ExtResource("1_makarov_pm")
+WeaponData = ExtResource("4_weapon_data")
+BulletScene = ExtResource("2_bullet")
+CasingScene = ExtResource("3_casing")
+BulletSpawnOffset = 28.0
+
+[node name="MakarovSprite" type="Sprite2D" parent="."]
+z_index = 1
+texture = ExtResource("5_sprite")
+offset = Vector2(9, 0)

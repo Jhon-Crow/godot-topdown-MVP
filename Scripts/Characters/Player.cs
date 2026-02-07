@@ -724,7 +724,12 @@ public partial class Player : BaseCharacter
         // Auto-equip weapon if not set but a weapon child exists
         if (CurrentWeapon == null)
         {
-            CurrentWeapon = GetNodeOrNull<BaseWeapon>("AssaultRifle");
+            // Try MakarovPM first (default starting weapon), then AssaultRifle for backward compatibility
+            CurrentWeapon = GetNodeOrNull<BaseWeapon>("MakarovPM");
+            if (CurrentWeapon == null)
+            {
+                CurrentWeapon = GetNodeOrNull<BaseWeapon>("AssaultRifle");
+            }
             if (CurrentWeapon != null)
             {
                 GD.Print($"[Player] {Name}: Auto-equipped weapon {CurrentWeapon.Name}");
@@ -1265,11 +1270,12 @@ public partial class Player : BaseCharacter
         var detectedType = WeaponType.Rifle;  // Default to rifle pose
 
         // Check for weapon children - weapons are added directly to player by level scripts
-        // Check in order of specificity: SniperRifle, MiniUzi (SMG), Shotgun, SilencedPistol, then default to Rifle
+        // Check in order of specificity: SniperRifle, MiniUzi (SMG), Shotgun, SilencedPistol, MakarovPM, then default to Rifle
         var sniperRifle = GetNodeOrNull<BaseWeapon>("SniperRifle");
         var miniUzi = GetNodeOrNull<BaseWeapon>("MiniUzi");
         var shotgun = GetNodeOrNull<BaseWeapon>("Shotgun");
         var silencedPistol = GetNodeOrNull<BaseWeapon>("SilencedPistol");
+        var makarovPM = GetNodeOrNull<BaseWeapon>("MakarovPM");
 
         if (sniperRifle != null)
         {
@@ -1290,6 +1296,11 @@ public partial class Player : BaseCharacter
         {
             detectedType = WeaponType.Pistol;
             LogToFile("[Player] Detected weapon: Silenced Pistol (Pistol pose)");
+        }
+        else if (makarovPM != null)
+        {
+            detectedType = WeaponType.Pistol;
+            LogToFile("[Player] Detected weapon: Makarov PM (Pistol pose)");
         }
         else
         {
@@ -1955,9 +1966,9 @@ public partial class Player : BaseCharacter
 
         // Get selected weapon ID from GameManager (GDScript autoload)
         var selectedWeaponId = gameManager.Call("get_selected_weapon").AsString();
-        if (string.IsNullOrEmpty(selectedWeaponId) || selectedWeaponId == "m16")
+        if (string.IsNullOrEmpty(selectedWeaponId) || selectedWeaponId == "makarov_pm")
         {
-            // Default weapon (AssaultRifle) - already equipped, nothing to do
+            // Default weapon (MakarovPM) - already equipped, nothing to do
             return;
         }
 
@@ -1966,6 +1977,10 @@ public partial class Player : BaseCharacter
         string weaponNodeName;
         switch (selectedWeaponId)
         {
+            case "m16":
+                scenePath = "res://scenes/weapons/csharp/AssaultRifle.tscn";
+                weaponNodeName = "AssaultRifle";
+                break;
             case "shotgun":
                 scenePath = "res://scenes/weapons/csharp/Shotgun.tscn";
                 weaponNodeName = "Shotgun";
@@ -1982,6 +1997,10 @@ public partial class Player : BaseCharacter
                 scenePath = "res://scenes/weapons/csharp/SniperRifle.tscn";
                 weaponNodeName = "SniperRifle";
                 break;
+            case "makarov_pm":
+                scenePath = "res://scenes/weapons/csharp/MakarovPM.tscn";
+                weaponNodeName = "MakarovPM";
+                break;
             default:
                 LogToFile($"[Player.Weapon] Unknown weapon ID '{selectedWeaponId}', keeping default");
                 return;
@@ -1989,13 +2008,13 @@ public partial class Player : BaseCharacter
 
         LogToFile($"[Player.Weapon] GameManager weapon selection: {selectedWeaponId} ({weaponNodeName})");
 
-        // Remove the default AssaultRifle immediately
-        var assaultRifle = GetNodeOrNull<BaseWeapon>("AssaultRifle");
-        if (assaultRifle != null)
+        // Remove the default MakarovPM immediately
+        var defaultWeapon = GetNodeOrNull<BaseWeapon>("MakarovPM");
+        if (defaultWeapon != null)
         {
-            RemoveChild(assaultRifle);
-            assaultRifle.QueueFree();
-            LogToFile("[Player.Weapon] Removed default AssaultRifle");
+            RemoveChild(defaultWeapon);
+            defaultWeapon.QueueFree();
+            LogToFile("[Player.Weapon] Removed default MakarovPM");
         }
         CurrentWeapon = null;
 

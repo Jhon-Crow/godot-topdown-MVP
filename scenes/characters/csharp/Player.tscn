@@ -1,7 +1,7 @@
 [gd_scene load_steps=16 format=3 uid="uid://dv8nq2vj5r7p2"]
 
 [ext_resource type="Script" path="res://Scripts/Characters/Player.cs" id="1_player"]
-[ext_resource type="PackedScene" uid="uid://c5q8m3x7n2k1p" path="res://scenes/weapons/csharp/AssaultRifle.tscn" id="2_assault_rifle"]
+[ext_resource type="PackedScene" uid="uid://dp7m4k9r3p5q9" path="res://scenes/weapons/csharp/MakarovPM.tscn" id="2_makarov_pm"]
 [ext_resource type="Script" path="res://scripts/objects/hit_area.gd" id="3_hit_area"]
 [ext_resource type="Script" path="res://scripts/components/threat_sphere.gd" id="4_threat_sphere"]
 [ext_resource type="Texture2D" path="res://assets/sprites/characters/player/player_body.png" id="5_body"]
@@ -73,7 +73,7 @@ limit_smoothed = true
 position_smoothing_enabled = true
 position_smoothing_speed = 5.0
 
-[node name="AssaultRifle" parent="." instance=ExtResource("2_assault_rifle")]
+[node name="MakarovPM" parent="." instance=ExtResource("2_makarov_pm")]
 position = Vector2(0, 6)
 
 [node name="HitArea" type="Area2D" parent="."]
