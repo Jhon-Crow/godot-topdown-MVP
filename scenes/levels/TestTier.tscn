@@ -1,9 +1,10 @@
-[gd_scene load_steps=29 format=3 uid="uid://d3kv7pm5r2aub"]
+[gd_scene load_steps=30 format=3 uid="uid://d3kv7pm5r2aub"]
 
 [ext_resource type="Script" path="res://scripts/levels/test_tier.gd" id="1_test_tier"]
 [ext_resource type="PackedScene" uid="uid://dv8nq2vj5r7p2" path="res://scenes/characters/csharp/Player.tscn" id="2_player"]
 [ext_resource type="PackedScene" uid="uid://dxqmk8f3nw5pe" path="res://scenes/ui/PauseMenu.tscn" id="4_pause_menu"]
 [ext_resource type="PackedScene" uid="uid://cx5m8np6u3bwd" path="res://scenes/objects/Enemy.tscn" id="5_enemy"]
+[ext_resource type="Script" path="res://Scripts/Components/LevelInitFallback.cs" id="6_fallback"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_wall_horizontal_long"]
 size = Vector2(4064, 32)
@@ -1575,3 +1576,6 @@ offset_bottom = 45.0
 text = "AMMO: 30/30"
 
 [node name="PauseMenu" parent="." instance=ExtResource("4_pause_menu")]
+
+[node name="LevelInitFallback" type="Node" parent="."]
+script = ExtResource("6_fallback")
