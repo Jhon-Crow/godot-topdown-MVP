@@ -2405,11 +2405,8 @@ func _shoot_with_inaccuracy() -> void:
 	var weapon_forward := _get_weapon_forward_direction()
 	var bullet_spawn_pos := _get_bullet_spawn_position(weapon_forward)
 
-	# Use enemy center (not muzzle) for aim check to fix close-range issues (Issue #344)
 	var to_target := (target_position - global_position).normalized()
-
-	# Check if weapon is aimed at target (within tolerance)
-	# Bullets fly in barrel direction, so we only shoot when properly aimed (issue #254)
+	# Check if weapon is aimed at target within tolerance (Issue #254, #344)
 	var aim_dot := weapon_forward.dot(to_target)
 	if aim_dot < AIM_TOLERANCE_DOT:
 		if debug_logging:
@@ -2460,11 +2457,8 @@ func _shoot_burst_shot() -> void:
 	var weapon_forward := _get_weapon_forward_direction()
 	var bullet_spawn_pos := _get_bullet_spawn_position(weapon_forward)
 
-	# Use enemy center (not muzzle) for aim check to fix close-range issues (Issue #344)
 	var to_target := (target_position - global_position).normalized()
-
-	# Check if weapon is aimed at target (within tolerance)
-	# Bullets fly in barrel direction, so we only shoot when properly aimed (issue #254)
+	# Check if weapon is aimed at target within tolerance (Issue #254, #344)
 	var aim_dot := weapon_forward.dot(to_target)
 	if aim_dot < AIM_TOLERANCE_DOT:
 		if debug_logging:
@@ -3047,21 +3041,19 @@ func _find_sidestep_direction_for_clear_shot(direction_to_player: Vector2) -> Ve
 
 ## Check if the enemy should shoot at the target (bullet spawn, friendly fire, cover).
 func _should_shoot_at_target(target_position: Vector2) -> bool:
-	# Check if the immediate path to bullet spawn is clear
-	# This prevents shooting into walls the enemy is flush against
-	# Use weapon forward direction since that's where bullets actually spawn and travel
+	# Snipers shoot through walls (hitscan with wall penetration), skip obstacle checks
+	if _is_sniper:
+		return _is_firing_line_clear_of_friendlies(target_position)
+	# Check if bullet spawn is clear (not blocked by wall enemy is flush against)
 	var weapon_direction := _get_weapon_forward_direction()
 	if not _is_bullet_spawn_clear(weapon_direction):
 		return false
-
 	# Check if friendlies are in the way
 	if not _is_firing_line_clear_of_friendlies(target_position):
 		return false
-
 	# Check if cover blocks the shot
 	if not _is_shot_clear_of_cover(target_position):
 		return false
-
 	return true
 
 ## Check if the player is close (within CLOSE_COMBAT_DISTANCE).
@@ -3877,11 +3869,8 @@ func _shoot() -> void:
 	var weapon_forward := _get_weapon_forward_direction()
 	var bullet_spawn_pos := _get_bullet_spawn_position(weapon_forward)
 
-	# Use enemy center (not muzzle) for aim check to fix close-range issues (Issue #344)
 	var to_target := (target_position - global_position).normalized()
-
-	# Check if weapon is aimed at target (within tolerance)
-	# Bullets fly in barrel direction, so we only shoot when properly aimed (issue #254)
+	# Check if weapon is aimed at target within tolerance (Issue #254, #344)
 	var aim_dot := weapon_forward.dot(to_target)
 	if aim_dot < AIM_TOLERANCE_DOT:
 		if debug_logging:
@@ -3936,7 +3925,6 @@ func _shoot_single_bullet(direction: Vector2, spawn_pos: Vector2) -> void:
 	var spread := _initial_spread if _shot_count <= _spread_threshold else minf(_initial_spread + (_shot_count - _spread_threshold) * _spread_increment, _max_spread)
 	if spread > 0.0: direction = direction.rotated(randf_range(-deg_to_rad(spread), deg_to_rad(spread)))
 	_spawn_projectile(direction, spawn_pos)
-
 
 ## Shoot multiple pellets with spread (shotgun - like player's Shotgun.cs).
 func _shoot_shotgun_pellets(base_direction: Vector2, spawn_pos: Vector2) -> void:
@@ -4000,7 +3988,6 @@ func _process_sniper_combat_state(delta: float) -> void:
 
 func _process_sniper_in_cover_state(_delta: float) -> void:
 	SniperComponent.process_in_cover_state(self)
-
 
 ## Calculate lead prediction - aims where the player will be based on velocity.
 func _calculate_lead_prediction() -> Vector2:
@@ -4854,7 +4841,6 @@ func set_stunned(stunned: bool) -> void:
 func is_blinded() -> bool: return _is_blinded
 func is_stunned() -> bool: return _is_stunned
 
-
 ## Apply flashbang effect (Issue #432). Called by C# GrenadeTimer.
 func apply_flashbang_effect(blindness_duration: float, stun_duration: float) -> void:
 	_log_to_file("Flashbang: blind=%.1fs, stun=%.1fs" % [blindness_duration, stun_duration])
@@ -4869,7 +4855,6 @@ func _update_flashbang_timers(delta: float) -> void:
 	if _stun_timer > 0.0:
 		_stun_timer -= delta
 		if _stun_timer <= 0.0: _stun_timer = 0.0; set_stunned(false)
-
 
 # Grenade System (Issue #363) - Component-based (extracted for Issue #377)
 

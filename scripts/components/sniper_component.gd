@@ -183,6 +183,7 @@ static func create_laser() -> Line2D:
 	laser.end_cap_mode = Line2D.LINE_CAP_ROUND
 	laser.points = PackedVector2Array([Vector2.ZERO, Vector2(500, 0)])
 	laser.z_index = 5
+	laser.top_level = true  # Use global coordinates to avoid parent rotation double-transform
 	# Make unshaded for visibility in dark mode
 	var mat := CanvasItemMaterial.new()
 	mat.light_mode = CanvasItemMaterial.LIGHT_MODE_UNSHADED
@@ -190,7 +191,7 @@ static func create_laser() -> Line2D:
 	return laser
 
 
-## Update sniper laser sight position and direction.
+## Update sniper laser sight position and direction (global coordinates since top_level=true).
 static func update_laser(laser: Line2D, enemy: Node2D, weapon_forward: Vector2,
 		muzzle_offset: Vector2, hitscan_range_val: float) -> void:
 	if laser == null:
@@ -206,15 +207,15 @@ static func update_laser(laser: Line2D, enemy: Node2D, weapon_forward: Vector2,
 
 	var laser_end: Vector2
 	if result:
-		laser_end = result["position"] - enemy.global_position
+		laser_end = result["position"]
 	else:
-		laser_end = muzzle_offset + weapon_forward * hitscan_range_val
+		laser_end = end_pos
 
-	laser.points = PackedVector2Array([muzzle_offset, laser_end])
+	laser.points = PackedVector2Array([start, laser_end])
 
 
 ## Process sniper-specific COMBAT state.
-## Snipers stay in place, aim slowly, and shoot. If suppressed, retreat to cover.
+## Snipers stay in place, aim slowly, and shoot. Retreat to cover if under fire or player too close.
 static func process_combat_state(enemy: Node2D, delta: float) -> void:
 	enemy._combat_state_timer += delta
 	enemy.velocity = Vector2.ZERO  # Snipers don't move during combat
@@ -223,6 +224,14 @@ static func process_combat_state(enemy: Node2D, delta: float) -> void:
 	if enemy._under_fire and enemy.enable_cover:
 		enemy._transition_to_seeking_cover()
 		return
+
+	# Proactively retreat to cover if player is within 1 viewport distance (snipers keep distance)
+	if enemy._can_see_player and enemy._player and enemy.enable_cover:
+		var dist := enemy.global_position.distance_to(enemy._player.global_position)
+		var vp_size := enemy.get_viewport_rect().size.length()
+		if dist < vp_size:
+			enemy._transition_to_seeking_cover()
+			return
 
 	# Can't see player - shoot at last known/suspected position through walls
 	if not enemy._can_see_player:
@@ -252,11 +261,20 @@ static func process_combat_state(enemy: Node2D, delta: float) -> void:
 static func process_in_cover_state(enemy: Node2D) -> void:
 	enemy.velocity = Vector2.ZERO
 
-	# If flanked and under fire, find new cover
+	# If flanked and under fire, find new cover farther away
 	if enemy._is_visible_from_player() and enemy._under_fire:
 		enemy._has_valid_cover = false
 		enemy._transition_to_seeking_cover()
 		return
+
+	# Proactively find new cover if player is too close (within 1 viewport)
+	if enemy._player:
+		var dist := enemy.global_position.distance_to(enemy._player.global_position)
+		var vp_size := enemy.get_viewport_rect().size.length()
+		if dist < vp_size:
+			enemy._has_valid_cover = false
+			enemy._transition_to_seeking_cover()
+			return
 
 	# Can see player directly - shoot
 	if enemy._can_see_player and enemy._player:
