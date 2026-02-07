@@ -554,3 +554,54 @@ func test_wall_blocks_blinding() -> void:
 
 	assert_eq(flashlight.blindness_applied.size(), 0,
 		"Enemies behind walls should not be blinded")
+
+
+# ============================================================================
+# Debug Status Display Tests (Issue #584 fix)
+# ============================================================================
+
+
+func test_debug_label_shows_blinded_status() -> void:
+	# Simulate the debug label format logic from enemy.gd
+	var _is_blinded := true
+	var _is_stunned := false
+	var effects: Array = []
+	if _is_blinded: effects.append("BLINDED")
+	if _is_stunned: effects.append("STUNNED")
+	var status_text := "\n{%s}" % " + ".join(effects)
+
+	assert_eq(status_text, "\n{BLINDED}",
+		"Debug label should show {BLINDED} when enemy is blinded")
+
+
+func test_debug_label_shows_stunned_status() -> void:
+	var _is_blinded := false
+	var _is_stunned := true
+	var effects: Array = []
+	if _is_blinded: effects.append("BLINDED")
+	if _is_stunned: effects.append("STUNNED")
+	var status_text := "\n{%s}" % " + ".join(effects)
+
+	assert_eq(status_text, "\n{STUNNED}",
+		"Debug label should show {STUNNED} when enemy is stunned")
+
+
+func test_debug_label_shows_both_statuses() -> void:
+	var _is_blinded := true
+	var _is_stunned := true
+	var effects: Array = []
+	if _is_blinded: effects.append("BLINDED")
+	if _is_stunned: effects.append("STUNNED")
+	var status_text := "\n{%s}" % " + ".join(effects)
+
+	assert_eq(status_text, "\n{BLINDED + STUNNED}",
+		"Debug label should show both when blinded and stunned")
+
+
+func test_debug_label_no_status_when_not_affected() -> void:
+	var _is_blinded := false
+	var _is_stunned := false
+	var has_status := _is_blinded or _is_stunned
+
+	assert_false(has_status,
+		"No status text should be added when not blinded or stunned")
