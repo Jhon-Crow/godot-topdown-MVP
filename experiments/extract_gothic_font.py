@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Extract Gothic character glyphs from calligraphy image (v4).
+"""Extract Gothic character glyphs from calligraphy image (v5).
 
-Manually specified column splits per row, based on careful visual inspection
-of the 4x zoomed grid overlays. Uses transparent-background image for clean
-alpha extraction.
+Refined character boundaries based on pixel-level alpha density analysis
+combined with 4x zoomed grid overlay visual verification.
 
+Uses transparent-background source image for clean alpha extraction.
 Produces a BMFont-compatible sprite sheet and .fnt file for Godot 4.x.
 """
 
@@ -26,30 +26,31 @@ EXPERIMENT_DIR = SCRIPT_DIR
 #   giving len(chars)+1 values
 
 ROWS = [
-    # Row 1: A B C D E F G
-    # From grid: A starts ~93, B~135, C~175, D~218, E~267, F~320, G~360, end~397
-    (list("ABCDEFG"), 121, 212,
-     [93, 135, 175, 218, 267, 320, 360, 397]),
+    # Row 1: A B C D E F G (y=130-213)
+    # Row boundaries from horizontal density valleys (density < 40)
+    # Column splits from per-column alpha density analysis + 4x zoom visual verification
+    (list("ABCDEFG"), 130, 213,
+     [93, 155, 200, 248, 282, 322, 360, 398]),
 
-    # Row 2: H I J K L M N O P
-    # Based on visual inspection of 4x zoomed grid + alpha analysis
-    (list("HIJKLMNOP"), 212, 298,
-     [78, 115, 134, 175, 218, 252, 290, 335, 395, 434]),
+    # Row 2: H I J K L M N O P (y=210-296)
+    # Density dips at x: 99(2), 133(1), 175(3), 216(2), 252, 293, 336, 390
+    (list("HIJKLMNOP"), 210, 296,
+     [78, 99, 133, 175, 216, 252, 293, 336, 390, 435]),
 
-    # Row 3: Q R S T U V W X Y Z
-    # From grid: Q~45, R~90, S~130, T~162, U~200, V~245, W~295, X~350, Y~395, Z~435, end~467
-    (list("QRSTUVWXYZ"), 295, 382,
-     [45, 90, 130, 162, 200, 245, 295, 350, 395, 435, 467]),
+    # Row 3: Q R S T U V W X Y Z (y=295-380)
+    # Density dips at x: 82, 122, 157, 200, 228(1), 275(6), 314, 348, 418
+    (list("QRSTUVWXYZ"), 295, 380,
+     [45, 82, 122, 157, 200, 240, 278, 320, 360, 418, 467]),
 
-    # Row 4: 0 1 2 3 4 5 6 7 8 9
-    # Based on detailed pixel-level alpha analysis. Opaque ends at x=415.
-    (list("0123456789"), 375, 458,
-     [94, 128, 152, 187, 225, 253, 288, 322, 360, 400, 416]),
+    # Row 4: 0 1 2 3 4 5 6 7 8 9 (y=380-458)
+    # Density dips at x: 130, 152, 190, 224, 252, 288, 322, 358, 390
+    (list("0123456789"), 380, 458,
+     [93, 130, 152, 190, 224, 252, 288, 322, 358, 390, 416]),
 
-    # Row 5: : & ? ! / . -
-    # Based on pixel-level alpha analysis. Characters: : & ? ! / . -
-    (list(":&?!-"), 455, 528,
-     [155, 172, 236, 266, 277, 346]),
+    # Row 5: : & ? ! - (y=462-527)
+    # Clear gap at x=169-172 (between : and &)
+    (list(":&?!-"), 462, 527,
+     [156, 170, 237, 268, 306, 342]),
 ]
 
 
@@ -121,7 +122,7 @@ def main():
         draw.rectangle([x1, y1, x2 - 1, y2 - 1], outline=color, width=2)
         draw.text((x1 + 2, y1 + 2), c['char'], fill=color)
 
-    debug_path = os.path.join(EXPERIMENT_DIR, "gothic_debug_v4.png")
+    debug_path = os.path.join(EXPERIMENT_DIR, "gothic_debug_v5.png")
     debug_rgb.save(debug_path)
     print(f"\nDebug image saved: {debug_path}")
 
@@ -250,7 +251,7 @@ def main():
 
     debug_sheet = Image.new('RGBA', (sheet_w, sheet_h), (30, 30, 30, 255))
     debug_sheet.paste(sheet, (0, 0), sheet)
-    debug_sheet_path = os.path.join(EXPERIMENT_DIR, "gothic_sheet_debug_v4.png")
+    debug_sheet_path = os.path.join(EXPERIMENT_DIR, "gothic_sheet_debug_v5.png")
     debug_sheet.save(debug_sheet_path)
     print(f"Debug sheet saved: {debug_sheet_path}")
 
