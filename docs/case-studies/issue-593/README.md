@@ -67,16 +67,31 @@ against walls.
 
 ## Solution Design
 
-### Approach: Window Light Sources as PointLight2D Nodes
+### Approach: Dual-Layer Window Light Sources
 
-Add `PointLight2D` nodes along exterior walls in corridors without enemies,
-simulating moonlight coming through windows. These lights:
+Each window creates **two overlapping PointLight2D layers** to simulate how
+real moonlight scatters and fills a room:
 
-1. **Blue-tinted** (`Color(0.4, 0.5, 0.9)`) to simulate cool moonlight
-2. **Low energy** (`0.4-0.6`) to be dim but visible, not overpowering the darkness
-3. **Shadow-casting enabled** so light doesn't pass through walls/objects
-4. **Placed on exterior walls** to simulate windows facing outside
-5. **Only in areas without enemies** to maintain tension in enemy areas
+1. **Primary "MoonLight"** — the visible moonlight patch near the window:
+   - Blue-tinted (`Color(0.4, 0.5, 0.9)`) to simulate cool moonlight
+   - Moderate energy (`0.6`), large spread (`texture_scale = 5.0`)
+   - **Shadows disabled** so light gradually dissipates through interior walls
+     instead of cutting off abruptly
+
+2. **Ambient "AmbientGlow"** — faint residual glow filling the corridor:
+   - Slightly deeper blue (`Color(0.35, 0.45, 0.85)`)
+   - Very low energy (`0.25`), very large spread (`texture_scale = 10.0`)
+   - Shadows disabled for smooth corridor-wide dissipation
+
+Both layers use very gradual radial gradient textures so the light fades
+smoothly into darkness without a visible hard edge.
+
+**Key design decision:** Shadows are intentionally disabled on window lights.
+With `shadow_enabled = true`, interior `LightOccluder2D` walls cause the
+moonlight to cut off abruptly at wall edges, making it look like "the light
+crashed into a wall". Disabling shadows allows the glow to pass through
+interior geometry, simulating how real scattered moonlight fills an entire
+corridor with faint ambient light.
 
 ### Window Light Placement
 

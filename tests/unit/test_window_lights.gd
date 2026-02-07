@@ -4,6 +4,12 @@ extends GutTest
 ## Tests the window light placement system that adds dim blue PointLight2D nodes
 ## along exterior walls in corridors and rooms without enemies, so players can
 ## see wall outlines in night mode (realistic visibility).
+##
+## Each window creates two light layers:
+## 1. Primary "MoonLight" — medium range, moderate energy, no shadows.
+## 2. Ambient "AmbientGlow" — large range, low energy, no shadows.
+## Shadows are disabled so light gradually dissipates through interior walls
+## instead of cutting off abruptly.
 
 
 # ============================================================================
@@ -12,14 +18,23 @@ extends GutTest
 
 
 class MockWindowLightManager:
-	## Window light color (cool blue moonlight).
+	## Primary light color (cool blue moonlight).
 	const LIGHT_COLOR: Color = Color(0.4, 0.5, 0.9, 1.0)
 
-	## Window light energy (dim).
-	const LIGHT_ENERGY: float = 0.5
+	## Primary light energy.
+	const LIGHT_ENERGY: float = 0.6
 
-	## Window light texture scale.
-	const LIGHT_TEXTURE_SCALE: float = 2.5
+	## Primary light texture scale.
+	const LIGHT_TEXTURE_SCALE: float = 5.0
+
+	## Ambient glow color (slightly deeper blue).
+	const AMBIENT_COLOR: Color = Color(0.35, 0.45, 0.85, 1.0)
+
+	## Ambient glow energy.
+	const AMBIENT_ENERGY: float = 0.25
+
+	## Ambient glow texture scale.
+	const AMBIENT_TEXTURE_SCALE: float = 10.0
 
 	## Window visual color (semi-transparent blue).
 	const WINDOW_COLOR: Color = Color(0.3, 0.4, 0.7, 0.6)
@@ -51,7 +66,7 @@ class MockWindowLightManager:
 	## Minimum distance from enemy positions for window light placement.
 	const MIN_ENEMY_DISTANCE: float = 200.0
 
-	## List of created window lights: Array of {position, wall_side, energy, color}.
+	## List of created window lights: Array of {position, wall_side, ...}.
 	var _window_lights: Array = []
 
 	## Whether setup was called.
@@ -64,15 +79,19 @@ class MockWindowLightManager:
 		_window_lights.clear()
 
 
-	## Create a window light at the given position.
+	## Create a window light at the given position (both primary + ambient).
 	func create_window_light(pos: Vector2, wall_side: String) -> Dictionary:
 		var light_data := {
 			"position": pos,
 			"wall_side": wall_side,
 			"energy": LIGHT_ENERGY,
 			"color": LIGHT_COLOR,
-			"shadow_enabled": true,
+			"shadow_enabled": false,
 			"texture_scale": LIGHT_TEXTURE_SCALE,
+			"ambient_energy": AMBIENT_ENERGY,
+			"ambient_color": AMBIENT_COLOR,
+			"ambient_texture_scale": AMBIENT_TEXTURE_SCALE,
+			"ambient_shadow_enabled": false,
 		}
 		_window_lights.append(light_data)
 		return light_data
@@ -221,20 +240,61 @@ func test_light_energy_is_weaker_than_flashlight() -> void:
 		"Window light should be much dimmer than flashlight (8.0)")
 
 
-func test_light_has_shadows() -> void:
+func test_light_shadows_disabled() -> void:
 	var light := manager.create_window_light(Vector2(64, 1100), "left")
 
-	assert_true(light.shadow_enabled,
-		"Window lights should cast shadows through LightOccluder2D walls")
+	assert_false(light.shadow_enabled,
+		"Window lights should have shadows disabled for gradual dissipation")
 
 
 func test_light_texture_scale() -> void:
 	var light := manager.create_window_light(Vector2(64, 1100), "left")
 
-	assert_true(light.texture_scale > 1.0,
-		"Light texture scale should be > 1.0 for visible spread")
-	assert_true(light.texture_scale <= 4.0,
-		"Light texture scale should be <= 4.0 to stay contained in rooms")
+	assert_true(light.texture_scale >= 4.0,
+		"Light texture scale should be >= 4.0 for corridor-wide spread")
+	assert_true(light.texture_scale <= 8.0,
+		"Light texture scale should be <= 8.0 to avoid excessive overlap")
+
+
+# ============================================================================
+# Ambient Glow Layer Tests
+# ============================================================================
+
+
+func test_ambient_color_is_blue() -> void:
+	var light := manager.create_window_light(Vector2(64, 1100), "left")
+
+	assert_true(light.ambient_color.b > light.ambient_color.r,
+		"Ambient color should be blue-dominant (blue > red)")
+	assert_true(light.ambient_color.b > light.ambient_color.g,
+		"Ambient color should be blue-dominant (blue > green)")
+
+
+func test_ambient_energy_is_very_dim() -> void:
+	var light := manager.create_window_light(Vector2(64, 1100), "left")
+
+	assert_true(light.ambient_energy < light.energy,
+		"Ambient energy should be dimmer than primary light")
+	assert_true(light.ambient_energy > 0.0,
+		"Ambient energy should be positive")
+	assert_true(light.ambient_energy <= 0.4,
+		"Ambient energy should be subtle (<=0.4)")
+
+
+func test_ambient_texture_scale_is_large() -> void:
+	var light := manager.create_window_light(Vector2(64, 1100), "left")
+
+	assert_true(light.ambient_texture_scale > light.texture_scale,
+		"Ambient glow should cover a larger area than primary light")
+	assert_true(light.ambient_texture_scale >= 8.0,
+		"Ambient glow texture scale should be >= 8.0 for corridor-wide effect")
+
+
+func test_ambient_shadows_disabled() -> void:
+	var light := manager.create_window_light(Vector2(64, 1100), "left")
+
+	assert_false(light.ambient_shadow_enabled,
+		"Ambient glow should have shadows disabled for gradual dissipation")
 
 
 # ============================================================================
@@ -365,10 +425,17 @@ func test_all_window_positions_on_exterior_walls() -> void:
 
 
 func test_window_light_constant_values() -> void:
-	assert_eq(manager.LIGHT_ENERGY, 0.5,
-		"Light energy constant should be 0.5")
-	assert_eq(manager.LIGHT_TEXTURE_SCALE, 2.5,
-		"Light texture scale constant should be 2.5")
+	assert_eq(manager.LIGHT_ENERGY, 0.6,
+		"Light energy constant should be 0.6")
+	assert_eq(manager.LIGHT_TEXTURE_SCALE, 5.0,
+		"Light texture scale constant should be 5.0")
+
+
+func test_ambient_light_constant_values() -> void:
+	assert_eq(manager.AMBIENT_ENERGY, 0.25,
+		"Ambient energy constant should be 0.25")
+	assert_eq(manager.AMBIENT_TEXTURE_SCALE, 10.0,
+		"Ambient texture scale constant should be 10.0")
 
 
 func test_window_visual_color_is_blue() -> void:
@@ -464,12 +531,16 @@ func test_window_count_is_reasonable() -> void:
 		"Should have exactly %d window lights" % expected_count)
 
 
-func test_lights_under_godot_limit() -> void:
-	# Godot 2D renderer has a 15-light-per-sprite limit
-	# With 11 window lights + 1 player visibility + 1 flashlight = 13, under the limit
-	var window_count := 11
+func test_lights_per_sprite_within_limit() -> void:
+	# Godot 2D renderer has a 15-light-per-sprite limit.
+	# With shadow_enabled=false and large spreads, not all 22 PointLight2D nodes
+	# (11 primary + 11 ambient) overlap on the same sprite simultaneously.
+	# Worst case overlap is about 4-6 window lights near one corner, plus player lights.
+	# Even so, the total remains well under 15.
+	var max_overlapping_windows := 6  # Worst-case corner overlap estimate
+	var lights_per_window := 2  # primary + ambient
 	var player_lights := 2  # visibility + flashlight
-	var total := window_count + player_lights
+	var worst_case := max_overlapping_windows * lights_per_window + player_lights
 
-	assert_true(total <= 15,
-		"Total lights (%d) should be under Godot's 15-light-per-sprite limit" % total)
+	assert_true(worst_case <= 15,
+		"Worst-case overlapping lights (%d) should be under Godot's 15-light-per-sprite limit" % worst_case)

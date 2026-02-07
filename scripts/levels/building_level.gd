@@ -304,6 +304,12 @@ func _setup_window_lights() -> void:
 
 
 ## Create a single window light source at the given position on a wall.
+## Produces two overlapping PointLight2D layers:
+## 1. Primary light (medium range, moderate energy) — the visible moonlight patch.
+## 2. Ambient light (very large range, very low energy, no shadows) — faint residual
+##    glow that fills the entire corridor so walls remain faintly visible even far
+##    from the window.  Shadows are disabled so the glow passes through interior
+##    walls and furniture, simulating light scattering.
 ## @param parent: Parent node to add the window to.
 ## @param pos: Position of the window on the wall.
 ## @param wall_side: Which wall the window is on ("top", "bottom", "left", "right").
@@ -340,36 +346,72 @@ func _create_window_light(parent: Node2D, pos: Vector2, wall_side: String) -> vo
 			window_rect.offset_bottom = 4.0
 	window_node.add_child(window_rect)
 
-	# Create the PointLight2D for moonlight effect
+	# --- Primary moonlight (visible patch near the window) ---
 	var light := PointLight2D.new()
 	light.name = "MoonLight"
 	light.color = Color(0.4, 0.5, 0.9, 1.0)  # Cool blue moonlight
-	light.energy = 0.5
-	light.shadow_enabled = true
-	light.shadow_filter = PointLight2D.SHADOW_FILTER_PCF5
-	light.shadow_filter_smooth = 4.0
+	light.energy = 0.6
+	# Shadows disabled so light gradually dissipates through interior walls
+	# instead of cutting off abruptly at wall edges
+	light.shadow_enabled = false
 	light.texture = _create_window_light_texture()
-	light.texture_scale = 2.5
-	# Offset the light slightly inward from the wall so it illuminates the interior
+	light.texture_scale = 5.0
+	# Offset the light inward from the wall so it illuminates the interior
 	match wall_side:
 		"left":
-			light.position = Vector2(40, 0)
+			light.position = Vector2(80, 0)
 		"right":
-			light.position = Vector2(-40, 0)
+			light.position = Vector2(-80, 0)
 		"top":
-			light.position = Vector2(0, 40)
+			light.position = Vector2(0, 80)
 		"bottom":
-			light.position = Vector2(0, -40)
+			light.position = Vector2(0, -80)
 	window_node.add_child(light)
 
+	# --- Ambient glow (faint residual light filling the corridor) ---
+	var ambient := PointLight2D.new()
+	ambient.name = "AmbientGlow"
+	ambient.color = Color(0.35, 0.45, 0.85, 1.0)  # Slightly deeper blue
+	ambient.energy = 0.25
+	ambient.shadow_enabled = false
+	ambient.texture = _create_ambient_light_texture()
+	ambient.texture_scale = 10.0
+	# Same offset as primary light
+	ambient.position = light.position
+	window_node.add_child(ambient)
 
-## Create a radial gradient texture for window moonlight.
-## Returns a soft radial gradient suitable for dim ambient lighting.
+
+## Create a radial gradient texture for the primary window moonlight.
+## Uses a very gradual falloff so the light fades smoothly into darkness
+## without a visible hard edge.
 func _create_window_light_texture() -> GradientTexture2D:
 	var gradient := Gradient.new()
 	gradient.set_color(0, Color(1.0, 1.0, 1.0, 1.0))
-	gradient.add_point(0.4, Color(0.7, 0.7, 0.7, 1.0))
-	gradient.add_point(0.7, Color(0.3, 0.3, 0.3, 1.0))
+	gradient.add_point(0.2, Color(0.85, 0.85, 0.85, 1.0))
+	gradient.add_point(0.45, Color(0.55, 0.55, 0.55, 1.0))
+	gradient.add_point(0.7, Color(0.2, 0.2, 0.2, 1.0))
+	gradient.add_point(0.9, Color(0.05, 0.05, 0.05, 1.0))
+	gradient.set_color(1, Color(0.0, 0.0, 0.0, 1.0))
+
+	var texture := GradientTexture2D.new()
+	texture.gradient = gradient
+	texture.width = 512
+	texture.height = 512
+	texture.fill = GradientTexture2D.FILL_RADIAL
+	texture.fill_from = Vector2(0.5, 0.5)
+	texture.fill_to = Vector2(0.5, 0.0)
+	return texture
+
+
+## Create a very soft radial gradient texture for the ambient glow layer.
+## This texture has an extremely gradual falloff so the faint glow extends
+## far from the window, filling corridors with residual moonlight.
+func _create_ambient_light_texture() -> GradientTexture2D:
+	var gradient := Gradient.new()
+	gradient.set_color(0, Color(1.0, 1.0, 1.0, 1.0))
+	gradient.add_point(0.3, Color(0.7, 0.7, 0.7, 1.0))
+	gradient.add_point(0.6, Color(0.35, 0.35, 0.35, 1.0))
+	gradient.add_point(0.85, Color(0.1, 0.1, 0.1, 1.0))
 	gradient.set_color(1, Color(0.0, 0.0, 0.0, 1.0))
 
 	var texture := GradientTexture2D.new()
