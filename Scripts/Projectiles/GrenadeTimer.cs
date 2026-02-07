@@ -324,6 +324,16 @@ namespace GodotTopdown.Scripts.Projectiles
             Vector2 explosionPosition = _grenadeBody.GlobalPosition;
             LogToFile($"[GrenadeTimer] EXPLODED at {explosionPosition}!");
 
+            // Trigger Power Fantasy grenade explosion effect (time-freeze)
+            // FIX for Issue #555: GDScript grenade_base._explode() calls PowerFantasyEffectsManager
+            // but when C# GrenadeTimer.Explode() fires first and QueueFree()s the grenade,
+            // the GDScript path never runs, so the time-freeze effect was missing.
+            var powerFantasyManager = GetNodeOrNull("/root/PowerFantasyEffectsManager");
+            if (powerFantasyManager != null && powerFantasyManager.HasMethod("on_grenade_exploded"))
+            {
+                powerFantasyManager.Call("on_grenade_exploded");
+            }
+
             // Apply explosion effects based on type
             if (Type == GrenadeType.Frag)
             {
