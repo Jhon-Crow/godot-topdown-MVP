@@ -222,6 +222,9 @@ class MockLevelsMenu:
 
 	const DIFFICULTY_NAMES: Array[String] = ["Easy", "Normal", "Hard", "Power Fantasy"]
 
+	## Number of columns in the level grid (4 cards wide).
+	const GRID_COLUMNS: int = 4
+
 	var current_scene_path: String = ""
 
 	signal back_pressed
@@ -738,6 +741,21 @@ func test_level_progress_per_level() -> void:
 
 	assert_eq(levels_menu.get_best_rank("Building Level", "Normal"), "A+")
 	assert_eq(levels_menu.get_best_rank("Polygon", "Normal"), "C")
+
+
+func test_levels_menu_grid_has_four_columns() -> void:
+	levels_menu = MockLevelsMenu.new()
+	assert_eq(levels_menu.GRID_COLUMNS, 4,
+		"Level grid should have 4 columns")
+
+
+func test_levels_menu_grid_row_count() -> void:
+	levels_menu = MockLevelsMenu.new()
+	var level_count := levels_menu.get_level_count()
+	var columns := levels_menu.GRID_COLUMNS
+	# With 5 levels and 4 columns, we need ceil(5/4) = 2 rows
+	var expected_rows := ceili(float(level_count) / float(columns))
+	assert_eq(expected_rows, 2, "5 levels in 4 columns should produce 2 rows")
 
 
 # ============================================================================
