@@ -20,6 +20,12 @@ class MockExperimentalSettings:
 	## Whether AI player prediction is enabled (Issue #298).
 	var ai_prediction_enabled: bool = false
 
+	## Whether debug mode is enabled (shows debug labels on enemies).
+	var debug_mode_enabled: bool = false
+
+	## Whether invincibility mode is enabled (player takes no damage).
+	var invincibility_enabled: bool = false
+
 	## Whether realistic visibility mode is enabled (Issue #540).
 	var realistic_visibility_enabled: bool = false
 
@@ -62,6 +68,28 @@ class MockExperimentalSettings:
 	func is_ai_prediction_enabled() -> bool:
 		return ai_prediction_enabled
 
+	## Set debug mode enabled/disabled.
+	func set_debug_mode_enabled(enabled: bool) -> void:
+		if debug_mode_enabled != enabled:
+			debug_mode_enabled = enabled
+			settings_changed_emitted += 1
+			_save_settings()
+
+	## Check if debug mode is enabled.
+	func is_debug_mode_enabled() -> bool:
+		return debug_mode_enabled
+
+	## Set invincibility mode enabled/disabled.
+	func set_invincibility_enabled(enabled: bool) -> void:
+		if invincibility_enabled != enabled:
+			invincibility_enabled = enabled
+			settings_changed_emitted += 1
+			_save_settings()
+
+	## Check if invincibility mode is enabled.
+	func is_invincibility_enabled() -> bool:
+		return invincibility_enabled
+
 	## Set realistic visibility enabled/disabled (Issue #540).
 	func set_realistic_visibility_enabled(enabled: bool) -> void:
 		if realistic_visibility_enabled != enabled:
@@ -78,6 +106,8 @@ class MockExperimentalSettings:
 		_saved_settings["fov_enabled"] = fov_enabled
 		_saved_settings["complex_grenade_throwing"] = complex_grenade_throwing
 		_saved_settings["ai_prediction_enabled"] = ai_prediction_enabled
+		_saved_settings["debug_mode_enabled"] = debug_mode_enabled
+		_saved_settings["invincibility_enabled"] = invincibility_enabled
 		_saved_settings["realistic_visibility_enabled"] = realistic_visibility_enabled
 
 	## Load settings (simulated).
@@ -94,6 +124,14 @@ class MockExperimentalSettings:
 			ai_prediction_enabled = _saved_settings["ai_prediction_enabled"]
 		else:
 			ai_prediction_enabled = false
+		if _saved_settings.has("debug_mode_enabled"):
+			debug_mode_enabled = _saved_settings["debug_mode_enabled"]
+		else:
+			debug_mode_enabled = false
+		if _saved_settings.has("invincibility_enabled"):
+			invincibility_enabled = _saved_settings["invincibility_enabled"]
+		else:
+			invincibility_enabled = false
 		if _saved_settings.has("realistic_visibility_enabled"):
 			realistic_visibility_enabled = _saved_settings["realistic_visibility_enabled"]
 		else:
@@ -104,6 +142,8 @@ class MockExperimentalSettings:
 		fov_enabled = false
 		complex_grenade_throwing = false
 		ai_prediction_enabled = false
+		debug_mode_enabled = false
+		invincibility_enabled = false
 		realistic_visibility_enabled = false
 		settings_changed_emitted += 1
 		_saved_settings.clear()
@@ -609,7 +649,7 @@ func test_ai_prediction_independent_of_other_settings() -> void:
 	assert_false(settings.is_complex_grenade_throwing(), "Grenades should still be disabled")
 
 
-func test_save_and_load_all_three_settings() -> void:
+func test_save_and_load_fov_grenade_prediction() -> void:
 	settings.set_fov_enabled(true)
 	settings.set_complex_grenade_throwing(true)
 	settings.set_ai_prediction_enabled(true)
@@ -707,16 +747,20 @@ func test_realistic_visibility_independent_of_other_settings() -> void:
 	assert_false(settings.is_ai_prediction_enabled(), "AI prediction should still be disabled")
 
 
-func test_save_and_load_all_four_settings() -> void:
+func test_save_and_load_all_settings() -> void:
 	settings.set_fov_enabled(true)
 	settings.set_complex_grenade_throwing(true)
 	settings.set_ai_prediction_enabled(true)
+	settings.set_debug_mode_enabled(true)
+	settings.set_invincibility_enabled(true)
 	settings.set_realistic_visibility_enabled(true)
 
 	# Reset in-memory state
 	settings.fov_enabled = false
 	settings.complex_grenade_throwing = false
 	settings.ai_prediction_enabled = false
+	settings.debug_mode_enabled = false
+	settings.invincibility_enabled = false
 	settings.realistic_visibility_enabled = false
 
 	# Load from saved
@@ -725,6 +769,8 @@ func test_save_and_load_all_four_settings() -> void:
 	assert_true(settings.is_fov_enabled(), "FOV should be restored")
 	assert_true(settings.is_complex_grenade_throwing(), "Complex grenade should be restored")
 	assert_true(settings.is_ai_prediction_enabled(), "AI prediction should be restored")
+	assert_true(settings.is_debug_mode_enabled(), "Debug mode should be restored")
+	assert_true(settings.is_invincibility_enabled(), "Invincibility should be restored")
 	assert_true(settings.is_realistic_visibility_enabled(), "Realistic visibility should be restored")
 
 

@@ -4161,7 +4161,7 @@ occluder = SubResource("OccluderPolygon2D_cover")
 [node name="SniperEnemy1" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
 position = Vector2(5600, 400)
 behavior_mode = 1
-weapon_type = 3
+weapon_type = 4
 detection_range = 0.0
 fov_angle = 360.0
 fov_enabled = false
@@ -4174,7 +4174,7 @@ enable_cover = true
 [node name="SniperEnemy2" parent="Environment/Enemies" instance=ExtResource("4_enemy")]
 position = Vector2(5600, 4700)
 behavior_mode = 1
-weapon_type = 3
+weapon_type = 4
 detection_range = 0.0
 fov_angle = 360.0
 fov_enabled = false
