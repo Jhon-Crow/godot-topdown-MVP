@@ -481,9 +481,11 @@ func _setup_debug_ui() -> void:
 	_combo_label.add_theme_font_size_override("font_size", 28)
 	_combo_label.add_theme_color_override("font_color", Color(1.0, 0.8, 0.2, 1.0))
 	# Apply Gothic bitmap font to combo counter
-	var gothic_font := FontFile.new()
-	if gothic_font.load_bitmap_font("res://assets/fonts/gothic_bitmap.fnt") == OK:
-		_combo_label.add_theme_font_override("font", gothic_font)
+	var combo_font = load("res://assets/fonts/gothic_bitmap.fnt")
+	if combo_font != null:
+		_combo_label.add_theme_font_override("font", combo_font)
+	else:
+		push_warning("[CastleLevel] Failed to load Gothic font for combo counter")
 	_combo_label.visible = false
 	ui.add_child(_combo_label)
 
@@ -825,8 +827,8 @@ func _show_score_screen(score_data: Dictionary) -> void:
 ## Fallback score screen if animated component is not available.
 func _show_fallback_score_screen(ui: Control, score_data: Dictionary) -> void:
 	# Load Gothic bitmap font for score screen labels
-	var gothic_font := FontFile.new()
-	var _font_loaded := gothic_font.load_bitmap_font("res://assets/fonts/gothic_bitmap.fnt") == OK
+	var gothic_font = load("res://assets/fonts/gothic_bitmap.fnt")
+	var _font_loaded := gothic_font != null
 
 	var background := ColorRect.new()
 	background.name = "ScoreBackground"

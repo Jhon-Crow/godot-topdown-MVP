@@ -13,25 +13,27 @@ from PIL import Image, ImageDraw
 import numpy as np
 import os
 
-INPUT_IMAGE = "/tmp/claude-1000/-tmp-gh-issue-solver-1770414816582/c8973e13-2f20-4f66-98bb-680b0c0e8078/scratchpad/gothic_font_image.png"
-OUTPUT_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets", "fonts")
-EXPERIMENT_DIR = os.path.dirname(__file__)
+# Use the source image saved in assets/fonts
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_DIR = os.path.dirname(SCRIPT_DIR)
+INPUT_IMAGE = os.path.join(PROJECT_DIR, "assets", "fonts", "gothic_source.png")
+OUTPUT_DIR = os.path.join(PROJECT_DIR, "assets", "fonts")
+EXPERIMENT_DIR = SCRIPT_DIR
 
-# Carefully tuned bounding boxes based on pixel-level analysis.
+# Carefully tuned bounding boxes based on pixel-level analysis of 505x626 image.
 # The calligraphy has characters that overlap, so boxes are placed
 # to capture the main body of each character.
 #
-# Row layout:
-#   Row 1: A B C D E F G (letters y~126-232, but A is lower at ~208-244)
+# Row layout in the source image:
+#   Title "GOTHIC" at top (y~0-100)
+#   Row 1: A B C D E F G (y~126-232)
 #   Row 2: H I J K L M N O P (y~224-337)
 #   Row 3: Q R S T U V W X Y Z (y~313-431)
 #   Row 4: 0 1 2 3 4 5 6 7 8 9 (y~409-511)
-#   Row 5: : & ? ! - (y~487-535)
+#   Row 5: : & ? ! - (y~487-555)
 
 CHAR_DEFS = [
     # Row 1: A-G
-    # A: Two vertical strokes at x=82-89 and x=104-110, body at y=208-244
-    # But A should include decorative top parts for visual consistency
     ('A', 78, 126, 115, 244),
     ('B', 103, 126, 156, 232),
     ('C', 148, 126, 203, 232),
@@ -86,6 +88,10 @@ CHAR_DEFS = [
 
 def main():
     print(f"Loading image: {INPUT_IMAGE}")
+    if not os.path.exists(INPUT_IMAGE):
+        print(f"ERROR: Image not found at {INPUT_IMAGE}")
+        return
+
     img = Image.open(INPUT_IMAGE).convert('RGBA')
     width, height = img.size
     print(f"Image size: {width}x{height}")
@@ -111,7 +117,7 @@ def main():
         })
         print(f"  '{char}': ({x1},{y1},{x2},{y2}) size={glyph_w}x{glyph_h}")
 
-    # Create debug visualization
+    # Create debug visualization showing bounding boxes on source image
     debug_img = img.copy().convert('RGB')
     draw = ImageDraw.Draw(debug_img)
     colors = ['red', 'lime', 'cyan', 'yellow', 'magenta']
@@ -136,8 +142,8 @@ def main():
     cell_h = max_h + cell_padding * 2
 
     cols_per_row = 10
-    # +2 for '+' and ' '
-    total_chars = len(chars) + 2
+    # +2 for '+' and ' ' and 'x'
+    total_chars = len(chars) + 3
     num_rows = (total_chars + cols_per_row - 1) // cols_per_row
     sheet_w = cols_per_row * cell_w
     sheet_h = num_rows * cell_h
@@ -157,7 +163,7 @@ def main():
         glyph_gray = gray[y1:y2, x1:x2].copy()
 
         # Create smooth alpha: dark pixels = opaque, light = transparent
-        # Use sigmoid-like falloff for smoother edges
+        # Use threshold-based conversion with smooth falloff
         threshold = 140.0
         alpha = np.clip((threshold - glyph_gray.astype(np.float32)) * (255.0 / threshold), 0, 255).astype(np.uint8)
 
@@ -189,7 +195,7 @@ def main():
             'chnl': 15
         })
 
-    # Add '+' character
+    # Add '+' character (synthetic)
     plus_idx = len(chars)
     plus_row = plus_idx // cols_per_row
     plus_col = plus_idx % cols_per_row
@@ -197,9 +203,9 @@ def main():
     plus_thick = 6
     plus_img = Image.new('RGBA', (plus_size, plus_size), (0, 0, 0, 0))
     pd = ImageDraw.Draw(plus_img)
-    pd.rectangle([2, plus_size//2 - plus_thick//2, plus_size-2, plus_size//2 + plus_thick//2],
+    pd.rectangle([2, plus_size // 2 - plus_thick // 2, plus_size - 2, plus_size // 2 + plus_thick // 2],
                   fill=(255, 255, 255, 255))
-    pd.rectangle([plus_size//2 - plus_thick//2, 2, plus_size//2 + plus_thick//2, plus_size-2],
+    pd.rectangle([plus_size // 2 - plus_thick // 2, 2, plus_size // 2 + plus_thick // 2, plus_size - 2],
                   fill=(255, 255, 255, 255))
 
     plus_dest_x = plus_col * cell_w + cell_padding
@@ -220,7 +226,7 @@ def main():
         'chnl': 15
     })
 
-    # Add space
+    # Add space character (no glyph, just advance)
     space_width = max_w // 3
     fnt_chars.append({
         'id': ord(' '),
@@ -272,11 +278,12 @@ def main():
     })
 
     # Save sprite sheet
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
     sheet_path = os.path.join(OUTPUT_DIR, "gothic_bitmap.png")
     sheet.save(sheet_path)
     print(f"Sprite sheet saved: {sheet_path}")
 
-    # Save debug version with dark background
+    # Save debug version with dark background for visual inspection
     debug_sheet = Image.new('RGBA', (sheet_w, sheet_h), (30, 30, 30, 255))
     debug_sheet.paste(sheet, (0, 0), sheet)
     debug_sheet_path = os.path.join(EXPERIMENT_DIR, "gothic_sheet_debug.png")
@@ -295,12 +302,7 @@ def main():
 
     print(f"BMFont file saved: {fnt_path}")
     print(f"\nTotal glyphs: {len(fnt_chars)}")
-
-    # Also save the source image to assets for reference
-    import shutil
-    source_path = os.path.join(OUTPUT_DIR, "gothic_source.png")
-    shutil.copy(INPUT_IMAGE, source_path)
-    print(f"Source image saved: {source_path}")
+    print("\nDone! Bitmap font generated successfully.")
 
 
 if __name__ == "__main__":

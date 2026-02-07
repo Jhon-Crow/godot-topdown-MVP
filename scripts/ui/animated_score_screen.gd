@@ -18,9 +18,10 @@ extends Node
 var _score_audio_player: AudioStreamPlayer = null
 
 ## Gothic bitmap font for score screen labels (loaded on demand).
-var _gothic_font: FontFile = null
+var _gothic_font: Font = null
 
 ## Path to the Gothic bitmap font file (.fnt).
+## Loaded via Godot's resource system (editor imports .fnt as FontFile).
 const GOTHIC_FONT_PATH: String = "res://assets/fonts/gothic_bitmap.fnt"
 
 ## Duration for counting animation per stat item (seconds).
@@ -53,20 +54,28 @@ const MAJOR_ARPEGGIO: Array[int] = [0, 4, 7, 12, 16, 19, 24]
 
 
 ## Loads and returns the Gothic bitmap font, caching it for reuse.
-func _get_gothic_font() -> FontFile:
+## Uses Godot's resource system (load) which works in both editor and exports.
+func _get_gothic_font() -> Font:
 	if _gothic_font == null:
-		var font := FontFile.new()
-		var err := font.load_bitmap_font(GOTHIC_FONT_PATH)
-		if err == OK:
-			_gothic_font = font
+		if ResourceLoader.exists(GOTHIC_FONT_PATH):
+			var font = load(GOTHIC_FONT_PATH)
+			if font != null:
+				_gothic_font = font
+				print("[AnimatedScoreScreen] Gothic bitmap font loaded successfully")
+			else:
+				push_warning("[AnimatedScoreScreen] Failed to load Gothic font from: " + GOTHIC_FONT_PATH)
+		else:
+			push_warning("[AnimatedScoreScreen] Gothic font file not found: " + GOTHIC_FONT_PATH)
 	return _gothic_font
 
 
 ## Applies the Gothic font to a Label node if the font is available.
 func _apply_gothic_font(label: Label) -> void:
-	var font := _get_gothic_font()
+	var font = _get_gothic_font()
 	if font != null:
 		label.add_theme_font_override("font", font)
+	else:
+		push_warning("[AnimatedScoreScreen] Gothic font not available for label: " + label.name)
 
 
 ## Creates a simple sine wave beep sound and plays it.
