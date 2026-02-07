@@ -296,6 +296,10 @@ namespace GodotTopDownTemplate.Autoload
             public Vector2 Position;
             public float Rotation;
             public Vector2 Scale = Vector2.One;
+            /// <summary>Footprint color including alpha (Issue #590 fix 1).</summary>
+            public Color Modulate = Colors.White;
+            /// <summary>Whether this is a left foot print (Issue #590 fix 1).</summary>
+            public bool IsLeft = true;
         }
 
         public override void _Ready()
@@ -1041,6 +1045,17 @@ namespace GodotTopDownTemplate.Autoload
                     footprint.Rotation = data.Rotation;
                     footprint.Scale = data.Scale;
                     ghostContainer.AddChild(footprint);
+
+                    // Issue #590 fix 1: Apply foot type and modulate so footprints are visible.
+                    // set_foot() assigns the boot texture (left or right), without which
+                    // the Sprite2D has no texture and is invisible.
+                    if (footprint.HasMethod("set_foot"))
+                        footprint.Call("set_foot", data.IsLeft);
+                    if (footprint.HasMethod("set_alpha"))
+                        footprint.Call("set_alpha", data.Modulate.A);
+                    if (footprint.HasMethod("set_blood_color"))
+                        footprint.Call("set_blood_color", data.Modulate);
+
                     _memoryFootprints.Add(footprint);
                 }
                 else
@@ -1050,7 +1065,7 @@ namespace GodotTopDownTemplate.Autoload
                     footprint.Name = "ReplayFootprint";
                     footprint.ProcessMode = ProcessModeEnum.Always;
                     var img = Image.CreateEmpty(8, 12, false, Image.Format.Rgba8);
-                    img.Fill(new Color(0.4f, 0.0f, 0.0f, 0.6f));
+                    img.Fill(new Color(data.Modulate.R, data.Modulate.G, data.Modulate.B, data.Modulate.A));
                     footprint.Texture = ImageTexture.CreateFromImage(img);
                     footprint.GlobalPosition = data.Position;
                     footprint.Rotation = data.Rotation;
@@ -1140,6 +1155,7 @@ namespace GodotTopDownTemplate.Autoload
             CleanupTrails();
 
             // Player trail (blue flame)
+            // Issue #590 fix 3: Trail is 3x wider for better visibility
             if (_playerTrailPositions.Count > 1 && frame.PlayerAlive)
             {
                 for (int i = 1; i < _playerTrailPositions.Count; i++)
@@ -1148,7 +1164,7 @@ namespace GodotTopDownTemplate.Autoload
                     var trailNode = CreateTrailSegment(
                         _playerTrailPositions[i],
                         new Color(0.3f, 0.5f, 1.0f, alpha * 0.5f),
-                        Mathf.Max(2.0f, 8.0f * alpha)
+                        Mathf.Max(6.0f, 24.0f * alpha)
                     );
                     if (trailNode != null)
                     {
@@ -1312,12 +1328,25 @@ namespace GodotTopDownTemplate.Autoload
                     sprite2D.SceneFilePath.Contains("BloodFootprint"))
                 {
                     sprite2D.SetMeta("replay_footprint_recorded", true);
+
+                    // Issue #590 fix 1: Determine which foot by checking texture path
+                    bool isLeft = true;
+                    if (sprite2D.Texture != null)
+                    {
+                        var texPath = sprite2D.Texture.ResourcePath;
+                        if (texPath.Contains("right"))
+                            isLeft = false;
+                    }
+
                     _footprintSnapshots.Add(new FootprintSnapshot
                     {
                         Time = _recordingTime,
                         Position = sprite2D.GlobalPosition,
                         Rotation = sprite2D.Rotation,
-                        Scale = sprite2D.Scale
+                        Scale = sprite2D.Scale,
+                        // Issue #590 fix 1: Record modulate (color + alpha) and foot type
+                        Modulate = sprite2D.Modulate,
+                        IsLeft = isLeft
                     });
                 }
             }
@@ -2842,6 +2871,11 @@ namespace GodotTopDownTemplate.Autoload
         /// </summary>
         private void TriggerReplayHitEffect()
         {
+            // Issue #590 fix 2: Only trigger gameplay effects in Memory mode.
+            // Ghost mode uses a stylized red/black/white filter and should not
+            // activate saturation boosts, time slowdowns, or other gameplay effects.
+            if (_currentMode != ReplayMode.Memory) return;
+
             var hitEffects = GetNodeOrNull("/root/HitEffectsManager");
             if (hitEffects != null)
             {
@@ -2866,6 +2900,9 @@ namespace GodotTopDownTemplate.Autoload
         /// </summary>
         private void TriggerReplayPenultimateEffect()
         {
+            // Issue #590 fix 2: Only trigger gameplay effects in Memory mode.
+            if (_currentMode != ReplayMode.Memory) return;
+
             var penultimateEffects = GetNodeOrNull("/root/PenultimateHitEffectsManager");
             if (penultimateEffects != null)
             {
@@ -2884,6 +2921,9 @@ namespace GodotTopDownTemplate.Autoload
         /// </summary>
         private void TriggerReplayPowerFantasyKill()
         {
+            // Issue #590 fix 2: Only trigger gameplay effects in Memory mode.
+            if (_currentMode != ReplayMode.Memory) return;
+
             var powerFantasyManager = GetNodeOrNull("/root/PowerFantasyEffectsManager");
             if (powerFantasyManager != null && powerFantasyManager.HasMethod("on_enemy_killed"))
             {
@@ -2898,6 +2938,9 @@ namespace GodotTopDownTemplate.Autoload
         /// </summary>
         private void TriggerReplayPowerFantasyGrenade()
         {
+            // Issue #590 fix 2: Only trigger gameplay effects in Memory mode.
+            if (_currentMode != ReplayMode.Memory) return;
+
             var powerFantasyManager = GetNodeOrNull("/root/PowerFantasyEffectsManager");
             if (powerFantasyManager != null && powerFantasyManager.HasMethod("on_grenade_exploded"))
             {
