@@ -592,12 +592,8 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 	# Handle reload sound (sound_type 3 = RELOAD) - player is vulnerable!
 	# This sound propagates through walls and alerts enemies even behind cover.
 	if sound_type == 3 and source_type == 0:  # RELOAD from PLAYER
-		_log_debug("Heard player RELOAD (intensity=%.2f, distance=%.0f) at %s" % [
-			intensity, distance, position
-		])
-		_log_to_file("Heard player RELOAD at %s, intensity=%.2f, distance=%.0f" % [
-			position, intensity, distance
-		])
+		_log_debug("Heard player RELOAD (intensity=%.2f, distance=%.0f) at %s" % [intensity, distance, position])
+		_log_to_file("Heard player RELOAD at %s, intensity=%.2f, distance=%.0f" % [position, intensity, distance])
 
 		# Set player vulnerability state - reloading
 		_goap_world_state["player_reloading"] = true
@@ -612,26 +608,18 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 		if _memory:
 			_memory.update_position(position, SOUND_RELOAD_CONFIDENCE)
 
-		# React to vulnerable player sound - transition to combat/pursuing
-		# All enemies in hearing range should pursue the vulnerable player!
-		# This makes reload sounds a high-risk action when enemies are nearby.
+		# React to vulnerable player sound - pursue the vulnerable player
 		if _current_state in [AIState.IDLE, AIState.IN_COVER, AIState.SUPPRESSED, AIState.RETREATING, AIState.SEEKING_COVER]:
-			# Leave cover/defensive state to attack vulnerable player
 			_log_to_file("Vulnerability sound triggered pursuit - transitioning from %s to PURSUING" % AIState.keys()[_current_state])
 			_transition_to_pursuing()
-		# For COMBAT, PURSUING, FLANKING states: the flag is set and they'll use it
-		# (COMBAT/PURSUING now check _pursuing_vulnerability_sound before retreating)
+		# For COMBAT/PURSUING/FLANKING: the flag is set and they'll use it
 		return
 
 	# Handle empty click sound (sound_type 5 = EMPTY_CLICK) - player is vulnerable!
 	# This sound has shorter range than reload but still propagates through walls.
 	if sound_type == 5 and source_type == 0:  # EMPTY_CLICK from PLAYER
-		_log_debug("Heard player EMPTY_CLICK (intensity=%.2f, distance=%.0f) at %s" % [
-			intensity, distance, position
-		])
-		_log_to_file("Heard player EMPTY_CLICK at %s, intensity=%.2f, distance=%.0f" % [
-			position, intensity, distance
-		])
+		_log_debug("Heard player EMPTY_CLICK (intensity=%.2f, distance=%.0f) at %s" % [intensity, distance, position])
+		_log_to_file("Heard player EMPTY_CLICK at %s, intensity=%.2f, distance=%.0f" % [position, intensity, distance])
 
 		# Set player vulnerability state - out of ammo
 		_goap_world_state["player_ammo_empty"] = true
@@ -646,15 +634,11 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 		if _memory:
 			_memory.update_position(position, SOUND_EMPTY_CLICK_CONFIDENCE)
 
-		# React to vulnerable player sound - transition to combat/pursuing
-		# All enemies in hearing range should pursue the vulnerable player!
-		# This makes empty click sounds a high-risk action when enemies are nearby.
+		# React to vulnerable player sound - pursue the vulnerable player
 		if _current_state in [AIState.IDLE, AIState.IN_COVER, AIState.SUPPRESSED, AIState.RETREATING, AIState.SEEKING_COVER]:
-			# Leave cover/defensive state to attack vulnerable player
 			_log_to_file("Vulnerability sound triggered pursuit - transitioning from %s to PURSUING" % AIState.keys()[_current_state])
 			_transition_to_pursuing()
-		# For COMBAT, PURSUING, FLANKING states: the flag is set and they'll use it
-		# (COMBAT/PURSUING now check _pursuing_vulnerability_sound before retreating)
+		# For COMBAT/PURSUING/FLANKING: the flag is set and they'll use it
 		return
 
 	# Issue #426: Handle grenade landing sound (GRENADE_LANDING) - evade if heard nearby
@@ -669,12 +653,8 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 	# Handle reload complete sound (sound_type 6 = RELOAD_COMPLETE) - player is NO LONGER vulnerable!
 	# This sound propagates through walls and signals enemies to become cautious.
 	if sound_type == 6 and source_type == 0:  # RELOAD_COMPLETE from PLAYER
-		_log_debug("Heard player RELOAD_COMPLETE (intensity=%.2f, distance=%.0f) at %s" % [
-			intensity, distance, position
-		])
-		_log_to_file("Heard player RELOAD_COMPLETE at %s, intensity=%.2f, distance=%.0f" % [
-			position, intensity, distance
-		])
+		_log_debug("Heard player RELOAD_COMPLETE (intensity=%.2f, distance=%.0f) at %s" % [intensity, distance, position])
+		_log_to_file("Heard player RELOAD_COMPLETE at %s, intensity=%.2f, distance=%.0f" % [position, intensity, distance])
 
 		# Clear player vulnerability state - reload finished, player is armed again
 		_goap_world_state["player_reloading"] = false
@@ -682,11 +662,7 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 		# Clear the aggressive pursuit flag - no longer pursuing vulnerable player
 		_pursuing_vulnerability_sound = false
 
-		# React to reload completion - transition to cautious/defensive mode after a short delay.
-		# The 200ms delay gives enemies a brief reaction time before becoming cautious,
-		# making the transition feel more natural and giving player a small window.
-		# Enemies who were pursuing the vulnerable player should now become more cautious.
-		# This makes completing reload a way to "reset" aggressive enemy behavior.
+		# React to reload completion - transition to cautious/defensive mode after 200ms delay.
 		if _current_state in [AIState.PURSUING, AIState.COMBAT, AIState.ASSAULT]:
 			var state_before_delay := _current_state
 			_log_to_file("Reload complete sound heard - waiting 200ms before cautious transition from %s" % AIState.keys()[_current_state])
@@ -728,21 +704,14 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 		return
 
 	# React to sounds: transition to combat mode to investigate
-	_log_debug("Heard gunshot (intensity=%.2f, distance=%.0f) from %s at %s, entering COMBAT" % [
-		intensity,
-		distance,
-		"player" if source_type == 0 else ("enemy" if source_type == 1 else "neutral"),
-		position
-	])
-	_log_to_file("Heard gunshot at %s, source_type=%d, intensity=%.2f, distance=%.0f" % [
-		position, source_type, intensity, distance
-	])
+	var src_name := "player" if source_type == 0 else ("enemy" if source_type == 1 else "neutral")
+	_log_debug("Heard gunshot (intensity=%.2f, distance=%.0f) from %s at %s, entering COMBAT" % [intensity, distance, src_name, position])
+	_log_to_file("Heard gunshot at %s, source_type=%d, intensity=%.2f, distance=%.0f" % [position, source_type, intensity, distance])
 
 	# Issue #363: Track gunshots for sustained fire detection (Trigger 5)
 	_on_gunshot_heard_for_grenade(position)
 
-	# Store the position of the sound as a point of interest
-	# The enemy will investigate this location
+	# Store sound position as point of interest to investigate
 	_last_known_player_position = position
 
 	# Update memory system with sound-based detection (Issue #297)
