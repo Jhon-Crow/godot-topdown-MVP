@@ -3,9 +3,8 @@
 ## Summary
 
 Issue #525 requested adding a Gothic font for score ratings and combo counter.
-The initial implementation extracted character glyphs from a calligraphy specimen
-image into a BMFont sprite sheet, but the font did not render in the exported
-Godot build. This case study analyzes the root causes and the fix.
+Multiple iterations were needed to get the font extraction correct. This case
+study documents the root causes found across all iterations and the final fix.
 
 ## Timeline
 
@@ -17,126 +16,122 @@ Godot build. This case study analyzes the root causes and the fix.
    characters.
 
 3. **Second attempt**: Extracted characters from the image into a BMFont sprite
-   sheet (`gothic_bitmap.png` + `gothic_bitmap.fnt`). Used
-   `FontFile.new().load_bitmap_font()` to load at runtime. Owner reported
-   "the old font returned, new font is nowhere."
+   sheet. Used `FontFile.new().load_bitmap_font()` to load at runtime. Owner
+   reported "the old font returned, new font is nowhere."
 
-4. **Root cause analysis and fix**: Identified two root causes (see below)
-   and fixed both.
+4. **Third attempt**: Fixed source path and loading method. Owner reported
+   "font markup is incorrect" - glyph bounding boxes were wrong, producing
+   garbled characters.
+
+5. **Fourth attempt (final)**: Owner provided transparent-background version
+   of the source image. Complete rewrite of extraction script with careful
+   per-pixel alpha analysis and manually verified bounding boxes. All 44
+   glyphs correctly extracted.
 
 ## Root Causes
 
-### Root Cause 1: Empty Sprite Sheet
+### Root Cause 1: Empty Sprite Sheet (Iteration 2-3)
 
-The font extraction script (`experiments/extract_gothic_font.py`) referenced
-a hardcoded temporary file path from a previous AI session:
+The font extraction script referenced a hardcoded temporary file path from a
+previous AI session. When re-run, the source image wasn't found at the
+hardcoded path. The resulting `gothic_bitmap.png` sprite sheet was nearly
+empty (only a tiny artifact visible).
 
-```python
-INPUT_IMAGE = "/tmp/claude-1000/-tmp-gh-issue-solver-1770414816582/.../gothic_font_image.png"
-```
+### Root Cause 2: Runtime Font Loading Method (Iteration 2-3)
 
-This path did **not exist** in subsequent runs. The script ran without error
-because the source image had already been saved to `assets/fonts/gothic_source.png`,
-but the hardcoded path pointed to a non-existent location. The resulting
-`gothic_bitmap.png` sprite sheet was 760x610 pixels but contained almost no
-visible glyph data (only a tiny artifact in one corner from a previous run's
-cached output).
+The code used `FontFile.new().load_bitmap_font()` which can fail silently
+in exported Godot builds (the raw `.fnt` file may not be included in
+exports - only the imported `.fontdata` is). Changed to use
+`load("res://assets/fonts/gothic_bitmap.fnt")` which uses Godot's resource
+import system.
 
-**Evidence**: Viewing `gothic_bitmap.png` showed a nearly blank image. The
-debug version (`gothic_sheet_debug.png` on dark background) confirmed
-only 1-2 faint glyphs were present out of the expected 44.
+### Root Cause 3: Incorrect Glyph Bounding Boxes (Iteration 3)
 
-### Root Cause 2: Runtime Font Loading Method
+Even after fixing the source path, the manually specified bounding boxes
+for each character were inaccurate:
 
-The code used `FontFile.new()` + `load_bitmap_font()` to load the BMFont
-at runtime:
+- Many boxes overlapped significantly with neighboring characters
+- Some characters (G, Z, 8, 9) had extremely narrow boxes, capturing
+  only slivers of the actual glyph
+- The extraction used grayscale threshold conversion on an RGB image with
+  white background, which produced poor alpha masks
 
-```gdscript
-var font := FontFile.new()
-var err := font.load_bitmap_font("res://assets/fonts/gothic_bitmap.fnt")
-```
+**Evidence**: The debug overlay image (`gothic_debug_final.png`) showed
+bounding boxes that were misaligned with character positions. The sprite
+sheet (`gothic_sheet_debug.png`) showed garbled glyphs with fragments of
+neighboring characters.
 
-This approach has known issues in Godot 4.x:
+### Root Cause 4: No Transparent Background Source (Iteration 1-3)
 
-- **In the editor**: `.fnt` files are imported by Godot's `font_data_bmfont`
-  importer, which creates a `.fontdata` resource in `.godot/imported/`.
-  Using `load("res://path/to/file.fnt")` accesses this imported resource.
+The original source image had a white/beige background. Extracting character
+outlines from this required grayscale thresholding, which was unreliable:
+- Similar brightness between character edges and background
+- Gold-colored title area interfered with thresholding
+- Character strokes with anti-aliased edges were partially lost
 
-- **`load_bitmap_font()` at runtime**: May bypass the import system entirely.
-  In exported builds, the raw `.fnt` file may not be included (only the
-  imported `.fontdata` is). This causes the font to silently fail to load,
-  with the engine falling back to the default font.
+The owner provided a transparent-background version of the image, which
+made clean extraction possible using the alpha channel directly.
 
-- **No error logging**: The original code checked `err == OK` but had no
-  `push_warning()` or `print()` calls, making the failure completely silent.
-  The game log (`game_log_20260207_014459.txt`) contains zero font-related
-  messages, confirming the silent failure.
+## Final Fix
 
-**References**:
-- [Godot Issue #74200: Bitmap fonts don't work in Godot 4](https://github.com/godotengine/godot/issues/74200)
-- [Godot Issue #67495: Certain BMFont .fnt files don't work](https://github.com/godotengine/godot/issues/67495)
-- [Godot Issue #95523: Can't import generated BMFont .fnt file](https://github.com/godotengine/godot/issues/95523)
+### Fix 1: Transparent Background Source
 
-## Fix Applied
+Used the owner-provided `gothic_source_nobg.png` (RGBA with transparent
+background) as the extraction source. This allows using the alpha channel
+directly instead of unreliable grayscale thresholding.
 
-### Fix 1: Proper Font Extraction
+### Fix 2: Careful Glyph Boundary Mapping
 
-Updated `experiments/extract_gothic_font.py` to use the correct source path:
+Complete rewrite of `experiments/extract_gothic_font.py`:
 
-```python
-INPUT_IMAGE = os.path.join(PROJECT_DIR, "assets", "fonts", "gothic_source.png")
-```
+1. Generated 4x zoomed grid overlays of each character row
+2. Analyzed per-column alpha density to find character body positions
+3. Manually specified split points based on visual inspection and
+   density valleys between characters
+4. Used auto-trimming of transparent borders for clean glyph boundaries
 
-Re-ran the extraction, producing a correct sprite sheet with all 44 glyphs
-(A-Z, 0-9, special characters, lowercase 'x' for combo display).
+The new extraction produces 44 correctly-shaped glyphs (A-Z, 0-9,
+`:`, `&`, `?`, `!`, `-`, `+`, space, lowercase `x`).
 
-### Fix 2: Godot Resource System Loading
+### Fix 3: Godot Resource System Loading
 
-Changed all font loading from `load_bitmap_font()` to `load()`:
-
-```gdscript
-# Before (broken in exports):
-var font := FontFile.new()
-var err := font.load_bitmap_font("res://assets/fonts/gothic_bitmap.fnt")
-
-# After (works in both editor and exports):
-var font = load("res://assets/fonts/gothic_bitmap.fnt")
-```
-
-This uses Godot's resource import system, which:
-- Correctly imports `.fnt` files via the `font_data_bmfont` importer
-- Includes the imported resource in exports
-- Works in both the editor and exported builds
-
-### Fix 3: Added Diagnostic Logging
-
-Added `push_warning()` calls at every failure point so future font loading
-issues will be visible in the game log:
-
-```gdscript
-if font != null:
-    print("[AnimatedScoreScreen] Gothic bitmap font loaded successfully")
-else:
-    push_warning("[AnimatedScoreScreen] Failed to load Gothic font from: " + GOTHIC_FONT_PATH)
-```
+All font loading uses `load("res://assets/fonts/gothic_bitmap.fnt")`:
+- Works in both editor and exported builds
+- Uses Godot's `font_data_bmfont` importer
+- Diagnostic `push_warning()` calls at every failure point
 
 ## Lessons Learned
 
 1. **Never hardcode temporary paths** - Scripts that generate assets should
-   use relative paths from the project root, not absolute temp paths.
+   use relative paths from the project root.
 
 2. **Use Godot's resource system** (`load()` / `preload()`) instead of
-   raw file loading methods (`load_bitmap_font()`) for assets that go through
-   the import pipeline.
+   raw file loading methods for assets that go through the import pipeline.
 
-3. **Always add diagnostic logging** for resource loading, especially for
-   assets loaded at runtime. Silent failures are extremely hard to debug.
+3. **Always add diagnostic logging** for resource loading. Silent failures
+   are extremely hard to debug.
 
-4. **Verify generated assets visually** - The broken sprite sheet would have
-   been caught immediately if someone had viewed `gothic_bitmap.png` before
-   committing.
+4. **Verify generated assets visually** - Always inspect sprite sheets and
+   debug overlays before committing.
+
+5. **Request clean source material** - When extracting from images, a
+   transparent-background version dramatically simplifies the process.
+
+6. **Use grid overlays for coordinate mapping** - When manually specifying
+   bounding boxes, generating scaled grid overlay images is essential for
+   accuracy.
+
+7. **Use alpha channel analysis** - Per-column alpha density analysis helps
+   find optimal character boundaries in tightly-packed calligraphy.
 
 ## Files
 
-- `game_log_20260207_014459.txt` - Game log from owner's test (no font errors
-  visible, confirming silent failure)
+- `game_log_20260207_014459.txt` - Game log from owner's test showing
+  silent font loading failure
+- `../../experiments/extract_gothic_font.py` - Final extraction script
+- `../../experiments/gothic_debug_v4.png` - Debug overlay showing final
+  bounding boxes on source image
+- `../../experiments/gothic_sheet_debug_v4.png` - Final sprite sheet on
+  dark background for visual verification
+- `../../assets/fonts/gothic_source_nobg.png` - Transparent-background
+  source image (provided by owner)
