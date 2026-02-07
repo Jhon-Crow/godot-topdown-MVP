@@ -3,13 +3,20 @@ shader_type canvas_item;
 // Ghost replay filter: red/black/white color palette.
 // Used in Ghost replay mode to create a stylized noir-like look
 // with red highlights, similar to Sin City or Madworld aesthetics.
+//
+// Uses hint_screen_texture to read the rendered scene and apply
+// a fullscreen post-processing filter via a ColorRect overlay.
+// Uses textureLod for gl_compatibility renderer support.
 
 uniform float intensity : hint_range(0.0, 1.0) = 1.0;
 uniform float red_threshold : hint_range(0.0, 1.0) = 0.15;
 uniform float red_boost : hint_range(1.0, 3.0) = 2.0;
 
+// Screen texture sampler for reading the rendered scene
+uniform sampler2D screen_texture : hint_screen_texture, repeat_disable, filter_nearest;
+
 void fragment() {
-	vec4 original = texture(TEXTURE, UV);
+	vec4 original = textureLod(screen_texture, SCREEN_UV, 0.0);
 
 	// Calculate luminance (grayscale)
 	float lum = dot(original.rgb, vec3(0.299, 0.587, 0.114));
@@ -30,5 +37,5 @@ void fragment() {
 
 	// Apply intensity
 	COLOR.rgb = mix(original.rgb, result, intensity);
-	COLOR.a = original.a;
+	COLOR.a = 1.0;
 }
