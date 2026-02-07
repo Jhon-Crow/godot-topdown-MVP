@@ -376,6 +376,9 @@ var _pre_evasion_state: AIState = AIState.IDLE
 var _prediction: PlayerPredictionComponent = null  ## [Issue #298] Player position prediction.
 var _was_player_visible: bool = false  ## [Issue #298] Tracks sight-loss transitions.
 
+## [Issue #574] Flashlight detection component — detects player flashlight beam.
+var _flashlight_detection: FlashlightDetectionComponent = null
+
 ## Last hit direction (used for death animation).
 var _last_hit_direction: Vector2 = Vector2.RIGHT
 
@@ -762,16 +765,22 @@ func _initialize_goap_state() -> void:
 		"in_grenade_danger_zone": false,
 		# Ally death observation state (Issue #409)
 		"witnessed_ally_death": false,
-		"has_prediction": false, "prediction_confidence": 0.0  # [#298]
+		"has_prediction": false, "prediction_confidence": 0.0,  # [#298]
+		# Flashlight detection states (Issue #574)
+		"flashlight_detected": false,
+		"passage_lit_by_flashlight": false
 	}
 
-## Initialize the enemy memory and prediction systems (Issue #297, #298).
+## Initialize the enemy memory, prediction, and flashlight detection systems (Issue #297, #298, #574).
 func _initialize_memory() -> void:
 	_memory = EnemyMemory.new()
 	var es: Node = get_node_or_null("/root/ExperimentalSettings")
 	if es and es.has_method("is_ai_prediction_enabled") and es.is_ai_prediction_enabled():
 		_prediction = PlayerPredictionComponent.new()
 		_prediction.debug_logging = debug_logging
+	# [Issue #574] Initialize flashlight detection component
+	_flashlight_detection = FlashlightDetectionComponent.new()
+	_flashlight_detection.debug_logging = debug_logging
 
 ## Connect to GameManager's debug mode signal for F7 toggle.
 func _connect_debug_mode_signal() -> void:
@@ -934,6 +943,12 @@ func _update_goap_state() -> void:
 	_goap_world_state["witnessed_ally_death"] = _witnessed_ally_death
 	if _prediction:  # [#298]
 		_goap_world_state["has_prediction"] = _prediction.has_predictions; _goap_world_state["prediction_confidence"] = _prediction.get_prediction_confidence()
+
+	# Flashlight detection states (Issue #574)
+	if _flashlight_detection:
+		_goap_world_state["flashlight_detected"] = _flashlight_detection.detected
+		# Check if the next navigation waypoint is lit by the flashlight
+		_goap_world_state["passage_lit_by_flashlight"] = _flashlight_detection.is_next_waypoint_lit(_nav_agent, _player) if _player else false
 ## Updates model rotation smoothly (#347). Priority: player > combat/pursuit/flank > corner check > velocity > idle scan.
 ## Issues #386, #397: COMBAT/PURSUING/FLANKING states prioritize facing the player to prevent turning away.
 func _update_enemy_model_rotation() -> void:
@@ -1995,6 +2010,15 @@ func _process_pursuing_state(delta: float) -> void:
 				_goap_world_state[vuln_pursuit_key] = current_frame
 				_log_to_file("Pursuing vulnerability sound at %s, distance=%.0f" % [_last_known_player_position, distance_to_sound])
 			return
+
+	# [Issue #574] Check if the current path goes through a lit passage
+	# If the flashlight illuminates the next waypoint, try flanking to find an alternate route
+	if _flashlight_detection and _player and not _pursuit_approaching:
+		if _flashlight_detection.is_next_waypoint_lit(_nav_agent, _player):
+			if _can_attempt_flanking():
+				_log_to_file("[#574] Next waypoint lit by flashlight, attempting flank to avoid lit passage")
+				if _transition_to_flanking():
+					return
 
 	# Process approach phase - moving directly toward player when no better cover exists
 	if _pursuit_approaching:
@@ -3145,11 +3169,17 @@ func _find_pursuit_cover_toward_player() -> void:
 			# - Closer to player
 			# - Not too far from current position
 			# - On a different obstacle than current cover
+			# - NOT illuminated by the player's flashlight (Issue #574)
 			var hidden_score: float = 5.0 if is_hidden else 0.0
 			var approach_score: float = progress / CLOSE_COMBAT_DISTANCE
 			var distance_penalty: float = cover_distance_from_me / COVER_CHECK_DISTANCE
 
-			var total_score: float = hidden_score + approach_score * 2.0 - distance_penalty - same_obstacle_penalty
+			# [Issue #574] Penalize cover positions lit by the flashlight
+			var flashlight_penalty: float = 0.0
+			if _flashlight_detection and _player and _flashlight_detection.is_position_lit(cover_pos, _player):
+				flashlight_penalty = 8.0  # Strong penalty — avoid walking into flashlight beam
+
+			var total_score: float = hidden_score + approach_score * 2.0 - distance_penalty - same_obstacle_penalty - flashlight_penalty
 
 			if total_score > best_score:
 				best_score = total_score
@@ -3361,6 +3391,17 @@ func _choose_best_flank_side() -> float:
 		return 1.0
 	elif left_valid and not right_valid:
 		return -1.0
+
+	# [Issue #574] When both sides are valid, prefer the side NOT lit by the flashlight
+	if right_valid and left_valid and _flashlight_detection and _player:
+		var right_lit := _flashlight_detection.is_position_lit(right_flank_pos, _player)
+		var left_lit := _flashlight_detection.is_position_lit(left_flank_pos, _player)
+		if right_lit and not left_lit:
+			_log_to_file("[#574] Choosing left flank — right side lit by flashlight")
+			return -1.0
+		elif left_lit and not right_lit:
+			_log_to_file("[#574] Choosing right flank — left side lit by flashlight")
+			return 1.0
 
 	# Issue #367: If neither valid, try reduced distance (50%)
 	if not right_valid and not left_valid:
@@ -3631,7 +3672,7 @@ func _check_player_visibility() -> void:
 		_continuous_visibility_timer = 0.0
 		_player_visibility_ratio = 0.0
 
-## Update enemy memory: visual detection, decay, prediction, and intel sharing (Issue #297, #298).
+## Update enemy memory: visual detection, decay, prediction, flashlight detection, and intel sharing (Issue #297, #298, #574).
 func _update_memory(delta: float) -> void:
 	if _memory == null:
 		return
@@ -3645,6 +3686,24 @@ func _update_memory(delta: float) -> void:
 		var f := Vector2.RIGHT.rotated(_enemy_model.global_rotation) if _enemy_model else Vector2.RIGHT
 		_prediction.process_frame(_can_see_player, _was_player_visible, _player.global_position if _player else Vector2.ZERO, global_position, f, delta, _memory)
 	_was_player_visible = _can_see_player
+
+	# [Issue #574] Flashlight beam detection: check if enemy can see the player's flashlight
+	if _flashlight_detection and _player and not _can_see_player and not _is_blinded and _memory_reset_confusion_timer <= 0.0:
+		var flashlight_detected := _flashlight_detection.check_flashlight(global_position, _player, _raycast, delta)
+		if flashlight_detected:
+			# Update memory with flashlight-based detection
+			_memory.update_position(_flashlight_detection.estimated_player_position, FlashlightDetectionComponent.FLASHLIGHT_DETECTION_CONFIDENCE)
+			_last_known_player_position = _flashlight_detection.estimated_player_position
+			_log_to_file("[#574] Flashlight detected: estimated_pos=%s, beam_dir=%s" % [
+				_flashlight_detection.estimated_player_position, _flashlight_detection.beam_direction
+			])
+			# If in IDLE state, react to flashlight detection by investigating
+			if _current_state == AIState.IDLE:
+				_log_to_file("[#574] Flashlight triggered pursuit from IDLE")
+				_transition_to_pursuing()
+	elif _flashlight_detection and (_can_see_player or _is_blinded or _memory_reset_confusion_timer > 0.0):
+		# Reset flashlight detection when player is directly visible or enemy is blinded/confused
+		_flashlight_detection.reset()
 
 	# Apply confidence decay over time
 	_memory.decay(delta)
