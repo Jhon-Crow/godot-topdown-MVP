@@ -172,6 +172,7 @@ var _is_shotgun_weapon: bool = false  ## Whether weapon fires multiple pellets
 var _pellet_count_min: int = 1  ## Minimum pellets per shot (for shotgun)
 var _pellet_count_max: int = 1  ## Maximum pellets per shot (for shotgun)
 var _spread_angle: float = 0.0  ## Spread angle in degrees (for shotgun)
+var _spread_threshold: int = 3; var _initial_spread: float = 0.5; var _spread_increment: float = 0.6; var _max_spread: float = 4.0; var _spread_reset_time: float = 0.25; var _shot_count: int = 0; var _spread_timer: float = 0.0  ## Issue #516: progressive spread
 var _caliber_data: Resource = null  ## Caliber data for casings
 var _patrol_points: Array[Vector2] = []  ## Patrol state
 var _current_patrol_index: int = 0
@@ -482,6 +483,7 @@ func _configure_weapon_type() -> void:
 	_pellet_count_min = c.get("pellet_count_min", 1)
 	_pellet_count_max = c.get("pellet_count_max", 1)
 	_spread_angle = c.get("spread_angle", 0.0)
+	_spread_threshold = c.get("spread_threshold", 3); _initial_spread = c.get("initial_spread", 0.5); _spread_increment = c.get("spread_increment", 0.6); _max_spread = c.get("max_spread", 4.0); _spread_reset_time = c.get("spread_reset_time", 0.25)
 	print("[Enemy] Weapon: %s%s" % [WeaponConfigComponent.get_type_name(weapon_type), " (pellets=%d-%d)" % [_pellet_count_min, _pellet_count_max] if _is_shotgun_weapon else ""])
 
 ## Setup patrol points based on patrol offsets from initial position.
@@ -822,6 +824,7 @@ func _physics_process(delta: float) -> void:
 	# Update shoot cooldown timer
 	_shoot_timer += delta
 
+	_spread_timer += delta; if _spread_timer >= _spread_reset_time and _spread_reset_time > 0.0: _shot_count = 0  # Issue #516
 	# Update reload timer
 	_update_reload(delta)
 
@@ -2372,7 +2375,7 @@ func _shoot_with_inaccuracy() -> void:
 		_log_debug("Inaccurate shot blocked: wall in path after rotation")
 		return
 
-	# Fire bullet using _spawn_projectile (handles C# add_child-before-props, Issue #550)
+	# Fire bullet using _spawn_projectile (handles C# add_child-before-props, Issue #516, #550)
 	_spawn_projectile(direction, bullet_spawn_pos)
 	_spawn_muzzle_flash(bullet_spawn_pos, direction)
 	# Play sounds
@@ -2384,14 +2387,11 @@ func _shoot_with_inaccuracy() -> void:
 	if sound_propagation and sound_propagation.has_method("emit_sound"):
 		sound_propagation.emit_sound(0, global_position, 1, self, weapon_loudness)  # 0 = GUNSHOT, 1 = ENEMY
 	_play_delayed_shell_sound()
-	_current_ammo -= 1  # Consume ammo
+	_current_ammo -= 1; _shot_count += 1; _spread_timer = 0.0  # Issue #516: spread tracking
 	ammo_changed.emit(_current_ammo, _reserve_ammo)
-	if _current_ammo <= 0 and _reserve_ammo > 0:
-		_start_reload()
+	if _current_ammo <= 0 and _reserve_ammo > 0: _start_reload()
 
 ## Shoot a burst shot with arc spread for ONE_HIT retreat.
-## Bullets fly in barrel direction with added arc spread.
-## Enemy must be properly aimed before shooting (within AIM_TOLERANCE_DOT).
 func _shoot_burst_shot() -> void:
 	if bullet_scene == null or _player == null:
 		return
@@ -2432,7 +2432,7 @@ func _shoot_burst_shot() -> void:
 		_log_debug("Burst shot blocked: wall in path after rotation")
 		return
 
-	# Fire bullet using _spawn_projectile (handles C# add_child-before-props, Issue #550)
+	# Fire bullet using _spawn_projectile (handles C# add_child-before-props, Issue #516, #550)
 	_spawn_projectile(direction, bullet_spawn_pos)
 	_spawn_muzzle_flash(bullet_spawn_pos, direction)
 
@@ -2449,12 +2449,9 @@ func _shoot_burst_shot() -> void:
 
 	_play_delayed_shell_sound()
 
-	# Consume ammo
-	_current_ammo -= 1
+	_current_ammo -= 1; _shot_count += 1; _spread_timer = 0.0  # Issue #516: spread tracking
 	ammo_changed.emit(_current_ammo, _reserve_ammo)
-
-	if _current_ammo <= 0 and _reserve_ammo > 0:
-		_start_reload()
+	if _current_ammo <= 0 and _reserve_ammo > 0: _start_reload()
 
 ## Transition to IDLE state.
 func _transition_to_idle() -> void:
@@ -3846,26 +3843,32 @@ func _shoot() -> void:
 	var sp: Node = get_node_or_null("/root/SoundPropagation")
 	if sp and sp.has_method("emit_sound"): sp.emit_sound(0, global_position, 1, self, weapon_loudness)
 	_play_delayed_shell_sound()
-	_current_ammo -= 1
+	_current_ammo -= 1; _shot_count += 1; _spread_timer = 0.0  # Issue #516: spread tracking
 	ammo_changed.emit(_current_ammo, _reserve_ammo)
 	if _current_ammo <= 0 and _reserve_ammo > 0: _start_reload()
 
-## Spawn a projectile. add_child first so C# _Ready() runs before setting props (Issue #550).
-func _spawn_projectile(dir: Vector2, pos: Vector2) -> void:
-	var p := bullet_scene.instantiate(); p.global_position = pos; get_tree().current_scene.add_child(p)
-	if p.has_method("SetDirection"): p.SetDirection(dir)
-	elif p.get("direction") != null: p.direction = dir
-	elif p.get("Direction") != null: p.Direction = dir
+## Spawn a projectile. add_child first so C# _Ready() runs before setting props (Issue #516, #550).
+func _spawn_projectile(direction: Vector2, spawn_pos: Vector2) -> void:
+	var p := bullet_scene.instantiate(); p.global_position = spawn_pos
+	get_tree().current_scene.add_child(p)  # C# _Ready() runs; _PhysicsProcess hasn't yet
+	if p.has_method("SetDirection"): p.SetDirection(direction)
+	elif p.get("direction") != null: p.direction = direction
+	elif p.get("Direction") != null: p.Direction = direction
 	var sid := get_instance_id()
 	if p.has_method("SetShooterId"): p.SetShooterId(sid)
 	elif p.get("shooter_id") != null: p.shooter_id = sid
 	elif p.get("ShooterId") != null: p.ShooterId = sid
-	if p.has_method("SetShooterPosition"): p.SetShooterPosition(pos)
-	elif p.get("shooter_position") != null: p.shooter_position = pos
-	elif p.get("ShooterPosition") != null: p.ShooterPosition = pos
+	if p.has_method("SetShooterPosition"): p.SetShooterPosition(spawn_pos)
+	elif p.get("shooter_position") != null: p.shooter_position = spawn_pos
+	elif p.get("ShooterPosition") != null: p.ShooterPosition = spawn_pos
 
-## Shoot a single bullet (rifle/UZI).
-func _shoot_single_bullet(direction: Vector2, spawn_pos: Vector2) -> void: _spawn_projectile(direction, spawn_pos)
+## Shoot a single bullet (rifle/UZI) with progressive spread (Issue #516).
+func _shoot_single_bullet(direction: Vector2, spawn_pos: Vector2) -> void:
+	var spread := _initial_spread if _shot_count <= _spread_threshold else minf(_initial_spread + (_shot_count - _spread_threshold) * _spread_increment, _max_spread)
+	if spread > 0.0: direction = direction.rotated(randf_range(-deg_to_rad(spread), deg_to_rad(spread)))
+	_spawn_projectile(direction, spawn_pos)
+
+
 ## Shoot multiple pellets with spread (shotgun - like player's Shotgun.cs).
 func _shoot_shotgun_pellets(base_direction: Vector2, spawn_pos: Vector2) -> void:
 	var count: int = randi_range(_pellet_count_min, _pellet_count_max)

@@ -38,6 +38,9 @@ class MockRealisticVisibilityComponent:
 	## Count of children with unshaded material applied.
 	var _unshaded_children_count: int = 0
 
+	## Track dynamically added children that received unshaded material (Issue #570).
+	var _dynamically_unshaded_children: Array = []
+
 
 	## Apply the visibility state (enable/disable fog of war).
 	func _apply_visibility_state(enabled: bool) -> void:
@@ -46,6 +49,8 @@ class MockRealisticVisibilityComponent:
 		_point_light_visible = enabled
 		_unshaded_applied = enabled
 		_unshaded_children_count = 3 if enabled else 0  # Simulated: weapon, laser, arms
+		if not enabled:
+			_dynamically_unshaded_children.clear()
 
 
 	## Setup the visibility system (simulated).
@@ -56,6 +61,7 @@ class MockRealisticVisibilityComponent:
 		_point_light_visible = false
 		_unshaded_applied = false
 		_unshaded_children_count = 0
+		_dynamically_unshaded_children.clear()
 
 
 	## Check if the visibility system is currently active.
@@ -71,6 +77,20 @@ class MockRealisticVisibilityComponent:
 	## Get the current visibility radius.
 	func get_visibility_radius() -> float:
 		return VISIBILITY_RADIUS
+
+
+	## Simulate adding a new child to the player while night mode is active (Issue #570).
+	## This mimics the behavior of _on_player_child_added which applies unshaded material
+	## to dynamically added weapons and their children (laser sights, sprites).
+	func simulate_child_added(child_name: String) -> void:
+		if _is_active:
+			_dynamically_unshaded_children.append(child_name)
+			_unshaded_children_count += 1
+
+
+	## Check if a dynamically added child received unshaded material.
+	func has_dynamic_unshaded(child_name: String) -> bool:
+		return child_name in _dynamically_unshaded_children
 
 
 var component: MockRealisticVisibilityComponent
@@ -322,3 +342,106 @@ func test_unshaded_toggle_consistency() -> void:
 	component._apply_visibility_state(false)
 	assert_false(component.is_unshaded_applied(), "Should be removed after disable")
 	assert_false(component._canvas_modulate_visible, "Canvas modulate should be hidden")
+
+
+# ============================================================================
+# Dynamic Child Monitoring Tests (Issue #570 - Night Mode Weapon Visibility)
+# ============================================================================
+
+
+func test_dynamic_weapon_gets_unshaded_when_active() -> void:
+	# Night mode active, then add a weapon
+	component._apply_visibility_state(true)
+	component.simulate_child_added("SilencedPistol")
+
+	assert_true(component.has_dynamic_unshaded("SilencedPistol"),
+		"Dynamically added SilencedPistol should receive unshaded material in night mode")
+
+
+func test_dynamic_weapon_not_unshaded_when_inactive() -> void:
+	# Night mode inactive, add a weapon
+	component._apply_visibility_state(false)
+	component.simulate_child_added("SilencedPistol")
+
+	assert_false(component.has_dynamic_unshaded("SilencedPistol"),
+		"Dynamically added weapon should NOT receive unshaded material when night mode is off")
+
+
+func test_dynamic_laser_sight_gets_unshaded() -> void:
+	# Night mode active, then add laser sight (simulates weapon creating LaserSight in _Ready)
+	component._apply_visibility_state(true)
+	component.simulate_child_added("LaserSight")
+
+	assert_true(component.has_dynamic_unshaded("LaserSight"),
+		"Dynamically created LaserSight should receive unshaded material in night mode")
+
+
+func test_dynamic_power_fantasy_laser_gets_unshaded() -> void:
+	# Night mode active + Power Fantasy mode, sniper adds PowerFantasyLaser
+	component._apply_visibility_state(true)
+	component.simulate_child_added("PowerFantasyLaser")
+
+	assert_true(component.has_dynamic_unshaded("PowerFantasyLaser"),
+		"PowerFantasyLaser should receive unshaded material in night mode (Issue #570 bug 1)")
+
+
+func test_multiple_dynamic_weapons_all_get_unshaded() -> void:
+	# Night mode active, swap weapons multiple times
+	component._apply_visibility_state(true)
+	component.simulate_child_added("Shotgun")
+	component.simulate_child_added("MiniUzi")
+	component.simulate_child_added("SniperRifle")
+
+	assert_true(component.has_dynamic_unshaded("Shotgun"),
+		"Shotgun should get unshaded material")
+	assert_true(component.has_dynamic_unshaded("MiniUzi"),
+		"MiniUzi should get unshaded material")
+	assert_true(component.has_dynamic_unshaded("SniperRifle"),
+		"SniperRifle should get unshaded material")
+
+
+func test_dynamic_children_cleared_on_disable() -> void:
+	# Add weapons while active, then disable
+	component._apply_visibility_state(true)
+	component.simulate_child_added("SilencedPistol")
+	component.simulate_child_added("LaserSight")
+
+	component._apply_visibility_state(false)
+
+	assert_false(component.has_dynamic_unshaded("SilencedPistol"),
+		"Dynamic unshaded tracking should be cleared when night mode is disabled")
+	assert_false(component.has_dynamic_unshaded("LaserSight"),
+		"Dynamic unshaded tracking should be cleared when night mode is disabled")
+
+
+func test_dynamic_children_count_increases() -> void:
+	component._apply_visibility_state(true)
+	var initial_count: int = component._unshaded_children_count
+
+	component.simulate_child_added("SilencedPistol")
+	assert_eq(component._unshaded_children_count, initial_count + 1,
+		"Unshaded children count should increase when new weapon is added")
+
+	component.simulate_child_added("LaserSight")
+	assert_eq(component._unshaded_children_count, initial_count + 2,
+		"Unshaded children count should increase again for laser sight")
+
+
+func test_weapon_swap_scenario() -> void:
+	# Simulate the exact scenario from Issue #570:
+	# 1. Night mode is enabled
+	# 2. Level removes default AssaultRifle (already has unshaded from initialization)
+	# 3. Level adds SilencedPistol dynamically
+	# 4. SilencedPistol creates LaserSight in its _Ready()
+	# Expected: Both SilencedPistol and LaserSight should get unshaded material
+
+	component._apply_visibility_state(true)
+
+	# Weapon swap happens
+	component.simulate_child_added("SilencedPistol")
+	component.simulate_child_added("LaserSight")  # Created by weapon's _Ready()
+
+	assert_true(component.has_dynamic_unshaded("SilencedPistol"),
+		"Swapped weapon should be visible in night mode")
+	assert_true(component.has_dynamic_unshaded("LaserSight"),
+		"Laser sight of swapped weapon should be visible in night mode")

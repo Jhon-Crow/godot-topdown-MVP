@@ -51,6 +51,13 @@ func _ready() -> void:
 	_unshaded_material = CanvasItemMaterial.new()
 	_unshaded_material.light_mode = CanvasItemMaterial.LIGHT_MODE_UNSHADED
 
+	# Monitor player for new children (weapons added after initialization)
+	# This fixes night mode for dynamically equipped weapons (Issue #570):
+	# - Weapons swapped via level scripts (shotgun, pistol, sniper, uzi)
+	# - Laser sights created programmatically in weapon _Ready() (e.g. PowerFantasyLaser)
+	if _player:
+		_player.child_entered_tree.connect(_on_player_child_added)
+
 	# Listen for experimental settings changes
 	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
 	if experimental_settings:
@@ -196,6 +203,57 @@ func _apply_unshaded_recursive(node: Node, apply: bool) -> void:
 		_apply_unshaded_recursive(child, apply)
 
 
+## Called when a new child is added to the player node (Issue #570).
+## Applies unshaded material to dynamically added weapons and their children
+## (laser sights, sprites) so they remain visible in night mode.
+## Uses call_deferred to ensure the child's own children (e.g. laser sights
+## created in weapon _Ready()) are already in the tree before we apply materials.
+func _on_player_child_added(child: Node) -> void:
+	if not _is_active:
+		return
+	# Skip our own nodes
+	if child == _point_light:
+		return
+	# Defer so the child's _Ready() runs first and creates its own children
+	# (e.g. weapon scripts create LaserSight Line2D nodes in _Ready())
+	call_deferred("_apply_unshaded_to_new_child", child)
+
+
+## Apply unshaded material to a newly added child and all its descendants.
+func _apply_unshaded_to_new_child(child: Node) -> void:
+	if not _is_active:
+		return
+	if not is_instance_valid(child):
+		return
+	if child is CanvasItem:
+		var child_item: CanvasItem = child as CanvasItem
+		var key: String = str(child_item.get_instance_id())
+		if not _original_materials.has(key):
+			_original_materials[key] = child_item.material
+		child_item.material = _unshaded_material
+	# Also apply to all descendants (laser sights, sprites, etc.)
+	_apply_unshaded_recursive(child, true)
+	# Monitor this child for its own new children (e.g. laser sights added later)
+	if not child.child_entered_tree.is_connected(_on_weapon_child_added):
+		child.child_entered_tree.connect(_on_weapon_child_added)
+
+
+## Called when a new child is added to a weapon node (e.g. laser sight created
+## programmatically in weapon _Ready()). Applies unshaded material so laser
+## sights are visible in night mode (Issue #570).
+func _on_weapon_child_added(child: Node) -> void:
+	if not _is_active:
+		return
+	if child is CanvasItem:
+		var child_item: CanvasItem = child as CanvasItem
+		var key: String = str(child_item.get_instance_id())
+		if not _original_materials.has(key):
+			_original_materials[key] = child_item.material
+		child_item.material = _unshaded_material
+	# Recurse into this child's children too
+	_apply_unshaded_recursive(child, true)
+
+
 ## Called when experimental settings change.
 func _on_settings_changed() -> void:
 	var experimental_settings: Node = get_node_or_null("/root/ExperimentalSettings")
@@ -215,6 +273,10 @@ func get_visibility_radius() -> float:
 
 ## Clean up when removed from scene.
 func _exit_tree() -> void:
+	# Disconnect child monitoring signals
+	if _player and is_instance_valid(_player):
+		if _player.child_entered_tree.is_connected(_on_player_child_added):
+			_player.child_entered_tree.disconnect(_on_player_child_added)
 	# Restore materials before cleanup
 	if _is_active:
 		_apply_unshaded_to_player(false)
