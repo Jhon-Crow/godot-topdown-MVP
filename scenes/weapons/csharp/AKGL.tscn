@@ -1,0 +1,32 @@
+[gd_scene load_steps=7 format=3 uid="uid://c5q8m3x7n2k1r"]
+
+[ext_resource type="Script" path="res://Scripts/Weapons/AKGL.cs" id="1_akgl"]
+[ext_resource type="PackedScene" uid="uid://dv2q8m5n7xk1q" path="res://scenes/projectiles/csharp/Bullet.tscn" id="2_bullet"]
+[ext_resource type="PackedScene" uid="uid://casing_scene" path="res://scenes/effects/Casing.tscn" id="3_casing"]
+[ext_resource type="Resource" uid="uid://bk7m4n9r3p5q4" path="res://resources/weapons/AKGLData.tres" id="4_weapon_data"]
+[ext_resource type="Texture2D" path="res://assets/sprites/weapons/ak_gl_topdown.png" id="5_rifle_sprite"]
+[ext_resource type="PackedScene" uid="uid://cvoggrenade3n2k1" path="res://scenes/projectiles/VOGGrenade.tscn" id="6_grenade"]
+
+[node name="AKGL" type="Node2D"]
+script = ExtResource("1_akgl")
+WeaponData = ExtResource("4_weapon_data")
+BulletScene = ExtResource("2_bullet")
+CasingScene = ExtResource("3_casing")
+BulletSpawnOffset = 52.0
+GrenadeScene = ExtResource("6_grenade")
+GrenadeAvailable = true
+LaserSightEnabled = true
+LaserSightColor = Color(1, 0, 0, 0.5)
+LaserSightWidth = 2.0
+
+[node name="RifleSprite" type="Sprite2D" parent="."]
+z_index = 1
+texture = ExtResource("5_rifle_sprite")
+offset = Vector2(20, 0)
+
+[node name="LaserSight" type="Line2D" parent="."]
+points = PackedVector2Array(0, 0, 500, 0)
+width = 2.0
+default_color = Color(1, 0, 0, 0.5)
+begin_cap_mode = 1
+end_cap_mode = 1
