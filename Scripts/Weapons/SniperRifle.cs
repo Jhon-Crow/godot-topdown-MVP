@@ -362,7 +362,8 @@ public partial class SniperRifle : BaseWeapon
 
     /// <summary>
     /// Plays the appropriate ASVK bolt-action sound for the given step.
-    /// Uses dedicated ASVK sounds from assets.
+    /// Uses non-positional audio so the sound volume is constant regardless
+    /// of scope camera offset (fixes issue #565).
     /// </summary>
     /// <param name="step">The bolt-action step number (1-4).</param>
     private void PlayBoltStepSound(int step)
@@ -373,14 +374,14 @@ public partial class SniperRifle : BaseWeapon
             return;
         }
 
-        // Use ASVK-specific bolt action sounds
+        // Use ASVK-specific bolt action sounds (non-positional to avoid scope attenuation)
         if (audioManager.HasMethod("play_asvk_bolt_step"))
         {
-            audioManager.Call("play_asvk_bolt_step", step, GlobalPosition);
+            audioManager.Call("play_asvk_bolt_step", step);
         }
-        else if (audioManager.HasMethod("play_sound_2d"))
+        else if (audioManager.HasMethod("play_sound"))
         {
-            // Direct sound playback fallback
+            // Fallback to non-positional sound playback
             string soundPath = step switch
             {
                 1 => "res://assets/audio/отпирание затвора ASVK (1 шаг зарядки).wav",
@@ -391,7 +392,7 @@ public partial class SniperRifle : BaseWeapon
             };
             if (!string.IsNullOrEmpty(soundPath))
             {
-                audioManager.Call("play_sound_2d", soundPath, GlobalPosition, -3.0f);
+                audioManager.Call("play_sound", soundPath, -3.0f);
             }
         }
     }
@@ -795,7 +796,8 @@ public partial class SniperRifle : BaseWeapon
 
     /// <summary>
     /// Plays the ASVK sniper shot sound via AudioManager.
-    /// Uses dedicated ASVK shot sound from assets.
+    /// Uses non-positional audio so the sound volume is constant regardless
+    /// of scope camera offset (fixes issue #565).
     /// </summary>
     private void PlaySniperShotSound()
     {
@@ -805,27 +807,30 @@ public partial class SniperRifle : BaseWeapon
             return;
         }
 
-        // Use ASVK-specific shot sound
+        // Use ASVK-specific shot sound (non-positional to avoid scope attenuation)
         if (audioManager.HasMethod("play_asvk_shot"))
         {
-            audioManager.Call("play_asvk_shot", GlobalPosition);
+            audioManager.Call("play_asvk_shot");
         }
-        else if (audioManager.HasMethod("play_sound_2d"))
+        else if (audioManager.HasMethod("play_sound"))
         {
-            // Direct sound playback fallback
-            audioManager.Call("play_sound_2d", "res://assets/audio/выстрел из ASVK.wav", GlobalPosition, -3.0f);
+            // Fallback to non-positional sound playback
+            audioManager.Call("play_sound", "res://assets/audio/выстрел из ASVK.wav", -3.0f);
         }
     }
 
     /// <summary>
     /// Plays the empty gun click sound.
+    /// Uses non-positional audio so the sound volume is constant regardless
+    /// of scope camera offset (fixes issue #565).
     /// </summary>
     private void PlayEmptyClickSound()
     {
         var audioManager = GetNodeOrNull("/root/AudioManager");
-        if (audioManager != null && audioManager.HasMethod("play_empty_click"))
+        if (audioManager != null && audioManager.HasMethod("play_sound"))
         {
-            audioManager.Call("play_empty_click", GlobalPosition);
+            audioManager.Call("play_sound",
+                "res://assets/audio/кончились патроны в пистолете.wav", -3.0f);
         }
     }
 
