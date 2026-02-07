@@ -1,42 +1,29 @@
 using Godot;
 using GodotTopDownTemplate.AbstractClasses;
+using GodotTopDownTemplate.Projectiles;
 
 namespace GodotTopDownTemplate.Weapons;
 
 /// <summary>
-/// Makarov PM (Pistolet Makarova) - starting semi-automatic pistol.
+/// RSh-12 heavy revolver - semi-automatic high-caliber revolver.
 /// Features:
 /// - Semi-automatic fire (one shot per click)
-/// - 9x18mm Makarov bullets with 0.45 damage
-/// - 9 rounds magazine
-/// - Medium ricochets (same as all pistols/SMGs, max 20 degrees)
-/// - Does not penetrate walls
-/// - Standard loudness (not silenced)
-/// - Moderate recoil with extended recovery
-/// - Blue laser sight in Power Fantasy mode
-/// Reference: https://ru.wikipedia.org/wiki/Pistolet_Makarova
+/// - 12.7x55mm STs-130 armor-piercing bullets with 20 damage
+/// - Penetrates enemies (bullet passes through)
+/// - Weak ricochet, penetrates walls at 200px
+/// - Strong screen shake and recoil (almost like sniper rifle)
+/// - Comfortable aiming like silenced pistol (smooth rotation, sensitivity 2.0)
+/// - 5-round cylinder (12.7mm caliber)
+/// - Pistol casings (longer than standard)
+/// - Very loud (alerts enemies at long range)
+/// Reference: https://news.rambler.ru/weapon/40992656-slonoboy-russkiy-revolver-kotoryy-sposoben-unichtozhit-bronetransporter/
 /// </summary>
-public partial class MakarovPM : BaseWeapon
+public partial class Revolver : BaseWeapon
 {
     /// <summary>
     /// Reference to the Sprite2D node for the weapon visual.
     /// </summary>
     private Sprite2D? _weaponSprite;
-
-    /// <summary>
-    /// Reference to the Line2D node for the laser sight (Power Fantasy mode only).
-    /// </summary>
-    private Line2D? _laserSight;
-
-    /// <summary>
-    /// Whether the laser sight is enabled (true only in Power Fantasy mode).
-    /// </summary>
-    private bool _laserSightEnabled = false;
-
-    /// <summary>
-    /// Color of the laser sight (blue in Power Fantasy mode).
-    /// </summary>
-    private Color _laserSightColor = new Color(0.0f, 0.5f, 1.0f, 0.6f);
 
     /// <summary>
     /// Current aim direction based on mouse position.
@@ -56,6 +43,7 @@ public partial class MakarovPM : BaseWeapon
 
     /// <summary>
     /// Current recoil offset angle in radians.
+    /// RSh-12 has heavy recoil close to the sniper rifle.
     /// </summary>
     private float _recoilOffset = 0.0f;
 
@@ -66,57 +54,53 @@ public partial class MakarovPM : BaseWeapon
 
     /// <summary>
     /// Time in seconds before recoil starts recovering.
-    /// Moderate delay for a standard pistol.
+    /// Long delay for heavy revolver (close to sniper rifle).
     /// </summary>
-    private const float RecoilRecoveryDelay = 0.30f;
+    private const float RecoilRecoveryDelay = 0.45f;
 
     /// <summary>
     /// Speed at which recoil recovers (radians per second).
+    /// Slower than standard pistols, reflecting heavy caliber.
     /// </summary>
-    private const float RecoilRecoverySpeed = 4.5f;
+    private const float RecoilRecoverySpeed = 3.5f;
 
     /// <summary>
-    /// Maximum recoil offset in radians (about 8 degrees).
-    /// Slightly less than the silenced pistol since PM has lower muzzle energy.
+    /// Maximum recoil offset in radians (about 13 degrees).
+    /// Close to sniper rifle (15 degrees) but slightly less.
     /// </summary>
-    private const float MaxRecoilOffset = 0.14f;
+    private const float MaxRecoilOffset = 0.23f;
 
     /// <summary>
     /// Recoil amount per shot in radians.
+    /// Heavy kick for 12.7mm revolver, close to sniper rifle.
     /// </summary>
-    private const float RecoilPerShot = 0.05f;
+    private const float RecoilPerShot = 0.12f;
+
+    /// <summary>
+    /// Muzzle flash scale for the RSh-12 revolver.
+    /// Large flash for 12.7mm caliber but smaller than sniper rifle
+    /// (revolver has shorter barrel, so more flash but less total gas).
+    /// </summary>
+    private const float RevolverMuzzleFlashScale = 1.5f;
 
     public override void _Ready()
     {
         base._Ready();
 
         // Get the weapon sprite for visual representation
-        _weaponSprite = GetNodeOrNull<Sprite2D>("MakarovSprite");
+        _weaponSprite = GetNodeOrNull<Sprite2D>("RevolverSprite");
 
         if (_weaponSprite != null)
         {
             var texture = _weaponSprite.Texture;
-            GD.Print($"[MakarovPM] MakarovSprite found: visible={_weaponSprite.Visible}, z_index={_weaponSprite.ZIndex}, texture={(texture != null ? "loaded" : "NULL")}");
+            GD.Print($"[Revolver] RevolverSprite found: visible={_weaponSprite.Visible}, z_index={_weaponSprite.ZIndex}, texture={(texture != null ? "loaded" : "NULL")}");
         }
         else
         {
-            GD.Print("[MakarovPM] No MakarovSprite node (visual model not yet added)");
+            GD.Print("[Revolver] No RevolverSprite node (visual model not yet added)");
         }
 
-        // Check for Power Fantasy mode - enable blue laser sight
-        var difficultyManager = GetNodeOrNull("/root/DifficultyManager");
-        if (difficultyManager != null)
-        {
-            var shouldForceBlueLaser = difficultyManager.Call("should_force_blue_laser_sight");
-            if (shouldForceBlueLaser.AsBool())
-            {
-                _laserSightEnabled = true;
-                var blueColorVariant = difficultyManager.Call("get_power_fantasy_laser_color");
-                _laserSightColor = blueColorVariant.AsColor();
-                CreateLaserSight();
-                GD.Print($"[MakarovPM] Power Fantasy mode: blue laser sight enabled with color {_laserSightColor}");
-            }
-        }
+        GD.Print("[Revolver] RSh-12 initialized - heavy revolver ready");
     }
 
     public override void _Process(double delta)
@@ -135,17 +119,12 @@ public partial class MakarovPM : BaseWeapon
 
         // Update aim direction and weapon sprite rotation
         UpdateAimDirection();
-
-        // Update laser sight (Power Fantasy mode)
-        if (_laserSightEnabled && _laserSight != null)
-        {
-            UpdateLaserSight();
-        }
     }
 
     /// <summary>
     /// Updates the aim direction based on mouse position.
-    /// Uses sensitivity-based aiming for smooth rotation.
+    /// RSh-12 uses silenced pistol-like low sensitivity for smooth, deliberate aiming.
+    /// The heavy revolver is comfortable to aim despite its power.
     /// </summary>
     private void UpdateAimDirection()
     {
@@ -166,6 +145,7 @@ public partial class MakarovPM : BaseWeapon
         Vector2 direction;
 
         // Apply sensitivity "leash" effect when sensitivity is set
+        // RSh-12 has same smooth aiming as silenced pistol (sensitivity 2.0)
         if (WeaponData != null && WeaponData.Sensitivity > 0)
         {
             float angleDiff = Mathf.Wrap(targetAngle - _currentAimAngle, -Mathf.Pi, Mathf.Pi);
@@ -217,14 +197,15 @@ public partial class MakarovPM : BaseWeapon
     }
 
     /// <summary>
-    /// Fires the Makarov PM in semi-automatic mode.
-    /// Standard loudness - alerts enemies.
+    /// Fires the RSh-12 revolver in semi-automatic mode.
+    /// Heavy revolver with strong recoil and screen shake.
+    /// Very loud - alerts enemies at long range.
     /// </summary>
     /// <param name="direction">Direction to fire (uses aim direction).</param>
     /// <returns>True if the weapon fired successfully.</returns>
     public override bool Fire(Vector2 direction)
     {
-        // Check for empty magazine - play click sound
+        // Check for empty cylinder - play click sound
         if (CurrentAmmo <= 0)
         {
             PlayEmptyClickSound();
@@ -243,13 +224,13 @@ public partial class MakarovPM : BaseWeapon
 
         if (result)
         {
-            // Play pistol shot sound
-            PlayPistolShotSound();
-            // Emit gunshot sound for in-game sound propagation (alerts enemies)
+            // Play heavy revolver shot sound (uses PM shot as base, louder)
+            PlayRevolverShotSound();
+            // Emit gunshot sound for in-game sound propagation (very loud)
             EmitGunshotSound();
-            // Play shell casing sound with delay
+            // Play shell casing sound with delay (heavy pistol casings)
             PlayShellCasingDelayed();
-            // Trigger screen shake
+            // Trigger heavy screen shake (close to sniper rifle)
             TriggerScreenShake(spreadDirection);
         }
 
@@ -258,6 +239,7 @@ public partial class MakarovPM : BaseWeapon
 
     /// <summary>
     /// Applies recoil offset to the shooting direction and adds new recoil.
+    /// RSh-12 has heavy recoil close to sniper rifle, with extended recovery time.
     /// </summary>
     private Vector2 ApplySpread(Vector2 direction)
     {
@@ -273,7 +255,7 @@ public partial class MakarovPM : BaseWeapon
             float randomSpread = (float)GD.RandRange(-spreadRadians, spreadRadians);
             result = result.Rotated(randomSpread * 0.5f);
 
-            // Add recoil for next shot
+            // Add heavy recoil for next shot (close to sniper rifle)
             float recoilDirection = (float)GD.RandRange(-1.0, 1.0);
             _recoilOffset += recoilDirection * RecoilPerShot;
             _recoilOffset = Mathf.Clamp(_recoilOffset, -MaxRecoilOffset, MaxRecoilOffset);
@@ -298,12 +280,19 @@ public partial class MakarovPM : BaseWeapon
     }
 
     /// <summary>
-    /// Plays the Makarov PM shot sound via AudioManager.
+    /// Plays the RSh-12 revolver shot sound via AudioManager.
+    /// Uses PM shot sound as a base (heavy pistol shot).
     /// </summary>
-    private void PlayPistolShotSound()
+    private void PlayRevolverShotSound()
     {
         var audioManager = GetNodeOrNull("/root/AudioManager");
-        if (audioManager != null && audioManager.HasMethod("play_pm_shot"))
+        if (audioManager == null)
+        {
+            return;
+        }
+
+        // Use PM shot sound for now (heavy pistol shot)
+        if (audioManager.HasMethod("play_pm_shot"))
         {
             audioManager.Call("play_pm_shot", GlobalPosition);
         }
@@ -311,19 +300,21 @@ public partial class MakarovPM : BaseWeapon
 
     /// <summary>
     /// Emits a gunshot sound to SoundPropagation system for in-game sound propagation.
+    /// The RSh-12 is very loud (12.7mm round), alerting enemies at long range.
     /// </summary>
     private void EmitGunshotSound()
     {
         var soundPropagation = GetNodeOrNull("/root/SoundPropagation");
         if (soundPropagation != null && soundPropagation.HasMethod("emit_sound"))
         {
-            float loudness = WeaponData?.Loudness ?? 1469.0f;
+            float loudness = WeaponData?.Loudness ?? 2500.0f;
             soundPropagation.Call("emit_sound", 0, GlobalPosition, 0, this, loudness);
         }
     }
 
     /// <summary>
-    /// Plays pistol shell casing sound with a delay.
+    /// Plays heavy pistol shell casing sound with a delay.
+    /// The RSh-12 ejects larger casings than standard pistols.
     /// </summary>
     private async void PlayShellCasingDelayed()
     {
@@ -336,7 +327,8 @@ public partial class MakarovPM : BaseWeapon
     }
 
     /// <summary>
-    /// Triggers screen shake based on shooting direction.
+    /// Triggers heavy screen shake based on shooting direction.
+    /// RSh-12 has strong recoil close to sniper rifle, with extended recovery time.
     /// </summary>
     private void TriggerScreenShake(Vector2 shootDirection)
     {
@@ -363,6 +355,7 @@ public partial class MakarovPM : BaseWeapon
             shakeIntensity = WeaponData.ScreenShakeIntensity;
         }
 
+        // Use extended recovery time from weapon data
         float recoveryTime = WeaponData.ScreenShakeMinRecoveryTime;
 
         screenShakeManager.Call("add_shake", shootDirection, shakeIntensity, recoveryTime);
@@ -378,7 +371,7 @@ public partial class MakarovPM : BaseWeapon
 
         if (result)
         {
-            PlayPistolShotSound();
+            PlayRevolverShotSound();
             EmitGunshotSound();
             PlayShellCasingDelayed();
             TriggerScreenShake(spreadDirection);
@@ -388,75 +381,62 @@ public partial class MakarovPM : BaseWeapon
     }
 
     /// <summary>
-    /// Gets the current aim direction.
+    /// Override SpawnCasing for RSh-12-specific casing ejection behavior.
+    /// RSh-12 casings are pistol-sized but longer and slightly wider (12.7mm).
+    /// They eject with moderate force - between pistol and sniper rifle ejection.
     /// </summary>
-    public Vector2 AimDirection => _aimDirection;
-
-    #region Power Fantasy Laser Sight
-
-    /// <summary>
-    /// Creates the laser sight Line2D programmatically (Power Fantasy mode only).
-    /// </summary>
-    private void CreateLaserSight()
+    protected override void SpawnCasing(Vector2 direction, Resource? caliber)
     {
-        _laserSight = new Line2D
-        {
-            Name = "LaserSight",
-            Width = 2.0f,
-            DefaultColor = _laserSightColor,
-            BeginCapMode = Line2D.LineCapMode.Round,
-            EndCapMode = Line2D.LineCapMode.Round
-        };
-
-        _laserSight.AddPoint(Vector2.Zero);
-        _laserSight.AddPoint(Vector2.Right * 500.0f);
-
-        AddChild(_laserSight);
-    }
-
-    /// <summary>
-    /// Updates the laser sight visualization (Power Fantasy mode only).
-    /// The laser shows where bullets will go, accounting for current spread/recoil.
-    /// </summary>
-    private void UpdateLaserSight()
-    {
-        if (_laserSight == null)
+        if (CasingScene == null)
         {
             return;
         }
 
-        // Apply recoil offset to aim direction for laser visualization
-        Vector2 laserDirection = _aimDirection.Rotated(_recoilOffset);
+        // Calculate casing spawn position (near the weapon, slightly offset)
+        Vector2 casingSpawnPosition = GlobalPosition + direction * (BulletSpawnOffset * 0.5f);
 
-        // Calculate maximum laser length based on viewport size
-        Vector2 viewportSize = GetViewport().GetVisibleRect().Size;
-        float maxLaserLength = viewportSize.Length();
+        var casing = CasingScene.Instantiate<RigidBody2D>();
+        casing.GlobalPosition = casingSpawnPosition;
 
-        // Calculate the end point of the laser
-        Vector2 endPoint = laserDirection * maxLaserLength;
+        // Calculate ejection direction to the right of the weapon
+        Vector2 weaponRight = new Vector2(-direction.Y, direction.X);
 
-        // Raycast to find obstacles
-        var spaceState = GetWorld2D()?.DirectSpaceState;
-        if (spaceState != null)
+        // Eject to the right with some randomness
+        float randomAngle = (float)GD.RandRange(-0.3f, 0.3f);
+        Vector2 ejectionDirection = weaponRight.Rotated(randomAngle);
+
+        // RSh-12: Moderate-fast ejection speed (between pistol 120-180 and sniper 300-400)
+        float ejectionSpeed = (float)GD.RandRange(180.0f, 260.0f);
+        casing.LinearVelocity = ejectionDirection * ejectionSpeed;
+
+        // Add initial spin for realism (heavy casing)
+        casing.AngularVelocity = (float)GD.RandRange(-18.0f, 18.0f);
+
+        // Set caliber data on the casing for appearance
+        if (caliber != null)
         {
-            var query = PhysicsRayQueryParameters2D.Create(
-                GlobalPosition,
-                GlobalPosition + endPoint,
-                4 // Collision mask for obstacles
-            );
-
-            var result = spaceState.IntersectRay(query);
-            if (result.Count > 0)
-            {
-                Vector2 hitPosition = (Vector2)result["position"];
-                endPoint = hitPosition - GlobalPosition;
-            }
+            casing.Set("caliber_data", caliber);
         }
 
-        // Update the laser sight line points (in local coordinates)
-        _laserSight.SetPointPosition(0, Vector2.Zero);
-        _laserSight.SetPointPosition(1, endPoint);
+        GetTree().CurrentScene.AddChild(casing);
     }
 
-    #endregion
+    /// <summary>
+    /// Spawns a large muzzle flash for the RSh-12 revolver.
+    /// The 12.7mm round creates a significant muzzle flash from the revolver's barrel.
+    /// </summary>
+    protected override void SpawnMuzzleFlash(Vector2 position, Vector2 direction, Resource? caliber)
+    {
+        var impactManager = GetNodeOrNull("/root/ImpactEffectsManager");
+        if (impactManager != null && impactManager.HasMethod("spawn_muzzle_flash"))
+        {
+            // Pass caliber with large muzzle flash scale for 12.7mm revolver
+            impactManager.Call("spawn_muzzle_flash", position, direction, caliber, RevolverMuzzleFlashScale);
+        }
+    }
+
+    /// <summary>
+    /// Gets the current aim direction.
+    /// </summary>
+    public Vector2 AimDirection => _aimDirection;
 }

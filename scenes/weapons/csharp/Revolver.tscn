@@ -1,0 +1,20 @@
+[gd_scene load_steps=5 format=3 uid="uid://dk8m5n4r7p6q3"]
+
+[ext_resource type="Script" path="res://Scripts/Weapons/Revolver.cs" id="1_revolver"]
+[ext_resource type="PackedScene" uid="uid://dk8m5n4r7p6q9" path="res://scenes/projectiles/Bullet12p7mm.tscn" id="2_bullet"]
+[ext_resource type="PackedScene" uid="uid://casing_scene" path="res://scenes/effects/Casing.tscn" id="3_casing"]
+[ext_resource type="Resource" uid="uid://dk8m5n4r7p6q2" path="res://resources/weapons/RevolverData.tres" id="4_weapon_data"]
+[ext_resource type="Texture2D" uid="uid://makarov_pm_topdown" path="res://assets/sprites/weapons/makarov_pm_topdown.png" id="5_sprite"]
+
+[node name="Revolver" type="Node2D"]
+script = ExtResource("1_revolver")
+WeaponData = ExtResource("4_weapon_data")
+BulletScene = ExtResource("2_bullet")
+CasingScene = ExtResource("3_casing")
+BulletSpawnOffset = 34.0
+StartingMagazineCount = 4
+
+[node name="RevolverSprite" type="Sprite2D" parent="."]
+z_index = 1
+texture = ExtResource("5_sprite")
+offset = Vector2(15, 0)

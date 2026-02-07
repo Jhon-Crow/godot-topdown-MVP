@@ -592,3 +592,74 @@ func test_stun_on_modular_entity_calls_method() -> void:
 
 	assert_true(modular.is_stunned(),
 		"Modular entity should be stunned")
+
+
+# ============================================================================
+# _find_sprite Tests (Issue #584 fix)
+# ============================================================================
+
+
+## Mock for testing _find_sprite logic used by StatusEffectsManager visual effects.
+## The actual _find_sprite tries Sprite2D then EnemyModel/Body.
+class MockFindSprite:
+	## Replicate the _find_sprite logic from status_effects_manager.gd
+	static func find_sprite(entity) -> Object:
+		if entity == null:
+			return null
+		# Try direct Sprite2D child first (generic entities)
+		if entity.has("sprite_2d"):
+			return entity.sprite_2d
+		# Try EnemyModel/Body (enemy structure)
+		if entity.has("enemy_model_body"):
+			return entity.enemy_model_body
+		return null
+
+
+class MockEntityWithSprite2D:
+	extends RefCounted
+	var sprite_2d = "DirectSprite2D"
+
+	func has(key: String) -> bool:
+		return key == "sprite_2d"
+
+
+class MockEnemyWithBody:
+	extends RefCounted
+	var enemy_model_body = "EnemyModelBody"
+
+	func has(key: String) -> bool:
+		return key == "enemy_model_body"
+
+
+class MockEntityNoSprite:
+	extends RefCounted
+
+	func has(_key: String) -> bool:
+		return false
+
+
+func test_find_sprite_prefers_direct_sprite2d() -> void:
+	var entity = MockEntityWithSprite2D.new()
+	var result = MockFindSprite.find_sprite(entity)
+	assert_eq(result, "DirectSprite2D",
+		"Should find direct Sprite2D child first")
+
+
+func test_find_sprite_falls_back_to_enemy_model_body() -> void:
+	var entity = MockEnemyWithBody.new()
+	var result = MockFindSprite.find_sprite(entity)
+	assert_eq(result, "EnemyModelBody",
+		"Should fall back to EnemyModel/Body for enemy entities")
+
+
+func test_find_sprite_returns_null_when_no_sprite() -> void:
+	var entity = MockEntityNoSprite.new()
+	var result = MockFindSprite.find_sprite(entity)
+	assert_null(result,
+		"Should return null when no sprite found")
+
+
+func test_find_sprite_handles_null_entity() -> void:
+	var result = MockFindSprite.find_sprite(null)
+	assert_null(result,
+		"Should return null for null entity")

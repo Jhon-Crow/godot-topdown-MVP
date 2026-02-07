@@ -141,12 +141,12 @@ func _on_stun_expired(entity: Object) -> void:
 
 ## Apply tint color to entity, supporting both single-sprite and modular-sprite entities.
 ## Entities with _set_all_sprites_modulate() (e.g. enemies with Body/Head/Arms) use that method.
-## Fallback: looks for a single Sprite2D child node.
+## Fallback: uses _find_sprite() to locate a single sprite.
 func _apply_tint(entity: Node2D, color: Color) -> void:
 	if entity.has_method("_set_all_sprites_modulate"):
 		entity._set_all_sprites_modulate(color)
 	else:
-		var sprite: Sprite2D = entity.get_node_or_null("Sprite2D")
+		var sprite: Sprite2D = _find_sprite(entity)
 		if sprite:
 			sprite.modulate = color
 
@@ -160,7 +160,7 @@ func _save_original_modulate(entity: Node2D) -> void:
 			if body:
 				entity.set_meta("_original_modulate", body.modulate)
 		else:
-			var sprite: Sprite2D = entity.get_node_or_null("Sprite2D")
+			var sprite: Sprite2D = _find_sprite(entity)
 			if sprite:
 				entity.set_meta("_original_modulate", sprite.modulate)
 
@@ -255,6 +255,22 @@ func get_stun_remaining(entity: Object) -> float:
 		return _active_effects[entity_id].get("stun", 0)
 
 	return 0.0
+
+
+## Find the main body sprite on an entity.
+## Enemies use EnemyModel/Body structure instead of a direct Sprite2D child.
+func _find_sprite(entity: Node) -> Sprite2D:
+	if not is_instance_valid(entity):
+		return null
+	# Try direct Sprite2D child first (generic entities)
+	var sprite: Sprite2D = entity.get_node_or_null("Sprite2D")
+	if sprite:
+		return sprite
+	# Try EnemyModel/Body (enemy structure)
+	sprite = entity.get_node_or_null("EnemyModel/Body")
+	if sprite:
+		return sprite
+	return null
 
 
 ## Remove all effects from an entity (used when entity dies or is removed).
