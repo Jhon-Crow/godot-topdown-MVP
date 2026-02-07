@@ -151,6 +151,10 @@ func _set_casing_appearance() -> void:
 			sprite.texture = caliber.casing_sprite
 			# Reset modulate to show actual sprite colors
 			sprite.modulate = Color.WHITE
+			# Apply effect_scale to make larger caliber casings bigger
+			# (e.g., 12.7x108mm casings are bigger than 5.45x39mm)
+			if caliber.effect_scale != 1.0:
+				sprite.scale = Vector2(caliber.effect_scale, caliber.effect_scale)
 			return
 
 	# Fallback: If no sprite in caliber data, use color-based appearance

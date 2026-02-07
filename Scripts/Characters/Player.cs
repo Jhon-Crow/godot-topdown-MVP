@@ -1350,13 +1350,30 @@ public partial class Player : BaseCharacter
 
     /// <summary>
     /// Gets the normalized input direction from player input.
+    /// When the sniper rifle is bolt cycling, only WASD keys are used for movement.
+    /// Arrow keys are reserved for the bolt-action sequence during cycling.
     /// </summary>
     /// <returns>Normalized direction vector.</returns>
     private Vector2 GetInputDirection()
     {
         Vector2 direction = Vector2.Zero;
-        direction.X = Input.GetAxis("move_left", "move_right");
-        direction.Y = Input.GetAxis("move_up", "move_down");
+
+        // Check if sniper rifle bolt cycling is in progress
+        if (CurrentWeapon is SniperRifle sniperRifle && sniperRifle.IsBoltCycling)
+        {
+            // During bolt cycling: only WASD keys move the player (arrows are for bolt action)
+            // Use physical key detection for WASD only
+            if (Input.IsPhysicalKeyPressed(Key.A)) direction.X -= 1.0f;
+            if (Input.IsPhysicalKeyPressed(Key.D)) direction.X += 1.0f;
+            if (Input.IsPhysicalKeyPressed(Key.W)) direction.Y -= 1.0f;
+            if (Input.IsPhysicalKeyPressed(Key.S)) direction.Y += 1.0f;
+        }
+        else
+        {
+            // Normal mode: use all configured input actions (WASD + arrows)
+            direction.X = Input.GetAxis("move_left", "move_right");
+            direction.Y = Input.GetAxis("move_up", "move_down");
+        }
 
         // Normalize to prevent faster diagonal movement
         if (direction.Length() > 1.0f)
