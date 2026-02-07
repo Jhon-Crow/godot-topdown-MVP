@@ -210,26 +210,6 @@ public partial class Player : BaseCharacter
     private bool _invincibilityEnabled = false;
 
     /// <summary>
-    /// Whether the player is stunned (cannot move or shoot). Set on bullet hit (Issue #592).
-    /// </summary>
-    private bool _isStunned = false;
-
-    /// <summary>
-    /// Remaining stun duration in seconds (Issue #592).
-    /// </summary>
-    private float _stunTimer = 0.0f;
-
-    /// <summary>
-    /// Stun duration in seconds when hit by a bullet (Issue #592).
-    /// </summary>
-    private const float StunDuration = 1.0f;
-
-    /// <summary>
-    /// Label for displaying stun status indicator (Issue #592).
-    /// </summary>
-    private Label? _stunLabel = null;
-
-    /// <summary>
     /// Label for displaying invincibility mode indicator.
     /// </summary>
     private Label? _invincibilityLabel = null;
@@ -1041,21 +1021,6 @@ public partial class Player : BaseCharacter
 
     public override void _PhysicsProcess(double delta)
     {
-        // Update stun timer (Issue #592)
-        if (_isStunned)
-        {
-            _stunTimer -= (float)delta;
-            if (_stunTimer <= 0.0f)
-            {
-                _isStunned = false;
-                _stunTimer = 0.0f;
-                LogToFile("[Player] Stun ended (Issue #592)");
-            }
-        }
-
-        // Update stun debug indicator (Issue #592)
-        UpdateStunIndicator();
-
         // Detect weapon pose after waiting a few frames for level scripts to add weapons
         if (!_weaponPoseApplied)
         {
@@ -1067,8 +1032,7 @@ public partial class Player : BaseCharacter
             }
         }
 
-        // While stunned, force zero input and apply friction only (Issue #592)
-        Vector2 inputDirection = _isStunned ? Vector2.Zero : GetInputDirection();
+        Vector2 inputDirection = GetInputDirection();
         ApplyMovement(inputDirection, (float)delta);
 
         // Push any casings we're overlapping with using Area2D detection (Issue #392 Iteration 8)
@@ -1110,9 +1074,9 @@ public partial class Player : BaseCharacter
         }
 
         // Handle shooting input - support both automatic and semi-automatic weapons
-        // Allow shooting when not in grenade preparation and not stunned (Issue #592)
+        // Allow shooting when not in grenade preparation
         // In simple mode, RMB is for grenades so only LMB (shoot) should work
-        bool canShoot = !_isStunned && (_grenadeState == GrenadeState.Idle || _grenadeState == GrenadeState.TimerStarted || _grenadeState == GrenadeState.SimpleAiming);
+        bool canShoot = _grenadeState == GrenadeState.Idle || _grenadeState == GrenadeState.TimerStarted || _grenadeState == GrenadeState.SimpleAiming;
         if (canShoot)
         {
             HandleShootingInput();
@@ -1914,13 +1878,6 @@ public partial class Player : BaseCharacter
     {
         _lastHitDirection = hitDirection;
         _lastCaliberData = caliberData;
-
-        // Apply stun effect — immediately stop movement (Issue #592)
-        _isStunned = true;
-        _stunTimer = StunDuration;
-        Velocity = Vector2.Zero;
-        LogToFile($"[Player] Stun applied for {StunDuration * 1000}ms (Issue #592)");
-
         TakeDamage(1);
     }
 
@@ -3891,43 +3848,6 @@ public partial class Player : BaseCharacter
 
         // Show/hide based on invincibility state
         _invincibilityLabel.Visible = _invincibilityEnabled;
-    }
-
-    /// <summary>
-    /// Updates the visual indicator for stun status (Issue #592).
-    /// Shows "СТАН (Xms)" label above the player when stunned and debug mode is on.
-    /// </summary>
-    private void UpdateStunIndicator()
-    {
-        // Create label if it doesn't exist
-        if (_stunLabel == null)
-        {
-            _stunLabel = new Label();
-            _stunLabel.Name = "StunLabel";
-            _stunLabel.HorizontalAlignment = HorizontalAlignment.Center;
-            _stunLabel.VerticalAlignment = VerticalAlignment.Center;
-
-            // Position above the player (below invincibility label)
-            _stunLabel.Position = new Vector2(-60, -60);
-            _stunLabel.Size = new Vector2(120, 30);
-
-            // Style: red color with black outline for visibility
-            _stunLabel.AddThemeColorOverride("font_color", new Color(1.0f, 0.2f, 0.2f, 1.0f));
-            _stunLabel.AddThemeColorOverride("font_outline_color", new Color(0.0f, 0.0f, 0.0f, 1.0f));
-            _stunLabel.AddThemeFontSizeOverride("font_size", 14);
-            _stunLabel.AddThemeConstantOverride("outline_size", 3);
-
-            AddChild(_stunLabel);
-        }
-
-        // Show when stunned AND debug mode is on
-        bool showStun = _isStunned && _debugModeEnabled;
-        _stunLabel.Visible = showStun;
-        if (showStun)
-        {
-            int remainingMs = (int)(_stunTimer * 1000);
-            _stunLabel.Text = $"СТАН ({remainingMs}ms)";
-        }
     }
 
     /// <summary>
