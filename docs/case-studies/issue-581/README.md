@@ -131,6 +131,49 @@ if not _is_sniper and bullet_scene == null:
 - Other 2 sides: Solid walls
 - Interior: Dark floor for visual contrast
 
+## Round 4: `EnemyMemory.get_position()` Does Not Exist
+
+**Game log:** `game_log_round4_20260207_213620.txt`
+**User report:** "снайпер не стреляет и не перемещается. лазера не видно." (sniper does not shoot and does not move. laser is not visible.)
+
+### Evidence from Game Log
+
+- SniperEnemy1 enters COMBAT at 21:36:35, rotation converges perfectly (139.4 degrees matches 139.4 degrees)
+- Visibility oscillates between P1:visible and P2:combat_state (player near wall edges)
+- ZERO shooting events, ZERO hitscan events, ZERO laser log entries in entire session
+- Other enemies (GuardEnemy, PatrolEnemy) fire normally with bullet logs
+
+### Root Cause
+
+In `SniperComponent.process_combat_state()` (line 244) and `process_in_cover_state()` (line 301), the code calls `enemy._memory.get_position()`. However, `EnemyMemory` extends `RefCounted` and has NO `get_position()` method — the correct access is the property `enemy._memory.suspected_position`.
+
+This caused a GDScript runtime error on EVERY frame when `_can_see_player` was false:
+```
+Invalid call. Nonexistent function 'get_position' in base 'RefCounted (EnemyMemory)'
+```
+
+Since snipers are positioned behind walls from the player, `_can_see_player` is false most of the time. The runtime error aborted the `process_combat_state()` function before reaching the shooting code.
+
+When `_can_see_player` briefly flickered to true (player at wall edges), the direct line-of-sight shooting path (line 258-262) was reached, but these frames were too brief for the full shoot chain to succeed.
+
+### Why This Bug Was Introduced
+
+The `SniperComponent` was extracted from `enemy.gd` to reduce file size. During extraction, `enemy._memory.suspected_position` was incorrectly changed to `enemy._memory.get_position()`, possibly from an auto-complete suggestion for the `get_position()` method that exists on `Node2D` but not on `RefCounted`-based classes.
+
+### Fix Applied
+
+- Changed `enemy._memory.get_position()` to `enemy._memory.suspected_position` in 3 locations in `sniper_component.gd`
+- Added diagnostic logging to sniper shooting code path for future debugging
+
+### Summary of All Rounds
+
+| Round | Root Cause | Impact |
+|-------|-----------|--------|
+| Round 1 | `_shoot()` blocking on `bullet_scene == null` for hitscan snipers | Snipers never fired (fixed). Also: camera limits too small (fixed), buildings not enterable (fixed) |
+| Round 2 | `_should_shoot_at_target()` blocking snipers with wall checks | Snipers blocked by wall-penetration logic (fixed). Also: laser double-rotation (fixed), cover retreat only under fire (fixed) |
+| Round 3 | `_detection_delay_elapsed` never updated in sniper states | Snipers never passed detection delay gate (fixed). Also: laser too faint (fixed) |
+| Round 4 | `enemy._memory.get_position()` — nonexistent method on `RefCounted` | Runtime error crashed shoot function every frame when player not visible (fixed) |
+
 ## Game Logs
 
 See `logs/` directory for the original game log files from the issue author's testing.
