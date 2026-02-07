@@ -250,6 +250,27 @@ func test_score_ratio_negative_is_f() -> void:
 
 
 # ============================================================================
+# Animation Timing Constants Tests
+# ============================================================================
+
+
+func test_score_count_duration_is_slow_enough() -> void:
+	# Score counting should take at least 1 second per item for readability
+	var score_screen_script = load("res://scripts/ui/animated_score_screen.gd")
+	var duration: float = score_screen_script.SCORE_COUNT_DURATION
+	assert_gte(duration, 1.0, "Score count duration should be >= 1.0s for readability")
+
+
+func test_total_score_counting_is_longer_than_items() -> void:
+	# Total score counts longer than individual items (multiplied by 1.5x)
+	var score_screen_script = load("res://scripts/ui/animated_score_screen.gd")
+	var item_duration: float = score_screen_script.SCORE_COUNT_DURATION
+	# Total duration is item_duration * 1.5
+	var total_duration: float = item_duration * 1.5
+	assert_gt(total_duration, item_duration, "Total score counting should be longer than item counting")
+
+
+# ============================================================================
 # Color Progression Consistency Tests
 # ============================================================================
 

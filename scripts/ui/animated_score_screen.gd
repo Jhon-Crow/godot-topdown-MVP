@@ -18,10 +18,10 @@ extends Node
 var _score_audio_player: AudioStreamPlayer = null
 
 ## Duration for counting animation per stat item (seconds).
-const SCORE_COUNT_DURATION: float = 0.6
+const SCORE_COUNT_DURATION: float = 1.5
 
 ## Delay between stat items appearing (seconds).
-const SCORE_ITEM_DELAY: float = 0.15
+const SCORE_ITEM_DELAY: float = 0.25
 
 ## Duration for rank reveal fullscreen animation (seconds).
 const RANK_REVEAL_DURATION: float = 1.5
@@ -459,14 +459,10 @@ func _animate_rank_reveal(ui: Control, container: VBoxContainer, score_data: Dic
 	flash_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	ui.add_child(flash_bg)
 
-	# Create animated gradient background behind the big rank letter
+	# Create animated gradient background covering the entire screen
 	var rank_bg := ColorRect.new()
 	rank_bg.name = "RankGradientBackground"
-	rank_bg.set_anchors_preset(Control.PRESET_CENTER)
-	rank_bg.offset_left = -180
-	rank_bg.offset_right = 180
-	rank_bg.offset_top = -130
-	rank_bg.offset_bottom = 130
+	rank_bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	rank_bg.color = Color(0.0, 0.0, 0.0, 0.0)  # Start invisible
 	rank_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	ui.add_child(rank_bg)
@@ -487,16 +483,7 @@ func _animate_rank_reveal(ui: Control, container: VBoxContainer, score_data: Dic
 	big_rank_label.modulate.a = 0.0  # Start invisible
 	ui.add_child(big_rank_label)
 
-	# Create animated gradient background behind the final rank label in container
-	var final_rank_bg := ColorRect.new()
-	final_rank_bg.name = "FinalRankGradientBg"
-	final_rank_bg.custom_minimum_size = Vector2(300, 60)
-	final_rank_bg.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	final_rank_bg.color = Color(0.0, 0.0, 0.0, 0.0)
-	final_rank_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	container.add_child(final_rank_bg)
-
-	# Create final rank label in container (starts invisible, placed inside the bg)
+	# Create final rank label in container (starts invisible)
 	var final_rank_label := Label.new()
 	final_rank_label.name = "FinalRankLabel"
 	final_rank_label.text = "RANK: %s" % rank
@@ -517,13 +504,12 @@ func _animate_rank_reveal(ui: Control, container: VBoxContainer, score_data: Dic
 			# Start animated gradient behind big rank letter
 			_animate_rank_gradient_background(rank_bg, rank_color)
 
-			# Fade in big rank and its gradient background with scale
+			# Fade in big rank label with scale and fullscreen gradient background
 			var tween := create_tween()
 			tween.set_parallel(true)
 			tween.tween_property(big_rank_label, "modulate:a", 1.0, 0.2)
 			tween.tween_property(big_rank_label, "scale", Vector2(1.0, 1.0), 0.3).from(Vector2(3.0, 3.0))
 			tween.tween_property(rank_bg, "modulate:a", 1.0, 0.2)
-			tween.tween_property(rank_bg, "scale", Vector2(1.0, 1.0), 0.3).from(Vector2(3.0, 3.0))
 
 			# After flash duration, shrink rank to position
 			get_tree().create_timer(RANK_REVEAL_DURATION).timeout.connect(
@@ -532,18 +518,15 @@ func _animate_rank_reveal(ui: Control, container: VBoxContainer, score_data: Dic
 					var fade_tween := create_tween()
 					fade_tween.tween_property(flash_bg, "color:a", 0.0, 0.3)
 
-					# Shrink and move big rank to container position
+					# Shrink big rank letter and fade out gradient background
 					var shrink_tween := create_tween()
 					shrink_tween.set_parallel(true)
 					shrink_tween.tween_property(big_rank_label, "scale", Vector2(0.3, 0.3), RANK_SHRINK_DURATION)
 					shrink_tween.tween_property(big_rank_label, "modulate:a", 0.0, RANK_SHRINK_DURATION)
-					shrink_tween.tween_property(rank_bg, "scale", Vector2(0.3, 0.3), RANK_SHRINK_DURATION)
 					shrink_tween.tween_property(rank_bg, "modulate:a", 0.0, RANK_SHRINK_DURATION)
 
-					# Show final rank in container with gradient background
+					# Show final rank in container (no gradient background)
 					shrink_tween.tween_property(final_rank_label, "modulate:a", 1.0, RANK_SHRINK_DURATION)
-					_animate_rank_gradient_background(final_rank_bg, rank_color)
-					shrink_tween.tween_property(final_rank_bg, "modulate:a", 1.0, RANK_SHRINK_DURATION)
 
 					# Clean up after animation
 					shrink_tween.chain().tween_callback(
