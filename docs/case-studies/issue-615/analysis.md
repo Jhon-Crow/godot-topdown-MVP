@@ -75,9 +75,25 @@ From the user's game log (`game_log_20260207_212300.txt`):
 - Actual landing: ~177 px from spawn
 - The low speed from the two-phase formula combined with Godot's hidden damping caused severe undershoot
 
+## Critical Discovery: C# vs GDScript Friction Models
+
+A key finding during analysis: the friction is applied differently depending on the runtime:
+
+| Runtime | File | Friction Model | Notes |
+|---------|------|---------------|-------|
+| **Exported builds** (Windows) | `GrenadeTimer.cs` line 263 | **Uniform** (`F * delta`) | C# applies simple `velocity.Normalized() * GroundFriction * delta` |
+| **Editor** (development) | `grenade_base.gd` line 167 | **Two-phase** (variable multiplier) | GDScript uses `friction_ramp_velocity` and `min_friction_multiplier` |
+
+The user plays the **exported Windows build**, where C# `GrenadeTimer.ApplyGroundFriction()` handles friction. This uses **uniform friction at 300.0** — which is exactly what the 1.16x compensation factor was calibrated for. The GDScript two-phase friction model from issue #435 only runs in the Godot editor, not in exports (because GDScript `_physics_process()` doesn't run for C#-owned nodes in exported builds).
+
+This explains why:
+1. The 1.16x factor works correctly in the user's game (uniform C# friction + hidden engine damping)
+2. The two-phase model was wrong for the user's build (it modeled GDScript friction, not C# friction)
+
 ## Lessons Learned
 
 1. **Empirical compensation factors should NOT be removed without in-game testing**: The 1.16x factor accounts for real Godot engine behavior that cannot be analytically modeled
 2. **All code paths must use the same formula**: Throw and visualization formulas must match
 3. **Analytical models need validation against actual engine behavior**: A theoretically correct model can be wrong in practice due to engine-specific effects
 4. **Game log analysis is essential**: The game log from the user clearly showed the distance discrepancy
+5. **C# vs GDScript runtime behavior differs in exports**: GDScript physics code may not run in exported builds when the node is owned by a C# script, leading to different friction behavior than expected
