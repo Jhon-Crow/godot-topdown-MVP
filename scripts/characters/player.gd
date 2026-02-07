@@ -304,6 +304,9 @@ func _ready() -> void:
 	# This ensures casings are detected even when player approaches from narrow side
 	_connect_casing_pusher_signals()
 
+	# Initialize flashlight if active item manager has flashlight selected
+	_init_flashlight()
+
 	FileLogger.info("[Player] Ready! Ammo: %d/%d, Grenades: %d/%d, Health: %d/%d" % [
 		_current_ammo, max_ammo,
 		_current_grenades, max_grenades,
@@ -395,6 +398,9 @@ func _physics_process(delta: float) -> void:
 		_handle_simple_reload_input()
 	else:  # Sequence mode
 		_handle_sequence_reload_input()
+
+	# Handle flashlight input (hold Space to turn on, release to turn off)
+	_handle_flashlight_input()
 
 
 func _get_input_direction() -> Vector2:
@@ -2726,3 +2732,67 @@ func _on_casing_pusher_body_exited(body: Node2D) -> void:
 			_overlapping_casings.remove_at(idx)
 			if DEBUG_CASING_PUSHING:
 				print("[Player.CasingPusher] Casing exited: %s (total: %d)" % [body.name, _overlapping_casings.size()])
+
+
+# ============================================================================
+# Flashlight System (Issue #546)
+# ============================================================================
+
+## Flashlight scene path.
+const FLASHLIGHT_SCENE_PATH: String = "res://scenes/effects/FlashlightEffect.tscn"
+
+## Whether the flashlight is equipped (active item selected in armory).
+var _flashlight_equipped: bool = false
+
+## Reference to the flashlight effect node (child of PlayerModel).
+var _flashlight_node: Node2D = null
+
+
+## Initialize the flashlight if the ActiveItemManager has it selected.
+func _init_flashlight() -> void:
+	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
+	if active_item_manager == null:
+		return
+
+	if not active_item_manager.has_method("has_flashlight"):
+		return
+
+	if not active_item_manager.has_flashlight():
+		return
+
+	# Load and instantiate the flashlight effect scene
+	if not ResourceLoader.exists(FLASHLIGHT_SCENE_PATH):
+		FileLogger.info("[Player.Flashlight] WARNING: Flashlight scene not found: %s" % FLASHLIGHT_SCENE_PATH)
+		return
+
+	var flashlight_scene: PackedScene = load(FLASHLIGHT_SCENE_PATH)
+	if flashlight_scene == null:
+		return
+
+	_flashlight_node = flashlight_scene.instantiate()
+	_flashlight_node.name = "FlashlightEffect"
+
+	# Add as child of PlayerModel so it rotates with aiming direction
+	if _player_model:
+		_player_model.add_child(_flashlight_node)
+		# Position at the weapon barrel (forward from center, matching bullet_spawn_offset)
+		_flashlight_node.position = Vector2(bullet_spawn_offset, 0)
+
+	_flashlight_equipped = true
+	FileLogger.info("[Player.Flashlight] Flashlight equipped and attached to player model")
+
+
+## Handle flashlight input: hold Space to turn on, release to turn off.
+func _handle_flashlight_input() -> void:
+	if not _flashlight_equipped or _flashlight_node == null:
+		return
+
+	if not is_instance_valid(_flashlight_node):
+		return
+
+	if Input.is_action_pressed("flashlight_toggle"):
+		if _flashlight_node.has_method("turn_on"):
+			_flashlight_node.turn_on()
+	else:
+		if _flashlight_node.has_method("turn_off"):
+			_flashlight_node.turn_off()
