@@ -115,6 +115,7 @@ class MockDifficultyMenu:
 	enum Difficulty { EASY, NORMAL, HARD, POWER_FANTASY }
 
 	var current_difficulty: Difficulty = Difficulty.NORMAL
+	var night_mode_enabled: bool = false
 
 	signal back_pressed
 
@@ -123,6 +124,12 @@ class MockDifficultyMenu:
 
 	func get_difficulty() -> Difficulty:
 		return current_difficulty
+
+	func set_night_mode(enabled: bool) -> void:
+		night_mode_enabled = enabled
+
+	func is_night_mode_enabled() -> bool:
+		return night_mode_enabled
 
 	func is_easy_selected() -> bool:
 		return current_difficulty == Difficulty.EASY
@@ -149,15 +156,19 @@ class MockDifficultyMenu:
 		return "Power Fantasy (Selected)" if is_power_fantasy_selected() else "Power Fantasy"
 
 	func get_status_text() -> String:
+		var base_text: String = ""
 		match current_difficulty:
 			Difficulty.EASY:
-				return "Easy mode: Enemies react slower"
+				base_text = "Easy mode: Enemies react slower"
 			Difficulty.HARD:
-				return "Hard mode: Enemies react when you look away"
+				base_text = "Hard mode: Enemies react when you look away"
 			Difficulty.POWER_FANTASY:
-				return "Power Fantasy: 10 HP, 3x ammo, blue lasers"
+				base_text = "Power Fantasy: 10 HP, 3x ammo, blue lasers"
 			_:
-				return "Normal mode: Classic gameplay"
+				base_text = "Normal mode: Classic gameplay"
+		if night_mode_enabled:
+			base_text += " | Night Mode ON"
+		return base_text
 
 
 # ============================================================================
@@ -540,6 +551,50 @@ func test_status_text_for_power_fantasy() -> void:
 	difficulty_menu.set_difficulty(MockDifficultyMenu.Difficulty.POWER_FANTASY)
 
 	assert_eq(difficulty_menu.get_status_text(), "Power Fantasy: 10 HP, 3x ammo, blue lasers")
+
+
+func test_night_mode_default_disabled() -> void:
+	difficulty_menu = MockDifficultyMenu.new()
+	assert_false(difficulty_menu.is_night_mode_enabled(), "Night mode should be disabled by default")
+
+
+func test_night_mode_enable() -> void:
+	difficulty_menu = MockDifficultyMenu.new()
+	difficulty_menu.set_night_mode(true)
+
+	assert_true(difficulty_menu.is_night_mode_enabled(), "Night mode should be enabled")
+
+
+func test_night_mode_disable() -> void:
+	difficulty_menu = MockDifficultyMenu.new()
+	difficulty_menu.set_night_mode(true)
+	difficulty_menu.set_night_mode(false)
+
+	assert_false(difficulty_menu.is_night_mode_enabled(), "Night mode should be disabled")
+
+
+func test_status_text_with_night_mode() -> void:
+	difficulty_menu = MockDifficultyMenu.new()
+	difficulty_menu.set_night_mode(true)
+
+	assert_eq(difficulty_menu.get_status_text(), "Normal mode: Classic gameplay | Night Mode ON")
+
+
+func test_status_text_power_fantasy_with_night_mode() -> void:
+	difficulty_menu = MockDifficultyMenu.new()
+	difficulty_menu.set_difficulty(MockDifficultyMenu.Difficulty.POWER_FANTASY)
+	difficulty_menu.set_night_mode(true)
+
+	assert_eq(difficulty_menu.get_status_text(), "Power Fantasy: 10 HP, 3x ammo, blue lasers | Night Mode ON")
+
+
+func test_night_mode_independent_of_difficulty() -> void:
+	difficulty_menu = MockDifficultyMenu.new()
+	difficulty_menu.set_night_mode(true)
+	difficulty_menu.set_difficulty(MockDifficultyMenu.Difficulty.HARD)
+
+	assert_true(difficulty_menu.is_night_mode_enabled(), "Night mode should stay enabled after difficulty change")
+	assert_true(difficulty_menu.is_hard_selected(), "Hard should be selected")
 
 
 # ============================================================================
