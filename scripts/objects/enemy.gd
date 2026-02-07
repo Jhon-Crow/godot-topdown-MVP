@@ -29,8 +29,8 @@ enum BehaviorMode {
 	GUARD    ## Stands in one place
 }
 
-## Weapon types: RIFLE (M16), SHOTGUN (slow/powerful), UZI (fast SMG).
-enum WeaponType { RIFLE, SHOTGUN, UZI }
+## Weapon types: RIFLE (M16), SHOTGUN (slow/powerful), UZI (fast SMG), MACHETE (melee, Issue #579).
+enum WeaponType { RIFLE, SHOTGUN, UZI, MACHETE }
 
 @export var behavior_mode: BehaviorMode = BehaviorMode.GUARD  ## Current behavior mode.
 @export var weapon_type: WeaponType = WeaponType.RIFLE  ## Weapon type for this enemy.
@@ -385,7 +385,10 @@ var _death_animation: Node = null
 ## Grenade component for handling grenade throwing (extracted for Issue #377 CI fix).
 var _grenade_component: EnemyGrenadeComponent = null
 
-## Note: DeathAnimationComponent and EnemyGrenadeComponent are available via class_name declarations.
+var _machete: MacheteComponent = null  ## Machete melee component (Issue #579).
+var _is_melee_weapon: bool = false  ## Whether this enemy uses melee weapon.
+
+## Note: DeathAnimationComponent, EnemyGrenadeComponent, MacheteComponent are available via class_name declarations.
 
 func _ready() -> void:
 	# Add to enemies group for grenade targeting
@@ -409,8 +412,9 @@ func _ready() -> void:
 	_register_sound_listener()
 	_setup_grenade_component()
 	_setup_grenade_avoidance()
-	_connect_casing_pusher_signals()  # Issue #438: Connect casing pusher signals
-
+	_setup_machete_component()  # Issue #579
+	_connect_casing_pusher_signals()  # Issue #438
+	if _is_melee_weapon and _weapon_sprite: _weapon_sprite.visible = false  # Issue #579: hide gun
 	# Store original collision layers for HitArea (to restore on respawn)
 	if _hit_area:
 		_original_hit_area_layer = _hit_area.collision_layer
@@ -483,6 +487,7 @@ func _configure_weapon_type() -> void:
 	_pellet_count_max = c.get("pellet_count_max", 1)
 	_spread_angle = c.get("spread_angle", 0.0)
 	_spread_threshold = c.get("spread_threshold", 3); _initial_spread = c.get("initial_spread", 0.5); _spread_increment = c.get("spread_increment", 0.6); _max_spread = c.get("max_spread", 4.0); _spread_reset_time = c.get("spread_reset_time", 0.25)
+	_is_melee_weapon = c.get("is_melee", false)  # Issue #579: Machete melee flag
 	print("[Enemy] Weapon: %s%s" % [WeaponConfigComponent.get_type_name(weapon_type), " (pellets=%d-%d)" % [_pellet_count_min, _pellet_count_max] if _is_shotgun_weapon else ""])
 
 ## Setup patrol points based on patrol offsets from initial position.
@@ -877,6 +882,7 @@ func _physics_process(delta: float) -> void:
 	_update_suppression(delta)
 	_update_grenade_triggers(delta)
 	_update_grenade_danger_detection()  # Issue #407: Check for nearby grenades
+	if _machete: _machete.update(delta)  # Issue #579: Update machete component
 
 	# Update enemy model rotation BEFORE processing AI state (which may shoot).
 	# This ensures the weapon is correctly positioned when bullets are created.
@@ -1151,8 +1157,9 @@ func _finish_reload() -> void:
 	ammo_changed.emit(_current_ammo, _reserve_ammo)
 	_log_debug("Reload complete. Magazine: %d/%d, Reserve: %d" % [_current_ammo, magazine_size, _reserve_ammo])
 
-## Check if the enemy can shoot (has ammo and not reloading).
+## Check if the enemy can shoot (has ammo and not reloading). Machete: melee cooldown (Issue #579).
 func _can_shoot() -> bool:
+	if _is_melee_weapon: return _machete != null and _machete.is_attack_ready()
 	# Can't shoot if reloading
 	if _is_reloading:
 		return false
@@ -1318,9 +1325,9 @@ func _process_ai_state(delta: float) -> void:
 
 ## Process IDLE state - patrol or guard behavior.
 func _process_idle_state(delta: float) -> void:
-	# Transition to combat if player is visible
 	if _can_see_player and _player:
-		_transition_to_combat()
+		if _is_melee_weapon: _transition_to_pursuing()  # Issue #579: machete sneaks first
+		else: _transition_to_combat()
 		return
 
 	# Check memory system for suspected player position (Issue #297)
@@ -1347,9 +1354,21 @@ func _process_idle_state(delta: float) -> void:
 
 ## Process COMBAT state - cycle: approach->exposed shooting (2-3s)->return to cover via SEEKING_COVER.
 func _process_combat_state(delta: float) -> void:
-	# Track time in COMBAT state (for preventing rapid state thrashing)
 	_combat_state_timer += delta
-
+	# Issue #579: Machete melee combat - rush to player, dodge bullets, attack
+	if _is_melee_weapon and _machete and _player:
+		if _under_fire and _bullets_in_threat_sphere.size() > 0 and not _machete.is_dodging():
+			var b = _bullets_in_threat_sphere[0]
+			if is_instance_valid(b):
+				var bd: Vector2 = b.get("direction") if b.get("direction") != null else Vector2.RIGHT.rotated(b.rotation)
+				_machete.try_dodge(bd)
+		if _machete.is_dodging(): velocity = _machete.get_dodge_velocity(); return
+		if _machete.is_in_melee_range(_player) and _shoot_timer >= shoot_cooldown:
+			_machete.perform_melee_attack(_player); _shoot_timer = 0.0; return
+		var tp := _player.global_position
+		if _machete.is_backstab_opportunity(_player) or _machete.is_player_under_fire(_player):
+			tp = _machete.get_backstab_approach_position(_player, 60.0)
+		_move_to_target_nav(tp, combat_move_speed); return
 	# Check for suppression - transition to retreating behavior
 	# BUT: When pursuing a vulnerability sound (player reloading/out of ammo),
 	# ignore suppression and continue the attack - this is the best time to strike!
@@ -1937,13 +1956,18 @@ func _process_retreat_multiple_hits(delta: float, direction_to_cover: Vector2) -
 
 ## Process PURSUING state - move cover-to-cover toward player or vulnerability sound.
 func _process_pursuing_state(delta: float) -> void:
-	# Track time in PURSUING state (for preventing rapid state thrashing)
 	_pursuing_state_timer += delta
-
-	# Check for suppression - transition to retreating behavior
-	# BUT: When pursuing a vulnerability sound (player reloading/out of ammo),
-	# ignore suppression and continue the attack - this is the best time to strike!
-	if _under_fire and enable_cover and not _pursuing_vulnerability_sound:
+	# Issue #579: Machete enemies dodge bullets and sneak cover-to-cover
+	if _is_melee_weapon and _machete:
+		if _under_fire and _bullets_in_threat_sphere.size() > 0 and not _machete.is_dodging():
+			var b = _bullets_in_threat_sphere[0]
+			if is_instance_valid(b):
+				var bd: Vector2 = b.get("direction") if b.get("direction") != null else Vector2.RIGHT.rotated(b.rotation)
+				_machete.try_dodge(bd)
+		if _machete.is_dodging(): velocity = _machete.get_dodge_velocity(); return
+		if _can_see_player and _player and global_position.distance_to(_player.global_position) <= CLOSE_COMBAT_DISTANCE:
+			_transition_to_combat(); return
+	if _under_fire and enable_cover and not _pursuing_vulnerability_sound and not _is_melee_weapon:
 		_pursuit_approaching = false
 		_transition_to_retreating()
 		return
@@ -3791,9 +3815,9 @@ func _aim_at_player() -> void:
 	else:
 		rotation -= rotation_speed * delta
 
-## Shoot a bullet in barrel direction. Enemy must be aimed within AIM_TOLERANCE_DOT.
-## Updated to support shotgun firing with multiple pellets (Issue #417 PR feedback).
+## Shoot a bullet or perform melee attack (Issue #579: MACHETE support).
 func _shoot() -> void:
+	if _is_melee_weapon and _machete and _player: _machete.perform_melee_attack(_player); return
 	if bullet_scene == null or _player == null:
 		return
 
@@ -4128,42 +4152,18 @@ func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has
 	# Store hit direction for death animation
 	_last_hit_direction = hit_direction
 
-	# Turn toward attacker (opposite direction of bullet travel)
 	var attacker_direction := -hit_direction.normalized()
-	if attacker_direction.length_squared() > 0.01:
-		_force_model_to_face_direction(attacker_direction)
-		_log_debug("Hit reaction: turning toward attacker (direction: %s)" % attacker_direction)
-	# Track hits for retreat behavior
+	if attacker_direction.length_squared() > 0.01: _force_model_to_face_direction(attacker_direction)
 	_hits_taken_in_encounter += 1
-	_log_debug("Hit taken! Total hits in encounter: %d" % _hits_taken_in_encounter)
-	var actual_damage: int = maxi(int(round(damage)), 1)  # Calculate damage (min 1)
-	_log_to_file("Hit taken, damage: %d, health: %d/%d -> %d/%d" % [actual_damage, _current_health, _max_health, _current_health - actual_damage, _max_health])
+	var actual_damage: int = maxi(int(round(damage)), 1)
+	_log_to_file("Hit: dmg=%d, hp=%d/%d->%d/%d" % [actual_damage, _current_health, _max_health, _current_health - actual_damage, _max_health])
 	_show_hit_flash()
 	_current_health -= actual_damage  # Apply damage
 
-	# Play appropriate hit sound and spawn visual effects
 	var audio_manager: Node = get_node_or_null("/root/AudioManager")
 	var impact_manager: Node = get_node_or_null("/root/ImpactEffectsManager")
-
-	# Log blood effect call for diagnostics
-	if impact_manager:
-		_log_to_file("ImpactEffectsManager found, calling spawn_blood_effect")
-	else:
-		_log_to_file("WARNING: ImpactEffectsManager not found at /root/ImpactEffectsManager")
-		# Debug: List all autoload children of /root for diagnostics
-		var root_node := get_node_or_null("/root")
-		if root_node:
-			var autoload_names: Array = []
-			for child in root_node.get_children():
-				if child.name != get_tree().current_scene.name if get_tree().current_scene else true:
-					autoload_names.append(child.name)
-			_log_to_file("Available autoloads: " + ", ".join(autoload_names))
-
 	if _current_health <= 0:
-		# Track special kill info before death
-		_killed_by_ricochet = has_ricocheted
-		_killed_by_penetration = has_penetrated
-
+		_killed_by_ricochet = has_ricocheted; _killed_by_penetration = has_penetrated
 		# Play lethal hit sound
 		if audio_manager and audio_manager.has_method("play_hit_lethal"):
 			audio_manager.play_hit_lethal(global_position)
@@ -4971,6 +4971,14 @@ func get_grenades_remaining() -> int:
 
 func add_grenades(count: int) -> void:
 	if _grenade_component: _grenade_component.add_grenades(count)
+
+## Setup machete melee component (Issue #579).
+func _setup_machete_component() -> void:
+	if not _is_melee_weapon: return
+	_machete = MacheteComponent.new(); _machete.name = "MacheteComponent"; _machete.debug_logging = debug_logging
+	_machete.configure_from_weapon_config(WeaponConfigComponent.get_config(weapon_type)); add_child(_machete)
+	_current_ammo = 0; _reserve_ammo = 0; _is_reloading = false
+	full_health_color = Color(0.7, 0.15, 0.15, 1.0); _update_health_visual()
 
 ## Connect CasingPusher Area2D signals (Issue #438, same pattern as player Issue #392).
 func _connect_casing_pusher_signals() -> void:
