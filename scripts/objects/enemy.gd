@@ -149,6 +149,7 @@ var _base_head_pos: Vector2 = Vector2.ZERO
 var _base_left_arm_pos: Vector2 = Vector2.ZERO
 var _base_right_arm_pos: Vector2 = Vector2.ZERO
 var _wall_raycasts: Array[RayCast2D] = []  ## Wall detection raycasts
+var _last_wall_avoidance: Vector2 = Vector2.ZERO  ## Issue #612: smoothed avoidance
 const WALL_CHECK_DISTANCE: float = 60.0  ## Wall check distance
 const WALL_CHECK_COUNT: int = 8  ## Number of wall raycasts
 const WALL_AVOIDANCE_MIN_WEIGHT: float = 0.7  ## Min avoidance (close)
@@ -2273,7 +2274,8 @@ func _process_searching_state(delta: float) -> void:
 			else:
 				var next_pos := _nav_agent.get_next_path_position()
 				var dir := (next_pos - global_position).normalized()
-				velocity = dir * move_speed * 0.7; move_and_slide(); _push_casings()  # Issue #341
+				dir = _apply_wall_avoidance(dir)  # Issue #612: wall avoidance
+				velocity = dir * move_speed * 0.7  # Issue #612: removed duplicate move_and_slide
 				# Issue #354: Stuck detection
 				var progress := global_position.distance_to(_search_last_progress_position)
 				if progress < SEARCH_PROGRESS_THRESHOLD:
@@ -2329,13 +2331,14 @@ func _process_evading_grenade_state(delta: float) -> void:
 			_nav_agent.target_position = evasion_target
 			if not _nav_agent.is_navigation_finished():
 				var next_pos := _nav_agent.get_next_path_position()
-				var direction := (next_pos - global_position).normalized()
-				velocity = direction * combat_move_speed
-				move_and_slide(); _push_casings()
-				if direction.length() > 0.1: rotation = lerp_angle(rotation, direction.angle(), 10.0 * delta)
+				var evade_dir := (next_pos - global_position).normalized()
+				evade_dir = _apply_wall_avoidance(evade_dir)  # Issue #612
+				velocity = evade_dir * combat_move_speed
+				if evade_dir.length() > 0.1: rotation = lerp_angle(rotation, evade_dir.angle(), 10.0 * delta)
 			else:
-				velocity = (evasion_target - global_position).normalized() * combat_move_speed
-				move_and_slide(); _push_casings()
+				var evade_dir := (evasion_target - global_position).normalized()
+				evade_dir = _apply_wall_avoidance(evade_dir)  # Issue #612
+				velocity = evade_dir * combat_move_speed
 
 ## Return from grenade evasion to the appropriate state.
 func _return_from_grenade_evasion() -> void:
@@ -3538,18 +3541,15 @@ func _check_wall_ahead(direction: Vector2) -> Vector2:
 			if wall_distance < closest_wall_distance:
 				closest_wall_distance = wall_distance
 
-			# Calculate avoidance based on which raycast hit
-			# For better wall sliding, use collision normal when available
+			# Calculate avoidance based on which raycast hit (Issue #612: fix jitter)
+			var weight: float = 1.0 - (wall_distance / WALL_CHECK_DISTANCE)
 			if i == 7:  # Rear raycast - wall sliding mode
-				# When touching wall from behind, slide along it
 				avoidance += collision_normal * 0.5
-			elif i <= 3:  # Left side raycasts (indices 0-3)
-				# Steer right, weighted by distance
-				var weight: float = 1.0 - (wall_distance / WALL_CHECK_DISTANCE)
+			elif i == 0:  # Center/forward raycast - use collision normal directly to avoid oscillation
+				avoidance += collision_normal * weight
+			elif i <= 3:  # Left side raycasts (indices 1-3) - steer right
 				avoidance += perpendicular * weight
-			else:  # Right side raycasts (indices 4-6)
-				# Steer left, weighted by distance
-				var weight: float = 1.0 - (wall_distance / WALL_CHECK_DISTANCE)
+			else:  # Right side raycasts (indices 4-6) - steer left
 				avoidance -= perpendicular * weight
 
 	return avoidance.normalized() if avoidance.length() > 0 else Vector2.ZERO
@@ -3558,11 +3558,12 @@ func _check_wall_ahead(direction: Vector2) -> Vector2:
 func _apply_wall_avoidance(direction: Vector2) -> Vector2:
 	var avoidance: Vector2 = _check_wall_ahead(direction)
 	if avoidance == Vector2.ZERO:
+		_last_wall_avoidance = Vector2.ZERO
 		return direction
-
+	# Issue #612: Smooth avoidance direction to prevent frame-to-frame oscillation
+	_last_wall_avoidance = _last_wall_avoidance.lerp(avoidance, 0.4)
 	var weight: float = _get_wall_avoidance_weight(direction)
-	# Blend original direction with avoidance, stronger avoidance when close to walls
-	return (direction * (1.0 - weight) + avoidance * weight).normalized()
+	return (direction * (1.0 - weight) + _last_wall_avoidance * weight).normalized()
 
 ## Calculate wall avoidance weight based on distance to nearest wall.
 func _get_wall_avoidance_weight(direction: Vector2) -> float:
@@ -4412,9 +4413,10 @@ func _reset() -> void:
 	_pursuit_approaching = false
 	_pursuit_approach_timer = 0.0
 	_pursuing_state_timer = 0.0
-	# Reset global stuck detection (Issue #367)
+	# Reset global stuck detection (Issue #367) and wall avoidance (Issue #612)
 	_global_stuck_timer = 0.0
 	_global_stuck_last_position = Vector2.ZERO
+	_last_wall_avoidance = Vector2.ZERO
 	# Reset assault state variables
 	_assault_wait_timer = 0.0
 	_assault_ready = false
