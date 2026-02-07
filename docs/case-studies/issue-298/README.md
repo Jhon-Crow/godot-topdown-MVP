@@ -120,6 +120,45 @@ When multiple enemies have predictions, they share via the existing intel system
 | `tests/unit/test_enemy_actions.gd` | Update action count, add new action tests |
 | `tests/unit/test_enemy_memory.gd` | Add tests for new velocity/shot tracking fields |
 
+## Game Log Analysis (2026-02-07)
+
+### Log File
+
+See: [`game_log_20260207_011747.txt`](game_log_20260207_011747.txt)
+
+### Timeline of Events
+
+The game log (23,720 lines) from a live gameplay session on Windows reveals the AI behavior during combat:
+
+1. **01:17:47** — Game starts: 10 enemies initialized (GUARD/PATROL), ExperimentalSettings loaded (FOV enabled, complex grenades disabled)
+2. **01:17:48** — All enemies spawn, player ready (30 ammo, 1 grenade, 10 HP)
+3. **01:17:54** — First combat: Enemies 1, 2, 4 transition COMBAT → PURSUING
+4. **01:18:00** — Enemy1 gets globally stuck at pos=(321, 401) for 4.0s in PURSUING state → SEARCHING
+5. **01:18:00+** — Multiple enemies cycle through PURSUING → SEARCHING → IDLE patterns
+6. **Session** — Extended combat with flanking, retreating, suppression, sound propagation
+
+### Key Findings
+
+1. **No prediction log entries** — Zero occurrences of "predict", "hypothesis", or "PREDICT" in the entire 23,720-line log. The prediction system was active (code was present) but produced no visible log output because `debug_logging` defaults to `false`.
+
+2. **PURSUING state behavior** — Enemies transition to PURSUING frequently (800+ entries) but rely on direct navigation to last known position. When they lose the player, they get "globally stuck" and transition to SEARCHING after 4 seconds of no movement.
+
+3. **Missing prediction integration evidence** — The game log shows enemies using classic pursue-then-search patterns without any prediction-driven investigation. The prediction component was initialized but its effect on actual gameplay routing is unclear without debug output.
+
+4. **Experimental toggle missing** — The ExperimentalSettings log line shows only FOV and complex grenade settings. No prediction toggle exists, making it impossible for players to enable/disable the feature.
+
+### Root Causes
+
+1. **No experimental toggle** — The prediction feature cannot be toggled on/off at runtime, violating the experimental features pattern established for FOV and grenades
+2. **Silent predictions** — Without game-log-visible output, it's impossible to verify that predictions are actually influencing enemy behavior in live gameplay
+3. **Prediction power** — The current prediction weights and configuration could be more aggressive to create more noticeable behavioral differences
+
+### Solutions Implemented
+
+1. **Experimental Menu Toggle** — Added `ai_prediction_enabled` setting to `ExperimentalSettings` and a new checkbox in the Experimental Menu, following the exact pattern of existing FOV and grenade toggles
+2. **Enhanced Prediction Power** — Increased prediction weights, expanded search radius, added momentum-based prediction, shot-repositioning prediction, and more aggressive style bias
+3. **Prediction Logging** — Added file-logger-compatible prediction logging so prediction activity appears in game logs
+
 ## References
 
 - [F.E.A.R. GDC 2006 Talk](https://gdcvault.com/play/1013282/Three-States-and-a-Plan)
