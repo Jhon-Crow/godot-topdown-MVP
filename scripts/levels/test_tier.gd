@@ -91,6 +91,8 @@ func _get_or_create_replay_manager() -> Node:
 
 
 func _ready() -> void:
+	_log_to_file("Полигон loaded - Tactical Combat Arena")
+	_log_to_file("Map size: 4000x2960 pixels")
 	print("Полигон loaded - Tactical Combat Arena")
 	print("Map size: 4000x2960 pixels")
 	print("Clear all zones to win!")
@@ -141,10 +143,12 @@ func _process(_delta: float) -> void:
 func _initialize_score_manager() -> void:
 	var score_manager: Node = get_node_or_null("/root/ScoreManager")
 	if score_manager == null:
+		_log_to_file("WARNING: ScoreManager not found")
 		return
 
 	# Start tracking for this level
 	score_manager.start_level(_initial_enemy_count)
+	_log_to_file("ScoreManager initialized with %d enemies" % _initial_enemy_count)
 
 	# Set player reference
 	if _player:
@@ -227,7 +231,10 @@ func _setup_navigation() -> void:
 func _setup_player_tracking() -> void:
 	_player = get_node_or_null("Entities/Player")
 	if _player == null:
+		_log_to_file("ERROR: Player not found at Entities/Player!")
 		return
+
+	_log_to_file("Player found: %s" % _player.name)
 
 	# Setup selected weapon based on GameManager selection
 	_setup_selected_weapon()
@@ -308,11 +315,16 @@ func _setup_player_tracking() -> void:
 func _setup_enemy_tracking() -> void:
 	var enemies_node := get_node_or_null("Environment/Enemies")
 	if enemies_node == null:
+		_log_to_file("ERROR: Environment/Enemies node not found!")
 		return
 
+	_log_to_file("Found Environment/Enemies node with %d children" % enemies_node.get_child_count())
 	_enemies.clear()
 	for child in enemies_node.get_children():
-		if child.has_signal("died"):
+		var has_died_signal := child.has_signal("died")
+		var script_attached := child.get_script() != null
+		_log_to_file("Child '%s': script=%s, has_died_signal=%s" % [child.name, script_attached, has_died_signal])
+		if has_died_signal:
 			_enemies.append(child)
 			child.died.connect(_on_enemy_died)
 			# Connect to died_with_info for score tracking if available
@@ -324,6 +336,7 @@ func _setup_enemy_tracking() -> void:
 
 	_initial_enemy_count = _enemies.size()
 	_current_enemy_count = _initial_enemy_count
+	_log_to_file("Enemy tracking complete: %d enemies registered" % _initial_enemy_count)
 	print("Tracking %d enemies" % _initial_enemy_count)
 
 

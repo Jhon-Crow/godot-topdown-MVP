@@ -27,7 +27,7 @@ size = Vector2(200, 32)
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_cover"]
 size = Vector2(64, 64)
 
-[node name="TestTier" type="Node2D"]
+[node name="Tutorial" type="Node2D"]
 script = ExtResource("1_test_tier")
 
 [node name="Environment" type="Node2D" parent="."]

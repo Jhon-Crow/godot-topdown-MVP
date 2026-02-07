@@ -239,7 +239,8 @@ public partial class Player : BaseCharacter
         Rifle,      // Default - extended grip (e.g., AssaultRifle)
         SMG,        // Compact grip (e.g., MiniUzi)
         Shotgun,    // Similar to rifle but slightly tighter
-        Pistol      // Compact one-handed/two-handed pistol grip (e.g., SilencedPistol)
+        Pistol,     // Compact one-handed/two-handed pistol grip (e.g., SilencedPistol)
+        Sniper      // Extended heavy grip (e.g., ASVK SniperRifle)
     }
 
     /// <summary>
@@ -1259,12 +1260,18 @@ public partial class Player : BaseCharacter
         var detectedType = WeaponType.Rifle;  // Default to rifle pose
 
         // Check for weapon children - weapons are added directly to player by level scripts
-        // Check in order of specificity: MiniUzi (SMG), Shotgun, SilencedPistol, then default to Rifle
+        // Check in order of specificity: SniperRifle, MiniUzi (SMG), Shotgun, SilencedPistol, then default to Rifle
+        var sniperRifle = GetNodeOrNull<BaseWeapon>("SniperRifle");
         var miniUzi = GetNodeOrNull<BaseWeapon>("MiniUzi");
         var shotgun = GetNodeOrNull<BaseWeapon>("Shotgun");
         var silencedPistol = GetNodeOrNull<BaseWeapon>("SilencedPistol");
 
-        if (miniUzi != null)
+        if (sniperRifle != null)
+        {
+            detectedType = WeaponType.Sniper;
+            LogToFile("[Player] Detected weapon: ASVK Sniper Rifle (Sniper pose)");
+        }
+        else if (miniUzi != null)
         {
             detectedType = WeaponType.SMG;
             LogToFile("[Player] Detected weapon: Mini UZI (SMG pose)");
@@ -1326,6 +1333,15 @@ public partial class Player : BaseCharacter
                 _baseLeftArmPos = originalLeftArmPos + new Vector2(-14, 0);  // More compact than SMG (-10)
                 _baseRightArmPos = originalRightArmPos + new Vector2(4, 0);  // Slightly more forward than SMG (3)
                 LogToFile($"[Player] Applied Pistol arm pose: Left={_baseLeftArmPos}, Right={_baseRightArmPos}");
+                break;
+
+            case WeaponType.Sniper:
+                // Sniper pose: Extended forward grip for long heavy weapon (ASVK)
+                // Left arm reaches further forward to support the heavy barrel
+                // Right arm stays close to body for stable trigger control
+                _baseLeftArmPos = originalLeftArmPos + new Vector2(4, 0);
+                _baseRightArmPos = originalRightArmPos + new Vector2(-1, 0);
+                LogToFile($"[Player] Applied Sniper arm pose: Left={_baseLeftArmPos}, Right={_baseRightArmPos}");
                 break;
 
             case WeaponType.Rifle:
