@@ -1063,6 +1063,9 @@ func _setup_selected_weapon() -> void:
 			elif _player.get("CurrentWeapon") != null:
 				_player.CurrentWeapon = sniper
 
+			# Configure 2x ammo for Castle level
+			_configure_castle_weapon_ammo(sniper)
+
 			print("CastleLevel: ASVK Sniper Rifle equipped successfully")
 		else:
 			push_error("CastleLevel: Failed to load SniperRifle scene!")
