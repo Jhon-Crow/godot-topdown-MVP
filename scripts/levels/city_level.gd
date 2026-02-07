@@ -87,6 +87,7 @@ func _ready() -> void:
 	_enemy_count_label = get_node_or_null("CanvasLayer/UI/EnemyCountLabel")
 	_update_enemy_count_label()
 	_setup_player_tracking()
+	_configure_camera()
 	_setup_debug_ui()
 	_setup_saturation_overlay()
 
@@ -224,6 +225,25 @@ func _setup_navigation() -> void:
 	NavigationServer2D.parse_source_geometry_data(nav_poly, source_geometry, self)
 	NavigationServer2D.bake_from_source_geometry_data(nav_poly, source_geometry)
 	print("Navigation mesh baked successfully")
+
+
+## Configure the player's camera to follow without limits on this large map.
+## Without this, camera stops at Player.tscn defaults (4128x3088) which is
+## smaller than the City map (6000x5000).
+func _configure_camera() -> void:
+	if _player == null:
+		return
+
+	var camera: Camera2D = _player.get_node_or_null("Camera2D")
+	if camera == null:
+		return
+
+	camera.limit_left = -10000000
+	camera.limit_top = -10000000
+	camera.limit_right = 10000000
+	camera.limit_bottom = 10000000
+
+	print("Camera configured: limits removed to follow player everywhere")
 
 
 func _setup_player_tracking() -> void:

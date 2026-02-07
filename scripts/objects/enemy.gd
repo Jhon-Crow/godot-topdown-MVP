@@ -3829,7 +3829,10 @@ func _aim_at_player() -> void:
 ## Shoot a bullet in barrel direction. Enemy must be aimed within AIM_TOLERANCE_DOT.
 ## Updated to support shotgun firing with multiple pellets (Issue #417 PR feedback).
 func _shoot() -> void:
-	if bullet_scene == null or _player == null:
+	if _player == null:
+		return
+	# Snipers use hitscan (no bullet_scene needed); other weapons need a bullet scene
+	if not _is_sniper and bullet_scene == null:
 		return
 
 	# Check if we can shoot (have ammo and not reloading)
