@@ -1083,6 +1083,13 @@ func _setup_selected_weapon() -> void:
 				_log_to_file("WARNING: Unknown weapon ID '%s', keeping default" % selected_weapon_id)
 				return
 
+		# Check if C# Player already equipped the correct weapon (via ApplySelectedWeaponFromGameManager)
+		# This prevents double-equipping when both C# and GDScript weapon setup run
+		var existing_weapon = _player.get_node_or_null(weapon_name)
+		if existing_weapon != null and _player.get("CurrentWeapon") == existing_weapon:
+			_log_to_file("%s already equipped by C# Player - skipping GDScript weapon swap" % weapon_name)
+			return
+
 		# Remove the default AssaultRifle immediately (not deferred)
 		var assault_rifle = _player.get_node_or_null("AssaultRifle")
 		if assault_rifle:

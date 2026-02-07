@@ -731,6 +731,11 @@ public partial class Player : BaseCharacter
             }
         }
 
+        // Apply weapon selection from GameManager (C# fallback for GDScript level scripts)
+        // This ensures weapon selection works even when GDScript level scripts fail to execute
+        // due to Godot 4.3 binary tokenization issues (godotengine/godot#94150, #96065)
+        ApplySelectedWeaponFromGameManager();
+
         // Store base positions for walking animation
         if (_bodySprite != null)
         {
@@ -1931,6 +1936,83 @@ public partial class Player : BaseCharacter
             RemoveChild(CurrentWeapon);
         }
         CurrentWeapon = null;
+    }
+
+    /// <summary>
+    /// Applies weapon selection from GameManager autoload.
+    /// This is a C# fallback that ensures weapon selection works even when
+    /// GDScript level scripts (test_tier.gd, building_level.gd) fail to execute
+    /// due to Godot 4.3 GDScript binary tokenization issues.
+    /// Called from _Ready() after auto-equipping the default AssaultRifle.
+    /// </summary>
+    private void ApplySelectedWeaponFromGameManager()
+    {
+        var gameManager = GetNodeOrNull("/root/GameManager");
+        if (gameManager == null)
+        {
+            return;
+        }
+
+        // Get selected weapon ID from GameManager (GDScript autoload)
+        var selectedWeaponId = gameManager.Call("get_selected_weapon").AsString();
+        if (string.IsNullOrEmpty(selectedWeaponId) || selectedWeaponId == "m16")
+        {
+            // Default weapon (AssaultRifle) - already equipped, nothing to do
+            return;
+        }
+
+        // Map weapon ID to scene path and node name
+        string scenePath;
+        string weaponNodeName;
+        switch (selectedWeaponId)
+        {
+            case "shotgun":
+                scenePath = "res://scenes/weapons/csharp/Shotgun.tscn";
+                weaponNodeName = "Shotgun";
+                break;
+            case "mini_uzi":
+                scenePath = "res://scenes/weapons/csharp/MiniUzi.tscn";
+                weaponNodeName = "MiniUzi";
+                break;
+            case "silenced_pistol":
+                scenePath = "res://scenes/weapons/csharp/SilencedPistol.tscn";
+                weaponNodeName = "SilencedPistol";
+                break;
+            case "sniper":
+                scenePath = "res://scenes/weapons/csharp/SniperRifle.tscn";
+                weaponNodeName = "SniperRifle";
+                break;
+            default:
+                LogToFile($"[Player.Weapon] Unknown weapon ID '{selectedWeaponId}', keeping default");
+                return;
+        }
+
+        LogToFile($"[Player.Weapon] GameManager weapon selection: {selectedWeaponId} ({weaponNodeName})");
+
+        // Remove the default AssaultRifle immediately
+        var assaultRifle = GetNodeOrNull<BaseWeapon>("AssaultRifle");
+        if (assaultRifle != null)
+        {
+            RemoveChild(assaultRifle);
+            assaultRifle.QueueFree();
+            LogToFile("[Player.Weapon] Removed default AssaultRifle");
+        }
+        CurrentWeapon = null;
+
+        // Load and instantiate the selected weapon
+        var weaponScene = GD.Load<PackedScene>(scenePath);
+        if (weaponScene != null)
+        {
+            var weapon = weaponScene.Instantiate<BaseWeapon>();
+            weapon.Name = weaponNodeName;
+            AddChild(weapon);
+            CurrentWeapon = weapon;
+            LogToFile($"[Player.Weapon] Equipped {weaponNodeName} (ammo: {weapon.CurrentAmmo}/{weapon.WeaponData?.MagazineSize ?? 0})");
+        }
+        else
+        {
+            LogToFile($"[Player.Weapon] ERROR: Failed to load weapon scene: {scenePath}");
+        }
     }
 
     #region Sniper Scope System
