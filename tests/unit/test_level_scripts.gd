@@ -287,6 +287,13 @@ class MockTestTier extends MockLevelBase:
 	var map_width: int = 4000
 	var map_height: int = 2960
 
+	## Polygon-specific weapon ammo multiplier (2.5x for all weapons, Issue #630).
+	var ammo_multiplier: float = 2.5
+
+	## Calculate 2.5x ammo for Polygon level.
+	func get_polygon_magazine_count(starting_magazines: int) -> int:
+		return int(round(starting_magazines * ammo_multiplier))
+
 	## Default enemy count for test tier (10 enemies).
 	var default_enemy_count: int = 10
 
@@ -713,6 +720,37 @@ func test_test_tier_default_enemy_count() -> void:
 func test_test_tier_same_enemy_count_as_building() -> void:
 	assert_eq(test_tier.default_enemy_count, building_level.default_enemy_count,
 		"TestTier and Building should have the same default enemy count (10)")
+
+
+# ============================================================================
+# TestTier (Polygon) Ammo Multiplier Tests (Issue #630)
+# ============================================================================
+
+
+func test_polygon_ammo_multiplier() -> void:
+	assert_almost_eq(test_tier.ammo_multiplier, 2.5, 0.01,
+		"Polygon ammo multiplier should be 2.5x")
+
+
+func test_polygon_magazines_from_4() -> void:
+	var result := test_tier.get_polygon_magazine_count(4)
+
+	assert_eq(result, 10,
+		"4 starting magazines * 2.5 = 10 magazines for Polygon")
+
+
+func test_polygon_magazines_from_2() -> void:
+	var result := test_tier.get_polygon_magazine_count(2)
+
+	assert_eq(result, 5,
+		"2 starting magazines * 2.5 = 5 magazines for Polygon")
+
+
+func test_polygon_magazines_from_1() -> void:
+	var result := test_tier.get_polygon_magazine_count(1)
+
+	assert_true(result == 2 or result == 3,
+		"1 starting magazine * 2.5 = 2 or 3 (rounded) magazines for Polygon")
 
 
 # ============================================================================

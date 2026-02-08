@@ -280,6 +280,8 @@ func _setup_player_tracking() -> void:
 	if weapon == null:
 		weapon = _player.get_node_or_null("AssaultRifle")
 	if weapon == null:
+		weapon = _player.get_node_or_null("Revolver")
+	if weapon == null:
 		weapon = _player.get_node_or_null("MakarovPM")
 	if weapon != null:
 		# C# Player with weapon - connect to weapon signals
@@ -301,10 +303,22 @@ func _setup_player_tracking() -> void:
 			_update_magazines_label(mag_counts)
 		# Configure silenced pistol ammo based on enemy count
 		_configure_silenced_pistol_ammo(weapon)
+		# Configure 2.5x ammo for Polygon level (Issue #630)
+		_configure_polygon_weapon_ammo(weapon)
 	else:
 		# GDScript Player - connect to player signals
 		if _player.has_signal("ammo_changed"):
 			_player.ammo_changed.connect(_on_player_ammo_changed)
+		# Apply 2.5x ammo multiplier for Polygon level (Issue #630)
+		if _player.get("max_ammo") != null:
+			var base_ammo: int = _player.max_ammo
+			var new_max_ammo: int = int(round(base_ammo * 2.5))
+			_player.max_ammo = new_max_ammo
+			# Reset current ammo to match new max via set()
+			_player.set("_current_ammo", new_max_ammo)
+			print("[TestTier] 2.5x ammo for GDScript player: %d (was %d)" % [new_max_ammo, base_ammo])
+			if _player.has_signal("ammo_changed"):
+				_player.ammo_changed.emit(new_max_ammo, new_max_ammo)
 		# Initial ammo display
 		if _player.has_method("get_current_ammo") and _player.has_method("get_max_ammo"):
 			_update_ammo_label(_player.get_current_ammo(), _player.get_max_ammo())
@@ -419,6 +433,39 @@ func _configure_silenced_pistol_ammo(weapon: Node) -> void:
 		if weapon.has_method("GetMagazineAmmoCounts"):
 			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
 			_update_magazines_label(mag_counts)
+
+
+## Configure weapon ammo for Polygon level - 2.5x ammo for all weapons (Issue #630).
+## Applies to all difficulty modes including Hard.
+func _configure_polygon_weapon_ammo(weapon: Node) -> void:
+	if weapon == null:
+		return
+
+	# Skip silenced pistol - it uses enemy-count-based ammo configuration
+	if weapon.name == "SilencedPistol":
+		return
+
+	# Get the default starting magazine count (usually 4)
+	var starting_magazines: int = 4
+	if weapon.get("StartingMagazineCount") != null:
+		starting_magazines = weapon.StartingMagazineCount
+
+	# Multiply magazine count by 2.5 for Polygon level (round to nearest int)
+	var polygon_magazines: int = int(round(starting_magazines * 2.5))
+
+	# Use ReinitializeMagazines to set the new magazine count
+	if weapon.has_method("ReinitializeMagazines"):
+		weapon.ReinitializeMagazines(polygon_magazines, true)
+		print("[TestTier] 2.5x ammo for %s: %d magazines (was %d)" % [weapon.name, polygon_magazines, starting_magazines])
+
+		# Update UI to reflect new ammo counts
+		if weapon.get("CurrentAmmo") != null and weapon.get("ReserveAmmo") != null:
+			_update_ammo_label_magazine(weapon.CurrentAmmo, weapon.ReserveAmmo)
+		if weapon.has_method("GetMagazineAmmoCounts"):
+			var mag_counts: Array = weapon.GetMagazineAmmoCounts()
+			_update_magazines_label(mag_counts)
+	else:
+		push_warning("[TestTier] Weapon %s doesn't have ReinitializeMagazines method" % weapon.name)
 
 
 ## Setup debug UI elements for kills and accuracy.
@@ -1221,12 +1268,14 @@ func _setup_selected_weapon() -> void:
 
 	# Check if C# Player already equipped the correct weapon (via ApplySelectedWeaponFromGameManager).
 	# This prevents double-equipping when both C# and GDScript weapon setup succeed.
-	var weapon_names: Dictionary = {"shotgun": "Shotgun", "mini_uzi": "MiniUzi", "silenced_pistol": "SilencedPistol", "sniper": "SniperRifle", "m16": "AssaultRifle"}
+	var weapon_names: Dictionary = {"shotgun": "Shotgun", "mini_uzi": "MiniUzi", "silenced_pistol": "SilencedPistol", "sniper": "SniperRifle", "m16": "AssaultRifle", "revolver": "Revolver"}
 	if selected_weapon_id in weapon_names:
 		var expected_name: String = weapon_names[selected_weapon_id]
 		var existing = _player.get_node_or_null(expected_name)
 		if existing != null and _player.get("CurrentWeapon") == existing:
 			print("TestTier: %s already equipped by C# Player - skipping" % expected_name)
+			# Still apply polygon-specific 2.5x ammo configuration (Issue #630)
+			_configure_polygon_weapon_ammo(existing)
 			return
 
 	# If shotgun is selected, we need to swap weapons
@@ -1249,6 +1298,9 @@ func _setup_selected_weapon() -> void:
 				_player.EquipWeapon(shotgun)
 			elif _player.get("CurrentWeapon") != null:
 				_player.CurrentWeapon = shotgun
+
+			# Configure 2.5x ammo for Polygon level (Issue #630)
+			_configure_polygon_weapon_ammo(shotgun)
 
 			print("TestTier: Shotgun equipped successfully")
 		else:
@@ -1274,6 +1326,9 @@ func _setup_selected_weapon() -> void:
 			elif _player.get("CurrentWeapon") != null:
 				_player.CurrentWeapon = mini_uzi
 
+			# Configure 2.5x ammo for Polygon level (Issue #630)
+			_configure_polygon_weapon_ammo(mini_uzi)
+
 			print("TestTier: Mini UZI equipped successfully")
 		else:
 			push_error("TestTier: Failed to load MiniUzi scene!")
@@ -1297,6 +1352,9 @@ func _setup_selected_weapon() -> void:
 				_player.EquipWeapon(pistol)
 			elif _player.get("CurrentWeapon") != null:
 				_player.CurrentWeapon = pistol
+
+			# Configure 2.5x ammo for Polygon level (Issue #630)
+			_configure_polygon_weapon_ammo(pistol)
 
 			print("TestTier: Silenced Pistol equipped successfully")
 		else:
@@ -1322,6 +1380,9 @@ func _setup_selected_weapon() -> void:
 			elif _player.get("CurrentWeapon") != null:
 				_player.CurrentWeapon = sniper
 
+			# Configure 2.5x ammo for Polygon level (Issue #630)
+			_configure_polygon_weapon_ammo(sniper)
+
 			print("TestTier: ASVK Sniper Rifle equipped successfully")
 		else:
 			push_error("TestTier: Failed to load SniperRifle scene!")
@@ -1343,6 +1404,9 @@ func _setup_selected_weapon() -> void:
 			elif _player.get("CurrentWeapon") != null:
 				_player.CurrentWeapon = m16
 
+			# Configure 2.5x ammo for Polygon level (Issue #630)
+			_configure_polygon_weapon_ammo(m16)
+
 			print("TestTier: M16 Assault Rifle equipped successfully")
 		else:
 			push_error("TestTier: Failed to load AssaultRifle scene!")
@@ -1354,6 +1418,9 @@ func _setup_selected_weapon() -> void:
 				_player.EquipWeapon(makarov)
 			elif _player.get("CurrentWeapon") != null:
 				_player.CurrentWeapon = makarov
+
+			# Configure 2.5x ammo for Polygon level (Issue #630)
+			_configure_polygon_weapon_ammo(makarov)
 
 
 ## Starts recording the replay for this level.
