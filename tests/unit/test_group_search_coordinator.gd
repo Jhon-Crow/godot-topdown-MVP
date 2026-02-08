@@ -385,6 +385,32 @@ func test_sector_reassignment_after_unregister() -> void:
 		"After removal, each remaining enemy gets 180 degrees")
 
 
+func test_get_sector_angles_empty_coordinator() -> void:
+	var coord := GroupSearchCoordinator.get_or_create(Vector2.ZERO)
+	var enemy := _create_mock_enemy()
+	# Don't register - coordinator is empty
+	var sector := coord.get_sector_angles(enemy)
+	assert_almost_eq(sector["start"], 0.0, 0.01, "Empty coordinator should return start=0")
+	assert_almost_eq(sector["end"], TAU, 0.01, "Empty coordinator should return end=TAU")
+
+
+func test_unregister_nonexistent_enemy_no_crash() -> void:
+	var coord := GroupSearchCoordinator.get_or_create(Vector2.ZERO)
+	var enemy := _create_mock_enemy()
+	# Unregistering an enemy that was never registered should not crash
+	coord.unregister_enemy(enemy)
+	assert_eq(coord.get_enemy_count(), 0, "Should still have 0 enemies")
+
+
+func test_double_unregister_no_crash() -> void:
+	var coord := GroupSearchCoordinator.get_or_create(Vector2.ZERO)
+	var enemy := _create_mock_enemy()
+	coord.register_enemy(enemy)
+	coord.unregister_enemy(enemy)
+	coord.unregister_enemy(enemy)  # Double unregister should be safe
+	assert_eq(coord.get_enemy_count(), 0, "Should still have 0 enemies after double unregister")
+
+
 func test_waypoints_with_nav_callback() -> void:
 	var coord := GroupSearchCoordinator.get_or_create(Vector2.ZERO)
 	var enemy := _create_mock_enemy()

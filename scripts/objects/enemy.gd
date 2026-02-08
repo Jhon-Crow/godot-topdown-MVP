@@ -2491,15 +2491,13 @@ func _transition_to_combat() -> void:
 ## Transition to SEEKING_COVER state.
 func _transition_to_seeking_cover() -> void:
 	_current_state = AIState.SEEKING_COVER
-	# Mark that enemy has left IDLE state (Issue #330)
-	_has_left_idle = true
+	_has_left_idle = true; _unregister_from_group_search()  # Issue #330, #650
 	_find_cover_position()
 
 ## Transition to IN_COVER state.
 func _transition_to_in_cover() -> void:
 	_current_state = AIState.IN_COVER
-	# Mark that enemy has left IDLE state (Issue #330)
-	_has_left_idle = true
+	_has_left_idle = true; _unregister_from_group_search()  # Issue #330, #650
 
 ## Check if flanking is available (not on cooldown from failures).
 func _can_attempt_flanking() -> bool:
@@ -2526,9 +2524,7 @@ func _transition_to_flanking() -> bool:
 		return false
 
 	_current_state = AIState.FLANKING
-	# Mark that enemy has left IDLE state (Issue #330)
-	_has_left_idle = true
-	# Clear vulnerability sound pursuit flag
+	_has_left_idle = true; _unregister_from_group_search()  # Issue #330, #650
 	_pursuing_vulnerability_sound = false
 	# Initialize flank side only once per flanking maneuver
 	# Choose the side based on which direction has fewer obstacles
@@ -2592,16 +2588,13 @@ func _is_flank_target_reachable() -> bool:
 ## Transition to SUPPRESSED state.
 func _transition_to_suppressed() -> void:
 	_current_state = AIState.SUPPRESSED
-	# Mark that enemy has left IDLE state (Issue #330)
-	_has_left_idle = true
-	# Enter alarm mode when suppressed
+	_has_left_idle = true; _unregister_from_group_search()  # Issue #330, #650
 	_in_alarm_mode = true
 
 ## Transition to PURSUING state.
 func _transition_to_pursuing() -> void:
 	_current_state = AIState.PURSUING
-	# Mark that enemy has left IDLE state (Issue #330)
-	_has_left_idle = true
+	_has_left_idle = true; _unregister_from_group_search()  # Issue #330, #650
 	_pursuit_cover_wait_timer = 0.0
 	_has_pursuit_cover = false
 	_pursuit_approaching = false
@@ -2619,8 +2612,7 @@ func _transition_to_pursuing() -> void:
 ## Transition to ASSAULT state.
 func _transition_to_assault() -> void:
 	_current_state = AIState.ASSAULT
-	# Mark that enemy has left IDLE state (Issue #330)
-	_has_left_idle = true
+	_has_left_idle = true; _unregister_from_group_search()  # Issue #330, #650
 	_assault_wait_timer = 0.0
 	_assault_ready = false
 	_in_assault = false
@@ -2660,7 +2652,7 @@ func _unregister_from_group_search() -> void:
 func _transition_to_evading_grenade() -> void:
 	_pre_evasion_state = _current_state
 	_current_state = AIState.EVADING_GRENADE
-	_has_left_idle = true  # Mark that enemy has left IDLE state (Issue #330)
+	_has_left_idle = true; _unregister_from_group_search()  # Issue #330, #650
 	_grenade_evasion_timer = 0.0
 	_calculate_grenade_evasion_target()  # Calculate escape target via component
 	var grenade_pos := _grenade_avoidance.most_dangerous_grenade.global_position if _grenade_avoidance and _grenade_avoidance.most_dangerous_grenade else Vector2.ZERO
@@ -2671,9 +2663,7 @@ func _transition_to_evading_grenade() -> void:
 ## Transition to RETREATING state with appropriate retreat mode.
 func _transition_to_retreating() -> void:
 	_current_state = AIState.RETREATING
-	# Mark that enemy has left IDLE state (Issue #330)
-	_has_left_idle = true
-	# Enter alarm mode when retreating
+	_has_left_idle = true; _unregister_from_group_search()  # Issue #330, #650
 	_in_alarm_mode = true
 
 	# Determine retreat mode based on hits taken
@@ -4339,6 +4329,7 @@ func _on_death() -> void:
 	var pfm = get_node_or_null("/root/PowerFantasyEffectsManager")  # Issue #492: Power Fantasy effect
 	if pfm and pfm.has_method("on_enemy_killed"): pfm.on_enemy_killed()
 	_notify_nearby_enemies_of_death()  # Issue #409
+	_unregister_from_group_search()  # Issue #650: Clean up coordinator on death
 	_disable_hit_area_collision()  # Disable collision so bullets pass through dead enemies
 
 	# Unregister from sound propagation when dying

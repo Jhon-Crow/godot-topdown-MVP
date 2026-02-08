@@ -134,6 +134,8 @@ func get_sector_angles(enemy: Node) -> Dictionary:
 		return {"start": 0.0, "end": TAU}
 	var sector_index: int = _enemy_sectors[id]
 	var total := _enemy_order.size()
+	if total <= 0:
+		return {"start": 0.0, "end": TAU}
 	var sector_size := TAU / float(total)
 	return {
 		"start": sector_index * sector_size,
