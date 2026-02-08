@@ -3625,6 +3625,11 @@ func _check_player_visibility() -> void:
 		_continuous_visibility_timer = 0.0
 		return
 
+	# If player is invisible (invisibility suit active), cannot see player (Issue #673)
+	if _player != null and _player.has_method("is_invisible") and _player.is_invisible():
+		_continuous_visibility_timer = 0.0
+		return
+
 	if _player == null or not _raycast:
 		_continuous_visibility_timer = 0.0
 		return

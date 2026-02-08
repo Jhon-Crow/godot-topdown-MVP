@@ -1040,7 +1040,11 @@ func _update_active_item_stats() -> void:
 	bbcode += "[b][color=#d4c896]ACTIVE: %s[/color][/b]\n" % item_name
 	bbcode += "[color=#aab0b8]%s[/color]\n" % item_desc
 	if _pending_active_item_type != 0:  # Not "None"
-		bbcode += "\n[color=#888888]Hold Space to activate[/color]"
+		# Flashlight uses hold, invisibility suit uses press (Issue #673)
+		if _pending_active_item_type == 2:  # INVISIBILITY_SUIT
+			bbcode += "\n[color=#888888]Press Space to activate[/color]"
+		else:
+			bbcode += "\n[color=#888888]Hold Space to activate[/color]"
 
 	_active_item_stats_label.text = bbcode
 

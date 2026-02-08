@@ -7,8 +7,9 @@ extends Node
 
 ## Active item types available in the game.
 enum ActiveItemType {
-	NONE,        # No active item equipped
-	FLASHLIGHT   # Tactical flashlight - illuminates in weapon direction
+	NONE,              # No active item equipped
+	FLASHLIGHT,        # Tactical flashlight - illuminates in weapon direction
+	INVISIBILITY_SUIT  # Invisibility cloak - press Space to become invisible (Issue #673)
 }
 
 ## Currently selected active item type.
@@ -26,6 +27,11 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 		"name": "Flashlight",
 		"icon_path": "res://assets/sprites/weapons/flashlight_icon.png",
 		"description": "Tactical flashlight — hold Space to illuminate in weapon direction. Bright white light, turns off when released."
+	},
+	ActiveItemType.INVISIBILITY_SUIT: {
+		"name": "Invisibility",
+		"icon_path": "",
+		"description": "Invisibility suit — press Space to cloak (Predator-style ripple). Enemies cannot see you for 4 seconds. 2 charges per battle."
 	}
 }
 
@@ -112,3 +118,8 @@ func is_selected(type: int) -> bool:
 ## Check if a flashlight is currently equipped.
 func has_flashlight() -> bool:
 	return current_active_item == ActiveItemType.FLASHLIGHT
+
+
+## Check if an invisibility suit is currently equipped (Issue #673).
+func has_invisibility_suit() -> bool:
+	return current_active_item == ActiveItemType.INVISIBILITY_SUIT

@@ -304,6 +304,9 @@ func _ready() -> void:
 	# Initialize flashlight if active item manager has flashlight selected
 	_init_flashlight()
 
+	# Initialize invisibility suit if active item manager has it selected (Issue #673)
+	_init_invisibility_suit()
+
 	FileLogger.info("[Player] Ready! Ammo: %d/%d, Grenades: %d/%d, Health: %d/%d" % [
 		_current_ammo, max_ammo,
 		_current_grenades, max_grenades,
@@ -400,6 +403,9 @@ func _physics_process(delta: float) -> void:
 
 	# Handle flashlight input (hold Space to turn on, release to turn off)
 	_handle_flashlight_input()
+
+	# Handle invisibility suit input (press Space to activate) (Issue #673)
+	_handle_invisibility_suit_input()
 
 
 func _get_input_direction() -> Vector2:
@@ -2926,3 +2932,124 @@ func is_flashlight_wall_clamped() -> bool:
 	if _flashlight_node.has_method("is_wall_clamped"):
 		return _flashlight_node.is_wall_clamped()
 	return false
+
+
+# ============================================================================
+# Invisibility Suit System (Issue #673)
+# ============================================================================
+
+## Preloaded invisibility suit effect script.
+const InvisibilitySuitEffectScript = preload("res://scripts/effects/invisibility_suit_effect.gd")
+
+## Preloaded invisibility HUD script.
+const InvisibilityHudScript = preload("res://scripts/ui/invisibility_hud.gd")
+
+## Whether the invisibility suit is equipped (active item selected in armory).
+var _invisibility_suit_equipped: bool = false
+
+## Reference to the invisibility suit effect node.
+var _invisibility_suit: Node = null
+
+## Reference to the invisibility HUD overlay.
+var _invisibility_hud: CanvasLayer = null
+
+## Signal emitted when invisibility state changes (for HUD).
+signal invisibility_changed(is_active: bool, charges: int, max_charges: int)
+
+## Signal emitted when invisibility charges change (for HUD).
+signal invisibility_charges_changed(current: int, maximum: int)
+
+
+## Initialize the invisibility suit if the ActiveItemManager has it selected.
+func _init_invisibility_suit() -> void:
+	var active_item_manager: Node = get_node_or_null("/root/ActiveItemManager")
+	if active_item_manager == null:
+		FileLogger.info("[Player.Invisibility] ActiveItemManager not found")
+		return
+
+	if not active_item_manager.has_method("has_invisibility_suit"):
+		FileLogger.info("[Player.Invisibility] ActiveItemManager missing has_invisibility_suit method")
+		return
+
+	if not active_item_manager.has_invisibility_suit():
+		FileLogger.info("[Player.Invisibility] No invisibility suit selected in ActiveItemManager")
+		return
+
+	FileLogger.info("[Player.Invisibility] Invisibility suit is selected, initializing...")
+
+	# Create the invisibility suit effect node
+	_invisibility_suit = InvisibilitySuitEffectScript.new()
+	_invisibility_suit.name = "InvisibilitySuitEffect"
+	add_child(_invisibility_suit)
+
+	# Initialize with player reference
+	_invisibility_suit.initialize(self)
+
+	# Connect signals for HUD updates
+	_invisibility_suit.invisibility_activated.connect(_on_invisibility_activated)
+	_invisibility_suit.invisibility_deactivated.connect(_on_invisibility_deactivated)
+	_invisibility_suit.charges_changed.connect(_on_invisibility_charges_changed)
+
+	_invisibility_suit_equipped = true
+	FileLogger.info("[Player.Invisibility] Invisibility suit equipped, charges: %d" % _invisibility_suit.charges)
+
+	# Create HUD overlay for displaying charges and timer
+	_invisibility_hud = InvisibilityHudScript.new()
+	_invisibility_hud.name = "InvisibilityHUD"
+	add_child(_invisibility_hud)
+	_invisibility_hud.initialize(_invisibility_suit)
+
+	# Emit initial charges state for HUD
+	invisibility_charges_changed.emit(_invisibility_suit.charges, _invisibility_suit.MAX_CHARGES)
+
+
+## Handle invisibility suit input: press Space to activate (toggle-on, auto-off after duration).
+func _handle_invisibility_suit_input() -> void:
+	if not _invisibility_suit_equipped or _invisibility_suit == null:
+		return
+
+	if not is_instance_valid(_invisibility_suit):
+		return
+
+	# Activate on Space press (not hold — single press activates for full duration)
+	if Input.is_action_just_pressed("flashlight_toggle"):
+		if not _invisibility_suit.is_active:
+			_invisibility_suit.activate()
+
+
+## Callback when invisibility activates.
+func _on_invisibility_activated(charges_remaining: int) -> void:
+	invisibility_changed.emit(true, charges_remaining, _invisibility_suit.MAX_CHARGES)
+	if _invisibility_hud and is_instance_valid(_invisibility_hud):
+		_invisibility_hud.set_active(true)
+		_invisibility_hud.update_charges(charges_remaining, _invisibility_suit.MAX_CHARGES)
+
+
+## Callback when invisibility deactivates.
+func _on_invisibility_deactivated(charges_remaining: int) -> void:
+	invisibility_changed.emit(false, charges_remaining, _invisibility_suit.MAX_CHARGES)
+	if _invisibility_hud and is_instance_valid(_invisibility_hud):
+		_invisibility_hud.set_active(false)
+		_invisibility_hud.update_charges(charges_remaining, _invisibility_suit.MAX_CHARGES)
+
+
+## Callback when invisibility charges change.
+func _on_invisibility_charges_changed(current: int, maximum: int) -> void:
+	invisibility_charges_changed.emit(current, maximum)
+	if _invisibility_hud and is_instance_valid(_invisibility_hud):
+		_invisibility_hud.update_charges(current, maximum)
+
+
+## Check if the player is currently invisible (Issue #673).
+## Used by enemy AI to skip visual detection of the player.
+func is_invisible() -> bool:
+	if not _invisibility_suit_equipped or _invisibility_suit == null:
+		return false
+	if not is_instance_valid(_invisibility_suit):
+		return false
+	return _invisibility_suit.is_invisible()
+
+
+## Get the invisibility suit effect node (for HUD queries).
+func get_invisibility_suit() -> Node:
+	return _invisibility_suit
