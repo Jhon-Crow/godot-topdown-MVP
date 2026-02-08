@@ -33,6 +33,13 @@ class MockRevolverReload:
 	## empty chamber before inserting another.
 	var cartridge_insertion_blocked: bool = false
 
+	## Issue #668: Per-chamber occupancy tracking.
+	## Each element indicates whether the corresponding chamber has a live round.
+	var chamber_occupied: Array[bool] = []
+
+	## Issue #668: Current chamber index the cylinder is pointing at.
+	var current_chamber_index: int = 0
+
 	## Callbacks for signal simulation
 	var on_reload_state_changed: Callable
 	var on_cartridge_inserted: Callable
@@ -48,6 +55,24 @@ class MockRevolverReload:
 	var cylinder_rotations: int = 0
 
 
+	func _init() -> void:
+		# Issue #668: Initialize per-chamber tracking.
+		# All chambers start as occupied (full cylinder at game start).
+		chamber_occupied.clear()
+		for i in range(cylinder_capacity):
+			chamber_occupied.append(true)
+		current_chamber_index = 0
+
+
+	## Issue #668: Check if the current chamber is empty.
+	func is_current_chamber_empty() -> bool:
+		if chamber_occupied.size() == 0:
+			return true
+		if current_chamber_index >= chamber_occupied.size():
+			return true
+		return not chamber_occupied[current_chamber_index]
+
+
 	func can_open_cylinder() -> bool:
 		return reload_state == NOT_RELOADING and not is_reloading
 
@@ -55,7 +80,8 @@ class MockRevolverReload:
 	func can_insert_cartridge() -> bool:
 		return (reload_state == CYLINDER_OPEN or reload_state == LOADING) \
 			and current_ammo < cylinder_capacity \
-			and reserve_ammo > 0
+			and reserve_ammo > 0 \
+			and is_current_chamber_empty()
 
 
 	func can_close_cylinder() -> bool:
@@ -70,6 +96,10 @@ class MockRevolverReload:
 			return false
 		current_ammo -= 1
 		rounds_fired_since_last_eject += 1
+		# Issue #668: Mark the current chamber as empty and advance.
+		if chamber_occupied.size() > 0:
+			chamber_occupied[current_chamber_index] = false
+			current_chamber_index = (current_chamber_index + 1) % chamber_occupied.size()
 		return true
 
 
@@ -86,8 +116,16 @@ class MockRevolverReload:
 		# CurrentAmmo is NOT reset to 0 - the player only needs to reload empty chambers.
 		cartridges_loaded_this_reload = 0
 
-		# Reset insertion block for fresh reload sequence
-		cartridge_insertion_blocked = false
+		# Issue #668: Ensure chamber array is properly sized.
+		if chamber_occupied.size() != cylinder_capacity:
+			chamber_occupied.clear()
+			for i in range(cylinder_capacity):
+				chamber_occupied.append(i < current_ammo)
+
+		# Issue #668: Set insertion block based on whether current chamber is occupied.
+		cartridge_insertion_blocked = chamber_occupied.size() > 0 \
+			and current_chamber_index < chamber_occupied.size() \
+			and chamber_occupied[current_chamber_index]
 
 		# Update state
 		reload_state = CYLINDER_OPEN
@@ -118,6 +156,10 @@ class MockRevolverReload:
 		# Add one round to cylinder
 		current_ammo += 1
 		cartridges_loaded_this_reload += 1
+
+		# Issue #668: Mark the current chamber as occupied.
+		if chamber_occupied.size() > 0 and current_chamber_index < chamber_occupied.size():
+			chamber_occupied[current_chamber_index] = true
 
 		# Update state to Loading
 		reload_state = LOADING
@@ -158,9 +200,14 @@ class MockRevolverReload:
 		if not can_rotate_cylinder():
 			return false
 		cylinder_rotations += 1
-		# Issue #659: Rotating the cylinder moves to the next chamber,
-		# allowing a new cartridge to be inserted.
-		cartridge_insertion_blocked = false
+		# Issue #668: Advance the chamber index in the rotation direction.
+		var capacity := chamber_occupied.size() if chamber_occupied.size() > 0 else cylinder_capacity
+		current_chamber_index = ((current_chamber_index + direction) % capacity + capacity) % capacity
+		# Issue #668: Only unblock insertion if the destination chamber is empty.
+		# Issue #659: Rotating moves to the next chamber for insertion.
+		cartridge_insertion_blocked = chamber_occupied.size() > 0 \
+			and current_chamber_index < chamber_occupied.size() \
+			and chamber_occupied[current_chamber_index]
 		return true
 
 
@@ -250,9 +297,16 @@ func test_open_cylinder_resets_cartridges_loaded_counter() -> void:
 func test_can_insert_cartridge_when_cylinder_open() -> void:
 	revolver.current_ammo = 3  # 3 live rounds, 2 empty chambers
 	revolver.rounds_fired_since_last_eject = 2
+	# Issue #668: Mark first 2 chambers as fired (empty), rest occupied
+	# After firing 2 shots, chambers 0 and 1 are empty, current_chamber_index is at 2
+	revolver.chamber_occupied[0] = false
+	revolver.chamber_occupied[1] = false
+	revolver.current_chamber_index = 2
 	revolver.open_cylinder()
+	# Current chamber (2) is occupied, need to rotate to an empty one
+	revolver.rotate_cylinder(-1)  # Go to chamber 1 (empty)
 
-	assert_true(revolver.can_insert_cartridge(), "Should be able to insert when cylinder is open and has empty chambers")
+	assert_true(revolver.can_insert_cartridge(), "Should be able to insert when cylinder is open and current chamber is empty")
 
 
 func test_cannot_insert_cartridge_when_not_reloading() -> void:
@@ -262,6 +316,9 @@ func test_cannot_insert_cartridge_when_not_reloading() -> void:
 func test_insert_cartridge_adds_one_round() -> void:
 	revolver.current_ammo = 0  # Empty cylinder
 	revolver.rounds_fired_since_last_eject = 5
+	# Issue #668: Set all chambers to empty to match fired state
+	for i in range(revolver.cylinder_capacity):
+		revolver.chamber_occupied[i] = false
 	revolver.open_cylinder()
 	revolver.insert_cartridge()
 
@@ -272,6 +329,9 @@ func test_insert_cartridge_consumes_reserve_ammo() -> void:
 	revolver.current_ammo = 0
 	revolver.rounds_fired_since_last_eject = 5
 	revolver.reserve_ammo = 10
+	# Issue #668: Set all chambers to empty to match fired state
+	for i in range(revolver.cylinder_capacity):
+		revolver.chamber_occupied[i] = false
 	revolver.open_cylinder()
 	revolver.insert_cartridge()
 
@@ -281,6 +341,9 @@ func test_insert_cartridge_consumes_reserve_ammo() -> void:
 func test_insert_cartridge_increments_loaded_counter() -> void:
 	revolver.current_ammo = 0
 	revolver.rounds_fired_since_last_eject = 5
+	# Issue #668: Set all chambers to empty to match fired state
+	for i in range(revolver.cylinder_capacity):
+		revolver.chamber_occupied[i] = false
 	revolver.open_cylinder()
 	revolver.insert_cartridge()
 
@@ -292,10 +355,15 @@ func test_insert_multiple_cartridges() -> void:
 	revolver.current_ammo = 0
 	revolver.rounds_fired_since_last_eject = 5
 	revolver.reserve_ammo = 10
+	# Issue #668: Set all chambers to empty to match fired state
+	for i in range(revolver.cylinder_capacity):
+		revolver.chamber_occupied[i] = false
 	revolver.open_cylinder()
 
 	for i in range(3):
 		revolver.insert_cartridge()
+		if i < 2:
+			revolver.rotate_cylinder(1)  # Rotate to next empty chamber
 
 	assert_eq(revolver.current_ammo, 3, "Should have 3 rounds after 3 insertions")
 	assert_eq(revolver.cartridges_loaded_this_reload, 3, "Should have loaded 3 cartridges")
@@ -306,10 +374,15 @@ func test_insert_all_five_cartridges() -> void:
 	revolver.current_ammo = 0
 	revolver.rounds_fired_since_last_eject = 5
 	revolver.reserve_ammo = 10
+	# Issue #668: Set all chambers to empty to match fired state
+	for i in range(revolver.cylinder_capacity):
+		revolver.chamber_occupied[i] = false
 	revolver.open_cylinder()
 
 	for i in range(5):
 		assert_true(revolver.insert_cartridge(), "Should insert cartridge %d" % (i + 1))
+		if i < 4:
+			revolver.rotate_cylinder(1)  # Rotate to next empty chamber
 
 	assert_eq(revolver.current_ammo, 5, "Cylinder should be full (5 rounds)")
 	assert_eq(revolver.cartridges_loaded_this_reload, 5, "Should have loaded 5 cartridges")
@@ -319,11 +392,18 @@ func test_cannot_insert_more_than_cylinder_capacity() -> void:
 	revolver.current_ammo = 0
 	revolver.rounds_fired_since_last_eject = 5
 	revolver.reserve_ammo = 10
+	# Issue #668: Set all chambers to empty to match fired state
+	for i in range(revolver.cylinder_capacity):
+		revolver.chamber_occupied[i] = false
 	revolver.open_cylinder()
 
 	for i in range(5):
 		revolver.insert_cartridge()
+		if i < 4:
+			revolver.rotate_cylinder(1)
 
+	# All chambers are now full, try inserting into any
+	revolver.rotate_cylinder(1)
 	assert_false(revolver.insert_cartridge(), "Should not insert 6th cartridge (cylinder full)")
 	assert_eq(revolver.current_ammo, 5, "Should still have 5 rounds")
 
@@ -332,10 +412,15 @@ func test_cannot_insert_when_no_reserve_ammo() -> void:
 	revolver.current_ammo = 0
 	revolver.rounds_fired_since_last_eject = 5
 	revolver.reserve_ammo = 2
+	# Issue #668: Set all chambers to empty to match fired state
+	for i in range(revolver.cylinder_capacity):
+		revolver.chamber_occupied[i] = false
 	revolver.open_cylinder()
 
 	revolver.insert_cartridge()
+	revolver.rotate_cylinder(1)
 	revolver.insert_cartridge()
+	revolver.rotate_cylinder(1)
 
 	assert_false(revolver.insert_cartridge(), "Should not insert with no reserve ammo")
 	assert_eq(revolver.current_ammo, 2, "Should have 2 rounds")
@@ -345,6 +430,9 @@ func test_cannot_insert_when_no_reserve_ammo() -> void:
 func test_insert_cartridge_sets_state_to_loading() -> void:
 	revolver.current_ammo = 0
 	revolver.rounds_fired_since_last_eject = 5
+	# Issue #668: Set all chambers to empty to match fired state
+	for i in range(revolver.cylinder_capacity):
+		revolver.chamber_occupied[i] = false
 	revolver.open_cylinder()
 	revolver.insert_cartridge()
 
@@ -366,6 +454,9 @@ func test_can_close_cylinder_when_open() -> void:
 func test_can_close_cylinder_when_loading() -> void:
 	revolver.current_ammo = 0
 	revolver.rounds_fired_since_last_eject = 5
+	# Issue #668: Set all chambers to empty to match fired state
+	for i in range(revolver.cylinder_capacity):
+		revolver.chamber_occupied[i] = false
 	revolver.open_cylinder()
 	revolver.insert_cartridge()
 
@@ -379,6 +470,9 @@ func test_cannot_close_cylinder_when_not_reloading() -> void:
 func test_close_cylinder_sets_state_to_not_reloading() -> void:
 	revolver.current_ammo = 0
 	revolver.rounds_fired_since_last_eject = 5
+	# Issue #668: Set all chambers to empty to match fired state
+	for i in range(revolver.cylinder_capacity):
+		revolver.chamber_occupied[i] = false
 	revolver.open_cylinder()
 	revolver.insert_cartridge()
 	revolver.close_cylinder()
@@ -391,10 +485,15 @@ func test_close_cylinder_preserves_loaded_ammo() -> void:
 	revolver.current_ammo = 0
 	revolver.rounds_fired_since_last_eject = 5
 	revolver.reserve_ammo = 10
+	# Issue #668: Set all chambers to empty to match fired state
+	for i in range(revolver.cylinder_capacity):
+		revolver.chamber_occupied[i] = false
 	revolver.open_cylinder()
 
 	revolver.insert_cartridge()
+	revolver.rotate_cylinder(1)
 	revolver.insert_cartridge()
+	revolver.rotate_cylinder(1)
 	revolver.insert_cartridge()
 
 	revolver.close_cylinder()
@@ -405,6 +504,9 @@ func test_close_cylinder_preserves_loaded_ammo() -> void:
 func test_close_cylinder_emits_reload_finished() -> void:
 	revolver.current_ammo = 0
 	revolver.rounds_fired_since_last_eject = 5
+	# Issue #668: Set all chambers to empty to match fired state
+	for i in range(revolver.cylinder_capacity):
+		revolver.chamber_occupied[i] = false
 	revolver.open_cylinder()
 	revolver.insert_cartridge()
 	revolver.close_cylinder()
@@ -479,9 +581,11 @@ func test_partial_reload_3_cartridges() -> void:
 
 	revolver.open_cylinder()
 
-	# Insert only 3 cartridges
+	# Insert only 3 cartridges (with rotation between each)
 	for i in range(3):
 		revolver.insert_cartridge()
+		if i < 2:
+			revolver.rotate_cylinder(1)
 
 	revolver.close_cylinder()
 
@@ -504,8 +608,14 @@ func test_reload_with_partially_spent_cylinder() -> void:
 	assert_eq(revolver.casings_ejected_count, 2, "Should eject 2 spent casings")
 	assert_eq(revolver.current_ammo, 3, "Live rounds should stay in cylinder")
 
-	# Reload only the 2 empty chambers
+	# Issue #668: Navigate to the empty chambers to insert cartridges.
+	# After firing 2 rounds, chambers 0 and 1 are empty, current_chamber_index is at 2 (occupied).
+	# Need to rotate to find empty chambers.
+	# Rotate backwards to find the first empty chamber (chamber 1)
+	revolver.rotate_cylinder(-1)
 	revolver.insert_cartridge()
+	# Rotate backwards again to find the second empty chamber (chamber 0)
+	revolver.rotate_cylinder(-1)
 	revolver.insert_cartridge()
 
 	revolver.close_cylinder()
@@ -526,11 +636,12 @@ func test_reload_with_limited_reserve() -> void:
 
 	revolver.open_cylinder()
 
-	# Try to insert 5 but only 3 available
+	# Try to insert 5 but only 3 available (rotate between inserts)
 	var inserted := 0
 	for i in range(5):
 		if revolver.insert_cartridge():
 			inserted += 1
+		revolver.rotate_cylinder(1)
 
 	assert_eq(inserted, 3, "Should only insert 3 (limited by reserve)")
 	assert_eq(revolver.current_ammo, 3, "Should have 3 rounds")
@@ -551,8 +662,13 @@ func test_multiple_reloads_preserve_ammo() -> void:
 		revolver.fire()
 	assert_eq(revolver.current_ammo, 2, "Should have 2 after firing 3")
 	revolver.open_cylinder()
+	# Issue #668: Navigate to empty chambers. After firing 3, chambers 0,1,2 are empty.
+	# current_chamber_index is at 3 (occupied). Rotate backward to find empties.
+	revolver.rotate_cylinder(-1)  # to chamber 2 (empty)
 	revolver.insert_cartridge()
+	revolver.rotate_cylinder(-1)  # to chamber 1 (empty)
 	revolver.insert_cartridge()
+	revolver.rotate_cylinder(-1)  # to chamber 0 (empty)
 	revolver.insert_cartridge()
 	revolver.close_cylinder()
 	assert_eq(revolver.current_ammo, 5, "Should be full after first reload")
@@ -565,6 +681,8 @@ func test_multiple_reloads_preserve_ammo() -> void:
 	revolver.open_cylinder()
 	for i in range(5):
 		revolver.insert_cartridge()
+		if i < 4:
+			revolver.rotate_cylinder(1)
 	revolver.close_cylinder()
 	assert_eq(revolver.current_ammo, 5, "Should be full after second reload")
 	assert_eq(revolver.reserve_ammo, 7, "Reserve should be 7 (12 - 5)")
@@ -618,6 +736,9 @@ func test_callback_on_cartridge_insert() -> void:
 
 	revolver.current_ammo = 0
 	revolver.rounds_fired_since_last_eject = 5
+	# Issue #668: Set all chambers to empty to match fired state
+	for i in range(revolver.cylinder_capacity):
+		revolver.chamber_occupied[i] = false
 	revolver.open_cylinder()
 	revolver.insert_cartridge()
 
@@ -651,6 +772,9 @@ func test_can_rotate_cylinder_when_open() -> void:
 func test_can_rotate_cylinder_when_loading() -> void:
 	revolver.current_ammo = 0
 	revolver.rounds_fired_since_last_eject = 5
+	# Issue #668: Set all chambers to empty to match fired state
+	for i in range(revolver.cylinder_capacity):
+		revolver.chamber_occupied[i] = false
 	revolver.open_cylinder()
 	revolver.insert_cartridge()
 
@@ -774,6 +898,9 @@ func test_issue_659_single_cartridge_per_drag() -> void:
 	revolver.current_ammo = 0
 	revolver.rounds_fired_since_last_eject = 5
 	revolver.reserve_ammo = 10
+	# Issue #668: Set all chambers to empty to match fired state
+	for i in range(revolver.cylinder_capacity):
+		revolver.chamber_occupied[i] = false
 	revolver.open_cylinder()
 
 	var handler := MockDragGestureHandler.new(revolver)
@@ -809,6 +936,9 @@ func test_issue_659_rmb_release_does_not_unblock() -> void:
 	revolver.current_ammo = 0
 	revolver.rounds_fired_since_last_eject = 5
 	revolver.reserve_ammo = 10
+	# Issue #668: Set all chambers to empty to match fired state
+	for i in range(revolver.cylinder_capacity):
+		revolver.chamber_occupied[i] = false
 	revolver.open_cylinder()
 
 	var handler := MockDragGestureHandler.new(revolver)
@@ -837,6 +967,9 @@ func test_issue_659_rotation_unblocks_insertion() -> void:
 	revolver.current_ammo = 0
 	revolver.rounds_fired_since_last_eject = 5
 	revolver.reserve_ammo = 10
+	# Issue #668: Set all chambers to empty to match fired state
+	for i in range(revolver.cylinder_capacity):
+		revolver.chamber_occupied[i] = false
 	revolver.open_cylinder()
 
 	var handler := MockDragGestureHandler.new(revolver)
@@ -868,6 +1001,9 @@ func test_issue_659_five_drags_with_rotations_for_full_reload() -> void:
 	revolver.current_ammo = 0
 	revolver.rounds_fired_since_last_eject = 5
 	revolver.reserve_ammo = 10
+	# Issue #668: Set all chambers to empty to match fired state
+	for i in range(revolver.cylinder_capacity):
+		revolver.chamber_occupied[i] = false
 	revolver.open_cylinder()
 
 	var handler := MockDragGestureHandler.new(revolver)
@@ -950,3 +1086,181 @@ func test_issue_659_fire_tracks_rounds() -> void:
 	assert_false(revolver.fire(), "Should not fire when empty")
 	assert_eq(revolver.rounds_fired_since_last_eject, 5,
 		"Should not increment on failed fire")
+
+
+# ============================================================================
+# Issue #668 Bug Fix Tests: Per-chamber tracking prevents double-loading
+# ============================================================================
+
+
+func test_issue_668_cannot_insert_into_occupied_chamber() -> void:
+	## Issue #668: Inserting a cartridge, rotating forward, then rotating back
+	## to the same slot should NOT allow inserting another cartridge.
+	## This is the primary bug scenario described in the issue.
+
+	revolver.current_ammo = 0
+	revolver.rounds_fired_since_last_eject = 5
+	revolver.reserve_ammo = 10
+	# Set all chambers empty
+	for i in range(revolver.cylinder_capacity):
+		revolver.chamber_occupied[i] = false
+	revolver.open_cylinder()
+
+	# Insert cartridge into chamber 0
+	assert_true(revolver.insert_cartridge(), "Should insert into empty chamber 0")
+	assert_eq(revolver.current_ammo, 1, "Should have 1 round")
+
+	# Rotate forward (scroll up) to chamber 1
+	revolver.rotate_cylinder(1)
+	assert_eq(revolver.current_chamber_index, 1, "Should be at chamber 1")
+
+	# Rotate backward (scroll down) back to chamber 0
+	revolver.rotate_cylinder(-1)
+	assert_eq(revolver.current_chamber_index, 0, "Should be back at chamber 0")
+
+	# Try to insert into chamber 0 again — should FAIL (already occupied)
+	assert_true(revolver.cartridge_insertion_blocked,
+		"Insertion should be blocked for occupied chamber")
+	assert_false(revolver.can_insert_cartridge(),
+		"Issue #668: Should NOT be able to insert into occupied chamber")
+	assert_false(revolver.insert_cartridge(),
+		"Issue #668: Should NOT insert into occupied chamber 0")
+	assert_eq(revolver.current_ammo, 1,
+		"Issue #668: Should still have exactly 1 round (no double-loading)")
+
+
+func test_issue_668_fire_one_then_reload_requires_rotation() -> void:
+	## Issue #668: If one shot was fired from a full cylinder, the player
+	## must rotate to the empty chamber slot to reload.
+
+	revolver.current_ammo = 5
+	revolver.reserve_ammo = 10
+
+	# Fire one shot (chamber 0 becomes empty, current_chamber_index advances to 1)
+	assert_true(revolver.fire(), "Should fire")
+	assert_eq(revolver.current_ammo, 4, "Should have 4 rounds")
+	assert_false(revolver.chamber_occupied[0], "Chamber 0 should be empty after firing")
+	assert_eq(revolver.current_chamber_index, 1, "Chamber index should advance to 1")
+
+	# Open cylinder — current chamber (1) is occupied, insertion blocked
+	revolver.open_cylinder()
+	assert_true(revolver.cartridge_insertion_blocked,
+		"Insertion blocked because current chamber (1) is occupied")
+	assert_false(revolver.can_insert_cartridge(),
+		"Cannot insert into occupied chamber 1")
+
+	# Rotate backward to the empty chamber (chamber 0)
+	revolver.rotate_cylinder(-1)
+	assert_eq(revolver.current_chamber_index, 0, "Should be at chamber 0")
+	assert_false(revolver.cartridge_insertion_blocked,
+		"Insertion should be unblocked at empty chamber 0")
+
+	# Now insert the cartridge into the empty chamber
+	assert_true(revolver.insert_cartridge(), "Should insert into empty chamber 0")
+	assert_eq(revolver.current_ammo, 5, "Should have full cylinder again")
+
+	revolver.close_cylinder()
+	assert_eq(revolver.current_ammo, 5, "Full cylinder after closing")
+
+
+func test_issue_668_chamber_tracking_through_full_cycle() -> void:
+	## Issue #668: Verify chamber occupancy tracking through fire → reload → fire cycle.
+
+	revolver.current_ammo = 5
+	revolver.reserve_ammo = 10
+
+	# Verify initial state: all chambers occupied
+	for i in range(5):
+		assert_true(revolver.chamber_occupied[i],
+			"Chamber %d should be occupied initially" % i)
+
+	# Fire 3 rounds: chambers 0, 1, 2 become empty
+	for i in range(3):
+		revolver.fire()
+
+	assert_false(revolver.chamber_occupied[0], "Chamber 0 should be empty")
+	assert_false(revolver.chamber_occupied[1], "Chamber 1 should be empty")
+	assert_false(revolver.chamber_occupied[2], "Chamber 2 should be empty")
+	assert_true(revolver.chamber_occupied[3], "Chamber 3 should still be occupied")
+	assert_true(revolver.chamber_occupied[4], "Chamber 4 should still be occupied")
+	assert_eq(revolver.current_chamber_index, 3, "Should be at chamber 3")
+
+	# Open cylinder and reload the empty chambers
+	revolver.open_cylinder()
+
+	# Navigate to empty chambers and insert
+	revolver.rotate_cylinder(-1)  # To chamber 2 (empty)
+	assert_true(revolver.insert_cartridge(), "Should insert into chamber 2")
+	revolver.rotate_cylinder(-1)  # To chamber 1 (empty)
+	assert_true(revolver.insert_cartridge(), "Should insert into chamber 1")
+	revolver.rotate_cylinder(-1)  # To chamber 0 (empty)
+	assert_true(revolver.insert_cartridge(), "Should insert into chamber 0")
+
+	# Try to rotate to an occupied chamber and insert — should fail
+	revolver.rotate_cylinder(-1)  # To chamber 4 (occupied)
+	assert_false(revolver.can_insert_cartridge(),
+		"Should not insert into occupied chamber 4")
+
+	revolver.close_cylinder()
+	assert_eq(revolver.current_ammo, 5, "Should have full cylinder")
+
+	# Verify all chambers are occupied
+	for i in range(5):
+		assert_true(revolver.chamber_occupied[i],
+			"Chamber %d should be occupied after reload" % i)
+
+
+func test_issue_668_rotation_wraps_around() -> void:
+	## Issue #668: Cylinder rotation wraps around (chamber 4 → 0 and 0 → 4).
+
+	revolver.current_ammo = 5
+	revolver.open_cylinder()
+
+	# Start at chamber 0, rotate forward 5 times (full revolution)
+	revolver.current_chamber_index = 0
+	for i in range(5):
+		revolver.rotate_cylinder(1)
+	assert_eq(revolver.current_chamber_index, 0,
+		"Should wrap around back to chamber 0 after 5 forward rotations")
+
+	# Rotate backward from chamber 0 should go to chamber 4
+	revolver.rotate_cylinder(-1)
+	assert_eq(revolver.current_chamber_index, 4,
+		"Should wrap to chamber 4 when rotating backward from chamber 0")
+
+
+func test_issue_668_open_cylinder_with_occupied_current_chamber_blocks() -> void:
+	## Issue #668: When opening cylinder, if current chamber is occupied,
+	## insertion should be immediately blocked.
+
+	revolver.current_ammo = 5  # Full cylinder
+	revolver.rounds_fired_since_last_eject = 0
+
+	revolver.open_cylinder()
+
+	# Current chamber (0) is occupied, so insertion should be blocked
+	assert_true(revolver.cartridge_insertion_blocked,
+		"Should block insertion when current chamber is occupied on open")
+	assert_false(revolver.can_insert_cartridge(),
+		"Cannot insert when all chambers are occupied")
+
+
+func test_issue_668_open_cylinder_with_empty_current_chamber_allows() -> void:
+	## Issue #668: When opening cylinder, if current chamber is empty,
+	## insertion should be allowed.
+
+	revolver.current_ammo = 5
+	revolver.reserve_ammo = 10
+
+	# Fire one round (chamber 0 is now empty, index at 1)
+	revolver.fire()
+
+	# Manually set index to 0 (the empty chamber) to simulate this scenario
+	revolver.current_chamber_index = 0
+	revolver.open_cylinder()
+
+	# Current chamber (0) is empty, so insertion should NOT be blocked
+	assert_false(revolver.cartridge_insertion_blocked,
+		"Should allow insertion when current chamber is empty on open")
+	assert_true(revolver.can_insert_cartridge(),
+		"Can insert when current chamber is empty")

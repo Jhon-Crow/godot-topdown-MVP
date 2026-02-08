@@ -87,6 +87,19 @@ public partial class Revolver : BaseWeapon
     private bool _cartridgeInsertionBlocked = false;
 
     /// <summary>
+    /// Per-chamber occupancy tracking (Issue #668).
+    /// Each element indicates whether the corresponding chamber has a live round.
+    /// Initialized when the cylinder is opened, used to prevent inserting into occupied chambers.
+    /// </summary>
+    private bool[] _chamberOccupied = System.Array.Empty<bool>();
+
+    /// <summary>
+    /// Current chamber index the cylinder is pointing at (Issue #668).
+    /// Ranges from 0 to CylinderCapacity-1. Updated by RotateCylinder() and Fire().
+    /// </summary>
+    private int _currentChamberIndex = 0;
+
+    /// <summary>
     /// Number of rounds actually fired since the last casing ejection (Issue #659).
     /// Incremented each time Fire() or FireChamberBullet() successfully fires.
     /// Used in OpenCylinder() to eject only the correct number of spent casings,
@@ -240,6 +253,16 @@ public partial class Revolver : BaseWeapon
         }
 
         int cylinderCapacity = WeaponData?.MagazineSize ?? 5;
+
+        // Issue #668: Initialize per-chamber tracking array.
+        // All chambers start as occupied (full cylinder at game start).
+        _chamberOccupied = new bool[cylinderCapacity];
+        for (int i = 0; i < cylinderCapacity; i++)
+        {
+            _chamberOccupied[i] = true;
+        }
+        _currentChamberIndex = 0;
+
         GD.Print($"[Revolver] RSh-12 initialized - heavy revolver ready, cylinder capacity={cylinderCapacity}");
     }
 
@@ -632,6 +655,13 @@ public partial class Revolver : BaseWeapon
             // No casing ejection on fire - revolver keeps spent casings in the cylinder
             // until the player opens it (casings eject in OpenCylinder → SpawnEjectedCasings)
             _roundsFiredSinceLastEject++;
+            // Issue #668: Mark the current chamber as empty after firing.
+            if (_chamberOccupied.Length > 0)
+            {
+                _chamberOccupied[_currentChamberIndex] = false;
+                // Advance chamber index (cylinder rotates after each shot)
+                _currentChamberIndex = (_currentChamberIndex + 1) % _chamberOccupied.Length;
+            }
             // Trigger heavy screen shake (close to sniper rifle)
             TriggerScreenShake(spreadDirection);
         }
@@ -776,6 +806,12 @@ public partial class Revolver : BaseWeapon
             // Issue #659: Track fired rounds for accurate casing ejection count.
             // No casing ejection - spent casings stay in cylinder
             _roundsFiredSinceLastEject++;
+            // Issue #668: Mark the current chamber as empty after firing.
+            if (_chamberOccupied.Length > 0)
+            {
+                _chamberOccupied[_currentChamberIndex] = false;
+                _currentChamberIndex = (_currentChamberIndex + 1) % _chamberOccupied.Length;
+            }
             TriggerScreenShake(spreadDirection);
         }
 
@@ -828,12 +864,23 @@ public partial class Revolver : BaseWeapon
 
     /// <summary>
     /// Whether a cartridge can be inserted into the cylinder.
-    /// Requires cylinder to be open and not yet full, with spare ammo available.
+    /// Requires cylinder to be open, current chamber to be empty (Issue #668),
+    /// not yet full, with spare ammo available.
     /// </summary>
     public bool CanInsertCartridge => (ReloadState == RevolverReloadState.CylinderOpen
                                       || ReloadState == RevolverReloadState.Loading)
                                      && CurrentAmmo < CylinderCapacity
-                                     && MagazineInventory.HasSpareAmmo;
+                                     && MagazineInventory.HasSpareAmmo
+                                     && IsCurrentChamberEmpty;
+
+    /// <summary>
+    /// Whether the current chamber is empty (Issue #668).
+    /// Used to prevent inserting a cartridge into an already-occupied chamber.
+    /// </summary>
+    private bool IsCurrentChamberEmpty =>
+        _chamberOccupied.Length == 0
+        || _currentChamberIndex >= _chamberOccupied.Length
+        || !_chamberOccupied[_currentChamberIndex];
 
     /// <summary>
     /// Whether the cylinder can be closed.
@@ -865,8 +912,24 @@ public partial class Revolver : BaseWeapon
         // CurrentAmmo is NOT reset to 0 - the player only needs to reload empty chambers
         CartridgesLoadedThisReload = 0;
 
-        // Reset insertion block for fresh reload sequence
-        _cartridgeInsertionBlocked = false;
+        // Issue #668: Ensure chamber array is properly sized and reflects current state.
+        // The _chamberOccupied array is maintained by Fire()/ExecuteShot() during gameplay,
+        // so it already has the correct per-chamber state at this point.
+        if (_chamberOccupied.Length != cylinderCapacity)
+        {
+            _chamberOccupied = new bool[cylinderCapacity];
+            // Fallback: mark first CurrentAmmo chambers as occupied
+            for (int i = 0; i < cylinderCapacity; i++)
+            {
+                _chamberOccupied[i] = i < CurrentAmmo;
+            }
+        }
+
+        // Issue #668: Set insertion block based on whether current chamber is occupied.
+        // If the current chamber already has a live round, block insertion immediately.
+        _cartridgeInsertionBlocked = _chamberOccupied.Length > 0
+                                     && _currentChamberIndex < _chamberOccupied.Length
+                                     && _chamberOccupied[_currentChamberIndex];
 
         // Issue #649: Reset manual cock state when cylinder is opened
         _isManuallyHammerCocked = false;
@@ -942,6 +1005,12 @@ public partial class Revolver : BaseWeapon
         CurrentAmmo++;
         CartridgesLoadedThisReload++;
 
+        // Issue #668: Mark the current chamber as occupied
+        if (_chamberOccupied.Length > 0 && _currentChamberIndex < _chamberOccupied.Length)
+        {
+            _chamberOccupied[_currentChamberIndex] = true;
+        }
+
         // Update state to Loading (at least one cartridge inserted)
         ReloadState = RevolverReloadState.Loading;
 
@@ -1000,14 +1069,20 @@ public partial class Revolver : BaseWeapon
             return false;
         }
 
-        // Issue #659: Rotating the cylinder moves to the next chamber,
-        // allowing a new cartridge to be inserted.
-        _cartridgeInsertionBlocked = false;
+        // Issue #668: Advance the chamber index in the rotation direction.
+        int capacity = _chamberOccupied.Length > 0 ? _chamberOccupied.Length : CylinderCapacity;
+        _currentChamberIndex = ((_currentChamberIndex + direction) % capacity + capacity) % capacity;
+
+        // Issue #668: Only unblock insertion if the destination chamber is empty.
+        // Issue #659: Rotating moves to the next chamber for insertion.
+        _cartridgeInsertionBlocked = _chamberOccupied.Length > 0
+                                     && _currentChamberIndex < _chamberOccupied.Length
+                                     && _chamberOccupied[_currentChamberIndex];
 
         // Play cylinder rotation click sound
         PlayCylinderRotateSound();
 
-        GD.Print($"[Revolver] Cylinder rotated {(direction > 0 ? "clockwise" : "counter-clockwise")}");
+        GD.Print($"[Revolver] Cylinder rotated {(direction > 0 ? "clockwise" : "counter-clockwise")} to chamber {_currentChamberIndex} (occupied: {(_chamberOccupied.Length > 0 && _currentChamberIndex < _chamberOccupied.Length ? _chamberOccupied[_currentChamberIndex] : false)})");
 
         return true;
     }
