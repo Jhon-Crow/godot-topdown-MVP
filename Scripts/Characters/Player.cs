@@ -2604,13 +2604,13 @@ public partial class Player : BaseCharacter
 
         // Calculate throw speed needed to reach target (using physics)
         // Distance = v^2 / (2 * friction) → v = sqrt(2 * friction * distance)
-        // FIX for issue #428: Apply 16% compensation factor to account for:
-        // 1. Discrete time integration error from Godot's 60 FPS Euler integration (~0.8%)
-        // 2. Additional physics damping effects in Godot's RigidBody2D (~12.5%)
-        // Empirically tested: grenades travel ~86% of calculated distance without compensation.
-        // Factor of 1.16 (≈ 1/0.86) brings actual landing position to match target cursor position.
-        const float physicsCompensationFactor = 1.16f;
-        float requiredSpeed = Mathf.Sqrt(2.0f * groundFriction * throwDistance * physicsCompensationFactor);
+        // FIX for issue #615: Removed the 1.16x compensation factor.
+        // Root causes: (1) GDScript + C# were BOTH applying friction (double friction), and
+        // (2) Godot's default linear_damp=0.1 in COMBINE mode added hidden damping.
+        // Fix: GDScript friction removed entirely (C# GrenadeTimer is sole friction source),
+        // and linear_damp_mode set to REPLACE so linear_damp=0 means zero damping.
+        // v = sqrt(2*F*d) now works correctly without any compensation factor.
+        float requiredSpeed = Mathf.Sqrt(2.0f * groundFriction * throwDistance);
 
         // Clamp to grenade's max throw speed
         float throwSpeed = Mathf.Min(requiredSpeed, maxThrowSpeed);
@@ -4001,6 +4001,9 @@ public partial class Player : BaseCharacter
             if (throwDistance < 10.0f) throwDistance = 10.0f;
 
             // Calculate throw speed needed to reach target
+            // FIX for issue #615: No compensation factor needed. Root causes were double friction
+            // (GDScript + C# both applying) and Godot default linear_damp=0.1. GDScript friction
+            // was removed entirely; C# GrenadeTimer is sole friction source. v = sqrt(2*F*d) works.
             float requiredSpeed = Mathf.Sqrt(2.0f * groundFriction * throwDistance);
             throwSpeed = Mathf.Min(requiredSpeed, maxThrowSpeed);
 
@@ -4047,6 +4050,8 @@ public partial class Player : BaseCharacter
                 throwSpeed = MinThrowSpeed * 0.5f;
             }
 
+            // FIX for issue #615: No compensation factor needed. Double friction was the root
+            // cause. With single C# friction, the formula works correctly.
             landingDistance = (throwSpeed * throwSpeed) / (2.0f * groundFriction);
         }
 
