@@ -122,6 +122,11 @@ public partial class SilencedPistol : BaseWeapon
     /// </summary>
     private Line2D? _laserSight;
 
+    /// <summary>
+    /// Glow effect for the laser sight (aura + endpoint glow).
+    /// </summary>
+    private LaserGlowEffect? _laserGlow;
+
     public override void _Ready()
     {
         base._Ready();
@@ -161,6 +166,10 @@ public partial class SilencedPistol : BaseWeapon
                 _laserSight.AddPoint(Vector2.Zero);
                 _laserSight.AddPoint(Vector2.Right * LaserSightLength);
             }
+
+            // Create glow effect for existing laser sight
+            _laserGlow = new LaserGlowEffect();
+            _laserGlow.Create(this, LaserSightColor);
         }
 
         UpdateLaserSightVisibility();
@@ -288,6 +297,10 @@ public partial class SilencedPistol : BaseWeapon
         _laserSight.AddPoint(Vector2.Right * LaserSightLength);
 
         AddChild(_laserSight);
+
+        // Create glow effect (aura + endpoint glow)
+        _laserGlow = new LaserGlowEffect();
+        _laserGlow.Create(this, LaserSightColor);
     }
 
     /// <summary>
@@ -342,6 +355,9 @@ public partial class SilencedPistol : BaseWeapon
         // Update the laser sight line points (in local coordinates)
         _laserSight.SetPointPosition(0, Vector2.Zero);
         _laserSight.SetPointPosition(1, endPoint);
+
+        // Sync glow effect with laser
+        _laserGlow?.Update(Vector2.Zero, endPoint);
     }
 
     /// <summary>
@@ -353,6 +369,8 @@ public partial class SilencedPistol : BaseWeapon
         {
             _laserSight.Visible = LaserSightEnabled;
         }
+
+        _laserGlow?.SetVisible(LaserSightEnabled);
     }
 
     /// <summary>
