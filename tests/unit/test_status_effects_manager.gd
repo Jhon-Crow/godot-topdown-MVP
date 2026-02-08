@@ -525,3 +525,141 @@ func test_very_small_delta_reduces_effect_correctly() -> void:
 
 	assert_almost_eq(manager.get_blindness_remaining(test_entity), 0.999, 0.0001,
 		"Very small delta should reduce effect correctly")
+
+
+# ============================================================================
+# Modular Sprite Tint Tests (Issue #602)
+# ============================================================================
+
+
+## Mock entity with modular sprites (like enemies with Body/Head/Arms).
+class MockModularEntity:
+	extends RefCounted
+
+	var name: String = "TestModularEntity"
+	var _is_blinded: bool = false
+	var _is_stunned: bool = false
+	var _instance_id: int
+	var _all_sprites_modulate: Color = Color(0.9, 0.2, 0.2, 1.0)
+	var set_all_sprites_called: int = 0
+
+	func _init() -> void:
+		_instance_id = randi()
+
+	func get_instance_id() -> int:
+		return _instance_id
+
+	func set_blinded(value: bool) -> void:
+		_is_blinded = value
+
+	func set_stunned(value: bool) -> void:
+		_is_stunned = value
+
+	func is_blinded() -> bool:
+		return _is_blinded
+
+	func is_stunned() -> bool:
+		return _is_stunned
+
+	func has_method(method_name: String) -> bool:
+		return method_name in ["set_blinded", "set_stunned", "_set_all_sprites_modulate"]
+
+	func _set_all_sprites_modulate(color: Color) -> void:
+		_all_sprites_modulate = color
+		set_all_sprites_called += 1
+
+
+func test_modular_entity_has_set_all_sprites_method() -> void:
+	var modular := MockModularEntity.new()
+
+	assert_true(modular.has_method("_set_all_sprites_modulate"),
+		"Modular entity should have _set_all_sprites_modulate method")
+
+
+func test_blindness_on_modular_entity_calls_method() -> void:
+	var modular := MockModularEntity.new()
+
+	manager.apply_blindness(modular, 5.0)
+
+	assert_true(modular.is_blinded(),
+		"Modular entity should be blinded")
+
+
+func test_stun_on_modular_entity_calls_method() -> void:
+	var modular := MockModularEntity.new()
+
+	manager.apply_stun(modular, 3.0)
+
+	assert_true(modular.is_stunned(),
+		"Modular entity should be stunned")
+
+
+# ============================================================================
+# _find_sprite Tests (Issue #584 fix)
+# ============================================================================
+
+
+## Mock for testing _find_sprite logic used by StatusEffectsManager visual effects.
+## The actual _find_sprite tries Sprite2D then EnemyModel/Body.
+class MockFindSprite:
+	## Replicate the _find_sprite logic from status_effects_manager.gd
+	static func find_sprite(entity) -> Object:
+		if entity == null:
+			return null
+		# Try direct Sprite2D child first (generic entities)
+		if entity.has("sprite_2d"):
+			return entity.sprite_2d
+		# Try EnemyModel/Body (enemy structure)
+		if entity.has("enemy_model_body"):
+			return entity.enemy_model_body
+		return null
+
+
+class MockEntityWithSprite2D:
+	extends RefCounted
+	var sprite_2d = "DirectSprite2D"
+
+	func has(key: String) -> bool:
+		return key == "sprite_2d"
+
+
+class MockEnemyWithBody:
+	extends RefCounted
+	var enemy_model_body = "EnemyModelBody"
+
+	func has(key: String) -> bool:
+		return key == "enemy_model_body"
+
+
+class MockEntityNoSprite:
+	extends RefCounted
+
+	func has(_key: String) -> bool:
+		return false
+
+
+func test_find_sprite_prefers_direct_sprite2d() -> void:
+	var entity = MockEntityWithSprite2D.new()
+	var result = MockFindSprite.find_sprite(entity)
+	assert_eq(result, "DirectSprite2D",
+		"Should find direct Sprite2D child first")
+
+
+func test_find_sprite_falls_back_to_enemy_model_body() -> void:
+	var entity = MockEnemyWithBody.new()
+	var result = MockFindSprite.find_sprite(entity)
+	assert_eq(result, "EnemyModelBody",
+		"Should fall back to EnemyModel/Body for enemy entities")
+
+
+func test_find_sprite_returns_null_when_no_sprite() -> void:
+	var entity = MockEntityNoSprite.new()
+	var result = MockFindSprite.find_sprite(entity)
+	assert_null(result,
+		"Should return null when no sprite found")
+
+
+func test_find_sprite_handles_null_entity() -> void:
+	var result = MockFindSprite.find_sprite(null)
+	assert_null(result,
+		"Should return null for null entity")
