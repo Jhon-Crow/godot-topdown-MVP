@@ -11,7 +11,9 @@ When the player stands flush against a wall, the flashlight beam passes through 
 3. **User feedback (comment 1)** — "сейчас фонарь не проходит сквозь стену, но светит внутрь стены если игрок в упор" — The light no longer passes through the wall, but it still illuminates the wall body itself. The nearest face of the wall should stop the light.
 4. **Second fix attempt** — Changed approach to move `PointLight2D` all the way back to the player center (instead of 2px from wall), so the wall's `LightOccluder2D` is fully between the light source and the wall geometry.
 5. **User feedback (comment 2)** — Two remaining issues: (1) "светит в стену" — light still shines into the wall, (2) "остаточное свечение - за стеной" — residual glow visible behind the wall.
-6. **Third fix (current)** — Three-pronged approach addressing both the main beam and scatter light.
+6. **Third fix** — Three-pronged approach addressing both the main beam and scatter light: dynamic `texture_scale` reduction, sharp shadow filter near walls, and scatter light suppression.
+7. **User feedback (comment 3)** — "визуально всё правильно" (visually everything is correct), BUT two gameplay logic issues: (1) "враги ослепляются если игрок светит в них сквозь стену в упор" — enemies get blinded when the player shines at them through a wall at close range, (2) "враги видят фонарь если игрок светит сквозь стену в упор, хотя визуально свет не проходит" — enemies detect the flashlight through a wall at close range, even though visually the light doesn't pass through.
+8. **Fourth fix (current)** — When wall-clamped, suppress blindness checks and enemy flashlight detection logic.
 
 ## Root Cause Analysis
 
@@ -64,6 +66,16 @@ Player (CharacterBody2D, collision_radius=16px)
 
 **Fix 2 (move to player center)**: While the light source was now 16px from the wall (player collision radius), the cone texture's visual reach (6144px) meant the beam still extended far beyond the wall. The PCF5 filter with `shadow_filter_smooth = 6.0` created enough penumbra to illuminate the wall body. Additionally, the scatter light was completely unhandled.
 
+### Root Cause 4: Blindness Check Uses Barrel Position Past Wall
+
+The `_check_enemies_in_beam()` function in `flashlight_effect.gd` uses `global_position` (the FlashlightEffect node's position at the weapon barrel) as the beam origin for the line-of-sight raycast to enemies. When the player is flush against a wall, the barrel position can be at or past the wall surface. The LOS raycast from the barrel to an enemy on the other side doesn't detect the intervening wall because it originates from beyond the wall — so enemies get blinded through walls.
+
+### Root Cause 5: Enemy Flashlight Detection Uses Barrel Position Past Wall
+
+Similarly, the `FlashlightDetectionComponent.check_flashlight()` obtains `flashlight_origin` from `player.get_flashlight_origin()`, which returns `_flashlight_node.global_position` — the barrel position. The detection algorithm samples points along the beam from this origin and checks if walls block the beam. When the barrel is past the wall, sample points beyond the wall appear reachable because the origin is already on the other side.
+
+The `is_position_lit()` method (used for passage avoidance by enemy AI) has the same issue.
+
 ## Solution (Fix 3)
 
 Three measures applied simultaneously:
@@ -97,12 +109,39 @@ Two scatter light fixes:
 - **Wall-clamped state**: When the main beam is wall-clamped (player flush against wall), the scatter light is hidden entirely. There's no meaningful surface for the beam to scatter from.
 - **Normal wall hit**: When the beam hits a wall at normal range, the scatter light is pulled back 8px from the wall surface along the beam direction. This prevents the `PointLight2D` from sitting exactly on the `LightOccluder2D` boundary where Godot's shadow system can't reliably block it.
 
+## Solution (Fix 4) — Gameplay Logic Through-Wall Prevention
+
+Visual fix 3 solved the rendering issue, but the game logic (blindness, enemy AI detection) still used the barrel position as beam origin — which is past the wall when the player stands flush. Fix 4 addresses this by suppressing gameplay effects when `_is_wall_clamped` is true.
+
+### 4. Suppress Blindness When Wall-Clamped
+
+In `flashlight_effect.gd`, the `_physics_process()` now skips `_check_enemies_in_beam()` entirely when `_is_wall_clamped` is true:
+
+```gdscript
+if not _is_wall_clamped:
+    _check_enemies_in_beam()
+```
+
+A new public method `is_wall_clamped()` exposes the wall-clamped state.
+
+### 5. Suppress Enemy Flashlight Detection When Wall-Clamped
+
+A new `is_flashlight_wall_clamped()` method on the Player class delegates to the FlashlightEffect's `is_wall_clamped()`. The `FlashlightDetectionComponent` checks this early in both `check_flashlight()` and `is_position_lit()`:
+
+```gdscript
+if player.has_method("is_flashlight_wall_clamped") and player.is_flashlight_wall_clamped():
+    return false
+```
+
+This prevents enemies from detecting or tracking the beam through walls.
+
 ## Files in This Case Study
 
 | File | Description |
 |------|-------------|
 | `README.md` | This case study document |
-| `game_log_20260208_165935.txt` | Game log from user's testing session (Godot 4.3-stable, Windows) |
+| `game_log_20260208_165935.txt` | Game log from user's testing session — light shining into wall (Godot 4.3-stable, Windows) |
+| `game_log_20260208_172552.txt` | Game log from user's testing session — enemies blinded/detecting through wall |
 | `solution-draft-log-1.txt` | First AI solution draft execution log |
 | `solution-draft-log-2.txt` | Second AI solution draft execution log (with player center fix) |
 
@@ -120,3 +159,5 @@ Two scatter light fixes:
 2. **`PointLight2D` on a `LightOccluder2D` boundary is unreliable** — Godot's 2D shadow system has no inside/outside concept. Always offset lights from occluder boundaries.
 3. **Multi-light systems need coordinated wall handling** — when the main beam is wall-clamped, secondary lights (scatter) must also be suppressed or adjusted.
 4. **PCF shadow filtering trades edge quality for bleed risk** — use `SHADOW_FILTER_NONE` near walls for crisp edges, `SHADOW_FILTER_PCF5` in open areas for aesthetics.
+5. **Visual fixes and gameplay logic fixes are separate concerns** — fixing the visual rendering (light not passing through walls) is not the same as fixing the game logic (blindness and AI detection). Both must be addressed when an effect has gameplay consequences.
+6. **Barrel-offset origins are unreliable near walls** — when a game object is attached at an offset (barrel position), its global position can be past a wall the player is touching. All raycasts and checks that use this origin must account for the wall-clamped state.

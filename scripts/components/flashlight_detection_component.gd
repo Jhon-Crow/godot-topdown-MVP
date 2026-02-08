@@ -97,6 +97,11 @@ func check_flashlight(enemy_pos: Vector2, enemy_facing_angle: float, enemy_fov_d
 	if not player.has_method("is_flashlight_on") or not player.is_flashlight_on():
 		return false
 
+	# Issue #640: When the flashlight is wall-clamped (player flush against wall),
+	# the beam is physically blocked — enemies should not detect it through the wall.
+	if player.has_method("is_flashlight_wall_clamped") and player.is_flashlight_wall_clamped():
+		return false
+
 	# Get flashlight beam properties from player
 	var flashlight_dir: Vector2 = Vector2.ZERO
 	if player.has_method("get_flashlight_direction"):
@@ -310,6 +315,10 @@ func is_position_lit(position: Vector2, player: Node2D, raycast: RayCast2D = nul
 		return false
 
 	if not player.has_method("is_flashlight_on") or not player.is_flashlight_on():
+		return false
+
+	# Issue #640: Wall-clamped beam cannot illuminate positions through walls.
+	if player.has_method("is_flashlight_wall_clamped") and player.is_flashlight_wall_clamped():
 		return false
 
 	var flashlight_dir: Vector2 = Vector2.ZERO

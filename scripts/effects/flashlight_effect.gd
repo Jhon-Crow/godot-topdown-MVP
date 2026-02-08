@@ -187,6 +187,13 @@ func is_on() -> bool:
 	return _is_on
 
 
+## Check if the flashlight beam is currently wall-clamped (Issue #640).
+## When true, the beam is blocked by a wall between the player and the barrel.
+## Used by enemy AI to avoid detecting/being blinded by a beam that cannot reach them.
+func is_wall_clamped() -> bool:
+	return _is_wall_clamped
+
+
 ## Set the light visibility and energy.
 func _set_light_visible(visible_state: bool) -> void:
 	if _point_light:
@@ -276,7 +283,11 @@ func _physics_process(_delta: float) -> void:
 	if not _is_on:
 		return
 	_update_scatter_light_position()
-	_check_enemies_in_beam()
+	# Issue #640: When wall-clamped, the beam is blocked by a wall — skip blindness checks.
+	# The flashlight barrel is past the wall, so the LOS raycast from barrel to enemy
+	# would not detect the wall, causing enemies to be blinded through walls.
+	if not _is_wall_clamped:
+		_check_enemies_in_beam()
 
 
 ## Update the scatter light position to the beam's impact point (Issue #644).

@@ -158,6 +158,10 @@ class MockFlashlightEffect:
 	func is_on() -> bool:
 		return _is_on
 
+	## Check if the flashlight beam is wall-clamped (Issue #640).
+	func is_wall_clamped() -> bool:
+		return _is_wall_clamped
+
 	## Check if an enemy is within the flashlight beam cone.
 	func _is_enemy_in_beam(enemy_position: Vector2) -> bool:
 		var beam_origin := global_position
@@ -180,6 +184,10 @@ class MockFlashlightEffect:
 	## Check all enemies and blind those in the beam.
 	func check_enemies(enemies: Array) -> void:
 		if not _is_on:
+			return
+
+		# Issue #640: When wall-clamped, the beam is blocked — skip blindness checks.
+		if _is_wall_clamped:
 			return
 
 		for enemy_data in enemies:
@@ -1019,6 +1027,62 @@ func test_scatter_light_hidden_when_wall_clamped() -> void:
 	flashlight.update_scatter_light_position()
 	assert_false(flashlight.scatter_light_visible,
 		"Scatter light should be hidden when main beam is wall-clamped")
+
+
+func test_no_blinding_when_wall_clamped() -> void:
+	# Issue #640: When wall-clamped, enemies should not be blinded through walls.
+	flashlight.turn_on()
+	flashlight.global_rotation = 0.0
+	flashlight.set_mock_time_msec(0)
+
+	# Simulate wall clamping (player flush against wall)
+	flashlight.set_mock_player_center(Vector2(0, 0))
+	flashlight.global_position = Vector2(20, 0)
+	flashlight.set_mock_wall_hit(Vector2(18, 0))
+	flashlight.clamp_light_to_walls()
+	assert_true(flashlight._is_wall_clamped)
+
+	# Enemy is in front of the flashlight (would be in beam if no wall)
+	var enemies := [
+		{"id": 1, "position": Vector2(300, 0)},
+	]
+
+	flashlight.check_enemies(enemies)
+
+	assert_eq(flashlight.blindness_applied.size(), 0,
+		"Enemies should NOT be blinded when flashlight is wall-clamped (beam blocked by wall)")
+
+
+func test_blinding_resumes_after_wall_clamp_clears() -> void:
+	# Issue #640: After moving away from wall, blinding should work again.
+	flashlight.turn_on()
+	flashlight.global_rotation = 0.0
+	flashlight.set_mock_time_msec(0)
+
+	# First: wall-clamp
+	flashlight.set_mock_player_center(Vector2(0, 0))
+	flashlight.global_position = Vector2(20, 0)
+	flashlight.set_mock_wall_hit(Vector2(18, 0))
+	flashlight.clamp_light_to_walls()
+	assert_true(flashlight._is_wall_clamped)
+
+	var enemies := [
+		{"id": 1, "position": Vector2(300, 0)},
+	]
+
+	# No blinding when wall-clamped
+	flashlight.check_enemies(enemies)
+	assert_eq(flashlight.blindness_applied.size(), 0)
+
+	# Then: move away from wall
+	flashlight.set_mock_wall_hit(null)
+	flashlight.clamp_light_to_walls()
+	assert_false(flashlight._is_wall_clamped)
+
+	# Blinding should work again
+	flashlight.check_enemies(enemies)
+	assert_eq(flashlight.blindness_applied.size(), 1,
+		"Enemy should be blinded after wall clamp clears")
 
 
 func test_scatter_light_restored_after_wall_clamp_clears() -> void:
