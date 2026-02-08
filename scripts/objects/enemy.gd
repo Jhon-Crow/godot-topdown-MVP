@@ -281,6 +281,10 @@ var _search_stuck_timer: float = 0.0  ## Stuck timer (Issue #354: Stuck detectio
 var _search_last_progress_position: Vector2 = Vector2.ZERO  ## Last progress pos
 const SEARCH_STUCK_MAX_TIME: float = 2.0  ## Max stuck time
 const SEARCH_PROGRESS_THRESHOLD: float = 10.0  ## Min progress distance
+var _group_search_coordinator: GroupSearchCoordinator = null  ## [Issue #650] Group search zone coordinator
+var _scan_targets: Array[Dictionary] = []  ## [Issue #650] Realistic scan targets [{angle, pause}]
+var _scan_target_index: int = 0  ## [Issue #650] Current scan target index
+var _scan_pause_timer: float = 0.0  ## [Issue #650] Pause timer between scan looks
 var _has_left_idle: bool = false  ## Issue #330: Never returns to IDLE
 const CLOSE_COMBAT_DISTANCE: float = 400.0  ## Close combat threshold
 var _goap_world_state: Dictionary = {}  ## GOAP world state
@@ -924,8 +928,8 @@ func _update_goap_state() -> void:
 	# Grenade avoidance state (Issue #407)
 	_goap_world_state["in_grenade_danger_zone"] = _grenade_avoidance.in_danger_zone if _grenade_avoidance else false
 
-	# Ally death observation state (Issue #409)
-	_goap_world_state["witnessed_ally_death"] = _witnessed_ally_death
+	_goap_world_state["witnessed_ally_death"] = _witnessed_ally_death  # Issue #409
+	_goap_world_state["is_searching"] = _current_state == AIState.SEARCHING  # Issue #650
 	if _prediction:  # [#298]
 		_goap_world_state["has_prediction"] = _prediction.has_predictions; _goap_world_state["prediction_confidence"] = _prediction.get_prediction_confidence()
 
@@ -948,8 +952,8 @@ func _update_enemy_model_rotation() -> void:
 		has_target = true
 		rotation_reason = "P1:visible"
 	# Priority 2: During active combat states, maintain focus on player even without visibility (#386, #397)
-	# Includes SEARCHING and ASSAULT - enemies should always face player during these states
-	elif _current_state in [AIState.COMBAT, AIState.PURSUING, AIState.FLANKING, AIState.SEARCHING, AIState.ASSAULT] and _player != null:
+	# Issue #650: Removed SEARCHING - enemies now scan realistically instead of facing player
+	elif _current_state in [AIState.COMBAT, AIState.PURSUING, AIState.FLANKING, AIState.ASSAULT] and _player != null:
 		target_angle = (_player.global_position - global_position).normalized().angle()
 		has_target = true
 		rotation_reason = "P2:combat_state"
@@ -2163,21 +2167,22 @@ func _process_assault_state(_delta: float) -> void:
 	_assault_ready = false
 	_transition_to_combat()
 
-## Generate search waypoints in expanding square spiral (Issue #322). Skips visited zones.
+## Generate search waypoints - uses sector division when coordinated (Issue #322, #650).
 func _generate_search_waypoints() -> void:
-	_search_waypoints.clear()
-	_search_current_waypoint_index = 0
-	_search_direction = 0
-	_search_leg_length = SEARCH_WAYPOINT_SPACING
-	_search_legs_completed = 0
+	_search_waypoints.clear(); _search_current_waypoint_index = 0
+	# Issue #650: Use sector-based waypoints when group search is coordinated
+	if _group_search_coordinator and _group_search_coordinator.is_coordinated():
+		var nav_cb := Callable(self, "_is_waypoint_navigable")
+		_search_waypoints.assign(_group_search_coordinator.generate_sector_waypoints(self, _search_radius, nav_cb))
+		_log_debug("Generated %d sector waypoints (radius=%.0f, sector=%s)" % [_search_waypoints.size(), _search_radius, _group_search_coordinator.get_sector_angles(self)])
+		return
+	# Fallback: original square spiral pattern for solo search
+	_search_direction = 0; _search_leg_length = SEARCH_WAYPOINT_SPACING; _search_legs_completed = 0
 	if not _is_zone_visited(_search_center):
 		_search_waypoints.append(_search_center)
-	var current_pos := _search_center
-	var waypoints_generated := _search_waypoints.size()
-	var iters := 0
+	var current_pos := _search_center; var waypoints_generated := _search_waypoints.size(); var iters := 0
 	while waypoints_generated < 20 and _search_leg_length <= _search_radius * 2 and iters < 100:
-		iters += 1
-		var offset := Vector2.ZERO
+		iters += 1; var offset := Vector2.ZERO
 		match _search_direction:
 			0: offset = Vector2(0, -_search_leg_length)
 			1: offset = Vector2(_search_leg_length, 0)
@@ -2185,10 +2190,8 @@ func _generate_search_waypoints() -> void:
 			3: offset = Vector2(-_search_leg_length, 0)
 		var next_pos := current_pos + offset
 		if _is_waypoint_navigable(next_pos) and not _is_zone_visited(next_pos):
-			_search_waypoints.append(next_pos)
-			waypoints_generated += 1
-		current_pos = next_pos
-		_search_legs_completed += 1
+			_search_waypoints.append(next_pos); waypoints_generated += 1
+		current_pos = next_pos; _search_legs_completed += 1
 		_search_direction = (_search_direction + 1) % 4
 		if _search_legs_completed % 2 == 0:
 			_search_leg_length += SEARCH_WAYPOINT_SPACING
@@ -2207,46 +2210,31 @@ func _is_zone_visited(pos: Vector2) -> bool: return _search_visited_zones.has(_g
 func _mark_zone_visited(pos: Vector2) -> void:
 	var k := _get_zone_key(pos)
 	if not _search_visited_zones.has(k): _search_visited_zones[k] = true; _log_debug("SEARCHING: Marked zone %s as visited (total: %d)" % [k, _search_visited_zones.size()])
+	if _group_search_coordinator: _group_search_coordinator.mark_zone_visited(pos)  # Issue #650: Share with group
 
 ## Process SEARCHING state - move through waypoints, scan at each (Issue #322).
 ## Issue #330: If enemy has ever left IDLE, they NEVER return to IDLE - search infinitely.
 func _process_searching_state(delta: float) -> void:
 	_search_state_timer += delta
-	# Issue #330: Only timeout for patrol enemies; engaged enemies search infinitely
-	if _search_state_timer >= SEARCH_MAX_DURATION and not _has_left_idle:
-		_log_to_file("SEARCHING timeout after %.1fs, returning to IDLE (patrol enemy)" % _search_state_timer)
-		_transition_to_idle()
-		return
-	if _can_see_player:
-		_log_to_file("SEARCHING: Player spotted! Transitioning to COMBAT")
-		_transition_to_combat()
-		return
+	if _search_state_timer >= SEARCH_MAX_DURATION and not _has_left_idle: _log_to_file("SEARCHING timeout %.1fs" % _search_state_timer); _transition_to_idle(); return  # Issue #330
+	if _can_see_player: _log_to_file("SEARCHING: Player spotted!"); _transition_to_combat(); return
 	if _search_current_waypoint_index >= _search_waypoints.size() or _search_waypoints.is_empty():
 		if _search_radius < SEARCH_MAX_RADIUS:
-			_search_radius += SEARCH_RADIUS_EXPANSION
-			_generate_search_waypoints()
-			_log_to_file("SEARCHING: Expand outer ring r=%.0f wps=%d" % [_search_radius, _search_waypoints.size()])
-			if _search_waypoints.is_empty() and _search_radius < SEARCH_MAX_RADIUS:
-				return
+			_search_radius += SEARCH_RADIUS_EXPANSION; _generate_search_waypoints()
+			_log_to_file("SEARCHING: Expand ring r=%.0f wps=%d" % [_search_radius, _search_waypoints.size()])
+			if _search_waypoints.is_empty() and _search_radius < SEARCH_MAX_RADIUS: return
 		else:
-			if _has_left_idle:  # Issue #330/#405: Engaged enemy - move center, clear old zones, continue searching
+			if _has_left_idle:  # Issue #330/#405: Relocate center, clear zones, continue
 				var old_center := _search_center; _search_center = global_position
-				_search_radius = SEARCH_INITIAL_RADIUS; _search_state_timer = 0.0
-				# Issue #405: Clear visited zones to allow exploring new areas
-				_search_visited_zones.clear()
+				_search_radius = SEARCH_INITIAL_RADIUS; _search_state_timer = 0.0; _search_visited_zones.clear()
 				_generate_search_waypoints()
-				_log_to_file("SEARCHING: Max radius reached, relocated center %s->%s, cleared zones (wps=%d)" % [old_center, _search_center, _search_waypoints.size()])
-				return
-			_log_to_file("SEARCHING: Max radius, returning to IDLE (patrol enemy)")
-			_transition_to_idle(); return
+				_log_to_file("SEARCHING: Relocated %s->%s (wps=%d)" % [old_center, _search_center, _search_waypoints.size()]); return
+			_log_to_file("SEARCHING: Max radius, returning to IDLE"); _transition_to_idle(); return
 	if _search_waypoints.is_empty():
-		if _has_left_idle:  # Issue #330/#405: Regenerate from current position, clear old zones
+		if _has_left_idle:  # Issue #330/#405: Regenerate from current position
 			var old := _search_center; _search_center = global_position; _search_radius = SEARCH_INITIAL_RADIUS
-			# Issue #405: Clear visited zones to allow exploring new areas
-			_search_visited_zones.clear()
-			_generate_search_waypoints()
-			_log_to_file("SEARCHING: No waypoints, relocated center %s->%s, cleared zones (wps=%d)" % [old, _search_center, _search_waypoints.size()])
-			return
+			_search_visited_zones.clear(); _generate_search_waypoints()
+			_log_to_file("SEARCHING: No wps, relocated %s->%s (wps=%d)" % [old, _search_center, _search_waypoints.size()]); return
 		_transition_to_idle(); return
 	var target_waypoint := _search_waypoints[_search_current_waypoint_index]
 	var dist := global_position.distance_to(target_waypoint)
@@ -2278,10 +2266,26 @@ func _process_searching_state(delta: float) -> void:
 					rotation = lerp_angle(rotation, dir.angle(), 5.0 * delta)
 					_process_corner_check(delta, dir, "SEARCHING")  # Issue #332
 	else:
-		_search_scan_timer += delta; rotation += delta * 1.5
-		if _search_scan_timer >= SEARCH_SCAN_DURATION:
+		# Issue #650: Realistic scanning - look at randomized targets with pauses
+		if _scan_targets.is_empty():
+			var search_dir := (target_waypoint - global_position).normalized()
+			if _group_search_coordinator and _group_search_coordinator.is_coordinated():
+				_scan_targets.assign(_group_search_coordinator.generate_scan_targets(self, rotation))
+			else:
+				_scan_targets.assign(GroupSearchCoordinator.generate_solo_scan_targets(rotation, search_dir))
+			_scan_target_index = 0; _scan_pause_timer = 0.0
+		if _scan_target_index < _scan_targets.size():
+			var target: Dictionary = _scan_targets[_scan_target_index]
+			var target_rot: float = target["angle"]
+			var pause_dur: float = target["pause"]
+			rotation = lerp_angle(rotation, target_rot, 3.0 * delta)
+			if absf(wrapf(rotation - target_rot, -PI, PI)) < 0.1:
+				_scan_pause_timer += delta
+				if _scan_pause_timer >= pause_dur:
+					_scan_target_index += 1; _scan_pause_timer = 0.0
+		else:
 			_mark_zone_visited(target_waypoint); _search_current_waypoint_index += 1
-			_search_moving_to_waypoint = true
+			_search_moving_to_waypoint = true; _scan_targets.clear()
 			_log_debug("SEARCHING: Scan done, next wp %d" % _search_current_waypoint_index)
 
 ## Process EVADING_GRENADE state - flee to guaranteed safe distance (Issue #407, #426).
@@ -2468,9 +2472,9 @@ func _shoot_burst_shot() -> void:
 ## Transition to IDLE state.
 func _transition_to_idle() -> void:
 	_current_state = AIState.IDLE
-	# Reset various state tracking when returning to idle
 	_hits_taken_in_encounter = 0; _in_alarm_mode = false; _cover_burst_pending = false
 	_idle_scan_timer = 0.0; _idle_scan_targets.clear()  # Will be re-initialized in _process_guard
+	_unregister_from_group_search()  # Issue #650
 
 ## Transition to COMBAT state.
 func _transition_to_combat() -> void:
@@ -2480,9 +2484,9 @@ func _transition_to_combat() -> void:
 	_combat_exposed = false; _combat_approaching = false
 	_combat_shoot_timer = 0.0; _combat_approach_timer = 0.0; _combat_state_timer = 0.0
 	_seeking_clear_shot = false; _clear_shot_timer = 0.0; _clear_shot_target = Vector2.ZERO
-	# Issue #409: Clear witnessed ally death flag when engaging player
-	_witnessed_ally_death = false; _suspected_directions.clear()
+	_witnessed_ally_death = false; _suspected_directions.clear()  # Issue #409
 	_pursuing_vulnerability_sound = false
+	_unregister_from_group_search()  # Issue #650
 
 ## Transition to SEEKING_COVER state.
 func _transition_to_seeking_cover() -> void:
@@ -2626,20 +2630,31 @@ func _transition_to_assault() -> void:
 	# Find closest cover to player for assault position
 	_find_cover_closest_to_player()
 
-## Transition to SEARCHING state - methodical search around last known player position (Issue #322).
+## Transition to SEARCHING state - methodical search around last known player position (Issue #322, #650).
 func _transition_to_searching(center_position: Vector2) -> void:
 	_current_state = AIState.SEARCHING
-	# Mark that enemy has left IDLE state (Issue #330)
-	_has_left_idle = true
+	_has_left_idle = true  # Mark that enemy has left IDLE state (Issue #330)
 	_search_center = center_position; _search_radius = SEARCH_INITIAL_RADIUS
 	_search_state_timer = 0.0; _search_scan_timer = 0.0; _search_current_waypoint_index = 0
 	_search_direction = 0; _search_leg_length = SEARCH_WAYPOINT_SPACING; _search_legs_completed = 0
 	_search_moving_to_waypoint = true; _search_visited_zones.clear()
-	# Issue #354: Initialize stuck detection
-	_search_stuck_timer = 0.0; _search_last_progress_position = global_position
+	_search_stuck_timer = 0.0; _search_last_progress_position = global_position  # Issue #354
+	_scan_targets.clear(); _scan_target_index = 0; _scan_pause_timer = 0.0  # Issue #650: Reset scan state
+	# Issue #650: Register with group search coordinator for zone-based deduplication
+	if _group_search_coordinator != null:
+		_group_search_coordinator.unregister_enemy(self)
+	_group_search_coordinator = GroupSearchCoordinator.get_or_create(center_position)
+	_group_search_coordinator.register_enemy(self)
 	_generate_search_waypoints()
-	var msg := "SEARCHING started: center=%s, radius=%.0f, waypoints=%d" % [_search_center, _search_radius, _search_waypoints.size()]
+	var coordinated := " (coordinated: %d enemies)" % _group_search_coordinator.get_enemy_count() if _group_search_coordinator.is_coordinated() else ""
+	var msg := "SEARCHING started: center=%s, radius=%.0f, waypoints=%d%s" % [_search_center, _search_radius, _search_waypoints.size(), coordinated]
 	_log_debug(msg); _log_to_file(msg)
+
+## Issue #650: Unregister from group search coordinator when leaving SEARCHING state.
+func _unregister_from_group_search() -> void:
+	if _group_search_coordinator != null:
+		_group_search_coordinator.unregister_enemy(self); _group_search_coordinator = null
+	_scan_targets.clear()
 
 ## Transition to EVADING_GRENADE state - flee from grenade danger zone (Issue #407).
 func _transition_to_evading_grenade() -> void:
@@ -4536,6 +4551,8 @@ func _update_debug_label() -> void:
 			if _has_valid_cover and not _has_flank_cover: t += "\n(%s WAIT %.1fs)" % [s, FLANK_COVER_WAIT_DURATION - _flank_cover_wait_timer]
 			elif _has_flank_cover: t += "\n(%s MOVING)" % s
 			else: t += "\n(%s DIRECT)" % s
+	if _current_state == AIState.SEARCHING and _group_search_coordinator and _group_search_coordinator.is_coordinated():
+		t += "\n(SECTOR %d/%d)" % [_group_search_coordinator._enemy_sectors.get(get_instance_id(), 0) + 1, _group_search_coordinator.get_enemy_count()]
 	if _memory and _memory.has_target(): t += "\n[%.0f%% %s]" % [_memory.confidence * 100, _memory.get_behavior_mode().substr(0, 6)]
 	if _prediction: t += _prediction.get_debug_text()
 	if _is_blinded or _is_stunned: t += "\n{%s}" % ("BLINDED + STUNNED" if _is_blinded and _is_stunned else "BLINDED" if _is_blinded else "STUNNED")
