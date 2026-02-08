@@ -608,3 +608,144 @@ func test_full_sequence_with_rotation() -> void:
 	assert_eq(revolver.current_ammo, 5, "Should have full cylinder")
 	assert_eq(revolver.cylinder_rotations, 5, "Should have rotated 5 times")
 	assert_eq(revolver.reserve_ammo, 5, "Reserve should be 5")
+
+
+# ============================================================================
+# Issue #659 Bug Fix Tests: One cartridge per drag gesture
+# ============================================================================
+
+
+## Mock drag gesture handler that mirrors the Revolver.HandleDragGestures() logic.
+## Tests the Issue #659 fix: only one cartridge per RMB drag motion.
+class MockDragGestureHandler:
+	var revolver_mock: MockRevolverReload
+	var is_dragging: bool = false
+	var cartridge_insertion_blocked: bool = false
+	var drag_start_position: Vector2 = Vector2.ZERO
+	var min_drag_distance: float = 30.0
+
+	func _init(mock: MockRevolverReload) -> void:
+		revolver_mock = mock
+
+	## Simulates a frame of drag gesture processing.
+	## @param rmb_pressed Whether RMB is currently held down.
+	## @param mouse_position Current mouse position (screen coords).
+	## @return True if a cartridge was inserted this frame.
+	func process_frame(rmb_pressed: bool, mouse_position: Vector2) -> bool:
+		# Only process while cylinder is open
+		if revolver_mock.reload_state != MockRevolverReload.CYLINDER_OPEN \
+			and revolver_mock.reload_state != MockRevolverReload.LOADING:
+			is_dragging = false
+			cartridge_insertion_blocked = false
+			return false
+
+		if rmb_pressed:
+			if not is_dragging:
+				drag_start_position = mouse_position
+				is_dragging = true
+				cartridge_insertion_blocked = false
+				return false
+			elif not cartridge_insertion_blocked:
+				var drag_vector := mouse_position - drag_start_position
+				if _try_process_drag_gesture(drag_vector):
+					# Issue #659: Block further insertions until RMB released
+					cartridge_insertion_blocked = true
+					return true
+		elif is_dragging:
+			# RMB released — reset drag state
+			is_dragging = false
+			cartridge_insertion_blocked = false
+
+		return false
+
+	## Check if drag gesture meets criteria for cartridge insertion.
+	func _try_process_drag_gesture(drag_vector: Vector2) -> bool:
+		if drag_vector.length() < min_drag_distance:
+			return false
+		if abs(drag_vector.y) <= abs(drag_vector.x):
+			return false
+		if drag_vector.y >= 0:  # Must be drag UP (negative Y in screen coords)
+			return false
+		return revolver_mock.insert_cartridge()
+
+
+func test_issue_659_single_cartridge_per_drag() -> void:
+	## Issue #659: Verify that only one cartridge is loaded per RMB drag up motion.
+	## Previously, a continuous upward drag would load multiple cartridges because
+	## the drag start was reset after each insertion, creating a chain of gestures.
+
+	revolver.current_ammo = 0
+	revolver.reserve_ammo = 10
+	revolver.open_cylinder()
+
+	var handler := MockDragGestureHandler.new(revolver)
+
+	# Simulate: press RMB at (500, 500), drag continuously upward
+	# Frame 1: RMB pressed — drag starts
+	handler.process_frame(true, Vector2(500, 500))
+	assert_true(handler.is_dragging, "Should start dragging")
+	assert_eq(revolver.current_ammo, 0, "No cartridge yet (not enough drag)")
+
+	# Frame 2-3: Moving up slightly, below threshold
+	handler.process_frame(true, Vector2(500, 490))
+	assert_eq(revolver.current_ammo, 0, "No cartridge yet (below min drag distance)")
+
+	# Frame 4: Drag exceeds threshold (moved 40px up)
+	var inserted := handler.process_frame(true, Vector2(500, 460))
+	assert_true(inserted, "Should insert one cartridge")
+	assert_eq(revolver.current_ammo, 1, "Should have exactly 1 round")
+
+	# Frame 5-10: Continue dragging upward — should NOT insert more (blocked)
+	for i in range(6):
+		inserted = handler.process_frame(true, Vector2(500, 420 - i * 40))
+		assert_false(inserted, "Should NOT insert more cartridges (blocked, frame %d)" % i)
+
+	assert_eq(revolver.current_ammo, 1,
+		"Issue #659: Should still have exactly 1 round after continuous drag")
+
+
+func test_issue_659_second_cartridge_after_rmb_release() -> void:
+	## Issue #659: After releasing RMB and pressing it again,
+	## a new drag gesture should allow another cartridge insertion.
+
+	revolver.current_ammo = 0
+	revolver.reserve_ammo = 10
+	revolver.open_cylinder()
+
+	var handler := MockDragGestureHandler.new(revolver)
+
+	# First drag: press and drag up
+	handler.process_frame(true, Vector2(500, 500))
+	handler.process_frame(true, Vector2(500, 460))
+	assert_eq(revolver.current_ammo, 1, "Should insert first cartridge")
+
+	# Release RMB
+	handler.process_frame(false, Vector2(500, 460))
+	assert_false(handler.is_dragging, "Should stop dragging after RMB release")
+	assert_false(handler.cartridge_insertion_blocked, "Should unblock after RMB release")
+
+	# Second drag: press and drag up again
+	handler.process_frame(true, Vector2(500, 500))
+	handler.process_frame(true, Vector2(500, 460))
+	assert_eq(revolver.current_ammo, 2, "Should insert second cartridge after re-press")
+
+
+func test_issue_659_five_separate_drags_for_full_reload() -> void:
+	## Issue #659: Verify that 5 separate drag gestures load exactly 5 rounds.
+	## Each gesture: press RMB, drag up >30px, release RMB.
+
+	revolver.current_ammo = 0
+	revolver.reserve_ammo = 10
+	revolver.open_cylinder()
+
+	var handler := MockDragGestureHandler.new(revolver)
+
+	for i in range(5):
+		# Press RMB and drag up
+		handler.process_frame(true, Vector2(500, 500))
+		handler.process_frame(true, Vector2(500, 460))
+		# Release RMB
+		handler.process_frame(false, Vector2(500, 460))
+
+	assert_eq(revolver.current_ammo, 5, "Should have 5 rounds after 5 separate drags")
+	assert_eq(revolver.reserve_ammo, 5, "Reserve should be 5 (10 - 5)")

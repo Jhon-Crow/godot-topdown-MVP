@@ -79,6 +79,14 @@ public partial class Revolver : BaseWeapon
     private bool _isDragging = false;
 
     /// <summary>
+    /// Whether cartridge insertion is blocked until RMB is released (Issue #659).
+    /// After inserting a cartridge via drag gesture, further insertions are blocked
+    /// until the player releases RMB, preventing multiple rounds from being loaded
+    /// in a single upward drag motion.
+    /// </summary>
+    private bool _cartridgeInsertionBlocked = false;
+
+    /// <summary>
     /// Current aim angle in radians. Used for sensitivity-based aiming
     /// where the aim interpolates smoothly toward the target angle.
     /// </summary>
@@ -248,6 +256,7 @@ public partial class Revolver : BaseWeapon
             && ReloadState != RevolverReloadState.Loading)
         {
             _isDragging = false;
+            _cartridgeInsertionBlocked = false;
             return;
         }
 
@@ -260,28 +269,29 @@ public partial class Revolver : BaseWeapon
                 // Use viewport mouse position (screen coordinates) for consistent drag detection
                 _dragStartPosition = GetViewport().GetMousePosition();
                 _isDragging = true;
+                _cartridgeInsertionBlocked = false;
             }
-            else
+            else if (!_cartridgeInsertionBlocked)
             {
-                // Check for mid-drag gesture completion (continuous gesture without releasing RMB)
+                // Check for drag gesture completion (Issue #659: only one cartridge per drag)
                 Vector2 currentPosition = GetViewport().GetMousePosition();
                 Vector2 dragVector = currentPosition - _dragStartPosition;
 
                 if (TryProcessDragGesture(dragVector))
                 {
-                    // Gesture processed - reset drag start for next gesture
-                    _dragStartPosition = currentPosition;
+                    // Issue #659: Block further insertions until RMB is released.
+                    // This prevents multiple rounds from being loaded in a single
+                    // upward drag motion — the player must release and re-press RMB
+                    // (or release and drag up again) to insert another cartridge.
+                    _cartridgeInsertionBlocked = true;
                 }
             }
         }
         else if (_isDragging)
         {
-            // RMB released - evaluate the drag gesture
-            Vector2 dragEnd = GetViewport().GetMousePosition();
-            Vector2 dragVector = dragEnd - _dragStartPosition;
+            // RMB released — reset drag state (Issue #659: unblock insertion for next drag)
             _isDragging = false;
-
-            TryProcessDragGesture(dragVector);
+            _cartridgeInsertionBlocked = false;
         }
     }
 
@@ -867,18 +877,6 @@ public partial class Revolver : BaseWeapon
         for (int i = 0; i < count; i++)
         {
             var casing = CasingScene.Instantiate<RigidBody2D>();
-            // Casings fall from the cylinder position with slight random spread
-            float randomOffsetX = (float)GD.RandRange(-8.0f, 8.0f);
-            float randomOffsetY = (float)GD.RandRange(-5.0f, 5.0f);
-            casing.GlobalPosition = GlobalPosition + new Vector2(randomOffsetX, randomOffsetY);
-
-            // Casings fall downward with slight random horizontal drift (gravity drop, not ejection)
-            float horizontalDrift = (float)GD.RandRange(-30.0f, 30.0f);
-            float downwardSpeed = (float)GD.RandRange(40.0f, 80.0f);
-            casing.LinearVelocity = new Vector2(horizontalDrift, downwardSpeed);
-
-            // Light spin as casings tumble
-            casing.AngularVelocity = (float)GD.RandRange(-10.0f, 10.0f);
 
             // Set caliber data on the casing for appearance
             if (WeaponData?.Caliber != null)
@@ -886,7 +884,26 @@ public partial class Revolver : BaseWeapon
                 casing.Set("caliber_data", WeaponData.Caliber);
             }
 
+            // Add to scene tree first so the physics engine registers the body (Issue #659).
+            // Setting LinearVelocity before AddChild can be unreliable in Godot 4 because
+            // the physics server hasn't created the body yet — the velocity may be discarded
+            // during physics initialization, causing casings to "freeze" at spawn position.
             GetTree().CurrentScene.AddChild(casing);
+
+            // Now set position and apply impulse AFTER the body is in the scene tree.
+            // Using apply_central_impulse instead of LinearVelocity for reliable physics.
+            float randomOffsetX = (float)GD.RandRange(-8.0f, 8.0f);
+            float randomOffsetY = (float)GD.RandRange(-5.0f, 5.0f);
+            casing.GlobalPosition = GlobalPosition + new Vector2(randomOffsetX, randomOffsetY);
+
+            // Apply impulse for casings falling from the opened cylinder.
+            // Casings drop downward with slight random horizontal drift (gravity drop, not ejection).
+            float horizontalDrift = (float)GD.RandRange(-30.0f, 30.0f);
+            float downwardSpeed = (float)GD.RandRange(40.0f, 80.0f);
+            casing.ApplyCentralImpulse(new Vector2(horizontalDrift, downwardSpeed));
+
+            // Light spin as casings tumble
+            casing.AngularVelocity = (float)GD.RandRange(-10.0f, 10.0f);
         }
     }
 
