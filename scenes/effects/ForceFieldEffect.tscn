@@ -1,0 +1,41 @@
+[gd_scene load_steps=6 format=3 uid="uid://drk9f2m8qwx1p"]
+
+[ext_resource type="Script" path="res://scripts/effects/force_field_effect.gd" id="1_force_field"]
+[ext_resource type="Shader" path="res://scripts/shaders/force_field.gdshader" id="2_shader"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_shield"]
+shader = ExtResource("2_shader")
+shader_parameter/shield_color = Color(0.3, 0.7, 1.0, 1.0)
+shader_parameter/pulse_speed = 2.0
+shader_parameter/edge_thickness = 0.08
+shader_parameter/glow_intensity = 1.5
+shader_parameter/inner_alpha = 0.1
+shader_parameter/time_offset = 0.0
+
+[sub_resource type="PlaceholderTexture2D" id="PlaceholderTexture2D_shield"]
+size = Vector2(16, 16)
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_field"]
+radius = 80.0
+
+[node name="ForceFieldEffect" type="Node2D"]
+script = ExtResource("1_force_field")
+
+[node name="ShieldSprite" type="Sprite2D" parent="."]
+z_index = 10
+material = SubResource("ShaderMaterial_shield")
+scale = Vector2(10, 10)
+texture = SubResource("PlaceholderTexture2D_shield")
+
+[node name="DeflectionArea" type="Area2D" parent="."]
+collision_layer = 0
+collision_mask = 48
+monitorable = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DeflectionArea"]
+shape = SubResource("CircleShape2D_field")
+
+[node name="GlowLight" type="PointLight2D" parent="."]
+color = Color(0.3, 0.7, 1.0, 1.0)
+energy = 1.5
+texture_scale = 4.0

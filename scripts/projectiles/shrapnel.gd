@@ -137,6 +137,11 @@ func _on_area_entered(area: Area2D) -> void:
 		if parent and parent.has_method("is_alive") and not parent.is_alive():
 			return  # Pass through dead entities
 
+		# Force field protection: shrapnel cannot damage the player while force field is active (Issue #676)
+		if parent and parent.is_in_group("player"):
+			if parent.has_method("is_force_field_active") and parent.is_force_field_active():
+				return  # Force field blocks the shrapnel (reflection handled by force field Area2D)
+
 		# Deal damage - shrapnel always deals 1 damage
 		if area.has_method("on_hit_with_info"):
 			area.on_hit_with_info(direction, null)
