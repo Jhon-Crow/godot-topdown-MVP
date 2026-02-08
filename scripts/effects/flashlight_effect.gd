@@ -10,6 +10,10 @@ extends Node2D
 ##
 ## When the flashlight beam hits an enemy directly, the enemy is blinded
 ## for 2 seconds. Each enemy has a 20-second cooldown before it can be blinded again.
+##
+## Light scattering (Issue #644): A secondary PointLight2D with a radial gradient
+## is placed at the beam's impact point (wall hit or max range). This simulates
+## the ambient glow created when a flashlight beam hits a surface in reality.
 
 ## Light energy (brightness) when the flashlight is on.
 ## Bright white light — same level as flashbang (8.0) for clear visibility.
@@ -41,8 +45,23 @@ const FLASHLIGHT_SOUND_PATH: String = "res://assets/audio/звук включе�
 ## Collision mask for obstacles (layer 3) used in line-of-sight checks.
 const OBSTACLE_COLLISION_MASK: int = 4
 
+## Energy (brightness) for the scatter light at the beam impact point (Issue #644).
+## Much lower than the main beam (8.0) for a subtle ambient glow effect.
+const SCATTER_LIGHT_ENERGY: float = 0.4
+
+## Texture scale for the scatter light radial gradient.
+## Controls the radius of the ambient glow at the beam impact point.
+const SCATTER_LIGHT_TEXTURE_SCALE: float = 3.0
+
+## Color of the scatter light — warm white matching the main beam tint.
+const SCATTER_LIGHT_COLOR: Color = Color(1.0, 1.0, 0.92, 1.0)
+
 ## Reference to the PointLight2D child node.
 var _point_light: PointLight2D = null
+
+## Reference to the scatter light PointLight2D (Issue #644).
+## Positioned at the beam's impact point to simulate light scattering.
+var _scatter_light: PointLight2D = null
 
 ## Whether the flashlight is currently active (on).
 var _is_on: bool = false
@@ -61,6 +80,8 @@ func _ready() -> void:
 		FileLogger.info("[FlashlightEffect] WARNING: PointLight2D child not found")
 	else:
 		FileLogger.info("[FlashlightEffect] PointLight2D found, energy=%.1f, shadow=%s" % [_point_light.energy, str(_point_light.shadow_enabled)])
+	# Setup scatter light at beam impact point (Issue #644)
+	_setup_scatter_light()
 	# Start with light off
 	_set_light_visible(false)
 	# Load toggle sound
@@ -79,6 +100,52 @@ func _setup_audio() -> void:
 			FileLogger.info("[FlashlightEffect] Flashlight sound loaded")
 	else:
 		FileLogger.info("[FlashlightEffect] Flashlight sound not found: %s" % FLASHLIGHT_SOUND_PATH)
+
+
+## Setup the scatter light PointLight2D (Issue #644).
+## Creates a radial glow light that will be positioned at the beam's impact point.
+## Uses shadow_enabled = true so the scatter light respects walls.
+func _setup_scatter_light() -> void:
+	_scatter_light = PointLight2D.new()
+	_scatter_light.name = "ScatterLight"
+	_scatter_light.color = SCATTER_LIGHT_COLOR
+	_scatter_light.energy = SCATTER_LIGHT_ENERGY
+	_scatter_light.shadow_enabled = true
+	_scatter_light.shadow_filter = PointLight2D.SHADOW_FILTER_PCF5
+	_scatter_light.shadow_filter_smooth = 4.0
+	_scatter_light.shadow_color = Color(0, 0, 0, 0.8)
+	_scatter_light.texture = _create_scatter_light_texture()
+	_scatter_light.texture_scale = SCATTER_LIGHT_TEXTURE_SCALE
+	_scatter_light.visible = false
+	add_child(_scatter_light)
+	FileLogger.info("[FlashlightEffect] Scatter light created (Issue #644)")
+
+
+## Create a radial gradient texture for the scatter light (Issue #644).
+## Uses an early-fadeout design matching the codebase pattern from window lights.
+## The gradient reaches zero at 55% radius, leaving 45% buffer for invisible edges.
+func _create_scatter_light_texture() -> GradientTexture2D:
+	var gradient := Gradient.new()
+	# Bright center core
+	gradient.set_color(0, Color(1.0, 1.0, 1.0, 1.0))
+	# Smooth falloff
+	gradient.add_point(0.1, Color(0.8, 0.8, 0.8, 1.0))
+	gradient.add_point(0.2, Color(0.55, 0.55, 0.55, 1.0))
+	gradient.add_point(0.3, Color(0.3, 0.3, 0.3, 1.0))
+	gradient.add_point(0.4, Color(0.12, 0.12, 0.12, 1.0))
+	# Fade to zero by 55% — remaining 45% is pure black buffer
+	gradient.add_point(0.5, Color(0.03, 0.03, 0.03, 1.0))
+	gradient.add_point(0.55, Color(0.0, 0.0, 0.0, 1.0))
+	gradient.set_color(1, Color(0.0, 0.0, 0.0, 1.0))
+
+	var texture := GradientTexture2D.new()
+	texture.gradient = gradient
+	texture.width = 512
+	texture.height = 512
+	texture.fill = GradientTexture2D.FILL_RADIAL
+	texture.fill_from = Vector2(0.5, 0.5)
+	texture.fill_to = Vector2(0.5, 0.0)
+	return texture
 
 
 ## Play the flashlight toggle sound.
@@ -115,12 +182,42 @@ func _set_light_visible(visible_state: bool) -> void:
 	if _point_light:
 		_point_light.visible = visible_state
 		_point_light.energy = LIGHT_ENERGY if visible_state else 0.0
+	if _scatter_light:
+		_scatter_light.visible = visible_state
+		_scatter_light.energy = SCATTER_LIGHT_ENERGY if visible_state else 0.0
 
 
 func _physics_process(_delta: float) -> void:
 	if not _is_on:
 		return
+	_update_scatter_light_position()
 	_check_enemies_in_beam()
+
+
+## Update the scatter light position to the beam's impact point (Issue #644).
+## Casts a ray along the beam direction and places the scatter light where
+## the beam hits a wall or at the maximum beam range if no wall is hit.
+func _update_scatter_light_position() -> void:
+	if _scatter_light == null:
+		return
+
+	var beam_origin := global_position
+	var beam_direction := Vector2.RIGHT.rotated(global_rotation)
+	var beam_end := beam_origin + beam_direction * BEAM_RANGE
+
+	# Raycast to find where the beam hits a wall
+	var space_state := get_world_2d().direct_space_state
+	var query := PhysicsRayQueryParameters2D.create(beam_origin, beam_end)
+	query.collision_mask = OBSTACLE_COLLISION_MASK
+	query.exclude = [self]
+	var result := space_state.intersect_ray(query)
+
+	if not result.is_empty():
+		# Beam hits a wall — place scatter light at the impact point
+		_scatter_light.global_position = result.position
+	else:
+		# No wall hit — place scatter light at max beam range
+		_scatter_light.global_position = beam_end
 
 
 ## Check all enemies and blind those caught in the flashlight beam.
