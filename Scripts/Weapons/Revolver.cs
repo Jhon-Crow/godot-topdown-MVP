@@ -211,6 +211,14 @@ public partial class Revolver : BaseWeapon
     private bool _isHammerCocked = false;
 
     /// <summary>
+    /// Whether the hammer was manually cocked by the player pressing RMB (Issue #649).
+    /// When true, the next LMB press fires immediately without the hammer cock delay.
+    /// Normal flow: LMB → cock hammer (0.15s delay) → shot fires.
+    /// Manual cock flow: RMB (instant cock) → LMB → shot fires immediately.
+    /// </summary>
+    private bool _isManuallyHammerCocked = false;
+
+    /// <summary>
     /// Timer for the delay between hammer cock and actual shot (Issue #661).
     /// The hammer cocks and cylinder rotates first, then the shot fires.
     /// </summary>
@@ -480,10 +488,11 @@ public partial class Revolver : BaseWeapon
     }
 
     /// <summary>
-    /// Fires the RSh-12 revolver in semi-automatic mode (Issue #661).
-    /// When the player presses LMB, the hammer cocks and the cylinder rotates first,
-    /// then after a short delay the shot fires. This gives the revolver a distinctive
-    /// mechanical feel with audible hammer cock and cylinder rotation before each shot.
+    /// Fires the RSh-12 revolver in semi-automatic mode (Issue #661, #649).
+    /// Normal fire (LMB without manual cock): hammer cocks and cylinder rotates first,
+    /// then after a short delay (0.15s) the shot fires.
+    /// Manual cock fire (RMB then LMB, Issue #649): hammer is already cocked,
+    /// so the shot fires immediately without delay.
     /// </summary>
     /// <param name="direction">Direction to fire (uses aim direction).</param>
     /// <returns>True if the fire sequence was initiated successfully.</returns>
@@ -496,7 +505,7 @@ public partial class Revolver : BaseWeapon
             return false;
         }
 
-        // Cannot fire while hammer is already cocked and waiting to fire
+        // Cannot fire while hammer is already cocked and waiting to fire (auto-cock delay)
         if (_isHammerCocked)
         {
             return false;
@@ -515,7 +524,17 @@ public partial class Revolver : BaseWeapon
             return false;
         }
 
-        // Issue #661: Cock the hammer and rotate the cylinder before firing.
+        // Issue #649: If hammer was manually cocked (RMB), fire immediately without delay.
+        // The hammer cock + cylinder rotation already happened during ManualCockHammer().
+        if (_isManuallyHammerCocked)
+        {
+            _isManuallyHammerCocked = false;
+            GD.Print("[Revolver] Firing with manually cocked hammer - instant shot");
+            ExecuteShot(direction);
+            return true;
+        }
+
+        // Issue #661: Normal fire - cock the hammer and rotate the cylinder before firing.
         // The actual shot happens after a short delay (HammerCockDelay).
         _isHammerCocked = true;
         _hammerCockTimer = HammerCockDelay;
@@ -531,6 +550,73 @@ public partial class Revolver : BaseWeapon
         EmitSignal(SignalName.HammerCocked);
 
         GD.Print("[Revolver] Hammer cocked, cylinder rotated - shot pending");
+
+        return true;
+    }
+
+    /// <summary>
+    /// Whether the hammer is currently manually cocked and ready to fire (Issue #649).
+    /// Used by Player.cs to check if the revolver can fire instantly.
+    /// </summary>
+    public bool IsManuallyHammerCocked => _isManuallyHammerCocked;
+
+    /// <summary>
+    /// Manually cocks the hammer by pressing RMB (Issue #649).
+    /// This instantly cocks the hammer and rotates the cylinder,
+    /// so the next LMB press fires immediately without the normal 0.15s delay.
+    /// Can only be done when the cylinder is closed, there is ammo,
+    /// and the hammer is not already cocked.
+    /// Unlike normal fire, manual cocking is NOT blocked by the fire timer —
+    /// the whole point is to let the player bypass the fire delay between shots.
+    /// </summary>
+    /// <returns>True if the hammer was manually cocked successfully.</returns>
+    public bool ManualCockHammer()
+    {
+        // Cannot cock while cylinder is open
+        if (ReloadState != RevolverReloadState.NotReloading)
+        {
+            return false;
+        }
+
+        // Cannot cock if already cocked (either manually or via LMB fire sequence)
+        if (_isHammerCocked || _isManuallyHammerCocked)
+        {
+            return false;
+        }
+
+        // Cannot cock with empty cylinder
+        if (CurrentAmmo <= 0)
+        {
+            PlayEmptyClickSound();
+            return false;
+        }
+
+        // Check weapon data and bullet scene are available
+        if (WeaponData == null || BulletScene == null)
+        {
+            return false;
+        }
+
+        // NOTE: We intentionally do NOT check CanFire here (Issue #649 fix).
+        // CanFire includes _fireTimer <= 0 check, which would block cocking
+        // during the fire rate cooldown after a shot. The entire purpose of
+        // manual cocking is to bypass that fire delay — the player manually
+        // cocks the hammer to skip the automatic cock+rotate wait time.
+
+        // Reset fire timer — manual cocking prepares the weapon for immediate fire
+        _fireTimer = 0;
+
+        // Instantly cock the hammer (no delay - that's the point of manual cocking)
+        _isManuallyHammerCocked = true;
+
+        // Play hammer cock and cylinder rotation sounds
+        PlayHammerCockSound();
+        PlayCylinderRotateSound();
+
+        // Emit HammerCocked signal
+        EmitSignal(SignalName.HammerCocked);
+
+        GD.Print("[Revolver] Hammer manually cocked (RMB) - ready to fire instantly");
 
         return true;
     }
@@ -844,6 +930,9 @@ public partial class Revolver : BaseWeapon
         _cartridgeInsertionBlocked = _chamberOccupied.Length > 0
                                      && _currentChamberIndex < _chamberOccupied.Length
                                      && _chamberOccupied[_currentChamberIndex];
+
+        // Issue #649: Reset manual cock state when cylinder is opened
+        _isManuallyHammerCocked = false;
 
         // Update reload state
         ReloadState = RevolverReloadState.CylinderOpen;
