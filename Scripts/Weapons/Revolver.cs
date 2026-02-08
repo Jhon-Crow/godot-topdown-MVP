@@ -79,6 +79,22 @@ public partial class Revolver : BaseWeapon
     private bool _isDragging = false;
 
     /// <summary>
+    /// Whether cartridge insertion is blocked until cylinder is rotated (Issue #659).
+    /// After inserting a cartridge via drag gesture, further insertions are blocked
+    /// until the player scrolls (rotates the cylinder to the next empty chamber).
+    /// This enforces the realistic reload sequence: insert → rotate → insert → rotate.
+    /// </summary>
+    private bool _cartridgeInsertionBlocked = false;
+
+    /// <summary>
+    /// Number of rounds actually fired since the last casing ejection (Issue #659).
+    /// Incremented each time Fire() or FireChamberBullet() successfully fires.
+    /// Used in OpenCylinder() to eject only the correct number of spent casings,
+    /// preventing duplicate ejection when the cylinder is opened/closed repeatedly.
+    /// </summary>
+    private int _roundsFiredSinceLastEject = 0;
+
+    /// <summary>
     /// Current aim angle in radians. Used for sensitivity-based aiming
     /// where the aim interpolates smoothly toward the target angle.
     /// </summary>
@@ -303,27 +319,26 @@ public partial class Revolver : BaseWeapon
                 _dragStartPosition = GetViewport().GetMousePosition();
                 _isDragging = true;
             }
-            else
+            else if (!_cartridgeInsertionBlocked)
             {
-                // Check for mid-drag gesture completion (continuous gesture without releasing RMB)
+                // Check for drag gesture completion (Issue #659: only one cartridge per slot)
                 Vector2 currentPosition = GetViewport().GetMousePosition();
                 Vector2 dragVector = currentPosition - _dragStartPosition;
 
                 if (TryProcessDragGesture(dragVector))
                 {
-                    // Gesture processed - reset drag start for next gesture
-                    _dragStartPosition = currentPosition;
+                    // Issue #659: Block further insertions until cylinder is rotated.
+                    // After inserting one cartridge into the current chamber, the player
+                    // must scroll (rotate cylinder) to move to the next empty chamber
+                    // before inserting another cartridge.
+                    _cartridgeInsertionBlocked = true;
                 }
             }
         }
         else if (_isDragging)
         {
-            // RMB released - evaluate the drag gesture
-            Vector2 dragEnd = GetViewport().GetMousePosition();
-            Vector2 dragVector = dragEnd - _dragStartPosition;
+            // RMB released — reset drag state but keep insertion blocked until rotation
             _isDragging = false;
-
-            TryProcessDragGesture(dragVector);
         }
     }
 
@@ -527,8 +542,10 @@ public partial class Revolver : BaseWeapon
             PlayRevolverShotSound();
             // Emit gunshot sound for in-game sound propagation (very loud)
             EmitGunshotSound();
-            // Note: No casing ejection on fire - revolver keeps spent casings in the cylinder
+            // Issue #659: Track fired rounds for accurate casing ejection count.
+            // No casing ejection on fire - revolver keeps spent casings in the cylinder
             // until the player opens it (casings eject in OpenCylinder → SpawnEjectedCasings)
+            _roundsFiredSinceLastEject++;
             // Trigger heavy screen shake (close to sniper rifle)
             TriggerScreenShake(spreadDirection);
         }
@@ -670,7 +687,9 @@ public partial class Revolver : BaseWeapon
         {
             PlayRevolverShotSound();
             EmitGunshotSound();
+            // Issue #659: Track fired rounds for accurate casing ejection count.
             // No casing ejection - spent casings stay in cylinder
+            _roundsFiredSinceLastEject++;
             TriggerScreenShake(spreadDirection);
         }
 
@@ -750,13 +769,18 @@ public partial class Revolver : BaseWeapon
             return false;
         }
 
-        // Track how many spent rounds to eject as casings
+        // Issue #659: Only eject casings for rounds actually fired since last ejection.
+        // This prevents duplicate casing ejection when the cylinder is opened/closed
+        // repeatedly without firing in between.
         int cylinderCapacity = CylinderCapacity;
-        _spentCasingsToEject = cylinderCapacity - CurrentAmmo;
+        _spentCasingsToEject = _roundsFiredSinceLastEject;
 
         // Live rounds stay in the cylinder - only spent casings fall out
         // CurrentAmmo is NOT reset to 0 - the player only needs to reload empty chambers
         CartridgesLoadedThisReload = 0;
+
+        // Reset insertion block for fresh reload sequence
+        _cartridgeInsertionBlocked = false;
 
         // Update reload state
         ReloadState = RevolverReloadState.CylinderOpen;
@@ -770,6 +794,8 @@ public partial class Revolver : BaseWeapon
             SpawnEjectedCasings(_spentCasingsToEject);
             PlayCasingsEjectSound();
             EmitSignal(SignalName.CasingsEjected, _spentCasingsToEject);
+            // Reset fired counter after ejecting casings
+            _roundsFiredSinceLastEject = 0;
         }
 
         EmitSignal(SignalName.ReloadStateChanged, (int)ReloadState);
@@ -885,6 +911,10 @@ public partial class Revolver : BaseWeapon
             return false;
         }
 
+        // Issue #659: Rotating the cylinder moves to the next chamber,
+        // allowing a new cartridge to be inserted.
+        _cartridgeInsertionBlocked = false;
+
         // Play cylinder rotation click sound
         PlayCylinderRotateSound();
 
@@ -969,18 +999,6 @@ public partial class Revolver : BaseWeapon
         for (int i = 0; i < count; i++)
         {
             var casing = CasingScene.Instantiate<RigidBody2D>();
-            // Casings fall from the cylinder position with slight random spread
-            float randomOffsetX = (float)GD.RandRange(-8.0f, 8.0f);
-            float randomOffsetY = (float)GD.RandRange(-5.0f, 5.0f);
-            casing.GlobalPosition = GlobalPosition + new Vector2(randomOffsetX, randomOffsetY);
-
-            // Casings fall downward with slight random horizontal drift (gravity drop, not ejection)
-            float horizontalDrift = (float)GD.RandRange(-30.0f, 30.0f);
-            float downwardSpeed = (float)GD.RandRange(40.0f, 80.0f);
-            casing.LinearVelocity = new Vector2(horizontalDrift, downwardSpeed);
-
-            // Light spin as casings tumble
-            casing.AngularVelocity = (float)GD.RandRange(-10.0f, 10.0f);
 
             // Set caliber data on the casing for appearance
             if (WeaponData?.Caliber != null)
@@ -988,7 +1006,26 @@ public partial class Revolver : BaseWeapon
                 casing.Set("caliber_data", WeaponData.Caliber);
             }
 
+            // Add to scene tree first so the physics engine registers the body (Issue #659).
+            // Setting LinearVelocity before AddChild can be unreliable in Godot 4 because
+            // the physics server hasn't created the body yet — the velocity may be discarded
+            // during physics initialization, causing casings to "freeze" at spawn position.
             GetTree().CurrentScene.AddChild(casing);
+
+            // Now set position and apply impulse AFTER the body is in the scene tree.
+            // Using apply_central_impulse instead of LinearVelocity for reliable physics.
+            float randomOffsetX = (float)GD.RandRange(-8.0f, 8.0f);
+            float randomOffsetY = (float)GD.RandRange(-5.0f, 5.0f);
+            casing.GlobalPosition = GlobalPosition + new Vector2(randomOffsetX, randomOffsetY);
+
+            // Apply impulse for casings falling from the opened cylinder.
+            // Casings drop downward with slight random horizontal drift (gravity drop, not ejection).
+            float horizontalDrift = (float)GD.RandRange(-30.0f, 30.0f);
+            float downwardSpeed = (float)GD.RandRange(40.0f, 80.0f);
+            casing.ApplyCentralImpulse(new Vector2(horizontalDrift, downwardSpeed));
+
+            // Light spin as casings tumble
+            casing.AngularVelocity = (float)GD.RandRange(-10.0f, 10.0f);
         }
     }
 
