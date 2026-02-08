@@ -1,0 +1,71 @@
+[sub_resource type="RectangleShape2D" id="Rect_16x53"]
+size = Vector2(16.0, 53.3)
+
+[sub_resource type="OccluderPolygon2D" id="Occ_16x53"]
+polygon = PackedVector2Array(-8.0, -26.7, 8.0, -26.7, 8.0, 26.7, -8.0, 26.7)
+
+[sub_resource type="RectangleShape2D" id="Rect_16x75"]
+size = Vector2(16.0, 75.0)
+
+[sub_resource type="OccluderPolygon2D" id="Occ_16x75"]
+polygon = PackedVector2Array(-8.0, -37.5, 8.0, -37.5, 8.0, 37.5, -8.0, 37.5)
+
+[sub_resource type="RectangleShape2D" id="Rect_16x87"]
+size = Vector2(16.0, 86.7)
+
+[sub_resource type="OccluderPolygon2D" id="Occ_16x87"]
+polygon = PackedVector2Array(-8.0, -43.3, 8.0, -43.3, 8.0, 43.3, -8.0, 43.3)
+
+[sub_resource type="RectangleShape2D" id="Rect_16x120"]
+size = Vector2(16.0, 120.0)
+
+[sub_resource type="OccluderPolygon2D" id="Occ_16x120"]
+polygon = PackedVector2Array(-8.0, -60.0, 8.0, -60.0, 8.0, 60.0, -8.0, 60.0)
+
+[sub_resource type="RectangleShape2D" id="Rect_16x200"]
+size = Vector2(16.0, 200.0)
+
+[sub_resource type="OccluderPolygon2D" id="Occ_16x200"]
+polygon = PackedVector2Array(-8.0, -100.0, 8.0, -100.0, 8.0, 100.0, -8.0, 100.0)
+
+[sub_resource type="RectangleShape2D" id="Rect_16x300"]
+size = Vector2(16.0, 300.0)
+
+[sub_resource type="OccluderPolygon2D" id="Occ_16x300"]
+polygon = PackedVector2Array(-8.0, -150.0, 8.0, -150.0, 8.0, 150.0, -8.0, 150.0)
+
+[sub_resource type="RectangleShape2D" id="Rect_53x16"]
+size = Vector2(53.3, 16.0)
+
+[sub_resource type="OccluderPolygon2D" id="Occ_53x16"]
+polygon = PackedVector2Array(-26.7, -8.0, 26.7, -8.0, 26.7, 8.0, -26.7, 8.0)
+
+[sub_resource type="RectangleShape2D" id="Rect_75x16"]
+size = Vector2(75.0, 16.0)
+
+[sub_resource type="OccluderPolygon2D" id="Occ_75x16"]
+polygon = PackedVector2Array(-37.5, -8.0, 37.5, -8.0, 37.5, 8.0, -37.5, 8.0)
+
+[sub_resource type="RectangleShape2D" id="Rect_87x16"]
+size = Vector2(86.7, 16.0)
+
+[sub_resource type="OccluderPolygon2D" id="Occ_87x16"]
+polygon = PackedVector2Array(-43.3, -8.0, 43.3, -8.0, 43.3, 8.0, -43.3, 8.0)
+
+[sub_resource type="RectangleShape2D" id="Rect_120x16"]
+size = Vector2(120.0, 16.0)
+
+[sub_resource type="OccluderPolygon2D" id="Occ_120x16"]
+polygon = PackedVector2Array(-60.0, -8.0, 60.0, -8.0, 60.0, 8.0, -60.0, 8.0)
+
+[sub_resource type="RectangleShape2D" id="Rect_200x16"]
+size = Vector2(200.0, 16.0)
+
+[sub_resource type="OccluderPolygon2D" id="Occ_200x16"]
+polygon = PackedVector2Array(-100.0, -8.0, 100.0, -8.0, 100.0, 8.0, -100.0, 8.0)
+
+[sub_resource type="RectangleShape2D" id="Rect_300x16"]
+size = Vector2(300.0, 16.0)
+
+[sub_resource type="OccluderPolygon2D" id="Occ_300x16"]
+polygon = PackedVector2Array(-150.0, -8.0, 150.0, -8.0, 150.0, 8.0, -150.0, 8.0)
