@@ -348,6 +348,11 @@ var _is_blinded: bool = false
 var _is_stunned: bool = false
 var _status_effect_anim: StatusEffectAnimationComponent = null  ## [Issue #602] Status effect visual animations
 
+## [Issue #675] Aggression gas effect — enemy attacks other enemies.
+var _is_aggressive: bool = false
+## The enemy being targeted during aggression (another enemy to attack).
+var _aggression_target: Node2D = null
+
 ## [Grenade Avoidance - Issue #407] Component handles avoidance logic
 var _grenade_avoidance: GrenadeAvoidanceComponent = null
 var _grenade_evasion_timer: float = 0.0  ## Timer for evasion to prevent stuck
@@ -1182,6 +1187,11 @@ func _process_ai_state(delta: float) -> void:
 		_transition_to_evading_grenade()
 		return
 
+	# [Issue #675] AGGRESSION: When aggressive, attack other enemies instead of player.
+	if _is_aggressive:
+		_process_aggression_combat(delta)
+		return
+
 	# HIGHEST PRIORITY: Player distracted (aim > 23° away) - shoot immediately (Hard mode only)
 	# NOTE: Disabled during memory reset confusion period (Issue #318)
 	var difficulty_manager: Node = get_node_or_null("/root/DifficultyManager")
@@ -1338,6 +1348,93 @@ func _process_idle_state(delta: float) -> void:
 		BehaviorMode.GUARD: _process_guard(delta)
 
 ## Process COMBAT state - cycle: approach->exposed shooting (2-3s)->return to cover via SEEKING_COVER.
+## [Issue #675] Process aggression combat — attack other enemies.
+func _process_aggression_combat(delta: float) -> void:
+	# Find or validate aggression target
+	if _aggression_target == null or not is_instance_valid(_aggression_target):
+		_aggression_target = _find_nearest_enemy_target()
+		if _aggression_target == null:
+			# No target found - stand still
+			velocity = Vector2.ZERO
+			return
+
+	# Check if target is still alive
+	if _aggression_target.get("_is_alive") == false:
+		_aggression_target = _find_nearest_enemy_target()
+		if _aggression_target == null:
+			velocity = Vector2.ZERO
+			return
+
+	# Check if we can see the target
+	var can_see_target := _has_line_of_sight_to_target(_aggression_target)
+
+	if can_see_target:
+		# Aim at the aggression target
+		var direction := (_aggression_target.global_position - global_position).normalized()
+		var target_angle := direction.angle()
+		var angle_diff := wrapf(target_angle - rotation, -PI, PI)
+		if abs(angle_diff) <= rotation_speed * delta:
+			rotation = target_angle
+		elif angle_diff > 0:
+			rotation += rotation_speed * delta
+		else:
+			rotation -= rotation_speed * delta
+		_force_model_to_face_direction(direction)
+
+		# Check if aimed and ready to shoot
+		var weapon_forward := _get_weapon_forward_direction()
+		var aim_dot := weapon_forward.dot(direction)
+		if aim_dot >= AIM_TOLERANCE_DOT and _can_shoot() and _shoot_timer >= shoot_cooldown:
+			_shoot_at_aggression_target()
+			_shoot_timer = 0.0
+
+		# Stand still while shooting
+		velocity = Vector2.ZERO
+	else:
+		# Move toward target to get line of sight
+		_move_to_target_nav(_aggression_target.global_position, combat_move_speed)
+
+## [Issue #675] Shoot at the current aggression target (another enemy).
+func _shoot_at_aggression_target() -> void:
+	if _aggression_target == null or not is_instance_valid(_aggression_target):
+		return
+	if bullet_scene == null:
+		return
+	if not _can_shoot():
+		return
+
+	var target_position := _aggression_target.global_position
+	var weapon_forward := _get_weapon_forward_direction()
+	var bullet_spawn_pos := _get_bullet_spawn_position(weapon_forward)
+	var direction := weapon_forward
+
+	# Fire projectile
+	if _is_shotgun_weapon:
+		_shoot_shotgun_pellets(direction, bullet_spawn_pos)
+	else:
+		_shoot_single_bullet(direction, bullet_spawn_pos)
+	_spawn_muzzle_flash(bullet_spawn_pos, direction)
+	_spawn_casing(direction, weapon_forward)
+
+	# Play sound
+	var audio: Node = get_node_or_null("/root/AudioManager")
+	if audio:
+		if _is_shotgun_weapon and audio.has_method("play_shotgun_shot"):
+			audio.play_shotgun_shot(global_position)
+		elif audio.has_method("play_m16_shot"):
+			audio.play_m16_shot(global_position)
+	var sp: Node = get_node_or_null("/root/SoundPropagation")
+	if sp and sp.has_method("emit_sound"):
+		sp.emit_sound(0, global_position, 1, self, weapon_loudness)
+	_play_delayed_shell_sound()
+	_current_ammo -= 1
+	_shot_count += 1
+	_spread_timer = 0.0
+	ammo_changed.emit(_current_ammo, _reserve_ammo)
+	if _current_ammo <= 0 and _reserve_ammo > 0:
+		_start_reload()
+
+
 func _process_combat_state(delta: float) -> void:
 	_combat_state_timer += delta
 	# Issue #579/#595: Machete melee combat with attack animation
@@ -4211,6 +4308,41 @@ func on_hit_with_bullet_info(hit_direction: Vector2, caliber_data: Resource, has
 			impact_manager.spawn_blood_effect(global_position, hit_direction, caliber_data, false)
 		_update_health_visual()
 
+		# [Issue #675] Check if hit came from an aggressive enemy — retaliate
+		_check_aggression_retaliation(hit_direction)
+
+## [Issue #675] Check if we were hit by an aggressive enemy and retaliate.
+## Uses bullet direction to find the nearest aggressive enemy in the attacker's direction.
+func _check_aggression_retaliation(hit_direction: Vector2) -> void:
+	var attacker_dir := -hit_direction.normalized()
+	var enemies := get_tree().get_nodes_in_group("enemies")
+	var best_attacker: Node2D = null
+	var best_score := -INF
+
+	for enemy in enemies:
+		if enemy == self or not is_instance_valid(enemy) or not enemy is Node2D:
+			continue
+		if not enemy.get("_is_aggressive"):
+			continue
+		if enemy.get("_is_alive") == false:
+			continue
+
+		# Check if this aggressive enemy is roughly in the direction the bullet came from
+		var to_enemy := (enemy.global_position - global_position).normalized()
+		var direction_match := attacker_dir.dot(to_enemy)
+
+		# Must be roughly in the right direction (within ~60 degrees)
+		if direction_match > 0.5:
+			# Score by direction match and proximity
+			var distance := global_position.distance_to(enemy.global_position)
+			var score := direction_match - (distance / 1000.0)
+			if score > best_score:
+				best_score = score
+				best_attacker = enemy
+
+	if best_attacker != null:
+		_on_hit_by_aggressive_enemy(best_attacker)
+
 ## Shows a brief flash effect when hit.
 func _show_hit_flash() -> void:
 	if not _enemy_model:
@@ -4544,6 +4676,7 @@ func _update_debug_label() -> void:
 	if _memory and _memory.has_target(): t += "\n[%.0f%% %s]" % [_memory.confidence * 100, _memory.get_behavior_mode().substr(0, 6)]
 	if _prediction: t += _prediction.get_debug_text()
 	if _is_blinded or _is_stunned: t += "\n{%s}" % ("BLINDED + STUNNED" if _is_blinded and _is_stunned else "BLINDED" if _is_blinded else "STUNNED")
+	if _is_aggressive: t += "\n{AGGRESSIVE%s}" % (" -> %s" % _aggression_target.name if _aggression_target and is_instance_valid(_aggression_target) else "")
 	_debug_label.text = t
 
 func get_current_state() -> AIState: return _current_state
@@ -4838,6 +4971,76 @@ func set_stunned(stunned: bool) -> void:
 
 func is_blinded() -> bool: return _is_blinded
 func is_stunned() -> bool: return _is_stunned
+
+## [Issue #675] Set aggression state. Aggressive enemies attack other enemies.
+func set_aggressive(aggressive: bool) -> void:
+	var was_aggressive := _is_aggressive
+	_is_aggressive = aggressive
+	if aggressive and not was_aggressive:
+		_aggression_target = null  # Will be found in next AI tick
+		_log_to_file("[#675] Enemy became AGGRESSIVE - will target other enemies")
+		if _current_state == AIState.IDLE:
+			_transition_to_combat()
+	elif not aggressive and was_aggressive:
+		_aggression_target = null
+		_log_to_file("[#675] Aggression expired - returning to normal behavior")
+
+func is_aggressive() -> bool: return _is_aggressive
+
+## [Issue #675] Find the nearest valid enemy to attack while aggressive.
+## Returns null if no valid target found.
+func _find_nearest_enemy_target() -> Node2D:
+	var enemies := get_tree().get_nodes_in_group("enemies")
+	var nearest_enemy: Node2D = null
+	var nearest_distance := INF
+
+	for enemy in enemies:
+		if enemy == self:
+			continue
+		if not is_instance_valid(enemy) or not enemy is Node2D:
+			continue
+		# Only target living enemies
+		if enemy.has_method("is_blinded"):  # Confirms it's an enemy instance
+			if enemy.get("_is_alive") == false:
+				continue
+
+		var distance := global_position.distance_to(enemy.global_position)
+		if distance < nearest_distance:
+			# Check line of sight to the enemy
+			if _has_line_of_sight_to_target(enemy):
+				nearest_distance = distance
+				nearest_enemy = enemy
+
+	return nearest_enemy
+
+## [Issue #675] Check line of sight from this enemy to a target Node2D.
+func _has_line_of_sight_to_target(target: Node2D) -> bool:
+	var space_state := get_world_2d().direct_space_state
+	var query := PhysicsRayQueryParameters2D.create(
+		global_position,
+		target.global_position
+	)
+	query.collision_mask = 4  # Only check against obstacles
+	query.exclude = [self]
+	var result := space_state.intersect_ray(query)
+	return result.is_empty()
+
+## [Issue #675] Called when this enemy is hit by another enemy (aggression retaliation).
+## Makes the victim aggressive toward the attacker.
+func _on_hit_by_aggressive_enemy(attacker: Node2D) -> void:
+	if not is_instance_valid(attacker) or not _is_alive:
+		return
+	# If not already aggressive, become aggressive toward the attacker
+	if not _is_aggressive:
+		_log_to_file("[#675] Hit by aggressive enemy %s - retaliating!" % attacker.name)
+	_is_aggressive = true
+	_aggression_target = attacker
+	# Apply aggression effect via StatusEffectsManager (10 second retaliation)
+	var status_manager: Node = get_node_or_null("/root/StatusEffectsManager")
+	if status_manager and status_manager.has_method("apply_aggression"):
+		status_manager.apply_aggression(self, 10.0)
+	if _current_state == AIState.IDLE or _current_state == AIState.IN_COVER:
+		_transition_to_combat()
 
 ## Apply flashbang effect (Issue #432). Called by C# GrenadeTimer.
 func apply_flashbang_effect(blindness_duration: float, stun_duration: float) -> void:

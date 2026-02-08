@@ -4,11 +4,12 @@ extends Node
 ## Currently supports:
 ## - Blindness: Target cannot see the player
 ## - Stun: Target cannot move
+## - Aggression: Target attacks other enemies (Issue #675)
 ##
 ## Effects are tracked per-entity and automatically expire after duration.
 
 ## Dictionary tracking active effects per entity.
-## Structure: { instance_id: { "blindness": float, "stun": float } }
+## Structure: { instance_id: { "blindness": float, "stun": float, "aggression": float } }
 var _active_effects: Dictionary = {}
 
 
@@ -43,8 +44,15 @@ func _update_effects(delta: float) -> void:
 				effects["stun"] = 0
 				_on_stun_expired(entity)
 
+		# Update aggression (Issue #675)
+		if effects.has("aggression") and effects["aggression"] > 0:
+			effects["aggression"] -= delta
+			if effects["aggression"] <= 0:
+				effects["aggression"] = 0
+				_on_aggression_expired(entity)
+
 		# Check if all effects expired
-		if effects.get("blindness", 0) <= 0 and effects.get("stun", 0) <= 0:
+		if effects.get("blindness", 0) <= 0 and effects.get("stun", 0) <= 0 and effects.get("aggression", 0) <= 0:
 			expired_entities.append(entity_id)
 
 	# Clean up expired entities
@@ -109,6 +117,33 @@ func apply_stun(entity: Node2D, duration: float) -> void:
 	print("[StatusEffectsManager] Applied stun to %s for %.1fs" % [entity.name, duration])
 
 
+## Apply aggression effect to an entity (Issue #675).
+## Aggressive enemies attack other enemies instead of the player.
+## @param entity: The entity to make aggressive (typically an enemy).
+## @param duration: Duration of the aggression in seconds.
+func apply_aggression(entity: Node2D, duration: float) -> void:
+	if not is_instance_valid(entity):
+		return
+
+	var entity_id := entity.get_instance_id()
+
+	# Initialize effects dictionary if needed
+	if not _active_effects.has(entity_id):
+		_active_effects[entity_id] = {}
+
+	# Set or refresh aggression duration (always refresh to full duration on re-contact)
+	_active_effects[entity_id]["aggression"] = duration
+
+	# Apply the visual effect to the entity
+	_apply_aggression_visual(entity)
+
+	# Notify the entity of aggression
+	if entity.has_method("set_aggressive"):
+		entity.set_aggressive(true)
+
+	print("[StatusEffectsManager] Applied aggression to %s for %.1fs" % [entity.name, duration])
+
+
 ## Called when blindness expires on an entity.
 func _on_blindness_expired(entity: Object) -> void:
 	if not is_instance_valid(entity):
@@ -137,6 +172,21 @@ func _on_stun_expired(entity: Object) -> void:
 		entity.set_stunned(false)
 
 	print("[StatusEffectsManager] Stun expired on %s" % [entity.name if entity is Node else str(entity)])
+
+
+## Called when aggression expires on an entity (Issue #675).
+func _on_aggression_expired(entity: Object) -> void:
+	if not is_instance_valid(entity):
+		return
+
+	# Restore visual
+	_remove_aggression_visual(entity)
+
+	# Notify the entity
+	if entity.has_method("set_aggressive"):
+		entity.set_aggressive(false)
+
+	print("[StatusEffectsManager] Aggression expired on %s" % [entity.name if entity is Node else str(entity)])
 
 
 ## Apply tint color to entity, supporting both single-sprite and modular-sprite entities.
@@ -185,7 +235,7 @@ func _remove_blindness_visual(entity: Object) -> void:
 		return
 
 	if entity.has_meta("_blindness_tint"):
-		if not is_stunned(entity):
+		if not is_stunned(entity) and not is_aggressive(entity):
 			_restore_original_modulate(entity)
 		entity.remove_meta("_blindness_tint")
 
@@ -204,9 +254,28 @@ func _remove_stun_visual(entity: Object) -> void:
 		return
 
 	if entity.has_meta("_stun_tint"):
-		if not is_blinded(entity):
+		if not is_blinded(entity) and not is_aggressive(entity):
 			_restore_original_modulate(entity)
 		entity.remove_meta("_stun_tint")
+
+
+## Apply visual effect for aggression (Issue #675).
+func _apply_aggression_visual(entity: Node2D) -> void:
+	if not entity.has_meta("_aggression_tint"):
+		_save_original_modulate(entity)
+		_apply_tint(entity, Color(0.5, 1.0, 0.5, 1.0))  # Green tint
+		entity.set_meta("_aggression_tint", true)
+
+
+## Remove visual effect for aggression (Issue #675).
+func _remove_aggression_visual(entity: Object) -> void:
+	if not is_instance_valid(entity) or not entity is Node2D:
+		return
+
+	if entity.has_meta("_aggression_tint"):
+		if not is_blinded(entity) and not is_stunned(entity):
+			_restore_original_modulate(entity)
+		entity.remove_meta("_aggression_tint")
 
 
 ## Check if an entity is currently blinded.
@@ -233,6 +302,18 @@ func is_stunned(entity: Object) -> bool:
 	return false
 
 
+## Check if an entity is currently aggressive (Issue #675).
+func is_aggressive(entity: Object) -> bool:
+	if not is_instance_valid(entity):
+		return false
+
+	var entity_id := entity.get_instance_id()
+	if _active_effects.has(entity_id):
+		return _active_effects[entity_id].get("aggression", 0) > 0
+
+	return false
+
+
 ## Get remaining blindness duration for an entity.
 func get_blindness_remaining(entity: Object) -> float:
 	if not is_instance_valid(entity):
@@ -253,6 +334,18 @@ func get_stun_remaining(entity: Object) -> float:
 	var entity_id := entity.get_instance_id()
 	if _active_effects.has(entity_id):
 		return _active_effects[entity_id].get("stun", 0)
+
+	return 0.0
+
+
+## Get remaining aggression duration for an entity (Issue #675).
+func get_aggression_remaining(entity: Object) -> float:
+	if not is_instance_valid(entity):
+		return 0.0
+
+	var entity_id := entity.get_instance_id()
+	if _active_effects.has(entity_id):
+		return _active_effects[entity_id].get("aggression", 0)
 
 	return 0.0
 
@@ -282,4 +375,8 @@ func clear_effects(entity: Object) -> void:
 	if _active_effects.has(entity_id):
 		_remove_blindness_visual(entity)
 		_remove_stun_visual(entity)
+		_remove_aggression_visual(entity)
+		# Notify entity that aggression has ended (Issue #675)
+		if entity.has_method("set_aggressive"):
+			entity.set_aggressive(false)
 		_active_effects.erase(entity_id)
