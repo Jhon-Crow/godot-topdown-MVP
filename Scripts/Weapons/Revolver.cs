@@ -79,12 +79,20 @@ public partial class Revolver : BaseWeapon
     private bool _isDragging = false;
 
     /// <summary>
-    /// Whether cartridge insertion is blocked until RMB is released (Issue #659).
+    /// Whether cartridge insertion is blocked until cylinder is rotated (Issue #659).
     /// After inserting a cartridge via drag gesture, further insertions are blocked
-    /// until the player releases RMB, preventing multiple rounds from being loaded
-    /// in a single upward drag motion.
+    /// until the player scrolls (rotates the cylinder to the next empty chamber).
+    /// This enforces the realistic reload sequence: insert → rotate → insert → rotate.
     /// </summary>
     private bool _cartridgeInsertionBlocked = false;
+
+    /// <summary>
+    /// Number of rounds actually fired since the last casing ejection (Issue #659).
+    /// Incremented each time Fire() or FireChamberBullet() successfully fires.
+    /// Used in OpenCylinder() to eject only the correct number of spent casings,
+    /// preventing duplicate ejection when the cylinder is opened/closed repeatedly.
+    /// </summary>
+    private int _roundsFiredSinceLastEject = 0;
 
     /// <summary>
     /// Current aim angle in radians. Used for sensitivity-based aiming
@@ -256,7 +264,6 @@ public partial class Revolver : BaseWeapon
             && ReloadState != RevolverReloadState.Loading)
         {
             _isDragging = false;
-            _cartridgeInsertionBlocked = false;
             return;
         }
 
@@ -269,29 +276,27 @@ public partial class Revolver : BaseWeapon
                 // Use viewport mouse position (screen coordinates) for consistent drag detection
                 _dragStartPosition = GetViewport().GetMousePosition();
                 _isDragging = true;
-                _cartridgeInsertionBlocked = false;
             }
             else if (!_cartridgeInsertionBlocked)
             {
-                // Check for drag gesture completion (Issue #659: only one cartridge per drag)
+                // Check for drag gesture completion (Issue #659: only one cartridge per slot)
                 Vector2 currentPosition = GetViewport().GetMousePosition();
                 Vector2 dragVector = currentPosition - _dragStartPosition;
 
                 if (TryProcessDragGesture(dragVector))
                 {
-                    // Issue #659: Block further insertions until RMB is released.
-                    // This prevents multiple rounds from being loaded in a single
-                    // upward drag motion — the player must release and re-press RMB
-                    // (or release and drag up again) to insert another cartridge.
+                    // Issue #659: Block further insertions until cylinder is rotated.
+                    // After inserting one cartridge into the current chamber, the player
+                    // must scroll (rotate cylinder) to move to the next empty chamber
+                    // before inserting another cartridge.
                     _cartridgeInsertionBlocked = true;
                 }
             }
         }
         else if (_isDragging)
         {
-            // RMB released — reset drag state (Issue #659: unblock insertion for next drag)
+            // RMB released — reset drag state but keep insertion blocked until rotation
             _isDragging = false;
-            _cartridgeInsertionBlocked = false;
         }
     }
 
@@ -448,8 +453,10 @@ public partial class Revolver : BaseWeapon
             PlayRevolverShotSound();
             // Emit gunshot sound for in-game sound propagation (very loud)
             EmitGunshotSound();
-            // Note: No casing ejection on fire - revolver keeps spent casings in the cylinder
+            // Issue #659: Track fired rounds for accurate casing ejection count.
+            // No casing ejection on fire - revolver keeps spent casings in the cylinder
             // until the player opens it (casings eject in OpenCylinder → SpawnEjectedCasings)
+            _roundsFiredSinceLastEject++;
             // Trigger heavy screen shake (close to sniper rifle)
             TriggerScreenShake(spreadDirection);
         }
@@ -578,7 +585,9 @@ public partial class Revolver : BaseWeapon
         {
             PlayRevolverShotSound();
             EmitGunshotSound();
+            // Issue #659: Track fired rounds for accurate casing ejection count.
             // No casing ejection - spent casings stay in cylinder
+            _roundsFiredSinceLastEject++;
             TriggerScreenShake(spreadDirection);
         }
 
@@ -658,13 +667,18 @@ public partial class Revolver : BaseWeapon
             return false;
         }
 
-        // Track how many spent rounds to eject as casings
+        // Issue #659: Only eject casings for rounds actually fired since last ejection.
+        // This prevents duplicate casing ejection when the cylinder is opened/closed
+        // repeatedly without firing in between.
         int cylinderCapacity = CylinderCapacity;
-        _spentCasingsToEject = cylinderCapacity - CurrentAmmo;
+        _spentCasingsToEject = _roundsFiredSinceLastEject;
 
         // Live rounds stay in the cylinder - only spent casings fall out
         // CurrentAmmo is NOT reset to 0 - the player only needs to reload empty chambers
         CartridgesLoadedThisReload = 0;
+
+        // Reset insertion block for fresh reload sequence
+        _cartridgeInsertionBlocked = false;
 
         // Update reload state
         ReloadState = RevolverReloadState.CylinderOpen;
@@ -678,6 +692,8 @@ public partial class Revolver : BaseWeapon
             SpawnEjectedCasings(_spentCasingsToEject);
             PlayCasingsEjectSound();
             EmitSignal(SignalName.CasingsEjected, _spentCasingsToEject);
+            // Reset fired counter after ejecting casings
+            _roundsFiredSinceLastEject = 0;
         }
 
         EmitSignal(SignalName.ReloadStateChanged, (int)ReloadState);
@@ -792,6 +808,10 @@ public partial class Revolver : BaseWeapon
         {
             return false;
         }
+
+        // Issue #659: Rotating the cylinder moves to the next chamber,
+        // allowing a new cartridge to be inserted.
+        _cartridgeInsertionBlocked = false;
 
         // Play cylinder rotation click sound
         PlayCylinderRotateSound();
