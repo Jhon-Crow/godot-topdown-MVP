@@ -56,6 +56,11 @@ const SCATTER_LIGHT_TEXTURE_SCALE: float = 3.0
 ## Color of the scatter light — warm white matching the main beam tint.
 const SCATTER_LIGHT_COLOR: Color = Color(1.0, 1.0, 0.92, 1.0)
 
+## Offset (in pixels) to pull the scatter light back from wall surfaces.
+## Prevents the PointLight2D from sitting exactly on a LightOccluder2D boundary,
+## which causes light to leak through in Godot's 2D shadow system.
+const SCATTER_WALL_PULLBACK: float = 8.0
+
 ## Reference to the PointLight2D child node.
 var _point_light: PointLight2D = null
 
@@ -65,6 +70,11 @@ var _scatter_light: PointLight2D = null
 
 ## Whether the flashlight is currently active (on).
 var _is_on: bool = false
+
+## Whether the main beam light is currently wall-clamped (Issue #640).
+## Used by _update_scatter_light_position() to suppress the scatter glow
+## when the player stands flush against a wall.
+var _is_wall_clamped: bool = false
 
 ## AudioStreamPlayer for flashlight toggle sound.
 var _audio_player: AudioStreamPlayer = null
@@ -183,14 +193,22 @@ func _set_light_visible(visible_state: bool) -> void:
 		_point_light.visible = visible_state
 		_point_light.energy = LIGHT_ENERGY if visible_state else 0.0
 	if _scatter_light:
-		_scatter_light.visible = visible_state
+		# When wall-clamped, scatter light stays hidden (Issue #640).
+		var scatter_visible: bool = visible_state and not _is_wall_clamped
+		_scatter_light.visible = scatter_visible
 		_scatter_light.energy = SCATTER_LIGHT_ENERGY if visible_state else 0.0
 
 
 ## Prevent the PointLight2D from penetrating walls when the player stands
-## close to a wall. Raycasts from the player's center toward the flashlight's
-## default position; if a wall is in the way, the light is moved back to
-## the player center so the wall's LightOccluder2D properly blocks the beam.
+## close to a wall (Issue #640). Three measures are applied simultaneously:
+##
+## 1. Move the PointLight2D back to the player center — keeps the wall's
+##    LightOccluder2D between the light source and the wall geometry.
+## 2. Reduce texture_scale so the beam's visual reach only extends to the
+##    wall surface — prevents the cone from illuminating the wall body
+##    through PCF shadow filter penumbra bleed.
+## 3. Switch to SHADOW_FILTER_NONE for crisp shadow edges — eliminates
+##    the soft penumbra that bleeds light around LightOccluder2D boundaries.
 func _clamp_light_to_walls() -> void:
 	if _point_light == null:
 		return
@@ -211,6 +229,8 @@ func _clamp_light_to_walls() -> void:
 	if dist < 1.0:
 		# Light is at player center, nothing to clamp
 		_point_light.position = Vector2.ZERO
+		_is_wall_clamped = false
+		_restore_light_defaults()
 		return
 
 	var space_state := get_world_2d().direct_space_state
@@ -221,11 +241,34 @@ func _clamp_light_to_walls() -> void:
 	if result.is_empty():
 		# No wall between player and flashlight position — use default
 		_point_light.position = Vector2.ZERO
+		_is_wall_clamped = false
+		_restore_light_defaults()
 	else:
 		# Wall hit: move the light source back to the player center.
-		# This ensures the wall's nearest face (LightOccluder2D) fully blocks
-		# the beam — the light won't illuminate the wall body or pass through.
 		_point_light.global_position = player_center
+		_is_wall_clamped = true
+
+		# Calculate distance from player center to wall hit point.
+		var wall_dist: float = (result.position - player_center).length()
+
+		# Reduce texture_scale so the beam only reaches the wall surface.
+		# The cone texture is 2048px wide; effective reach = texture_size * scale / 2.
+		# We want: effective_reach = wall_dist, so: scale = wall_dist * 2 / texture_size.
+		# Clamp to a minimum to avoid visual artifacts from extremely small scales.
+		var cone_texture_size: float = 2048.0
+		var clamped_scale: float = maxf(wall_dist * 2.0 / cone_texture_size, 0.1)
+		_point_light.texture_scale = minf(clamped_scale, LIGHT_TEXTURE_SCALE)
+
+		# Use sharp shadows near walls to prevent PCF penumbra bleed.
+		_point_light.shadow_filter = PointLight2D.SHADOW_FILTER_NONE
+
+
+## Restore PointLight2D to default settings when not wall-clamped.
+func _restore_light_defaults() -> void:
+	if _point_light == null:
+		return
+	_point_light.texture_scale = LIGHT_TEXTURE_SCALE
+	_point_light.shadow_filter = PointLight2D.SHADOW_FILTER_PCF5
 
 
 func _physics_process(_delta: float) -> void:
@@ -239,8 +282,20 @@ func _physics_process(_delta: float) -> void:
 ## Update the scatter light position to the beam's impact point (Issue #644).
 ## Casts a ray along the beam direction and places the scatter light where
 ## the beam hits a wall or at the maximum beam range if no wall is hit.
+##
+## Issue #640 fix: When the main beam is wall-clamped (player flush against wall),
+## the scatter light is hidden to prevent residual glow from leaking through.
+## When a wall hit is detected at normal range, the scatter light is pulled back
+## from the wall surface to avoid sitting on the LightOccluder2D boundary.
 func _update_scatter_light_position() -> void:
 	if _scatter_light == null:
+		return
+
+	# If the main beam is wall-clamped, hide the scatter light entirely.
+	# When the player is flush against a wall, there's no meaningful surface
+	# for the beam to scatter from — the beam is blocked before it reaches.
+	if _is_wall_clamped:
+		_scatter_light.visible = false
 		return
 
 	var beam_origin := global_position
@@ -255,11 +310,19 @@ func _update_scatter_light_position() -> void:
 	var result := space_state.intersect_ray(query)
 
 	if not result.is_empty():
-		# Beam hits a wall — place scatter light at the impact point
-		_scatter_light.global_position = result.position
+		# Beam hits a wall — pull the scatter light back from the wall surface
+		# toward the player. This prevents the PointLight2D from sitting exactly
+		# on the LightOccluder2D boundary, where Godot's shadow system cannot
+		# reliably block it (known engine limitation, GitHub #79783).
+		var wall_pos: Vector2 = result.position
+		var pullback_dir: Vector2 = -beam_direction
+		var scatter_pos: Vector2 = wall_pos + pullback_dir * SCATTER_WALL_PULLBACK
+		_scatter_light.global_position = scatter_pos
+		_scatter_light.visible = _is_on
 	else:
 		# No wall hit — place scatter light at max beam range
 		_scatter_light.global_position = beam_end
+		_scatter_light.visible = _is_on
 
 
 ## Check all enemies and blind those caught in the flashlight beam.
