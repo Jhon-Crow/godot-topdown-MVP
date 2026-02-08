@@ -255,6 +255,10 @@ var _global_stuck_timer: float = 0.0  ## Stuck timer (Issue #367: Global stuck d
 var _global_stuck_last_position: Vector2 = Vector2.ZERO  ## Last position
 const GLOBAL_STUCK_MAX_TIME: float = 4.0  ## Max stuck time
 const GLOBAL_STUCK_DISTANCE_THRESHOLD: float = 30.0  ## Min move distance
+var _wall_blocked_pursuit_timer: float = 0.0  ## Issue #612: Timer tracking how long enemy pursues without making nav progress
+const WALL_BLOCKED_PURSUIT_MAX_TIME: float = 2.0  ## Issue #612: Max time pursuing without nav progress before giving up
+var _wall_blocked_pursuit_last_pos: Vector2 = Vector2.ZERO  ## Issue #612: Last position for wall-blocked detection
+const WALL_BLOCKED_PURSUIT_THRESHOLD: float = 15.0  ## Issue #612: Min movement to count as progress
 var _assault_wait_timer: float = 0.0  ## Assault wait timer (Assault State)
 const ASSAULT_WAIT_DURATION: float = 5.0  ## Pre-assault wait (sec)
 var _assault_ready: bool = false  ## Assault wait complete
@@ -293,90 +297,48 @@ var _clear_shot_target: Vector2 = Vector2.ZERO  ## Clear shot target (Clear Shot
 var _seeking_clear_shot: bool = false  ## Moving to clear shot
 var _clear_shot_timer: float = 0.0  ## Clear shot attempt timer
 
-## Maximum time to spend finding a clear shot before giving up (seconds).
-const CLEAR_SHOT_MAX_TIME: float = 3.0
-
-## Distance to move when exiting cover to find a clear shot.
-const CLEAR_SHOT_EXIT_DISTANCE: float = 60.0
-
+const CLEAR_SHOT_MAX_TIME: float = 3.0  ## Max clear shot find time (sec)
+const CLEAR_SHOT_EXIT_DISTANCE: float = 60.0  ## Cover exit distance for clear shot
 ## --- Sound-Based Detection ---
-## Last known sound source position (for investigation when player not visible).
-var _last_known_player_position: Vector2 = Vector2.ZERO
-## Pursuing vulnerability sound (reload/empty click) without line of sight.
-var _pursuing_vulnerability_sound: bool = false
-
-## [Memory System Issue #297] Tracks suspected player position with confidence (0=none, 1=visual).
-## High(>0.8):direct pursuit, Med(0.5-0.8):cautious approach, Low(<0.5):return to patrol/guard.
+var _last_known_player_position: Vector2 = Vector2.ZERO  ## Last known sound source position
+var _pursuing_vulnerability_sound: bool = false  ## Pursuing reload/empty click sound
+## [Memory System #297] Tracks suspected player position with confidence (0=none, 1=visual).
 var _memory: EnemyMemory = null
-
-## Confidence values for different detection sources.
 const VISUAL_DETECTION_CONFIDENCE: float = 1.0
 const SOUND_GUNSHOT_CONFIDENCE: float = 0.7
 const SOUND_RELOAD_CONFIDENCE: float = 0.6
 const SOUND_EMPTY_CLICK_CONFIDENCE: float = 0.6
 const INTEL_SHARE_FACTOR: float = 0.9  ## Confidence reduction when sharing intel
-
-## Communication range for enemy-to-enemy information sharing.
-## 660px with direct line of sight, 300px without line of sight.
-const INTEL_SHARE_RANGE_LOS: float = 660.0
-const INTEL_SHARE_RANGE_NO_LOS: float = 300.0
-
-## Timer for periodic intel sharing (to avoid per-frame overhead).
-var _intel_share_timer: float = 0.0
-const INTEL_SHARE_INTERVAL: float = 0.5  ## Share intel every 0.5 seconds
-
-## Memory reset confusion timer (Issue #318): blocks visibility after teleport.
-var _memory_reset_confusion_timer: float = 0.0
-const MEMORY_RESET_CONFUSION_DURATION: float = 2.0  ## Extended to 2s for better player escape window
-
-## [Ally Death Observation Issue #409] Enemy enters SEARCHING when witnessing ally death.
-## Observing enemy estimates player location based on bullet travel direction.
+const INTEL_SHARE_RANGE_LOS: float = 660.0  ## Comms range with LOS (px)
+const INTEL_SHARE_RANGE_NO_LOS: float = 300.0  ## Comms range without LOS (px)
+var _intel_share_timer: float = 0.0  ## Periodic intel share timer
+const INTEL_SHARE_INTERVAL: float = 0.5  ## Share intel every 0.5s
+var _memory_reset_confusion_timer: float = 0.0  ## #318: blocks visibility after teleport
+const MEMORY_RESET_CONFUSION_DURATION: float = 2.0  ## 2s confusion after memory reset
+## [Ally Death Observation #409] Enemy enters SEARCHING when witnessing ally death.
 const ALLY_DEATH_OBSERVE_RANGE: float = 500.0  ## Max distance to observe ally death (px)
 const ALLY_DEATH_CONFIDENCE: float = 0.6  ## Medium confidence when observing death
-var _suspected_directions: Array[Vector2] = []  ## Up to 3 estimated player directions
-var _witnessed_ally_death: bool = false  ## Flag for GOAP action trigger
-
-## [Score Tracking] Whether the last hit that killed this enemy was from a ricocheted bullet.
-var _killed_by_ricochet: bool = false
-
-## Whether the last hit that killed this enemy was from a bullet that penetrated a wall.
-var _killed_by_penetration: bool = false
-
-## [Status Effects] Component handles blindness and stun (Issue #432, #328)
+var _suspected_directions: Array[Vector2] = []  ## Estimated player directions (up to 3)
+var _witnessed_ally_death: bool = false  ## GOAP action trigger flag
+var _killed_by_ricochet: bool = false  ## Killed by ricocheted bullet (score tracking)
+var _killed_by_penetration: bool = false  ## Killed by wall-penetrating bullet
+## [Status Effects] Blindness and stun (#432, #328)
 var _flashbang_status: FlashbangStatusComponent = null
-var _is_blinded: bool = false
-var _is_stunned: bool = false
-var _status_effect_anim: StatusEffectAnimationComponent = null  ## [Issue #602] Status effect visual animations
-
-## [Grenade Avoidance - Issue #407] Component handles avoidance logic
+var _is_blinded: bool = false; var _is_stunned: bool = false
+var _status_effect_anim: StatusEffectAnimationComponent = null  ## #602: status effect visuals
+## [Grenade Avoidance #407]
 var _grenade_avoidance: GrenadeAvoidanceComponent = null
-var _grenade_evasion_timer: float = 0.0  ## Timer for evasion to prevent stuck
-
-## Maximum time to spend evading before giving up (seconds).
-const GRENADE_EVASION_MAX_TIME: float = 4.0
-
-## State to return to after grenade evasion completes.
-var _pre_evasion_state: AIState = AIState.IDLE
-
-var _prediction: PlayerPredictionComponent = null  ## [Issue #298] Player position prediction.
-var _was_player_visible: bool = false  ## [Issue #298] Tracks sight-loss transitions.
-
-## [Issue #574] Flashlight detection component — detects player flashlight beam.
-var _flashlight_detection: FlashlightDetectionComponent = null
-
-## Last hit direction (used for death animation).
-var _last_hit_direction: Vector2 = Vector2.RIGHT
-
-## Death animation component reference.
-var _death_animation: Node = null
-
-## Grenade component for handling grenade throwing (extracted for Issue #377 CI fix).
-var _grenade_component: EnemyGrenadeComponent = null
-
-var _machete: MacheteComponent = null  ## Machete melee component (Issue #579).
-var _is_melee_weapon: bool = false  ## Whether this enemy uses melee weapon.
-
-## Note: DeathAnimationComponent, EnemyGrenadeComponent, MacheteComponent are available via class_name declarations.
+var _grenade_evasion_timer: float = 0.0  ## Evasion timer to prevent stuck
+const GRENADE_EVASION_MAX_TIME: float = 4.0  ## Max evasion time (sec)
+var _pre_evasion_state: AIState = AIState.IDLE  ## State to return to after evasion
+var _prediction: PlayerPredictionComponent = null  ## #298: Player position prediction
+var _was_player_visible: bool = false  ## #298: Tracks sight-loss transitions
+var _flashlight_detection: FlashlightDetectionComponent = null  ## #574: Flashlight beam detection
+var _last_hit_direction: Vector2 = Vector2.RIGHT  ## Last hit direction (death animation)
+var _death_animation: Node = null  ## Death animation component
+var _grenade_component: EnemyGrenadeComponent = null  ## #377: Grenade throwing component
+var _machete: MacheteComponent = null  ## #579: Machete melee component
+var _is_melee_weapon: bool = false  ## Whether this enemy uses melee weapon
 
 func _ready() -> void:
 	# Add to enemies group for grenade targeting
@@ -1460,7 +1422,13 @@ func _process_combat_state(delta: float) -> void:
 			if _can_attempt_flanking():
 				_transition_to_flanking()
 			else:
-				_transition_to_pursuing()
+				# Issue #612: If flanking is disabled/on cooldown (likely due to repeated
+				# wall-blocked failures), go to SEARCHING instead of PURSUING to break the loop
+				if _flank_fail_count >= FLANK_FAIL_MAX_COUNT:
+					_log_to_file("COMBAT: clear shot timeout + flanking exhausted -> SEARCHING (Issue #612)")
+					_transition_to_searching(global_position)
+				else:
+					_transition_to_pursuing()
 			return
 
 		# Move toward the clear shot target position
@@ -1955,6 +1923,30 @@ func _process_pursuing_state(delta: float) -> void:
 
 	# NOTE: ASSAULT state transition removed per issue #169
 	# Enemies now stay in PURSUING instead of transitioning to coordinated assault
+
+	# Issue #612: Detect wall-blocked pursuit — when enemy is pursuing but not making
+	# navigation progress (e.g. stuck at a wall with the player on the other side),
+	# give up faster than the 4-second GLOBAL STUCK timer.
+	if _player and not _pursuit_approaching and not _has_pursuit_cover:
+		var wall_blocked_moved := global_position.distance_to(_wall_blocked_pursuit_last_pos)
+		if wall_blocked_moved < WALL_BLOCKED_PURSUIT_THRESHOLD:
+			_wall_blocked_pursuit_timer += delta
+			if _wall_blocked_pursuit_timer >= WALL_BLOCKED_PURSUIT_MAX_TIME:
+				# Check if we can see the player but can't hit them — classic "player behind wall" scenario
+				var player_behind_wall := _can_see_player and not _can_hit_player_from_current_position()
+				# Also trigger if we simply can't see the player at all and nav has no path
+				var nav_finished := _nav_agent != null and _nav_agent.is_navigation_finished()
+				if player_behind_wall or (nav_finished and not _can_see_player):
+					_log_to_file("PURSUING wall-blocked: pos=%s for %.1fs, can_see=%s, can_hit=%s -> SEARCHING (Issue #612)" % [global_position, _wall_blocked_pursuit_timer, _can_see_player, _can_hit_player_from_current_position()])
+					_wall_blocked_pursuit_timer = 0.0
+					_wall_blocked_pursuit_last_pos = global_position
+					_has_pursuit_cover = false
+					_pursuit_approaching = false
+					_transition_to_searching(global_position)
+					return
+		else:
+			_wall_blocked_pursuit_timer = 0.0
+			_wall_blocked_pursuit_last_pos = global_position
 
 	# If can see player and can hit them from current position, engage
 	# But only after minimum time has elapsed to prevent rapid state thrashing
@@ -2537,7 +2529,16 @@ func _transition_to_flanking() -> bool:
 		_log_to_file("Flanking aborted: both sides behind walls (Issue #612)")
 		_flank_fail_count += 1
 		_flank_cooldown_timer = FLANK_COOLDOWN_DURATION
-		_transition_to_combat() if _can_see_player else _transition_to_pursuing()
+		# Issue #612: If flanking has failed multiple times, the player is likely behind a wall
+		# that can't be flanked. Transition to SEARCHING to break the loop instead of
+		# going back to PURSUING (which would just walk into the wall again).
+		if _flank_fail_count >= FLANK_FAIL_MAX_COUNT:
+			_log_to_file("Flanking failed %d times, player likely behind wall -> SEARCHING (Issue #612)" % _flank_fail_count)
+			_transition_to_searching(global_position)
+		elif _can_see_player:
+			_transition_to_combat()
+		else:
+			_transition_to_pursuing()
 		return false
 	_flank_side_initialized = true
 	_calculate_flank_position()
@@ -2618,6 +2619,9 @@ func _transition_to_pursuing() -> void:
 	# Reset global stuck detection (Issue #367)
 	_global_stuck_timer = 0.0
 	_global_stuck_last_position = global_position
+	# Issue #612: Reset wall-blocked pursuit detection (but keep timer if re-entering PURSUING
+	# from a brief COMBAT state at the same position — this allows accumulation across cycles)
+	_wall_blocked_pursuit_last_pos = global_position
 	# Reset detection delay for new engagement
 	_detection_timer = 0.0
 	_detection_delay_elapsed = false
@@ -2641,6 +2645,8 @@ func _transition_to_searching(center_position: Vector2) -> void:
 	_current_state = AIState.SEARCHING
 	# Mark that enemy has left IDLE state (Issue #330)
 	_has_left_idle = true
+	# Issue #612: Reset wall-blocked pursuit timer
+	_wall_blocked_pursuit_timer = 0.0
 	_search_center = center_position; _search_radius = SEARCH_INITIAL_RADIUS
 	_search_state_timer = 0.0; _search_scan_timer = 0.0; _search_current_waypoint_index = 0
 	_search_direction = 0; _search_leg_length = SEARCH_WAYPOINT_SPACING; _search_legs_completed = 0

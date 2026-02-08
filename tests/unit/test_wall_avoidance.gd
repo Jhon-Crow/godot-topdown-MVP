@@ -283,3 +283,140 @@ func test_flank_fail_escalation_issue_612() -> void:
 	assert_eq(flank_fail_count, 2, "Second abort should set fail count to 2")
 	assert_true(flank_fail_count >= flank_fail_max,
 		"After 2 failures, flanking should be disabled")
+
+
+# ============================================================================
+# Wall-Blocked Pursuit Detection Tests (Issue #612 - game_log_20260208)
+# ============================================================================
+
+
+## Test wall-blocked pursuit timer accumulates when enemy doesn't move.
+## Simulates enemy stuck at wall during PURSUING state.
+func test_wall_blocked_pursuit_timer_accumulates_issue_612() -> void:
+	var timer: float = 0.0
+	var max_time: float = 2.0
+	var threshold: float = 15.0
+	var last_pos := Vector2(500, 500)
+	var current_pos := Vector2(502, 501)  # Moved only ~2.2px — below threshold
+
+	var moved := current_pos.distance_to(last_pos)
+	assert_true(moved < threshold,
+		"Movement below threshold should trigger timer accumulation")
+
+	# Simulate 3 seconds of physics frames (60fps * 3s = 180 frames at ~0.0167s each)
+	var delta := 1.0 / 60.0
+	for i in range(180):
+		if moved < threshold:
+			timer += delta
+
+	assert_true(timer >= max_time,
+		"After 3s without progress, timer should exceed 2s threshold")
+
+
+## Test wall-blocked pursuit timer resets when enemy makes progress.
+func test_wall_blocked_pursuit_timer_resets_on_progress_issue_612() -> void:
+	var timer: float = 1.5  # Accumulated 1.5 seconds
+	var threshold: float = 15.0
+	var last_pos := Vector2(500, 500)
+	var current_pos := Vector2(520, 510)  # Moved ~22.4px — above threshold
+
+	var moved := current_pos.distance_to(last_pos)
+	assert_true(moved >= threshold,
+		"Movement above threshold should count as progress")
+
+	# Reset timer when progress detected
+	if moved >= threshold:
+		timer = 0.0
+		last_pos = current_pos
+
+	assert_eq(timer, 0.0,
+		"Timer should reset when enemy makes meaningful progress")
+	assert_eq(last_pos, current_pos,
+		"Last position should update on progress")
+
+
+## Test wall-blocked pursuit detects "player behind wall" scenario.
+## When can_see_player=true but can_hit=false, enemy should give up faster.
+func test_wall_blocked_detects_player_behind_wall_issue_612() -> void:
+	var can_see_player := true
+	var can_hit_player := false
+	var timer_expired := true  # Timer exceeded WALL_BLOCKED_PURSUIT_MAX_TIME
+
+	# The condition for triggering wall-blocked search
+	var player_behind_wall := can_see_player and not can_hit_player
+	var should_search := timer_expired and player_behind_wall
+
+	assert_true(should_search,
+		"Should transition to SEARCHING when stuck + can see but can't hit player")
+
+
+## Test wall-blocked pursuit timer persists across COMBAT<->PURSUING cycles.
+## Simulates the rapid state cycling observed in game logs.
+func test_wall_blocked_timer_persists_across_state_cycles_issue_612() -> void:
+	# Simulate: PURSUING for 0.3s -> COMBAT for 0.5s -> PURSUING for 0.3s -> ...
+	var timer: float = 0.0
+	var threshold: float = 15.0
+	var wall_pos := Vector2(888, 880)  # Enemy stuck at wall
+	var last_pos := wall_pos
+	var delta := 1.0 / 60.0
+
+	# Cycle 1: PURSUING for 0.3s (18 frames at 60fps)
+	for i in range(18):
+		var moved := wall_pos.distance_to(last_pos)
+		if moved < threshold:
+			timer += delta
+	# COMBAT for 0.5s — timer pauses (only runs in PURSUING)
+	# Re-enter PURSUING: last_pos = current pos (which is still wall_pos)
+	last_pos = wall_pos
+
+	# Cycle 2: PURSUING for 0.3s
+	for i in range(18):
+		var moved := wall_pos.distance_to(last_pos)
+		if moved < threshold:
+			timer += delta
+	last_pos = wall_pos
+
+	# Cycle 3: PURSUING for 0.3s
+	for i in range(18):
+		var moved := wall_pos.distance_to(last_pos)
+		if moved < threshold:
+			timer += delta
+	last_pos = wall_pos
+
+	# Cycle 4: PURSUING for 0.3s
+	for i in range(18):
+		var moved := wall_pos.distance_to(last_pos)
+		if moved < threshold:
+			timer += delta
+
+	# After 4 cycles of 0.3s PURSUING each = 1.2s accumulated
+	assert_almost_eq(timer, 1.2, 0.05,
+		"Timer should accumulate ~1.2s across 4 PURSUING phases of 0.3s each")
+
+	# Need ~7 cycles to reach 2.0s threshold
+	for i in range(50):  # 3 more cycles worth of frames
+		var moved := wall_pos.distance_to(last_pos)
+		if moved < threshold:
+			timer += delta
+
+	assert_true(timer >= 2.0,
+		"Timer should eventually exceed 2.0s threshold even with short PURSUING phases")
+
+
+## Test that flank fail count triggers SEARCHING fallback (Issue #612).
+## After FLANK_FAIL_MAX_COUNT failures, flank abort goes to SEARCHING instead of PURSUING.
+func test_flank_fail_count_triggers_searching_fallback_issue_612() -> void:
+	var flank_fail_count: int = 0
+	var flank_fail_max: int = 2
+
+	# First flank abort: goes to COMBAT/PURSUING (not yet at max)
+	flank_fail_count += 1
+	var should_search_1 := flank_fail_count >= flank_fail_max
+	assert_false(should_search_1,
+		"First flank failure should NOT trigger SEARCHING fallback")
+
+	# Second flank abort: should now trigger SEARCHING
+	flank_fail_count += 1
+	var should_search_2 := flank_fail_count >= flank_fail_max
+	assert_true(should_search_2,
+		"After reaching FLANK_FAIL_MAX_COUNT, should transition to SEARCHING")
