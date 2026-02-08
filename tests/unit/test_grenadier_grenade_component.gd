@@ -689,3 +689,152 @@ func test_reset_clears_t8_and_t9() -> void:
 	assert_eq(triggers._direct_sight_timer, 0.0, "Direct sight timer should be 0")
 	assert_false(triggers._player_in_throw_range, "Player in range should be false")
 	assert_eq(triggers._low_suspicion_timer, 0.0, "Low suspicion timer should be 0")
+
+
+# ============================================================================
+# Frag Grenade Arming Distance Tests (Issue #657 - Self-Kill Prevention)
+# ============================================================================
+
+
+class MockFragGrenadeArming:
+	## Mirrors frag grenade arming distance logic for unit testing.
+	## The grenade must travel MIN_ARMING_DISTANCE from spawn point before
+	## impact explosion is armed, preventing self-kills from nearby obstacles.
+	const MIN_ARMING_DISTANCE := 80.0
+
+	var _spawn_position: Vector2 = Vector2.ZERO
+	var _impact_armed: bool = false
+	var _is_thrown: bool = false
+	var _has_impacted: bool = false
+	var _has_exploded: bool = false
+	var current_position: Vector2 = Vector2.ZERO
+
+	func setup(spawn_pos: Vector2) -> void:
+		_spawn_position = spawn_pos
+		current_position = spawn_pos
+		_impact_armed = false
+		_is_thrown = false
+		_has_impacted = false
+		_has_exploded = false
+
+	func throw() -> void:
+		_is_thrown = true
+
+	func update_arming() -> void:
+		if not _impact_armed and _is_thrown:
+			if current_position.distance_to(_spawn_position) >= MIN_ARMING_DISTANCE:
+				_impact_armed = true
+
+	func can_impact_explode() -> bool:
+		return _is_thrown and not _has_impacted and not _has_exploded and _impact_armed
+
+
+var arming: MockFragGrenadeArming
+
+
+func test_arming_not_armed_at_spawn() -> void:
+	arming = MockFragGrenadeArming.new()
+	arming.setup(Vector2(100, 100))
+	arming.throw()
+	arming.update_arming()
+
+	assert_false(arming._impact_armed,
+		"Grenade should NOT be armed at spawn position (0 distance)")
+
+
+func test_arming_not_armed_below_threshold() -> void:
+	arming = MockFragGrenadeArming.new()
+	arming.setup(Vector2(100, 100))
+	arming.throw()
+	arming.current_position = Vector2(170, 100)  # 70px traveled
+	arming.update_arming()
+
+	assert_false(arming._impact_armed,
+		"Grenade should NOT be armed when traveled 70px < 80px MIN_ARMING_DISTANCE")
+
+
+func test_arming_armed_at_threshold() -> void:
+	arming = MockFragGrenadeArming.new()
+	arming.setup(Vector2(100, 100))
+	arming.throw()
+	arming.current_position = Vector2(180, 100)  # 80px traveled
+	arming.update_arming()
+
+	assert_true(arming._impact_armed,
+		"Grenade should be armed when traveled 80px = MIN_ARMING_DISTANCE")
+
+
+func test_arming_armed_above_threshold() -> void:
+	arming = MockFragGrenadeArming.new()
+	arming.setup(Vector2(100, 100))
+	arming.throw()
+	arming.current_position = Vector2(300, 100)  # 200px traveled
+	arming.update_arming()
+
+	assert_true(arming._impact_armed,
+		"Grenade should be armed when traveled 200px > 80px MIN_ARMING_DISTANCE")
+
+
+func test_arming_stays_armed_once_armed() -> void:
+	arming = MockFragGrenadeArming.new()
+	arming.setup(Vector2(100, 100))
+	arming.throw()
+	arming.current_position = Vector2(200, 100)
+	arming.update_arming()
+	assert_true(arming._impact_armed, "Should be armed at 100px")
+
+	# Even if we somehow return closer (bouncing), should stay armed
+	arming.current_position = Vector2(110, 100)  # 10px from spawn
+	arming.update_arming()
+	assert_true(arming._impact_armed,
+		"Grenade should stay armed once armed (no disarming on return)")
+
+
+func test_arming_not_armed_when_not_thrown() -> void:
+	arming = MockFragGrenadeArming.new()
+	arming.setup(Vector2(100, 100))
+	# Not calling throw()
+	arming.current_position = Vector2(300, 100)  # Far away
+	arming.update_arming()
+
+	assert_false(arming._impact_armed,
+		"Grenade should NOT arm if not thrown yet")
+
+
+func test_can_impact_explode_false_when_not_armed() -> void:
+	arming = MockFragGrenadeArming.new()
+	arming.setup(Vector2(100, 100))
+	arming.throw()
+	# Still at spawn point, not armed
+	arming.update_arming()
+
+	assert_false(arming.can_impact_explode(),
+		"Should not allow impact explosion when not armed")
+
+
+func test_can_impact_explode_true_when_armed() -> void:
+	arming = MockFragGrenadeArming.new()
+	arming.setup(Vector2(100, 100))
+	arming.throw()
+	arming.current_position = Vector2(200, 100)
+	arming.update_arming()
+
+	assert_true(arming.can_impact_explode(),
+		"Should allow impact explosion when armed")
+
+
+func test_can_impact_explode_false_when_already_impacted() -> void:
+	arming = MockFragGrenadeArming.new()
+	arming.setup(Vector2(100, 100))
+	arming.throw()
+	arming.current_position = Vector2(200, 100)
+	arming.update_arming()
+	arming._has_impacted = true
+
+	assert_false(arming.can_impact_explode(),
+		"Should not allow impact explosion after already impacted")
+
+
+func test_min_arming_distance_constant() -> void:
+	assert_eq(MockFragGrenadeArming.MIN_ARMING_DISTANCE, 80.0,
+		"MIN_ARMING_DISTANCE should be 80px (twice the spawn offset of 40px)")

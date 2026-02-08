@@ -67,3 +67,59 @@ From `game_log_20260208_175336.txt`:
 - Effects: `grenade_thrown: true`
 - Cost: 0.3 (high priority when conditions are met)
 - Integrates grenadier throwing decision into the GOAP planning system
+
+## Phase 2: Self-Kill Bug (Follow-up from PR #658 comment)
+
+### Problem
+
+After implementing T8/T9, the grenadier was reported to "стабильно убивает себя гранатой" (consistently kills itself with its own grenade).
+
+### Root Cause: Grenade Impact with Nearby Furniture
+
+**Evidence from `game_log_20260208_182351.txt` (lines 3212-3244):**
+
+1. Grenade spawned at `(1671.783, 296.760)` — only 40px offset from grenadier position
+2. Target was `(1434.667, 435.554)`, distance 315px — passed the safe distance check (315 > 275)
+3. Grenade immediately collided with `Desk3` (StaticBody2D) right next to the grenadier
+4. Frag grenade exploded at `(1669.552, 302.763)` — only ~5px from spawn point!
+5. Grenadier was 45.4px from explosion — well within 225px blast radius
+6. Took 99 HE damage, HP 1/2 -> 0/2, died
+
+**Root cause chain:**
+```
+Trigger fires → safe distance check passes (target is far enough)
+→ _path_clear() passes (raycast to target doesn't detect nearby desk)
+→ Grenade spawns at enemy_pos + dir * 40px
+→ Grenade's collision_mask = 4|2 (obstacles + enemies)
+→ Desk3 collision shape is within contact distance of spawn point
+→ body_entered signal fires immediately
+→ FragGrenade._on_body_entered → Desk3 is StaticBody2D → instant explosion
+→ Grenadier at 45px distance takes 99 damage → DEAD
+```
+
+**Why existing checks didn't help:**
+- `_path_clear()` raycasts from enemy to target — doesn't detect obstacles **beside** the throw path
+- Safe distance check (275px) only measures distance to the target, not to nearby obstacles
+- Grenade spawns only 40px from enemy, but furniture can be right there
+
+### Solution: Two-Pronged Fix
+
+**Fix 1: Spawn Area Obstacle Check (`_spawn_area_clear()`)** — `enemy_grenade_component.gd`
+- Before throwing, raycast from enemy in the throw direction for 100px (40px spawn + 60px safety)
+- Also raycast slightly to the sides (±15px perpendicular) to catch obstacles at the edges
+- If any obstacle is detected, skip the throw entirely
+- Applied in both `try_throw()` and `try_passage_throw()`
+
+**Fix 2: Minimum Arming Distance** — `frag_grenade.gd`
+- Added `MIN_ARMING_DISTANCE = 80px` constant (twice the spawn offset)
+- Grenade records its spawn position on creation
+- Impact explosion only triggers after grenade has traveled ≥80px from spawn
+- If grenade hits obstacle before 80px, impact is logged but ignored — grenade continues
+- This is a safety net that prevents self-kills even if the obstacle check is bypassed
+
+**Why both fixes are needed:**
+- Fix 1 prevents most self-kill scenarios by not throwing when obstacles are near
+- Fix 2 is a safety net for edge cases where the obstacle check might miss:
+  - Obstacles with unusual collision shapes
+  - Physics engine edge cases with CCD
+  - Moving obstacles that appear after the check but before the throw

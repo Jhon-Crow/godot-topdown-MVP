@@ -279,6 +279,13 @@ func try_throw(target: Vector2, is_alive: bool, is_stunned: bool, is_blinded: bo
 		_log("Throw path blocked for %s to %s" % [_get_next_grenade_type_name(), target])
 		return false
 
+	# Issue #657: Check for obstacles near the spawn point that could cause
+	# the grenade to explode immediately and kill the thrower
+	var throw_dir := (target - _enemy.global_position).normalized().rotated(randf_range(-inaccuracy, inaccuracy))
+	if not _spawn_area_clear(throw_dir):
+		_log("Obstacle near spawn point for %s - skipping throw to avoid self-kill" % _get_next_grenade_type_name())
+		return false
+
 	_execute_grenadier_throw(target, is_alive, is_stunned, is_blinded)
 	return true
 
@@ -476,6 +483,12 @@ func try_passage_throw(enemy_pos: Vector2, next_waypoint: Vector2, space_state: 
 				throw_target = alt_target
 			else:
 				return false
+
+	# Issue #657: Check spawn area is clear before passage throw
+	var passage_throw_dir := (throw_target - enemy_pos).normalized()
+	if not _spawn_area_clear(passage_throw_dir):
+		_log("Passage throw blocked: obstacle near spawn point for %s" % _get_next_grenade_type_name())
+		return false
 
 	_log("Passage throw: wall at %.0fpx, throwing %s to %s (dist=%.0f)" % [
 		wall_dist, _get_next_grenade_type_name(), str(throw_target), target_dist])
