@@ -345,6 +345,7 @@ var _killed_by_penetration: bool = false
 var _flashbang_status: FlashbangStatusComponent = null
 var _is_blinded: bool = false
 var _is_stunned: bool = false
+var _status_effect_anim: StatusEffectAnimationComponent = null  ## [Issue #602] Status effect visual animations
 
 ## [Grenade Avoidance - Issue #407] Component handles avoidance logic
 var _grenade_avoidance: GrenadeAvoidanceComponent = null
@@ -434,6 +435,8 @@ func _ready() -> void:
 
 	# Initialize death animation component
 	_init_death_animation()
+	_status_effect_anim = StatusEffectAnimationComponent.new(); _status_effect_anim.name = "StatusEffectAnim"; _enemy_model.add_child(_status_effect_anim)  # Issue #602
+	if _head_sprite: _status_effect_anim.head_offset = _head_sprite.position
 	# Issue #405: Enemies start in their default state (IDLE/PATROL/GUARD)
 	# Unlimited search zone is activated AFTER enemy detects and loses player
 
@@ -4812,11 +4815,13 @@ func _setup_flashbang_status() -> void:
 
 func _on_blinded_changed(blinded: bool) -> void:
 	_is_blinded = blinded
+	if _status_effect_anim: _status_effect_anim.set_blinded(blinded)
 	if blinded:
 		_can_see_player = false; _continuous_visibility_timer = 0.0
 
 func _on_stunned_changed(stunned: bool) -> void:
 	_is_stunned = stunned
+	if _status_effect_anim: _status_effect_anim.set_stunned(stunned)
 	if stunned:
 		velocity = Vector2.ZERO
 
