@@ -197,6 +197,13 @@ class MockBuildingLevel extends MockLevelBase:
 	## Default enemy count for building level.
 	var default_enemy_count: int = 10
 
+	## Makarov PM weapon ammo multiplier (2.5x, Issue #636).
+	var pm_ammo_multiplier: float = 2.5
+
+	## Calculate 2.5x ammo for MakarovPM.
+	func get_pm_magazine_count(starting_magazines: int) -> int:
+		return int(round(starting_magazines * pm_ammo_multiplier))
+
 	## Whether the score screen is currently shown (for W key shortcut).
 	var _score_shown: bool = false
 
@@ -246,6 +253,13 @@ class MockCastleLevel extends MockLevelBase:
 	## Castle-specific weapon ammo multiplier (2x for all weapons).
 	var ammo_multiplier: int = 2
 
+	## Makarov PM weapon ammo multiplier (2.5x, Issue #636).
+	var pm_ammo_multiplier: float = 2.5
+
+	## Calculate 2.5x ammo for MakarovPM.
+	func get_pm_magazine_count(starting_magazines: int) -> int:
+		return int(round(starting_magazines * pm_ammo_multiplier))
+
 	## Level ordering.
 	var _level_paths: Array[String] = [
 		"res://scenes/levels/BuildingLevel.tscn",
@@ -286,6 +300,13 @@ class MockTestTier extends MockLevelBase:
 	## Map dimensions (4000x2960 playable area).
 	var map_width: int = 4000
 	var map_height: int = 2960
+
+	## Makarov PM weapon ammo multiplier (2.5x, Issue #636).
+	var pm_ammo_multiplier: float = 2.5
+
+	## Calculate 2.5x ammo for MakarovPM.
+	func get_pm_magazine_count(starting_magazines: int) -> int:
+		return int(round(starting_magazines * pm_ammo_multiplier))
 
 	## Default enemy count for test tier (10 enemies).
 	var default_enemy_count: int = 10
@@ -331,6 +352,13 @@ class MockBeachLevel extends MockLevelBase:
 
 	## Default enemy count for beach level (8 enemies).
 	var default_enemy_count: int = 8
+
+	## Makarov PM weapon ammo multiplier (2.5x, Issue #636).
+	var pm_ammo_multiplier: float = 2.5
+
+	## Calculate 2.5x ammo for MakarovPM.
+	func get_pm_magazine_count(starting_magazines: int) -> int:
+		return int(round(starting_magazines * pm_ammo_multiplier))
 
 	## Whether the score screen is currently shown.
 	var _score_shown: bool = false
@@ -667,6 +695,70 @@ func test_castle_double_magazines_from_1() -> void:
 
 	assert_eq(result, 2,
 		"1 starting magazine * 2 = 2 magazines for castle")
+
+
+# ============================================================================
+# Makarov PM 2.5x Ammo Multiplier Tests (Issue #636)
+# ============================================================================
+
+
+func test_pm_ammo_multiplier_building() -> void:
+	assert_almost_eq(building_level.pm_ammo_multiplier, 2.5, 0.01,
+		"Building level PM ammo multiplier should be 2.5x")
+
+
+func test_pm_ammo_multiplier_castle() -> void:
+	assert_almost_eq(castle_level.pm_ammo_multiplier, 2.5, 0.01,
+		"Castle level PM ammo multiplier should be 2.5x")
+
+
+func test_pm_ammo_multiplier_test_tier() -> void:
+	assert_almost_eq(test_tier.pm_ammo_multiplier, 2.5, 0.01,
+		"TestTier PM ammo multiplier should be 2.5x")
+
+
+func test_pm_ammo_multiplier_beach() -> void:
+	assert_almost_eq(beach_level.pm_ammo_multiplier, 2.5, 0.01,
+		"BeachLevel PM ammo multiplier should be 2.5x")
+
+
+func test_pm_magazines_from_4() -> void:
+	var result := building_level.get_pm_magazine_count(4)
+
+	assert_eq(result, 10,
+		"4 starting magazines * 2.5 = 10 magazines for MakarovPM")
+
+
+func test_pm_magazines_from_2() -> void:
+	var result := building_level.get_pm_magazine_count(2)
+
+	assert_eq(result, 5,
+		"2 starting magazines * 2.5 = 5 magazines for MakarovPM")
+
+
+func test_pm_magazines_from_1() -> void:
+	var result := building_level.get_pm_magazine_count(1)
+
+	assert_true(result == 2 or result == 3,
+		"1 starting magazine * 2.5 = 2 or 3 (rounded) magazines for MakarovPM")
+
+
+func test_pm_multiplier_consistent_across_levels() -> void:
+	var pm_count_4: int = building_level.get_pm_magazine_count(4)
+	assert_eq(pm_count_4, castle_level.get_pm_magazine_count(4),
+		"Building and Castle PM magazine count should match for 4 starting mags")
+	assert_eq(pm_count_4, test_tier.get_pm_magazine_count(4),
+		"Building and TestTier PM magazine count should match for 4 starting mags")
+	assert_eq(pm_count_4, beach_level.get_pm_magazine_count(4),
+		"Building and Beach PM magazine count should match for 4 starting mags")
+
+
+func test_pm_multiplier_greater_than_castle_base() -> void:
+	var pm_mags: int = castle_level.get_pm_magazine_count(4)
+	var castle_mags: int = castle_level.get_castle_magazine_count(4)
+
+	assert_gt(pm_mags, castle_mags,
+		"PM 2.5x magazines (%d) should be more than Castle 2x (%d)" % [pm_mags, castle_mags])
 
 
 # ============================================================================
