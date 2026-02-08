@@ -9,6 +9,7 @@ extends Node
 enum ActiveItemType {
 	NONE,              # No active item equipped
 	FLASHLIGHT,        # Tactical flashlight - illuminates in weapon direction
+	TELEPORT_BRACERS,  # Teleportation bracers - hold Space to aim, release to teleport
 	INVISIBILITY_SUIT  # Invisibility cloak - press Space to become invisible (Issue #673)
 }
 
@@ -26,12 +27,20 @@ const ACTIVE_ITEM_DATA: Dictionary = {
 	ActiveItemType.FLASHLIGHT: {
 		"name": "Flashlight",
 		"icon_path": "res://assets/sprites/weapons/flashlight_icon.png",
-		"description": "Tactical flashlight — hold Space to illuminate in weapon direction. Bright white light, turns off when released."
+		"description": "Tactical flashlight — hold Space to illuminate in weapon direction. Bright white light, turns off when released.",
+		"activation_hint": "Hold Space to activate"
+	},
+	ActiveItemType.TELEPORT_BRACERS: {
+		"name": "Teleport Bracers",
+		"icon_path": "res://assets/sprites/weapons/teleport_bracers_icon.png",
+		"description": "Teleportation bracers — hold Space to aim, release to teleport. 6 charges, no cooldown. Reticle skips through walls.",
+		"activation_hint": "Hold Space to aim, release to teleport"
 	},
 	ActiveItemType.INVISIBILITY_SUIT: {
 		"name": "Invisibility",
-		"icon_path": "",
-		"description": "Invisibility suit — press Space to cloak (Predator-style ripple). Enemies cannot see you for 4 seconds. 2 charges per battle."
+		"icon_path": "res://assets/sprites/weapons/invisibility_suit_icon.png",
+		"description": "Invisibility suit — press Space to cloak (Predator-style ripple). Enemies cannot see you for 4 seconds. 2 charges per battle.",
+		"activation_hint": "Press Space to activate"
 	}
 }
 
@@ -118,6 +127,11 @@ func is_selected(type: int) -> bool:
 ## Check if a flashlight is currently equipped.
 func has_flashlight() -> bool:
 	return current_active_item == ActiveItemType.FLASHLIGHT
+
+
+## Check if teleport bracers are currently equipped.
+func has_teleport_bracers() -> bool:
+	return current_active_item == ActiveItemType.TELEPORT_BRACERS
 
 
 ## Check if an invisibility suit is currently equipped (Issue #673).
