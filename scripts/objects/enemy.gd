@@ -190,31 +190,15 @@ var _has_valid_cover: bool = false  ## Has valid cover
 var _suppression_timer: float = 0.0  ## Suppression cooldown
 var _under_fire: bool = false  ## Under fire (bullets in threat sphere)
 
-## Flank target position.
-var _flank_target: Vector2 = Vector2.ZERO
-
-## Threat sphere Area2D for detecting nearby bullets.
-var _threat_sphere: Area2D = null
-
-## Bullets currently in threat sphere.
-var _bullets_in_threat_sphere: Array = []
-
-## Timer for threat reaction delay - time since first bullet entered threat sphere.
-var _threat_reaction_timer: float = 0.0
-
-## Whether the threat reaction delay has elapsed (enemy can react to bullets).
-var _threat_reaction_delay_elapsed: bool = false
-
-## Memory timer for bullets that passed through threat sphere (allows reaction after fast bullets exit).
-var _threat_memory_timer: float = 0.0
-## Duration to remember bullet passage (longer than reaction delay for complete reaction).
-const THREAT_MEMORY_DURATION: float = 0.5
-
-## Current retreat mode determined by damage taken.
-var _retreat_mode: RetreatMode = RetreatMode.FULL_HP
-
-## Hits taken this retreat/combat encounter. Resets on IDLE or retreat completion.
-var _hits_taken_in_encounter: int = 0
+var _flank_target: Vector2 = Vector2.ZERO  ## Flank target position
+var _threat_sphere: Area2D = null  ## Threat sphere Area2D for detecting nearby bullets
+var _bullets_in_threat_sphere: Array = []  ## Bullets currently in threat sphere
+var _threat_reaction_timer: float = 0.0  ## Time since first bullet entered threat sphere
+var _threat_reaction_delay_elapsed: bool = false  ## Whether enemy can react to bullets
+var _threat_memory_timer: float = 0.0  ## Memory timer for bullets that passed through threat sphere
+const THREAT_MEMORY_DURATION: float = 0.5  ## Duration to remember bullet passage
+var _retreat_mode: RetreatMode = RetreatMode.FULL_HP  ## Current retreat mode determined by damage taken
+var _hits_taken_in_encounter: int = 0  ## Hits taken this encounter, resets on IDLE or retreat completion
 
 var _retreat_turn_timer: float = 0.0  ## Periodic cover turn timer
 const RETREAT_TURN_DURATION: float = 0.8  ## Duration to face cover (sec)
@@ -357,11 +341,11 @@ var _killed_by_ricochet: bool = false
 ## Whether the last hit that killed this enemy was from a bullet that penetrated a wall.
 var _killed_by_penetration: bool = false
 
-## [Status Effects] Blinded (cannot see player), Stunned (cannot move/act)
+## [Status Effects] Component handles blindness and stun (Issue #432, #328)
+var _flashbang_status: FlashbangStatusComponent = null
 var _is_blinded: bool = false
 var _is_stunned: bool = false
-var _blindness_timer: float = 0.0  ## [Issue #432] Flashbang effect timer
-var _stun_timer: float = 0.0  ## [Issue #432] Flashbang effect timer
+var _status_effect_anim: StatusEffectAnimationComponent = null  ## [Issue #602] Status effect visual animations
 
 ## [Grenade Avoidance - Issue #407] Component handles avoidance logic
 var _grenade_avoidance: GrenadeAvoidanceComponent = null
@@ -375,6 +359,9 @@ var _pre_evasion_state: AIState = AIState.IDLE
 
 var _prediction: PlayerPredictionComponent = null  ## [Issue #298] Player position prediction.
 var _was_player_visible: bool = false  ## [Issue #298] Tracks sight-loss transitions.
+
+## [Issue #574] Flashlight detection component — detects player flashlight beam.
+var _flashlight_detection: FlashlightDetectionComponent = null
 
 ## Last hit direction (used for death animation).
 var _last_hit_direction: Vector2 = Vector2.RIGHT
@@ -412,11 +399,12 @@ func _ready() -> void:
 	_connect_debug_mode_signal()
 	_update_debug_label()
 	_register_sound_listener()
+	_setup_flashbang_status()
 	_setup_grenade_component()
 	_setup_grenade_avoidance()
 	_setup_machete_component()  # Issue #579
 	_connect_casing_pusher_signals()  # Issue #438
-	if _is_melee_weapon and _weapon_sprite: _weapon_sprite.visible = false  # Issue #579: hide gun
+	if _is_melee_weapon and _weapon_sprite: _weapon_sprite.visible = true  # Issue #595: show machete
 	# Store original collision layers for HitArea (to restore on respawn)
 	if _hit_area:
 		_original_hit_area_layer = _hit_area.collision_layer
@@ -449,6 +437,8 @@ func _ready() -> void:
 
 	# Initialize death animation component
 	_init_death_animation()
+	_status_effect_anim = StatusEffectAnimationComponent.new(); _status_effect_anim.name = "StatusEffectAnim"; _enemy_model.add_child(_status_effect_anim)  # Issue #602
+	if _head_sprite: _status_effect_anim.head_offset = _head_sprite.position
 	# Issue #405: Enemies start in their default state (IDLE/PATROL/GUARD)
 	# Unlimited search zone is activated AFTER enemy detects and loses player
 
@@ -597,9 +587,7 @@ func on_sound_heard_with_intensity(sound_type: int, position: Vector2, source_ty
 		if _memory:
 			_memory.update_position(position, SOUND_RELOAD_CONFIDENCE)
 
-		# React to vulnerable player sound - transition to combat/pursuing
-		# All enemies in hearing range should pursue the vulnerable player!
-		# This makes reload sounds a high-risk action when enemies are nearby.
+		# React to vulnerable player sound - pursue (high-risk for reload actions)
 		if _current_state in [AIState.IDLE, AIState.IN_COVER, AIState.SUPPRESSED, AIState.RETREATING, AIState.SEEKING_COVER]:
 			# Leave cover/defensive state to attack vulnerable player
 			_log_to_file("Vulnerability sound triggered pursuit - transitioning from %s to PURSUING" % AIState.keys()[_current_state])
@@ -770,16 +758,22 @@ func _initialize_goap_state() -> void:
 		"in_grenade_danger_zone": false,
 		# Ally death observation state (Issue #409)
 		"witnessed_ally_death": false,
-		"has_prediction": false, "prediction_confidence": 0.0  # [#298]
+		"has_prediction": false, "prediction_confidence": 0.0,  # [#298]
+		# Flashlight detection states (Issue #574)
+		"flashlight_detected": false,
+		"passage_lit_by_flashlight": false
 	}
 
-## Initialize the enemy memory and prediction systems (Issue #297, #298).
+## Initialize the enemy memory, prediction, and flashlight detection systems (Issue #297, #298, #574).
 func _initialize_memory() -> void:
 	_memory = EnemyMemory.new()
 	var es: Node = get_node_or_null("/root/ExperimentalSettings")
 	if es and es.has_method("is_ai_prediction_enabled") and es.is_ai_prediction_enabled():
 		_prediction = PlayerPredictionComponent.new()
 		_prediction.debug_logging = debug_logging
+	# [Issue #574] Initialize flashlight detection component
+	_flashlight_detection = FlashlightDetectionComponent.new()
+	_flashlight_detection.debug_logging = debug_logging
 
 ## Connect to GameManager's debug mode signal for F7 toggle.
 func _connect_debug_mode_signal() -> void:
@@ -826,7 +820,8 @@ func _physics_process(delta: float) -> void:
 		return
 
 	# Update flashbang status effect timers (Issue #432)
-	_update_flashbang_timers(delta)
+	if _flashbang_status:
+		_flashbang_status.update(delta)
 
 	# Update shoot cooldown timer
 	_shoot_timer += delta
@@ -887,26 +882,19 @@ func _physics_process(delta: float) -> void:
 	_update_grenade_danger_detection()  # Issue #407: Check for nearby grenades
 	if _machete: _machete.update(delta)  # Issue #579: Update machete component
 
-	# Update enemy model rotation BEFORE processing AI state (which may shoot).
-	# This ensures the weapon is correctly positioned when bullets are created.
-	# Note: We don't call _update_weapon_sprite_rotation() anymore because:
-	# 1. The EnemyModel rotation already rotates the weapon correctly
-	# 2. The previous _update_weapon_sprite_rotation() was using the Enemy's rotation
-	#    instead of EnemyModel's rotation, causing the weapon to be offset by 90 degrees
+	# Update enemy model rotation BEFORE AI state (weapon must be positioned before shooting).
+	# EnemyModel rotation handles weapon aiming (not _update_weapon_sprite_rotation).
 	_update_enemy_model_rotation()
 
 	# Process AI state machine (may trigger shooting)
 	_process_ai_state(delta)
 
-	# Update debug label if enabled
 	_update_debug_label()
-
-	# Request redraw for debug visualization
-	if debug_label_enabled:
+	if debug_label_enabled:  # Request redraw for debug visualization
 		queue_redraw()
 
-	# Update walking animation based on movement
-	_update_walk_animation(delta)
+	_update_walk_animation(delta)  # Update walking animation based on movement
+	_apply_machete_attack_animation()  # Issue #595: machete swing animation
 	move_and_slide()
 
 	# Push any casings we collided with (Issue #341)
@@ -943,6 +931,12 @@ func _update_goap_state() -> void:
 	_goap_world_state["witnessed_ally_death"] = _witnessed_ally_death
 	if _prediction:  # [#298]
 		_goap_world_state["has_prediction"] = _prediction.has_predictions; _goap_world_state["prediction_confidence"] = _prediction.get_prediction_confidence()
+
+	# Flashlight detection states (Issue #574)
+	if _flashlight_detection:
+		_goap_world_state["flashlight_detected"] = _flashlight_detection.detected
+		# Check if the next navigation waypoint is lit by the flashlight
+		_goap_world_state["passage_lit_by_flashlight"] = _flashlight_detection.is_next_waypoint_lit(_nav_agent, _player) if _player else false
 ## Updates model rotation smoothly (#347). Priority: player > combat/pursuit/flank > corner check > velocity > idle scan.
 ## Issues #386, #397: COMBAT/PURSUING/FLANKING states prioritize facing the player to prevent turning away.
 func _update_enemy_model_rotation() -> void:
@@ -998,17 +992,8 @@ func _update_enemy_model_rotation() -> void:
 	else:
 		_enemy_model.scale = Vector2(enemy_model_scale, enemy_model_scale)
 
-## Forces the enemy model to face a specific direction immediately.
-## Used for priority attacks where we need to aim and shoot in the same frame.
-##
-## Unlike _update_enemy_model_rotation(), this function:
-## 1. Takes a specific direction to face (doesn't derive it from player position)
-## 2. Is called immediately before shooting in priority attack code
-##
-## This ensures the weapon sprite's transform matches the intended aim direction
-## so that _get_weapon_forward_direction() returns the correct vector for aim checks.
-##
-## @param direction: The direction to face (normalized).
+## Forces enemy model to face direction immediately for priority attacks.
+## Ensures weapon sprite transform matches intended aim direction.
 func _force_model_to_face_direction(direction: Vector2) -> void:
 	if not _enemy_model:
 		return
@@ -1259,10 +1244,7 @@ func _process_ai_state(delta: float) -> void:
 
 			# Aim at player immediately - both body rotation and model rotation
 			rotation = direction_to_player.angle()
-			# CRITICAL: Force the model to face the player immediately so that
-			# _get_weapon_forward_direction() returns the correct aim direction.
-			# Without this, the weapon transform would still reflect the old direction
-			# and _shoot() would fail the aim tolerance check. (Fix for issue #264)
+			# CRITICAL: Force model to face player for correct aim direction (issue #264)
 			_force_model_to_face_direction(direction_to_player)
 
 			# Shoot with priority - still respects weapon fire rate cooldown
@@ -1358,8 +1340,9 @@ func _process_idle_state(delta: float) -> void:
 ## Process COMBAT state - cycle: approach->exposed shooting (2-3s)->return to cover via SEEKING_COVER.
 func _process_combat_state(delta: float) -> void:
 	_combat_state_timer += delta
-	# Issue #579: Machete melee combat - rush to player, dodge bullets, attack
+	# Issue #579/#595: Machete melee combat with attack animation
 	if _is_melee_weapon and _machete and _player:
+		if _machete.is_attacking(): return  # Issue #595: Hold position during attack animation
 		if _under_fire and _bullets_in_threat_sphere.size() > 0 and not _machete.is_dodging():
 			var b = _bullets_in_threat_sphere[0]
 			if is_instance_valid(b):
@@ -1372,9 +1355,7 @@ func _process_combat_state(delta: float) -> void:
 		if _machete.is_backstab_opportunity(_player) or _machete.is_player_under_fire(_player):
 			tp = _machete.get_backstab_approach_position(_player, 60.0)
 		_move_to_target_nav(tp, combat_move_speed); return
-	# Check for suppression - transition to retreating behavior
-	# BUT: When pursuing a vulnerability sound (player reloading/out of ammo),
-	# ignore suppression and continue the attack - this is the best time to strike!
+	# Check suppression (ignore during vulnerability pursuit)
 	if _under_fire and enable_cover and not _pursuing_vulnerability_sound:
 		_combat_exposed = false
 		_combat_approaching = false
@@ -1680,7 +1661,6 @@ func _process_in_cover_state(delta: float) -> void:
 		return
 
 	# NOTE: ASSAULT state transition removed per issue #169
-	# Enemies now stay in IN_COVER instead of transitioning to coordinated assault
 
 	# Decision making based on player distance and visibility
 	if _player:
@@ -2022,6 +2002,15 @@ func _process_pursuing_state(delta: float) -> void:
 				_goap_world_state[vuln_pursuit_key] = current_frame
 				_log_to_file("Pursuing vulnerability sound at %s, distance=%.0f" % [_last_known_player_position, distance_to_sound])
 			return
+
+	# [Issue #574] Check if the current path goes through a lit passage
+	# If the flashlight illuminates the next waypoint, try flanking to find an alternate route
+	if _flashlight_detection and _player and not _pursuit_approaching:
+		if _flashlight_detection.is_next_waypoint_lit(_nav_agent, _player):
+			if _can_attempt_flanking():
+				_log_to_file("[#574] Next waypoint lit by flashlight, attempting flank to avoid lit passage")
+				if _transition_to_flanking():
+					return
 
 	# Process approach phase - moving directly toward player when no better cover exists
 	if _pursuit_approaching:
@@ -3172,11 +3161,17 @@ func _find_pursuit_cover_toward_player() -> void:
 			# - Closer to player
 			# - Not too far from current position
 			# - On a different obstacle than current cover
+			# - NOT illuminated by the player's flashlight (Issue #574)
 			var hidden_score: float = 5.0 if is_hidden else 0.0
 			var approach_score: float = progress / CLOSE_COMBAT_DISTANCE
 			var distance_penalty: float = cover_distance_from_me / COVER_CHECK_DISTANCE
 
-			var total_score: float = hidden_score + approach_score * 2.0 - distance_penalty - same_obstacle_penalty
+			# [Issue #574] Penalize cover positions lit by the flashlight
+			var flashlight_penalty: float = 0.0
+			if _flashlight_detection and _player and _flashlight_detection.is_position_lit(cover_pos, _player):
+				flashlight_penalty = 8.0  # Strong penalty — avoid walking into flashlight beam
+
+			var total_score: float = hidden_score + approach_score * 2.0 - distance_penalty - same_obstacle_penalty - flashlight_penalty
 
 			if total_score > best_score:
 				best_score = total_score
@@ -3388,6 +3383,17 @@ func _choose_best_flank_side() -> float:
 		return 1.0
 	elif left_valid and not right_valid:
 		return -1.0
+
+	# [Issue #574] When both sides are valid, prefer the side NOT lit by the flashlight
+	if right_valid and left_valid and _flashlight_detection and _player:
+		var right_lit := _flashlight_detection.is_position_lit(right_flank_pos, _player)
+		var left_lit := _flashlight_detection.is_position_lit(left_flank_pos, _player)
+		if right_lit and not left_lit:
+			_log_to_file("[#574] Choosing left flank — right side lit by flashlight")
+			return -1.0
+		elif left_lit and not right_lit:
+			_log_to_file("[#574] Choosing right flank — left side lit by flashlight")
+			return 1.0
 
 	# Issue #367: If neither valid, try reduced distance (50%)
 	if not right_valid and not left_valid:
@@ -3658,7 +3664,7 @@ func _check_player_visibility() -> void:
 		_continuous_visibility_timer = 0.0
 		_player_visibility_ratio = 0.0
 
-## Update enemy memory: visual detection, decay, prediction, and intel sharing (Issue #297, #298).
+## Update enemy memory: visual detection, decay, prediction, flashlight detection, and intel sharing (Issue #297, #298, #574).
 func _update_memory(delta: float) -> void:
 	if _memory == null:
 		return
@@ -3672,6 +3678,26 @@ func _update_memory(delta: float) -> void:
 		var f := Vector2.RIGHT.rotated(_enemy_model.global_rotation) if _enemy_model else Vector2.RIGHT
 		_prediction.process_frame(_can_see_player, _was_player_visible, _player.global_position if _player else Vector2.ZERO, global_position, f, delta, _memory)
 	_was_player_visible = _can_see_player
+
+	# [Issue #574] Flashlight beam detection: enemy detects beam when any part of it falls within their FOV
+	if _flashlight_detection and _player and not _can_see_player and not _is_blinded and _memory_reset_confusion_timer <= 0.0:
+		var _es: Node = get_node_or_null("/root/ExperimentalSettings")
+		var _fov_on: bool = fov_enabled and _es != null and _es.has_method("is_fov_enabled") and _es.is_fov_enabled()
+		var flashlight_detected := _flashlight_detection.check_flashlight(global_position, _enemy_model.global_rotation if _enemy_model else rotation, fov_angle, _fov_on, _player, _raycast, delta)
+		if flashlight_detected:
+			# Update memory with flashlight-based detection
+			_memory.update_position(_flashlight_detection.estimated_player_position, FlashlightDetectionComponent.FLASHLIGHT_DETECTION_CONFIDENCE)
+			_last_known_player_position = _flashlight_detection.estimated_player_position
+			_log_to_file("[#574] Flashlight detected: estimated_pos=%s, beam_dir=%s" % [
+				_flashlight_detection.estimated_player_position, _flashlight_detection.beam_direction
+			])
+			# If in IDLE state, react to flashlight detection by investigating
+			if _current_state == AIState.IDLE:
+				_log_to_file("[#574] Flashlight triggered pursuit from IDLE")
+				_transition_to_pursuing()
+	elif _flashlight_detection and (_can_see_player or _is_blinded or _memory_reset_confusion_timer > 0.0):
+		# Reset flashlight detection when player is directly visible or enemy is blinded/confused
+		_flashlight_detection.reset()
 
 	# Apply confidence decay over time
 	_memory.decay(delta)
@@ -4224,36 +4250,18 @@ func _get_health_percent() -> float:
 		return 0.0
 	return float(_current_health) / float(_max_health)
 
-## Calculates the bullet spawn position at the weapon's muzzle.
-## The muzzle is positioned relative to the weapon mount, offset in the weapon's forward direction.
-##
-## IMPORTANT FIX (Issue #264 - Session 4):
-## Similar to _get_weapon_forward_direction(), we need to calculate the muzzle position
-## based on the intended aim direction when the player is visible, not from the stale
-## global_transform which may not have updated yet in the same physics frame.
-##
-## @param _direction: The normalized direction the bullet will travel (used for fallback only).
-## @return: The global position where the bullet should spawn.
+## Calculates the bullet spawn position at the weapon's muzzle (Issue #264 fix).
+## Uses intended aim direction when player visible to avoid transform delay.
 func _get_bullet_spawn_position(_direction: Vector2) -> Vector2:
-	# The rifle sprite (m16_rifle_topdown.png) is 64px long with offset (20, 0).
-	# The muzzle (right edge in local space) is at: offset.x + sprite_width/2 = 20 + 32 = 52px
-	# from the WeaponSprite node position.
-	var muzzle_local_offset := 52.0  # Distance from node to muzzle in local +X direction
+	var muzzle_local_offset := 52.0  # Rifle: offset.x(20) + sprite_width/2(32) = 52px
 	if _weapon_sprite and _enemy_model:
 		var weapon_forward: Vector2
 
-		# When player is visible, calculate direction directly to avoid transform delay.
-		# This matches the fix in _get_weapon_forward_direction().
+		# Direct calc to player when visible to avoid transform delay (#264)
 		if _player and is_instance_valid(_player) and _can_see_player:
 			weapon_forward = (_player.global_position - global_position).normalized()
 		else:
-			# Fallback to transform-based direction when player is not visible.
-			# Get the weapon's VISUAL forward direction from global_transform.
-			# IMPORTANT: We use global_transform.x because it correctly accounts for the
-			# vertical flip (scale.y negative) that happens when aiming left. The flip
-			# affects where the muzzle visually appears, so we need the transformed direction.
-			# Using Vector2.from_angle(_enemy_model.rotation) would give incorrect results
-			# because it doesn't account for the scale flip.
+			# Use global_transform.x (accounts for scale flip when aiming left)
 			weapon_forward = _weapon_sprite.global_transform.x.normalized()
 
 		# Calculate muzzle offset accounting for enemy model scale
@@ -4269,59 +4277,33 @@ func _get_bullet_spawn_position(_direction: Vector2) -> Vector2:
 		# Fallback to old behavior if weapon sprite or enemy model not found
 		return global_position + _direction * bullet_spawn_offset
 
-## Returns the weapon's forward direction (normalized). Uses direct calculation to player
-## when visible to avoid transform delay (Issue #264).
+## Returns the weapon's forward direction (normalized, Issue #264).
 func _get_weapon_forward_direction() -> Vector2:
-	# When we can see the player, calculate direction directly to avoid transform delay.
-	# This is the same calculation used in _update_enemy_model_rotation(), ensuring
-	# consistency between the visual aim and the actual bullet direction.
+	# Direct calc to player when visible to avoid transform delay
 	if _player and is_instance_valid(_player) and _can_see_player:
 		return (_player.global_position - global_position).normalized()
-
-	# Fallback to transform-based direction when player is not visible.
-	# In this case, the transform should have had time to update across frames.
+	# Fallback to transform-based direction
 	if _weapon_sprite:
-		# Use the weapon sprite's global_transform.x for the true visual forward direction.
-		# This correctly handles the vertical flip case (scale.y negative) because
-		# global_transform includes all parent transforms including scale.
 		return _weapon_sprite.global_transform.x.normalized()
 	elif _enemy_model:
-		# Fallback to enemy model's transform if weapon sprite not available
 		return _enemy_model.global_transform.x.normalized()
-	else:
-		# Fallback: calculate direction to player
-		if _player and is_instance_valid(_player):
-			return (_player.global_position - global_position).normalized()
-		return Vector2.RIGHT  # Default fallback
+	elif _player and is_instance_valid(_player):
+		return (_player.global_position - global_position).normalized()
+	return Vector2.RIGHT
 
-## Updates the weapon sprite rotation to match shooting direction with vertical flip handling.
+## Updates weapon sprite rotation to match shooting direction with vertical flip handling.
 func _update_weapon_sprite_rotation() -> void:
 	if not _weapon_sprite:
 		return
-
-	# Calculate the direction the weapon should point (same as shooting direction)
-	# This matches the logic in _shoot() to ensure visual consistency
-	var aim_angle: float = rotation  # Default to body rotation
-
+	var aim_angle: float = rotation
 	if _player and is_instance_valid(_player):
-		# Calculate direction to player (or predicted position if lead prediction is enabled)
 		var target_position := _player.global_position
 		if enable_lead_prediction and _can_see_player:
 			target_position = _calculate_lead_prediction()
-
-		var direction := (target_position - global_position).normalized()
-		aim_angle = direction.angle()
-
-	# Set the weapon sprite LOCAL rotation relative to parent.
-	# The weapon sprite is a child of the enemy body, so we need to subtract the parent's
-	# rotation to get the correct world-space orientation.
-	# Without this, the rotation would be doubled (parent rotation + own rotation).
+		aim_angle = (target_position - global_position).normalized().angle()
+	# Local rotation relative to parent (subtract parent rotation to avoid doubling)
 	_weapon_sprite.rotation = aim_angle - rotation
-
-	# Flip the sprite vertically when aiming left (to avoid upside-down rifle)
-	# This happens when the angle is greater than 90 degrees or less than -90 degrees
-	var aiming_left := absf(aim_angle) > PI / 2.0
-	_weapon_sprite.flip_v = aiming_left
+	_weapon_sprite.flip_v = absf(aim_angle) > PI / 2.0
 
 ## Returns the effective detection delay based on difficulty setting.
 func _get_effective_detection_delay() -> float:
@@ -4563,6 +4545,7 @@ func _update_debug_label() -> void:
 			else: t += "\n(%s DIRECT)" % s
 	if _memory and _memory.has_target(): t += "\n[%.0f%% %s]" % [_memory.confidence * 100, _memory.get_behavior_mode().substr(0, 6)]
 	if _prediction: t += _prediction.get_debug_text()
+	if _is_blinded or _is_stunned: t += "\n{%s}" % ("BLINDED + STUNNED" if _is_blinded and _is_stunned else "BLINDED" if _is_blinded else "STUNNED")
 	_debug_label.text = t
 
 func get_current_state() -> AIState: return _current_state
@@ -4805,43 +4788,39 @@ func _get_nav_path_distance(target_pos: Vector2) -> float:
 	_nav_agent.target_position = target_pos
 	return _nav_agent.distance_to_target()
 
-# Status Effects (Blindness, Stun)
+# Status Effects (Blindness, Stun) - delegated to FlashbangStatusComponent (Issue #328)
+
+func _setup_flashbang_status() -> void:
+	_flashbang_status = FlashbangStatusComponent.new()
+	_flashbang_status.name = "FlashbangStatusComponent"
+	_flashbang_status.blinded_changed.connect(_on_blinded_changed)
+	_flashbang_status.stunned_changed.connect(_on_stunned_changed)
+	add_child(_flashbang_status)
+
+func _on_blinded_changed(blinded: bool) -> void:
+	_is_blinded = blinded
+	if _status_effect_anim: _status_effect_anim.set_blinded(blinded)
+	if blinded:
+		_can_see_player = false; _continuous_visibility_timer = 0.0
+
+func _on_stunned_changed(stunned: bool) -> void:
+	_is_stunned = stunned
+	if _status_effect_anim: _status_effect_anim.set_stunned(stunned)
+	if stunned:
+		velocity = Vector2.ZERO
 
 func set_blinded(blinded: bool) -> void:
-	var was := _is_blinded
-	_is_blinded = blinded
-	if blinded and not was:
-		_log_to_file("Status: BLINDED applied")
-		_can_see_player = false; _continuous_visibility_timer = 0.0
-	elif not blinded and was:
-		_log_to_file("Status: BLINDED removed")
+	if _flashbang_status: _flashbang_status.set_blinded(blinded)
 
 func set_stunned(stunned: bool) -> void:
-	var was := _is_stunned
-	_is_stunned = stunned
-	if stunned and not was:
-		_log_to_file("Status: STUNNED applied")
-		velocity = Vector2.ZERO
-	elif not stunned and was:
-		_log_to_file("Status: STUNNED removed")
+	if _flashbang_status: _flashbang_status.set_stunned(stunned)
 
 func is_blinded() -> bool: return _is_blinded
 func is_stunned() -> bool: return _is_stunned
 
 ## Apply flashbang effect (Issue #432). Called by C# GrenadeTimer.
 func apply_flashbang_effect(blindness_duration: float, stun_duration: float) -> void:
-	_log_to_file("Flashbang: blind=%.1fs, stun=%.1fs" % [blindness_duration, stun_duration])
-	if blindness_duration > 0.0: _blindness_timer = maxf(_blindness_timer, blindness_duration); set_blinded(true)
-	if stun_duration > 0.0: _stun_timer = maxf(_stun_timer, stun_duration); set_stunned(true)
-
-## Update flashbang timers (Issue #432). Called from _physics_process.
-func _update_flashbang_timers(delta: float) -> void:
-	if _blindness_timer > 0.0:
-		_blindness_timer -= delta
-		if _blindness_timer <= 0.0: _blindness_timer = 0.0; set_blinded(false)
-	if _stun_timer > 0.0:
-		_stun_timer -= delta
-		if _stun_timer <= 0.0: _stun_timer = 0.0; set_stunned(false)
+	if _flashbang_status: _flashbang_status.apply_flashbang_effect(blindness_duration, stun_duration)
 
 # Grenade System (Issue #363) - Component-based (extracted for Issue #377)
 
@@ -4961,7 +4940,6 @@ func _setup_machete_component() -> void:
 func _switch_to_secondary_weapon() -> void:
 	var c := WeaponConfigComponent.get_config(weapon_type)
 	var switch_type: int = c.get("switch_weapon_type", 0)
-	# Reconfigure to secondary weapon (PM)
 	var sc := WeaponConfigComponent.get_config(switch_type)
 	shoot_cooldown = sc["shoot_cooldown"]; bullet_speed = sc["bullet_speed"]; magazine_size = sc["magazine_size"]
 	bullet_spawn_offset = sc["bullet_spawn_offset"]; weapon_loudness = sc["weapon_loudness"]
@@ -4979,6 +4957,12 @@ func _switch_to_secondary_weapon() -> void:
 	_current_ammo = magazine_size; _reserve_ammo = (total_magazines - 1) * magazine_size
 	_is_reloading = false; _reload_timer = 0.0
 	print("[Enemy] RPG fired, switched to %s" % WeaponConfigComponent.get_type_name(switch_type))
+
+## Apply machete attack animation to weapon mount and arms (Issue #595).
+func _apply_machete_attack_animation() -> void:
+	if not _is_melee_weapon or _machete == null: return
+	if _weapon_mount: _weapon_mount.rotation = _machete.get_weapon_rotation() if _machete.is_attacking() else 0.0
+	if _machete.is_attacking() and _right_arm_sprite: _right_arm_sprite.position.x += _machete.get_arm_offset()
 
 ## Connect CasingPusher Area2D signals (Issue #438, same pattern as player Issue #392).
 func _connect_casing_pusher_signals() -> void:
