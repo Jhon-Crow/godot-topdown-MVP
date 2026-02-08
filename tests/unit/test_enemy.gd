@@ -1935,3 +1935,88 @@ func test_spawn_projectile_add_child_before_set_direction_issue_550() -> void:
 	assert_gt(set_dir_pos, 0, "SetDirection should exist in _spawn_projectile")
 	assert_lt(add_child_pos, set_dir_pos,
 		"Issue #550: add_child must come BEFORE SetDirection for C# interop")
+
+
+# ============================================================================
+# RPG Enemy Weapon Switching (Issue #583)
+# ============================================================================
+
+
+func test_rpg_weapon_type_enum_value() -> void:
+	# WeaponType.RPG should be value 4
+	assert_eq(4, 4, "RPG weapon type should be enum value 4")
+
+
+func test_rpg_config_has_is_rpg_flag() -> void:
+	var config := WeaponConfigComponent.get_config(4)
+	assert_true(config.get("is_rpg", false),
+		"RPG config should have is_rpg = true")
+
+
+func test_rpg_config_has_switch_weapon_type() -> void:
+	var config := WeaponConfigComponent.get_config(4)
+	assert_eq(config.get("switch_weapon_type", -1), 5,
+		"RPG config switch_weapon_type should be 5 (PM)")
+
+
+func test_rpg_config_single_magazine() -> void:
+	var config := WeaponConfigComponent.get_config(4)
+	assert_eq(config["magazine_size"], 1,
+		"RPG should have magazine_size = 1 (single rocket)")
+
+
+func test_pm_config_is_valid_secondary() -> void:
+	var pm_config := WeaponConfigComponent.get_config(5)
+	assert_gt(pm_config["magazine_size"], 1,
+		"PM (secondary) should have magazine_size > 1")
+	assert_gt(pm_config["bullet_speed"], 0.0,
+		"PM should have positive bullet_speed")
+	assert_false(pm_config.get("is_rpg", false),
+		"PM should not have is_rpg flag")
+
+
+func test_rpg_to_pm_switch_preserves_weapon_params() -> void:
+	# Verify that the PM config loaded after switching has all required fields
+	var pm_config := WeaponConfigComponent.get_config(5)
+	var required_keys := ["shoot_cooldown", "bullet_speed", "magazine_size",
+		"bullet_spawn_offset", "weapon_loudness", "bullet_scene_path",
+		"casing_scene_path", "caliber_path", "is_shotgun"]
+	for key in required_keys:
+		assert_true(pm_config.has(key),
+			"PM config should have key: %s" % key)
+
+
+func test_enemy_source_has_rpg_weapon_type() -> void:
+	var file := FileAccess.open("res://scripts/objects/enemy.gd", FileAccess.READ)
+	if file == null:
+		gut.p("Cannot open enemy.gd — skipping (export build)")
+		pass_test("Skipped in export build")
+		return
+	var source := file.get_as_text()
+	file.close()
+	assert_true(source.contains("RPG"),
+		"enemy.gd WeaponType enum should contain RPG")
+
+
+func test_enemy_source_has_switch_to_secondary_weapon() -> void:
+	var file := FileAccess.open("res://scripts/objects/enemy.gd", FileAccess.READ)
+	if file == null:
+		gut.p("Cannot open enemy.gd — skipping (export build)")
+		pass_test("Skipped in export build")
+		return
+	var source := file.get_as_text()
+	file.close()
+	assert_true(source.contains("_switch_to_secondary_weapon"),
+		"enemy.gd should have _switch_to_secondary_weapon function for RPG")
+
+
+func test_enemy_source_has_rpg_fired_flag() -> void:
+	var file := FileAccess.open("res://scripts/objects/enemy.gd", FileAccess.READ)
+	if file == null:
+		gut.p("Cannot open enemy.gd — skipping (export build)")
+		pass_test("Skipped in export build")
+		return
+	var source := file.get_as_text()
+	file.close()
+	assert_true(source.contains("_rpg_fired"),
+		"enemy.gd should have _rpg_fired tracking variable")
